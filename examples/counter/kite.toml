@@ -1,0 +1,10 @@
+[plugin]
+name = 'My Plugin'
+description = 'A very cool Kite plugin'
+type = 'go'
+commands = []
+events = ["DISCORD_MESSAGE_CREATE"]
+permissions = []
+
+[plugin.build]
+out = 'plugin.wasm'

@@ -1,0 +1,15 @@
+[plugin]
+name = 'My Plugin'
+description = 'A very cool Kite plugin'
+type = 'go'
+
+events = ["DISCORD_MESSAGE_CREATE", "DISCORD_INTERACTION_CREATE"]
+permissions = ["DISCORD_MESSAGE_CREATE"]
+
+[[plugin.commands]]
+type = 'chat'
+name = 'ping'
+description = 'Pong!'
+
+[plugin.default_config]
+channel_id = "0987654321"

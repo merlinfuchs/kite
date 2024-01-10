@@ -1,0 +1,10 @@
+go 1.21.5
+
+use (
+	./examples/ping
+	./examples/counter
+	./examples/backup
+	./go-sdk
+	./go-types
+	./kite-service
+)

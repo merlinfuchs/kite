@@ -1,0 +1,10 @@
+[plugin]
+name = "My Plugin"
+description = "A very cool Kite plugin"
+
+[plugin.build]
+out = "plugin.wasm"
+
+[server]
+host = "127.0.0.1"
+port = 8080

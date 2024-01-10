@@ -1,0 +1,15 @@
+[server.discord]
+token = "MTAyNDI1ODA3NTM4Njk3MDE3Mw.GGZ4hp.cbCzmaTgswsL4OwThVv4dZUzkBK0lSoayzxPqA"
+client_id = "1024258075386970173"
+
+[[server.plugins]]
+path = "../examples/counter"
+
+[[server.plugins]]
+path = "../examples/ping"
+
+[[server.plugins]]
+path = "../examples/backup"
+
+[server.plugins.config]
+message = "pong"
