@@ -108,7 +108,7 @@ kite plugin build
 
 ### JavaScript
 
-To write plugins in JS you need to first install the [kitejs-compiler](js-sdk/crates/kitejs-compiler) crate.
+To write plugins in JS you need to first install the custom compiler by following the instructions in the [js-sdk](js-sdk).
 
 #### 1. Create a new plugin
 
