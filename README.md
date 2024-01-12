@@ -18,7 +18,7 @@ Kite is in a very early state and under active development. It's not ready to be
 - [x] Support most common Discord HTTP requests
 - [ ] Support getting Discord entities from cache
 - [x] Support registering Slash Commands
-- [ ] Support most common Slash Command responses
+- [x] Support most common Slash Command responses
 - [x] Support KV store with most common actions
 - [ ] Support dynamically loading and unloading plugins during runtime
 

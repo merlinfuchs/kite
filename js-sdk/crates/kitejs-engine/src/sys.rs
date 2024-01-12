@@ -89,14 +89,14 @@ pub fn call<'a>(context: &'a JSContextRef, call: JSValueRef) -> Result<JSValueRe
 
     let resp_size = unsafe {
         kite_call(ptr as u32, size as u32)
-    };
+    } as usize;
 
-    let mut buf: Vec<u8> = Vec::with_capacity(resp_size as usize);
+    let mut buf: Vec<u8> = Vec::with_capacity(resp_size);
     let ptr = buf.as_mut_ptr();
 
     unsafe { kite_get_call_response(ptr as u32) };
 
-    let resp_buf = unsafe { Vec::from_raw_parts(ptr, size, size) };
+    let resp_buf = unsafe { Vec::from_raw_parts(ptr, resp_size, resp_size) };
 
     Ok(transcode_input(context, &resp_buf)?)
 }

@@ -1,18 +1,30 @@
+const forbiddenPhrases = ["Kite is bad", "Kite is a bad bot"];
+
 Kite.handle = function (event) {
   if (event.type != "DISCORD_MESSAGE_CREATE") return { success: true };
 
   const data = event.data;
 
-  if (data.content == "!ping") {
-    const resp = Kite.call({
-      type: "DISCORD_MESSAGE_CREATE",
-      data: {
-        channel_id: data.channel_id,
-        content: "Pong!",
-      },
-    });
+  for (const phrase of forbiddenPhrases) {
+    if (data.content.includes(phrase)) {
+      Kite.call({
+        type: "DISCORD_MESSAGE_DELETE",
+        data: {
+          channel_id: data.channel_id,
+          message_id: data.id,
+        },
+      });
 
-    console.log(JSON.stringify(resp));
+      Kite.call({
+        type: "DISCORD_MESSAGE_CREATE",
+        data: {
+          channel_id: data.channel_id,
+          content: `Hey, you can't say that!`,
+        },
+      });
+
+      break;
+    }
   }
 
   return { success: true };
