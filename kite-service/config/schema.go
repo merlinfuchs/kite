@@ -40,7 +40,7 @@ type ServerPluginConfig struct {
 type PluginConfig struct {
 	Name          string                `toml:"name" validate:"required,ascii"`
 	Description   string                `toml:"description" validate:"required"`
-	Type          string                `toml:"type" validate:"required,oneof=go rust"`
+	Type          string                `toml:"type" validate:"required,oneof=go rust js"`
 	Build         *PluginBuildConfig    `toml:"build" validate:"required"`
 	DefaultConfig map[string]string     `toml:"default_config"`
 	Commands      []PluginCommandConfig `toml:"commands" validate:"dive"`
@@ -54,6 +54,7 @@ func (cfg *PluginConfig) Validate() error {
 }
 
 type PluginBuildConfig struct {
+	In  string `toml:"in"`
 	Out string `toml:"out" validate:"required"`
 }
 

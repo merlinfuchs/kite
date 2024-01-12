@@ -1,0 +1,8 @@
+[plugin]
+name = 'Discord Automod'
+description = 'A very cool Kite plugin'
+type = 'js'
+
+events = ["DISCORD_MESSAGE_CREATE", "DISCORD_INTERACTION_CREATE"]
+permissions = []
+

@@ -107,6 +107,40 @@ func runBuildRust(basePath string, debug bool, cfg *config.PluginConfig) error {
 	return nil
 }
 
+func runBuildJS(basePath string, debug bool, cfg *config.PluginConfig) error {
+	basePath = filepath.Clean(basePath)
+
+	inputFile := "index.js"
+	if cfg.Build.In != "" {
+		inputFile = cfg.Build.In
+	}
+
+	inPath := filepath.Join(basePath, inputFile)
+	outPath := filepath.Join(basePath, cfg.Build.Out)
+
+	cmdArgs := []string{inPath, outPath}
+
+	if !debug {
+		cmdArgs = append(cmdArgs, "--release")
+	}
+
+	cmd := exec.Command("kitejs-compiler", cmdArgs...)
+
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+
+	if err := cmd.Run(); err != nil {
+		return err
+	}
+
+	// For JS plugins we always optimize the WASM because the users logic is in the JS
+	if err := optimizeWASM(outPath); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func optimizeWASM(path string) error {
 	if execCMDExists("wasm-opt") {
 		optArgs := []string{"-Oz", "-o", path, path}
@@ -127,14 +161,4 @@ func optimizeWASM(path string) error {
 func execCMDExists(name string) bool {
 	_, err := exec.LookPath(name)
 	return err == nil
-}
-
-func runBuildJS(basePath string, debug bool, cfg *config.PluginConfig) error {
-	// https://github.com/bytecodealliance/javy
-	// https://docs.rs/quickjs-wasm-rs/latest/quickjs_wasm_rs/
-	// https://github.com/seddonm1/quickjs
-	// https://github.com/extism/js-pdk
-	// https://github.com/tetratelabs/wazero/issues/1580
-
-	return nil
 }

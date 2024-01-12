@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"encoding/json"
 	"fmt"
+	"os"
 	"sync"
 	"time"
 
@@ -76,7 +77,13 @@ func New(ctx context.Context, wasm []byte, manifest PluginManifest, config Plugi
 	m, err := r.InstantiateWithConfig(ctx, wasm,
 		wazero.NewModuleConfig().
 			WithStartFunctions().
-			WithRandSource(rand.Reader),
+			WithRandSource(rand.Reader).
+			WithSysWalltime().
+			WithSysNanosleep().
+			WithSysNanotime().
+			// TODO: remove stdout or forward to logging
+			WithStdout(os.Stdout).
+			WithStderr(os.Stderr),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to instantiate module: %w", err)
