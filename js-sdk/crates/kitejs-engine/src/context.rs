@@ -1,4 +1,4 @@
-use quickjs_wasm_rs::{JSContextRef, JSValue, JSValueRef};
+use quickjs_wasm_rs::{JSContextRef, JSValue, JSValueRef, from_qjs_value};
 
 use crate::sys;
 
@@ -13,23 +13,21 @@ pub fn set_quickjs_globals(context: &JSContextRef) -> anyhow::Result<()> {
 pub fn set_quickjs_kite(context: &JSContextRef) -> anyhow::Result<()> {
     let kite_object = context.object_value()?;
 
-    let kite_call_callback = context.wrap_callback(|ctx, this, args| {
+    let kite_call_callback = context.wrap_callback(|ctx, _this, args| {
         let call = args[0];
 
         let resp = sys::call(ctx, call)?;
+        let resp_value = from_qjs_value(resp)?;
 
-        // TODO: Ok(JSValue::from(resp))
-        this.set_property("callResponse", resp)?;
-        Ok(JSValue::Undefined)
+        Ok(resp_value)
     })?;
     kite_object.set_property("call", kite_call_callback)?;
 
-    let kite_config_callback = context.wrap_callback(|ctx, this, _args| {
+    let kite_config_callback = context.wrap_callback(|ctx, _this, _args| {
         let config = sys::get_config(ctx)?;
+        let config_value = from_qjs_value(config)?;
 
-        // TODO: Ok(JSValue::from(resp))
-        this.set_property("config", config)?;
-        Ok(JSValue::Undefined)
+        Ok(JSValue::from(config_value))
     })?;
     kite_object.set_property("getConfig", kite_config_callback)?;
 

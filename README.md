@@ -2,7 +2,7 @@
 
 Make your own Discord bot without worrying about hosting!
 
-Kite allows your to write Discord Bots in various languages like Go, JavaScript (planned), Rust (planned) and many more and deploy them easily without having to worry about hosting and scaling.
+Kite allows your to write Discord Bots in various languages like Go, JavaScript (WIP), Rust (planned) and many more and deploy them easily without having to worry about hosting and scaling.
 
 In theory any programming language that can compile to WebAssembly, or which interpreter can compile to it, is supported. Right now there is only an official SDK for Go.
 
@@ -103,6 +103,63 @@ To deploy your plugin you first have to compile to a WASM file. Kite provides co
 kite plugin build --debug
 
 # Create the smallest possible WASM file, good for deployment
+kite plugin build
+```
+
+### JavaScript
+
+To write plugins in JS you need to first install the [kitejs-compiler](js-sdk/crates/kitejs-compiler) crate.
+
+#### 1. Create a new plugin
+
+```shell
+kite plugin --path ./my_plugin init --type js
+```
+
+#### 2. Update the manifest
+
+The `kite.toml` is the manifest for your plugin and can contain various configuration options. You can change the name of your plugin, register commands, etc.
+
+For this example we just have to define that we are using the `DISCORD_MESSAGE_CREATE` event:
+
+```toml
+[plugin]
+name = 'Ping Plugin'
+description = '!ping -> Pong!'
+type = 'js'
+
+events = ["DISCORD_MESSAGE_CREATE"]
+```
+
+#### 3. Write some code
+
+There are is no high level SDK or typings for JavaScript yet, you therefore have to write raw Kite host calls.
+
+```js
+Kite.handle = function (event) {
+  if (event.type != "DISCORD_MESSAGE_CREATE") return { success: true };
+
+  const data = event.data;
+
+  if (data.content == "!ping") {
+    Kite.call({
+      type: "DISCORD_MESSAGE_CREATE",
+      data: {
+        channel_id: data.channel_id,
+        content: "Pong!",
+      },
+    });
+  }
+
+  return { success: true };
+};
+```
+
+#### 4. Compile it
+
+To deploy your plugin you first have to compile to a WASM file. Kite provides commands for the various plugin types which then call the specific compiler.
+
+```shell
 kite plugin build
 ```
 

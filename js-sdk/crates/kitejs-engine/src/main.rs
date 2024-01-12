@@ -15,13 +15,16 @@ static SCRIPT_NAME: &str = "script.js";
 pub extern "C" fn init() {
     let ctx = JSContextRef::default();
 
-    context::set_quickjs_globals(&ctx).unwrap();
+    context::set_quickjs_globals(&ctx)
+        .expect("Failed to set quickjs globals");
 
     let mut script = String::new();
-    io::stdin().read_to_string(&mut script).unwrap();
+    io::stdin().read_to_string(&mut script)
+        .expect("Failed to read script from stdin");
+
     let bytecode = ctx
         .compile_global(SCRIPT_NAME, &script)
-        .unwrap();
+        .expect("Failed to compile script");
 
     unsafe {
         JS_BYTECODE.set(bytecode).unwrap();
@@ -33,17 +36,20 @@ pub extern "C" fn init() {
 pub extern "C" fn handle(length: u32) {
     let context = unsafe { JS_CONTEXT.get().unwrap() };
 
-    let event = sys::get_event(context, length as usize).unwrap();
+    let event = sys::get_event(context, length as usize)
+        .expect("Failed to get event from host");
 
     let globals = context.global_object().unwrap();
+    let kite_object = globals.get_property("Kite").unwrap();
 
-    globals.set_property("__event", event).unwrap();
+    let handle_func = kite_object.get_property("handle")
+        .expect("Failed to get script Kite.handle() function");
 
-    context.eval_global(SCRIPT_NAME, "handle()").unwrap();
+    let response = handle_func.call(&kite_object, &[event])
+        .expect("Failed to execute script Kite.handle() function");
 
-    let response = globals.get_property("__response").unwrap();
-
-    sys::set_event_response(response).unwrap();
+    sys::set_event_response(response)
+        .expect("Failed to set event response on host");
 }
 
 fn main() {
@@ -52,5 +58,6 @@ fn main() {
     let context = unsafe { JS_CONTEXT.get().unwrap() };
     let bytecode = unsafe { JS_BYTECODE.get().unwrap() };
 
-    context.eval_binary(bytecode).unwrap();
+    context.eval_binary(bytecode)
+        .expect("Failed to execute script");
 }
