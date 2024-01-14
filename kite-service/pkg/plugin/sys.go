@@ -61,8 +61,7 @@ func (p *Plugin) kiteCall(offset uint32, length uint32) uint32 {
 		return p.resError(err)
 	}
 
-	// TODO: add guild id to the plugin instance and have one instance per guild
-	res, err := p.env.Call(p.ctx, "615613572164091914", req)
+	res, err := p.env.Call(p.ctx, p.currentGuildID, req)
 	if err != nil {
 		return p.resError(err)
 	}

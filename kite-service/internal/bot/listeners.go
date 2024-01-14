@@ -2,7 +2,6 @@ package bot
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/merlinfuchs/kite/go-types/dismodel"
@@ -15,7 +14,7 @@ func (b *Bot) registerListeners() {
 }
 
 func (b *Bot) handleMessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
-	err := b.Engine.HandleEvent(context.Background(), &event.Event{
+	b.Engine.HandleEvent(context.Background(), &event.Event{
 		Type:    event.DiscordMessageCreate,
 		GuildID: m.GuildID,
 		Data: dismodel.MessageCreateEvent{
@@ -24,13 +23,10 @@ func (b *Bot) handleMessageCreate(s *discordgo.Session, m *discordgo.MessageCrea
 			Content:   m.Content,
 		},
 	})
-	if err != nil {
-		fmt.Printf("failed to handle event: %v\n", err)
-	}
 }
 
 func (b *Bot) handleMessageUpdate(s *discordgo.Session, m *discordgo.InteractionCreate) {
-	err := b.Engine.HandleEvent(context.Background(), &event.Event{
+	b.Engine.HandleEvent(context.Background(), &event.Event{
 		Type:    event.DiscordInteractionCreate,
 		GuildID: m.GuildID,
 		Data: dismodel.InteractionCreateEvent{
@@ -41,7 +37,4 @@ func (b *Bot) handleMessageUpdate(s *discordgo.Session, m *discordgo.Interaction
 			Data:      m.Data,
 		},
 	})
-	if err != nil {
-		fmt.Printf("failed to handle event: %v\n", err)
-	}
 }

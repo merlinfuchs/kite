@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"sync"
 	"time"
 
 	"github.com/merlinfuchs/kite/go-types/event"
@@ -22,8 +21,6 @@ const PluginStateReady PluginState = "ready"
 const PluginStateEvent PluginState = "event"
 
 type Plugin struct {
-	sync.RWMutex
-
 	r          wazero.Runtime
 	m          api.Module
 	manifest   Manifest
@@ -42,6 +39,7 @@ type Plugin struct {
 	currentCallResponse  []byte
 	currentEvent         []byte
 	currentEventResponse *event.EventResponse
+	currentGuildID       string
 }
 
 func New(ctx context.Context, wasm []byte, manifest Manifest, config PluginConfig, env HostEnvironment) (*Plugin, error) {
@@ -168,6 +166,7 @@ func (p *Plugin) Handle(ctx context.Context, e *event.Event) error {
 		return fmt.Errorf("failed to marshal event: %w", err)
 	}
 	p.currentEvent = raw
+	p.currentGuildID = e.GuildID
 
 	p.startHandle()
 	defer p.endHandle()

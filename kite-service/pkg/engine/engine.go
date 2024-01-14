@@ -2,33 +2,37 @@ package engine
 
 import (
 	"sync"
-
-	"github.com/merlinfuchs/kite/kite-service/pkg/plugin"
 )
 
 type PluginEngine struct {
 	sync.RWMutex
 
-	StaticPlugins []LoadedPlugin
-	Plugins       []LoadedPlugin
+	StaticPlugins []*PluginDeployment
+	Deployments   map[string][]*PluginDeployment
 }
 
 func New() *PluginEngine {
 	return &PluginEngine{}
 }
 
-func (e *PluginEngine) LoadPlugin(plugin *plugin.Plugin, guildIDs []string) error {
+func (e *PluginEngine) LoadStaticPlugin(plugin *PluginDeployment) error {
 	e.Lock()
 	defer e.Unlock()
 
-	gids := make(map[string]struct{}, len(guildIDs))
-	for _, gid := range guildIDs {
-		gids[gid] = struct{}{}
+	e.StaticPlugins = append(e.StaticPlugins, plugin)
+	return nil
+}
+
+func (e *PluginEngine) LoadPlugin(p *PluginDeployment, guildID string) error {
+	e.Lock()
+	defer e.Unlock()
+
+	deployments, exists := e.Deployments[guildID]
+	if !exists {
+		deployments = []*PluginDeployment{}
 	}
 
-	e.StaticPlugins = append(e.StaticPlugins, LoadedPlugin{
-		Plugin:   plugin,
-		GuildIDs: gids,
-	})
+	deployments = append(deployments, p)
+	e.Deployments[guildID] = deployments
 	return nil
 }

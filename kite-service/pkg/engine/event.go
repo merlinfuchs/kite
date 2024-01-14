@@ -2,27 +2,48 @@ package engine
 
 import (
 	"context"
-	"slices"
+	"log/slog"
+	"sync"
 
 	"github.com/merlinfuchs/kite/go-types/event"
+	"github.com/merlinfuchs/kite/kite-service/internal/logging/logattr"
 )
 
-func (e *PluginEngine) HandleEvent(ctx context.Context, event *event.Event) error {
-	for _, plugin := range e.StaticPlugins {
-		if _, ok := plugin.GuildIDs[event.GuildID]; len(plugin.GuildIDs) == 0 || ok {
-			plugin.Plugin.Lock()
-			defer plugin.Plugin.Unlock()
+func (e *PluginEngine) HandleEvent(ctx context.Context, event *event.Event) {
+	var wg sync.WaitGroup
 
-			if !slices.Contains(plugin.Plugin.Manifest().Events, string(event.Type)) {
-				continue
-			}
+	for _, d := range e.StaticPlugins {
+		wg.Add(1)
 
-			err := plugin.Plugin.Handle(ctx, event)
+		d := d
+		go func() {
+			defer wg.Done()
+
+			err := d.HandleEvent(ctx, event)
 			if err != nil {
-				return err
+				slog.With(logattr.Error(err)).Error("Error handling event on plugin")
 			}
-		}
+		}()
 	}
 
-	return nil
+	deployments, exists := e.Deployments[event.GuildID]
+	if !exists {
+		return
+	}
+
+	for _, d := range deployments {
+		wg.Add(1)
+
+		d := d
+		go func() {
+			defer wg.Done()
+
+			err := d.HandleEvent(ctx, event)
+			if err != nil {
+				slog.With(logattr.Error(err)).Error("Error handling event on plugin")
+			}
+		}()
+	}
+
+	wg.Wait()
 }

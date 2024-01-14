@@ -10,6 +10,7 @@ require (
 	github.com/gofiber/fiber/v2 v2.52.0
 	github.com/golang-migrate/migrate/v4 v4.17.0
 	github.com/jmoiron/sqlx v1.3.5
+	github.com/jolestar/go-commons-pool/v2 v2.1.2
 	github.com/knadh/koanf/parsers/toml v0.1.0
 	github.com/knadh/koanf/providers/file v0.1.0
 	github.com/knadh/koanf/providers/rawbytes v0.1.0

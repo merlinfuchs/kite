@@ -1,7 +1,6 @@
 package internal
 
 import (
-	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -27,10 +26,10 @@ func RunServer(cfg *config.ServerConfig) error {
 		return fmt.Errorf("failed to create bot: %w", err)
 	}
 
-	engine := engine.New()
+	e := engine.New()
 	env := host.NewEnv(bot)
 
-	bot.Engine = engine
+	bot.Engine = e
 
 	for _, pl := range cfg.StaticPlugins {
 		pluginCFG, err := config.LoadPluginConfig(pl.Path)
@@ -72,18 +71,14 @@ func RunServer(cfg *config.ServerConfig) error {
 			ExecutionTimeLimit: time.Millisecond * 20,
 		}
 
-		plugin, err := plugin.New(context.Background(), wasm, manifest, config, &env)
-		if err != nil {
-			return fmt.Errorf("failed to create plugin: %w", err)
-		}
-
-		err = engine.LoadPlugin(plugin, pl.GuildIDs)
+		deployment := engine.NewDeployment(wasm, manifest, config, &env)
+		err = e.LoadStaticPlugin(deployment)
 		if err != nil {
 			return fmt.Errorf("failed to load plugin: %w", err)
 		}
 	}
 
-	commands := engine.Commands()
+	commands := e.GlobalCommands()
 	_, err = bot.Session.ApplicationCommandBulkOverwrite(cfg.Discord.ClientID, "", commands)
 	if err != nil {
 		return fmt.Errorf("failed to overwrite commands: %w", err)
@@ -96,7 +91,7 @@ func RunServer(cfg *config.ServerConfig) error {
 
 	api := api.New()
 
-	api.RegisterHandlers(engine, pg)
+	api.RegisterHandlers(e, pg)
 
 	return api.Serve(cfg.Host, cfg.Port)
 }
