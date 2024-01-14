@@ -17,6 +17,7 @@ func (cfg *FullConfig) Validate() error {
 type ServerConfig struct {
 	Host          string                     `toml:"host" validate:"required"`
 	Port          int                        `toml:"port" validate:"required"`
+	Log           ServerLogConfig            `toml:"log"`
 	Postgres      ServerPostgresConfig       `toml:"postgres" validate:"required"`
 	Discord       ServerDiscordConfig        `toml:"discord" validate:"required"`
 	StaticPlugins []ServerStaticPluginConfig `toml:"static_plugins" validate:"dive"`
@@ -25,6 +26,13 @@ type ServerConfig struct {
 func (cfg *ServerConfig) Validate() error {
 	validate := validator.New(validator.WithRequiredStructEnabled())
 	return validate.Struct(cfg)
+}
+
+type ServerLogConfig struct {
+	Filename   string `toml:"filename"`
+	MaxSize    int    `toml:"max_size"`
+	MaxAge     int    `toml:"max_age"`
+	MaxBackups int    `toml:"max_backups"`
 }
 
 type ServerPostgresConfig struct {
@@ -47,7 +55,8 @@ type ServerStaticPluginConfig struct {
 }
 
 type PluginConfig struct {
-	Name          string                `toml:"name" validate:"required,ascii"`
+	Key           string                `toml:"key" validate:"required,ascii"`
+	Name          string                `toml:"name" validate:"required"`
 	Description   string                `toml:"description" validate:"required"`
 	Type          string                `toml:"type" validate:"required,oneof=go rust js"`
 	Build         *PluginBuildConfig    `toml:"build" validate:"required"`

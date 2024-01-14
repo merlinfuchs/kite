@@ -52,6 +52,12 @@ pub extern "C" fn handle(length: u32) {
         .expect("Failed to set event response on host");
 }
 
+#[export_name = "kite_get_api_version"]
+pub extern "C" fn get_api_version() -> u32 {
+    return 0;
+}
+
+
 fn main() {
     sys::log(0, "Plugin loaded!".to_string());
 

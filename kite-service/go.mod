@@ -4,6 +4,8 @@ go 1.21.5
 
 require (
 	github.com/bwmarrin/discordgo v0.27.1
+	github.com/cyrusaf/ctxlog v1.2.0
+	github.com/endobit/clog v0.4.0
 	github.com/go-playground/validator/v10 v10.16.0
 	github.com/gofiber/fiber/v2 v2.52.0
 	github.com/golang-migrate/migrate/v4 v4.17.0
@@ -14,10 +16,13 @@ require (
 	github.com/knadh/koanf/v2 v2.0.1
 	github.com/lib/pq v1.10.9
 	github.com/merlinfuchs/kite/go-types v0.0.0-00010101000000-000000000000
+	github.com/oklog/ulid/v2 v2.1.0
 	github.com/pelletier/go-toml/v2 v2.1.1
 	github.com/sqlc-dev/pqtype v0.3.0
 	github.com/tetratelabs/wazero v1.5.0
 	github.com/urfave/cli/v2 v2.27.0
+	gopkg.in/guregu/null.v4 v4.0.0
+	gopkg.in/natefinch/lumberjack.v2 v2.2.1
 )
 
 require (

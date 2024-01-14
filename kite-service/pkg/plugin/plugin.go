@@ -24,11 +24,12 @@ const PluginStateEvent PluginState = "event"
 type Plugin struct {
 	sync.RWMutex
 
-	r        wazero.Runtime
-	m        api.Module
-	manifest Manifest
-	config   PluginConfig
-	env      HostEnvironment
+	r          wazero.Runtime
+	m          api.Module
+	manifest   Manifest
+	config     PluginConfig
+	env        HostEnvironment
+	apiVersion int
 
 	ctx              context.Context
 	cancel           context.CancelFunc
@@ -91,16 +92,19 @@ func New(ctx context.Context, wasm []byte, manifest Manifest, config PluginConfi
 
 	p.m = m
 
-	// We call _start function manually because we need to call it after the module is instantiated.
-	fn := p.m.ExportedFunction("_start")
-	if fn != nil {
-		ctx, cancel := context.WithTimeout(ctx, 100*time.Millisecond)
-		defer cancel()
+	p.apiVersion, err = p.getAPIVersion(ctx)
+	if err != nil {
+		return nil, err
+	}
 
-		_, err = fn.Call(ctx)
-		if err != nil {
-			return nil, fmt.Errorf("failed to call _start: %w", err)
-		}
+	if p.apiVersion != 0 {
+		return nil, fmt.Errorf("unsupported api version: %d", p.apiVersion)
+	}
+
+	// We call _start function manually because we need to call it after the module is instantiated.
+	err = p.callStart(ctx)
+	if err != nil {
+		return nil, err
 	}
 
 	p.state = PluginStateReady
@@ -113,6 +117,41 @@ func (p *Plugin) Manifest() Manifest {
 
 func (p *Plugin) Config() PluginConfig {
 	return p.config
+}
+
+func (p *Plugin) getAPIVersion(ctx context.Context) (int, error) {
+	fn := p.m.ExportedFunction("kite_get_api_version")
+	if fn == nil {
+		return 0, fmt.Errorf("kite_api_version not defined")
+	}
+
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Millisecond)
+	defer cancel()
+
+	res, err := fn.Call(ctx)
+	if err != nil {
+		return 0, fmt.Errorf("failed to call kite_api_version: %w", err)
+	}
+
+	if len(res) != 1 {
+		return 0, fmt.Errorf("kite_api_version returned invalid number of results")
+	}
+
+	return int(res[0]), nil
+}
+
+func (p *Plugin) callStart(ctx context.Context) error {
+	fn := p.m.ExportedFunction("_start")
+	if fn != nil {
+		ctx, cancel := context.WithTimeout(ctx, 100*time.Millisecond)
+		defer cancel()
+
+		_, err := fn.Call(ctx)
+		if err != nil {
+			return fmt.Errorf("failed to call _start: %w", err)
+		}
+	}
+	return nil
 }
 
 func (p *Plugin) Handle(ctx context.Context, e *event.Event) error {

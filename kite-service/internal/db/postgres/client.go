@@ -6,6 +6,7 @@ import (
 
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
+	"github.com/merlinfuchs/kite/kite-service/config"
 	"github.com/merlinfuchs/kite/kite-service/internal/db/postgres/pgmodel"
 )
 
@@ -32,14 +33,14 @@ func New(connectionDSN string) (*Client, error) {
 	}, nil
 }
 
-func BuildConnectionDSN(host string, port int, dbname string, user string, password string) string {
+func BuildConnectionDSN(cfg config.ServerPostgresConfig) string {
 	dsn := fmt.Sprintf(
 		"host=%s port=%d dbname=%s user=%s sslmode=disable connect_timeout=4",
-		host, port, dbname, user,
+		cfg.Host, cfg.Port, cfg.DBName, cfg.User,
 	)
 
-	if password != "" {
-		dsn += " password=" + password
+	if cfg.Password != "" {
+		dsn += " password=" + cfg.Password
 	}
 	return dsn
 }

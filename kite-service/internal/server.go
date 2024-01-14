@@ -17,13 +17,7 @@ import (
 )
 
 func RunServer(cfg *config.ServerConfig) error {
-	pg, err := postgres.New(postgres.BuildConnectionDSN(
-		cfg.Postgres.Host,
-		cfg.Postgres.Port,
-		cfg.Postgres.DBName,
-		cfg.Postgres.User,
-		cfg.Postgres.Password,
-	))
+	pg, err := postgres.New(postgres.BuildConnectionDSN(cfg.Postgres))
 	if err != nil {
 		return fmt.Errorf("failed to create postgres client: %w", err)
 	}

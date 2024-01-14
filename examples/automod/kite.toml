@@ -1,4 +1,5 @@
 [plugin]
+key = "automod@merlin.gg"
 name = 'Discord Automod'
 description = 'A very cool Kite plugin'
 type = 'js'

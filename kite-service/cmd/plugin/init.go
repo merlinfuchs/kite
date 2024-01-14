@@ -19,6 +19,11 @@ func initCMD() *cli.Command {
 				Required: true,
 			},
 			&cli.StringFlag{
+				Name:     "key",
+				Usage:    "Unique key for the plugin (e.g. myplugin@username)",
+				Required: true,
+			},
+			&cli.StringFlag{
 				Name:  "name",
 				Usage: "Name of the plugin",
 			},
@@ -30,15 +35,16 @@ func initCMD() *cli.Command {
 		Action: func(c *cli.Context) error {
 			basePath := c.String("path")
 			typ := c.String("type")
+			key := c.String("key")
 			name := c.String("name")
 			description := c.String("description")
 
-			return runInit(basePath, typ, name, description)
+			return runInit(basePath, typ, key, name, description)
 		},
 	}
 }
 
-func runInit(basePath, typ, name, description string) error {
+func runInit(basePath, typ, key, name, description string) error {
 	if _, err := os.Stat(basePath); err != nil {
 		if os.IsNotExist(err) {
 			if err := os.MkdirAll(basePath, 0755); err != nil {
@@ -57,6 +63,8 @@ func runInit(basePath, typ, name, description string) error {
 	if err != nil {
 		return fmt.Errorf("Failed to load default config: %v", err)
 	}
+
+	cfg.Key = key
 
 	if name != "" {
 		cfg.Name = name

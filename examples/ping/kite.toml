@@ -1,4 +1,5 @@
 [plugin]
+key = "ping@merlin.gg"
 name = 'My Plugin'
 description = 'A very cool Kite plugin'
 type = 'go'

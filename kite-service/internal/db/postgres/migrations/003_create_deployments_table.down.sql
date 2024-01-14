@@ -1,1 +1,1 @@
-DROP TABLE deployments;
+DROP TABLE IF EXISTS deployments;

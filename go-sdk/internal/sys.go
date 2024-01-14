@@ -29,6 +29,11 @@ func kiteSetEventResponse(offset uint32, length uint32) uint32
 //export kite_get_call_response
 func kiteGetCallResponse(offset uint32) uint32
 
+//export kite_get_api_version
+func kiteGetAPIVersion() uint32 {
+	return 0
+}
+
 var EventHandlers = make(map[event.EventType][]event.EventHandler)
 
 //export kite_handle

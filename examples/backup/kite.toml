@@ -1,4 +1,5 @@
 [plugin]
+key = "backup@merlin.gg"
 name = 'Discord Server Backups'
 description = 'A very cool Kite plugin'
 type = 'go'

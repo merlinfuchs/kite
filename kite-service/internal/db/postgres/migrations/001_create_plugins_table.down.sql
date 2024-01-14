@@ -1,1 +1,1 @@
-DROP TABLE plugins;
+DROP TABLE IF EXISTS plugins;
