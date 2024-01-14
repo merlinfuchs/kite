@@ -8,7 +8,7 @@ import (
 )
 
 func (e *PluginEngine) HandleEvent(ctx context.Context, event *event.Event) error {
-	for _, plugin := range e.Plugins {
+	for _, plugin := range e.StaticPlugins {
 		if _, ok := plugin.GuildIDs[event.GuildID]; len(plugin.GuildIDs) == 0 || ok {
 			plugin.Plugin.Lock()
 			defer plugin.Plugin.Unlock()

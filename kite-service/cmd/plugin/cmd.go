@@ -17,6 +17,7 @@ func CMD() *cli.Command {
 			initCMD(),
 			buildCMD(),
 			testCMD(),
+			deployCMD(),
 		},
 	}
 }

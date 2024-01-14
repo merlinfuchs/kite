@@ -26,7 +26,7 @@ type Plugin struct {
 
 	r        wazero.Runtime
 	m        api.Module
-	manifest PluginManifest
+	manifest Manifest
 	config   PluginConfig
 	env      HostEnvironment
 
@@ -43,7 +43,7 @@ type Plugin struct {
 	currentEventResponse *event.EventResponse
 }
 
-func New(ctx context.Context, wasm []byte, manifest PluginManifest, config PluginConfig, env HostEnvironment) (*Plugin, error) {
+func New(ctx context.Context, wasm []byte, manifest Manifest, config PluginConfig, env HostEnvironment) (*Plugin, error) {
 	r := wazero.NewRuntimeWithConfig(ctx,
 		wazero.NewRuntimeConfigCompiler().
 			WithCloseOnContextDone(true).
@@ -107,7 +107,7 @@ func New(ctx context.Context, wasm []byte, manifest PluginManifest, config Plugi
 	return p, nil
 }
 
-func (p *Plugin) Manifest() PluginManifest {
+func (p *Plugin) Manifest() Manifest {
 	return p.manifest
 }
 

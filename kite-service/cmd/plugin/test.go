@@ -61,7 +61,7 @@ func runTest(basePath string, build bool, debug bool, cfg *config.PluginConfig) 
 		UserConfig:         cfg.DefaultConfig,
 	}
 
-	manifest := plugin.PluginManifest{}
+	manifest := plugin.Manifest{}
 
 	ctx := context.Background()
 	plugin, err := plugin.New(ctx, wasm, manifest, config, host.HostEnvironment{})

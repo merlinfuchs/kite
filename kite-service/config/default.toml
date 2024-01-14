@@ -8,3 +8,9 @@ out = "plugin.wasm"
 [server]
 host = "127.0.0.1"
 port = 8080
+
+[server.postgres]
+host = "127.0.0.1"
+port = 5432
+user = "postgres"
+db_name = "kite"

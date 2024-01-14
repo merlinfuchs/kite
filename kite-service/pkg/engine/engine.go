@@ -9,7 +9,8 @@ import (
 type PluginEngine struct {
 	sync.RWMutex
 
-	Plugins []LoadedPlugin
+	StaticPlugins []LoadedPlugin
+	Plugins       []LoadedPlugin
 }
 
 func New() *PluginEngine {
@@ -25,7 +26,7 @@ func (e *PluginEngine) LoadPlugin(plugin *plugin.Plugin, guildIDs []string) erro
 		gids[gid] = struct{}{}
 	}
 
-	e.Plugins = append(e.Plugins, LoadedPlugin{
+	e.StaticPlugins = append(e.StaticPlugins, LoadedPlugin{
 		Plugin:   plugin,
 		GuildIDs: gids,
 	})

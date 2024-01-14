@@ -4,10 +4,12 @@ import (
 	"fmt"
 
 	"github.com/bwmarrin/discordgo"
+	"github.com/merlinfuchs/kite/kite-service/pkg/engine"
 )
 
 type Bot struct {
 	Session *discordgo.Session
+	Engine  *engine.PluginEngine
 }
 
 func New(token string) (*Bot, error) {
@@ -28,7 +30,15 @@ func New(token string) (*Bot, error) {
 		fmt.Println("Bot is ready!")
 	})
 
-	return &Bot{
+	b := &Bot{
 		Session: session,
-	}, nil
+	}
+
+	b.registerListeners()
+
+	return b, nil
+}
+
+func (b *Bot) Start() error {
+	return b.Session.Open()
 }
