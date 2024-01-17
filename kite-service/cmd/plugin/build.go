@@ -121,7 +121,7 @@ func runBuildJS(basePath string, debug bool, cfg *config.PluginConfig) error {
 	cmdArgs := []string{inPath, outPath}
 
 	if !debug {
-		cmdArgs = append(cmdArgs, "--release")
+		cmdArgs = append(cmdArgs, "--optimize")
 	}
 
 	cmd := exec.Command("kitejs-compiler", cmdArgs...)

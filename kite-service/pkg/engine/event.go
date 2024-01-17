@@ -12,7 +12,7 @@ import (
 func (e *PluginEngine) HandleEvent(ctx context.Context, event *event.Event) {
 	var wg sync.WaitGroup
 
-	for _, d := range e.StaticPlugins {
+	for _, d := range e.StaticDeployments {
 		wg.Add(1)
 
 		d := d
@@ -26,12 +26,7 @@ func (e *PluginEngine) HandleEvent(ctx context.Context, event *event.Event) {
 		}()
 	}
 
-	deployments, exists := e.Deployments[event.GuildID]
-	if !exists {
-		return
-	}
-
-	for _, d := range deployments {
+	for _, d := range e.Deployments[event.GuildID] {
 		wg.Add(1)
 
 		d := d

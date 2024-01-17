@@ -14,17 +14,18 @@ fn main() -> Result<()> {
 
     let input_file = args.get(1).ok_or(anyhow!("No input file specified"))?;
     let output_file = args.get(2).ok_or(anyhow!("No output file specified"))?;
+    let optimize = args.get(3).map(|s| s == "--optimize").unwrap_or(false);
 
     let js = fs::read(input_file)?;
 
-    let wasm = generate_module(js)?;
+    let wasm = generate_module(js, optimize)?;
 
     fs::write(output_file, wasm)?;
     
     Ok(())
 }
 
-fn generate_module(js: Vec<u8>) -> Result<Vec<u8>> {
+fn generate_module(js: Vec<u8>, optimize: bool) -> Result<Vec<u8>> {
     let wasm = include_bytes!(concat!(env!("OUT_DIR"), "/engine.wasm"));
 
     let wasi = WasiCtxBuilder::new()
@@ -54,21 +55,25 @@ fn generate_module(js: Vec<u8>) -> Result<Vec<u8>> {
         .run(wasm)
         .map_err(|_| anyhow!("JS compilation failed"))?;
 
-    let codegen_cfg = CodegenConfig {
-        optimization_level: 3, // Aggressively optimize for speed.
-        shrink_level: 0,       // Don't optimize for size at the expense of performance.
-        debug_info: false,
-    };
+    if optimize {
+        // This is more or less equivalent to running `wasm-opt -O4 --strip` on the engine module beforehand.
 
-    let mut module = Module::read(&wasm)
-        .map_err(|_| anyhow!("Unable to read wasm binary for wasm-opt optimizations"))?;
-
-    module.optimize(&codegen_cfg);
-    module
-        .run_optimization_passes(vec!["strip"], &codegen_cfg)
-        .map_err(|_| anyhow!("Running wasm-opt optimization passes failed"))?;
-
-    let wasm = module.write();
-
-    Ok(wasm)
+        let codegen_cfg = CodegenConfig {
+            optimization_level: 4, // Aggressively optimize for speed.
+            shrink_level: 0,       // Don't optimize for size at the expense of performance.
+            debug_info: false,
+        };
+    
+        let mut module = Module::read(&wasm)
+            .map_err(|_| anyhow!("Unable to read wasm binary for wasm-opt optimizations"))?;
+    
+        module.optimize(&codegen_cfg);
+        module
+            .run_optimization_passes(vec!["strip"], &codegen_cfg)
+            .map_err(|_| anyhow!("Running wasm-opt optimization passes failed"))?;
+    
+        Ok(module.write())
+    } else {
+        Ok(wasm)
+    }
 }

@@ -10,6 +10,7 @@ import (
 	"github.com/merlinfuchs/kite/kite-service/internal/api"
 	"github.com/merlinfuchs/kite/kite-service/internal/bot"
 	"github.com/merlinfuchs/kite/kite-service/internal/db/postgres"
+	"github.com/merlinfuchs/kite/kite-service/internal/deployments"
 	"github.com/merlinfuchs/kite/kite-service/internal/host"
 	"github.com/merlinfuchs/kite/kite-service/pkg/engine"
 	"github.com/merlinfuchs/kite/kite-service/pkg/plugin"
@@ -26,8 +27,11 @@ func RunServer(cfg *config.ServerConfig) error {
 		return fmt.Errorf("failed to create bot: %w", err)
 	}
 
-	e := engine.New()
 	env := host.NewEnv(bot)
+	e := engine.New(env)
+
+	manager := deployments.NewManager(pg, e)
+	manager.Start()
 
 	bot.Engine = e
 
@@ -71,8 +75,8 @@ func RunServer(cfg *config.ServerConfig) error {
 			ExecutionTimeLimit: time.Millisecond * 20,
 		}
 
-		deployment := engine.NewDeployment(wasm, manifest, config, &env)
-		err = e.LoadStaticPlugin(deployment)
+		deployment := engine.NewDeployment(wasm, manifest, config)
+		err = e.LoadStaticDeployment(deployment)
 		if err != nil {
 			return fmt.Errorf("failed to load plugin: %w", err)
 		}

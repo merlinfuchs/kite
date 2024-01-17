@@ -11,4 +11,5 @@ type DeploymentStore interface {
 	DeleteDeployment(ctx context.Context, deployment model.Deployment) error
 	GetDeploymentForGuild(ctx context.Context, id string, guildID string) (*model.Deployment, error)
 	GetDeploymentsForGuild(ctx context.Context, guildID string) ([]model.Deployment, error)
+	GetGuildIDsWithDeployment(ctx context.Context) ([]string, error)
 }

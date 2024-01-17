@@ -14,16 +14,10 @@ func init() {
 	kite.Event(event.DiscordMessageCreate, func(req event.Event) error {
 		msg := req.Data.(dismodel.MessageCreateEvent)
 
-		channel, err := discord.ChannelGet(msg.ChannelID)
-		if err != nil {
-			log.Error("Failed to get channel: " + err.Error())
-			return err
-		}
-
 		if msg.Content == "!ping" {
 			_, err := discord.MessageCreate(dismodel.MessageCreateCall{
 				ChannelID: msg.ChannelID,
-				Content:   "Pong! " + channel.Name,
+				Content:   "Pong!",
 			})
 			if err != nil {
 				log.Error("Failed to send message: " + err.Error())

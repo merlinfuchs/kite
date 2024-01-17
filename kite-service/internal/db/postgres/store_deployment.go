@@ -40,7 +40,21 @@ func (c *Client) GetDeploymentForGuild(ctx context.Context, id string, guildID s
 }
 
 func (c *Client) GetDeploymentsForGuild(ctx context.Context, guildID string) ([]model.Deployment, error) {
-	return nil, nil
+	rows, err := c.Q.GetDeploymentsForGuild(ctx, guildID)
+	if err != nil {
+		return nil, err
+	}
+
+	deployments := make([]model.Deployment, len(rows))
+	for i, row := range rows {
+		deployments[i] = *deploymentToModel(row)
+	}
+
+	return deployments, nil
+}
+
+func (c *Client) GetGuildIDsWithDeployment(ctx context.Context) ([]string, error) {
+	return c.Q.GetGuildIdsWithDeployments(ctx)
 }
 
 func deploymentToModel(deployment pgmodel.Deployment) *model.Deployment {

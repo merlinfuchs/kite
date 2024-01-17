@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 	"slices"
+	"time"
 
 	pool "github.com/jolestar/go-commons-pool/v2"
 	"github.com/merlinfuchs/kite/go-types/event"
@@ -29,16 +30,23 @@ func (pd *PluginDeployment) Config() plugin.PluginConfig {
 	return pd.config
 }
 
-func NewDeployment(wasm []byte, manifest plugin.Manifest, config plugin.PluginConfig, env plugin.HostEnvironment) *PluginDeployment {
+func NewDeployment(wasm []byte, manifest plugin.Manifest, config plugin.PluginConfig) *PluginDeployment {
 	dp := &PluginDeployment{
 		wasm:     wasm,
 		manifest: manifest,
 		config:   config,
-		env:      env,
 	}
 
 	factory := pool.NewPooledObjectFactorySimple(dp.pluginFactory)
-	dp.pluginPool = pool.NewObjectPoolWithDefaultConfig(context.Background(), factory)
+	dp.pluginPool = pool.NewObjectPool(context.Background(), factory, &pool.ObjectPoolConfig{
+		LIFO:                     true,
+		MaxTotal:                 4,
+		MaxIdle:                  4,
+		MinIdle:                  0,
+		SoftMinEvictableIdleTime: 60 * time.Second,
+		TimeBetweenEvictionRuns:  10 * time.Second,
+	})
+	dp.pluginPool.StartEvictor()
 
 	return dp
 }

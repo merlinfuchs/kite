@@ -38,3 +38,9 @@ INSERT INTO deployments (
     config = EXCLUDED.config,
     updated_at = EXCLUDED.updated_at
 RETURNING *;
+
+-- name: GetGuildIdsWithDeployments :many
+SELECT DISTINCT guild_id FROM deployments;
+
+-- name: GetDeploymentsForGuild :many
+SELECT * FROM deployments WHERE guild_id = $1;
