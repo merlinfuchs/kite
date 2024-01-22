@@ -1,0 +1,36 @@
+.code {
+  height: 100dvh;
+  width: 100dvw;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background-color: #252526;
+}
+
+.codeNav {
+  flex: none;
+}
+
+.codeMain {
+  flex: auto;
+  display: flex;
+  flex-direction: row;
+}
+
+.codeFileTree {
+  flex: none;
+}
+
+.codeCenter {
+  flex: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.codeEditor {
+  flex: auto;
+}
+
+.codeTerminal {
+  flex: none;
+}

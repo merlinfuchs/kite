@@ -4,15 +4,18 @@ import (
 	"fmt"
 
 	"github.com/bwmarrin/discordgo"
+	"github.com/merlinfuchs/kite/kite-service/internal/db/postgres"
 	"github.com/merlinfuchs/kite/kite-service/pkg/engine"
+	"github.com/merlinfuchs/kite/kite-service/pkg/store"
 )
 
 type Bot struct {
-	Session *discordgo.Session
-	Engine  *engine.PluginEngine
+	Session    *discordgo.Session
+	Engine     *engine.PluginEngine
+	guildStore store.GuildStore
 }
 
-func New(token string) (*Bot, error) {
+func New(token string, pg *postgres.Client) (*Bot, error) {
 	session, err := discordgo.New("Bot " + token)
 	if err != nil {
 		return nil, err
@@ -31,7 +34,8 @@ func New(token string) (*Bot, error) {
 	})
 
 	b := &Bot{
-		Session: session,
+		Session:    session,
+		guildStore: pg,
 	}
 
 	b.registerListeners()

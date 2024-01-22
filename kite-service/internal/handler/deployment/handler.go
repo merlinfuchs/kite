@@ -25,7 +25,7 @@ func NewHandler(engine *engine.PluginEngine, deployments store.DeploymentStore) 
 	}
 }
 
-func (h *DeploymentHandler) CreateDeployment(c *fiber.Ctx, req wire.DeploymentCreateRequest) error {
+func (h *DeploymentHandler) HandleDeploymentCreate(c *fiber.Ctx, req wire.DeploymentCreateRequest) error {
 	wasmBytes, err := base64.StdEncoding.DecodeString(req.WasmBytes)
 	if err != nil {
 		return fmt.Errorf("failed to decode wasm bytes: %w", err)
@@ -53,5 +53,22 @@ func (h *DeploymentHandler) CreateDeployment(c *fiber.Ctx, req wire.DeploymentCr
 	return c.JSON(wire.DeploymentCreateResponse{
 		Success: true,
 		Data:    wire.DeploymentToWire(deployment),
+	})
+}
+
+func (h *DeploymentHandler) HandleDeploymentListForGuild(c *fiber.Ctx) error {
+	deployments, err := h.deployments.GetDeploymentsForGuild(c.Context(), c.Params("guildID"))
+	if err != nil {
+		return err
+	}
+
+	res := make([]wire.Deployment, len(deployments))
+	for i, deployment := range deployments {
+		res[i] = wire.DeploymentToWire(&deployment)
+	}
+
+	return c.JSON(wire.DeploymentListResponse{
+		Success: true,
+		Data:    res,
 	})
 }

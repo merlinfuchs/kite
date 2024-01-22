@@ -4,12 +4,16 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"net/http"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/filesystem"
 	"github.com/gofiber/fiber/v2/middleware/recover"
+	kiteapp "github.com/merlinfuchs/kite/kite-app"
 	"github.com/merlinfuchs/kite/kite-service/internal/api/helpers"
 	"github.com/merlinfuchs/kite/kite-service/internal/db/postgres"
 	"github.com/merlinfuchs/kite/kite-service/internal/handler/deployment"
+	guild "github.com/merlinfuchs/kite/kite-service/internal/handler/guilld"
 	"github.com/merlinfuchs/kite/kite-service/internal/logging/logattr"
 	"github.com/merlinfuchs/kite/kite-service/pkg/engine"
 	"github.com/merlinfuchs/kite/kite-service/pkg/wire"
@@ -50,8 +54,19 @@ func New() *API {
 
 func (api *API) RegisterHandlers(engine *engine.PluginEngine, pg *postgres.Client) {
 	deploymentHandler := deployment.NewHandler(engine, pg)
+	api.app.Get("/api/v1/guilds/:guildID/deployments", deploymentHandler.HandleDeploymentListForGuild)
+	api.app.Post("/api/v1/guilds/:guildID/deployments", helpers.WithRequestBody(deploymentHandler.HandleDeploymentCreate))
 
-	api.app.Post("/api/v1/deployments", helpers.WithRequestBody(deploymentHandler.CreateDeployment))
+	guildHandler := guild.NewHandler(engine, pg)
+	api.app.Get("/api/v1/guilds", guildHandler.HandleGuildList)
+
+	// Serve statix files
+	api.app.Use("/", filesystem.New(filesystem.Config{
+		Root:         http.FS(kiteapp.OutFS),
+		Browse:       false,
+		NotFoundFile: "out/index.html",
+		PathPrefix:   "/out",
+	}))
 }
 
 func (api *API) Serve(host string, port int) error {

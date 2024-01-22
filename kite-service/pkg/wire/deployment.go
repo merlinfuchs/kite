@@ -23,6 +23,10 @@ type Deployment struct {
 	UpdatedAt             time.Time         `json:"updated_at"`
 }
 
+type DeploymentListResponse APIResponse[[]Deployment]
+
+type DeploymentGetResponse APIResponse[Deployment]
+
 type DeploymentCreateRequest struct {
 	Key                   string            `json:"key"`
 	Name                  string            `json:"name"`

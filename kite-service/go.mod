@@ -17,6 +17,7 @@ require (
 	github.com/knadh/koanf/v2 v2.0.1
 	github.com/lib/pq v1.10.9
 	github.com/merlinfuchs/kite/go-types v0.0.0-00010101000000-000000000000
+	github.com/merlinfuchs/kite/kite-app v0.0.0
 	github.com/oklog/ulid/v2 v2.1.0
 	github.com/pelletier/go-toml/v2 v2.1.1
 	github.com/sqlc-dev/pqtype v0.3.0
@@ -61,3 +62,5 @@ require (
 )
 
 replace github.com/merlinfuchs/kite/go-types => ../go-types
+
+replace github.com/merlinfuchs/kite/kite-app v0.0.0 => ../kite-app

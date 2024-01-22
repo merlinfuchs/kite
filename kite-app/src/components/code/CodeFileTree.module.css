@@ -1,0 +1,52 @@
+.root {
+  height: 100%;
+  background-color: #252526;
+  color: #f1f1f1;
+  font-weight: 200;
+  font-size: 14px;
+  display: flex;
+  flex-direction: row;
+}
+
+.main {
+  flex: auto;
+  width: 180px;
+  display: flex;
+  flex-direction: column;
+  padding: 10px 0;
+}
+
+.main .item {
+  cursor: pointer;
+  padding-left: 10px;
+  padding-top: 1.5px;
+  padding-bottom: 1.5px;
+}
+
+.main .item .inner {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  user-select: none;
+}
+
+.main .item:hover {
+  background-color: #3e3e40;
+}
+
+.main .item .icon {
+  height: 16px;
+  width: 16px;
+  margin-right: 4px;
+}
+
+.main .file.open {
+  background-color: #323f58;
+  border-left: solid 2px #f1f1f1;
+  padding-left: 8px;
+}
+
+.divider {
+  background-color: #2d2d30;
+  width: 15px;
+}

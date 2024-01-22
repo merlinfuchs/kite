@@ -22,7 +22,7 @@ func RunServer(cfg *config.ServerConfig) error {
 		return fmt.Errorf("failed to create postgres client: %w", err)
 	}
 
-	bot, err := bot.New(cfg.Discord.Token)
+	bot, err := bot.New(cfg.Discord.Token, pg)
 	if err != nil {
 		return fmt.Errorf("failed to create bot: %w", err)
 	}
