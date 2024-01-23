@@ -1,3 +1,7 @@
+import {
+  useCompileJsMutation,
+  useDeploymentCreateMutation,
+} from "@/api/mutations";
 import { compileDeployment } from "@/util/compile";
 import { FlatFile } from "@/util/filetree";
 import Editor, { useMonaco } from "@monaco-editor/react";
@@ -33,7 +37,7 @@ export default function CodeEditor({ files, openFilePath }: Props) {
       noSyntaxValidation: false,
     });
 
-    const libSource = `interface Call {name: string}; declare class Kite {static makeCall(call: Call)};`;
+    const libSource = `interface Event {type: string; data: any}; interface Call {type: string; data: any;}; declare class Kite {static call(call: Call); static handle(event: Event);};`;
     const libUri = "ts:filename/global.d.ts";
 
     monaco.languages.typescript.typescriptDefaults.setEagerModelSync(true);
@@ -62,12 +66,14 @@ export default function CodeEditor({ files, openFilePath }: Props) {
     }
   }, [monaco, files]);
 
+  const compileMutation = useCompileJsMutation();
+  const deployMutation = useDeploymentCreateMutation();
+
   useEffect(() => {
+    console.log("yeet");
     async function onKeyDown(e: KeyboardEvent) {
       if (e.key === "s" && (e.ctrlKey || e.metaKey)) {
         e.preventDefault();
-
-        console.log("save");
 
         if (!monaco) return;
 
@@ -77,10 +83,47 @@ export default function CodeEditor({ files, openFilePath }: Props) {
           content: model.getValue(),
         }));
 
-        console.log(files);
-
         const res = await compileDeployment(files, "index.ts");
-        console.log(res);
+
+        compileMutation.mutate(
+          {
+            source: res,
+          },
+          {
+            onSuccess: (res) => {
+              if (!res.success) {
+                console.error(res.error);
+                return;
+              }
+
+              deployMutation.mutate(
+                {
+                  key: "default@web",
+                  name: "Default Plugin",
+                  description: "The default plugin in the web editor",
+                  wasm_bytes: res.data.wasm_bytes,
+                  guild_id: "615613572164091914",
+                  plugin_version_id: null,
+                  manifest_default_config: {},
+                  config: {},
+                  manifest_events: ["DISCORD_MESSAGE_CREATE"],
+                  manifest_commands: [],
+                },
+                {
+                  onSuccess: (res) => {
+                    console.log(res);
+                  },
+                  onError: (err) => {
+                    console.error(err);
+                  },
+                }
+              );
+            },
+            onError: (err) => {
+              console.error(err);
+            },
+          }
+        );
       }
     }
 

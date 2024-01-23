@@ -1,6 +1,8 @@
 package logattr
 
-import "log/slog"
+import (
+	"log/slog"
+)
 
 const ErrorKey = "error"
 

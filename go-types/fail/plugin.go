@@ -12,6 +12,10 @@ type PluginError struct {
 }
 
 func (e *PluginError) Error() string {
+	// TODO: figure out why this is needed
+	if e == nil {
+		return "err was nil (fix this!)"
+	}
 	return e.Message
 }
 

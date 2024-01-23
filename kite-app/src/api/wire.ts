@@ -2,6 +2,17 @@
 import {APIResponse} from "./base"
 
 //////////
+// source: compile.go
+
+export interface CompileJSRequest {
+  source: string;
+}
+export interface CompileJSResponseData {
+  wasm_bytes: string;
+}
+export type CompileJSResponse = APIResponse<CompileJSResponseData>;
+
+//////////
 // source: deployment.go
 
 export interface Deployment {
