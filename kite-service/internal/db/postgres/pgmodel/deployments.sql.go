@@ -14,8 +14,38 @@ import (
 	"github.com/sqlc-dev/pqtype"
 )
 
+const deleteDeployment = `-- name: DeleteDeployment :one
+DELETE FROM deployments WHERE id = $1 AND guild_id = $2 RETURNING id, key, name, description, guild_id, plugin_version_id, wasm_bytes, manifest_default_config, manifest_events, manifest_commands, config, created_at, updated_at
+`
+
+type DeleteDeploymentParams struct {
+	ID      string
+	GuildID string
+}
+
+func (q *Queries) DeleteDeployment(ctx context.Context, arg DeleteDeploymentParams) (Deployment, error) {
+	row := q.db.QueryRowContext(ctx, deleteDeployment, arg.ID, arg.GuildID)
+	var i Deployment
+	err := row.Scan(
+		&i.ID,
+		&i.Key,
+		&i.Name,
+		&i.Description,
+		&i.GuildID,
+		&i.PluginVersionID,
+		&i.WasmBytes,
+		&i.ManifestDefaultConfig,
+		pq.Array(&i.ManifestEvents),
+		pq.Array(&i.ManifestCommands),
+		&i.Config,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
 const getDeploymentsForGuild = `-- name: GetDeploymentsForGuild :many
-SELECT id, key, name, description, guild_id, plugin_version_id, wasm_bytes, manifest_default_config, manifest_events, manifest_commands, config, created_at, updated_at FROM deployments WHERE guild_id = $1
+SELECT id, key, name, description, guild_id, plugin_version_id, wasm_bytes, manifest_default_config, manifest_events, manifest_commands, config, created_at, updated_at FROM deployments WHERE guild_id = $1 ORDER BY updated_at DESC
 `
 
 func (q *Queries) GetDeploymentsForGuild(ctx context.Context, guildID string) ([]Deployment, error) {

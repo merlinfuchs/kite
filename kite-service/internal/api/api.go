@@ -15,6 +15,7 @@ import (
 	"github.com/merlinfuchs/kite/kite-service/internal/handler/compile"
 	"github.com/merlinfuchs/kite/kite-service/internal/handler/deployment"
 	guild "github.com/merlinfuchs/kite/kite-service/internal/handler/guilld"
+	"github.com/merlinfuchs/kite/kite-service/internal/handler/workspace"
 	"github.com/merlinfuchs/kite/kite-service/internal/logging/logattr"
 	"github.com/merlinfuchs/kite/kite-service/pkg/engine"
 	"github.com/merlinfuchs/kite/kite-service/pkg/wire"
@@ -57,9 +58,19 @@ func (api *API) RegisterHandlers(engine *engine.PluginEngine, pg *postgres.Clien
 	deploymentHandler := deployment.NewHandler(engine, pg)
 	api.app.Get("/api/v1/guilds/:guildID/deployments", deploymentHandler.HandleDeploymentListForGuild)
 	api.app.Post("/api/v1/guilds/:guildID/deployments", helpers.WithRequestBody(deploymentHandler.HandleDeploymentCreate))
+	api.app.Delete("/api/v1/guilds/:guildID/deployments/:deploymentID", deploymentHandler.HandleDeploymentDelete)
+	api.app.Get("/api/v1/guilds/:guildID/deployments/:deploymentID/logs", deploymentHandler.HandleDeploymentLogEntryList)
 
 	guildHandler := guild.NewHandler(engine, pg)
 	api.app.Get("/api/v1/guilds", guildHandler.HandleGuildList)
+	api.app.Get("/api/v1/guilds/:guildID", guildHandler.HandleGuildGet)
+
+	workspaceHandler := workspace.NewHandler(pg)
+	api.app.Post("/api/v1/guilds/:guildID/workspaces", helpers.WithRequestBody(workspaceHandler.HandleWorkspaceCreate))
+	api.app.Put("/api/v1/guilds/:guildID/workspaces/:workspaceID", helpers.WithRequestBody(workspaceHandler.HandleWorkspaceUpdate))
+	api.app.Get("/api/v1/guilds/:guildID/workspaces/:workspaceID", workspaceHandler.HandleWorkspaceGetForGuild)
+	api.app.Get("/api/v1/guilds/:guildID/workspaces", workspaceHandler.HandleWorkspaceListForGuild)
+	api.app.Delete("/api/v1/guilds/:guildID/workspaces/:workspaceID", workspaceHandler.HandleWorkspaceDelete)
 
 	compileHandler := compile.NewHandler()
 	api.app.Post("/api/v1/compile/js", helpers.WithRequestBody(compileHandler.HandleCompileJS))

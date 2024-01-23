@@ -30,7 +30,7 @@ func (q *Queries) GetGuild(ctx context.Context, id string) (Guild, error) {
 }
 
 const getGuilds = `-- name: GetGuilds :many
-SELECT id, name, icon, description, created_at, updated_at FROM guilds
+SELECT id, name, icon, description, created_at, updated_at FROM guilds ORDER BY name DESC
 `
 
 func (q *Queries) GetGuilds(ctx context.Context) ([]Guild, error) {

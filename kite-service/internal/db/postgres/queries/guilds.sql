@@ -23,7 +23,7 @@ ON CONFLICT (id) DO UPDATE SET
 RETURNING *;
 
 -- name: GetGuilds :many
-SELECT * FROM guilds;
+SELECT * FROM guilds ORDER BY name DESC;
 
 -- name: GetGuild :one
 SELECT * FROM guilds WHERE id = $1;

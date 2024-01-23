@@ -9,13 +9,38 @@ interface Props {
   files: FlatFile[];
   openFilePath: string | null;
   setOpenFilePath: (path: string | null) => void;
+  hasUnsavedChanges: boolean;
+  onChange: () => void;
+  isSaving: boolean;
+  onSave: () => void;
+  isDeploying: boolean;
+  onDeploy: () => void;
+  onBack: () => void;
 }
 
-export default function Code({ files, openFilePath, setOpenFilePath }: Props) {
+export default function Code({
+  files,
+  openFilePath,
+  setOpenFilePath,
+  hasUnsavedChanges,
+  onChange,
+  isSaving,
+  onSave,
+  isDeploying,
+  onDeploy,
+  onBack,
+}: Props) {
   return (
     <div className={styles.code}>
       <div className={styles.codeNav}>
-        <CodeNav />
+        <CodeNav
+          hasUnsavedChanges={hasUnsavedChanges}
+          isSaving={isSaving}
+          onSave={onSave}
+          onBack={onBack}
+          isDeploying={isDeploying}
+          onDeploy={onDeploy}
+        />
       </div>
       <div className={styles.codeMain}>
         <div className={styles.codeFileTree}>
@@ -27,7 +52,13 @@ export default function Code({ files, openFilePath, setOpenFilePath }: Props) {
         </div>
         <div className={styles.codeCenter}>
           <div className={styles.codeEditor}>
-            <CodeEditor files={files} openFilePath={openFilePath} />
+            <CodeEditor
+              files={files}
+              openFilePath={openFilePath}
+              onChange={onChange}
+              onSave={onSave}
+              onDeploy={onDeploy}
+            />
           </div>
           <div className={styles.codeTerminal}>
             <CodeTerminal />

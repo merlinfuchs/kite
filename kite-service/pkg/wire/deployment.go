@@ -31,7 +31,6 @@ type DeploymentCreateRequest struct {
 	Key                   string            `json:"key"`
 	Name                  string            `json:"name"`
 	Description           string            `json:"description"`
-	GuildID               string            `json:"guild_id"`
 	PluginVersionID       null.String       `json:"plugin_version_id"`
 	WasmBytes             string            `json:"wasm_bytes"`
 	ManifestDefaultConfig map[string]string `json:"manifest_default_config"`
@@ -41,6 +40,8 @@ type DeploymentCreateRequest struct {
 }
 
 type DeploymentCreateResponse APIResponse[Deployment]
+
+type DeploymentDeleteResponse APIResponse[struct{}]
 
 func DeploymentToWire(d *model.Deployment) Deployment {
 	return Deployment{
@@ -57,5 +58,25 @@ func DeploymentToWire(d *model.Deployment) Deployment {
 		Config:                d.Config,
 		CreatedAt:             d.CreatedAt,
 		UpdatedAt:             d.UpdatedAt,
+	}
+}
+
+type DeploymentLogEntry struct {
+	ID           string    `json:"id"`
+	DeploymentID string    `json:"deployment_id"`
+	Level        string    `json:"level"`
+	Message      string    `json:"message"`
+	CreatedAt    time.Time `json:"created_at"`
+}
+
+type DeploymentLogEntryListResponse APIResponse[[]DeploymentLogEntry]
+
+func DeploymentLogEntryToWire(d *model.DeploymentLogEntry) DeploymentLogEntry {
+	return DeploymentLogEntry{
+		ID:           d.ID,
+		DeploymentID: d.DeploymentID,
+		Level:        d.Level,
+		Message:      d.Message,
+		CreatedAt:    d.CreatedAt,
 	}
 }

@@ -1,18 +1,23 @@
-import {
-  useCompileJsMutation,
-  useDeploymentCreateMutation,
-} from "@/api/mutations";
-import { compileDeployment } from "@/util/compile";
 import { FlatFile } from "@/util/filetree";
+import { initializeMonaco } from "@/util/monaco";
 import Editor, { useMonaco } from "@monaco-editor/react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 interface Props {
   files: FlatFile[];
   openFilePath: string | null;
+  onChange: () => void;
+  onSave: () => void;
+  onDeploy: () => void;
 }
 
-export default function CodeEditor({ files, openFilePath }: Props) {
+export default function CodeEditor({
+  files,
+  openFilePath,
+  onChange,
+  onSave,
+  onDeploy,
+}: Props) {
   const editorRef = useRef<any>(null);
   const monaco = useMonaco();
 
@@ -20,41 +25,19 @@ export default function CodeEditor({ files, openFilePath }: Props) {
   useEffect(() => {
     if (!monaco || monacoIntitialized.current) return;
     monacoIntitialized.current = true;
-
-    monaco.languages.typescript.typescriptDefaults.setCompilerOptions({
-      target: monaco.languages.typescript.ScriptTarget.ES2016,
-      allowNonTsExtensions: true,
-      allowJs: true,
-      moduleResolution: monaco.languages.typescript.ModuleResolutionKind.NodeJs,
-      module: monaco.languages.typescript.ModuleKind.CommonJS,
-      noEmit: false,
-      allowImportingTsExtensions: true,
-      lib: [],
-    });
-
-    monaco.languages.typescript.typescriptDefaults.setDiagnosticsOptions({
-      noSemanticValidation: false,
-      noSyntaxValidation: false,
-    });
-
-    const libSource = `interface Event {type: string; data: any}; interface Call {type: string; data: any;}; declare class Kite {static call(call: Call); static handle(event: Event);};`;
-    const libUri = "ts:filename/global.d.ts";
-
-    monaco.languages.typescript.typescriptDefaults.setEagerModelSync(true);
-    monaco.languages.typescript.typescriptDefaults.addExtraLib(
-      libSource,
-      libUri
-    );
+    initializeMonaco(monaco);
   }, [monaco]);
 
   useEffect(() => {
     if (!monaco) return;
 
+    const existingUris = [];
     for (const file of files) {
       const uri = monaco.Uri.parse(`ts:filename/${file.path}`);
+      existingUris.push(uri.toString());
 
       if (monaco.editor.getModel(uri)) {
-        //monaco.editor.getModel(uri).setValue(file.content);
+        monaco.editor.getModel(uri).setValue(file.content);
         continue;
       } else {
         monaco.editor.createModel(
@@ -64,72 +47,13 @@ export default function CodeEditor({ files, openFilePath }: Props) {
         );
       }
     }
-  }, [monaco, files]);
 
-  const compileMutation = useCompileJsMutation();
-  const deployMutation = useDeploymentCreateMutation();
-
-  useEffect(() => {
-    console.log("yeet");
-    async function onKeyDown(e: KeyboardEvent) {
-      if (e.key === "s" && (e.ctrlKey || e.metaKey)) {
-        e.preventDefault();
-
-        if (!monaco) return;
-
-        const models = monaco.editor.getModels();
-        const files = models.map((model: any) => ({
-          path: model.uri.path.slice(9),
-          content: model.getValue(),
-        }));
-
-        const res = await compileDeployment(files, "index.ts");
-
-        compileMutation.mutate(
-          {
-            source: res,
-          },
-          {
-            onSuccess: (res) => {
-              if (!res.success) {
-                console.error(res.error);
-                return;
-              }
-
-              deployMutation.mutate(
-                {
-                  key: "default@web",
-                  name: "Default Plugin",
-                  description: "The default plugin in the web editor",
-                  wasm_bytes: res.data.wasm_bytes,
-                  guild_id: "615613572164091914",
-                  plugin_version_id: null,
-                  manifest_default_config: {},
-                  config: {},
-                  manifest_events: ["DISCORD_MESSAGE_CREATE"],
-                  manifest_commands: [],
-                },
-                {
-                  onSuccess: (res) => {
-                    console.log(res);
-                  },
-                  onError: (err) => {
-                    console.error(err);
-                  },
-                }
-              );
-            },
-            onError: (err) => {
-              console.error(err);
-            },
-          }
-        );
+    for (const model of monaco.editor.getModels()) {
+      if (!existingUris.includes(model.uri.toString())) {
+        model.dispose();
       }
     }
-
-    document.addEventListener("keydown", onKeyDown);
-    return () => document.removeEventListener("keydown", onKeyDown);
-  }, [monaco, editorRef.current]);
+  }, [monaco, files]);
 
   function showOpenFile(monaco: any, editor: any) {
     if (openFilePath) {
@@ -149,9 +73,58 @@ export default function CodeEditor({ files, openFilePath }: Props) {
     showOpenFile(monaco, editorRef.current);
   }, [openFilePath, monaco, editorRef.current]);
 
+  useEffect(() => {
+    async function onKeyDown(e: KeyboardEvent) {
+      if (e.key === "s" && (e.ctrlKey || e.metaKey)) {
+        e.preventDefault();
+
+        const editor = editorRef.current;
+        if (editor) {
+          editor.getAction("editor.action.formatDocument").run();
+        }
+
+        // TODO: debounce
+        setTimeout(() => {
+          onSave();
+        }, 100);
+      }
+
+      if (e.key === "p" && (e.ctrlKey || e.metaKey)) {
+        e.preventDefault();
+
+        const editor = editorRef.current;
+        if (editor) {
+          editor.getAction("editor.action.formatDocument").run();
+        }
+
+        // TODO: debounce
+        setTimeout(() => {
+          onSave();
+          onDeploy();
+        }, 100);
+      }
+    }
+
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [onSave]);
+
   function handleEditorDidMount(editor: any, monaco: any) {
     editorRef.current = editor;
     showOpenFile(monaco, editor);
+  }
+
+  function handleEditorValueChange(value: string | undefined, e: any) {
+    // isFlush is true when the change comes from outside (e.g. open file changed)
+    // if (e.isFlush) return;
+    const openFile = files.find((f) => f.path === openFilePath);
+    if (!openFile) return;
+
+    // We intentionally don't trigger a state update here, because we don't want to re-render the editor
+    // Monaco will handle the state of the editor, this is just for saving the changes
+    openFile.content = value || "";
+
+    onChange();
   }
 
   if (!openFilePath) {
@@ -165,6 +138,7 @@ export default function CodeEditor({ files, openFilePath }: Props) {
       theme="vs-dark"
       loading={<div />}
       onMount={handleEditorDidMount}
+      onChange={handleEditorValueChange}
     />
   );
 }

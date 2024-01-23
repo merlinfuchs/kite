@@ -64,7 +64,7 @@ func deployCMD() *cli.Command {
 }
 
 func runDeploy(basePath string, guildID string, userConfig map[string]string, serverURL *url.URL, cfg *config.PluginConfig) error {
-	serverURL.Path = path.Join(serverURL.Path, "api/v1/deployments")
+	serverURL.Path = path.Join(serverURL.Path, "api/v1/guilds", guildID, "deployments")
 
 	wasmPath := filepath.Join(basePath, cfg.Build.Out)
 	wasm, err := os.ReadFile(wasmPath)
@@ -76,7 +76,6 @@ func runDeploy(basePath string, guildID string, userConfig map[string]string, se
 		Key:                   cfg.Key,
 		Name:                  cfg.Name,
 		Description:           cfg.Description,
-		GuildID:               guildID,
 		ManifestDefaultConfig: cfg.DefaultConfig,
 		ManifestEvents:        cfg.Events,
 		WasmBytes:             base64.StdEncoding.EncodeToString(wasm),

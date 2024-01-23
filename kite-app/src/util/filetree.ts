@@ -54,3 +54,28 @@ export function flatFilesToFileTree(files: FlatFile[]) {
 
   return root;
 }
+
+export function getIconUrlForFile(filename: string) {
+  const extension = filename.split(".").pop() || "";
+
+  let icon = "default_file";
+  switch (extension) {
+    case "ts":
+      icon = "file_type_typescript";
+      break;
+    case "js":
+      icon = "file_type_js";
+      break;
+    case "json":
+      icon = "file_type_json";
+      break;
+    case "yaml":
+      icon = "file_type_yaml";
+      break;
+    case "toml":
+      icon = "file_type_toml";
+      break;
+  }
+
+  return `/file-icons/${icon}.svg`;
+}

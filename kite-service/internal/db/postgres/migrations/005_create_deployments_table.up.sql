@@ -8,8 +8,6 @@ CREATE TABLE IF NOT EXISTS deployments (
 
    -- Deployments can be associated with a public plugin but don't have to be
    plugin_version_id TEXT REFERENCES plugin_versions(id) ON DELETE RESTRICT,
-   -- Deployments can be associated with a workspace but don't have to be
-   workspace_id TEXT REFERENCES workspaces(id) ON DELETE SET NULL,
    
    -- Copied over from the plugin version if the deployment is associated with a plugin
    wasm_bytes BYTEA NOT NULL,

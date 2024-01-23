@@ -6,6 +6,7 @@ import (
 
 	"github.com/merlinfuchs/kite/kite-service/internal/db/postgres/pgmodel"
 	"github.com/merlinfuchs/kite/kite-service/pkg/model"
+	"github.com/merlinfuchs/kite/kite-service/pkg/store"
 )
 
 func (c *Client) UpsertGuild(ctx context.Context, guild model.Guild) (*model.Guild, error) {
@@ -21,7 +22,8 @@ func (c *Client) UpsertGuild(ctx context.Context, guild model.Guild) (*model.Gui
 		return nil, err
 	}
 
-	return guildToModel(g), nil
+	res := guildToModel(g)
+	return &res, nil
 }
 
 func (c *Client) GetGuilds(ctx context.Context) ([]model.Guild, error) {
@@ -32,7 +34,7 @@ func (c *Client) GetGuilds(ctx context.Context) ([]model.Guild, error) {
 
 	result := make([]model.Guild, len(guilds))
 	for i, guild := range guilds {
-		result[i] = *guildToModel(guild)
+		result[i] = guildToModel(guild)
 	}
 
 	return result, nil
@@ -41,14 +43,19 @@ func (c *Client) GetGuilds(ctx context.Context) ([]model.Guild, error) {
 func (c *Client) GetGuild(ctx context.Context, id string) (*model.Guild, error) {
 	guild, err := c.Q.GetGuild(ctx, id)
 	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, store.ErrNotFound
+		}
+
 		return nil, err
 	}
 
-	return guildToModel(guild), nil
+	res := guildToModel(guild)
+	return &res, nil
 }
 
-func guildToModel(guild pgmodel.Guild) *model.Guild {
-	return &model.Guild{
+func guildToModel(guild pgmodel.Guild) model.Guild {
+	return model.Guild{
 		ID:          guild.ID,
 		Name:        guild.Name,
 		Description: guild.Description.String,

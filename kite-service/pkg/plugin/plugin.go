@@ -153,7 +153,6 @@ func (p *Plugin) callStart(ctx context.Context) error {
 }
 
 func (p *Plugin) Handle(ctx context.Context, e *event.Event) error {
-	// TODO: when execution has been aborted with the context the plugin instance is unusable and must be replaced
 	if p.config.TotalTimeLimit != 0 {
 		ctx, p.cancel = context.WithTimeout(ctx, p.config.TotalTimeLimit)
 	} else {

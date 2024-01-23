@@ -21,3 +21,11 @@ type Deployment struct {
 	CreatedAt             time.Time
 	UpdatedAt             time.Time
 }
+
+type DeploymentLogEntry struct {
+	ID           string
+	DeploymentID string
+	Level        string
+	Message      string
+	CreatedAt    time.Time
+}

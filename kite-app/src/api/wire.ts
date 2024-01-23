@@ -36,7 +36,6 @@ export interface DeploymentCreateRequest {
   key: string;
   name: string;
   description: string;
-  guild_id: string;
   plugin_version_id: null | string;
   wasm_bytes: string;
   manifest_default_config: { [key: string]: string};
@@ -45,6 +44,8 @@ export interface DeploymentCreateRequest {
   config: { [key: string]: string};
 }
 export type DeploymentCreateResponse = APIResponse<Deployment>;
+export type DeploymentDeleteResponse = APIResponse<{
+  }>;
 
 //////////
 // source: guild.go
@@ -59,3 +60,36 @@ export interface Guild {
 }
 export type GuildListResponse = APIResponse<Guild[]>;
 export type GuildGetResponse = APIResponse<Guild>;
+
+//////////
+// source: workspace.go
+
+export interface Workspace {
+  id: string;
+  guild_id: string;
+  name: string;
+  description: string;
+  files: WorkspaceFile[];
+  created_at: string /* RFC3339 */;
+  updated_at: string /* RFC3339 */;
+}
+export interface WorkspaceFile {
+  path: string;
+  content: string;
+}
+export type WorkspaceGetResponse = APIResponse<Workspace>;
+export type WorkspaceListResponse = APIResponse<Workspace[]>;
+export interface WorkspaceCreateRequest {
+  name: string;
+  description: string;
+  files: WorkspaceFile[];
+}
+export type WorkspaceCreateResponse = APIResponse<Workspace>;
+export interface WorkspaceUpdateRequest {
+  name: string;
+  description: string;
+  files: WorkspaceFile[];
+}
+export type WorkspaceUpdateResponse = APIResponse<Workspace>;
+export type WorkspaceDeleteResponse = APIResponse<{
+  }>;

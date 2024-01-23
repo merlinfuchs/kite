@@ -6,6 +6,7 @@ package pgmodel
 
 import (
 	"database/sql"
+	"encoding/json"
 	"time"
 
 	"github.com/sqlc-dev/pqtype"
@@ -29,7 +30,7 @@ type Deployment struct {
 
 type DeploymentLog struct {
 	ID           string
-	DeploymentID sql.NullString
+	DeploymentID string
 	Level        string
 	Message      string
 	CreatedAt    time.Time
@@ -64,4 +65,14 @@ type PluginVersion struct {
 	ManifestEvents        []string
 	ManifestCommands      []string
 	CreatedAt             time.Time
+}
+
+type Workspace struct {
+	ID          string
+	GuildID     string
+	Name        string
+	Description string
+	Files       json.RawMessage
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
 }

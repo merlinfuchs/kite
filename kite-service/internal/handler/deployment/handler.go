@@ -31,12 +31,14 @@ func (h *DeploymentHandler) HandleDeploymentCreate(c *fiber.Ctx, req wire.Deploy
 		return fmt.Errorf("failed to decode wasm bytes: %w", err)
 	}
 
+	guildID := c.Params("guildID")
+
 	deployment, err := h.deployments.UpsertDeployment(c.Context(), model.Deployment{
 		ID:                    util.UniqueID(),
 		Name:                  req.Name,
 		Key:                   req.Key,
 		Description:           req.Description,
-		GuildID:               req.GuildID,
+		GuildID:               guildID,
 		PluginVersionID:       req.PluginVersionID,
 		WasmBytes:             wasmBytes,
 		ManifestDefaultConfig: req.ManifestDefaultConfig,
@@ -68,6 +70,40 @@ func (h *DeploymentHandler) HandleDeploymentListForGuild(c *fiber.Ctx) error {
 	}
 
 	return c.JSON(wire.DeploymentListResponse{
+		Success: true,
+		Data:    res,
+	})
+}
+
+func (h *DeploymentHandler) HandleDeploymentDelete(c *fiber.Ctx) error {
+	err := h.deployments.DeleteDeployment(c.Context(), c.Params("deploymentID"), c.Params("guildID"))
+	if err != nil {
+		if err == store.ErrNotFound {
+			return fiber.NewError(fiber.StatusNotFound, "unknown_deployment", "Deployment not found")
+		}
+		return err
+	}
+
+	return c.JSON(wire.DeploymentDeleteResponse{
+		Success: true,
+	})
+}
+
+func (h *DeploymentHandler) HandleDeploymentLogEntryList(c *fiber.Ctx) error {
+	entires, err := h.deployments.GetDeploymentLogs(c.Context(), c.Params("deploymentID"), c.Params("guildID"))
+	if err != nil {
+		if err == store.ErrNotFound {
+			return fiber.NewError(fiber.StatusNotFound, "unknown_deployment", "Deployment not found")
+		}
+		return err
+	}
+
+	res := make([]wire.DeploymentLogEntry, len(entires))
+	for i, entry := range entires {
+		res[i] = wire.DeploymentLogEntryToWire(&entry)
+	}
+
+	return c.JSON(wire.DeploymentLogEntryListResponse{
 		Success: true,
 		Data:    res,
 	})

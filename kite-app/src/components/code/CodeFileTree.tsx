@@ -3,6 +3,7 @@ import {
   File,
   FlatFile,
   flatFilesToFileTree,
+  getIconUrlForFile,
 } from "@/util/filetree";
 import { useState } from "react";
 import styles from "./CodeFileTree.module.css";
@@ -62,14 +63,7 @@ function FileTreeFile({
   setOpenFilePath,
 }: FileProps) {
   const isOpen = file.path === openFilePath;
-
-  const extension = file.name.split(".").pop();
-  const icon =
-    extension === "ts"
-      ? "file_type_typescript.svg"
-      : extension === "js"
-      ? "file_type_js.svg"
-      : "default_file.svg";
+  const icon = getIconUrlForFile(file.name);
 
   return (
     <div
@@ -78,7 +72,7 @@ function FileTreeFile({
       onClick={() => setOpenFilePath(file.path)}
     >
       <div className={styles.inner} style={{ paddingLeft: `${depth * 16}px` }}>
-        <img src={`/file-icons/${icon}`} alt="" className={styles.icon} />
+        <img src={icon} alt="" className={styles.icon} />
         <div className="select-none">{file.name}</div>
       </div>
     </div>
@@ -98,7 +92,7 @@ function FileTreeDirectory({
   openFilePath,
   setOpenFilePath,
 }: DirectoryProps) {
-  const [collapsed, setCollapsed] = useState(true);
+  const [collapsed, setCollapsed] = useState(false);
 
   const icon = collapsed ? "default_folder.svg" : "default_folder_opened.svg";
 

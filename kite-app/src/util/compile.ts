@@ -1,6 +1,7 @@
 import * as esbuild from "esbuild-wasm";
 import path from "path";
 import { FlatFile } from "./filetree";
+import toml from "toml";
 
 function customResolver(tree: Record<string, string>): esbuild.Plugin {
   const map = new Map(Object.entries(tree));
@@ -26,7 +27,6 @@ function customResolver(tree: Record<string, string>): esbuild.Plugin {
       });
 
       build.onLoad({ filter: /.*/ }, (args: esbuild.OnLoadArgs) => {
-        console.log(map, args.path);
         if (!map.has(args.path)) {
           throw Error("not loadable");
         }
@@ -62,7 +62,7 @@ async function initialize() {
   });
 }
 
-export async function compileDeployment(files: FlatFile[], entry: string) {
+export async function compileWorkspace(files: FlatFile[], entry: string) {
   await initialize();
 
   const plugin = customResolver(
@@ -85,4 +85,16 @@ export async function compileDeployment(files: FlatFile[], entry: string) {
   });
 
   return result2.outputFiles[0].text;
+}
+
+export function readManifestFromWorkspace(files: FlatFile[]) {
+  const manifestFile = files.find((f) => f.path === "manifest.toml");
+  if (!manifestFile) return null;
+
+  try {
+    return toml.parse(manifestFile.content);
+  } catch (e) {
+    console.log(e);
+    return null;
+  }
 }

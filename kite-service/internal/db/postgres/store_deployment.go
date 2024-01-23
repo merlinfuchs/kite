@@ -2,9 +2,11 @@ package postgres
 
 import (
 	"context"
+	"database/sql"
 
 	"github.com/merlinfuchs/kite/kite-service/internal/db/postgres/pgmodel"
 	"github.com/merlinfuchs/kite/kite-service/pkg/model"
+	"github.com/merlinfuchs/kite/kite-service/pkg/store"
 	"gopkg.in/guregu/null.v4"
 )
 
@@ -31,11 +33,22 @@ func (c *Client) UpsertDeployment(ctx context.Context, deployment model.Deployme
 	return deploymentToModel(res), nil
 }
 
-func (c *Client) DeleteDeployment(ctx context.Context, deployment model.Deployment) error {
+func (c *Client) DeleteDeployment(ctx context.Context, id string, guildID string) error {
+	_, err := c.Q.DeleteDeployment(ctx, pgmodel.DeleteDeploymentParams{
+		ID:      id,
+		GuildID: guildID,
+	})
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return store.ErrNotFound
+		}
+		return err
+	}
+
 	return nil
 }
 
-func (c *Client) GetDeploymentForGuild(ctx context.Context, id string, guildID string) (*model.Deployment, error) {
+func (c *Client) GetDeployment(ctx context.Context, id string, guildID string) (*model.Deployment, error) {
 	return nil, nil
 }
 
@@ -55,6 +68,28 @@ func (c *Client) GetDeploymentsForGuild(ctx context.Context, guildID string) ([]
 
 func (c *Client) GetGuildIDsWithDeployment(ctx context.Context) ([]string, error) {
 	return c.Q.GetGuildIdsWithDeployments(ctx)
+}
+
+func (c *Client) GetDeploymentLogs(ctx context.Context, id string, guildID string) ([]model.DeploymentLogEntry, error) {
+	// TODO: use guild id to validate that deployment belongs to that guild
+
+	entries, err := c.Q.GetDeploymentLogEntries(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+
+	res := make([]model.DeploymentLogEntry, len(entries))
+	for i, entry := range entries {
+		res[i] = model.DeploymentLogEntry{
+			ID:           entry.ID,
+			DeploymentID: entry.DeploymentID,
+			Level:        entry.Level,
+			Message:      entry.Message,
+			CreatedAt:    entry.CreatedAt,
+		}
+	}
+
+	return res, nil
 }
 
 func deploymentToModel(deployment pgmodel.Deployment) *model.Deployment {

@@ -2,6 +2,7 @@ package guild
 
 import (
 	"github.com/gofiber/fiber/v2"
+	"github.com/merlinfuchs/kite/kite-service/internal/api/helpers"
 	"github.com/merlinfuchs/kite/kite-service/pkg/engine"
 	"github.com/merlinfuchs/kite/kite-service/pkg/store"
 	"github.com/merlinfuchs/kite/kite-service/pkg/wire"
@@ -33,5 +34,20 @@ func (h *GuildHandler) HandleGuildList(c *fiber.Ctx) error {
 	return c.JSON(wire.GuildListResponse{
 		Success: true,
 		Data:    res,
+	})
+}
+
+func (h *GuildHandler) HandleGuildGet(c *fiber.Ctx) error {
+	guild, err := h.guilds.GetGuild(c.Context(), c.Params("guildID"))
+	if err != nil {
+		if err == store.ErrNotFound {
+			return helpers.NotFound("unknown_guild", "Guild not found")
+		}
+		return err
+	}
+
+	return c.JSON(wire.GuildGetResponse{
+		Success: true,
+		Data:    wire.GuildToWire(guild),
 	})
 }
