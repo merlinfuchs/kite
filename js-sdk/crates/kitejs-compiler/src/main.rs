@@ -1,4 +1,4 @@
-use std::{rc::Rc, sync::OnceLock, fs, env};
+use std::{env, fs, io::{Read, Write}, rc::Rc, sync::OnceLock};
 
 use anyhow::{anyhow, Result};
 use wasi_common::{pipe::ReadPipe, WasiCtx};
@@ -6,6 +6,7 @@ use wasmtime::Linker;
 use wasmtime_wasi::WasiCtxBuilder;
 use wizer::Wizer;
 use binaryen::{CodegenConfig, Module};
+use std::io;
 
 static mut WASI: OnceLock<WasiCtx> = OnceLock::new();
 
@@ -16,11 +17,23 @@ fn main() -> Result<()> {
     let output_file = args.get(2).ok_or(anyhow!("No output file specified"))?;
     let optimize = args.get(3).map(|s| s == "--optimize").unwrap_or(false);
 
-    let js = fs::read(input_file)?;
+    let js = {
+        if input_file == "-" {
+            let mut js = Vec::new();
+            io::stdin().read_to_end(&mut js)?;
+            js
+        } else {
+            fs::read(input_file)?
+        }
+    };
 
     let wasm = generate_module(js, optimize)?;
 
-    fs::write(output_file, wasm)?;
+    if output_file == "-" {
+        io::stdout().write_all(&wasm)?;
+    } else {
+        fs::write(output_file, wasm)?;
+    }
     
     Ok(())
 }

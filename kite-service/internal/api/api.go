@@ -12,6 +12,7 @@ import (
 	kiteapp "github.com/merlinfuchs/kite/kite-app"
 	"github.com/merlinfuchs/kite/kite-service/internal/api/helpers"
 	"github.com/merlinfuchs/kite/kite-service/internal/db/postgres"
+	"github.com/merlinfuchs/kite/kite-service/internal/handler/compile"
 	"github.com/merlinfuchs/kite/kite-service/internal/handler/deployment"
 	guild "github.com/merlinfuchs/kite/kite-service/internal/handler/guilld"
 	"github.com/merlinfuchs/kite/kite-service/internal/logging/logattr"
@@ -59,6 +60,9 @@ func (api *API) RegisterHandlers(engine *engine.PluginEngine, pg *postgres.Clien
 
 	guildHandler := guild.NewHandler(engine, pg)
 	api.app.Get("/api/v1/guilds", guildHandler.HandleGuildList)
+
+	compileHandler := compile.NewHandler()
+	api.app.Post("/api/v1/compile/js", helpers.WithRequestBody(compileHandler.HandleCompileJS))
 
 	// Serve statix files
 	api.app.Use("/", filesystem.New(filesystem.Config{
