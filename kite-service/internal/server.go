@@ -27,7 +27,7 @@ func RunServer(cfg *config.ServerConfig) error {
 		return fmt.Errorf("failed to create bot: %w", err)
 	}
 
-	env := host.NewEnv(bot)
+	env := host.NewEnv(bot, pg)
 	e := engine.New(env)
 
 	manager := deployments.NewManager(pg, e)

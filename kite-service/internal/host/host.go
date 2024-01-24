@@ -8,19 +8,21 @@ import (
 	"github.com/merlinfuchs/kite/go-types/call"
 	"github.com/merlinfuchs/kite/go-types/dismodel"
 	"github.com/merlinfuchs/kite/go-types/kvmodel"
-	"github.com/merlinfuchs/kite/go-types/logmodel"
 	"github.com/merlinfuchs/kite/kite-service/internal/bot"
+	"github.com/merlinfuchs/kite/kite-service/pkg/store"
 )
 
 type HostEnvironment struct {
-	bot *bot.Bot
-	kv  map[string]kvmodel.TypedKVValue
+	bot         *bot.Bot
+	deployments store.DeploymentStore
+	kv          map[string]kvmodel.TypedKVValue
 }
 
-func NewEnv(bot *bot.Bot) HostEnvironment {
+func NewEnv(bot *bot.Bot, deployments store.DeploymentStore) HostEnvironment {
 	return HostEnvironment{
-		bot: bot,
-		kv:  make(map[string]kvmodel.TypedKVValue),
+		bot:         bot,
+		deployments: deployments,
+		kv:          make(map[string]kvmodel.TypedKVValue),
 	}
 }
 
@@ -99,8 +101,4 @@ func (h HostEnvironment) Call(ctx context.Context, guildID string, req call.Call
 	}
 
 	return res, nil
-}
-
-func (h HostEnvironment) Log(ctx context.Context, level logmodel.LogLevel, msg string) {
-	fmt.Printf("Log: %s | %s\n", level.Name(), msg)
 }

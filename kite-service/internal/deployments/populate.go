@@ -27,7 +27,10 @@ func (m *DeploymentManager) populateEngineDeployments(ctx context.Context) {
 		deployments := make([]*engine.PluginDeployment, len(rows))
 		for i, row := range rows {
 			manifest := plugin.Manifest{
-				Events: row.ManifestEvents,
+				ID:          row.ID,
+				Name:        row.Name,
+				Description: row.Description,
+				Events:      row.ManifestEvents,
 				// TODO: Commands: row.ManifestCommands,
 			}
 			config := plugin.PluginConfig{

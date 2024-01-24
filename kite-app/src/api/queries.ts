@@ -1,6 +1,8 @@
 import { useQuery } from "react-query";
 import {
   DeploymentListResponse,
+  DeploymentLogEntryListResponse,
+  DeploymentLogSummaryResponse,
   GuildGetResponse,
   GuildListResponse,
   WorkspaceGetResponse,
@@ -14,9 +16,13 @@ export function useGuildsQuery() {
 }
 
 export function useGuildQuery(guildId?: string | null) {
-  return useQuery<GuildGetResponse>(["guilds", guildId], () => {
-    return fetch(`/api/v1/guilds/${guildId}`).then((res) => res.json());
-  });
+  return useQuery<GuildGetResponse>(
+    ["guilds", guildId],
+    () => {
+      return fetch(`/api/v1/guilds/${guildId}`).then((res) => res.json());
+    },
+    { enabled: !!guildId }
+  );
 }
 
 export function useWorkspacesQuery(guildId?: string | null) {
@@ -60,6 +66,42 @@ export function useDeploymentsQuery(guildId?: string | null) {
     },
     {
       enabled: !!guildId,
+    }
+  );
+}
+
+export function useDeploymentLogEntriesQuery(
+  guildId?: string | null,
+  deploymentId?: string | null
+) {
+  return useQuery<DeploymentLogEntryListResponse>(
+    ["guilds", guildId, "deployments", deploymentId, "logs"],
+    () => {
+      return fetch(
+        `/api/v1/guilds/${guildId}/deployments/${deploymentId}/logs`
+      ).then((res) => res.json());
+    },
+    {
+      enabled: !!guildId && !!deploymentId,
+      refetchInterval: 5000,
+    }
+  );
+}
+
+export function useDeploymentLogSummaryQuery(
+  guildId?: string | null,
+  deploymentId?: string | null
+) {
+  return useQuery<DeploymentLogSummaryResponse>(
+    ["guilds", guildId, "deployments", deploymentId, "logs", "summary"],
+    () => {
+      return fetch(
+        `/api/v1/guilds/${guildId}/deployments/${deploymentId}/logs/summary`
+      ).then((res) => res.json());
+    },
+    {
+      enabled: !!guildId && !!deploymentId,
+      refetchInterval: 5000,
     }
   );
 }

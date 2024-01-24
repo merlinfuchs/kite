@@ -90,11 +90,8 @@ func (h *DeploymentHandler) HandleDeploymentDelete(c *fiber.Ctx) error {
 }
 
 func (h *DeploymentHandler) HandleDeploymentLogEntryList(c *fiber.Ctx) error {
-	entires, err := h.deployments.GetDeploymentLogs(c.Context(), c.Params("deploymentID"), c.Params("guildID"))
+	entires, err := h.deployments.GetDeploymentLogEntries(c.Context(), c.Params("deploymentID"), c.Params("guildID"))
 	if err != nil {
-		if err == store.ErrNotFound {
-			return fiber.NewError(fiber.StatusNotFound, "unknown_deployment", "Deployment not found")
-		}
 		return err
 	}
 
@@ -106,5 +103,26 @@ func (h *DeploymentHandler) HandleDeploymentLogEntryList(c *fiber.Ctx) error {
 	return c.JSON(wire.DeploymentLogEntryListResponse{
 		Success: true,
 		Data:    res,
+	})
+}
+
+func (h *DeploymentHandler) HandleDeploymentLogSummaryGet(c *fiber.Ctx) error {
+	cutoff := time.Now().UTC().Add(-time.Hour * 24)
+
+	summary, err := h.deployments.GetDeploymentLogSummary(c.Context(), c.Params("deploymentID"), c.Params("guildID"), cutoff)
+	if err != nil {
+		return err
+	}
+
+	return c.JSON(wire.DeploymentLogSummaryResponse{
+		Success: true,
+		Data: wire.DeploymentLogSummary{
+			DeploymentID: summary.DeploymentID,
+			TotalCount:   summary.TotalCount,
+			ErrorCount:   summary.ErrorCount,
+			WarnCount:    summary.WarnCount,
+			InfoCount:    summary.InfoCount,
+			DebugCount:   summary.DebugCount,
+		},
 	})
 }

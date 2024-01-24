@@ -1,8 +1,10 @@
 package plugin
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
+	"time"
 
 	"github.com/merlinfuchs/kite/go-types/call"
 	"github.com/merlinfuchs/kite/go-types/event"
@@ -44,7 +46,10 @@ func (p *Plugin) kiteLog(level uint32, offset uint32, length uint32) uint32 {
 		return 1
 	}
 
-	p.env.Log(p.ctx, lvl, string(msg))
+	ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond*100)
+	defer cancel()
+
+	p.env.Log(ctx, p.manifest.ID, lvl, string(msg))
 	return 0
 }
 

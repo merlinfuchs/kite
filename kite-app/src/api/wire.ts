@@ -46,6 +46,23 @@ export interface DeploymentCreateRequest {
 export type DeploymentCreateResponse = APIResponse<Deployment>;
 export type DeploymentDeleteResponse = APIResponse<{
   }>;
+export interface DeploymentLogEntry {
+  id: string;
+  deployment_id: string;
+  level: string;
+  message: string;
+  created_at: string /* RFC3339 */;
+}
+export type DeploymentLogEntryListResponse = APIResponse<DeploymentLogEntry[]>;
+export interface DeploymentLogSummary {
+  deployment_id: string;
+  total_count: number /* int */;
+  error_count: number /* int */;
+  warn_count: number /* int */;
+  info_count: number /* int */;
+  debug_count: number /* int */;
+}
+export type DeploymentLogSummaryResponse = APIResponse<DeploymentLogSummary>;
 
 //////////
 // source: guild.go

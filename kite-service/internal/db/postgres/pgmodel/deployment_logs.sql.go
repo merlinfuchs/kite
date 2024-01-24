@@ -10,7 +10,7 @@ import (
 	"time"
 )
 
-const createDeploymentLogEntry = `-- name: CreateDeploymentLogEntry :one
+const createDeploymentLogEntry = `-- name: CreateDeploymentLogEntry :exec
 INSERT INTO deployment_logs (
     id,
     deployment_id,
@@ -23,7 +23,7 @@ INSERT INTO deployment_logs (
     $3,
     $4,
     $5
-) RETURNING id, deployment_id, level, message, created_at
+)
 `
 
 type CreateDeploymentLogEntryParams struct {
@@ -34,27 +34,19 @@ type CreateDeploymentLogEntryParams struct {
 	CreatedAt    time.Time
 }
 
-func (q *Queries) CreateDeploymentLogEntry(ctx context.Context, arg CreateDeploymentLogEntryParams) (DeploymentLog, error) {
-	row := q.db.QueryRowContext(ctx, createDeploymentLogEntry,
+func (q *Queries) CreateDeploymentLogEntry(ctx context.Context, arg CreateDeploymentLogEntryParams) error {
+	_, err := q.db.ExecContext(ctx, createDeploymentLogEntry,
 		arg.ID,
 		arg.DeploymentID,
 		arg.Level,
 		arg.Message,
 		arg.CreatedAt,
 	)
-	var i DeploymentLog
-	err := row.Scan(
-		&i.ID,
-		&i.DeploymentID,
-		&i.Level,
-		&i.Message,
-		&i.CreatedAt,
-	)
-	return i, err
+	return err
 }
 
 const getDeploymentLogEntries = `-- name: GetDeploymentLogEntries :many
-SELECT id, deployment_id, level, message, created_at FROM deployment_logs WHERE deployment_id = $1 ORDER BY created_at DESC
+SELECT id, deployment_id, level, message, created_at FROM deployment_logs WHERE deployment_id = $1 ORDER BY created_at ASC
 `
 
 func (q *Queries) GetDeploymentLogEntries(ctx context.Context, deploymentID string) ([]DeploymentLog, error) {
@@ -84,4 +76,45 @@ func (q *Queries) GetDeploymentLogEntries(ctx context.Context, deploymentID stri
 		return nil, err
 	}
 	return items, nil
+}
+
+const getDeploymentLogSummary = `-- name: GetDeploymentLogSummary :one
+SELECT
+    deployment_id,
+    COUNT(*) AS total_count,
+    SUM(CASE WHEN level = 'ERROR' THEN 1 ELSE 0 END) AS error_count,
+    SUM(CASE WHEN level = 'WARN' THEN 1 ELSE 0 END) AS warn_count,
+    SUM(CASE WHEN level = 'INFO' THEN 1 ELSE 0 END) AS info_count,
+    SUM(CASE WHEN level = 'DEBUG' THEN 1 ELSE 0 END) AS debug_count
+FROM deployment_logs
+WHERE deployment_id = $1 AND created_at >= $2
+GROUP BY deployment_id
+`
+
+type GetDeploymentLogSummaryParams struct {
+	DeploymentID string
+	CreatedAt    time.Time
+}
+
+type GetDeploymentLogSummaryRow struct {
+	DeploymentID string
+	TotalCount   int64
+	ErrorCount   int64
+	WarnCount    int64
+	InfoCount    int64
+	DebugCount   int64
+}
+
+func (q *Queries) GetDeploymentLogSummary(ctx context.Context, arg GetDeploymentLogSummaryParams) (GetDeploymentLogSummaryRow, error) {
+	row := q.db.QueryRowContext(ctx, getDeploymentLogSummary, arg.DeploymentID, arg.CreatedAt)
+	var i GetDeploymentLogSummaryRow
+	err := row.Scan(
+		&i.DeploymentID,
+		&i.TotalCount,
+		&i.ErrorCount,
+		&i.WarnCount,
+		&i.InfoCount,
+		&i.DebugCount,
+	)
+	return i, err
 }

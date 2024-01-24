@@ -21,8 +21,9 @@ const PluginStateReady PluginState = "ready"
 const PluginStateEvent PluginState = "event"
 
 type Plugin struct {
-	r          wazero.Runtime
-	m          api.Module
+	r wazero.Runtime
+	m api.Module
+
 	manifest   Manifest
 	config     PluginConfig
 	env        HostEnvironment

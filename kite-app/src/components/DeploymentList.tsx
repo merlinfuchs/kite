@@ -4,6 +4,7 @@ import Link from "next/link";
 import AutoAnimate from "./AutoAnimate";
 import toast from "react-hot-toast";
 import clsx from "clsx";
+import DeploymentListEntry from "./DeploymentListEntry";
 
 export default function DeploymentList({ guildId }: { guildId: string }) {
   const { data: resp, refetch } = useDeploymentsQuery(guildId);
@@ -38,33 +39,12 @@ export default function DeploymentList({ guildId }: { guildId: string }) {
             )}
           >
             {resp.data.map((d) => (
-              <div className="bg-slate-800 p-5 rounded-md" key={d.id}>
-                <div className="flex mb-6">
-                  <div className="flex-auto">
-                    <div className="text-gray-100 text-lg font-medium mb-1">
-                      {d.name}
-                    </div>
-                    <div className="font-light text-gray-300">
-                      {d.description}
-                    </div>
-                  </div>
-                  <div className="flex-none flex space-x-3 items-start">
-                    <button
-                      className="px-3 py-2 bg-slate-700 hover:bg-slate-600 text-gray-100 rounded"
-                      onClick={() => deleteDeployment(d.id)}
-                    >
-                      Delete
-                    </button>
-                    <Link
-                      className="px-3 py-2 bg-slate-700 hover:bg-slate-600 text-gray-100 rounded"
-                      href={`/guilds/${guildId}/deployments/${d.id}`}
-                    >
-                      View Details
-                    </Link>
-                  </div>
-                </div>
-                <div className="bg-slate-900 rounded-md h-64"></div>
-              </div>
+              <DeploymentListEntry
+                key={d.id}
+                guildId={guildId}
+                deployment={d}
+                onDelete={() => deleteDeployment(d.id)}
+              />
             ))}
           </AutoAnimate>
           <div>

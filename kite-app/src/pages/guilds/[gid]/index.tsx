@@ -16,7 +16,7 @@ export default function GuildPage() {
 
   return (
     <AppLayout>
-      <div className="mb-28 px-5 pb-10 border-b-4 border-slate-600">
+      <div className="mb-28 px-5 pb-16 border-b-4 border-slate-600">
         <div className="flex space-x-5 items-center">
           <div className="w-24 h-24 bg-slate-900 rounded-full flex items-center justify-center">
             {guild?.icon ? (

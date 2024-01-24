@@ -8,6 +8,6 @@ import (
 )
 
 type HostEnvironment interface {
-	Log(ctx context.Context, level logmodel.LogLevel, msg string)
+	Log(ctx context.Context, deploymentID string, level logmodel.LogLevel, msg string)
 	Call(ctx context.Context, guildID string, req call.Call) (interface{}, error)
 }
