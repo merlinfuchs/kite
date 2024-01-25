@@ -3,19 +3,16 @@ package guild
 import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/merlinfuchs/kite/kite-service/internal/api/helpers"
-	"github.com/merlinfuchs/kite/kite-service/pkg/engine"
 	"github.com/merlinfuchs/kite/kite-service/pkg/store"
 	"github.com/merlinfuchs/kite/kite-service/pkg/wire"
 )
 
 type GuildHandler struct {
-	engine *engine.PluginEngine
 	guilds store.GuildStore
 }
 
-func NewHandler(engine *engine.PluginEngine, guilds store.GuildStore) *GuildHandler {
+func NewHandler(guilds store.GuildStore) *GuildHandler {
 	return &GuildHandler{
-		engine: engine,
 		guilds: guilds,
 	}
 }

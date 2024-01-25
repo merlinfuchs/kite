@@ -15,6 +15,7 @@ import (
 	"github.com/merlinfuchs/kite/kite-service/internal/handler/compile"
 	"github.com/merlinfuchs/kite/kite-service/internal/handler/deployment"
 	guild "github.com/merlinfuchs/kite/kite-service/internal/handler/guilld"
+	kvstorage "github.com/merlinfuchs/kite/kite-service/internal/handler/kv_storage"
 	quickaccess "github.com/merlinfuchs/kite/kite-service/internal/handler/quick_access"
 	"github.com/merlinfuchs/kite/kite-service/internal/handler/workspace"
 	"github.com/merlinfuchs/kite/kite-service/internal/logging/logattr"
@@ -63,7 +64,7 @@ func (api *API) RegisterHandlers(engine *engine.PluginEngine, pg *postgres.Clien
 	api.app.Get("/api/v1/guilds/:guildID/deployments/:deploymentID/logs", deploymentHandler.HandleDeploymentLogEntryList)
 	api.app.Get("/api/v1/guilds/:guildID/deployments/:deploymentID/logs/summary", deploymentHandler.HandleDeploymentLogSummaryGet)
 
-	guildHandler := guild.NewHandler(engine, pg)
+	guildHandler := guild.NewHandler(pg)
 	api.app.Get("/api/v1/guilds", guildHandler.HandleGuildList)
 	api.app.Get("/api/v1/guilds/:guildID", guildHandler.HandleGuildGet)
 
@@ -73,6 +74,10 @@ func (api *API) RegisterHandlers(engine *engine.PluginEngine, pg *postgres.Clien
 	api.app.Get("/api/v1/guilds/:guildID/workspaces/:workspaceID", workspaceHandler.HandleWorkspaceGetForGuild)
 	api.app.Get("/api/v1/guilds/:guildID/workspaces", workspaceHandler.HandleWorkspaceListForGuild)
 	api.app.Delete("/api/v1/guilds/:guildID/workspaces/:workspaceID", workspaceHandler.HandleWorkspaceDelete)
+
+	kvStorageHandler := kvstorage.NewHandler(pg)
+	api.app.Get("/api/v1/guilds/:guildID/kv-storage/namespaces", kvStorageHandler.HandleKVStorageNamespaceList)
+	api.app.Get("/api/v1/guilds/:guildID/kv-storage/namespaces/:namespace/keys", kvStorageHandler.HandleKVStorageNamespaceKeyList)
 
 	quickAccessHandler := quickaccess.NewHandler(pg)
 	api.app.Get("/api/v1/guilds/:guildID/quick-access", quickAccessHandler.HandleQuickAccessItemList)

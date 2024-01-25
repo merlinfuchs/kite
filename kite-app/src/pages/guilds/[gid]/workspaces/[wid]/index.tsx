@@ -11,7 +11,7 @@ import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 import { useRouteParams } from "@/hooks/route";
 
-export default function WorkspacePage() {
+export default function GuildWorkspacePage() {
   const router = useRouter();
   const { guildId, workspaceId } = useRouteParams();
 

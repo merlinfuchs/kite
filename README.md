@@ -21,6 +21,7 @@ Kite is in a very early state and under active development. It's not ready to be
 - [x] Support most common Slash Command responses
 - [x] Support KV store with most common actions
 - [x] Support dynamically loading and unloading plugins during runtime
+- [ ] Validation of calls (e.g. kv namespace)
 
 ## Installation
 

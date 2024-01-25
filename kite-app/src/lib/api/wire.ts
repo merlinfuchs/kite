@@ -79,6 +79,23 @@ export type GuildListResponse = APIResponse<Guild[]>;
 export type GuildGetResponse = APIResponse<Guild>;
 
 //////////
+// source: kv_storage.go
+
+export interface KVStorageNamespace {
+  namespace: string;
+  key_count: number /* int */;
+}
+export interface KVStorageValue {
+  namespace: string;
+  key: string;
+  value: any /* kvmodel.TypedKVValue */;
+  created_at: string /* RFC3339 */;
+  updated_at: string /* RFC3339 */;
+}
+export type KVStorageNamespaceListResponse = APIResponse<KVStorageNamespace[]>;
+export type KVStorageNamespaceKeyListResponse = APIResponse<KVStorageValue[]>;
+
+//////////
 // source: quick_access.go
 
 export interface QuickAccessItem {

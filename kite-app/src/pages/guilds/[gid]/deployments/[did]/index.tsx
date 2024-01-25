@@ -2,7 +2,7 @@ import AppLayout from "@/components/AppLayout";
 import DeploymentLogs from "@/components/DeploymentLogs";
 import { useRouteParams } from "@/hooks/route";
 
-export default function DeploymentPage() {
+export default function GuildDeploymentPage() {
   const { guildId, deploymentId } = useRouteParams();
 
   return (

@@ -6,58 +6,75 @@ import (
 
 	"github.com/merlinfuchs/kite/go-types/fail"
 	"github.com/merlinfuchs/kite/go-types/kvmodel"
+	"github.com/merlinfuchs/kite/kite-service/pkg/store"
 )
 
-func (h HostEnvironment) callKVKeyGet(ctx context.Context, data kvmodel.KVKeyGetCall) (kvmodel.KVKeyGetResponse, error) {
-	val, ok := h.kv[data.Key]
-	if !ok {
-		return kvmodel.KVKeyGetResponse{}, &fail.HostError{
-			Code:    fail.HostErrorTypeKVKeyNotFound,
-			Message: fmt.Sprintf("key %s not found in namespace %s", data.Key, data.Namespace),
-		}
+func (h HostEnvironment) callKVKeyGet(ctx context.Context, guildID string, data kvmodel.KVKeyGetCall) (kvmodel.KVKeyGetResponse, error) {
+	if data.Namespace == "" {
+		data.Namespace = "default"
 	}
 
-	return val, nil
+	res, err := h.kvStorage.GetKVStorageKey(ctx, guildID, data.Namespace, data.Key)
+	if err != nil {
+		if err == store.ErrNotFound {
+			return kvmodel.KVKeyGetResponse{}, &fail.HostError{
+				Code:    fail.HostErrorTypeKVKeyNotFound,
+				Message: fmt.Sprintf("key %s not found in namespace %s", data.Key, data.Namespace),
+			}
+		}
+		return kvmodel.KVKeyGetResponse{}, err
+	}
+
+	return res.Value, nil
 }
 
-func (h HostEnvironment) callKVKeySet(ctx context.Context, data kvmodel.KVKeySetCall) (kvmodel.KVKeySetResponse, error) {
-	h.kv[data.Key] = data.Value
+func (h HostEnvironment) callKVKeySet(ctx context.Context, guildID string, data kvmodel.KVKeySetCall) (kvmodel.KVKeySetResponse, error) {
+	if data.Namespace == "" {
+		data.Namespace = "default"
+	}
+
+	err := h.kvStorage.SetKVStorageKey(ctx, guildID, data.Namespace, data.Key, data.Value)
+	if err != nil {
+		return kvmodel.KVKeySetResponse{}, err
+	}
 
 	return kvmodel.KVKeySetResponse{}, nil
 }
 
-func (h HostEnvironment) callKVKeyDelete(ctx context.Context, data kvmodel.KVKeyDeleteCall) (kvmodel.KVKeyDeleteResponse, error) {
-	val, ok := h.kv[data.Key]
-	if !ok {
-		return kvmodel.KVKeyDeleteResponse{}, &fail.HostError{
-			Code:    fail.HostErrorTypeKVKeyNotFound,
-			Message: fmt.Sprintf("key %s not found in namespace %s", data.Key, data.Namespace),
-		}
+func (h HostEnvironment) callKVKeyDelete(ctx context.Context, guildID string, data kvmodel.KVKeyDeleteCall) (kvmodel.KVKeyDeleteResponse, error) {
+	if data.Namespace == "" {
+		data.Namespace = "default"
 	}
 
-	delete(h.kv, data.Key)
+	res, err := h.kvStorage.DeleteKVStorageKey(ctx, guildID, data.Namespace, data.Key)
+	if err != nil {
+		if err == store.ErrNotFound {
+			return kvmodel.KVKeyDeleteResponse{}, &fail.HostError{
+				Code:    fail.HostErrorTypeKVKeyNotFound,
+				Message: fmt.Sprintf("key %s not found in namespace %s", data.Key, data.Namespace),
+			}
+		}
+		return kvmodel.KVKeyDeleteResponse{}, err
+	}
 
-	return val, nil
+	return res.Value, nil
 }
 
-func (h HostEnvironment) callKVKeyIncrease(ctx context.Context, data kvmodel.KVKeyIncreaseCall) (kvmodel.KVKeyIncreaseResponse, error) {
-	val, ok := h.kv[data.Key]
-	if !ok {
-		val = kvmodel.TypedKVValue{
-			Type:  kvmodel.KVValueTypeInt,
-			Value: kvmodel.KVInt(0),
-		}
+func (h HostEnvironment) callKVKeyIncrease(ctx context.Context, guildID string, data kvmodel.KVKeyIncreaseCall) (kvmodel.KVKeyIncreaseResponse, error) {
+	if data.Namespace == "" {
+		data.Namespace = "default"
 	}
 
-	if val.Type != kvmodel.KVValueTypeInt {
-		return kvmodel.KVKeyIncreaseResponse{}, &fail.HostError{
-			Code:    fail.HostErrorTypeKVValueTypeMismatch,
-			Message: fmt.Sprintf("key %s in namespace %s is not an int", data.Key, data.Namespace),
+	res, err := h.kvStorage.IncreaseKVStorageKey(ctx, guildID, data.Namespace, data.Key, data.Increment)
+	if err != nil {
+		if err == store.ErrNotFound {
+			return kvmodel.KVKeyIncreaseResponse{}, &fail.HostError{
+				Code:    fail.HostErrorTypeKVKeyNotFound,
+				Message: fmt.Sprintf("key %s not found in namespace %s", data.Key, data.Namespace),
+			}
 		}
+		return kvmodel.KVKeyIncreaseResponse{}, err
 	}
 
-	val.Value = kvmodel.KVInt(val.Value.Int() + data.Increment)
-	h.kv[data.Key] = val
-
-	return val, nil
+	return res.Value, nil
 }

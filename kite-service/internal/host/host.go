@@ -15,14 +15,14 @@ import (
 type HostEnvironment struct {
 	bot         *bot.Bot
 	deployments store.DeploymentStore
-	kv          map[string]kvmodel.TypedKVValue
+	kvStorage   store.KVStorageStore
 }
 
-func NewEnv(bot *bot.Bot, deployments store.DeploymentStore) HostEnvironment {
+func NewEnv(bot *bot.Bot, deployments store.DeploymentStore, kvStorage store.KVStorageStore) HostEnvironment {
 	return HostEnvironment{
 		bot:         bot,
 		deployments: deployments,
-		kv:          make(map[string]kvmodel.TypedKVValue),
+		kvStorage:   kvStorage,
 	}
 }
 
@@ -47,13 +47,13 @@ func (h HostEnvironment) Call(ctx context.Context, guildID string, req call.Call
 		time.Sleep(duration)
 		return call.SleepResponse{}, nil
 	case call.KVKeyGet:
-		res, err = h.callKVKeyGet(ctx, req.Data.(kvmodel.KVKeyGetCall))
+		res, err = h.callKVKeyGet(ctx, guildID, req.Data.(kvmodel.KVKeyGetCall))
 	case call.KVKeySet:
-		res, err = h.callKVKeySet(ctx, req.Data.(kvmodel.KVKeySetCall))
+		res, err = h.callKVKeySet(ctx, guildID, req.Data.(kvmodel.KVKeySetCall))
 	case call.KVKeyDelete:
-		res, err = h.callKVKeyDelete(ctx, req.Data.(kvmodel.KVKeyDeleteCall))
+		res, err = h.callKVKeyDelete(ctx, guildID, req.Data.(kvmodel.KVKeyDeleteCall))
 	case call.KVKeyIncrease:
-		res, err = h.callKVKeyIncrease(ctx, req.Data.(kvmodel.KVKeyIncreaseCall))
+		res, err = h.callKVKeyIncrease(ctx, guildID, req.Data.(kvmodel.KVKeyIncreaseCall))
 	case call.DiscordBanList:
 		res, err = h.callDiscordBanList(ctx, guildID, req.Data.(dismodel.BanListCall))
 	case call.DiscordBanGet:

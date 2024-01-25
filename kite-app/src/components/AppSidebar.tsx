@@ -1,5 +1,6 @@
 import clsx from "clsx";
 import {
+  CircleStackIcon,
   CodeBracketSquareIcon,
   DocumentArrowUpIcon,
   HomeIcon,
@@ -41,6 +42,12 @@ export default function AppSideBar({ open, setOpen }: Props) {
         href: `/guilds/${guildId}/workspaces`,
         icon: CodeBracketSquareIcon,
         current: router.pathname.startsWith(`/guilds/[gid]/workspaces`),
+      },
+      {
+        name: "KV Storage",
+        href: `/guilds/${guildId}/kv-storage`,
+        icon: CircleStackIcon,
+        current: router.pathname.startsWith(`/guilds/[gid]/kv-storage`),
       },
       {
         name: "Marketplace",

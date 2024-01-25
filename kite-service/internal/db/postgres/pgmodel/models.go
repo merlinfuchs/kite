@@ -45,6 +45,15 @@ type Guild struct {
 	UpdatedAt   time.Time
 }
 
+type KvStorage struct {
+	GuildID   string
+	Namespace string
+	Key       string
+	Value     json.RawMessage
+	CreatedAt time.Time
+	UpdatedAt time.Time
+}
+
 type Plugin struct {
 	ID          string
 	Key         string

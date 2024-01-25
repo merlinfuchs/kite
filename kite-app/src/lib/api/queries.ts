@@ -5,6 +5,8 @@ import {
   DeploymentLogSummaryResponse,
   GuildGetResponse,
   GuildListResponse,
+  KVStorageNamespaceKeyListResponse,
+  KVStorageNamespaceListResponse,
   QuickAccessItemListResponse,
   WorkspaceGetResponse,
   WorkspaceListResponse,
@@ -101,6 +103,37 @@ export function useDeploymentLogSummaryQuery(
     },
     {
       enabled: !!guildId && !!deploymentId,
+    }
+  );
+}
+
+export function useKVStorageNamespacesQuery(guildId?: string | null) {
+  return useQuery<KVStorageNamespaceListResponse>(
+    ["guilds", guildId, "kv-storage", "namespaces"],
+    () => {
+      return fetch(`/api/v1/guilds/${guildId}/kv-storage/namespaces`).then(
+        (res) => res.json()
+      );
+    },
+    {
+      enabled: !!guildId,
+    }
+  );
+}
+
+export function useKVStorageKeysQuery(
+  guildId?: string | null,
+  namespace?: string | null
+) {
+  return useQuery<KVStorageNamespaceKeyListResponse>(
+    ["guilds", guildId, "kv-storage", "namespaces", namespace, "keys"],
+    () => {
+      return fetch(
+        `/api/v1/guilds/${guildId}/kv-storage/namespaces/${namespace}/keys`
+      ).then((res) => res.json());
+    },
+    {
+      enabled: !!guildId && !!namespace,
     }
   );
 }
