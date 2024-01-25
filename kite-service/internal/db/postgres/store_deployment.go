@@ -99,6 +99,10 @@ func (c *Client) GetDeploymentLogSummary(ctx context.Context, id string, guildID
 		CreatedAt:    cutoff,
 	})
 	if err != nil {
+		if err == sql.ErrNoRows {
+			return &model.DeploymentLogSummary{}, nil
+		}
+
 		return nil, err
 	}
 

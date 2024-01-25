@@ -2,7 +2,7 @@ import clsx from "clsx";
 import { Inter } from "next/font/google";
 import { ReactNode, useState } from "react";
 import { Toaster } from "react-hot-toast";
-import AppSidebar from "./AppSidebar2";
+import AppSidebar from "./AppSidebar";
 import AppTopbar from "./AppTopbar";
 
 const inter = Inter({ subsets: ["latin"] });

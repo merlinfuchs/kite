@@ -84,7 +84,6 @@ export function useDeploymentLogEntriesQuery(
     },
     {
       enabled: !!guildId && !!deploymentId,
-      refetchInterval: 5000,
     }
   );
 }
@@ -102,7 +101,6 @@ export function useDeploymentLogSummaryQuery(
     },
     {
       enabled: !!guildId && !!deploymentId,
-      refetchInterval: 5000,
     }
   );
 }
