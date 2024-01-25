@@ -3,6 +3,7 @@ import {
   useKVStorageNamespacesQuery,
 } from "@/lib/api/queries";
 import { useEffect, useState } from "react";
+import IllustrationPlaceholder from "./IllustrationPlaceholder";
 
 export default function KVStorageBrowser({ guildId }: { guildId: string }) {
   const [namespace, setNamespace] = useState<string>("default");
@@ -13,19 +14,28 @@ export default function KVStorageBrowser({ guildId }: { guildId: string }) {
   const namespaces = namespaceResp?.success ? namespaceResp.data : [];
   const keys = keyResp?.success ? keyResp.data : [];
 
+  if (namespaces.length === 0) {
+    return (
+      <IllustrationPlaceholder
+        svgPath="/illustrations/empty.svg"
+        title="There is nothing here yet! Once you have a plugin that is using the
+        KV storage, you will be able to see it here."
+        className="mt-10 lg:mt-20"
+      />
+    );
+  }
+
   return (
     <div>
       <div className="flex justify-between mb-3">
         <div>
-          {namespaces.length !== 0 && (
-            <select className="px-3 py-2 rounded bg-slate-900 min-w-64 text-gray-300">
-              {namespaces.map((ns) => (
-                <option key={ns.namespace} value={ns.namespace}>
-                  {ns.namespace}
-                </option>
-              ))}
-            </select>
-          )}
+          <select className="px-3 py-2 rounded bg-slate-900 min-w-64 text-gray-300">
+            {namespaces.map((ns) => (
+              <option key={ns.namespace} value={ns.namespace}>
+                {ns.namespace}
+              </option>
+            ))}
+          </select>
         </div>
       </div>
       <div className="bg-slate-800 p-5 rounded-md">

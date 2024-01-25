@@ -9,6 +9,7 @@ import { FlatFile } from "@/util/filetree";
 import { useRouter } from "next/router";
 import toast from "react-hot-toast";
 import clsx from "clsx";
+import IllustrationPlaceholder from "./IllustrationPlaceholder";
 
 const defaultFiles: FlatFile[] = [
   {
@@ -58,6 +59,8 @@ export default function WorkspaceList({ guildId }: { guildId: string }) {
 
   const { data: resp, refetch } = useWorkspacesQuery(guildId);
 
+  const workspaces = resp?.success ? resp.data : [];
+
   const deleteMutation = useWorkspaceDeleteMutation(guildId);
 
   function deleteWorkspace(workspaceId: string) {
@@ -104,54 +107,57 @@ export default function WorkspaceList({ guildId }: { guildId: string }) {
 
   return (
     <div>
-      {resp?.success ? (
-        <div>
-          <AutoAnimate
-            className={clsx(
-              "flex flex-col space-y-5",
-              resp.data.length !== 0 && "mb-10"
-            )}
-          >
-            {resp.data.map((w) => (
-              <div className="bg-slate-800 px-5 py-4 rounded-md" key={w.id}>
-                <div className="flex">
-                  <div className="flex-auto">
-                    <div className="text-gray-100 text-lg font-medium mb-1">
-                      {w.name}
-                    </div>
-                    <div className="font-light text-gray-300">
-                      {w.description}
-                    </div>
+      <div>
+        <AutoAnimate
+          className={clsx(
+            "flex flex-col space-y-5",
+            workspaces.length !== 0 && "mb-10"
+          )}
+        >
+          {workspaces.map((w) => (
+            <div className="bg-slate-800 px-5 py-4 rounded-md" key={w.id}>
+              <div className="flex">
+                <div className="flex-auto">
+                  <div className="text-gray-100 text-lg font-medium mb-1">
+                    {w.name}
                   </div>
-                  <div className="flex-none flex space-x-3 items-start">
-                    <button
-                      className="px-3 py-2 bg-slate-700 hover:bg-slate-600 text-gray-100 rounded select-none"
-                      onClick={() => deleteWorkspace(w.id)}
-                    >
-                      Delete
-                    </button>
-                    <Link
-                      className="px-3 py-2 bg-slate-700 hover:bg-slate-600 text-gray-100 rounded select-none"
-                      href={`/guilds/${guildId}/workspaces/${w.id}`}
-                    >
-                      Open Editor
-                    </Link>
+                  <div className="font-light text-gray-300">
+                    {w.description}
                   </div>
                 </div>
+                <div className="flex-none flex space-x-3 items-start">
+                  <button
+                    className="px-3 py-2 bg-slate-700 hover:bg-slate-600 text-gray-100 rounded select-none"
+                    onClick={() => deleteWorkspace(w.id)}
+                  >
+                    Delete
+                  </button>
+                  <Link
+                    className="px-3 py-2 bg-slate-700 hover:bg-slate-600 text-gray-100 rounded select-none"
+                    href={`/guilds/${guildId}/workspaces/${w.id}`}
+                  >
+                    Open Editor
+                  </Link>
+                </div>
               </div>
-            ))}
-          </AutoAnimate>
-          <div>
-            <button
-              className="px-4 py-2 text-gray-100 rounded border-2 border-slate-400 hover:bg-slate-600 text-lg"
-              onClick={createWorkspace}
-            >
-              New Workspace
-            </button>
-          </div>
+            </div>
+          ))}
+        </AutoAnimate>
+        <div>
+          <button
+            className="px-4 py-2 text-gray-100 rounded border-2 border-slate-400 hover:bg-slate-600 text-lg"
+            onClick={createWorkspace}
+          >
+            New Workspace
+          </button>
         </div>
-      ) : (
-        <div>Loading ...</div>
+      </div>
+      {workspaces.length === 0 && (
+        <IllustrationPlaceholder
+          svgPath="/illustrations/software_engineer.svg"
+          title="Create you first workspace and get coding without worrying about the boring stuff!"
+          className="mt-10"
+        />
       )}
     </div>
   );

@@ -94,14 +94,7 @@ export default function AppSideBar({ open, setOpen }: Props) {
                   ))}
                 </ul>
               </li>
-              <li>
-                <div className="text-xs font-semibold leading-6 text-gray-400">
-                  Quick access
-                </div>
-                <ul role="list" className="-mx-2 mt-2 space-y-1">
-                  <AppSidebarQuickAccess guildId={guildId} />
-                </ul>
-              </li>
+              <AppSidebarQuickAccess guildId={guildId} />
               <li className="-mx-6 mt-auto">
                 <Link
                   href="#"
@@ -200,14 +193,7 @@ export default function AppSideBar({ open, setOpen }: Props) {
                           ))}
                         </ul>
                       </li>
-                      <li>
-                        <div className="text-xs font-semibold leading-6 text-gray-400">
-                          Quick access
-                        </div>
-                        <ul role="list" className="-mx-2 mt-2 space-y-1">
-                          <AppSidebarQuickAccess guildId={guildId} />
-                        </ul>
-                      </li>
+                      <AppSidebarQuickAccess guildId={guildId} />
                     </ul>
                   </nav>
                 </div>
