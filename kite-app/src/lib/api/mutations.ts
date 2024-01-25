@@ -1,4 +1,4 @@
-import { useMutation } from "react-query";
+import { useMutation, useQueryClient } from "react-query";
 import {
   CompileJSRequest,
   CompileJSResponse,
@@ -30,9 +30,11 @@ export function useCompileJsMutation() {
   });
 }
 
-export function useDeploymentCreateMutation() {
+export function useDeploymentCreateMutation(guildId: string | null) {
+  const client = useQueryClient();
+
   return useMutation(
-    ({ guildId, req }: { guildId: string; req: DeploymentCreateRequest }) => {
+    (req: DeploymentCreateRequest) => {
       return fetch(`/api/v1/guilds/${guildId}/deployments`, {
         method: "POST",
         body: JSON.stringify(req),
@@ -40,26 +42,44 @@ export function useDeploymentCreateMutation() {
           "Content-Type": "application/json",
         },
       }).then((res) => handleApiResponse<DeploymentCreateResponse>(res.json()));
+    },
+    {
+      onSuccess: (res) => {
+        if (res.success) {
+          client.invalidateQueries(["guilds", guildId, "quickAccess"]);
+        }
+      },
     }
   );
 }
 
-export function useDeploymentDeleteMutation() {
+export function useDeploymentDeleteMutation(guildId: string | null) {
+  const client = useQueryClient();
+
   return useMutation(
-    ({ guildId, deploymentId }: { guildId: string; deploymentId: string }) => {
+    ({ deploymentId }: { deploymentId: string }) => {
       return fetch(`/api/v1/guilds/${guildId}/deployments/${deploymentId}`, {
         method: "DELETE",
         headers: {
           "Content-Type": "application/json",
         },
       }).then((res) => handleApiResponse<DeploymentDeleteResponse>(res.json()));
+    },
+    {
+      onSuccess: (res) => {
+        if (res.success) {
+          client.invalidateQueries(["guilds", guildId, "quickAccess"]);
+        }
+      },
     }
   );
 }
 
-export function useWorkspaceCreateMutation() {
+export function useWorkspaceCreateMutation(guildId: string | null) {
+  const client = useQueryClient();
+
   return useMutation(
-    ({ guildId, req }: { guildId: string; req: WorkspaceCreateRequest }) => {
+    (req: WorkspaceCreateRequest) => {
       return fetch(`/api/v1/guilds/${guildId}/workspaces`, {
         method: "POST",
         body: JSON.stringify(req),
@@ -67,18 +87,25 @@ export function useWorkspaceCreateMutation() {
           "Content-Type": "application/json",
         },
       }).then((res) => handleApiResponse<WorkspaceCreateResponse>(res.json()));
+    },
+    {
+      onSuccess: (res) => {
+        if (res.success) {
+          client.invalidateQueries(["guilds", guildId, "quickAccess"]);
+        }
+      },
     }
   );
 }
 
-export function useWorkspaceUpdateMutation() {
+export function useWorkspaceUpdateMutation(guildId: string | null) {
+  const client = useQueryClient();
+
   return useMutation(
     ({
-      guildId,
       workspaceId,
       req,
     }: {
-      guildId: string;
       workspaceId: string;
       req: WorkspaceCreateRequest;
     }) => {
@@ -89,19 +116,35 @@ export function useWorkspaceUpdateMutation() {
           "Content-Type": "application/json",
         },
       }).then((res) => handleApiResponse<WorkspaceUpdateResponse>(res.json()));
+    },
+    {
+      onSuccess: (res) => {
+        if (res.success) {
+          client.invalidateQueries(["guilds", guildId, "quickAccess"]);
+        }
+      },
     }
   );
 }
 
-export function useWorkspaceDeleteMutation() {
+export function useWorkspaceDeleteMutation(guildId: string | null) {
+  const client = useQueryClient();
+
   return useMutation(
-    ({ guildId, workspaceId }: { guildId: string; workspaceId: string }) => {
+    ({ workspaceId }: { workspaceId: string }) => {
       return fetch(`/api/v1/guilds/${guildId}/workspaces/${workspaceId}`, {
         method: "DELETE",
         headers: {
           "Content-Type": "application/json",
         },
       }).then((res) => handleApiResponse<WorkspaceDeleteResponse>(res.json()));
+    },
+    {
+      onSuccess: (res) => {
+        if (res.success) {
+          client.invalidateQueries(["guilds", guildId, "quickAccess"]);
+        }
+      },
     }
   );
 }

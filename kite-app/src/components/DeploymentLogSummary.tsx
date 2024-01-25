@@ -1,4 +1,4 @@
-import { useDeploymentLogSummaryQuery } from "@/api/queries";
+import { useDeploymentLogSummaryQuery } from "@/lib/api/queries";
 
 interface Props {
   guildId: string;

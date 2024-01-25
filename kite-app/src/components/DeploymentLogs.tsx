@@ -1,4 +1,4 @@
-import { useDeploymentLogEntriesQuery } from "@/api/queries";
+import { useDeploymentLogEntriesQuery } from "@/lib/api/queries";
 import clsx from "clsx";
 
 interface Props {

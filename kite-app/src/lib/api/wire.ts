@@ -79,6 +79,18 @@ export type GuildListResponse = APIResponse<Guild[]>;
 export type GuildGetResponse = APIResponse<Guild>;
 
 //////////
+// source: quick_access.go
+
+export interface QuickAccessItem {
+  id: string;
+  guild_id: string;
+  type: string;
+  name: string;
+  updated_at: string /* RFC3339 */;
+}
+export type QuickAccessItemListResponse = APIResponse<QuickAccessItem[]>;
+
+//////////
 // source: workspace.go
 
 export interface Workspace {

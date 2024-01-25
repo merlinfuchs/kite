@@ -1,11 +1,9 @@
 import AppLayout from "@/components/AppLayout";
 import DeploymentLogs from "@/components/DeploymentLogs";
-import { useRouter } from "next/router";
+import { useRouteParams } from "@/hooks/route";
 
 export default function DeploymentPage() {
-  const router = useRouter();
-  const guildId = router.query.gid as string;
-  const deploymentId = router.query.did as string;
+  const { guildId, deploymentId } = useRouteParams();
 
   return (
     <AppLayout>

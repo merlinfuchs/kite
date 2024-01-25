@@ -1,5 +1,5 @@
-import { useDeploymentDeleteMutation } from "@/api/mutations";
-import { useDeploymentsQuery, useWorkspacesQuery } from "@/api/queries";
+import { useDeploymentDeleteMutation } from "@/lib/api/mutations";
+import { useDeploymentsQuery, useWorkspacesQuery } from "@/lib/api/queries";
 import Link from "next/link";
 import AutoAnimate from "./AutoAnimate";
 import toast from "react-hot-toast";
@@ -9,12 +9,12 @@ import DeploymentListEntry from "./DeploymentListEntry";
 export default function DeploymentList({ guildId }: { guildId: string }) {
   const { data: resp, refetch } = useDeploymentsQuery(guildId);
 
-  const deleteMutation = useDeploymentDeleteMutation();
+  const deleteMutation = useDeploymentDeleteMutation(guildId);
 
   function deleteDeployment(deploymentId: string) {
     if (confirm("Are you sure you want to delete this workspace?")) {
       deleteMutation.mutate(
-        { guildId, deploymentId },
+        { deploymentId },
         {
           onSuccess: (res) => {
             if (res.success) {

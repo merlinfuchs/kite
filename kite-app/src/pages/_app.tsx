@@ -1,4 +1,4 @@
-import queryClient from "@/api/client";
+import queryClient from "@/lib/api/client";
 import "@/styles/globals.css";
 import type { AppProps } from "next/app";
 import { QueryClientProvider } from "react-query";

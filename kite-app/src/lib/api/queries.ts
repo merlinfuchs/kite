@@ -5,6 +5,7 @@ import {
   DeploymentLogSummaryResponse,
   GuildGetResponse,
   GuildListResponse,
+  QuickAccessItemListResponse,
   WorkspaceGetResponse,
   WorkspaceListResponse,
 } from "./wire";
@@ -102,6 +103,20 @@ export function useDeploymentLogSummaryQuery(
     {
       enabled: !!guildId && !!deploymentId,
       refetchInterval: 5000,
+    }
+  );
+}
+
+export function useQuickAccessItemListQuery(guildId?: string | null) {
+  return useQuery<QuickAccessItemListResponse>(
+    ["guilds", guildId, "quickAccess"],
+    () => {
+      return fetch(`/api/v1/guilds/${guildId}/quick-access`).then((res) =>
+        res.json()
+      );
+    },
+    {
+      enabled: !!guildId,
     }
   );
 }

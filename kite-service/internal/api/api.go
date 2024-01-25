@@ -15,6 +15,7 @@ import (
 	"github.com/merlinfuchs/kite/kite-service/internal/handler/compile"
 	"github.com/merlinfuchs/kite/kite-service/internal/handler/deployment"
 	guild "github.com/merlinfuchs/kite/kite-service/internal/handler/guilld"
+	quickaccess "github.com/merlinfuchs/kite/kite-service/internal/handler/quick_access"
 	"github.com/merlinfuchs/kite/kite-service/internal/handler/workspace"
 	"github.com/merlinfuchs/kite/kite-service/internal/logging/logattr"
 	"github.com/merlinfuchs/kite/kite-service/pkg/engine"
@@ -72,6 +73,9 @@ func (api *API) RegisterHandlers(engine *engine.PluginEngine, pg *postgres.Clien
 	api.app.Get("/api/v1/guilds/:guildID/workspaces/:workspaceID", workspaceHandler.HandleWorkspaceGetForGuild)
 	api.app.Get("/api/v1/guilds/:guildID/workspaces", workspaceHandler.HandleWorkspaceListForGuild)
 	api.app.Delete("/api/v1/guilds/:guildID/workspaces/:workspaceID", workspaceHandler.HandleWorkspaceDelete)
+
+	quickAccessHandler := quickaccess.NewHandler(pg)
+	api.app.Get("/api/v1/guilds/:guildID/quick-access", quickAccessHandler.HandleQuickAccessItemList)
 
 	compileHandler := compile.NewHandler()
 	api.app.Post("/api/v1/compile/js", helpers.WithRequestBody(compileHandler.HandleCompileJS))

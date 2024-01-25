@@ -1,8 +1,8 @@
 import {
   useWorkspaceCreateMutation,
   useWorkspaceDeleteMutation,
-} from "@/api/mutations";
-import { useWorkspacesQuery } from "@/api/queries";
+} from "@/lib/api/mutations";
+import { useWorkspacesQuery } from "@/lib/api/queries";
 import Link from "next/link";
 import AutoAnimate from "./AutoAnimate";
 import { FlatFile } from "@/util/filetree";
@@ -58,12 +58,12 @@ export default function WorkspaceList({ guildId }: { guildId: string }) {
 
   const { data: resp, refetch } = useWorkspacesQuery(guildId);
 
-  const deleteMutation = useWorkspaceDeleteMutation();
+  const deleteMutation = useWorkspaceDeleteMutation(guildId);
 
   function deleteWorkspace(workspaceId: string) {
     if (confirm("Are you sure you want to delete this workspace?")) {
       deleteMutation.mutate(
-        { guildId, workspaceId },
+        { workspaceId },
         {
           onSuccess: (res) => {
             if (res.success) {
@@ -77,20 +77,17 @@ export default function WorkspaceList({ guildId }: { guildId: string }) {
     }
   }
 
-  const createMutation = useWorkspaceCreateMutation();
+  const createMutation = useWorkspaceCreateMutation(guildId);
 
   function createWorkspace() {
     createMutation.mutate(
       {
-        guildId,
-        req: {
-          name: "New Workspace",
-          description: "A new Workspace for my new cool Plugin!",
-          files: defaultFiles.map((file) => ({
-            path: file.path,
-            content: file.content,
-          })),
-        },
+        name: "New Workspace",
+        description: "A new Workspace for my new cool Plugin!",
+        files: defaultFiles.map((file) => ({
+          path: file.path,
+          content: file.content,
+        })),
       },
       {
         onSuccess: (res) => {

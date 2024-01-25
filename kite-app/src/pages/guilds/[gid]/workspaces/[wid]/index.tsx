@@ -2,21 +2,21 @@ import {
   useCompileJsMutation,
   useDeploymentCreateMutation,
   useWorkspaceUpdateMutation,
-} from "@/api/mutations";
-import { useWorkspaceQuery } from "@/api/queries";
-import { Workspace } from "@/api/wire";
+} from "@/lib/api/mutations";
+import { useWorkspaceQuery } from "@/lib/api/queries";
+import { Workspace } from "@/lib/api/wire";
 import Code from "@/components/code/Code";
 import { compileWorkspace, readManifestFromWorkspace } from "@/util/compile";
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
+import { useRouteParams } from "@/hooks/route";
 
 export default function WorkspacePage() {
   const router = useRouter();
-  const guildId = router.query.gid as string;
-  const workspaceId = router.query.wid as string;
+  const { guildId, workspaceId } = useRouteParams();
 
   const workspaceQuery = useWorkspaceQuery(guildId, workspaceId);
-  const updateWorkspaceMutation = useWorkspaceUpdateMutation();
+  const updateWorkspaceMutation = useWorkspaceUpdateMutation(guildId);
 
   const [workspace, setWorkspace] = useState<Workspace | null>(null);
   const [openFilePath, setOpenFilePath] = useState<string | null>("index.ts");
@@ -37,7 +37,6 @@ export default function WorkspacePage() {
     setIsSaving(true);
     updateWorkspaceMutation.mutate(
       {
-        guildId,
         workspaceId,
         req: {
           name: "Some Workspace",
@@ -62,7 +61,7 @@ export default function WorkspacePage() {
 
   const [isDeploying, setIsDeploying] = useState(false);
   const compileMutation = useCompileJsMutation();
-  const deployMutation = useDeploymentCreateMutation();
+  const deployMutation = useDeploymentCreateMutation(guildId);
 
   async function onDeploy() {
     if (!workspace) return;
@@ -85,18 +84,15 @@ export default function WorkspacePage() {
 
           deployMutation.mutate(
             {
-              guildId,
-              req: {
-                key: manifest?.plugin?.key || "default@web",
-                name: manifest?.plugin?.name || "Untitled Plugin",
-                description: manifest?.plugin?.description || "No description",
-                wasm_bytes: res.data.wasm_bytes,
-                plugin_version_id: null,
-                manifest_events: manifest?.plugin?.events || [],
-                manifest_commands: [],
-                manifest_default_config: {},
-                config: {},
-              },
+              key: manifest?.plugin?.key || "default@web",
+              name: manifest?.plugin?.name || "Untitled Plugin",
+              description: manifest?.plugin?.description || "No description",
+              wasm_bytes: res.data.wasm_bytes,
+              plugin_version_id: null,
+              manifest_events: manifest?.plugin?.events || [],
+              manifest_commands: [],
+              manifest_default_config: {},
+              config: {},
             },
             {
               onSettled: () => {
@@ -126,7 +122,7 @@ export default function WorkspacePage() {
         isSaving={isSaving}
         onSave={onSave}
         onChange={() => setHasUnsavedChanges(true)}
-        onBack={() => router.push(`/guilds/${guildId}`)}
+        onBack={() => router.push(`/guilds/${guildId}/workspaces`)}
         isDeploying={isDeploying}
         onDeploy={onDeploy}
       />
