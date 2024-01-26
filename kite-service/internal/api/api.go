@@ -64,7 +64,7 @@ func (api *API) RegisterHandlers(engine *engine.PluginEngine, pg *postgres.Clien
 	api.app.Get("/api/v1/guilds/:guildID/deployments/:deploymentID/logs", deploymentHandler.HandleDeploymentLogEntryList)
 	api.app.Get("/api/v1/guilds/:guildID/deployments/:deploymentID/logs/summary", deploymentHandler.HandleDeploymentLogSummaryGet)
 	api.app.Get("/api/v1/guilds/:guildID/deployments/:deploymentID/metrics/events", deploymentHandler.HandleDeploymenEventMetricsList)
-	api.app.Get("/api/v1/guilds/:guildID/deployments/:deploymentID/metrics/actions", deploymentHandler.HandleDeploymenActionMetricsList)
+	api.app.Get("/api/v1/guilds/:guildID/deployments/:deploymentID/metrics/calls", deploymentHandler.HandleDeploymenCallMetricsList)
 	api.app.Get("/api/v1/guilds/:guildID/deployments/:deploymentID/metrics/timings", deploymentHandler.HandleDeploymenTimingMetricsList)
 
 	guildHandler := guild.NewHandler(pg)

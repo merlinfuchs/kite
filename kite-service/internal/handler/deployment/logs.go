@@ -32,7 +32,7 @@ func (h *DeploymentHandler) HandleDeploymentLogSummaryGet(c *fiber.Ctx) error {
 		return err
 	}
 
-	return c.JSON(wire.DeploymentLogSummaryResponse{
+	return c.JSON(wire.DeploymentLogSummaryGetResponse{
 		Success: true,
 		Data: wire.DeploymentLogSummary{
 			DeploymentID: summary.DeploymentID,

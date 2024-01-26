@@ -2,7 +2,8 @@ import { useQuery } from "react-query";
 import {
   DeploymentListResponse,
   DeploymentLogEntryListResponse,
-  DeploymentLogSummaryResponse,
+  DeploymentLogSummaryGetResponse,
+  DeploymentMetricEventsListResponse,
   GuildGetResponse,
   GuildListResponse,
   KVStorageNamespaceKeyListResponse,
@@ -92,13 +93,48 @@ export function useDeploymentLogEntriesQuery(
 
 export function useDeploymentLogSummaryQuery(
   guildId?: string | null,
-  deploymentId?: string | null
+  deploymentId?: string | null,
+  timeframe: "hour" | "day" | "week" | "month" = "day"
 ) {
-  return useQuery<DeploymentLogSummaryResponse>(
-    ["guilds", guildId, "deployments", deploymentId, "logs", "summary"],
+  return useQuery<DeploymentLogSummaryGetResponse>(
+    [
+      "guilds",
+      guildId,
+      "deployments",
+      deploymentId,
+      "logs",
+      "summary",
+      timeframe,
+    ],
     () => {
       return fetch(
-        `/api/v1/guilds/${guildId}/deployments/${deploymentId}/logs/summary`
+        `/api/v1/guilds/${guildId}/deployments/${deploymentId}/logs/summary?timeframe=${timeframe}`
+      ).then((res) => res.json());
+    },
+    {
+      enabled: !!guildId && !!deploymentId,
+    }
+  );
+}
+
+export function useDeploymentEventMetricsQuery(
+  guildId?: string | null,
+  deploymentId?: string | null,
+  timeframe: "hour" | "day" | "week" | "month" = "day"
+) {
+  return useQuery<DeploymentMetricEventsListResponse>(
+    [
+      "guilds",
+      guildId,
+      "deployments",
+      deploymentId,
+      "metrics",
+      "events",
+      timeframe,
+    ],
+    () => {
+      return fetch(
+        `/api/v1/guilds/${guildId}/deployments/${deploymentId}/metrics/events?timeframe=${timeframe}`
       ).then((res) => res.json());
     },
     {

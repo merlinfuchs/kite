@@ -38,3 +38,41 @@ func DeploymentMetricEntryToWire(d *model.DeploymentMetricEntry) DeploymentMetri
 		Timestamp:          d.Timestamp,
 	}
 }
+
+type DeploymentEventMetricEntry struct {
+	Timestamp            time.Time     `json:"timestamp"`
+	TotalCount           int           `json:"total_count"`
+	SuccessCount         int           `json:"success_count"`
+	AverageExecutionTime time.Duration `json:"average_execution_time"`
+	AverageTotalTime     time.Duration `json:"average_total_time"`
+}
+
+func DeploymentEventMetricEntryToWire(d *model.DeploymentEventMetricEntry) DeploymentEventMetricEntry {
+	return DeploymentEventMetricEntry{
+		Timestamp:            d.Timestamp,
+		TotalCount:           d.TotalCount,
+		SuccessCount:         d.SuccessCount,
+		AverageExecutionTime: d.AverageExecutionTime,
+		AverageTotalTime:     d.AverageTotalTime,
+	}
+}
+
+type DeploymentMetricEventsListResponse APIResponse[[]DeploymentEventMetricEntry]
+
+type DeploymentCallMetricEntry struct {
+	Timestamp        time.Time     `json:"timestamp"`
+	TotalCount       int           `json:"total_count"`
+	SuccessCount     int           `json:"success_count"`
+	AverageTotalTime time.Duration `json:"average_total_time"`
+}
+
+func DeploymentCallMetricEntryToWire(d *model.DeploymentCallMetricEntry) DeploymentCallMetricEntry {
+	return DeploymentCallMetricEntry{
+		Timestamp:        d.Timestamp,
+		TotalCount:       d.TotalCount,
+		SuccessCount:     d.SuccessCount,
+		AverageTotalTime: d.AverageTotalTime,
+	}
+}
+
+type DeploymentMetricCallsListResponse APIResponse[[]DeploymentCallMetricEntry]

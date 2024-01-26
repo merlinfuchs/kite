@@ -4,10 +4,10 @@ import (
 	"context"
 	"crypto/rand"
 	"fmt"
-	"os"
 	"time"
 
 	"github.com/merlinfuchs/kite/go-types/event"
+	"github.com/merlinfuchs/kite/go-types/logmodel"
 	"github.com/tetratelabs/wazero"
 	"github.com/tetratelabs/wazero/api"
 	"github.com/tetratelabs/wazero/imports/wasi_snapshot_preview1"
@@ -80,9 +80,14 @@ func New(ctx context.Context, wasm []byte, manifest Manifest, config PluginConfi
 			WithSysWalltime().
 			WithSysNanosleep().
 			WithSysNanotime().
-			// TODO: remove stdout or forward to logging
-			WithStdout(os.Stdout).
-			WithStderr(os.Stderr),
+			WithStdout(&pluginLogForwader{
+				env:   env,
+				level: logmodel.LogLevelDebug,
+			}).
+			WithStderr(&pluginLogForwader{
+				env:   env,
+				level: logmodel.LogLevelError,
+			}),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to instantiate module: %w", err)

@@ -3,10 +3,11 @@ package postgres
 import (
 	"context"
 	"encoding/json"
+	"fmt"
+	"time"
 
 	"github.com/merlinfuchs/kite/kite-service/internal/db/postgres/pgmodel"
 	"github.com/merlinfuchs/kite/kite-service/pkg/model"
-	"github.com/merlinfuchs/kite/kite-service/pkg/store"
 	"github.com/sqlc-dev/pqtype"
 )
 
@@ -36,6 +37,80 @@ func (c *Client) CreateDeploymentMetricEntry(ctx context.Context, entry model.De
 	return err
 }
 
-func (c *Client) GetDeploymentMetricEntries(ctx context.Context, args store.GetDeploymentMetricEntriesArgs) ([]model.DeploymentMetricEntry, error) {
-	return nil, nil
+func (c *Client) GetDeploymentEventMetrics(ctx context.Context, deploymentID string, startAt time.Time, groupBy time.Duration) ([]model.DeploymentEventMetricEntry, error) {
+	precision, step, err := groupByToPrecisionAndStep(groupBy)
+	if err != nil {
+		return nil, err
+	}
+
+	rows, err := c.Q.GetDeploymentEventMetrics(ctx, pgmodel.GetDeploymentEventMetricsParams{
+		DeploymentID: deploymentID,
+		StartAt:      startAt,
+		EndAt:        time.Now().UTC(),
+		Precision:    precision,
+		SeriesStep:   step,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	res := make([]model.DeploymentEventMetricEntry, len(rows))
+	for i, row := range rows {
+		res[i] = model.DeploymentEventMetricEntry{
+			Timestamp:            row.Timestamp,
+			TotalCount:           int(row.TotalCount),
+			SuccessCount:         int(row.SuccessCount),
+			AverageExecutionTime: time.Duration(row.AvgExecutionTime) * time.Microsecond,
+			AverageTotalTime:     time.Duration(row.AvgTotalTime) * time.Microsecond,
+		}
+	}
+
+	return res, nil
+}
+
+func (c *Client) GetDeploymentCallMetrics(ctx context.Context, deploymentID string, startAt time.Time, groupBy time.Duration) ([]model.DeploymentCallMetricEntry, error) {
+	precision, step, err := groupByToPrecisionAndStep(groupBy)
+	if err != nil {
+		return nil, err
+	}
+
+	rows, err := c.Q.GetDeploymentCallMetrics(ctx, pgmodel.GetDeploymentCallMetricsParams{
+		DeploymentID: deploymentID,
+		StartAt:      startAt,
+		EndAt:        time.Now().UTC(),
+		Precision:    precision,
+		SeriesStep:   step,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	res := make([]model.DeploymentCallMetricEntry, len(rows))
+	for i, row := range rows {
+		res[i] = model.DeploymentCallMetricEntry{
+			Timestamp:        row.Timestamp,
+			TotalCount:       int(row.TotalCount),
+			SuccessCount:     int(row.SuccessCount),
+			AverageTotalTime: time.Duration(row.AvgTotalTime) * time.Microsecond,
+		}
+	}
+
+	return res, nil
+}
+
+func groupByToPrecisionAndStep(groupBy time.Duration) (string, string, error) {
+	switch groupBy {
+	case time.Hour * 24 * 7:
+		return "week", "7d", nil
+	case time.Hour * 24:
+		return "day", "1d", nil
+	case time.Hour:
+		return "hour", "1h", nil
+	case time.Minute:
+		return "minute", "1m", nil
+	case time.Second:
+		return "second", "1s", nil
+	default:
+		return "", "", fmt.Errorf("unsupported group by duration: %s", groupBy)
+	}
 }

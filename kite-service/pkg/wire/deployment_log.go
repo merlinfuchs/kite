@@ -25,7 +25,7 @@ type DeploymentLogSummary struct {
 	DebugCount   int    `json:"debug_count"`
 }
 
-type DeploymentLogSummaryResponse APIResponse[DeploymentLogSummary]
+type DeploymentLogSummaryGetResponse APIResponse[DeploymentLogSummary]
 
 func DeploymentLogEntryToWire(d *model.DeploymentLogEntry) DeploymentLogEntry {
 	return DeploymentLogEntry{

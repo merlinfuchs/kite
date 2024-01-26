@@ -46,8 +46,12 @@ export interface DeploymentCreateRequest {
 export type DeploymentCreateResponse = APIResponse<Deployment>;
 export type DeploymentDeleteResponse = APIResponse<{
   }>;
+
+//////////
+// source: deployment_log.go
+
 export interface DeploymentLogEntry {
-  id: string;
+  id: number /* uint64 */;
   deployment_id: string;
   level: string;
   message: string;
@@ -62,7 +66,41 @@ export interface DeploymentLogSummary {
   info_count: number /* int */;
   debug_count: number /* int */;
 }
-export type DeploymentLogSummaryResponse = APIResponse<DeploymentLogSummary>;
+export type DeploymentLogSummaryGetResponse = APIResponse<DeploymentLogSummary>;
+
+//////////
+// source: deployment_metric.go
+
+export interface DeploymentMetricEntry {
+  id: number /* uint64 */;
+  deployment_id: string;
+  type: string;
+  metadata: { [key: string]: string};
+  event_id: number /* uint64 */;
+  event_type: string;
+  event_succes: boolean;
+  event_execution_time: any /* time.Duration */;
+  event_total_time: any /* time.Duration */;
+  call_type: string;
+  call_succes: boolean;
+  call_total_time: any /* time.Duration */;
+  timestamp: string /* RFC3339 */;
+}
+export interface DeploymentEventMetricEntry {
+  timestamp: string /* RFC3339 */;
+  total_count: number /* int */;
+  success_count: number /* int */;
+  average_execution_time: any /* time.Duration */;
+  average_total_time: any /* time.Duration */;
+}
+export type DeploymentMetricEventsListResponse = APIResponse<DeploymentEventMetricEntry[]>;
+export interface DeploymentCallMetricEntry {
+  timestamp: string /* RFC3339 */;
+  total_count: number /* int */;
+  success_count: number /* int */;
+  average_total_time: any /* time.Duration */;
+}
+export type DeploymentMetricCallsListResponse = APIResponse<DeploymentCallMetricEntry[]>;
 
 //////////
 // source: guild.go

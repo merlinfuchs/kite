@@ -9,13 +9,6 @@ import (
 
 type DeploymentMetricStore interface {
 	CreateDeploymentMetricEntry(ctx context.Context, entry model.DeploymentMetricEntry) error
-	GetDeploymentMetricEntries(ctx context.Context, args GetDeploymentMetricEntriesArgs) ([]model.DeploymentMetricEntry, error)
-}
-
-type GetDeploymentMetricEntriesArgs struct {
-	DeploymentID string
-	GuildID      string
-	StartTime    time.Time
-	EndTime      time.Time
-	Limit        int
+	GetDeploymentEventMetrics(ctx context.Context, deploymentID string, startAt time.Time, groupBy time.Duration) ([]model.DeploymentEventMetricEntry, error)
+	GetDeploymentCallMetrics(ctx context.Context, deploymentID string, startAt time.Time, groupBy time.Duration) ([]model.DeploymentCallMetricEntry, error)
 }

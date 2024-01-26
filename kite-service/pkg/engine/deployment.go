@@ -9,6 +9,7 @@ import (
 
 	pool "github.com/jolestar/go-commons-pool/v2"
 	"github.com/merlinfuchs/kite/go-types/event"
+	"github.com/merlinfuchs/kite/go-types/logmodel"
 	"github.com/merlinfuchs/kite/kite-service/internal/logging/logattr"
 	"github.com/merlinfuchs/kite/kite-service/pkg/plugin"
 )
@@ -98,7 +99,7 @@ func (pd *PluginDeployment) HandleEvent(ctx context.Context, event *event.Event)
 	pd.env.TrackEventHandled(ctx, string(event.Type), err == nil, res.TotalDuration, res.ExecutionDuration)
 
 	if err != nil {
-		return err
+		pd.env.Log(ctx, logmodel.LogLevelError, err.Error())
 	}
 
 	return nil

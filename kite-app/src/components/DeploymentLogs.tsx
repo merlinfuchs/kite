@@ -12,7 +12,7 @@ export default function ({ guildId, deploymentId }: Props) {
   const logEntries = resp?.success ? resp.data : [];
 
   return logEntries.map((l, i) => (
-    <div key={l.id} className="font-light text-sm flex space-x-2">
+    <div key={l.id} className="font-light text-sm flex space-x-2 items-start">
       <div className="text-gray-400 min-w-32">
         {new Date(l.created_at).toLocaleString()}
       </div>
