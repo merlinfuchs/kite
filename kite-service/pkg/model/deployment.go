@@ -21,20 +21,3 @@ type Deployment struct {
 	CreatedAt             time.Time
 	UpdatedAt             time.Time
 }
-
-type DeploymentLogEntry struct {
-	ID           string
-	DeploymentID string
-	Level        string
-	Message      string
-	CreatedAt    time.Time
-}
-
-type DeploymentLogSummary struct {
-	DeploymentID string
-	TotalCount   int
-	ErrorCount   int
-	WarnCount    int
-	InfoCount    int
-	DebugCount   int
-}

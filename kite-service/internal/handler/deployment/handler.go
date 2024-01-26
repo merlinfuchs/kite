@@ -14,14 +14,18 @@ import (
 )
 
 type DeploymentHandler struct {
-	engine      *engine.PluginEngine
-	deployments store.DeploymentStore
+	engine            *engine.PluginEngine
+	deployments       store.DeploymentStore
+	deploymentLogs    store.DeploymentLogStore
+	deploymentMetrics store.DeploymentMetricStore
 }
 
-func NewHandler(engine *engine.PluginEngine, deployments store.DeploymentStore) *DeploymentHandler {
+func NewHandler(engine *engine.PluginEngine, deployments store.DeploymentStore, deploymentLogs store.DeploymentLogStore, deploymentMetrics store.DeploymentMetricStore) *DeploymentHandler {
 	return &DeploymentHandler{
-		engine:      engine,
-		deployments: deployments,
+		engine:            engine,
+		deployments:       deployments,
+		deploymentLogs:    deploymentLogs,
+		deploymentMetrics: deploymentMetrics,
 	}
 }
 
@@ -86,43 +90,5 @@ func (h *DeploymentHandler) HandleDeploymentDelete(c *fiber.Ctx) error {
 
 	return c.JSON(wire.DeploymentDeleteResponse{
 		Success: true,
-	})
-}
-
-func (h *DeploymentHandler) HandleDeploymentLogEntryList(c *fiber.Ctx) error {
-	entires, err := h.deployments.GetDeploymentLogEntries(c.Context(), c.Params("deploymentID"), c.Params("guildID"))
-	if err != nil {
-		return err
-	}
-
-	res := make([]wire.DeploymentLogEntry, len(entires))
-	for i, entry := range entires {
-		res[i] = wire.DeploymentLogEntryToWire(&entry)
-	}
-
-	return c.JSON(wire.DeploymentLogEntryListResponse{
-		Success: true,
-		Data:    res,
-	})
-}
-
-func (h *DeploymentHandler) HandleDeploymentLogSummaryGet(c *fiber.Ctx) error {
-	cutoff := time.Now().UTC().Add(-time.Hour * 24)
-
-	summary, err := h.deployments.GetDeploymentLogSummary(c.Context(), c.Params("deploymentID"), c.Params("guildID"), cutoff)
-	if err != nil {
-		return err
-	}
-
-	return c.JSON(wire.DeploymentLogSummaryResponse{
-		Success: true,
-		Data: wire.DeploymentLogSummary{
-			DeploymentID: summary.DeploymentID,
-			TotalCount:   summary.TotalCount,
-			ErrorCount:   summary.ErrorCount,
-			WarnCount:    summary.WarnCount,
-			InfoCount:    summary.InfoCount,
-			DebugCount:   summary.DebugCount,
-		},
 	})
 }

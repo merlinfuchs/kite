@@ -8,7 +8,7 @@ import DeploymentListEntry from "./DeploymentListEntry";
 import IllustrationPlaceholder from "./IllustrationPlaceholder";
 
 export default function DeploymentList({ guildId }: { guildId: string }) {
-  const { data: resp, refetch } = useDeploymentsQuery(guildId);
+  const { data: resp } = useDeploymentsQuery(guildId);
 
   const deployments = resp?.success ? resp.data : [];
 
@@ -20,9 +20,7 @@ export default function DeploymentList({ guildId }: { guildId: string }) {
         { deploymentId },
         {
           onSuccess: (res) => {
-            if (res.success) {
-              refetch();
-            } else {
+            if (!res.success) {
               toast.error("Failed to delete workspace");
             }
           },

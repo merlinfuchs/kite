@@ -66,7 +66,7 @@ func (p *Plugin) kiteCall(offset uint32, length uint32) uint32 {
 		return p.resError(err)
 	}
 
-	res, err := p.env.Call(p.ctx, p.currentGuildID, req)
+	res, err := p.env.Call(p.ctx, p.manifest.ID, p.currentGuildID, req)
 	if err != nil {
 		return p.resError(err)
 	}

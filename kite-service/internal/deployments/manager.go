@@ -26,7 +26,7 @@ func (m *DeploymentManager) Start() {
 	m.stopped = make(chan struct{})
 
 	go func() {
-		ticker := time.NewTicker(time.Minute)
+		ticker := time.NewTicker(time.Second * 10)
 		defer ticker.Stop()
 
 		m.populateEngineDeployments(context.Background())

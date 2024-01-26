@@ -3,7 +3,6 @@ package plugin
 import (
 	"context"
 	"crypto/rand"
-	"encoding/json"
 	"fmt"
 	"os"
 	"time"
@@ -151,90 +150,6 @@ func (p *Plugin) callStart(ctx context.Context) error {
 		}
 	}
 	return nil
-}
-
-func (p *Plugin) Handle(ctx context.Context, e *event.Event) error {
-	if p.config.TotalTimeLimit != 0 {
-		ctx, p.cancel = context.WithTimeout(ctx, p.config.TotalTimeLimit)
-	} else {
-		ctx, p.cancel = context.WithCancel(ctx)
-	}
-	p.ctx = ctx
-
-	raw, err := json.Marshal(e)
-	if err != nil {
-		return fmt.Errorf("failed to marshal event: %w", err)
-	}
-	p.currentEvent = raw
-	p.currentGuildID = e.GuildID
-
-	p.startHandle()
-	defer p.endHandle()
-
-	fn := p.m.ExportedFunction("kite_handle")
-	if fn == nil {
-		return fmt.Errorf("kite_handle not defined")
-	}
-
-	_, err = fn.Call(ctx, uint64(len(raw)))
-	if err != nil {
-		return fmt.Errorf("failed to call kite_handle: %w", err)
-	}
-
-	if p.currentEventResponse == nil {
-		return nil
-	}
-
-	if !p.currentEventResponse.Success {
-		err := p.currentEventResponse.Error
-		p.currentEventResponse = nil
-		return err
-	}
-
-	p.currentEventResponse = nil
-	return nil
-}
-
-func (p *Plugin) Close(ctx context.Context) error {
-	if err := p.m.Close(ctx); err != nil {
-		return err
-	}
-	return p.r.Close(ctx)
-}
-
-func (p *Plugin) startHandle() {
-	p.state = PluginStateEvent
-	p.ticker = time.NewTicker(time.Millisecond * 5)
-	p.handleStartAt = time.Now()
-	p.hostCallDuration = 0
-
-	if p.config.ExecutionTimeLimit != 0 {
-		go func() {
-			for {
-				_, ok := <-p.ticker.C
-				if !ok {
-					return
-				}
-
-				totalDuration := time.Since(p.handleStartAt)
-
-				hostCallDuration := p.hostCallDuration
-				if !p.hostCallStartAt.IsZero() {
-					hostCallDuration += time.Since(p.hostCallStartAt)
-				}
-
-				executionDuration := totalDuration - hostCallDuration
-				if executionDuration > p.config.ExecutionTimeLimit {
-					p.cancel()
-				}
-			}
-		}()
-	}
-}
-
-func (p *Plugin) endHandle() {
-	p.state = PluginStateReady
-	p.ticker.Stop()
 }
 
 func (p *Plugin) startHostCall() {

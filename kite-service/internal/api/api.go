@@ -57,12 +57,15 @@ func New() *API {
 }
 
 func (api *API) RegisterHandlers(engine *engine.PluginEngine, pg *postgres.Client) {
-	deploymentHandler := deployment.NewHandler(engine, pg)
+	deploymentHandler := deployment.NewHandler(engine, pg, pg, pg)
 	api.app.Get("/api/v1/guilds/:guildID/deployments", deploymentHandler.HandleDeploymentListForGuild)
 	api.app.Post("/api/v1/guilds/:guildID/deployments", helpers.WithRequestBody(deploymentHandler.HandleDeploymentCreate))
 	api.app.Delete("/api/v1/guilds/:guildID/deployments/:deploymentID", deploymentHandler.HandleDeploymentDelete)
 	api.app.Get("/api/v1/guilds/:guildID/deployments/:deploymentID/logs", deploymentHandler.HandleDeploymentLogEntryList)
 	api.app.Get("/api/v1/guilds/:guildID/deployments/:deploymentID/logs/summary", deploymentHandler.HandleDeploymentLogSummaryGet)
+	api.app.Get("/api/v1/guilds/:guildID/deployments/:deploymentID/metrics/events", deploymentHandler.HandleDeploymenEventMetricsList)
+	api.app.Get("/api/v1/guilds/:guildID/deployments/:deploymentID/metrics/actions", deploymentHandler.HandleDeploymenActionMetricsList)
+	api.app.Get("/api/v1/guilds/:guildID/deployments/:deploymentID/metrics/timings", deploymentHandler.HandleDeploymenTimingMetricsList)
 
 	guildHandler := guild.NewHandler(pg)
 	api.app.Get("/api/v1/guilds", guildHandler.HandleGuildList)

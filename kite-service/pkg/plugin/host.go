@@ -9,5 +9,5 @@ import (
 
 type HostEnvironment interface {
 	Log(ctx context.Context, deploymentID string, level logmodel.LogLevel, msg string)
-	Call(ctx context.Context, guildID string, req call.Call) (interface{}, error)
+	Call(ctx context.Context, deploymentID string, guildID string, req call.Call) (interface{}, error)
 }

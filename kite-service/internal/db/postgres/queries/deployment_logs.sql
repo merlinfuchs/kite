@@ -1,6 +1,5 @@
 -- name: CreateDeploymentLogEntry :exec
 INSERT INTO deployment_logs (
-    id,
     deployment_id,
     level,
     message,
@@ -9,8 +8,7 @@ INSERT INTO deployment_logs (
     $1,
     $2,
     $3,
-    $4,
-    $5
+    $4
 );
 
 -- name: GetDeploymentLogEntries :many

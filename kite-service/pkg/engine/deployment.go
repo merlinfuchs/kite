@@ -86,7 +86,7 @@ func (pd *PluginDeployment) HandleEvent(ctx context.Context, event *event.Event)
 		return fmt.Errorf("failed to borrow plugin: %w", err)
 	}
 
-	err = plugin.Handle(ctx, event)
+	res, err := plugin.Handle(ctx, event)
 
 	if err := pd.ReturnPlugin(ctx, plugin); err != nil {
 		slog.With(logattr.Error(err)).Error("failed to return plugin")
@@ -94,6 +94,9 @@ func (pd *PluginDeployment) HandleEvent(ctx context.Context, event *event.Event)
 
 	if err != nil {
 		return err
+	} else {
+		fmt.Println("Execution duration: ", res.ExecutionDuration)
+		fmt.Println("Total duration: ", res.TotalDuration)
 	}
 
 	return nil

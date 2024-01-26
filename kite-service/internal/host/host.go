@@ -3,30 +3,37 @@ package host
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"time"
 
 	"github.com/merlinfuchs/kite/go-types/call"
 	"github.com/merlinfuchs/kite/go-types/dismodel"
 	"github.com/merlinfuchs/kite/go-types/kvmodel"
 	"github.com/merlinfuchs/kite/kite-service/internal/bot"
+	"github.com/merlinfuchs/kite/kite-service/internal/logging/logattr"
+	"github.com/merlinfuchs/kite/kite-service/pkg/model"
 	"github.com/merlinfuchs/kite/kite-service/pkg/store"
 )
 
 type HostEnvironment struct {
-	bot         *bot.Bot
-	deployments store.DeploymentStore
-	kvStorage   store.KVStorageStore
+	bot               *bot.Bot
+	deployments       store.DeploymentStore
+	deploymentLogs    store.DeploymentLogStore
+	deploymentMetrics store.DeploymentMetricStore
+	kvStorage         store.KVStorageStore
 }
 
-func NewEnv(bot *bot.Bot, deployments store.DeploymentStore, kvStorage store.KVStorageStore) HostEnvironment {
+func NewEnv(bot *bot.Bot, deployments store.DeploymentStore, deploymentLogs store.DeploymentLogStore, deploymentMetrics store.DeploymentMetricStore, kvStorage store.KVStorageStore) HostEnvironment {
 	return HostEnvironment{
-		bot:         bot,
-		deployments: deployments,
-		kvStorage:   kvStorage,
+		bot:               bot,
+		deployments:       deployments,
+		deploymentLogs:    deploymentLogs,
+		deploymentMetrics: deploymentMetrics,
+		kvStorage:         kvStorage,
 	}
 }
 
-func (h HostEnvironment) Call(ctx context.Context, guildID string, req call.Call) (res interface{}, err error) {
+func (h HostEnvironment) Call(ctx context.Context, deploymentID string, guildID string, req call.Call) (res interface{}, err error) {
 	timeout := time.Duration(time.Duration(req.Config.Timeout) * time.Millisecond)
 	if timeout == 0 || timeout > 3*time.Second {
 		timeout = 3 * time.Second
@@ -34,6 +41,8 @@ func (h HostEnvironment) Call(ctx context.Context, guildID string, req call.Call
 
 	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
+
+	startTime := time.Now()
 
 	switch req.Type {
 	case call.Sleep:
@@ -94,6 +103,15 @@ func (h HostEnvironment) Call(ctx context.Context, guildID string, req call.Call
 		res, err = h.callDiscordRoleList(ctx, guildID, req.Data.(dismodel.RoleListCall))
 	default:
 		return nil, fmt.Errorf("unknown call type: %s", req.Type)
+	}
+
+	err = h.deploymentMetrics.CreateDeploymentMetricEntry(ctx, model.DeploymentMetricEntry{
+		DeploymentID:  deploymentID,
+		Type:          model.DeploymentMetricEntryTypeCallExecuted,
+		CallTotalTime: time.Since(startTime),
+	})
+	if err != nil {
+		slog.With(logattr.Error(err)).Error("Error creating deployment metric entry for action")
 	}
 
 	if err != nil {

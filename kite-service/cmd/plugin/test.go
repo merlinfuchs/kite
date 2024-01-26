@@ -2,6 +2,7 @@ package plugin
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"path/filepath"
 	"time"
@@ -69,7 +70,7 @@ func runTest(basePath string, build bool, debug bool, cfg *config.PluginConfig) 
 		return err
 	}
 
-	err = plugin.Handle(ctx, &event.Event{
+	res, err := plugin.Handle(ctx, &event.Event{
 		Type: event.DiscordMessageCreate,
 		Data: &dismodel.MessageCreateEvent{
 			Content: "test",
@@ -77,6 +78,9 @@ func runTest(basePath string, build bool, debug bool, cfg *config.PluginConfig) 
 	})
 	if err != nil {
 		return err
+	} else {
+		fmt.Println("Execution duration: ", res.ExecutionDuration)
+		fmt.Println("Total duration: ", res.TotalDuration)
 	}
 
 	return nil

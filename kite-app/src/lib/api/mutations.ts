@@ -47,6 +47,7 @@ export function useDeploymentCreateMutation(guildId: string | null) {
       onSuccess: (res) => {
         if (res.success) {
           client.invalidateQueries(["guilds", guildId, "quickAccess"]);
+          client.invalidateQueries(["guilds", guildId, "deployments"]);
         }
       },
     }
@@ -69,6 +70,7 @@ export function useDeploymentDeleteMutation(guildId: string | null) {
       onSuccess: (res) => {
         if (res.success) {
           client.invalidateQueries(["guilds", guildId, "quickAccess"]);
+          client.invalidateQueries(["guilds", guildId, "deployments"]);
         }
       },
     }
@@ -92,6 +94,7 @@ export function useWorkspaceCreateMutation(guildId: string | null) {
       onSuccess: (res) => {
         if (res.success) {
           client.invalidateQueries(["guilds", guildId, "quickAccess"]);
+          client.invalidateQueries(["guilds", guildId, "workspaces"]);
         }
       },
     }
@@ -121,6 +124,7 @@ export function useWorkspaceUpdateMutation(guildId: string | null) {
       onSuccess: (res) => {
         if (res.success) {
           client.invalidateQueries(["guilds", guildId, "quickAccess"]);
+          client.invalidateQueries(["guilds", guildId, "workspaces"]);
         }
       },
     }
@@ -143,6 +147,7 @@ export function useWorkspaceDeleteMutation(guildId: string | null) {
       onSuccess: (res) => {
         if (res.success) {
           client.invalidateQueries(["guilds", guildId, "quickAccess"]);
+          client.invalidateQueries(["guilds", guildId, "workspaces"]);
         }
       },
     }

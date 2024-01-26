@@ -57,7 +57,7 @@ events = ["DISCORD_MESSAGE_CREATE"]
 export default function WorkspaceList({ guildId }: { guildId: string }) {
   const router = useRouter();
 
-  const { data: resp, refetch } = useWorkspacesQuery(guildId);
+  const { data: resp } = useWorkspacesQuery(guildId);
 
   const workspaces = resp?.success ? resp.data : [];
 
@@ -69,9 +69,7 @@ export default function WorkspaceList({ guildId }: { guildId: string }) {
         { workspaceId },
         {
           onSuccess: (res) => {
-            if (res.success) {
-              refetch();
-            } else {
+            if (!res.success) {
               toast.error("Failed to delete workspace");
             }
           },
@@ -95,7 +93,6 @@ export default function WorkspaceList({ guildId }: { guildId: string }) {
       {
         onSuccess: (res) => {
           if (res.success) {
-            refetch();
             router.push(`/guilds/${guildId}/workspaces/${res.data.id}`);
           } else {
             toast.error("Failed to create workspace");
