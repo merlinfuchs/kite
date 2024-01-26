@@ -49,8 +49,8 @@ export default function AppSidebarQuickAccess({
               href={item.href}
               className={clsx(
                 item.current
-                  ? "bg-gray-800 text-white"
-                  : "text-gray-400 hover:text-white hover:bg-gray-800",
+                  ? "bg-dark-3 text-white"
+                  : "text-gray-400 hover:text-white hover:bg-dark-3",
                 "group flex gap-x-3 rounded-md p-2 text-sm leading-6 font-semibold"
               )}
             >

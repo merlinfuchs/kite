@@ -115,7 +115,7 @@ export default function WorkspaceList({ guildId }: { guildId: string }) {
           )}
         >
           {workspaces.map((w) => (
-            <div className="bg-slate-800 px-5 py-4 rounded-md" key={w.id}>
+            <div className="bg-dark-2 px-5 py-4 rounded-md" key={w.id}>
               <div className="flex">
                 <div className="flex-auto">
                   <div className="text-gray-100 text-lg font-medium mb-1">
@@ -127,13 +127,13 @@ export default function WorkspaceList({ guildId }: { guildId: string }) {
                 </div>
                 <div className="flex-none flex space-x-3 items-start">
                   <button
-                    className="px-3 py-2 bg-slate-700 hover:bg-slate-600 text-gray-100 rounded select-none"
+                    className="px-3 py-2 bg-dark-4 hover:bg-dark-5 text-gray-100 rounded select-none"
                     onClick={() => deleteWorkspace(w.id)}
                   >
                     Delete
                   </button>
                   <Link
-                    className="px-3 py-2 bg-slate-700 hover:bg-slate-600 text-gray-100 rounded select-none"
+                    className="px-3 py-2 bg-dark-4 hover:bg-dark-5 text-gray-100 rounded select-none"
                     href={`/guilds/${guildId}/workspaces/${w.id}`}
                   >
                     Open Editor
@@ -145,7 +145,7 @@ export default function WorkspaceList({ guildId }: { guildId: string }) {
         </AutoAnimate>
         <div>
           <button
-            className="px-4 py-2 text-gray-100 rounded border-2 border-slate-400 hover:bg-slate-600 text-lg"
+            className="px-4 py-2 text-gray-100 rounded border-2 border-dark-9 hover:bg-dark-5 text-lg"
             onClick={createWorkspace}
           >
             New Workspace

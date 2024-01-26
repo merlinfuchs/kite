@@ -3,6 +3,14 @@ import { useGuildQuery } from "@/lib/api/queries";
 import { guildIconUrl } from "@/lib/discord/cdn";
 import { guildNameAbbreviation } from "@/lib/discord/util";
 import { useRouteParams } from "@/hooks/route";
+import dynamic from "next/dynamic";
+
+const DeploymentMetricsSummary = dynamic(
+  () => import("@/components/DeploymentMetricsSummary"),
+  {
+    ssr: false,
+  }
+);
 
 export default function GuildPage() {
   const { guildId } = useRouteParams();
@@ -13,9 +21,9 @@ export default function GuildPage() {
 
   return (
     <AppLayout>
-      <div className="mb-28 bg-slate-800 p-5 rounded-md w-full">
-        <div className="flex space-x-5 items-center">
-          <div className="w-24 h-24 bg-slate-900 rounded-full flex items-center justify-center">
+      <div className="mb-10 bg-dark-2 p-5 rounded-md w-full">
+        <div className="flex space-x-5 items-center mb-10">
+          <div className="w-24 h-24 bg-dark-1 rounded-full flex items-center justify-center">
             {guild?.icon ? (
               <img
                 src={guildIconUrl(guild)!}
@@ -37,6 +45,34 @@ export default function GuildPage() {
             </div>
           </div>
         </div>
+        <div className="grid grid-cols-3">
+          <div>
+            <div className="text-gray-100 font-medium mb-1">Guild ID</div>
+            <div className="text-gray-300 text-sm">{guild?.id}</div>
+          </div>
+          <div>
+            <div className="text-gray-100 font-medium">Members</div>
+            <div className="text-gray-300 text-sm">{0}</div>
+          </div>
+        </div>
+      </div>
+      <div className="bg-dark-2 px-1 py-2 rounded-md mb-5">
+        <div className="text-gray-100 font-bold text-2xl mb-5 mx-5 mt-3">
+          Events Handled
+        </div>
+        <DeploymentMetricsSummary guildId={guildId} deploymentId="" />
+      </div>
+      <div className="bg-dark-2 px-1 py-2 rounded-md mb-5">
+        <div className="text-gray-100 font-bold text-2xl mb-5 mx-5 mt-3">
+          Actions Taken
+        </div>
+        <DeploymentMetricsSummary guildId={guildId} deploymentId="" />
+      </div>
+      <div className="bg-dark-2 px-1 py-2 rounded-md">
+        <div className="text-gray-100 font-bold text-2xl mb-5 mx-5 mt-3">
+          Average CPU Time
+        </div>
+        <DeploymentMetricsSummary guildId={guildId} deploymentId="" />
       </div>
     </AppLayout>
   );

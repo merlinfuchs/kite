@@ -18,9 +18,9 @@ export default function AppSidebarGuildSelect({
 
   return (
     <Menu as="div" className="relative">
-      <Menu.Button className="bg-slate-800 px-3 py-2 rounded cursor-pointer w-full hover:bg-slate-700">
+      <Menu.Button className="bg-dark-3 px-3 py-2 rounded cursor-pointer w-full hover:bg-dark-4">
         <div className="flex items-center select-none">
-          <div className="bg-slate-900 h-10 w-10 rounded-full flex items-center justify-center flex-none mr-2">
+          <div className="bg-dark-1 h-10 w-10 rounded-full flex items-center justify-center flex-none mr-2">
             {guild?.icon ? (
               <img
                 src={guildIconUrl(guild)!}
@@ -44,18 +44,18 @@ export default function AppSidebarGuildSelect({
           </div>
         </div>
       </Menu.Button>
-      <Menu.Items className="absolute left-0 right-0 z-10 mt-2 w-full origin-top-right rounded bg-slate-800 shadow-lg focus:outline-none overflow-hidden">
+      <Menu.Items className="absolute left-0 right-0 z-10 mt-2 w-full origin-top-right rounded bg-dark-3 shadow-lg focus:outline-none overflow-hidden">
         {guilds.map((g) => (
           <Menu.Item key={g.id}>
             {({ active }) => (
               <Link
                 className={clsx(
-                  active ? "bg-slate-700 text-gray-900" : "text-gray-700",
+                  active && "bg-dark-4",
                   "px-4 py-2 text-sm flex items-center space-x-2 cursor-pointer"
                 )}
                 href={`/guilds/${g.id}`}
               >
-                <div className="bg-slate-900 h-10 w-10 rounded-full flex items-center justify-center flex-none mr-2">
+                <div className="bg-dark-1 h-10 w-10 rounded-full flex items-center justify-center flex-none mr-2">
                   {g?.icon ? (
                     <img
                       src={guildIconUrl(g)!}

@@ -65,7 +65,7 @@ export default function AppSideBar({ open, setOpen }: Props) {
       {/* Static sidebar for desktop */}
       <div className="hidden lg:fixed lg:inset-y-0 lg:z-50 lg:flex lg:w-72 lg:flex-col">
         {/* Sidebar component, swap this element with another sidebar if you like */}
-        <div className="flex grow flex-col gap-y-5 overflow-y-auto bg-slate-900 px-4">
+        <div className="flex grow flex-col gap-y-5 overflow-y-auto bg-dark-2 px-4">
           <div className="mt-8 mb-5">
             <AppSidebarGuildSelect guildId={guildId} />
           </div>
@@ -79,8 +79,8 @@ export default function AppSideBar({ open, setOpen }: Props) {
                         href={item.href}
                         className={clsx(
                           item.current
-                            ? "bg-gray-800 text-white"
-                            : "text-gray-400 hover:text-white hover:bg-gray-800",
+                            ? "bg-dark-3 text-white"
+                            : "text-gray-400 hover:text-white hover:bg-dark-3",
                           "group flex gap-x-3 rounded-md p-2 text-sm leading-6 font-semibold"
                         )}
                       >
@@ -98,10 +98,10 @@ export default function AppSideBar({ open, setOpen }: Props) {
               <li className="-mx-6 mt-auto">
                 <Link
                   href="#"
-                  className="flex items-center gap-x-4 px-6 py-3 text-sm font-semibold leading-6 text-white hover:bg-gray-800"
+                  className="flex items-center gap-x-4 px-6 py-3 text-sm font-semibold leading-6 text-white hover:bg-dark-4"
                 >
                   <img
-                    className="h-8 w-8 rounded-full bg-gray-800"
+                    className="h-8 w-8 rounded-full bg-dark-3"
                     src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80"
                     alt=""
                   />
@@ -164,7 +164,7 @@ export default function AppSideBar({ open, setOpen }: Props) {
                   </div>
                 </Transition.Child>
                 {/* Sidebar component, swap this element with another sidebar if you like */}
-                <div className="flex grow flex-col gap-y-5 overflow-y-auto bg-gray-900 px-4 pb-2 ring-1 ring-white/10">
+                <div className="flex grow flex-col gap-y-5 overflow-y-auto bg-dark-2 px-4 pb-2 ring-1 ring-white/10">
                   <div className="mt-8 mb-5">
                     <AppSidebarGuildSelect guildId={guildId} />
                   </div>
@@ -178,8 +178,8 @@ export default function AppSideBar({ open, setOpen }: Props) {
                                 href={item.href}
                                 className={clsx(
                                   item.current
-                                    ? "bg-gray-800 text-white"
-                                    : "text-gray-400 hover:text-white hover:bg-gray-800",
+                                    ? "bg-dark-3 text-white"
+                                    : "text-gray-400 hover:text-white hover:bg-dark-3",
                                   "group flex gap-x-3 rounded-md p-2 text-sm leading-6 font-semibold"
                                 )}
                               >

@@ -29,7 +29,7 @@ export default function KVStorageBrowser({ guildId }: { guildId: string }) {
     <div>
       <div className="flex justify-between mb-3">
         <div>
-          <select className="px-3 py-2 rounded bg-slate-900 min-w-64 text-gray-300">
+          <select className="px-3 py-2 rounded bg-dark-1 min-w-64 text-gray-300">
             {namespaces.map((ns) => (
               <option key={ns.namespace} value={ns.namespace}>
                 {ns.namespace}
@@ -38,7 +38,7 @@ export default function KVStorageBrowser({ guildId }: { guildId: string }) {
           </select>
         </div>
       </div>
-      <div className="bg-slate-800 p-5 rounded-md">
+      <div className="bg-dark-2 p-5 rounded-md">
         {keys.length === 0 ? (
           <div className="text-gray-400">There isn't any data here yet ...</div>
         ) : (

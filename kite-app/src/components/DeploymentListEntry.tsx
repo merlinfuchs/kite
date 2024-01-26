@@ -23,7 +23,7 @@ export default function DeploymentListEntry({
   onDelete,
 }: Props) {
   return (
-    <div className="bg-slate-800 p-5 rounded-md">
+    <div className="bg-dark-2 p-5 rounded-md">
       <div className="flex mb-6">
         <div className="flex-auto">
           <div className="text-gray-100 text-lg font-medium mb-1">
@@ -35,20 +35,20 @@ export default function DeploymentListEntry({
         </div>
         <div className="flex-none flex space-x-3 items-start">
           <button
-            className="px-3 py-2 bg-slate-700 hover:bg-slate-600 text-gray-100 rounded"
+            className="px-3 py-2 bg-dark-4 hover:bg-dark-5 text-gray-100 rounded"
             onClick={onDelete}
           >
             Delete
           </button>
           <Link
-            className="px-3 py-2 bg-slate-700 hover:bg-slate-600 text-gray-100 rounded"
+            className="px-3 py-2 bg-dark-4 hover:bg-dark-5 text-gray-100 rounded"
             href={`/guilds/${guildId}/deployments/${deployment.id}`}
           >
             View Details
           </Link>
         </div>
       </div>
-      <div className="bg-slate-900 rounded-md flex flex-col px-1 py-2 space-y-1 mb-5">
+      <div className="bg-dark-1 rounded-md flex flex-col px-1 py-2 space-y-1 mb-5">
         <DeploymentMetricsSummary
           guildId={guildId}
           deploymentId={deployment.id}

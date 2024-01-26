@@ -7,7 +7,7 @@ export default function GuildDeploymentPage() {
 
   return (
     <AppLayout>
-      <div className="p-5 bg-slate-800 rounded-md space-y-2 h-[500px] overflow-y-scroll flex flex-col justify-end">
+      <div className="p-5 bg-dark-2 rounded-md space-y-2 h-[500px] overflow-y-scroll flex flex-col justify-end">
         <DeploymentLogs guildId={guildId} deploymentId={deploymentId} />
       </div>
     </AppLayout>

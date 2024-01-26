@@ -13,7 +13,7 @@ export default function GuildMarketplacePage() {
         </div>
         <IllustrationPlaceholder
           svgPath="/illustrations/development.svg"
-          title="Hey! You are early and still figuring things out here ..."
+          title="Hey! You are early and we are still figuring things out here ..."
         />
       </div>
     </AppLayout>

@@ -22,7 +22,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
       <Toaster
         position="top-right"
         toastOptions={{
-          className: "!bg-slate-800 !text-gray-100",
+          className: "!bg-dark-2 !text-gray-100",
         }}
       />
     </div>
