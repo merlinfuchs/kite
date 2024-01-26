@@ -29,6 +29,24 @@ Kite is in a very early state and under active development. It's not ready to be
 go install github.com/merlinfuchs/kite@latest
 ```
 
+## Running the Server
+
+### 1. Configure the server
+
+Create a `kite.toml` file which contains configuration values for the Kite server:
+
+```toml
+[server.discord]
+token = "" # Your Discord Bot token
+client_id = "" # Your Discord Bot client id
+```
+
+### 2. Run the server
+
+```shell
+kite server start
+```
+
 ## Writing a Plugin
 
 ### Go
@@ -97,7 +115,7 @@ func main() {
 
 #### 5. Compile it
 
-To deploy your plugin you first have to compile to a WASM file. Kite provides commands for the various plugin types which then call the specific compiler.
+Before you can deploy your plugin you first have to it compile to a WASM file. Kite provides commands for the various plugin types which then call the specific compiler.
 
 ```shell
 # Retain debug information in the WASM file which helps with finding issues
@@ -107,6 +125,14 @@ kite plugin build --debug
 kite plugin build
 ```
 
+#### 6. Deploy it
+
+To deploy your plugin you need the id of the guild / server that you want to deploy it to. Make sure the bot is a member of that server!
+
+```shell
+kite plugin deploy --guild_id 1234567890
+```
+
 ### JavaScript
 
 To write plugins in JS you need to first install the custom compiler by following the instructions in the [js-sdk](js-sdk).
@@ -114,7 +140,11 @@ To write plugins in JS you need to first install the custom compiler by followin
 #### 1. Create a new plugin
 
 ```shell
-kite plugin --path ./my_plugin init --type js
+# Deploy to locally running server
+kite plugin deploy --guild_id 1234567890
+
+# Deploy to specific Kite server
+kite plugin deploy --guild_id 1234567890 --server "https://kite.example.com"
 ```
 
 #### 2. Update the manifest
@@ -158,29 +188,20 @@ Kite.handle = function (event) {
 
 #### 4. Compile it
 
-To deploy your plugin you first have to compile to a WASM file. Kite provides commands for the various plugin types which then call the specific compiler.
+Before you can deploy your plugin you first have to compile it to a WASM file. Kite provides commands for the various plugin types which then call the specific compiler.
 
 ```shell
 kite plugin build
 ```
 
-## Running the Server
+#### 5. Deploy it
 
-### 1. Configure the server
-
-Create a `kite.toml` file which contains configuration values for the Kite server:
-
-```toml
-[server.discord]
-token = "" # Your Discord Bot token
-client_id = "" # Your Discord Bot client id
-
-[[server.plugins]]
-path = "./my_plugin" # Path to your previous created plugin (must be compiled first)
-```
-
-### 2. Run the server
+To deploy your plugin you need the id of the guild / server that you want to deploy it to. Make sure the bot is a member of that server!
 
 ```shell
-kite server start
+# Deploy to locally running server
+kite plugin deploy --guild_id 1234567890
+
+# Deploy to specific Kite server
+kite plugin deploy --guild_id 1234567890 --server "https://kite.example.com"
 ```
