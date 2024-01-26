@@ -28,7 +28,6 @@ type Plugin struct {
 	env        HostEnvironment
 	apiVersion int
 
-	ctx              context.Context
 	cancel           context.CancelFunc
 	ticker           *time.Ticker
 	handleStartAt    time.Time

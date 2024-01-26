@@ -35,7 +35,7 @@ func (p *Plugin) kiteGetConfig(offset uint32) uint32 {
 	return 0
 }
 
-func (p *Plugin) kiteLog(level uint32, offset uint32, length uint32) uint32 {
+func (p *Plugin) kiteLog(ctx context.Context, level uint32, offset uint32, length uint32) uint32 {
 	msg, err := p.readBytes(offset, length)
 	if err != nil {
 		return 1
@@ -53,7 +53,7 @@ func (p *Plugin) kiteLog(level uint32, offset uint32, length uint32) uint32 {
 	return 0
 }
 
-func (p *Plugin) kiteCall(offset uint32, length uint32) uint32 {
+func (p *Plugin) kiteCall(ctx context.Context, offset uint32, length uint32) uint32 {
 	if p.state != PluginStateEvent {
 		return p.resError(fmt.Errorf("host calls are only allowed in event handlers"))
 	}
@@ -66,7 +66,7 @@ func (p *Plugin) kiteCall(offset uint32, length uint32) uint32 {
 		return p.resError(err)
 	}
 
-	res, err := p.env.Call(p.ctx, req)
+	res, err := p.env.Call(ctx, req)
 	if err != nil {
 		return p.resError(err)
 	}

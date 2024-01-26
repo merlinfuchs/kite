@@ -20,7 +20,6 @@ func (p *Plugin) Handle(ctx context.Context, e *event.Event) (HandleResult, erro
 	} else {
 		ctx, p.cancel = context.WithCancel(ctx)
 	}
-	p.ctx = ctx
 
 	raw, err := json.Marshal(e)
 	if err != nil {
