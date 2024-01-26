@@ -121,7 +121,10 @@ func (h HostEnvironment) Call(ctx context.Context, req call.Call) (res interface
 	err = h.deploymentMetrics.CreateDeploymentMetricEntry(ctx, model.DeploymentMetricEntry{
 		DeploymentID:  h.DeploymentID,
 		Type:          model.DeploymentMetricEntryTypeCallExecuted,
+		CallType:      string(req.Type),
+		CallSuccess:   err == nil,
 		CallTotalTime: time.Since(startTime),
+		Timestamp:     time.Now().UTC(),
 	})
 	if err != nil {
 		slog.With(logattr.Error(err)).Error("Error creating deployment metric entry for action")

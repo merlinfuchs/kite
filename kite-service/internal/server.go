@@ -31,12 +31,6 @@ func RunServer(cfg *config.ServerConfig) error {
 
 	bot.Engine = e
 
-	commands := e.GlobalCommands()
-	_, err = bot.Session.ApplicationCommandBulkOverwrite(cfg.Discord.ClientID, "", commands)
-	if err != nil {
-		return fmt.Errorf("failed to overwrite commands: %w", err)
-	}
-
 	err = bot.Start()
 	if err != nil {
 		return fmt.Errorf("failed to start discord bot: %w", err)

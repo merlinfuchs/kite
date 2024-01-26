@@ -17,7 +17,6 @@ INSERT INTO deployment_metrics (
     deployment_id,
     type,
     metadata,
-    event_id,
     event_type,
     event_success,
     event_execution_time,
@@ -37,8 +36,7 @@ INSERT INTO deployment_metrics (
     $8,
     $9,
     $10,
-    $11,
-    $12
+    $11
 )
 `
 
@@ -46,14 +44,13 @@ type CreateDeploymentMetricEntryParams struct {
 	DeploymentID       string
 	Type               string
 	Metadata           pqtype.NullRawMessage
-	EventID            int64
 	EventType          string
 	EventSuccess       bool
-	EventExecutionTime int32
-	EventTotalTime     int32
+	EventExecutionTime int64
+	EventTotalTime     int64
 	CallType           string
 	CallSuccess        bool
-	CallTotalTime      int32
+	CallTotalTime      int64
 	Timestamp          time.Time
 }
 
@@ -62,7 +59,6 @@ func (q *Queries) CreateDeploymentMetricEntry(ctx context.Context, arg CreateDep
 		arg.DeploymentID,
 		arg.Type,
 		arg.Metadata,
-		arg.EventID,
 		arg.EventType,
 		arg.EventSuccess,
 		arg.EventExecutionTime,

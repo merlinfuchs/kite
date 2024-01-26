@@ -16,17 +16,6 @@ func (e *PluginEngine) GuildCommands(guildID string) []*discordgo.ApplicationCom
 	return res
 }
 
-func (e *PluginEngine) GlobalCommands() []*discordgo.ApplicationCommand {
-	res := []*discordgo.ApplicationCommand{}
-
-	for _, pl := range e.StaticDeployments {
-		commands := convertCommands(pl.Manifest().Commands)
-		res = append(res, commands...)
-	}
-
-	return res
-}
-
 func convertCommands(commands []plugin.ManifestCommand) []*discordgo.ApplicationCommand {
 	res := make([]*discordgo.ApplicationCommand, len(commands))
 

@@ -41,14 +41,13 @@ type DeploymentMetric struct {
 	DeploymentID       string
 	Type               string
 	Metadata           pqtype.NullRawMessage
-	EventID            int64
 	EventType          string
 	EventSuccess       bool
-	EventExecutionTime int32
-	EventTotalTime     int32
+	EventExecutionTime int64
+	EventTotalTime     int64
 	CallType           string
 	CallSuccess        bool
-	CallTotalTime      int32
+	CallTotalTime      int64
 	Timestamp          time.Time
 }
 

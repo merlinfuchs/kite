@@ -28,7 +28,6 @@ func DeploymentMetricEntryToWire(d *model.DeploymentMetricEntry) DeploymentMetri
 		DeploymentID:       d.DeploymentID,
 		Type:               string(d.Type),
 		Metadata:           d.Metadata,
-		EventID:            d.EventID,
 		EventType:          d.EventType,
 		EventSuccess:       d.EventSuccess,
 		EventExecutionTime: d.EventExecutionTime,

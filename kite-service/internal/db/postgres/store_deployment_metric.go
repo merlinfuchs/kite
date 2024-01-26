@@ -24,14 +24,13 @@ func (c *Client) CreateDeploymentMetricEntry(ctx context.Context, entry model.De
 		DeploymentID:       entry.DeploymentID,
 		Type:               string(entry.Type),
 		Metadata:           rawMetadata,
-		EventID:            int64(entry.EventID),
 		EventType:          entry.EventType,
 		EventSuccess:       entry.EventSuccess,
-		EventExecutionTime: int32(entry.EventExecutionTime.Milliseconds()),
-		EventTotalTime:     int32(entry.EventTotalTime.Milliseconds()),
+		EventExecutionTime: entry.EventExecutionTime.Microseconds(),
+		EventTotalTime:     entry.EventTotalTime.Microseconds(),
 		CallType:           entry.CallType,
 		CallSuccess:        entry.CallSuccess,
-		CallTotalTime:      int32(entry.CallTotalTime.Milliseconds()),
+		CallTotalTime:      entry.CallTotalTime.Microseconds(),
 		Timestamp:          entry.Timestamp,
 	})
 	return err

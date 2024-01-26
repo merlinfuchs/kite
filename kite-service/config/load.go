@@ -78,8 +78,6 @@ func DefaultPluginConifg() (*PluginConfig, error) {
 		return nil, fmt.Errorf("Failed to load base config: %v", err)
 	}
 
-	fmt.Println(k.String("plugin.name"))
-
 	res := &PluginConfig{}
 	if err := k.UnmarshalWithConf("plugin", res, koanf.UnmarshalConf{Tag: "toml"}); err != nil {
 		return nil, fmt.Errorf("Failed to unmarshal plugin config: %v", err)

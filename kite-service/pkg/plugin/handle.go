@@ -14,7 +14,7 @@ type HandleResult struct {
 	ExecutionDuration time.Duration
 }
 
-func (p *Plugin) Handle(ctx context.Context, e *event.Event) (*HandleResult, error) {
+func (p *Plugin) Handle(ctx context.Context, e *event.Event) (HandleResult, error) {
 	if p.config.TotalTimeLimit != 0 {
 		ctx, p.cancel = context.WithTimeout(ctx, p.config.TotalTimeLimit)
 	} else {
@@ -24,14 +24,14 @@ func (p *Plugin) Handle(ctx context.Context, e *event.Event) (*HandleResult, err
 
 	raw, err := json.Marshal(e)
 	if err != nil {
-		return nil, fmt.Errorf("failed to marshal event: %w", err)
+		return HandleResult{}, fmt.Errorf("failed to marshal event: %w", err)
 	}
 	p.currentEvent = raw
 	p.currentGuildID = e.GuildID
 
 	fn := p.m.ExportedFunction("kite_handle")
 	if fn == nil {
-		return nil, fmt.Errorf("kite_handle not defined")
+		return HandleResult{}, fmt.Errorf("kite_handle not defined")
 	}
 
 	p.startHandle()
@@ -39,12 +39,12 @@ func (p *Plugin) Handle(ctx context.Context, e *event.Event) (*HandleResult, err
 	_, err = fn.Call(ctx, uint64(len(raw)))
 	if err != nil {
 		p.endHandle()
-		return nil, fmt.Errorf("failed to call kite_handle: %w", err)
+		return HandleResult{}, fmt.Errorf("failed to call kite_handle: %w", err)
 	}
 
 	p.endHandle()
 
-	res := &HandleResult{
+	res := HandleResult{
 		TotalDuration:     p.totalDuration(),
 		ExecutionDuration: p.executionDuration(),
 	}

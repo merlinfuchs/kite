@@ -7,22 +7,13 @@ import (
 type PluginEngine struct {
 	sync.RWMutex
 
-	StaticDeployments []*PluginDeployment
-	Deployments       map[string][]*PluginDeployment
+	Deployments map[string][]*PluginDeployment
 }
 
 func New() *PluginEngine {
 	return &PluginEngine{
 		Deployments: map[string][]*PluginDeployment{},
 	}
-}
-
-func (e *PluginEngine) LoadStaticDeployment(deployment *PluginDeployment) error {
-	e.Lock()
-	defer e.Unlock()
-
-	e.StaticDeployments = append(e.StaticDeployments, deployment)
-	return nil
 }
 
 func (e *PluginEngine) LoadDeployment(guildID string, deployment *PluginDeployment) error {

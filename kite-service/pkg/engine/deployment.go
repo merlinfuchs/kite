@@ -14,6 +14,7 @@ import (
 )
 
 type PluginDeployment struct {
+	ID       string
 	wasm     []byte
 	manifest plugin.Manifest
 	config   plugin.PluginConfig
@@ -30,8 +31,9 @@ func (pd *PluginDeployment) Config() plugin.PluginConfig {
 	return pd.config
 }
 
-func NewDeployment(env plugin.HostEnvironment, wasm []byte, manifest plugin.Manifest, config plugin.PluginConfig) *PluginDeployment {
+func NewDeployment(id string, env plugin.HostEnvironment, wasm []byte, manifest plugin.Manifest, config plugin.PluginConfig) *PluginDeployment {
 	dp := &PluginDeployment{
+		ID:       id,
 		env:      env,
 		wasm:     wasm,
 		manifest: manifest,
@@ -93,11 +95,10 @@ func (pd *PluginDeployment) HandleEvent(ctx context.Context, event *event.Event)
 		slog.With(logattr.Error(err)).Error("failed to return plugin")
 	}
 
+	pd.env.TrackEventHandled(ctx, string(event.Type), err == nil, res.TotalDuration, res.ExecutionDuration)
+
 	if err != nil {
 		return err
-	} else {
-		fmt.Println("Execution duration: ", res.ExecutionDuration)
-		fmt.Println("Total duration: ", res.TotalDuration)
 	}
 
 	return nil

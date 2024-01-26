@@ -3,7 +3,6 @@ INSERT INTO deployment_metrics (
     deployment_id,
     type,
     metadata,
-    event_id,
     event_type,
     event_success,
     event_execution_time,
@@ -23,6 +22,5 @@ INSERT INTO deployment_metrics (
     $8,
     $9,
     $10,
-    $11,
-    $12
+    $11
 );
