@@ -15,12 +15,11 @@ func (cfg *FullConfig) Validate() error {
 }
 
 type ServerConfig struct {
-	Host          string                     `toml:"host" validate:"required"`
-	Port          int                        `toml:"port" validate:"required"`
-	Log           ServerLogConfig            `toml:"log"`
-	Postgres      ServerPostgresConfig       `toml:"postgres" validate:"required"`
-	Discord       ServerDiscordConfig        `toml:"discord" validate:"required"`
-	StaticPlugins []ServerStaticPluginConfig `toml:"static_plugins" validate:"dive"`
+	Host     string               `toml:"host" validate:"required"`
+	Port     int                  `toml:"port" validate:"required"`
+	Log      ServerLogConfig      `toml:"log"`
+	Postgres ServerPostgresConfig `toml:"postgres" validate:"required"`
+	Discord  ServerDiscordConfig  `toml:"discord" validate:"required"`
 }
 
 func (cfg *ServerConfig) Validate() error {
@@ -46,12 +45,6 @@ type ServerPostgresConfig struct {
 type ServerDiscordConfig struct {
 	Token    string `toml:"token" validate:"required"`
 	ClientID string `toml:"client_id" validate:"required"`
-}
-
-type ServerStaticPluginConfig struct {
-	Path     string            `toml:"path" validate:"required"`
-	GuildIDs []string          `toml:"guild_ids"`
-	Config   map[string]string `toml:"config"`
 }
 
 type PluginConfig struct {

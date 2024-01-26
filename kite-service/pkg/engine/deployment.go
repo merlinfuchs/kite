@@ -30,8 +30,9 @@ func (pd *PluginDeployment) Config() plugin.PluginConfig {
 	return pd.config
 }
 
-func NewDeployment(wasm []byte, manifest plugin.Manifest, config plugin.PluginConfig) *PluginDeployment {
+func NewDeployment(env plugin.HostEnvironment, wasm []byte, manifest plugin.Manifest, config plugin.PluginConfig) *PluginDeployment {
 	dp := &PluginDeployment{
+		env:      env,
 		wasm:     wasm,
 		manifest: manifest,
 		config:   config,

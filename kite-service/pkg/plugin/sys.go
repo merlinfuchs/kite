@@ -49,7 +49,7 @@ func (p *Plugin) kiteLog(level uint32, offset uint32, length uint32) uint32 {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond*100)
 	defer cancel()
 
-	p.env.Log(ctx, p.manifest.ID, lvl, string(msg))
+	p.env.Log(ctx, lvl, string(msg))
 	return 0
 }
 
@@ -66,7 +66,7 @@ func (p *Plugin) kiteCall(offset uint32, length uint32) uint32 {
 		return p.resError(err)
 	}
 
-	res, err := p.env.Call(p.ctx, p.manifest.ID, p.currentGuildID, req)
+	res, err := p.env.Call(p.ctx, req)
 	if err != nil {
 		return p.resError(err)
 	}

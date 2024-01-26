@@ -4,6 +4,7 @@ import (
 	"context"
 	"log/slog"
 
+	"github.com/merlinfuchs/kite/kite-service/internal/host"
 	"github.com/merlinfuchs/kite/kite-service/internal/logging/logattr"
 	"github.com/merlinfuchs/kite/kite-service/pkg/engine"
 	"github.com/merlinfuchs/kite/kite-service/pkg/plugin"
@@ -37,7 +38,11 @@ func (m *DeploymentManager) populateEngineDeployments(ctx context.Context) {
 				MemoryPagesLimit: 64,
 			}
 
-			deployments[i] = engine.NewDeployment(row.WasmBytes, manifest, config)
+			env := host.NewEnv(m.envStores)
+			env.DeploymentID = manifest.ID
+			env.GuildID = row.GuildID
+
+			deployments[i] = engine.NewDeployment(env, row.WasmBytes, manifest, config)
 		}
 
 		m.engine.ReplaceGuildDeployments(guildID, deployments)

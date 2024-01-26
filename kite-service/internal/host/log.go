@@ -10,9 +10,9 @@ import (
 	"github.com/merlinfuchs/kite/kite-service/pkg/model"
 )
 
-func (h HostEnvironment) Log(ctx context.Context, deploymentID string, level logmodel.LogLevel, msg string) {
+func (h HostEnvironment) Log(ctx context.Context, level logmodel.LogLevel, msg string) {
 	err := h.deploymentLogs.CreateDeploymentLogEntry(ctx, model.DeploymentLogEntry{
-		DeploymentID: deploymentID,
+		DeploymentID: h.DeploymentID,
 		Level:        level.Name(),
 		Message:      msg,
 		CreatedAt:    time.Now().UTC(),
