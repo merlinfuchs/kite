@@ -12,8 +12,6 @@ import (
 )
 
 func main() {
-	log.Debug("Plugin loaded")
-
 	kite.Event(event.DiscordMessageCreate, func(req event.Event) error {
 		msg := req.Data.(dismodel.MessageCreateEvent)
 		store := kv.New()

@@ -1,7 +1,7 @@
 [plugin]
 key = "ping@merlin.gg"
-name = 'My Plugin'
-description = 'A very cool Kite plugin'
+name = 'Ping'
+description = 'A simple !ping and /ping command'
 type = 'go'
 
 events = ["DISCORD_MESSAGE_CREATE", "DISCORD_INTERACTION_CREATE"]

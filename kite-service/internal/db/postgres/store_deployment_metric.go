@@ -98,6 +98,67 @@ func (c *Client) GetDeploymentCallMetrics(ctx context.Context, deploymentID stri
 	return res, nil
 }
 
+func (c *Client) GetDeploymentsEventMetrics(ctx context.Context, guildID string, startAt time.Time, groupBy time.Duration) ([]model.DeploymentEventMetricEntry, error) {
+	precision, step, err := groupByToPrecisionAndStep(groupBy)
+	if err != nil {
+		return nil, err
+	}
+
+	rows, err := c.Q.GetDeploymentsEventMetrics(ctx, pgmodel.GetDeploymentsEventMetricsParams{
+		GuildID:    guildID,
+		StartAt:    startAt,
+		EndAt:      time.Now().UTC(),
+		Precision:  precision,
+		SeriesStep: step,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	res := make([]model.DeploymentEventMetricEntry, len(rows))
+	for i, row := range rows {
+		res[i] = model.DeploymentEventMetricEntry{
+			Timestamp:            row.Timestamp,
+			TotalCount:           int(row.TotalCount),
+			SuccessCount:         int(row.SuccessCount),
+			AverageExecutionTime: time.Duration(row.AvgExecutionTime) * time.Microsecond,
+			AverageTotalTime:     time.Duration(row.AvgTotalTime) * time.Microsecond,
+		}
+	}
+
+	return res, nil
+}
+
+func (c *Client) GetDeploymentsCallMetrics(ctx context.Context, guildID string, startAt time.Time, groupBy time.Duration) ([]model.DeploymentCallMetricEntry, error) {
+	precision, step, err := groupByToPrecisionAndStep(groupBy)
+	if err != nil {
+		return nil, err
+	}
+
+	rows, err := c.Q.GetDeploymentsCallMetrics(ctx, pgmodel.GetDeploymentsCallMetricsParams{
+		GuildID:    guildID,
+		StartAt:    startAt,
+		EndAt:      time.Now().UTC(),
+		Precision:  precision,
+		SeriesStep: step,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	res := make([]model.DeploymentCallMetricEntry, len(rows))
+	for i, row := range rows {
+		res[i] = model.DeploymentCallMetricEntry{
+			Timestamp:        row.Timestamp,
+			TotalCount:       int(row.TotalCount),
+			SuccessCount:     int(row.SuccessCount),
+			AverageTotalTime: time.Duration(row.AvgTotalTime) * time.Microsecond,
+		}
+	}
+
+	return res, nil
+}
+
 func groupByToPrecisionAndStep(groupBy time.Duration) (string, string, error) {
 	switch groupBy {
 	case time.Hour * 24 * 7:

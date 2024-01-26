@@ -34,7 +34,7 @@ func deployCMD() *cli.Command {
 			&cli.StringFlag{
 				Name:  "server",
 				Usage: "The Kite server to deploy to",
-				Value: "http://localhost:8080",
+				Value: "http://127.0.0.1:8080",
 			},
 		},
 		Action: func(c *cli.Context) error {

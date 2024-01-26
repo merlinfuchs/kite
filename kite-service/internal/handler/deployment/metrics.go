@@ -8,7 +8,7 @@ import (
 	"github.com/merlinfuchs/kite/kite-service/pkg/wire"
 )
 
-func (h *DeploymentHandler) HandleDeploymenEventMetricsList(c *fiber.Ctx) error {
+func (h *DeploymentHandler) HandleDeploymentEventMetricsList(c *fiber.Ctx) error {
 	startAt, groupBy, err := decodeTimeframe(c)
 	if err != nil {
 		return err
@@ -30,7 +30,7 @@ func (h *DeploymentHandler) HandleDeploymenEventMetricsList(c *fiber.Ctx) error 
 	})
 }
 
-func (h *DeploymentHandler) HandleDeploymenCallMetricsList(c *fiber.Ctx) error {
+func (h *DeploymentHandler) HandleDeploymentCallMetricsList(c *fiber.Ctx) error {
 	startAt, groupBy, err := decodeTimeframe(c)
 	if err != nil {
 		return err
@@ -52,8 +52,48 @@ func (h *DeploymentHandler) HandleDeploymenCallMetricsList(c *fiber.Ctx) error {
 	})
 }
 
-func (h *DeploymentHandler) HandleDeploymenTimingMetricsList(c *fiber.Ctx) error {
-	return nil
+func (h *DeploymentHandler) HandleDeploymentsEventMetricsList(c *fiber.Ctx) error {
+	startAt, groupBy, err := decodeTimeframe(c)
+	if err != nil {
+		return err
+	}
+
+	metrics, err := h.deploymentMetrics.GetDeploymentsEventMetrics(c.Context(), c.Params("guildID"), startAt, groupBy)
+	if err != nil {
+		return err
+	}
+
+	res := make([]wire.DeploymentEventMetricEntry, len(metrics))
+	for i, metric := range metrics {
+		res[i] = wire.DeploymentEventMetricEntryToWire(&metric)
+	}
+
+	return c.JSON(wire.DeploymentMetricEventsListResponse{
+		Success: true,
+		Data:    res,
+	})
+}
+
+func (h *DeploymentHandler) HandleDeploymentsCallMetricsList(c *fiber.Ctx) error {
+	startAt, groupBy, err := decodeTimeframe(c)
+	if err != nil {
+		return err
+	}
+
+	metrics, err := h.deploymentMetrics.GetDeploymentsCallMetrics(c.Context(), c.Params("guildID"), startAt, groupBy)
+	if err != nil {
+		return err
+	}
+
+	res := make([]wire.DeploymentCallMetricEntry, len(metrics))
+	for i, metric := range metrics {
+		res[i] = wire.DeploymentCallMetricEntryToWire(&metric)
+	}
+
+	return c.JSON(wire.DeploymentMetricCallsListResponse{
+		Success: true,
+		Data:    res,
+	})
 }
 
 func decodeTimeframe(c *fiber.Ctx) (time.Time, time.Duration, error) {

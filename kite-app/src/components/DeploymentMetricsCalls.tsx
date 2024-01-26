@@ -1,19 +1,14 @@
-"use client";
-
-import { useDeploymentEventMetricsQuery } from "@/lib/api/queries";
+import { useDeploymentsCallMetricsQuery } from "@/lib/api/queries";
 import { ApexOptions } from "apexcharts";
 import Chart from "react-apexcharts";
 
 interface Props {
   guildId: string;
-  deploymentId: string;
+  deploymentId?: string | null;
 }
 
-export default function DeploymentMetricsSummary({
-  guildId,
-  deploymentId,
-}: Props) {
-  const { data: metricsResp } = useDeploymentEventMetricsQuery(
+export default function GuildMetricsCalls({ guildId, deploymentId }: Props) {
+  const { data: metricsResp } = useDeploymentsCallMetricsQuery(
     guildId,
     deploymentId
   );
@@ -47,12 +42,12 @@ export default function DeploymentMetricsSummary({
 
   const series: ApexAxisChartSeries | ApexNonAxisChartSeries = [
     {
-      name: "Events Failed",
+      name: "Calls Failed",
       data: metrics.map((m) => m.total_count - m.success_count),
       color: "#FF4560",
     },
     {
-      name: "Events Handled",
+      name: "Calls Executed",
       data: metrics.map((m) => m.success_count),
       color: "#00E396",
     },

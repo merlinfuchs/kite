@@ -40,11 +40,11 @@ func DeploymentMetricEntryToWire(d *model.DeploymentMetricEntry) DeploymentMetri
 }
 
 type DeploymentEventMetricEntry struct {
-	Timestamp            time.Time     `json:"timestamp"`
-	TotalCount           int           `json:"total_count"`
-	SuccessCount         int           `json:"success_count"`
-	AverageExecutionTime time.Duration `json:"average_execution_time"`
-	AverageTotalTime     time.Duration `json:"average_total_time"`
+	Timestamp            time.Time `json:"timestamp"`
+	TotalCount           int       `json:"total_count"`
+	SuccessCount         int       `json:"success_count"`
+	AverageExecutionTime int64     `json:"average_execution_time"`
+	AverageTotalTime     int64     `json:"average_total_time"`
 }
 
 func DeploymentEventMetricEntryToWire(d *model.DeploymentEventMetricEntry) DeploymentEventMetricEntry {
@@ -52,18 +52,18 @@ func DeploymentEventMetricEntryToWire(d *model.DeploymentEventMetricEntry) Deplo
 		Timestamp:            d.Timestamp,
 		TotalCount:           d.TotalCount,
 		SuccessCount:         d.SuccessCount,
-		AverageExecutionTime: d.AverageExecutionTime,
-		AverageTotalTime:     d.AverageTotalTime,
+		AverageExecutionTime: d.AverageExecutionTime.Microseconds(),
+		AverageTotalTime:     d.AverageTotalTime.Microseconds(),
 	}
 }
 
 type DeploymentMetricEventsListResponse APIResponse[[]DeploymentEventMetricEntry]
 
 type DeploymentCallMetricEntry struct {
-	Timestamp        time.Time     `json:"timestamp"`
-	TotalCount       int           `json:"total_count"`
-	SuccessCount     int           `json:"success_count"`
-	AverageTotalTime time.Duration `json:"average_total_time"`
+	Timestamp        time.Time `json:"timestamp"`
+	TotalCount       int       `json:"total_count"`
+	SuccessCount     int       `json:"success_count"`
+	AverageTotalTime int64     `json:"average_total_time"`
 }
 
 func DeploymentCallMetricEntryToWire(d *model.DeploymentCallMetricEntry) DeploymentCallMetricEntry {
@@ -71,7 +71,7 @@ func DeploymentCallMetricEntryToWire(d *model.DeploymentCallMetricEntry) Deploym
 		Timestamp:        d.Timestamp,
 		TotalCount:       d.TotalCount,
 		SuccessCount:     d.SuccessCount,
-		AverageTotalTime: d.AverageTotalTime,
+		AverageTotalTime: d.AverageTotalTime.Microseconds(),
 	}
 }
 

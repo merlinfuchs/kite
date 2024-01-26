@@ -1,7 +1,7 @@
 [plugin]
 key = "counter@merlin.gg"
-name = 'My Plugin'
-description = 'A very cool Kite plugin'
+name = 'Counter'
+description = 'Let users count up and harass them when they counted wrong'
 type = 'go'
 commands = []
 events = ["DISCORD_MESSAGE_CREATE"]

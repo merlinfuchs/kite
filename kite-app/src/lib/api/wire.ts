@@ -90,15 +90,15 @@ export interface DeploymentEventMetricEntry {
   timestamp: string /* RFC3339 */;
   total_count: number /* int */;
   success_count: number /* int */;
-  average_execution_time: any /* time.Duration */;
-  average_total_time: any /* time.Duration */;
+  average_execution_time: number /* int64 */;
+  average_total_time: number /* int64 */;
 }
 export type DeploymentMetricEventsListResponse = APIResponse<DeploymentEventMetricEntry[]>;
 export interface DeploymentCallMetricEntry {
   timestamp: string /* RFC3339 */;
   total_count: number /* int */;
   success_count: number /* int */;
-  average_total_time: any /* time.Duration */;
+  average_total_time: number /* int64 */;
 }
 export type DeploymentMetricCallsListResponse = APIResponse<DeploymentCallMetricEntry[]>;
 

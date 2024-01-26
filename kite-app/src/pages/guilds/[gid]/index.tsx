@@ -5,8 +5,29 @@ import { guildNameAbbreviation } from "@/lib/discord/util";
 import { useRouteParams } from "@/hooks/route";
 import dynamic from "next/dynamic";
 
-const DeploymentMetricsSummary = dynamic(
-  () => import("@/components/DeploymentMetricsSummary"),
+const DeploymentMetricsEvents = dynamic(
+  () => import("@/components/DeploymentMetricsEvents"),
+  {
+    ssr: false,
+  }
+);
+
+const DeploymentMetricsCalls = dynamic(
+  () => import("@/components/DeploymentMetricsCalls"),
+  {
+    ssr: false,
+  }
+);
+
+const DeploymentMetricsTotalTime = dynamic(
+  () => import("@/components/DeploymentMetricsTotalTime"),
+  {
+    ssr: false,
+  }
+);
+
+const DeploymentMetricsExecutionTime = dynamic(
+  () => import("@/components/DeploymentMetricsExecutionTime"),
   {
     ssr: false,
   }
@@ -60,19 +81,25 @@ export default function GuildPage() {
         <div className="text-gray-100 font-bold text-2xl mb-5 mx-5 mt-3">
           Events Handled
         </div>
-        <DeploymentMetricsSummary guildId={guildId} deploymentId="" />
+        <DeploymentMetricsEvents guildId={guildId} />
       </div>
       <div className="bg-dark-2 px-1 py-2 rounded-md mb-5">
         <div className="text-gray-100 font-bold text-2xl mb-5 mx-5 mt-3">
           Actions Taken
         </div>
-        <DeploymentMetricsSummary guildId={guildId} deploymentId="" />
+        <DeploymentMetricsCalls guildId={guildId} />
+      </div>
+      <div className="bg-dark-2 px-1 py-2 rounded-md mb-5">
+        <div className="text-gray-100 font-bold text-2xl mb-5 mx-5 mt-3">
+          Average Total Time
+        </div>
+        <DeploymentMetricsTotalTime guildId={guildId} />
       </div>
       <div className="bg-dark-2 px-1 py-2 rounded-md">
         <div className="text-gray-100 font-bold text-2xl mb-5 mx-5 mt-3">
           Average CPU Time
         </div>
-        <DeploymentMetricsSummary guildId={guildId} deploymentId="" />
+        <DeploymentMetricsExecutionTime guildId={guildId} />
       </div>
     </AppLayout>
   );

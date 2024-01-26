@@ -3,6 +3,7 @@ package deployments
 import (
 	"context"
 	"log/slog"
+	"time"
 
 	"github.com/merlinfuchs/kite/kite-service/internal/host"
 	"github.com/merlinfuchs/kite/kite-service/internal/logging/logattr"
@@ -35,7 +36,9 @@ func (m *DeploymentManager) populateEngineDeployments(ctx context.Context) {
 				// TODO: Commands: row.ManifestCommands,
 			}
 			config := plugin.PluginConfig{
-				MemoryPagesLimit: 64,
+				MemoryPagesLimit:   64,
+				TotalTimeLimit:     time.Second * 10,
+				ExecutionTimeLimit: time.Millisecond * 10,
 			}
 
 			env := host.NewEnv(m.envStores)

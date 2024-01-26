@@ -10,8 +10,8 @@ interface Props {
 
 import dynamic from "next/dynamic";
 
-const DeploymentMetricsSummary = dynamic(
-  () => import("./DeploymentMetricsSummary"),
+const DeploymentMetricsEvents = dynamic(
+  () => import("./DeploymentMetricsEvents"),
   {
     ssr: false,
   }
@@ -49,7 +49,7 @@ export default function DeploymentListEntry({
         </div>
       </div>
       <div className="bg-dark-1 rounded-md flex flex-col px-1 py-2 space-y-1 mb-5">
-        <DeploymentMetricsSummary
+        <DeploymentMetricsEvents
           guildId={guildId}
           deploymentId={deployment.id}
         />

@@ -2,6 +2,7 @@ package engine
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"slices"
@@ -92,14 +93,21 @@ func (pd *PluginDeployment) HandleEvent(ctx context.Context, event *event.Event)
 
 	res, err := plugin.Handle(ctx, event)
 
-	if err := pd.ReturnPlugin(ctx, plugin); err != nil {
-		slog.With(logattr.Error(err)).Error("failed to return plugin")
-	}
-
 	pd.env.TrackEventHandled(ctx, string(event.Type), err == nil, res.TotalDuration, res.ExecutionDuration)
 
 	if err != nil {
+		// TODO: think about other error types that should invalidate the plugin (e.g. panic / wasm trap)
+		if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+			if err := pd.InvalidatePlugin(ctx, plugin); err != nil {
+				slog.With(logattr.Error(err)).Error("failed to invalidate plugin")
+			}
+		}
+
 		pd.env.Log(ctx, logmodel.LogLevelError, err.Error())
+	} else {
+		if err := pd.ReturnPlugin(ctx, plugin); err != nil {
+			slog.With(logattr.Error(err)).Error("failed to return plugin")
+		}
 	}
 
 	return nil

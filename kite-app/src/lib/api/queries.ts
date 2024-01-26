@@ -3,6 +3,7 @@ import {
   DeploymentListResponse,
   DeploymentLogEntryListResponse,
   DeploymentLogSummaryGetResponse,
+  DeploymentMetricCallsListResponse,
   DeploymentMetricEventsListResponse,
   GuildGetResponse,
   GuildListResponse,
@@ -117,7 +118,7 @@ export function useDeploymentLogSummaryQuery(
   );
 }
 
-export function useDeploymentEventMetricsQuery(
+export function useDeploymentsEventMetricsQuery(
   guildId?: string | null,
   deploymentId?: string | null,
   timeframe: "hour" | "day" | "week" | "month" = "day"
@@ -134,11 +135,41 @@ export function useDeploymentEventMetricsQuery(
     ],
     () => {
       return fetch(
-        `/api/v1/guilds/${guildId}/deployments/${deploymentId}/metrics/events?timeframe=${timeframe}`
+        `/api/v1/guilds/${guildId}/deployments/${
+          deploymentId ? deploymentId + "/" : ""
+        }metrics/events?timeframe=${timeframe}`
       ).then((res) => res.json());
     },
     {
-      enabled: !!guildId && !!deploymentId,
+      enabled: !!guildId,
+    }
+  );
+}
+
+export function useDeploymentsCallMetricsQuery(
+  guildId?: string | null,
+  deploymentId?: string | null,
+  timeframe: "hour" | "day" | "week" | "month" = "day"
+) {
+  return useQuery<DeploymentMetricCallsListResponse>(
+    [
+      "guilds",
+      guildId,
+      "deployments",
+      deploymentId,
+      "metrics",
+      "calls",
+      timeframe,
+    ],
+    () => {
+      return fetch(
+        `/api/v1/guilds/${guildId}/deployments/${
+          deploymentId ? deploymentId + "/" : ""
+        }metrics/calls?timeframe=${timeframe}`
+      ).then((res) => res.json());
+    },
+    {
+      enabled: !!guildId,
     }
   );
 }
