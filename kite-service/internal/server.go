@@ -5,6 +5,7 @@ import (
 
 	"github.com/merlinfuchs/kite/kite-service/config"
 	"github.com/merlinfuchs/kite/kite-service/internal/api"
+	"github.com/merlinfuchs/kite/kite-service/internal/api/access"
 	"github.com/merlinfuchs/kite/kite-service/internal/bot"
 	"github.com/merlinfuchs/kite/kite-service/internal/db/postgres"
 	"github.com/merlinfuchs/kite/kite-service/internal/deployments"
@@ -41,7 +42,8 @@ func RunServer(cfg *config.ServerConfig) error {
 
 	api := api.New()
 
-	api.RegisterHandlers(e, pg)
+	accessManager := access.New(bot.State)
+	api.RegisterHandlers(e, pg, accessManager)
 
 	return api.Serve(cfg.Host, cfg.Port)
 }

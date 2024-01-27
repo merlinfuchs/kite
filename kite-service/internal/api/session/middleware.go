@@ -2,9 +2,9 @@ package session
 
 import (
 	"log/slog"
+	"time"
 
 	"github.com/gofiber/fiber/v2"
-	"github.com/merlinfuchs/kite/kite-service/internal/api/helpers"
 	"github.com/merlinfuchs/kite/kite-service/internal/logging/logattr"
 )
 
@@ -12,7 +12,7 @@ type SessionMiddleware struct {
 	manager *SessionManager
 }
 
-func NewSessionMiddleware(manager *SessionManager) *SessionMiddleware {
+func NewMiddleware(manager *SessionManager) *SessionMiddleware {
 	return &SessionMiddleware{
 		manager: manager,
 	}
@@ -26,7 +26,16 @@ func (m *SessionMiddleware) SessionRequired() func(c *fiber.Ctx) error {
 		}
 
 		if session == nil {
-			return helpers.Unauthorized("invalid_session", "No valid session, perhaps it expired, try logging in again.")
+			// TODO: remove after implementing login
+			session = &Session{
+				UserID:   "386861188891279362",
+				GuildIDs: []string{"615613572164091914"},
+			}
+			//return helpers.Unauthorized("invalid_session", "No valid session, try logging in again.")
+		}
+
+		if session.ExpiresAt.Before(time.Now().UTC()) {
+			//return helpers.Unauthorized("invalid_session", "Session expired, try logging in again.")
 		}
 
 		c.Locals("session", session)

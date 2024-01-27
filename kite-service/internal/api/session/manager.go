@@ -4,7 +4,6 @@ import (
 	"context"
 	"crypto/rand"
 	"crypto/sha256"
-	"database/sql"
 	"encoding/base32"
 	"fmt"
 	"time"
@@ -45,7 +44,7 @@ func (s *SessionManager) GetSession(c *fiber.Ctx) (*Session, error) {
 
 	model, err := s.store.GetSession(c.Context(), tokenHash)
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if err == store.ErrNotFound {
 			return nil, nil
 		}
 		return nil, err
@@ -117,7 +116,15 @@ func (s *SessionManager) DeleteSession(c *fiber.Ctx) error {
 		return err
 	}
 
-	return s.store.DeleteSession(c.Context(), tokenHash)
+	err = s.store.DeleteSession(c.Context(), tokenHash)
+	if err != nil {
+		if err == store.ErrNotFound {
+			return nil
+		}
+		return err
+	}
+
+	return nil
 }
 
 func generateSessionToken() (string, error) {

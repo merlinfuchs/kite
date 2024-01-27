@@ -44,7 +44,7 @@ export function someText() {
     path: "manifest.toml",
     content: `
 [plugin]
-key = "example@kite.bot"
+key = "example@kite.onl"
 name = 'My Plugin'
 description = 'Example Kite plugin'
 type = 'js'

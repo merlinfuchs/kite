@@ -91,6 +91,15 @@ type PluginVersion struct {
 	CreatedAt             time.Time
 }
 
+type Session struct {
+	TokenHash   string
+	UserID      string
+	GuildIds    []string
+	AccessToken string
+	CreatedAt   time.Time
+	ExpiresAt   time.Time
+}
+
 type Workspace struct {
 	ID          string
 	GuildID     string

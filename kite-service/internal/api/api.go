@@ -10,6 +10,7 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/filesystem"
 	"github.com/gofiber/fiber/v2/middleware/recover"
 	kiteapp "github.com/merlinfuchs/kite/kite-app"
+	"github.com/merlinfuchs/kite/kite-service/internal/api/access"
 	"github.com/merlinfuchs/kite/kite-service/internal/api/handler/compile"
 	"github.com/merlinfuchs/kite/kite-service/internal/api/handler/deployment"
 	guild "github.com/merlinfuchs/kite/kite-service/internal/api/handler/guilld"
@@ -17,6 +18,7 @@ import (
 	quickaccess "github.com/merlinfuchs/kite/kite-service/internal/api/handler/quick_access"
 	"github.com/merlinfuchs/kite/kite-service/internal/api/handler/workspace"
 	"github.com/merlinfuchs/kite/kite-service/internal/api/helpers"
+	"github.com/merlinfuchs/kite/kite-service/internal/api/session"
 	"github.com/merlinfuchs/kite/kite-service/internal/db/postgres"
 	"github.com/merlinfuchs/kite/kite-service/internal/logging/logattr"
 	"github.com/merlinfuchs/kite/kite-service/pkg/engine"
@@ -56,39 +58,50 @@ func New() *API {
 	return api
 }
 
-func (api *API) RegisterHandlers(engine *engine.PluginEngine, pg *postgres.Client) {
+func (api *API) RegisterHandlers(engine *engine.PluginEngine, pg *postgres.Client, accessManager *access.AccessManager) {
+	sessionManager := session.New(pg)
+	sessionMiddleware := session.NewMiddleware(sessionManager)
+	accessMiddleware := access.NewMiddleware(accessManager)
+
+	apiGroup := api.app.Group("/api/v1")
+
+	//authHandler := auth.New(sessionManager)
+
+	guildsGroup := apiGroup.Group("/guilds").Use(sessionMiddleware.SessionRequired())
+	guildGroup := guildsGroup.Group("/:guildID").Use(accessMiddleware.GuildAccessRequired())
+
 	deploymentHandler := deployment.NewHandler(engine, pg, pg, pg)
-	api.app.Get("/api/v1/guilds/:guildID/deployments", deploymentHandler.HandleDeploymentListForGuild)
-	api.app.Post("/api/v1/guilds/:guildID/deployments", helpers.WithRequestBody(deploymentHandler.HandleDeploymentCreate))
-	api.app.Get("/api/v1/guilds/:guildID/deployments/:deploymentID", deploymentHandler.HandleDeploymentGet)
-	api.app.Delete("/api/v1/guilds/:guildID/deployments/:deploymentID", deploymentHandler.HandleDeploymentDelete)
-	api.app.Get("/api/v1/guilds/:guildID/deployments/:deploymentID/logs", deploymentHandler.HandleDeploymentLogEntryList)
-	api.app.Get("/api/v1/guilds/:guildID/deployments/:deploymentID/logs/summary", deploymentHandler.HandleDeploymentLogSummaryGet)
-	api.app.Get("/api/v1/guilds/:guildID/deployments/:deploymentID/metrics/events", deploymentHandler.HandleDeploymentEventMetricsList)
-	api.app.Get("/api/v1/guilds/:guildID/deployments/:deploymentID/metrics/calls", deploymentHandler.HandleDeploymentCallMetricsList)
-	api.app.Get("/api/v1/guilds/:guildID/deployments/metrics/events", deploymentHandler.HandleDeploymentsEventMetricsList)
-	api.app.Get("/api/v1/guilds/:guildID/deployments/metrics/calls", deploymentHandler.HandleDeploymentsCallMetricsList)
+	guildGroup.Get("/deployments", deploymentHandler.HandleDeploymentListForGuild)
+	guildGroup.Post("/deployments", helpers.WithRequestBody(deploymentHandler.HandleDeploymentCreate))
+	guildGroup.Get("/deployments/:deploymentID", deploymentHandler.HandleDeploymentGet)
+	guildGroup.Delete("/deployments/:deploymentID", deploymentHandler.HandleDeploymentDelete)
+	guildGroup.Get("/deployments/:deploymentID/logs", deploymentHandler.HandleDeploymentLogEntryList)
+	guildGroup.Get("/deployments/:deploymentID/logs/summary", deploymentHandler.HandleDeploymentLogSummaryGet)
+	guildGroup.Get("/deployments/:deploymentID/metrics/events", deploymentHandler.HandleDeploymentEventMetricsList)
+	guildGroup.Get("/deployments/:deploymentID/metrics/calls", deploymentHandler.HandleDeploymentCallMetricsList)
+	guildGroup.Get("/deployments/metrics/events", deploymentHandler.HandleDeploymentsEventMetricsList)
+	guildGroup.Get("/deployments/metrics/calls", deploymentHandler.HandleDeploymentsCallMetricsList)
 
 	guildHandler := guild.NewHandler(pg)
-	api.app.Get("/api/v1/guilds", guildHandler.HandleGuildList)
-	api.app.Get("/api/v1/guilds/:guildID", guildHandler.HandleGuildGet)
+	guildsGroup.Get("/", guildHandler.HandleGuildList)
+	guildGroup.Get("/", guildHandler.HandleGuildGet)
 
 	workspaceHandler := workspace.NewHandler(pg)
-	api.app.Post("/api/v1/guilds/:guildID/workspaces", helpers.WithRequestBody(workspaceHandler.HandleWorkspaceCreate))
-	api.app.Put("/api/v1/guilds/:guildID/workspaces/:workspaceID", helpers.WithRequestBody(workspaceHandler.HandleWorkspaceUpdate))
-	api.app.Get("/api/v1/guilds/:guildID/workspaces/:workspaceID", workspaceHandler.HandleWorkspaceGetForGuild)
-	api.app.Get("/api/v1/guilds/:guildID/workspaces", workspaceHandler.HandleWorkspaceListForGuild)
-	api.app.Delete("/api/v1/guilds/:guildID/workspaces/:workspaceID", workspaceHandler.HandleWorkspaceDelete)
+	guildGroup.Post("/workspaces", helpers.WithRequestBody(workspaceHandler.HandleWorkspaceCreate))
+	guildGroup.Put("/workspaces/:workspaceID", helpers.WithRequestBody(workspaceHandler.HandleWorkspaceUpdate))
+	guildGroup.Get("/workspaces/:workspaceID", workspaceHandler.HandleWorkspaceGetForGuild)
+	guildGroup.Get("/workspaces", workspaceHandler.HandleWorkspaceListForGuild)
+	guildGroup.Delete("/workspaces/:workspaceID", workspaceHandler.HandleWorkspaceDelete)
 
 	kvStorageHandler := kvstorage.NewHandler(pg)
-	api.app.Get("/api/v1/guilds/:guildID/kv-storage/namespaces", kvStorageHandler.HandleKVStorageNamespaceList)
-	api.app.Get("/api/v1/guilds/:guildID/kv-storage/namespaces/:namespace/keys", kvStorageHandler.HandleKVStorageNamespaceKeyList)
+	guildGroup.Get("/kv-storage/namespaces", kvStorageHandler.HandleKVStorageNamespaceList)
+	guildGroup.Get("/kv-storage/namespaces/:namespace/keys", kvStorageHandler.HandleKVStorageNamespaceKeyList)
 
 	quickAccessHandler := quickaccess.NewHandler(pg)
-	api.app.Get("/api/v1/guilds/:guildID/quick-access", quickAccessHandler.HandleQuickAccessItemList)
+	guildGroup.Get("/quick-access", quickAccessHandler.HandleQuickAccessItemList)
 
 	compileHandler := compile.NewHandler()
-	api.app.Post("/api/v1/compile/js", helpers.WithRequestBody(compileHandler.HandleCompileJS))
+	apiGroup.Post("/compile/js", helpers.WithRequestBody(compileHandler.HandleCompileJS))
 
 	// Serve statix files
 	api.app.Use("/", filesystem.New(filesystem.Config{
