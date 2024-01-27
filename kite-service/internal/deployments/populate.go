@@ -45,7 +45,7 @@ func (m *DeploymentManager) populateEngineDeployments(ctx context.Context) {
 			env.DeploymentID = manifest.ID
 			env.GuildID = row.GuildID
 
-			deployments[i] = engine.NewDeployment(manifest.ID, env, row.WasmBytes, manifest, config)
+			deployments[i] = engine.NewDeployment(manifest.ID, env, m.compilationCache, row.WasmBytes, manifest, config)
 		}
 
 		m.engine.ReplaceGuildDeployments(guildID, deployments)

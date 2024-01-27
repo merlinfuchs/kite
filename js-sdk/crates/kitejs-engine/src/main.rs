@@ -59,8 +59,6 @@ pub extern "C" fn get_api_version() -> u32 {
 
 
 fn main() {
-    sys::log(0, "Plugin loaded!".to_string());
-
     let context = unsafe { JS_CONTEXT.get().unwrap() };
     let bytecode = unsafe { JS_BYTECODE.get().unwrap() };
 

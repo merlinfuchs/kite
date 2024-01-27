@@ -30,10 +30,9 @@ func (e *PluginEngine) LoadDeployment(guildID string, deployment *PluginDeployme
 	return nil
 }
 
-func (e *PluginEngine) ReplaceGuildDeployments(guildID string, deployments []*PluginDeployment) error {
+func (e *PluginEngine) ReplaceGuildDeployments(guildID string, deployments []*PluginDeployment) {
 	e.Lock()
 	defer e.Unlock()
 
 	e.Deployments[guildID] = deployments
-	return nil
 }

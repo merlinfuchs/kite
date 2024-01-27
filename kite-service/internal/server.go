@@ -26,7 +26,10 @@ func RunServer(cfg *config.ServerConfig) error {
 	e := engine.New()
 
 	envStores := host.NewHostEnvironmentStores(bot, pg, pg, pg, pg)
-	manager := deployments.NewManager(pg, e, envStores)
+	manager, err := deployments.NewManager(pg, e, envStores)
+	if err != nil {
+		return fmt.Errorf("failed to create deployment manager: %w", err)
+	}
 	manager.Start()
 
 	bot.Engine = e

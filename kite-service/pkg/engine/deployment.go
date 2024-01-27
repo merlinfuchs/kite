@@ -13,14 +13,16 @@ import (
 	"github.com/merlinfuchs/kite/go-types/logmodel"
 	"github.com/merlinfuchs/kite/kite-service/internal/logging/logattr"
 	"github.com/merlinfuchs/kite/kite-service/pkg/plugin"
+	"github.com/tetratelabs/wazero"
 )
 
 type PluginDeployment struct {
-	ID       string
-	wasm     []byte
-	manifest plugin.Manifest
-	config   plugin.PluginConfig
-	env      plugin.HostEnvironment
+	ID               string
+	wasm             []byte
+	manifest         plugin.Manifest
+	config           plugin.PluginConfig
+	env              plugin.HostEnvironment
+	compilationCache wazero.CompilationCache
 
 	pluginPool *pool.ObjectPool
 }
@@ -33,13 +35,21 @@ func (pd *PluginDeployment) Config() plugin.PluginConfig {
 	return pd.config
 }
 
-func NewDeployment(id string, env plugin.HostEnvironment, wasm []byte, manifest plugin.Manifest, config plugin.PluginConfig) *PluginDeployment {
+func NewDeployment(
+	id string,
+	env plugin.HostEnvironment,
+	compilationCache wazero.CompilationCache,
+	wasm []byte,
+	manifest plugin.Manifest,
+	config plugin.PluginConfig,
+) *PluginDeployment {
 	dp := &PluginDeployment{
-		ID:       id,
-		env:      env,
-		wasm:     wasm,
-		manifest: manifest,
-		config:   config,
+		ID:               id,
+		env:              env,
+		wasm:             wasm,
+		manifest:         manifest,
+		config:           config,
+		compilationCache: compilationCache,
 	}
 
 	factory := pool.NewPooledObjectFactorySimple(dp.pluginFactory)
@@ -57,7 +67,7 @@ func NewDeployment(id string, env plugin.HostEnvironment, wasm []byte, manifest 
 }
 
 func (dp *PluginDeployment) pluginFactory(ctx context.Context) (interface{}, error) {
-	p, err := plugin.New(ctx, dp.wasm, dp.manifest, dp.config, dp.env)
+	p, err := plugin.New(ctx, dp.wasm, dp.manifest, dp.config, dp.env, dp.compilationCache)
 	if err != nil {
 		return nil, err
 	}

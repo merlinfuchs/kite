@@ -41,12 +41,20 @@ type Plugin struct {
 	currentGuildID       string
 }
 
-func New(ctx context.Context, wasm []byte, manifest Manifest, config PluginConfig, env HostEnvironment) (*Plugin, error) {
+func New(
+	ctx context.Context,
+	wasm []byte,
+	manifest Manifest,
+	config PluginConfig,
+	env HostEnvironment,
+	compilationCache wazero.CompilationCache,
+) (*Plugin, error) {
 	r := wazero.NewRuntimeWithConfig(ctx,
 		wazero.NewRuntimeConfigCompiler().
 			WithCloseOnContextDone(true).
 			WithMemoryLimitPages(uint32(config.MemoryPagesLimit)).
-			WithCompilationCache(config.CompilationCache),
+			WithCompilationCache(config.CompilationCache).
+			WithCompilationCache(compilationCache),
 	)
 
 	wasi_snapshot_preview1.MustInstantiate(ctx, r)
