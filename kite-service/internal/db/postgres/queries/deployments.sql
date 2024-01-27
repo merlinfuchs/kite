@@ -45,5 +45,8 @@ SELECT DISTINCT guild_id FROM deployments;
 -- name: GetDeploymentsForGuild :many
 SELECT * FROM deployments WHERE guild_id = $1 ORDER BY updated_at DESC;
 
+-- name: GetDeploymentForGuild :one
+SELECT * FROM deployments WHERE id = $1 AND guild_id = $2;
+
 -- name: DeleteDeployment :one
 DELETE FROM deployments WHERE id = $1 AND guild_id = $2 RETURNING *;

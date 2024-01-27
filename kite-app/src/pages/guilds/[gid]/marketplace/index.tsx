@@ -1,9 +1,9 @@
-import AppLayout from "@/components/AppLayout";
+import AppGuildLayout from "@/components/AppGuildLayout";
 import IllustrationPlaceholder from "@/components/IllustrationPlaceholder";
 
 export default function GuildMarketplacePage() {
   return (
-    <AppLayout>
+    <AppGuildLayout>
       <div>
         <div className="text-4xl font-bold text-white mb-4">Marketplace</div>
         <div className="text-lg font-light text-gray-300 mb-20">
@@ -16,6 +16,6 @@ export default function GuildMarketplacePage() {
           title="Hey! You are early and we are still figuring things out here ..."
         />
       </div>
-    </AppLayout>
+    </AppGuildLayout>
   );
 }

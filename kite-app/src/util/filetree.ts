@@ -77,5 +77,5 @@ export function getIconUrlForFile(filename: string) {
       break;
   }
 
-  return `/file-icons/${icon}.svg`;
+  return `/app/file-icons/${icon}.svg`;
 }

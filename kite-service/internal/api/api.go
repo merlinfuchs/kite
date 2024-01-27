@@ -60,6 +60,7 @@ func (api *API) RegisterHandlers(engine *engine.PluginEngine, pg *postgres.Clien
 	deploymentHandler := deployment.NewHandler(engine, pg, pg, pg)
 	api.app.Get("/api/v1/guilds/:guildID/deployments", deploymentHandler.HandleDeploymentListForGuild)
 	api.app.Post("/api/v1/guilds/:guildID/deployments", helpers.WithRequestBody(deploymentHandler.HandleDeploymentCreate))
+	api.app.Get("/api/v1/guilds/:guildID/deployments/:deploymentID", deploymentHandler.HandleDeploymentGet)
 	api.app.Delete("/api/v1/guilds/:guildID/deployments/:deploymentID", deploymentHandler.HandleDeploymentDelete)
 	api.app.Get("/api/v1/guilds/:guildID/deployments/:deploymentID/logs", deploymentHandler.HandleDeploymentLogEntryList)
 	api.app.Get("/api/v1/guilds/:guildID/deployments/:deploymentID/logs/summary", deploymentHandler.HandleDeploymentLogSummaryGet)

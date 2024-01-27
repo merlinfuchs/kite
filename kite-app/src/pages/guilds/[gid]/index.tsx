@@ -1,4 +1,4 @@
-import AppLayout from "@/components/AppLayout";
+import AppGuildLayout from "@/components/AppGuildLayout";
 import { useGuildQuery } from "@/lib/api/queries";
 import { guildIconUrl } from "@/lib/discord/cdn";
 import { guildNameAbbreviation } from "@/lib/discord/util";
@@ -41,7 +41,7 @@ export default function GuildPage() {
   const guild = resp?.success ? resp.data : null;
 
   return (
-    <AppLayout>
+    <AppGuildLayout>
       <div className="mb-10 bg-dark-2 p-5 rounded-md w-full">
         <div className="flex space-x-5 items-center mb-10">
           <div className="w-24 h-24 bg-dark-1 rounded-full flex items-center justify-center">
@@ -101,6 +101,6 @@ export default function GuildPage() {
         </div>
         <DeploymentMetricsExecutionTime guildId={guildId} />
       </div>
-    </AppLayout>
+    </AppGuildLayout>
   );
 }

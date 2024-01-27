@@ -1,4 +1,5 @@
 import clsx from "clsx";
+import { useRouter } from "next/router";
 
 interface Props {
   svgPath: string;
@@ -11,11 +12,13 @@ export default function IllustrationPlaceholder({
   title,
   className,
 }: Props) {
+  const router = useRouter();
+
   return (
     <div className={clsx("flex justify-center w-full", className)}>
       <div className="max-w-3xl max-h-96">
         <img
-          src={svgPath}
+          src={router.basePath + svgPath}
           className="px-5 md:px-10 lg:px-32 w-full h-full"
           alt=""
         />

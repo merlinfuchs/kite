@@ -1,4 +1,4 @@
-import AppLayout from "@/components/AppLayout";
+import AppGuildLayout from "@/components/AppGuildLayout";
 import WorkspaceList from "@/components/WorkspaceList";
 import { useRouteParams } from "@/hooks/route";
 
@@ -6,7 +6,7 @@ export default function GuildWorkspacesPage() {
   const { guildId } = useRouteParams();
 
   return (
-    <AppLayout>
+    <AppGuildLayout>
       <div>
         <div className="text-4xl font-bold text-white mb-4">Workspaces</div>
         <div className="text-lg font-light text-gray-300 mb-10">
@@ -16,6 +16,6 @@ export default function GuildWorkspacesPage() {
         </div>
         <WorkspaceList guildId={guildId} />
       </div>
-    </AppLayout>
+    </AppGuildLayout>
   );
 }

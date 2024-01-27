@@ -49,7 +49,18 @@ func (c *Client) DeleteDeployment(ctx context.Context, id string, guildID string
 }
 
 func (c *Client) GetDeployment(ctx context.Context, id string, guildID string) (*model.Deployment, error) {
-	return nil, nil
+	row, err := c.Q.GetDeploymentForGuild(ctx, pgmodel.GetDeploymentForGuildParams{
+		ID:      id,
+		GuildID: guildID,
+	})
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, store.ErrNotFound
+		}
+		return nil, err
+	}
+
+	return deploymentToModel(row), nil
 }
 
 func (c *Client) GetDeploymentsForGuild(ctx context.Context, guildID string) ([]model.Deployment, error) {

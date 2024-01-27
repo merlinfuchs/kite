@@ -79,6 +79,21 @@ func (h *DeploymentHandler) HandleDeploymentListForGuild(c *fiber.Ctx) error {
 	})
 }
 
+func (h *DeploymentHandler) HandleDeploymentGet(c *fiber.Ctx) error {
+	deployment, err := h.deployments.GetDeployment(c.Context(), c.Params("deploymentID"), c.Params("guildID"))
+	if err != nil {
+		if err == store.ErrNotFound {
+			return fiber.NewError(fiber.StatusNotFound, "unknown_deployment", "Deployment not found")
+		}
+		return err
+	}
+
+	return c.JSON(wire.DeploymentGetResponse{
+		Success: true,
+		Data:    wire.DeploymentToWire(deployment),
+	})
+}
+
 func (h *DeploymentHandler) HandleDeploymentDelete(c *fiber.Ctx) error {
 	err := h.deployments.DeleteDeployment(c.Context(), c.Params("deploymentID"), c.Params("guildID"))
 	if err != nil {

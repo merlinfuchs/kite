@@ -1,4 +1,4 @@
-import AppLayout from "@/components/AppLayout";
+import AppGuildLayout from "@/components/AppGuildLayout";
 import KVStorageBrowser from "@/components/KVStorageBrowser";
 import { useRouteParams } from "@/hooks/route";
 
@@ -6,7 +6,7 @@ export default function GuildKVPage() {
   const { guildId } = useRouteParams();
 
   return (
-    <AppLayout>
+    <AppGuildLayout>
       <div>
         <div className="text-4xl font-bold text-white mb-4">KV Storage</div>
         <div className="text-lg font-light text-gray-300 mb-10">
@@ -17,6 +17,6 @@ export default function GuildKVPage() {
         </div>
         <KVStorageBrowser guildId={guildId} />
       </div>
-    </AppLayout>
+    </AppGuildLayout>
   );
 }

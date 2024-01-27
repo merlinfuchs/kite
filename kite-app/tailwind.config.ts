@@ -31,6 +31,9 @@ const config: Config = {
           "10": "#908dae",
         },
       },
+      scale: {
+        101: "1.01",
+      },
     },
   },
   plugins: [],

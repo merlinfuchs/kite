@@ -1,5 +1,6 @@
 import { useQuery } from "react-query";
 import {
+  DeploymentGetResponse,
   DeploymentListResponse,
   DeploymentLogEntryListResponse,
   DeploymentLogSummaryGetResponse,
@@ -68,6 +69,23 @@ export function useDeploymentsQuery(guildId?: string | null) {
       return fetch(`/api/v1/guilds/${guildId}/deployments`).then((res) =>
         res.json()
       );
+    },
+    {
+      enabled: !!guildId,
+    }
+  );
+}
+
+export function useDeploymentQuery(
+  guildId?: string | null,
+  deploymentId?: string | null
+) {
+  return useQuery<DeploymentGetResponse>(
+    ["guilds", guildId, "deployments", deploymentId],
+    () => {
+      return fetch(
+        `/api/v1/guilds/${guildId}/deployments/${deploymentId}`
+      ).then((res) => res.json());
     },
     {
       enabled: !!guildId,
