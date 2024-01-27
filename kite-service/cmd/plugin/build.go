@@ -53,7 +53,7 @@ func runBuildGo(basePath string, debug bool, cfg *config.PluginConfig) error {
 
 	// Either optimize for size or for debugging (see https://tinygo.org/docs/guides/optimizing-binaries/)
 	if !debug {
-		buildArgs = append(buildArgs, "-no-debug")
+		buildArgs = append(buildArgs, "-no-debug", "-opt=z")
 	} else {
 		buildArgs = append(buildArgs, "-opt=1")
 	}
@@ -143,7 +143,7 @@ func runBuildJS(basePath string, debug bool, cfg *config.PluginConfig) error {
 
 func optimizeWASM(path string) error {
 	if execCMDExists("wasm-opt") {
-		optArgs := []string{"-Oz", "-o", path, path}
+		optArgs := []string{"--enable-bulk-memory", "-O3", "-o", path, path}
 
 		optCMD := exec.Command("wasm-opt", optArgs...)
 

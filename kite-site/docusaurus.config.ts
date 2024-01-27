@@ -4,7 +4,7 @@ import type * as Preset from "@docusaurus/preset-classic";
 
 const config: Config = {
   title: "Kite.onl",
-  tagline: "Discord Bots made easy",
+  tagline: "The WebAssembly runtime for Discord Bots",
   favicon: "img/favicon.ico",
 
   // Set the production url of your siste here
