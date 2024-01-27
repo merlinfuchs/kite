@@ -12,19 +12,7 @@ The end goal is to have a public instance of Kite running that users can add to 
 
 Kite is in a very early state and under active development. It's not ready to be used for anything meaningful.
 
-- [x] MVP writing and running plugins
-- [x] Model most common Discord types in the Go SDK
-- [x] Support most common Discord events
-- [x] Support most common Discord HTTP requests
-- [ ] Support getting Discord entities from cache
-- [x] Support registering Slash Commands
-- [x] Support most common Slash Command responses
-- [x] Support KV store with most common actions
-- [x] Support dynamically loading and unloading plugins during runtime
-- [ ] Validation of calls (e.g. kv namespace)
-- [x] Web dashboard for managing deployments
-- [x] Code editor in the browser
-- [ ] Auth and authorization
+Take a look at the [issues](/issues) to see what is being worked on right now.
 
 ## Installation
 

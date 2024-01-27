@@ -6,43 +6,48 @@ import (
 	kite "github.com/merlinfuchs/kite/go-sdk"
 	"github.com/merlinfuchs/kite/go-sdk/discord"
 	"github.com/merlinfuchs/kite/go-sdk/kv"
-	"github.com/merlinfuchs/kite/go-sdk/log"
 	"github.com/merlinfuchs/kite/go-types/dismodel"
 	"github.com/merlinfuchs/kite/go-types/event"
 )
 
+const resetMessage = "Wrong counter value! The counter has been reset."
+
 func main() {
-	kite.Event(event.DiscordMessageCreate, func(req event.Event) error {
-		msg := req.Data.(dismodel.MessageCreateEvent)
-		store := kv.New()
+	kite.Event(event.DiscordMessageCreate, handleMessageCreateEvent)
+}
 
-		count, err := strconv.Atoi(msg.Content)
+func handleMessageCreateEvent(req event.Event) error {
+	msg := req.Data.(dismodel.MessageCreateEvent)
 
-		if err == nil {
-			counter, err := store.Increase(msg.ChannelID, 1)
-			if err != nil {
-				log.Error("Failed to increase counter: " + err.Error())
-				return err
-			}
+	if count, err := strconv.Atoi(msg.Content); err == nil {
+		if err := updateCounter(msg.ChannelID, count); err != nil {
+			return err
+		}
+	}
 
-			if count != counter.Int() {
-				_, err = store.Delete(msg.ChannelID)
-				if err != nil {
-					log.Error("Failed to delete counter: " + err.Error())
-					return err
-				}
+	return nil
+}
 
-				_, err := discord.MessageCreate(dismodel.MessageCreateCall{
-					ChannelID: msg.ChannelID,
-					Content:   "Wrong counter value! The counter has been reset.",
-				})
-				if err != nil {
-					log.Error("Failed to send message: " + err.Error())
-					return err
-				}
-			}
+func updateCounter(channelID string, count int) error {
+	store := kv.New()
+
+	counter, err := store.Increase(channelID, 1)
+	if err != nil {
+		return err
+	}
+
+	if count != counter.Int() {
+		if _, err := store.Delete(channelID); err != nil {
+			return err
 		}
 
-		return nil
-	})
+		if _, err := discord.MessageCreate(dismodel.MessageCreateCall{
+			ChannelID: channelID,
+			Content:   resetMessage,
+		}); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
