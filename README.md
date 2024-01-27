@@ -12,7 +12,7 @@ The end goal is to have a public instance of Kite running that users can add to 
 
 Kite is in a very early state and under active development. It's not ready to be used for anything meaningful.
 
-Take a look at the [issues](/issues) to see what is being worked on right now.
+Take a look at the [issues](https://github.com/merlinfuchs/kite/issues) to see what is being worked on right now.
 
 ## Installation
 

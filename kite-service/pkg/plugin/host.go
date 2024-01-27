@@ -28,7 +28,7 @@ func (p *pluginLogForwader) Write(b []byte) (int, error) {
 	}
 
 	// Send the log message to the host
-	p.env.Log(context.Background(), p.level, string(p.buffer))
+	go p.env.Log(context.Background(), p.level, string(p.buffer))
 	p.buffer = p.buffer[:0]
 	return len(b), nil
 }
