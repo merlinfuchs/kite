@@ -22,11 +22,15 @@ Kite is in a very early state and under active development. It's not ready to be
 - [x] Support KV store with most common actions
 - [x] Support dynamically loading and unloading plugins during runtime
 - [ ] Validation of calls (e.g. kv namespace)
+- [x] Web dashboard for managing deployments
+- [x] Code editor in the browser
+- [ ] Auth and authorization
 
 ## Installation
 
 ```shell
-go install github.com/merlinfuchs/kite@latest
+# This installs the Kite CLI and Kite API server but doesn't include the web app
+go install github.com/merlinfuchs/kite/kite-service@latest
 ```
 
 ## Running the Server
