@@ -103,6 +103,8 @@ func (pd *PluginDeployment) HandleEvent(ctx context.Context, event *event.Event)
 
 	res, err := plugin.Handle(ctx, event)
 
+	fmt.Println("Execution duration: ", res.ExecutionDuration)
+
 	pd.env.TrackEventHandled(ctx, string(event.Type), err == nil, res.TotalDuration, res.ExecutionDuration)
 
 	if err != nil {

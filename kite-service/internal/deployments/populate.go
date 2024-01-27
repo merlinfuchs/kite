@@ -36,9 +36,9 @@ func (m *DeploymentManager) populateEngineDeployments(ctx context.Context) {
 				// TODO: Commands: row.ManifestCommands,
 			}
 			config := plugin.PluginConfig{
-				MemoryPagesLimit:   64,
+				MemoryPagesLimit:   1024,
 				TotalTimeLimit:     time.Second * 10,
-				ExecutionTimeLimit: time.Millisecond * 10,
+				ExecutionTimeLimit: time.Millisecond * 100,
 			}
 
 			env := host.NewEnv(m.envStores)
