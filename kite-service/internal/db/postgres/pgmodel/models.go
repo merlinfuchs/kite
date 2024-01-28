@@ -100,6 +100,17 @@ type Session struct {
 	ExpiresAt   time.Time
 }
 
+type User struct {
+	ID            string
+	Username      string
+	Discriminator sql.NullString
+	GlobalName    sql.NullString
+	Avatar        sql.NullString
+	PublicFlags   int32
+	CreatedAt     time.Time
+	UpdatedAt     time.Time
+}
+
 type Workspace struct {
 	ID          string
 	GuildID     string

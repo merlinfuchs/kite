@@ -3,6 +3,7 @@ package access
 import (
 	"context"
 	"slices"
+	"strconv"
 
 	"github.com/merlinfuchs/kite/kite-service/pkg/store"
 )
@@ -18,7 +19,7 @@ type GuildPermissions struct {
 func (m *AccessManager) GetGuildPermissionsForUser(ctx context.Context, guildID string, userID string) (*GuildPermissions, error) {
 	res := &GuildPermissions{}
 
-	_, err := m.state.GetGuildBotMember(ctx, guildID)
+	botMember, err := m.state.GetGuildBotMember(ctx, guildID)
 	if err != nil {
 		if err == store.ErrNotFound {
 			return res, nil
@@ -52,7 +53,13 @@ func (m *AccessManager) GetGuildPermissionsForUser(ctx context.Context, guildID 
 
 	for _, role := range roles {
 		if role.ID == guildID || slices.Contains(member.Roles, role.ID) {
-			res.UserPermissions |= role.Permissions
+			perms, _ := strconv.ParseInt(role.Permissions, 10, 64)
+			res.UserPermissions |= perms
+		}
+
+		if role.ID == guildID || slices.Contains(botMember.Roles, role.ID) {
+			perms, _ := strconv.ParseInt(role.Permissions, 10, 64)
+			res.BotPermissions |= perms
 		}
 	}
 

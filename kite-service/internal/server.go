@@ -43,7 +43,7 @@ func RunServer(cfg *config.ServerConfig) error {
 	api := api.New()
 
 	accessManager := access.New(bot.State)
-	api.RegisterHandlers(e, pg, accessManager)
+	api.RegisterHandlers(e, pg, accessManager, cfg)
 
 	return api.Serve(cfg.Host, cfg.Port)
 }

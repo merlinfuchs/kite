@@ -10,12 +10,15 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/filesystem"
 	"github.com/gofiber/fiber/v2/middleware/recover"
 	kiteapp "github.com/merlinfuchs/kite/kite-app"
+	"github.com/merlinfuchs/kite/kite-service/config"
 	"github.com/merlinfuchs/kite/kite-service/internal/api/access"
+	"github.com/merlinfuchs/kite/kite-service/internal/api/handler/auth"
 	"github.com/merlinfuchs/kite/kite-service/internal/api/handler/compile"
 	"github.com/merlinfuchs/kite/kite-service/internal/api/handler/deployment"
 	guild "github.com/merlinfuchs/kite/kite-service/internal/api/handler/guilld"
 	kvstorage "github.com/merlinfuchs/kite/kite-service/internal/api/handler/kv_storage"
 	quickaccess "github.com/merlinfuchs/kite/kite-service/internal/api/handler/quick_access"
+	"github.com/merlinfuchs/kite/kite-service/internal/api/handler/user"
 	"github.com/merlinfuchs/kite/kite-service/internal/api/handler/workspace"
 	"github.com/merlinfuchs/kite/kite-service/internal/api/helpers"
 	"github.com/merlinfuchs/kite/kite-service/internal/api/session"
@@ -58,17 +61,28 @@ func New() *API {
 	return api
 }
 
-func (api *API) RegisterHandlers(engine *engine.PluginEngine, pg *postgres.Client, accessManager *access.AccessManager) {
+func (api *API) RegisterHandlers(engine *engine.PluginEngine, pg *postgres.Client, accessManager *access.AccessManager, cfg *config.ServerConfig) {
 	sessionManager := session.New(pg)
 	sessionMiddleware := session.NewMiddleware(sessionManager)
 	accessMiddleware := access.NewMiddleware(accessManager)
 
 	apiGroup := api.app.Group("/api/v1")
 
-	//authHandler := auth.New(sessionManager)
+	authHandler := auth.New(sessionManager, pg, cfg)
+	apiGroup.Get("/auth/redirect", authHandler.HandleAuthRedirect)
+	apiGroup.Get("/auth/callback", authHandler.HandleAuthCallback)
+	apiGroup.Get("/auth/logout", authHandler.HandleAuthLogout)
+
+	userGroup := apiGroup.Group("/users").Use(sessionMiddleware.SessionRequired())
+	userHandler := user.NewHandler(pg)
+	userGroup.Get("/:userID", userHandler.HandleUserGet)
 
 	guildsGroup := apiGroup.Group("/guilds").Use(sessionMiddleware.SessionRequired())
 	guildGroup := guildsGroup.Group("/:guildID").Use(accessMiddleware.GuildAccessRequired())
+
+	guildHandler := guild.NewHandler(pg, accessManager)
+	guildsGroup.Get("/", guildHandler.HandleGuildList)
+	guildGroup.Get("/", guildHandler.HandleGuildGet)
 
 	deploymentHandler := deployment.NewHandler(engine, pg, pg, pg)
 	guildGroup.Get("/deployments", deploymentHandler.HandleDeploymentListForGuild)
@@ -81,10 +95,6 @@ func (api *API) RegisterHandlers(engine *engine.PluginEngine, pg *postgres.Clien
 	guildGroup.Get("/deployments/:deploymentID/metrics/calls", deploymentHandler.HandleDeploymentCallMetricsList)
 	guildGroup.Get("/deployments/metrics/events", deploymentHandler.HandleDeploymentsEventMetricsList)
 	guildGroup.Get("/deployments/metrics/calls", deploymentHandler.HandleDeploymentsCallMetricsList)
-
-	guildHandler := guild.NewHandler(pg)
-	guildsGroup.Get("/", guildHandler.HandleGuildList)
-	guildGroup.Get("/", guildHandler.HandleGuildGet)
 
 	workspaceHandler := workspace.NewHandler(pg)
 	guildGroup.Post("/workspaces", helpers.WithRequestBody(workspaceHandler.HandleWorkspaceCreate))

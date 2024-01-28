@@ -31,6 +31,7 @@ Create a `kite.toml` file which contains configuration values for the Kite serve
 [server.discord]
 token = "" # Your Discord Bot token
 client_id = "" # Your Discord Bot client id
+client_secret = "" # Your DIscord Bot client secret
 ```
 
 ### 2. Run the server

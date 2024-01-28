@@ -32,7 +32,7 @@ func New(store store.SessionStore) *SessionManager {
 }
 
 func (s *SessionManager) GetSession(c *fiber.Ctx) (*Session, error) {
-	token := c.Cookies("session_token")
+	token := c.Get("Authorization", c.Cookies("session_token"))
 	if token == "" {
 		return nil, nil
 	}

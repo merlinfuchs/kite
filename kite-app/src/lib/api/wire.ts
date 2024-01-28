@@ -110,6 +110,8 @@ export interface Guild {
   name: string;
   icon: null | string;
   description: null | string;
+  user_permissions?: string;
+  bot_permissions?: string;
   created_at: string /* RFC3339 */;
   updated_at: string /* RFC3339 */;
 }
@@ -144,6 +146,21 @@ export interface QuickAccessItem {
   updated_at: string /* RFC3339 */;
 }
 export type QuickAccessItemListResponse = APIResponse<QuickAccessItem[]>;
+
+//////////
+// source: user.go
+
+export interface User {
+  id: string;
+  username: string;
+  discriminator: string;
+  global_name: string;
+  avatar: string;
+  public_flags: number /* int */;
+  created_at: string /* RFC3339 */;
+  updated_at: string /* RFC3339 */;
+}
+export type UserGetResponse = APIResponse<User>;
 
 //////////
 // source: workspace.go

@@ -8,6 +8,8 @@ out = "plugin.wasm"
 [server]
 host = "127.0.0.1"
 port = 8080
+public_url = "http://localhost:3000/api"
+app_public_url = "http://localhost:3000/app"
 
 [server.postgres]
 host = "127.0.0.1"

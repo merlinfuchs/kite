@@ -14,6 +14,10 @@ type Guild struct {
 	Description null.String `json:"description"`
 	CreatedAt   time.Time   `json:"created_at"`
 	UpdatedAt   time.Time   `json:"updated_at"`
+
+	UserIsOwner     bool   `json:"user_is_owner,omitempty"`
+	UserPermissions string `json:"user_permissions,omitempty"`
+	BotPermissions  string `json:"bot_permissions,omitempty"`
 }
 
 type GuildListResponse APIResponse[[]Guild]
