@@ -16,7 +16,7 @@ export default function IllustrationPlaceholder({
 
   return (
     <div className={clsx("flex justify-center w-full", className)}>
-      <div className="max-w-3xl max-h-96">
+      <div className="max-w-3xl max-h-96 h-full">
         <img
           src={router.basePath + svgPath}
           className="px-5 md:px-10 lg:px-32 w-full h-full"

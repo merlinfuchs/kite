@@ -59,7 +59,7 @@ func (s *SessionManager) GetSession(c *fiber.Ctx) (*Session, error) {
 	}, nil
 }
 
-func (s *SessionManager) CreateSession(ctx context.Context, userID string, guildIDs []string, accessToken string) (string, error) {
+func (s *SessionManager) CreateSession(ctx context.Context, sessionType model.SessionType, userID string, guildIDs []string, accessToken string) (string, error) {
 	token, err := generateSessionToken()
 	if err != nil {
 		return "", err
@@ -72,6 +72,7 @@ func (s *SessionManager) CreateSession(ctx context.Context, userID string, guild
 
 	err = s.store.CreateSession(ctx, &model.Session{
 		TokenHash:   tokenHash,
+		Type:        sessionType,
 		UserID:      userID,
 		GuildIds:    guildIDs,
 		AccessToken: accessToken,
@@ -85,8 +86,8 @@ func (s *SessionManager) CreateSession(ctx context.Context, userID string, guild
 	return token, nil
 }
 
-func (s *SessionManager) CreateSessionCookie(c *fiber.Ctx, userID string, guildIDs []string, accessToken string) error {
-	token, err := s.CreateSession(c.Context(), userID, guildIDs, accessToken)
+func (s *SessionManager) CreateSessionCookie(c *fiber.Ctx, sessionType model.SessionType, userID string, guildIDs []string, accessToken string) error {
+	token, err := s.CreateSession(c.Context(), sessionType, userID, guildIDs, accessToken)
 	if err != nil {
 		return err
 	}

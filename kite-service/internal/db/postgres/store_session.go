@@ -20,9 +20,11 @@ func (c *Client) GetSession(ctx context.Context, tokenHash string) (*model.Sessi
 
 	return &model.Session{
 		TokenHash:   row.TokenHash,
+		Type:        model.SessionType(row.Type),
 		UserID:      row.UserID,
 		GuildIds:    row.GuildIds,
 		AccessToken: row.AccessToken,
+		Revoked:     row.Revoked,
 		CreatedAt:   row.CreatedAt,
 		ExpiresAt:   row.ExpiresAt,
 	}, nil
@@ -42,6 +44,7 @@ func (c *Client) DeleteSession(ctx context.Context, tokenHash string) error {
 func (c *Client) CreateSession(ctx context.Context, session *model.Session) error {
 	err := c.Q.CreateSession(ctx, pgmodel.CreateSessionParams{
 		TokenHash:   session.TokenHash,
+		Type:        string(session.Type),
 		UserID:      session.UserID,
 		GuildIds:    session.GuildIds,
 		AccessToken: session.AccessToken,

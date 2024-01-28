@@ -1,5 +1,6 @@
 import clsx from "clsx";
 import {
+  ArrowLeftStartOnRectangleIcon,
   CircleStackIcon,
   CodeBracketSquareIcon,
   DocumentArrowUpIcon,
@@ -13,6 +14,8 @@ import { useRouter } from "next/router";
 import Link from "next/link";
 import AppSidebarQuickAccess from "./AppSidebarQuickAccess";
 import AppSidebarGuildSelect from "./AppSidebarGuildSelect";
+import { useUserQuery } from "@/lib/api/queries";
+import { userAvatarUrl } from "@/lib/discord/cdn";
 
 interface Props {
   open: boolean;
@@ -22,6 +25,18 @@ interface Props {
 export default function AppSideBar({ open, setOpen }: Props) {
   const router = useRouter();
   const guildId = router.query.gid as string;
+
+  const { data: userResp } = useUserQuery();
+
+  const user = userResp?.success
+    ? userResp.data
+    : {
+        id: "0",
+        username: "user",
+        global_name: "User",
+        discriminator: "0",
+        avatar: null,
+      };
 
   const navigation = useMemo(() => {
     return [
@@ -96,18 +111,24 @@ export default function AppSideBar({ open, setOpen }: Props) {
               </li>
               <AppSidebarQuickAccess guildId={guildId} />
               <li className="-mx-6 mt-auto">
-                <Link
-                  href="#"
-                  className="flex items-center gap-x-4 px-6 py-3 text-sm font-semibold leading-6 text-white hover:bg-dark-4"
-                >
+                <div className="flex items-center gap-x-4 px-6 py-3 text-sm font-semibold leading-6 text-white">
                   <img
                     className="h-8 w-8 rounded-full bg-dark-3"
-                    src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80"
+                    src={userAvatarUrl(user)}
                     alt=""
                   />
                   <span className="sr-only">Your profile</span>
-                  <span aria-hidden="true">Tom Cook</span>
-                </Link>
+                  <span aria-hidden="true" className="truncate flex-auto">
+                    {user?.global_name || user?.global_name || "User"}
+                  </span>
+                  <a
+                    href="/api/v1/auth/logout"
+                    aria-label="Logout"
+                    className="hover:bg-dark-3 text-gray-300 hover:text-gray-300 rounded-full p-1"
+                  >
+                    <ArrowLeftStartOnRectangleIcon className="h-6 w-6" />
+                  </a>
+                </div>
               </li>
             </ul>
           </nav>

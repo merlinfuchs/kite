@@ -11,9 +11,16 @@ import {
   KVStorageNamespaceKeyListResponse,
   KVStorageNamespaceListResponse,
   QuickAccessItemListResponse,
+  UserGetResponse,
   WorkspaceGetResponse,
   WorkspaceListResponse,
 } from "./wire";
+
+export function useUserQuery() {
+  return useQuery<UserGetResponse>(["users", "@me"], () => {
+    return fetch(`/api/v1/users/@me`).then((res) => res.json());
+  });
+}
 
 export function useGuildsQuery() {
   return useQuery<GuildListResponse>(["guilds"], () => {
