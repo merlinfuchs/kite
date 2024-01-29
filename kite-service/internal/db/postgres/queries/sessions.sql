@@ -11,7 +11,6 @@ INSERT INTO sessions (
     user_id,
     guild_ids,
     access_token,
-    retrieval_code,
     created_at,
     expires_at
 ) VALUES (
@@ -23,3 +22,23 @@ INSERT INTO sessions (
     $6,
     $7
 );
+
+-- name: CreatePendingSession :exec
+INSERT INTO sessions_pending (
+    code,
+    created_at,
+    expires_at
+) VALUES (
+    $1,
+    $2,
+    $3
+);
+
+-- name: UpdatePendingSession :one
+UPDATE sessions_pending SET token = $1, expires_at = $2 WHERE code = $3 RETURNING *;
+
+-- name: GetPendingSession :one
+SELECT * FROM sessions_pending WHERE code = $1;
+
+-- name: DeleteExpiredPendingSessions :exec
+DELETE FROM sessions_pending WHERE expires_at < $1;

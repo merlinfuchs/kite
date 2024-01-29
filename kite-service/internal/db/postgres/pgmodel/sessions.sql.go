@@ -13,14 +13,36 @@ import (
 	"github.com/lib/pq"
 )
 
+const createPendingSession = `-- name: CreatePendingSession :exec
+INSERT INTO sessions_pending (
+    code,
+    created_at,
+    expires_at
+) VALUES (
+    $1,
+    $2,
+    $3
+)
+`
+
+type CreatePendingSessionParams struct {
+	Code      string
+	CreatedAt time.Time
+	ExpiresAt time.Time
+}
+
+func (q *Queries) CreatePendingSession(ctx context.Context, arg CreatePendingSessionParams) error {
+	_, err := q.db.ExecContext(ctx, createPendingSession, arg.Code, arg.CreatedAt, arg.ExpiresAt)
+	return err
+}
+
 const createSession = `-- name: CreateSession :exec
 INSERT INTO sessions (
-    token,
+    token_hash,
     type,
     user_id,
     guild_ids,
     access_token,
-    retrieval_code,
     created_at,
     expires_at
 ) VALUES (
@@ -30,81 +52,103 @@ INSERT INTO sessions (
     $4,
     $5,
     $6,
-    $7,
-    $8
+    $7
 )
 `
 
 type CreateSessionParams struct {
-	Token         string
-	Type          string
-	UserID        string
-	GuildIds      []string
-	AccessToken   string
-	RetrievalCode sql.NullString
-	CreatedAt     time.Time
-	ExpiresAt     time.Time
+	TokenHash   string
+	Type        string
+	UserID      string
+	GuildIds    []string
+	AccessToken string
+	CreatedAt   time.Time
+	ExpiresAt   time.Time
 }
 
 func (q *Queries) CreateSession(ctx context.Context, arg CreateSessionParams) error {
 	_, err := q.db.ExecContext(ctx, createSession,
-		arg.Token,
+		arg.TokenHash,
 		arg.Type,
 		arg.UserID,
 		pq.Array(arg.GuildIds),
 		arg.AccessToken,
-		arg.RetrievalCode,
 		arg.CreatedAt,
 		arg.ExpiresAt,
 	)
 	return err
 }
 
-const deleteSession = `-- name: DeleteSession :exec
-DELETE FROM sessions WHERE token = $1
+const deleteExpiredPendingSessions = `-- name: DeleteExpiredPendingSessions :exec
+DELETE FROM sessions_pending WHERE expires_at < $1
 `
 
-func (q *Queries) DeleteSession(ctx context.Context, token string) error {
-	_, err := q.db.ExecContext(ctx, deleteSession, token)
+func (q *Queries) DeleteExpiredPendingSessions(ctx context.Context, expiresAt time.Time) error {
+	_, err := q.db.ExecContext(ctx, deleteExpiredPendingSessions, expiresAt)
 	return err
 }
 
-const getSession = `-- name: GetSession :one
-SELECT token, type, user_id, guild_ids, access_token, revoked, retrieval_code, created_at, expires_at FROM sessions WHERE token = $1
+const deleteSession = `-- name: DeleteSession :exec
+DELETE FROM sessions WHERE token_hash = $1
 `
 
-func (q *Queries) GetSession(ctx context.Context, token string) (Session, error) {
-	row := q.db.QueryRowContext(ctx, getSession, token)
-	var i Session
+func (q *Queries) DeleteSession(ctx context.Context, tokenHash string) error {
+	_, err := q.db.ExecContext(ctx, deleteSession, tokenHash)
+	return err
+}
+
+const getPendingSession = `-- name: GetPendingSession :one
+SELECT code, token, created_at, expires_at FROM sessions_pending WHERE code = $1
+`
+
+func (q *Queries) GetPendingSession(ctx context.Context, code string) (SessionsPending, error) {
+	row := q.db.QueryRowContext(ctx, getPendingSession, code)
+	var i SessionsPending
 	err := row.Scan(
+		&i.Code,
 		&i.Token,
-		&i.Type,
-		&i.UserID,
-		pq.Array(&i.GuildIds),
-		&i.AccessToken,
-		&i.Revoked,
-		&i.RetrievalCode,
 		&i.CreatedAt,
 		&i.ExpiresAt,
 	)
 	return i, err
 }
 
-const getSessionByRetrievalCode = `-- name: GetSessionByRetrievalCode :one
-SELECT token, type, user_id, guild_ids, access_token, revoked, retrieval_code, created_at, expires_at FROM sessions WHERE retrieval_code = $1
+const getSession = `-- name: GetSession :one
+SELECT token_hash, type, user_id, guild_ids, access_token, revoked, created_at, expires_at FROM sessions WHERE token_hash = $1
 `
 
-func (q *Queries) GetSessionByRetrievalCode(ctx context.Context, retrievalCode sql.NullString) (Session, error) {
-	row := q.db.QueryRowContext(ctx, getSessionByRetrievalCode, retrievalCode)
+func (q *Queries) GetSession(ctx context.Context, tokenHash string) (Session, error) {
+	row := q.db.QueryRowContext(ctx, getSession, tokenHash)
 	var i Session
 	err := row.Scan(
-		&i.Token,
+		&i.TokenHash,
 		&i.Type,
 		&i.UserID,
 		pq.Array(&i.GuildIds),
 		&i.AccessToken,
 		&i.Revoked,
-		&i.RetrievalCode,
+		&i.CreatedAt,
+		&i.ExpiresAt,
+	)
+	return i, err
+}
+
+const updatePendingSession = `-- name: UpdatePendingSession :one
+UPDATE sessions_pending SET token = $1, expires_at = $2 WHERE code = $3 RETURNING code, token, created_at, expires_at
+`
+
+type UpdatePendingSessionParams struct {
+	Token     sql.NullString
+	ExpiresAt time.Time
+	Code      string
+}
+
+func (q *Queries) UpdatePendingSession(ctx context.Context, arg UpdatePendingSessionParams) (SessionsPending, error) {
+	row := q.db.QueryRowContext(ctx, updatePendingSession, arg.Token, arg.ExpiresAt, arg.Code)
+	var i SessionsPending
+	err := row.Scan(
+		&i.Code,
+		&i.Token,
 		&i.CreatedAt,
 		&i.ExpiresAt,
 	)

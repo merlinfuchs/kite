@@ -92,15 +92,21 @@ type PluginVersion struct {
 }
 
 type Session struct {
-	Token         string
-	Type          string
-	UserID        string
-	GuildIds      []string
-	AccessToken   string
-	Revoked       bool
-	RetrievalCode sql.NullString
-	CreatedAt     time.Time
-	ExpiresAt     time.Time
+	TokenHash   string
+	Type        string
+	UserID      string
+	GuildIds    []string
+	AccessToken string
+	Revoked     bool
+	CreatedAt   time.Time
+	ExpiresAt   time.Time
+}
+
+type SessionsPending struct {
+	Code      string
+	Token     sql.NullString
+	CreatedAt time.Time
+	ExpiresAt time.Time
 }
 
 type User struct {

@@ -2,6 +2,25 @@
 import {APIResponse} from "./base"
 
 //////////
+// source: auth.go
+
+export interface AuthLoginStartRequest {
+}
+export interface AuthCLIStartResponseData {
+  code: string;
+}
+export type AuthCLIStartResponse = APIResponse<AuthCLIStartResponseData>;
+export interface AuthCLICallbackResponseData {
+  message: string;
+}
+export type AuthCLICallbackResponse = APIResponse<AuthCLICallbackResponseData>;
+export interface AuthCLICheckResponseData {
+  pending: boolean;
+  token?: string;
+}
+export type AuthCLICheckResponse = APIResponse<AuthCLICheckResponseData>;
+
+//////////
 // source: compile.go
 
 export interface CompileJSRequest {
@@ -110,10 +129,11 @@ export interface Guild {
   name: string;
   icon: null | string;
   description: null | string;
-  user_permissions?: string;
-  bot_permissions?: string;
   created_at: string /* RFC3339 */;
   updated_at: string /* RFC3339 */;
+  user_is_owner?: boolean;
+  user_permissions?: string;
+  bot_permissions?: string;
 }
 export type GuildListResponse = APIResponse<Guild[]>;
 export type GuildGetResponse = APIResponse<Guild>;

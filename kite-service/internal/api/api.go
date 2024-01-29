@@ -72,6 +72,10 @@ func (api *API) RegisterHandlers(engine *engine.PluginEngine, pg *postgres.Clien
 	apiGroup.Get("/auth/redirect", authHandler.HandleAuthRedirect)
 	apiGroup.Get("/auth/callback", authHandler.HandleAuthCallback)
 	apiGroup.Get("/auth/logout", authHandler.HandleAuthLogout)
+	apiGroup.Post("/auth/cli/start", authHandler.HandleAuthCLIStart)
+	apiGroup.Get("/auth/cli/redirect", authHandler.HandleAuthCLIRedirect)
+	apiGroup.Get("/auth/cli/callback", authHandler.HandleAuthCLICallback)
+	apiGroup.Get("/auth/cli/check", authHandler.HandleAuthCLICheck)
 
 	userGroup := apiGroup.Group("/users").Use(sessionMiddleware.SessionRequired())
 	userHandler := user.NewHandler(pg)

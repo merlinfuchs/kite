@@ -1,6 +1,10 @@
 package model
 
-import "time"
+import (
+	"time"
+
+	"gopkg.in/guregu/null.v4"
+)
 
 type SessionType string
 
@@ -18,4 +22,11 @@ type Session struct {
 	Revoked     bool
 	CreatedAt   time.Time
 	ExpiresAt   time.Time
+}
+
+type PendingSession struct {
+	Code      string
+	Token     null.String
+	CreatedAt time.Time
+	ExpiresAt time.Time
 }

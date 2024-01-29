@@ -4,6 +4,7 @@ import (
 	"log"
 	"os"
 
+	"github.com/merlinfuchs/kite/kite-service/cmd/config"
 	"github.com/merlinfuchs/kite/kite-service/cmd/plugin"
 	"github.com/merlinfuchs/kite/kite-service/cmd/server"
 	"github.com/urfave/cli/v2"
@@ -16,6 +17,7 @@ func Entry() {
 		Commands: []*cli.Command{
 			server.CMD(),
 			plugin.CMD(),
+			config.CMD(),
 		},
 	}
 
