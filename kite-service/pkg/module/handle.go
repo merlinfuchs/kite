@@ -1,4 +1,4 @@
-package plugin
+package module
 
 import (
 	"context"
@@ -14,7 +14,7 @@ type HandleResult struct {
 	ExecutionDuration time.Duration
 }
 
-func (p *Plugin) Handle(ctx context.Context, e *event.Event) (HandleResult, error) {
+func (p *Module) Handle(ctx context.Context, e *event.Event) (HandleResult, error) {
 	if p.config.TotalTimeLimit != 0 {
 		ctx, p.cancel = context.WithTimeout(ctx, p.config.TotalTimeLimit)
 	} else {
@@ -62,18 +62,18 @@ func (p *Plugin) Handle(ctx context.Context, e *event.Event) (HandleResult, erro
 	return res, nil
 }
 
-func (p *Plugin) Close(ctx context.Context) error {
+func (p *Module) Close(ctx context.Context) error {
 	if err := p.m.Close(ctx); err != nil {
 		return err
 	}
 	return p.r.Close(ctx)
 }
 
-func (p *Plugin) totalDuration() time.Duration {
+func (p *Module) totalDuration() time.Duration {
 	return time.Since(p.handleStartAt)
 }
 
-func (p *Plugin) executionDuration() time.Duration {
+func (p *Module) executionDuration() time.Duration {
 	totalTime := p.totalDuration()
 
 	hostCallDuration := p.hostCallDuration
@@ -84,8 +84,8 @@ func (p *Plugin) executionDuration() time.Duration {
 	return totalTime - hostCallDuration
 }
 
-func (p *Plugin) startHandle() {
-	p.state = PluginStateEvent
+func (p *Module) startHandle() {
+	p.state = ModuleStateEvent
 	p.ticker = time.NewTicker(time.Millisecond * 5)
 	p.handleStartAt = time.Now()
 	p.hostCallDuration = 0
@@ -107,7 +107,7 @@ func (p *Plugin) startHandle() {
 	}
 }
 
-func (p *Plugin) endHandle() {
-	p.state = PluginStateReady
+func (p *Module) endHandle() {
+	p.state = ModuleStateReady
 	p.ticker.Stop()
 }

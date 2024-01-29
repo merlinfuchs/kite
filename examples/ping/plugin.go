@@ -8,9 +8,7 @@ import (
 	"github.com/merlinfuchs/kite/go-types/event"
 )
 
-func init() {
-	log.Debug("Plugin loaded")
-
+func main() {
 	kite.Event(event.DiscordMessageCreate, func(req event.Event) error {
 		msg := req.Data.(dismodel.MessageCreateEvent)
 
@@ -44,5 +42,3 @@ func init() {
 		return nil
 	})
 }
-
-func main() {}

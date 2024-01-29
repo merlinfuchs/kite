@@ -7,9 +7,7 @@ INSERT INTO deployments (
     guild_id, 
     plugin_version_id, 
     wasm_bytes, 
-    manifest_default_config, 
-    manifest_events, 
-    manifest_commands, 
+    manifest,
     config, 
     created_at, 
     updated_at
@@ -24,17 +22,13 @@ INSERT INTO deployments (
     $8,
     $9,
     $10,
-    $11,
-    $12,
-    $13
+    $11
 ) ON CONFLICT (key, guild_id) DO UPDATE SET 
     name = EXCLUDED.name,
     description = EXCLUDED.description,
     plugin_version_id = EXCLUDED.plugin_version_id,
     wasm_bytes = EXCLUDED.wasm_bytes,
-    manifest_default_config = EXCLUDED.manifest_default_config,
-    manifest_events = EXCLUDED.manifest_events,
-    manifest_commands = EXCLUDED.manifest_commands,
+    manifest = EXCLUDED.manifest,
     config = EXCLUDED.config,
     updated_at = EXCLUDED.updated_at
 RETURNING *;

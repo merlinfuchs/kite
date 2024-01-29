@@ -8,7 +8,7 @@ import (
 	"github.com/merlinfuchs/kite/kite-service/internal/host"
 	"github.com/merlinfuchs/kite/kite-service/internal/logging/logattr"
 	"github.com/merlinfuchs/kite/kite-service/pkg/engine"
-	"github.com/merlinfuchs/kite/kite-service/pkg/plugin"
+	"github.com/merlinfuchs/kite/kite-service/pkg/module"
 )
 
 func (m *DeploymentManager) populateEngineDeployments(ctx context.Context) {
@@ -28,24 +28,17 @@ func (m *DeploymentManager) populateEngineDeployments(ctx context.Context) {
 
 		deployments := make([]*engine.PluginDeployment, len(rows))
 		for i, row := range rows {
-			manifest := plugin.Manifest{
-				ID:          row.ID,
-				Name:        row.Name,
-				Description: row.Description,
-				Events:      row.ManifestEvents,
-				// TODO: Commands: row.ManifestCommands,
-			}
-			config := plugin.PluginConfig{
+			config := module.ModuleConfig{
 				MemoryPagesLimit:   1024,
 				TotalTimeLimit:     time.Second * 10,
-				ExecutionTimeLimit: time.Millisecond * 100,
+				ExecutionTimeLimit: time.Millisecond * 10,
 			}
 
 			env := host.NewEnv(m.envStores)
-			env.DeploymentID = manifest.ID
+			env.DeploymentID = row.ID
 			env.GuildID = row.GuildID
 
-			deployments[i] = engine.NewDeployment(manifest.ID, env, m.compilationCache, row.WasmBytes, manifest, config)
+			deployments[i] = engine.NewDeployment(row.ID, env, m.compilationCache, row.WasmBytes, row.Manifest, config)
 		}
 
 		m.engine.ReplaceGuildDeployments(guildID, deployments)

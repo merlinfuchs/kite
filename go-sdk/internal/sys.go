@@ -6,7 +6,11 @@ import (
 	"unsafe"
 
 	"github.com/merlinfuchs/kite/go-types/event"
+	"github.com/merlinfuchs/kite/go-types/manifest"
 )
+
+//export kite_set_manifest
+func kiteSetManifest(offset uint32, length uint32) uint32
 
 //export kite_get_config_size
 func kiteGetConfigSize() uint32
@@ -31,7 +35,28 @@ func kiteGetCallResponse(offset uint32) uint32
 
 //export kite_get_api_version
 func kiteGetAPIVersion() uint32 {
-	return 0
+	return uint32(manifest.APIVersionAlpha)
+}
+
+//export kite_get_api_encoding
+func kiteGetAPIEncoding() uint32 {
+	return uint32(manifest.APIEncodingJSON)
+}
+
+var Manifest = manifest.Manifest{}
+
+//export kite_describe
+func kiteDescribe() {
+	raw, err := json.Marshal(Manifest)
+	if err != nil {
+		panic(err)
+	}
+
+	offset := uint32(uintptr(unsafe.Pointer(&raw[0])))
+	ok := kiteSetManifest(offset, uint32(len(raw)))
+	if ok != 0 {
+		panic(fmt.Errorf("failed to set manifest"))
+	}
 }
 
 var EventHandlers = make(map[event.EventType][]event.EventHandler)

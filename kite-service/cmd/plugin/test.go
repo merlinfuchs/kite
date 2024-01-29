@@ -11,7 +11,7 @@ import (
 	"github.com/merlinfuchs/kite/go-types/event"
 	"github.com/merlinfuchs/kite/kite-service/config"
 	"github.com/merlinfuchs/kite/kite-service/internal/host"
-	"github.com/merlinfuchs/kite/kite-service/pkg/plugin"
+	"github.com/merlinfuchs/kite/kite-service/pkg/module"
 	"github.com/urfave/cli/v2"
 )
 
@@ -55,22 +55,20 @@ func runTest(basePath string, build bool, debug bool, cfg *config.PluginConfig) 
 		return err
 	}
 
-	config := plugin.PluginConfig{
+	config := module.ModuleConfig{
 		MemoryPagesLimit:   32,
 		TotalTimeLimit:     time.Microsecond,
 		ExecutionTimeLimit: time.Microsecond,
 		UserConfig:         cfg.DefaultConfig,
 	}
 
-	manifest := plugin.Manifest{}
-
 	ctx := context.Background()
-	plugin, err := plugin.New(ctx, wasm, manifest, config, host.HostEnvironment{}, nil)
+	mod, err := module.New(ctx, wasm, config, host.HostEnvironment{}, nil)
 	if err != nil {
 		return err
 	}
 
-	res, err := plugin.Handle(ctx, &event.Event{
+	res, err := mod.Handle(ctx, &event.Event{
 		Type: event.DiscordMessageCreate,
 		Data: &dismodel.MessageCreateEvent{
 			Content: "test",

@@ -1,4 +1,4 @@
-package plugin
+package module
 
 import (
 	"context"
@@ -14,13 +14,13 @@ type HostEnvironment interface {
 	Call(ctx context.Context, req call.Call) (interface{}, error)
 }
 
-type pluginLogForwader struct {
+type moduleLogForwarder struct {
 	env    HostEnvironment
 	level  logmodel.LogLevel
 	buffer []byte
 }
 
-func (p *pluginLogForwader) Write(b []byte) (int, error) {
+func (p *moduleLogForwarder) Write(b []byte) (int, error) {
 	// Buffer the log message until a newline is encountered
 	p.buffer = append(p.buffer, b...)
 	if b[len(b)-1] != '\n' && len(p.buffer) < 1000 {

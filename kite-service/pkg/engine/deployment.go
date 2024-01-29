@@ -11,37 +11,38 @@ import (
 	pool "github.com/jolestar/go-commons-pool/v2"
 	"github.com/merlinfuchs/kite/go-types/event"
 	"github.com/merlinfuchs/kite/go-types/logmodel"
+	"github.com/merlinfuchs/kite/go-types/manifest"
 	"github.com/merlinfuchs/kite/kite-service/internal/logging/logattr"
-	"github.com/merlinfuchs/kite/kite-service/pkg/plugin"
+	"github.com/merlinfuchs/kite/kite-service/pkg/module"
 	"github.com/tetratelabs/wazero"
 )
 
 type PluginDeployment struct {
 	ID               string
 	wasm             []byte
-	manifest         plugin.Manifest
-	config           plugin.PluginConfig
-	env              plugin.HostEnvironment
+	manifest         manifest.Manifest
+	config           module.ModuleConfig
+	env              module.HostEnvironment
 	compilationCache wazero.CompilationCache
 
 	pluginPool *pool.ObjectPool
 }
 
-func (pd *PluginDeployment) Manifest() plugin.Manifest {
+func (pd *PluginDeployment) Manifest() manifest.Manifest {
 	return pd.manifest
 }
 
-func (pd *PluginDeployment) Config() plugin.PluginConfig {
+func (pd *PluginDeployment) Config() module.ModuleConfig {
 	return pd.config
 }
 
 func NewDeployment(
 	id string,
-	env plugin.HostEnvironment,
+	env module.HostEnvironment,
 	compilationCache wazero.CompilationCache,
 	wasm []byte,
-	manifest plugin.Manifest,
-	config plugin.PluginConfig,
+	manifest manifest.Manifest,
+	config module.ModuleConfig,
 ) *PluginDeployment {
 	dp := &PluginDeployment{
 		ID:               id,
@@ -67,7 +68,7 @@ func NewDeployment(
 }
 
 func (dp *PluginDeployment) pluginFactory(ctx context.Context) (interface{}, error) {
-	p, err := plugin.New(ctx, dp.wasm, dp.manifest, dp.config, dp.env, dp.compilationCache)
+	p, err := module.New(ctx, dp.wasm, dp.config, dp.env, dp.compilationCache)
 	if err != nil {
 		return nil, err
 	}
@@ -75,24 +76,24 @@ func (dp *PluginDeployment) pluginFactory(ctx context.Context) (interface{}, err
 	return p, nil
 }
 
-func (pd *PluginDeployment) BorrowPlugin(ctx context.Context) (*plugin.Plugin, error) {
+func (pd *PluginDeployment) BorrowPlugin(ctx context.Context) (*module.Module, error) {
 	obj, err := pd.pluginPool.BorrowObject(ctx)
 	if err != nil {
 		return nil, err
 	}
-	return obj.(*plugin.Plugin), nil
+	return obj.(*module.Module), nil
 }
 
-func (pd *PluginDeployment) ReturnPlugin(ctx context.Context, p *plugin.Plugin) error {
+func (pd *PluginDeployment) ReturnPlugin(ctx context.Context, p *module.Module) error {
 	return pd.pluginPool.ReturnObject(ctx, p)
 }
 
-func (pd *PluginDeployment) InvalidatePlugin(ctx context.Context, p *plugin.Plugin) error {
+func (pd *PluginDeployment) InvalidatePlugin(ctx context.Context, p *module.Module) error {
 	return pd.pluginPool.InvalidateObject(ctx, p)
 }
 
 func (pd *PluginDeployment) HandleEvent(ctx context.Context, event *event.Event) error {
-	if !slices.Contains(pd.Manifest().Events, string(event.Type)) {
+	if !slices.Contains(pd.Manifest().Events, event.Type) {
 		return nil
 	}
 

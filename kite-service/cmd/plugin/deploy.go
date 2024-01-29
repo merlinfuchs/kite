@@ -36,12 +36,18 @@ func deployCMD() *cli.Command {
 				Usage: "The Kite server to deploy to",
 				Value: "http://localhost:3000",
 			},
+			&cli.StringFlag{
+				Name:     "token",
+				Usage:    "Authentication token for the Kite server",
+				Required: true, // TODO: store this in a config file in the user home directory
+			},
 		},
 		Action: func(c *cli.Context) error {
 			basePath := c.String("path")
 			guildID := c.String("guild_id")
 			rawUserConfig := c.String("config")
 			server := c.String("server")
+			token := c.String("token")
 
 			cfg, err := config.LoadPluginConfig(basePath)
 			if err != nil {
@@ -58,12 +64,12 @@ func deployCMD() *cli.Command {
 				return fmt.Errorf("Failed to parse server URL: %v", err)
 			}
 
-			return runDeploy(basePath, guildID, userConfig, serverURL, cfg)
+			return runDeploy(basePath, guildID, userConfig, serverURL, token, cfg)
 		},
 	}
 }
 
-func runDeploy(basePath string, guildID string, userConfig map[string]string, serverURL *url.URL, cfg *config.PluginConfig) error {
+func runDeploy(basePath string, guildID string, userConfig map[string]string, serverURL *url.URL, token string, cfg *config.PluginConfig) error {
 	serverURL.Path = path.Join(serverURL.Path, "api/v1/guilds", guildID, "deployments")
 
 	wasmPath := filepath.Join(basePath, cfg.Build.Out)
@@ -73,20 +79,25 @@ func runDeploy(basePath string, guildID string, userConfig map[string]string, se
 	}
 
 	rawBody, err := json.Marshal(wire.DeploymentCreateRequest{
-		Key:                   cfg.Key,
-		Name:                  cfg.Name,
-		Description:           cfg.Description,
-		ManifestDefaultConfig: cfg.DefaultConfig,
-		ManifestEvents:        cfg.Events,
-		WasmBytes:             base64.StdEncoding.EncodeToString(wasm),
-		// ManifestCommands:      cfg.Commands,
-		Config: cfg.DefaultConfig,
+		Key:         cfg.Key,
+		Name:        cfg.Name,
+		Description: cfg.Description,
+		WasmBytes:   base64.StdEncoding.EncodeToString(wasm),
+		Config:      cfg.DefaultConfig,
 	})
 	if err != nil {
 		return fmt.Errorf("Failed to marshal request body: %v", err)
 	}
 
-	resp, err := http.Post(serverURL.String(), "application/json", bytes.NewBuffer(rawBody))
+	req, err := http.NewRequest("POST", serverURL.String(), bytes.NewBuffer(rawBody))
+	if err != nil {
+		return fmt.Errorf("Failed to create request: %v", err)
+	}
+
+	req.Header.Set("Authorization", token)
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return fmt.Errorf("Failed to deploy plugin: %v", err)
 	}

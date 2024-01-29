@@ -1,12 +1,18 @@
 package kite
 
 import (
+	"slices"
+
 	"github.com/merlinfuchs/kite/go-sdk/internal"
 	"github.com/merlinfuchs/kite/go-types/dismodel"
 	"github.com/merlinfuchs/kite/go-types/event"
 )
 
 func addEventHandler(eventType event.EventType, handler event.EventHandler) {
+	if !slices.Contains(internal.Manifest.Events, eventType) {
+		internal.Manifest.Events = append(internal.Manifest.Events, eventType)
+	}
+
 	handlers, exists := internal.EventHandlers[eventType]
 	if !exists {
 		handlers = []event.EventHandler{}

@@ -1,4 +1,4 @@
-package plugin
+package module
 
 import (
 	"time"
@@ -6,7 +6,7 @@ import (
 	"github.com/tetratelabs/wazero"
 )
 
-type PluginConfig struct {
+type ModuleConfig struct {
 	MemoryPagesLimit   int
 	ExecutionTimeLimit time.Duration
 	TotalTimeLimit     time.Duration

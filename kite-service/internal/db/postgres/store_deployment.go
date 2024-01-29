@@ -3,7 +3,9 @@ package postgres
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 
+	"github.com/merlinfuchs/kite/go-types/manifest"
 	"github.com/merlinfuchs/kite/kite-service/internal/db/postgres/pgmodel"
 	"github.com/merlinfuchs/kite/kite-service/pkg/model"
 	"github.com/merlinfuchs/kite/kite-service/pkg/store"
@@ -11,7 +13,17 @@ import (
 )
 
 func (c *Client) UpsertDeployment(ctx context.Context, deployment model.Deployment) (*model.Deployment, error) {
-	res, err := c.Q.UpsertDeployment(ctx, pgmodel.UpsertDeploymentParams{
+	rawManifest, err := json.Marshal(deployment.Manifest)
+	if err != nil {
+		return nil, err
+	}
+
+	rawConfig, err := json.Marshal(deployment.Config)
+	if err != nil {
+		return nil, err
+	}
+
+	row, err := c.Q.UpsertDeployment(ctx, pgmodel.UpsertDeploymentParams{
 		ID:              deployment.ID,
 		Name:            deployment.Name,
 		Key:             deployment.Key,
@@ -19,18 +31,21 @@ func (c *Client) UpsertDeployment(ctx context.Context, deployment model.Deployme
 		GuildID:         deployment.GuildID,
 		PluginVersionID: deployment.PluginVersionID.NullString,
 		WasmBytes:       deployment.WasmBytes,
-		//ManifestDefaultConfig: deployment.ManifestDefaultConfig,
-		ManifestEvents:   deployment.ManifestEvents,
-		ManifestCommands: deployment.ManifestCommands,
-		//Config:                deployment.Config,
-		CreatedAt: deployment.CreatedAt,
-		UpdatedAt: deployment.UpdatedAt,
+		Manifest:        rawManifest,
+		Config:          rawConfig,
+		CreatedAt:       deployment.CreatedAt,
+		UpdatedAt:       deployment.UpdatedAt,
 	})
 	if err != nil {
 		return nil, err
 	}
 
-	return deploymentToModel(res), nil
+	res, err := deploymentToModel(row)
+	if err != nil {
+		return nil, err
+	}
+
+	return &res, nil
 }
 
 func (c *Client) DeleteDeployment(ctx context.Context, id string, guildID string) error {
@@ -60,7 +75,12 @@ func (c *Client) GetDeployment(ctx context.Context, id string, guildID string) (
 		return nil, err
 	}
 
-	return deploymentToModel(row), nil
+	res, err := deploymentToModel(row)
+	if err != nil {
+		return nil, err
+	}
+
+	return &res, nil
 }
 
 func (c *Client) GetDeploymentsForGuild(ctx context.Context, guildID string) ([]model.Deployment, error) {
@@ -71,7 +91,7 @@ func (c *Client) GetDeploymentsForGuild(ctx context.Context, guildID string) ([]
 
 	deployments := make([]model.Deployment, len(rows))
 	for i, row := range rows {
-		deployments[i] = *deploymentToModel(row)
+		deployments[i], err = deploymentToModel(row)
 	}
 
 	return deployments, nil
@@ -81,8 +101,20 @@ func (c *Client) GetGuildIDsWithDeployment(ctx context.Context) ([]string, error
 	return c.Q.GetGuildIdsWithDeployments(ctx)
 }
 
-func deploymentToModel(deployment pgmodel.Deployment) *model.Deployment {
-	return &model.Deployment{
+func deploymentToModel(deployment pgmodel.Deployment) (model.Deployment, error) {
+	manifest := manifest.Manifest{}
+	err := json.Unmarshal(deployment.Manifest, &manifest)
+	if err != nil {
+		return model.Deployment{}, err
+	}
+
+	config := make(map[string]string)
+	err = json.Unmarshal(deployment.Config, &config)
+	if err != nil {
+		return model.Deployment{}, err
+	}
+
+	return model.Deployment{
 		ID:          deployment.ID,
 		Name:        deployment.Name,
 		Key:         deployment.Key,
@@ -92,11 +124,9 @@ func deploymentToModel(deployment pgmodel.Deployment) *model.Deployment {
 			NullString: deployment.PluginVersionID,
 		},
 		WasmBytes: deployment.WasmBytes,
-		//ManifestDefaultConfig: deployment.ManifestDefaultConfig,
-		ManifestEvents:   deployment.ManifestEvents,
-		ManifestCommands: deployment.ManifestCommands,
-		//Config:                deployment.Config,
+		Manifest:  manifest,
+		Config:    config,
 		CreatedAt: deployment.CreatedAt,
 		UpdatedAt: deployment.UpdatedAt,
-	}
+	}, nil
 }
