@@ -9,6 +9,7 @@ import (
 	"path"
 	"time"
 
+	"github.com/merlinfuchs/kite/kite-service/config"
 	"github.com/merlinfuchs/kite/kite-service/pkg/wire"
 	"github.com/urfave/cli/v2"
 )
@@ -27,17 +28,22 @@ func loginCMD() *cli.Command {
 		Action: func(c *cli.Context) error {
 			server := c.String("server")
 
+			cfg, err := config.LoadGlobalConfig()
+			if err != nil {
+				return err
+			}
+
 			serverURL, err := url.Parse(server)
 			if err != nil {
 				return fmt.Errorf("Failed to parse server URL: %v", err)
 			}
 
-			return runLogin(serverURL)
+			return runLogin(serverURL, cfg)
 		},
 	}
 }
 
-func runLogin(serverURL *url.URL) error {
+func runLogin(serverURL *url.URL, cfg *config.GlobalConfig) error {
 	authStartURL := *serverURL
 	authStartURL.Path = path.Join(authStartURL.Path, "/api/v1/auth/cli/start")
 	resp, err := http.Post(authStartURL.String(), "application/json", nil)
@@ -102,7 +108,23 @@ func runLogin(serverURL *url.URL) error {
 		}
 
 		token := checkResp.Data.Token
-		fmt.Println("Success: ", token)
+
+		session := cfg.GetSessionForServer(serverURL.String())
+		if session != nil {
+			session.Token = token
+		} else {
+			cfg.Sessions = append(cfg.Sessions, &config.GlobalSessionConfig{
+				Server: serverURL.String(),
+				Token:  token,
+			})
+		}
+
+		err = config.WriteGlobalConfig(cfg)
+		if err != nil {
+			return fmt.Errorf("Failed to write config: %v", err)
+		}
+
+		fmt.Println("Successfully logged in and saved session!")
 		break
 	}
 

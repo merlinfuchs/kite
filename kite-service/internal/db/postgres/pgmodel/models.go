@@ -13,19 +13,17 @@ import (
 )
 
 type Deployment struct {
-	ID                    string
-	Key                   string
-	Name                  string
-	Description           string
-	GuildID               string
-	PluginVersionID       sql.NullString
-	WasmBytes             []byte
-	ManifestDefaultConfig pqtype.NullRawMessage
-	ManifestEvents        []string
-	ManifestCommands      []string
-	Config                pqtype.NullRawMessage
-	CreatedAt             time.Time
-	UpdatedAt             time.Time
+	ID              string
+	Key             string
+	Name            string
+	Description     string
+	GuildID         string
+	PluginVersionID sql.NullString
+	WasmBytes       []byte
+	Manifest        json.RawMessage
+	Config          json.RawMessage
+	CreatedAt       time.Time
+	UpdatedAt       time.Time
 }
 
 type DeploymentLog struct {

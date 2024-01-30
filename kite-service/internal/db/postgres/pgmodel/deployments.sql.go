@@ -8,14 +8,12 @@ package pgmodel
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"time"
-
-	"github.com/lib/pq"
-	"github.com/sqlc-dev/pqtype"
 )
 
 const deleteDeployment = `-- name: DeleteDeployment :one
-DELETE FROM deployments WHERE id = $1 AND guild_id = $2 RETURNING id, key, name, description, guild_id, plugin_version_id, wasm_bytes, manifest_default_config, manifest_events, manifest_commands, config, created_at, updated_at
+DELETE FROM deployments WHERE id = $1 AND guild_id = $2 RETURNING id, key, name, description, guild_id, plugin_version_id, wasm_bytes, manifest, config, created_at, updated_at
 `
 
 type DeleteDeploymentParams struct {
@@ -34,9 +32,7 @@ func (q *Queries) DeleteDeployment(ctx context.Context, arg DeleteDeploymentPara
 		&i.GuildID,
 		&i.PluginVersionID,
 		&i.WasmBytes,
-		&i.ManifestDefaultConfig,
-		pq.Array(&i.ManifestEvents),
-		pq.Array(&i.ManifestCommands),
+		&i.Manifest,
 		&i.Config,
 		&i.CreatedAt,
 		&i.UpdatedAt,
@@ -45,7 +41,7 @@ func (q *Queries) DeleteDeployment(ctx context.Context, arg DeleteDeploymentPara
 }
 
 const getDeploymentForGuild = `-- name: GetDeploymentForGuild :one
-SELECT id, key, name, description, guild_id, plugin_version_id, wasm_bytes, manifest_default_config, manifest_events, manifest_commands, config, created_at, updated_at FROM deployments WHERE id = $1 AND guild_id = $2
+SELECT id, key, name, description, guild_id, plugin_version_id, wasm_bytes, manifest, config, created_at, updated_at FROM deployments WHERE id = $1 AND guild_id = $2
 `
 
 type GetDeploymentForGuildParams struct {
@@ -64,9 +60,7 @@ func (q *Queries) GetDeploymentForGuild(ctx context.Context, arg GetDeploymentFo
 		&i.GuildID,
 		&i.PluginVersionID,
 		&i.WasmBytes,
-		&i.ManifestDefaultConfig,
-		pq.Array(&i.ManifestEvents),
-		pq.Array(&i.ManifestCommands),
+		&i.Manifest,
 		&i.Config,
 		&i.CreatedAt,
 		&i.UpdatedAt,
@@ -75,7 +69,7 @@ func (q *Queries) GetDeploymentForGuild(ctx context.Context, arg GetDeploymentFo
 }
 
 const getDeploymentsForGuild = `-- name: GetDeploymentsForGuild :many
-SELECT id, key, name, description, guild_id, plugin_version_id, wasm_bytes, manifest_default_config, manifest_events, manifest_commands, config, created_at, updated_at FROM deployments WHERE guild_id = $1 ORDER BY updated_at DESC
+SELECT id, key, name, description, guild_id, plugin_version_id, wasm_bytes, manifest, config, created_at, updated_at FROM deployments WHERE guild_id = $1 ORDER BY updated_at DESC
 `
 
 func (q *Queries) GetDeploymentsForGuild(ctx context.Context, guildID string) ([]Deployment, error) {
@@ -95,9 +89,7 @@ func (q *Queries) GetDeploymentsForGuild(ctx context.Context, guildID string) ([
 			&i.GuildID,
 			&i.PluginVersionID,
 			&i.WasmBytes,
-			&i.ManifestDefaultConfig,
-			pq.Array(&i.ManifestEvents),
-			pq.Array(&i.ManifestCommands),
+			&i.Manifest,
 			&i.Config,
 			&i.CreatedAt,
 			&i.UpdatedAt,
@@ -151,9 +143,7 @@ INSERT INTO deployments (
     guild_id, 
     plugin_version_id, 
     wasm_bytes, 
-    manifest_default_config, 
-    manifest_events, 
-    manifest_commands, 
+    manifest,
     config, 
     created_at, 
     updated_at
@@ -168,36 +158,30 @@ INSERT INTO deployments (
     $8,
     $9,
     $10,
-    $11,
-    $12,
-    $13
+    $11
 ) ON CONFLICT (key, guild_id) DO UPDATE SET 
     name = EXCLUDED.name,
     description = EXCLUDED.description,
     plugin_version_id = EXCLUDED.plugin_version_id,
     wasm_bytes = EXCLUDED.wasm_bytes,
-    manifest_default_config = EXCLUDED.manifest_default_config,
-    manifest_events = EXCLUDED.manifest_events,
-    manifest_commands = EXCLUDED.manifest_commands,
+    manifest = EXCLUDED.manifest,
     config = EXCLUDED.config,
     updated_at = EXCLUDED.updated_at
-RETURNING id, key, name, description, guild_id, plugin_version_id, wasm_bytes, manifest_default_config, manifest_events, manifest_commands, config, created_at, updated_at
+RETURNING id, key, name, description, guild_id, plugin_version_id, wasm_bytes, manifest, config, created_at, updated_at
 `
 
 type UpsertDeploymentParams struct {
-	ID                    string
-	Key                   string
-	Name                  string
-	Description           string
-	GuildID               string
-	PluginVersionID       sql.NullString
-	WasmBytes             []byte
-	ManifestDefaultConfig pqtype.NullRawMessage
-	ManifestEvents        []string
-	ManifestCommands      []string
-	Config                pqtype.NullRawMessage
-	CreatedAt             time.Time
-	UpdatedAt             time.Time
+	ID              string
+	Key             string
+	Name            string
+	Description     string
+	GuildID         string
+	PluginVersionID sql.NullString
+	WasmBytes       []byte
+	Manifest        json.RawMessage
+	Config          json.RawMessage
+	CreatedAt       time.Time
+	UpdatedAt       time.Time
 }
 
 func (q *Queries) UpsertDeployment(ctx context.Context, arg UpsertDeploymentParams) (Deployment, error) {
@@ -209,9 +193,7 @@ func (q *Queries) UpsertDeployment(ctx context.Context, arg UpsertDeploymentPara
 		arg.GuildID,
 		arg.PluginVersionID,
 		arg.WasmBytes,
-		arg.ManifestDefaultConfig,
-		pq.Array(arg.ManifestEvents),
-		pq.Array(arg.ManifestCommands),
+		arg.Manifest,
 		arg.Config,
 		arg.CreatedAt,
 		arg.UpdatedAt,
@@ -225,9 +207,7 @@ func (q *Queries) UpsertDeployment(ctx context.Context, arg UpsertDeploymentPara
 		&i.GuildID,
 		&i.PluginVersionID,
 		&i.WasmBytes,
-		&i.ManifestDefaultConfig,
-		pq.Array(&i.ManifestEvents),
-		pq.Array(&i.ManifestCommands),
+		&i.Manifest,
 		&i.Config,
 		&i.CreatedAt,
 		&i.UpdatedAt,

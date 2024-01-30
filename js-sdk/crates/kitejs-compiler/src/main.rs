@@ -64,6 +64,7 @@ fn generate_module(js: Vec<u8>, optimize: bool) -> Result<Vec<u8>> {
             })?;
             Ok(linker)
         })))?
+        .init_func("_start")
         .wasm_bulk_memory(true)
         .run(wasm)
         .map_err(|_| anyhow!("JS compilation failed"))?;

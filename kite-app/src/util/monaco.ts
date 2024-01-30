@@ -15,7 +15,7 @@ export function initializeMonaco(monaco: any) {
     noSyntaxValidation: false,
   });
 
-  const libSource = `interface Event {type: string; data: any}; interface Call {type: string; data: any;}; declare class Kite {static call(call: Call); static handle(event: Event);};`;
+  const libSource = `interface Event {type: string; data: any}; interface Call {type: string; data: any;}; declare class Kite {static call(call: Call); static handle(event: Event); static describe();};`;
   const libUri = "ts:filename/global.d.ts";
 
   monaco.languages.typescript.typescriptDefaults.setEagerModelSync(true);

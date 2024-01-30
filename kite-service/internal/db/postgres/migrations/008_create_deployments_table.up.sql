@@ -11,11 +11,9 @@ CREATE TABLE IF NOT EXISTS deployments (
    
    -- Copied over from the plugin version if the deployment is associated with a plugin
    wasm_bytes BYTEA NOT NULL,
-   manifest_default_config JSONB,
-   manifest_events TEXT[],
-   manifest_commands TEXT[],
+   manifest JSONB NOT NULL,
 
-   config JSONB,
+   config JSONB NOT NULL,
    
    created_at TIMESTAMP NOT NULL,
    updated_at TIMESTAMP NOT NULL,

@@ -19,7 +19,7 @@ require (
 	github.com/merlinfuchs/kite/go-types v0.0.0
 	github.com/merlinfuchs/kite/kite-app v0.0.0
 	github.com/oklog/ulid/v2 v2.1.0
-	github.com/pelletier/go-toml/v2 v2.1.1
+	github.com/pelletier/go-toml v1.9.5
 	github.com/ravener/discord-oauth2 v0.0.0-20230514095040-ae65713199b3
 	github.com/sqlc-dev/pqtype v0.3.0
 	github.com/tetratelabs/wazero v1.5.0
@@ -51,10 +51,10 @@ require (
 	github.com/mitchellh/copystructure v1.2.0 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/mitchellh/reflectwalk v1.0.2 // indirect
-	github.com/pelletier/go-toml v1.9.5 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/rivo/uniseg v0.2.0 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
+	github.com/stretchr/testify v1.8.4 // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
 	github.com/valyala/fasthttp v1.51.0 // indirect
 	github.com/valyala/tcplisten v1.0.0 // indirect

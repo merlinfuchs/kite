@@ -9,6 +9,7 @@ import (
 	"github.com/merlinfuchs/kite/kite-service/internal/util"
 	"github.com/merlinfuchs/kite/kite-service/pkg/engine"
 	"github.com/merlinfuchs/kite/kite-service/pkg/model"
+	"github.com/merlinfuchs/kite/kite-service/pkg/module"
 	"github.com/merlinfuchs/kite/kite-service/pkg/store"
 	"github.com/merlinfuchs/kite/kite-service/pkg/wire"
 )
@@ -37,20 +38,32 @@ func (h *DeploymentHandler) HandleDeploymentCreate(c *fiber.Ctx, req wire.Deploy
 
 	guildID := c.Params("guildID")
 
+	module, err := module.New(c.Context(), wasmBytes, module.ModuleConfig{
+		MemoryPagesLimit:   1024, // TODO: make this globally configurable
+		TotalTimeLimit:     time.Millisecond * 10,
+		ExecutionTimeLimit: time.Millisecond * 1,
+	}, nil, nil)
+	if err != nil {
+		return fmt.Errorf("failed to create module: %w", err)
+	}
+
+	manifest, err := module.GetManifest(c.Context())
+	if err != nil {
+		return fmt.Errorf("failed to get manifest: %w", err)
+	}
+
 	deployment, err := h.deployments.UpsertDeployment(c.Context(), model.Deployment{
-		ID:                    util.UniqueID(),
-		Name:                  req.Name,
-		Key:                   req.Key,
-		Description:           req.Description,
-		GuildID:               guildID,
-		PluginVersionID:       req.PluginVersionID,
-		WasmBytes:             wasmBytes,
-		ManifestDefaultConfig: req.ManifestDefaultConfig,
-		ManifestEvents:        req.ManifestEvents,
-		ManifestCommands:      req.ManifestCommands,
-		Config:                req.Config,
-		CreatedAt:             time.Now().UTC(),
-		UpdatedAt:             time.Now().UTC(),
+		ID:              util.UniqueID(),
+		Name:            req.Name,
+		Key:             req.Key,
+		Description:     req.Description,
+		GuildID:         guildID,
+		PluginVersionID: req.PluginVersionID,
+		WasmBytes:       wasmBytes,
+		Manifest:        *manifest,
+		Config:          req.Config,
+		CreatedAt:       time.Now().UTC(),
+		UpdatedAt:       time.Now().UTC(),
 	})
 	if err != nil {
 		return err

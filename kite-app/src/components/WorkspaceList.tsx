@@ -17,6 +17,12 @@ const defaultFiles: FlatFile[] = [
     content: `
 import { someText } from "./lib/util.ts";
 
+Kite.describe = function() {
+    return {
+        events: ["DISCORD_MESSAGE_CREATE"],
+    };
+}
+
 Kite.handle = function(event) {
     if (event.type === "DISCORD_MESSAGE_CREATE" && event.data.content === "!ping") {
         Kite.call({
@@ -48,8 +54,6 @@ key = "example@kite.onl"
 name = 'My Plugin'
 description = 'Example Kite plugin'
 type = 'js'
-      
-events = ["DISCORD_MESSAGE_CREATE"]
       `.trim(),
   },
 ];

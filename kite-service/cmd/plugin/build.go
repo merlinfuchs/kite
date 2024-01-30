@@ -1,6 +1,7 @@
 package plugin
 
 import (
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -65,6 +66,10 @@ func runBuildGo(basePath string, debug bool, cfg *config.PluginConfig) error {
 	buildCMD.Stderr = os.Stderr
 
 	if err := buildCMD.Run(); err != nil {
+		return err
+	}
+
+	if err := preInitializeWASM(outPath); err != nil {
 		return err
 	}
 
@@ -136,6 +141,30 @@ func runBuildJS(basePath string, debug bool, cfg *config.PluginConfig) error {
 	// For JS plugins we always optimize the WASM because the users logic is in the JS
 	if err := optimizeWASM(outPath); err != nil {
 		return err
+	}
+
+	return nil
+}
+
+func preInitializeWASM(path string) error {
+	if !execCMDExists("wizer") {
+		return fmt.Errorf("Wizer is not installed. Please install it using `cargo install wizer --all-features`")
+	}
+
+	tempPath := path + ".temp"
+	initArgs := []string{path, "-o", tempPath, "--allow-wasi", "--wasm-bulk-memory=true", "--init-func=_start"}
+
+	initCMD := exec.Command("wizer", initArgs...)
+
+	initCMD.Stdout = os.Stdout
+	initCMD.Stderr = os.Stderr
+
+	if err := initCMD.Run(); err != nil {
+		return err
+	}
+
+	if err := os.Rename(tempPath, path); err != nil {
+		return fmt.Errorf("failed to rename temp file: %w", err)
 	}
 
 	return nil

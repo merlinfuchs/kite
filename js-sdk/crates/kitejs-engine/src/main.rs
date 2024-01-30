@@ -6,13 +6,10 @@ use quickjs_wasm_rs::JSContextRef;
 use std::io::{self, Read};
 
 static mut JS_CONTEXT: OnceCell<JSContextRef> = OnceCell::new();
-static mut JS_BYTECODE: OnceCell<Vec<u8>> = OnceCell::new();
 
 static SCRIPT_NAME: &str = "script.js";
 
-/// init() is executed by wizer to create a snapshot after the quickjs context has been initialized.
-#[export_name = "wizer.initialize"]
-pub extern "C" fn init() {
+fn main() {
     let ctx = JSContextRef::default();
 
     context::set_quickjs_globals(&ctx)
@@ -26,10 +23,29 @@ pub extern "C" fn init() {
         .compile_global(SCRIPT_NAME, &script)
         .expect("Failed to compile script");
 
+    ctx.eval_binary(&bytecode)
+        .expect("Failed to execute script");
+
     unsafe {
-        JS_BYTECODE.set(bytecode).unwrap();
         JS_CONTEXT.set(ctx).unwrap();
     }
+}
+
+#[export_name = "kite_describe"]
+pub extern "C" fn describe() {
+    let context = unsafe { JS_CONTEXT.get().unwrap() };
+
+    let globals = context.global_object().unwrap();
+    let kite_object = globals.get_property("Kite").unwrap();
+
+    let handle_func = kite_object.get_property("describe")
+        .expect("Failed to get script Kite.describe() function");
+
+    let response = handle_func.call(&kite_object, &[])
+        .expect("Failed to execute script Kite.describe() function");
+
+    sys::set_manifest(response)
+        .expect("Failed to set manifest on host");
 }
 
 #[export_name = "kite_handle"]
@@ -57,11 +73,7 @@ pub extern "C" fn get_api_version() -> u32 {
     return 0;
 }
 
-
-fn main() {
-    let context = unsafe { JS_CONTEXT.get().unwrap() };
-    let bytecode = unsafe { JS_BYTECODE.get().unwrap() };
-
-    context.eval_binary(bytecode)
-        .expect("Failed to execute script");
+#[export_name = "kite_get_api_encoding"]
+pub extern "C" fn get_api_encoding() -> u32 {
+    return 0;
 }

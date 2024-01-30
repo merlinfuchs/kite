@@ -3,6 +3,7 @@ use quickjs_wasm_rs::{Deserializer, JSContextRef, JSValueRef, Serializer};
 
 #[link(wasm_import_module = "env")]
 extern "C" {
+    fn kite_set_manifest(offset: u32, length: u32) -> u32;
     fn kite_get_config_size() -> u32;
     fn kite_get_config(offset: u32) -> u32;
     fn kite_log(level: u32, offset: u32, length: u32) -> u32;
@@ -45,6 +46,19 @@ pub fn get_config(context: &JSContextRef) -> Result<JSValueRef> {
     let cfg_buf = unsafe { Vec::from_raw_parts(ptr, cfg_size, cfg_size) };
 
     Ok(transcode_input(context, &cfg_buf)?)
+}
+
+/// sets the event response on the host
+pub fn set_manifest(output: JSValueRef) -> Result<()> {
+    let output = transcode_output(output)?;
+
+    let size = output.len();
+    let ptr = output.as_ptr();
+
+    unsafe {
+        kite_set_manifest(ptr as u32, size as u32);
+    }
+    Ok(())
 }
 
 /// sets the event response on the host

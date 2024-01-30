@@ -48,6 +48,11 @@ func deployCMD() *cli.Command {
 				return err
 			}
 
+			globalCFG, err := config.LoadGlobalConfig()
+			if err != nil {
+				return err
+			}
+
 			userConfig := make(map[string]string)
 			if err := json.Unmarshal([]byte(rawUserConfig), &userConfig); err != nil {
 				return fmt.Errorf("Failed to parse user config: %v", err)
@@ -58,12 +63,24 @@ func deployCMD() *cli.Command {
 				return fmt.Errorf("Failed to parse server URL: %v", err)
 			}
 
-			return runDeploy(basePath, guildID, userConfig, serverURL, cfg)
+			return runDeploy(basePath, guildID, userConfig, serverURL, cfg, globalCFG)
 		},
 	}
 }
 
-func runDeploy(basePath string, guildID string, userConfig map[string]string, serverURL *url.URL, cfg *config.PluginConfig) error {
+func runDeploy(
+	basePath string,
+	guildID string,
+	userConfig map[string]string,
+	serverURL *url.URL,
+	cfg *config.PluginConfig,
+	globalCFG *config.GlobalConfig,
+) error {
+	session := globalCFG.GetSessionForServer(serverURL.String())
+	if session == nil {
+		return fmt.Errorf("No session for server %s, login first!", serverURL.String())
+	}
+
 	serverURL.Path = path.Join(serverURL.Path, "api/v1/guilds", guildID, "deployments")
 
 	wasmPath := filepath.Join(basePath, cfg.Build.Out)
@@ -73,20 +90,25 @@ func runDeploy(basePath string, guildID string, userConfig map[string]string, se
 	}
 
 	rawBody, err := json.Marshal(wire.DeploymentCreateRequest{
-		Key:                   cfg.Key,
-		Name:                  cfg.Name,
-		Description:           cfg.Description,
-		ManifestDefaultConfig: cfg.DefaultConfig,
-		ManifestEvents:        cfg.Events,
-		WasmBytes:             base64.StdEncoding.EncodeToString(wasm),
-		// ManifestCommands:      cfg.Commands,
-		Config: cfg.DefaultConfig,
+		Key:         cfg.Key,
+		Name:        cfg.Name,
+		Description: cfg.Description,
+		WasmBytes:   base64.StdEncoding.EncodeToString(wasm),
+		// TODO: Config:
 	})
 	if err != nil {
 		return fmt.Errorf("Failed to marshal request body: %v", err)
 	}
 
-	resp, err := http.Post(serverURL.String(), "application/json", bytes.NewBuffer(rawBody))
+	req, err := http.NewRequest("POST", serverURL.String(), bytes.NewBuffer(rawBody))
+	if err != nil {
+		return fmt.Errorf("Failed to create request: %v", err)
+	}
+
+	req.Header.Set("Authorization", session.Token)
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return fmt.Errorf("Failed to deploy plugin: %v", err)
 	}
