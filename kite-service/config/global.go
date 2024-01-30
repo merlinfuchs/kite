@@ -11,7 +11,7 @@ import (
 )
 
 type GlobalConfig struct {
-	Sessions []GlobalSessionConfig `toml:"sessions" validate:"dive"`
+	Sessions []*GlobalSessionConfig `toml:"sessions" validate:"dive"`
 }
 
 func (cfg *GlobalConfig) Validate() error {
@@ -27,7 +27,7 @@ type GlobalSessionConfig struct {
 func (cfg *GlobalConfig) GetSessionForServer(server string) *GlobalSessionConfig {
 	for _, session := range cfg.Sessions {
 		if session.Server == server {
-			return &session
+			return session
 		}
 	}
 

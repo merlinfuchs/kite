@@ -113,7 +113,7 @@ func runLogin(serverURL *url.URL, cfg *config.GlobalConfig) error {
 		if session != nil {
 			session.Token = token
 		} else {
-			cfg.Sessions = append(cfg.Sessions, config.GlobalSessionConfig{
+			cfg.Sessions = append(cfg.Sessions, &config.GlobalSessionConfig{
 				Server: serverURL.String(),
 				Token:  token,
 			})
