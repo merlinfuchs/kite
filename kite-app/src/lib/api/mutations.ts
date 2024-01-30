@@ -9,8 +9,8 @@ import {
   WorkspaceCreateResponse,
   WorkspaceDeleteResponse,
   WorkspaceUpdateResponse,
-} from "./wire";
-import { APIResponse } from "./base";
+} from "../types/wire";
+import { APIResponse } from "../types/response";
 
 function handleApiResponse<T extends APIResponse<any>>(
   resp: Promise<T>

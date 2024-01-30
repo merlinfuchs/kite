@@ -14,7 +14,7 @@ import {
   UserGetResponse,
   WorkspaceGetResponse,
   WorkspaceListResponse,
-} from "./wire";
+} from "../types/wire";
 
 export function useUserQuery() {
   return useQuery<UserGetResponse>(["users", "@me"], () => {

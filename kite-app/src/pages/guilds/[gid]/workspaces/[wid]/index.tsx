@@ -4,7 +4,7 @@ import {
   useWorkspaceUpdateMutation,
 } from "@/lib/api/mutations";
 import { useWorkspaceQuery } from "@/lib/api/queries";
-import { Workspace } from "@/lib/api/wire";
+import { Workspace } from "@/lib/types/wire";
 import Code from "@/components/code/Code";
 import { compileWorkspace, readManifestFromWorkspace } from "@/util/compile";
 import { useRouter } from "next/router";
@@ -89,9 +89,6 @@ export default function GuildWorkspacePage() {
               description: manifest?.plugin?.description || "No description",
               wasm_bytes: res.data.wasm_bytes,
               plugin_version_id: null,
-              manifest_events: manifest?.plugin?.events || [],
-              manifest_commands: [],
-              manifest_default_config: {},
               config: {},
             },
             {

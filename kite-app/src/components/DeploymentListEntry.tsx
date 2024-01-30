@@ -1,4 +1,4 @@
-import { Deployment } from "@/lib/api/wire";
+import { Deployment } from "@/lib/types/wire";
 import Link from "next/link";
 import DeploymentLogSummary from "./DeploymentLogSummary";
 

@@ -1,6 +1,6 @@
 packages:
   - path: "github.com/merlinfuchs/kite/kite-service/pkg/wire"
-    output_path: "../kite-app/src/lib/api/wire.ts"
+    output_path: "../kite-app/src/lib/types/wire.ts"
     type_mappings:
       null.String: "null | string"
       null.Bool: "null | boolean"
@@ -11,7 +11,22 @@ packages:
       time.Time: "string /* RFC3339 */"
       null.Time: "null | string /* RFC3339 */"
       json.RawMessage: "Record<string, any> | null"
+      manifest.Manifest: "Manifest"
     exclude_files:
       - "base.go"
     frontmatter: |
-      import {APIResponse} from "./base"
+      import {APIResponse} from "./response"
+      import {Manifest} from "./manifest"
+  - path: "github.com/merlinfuchs/kite/go-types/manifest"
+    output_path: "../kite-app/src/lib/types/manifest.ts"
+    type_mappings:
+      null.String: "null | string"
+      null.Bool: "null | boolean"
+      null.Float: "null | number"
+      null.Int: "null | number"
+      uuid.UUID: "string /* uuid */"
+      uuid.NullUUID: "null | string /* uuid */"
+      time.Time: "string /* RFC3339 */"
+      null.Time: "null | string /* RFC3339 */"
+      json.RawMessage: "Record<string, any> | null"
+      event.EventType: "string"
