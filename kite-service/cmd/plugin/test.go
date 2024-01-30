@@ -59,7 +59,7 @@ func runTest(basePath string, build bool, debug bool, cfg *config.PluginConfig) 
 		MemoryPagesLimit:   32,
 		TotalTimeLimit:     time.Microsecond,
 		ExecutionTimeLimit: time.Microsecond,
-		UserConfig:         cfg.DefaultConfig,
+		// UserConfig:         cfg.DefaultConfig,
 	}
 
 	ctx := context.Background()

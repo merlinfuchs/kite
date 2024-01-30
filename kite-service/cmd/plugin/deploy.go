@@ -36,20 +36,19 @@ func deployCMD() *cli.Command {
 				Usage: "The Kite server to deploy to",
 				Value: "http://localhost:3000",
 			},
-			&cli.StringFlag{
-				Name:     "token",
-				Usage:    "Authentication token for the Kite server",
-				Required: true, // TODO: store this in a config file in the user home directory
-			},
 		},
 		Action: func(c *cli.Context) error {
 			basePath := c.String("path")
 			guildID := c.String("guild_id")
 			rawUserConfig := c.String("config")
 			server := c.String("server")
-			token := c.String("token")
 
 			cfg, err := config.LoadPluginConfig(basePath)
+			if err != nil {
+				return err
+			}
+
+			globalCFG, err := config.LoadGlobalConfig()
 			if err != nil {
 				return err
 			}
@@ -64,12 +63,24 @@ func deployCMD() *cli.Command {
 				return fmt.Errorf("Failed to parse server URL: %v", err)
 			}
 
-			return runDeploy(basePath, guildID, userConfig, serverURL, token, cfg)
+			return runDeploy(basePath, guildID, userConfig, serverURL, cfg, globalCFG)
 		},
 	}
 }
 
-func runDeploy(basePath string, guildID string, userConfig map[string]string, serverURL *url.URL, token string, cfg *config.PluginConfig) error {
+func runDeploy(
+	basePath string,
+	guildID string,
+	userConfig map[string]string,
+	serverURL *url.URL,
+	cfg *config.PluginConfig,
+	globalCFG *config.GlobalConfig,
+) error {
+	session := globalCFG.GetSessionForServer(serverURL.String())
+	if session == nil {
+		return fmt.Errorf("No session for server %s, login first!", serverURL.String())
+	}
+
 	serverURL.Path = path.Join(serverURL.Path, "api/v1/guilds", guildID, "deployments")
 
 	wasmPath := filepath.Join(basePath, cfg.Build.Out)
@@ -83,7 +94,7 @@ func runDeploy(basePath string, guildID string, userConfig map[string]string, se
 		Name:        cfg.Name,
 		Description: cfg.Description,
 		WasmBytes:   base64.StdEncoding.EncodeToString(wasm),
-		Config:      cfg.DefaultConfig,
+		// TODO: Config:
 	})
 	if err != nil {
 		return fmt.Errorf("Failed to marshal request body: %v", err)
@@ -94,7 +105,7 @@ func runDeploy(basePath string, guildID string, userConfig map[string]string, se
 		return fmt.Errorf("Failed to create request: %v", err)
 	}
 
-	req.Header.Set("Authorization", token)
+	req.Header.Set("Authorization", session.Token)
 	req.Header.Set("Content-Type", "application/json")
 
 	resp, err := http.DefaultClient.Do(req)

@@ -35,7 +35,6 @@ const DeploymentMetricsExecutionTime = dynamic(
 export default function GuildDeploymentPage() {
   const { guildId, deploymentId } = useRouteParams();
 
-  // TODO: fetch deployment instead
   const { data: resp } = useDeploymentQuery(guildId, deploymentId);
 
   const deployment = resp?.success ? resp.data : null;

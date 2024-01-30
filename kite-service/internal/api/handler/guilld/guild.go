@@ -56,7 +56,7 @@ func (h *GuildHandler) HandleGuildList(c *fiber.Ctx) error {
 }
 
 func (h *GuildHandler) HandleGuildGet(c *fiber.Ctx) error {
-	// TODO: also return permissions
+	session := session.GetSession(c)
 
 	guild, err := h.guilds.GetGuild(c.Context(), c.Params("guildID"))
 	if err != nil {
@@ -66,8 +66,18 @@ func (h *GuildHandler) HandleGuildGet(c *fiber.Ctx) error {
 		return err
 	}
 
+	perms, err := h.accessManager.GetGuildPermissionsForUser(c.Context(), guild.ID, session.UserID)
+	if err != nil {
+		return err
+	}
+
+	g := wire.GuildToWire(guild)
+	g.UserIsOwner = perms.UserIsOwner
+	g.UserPermissions = fmt.Sprintf("%d", perms.UserPermissions)
+	g.BotPermissions = fmt.Sprintf("%d", perms.BotPermissions)
+
 	return c.JSON(wire.GuildGetResponse{
 		Success: true,
-		Data:    wire.GuildToWire(guild),
+		Data:    g,
 	})
 }
