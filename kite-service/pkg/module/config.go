@@ -11,6 +11,4 @@ type ModuleConfig struct {
 	ExecutionTimeLimit time.Duration
 	TotalTimeLimit     time.Duration
 	CompilationCache   wazero.CompilationCache
-
-	UserConfig map[string]string
 }

@@ -24,6 +24,7 @@ type Deployment struct {
 	Config          json.RawMessage
 	CreatedAt       time.Time
 	UpdatedAt       time.Time
+	DeployedAt      sql.NullTime
 }
 
 type DeploymentLog struct {

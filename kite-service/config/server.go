@@ -8,18 +8,34 @@ import (
 )
 
 type ServerConfig struct {
-	Host         string               `toml:"host" validate:"required"`
-	Port         int                  `toml:"port" validate:"required"`
-	Log          ServerLogConfig      `toml:"log"`
-	PublicURL    string               `toml:"public_url" validate:"required"`
-	AppPublicURL string               `toml:"app_public_url" validate:"required"`
-	Postgres     ServerPostgresConfig `toml:"postgres" validate:"required"`
-	Discord      ServerDiscordConfig  `toml:"discord" validate:"required"`
+	Host      string               `toml:"host" validate:"required"`
+	Port      int                  `toml:"port" validate:"required"`
+	Log       ServerLogConfig      `toml:"log"`
+	PublicURL string               `toml:"public_url" validate:"required"`
+	App       ServerAppConfig      `toml:"app" validate:"required"`
+	Postgres  ServerPostgresConfig `toml:"postgres" validate:"required"`
+	Discord   ServerDiscordConfig  `toml:"discord" validate:"required"`
 }
 
 func (cfg *ServerConfig) Validate() error {
 	validate := validator.New(validator.WithRequiredStructEnabled())
 	return validate.Struct(cfg)
+}
+
+func (cfg *ServerConfig) AuthCallbackURL() string {
+	return cfg.PublicURL + "/v1/auth/callback"
+}
+
+func (cfg *ServerConfig) AuthCLICallbackURL() string {
+	return cfg.PublicURL + "/v1/auth/cli/callback"
+}
+
+type ServerAppConfig struct {
+	PublicURL string `toml:"public_url" validate:"required"`
+}
+
+func (cfg *ServerAppConfig) AuthCallbackURL() string {
+	return cfg.PublicURL
 }
 
 type ServerLogConfig struct {

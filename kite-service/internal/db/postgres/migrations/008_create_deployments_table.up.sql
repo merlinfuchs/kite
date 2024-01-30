@@ -17,6 +17,7 @@ CREATE TABLE IF NOT EXISTS deployments (
    
    created_at TIMESTAMP NOT NULL,
    updated_at TIMESTAMP NOT NULL,
+   deployed_at TIMESTAMP,
 
    UNIQUE (key, guild_id)
 );

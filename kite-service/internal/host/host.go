@@ -9,6 +9,7 @@ import (
 	"github.com/merlinfuchs/kite/go-types/call"
 	"github.com/merlinfuchs/kite/go-types/dismodel"
 	"github.com/merlinfuchs/kite/go-types/kvmodel"
+	"github.com/merlinfuchs/kite/go-types/manifest"
 	"github.com/merlinfuchs/kite/kite-service/internal/bot"
 	"github.com/merlinfuchs/kite/kite-service/internal/logging/logattr"
 	"github.com/merlinfuchs/kite/kite-service/pkg/model"
@@ -38,6 +39,8 @@ type HostEnvironment struct {
 
 	DeploymentID string
 	GuildID      string
+	Manifest     manifest.Manifest
+	Config       map[string]interface{}
 }
 
 func NewEnv(stores HostEnvironmentStores) HostEnvironment {

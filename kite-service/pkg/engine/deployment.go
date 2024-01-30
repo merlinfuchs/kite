@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"log/slog"
 	"slices"
-	"time"
 
 	pool "github.com/jolestar/go-commons-pool/v2"
 	"github.com/merlinfuchs/kite/go-types/event"
@@ -55,16 +54,20 @@ func NewDeployment(
 
 	factory := pool.NewPooledObjectFactorySimple(dp.pluginFactory)
 	dp.pluginPool = pool.NewObjectPool(context.Background(), factory, &pool.ObjectPoolConfig{
-		LIFO:                     true,
-		MaxTotal:                 4,
-		MaxIdle:                  4,
-		MinIdle:                  0,
-		SoftMinEvictableIdleTime: 60 * time.Second,
-		TimeBetweenEvictionRuns:  10 * time.Second,
+		LIFO:     true,
+		MaxTotal: 4,
+		MaxIdle:  4,
+		MinIdle:  0,
+		//SoftMinEvictableIdleTime: 60 * time.Second,
+		//TimeBetweenEvictionRuns:  10 * time.Second,
 	})
 	dp.pluginPool.StartEvictor()
 
 	return dp
+}
+
+func (dp *PluginDeployment) Close(ctx context.Context) {
+	dp.pluginPool.Close(ctx)
 }
 
 func (dp *PluginDeployment) pluginFactory(ctx context.Context) (interface{}, error) {
@@ -109,6 +112,8 @@ func (pd *PluginDeployment) HandleEvent(ctx context.Context, event *event.Event)
 	pd.env.TrackEventHandled(ctx, string(event.Type), err == nil, res.TotalDuration, res.ExecutionDuration)
 
 	if err != nil {
+		slog.With(logattr.Error(err)).Error("failed to handle event")
+
 		// TODO: think about other error types that should invalidate the plugin (e.g. panic / wasm trap)
 		if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
 			if err := pd.InvalidatePlugin(ctx, plugin); err != nil {

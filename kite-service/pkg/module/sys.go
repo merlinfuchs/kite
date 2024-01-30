@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 
 	"github.com/merlinfuchs/kite/go-types/call"
 	"github.com/merlinfuchs/kite/go-types/event"
@@ -27,8 +28,21 @@ func (p *Module) kiteSetManifest(offset uint32, length uint32) uint32 {
 	return 0
 }
 
-func (p *Module) kiteGetConfigSize() uint32 {
-	body, err := json.Marshal(p.config.UserConfig)
+func (p *Module) kiteGetConfigSize(ctx context.Context) uint32 {
+	if err := p.checkState(ModuleStateEvent); err != nil {
+		return p.resError(err)
+	}
+
+	p.startHostCall()
+	defer p.endHostCall()
+
+	config, err := p.env.GetConfig(ctx)
+	if err != nil {
+		slog.With("err", err).Error("failed to get config")
+		return 0
+	}
+
+	body, err := json.Marshal(config)
 	if err != nil {
 		return 0
 	}
@@ -36,12 +50,21 @@ func (p *Module) kiteGetConfigSize() uint32 {
 	return uint32(len(body))
 }
 
-func (p *Module) kiteGetConfig(offset uint32) uint32 {
+func (p *Module) kiteGetConfig(ctx context.Context, offset uint32) uint32 {
 	if err := p.checkState(ModuleStateEvent); err != nil {
 		return p.resError(err)
 	}
 
-	body, err := json.Marshal(p.config.UserConfig)
+	p.startHostCall()
+	defer p.endHostCall()
+
+	config, err := p.env.GetConfig(ctx)
+	if err != nil {
+		slog.With("err", err).Error("failed to get config")
+		return 0
+	}
+
+	body, err := json.Marshal(config)
 	if err != nil {
 		return 1
 	}

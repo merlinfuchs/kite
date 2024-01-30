@@ -42,9 +42,7 @@ export interface Deployment {
   guild_id: string;
   plugin_version_id: null | string;
   wasm_size: number /* int */;
-  manifest_default_config: { [key: string]: string};
-  manifest_events: string[];
-  manifest_commands: string[];
+  manifest: any /* manifest.Manifest */;
   config: { [key: string]: string};
   created_at: string /* RFC3339 */;
   updated_at: string /* RFC3339 */;
@@ -57,9 +55,6 @@ export interface DeploymentCreateRequest {
   description: string;
   plugin_version_id: null | string;
   wasm_bytes: string;
-  manifest_default_config: { [key: string]: string};
-  manifest_events: string[];
-  manifest_commands: string[];
   config: { [key: string]: string};
 }
 export type DeploymentCreateResponse = APIResponse<Deployment>;

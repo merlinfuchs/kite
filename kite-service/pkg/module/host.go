@@ -11,6 +11,7 @@ import (
 type HostEnvironment interface {
 	Log(ctx context.Context, level logmodel.LogLevel, msg string)
 	TrackEventHandled(ctx context.Context, eventType string, success bool, totalDuration time.Duration, executionDuration time.Duration)
+	GetConfig(ctx context.Context) (map[string]interface{}, error)
 	Call(ctx context.Context, req call.Call) (interface{}, error)
 }
 

@@ -6,7 +6,7 @@ import (
 	"unsafe"
 )
 
-func GetConfig() (map[string]string, error) {
+func GetConfig() (map[string]interface{}, error) {
 	size := kiteGetConfigSize()
 	if size == 0 {
 		return nil, nil
@@ -21,7 +21,7 @@ func GetConfig() (map[string]string, error) {
 		return nil, fmt.Errorf("failed to get config")
 	}
 
-	var config map[string]string
+	var config map[string]interface{}
 	err := json.Unmarshal(buf, &config)
 	if err != nil {
 		return nil, err

@@ -12,6 +12,7 @@ const (
 	HostErrorTypeTimeout                HostErrorType = 1
 	HostErrorTypeCanceled               HostErrorType = 2
 	HostErrorTypeUnimplemented          HostErrorType = 3
+	HostErrorTypeValidationFailed       HostErrorType = 4
 	HostErrorTypeDiscordUnknown         HostErrorType = 100
 	HostErrorTypeDiscordGuildNotFound   HostErrorType = 101
 	HostErrorTypeDiscordChannelNotFound HostErrorType = 102

@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"time"
 
 	"github.com/merlinfuchs/kite/go-types/manifest"
 	"github.com/merlinfuchs/kite/kite-service/internal/db/postgres/pgmodel"
@@ -83,6 +84,23 @@ func (c *Client) GetDeployment(ctx context.Context, id string, guildID string) (
 	return &res, nil
 }
 
+func (c *Client) GetDeployments(ctx context.Context) ([]model.Deployment, error) {
+	rows, err := c.Q.GetDeployments(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	deployments := make([]model.Deployment, len(rows))
+	for i, row := range rows {
+		deployments[i], err = deploymentToModel(row)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return deployments, nil
+}
+
 func (c *Client) GetDeploymentsForGuild(ctx context.Context, guildID string) ([]model.Deployment, error) {
 	rows, err := c.Q.GetDeploymentsForGuild(ctx, guildID)
 	if err != nil {
@@ -92,6 +110,9 @@ func (c *Client) GetDeploymentsForGuild(ctx context.Context, guildID string) ([]
 	deployments := make([]model.Deployment, len(rows))
 	for i, row := range rows {
 		deployments[i], err = deploymentToModel(row)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return deployments, nil
@@ -99,6 +120,52 @@ func (c *Client) GetDeploymentsForGuild(ctx context.Context, guildID string) ([]
 
 func (c *Client) GetGuildIDsWithDeployment(ctx context.Context) ([]string, error) {
 	return c.Q.GetGuildIdsWithDeployments(ctx)
+}
+
+func (c *Client) GetDeploymentsWithUndeployedChanges(ctx context.Context) ([]model.Deployment, error) {
+	rows, err := c.Q.GetDeploymentsWithUndeployedChanges(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	deployments := make([]model.Deployment, len(rows))
+	for i, row := range rows {
+		deployments[i], err = deploymentToModel(row)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return deployments, nil
+}
+
+func (c *Client) GetDeploymentIDs(ctx context.Context) ([]model.PartialDeployment, error) {
+	rows, err := c.Q.GetDeploymentIDs(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	deployments := make([]model.PartialDeployment, len(rows))
+	for i, row := range rows {
+		deployments[i] = model.PartialDeployment{
+			ID:      row.ID,
+			GuildID: row.GuildID,
+		}
+	}
+
+	return deployments, nil
+}
+
+func (c *Client) UpdateDeploymentsDeployedAtForGuild(ctx context.Context, guildID string, deployedAt time.Time) error {
+	_, err := c.Q.UpdateDeploymentsDeployedAtForGuild(ctx, pgmodel.UpdateDeploymentsDeployedAtForGuildParams{
+		GuildID:    guildID,
+		DeployedAt: sql.NullTime{Time: deployedAt, Valid: true},
+	})
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func deploymentToModel(deployment pgmodel.Deployment) (model.Deployment, error) {
@@ -128,5 +195,8 @@ func deploymentToModel(deployment pgmodel.Deployment) (model.Deployment, error) 
 		Config:    config,
 		CreatedAt: deployment.CreatedAt,
 		UpdatedAt: deployment.UpdatedAt,
+		DeployedAt: null.Time{
+			NullTime: deployment.DeployedAt,
+		},
 	}, nil
 }

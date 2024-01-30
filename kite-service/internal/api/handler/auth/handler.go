@@ -32,14 +32,14 @@ func New(sessionManager *session.SessionManager, userStore store.UserStore, cfg 
 		sessionManager: sessionManager,
 		userStore:      userStore,
 		oauth2Config: &oauth2.Config{
-			RedirectURL:  fmt.Sprintf("%s/v1/auth/callback", cfg.PublicURL),
+			RedirectURL:  cfg.AuthCallbackURL(),
 			ClientID:     cfg.Discord.ClientID,
 			ClientSecret: cfg.Discord.ClientSecret,
 			Scopes:       []string{discord.ScopeIdentify, discord.ScopeGuilds},
 			Endpoint:     discord.Endpoint,
 		},
 		cliOauth2Config: &oauth2.Config{
-			RedirectURL:  fmt.Sprintf("%s/v1/auth/cli/callback", cfg.PublicURL),
+			RedirectURL:  cfg.AuthCLICallbackURL(),
 			ClientID:     cfg.Discord.ClientID,
 			ClientSecret: cfg.Discord.ClientSecret,
 			Scopes:       []string{discord.ScopeIdentify, discord.ScopeGuilds},
@@ -74,7 +74,7 @@ func (h *AuthHandler) HandleAuthCallback(c *fiber.Ctx) error {
 		return err
 	}
 
-	return c.Redirect(h.cfg.AppPublicURL, http.StatusTemporaryRedirect)
+	return c.Redirect(h.cfg.App.AuthCallbackURL(), http.StatusTemporaryRedirect)
 }
 
 func (h *AuthHandler) HandleAuthLogout(c *fiber.Ctx) error {
@@ -83,7 +83,7 @@ func (h *AuthHandler) HandleAuthLogout(c *fiber.Ctx) error {
 		return err
 	}
 
-	return c.Redirect(h.cfg.AppPublicURL, http.StatusTemporaryRedirect)
+	return c.Redirect(h.cfg.App.AuthCallbackURL(), http.StatusTemporaryRedirect)
 }
 
 func (h *AuthHandler) ExchangeAccessToken(ctx context.Context, oauth2 *oauth2.Config, code string) (string, string, []string, error) {

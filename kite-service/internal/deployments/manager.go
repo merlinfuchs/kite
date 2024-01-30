@@ -3,9 +3,12 @@ package deployments
 import (
 	"context"
 	"fmt"
+	"log/slog"
+	"os"
 	"time"
 
 	"github.com/merlinfuchs/kite/kite-service/internal/host"
+	"github.com/merlinfuchs/kite/kite-service/internal/logging/logattr"
 	"github.com/merlinfuchs/kite/kite-service/pkg/engine"
 	"github.com/merlinfuchs/kite/kite-service/pkg/store"
 	"github.com/tetratelabs/wazero"
@@ -41,14 +44,21 @@ func (m *DeploymentManager) Start() {
 		ticker := time.NewTicker(time.Second * 10)
 		defer ticker.Stop()
 
-		m.populateEngineDeployments(context.Background())
+		err := m.populateEngineDeployments(context.Background())
+		if err != nil {
+			slog.With(logattr.Error(err)).Error("Error populating engine deployments")
+			os.Exit(1)
+		}
 
 		for {
 			select {
 			case <-m.stopped:
 				return
 			case <-ticker.C:
-				m.populateEngineDeployments(context.Background())
+				err := m.updateEngineDeployments(context.Background())
+				if err != nil {
+					slog.With(logattr.Error(err)).Error("Error updating engine deployments")
+				}
 			}
 		}
 	}()

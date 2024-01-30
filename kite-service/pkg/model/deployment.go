@@ -19,4 +19,10 @@ type Deployment struct {
 	Config          map[string]string
 	CreatedAt       time.Time
 	UpdatedAt       time.Time
+	DeployedAt      null.Time
+}
+
+type PartialDeployment struct {
+	ID      string
+	GuildID string
 }
