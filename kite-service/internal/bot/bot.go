@@ -12,7 +12,7 @@ import (
 
 type Bot struct {
 	Session    *discordgo.Session
-	Engine     *engine.PluginEngine
+	Engine     *engine.Engine
 	State      *state.BotState
 	guildStore store.GuildStore
 }

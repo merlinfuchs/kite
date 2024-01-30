@@ -169,12 +169,12 @@ func (e *Event) UnmarshalJSON(b []byte) error {
 
 type EventResponse struct {
 	Success bool              `json:"success"`
-	Error   *fail.PluginError `json:"error"`
+	Error   *fail.ModuleError `json:"error"`
 }
 
 func EventError(err error) EventResponse {
 	return EventResponse{
 		Success: false,
-		Error:   &fail.PluginError{Message: err.Error()},
+		Error:   &fail.ModuleError{Message: err.Error()},
 	}
 }

@@ -28,7 +28,7 @@ func (m *DeploymentManager) populateEngineDeployments(ctx context.Context) error
 
 		hasChanged := false
 
-		deployments := make([]*engine.PluginDeployment, len(rows))
+		deployments := make([]*engine.Deployment, len(rows))
 		for i, row := range rows {
 			config := module.ModuleConfig{
 				MemoryPagesLimit:   1024,

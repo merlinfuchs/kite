@@ -5,7 +5,7 @@ import (
 	"github.com/merlinfuchs/kite/go-types/manifest"
 )
 
-func (e *PluginEngine) GuildCommands(guildID string) []*discordgo.ApplicationCommand {
+func (e *Engine) GuildCommands(guildID string) []*discordgo.ApplicationCommand {
 	res := []*discordgo.ApplicationCommand{}
 
 	for _, pl := range e.Deployments[guildID] {

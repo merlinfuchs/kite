@@ -6,19 +6,19 @@ import (
 	"sync"
 )
 
-type PluginEngine struct {
+type Engine struct {
 	sync.RWMutex
 
-	Deployments map[string][]*PluginDeployment
+	Deployments map[string][]*Deployment
 }
 
-func New() *PluginEngine {
-	return &PluginEngine{
-		Deployments: map[string][]*PluginDeployment{},
+func New() *Engine {
+	return &Engine{
+		Deployments: map[string][]*Deployment{},
 	}
 }
 
-func (e *PluginEngine) RemoveDeployment(ctx context.Context, guildID string, deploymentID string) {
+func (e *Engine) RemoveDeployment(ctx context.Context, guildID string, deploymentID string) {
 	e.Lock()
 	defer e.Unlock()
 
@@ -37,7 +37,7 @@ func (e *PluginEngine) RemoveDeployment(ctx context.Context, guildID string, dep
 	}
 }
 
-func (e *PluginEngine) LoadGuildDeployment(ctx context.Context, guildID string, deployment *PluginDeployment) {
+func (e *Engine) LoadGuildDeployment(ctx context.Context, guildID string, deployment *Deployment) {
 	e.RemoveDeployment(ctx, guildID, deployment.ID)
 
 	e.Lock()
@@ -45,14 +45,14 @@ func (e *PluginEngine) LoadGuildDeployment(ctx context.Context, guildID string, 
 
 	deployments, exists := e.Deployments[guildID]
 	if !exists {
-		deployments = []*PluginDeployment{}
+		deployments = []*Deployment{}
 	}
 
 	deployments = append(deployments, deployment)
 	e.Deployments[guildID] = deployments
 }
 
-func (e *PluginEngine) ReplaceGuildDeployments(ctx context.Context, guildID string, deployments []*PluginDeployment) {
+func (e *Engine) ReplaceGuildDeployments(ctx context.Context, guildID string, deployments []*Deployment) {
 	e.Lock()
 	defer e.Unlock()
 
@@ -64,7 +64,7 @@ func (e *PluginEngine) ReplaceGuildDeployments(ctx context.Context, guildID stri
 	e.Deployments[guildID] = deployments
 }
 
-func (e *PluginEngine) TruncateGuildDeployments(ctx context.Context, guildID string, deploymentIDs []string) bool {
+func (e *Engine) TruncateGuildDeployments(ctx context.Context, guildID string, deploymentIDs []string) bool {
 	e.Lock()
 	defer e.Unlock()
 

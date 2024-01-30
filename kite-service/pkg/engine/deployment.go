@@ -16,7 +16,7 @@ import (
 	"github.com/tetratelabs/wazero"
 )
 
-type PluginDeployment struct {
+type Deployment struct {
 	ID               string
 	wasm             []byte
 	manifest         manifest.Manifest
@@ -27,12 +27,12 @@ type PluginDeployment struct {
 	pluginPool *pool.ObjectPool
 }
 
-func (pd *PluginDeployment) Manifest() manifest.Manifest {
-	return pd.manifest
+func (d *Deployment) Manifest() manifest.Manifest {
+	return d.manifest
 }
 
-func (pd *PluginDeployment) Config() module.ModuleConfig {
-	return pd.config
+func (d *Deployment) Config() module.ModuleConfig {
+	return d.config
 }
 
 func NewDeployment(
@@ -42,8 +42,8 @@ func NewDeployment(
 	wasm []byte,
 	manifest manifest.Manifest,
 	config module.ModuleConfig,
-) *PluginDeployment {
-	dp := &PluginDeployment{
+) *Deployment {
+	dp := &Deployment{
 		ID:               id,
 		env:              env,
 		wasm:             wasm,
@@ -66,12 +66,12 @@ func NewDeployment(
 	return dp
 }
 
-func (dp *PluginDeployment) Close(ctx context.Context) {
-	dp.pluginPool.Close(ctx)
+func (d *Deployment) Close(ctx context.Context) {
+	d.pluginPool.Close(ctx)
 }
 
-func (dp *PluginDeployment) pluginFactory(ctx context.Context) (interface{}, error) {
-	p, err := module.New(ctx, dp.wasm, dp.config, dp.env, dp.compilationCache)
+func (d *Deployment) pluginFactory(ctx context.Context) (interface{}, error) {
+	p, err := module.New(ctx, d.wasm, d.config, d.env, d.compilationCache)
 	if err != nil {
 		return nil, err
 	}
@@ -79,28 +79,28 @@ func (dp *PluginDeployment) pluginFactory(ctx context.Context) (interface{}, err
 	return p, nil
 }
 
-func (pd *PluginDeployment) BorrowPlugin(ctx context.Context) (*module.Module, error) {
-	obj, err := pd.pluginPool.BorrowObject(ctx)
+func (d *Deployment) BorrowPlugin(ctx context.Context) (*module.Module, error) {
+	obj, err := d.pluginPool.BorrowObject(ctx)
 	if err != nil {
 		return nil, err
 	}
 	return obj.(*module.Module), nil
 }
 
-func (pd *PluginDeployment) ReturnPlugin(ctx context.Context, p *module.Module) error {
-	return pd.pluginPool.ReturnObject(ctx, p)
+func (d *Deployment) ReturnPlugin(ctx context.Context, p *module.Module) error {
+	return d.pluginPool.ReturnObject(ctx, p)
 }
 
-func (pd *PluginDeployment) InvalidatePlugin(ctx context.Context, p *module.Module) error {
-	return pd.pluginPool.InvalidateObject(ctx, p)
+func (d *Deployment) InvalidatePlugin(ctx context.Context, p *module.Module) error {
+	return d.pluginPool.InvalidateObject(ctx, p)
 }
 
-func (pd *PluginDeployment) HandleEvent(ctx context.Context, event *event.Event) error {
-	if !slices.Contains(pd.Manifest().Events, event.Type) {
+func (d *Deployment) HandleEvent(ctx context.Context, event *event.Event) error {
+	if !slices.Contains(d.Manifest().Events, event.Type) {
 		return nil
 	}
 
-	plugin, err := pd.BorrowPlugin(ctx)
+	plugin, err := d.BorrowPlugin(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to borrow plugin: %w", err)
 	}
@@ -109,21 +109,21 @@ func (pd *PluginDeployment) HandleEvent(ctx context.Context, event *event.Event)
 
 	fmt.Println("Execution duration: ", res.ExecutionDuration)
 
-	pd.env.TrackEventHandled(ctx, string(event.Type), err == nil, res.TotalDuration, res.ExecutionDuration)
+	d.env.TrackEventHandled(ctx, string(event.Type), err == nil, res.TotalDuration, res.ExecutionDuration)
 
 	if err != nil {
 		slog.With(logattr.Error(err)).Error("failed to handle event")
 
 		// TODO: think about other error types that should invalidate the plugin (e.g. panic / wasm trap)
 		if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
-			if err := pd.InvalidatePlugin(ctx, plugin); err != nil {
+			if err := d.InvalidatePlugin(ctx, plugin); err != nil {
 				slog.With(logattr.Error(err)).Error("failed to invalidate plugin")
 			}
 		}
 
-		pd.env.Log(ctx, logmodel.LogLevelError, err.Error())
+		d.env.Log(ctx, logmodel.LogLevelError, err.Error())
 	} else {
-		if err := pd.ReturnPlugin(ctx, plugin); err != nil {
+		if err := d.ReturnPlugin(ctx, plugin); err != nil {
 			slog.With(logattr.Error(err)).Error("failed to return plugin")
 		}
 	}

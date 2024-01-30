@@ -16,14 +16,14 @@ import (
 
 type DeploymentManager struct {
 	store            store.DeploymentStore
-	engine           *engine.PluginEngine
+	engine           *engine.Engine
 	envStores        host.HostEnvironmentStores
 	compilationCache wazero.CompilationCache
 
 	stopped chan struct{}
 }
 
-func NewManager(store store.DeploymentStore, engine *engine.PluginEngine, envStores host.HostEnvironmentStores) (*DeploymentManager, error) {
+func NewManager(store store.DeploymentStore, engine *engine.Engine, envStores host.HostEnvironmentStores) (*DeploymentManager, error) {
 	compilationCache, err := wazero.NewCompilationCacheWithDir("./.wasm-compilation-cache")
 	if err != nil {
 		return nil, fmt.Errorf("error creating wazero compilation cache: %w", err)

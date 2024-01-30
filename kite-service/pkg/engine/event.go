@@ -9,7 +9,7 @@ import (
 	"github.com/merlinfuchs/kite/kite-service/internal/logging/logattr"
 )
 
-func (e *PluginEngine) HandleEvent(ctx context.Context, event *event.Event) {
+func (e *Engine) HandleEvent(ctx context.Context, event *event.Event) {
 	var wg sync.WaitGroup
 
 	for _, d := range e.Deployments[event.GuildID] {

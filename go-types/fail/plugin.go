@@ -1,17 +1,17 @@
 package fail
 
-type PluginErrorCode int
+type ModuleErrorCode int
 
 const (
-	PluginErrorCodeUnknown PluginErrorCode = 0
+	ModuleErrorCodeUnknown ModuleErrorCode = 0
 )
 
-type PluginError struct {
-	Code    PluginErrorCode `json:"code"`
+type ModuleError struct {
+	Code    ModuleErrorCode `json:"code"`
 	Message string          `json:"message"`
 }
 
-func (e *PluginError) Error() string {
+func (e *ModuleError) Error() string {
 	// TODO: figure out why this is needed
 	if e == nil {
 		return "err was nil (fix this!)"
@@ -19,12 +19,12 @@ func (e *PluginError) Error() string {
 	return e.Message
 }
 
-func IsPluginErrorCode(err error, code PluginErrorCode) bool {
+func IsPluginErrorCode(err error, code ModuleErrorCode) bool {
 	if err == nil {
 		return false
 	}
 
-	pluginError, ok := err.(*PluginError)
+	pluginError, ok := err.(*ModuleError)
 	if !ok {
 		return false
 	}

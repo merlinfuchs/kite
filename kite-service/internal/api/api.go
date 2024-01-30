@@ -61,7 +61,7 @@ func New() *API {
 	return api
 }
 
-func (api *API) RegisterHandlers(engine *engine.PluginEngine, pg *postgres.Client, accessManager *access.AccessManager, cfg *config.ServerConfig) {
+func (api *API) RegisterHandlers(engine *engine.Engine, pg *postgres.Client, accessManager *access.AccessManager, cfg *config.ServerConfig) {
 	sessionManager := session.New(pg)
 	sessionMiddleware := session.NewMiddleware(sessionManager)
 	accessMiddleware := access.NewMiddleware(accessManager)

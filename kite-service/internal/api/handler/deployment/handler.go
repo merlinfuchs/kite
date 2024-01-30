@@ -15,13 +15,13 @@ import (
 )
 
 type DeploymentHandler struct {
-	engine            *engine.PluginEngine
+	engine            *engine.Engine
 	deployments       store.DeploymentStore
 	deploymentLogs    store.DeploymentLogStore
 	deploymentMetrics store.DeploymentMetricStore
 }
 
-func NewHandler(engine *engine.PluginEngine, deployments store.DeploymentStore, deploymentLogs store.DeploymentLogStore, deploymentMetrics store.DeploymentMetricStore) *DeploymentHandler {
+func NewHandler(engine *engine.Engine, deployments store.DeploymentStore, deploymentLogs store.DeploymentLogStore, deploymentMetrics store.DeploymentMetricStore) *DeploymentHandler {
 	return &DeploymentHandler{
 		engine:            engine,
 		deployments:       deployments,
