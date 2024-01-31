@@ -1,3 +1,5 @@
-export function createMessage() {
-  return "createMessage";
+export namespace discord {
+  export function test() {
+    return "test";
+  }
 }

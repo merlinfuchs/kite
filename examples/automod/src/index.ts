@@ -3,14 +3,14 @@ import {
   englishDataset,
   englishRecommendedTransformers,
 } from "obscenity";
-import { on, call } from "@merlingg/kite-sdk";
+import { call, event } from "@merlingg/kite-sdk";
 
 const matcher = new RegExpMatcher({
   ...englishDataset.build(),
   ...englishRecommendedTransformers,
 });
 
-on("DISCORD_MESSAGE_CREATE", (msg) => {
+event.on("DISCORD_MESSAGE_CREATE", (msg) => {
   if (matcher.hasMatch(msg.content)) {
     call("DISCORD_MESSAGE_DELETE", {
       channel_id: msg.channel_id,

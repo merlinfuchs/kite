@@ -5,14 +5,20 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "license": "AGPL-3.0",
+  "type": "module",
   "scripts": {
-    "build": "tsc",
-    "prepublishOnly": "yarn build"
+    "build": "yarn compile && yarn bundle && yarn extract-types",
+    "compile": "tsc",
+    "bundle": "esbuild build/index.js --bundle --format=esm --platform=browser --outfile=dist/index.js",
+    "prepublishOnly": "yarn build",
+    "extract-types": "api-extractor run --local && mv dist/kite-sdk.d.ts dist/index.d.ts && rm dist/tsdoc-metadata.json"
   },
   "files": [
     "/dist"
   ],
   "devDependencies": {
+    "@microsoft/api-extractor": "^7.39.4",
+    "esbuild": "^0.20.0",
     "typescript": "^5.3.3"
   }
 }
