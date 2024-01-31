@@ -1,5 +1,11 @@
 const forbiddenPhrases = ["Kite is bad", "Kite is a bad bot"];
 
+Kite.describe = function () {
+  return {
+    events: ["DISCORD_MESSAGE_CREATE"],
+  };
+};
+
 Kite.handle = function (event) {
   if (event.type != "DISCORD_MESSAGE_CREATE") return { success: true };
 
