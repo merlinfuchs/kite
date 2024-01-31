@@ -14,8 +14,7 @@ type CompileHandler struct{}
 func NewHandler() *CompileHandler {
 	return &CompileHandler{}
 }
-
-func (h *CompileHandler) HandleCompileJS(c *fiber.Ctx, req wire.CompileJSRequest) error {
+func (h *CompileHandler) HandleJSCompile(c *fiber.Ctx, req wire.CompileJSRequest) error {
 	cmd := exec.Command("kitejs-compiler", "-", "-", "--optimize")
 	cmd.Stdin = strings.NewReader(req.Source)
 

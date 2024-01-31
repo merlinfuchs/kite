@@ -16,26 +16,16 @@ const defaultFiles: FlatFile[] = [
     path: "index.ts",
     content: `
 import { someText } from "./lib/util.ts";
+import { call, event } from "@merlingg/kite-sdk";
 
-Kite.describe = function() {
-    return {
-        events: ["DISCORD_MESSAGE_CREATE"],
-    };
-}
-
-Kite.handle = function(event) {
-    if (event.type === "DISCORD_MESSAGE_CREATE" && event.data.content === "!ping") {
-        Kite.call({
-            type: "DISCORD_MESSAGE_CREATE",
-            data: {
-                channel_id: event.data.channel_id,
-                content: someText(),
-            },
-        });
+event.on("DISCORD_MESSAGE_CREATE", (msg) => {
+    if (msg.content === "!ping") {
+        call("DISCORD_MESSAGE_CREATE", {
+            channel_id: msg.channel_id,
+            content: someText(),
+        })
     }
-
-    return { success: true };
-}
+})
       `.trim(),
   },
   {
@@ -49,10 +39,12 @@ export function someText() {
   {
     path: "manifest.toml",
     content: `
-[plugin]
+[deployment]
 key = "example@kite.onl"
 name = 'My Plugin'
 description = 'Example Kite plugin'
+
+[module]
 type = 'js'
       `.trim(),
   },

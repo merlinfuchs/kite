@@ -9,9 +9,9 @@
   "scripts": {
     "build": "yarn compile && yarn bundle && yarn extract-types",
     "compile": "tsc",
-    "bundle": "esbuild build/index.js --bundle --format=esm --platform=browser --outfile=dist/index.js",
-    "prepublishOnly": "yarn build",
-    "extract-types": "api-extractor run --local && mv dist/kite-sdk.d.ts dist/index.d.ts && rm dist/tsdoc-metadata.json"
+    "bundle": "esbuild build/index.js --bundle --minify --format=esm --platform=browser --outfile=dist/index.js",
+    "extract-types": "api-extractor run --local && mv dist/kite-sdk.d.ts dist/index.d.ts && rm dist/tsdoc-metadata.json",
+    "prepublishOnly": "yarn build"
   },
   "files": [
     "/dist"

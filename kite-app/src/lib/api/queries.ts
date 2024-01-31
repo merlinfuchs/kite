@@ -8,6 +8,7 @@ import {
   DeploymentMetricEventsListResponse,
   GuildGetResponse,
   GuildListResponse,
+  JSSDKGetResponse,
   KVStorageNamespaceKeyListResponse,
   KVStorageNamespaceListResponse,
   QuickAccessItemListResponse,
@@ -242,4 +243,10 @@ export function useQuickAccessItemListQuery(guildId?: string | null) {
       enabled: !!guildId,
     }
   );
+}
+
+export function useJSSDKQuery() {
+  return useQuery<JSSDKGetResponse>(["sdk", "js"], () => {
+    return fetch(`/api/v1/sdk/js`).then((res) => res.json());
+  });
 }

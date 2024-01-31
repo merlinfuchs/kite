@@ -24,6 +24,11 @@ export type AuthCLICheckResponse = APIResponse<AuthCLICheckResponseData>;
 //////////
 // source: compile.go
 
+export interface JSSDK {
+  script_source?: string;
+  declaration_source?: string;
+}
+export type JSSDKGetResponse = APIResponse<JSSDK>;
 export interface CompileJSRequest {
   source: string;
 }

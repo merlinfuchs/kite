@@ -115,7 +115,7 @@ func (api *API) RegisterHandlers(engine *engine.Engine, pg *postgres.Client, acc
 	guildGroup.Get("/quick-access", quickAccessHandler.HandleQuickAccessItemList)
 
 	compileHandler := compile.NewHandler()
-	apiGroup.Post("/compile/js", helpers.WithRequestBody(compileHandler.HandleCompileJS))
+	apiGroup.Post("/compile/js", helpers.WithRequestBody(compileHandler.HandleJSCompile))
 
 	// Serve statix files
 	api.app.Use("/", filesystem.New(filesystem.Config{

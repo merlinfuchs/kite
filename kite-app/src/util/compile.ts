@@ -2,9 +2,12 @@ import * as esbuild from "esbuild-wasm";
 import path from "path";
 import { FlatFile } from "./filetree";
 import toml from "toml";
+// @ts-ignore (we use raw-loader to get source of the script file)
+import sdkSource from "!!raw-loader!@merlingg/kite-sdk/dist/index.js";
 
 function customResolver(tree: Record<string, string>): esbuild.Plugin {
   const map = new Map(Object.entries(tree));
+  map.set("/node_modules/@merlingg/kite-sdk", sdkSource);
 
   return {
     name: "example",
@@ -16,11 +19,12 @@ function customResolver(tree: Record<string, string>): esbuild.Plugin {
         }
 
         if (args.kind === "import-statement") {
-          const dir = path.dirname(args.importer);
-
-          const filePath = path.join(dir, args.path);
-
-          return { path: filePath };
+          if (args.path.startsWith(".")) {
+            const dir = path.dirname(args.importer);
+            return { path: path.join(dir, args.path) };
+          } else {
+            return { path: "/node_modules/" + args.path };
+          }
         }
 
         throw Error("not resolvable");

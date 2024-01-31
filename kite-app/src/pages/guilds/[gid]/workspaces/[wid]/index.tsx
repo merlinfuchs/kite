@@ -39,8 +39,8 @@ export default function GuildWorkspacePage() {
       {
         workspaceId,
         req: {
-          name: "Some Workspace",
-          description: "Some description",
+          name: workspace.name,
+          description: workspace.description,
           files: workspace.files.map((file) => ({
             path: file.path,
             content: file.content,
@@ -84,9 +84,10 @@ export default function GuildWorkspacePage() {
 
           deployMutation.mutate(
             {
-              key: manifest?.plugin?.key || "default@web",
-              name: manifest?.plugin?.name || "Untitled Plugin",
-              description: manifest?.plugin?.description || "No description",
+              key: manifest?.deployment?.key || "default@web",
+              name: manifest?.deployment?.name || "Untitled Plugin",
+              description:
+                manifest?.deployment?.description || "No description",
               wasm_bytes: res.data.wasm_bytes,
               plugin_version_id: null,
               config: {},
