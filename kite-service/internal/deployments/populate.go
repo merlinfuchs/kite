@@ -33,7 +33,8 @@ func (m *DeploymentManager) populateEngineDeployments(ctx context.Context) error
 			config := module.ModuleConfig{
 				MemoryPagesLimit:   1024,
 				TotalTimeLimit:     time.Second * 10,
-				ExecutionTimeLimit: time.Millisecond * 10,
+				ExecutionTimeLimit: time.Millisecond * 100,
+				CompilationCache:   m.compilationCache,
 			}
 
 			env := host.NewEnv(m.envStores)
@@ -41,7 +42,7 @@ func (m *DeploymentManager) populateEngineDeployments(ctx context.Context) error
 			env.GuildID = row.GuildID
 			env.Manifest = row.Manifest
 
-			deployments[i] = engine.NewDeployment(row.ID, env, m.compilationCache, row.WasmBytes, row.Manifest, config)
+			deployments[i] = engine.NewDeployment(row.ID, env, row.WasmBytes, row.Manifest, config)
 
 			if !row.DeployedAt.Valid || row.UpdatedAt.After(row.DeployedAt.Time) {
 				hasChanged = true
@@ -91,6 +92,7 @@ func (m *DeploymentManager) updateEngineDeployments(ctx context.Context) error {
 					MemoryPagesLimit:   1024,
 					TotalTimeLimit:     time.Second * 10,
 					ExecutionTimeLimit: time.Millisecond * 10,
+					CompilationCache:   m.compilationCache,
 				}
 
 				env := host.NewEnv(m.envStores)
@@ -98,7 +100,7 @@ func (m *DeploymentManager) updateEngineDeployments(ctx context.Context) error {
 				env.GuildID = row.GuildID
 				env.Manifest = row.Manifest
 
-				deployment := engine.NewDeployment(row.ID, env, m.compilationCache, row.WasmBytes, row.Manifest, config)
+				deployment := engine.NewDeployment(row.ID, env, row.WasmBytes, row.Manifest, config)
 				m.engine.LoadGuildDeployment(ctx, guildID, deployment)
 
 				hasChanged = true

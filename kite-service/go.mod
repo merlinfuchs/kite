@@ -22,7 +22,7 @@ require (
 	github.com/pelletier/go-toml v1.9.5
 	github.com/ravener/discord-oauth2 v0.0.0-20230514095040-ae65713199b3
 	github.com/sqlc-dev/pqtype v0.3.0
-	github.com/tetratelabs/wazero v1.5.0
+	github.com/tetratelabs/wazero v1.6.0
 	github.com/urfave/cli/v2 v2.27.0
 	golang.org/x/oauth2 v0.15.0
 	gopkg.in/guregu/null.v4 v4.0.0

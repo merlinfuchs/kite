@@ -50,14 +50,16 @@ func New(
 	wasm []byte,
 	config ModuleConfig,
 	env HostEnvironment,
-	compilationCache wazero.CompilationCache,
 ) (*Module, error) {
 	r := wazero.NewRuntimeWithConfig(ctx,
+		// At some point we probably want to switch to the optimization compiler
+		// right not it doesn't seem to be faster for short living functions
+		// https://github.com/tetratelabs/wazero/issues/1496
+		// opt.NewRuntimeConfigOptimizingCompiler().
 		wazero.NewRuntimeConfigCompiler().
 			WithCloseOnContextDone(true).
 			WithMemoryLimitPages(uint32(config.MemoryPagesLimit)).
-			WithCompilationCache(config.CompilationCache).
-			WithCompilationCache(compilationCache),
+			WithCompilationCache(config.CompilationCache),
 	)
 
 	wasi_snapshot_preview1.MustInstantiate(ctx, r)

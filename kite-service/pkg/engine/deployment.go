@@ -13,16 +13,14 @@ import (
 	"github.com/merlinfuchs/kite/go-types/manifest"
 	"github.com/merlinfuchs/kite/kite-service/internal/logging/logattr"
 	"github.com/merlinfuchs/kite/kite-service/pkg/module"
-	"github.com/tetratelabs/wazero"
 )
 
 type Deployment struct {
-	ID               string
-	wasm             []byte
-	manifest         manifest.Manifest
-	config           module.ModuleConfig
-	env              module.HostEnvironment
-	compilationCache wazero.CompilationCache
+	ID       string
+	wasm     []byte
+	manifest manifest.Manifest
+	config   module.ModuleConfig
+	env      module.HostEnvironment
 
 	pluginPool *pool.ObjectPool
 }
@@ -38,18 +36,16 @@ func (d *Deployment) Config() module.ModuleConfig {
 func NewDeployment(
 	id string,
 	env module.HostEnvironment,
-	compilationCache wazero.CompilationCache,
 	wasm []byte,
 	manifest manifest.Manifest,
 	config module.ModuleConfig,
 ) *Deployment {
 	dp := &Deployment{
-		ID:               id,
-		env:              env,
-		wasm:             wasm,
-		manifest:         manifest,
-		config:           config,
-		compilationCache: compilationCache,
+		ID:       id,
+		env:      env,
+		wasm:     wasm,
+		manifest: manifest,
+		config:   config,
 	}
 
 	factory := pool.NewPooledObjectFactorySimple(dp.pluginFactory)
@@ -71,7 +67,7 @@ func (d *Deployment) Close(ctx context.Context) {
 }
 
 func (d *Deployment) pluginFactory(ctx context.Context) (interface{}, error) {
-	p, err := module.New(ctx, d.wasm, d.config, d.env, d.compilationCache)
+	p, err := module.New(ctx, d.wasm, d.config, d.env)
 	if err != nil {
 		return nil, err
 	}

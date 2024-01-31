@@ -59,11 +59,10 @@ func runTest(basePath string, build bool, debug bool, cfg *config.PluginConfig) 
 		MemoryPagesLimit:   32,
 		TotalTimeLimit:     time.Microsecond,
 		ExecutionTimeLimit: time.Microsecond,
-		// UserConfig:         cfg.DefaultConfig,
 	}
 
 	ctx := context.Background()
-	mod, err := module.New(ctx, wasm, config, host.HostEnvironment{}, nil)
+	mod, err := module.New(ctx, wasm, config, host.HostEnvironment{})
 	if err != nil {
 		return err
 	}
