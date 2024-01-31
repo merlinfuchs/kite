@@ -1,20 +1,8 @@
-[plugin]
+[deployment]
 key = "backup@merlin.gg"
 name = 'Discord Server Backups'
 description = 'A very cool Kite plugin'
+
+[module]
 type = 'go'
-events = ["DISCORD_MESSAGE_CREATE", "DISCORD_INTERACTION_CREATE"]
-permissions = []
 
-[[plugin.commands]]
-type = 'chat'
-name = 'backup'
-description = 'Create and load backups of your server'
-
-[[plugin.commands.sub_commands]]
-name = 'create'
-description = 'Create a backup of your server'
-
-[[plugin.commands.sub_commands]]
-name = 'load'
-description = 'Load a backup of your server'

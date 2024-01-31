@@ -43,7 +43,7 @@ func deployCMD() *cli.Command {
 			rawUserConfig := c.String("config")
 			server := c.String("server")
 
-			cfg, err := config.LoadPluginConfig(basePath)
+			cfg, err := config.LoadworkspaceConfig(basePath)
 			if err != nil {
 				return err
 			}
@@ -73,7 +73,7 @@ func runDeploy(
 	guildID string,
 	userConfig map[string]string,
 	serverURL *url.URL,
-	cfg *config.PluginConfig,
+	cfg *config.WorkspaceConfig,
 	globalCFG *config.GlobalConfig,
 ) error {
 	session := globalCFG.GetSessionForServer(serverURL.String())
@@ -83,16 +83,16 @@ func runDeploy(
 
 	serverURL.Path = path.Join(serverURL.Path, "api/v1/guilds", guildID, "deployments")
 
-	wasmPath := filepath.Join(basePath, cfg.Build.Out)
+	wasmPath := filepath.Join(basePath, cfg.Module.Build.Out)
 	wasm, err := os.ReadFile(wasmPath)
 	if err != nil {
 		return err
 	}
 
 	rawBody, err := json.Marshal(wire.DeploymentCreateRequest{
-		Key:         cfg.Key,
-		Name:        cfg.Name,
-		Description: cfg.Description,
+		Key:         cfg.Deployment.Key,
+		Name:        cfg.Deployment.Name,
+		Description: cfg.Deployment.Description,
 		WasmBytes:   base64.StdEncoding.EncodeToString(wasm),
 		// TODO: Config:
 	})

@@ -19,9 +19,10 @@ import (
 var defaultConfig []byte
 
 type FullConfig struct {
-	Global *GlobalConfig `toml:"global,omitempty"`
-	Server *ServerConfig `toml:"server,omitempty"`
-	Plugin *PluginConfig `toml:"plugin,omitempty"`
+	Global     *GlobalConfig     `toml:"global,omitempty"`
+	Server     *ServerConfig     `toml:"server,omitempty"`
+	Deployment *DeploymentConfig `toml:"deployment,omitempty"`
+	Module     *ModuleConfig     `toml:"module,omitempty"`
 }
 
 func (cfg *FullConfig) Validate() error {

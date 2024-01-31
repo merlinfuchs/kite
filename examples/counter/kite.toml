@@ -1,11 +1,8 @@
-[plugin]
+[deployment]
 key = "counter@merlin.gg"
 name = 'Counter'
 description = 'Let users count up and harass them when they counted wrong'
-type = 'go'
-commands = []
-events = ["DISCORD_MESSAGE_CREATE"]
-permissions = []
 
-[plugin.build]
-out = 'plugin.wasm'
+[module]
+type = 'go'
+

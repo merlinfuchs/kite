@@ -23,17 +23,17 @@ func buildCMD() *cli.Command {
 		Action: func(c *cli.Context) error {
 			basePath := c.String("path")
 
-			cfg, err := config.LoadPluginConfig(basePath)
+			cfg, err := config.LoadworkspaceConfig(basePath)
 			if err != nil {
 				return err
 			}
 
-			return runBuild(basePath, c.Bool("debug"), cfg)
+			return runBuild(basePath, c.Bool("debug"), cfg.Module)
 		},
 	}
 }
 
-func runBuild(basePath string, debug bool, cfg *config.PluginConfig) error {
+func runBuild(basePath string, debug bool, cfg *config.ModuleConfig) error {
 	switch cfg.Type {
 	case "go":
 		return runBuildGo(basePath, debug, cfg)
@@ -46,7 +46,7 @@ func runBuild(basePath string, debug bool, cfg *config.PluginConfig) error {
 	return nil
 }
 
-func runBuildGo(basePath string, debug bool, cfg *config.PluginConfig) error {
+func runBuildGo(basePath string, debug bool, cfg *config.ModuleConfig) error {
 	basePath = filepath.Clean(basePath)
 	outPath := filepath.Join(basePath, cfg.Build.Out)
 
@@ -82,7 +82,7 @@ func runBuildGo(basePath string, debug bool, cfg *config.PluginConfig) error {
 	return nil
 }
 
-func runBuildRust(basePath string, debug bool, cfg *config.PluginConfig) error {
+func runBuildRust(basePath string, debug bool, cfg *config.ModuleConfig) error {
 	basePath = filepath.Clean(basePath)
 	manifestPath := filepath.Join(basePath, "Cargo.toml")
 
@@ -112,7 +112,7 @@ func runBuildRust(basePath string, debug bool, cfg *config.PluginConfig) error {
 	return nil
 }
 
-func runBuildJS(basePath string, debug bool, cfg *config.PluginConfig) error {
+func runBuildJS(basePath string, debug bool, cfg *config.ModuleConfig) error {
 	basePath = filepath.Clean(basePath)
 
 	inputFile := "index.js"

@@ -1,8 +1,8 @@
-[plugin]
+[deployment]
 name = "My Plugin"
 description = "A very cool Kite plugin"
 
-[plugin.build]
+[module.build]
 out = "plugin.wasm"
 
 [server]

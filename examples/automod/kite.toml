@@ -1,9 +1,7 @@
-[plugin]
+[deployment]
 key = "automod@merlin.gg"
 name = 'Discord Automod'
 description = 'A very cool Kite plugin'
+
+[module]
 type = 'js'
-
-events = ["DISCORD_MESSAGE_CREATE", "DISCORD_INTERACTION_CREATE"]
-permissions = []
-

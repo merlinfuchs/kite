@@ -1,6 +1,8 @@
-[plugin]
+[deployment]
 key = "ping@merlin.gg"
 name = 'Ping'
 description = 'A simple !ping and /ping command'
+
+[module]
 type = 'go'
 

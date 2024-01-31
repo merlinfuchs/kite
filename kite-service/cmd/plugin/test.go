@@ -32,17 +32,17 @@ func testCMD() *cli.Command {
 		Action: func(c *cli.Context) error {
 			basePath := c.String("path")
 
-			cfg, err := config.LoadPluginConfig(basePath)
+			cfg, err := config.LoadworkspaceConfig(basePath)
 			if err != nil {
 				return err
 			}
 
-			return runTest(basePath, c.Bool("build"), c.Bool("debug"), cfg)
+			return runTest(basePath, c.Bool("build"), c.Bool("debug"), cfg.Module)
 		},
 	}
 }
 
-func runTest(basePath string, build bool, debug bool, cfg *config.PluginConfig) error {
+func runTest(basePath string, build bool, debug bool, cfg *config.ModuleConfig) error {
 	if build {
 		if err := runBuild(basePath, debug, cfg); err != nil {
 			return err

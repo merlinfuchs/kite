@@ -59,28 +59,28 @@ func runInit(basePath, typ, key, name, description string) error {
 		return fmt.Errorf("A Kite config already exists in this directory")
 	}
 
-	cfg, err := config.DefaultPluginConifg()
+	cfg, err := config.DefaultWorkspaceConifg()
 	if err != nil {
 		return fmt.Errorf("Failed to load default config: %v", err)
 	}
 
-	cfg.Key = key
+	cfg.Deployment.Key = key
 
 	if name != "" {
-		cfg.Name = name
+		cfg.Deployment.Name = name
 	}
 
 	if description != "" {
-		cfg.Description = description
+		cfg.Deployment.Description = description
 	}
 
-	cfg.Type = typ
+	cfg.Module.Type = typ
 
 	if err := cfg.Validate(); err != nil {
 		return fmt.Errorf("Invalid plugin config: %v", err)
 	}
 
-	err = config.WritePluginConfig(basePath, cfg)
+	err = config.WriteWorkspaceConfig(basePath, cfg)
 	if err != nil {
 		return fmt.Errorf("Failed to write config: %v", err)
 	}
