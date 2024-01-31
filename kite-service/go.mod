@@ -6,6 +6,7 @@ require (
 	github.com/bwmarrin/discordgo v0.27.1
 	github.com/cyrusaf/ctxlog v1.2.0
 	github.com/endobit/clog v0.4.0
+	github.com/evanw/esbuild v0.20.0
 	github.com/go-playground/validator/v10 v10.16.0
 	github.com/gofiber/fiber/v2 v2.52.0
 	github.com/golang-migrate/migrate/v4 v4.17.0

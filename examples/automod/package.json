@@ -1,0 +1,14 @@
+{
+  "private": true,
+  "main": "src/index.ts",
+  "scripts": {
+    "build": "tsc && kite plugin build"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.3"
+  },
+  "dependencies": {
+    "@merlingg/kite-sdk": "file:../../js-sdk",
+    "obscenity": "^0.2.0"
+  }
+}

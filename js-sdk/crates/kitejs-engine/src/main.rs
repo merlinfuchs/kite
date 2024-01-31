@@ -19,6 +19,9 @@ fn main() {
     io::stdin().read_to_string(&mut script)
         .expect("Failed to read script from stdin");
 
+    // We compile and eval the script ahead of time to improve performance and be able to extract the manifest.
+    // This does significantly increase the size of the WASM module because the bytecode can be pretty big.
+    // If the script was compiled on the host instead we would still end up with the same memory usage, so it's still better to do it here.
     let bytecode = ctx
         .compile_global(SCRIPT_NAME, &script)
         .expect("Failed to compile script");

@@ -1,11 +1,14 @@
 package plugin
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
 
+	"github.com/evanw/esbuild/pkg/api"
 	"github.com/merlinfuchs/kite/kite-service/config"
 	"github.com/urfave/cli/v2"
 )
@@ -115,15 +118,15 @@ func runBuildRust(basePath string, debug bool, cfg *config.ModuleConfig) error {
 func runBuildJS(basePath string, debug bool, cfg *config.ModuleConfig) error {
 	basePath = filepath.Clean(basePath)
 
-	inputFile := "index.js"
-	if cfg.Build.In != "" {
-		inputFile = cfg.Build.In
+	bundle, err := bundleJS(basePath, debug, cfg)
+	if err != nil {
+		return err
 	}
+	fmt.Println("Bundle size: ", len(bundle))
 
-	inPath := filepath.Join(basePath, inputFile)
 	outPath := filepath.Join(basePath, cfg.Build.Out)
 
-	cmdArgs := []string{inPath, outPath}
+	cmdArgs := []string{"-", outPath}
 
 	if !debug {
 		cmdArgs = append(cmdArgs, "--optimize")
@@ -133,6 +136,8 @@ func runBuildJS(basePath string, debug bool, cfg *config.ModuleConfig) error {
 
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
+	// pass bundle as stdin
+	cmd.Stdin = bytes.NewReader(bundle)
 
 	if err := cmd.Run(); err != nil {
 		return err
@@ -144,6 +149,76 @@ func runBuildJS(basePath string, debug bool, cfg *config.ModuleConfig) error {
 	}
 
 	return nil
+}
+
+func bundleJS(basePath string, debug bool, cfg *config.ModuleConfig) ([]byte, error) {
+	entryPoint, err := discoverJSEntrypoint(basePath, cfg)
+	if err != nil {
+		return nil, fmt.Errorf("failed to discover entrypoint: %v", err)
+	}
+
+	absoluteBasePath, err := filepath.Abs(basePath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get absolute base path: %v", err)
+	}
+
+	result := api.Build(api.BuildOptions{
+		AbsWorkingDir:     absoluteBasePath,
+		EntryPoints:       []string{entryPoint},
+		Bundle:            true,
+		MinifyIdentifiers: !debug,
+		MinifySyntax:      !debug,
+		MinifyWhitespace:  !debug,
+		TreeShaking:       api.TreeShakingTrue,
+		Format:            api.FormatESModule,
+		Write:             false,
+	})
+	if len(result.Errors) != 0 {
+		return nil, fmt.Errorf("failed to bundle: %v", result.Errors)
+	}
+
+	return result.OutputFiles[0].Contents, nil
+}
+
+type PartialPackageJSON struct {
+	Main string `json:"main"`
+}
+
+func discoverJSEntrypoint(basePath string, cfg *config.ModuleConfig) (string, error) {
+	packageJSONPath := filepath.Join(basePath, "package.json")
+	packageJSONRaw, err := os.ReadFile(packageJSONPath)
+	if err == nil {
+		var packageJSON PartialPackageJSON
+		if err := json.Unmarshal(packageJSONRaw, &packageJSON); err != nil {
+			return "", err
+		}
+
+		if packageJSON.Main != "" {
+			return packageJSON.Main, nil
+		}
+	} else if !os.IsNotExist(err) {
+		return "", err
+	}
+
+	if cfg.Build.In != "" {
+		return cfg.Build.In, nil
+	}
+
+	indexTSPath := filepath.Join(basePath, "index.ts")
+	if _, err := os.Stat(indexTSPath); err == nil {
+		return "index.ts", nil
+	} else if !os.IsNotExist(err) {
+		return "", err
+	}
+
+	indexJSPath := filepath.Join(basePath, "index.js")
+	if _, err := os.Stat(indexJSPath); err == nil {
+		return "index.js", nil
+	} else if !os.IsNotExist(err) {
+		return "", err
+	}
+
+	return "", fmt.Errorf("no entrypoint found")
 }
 
 func preInitializeWASM(path string) error {

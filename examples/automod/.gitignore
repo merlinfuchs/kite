@@ -1,1 +1,4 @@
 plugin.wasm
+plugin.wat
+node_modules/
+dist/

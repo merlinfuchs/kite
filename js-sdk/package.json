@@ -1,0 +1,18 @@
+{
+  "name": "@merlingg/kite-sdk",
+  "version": "0.0.1",
+  "description": "TypeScript SDK for Kite - The WebAssembly runtime for Discord Bots",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "license": "AGPL-3.0",
+  "scripts": {
+    "build": "tsc",
+    "prepublishOnly": "yarn build"
+  },
+  "files": [
+    "/dist"
+  ],
+  "devDependencies": {
+    "typescript": "^5.3.3"
+  }
+}
