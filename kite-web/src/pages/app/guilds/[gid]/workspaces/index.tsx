@@ -1,5 +1,5 @@
-import AppGuildLayout from "@/components/AppGuildLayout";
-import WorkspaceList from "@/components/WorkspaceList";
+import AppGuildLayout from "@/components/app/AppGuildLayout";
+import AppWorkspaceList from "@/components/app/AppWorkspaceList";
 import { useRouteParams } from "@/hooks/route";
 
 export default function GuildWorkspacesPage() {
@@ -14,7 +14,7 @@ export default function GuildWorkspacesPage() {
           arbitrary number of files and is used to create a private deployment
           or a public plugin.
         </div>
-        <WorkspaceList guildId={guildId} />
+        <AppWorkspaceList guildId={guildId} />
       </div>
     </AppGuildLayout>
   );

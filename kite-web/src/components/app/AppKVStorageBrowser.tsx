@@ -2,8 +2,8 @@ import {
   useKVStorageKeysQuery,
   useKVStorageNamespacesQuery,
 } from "@/lib/api/queries";
-import { useEffect, useState } from "react";
-import IllustrationPlaceholder from "./IllustrationPlaceholder";
+import { useState } from "react";
+import AppIllustrationPlaceholder from "./AppIllustrationPlaceholder";
 
 export default function KVStorageBrowser({ guildId }: { guildId: string }) {
   const [namespace, setNamespace] = useState<string>("default");
@@ -16,7 +16,7 @@ export default function KVStorageBrowser({ guildId }: { guildId: string }) {
 
   if (namespaces.length === 0) {
     return (
-      <IllustrationPlaceholder
+      <AppIllustrationPlaceholder
         svgPath="/illustrations/empty.svg"
         title="There is nothing here yet! Once you have a plugin that is using the
         KV storage, you will be able to see it here."

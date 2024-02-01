@@ -1,13 +1,12 @@
 import { useDeploymentDeleteMutation } from "@/lib/api/mutations";
-import { useDeploymentsQuery, useWorkspacesQuery } from "@/lib/api/queries";
-import Link from "next/link";
-import AutoAnimate from "./AutoAnimate";
+import { useDeploymentsQuery } from "@/lib/api/queries";
+import AutoAnimate from "../AutoAnimate";
 import toast from "react-hot-toast";
 import clsx from "clsx";
-import DeploymentListEntry from "./DeploymentListEntry";
-import IllustrationPlaceholder from "./IllustrationPlaceholder";
+import AppDeploymentListEntry from "./AppDeploymentListEntry";
+import AppIllustrationPlaceholder from "./AppIllustrationPlaceholder";
 
-export default function DeploymentList({ guildId }: { guildId: string }) {
+export default function AppDeploymentList({ guildId }: { guildId: string }) {
   const { data: resp } = useDeploymentsQuery(guildId);
 
   const deployments = resp?.success ? resp.data : [];
@@ -39,7 +38,7 @@ export default function DeploymentList({ guildId }: { guildId: string }) {
           )}
         >
           {deployments.map((d) => (
-            <DeploymentListEntry
+            <AppDeploymentListEntry
               key={d.id}
               guildId={guildId}
               deployment={d}
@@ -49,7 +48,7 @@ export default function DeploymentList({ guildId }: { guildId: string }) {
         </AutoAnimate>
       </div>
       {deployments.length === 0 && (
-        <IllustrationPlaceholder
+        <AppIllustrationPlaceholder
           svgPath="/illustrations/deploy.svg"
           title="Make your first deployment by creating a workspace or deploying a plugin from the marketplace!"
           className="mt-10"

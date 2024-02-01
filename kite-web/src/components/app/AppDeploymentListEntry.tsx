@@ -1,6 +1,6 @@
 import { Deployment } from "@/lib/types/wire";
 import Link from "next/link";
-import DeploymentLogSummary from "./DeploymentLogSummary";
+import DeploymentLogSummary from "./AppDeploymentLogSummary";
 
 interface Props {
   guildId: string;
@@ -11,13 +11,13 @@ interface Props {
 import dynamic from "next/dynamic";
 
 const DeploymentMetricsEvents = dynamic(
-  () => import("./DeploymentMetricsEvents"),
+  () => import("./AppDeploymentMetricsEvents"),
   {
     ssr: false,
   }
 );
 
-export default function DeploymentListEntry({
+export default function AppDeploymentListEntry({
   guildId,
   deployment,
   onDelete,

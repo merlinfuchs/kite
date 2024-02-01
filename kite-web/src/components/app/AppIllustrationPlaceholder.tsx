@@ -7,7 +7,7 @@ interface Props {
   className?: string;
 }
 
-export default function IllustrationPlaceholder({
+export default function AppIllustrationPlaceholder({
   svgPath,
   title,
   className,

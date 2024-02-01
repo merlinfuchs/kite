@@ -1,5 +1,5 @@
-import AppGuildLayout from "@/components/AppGuildLayout";
-import IllustrationPlaceholder from "@/components/IllustrationPlaceholder";
+import AppGuildLayout from "@/components/app/AppGuildLayout";
+import AppIllustrationPlaceholder from "@/components/app/AppIllustrationPlaceholder";
 
 export default function GuildMarketplacePage() {
   return (
@@ -11,7 +11,7 @@ export default function GuildMarketplacePage() {
           find ones made by others. Plugins on the marketplace are publicly
           available and can be installed by anyone.
         </div>
-        <IllustrationPlaceholder
+        <AppIllustrationPlaceholder
           svgPath="/illustrations/development.svg"
           title="Hey! You are early and we are still figuring things out here ..."
         />

@@ -1,7 +1,6 @@
-import AppGuildLayout from "@/components/AppGuildLayout";
-import DeploymentList from "@/components/DeploymentList";
+import AppGuildLayout from "@/components/app/AppGuildLayout";
+import AppDeploymentList from "@/components/app/AppDeploymentList";
 import { useRouteParams } from "@/hooks/route";
-import { useRouter } from "next/router";
 
 export default function GuildDeploymentsPage() {
   const { guildId } = useRouteParams();
@@ -15,7 +14,7 @@ export default function GuildDeploymentsPage() {
           deployment from a workspace or by using a brebuilt plugin from the
           marketplace.
         </div>
-        <DeploymentList guildId={guildId} />
+        <AppDeploymentList guildId={guildId} />
       </div>
     </AppGuildLayout>
   );

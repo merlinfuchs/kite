@@ -4,12 +4,12 @@ import {
 } from "@/lib/api/mutations";
 import { useWorkspacesQuery } from "@/lib/api/queries";
 import Link from "next/link";
-import AutoAnimate from "./AutoAnimate";
+import AutoAnimate from "../AutoAnimate";
 import { FlatFile } from "@/util/filetree";
 import { useRouter } from "next/router";
 import toast from "react-hot-toast";
 import clsx from "clsx";
-import IllustrationPlaceholder from "./IllustrationPlaceholder";
+import AppIllustrationPlaceholder from "./AppIllustrationPlaceholder";
 
 const defaultFiles: FlatFile[] = [
   {
@@ -50,7 +50,7 @@ type = 'js'
   },
 ];
 
-export default function WorkspaceList({ guildId }: { guildId: string }) {
+export default function AppWorkspaceList({ guildId }: { guildId: string }) {
   const router = useRouter();
 
   const { data: resp } = useWorkspacesQuery(guildId);
@@ -146,7 +146,7 @@ export default function WorkspaceList({ guildId }: { guildId: string }) {
         </div>
       </div>
       {workspaces.length === 0 && (
-        <IllustrationPlaceholder
+        <AppIllustrationPlaceholder
           svgPath="/illustrations/software_engineer.svg"
           title="Create you first workspace and get coding without worrying about the boring stuff!"
           className="mt-10"

@@ -1,9 +1,9 @@
-import IllustrationPlaceholder from "./IllustrationPlaceholder";
+import AppIllustrationPlaceholder from "./app/AppIllustrationPlaceholder";
 
 export default function LoginPrompt() {
   return (
     <div className="my-32 lg:my-48 px-5">
-      <IllustrationPlaceholder
+      <AppIllustrationPlaceholder
         className="mb-10"
         svgPath="/illustrations/signin.svg"
         title="Login with your Discord account to access Kite and get started!"

@@ -1,33 +1,33 @@
-import AppGuildLayout from "@/components/AppGuildLayout";
+import AppGuildLayout from "@/components/app/AppGuildLayout";
 import { useGuildQuery } from "@/lib/api/queries";
 import { guildIconUrl } from "@/lib/discord/cdn";
 import { guildNameAbbreviation } from "@/lib/discord/util";
 import { useRouteParams } from "@/hooks/route";
 import dynamic from "next/dynamic";
 
-const DeploymentMetricsEvents = dynamic(
-  () => import("@/components/DeploymentMetricsEvents"),
+const AppDeploymentMetricsEvents = dynamic(
+  () => import("@/components/app/AppDeploymentMetricsEvents"),
   {
     ssr: false,
   }
 );
 
-const DeploymentMetricsCalls = dynamic(
-  () => import("@/components/DeploymentMetricsCalls"),
+const AppDeploymentMetricsCalls = dynamic(
+  () => import("@/components/app/AppDeploymentMetricsCalls"),
   {
     ssr: false,
   }
 );
 
-const DeploymentMetricsTotalTime = dynamic(
-  () => import("@/components/DeploymentMetricsTotalTime"),
+const AppDeploymentMetricsTotalTime = dynamic(
+  () => import("@/components/app/AppDeploymentMetricsTotalTime"),
   {
     ssr: false,
   }
 );
 
-const DeploymentMetricsExecutionTime = dynamic(
-  () => import("@/components/DeploymentMetricsExecutionTime"),
+const AppDeploymentMetricsExecutionTime = dynamic(
+  () => import("@/components/app/AppDeploymentMetricsExecutionTime"),
   {
     ssr: false,
   }
@@ -81,25 +81,25 @@ export default function GuildPage() {
         <div className="text-gray-100 font-bold text-2xl mb-5 mx-5 mt-3">
           Events Handled
         </div>
-        <DeploymentMetricsEvents guildId={guildId} />
+        <AppDeploymentMetricsEvents guildId={guildId} />
       </div>
       <div className="bg-dark-2 px-1 py-2 rounded-md mb-5">
         <div className="text-gray-100 font-bold text-2xl mb-5 mx-5 mt-3">
           Actions Taken
         </div>
-        <DeploymentMetricsCalls guildId={guildId} />
+        <AppDeploymentMetricsCalls guildId={guildId} />
       </div>
       <div className="bg-dark-2 px-1 py-2 rounded-md mb-5">
         <div className="text-gray-100 font-bold text-2xl mb-5 mx-5 mt-3">
           Average Total Time
         </div>
-        <DeploymentMetricsTotalTime guildId={guildId} />
+        <AppDeploymentMetricsTotalTime guildId={guildId} />
       </div>
       <div className="bg-dark-2 px-1 py-2 rounded-md">
         <div className="text-gray-100 font-bold text-2xl mb-5 mx-5 mt-3">
           Average CPU Time
         </div>
-        <DeploymentMetricsExecutionTime guildId={guildId} />
+        <AppDeploymentMetricsExecutionTime guildId={guildId} />
       </div>
     </AppGuildLayout>
   );

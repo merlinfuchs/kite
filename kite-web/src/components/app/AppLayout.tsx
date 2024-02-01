@@ -4,7 +4,7 @@ import { ReactNode } from "react";
 import { Toaster } from "react-hot-toast";
 import Head from "next/head";
 import { useUserQuery } from "@/lib/api/queries";
-import LoginPrompt from "./LoginPrompt";
+import LoginPrompt from "../LoginPrompt";
 
 const inter = Inter({ subsets: ["latin"] });
 

@@ -1,4 +1,4 @@
-import AppLayout from "@/components/AppLayout";
+import AppLayout from "@/components/app/AppLayout";
 import { useGuildsQuery } from "@/lib/api/queries";
 import { guildIconUrl } from "@/lib/discord/cdn";
 import { guildNameAbbreviation } from "@/lib/discord/util";
