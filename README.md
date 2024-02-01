@@ -40,6 +40,20 @@ client_secret = "" # Your DIscord Bot client secret
 kite server start
 ```
 
+## Authenticating with the Server
+
+To be able to deploy your plugins from the local CLI you first have to authenticate with the Kite server.
+
+```shell
+# Authenticate with the locally running server
+kite config login
+
+# Authenticate with a specific server
+kite config login --server=https://kite.onl
+```
+
+You will be prompted to open an URL in your browser which will redirect your to Discord where you authenticate. Once you are redirected back your should be logged in automatically by the CLI. Right now sessions are valid for 30 days.
+
 ## Writing a Plugin
 
 ### Go
@@ -67,12 +81,12 @@ The `kite.toml` is the manifest for your plugin and can contain various configur
 For this example we just have to define that we are using the `DISCORD_MESSAGE_CREATE` event:
 
 ```toml
-[plugin]
+[deployment]
 name = 'Ping Plugin'
 description = '!ping -> Pong!'
-type = 'go'
 
-events = ["DISCORD_MESSAGE_CREATE"]
+[module]
+type = 'go'
 ```
 
 #### 4. Write some code
@@ -147,17 +161,17 @@ The `kite.toml` is the manifest for your plugin and can contain various configur
 For this example we just have to define that we are using the `DISCORD_MESSAGE_CREATE` event:
 
 ```toml
-[plugin]
+[deployment]
 name = 'Ping Plugin'
 description = '!ping -> Pong!'
-type = 'js'
 
-events = ["DISCORD_MESSAGE_CREATE"]
+[module]
+type = 'js'
 ```
 
 #### 3. Write some code
 
-There are is no high level SDK or typings for JavaScript yet, you therefore have to write raw Kite host calls.
+There is no high level SDK or typings for JavaScript yet, you therefore have to write raw Kite host calls.
 
 ```js
 Kite.handle = function (event) {
