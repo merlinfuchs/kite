@@ -42,7 +42,7 @@ export default function DeploymentListEntry({
           </button>
           <Link
             className="px-3 py-2 bg-dark-4 hover:bg-dark-5 text-gray-100 rounded"
-            href={`/guilds/${guildId}/deployments/${deployment.id}`}
+            href={`/app/guilds/${guildId}/deployments/${deployment.id}`}
           >
             View Details
           </Link>

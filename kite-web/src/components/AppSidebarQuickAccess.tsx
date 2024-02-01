@@ -20,7 +20,7 @@ export default function AppSidebarQuickAccess({
     if (!resp || !resp.success) return [];
 
     return resp.data.map((i) => {
-      const url = `/guilds/${guildId}/${
+      const url = `/app/guilds/${guildId}/${
         i.type === "DEPLOYMENT" ? "deployments" : "workspaces"
       }/${i.id}`;
 

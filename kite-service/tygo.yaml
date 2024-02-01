@@ -1,6 +1,6 @@
 packages:
   - path: "github.com/merlinfuchs/kite/kite-service/pkg/wire"
-    output_path: "../kite-app/src/lib/types/wire.ts"
+    output_path: "../kite-web/src/lib/types/wire.ts"
     type_mappings:
       null.String: "null | string"
       null.Bool: "null | boolean"
@@ -18,7 +18,7 @@ packages:
       import {APIResponse} from "./response"
       import {Manifest} from "./manifest"
   - path: "github.com/merlinfuchs/kite/go-types/manifest"
-    output_path: "../kite-app/src/lib/types/manifest.ts"
+    output_path: "../kite-web/src/lib/types/manifest.ts"
     type_mappings:
       null.String: "null | string"
       null.Bool: "null | boolean"

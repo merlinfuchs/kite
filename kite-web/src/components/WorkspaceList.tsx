@@ -89,7 +89,7 @@ export default function WorkspaceList({ guildId }: { guildId: string }) {
       {
         onSuccess: (res) => {
           if (res.success) {
-            router.push(`/guilds/${guildId}/workspaces/${res.data.id}`);
+            router.push(`/app/guilds/${guildId}/workspaces/${res.data.id}`);
           } else {
             toast.error("Failed to create workspace");
           }
@@ -127,7 +127,7 @@ export default function WorkspaceList({ guildId }: { guildId: string }) {
                   </button>
                   <Link
                     className="px-3 py-2 bg-dark-4 hover:bg-dark-5 text-gray-100 rounded select-none"
-                    href={`/guilds/${guildId}/workspaces/${w.id}`}
+                    href={`/app/guilds/${guildId}/workspaces/${w.id}`}
                   >
                     Open Editor
                   </Link>

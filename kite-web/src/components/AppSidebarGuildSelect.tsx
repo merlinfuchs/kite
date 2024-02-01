@@ -53,7 +53,7 @@ export default function AppSidebarGuildSelect({
                   active && "bg-dark-4",
                   "px-4 py-2 text-sm flex items-center space-x-2 cursor-pointer"
                 )}
-                href={`/guilds/${g.id}`}
+                href={`/app/guilds/${g.id}`}
               >
                 <div className="bg-dark-1 h-10 w-10 rounded-full flex items-center justify-center flex-none mr-2">
                   {g?.icon ? (

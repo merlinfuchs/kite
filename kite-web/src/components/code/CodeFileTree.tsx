@@ -107,7 +107,7 @@ function FileTreeDirectory({
           className={styles.inner}
           style={{ paddingLeft: `${depth * 16}px` }}
         >
-          <img src={`/app/file-icons/${icon}`} alt="" className={styles.icon} />
+          <img src={`/file-icons/${icon}`} alt="" className={styles.icon} />
           <div>{directory.name}</div>
         </div>
       </div>

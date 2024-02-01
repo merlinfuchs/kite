@@ -120,7 +120,7 @@ export default function GuildWorkspacePage() {
         isSaving={isSaving}
         onSave={onSave}
         onChange={() => setHasUnsavedChanges(true)}
-        onBack={() => router.push(`/guilds/${guildId}/workspaces`)}
+        onBack={() => router.push(`/app/guilds/${guildId}/workspaces`)}
         isDeploying={isDeploying}
         onDeploy={onDeploy}
       />

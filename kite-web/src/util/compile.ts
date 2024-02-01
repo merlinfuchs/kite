@@ -62,7 +62,7 @@ async function initialize() {
   initialized = true;
 
   await esbuild.initialize({
-    wasmURL: "/app/esbuild.wasm",
+    wasmURL: "/esbuild.wasm",
   });
 }
 

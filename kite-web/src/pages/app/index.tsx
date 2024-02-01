@@ -25,7 +25,7 @@ export default function GuildsPage() {
             <Link
               key={guild.id}
               className="bg-dark-2 rounded-md px-3 py-3 flex items-center hover:scale-101"
-              href={`/guilds/${guild.id}`}
+              href={`/app/guilds/${guild.id}`}
             >
               <div className="bg-dark-1 h-14 w-14 rounded-full flex items-center justify-center flex-none mr-4">
                 {guild?.icon ? (

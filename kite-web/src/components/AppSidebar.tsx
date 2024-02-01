@@ -42,33 +42,33 @@ export default function AppSideBar({ open, setOpen }: Props) {
     return [
       {
         name: "Home",
-        href: `/guilds/${guildId}`,
+        href: `/app/guilds/${guildId}`,
         icon: HomeIcon,
-        current: router.pathname === "/guilds/[gid]",
+        current: router.pathname === "/app/guilds/[gid]",
       },
       {
         name: "Deployments",
-        href: `/guilds/${guildId}/deployments`,
+        href: `/app/guilds/${guildId}/deployments`,
         icon: DocumentArrowUpIcon,
-        current: router.pathname.startsWith(`/guilds/[gid]/deployments`),
+        current: router.pathname.startsWith(`/app/guilds/[gid]/deployments`),
       },
       {
         name: "Workspaces",
-        href: `/guilds/${guildId}/workspaces`,
+        href: `/app/guilds/${guildId}/workspaces`,
         icon: CodeBracketSquareIcon,
-        current: router.pathname.startsWith(`/guilds/[gid]/workspaces`),
+        current: router.pathname.startsWith(`/app/guilds/[gid]/workspaces`),
       },
       {
         name: "KV Storage",
-        href: `/guilds/${guildId}/kv-storage`,
+        href: `/app/guilds/${guildId}/kv-storage`,
         icon: CircleStackIcon,
-        current: router.pathname.startsWith(`/guilds/[gid]/kv-storage`),
+        current: router.pathname.startsWith(`/app/guilds/[gid]/kv-storage`),
       },
       {
         name: "Marketplace",
-        href: `/guilds/${guildId}/marketplace`,
+        href: `/app/guilds/${guildId}/marketplace`,
         icon: ShoppingCartIcon,
-        current: router.pathname.startsWith(`/guilds/[gid]/marketplace`),
+        current: router.pathname.startsWith(`/app/guilds/[gid]/marketplace`),
       },
     ];
   }, [guildId]);
