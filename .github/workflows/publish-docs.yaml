@@ -20,7 +20,7 @@ jobs:
           node-version: 18
 
       - name: Build
-        working-directory: kite-web
+        working-directory: kite-docs
         run: |
           npm install
           npm run build
