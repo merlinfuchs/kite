@@ -36,8 +36,9 @@ export default function CodeEditor({
       const uri = monaco.Uri.parse(`ts:filename/${file.path}`);
       existingUris.push(uri.toString());
 
-      if (monaco.editor.getModel(uri)) {
-        monaco.editor.getModel(uri).setValue(file.content);
+      const model = monaco.editor.getModel(uri);
+      if (model) {
+        model.setValue(file.content);
         continue;
       } else {
         monaco.editor.createModel(
