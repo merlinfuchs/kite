@@ -17,8 +17,8 @@ jobs:
       - name: Build
         working-directory: kite-docs
         run: |
-          yarn install
-          yarn build
+          npm install
+          npm run build
 
       - name: Publish to Cloudflare Pages
         uses: cloudflare/pages-action@v1
