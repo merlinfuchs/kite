@@ -13,6 +13,8 @@ import (
 	"github.com/merlinfuchs/kite/kite-service/pkg/store"
 )
 
+const sessionTokenName = "kite_session_token"
+
 type Session struct {
 	UserID      string
 	GuildIDs    []string
@@ -32,7 +34,7 @@ func New(store store.SessionStore) *SessionManager {
 }
 
 func (s *SessionManager) GetSession(c *fiber.Ctx) (*Session, error) {
-	token := c.Get("Authorization", c.Cookies("session_token"))
+	token := c.Get("Authorization", c.Cookies(sessionTokenName))
 	if token == "" {
 		return nil, nil
 	}
@@ -93,11 +95,11 @@ func (s *SessionManager) CreateSessionCookie(c *fiber.Ctx, sessionType model.Ses
 	}
 
 	c.Cookie(&fiber.Cookie{
-		Name:     "session_token",
+		Name:     sessionTokenName,
 		Value:    token,
 		HTTPOnly: true,
 		Secure:   true,
-		SameSite: "strict",
+		SameSite: "none",
 		Expires:  time.Now().UTC().Add(30 * 24 * time.Hour),
 	})
 
@@ -105,12 +107,12 @@ func (s *SessionManager) CreateSessionCookie(c *fiber.Ctx, sessionType model.Ses
 }
 
 func (s *SessionManager) DeleteSession(c *fiber.Ctx) error {
-	token := c.Cookies("session_token")
+	token := c.Cookies(sessionTokenName)
 	if token == "" {
 		return nil
 	}
 
-	c.ClearCookie("session_token")
+	c.ClearCookie(sessionTokenName)
 
 	tokenHash, err := hashSessionToken(token)
 	if err != nil {

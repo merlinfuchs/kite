@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "link-dep": "cd ../js-sdk && yarn && yarn build && yarn link && cd ../kite-web && yarn link @merlingg/kite-sdk && yarn install",
+    "link-dep": "cd ../js-sdk && yarn && yarn build && yarn link && cd ../kite-web && yarn link @merlingg/kite-sdk",
     "build": "yarn link-dep && next build",
     "start": "next start",
     "lint": "next lint"

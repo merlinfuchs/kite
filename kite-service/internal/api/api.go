@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/fiber/v2/middleware/filesystem"
 	"github.com/gofiber/fiber/v2/middleware/recover"
 	"github.com/merlinfuchs/kite/kite-service/config"
@@ -32,7 +33,7 @@ type API struct {
 	app *fiber.App
 }
 
-func New() *API {
+func New(cfg *config.ServerConfig) *API {
 	app := fiber.New(fiber.Config{
 		ErrorHandler: func(c *fiber.Ctx, err error) error {
 			var e *wire.Error
@@ -50,6 +51,13 @@ func New() *API {
 		BodyLimit: 1024 * 1024 * 8, // 8 MB
 	})
 
+	app.Use(cors.New(cors.Config{
+		AllowOrigins:     cfg.App.PublicURL,
+		AllowMethods:     "*",
+		AllowHeaders:     "*",
+		AllowCredentials: true,
+	}))
+
 	app.Use(recover.New(recover.Config{
 		EnableStackTrace: true,
 	}))
@@ -66,22 +74,22 @@ func (api *API) RegisterHandlers(engine *engine.Engine, pg *postgres.Client, acc
 	sessionMiddleware := session.NewMiddleware(sessionManager)
 	accessMiddleware := access.NewMiddleware(accessManager)
 
-	apiGroup := api.app.Group("/api/v1")
+	v1Group := api.app.Group("/v1")
 
 	authHandler := auth.New(sessionManager, pg, cfg)
-	apiGroup.Get("/auth/redirect", authHandler.HandleAuthRedirect)
-	apiGroup.Get("/auth/callback", authHandler.HandleAuthCallback)
-	apiGroup.Get("/auth/logout", authHandler.HandleAuthLogout)
-	apiGroup.Post("/auth/cli/start", authHandler.HandleAuthCLIStart)
-	apiGroup.Get("/auth/cli/redirect", authHandler.HandleAuthCLIRedirect)
-	apiGroup.Get("/auth/cli/callback", authHandler.HandleAuthCLICallback)
-	apiGroup.Get("/auth/cli/check", authHandler.HandleAuthCLICheck)
+	v1Group.Get("/auth/redirect", authHandler.HandleAuthRedirect)
+	v1Group.Get("/auth/callback", authHandler.HandleAuthCallback)
+	v1Group.Get("/auth/logout", authHandler.HandleAuthLogout)
+	v1Group.Post("/auth/cli/start", authHandler.HandleAuthCLIStart)
+	v1Group.Get("/auth/cli/redirect", authHandler.HandleAuthCLIRedirect)
+	v1Group.Get("/auth/cli/callback", authHandler.HandleAuthCLICallback)
+	v1Group.Get("/auth/cli/check", authHandler.HandleAuthCLICheck)
 
-	userGroup := apiGroup.Group("/users").Use(sessionMiddleware.SessionRequired())
+	userGroup := v1Group.Group("/users").Use(sessionMiddleware.SessionRequired())
 	userHandler := user.NewHandler(pg)
 	userGroup.Get("/:userID", userHandler.HandleUserGet)
 
-	guildsGroup := apiGroup.Group("/guilds").Use(sessionMiddleware.SessionRequired())
+	guildsGroup := v1Group.Group("/guilds").Use(sessionMiddleware.SessionRequired())
 	guildGroup := guildsGroup.Group("/:guildID").Use(accessMiddleware.GuildAccessRequired())
 
 	guildHandler := guild.NewHandler(pg, accessManager)
@@ -115,7 +123,7 @@ func (api *API) RegisterHandlers(engine *engine.Engine, pg *postgres.Client, acc
 	guildGroup.Get("/quick-access", quickAccessHandler.HandleQuickAccessItemList)
 
 	compileHandler := compile.NewHandler()
-	apiGroup.Post("/compile/js", helpers.WithRequestBody(compileHandler.HandleJSCompile))
+	v1Group.Post("/compile/js", helpers.WithRequestBody(compileHandler.HandleJSCompile))
 
 	// Serve statix files
 	api.app.Use("/", filesystem.New(filesystem.Config{

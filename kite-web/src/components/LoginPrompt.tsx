@@ -1,3 +1,4 @@
+import { getApiUrl } from "@/lib/api/client";
 import AppIllustrationPlaceholder from "./app/AppIllustrationPlaceholder";
 
 export default function LoginPrompt() {
@@ -10,7 +11,7 @@ export default function LoginPrompt() {
       />
       <div className="text-center">
         <a
-          href="/api/v1/auth/redirect"
+          href={getApiUrl("/v1/auth/redirect")}
           className="px-5 py-3 bg-primary rounded text-white text-lg"
         >
           Login with Discord

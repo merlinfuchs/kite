@@ -40,7 +40,7 @@ func RunServer(cfg *config.ServerConfig) error {
 		return fmt.Errorf("failed to start discord bot: %w", err)
 	}
 
-	api := api.New()
+	api := api.New(cfg)
 
 	accessManager := access.New(bot.State)
 	api.RegisterHandlers(e, pg, accessManager, cfg)

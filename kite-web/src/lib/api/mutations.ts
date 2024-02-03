@@ -11,38 +11,35 @@ import {
   WorkspaceUpdateResponse,
 } from "../types/wire";
 import { APIResponse } from "../types/response";
-
-function handleApiResponse<T extends APIResponse<any>>(
-  resp: Promise<T>
-): Promise<T> {
-  return resp;
-}
+import { apiRequest } from "./client";
 
 export function useCompileJsMutation() {
-  return useMutation((req: CompileJSRequest) => {
-    return fetch(`/api/v1/compile/js`, {
+  return useMutation((req: CompileJSRequest) =>
+    apiRequest<CompileJSResponse>(`/v1/compile/js`, {
       method: "POST",
       body: JSON.stringify(req),
       headers: {
         "Content-Type": "application/json",
       },
-    }).then((res) => handleApiResponse<CompileJSResponse>(res.json()));
-  });
+    })
+  );
 }
 
 export function useDeploymentCreateMutation(guildId: string | null) {
   const client = useQueryClient();
 
   return useMutation(
-    (req: DeploymentCreateRequest) => {
-      return fetch(`/api/v1/guilds/${guildId}/deployments`, {
-        method: "POST",
-        body: JSON.stringify(req),
-        headers: {
-          "Content-Type": "application/json",
-        },
-      }).then((res) => handleApiResponse<DeploymentCreateResponse>(res.json()));
-    },
+    (req: DeploymentCreateRequest) =>
+      apiRequest<DeploymentCreateResponse>(
+        `/v1/guilds/${guildId}/deployments`,
+        {
+          method: "POST",
+          body: JSON.stringify(req),
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      ),
     {
       onSuccess: (res) => {
         if (res.success) {
@@ -58,14 +55,16 @@ export function useDeploymentDeleteMutation(guildId: string | null) {
   const client = useQueryClient();
 
   return useMutation(
-    ({ deploymentId }: { deploymentId: string }) => {
-      return fetch(`/api/v1/guilds/${guildId}/deployments/${deploymentId}`, {
-        method: "DELETE",
-        headers: {
-          "Content-Type": "application/json",
-        },
-      }).then((res) => handleApiResponse<DeploymentDeleteResponse>(res.json()));
-    },
+    ({ deploymentId }: { deploymentId: string }) =>
+      apiRequest<DeploymentDeleteResponse>(
+        `/v1/guilds/${guildId}/deployments/${deploymentId}`,
+        {
+          method: "DELETE",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      ),
     {
       onSuccess: (res) => {
         if (res.success) {
@@ -81,15 +80,14 @@ export function useWorkspaceCreateMutation(guildId: string | null) {
   const client = useQueryClient();
 
   return useMutation(
-    (req: WorkspaceCreateRequest) => {
-      return fetch(`/api/v1/guilds/${guildId}/workspaces`, {
+    (req: WorkspaceCreateRequest) =>
+      apiRequest<WorkspaceCreateResponse>(`/v1/guilds/${guildId}/workspaces`, {
         method: "POST",
         body: JSON.stringify(req),
         headers: {
           "Content-Type": "application/json",
         },
-      }).then((res) => handleApiResponse<WorkspaceCreateResponse>(res.json()));
-    },
+      }),
     {
       onSuccess: (res) => {
         if (res.success) {
@@ -111,15 +109,17 @@ export function useWorkspaceUpdateMutation(guildId: string | null) {
     }: {
       workspaceId: string;
       req: WorkspaceCreateRequest;
-    }) => {
-      return fetch(`/api/v1/guilds/${guildId}/workspaces/${workspaceId}`, {
-        method: "PUT",
-        body: JSON.stringify(req),
-        headers: {
-          "Content-Type": "application/json",
-        },
-      }).then((res) => handleApiResponse<WorkspaceUpdateResponse>(res.json()));
-    },
+    }) =>
+      apiRequest<WorkspaceUpdateResponse>(
+        `/v1/guilds/${guildId}/workspaces/${workspaceId}`,
+        {
+          method: "PUT",
+          body: JSON.stringify(req),
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      ),
     {
       onSuccess: (res) => {
         if (res.success) {
@@ -135,14 +135,16 @@ export function useWorkspaceDeleteMutation(guildId: string | null) {
   const client = useQueryClient();
 
   return useMutation(
-    ({ workspaceId }: { workspaceId: string }) => {
-      return fetch(`/api/v1/guilds/${guildId}/workspaces/${workspaceId}`, {
-        method: "DELETE",
-        headers: {
-          "Content-Type": "application/json",
-        },
-      }).then((res) => handleApiResponse<WorkspaceDeleteResponse>(res.json()));
-    },
+    ({ workspaceId }: { workspaceId: string }) =>
+      apiRequest<WorkspaceDeleteResponse>(
+        `/v1/guilds/${guildId}/workspaces/${workspaceId}`,
+        {
+          method: "DELETE",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      ),
     {
       onSuccess: (res) => {
         if (res.success) {

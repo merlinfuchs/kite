@@ -26,3 +26,19 @@ const queryClient = new QueryClient({
 });
 
 export default queryClient;
+
+export function getApiUrl(path?: string) {
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
+  if (!path) {
+    return baseUrl;
+  }
+
+  return baseUrl + path;
+}
+
+export function apiRequest<T>(path: string, options?: RequestInit) {
+  return fetch(getApiUrl(path), {
+    ...options,
+    credentials: "include",
+  }).then((res) => res.json()) as Promise<T>;
+}

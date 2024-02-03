@@ -8,14 +8,14 @@ out = "plugin.wasm"
 [server]
 host = "127.0.0.1"
 port = 8080
-public_url = "http://localhost:3000/api"
+public_url = "http://localhost:8080"
 
 [server.sdk]
 js_script_path = "../js-sdk/dist/index.js"
 js_declaration_path = "../js-sdk/dist/index.d.ts"
 
 [server.app]
-public_url = "http://localhost:3000/app"
+public_url = "http://localhost:3000"
 
 [server.postgres]
 host = "127.0.0.1"

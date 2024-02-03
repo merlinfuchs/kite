@@ -16,6 +16,7 @@ import AppSidebarQuickAccess from "./AppSidebarQuickAccess";
 import AppSidebarGuildSelect from "./AppSidebarGuildSelect";
 import { useUserQuery } from "@/lib/api/queries";
 import { userAvatarUrl } from "@/lib/discord/cdn";
+import { getApiUrl } from "@/lib/api/client";
 
 interface Props {
   open: boolean;
@@ -122,7 +123,7 @@ export default function AppSideBar({ open, setOpen }: Props) {
                     {user?.global_name || user?.global_name || "User"}
                   </span>
                   <a
-                    href="/api/v1/auth/logout"
+                    href={getApiUrl("/v1/auth/logout")}
                     aria-label="Logout"
                     className="hover:bg-dark-3 text-gray-300 hover:text-gray-300 rounded-full p-1"
                   >
