@@ -2,7 +2,7 @@ import clsx from "clsx";
 
 const features = [
   {
-    title: "Fearless Hosting",
+    title: "Fearless Deployments",
     description:
       "Experience a new era of Discord Bot deployment with Kite's cutting-edge inbuilt cloud hosting and scaling feature. Say goodbye to complex server configurations and hello to instant deployment, allowing users to launch their Discord Bots seamlessly, ensuring reliability and performance at any scale.",
     illustration: "hosting",

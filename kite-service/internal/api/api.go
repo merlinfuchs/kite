@@ -4,11 +4,9 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
-	"net/http"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
-	"github.com/gofiber/fiber/v2/middleware/filesystem"
 	"github.com/gofiber/fiber/v2/middleware/recover"
 	"github.com/merlinfuchs/kite/kite-service/config"
 	"github.com/merlinfuchs/kite/kite-service/internal/api/access"
@@ -26,7 +24,6 @@ import (
 	"github.com/merlinfuchs/kite/kite-service/internal/logging/logattr"
 	"github.com/merlinfuchs/kite/kite-service/pkg/engine"
 	"github.com/merlinfuchs/kite/kite-service/pkg/wire"
-	kiteweb "github.com/merlinfuchs/kite/kite-web"
 )
 
 type API struct {
@@ -124,14 +121,6 @@ func (api *API) RegisterHandlers(engine *engine.Engine, pg *postgres.Client, acc
 
 	compileHandler := compile.NewHandler()
 	v1Group.Post("/compile/js", helpers.WithRequestBody(compileHandler.HandleJSCompile))
-
-	// Serve statix files
-	api.app.Use("/", filesystem.New(filesystem.Config{
-		Root:         http.FS(kiteweb.OutFS),
-		Browse:       false,
-		NotFoundFile: "out/index.html",
-		PathPrefix:   "/out",
-	}))
 }
 
 func (api *API) Serve(host string, port int) error {
