@@ -23,7 +23,7 @@ func New(token string, pg *postgres.Client) (*Bot, error) {
 		return nil, err
 	}
 
-	session.Identify.Intents = discordgo.MakeIntent(discordgo.IntentsGuilds | discordgo.IntentsGuildMessages | discordgo.IntentsGuildMembers)
+	session.Identify.Intents = discordgo.MakeIntent(discordgo.IntentsGuilds | discordgo.IntentsGuildMessages) // | discordgo.IntentsGuildMembers)
 	session.Identify.Presence = discordgo.GatewayStatusUpdate{
 		Game: discordgo.Activity{
 			Name:  "kite.onl",

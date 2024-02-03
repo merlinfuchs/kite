@@ -31,7 +31,7 @@ type Feature = (typeof features)[number];
 
 export default function HomeFeatures() {
   return (
-    <div className="px-5 sm:px-10">
+    <div className="px-5 sm:px-10" id="features">
       <div className="py-32 space-y-20 lg:space-y-32 max-w-7xl mx-auto">
         {features.map((feature, i) => (
           <HomeFeature key={i} feature={feature} reverse={i % 2 === 1} />

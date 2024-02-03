@@ -7,11 +7,11 @@
   "license": "AGPL-3.0",
   "type": "module",
   "scripts": {
-    "build": "yarn compile && yarn bundle && yarn extract-types",
+    "build": "npm run compile && npm run bundle && npm run extract-types",
     "compile": "tsc",
     "bundle": "esbuild build/index.js --bundle --minify --format=esm --platform=browser --outfile=dist/index.js",
     "extract-types": "api-extractor run --local && mv dist/kite-sdk.d.ts dist/index.d.ts && rm dist/tsdoc-metadata.json",
-    "prepublishOnly": "yarn build"
+    "prepublishOnly": "npm run build"
   },
   "files": [
     "/dist"
@@ -20,6 +20,5 @@
     "@microsoft/api-extractor": "^7.39.4",
     "esbuild": "^0.20.0",
     "typescript": "^5.3.3"
-  },
-  "packageManager": "yarn@1.22.21"
+  }
 }
