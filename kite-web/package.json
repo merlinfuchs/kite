@@ -4,7 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "link-dep": "cd ../js-sdk && yarn && yarn build && yarn link && cd ../kite-web && yarn link @merlingg/kite-sdk && yarn install",
+    "build": "yarn link-dep && next build",
     "start": "next start",
     "lint": "next lint"
   },
@@ -12,7 +13,7 @@
     "@formkit/auto-animate": "^0.8.1",
     "@headlessui/react": "^1.7.18",
     "@heroicons/react": "^2.1.1",
-    "@merlingg/kite-sdk": "portal:../js-sdk",
+    "@merlingg/kite-sdk": "file:../js-sdk",
     "@monaco-editor/react": "^4.6.0",
     "apexcharts": "^3.45.2",
     "clsx": "^2.1.0",
