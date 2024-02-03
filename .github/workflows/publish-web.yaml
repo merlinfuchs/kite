@@ -10,6 +10,8 @@ jobs:
       contents: read
       deployments: write
     name: Publish to Cloudflare Pages
+    env:
+      NEXT_PUBLIC_API_URL: https://api.kite.onl
     steps:
       - name: Checkout
         uses: actions/checkout@v3
