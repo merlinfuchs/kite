@@ -2,6 +2,8 @@ on:
   push:
     branches:
       - main
+    paths:
+      - "kite-docs/**"
 
 jobs:
   publish:
@@ -20,7 +22,7 @@ jobs:
           node-version: 18
 
       - name: Build
-        working-directory: kite-web
+        working-directory: kite-docs
         run: |
           npm install
           npm run build
