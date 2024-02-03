@@ -22,7 +22,7 @@ func loginCMD() *cli.Command {
 			&cli.StringFlag{
 				Name:  "server",
 				Usage: "The Kite server to deploy to",
-				Value: "http://localhost:3000",
+				Value: "http://localhost:8080",
 			},
 		},
 		Action: func(c *cli.Context) error {
@@ -45,7 +45,7 @@ func loginCMD() *cli.Command {
 
 func runLogin(serverURL *url.URL, cfg *config.GlobalConfig) error {
 	authStartURL := *serverURL
-	authStartURL.Path = path.Join(authStartURL.Path, "/api/v1/auth/cli/start")
+	authStartURL.Path = path.Join(authStartURL.Path, "/v1/auth/cli/start")
 	resp, err := http.Post(authStartURL.String(), "application/json", nil)
 	if err != nil {
 		return fmt.Errorf("Failed to start auth: %v", err)
@@ -68,7 +68,7 @@ func runLogin(serverURL *url.URL, cfg *config.GlobalConfig) error {
 	loginCode := loginResp.Data.Code
 
 	authRedirectURL := *serverURL
-	authRedirectURL.Path = path.Join(authRedirectURL.Path, "/api/v1/auth/cli/redirect")
+	authRedirectURL.Path = path.Join(authRedirectURL.Path, "/v1/auth/cli/redirect")
 	authRedirectURL.RawQuery = url.Values{
 		"code": {loginCode},
 	}.Encode()
@@ -77,7 +77,7 @@ func runLogin(serverURL *url.URL, cfg *config.GlobalConfig) error {
 	fmt.Println("\n\nWaiting for you to complete the login ...")
 
 	authCheckURL := *serverURL
-	authCheckURL.Path = path.Join(authCheckURL.Path, "/api/v1/auth/cli/check")
+	authCheckURL.Path = path.Join(authCheckURL.Path, "/v1/auth/cli/check")
 	authCheckURL.RawQuery = url.Values{
 		"code": {loginCode},
 	}.Encode()

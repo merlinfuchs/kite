@@ -34,7 +34,7 @@ func deployCMD() *cli.Command {
 			&cli.StringFlag{
 				Name:  "server",
 				Usage: "The Kite server to deploy to",
-				Value: "http://localhost:3000",
+				Value: "http://localhost:8080",
 			},
 		},
 		Action: func(c *cli.Context) error {
@@ -81,7 +81,7 @@ func runDeploy(
 		return fmt.Errorf("No session for server %s, login first!", serverURL.String())
 	}
 
-	serverURL.Path = path.Join(serverURL.Path, "api/v1/guilds", guildID, "deployments")
+	serverURL.Path = path.Join(serverURL.Path, "v1/guilds", guildID, "deployments")
 
 	wasmPath := filepath.Join(basePath, cfg.Module.Build.Out)
 	wasm, err := os.ReadFile(wasmPath)
