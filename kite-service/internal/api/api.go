@@ -49,9 +49,10 @@ func New(cfg *config.ServerConfig) *API {
 	})
 
 	app.Use(cors.New(cors.Config{
-		AllowOrigins:     cfg.App.PublicURL,
-		AllowMethods:     "*",
-		AllowHeaders:     "*",
+		AllowOrigins: cfg.App.PublicURL,
+		AllowMethods: "GET,POST,PUT,PATCH,DELETE,OPTIONS",
+		// I don't think we depend on any headers right now, and wildcard doesn't work with credentials
+		AllowHeaders:     "",
 		AllowCredentials: true,
 	}))
 
