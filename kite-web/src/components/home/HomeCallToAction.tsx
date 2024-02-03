@@ -14,8 +14,8 @@ export default function HomeCallToAction() {
           Let Kite take care of your Bot
         </div>
         <div className="text-gray-300 text-xl mb-10 leading-relaxed">
-          Dive into the Future of Bot Creation with Kite's Web Assembly Runtime.
-          Ready to Elevate Your Community?
+          Ready to experience the new way of building Discord Bots and benefit
+          from the power of WebAssembly?
         </div>
         <div className="flex">
           <Link

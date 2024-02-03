@@ -2,6 +2,12 @@ import clsx from "clsx";
 
 const features = [
   {
+    title: "Fearless Hosting",
+    description:
+      "Experience a new era of Discord Bot deployment with Kite's cutting-edge inbuilt cloud hosting and scaling feature. Say goodbye to complex server configurations and hello to instant deployment, allowing users to launch their Discord Bots seamlessly, ensuring reliability and performance at any scale.",
+    illustration: "hosting",
+  },
+  {
     title: "Powerful Web Editor",
     description:
       "The Kite Web Code Editor is a powerful and user-friendly online platform designed to streamline the creation and deployment of Discord Bots directly from the web browser. Offering an intuitive interface and a rich set of features, this tool empowers users, from beginners to experienced developers, to effortlessly code, test, and deploy Discord Bots with unprecedented ease.",
@@ -49,15 +55,15 @@ function HomeFeature({
         reverse ? "lg:flex-row-reverse" : "lg:flex-row"
       )}
     >
-      <div className="w-1/2">
-        <div className="text-3xl font-semibold text-gray-100 mb-5">
+      <div className="w-full">
+        <h2 className="text-3xl font-semibold text-gray-100 mb-5">
           {feature.title}
-        </div>
+        </h2>
         <div className="text-xl text-gray-300 leading-relaxed">
           {feature.description}
         </div>
       </div>
-      <div className="w-1/2">
+      <div className="w-full">
         <img src={`/illustrations/${feature.illustration}.svg`} alt="" />
       </div>
     </div>
