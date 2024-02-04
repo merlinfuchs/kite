@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "link-dep": "cd ../js-sdk && npm i && npm run build && npm link && cd ../kite-web && npm link @merlingg/kite-sdk",
+    "link-dep": "cd ../kite-sdk-js && npm i && npm run build && npm link && cd ../kite-web && npm link @merlingg/kite-sdk",
     "build": "next build",
     "build-cf": "npx @cloudflare/next-on-pages@1",
     "start": "next start",
@@ -15,7 +15,7 @@
     "@formkit/auto-animate": "^0.8.1",
     "@headlessui/react": "^1.7.18",
     "@heroicons/react": "^2.1.1",
-    "@merlingg/kite-sdk": "file:../js-sdk",
+    "@merlingg/kite-sdk": "file:../kite-sdk-js",
     "@monaco-editor/react": "^4.6.0",
     "apexcharts": "^3.45.2",
     "clsx": "^2.1.0",

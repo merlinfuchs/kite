@@ -5,9 +5,9 @@ import (
 	"log/slog"
 	"time"
 
-	"github.com/merlinfuchs/kite/go-types/logmodel"
 	"github.com/merlinfuchs/kite/kite-service/internal/logging/logattr"
 	"github.com/merlinfuchs/kite/kite-service/pkg/model"
+	"github.com/merlinfuchs/kite/kite-types/logmodel"
 )
 
 func (h HostEnvironment) Log(ctx context.Context, level logmodel.LogLevel, msg string) {

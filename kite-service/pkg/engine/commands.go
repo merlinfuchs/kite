@@ -2,7 +2,7 @@ package engine
 
 import (
 	"github.com/bwmarrin/discordgo"
-	"github.com/merlinfuchs/kite/go-types/manifest"
+	"github.com/merlinfuchs/kite/kite-types/manifest"
 )
 
 func (e *Engine) GuildCommands(guildID string) []*discordgo.ApplicationCommand {

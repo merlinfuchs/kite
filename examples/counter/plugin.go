@@ -3,11 +3,11 @@ package main
 import (
 	"strconv"
 
-	kite "github.com/merlinfuchs/kite/go-sdk"
-	"github.com/merlinfuchs/kite/go-sdk/discord"
-	"github.com/merlinfuchs/kite/go-sdk/kv"
-	"github.com/merlinfuchs/kite/go-types/dismodel"
-	"github.com/merlinfuchs/kite/go-types/event"
+	kite "github.com/merlinfuchs/kite/kite-sdk-go"
+	"github.com/merlinfuchs/kite/kite-sdk-go/discord"
+	"github.com/merlinfuchs/kite/kite-sdk-go/kv"
+	"github.com/merlinfuchs/kite/kite-types/dismodel"
+	"github.com/merlinfuchs/kite/kite-types/event"
 )
 
 const resetMessage = "Wrong counter value! The counter has been reset."

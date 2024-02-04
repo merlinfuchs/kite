@@ -6,11 +6,11 @@ import (
 	"log/slog"
 	"time"
 
-	"github.com/merlinfuchs/kite/go-types/manifest"
 	"github.com/merlinfuchs/kite/kite-service/internal/host"
 	"github.com/merlinfuchs/kite/kite-service/internal/logging/logattr"
 	"github.com/merlinfuchs/kite/kite-service/pkg/engine"
 	"github.com/merlinfuchs/kite/kite-service/pkg/module"
+	"github.com/merlinfuchs/kite/kite-types/manifest"
 )
 
 func (m *DeploymentManager) populateEngineDeployments(ctx context.Context) error {

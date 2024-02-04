@@ -5,8 +5,8 @@ import (
 	"log/slog"
 	"sync"
 
-	"github.com/merlinfuchs/kite/go-types/event"
 	"github.com/merlinfuchs/kite/kite-service/internal/logging/logattr"
+	"github.com/merlinfuchs/kite/kite-types/event"
 )
 
 func (e *Engine) HandleEvent(ctx context.Context, event *event.Event) {

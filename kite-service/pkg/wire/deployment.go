@@ -3,8 +3,8 @@ package wire
 import (
 	"time"
 
-	"github.com/merlinfuchs/kite/go-types/manifest"
 	"github.com/merlinfuchs/kite/kite-service/pkg/model"
+	"github.com/merlinfuchs/kite/kite-types/manifest"
 	"gopkg.in/guregu/null.v4"
 )
 

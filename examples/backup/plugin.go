@@ -4,13 +4,13 @@ import (
 	"encoding/json"
 	"math/rand"
 
-	kite "github.com/merlinfuchs/kite/go-sdk"
-	"github.com/merlinfuchs/kite/go-sdk/discord"
-	"github.com/merlinfuchs/kite/go-sdk/kv"
-	"github.com/merlinfuchs/kite/go-sdk/log"
-	"github.com/merlinfuchs/kite/go-types/dismodel"
-	"github.com/merlinfuchs/kite/go-types/fail"
-	"github.com/merlinfuchs/kite/go-types/kvmodel"
+	kite "github.com/merlinfuchs/kite/kite-sdk-go"
+	"github.com/merlinfuchs/kite/kite-sdk-go/discord"
+	"github.com/merlinfuchs/kite/kite-sdk-go/kv"
+	"github.com/merlinfuchs/kite/kite-sdk-go/log"
+	"github.com/merlinfuchs/kite/kite-types/dismodel"
+	"github.com/merlinfuchs/kite/kite-types/fail"
+	"github.com/merlinfuchs/kite/kite-types/kvmodel"
 )
 
 type Backup struct {

@@ -3,7 +3,7 @@ package model
 import (
 	"time"
 
-	"github.com/merlinfuchs/kite/go-types/kvmodel"
+	"github.com/merlinfuchs/kite/kite-types/kvmodel"
 )
 
 type KVStorageNamespace struct {

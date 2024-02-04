@@ -6,10 +6,10 @@ import (
 	"encoding/json"
 	"time"
 
-	"github.com/merlinfuchs/kite/go-types/kvmodel"
 	"github.com/merlinfuchs/kite/kite-service/internal/db/postgres/pgmodel"
 	"github.com/merlinfuchs/kite/kite-service/pkg/model"
 	"github.com/merlinfuchs/kite/kite-service/pkg/store"
+	"github.com/merlinfuchs/kite/kite-types/kvmodel"
 )
 
 func (c *Client) GetKVStorageNamespaces(ctx context.Context, guildID string) ([]model.KVStorageNamespace, error) {

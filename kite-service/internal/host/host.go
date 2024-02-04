@@ -6,14 +6,14 @@ import (
 	"log/slog"
 	"time"
 
-	"github.com/merlinfuchs/kite/go-types/call"
-	"github.com/merlinfuchs/kite/go-types/dismodel"
-	"github.com/merlinfuchs/kite/go-types/kvmodel"
-	"github.com/merlinfuchs/kite/go-types/manifest"
 	"github.com/merlinfuchs/kite/kite-service/internal/bot"
 	"github.com/merlinfuchs/kite/kite-service/internal/logging/logattr"
 	"github.com/merlinfuchs/kite/kite-service/pkg/model"
 	"github.com/merlinfuchs/kite/kite-service/pkg/store"
+	"github.com/merlinfuchs/kite/kite-types/call"
+	"github.com/merlinfuchs/kite/kite-types/dismodel"
+	"github.com/merlinfuchs/kite/kite-types/kvmodel"
+	"github.com/merlinfuchs/kite/kite-types/manifest"
 )
 
 type HostEnvironmentStores struct {

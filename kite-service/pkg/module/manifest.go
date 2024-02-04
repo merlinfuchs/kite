@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/merlinfuchs/kite/go-types/manifest"
+	"github.com/merlinfuchs/kite/kite-types/manifest"
 )
 
 func (p *Module) getAPIVersion(ctx context.Context) (manifest.APIVersion, error) {

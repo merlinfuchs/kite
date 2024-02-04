@@ -6,11 +6,11 @@ import (
 	"fmt"
 	"log/slog"
 
-	"github.com/merlinfuchs/kite/go-types/call"
-	"github.com/merlinfuchs/kite/go-types/event"
-	"github.com/merlinfuchs/kite/go-types/fail"
-	"github.com/merlinfuchs/kite/go-types/logmodel"
-	"github.com/merlinfuchs/kite/go-types/manifest"
+	"github.com/merlinfuchs/kite/kite-types/call"
+	"github.com/merlinfuchs/kite/kite-types/event"
+	"github.com/merlinfuchs/kite/kite-types/fail"
+	"github.com/merlinfuchs/kite/kite-types/logmodel"
+	"github.com/merlinfuchs/kite/kite-types/manifest"
 )
 
 func (p *Module) kiteSetManifest(offset uint32, length uint32) uint32 {

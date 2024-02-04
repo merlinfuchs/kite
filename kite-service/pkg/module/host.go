@@ -4,8 +4,8 @@ import (
 	"context"
 	"time"
 
-	"github.com/merlinfuchs/kite/go-types/call"
-	"github.com/merlinfuchs/kite/go-types/logmodel"
+	"github.com/merlinfuchs/kite/kite-types/call"
+	"github.com/merlinfuchs/kite/kite-types/logmodel"
 )
 
 type HostEnvironment interface {

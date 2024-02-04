@@ -97,10 +97,10 @@ Create a `plugin.go` file with your Go code for the plugin. It must contain a `m
 package main
 
 import (
-    kite "github.com/merlinfuchs/kite/go-sdk"
-    "github.com/merlinfuchs/kite/go-sdk/log"
-    "github.com/merlinfuchs/kite/go-types/discord"
-    "github.com/merlinfuchs/kite/go-types/event"
+    kite "github.com/merlinfuchs/kite/kite-sdk-go"
+    "github.com/merlinfuchs/kite/kite-sdk-go/log"
+    "github.com/merlinfuchs/kite/kite-types/discord"
+    "github.com/merlinfuchs/kite/kite-types/event"
 )
 
 func main() {
@@ -142,7 +142,7 @@ kite plugin deploy --guild_id 1234567890
 
 ### JavaScript
 
-To write plugins in JS you need to first install the custom compiler by following the instructions in the [js-sdk](js-sdk).
+To write plugins in JS you need to first install the custom compiler by following the instructions in the [kite-sdk-js](kite-sdk-js).
 
 #### 1. Create a new plugin
 

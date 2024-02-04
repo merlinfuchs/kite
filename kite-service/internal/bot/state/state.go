@@ -8,9 +8,9 @@ import (
 	"sync"
 
 	"github.com/bwmarrin/discordgo"
-	"github.com/merlinfuchs/kite/go-types/dismodel"
 	"github.com/merlinfuchs/kite/kite-service/internal/logging/logattr"
 	"github.com/merlinfuchs/kite/kite-service/pkg/store"
+	"github.com/merlinfuchs/kite/kite-types/dismodel"
 )
 
 type BotState struct {

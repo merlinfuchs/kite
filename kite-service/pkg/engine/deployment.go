@@ -8,11 +8,11 @@ import (
 	"slices"
 
 	pool "github.com/jolestar/go-commons-pool/v2"
-	"github.com/merlinfuchs/kite/go-types/event"
-	"github.com/merlinfuchs/kite/go-types/logmodel"
-	"github.com/merlinfuchs/kite/go-types/manifest"
 	"github.com/merlinfuchs/kite/kite-service/internal/logging/logattr"
 	"github.com/merlinfuchs/kite/kite-service/pkg/module"
+	"github.com/merlinfuchs/kite/kite-types/event"
+	"github.com/merlinfuchs/kite/kite-types/logmodel"
+	"github.com/merlinfuchs/kite/kite-types/manifest"
 )
 
 type Deployment struct {

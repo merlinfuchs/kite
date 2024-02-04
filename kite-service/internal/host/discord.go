@@ -5,8 +5,8 @@ import (
 	"math"
 
 	"github.com/bwmarrin/discordgo"
-	"github.com/merlinfuchs/kite/go-types/dismodel"
-	"github.com/merlinfuchs/kite/go-types/fail"
+	"github.com/merlinfuchs/kite/kite-types/dismodel"
+	"github.com/merlinfuchs/kite/kite-types/fail"
 )
 
 func (h HostEnvironment) callDiscordBanList(ctx context.Context, data dismodel.BanListCall) (dismodel.BanListResponse, error) {

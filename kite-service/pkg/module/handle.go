@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/merlinfuchs/kite/go-types/event"
+	"github.com/merlinfuchs/kite/kite-types/event"
 )
 
 type HandleResult struct {

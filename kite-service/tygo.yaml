@@ -17,7 +17,7 @@ packages:
     frontmatter: |
       import {APIResponse} from "./response"
       import {Manifest} from "./manifest"
-  - path: "github.com/merlinfuchs/kite/go-types/manifest"
+  - path: "github.com/merlinfuchs/kite/kite-types/manifest"
     output_path: "../kite-web/src/lib/types/manifest.ts"
     type_mappings:
       null.String: "null | string"

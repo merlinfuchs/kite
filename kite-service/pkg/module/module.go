@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/merlinfuchs/kite/go-types/event"
-	"github.com/merlinfuchs/kite/go-types/logmodel"
-	"github.com/merlinfuchs/kite/go-types/manifest"
+	"github.com/merlinfuchs/kite/kite-types/event"
+	"github.com/merlinfuchs/kite/kite-types/logmodel"
+	"github.com/merlinfuchs/kite/kite-types/manifest"
 	"github.com/tetratelabs/wazero"
 	"github.com/tetratelabs/wazero/api"
 	"github.com/tetratelabs/wazero/imports/wasi_snapshot_preview1"

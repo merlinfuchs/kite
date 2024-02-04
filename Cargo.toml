@@ -5,9 +5,9 @@ opt-level = 's'
 [workspace]
 resolver = "2"
 members = [
-    "js-sdk/crates/kitejs-compiler",
+    "kite-sdk-js/crates/kitejs-compiler",
 ]
 exclude = [
     # TODO: resolve depdency conflicts so this can be a workspace memebr
-    "js-sdk/crates/kitejs-engine",
+    "kite-sdk-js/crates/kitejs-engine",
 ]

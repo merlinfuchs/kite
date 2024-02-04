@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/merlinfuchs/kite/go-types/fail"
-	"github.com/merlinfuchs/kite/go-types/kvmodel"
 	"github.com/merlinfuchs/kite/kite-service/pkg/store"
+	"github.com/merlinfuchs/kite/kite-types/fail"
+	"github.com/merlinfuchs/kite/kite-types/kvmodel"
 )
 
 func (h HostEnvironment) callKVKeyGet(ctx context.Context, data kvmodel.KVKeyGetCall) (kvmodel.KVKeyGetResponse, error) {

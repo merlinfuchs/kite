@@ -3,7 +3,7 @@ package store
 import (
 	"context"
 
-	"github.com/merlinfuchs/kite/go-types/dismodel"
+	"github.com/merlinfuchs/kite/kite-types/dismodel"
 )
 
 type DiscordStateStore interface {

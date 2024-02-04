@@ -5,8 +5,8 @@ import (
 	"errors"
 
 	"github.com/bwmarrin/discordgo"
-	"github.com/merlinfuchs/kite/go-types/dismodel"
-	"github.com/merlinfuchs/kite/go-types/fail"
+	"github.com/merlinfuchs/kite/kite-types/dismodel"
+	"github.com/merlinfuchs/kite/kite-types/fail"
 )
 
 func modelMessage(msg *discordgo.Message) dismodel.Message {

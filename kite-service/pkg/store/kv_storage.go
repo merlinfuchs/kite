@@ -3,8 +3,8 @@ package store
 import (
 	"context"
 
-	"github.com/merlinfuchs/kite/go-types/kvmodel"
 	"github.com/merlinfuchs/kite/kite-service/pkg/model"
+	"github.com/merlinfuchs/kite/kite-types/kvmodel"
 )
 
 type KVStorageStore interface {

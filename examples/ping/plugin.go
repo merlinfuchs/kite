@@ -1,13 +1,13 @@
 package main
 
 import (
-	kite "github.com/merlinfuchs/kite/go-sdk"
-	"github.com/merlinfuchs/kite/go-sdk/config"
-	"github.com/merlinfuchs/kite/go-sdk/discord"
-	"github.com/merlinfuchs/kite/go-sdk/log"
-	"github.com/merlinfuchs/kite/go-types/dismodel"
-	"github.com/merlinfuchs/kite/go-types/event"
-	"github.com/merlinfuchs/kite/go-types/manifest"
+	kite "github.com/merlinfuchs/kite/kite-sdk-go"
+	"github.com/merlinfuchs/kite/kite-sdk-go/config"
+	"github.com/merlinfuchs/kite/kite-sdk-go/discord"
+	"github.com/merlinfuchs/kite/kite-sdk-go/log"
+	"github.com/merlinfuchs/kite/kite-types/dismodel"
+	"github.com/merlinfuchs/kite/kite-types/event"
+	"github.com/merlinfuchs/kite/kite-types/manifest"
 )
 
 func main() {
