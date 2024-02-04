@@ -75,6 +75,7 @@ func (api *API) RegisterHandlers(engine *engine.Engine, pg *postgres.Client, acc
 	v1Group := api.app.Group("/v1")
 
 	authHandler := auth.New(sessionManager, pg, cfg)
+	v1Group.Get("/auth/invite", authHandler.HandleAuthInviteRedirect)
 	v1Group.Get("/auth/redirect", authHandler.HandleAuthRedirect)
 	v1Group.Get("/auth/callback", authHandler.HandleAuthCallback)
 	v1Group.Get("/auth/logout", authHandler.HandleAuthLogout)

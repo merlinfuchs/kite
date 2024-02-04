@@ -21,8 +21,8 @@ func loginCMD() *cli.Command {
 		Flags: []cli.Flag{
 			&cli.StringFlag{
 				Name:  "server",
-				Usage: "The Kite server to deploy to",
-				Value: "http://localhost:8080",
+				Usage: "The Kite server to authenticate with",
+				Value: "https://api.kite.onl",
 			},
 		},
 		Action: func(c *cli.Context) error {

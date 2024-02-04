@@ -1,7 +1,9 @@
 import AppLayout from "@/components/app/AppLayout";
+import { getApiUrl } from "@/lib/api/client";
 import { useGuildsQuery } from "@/lib/api/queries";
 import { guildIconUrl } from "@/lib/discord/cdn";
 import { guildNameAbbreviation } from "@/lib/discord/util";
+import { PlusCircleIcon } from "@heroicons/react/24/outline";
 import Link from "next/link";
 
 export default function GuildsPage() {
@@ -48,6 +50,15 @@ export default function GuildsPage() {
               </div>
             </Link>
           ))}
+          <a
+            className="rounded-md px-3 py-3 border-2 border-dashed border-dark-7 hover:bg-dark-4 flex items-center"
+            href={getApiUrl("/v1/auth/invite")}
+          >
+            <PlusCircleIcon className="h-14 w-14 text-gray-300 mr-3" />
+            <div className="text-lg font-medium text-gray-100">
+              Add to server
+            </div>
+          </a>
         </div>
       </div>
     </AppLayout>
