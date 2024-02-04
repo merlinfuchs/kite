@@ -33,7 +33,11 @@ func initCMD() *cli.Command {
 			},
 		},
 		Action: func(c *cli.Context) error {
-			basePath := c.String("path")
+			basePath := c.Args().Get(0)
+			if basePath == "" {
+				basePath = "."
+			}
+
 			typ := c.String("type")
 			key := c.String("key")
 			name := c.String("name")

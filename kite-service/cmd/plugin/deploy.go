@@ -38,7 +38,10 @@ func deployCMD() *cli.Command {
 			},
 		},
 		Action: func(c *cli.Context) error {
-			basePath := c.String("path")
+			basePath := c.Args().Get(0)
+			if basePath == "" {
+				basePath = "."
+			}
 			guildID := c.String("guild_id")
 			rawUserConfig := c.String("config")
 			server := c.String("server")

@@ -24,7 +24,10 @@ func buildCMD() *cli.Command {
 			},
 		},
 		Action: func(c *cli.Context) error {
-			basePath := c.String("path")
+			basePath := c.Args().Get(0)
+			if basePath == "" {
+				basePath = "."
+			}
 
 			cfg, err := config.LoadworkspaceConfig(basePath)
 			if err != nil {
