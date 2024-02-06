@@ -26,7 +26,7 @@ export default function GuildsPage() {
           {guilds.map((guild) => (
             <Link
               key={guild.id}
-              className="bg-dark-2 rounded-md px-3 py-3 flex items-center hover:scale-101"
+              className="bg-dark-2 rounded-md px-3 py-3 flex items-center hover:scale-101 transition-transform"
               href={`/app/guilds/${guild.id}`}
             >
               <div className="bg-dark-1 h-14 w-14 rounded-full flex items-center justify-center flex-none mr-4">
@@ -51,10 +51,10 @@ export default function GuildsPage() {
             </Link>
           ))}
           <a
-            className="rounded-md px-3 py-3 border-2 border-dashed border-dark-7 hover:bg-dark-4 flex items-center"
+            className="rounded-md px-3 py-3 border-2 border-dashed border-dark-7 hover:bg-dark-4 flex items-center group transition-colors"
             href={getApiUrl("/v1/auth/invite")}
           >
-            <PlusCircleIcon className="h-14 w-14 text-gray-300 mr-3" />
+            <PlusCircleIcon className="h-14 w-14 text-gray-400 group-hover:text-gray-300 mr-3" />
             <div className="text-lg font-medium text-gray-100">
               Add to server
             </div>
