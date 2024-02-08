@@ -8,22 +8,22 @@ import (
 	"github.com/merlinfuchs/kite/kite-sdk-go/discord"
 	"github.com/merlinfuchs/kite/kite-sdk-go/kv"
 	"github.com/merlinfuchs/kite/kite-sdk-go/log"
-	"github.com/merlinfuchs/kite/kite-types/dismodel"
+
 	"github.com/merlinfuchs/kite/kite-types/fail"
 	"github.com/merlinfuchs/kite/kite-types/kvmodel"
 )
 
 type Backup struct {
-	Guild    dismodel.Guild     `json:"guild"`
-	Channels []dismodel.Channel `json:"channels"`
-	Roles    []dismodel.Role    `json:"roles"`
+	Guild    distype.Guild     `json:"guild"`
+	Channels []distype.Channel `json:"channels"`
+	Roles    []distype.Role    `json:"roles"`
 }
 
 func init() {
 	log.Debug("Backup Plugin loaded")
 	store := kv.New("backup")
 
-	kite.Command("backup create", func(i dismodel.Interaction, options []dismodel.ApplicationCommandOptionData) error {
+	kite.Command("backup create", func(i distype.Interaction, options []distype.ApplicationCommandOptionData) error {
 		guild, err := discord.GuildGet()
 		if err != nil {
 			return err
@@ -53,10 +53,10 @@ func init() {
 		backupID := RandomString(10)
 		store.Set(backupID, kvmodel.KVString(backupRaw))
 
-		_, err = discord.InteractionResponseCreate(dismodel.InteractionResponseCreateCall{
+		_, err = discord.InteractionResponseCreate(distype.InteractionResponseCreateRequest{
 			ID:    i.ID,
 			Token: i.Token,
-			Data: dismodel.InteractionResponseData{
+			Data: distype.InteractionResponseData{
 				Content: "Backup created! ```" + backupID + "```",
 			},
 		})
@@ -67,16 +67,16 @@ func init() {
 		return nil
 	})
 
-	kite.Command("backup load", func(i dismodel.Interaction, options []dismodel.ApplicationCommandOptionData) error {
+	kite.Command("backup load", func(i distype.Interaction, options []distype.ApplicationCommandOptionData) error {
 		backupID := options[0].Value.(string)
 
 		backupRaw, err := store.Get(backupID)
 		if err != nil {
 			if fail.IsHostErrorCode(err, fail.HostErrorTypeKVKeyNotFound) {
-				_, err := discord.InteractionResponseCreate(dismodel.InteractionResponseCreateCall{
+				_, err := discord.InteractionResponseCreate(distype.InteractionResponseCreateRequest{
 					ID:    i.ID,
 					Token: i.Token,
-					Data: dismodel.InteractionResponseData{
+					Data: distype.InteractionResponseData{
 						Content: "Backup not found!",
 					},
 				})
@@ -90,10 +90,10 @@ func init() {
 			return err
 		}
 
-		_, err = discord.InteractionResponseCreate(dismodel.InteractionResponseCreateCall{
+		_, err = discord.InteractionResponseCreate(distype.InteractionResponseCreateRequest{
 			ID:    i.ID,
 			Token: i.Token,
-			Data: dismodel.InteractionResponseData{
+			Data: distype.InteractionResponseData{
 				Content: "Backup load!",
 			},
 		})

@@ -5,42 +5,43 @@ import (
 	"errors"
 
 	"github.com/bwmarrin/discordgo"
-	"github.com/merlinfuchs/kite/kite-types/dismodel"
+	"github.com/merlinfuchs/dismod/distype"
+
 	"github.com/merlinfuchs/kite/kite-types/fail"
 )
 
-func modelMessage(msg *discordgo.Message) dismodel.Message {
-	return dismodel.Message{
-		ID:        msg.ID,
-		ChannelID: msg.ChannelID,
+func modelMessage(msg *discordgo.Message) distype.Message {
+	return distype.Message{
+		ID:        distype.Snowflake(msg.ID),
+		ChannelID: distype.Snowflake(msg.ChannelID),
 		Content:   msg.Content,
 	}
 }
 
-func modelChannel(channel *discordgo.Channel) dismodel.Channel {
-	return dismodel.Channel{
-		ID:   channel.ID,
-		Name: channel.Name,
+func modelChannel(channel *discordgo.Channel) distype.Channel {
+	return distype.Channel{
+		ID:   distype.Snowflake(channel.ID),
+		Name: &channel.Name,
 	}
 }
 
-func modelUser(user *discordgo.User) dismodel.User {
-	return dismodel.User{
-		ID:       user.ID,
+func modelUser(user *discordgo.User) distype.User {
+	return distype.User{
+		ID:       distype.Snowflake(user.ID),
 		Username: user.Username,
 	}
 }
 
-func modelGuild(guild *discordgo.Guild) dismodel.Guild {
-	return dismodel.Guild{
-		ID:   guild.ID,
+func modelGuild(guild *discordgo.Guild) distype.Guild {
+	return distype.Guild{
+		ID:   distype.Snowflake(guild.ID),
 		Name: guild.Name,
 	}
 }
 
-func modelRole(role *discordgo.Role) dismodel.Role {
-	return dismodel.Role{
-		ID:   role.ID,
+func modelRole(role *discordgo.Role) distype.Role {
+	return distype.Role{
+		ID:   distype.Snowflake(role.ID),
 		Name: role.Name,
 	}
 }

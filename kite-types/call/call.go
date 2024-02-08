@@ -3,7 +3,8 @@ package call
 import (
 	"encoding/json"
 
-	"github.com/merlinfuchs/kite/kite-types/dismodel"
+	"github.com/merlinfuchs/dismod/distype"
+
 	"github.com/merlinfuchs/kite/kite-types/fail"
 	"github.com/merlinfuchs/kite/kite-types/internal"
 	"github.com/merlinfuchs/kite/kite-types/kvmodel"
@@ -152,207 +153,207 @@ func (c *Call) UnmarshalJSON(b []byte) error {
 	case KVKeyIncrease:
 		c.Data, err = internal.DecodeT[kvmodel.KVKeyIncreaseCall](temp.Data)
 	case DiscordBanList:
-		c.Data, err = internal.DecodeT[dismodel.BanListCall](temp.Data)
+		c.Data, err = internal.DecodeT[distype.BanListRequest](temp.Data)
 	case DiscordBanGet:
-		c.Data, err = internal.DecodeT[dismodel.BanGetCall](temp.Data)
+		c.Data, err = internal.DecodeT[distype.BanGetRequest](temp.Data)
 	case DiscordBanCreate:
-		c.Data, err = internal.DecodeT[dismodel.BanCreateCall](temp.Data)
+		c.Data, err = internal.DecodeT[distype.BanCreateRequest](temp.Data)
 	case DiscordBanRemove:
-		c.Data, err = internal.DecodeT[dismodel.BanRemoveCall](temp.Data)
+		c.Data, err = internal.DecodeT[distype.BanRemoveRequest](temp.Data)
 	case DiscordChannelGet:
-		c.Data, err = internal.DecodeT[dismodel.ChannelGetCall](temp.Data)
+		c.Data, err = internal.DecodeT[distype.ChannelGetRequest](temp.Data)
 	case DiscordChannelList:
-		c.Data, err = internal.DecodeT[dismodel.ChannelListCall](temp.Data)
+		c.Data, err = internal.DecodeT[distype.GuildChannelListRequest](temp.Data)
 	case DiscordChannelCreate:
-		c.Data, err = internal.DecodeT[dismodel.ChannelCreateCall](temp.Data)
+		c.Data, err = internal.DecodeT[distype.GuildChannelCreateRequest](temp.Data)
 	case DiscordChannelUpdate:
-		c.Data, err = internal.DecodeT[dismodel.ChannelUpdateCall](temp.Data)
+		c.Data, err = internal.DecodeT[distype.ChannelModifyRequest](temp.Data)
 	case DiscordChannelUpdatePositions:
-		c.Data, err = internal.DecodeT[dismodel.ChannelUpdatePositionsCall](temp.Data)
+		c.Data, err = internal.DecodeT[distype.GuildChannelModifyPositionsRequest](temp.Data)
 	case DiscordChannelDelete:
-		c.Data, err = internal.DecodeT[dismodel.ChannelDeleteCall](temp.Data)
+		c.Data, err = internal.DecodeT[distype.ChannelDeleteRequest](temp.Data)
 	case DiscordChannelUpdatePermissions:
-		c.Data, err = internal.DecodeT[dismodel.ChannelUpdatePermissionsCall](temp.Data)
+		c.Data, err = internal.DecodeT[distype.ChannelEditPermissionsRequest](temp.Data)
 	case DiscordChannelDeletePermissions:
-		c.Data, err = internal.DecodeT[dismodel.ChannelDeletePermissionsCall](temp.Data)
+		c.Data, err = internal.DecodeT[distype.ChannelDeletePermissionsRequest](temp.Data)
 	case DiscordThreadStartFromMessage:
-		c.Data, err = internal.DecodeT[dismodel.ThreadStartFromMessageCall](temp.Data)
+		c.Data, err = internal.DecodeT[distype.ThreadStartFromMessageRequest](temp.Data)
 	case DiscordThreadStart:
-		c.Data, err = internal.DecodeT[dismodel.ThreadStartCall](temp.Data)
+		c.Data, err = internal.DecodeT[distype.ThreadStartWithoutMessageRequest](temp.Data)
 	case DiscordThreadStartInForum:
-		c.Data, err = internal.DecodeT[dismodel.ThreadStartInForumCall](temp.Data)
+		c.Data, err = internal.DecodeT[distype.ThreadStartInForumRequest](temp.Data)
 	case DiscordThreadJoin:
-		c.Data, err = internal.DecodeT[dismodel.ThreadJoinCall](temp.Data)
+		c.Data, err = internal.DecodeT[distype.ThreadJoinRequest](temp.Data)
 	case DiscordThreadMemberAdd:
-		c.Data, err = internal.DecodeT[dismodel.ThreadMemberAddCall](temp.Data)
+		c.Data, err = internal.DecodeT[distype.ThreadMemberAddRequest](temp.Data)
 	case DiscordThreadLeave:
-		c.Data, err = internal.DecodeT[dismodel.ThreadLeaveCall](temp.Data)
+		c.Data, err = internal.DecodeT[distype.ThreadLeaveRequest](temp.Data)
 	case DiscordThreadMemberRemove:
-		c.Data, err = internal.DecodeT[dismodel.ThreadMemberRemoveCall](temp.Data)
+		c.Data, err = internal.DecodeT[distype.ThreadMemberRemoveRequest](temp.Data)
 	case DiscordThreadMemberGet:
-		c.Data, err = internal.DecodeT[dismodel.ThreadMemberGetCall](temp.Data)
+		c.Data, err = internal.DecodeT[distype.ThreadMemberGetRequest](temp.Data)
 	case DiscordThreadMemberList:
-		c.Data, err = internal.DecodeT[dismodel.ThreadMemberListCall](temp.Data)
+		c.Data, err = internal.DecodeT[distype.ThreadMemberListRequest](temp.Data)
 	case DiscordThreadListPublicArchived:
-		c.Data, err = internal.DecodeT[dismodel.ThreadListPublicArchivedCall](temp.Data)
+		c.Data, err = internal.DecodeT[distype.ThreadListPublicArchivedRequest](temp.Data)
 	case DiscordThreadListPrivateArchived:
-		c.Data, err = internal.DecodeT[dismodel.ThreadListPrivateArchivedCall](temp.Data)
+		c.Data, err = internal.DecodeT[distype.ThreadListPrivateArchivedRequest](temp.Data)
 	case DiscordThreadListJoinedPrivateArchived:
-		c.Data, err = internal.DecodeT[dismodel.ThreadListJoinedPrivateArchivedCall](temp.Data)
+		c.Data, err = internal.DecodeT[distype.ThreadListJoinedPrivateArchivedRequest](temp.Data)
 	case DiscordThreadListActive:
-		c.Data, err = internal.DecodeT[dismodel.ThreadListActiveCall](temp.Data)
+		c.Data, err = internal.DecodeT[distype.GuildThreadListActiveRequest](temp.Data)
 	case DiscordEmojiList:
-		c.Data, err = internal.DecodeT[dismodel.EmojiListCall](temp.Data)
+		c.Data, err = internal.DecodeT[distype.GuildEmojiListRequest](temp.Data)
 	case DiscordEmojiGet:
-		c.Data, err = internal.DecodeT[dismodel.EmojiGetCall](temp.Data)
+		c.Data, err = internal.DecodeT[distype.EmojiGetRequest](temp.Data)
 	case DiscordEmojiCreate:
-		c.Data, err = internal.DecodeT[dismodel.EmojiCreateCall](temp.Data)
+		c.Data, err = internal.DecodeT[distype.EmojiCreateRequest](temp.Data)
 	case DiscordEmojiUpdate:
-		c.Data, err = internal.DecodeT[dismodel.EmojiUpdateCall](temp.Data)
+		c.Data, err = internal.DecodeT[distype.EmojiModifyRequest](temp.Data)
 	case DiscordEmojiDelete:
-		c.Data, err = internal.DecodeT[dismodel.EmojiDeleteCall](temp.Data)
+		c.Data, err = internal.DecodeT[distype.EmojiDeleteRequest](temp.Data)
 	case DiscordGuildGet:
-		c.Data, err = internal.DecodeT[dismodel.GuildGetCall](temp.Data)
+		c.Data, err = internal.DecodeT[distype.GuildGetRequest](temp.Data)
 	case DiscordGuildUpdate:
-		c.Data, err = internal.DecodeT[dismodel.GuildUpdateCall](temp.Data)
+		c.Data, err = internal.DecodeT[distype.GuildUpdateRequest](temp.Data)
 	case DiscordInteractionResponseCreate:
-		c.Data, err = internal.DecodeT[dismodel.InteractionResponseCreateCall](temp.Data)
+		c.Data, err = internal.DecodeT[distype.InteractionResponseCreateRequest](temp.Data)
 	case DiscordInteractionResponseUpdate:
-		c.Data, err = internal.DecodeT[dismodel.InteractionResponseUpdateCall](temp.Data)
+		c.Data, err = internal.DecodeT[distype.InteractionResponseEditRequest](temp.Data)
 	case DiscordInteractionResponseDelete:
-		c.Data, err = internal.DecodeT[dismodel.InteractionResponseDeleteCall](temp.Data)
+		c.Data, err = internal.DecodeT[distype.InteractionResponseDeleteRequest](temp.Data)
 	case DiscordInteractionResponseGet:
-		c.Data, err = internal.DecodeT[dismodel.InteractionResponseGetCall](temp.Data)
+		c.Data, err = internal.DecodeT[distype.InteractionResponseGetRequest](temp.Data)
 	case DiscordInteractionFollowupCreate:
-		c.Data, err = internal.DecodeT[dismodel.InteractionFollowupCreateCall](temp.Data)
+		c.Data, err = internal.DecodeT[distype.InteractionFollowupCreateRequest](temp.Data)
 	case DiscordInteractionFollowupUpdate:
-		c.Data, err = internal.DecodeT[dismodel.InteractionFollowupUpdateCall](temp.Data)
+		c.Data, err = internal.DecodeT[distype.InteractionFollowupEditRequest](temp.Data)
 	case DiscordInteractionFollowupDelete:
-		c.Data, err = internal.DecodeT[dismodel.InteractionFollowupDeleteCall](temp.Data)
+		c.Data, err = internal.DecodeT[distype.InteractionFollowupDeleteRequest](temp.Data)
 	case DiscordInteractionFollowupGet:
-		c.Data, err = internal.DecodeT[dismodel.InteractionFollowupGetCall](temp.Data)
+		c.Data, err = internal.DecodeT[distype.InteractionFollowupGetRequest](temp.Data)
 	case DiscordInviteListForChannel:
-		c.Data, err = internal.DecodeT[dismodel.InviteListForChannelCall](temp.Data)
+		c.Data, err = internal.DecodeT[distype.ChannelInviteListRequest](temp.Data)
 	case DiscordInviteListForGuild:
-		c.Data, err = internal.DecodeT[dismodel.InviteListForGuildCall](temp.Data)
+		c.Data, err = internal.DecodeT[distype.GuildInviteListRequest](temp.Data)
 	case DiscordInviteCreate:
-		c.Data, err = internal.DecodeT[dismodel.InviteCreateCall](temp.Data)
+		c.Data, err = internal.DecodeT[distype.ChannelInviteCreateRequest](temp.Data)
 	case DiscordInviteGet:
-		c.Data, err = internal.DecodeT[dismodel.InviteGetCall](temp.Data)
+		c.Data, err = internal.DecodeT[distype.InviteGetRequest](temp.Data)
 	case DiscordInviteDelete:
-		c.Data, err = internal.DecodeT[dismodel.InviteDeleteCall](temp.Data)
+		c.Data, err = internal.DecodeT[distype.InviteDeleteRequest](temp.Data)
 	case DiscordMemberGet:
-		c.Data, err = internal.DecodeT[dismodel.MemberGetCall](temp.Data)
+		c.Data, err = internal.DecodeT[distype.MemberGetRequest](temp.Data)
 	case DiscordMemberList:
-		c.Data, err = internal.DecodeT[dismodel.MemberListCall](temp.Data)
+		c.Data, err = internal.DecodeT[distype.GuildMemberListRequest](temp.Data)
 	case DiscordMemberSearch:
-		c.Data, err = internal.DecodeT[dismodel.MemberSearchCall](temp.Data)
+		c.Data, err = internal.DecodeT[distype.GuildMemberSearchRequest](temp.Data)
 	case DiscordMemberUpdate:
-		c.Data, err = internal.DecodeT[dismodel.MemberUpdateCall](temp.Data)
+		c.Data, err = internal.DecodeT[distype.MemberModifyRequest](temp.Data)
 	case DiscordMemberUpdateOwn:
-		c.Data, err = internal.DecodeT[dismodel.MemberUpdateOwnCall](temp.Data)
+		c.Data, err = internal.DecodeT[distype.MemberModifyCurrentRequest](temp.Data)
 	case DiscordMemberRoleAdd:
-		c.Data, err = internal.DecodeT[dismodel.MemberRoleAddCall](temp.Data)
+		c.Data, err = internal.DecodeT[distype.MemberRoleAddRequest](temp.Data)
 	case DiscordMemberRoleRemove:
-		c.Data, err = internal.DecodeT[dismodel.MemberRoleRemoveCall](temp.Data)
+		c.Data, err = internal.DecodeT[distype.MemberRoleRemoveRequest](temp.Data)
 	case DiscordMemberRemove:
-		c.Data, err = internal.DecodeT[dismodel.MemberRemoveCall](temp.Data)
+		c.Data, err = internal.DecodeT[distype.MemberRemoveRequest](temp.Data)
 	case DiscordMemberPruneCount:
-		c.Data, err = internal.DecodeT[dismodel.MemberPruneCountCall](temp.Data)
+		c.Data, err = internal.DecodeT[distype.MemberPruneCountRequest](temp.Data)
 	case DiscordMemberPruneBegin:
-		c.Data, err = internal.DecodeT[dismodel.MemberPruneBeginCall](temp.Data)
+		c.Data, err = internal.DecodeT[distype.MemberPruneRequest](temp.Data)
 	case DiscordMessageList:
-		c.Data, err = internal.DecodeT[dismodel.MessageListCall](temp.Data)
+		c.Data, err = internal.DecodeT[distype.ChannelMessageListRequest](temp.Data)
 	case DiscordMessageGet:
-		c.Data, err = internal.DecodeT[dismodel.MessageGetCall](temp.Data)
+		c.Data, err = internal.DecodeT[distype.MessageGetRequest](temp.Data)
 	case DiscordMessageCreate:
-		c.Data, err = internal.DecodeT[dismodel.MessageCreateCall](temp.Data)
+		c.Data, err = internal.DecodeT[distype.MessageCreateRequest](temp.Data)
 	case DiscordMessageUpdate:
-		c.Data, err = internal.DecodeT[dismodel.MessageUpdateCall](temp.Data)
+		c.Data, err = internal.DecodeT[distype.MessageEditRequest](temp.Data)
 	case DiscordMessageDelete:
-		c.Data, err = internal.DecodeT[dismodel.MessageDeleteCall](temp.Data)
+		c.Data, err = internal.DecodeT[distype.MessageDeleteRequest](temp.Data)
 	case DiscordMessageDeleteBulk:
-		c.Data, err = internal.DecodeT[dismodel.MessageDeleteBulkCall](temp.Data)
+		c.Data, err = internal.DecodeT[distype.MessageBulkDeleteRequest](temp.Data)
 	case DiscordMessageReactionCreate:
-		c.Data, err = internal.DecodeT[dismodel.MessageReactionCreateCall](temp.Data)
+		c.Data, err = internal.DecodeT[distype.MessageReactionCreateRequest](temp.Data)
 	case DiscordMessageReactionDeleteOwn:
-		c.Data, err = internal.DecodeT[dismodel.MessageReactionDeleteOwnCall](temp.Data)
+		c.Data, err = internal.DecodeT[distype.MessageReactionDeleteOwnRequest](temp.Data)
 	case DiscordMessageReactionDeleteUser:
-		c.Data, err = internal.DecodeT[dismodel.MessageReactionDeleteUserCall](temp.Data)
+		c.Data, err = internal.DecodeT[distype.MessageReactionDeleteRequest](temp.Data)
 	case DiscordMessageReactionList:
-		c.Data, err = internal.DecodeT[dismodel.MessageReactionListCall](temp.Data)
+		c.Data, err = internal.DecodeT[distype.MessageReactionListRequest](temp.Data)
 	case DiscordMessageReactionDeleteAll:
-		c.Data, err = internal.DecodeT[dismodel.MessageReactionDeleteAllCall](temp.Data)
+		c.Data, err = internal.DecodeT[distype.MessageReactionDeleteAllRequest](temp.Data)
 	case DiscordMessageReactionDeleteEmoji:
-		c.Data, err = internal.DecodeT[dismodel.MessageReactionDeleteEmojiCall](temp.Data)
+		c.Data, err = internal.DecodeT[distype.MessageReactionDeleteEmojiRequest](temp.Data)
 	case DiscordMessageGetPinned:
-		c.Data, err = internal.DecodeT[dismodel.MessageGetPinnedCall](temp.Data)
+		c.Data, err = internal.DecodeT[distype.ChannelPinnedMessageListRequest](temp.Data)
 	case DiscordMessagePin:
-		c.Data, err = internal.DecodeT[dismodel.MessagePinCall](temp.Data)
+		c.Data, err = internal.DecodeT[distype.MessagePinRequest](temp.Data)
 	case DiscordMessageUnpin:
-		c.Data, err = internal.DecodeT[dismodel.MessageUnpinCall](temp.Data)
+		c.Data, err = internal.DecodeT[distype.MessageUnpinRequest](temp.Data)
 	case DiscordRoleList:
-		c.Data, err = internal.DecodeT[dismodel.RoleListCall](temp.Data)
+		c.Data, err = internal.DecodeT[distype.GuildRoleListRequest](temp.Data)
 	case DiscordRoleCreate:
-		c.Data, err = internal.DecodeT[dismodel.RoleCreateCall](temp.Data)
+		c.Data, err = internal.DecodeT[distype.RoleCreateRequest](temp.Data)
 	case DiscordRoleUpdate:
-		c.Data, err = internal.DecodeT[dismodel.RoleUpdateCall](temp.Data)
+		c.Data, err = internal.DecodeT[distype.RoleModifyRequest](temp.Data)
 	case DiscordRoleUpdatePositions:
-		c.Data, err = internal.DecodeT[dismodel.RoleUpdatePositionsCall](temp.Data)
+		c.Data, err = internal.DecodeT[distype.RolePositionsModifyRequest](temp.Data)
 	case DiscordRoleDelete:
-		c.Data, err = internal.DecodeT[dismodel.RoleDeleteCall](temp.Data)
+		c.Data, err = internal.DecodeT[distype.RoleDeleteRequest](temp.Data)
 	case DiscordScheduledEventList:
-		c.Data, err = internal.DecodeT[dismodel.ScheduledEventListCall](temp.Data)
+		c.Data, err = internal.DecodeT[distype.GuildScheduledEventListRequest](temp.Data)
 	case DiscordScheduledEventCreate:
-		c.Data, err = internal.DecodeT[dismodel.ScheduledEventCreateCall](temp.Data)
+		c.Data, err = internal.DecodeT[distype.ScheduledEventCreateRequest](temp.Data)
 	case DiscordScheduledEventGet:
-		c.Data, err = internal.DecodeT[dismodel.ScheduledEventGetCall](temp.Data)
+		c.Data, err = internal.DecodeT[distype.ScheduledEventGetRequest](temp.Data)
 	case DiscordScheduledEventUpdate:
-		c.Data, err = internal.DecodeT[dismodel.ScheduledEventUpdateCall](temp.Data)
+		c.Data, err = internal.DecodeT[distype.ScheduledEventModifyRequest](temp.Data)
 	case DiscordScheduledEventDelete:
-		c.Data, err = internal.DecodeT[dismodel.ScheduledEventDeleteCall](temp.Data)
+		c.Data, err = internal.DecodeT[distype.ScheduledEventDeleteRequest](temp.Data)
 	case DiscordScheduledEventUserList:
-		c.Data, err = internal.DecodeT[dismodel.ScheduledEventUserListCall](temp.Data)
+		c.Data, err = internal.DecodeT[distype.ScheduledEventUserListRequest](temp.Data)
 	case DiscordStageInstanceCreate:
-		c.Data, err = internal.DecodeT[dismodel.StageInstanceCreateCall](temp.Data)
+		c.Data, err = internal.DecodeT[distype.StageInstanceCreateRequest](temp.Data)
 	case DiscordStageInstanceGet:
-		c.Data, err = internal.DecodeT[dismodel.StageInstanceGetCall](temp.Data)
+		c.Data, err = internal.DecodeT[distype.StageInstanceGetRequest](temp.Data)
 	case DiscordStageInstanceUpdate:
-		c.Data, err = internal.DecodeT[dismodel.StageInstanceUpdateCall](temp.Data)
+		c.Data, err = internal.DecodeT[distype.StageInstanceModifyRequest](temp.Data)
 	case DiscordStageInstanceDelete:
-		c.Data, err = internal.DecodeT[dismodel.StageInstanceDeleteCall](temp.Data)
+		c.Data, err = internal.DecodeT[distype.StageInstanceDeleteRequest](temp.Data)
 	case DiscordStickerList:
-		c.Data, err = internal.DecodeT[dismodel.StickerListCall](temp.Data)
+		c.Data, err = internal.DecodeT[distype.GuildStickerListRequest](temp.Data)
 	case DiscordStickerGet:
-		c.Data, err = internal.DecodeT[dismodel.StickerGetCall](temp.Data)
+		c.Data, err = internal.DecodeT[distype.StickerGetRequest](temp.Data)
 	case DiscordStickerCreate:
-		c.Data, err = internal.DecodeT[dismodel.StickerCreateCall](temp.Data)
+		c.Data, err = internal.DecodeT[distype.StickerCreateRequest](temp.Data)
 	case DiscordStickerUpdate:
-		c.Data, err = internal.DecodeT[dismodel.StickerUpdateCall](temp.Data)
+		c.Data, err = internal.DecodeT[distype.StickerModifyRequest](temp.Data)
 	case DiscordStickerDelete:
-		c.Data, err = internal.DecodeT[dismodel.StickerDeleteCall](temp.Data)
+		c.Data, err = internal.DecodeT[distype.StickerDeleteRequest](temp.Data)
 	case DiscordUserGet:
-		c.Data, err = internal.DecodeT[dismodel.UserGetCall](temp.Data)
+		c.Data, err = internal.DecodeT[distype.UserGetRequest](temp.Data)
 	case DiscordWebhookGet:
-		c.Data, err = internal.DecodeT[dismodel.WebhookGetCall](temp.Data)
+		c.Data, err = internal.DecodeT[distype.WebhookGetRequest](temp.Data)
 	case DiscordWebhookListForChannel:
-		c.Data, err = internal.DecodeT[dismodel.WebhookListForChannelCall](temp.Data)
+		c.Data, err = internal.DecodeT[distype.ChannelWebhookListRequest](temp.Data)
 	case DiscordWebhookListForGuild:
-		c.Data, err = internal.DecodeT[dismodel.WebhookListForGuildCall](temp.Data)
+		c.Data, err = internal.DecodeT[distype.GuildWebhookListRequest](temp.Data)
 	case DiscordWebhookCreate:
-		c.Data, err = internal.DecodeT[dismodel.WebhookCreateCall](temp.Data)
+		c.Data, err = internal.DecodeT[distype.WebhookCreateRequest](temp.Data)
 	case DiscordWebhookUpdate:
-		c.Data, err = internal.DecodeT[dismodel.WebhookUpdateCall](temp.Data)
+		c.Data, err = internal.DecodeT[distype.WebhookModifyRequest](temp.Data)
 	case DiscordWebhookDelete:
-		c.Data, err = internal.DecodeT[dismodel.WebhookDeleteCall](temp.Data)
+		c.Data, err = internal.DecodeT[distype.WebhookDeleteRequest](temp.Data)
 	case DiscordWebhookGetWithToken:
-		c.Data, err = internal.DecodeT[dismodel.WebhookGetWithTokenCall](temp.Data)
+		c.Data, err = internal.DecodeT[distype.WebhookGetWithTokenRequest](temp.Data)
 	case DiscordWebhookUpdateWithToken:
-		c.Data, err = internal.DecodeT[dismodel.WebhookUpdateWithTokenCall](temp.Data)
+		c.Data, err = internal.DecodeT[distype.WebhookModifyWithTokenRequest](temp.Data)
 	case DiscordWebhookDeleteWithToken:
-		c.Data, err = internal.DecodeT[dismodel.WebhookDeleteWithTokenCall](temp.Data)
+		c.Data, err = internal.DecodeT[distype.WebhookDeleteWithTokenRequest](temp.Data)
 	case DiscordWebhookExecute:
-		c.Data, err = internal.DecodeT[dismodel.WebhookExecuteCall](temp.Data)
+		c.Data, err = internal.DecodeT[distype.WebhookExecuteRequest](temp.Data)
 	}
 
 	return err

@@ -12,3 +12,4 @@ use (
 replace github.com/merlinfuchs/kite/kite-sdk-go v0.0.0 => ./kite-sdk-go
 
 replace github.com/merlinfuchs/kite/kite-types v0.0.0 => ./kite-types
+

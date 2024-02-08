@@ -7,10 +7,11 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/merlinfuchs/dismod/distype"
 	"github.com/merlinfuchs/kite/kite-service/config"
 	"github.com/merlinfuchs/kite/kite-service/internal/host"
 	"github.com/merlinfuchs/kite/kite-service/pkg/module"
-	"github.com/merlinfuchs/kite/kite-types/dismodel"
+
 	"github.com/merlinfuchs/kite/kite-types/event"
 	"github.com/urfave/cli/v2"
 )
@@ -72,7 +73,7 @@ func runTest(basePath string, build bool, debug bool, cfg *config.ModuleConfig) 
 
 	res, err := mod.Handle(ctx, &event.Event{
 		Type: event.DiscordMessageCreate,
-		Data: &dismodel.MessageCreateEvent{
+		Data: &distype.MessageCreateEvent{
 			Content: "test",
 		},
 	})

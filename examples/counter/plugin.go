@@ -6,7 +6,7 @@ import (
 	kite "github.com/merlinfuchs/kite/kite-sdk-go"
 	"github.com/merlinfuchs/kite/kite-sdk-go/discord"
 	"github.com/merlinfuchs/kite/kite-sdk-go/kv"
-	"github.com/merlinfuchs/kite/kite-types/dismodel"
+
 	"github.com/merlinfuchs/kite/kite-types/event"
 )
 
@@ -17,7 +17,7 @@ func main() {
 }
 
 func handleMessageCreateEvent(req event.Event) error {
-	msg := req.Data.(dismodel.MessageCreateEvent)
+	msg := req.Data.(distype.MessageCreateEvent)
 
 	if count, err := strconv.Atoi(msg.Content); err == nil {
 		if err := updateCounter(msg.ChannelID, count); err != nil {
@@ -41,7 +41,7 @@ func updateCounter(channelID string, count int) error {
 			return err
 		}
 
-		if _, err := discord.MessageCreate(dismodel.MessageCreateCall{
+		if _, err := discord.MessageCreate(distype.MessageCreateRequest{
 			ChannelID: channelID,
 			Content:   resetMessage,
 		}); err != nil {

@@ -3,17 +3,17 @@ package access
 import (
 	"context"
 	"slices"
-	"strconv"
 
+	"github.com/merlinfuchs/dismod/distype"
 	"github.com/merlinfuchs/kite/kite-service/pkg/store"
 )
 
 type GuildPermissions struct {
 	UserIsMember    bool
 	UserIsOwner     bool
-	UserPermissions int64
+	UserPermissions uint64
 	BotIsMember     bool
-	BotPermissions  int64
+	BotPermissions  uint64
 }
 
 func (m *AccessManager) GetGuildPermissionsForUser(ctx context.Context, guildID string, userID string) (*GuildPermissions, error) {
@@ -52,14 +52,12 @@ func (m *AccessManager) GetGuildPermissionsForUser(ctx context.Context, guildID 
 	}
 
 	for _, role := range roles {
-		if role.ID == guildID || slices.Contains(member.Roles, role.ID) {
-			perms, _ := strconv.ParseInt(role.Permissions, 10, 64)
-			res.UserPermissions |= perms
+		if role.ID == distype.Snowflake(guildID) || slices.Contains(member.Roles, role.ID) {
+			res.UserPermissions |= role.Permissions.Parse()
 		}
 
-		if role.ID == guildID || slices.Contains(botMember.Roles, role.ID) {
-			perms, _ := strconv.ParseInt(role.Permissions, 10, 64)
-			res.BotPermissions |= perms
+		if role.ID == distype.Snowflake(guildID) || slices.Contains(botMember.Roles, role.ID) {
+			res.BotPermissions |= role.Permissions.Parse()
 		}
 	}
 

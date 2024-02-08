@@ -8,9 +8,9 @@ import (
 	"sync"
 
 	"github.com/bwmarrin/discordgo"
+	"github.com/merlinfuchs/dismod/distype"
 	"github.com/merlinfuchs/kite/kite-service/internal/logging/logattr"
 	"github.com/merlinfuchs/kite/kite-service/pkg/store"
-	"github.com/merlinfuchs/kite/kite-types/dismodel"
 )
 
 type BotState struct {
@@ -26,7 +26,7 @@ func New(state *discordgo.State, session *discordgo.Session) *BotState {
 	}
 }
 
-func (s *BotState) GetGuildBotMember(ctx context.Context, guildID string) (*dismodel.Member, error) {
+func (s *BotState) GetGuildBotMember(ctx context.Context, guildID string) (*distype.Member, error) {
 	member, err := s.state.Member(guildID, s.state.User.ID)
 	if err != nil {
 		if err == discordgo.ErrStateNotFound {
@@ -37,7 +37,7 @@ func (s *BotState) GetGuildBotMember(ctx context.Context, guildID string) (*dism
 	return modelMember(member), nil
 }
 
-func (s *BotState) GetGuildMember(ctx context.Context, guildID string, userID string) (*dismodel.Member, error) {
+func (s *BotState) GetGuildMember(ctx context.Context, guildID string, userID string) (*distype.Member, error) {
 	lockKey := memberLockKey{
 		guildID: guildID,
 		userID:  userID,
@@ -90,7 +90,7 @@ func (s *BotState) GetGuildOwnerID(ctx context.Context, guildID string) (string,
 	return guild.OwnerID, nil
 }
 
-func (s *BotState) GetGuildRoles(ctx context.Context, guildID string) ([]*dismodel.Role, error) {
+func (s *BotState) GetGuildRoles(ctx context.Context, guildID string) ([]*distype.Role, error) {
 	guild, err := s.state.Guild(guildID)
 	if err != nil {
 		if err == discordgo.ErrStateNotFound {
@@ -99,7 +99,7 @@ func (s *BotState) GetGuildRoles(ctx context.Context, guildID string) ([]*dismod
 		return nil, err
 	}
 
-	res := make([]*dismodel.Role, len(guild.Roles))
+	res := make([]*distype.Role, len(guild.Roles))
 	for i, role := range guild.Roles {
 		res[i] = modelRole(role)
 	}
@@ -107,41 +107,52 @@ func (s *BotState) GetGuildRoles(ctx context.Context, guildID string) ([]*dismod
 	return res, nil
 }
 
-func modelMember(member *discordgo.Member) *dismodel.Member {
-	return &dismodel.Member{
+func modelMember(member *discordgo.Member) *distype.Member {
+	roles := make([]distype.Snowflake, len(member.Roles))
+	for i, role := range member.Roles {
+		roles[i] = distype.Snowflake(role)
+	}
+
+	return &distype.Member{
 		User:     modelUser(member.User),
-		Nick:     member.Nick,
-		Avatar:   member.Avatar,
-		Roles:    member.Roles,
+		Nick:     distype.OptionalNullString(member.Nick, member.Nick != ""),
+		Avatar:   distype.OptionalNullString(member.Avatar, member.Avatar != ""),
+		Roles:    roles,
 		JoinedAt: member.JoinedAt,
 		Deaf:     member.Deaf,
 		Mute:     member.Mute,
 	}
 }
 
-func modelUser(user *discordgo.User) *dismodel.User {
-	return &dismodel.User{
-		ID:            user.ID,
+func modelUser(user *discordgo.User) *distype.User {
+	var publicFlags distype.Optional[distype.UserFlags]
+	if user.PublicFlags != 0 {
+		v := distype.UserFlags(user.PublicFlags)
+		publicFlags = &v
+	}
+
+	return &distype.User{
+		ID:            distype.Snowflake(user.ID),
 		Username:      user.Username,
 		Discriminator: user.Discriminator,
-		GlobalName:    user.Username, // TODO
-		Avatar:        user.Avatar,
-		Banner:        user.Banner,
-		AccentColor:   user.AccentColor,
-		Bot:           user.Bot,
-		System:        user.System,
-		PublicFlags:   int(user.PublicFlags),
+		GlobalName:    distype.NullString("", false), // TODO
+		Avatar:        distype.NullString(user.Avatar, user.Avatar != ""),
+		Banner:        distype.OptionalNullString(user.Banner, user.Banner != ""),
+		AccentColor:   &distype.Nullable[int]{Value: int(user.AccentColor), Valid: user.AccentColor != 0},
+		Bot:           &user.Bot,
+		System:        &user.System,
+		PublicFlags:   publicFlags,
 	}
 }
 
-func modelRole(role *discordgo.Role) *dismodel.Role {
-	return &dismodel.Role{
-		ID:          role.ID,
+func modelRole(role *discordgo.Role) *distype.Role {
+	return &distype.Role{
+		ID:          distype.Snowflake(role.ID),
 		Name:        role.Name,
 		Color:       role.Color,
 		Hoist:       role.Hoist,
 		Position:    role.Position,
-		Permissions: fmt.Sprintf("%d", role.Permissions),
+		Permissions: distype.Permissions(fmt.Sprintf("%d", role.Permissions)),
 		Managed:     role.Managed,
 		Mentionable: role.Mentionable,
 	}

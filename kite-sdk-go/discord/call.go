@@ -1,446 +1,451 @@
 package discord
 
 import (
+	"github.com/merlinfuchs/dismod/distype"
 	"github.com/merlinfuchs/kite/kite-sdk-go/internal"
 	"github.com/merlinfuchs/kite/kite-types/call"
-	"github.com/merlinfuchs/kite/kite-types/dismodel"
 )
 
-func BanList(opts ...call.CallOption) (dismodel.BanListResponse, error) {
-	return internal.CallWithResponse[dismodel.BanListResponse](
+func BanList(opts ...call.CallOption) (distype.BanListResponse, error) {
+	return internal.CallWithResponse[distype.BanListResponse](
 		call.DiscordBanList, opts,
-		dismodel.BanListCall{},
+		distype.BanListRequest{},
 	)
 }
 
-func BanGet(userID string, opts ...call.CallOption) (dismodel.BanGetResponse, error) {
-	return internal.CallWithResponse[dismodel.BanGetResponse](
+func BanGet(userID distype.Snowflake, opts ...call.CallOption) (distype.BanGetResponse, error) {
+	return internal.CallWithResponse[distype.BanGetResponse](
 		call.DiscordBanGet, opts,
-		dismodel.BanGetCall{
+		distype.BanGetRequest{
 			UserID: userID,
 		},
 	)
 }
 
-func BanCreate(userID, reason string, deleteMessageSeconds int, opts ...call.CallOption) (dismodel.BanCreateResponse, error) {
+func BanCreate(guildID, userID distype.Snowflake, reason string, deleteMessageSeconds int, opts ...call.CallOption) (distype.BanCreateResponse, error) {
 	opts = append(opts, call.WithReason(reason))
 
-	return internal.CallWithResponse[dismodel.BanCreateResponse](
+	var deleteSeconds distype.Optional[int]
+	if deleteMessageSeconds > 0 {
+		deleteSeconds = &deleteMessageSeconds
+	}
+
+	return internal.CallWithResponse[distype.BanCreateResponse](
 		call.DiscordBanCreate, opts,
-		dismodel.BanCreateCall{
+		distype.BanCreateRequest{
+			GuildID:              guildID,
 			UserID:               userID,
-			DeleteMessageSeconds: deleteMessageSeconds,
+			DeleteMessageSeconds: deleteSeconds,
 		},
 	)
 }
 
-func BanRemove(userID string, opts ...call.CallOption) (dismodel.BanRemoveResponse, error) {
-	return internal.CallWithResponse[dismodel.BanRemoveResponse](
+func BanRemove(guildID, userID distype.Snowflake, opts ...call.CallOption) (distype.BanRemoveResponse, error) {
+	return internal.CallWithResponse[distype.BanRemoveResponse](
 		call.DiscordBanRemove, opts,
-		dismodel.BanRemoveCall{
-			UserID: userID,
+		distype.BanRemoveRequest{
+			GuildID: guildID,
+			UserID:  userID,
 		},
 	)
 }
 
-func ChannelGet(channelID string) (dismodel.Channel, error) {
-	return internal.CallWithResponse[dismodel.Channel](
+func ChannelGet(channelID distype.Snowflake) (distype.Channel, error) {
+	return internal.CallWithResponse[distype.Channel](
 		call.DiscordChannelGet, nil,
-		dismodel.ChannelGetCall{
-			ID: channelID,
+		distype.ChannelGetRequest{
+			ChannelID: channelID,
 		},
 	)
 }
 
-func ChannelList(opts ...call.CallOption) (dismodel.ChannelListResponse, error) {
-	return internal.CallWithResponse[dismodel.ChannelListResponse](
+func ChannelList(guildID distype.Snowflake, opts ...call.CallOption) (distype.GuildChannelListResponse, error) {
+	return internal.CallWithResponse[distype.GuildChannelListResponse](
 		call.DiscordChannelList, opts,
-		dismodel.ChannelListCall{},
-	)
-}
-
-func ChannelCreate(args dismodel.ChannelCreateCall, opts ...call.CallOption) (dismodel.Channel, error) {
-	return internal.CallWithResponse[dismodel.ChannelCreateResponse](call.DiscordChannelCreate, opts, args)
-}
-
-func ChannelUpdate(args dismodel.ChannelUpdateCall, opts ...call.CallOption) (dismodel.Channel, error) {
-	return internal.CallWithResponse[dismodel.ChannelUpdateResponse](call.DiscordChannelUpdate, opts, args)
-}
-
-func ChannelUpdatePositions(args dismodel.ChannelUpdatePositionsCall, opts ...call.CallOption) (dismodel.ChannelListResponse, error) {
-	return internal.CallWithResponse[dismodel.ChannelListResponse](call.DiscordChannelUpdatePositions, opts, args)
-}
-
-func ChannelDelete(channelID string, opts ...call.CallOption) (dismodel.ChannelDeleteResponse, error) {
-	return internal.CallWithResponse[dismodel.ChannelDeleteResponse](
-		call.DiscordChannelDelete, opts,
-		dismodel.ChannelDeleteCall{
-			ID: channelID,
+		distype.GuildChannelListRequest{
+			GuildID: guildID,
 		},
 	)
 }
 
-func ChannelUpdatePermissions(args dismodel.ChannelUpdatePermissionsCall, opts ...call.CallOption) (dismodel.ChannelUpdatePermissionsResponse, error) {
-	return internal.CallWithResponse[dismodel.ChannelUpdatePermissionsResponse](call.DiscordChannelUpdatePermissions, opts, args)
+func ChannelCreate(args distype.GuildChannelCreateRequest, opts ...call.CallOption) (distype.Channel, error) {
+	return internal.CallWithResponse[distype.GuildChannelCreateResponse](call.DiscordChannelCreate, opts, args)
 }
 
-func ChannelDeletePermissions(args dismodel.ChannelDeletePermissionsCall, opts ...call.CallOption) (dismodel.ChannelDeletePermissionsResponse, error) {
-	return internal.CallWithResponse[dismodel.ChannelDeletePermissionsResponse](call.DiscordChannelDeletePermissions, opts, args)
+func ChannelUpdate(args distype.ChannelModifyRequest, opts ...call.CallOption) (distype.Channel, error) {
+	return internal.CallWithResponse[distype.ChannelModifyResponse](call.DiscordChannelUpdate, opts, args)
 }
 
-func ThreadStartFromMessage(args dismodel.ThreadStartFromMessageCall, opts ...call.CallOption) (dismodel.Channel, error) {
-	return internal.CallWithResponse[dismodel.ThreadStartFromMessageResponse](call.DiscordThreadStartFromMessage, opts, args)
+func ChannelUpdatePositions(args distype.GuildChannelModifyPositionsRequest, opts ...call.CallOption) error {
+	return internal.CallWithoutResponse(call.DiscordChannelUpdatePositions, opts, args)
 }
 
-func ThreadStart(args dismodel.ThreadStartCall, opts ...call.CallOption) (dismodel.Channel, error) {
-	return internal.CallWithResponse[dismodel.ThreadStartResponse](call.DiscordThreadStart, opts, args)
+func ChannelDelete(channelID distype.Snowflake, opts ...call.CallOption) (distype.ChannelDeleteResponse, error) {
+	return internal.CallWithResponse[distype.ChannelDeleteResponse](
+		call.DiscordChannelDelete, opts,
+		distype.ChannelDeleteRequest{
+			ChannelID: channelID,
+		},
+	)
 }
 
-func ThreadStartInForum(args dismodel.ThreadStartInForumCall, opts ...call.CallOption) (dismodel.Channel, error) {
-	return internal.CallWithResponse[dismodel.ThreadStartInForumResponse](call.DiscordThreadStartInForum, opts, args)
+func ChannelUpdatePermissions(args distype.ChannelEditPermissionsRequest, opts ...call.CallOption) error {
+	return internal.CallWithoutResponse(call.DiscordChannelUpdatePermissions, opts, args)
 }
 
-func ThreadJoin(threadID string, opts ...call.CallOption) (dismodel.ThreadJoinResponse, error) {
-	return internal.CallWithResponse[dismodel.ThreadJoinResponse](
+func ChannelDeletePermissions(args distype.ChannelDeletePermissionsRequest, opts ...call.CallOption) (distype.ChannelDeletePermissionsResponse, error) {
+	return internal.CallWithResponse[distype.ChannelDeletePermissionsResponse](call.DiscordChannelDeletePermissions, opts, args)
+}
+
+func ThreadStartFromMessage(args distype.ThreadStartFromMessageRequest, opts ...call.CallOption) (distype.Channel, error) {
+	return internal.CallWithResponse[distype.ThreadStartFromMessageResponse](call.DiscordThreadStartFromMessage, opts, args)
+}
+
+func ThreadStart(args distype.ThreadStartWithoutMessageRequest, opts ...call.CallOption) (distype.Channel, error) {
+	return internal.CallWithResponse[distype.ThreadStartWithoutMessageResponse](call.DiscordThreadStart, opts, args)
+}
+
+func ThreadStartInForum(args distype.ThreadStartInForumRequest, opts ...call.CallOption) (distype.Channel, error) {
+	return internal.CallWithResponse[distype.ThreadStartInForumResponse](call.DiscordThreadStartInForum, opts, args)
+}
+
+func ThreadJoin(threadID distype.Snowflake, opts ...call.CallOption) (distype.ThreadJoinResponse, error) {
+	return internal.CallWithResponse[distype.ThreadJoinResponse](
 		call.DiscordThreadJoin, opts,
-		dismodel.ThreadJoinCall{
+		distype.ThreadJoinRequest{
 			ChannelID: threadID,
 		},
 	)
 }
 
-func ThreadMemberAdd(threadId, userID string, opts ...call.CallOption) (dismodel.ThreadMemberAddResponse, error) {
-	return internal.CallWithResponse[dismodel.ThreadMemberAddResponse](
+func ThreadMemberAdd(threadId, userID distype.Snowflake, opts ...call.CallOption) (distype.ThreadMemberAddResponse, error) {
+	return internal.CallWithResponse[distype.ThreadMemberAddResponse](
 		call.DiscordThreadMemberAdd, opts,
-		dismodel.ThreadMemberAddCall{
+		distype.ThreadMemberAddRequest{
 			ChannelID: threadId,
 			UserID:    userID,
 		},
 	)
 }
 
-func ThreadLeave(threadID string, opts ...call.CallOption) (dismodel.ThreadLeaveResponse, error) {
-	return internal.CallWithResponse[dismodel.ThreadLeaveResponse](
+func ThreadLeave(threadID distype.Snowflake, opts ...call.CallOption) (distype.ThreadLeaveResponse, error) {
+	return internal.CallWithResponse[distype.ThreadLeaveResponse](
 		call.DiscordThreadLeave, opts,
-		dismodel.ThreadLeaveCall{
+		distype.ThreadLeaveRequest{
 			ChannelID: threadID,
 		},
 	)
 }
 
-func ThreadMemberRemove(threadID, userID string, opts ...call.CallOption) (dismodel.ThreadMemberRemoveResponse, error) {
-	return internal.CallWithResponse[dismodel.ThreadMemberRemoveResponse](
+func ThreadMemberRemove(threadID, userID distype.Snowflake, opts ...call.CallOption) (distype.ThreadMemberRemoveResponse, error) {
+	return internal.CallWithResponse[distype.ThreadMemberRemoveResponse](
 		call.DiscordThreadMemberRemove, opts,
-		dismodel.ThreadMemberRemoveCall{
+		distype.ThreadMemberRemoveRequest{
 			ChannelID: threadID,
 			UserID:    userID,
 		},
 	)
 }
 
-func ThreadMemberGet(threadID, userID string, opts ...call.CallOption) (dismodel.ThreadMemberGetResponse, error) {
-	return internal.CallWithResponse[dismodel.ThreadMemberGetResponse](
+func ThreadMemberGet(threadID, userID distype.Snowflake, opts ...call.CallOption) (distype.ThreadMemberGetResponse, error) {
+	return internal.CallWithResponse[distype.ThreadMemberGetResponse](
 		call.DiscordThreadMemberGet, opts,
-		dismodel.ThreadMemberGetCall{
+		distype.ThreadMemberGetRequest{
 			ChannelID: threadID,
 			UserID:    userID,
 		},
 	)
 }
 
-func ThreadMemberList(threadID string, opts ...call.CallOption) (dismodel.ThreadMemberListResponse, error) {
-	return internal.CallWithResponse[dismodel.ThreadMemberListResponse](
+func ThreadMemberList(args distype.ThreadMemberListRequest, opts ...call.CallOption) (distype.ThreadMemberListResponse, error) {
+	return internal.CallWithResponse[distype.ThreadMemberListResponse](
 		call.DiscordThreadMemberList, opts,
-		dismodel.ThreadMemberListCall{
-			ChannelID: threadID,
-		},
+		args,
 	)
 }
 
 // --- implementation done up to here ---
 
-func ThreadListPublicArchived(channelID, before string, limit int, opts ...call.CallOption) (dismodel.ThreadListPublicArchivedResponse, error) {
-	return internal.CallWithResponse[dismodel.ThreadListPublicArchivedResponse](
+func ThreadListPublicArchived(args distype.ThreadListPublicArchivedRequest, opts ...call.CallOption) (distype.ThreadListPublicArchivedResponse, error) {
+	return internal.CallWithResponse[distype.ThreadListPublicArchivedResponse](
 		call.DiscordThreadListPublicArchived, opts,
-		dismodel.ThreadListPublicArchivedCall{
-			ChannelID: channelID,
-			Before:    before,
-			Limit:     limit,
-		},
+		args,
 	)
 }
 
-func ThreadListPrivateArchivedCall(channelID, before string, limit int, opts ...call.CallOption) (dismodel.ThreadListPrivateArchivedResponse, error) {
-	return internal.CallWithResponse[dismodel.ThreadListPrivateArchivedResponse](
+func ThreadListPrivateArchivedCall(args distype.ThreadListPrivateArchivedRequest, opts ...call.CallOption) (distype.ThreadListPrivateArchivedResponse, error) {
+	return internal.CallWithResponse[distype.ThreadListPrivateArchivedResponse](
 		call.DiscordThreadListPrivateArchived, opts,
-		dismodel.ThreadListPrivateArchivedCall{
-			ChannelID: channelID,
-			Before:    before,
-			Limit:     limit,
-		},
+		args,
 	)
 }
 
-func ThreadListJoinedPrivateArchivedCall(channelID, before string, limit int, opts ...call.CallOption) (dismodel.ThreadListJoinedPrivateArchivedResponse, error) {
-	return internal.CallWithResponse[dismodel.ThreadListJoinedPrivateArchivedResponse](
+func ThreadListJoinedPrivateArchivedCall(args distype.ThreadListJoinedPrivateArchivedRequest, opts ...call.CallOption) (distype.ThreadListJoinedPrivateArchivedResponse, error) {
+	return internal.CallWithResponse[distype.ThreadListJoinedPrivateArchivedResponse](
 		call.DiscordThreadListJoinedPrivateArchived, opts,
-		dismodel.ThreadListJoinedPrivateArchivedCall{
-			ChannelID: channelID,
-			Before:    before,
-			Limit:     limit,
-		},
+		args,
 	)
 }
 
-func ThreadListActive(opts ...call.CallOption) (dismodel.ThreadListActiveResponse, error) {
-	return internal.CallWithResponse[dismodel.ThreadListActiveResponse](
+func ThreadListActive(guildID distype.Snowflake, opts ...call.CallOption) (distype.GuildThreadListActiveResponse, error) {
+	return internal.CallWithResponse[distype.GuildThreadListActiveResponse](
 		call.DiscordThreadListActive, opts,
-		dismodel.ThreadListActiveCall{},
+		distype.GuildThreadListActiveRequest{
+			GuildID: guildID,
+		},
 	)
 }
 
-func EmojiList(opts ...call.CallOption) (dismodel.EmojiListResponse, error) {
-	return internal.CallWithResponse[dismodel.EmojiListResponse](
+func EmojiList(opts ...call.CallOption) ([]distype.Emoji, error) {
+	return internal.CallWithResponse[distype.GuildEmojiListResponse](
 		call.DiscordEmojiList, opts,
-		dismodel.EmojiListCall{},
+		distype.GuildEmojiListRequest{},
 	)
 }
 
-func EmojiGet(emojiID string, opts ...call.CallOption) (dismodel.EmojiGetResponse, error) {
-	return internal.CallWithResponse[dismodel.EmojiGetResponse](
+func EmojiGet(guildID, emojiID distype.Snowflake, opts ...call.CallOption) (distype.EmojiGetResponse, error) {
+	return internal.CallWithResponse[distype.EmojiGetResponse](
 		call.DiscordEmojiGet, opts,
-		dismodel.EmojiGetCall{
+		distype.EmojiGetRequest{
+			GuildID: guildID,
 			EmojiID: emojiID,
 		},
 	)
 }
 
-func EmojiCreate(args dismodel.EmojiCreateCall, opts ...call.CallOption) (dismodel.EmojiCreateResponse, error) {
-	return internal.CallWithResponse[dismodel.EmojiCreateResponse](call.DiscordEmojiCreate, opts, args)
+func EmojiCreate(args distype.EmojiCreateRequest, opts ...call.CallOption) (distype.Emoji, error) {
+	return internal.CallWithResponse[distype.EmojiCreateResponse](call.DiscordEmojiCreate, opts, args)
 }
 
-func EmojiUpdate(args dismodel.EmojiUpdateCall, opts ...call.CallOption) (dismodel.EmojiUpdateResponse, error) {
-	return internal.CallWithResponse[dismodel.EmojiUpdateResponse](call.DiscordEmojiUpdate, opts, args)
+func EmojiUpdate(args distype.EmojiModifyRequest, opts ...call.CallOption) (distype.Emoji, error) {
+	return internal.CallWithResponse[distype.EmojiModifyResponse](call.DiscordEmojiUpdate, opts, args)
 }
 
-func EmojiDelete(emojiID string, opts ...call.CallOption) (dismodel.EmojiDeleteResponse, error) {
-	return internal.CallWithResponse[dismodel.EmojiDeleteResponse](
+func EmojiDelete(guildID, emojiID distype.Snowflake, opts ...call.CallOption) error {
+	return internal.CallWithoutResponse(
 		call.DiscordEmojiDelete, opts,
-		dismodel.EmojiDeleteCall{
+		distype.EmojiDeleteRequest{
+			GuildID: guildID,
 			EmojiID: emojiID,
 		},
 	)
 }
 
-func GuildGet(opts ...call.CallOption) (dismodel.GuildGetResponse, error) {
-	return internal.CallWithResponse[dismodel.GuildGetResponse](
+func GuildGet(guildID distype.Snowflake, opts ...call.CallOption) (distype.Guild, error) {
+	return internal.CallWithResponse[distype.GuildGetResponse](
 		call.DiscordGuildGet, opts,
-		dismodel.GuildGetCall{},
+		distype.GuildGetRequest{
+			GuildID: guildID,
+		},
 	)
 }
 
-func GuildUpdate(args dismodel.GuildUpdateCall, opts ...call.CallOption) (dismodel.GuildUpdateResponse, error) {
-	return internal.CallWithResponse[dismodel.GuildUpdateResponse](call.DiscordGuildUpdate, opts, args)
+func GuildUpdate(args distype.GuildUpdateRequest, opts ...call.CallOption) (distype.GuildUpdateResponse, error) {
+	return internal.CallWithResponse[distype.GuildUpdateResponse](call.DiscordGuildUpdate, opts, args)
 }
 
-func InteractionResponseCreate(args dismodel.InteractionResponseCreateCall, opts ...call.CallOption) (dismodel.InteractionResponseCreateResponse, error) {
-	return internal.CallWithResponse[dismodel.InteractionResponseCreateResponse](call.DiscordInteractionResponseCreate, opts, args)
+func InteractionResponseCreate(args distype.InteractionResponseCreateRequest, opts ...call.CallOption) (distype.InteractionResponseCreateResponse, error) {
+	return internal.CallWithResponse[distype.InteractionResponseCreateResponse](call.DiscordInteractionResponseCreate, opts, args)
 }
 
-func InteractionResponseUpdate(args dismodel.InteractionResponseUpdateCall, opts ...call.CallOption) (dismodel.InteractionResponseUpdateResponse, error) {
-	return internal.CallWithResponse[dismodel.InteractionResponseUpdateResponse](call.DiscordInteractionResponseUpdate, opts, args)
+func InteractionResponseUpdate(args distype.InteractionResponseEditRequest, opts ...call.CallOption) (distype.Message, error) {
+	return internal.CallWithResponse[distype.InteractionResponseEditResponse](call.DiscordInteractionResponseUpdate, opts, args)
 }
 
-func InteractionResponseDelete(interactionID, interactionToken string, opts ...call.CallOption) error {
+func InteractionResponseDelete(applicationID distype.Snowflake, interactionToken string, opts ...call.CallOption) error {
 	return internal.CallWithoutResponse(
 		call.DiscordInteractionResponseDelete, opts,
-		dismodel.InteractionResponseDeleteCall{
-			ID:    interactionID,
-			Token: interactionToken,
+		distype.InteractionResponseDeleteRequest{
+			ApplicationID:    applicationID,
+			InteractionToken: interactionToken,
 		},
 	)
 }
 
-func InteractionFollowupCreate(args dismodel.InteractionFollowupCreateCall, opts ...call.CallOption) (dismodel.InteractionFollowupCreateResponse, error) {
-	return internal.CallWithResponse[dismodel.InteractionFollowupCreateResponse](call.DiscordInteractionFollowupCreate, opts, args)
+func InteractionFollowupCreate(args distype.InteractionFollowupCreateRequest, opts ...call.CallOption) (distype.InteractionFollowupCreateResponse, error) {
+	return internal.CallWithResponse[distype.InteractionFollowupCreateResponse](call.DiscordInteractionFollowupCreate, opts, args)
 }
 
-func InteractionFollowupUpdate(args dismodel.InteractionFollowupUpdateCall, opts ...call.CallOption) (dismodel.InteractionFollowupUpdateResponse, error) {
-	return internal.CallWithResponse[dismodel.InteractionFollowupUpdateResponse](call.DiscordInteractionFollowupUpdate, opts, args)
+func InteractionFollowupUpdate(args distype.InteractionFollowupEditRequest, opts ...call.CallOption) (distype.Message, error) {
+	return internal.CallWithResponse[distype.InteractionFollowupEditResponse](call.DiscordInteractionFollowupUpdate, opts, args)
 }
 
-func InteractionFollowupDelete(interactionID, interactionToken, messageID string, opts ...call.CallOption) error {
+func InteractionFollowupDelete(applicationID distype.Snowflake, interactionToken string, messageID distype.Snowflake, opts ...call.CallOption) error {
 	return internal.CallWithoutResponse(
 		call.DiscordInteractionFollowupDelete, opts,
-		dismodel.InteractionFollowupDeleteCall{
-			ID:        interactionID,
-			Token:     interactionToken,
-			MessageID: messageID,
+		distype.InteractionFollowupDeleteRequest{
+			ApplicationID:    applicationID,
+			InteractionToken: interactionToken,
+			MessageID:        messageID,
 		},
 	)
 }
 
-func InteractionFollowupGet(interactionID, interactionToken, messageID string, opts ...call.CallOption) (dismodel.InteractionFollowupGetResponse, error) {
-	return internal.CallWithResponse[dismodel.InteractionFollowupGetResponse](
+func InteractionFollowupGet(applicationID distype.Snowflake, interactionToken string, messageID distype.Snowflake, opts ...call.CallOption) (distype.InteractionFollowupGetResponse, error) {
+	return internal.CallWithResponse[distype.InteractionFollowupGetResponse](
 		call.DiscordInteractionFollowupGet, opts,
-		dismodel.InteractionFollowupGetCall{
-			ID:        interactionID,
-			Token:     interactionToken,
-			MessageID: messageID,
+		distype.InteractionFollowupGetRequest{
+			ApplicationID:    applicationID,
+			InteractionToken: interactionToken,
+			MessageID:        messageID,
 		},
 	)
 }
 
-func InviteListForChannel(channelID string, opts ...call.CallOption) (dismodel.InviteListForChannelResponse, error) {
-	return internal.CallWithResponse[dismodel.InviteListForChannelResponse](
+func InviteListForChannel(channelID distype.Snowflake, opts ...call.CallOption) ([]distype.Invite, error) {
+	return internal.CallWithResponse[distype.ChannelInviteListResponse](
 		call.DiscordInviteListForChannel, opts,
-		dismodel.InviteListForChannelCall{
+		distype.ChannelInviteListRequest{
 			ChannelID: channelID,
 		},
 	)
 }
 
-func InviteListForGuild(opts ...call.CallOption) (dismodel.InviteListForGuildResponse, error) {
-	return internal.CallWithResponse[dismodel.InviteListForGuildResponse](
+func InviteListForGuild(guildID distype.Snowflake, opts ...call.CallOption) ([]distype.Invite, error) {
+	return internal.CallWithResponse[distype.GuildInviteListResponse](
 		call.DiscordInviteListForGuild, opts,
-		dismodel.InviteListForGuildCall{},
+		distype.GuildInviteListRequest{
+			GuildID: guildID,
+		},
 	)
 }
 
-func InviteCreate(args dismodel.InviteCreateCall, opts ...call.CallOption) (dismodel.InviteCreateResponse, error) {
-	return internal.CallWithResponse[dismodel.InviteCreateResponse](call.DiscordInviteCreate, opts, args)
+func InviteCreate(args distype.ChannelInviteCreateRequest, opts ...call.CallOption) (distype.Invite, error) {
+	return internal.CallWithResponse[distype.ChannelInviteCreateResponse](call.DiscordInviteCreate, opts, args)
 }
 
-func InviteGet(args dismodel.InviteGetCall, opts ...call.CallOption) (dismodel.InviteGetResponse, error) {
-	return internal.CallWithResponse[dismodel.InviteGetResponse](call.DiscordInviteGet, opts, args)
+func InviteGet(args distype.InviteGetRequest, opts ...call.CallOption) (distype.InviteGetResponse, error) {
+	return internal.CallWithResponse[distype.InviteGetResponse](call.DiscordInviteGet, opts, args)
 }
 
-func InviteDelete(code string, opts ...call.CallOption) (dismodel.InviteDeleteResponse, error) {
-	return internal.CallWithResponse[dismodel.InviteDeleteResponse](
+func InviteDelete(code string, opts ...call.CallOption) (distype.InviteDeleteResponse, error) {
+	return internal.CallWithResponse[distype.InviteDeleteResponse](
 		call.DiscordInviteDelete, opts,
-		dismodel.InviteDeleteCall{
+		distype.InviteDeleteRequest{
 			Code: code,
 		},
 	)
 }
 
-func MemberGet(userID string, opts ...call.CallOption) (dismodel.MemberGetResponse, error) {
-	return internal.CallWithResponse[dismodel.MemberGetResponse](
+func MemberGet(guildID, userID distype.Snowflake, opts ...call.CallOption) (distype.MemberGetResponse, error) {
+	return internal.CallWithResponse[distype.MemberGetResponse](
 		call.DiscordMemberGet, opts,
-		dismodel.MemberGetCall{
-			UserID: userID,
+		distype.MemberGetRequest{
+			GuildID: guildID,
+			UserID:  userID,
 		},
 	)
 }
 
-func MemberList(opts ...call.CallOption) (dismodel.MemberListResponse, error) {
-	return internal.CallWithResponse[dismodel.MemberListResponse](
+func MemberList(guildID distype.Snowflake, opts ...call.CallOption) ([]distype.Member, error) {
+	return internal.CallWithResponse[distype.GuildMemberListResponse](
 		call.DiscordMemberList, opts,
-		dismodel.MemberListCall{},
-	)
-}
-
-func MemberSearch(query string, limit int, opts ...call.CallOption) (dismodel.MemberSearchResponse, error) {
-	return internal.CallWithResponse[dismodel.MemberSearchResponse](
-		call.DiscordMemberSearch, opts,
-		dismodel.MemberSearchCall{
-			Query: query,
-			Limit: limit,
+		distype.GuildMemberListRequest{
+			GuildID: guildID,
 		},
 	)
 }
 
-func MemberUpdate(args dismodel.MemberUpdateCall, opts ...call.CallOption) (dismodel.MemberUpdateResponse, error) {
-	return internal.CallWithResponse[dismodel.MemberUpdateResponse](call.DiscordMemberUpdate, opts, args)
+func MemberSearch(args distype.GuildMemberSearchRequest, opts ...call.CallOption) ([]distype.Member, error) {
+	return internal.CallWithResponse[distype.GuildMemberSearchResponse](
+		call.DiscordMemberSearch, opts,
+		args,
+	)
 }
 
-func MemberUpdateOwn(args dismodel.MemberUpdateOwnCall, opts ...call.CallOption) (dismodel.MemberUpdateOwnResponse, error) {
-	return internal.CallWithResponse[dismodel.MemberUpdateOwnResponse](call.DiscordMemberUpdateOwn, opts, args)
+func MemberUpdate(args distype.MemberModifyRequest, opts ...call.CallOption) (distype.Member, error) {
+	return internal.CallWithResponse[distype.MemberModifyResponse](call.DiscordMemberUpdate, opts, args)
 }
 
-func MemberRoleAdd(userID, roleID string, opts ...call.CallOption) error {
+func MemberUpdateOwn(args distype.MemberModifyCurrentRequest, opts ...call.CallOption) error {
+	return internal.CallWithoutResponse(call.DiscordMemberUpdateOwn, opts, args)
+}
+
+func MemberRoleAdd(guildID, userID, roleID distype.Snowflake, opts ...call.CallOption) error {
 	return internal.CallWithoutResponse(
 		call.DiscordMemberRoleAdd, opts,
-		dismodel.MemberRoleAddCall{
-			UserID: userID,
-			RoleID: roleID,
+		distype.MemberRoleAddRequest{
+			GuildID: guildID,
+			UserID:  userID,
+			RoleID:  roleID,
 		},
 	)
 }
 
-func MemberRoleRemove(userID, roleID string, opts ...call.CallOption) error {
+func MemberRoleRemove(guildID, userID, roleID distype.Snowflake, opts ...call.CallOption) error {
 	return internal.CallWithoutResponse(
 		call.DiscordMemberRoleRemove, opts,
-		dismodel.MemberRoleRemoveCall{
-			UserID: userID,
-			RoleID: roleID,
+		distype.MemberRoleRemoveRequest{
+			GuildID: guildID,
+			UserID:  userID,
+			RoleID:  roleID,
 		},
 	)
 }
 
-func MemberRemove(userID string, opts ...call.CallOption) error {
+func MemberRemove(guildID, userID distype.Snowflake, opts ...call.CallOption) error {
 	return internal.CallWithoutResponse(
 		call.DiscordMemberRemove, opts,
-		dismodel.MemberRemoveCall{
+		distype.MemberRemoveRequest{
 			UserID: userID,
 		},
 	)
 }
 
-func MemberPruneCount(args dismodel.MemberPruneCountCall, opts ...call.CallOption) (dismodel.MemberPruneCountResponse, error) {
-	return internal.CallWithResponse[dismodel.MemberPruneCountResponse](call.DiscordMemberPruneCount, opts, args)
+func MemberPruneCount(args distype.MemberPruneCountRequest, opts ...call.CallOption) (distype.MemberPruneCountResponse, error) {
+	return internal.CallWithResponse[distype.MemberPruneCountResponse](call.DiscordMemberPruneCount, opts, args)
 }
 
-func MemberPruneBegin(args dismodel.MemberPruneBeginCall, opts ...call.CallOption) (dismodel.MemberPruneBeginResponse, error) {
-	return internal.CallWithResponse[dismodel.MemberPruneBeginResponse](call.DiscordMemberPruneBegin, opts, args)
+func MemberPruneBegin(args distype.MemberPruneRequest, opts ...call.CallOption) (distype.MemberPruneResponse, error) {
+	return internal.CallWithResponse[distype.MemberPruneResponse](call.DiscordMemberPruneBegin, opts, args)
 }
 
-func MessageList(args dismodel.MessageListCall, opts ...call.CallOption) (dismodel.MessageListResponse, error) {
-	return internal.CallWithResponse[dismodel.MessageListResponse](call.DiscordMessageList, opts, args)
+func MessageList(args distype.ChannelMessageListRequest, opts ...call.CallOption) ([]distype.Message, error) {
+	return internal.CallWithResponse[distype.ChannelMessageListResponse](call.DiscordMessageList, opts, args)
 }
 
-func MessageGet(channelID, messageID string, opts ...call.CallOption) (dismodel.MessageGetResponse, error) {
-	return internal.CallWithResponse[dismodel.MessageGetResponse](
+func MessageGet(channelID, messageID distype.Snowflake, opts ...call.CallOption) (distype.MessageGetResponse, error) {
+	return internal.CallWithResponse[distype.MessageGetResponse](
 		call.DiscordMessageGet, opts,
-		dismodel.MessageGetCall{
+		distype.MessageGetRequest{
 			ChannelID: channelID,
 			MessageID: messageID,
 		},
 	)
 }
 
-func MessageCreate(args dismodel.MessageCreateCall, opts ...call.CallOption) (dismodel.MessageCreateResponse, error) {
-	return internal.CallWithResponse[dismodel.MessageCreateResponse](call.DiscordMessageCreate, opts, args)
+func MessageCreate(args distype.MessageCreateRequest, opts ...call.CallOption) (distype.MessageCreateResponse, error) {
+	return internal.CallWithResponse[distype.MessageCreateResponse](call.DiscordMessageCreate, opts, args)
 }
 
-func MessageUpdate(args dismodel.MessageUpdateCall, opts ...call.CallOption) (dismodel.MessageUpdateResponse, error) {
-	return internal.CallWithResponse[dismodel.MessageUpdateResponse](call.DiscordMessageUpdate, opts, args)
+func MessageUpdate(args distype.MessageEditRequest, opts ...call.CallOption) (distype.Message, error) {
+	return internal.CallWithResponse[distype.MessageEditResponse](call.DiscordMessageUpdate, opts, args)
 }
 
-func MessageDelete(channelID, messageID string, opts ...call.CallOption) error {
+func MessageDelete(channelID, messageID distype.Snowflake, opts ...call.CallOption) error {
 	return internal.CallWithoutResponse(
 		call.DiscordMessageDelete, opts,
-		dismodel.MessageDeleteCall{
+		distype.MessageDeleteRequest{
 			ChannelID: channelID,
 			MessageID: messageID,
 		},
 	)
 }
 
-func MessageDeleteBulk(channelID string, messages []string, opts ...call.CallOption) error {
+func MessageDeleteBulk(channelID distype.Snowflake, messages []distype.Snowflake, opts ...call.CallOption) error {
 	return internal.CallWithoutResponse(
 		call.DiscordMessageDeleteBulk, opts,
-		dismodel.MessageDeleteBulkCall{
+		distype.MessageBulkDeleteRequest{
 			ChannelID: channelID,
 			Messages:  messages,
 		},
 	)
 }
 
-func MessageReactionCreate(channelID, messageID, emoji string, opts ...call.CallOption) error {
+func MessageReactionCreate(channelID, messageID distype.Snowflake, emoji string, opts ...call.CallOption) error {
 	return internal.CallWithoutResponse(
 		call.DiscordMessageReactionCreate, opts,
-		dismodel.MessageReactionCreateCall{
+		distype.MessageReactionCreateRequest{
 			ChannelID: channelID,
 			MessageID: messageID,
 			Emoji:     emoji,
@@ -448,10 +453,10 @@ func MessageReactionCreate(channelID, messageID, emoji string, opts ...call.Call
 	)
 }
 
-func MessageReactionDeleteOwn(channelID, messageID, emoji string, opts ...call.CallOption) error {
+func MessageReactionDeleteOwn(channelID, messageID distype.Snowflake, emoji string, opts ...call.CallOption) error {
 	return internal.CallWithoutResponse(
 		call.DiscordMessageReactionDeleteOwn, opts,
-		dismodel.MessageReactionDeleteOwnCall{
+		distype.MessageReactionDeleteOwnRequest{
 			ChannelID: channelID,
 			MessageID: messageID,
 			Emoji:     emoji,
@@ -459,10 +464,10 @@ func MessageReactionDeleteOwn(channelID, messageID, emoji string, opts ...call.C
 	)
 }
 
-func MessageReactionDeleteUser(channelID, messageID, emoji, userID string, opts ...call.CallOption) error {
+func MessageReactionDeleteUser(channelID, messageID distype.Snowflake, emoji string, userID distype.Snowflake, opts ...call.CallOption) error {
 	return internal.CallWithoutResponse(
 		call.DiscordMessageReactionDeleteUser, opts,
-		dismodel.MessageReactionDeleteUserCall{
+		distype.MessageReactionDeleteRequest{
 			ChannelID: channelID,
 			MessageID: messageID,
 			Emoji:     emoji,
@@ -471,24 +476,24 @@ func MessageReactionDeleteUser(channelID, messageID, emoji, userID string, opts 
 	)
 }
 
-func MessageReactionList(args dismodel.MessageReactionListCall, opts ...call.CallOption) (dismodel.MessageReactionListResponse, error) {
-	return internal.CallWithResponse[dismodel.MessageReactionListResponse](call.DiscordMessageReactionList, opts, args)
+func MessageReactionList(args distype.MessageReactionListRequest, opts ...call.CallOption) (distype.MessageReactionListResponse, error) {
+	return internal.CallWithResponse[distype.MessageReactionListResponse](call.DiscordMessageReactionList, opts, args)
 }
 
-func MessageReactionDeleteAll(channelID, messageID string, opts ...call.CallOption) error {
+func MessageReactionDeleteAll(channelID, messageID distype.Snowflake, opts ...call.CallOption) error {
 	return internal.CallWithoutResponse(
 		call.DiscordMessageReactionDeleteAll, opts,
-		dismodel.MessageReactionDeleteAllCall{
+		distype.MessageReactionDeleteAllRequest{
 			ChannelID: channelID,
 			MessageID: messageID,
 		},
 	)
 }
 
-func MessageReactionDeleteEmoji(channelID, messageID, emoji string, opts ...call.CallOption) error {
+func MessageReactionDeleteEmoji(channelID, messageID distype.Snowflake, emoji string, opts ...call.CallOption) error {
 	return internal.CallWithoutResponse(
 		call.DiscordMessageReactionDeleteEmoji, opts,
-		dismodel.MessageReactionDeleteEmojiCall{
+		distype.MessageReactionDeleteEmojiRequest{
 			ChannelID: channelID,
 			MessageID: messageID,
 			Emoji:     emoji,
@@ -496,236 +501,253 @@ func MessageReactionDeleteEmoji(channelID, messageID, emoji string, opts ...call
 	)
 }
 
-func MessageGetPinned(channelID string, opts ...call.CallOption) (dismodel.MessageGetPinnedResponse, error) {
-	return internal.CallWithResponse[dismodel.MessageGetPinnedResponse](
+func MessageGetPinned(channelID distype.Snowflake, opts ...call.CallOption) ([]distype.Message, error) {
+	return internal.CallWithResponse[distype.ChannelPinnedMessageListResponse](
 		call.DiscordMessageGetPinned, opts,
-		dismodel.MessageGetPinnedCall{
+		distype.ChannelPinnedMessageListRequest{
 			ChannelID: channelID,
 		},
 	)
 }
 
-func MessagePin(channelID, messageID string, opts ...call.CallOption) error {
+func MessagePin(channelID, messageID distype.Snowflake, opts ...call.CallOption) error {
 	return internal.CallWithoutResponse(
 		call.DiscordMessagePin, opts,
-		dismodel.MessagePinCall{
+		distype.MessagePinRequest{
 			ChannelID: channelID,
 			MessageID: messageID,
 		},
 	)
 }
 
-func MessageUnpin(channelID, messageID string, opts ...call.CallOption) error {
+func MessageUnpin(channelID, messageID distype.Snowflake, opts ...call.CallOption) error {
 	return internal.CallWithoutResponse(
 		call.DiscordMessageUnpin, opts,
-		dismodel.MessageUnpinCall{
+		distype.MessageUnpinRequest{
 			ChannelID: channelID,
 			MessageID: messageID,
 		},
 	)
 }
 
-func RoleList(opts ...call.CallOption) (dismodel.RoleListResponse, error) {
-	return internal.CallWithResponse[dismodel.RoleListResponse](
+func RoleList(guildID distype.Snowflake, opts ...call.CallOption) ([]distype.Role, error) {
+	return internal.CallWithResponse[distype.GuildRoleListResponse](
 		call.DiscordRoleList, opts,
-		dismodel.RoleListCall{},
+		distype.GuildRoleListRequest{
+			GuildID: guildID,
+		},
 	)
 }
 
-func RoleCreate(args dismodel.RoleCreateCall, opts ...call.CallOption) (dismodel.RoleCreateResponse, error) {
-	return internal.CallWithResponse[dismodel.RoleCreateResponse](call.DiscordRoleCreate, opts, args)
+func RoleCreate(args distype.RoleCreateRequest, opts ...call.CallOption) (distype.Role, error) {
+	return internal.CallWithResponse[distype.RoleCreateResponse](call.DiscordRoleCreate, opts, args)
 }
 
-func RoleUpdate(args dismodel.RoleUpdateCall, opts ...call.CallOption) (dismodel.RoleUpdateResponse, error) {
-	return internal.CallWithResponse[dismodel.RoleUpdateResponse](call.DiscordRoleUpdate, opts, args)
+func RoleUpdate(args distype.RoleModifyRequest, opts ...call.CallOption) (distype.Role, error) {
+	return internal.CallWithResponse[distype.RoleModifyResponse](call.DiscordRoleUpdate, opts, args)
 }
 
-func RoleUpdatePositions(args dismodel.RoleUpdatePositionsCall, opts ...call.CallOption) (dismodel.RoleListResponse, error) {
-	return internal.CallWithResponse[dismodel.RoleListResponse](call.DiscordRoleUpdatePositions, opts, args)
+func RoleUpdatePositions(args distype.RolePositionsModifyRequest, opts ...call.CallOption) error {
+	return internal.CallWithoutResponse(call.DiscordRoleUpdatePositions, opts, args)
 }
 
-func RoleDelete(roleID string, opts ...call.CallOption) (dismodel.RoleDeleteResponse, error) {
-	return internal.CallWithResponse[dismodel.RoleDeleteResponse](
+func RoleDelete(guildID, roleID distype.Snowflake, opts ...call.CallOption) (distype.RoleDeleteResponse, error) {
+	return internal.CallWithResponse[distype.RoleDeleteResponse](
 		call.DiscordRoleDelete, opts,
-		dismodel.RoleDeleteCall{
-			RoleID: roleID,
+		distype.RoleDeleteRequest{
+			GuildID: guildID,
+			RoleID:  roleID,
 		},
 	)
 }
 
-func ScheduledEventList(withUserCount bool, opts ...call.CallOption) (dismodel.ScheduledEventListResponse, error) {
-	return internal.CallWithResponse[dismodel.ScheduledEventListResponse](
+func ScheduledEventList(guildID distype.Snowflake, withUserCount bool, opts ...call.CallOption) ([]distype.ScheduledEvent, error) {
+	var withCount distype.Optional[bool]
+	if withUserCount {
+		withCount = &withUserCount
+	}
+
+	return internal.CallWithResponse[distype.GuildScheduledEventListResponse](
 		call.DiscordScheduledEventList, opts,
-		dismodel.ScheduledEventListCall{
-			WithUserCount: withUserCount,
+		distype.GuildScheduledEventListRequest{
+			GuildID:       guildID,
+			WithUserCount: withCount,
 		},
 	)
 }
 
-func ScheduledEventGet(eventID string, opts ...call.CallOption) (dismodel.ScheduledEventGetResponse, error) {
-	return internal.CallWithResponse[dismodel.ScheduledEventGetResponse](
+func ScheduledEventGet(guildID, eventID distype.Snowflake, opts ...call.CallOption) (distype.ScheduledEvent, error) {
+	return internal.CallWithResponse[distype.ScheduledEventGetResponse](
 		call.DiscordScheduledEventGet, opts,
-		dismodel.ScheduledEventGetCall{
-			ID: eventID,
+		distype.ScheduledEventGetRequest{
+			GuildID:               guildID,
+			GuildScheduledEventID: eventID,
 		},
 	)
 }
 
-func ScheduledEventCreate(args dismodel.ScheduledEventCreateCall, opts ...call.CallOption) (dismodel.ScheduledEventCreateResponse, error) {
-	return internal.CallWithResponse[dismodel.ScheduledEventCreateResponse](call.DiscordScheduledEventCreate, opts, args)
+func ScheduledEventCreate(args distype.ScheduledEventCreateRequest, opts ...call.CallOption) (distype.ScheduledEventCreateResponse, error) {
+	return internal.CallWithResponse[distype.ScheduledEventCreateResponse](call.DiscordScheduledEventCreate, opts, args)
 }
 
-func ScheduledEventUpdate(args dismodel.ScheduledEventUpdateCall, opts ...call.CallOption) (dismodel.ScheduledEventUpdateResponse, error) {
-	return internal.CallWithResponse[dismodel.ScheduledEventUpdateResponse](call.DiscordScheduledEventUpdate, opts, args)
+func ScheduledEventUpdate(args distype.ScheduledEventModifyRequest, opts ...call.CallOption) (distype.ScheduledEvent, error) {
+	return internal.CallWithResponse[distype.ScheduledEventModifyResponse](call.DiscordScheduledEventUpdate, opts, args)
 }
 
-func ScheduledEventDelete(eventID string, opts ...call.CallOption) (dismodel.ScheduledEventDeleteResponse, error) {
-	return internal.CallWithResponse[dismodel.ScheduledEventDeleteResponse](
+func ScheduledEventDelete(guildID, eventID distype.Snowflake, opts ...call.CallOption) error {
+	return internal.CallWithoutResponse(
 		call.DiscordScheduledEventDelete, opts,
-		dismodel.ScheduledEventDeleteCall{
-			ID: eventID,
+		distype.ScheduledEventDeleteRequest{
+			GuildID:               guildID,
+			GuildScheduledEventID: eventID,
 		},
 	)
 }
 
-func ScheduledEventUserList(args dismodel.ScheduledEventUserListCall, opts ...call.CallOption) (dismodel.ScheduledEventUserListResponse, error) {
-	return internal.CallWithResponse[dismodel.ScheduledEventUserListResponse](call.DiscordScheduledEventUserList, opts, args)
+func ScheduledEventUserList(args distype.ScheduledEventUserListRequest, opts ...call.CallOption) (distype.ScheduledEventUserListResponse, error) {
+	return internal.CallWithResponse[distype.ScheduledEventUserListResponse](call.DiscordScheduledEventUserList, opts, args)
 }
 
-func StageInstanceCreate(args dismodel.StageInstanceCreateCall, opts ...call.CallOption) (dismodel.StageInstanceCreateResponse, error) {
-	return internal.CallWithResponse[dismodel.StageInstanceCreateResponse](call.DiscordStageInstanceCreate, opts, args)
+func StageInstanceCreate(args distype.StageInstanceCreateRequest, opts ...call.CallOption) (distype.StageInstanceCreateResponse, error) {
+	return internal.CallWithResponse[distype.StageInstanceCreateResponse](call.DiscordStageInstanceCreate, opts, args)
 }
 
-func StageInstanceGet(channelID string, opts ...call.CallOption) (dismodel.StageInstanceGetResponse, error) {
-	return internal.CallWithResponse[dismodel.StageInstanceGetResponse](
+func StageInstanceGet(channelID distype.Snowflake, opts ...call.CallOption) (distype.StageInstanceGetResponse, error) {
+	return internal.CallWithResponse[distype.StageInstanceGetResponse](
 		call.DiscordStageInstanceGet, opts,
-		dismodel.StageInstanceGetCall{
+		distype.StageInstanceGetRequest{
 			ChannelID: channelID,
 		},
 	)
 }
 
-func StageInstanceUpdate(args dismodel.StageInstanceUpdateCall, opts ...call.CallOption) (dismodel.StageInstanceUpdateResponse, error) {
-	return internal.CallWithResponse[dismodel.StageInstanceUpdateResponse](call.DiscordStageInstanceUpdate, opts, args)
+func StageInstanceUpdate(args distype.StageInstanceModifyRequest, opts ...call.CallOption) (distype.StageInstance, error) {
+	return internal.CallWithResponse[distype.StageInstanceModifyResponse](call.DiscordStageInstanceUpdate, opts, args)
 }
 
-func StageInstanceDelete(channelID string, opts ...call.CallOption) (dismodel.StageInstanceDeleteResponse, error) {
-	return internal.CallWithResponse[dismodel.StageInstanceDeleteResponse](
+func StageInstanceDelete(channelID distype.Snowflake, opts ...call.CallOption) error {
+	return internal.CallWithoutResponse(
 		call.DiscordStageInstanceDelete, opts,
-		dismodel.StageInstanceDeleteCall{
+		distype.StageInstanceDeleteRequest{
 			ChannelID: channelID,
 		},
 	)
 }
 
-func StickerList(opts ...call.CallOption) (dismodel.StickerListResponse, error) {
-	return internal.CallWithResponse[dismodel.StickerListResponse](
+func StickerList(guildID distype.Snowflake, opts ...call.CallOption) ([]distype.Sticker, error) {
+	return internal.CallWithResponse[distype.GuildStickerListResponse](
 		call.DiscordStickerList, opts,
-		dismodel.StickerListCall{},
+		distype.GuildStickerListRequest{
+			GuildID: guildID,
+		},
 	)
 }
 
-func StickerGet(stickerID string, opts ...call.CallOption) (dismodel.StickerGetResponse, error) {
-	return internal.CallWithResponse[dismodel.StickerGetResponse](
+func StickerGet(guildID, stickerID distype.Snowflake, opts ...call.CallOption) (distype.StickerGetResponse, error) {
+	return internal.CallWithResponse[distype.StickerGetResponse](
 		call.DiscordStickerGet, opts,
-		dismodel.StickerGetCall{
-			ID: stickerID,
+		distype.StickerGetRequest{
+			GuildID:   guildID,
+			StickerID: stickerID,
 		},
 	)
 }
 
-func StickerCreate(args dismodel.StickerCreateCall, opts ...call.CallOption) (dismodel.StickerCreateResponse, error) {
-	return internal.CallWithResponse[dismodel.StickerCreateResponse](call.DiscordStickerCreate, opts, args)
+func StickerCreate(args distype.StickerCreateRequest, opts ...call.CallOption) (distype.StickerCreateResponse, error) {
+	return internal.CallWithResponse[distype.StickerCreateResponse](call.DiscordStickerCreate, opts, args)
 }
 
-func StickerUpdate(args dismodel.StickerUpdateCall, opts ...call.CallOption) (dismodel.StickerUpdateResponse, error) {
-	return internal.CallWithResponse[dismodel.StickerUpdateResponse](call.DiscordStickerUpdate, opts, args)
+func StickerUpdate(args distype.StickerModifyRequest, opts ...call.CallOption) (distype.Sticker, error) {
+	return internal.CallWithResponse[distype.StickerModifyResponse](call.DiscordStickerUpdate, opts, args)
 }
 
-func StickerDelete(stickerID string, opts ...call.CallOption) (dismodel.StickerDeleteResponse, error) {
-	return internal.CallWithResponse[dismodel.StickerDeleteResponse](
+func StickerDelete(guildID, stickerID distype.Snowflake, opts ...call.CallOption) error {
+	return internal.CallWithoutResponse(
 		call.DiscordStickerDelete, opts,
-		dismodel.StickerDeleteCall{
-			ID: stickerID,
+		distype.StickerDeleteRequest{
+			GuildID:   guildID,
+			StickerID: stickerID,
 		},
 	)
 }
 
-func UserGet(userID string, opts ...call.CallOption) (dismodel.UserGetResponse, error) {
-	return internal.CallWithResponse[dismodel.UserGetResponse](
+func UserGet(userID distype.Snowflake, opts ...call.CallOption) (distype.UserGetResponse, error) {
+	return internal.CallWithResponse[distype.UserGetResponse](
 		call.DiscordUserGet, opts,
-		dismodel.UserGetCall{
+		distype.UserGetRequest{
 			UserID: userID,
 		},
 	)
 }
 
-func WebhookGet(webhookID string, opts ...call.CallOption) (dismodel.WebhookGetResponse, error) {
-	return internal.CallWithResponse[dismodel.WebhookGetResponse](
+func WebhookGet(webhookID distype.Snowflake, opts ...call.CallOption) (distype.WebhookGetResponse, error) {
+	return internal.CallWithResponse[distype.WebhookGetResponse](
 		call.DiscordWebhookGet, opts,
-		dismodel.WebhookGetCall{
-			ID: webhookID,
+		distype.WebhookGetRequest{
+			WebhookID: webhookID,
 		},
 	)
 }
 
-func WebhookListForChannel(channelID string, opts ...call.CallOption) (dismodel.WebhookListForChannelResponse, error) {
-	return internal.CallWithResponse[dismodel.WebhookListForChannelResponse](
+func WebhookListForChannel(channelID distype.Snowflake, opts ...call.CallOption) ([]distype.Webhook, error) {
+	return internal.CallWithResponse[distype.ChannelWebhookListResponse](
 		call.DiscordWebhookListForChannel, opts,
-		dismodel.WebhookListForChannelCall{
+		distype.ChannelWebhookListRequest{
 			ChannelID: channelID,
 		},
 	)
 }
 
-func WebhookListForGuild(opts ...call.CallOption) (dismodel.WebhookListForGuildResponse, error) {
-	return internal.CallWithResponse[dismodel.WebhookListForGuildResponse](
+func WebhookListForGuild(guildID distype.Snowflake, opts ...call.CallOption) ([]distype.Webhook, error) {
+	return internal.CallWithResponse[distype.GuildWebhookListResponse](
 		call.DiscordWebhookListForGuild, opts,
-		dismodel.WebhookListForGuildCall{},
+		distype.GuildWebhookListRequest{
+			GuildID: guildID,
+		},
 	)
 }
 
-func WebhookCreate(args dismodel.WebhookCreateCall, opts ...call.CallOption) (dismodel.WebhookCreateResponse, error) {
-	return internal.CallWithResponse[dismodel.WebhookCreateResponse](call.DiscordWebhookCreate, opts, args)
+func WebhookCreate(args distype.WebhookCreateRequest, opts ...call.CallOption) (distype.WebhookCreateResponse, error) {
+	return internal.CallWithResponse[distype.WebhookCreateResponse](call.DiscordWebhookCreate, opts, args)
 }
 
-func WebhookUpdate(args dismodel.WebhookUpdateCall, opts ...call.CallOption) (dismodel.WebhookUpdateResponse, error) {
-	return internal.CallWithResponse[dismodel.WebhookUpdateResponse](call.DiscordWebhookUpdate, opts, args)
+func WebhookUpdate(args distype.WebhookModifyRequest, opts ...call.CallOption) (distype.Webhook, error) {
+	return internal.CallWithResponse[distype.WebhookModifyResponse](call.DiscordWebhookUpdate, opts, args)
 }
 
-func WebhookDelete(webhookID string, opts ...call.CallOption) (dismodel.WebhookDeleteResponse, error) {
-	return internal.CallWithResponse[dismodel.WebhookDeleteResponse](
+func WebhookDelete(webhookID distype.Snowflake, opts ...call.CallOption) error {
+	return internal.CallWithoutResponse(
 		call.DiscordWebhookDelete, opts,
-		dismodel.WebhookDeleteCall{
-			ID: webhookID,
+		distype.WebhookDeleteRequest{
+			WebhookID: webhookID,
 		},
 	)
 }
 
-func WebhookGetWithToken(webhookID, webhookToken string, opts ...call.CallOption) (dismodel.WebhookGetWithTokenResponse, error) {
-	return internal.CallWithResponse[dismodel.WebhookGetWithTokenResponse](
+func WebhookGetWithToken(webhookID distype.Snowflake, webhookToken string, opts ...call.CallOption) (distype.WebhookGetWithTokenResponse, error) {
+	return internal.CallWithResponse[distype.WebhookGetWithTokenResponse](
 		call.DiscordWebhookGetWithToken, opts,
-		dismodel.WebhookGetWithTokenCall{
-			ID:    webhookID,
-			Token: webhookToken,
+		distype.WebhookGetWithTokenRequest{
+			WebhookID:    webhookID,
+			WebhookToken: webhookToken,
 		},
 	)
 }
 
-func WebhookUpdateWithToken(args dismodel.WebhookUpdateWithTokenCall, opts ...call.CallOption) (dismodel.WebhookUpdateWithTokenResponse, error) {
-	return internal.CallWithResponse[dismodel.WebhookUpdateWithTokenResponse](call.DiscordWebhookUpdateWithToken, opts, args)
+func WebhookUpdateWithToken(args distype.WebhookModifyWithTokenRequest, opts ...call.CallOption) (distype.Webhook, error) {
+	return internal.CallWithResponse[distype.WebhookModifyWithTokenResponse](call.DiscordWebhookUpdateWithToken, opts, args)
 }
 
-func WebhookDeleteWithToken(webhookID, webhookToken string, opts ...call.CallOption) (dismodel.WebhookDeleteWithTokenResponse, error) {
-	return internal.CallWithResponse[dismodel.WebhookDeleteWithTokenResponse](
+func WebhookDeleteWithToken(webhookID distype.Snowflake, webhookToken string, opts ...call.CallOption) error {
+	return internal.CallWithoutResponse(
 		call.DiscordWebhookDeleteWithToken, opts,
-		dismodel.WebhookDeleteWithTokenCall{
-			ID:    webhookID,
-			Token: webhookToken,
+		distype.WebhookDeleteWithTokenRequest{
+			WebhookID:    webhookID,
+			WebhookToken: webhookToken,
 		},
 	)
 }
 
-func WebhookExecute(args dismodel.WebhookExecuteCall, opts ...call.CallOption) (dismodel.WebhookExecuteResponse, error) {
-	return internal.CallWithResponse[dismodel.WebhookExecuteResponse](call.DiscordWebhookExecute, opts, args)
+func WebhookExecute(args distype.WebhookExecuteRequest, opts ...call.CallOption) (distype.WebhookExecuteResponse, error) {
+	return internal.CallWithResponse[distype.WebhookExecuteResponse](call.DiscordWebhookExecute, opts, args)
 }
