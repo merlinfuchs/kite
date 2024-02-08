@@ -27,6 +27,7 @@
     "react-dom": "^18",
     "react-hot-toast": "^2.4.1",
     "react-query": "^3.39.3",
+    "reactflow": "^11.10.3",
     "toml": "^3.0.0"
   },
   "devDependencies": {
