@@ -1,8 +1,0 @@
-[deployment]
-key = "backup@merlin.gg"
-name = 'Discord Server Backups'
-description = 'A very cool Kite plugin'
-
-[module]
-type = 'go'
-
