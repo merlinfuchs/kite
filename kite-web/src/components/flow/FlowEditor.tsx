@@ -1,7 +1,5 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, DragEvent } from "react";
 import ReactFlow, {
-  useEdgesState,
-  useNodesState,
   addEdge,
   Connection,
   Controls,
@@ -10,53 +8,25 @@ import ReactFlow, {
   Node,
   useReactFlow,
   getOutgoers,
-  ReactFlowProvider,
-  ReactFlowInstance,
+  Edge,
+  useNodesState,
+  useEdgesState,
 } from "reactflow";
 import FlowEdgeButton from "./FlowEdgeButton";
 import FlowNodeActionBase from "./FlowNodeActionBase";
 import FlowNodeConditionBase from "./FlowNodeConditionBase";
 import FlowNodeOptionBase from "./FlowNodeOptionBase";
-import FlowNodeCommand from "./FlowNodeCommand";
+import FlowNodeEntryCommand from "./FlowNodeEntryCommand";
+import FlowNodeEntryEvent from "./FlowNodeEntryEvent";
 
 import "reactflow/dist/base.css";
-import { NodeData } from "./types";
-
-const initialNodes: Node<NodeData>[] = [
-  {
-    id: "1",
-    type: "command",
-    position: { x: 0, y: 200 },
-    data: {},
-  },
-  {
-    id: "2",
-    type: "action",
-    position: { x: 100, y: 600 },
-    data: {},
-  },
-  {
-    id: "3",
-    type: "option",
-    position: { x: 300, y: 0 },
-    data: {},
-  },
-  {
-    id: "4",
-    type: "condition",
-    position: { x: -100, y: 400 },
-    data: {},
-  },
-];
-const initialEdges = [
-  { id: "e1-4", source: "1", target: "4" },
-  { id: "e4-2", source: "4", target: "2" },
-  { id: "e3-1", source: "3", target: "1" },
-];
+import { NodeData } from "../../lib/flow/data";
+import { getId } from "@/lib/flow/util";
 
 const nodeTypes = {
   action: FlowNodeActionBase,
-  command: FlowNodeCommand,
+  entry_command: FlowNodeEntryCommand,
+  entry_event: FlowNodeEntryEvent,
   condition: FlowNodeConditionBase,
   option: FlowNodeOptionBase,
 };
@@ -65,25 +35,20 @@ const edgeTypes = {
   buttonedge: FlowEdgeButton,
 };
 
-function FlowEditor() {
+interface Props {
+  initialNodes: Node<NodeData>[];
+  initialEdges: Edge[];
+}
+
+export default function FlowEditor({ initialNodes, initialEdges }: Props) {
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
-  const [rfInstance, setRfInstance] = useState<ReactFlowInstance | null>(null);
-  const { setViewport } = useReactFlow();
+  const rfInstance = useReactFlow();
 
   const onConnect = useCallback(
     (con: Connection) => setEdges((eds) => addEdge(con, eds)),
     [setEdges]
   );
-
-  /* const selectedNodeId = useMemo(
-    () => nodes.find((n) => n.selected)?.id,
-    [nodes]
-  );
-
-  useEffect(() => {
-    console.log("selected node", selectedNodeId);
-  }, [selectedNodeId]); */
 
   const { getNodes, getEdges } = useReactFlow();
 
@@ -96,8 +61,10 @@ function FlowEditor() {
       const target = nodes.find((node) => node.id === con.target)!;
 
       // TODO: This is a bit of a mess, but it works for now
-      if (target.type === "command" && source.type !== "option") return false;
-      if (source.type === "option" && target.type !== "command") return false;
+      if (target.type === "entry_command" && source.type !== "option")
+        return false;
+      if (source.type === "option" && target.type !== "entry_command")
+        return false;
 
       // Prevent cycles
       const hasCycle = (node: Node, visited = new Set()) => {
@@ -117,23 +84,35 @@ function FlowEditor() {
     [getNodes, getEdges]
   );
 
-  function save() {
-    if (rfInstance) {
-      const flow = rfInstance.toObject();
-      localStorage.setItem("flow", JSON.stringify(flow));
-    }
-  }
+  const onDragOver = useCallback((e: DragEvent) => {
+    e.preventDefault();
+    e.dataTransfer!.dropEffect = "move";
+  }, []);
 
-  function restore() {
-    const flow = localStorage.getItem("flow");
-    if (flow) {
-      const flowObj = JSON.parse(flow);
-      const { x = 0, y = 0, zoom = 1 } = flowObj.viewport;
-      setNodes(flowObj.nodes);
-      setEdges(flowObj.edges);
-      setViewport({ x, y, zoom });
-    }
-  }
+  const onDrop = useCallback(
+    (e: DragEvent) => {
+      e.preventDefault();
+
+      const type = e.dataTransfer?.getData("application/reactflow");
+      if (!type) {
+        return;
+      }
+
+      const position = rfInstance.screenToFlowPosition({
+        x: e.clientX,
+        y: e.clientY,
+      });
+      const newNode = {
+        id: getId(),
+        type,
+        position,
+        data: {},
+      };
+
+      setNodes((nds) => nds.concat(newNode));
+    },
+    [rfInstance]
+  );
 
   return (
     <ReactFlow
@@ -144,11 +123,13 @@ function FlowEditor() {
       nodeTypes={nodeTypes}
       edgeTypes={edgeTypes}
       onConnect={onConnect}
-      onInit={setRfInstance}
+      onDrop={onDrop}
+      onDragOver={onDragOver}
       fitView
       className="bg-dark-4"
       defaultEdgeOptions={{ type: "buttonedge" }}
       isValidConnection={isValidConnection}
+      multiSelectionKeyCode={null}
     >
       <Controls showInteractive={false} />
       <Background
@@ -160,9 +141,3 @@ function FlowEditor() {
     </ReactFlow>
   );
 }
-
-export default () => (
-  <ReactFlowProvider>
-    <FlowEditor />
-  </ReactFlowProvider>
-);

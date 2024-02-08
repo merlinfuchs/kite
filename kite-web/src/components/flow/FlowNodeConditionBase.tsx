@@ -1,33 +1,21 @@
-import { Handle, NodeProps, Position } from "reactflow";
-import { NodeData } from "./types";
+import { NodeProps, Position } from "reactflow";
+import { NodeData } from "../../lib/flow/data";
 import FlowNodeBase from "./FlowNodeBase";
 import FlowNodeMarkers from "./FlowNodeMarkers";
-import { ArrowsRightLeftIcon } from "@heroicons/react/24/solid";
+import FlowNodeHandle from "./FlowNodeHandle";
 
 export default function FlowNodeConditionBase(props: NodeProps<NodeData>) {
-  const { id } = props;
-
   return (
-    <FlowNodeBase
-      {...props}
-      title="Comparison Condition"
-      description="Run actions based on the difference between two values."
-      color="#22c55e"
-      icon={ArrowsRightLeftIcon}
-      highlight={false}
-    >
-      <Handle
-        type="target"
-        position={Position.Top}
-        className="w-2 h-2 rounded-full !bg-primary"
-      />
-      <Handle
-        type="source"
-        position={Position.Bottom}
-        className="w-2 h-2 rounded-full !bg-primary"
-      />
+    <FlowNodeBase {...props}>
+      <FlowNodeHandle type="target" position={Position.Top} />
+      <FlowNodeHandle type="source" position={Position.Bottom} />
 
-      <FlowNodeMarkers nodeId={id} showIsConnected={true} />
+      <FlowNodeMarkers
+        id={props.id}
+        type={props.type}
+        data={props.data}
+        showIsConnected={true}
+      />
     </FlowNodeBase>
   );
 }

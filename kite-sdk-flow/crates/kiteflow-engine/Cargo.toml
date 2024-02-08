@@ -1,0 +1,10 @@
+[package]
+name = "kiteflow-engine"
+version = "0.1.0"
+edition = "2021"
+
+[profile.release]
+lto = true
+opt-level = 3
+
+[dependencies]

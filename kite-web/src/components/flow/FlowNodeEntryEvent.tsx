@@ -4,18 +4,12 @@ import FlowNodeBase from "./FlowNodeBase";
 import FlowNodeMarkers from "./FlowNodeMarkers";
 import FlowNodeHandle from "./FlowNodeHandle";
 
-export default function FlowNodeActionBase(props: NodeProps<NodeData>) {
+export default function FlowNodeEntryEvent(props: NodeProps<NodeData>) {
   return (
-    <FlowNodeBase {...props}>
-      <FlowNodeHandle type="target" position={Position.Top} />
+    <FlowNodeBase {...props} highlight={true}>
       <FlowNodeHandle type="source" position={Position.Bottom} />
 
-      <FlowNodeMarkers
-        id={props.id}
-        type={props.type}
-        data={props.data}
-        showIsConnected={true}
-      />
+      <FlowNodeMarkers id={props.id} type={props.type} data={props.data} />
     </FlowNodeBase>
   );
 }

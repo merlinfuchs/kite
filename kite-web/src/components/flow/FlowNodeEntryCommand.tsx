@@ -2,21 +2,22 @@ import { NodeProps, Position } from "reactflow";
 import { NodeData } from "../../lib/flow/data";
 import FlowNodeBase from "./FlowNodeBase";
 import FlowNodeMarkers from "./FlowNodeMarkers";
-import { optionColor } from "@/lib/flow/nodes";
 import FlowNodeHandle from "./FlowNodeHandle";
+import { optionColor } from "@/lib/flow/nodes";
 
-export default function FlowNodeOptionBase(props: NodeProps<NodeData>) {
+export default function FlowNodeEntryCommand(props: NodeProps<NodeData>) {
   return (
     <FlowNodeBase
       {...props}
-      title={props.data.name}
-      description={props.data.description}
+      title={"/" + (props.data.name || "")}
+      highlight={true}
     >
       <FlowNodeHandle
-        type="source"
-        position={Position.Bottom}
+        type="target"
+        position={Position.Top}
         color={optionColor}
       />
+      <FlowNodeHandle type="source" position={Position.Bottom} />
 
       <FlowNodeMarkers id={props.id} type={props.type} data={props.data} />
     </FlowNodeBase>
