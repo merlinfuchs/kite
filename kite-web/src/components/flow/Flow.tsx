@@ -15,7 +15,10 @@ const initialNodes: Node<NodeData>[] = [
     id: "1",
     type: "entry_command",
     position: { x: 0, y: 200 },
-    data: {},
+    data: {
+      name: "ban",
+      description: "Ban a user from the server",
+    },
   },
   {
     id: "2",
@@ -25,9 +28,12 @@ const initialNodes: Node<NodeData>[] = [
   },
   {
     id: "3",
-    type: "option_text",
-    position: { x: 300, y: 0 },
-    data: {},
+    type: "option_user",
+    position: { x: -50, y: 0 },
+    data: {
+      name: "user",
+      description: "The user you want to ban",
+    },
   },
   {
     id: "4",
@@ -35,11 +41,24 @@ const initialNodes: Node<NodeData>[] = [
     position: { x: -100, y: 400 },
     data: {},
   },
+  {
+    id: "5",
+    type: "entry_error",
+    position: { x: 300, y: 50 },
+    data: {},
+  },
+  {
+    id: "6",
+    type: "action_log",
+    position: { x: 350, y: 325 },
+    data: {},
+  },
 ];
 const initialEdges = [
   { id: "e1-4", source: "1", target: "4" },
   { id: "e4-2", source: "4", target: "2" },
   { id: "e3-1", source: "3", target: "1" },
+  { id: "e5-6", source: "5", target: "6" },
 ];
 
 function Flow() {

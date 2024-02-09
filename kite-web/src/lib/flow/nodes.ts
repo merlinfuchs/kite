@@ -4,7 +4,9 @@ import {
   ChatBubbleBottomCenterIcon,
   CommandLineIcon,
   DocumentIcon,
+  DocumentTextIcon,
   EnvelopeIcon,
+  ExclamationCircleIcon,
   HashtagIcon,
   LanguageIcon,
   PlusIcon,
@@ -15,6 +17,7 @@ import {
 import { ExoticComponent, useMemo } from "react";
 import {
   nodeActionDataSchema,
+  nodeActionLogDataSchema,
   nodeCommandDataSchema,
   nodeOptionDataSchema,
 } from "./data";
@@ -24,6 +27,7 @@ export const primaryColor = "#5457f0";
 
 export const actionColor = "#3b82f6";
 export const entryColor = "#eab308";
+export const errorColor = "#ef4444";
 export const conditionColor = "#22c55e";
 export const optionColor = "#a855f7";
 
@@ -54,10 +58,17 @@ export const nodeTypes: Record<string, NodeValues> = {
       "Listens for an event to trigger the flow. Drop different actions and options here!",
     dataFields: [],
   },
+  entry_error: {
+    color: errorColor,
+    icon: ExclamationCircleIcon,
+    defaultTitle: "Error Handler",
+    defaultDescription: "Handle errors that occur during execution.",
+    dataFields: [],
+  },
   action_response_text: {
     color: actionColor,
     icon: ArrowUturnLeftIcon,
-    defaultTitle: "Plain text response",
+    defaultTitle: "Text response",
     defaultDescription: "Bot replies with a plain text response",
     dataSchema: nodeActionDataSchema,
     dataFields: ["text_response", "custom_label"],
@@ -65,10 +76,19 @@ export const nodeTypes: Record<string, NodeValues> = {
   action_message_create: {
     color: actionColor,
     icon: ChatBubbleBottomCenterIcon,
-    defaultTitle: "Plain text message",
+    defaultTitle: "Create text message",
     defaultDescription: "Bot sends a plain text message to a channel",
     dataSchema: nodeActionDataSchema,
     dataFields: ["text_response", "custom_label"],
+  },
+  action_log: {
+    color: actionColor,
+    icon: DocumentTextIcon,
+    defaultTitle: "Log Message",
+    defaultDescription:
+      "Log some text which is only visible in the deployment logs",
+    dataSchema: nodeActionLogDataSchema,
+    dataFields: ["log_level", "log_message", "custom_label"],
   },
   condition: {
     color: conditionColor,

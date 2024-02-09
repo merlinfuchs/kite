@@ -1,12 +1,60 @@
 import { NodeValues, nodeTypes } from "@/lib/flow/nodes";
 import { getId } from "@/lib/flow/util";
-import { DragEvent } from "react";
+import clsx from "clsx";
+import { DragEvent, useState } from "react";
 import { useReactFlow } from "reactflow";
 
+const nodeCategories = {
+  entry: [
+    {
+      title: "Commands",
+      nodeTypes: [
+        "entry_command",
+        "option_text",
+        "option_number",
+        "option_user",
+        "option_channel",
+        "option_role",
+        "option_attachment",
+      ],
+    },
+    {
+      title: "Events",
+      nodeTypes: ["entry_event"],
+    },
+    {
+      title: "Errors",
+      nodeTypes: ["entry_error"],
+    },
+  ],
+  action: [
+    {
+      title: "Messages",
+      nodeTypes: ["action_response_text", "action_message_create"],
+    },
+    {
+      title: "Debugging",
+      nodeTypes: ["action_log"],
+    },
+  ],
+  condition: [
+    {
+      title: "Conditions",
+      nodeTypes: ["condition"],
+    },
+  ],
+};
+
+type NodeCategory = keyof typeof nodeCategories;
+
 export default function FlowNodeExplorer() {
+  const [category, setCategory] = useState<NodeCategory>("entry");
+
+  const sections = nodeCategories[category];
+
   return (
     <div className="w-96 h-full flex flex-col">
-      <div className="p-5 flex-none">
+      <div className="p-5 flex-none mb-2">
         <div className="text-xl font-bold text-gray-100 mb-2">
           Block Explorer
         </div>
@@ -14,10 +62,79 @@ export default function FlowNodeExplorer() {
           With Blocks you define what your bot does and how it works.
         </div>
       </div>
-      <div className="overflow-y-auto flex-auto space-y-2 px-2">
-        {Object.entries(nodeTypes).map(([type, values]) => (
-          <AvailableNode key={type} type={type} values={values} />
+      <NodeCategories category={category} setCategory={setCategory} />
+      <div className="overflow-y-auto flex-auto space-y-3 px-2">
+        {sections.map((section, i) => (
+          <div key={i}>
+            <div className="text-gray-300 font-medium mb-2 px-1">
+              {section.title}
+            </div>
+            <div className="space-y-2">
+              {section.nodeTypes.map((type) => (
+                <AvailableNode
+                  key={type}
+                  type={type}
+                  values={nodeTypes[type]}
+                />
+              ))}
+            </div>
+          </div>
         ))}
+      </div>
+    </div>
+  );
+}
+
+function NodeCategories({
+  category,
+  setCategory,
+}: {
+  category: NodeCategory;
+  setCategory: (tab: NodeCategory) => void;
+}) {
+  return (
+    <div className="flex space-x-3 text-lg mb-3 px-5 justify-between text-gray-300 border-b-2 border-dark-5">
+      <div onClick={() => setCategory("entry")} className="cursor-pointer">
+        <div
+          className={clsx(
+            "pb-2 px-3 hover:text-white",
+            category === "entry" && "text-white"
+          )}
+        >
+          Entries
+        </div>
+        <div
+          className={clsx("h-1 rounde", category === "entry" && "bg-primary")}
+        ></div>
+      </div>
+      <div onClick={() => setCategory("action")} className="cursor-pointer">
+        <div
+          className={clsx(
+            "pb-2 px-3 hover:text-white",
+            category === "action" && "text-white"
+          )}
+        >
+          Actions
+        </div>
+        <div
+          className={clsx("h-1 rounde", category === "action" && "bg-primary")}
+        ></div>
+      </div>
+      <div onClick={() => setCategory("condition")} className="cursor-pointer">
+        <div
+          className={clsx(
+            "pb-2 px-3 hover:text-white",
+            category === "condition" && "text-white"
+          )}
+        >
+          Conditions
+        </div>
+        <div
+          className={clsx(
+            "h-1 rounde",
+            category === "condition" && "bg-primary"
+          )}
+        ></div>
       </div>
     </div>
   );

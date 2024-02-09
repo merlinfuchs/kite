@@ -18,6 +18,7 @@ import FlowNodeConditionBase from "./FlowNodeConditionBase";
 import FlowNodeOptionBase from "./FlowNodeOptionBase";
 import FlowNodeEntryCommand from "./FlowNodeEntryCommand";
 import FlowNodeEntryEvent from "./FlowNodeEntryEvent";
+import FlowNodeEntryError from "./FlowNodeEntryError";
 
 import "reactflow/dist/base.css";
 import { NodeData } from "../../lib/flow/data";
@@ -26,8 +27,10 @@ import { getId } from "@/lib/flow/util";
 const nodeTypes = {
   action_response_text: FlowNodeActionBase,
   action_message_create: FlowNodeActionBase,
+  action_log: FlowNodeActionBase,
   entry_command: FlowNodeEntryCommand,
   entry_event: FlowNodeEntryEvent,
+  entry_error: FlowNodeEntryError,
   condition: FlowNodeConditionBase,
   option_text: FlowNodeOptionBase,
   option_number: FlowNodeOptionBase,
@@ -67,9 +70,9 @@ export default function FlowEditor({ initialNodes, initialEdges }: Props) {
       const target = nodes.find((node) => node.id === con.target)!;
 
       // TODO: This is a bit of a mess, but it works for now
-      if (target.type === "entry_command" && source.type !== "option")
+      if (target.type === "entry_command" && !source.type?.startsWith("option"))
         return false;
-      if (source.type === "option" && target.type !== "entry_command")
+      if (source.type?.startsWith("option") && target.type !== "entry_command")
         return false;
 
       // Prevent cycles

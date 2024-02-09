@@ -5,6 +5,8 @@ export interface NodeData {
   name?: string;
   description?: string;
   text?: string;
+  log_level?: string;
+  log_message?: string;
 }
 
 export const nodeOptionDataSchema = z.object({
@@ -22,4 +24,14 @@ export const nodeCommandDataSchema = z.object({
 export const nodeActionDataSchema = z.object({
   custom_label: z.string().optional(),
   text: z.string().max(2000).min(1),
+});
+
+export const nodeActionLogDataSchema = z.object({
+  custom_label: z.string().optional(),
+  log_level: z
+    .literal("debug")
+    .or(z.literal("info"))
+    .or(z.literal("warn"))
+    .or(z.literal("error")),
+  log_message: z.string().max(2000).min(1),
 });
