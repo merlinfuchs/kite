@@ -1,7 +1,6 @@
 import { NodeProps, Position } from "reactflow";
 import { NodeData } from "../../lib/flow/data";
 import FlowNodeBase from "./FlowNodeBase";
-import FlowNodeMarkers from "./FlowNodeMarkers";
 import { optionColor } from "@/lib/flow/nodes";
 import FlowNodeHandle from "./FlowNodeHandle";
 
@@ -17,8 +16,6 @@ export default function FlowNodeOptionBase(props: NodeProps<NodeData>) {
         position={Position.Bottom}
         color={optionColor}
       />
-
-      <FlowNodeMarkers id={props.id} type={props.type} data={props.data} />
     </FlowNodeBase>
   );
 }

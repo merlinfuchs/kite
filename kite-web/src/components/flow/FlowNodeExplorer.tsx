@@ -5,10 +5,20 @@ import { useReactFlow } from "reactflow";
 
 export default function FlowNodeExplorer() {
   return (
-    <div className="w-96 p-3 space-y-2">
-      {Object.entries(nodeTypes).map(([type, values]) => (
-        <AvailableNode key={type} type={type} values={values} />
-      ))}
+    <div className="w-96 h-full flex flex-col">
+      <div className="p-5 flex-none">
+        <div className="text-xl font-bold text-gray-100 mb-2">
+          Block Explorer
+        </div>
+        <div className="text-gray-300">
+          With Blocks you define what your bot does and how it works.
+        </div>
+      </div>
+      <div className="overflow-y-auto flex-auto space-y-2 px-2">
+        {Object.entries(nodeTypes).map(([type, values]) => (
+          <AvailableNode key={type} type={type} values={values} />
+        ))}
+      </div>
     </div>
   );
 }
@@ -47,10 +57,10 @@ function AvailableNode({ type, values }: { type: string; values: NodeValues }) {
           <values.icon className="h-5 w-5 text-white" />
         </div>
         <div className="overflow-hidden">
-          <div className="text-sm font-medium text-gray-100 leading-5 mb-1 truncate">
+          <div className="font-medium text-gray-100 leading-5 mb-1 truncate">
             {values.defaultTitle}
           </div>
-          <div className="text-xs text-gray-300">
+          <div className="text-sm text-gray-300">
             {values.defaultDescription}
           </div>
         </div>

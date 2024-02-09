@@ -9,13 +9,6 @@ export default function FlowNodeConditionBase(props: NodeProps<NodeData>) {
     <FlowNodeBase {...props}>
       <FlowNodeHandle type="target" position={Position.Top} />
       <FlowNodeHandle type="source" position={Position.Bottom} />
-
-      <FlowNodeMarkers
-        id={props.id}
-        type={props.type}
-        data={props.data}
-        showIsConnected={true}
-      />
     </FlowNodeBase>
   );
 }

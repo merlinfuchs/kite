@@ -8,7 +8,6 @@ export default function FlowNodeEntryEvent(props: NodeProps<NodeData>) {
   return (
     <FlowNodeBase {...props} highlight={true}>
       <FlowNodeHandle type="source" position={Position.Bottom} />
-
       <FlowNodeMarkers id={props.id} type={props.type} data={props.data} />
     </FlowNodeBase>
   );

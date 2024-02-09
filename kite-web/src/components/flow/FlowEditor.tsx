@@ -24,11 +24,17 @@ import { NodeData } from "../../lib/flow/data";
 import { getId } from "@/lib/flow/util";
 
 const nodeTypes = {
-  action: FlowNodeActionBase,
+  action_response_text: FlowNodeActionBase,
+  action_message_create: FlowNodeActionBase,
   entry_command: FlowNodeEntryCommand,
   entry_event: FlowNodeEntryEvent,
   condition: FlowNodeConditionBase,
-  option: FlowNodeOptionBase,
+  option_text: FlowNodeOptionBase,
+  option_number: FlowNodeOptionBase,
+  option_user: FlowNodeOptionBase,
+  option_channel: FlowNodeOptionBase,
+  option_role: FlowNodeOptionBase,
+  option_attachment: FlowNodeOptionBase,
 };
 
 const edgeTypes = {

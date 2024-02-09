@@ -9,34 +9,34 @@ interface Props {
   id: string;
   type: string;
   data: NodeData;
-  showIsConnected?: boolean;
+  showConnectedMarker?: boolean;
 }
 
 export default function FlowNodeMarkers({
   id,
   type,
   data,
-  showIsConnected,
+  showConnectedMarker,
 }: Props) {
   const edges = useEdges();
 
   const isConnected = useMemo(() => {
-    if (!showIsConnected) return true;
+    if (!showConnectedMarker) return true;
     return edges.some((edge) => edge.target === id);
   }, [edges]);
 
-  const { schema } = useNodeValues(type);
+  const { dataSchema } = useNodeValues(type);
 
   const hasError = useMemo(() => {
-    if (!schema) return false;
+    if (!dataSchema) return false;
 
     try {
-      schema.parse(data);
+      dataSchema.parse(data);
       return false;
     } catch {
       return true;
     }
-  }, [schema, data]);
+  }, [dataSchema, data]);
 
   return (
     <div className="absolute -top-2 -right-2 flex space-x-1">

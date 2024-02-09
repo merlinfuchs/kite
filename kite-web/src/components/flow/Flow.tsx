@@ -12,12 +12,6 @@ import { useEffect, useState } from "react";
 
 const initialNodes: Node<NodeData>[] = [
   {
-    id: "0",
-    type: "entry_event",
-    position: { x: 0, y: 0 },
-    data: {},
-  },
-  {
     id: "1",
     type: "entry_command",
     position: { x: 0, y: 200 },
@@ -25,13 +19,13 @@ const initialNodes: Node<NodeData>[] = [
   },
   {
     id: "2",
-    type: "action",
+    type: "action_response_text",
     position: { x: 100, y: 600 },
     data: {},
   },
   {
     id: "3",
-    type: "option",
+    type: "option_text",
     position: { x: 300, y: 0 },
     data: {},
   },

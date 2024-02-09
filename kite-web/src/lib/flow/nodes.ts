@@ -1,10 +1,16 @@
 import {
+  ArrowUturnLeftIcon,
   ArrowsRightLeftIcon,
   ChatBubbleBottomCenterIcon,
   CommandLineIcon,
+  DocumentIcon,
   EnvelopeIcon,
+  HashtagIcon,
   LanguageIcon,
+  PlusIcon,
   QuestionMarkCircleIcon,
+  TagIcon,
+  UserIcon,
 } from "@heroicons/react/24/solid";
 import { ExoticComponent, useMemo } from "react";
 import {
@@ -26,7 +32,8 @@ export interface NodeValues {
   icon: ExoticComponent<{ className: string }>;
   defaultTitle: string;
   defaultDescription: string;
-  schema?: ZodSchema;
+  dataSchema?: ZodSchema;
+  dataFields: string[];
 }
 
 export const nodeTypes: Record<string, NodeValues> = {
@@ -36,7 +43,8 @@ export const nodeTypes: Record<string, NodeValues> = {
     defaultTitle: "Command",
     defaultDescription:
       "Command entry. Drop different actions and options here!",
-    schema: nodeCommandDataSchema,
+    dataSchema: nodeCommandDataSchema,
+    dataFields: ["name", "description"],
   },
   entry_event: {
     color: entryColor,
@@ -44,13 +52,23 @@ export const nodeTypes: Record<string, NodeValues> = {
     defaultTitle: "Listen for Event",
     defaultDescription:
       "Listens for an event to trigger the flow. Drop different actions and options here!",
+    dataFields: [],
   },
-  action: {
+  action_response_text: {
     color: actionColor,
-    icon: ChatBubbleBottomCenterIcon,
+    icon: ArrowUturnLeftIcon,
     defaultTitle: "Plain text response",
     defaultDescription: "Bot replies with a plain text response",
-    schema: nodeActionDataSchema,
+    dataSchema: nodeActionDataSchema,
+    dataFields: ["text_response", "custom_label"],
+  },
+  action_message_create: {
+    color: actionColor,
+    icon: ChatBubbleBottomCenterIcon,
+    defaultTitle: "Plain text message",
+    defaultDescription: "Bot sends a plain text message to a channel",
+    dataSchema: nodeActionDataSchema,
+    dataFields: ["text_response", "custom_label"],
   },
   condition: {
     color: conditionColor,
@@ -58,13 +76,55 @@ export const nodeTypes: Record<string, NodeValues> = {
     defaultTitle: "Comparison Condition",
     defaultDescription:
       "Run actions based on the difference between two values.",
+    dataFields: ["custom_label"],
   },
-  option: {
+  option_text: {
     color: optionColor,
     icon: LanguageIcon,
     defaultTitle: "Text",
-    defaultDescription: "A plain text option",
-    schema: nodeOptionDataSchema,
+    defaultDescription: "Type in some plain text",
+    dataSchema: nodeOptionDataSchema,
+    dataFields: ["name", "description", "custom_label"],
+  },
+  option_number: {
+    color: optionColor,
+    icon: PlusIcon,
+    defaultTitle: "Number",
+    defaultDescription: "Type in a number",
+    dataSchema: nodeOptionDataSchema,
+    dataFields: ["name", "description", "custom_label"],
+  },
+  option_user: {
+    color: optionColor,
+    icon: UserIcon,
+    defaultTitle: "User",
+    defaultDescription: "Select a member from the server",
+    dataSchema: nodeOptionDataSchema,
+    dataFields: ["name", "description", "custom_label"],
+  },
+  option_channel: {
+    color: optionColor,
+    icon: HashtagIcon,
+    defaultTitle: "Channel",
+    defaultDescription: "Select a channel from the server",
+    dataSchema: nodeOptionDataSchema,
+    dataFields: ["name", "description", "custom_label"],
+  },
+  option_role: {
+    color: optionColor,
+    icon: TagIcon,
+    defaultTitle: "Role",
+    defaultDescription: "Select a role from the server",
+    dataSchema: nodeOptionDataSchema,
+    dataFields: ["name", "description", "custom_label"],
+  },
+  option_attachment: {
+    color: optionColor,
+    icon: DocumentIcon,
+    defaultTitle: "Attachment",
+    defaultDescription: "Upload a file",
+    dataSchema: nodeOptionDataSchema,
+    dataFields: ["name", "description", "custom_label"],
   },
 };
 
@@ -73,6 +133,7 @@ const unknownNodeType: NodeValues = {
   icon: QuestionMarkCircleIcon,
   defaultTitle: "Unknown",
   defaultDescription: "Unknown node type.",
+  dataFields: [],
 };
 
 export function useNodeValues(nodeType: string): NodeValues {

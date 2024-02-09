@@ -15,7 +15,7 @@ export default function FlowNodeHandle({ type, position, color }: Props) {
       className="rounded-full"
       style={{
         backgroundColor: color ?? primaryColor,
-        translate: position === Position.Top ? "0 -4px" : "0 4px",
+        translate: position === Position.Top ? "0 -2px" : "0 2px",
         height: "10px",
         width: "10px",
       }}

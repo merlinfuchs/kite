@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { ExoticComponent, useMemo } from "react";
 import { useNodes, useReactFlow, useStoreApi } from "reactflow";
 import { NodeData } from "../../lib/flow/data";
 import clsx from "clsx";
@@ -9,19 +9,11 @@ interface Props {
   nodeId: string;
 }
 
-const intputs = {
+const intputs: Record<string, any> = {
   custom_label: CustomLabelInput,
   name: NameInput,
   description: DescriptionInput,
   text_response: TextResponseInput,
-} as const;
-
-const inputsForNodeTypes: Record<string, (keyof typeof intputs)[]> = {
-  entry_command: ["name", "description"],
-  entry_event: [],
-  option: ["name", "description", "custom_label"],
-  condition: ["custom_label"],
-  action: ["text_response", "custom_label"],
 };
 
 export default function FlowNodeEditor({ nodeId }: Props) {
@@ -55,13 +47,12 @@ export default function FlowNodeEditor({ nodeId }: Props) {
     );
   }
 
-  const inputTypes = inputsForNodeTypes[node?.type!];
-  const { schema } = useNodeValues(node?.type!);
+  const values = useNodeValues(node?.type!);
 
   const errors: Record<string, string> = useMemo(() => {
-    if (!schema) return {};
+    if (!values.dataSchema) return {};
 
-    const res = schema.safeParse(data);
+    const res = values.dataSchema.safeParse(data);
     if (res.success) {
       return {};
     }
@@ -69,24 +60,33 @@ export default function FlowNodeEditor({ nodeId }: Props) {
     return Object.fromEntries(
       res.error.issues.map((issue) => [issue.path.join("."), issue.message])
     );
-  }, [schema, data]);
+  }, [values.dataSchema, data]);
 
   if (!node || !data) return null;
 
   return (
     <div className="fixed top-0 left-0 bg-dark-3 w-96 h-full p-5">
-      <div className="flex items-center justify-end">
+      <div className="flex items-start justify-between mb-5">
+        <div className="text-xl font-bold text-gray-100">Block Settings</div>
         <XMarkIcon
-          className="h-6 w-6 text-gray-300 cursor-pointer"
+          className="h-6 w-6 text-gray-300 hover:text-gray-100 cursor-pointer"
           onClick={close}
         />
       </div>
+      <div className="mb-5">
+        <div className="text-lg font-bold text-gray-100 mb-1">
+          {values.defaultTitle}
+        </div>
+        <div className="text-gray-300">{values.defaultDescription}</div>
+      </div>
       <div className="space-y-3">
-        {inputTypes?.map((inputType) => {
-          const Input = intputs[inputType];
+        {values.dataFields.map((field) => {
+          const Input = intputs[field];
+          if (!Input) return null;
+
           return (
             <Input
-              key={inputType}
+              key={field}
               data={data}
               updateData={updateData}
               errors={errors}
@@ -94,7 +94,7 @@ export default function FlowNodeEditor({ nodeId }: Props) {
           );
         })}
       </div>
-      <pre className="text-gray-300 mt-5">{JSON.stringify(node, null, 2)}</pre>
+      {/*<pre className="text-gray-300 mt-5">{JSON.stringify(node, null, 2)}</pre>*/}
     </div>
   );
 }

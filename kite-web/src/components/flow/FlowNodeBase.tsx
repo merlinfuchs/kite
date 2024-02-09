@@ -2,12 +2,14 @@ import { NodeProps } from "reactflow";
 import { NodeData } from "../../lib/flow/data";
 import { ReactNode } from "react";
 import { primaryColor, useNodeValues } from "@/lib/flow/nodes";
+import FlowNodeMarkers from "./FlowNodeMarkers";
 
 interface Props extends NodeProps<NodeData> {
   title?: string;
   description?: string;
   children: ReactNode;
   highlight?: boolean;
+  showConnectedMarker?: boolean;
 }
 
 export default function FlowNodeBase(props: Props) {
@@ -20,7 +22,7 @@ export default function FlowNodeBase(props: Props) {
 
   return (
     <div
-      className="pl-2.5 pr-4 py-2.5 shadow-md rounded bg-dark-3 border-dark-3 border-2 relative max-w-sm cursor-grab"
+      className="pl-2.5 pr-4 py-2.5 shadow-md rounded bg-dark-3 border-dark-3 border-2 relative max-w-sm min-w-32 cursor-grab"
       style={{
         borderColor: props.selected
           ? primaryColor
@@ -47,6 +49,8 @@ export default function FlowNodeBase(props: Props) {
       </div>
 
       {props.children}
+
+      <FlowNodeMarkers {...props} />
     </div>
   );
 }
