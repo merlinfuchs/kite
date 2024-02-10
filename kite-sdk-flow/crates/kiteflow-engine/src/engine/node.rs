@@ -7,6 +7,8 @@ pub enum Node {
     EntryEvent { id: String, data: NodeDataEntryEvent },
     EntryError { id: String, data: NodeDataEntryError },
     OptionText { id: String, data: NodeDataOptionText },
+    ActionLog { id: String, data: NodeDataActionLog },
+    ActionResponseText { id: String, data: NodeDataActionResponseText },
 }
 
 impl Node {
@@ -16,6 +18,8 @@ impl Node {
             Node::EntryEvent { id, .. } => id,
             Node::EntryError { id, .. } => id,
             Node::OptionText { id, .. } => id,
+            Node::ActionLog { id, .. } => id,
+            Node::ActionResponseText { id, .. } => id,
         }
     }
 
@@ -48,14 +52,23 @@ pub struct NodeDataEntryEvent {
 }
 
 #[derive(Clone, Serialize, Deserialize)]
-pub struct NodeDataEntryError {
-    pub log_level: String,
-    pub log_message: String
-}
+pub struct NodeDataEntryError {}
 
 #[derive(Clone, Serialize, Deserialize)]
 pub struct NodeDataOptionText {
     pub name: String,
     pub description: String,
     pub required: bool
+}
+
+#[derive(Clone, Serialize, Deserialize)]
+pub struct NodeDataActionLog {
+    pub log_level: String,
+    pub log_message: String
+}
+
+
+#[derive(Clone, Serialize, Deserialize)]
+pub struct NodeDataActionResponseText {
+    pub text: String
 }

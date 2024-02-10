@@ -63,7 +63,7 @@ export default function FlowNodeExplorer() {
         </div>
       </div>
       <NodeCategories category={category} setCategory={setCategory} />
-      <div className="overflow-y-auto flex-auto space-y-3 px-2">
+      <div className="overflow-y-auto flex-auto space-y-3 px-2 pb-5">
         {sections.map((section, i) => (
           <div key={i}>
             <div className="text-gray-300 font-medium mb-2 px-1">

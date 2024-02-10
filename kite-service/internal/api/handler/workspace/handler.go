@@ -33,6 +33,7 @@ func (h *WorkspaceHandler) HandleWorkspaceCreate(c *fiber.Ctx, req wire.Workspac
 	workspace, err := h.workspaces.CreateWorkspace(c.Context(), model.Workspace{
 		ID:          util.UniqueID(),
 		GuildID:     c.Params("guildID"),
+		Type:        model.WorkspaceType(req.Type),
 		Name:        req.Name,
 		Description: req.Description,
 		Files:       files,

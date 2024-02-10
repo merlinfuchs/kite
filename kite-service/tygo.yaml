@@ -12,6 +12,7 @@ packages:
       null.Time: "null | string /* RFC3339 */"
       json.RawMessage: "Record<string, any> | null"
       manifest.Manifest: "Manifest"
+      Base64: "string"
     exclude_files:
       - "base.go"
     frontmatter: |

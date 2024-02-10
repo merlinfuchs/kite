@@ -1,0 +1,82 @@
+{
+  "nodes": [
+    {
+      "width": 384,
+      "height": 80,
+      "id": "1",
+      "type": "entry_command",
+      "position": { "x": 0, "y": 200 },
+      "data": { "name": "ban", "description": "Ban a user from the server" },
+      "positionAbsolute": { "x": 0, "y": 200 }
+    },
+    {
+      "width": 282,
+      "height": 64,
+      "id": "2",
+      "type": "action_response_text",
+      "position": { "x": 372.1101694915254, "y": 583.4790254237288 },
+      "data": { "text": "cool!" },
+      "selected": false,
+      "dragging": false,
+      "positionAbsolute": { "x": 372.1101694915254, "y": 583.4790254237288 }
+    },
+    {
+      "width": 313,
+      "height": 64,
+      "id": "5",
+      "type": "entry_error",
+      "position": { "x": 300, "y": 50 },
+      "data": {},
+      "positionAbsolute": { "x": 300, "y": 50 }
+    },
+    {
+      "width": 384,
+      "height": 80,
+      "id": "6",
+      "type": "action_log",
+      "position": { "x": 350, "y": 325 },
+      "data": { "log_level": "info", "log_message": "asds" },
+      "positionAbsolute": { "x": 350, "y": 325 },
+      "selected": false,
+      "dragging": false
+    },
+    {
+      "width": 282,
+      "height": 64,
+      "id": "1707510434931",
+      "type": "action_response_text",
+      "position": { "x": -123.6167372881356, "y": 578.5222457627119 },
+      "data": { "text": "yeet" },
+      "selected": false,
+      "dragging": false,
+      "positionAbsolute": { "x": -123.6167372881356, "y": 578.5222457627119 }
+    }
+  ],
+  "edges": [
+    { "type": "buttonedge", "id": "e5-6", "source": "5", "target": "6" },
+    {
+      "type": "buttonedge",
+      "source": "2",
+      "sourceHandle": null,
+      "target": "1707510434931",
+      "targetHandle": null,
+      "id": "reactflow__edge-2-1707510434931"
+    },
+    {
+      "type": "buttonedge",
+      "source": "1707510434931",
+      "sourceHandle": null,
+      "target": "2",
+      "targetHandle": null,
+      "id": "reactflow__edge-1707510434931-2"
+    },
+    {
+      "type": "buttonedge",
+      "source": "1",
+      "sourceHandle": null,
+      "target": "2",
+      "targetHandle": null,
+      "id": "reactflow__edge-1-2"
+    }
+  ]
+}

@@ -122,6 +122,7 @@ type User struct {
 type Workspace struct {
 	ID          string
 	GuildID     string
+	Type        string
 	Name        string
 	Description string
 	Files       json.RawMessage

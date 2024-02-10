@@ -2,7 +2,6 @@ package plugin
 
 import (
 	"bytes"
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -96,7 +95,7 @@ func runDeploy(
 		Key:         cfg.Deployment.Key,
 		Name:        cfg.Deployment.Name,
 		Description: cfg.Deployment.Description,
-		WasmBytes:   base64.StdEncoding.EncodeToString(wasm),
+		WasmBytes:   wasm,
 		// TODO: Config:
 	})
 	if err != nil {

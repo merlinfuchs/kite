@@ -14,6 +14,12 @@ fn main() -> Result<()> {
         .expect("Failed to parse flow data");
 
     let tree = FlowTree::new(&flow.nodes, &flow.edges);
+    
+    println!("Parsed: {}", tree.entries.len());
+
+    for entry in tree.entries {
+        entry.borrow().walk();
+    }
 
     Ok(())
 }

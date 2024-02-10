@@ -1,7 +1,6 @@
 package deployment
 
 import (
-	"encoding/base64"
 	"fmt"
 	"time"
 
@@ -31,14 +30,9 @@ func NewHandler(engine *engine.Engine, deployments store.DeploymentStore, deploy
 }
 
 func (h *DeploymentHandler) HandleDeploymentCreate(c *fiber.Ctx, req wire.DeploymentCreateRequest) error {
-	wasmBytes, err := base64.StdEncoding.DecodeString(req.WasmBytes)
-	if err != nil {
-		return fmt.Errorf("failed to decode wasm bytes: %w", err)
-	}
-
 	guildID := c.Params("guildID")
 
-	module, err := module.New(c.Context(), wasmBytes, module.ModuleConfig{
+	module, err := module.New(c.Context(), req.WasmBytes, module.ModuleConfig{
 		MemoryPagesLimit:   1024, // TODO: make this globally configurable
 		TotalTimeLimit:     time.Millisecond * 10,
 		ExecutionTimeLimit: time.Millisecond * 1,
@@ -59,7 +53,7 @@ func (h *DeploymentHandler) HandleDeploymentCreate(c *fiber.Ctx, req wire.Deploy
 		Description:     req.Description,
 		GuildID:         guildID,
 		PluginVersionID: req.PluginVersionID,
-		WasmBytes:       wasmBytes,
+		WasmBytes:       req.WasmBytes,
 		Manifest:        *manifest,
 		Config:          req.Config,
 		CreatedAt:       time.Now().UTC(),

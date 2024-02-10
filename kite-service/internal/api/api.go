@@ -122,7 +122,7 @@ func (api *API) RegisterHandlers(engine *engine.Engine, pg *postgres.Client, acc
 	guildGroup.Get("/quick-access", quickAccessHandler.HandleQuickAccessItemList)
 
 	compileHandler := compile.NewHandler()
-	v1Group.Post("/compile/js", helpers.WithRequestBody(compileHandler.HandleJSCompile))
+	v1Group.Post("/compile", helpers.WithRequestBody(compileHandler.HandleCompile))
 }
 
 func (api *API) Serve(host string, port int) error {

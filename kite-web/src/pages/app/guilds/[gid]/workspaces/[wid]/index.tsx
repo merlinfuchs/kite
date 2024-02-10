@@ -1,15 +1,20 @@
 import {
-  useCompileJsMutation,
+  useCompileMutation,
   useDeploymentCreateMutation,
   useWorkspaceUpdateMutation,
 } from "@/lib/api/mutations";
 import { useWorkspaceQuery } from "@/lib/api/queries";
 import { Workspace } from "@/lib/types/wire";
 import Code from "@/components/code/Code";
-import { compileWorkspace, readManifestFromWorkspace } from "@/util/compile";
+import {
+  compileWorkspace,
+  readManifestFromWorkspace,
+} from "@/lib/code/compile";
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 import { useRouteParams } from "@/hooks/route";
+import Flow from "@/components/flow/Flow";
+import { bundleFlowFiles } from "@/lib/flow/bundle";
 
 export default function GuildWorkspacePage() {
   const router = useRouter();
@@ -21,15 +26,20 @@ export default function GuildWorkspacePage() {
   const [workspace, setWorkspace] = useState<Workspace | null>(null);
   const [openFilePath, setOpenFilePath] = useState<string | null>("index.ts");
 
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+
   useEffect(() => {
     if (workspaceQuery.data && workspaceQuery.data.success) {
       setWorkspace(workspaceQuery.data.data);
       setOpenFilePath("index.ts");
+
+      setTimeout(() => {
+        // This is a workaround to ignore the initial onChange triggered by reactflow
+        setHasUnsavedChanges(false);
+      }, 100);
     }
   }, [workspaceQuery.data]);
-
-  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
 
   async function onSave() {
     if (!workspace || !hasUnsavedChanges) return;
@@ -48,9 +58,11 @@ export default function GuildWorkspacePage() {
         },
       },
       {
-        onSuccess: () => {
+        onSuccess: (res) => {
           setIsSaving(false);
-          setHasUnsavedChanges(false);
+          if (res.success) {
+            setHasUnsavedChanges(false);
+          }
         },
         onError: () => {
           setIsSaving(false);
@@ -60,25 +72,39 @@ export default function GuildWorkspacePage() {
   }
 
   const [isDeploying, setIsDeploying] = useState(false);
-  const compileMutation = useCompileJsMutation();
+  const compileMutation = useCompileMutation();
   const deployMutation = useDeploymentCreateMutation(guildId);
 
   async function onDeploy() {
     if (!workspace) return;
 
-    const bundledJs = await compileWorkspace(workspace.files, "index.ts");
-    const manifest = readManifestFromWorkspace(workspace.files);
-
     setIsDeploying(true);
+
+    let bundledSource: string;
+
+    if (workspace.type === "FLOW") {
+      const bundledFlow = bundleFlowFiles(workspace.files);
+      bundledSource = JSON.stringify(bundledFlow);
+    } else if (workspace.type === "JS") {
+      const bundledJs = await compileWorkspace(workspace.files, "index.ts");
+      bundledSource = bundledJs;
+    } else {
+      console.warn("Unknown workspace type");
+      return;
+    }
+
+    const manifest = readManifestFromWorkspace(workspace.files);
 
     compileMutation.mutate(
       {
-        source: bundledJs,
+        type: workspace.type,
+        source: bundledSource,
       },
       {
         onSuccess: (res) => {
           if (!res.success) {
             console.log(res.error);
+            setIsDeploying(false);
             return;
           }
 
@@ -110,6 +136,23 @@ export default function GuildWorkspacePage() {
     return <div>Loading...</div>;
   }
 
+  if (workspace.type === "FLOW") {
+    return (
+      <Flow
+        files={workspace.files}
+        openFilePath="default.flow"
+        setOpenFilePath={() => {}}
+        isSaving={isSaving}
+        isDeploying={isDeploying}
+        hasUnsavedChanges={hasUnsavedChanges}
+        onChange={() => setHasUnsavedChanges(true)}
+        onDeploy={onDeploy}
+        onSave={onSave}
+        onExit={() => router.push(`/app/guilds/${guildId}/workspaces`)}
+      />
+    );
+  }
+
   return (
     <div>
       <Code
@@ -120,7 +163,7 @@ export default function GuildWorkspacePage() {
         isSaving={isSaving}
         onSave={onSave}
         onChange={() => setHasUnsavedChanges(true)}
-        onBack={() => router.push(`/app/guilds/${guildId}/workspaces`)}
+        onExit={() => router.push(`/app/guilds/${guildId}/workspaces`)}
         isDeploying={isDeploying}
         onDeploy={onDeploy}
       />

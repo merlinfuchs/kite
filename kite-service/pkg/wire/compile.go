@@ -1,11 +1,12 @@
 package wire
 
-type CompileJSRequest struct {
+type CompileRequest struct {
+	Type   string `json:"type"`
 	Source string `json:"source"`
 }
 
-type CompileJSResponseData struct {
-	WASMBytes string `json:"wasm_bytes"`
+type CompileResponseData struct {
+	WASMBytes Base64 `json:"wasm_bytes"`
 }
 
-type CompileJSResponse APIResponse[CompileJSResponseData]
+type CompileResponse APIResponse[CompileResponseData]

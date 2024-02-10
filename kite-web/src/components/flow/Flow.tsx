@@ -1,5 +1,4 @@
 import {
-  Node,
   ReactFlowProvider,
   useOnSelectionChange,
   useReactFlow,
@@ -7,64 +6,50 @@ import {
 import FlowEditor from "./FlowEditor";
 import FlowNodeExplorer from "./FlowNodeExplorer";
 import FlowNodeEditor from "./FlowNodeEditor";
-import { NodeData } from "../../lib/flow/data";
-import { useEffect, useState } from "react";
+import FlowNav from "./FlowNav";
+import { FlowData, NodeData } from "../../lib/flow/data";
+import { useEffect, useMemo, useState } from "react";
+import { FlatFile } from "@/lib/code/filetree";
 
-const initialNodes: Node<NodeData>[] = [
-  {
-    id: "1",
-    type: "entry_command",
-    position: { x: 0, y: 200 },
-    data: {
-      name: "ban",
-      description: "Ban a user from the server",
-    },
-  },
-  {
-    id: "2",
-    type: "action_response_text",
-    position: { x: 100, y: 600 },
-    data: {},
-  },
-  {
-    id: "3",
-    type: "option_user",
-    position: { x: -50, y: 0 },
-    data: {
-      name: "user",
-      description: "The user you want to ban",
-    },
-  },
-  {
-    id: "4",
-    type: "condition",
-    position: { x: -100, y: 400 },
-    data: {},
-  },
-  {
-    id: "5",
-    type: "entry_error",
-    position: { x: 300, y: 50 },
-    data: {},
-  },
-  {
-    id: "6",
-    type: "action_log",
-    position: { x: 350, y: 325 },
-    data: {},
-  },
-];
-const initialEdges = [
-  { id: "e1-4", source: "1", target: "4" },
-  { id: "e4-2", source: "4", target: "2" },
-  { id: "e3-1", source: "3", target: "1" },
-  { id: "e5-6", source: "5", target: "6" },
-];
+interface Props {
+  files: FlatFile[];
+  openFilePath: string | null;
+  setOpenFilePath: (path: string | null) => void;
+  hasUnsavedChanges: boolean;
+  onChange: () => void;
+  isSaving: boolean;
+  onSave: () => void;
+  isDeploying: boolean;
+  onDeploy: () => void;
+  onExit: () => void;
+}
 
-function Flow() {
-  const { getEdges, getNodes } = useReactFlow();
-
+function Flow({
+  files,
+  openFilePath,
+  setOpenFilePath,
+  hasUnsavedChanges,
+  onChange,
+  isSaving,
+  onSave,
+  isDeploying,
+  onDeploy,
+  onExit,
+}: Props) {
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
+  const { setNodes, setEdges } = useReactFlow<NodeData>();
+
+  useEffect(() => {
+    const file = files.find((f) => f.path === openFilePath);
+    if (!file) {
+      console.warn(`File ${openFilePath} not found.`);
+      return;
+    }
+
+    const data: FlowData = JSON.parse(file.content);
+    setNodes(data.nodes);
+    setEdges(data.edges);
+  }, [files]);
 
   useOnSelectionChange({
     onChange: ({ nodes }) => {
@@ -73,38 +58,42 @@ function Flow() {
     },
   });
 
-  function onSave() {
-    console.log(getEdges());
-    console.log(getNodes());
+  function save(d: FlowData) {
+    const file = files.find((f) => f.path === openFilePath);
+    if (file) {
+      // We intentionally don't trigger a state update here, the state is primarily managed by reactflow
+      file.content = JSON.stringify(d);
+    }
+    onSave();
   }
 
-  useEffect(() => {
-    async function onKeyDown(e: KeyboardEvent) {
-      if (e.key === "s" && (e.ctrlKey || e.metaKey)) {
-        e.preventDefault();
-        onSave();
-      }
-    }
-
-    document.addEventListener("keydown", onKeyDown);
-    return () => document.removeEventListener("keydown", onKeyDown);
-  }, [onSave]);
-
   return (
-    <div className="h-[100dvh] w-[100dvw] flex">
+    <div className="h-[100dvh] w-[100dvw] flex flex-col">
       <div className="flex-none">
-        <FlowNodeExplorer />
-        {selectedNodeId && <FlowNodeEditor nodeId={selectedNodeId} />}
+        <FlowNav
+          hasUnsavedChanges={hasUnsavedChanges}
+          isSaving={isSaving}
+          onSave={save}
+          isDeploying={isDeploying}
+          onDeploy={onDeploy}
+          onExit={onExit}
+        />
       </div>
-      <div className="flex-auto h-full">
-        <FlowEditor initialNodes={initialNodes} initialEdges={initialEdges} />
+      <div className="flex flex-auto overflow-y-hidden relative">
+        <div className="flex-none">
+          <FlowNodeExplorer />
+          {selectedNodeId && <FlowNodeEditor nodeId={selectedNodeId} />}
+        </div>
+        <div className="flex-auto">
+          <FlowEditor onChange={onChange} />
+        </div>
       </div>
     </div>
   );
 }
 
-export default () => (
+export default (props: Props) => (
   <ReactFlowProvider>
-    <Flow />
+    <Flow {...props} />
   </ReactFlowProvider>
 );

@@ -4,7 +4,7 @@ import {
   FlatFile,
   flatFilesToFileTree,
   getIconUrlForFile,
-} from "@/util/filetree";
+} from "@/lib/code/filetree";
 import { useState } from "react";
 import styles from "./CodeFileTree.module.css";
 import clsx from "clsx";

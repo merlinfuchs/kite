@@ -11,6 +11,8 @@ import ReactFlow, {
   Edge,
   useNodesState,
   useEdgesState,
+  NodeChange,
+  EdgeChange,
 } from "reactflow";
 import FlowEdgeButton from "./FlowEdgeButton";
 import FlowNodeActionBase from "./FlowNodeActionBase";
@@ -21,7 +23,7 @@ import FlowNodeEntryEvent from "./FlowNodeEntryEvent";
 import FlowNodeEntryError from "./FlowNodeEntryError";
 
 import "reactflow/dist/base.css";
-import { NodeData } from "../../lib/flow/data";
+import { FlowData, NodeData } from "../../lib/flow/data";
 import { getId } from "@/lib/flow/util";
 
 const nodeTypes = {
@@ -45,13 +47,17 @@ const edgeTypes = {
 };
 
 interface Props {
-  initialNodes: Node<NodeData>[];
-  initialEdges: Edge[];
+  initialData?: FlowData;
+  onChange: () => void;
 }
 
-export default function FlowEditor({ initialNodes, initialEdges }: Props) {
-  const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
-  const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
+export default function FlowEditor({ initialData, onChange }: Props) {
+  const [nodes, setNodes, onNodesChange] = useNodesState(
+    initialData?.nodes || []
+  );
+  const [edges, setEdges, onEdgesChange] = useEdgesState(
+    initialData?.edges || []
+  );
   const rfInstance = useReactFlow();
 
   const onConnect = useCallback(
@@ -76,7 +82,7 @@ export default function FlowEditor({ initialNodes, initialEdges }: Props) {
         return false;
 
       // Prevent cycles
-      const hasCycle = (node: Node, visited = new Set()) => {
+      /*const hasCycle = (node: Node, visited = new Set()) => {
         if (visited.has(node.id)) return false;
 
         visited.add(node.id);
@@ -88,7 +94,8 @@ export default function FlowEditor({ initialNodes, initialEdges }: Props) {
       };
 
       if (target.id === con.source) return false;
-      return !hasCycle(target);
+      return !hasCycle(target);*/
+      return true;
     },
     [getNodes, getEdges]
   );
@@ -123,12 +130,22 @@ export default function FlowEditor({ initialNodes, initialEdges }: Props) {
     [rfInstance]
   );
 
+  function wrappedOnNodesChange(changes: NodeChange[]) {
+    onNodesChange(changes);
+    onChange();
+  }
+
+  function wrappedOnEdgesChange(changes: EdgeChange[]) {
+    onEdgesChange(changes);
+    onChange();
+  }
+
   return (
     <ReactFlow
       nodes={nodes}
       edges={edges}
-      onNodesChange={onNodesChange}
-      onEdgesChange={onEdgesChange}
+      onNodesChange={wrappedOnNodesChange}
+      onEdgesChange={wrappedOnEdgesChange}
       nodeTypes={nodeTypes}
       edgeTypes={edgeTypes}
       onConnect={onConnect}

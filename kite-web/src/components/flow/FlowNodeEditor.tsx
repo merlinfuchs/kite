@@ -88,12 +88,10 @@ export default function FlowNodeEditor({ nodeId }: Props) {
     );
   }, [values.dataSchema, data]);
 
-  console.log(errors);
-
   if (!node || !data) return null;
 
   return (
-    <div className="fixed top-0 left-0 bg-dark-3 w-96 h-full p-5 flex flex-col overflow-y-hidden">
+    <div className="absolute top-0 left-0 bg-dark-3 w-96 h-full p-5 flex flex-col overflow-y-hidden">
       <div className="flex-none">
         <div className="flex items-start justify-between mb-5">
           <div className="text-xl font-bold text-gray-100">Block Settings</div>

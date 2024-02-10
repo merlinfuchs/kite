@@ -1,4 +1,10 @@
+import { Edge, Node } from "reactflow";
 import z from "zod";
+
+export interface FlowData {
+  nodes: Node<NodeData>[];
+  edges: Edge[];
+}
 
 export interface NodeData {
   custom_label?: string;

@@ -5,7 +5,7 @@ import {
 import { useWorkspacesQuery } from "@/lib/api/queries";
 import Link from "next/link";
 import AutoAnimate from "../AutoAnimate";
-import { FlatFile } from "@/util/filetree";
+import { FlatFile } from "@/lib/code/filetree";
 import { useRouter } from "next/router";
 import toast from "react-hot-toast";
 import clsx from "clsx";
@@ -50,6 +50,16 @@ type = 'js'
   },
 ];
 
+const defaultFlowFiles: FlatFile[] = [
+  {
+    path: "default.flow",
+    content: JSON.stringify({
+      nodes: [],
+      edges: [],
+    }),
+  },
+];
+
 export default function AppWorkspaceList({ guildId }: { guildId: string }) {
   const router = useRouter();
 
@@ -79,9 +89,33 @@ export default function AppWorkspaceList({ guildId }: { guildId: string }) {
   function createWorkspace() {
     createMutation.mutate(
       {
+        type: "JS",
         name: "New Workspace",
         description: "A new Workspace for my new cool Plugin!",
         files: defaultFiles.map((file) => ({
+          path: file.path,
+          content: file.content,
+        })),
+      },
+      {
+        onSuccess: (res) => {
+          if (res.success) {
+            router.push(`/app/guilds/${guildId}/workspaces/${res.data.id}`);
+          } else {
+            toast.error("Failed to create workspace");
+          }
+        },
+      }
+    );
+  }
+
+  function createFlowWorkspace() {
+    createMutation.mutate(
+      {
+        type: "FLOW",
+        name: "New Flow",
+        description: "A new flow for my new cool Plugin!",
+        files: defaultFlowFiles.map((file) => ({
           path: file.path,
           content: file.content,
         })),
@@ -136,7 +170,13 @@ export default function AppWorkspaceList({ guildId }: { guildId: string }) {
             </div>
           ))}
         </AutoAnimate>
-        <div>
+        <div className="flex space-x-3">
+          <button
+            className="px-4 py-2 text-gray-100 rounded border-2 border-dark-9 hover:bg-dark-5 text-lg"
+            onClick={createFlowWorkspace}
+          >
+            New Flow
+          </button>
           <button
             className="px-4 py-2 text-gray-100 rounded border-2 border-dark-9 hover:bg-dark-5 text-lg"
             onClick={createWorkspace}
