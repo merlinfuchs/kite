@@ -3,21 +3,21 @@ package host
 import (
 	"context"
 
-	"github.com/bwmarrin/discordgo"
 	"github.com/merlinfuchs/dismod/distype"
 )
 
 func (h HostEnvironment) callDiscordChannelGet(ctx context.Context, data distype.ChannelGetRequest) (distype.ChannelGetResponse, error) {
-	channel, err := h.bot.Session.Channel(data.ChannelID.String(), discordgo.WithContext(ctx))
+	/* channel, err := h.bot.Session.Channel(data.ChannelID.String(), discordgo.WithContext(ctx))
 	if err != nil {
 		return distype.ChannelGetResponse{}, modelError(err)
 	}
 
-	return modelChannel(channel), nil
+	return modelChannel(channel), nil */
+	return distype.ChannelGetResponse{}, nil
 }
 
 func (h HostEnvironment) callDiscordChannelList(ctx context.Context, data distype.GuildChannelListRequest) (distype.GuildChannelListResponse, error) {
-	channels, err := h.bot.Session.GuildChannels(data.GuildID.String(), discordgo.WithContext(ctx))
+	/* channels, err := h.bot.Session.GuildChannels(data.GuildID.String(), discordgo.WithContext(ctx))
 	if err != nil {
 		return distype.GuildChannelListResponse{}, modelError(err)
 	}
@@ -25,13 +25,13 @@ func (h HostEnvironment) callDiscordChannelList(ctx context.Context, data distyp
 	res := make([]distype.Channel, len(channels))
 	for i, channel := range channels {
 		res[i] = modelChannel(channel)
-	}
+	} */
 
-	return res, nil
+	return distype.GuildChannelListResponse{}, nil
 }
 
 func (h HostEnvironment) callDiscordMessageCreate(ctx context.Context, data distype.MessageCreateRequest) (distype.MessageCreateResponse, error) {
-	var content string
+	/*var content string
 	if data.Content != nil {
 		content = *data.Content
 	}
@@ -41,11 +41,12 @@ func (h HostEnvironment) callDiscordMessageCreate(ctx context.Context, data dist
 		return distype.MessageCreateResponse{}, err
 	}
 
-	return modelMessage(msg), nil
+	return modelMessage(msg), nil*/
+	return distype.MessageCreateResponse{}, nil
 }
 
 func (h HostEnvironment) callDiscordMessageUpdate(ctx context.Context, data distype.MessageEditRequest) (distype.MessageEditResponse, error) {
-	var content string
+	/*var content string
 	if data.Content != nil {
 		content = *data.Content
 	}
@@ -55,29 +56,32 @@ func (h HostEnvironment) callDiscordMessageUpdate(ctx context.Context, data dist
 		return distype.MessageEditResponse{}, modelError(err)
 	}
 
-	return modelMessage(msg), nil
+	return modelMessage(msg), nil*/
+	return distype.MessageEditResponse{}, nil
 }
 
 func (h HostEnvironment) callDiscordMessageDelete(ctx context.Context, data distype.MessageDeleteRequest) (distype.MessageDeleteResponse, error) {
-	err := h.bot.Session.ChannelMessageDelete(data.ChannelID.String(), data.MessageID.String(), discordgo.WithContext(ctx))
+	/*err := h.bot.Session.ChannelMessageDelete(data.ChannelID.String(), data.MessageID.String(), discordgo.WithContext(ctx))
 	if err != nil {
 		return distype.MessageDeleteResponse{}, modelError(err)
 	}
 
+	return distype.MessageDeleteResponse{}, nil*/
 	return distype.MessageDeleteResponse{}, nil
 }
 
 func (h HostEnvironment) callDiscordMessageGet(ctx context.Context, data distype.MessageGetRequest) (distype.MessageGetResponse, error) {
-	msg, err := h.bot.Session.ChannelMessage(data.ChannelID.String(), data.MessageID.String(), discordgo.WithContext(ctx))
+	/*msg, err := h.bot.Session.ChannelMessage(data.ChannelID.String(), data.MessageID.String(), discordgo.WithContext(ctx))
 	if err != nil {
 		return distype.MessageGetResponse{}, modelError(err)
 	}
 
-	return modelMessage(msg), nil
+	return modelMessage(msg), nil*/
+	return distype.MessageGetResponse{}, nil
 }
 
 func (h HostEnvironment) callDiscordInteractionResponseCreate(ctx context.Context, data distype.InteractionResponseCreateRequest) (distype.InteractionResponseCreateResponse, error) {
-	err := h.bot.Session.InteractionRespond(&discordgo.Interaction{
+	/*err := h.bot.Session.InteractionRespond(&discordgo.Interaction{
 		ID:    data.InteractionID.String(),
 		Token: data.InteractionToken,
 	}, &discordgo.InteractionResponse{
@@ -87,14 +91,16 @@ func (h HostEnvironment) callDiscordInteractionResponseCreate(ctx context.Contex
 		},
 	})
 
-	return distype.InteractionResponseCreateResponse{}, err
+	return distype.InteractionResponseCreateResponse{}, err*/
+	return distype.InteractionResponseCreateResponse{}, nil
 }
 
 func (h HostEnvironment) callDiscordGuildGet(ctx context.Context, data distype.GuildGetRequest) (distype.GuildGetResponse, error) {
-	guild, err := h.bot.Session.Guild(h.GuildID, discordgo.WithContext(ctx))
+	/*guild, err := h.bot.Session.Guild(h.GuildID, discordgo.WithContext(ctx))
 	if err != nil {
 		return distype.GuildGetResponse{}, modelError(err)
 	}
 
-	return modelGuild(guild), nil
+	return modelGuild(guild), nil*/
+	return distype.GuildGetResponse{}, nil
 }

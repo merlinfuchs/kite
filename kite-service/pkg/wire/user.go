@@ -3,18 +3,19 @@ package wire
 import (
 	"time"
 
+	"github.com/merlinfuchs/dismod/distype"
 	"github.com/merlinfuchs/kite/kite-service/pkg/model"
 )
 
 type User struct {
-	ID            string    `json:"id"`
-	Username      string    `json:"username"`
-	Discriminator string    `json:"discriminator"`
-	GlobalName    string    `json:"global_name"`
-	Avatar        string    `json:"avatar"`
-	PublicFlags   int       `json:"public_flags"`
-	CreatedAt     time.Time `json:"created_at"`
-	UpdatedAt     time.Time `json:"updated_at"`
+	ID            distype.Snowflake `json:"id"`
+	Username      string            `json:"username"`
+	Discriminator string            `json:"discriminator"`
+	GlobalName    string            `json:"global_name"`
+	Avatar        string            `json:"avatar"`
+	PublicFlags   int               `json:"public_flags"`
+	CreatedAt     time.Time         `json:"created_at"`
+	UpdatedAt     time.Time         `json:"updated_at"`
 }
 
 type UserGetResponse APIResponse[User]

@@ -2,6 +2,7 @@ package access
 
 import (
 	"github.com/gofiber/fiber/v2"
+	"github.com/merlinfuchs/dismod/distype"
 	"github.com/merlinfuchs/kite/kite-service/internal/api/helpers"
 	"github.com/merlinfuchs/kite/kite-service/internal/api/session"
 )
@@ -21,7 +22,7 @@ func (m *AccessMiddleware) GuildAccessRequired() func(c *fiber.Ctx) error {
 		session := session.GetSession(c)
 		guildID := c.Params("guildID")
 
-		perms, err := m.manager.GetGuildPermissionsForUser(c.Context(), guildID, session.UserID)
+		perms, err := m.manager.GetGuildPermissionsForUser(c.Context(), distype.Snowflake(guildID), session.UserID)
 		if err != nil {
 			return err
 		}

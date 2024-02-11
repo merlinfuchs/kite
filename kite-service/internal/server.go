@@ -1,6 +1,7 @@
 package internal
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/merlinfuchs/kite/kite-service/config"
@@ -35,10 +36,7 @@ func RunServer(cfg *config.ServerConfig) error {
 
 	bot.Engine = e
 
-	err = bot.Start()
-	if err != nil {
-		return fmt.Errorf("failed to start discord bot: %w", err)
-	}
+	bot.Open(context.Background())
 
 	api := api.New(cfg)
 

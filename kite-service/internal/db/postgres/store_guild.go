@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 
+	"github.com/merlinfuchs/dismod/distype"
 	"github.com/merlinfuchs/kite/kite-service/internal/db/postgres/pgmodel"
 	"github.com/merlinfuchs/kite/kite-service/pkg/model"
 	"github.com/merlinfuchs/kite/kite-service/pkg/store"
@@ -11,7 +12,7 @@ import (
 
 func (c *Client) UpsertGuild(ctx context.Context, guild model.Guild) (*model.Guild, error) {
 	g, err := c.Q.UpserGuild(ctx, pgmodel.UpserGuildParams{
-		ID:          guild.ID,
+		ID:          string(guild.ID),
 		Name:        guild.Name,
 		Description: sql.NullString{String: guild.Description, Valid: guild.Description != ""},
 		Icon:        sql.NullString{String: guild.Icon, Valid: guild.Icon != ""},
@@ -40,8 +41,8 @@ func (c *Client) GetGuilds(ctx context.Context) ([]model.Guild, error) {
 	return result, nil
 }
 
-func (c *Client) GetGuild(ctx context.Context, id string) (*model.Guild, error) {
-	guild, err := c.Q.GetGuild(ctx, id)
+func (c *Client) GetGuild(ctx context.Context, id distype.Snowflake) (*model.Guild, error) {
+	guild, err := c.Q.GetGuild(ctx, string(id))
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, store.ErrNotFound
@@ -56,7 +57,7 @@ func (c *Client) GetGuild(ctx context.Context, id string) (*model.Guild, error) 
 
 func guildToModel(guild pgmodel.Guild) model.Guild {
 	return model.Guild{
-		ID:          guild.ID,
+		ID:          distype.Snowflake(guild.ID),
 		Name:        guild.Name,
 		Description: guild.Description.String,
 		Icon:        guild.Icon.String,

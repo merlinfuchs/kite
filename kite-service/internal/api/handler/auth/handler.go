@@ -10,6 +10,7 @@ import (
 	"net/http"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/merlinfuchs/dismod/distype"
 	"github.com/merlinfuchs/kite/kite-service/config"
 	"github.com/merlinfuchs/kite/kite-service/internal/api/session"
 	"github.com/merlinfuchs/kite/kite-service/internal/logging/logattr"
@@ -97,7 +98,7 @@ func (h *AuthHandler) HandleAuthLogout(c *fiber.Ctx) error {
 	return c.Redirect(h.cfg.App.AuthCallbackURL(), http.StatusTemporaryRedirect)
 }
 
-func (h *AuthHandler) ExchangeAccessToken(ctx context.Context, oauth2 *oauth2.Config, code string) (string, string, []string, error) {
+func (h *AuthHandler) ExchangeAccessToken(ctx context.Context, oauth2 *oauth2.Config, code string) (string, distype.Snowflake, []distype.Snowflake, error) {
 	token, err := oauth2.Exchange(ctx, code)
 	if err != nil {
 		return "", "", nil, fmt.Errorf("Failed to exchange token: %v", err)
@@ -110,12 +111,12 @@ func (h *AuthHandler) ExchangeAccessToken(ctx context.Context, oauth2 *oauth2.Co
 	}
 
 	user := struct {
-		ID            string `json:"id"`
-		Username      string `json:"username"`
-		GlobalName    string `json:"global_name"`
-		Discriminator string `json:"discriminator"`
-		Avatar        string `json:"avatar"`
-		PublicFlags   int    `json:"public_flags"`
+		ID            distype.Snowflake `json:"id"`
+		Username      string            `json:"username"`
+		GlobalName    string            `json:"global_name"`
+		Discriminator string            `json:"discriminator"`
+		Avatar        string            `json:"avatar"`
+		PublicFlags   int               `json:"public_flags"`
 	}{}
 	err = json.NewDecoder(resp.Body).Decode(&user)
 	if err != nil {
@@ -149,12 +150,12 @@ func (h *AuthHandler) ExchangeAccessToken(ctx context.Context, oauth2 *oauth2.Co
 	}
 	resp.Body.Close()
 
-	guildIDs := make([]string, len(guilds))
+	guildIDs := make([]distype.Snowflake, len(guilds))
 	for i, guild := range guilds {
-		guildIDs[i] = guild.ID
+		guildIDs[i] = distype.Snowflake(guild.ID)
 	}
 
-	return token.AccessToken, user.ID, guildIDs, nil
+	return token.AccessToken, distype.Snowflake(user.ID), guildIDs, nil
 }
 
 func getOauthStateCookie(c *fiber.Ctx) string {

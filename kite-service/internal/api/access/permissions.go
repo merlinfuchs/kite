@@ -16,7 +16,7 @@ type GuildPermissions struct {
 	BotPermissions  uint64
 }
 
-func (m *AccessManager) GetGuildPermissionsForUser(ctx context.Context, guildID string, userID string) (*GuildPermissions, error) {
+func (m *AccessManager) GetGuildPermissionsForUser(ctx context.Context, guildID distype.Snowflake, userID distype.Snowflake) (*GuildPermissions, error) {
 	res := &GuildPermissions{}
 
 	botMember, err := m.state.GetGuildBotMember(ctx, guildID)

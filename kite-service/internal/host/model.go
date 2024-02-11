@@ -5,46 +5,9 @@ import (
 	"errors"
 
 	"github.com/bwmarrin/discordgo"
-	"github.com/merlinfuchs/dismod/distype"
 
 	"github.com/merlinfuchs/kite/kite-types/fail"
 )
-
-func modelMessage(msg *discordgo.Message) distype.Message {
-	return distype.Message{
-		ID:        distype.Snowflake(msg.ID),
-		ChannelID: distype.Snowflake(msg.ChannelID),
-		Content:   msg.Content,
-	}
-}
-
-func modelChannel(channel *discordgo.Channel) distype.Channel {
-	return distype.Channel{
-		ID:   distype.Snowflake(channel.ID),
-		Name: &channel.Name,
-	}
-}
-
-func modelUser(user *discordgo.User) distype.User {
-	return distype.User{
-		ID:       distype.Snowflake(user.ID),
-		Username: user.Username,
-	}
-}
-
-func modelGuild(guild *discordgo.Guild) distype.Guild {
-	return distype.Guild{
-		ID:   distype.Snowflake(guild.ID),
-		Name: guild.Name,
-	}
-}
-
-func modelRole(role *discordgo.Role) distype.Role {
-	return distype.Role{
-		ID:   distype.Snowflake(role.ID),
-		Name: role.Name,
-	}
-}
 
 func modelError(err error) *fail.HostError {
 	var derr *discordgo.RESTError

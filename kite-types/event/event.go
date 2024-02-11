@@ -60,9 +60,9 @@ const (
 )
 
 type Event struct {
-	Type    EventType   `json:"type"`
-	GuildID string      `json:"guild_id"`
-	Data    interface{} `json:"data"`
+	Type    EventType         `json:"type"`
+	GuildID distype.Snowflake `json:"guild_id"`
+	Data    interface{}       `json:"data"`
 }
 
 func (e *Event) UnmarshalJSON(b []byte) error {

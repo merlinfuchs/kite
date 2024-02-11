@@ -1,6 +1,8 @@
 package state
 
+import "github.com/merlinfuchs/dismod/distype"
+
 type memberLockKey struct {
-	guildID string
-	userID  string
+	guildID distype.Snowflake
+	userID  distype.Snowflake
 }
