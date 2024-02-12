@@ -4,12 +4,19 @@ import (
 	"context"
 	"fmt"
 	"sync"
+	"time"
 
 	"github.com/disgoorg/disgo/rest"
+	"github.com/hashicorp/golang-lru/v2/expirable"
 	"github.com/merlinfuchs/dismod/disrest"
 	"github.com/merlinfuchs/dismod/distype"
 	"github.com/merlinfuchs/kite/kite-service/pkg/store"
 )
+
+type memberKey struct {
+	guildID distype.Snowflake
+	userID  distype.Snowflake
+}
 
 type BotState struct {
 	sync.RWMutex
@@ -21,6 +28,7 @@ type BotState struct {
 	channels    map[distype.Snowflake]*distype.Channel
 	roles       map[distype.Snowflake]*distype.Role
 	botMembers  map[distype.Snowflake]*distype.Member
+	members     *expirable.LRU[memberKey, *distype.Member]
 	memberLocks sync.Map
 }
 
@@ -31,6 +39,7 @@ func New(client *disrest.Client) *BotState {
 		channels:   map[distype.Snowflake]*distype.Channel{},
 		roles:      map[distype.Snowflake]*distype.Role{},
 		botMembers: map[distype.Snowflake]*distype.Member{},
+		members:    expirable.NewLRU[memberKey, *distype.Member](1000, nil, time.Minute),
 	}
 }
 
@@ -49,7 +58,9 @@ func (s *BotState) Update(_ int, t distype.EventType, e any) {
 		e := e.(*distype.GuildCreateEvent)
 		s.guilds[e.ID] = e
 		for _, member := range e.Members {
-			s.botMembers[member.User.ID] = &member
+			if member.User.ID == s.botUser.ID {
+				s.botMembers[e.ID] = &member
+			}
 		}
 		e.Members = nil
 		s.Unlock()
@@ -60,8 +71,6 @@ func (s *BotState) GetGuildBotMember(ctx context.Context, guildID distype.Snowfl
 	s.RLock()
 	defer s.RUnlock()
 
-	fmt.Println("get bot mmeber")
-
 	member, exists := s.botMembers[guildID]
 	if exists {
 		return member, nil
@@ -70,16 +79,20 @@ func (s *BotState) GetGuildBotMember(ctx context.Context, guildID distype.Snowfl
 }
 
 func (s *BotState) GetGuildMember(ctx context.Context, guildID distype.Snowflake, userID distype.Snowflake) (*distype.Member, error) {
-	lockKey := memberLockKey{
+	key := memberKey{
 		guildID: guildID,
 		userID:  userID,
 	}
 
-	lock, _ := s.memberLocks.LoadOrStore(lockKey, &sync.Mutex{})
+	lock, _ := s.memberLocks.LoadOrStore(key, &sync.Mutex{})
 
 	lock.(*sync.Mutex).Lock()
 	defer lock.(*sync.Mutex).Unlock()
-	defer s.memberLocks.Delete(lockKey)
+	defer s.memberLocks.Delete(key)
+
+	if member, exists := s.members.Get(key); exists {
+		return member, nil
+	}
 
 	var member *distype.Member
 	err := s.client.Request(rest.GetMember.Compile(nil, guildID, userID), nil, &member, rest.WithCtx(ctx))
@@ -87,7 +100,7 @@ func (s *BotState) GetGuildMember(ctx context.Context, guildID distype.Snowflake
 		return nil, fmt.Errorf("failed to request member: %w", err)
 	}
 
-	// TODO?: cache member temporarily
+	s.members.Add(key, member)
 
 	return member, nil
 }
