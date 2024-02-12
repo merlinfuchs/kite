@@ -4,21 +4,23 @@ import (
 	"context"
 	"slices"
 	"sync"
+
+	"github.com/merlinfuchs/dismod/distype"
 )
 
 type Engine struct {
 	sync.RWMutex
 
-	Deployments map[string][]*Deployment
+	Deployments map[distype.Snowflake][]*Deployment
 }
 
 func New() *Engine {
 	return &Engine{
-		Deployments: map[string][]*Deployment{},
+		Deployments: map[distype.Snowflake][]*Deployment{},
 	}
 }
 
-func (e *Engine) RemoveDeployment(ctx context.Context, guildID string, deploymentID string) {
+func (e *Engine) RemoveDeployment(ctx context.Context, guildID distype.Snowflake, deploymentID string) {
 	e.Lock()
 	defer e.Unlock()
 
@@ -37,7 +39,7 @@ func (e *Engine) RemoveDeployment(ctx context.Context, guildID string, deploymen
 	}
 }
 
-func (e *Engine) LoadGuildDeployment(ctx context.Context, guildID string, deployment *Deployment) {
+func (e *Engine) LoadGuildDeployment(ctx context.Context, guildID distype.Snowflake, deployment *Deployment) {
 	e.RemoveDeployment(ctx, guildID, deployment.ID)
 
 	e.Lock()
@@ -52,7 +54,7 @@ func (e *Engine) LoadGuildDeployment(ctx context.Context, guildID string, deploy
 	e.Deployments[guildID] = deployments
 }
 
-func (e *Engine) ReplaceGuildDeployments(ctx context.Context, guildID string, deployments []*Deployment) {
+func (e *Engine) ReplaceGuildDeployments(ctx context.Context, guildID distype.Snowflake, deployments []*Deployment) {
 	e.Lock()
 	defer e.Unlock()
 
@@ -64,7 +66,7 @@ func (e *Engine) ReplaceGuildDeployments(ctx context.Context, guildID string, de
 	e.Deployments[guildID] = deployments
 }
 
-func (e *Engine) TruncateGuildDeployments(ctx context.Context, guildID string, deploymentIDs []string) bool {
+func (e *Engine) TruncateGuildDeployments(ctx context.Context, guildID distype.Snowflake, deploymentIDs []string) bool {
 	e.Lock()
 	defer e.Unlock()
 

@@ -3,17 +3,18 @@ package wire
 import (
 	"time"
 
+	"github.com/merlinfuchs/dismod/distype"
 	"github.com/merlinfuchs/kite/kite-service/pkg/model"
 	"gopkg.in/guregu/null.v4"
 )
 
 type Guild struct {
-	ID          string      `json:"id"`
-	Name        string      `json:"name"`
-	Icon        null.String `json:"icon"`
-	Description null.String `json:"description"`
-	CreatedAt   time.Time   `json:"created_at"`
-	UpdatedAt   time.Time   `json:"updated_at"`
+	ID          distype.Snowflake `json:"id"`
+	Name        string            `json:"name"`
+	Icon        null.String       `json:"icon"`
+	Description null.String       `json:"description"`
+	CreatedAt   time.Time         `json:"created_at"`
+	UpdatedAt   time.Time         `json:"updated_at"`
 
 	UserIsOwner     bool   `json:"user_is_owner,omitempty"`
 	UserPermissions string `json:"user_permissions,omitempty"`

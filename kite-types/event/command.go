@@ -1,5 +1,5 @@
 package event
 
-import "github.com/merlinfuchs/kite/kite-types/dismodel"
+import "github.com/merlinfuchs/dismod/distype"
 
-type CommandHandler func(i dismodel.Interaction, options []dismodel.ApplicationCommandOptionData) error
+type CommandHandler func(i distype.Interaction, options []distype.ApplicationCommandOption) error

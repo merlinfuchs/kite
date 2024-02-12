@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 
+	"github.com/merlinfuchs/dismod/distype"
 	"github.com/merlinfuchs/kite/kite-service/internal/db/postgres/pgmodel"
 	"github.com/merlinfuchs/kite/kite-service/pkg/model"
 	"github.com/merlinfuchs/kite/kite-service/pkg/store"
@@ -11,7 +12,7 @@ import (
 
 func (c *Client) UpsertUser(ctx context.Context, user *model.User) error {
 	_, err := c.Q.UpsertUser(ctx, pgmodel.UpsertUserParams{
-		ID:            user.ID,
+		ID:            string(user.ID),
 		Username:      user.Username,
 		Discriminator: sql.NullString{String: user.Discriminator, Valid: user.Discriminator != ""},
 		Avatar:        sql.NullString{String: user.Avatar, Valid: user.Avatar != ""},
@@ -23,8 +24,8 @@ func (c *Client) UpsertUser(ctx context.Context, user *model.User) error {
 	return err
 }
 
-func (c *Client) GetUser(ctx context.Context, userID string) (*model.User, error) {
-	row, err := c.Q.GetUser(ctx, userID)
+func (c *Client) GetUser(ctx context.Context, userID distype.Snowflake) (*model.User, error) {
+	row, err := c.Q.GetUser(ctx, string(userID))
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, store.ErrNotFound
@@ -33,7 +34,7 @@ func (c *Client) GetUser(ctx context.Context, userID string) (*model.User, error
 	}
 
 	return &model.User{
-		ID:            row.ID,
+		ID:            distype.Snowflake(row.ID),
 		Username:      row.Username,
 		Discriminator: row.Discriminator.String,
 		Avatar:        row.Avatar.String,

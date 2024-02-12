@@ -1,7 +1,6 @@
 go 1.21.5
 
 use (
-	./examples/backup
 	./examples/counter
 	./examples/ping
 	./kite-sdk-go

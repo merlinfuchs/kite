@@ -1,9 +1,13 @@
 package model
 
-import "time"
+import (
+	"time"
+
+	"github.com/merlinfuchs/dismod/distype"
+)
 
 type User struct {
-	ID            string
+	ID            distype.Snowflake
 	Username      string
 	Discriminator string
 	GlobalName    string

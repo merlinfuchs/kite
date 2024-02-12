@@ -56,7 +56,7 @@ export const DiscordStageInstanceUpdate: EventType = "DISCORD_STAGE_INSTANCE_UPD
 export const DiscordStageInstanceDelete: EventType = "DISCORD_STAGE_INSTANCE_DELETE";
 export interface Event {
   type: EventType;
-  guild_id: string;
+  guild_id: any /* distype.Snowflake */;
   data: any;
 }
 export interface EventResponse {

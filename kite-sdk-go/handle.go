@@ -4,7 +4,8 @@ import (
 	"slices"
 
 	"github.com/merlinfuchs/kite/kite-sdk-go/internal"
-	"github.com/merlinfuchs/kite/kite-types/dismodel"
+
+	"github.com/merlinfuchs/dismod/distype"
 	"github.com/merlinfuchs/kite/kite-types/event"
 )
 
@@ -27,26 +28,26 @@ func Event(eventType event.EventType, handler event.EventHandler) {
 
 func Command(name string, handler event.CommandHandler) {
 	addEventHandler(event.DiscordInteractionCreate, func(e event.Event) error {
-		i := e.Data.(dismodel.InteractionCreateEvent)
+		i := e.Data.(distype.InteractionCreateEvent)
 
-		if i.Type != dismodel.InteractionTypeApplicationCommand {
+		if i.Type != distype.InteractionTypeApplicationCommand {
 			return nil
 		}
 
-		cmd := i.Data.(dismodel.ApplicationCommandInteractionData)
+		cmd := i.Data.(distype.ApplicationCommandData)
 
 		fullCMDName := cmd.Name
 		options := cmd.Options
 
 		for _, opt := range cmd.Options {
-			if opt.Type == dismodel.ApplicationCommandOptionTypeSubCommand {
+			if opt.Type == distype.ApplicationCommandOptionTypeSubCommand {
 				fullCMDName += " " + opt.Name
 				options = opt.Options
 				break
-			} else if opt.Type == dismodel.ApplicationCommandOptionTypeSubCommandGroup {
+			} else if opt.Type == distype.ApplicationCommandOptionTypeSubCommandGroup {
 				fullCMDName += " " + opt.Name
 				for _, subOpt := range opt.Options {
-					if subOpt.Type == dismodel.ApplicationCommandOptionTypeSubCommand {
+					if subOpt.Type == distype.ApplicationCommandOptionTypeSubCommand {
 						fullCMDName += " " + subOpt.Name
 						options = subOpt.Options
 						break

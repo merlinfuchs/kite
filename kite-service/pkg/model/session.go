@@ -3,6 +3,7 @@ package model
 import (
 	"time"
 
+	"github.com/merlinfuchs/dismod/distype"
 	"gopkg.in/guregu/null.v4"
 )
 
@@ -16,8 +17,8 @@ const (
 type Session struct {
 	TokenHash   string
 	Type        SessionType
-	UserID      string
-	GuildIds    []string
+	UserID      distype.Snowflake
+	GuildIds    []distype.Snowflake
 	AccessToken string
 	Revoked     bool
 	CreatedAt   time.Time

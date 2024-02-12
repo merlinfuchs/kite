@@ -2,6 +2,7 @@ package user
 
 import (
 	"github.com/gofiber/fiber/v2"
+	"github.com/merlinfuchs/dismod/distype"
 	"github.com/merlinfuchs/kite/kite-service/internal/api/helpers"
 	"github.com/merlinfuchs/kite/kite-service/internal/api/session"
 	"github.com/merlinfuchs/kite/kite-service/pkg/store"
@@ -21,7 +22,7 @@ func NewHandler(store store.UserStore) *UserHandler {
 func (h *UserHandler) HandleUserGet(c *fiber.Ctx) error {
 	session := session.GetSession(c)
 
-	userID := c.Params("userID")
+	userID := distype.Snowflake(c.Params("userID"))
 	if userID == "@me" {
 		userID = session.UserID
 	}
