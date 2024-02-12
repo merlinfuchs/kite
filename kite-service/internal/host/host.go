@@ -6,8 +6,8 @@ import (
 	"log/slog"
 	"time"
 
+	"github.com/merlinfuchs/dismod/disrest"
 	"github.com/merlinfuchs/dismod/distype"
-	"github.com/merlinfuchs/kite/kite-service/internal/bot"
 	"github.com/merlinfuchs/kite/kite-service/internal/logging/logattr"
 	"github.com/merlinfuchs/kite/kite-service/pkg/model"
 	"github.com/merlinfuchs/kite/kite-service/pkg/store"
@@ -17,20 +17,29 @@ import (
 )
 
 type HostEnvironmentStores struct {
-	bot               *bot.Bot
 	deployments       store.DeploymentStore
 	deploymentLogs    store.DeploymentLogStore
 	deploymentMetrics store.DeploymentMetricStore
 	kvStorage         store.KVStorageStore
+	discordState      store.DiscordStateStore
+	discordClient     *disrest.Client
 }
 
-func NewHostEnvironmentStores(bot *bot.Bot, deployments store.DeploymentStore, deploymentLogs store.DeploymentLogStore, deploymentMetrics store.DeploymentMetricStore, kvStorage store.KVStorageStore) HostEnvironmentStores {
+func NewHostEnvironmentStores(
+	deployments store.DeploymentStore,
+	deploymentLogs store.DeploymentLogStore,
+	deploymentMetrics store.DeploymentMetricStore,
+	kvStorage store.KVStorageStore,
+	discordState store.DiscordStateStore,
+	discordClient *disrest.Client,
+) HostEnvironmentStores {
 	return HostEnvironmentStores{
-		bot:               bot,
 		deployments:       deployments,
 		deploymentLogs:    deploymentLogs,
 		deploymentMetrics: deploymentMetrics,
 		kvStorage:         kvStorage,
+		discordState:      discordState,
+		discordClient:     discordClient,
 	}
 }
 

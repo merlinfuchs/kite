@@ -16,7 +16,10 @@ func (b *Bot) registerListeners() {
 	b.Cluster.AddEventListener(distype.EventTypeReady, b.handleReady)
 	b.Cluster.AddEventListener(distype.EventTypeGuildCreate, b.handleGuildCreate)
 	b.Cluster.AddEventListener(distype.EventTypeGuildUpdate, b.handleGuildUpdate)
+
 	b.Cluster.AddEventListener(distype.EventTypeMessageCreate, b.handleMessageCreate)
+	b.Cluster.AddEventListener(distype.EventTypeMessageUpdate, b.handleMessageUpdate)
+	b.Cluster.AddEventListener(distype.EventTypeMessageDelete, b.handleMessageDelete)
 	b.Cluster.AddEventListener(distype.EventTypeInteractionCreate, b.handleInteractionCreate)
 }
 
@@ -65,6 +68,34 @@ func (b *Bot) handleMessageCreate(s int, e interface{}) {
 
 	b.Engine.HandleEvent(context.Background(), &event.Event{
 		Type:    event.DiscordMessageCreate,
+		GuildID: *m.GuildID,
+		Data:    m,
+	})
+}
+
+func (b *Bot) handleMessageUpdate(s int, e interface{}) {
+	m := e.(*distype.MessageUpdateEvent)
+
+	if m.GuildID == nil {
+		return
+	}
+
+	b.Engine.HandleEvent(context.Background(), &event.Event{
+		Type:    event.DiscordMessageUpdate,
+		GuildID: *m.GuildID,
+		Data:    m,
+	})
+}
+
+func (b *Bot) handleMessageDelete(s int, e interface{}) {
+	m := e.(*distype.MessageDeleteEvent)
+
+	if m.GuildID == nil {
+		return
+	}
+
+	b.Engine.HandleEvent(context.Background(), &event.Event{
+		Type:    event.DiscordMessageDelete,
 		GuildID: *m.GuildID,
 		Data:    m,
 	})

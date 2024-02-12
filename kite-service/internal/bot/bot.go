@@ -40,7 +40,7 @@ func New(token string, pg *postgres.Client) (*Bot, error) {
 		sharding.WithShardCount(gInfo.Shards),
 		sharding.WithShardIDs(shardIDs...),
 		sharding.WithGatewayConfigOpts(
-			gateway.WithIntents(gateway.IntentGuilds|gateway.IntentGuildMessages), // | gateway.IntentGuildMembers),
+			gateway.WithIntents(gateway.IntentGuilds|gateway.IntentGuildMessages|gateway.IntentMessageContent), // | gateway.IntentGuildMembers),
 			gateway.WithPresenceOpts(
 				gateway.WithCustomActivity("kite.only"),
 			),
