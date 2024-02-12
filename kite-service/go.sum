@@ -108,8 +108,6 @@ github.com/mattn/go-sqlite3 v1.14.16 h1:yOQRA0RpS5PFz/oikGwBEqvAWhWg5ufRz4ETLjwp
 github.com/mattn/go-sqlite3 v1.14.16/go.mod h1:2eHXhiwb8IkHr+BDWZGa96P6+rkvnG63S2DGjv9HUNg=
 github.com/merlinfuchs/dismod v0.0.0-20240212142916-7150a62a3987 h1:7fmti9t75ny1lp0eJW6/14PPj3Ti+ThvqK/X0ykIvOg=
 github.com/merlinfuchs/dismod v0.0.0-20240212142916-7150a62a3987/go.mod h1:4dksStVb25ZlbHTGoQRbUPHY5y41KMeA2ha4zoRGP6k=
-github.com/merlinfuchs/kite/kite-types v0.0.0-20240206130119-116936531691 h1:EUohaILySrtOM+E1telQcB60iDj2ZkNnoJIYBiTE/bM=
-github.com/merlinfuchs/kite/kite-types v0.0.0-20240206130119-116936531691/go.mod h1:Y4cgROm4fPxrHk5GhBERetJyaIgwxNPOjalRXN6FkEs=
 github.com/mitchellh/copystructure v1.2.0 h1:vpKXTN4ewci03Vljg/q9QvCGUDttBOGBIa15WveJJGw=
 github.com/mitchellh/copystructure v1.2.0/go.mod h1:qLl+cE2AmVv+CoeAwDPye/v+N2HKCj9FbZEVFJRxO9s=
 github.com/mitchellh/mapstructure v1.5.0 h1:jeMsZIYE/09sWLaz43PL7Gy6RuMjD2eJVyuac5Z2hdY=
