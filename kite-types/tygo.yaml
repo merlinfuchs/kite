@@ -14,8 +14,8 @@ packages:
       json.RawMessage: "Record<string, any> | null"
     frontmatter: |
       type Nullable<T> = T | null
-      type Optional<T> = T | undefined
       type IntOrString = number | string
+      type UnixTimestamp = number
     exclude_files:
       - base.go
 

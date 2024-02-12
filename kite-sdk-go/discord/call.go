@@ -25,7 +25,7 @@ func BanGet(userID distype.Snowflake, opts ...call.CallOption) (distype.BanGetRe
 func BanCreate(guildID, userID distype.Snowflake, reason string, deleteMessageSeconds int, opts ...call.CallOption) (distype.BanCreateResponse, error) {
 	opts = append(opts, call.WithReason(reason))
 
-	var deleteSeconds distype.Optional[int]
+	var deleteSeconds *int
 	if deleteMessageSeconds > 0 {
 		deleteSeconds = &deleteMessageSeconds
 	}
@@ -562,7 +562,7 @@ func RoleDelete(guildID, roleID distype.Snowflake, opts ...call.CallOption) (dis
 }
 
 func ScheduledEventList(guildID distype.Snowflake, withUserCount bool, opts ...call.CallOption) ([]distype.ScheduledEvent, error) {
-	var withCount distype.Optional[bool]
+	var withCount *bool
 	if withUserCount {
 		withCount = &withUserCount
 	}
