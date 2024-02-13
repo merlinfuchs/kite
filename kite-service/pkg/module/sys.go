@@ -6,11 +6,11 @@ import (
 	"fmt"
 	"log/slog"
 
-	"github.com/merlinfuchs/kite/kite-types/call"
-	"github.com/merlinfuchs/kite/kite-types/event"
-	"github.com/merlinfuchs/kite/kite-types/fail"
-	"github.com/merlinfuchs/kite/kite-types/logmodel"
-	"github.com/merlinfuchs/kite/kite-types/manifest"
+	"github.com/merlinfuchs/kite/kite-sdk-go/call"
+	"github.com/merlinfuchs/kite/kite-sdk-go/event"
+	"github.com/merlinfuchs/kite/kite-sdk-go/fail"
+	"github.com/merlinfuchs/kite/kite-sdk-go/log"
+	"github.com/merlinfuchs/kite/kite-sdk-go/manifest"
 )
 
 func (p *Module) kiteSetManifest(offset uint32, length uint32) uint32 {
@@ -87,7 +87,7 @@ func (p *Module) kiteLog(ctx context.Context, level uint32, offset uint32, lengt
 		return 1
 	}
 
-	lvl := logmodel.LogLevel(level)
+	lvl := log.LogLevel(level)
 	if !lvl.Valid() {
 		return 1
 	}

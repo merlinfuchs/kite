@@ -1,4 +1,4 @@
-package logmodel
+package log
 
 type LogLevel int
 

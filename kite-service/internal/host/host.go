@@ -8,12 +8,12 @@ import (
 
 	"github.com/merlinfuchs/dismod/disrest"
 	"github.com/merlinfuchs/dismod/distype"
+	"github.com/merlinfuchs/kite/kite-sdk-go/call"
+	"github.com/merlinfuchs/kite/kite-sdk-go/kv"
+	"github.com/merlinfuchs/kite/kite-sdk-go/manifest"
 	"github.com/merlinfuchs/kite/kite-service/internal/logging/logattr"
 	"github.com/merlinfuchs/kite/kite-service/pkg/model"
 	"github.com/merlinfuchs/kite/kite-service/pkg/store"
-	"github.com/merlinfuchs/kite/kite-types/call"
-	"github.com/merlinfuchs/kite/kite-types/kvmodel"
-	"github.com/merlinfuchs/kite/kite-types/manifest"
 )
 
 type HostEnvironmentStores struct {
@@ -81,13 +81,13 @@ func (h HostEnvironment) Call(ctx context.Context, req call.Call) (res interface
 		time.Sleep(duration)
 		return call.SleepResponse{}, nil
 	case call.KVKeyGet:
-		res, err = h.callKVKeyGet(ctx, req.Data.(kvmodel.KVKeyGetCall))
+		res, err = h.callKVKeyGet(ctx, req.Data.(kv.KVKeyGetCall))
 	case call.KVKeySet:
-		res, err = h.callKVKeySet(ctx, req.Data.(kvmodel.KVKeySetCall))
+		res, err = h.callKVKeySet(ctx, req.Data.(kv.KVKeySetCall))
 	case call.KVKeyDelete:
-		res, err = h.callKVKeyDelete(ctx, req.Data.(kvmodel.KVKeyDeleteCall))
+		res, err = h.callKVKeyDelete(ctx, req.Data.(kv.KVKeyDeleteCall))
 	case call.KVKeyIncrease:
-		res, err = h.callKVKeyIncrease(ctx, req.Data.(kvmodel.KVKeyIncreaseCall))
+		res, err = h.callKVKeyIncrease(ctx, req.Data.(kv.KVKeyIncreaseCall))
 	case call.DiscordChannelGet:
 		res, err = h.callDiscordChannelGet(ctx, req.Data.(distype.ChannelGetRequest))
 	case call.DiscordChannelList:

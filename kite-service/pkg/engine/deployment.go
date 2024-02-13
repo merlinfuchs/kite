@@ -8,11 +8,11 @@ import (
 	"slices"
 
 	pool "github.com/jolestar/go-commons-pool/v2"
+	"github.com/merlinfuchs/kite/kite-sdk-go/event"
+	"github.com/merlinfuchs/kite/kite-sdk-go/log"
+	"github.com/merlinfuchs/kite/kite-sdk-go/manifest"
 	"github.com/merlinfuchs/kite/kite-service/internal/logging/logattr"
 	"github.com/merlinfuchs/kite/kite-service/pkg/module"
-	"github.com/merlinfuchs/kite/kite-types/event"
-	"github.com/merlinfuchs/kite/kite-types/logmodel"
-	"github.com/merlinfuchs/kite/kite-types/manifest"
 )
 
 type Deployment struct {
@@ -117,7 +117,7 @@ func (d *Deployment) HandleEvent(ctx context.Context, event *event.Event) error 
 			}
 		}
 
-		d.env.Log(ctx, logmodel.LogLevelError, err.Error())
+		d.env.Log(ctx, log.LogLevelError, err.Error())
 	} else {
 		if err := d.ReturnPlugin(ctx, plugin); err != nil {
 			slog.With(logattr.Error(err)).Error("failed to return plugin")

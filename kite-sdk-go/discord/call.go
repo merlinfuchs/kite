@@ -2,8 +2,8 @@ package discord
 
 import (
 	"github.com/merlinfuchs/dismod/distype"
+	"github.com/merlinfuchs/kite/kite-sdk-go/call"
 	"github.com/merlinfuchs/kite/kite-sdk-go/internal"
-	"github.com/merlinfuchs/kite/kite-types/call"
 )
 
 func BanList(opts ...call.CallOption) (distype.BanListResponse, error) {

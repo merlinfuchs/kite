@@ -7,9 +7,9 @@ import (
 
 	"github.com/merlinfuchs/dismod/distype"
 
+	"github.com/merlinfuchs/kite/kite-sdk-go/event"
 	"github.com/merlinfuchs/kite/kite-service/internal/logging/logattr"
 	"github.com/merlinfuchs/kite/kite-service/pkg/model"
-	"github.com/merlinfuchs/kite/kite-types/event"
 )
 
 func (b *Bot) registerListeners() {

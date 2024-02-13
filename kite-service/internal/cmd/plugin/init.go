@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/merlinfuchs/kite/kite-service/config"
+	"github.com/merlinfuchs/kite/kite-service/internal/config"
 	"github.com/urfave/cli/v2"
 )
 

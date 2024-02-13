@@ -1,6 +1,6 @@
 package manifest
 
-import "github.com/merlinfuchs/kite/kite-types/event"
+import "github.com/merlinfuchs/kite/kite-sdk-go/event"
 
 type Manifest struct {
 	Events          []event.EventType `json:"events"`

@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/merlinfuchs/kite/kite-service/cmd"
+	"github.com/merlinfuchs/kite/kite-service/internal/cmd"
 )
 
 func main() {

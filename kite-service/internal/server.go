@@ -4,10 +4,10 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/merlinfuchs/kite/kite-service/config"
 	"github.com/merlinfuchs/kite/kite-service/internal/api"
 	"github.com/merlinfuchs/kite/kite-service/internal/api/access"
 	"github.com/merlinfuchs/kite/kite-service/internal/bot"
+	"github.com/merlinfuchs/kite/kite-service/internal/config"
 	"github.com/merlinfuchs/kite/kite-service/internal/db/postgres"
 	"github.com/merlinfuchs/kite/kite-service/internal/deployments"
 	"github.com/merlinfuchs/kite/kite-service/internal/host"

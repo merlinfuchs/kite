@@ -7,8 +7,8 @@ import (
 	"github.com/merlinfuchs/kite/kite-sdk-go/log"
 
 	"github.com/merlinfuchs/dismod/distype"
-	"github.com/merlinfuchs/kite/kite-types/event"
-	"github.com/merlinfuchs/kite/kite-types/manifest"
+	"github.com/merlinfuchs/kite/kite-sdk-go/event"
+	"github.com/merlinfuchs/kite/kite-sdk-go/manifest"
 )
 
 func main() {

@@ -3,23 +3,23 @@ package kite
 import (
 	"slices"
 
-	"github.com/merlinfuchs/kite/kite-sdk-go/internal"
+	"github.com/merlinfuchs/kite/kite-sdk-go/internal/sys"
 
 	"github.com/merlinfuchs/dismod/distype"
-	"github.com/merlinfuchs/kite/kite-types/event"
+	"github.com/merlinfuchs/kite/kite-sdk-go/event"
 )
 
 func addEventHandler(eventType event.EventType, handler event.EventHandler) {
-	if !slices.Contains(internal.Manifest.Events, eventType) {
-		internal.Manifest.Events = append(internal.Manifest.Events, eventType)
+	if !slices.Contains(sys.Manifest.Events, eventType) {
+		sys.Manifest.Events = append(sys.Manifest.Events, eventType)
 	}
 
-	handlers, exists := internal.EventHandlers[eventType]
+	handlers, exists := sys.EventHandlers[eventType]
 	if !exists {
 		handlers = []event.EventHandler{}
 	}
 	handlers = append(handlers, handler)
-	internal.EventHandlers[eventType] = handlers
+	sys.EventHandlers[eventType] = handlers
 }
 
 func Event(eventType event.EventType, handler event.EventHandler) {

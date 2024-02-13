@@ -6,9 +6,8 @@ import (
 	"github.com/merlinfuchs/dismod/distype"
 	kite "github.com/merlinfuchs/kite/kite-sdk-go"
 	"github.com/merlinfuchs/kite/kite-sdk-go/discord"
-	"github.com/merlinfuchs/kite/kite-sdk-go/kv"
 
-	"github.com/merlinfuchs/kite/kite-types/event"
+	"github.com/merlinfuchs/kite/kite-sdk-go/event"
 )
 
 var resetMessage = "Wrong counter value! The counter has been reset."
@@ -30,7 +29,7 @@ func handleMessageCreateEvent(req event.Event) error {
 }
 
 func updateCounter(channelID distype.Snowflake, count int) error {
-	store := kv.New()
+	store := kite.KV()
 
 	counter, err := store.Increase(channelID.String(), 1)
 	if err != nil {
