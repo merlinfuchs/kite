@@ -115,6 +115,10 @@ func (d *Deployment) HandleEvent(ctx context.Context, event *event.Event) error 
 			if err := d.InvalidatePlugin(ctx, plugin); err != nil {
 				slog.With(logattr.Error(err)).Error("failed to invalidate plugin")
 			}
+		} else {
+			if err := d.ReturnPlugin(ctx, plugin); err != nil {
+				slog.With(logattr.Error(err)).Error("failed to return plugin")
+			}
 		}
 
 		d.env.Log(ctx, log.LogLevelError, err.Error())

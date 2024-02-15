@@ -1258,7 +1258,10 @@ export interface MemberRemoveEvent {
   user: User;
   guild_id: Snowflake;
 }
-export type MemberUpdateEvent = Member;
+export interface MemberUpdateEvent {
+  Member: Member;
+  guild_id: Snowflake;
+}
 export interface MemberChunkEvent {
   guild_id: Snowflake;
   members: Member[];
