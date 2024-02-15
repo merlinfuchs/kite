@@ -2,25 +2,24 @@ package log
 
 import (
 	"github.com/merlinfuchs/kite/kite-sdk-go/internal"
-	"github.com/merlinfuchs/kite/kite-types/logmodel"
 )
 
-func Log(level logmodel.LogLevel, msg string) {
+func Log(level LogLevel, msg string) {
 	internal.Log(int(level), msg)
 }
 
 func Debug(msg string) {
-	internal.Log(int(logmodel.LogLevelDebug), msg)
+	internal.Log(int(LogLevelDebug), msg)
 }
 
 func Info(msg string) {
-	internal.Log(int(logmodel.LogLevelInfo), msg)
+	internal.Log(int(LogLevelInfo), msg)
 }
 
 func Warn(msg string) {
-	internal.Log(int(logmodel.LogLevelWarn), msg)
+	internal.Log(int(LogLevelWarn), msg)
 }
 
 func Error(msg string) {
-	internal.Log(int(logmodel.LogLevelError), msg)
+	internal.Log(int(LogLevelError), msg)
 }

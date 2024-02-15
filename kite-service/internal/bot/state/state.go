@@ -2,147 +2,286 @@ package state
 
 import (
 	"context"
-	"errors"
 	"fmt"
-	"log/slog"
 	"sync"
+	"time"
 
-	"github.com/bwmarrin/discordgo"
-	"github.com/merlinfuchs/kite/kite-service/internal/logging/logattr"
+	"github.com/disgoorg/disgo/rest"
+	"github.com/hashicorp/golang-lru/v2/expirable"
+	"github.com/merlinfuchs/dismod/disrest"
+	"github.com/merlinfuchs/dismod/distype"
 	"github.com/merlinfuchs/kite/kite-service/pkg/store"
-	"github.com/merlinfuchs/kite/kite-types/dismodel"
 )
 
+type memberKey struct {
+	guildID distype.Snowflake
+	userID  distype.Snowflake
+}
+
 type BotState struct {
-	state       *discordgo.State
-	session     *discordgo.Session
-	memberLocks sync.Map
+	sync.RWMutex
+	client *disrest.Client
+
+	botUser       distype.User
+	application   distype.Application
+	guilds        map[distype.Snowflake]distype.Guild
+	guildRoles    map[distype.Snowflake][]distype.Snowflake
+	guildChannels map[distype.Snowflake][]distype.Snowflake
+	channels      map[distype.Snowflake]distype.Channel
+	roles         map[distype.Snowflake]distype.Role
+	botMembers    map[distype.Snowflake]distype.Member
+	members       *expirable.LRU[memberKey, distype.Member]
+	memberLocks   sync.Map
 }
 
-func New(state *discordgo.State, session *discordgo.Session) *BotState {
+func New(client *disrest.Client) *BotState {
 	return &BotState{
-		state:   state,
-		session: session,
+		client:        client,
+		guilds:        map[distype.Snowflake]distype.Guild{},
+		guildRoles:    map[distype.Snowflake][]distype.Snowflake{},
+		guildChannels: map[distype.Snowflake][]distype.Snowflake{},
+		channels:      map[distype.Snowflake]distype.Channel{},
+		roles:         map[distype.Snowflake]distype.Role{},
+		botMembers:    map[distype.Snowflake]distype.Member{},
+		members:       expirable.NewLRU[memberKey, distype.Member](1000, nil, time.Minute),
 	}
 }
 
-func (s *BotState) GetGuildBotMember(ctx context.Context, guildID string) (*dismodel.Member, error) {
-	member, err := s.state.Member(guildID, s.state.User.ID)
-	if err != nil {
-		if err == discordgo.ErrStateNotFound {
-			return nil, store.ErrNotFound
+func (s *BotState) Update(_ int, t distype.EventType, e any) {
+	switch t {
+	case distype.EventTypeReady:
+		s.Lock()
+		e := e.(*distype.ReadyEvent)
+		s.botUser = e.User
+		s.application = e.Application
+		s.Unlock()
+	case distype.EventTypeGuildCreate:
+		s.Lock()
+		e := *e.(*distype.GuildCreateEvent)
+
+		guildRoles := make([]distype.Snowflake, len(e.Roles))
+		guildChannels := make([]distype.Snowflake, len(e.Channels))
+
+		for i, channel := range e.Channels {
+			s.channels[channel.ID] = channel
+			guildChannels[i] = channel.ID
 		}
-		return nil, err
+		for i, role := range e.Roles {
+			s.roles[role.ID] = role
+			guildRoles[i] = role.ID
+		}
+		s.guildRoles[e.ID] = guildRoles
+		s.guildChannels[e.ID] = guildChannels
+
+		for _, member := range e.Members {
+			if member.User.ID == s.botUser.ID {
+				s.botMembers[e.ID] = member
+			}
+		}
+
+		e.Roles = nil
+		e.Channels = nil
+		e.Members = nil
+		s.guilds[e.ID] = e
+		s.Unlock()
+	case distype.EventTypeGuildUpdate:
+		s.Lock()
+		e := e.(*distype.GuildUpdateEvent)
+		// TODO: retain info from previous state
+		s.guilds[e.ID] = *e
+		s.Unlock()
+	case distype.EventTypeGuildDelete:
+		s.Lock()
+		e := e.(*distype.GuildDeleteEvent)
+		if !e.Unavailable {
+			roles := s.guildRoles[e.ID]
+			for _, roleID := range roles {
+				delete(s.roles, roleID)
+			}
+			channels := s.guildChannels[e.ID]
+			for _, channelID := range channels {
+				delete(s.channels, channelID)
+			}
+
+			delete(s.guilds, e.ID)
+			delete(s.botMembers, e.ID)
+			delete(s.guildRoles, e.ID)
+			delete(s.guildChannels, e.ID)
+		}
+		s.Unlock()
+	case distype.EventTypeChannelCreate:
+		s.Lock()
+		e := e.(*distype.ChannelCreateEvent)
+		s.channels[e.ID] = *e
+		if e.GuildID != nil {
+			s.guildChannels[*e.GuildID] = append(s.guildChannels[*e.GuildID], e.ID)
+		}
+		s.Unlock()
+	case distype.EventTypeChannelUpdate:
+		s.Lock()
+		e := e.(*distype.ChannelUpdateEvent)
+		s.channels[e.ID] = *e
+		s.Unlock()
+	case distype.EventTypeChannelDelete:
+		s.Lock()
+		e := e.(*distype.ChannelDeleteEvent)
+		if e.GuildID != nil {
+			channels := s.guildChannels[*e.GuildID]
+			for i, channelID := range channels {
+				if channelID == e.ID {
+					s.guildChannels[*e.GuildID] = append(channels[:i], channels[i+1:]...)
+					break
+				}
+			}
+		}
+		delete(s.channels, e.ID)
+		s.Unlock()
+	case distype.EventTypeGuildRoleCreate:
+		s.Lock()
+		e := e.(*distype.RoleCreateEvent)
+		s.guildRoles[e.GuildID] = append(s.guildRoles[e.GuildID], e.Role.ID)
+		s.Unlock()
+	case distype.EventTypeGuildRoleUpdate:
+		s.Lock()
+		e := e.(*distype.RoleUpdateEvent)
+		s.roles[e.Role.ID] = e.Role
+		s.Unlock()
+	case distype.EventTypeGuildRoleDelete:
+		s.Lock()
+		e := e.(*distype.RoleDeleteEvent)
+		roles := s.guildRoles[e.GuildID]
+		for i, roleID := range roles {
+			if roleID == e.RoleID {
+				s.guildRoles[e.GuildID] = append(roles[:i], roles[i+1:]...)
+				break
+			}
+		}
+		delete(s.roles, e.RoleID)
+		s.Unlock()
+	case distype.EventTypeGuildMemberUpdate:
+		s.Lock()
+		e := e.(*distype.MemberUpdateEvent)
+		if e.User.ID == s.botUser.ID {
+			s.botMembers[e.GuildID] = e.Member
+		}
+		s.Unlock()
+	case distype.EventTypeGuildMemberRemove:
+		s.Lock()
+		e := e.(*distype.MemberRemoveEvent)
+		if e.User.ID == s.botUser.ID {
+			delete(s.botMembers, e.GuildID)
+		}
+		s.Unlock()
 	}
-	return modelMember(member), nil
 }
 
-func (s *BotState) GetGuildMember(ctx context.Context, guildID string, userID string) (*dismodel.Member, error) {
-	lockKey := memberLockKey{
+func (s *BotState) GetGuild(ctx context.Context, guildID distype.Snowflake) (*distype.Guild, error) {
+	s.RLock()
+	defer s.RUnlock()
+
+	guild, exists := s.guilds[guildID]
+	if exists {
+		return &guild, nil
+	}
+	return nil, store.ErrNotFound
+}
+
+func (s *BotState) GetGuildChannels(ctx context.Context, guildID distype.Snowflake) ([]distype.Channel, error) {
+	s.RLock()
+	defer s.RUnlock()
+
+	channels, exists := s.guildChannels[guildID]
+	if exists {
+		res := make([]distype.Channel, len(channels))
+		for i, channelID := range channels {
+			res[i] = s.channels[channelID]
+		}
+		return res, nil
+	}
+	return nil, store.ErrNotFound
+}
+
+func (s *BotState) GetRole(ctx context.Context, guildID distype.Snowflake, roleID distype.Snowflake) (*distype.Role, error) {
+	s.RLock()
+	defer s.RUnlock()
+
+	role, exists := s.roles[roleID]
+	if exists {
+		return &role, nil
+	}
+	return nil, store.ErrNotFound
+}
+
+func (s *BotState) GetChannel(ctx context.Context, channelID distype.Snowflake) (*distype.Channel, error) {
+	s.RLock()
+	defer s.RUnlock()
+
+	channel, exists := s.channels[channelID]
+	if exists {
+		return &channel, nil
+	}
+	return nil, store.ErrNotFound
+
+}
+
+func (s *BotState) GetGuildBotMember(ctx context.Context, guildID distype.Snowflake) (*distype.Member, error) {
+	s.RLock()
+	defer s.RUnlock()
+
+	member, exists := s.botMembers[guildID]
+	if exists {
+		return &member, nil
+	}
+	return nil, store.ErrNotFound
+}
+
+func (s *BotState) GetGuildMember(ctx context.Context, guildID distype.Snowflake, userID distype.Snowflake) (*distype.Member, error) {
+	key := memberKey{
 		guildID: guildID,
 		userID:  userID,
 	}
 
-	lock, _ := s.memberLocks.LoadOrStore(lockKey, &sync.Mutex{})
+	lock, _ := s.memberLocks.LoadOrStore(key, &sync.Mutex{})
 
 	lock.(*sync.Mutex).Lock()
 	defer lock.(*sync.Mutex).Unlock()
-	defer s.memberLocks.Delete(lockKey)
+	defer s.memberLocks.Delete(key)
 
-	member, err := s.state.Member(guildID, userID)
-	if err == nil {
-		return modelMember(member), nil
-	} else if err != discordgo.ErrStateNotFound {
-		return nil, err
+	if member, exists := s.members.Get(key); exists {
+		return &member, nil
 	}
 
-	member, err = s.session.GuildMember(guildID, userID, discordgo.WithContext(ctx))
+	var member distype.Member
+	err := s.client.Request(rest.GetMember.Compile(nil, guildID, userID), nil, &member, rest.WithCtx(ctx))
 	if err != nil {
-		if err == discordgo.ErrStateNotFound {
-			var derr *discordgo.RESTError
-			if errors.As(err, &derr) {
-				if derr.Message != nil && derr.Message.Code == discordgo.ErrCodeUnknownMember {
-					return nil, store.ErrNotFound
-				}
-			}
-		}
-
-		return nil, err
+		return nil, fmt.Errorf("failed to request member: %w", err)
 	}
 
-	err = s.state.MemberAdd(member)
-	if err != nil {
-		slog.With(logattr.Error(err)).Error("failed to add member to state")
-	}
+	s.members.Add(key, member)
 
-	return modelMember(member), nil
+	return &member, nil
 }
 
-func (s *BotState) GetGuildOwnerID(ctx context.Context, guildID string) (string, error) {
-	guild, err := s.state.Guild(guildID)
-	if err != nil {
-		if err == discordgo.ErrStateNotFound {
-			return "", store.ErrNotFound
-		}
-		return "", err
+func (s *BotState) GetGuildOwnerID(ctx context.Context, guildID distype.Snowflake) (distype.Snowflake, error) {
+	guild, exists := s.guilds[guildID]
+	if !exists {
+		return "", store.ErrNotFound
 	}
 
 	return guild.OwnerID, nil
 }
 
-func (s *BotState) GetGuildRoles(ctx context.Context, guildID string) ([]*dismodel.Role, error) {
-	guild, err := s.state.Guild(guildID)
-	if err != nil {
-		if err == discordgo.ErrStateNotFound {
-			return nil, store.ErrNotFound
+func (s *BotState) GetGuildRoles(ctx context.Context, guildID distype.Snowflake) ([]distype.Role, error) {
+	s.RLock()
+	defer s.RUnlock()
+
+	roleIDs, exists := s.guildRoles[guildID]
+	if exists {
+		res := make([]distype.Role, len(roleIDs))
+		for i, roleID := range roleIDs {
+			res[i] = s.roles[roleID]
 		}
-		return nil, err
+		return res, nil
 	}
-
-	res := make([]*dismodel.Role, len(guild.Roles))
-	for i, role := range guild.Roles {
-		res[i] = modelRole(role)
-	}
-
-	return res, nil
-}
-
-func modelMember(member *discordgo.Member) *dismodel.Member {
-	return &dismodel.Member{
-		User:     modelUser(member.User),
-		Nick:     member.Nick,
-		Avatar:   member.Avatar,
-		Roles:    member.Roles,
-		JoinedAt: member.JoinedAt,
-		Deaf:     member.Deaf,
-		Mute:     member.Mute,
-	}
-}
-
-func modelUser(user *discordgo.User) *dismodel.User {
-	return &dismodel.User{
-		ID:            user.ID,
-		Username:      user.Username,
-		Discriminator: user.Discriminator,
-		GlobalName:    user.Username, // TODO
-		Avatar:        user.Avatar,
-		Banner:        user.Banner,
-		AccentColor:   user.AccentColor,
-		Bot:           user.Bot,
-		System:        user.System,
-		PublicFlags:   int(user.PublicFlags),
-	}
-}
-
-func modelRole(role *discordgo.Role) *dismodel.Role {
-	return &dismodel.Role{
-		ID:          role.ID,
-		Name:        role.Name,
-		Color:       role.Color,
-		Hoist:       role.Hoist,
-		Position:    role.Position,
-		Permissions: fmt.Sprintf("%d", role.Permissions),
-		Managed:     role.Managed,
-		Mentionable: role.Mentionable,
-	}
+	return nil, store.ErrNotFound
 }

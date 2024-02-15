@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"time"
 
+	"github.com/merlinfuchs/dismod/distype"
 	"github.com/merlinfuchs/kite/kite-service/internal/db/postgres/pgmodel"
 	"github.com/merlinfuchs/kite/kite-service/internal/logging/logattr"
 	"github.com/merlinfuchs/kite/kite-service/pkg/model"
@@ -22,11 +23,16 @@ func (c *Client) GetSession(ctx context.Context, tokenHash string) (*model.Sessi
 		return nil, err
 	}
 
+	guildIDs := make([]distype.Snowflake, len(row.GuildIds))
+	for i, id := range row.GuildIds {
+		guildIDs[i] = distype.Snowflake(id)
+	}
+
 	return &model.Session{
 		TokenHash:   row.TokenHash,
 		Type:        model.SessionType(row.Type),
-		UserID:      row.UserID,
-		GuildIds:    row.GuildIds,
+		UserID:      distype.Snowflake(row.UserID),
+		GuildIds:    guildIDs,
 		AccessToken: row.AccessToken,
 		Revoked:     row.Revoked,
 		CreatedAt:   row.CreatedAt,
@@ -46,11 +52,16 @@ func (c *Client) DeleteSession(ctx context.Context, tokenHash string) error {
 }
 
 func (c *Client) CreateSession(ctx context.Context, session *model.Session) error {
+	guildIDs := make([]string, len(session.GuildIds))
+	for i, id := range session.GuildIds {
+		guildIDs[i] = string(id)
+	}
+
 	err := c.Q.CreateSession(ctx, pgmodel.CreateSessionParams{
 		TokenHash:   session.TokenHash,
 		Type:        string(session.Type),
-		UserID:      session.UserID,
-		GuildIds:    session.GuildIds,
+		UserID:      string(session.UserID),
+		GuildIds:    guildIDs,
 		AccessToken: session.AccessToken,
 		CreatedAt:   session.CreatedAt,
 		ExpiresAt:   session.ExpiresAt,

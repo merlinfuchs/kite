@@ -1,14 +1,10 @@
 go 1.21.5
 
 use (
-	./examples/backup
 	./examples/counter
 	./examples/ping
 	./kite-sdk-go
 	./kite-service
-	./kite-types
 )
 
 replace github.com/merlinfuchs/kite/kite-sdk-go v0.0.0 => ./kite-sdk-go
-
-replace github.com/merlinfuchs/kite/kite-types v0.0.0 => ./kite-types

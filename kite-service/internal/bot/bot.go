@@ -1,9 +1,14 @@
 package bot
 
 import (
+	"context"
 	"fmt"
+	"log/slog"
 
-	"github.com/bwmarrin/discordgo"
+	"github.com/disgoorg/disgo/gateway"
+	"github.com/disgoorg/disgo/sharding"
+	"github.com/merlinfuchs/dismod/disrest"
+	"github.com/merlinfuchs/dismod/disway"
 	"github.com/merlinfuchs/kite/kite-service/internal/bot/state"
 	"github.com/merlinfuchs/kite/kite-service/internal/db/postgres"
 	"github.com/merlinfuchs/kite/kite-service/pkg/engine"
@@ -11,36 +16,44 @@ import (
 )
 
 type Bot struct {
-	Session    *discordgo.Session
+	Cluster    *disway.Cluster
+	Client     *disrest.Client
 	Engine     *engine.Engine
 	State      *state.BotState
 	guildStore store.GuildStore
 }
 
 func New(token string, pg *postgres.Client) (*Bot, error) {
-	session, err := discordgo.New("Bot " + token)
+	client := disrest.NewClient(token, slog.Default())
+
+	gInfo, err := client.GatewayBot()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to get gateway: %w", err)
 	}
 
-	session.Identify.Intents = discordgo.MakeIntent(discordgo.IntentsGuilds | discordgo.IntentsGuildMessages) // | discordgo.IntentsGuildMembers)
-	session.Identify.Presence = discordgo.GatewayStatusUpdate{
-		Game: discordgo.Activity{
-			Name:  "kite.onl",
-			State: "kite.onl",
-			Type:  discordgo.ActivityTypeCustom,
-		},
+	shardIDs := make([]int, gInfo.Shards)
+	for i := range shardIDs {
+		shardIDs[i] = i
 	}
 
-	session.StateEnabled = true
+	cluster := disway.NewCluster(token, slog.Default(),
+		sharding.WithShardCount(gInfo.Shards),
+		sharding.WithShardIDs(shardIDs...),
+		sharding.WithGatewayConfigOpts(
+			gateway.WithIntents(gateway.IntentGuilds|gateway.IntentGuildMessages|gateway.IntentMessageContent), // | gateway.IntentGuildMembers),
+			gateway.WithPresenceOpts(
+				gateway.WithCustomActivity("kite.only"),
+			),
+		),
+	)
 
-	session.AddHandler(func(s *discordgo.Session, r *discordgo.Ready) {
-		fmt.Println("Bot is ready!")
-	})
+	state := state.New(client)
+	cluster.AddAllEventListener(state.Update)
 
 	b := &Bot{
-		Session:    session,
-		State:      state.New(session.State, session),
+		Client:     client,
+		Cluster:    cluster,
+		State:      state,
 		guildStore: pg,
 	}
 
@@ -49,6 +62,10 @@ func New(token string, pg *postgres.Client) (*Bot, error) {
 	return b, nil
 }
 
-func (b *Bot) Start() error {
-	return b.Session.Open()
+func (b *Bot) Open(ctx context.Context) {
+	b.Cluster.Open(ctx)
+}
+
+func (b *Bot) Close(ctx context.Context) {
+	b.Cluster.Close(ctx)
 }

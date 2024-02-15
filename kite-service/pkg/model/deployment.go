@@ -3,7 +3,7 @@ package model
 import (
 	"time"
 
-	"github.com/merlinfuchs/kite/kite-types/manifest"
+	"github.com/merlinfuchs/kite/kite-sdk-go/manifest"
 	"gopkg.in/guregu/null.v4"
 )
 

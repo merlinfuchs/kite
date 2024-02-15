@@ -3,7 +3,7 @@ package model
 import (
 	"time"
 
-	"github.com/merlinfuchs/kite/kite-types/kvmodel"
+	"github.com/merlinfuchs/kite/kite-sdk-go/kv"
 )
 
 type KVStorageNamespace struct {
@@ -16,7 +16,7 @@ type KVStorageValue struct {
 	GuildID   string
 	Namespace string
 	Key       string
-	Value     kvmodel.TypedKVValue
+	Value     kv.TypedKVValue
 	CreatedAt time.Time
 	UpdatedAt time.Time
 }

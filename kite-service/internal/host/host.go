@@ -6,31 +6,40 @@ import (
 	"log/slog"
 	"time"
 
-	"github.com/merlinfuchs/kite/kite-service/internal/bot"
+	"github.com/merlinfuchs/dismod/disrest"
+	"github.com/merlinfuchs/dismod/distype"
+	"github.com/merlinfuchs/kite/kite-sdk-go/call"
+	"github.com/merlinfuchs/kite/kite-sdk-go/kv"
+	"github.com/merlinfuchs/kite/kite-sdk-go/manifest"
 	"github.com/merlinfuchs/kite/kite-service/internal/logging/logattr"
 	"github.com/merlinfuchs/kite/kite-service/pkg/model"
 	"github.com/merlinfuchs/kite/kite-service/pkg/store"
-	"github.com/merlinfuchs/kite/kite-types/call"
-	"github.com/merlinfuchs/kite/kite-types/dismodel"
-	"github.com/merlinfuchs/kite/kite-types/kvmodel"
-	"github.com/merlinfuchs/kite/kite-types/manifest"
 )
 
 type HostEnvironmentStores struct {
-	bot               *bot.Bot
 	deployments       store.DeploymentStore
 	deploymentLogs    store.DeploymentLogStore
 	deploymentMetrics store.DeploymentMetricStore
 	kvStorage         store.KVStorageStore
+	discordState      store.DiscordStateStore
+	discordClient     *disrest.Client
 }
 
-func NewHostEnvironmentStores(bot *bot.Bot, deployments store.DeploymentStore, deploymentLogs store.DeploymentLogStore, deploymentMetrics store.DeploymentMetricStore, kvStorage store.KVStorageStore) HostEnvironmentStores {
+func NewHostEnvironmentStores(
+	deployments store.DeploymentStore,
+	deploymentLogs store.DeploymentLogStore,
+	deploymentMetrics store.DeploymentMetricStore,
+	kvStorage store.KVStorageStore,
+	discordState store.DiscordStateStore,
+	discordClient *disrest.Client,
+) HostEnvironmentStores {
 	return HostEnvironmentStores{
-		bot:               bot,
 		deployments:       deployments,
 		deploymentLogs:    deploymentLogs,
 		deploymentMetrics: deploymentMetrics,
 		kvStorage:         kvStorage,
+		discordState:      discordState,
+		discordClient:     discordClient,
 	}
 }
 
@@ -72,51 +81,29 @@ func (h HostEnvironment) Call(ctx context.Context, req call.Call) (res interface
 		time.Sleep(duration)
 		return call.SleepResponse{}, nil
 	case call.KVKeyGet:
-		res, err = h.callKVKeyGet(ctx, req.Data.(kvmodel.KVKeyGetCall))
+		res, err = h.callKVKeyGet(ctx, req.Data.(kv.KVKeyGetCall))
 	case call.KVKeySet:
-		res, err = h.callKVKeySet(ctx, req.Data.(kvmodel.KVKeySetCall))
+		res, err = h.callKVKeySet(ctx, req.Data.(kv.KVKeySetCall))
 	case call.KVKeyDelete:
-		res, err = h.callKVKeyDelete(ctx, req.Data.(kvmodel.KVKeyDeleteCall))
+		res, err = h.callKVKeyDelete(ctx, req.Data.(kv.KVKeyDeleteCall))
 	case call.KVKeyIncrease:
-		res, err = h.callKVKeyIncrease(ctx, req.Data.(kvmodel.KVKeyIncreaseCall))
-	case call.DiscordBanList:
-		res, err = h.callDiscordBanList(ctx, req.Data.(dismodel.BanListCall))
-	case call.DiscordBanGet:
-		res, err = h.callDiscordBanGet(ctx, req.Data.(dismodel.BanGetCall))
-	case call.DiscordBanCreate:
-		res, err = h.callDiscordBanCreate(ctx, req.Data.(dismodel.BanCreateCall))
-	case call.DiscordBanRemove:
-		res, err = h.callDiscordBanRemove(ctx, req.Data.(dismodel.BanRemoveCall))
+		res, err = h.callKVKeyIncrease(ctx, req.Data.(kv.KVKeyIncreaseCall))
 	case call.DiscordChannelGet:
-		res, err = h.callDiscordChannelGet(ctx, req.Data.(dismodel.ChannelGetCall))
+		res, err = h.callDiscordChannelGet(ctx, req.Data.(distype.ChannelGetRequest))
 	case call.DiscordChannelList:
-		res, err = h.callDiscordChannelList(ctx, req.Data.(dismodel.ChannelListCall))
-	case call.DiscordChannelCreate:
-		res, err = h.callDiscordChannelCreate(ctx, req.Data.(dismodel.ChannelCreateCall))
-	case call.DiscordChannelUpdate:
-		res, err = h.callDiscordChannelUpdate(ctx, req.Data.(dismodel.ChannelUpdateCall))
-	case call.DiscordChannelUpdatePositions:
-		res, err = h.callDiscordChannelUpdatePositions(ctx, req.Data.(dismodel.ChannelUpdatePositionsCall))
-	case call.DiscordChannelDelete:
-		res, err = h.callDiscordChannelDelete(ctx, req.Data.(dismodel.ChannelDeleteCall))
-	case call.DiscordChannelUpdatePermissions:
-		res, err = h.callDiscordChannelUpdatePermissions(ctx, req.Data.(dismodel.ChannelUpdatePermissionsCall))
-	case call.DiscordChannelDeletePermissions:
-		res, err = h.callDiscordChannelDeletePermissions(ctx, req.Data.(dismodel.ChannelDeletePermissionsCall))
+		res, err = h.callDiscordChannelList(ctx, req.Data.(distype.GuildChannelListRequest))
 	case call.DiscordMessageCreate:
-		res, err = h.callDiscordMessageCreate(ctx, req.Data.(dismodel.MessageCreateCall))
+		res, err = h.callDiscordMessageCreate(ctx, req.Data.(distype.MessageCreateRequest))
 	case call.DiscordMessageUpdate:
-		res, err = h.callDiscordMessageUpdate(ctx, req.Data.(dismodel.MessageUpdateCall))
+		res, err = h.callDiscordMessageUpdate(ctx, req.Data.(distype.MessageEditRequest))
 	case call.DiscordMessageDelete:
-		res, err = h.callDiscordMessageDelete(ctx, req.Data.(dismodel.MessageDeleteCall))
+		res, err = h.callDiscordMessageDelete(ctx, req.Data.(distype.MessageDeleteRequest))
 	case call.DiscordMessageGet:
-		res, err = h.callDiscordMessageGet(ctx, req.Data.(dismodel.MessageGetCall))
+		res, err = h.callDiscordMessageGet(ctx, req.Data.(distype.MessageGetRequest))
 	case call.DiscordInteractionResponseCreate:
-		res, err = h.callDiscordInteractionResponseCreate(ctx, req.Data.(dismodel.InteractionResponseCreateCall))
+		res, err = h.callDiscordInteractionResponseCreate(ctx, req.Data.(distype.InteractionResponseCreateRequest))
 	case call.DiscordGuildGet:
-		res, err = h.callDiscordGuildGet(ctx, req.Data.(dismodel.GuildGetCall))
-	case call.DiscordRoleList:
-		res, err = h.callDiscordRoleList(ctx, req.Data.(dismodel.RoleListCall))
+		res, err = h.callDiscordGuildGet(ctx, req.Data.(distype.GuildGetRequest))
 	default:
 		return nil, fmt.Errorf("unknown call type: %s", req.Type)
 	}

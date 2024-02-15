@@ -6,11 +6,12 @@ import (
 	"log/slog"
 	"time"
 
+	"github.com/merlinfuchs/dismod/distype"
+	"github.com/merlinfuchs/kite/kite-sdk-go/manifest"
 	"github.com/merlinfuchs/kite/kite-service/internal/host"
 	"github.com/merlinfuchs/kite/kite-service/internal/logging/logattr"
 	"github.com/merlinfuchs/kite/kite-service/pkg/engine"
 	"github.com/merlinfuchs/kite/kite-service/pkg/module"
-	"github.com/merlinfuchs/kite/kite-types/manifest"
 )
 
 func (m *DeploymentManager) populateEngineDeployments(ctx context.Context) error {
@@ -49,7 +50,7 @@ func (m *DeploymentManager) populateEngineDeployments(ctx context.Context) error
 			}
 		}
 
-		m.engine.ReplaceGuildDeployments(ctx, guildID, deployments)
+		m.engine.ReplaceGuildDeployments(ctx, distype.Snowflake(guildID), deployments)
 
 		if hasChanged {
 			// TODO: deploy discord commands
@@ -101,13 +102,13 @@ func (m *DeploymentManager) updateEngineDeployments(ctx context.Context) error {
 				env.Manifest = row.Manifest
 
 				deployment := engine.NewDeployment(row.ID, env, row.WasmBytes, row.Manifest, config)
-				m.engine.LoadGuildDeployment(ctx, guildID, deployment)
+				m.engine.LoadGuildDeployment(ctx, distype.Snowflake(guildID), deployment)
 
 				hasChanged = true
 			}
 		}
 
-		removed := m.engine.TruncateGuildDeployments(ctx, guildID, deploymentIDs)
+		removed := m.engine.TruncateGuildDeployments(ctx, distype.Snowflake(guildID), deploymentIDs)
 		if removed {
 			hasChanged = true
 		}

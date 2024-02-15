@@ -1,12 +1,13 @@
 package internal
 
 import (
+	"context"
 	"fmt"
 
-	"github.com/merlinfuchs/kite/kite-service/config"
 	"github.com/merlinfuchs/kite/kite-service/internal/api"
 	"github.com/merlinfuchs/kite/kite-service/internal/api/access"
 	"github.com/merlinfuchs/kite/kite-service/internal/bot"
+	"github.com/merlinfuchs/kite/kite-service/internal/config"
 	"github.com/merlinfuchs/kite/kite-service/internal/db/postgres"
 	"github.com/merlinfuchs/kite/kite-service/internal/deployments"
 	"github.com/merlinfuchs/kite/kite-service/internal/host"
@@ -26,7 +27,7 @@ func RunServer(cfg *config.ServerConfig) error {
 
 	e := engine.New()
 
-	envStores := host.NewHostEnvironmentStores(bot, pg, pg, pg, pg)
+	envStores := host.NewHostEnvironmentStores(pg, pg, pg, pg, bot.State, bot.Client)
 	manager, err := deployments.NewManager(pg, e, envStores)
 	if err != nil {
 		return fmt.Errorf("failed to create deployment manager: %w", err)
@@ -35,10 +36,7 @@ func RunServer(cfg *config.ServerConfig) error {
 
 	bot.Engine = e
 
-	err = bot.Start()
-	if err != nil {
-		return fmt.Errorf("failed to start discord bot: %w", err)
-	}
+	bot.Open(context.Background())
 
 	api := api.New(cfg)
 

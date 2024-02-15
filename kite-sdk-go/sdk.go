@@ -3,8 +3,8 @@ package kite
 import (
 	"time"
 
+	"github.com/merlinfuchs/kite/kite-sdk-go/call"
 	"github.com/merlinfuchs/kite/kite-sdk-go/internal"
-	"github.com/merlinfuchs/kite/kite-types/call"
 )
 
 func Sleep(duration time.Duration) error {

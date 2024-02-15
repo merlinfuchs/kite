@@ -4,12 +4,12 @@ import (
 	"context"
 	"time"
 
-	"github.com/merlinfuchs/kite/kite-types/call"
-	"github.com/merlinfuchs/kite/kite-types/logmodel"
+	"github.com/merlinfuchs/kite/kite-sdk-go/call"
+	"github.com/merlinfuchs/kite/kite-sdk-go/log"
 )
 
 type HostEnvironment interface {
-	Log(ctx context.Context, level logmodel.LogLevel, msg string)
+	Log(ctx context.Context, level log.LogLevel, msg string)
 	TrackEventHandled(ctx context.Context, eventType string, success bool, totalDuration time.Duration, executionDuration time.Duration)
 	GetConfig(ctx context.Context) (map[string]interface{}, error)
 	Call(ctx context.Context, req call.Call) (interface{}, error)
@@ -17,7 +17,7 @@ type HostEnvironment interface {
 
 type moduleLogForwarder struct {
 	env    HostEnvironment
-	level  logmodel.LogLevel
+	level  log.LogLevel
 	buffer []byte
 }
 

@@ -5,9 +5,10 @@ import (
 	"github.com/merlinfuchs/kite/kite-sdk-go/config"
 	"github.com/merlinfuchs/kite/kite-sdk-go/discord"
 	"github.com/merlinfuchs/kite/kite-sdk-go/log"
-	"github.com/merlinfuchs/kite/kite-types/dismodel"
-	"github.com/merlinfuchs/kite/kite-types/event"
-	"github.com/merlinfuchs/kite/kite-types/manifest"
+
+	"github.com/merlinfuchs/dismod/distype"
+	"github.com/merlinfuchs/kite/kite-sdk-go/event"
+	"github.com/merlinfuchs/kite/kite-sdk-go/manifest"
 )
 
 func main() {
@@ -24,14 +25,16 @@ func main() {
 	})
 
 	kite.Event(event.DiscordMessageCreate, func(req event.Event) error {
-		msg := req.Data.(dismodel.MessageCreateEvent)
+		msg := req.Data.(distype.MessageCreateEvent)
 
 		if msg.Content == "!ping" {
 			pingResponse := config.String("ping_response")
 
-			_, err := discord.MessageCreate(dismodel.MessageCreateCall{
+			_, err := discord.MessageCreate(distype.MessageCreateRequest{
 				ChannelID: msg.ChannelID,
-				Content:   pingResponse,
+				MessageCreateParams: distype.MessageCreateParams{
+					Content: &pingResponse,
+				},
 			})
 			if err != nil {
 				log.Error("Failed to send message: " + err.Error())
@@ -42,14 +45,15 @@ func main() {
 		return nil
 	})
 
-	kite.Command("ping", func(i dismodel.Interaction, options []dismodel.ApplicationCommandOptionData) error {
-		pingResponse := config.String("ping_response")
+	kite.Command("ping", func(i distype.Interaction, options []distype.ApplicationCommandOption) error {
+		// pingResponse := config.String("ping_response")
 
-		_, err := discord.InteractionResponseCreate(dismodel.InteractionResponseCreateCall{
-			ID:    i.ID,
-			Token: i.Token,
-			Data: dismodel.InteractionResponseData{
-				Content: pingResponse,
+		_, err := discord.InteractionResponseCreate(distype.InteractionResponseCreateRequest{
+			InteractionID:    i.ID,
+			InteractionToken: i.Token,
+			InteractionResponse: distype.InteractionResponse{
+				Type: distype.InteractionResponseTypeChannelMessageWithSource,
+				Data: &distype.InteractionMessageResponse{}, // TODO
 			},
 		})
 		if err != nil {

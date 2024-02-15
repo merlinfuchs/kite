@@ -5,20 +5,21 @@ import (
 	"fmt"
 	"unsafe"
 
+	"github.com/merlinfuchs/kite/kite-sdk-go/call"
+	"github.com/merlinfuchs/kite/kite-sdk-go/internal/sys"
 	"github.com/merlinfuchs/kite/kite-sdk-go/internal/util"
-	"github.com/merlinfuchs/kite/kite-types/call"
 )
 
 func MakeCall(c call.Call) (*call.CallResponse, error) {
 	raw, err := json.Marshal(c)
 
-	length := kiteCall(uint32(uintptr(unsafe.Pointer(&raw[0]))), uint32(len(raw)))
+	length := sys.KiteCall(uint32(uintptr(unsafe.Pointer(&raw[0]))), uint32(len(raw)))
 	if length == 0 {
 		return nil, fmt.Errorf("no call response")
 	}
 
 	buf := make([]byte, length)
-	ok := kiteGetCallResponse(uint32(uintptr(unsafe.Pointer(&buf[0]))))
+	ok := sys.KiteGetCallResponse(uint32(uintptr(unsafe.Pointer(&buf[0]))))
 	if ok != 0 {
 		return nil, fmt.Errorf("failed to get call response")
 	}

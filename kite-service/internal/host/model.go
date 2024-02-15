@@ -5,45 +5,9 @@ import (
 	"errors"
 
 	"github.com/bwmarrin/discordgo"
-	"github.com/merlinfuchs/kite/kite-types/dismodel"
-	"github.com/merlinfuchs/kite/kite-types/fail"
+
+	"github.com/merlinfuchs/kite/kite-sdk-go/fail"
 )
-
-func modelMessage(msg *discordgo.Message) dismodel.Message {
-	return dismodel.Message{
-		ID:        msg.ID,
-		ChannelID: msg.ChannelID,
-		Content:   msg.Content,
-	}
-}
-
-func modelChannel(channel *discordgo.Channel) dismodel.Channel {
-	return dismodel.Channel{
-		ID:   channel.ID,
-		Name: channel.Name,
-	}
-}
-
-func modelUser(user *discordgo.User) dismodel.User {
-	return dismodel.User{
-		ID:       user.ID,
-		Username: user.Username,
-	}
-}
-
-func modelGuild(guild *discordgo.Guild) dismodel.Guild {
-	return dismodel.Guild{
-		ID:   guild.ID,
-		Name: guild.Name,
-	}
-}
-
-func modelRole(role *discordgo.Role) dismodel.Role {
-	return dismodel.Role{
-		ID:   role.ID,
-		Name: role.Name,
-	}
-}
 
 func modelError(err error) *fail.HostError {
 	var derr *discordgo.RESTError

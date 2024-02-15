@@ -5,7 +5,7 @@ import (
 	"os"
 
 	"github.com/golang-migrate/migrate/v4"
-	"github.com/merlinfuchs/kite/kite-service/config"
+	"github.com/merlinfuchs/kite/kite-service/internal/config"
 	"github.com/merlinfuchs/kite/kite-service/internal/db/postgres"
 	"github.com/merlinfuchs/kite/kite-service/internal/logging/logattr"
 	"github.com/merlinfuchs/kite/kite-service/pkg/store"

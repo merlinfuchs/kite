@@ -8,7 +8,7 @@ import (
 
 	"github.com/cyrusaf/ctxlog"
 	"github.com/endobit/clog"
-	"github.com/merlinfuchs/kite/kite-service/config"
+	"github.com/merlinfuchs/kite/kite-service/internal/config"
 	"github.com/merlinfuchs/kite/kite-service/internal/logging/logattr"
 	"gopkg.in/natefinch/lumberjack.v2"
 )

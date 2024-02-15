@@ -1,0 +1,68 @@
+packages:
+  - path: "github.com/merlinfuchs/dismod/distype"
+    output_path: "../kite-sdk-js/src/discord/types.ts"
+    type_mappings:
+      null.Null: Nullable
+      null.String: "null | string"
+      null.Bool: "null | boolean"
+      null.Float: "null | number"
+      null.Int: "null | number"
+      uuid.UUID: "string /* uuid */"
+      uuid.NullUUID: "null | string /* uuid */"
+      time.Time: "string /* RFC3339 */"
+      null.Time: "null | string /* RFC3339 */"
+      json.RawMessage: "Record<string, any> | null"
+    frontmatter: |
+      type Nullable<T> = T | null
+      type IntOrString = number | string
+      type UnixTimestamp = number
+    exclude_files:
+      - base.go
+
+  - path: "github.com/merlinfuchs/kite/kite-sdk-go/event"
+    output_path: "../kite-sdk-js/src/event/types.ts"
+    type_mappings:
+      null.Null: Nullable
+      null.String: "null | string"
+      null.Bool: "null | boolean"
+      null.Float: "null | number"
+      null.Int: "null | number"
+      uuid.UUID: "string /* uuid */"
+      uuid.NullUUID: "null | string /* uuid */"
+      time.Time: "string /* RFC3339 */"
+      null.Time: "null | string /* RFC3339 */"
+      json.RawMessage: "Record<string, any> | null"
+    frontmatter: |
+      type Nullable<T> = T | null
+
+  - path: "github.com/merlinfuchs/kite/kite-sdk-go/call"
+    output_path: "../kite-sdk-js/src/call/types.ts"
+    type_mappings:
+      null.Null: Nullable
+      null.String: "null | string"
+      null.Bool: "null | boolean"
+      null.Float: "null | number"
+      null.Int: "null | number"
+      uuid.UUID: "string /* uuid */"
+      uuid.NullUUID: "null | string /* uuid */"
+      time.Time: "string /* RFC3339 */"
+      null.Time: "null | string /* RFC3339 */"
+      json.RawMessage: "Record<string, any> | null"
+    frontmatter: |
+      type Nullable<T> = T | null
+
+  - path: "github.com/merlinfuchs/kite/kite-sdk-go/fail"
+    output_path: "../kite-sdk-js/src/fail/types.ts"
+    type_mappings:
+      null.Null: Nullable
+      null.String: "null | string"
+      null.Bool: "null | boolean"
+      null.Float: "null | number"
+      null.Int: "null | number"
+      uuid.UUID: "string /* uuid */"
+      uuid.NullUUID: "null | string /* uuid */"
+      time.Time: "string /* RFC3339 */"
+      null.Time: "null | string /* RFC3339 */"
+      json.RawMessage: "Record<string, any> | null"
+    frontmatter: |
+      type Nullable<T> = T | null

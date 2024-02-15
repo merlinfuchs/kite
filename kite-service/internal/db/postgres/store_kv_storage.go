@@ -6,10 +6,10 @@ import (
 	"encoding/json"
 	"time"
 
+	"github.com/merlinfuchs/kite/kite-sdk-go/kv"
 	"github.com/merlinfuchs/kite/kite-service/internal/db/postgres/pgmodel"
 	"github.com/merlinfuchs/kite/kite-service/pkg/model"
 	"github.com/merlinfuchs/kite/kite-service/pkg/store"
-	"github.com/merlinfuchs/kite/kite-types/kvmodel"
 )
 
 func (c *Client) GetKVStorageNamespaces(ctx context.Context, guildID string) ([]model.KVStorageNamespace, error) {
@@ -41,7 +41,7 @@ func (c *Client) GetKVStorageKeys(ctx context.Context, guildID, namespace string
 
 	res := make([]model.KVStorageValue, len(rows))
 	for i, row := range rows {
-		var value kvmodel.TypedKVValue
+		var value kv.TypedKVValue
 		err = json.Unmarshal(row.Value, &value)
 		if err != nil {
 			return nil, err
@@ -60,7 +60,7 @@ func (c *Client) GetKVStorageKeys(ctx context.Context, guildID, namespace string
 	return res, nil
 }
 
-func (c *Client) SetKVStorageKey(ctx context.Context, guildID, namespace, key string, value kvmodel.TypedKVValue) error {
+func (c *Client) SetKVStorageKey(ctx context.Context, guildID, namespace, key string, value kv.TypedKVValue) error {
 	rawValue, err := json.Marshal(value)
 	if err != nil {
 		return err
@@ -94,7 +94,7 @@ func (c *Client) GetKVStorageKey(ctx context.Context, guildID, namespace, key st
 		return nil, err
 	}
 
-	var value kvmodel.TypedKVValue
+	var value kv.TypedKVValue
 	err = json.Unmarshal(res.Value, &value)
 	if err != nil {
 		return nil, err
@@ -123,7 +123,7 @@ func (c *Client) DeleteKVStorageKey(ctx context.Context, guildID, namespace, key
 		return nil, err
 	}
 
-	var value kvmodel.TypedKVValue
+	var value kv.TypedKVValue
 	err = json.Unmarshal(res.Value, &value)
 	if err != nil {
 		return nil, err
@@ -161,7 +161,7 @@ func (c *Client) IncreaseKVStorageKey(ctx context.Context, guildID, namespace, k
 			return nil, err
 		}
 	} else {
-		var value kvmodel.TypedKVValue
+		var value kv.TypedKVValue
 		err = json.Unmarshal(res.Value, &value)
 		if err != nil {
 			return nil, err
@@ -170,9 +170,9 @@ func (c *Client) IncreaseKVStorageKey(ctx context.Context, guildID, namespace, k
 		currentValue = value.Value.Int()
 	}
 
-	newValue := kvmodel.TypedKVValue{
-		Type:  kvmodel.KVValueTypeInt,
-		Value: kvmodel.KVInt(currentValue + increment),
+	newValue := kv.TypedKVValue{
+		Type:  kv.KVValueTypeInt,
+		Value: kv.KVInt(currentValue + increment),
 	}
 
 	rawValue, err := json.Marshal(newValue)

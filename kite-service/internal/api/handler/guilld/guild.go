@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/merlinfuchs/dismod/distype"
 	"github.com/merlinfuchs/kite/kite-service/internal/api/access"
 	"github.com/merlinfuchs/kite/kite-service/internal/api/helpers"
 	"github.com/merlinfuchs/kite/kite-service/internal/api/session"
@@ -58,7 +59,8 @@ func (h *GuildHandler) HandleGuildList(c *fiber.Ctx) error {
 func (h *GuildHandler) HandleGuildGet(c *fiber.Ctx) error {
 	session := session.GetSession(c)
 
-	guild, err := h.guilds.GetGuild(c.Context(), c.Params("guildID"))
+	guildID := distype.Snowflake(c.Params("guildID"))
+	guild, err := h.guilds.GetGuild(c.Context(), guildID)
 	if err != nil {
 		if err == store.ErrNotFound {
 			return helpers.NotFound("unknown_guild", "Guild not found")

@@ -29,10 +29,10 @@ event.on("DISCORD_MESSAGE_CREATE", (msg) => {
     exampleCode: `
 func main() {
 	kite.Event(event.DiscordMessageCreate, func(req event.Event) error {
-		msg := req.Data.(dismodel.MessageCreateEvent)
+		msg := req.Data.(distype.MessageCreateEvent)
 
 		if msg.Content == "!ping" {
-			_, err := discord.MessageCreate(dismodel.MessageCreateCall{
+			_, err := discord.MessageCreate(distype.MessageCreateRequest{
 				ChannelID: msg.ChannelID,
 				Content:   "Pong!",
 			})

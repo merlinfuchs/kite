@@ -2,7 +2,8 @@ package config
 
 import (
 	"github.com/merlinfuchs/kite/kite-sdk-go/internal"
-	"github.com/merlinfuchs/kite/kite-types/manifest"
+	"github.com/merlinfuchs/kite/kite-sdk-go/internal/sys"
+	"github.com/merlinfuchs/kite/kite-sdk-go/manifest"
 )
 
 var cfg map[string]interface{}
@@ -67,5 +68,5 @@ func load() {
 }
 
 func SetSchema(schema manifest.ConfigSchema) {
-	internal.Manifest.ConfigSchema = schema
+	sys.Manifest.ConfigSchema = schema
 }
