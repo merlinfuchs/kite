@@ -31,7 +31,7 @@ type DeploymentCreateRequest struct {
 	Name            string            `json:"name"`
 	Description     string            `json:"description"`
 	PluginVersionID null.String       `json:"plugin_version_id"`
-	WasmBytes       string            `json:"wasm_bytes"`
+	WasmBytes       Base64            `json:"wasm_bytes"`
 	Config          map[string]string `json:"config"`
 }
 

@@ -3,7 +3,7 @@ import CodeEditor from "./CodeEditor";
 import CodeNav from "./CodeNav";
 import CodeFileTree from "./CodeFileTree";
 import CodeTerminal from "./CodeTerminal";
-import { FlatFile } from "@/util/filetree";
+import { FlatFile } from "@/lib/code/filetree";
 
 interface Props {
   files: FlatFile[];
@@ -15,7 +15,7 @@ interface Props {
   onSave: () => void;
   isDeploying: boolean;
   onDeploy: () => void;
-  onBack: () => void;
+  onExit: () => void;
 }
 
 export default function Code({
@@ -28,7 +28,7 @@ export default function Code({
   onSave,
   isDeploying,
   onDeploy,
-  onBack,
+  onExit,
 }: Props) {
   return (
     <div className={styles.code}>
@@ -37,7 +37,7 @@ export default function Code({
           hasUnsavedChanges={hasUnsavedChanges}
           isSaving={isSaving}
           onSave={onSave}
-          onBack={onBack}
+          onExit={onExit}
           isDeploying={isDeploying}
           onDeploy={onDeploy}
         />

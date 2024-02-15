@@ -1,5 +1,5 @@
-import { FlatFile } from "@/util/filetree";
-import { initializeMonaco } from "@/util/monaco";
+import { FlatFile } from "@/lib/code/filetree";
+import { initializeMonaco } from "@/lib/code/monaco";
 import Editor, { useMonaco } from "@monaco-editor/react";
 import { useEffect, useRef, useState } from "react";
 
@@ -84,7 +84,6 @@ export default function CodeEditor({
           editor.getAction("editor.action.formatDocument").run();
         }
 
-        // TODO: debounce
         setTimeout(() => {
           onSave();
         }, 100);
@@ -98,7 +97,6 @@ export default function CodeEditor({
           editor.getAction("editor.action.formatDocument").run();
         }
 
-        // TODO: debounce
         setTimeout(() => {
           onSave();
           onDeploy();
@@ -118,6 +116,7 @@ export default function CodeEditor({
   function handleEditorValueChange(value: string | undefined, e: any) {
     // isFlush is true when the change comes from outside (e.g. open file changed)
     // if (e.isFlush) return;
+
     const openFile = files.find((f) => f.path === openFilePath);
     if (!openFile) return;
 

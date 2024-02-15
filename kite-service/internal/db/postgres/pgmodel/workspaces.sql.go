@@ -15,6 +15,7 @@ const createWorkspace = `-- name: CreateWorkspace :one
 INSERT INTO workspaces (
     id,
     guild_id,
+    type,
     name,
     description,
     files,
@@ -27,13 +28,15 @@ INSERT INTO workspaces (
     $4,
     $5,
     $6,
-    $7
-) RETURNING id, guild_id, name, description, files, created_at, updated_at
+    $7,
+    $8
+) RETURNING id, guild_id, type, name, description, files, created_at, updated_at
 `
 
 type CreateWorkspaceParams struct {
 	ID          string
 	GuildID     string
+	Type        string
 	Name        string
 	Description string
 	Files       json.RawMessage
@@ -45,6 +48,7 @@ func (q *Queries) CreateWorkspace(ctx context.Context, arg CreateWorkspaceParams
 	row := q.db.QueryRowContext(ctx, createWorkspace,
 		arg.ID,
 		arg.GuildID,
+		arg.Type,
 		arg.Name,
 		arg.Description,
 		arg.Files,
@@ -55,6 +59,7 @@ func (q *Queries) CreateWorkspace(ctx context.Context, arg CreateWorkspaceParams
 	err := row.Scan(
 		&i.ID,
 		&i.GuildID,
+		&i.Type,
 		&i.Name,
 		&i.Description,
 		&i.Files,
@@ -65,7 +70,7 @@ func (q *Queries) CreateWorkspace(ctx context.Context, arg CreateWorkspaceParams
 }
 
 const deleteWorkspace = `-- name: DeleteWorkspace :one
-DELETE FROM workspaces WHERE id = $1 AND guild_id = $2 RETURNING id, guild_id, name, description, files, created_at, updated_at
+DELETE FROM workspaces WHERE id = $1 AND guild_id = $2 RETURNING id, guild_id, type, name, description, files, created_at, updated_at
 `
 
 type DeleteWorkspaceParams struct {
@@ -79,6 +84,7 @@ func (q *Queries) DeleteWorkspace(ctx context.Context, arg DeleteWorkspaceParams
 	err := row.Scan(
 		&i.ID,
 		&i.GuildID,
+		&i.Type,
 		&i.Name,
 		&i.Description,
 		&i.Files,
@@ -89,7 +95,7 @@ func (q *Queries) DeleteWorkspace(ctx context.Context, arg DeleteWorkspaceParams
 }
 
 const getWorkspaceForGuild = `-- name: GetWorkspaceForGuild :one
-SELECT id, guild_id, name, description, files, created_at, updated_at FROM workspaces WHERE id = $1 AND guild_id = $2
+SELECT id, guild_id, type, name, description, files, created_at, updated_at FROM workspaces WHERE id = $1 AND guild_id = $2
 `
 
 type GetWorkspaceForGuildParams struct {
@@ -103,6 +109,7 @@ func (q *Queries) GetWorkspaceForGuild(ctx context.Context, arg GetWorkspaceForG
 	err := row.Scan(
 		&i.ID,
 		&i.GuildID,
+		&i.Type,
 		&i.Name,
 		&i.Description,
 		&i.Files,
@@ -113,7 +120,7 @@ func (q *Queries) GetWorkspaceForGuild(ctx context.Context, arg GetWorkspaceForG
 }
 
 const getWorkspacesForGuild = `-- name: GetWorkspacesForGuild :many
-SELECT id, guild_id, name, description, files, created_at, updated_at FROM workspaces WHERE guild_id = $1 ORDER BY updated_at DESC
+SELECT id, guild_id, type, name, description, files, created_at, updated_at FROM workspaces WHERE guild_id = $1 ORDER BY updated_at DESC
 `
 
 func (q *Queries) GetWorkspacesForGuild(ctx context.Context, guildID string) ([]Workspace, error) {
@@ -128,6 +135,7 @@ func (q *Queries) GetWorkspacesForGuild(ctx context.Context, guildID string) ([]
 		if err := rows.Scan(
 			&i.ID,
 			&i.GuildID,
+			&i.Type,
 			&i.Name,
 			&i.Description,
 			&i.Files,
@@ -156,7 +164,7 @@ UPDATE workspaces SET
 WHERE 
     id = $1 AND 
     guild_id = $2 
-RETURNING id, guild_id, name, description, files, created_at, updated_at
+RETURNING id, guild_id, type, name, description, files, created_at, updated_at
 `
 
 type UpdateWorkspaceParams struct {
@@ -181,6 +189,7 @@ func (q *Queries) UpdateWorkspace(ctx context.Context, arg UpdateWorkspaceParams
 	err := row.Scan(
 		&i.ID,
 		&i.GuildID,
+		&i.Type,
 		&i.Name,
 		&i.Description,
 		&i.Files,

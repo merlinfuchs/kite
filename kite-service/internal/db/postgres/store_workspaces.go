@@ -56,6 +56,7 @@ func (c *Client) CreateWorkspace(ctx context.Context, workspace model.Workspace)
 	w, err := c.Q.CreateWorkspace(ctx, pgmodel.CreateWorkspaceParams{
 		ID:          workspace.ID,
 		GuildID:     workspace.GuildID,
+		Type:        string(workspace.Type),
 		Name:        workspace.Name,
 		Description: workspace.Description,
 		Files:       files,
@@ -127,6 +128,7 @@ func workspaceToModel(workspace pgmodel.Workspace) (model.Workspace, error) {
 	return model.Workspace{
 		ID:          workspace.ID,
 		GuildID:     workspace.GuildID,
+		Type:        model.WorkspaceType(workspace.Type),
 		Name:        workspace.Name,
 		Description: workspace.Description,
 		Files:       files,

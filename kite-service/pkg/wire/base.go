@@ -1,6 +1,9 @@
 package wire
 
-import "encoding/json"
+import (
+	"encoding/base64"
+	"encoding/json"
+)
 
 type APIResponse[Data any] struct {
 	Success bool   `json:"success"`
@@ -31,4 +34,22 @@ func (e Error) MarshalJSON() ([]byte, error) {
 	}
 
 	return json.Marshal(wrapped)
+}
+
+type Base64 []byte
+
+func (b Base64) MarshalJSON() ([]byte, error) {
+	d := base64.StdEncoding.EncodeToString(b)
+	return json.Marshal(d)
+}
+
+func (b *Base64) UnMarshalJSON(d []byte) error {
+	var s string
+	err := json.Unmarshal(d, &s)
+	if err != nil {
+		return err
+	}
+
+	*b, err = base64.StdEncoding.DecodeString(s)
+	return err
 }

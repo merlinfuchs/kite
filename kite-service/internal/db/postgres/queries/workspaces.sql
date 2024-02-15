@@ -8,6 +8,7 @@ SELECT * FROM workspaces WHERE guild_id = $1 ORDER BY updated_at DESC;
 INSERT INTO workspaces (
     id,
     guild_id,
+    type,
     name,
     description,
     files,
@@ -20,7 +21,8 @@ INSERT INTO workspaces (
     $4,
     $5,
     $6,
-    $7
+    $7,
+    $8
 ) RETURNING *;
 
 -- name: UpdateWorkspace :one

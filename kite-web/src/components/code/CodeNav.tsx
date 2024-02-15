@@ -10,7 +10,7 @@ import clsx from "clsx";
 interface Props {
   hasUnsavedChanges: boolean;
   isSaving: boolean;
-  onBack(): void;
+  onExit(): void;
   onSave(): void;
   isDeploying: boolean;
   onDeploy(): void;
@@ -19,14 +19,14 @@ interface Props {
 export default function CodeNav({
   hasUnsavedChanges,
   isSaving,
-  onBack,
+  onExit,
   onSave,
   isDeploying,
   onDeploy,
 }: Props) {
   return (
     <div className={styles.root}>
-      <button className={styles.item} onClick={onBack}>
+      <button className={styles.item} onClick={onExit}>
         <ArrowLeftIcon className={styles.icon} />
         <div>Back to Server</div>
       </button>

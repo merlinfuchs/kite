@@ -1,11 +1,11 @@
 package compile
 
 import (
-	"encoding/base64"
 	"os/exec"
 	"strings"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/merlinfuchs/kite/kite-service/internal/api/helpers"
 	"github.com/merlinfuchs/kite/kite-service/pkg/wire"
 )
 
@@ -14,21 +14,28 @@ type CompileHandler struct{}
 func NewHandler() *CompileHandler {
 	return &CompileHandler{}
 }
-func (h *CompileHandler) HandleJSCompile(c *fiber.Ctx, req wire.CompileJSRequest) error {
-	cmd := exec.Command("kitejs-compiler", "-", "-", "--optimize")
-	cmd.Stdin = strings.NewReader(req.Source)
+func (h *CompileHandler) HandleCompile(c *fiber.Ctx, req wire.CompileRequest) error {
+	var cmd *exec.Cmd
+	switch req.Type {
+	case "JS":
+		cmd = exec.Command("kitejs-compiler", "-", "-", "--optimize")
+		cmd.Stdin = strings.NewReader(req.Source)
+	case "FLOW":
+		cmd = exec.Command("kiteflow-compiler", "-", "-", "--optimize")
+		cmd.Stdin = strings.NewReader(req.Source)
+	default:
+		return helpers.BadRequest("unknown_type", "Unsupported compiler type provided")
+	}
 
 	output, err := cmd.Output()
 	if err != nil {
 		return err
 	}
 
-	wasmData := base64.StdEncoding.EncodeToString(output)
-
-	return c.JSON(wire.CompileJSResponse{
+	return c.JSON(wire.CompileResponse{
 		Success: true,
-		Data: wire.CompileJSResponseData{
-			WASMBytes: wasmData,
+		Data: wire.CompileResponseData{
+			WASMBytes: output,
 		},
 	})
 }

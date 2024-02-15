@@ -79,7 +79,7 @@ export default function AppSideBar({ open, setOpen }: Props) {
       <div className="lg:w-72 flex-none"></div>
 
       {/* Static sidebar for desktop */}
-      <div className="hidden lg:fixed lg:inset-y-0 lg:z-50 lg:flex lg:w-72 lg:flex-col">
+      <div className="hidden lg:fixed lg:inset-y-0 lg:z-40 lg:flex lg:w-72 lg:flex-col">
         {/* Sidebar component, swap this element with another sidebar if you like */}
         <div className="flex grow flex-col gap-y-5 overflow-y-auto bg-dark-2 px-4">
           <div className="mt-8 mb-5">
@@ -138,7 +138,7 @@ export default function AppSideBar({ open, setOpen }: Props) {
 
       {/* Dynamic sidebar for mobile */}
       <Transition.Root show={open} as={Fragment}>
-        <Dialog as="div" className="relative z-50 lg:hidden" onClose={setOpen}>
+        <Dialog as="div" className="relative z-40 lg:hidden" onClose={setOpen}>
           <Transition.Child
             as={Fragment}
             enter="transition-opacity ease-linear duration-300"

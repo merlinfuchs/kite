@@ -1,21 +1,21 @@
 import { useMutation, useQueryClient } from "react-query";
 import {
-  CompileJSRequest,
-  CompileJSResponse,
+  CompileRequest,
+  CompileResponse,
   DeploymentCreateRequest,
   DeploymentCreateResponse,
   DeploymentDeleteResponse,
   WorkspaceCreateRequest,
   WorkspaceCreateResponse,
   WorkspaceDeleteResponse,
+  WorkspaceUpdateRequest,
   WorkspaceUpdateResponse,
 } from "../types/wire";
-import { APIResponse } from "../types/response";
 import { apiRequest } from "./client";
 
-export function useCompileJsMutation() {
-  return useMutation((req: CompileJSRequest) =>
-    apiRequest<CompileJSResponse>(`/v1/compile/js`, {
+export function useCompileMutation() {
+  return useMutation((req: CompileRequest) =>
+    apiRequest<CompileResponse>(`/v1/compile`, {
       method: "POST",
       body: JSON.stringify(req),
       headers: {
@@ -108,7 +108,7 @@ export function useWorkspaceUpdateMutation(guildId: string | null) {
       req,
     }: {
       workspaceId: string;
-      req: WorkspaceCreateRequest;
+      req: WorkspaceUpdateRequest;
     }) =>
       apiRequest<WorkspaceUpdateResponse>(
         `/v1/guilds/${guildId}/workspaces/${workspaceId}`,

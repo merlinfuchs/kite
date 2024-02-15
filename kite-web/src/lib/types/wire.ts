@@ -24,18 +24,14 @@ export type AuthCLICheckResponse = APIResponse<AuthCLICheckResponseData>;
 //////////
 // source: compile.go
 
-export interface JSSDK {
-  script_source?: string;
-  declaration_source?: string;
-}
-export type JSSDKGetResponse = APIResponse<JSSDK>;
-export interface CompileJSRequest {
+export interface CompileRequest {
+  type: string;
   source: string;
 }
-export interface CompileJSResponseData {
-  wasm_bytes: string;
+export interface CompileResponseData {
+  wasm_bytes: Base64;
 }
-export type CompileJSResponse = APIResponse<CompileJSResponseData>;
+export type CompileResponse = APIResponse<CompileResponseData>;
 
 //////////
 // source: deployment.go
@@ -60,7 +56,7 @@ export interface DeploymentCreateRequest {
   name: string;
   description: string;
   plugin_version_id: null | string;
-  wasm_bytes: string;
+  wasm_bytes: Base64;
   config: { [key: string]: string};
 }
 export type DeploymentCreateResponse = APIResponse<Deployment>;
@@ -189,6 +185,7 @@ export type UserGetResponse = APIResponse<User>;
 export interface Workspace {
   id: string;
   guild_id: string;
+  type: string;
   name: string;
   description: string;
   files: WorkspaceFile[];
@@ -202,6 +199,7 @@ export interface WorkspaceFile {
 export type WorkspaceGetResponse = APIResponse<Workspace>;
 export type WorkspaceListResponse = APIResponse<Workspace[]>;
 export interface WorkspaceCreateRequest {
+  type: string;
   name: string;
   description: string;
   files: WorkspaceFile[];
