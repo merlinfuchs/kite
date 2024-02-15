@@ -3,7 +3,7 @@ package server
 import (
 	"fmt"
 
-	"github.com/merlinfuchs/kite/kite-service/config"
+	"github.com/merlinfuchs/kite/kite-service/internal/config"
 	"github.com/merlinfuchs/kite/kite-service/internal/logging"
 	"github.com/merlinfuchs/kite/kite-service/internal/migrate"
 	"github.com/urfave/cli/v2"

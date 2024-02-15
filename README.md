@@ -101,8 +101,8 @@ package main
 import (
     kite "github.com/merlinfuchs/kite/kite-sdk-go"
     "github.com/merlinfuchs/kite/kite-sdk-go/log"
-    "github.com/merlinfuchs/kite/kite-types/discord"
-    "github.com/merlinfuchs/kite/kite-types/event"
+    "github.com/merlinfuchs/kite/kite-sdk-go/discord"
+    "github.com/merlinfuchs/kite/kite-sdk-go/event"
 )
 
 func main() {

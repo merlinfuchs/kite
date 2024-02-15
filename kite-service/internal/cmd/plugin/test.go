@@ -8,11 +8,11 @@ import (
 	"time"
 
 	"github.com/merlinfuchs/dismod/distype"
-	"github.com/merlinfuchs/kite/kite-service/config"
+	"github.com/merlinfuchs/kite/kite-service/internal/config"
 	"github.com/merlinfuchs/kite/kite-service/internal/host"
 	"github.com/merlinfuchs/kite/kite-service/pkg/module"
 
-	"github.com/merlinfuchs/kite/kite-types/event"
+	"github.com/merlinfuchs/kite/kite-sdk-go/event"
 	"github.com/urfave/cli/v2"
 )
 

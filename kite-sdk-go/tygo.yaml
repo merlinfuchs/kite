@@ -19,7 +19,7 @@ packages:
     exclude_files:
       - base.go
 
-  - path: "github.com/merlinfuchs/kite/kite-types/event"
+  - path: "github.com/merlinfuchs/kite/kite-sdk-go/event"
     output_path: "../kite-sdk-js/src/event/types.ts"
     type_mappings:
       null.Null: Nullable
@@ -35,7 +35,7 @@ packages:
     frontmatter: |
       type Nullable<T> = T | null
 
-  - path: "github.com/merlinfuchs/kite/kite-types/call"
+  - path: "github.com/merlinfuchs/kite/kite-sdk-go/call"
     output_path: "../kite-sdk-js/src/call/types.ts"
     type_mappings:
       null.Null: Nullable
@@ -51,7 +51,7 @@ packages:
     frontmatter: |
       type Nullable<T> = T | null
 
-  - path: "github.com/merlinfuchs/kite/kite-types/fail"
+  - path: "github.com/merlinfuchs/kite/kite-sdk-go/fail"
     output_path: "../kite-sdk-js/src/fail/types.ts"
     type_mappings:
       null.Null: Nullable

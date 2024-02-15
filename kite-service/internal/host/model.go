@@ -6,7 +6,7 @@ import (
 
 	"github.com/bwmarrin/discordgo"
 
-	"github.com/merlinfuchs/kite/kite-types/fail"
+	"github.com/merlinfuchs/kite/kite-sdk-go/fail"
 )
 
 func modelError(err error) *fail.HostError {

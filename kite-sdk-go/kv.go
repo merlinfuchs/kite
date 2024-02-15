@@ -1,19 +1,19 @@
-package kv
+package kite
 
 import (
 	"encoding/json"
 
+	"github.com/merlinfuchs/kite/kite-sdk-go/call"
 	"github.com/merlinfuchs/kite/kite-sdk-go/internal"
 	"github.com/merlinfuchs/kite/kite-sdk-go/internal/util"
-	"github.com/merlinfuchs/kite/kite-types/call"
-	"github.com/merlinfuchs/kite/kite-types/kvmodel"
+	"github.com/merlinfuchs/kite/kite-sdk-go/kv"
 )
 
 type KVNamespace struct {
 	namespace string
 }
 
-func New(namespace ...string) *KVNamespace {
+func KV(namespace ...string) *KVNamespace {
 	if len(namespace) == 0 {
 		return &KVNamespace{namespace: "default"}
 	}
@@ -21,10 +21,10 @@ func New(namespace ...string) *KVNamespace {
 	return &KVNamespace{namespace: namespace[0]}
 }
 
-func (k *KVNamespace) Get(key string) (kvmodel.KVValue, error) {
+func (k *KVNamespace) Get(key string) (kv.KVValue, error) {
 	res, err := internal.MakeCall(call.Call{
 		Type: call.KVKeyGet,
-		Data: kvmodel.KVKeyGetCall{
+		Data: kv.KVKeyGetCall{
 			Namespace: k.namespace,
 			Key:       key,
 		},
@@ -33,7 +33,7 @@ func (k *KVNamespace) Get(key string) (kvmodel.KVValue, error) {
 		return nil, err
 	}
 
-	val, err := util.DecodeT[kvmodel.KVKeyGetResponse](res.Data.(json.RawMessage))
+	val, err := util.DecodeT[kv.KVKeyGetResponse](res.Data.(json.RawMessage))
 	if err != nil {
 		return nil, err
 	}
@@ -41,13 +41,13 @@ func (k *KVNamespace) Get(key string) (kvmodel.KVValue, error) {
 	return val.Value, nil
 }
 
-func (k *KVNamespace) Set(key string, value kvmodel.KVValue) error {
+func (k *KVNamespace) Set(key string, value kv.KVValue) error {
 	_, err := internal.MakeCall(call.Call{
 		Type: call.KVKeySet,
-		Data: kvmodel.KVKeySetCall{
+		Data: kv.KVKeySetCall{
 			Namespace: k.namespace,
 			Key:       key,
-			Value: kvmodel.TypedKVValue{
+			Value: kv.TypedKVValue{
 				Type:  value.Type(),
 				Value: value,
 			},
@@ -60,10 +60,10 @@ func (k *KVNamespace) Set(key string, value kvmodel.KVValue) error {
 	return nil
 }
 
-func (k *KVNamespace) Delete(key string) (kvmodel.KVValue, error) {
+func (k *KVNamespace) Delete(key string) (kv.KVValue, error) {
 	res, err := internal.MakeCall(call.Call{
 		Type: call.KVKeyDelete,
-		Data: kvmodel.KVKeyDeleteCall{
+		Data: kv.KVKeyDeleteCall{
 			Namespace: k.namespace,
 			Key:       key,
 		},
@@ -72,7 +72,7 @@ func (k *KVNamespace) Delete(key string) (kvmodel.KVValue, error) {
 		return nil, err
 	}
 
-	val, err := util.DecodeT[kvmodel.KVKeyDeleteResponse](res.Data.(json.RawMessage))
+	val, err := util.DecodeT[kv.KVKeyDeleteResponse](res.Data.(json.RawMessage))
 	if err != nil {
 		return nil, err
 	}
@@ -80,10 +80,10 @@ func (k *KVNamespace) Delete(key string) (kvmodel.KVValue, error) {
 	return val.Value, nil
 }
 
-func (k *KVNamespace) Increase(key string, increment int) (kvmodel.KVValue, error) {
+func (k *KVNamespace) Increase(key string, increment int) (kv.KVValue, error) {
 	res, err := internal.MakeCall(call.Call{
 		Type: call.KVKeyIncrease,
-		Data: kvmodel.KVKeyIncreaseCall{
+		Data: kv.KVKeyIncreaseCall{
 			Namespace: k.namespace,
 			Key:       key,
 			Increment: increment,
@@ -93,7 +93,7 @@ func (k *KVNamespace) Increase(key string, increment int) (kvmodel.KVValue, erro
 		return nil, err
 	}
 
-	val, err := util.DecodeT[kvmodel.KVKeyIncreaseResponse](res.Data.(json.RawMessage))
+	val, err := util.DecodeT[kv.KVKeyIncreaseResponse](res.Data.(json.RawMessage))
 	if err != nil {
 		return nil, err
 	}

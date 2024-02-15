@@ -3,8 +3,8 @@ package wire
 import (
 	"time"
 
+	"github.com/merlinfuchs/kite/kite-sdk-go/kv"
 	"github.com/merlinfuchs/kite/kite-service/pkg/model"
-	"github.com/merlinfuchs/kite/kite-types/kvmodel"
 )
 
 type KVStorageNamespace struct {
@@ -13,11 +13,11 @@ type KVStorageNamespace struct {
 }
 
 type KVStorageValue struct {
-	Namespace string               `json:"namespace"`
-	Key       string               `json:"key"`
-	Value     kvmodel.TypedKVValue `json:"value"`
-	CreatedAt time.Time            `json:"created_at"`
-	UpdatedAt time.Time            `json:"updated_at"`
+	Namespace string          `json:"namespace"`
+	Key       string          `json:"key"`
+	Value     kv.TypedKVValue `json:"value"`
+	CreatedAt time.Time       `json:"created_at"`
+	UpdatedAt time.Time       `json:"updated_at"`
 }
 
 type KVStorageNamespaceListResponse APIResponse[[]KVStorageNamespace]

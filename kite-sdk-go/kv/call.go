@@ -1,4 +1,4 @@
-package kvmodel
+package kv
 
 type KVKeyGetCall struct {
 	Namespace string `json:"namespace"`

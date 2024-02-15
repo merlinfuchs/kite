@@ -1,4 +1,4 @@
-package kvmodel
+package kv
 
 import (
 	"encoding/json"

@@ -4,9 +4,9 @@ import (
 	"log"
 	"os"
 
-	"github.com/merlinfuchs/kite/kite-service/cmd/config"
-	"github.com/merlinfuchs/kite/kite-service/cmd/plugin"
-	"github.com/merlinfuchs/kite/kite-service/cmd/server"
+	"github.com/merlinfuchs/kite/kite-service/internal/cmd/config"
+	"github.com/merlinfuchs/kite/kite-service/internal/cmd/plugin"
+	"github.com/merlinfuchs/kite/kite-service/internal/cmd/server"
 	"github.com/urfave/cli/v2"
 )
 

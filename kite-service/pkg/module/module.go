@@ -7,9 +7,9 @@ import (
 	"time"
 
 	"github.com/merlinfuchs/dismod/distype"
-	"github.com/merlinfuchs/kite/kite-types/event"
-	"github.com/merlinfuchs/kite/kite-types/logmodel"
-	"github.com/merlinfuchs/kite/kite-types/manifest"
+	"github.com/merlinfuchs/kite/kite-sdk-go/event"
+	"github.com/merlinfuchs/kite/kite-sdk-go/log"
+	"github.com/merlinfuchs/kite/kite-sdk-go/manifest"
 	"github.com/tetratelabs/wazero"
 	"github.com/tetratelabs/wazero/api"
 	"github.com/tetratelabs/wazero/imports/wasi_snapshot_preview1"
@@ -95,11 +95,11 @@ func New(
 			WithSysNanotime().
 			WithStdout(&moduleLogForwarder{
 				env:   env,
-				level: logmodel.LogLevelDebug,
+				level: log.LogLevelDebug,
 			}).
 			WithStderr(&moduleLogForwarder{
 				env:   env,
-				level: logmodel.LogLevelError,
+				level: log.LogLevelError,
 			}),
 	)
 	if err != nil {

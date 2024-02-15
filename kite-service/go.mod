@@ -20,7 +20,7 @@ require (
 	github.com/knadh/koanf/v2 v2.0.1
 	github.com/lib/pq v1.10.9
 	github.com/merlinfuchs/dismod v0.0.0-20240212171222-031150f9a0be
-	github.com/merlinfuchs/kite/kite-types v0.0.0
+	github.com/merlinfuchs/kite/kite-sdk-go v0.0.0
 	github.com/oklog/ulid/v2 v2.1.0
 	github.com/pelletier/go-toml v1.9.5
 	github.com/ravener/discord-oauth2 v0.0.0-20230514095040-ae65713199b3
@@ -74,4 +74,4 @@ require (
 	google.golang.org/protobuf v1.31.0 // indirect
 )
 
-replace github.com/merlinfuchs/kite/kite-types v0.0.0 => ../kite-types
+replace github.com/merlinfuchs/kite/kite-sdk-go v0.0.0 => ../kite-sdk-go
