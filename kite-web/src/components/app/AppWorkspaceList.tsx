@@ -1,131 +1,37 @@
-import {
-  useWorkspaceCreateMutation,
-  useWorkspaceDeleteMutation,
-} from "@/lib/api/mutations";
+import { useWorkspaceDeleteMutation } from "@/lib/api/mutations";
 import { useWorkspacesQuery } from "@/lib/api/queries";
 import Link from "next/link";
 import AutoAnimate from "../AutoAnimate";
-import { FlatFile } from "@/lib/code/filetree";
-import { useRouter } from "next/router";
 import toast from "react-hot-toast";
 import clsx from "clsx";
 import AppIllustrationPlaceholder from "./AppIllustrationPlaceholder";
-
-const defaultFiles: FlatFile[] = [
-  {
-    path: "index.ts",
-    content: `
-import { someText } from "./lib/util.ts";
-import { call, event } from "@merlingg/kite-sdk";
-
-event.on("DISCORD_MESSAGE_CREATE", (msg) => {
-    if (msg.content === "!ping") {
-        call("DISCORD_MESSAGE_CREATE", {
-            channel_id: msg.channel_id,
-            content: someText(),
-        })
-    }
-})
-      `.trim(),
-  },
-  {
-    path: "lib/util.ts",
-    content: `
-export function someText() {
-    return "Pong!";
-}
-      `.trim(),
-  },
-  {
-    path: "manifest.toml",
-    content: `
-[deployment]
-key = "example@kite.onl"
-name = 'My Plugin'
-description = 'Example Kite plugin'
-
-[module]
-type = 'js'
-      `.trim(),
-  },
-];
-
-const defaultFlowFiles: FlatFile[] = [
-  {
-    path: "default.flow",
-    content: JSON.stringify({
-      nodes: [],
-      edges: [],
-    }),
-  },
-];
+import AppWorkspaceCreateModal from "./AppWorkspaceCreateModal";
+import { useState } from "react";
+import ModalConfirm from "@/components/ModalConfirm";
 
 export default function AppWorkspaceList({ guildId }: { guildId: string }) {
-  const router = useRouter();
-
   const { data: resp } = useWorkspacesQuery(guildId);
 
   const workspaces = resp?.success ? resp.data : [];
 
+  const [deleteWorkspaceId, setDeleteWorkspaceId] = useState<string | null>(
+    null
+  );
+  const [createModalOpen, setCreateModalOpen] = useState(false);
+
   const deleteMutation = useWorkspaceDeleteMutation(guildId);
 
-  function deleteWorkspace(workspaceId: string) {
-    if (confirm("Are you sure you want to delete this workspace?")) {
-      deleteMutation.mutate(
-        { workspaceId },
-        {
-          onSuccess: (res) => {
-            if (!res.success) {
-              toast.error("Failed to delete workspace");
-            }
-          },
-        }
-      );
-    }
-  }
+  function deleteWorkspace() {
+    if (!deleteWorkspaceId) return;
 
-  const createMutation = useWorkspaceCreateMutation(guildId);
-
-  function createWorkspace() {
-    createMutation.mutate(
-      {
-        type: "JS",
-        name: "New Workspace",
-        description: "A new Workspace for my new cool Plugin!",
-        files: defaultFiles.map((file) => ({
-          path: file.path,
-          content: file.content,
-        })),
-      },
+    deleteMutation.mutate(
+      { workspaceId: deleteWorkspaceId },
       {
         onSuccess: (res) => {
-          if (res.success) {
-            router.push(`/app/guilds/${guildId}/workspaces/${res.data.id}`);
+          if (!res.success) {
+            toast.error("Failed to delete workspace");
           } else {
-            toast.error("Failed to create workspace");
-          }
-        },
-      }
-    );
-  }
-
-  function createFlowWorkspace() {
-    createMutation.mutate(
-      {
-        type: "FLOW",
-        name: "New Flow",
-        description: "A new flow for my new cool Plugin!",
-        files: defaultFlowFiles.map((file) => ({
-          path: file.path,
-          content: file.content,
-        })),
-      },
-      {
-        onSuccess: (res) => {
-          if (res.success) {
-            router.push(`/app/guilds/${guildId}/workspaces/${res.data.id}`);
-          } else {
-            toast.error("Failed to create workspace");
+            setDeleteWorkspaceId(null);
           }
         },
       }
@@ -134,6 +40,19 @@ export default function AppWorkspaceList({ guildId }: { guildId: string }) {
 
   return (
     <div>
+      <AppWorkspaceCreateModal
+        open={createModalOpen}
+        setOpen={setCreateModalOpen}
+        guildId={guildId}
+      />
+      <ModalConfirm
+        open={!!deleteWorkspaceId}
+        onConfirm={deleteWorkspace}
+        onCancel={() => setDeleteWorkspaceId(null)}
+        title="Delete Workspace"
+        description="Are you sure you want to delete this workspace? This action is irreversible."
+      />
+
       <div>
         <AutoAnimate
           className={clsx(
@@ -155,7 +74,7 @@ export default function AppWorkspaceList({ guildId }: { guildId: string }) {
                 <div className="flex-none flex space-x-3 items-start">
                   <button
                     className="px-3 py-2 bg-dark-4 hover:bg-dark-5 text-gray-100 rounded select-none"
-                    onClick={() => deleteWorkspace(w.id)}
+                    onClick={() => setDeleteWorkspaceId(w.id)}
                   >
                     Delete
                   </button>
@@ -173,13 +92,7 @@ export default function AppWorkspaceList({ guildId }: { guildId: string }) {
         <div className="flex space-x-3">
           <button
             className="px-4 py-2 text-gray-100 rounded border-2 border-dark-9 hover:bg-dark-5 text-lg"
-            onClick={createFlowWorkspace}
-          >
-            New Flow
-          </button>
-          <button
-            className="px-4 py-2 text-gray-100 rounded border-2 border-dark-9 hover:bg-dark-5 text-lg"
-            onClick={createWorkspace}
+            onClick={() => setCreateModalOpen(true)}
           >
             New Workspace
           </button>
