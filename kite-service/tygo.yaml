@@ -13,11 +13,14 @@ packages:
       json.RawMessage: "Record<string, any> | null"
       manifest.Manifest: "Manifest"
       Base64: "string"
+      distype.Snowflake: "string"
     exclude_files:
       - "base.go"
     frontmatter: |
       import {APIResponse} from "./response"
       import {Manifest} from "./manifest"
+
+      export type Base64 = string
   - path: "github.com/merlinfuchs/kite/kite-sdk-go/manifest"
     output_path: "../kite-web/src/lib/types/manifest.ts"
     type_mappings:

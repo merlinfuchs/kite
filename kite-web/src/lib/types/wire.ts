@@ -2,6 +2,8 @@
 import {APIResponse} from "./response"
 import {Manifest} from "./manifest"
 
+export type Base64 = string
+
 //////////
 // source: auth.go
 
@@ -145,7 +147,7 @@ export interface KVStorageNamespace {
 export interface KVStorageValue {
   namespace: string;
   key: string;
-  value: any /* kvmodel.TypedKVValue */;
+  value: any /* kv.TypedKVValue */;
   created_at: string /* RFC3339 */;
   updated_at: string /* RFC3339 */;
 }
