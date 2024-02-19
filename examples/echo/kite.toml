@@ -1,0 +1,8 @@
+[deployment]
+key = "echo@merlin.gg"
+name = 'Echo'
+description = 'A simple !echo command'
+
+[module]
+type = 'go'
+

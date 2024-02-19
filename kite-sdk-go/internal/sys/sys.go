@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"unsafe"
 
+	"github.com/merlinfuchs/kite/kite-sdk-go/command"
 	"github.com/merlinfuchs/kite/kite-sdk-go/event"
 	"github.com/merlinfuchs/kite/kite-sdk-go/manifest"
 )
@@ -46,10 +47,17 @@ func kiteGetAPIEncoding() uint32 {
 }
 
 var Manifest = manifest.Manifest{}
+var Commands = []*command.Command{}
 
 //export kite_describe
 func kiteDescribe() {
-	raw, err := json.Marshal(Manifest)
+	manifest := Manifest
+
+	for _, cmd := range Commands {
+		manifest.DiscordCommands = append(manifest.DiscordCommands, cmd.DiscordCommand)
+	}
+
+	raw, err := json.Marshal(manifest)
 	if err != nil {
 		panic(err)
 	}

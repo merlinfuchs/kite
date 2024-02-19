@@ -3,11 +3,13 @@
 package sys
 
 import (
+	"github.com/merlinfuchs/kite/kite-sdk-go/command"
 	"github.com/merlinfuchs/kite/kite-sdk-go/event"
 	"github.com/merlinfuchs/kite/kite-sdk-go/manifest"
 )
 
 var Manifest = manifest.Manifest{}
+var Commands = []*command.Command{}
 
 var EventHandlers = make(map[event.EventType][]event.EventHandler)
 

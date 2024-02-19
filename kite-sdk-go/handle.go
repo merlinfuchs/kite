@@ -3,6 +3,7 @@ package kite
 import (
 	"slices"
 
+	"github.com/merlinfuchs/kite/kite-sdk-go/command"
 	"github.com/merlinfuchs/kite/kite-sdk-go/internal/sys"
 
 	"github.com/merlinfuchs/dismod/distype"
@@ -26,7 +27,11 @@ func Event(eventType event.EventType, handler event.EventHandler) {
 	addEventHandler(eventType, handler)
 }
 
-func Command(name string, handler event.CommandHandler) {
+func Command(name string) *command.Command {
+	cmd := command.New(name)
+	sys.Commands = append(sys.Commands, cmd)
+
+	// TODO: consolidate into a single handler
 	addEventHandler(event.DiscordInteractionCreate, func(e event.Event) error {
 		i := e.Data.(distype.InteractionCreateEvent)
 
@@ -34,12 +39,12 @@ func Command(name string, handler event.CommandHandler) {
 			return nil
 		}
 
-		cmd := i.Data.(distype.ApplicationCommandData)
+		data := i.Data.(distype.ApplicationCommandData)
 
 		fullCMDName := cmd.Name
-		options := cmd.Options
+		options := data.Options
 
-		for _, opt := range cmd.Options {
+		for _, opt := range data.Options {
 			if opt.Type == distype.ApplicationCommandOptionTypeSubCommand {
 				fullCMDName += " " + opt.Name
 				options = opt.Options
@@ -57,10 +62,12 @@ func Command(name string, handler event.CommandHandler) {
 			}
 		}
 
-		if fullCMDName == name {
-			return handler(i, options)
+		if fullCMDName == cmd.FullName() {
+			return cmd.Handler(i, options)
 		}
 
 		return nil
 	})
+
+	return cmd
 }
