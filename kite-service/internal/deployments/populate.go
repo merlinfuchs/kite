@@ -8,10 +8,12 @@ import (
 
 	"github.com/merlinfuchs/dismod/distype"
 	"github.com/merlinfuchs/kite/kite-sdk-go/manifest"
+	"github.com/merlinfuchs/kite/kite-service/internal/config"
 	"github.com/merlinfuchs/kite/kite-service/internal/host"
 	"github.com/merlinfuchs/kite/kite-service/internal/logging/logattr"
 	"github.com/merlinfuchs/kite/kite-service/pkg/engine"
 	"github.com/merlinfuchs/kite/kite-service/pkg/module"
+	"github.com/tetratelabs/wazero"
 )
 
 func (m *DeploymentManager) populateEngineDeployments(ctx context.Context) error {
@@ -30,13 +32,11 @@ func (m *DeploymentManager) populateEngineDeployments(ctx context.Context) error
 		hasChanged := false
 
 		deployments := make([]*engine.Deployment, len(rows))
+		manifests := make([]*manifest.Manifest, len(rows))
 		for i, row := range rows {
-			config := module.ModuleConfig{
-				MemoryPagesLimit:   1024,
-				TotalTimeLimit:     time.Second * 10,
-				ExecutionTimeLimit: time.Millisecond * 100,
-				CompilationCache:   m.compilationCache,
-			}
+			manifests[i] = &row.Manifest
+
+			config := deploymentConfigFromLimits(m.limits, m.compilationCache)
 
 			env := host.NewEnv(m.envStores)
 			env.DeploymentID = row.ID
@@ -53,8 +53,11 @@ func (m *DeploymentManager) populateEngineDeployments(ctx context.Context) error
 		m.engine.ReplaceGuildDeployments(ctx, distype.Snowflake(guildID), deployments)
 
 		if hasChanged {
-			// TODO: deploy discord commands
-			fmt.Println("deploy commands")
+			err := m.deployManifestChanges(guildID, manifests)
+			if err != nil {
+				slog.With(logattr.Error(err)).Error("Error deploying manifest changes")
+				continue
+			}
 		}
 
 		err = m.store.UpdateDeploymentsDeployedAtForGuild(ctx, guildID, time.Now().UTC())
@@ -89,12 +92,7 @@ func (m *DeploymentManager) updateEngineDeployments(ctx context.Context) error {
 			manifests[i] = &row.Manifest
 
 			if !row.DeployedAt.Valid || row.UpdatedAt.After(row.DeployedAt.Time) {
-				config := module.ModuleConfig{
-					MemoryPagesLimit:   1024,
-					TotalTimeLimit:     time.Second * 10,
-					ExecutionTimeLimit: time.Millisecond * 10,
-					CompilationCache:   m.compilationCache,
-				}
+				config := deploymentConfigFromLimits(m.limits, m.compilationCache)
 
 				env := host.NewEnv(m.envStores)
 				env.DeploymentID = row.ID
@@ -114,8 +112,11 @@ func (m *DeploymentManager) updateEngineDeployments(ctx context.Context) error {
 		}
 
 		if hasChanged {
-			// TODO: deploy discord commands
-			fmt.Println("deploy commands 2")
+			err := m.deployManifestChanges(guildID, manifests)
+			if err != nil {
+				slog.With(logattr.Error(err)).Error("Error deploying manifest changes")
+				continue
+			}
 		}
 
 		err = m.store.UpdateDeploymentsDeployedAtForGuild(ctx, guildID, time.Now().UTC())
@@ -125,5 +126,24 @@ func (m *DeploymentManager) updateEngineDeployments(ctx context.Context) error {
 		}
 	}
 
+	return nil
+}
+
+func deploymentConfigFromLimits(limits config.ServerEngineLimitConfig, compilationCache wazero.CompilationCache) engine.DeploymentConfig {
+	return engine.DeploymentConfig{
+		ModuleConfig: module.ModuleConfig{
+			MemoryPagesLimit:   limits.MaxMemoryPages,
+			TotalTimeLimit:     time.Duration(limits.MaxTotalTime) * time.Millisecond,
+			ExecutionTimeLimit: time.Duration(limits.MaxExecutionTime) * time.Millisecond,
+			CompilationCache:   compilationCache,
+		},
+		PoolMaxTotal: limits.DeploymentPoolMaxTotal,
+		PoolMaxIdle:  limits.DeploymentPoolMaxIdle,
+		PoolMinIdle:  limits.DeploymentPoolMinIdle,
+	}
+}
+
+func (m *DeploymentManager) deployManifestChanges(guildID string, manifests []*manifest.Manifest) error {
+	fmt.Println("deploy manifest changes")
 	return nil
 }

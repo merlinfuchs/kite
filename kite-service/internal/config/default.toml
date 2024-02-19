@@ -18,3 +18,11 @@ host = "127.0.0.1"
 port = 5432
 user = "postgres"
 db_name = "kite"
+
+[server.engine.limits]
+max_total_time = 10_000
+max_execution_time = 100
+max_memory_pages = 250 # 16MB
+deployment_pool_max_total = 5
+deployment_pool_max_idle = 2
+deployment_pool_min_idle = 0

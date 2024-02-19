@@ -95,7 +95,7 @@ func (api *API) RegisterHandlers(engine *engine.Engine, pg *postgres.Client, acc
 	guildsGroup.Get("/", guildHandler.HandleGuildList)
 	guildGroup.Get("/", guildHandler.HandleGuildGet)
 
-	deploymentHandler := deployment.NewHandler(engine, pg, pg, pg)
+	deploymentHandler := deployment.NewHandler(engine, pg, pg, pg, cfg.Engine.Limits)
 	guildGroup.Get("/deployments", deploymentHandler.HandleDeploymentListForGuild)
 	guildGroup.Post("/deployments", helpers.WithRequestBody(deploymentHandler.HandleDeploymentCreate))
 	guildGroup.Get("/deployments/:deploymentID", deploymentHandler.HandleDeploymentGet)

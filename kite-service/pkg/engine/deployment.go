@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 	"slices"
+	"time"
 
 	pool "github.com/jolestar/go-commons-pool/v2"
 	"github.com/merlinfuchs/kite/kite-sdk-go/event"
@@ -19,18 +20,29 @@ type Deployment struct {
 	ID       string
 	wasm     []byte
 	manifest manifest.Manifest
-	config   module.ModuleConfig
+	config   DeploymentConfig
 	env      module.HostEnvironment
 
 	pluginPool *pool.ObjectPool
+}
+
+type DeploymentConfig struct {
+	module.ModuleConfig
+	PoolMaxTotal int
+	PoolMaxIdle  int
+	PoolMinIdle  int
 }
 
 func (d *Deployment) Manifest() manifest.Manifest {
 	return d.manifest
 }
 
-func (d *Deployment) Config() module.ModuleConfig {
+func (d *Deployment) Config() DeploymentConfig {
 	return d.config
+}
+
+func (d *Deployment) ModuleConfig() module.ModuleConfig {
+	return d.config.ModuleConfig
 }
 
 func NewDeployment(
@@ -38,7 +50,7 @@ func NewDeployment(
 	env module.HostEnvironment,
 	wasm []byte,
 	manifest manifest.Manifest,
-	config module.ModuleConfig,
+	config DeploymentConfig,
 ) *Deployment {
 	dp := &Deployment{
 		ID:       id,
@@ -50,12 +62,12 @@ func NewDeployment(
 
 	factory := pool.NewPooledObjectFactorySimple(dp.pluginFactory)
 	dp.pluginPool = pool.NewObjectPool(context.Background(), factory, &pool.ObjectPoolConfig{
-		LIFO:     true,
-		MaxTotal: 4,
-		MaxIdle:  4,
-		MinIdle:  0,
-		//SoftMinEvictableIdleTime: 60 * time.Second,
-		//TimeBetweenEvictionRuns:  10 * time.Second,
+		LIFO:                     true,
+		MaxTotal:                 config.PoolMaxTotal,
+		MaxIdle:                  config.PoolMaxIdle,
+		MinIdle:                  config.PoolMinIdle,
+		SoftMinEvictableIdleTime: 60 * time.Second,
+		TimeBetweenEvictionRuns:  10 * time.Second,
 	})
 	dp.pluginPool.StartEvictor()
 
@@ -67,7 +79,7 @@ func (d *Deployment) Close(ctx context.Context) {
 }
 
 func (d *Deployment) pluginFactory(ctx context.Context) (interface{}, error) {
-	p, err := module.New(ctx, d.wasm, d.config, d.env)
+	p, err := module.New(ctx, d.wasm, d.config.ModuleConfig, d.env)
 	if err != nil {
 		return nil, err
 	}
@@ -110,8 +122,12 @@ func (d *Deployment) HandleEvent(ctx context.Context, event *event.Event) error 
 	if err != nil {
 		slog.With(logattr.Error(err)).Error("failed to handle event")
 
+		fmt.Printf("%T\n", err)
+
 		// TODO: think about other error types that should invalidate the plugin (e.g. panic / wasm trap)
+		// TODO: when cancel occurs in host call the type will be fail.ModuleError here
 		if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+			fmt.Println("canceled")
 			if err := d.InvalidatePlugin(ctx, plugin); err != nil {
 				slog.With(logattr.Error(err)).Error("failed to invalidate plugin")
 			}

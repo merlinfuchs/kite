@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/merlinfuchs/kite/kite-service/internal/config"
 	"github.com/merlinfuchs/kite/kite-service/internal/util"
 	"github.com/merlinfuchs/kite/kite-service/pkg/engine"
 	"github.com/merlinfuchs/kite/kite-service/pkg/model"
@@ -18,14 +19,22 @@ type DeploymentHandler struct {
 	deployments       store.DeploymentStore
 	deploymentLogs    store.DeploymentLogStore
 	deploymentMetrics store.DeploymentMetricStore
+	limits            config.ServerEngineLimitConfig
 }
 
-func NewHandler(engine *engine.Engine, deployments store.DeploymentStore, deploymentLogs store.DeploymentLogStore, deploymentMetrics store.DeploymentMetricStore) *DeploymentHandler {
+func NewHandler(
+	engine *engine.Engine,
+	deployments store.DeploymentStore,
+	deploymentLogs store.DeploymentLogStore,
+	deploymentMetrics store.DeploymentMetricStore,
+	limits config.ServerEngineLimitConfig,
+) *DeploymentHandler {
 	return &DeploymentHandler{
 		engine:            engine,
 		deployments:       deployments,
 		deploymentLogs:    deploymentLogs,
 		deploymentMetrics: deploymentMetrics,
+		limits:            limits,
 	}
 }
 
@@ -33,9 +42,9 @@ func (h *DeploymentHandler) HandleDeploymentCreate(c *fiber.Ctx, req wire.Deploy
 	guildID := c.Params("guildID")
 
 	module, err := module.New(c.Context(), req.WasmBytes, module.ModuleConfig{
-		MemoryPagesLimit:   1024, // TODO: make this globally configurable
-		TotalTimeLimit:     time.Millisecond * 10,
-		ExecutionTimeLimit: time.Millisecond * 1,
+		MemoryPagesLimit:   h.limits.MaxMemoryPages,
+		TotalTimeLimit:     time.Duration(h.limits.MaxTotalTime) * time.Millisecond,
+		ExecutionTimeLimit: time.Duration(h.limits.MaxExecutionTime) * time.Millisecond,
 	}, nil)
 	if err != nil {
 		return fmt.Errorf("failed to create module: %w", err)

@@ -15,6 +15,7 @@ type ServerConfig struct {
 	App       ServerAppConfig      `toml:"app" validate:"required"`
 	Postgres  ServerPostgresConfig `toml:"postgres" validate:"required"`
 	Discord   ServerDiscordConfig  `toml:"discord" validate:"required"`
+	Engine    ServerEngineConfig   `toml:"engine" validate:"required"`
 }
 
 func (cfg *ServerConfig) Validate() error {
@@ -57,6 +58,19 @@ type ServerDiscordConfig struct {
 	Token        string `toml:"token" validate:"required"`
 	ClientID     string `toml:"client_id" validate:"required"`
 	ClientSecret string `toml:"client_secret" validate:"required"`
+}
+
+type ServerEngineConfig struct {
+	Limits ServerEngineLimitConfig `toml:"limits" validate:"required"`
+}
+
+type ServerEngineLimitConfig struct {
+	MaxTotalTime           int `toml:"max_total_time" validate:"required"`
+	MaxExecutionTime       int `toml:"max_execution_time" validate:"required"`
+	MaxMemoryPages         int `toml:"max_memory_pages" validate:"required"`
+	DeploymentPoolMaxTotal int `toml:"deployment_pool_max_total" validate:"required"`
+	DeploymentPoolMaxIdle  int `toml:"deployment_pool_max_idle" validate:"required"`
+	DeploymentPoolMinIdle  int `toml:"deployment_pool_min_idle" validate:"required"`
 }
 
 func LoadServerConfig(basePath string) (*ServerConfig, error) {
