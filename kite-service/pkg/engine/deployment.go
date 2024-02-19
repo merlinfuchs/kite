@@ -69,6 +69,7 @@ func NewDeployment(
 		SoftMinEvictableIdleTime: 60 * time.Second,
 		TimeBetweenEvictionRuns:  10 * time.Second,
 	})
+	// TODO? This spawns a goroutine for each deployment, maybe we should have a single evictor for all deployments
 	dp.pluginPool.StartEvictor()
 
 	return dp

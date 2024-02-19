@@ -77,6 +77,7 @@ func main() {
 			Type:        distype.ApplicationCommandOptionTypeString,
 			Name:        "text",
 			Description: "The text to echo.",
+			Required:    distype.Optional(true),
 		}).
 		WithHandler(func(i distype.Interaction, options []distype.ApplicationCommandDataOption) error {
 			text := options[0].Value.(string)
@@ -86,13 +87,13 @@ func main() {
 				InteractionToken: i.Token,
 				InteractionResponse: distype.InteractionResponse{
 					Type: distype.InteractionResponseTypeChannelMessageWithSource,
-					Data: &distype.InteractionMessageResponse{
+					Data: &distype.InteractionMessageCreateResponse{
 						Content: &text,
 					},
 				},
 			})
 			if err != nil {
-				log.Error("Failed to send message: " + err.Error())
+				log.Error("Failed to respond to interaction: " + err.Error())
 				return err
 			}
 

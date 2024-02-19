@@ -70,7 +70,7 @@ type ServerEngineLimitConfig struct {
 	MaxMemoryPages         int `toml:"max_memory_pages" validate:"required"`
 	DeploymentPoolMaxTotal int `toml:"deployment_pool_max_total" validate:"required"`
 	DeploymentPoolMaxIdle  int `toml:"deployment_pool_max_idle" validate:"required"`
-	DeploymentPoolMinIdle  int `toml:"deployment_pool_min_idle" validate:"required"`
+	DeploymentPoolMinIdle  int `toml:"deployment_pool_min_idle"`
 }
 
 func LoadServerConfig(basePath string) (*ServerConfig, error) {

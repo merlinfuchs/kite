@@ -2,6 +2,7 @@ package host
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/disgoorg/disgo/rest"
 	"github.com/merlinfuchs/dismod/distype"
@@ -65,6 +66,7 @@ func (h HostEnvironment) callDiscordInteractionResponseCreate(ctx context.Contex
 		rest.CreateInteractionResponse.Compile(nil, data.InteractionID, data.InteractionToken),
 		data, nil, rest.WithCtx(ctx),
 	)
+	fmt.Println("resp", err)
 	return &distype.InteractionResponseCreateResponse{}, err
 }
 

@@ -77,16 +77,20 @@ func main() {
 	kite.Command("ping").
 		WithDescription("Replies with pong!").
 		WithHandler(func(i distype.Interaction, options []distype.ApplicationCommandDataOption) error {
+			pingResponse := config.String("ping_response")
+
 			_, err := discord.InteractionResponseCreate(distype.InteractionResponseCreateRequest{
 				InteractionID:    i.ID,
 				InteractionToken: i.Token,
 				InteractionResponse: distype.InteractionResponse{
 					Type: distype.InteractionResponseTypeChannelMessageWithSource,
-					Data: &distype.InteractionMessageResponse{}, // TODO
+					Data: &distype.InteractionMessageCreateResponse{
+						Content: &pingResponse,
+					},
 				},
 			})
 			if err != nil {
-				log.Error("Failed to send message: " + err.Error())
+				log.Error("Failed to respond to interaction: " + err.Error())
 				return err
 			}
 

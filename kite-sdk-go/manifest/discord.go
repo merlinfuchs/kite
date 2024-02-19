@@ -1,6 +1,8 @@
 package manifest
 
-import "github.com/merlinfuchs/dismod/distype"
+import (
+	"github.com/merlinfuchs/dismod/distype"
+)
 
 type DiscordCommand struct {
 	Type                     distype.ApplicationCommandType `json:"type,omitempty"`
@@ -35,4 +37,43 @@ type DiscordCommandOptionChoice struct {
 	Name              string            `json:"name"`
 	NameLocalizations map[string]string `json:"name_localizations,omitempty"`
 	Value             interface{}       `json:"value"`
+}
+
+func (m *Manifest) DiscordApplicationCommands() []distype.ApplicationCommandCreateRequest {
+	res := make([]distype.ApplicationCommandCreateRequest, len(m.DiscordCommands))
+	for i, cmd := range m.DiscordCommands {
+		var cmdType *distype.ApplicationCommandType
+		if cmd.Type != 0 {
+			temp := distype.ApplicationCommandType(cmd.Type)
+			cmdType = &temp
+		}
+
+		options := make([]distype.ApplicationCommandOption, len(cmd.Options))
+		for i, opt := range cmd.Options {
+			options[i] = distype.ApplicationCommandOption{
+				Type:                 distype.ApplicationCommandOptionType(opt.Type),
+				Name:                 opt.Name,
+				NameLocations:        opt.NameLocations,
+				Description:          opt.Description,
+				DescriptionLocations: opt.DescriptionLocations,
+				Required:             opt.Required,
+
+				// TODO: support all types
+			}
+		}
+
+		res[i] = distype.ApplicationCommandCreateRequest{
+			Type:                     cmdType,
+			Name:                     cmd.Name,
+			NameLocalizations:        cmd.NameLocalizations,
+			Description:              cmd.Description,
+			DescriptionLocalizations: cmd.DescriptionLocalizations,
+			DefaultMemberPermissions: distype.NullString(cmd.DefaultMemberPermissions, cmd.DefaultMemberPermissions != ""),
+			DMPermission:             cmd.DMPermission,
+			NSFW:                     cmd.NSFW,
+			Options:                  options,
+		}
+	}
+
+	return res
 }

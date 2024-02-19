@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"time"
 
+	"github.com/disgoorg/disgo/rest"
 	"github.com/merlinfuchs/dismod/distype"
 	"github.com/merlinfuchs/kite/kite-sdk-go/manifest"
 	"github.com/merlinfuchs/kite/kite-service/internal/config"
@@ -32,9 +33,13 @@ func (m *DeploymentManager) populateEngineDeployments(ctx context.Context) error
 		hasChanged := false
 
 		deployments := make([]*engine.Deployment, len(rows))
-		manifests := make([]*manifest.Manifest, len(rows))
+		manifests := make([]manifest.Manifest, len(rows))
 		for i, row := range rows {
-			manifests[i] = &row.Manifest
+			for _, command := range row.Manifest.DiscordApplicationCommands() {
+				fmt.Println(command.Name)
+			}
+
+			manifests[i] = row.Manifest
 
 			config := deploymentConfigFromLimits(m.limits, m.compilationCache)
 
@@ -53,7 +58,7 @@ func (m *DeploymentManager) populateEngineDeployments(ctx context.Context) error
 		m.engine.ReplaceGuildDeployments(ctx, distype.Snowflake(guildID), deployments)
 
 		if hasChanged {
-			err := m.deployManifestChanges(guildID, manifests)
+			err := m.deployManifestChanges(ctx, guildID, manifests)
 			if err != nil {
 				slog.With(logattr.Error(err)).Error("Error deploying manifest changes")
 				continue
@@ -86,10 +91,10 @@ func (m *DeploymentManager) updateEngineDeployments(ctx context.Context) error {
 		hasChanged := false
 
 		deploymentIDs := make([]string, len(rows))
-		manifests := make([]*manifest.Manifest, len(rows))
+		manifests := make([]manifest.Manifest, len(rows))
 		for i, row := range rows {
 			deploymentIDs[i] = row.ID
-			manifests[i] = &row.Manifest
+			manifests[i] = row.Manifest
 
 			if !row.DeployedAt.Valid || row.UpdatedAt.After(row.DeployedAt.Time) {
 				config := deploymentConfigFromLimits(m.limits, m.compilationCache)
@@ -112,7 +117,7 @@ func (m *DeploymentManager) updateEngineDeployments(ctx context.Context) error {
 		}
 
 		if hasChanged {
-			err := m.deployManifestChanges(guildID, manifests)
+			err := m.deployManifestChanges(ctx, guildID, manifests)
 			if err != nil {
 				slog.With(logattr.Error(err)).Error("Error deploying manifest changes")
 				continue
@@ -143,7 +148,23 @@ func deploymentConfigFromLimits(limits config.ServerEngineLimitConfig, compilati
 	}
 }
 
-func (m *DeploymentManager) deployManifestChanges(guildID string, manifests []*manifest.Manifest) error {
+func (m *DeploymentManager) deployManifestChanges(ctx context.Context, guildID string, manifests []manifest.Manifest) error {
 	fmt.Println("deploy manifest changes")
+
+	discordCommands := []distype.ApplicationCommandCreateRequest{}
+	for _, manifest := range manifests {
+		discordCommands = append(discordCommands, manifest.DiscordApplicationCommands()...)
+	}
+
+	err := m.discordClient.Request(
+		rest.SetGuildCommands.Compile(nil, "873855804191694919", guildID), discordCommands, nil,
+		rest.WithCtx(ctx),
+	)
+	if err != nil {
+		derr := err.(rest.Error)
+		fmt.Println(string(derr.RsBody))
+		return fmt.Errorf("error setting guild commands: %w", err)
+	}
+
 	return nil
 }

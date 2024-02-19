@@ -112,6 +112,12 @@ github.com/merlinfuchs/dismod v0.0.0-20240215211625-7c7590bead4a h1:wqXPQgNnCVIY
 github.com/merlinfuchs/dismod v0.0.0-20240215211625-7c7590bead4a/go.mod h1:4dksStVb25ZlbHTGoQRbUPHY5y41KMeA2ha4zoRGP6k=
 github.com/merlinfuchs/dismod v0.0.0-20240216095555-1cd486b18ac1 h1:GsVJgDqOTr2Z2zYZt2gusoiRE4fijsX3QEjn+YaoZV8=
 github.com/merlinfuchs/dismod v0.0.0-20240216095555-1cd486b18ac1/go.mod h1:4dksStVb25ZlbHTGoQRbUPHY5y41KMeA2ha4zoRGP6k=
+github.com/merlinfuchs/dismod v0.0.0-20240219132409-3161174f45ab h1:gsNwHXCdtARVVX52Dz3xwM7zycnTKGasXl5kQyTL8+8=
+github.com/merlinfuchs/dismod v0.0.0-20240219132409-3161174f45ab/go.mod h1:4dksStVb25ZlbHTGoQRbUPHY5y41KMeA2ha4zoRGP6k=
+github.com/merlinfuchs/dismod v0.0.0-20240219133440-b06b3b989f75 h1:Ae3YaeU+7XKWoVVSW5p6UFUAC0oeFylUsgeNC1Bv8Vw=
+github.com/merlinfuchs/dismod v0.0.0-20240219133440-b06b3b989f75/go.mod h1:4dksStVb25ZlbHTGoQRbUPHY5y41KMeA2ha4zoRGP6k=
+github.com/merlinfuchs/dismod v0.0.0-20240219144420-b49afa3c5d56 h1:yT5NOSO8WGmxYT588kqliEE3Q7FgdM3kCwPojsiaoCo=
+github.com/merlinfuchs/dismod v0.0.0-20240219144420-b49afa3c5d56/go.mod h1:4dksStVb25ZlbHTGoQRbUPHY5y41KMeA2ha4zoRGP6k=
 github.com/mitchellh/copystructure v1.2.0 h1:vpKXTN4ewci03Vljg/q9QvCGUDttBOGBIa15WveJJGw=
 github.com/mitchellh/copystructure v1.2.0/go.mod h1:qLl+cE2AmVv+CoeAwDPye/v+N2HKCj9FbZEVFJRxO9s=
 github.com/mitchellh/mapstructure v1.5.0 h1:jeMsZIYE/09sWLaz43PL7Gy6RuMjD2eJVyuac5Z2hdY=

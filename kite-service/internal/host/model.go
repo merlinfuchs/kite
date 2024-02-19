@@ -4,36 +4,37 @@ import (
 	"context"
 	"errors"
 
-	"github.com/bwmarrin/discordgo"
+	"github.com/disgoorg/disgo/rest"
 
 	"github.com/merlinfuchs/kite/kite-sdk-go/fail"
 )
 
 func modelError(err error) *fail.HostError {
-	var derr *discordgo.RESTError
+	var derr rest.Error
 	if errors.As(err, &derr) {
-		if derr.Message == nil {
+		if derr.Code == 0 {
 			return &fail.HostError{
 				Code:    fail.HostErrorTypeDiscordUnknown,
 				Message: derr.Error(),
 			}
 		}
 
+		// TODO: map all error codes
 		code := fail.HostErrorTypeDiscordUnknown
-		switch derr.Message.Code {
-		case discordgo.ErrCodeUnknownGuild:
+		switch derr.Code {
+		case 10004:
 			code = fail.HostErrorTypeDiscordGuildNotFound
-		case discordgo.ErrCodeUnknownChannel:
+		case 10003:
 			code = fail.HostErrorTypeDiscordChannelNotFound
-		case discordgo.ErrCodeUnknownMessage:
+		case 10008:
 			code = fail.HostErrorTypeDiscordMessageNotFound
-		case discordgo.ErrCodeUnknownBan:
+		case 10026:
 			code = fail.HostErrorTypeDiscordBanNotFound
 		}
 
 		return &fail.HostError{
 			Code:    code,
-			Message: derr.Message.Message,
+			Message: derr.Message,
 		}
 	}
 
