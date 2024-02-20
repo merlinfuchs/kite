@@ -23,7 +23,7 @@ func (c *Client) GetQuickAccessItems(ctx context.Context, guildID string, limit 
 			GuildID:   item.GuildID,
 			Type:      model.QuickAccessItemType(item.Type),
 			Name:      item.Name,
-			UpdatedAt: item.UpdatedAt,
+			UpdatedAt: item.UpdatedAt.Time,
 		}
 	}
 

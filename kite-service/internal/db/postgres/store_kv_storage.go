@@ -2,10 +2,10 @@ package postgres
 
 import (
 	"context"
-	"database/sql"
 	"encoding/json"
 	"time"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/merlinfuchs/kite/kite-sdk-go/kv"
 	"github.com/merlinfuchs/kite/kite-service/internal/db/postgres/pgmodel"
 	"github.com/merlinfuchs/kite/kite-service/pkg/model"
@@ -52,8 +52,8 @@ func (c *Client) GetKVStorageKeys(ctx context.Context, guildID, namespace string
 			Namespace: row.Namespace,
 			Key:       row.Key,
 			Value:     value,
-			CreatedAt: row.CreatedAt,
-			UpdatedAt: row.UpdatedAt,
+			CreatedAt: row.CreatedAt.Time,
+			UpdatedAt: row.UpdatedAt.Time,
 		}
 	}
 
@@ -71,8 +71,8 @@ func (c *Client) SetKVStorageKey(ctx context.Context, guildID, namespace, key st
 		Namespace: namespace,
 		Key:       key,
 		Value:     rawValue,
-		CreatedAt: time.Now().UTC(),
-		UpdatedAt: time.Now().UTC(),
+		CreatedAt: timeToTimestamp(time.Now().UTC()),
+		UpdatedAt: timeToTimestamp(time.Now().UTC()),
 	})
 	if err != nil {
 		return err
@@ -88,7 +88,7 @@ func (c *Client) GetKVStorageKey(ctx context.Context, guildID, namespace, key st
 		Key:       key,
 	})
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if err == pgx.ErrNoRows {
 			return nil, store.ErrNotFound
 		}
 		return nil, err
@@ -105,8 +105,8 @@ func (c *Client) GetKVStorageKey(ctx context.Context, guildID, namespace, key st
 		Namespace: res.Namespace,
 		Key:       res.Key,
 		Value:     value,
-		CreatedAt: res.CreatedAt,
-		UpdatedAt: res.UpdatedAt,
+		CreatedAt: res.CreatedAt.Time,
+		UpdatedAt: res.UpdatedAt.Time,
 	}, nil
 }
 
@@ -117,7 +117,7 @@ func (c *Client) DeleteKVStorageKey(ctx context.Context, guildID, namespace, key
 		Key:       key,
 	})
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if err == pgx.ErrNoRows {
 			return nil, store.ErrNotFound
 		}
 		return nil, err
@@ -134,19 +134,19 @@ func (c *Client) DeleteKVStorageKey(ctx context.Context, guildID, namespace, key
 		Namespace: res.Namespace,
 		Key:       res.Key,
 		Value:     value,
-		CreatedAt: res.CreatedAt,
-		UpdatedAt: res.UpdatedAt,
+		CreatedAt: res.CreatedAt.Time,
+		UpdatedAt: res.UpdatedAt.Time,
 	}, nil
 }
 
 func (c *Client) IncreaseKVStorageKey(ctx context.Context, guildID, namespace, key string, increment int) (*model.KVStorageValue, error) {
-	tx, err := c.db.BeginTx(ctx, nil)
+	tx, err := c.DB.BeginTx(ctx, pgx.TxOptions{})
 	if err != nil {
 		return nil, err
 	}
 	defer func() {
 		// We intentionally ignore the error because the transaction will already be commited
-		_ = tx.Rollback()
+		_ = tx.Rollback(ctx)
 	}()
 	qtx := c.Q.WithTx(tx)
 
@@ -157,7 +157,7 @@ func (c *Client) IncreaseKVStorageKey(ctx context.Context, guildID, namespace, k
 		Key:       key,
 	})
 	if err != nil {
-		if err != sql.ErrNoRows {
+		if err != pgx.ErrNoRows {
 			return nil, err
 		}
 	} else {
@@ -185,15 +185,15 @@ func (c *Client) IncreaseKVStorageKey(ctx context.Context, guildID, namespace, k
 		Namespace: namespace,
 		Key:       key,
 		Value:     rawValue,
-		CreatedAt: time.Now().UTC(),
-		UpdatedAt: time.Now().UTC(),
+		CreatedAt: timeToTimestamp(time.Now().UTC()),
+		UpdatedAt: timeToTimestamp(time.Now().UTC()),
 	})
 
 	if err != nil {
 		return nil, err
 	}
 
-	err = tx.Commit()
+	err = tx.Commit(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -203,7 +203,7 @@ func (c *Client) IncreaseKVStorageKey(ctx context.Context, guildID, namespace, k
 		Namespace: namespace,
 		Key:       key,
 		Value:     newValue,
-		CreatedAt: res.CreatedAt,
-		UpdatedAt: res.UpdatedAt,
+		CreatedAt: res.CreatedAt.Time,
+		UpdatedAt: res.UpdatedAt.Time,
 	}, nil
 }

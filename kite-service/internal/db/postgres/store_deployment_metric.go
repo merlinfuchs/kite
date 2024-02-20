@@ -24,7 +24,7 @@ func (c *Client) CreateDeploymentMetricEntry(ctx context.Context, entry model.De
 	err := c.Q.CreateDeploymentMetricEntry(ctx, pgmodel.CreateDeploymentMetricEntryParams{
 		DeploymentID:       entry.DeploymentID,
 		Type:               string(entry.Type),
-		Metadata:           rawMetadata,
+		Metadata:           rawMetadata.RawMessage,
 		EventType:          entry.EventType,
 		EventSuccess:       entry.EventSuccess,
 		EventExecutionTime: entry.EventExecutionTime.Microseconds(),
@@ -32,7 +32,7 @@ func (c *Client) CreateDeploymentMetricEntry(ctx context.Context, entry model.De
 		CallType:           entry.CallType,
 		CallSuccess:        entry.CallSuccess,
 		CallTotalTime:      entry.CallTotalTime.Microseconds(),
-		Timestamp:          entry.Timestamp,
+		Timestamp:          timeToTimestamp(entry.Timestamp),
 	})
 	return err
 }
@@ -40,8 +40,8 @@ func (c *Client) CreateDeploymentMetricEntry(ctx context.Context, entry model.De
 func (c *Client) GetDeploymentsMetricsSummary(ctx context.Context, guildID string, startAt time.Time, endAt time.Time) (model.DeploymentMetricsSummary, error) {
 	row, err := c.Q.GetDeploymentsMetricsSummary(ctx, pgmodel.GetDeploymentsMetricsSummaryParams{
 		GuildID: guildID,
-		StartAt: startAt,
-		EndAt:   endAt,
+		StartAt: timeToTimestamp(startAt),
+		EndAt:   timeToTimestamp(endAt),
 	})
 	if err != nil {
 		return model.DeploymentMetricsSummary{}, err
@@ -67,8 +67,8 @@ func (c *Client) GetDeploymentEventMetrics(ctx context.Context, deploymentID str
 
 	rows, err := c.Q.GetDeploymentEventMetrics(ctx, pgmodel.GetDeploymentEventMetricsParams{
 		DeploymentID: deploymentID,
-		StartAt:      startAt,
-		EndAt:        time.Now().UTC(),
+		StartAt:      timeToTimestamp(startAt),
+		EndAt:        timeToTimestamp(time.Now().UTC()),
 		Precision:    precision,
 		SeriesStep:   step,
 	})
@@ -79,7 +79,7 @@ func (c *Client) GetDeploymentEventMetrics(ctx context.Context, deploymentID str
 	res := make([]model.DeploymentEventMetricEntry, len(rows))
 	for i, row := range rows {
 		res[i] = model.DeploymentEventMetricEntry{
-			Timestamp:            row.Timestamp,
+			Timestamp:            row.Timestamp.Time,
 			TotalCount:           int(row.TotalCount),
 			SuccessCount:         int(row.SuccessCount),
 			AverageExecutionTime: time.Duration(row.AvgExecutionTime) * time.Microsecond,
@@ -98,8 +98,8 @@ func (c *Client) GetDeploymentCallMetrics(ctx context.Context, deploymentID stri
 
 	rows, err := c.Q.GetDeploymentCallMetrics(ctx, pgmodel.GetDeploymentCallMetricsParams{
 		DeploymentID: deploymentID,
-		StartAt:      startAt,
-		EndAt:        time.Now().UTC(),
+		StartAt:      timeToTimestamp(startAt),
+		EndAt:        timeToTimestamp(time.Now().UTC()),
 		Precision:    precision,
 		SeriesStep:   step,
 	})
@@ -110,7 +110,7 @@ func (c *Client) GetDeploymentCallMetrics(ctx context.Context, deploymentID stri
 	res := make([]model.DeploymentCallMetricEntry, len(rows))
 	for i, row := range rows {
 		res[i] = model.DeploymentCallMetricEntry{
-			Timestamp:        row.Timestamp,
+			Timestamp:        row.Timestamp.Time,
 			TotalCount:       int(row.TotalCount),
 			SuccessCount:     int(row.SuccessCount),
 			AverageTotalTime: time.Duration(row.AvgTotalTime) * time.Microsecond,
@@ -128,8 +128,8 @@ func (c *Client) GetDeploymentsEventMetrics(ctx context.Context, guildID string,
 
 	rows, err := c.Q.GetDeploymentsEventMetrics(ctx, pgmodel.GetDeploymentsEventMetricsParams{
 		GuildID:    guildID,
-		StartAt:    startAt,
-		EndAt:      time.Now().UTC(),
+		StartAt:    timeToTimestamp(startAt),
+		EndAt:      timeToTimestamp(time.Now().UTC()),
 		Precision:  precision,
 		SeriesStep: step,
 	})
@@ -140,7 +140,7 @@ func (c *Client) GetDeploymentsEventMetrics(ctx context.Context, guildID string,
 	res := make([]model.DeploymentEventMetricEntry, len(rows))
 	for i, row := range rows {
 		res[i] = model.DeploymentEventMetricEntry{
-			Timestamp:            row.Timestamp,
+			Timestamp:            row.Timestamp.Time,
 			TotalCount:           int(row.TotalCount),
 			SuccessCount:         int(row.SuccessCount),
 			AverageExecutionTime: time.Duration(row.AvgExecutionTime) * time.Microsecond,
@@ -159,8 +159,8 @@ func (c *Client) GetDeploymentsCallMetrics(ctx context.Context, guildID string, 
 
 	rows, err := c.Q.GetDeploymentsCallMetrics(ctx, pgmodel.GetDeploymentsCallMetricsParams{
 		GuildID:    guildID,
-		StartAt:    startAt,
-		EndAt:      time.Now().UTC(),
+		StartAt:    timeToTimestamp(startAt),
+		EndAt:      timeToTimestamp(time.Now().UTC()),
 		Precision:  precision,
 		SeriesStep: step,
 	})
@@ -171,7 +171,7 @@ func (c *Client) GetDeploymentsCallMetrics(ctx context.Context, guildID string, 
 	res := make([]model.DeploymentCallMetricEntry, len(rows))
 	for i, row := range rows {
 		res[i] = model.DeploymentCallMetricEntry{
-			Timestamp:        row.Timestamp,
+			Timestamp:        row.Timestamp.Time,
 			TotalCount:       int(row.TotalCount),
 			SuccessCount:     int(row.SuccessCount),
 			AverageTotalTime: time.Duration(row.AvgTotalTime) * time.Microsecond,

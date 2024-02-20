@@ -5,11 +5,7 @@
 package pgmodel
 
 import (
-	"database/sql"
-	"encoding/json"
-	"time"
-
-	"github.com/sqlc-dev/pqtype"
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 type Deployment struct {
@@ -18,13 +14,13 @@ type Deployment struct {
 	Name            string
 	Description     string
 	GuildID         string
-	PluginVersionID sql.NullString
+	PluginVersionID pgtype.Text
 	WasmBytes       []byte
-	Manifest        json.RawMessage
-	Config          json.RawMessage
-	CreatedAt       time.Time
-	UpdatedAt       time.Time
-	DeployedAt      sql.NullTime
+	Manifest        []byte
+	Config          []byte
+	CreatedAt       pgtype.Timestamp
+	UpdatedAt       pgtype.Timestamp
+	DeployedAt      pgtype.Timestamp
 }
 
 type DeploymentLog struct {
@@ -32,14 +28,14 @@ type DeploymentLog struct {
 	DeploymentID string
 	Level        string
 	Message      string
-	CreatedAt    time.Time
+	CreatedAt    pgtype.Timestamp
 }
 
 type DeploymentMetric struct {
 	ID                 int64
 	DeploymentID       string
 	Type               string
-	Metadata           pqtype.NullRawMessage
+	Metadata           []byte
 	EventType          string
 	EventSuccess       bool
 	EventExecutionTime int64
@@ -47,16 +43,16 @@ type DeploymentMetric struct {
 	CallType           string
 	CallSuccess        bool
 	CallTotalTime      int64
-	Timestamp          time.Time
+	Timestamp          pgtype.Timestamp
 }
 
 type Guild struct {
 	ID          string
 	Name        string
-	Icon        sql.NullString
-	Description sql.NullString
-	CreatedAt   time.Time
-	UpdatedAt   time.Time
+	Icon        pgtype.Text
+	Description pgtype.Text
+	CreatedAt   pgtype.Timestamp
+	UpdatedAt   pgtype.Timestamp
 }
 
 type GuildUsage struct {
@@ -68,18 +64,18 @@ type GuildUsage struct {
 	AvgEventTotalTime       int64
 	TotalCallTotalTime      int64
 	AvgCallTotalTime        int64
-	PeriodStartsAt          time.Time
-	PeriodEndsAt            time.Time
-	UpdatedAt               time.Time
+	PeriodStartsAt          pgtype.Timestamp
+	PeriodEndsAt            pgtype.Timestamp
+	UpdatedAt               pgtype.Timestamp
 }
 
 type KvStorage struct {
 	GuildID   string
 	Namespace string
 	Key       string
-	Value     json.RawMessage
-	CreatedAt time.Time
-	UpdatedAt time.Time
+	Value     []byte
+	CreatedAt pgtype.Timestamp
+	UpdatedAt pgtype.Timestamp
 }
 
 type Plugin struct {
@@ -87,8 +83,8 @@ type Plugin struct {
 	Key         string
 	Name        string
 	Description string
-	CreatedAt   time.Time
-	UpdatedAt   time.Time
+	CreatedAt   pgtype.Timestamp
+	UpdatedAt   pgtype.Timestamp
 }
 
 type PluginVersion struct {
@@ -98,10 +94,10 @@ type PluginVersion struct {
 	VersionMinor          int32
 	VersionPatch          int32
 	WasmBytes             []byte
-	ManifestDefaultConfig pqtype.NullRawMessage
+	ManifestDefaultConfig []byte
 	ManifestEvents        []string
 	ManifestCommands      []string
-	CreatedAt             time.Time
+	CreatedAt             pgtype.Timestamp
 }
 
 type Session struct {
@@ -111,26 +107,26 @@ type Session struct {
 	GuildIds    []string
 	AccessToken string
 	Revoked     bool
-	CreatedAt   time.Time
-	ExpiresAt   time.Time
+	CreatedAt   pgtype.Timestamp
+	ExpiresAt   pgtype.Timestamp
 }
 
 type SessionsPending struct {
 	Code      string
-	Token     sql.NullString
-	CreatedAt time.Time
-	ExpiresAt time.Time
+	Token     pgtype.Text
+	CreatedAt pgtype.Timestamp
+	ExpiresAt pgtype.Timestamp
 }
 
 type User struct {
 	ID            string
 	Username      string
-	Discriminator sql.NullString
-	GlobalName    sql.NullString
-	Avatar        sql.NullString
+	Discriminator pgtype.Text
+	GlobalName    pgtype.Text
+	Avatar        pgtype.Text
 	PublicFlags   int32
-	CreatedAt     time.Time
-	UpdatedAt     time.Time
+	CreatedAt     pgtype.Timestamp
+	UpdatedAt     pgtype.Timestamp
 }
 
 type Workspace struct {
@@ -139,7 +135,7 @@ type Workspace struct {
 	Type        string
 	Name        string
 	Description string
-	Files       json.RawMessage
-	CreatedAt   time.Time
-	UpdatedAt   time.Time
+	Files       []byte
+	CreatedAt   pgtype.Timestamp
+	UpdatedAt   pgtype.Timestamp
 }

@@ -7,9 +7,8 @@ package pgmodel
 
 import (
 	"context"
-	"time"
 
-	"github.com/sqlc-dev/pqtype"
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 const createDeploymentMetricEntry = `-- name: CreateDeploymentMetricEntry :exec
@@ -43,7 +42,7 @@ INSERT INTO deployment_metrics (
 type CreateDeploymentMetricEntryParams struct {
 	DeploymentID       string
 	Type               string
-	Metadata           pqtype.NullRawMessage
+	Metadata           []byte
 	EventType          string
 	EventSuccess       bool
 	EventExecutionTime int64
@@ -51,11 +50,11 @@ type CreateDeploymentMetricEntryParams struct {
 	CallType           string
 	CallSuccess        bool
 	CallTotalTime      int64
-	Timestamp          time.Time
+	Timestamp          pgtype.Timestamp
 }
 
 func (q *Queries) CreateDeploymentMetricEntry(ctx context.Context, arg CreateDeploymentMetricEntryParams) error {
-	_, err := q.db.ExecContext(ctx, createDeploymentMetricEntry,
+	_, err := q.db.Exec(ctx, createDeploymentMetricEntry,
 		arg.DeploymentID,
 		arg.Type,
 		arg.Metadata,
@@ -102,20 +101,20 @@ ON trunc_timestamp = generate_series
 type GetDeploymentCallMetricsParams struct {
 	DeploymentID string
 	Precision    string
-	StartAt      time.Time
-	EndAt        time.Time
+	StartAt      pgtype.Timestamp
+	EndAt        pgtype.Timestamp
 	SeriesStep   string
 }
 
 type GetDeploymentCallMetricsRow struct {
-	Timestamp    time.Time
+	Timestamp    pgtype.Timestamp
 	TotalCount   int64
 	SuccessCount int64
 	AvgTotalTime float64
 }
 
 func (q *Queries) GetDeploymentCallMetrics(ctx context.Context, arg GetDeploymentCallMetricsParams) ([]GetDeploymentCallMetricsRow, error) {
-	rows, err := q.db.QueryContext(ctx, getDeploymentCallMetrics,
+	rows, err := q.db.Query(ctx, getDeploymentCallMetrics,
 		arg.DeploymentID,
 		arg.Precision,
 		arg.StartAt,
@@ -138,9 +137,6 @@ func (q *Queries) GetDeploymentCallMetrics(ctx context.Context, arg GetDeploymen
 			return nil, err
 		}
 		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
@@ -165,19 +161,19 @@ ORDER BY timestamp ASC
 
 type GetDeploymentCallMetricsNoFillParams struct {
 	DeploymentID string
-	Timestamp    time.Time
+	Timestamp    pgtype.Timestamp
 	DateTrunc    string
 }
 
 type GetDeploymentCallMetricsNoFillRow struct {
-	Timestamp    time.Time
+	Timestamp    pgtype.Timestamp
 	TotalCount   int64
 	SuccessCount int64
 	AvgTotalTime float64
 }
 
 func (q *Queries) GetDeploymentCallMetricsNoFill(ctx context.Context, arg GetDeploymentCallMetricsNoFillParams) ([]GetDeploymentCallMetricsNoFillRow, error) {
-	rows, err := q.db.QueryContext(ctx, getDeploymentCallMetricsNoFill, arg.DeploymentID, arg.Timestamp, arg.DateTrunc)
+	rows, err := q.db.Query(ctx, getDeploymentCallMetricsNoFill, arg.DeploymentID, arg.Timestamp, arg.DateTrunc)
 	if err != nil {
 		return nil, err
 	}
@@ -194,9 +190,6 @@ func (q *Queries) GetDeploymentCallMetricsNoFill(ctx context.Context, arg GetDep
 			return nil, err
 		}
 		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
@@ -238,13 +231,13 @@ ON trunc_timestamp = generate_series
 type GetDeploymentEventMetricsParams struct {
 	DeploymentID string
 	Precision    string
-	StartAt      time.Time
-	EndAt        time.Time
+	StartAt      pgtype.Timestamp
+	EndAt        pgtype.Timestamp
 	SeriesStep   string
 }
 
 type GetDeploymentEventMetricsRow struct {
-	Timestamp        time.Time
+	Timestamp        pgtype.Timestamp
 	TotalCount       int64
 	SuccessCount     int64
 	AvgExecutionTime float64
@@ -252,7 +245,7 @@ type GetDeploymentEventMetricsRow struct {
 }
 
 func (q *Queries) GetDeploymentEventMetrics(ctx context.Context, arg GetDeploymentEventMetricsParams) ([]GetDeploymentEventMetricsRow, error) {
-	rows, err := q.db.QueryContext(ctx, getDeploymentEventMetrics,
+	rows, err := q.db.Query(ctx, getDeploymentEventMetrics,
 		arg.DeploymentID,
 		arg.Precision,
 		arg.StartAt,
@@ -276,9 +269,6 @@ func (q *Queries) GetDeploymentEventMetrics(ctx context.Context, arg GetDeployme
 			return nil, err
 		}
 		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
@@ -304,12 +294,12 @@ ORDER BY timestamp ASC
 
 type GetDeploymentEventMetricsNoFillParams struct {
 	DeploymentID string
-	Timestamp    time.Time
+	Timestamp    pgtype.Timestamp
 	DateTrunc    string
 }
 
 type GetDeploymentEventMetricsNoFillRow struct {
-	Timestamp        time.Time
+	Timestamp        pgtype.Timestamp
 	TotalCount       int64
 	SuccessCount     int64
 	AvgExecutionTime float64
@@ -317,7 +307,7 @@ type GetDeploymentEventMetricsNoFillRow struct {
 }
 
 func (q *Queries) GetDeploymentEventMetricsNoFill(ctx context.Context, arg GetDeploymentEventMetricsNoFillParams) ([]GetDeploymentEventMetricsNoFillRow, error) {
-	rows, err := q.db.QueryContext(ctx, getDeploymentEventMetricsNoFill, arg.DeploymentID, arg.Timestamp, arg.DateTrunc)
+	rows, err := q.db.Query(ctx, getDeploymentEventMetricsNoFill, arg.DeploymentID, arg.Timestamp, arg.DateTrunc)
 	if err != nil {
 		return nil, err
 	}
@@ -335,9 +325,6 @@ func (q *Queries) GetDeploymentEventMetricsNoFill(ctx context.Context, arg GetDe
 			return nil, err
 		}
 		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
@@ -377,20 +364,20 @@ FROM (
 type GetDeploymentsCallMetricsParams struct {
 	GuildID    string
 	Precision  string
-	StartAt    time.Time
-	EndAt      time.Time
+	StartAt    pgtype.Timestamp
+	EndAt      pgtype.Timestamp
 	SeriesStep string
 }
 
 type GetDeploymentsCallMetricsRow struct {
-	Timestamp    time.Time
+	Timestamp    pgtype.Timestamp
 	TotalCount   int64
 	SuccessCount int64
 	AvgTotalTime float64
 }
 
 func (q *Queries) GetDeploymentsCallMetrics(ctx context.Context, arg GetDeploymentsCallMetricsParams) ([]GetDeploymentsCallMetricsRow, error) {
-	rows, err := q.db.QueryContext(ctx, getDeploymentsCallMetrics,
+	rows, err := q.db.Query(ctx, getDeploymentsCallMetrics,
 		arg.GuildID,
 		arg.Precision,
 		arg.StartAt,
@@ -413,9 +400,6 @@ func (q *Queries) GetDeploymentsCallMetrics(ctx context.Context, arg GetDeployme
 			return nil, err
 		}
 		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
@@ -459,13 +443,13 @@ FROM (
 type GetDeploymentsEventMetricsParams struct {
 	GuildID    string
 	Precision  string
-	StartAt    time.Time
-	EndAt      time.Time
+	StartAt    pgtype.Timestamp
+	EndAt      pgtype.Timestamp
 	SeriesStep string
 }
 
 type GetDeploymentsEventMetricsRow struct {
-	Timestamp        time.Time
+	Timestamp        pgtype.Timestamp
 	TotalCount       int64
 	SuccessCount     int64
 	AvgExecutionTime float64
@@ -473,7 +457,7 @@ type GetDeploymentsEventMetricsRow struct {
 }
 
 func (q *Queries) GetDeploymentsEventMetrics(ctx context.Context, arg GetDeploymentsEventMetricsParams) ([]GetDeploymentsEventMetricsRow, error) {
-	rows, err := q.db.QueryContext(ctx, getDeploymentsEventMetrics,
+	rows, err := q.db.Query(ctx, getDeploymentsEventMetrics,
 		arg.GuildID,
 		arg.Precision,
 		arg.StartAt,
@@ -497,9 +481,6 @@ func (q *Queries) GetDeploymentsEventMetrics(ctx context.Context, arg GetDeploym
 			return nil, err
 		}
 		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
@@ -536,8 +517,8 @@ GROUP BY
 
 type GetDeploymentsMetricsSummaryParams struct {
 	GuildID string
-	StartAt time.Time
-	EndAt   time.Time
+	StartAt pgtype.Timestamp
+	EndAt   pgtype.Timestamp
 }
 
 type GetDeploymentsMetricsSummaryRow struct {
@@ -552,7 +533,7 @@ type GetDeploymentsMetricsSummaryRow struct {
 }
 
 func (q *Queries) GetDeploymentsMetricsSummary(ctx context.Context, arg GetDeploymentsMetricsSummaryParams) (GetDeploymentsMetricsSummaryRow, error) {
-	row := q.db.QueryRowContext(ctx, getDeploymentsMetricsSummary, arg.GuildID, arg.StartAt, arg.EndAt)
+	row := q.db.QueryRow(ctx, getDeploymentsMetricsSummary, arg.GuildID, arg.StartAt, arg.EndAt)
 	var i GetDeploymentsMetricsSummaryRow
 	err := row.Scan(
 		&i.TotalCount,

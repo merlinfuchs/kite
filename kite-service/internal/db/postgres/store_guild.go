@@ -2,8 +2,8 @@ package postgres
 
 import (
 	"context"
-	"database/sql"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/merlinfuchs/dismod/distype"
 	"github.com/merlinfuchs/kite/kite-service/internal/db/postgres/pgmodel"
 	"github.com/merlinfuchs/kite/kite-service/pkg/model"
@@ -14,10 +14,10 @@ func (c *Client) UpsertGuild(ctx context.Context, guild model.Guild) (*model.Gui
 	g, err := c.Q.UpserGuild(ctx, pgmodel.UpserGuildParams{
 		ID:          string(guild.ID),
 		Name:        guild.Name,
-		Description: sql.NullString{String: guild.Description, Valid: guild.Description != ""},
-		Icon:        sql.NullString{String: guild.Icon, Valid: guild.Icon != ""},
-		CreatedAt:   guild.CreatedAt,
-		UpdatedAt:   guild.UpdatedAt,
+		Description: nullStringToText(guild.Description),
+		Icon:        nullStringToText(guild.Icon),
+		CreatedAt:   timeToTimestamp(guild.CreatedAt),
+		UpdatedAt:   timeToTimestamp(guild.UpdatedAt),
 	})
 	if err != nil {
 		return nil, err
@@ -44,7 +44,7 @@ func (c *Client) GetGuilds(ctx context.Context) ([]model.Guild, error) {
 func (c *Client) GetGuild(ctx context.Context, id distype.Snowflake) (*model.Guild, error) {
 	guild, err := c.Q.GetGuild(ctx, string(id))
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if err == pgx.ErrNoRows {
 			return nil, store.ErrNotFound
 		}
 
@@ -59,9 +59,9 @@ func guildToModel(guild pgmodel.Guild) model.Guild {
 	return model.Guild{
 		ID:          distype.Snowflake(guild.ID),
 		Name:        guild.Name,
-		Description: guild.Description.String,
-		Icon:        guild.Icon.String,
-		CreatedAt:   guild.CreatedAt,
-		UpdatedAt:   guild.UpdatedAt,
+		Description: textToNullString(guild.Description),
+		Icon:        textToNullString(guild.Icon),
+		CreatedAt:   guild.CreatedAt.Time,
+		UpdatedAt:   guild.UpdatedAt.Time,
 	}
 }

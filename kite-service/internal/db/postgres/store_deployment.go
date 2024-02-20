@@ -2,15 +2,14 @@ package postgres
 
 import (
 	"context"
-	"database/sql"
 	"encoding/json"
 	"time"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/merlinfuchs/kite/kite-sdk-go/manifest"
 	"github.com/merlinfuchs/kite/kite-service/internal/db/postgres/pgmodel"
 	"github.com/merlinfuchs/kite/kite-service/pkg/model"
 	"github.com/merlinfuchs/kite/kite-service/pkg/store"
-	"gopkg.in/guregu/null.v4"
 )
 
 func (c *Client) UpsertDeployment(ctx context.Context, deployment model.Deployment) (*model.Deployment, error) {
@@ -30,12 +29,12 @@ func (c *Client) UpsertDeployment(ctx context.Context, deployment model.Deployme
 		Key:             deployment.Key,
 		Description:     deployment.Description,
 		GuildID:         deployment.GuildID,
-		PluginVersionID: deployment.PluginVersionID.NullString,
+		PluginVersionID: nullStringToText(deployment.PluginVersionID),
 		WasmBytes:       deployment.WasmBytes,
 		Manifest:        rawManifest,
 		Config:          rawConfig,
-		CreatedAt:       deployment.CreatedAt,
-		UpdatedAt:       deployment.UpdatedAt,
+		CreatedAt:       timeToTimestamp(deployment.CreatedAt),
+		UpdatedAt:       timeToTimestamp(deployment.UpdatedAt),
 	})
 	if err != nil {
 		return nil, err
@@ -55,7 +54,7 @@ func (c *Client) DeleteDeployment(ctx context.Context, id string, guildID string
 		GuildID: guildID,
 	})
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if err == pgx.ErrNoRows {
 			return store.ErrNotFound
 		}
 		return err
@@ -70,7 +69,7 @@ func (c *Client) GetDeployment(ctx context.Context, id string, guildID string) (
 		GuildID: guildID,
 	})
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if err == pgx.ErrNoRows {
 			return nil, store.ErrNotFound
 		}
 		return nil, err
@@ -159,7 +158,7 @@ func (c *Client) GetDeploymentIDs(ctx context.Context) ([]model.PartialDeploymen
 func (c *Client) UpdateDeploymentsDeployedAtForGuild(ctx context.Context, guildID string, deployedAt time.Time) error {
 	_, err := c.Q.UpdateDeploymentsDeployedAtForGuild(ctx, pgmodel.UpdateDeploymentsDeployedAtForGuildParams{
 		GuildID:    guildID,
-		DeployedAt: sql.NullTime{Time: deployedAt, Valid: true},
+		DeployedAt: timeToTimestamp(deployedAt),
 	})
 	if err != nil {
 		return err
@@ -182,21 +181,17 @@ func deploymentToModel(deployment pgmodel.Deployment) (model.Deployment, error) 
 	}
 
 	return model.Deployment{
-		ID:          deployment.ID,
-		Name:        deployment.Name,
-		Key:         deployment.Key,
-		Description: deployment.Description,
-		GuildID:     deployment.GuildID,
-		PluginVersionID: null.String{
-			NullString: deployment.PluginVersionID,
-		},
-		WasmBytes: deployment.WasmBytes,
-		Manifest:  manifest,
-		Config:    config,
-		CreatedAt: deployment.CreatedAt,
-		UpdatedAt: deployment.UpdatedAt,
-		DeployedAt: null.Time{
-			NullTime: deployment.DeployedAt,
-		},
+		ID:              deployment.ID,
+		Name:            deployment.Name,
+		Key:             deployment.Key,
+		Description:     deployment.Description,
+		GuildID:         deployment.GuildID,
+		PluginVersionID: textToNullString(deployment.PluginVersionID),
+		WasmBytes:       deployment.WasmBytes,
+		Manifest:        manifest,
+		Config:          config,
+		CreatedAt:       deployment.CreatedAt.Time,
+		UpdatedAt:       deployment.UpdatedAt.Time,
+		DeployedAt:      timestampToNullTime(deployment.DeployedAt),
 	}, nil
 }

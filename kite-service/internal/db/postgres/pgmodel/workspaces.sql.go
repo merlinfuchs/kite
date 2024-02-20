@@ -7,8 +7,8 @@ package pgmodel
 
 import (
 	"context"
-	"encoding/json"
-	"time"
+
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 const createWorkspace = `-- name: CreateWorkspace :one
@@ -39,13 +39,13 @@ type CreateWorkspaceParams struct {
 	Type        string
 	Name        string
 	Description string
-	Files       json.RawMessage
-	CreatedAt   time.Time
-	UpdatedAt   time.Time
+	Files       []byte
+	CreatedAt   pgtype.Timestamp
+	UpdatedAt   pgtype.Timestamp
 }
 
 func (q *Queries) CreateWorkspace(ctx context.Context, arg CreateWorkspaceParams) (Workspace, error) {
-	row := q.db.QueryRowContext(ctx, createWorkspace,
+	row := q.db.QueryRow(ctx, createWorkspace,
 		arg.ID,
 		arg.GuildID,
 		arg.Type,
@@ -79,7 +79,7 @@ type DeleteWorkspaceParams struct {
 }
 
 func (q *Queries) DeleteWorkspace(ctx context.Context, arg DeleteWorkspaceParams) (Workspace, error) {
-	row := q.db.QueryRowContext(ctx, deleteWorkspace, arg.ID, arg.GuildID)
+	row := q.db.QueryRow(ctx, deleteWorkspace, arg.ID, arg.GuildID)
 	var i Workspace
 	err := row.Scan(
 		&i.ID,
@@ -104,7 +104,7 @@ type GetWorkspaceForGuildParams struct {
 }
 
 func (q *Queries) GetWorkspaceForGuild(ctx context.Context, arg GetWorkspaceForGuildParams) (Workspace, error) {
-	row := q.db.QueryRowContext(ctx, getWorkspaceForGuild, arg.ID, arg.GuildID)
+	row := q.db.QueryRow(ctx, getWorkspaceForGuild, arg.ID, arg.GuildID)
 	var i Workspace
 	err := row.Scan(
 		&i.ID,
@@ -124,7 +124,7 @@ SELECT id, guild_id, type, name, description, files, created_at, updated_at FROM
 `
 
 func (q *Queries) GetWorkspacesForGuild(ctx context.Context, guildID string) ([]Workspace, error) {
-	rows, err := q.db.QueryContext(ctx, getWorkspacesForGuild, guildID)
+	rows, err := q.db.Query(ctx, getWorkspacesForGuild, guildID)
 	if err != nil {
 		return nil, err
 	}
@@ -145,9 +145,6 @@ func (q *Queries) GetWorkspacesForGuild(ctx context.Context, guildID string) ([]
 			return nil, err
 		}
 		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
@@ -172,12 +169,12 @@ type UpdateWorkspaceParams struct {
 	GuildID     string
 	Name        string
 	Description string
-	Files       json.RawMessage
-	UpdatedAt   time.Time
+	Files       []byte
+	UpdatedAt   pgtype.Timestamp
 }
 
 func (q *Queries) UpdateWorkspace(ctx context.Context, arg UpdateWorkspaceParams) (Workspace, error) {
-	row := q.db.QueryRowContext(ctx, updateWorkspace,
+	row := q.db.QueryRow(ctx, updateWorkspace,
 		arg.ID,
 		arg.GuildID,
 		arg.Name,

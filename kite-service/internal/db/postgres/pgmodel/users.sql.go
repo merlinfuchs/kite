@@ -7,8 +7,8 @@ package pgmodel
 
 import (
 	"context"
-	"database/sql"
-	"time"
+
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 const getUser = `-- name: GetUser :one
@@ -16,7 +16,7 @@ SELECT id, username, discriminator, global_name, avatar, public_flags, created_a
 `
 
 func (q *Queries) GetUser(ctx context.Context, id string) (User, error) {
-	row := q.db.QueryRowContext(ctx, getUser, id)
+	row := q.db.QueryRow(ctx, getUser, id)
 	var i User
 	err := row.Scan(
 		&i.ID,
@@ -63,16 +63,16 @@ RETURNING id, username, discriminator, global_name, avatar, public_flags, create
 type UpsertUserParams struct {
 	ID            string
 	Username      string
-	Discriminator sql.NullString
-	GlobalName    sql.NullString
-	Avatar        sql.NullString
+	Discriminator pgtype.Text
+	GlobalName    pgtype.Text
+	Avatar        pgtype.Text
 	PublicFlags   int32
-	CreatedAt     time.Time
-	UpdatedAt     time.Time
+	CreatedAt     pgtype.Timestamp
+	UpdatedAt     pgtype.Timestamp
 }
 
 func (q *Queries) UpsertUser(ctx context.Context, arg UpsertUserParams) (User, error) {
-	row := q.db.QueryRowContext(ctx, upsertUser,
+	row := q.db.QueryRow(ctx, upsertUser,
 		arg.ID,
 		arg.Username,
 		arg.Discriminator,

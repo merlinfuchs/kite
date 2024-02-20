@@ -7,9 +7,8 @@ package pgmodel
 
 import (
 	"context"
-	"database/sql"
-	"encoding/json"
-	"time"
+
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 const deleteDeployment = `-- name: DeleteDeployment :one
@@ -22,7 +21,7 @@ type DeleteDeploymentParams struct {
 }
 
 func (q *Queries) DeleteDeployment(ctx context.Context, arg DeleteDeploymentParams) (Deployment, error) {
-	row := q.db.QueryRowContext(ctx, deleteDeployment, arg.ID, arg.GuildID)
+	row := q.db.QueryRow(ctx, deleteDeployment, arg.ID, arg.GuildID)
 	var i Deployment
 	err := row.Scan(
 		&i.ID,
@@ -51,7 +50,7 @@ type GetDeploymentForGuildParams struct {
 }
 
 func (q *Queries) GetDeploymentForGuild(ctx context.Context, arg GetDeploymentForGuildParams) (Deployment, error) {
-	row := q.db.QueryRowContext(ctx, getDeploymentForGuild, arg.ID, arg.GuildID)
+	row := q.db.QueryRow(ctx, getDeploymentForGuild, arg.ID, arg.GuildID)
 	var i Deployment
 	err := row.Scan(
 		&i.ID,
@@ -80,7 +79,7 @@ type GetDeploymentIDsRow struct {
 }
 
 func (q *Queries) GetDeploymentIDs(ctx context.Context) ([]GetDeploymentIDsRow, error) {
-	rows, err := q.db.QueryContext(ctx, getDeploymentIDs)
+	rows, err := q.db.Query(ctx, getDeploymentIDs)
 	if err != nil {
 		return nil, err
 	}
@@ -93,9 +92,6 @@ func (q *Queries) GetDeploymentIDs(ctx context.Context) ([]GetDeploymentIDsRow, 
 		}
 		items = append(items, i)
 	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
 	if err := rows.Err(); err != nil {
 		return nil, err
 	}
@@ -107,7 +103,7 @@ SELECT id, key, name, description, guild_id, plugin_version_id, wasm_bytes, mani
 `
 
 func (q *Queries) GetDeployments(ctx context.Context) ([]Deployment, error) {
-	rows, err := q.db.QueryContext(ctx, getDeployments)
+	rows, err := q.db.Query(ctx, getDeployments)
 	if err != nil {
 		return nil, err
 	}
@@ -132,9 +128,6 @@ func (q *Queries) GetDeployments(ctx context.Context) ([]Deployment, error) {
 			return nil, err
 		}
 		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
@@ -147,7 +140,7 @@ SELECT id, key, name, description, guild_id, plugin_version_id, wasm_bytes, mani
 `
 
 func (q *Queries) GetDeploymentsForGuild(ctx context.Context, guildID string) ([]Deployment, error) {
-	rows, err := q.db.QueryContext(ctx, getDeploymentsForGuild, guildID)
+	rows, err := q.db.Query(ctx, getDeploymentsForGuild, guildID)
 	if err != nil {
 		return nil, err
 	}
@@ -172,9 +165,6 @@ func (q *Queries) GetDeploymentsForGuild(ctx context.Context, guildID string) ([
 			return nil, err
 		}
 		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
@@ -187,7 +177,7 @@ SELECT id, key, name, description, guild_id, plugin_version_id, wasm_bytes, mani
 `
 
 func (q *Queries) GetDeploymentsWithUndeployedChanges(ctx context.Context) ([]Deployment, error) {
-	rows, err := q.db.QueryContext(ctx, getDeploymentsWithUndeployedChanges)
+	rows, err := q.db.Query(ctx, getDeploymentsWithUndeployedChanges)
 	if err != nil {
 		return nil, err
 	}
@@ -213,9 +203,6 @@ func (q *Queries) GetDeploymentsWithUndeployedChanges(ctx context.Context) ([]De
 		}
 		items = append(items, i)
 	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
 	if err := rows.Err(); err != nil {
 		return nil, err
 	}
@@ -227,7 +214,7 @@ SELECT DISTINCT guild_id FROM deployments
 `
 
 func (q *Queries) GetGuildIdsWithDeployments(ctx context.Context) ([]string, error) {
-	rows, err := q.db.QueryContext(ctx, getGuildIdsWithDeployments)
+	rows, err := q.db.Query(ctx, getGuildIdsWithDeployments)
 	if err != nil {
 		return nil, err
 	}
@@ -240,9 +227,6 @@ func (q *Queries) GetGuildIdsWithDeployments(ctx context.Context) ([]string, err
 		}
 		items = append(items, guild_id)
 	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
 	if err := rows.Err(); err != nil {
 		return nil, err
 	}
@@ -254,12 +238,12 @@ UPDATE deployments SET deployed_at = $1 WHERE guild_id = $2 RETURNING id, key, n
 `
 
 type UpdateDeploymentsDeployedAtForGuildParams struct {
-	DeployedAt sql.NullTime
+	DeployedAt pgtype.Timestamp
 	GuildID    string
 }
 
 func (q *Queries) UpdateDeploymentsDeployedAtForGuild(ctx context.Context, arg UpdateDeploymentsDeployedAtForGuildParams) (Deployment, error) {
-	row := q.db.QueryRowContext(ctx, updateDeploymentsDeployedAtForGuild, arg.DeployedAt, arg.GuildID)
+	row := q.db.QueryRow(ctx, updateDeploymentsDeployedAtForGuild, arg.DeployedAt, arg.GuildID)
 	var i Deployment
 	err := row.Scan(
 		&i.ID,
@@ -320,16 +304,16 @@ type UpsertDeploymentParams struct {
 	Name            string
 	Description     string
 	GuildID         string
-	PluginVersionID sql.NullString
+	PluginVersionID pgtype.Text
 	WasmBytes       []byte
-	Manifest        json.RawMessage
-	Config          json.RawMessage
-	CreatedAt       time.Time
-	UpdatedAt       time.Time
+	Manifest        []byte
+	Config          []byte
+	CreatedAt       pgtype.Timestamp
+	UpdatedAt       pgtype.Timestamp
 }
 
 func (q *Queries) UpsertDeployment(ctx context.Context, arg UpsertDeploymentParams) (Deployment, error) {
-	row := q.db.QueryRowContext(ctx, upsertDeployment,
+	row := q.db.QueryRow(ctx, upsertDeployment,
 		arg.ID,
 		arg.Key,
 		arg.Name,

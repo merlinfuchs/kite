@@ -14,7 +14,7 @@ SELECT id, key, name, description, created_at, updated_at FROM plugins
 `
 
 func (q *Queries) GetPlugins(ctx context.Context) ([]Plugin, error) {
-	rows, err := q.db.QueryContext(ctx, getPlugins)
+	rows, err := q.db.Query(ctx, getPlugins)
 	if err != nil {
 		return nil, err
 	}
@@ -33,9 +33,6 @@ func (q *Queries) GetPlugins(ctx context.Context) ([]Plugin, error) {
 			return nil, err
 		}
 		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err

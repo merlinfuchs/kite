@@ -1,33 +1,29 @@
 package postgres
 
 import (
+	"context"
 	"fmt"
-	"time"
 
-	"github.com/jmoiron/sqlx"
+	"github.com/jackc/pgx/v5/pgxpool"
 	_ "github.com/lib/pq"
 	"github.com/merlinfuchs/kite/kite-service/internal/config"
 	"github.com/merlinfuchs/kite/kite-service/internal/db/postgres/pgmodel"
 )
 
 type Client struct {
-	db            *sqlx.DB
+	DB            *pgxpool.Pool
 	Q             *pgmodel.Queries
 	connectionDSN string
 }
 
 func New(connectionDSN string) (*Client, error) {
-	db, err := sqlx.Open("postgres", connectionDSN)
+	db, err := pgxpool.New(context.Background(), connectionDSN)
 	if err != nil {
-		return nil, fmt.Errorf("Failed to connect to postgres store: %v", err)
+		return nil, fmt.Errorf("Failed to connect to postgres db: %v", err)
 	}
 
-	db.SetMaxIdleConns(20)
-	db.SetMaxOpenConns(80)
-	db.SetConnMaxLifetime(time.Hour * 1)
-
 	return &Client{
-		db:            db,
+		DB:            db,
 		Q:             pgmodel.New(db),
 		connectionDSN: connectionDSN,
 	}, nil

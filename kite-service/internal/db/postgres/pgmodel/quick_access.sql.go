@@ -7,7 +7,8 @@ package pgmodel
 
 import (
 	"context"
-	"time"
+
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 const getQuickAccessItems = `-- name: GetQuickAccessItems :many
@@ -27,12 +28,12 @@ type GetQuickAccessItemsRow struct {
 	ID        string
 	GuildID   string
 	Name      string
-	UpdatedAt time.Time
+	UpdatedAt pgtype.Timestamp
 	Type      string
 }
 
 func (q *Queries) GetQuickAccessItems(ctx context.Context, arg GetQuickAccessItemsParams) ([]GetQuickAccessItemsRow, error) {
-	rows, err := q.db.QueryContext(ctx, getQuickAccessItems, arg.GuildID, arg.Limit)
+	rows, err := q.db.Query(ctx, getQuickAccessItems, arg.GuildID, arg.Limit)
 	if err != nil {
 		return nil, err
 	}
@@ -50,9 +51,6 @@ func (q *Queries) GetQuickAccessItems(ctx context.Context, arg GetQuickAccessIte
 			return nil, err
 		}
 		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err

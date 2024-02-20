@@ -2,10 +2,10 @@ package postgres
 
 import (
 	"context"
-	"database/sql"
 	"log/slog"
 	"time"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/merlinfuchs/dismod/distype"
 	"github.com/merlinfuchs/kite/kite-service/internal/db/postgres/pgmodel"
 	"github.com/merlinfuchs/kite/kite-service/internal/logging/logattr"
@@ -17,7 +17,7 @@ import (
 func (c *Client) GetSession(ctx context.Context, tokenHash string) (*model.Session, error) {
 	row, err := c.Q.GetSession(ctx, tokenHash)
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if err == pgx.ErrNoRows {
 			return nil, store.ErrNotFound
 		}
 		return nil, err
@@ -35,15 +35,15 @@ func (c *Client) GetSession(ctx context.Context, tokenHash string) (*model.Sessi
 		GuildIds:    guildIDs,
 		AccessToken: row.AccessToken,
 		Revoked:     row.Revoked,
-		CreatedAt:   row.CreatedAt,
-		ExpiresAt:   row.ExpiresAt,
+		CreatedAt:   row.CreatedAt.Time,
+		ExpiresAt:   row.ExpiresAt.Time,
 	}, nil
 }
 
 func (c *Client) DeleteSession(ctx context.Context, tokenHash string) error {
 	err := c.Q.DeleteSession(ctx, tokenHash)
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if err == pgx.ErrNoRows {
 			return store.ErrNotFound
 		}
 		return err
@@ -63,8 +63,8 @@ func (c *Client) CreateSession(ctx context.Context, session *model.Session) erro
 		UserID:      string(session.UserID),
 		GuildIds:    guildIDs,
 		AccessToken: session.AccessToken,
-		CreatedAt:   session.CreatedAt,
-		ExpiresAt:   session.ExpiresAt,
+		CreatedAt:   timeToTimestamp(session.CreatedAt),
+		ExpiresAt:   timeToTimestamp(session.ExpiresAt),
 	})
 	if err != nil {
 		return err
@@ -73,15 +73,15 @@ func (c *Client) CreateSession(ctx context.Context, session *model.Session) erro
 }
 
 func (c *Client) CreatePendingSession(ctx context.Context, pendingSession *model.PendingSession) error {
-	err := c.Q.DeleteExpiredPendingSessions(ctx, time.Now().UTC())
+	err := c.Q.DeleteExpiredPendingSessions(ctx, timeToTimestamp(time.Now().UTC()))
 	if err != nil {
 		slog.With(logattr.Error(err)).Error("failed to delete expired pending sessions")
 	}
 
 	err = c.Q.CreatePendingSession(ctx, pgmodel.CreatePendingSessionParams{
 		Code:      pendingSession.Code,
-		CreatedAt: pendingSession.CreatedAt,
-		ExpiresAt: pendingSession.ExpiresAt,
+		CreatedAt: timeToTimestamp(pendingSession.CreatedAt),
+		ExpiresAt: timeToTimestamp(pendingSession.ExpiresAt),
 	})
 	if err != nil {
 		return err
@@ -92,11 +92,11 @@ func (c *Client) CreatePendingSession(ctx context.Context, pendingSession *model
 func (c *Client) UpdatePendingSession(ctx context.Context, pendingSession *model.PendingSession) (*model.PendingSession, error) {
 	row, err := c.Q.UpdatePendingSession(ctx, pgmodel.UpdatePendingSessionParams{
 		Code:      pendingSession.Code,
-		Token:     pendingSession.Token.NullString,
-		ExpiresAt: pendingSession.ExpiresAt,
+		Token:     nullStringToText(pendingSession.Token),
+		ExpiresAt: timeToTimestamp(pendingSession.ExpiresAt),
 	})
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if err == pgx.ErrNoRows {
 			return nil, store.ErrNotFound
 		}
 		return nil, err
@@ -105,28 +105,28 @@ func (c *Client) UpdatePendingSession(ctx context.Context, pendingSession *model
 	return &model.PendingSession{
 		Code:      row.Code,
 		Token:     null.NewString(row.Token.String, row.Token.Valid),
-		CreatedAt: row.CreatedAt,
-		ExpiresAt: row.ExpiresAt,
+		CreatedAt: row.CreatedAt.Time,
+		ExpiresAt: row.ExpiresAt.Time,
 	}, nil
 }
 
 func (c *Client) GetPendingSession(ctx context.Context, code string) (*model.PendingSession, error) {
 	row, err := c.Q.GetPendingSession(ctx, code)
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if err == pgx.ErrNoRows {
 			return nil, store.ErrNotFound
 		}
 		return nil, err
 	}
 
-	if row.ExpiresAt.Before(time.Now().UTC()) {
+	if row.ExpiresAt.Time.Before(time.Now().UTC()) {
 		return nil, store.ErrNotFound
 	}
 
 	return &model.PendingSession{
 		Code:      row.Code,
 		Token:     null.NewString(row.Token.String, row.Token.Valid),
-		CreatedAt: row.CreatedAt,
-		ExpiresAt: row.ExpiresAt,
+		CreatedAt: row.CreatedAt.Time,
+		ExpiresAt: row.ExpiresAt.Time,
 	}, nil
 }

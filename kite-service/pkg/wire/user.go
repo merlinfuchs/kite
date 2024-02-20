@@ -5,14 +5,15 @@ import (
 
 	"github.com/merlinfuchs/dismod/distype"
 	"github.com/merlinfuchs/kite/kite-service/pkg/model"
+	"gopkg.in/guregu/null.v4"
 )
 
 type User struct {
 	ID            distype.Snowflake `json:"id"`
 	Username      string            `json:"username"`
-	Discriminator string            `json:"discriminator"`
-	GlobalName    string            `json:"global_name"`
-	Avatar        string            `json:"avatar"`
+	Discriminator null.String       `json:"discriminator"`
+	GlobalName    null.String       `json:"global_name"`
+	Avatar        null.String       `json:"avatar"`
 	PublicFlags   int               `json:"public_flags"`
 	CreatedAt     time.Time         `json:"created_at"`
 	UpdatedAt     time.Time         `json:"updated_at"`

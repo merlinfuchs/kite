@@ -7,10 +7,8 @@ package pgmodel
 
 import (
 	"context"
-	"database/sql"
-	"time"
 
-	"github.com/lib/pq"
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 const createPendingSession = `-- name: CreatePendingSession :exec
@@ -27,12 +25,12 @@ INSERT INTO sessions_pending (
 
 type CreatePendingSessionParams struct {
 	Code      string
-	CreatedAt time.Time
-	ExpiresAt time.Time
+	CreatedAt pgtype.Timestamp
+	ExpiresAt pgtype.Timestamp
 }
 
 func (q *Queries) CreatePendingSession(ctx context.Context, arg CreatePendingSessionParams) error {
-	_, err := q.db.ExecContext(ctx, createPendingSession, arg.Code, arg.CreatedAt, arg.ExpiresAt)
+	_, err := q.db.Exec(ctx, createPendingSession, arg.Code, arg.CreatedAt, arg.ExpiresAt)
 	return err
 }
 
@@ -62,16 +60,16 @@ type CreateSessionParams struct {
 	UserID      string
 	GuildIds    []string
 	AccessToken string
-	CreatedAt   time.Time
-	ExpiresAt   time.Time
+	CreatedAt   pgtype.Timestamp
+	ExpiresAt   pgtype.Timestamp
 }
 
 func (q *Queries) CreateSession(ctx context.Context, arg CreateSessionParams) error {
-	_, err := q.db.ExecContext(ctx, createSession,
+	_, err := q.db.Exec(ctx, createSession,
 		arg.TokenHash,
 		arg.Type,
 		arg.UserID,
-		pq.Array(arg.GuildIds),
+		arg.GuildIds,
 		arg.AccessToken,
 		arg.CreatedAt,
 		arg.ExpiresAt,
@@ -83,8 +81,8 @@ const deleteExpiredPendingSessions = `-- name: DeleteExpiredPendingSessions :exe
 DELETE FROM sessions_pending WHERE expires_at < $1
 `
 
-func (q *Queries) DeleteExpiredPendingSessions(ctx context.Context, expiresAt time.Time) error {
-	_, err := q.db.ExecContext(ctx, deleteExpiredPendingSessions, expiresAt)
+func (q *Queries) DeleteExpiredPendingSessions(ctx context.Context, expiresAt pgtype.Timestamp) error {
+	_, err := q.db.Exec(ctx, deleteExpiredPendingSessions, expiresAt)
 	return err
 }
 
@@ -93,7 +91,7 @@ DELETE FROM sessions WHERE token_hash = $1
 `
 
 func (q *Queries) DeleteSession(ctx context.Context, tokenHash string) error {
-	_, err := q.db.ExecContext(ctx, deleteSession, tokenHash)
+	_, err := q.db.Exec(ctx, deleteSession, tokenHash)
 	return err
 }
 
@@ -102,7 +100,7 @@ SELECT code, token, created_at, expires_at FROM sessions_pending WHERE code = $1
 `
 
 func (q *Queries) GetPendingSession(ctx context.Context, code string) (SessionsPending, error) {
-	row := q.db.QueryRowContext(ctx, getPendingSession, code)
+	row := q.db.QueryRow(ctx, getPendingSession, code)
 	var i SessionsPending
 	err := row.Scan(
 		&i.Code,
@@ -118,13 +116,13 @@ SELECT token_hash, type, user_id, guild_ids, access_token, revoked, created_at, 
 `
 
 func (q *Queries) GetSession(ctx context.Context, tokenHash string) (Session, error) {
-	row := q.db.QueryRowContext(ctx, getSession, tokenHash)
+	row := q.db.QueryRow(ctx, getSession, tokenHash)
 	var i Session
 	err := row.Scan(
 		&i.TokenHash,
 		&i.Type,
 		&i.UserID,
-		pq.Array(&i.GuildIds),
+		&i.GuildIds,
 		&i.AccessToken,
 		&i.Revoked,
 		&i.CreatedAt,
@@ -138,13 +136,13 @@ UPDATE sessions_pending SET token = $1, expires_at = $2 WHERE code = $3 RETURNIN
 `
 
 type UpdatePendingSessionParams struct {
-	Token     sql.NullString
-	ExpiresAt time.Time
+	Token     pgtype.Text
+	ExpiresAt pgtype.Timestamp
 	Code      string
 }
 
 func (q *Queries) UpdatePendingSession(ctx context.Context, arg UpdatePendingSessionParams) (SessionsPending, error) {
-	row := q.db.QueryRowContext(ctx, updatePendingSession, arg.Token, arg.ExpiresAt, arg.Code)
+	row := q.db.QueryRow(ctx, updatePendingSession, arg.Token, arg.ExpiresAt, arg.Code)
 	var i SessionsPending
 	err := row.Scan(
 		&i.Code,

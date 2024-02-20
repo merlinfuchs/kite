@@ -7,7 +7,8 @@ package pgmodel
 
 import (
 	"context"
-	"time"
+
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 const createDeploymentLogEntry = `-- name: CreateDeploymentLogEntry :exec
@@ -28,11 +29,11 @@ type CreateDeploymentLogEntryParams struct {
 	DeploymentID string
 	Level        string
 	Message      string
-	CreatedAt    time.Time
+	CreatedAt    pgtype.Timestamp
 }
 
 func (q *Queries) CreateDeploymentLogEntry(ctx context.Context, arg CreateDeploymentLogEntryParams) error {
-	_, err := q.db.ExecContext(ctx, createDeploymentLogEntry,
+	_, err := q.db.Exec(ctx, createDeploymentLogEntry,
 		arg.DeploymentID,
 		arg.Level,
 		arg.Message,
@@ -46,7 +47,7 @@ SELECT id, deployment_id, level, message, created_at FROM deployment_logs WHERE 
 `
 
 func (q *Queries) GetDeploymentLogEntries(ctx context.Context, deploymentID string) ([]DeploymentLog, error) {
-	rows, err := q.db.QueryContext(ctx, getDeploymentLogEntries, deploymentID)
+	rows, err := q.db.Query(ctx, getDeploymentLogEntries, deploymentID)
 	if err != nil {
 		return nil, err
 	}
@@ -64,9 +65,6 @@ func (q *Queries) GetDeploymentLogEntries(ctx context.Context, deploymentID stri
 			return nil, err
 		}
 		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
@@ -89,7 +87,7 @@ GROUP BY deployment_id
 
 type GetDeploymentLogSummaryParams struct {
 	DeploymentID string
-	CreatedAt    time.Time
+	CreatedAt    pgtype.Timestamp
 }
 
 type GetDeploymentLogSummaryRow struct {
@@ -102,7 +100,7 @@ type GetDeploymentLogSummaryRow struct {
 }
 
 func (q *Queries) GetDeploymentLogSummary(ctx context.Context, arg GetDeploymentLogSummaryParams) (GetDeploymentLogSummaryRow, error) {
-	row := q.db.QueryRowContext(ctx, getDeploymentLogSummary, arg.DeploymentID, arg.CreatedAt)
+	row := q.db.QueryRow(ctx, getDeploymentLogSummary, arg.DeploymentID, arg.CreatedAt)
 	var i GetDeploymentLogSummaryRow
 	err := row.Scan(
 		&i.DeploymentID,

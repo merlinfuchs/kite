@@ -29,8 +29,8 @@ func GuildToWire(g *model.Guild) Guild {
 	return Guild{
 		ID:          g.ID,
 		Name:        g.Name,
-		Description: null.NewString(g.Description, g.Description != ""),
-		Icon:        null.NewString(g.Icon, g.Icon != ""),
+		Description: g.Description,
+		Icon:        g.Icon,
 		CreatedAt:   g.CreatedAt,
 		UpdatedAt:   g.UpdatedAt,
 	}

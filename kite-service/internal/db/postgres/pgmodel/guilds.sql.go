@@ -7,8 +7,8 @@ package pgmodel
 
 import (
 	"context"
-	"database/sql"
-	"time"
+
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 const getGuild = `-- name: GetGuild :one
@@ -16,7 +16,7 @@ SELECT id, name, icon, description, created_at, updated_at FROM guilds WHERE id 
 `
 
 func (q *Queries) GetGuild(ctx context.Context, id string) (Guild, error) {
-	row := q.db.QueryRowContext(ctx, getGuild, id)
+	row := q.db.QueryRow(ctx, getGuild, id)
 	var i Guild
 	err := row.Scan(
 		&i.ID,
@@ -34,7 +34,7 @@ SELECT id, name, icon, description, created_at, updated_at FROM guilds ORDER BY 
 `
 
 func (q *Queries) GetGuilds(ctx context.Context) ([]Guild, error) {
-	rows, err := q.db.QueryContext(ctx, getGuilds)
+	rows, err := q.db.Query(ctx, getGuilds)
 	if err != nil {
 		return nil, err
 	}
@@ -53,9 +53,6 @@ func (q *Queries) GetGuilds(ctx context.Context) ([]Guild, error) {
 			return nil, err
 		}
 		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
@@ -91,14 +88,14 @@ RETURNING id, name, icon, description, created_at, updated_at
 type UpserGuildParams struct {
 	ID          string
 	Name        string
-	Icon        sql.NullString
-	Description sql.NullString
-	CreatedAt   time.Time
-	UpdatedAt   time.Time
+	Icon        pgtype.Text
+	Description pgtype.Text
+	CreatedAt   pgtype.Timestamp
+	UpdatedAt   pgtype.Timestamp
 }
 
 func (q *Queries) UpserGuild(ctx context.Context, arg UpserGuildParams) (Guild, error) {
-	row := q.db.QueryRowContext(ctx, upserGuild,
+	row := q.db.QueryRow(ctx, upserGuild,
 		arg.ID,
 		arg.Name,
 		arg.Icon,

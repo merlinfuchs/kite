@@ -18,6 +18,7 @@ import (
 	"github.com/merlinfuchs/kite/kite-service/pkg/store"
 	"github.com/ravener/discord-oauth2"
 	"golang.org/x/oauth2"
+	"gopkg.in/guregu/null.v4"
 )
 
 type AuthHandler struct {
@@ -113,9 +114,9 @@ func (h *AuthHandler) ExchangeAccessToken(ctx context.Context, oauth2 *oauth2.Co
 	user := struct {
 		ID            distype.Snowflake `json:"id"`
 		Username      string            `json:"username"`
-		GlobalName    string            `json:"global_name"`
+		GlobalName    null.String       `json:"global_name"`
 		Discriminator string            `json:"discriminator"`
-		Avatar        string            `json:"avatar"`
+		Avatar        null.String       `json:"avatar"`
 		PublicFlags   int               `json:"public_flags"`
 	}{}
 	err = json.NewDecoder(resp.Body).Decode(&user)
@@ -127,7 +128,7 @@ func (h *AuthHandler) ExchangeAccessToken(ctx context.Context, oauth2 *oauth2.Co
 	err = h.userStore.UpsertUser(ctx, &model.User{
 		ID:            user.ID,
 		Username:      user.Username,
-		Discriminator: user.Discriminator,
+		Discriminator: null.NewString(user.Discriminator, user.Discriminator != "0"),
 		GlobalName:    user.GlobalName,
 		Avatar:        user.Avatar,
 		PublicFlags:   user.PublicFlags,

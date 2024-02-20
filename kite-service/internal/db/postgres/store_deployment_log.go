@@ -2,9 +2,9 @@ package postgres
 
 import (
 	"context"
-	"database/sql"
 	"time"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/merlinfuchs/kite/kite-service/internal/db/postgres/pgmodel"
 	"github.com/merlinfuchs/kite/kite-service/pkg/model"
 )
@@ -24,7 +24,7 @@ func (c *Client) GetDeploymentLogEntries(ctx context.Context, deploymentID strin
 			DeploymentID: entry.DeploymentID,
 			Level:        entry.Level,
 			Message:      entry.Message,
-			CreatedAt:    entry.CreatedAt,
+			CreatedAt:    entry.CreatedAt.Time,
 		}
 	}
 
@@ -34,10 +34,10 @@ func (c *Client) GetDeploymentLogEntries(ctx context.Context, deploymentID strin
 func (c *Client) GetDeploymentLogSummary(ctx context.Context, deploymentID string, guildID string, cutoff time.Time) (*model.DeploymentLogSummary, error) {
 	summary, err := c.Q.GetDeploymentLogSummary(ctx, pgmodel.GetDeploymentLogSummaryParams{
 		DeploymentID: deploymentID,
-		CreatedAt:    cutoff,
+		CreatedAt:    timeToTimestamp(cutoff),
 	})
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if err == pgx.ErrNoRows {
 			return &model.DeploymentLogSummary{}, nil
 		}
 
@@ -59,7 +59,7 @@ func (c *Client) CreateDeploymentLogEntry(ctx context.Context, entry model.Deplo
 		DeploymentID: entry.DeploymentID,
 		Level:        entry.Level,
 		Message:      entry.Message,
-		CreatedAt:    entry.CreatedAt,
+		CreatedAt:    timeToTimestamp(entry.CreatedAt),
 	})
 	if err != nil {
 		return err

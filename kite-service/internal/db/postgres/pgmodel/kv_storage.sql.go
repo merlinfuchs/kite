@@ -7,8 +7,8 @@ package pgmodel
 
 import (
 	"context"
-	"encoding/json"
-	"time"
+
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 const deleteKVStorageKey = `-- name: DeleteKVStorageKey :one
@@ -22,7 +22,7 @@ type DeleteKVStorageKeyParams struct {
 }
 
 func (q *Queries) DeleteKVStorageKey(ctx context.Context, arg DeleteKVStorageKeyParams) (KvStorage, error) {
-	row := q.db.QueryRowContext(ctx, deleteKVStorageKey, arg.GuildID, arg.Namespace, arg.Key)
+	row := q.db.QueryRow(ctx, deleteKVStorageKey, arg.GuildID, arg.Namespace, arg.Key)
 	var i KvStorage
 	err := row.Scan(
 		&i.GuildID,
@@ -46,7 +46,7 @@ type GetKVStorageKeyParams struct {
 }
 
 func (q *Queries) GetKVStorageKey(ctx context.Context, arg GetKVStorageKeyParams) (KvStorage, error) {
-	row := q.db.QueryRowContext(ctx, getKVStorageKey, arg.GuildID, arg.Namespace, arg.Key)
+	row := q.db.QueryRow(ctx, getKVStorageKey, arg.GuildID, arg.Namespace, arg.Key)
 	var i KvStorage
 	err := row.Scan(
 		&i.GuildID,
@@ -69,7 +69,7 @@ type GetKVStorageKeysParams struct {
 }
 
 func (q *Queries) GetKVStorageKeys(ctx context.Context, arg GetKVStorageKeysParams) ([]KvStorage, error) {
-	rows, err := q.db.QueryContext(ctx, getKVStorageKeys, arg.GuildID, arg.Namespace)
+	rows, err := q.db.Query(ctx, getKVStorageKeys, arg.GuildID, arg.Namespace)
 	if err != nil {
 		return nil, err
 	}
@@ -89,9 +89,6 @@ func (q *Queries) GetKVStorageKeys(ctx context.Context, arg GetKVStorageKeysPara
 		}
 		items = append(items, i)
 	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
 	if err := rows.Err(); err != nil {
 		return nil, err
 	}
@@ -108,7 +105,7 @@ type GetKVStorageNamespacesRow struct {
 }
 
 func (q *Queries) GetKVStorageNamespaces(ctx context.Context, guildID string) ([]GetKVStorageNamespacesRow, error) {
-	rows, err := q.db.QueryContext(ctx, getKVStorageNamespaces, guildID)
+	rows, err := q.db.Query(ctx, getKVStorageNamespaces, guildID)
 	if err != nil {
 		return nil, err
 	}
@@ -120,9 +117,6 @@ func (q *Queries) GetKVStorageNamespaces(ctx context.Context, guildID string) ([
 			return nil, err
 		}
 		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
@@ -155,13 +149,13 @@ type SetKVStorageKeyParams struct {
 	GuildID   string
 	Namespace string
 	Key       string
-	Value     json.RawMessage
-	CreatedAt time.Time
-	UpdatedAt time.Time
+	Value     []byte
+	CreatedAt pgtype.Timestamp
+	UpdatedAt pgtype.Timestamp
 }
 
 func (q *Queries) SetKVStorageKey(ctx context.Context, arg SetKVStorageKeyParams) (KvStorage, error) {
-	row := q.db.QueryRowContext(ctx, setKVStorageKey,
+	row := q.db.QueryRow(ctx, setKVStorageKey,
 		arg.GuildID,
 		arg.Namespace,
 		arg.Key,

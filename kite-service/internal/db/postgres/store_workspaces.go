@@ -2,9 +2,9 @@ package postgres
 
 import (
 	"context"
-	"database/sql"
 	"encoding/json"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/merlinfuchs/kite/kite-service/internal/db/postgres/pgmodel"
 	"github.com/merlinfuchs/kite/kite-service/pkg/model"
 	"github.com/merlinfuchs/kite/kite-service/pkg/store"
@@ -16,7 +16,7 @@ func (c *Client) GetWorkspace(ctx context.Context, id string, guildID string) (*
 		GuildID: guildID,
 	})
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if err == pgx.ErrNoRows {
 			return nil, store.ErrNotFound
 		}
 		return nil, err
@@ -60,8 +60,8 @@ func (c *Client) CreateWorkspace(ctx context.Context, workspace model.Workspace)
 		Name:        workspace.Name,
 		Description: workspace.Description,
 		Files:       files,
-		CreatedAt:   workspace.CreatedAt,
-		UpdatedAt:   workspace.UpdatedAt,
+		CreatedAt:   timeToTimestamp(workspace.CreatedAt),
+		UpdatedAt:   timeToTimestamp(workspace.UpdatedAt),
 	})
 	if err != nil {
 		return nil, err
@@ -87,10 +87,10 @@ func (c *Client) UpdateWorkspace(ctx context.Context, workspace model.Workspace)
 		Name:        workspace.Name,
 		Description: workspace.Description,
 		Files:       files,
-		UpdatedAt:   workspace.UpdatedAt,
+		UpdatedAt:   timeToTimestamp(workspace.UpdatedAt),
 	})
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if err == pgx.ErrNoRows {
 			return nil, store.ErrNotFound
 		}
 		return nil, err
@@ -110,7 +110,7 @@ func (c *Client) DeleteWorkspace(ctx context.Context, id string, guildID string)
 		GuildID: guildID,
 	})
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if err == pgx.ErrNoRows {
 			return store.ErrNotFound
 		}
 		return err
@@ -132,7 +132,7 @@ func workspaceToModel(workspace pgmodel.Workspace) (model.Workspace, error) {
 		Name:        workspace.Name,
 		Description: workspace.Description,
 		Files:       files,
-		CreatedAt:   workspace.CreatedAt,
-		UpdatedAt:   workspace.UpdatedAt,
+		CreatedAt:   workspace.CreatedAt.Time,
+		UpdatedAt:   workspace.UpdatedAt.Time,
 	}, nil
 }

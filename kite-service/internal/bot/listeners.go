@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/merlinfuchs/dismod/distype"
+	"gopkg.in/guregu/null.v4"
 
 	"github.com/merlinfuchs/kite/kite-sdk-go/event"
 	"github.com/merlinfuchs/kite/kite-service/internal/logging/logattr"
@@ -31,8 +32,8 @@ func (b *Bot) handleGuildCreate(s int, e interface{}) {
 	_, err := b.guildStore.UpsertGuild(context.Background(), model.Guild{
 		ID:          g.ID,
 		Name:        g.Name,
-		Icon:        g.Icon.Value,
-		Description: g.Description.Value,
+		Icon:        null.NewString(g.Icon.Value, g.Icon.Valid),
+		Description: null.NewString(g.Description.Value, g.Description.Valid),
 		CreatedAt:   time.Now().UTC(),
 		UpdatedAt:   time.Now().UTC(),
 	})
@@ -47,8 +48,8 @@ func (b *Bot) handleGuildUpdate(s int, e interface{}) {
 	_, err := b.guildStore.UpsertGuild(context.Background(), model.Guild{
 		ID:          g.ID,
 		Name:        g.Name,
-		Icon:        g.Icon.Value,
-		Description: g.Description.Value,
+		Icon:        null.NewString(g.Icon.Value, g.Icon.Valid),
+		Description: null.NewString(g.Description.Value, g.Description.Valid),
 		CreatedAt:   time.Now().UTC(),
 		UpdatedAt:   time.Now().UTC(),
 	})
