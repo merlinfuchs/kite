@@ -25,6 +25,32 @@ INSERT INTO deployment_metrics (
     $11
 );
 
+-- name: GetDeploymentsMetricsSummary :one
+SELECT
+	COUNT(*) AS total_count,
+	SUM(
+		CASE WHEN event_success = TRUE THEN
+			1
+		ELSE
+			0
+		END) AS success_count,
+	AVG(event_execution_time) FILTER (WHERE type = 'EVENT_HANDLED') AS avg_event_execution_time,
+	SUM(event_execution_time) FILTER (WHERE type = 'EVENT_HANDLED') AS total_event_execution_time,
+	AVG(event_total_time) FILTER (WHERE type = 'EVENT_HANDLED')  AS avg_event_total_time,
+	SUM(event_total_time) FILTER (WHERE type = 'EVENT_HANDLED') AS total_event_total_time,
+	AVG(call_total_time) FILTER (WHERE type = 'CALL_EXECUTED') AS avg_call_total_time,
+	SUM(call_total_time) FILTER (WHERE type = 'CALL_EXECUTED') AS total_call_total_time
+FROM
+	deployment_metrics
+LEFT JOIN 
+	deployments ON deployments.id = deployment_metrics.deployment_id
+WHERE
+	guild_id = $1 AND 
+	timestamp >= @start_at AND 
+	timestamp <= @end_at
+GROUP BY
+	guild_id;
+
 -- name: GetDeploymentEventMetrics :many
 SELECT
 	generate_series::timestamp AS timestamp,
@@ -49,7 +75,7 @@ FROM (
 	WHERE
 		deployment_metrics.deployment_id = $1
 		AND timestamp >= date_trunc(sqlc.arg (precision)::text, sqlc.arg (start_at)::timestamp)
-		AND TYPE = 'EVENT_HANDLED'
+		AND type = 'EVENT_HANDLED'
 	GROUP BY
 		trunc_timestamp) AS y
 	RIGHT JOIN generate_series(date_trunc(sqlc.arg (precision)::text, sqlc.arg (start_at)::timestamp), sqlc.arg (end_at)::timestamp, (sqlc.arg (series_step)::text)::interval) 

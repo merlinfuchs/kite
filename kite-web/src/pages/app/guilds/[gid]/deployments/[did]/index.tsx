@@ -1,7 +1,7 @@
 import AppGuildLayout from "@/components/app/AppGuildLayout";
 import AppDeploymentLogs from "@/components/app/AppDeploymentLogs";
 import { useRouteParams } from "@/hooks/route";
-import { useDeploymentQuery, useGuildQuery } from "@/lib/api/queries";
+import { useDeploymentQuery } from "@/lib/api/queries";
 import dynamic from "next/dynamic";
 
 const AppDeploymentMetricsEvents = dynamic(

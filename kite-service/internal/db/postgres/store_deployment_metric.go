@@ -37,6 +37,28 @@ func (c *Client) CreateDeploymentMetricEntry(ctx context.Context, entry model.De
 	return err
 }
 
+func (c *Client) GetDeploymentsMetricsSummary(ctx context.Context, guildID string, startAt time.Time, endAt time.Time) (model.DeploymentMetricsSummary, error) {
+	row, err := c.Q.GetDeploymentsMetricsSummary(ctx, pgmodel.GetDeploymentsMetricsSummaryParams{
+		GuildID: guildID,
+		StartAt: startAt,
+		EndAt:   endAt,
+	})
+	if err != nil {
+		return model.DeploymentMetricsSummary{}, err
+	}
+
+	return model.DeploymentMetricsSummary{
+		TotalCount:                int(row.TotalCount),
+		SuccessCount:              int(row.SuccessCount),
+		AverageEventExecutionTime: time.Duration(row.AvgEventExecutionTime) * time.Microsecond,
+		TotalEventExecutionTime:   time.Duration(row.TotalEventExecutionTime) * time.Microsecond,
+		AverageEventTotalTime:     time.Duration(row.AvgEventTotalTime) * time.Microsecond,
+		TotalEventTotalTime:       time.Duration(row.TotalEventTotalTime) * time.Microsecond,
+		AverageCallTotalTime:      time.Duration(row.AvgCallTotalTime) * time.Microsecond,
+	}, nil
+
+}
+
 func (c *Client) GetDeploymentEventMetrics(ctx context.Context, deploymentID string, startAt time.Time, groupBy time.Duration) ([]model.DeploymentEventMetricEntry, error) {
 	precision, step, err := groupByToPrecisionAndStep(groupBy)
 	if err != nil {

@@ -104,6 +104,7 @@ func (api *API) RegisterHandlers(engine *engine.Engine, pg *postgres.Client, acc
 	guildGroup.Get("/deployments/:deploymentID/logs/summary", deploymentHandler.HandleDeploymentLogSummaryGet)
 	guildGroup.Get("/deployments/:deploymentID/metrics/events", deploymentHandler.HandleDeploymentEventMetricsList)
 	guildGroup.Get("/deployments/:deploymentID/metrics/calls", deploymentHandler.HandleDeploymentCallMetricsList)
+	guildGroup.Get("/deployments/metrics/summary", deploymentHandler.HandleDeploymentSummaryMetricGet)
 	guildGroup.Get("/deployments/metrics/events", deploymentHandler.HandleDeploymentsEventMetricsList)
 	guildGroup.Get("/deployments/metrics/calls", deploymentHandler.HandleDeploymentsCallMetricsList)
 

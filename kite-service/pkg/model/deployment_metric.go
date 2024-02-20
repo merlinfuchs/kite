@@ -26,6 +26,17 @@ type DeploymentMetricEntry struct {
 	Timestamp          time.Time
 }
 
+type DeploymentMetricsSummary struct {
+	TotalCount                int
+	SuccessCount              int
+	AverageEventExecutionTime time.Duration
+	TotalEventExecutionTime   time.Duration
+	AverageEventTotalTime     time.Duration
+	TotalEventTotalTime       time.Duration
+	AverageCallTotalTime      time.Duration
+	TotalCallTotalTime        time.Duration
+}
+
 type DeploymentEventMetricEntry struct {
 	Timestamp            time.Time
 	TotalCount           int

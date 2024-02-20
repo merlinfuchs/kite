@@ -5,6 +5,13 @@ import { guildNameAbbreviation } from "@/lib/discord/util";
 import { useRouteParams } from "@/hooks/route";
 import dynamic from "next/dynamic";
 
+const AppDeploymentMetricsSummary = dynamic(
+  () => import("@/components/app/AppDeploymentMetricsSummary"),
+  {
+    ssr: false,
+  }
+);
+
 const AppDeploymentMetricsEvents = dynamic(
   () => import("@/components/app/AppDeploymentMetricsEvents"),
   {
@@ -65,6 +72,7 @@ export default function GuildPage() {
               {guild?.description || "No description"}
             </div>
           </div>
+          <AppDeploymentMetricsSummary guildId={guildId} />
         </div>
         <div className="grid grid-cols-3">
           <div>

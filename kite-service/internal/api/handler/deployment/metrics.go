@@ -8,6 +8,24 @@ import (
 	"github.com/merlinfuchs/kite/kite-service/pkg/wire"
 )
 
+func (h *DeploymentHandler) HandleDeploymentSummaryMetricGet(c *fiber.Ctx) error {
+	now := time.Now().UTC()
+	startOfMonth := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, time.UTC)
+
+	metric, err := h.deploymentMetrics.GetDeploymentsMetricsSummary(
+		c.Context(), c.Params("guildID"),
+		startOfMonth, now,
+	)
+	if err != nil {
+		return err
+	}
+
+	return c.JSON(wire.DeploymentMetricSummaryGetResponse{
+		Success: true,
+		Data:    wire.DeploymentSummaryMetricsToWire(&metric),
+	})
+}
+
 func (h *DeploymentHandler) HandleDeploymentEventMetricsList(c *fiber.Ctx) error {
 	startAt, groupBy, err := decodeTimeframe(c)
 	if err != nil {

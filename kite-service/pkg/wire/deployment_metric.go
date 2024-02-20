@@ -39,6 +39,32 @@ func DeploymentMetricEntryToWire(d *model.DeploymentMetricEntry) DeploymentMetri
 	}
 }
 
+type DeploymentMetricsSummary struct {
+	TotalCount                int   `json:"total_count"`
+	SuccessCount              int   `json:"success_count"`
+	AverageEventExecutionTime int64 `json:"average_event_execution_time"`
+	TotalEventExecutionTime   int64 `json:"total_event_execution_time"`
+	AverageEventTotalTime     int64 `json:"average_event_total_time"`
+	TotalEventTotalTime       int64 `json:"total_event_total_time"`
+	AverageCallTotalTime      int64 `json:"average_call_total_time"`
+	TotalCallTotalTime        int64 `json:"total_call_total_time"`
+}
+
+type DeploymentMetricSummaryGetResponse APIResponse[DeploymentMetricsSummary]
+
+func DeploymentSummaryMetricsToWire(d *model.DeploymentMetricsSummary) DeploymentMetricsSummary {
+	return DeploymentMetricsSummary{
+		TotalCount:                d.TotalCount,
+		SuccessCount:              d.SuccessCount,
+		AverageEventExecutionTime: d.AverageEventExecutionTime.Microseconds(),
+		TotalEventExecutionTime:   d.TotalEventExecutionTime.Microseconds(),
+		AverageEventTotalTime:     d.AverageEventTotalTime.Microseconds(),
+		TotalEventTotalTime:       d.TotalEventTotalTime.Microseconds(),
+		AverageCallTotalTime:      d.AverageCallTotalTime.Microseconds(),
+		TotalCallTotalTime:        d.TotalCallTotalTime.Microseconds(),
+	}
+}
+
 type DeploymentEventMetricEntry struct {
 	Timestamp            time.Time `json:"timestamp"`
 	TotalCount           int       `json:"total_count"`

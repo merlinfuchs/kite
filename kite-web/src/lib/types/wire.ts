@@ -104,6 +104,17 @@ export interface DeploymentMetricEntry {
   call_total_time: any /* time.Duration */;
   timestamp: string /* RFC3339 */;
 }
+export interface DeploymentMetricsSummary {
+  total_count: number /* int */;
+  success_count: number /* int */;
+  average_event_execution_time: number /* int64 */;
+  total_event_execution_time: number /* int64 */;
+  average_event_total_time: number /* int64 */;
+  total_event_total_time: number /* int64 */;
+  average_call_total_time: number /* int64 */;
+  total_call_total_time: number /* int64 */;
+}
+export type DeploymentMetricSummaryGetResponse = APIResponse<DeploymentMetricsSummary>;
 export interface DeploymentEventMetricEntry {
   timestamp: string /* RFC3339 */;
   total_count: number /* int */;

@@ -38,29 +38,36 @@ export interface ConfigFieldSchema {
 // source: discord.go
 
 export interface DiscordCommand {
-  type: string;
+  type?: any /* distype.ApplicationCommandType */;
   name: string;
+  name_localizations?: { [key: string]: string};
   description: string;
-  default_member_permissions: string[];
-  dm_permission: boolean;
-  nsfw: boolean;
-  options: DiscordCommandOptions[];
+  description_localizations?: { [key: string]: string};
+  options?: DiscordCommandOption[];
+  default_member_permissions: string;
+  dm_permission?: boolean;
+  nsfw?: boolean;
 }
-export interface DiscordCommandOptions {
-  type: string;
+export interface DiscordCommandOption {
+  type: any /* distype.ApplicationCommandOptionType */;
   name: string;
+  name_locations?: { [key: string]: string};
   description: string;
-  required: boolean;
-  min_value: number /* int */;
-  max_value: number /* int */;
-  min_length: number /* int */;
-  max_length: number /* int */;
-  choices: DiscordCommandOptionChoice[];
-  options: DiscordCommandOptions[];
+  description_locations?: { [key: string]: string};
+  required?: boolean;
+  choices?: DiscordCommandOptionChoice[];
+  options?: DiscordCommandOption[];
+  channel_types?: any /* distype.ChannelType */[];
+  min_value?: number /* int */;
+  max_value?: number /* int */;
+  min_length?: number /* int */;
+  max_length?: number /* int */;
+  autocomplete?: boolean;
 }
 export interface DiscordCommandOptionChoice {
   name: string;
-  value: string;
+  name_localizations?: { [key: string]: string};
+  value: any;
 }
 
 //////////

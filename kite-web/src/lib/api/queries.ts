@@ -6,6 +6,7 @@ import {
   DeploymentLogSummaryGetResponse,
   DeploymentMetricCallsListResponse,
   DeploymentMetricEventsListResponse,
+  DeploymentMetricSummaryGetResponse,
   GuildGetResponse,
   GuildListResponse,
   KVStorageNamespaceKeyListResponse,
@@ -127,6 +128,19 @@ export function useDeploymentLogSummaryQuery(
       ),
     {
       enabled: !!guildId && !!deploymentId,
+    }
+  );
+}
+
+export function useDeploymentMetricsSummaryQuery(guildId?: string | null) {
+  return useQuery(
+    ["guilds", guildId, "deployments", "metrics", "average"],
+    () =>
+      apiRequest<DeploymentMetricSummaryGetResponse>(
+        `/v1/guilds/${guildId}/deployments/metrics/summary`
+      ),
+    {
+      enabled: !!guildId,
     }
   );
 }
