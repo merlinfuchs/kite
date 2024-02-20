@@ -1,14 +1,18 @@
 package migrate
 
 import (
+	"context"
 	"log/slog"
 	"os"
 
 	"github.com/golang-migrate/migrate/v4"
+	"github.com/jackc/pgx/v5"
 	"github.com/merlinfuchs/kite/kite-service/internal/config"
 	"github.com/merlinfuchs/kite/kite-service/internal/db/postgres"
 	"github.com/merlinfuchs/kite/kite-service/internal/logging/logattr"
 	"github.com/merlinfuchs/kite/kite-service/pkg/store"
+	"github.com/riverqueue/river/riverdriver/riverpgxv5"
+	"github.com/riverqueue/river/rivermigrate"
 )
 
 type MigrateOpts struct {
@@ -21,6 +25,7 @@ func Migrate(cfg *config.ServerConfig, storeName string, operation string, opts 
 	l.Debug("Starting migration")
 
 	var migrater store.Migrater
+	var riverMigrater *rivermigrate.Migrator[pgx.Tx]
 
 	switch storeName {
 	case "postgres":
@@ -37,6 +42,9 @@ func Migrate(cfg *config.ServerConfig, storeName string, operation string, opts 
 		}
 		migrater = pgMigrater
 		defer migrater.Close()
+
+		// TODO: make this a separate migration store
+		riverMigrater = rivermigrate.New(riverpgxv5.New(pg.DB), nil)
 	default:
 		l.Error("Unknown store, can't migrate")
 		os.Exit(1)
@@ -51,8 +59,16 @@ func Migrate(cfg *config.ServerConfig, storeName string, operation string, opts 
 	switch operation {
 	case "up":
 		err = migrater.Up()
+		if err == nil && riverMigrater != nil {
+			_, err = riverMigrater.Migrate(context.Background(), rivermigrate.DirectionUp, nil)
+		}
 	case "down":
 		err = migrater.Down()
+		if err == nil && riverMigrater != nil {
+			_, err = riverMigrater.Migrate(context.Background(), rivermigrate.DirectionDown, &rivermigrate.MigrateOpts{
+				TargetVersion: -1,
+			})
+		}
 	case "list":
 		var migrations []string
 		migrations, err = migrater.List()

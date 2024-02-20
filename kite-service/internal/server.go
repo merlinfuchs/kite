@@ -3,6 +3,7 @@ package internal
 import (
 	"context"
 	"fmt"
+	"log/slog"
 
 	"github.com/merlinfuchs/kite/kite-service/internal/api"
 	"github.com/merlinfuchs/kite/kite-service/internal/api/access"
@@ -11,6 +12,8 @@ import (
 	"github.com/merlinfuchs/kite/kite-service/internal/db/postgres"
 	"github.com/merlinfuchs/kite/kite-service/internal/deployments"
 	"github.com/merlinfuchs/kite/kite-service/internal/host"
+	"github.com/merlinfuchs/kite/kite-service/internal/jobs"
+	"github.com/merlinfuchs/kite/kite-service/internal/logging/logattr"
 	"github.com/merlinfuchs/kite/kite-service/pkg/engine"
 )
 
@@ -19,6 +22,17 @@ func RunServer(cfg *config.ServerConfig) error {
 	if err != nil {
 		return fmt.Errorf("failed to create postgres client: %w", err)
 	}
+
+	jobs, err := jobs.NewClient(pg.DB, jobs.DefaultWorkers(pg), jobs.DefaultPeriodicJobs())
+	if err != nil {
+		return fmt.Errorf("failed to create jobs client: %w", err)
+	}
+
+	go func() {
+		if err := jobs.Start(context.Background()); err != nil {
+			slog.With(logattr.Error(err)).Error("Failed to start jobs client")
+		}
+	}()
 
 	bot, err := bot.New(cfg.Discord.Token, pg)
 	if err != nil {
