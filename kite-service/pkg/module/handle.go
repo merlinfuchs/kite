@@ -36,16 +36,22 @@ func (p *Module) Handle(ctx context.Context, e *event.Event) (HandleResult, erro
 	p.startHandle()
 
 	_, err = fn.Call(ctx, uint64(len(raw)))
-	if err != nil {
-		p.endHandle()
-		return HandleResult{}, fmt.Errorf("failed to call kite_handle: %w", err)
-	}
 
 	p.endHandle()
 
 	res := HandleResult{
 		TotalDuration:     p.totalDuration(),
 		ExecutionDuration: p.executionDuration(),
+	}
+
+	// If the context was canceled this will be the source of any other error
+	// Checking it here prevents us from getting a weird wrapped version of it from the plugin
+	if ctx.Err() != nil {
+		return res, ctx.Err()
+	}
+
+	if err != nil {
+		return res, fmt.Errorf("failed to call kite_handle: %w", err)
 	}
 
 	if p.currentEventResponse == nil {

@@ -69,7 +69,7 @@ func (b *Bot) handleAny(s int, t distype.EventType, e interface{}) {
 		return
 	}
 
-	b.Engine.HandleEvent(context.Background(), &event.Event{
+	go b.Engine.HandleEvent(context.Background(), &event.Event{
 		Type:    eventType,
 		GuildID: *guildID,
 		Data:    e,

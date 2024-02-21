@@ -123,10 +123,7 @@ func (d *Deployment) HandleEvent(ctx context.Context, event *event.Event) error 
 	if err != nil {
 		slog.With(logattr.Error(err)).Error("failed to handle event")
 
-		fmt.Printf("%T\n", err)
-
 		// TODO: think about other error types that should invalidate the plugin (e.g. panic / wasm trap)
-		// TODO: when cancel occurs in host call the type will be fail.ModuleError here
 		if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
 			fmt.Println("canceled")
 			if err := d.InvalidatePlugin(ctx, plugin); err != nil {

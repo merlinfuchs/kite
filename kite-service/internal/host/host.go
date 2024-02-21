@@ -108,7 +108,9 @@ func (h HostEnvironment) Call(ctx context.Context, req call.Call) (res interface
 		return nil, fmt.Errorf("unknown call type: %s", req.Type)
 	}
 
-	err = h.deploymentMetrics.CreateDeploymentMetricEntry(ctx, model.DeploymentMetricEntry{
+	mCtx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	defer cancel()
+	mErr := h.deploymentMetrics.CreateDeploymentMetricEntry(mCtx, model.DeploymentMetricEntry{
 		DeploymentID:  h.DeploymentID,
 		Type:          model.DeploymentMetricEntryTypeCallExecuted,
 		CallType:      string(req.Type),
@@ -116,8 +118,8 @@ func (h HostEnvironment) Call(ctx context.Context, req call.Call) (res interface
 		CallTotalTime: time.Since(startTime),
 		Timestamp:     time.Now().UTC(),
 	})
-	if err != nil {
-		slog.With(logattr.Error(err)).Error("Error creating deployment metric entry for action")
+	if mErr != nil {
+		slog.With(logattr.Error(mErr)).Error("Error creating deployment metric entry for action")
 	}
 
 	if err != nil {

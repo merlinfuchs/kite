@@ -12,7 +12,7 @@ import (
 	"github.com/merlinfuchs/kite/kite-service/internal/api/handler/auth"
 	"github.com/merlinfuchs/kite/kite-service/internal/api/handler/compile"
 	"github.com/merlinfuchs/kite/kite-service/internal/api/handler/deployment"
-	guild "github.com/merlinfuchs/kite/kite-service/internal/api/handler/guilld"
+	"github.com/merlinfuchs/kite/kite-service/internal/api/handler/guild"
 	kvstorage "github.com/merlinfuchs/kite/kite-service/internal/api/handler/kv_storage"
 	quickaccess "github.com/merlinfuchs/kite/kite-service/internal/api/handler/quick_access"
 	"github.com/merlinfuchs/kite/kite-service/internal/api/handler/user"
