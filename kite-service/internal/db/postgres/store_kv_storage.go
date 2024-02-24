@@ -3,11 +3,14 @@ package postgres
 import (
 	"context"
 	"encoding/json"
+	"errors"
+	"log/slog"
 	"time"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/merlinfuchs/kite/kite-sdk-go/kv"
 	"github.com/merlinfuchs/kite/kite-service/internal/db/postgres/pgmodel"
+	"github.com/merlinfuchs/kite/kite-service/internal/logging/logattr"
 	"github.com/merlinfuchs/kite/kite-service/pkg/model"
 	"github.com/merlinfuchs/kite/kite-service/pkg/store"
 )
@@ -145,8 +148,10 @@ func (c *Client) IncreaseKVStorageKey(ctx context.Context, guildID, namespace, k
 		return nil, err
 	}
 	defer func() {
-		// We intentionally ignore the error because the transaction will already be commited
-		_ = tx.Rollback(ctx)
+		rerr := tx.Rollback(ctx)
+		if rerr != nil && !errors.Is(rerr, pgx.ErrTxClosed) {
+			slog.With(logattr.Error(rerr)).Error("failed to rollback kv increase transaction")
+		}
 	}()
 	qtx := c.Q.WithTx(tx)
 

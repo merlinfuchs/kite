@@ -490,19 +490,26 @@ func (q *Queries) GetDeploymentsEventMetrics(ctx context.Context, arg GetDeploym
 
 const getDeploymentsMetricsSummary = `-- name: GetDeploymentsMetricsSummary :one
 SELECT
-	COUNT(*) AS total_count,
-	SUM(
+	COUNT(*) FILTER (WHERE type = 'EVENT_HANDLED') AS total_event_count,
+	COALESCE(SUM(
 		CASE WHEN event_success = TRUE THEN
 			1
 		ELSE
 			0
-		END) AS success_count,
-	AVG(event_execution_time) FILTER (WHERE type = 'EVENT_HANDLED') AS avg_event_execution_time,
-	SUM(event_execution_time) FILTER (WHERE type = 'EVENT_HANDLED') AS total_event_execution_time,
-	AVG(event_total_time) FILTER (WHERE type = 'EVENT_HANDLED')  AS avg_event_total_time,
-	SUM(event_total_time) FILTER (WHERE type = 'EVENT_HANDLED') AS total_event_total_time,
-	AVG(call_total_time) FILTER (WHERE type = 'CALL_EXECUTED') AS avg_call_total_time,
-	SUM(call_total_time) FILTER (WHERE type = 'CALL_EXECUTED') AS total_call_total_time
+		END)  FILTER (WHERE type = 'EVENT_HANDLED'), 0)::bigint  AS success_event_count,
+	COALESCE(AVG(event_execution_time) FILTER (WHERE type = 'EVENT_HANDLED'), 0)::double precision AS avg_event_execution_time,
+	COALESCE(SUM(event_execution_time) FILTER (WHERE type = 'EVENT_HANDLED'), 0)::bigint AS total_event_execution_time,
+	COALESCE(AVG(event_total_time) FILTER (WHERE type = 'EVENT_HANDLED'), 0)::double precision  AS avg_event_total_time,
+	COALESCE(SUM(event_total_time) FILTER (WHERE type = 'EVENT_HANDLED'), 0::bigint)::bigint AS total_event_total_time,
+	COUNT(*) FILTER (WHERE type = 'CALL_EXECUTED') AS total_call_count,
+	COALESCE(SUM(
+		CASE WHEN call_success = TRUE THEN
+			1
+		ELSE
+			0
+		END) FILTER (WHERE type = 'CALL_EXECUTED'), 0)::bigint AS success_call_count,
+	COALESCE(AVG(call_total_time) FILTER (WHERE type = 'CALL_EXECUTED'), 0)::double precision AS avg_call_total_time,
+	COALESCE(SUM(call_total_time) FILTER (WHERE type = 'CALL_EXECUTED'), 0)::bigint AS total_call_total_time
 FROM
 	deployment_metrics
 LEFT JOIN 
@@ -522,12 +529,14 @@ type GetDeploymentsMetricsSummaryParams struct {
 }
 
 type GetDeploymentsMetricsSummaryRow struct {
-	TotalCount              int64
-	SuccessCount            int64
+	TotalEventCount         int64
+	SuccessEventCount       int64
 	AvgEventExecutionTime   float64
 	TotalEventExecutionTime int64
 	AvgEventTotalTime       float64
 	TotalEventTotalTime     int64
+	TotalCallCount          int64
+	SuccessCallCount        int64
 	AvgCallTotalTime        float64
 	TotalCallTotalTime      int64
 }
@@ -536,12 +545,14 @@ func (q *Queries) GetDeploymentsMetricsSummary(ctx context.Context, arg GetDeplo
 	row := q.db.QueryRow(ctx, getDeploymentsMetricsSummary, arg.GuildID, arg.StartAt, arg.EndAt)
 	var i GetDeploymentsMetricsSummaryRow
 	err := row.Scan(
-		&i.TotalCount,
-		&i.SuccessCount,
+		&i.TotalEventCount,
+		&i.SuccessEventCount,
 		&i.AvgEventExecutionTime,
 		&i.TotalEventExecutionTime,
 		&i.AvgEventTotalTime,
 		&i.TotalEventTotalTime,
+		&i.TotalCallCount,
+		&i.SuccessCallCount,
 		&i.AvgCallTotalTime,
 		&i.TotalCallTotalTime,
 	)

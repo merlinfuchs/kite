@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/jackc/pgx/v5"
+	"github.com/merlinfuchs/dismod/distype"
 	"github.com/merlinfuchs/kite/kite-service/internal/db/postgres/pgmodel"
 	"github.com/merlinfuchs/kite/kite-service/pkg/model"
 	"github.com/sqlc-dev/pqtype"
@@ -37,24 +39,29 @@ func (c *Client) CreateDeploymentMetricEntry(ctx context.Context, entry model.De
 	return err
 }
 
-func (c *Client) GetDeploymentsMetricsSummary(ctx context.Context, guildID string, startAt time.Time, endAt time.Time) (model.DeploymentMetricsSummary, error) {
+func (c *Client) GetDeploymentsMetricsSummary(ctx context.Context, guildID distype.Snowflake, startAt time.Time, endAt time.Time) (model.DeploymentMetricsSummary, error) {
 	row, err := c.Q.GetDeploymentsMetricsSummary(ctx, pgmodel.GetDeploymentsMetricsSummaryParams{
-		GuildID: guildID,
+		GuildID: string(guildID),
 		StartAt: timeToTimestamp(startAt),
 		EndAt:   timeToTimestamp(endAt),
 	})
 	if err != nil {
+		if err == pgx.ErrNoRows {
+			return model.DeploymentMetricsSummary{}, nil
+		}
 		return model.DeploymentMetricsSummary{}, err
 	}
 
 	return model.DeploymentMetricsSummary{
-		TotalCount:                int(row.TotalCount),
-		SuccessCount:              int(row.SuccessCount),
-		AverageEventExecutionTime: time.Duration(row.AvgEventExecutionTime) * time.Microsecond,
-		TotalEventExecutionTime:   time.Duration(row.TotalEventExecutionTime) * time.Microsecond,
-		AverageEventTotalTime:     time.Duration(row.AvgEventTotalTime) * time.Microsecond,
-		TotalEventTotalTime:       time.Duration(row.TotalEventTotalTime) * time.Microsecond,
-		AverageCallTotalTime:      time.Duration(row.AvgCallTotalTime) * time.Microsecond,
+		TotalEventCount:         int(row.TotalEventCount),
+		SuccessEventCount:       int(row.SuccessEventCount),
+		AvgEventExecutionTime:   time.Duration(row.AvgEventExecutionTime) * time.Microsecond,
+		TotalEventExecutionTime: time.Duration(row.TotalEventExecutionTime) * time.Microsecond,
+		AvgEventTotalTime:       time.Duration(row.AvgEventTotalTime) * time.Microsecond,
+		TotalCallCount:          int(row.TotalCallCount),
+		SuccessCallCount:        int(row.SuccessCallCount),
+		TotalEventTotalTime:     time.Duration(row.TotalEventTotalTime) * time.Microsecond,
+		AvgCallTotalTime:        time.Duration(row.AvgCallTotalTime) * time.Microsecond,
 	}, nil
 
 }
@@ -120,14 +127,14 @@ func (c *Client) GetDeploymentCallMetrics(ctx context.Context, deploymentID stri
 	return res, nil
 }
 
-func (c *Client) GetDeploymentsEventMetrics(ctx context.Context, guildID string, startAt time.Time, groupBy time.Duration) ([]model.DeploymentEventMetricEntry, error) {
+func (c *Client) GetDeploymentsEventMetrics(ctx context.Context, guildID distype.Snowflake, startAt time.Time, groupBy time.Duration) ([]model.DeploymentEventMetricEntry, error) {
 	precision, step, err := groupByToPrecisionAndStep(groupBy)
 	if err != nil {
 		return nil, err
 	}
 
 	rows, err := c.Q.GetDeploymentsEventMetrics(ctx, pgmodel.GetDeploymentsEventMetricsParams{
-		GuildID:    guildID,
+		GuildID:    string(guildID),
 		StartAt:    timeToTimestamp(startAt),
 		EndAt:      timeToTimestamp(time.Now().UTC()),
 		Precision:  precision,
@@ -151,14 +158,14 @@ func (c *Client) GetDeploymentsEventMetrics(ctx context.Context, guildID string,
 	return res, nil
 }
 
-func (c *Client) GetDeploymentsCallMetrics(ctx context.Context, guildID string, startAt time.Time, groupBy time.Duration) ([]model.DeploymentCallMetricEntry, error) {
+func (c *Client) GetDeploymentsCallMetrics(ctx context.Context, guildID distype.Snowflake, startAt time.Time, groupBy time.Duration) ([]model.DeploymentCallMetricEntry, error) {
 	precision, step, err := groupByToPrecisionAndStep(groupBy)
 	if err != nil {
 		return nil, err
 	}
 
 	rows, err := c.Q.GetDeploymentsCallMetrics(ctx, pgmodel.GetDeploymentsCallMetricsParams{
-		GuildID:    guildID,
+		GuildID:    string(guildID),
 		StartAt:    timeToTimestamp(startAt),
 		EndAt:      timeToTimestamp(time.Now().UTC()),
 		Precision:  precision,

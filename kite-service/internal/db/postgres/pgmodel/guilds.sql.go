@@ -11,6 +11,30 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const getDistinctGuildIDs = `-- name: GetDistinctGuildIDs :many
+SELECT DISTINCT id FROM guilds
+`
+
+func (q *Queries) GetDistinctGuildIDs(ctx context.Context) ([]string, error) {
+	rows, err := q.db.Query(ctx, getDistinctGuildIDs)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []string
+	for rows.Next() {
+		var id string
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		items = append(items, id)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getGuild = `-- name: GetGuild :one
 SELECT id, name, icon, description, created_at, updated_at FROM guilds WHERE id = $1
 `

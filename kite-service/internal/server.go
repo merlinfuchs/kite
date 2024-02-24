@@ -23,7 +23,7 @@ func RunServer(cfg *config.ServerConfig) error {
 		return fmt.Errorf("failed to create postgres client: %w", err)
 	}
 
-	jobs, err := jobs.NewClient(pg.DB, jobs.DefaultWorkers(pg), jobs.DefaultPeriodicJobs())
+	jobs, err := jobs.NewClient(pg.DB, jobs.DefaultWorkers(pg, pg, pg), jobs.DefaultPeriodicJobs())
 	if err != nil {
 		return fmt.Errorf("failed to create jobs client: %w", err)
 	}

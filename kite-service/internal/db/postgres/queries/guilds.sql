@@ -27,3 +27,6 @@ SELECT * FROM guilds ORDER BY name DESC;
 
 -- name: GetGuild :one
 SELECT * FROM guilds WHERE id = $1;
+
+-- name: GetDistinctGuildIDs :many
+SELECT DISTINCT id FROM guilds;

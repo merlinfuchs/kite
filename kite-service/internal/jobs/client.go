@@ -32,10 +32,12 @@ func NewClient(db *pgxpool.Pool, workers *river.Workers, periodicJobs []*river.P
 	}, nil
 }
 
-func DefaultWorkers(deploymentMetrics store.DeploymentMetricStore) *river.Workers {
+func DefaultWorkers(guilds store.GuildStore, deploymentMetrics store.DeploymentMetricStore, guildUsages store.GuildUsageStore) *river.Workers {
 	workers := river.NewWorkers()
 	river.AddWorker(workers, &GuildUsagePopulateWorker{
+		guilds:            guilds,
 		deploymentMetrics: deploymentMetrics,
+		guildUsages:       guildUsages,
 	})
 	return workers
 }

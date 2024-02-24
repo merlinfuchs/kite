@@ -118,6 +118,6 @@ func migrateRun(store string, operation string, opts migrate.MigrateOpts) error 
 
 	logging.SetupLogger(cfg.Log)
 
-	migrate.Migrate(cfg, store, operation, migrate.MigrateOpts{})
+	migrate.Migrate(cfg, store, operation, opts)
 	return nil
 }

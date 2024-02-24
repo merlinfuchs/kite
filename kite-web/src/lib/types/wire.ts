@@ -107,11 +107,11 @@ export interface DeploymentMetricEntry {
 export interface DeploymentMetricsSummary {
   total_count: number /* int */;
   success_count: number /* int */;
-  average_event_execution_time: number /* int64 */;
+  avg_event_execution_time: number /* int64 */;
   total_event_execution_time: number /* int64 */;
-  average_event_total_time: number /* int64 */;
+  avg_event_total_time: number /* int64 */;
   total_event_total_time: number /* int64 */;
-  average_call_total_time: number /* int64 */;
+  avg_call_total_time: number /* int64 */;
   total_call_total_time: number /* int64 */;
 }
 export type DeploymentMetricSummaryGetResponse = APIResponse<DeploymentMetricsSummary>;
@@ -183,9 +183,9 @@ export type QuickAccessItemListResponse = APIResponse<QuickAccessItem[]>;
 export interface User {
   id: string;
   username: string;
-  discriminator: string;
-  global_name: string;
-  avatar: string;
+  discriminator: null | string;
+  global_name: null | string;
+  avatar: null | string;
   public_flags: number /* int */;
   created_at: string /* RFC3339 */;
   updated_at: string /* RFC3339 */;

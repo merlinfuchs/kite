@@ -58,15 +58,18 @@ type Guild struct {
 type GuildUsage struct {
 	ID                      int64
 	GuildID                 string
+	TotalEventCount         int32
+	SuccessEventCount       int32
 	TotalEventExecutionTime int64
 	AvgEventExecutionTime   int64
 	TotalEventTotalTime     int64
 	AvgEventTotalTime       int64
+	TotalCallCount          int32
+	SuccessCallCount        int32
 	TotalCallTotalTime      int64
 	AvgCallTotalTime        int64
 	PeriodStartsAt          pgtype.Timestamp
 	PeriodEndsAt            pgtype.Timestamp
-	UpdatedAt               pgtype.Timestamp
 }
 
 type KvStorage struct {

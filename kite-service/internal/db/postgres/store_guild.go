@@ -55,6 +55,20 @@ func (c *Client) GetGuild(ctx context.Context, id distype.Snowflake) (*model.Gui
 	return &res, nil
 }
 
+func (c *Client) GetDistinctGuildIDs(ctx context.Context) ([]distype.Snowflake, error) {
+	ids, err := c.Q.GetDistinctGuildIDs(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	result := make([]distype.Snowflake, len(ids))
+	for i, id := range ids {
+		result[i] = distype.Snowflake(id)
+	}
+
+	return result, nil
+}
+
 func guildToModel(guild pgmodel.Guild) model.Guild {
 	return model.Guild{
 		ID:          distype.Snowflake(guild.ID),
