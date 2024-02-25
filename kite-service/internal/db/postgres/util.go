@@ -14,6 +14,13 @@ func timeToTimestamp(t time.Time) pgtype.Timestamp {
 	}
 }
 
+func nullTimeToTimestamp(t null.Time) pgtype.Timestamp {
+	return pgtype.Timestamp{
+		Time:  t.Time,
+		Valid: t.Valid,
+	}
+}
+
 func nullStringToText(s null.String) pgtype.Text {
 	return pgtype.Text{
 		String: s.String,

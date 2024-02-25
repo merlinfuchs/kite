@@ -16,11 +16,12 @@ import (
 )
 
 type Bot struct {
-	Cluster    *disway.Cluster
-	Client     *disrest.Client
-	Engine     *engine.Engine
-	State      *state.BotState
-	guildStore store.GuildStore
+	Cluster             *disway.Cluster
+	Client              *disrest.Client
+	Engine              *engine.Engine
+	State               *state.BotState
+	guildStore          store.GuildStore
+	guildEntitlentStore store.GuildEntitlementStore
 }
 
 func New(token string, pg *postgres.Client) (*Bot, error) {
@@ -51,10 +52,11 @@ func New(token string, pg *postgres.Client) (*Bot, error) {
 	cluster.AddAllEventListener(state.Update)
 
 	b := &Bot{
-		Client:     client,
-		Cluster:    cluster,
-		State:      state,
-		guildStore: pg,
+		Client:              client,
+		Cluster:             cluster,
+		State:               state,
+		guildStore:          pg,
+		guildEntitlentStore: pg,
 	}
 
 	b.registerListeners()

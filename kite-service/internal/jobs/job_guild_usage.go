@@ -22,14 +22,15 @@ func (GuildUsagePopulateArgs) InsertOpts() river.InsertOpts {
 	return river.InsertOpts{
 		UniqueOpts: river.UniqueOpts{
 			ByArgs:   true,
-			ByPeriod: 1 * time.Hour,
+			ByPeriod: 15 * time.Minute,
 		},
 	}
 }
 
 func (a GuildUsagePopulateArgs) PeriodicJob() *river.PeriodicJob {
 	return river.NewPeriodicJob(
-		river.PeriodicInterval(15*time.Minute),
+		// It ties to schedule it every minute but the unique opts makes it only run every 15 minutes
+		river.PeriodicInterval(1*time.Minute),
 		func() (river.JobArgs, *river.InsertOpts) {
 			return a, nil
 		},
@@ -92,7 +93,7 @@ func (w *GuildUsagePopulateWorker) Work(ctx context.Context, job *river.Job[Guil
 			SuccessCallCount:        summary.SuccessCallCount,
 			TotalCallTotalTime:      summary.TotalCallTotalTime,
 			AvgCallTotalTime:        summary.AvgCallTotalTime,
-			PeriodStartsAt:          lastUsagePeriodEnd,
+			PeriodStartsAt:          lastUsagePeriodEnd, // TODO: usage timestamp of first metric entry from summary instead of zero
 			PeriodEndsAt:            now,
 		}); err != nil {
 			slog.With(logattr.Error(err)).Error("Failed to insert guild usage entry")

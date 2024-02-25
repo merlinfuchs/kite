@@ -11,6 +11,7 @@ import (
 
 	"github.com/merlinfuchs/kite/kite-sdk-go/event"
 	"github.com/merlinfuchs/kite/kite-service/internal/logging/logattr"
+	"github.com/merlinfuchs/kite/kite-service/internal/util"
 	"github.com/merlinfuchs/kite/kite-service/pkg/model"
 )
 
@@ -29,7 +30,10 @@ func (b *Bot) handleReady(s int, e interface{}) {
 func (b *Bot) handleGuildCreate(s int, e interface{}) {
 	g := e.(*distype.GuildCreateEvent)
 
-	_, err := b.guildStore.UpsertGuild(context.Background(), model.Guild{
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*3)
+	defer cancel()
+
+	_, err := b.guildStore.UpsertGuild(ctx, model.Guild{
 		ID:          g.ID,
 		Name:        g.Name,
 		Icon:        null.NewString(g.Icon.Value, g.Icon.Valid),
@@ -39,6 +43,22 @@ func (b *Bot) handleGuildCreate(s int, e interface{}) {
 	})
 	if err != nil {
 		slog.With(logattr.Error(err)).Error("Failed to upsert guild from guild create event")
+	}
+
+	_, err = b.guildEntitlentStore.UpsertGuildEntitlement(ctx, model.GuildEntitlement{
+		ID:       util.UniqueID(),
+		GuildID:  g.ID,
+		Source:   "DEFAULT",
+		SourceID: null.NewString("initial_0", true),
+		Features: model.GuildEntitlementFeatures{
+			MonthlyCpuTimeLimit:    100_000 * time.Millisecond,
+			MonthlyCpuTimeAdditive: false,
+		},
+		CreatedAt: time.Now().UTC(),
+		UpdatedAt: time.Now().UTC(),
+	})
+	if err != nil {
+		slog.With(logattr.Error(err)).Error("Failed to upsert default guild entitlement from guild create event")
 	}
 }
 
