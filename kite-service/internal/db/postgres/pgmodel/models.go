@@ -93,6 +93,20 @@ type GuildUsage struct {
 	PeriodEndsAt            pgtype.Timestamp
 }
 
+type GuildUsageMonthView struct {
+	GuildID                 string
+	TotalEventCount         int64
+	SuccessEventCount       int64
+	TotalEventExecutionTime int64
+	AvgEventExecutionTime   float64
+	TotalEventTotalTime     int64
+	AvgEventTotalTime       float64
+	TotalCallCount          int64
+	SuccessCallCount        int64
+	TotalCallTotalTime      int64
+	AvgCallTotalTime        float64
+}
+
 type KvStorage struct {
 	GuildID   string
 	Namespace string

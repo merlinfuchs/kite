@@ -56,3 +56,55 @@ func (c *Client) GetLastGuildUsageEntry(ctx context.Context, guildID distype.Sno
 		PeriodEndsAt:            row.PeriodEndsAt.Time,
 	}, nil
 }
+
+func (c *Client) GetGuildUsageSummary(ctx context.Context, guildID distype.Snowflake, startAt, endAt time.Time) (*model.GuildUsageSummary, error) {
+	row, err := c.Q.GetGuildUsageSummary(ctx, pgmodel.GetGuildUsageSummaryParams{
+		GuildID: string(guildID),
+		StartAt: timeToTimestamp(startAt),
+		EndAt:   timeToTimestamp(endAt),
+	})
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return &model.GuildUsageSummary{}, nil
+		}
+		return nil, err
+	}
+
+	return &model.GuildUsageSummary{
+		TotalEventCount:         int(row.TotalEventCount),
+		SuccessEventCount:       int(row.SuccessEventCount),
+		TotalEventExecutionTime: time.Duration(row.TotalEventExecutionTime) * time.Microsecond,
+		AvgEventExecutionTime:   time.Duration(row.AvgEventExecutionTime) * time.Microsecond,
+		TotalEventTotalTime:     time.Duration(row.TotalEventTotalTime) * time.Microsecond,
+		AvgEventTotalTime:       time.Duration(row.AvgEventTotalTime) * time.Microsecond,
+		TotalCallCount:          int(row.TotalCallCount),
+		SuccessCallCount:        int(row.SuccessCallCount),
+		TotalCallTotalTime:      time.Duration(row.TotalCallTotalTime) * time.Microsecond,
+		AvgCallTotalTime:        time.Duration(row.AvgCallTotalTime) * time.Microsecond,
+	}, nil
+}
+
+func (c *Client) GetGuildUsageAndLimits(ctx context.Context, guildID distype.Snowflake) (*model.GuildUsageAndLimits, error) {
+	row, err := c.Q.GetGuildUsageAndLimits(ctx, string(guildID))
+	if err != nil {
+		return nil, err
+	}
+
+	return &model.GuildUsageAndLimits{
+		Usage: model.GuildUsageSummary{
+			TotalEventCount:         int(row.TotalEventCount),
+			SuccessEventCount:       int(row.SuccessEventCount),
+			TotalEventExecutionTime: time.Duration(row.TotalEventExecutionTime) * time.Microsecond,
+			AvgEventExecutionTime:   time.Duration(row.AvgEventExecutionTime) * time.Microsecond,
+			TotalEventTotalTime:     time.Duration(row.TotalEventTotalTime) * time.Microsecond,
+			AvgEventTotalTime:       time.Duration(row.AvgEventTotalTime) * time.Microsecond,
+			TotalCallCount:          int(row.TotalCallCount),
+			SuccessCallCount:        int(row.SuccessCallCount),
+			TotalCallTotalTime:      time.Duration(row.TotalCallTotalTime) * time.Microsecond,
+			AvgCallTotalTime:        time.Duration(row.AvgCallTotalTime) * time.Microsecond,
+		},
+		Limits: model.GuildEntitlementResolved{
+			MonthlyCpuTimeLimit: int(row.FeatureMonthlyCpuTimeLimit),
+		},
+	}, nil
+}

@@ -27,16 +27,20 @@ type DeploymentMetricEntry struct {
 }
 
 type DeploymentMetricsSummary struct {
+	FirstEntryAt time.Time
+	LastEntryAt  time.Time
+
 	TotalEventCount         int
 	SuccessEventCount       int
 	AvgEventExecutionTime   time.Duration
 	TotalEventExecutionTime time.Duration
 	AvgEventTotalTime       time.Duration
 	TotalEventTotalTime     time.Duration
-	TotalCallCount          int
-	SuccessCallCount        int
-	AvgCallTotalTime        time.Duration
-	TotalCallTotalTime      time.Duration
+
+	TotalCallCount     int
+	SuccessCallCount   int
+	AvgCallTotalTime   time.Duration
+	TotalCallTotalTime time.Duration
 }
 
 type DeploymentEventMetricEntry struct {

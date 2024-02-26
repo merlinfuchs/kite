@@ -93,7 +93,7 @@ func (w *GuildUsagePopulateWorker) Work(ctx context.Context, job *river.Job[Guil
 			SuccessCallCount:        summary.SuccessCallCount,
 			TotalCallTotalTime:      summary.TotalCallTotalTime,
 			AvgCallTotalTime:        summary.AvgCallTotalTime,
-			PeriodStartsAt:          lastUsagePeriodEnd, // TODO: usage timestamp of first metric entry from summary instead of zero
+			PeriodStartsAt:          summary.FirstEntryAt,
 			PeriodEndsAt:            now,
 		}); err != nil {
 			slog.With(logattr.Error(err)).Error("Failed to insert guild usage entry")

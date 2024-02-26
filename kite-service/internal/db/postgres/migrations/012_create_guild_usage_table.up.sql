@@ -16,3 +16,22 @@ CREATE TABLE IF NOT EXISTS guild_usage (
    period_starts_at TIMESTAMP NOT NULL,
    period_ends_at TIMESTAMP NOT NULL
 );
+
+CREATE VIEW guild_usage_month_view AS 
+SELECT 
+    guild_id, 
+    SUM(total_event_count) AS total_event_count,
+    SUM(success_event_count) AS success_event_count,
+    SUM(total_event_execution_time) AS total_event_execution_time,
+    AVG(avg_event_execution_time) AS avg_event_execution_time,
+    SUM(total_event_total_time) AS total_event_total_time,
+    AVG(avg_event_total_time) AS avg_event_total_time,
+    SUM(total_call_count) AS total_call_count,
+    SUM(success_call_count) AS success_call_count,
+    SUM(total_call_total_time) AS total_call_total_time,
+    AVG(avg_call_total_time) AS avg_call_total_time
+FROM guild_usage 
+WHERE 
+   period_starts_at >= DATE_TRUNC('month', NOW()) AND 
+   period_ends_at <= (DATE_TRUNC('month', NOW())  + interval '1 month')
+GROUP BY guild_id;

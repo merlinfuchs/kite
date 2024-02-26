@@ -53,6 +53,8 @@ func (c *Client) GetDeploymentsMetricsSummary(ctx context.Context, guildID disty
 	}
 
 	return model.DeploymentMetricsSummary{
+		FirstEntryAt:            row.FirstEntryAt.Time,
+		LastEntryAt:             row.LastEntryAt.Time,
 		TotalEventCount:         int(row.TotalEventCount),
 		SuccessEventCount:       int(row.SuccessEventCount),
 		AvgEventExecutionTime:   time.Duration(row.AvgEventExecutionTime) * time.Microsecond,
