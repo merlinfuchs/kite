@@ -68,6 +68,7 @@ type ServerEngineLimitConfig struct {
 	MaxTotalTime           int `toml:"max_total_time" validate:"required"`
 	MaxExecutionTime       int `toml:"max_execution_time" validate:"required"`
 	MaxMemoryPages         int `toml:"max_memory_pages" validate:"required"`
+	MaxHostCalls           int `toml:"max_host_calls" validate:"required"`
 	DeploymentPoolMaxTotal int `toml:"deployment_pool_max_total" validate:"required"`
 	DeploymentPoolMaxIdle  int `toml:"deployment_pool_max_idle" validate:"required"`
 	DeploymentPoolMinIdle  int `toml:"deployment_pool_min_idle"`

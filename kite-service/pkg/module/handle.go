@@ -15,6 +15,7 @@ type HandleResult struct {
 }
 
 func (p *Module) Handle(ctx context.Context, e *event.Event) (HandleResult, error) {
+	p.hostCallBudget = p.config.HostCallLimit
 	if p.config.TotalTimeLimit != 0 {
 		ctx, p.cancel = context.WithTimeout(ctx, p.config.TotalTimeLimit)
 	} else {

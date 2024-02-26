@@ -97,6 +97,11 @@ func (p *Module) kiteLog(ctx context.Context, level uint32, offset uint32, lengt
 }
 
 func (p *Module) kiteCall(ctx context.Context, offset uint32, length uint32) uint32 {
+	if p.hostCallBudget <= 0 {
+		return p.resError(fmt.Errorf("maximum number of host calls reached"))
+	}
+	p.hostCallBudget--
+
 	if err := p.checkState(ModuleStateEvent); err != nil {
 		return p.resError(err)
 	}

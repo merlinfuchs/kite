@@ -140,6 +140,7 @@ func deploymentConfigFromLimits(limits config.ServerEngineLimitConfig, compilati
 			MemoryPagesLimit:   limits.MaxMemoryPages,
 			TotalTimeLimit:     time.Duration(limits.MaxTotalTime) * time.Millisecond,
 			ExecutionTimeLimit: time.Duration(limits.MaxExecutionTime) * time.Millisecond,
+			HostCallLimit:      limits.MaxHostCalls,
 			CompilationCache:   compilationCache,
 		},
 		PoolMaxTotal: limits.DeploymentPoolMaxTotal,

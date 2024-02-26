@@ -45,6 +45,7 @@ func (h *DeploymentHandler) HandleDeploymentCreate(c *fiber.Ctx, req wire.Deploy
 		MemoryPagesLimit:   h.limits.MaxMemoryPages,
 		TotalTimeLimit:     time.Duration(h.limits.MaxTotalTime) * time.Millisecond,
 		ExecutionTimeLimit: time.Duration(h.limits.MaxExecutionTime) * time.Millisecond,
+		HostCallLimit:      h.limits.MaxHostCalls,
 	}, nil)
 	if err != nil {
 		return fmt.Errorf("failed to create module: %w", err)

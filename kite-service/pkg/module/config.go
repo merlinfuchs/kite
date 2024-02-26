@@ -10,5 +10,6 @@ type ModuleConfig struct {
 	MemoryPagesLimit   int
 	ExecutionTimeLimit time.Duration
 	TotalTimeLimit     time.Duration
+	HostCallLimit      int
 	CompilationCache   wazero.CompilationCache
 }

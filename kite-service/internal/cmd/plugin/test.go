@@ -63,6 +63,7 @@ func runTest(basePath string, build bool, debug bool, cfg *config.ModuleConfig) 
 		MemoryPagesLimit:   32,
 		TotalTimeLimit:     time.Microsecond,
 		ExecutionTimeLimit: time.Microsecond,
+		HostCallLimit:      100,
 	}
 
 	ctx := context.Background()

@@ -37,6 +37,7 @@ type Module struct {
 	handleStartAt    time.Time
 	hostCallStartAt  time.Time
 	hostCallDuration time.Duration
+	hostCallBudget   int
 
 	state                ModuleState
 	currentManifest      manifest.Manifest

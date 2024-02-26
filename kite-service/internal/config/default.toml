@@ -23,6 +23,7 @@ db_name = "kite"
 max_total_time = 10_000
 max_execution_time = 100
 max_memory_pages = 250 # 16MB
+max_host_calls = 25
 deployment_pool_max_total = 5
 deployment_pool_max_idle = 2
 deployment_pool_min_idle = 0
