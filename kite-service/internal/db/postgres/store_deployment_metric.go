@@ -64,6 +64,7 @@ func (c *Client) GetDeploymentsMetricsSummary(ctx context.Context, guildID disty
 		SuccessCallCount:        int(row.SuccessCallCount),
 		TotalEventTotalTime:     time.Duration(row.TotalEventTotalTime) * time.Microsecond,
 		AvgCallTotalTime:        time.Duration(row.AvgCallTotalTime) * time.Microsecond,
+		TotalCallTotalTime:      time.Duration(row.TotalCallTotalTime) * time.Microsecond,
 	}, nil
 
 }
