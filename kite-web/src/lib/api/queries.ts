@@ -6,9 +6,10 @@ import {
   DeploymentLogSummaryGetResponse,
   DeploymentMetricCallsListResponse,
   DeploymentMetricEventsListResponse,
-  DeploymentMetricSummaryGetResponse,
+  GuildEntitlementResolvedGetResponse,
   GuildGetResponse,
   GuildListResponse,
+  GuildUsageSummaryGetResponse,
   KVStorageNamespaceKeyListResponse,
   KVStorageNamespaceListResponse,
   QuickAccessItemListResponse,
@@ -132,19 +133,6 @@ export function useDeploymentLogSummaryQuery(
   );
 }
 
-export function useDeploymentMetricsSummaryQuery(guildId?: string | null) {
-  return useQuery(
-    ["guilds", guildId, "deployments", "metrics", "average"],
-    () =>
-      apiRequest<DeploymentMetricSummaryGetResponse>(
-        `/v1/guilds/${guildId}/deployments/metrics/summary`
-      ),
-    {
-      enabled: !!guildId,
-    }
-  );
-}
-
 export function useDeploymentsEventMetricsQuery(
   guildId?: string | null,
   deploymentId?: string | null,
@@ -234,6 +222,32 @@ export function useQuickAccessItemListQuery(guildId?: string | null) {
     () =>
       apiRequest<QuickAccessItemListResponse>(
         `/v1/guilds/${guildId}/quick-access`
+      ),
+    {
+      enabled: !!guildId,
+    }
+  );
+}
+
+export function useGuildUsageSummaryQuery(guildId?: string | null) {
+  return useQuery(
+    ["guilds", guildId, "usage", "summary"],
+    () =>
+      apiRequest<GuildUsageSummaryGetResponse>(
+        `/v1/guilds/${guildId}/usage/summary`
+      ),
+    {
+      enabled: !!guildId,
+    }
+  );
+}
+
+export function useGuildEntitlementsResolvedQuery(guildId?: string | null) {
+  return useQuery(
+    ["guilds", guildId, "entitlements", "resolved"],
+    () =>
+      apiRequest<GuildEntitlementResolvedGetResponse>(
+        `/v1/guilds/${guildId}/entitlements/resolved`
       ),
     {
       enabled: !!guildId,

@@ -7,8 +7,8 @@ INSERT INTO guild_entitlements (
     source_id,
     name,
     description,
-    feature_monthly_cpu_time_limit,
-    feature_monthly_cpu_time_additive,
+    feature_monthly_execution_time_limit,
+    feature_monthly_execution_time_additive,
     created_at,
     updated_at,
     valid_from,
@@ -28,8 +28,8 @@ INSERT INTO guild_entitlements (
     $12,
     $13
 ) ON CONFLICT (guild_id, source, source_id) DO UPDATE SET 
-    feature_monthly_cpu_time_limit = EXCLUDED.feature_monthly_cpu_time_limit,
-    feature_monthly_cpu_time_additive = EXCLUDED.feature_monthly_cpu_time_additive,
+    feature_monthly_execution_time_limit = EXCLUDED.feature_monthly_execution_time_limit,
+    feature_monthly_execution_time_additive = EXCLUDED.feature_monthly_execution_time_additive,
     updated_at = EXCLUDED.updated_at,
     valid_from = EXCLUDED.valid_from,
     valid_until = EXCLUDED.valid_until

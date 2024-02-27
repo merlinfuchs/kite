@@ -13,6 +13,7 @@ import (
 	"github.com/merlinfuchs/kite/kite-service/internal/logging/logattr"
 	"github.com/merlinfuchs/kite/kite-service/internal/util"
 	"github.com/merlinfuchs/kite/kite-service/pkg/model"
+	"github.com/merlinfuchs/kite/kite-service/pkg/store"
 )
 
 func (b *Bot) registerListeners() {
@@ -51,8 +52,8 @@ func (b *Bot) handleGuildCreate(s int, e interface{}) {
 		Source:   "DEFAULT",
 		SourceID: null.NewString("initial_0", true),
 		Features: model.GuildEntitlementFeatures{
-			MonthlyCpuTimeLimit:    100_000 * time.Millisecond,
-			MonthlyCpuTimeAdditive: false,
+			MonthlyExecutionTimeLimit:    100_000 * time.Millisecond,
+			MonthlyExecutionTimeAdditive: false,
 		},
 		CreatedAt: time.Now().UTC(),
 		UpdatedAt: time.Now().UTC(),
@@ -87,6 +88,21 @@ func (b *Bot) handleAny(s int, t distype.EventType, e interface{}) {
 	guildID := guildIDFromEvent(e)
 	if guildID == nil {
 		return
+	}
+
+	usage, err := b.guildUsageStore.GetGuildUsageAndLimits(context.Background(), *guildID)
+	if err != nil {
+		if err == store.ErrNotFound {
+			// This means there is no entitlement for this guild, so we ignore the event
+			return
+		}
+		slog.With(logattr.Error(err)).Error("Failed to get guild usage and limits")
+	} else {
+		if usage.TotalEventExecutionTime >= time.Duration(usage.Limits.MonthlyExecutionTimeLimit) {
+			slog.Warn("Guild has reached execution time limit, ignoring event", "guild_id", *guildID)
+			return
+		}
+
 	}
 
 	go b.Engine.HandleEvent(context.Background(), &event.Event{

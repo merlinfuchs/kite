@@ -37,6 +37,6 @@ type GuildUsageSummary struct {
 }
 
 type GuildUsageAndLimits struct {
-	Usage  GuildUsageSummary
+	GuildUsageSummary
 	Limits GuildEntitlementResolved
 }

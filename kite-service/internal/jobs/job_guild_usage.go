@@ -29,8 +29,7 @@ func (GuildUsagePopulateArgs) InsertOpts() river.InsertOpts {
 
 func (a GuildUsagePopulateArgs) PeriodicJob() *river.PeriodicJob {
 	return river.NewPeriodicJob(
-		// It ties to schedule it every minute but the unique opts makes it only run every 15 minutes
-		river.PeriodicInterval(1*time.Minute),
+		river.PeriodicInterval(15*time.Minute),
 		func() (river.JobArgs, *river.InsertOpts) {
 			return a, nil
 		},

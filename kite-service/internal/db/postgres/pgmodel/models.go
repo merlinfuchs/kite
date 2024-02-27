@@ -56,24 +56,24 @@ type Guild struct {
 }
 
 type GuildEntitlement struct {
-	ID                            string
-	GuildID                       string
-	UserID                        pgtype.Text
-	Source                        string
-	SourceID                      pgtype.Text
-	Name                          pgtype.Text
-	Description                   pgtype.Text
-	FeatureMonthlyCpuTimeLimit    int32
-	FeatureMonthlyCpuTimeAdditive bool
-	CreatedAt                     pgtype.Timestamp
-	UpdatedAt                     pgtype.Timestamp
-	ValidFrom                     pgtype.Timestamp
-	ValidUntil                    pgtype.Timestamp
+	ID                                  string
+	GuildID                             string
+	UserID                              pgtype.Text
+	Source                              string
+	SourceID                            pgtype.Text
+	Name                                pgtype.Text
+	Description                         pgtype.Text
+	FeatureMonthlyExecutionTimeLimit    int32
+	FeatureMonthlyExecutionTimeAdditive bool
+	CreatedAt                           pgtype.Timestamp
+	UpdatedAt                           pgtype.Timestamp
+	ValidFrom                           pgtype.Timestamp
+	ValidUntil                          pgtype.Timestamp
 }
 
 type GuildEntitlementsResolvedView struct {
-	GuildID                    string
-	FeatureMonthlyCpuTimeLimit int32
+	GuildID                          string
+	FeatureMonthlyExecutionTimeLimit int32
 }
 
 type GuildUsage struct {

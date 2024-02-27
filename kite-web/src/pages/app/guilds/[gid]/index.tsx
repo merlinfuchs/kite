@@ -5,13 +5,6 @@ import { guildNameAbbreviation } from "@/lib/discord/util";
 import { useRouteParams } from "@/hooks/route";
 import dynamic from "next/dynamic";
 
-const AppDeploymentMetricsSummary = dynamic(
-  () => import("@/components/app/AppDeploymentMetricsSummary"),
-  {
-    ssr: false,
-  }
-);
-
 const AppDeploymentMetricsEvents = dynamic(
   () => import("@/components/app/AppDeploymentMetricsEvents"),
   {
@@ -40,6 +33,13 @@ const AppDeploymentMetricsExecutionTime = dynamic(
   }
 );
 
+const AppGuildUsageSummary = dynamic(
+  () => import("@/components/app/AppGuildUsageSummary"),
+  {
+    ssr: false,
+  }
+);
+
 export default function GuildPage() {
   const { guildId } = useRouteParams();
 
@@ -49,40 +49,44 @@ export default function GuildPage() {
 
   return (
     <AppGuildLayout>
-      <div className="mb-10 bg-dark-2 p-5 rounded-md w-full">
-        <div className="flex space-x-5 items-center mb-10">
-          <div className="w-24 h-24 bg-dark-1 rounded-full flex items-center justify-center">
-            {guild?.icon ? (
-              <img
-                src={guildIconUrl(guild)!}
-                alt=""
-                className="rounded-full h-full w-full"
-              />
-            ) : (
-              <div className="text-2xl text-gray-300">
-                {guildNameAbbreviation(guild?.name || "")}
+      <div className="mb-10 bg-dark-2 p-5 rounded-md w-full flex">
+        <div className="flex-auto">
+          <div className="flex space-x-5 items-center mb-10">
+            <div className="w-24 h-24 bg-dark-1 rounded-full flex items-center justify-center">
+              {guild?.icon ? (
+                <img
+                  src={guildIconUrl(guild)!}
+                  alt=""
+                  className="rounded-full h-full w-full"
+                />
+              ) : (
+                <div className="text-2xl text-gray-300">
+                  {guildNameAbbreviation(guild?.name || "")}
+                </div>
+              )}
+            </div>
+            <div>
+              <div className="text-xl font-medium text-gray-100 mb-2">
+                {guild?.name || "Unknown Guild"}
               </div>
-            )}
-          </div>
-          <div>
-            <div className="text-xl font-medium text-gray-100 mb-2">
-              {guild?.name || "Unknown Guild"}
-            </div>
-            <div className="text-gray-300 font-light">
-              {guild?.description || "No description"}
+              <div className="text-gray-300 font-light">
+                {guild?.description || "No description"}
+              </div>
             </div>
           </div>
-          <AppDeploymentMetricsSummary guildId={guildId} />
+          <div className="grid grid-cols-3">
+            <div>
+              <div className="text-gray-100 font-medium mb-1">Guild ID</div>
+              <div className="text-gray-300 text-sm">{guild?.id}</div>
+            </div>
+            <div>
+              <div className="text-gray-100 font-medium">Members</div>
+              <div className="text-gray-300 text-sm">{0}</div>
+            </div>
+          </div>
         </div>
-        <div className="grid grid-cols-3">
-          <div>
-            <div className="text-gray-100 font-medium mb-1">Guild ID</div>
-            <div className="text-gray-300 text-sm">{guild?.id}</div>
-          </div>
-          <div>
-            <div className="text-gray-100 font-medium">Members</div>
-            <div className="text-gray-300 text-sm">{0}</div>
-          </div>
+        <div>
+          <AppGuildUsageSummary guildId={guildId} />
         </div>
       </div>
       <div className="bg-dark-2 px-1 py-2 rounded-md mb-5">

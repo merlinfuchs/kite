@@ -91,9 +91,11 @@ func (api *API) RegisterHandlers(engine *engine.Engine, pg *postgres.Client, acc
 	guildsGroup := v1Group.Group("/guilds").Use(sessionMiddleware.SessionRequired())
 	guildGroup := guildsGroup.Group("/:guildID").Use(accessMiddleware.GuildAccessRequired())
 
-	guildHandler := guild.NewHandler(pg, accessManager)
+	guildHandler := guild.NewHandler(pg, pg, pg, accessManager)
 	guildsGroup.Get("/", guildHandler.HandleGuildList)
 	guildGroup.Get("/", guildHandler.HandleGuildGet)
+	guildGroup.Get("/usage/summary", guildHandler.HandleGuildUsageSummaryGet)
+	guildGroup.Get("/entitlements/resolved", guildHandler.HandleGuildEntitlementsResolvedGet)
 
 	deploymentHandler := deployment.NewHandler(engine, pg, pg, pg, cfg.Engine.Limits)
 	guildGroup.Get("/deployments", deploymentHandler.HandleDeploymentListForGuild)
@@ -104,7 +106,6 @@ func (api *API) RegisterHandlers(engine *engine.Engine, pg *postgres.Client, acc
 	guildGroup.Get("/deployments/:deploymentID/logs/summary", deploymentHandler.HandleDeploymentLogSummaryGet)
 	guildGroup.Get("/deployments/:deploymentID/metrics/events", deploymentHandler.HandleDeploymentEventMetricsList)
 	guildGroup.Get("/deployments/:deploymentID/metrics/calls", deploymentHandler.HandleDeploymentCallMetricsList)
-	guildGroup.Get("/deployments/metrics/summary", deploymentHandler.HandleDeploymentSummaryMetricGet)
 	guildGroup.Get("/deployments/metrics/events", deploymentHandler.HandleDeploymentsEventMetricsList)
 	guildGroup.Get("/deployments/metrics/calls", deploymentHandler.HandleDeploymentsCallMetricsList)
 

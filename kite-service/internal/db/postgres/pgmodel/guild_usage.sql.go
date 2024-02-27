@@ -79,26 +79,26 @@ func (q *Queries) CreateGuildUsageEntry(ctx context.Context, arg CreateGuildUsag
 }
 
 const getGuildUsageAndLimits = `-- name: GetGuildUsageAndLimits :one
-SELECT guild_usage_month_view.guild_id, total_event_count, success_event_count, total_event_execution_time, avg_event_execution_time, total_event_total_time, avg_event_total_time, total_call_count, success_call_count, total_call_total_time, avg_call_total_time, guild_entitlements_resolved_view.guild_id, feature_monthly_cpu_time_limit FROM guild_usage_month_view 
-INNER JOIN guild_entitlements_resolved_view 
+SELECT guild_entitlements_resolved_view.guild_id, feature_monthly_execution_time_limit, guild_usage_month_view.guild_id, total_event_count, success_event_count, total_event_execution_time, avg_event_execution_time, total_event_total_time, avg_event_total_time, total_call_count, success_call_count, total_call_total_time, avg_call_total_time FROM guild_entitlements_resolved_view 
+LEFT JOIN guild_usage_month_view  
 ON guild_usage_month_view.guild_id = guild_entitlements_resolved_view.guild_id 
-WHERE guild_usage_month_view.guild_id = $1
+WHERE guild_entitlements_resolved_view.guild_id = $1
 `
 
 type GetGuildUsageAndLimitsRow struct {
-	GuildID                    string
-	TotalEventCount            int64
-	SuccessEventCount          int64
-	TotalEventExecutionTime    int64
-	AvgEventExecutionTime      float64
-	TotalEventTotalTime        int64
-	AvgEventTotalTime          float64
-	TotalCallCount             int64
-	SuccessCallCount           int64
-	TotalCallTotalTime         int64
-	AvgCallTotalTime           float64
-	GuildID_2                  string
-	FeatureMonthlyCpuTimeLimit int32
+	GuildID                          string
+	FeatureMonthlyExecutionTimeLimit int32
+	GuildID_2                        pgtype.Text
+	TotalEventCount                  pgtype.Int8
+	SuccessEventCount                pgtype.Int8
+	TotalEventExecutionTime          pgtype.Int8
+	AvgEventExecutionTime            pgtype.Float8
+	TotalEventTotalTime              pgtype.Int8
+	AvgEventTotalTime                pgtype.Float8
+	TotalCallCount                   pgtype.Int8
+	SuccessCallCount                 pgtype.Int8
+	TotalCallTotalTime               pgtype.Int8
+	AvgCallTotalTime                 pgtype.Float8
 }
 
 func (q *Queries) GetGuildUsageAndLimits(ctx context.Context, guildID string) (GetGuildUsageAndLimitsRow, error) {
@@ -106,6 +106,8 @@ func (q *Queries) GetGuildUsageAndLimits(ctx context.Context, guildID string) (G
 	var i GetGuildUsageAndLimitsRow
 	err := row.Scan(
 		&i.GuildID,
+		&i.FeatureMonthlyExecutionTimeLimit,
+		&i.GuildID_2,
 		&i.TotalEventCount,
 		&i.SuccessEventCount,
 		&i.TotalEventExecutionTime,
@@ -116,54 +118,19 @@ func (q *Queries) GetGuildUsageAndLimits(ctx context.Context, guildID string) (G
 		&i.SuccessCallCount,
 		&i.TotalCallTotalTime,
 		&i.AvgCallTotalTime,
-		&i.GuildID_2,
-		&i.FeatureMonthlyCpuTimeLimit,
 	)
 	return i, err
 }
 
 const getGuildUsageSummary = `-- name: GetGuildUsageSummary :one
-SELECT 
-    SUM(total_event_count) AS total_event_count,
-    SUM(success_event_count) AS success_event_count,
-    SUM(total_event_execution_time) AS total_event_execution_time,
-    AVG(avg_event_execution_time) AS avg_event_execution_time,
-    SUM(total_event_total_time) AS total_event_total_time,
-    AVG(avg_event_total_time) AS avg_event_total_time,
-    SUM(total_call_count) AS total_call_count,
-    SUM(success_call_count) AS success_call_count,
-    SUM(total_call_total_time) AS total_call_total_time,
-    AVG(avg_call_total_time) AS avg_call_total_time
-FROM guild_usage 
-WHERE 
-    guild_id = $1 AND 
-    period_starts_at >= $2 AND 
-    period_ends_at <= $3
+SELECT guild_id, total_event_count, success_event_count, total_event_execution_time, avg_event_execution_time, total_event_total_time, avg_event_total_time, total_call_count, success_call_count, total_call_total_time, avg_call_total_time FROM guild_usage_month_view WHERE guild_id = $1
 `
 
-type GetGuildUsageSummaryParams struct {
-	GuildID string
-	StartAt pgtype.Timestamp
-	EndAt   pgtype.Timestamp
-}
-
-type GetGuildUsageSummaryRow struct {
-	TotalEventCount         int64
-	SuccessEventCount       int64
-	TotalEventExecutionTime int64
-	AvgEventExecutionTime   float64
-	TotalEventTotalTime     int64
-	AvgEventTotalTime       float64
-	TotalCallCount          int64
-	SuccessCallCount        int64
-	TotalCallTotalTime      int64
-	AvgCallTotalTime        float64
-}
-
-func (q *Queries) GetGuildUsageSummary(ctx context.Context, arg GetGuildUsageSummaryParams) (GetGuildUsageSummaryRow, error) {
-	row := q.db.QueryRow(ctx, getGuildUsageSummary, arg.GuildID, arg.StartAt, arg.EndAt)
-	var i GetGuildUsageSummaryRow
+func (q *Queries) GetGuildUsageSummary(ctx context.Context, guildID string) (GuildUsageMonthView, error) {
+	row := q.db.QueryRow(ctx, getGuildUsageSummary, guildID)
+	var i GuildUsageMonthView
 	err := row.Scan(
+		&i.GuildID,
 		&i.TotalEventCount,
 		&i.SuccessEventCount,
 		&i.TotalEventExecutionTime,

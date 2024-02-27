@@ -13,14 +13,18 @@ import (
 )
 
 type GuildHandler struct {
-	guilds        store.GuildStore
-	accessManager *access.AccessManager
+	guilds            store.GuildStore
+	guildUsages       store.GuildUsageStore
+	guildEntitlements store.GuildEntitlementStore
+	accessManager     *access.AccessManager
 }
 
-func NewHandler(guilds store.GuildStore, accessManager *access.AccessManager) *GuildHandler {
+func NewHandler(guilds store.GuildStore, guildUsages store.GuildUsageStore, guildEntitlements store.GuildEntitlementStore, accessManager *access.AccessManager) *GuildHandler {
 	return &GuildHandler{
-		guilds:        guilds,
-		accessManager: accessManager,
+		guilds:            guilds,
+		guildUsages:       guildUsages,
+		guildEntitlements: guildEntitlements,
+		accessManager:     accessManager,
 	}
 }
 

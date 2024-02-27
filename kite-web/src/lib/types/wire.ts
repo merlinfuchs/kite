@@ -89,45 +89,27 @@ export type DeploymentLogSummaryGetResponse = APIResponse<DeploymentLogSummary>;
 //////////
 // source: deployment_metric.go
 
-export interface DeploymentMetricEntry {
-  id: number /* uint64 */;
-  deployment_id: string;
-  type: string;
-  metadata: { [key: string]: string};
-  event_id: number /* uint64 */;
-  event_type: string;
-  event_succes: boolean;
-  event_execution_time: any /* time.Duration */;
-  event_total_time: any /* time.Duration */;
-  call_type: string;
-  call_succes: boolean;
-  call_total_time: any /* time.Duration */;
-  timestamp: string /* RFC3339 */;
-}
-export interface DeploymentMetricsSummary {
-  total_count: number /* int */;
-  success_count: number /* int */;
-  avg_event_execution_time: number /* int64 */;
-  total_event_execution_time: number /* int64 */;
-  avg_event_total_time: number /* int64 */;
-  total_event_total_time: number /* int64 */;
-  avg_call_total_time: number /* int64 */;
-  total_call_total_time: number /* int64 */;
-}
-export type DeploymentMetricSummaryGetResponse = APIResponse<DeploymentMetricsSummary>;
+/**
+ * DeploymentEventMetricEntry represents a single deployment event metric entry
+ * All times are in milliseconds
+ */
 export interface DeploymentEventMetricEntry {
   timestamp: string /* RFC3339 */;
   total_count: number /* int */;
   success_count: number /* int */;
-  average_execution_time: number /* int64 */;
-  average_total_time: number /* int64 */;
+  average_execution_time: number /* float32 */;
+  average_total_time: number /* float32 */;
 }
 export type DeploymentMetricEventsListResponse = APIResponse<DeploymentEventMetricEntry[]>;
+/**
+ * DeploymentCallMetricEntry represents a single deployment call metric entry
+ * All times are in milliseconds
+ */
 export interface DeploymentCallMetricEntry {
   timestamp: string /* RFC3339 */;
   total_count: number /* int */;
   success_count: number /* int */;
-  average_total_time: number /* int64 */;
+  average_total_time: number /* float32 */;
 }
 export type DeploymentMetricCallsListResponse = APIResponse<DeploymentCallMetricEntry[]>;
 
@@ -147,6 +129,39 @@ export interface Guild {
 }
 export type GuildListResponse = APIResponse<Guild[]>;
 export type GuildGetResponse = APIResponse<Guild>;
+
+//////////
+// source: guild_entitlement.go
+
+/**
+ * GuildEntitlementResolved represents the resolved entitlements for a guild
+ * All times are in milliseconds
+ */
+export interface GuildEntitlementResolved {
+  monthly_execution_time_limit: number /* int */;
+}
+export type GuildEntitlementResolvedGetResponse = APIResponse<GuildEntitlementResolved>;
+
+//////////
+// source: guild_usage.go
+
+/**
+ * GuildUsageSummary represents a summary of the usage of a guild
+ * All times are in milliseconds
+ */
+export interface GuildUsageSummary {
+  total_event_count: number /* int */;
+  success_event_count: number /* int */;
+  total_event_execution_time: number /* float32 */;
+  avg_event_execution_time: number /* float32 */;
+  total_event_total_time: number /* float32 */;
+  avg_event_total_time: number /* float32 */;
+  total_call_count: number /* int */;
+  success_call_count: number /* int */;
+  total_call_total_time: number /* float32 */;
+  avg_call_total_time: number /* float32 */;
+}
+export type GuildUsageSummaryGetResponse = APIResponse<GuildUsageSummary>;
 
 //////////
 // source: kv_storage.go

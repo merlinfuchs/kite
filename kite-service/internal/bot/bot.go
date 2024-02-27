@@ -22,6 +22,7 @@ type Bot struct {
 	State               *state.BotState
 	guildStore          store.GuildStore
 	guildEntitlentStore store.GuildEntitlementStore
+	guildUsageStore     store.GuildUsageStore
 }
 
 func New(token string, pg *postgres.Client) (*Bot, error) {
@@ -57,6 +58,7 @@ func New(token string, pg *postgres.Client) (*Bot, error) {
 		State:               state,
 		guildStore:          pg,
 		guildEntitlentStore: pg,
+		guildUsageStore:     pg,
 	}
 
 	b.registerListeners()

@@ -12,7 +12,7 @@ import (
 )
 
 const getGuildEntitlements = `-- name: GetGuildEntitlements :many
-SELECT id, guild_id, user_id, source, source_id, name, description, feature_monthly_cpu_time_limit, feature_monthly_cpu_time_additive, created_at, updated_at, valid_from, valid_until FROM guild_entitlements 
+SELECT id, guild_id, user_id, source, source_id, name, description, feature_monthly_execution_time_limit, feature_monthly_execution_time_additive, created_at, updated_at, valid_from, valid_until FROM guild_entitlements 
 WHERE 
     guild_id = $1 AND
     (valid_from IS NULL OR valid_from <= $2) AND 
@@ -41,8 +41,8 @@ func (q *Queries) GetGuildEntitlements(ctx context.Context, arg GetGuildEntitlem
 			&i.SourceID,
 			&i.Name,
 			&i.Description,
-			&i.FeatureMonthlyCpuTimeLimit,
-			&i.FeatureMonthlyCpuTimeAdditive,
+			&i.FeatureMonthlyExecutionTimeLimit,
+			&i.FeatureMonthlyExecutionTimeAdditive,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.ValidFrom,
@@ -59,13 +59,13 @@ func (q *Queries) GetGuildEntitlements(ctx context.Context, arg GetGuildEntitlem
 }
 
 const getResolvedGuildEntitlement = `-- name: GetResolvedGuildEntitlement :one
-SELECT guild_id, feature_monthly_cpu_time_limit FROM guild_entitlements_resolved_view WHERE guild_id = $1
+SELECT guild_id, feature_monthly_execution_time_limit FROM guild_entitlements_resolved_view WHERE guild_id = $1
 `
 
 func (q *Queries) GetResolvedGuildEntitlement(ctx context.Context, guildID string) (GuildEntitlementsResolvedView, error) {
 	row := q.db.QueryRow(ctx, getResolvedGuildEntitlement, guildID)
 	var i GuildEntitlementsResolvedView
-	err := row.Scan(&i.GuildID, &i.FeatureMonthlyCpuTimeLimit)
+	err := row.Scan(&i.GuildID, &i.FeatureMonthlyExecutionTimeLimit)
 	return i, err
 }
 
@@ -78,8 +78,8 @@ INSERT INTO guild_entitlements (
     source_id,
     name,
     description,
-    feature_monthly_cpu_time_limit,
-    feature_monthly_cpu_time_additive,
+    feature_monthly_execution_time_limit,
+    feature_monthly_execution_time_additive,
     created_at,
     updated_at,
     valid_from,
@@ -99,28 +99,28 @@ INSERT INTO guild_entitlements (
     $12,
     $13
 ) ON CONFLICT (guild_id, source, source_id) DO UPDATE SET 
-    feature_monthly_cpu_time_limit = EXCLUDED.feature_monthly_cpu_time_limit,
-    feature_monthly_cpu_time_additive = EXCLUDED.feature_monthly_cpu_time_additive,
+    feature_monthly_execution_time_limit = EXCLUDED.feature_monthly_execution_time_limit,
+    feature_monthly_execution_time_additive = EXCLUDED.feature_monthly_execution_time_additive,
     updated_at = EXCLUDED.updated_at,
     valid_from = EXCLUDED.valid_from,
     valid_until = EXCLUDED.valid_until
-RETURNING id, guild_id, user_id, source, source_id, name, description, feature_monthly_cpu_time_limit, feature_monthly_cpu_time_additive, created_at, updated_at, valid_from, valid_until
+RETURNING id, guild_id, user_id, source, source_id, name, description, feature_monthly_execution_time_limit, feature_monthly_execution_time_additive, created_at, updated_at, valid_from, valid_until
 `
 
 type UpsertGuildEntitlementParams struct {
-	ID                            string
-	GuildID                       string
-	UserID                        pgtype.Text
-	Source                        string
-	SourceID                      pgtype.Text
-	Name                          pgtype.Text
-	Description                   pgtype.Text
-	FeatureMonthlyCpuTimeLimit    int32
-	FeatureMonthlyCpuTimeAdditive bool
-	CreatedAt                     pgtype.Timestamp
-	UpdatedAt                     pgtype.Timestamp
-	ValidFrom                     pgtype.Timestamp
-	ValidUntil                    pgtype.Timestamp
+	ID                                  string
+	GuildID                             string
+	UserID                              pgtype.Text
+	Source                              string
+	SourceID                            pgtype.Text
+	Name                                pgtype.Text
+	Description                         pgtype.Text
+	FeatureMonthlyExecutionTimeLimit    int32
+	FeatureMonthlyExecutionTimeAdditive bool
+	CreatedAt                           pgtype.Timestamp
+	UpdatedAt                           pgtype.Timestamp
+	ValidFrom                           pgtype.Timestamp
+	ValidUntil                          pgtype.Timestamp
 }
 
 func (q *Queries) UpsertGuildEntitlement(ctx context.Context, arg UpsertGuildEntitlementParams) (GuildEntitlement, error) {
@@ -132,8 +132,8 @@ func (q *Queries) UpsertGuildEntitlement(ctx context.Context, arg UpsertGuildEnt
 		arg.SourceID,
 		arg.Name,
 		arg.Description,
-		arg.FeatureMonthlyCpuTimeLimit,
-		arg.FeatureMonthlyCpuTimeAdditive,
+		arg.FeatureMonthlyExecutionTimeLimit,
+		arg.FeatureMonthlyExecutionTimeAdditive,
 		arg.CreatedAt,
 		arg.UpdatedAt,
 		arg.ValidFrom,
@@ -148,8 +148,8 @@ func (q *Queries) UpsertGuildEntitlement(ctx context.Context, arg UpsertGuildEnt
 		&i.SourceID,
 		&i.Name,
 		&i.Description,
-		&i.FeatureMonthlyCpuTimeLimit,
-		&i.FeatureMonthlyCpuTimeAdditive,
+		&i.FeatureMonthlyExecutionTimeLimit,
+		&i.FeatureMonthlyExecutionTimeAdditive,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.ValidFrom,

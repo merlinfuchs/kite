@@ -18,16 +18,16 @@ func (c *Client) UpsertGuildEntitlement(ctx context.Context, entitlement model.G
 			String: string(entitlement.UserID.Value),
 			Valid:  entitlement.UserID.Valid,
 		},
-		Source:                        string(entitlement.Source),
-		SourceID:                      nullStringToText(entitlement.SourceID),
-		Name:                          nullStringToText(entitlement.Name),
-		Description:                   nullStringToText(entitlement.Description),
-		FeatureMonthlyCpuTimeLimit:    int32(entitlement.Features.MonthlyCpuTimeLimit.Milliseconds()),
-		FeatureMonthlyCpuTimeAdditive: entitlement.Features.MonthlyCpuTimeAdditive,
-		CreatedAt:                     timeToTimestamp(entitlement.CreatedAt),
-		UpdatedAt:                     timeToTimestamp(entitlement.UpdatedAt),
-		ValidFrom:                     nullTimeToTimestamp(entitlement.ValidFrom),
-		ValidUntil:                    nullTimeToTimestamp(entitlement.ValidUntil),
+		Source:                              string(entitlement.Source),
+		SourceID:                            nullStringToText(entitlement.SourceID),
+		Name:                                nullStringToText(entitlement.Name),
+		Description:                         nullStringToText(entitlement.Description),
+		FeatureMonthlyExecutionTimeLimit:    int32(entitlement.Features.MonthlyExecutionTimeLimit.Milliseconds()),
+		FeatureMonthlyExecutionTimeAdditive: entitlement.Features.MonthlyExecutionTimeAdditive,
+		CreatedAt:                           timeToTimestamp(entitlement.CreatedAt),
+		UpdatedAt:                           timeToTimestamp(entitlement.UpdatedAt),
+		ValidFrom:                           nullTimeToTimestamp(entitlement.ValidFrom),
+		ValidUntil:                          nullTimeToTimestamp(entitlement.ValidUntil),
 	})
 	if err != nil {
 		return nil, err
@@ -61,7 +61,7 @@ func (c *Client) GetResolvedGuildEntitlement(ctx context.Context, guildID distyp
 	}
 
 	return &model.GuildEntitlementResolved{
-		MonthlyCpuTimeLimit: int(row.FeatureMonthlyCpuTimeLimit),
+		MonthlyExecutionTimeLimit: time.Duration(row.FeatureMonthlyExecutionTimeLimit) * time.Millisecond,
 	}, nil
 }
 
@@ -78,8 +78,8 @@ func guildEntitlementToModel(row pgmodel.GuildEntitlement) model.GuildEntitlemen
 		Name:        textToNullString(row.Name),
 		Description: textToNullString(row.Description),
 		Features: model.GuildEntitlementFeatures{
-			MonthlyCpuTimeLimit:    time.Duration(row.FeatureMonthlyCpuTimeLimit) * time.Millisecond,
-			MonthlyCpuTimeAdditive: row.FeatureMonthlyCpuTimeAdditive,
+			MonthlyExecutionTimeLimit:    time.Duration(row.FeatureMonthlyExecutionTimeLimit) * time.Millisecond,
+			MonthlyExecutionTimeAdditive: row.FeatureMonthlyExecutionTimeAdditive,
 		},
 		CreatedAt:  row.CreatedAt.Time,
 		UpdatedAt:  row.UpdatedAt.Time,

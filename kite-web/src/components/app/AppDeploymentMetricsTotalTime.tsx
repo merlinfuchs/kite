@@ -66,7 +66,7 @@ export default function GuildMetricsTiming({ guildId, deploymentId }: Props) {
   const series: ApexAxisChartSeries | ApexNonAxisChartSeries = [
     {
       name: "Total Time (ms)",
-      data: metrics.map((m) => Math.floor(m.average_total_time / 100) / 10),
+      data: metrics.map((m) => Math.floor(m.average_total_time * 10) / 10),
       //color: "#FF4560",
     },
   ];

@@ -31,10 +31,10 @@ type GuildEntitlement struct {
 }
 
 type GuildEntitlementFeatures struct {
-	MonthlyCpuTimeLimit    time.Duration
-	MonthlyCpuTimeAdditive bool
+	MonthlyExecutionTimeLimit    time.Duration
+	MonthlyExecutionTimeAdditive bool
 }
 
 type GuildEntitlementResolved struct {
-	MonthlyCpuTimeLimit int
+	MonthlyExecutionTimeLimit time.Duration
 }
