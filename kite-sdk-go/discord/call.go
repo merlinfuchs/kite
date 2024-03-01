@@ -164,8 +164,6 @@ func ThreadMemberList(args distype.ThreadMemberListRequest, opts ...call.CallOpt
 	)
 }
 
-// --- implementation done up to here ---
-
 func ThreadListPublicArchived(args distype.ThreadListPublicArchivedRequest, opts ...call.CallOption) (distype.ThreadListPublicArchivedResponse, error) {
 	return internal.CallWithResponse[distype.ThreadListPublicArchivedResponse](
 		call.DiscordThreadListPublicArchived, opts,
@@ -173,14 +171,14 @@ func ThreadListPublicArchived(args distype.ThreadListPublicArchivedRequest, opts
 	)
 }
 
-func ThreadListPrivateArchivedCall(args distype.ThreadListPrivateArchivedRequest, opts ...call.CallOption) (distype.ThreadListPrivateArchivedResponse, error) {
+func ThreadListPrivateArchived(args distype.ThreadListPrivateArchivedRequest, opts ...call.CallOption) (distype.ThreadListPrivateArchivedResponse, error) {
 	return internal.CallWithResponse[distype.ThreadListPrivateArchivedResponse](
 		call.DiscordThreadListPrivateArchived, opts,
 		args,
 	)
 }
 
-func ThreadListJoinedPrivateArchivedCall(args distype.ThreadListJoinedPrivateArchivedRequest, opts ...call.CallOption) (distype.ThreadListJoinedPrivateArchivedResponse, error) {
+func ThreadListJoinedPrivateArchived(args distype.ThreadListJoinedPrivateArchivedRequest, opts ...call.CallOption) (distype.ThreadListJoinedPrivateArchivedResponse, error) {
 	return internal.CallWithResponse[distype.ThreadListJoinedPrivateArchivedResponse](
 		call.DiscordThreadListJoinedPrivateArchived, opts,
 		args,
