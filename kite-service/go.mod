@@ -18,7 +18,7 @@ require (
 	github.com/knadh/koanf/providers/rawbytes v0.1.0
 	github.com/knadh/koanf/v2 v2.0.1
 	github.com/lib/pq v1.10.9
-	github.com/merlinfuchs/dismod v0.0.0-20240228130601-b5c47b956499
+	github.com/merlinfuchs/dismod v0.0.0-20240302190730-862e6dd22534
 	github.com/merlinfuchs/kite/kite-sdk-go v0.0.0
 	github.com/oklog/ulid/v2 v2.1.0
 	github.com/pelletier/go-toml v1.9.5
