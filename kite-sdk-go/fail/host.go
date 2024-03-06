@@ -13,6 +13,7 @@ const (
 	HostErrorTypeCanceled               HostErrorType = 2
 	HostErrorTypeUnimplemented          HostErrorType = 3
 	HostErrorTypeValidationFailed       HostErrorType = 4
+	HostErrorTypeGuildAccessMissing     HostErrorType = 5
 	HostErrorTypeDiscordUnknown         HostErrorType = 100
 	HostErrorTypeDiscordGuildNotFound   HostErrorType = 101
 	HostErrorTypeDiscordChannelNotFound HostErrorType = 102

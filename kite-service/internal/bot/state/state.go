@@ -63,6 +63,7 @@ func (s *BotState) Update(_ int, t distype.EventType, e any) {
 		guildChannels := make([]distype.Snowflake, len(e.Channels))
 
 		for i, channel := range e.Channels {
+			channel.GuildID = &e.ID
 			s.channels[channel.ID] = channel
 			guildChannels[i] = channel.ID
 		}

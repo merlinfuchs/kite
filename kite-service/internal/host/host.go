@@ -9,6 +9,7 @@ import (
 	"github.com/merlinfuchs/dismod/disrest"
 	"github.com/merlinfuchs/dismod/distype"
 	"github.com/merlinfuchs/kite/kite-sdk-go/call"
+	"github.com/merlinfuchs/kite/kite-sdk-go/fail"
 	"github.com/merlinfuchs/kite/kite-sdk-go/kv"
 	"github.com/merlinfuchs/kite/kite-sdk-go/manifest"
 	"github.com/merlinfuchs/kite/kite-service/internal/logging/logattr"
@@ -68,6 +69,33 @@ func (h HostEnvironment) Call(ctx context.Context, req call.Call) (res interface
 	defer cancel()
 
 	startTime := time.Now()
+	defer func() {
+		mCtx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+		defer cancel()
+		mErr := h.deploymentMetrics.CreateDeploymentMetricEntry(mCtx, model.DeploymentMetricEntry{
+			DeploymentID:  h.DeploymentID,
+			Type:          model.DeploymentMetricEntryTypeCallExecuted,
+			CallType:      string(req.Type),
+			CallSuccess:   err == nil,
+			CallTotalTime: time.Since(startTime),
+			Timestamp:     time.Now().UTC(),
+		})
+		if mErr != nil {
+			slog.With(logattr.Error(mErr)).Error("Error creating deployment metric entry for action")
+		}
+	}()
+
+	guildID, err := h.guildIDForCall(ctx, req)
+	if err != nil {
+		return nil, modelError(err)
+	}
+
+	if guildID != "" && guildID != distype.Snowflake(h.GuildID) {
+		return nil, &fail.HostError{
+			Code:    fail.HostErrorTypeGuildAccessMissing,
+			Message: fmt.Sprintf("guild mismatch: %s != %s", guildID, h.GuildID),
+		}
+	}
 
 	switch req.Type {
 	case call.Sleep:
@@ -292,20 +320,6 @@ func (h HostEnvironment) Call(ctx context.Context, req call.Call) (res interface
 		res, err = h.callDiscordWebhookExecute(ctx, req.Data.(distype.WebhookExecuteRequest))
 	default:
 		return nil, fmt.Errorf("unknown call type: %s", req.Type)
-	}
-
-	mCtx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
-	defer cancel()
-	mErr := h.deploymentMetrics.CreateDeploymentMetricEntry(mCtx, model.DeploymentMetricEntry{
-		DeploymentID:  h.DeploymentID,
-		Type:          model.DeploymentMetricEntryTypeCallExecuted,
-		CallType:      string(req.Type),
-		CallSuccess:   err == nil,
-		CallTotalTime: time.Since(startTime),
-		Timestamp:     time.Now().UTC(),
-	})
-	if mErr != nil {
-		slog.With(logattr.Error(mErr)).Error("Error creating deployment metric entry for action")
 	}
 
 	if err != nil {
