@@ -30,6 +30,7 @@ export default function GuildMetricsEvents({ guildId, deploymentId }: Props) {
       x: {
         format: "dd/MM/yy HH:mm",
       },
+      theme: "dark",
     },
     chart: {
       foreColor: "#6B737F",
@@ -38,18 +39,24 @@ export default function GuildMetricsEvents({ guildId, deploymentId }: Props) {
         show: false,
       },
     },
+    legend: {
+      offsetY: 10,
+      itemMargin: {
+        vertical: 5,
+      },
+    },
   };
 
   const series: ApexAxisChartSeries | ApexNonAxisChartSeries = [
     {
       name: "Events Failed",
       data: metrics.map((m) => m.total_count - m.success_count),
-      color: "#FF4560",
+      color: "hsl(var(--destructive))",
     },
     {
       name: "Events Handled",
       data: metrics.map((m) => m.success_count),
-      color: "#00E396",
+      color: "hsl(var(--primary))",
     },
   ];
 
@@ -57,7 +64,7 @@ export default function GuildMetricsEvents({ guildId, deploymentId }: Props) {
     <Chart
       options={options}
       series={series}
-      type="area"
+      type="bar"
       width="100%"
       height={300}
     />

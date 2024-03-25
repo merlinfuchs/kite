@@ -1,12 +1,14 @@
 import { useDeploymentDeleteMutation } from "@/lib/api/mutations";
 import { useDeploymentsQuery } from "@/lib/api/queries";
 import AutoAnimate from "../AutoAnimate";
-import toast from "react-hot-toast";
+import { toast } from "sonner";
 import clsx from "clsx";
 import AppDeploymentListEntry from "./AppDeploymentListEntry";
-import AppIllustrationPlaceholder from "./AppIllustrationPlaceholder";
 import { useState } from "react";
-import ModalConfirm from "../ModalConfirm";
+import ConfirmDialog from "../ConfirmDialog";
+import AppGuildPageEmpty from "./AppGuildPageEmpty";
+import { Button } from "../ui/button";
+import Link from "next/link";
 
 export default function AppDeploymentList({ guildId }: { guildId: string }) {
   const { data: resp } = useDeploymentsQuery(guildId);
@@ -37,8 +39,8 @@ export default function AppDeploymentList({ guildId }: { guildId: string }) {
   }
 
   return (
-    <div>
-      <ModalConfirm
+    <div className="flex flex-col flex-1">
+      <ConfirmDialog
         open={!!deleteDeploymentId}
         onCancel={() => setDeleteDeploymentId(null)}
         onConfirm={deleteDeployment}
@@ -64,10 +66,16 @@ export default function AppDeploymentList({ guildId }: { guildId: string }) {
         </AutoAnimate>
       </div>
       {deployments.length === 0 && (
-        <AppIllustrationPlaceholder
-          svgPath="/illustrations/deploy.svg"
-          title="Make your first deployment by creating a workspace or deploying a plugin from the marketplace!"
-          className="mt-10"
+        <AppGuildPageEmpty
+          title="There are no deployments"
+          description="You can start by creating a workspace and then deploying from that."
+          action={
+            <Button asChild>
+              <Link href={`/app/guilds/${guildId}/workspaces`}>
+                Create Workspace
+              </Link>
+            </Button>
+          }
         />
       )}
     </div>

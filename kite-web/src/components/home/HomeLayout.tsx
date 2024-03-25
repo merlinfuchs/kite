@@ -10,10 +10,9 @@ interface Props {
 
 export default function AppLayout({ children, title }: Props) {
   return (
-    <div>
-      <HomeNavbar />
-      <BaseLayout title={title}>{children}</BaseLayout>
+    <BaseLayout title={title}>
+      {children}
       <HomeFooter />
-    </div>
+    </BaseLayout>
   );
 }

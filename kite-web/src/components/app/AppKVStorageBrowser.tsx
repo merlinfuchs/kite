@@ -4,6 +4,15 @@ import {
 } from "@/lib/api/queries";
 import { useState } from "react";
 import AppIllustrationPlaceholder from "./AppIllustrationPlaceholder";
+import { Card, CardContent } from "../ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../ui/select";
+import AppGuildPageEmpty from "./AppGuildPageEmpty";
 
 export default function KVStorageBrowser({ guildId }: { guildId: string }) {
   const [namespace, setNamespace] = useState<string>("default");
@@ -16,11 +25,9 @@ export default function KVStorageBrowser({ guildId }: { guildId: string }) {
 
   if (namespaces.length === 0) {
     return (
-      <AppIllustrationPlaceholder
-        svgPath="/illustrations/empty.svg"
-        title="There is nothing here yet! Once you have a plugin that is using the
-        KV storage, you will be able to see it here."
-        className="mt-10 lg:mt-20"
+      <AppGuildPageEmpty
+        title="There are no values yet"
+        description="You can store values in the KV from your plugin code."
       />
     );
   }
@@ -29,39 +36,48 @@ export default function KVStorageBrowser({ guildId }: { guildId: string }) {
     <div>
       <div className="flex justify-between mb-3">
         <div>
-          <select className="px-3 py-2 rounded bg-dark-1 min-w-64 text-gray-300">
-            {namespaces.map((ns) => (
-              <option key={ns.namespace} value={ns.namespace}>
-                {ns.namespace}
-              </option>
-            ))}
-          </select>
+          <Select value={namespace} onValueChange={(v) => setNamespace(v)}>
+            <SelectTrigger className="min-w-48">
+              <SelectValue placeholder="Namespace"></SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              {namespaces.map((ns) => (
+                <SelectItem key={ns.namespace} value={ns.namespace}>
+                  {ns.namespace}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
       </div>
-      <div className="bg-dark-2 p-5 rounded-md">
-        {keys.length === 0 ? (
-          <div className="text-gray-400">There isn't any data here yet ...</div>
-        ) : (
-          <table className="min-w-full divide-y divide-gray-500">
-            <thead className="text-gray-100 font-medium text-left">
-              <tr>
-                <th className="p-2">Key</th>
-                <th className="p-2">Value</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-600">
-              {keys.map((key) => (
-                <tr key={key.key} className="divide-x divide-gray-600">
-                  <td className="text-gray-100 p-2">{key.key}</td>
-                  <td className="text-gray-300 p-2">
-                    {JSON.stringify(key.value)}
-                  </td>
+      <Card>
+        <CardContent>
+          {keys.length === 0 ? (
+            <div className="text-gray-400">
+              There isn't any data here yet ...
+            </div>
+          ) : (
+            <table className="min-w-full divide-y divide-gray-500">
+              <thead className="text-gray-100 font-medium text-left">
+                <tr>
+                  <th className="p-2">Key</th>
+                  <th className="p-2">Value</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </div>
+              </thead>
+              <tbody className="divide-y divide-gray-600">
+                {keys.map((key) => (
+                  <tr key={key.key} className="divide-x divide-gray-600">
+                    <td className="text-gray-100 p-2">{key.key}</td>
+                    <td className="text-gray-300 p-2">
+                      {JSON.stringify(key.value)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

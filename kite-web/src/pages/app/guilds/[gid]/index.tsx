@@ -4,6 +4,13 @@ import { guildIconUrl } from "@/lib/discord/cdn";
 import { guildNameAbbreviation } from "@/lib/discord/util";
 import { useRouteParams } from "@/hooks/route";
 import dynamic from "next/dynamic";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 
 const AppDeploymentMetricsEvents = dynamic(
   () => import("@/components/app/AppDeploymentMetricsEvents"),
@@ -89,29 +96,53 @@ export default function GuildPage() {
           <AppGuildUsageSummary guildId={guildId} />
         </div>
       </div>
-      <div className="bg-dark-2 px-1 py-2 rounded-md mb-5">
-        <div className="text-gray-100 font-bold text-2xl mb-5 mx-5 mt-3">
-          Events Handled
-        </div>
-        <AppDeploymentMetricsEvents guildId={guildId} />
-      </div>
-      <div className="bg-dark-2 px-1 py-2 rounded-md mb-5">
-        <div className="text-gray-100 font-bold text-2xl mb-5 mx-5 mt-3">
-          Actions Taken
-        </div>
-        <AppDeploymentMetricsCalls guildId={guildId} />
-      </div>
-      <div className="bg-dark-2 px-1 py-2 rounded-md mb-5">
-        <div className="text-gray-100 font-bold text-2xl mb-5 mx-5 mt-3">
-          Average Total Time
-        </div>
-        <AppDeploymentMetricsTotalTime guildId={guildId} />
-      </div>
-      <div className="bg-dark-2 px-1 py-2 rounded-md">
-        <div className="text-gray-100 font-bold text-2xl mb-5 mx-5 mt-3">
-          Average CPU Time
-        </div>
-        <AppDeploymentMetricsExecutionTime guildId={guildId} />
+      <div className="space-y-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>Events Handled</CardTitle>
+            <CardDescription>
+              Events that have been handled by deployments on this server.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <AppDeploymentMetricsEvents guildId={guildId} />
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle>Actions Taken</CardTitle>
+            <CardDescription>
+              Actions takens by deployments on this server.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <AppDeploymentMetricsCalls guildId={guildId} />
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle>Average Total Time</CardTitle>
+            <CardDescription>
+              Average time spent by deployments on this server to process events
+              including waiting for actions to finish.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <AppDeploymentMetricsTotalTime guildId={guildId} />
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle>Average Execution Time</CardTitle>
+            <CardDescription>
+              Average time spent by deployments on this server to execute code
+              excluding waiting for actions to finish.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <AppDeploymentMetricsExecutionTime guildId={guildId} />
+          </CardContent>
+        </Card>
       </div>
     </AppGuildLayout>
   );

@@ -15,6 +15,7 @@ import { useEffect, useState } from "react";
 import { useRouteParams } from "@/hooks/route";
 import Flow from "@/components/flow/Flow";
 import { bundleFlowFiles } from "@/lib/flow/bundle";
+import BaseLayout from "@/components/BaseLayout";
 
 export default function GuildWorkspacePage() {
   const router = useRouter();
@@ -138,23 +139,25 @@ export default function GuildWorkspacePage() {
 
   if (workspace.type === "FLOW") {
     return (
-      <Flow
-        files={workspace.files}
-        openFilePath="default.flow"
-        setOpenFilePath={() => {}}
-        isSaving={isSaving}
-        isDeploying={isDeploying}
-        hasUnsavedChanges={hasUnsavedChanges}
-        onChange={() => setHasUnsavedChanges(true)}
-        onDeploy={onDeploy}
-        onSave={onSave}
-        onExit={() => router.push(`/app/guilds/${guildId}/workspaces`)}
-      />
+      <BaseLayout>
+        <Flow
+          files={workspace.files}
+          openFilePath="default.flow"
+          setOpenFilePath={() => {}}
+          isSaving={isSaving}
+          isDeploying={isDeploying}
+          hasUnsavedChanges={hasUnsavedChanges}
+          onChange={() => setHasUnsavedChanges(true)}
+          onDeploy={onDeploy}
+          onSave={onSave}
+          onExit={() => router.push(`/app/guilds/${guildId}/workspaces`)}
+        />
+      </BaseLayout>
     );
   }
 
   return (
-    <div>
+    <BaseLayout>
       <Code
         files={workspace.files}
         openFilePath={openFilePath}
@@ -167,6 +170,6 @@ export default function GuildWorkspacePage() {
         isDeploying={isDeploying}
         onDeploy={onDeploy}
       />
-    </div>
+    </BaseLayout>
   );
 }

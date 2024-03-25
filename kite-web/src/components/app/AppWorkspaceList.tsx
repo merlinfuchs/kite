@@ -2,12 +2,14 @@ import { useWorkspaceDeleteMutation } from "@/lib/api/mutations";
 import { useWorkspacesQuery } from "@/lib/api/queries";
 import Link from "next/link";
 import AutoAnimate from "../AutoAnimate";
-import toast from "react-hot-toast";
+import { toast } from "sonner";
 import clsx from "clsx";
-import AppIllustrationPlaceholder from "./AppIllustrationPlaceholder";
-import AppWorkspaceCreateModal from "./AppWorkspaceCreateModal";
+import AppWorkspaceCreateDialog from "./AppWorkspaceCreateDialog";
 import { useState } from "react";
-import ModalConfirm from "@/components/ModalConfirm";
+import ConfirmDialog from "@/components/ConfirmDialog";
+import { Card, CardDescription, CardHeader, CardTitle } from "../ui/card";
+import { Button } from "../ui/button";
+import AppGuildPageEmpty from "./AppGuildPageEmpty";
 
 export default function AppWorkspaceList({ guildId }: { guildId: string }) {
   const { data: resp } = useWorkspacesQuery(guildId);
@@ -17,7 +19,6 @@ export default function AppWorkspaceList({ guildId }: { guildId: string }) {
   const [deleteWorkspaceId, setDeleteWorkspaceId] = useState<string | null>(
     null
   );
-  const [createModalOpen, setCreateModalOpen] = useState(false);
 
   const deleteMutation = useWorkspaceDeleteMutation(guildId);
 
@@ -39,13 +40,8 @@ export default function AppWorkspaceList({ guildId }: { guildId: string }) {
   }
 
   return (
-    <div>
-      <AppWorkspaceCreateModal
-        open={createModalOpen}
-        setOpen={setCreateModalOpen}
-        guildId={guildId}
-      />
-      <ModalConfirm
+    <div className="flex flex-col flex-1">
+      <ConfirmDialog
         open={!!deleteWorkspaceId}
         onConfirm={deleteWorkspace}
         onCancel={() => setDeleteWorkspaceId(null)}
@@ -61,49 +57,41 @@ export default function AppWorkspaceList({ guildId }: { guildId: string }) {
           )}
         >
           {workspaces.map((w) => (
-            <div className="bg-dark-2 px-5 py-4 rounded-md" key={w.id}>
-              <div className="flex">
-                <div className="flex-auto">
-                  <div className="text-gray-100 text-lg font-medium mb-1">
-                    {w.name}
-                  </div>
-                  <div className="font-light text-gray-300">
-                    {w.description}
-                  </div>
-                </div>
-                <div className="flex-none flex space-x-3 items-start">
-                  <button
-                    className="px-3 py-2 bg-dark-4 hover:bg-dark-5 text-gray-100 rounded select-none"
+            <Card key={w.id}>
+              <div className="flex flex-col md:flex-row justify-between">
+                <CardHeader>
+                  <CardTitle>{w.name}</CardTitle>
+                  <CardDescription>{w.description}</CardDescription>
+                </CardHeader>
+                <div className="flex-none flex space-x-3 px-6 pb-6 md:pt-6">
+                  <Button
+                    variant="outline"
                     onClick={() => setDeleteWorkspaceId(w.id)}
                   >
                     Delete
-                  </button>
-                  <Link
-                    className="px-3 py-2 bg-dark-4 hover:bg-dark-5 text-gray-100 rounded select-none"
-                    href={`/app/guilds/${guildId}/workspaces/${w.id}`}
-                  >
-                    Open Editor
-                  </Link>
+                  </Button>
+                  <Button asChild variant="secondary">
+                    <Link href={`/app/guilds/${guildId}/workspaces/${w.id}`}>
+                      Open Editor
+                    </Link>
+                  </Button>
                 </div>
               </div>
-            </div>
+            </Card>
           ))}
         </AutoAnimate>
-        <div className="flex space-x-3">
-          <button
-            className="px-4 py-2 text-gray-100 rounded border-2 border-dark-9 hover:bg-dark-5 text-lg"
-            onClick={() => setCreateModalOpen(true)}
-          >
-            New Workspace
-          </button>
-        </div>
       </div>
-      {workspaces.length === 0 && (
-        <AppIllustrationPlaceholder
-          svgPath="/illustrations/software_engineer.svg"
-          title="Create you first workspace and get coding without worrying about the boring stuff!"
-          className="mt-10"
+
+      {workspaces.length === 0 ? (
+        <AppGuildPageEmpty
+          title="There are no workspaces"
+          description="Create a new workspace to start building your plugin."
+          action={<AppWorkspaceCreateDialog guildId={guildId} />}
         />
+      ) : (
+        <div>
+          <AppWorkspaceCreateDialog guildId={guildId} />
+        </div>
       )}
     </div>
   );

@@ -35,10 +35,6 @@ func (m *DeploymentManager) populateEngineDeployments(ctx context.Context) error
 		deployments := make([]*engine.Deployment, len(rows))
 		manifests := make([]manifest.Manifest, len(rows))
 		for i, row := range rows {
-			for _, command := range row.Manifest.DiscordApplicationCommands() {
-				fmt.Println(command.Name)
-			}
-
 			manifests[i] = row.Manifest
 
 			config := deploymentConfigFromLimits(m.limits, m.compilationCache)

@@ -16,6 +16,7 @@ export default function GuildMetricsTiming({ guildId, deploymentId }: Props) {
   const metrics = metricsResp?.success ? metricsResp.data : [];
 
   const options: ApexOptions = {
+    colors: ["hsl(var(--primary))"],
     dataLabels: {
       enabled: false,
     },
@@ -30,6 +31,7 @@ export default function GuildMetricsTiming({ guildId, deploymentId }: Props) {
       x: {
         format: "dd/MM/yy HH:mm",
       },
+      theme: "dark",
     },
     chart: {
       foreColor: "#6B737F",
@@ -61,6 +63,12 @@ export default function GuildMetricsTiming({ guildId, deploymentId }: Props) {
         },
       ],
     },
+    legend: {
+      offsetY: 10,
+      itemMargin: {
+        vertical: 5,
+      },
+    },
   };
 
   const series: ApexAxisChartSeries | ApexNonAxisChartSeries = [
@@ -75,7 +83,7 @@ export default function GuildMetricsTiming({ guildId, deploymentId }: Props) {
     <Chart
       options={options}
       series={series}
-      type="area"
+      type="bar"
       width="100%"
       height={300}
     />

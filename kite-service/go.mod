@@ -10,7 +10,7 @@ require (
 	github.com/go-playground/validator/v10 v10.16.0
 	github.com/gofiber/fiber/v2 v2.52.0
 	github.com/golang-migrate/migrate/v4 v4.17.0
-	github.com/hashicorp/golang-lru/v2 v2.0.7
+	github.com/hashicorp/golang-lru/v2 v2.0.8-0.20240110161548-d582c4537033
 	github.com/jackc/pgx/v5 v5.5.3
 	github.com/jolestar/go-commons-pool/v2 v2.1.2
 	github.com/knadh/koanf/parsers/toml v0.1.0

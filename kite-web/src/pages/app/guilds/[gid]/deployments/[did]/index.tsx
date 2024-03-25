@@ -3,6 +3,13 @@ import AppDeploymentLogs from "@/components/app/AppDeploymentLogs";
 import { useRouteParams } from "@/hooks/route";
 import { useDeploymentQuery } from "@/lib/api/queries";
 import dynamic from "next/dynamic";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 
 const AppDeploymentMetricsEvents = dynamic(
   () => import("@/components/app/AppDeploymentMetricsEvents"),
@@ -63,47 +70,81 @@ export default function GuildDeploymentPage() {
           </div>
         </div>
       </div>
-      <div className="bg-dark-2 p-3 rounded-md mb-5">
-        <div className="text-gray-100 font-bold text-2xl mb-5 mx-2">Logs</div>
-        <div className="bg-dark-1 p-3 rounded-md h-64 overflow-y-auto space-y-2">
-          <AppDeploymentLogs guildId={guildId} deploymentId={deploymentId} />
-        </div>
-      </div>
-      <div className="bg-dark-2 px-1 py-2 rounded-md mb-5">
-        <div className="text-gray-100 font-bold text-2xl mb-5 mx-5 mt-3">
-          Events Handled
-        </div>
-        <AppDeploymentMetricsEvents
-          guildId={guildId}
-          deploymentId={deploymentId}
-        />
-      </div>
-      <div className="bg-dark-2 px-1 py-2 rounded-md mb-5">
-        <div className="text-gray-100 font-bold text-2xl mb-5 mx-5 mt-3">
-          Actions Taken
-        </div>
-        <AppDeploymentMetricsCalls
-          guildId={guildId}
-          deploymentId={deploymentId}
-        />
-      </div>
-      <div className="bg-dark-2 px-1 py-2 rounded-md mb-5">
-        <div className="text-gray-100 font-bold text-2xl mb-5 mx-5 mt-3">
-          Average Total Time
-        </div>
-        <AppDeploymentMetricsTotalTime
-          guildId={guildId}
-          deploymentId={deploymentId}
-        />
-      </div>
-      <div className="bg-dark-2 px-1 py-2 rounded-md">
-        <div className="text-gray-100 font-bold text-2xl mb-5 mx-5 mt-3">
-          Average CPU Time
-        </div>
-        <AppDeploymentMetricsExecutionTime
-          guildId={guildId}
-          deploymentId={deploymentId}
-        />
+      <div className="space-y-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>Logs</CardTitle>
+            <CardDescription>
+              Log messages and errors for this deployment.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="p-3 h-64 overflow-y-auto space-y-2">
+              <AppDeploymentLogs
+                guildId={guildId}
+                deploymentId={deploymentId}
+              />
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle>Events Handled</CardTitle>
+            <CardDescription>
+              Events that have been handled by this deployment.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <AppDeploymentMetricsEvents
+              guildId={guildId}
+              deploymentId={deploymentId}
+            />
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle>Actions Taken</CardTitle>
+            <CardDescription>
+              Actions that have been taken by this deployment.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <AppDeploymentMetricsCalls
+              guildId={guildId}
+              deploymentId={deploymentId}
+            />
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle>Actions Taken</CardTitle>
+            <CardDescription>
+              Average time spent by this deployment to process events including
+              waiting for actions to finish.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <AppDeploymentMetricsTotalTime
+              guildId={guildId}
+              deploymentId={deploymentId}
+            />
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle>Average Execution Time</CardTitle>
+            <CardDescription>
+              Average time spent by this deployment to execute code excluding
+              waiting for actions to finish.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <AppDeploymentMetricsExecutionTime
+              guildId={guildId}
+              deploymentId={deploymentId}
+            />
+          </CardContent>
+        </Card>
       </div>
     </AppGuildLayout>
   );

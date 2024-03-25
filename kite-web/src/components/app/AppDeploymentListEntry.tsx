@@ -9,6 +9,14 @@ interface Props {
 }
 
 import dynamic from "next/dynamic";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "../ui/card";
+import { Button } from "../ui/button";
 
 const DeploymentMetricsEvents = dynamic(
   () => import("./AppDeploymentMetricsEvents"),
@@ -23,40 +31,38 @@ export default function AppDeploymentListEntry({
   onDelete,
 }: Props) {
   return (
-    <div className="bg-dark-2 p-5 rounded-md">
-      <div className="flex mb-6">
-        <div className="flex-auto">
-          <div className="text-gray-100 text-lg font-medium mb-1">
-            {deployment.name}
-          </div>
-          <div className="font-light text-gray-300">
-            {deployment.description}
-          </div>
-        </div>
-        <div className="flex-none flex space-x-3 items-start">
-          <button
-            className="px-3 py-2 bg-dark-4 hover:bg-dark-5 text-gray-100 rounded"
-            onClick={onDelete}
-          >
+    <Card>
+      <div className="flex flex-col md:flex-row justify-between">
+        <CardHeader className="flex justify-between">
+          <CardTitle>{deployment.name}</CardTitle>
+          <CardDescription>{deployment.description}</CardDescription>
+        </CardHeader>
+        <div className="flex-none flex space-x-3 px-6 md:py-6">
+          <Button variant="outline" onClick={onDelete}>
             Delete
-          </button>
-          <Link
-            className="px-3 py-2 bg-dark-4 hover:bg-dark-5 text-gray-100 rounded"
-            href={`/app/guilds/${guildId}/deployments/${deployment.id}`}
-          >
-            View Details
-          </Link>
+          </Button>
+          <Button asChild variant="secondary">
+            <Link href={`/app/guilds/${guildId}/deployments/${deployment.id}`}>
+              View Details
+            </Link>
+          </Button>
         </div>
       </div>
-      <div className="bg-dark-1 rounded-md flex flex-col px-1 py-2 space-y-1 mb-5">
-        <DeploymentMetricsEvents
-          guildId={guildId}
-          deploymentId={deployment.id}
-        />
-      </div>
-      <div>
-        <DeploymentLogSummary guildId={guildId} deploymentId={deployment.id} />
-      </div>
-    </div>
+      <div className="flex mb-6"></div>
+      <CardContent>
+        <div className="mb-6">
+          <DeploymentMetricsEvents
+            guildId={guildId}
+            deploymentId={deployment.id}
+          />
+        </div>
+        <div>
+          <DeploymentLogSummary
+            guildId={guildId}
+            deploymentId={deployment.id}
+          />
+        </div>
+      </CardContent>
+    </Card>
   );
 }
