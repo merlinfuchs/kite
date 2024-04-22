@@ -60,7 +60,7 @@ export default function FlowNav({
   }, [onSave]);
 
   return (
-    <div className="h-12 bg-dark-2 flex items-center space-x-8 px-4 select-none">
+    <div className="h-12 bg-background flex items-center space-x-8 px-4 select-none">
       <button
         className="flex space-x-2 text-gray-300 hover:text-white items-center"
         onClick={onExit}

@@ -22,7 +22,7 @@ export default function FlowNodeBase(props: Props) {
 
   return (
     <div
-      className="pl-2.5 pr-4 py-2.5 shadow-md rounded bg-dark-3 border-dark-3 border-2 relative max-w-sm min-w-32 cursor-grab"
+      className="pl-2.5 pr-4 py-2.5 shadow-md rounded bg-muted border-dark-3 border-2 relative max-w-sm min-w-32 cursor-grab"
       style={{
         borderColor: props.selected
           ? primaryColor

@@ -17,11 +17,12 @@ import (
 )
 
 type Deployment struct {
-	ID       string
-	wasm     []byte
-	manifest manifest.Manifest
-	config   DeploymentConfig
-	env      module.HostEnvironment
+	ID           string
+	wasm         []byte
+	manifest     manifest.Manifest
+	config       DeploymentConfig
+	env          module.HostEnvironment
+	eventHandled bool
 
 	pluginPool *pool.ObjectPool
 }
@@ -118,7 +119,9 @@ func (d *Deployment) HandleEvent(ctx context.Context, event *event.Event) error 
 
 	fmt.Println("Execution duration: ", res.ExecutionDuration)
 
+	// TODO: track cold starts and warm starts based on if this is the first time the deployment is being used
 	d.env.TrackEventHandled(ctx, string(event.Type), err == nil, res.TotalDuration, res.ExecutionDuration)
+	d.eventHandled = true
 
 	if err != nil {
 		slog.With(logattr.Error(err)).Error("failed to handle event")

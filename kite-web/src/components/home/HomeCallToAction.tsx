@@ -1,8 +1,9 @@
 import Link from "next/link";
+import { Button } from "../ui/button";
 
 export default function HomeCallToAction() {
   return (
-    <div className="max-w-7xl mx-auto rounded-xl bg-primary saturate-80 relative px-10 py-12 lg:px-20 flex items-center">
+    <div className="max-w-7xl mx-auto rounded-xl bg-secondary saturate-80 relative px-10 py-12 lg:px-20 flex items-center">
       <img
         src="/illustrations/firmware.svg"
         alt=""
@@ -18,12 +19,9 @@ export default function HomeCallToAction() {
           from the power of WebAssembly?
         </div>
         <div className="flex">
-          <Link
-            href="/app"
-            className="px-5 py-3 bg-dark-3 hover:bg-dark-2 rounded-xl text-white"
-          >
-            Join the Beta
-          </Link>
+          <Button asChild size="lg">
+            <Link href="/app">Join the Beta</Link>
+          </Button>
         </div>
       </div>
     </div>

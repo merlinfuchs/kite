@@ -23,7 +23,7 @@ import {
 } from "./data";
 import { ZodSchema } from "zod";
 
-export const primaryColor = "#5457f0";
+export const primaryColor = "#EA580C";
 
 export const actionColor = "#3b82f6";
 export const entryColor = "#eab308";

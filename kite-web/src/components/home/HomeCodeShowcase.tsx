@@ -68,16 +68,16 @@ export default function HomeCodeShowcase() {
 
   return (
     <div className="flex flex-col gap-10">
-      <div className="w-[700px] h-[600px] bg-dark-2 mx-auto rounded-xl p-3 overflow-hidden">
+      <div className="w-[700px] h-[600px] bg-secondary mx-auto rounded-xl p-3 overflow-hidden">
         {language.exampleCode ? (
           <div className="flex flex-col space-y-3 h-full">
-            <div className="overflow-y-auto px-4 py-3 bg-dark-3 rounded-lg flex-auto">
+            <div className="overflow-y-auto px-4 py-3 bg-card rounded-lg flex-auto">
               <CodeHiglight
                 code={language.exampleCode!}
                 language={selectedLanguage}
               ></CodeHiglight>
             </div>
-            <div className="flex-none h-32 bg-dark-1 px-4 py-3 rounded-lg font-mono space-y-3">
+            <div className="flex-none h-32 bg-card px-4 py-3 rounded-lg font-mono space-y-3">
               <div className="flex space-x-2 items-center text-gray-400">
                 <div>{"> kite plugin init --type " + selectedLanguage}</div>
               </div>
@@ -128,8 +128,8 @@ function SupportedLanguage({
   return (
     <div
       className={clsx(
-        "rounded-xl flex items-center justify-center h-20 w-20 cursor-pointer transition-all",
-        selected ? "bg-dark-1 scale-110" : "bg-dark-2"
+        "rounded-xl flex items-center justify-center h-20 w-20 cursor-pointer transition-all bg-secondary",
+        selected && "scale-110"
       )}
       aria-label={name}
       onClick={onClick}
