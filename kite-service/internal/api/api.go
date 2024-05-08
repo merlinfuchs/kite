@@ -9,10 +9,10 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/fiber/v2/middleware/recover"
 	"github.com/merlinfuchs/kite/kite-service/internal/api/access"
+	"github.com/merlinfuchs/kite/kite-service/internal/api/handler/app"
 	"github.com/merlinfuchs/kite/kite-service/internal/api/handler/auth"
 	"github.com/merlinfuchs/kite/kite-service/internal/api/handler/compile"
 	"github.com/merlinfuchs/kite/kite-service/internal/api/handler/deployment"
-	"github.com/merlinfuchs/kite/kite-service/internal/api/handler/guild"
 	kvstorage "github.com/merlinfuchs/kite/kite-service/internal/api/handler/kv_storage"
 	quickaccess "github.com/merlinfuchs/kite/kite-service/internal/api/handler/quick_access"
 	"github.com/merlinfuchs/kite/kite-service/internal/api/handler/user"
@@ -88,40 +88,40 @@ func (api *API) RegisterHandlers(engine *engine.Engine, pg *postgres.Client, acc
 	userHandler := user.NewHandler(pg)
 	userGroup.Get("/:userID", userHandler.HandleUserGet)
 
-	guildsGroup := v1Group.Group("/guilds").Use(sessionMiddleware.SessionRequired())
-	guildGroup := guildsGroup.Group("/:guildID").Use(accessMiddleware.GuildAccessRequired())
+	appsGroup := v1Group.Group("/apps").Use(sessionMiddleware.SessionRequired())
+	appGroup := appsGroup.Group("/:appID").Use(accessMiddleware.AppAccessRequired())
 
-	guildHandler := guild.NewHandler(pg, pg, pg, accessManager)
-	guildsGroup.Get("/", guildHandler.HandleGuildList)
-	guildGroup.Get("/", guildHandler.HandleGuildGet)
-	guildGroup.Get("/usage/summary", guildHandler.HandleGuildUsageSummaryGet)
-	guildGroup.Get("/entitlements/resolved", guildHandler.HandleGuildEntitlementsResolvedGet)
+	appHandler := app.NewHandler(pg, pg, pg, accessManager)
+	appsGroup.Get("/", appHandler.HandleAppList)
+	appGroup.Get("/", appHandler.HandleAppGet)
+	appGroup.Get("/usage/summary", appHandler.HandleAppUsageSummaryGet)
+	appGroup.Get("/entitlements/resolved", appHandler.HandleAppEntitlementsResolvedGet)
 
 	deploymentHandler := deployment.NewHandler(engine, pg, pg, pg, cfg.Engine.Limits)
-	guildGroup.Get("/deployments", deploymentHandler.HandleDeploymentListForGuild)
-	guildGroup.Post("/deployments", helpers.WithRequestBody(deploymentHandler.HandleDeploymentCreate))
-	guildGroup.Get("/deployments/:deploymentID", deploymentHandler.HandleDeploymentGet)
-	guildGroup.Delete("/deployments/:deploymentID", deploymentHandler.HandleDeploymentDelete)
-	guildGroup.Get("/deployments/:deploymentID/logs", deploymentHandler.HandleDeploymentLogEntryList)
-	guildGroup.Get("/deployments/:deploymentID/logs/summary", deploymentHandler.HandleDeploymentLogSummaryGet)
-	guildGroup.Get("/deployments/:deploymentID/metrics/events", deploymentHandler.HandleDeploymentEventMetricsList)
-	guildGroup.Get("/deployments/:deploymentID/metrics/calls", deploymentHandler.HandleDeploymentCallMetricsList)
-	guildGroup.Get("/deployments/metrics/events", deploymentHandler.HandleDeploymentsEventMetricsList)
-	guildGroup.Get("/deployments/metrics/calls", deploymentHandler.HandleDeploymentsCallMetricsList)
+	appGroup.Get("/deployments", deploymentHandler.HandleDeploymentListForApp)
+	appGroup.Post("/deployments", helpers.WithRequestBody(deploymentHandler.HandleDeploymentCreate))
+	appGroup.Get("/deployments/:deploymentID", deploymentHandler.HandleDeploymentGet)
+	appGroup.Delete("/deployments/:deploymentID", deploymentHandler.HandleDeploymentDelete)
+	appGroup.Get("/deployments/:deploymentID/logs", deploymentHandler.HandleDeploymentLogEntryList)
+	appGroup.Get("/deployments/:deploymentID/logs/summary", deploymentHandler.HandleDeploymentLogSummaryGet)
+	appGroup.Get("/deployments/:deploymentID/metrics/events", deploymentHandler.HandleDeploymentEventMetricsList)
+	appGroup.Get("/deployments/:deploymentID/metrics/calls", deploymentHandler.HandleDeploymentCallMetricsList)
+	appGroup.Get("/deployments/metrics/events", deploymentHandler.HandleDeploymentsEventMetricsList)
+	appGroup.Get("/deployments/metrics/calls", deploymentHandler.HandleDeploymentsCallMetricsList)
 
 	workspaceHandler := workspace.NewHandler(pg)
-	guildGroup.Post("/workspaces", helpers.WithRequestBody(workspaceHandler.HandleWorkspaceCreate))
-	guildGroup.Put("/workspaces/:workspaceID", helpers.WithRequestBody(workspaceHandler.HandleWorkspaceUpdate))
-	guildGroup.Get("/workspaces/:workspaceID", workspaceHandler.HandleWorkspaceGetForGuild)
-	guildGroup.Get("/workspaces", workspaceHandler.HandleWorkspaceListForGuild)
-	guildGroup.Delete("/workspaces/:workspaceID", workspaceHandler.HandleWorkspaceDelete)
+	appGroup.Post("/workspaces", helpers.WithRequestBody(workspaceHandler.HandleWorkspaceCreate))
+	appGroup.Put("/workspaces/:workspaceID", helpers.WithRequestBody(workspaceHandler.HandleWorkspaceUpdate))
+	appGroup.Get("/workspaces/:workspaceID", workspaceHandler.HandleWorkspaceGet)
+	appGroup.Get("/workspaces", workspaceHandler.HandleWorkspaceListForApp)
+	appGroup.Delete("/workspaces/:workspaceID", workspaceHandler.HandleWorkspaceDelete)
 
 	kvStorageHandler := kvstorage.NewHandler(pg)
-	guildGroup.Get("/kv-storage/namespaces", kvStorageHandler.HandleKVStorageNamespaceList)
-	guildGroup.Get("/kv-storage/namespaces/:namespace/keys", kvStorageHandler.HandleKVStorageNamespaceKeyList)
+	appGroup.Get("/kv-storage/namespaces", kvStorageHandler.HandleKVStorageNamespaceList)
+	appGroup.Get("/kv-storage/namespaces/:namespace/keys", kvStorageHandler.HandleKVStorageNamespaceKeyList)
 
 	quickAccessHandler := quickaccess.NewHandler(pg)
-	guildGroup.Get("/quick-access", quickAccessHandler.HandleQuickAccessItemList)
+	appGroup.Get("/quick-access", quickAccessHandler.HandleQuickAccessItemList)
 
 	compileHandler := compile.NewHandler()
 	v1Group.Post("/compile", helpers.WithRequestBody(compileHandler.HandleCompile))

@@ -7,7 +7,6 @@ import (
 	"os"
 	"time"
 
-	"github.com/merlinfuchs/dismod/disrest"
 	"github.com/merlinfuchs/kite/kite-service/internal/config"
 	"github.com/merlinfuchs/kite/kite-service/internal/host"
 	"github.com/merlinfuchs/kite/kite-service/internal/logging/logattr"
@@ -20,7 +19,7 @@ type DeploymentManager struct {
 	store            store.DeploymentStore
 	engine           *engine.Engine
 	envStores        host.HostEnvironmentStores
-	discordClient    *disrest.Client
+	apps             store.AppProvider
 	compilationCache wazero.CompilationCache
 	limits           config.ServerEngineLimitConfig
 
@@ -31,7 +30,7 @@ func NewManager(
 	store store.DeploymentStore,
 	engine *engine.Engine,
 	envStores host.HostEnvironmentStores,
-	discordClient *disrest.Client,
+	apps store.AppProvider,
 	limits config.ServerEngineLimitConfig,
 ) (*DeploymentManager, error) {
 	compilationCache, err := wazero.NewCompilationCacheWithDir("./.wasm-compilation-cache")
@@ -44,7 +43,7 @@ func NewManager(
 		engine:           engine,
 		envStores:        envStores,
 		compilationCache: compilationCache,
-		discordClient:    discordClient,
+		apps:             apps,
 		limits:           limits,
 	}, nil
 }

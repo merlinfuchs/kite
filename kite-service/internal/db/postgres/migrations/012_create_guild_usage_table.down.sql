@@ -1,3 +1,3 @@
-DROP VIEW IF EXISTS guild_usage_month_view;
+DROP VIEW IF EXISTS app_usage_month_view;
 
-DROP TABLE IF EXISTS guild_usage;
+DROP TABLE IF EXISTS app_usage;

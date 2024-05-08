@@ -7,7 +7,7 @@ import (
 
 	"github.com/merlinfuchs/kite/kite-service/internal/api"
 	"github.com/merlinfuchs/kite/kite-service/internal/api/access"
-	"github.com/merlinfuchs/kite/kite-service/internal/bot"
+	"github.com/merlinfuchs/kite/kite-service/internal/app"
 	"github.com/merlinfuchs/kite/kite-service/internal/config"
 	"github.com/merlinfuchs/kite/kite-service/internal/db/postgres"
 	"github.com/merlinfuchs/kite/kite-service/internal/deployments"
@@ -34,27 +34,24 @@ func RunServer(cfg *config.ServerConfig) error {
 		}
 	}()
 
-	bot, err := bot.New(cfg.Discord.Token, pg)
-	if err != nil {
-		return fmt.Errorf("failed to create bot: %w", err)
-	}
+	appManager := app.NewManager(pg, pg)
 
 	e := engine.New()
 
-	envStores := host.NewHostEnvironmentStores(pg, pg, pg, pg, bot.State, bot.Client)
-	manager, err := deployments.NewManager(pg, e, envStores, bot.Client, cfg.Engine.Limits)
+	envStores := host.NewHostEnvironmentStores(pg, pg, pg, pg, appManager)
+	manager, err := deployments.NewManager(pg, e, envStores, appManager, cfg.Engine.Limits)
 	if err != nil {
 		return fmt.Errorf("failed to create deployment manager: %w", err)
 	}
 	manager.Start()
 
-	bot.Engine = e
+	appManager.Engine = e
 
-	bot.Open(context.Background())
+	go appManager.Run(context.Background())
 
 	api := api.New(cfg)
 
-	accessManager := access.New(bot.State)
+	accessManager := access.New(pg)
 	api.RegisterHandlers(e, pg, accessManager, cfg)
 
 	return api.Serve(cfg.Host, cfg.Port)

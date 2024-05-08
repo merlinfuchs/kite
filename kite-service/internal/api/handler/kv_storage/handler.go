@@ -17,9 +17,9 @@ func NewHandler(kvStorage store.KVStorageStore) *KVStorageHandler {
 }
 
 func (h *KVStorageHandler) HandleKVStorageNamespaceList(c *fiber.Ctx) error {
-	guildID := c.Params("guildID")
+	appID := c.Params("appID")
 
-	namespaces, err := h.kvStorage.GetKVStorageNamespaces(c.Context(), guildID)
+	namespaces, err := h.kvStorage.GetKVStorageNamespaces(c.Context(), appID)
 	if err != nil {
 		return err
 	}
@@ -36,10 +36,10 @@ func (h *KVStorageHandler) HandleKVStorageNamespaceList(c *fiber.Ctx) error {
 }
 
 func (h *KVStorageHandler) HandleKVStorageNamespaceKeyList(c *fiber.Ctx) error {
-	guildID := c.Params("guildID")
+	appID := c.Params("appID")
 	namespace := c.Params("namespace")
 
-	values, err := h.kvStorage.GetKVStorageKeys(c.Context(), guildID, namespace)
+	values, err := h.kvStorage.GetKVStorageKeys(c.Context(), appID, namespace)
 	if err != nil {
 		return err
 	}

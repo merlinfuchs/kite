@@ -8,12 +8,85 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+type App struct {
+	ID                  string
+	OwnerUserID         string
+	Token               string
+	TokenInvalid        bool
+	PublicKey           string
+	UserID              string
+	UserName            string
+	UserDiscriminator   string
+	UserAvatar          pgtype.Text
+	UserBanner          pgtype.Text
+	UserBio             pgtype.Text
+	StatusType          string
+	StatusActivityType  pgtype.Int4
+	StatusActivityName  pgtype.Text
+	StatusActivityState pgtype.Text
+	StatusActivityUrl   pgtype.Text
+	CreatedAt           pgtype.Timestamp
+	UpdatedAt           pgtype.Timestamp
+}
+
+type AppEntitlement struct {
+	ID                                  string
+	AppID                               string
+	UserID                              pgtype.Text
+	Source                              string
+	SourceID                            pgtype.Text
+	Name                                pgtype.Text
+	Description                         pgtype.Text
+	FeatureMonthlyExecutionTimeLimit    int32
+	FeatureMonthlyExecutionTimeAdditive bool
+	CreatedAt                           pgtype.Timestamp
+	UpdatedAt                           pgtype.Timestamp
+	ValidFrom                           pgtype.Timestamp
+	ValidUntil                          pgtype.Timestamp
+}
+
+type AppEntitlementsResolvedView struct {
+	AppID                            string
+	FeatureMonthlyExecutionTimeLimit int32
+}
+
+type AppUsage struct {
+	ID                      int64
+	AppID                   string
+	TotalEventCount         int32
+	SuccessEventCount       int32
+	TotalEventExecutionTime int64
+	AvgEventExecutionTime   int64
+	TotalEventTotalTime     int64
+	AvgEventTotalTime       int64
+	TotalCallCount          int32
+	SuccessCallCount        int32
+	TotalCallTotalTime      int64
+	AvgCallTotalTime        int64
+	PeriodStartsAt          pgtype.Timestamp
+	PeriodEndsAt            pgtype.Timestamp
+}
+
+type AppUsageMonthView struct {
+	AppID                   string
+	TotalEventCount         int64
+	SuccessEventCount       int64
+	TotalEventExecutionTime int64
+	AvgEventExecutionTime   float64
+	TotalEventTotalTime     int64
+	AvgEventTotalTime       float64
+	TotalCallCount          int64
+	SuccessCallCount        int64
+	TotalCallTotalTime      int64
+	AvgCallTotalTime        float64
+}
+
 type Deployment struct {
 	ID              string
 	Key             string
 	Name            string
 	Description     string
-	GuildID         string
+	AppID           string
 	PluginVersionID pgtype.Text
 	WasmBytes       []byte
 	Manifest        []byte
@@ -46,69 +119,8 @@ type DeploymentMetric struct {
 	Timestamp          pgtype.Timestamp
 }
 
-type Guild struct {
-	ID          string
-	Name        string
-	Icon        pgtype.Text
-	Description pgtype.Text
-	CreatedAt   pgtype.Timestamp
-	UpdatedAt   pgtype.Timestamp
-}
-
-type GuildEntitlement struct {
-	ID                                  string
-	GuildID                             string
-	UserID                              pgtype.Text
-	Source                              string
-	SourceID                            pgtype.Text
-	Name                                pgtype.Text
-	Description                         pgtype.Text
-	FeatureMonthlyExecutionTimeLimit    int32
-	FeatureMonthlyExecutionTimeAdditive bool
-	CreatedAt                           pgtype.Timestamp
-	UpdatedAt                           pgtype.Timestamp
-	ValidFrom                           pgtype.Timestamp
-	ValidUntil                          pgtype.Timestamp
-}
-
-type GuildEntitlementsResolvedView struct {
-	GuildID                          string
-	FeatureMonthlyExecutionTimeLimit int32
-}
-
-type GuildUsage struct {
-	ID                      int64
-	GuildID                 string
-	TotalEventCount         int32
-	SuccessEventCount       int32
-	TotalEventExecutionTime int64
-	AvgEventExecutionTime   int64
-	TotalEventTotalTime     int64
-	AvgEventTotalTime       int64
-	TotalCallCount          int32
-	SuccessCallCount        int32
-	TotalCallTotalTime      int64
-	AvgCallTotalTime        int64
-	PeriodStartsAt          pgtype.Timestamp
-	PeriodEndsAt            pgtype.Timestamp
-}
-
-type GuildUsageMonthView struct {
-	GuildID                 string
-	TotalEventCount         int64
-	SuccessEventCount       int64
-	TotalEventExecutionTime int64
-	AvgEventExecutionTime   float64
-	TotalEventTotalTime     int64
-	AvgEventTotalTime       float64
-	TotalCallCount          int64
-	SuccessCallCount        int64
-	TotalCallTotalTime      int64
-	AvgCallTotalTime        float64
-}
-
 type KvStorage struct {
-	GuildID   string
+	AppID     string
 	Namespace string
 	Key       string
 	Value     []byte
@@ -142,7 +154,6 @@ type Session struct {
 	TokenHash   string
 	Type        string
 	UserID      string
-	GuildIds    []string
 	AccessToken string
 	Revoked     bool
 	CreatedAt   pgtype.Timestamp
@@ -159,6 +170,7 @@ type SessionsPending struct {
 type User struct {
 	ID            string
 	Username      string
+	Email         string
 	Discriminator pgtype.Text
 	GlobalName    pgtype.Text
 	Avatar        pgtype.Text
@@ -169,7 +181,7 @@ type User struct {
 
 type Workspace struct {
 	ID          string
-	GuildID     string
+	AppID       string
 	Type        string
 	Name        string
 	Description string

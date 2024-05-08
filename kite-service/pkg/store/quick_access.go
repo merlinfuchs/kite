@@ -7,5 +7,5 @@ import (
 )
 
 type QuickAccessStore interface {
-	GetQuickAccessItems(ctx context.Context, guildID string, limit int) ([]model.QuickAccessItem, error)
+	GetQuickAccessItems(ctx context.Context, appID string, limit int) ([]model.QuickAccessItem, error)
 }

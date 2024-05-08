@@ -61,6 +61,7 @@ const (
 
 type Event struct {
 	Type    EventType         `json:"type"`
+	AppID   distype.Snowflake `json:"app_id"`
 	GuildID distype.Snowflake `json:"guild_id"`
 	Data    interface{}       `json:"data"`
 }

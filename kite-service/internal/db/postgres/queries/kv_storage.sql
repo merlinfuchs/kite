@@ -1,12 +1,12 @@
 -- name: GetKVStorageNamespaces :many
-SELECT  namespace, COUNT(key) as key_count FROM kv_storage WHERE guild_id = $1 GROUP BY namespace;
+SELECT  namespace, COUNT(key) as key_count FROM kv_storage WHERE app_id = $1 GROUP BY namespace;
 
 -- name: GetKVStorageKeys :many
-SELECT * FROM kv_storage WHERE guild_id = $1 AND namespace = $2;
+SELECT * FROM kv_storage WHERE app_id = $1 AND namespace = $2;
 
 -- name: SetKVStorageKey :one
 INSERT INTO kv_storage (
-    guild_id, 
+    app_id, 
     namespace, 
     key, 
     value, 
@@ -19,13 +19,13 @@ INSERT INTO kv_storage (
     $4, 
     $5, 
     $6
-) ON CONFLICT (guild_id, namespace, key) DO UPDATE SET 
+) ON CONFLICT (app_id, namespace, key) DO UPDATE SET 
     value = $4, 
     updated_at = $6
 RETURNING *;
 
 -- name: GetKVStorageKey :one
-SELECT * FROM kv_storage WHERE guild_id = $1 AND namespace = $2 AND key = $3;
+SELECT * FROM kv_storage WHERE app_id = $1 AND namespace = $2 AND key = $3;
 
 -- name: DeleteKVStorageKey :one
-DELETE FROM kv_storage WHERE guild_id = $1 AND namespace = $2 AND key = $3 RETURNING *;
+DELETE FROM kv_storage WHERE app_id = $1 AND namespace = $2 AND key = $3 RETURNING *;

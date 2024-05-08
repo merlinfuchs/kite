@@ -11,7 +11,7 @@ const (
 
 type QuickAccessItem struct {
 	ID        string
-	GuildID   string
+	AppID     string
 	Type      QuickAccessItemType
 	Name      string
 	UpdatedAt time.Time

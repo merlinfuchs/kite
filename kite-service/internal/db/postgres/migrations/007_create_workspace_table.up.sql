@@ -1,6 +1,6 @@
 CREATE TABLE IF NOT EXISTS workspaces (
    id TEXT PRIMARY KEY,
-   guild_id TEXT NOT NULL REFERENCES guilds(id) ON DELETE CASCADE,
+   app_id TEXT NOT NULL REFERENCES apps(id) ON DELETE CASCADE,
    type TEXT NOT NULL, -- JS / FLOW
    name TEXT NOT NULL,
    description TEXT NOT NULL,

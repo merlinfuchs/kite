@@ -48,12 +48,12 @@ func (h *AuthHandler) HandleAuthCLICallback(c *fiber.Ctx) error {
 		return helpers.BadRequest("missing_login_code", "Missing login code cookie, try again")
 	}
 
-	accessToken, userID, guildIDs, err := h.ExchangeAccessToken(c.Context(), h.cliOauth2Config, c.Query("code"))
+	accessToken, userID, err := h.ExchangeAccessToken(c.Context(), h.cliOauth2Config, c.Query("code"))
 	if err != nil {
 		return fmt.Errorf("Failed to exchange access token: %w", err)
 	}
 
-	token, err := h.sessionManager.CreateSession(c.Context(), model.SessionTypeCLI, userID, guildIDs, accessToken)
+	token, err := h.sessionManager.CreateSession(c.Context(), model.SessionTypeCLI, userID, accessToken)
 	if err != nil {
 		return err
 	}

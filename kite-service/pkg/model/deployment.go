@@ -12,7 +12,7 @@ type Deployment struct {
 	Key             string
 	Name            string
 	Description     string
-	GuildID         string
+	AppID           string
 	PluginVersionID null.String
 	WasmBytes       []byte
 	Manifest        manifest.Manifest
@@ -23,6 +23,6 @@ type Deployment struct {
 }
 
 type PartialDeployment struct {
-	ID      string
-	GuildID string
+	ID    string
+	AppID string
 }

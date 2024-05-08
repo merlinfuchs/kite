@@ -14,7 +14,7 @@ func (h HostEnvironment) callKVKeyGet(ctx context.Context, data kv.KVKeyGetCall)
 		data.Namespace = "default"
 	}
 
-	res, err := h.kvStorage.GetKVStorageKey(ctx, h.GuildID, data.Namespace, data.Key)
+	res, err := h.kvStorage.GetKVStorageKey(ctx, h.AppID, data.Namespace, data.Key)
 	if err != nil {
 		if err == store.ErrNotFound {
 			return kv.KVKeyGetResponse{}, &fail.HostError{
@@ -33,7 +33,7 @@ func (h HostEnvironment) callKVKeySet(ctx context.Context, data kv.KVKeySetCall)
 		data.Namespace = "default"
 	}
 
-	err := h.kvStorage.SetKVStorageKey(ctx, h.GuildID, data.Namespace, data.Key, data.Value)
+	err := h.kvStorage.SetKVStorageKey(ctx, h.AppID, data.Namespace, data.Key, data.Value)
 	if err != nil {
 		return kv.KVKeySetResponse{}, err
 	}
@@ -46,7 +46,7 @@ func (h HostEnvironment) callKVKeyDelete(ctx context.Context, data kv.KVKeyDelet
 		data.Namespace = "default"
 	}
 
-	res, err := h.kvStorage.DeleteKVStorageKey(ctx, h.GuildID, data.Namespace, data.Key)
+	res, err := h.kvStorage.DeleteKVStorageKey(ctx, h.AppID, data.Namespace, data.Key)
 	if err != nil {
 		if err == store.ErrNotFound {
 			return kv.KVKeyDeleteResponse{}, &fail.HostError{
@@ -65,7 +65,7 @@ func (h HostEnvironment) callKVKeyIncrease(ctx context.Context, data kv.KVKeyInc
 		data.Namespace = "default"
 	}
 
-	res, err := h.kvStorage.IncreaseKVStorageKey(ctx, h.GuildID, data.Namespace, data.Key, data.Increment)
+	res, err := h.kvStorage.IncreaseKVStorageKey(ctx, h.AppID, data.Namespace, data.Key, data.Increment)
 	if err != nil {
 		if err == store.ErrNotFound {
 			return kv.KVKeyIncreaseResponse{}, &fail.HostError{

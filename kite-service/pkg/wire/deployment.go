@@ -13,7 +13,7 @@ type Deployment struct {
 	Name            string            `json:"name"`
 	Key             string            `json:"key"`
 	Description     string            `json:"description"`
-	GuildID         string            `json:"guild_id"`
+	AppID           string            `json:"app_id"`
 	PluginVersionID null.String       `json:"plugin_version_id"`
 	WasmSize        int               `json:"wasm_size"`
 	Manifest        manifest.Manifest `json:"manifest"`
@@ -45,7 +45,7 @@ func DeploymentToWire(d *model.Deployment) Deployment {
 		Name:            d.Name,
 		Key:             d.Key,
 		Description:     d.Description,
-		GuildID:         d.GuildID,
+		AppID:           d.AppID,
 		PluginVersionID: d.PluginVersionID,
 		WasmSize:        len(d.WasmBytes),
 		Manifest:        d.Manifest,

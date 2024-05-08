@@ -4,7 +4,7 @@ import "time"
 
 type Workspace struct {
 	ID          string
-	GuildID     string
+	AppID       string
 	Type        WorkspaceType
 	Name        string
 	Description string

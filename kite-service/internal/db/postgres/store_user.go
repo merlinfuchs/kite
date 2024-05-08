@@ -10,10 +10,13 @@ import (
 	"github.com/merlinfuchs/kite/kite-service/pkg/store"
 )
 
+var _ store.UserStore = (*Client)(nil)
+
 func (c *Client) UpsertUser(ctx context.Context, user *model.User) error {
 	_, err := c.Q.UpsertUser(ctx, pgmodel.UpsertUserParams{
 		ID:            string(user.ID),
 		Username:      user.Username,
+		Email:         user.Email,
 		Discriminator: nullStringToText(user.Discriminator),
 		Avatar:        nullStringToText(user.Avatar),
 		GlobalName:    nullStringToText(user.GlobalName),
@@ -36,6 +39,7 @@ func (c *Client) GetUser(ctx context.Context, userID distype.Snowflake) (*model.
 	return &model.User{
 		ID:            distype.Snowflake(row.ID),
 		Username:      row.Username,
+		Email:         row.Email,
 		Discriminator: textToNullString(row.Discriminator),
 		Avatar:        textToNullString(row.Avatar),
 		GlobalName:    textToNullString(row.GlobalName),

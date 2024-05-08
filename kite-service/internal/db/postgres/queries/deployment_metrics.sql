@@ -56,11 +56,11 @@ FROM
 LEFT JOIN 
 	deployments ON deployments.id = deployment_metrics.deployment_id
 WHERE
-	guild_id = $1 AND 
+	app_id = $1 AND 
 	timestamp >= @start_at AND 
 	timestamp <= @end_at
 GROUP BY
-	guild_id;
+	app_id;
 
 -- name: GetDeploymentEventMetrics :many
 SELECT
@@ -172,7 +172,7 @@ FROM (
 	LEFT JOIN 
 		deployments ON deployments.id = deployment_metrics.deployment_id
 	WHERE
-		deployments.guild_id = $1
+		deployments.app_id = $1
 		AND timestamp >= date_trunc(sqlc.arg (precision)::text, sqlc.arg (start_at)::timestamp)
 		AND TYPE = 'EVENT_HANDLED'
 	GROUP BY
@@ -201,7 +201,7 @@ FROM (
 	LEFT JOIN 
 		deployments ON deployments.id = deployment_metrics.deployment_id
 	WHERE
-		deployments.guild_id = $1
+		deployments.app_id = $1
 		AND timestamp >= date_trunc(sqlc.arg (precision)::text, sqlc.arg (start_at)::timestamp)
 		AND TYPE = 'CALL_EXECUTED'
 	GROUP BY

@@ -8,7 +8,7 @@ import (
 )
 
 func (h *DeploymentHandler) HandleDeploymentLogEntryList(c *fiber.Ctx) error {
-	entires, err := h.deploymentLogs.GetDeploymentLogEntries(c.Context(), c.Params("deploymentID"), c.Params("guildID"))
+	entires, err := h.deploymentLogs.GetDeploymentLogEntries(c.Context(), c.Params("deploymentID"), c.Params("appID"))
 	if err != nil {
 		return err
 	}
@@ -27,7 +27,7 @@ func (h *DeploymentHandler) HandleDeploymentLogEntryList(c *fiber.Ctx) error {
 func (h *DeploymentHandler) HandleDeploymentLogSummaryGet(c *fiber.Ctx) error {
 	cutoff := time.Now().UTC().Add(-time.Hour * 24)
 
-	summary, err := h.deploymentLogs.GetDeploymentLogSummary(c.Context(), c.Params("deploymentID"), c.Params("guildID"), cutoff)
+	summary, err := h.deploymentLogs.GetDeploymentLogSummary(c.Context(), c.Params("deploymentID"), c.Params("appID"), cutoff)
 	if err != nil {
 		return err
 	}

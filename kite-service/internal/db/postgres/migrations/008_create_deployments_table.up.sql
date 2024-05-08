@@ -4,7 +4,7 @@ CREATE TABLE IF NOT EXISTS deployments (
    key TEXT NOT NULL,
    name TEXT NOT NULL,
    description TEXT NOT NULL,
-   guild_id TEXT NOT NULL REFERENCES guilds(id) ON DELETE CASCADE,
+   app_id TEXT NOT NULL REFERENCES apps(id) ON DELETE CASCADE,
 
    -- Deployments can be associated with a public plugin but don't have to be
    plugin_version_id TEXT REFERENCES plugin_versions(id) ON DELETE RESTRICT,
@@ -19,5 +19,5 @@ CREATE TABLE IF NOT EXISTS deployments (
    updated_at TIMESTAMP NOT NULL,
    deployed_at TIMESTAMP,
 
-   UNIQUE (key, guild_id)
+   UNIQUE (key, app_id)
 );

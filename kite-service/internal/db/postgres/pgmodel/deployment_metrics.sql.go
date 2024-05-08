@@ -353,7 +353,7 @@ FROM (
 	LEFT JOIN 
 		deployments ON deployments.id = deployment_metrics.deployment_id
 	WHERE
-		deployments.guild_id = $1
+		deployments.app_id = $1
 		AND timestamp >= date_trunc($2::text, $3::timestamp)
 		AND TYPE = 'CALL_EXECUTED'
 	GROUP BY
@@ -362,7 +362,7 @@ FROM (
 `
 
 type GetDeploymentsCallMetricsParams struct {
-	GuildID    string
+	AppID      string
 	Precision  string
 	StartAt    pgtype.Timestamp
 	EndAt      pgtype.Timestamp
@@ -378,7 +378,7 @@ type GetDeploymentsCallMetricsRow struct {
 
 func (q *Queries) GetDeploymentsCallMetrics(ctx context.Context, arg GetDeploymentsCallMetricsParams) ([]GetDeploymentsCallMetricsRow, error) {
 	rows, err := q.db.Query(ctx, getDeploymentsCallMetrics,
-		arg.GuildID,
+		arg.AppID,
 		arg.Precision,
 		arg.StartAt,
 		arg.EndAt,
@@ -431,7 +431,7 @@ FROM (
 	LEFT JOIN 
 		deployments ON deployments.id = deployment_metrics.deployment_id
 	WHERE
-		deployments.guild_id = $1
+		deployments.app_id = $1
 		AND timestamp >= date_trunc($2::text, $3::timestamp)
 		AND TYPE = 'EVENT_HANDLED'
 	GROUP BY
@@ -441,7 +441,7 @@ FROM (
 `
 
 type GetDeploymentsEventMetricsParams struct {
-	GuildID    string
+	AppID      string
 	Precision  string
 	StartAt    pgtype.Timestamp
 	EndAt      pgtype.Timestamp
@@ -458,7 +458,7 @@ type GetDeploymentsEventMetricsRow struct {
 
 func (q *Queries) GetDeploymentsEventMetrics(ctx context.Context, arg GetDeploymentsEventMetricsParams) ([]GetDeploymentsEventMetricsRow, error) {
 	rows, err := q.db.Query(ctx, getDeploymentsEventMetrics,
-		arg.GuildID,
+		arg.AppID,
 		arg.Precision,
 		arg.StartAt,
 		arg.EndAt,
@@ -519,15 +519,15 @@ FROM
 LEFT JOIN 
 	deployments ON deployments.id = deployment_metrics.deployment_id
 WHERE
-	guild_id = $1 AND 
+	app_id = $1 AND 
 	timestamp >= $2 AND 
 	timestamp <= $3
 GROUP BY
-	guild_id
+	app_id
 `
 
 type GetDeploymentsMetricsSummaryParams struct {
-	GuildID string
+	AppID   string
 	StartAt pgtype.Timestamp
 	EndAt   pgtype.Timestamp
 }
@@ -548,7 +548,7 @@ type GetDeploymentsMetricsSummaryRow struct {
 }
 
 func (q *Queries) GetDeploymentsMetricsSummary(ctx context.Context, arg GetDeploymentsMetricsSummaryParams) (GetDeploymentsMetricsSummaryRow, error) {
-	row := q.db.QueryRow(ctx, getDeploymentsMetricsSummary, arg.GuildID, arg.StartAt, arg.EndAt)
+	row := q.db.QueryRow(ctx, getDeploymentsMetricsSummary, arg.AppID, arg.StartAt, arg.EndAt)
 	var i GetDeploymentsMetricsSummaryRow
 	err := row.Scan(
 		&i.FirstEntryAt,

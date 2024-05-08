@@ -11,6 +11,7 @@ import (
 type User struct {
 	ID            distype.Snowflake `json:"id"`
 	Username      string            `json:"username"`
+	Email         string            `json:"email"`
 	Discriminator null.String       `json:"discriminator"`
 	GlobalName    null.String       `json:"global_name"`
 	Avatar        null.String       `json:"avatar"`
@@ -25,6 +26,7 @@ func UserToWire(user *model.User) User {
 	return User{
 		ID:            user.ID,
 		Username:      user.Username,
+		Email:         user.Email,
 		Discriminator: user.Discriminator,
 		GlobalName:    user.GlobalName,
 		Avatar:        user.Avatar,

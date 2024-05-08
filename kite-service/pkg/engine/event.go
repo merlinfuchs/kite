@@ -12,7 +12,7 @@ import (
 func (e *Engine) HandleEvent(ctx context.Context, event *event.Event) {
 	var wg sync.WaitGroup
 
-	for _, d := range e.Deployments[event.GuildID] {
+	for _, d := range e.Deployments[event.AppID] {
 		wg.Add(1)
 
 		d := d

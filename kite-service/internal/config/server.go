@@ -55,7 +55,6 @@ type ServerPostgresConfig struct {
 }
 
 type ServerDiscordConfig struct {
-	Token        string `toml:"token" validate:"required"`
 	ClientID     string `toml:"client_id" validate:"required"`
 	ClientSecret string `toml:"client_secret" validate:"required"`
 }

@@ -14,19 +14,20 @@ import (
 	"github.com/merlinfuchs/kite/kite-service/internal/logging/logattr"
 	"github.com/merlinfuchs/kite/kite-service/pkg/engine"
 	"github.com/merlinfuchs/kite/kite-service/pkg/module"
+	"github.com/merlinfuchs/kite/kite-service/pkg/store"
 	"github.com/tetratelabs/wazero"
 )
 
 func (m *DeploymentManager) populateEngineDeployments(ctx context.Context) error {
-	guildIDs, err := m.store.GetGuildIDsWithDeployment(ctx)
+	appIDs, err := m.store.GetAppIDsWithDeployment(ctx)
 	if err != nil {
-		return fmt.Errorf("error getting guild ids with deployment: %w", err)
+		return fmt.Errorf("error getting app ids with deployment: %w", err)
 	}
 
-	for _, guildID := range guildIDs {
-		rows, err := m.store.GetDeploymentsForGuild(ctx, guildID)
+	for _, appID := range appIDs {
+		rows, err := m.store.GetDeploymentsForApp(ctx, appID)
 		if err != nil {
-			slog.With(logattr.Error(err)).Error("Error getting deployments for guild")
+			slog.With(logattr.Error(err)).Error("Error getting deployments for app")
 			continue
 		}
 
@@ -43,9 +44,7 @@ func (m *DeploymentManager) populateEngineDeployments(ctx context.Context) error
 
 			config := deploymentConfigFromLimits(m.limits, m.compilationCache)
 
-			env := host.NewEnv(m.envStores)
-			env.DeploymentID = row.ID
-			env.GuildID = row.GuildID
+			env := host.NewEnv(m.envStores, row.AppID, row.ID)
 			env.Manifest = row.Manifest
 
 			deployments[i] = engine.NewDeployment(row.ID, env, row.WasmBytes, row.Manifest, config)
@@ -55,19 +54,19 @@ func (m *DeploymentManager) populateEngineDeployments(ctx context.Context) error
 			}
 		}
 
-		m.engine.ReplaceGuildDeployments(ctx, distype.Snowflake(guildID), deployments)
+		m.engine.ReplaceAppDeployments(ctx, distype.Snowflake(appID), deployments)
 
 		if hasChanged {
-			err := m.deployManifestChanges(ctx, guildID, manifests)
+			err := m.deployManifestChanges(ctx, appID, manifests)
 			if err != nil {
 				slog.With(logattr.Error(err)).Error("Error deploying manifest changes")
 				continue
 			}
 		}
 
-		err = m.store.UpdateDeploymentsDeployedAtForGuild(ctx, guildID, time.Now().UTC())
+		err = m.store.UpdateDeploymentsDeployedAtForApp(ctx, appID, time.Now().UTC())
 		if err != nil {
-			slog.With(logattr.Error(err)).Error("Error updating deployments deployed at for guild")
+			slog.With(logattr.Error(err)).Error("Error updating deployments deployed at for app")
 			continue
 		}
 	}
@@ -76,15 +75,15 @@ func (m *DeploymentManager) populateEngineDeployments(ctx context.Context) error
 }
 
 func (m *DeploymentManager) updateEngineDeployments(ctx context.Context) error {
-	guildIDs, err := m.store.GetGuildIDsWithDeployment(ctx)
+	appIDs, err := m.store.GetAppIDsWithDeployment(ctx)
 	if err != nil {
-		return fmt.Errorf("error getting guild ids with deployment: %w", err)
+		return fmt.Errorf("error getting app ids with deployment: %w", err)
 	}
 
-	for _, guildID := range guildIDs {
-		rows, err := m.store.GetDeploymentsForGuild(ctx, guildID)
+	for _, appID := range appIDs {
+		rows, err := m.store.GetDeploymentsForApp(ctx, appID)
 		if err != nil {
-			slog.With(logattr.Error(err)).Error("Error getting deployments for guild")
+			slog.With(logattr.Error(err)).Error("Error getting deployments for app")
 			continue
 		}
 
@@ -99,34 +98,33 @@ func (m *DeploymentManager) updateEngineDeployments(ctx context.Context) error {
 			if !row.DeployedAt.Valid || row.UpdatedAt.After(row.DeployedAt.Time) {
 				config := deploymentConfigFromLimits(m.limits, m.compilationCache)
 
-				env := host.NewEnv(m.envStores)
-				env.DeploymentID = row.ID
-				env.GuildID = row.GuildID
+				// TODO: get right app state from manager
+				env := host.NewEnv(m.envStores, row.AppID, row.ID)
 				env.Manifest = row.Manifest
 
 				deployment := engine.NewDeployment(row.ID, env, row.WasmBytes, row.Manifest, config)
-				m.engine.LoadGuildDeployment(ctx, distype.Snowflake(guildID), deployment)
+				m.engine.LoadAppDeployment(ctx, distype.Snowflake(appID), deployment)
 
 				hasChanged = true
 			}
 		}
 
-		removed := m.engine.TruncateGuildDeployments(ctx, distype.Snowflake(guildID), deploymentIDs)
+		removed := m.engine.TruncateAppDeployments(ctx, distype.Snowflake(appID), deploymentIDs)
 		if removed {
 			hasChanged = true
 		}
 
 		if hasChanged {
-			err := m.deployManifestChanges(ctx, guildID, manifests)
+			err := m.deployManifestChanges(ctx, appID, manifests)
 			if err != nil {
 				slog.With(logattr.Error(err)).Error("Error deploying manifest changes")
 				continue
 			}
 		}
 
-		err = m.store.UpdateDeploymentsDeployedAtForGuild(ctx, guildID, time.Now().UTC())
+		err = m.store.UpdateDeploymentsDeployedAtForApp(ctx, appID, time.Now().UTC())
 		if err != nil {
-			slog.With(logattr.Error(err)).Error("Error updating deployments deployed at for guild")
+			slog.With(logattr.Error(err)).Error("Error updating deployments deployed at for app")
 			continue
 		}
 	}
@@ -149,7 +147,7 @@ func deploymentConfigFromLimits(limits config.ServerEngineLimitConfig, compilati
 	}
 }
 
-func (m *DeploymentManager) deployManifestChanges(ctx context.Context, guildID string, manifests []manifest.Manifest) error {
+func (m *DeploymentManager) deployManifestChanges(ctx context.Context, appID string, manifests []manifest.Manifest) error {
 	fmt.Println("deploy manifest changes")
 
 	discordCommands := []distype.ApplicationCommandCreateRequest{}
@@ -157,14 +155,22 @@ func (m *DeploymentManager) deployManifestChanges(ctx context.Context, guildID s
 		discordCommands = append(discordCommands, manifest.DiscordApplicationCommands()...)
 	}
 
-	err := m.discordClient.Request(
-		rest.SetGuildCommands.Compile(nil, "873855804191694919", guildID), discordCommands, nil,
+	app, err := m.apps.AppState(distype.Snowflake(appID))
+	if err != nil {
+		if err == store.ErrNotFound {
+			return fmt.Errorf("app state not found for app id: %s", appID)
+		}
+		return fmt.Errorf("error getting app state: %w", err)
+	}
+
+	err = app.Client().Request(
+		rest.SetGlobalCommands.Compile(nil, appID), discordCommands, nil,
 		rest.WithCtx(ctx),
 	)
 	if err != nil {
 		derr := err.(rest.Error)
 		fmt.Println(string(derr.RsBody))
-		return fmt.Errorf("error setting guild commands: %w", err)
+		return fmt.Errorf("error setting app commands: %w", err)
 	}
 
 	return nil

@@ -17,29 +17,21 @@ func NewMiddleware(manager *AccessManager) *AccessMiddleware {
 	}
 }
 
-func (m *AccessMiddleware) GuildAccessRequired() func(c *fiber.Ctx) error {
+func (m *AccessMiddleware) AppAccessRequired() func(c *fiber.Ctx) error {
 	return func(c *fiber.Ctx) error {
 		session := session.GetSession(c)
-		guildID := c.Params("guildID")
+		appID := c.Params("appID")
 
-		perms, err := m.manager.GetGuildPermissionsForUser(c.Context(), distype.Snowflake(guildID), session.UserID)
+		perms, err := m.manager.GetAppPermissionsForUser(c.Context(), distype.Snowflake(appID), session.UserID)
 		if err != nil {
 			return err
 		}
 
-		if !perms.BotIsMember {
-			return helpers.Forbidden("bot_missing_access", "The bot is not a member of this guild")
+		if !perms.UserIsOwner {
+			return helpers.Forbidden("missing_access", "You don't have access to this app")
 		}
 
-		if !perms.UserIsMember {
-			return helpers.Forbidden("missing_access", "You are not a member of this guild")
-		}
-
-		if !perms.UserIsOwner && perms.UserPermissions&8 == 0 {
-			return helpers.Forbidden("missing_access", "You don't have administrator permissions in this guild")
-		}
-
-		c.Locals("guildPermissions", perms)
+		c.Locals("appPermissions", perms)
 		return c.Next()
 	}
 }

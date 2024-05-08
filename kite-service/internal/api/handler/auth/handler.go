@@ -37,14 +37,14 @@ func New(sessionManager *session.SessionManager, userStore store.UserStore, cfg 
 			RedirectURL:  cfg.AuthCallbackURL(),
 			ClientID:     cfg.Discord.ClientID,
 			ClientSecret: cfg.Discord.ClientSecret,
-			Scopes:       []string{discord.ScopeIdentify, discord.ScopeGuilds},
+			Scopes:       []string{discord.ScopeIdentify, discord.ScopeEmail},
 			Endpoint:     discord.Endpoint,
 		},
 		cliOauth2Config: &oauth2.Config{
 			RedirectURL:  cfg.AuthCLICallbackURL(),
 			ClientID:     cfg.Discord.ClientID,
 			ClientSecret: cfg.Discord.ClientSecret,
-			Scopes:       []string{discord.ScopeIdentify, discord.ScopeGuilds},
+			Scopes:       []string{discord.ScopeIdentify, discord.ScopeEmail},
 			Endpoint:     discord.Endpoint,
 		},
 		cfg: cfg,
@@ -75,14 +75,14 @@ func (h *AuthHandler) HandleAuthCallback(c *fiber.Ctx) error {
 		return h.HandleAuthRedirect(c)
 	}
 
-	accessToken, userID, guildIDs, err := h.ExchangeAccessToken(c.Context(), h.oauth2Config, c.Query("code"))
+	accessToken, userID, err := h.ExchangeAccessToken(c.Context(), h.oauth2Config, c.Query("code"))
 	if err != nil {
 		slog.With(logattr.Error(err)).Error("Failed to exchange access token")
 		// TODO: redirect to error page
 		return h.HandleAuthRedirect(c)
 	}
 
-	err = h.sessionManager.CreateSessionCookie(c, model.SessionTypeWebApp, userID, guildIDs, accessToken)
+	err = h.sessionManager.CreateSessionCookie(c, model.SessionTypeWebApp, userID, accessToken)
 	if err != nil {
 		return err
 	}
@@ -99,21 +99,22 @@ func (h *AuthHandler) HandleAuthLogout(c *fiber.Ctx) error {
 	return c.Redirect(h.cfg.App.AuthCallbackURL(), http.StatusTemporaryRedirect)
 }
 
-func (h *AuthHandler) ExchangeAccessToken(ctx context.Context, oauth2 *oauth2.Config, code string) (string, distype.Snowflake, []distype.Snowflake, error) {
+func (h *AuthHandler) ExchangeAccessToken(ctx context.Context, oauth2 *oauth2.Config, code string) (string, distype.Snowflake, error) {
 	token, err := oauth2.Exchange(ctx, code)
 	if err != nil {
-		return "", "", nil, fmt.Errorf("Failed to exchange token: %v", err)
+		return "", "", fmt.Errorf("Failed to exchange token: %v", err)
 	}
 
 	client := oauth2.Client(ctx, token)
 	resp, err := client.Get("https://discord.com/api/users/@me")
 	if err != nil {
-		return "", "", nil, fmt.Errorf("Failed to get user info: %v", err)
+		return "", "", fmt.Errorf("Failed to get user info: %v", err)
 	}
 
 	user := struct {
 		ID            distype.Snowflake `json:"id"`
 		Username      string            `json:"username"`
+		Email         string            `json:"email"`
 		GlobalName    null.String       `json:"global_name"`
 		Discriminator string            `json:"discriminator"`
 		Avatar        null.String       `json:"avatar"`
@@ -121,42 +122,28 @@ func (h *AuthHandler) ExchangeAccessToken(ctx context.Context, oauth2 *oauth2.Co
 	}{}
 	err = json.NewDecoder(resp.Body).Decode(&user)
 	if err != nil {
-		return "", "", nil, fmt.Errorf("Failed to decode user info: %v", err)
+		return "", "", fmt.Errorf("Failed to decode user info: %v", err)
 	}
 	resp.Body.Close()
+
+	if user.Email == "" {
+		return "", "", fmt.Errorf("User email is empty")
+	}
 
 	err = h.userStore.UpsertUser(ctx, &model.User{
 		ID:            user.ID,
 		Username:      user.Username,
+		Email:         user.Email,
 		Discriminator: null.NewString(user.Discriminator, user.Discriminator != "0"),
 		GlobalName:    user.GlobalName,
 		Avatar:        user.Avatar,
 		PublicFlags:   user.PublicFlags,
 	})
 	if err != nil {
-		return "", "", nil, fmt.Errorf("Failed to upsert user: %v", err)
+		return "", "", fmt.Errorf("Failed to upsert user: %v", err)
 	}
 
-	resp, err = client.Get("https://discord.com/api/users/@me/guilds")
-	if err != nil {
-		return "", "", nil, fmt.Errorf("Failed to get guilds: %v", err)
-	}
-
-	guilds := []struct {
-		ID string `json:"id"`
-	}{}
-	err = json.NewDecoder(resp.Body).Decode(&guilds)
-	if err != nil {
-		return "", "", nil, fmt.Errorf("Failed to decode guilds: %v", err)
-	}
-	resp.Body.Close()
-
-	guildIDs := make([]distype.Snowflake, len(guilds))
-	for i, guild := range guilds {
-		guildIDs[i] = distype.Snowflake(guild.ID)
-	}
-
-	return token.AccessToken, distype.Snowflake(user.ID), guildIDs, nil
+	return token.AccessToken, distype.Snowflake(user.ID), nil
 }
 
 func getOauthStateCookie(c *fiber.Ctx) string {

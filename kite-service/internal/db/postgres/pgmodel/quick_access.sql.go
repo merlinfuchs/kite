@@ -12,28 +12,28 @@ import (
 )
 
 const getQuickAccessItems = `-- name: GetQuickAccessItems :many
-SELECT id, guild_id, name, updated_at, 'DEPLOYMENT' as type FROM deployments WHERE deployments.guild_id = $1
+SELECT id, app_id, name, updated_at, 'DEPLOYMENT' as type FROM deployments WHERE deployments.app_id = $1
 UNION ALL 
-SELECT id, guild_id, name, updated_at, 'WORKSPACE' as type FROM workspaces WHERE workspaces.guild_id = $1
+SELECT id, app_id, name, updated_at, 'WORKSPACE' as type FROM workspaces WHERE workspaces.app_id = $1
 ORDER BY updated_at DESC
 LIMIT $2
 `
 
 type GetQuickAccessItemsParams struct {
-	GuildID string
-	Limit   int32
+	AppID string
+	Limit int32
 }
 
 type GetQuickAccessItemsRow struct {
 	ID        string
-	GuildID   string
+	AppID     string
 	Name      string
 	UpdatedAt pgtype.Timestamp
 	Type      string
 }
 
 func (q *Queries) GetQuickAccessItems(ctx context.Context, arg GetQuickAccessItemsParams) ([]GetQuickAccessItemsRow, error) {
-	rows, err := q.db.Query(ctx, getQuickAccessItems, arg.GuildID, arg.Limit)
+	rows, err := q.db.Query(ctx, getQuickAccessItems, arg.AppID, arg.Limit)
 	if err != nil {
 		return nil, err
 	}
@@ -43,7 +43,7 @@ func (q *Queries) GetQuickAccessItems(ctx context.Context, arg GetQuickAccessIte
 		var i GetQuickAccessItemsRow
 		if err := rows.Scan(
 			&i.ID,
-			&i.GuildID,
+			&i.AppID,
 			&i.Name,
 			&i.UpdatedAt,
 			&i.Type,
