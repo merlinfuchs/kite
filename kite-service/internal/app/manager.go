@@ -93,7 +93,7 @@ func (m *AppManager) AddApp(ctx context.Context, appID distype.Snowflake, info *
 
 	slog.Info("Adding app", "client_id", appID)
 
-	g, err := NewApp(appID, info, m.appUsageStore, m.Engine)
+	g, err := NewApp(appID, info, m.appStore, m.appUsageStore, m.Engine)
 	if err != nil {
 		return err
 	}

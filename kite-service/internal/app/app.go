@@ -2,10 +2,12 @@ package app
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 
 	"github.com/disgoorg/disgo/gateway"
+	"github.com/disgoorg/disgo/rest"
 	"github.com/disgoorg/disgo/sharding"
 	"github.com/merlinfuchs/dismod/disrest"
 	"github.com/merlinfuchs/dismod/distype"
@@ -25,6 +27,7 @@ type App struct {
 	client  *disrest.Client
 	state   *state.AppState
 
+	appStore      store.AppStore
 	appUsageStore store.AppUsageStore
 	engine        *engine.Engine
 }
@@ -32,11 +35,13 @@ type App struct {
 func NewApp(
 	appID distype.Snowflake,
 	info *model.App,
+	appStore store.AppStore,
 	appUsageStore store.AppUsageStore,
 	engine *engine.Engine,
 ) (*App, error) {
 	g := &App{
 		appID:         appID,
+		appStore:      appStore,
 		appUsageStore: appUsageStore,
 		engine:        engine,
 	}
@@ -46,6 +51,15 @@ func NewApp(
 
 	gInfo, err := client.GatewayBot()
 	if err != nil {
+		var derr rest.Error
+		if errors.As(err, &derr) {
+			if derr.Response.StatusCode == 401 {
+				if err := appStore.SetAppTokenInvalid(context.Background(), appID); err != nil {
+					slog.With("error", err).With("app_id", g.appID).Error("failed to set app token invalid")
+				}
+			}
+		}
+
 		return nil, fmt.Errorf("failed to get gateway: %w", err)
 	}
 

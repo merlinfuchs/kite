@@ -18,4 +18,5 @@ type AppStore interface {
 	GetAppsForOwnerUser(ctx context.Context, ownerUserID distype.Snowflake) ([]model.App, error)
 	GetDistinctAppIDs(ctx context.Context) ([]distype.Snowflake, error)
 	CheckUserIsOwnerOfApp(ctx context.Context, appID distype.Snowflake, ownerUserID distype.Snowflake) (bool, error)
+	SetAppTokenInvalid(ctx context.Context, appID distype.Snowflake) error
 }

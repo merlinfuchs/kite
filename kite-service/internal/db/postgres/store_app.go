@@ -177,6 +177,15 @@ func (c *Client) CheckUserIsOwnerOfApp(ctx context.Context, appID distype.Snowfl
 
 }
 
+func (c *Client) SetAppTokenInvalid(ctx context.Context, appID distype.Snowflake) error {
+	err := c.Q.SetAppTokenInvalid(ctx, string(appID))
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func appToModel(row pgmodel.App) model.App {
 	return model.App{
 		ID:                  distype.Snowflake(row.ID),

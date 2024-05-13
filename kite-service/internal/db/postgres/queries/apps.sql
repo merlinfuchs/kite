@@ -85,3 +85,6 @@ SELECT DISTINCT id FROM apps;
 
 -- name: CheckUserIsOwnerOfApp :one
 SELECT true FROM apps WHERE id = $1 AND owner_user_id = $2;
+
+-- name: SetAppTokenInvalid :exec
+UPDATE apps SET token_invalid = true WHERE id = $1;
