@@ -19,7 +19,7 @@ export default function HomePage() {
             </h2>
             <div className="flex justify-center">
               <Link
-                href="/app"
+                href="/apps"
                 className="bg-primary px-10 py-4 rounded-lg font-medium text-white text-xl block transition-transform hover:-translate-y-1"
               >
                 Join the Beta!

@@ -14,6 +14,8 @@ import (
 	"gopkg.in/guregu/null.v4"
 )
 
+var _ store.SessionStore = (*Client)(nil)
+
 func (c *Client) GetSession(ctx context.Context, tokenHash string) (*model.Session, error) {
 	row, err := c.Q.GetSession(ctx, tokenHash)
 	if err != nil {
@@ -23,16 +25,10 @@ func (c *Client) GetSession(ctx context.Context, tokenHash string) (*model.Sessi
 		return nil, err
 	}
 
-	guildIDs := make([]distype.Snowflake, len(row.GuildIds))
-	for i, id := range row.GuildIds {
-		guildIDs[i] = distype.Snowflake(id)
-	}
-
 	return &model.Session{
 		TokenHash:   row.TokenHash,
 		Type:        model.SessionType(row.Type),
 		UserID:      distype.Snowflake(row.UserID),
-		GuildIds:    guildIDs,
 		AccessToken: row.AccessToken,
 		Revoked:     row.Revoked,
 		CreatedAt:   row.CreatedAt.Time,
@@ -52,16 +48,10 @@ func (c *Client) DeleteSession(ctx context.Context, tokenHash string) error {
 }
 
 func (c *Client) CreateSession(ctx context.Context, session *model.Session) error {
-	guildIDs := make([]string, len(session.GuildIds))
-	for i, id := range session.GuildIds {
-		guildIDs[i] = string(id)
-	}
-
 	err := c.Q.CreateSession(ctx, pgmodel.CreateSessionParams{
 		TokenHash:   session.TokenHash,
 		Type:        string(session.Type),
 		UserID:      string(session.UserID),
-		GuildIds:    guildIDs,
 		AccessToken: session.AccessToken,
 		CreatedAt:   timeToTimestamp(session.CreatedAt),
 		ExpiresAt:   timeToTimestamp(session.ExpiresAt),

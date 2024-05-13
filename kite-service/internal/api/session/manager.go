@@ -18,7 +18,6 @@ const sessionTokenName = "kite_session_token"
 
 type Session struct {
 	UserID      distype.Snowflake
-	GuildIDs    []distype.Snowflake
 	AccessToken string
 	CreatedAt   time.Time
 	ExpiresAt   time.Time
@@ -55,14 +54,13 @@ func (s *SessionManager) GetSession(c *fiber.Ctx) (*Session, error) {
 
 	return &Session{
 		UserID:      model.UserID,
-		GuildIDs:    model.GuildIds,
 		AccessToken: model.AccessToken,
 		CreatedAt:   model.CreatedAt,
 		ExpiresAt:   model.ExpiresAt,
 	}, nil
 }
 
-func (s *SessionManager) CreateSession(ctx context.Context, sessionType model.SessionType, userID distype.Snowflake, guildIDs []distype.Snowflake, accessToken string) (string, error) {
+func (s *SessionManager) CreateSession(ctx context.Context, sessionType model.SessionType, userID distype.Snowflake, accessToken string) (string, error) {
 	token, err := generateSessionToken()
 	if err != nil {
 		return "", err
@@ -77,7 +75,6 @@ func (s *SessionManager) CreateSession(ctx context.Context, sessionType model.Se
 		TokenHash:   tokenHash,
 		Type:        sessionType,
 		UserID:      userID,
-		GuildIds:    guildIDs,
 		AccessToken: accessToken,
 		CreatedAt:   time.Now().UTC(),
 		ExpiresAt:   time.Now().UTC().Add(30 * 24 * time.Hour),
@@ -89,8 +86,8 @@ func (s *SessionManager) CreateSession(ctx context.Context, sessionType model.Se
 	return token, nil
 }
 
-func (s *SessionManager) CreateSessionCookie(c *fiber.Ctx, sessionType model.SessionType, userID distype.Snowflake, guildIDs []distype.Snowflake, accessToken string) error {
-	token, err := s.CreateSession(c.Context(), sessionType, userID, guildIDs, accessToken)
+func (s *SessionManager) CreateSessionCookie(c *fiber.Ctx, sessionType model.SessionType, userID distype.Snowflake, accessToken string) error {
+	token, err := s.CreateSession(c.Context(), sessionType, userID, accessToken)
 	if err != nil {
 		return err
 	}

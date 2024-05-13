@@ -8,10 +8,10 @@ import (
 )
 
 type KVStorageStore interface {
-	GetKVStorageNamespaces(ctx context.Context, guildID string) ([]model.KVStorageNamespace, error)
-	GetKVStorageKeys(ctx context.Context, guildID, namespace string) ([]model.KVStorageValue, error)
-	SetKVStorageKey(ctx context.Context, guildID, namespace, key string, value kv.TypedKVValue) error
-	GetKVStorageKey(ctx context.Context, guildID, namespace, key string) (*model.KVStorageValue, error)
-	DeleteKVStorageKey(ctx context.Context, guildID, namespace, key string) (*model.KVStorageValue, error)
-	IncreaseKVStorageKey(ctx context.Context, guildID, namespace, key string, increment int) (*model.KVStorageValue, error)
+	GetKVStorageNamespaces(ctx context.Context, appID string) ([]model.KVStorageNamespace, error)
+	GetKVStorageKeys(ctx context.Context, appID, namespace string) ([]model.KVStorageValue, error)
+	SetKVStorageKey(ctx context.Context, appID, namespace, key string, value kv.TypedKVValue) error
+	GetKVStorageKey(ctx context.Context, appID, namespace, key string) (*model.KVStorageValue, error)
+	DeleteKVStorageKey(ctx context.Context, appID, namespace, key string) (*model.KVStorageValue, error)
+	IncreaseKVStorageKey(ctx context.Context, appID, namespace, key string, increment int) (*model.KVStorageValue, error)
 }

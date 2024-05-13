@@ -8,7 +8,7 @@ import (
 
 type Workspace struct {
 	ID          string          `json:"id"`
-	GuildID     string          `json:"guild_id"`
+	AppID       string          `json:"app_id"`
 	Type        string          `json:"type"`
 	Name        string          `json:"name"`
 	Description string          `json:"description"`
@@ -56,7 +56,7 @@ func WorkspaceToWire(workspace *model.Workspace) Workspace {
 
 	return Workspace{
 		ID:          workspace.ID,
-		GuildID:     workspace.GuildID,
+		AppID:       workspace.AppID,
 		Type:        string(workspace.Type),
 		Name:        workspace.Name,
 		Description: workspace.Description,

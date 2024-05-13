@@ -10,6 +10,7 @@ import (
 type User struct {
 	ID            distype.Snowflake
 	Username      string
+	Email         string
 	Discriminator null.String
 	GlobalName    null.String
 	Avatar        null.String

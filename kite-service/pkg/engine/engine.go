@@ -20,11 +20,11 @@ func New() *Engine {
 	}
 }
 
-func (e *Engine) RemoveDeployment(ctx context.Context, guildID distype.Snowflake, deploymentID string) {
+func (e *Engine) RemoveAppDeployment(ctx context.Context, appID distype.Snowflake, deploymentID string) {
 	e.Lock()
 	defer e.Unlock()
 
-	deployments, exists := e.Deployments[guildID]
+	deployments, exists := e.Deployments[appID]
 	if !exists {
 		return
 	}
@@ -33,44 +33,44 @@ func (e *Engine) RemoveDeployment(ctx context.Context, guildID distype.Snowflake
 		if deployment.ID == deploymentID {
 			deployment.Close(ctx)
 			deployments = append(deployments[:i], deployments[i+1:]...)
-			e.Deployments[guildID] = deployments
+			e.Deployments[appID] = deployments
 			return
 		}
 	}
 }
 
-func (e *Engine) LoadGuildDeployment(ctx context.Context, guildID distype.Snowflake, deployment *Deployment) {
-	e.RemoveDeployment(ctx, guildID, deployment.ID)
+func (e *Engine) LoadAppDeployment(ctx context.Context, appID distype.Snowflake, deployment *Deployment) {
+	e.RemoveAppDeployment(ctx, appID, deployment.ID)
 
 	e.Lock()
 	defer e.Unlock()
 
-	deployments, exists := e.Deployments[guildID]
+	deployments, exists := e.Deployments[appID]
 	if !exists {
 		deployments = []*Deployment{}
 	}
 
 	deployments = append(deployments, deployment)
-	e.Deployments[guildID] = deployments
+	e.Deployments[appID] = deployments
 }
 
-func (e *Engine) ReplaceGuildDeployments(ctx context.Context, guildID distype.Snowflake, deployments []*Deployment) {
+func (e *Engine) ReplaceAppDeployments(ctx context.Context, appID distype.Snowflake, deployments []*Deployment) {
 	e.Lock()
 	defer e.Unlock()
 
-	existing := e.Deployments[guildID]
+	existing := e.Deployments[appID]
 	for _, deployment := range existing {
 		deployment.Close(ctx)
 	}
 
-	e.Deployments[guildID] = deployments
+	e.Deployments[appID] = deployments
 }
 
-func (e *Engine) TruncateGuildDeployments(ctx context.Context, guildID distype.Snowflake, deploymentIDs []string) bool {
+func (e *Engine) TruncateAppDeployments(ctx context.Context, appID distype.Snowflake, deploymentIDs []string) bool {
 	e.Lock()
 	defer e.Unlock()
 
-	deployments, exists := e.Deployments[guildID]
+	deployments, exists := e.Deployments[appID]
 	if !exists {
 		return false
 	}
@@ -85,6 +85,6 @@ func (e *Engine) TruncateGuildDeployments(ctx context.Context, guildID distype.S
 		}
 	}
 
-	e.Deployments[guildID] = deployments
+	e.Deployments[appID] = deployments
 	return removed
 }

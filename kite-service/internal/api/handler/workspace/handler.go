@@ -32,7 +32,7 @@ func (h *WorkspaceHandler) HandleWorkspaceCreate(c *fiber.Ctx, req wire.Workspac
 
 	workspace, err := h.workspaces.CreateWorkspace(c.Context(), model.Workspace{
 		ID:          util.UniqueID(),
-		GuildID:     c.Params("guildID"),
+		AppID:       c.Params("appID"),
 		Type:        model.WorkspaceType(req.Type),
 		Name:        req.Name,
 		Description: req.Description,
@@ -61,7 +61,7 @@ func (h *WorkspaceHandler) HandleWorkspaceUpdate(c *fiber.Ctx, req wire.Workspac
 
 	workspace, err := h.workspaces.UpdateWorkspace(c.Context(), model.Workspace{
 		ID:          c.Params("workspaceID"),
-		GuildID:     c.Params("guildID"),
+		AppID:       c.Params("appID"),
 		Name:        req.Name,
 		Description: req.Description,
 		Files:       files,
@@ -80,8 +80,8 @@ func (h *WorkspaceHandler) HandleWorkspaceUpdate(c *fiber.Ctx, req wire.Workspac
 	})
 }
 
-func (h *WorkspaceHandler) HandleWorkspaceGetForGuild(c *fiber.Ctx) error {
-	workspace, err := h.workspaces.GetWorkspace(c.Context(), c.Params("workspaceID"), c.Params("guildID"))
+func (h *WorkspaceHandler) HandleWorkspaceGet(c *fiber.Ctx) error {
+	workspace, err := h.workspaces.GetWorkspace(c.Context(), c.Params("workspaceID"), c.Params("appID"))
 	if err != nil {
 		if err == store.ErrNotFound {
 			return helpers.NotFound("unknown_workspace", "Workspace not found")
@@ -95,8 +95,8 @@ func (h *WorkspaceHandler) HandleWorkspaceGetForGuild(c *fiber.Ctx) error {
 	})
 }
 
-func (h *WorkspaceHandler) HandleWorkspaceListForGuild(c *fiber.Ctx) error {
-	workspaces, err := h.workspaces.GetWorkspacesForGuild(c.Context(), c.Params("guildID"))
+func (h *WorkspaceHandler) HandleWorkspaceListForApp(c *fiber.Ctx) error {
+	workspaces, err := h.workspaces.GetWorkspacesForApp(c.Context(), c.Params("appID"))
 	if err != nil {
 		return err
 	}
@@ -113,7 +113,7 @@ func (h *WorkspaceHandler) HandleWorkspaceListForGuild(c *fiber.Ctx) error {
 }
 
 func (h *WorkspaceHandler) HandleWorkspaceDelete(c *fiber.Ctx) error {
-	err := h.workspaces.DeleteWorkspace(c.Context(), c.Params("workspaceID"), c.Params("guildID"))
+	err := h.workspaces.DeleteWorkspace(c.Context(), c.Params("workspaceID"), c.Params("appID"))
 	if err != nil {
 		if err == store.ErrNotFound {
 			return helpers.NotFound("unknown_workspace", "Workspace not found")

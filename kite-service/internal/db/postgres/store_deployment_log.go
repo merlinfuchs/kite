@@ -7,10 +7,13 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/merlinfuchs/kite/kite-service/internal/db/postgres/pgmodel"
 	"github.com/merlinfuchs/kite/kite-service/pkg/model"
+	"github.com/merlinfuchs/kite/kite-service/pkg/store"
 )
 
-func (c *Client) GetDeploymentLogEntries(ctx context.Context, deploymentID string, guildID string) ([]model.DeploymentLogEntry, error) {
-	// TODO: use guild id to validate that deployment belongs to that guild
+var _ store.DeploymentLogStore = (*Client)(nil)
+
+func (c *Client) GetDeploymentLogEntries(ctx context.Context, deploymentID string, appID string) ([]model.DeploymentLogEntry, error) {
+	// TODO: use guild id to validate that deployment belongs to that app
 
 	entries, err := c.Q.GetDeploymentLogEntries(ctx, deploymentID)
 	if err != nil {
@@ -31,7 +34,7 @@ func (c *Client) GetDeploymentLogEntries(ctx context.Context, deploymentID strin
 	return res, nil
 }
 
-func (c *Client) GetDeploymentLogSummary(ctx context.Context, deploymentID string, guildID string, cutoff time.Time) (*model.DeploymentLogSummary, error) {
+func (c *Client) GetDeploymentLogSummary(ctx context.Context, deploymentID string, appID string, cutoff time.Time) (*model.DeploymentLogSummary, error) {
 	summary, err := c.Q.GetDeploymentLogSummary(ctx, pgmodel.GetDeploymentLogSummaryParams{
 		DeploymentID: deploymentID,
 		CreatedAt:    timeToTimestamp(cutoff),

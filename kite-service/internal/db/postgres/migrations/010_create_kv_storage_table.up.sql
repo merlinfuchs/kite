@@ -1,5 +1,5 @@
 CREATE TABLE IF NOT EXISTS kv_storage (
-   guild_id TEXT NOT NULL REFERENCES guilds(id) ON DELETE CASCADE,
+   app_id TEXT NOT NULL REFERENCES apps(id) ON DELETE CASCADE,
    namespace TEXT NOT NULL,
    key TEXT NOT NULL,
    value JSONB NOT NULL,
@@ -7,5 +7,5 @@ CREATE TABLE IF NOT EXISTS kv_storage (
    created_at TIMESTAMP NOT NULL,
    updated_at TIMESTAMP NOT NULL,
 
-   PRIMARY KEY (guild_id, namespace, key)
+   PRIMARY KEY (app_id, namespace, key)
 );

@@ -2,6 +2,7 @@
 INSERT INTO users (
     id,
     username,
+    email,
     discriminator,
     global_name,
     avatar,
@@ -16,14 +17,16 @@ INSERT INTO users (
     $5,
     $6,
     $7,
-    $8
+    $8,
+    $9
 ) ON CONFLICT (id) DO UPDATE SET
-    username = $2,
-    discriminator = $3,
-    global_name = $4,
-    avatar = $5,
-    public_flags = $6,
-    updated_at = $8
+    username = EXCLUDED.username,
+    email = EXCLUDED.email,
+    discriminator = EXCLUDED.discriminator,
+    global_name = EXCLUDED.global_name,
+    avatar = EXCLUDED.avatar,
+    public_flags = EXCLUDED.public_flags,
+    updated_at = EXCLUDED.updated_at
 RETURNING *;
 
 -- name: GetUser :one

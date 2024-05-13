@@ -1,12 +1,12 @@
 import { useDeploymentLogSummaryQuery } from "@/lib/api/queries";
 
 interface Props {
-  guildId: string;
+  appId: string;
   deploymentId: string;
 }
 
-export default function DeploymentLogSummary({ guildId, deploymentId }: Props) {
-  const { data: resp } = useDeploymentLogSummaryQuery(guildId, deploymentId);
+export default function DeploymentLogSummary({ appId, deploymentId }: Props) {
+  const { data: resp } = useDeploymentLogSummaryQuery(appId, deploymentId);
 
   const summary = resp?.success ? resp.data : null;
 

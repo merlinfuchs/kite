@@ -5,11 +5,11 @@ import (
 )
 
 type AccessManager struct {
-	state store.DiscordStateStore
+	apps store.AppStore
 }
 
-func New(state store.DiscordStateStore) *AccessManager {
+func New(apps store.AppStore) *AccessManager {
 	return &AccessManager{
-		state: state,
+		apps: apps,
 	}
 }

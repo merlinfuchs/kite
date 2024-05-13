@@ -12,23 +12,23 @@ import (
 )
 
 const deleteDeployment = `-- name: DeleteDeployment :one
-DELETE FROM deployments WHERE id = $1 AND guild_id = $2 RETURNING id, key, name, description, guild_id, plugin_version_id, wasm_bytes, manifest, config, created_at, updated_at, deployed_at
+DELETE FROM deployments WHERE id = $1 AND app_id = $2 RETURNING id, key, name, description, app_id, plugin_version_id, wasm_bytes, manifest, config, created_at, updated_at, deployed_at
 `
 
 type DeleteDeploymentParams struct {
-	ID      string
-	GuildID string
+	ID    string
+	AppID string
 }
 
 func (q *Queries) DeleteDeployment(ctx context.Context, arg DeleteDeploymentParams) (Deployment, error) {
-	row := q.db.QueryRow(ctx, deleteDeployment, arg.ID, arg.GuildID)
+	row := q.db.QueryRow(ctx, deleteDeployment, arg.ID, arg.AppID)
 	var i Deployment
 	err := row.Scan(
 		&i.ID,
 		&i.Key,
 		&i.Name,
 		&i.Description,
-		&i.GuildID,
+		&i.AppID,
 		&i.PluginVersionID,
 		&i.WasmBytes,
 		&i.Manifest,
@@ -40,24 +40,48 @@ func (q *Queries) DeleteDeployment(ctx context.Context, arg DeleteDeploymentPara
 	return i, err
 }
 
-const getDeploymentForGuild = `-- name: GetDeploymentForGuild :one
-SELECT id, key, name, description, guild_id, plugin_version_id, wasm_bytes, manifest, config, created_at, updated_at, deployed_at FROM deployments WHERE id = $1 AND guild_id = $2
+const getAppIdsWithDeployments = `-- name: GetAppIdsWithDeployments :many
+SELECT DISTINCT app_id FROM deployments
 `
 
-type GetDeploymentForGuildParams struct {
-	ID      string
-	GuildID string
+func (q *Queries) GetAppIdsWithDeployments(ctx context.Context) ([]string, error) {
+	rows, err := q.db.Query(ctx, getAppIdsWithDeployments)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []string
+	for rows.Next() {
+		var app_id string
+		if err := rows.Scan(&app_id); err != nil {
+			return nil, err
+		}
+		items = append(items, app_id)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
-func (q *Queries) GetDeploymentForGuild(ctx context.Context, arg GetDeploymentForGuildParams) (Deployment, error) {
-	row := q.db.QueryRow(ctx, getDeploymentForGuild, arg.ID, arg.GuildID)
+const getDeploymentForApp = `-- name: GetDeploymentForApp :one
+SELECT id, key, name, description, app_id, plugin_version_id, wasm_bytes, manifest, config, created_at, updated_at, deployed_at FROM deployments WHERE id = $1 AND app_id = $2
+`
+
+type GetDeploymentForAppParams struct {
+	ID    string
+	AppID string
+}
+
+func (q *Queries) GetDeploymentForApp(ctx context.Context, arg GetDeploymentForAppParams) (Deployment, error) {
+	row := q.db.QueryRow(ctx, getDeploymentForApp, arg.ID, arg.AppID)
 	var i Deployment
 	err := row.Scan(
 		&i.ID,
 		&i.Key,
 		&i.Name,
 		&i.Description,
-		&i.GuildID,
+		&i.AppID,
 		&i.PluginVersionID,
 		&i.WasmBytes,
 		&i.Manifest,
@@ -70,12 +94,12 @@ func (q *Queries) GetDeploymentForGuild(ctx context.Context, arg GetDeploymentFo
 }
 
 const getDeploymentIDs = `-- name: GetDeploymentIDs :many
-SELECT id, guild_id FROM deployments
+SELECT id, app_id FROM deployments
 `
 
 type GetDeploymentIDsRow struct {
-	ID      string
-	GuildID string
+	ID    string
+	AppID string
 }
 
 func (q *Queries) GetDeploymentIDs(ctx context.Context) ([]GetDeploymentIDsRow, error) {
@@ -87,7 +111,7 @@ func (q *Queries) GetDeploymentIDs(ctx context.Context) ([]GetDeploymentIDsRow, 
 	var items []GetDeploymentIDsRow
 	for rows.Next() {
 		var i GetDeploymentIDsRow
-		if err := rows.Scan(&i.ID, &i.GuildID); err != nil {
+		if err := rows.Scan(&i.ID, &i.AppID); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -99,7 +123,7 @@ func (q *Queries) GetDeploymentIDs(ctx context.Context) ([]GetDeploymentIDsRow, 
 }
 
 const getDeployments = `-- name: GetDeployments :many
-SELECT id, key, name, description, guild_id, plugin_version_id, wasm_bytes, manifest, config, created_at, updated_at, deployed_at FROM deployments
+SELECT id, key, name, description, app_id, plugin_version_id, wasm_bytes, manifest, config, created_at, updated_at, deployed_at FROM deployments
 `
 
 func (q *Queries) GetDeployments(ctx context.Context) ([]Deployment, error) {
@@ -116,7 +140,7 @@ func (q *Queries) GetDeployments(ctx context.Context) ([]Deployment, error) {
 			&i.Key,
 			&i.Name,
 			&i.Description,
-			&i.GuildID,
+			&i.AppID,
 			&i.PluginVersionID,
 			&i.WasmBytes,
 			&i.Manifest,
@@ -135,12 +159,12 @@ func (q *Queries) GetDeployments(ctx context.Context) ([]Deployment, error) {
 	return items, nil
 }
 
-const getDeploymentsForGuild = `-- name: GetDeploymentsForGuild :many
-SELECT id, key, name, description, guild_id, plugin_version_id, wasm_bytes, manifest, config, created_at, updated_at, deployed_at FROM deployments WHERE guild_id = $1 ORDER BY updated_at DESC
+const getDeploymentsForApp = `-- name: GetDeploymentsForApp :many
+SELECT id, key, name, description, app_id, plugin_version_id, wasm_bytes, manifest, config, created_at, updated_at, deployed_at FROM deployments WHERE app_id = $1 ORDER BY updated_at DESC
 `
 
-func (q *Queries) GetDeploymentsForGuild(ctx context.Context, guildID string) ([]Deployment, error) {
-	rows, err := q.db.Query(ctx, getDeploymentsForGuild, guildID)
+func (q *Queries) GetDeploymentsForApp(ctx context.Context, appID string) ([]Deployment, error) {
+	rows, err := q.db.Query(ctx, getDeploymentsForApp, appID)
 	if err != nil {
 		return nil, err
 	}
@@ -153,7 +177,7 @@ func (q *Queries) GetDeploymentsForGuild(ctx context.Context, guildID string) ([
 			&i.Key,
 			&i.Name,
 			&i.Description,
-			&i.GuildID,
+			&i.AppID,
 			&i.PluginVersionID,
 			&i.WasmBytes,
 			&i.Manifest,
@@ -173,7 +197,7 @@ func (q *Queries) GetDeploymentsForGuild(ctx context.Context, guildID string) ([
 }
 
 const getDeploymentsWithUndeployedChanges = `-- name: GetDeploymentsWithUndeployedChanges :many
-SELECT id, key, name, description, guild_id, plugin_version_id, wasm_bytes, manifest, config, created_at, updated_at, deployed_at FROM deployments WHERE deployed_at IS NULL OR updated_at > deployed_at
+SELECT id, key, name, description, app_id, plugin_version_id, wasm_bytes, manifest, config, created_at, updated_at, deployed_at FROM deployments WHERE deployed_at IS NULL OR updated_at > deployed_at
 `
 
 func (q *Queries) GetDeploymentsWithUndeployedChanges(ctx context.Context) ([]Deployment, error) {
@@ -190,7 +214,7 @@ func (q *Queries) GetDeploymentsWithUndeployedChanges(ctx context.Context) ([]De
 			&i.Key,
 			&i.Name,
 			&i.Description,
-			&i.GuildID,
+			&i.AppID,
 			&i.PluginVersionID,
 			&i.WasmBytes,
 			&i.Manifest,
@@ -209,48 +233,24 @@ func (q *Queries) GetDeploymentsWithUndeployedChanges(ctx context.Context) ([]De
 	return items, nil
 }
 
-const getGuildIdsWithDeployments = `-- name: GetGuildIdsWithDeployments :many
-SELECT DISTINCT guild_id FROM deployments
+const updateDeploymentsDeployedAtForApp = `-- name: UpdateDeploymentsDeployedAtForApp :one
+UPDATE deployments SET deployed_at = $1 WHERE app_id = $2 RETURNING id, key, name, description, app_id, plugin_version_id, wasm_bytes, manifest, config, created_at, updated_at, deployed_at
 `
 
-func (q *Queries) GetGuildIdsWithDeployments(ctx context.Context) ([]string, error) {
-	rows, err := q.db.Query(ctx, getGuildIdsWithDeployments)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []string
-	for rows.Next() {
-		var guild_id string
-		if err := rows.Scan(&guild_id); err != nil {
-			return nil, err
-		}
-		items = append(items, guild_id)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const updateDeploymentsDeployedAtForGuild = `-- name: UpdateDeploymentsDeployedAtForGuild :one
-UPDATE deployments SET deployed_at = $1 WHERE guild_id = $2 RETURNING id, key, name, description, guild_id, plugin_version_id, wasm_bytes, manifest, config, created_at, updated_at, deployed_at
-`
-
-type UpdateDeploymentsDeployedAtForGuildParams struct {
+type UpdateDeploymentsDeployedAtForAppParams struct {
 	DeployedAt pgtype.Timestamp
-	GuildID    string
+	AppID      string
 }
 
-func (q *Queries) UpdateDeploymentsDeployedAtForGuild(ctx context.Context, arg UpdateDeploymentsDeployedAtForGuildParams) (Deployment, error) {
-	row := q.db.QueryRow(ctx, updateDeploymentsDeployedAtForGuild, arg.DeployedAt, arg.GuildID)
+func (q *Queries) UpdateDeploymentsDeployedAtForApp(ctx context.Context, arg UpdateDeploymentsDeployedAtForAppParams) (Deployment, error) {
+	row := q.db.QueryRow(ctx, updateDeploymentsDeployedAtForApp, arg.DeployedAt, arg.AppID)
 	var i Deployment
 	err := row.Scan(
 		&i.ID,
 		&i.Key,
 		&i.Name,
 		&i.Description,
-		&i.GuildID,
+		&i.AppID,
 		&i.PluginVersionID,
 		&i.WasmBytes,
 		&i.Manifest,
@@ -268,7 +268,7 @@ INSERT INTO deployments (
     key, 
     name, 
     description, 
-    guild_id, 
+    app_id, 
     plugin_version_id, 
     wasm_bytes, 
     manifest,
@@ -287,7 +287,7 @@ INSERT INTO deployments (
     $9,
     $10,
     $11
-) ON CONFLICT (key, guild_id) DO UPDATE SET 
+) ON CONFLICT (key, app_id) DO UPDATE SET 
     name = EXCLUDED.name,
     description = EXCLUDED.description,
     plugin_version_id = EXCLUDED.plugin_version_id,
@@ -295,7 +295,7 @@ INSERT INTO deployments (
     manifest = EXCLUDED.manifest,
     config = EXCLUDED.config,
     updated_at = EXCLUDED.updated_at
-RETURNING id, key, name, description, guild_id, plugin_version_id, wasm_bytes, manifest, config, created_at, updated_at, deployed_at
+RETURNING id, key, name, description, app_id, plugin_version_id, wasm_bytes, manifest, config, created_at, updated_at, deployed_at
 `
 
 type UpsertDeploymentParams struct {
@@ -303,7 +303,7 @@ type UpsertDeploymentParams struct {
 	Key             string
 	Name            string
 	Description     string
-	GuildID         string
+	AppID           string
 	PluginVersionID pgtype.Text
 	WasmBytes       []byte
 	Manifest        []byte
@@ -318,7 +318,7 @@ func (q *Queries) UpsertDeployment(ctx context.Context, arg UpsertDeploymentPara
 		arg.Key,
 		arg.Name,
 		arg.Description,
-		arg.GuildID,
+		arg.AppID,
 		arg.PluginVersionID,
 		arg.WasmBytes,
 		arg.Manifest,
@@ -332,7 +332,7 @@ func (q *Queries) UpsertDeployment(ctx context.Context, arg UpsertDeploymentPara
 		&i.Key,
 		&i.Name,
 		&i.Description,
-		&i.GuildID,
+		&i.AppID,
 		&i.PluginVersionID,
 		&i.WasmBytes,
 		&i.Manifest,

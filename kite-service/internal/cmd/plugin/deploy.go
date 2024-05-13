@@ -21,8 +21,8 @@ func deployCMD() *cli.Command {
 		Usage: "Deploy a plugin to a specific guild on a Kite server",
 		Flags: []cli.Flag{
 			&cli.StringFlag{
-				Name:     "guild_id",
-				Usage:    "Guild ID to deploy the plugin to",
+				Name:     "app_id",
+				Usage:    "App ID to deploy the plugin to",
 				Required: true,
 			},
 			&cli.StringFlag{
@@ -41,7 +41,7 @@ func deployCMD() *cli.Command {
 			if basePath == "" {
 				basePath = "."
 			}
-			guildID := c.String("guild_id")
+			appID := c.String("app_id")
 			rawUserConfig := c.String("config")
 			server := c.String("server")
 
@@ -65,14 +65,14 @@ func deployCMD() *cli.Command {
 				return fmt.Errorf("Failed to parse server URL: %v", err)
 			}
 
-			return runDeploy(basePath, guildID, userConfig, serverURL, cfg, globalCFG)
+			return runDeploy(basePath, appID, userConfig, serverURL, cfg, globalCFG)
 		},
 	}
 }
 
 func runDeploy(
 	basePath string,
-	guildID string,
+	appID string,
 	userConfig map[string]string,
 	serverURL *url.URL,
 	cfg *config.WorkspaceConfig,
@@ -83,7 +83,7 @@ func runDeploy(
 		return fmt.Errorf("No session for server %s, login first!", serverURL.String())
 	}
 
-	serverURL.Path = path.Join(serverURL.Path, "v1/guilds", guildID, "deployments")
+	serverURL.Path = path.Join(serverURL.Path, "v1/apps", appID, "deployments")
 
 	wasmPath := filepath.Join(basePath, cfg.Module.Build.Out)
 	wasm, err := os.ReadFile(wasmPath)

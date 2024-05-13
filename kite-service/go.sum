@@ -113,6 +113,8 @@ github.com/merlinfuchs/dismod v0.0.0-20240302190415-9577cfca0e89 h1:GtradtufRfru
 github.com/merlinfuchs/dismod v0.0.0-20240302190415-9577cfca0e89/go.mod h1:4dksStVb25ZlbHTGoQRbUPHY5y41KMeA2ha4zoRGP6k=
 github.com/merlinfuchs/dismod v0.0.0-20240302190730-862e6dd22534 h1:djNabmyL0P0GsiTdMaUjGS97kDIJDRl58TxNkwipJls=
 github.com/merlinfuchs/dismod v0.0.0-20240302190730-862e6dd22534/go.mod h1:4dksStVb25ZlbHTGoQRbUPHY5y41KMeA2ha4zoRGP6k=
+github.com/merlinfuchs/dismod v0.0.0-20240513134709-5dfc0bb5280e h1:J9sNQ1mXY5FmgW74SO6nbFN5l/AlTbzASAmrPV03juc=
+github.com/merlinfuchs/dismod v0.0.0-20240513134709-5dfc0bb5280e/go.mod h1:4dksStVb25ZlbHTGoQRbUPHY5y41KMeA2ha4zoRGP6k=
 github.com/mitchellh/copystructure v1.2.0 h1:vpKXTN4ewci03Vljg/q9QvCGUDttBOGBIa15WveJJGw=
 github.com/mitchellh/copystructure v1.2.0/go.mod h1:qLl+cE2AmVv+CoeAwDPye/v+N2HKCj9FbZEVFJRxO9s=
 github.com/mitchellh/mapstructure v1.5.0 h1:jeMsZIYE/09sWLaz43PL7Gy6RuMjD2eJVyuac5Z2hdY=
@@ -169,6 +171,8 @@ github.com/stretchr/testify v1.8.4 h1:CcVxjf3Q8PM0mHUKJCdn+eZZtm5yQwehR5yeSVQQcU
 github.com/stretchr/testify v1.8.4/go.mod h1:sz/lmYIOXD/1dqDmKjjqLyZ2RngseejIcXlSw2iwfAo=
 github.com/tetratelabs/wazero v1.6.0 h1:z0H1iikCdP8t+q341xqepY4EWvHEw8Es7tlqiVzlP3g=
 github.com/tetratelabs/wazero v1.6.0/go.mod h1:0U0G41+ochRKoPKCJlh0jMg1CHkyfK8kDqiirMmKY8A=
+github.com/tetratelabs/wazero v1.7.2 h1:1+z5nXJNwMLPAWaTePFi49SSTL0IMx/i3Fg8Yc25GDc=
+github.com/tetratelabs/wazero v1.7.2/go.mod h1:ytl6Zuh20R/eROuyDaGPkp82O9C/DJfXAwJfQ3X6/7Y=
 github.com/urfave/cli/v2 v2.27.0 h1:uNs1K8JwTFL84X68j5Fjny6hfANh9nTlJ6dRtZAFAHY=
 github.com/urfave/cli/v2 v2.27.0/go.mod h1:8qnjx1vcq5s2/wpsqoZFndg2CE5tNFyrTvS6SinrnYQ=
 github.com/valyala/bytebufferpool v1.0.0 h1:GqA5TC/0021Y/b9FG4Oi9Mr3q7XYx6KllzawFIhcdPw=

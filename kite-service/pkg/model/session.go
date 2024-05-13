@@ -18,7 +18,6 @@ type Session struct {
 	TokenHash   string
 	Type        SessionType
 	UserID      distype.Snowflake
-	GuildIds    []distype.Snowflake
 	AccessToken string
 	Revoked     bool
 	CreatedAt   time.Time

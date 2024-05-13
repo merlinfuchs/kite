@@ -21,6 +21,17 @@ func nullTimeToTimestamp(t null.Time) pgtype.Timestamp {
 	}
 }
 
+func nullIntToInt4(i null.Int) pgtype.Int4 {
+	return pgtype.Int4{
+		Int32: int32(i.Int64),
+		Valid: i.Valid,
+	}
+}
+
+func int4ToNullInt(i pgtype.Int4) null.Int {
+	return null.NewInt(int64(i.Int32), i.Valid)
+}
+
 func nullStringToText(s null.String) pgtype.Text {
 	return pgtype.Text{
 		String: s.String,

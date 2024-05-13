@@ -39,7 +39,6 @@ INSERT INTO sessions (
     token_hash,
     type,
     user_id,
-    guild_ids,
     access_token,
     created_at,
     expires_at
@@ -49,8 +48,7 @@ INSERT INTO sessions (
     $3,
     $4,
     $5,
-    $6,
-    $7
+    $6
 )
 `
 
@@ -58,7 +56,6 @@ type CreateSessionParams struct {
 	TokenHash   string
 	Type        string
 	UserID      string
-	GuildIds    []string
 	AccessToken string
 	CreatedAt   pgtype.Timestamp
 	ExpiresAt   pgtype.Timestamp
@@ -69,7 +66,6 @@ func (q *Queries) CreateSession(ctx context.Context, arg CreateSessionParams) er
 		arg.TokenHash,
 		arg.Type,
 		arg.UserID,
-		arg.GuildIds,
 		arg.AccessToken,
 		arg.CreatedAt,
 		arg.ExpiresAt,
@@ -112,7 +108,7 @@ func (q *Queries) GetPendingSession(ctx context.Context, code string) (SessionsP
 }
 
 const getSession = `-- name: GetSession :one
-SELECT token_hash, type, user_id, guild_ids, access_token, revoked, created_at, expires_at FROM sessions WHERE token_hash = $1
+SELECT token_hash, type, user_id, access_token, revoked, created_at, expires_at FROM sessions WHERE token_hash = $1
 `
 
 func (q *Queries) GetSession(ctx context.Context, tokenHash string) (Session, error) {
@@ -122,7 +118,6 @@ func (q *Queries) GetSession(ctx context.Context, tokenHash string) (Session, er
 		&i.TokenHash,
 		&i.Type,
 		&i.UserID,
-		&i.GuildIds,
 		&i.AccessToken,
 		&i.Revoked,
 		&i.CreatedAt,

@@ -39,7 +39,7 @@ func NewHandler(
 }
 
 func (h *DeploymentHandler) HandleDeploymentCreate(c *fiber.Ctx, req wire.DeploymentCreateRequest) error {
-	guildID := c.Params("guildID")
+	appID := c.Params("appID")
 
 	module, err := module.New(c.Context(), req.WasmBytes, module.ModuleConfig{
 		MemoryPagesLimit:   h.limits.MaxMemoryPages,
@@ -61,7 +61,7 @@ func (h *DeploymentHandler) HandleDeploymentCreate(c *fiber.Ctx, req wire.Deploy
 		Name:            req.Name,
 		Key:             req.Key,
 		Description:     req.Description,
-		GuildID:         guildID,
+		AppID:           appID,
 		PluginVersionID: req.PluginVersionID,
 		WasmBytes:       req.WasmBytes,
 		Manifest:        *manifest,
@@ -79,8 +79,8 @@ func (h *DeploymentHandler) HandleDeploymentCreate(c *fiber.Ctx, req wire.Deploy
 	})
 }
 
-func (h *DeploymentHandler) HandleDeploymentListForGuild(c *fiber.Ctx) error {
-	deployments, err := h.deployments.GetDeploymentsForGuild(c.Context(), c.Params("guildID"))
+func (h *DeploymentHandler) HandleDeploymentListForApp(c *fiber.Ctx) error {
+	deployments, err := h.deployments.GetDeploymentsForApp(c.Context(), c.Params("appID"))
 	if err != nil {
 		return err
 	}
@@ -97,7 +97,7 @@ func (h *DeploymentHandler) HandleDeploymentListForGuild(c *fiber.Ctx) error {
 }
 
 func (h *DeploymentHandler) HandleDeploymentGet(c *fiber.Ctx) error {
-	deployment, err := h.deployments.GetDeployment(c.Context(), c.Params("deploymentID"), c.Params("guildID"))
+	deployment, err := h.deployments.GetDeployment(c.Context(), c.Params("deploymentID"), c.Params("appID"))
 	if err != nil {
 		if err == store.ErrNotFound {
 			return fiber.NewError(fiber.StatusNotFound, "unknown_deployment", "Deployment not found")
@@ -112,7 +112,7 @@ func (h *DeploymentHandler) HandleDeploymentGet(c *fiber.Ctx) error {
 }
 
 func (h *DeploymentHandler) HandleDeploymentDelete(c *fiber.Ctx) error {
-	err := h.deployments.DeleteDeployment(c.Context(), c.Params("deploymentID"), c.Params("guildID"))
+	err := h.deployments.DeleteDeployment(c.Context(), c.Params("deploymentID"), c.Params("appID"))
 	if err != nil {
 		if err == store.ErrNotFound {
 			return fiber.NewError(fiber.StatusNotFound, "unknown_deployment", "Deployment not found")

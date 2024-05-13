@@ -3,8 +3,18 @@ package store
 import (
 	"context"
 
+	"github.com/merlinfuchs/dismod/disrest"
 	"github.com/merlinfuchs/dismod/distype"
 )
+
+type AppProvider interface {
+	AppState(appID distype.Snowflake) (AppStateProvider, error)
+}
+
+type AppStateProvider interface {
+	State() DiscordStateStore
+	Client() *disrest.Client
+}
 
 type DiscordStateStore interface {
 	GetGuild(ctx context.Context, guildID distype.Snowflake) (*distype.Guild, error)

@@ -61,7 +61,7 @@ func (h *DeploymentHandler) HandleDeploymentsEventMetricsList(c *fiber.Ctx) erro
 
 	metrics, err := h.deploymentMetrics.GetDeploymentsEventMetrics(
 		c.Context(),
-		distype.Snowflake(c.Params("guildID")),
+		distype.Snowflake(c.Params("appID")),
 		startAt,
 		groupBy,
 	)
@@ -88,7 +88,7 @@ func (h *DeploymentHandler) HandleDeploymentsCallMetricsList(c *fiber.Ctx) error
 
 	metrics, err := h.deploymentMetrics.GetDeploymentsCallMetrics(
 		c.Context(),
-		distype.Snowflake(c.Params("guildID")),
+		distype.Snowflake(c.Params("appID")),
 		startAt,
 		groupBy,
 	)

@@ -13,7 +13,7 @@ import { Dialog, Transition } from "@headlessui/react";
 import { useRouter } from "next/router";
 import Link from "next/link";
 import AppSidebarQuickAccess from "./AppSidebarQuickAccess";
-import AppSidebarGuildSelect from "./AppSidebarGuildSelect";
+import AppSidebarAppSelect from "./AppSidebarAppSelect";
 import { useUserQuery } from "@/lib/api/queries";
 import { userAvatarUrl } from "@/lib/discord/cdn";
 import { getApiUrl } from "@/lib/api/client";
@@ -25,7 +25,7 @@ interface Props {
 
 export default function AppSideBar({ open, setOpen }: Props) {
   const router = useRouter();
-  const guildId = router.query.gid as string;
+  const appId = router.query.aid as string;
 
   const { data: userResp } = useUserQuery();
 
@@ -43,36 +43,36 @@ export default function AppSideBar({ open, setOpen }: Props) {
     return [
       {
         name: "Home",
-        href: `/app/guilds/${guildId}`,
+        href: `/apps/${appId}`,
         icon: HomeIcon,
-        current: router.pathname === "/app/guilds/[gid]",
+        current: router.pathname === "/apps/[aid]",
       },
       {
         name: "Deployments",
-        href: `/app/guilds/${guildId}/deployments`,
+        href: `/apps/${appId}/deployments`,
         icon: DocumentArrowUpIcon,
-        current: router.pathname.startsWith(`/app/guilds/[gid]/deployments`),
+        current: router.pathname.startsWith(`/apps/[aid]/deployments`),
       },
       {
         name: "Workspaces",
-        href: `/app/guilds/${guildId}/workspaces`,
+        href: `/apps/${appId}/workspaces`,
         icon: CodeBracketSquareIcon,
-        current: router.pathname.startsWith(`/app/guilds/[gid]/workspaces`),
+        current: router.pathname.startsWith(`/apps/[aid]/workspaces`),
       },
       {
         name: "KV Storage",
-        href: `/app/guilds/${guildId}/kv-storage`,
+        href: `/apps/${appId}/kv-storage`,
         icon: CircleStackIcon,
-        current: router.pathname.startsWith(`/app/guilds/[gid]/kv-storage`),
+        current: router.pathname.startsWith(`/apps/[aid]/kv-storage`),
       },
       {
         name: "Marketplace",
-        href: `/app/guilds/${guildId}/marketplace`,
+        href: `/apps/${appId}/marketplace`,
         icon: ShoppingCartIcon,
-        current: router.pathname.startsWith(`/app/guilds/[gid]/marketplace`),
+        current: router.pathname.startsWith(`/apps/[aid]/marketplace`),
       },
     ];
-  }, [guildId]);
+  }, [appId]);
 
   return (
     <div>
@@ -83,7 +83,7 @@ export default function AppSideBar({ open, setOpen }: Props) {
         {/* Sidebar component, swap this element with another sidebar if you like */}
         <div className="flex grow flex-col gap-y-5 overflow-y-auto bg-dark-2 px-4">
           <div className="mt-8 mb-5">
-            <AppSidebarGuildSelect guildId={guildId} />
+            <AppSidebarAppSelect appId={appId} />
           </div>
           <nav className="flex flex-1 flex-col px-2">
             <ul role="list" className="flex flex-1 flex-col gap-y-7">
@@ -110,7 +110,7 @@ export default function AppSideBar({ open, setOpen }: Props) {
                   ))}
                 </ul>
               </li>
-              <AppSidebarQuickAccess guildId={guildId} />
+              <AppSidebarQuickAccess appId={appId} />
               <li className="-mx-6 mt-auto">
                 <div className="flex items-center gap-x-4 px-6 py-3 text-sm font-semibold leading-6 text-white">
                   <img
@@ -188,7 +188,7 @@ export default function AppSideBar({ open, setOpen }: Props) {
                 {/* Sidebar component, swap this element with another sidebar if you like */}
                 <div className="flex grow flex-col gap-y-5 overflow-y-auto bg-dark-2 px-4 pb-2 ring-1 ring-white/10">
                   <div className="mt-8 mb-5">
-                    <AppSidebarGuildSelect guildId={guildId} />
+                    <AppSidebarAppSelect appId={appId} />
                   </div>
                   <nav className="flex flex-1 flex-col px-2">
                     <ul role="list" className="flex flex-1 flex-col gap-y-7">
@@ -215,7 +215,7 @@ export default function AppSideBar({ open, setOpen }: Props) {
                           ))}
                         </ul>
                       </li>
-                      <AppSidebarQuickAccess guildId={guildId} />
+                      <AppSidebarQuickAccess appId={appId} />
                     </ul>
                   </nav>
                 </div>

@@ -15,8 +15,10 @@ import (
 	"github.com/merlinfuchs/kite/kite-service/pkg/store"
 )
 
-func (c *Client) GetKVStorageNamespaces(ctx context.Context, guildID string) ([]model.KVStorageNamespace, error) {
-	rows, err := c.Q.GetKVStorageNamespaces(ctx, guildID)
+var _ store.KVStorageStore = (*Client)(nil)
+
+func (c *Client) GetKVStorageNamespaces(ctx context.Context, appID string) ([]model.KVStorageNamespace, error) {
+	rows, err := c.Q.GetKVStorageNamespaces(ctx, appID)
 	if err != nil {
 		return nil, err
 	}
@@ -24,7 +26,7 @@ func (c *Client) GetKVStorageNamespaces(ctx context.Context, guildID string) ([]
 	res := make([]model.KVStorageNamespace, len(rows))
 	for i, row := range rows {
 		res[i] = model.KVStorageNamespace{
-			GuildID:   guildID,
+			AppID:     appID,
 			Namespace: row.Namespace,
 			KeyCount:  int(row.KeyCount),
 		}
@@ -33,9 +35,9 @@ func (c *Client) GetKVStorageNamespaces(ctx context.Context, guildID string) ([]
 	return res, nil
 }
 
-func (c *Client) GetKVStorageKeys(ctx context.Context, guildID, namespace string) ([]model.KVStorageValue, error) {
+func (c *Client) GetKVStorageKeys(ctx context.Context, appID, namespace string) ([]model.KVStorageValue, error) {
 	rows, err := c.Q.GetKVStorageKeys(ctx, pgmodel.GetKVStorageKeysParams{
-		GuildID:   guildID,
+		AppID:     appID,
 		Namespace: namespace,
 	})
 	if err != nil {
@@ -51,7 +53,7 @@ func (c *Client) GetKVStorageKeys(ctx context.Context, guildID, namespace string
 		}
 
 		res[i] = model.KVStorageValue{
-			GuildID:   row.GuildID,
+			AppID:     row.AppID,
 			Namespace: row.Namespace,
 			Key:       row.Key,
 			Value:     value,
@@ -63,14 +65,14 @@ func (c *Client) GetKVStorageKeys(ctx context.Context, guildID, namespace string
 	return res, nil
 }
 
-func (c *Client) SetKVStorageKey(ctx context.Context, guildID, namespace, key string, value kv.TypedKVValue) error {
+func (c *Client) SetKVStorageKey(ctx context.Context, appID, namespace, key string, value kv.TypedKVValue) error {
 	rawValue, err := json.Marshal(value)
 	if err != nil {
 		return err
 	}
 
 	_, err = c.Q.SetKVStorageKey(ctx, pgmodel.SetKVStorageKeyParams{
-		GuildID:   guildID,
+		AppID:     appID,
 		Namespace: namespace,
 		Key:       key,
 		Value:     rawValue,
@@ -84,9 +86,9 @@ func (c *Client) SetKVStorageKey(ctx context.Context, guildID, namespace, key st
 	return nil
 }
 
-func (c *Client) GetKVStorageKey(ctx context.Context, guildID, namespace, key string) (*model.KVStorageValue, error) {
+func (c *Client) GetKVStorageKey(ctx context.Context, appID, namespace, key string) (*model.KVStorageValue, error) {
 	res, err := c.Q.GetKVStorageKey(ctx, pgmodel.GetKVStorageKeyParams{
-		GuildID:   guildID,
+		AppID:     appID,
 		Namespace: namespace,
 		Key:       key,
 	})
@@ -104,7 +106,7 @@ func (c *Client) GetKVStorageKey(ctx context.Context, guildID, namespace, key st
 	}
 
 	return &model.KVStorageValue{
-		GuildID:   res.GuildID,
+		AppID:     res.AppID,
 		Namespace: res.Namespace,
 		Key:       res.Key,
 		Value:     value,
@@ -113,9 +115,9 @@ func (c *Client) GetKVStorageKey(ctx context.Context, guildID, namespace, key st
 	}, nil
 }
 
-func (c *Client) DeleteKVStorageKey(ctx context.Context, guildID, namespace, key string) (*model.KVStorageValue, error) {
+func (c *Client) DeleteKVStorageKey(ctx context.Context, appID, namespace, key string) (*model.KVStorageValue, error) {
 	res, err := c.Q.DeleteKVStorageKey(ctx, pgmodel.DeleteKVStorageKeyParams{
-		GuildID:   guildID,
+		AppID:     appID,
 		Namespace: namespace,
 		Key:       key,
 	})
@@ -133,7 +135,7 @@ func (c *Client) DeleteKVStorageKey(ctx context.Context, guildID, namespace, key
 	}
 
 	return &model.KVStorageValue{
-		GuildID:   res.GuildID,
+		AppID:     res.AppID,
 		Namespace: res.Namespace,
 		Key:       res.Key,
 		Value:     value,
@@ -142,7 +144,7 @@ func (c *Client) DeleteKVStorageKey(ctx context.Context, guildID, namespace, key
 	}, nil
 }
 
-func (c *Client) IncreaseKVStorageKey(ctx context.Context, guildID, namespace, key string, increment int) (*model.KVStorageValue, error) {
+func (c *Client) IncreaseKVStorageKey(ctx context.Context, appID, namespace, key string, increment int) (*model.KVStorageValue, error) {
 	tx, err := c.DB.BeginTx(ctx, pgx.TxOptions{})
 	if err != nil {
 		return nil, err
@@ -157,7 +159,7 @@ func (c *Client) IncreaseKVStorageKey(ctx context.Context, guildID, namespace, k
 
 	var currentValue int
 	res, err := qtx.GetKVStorageKey(ctx, pgmodel.GetKVStorageKeyParams{
-		GuildID:   guildID,
+		AppID:     appID,
 		Namespace: namespace,
 		Key:       key,
 	})
@@ -186,7 +188,7 @@ func (c *Client) IncreaseKVStorageKey(ctx context.Context, guildID, namespace, k
 	}
 
 	res, err = qtx.SetKVStorageKey(ctx, pgmodel.SetKVStorageKeyParams{
-		GuildID:   guildID,
+		AppID:     appID,
 		Namespace: namespace,
 		Key:       key,
 		Value:     rawValue,
@@ -204,7 +206,7 @@ func (c *Client) IncreaseKVStorageKey(ctx context.Context, guildID, namespace, k
 	}
 
 	return &model.KVStorageValue{
-		GuildID:   guildID,
+		AppID:     appID,
 		Namespace: namespace,
 		Key:       key,
 		Value:     newValue,

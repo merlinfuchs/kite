@@ -9,7 +9,6 @@ INSERT INTO sessions (
     token_hash,
     type,
     user_id,
-    guild_ids,
     access_token,
     created_at,
     expires_at
@@ -19,8 +18,7 @@ INSERT INTO sessions (
     $3,
     $4,
     $5,
-    $6,
-    $7
+    $6
 );
 
 -- name: CreatePendingSession :exec

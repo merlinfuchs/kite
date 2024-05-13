@@ -9,8 +9,8 @@ import AppWorkspaceCreateModal from "./AppWorkspaceCreateModal";
 import { useState } from "react";
 import ModalConfirm from "@/components/ModalConfirm";
 
-export default function AppWorkspaceList({ guildId }: { guildId: string }) {
-  const { data: resp } = useWorkspacesQuery(guildId);
+export default function AppWorkspaceList({ appId }: { appId: string }) {
+  const { data: resp } = useWorkspacesQuery(appId);
 
   const workspaces = resp?.success ? resp.data : [];
 
@@ -19,7 +19,7 @@ export default function AppWorkspaceList({ guildId }: { guildId: string }) {
   );
   const [createModalOpen, setCreateModalOpen] = useState(false);
 
-  const deleteMutation = useWorkspaceDeleteMutation(guildId);
+  const deleteMutation = useWorkspaceDeleteMutation(appId);
 
   function deleteWorkspace() {
     if (!deleteWorkspaceId) return;
@@ -43,7 +43,7 @@ export default function AppWorkspaceList({ guildId }: { guildId: string }) {
       <AppWorkspaceCreateModal
         open={createModalOpen}
         setOpen={setCreateModalOpen}
-        guildId={guildId}
+        appId={appId}
       />
       <ModalConfirm
         open={!!deleteWorkspaceId}
@@ -80,7 +80,7 @@ export default function AppWorkspaceList({ guildId }: { guildId: string }) {
                   </button>
                   <Link
                     className="px-3 py-2 bg-dark-4 hover:bg-dark-5 text-gray-100 rounded select-none"
-                    href={`/app/guilds/${guildId}/workspaces/${w.id}`}
+                    href={`/apps/${appId}/workspaces/${w.id}`}
                   >
                     Open Editor
                   </Link>

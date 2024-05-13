@@ -17,7 +17,7 @@ func NewHandler(items store.QuickAccessStore) *QuickAccessHandler {
 }
 
 func (h *QuickAccessHandler) HandleQuickAccessItemList(c *fiber.Ctx) error {
-	items, err := h.items.GetQuickAccessItems(c.Context(), c.Params("guildID"), 3)
+	items, err := h.items.GetQuickAccessItems(c.Context(), c.Params("appID"), 3)
 	if err != nil {
 		return err
 	}

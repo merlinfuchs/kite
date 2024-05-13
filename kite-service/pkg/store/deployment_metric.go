@@ -10,9 +10,9 @@ import (
 
 type DeploymentMetricStore interface {
 	CreateDeploymentMetricEntry(ctx context.Context, entry model.DeploymentMetricEntry) error
-	GetDeploymentsMetricsSummary(ctx context.Context, guildID distype.Snowflake, startAt time.Time, endAt time.Time) (model.DeploymentMetricsSummary, error)
+	GetDeploymentsMetricsSummary(ctx context.Context, appID distype.Snowflake, startAt time.Time, endAt time.Time) (model.DeploymentMetricsSummary, error)
 	GetDeploymentEventMetrics(ctx context.Context, deploymentID string, startAt time.Time, groupBy time.Duration) ([]model.DeploymentEventMetricEntry, error)
-	GetDeploymentsEventMetrics(ctx context.Context, guildID distype.Snowflake, startAt time.Time, groupBy time.Duration) ([]model.DeploymentEventMetricEntry, error)
+	GetDeploymentsEventMetrics(ctx context.Context, appID distype.Snowflake, startAt time.Time, groupBy time.Duration) ([]model.DeploymentEventMetricEntry, error)
 	GetDeploymentCallMetrics(ctx context.Context, deploymentID string, startAt time.Time, groupBy time.Duration) ([]model.DeploymentCallMetricEntry, error)
-	GetDeploymentsCallMetrics(ctx context.Context, guildID distype.Snowflake, startAt time.Time, groupBy time.Duration) ([]model.DeploymentCallMetricEntry, error)
+	GetDeploymentsCallMetrics(ctx context.Context, appID distype.Snowflake, startAt time.Time, groupBy time.Duration) ([]model.DeploymentCallMetricEntry, error)
 }

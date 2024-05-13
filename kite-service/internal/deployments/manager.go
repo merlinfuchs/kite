@@ -4,10 +4,8 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
-	"os"
 	"time"
 
-	"github.com/merlinfuchs/dismod/disrest"
 	"github.com/merlinfuchs/kite/kite-service/internal/config"
 	"github.com/merlinfuchs/kite/kite-service/internal/host"
 	"github.com/merlinfuchs/kite/kite-service/internal/logging/logattr"
@@ -20,18 +18,16 @@ type DeploymentManager struct {
 	store            store.DeploymentStore
 	engine           *engine.Engine
 	envStores        host.HostEnvironmentStores
-	discordClient    *disrest.Client
+	apps             store.AppProvider
 	compilationCache wazero.CompilationCache
 	limits           config.ServerEngineLimitConfig
-
-	stopped chan struct{}
 }
 
 func NewManager(
 	store store.DeploymentStore,
 	engine *engine.Engine,
 	envStores host.HostEnvironmentStores,
-	discordClient *disrest.Client,
+	apps store.AppProvider,
 	limits config.ServerEngineLimitConfig,
 ) (*DeploymentManager, error) {
 	compilationCache, err := wazero.NewCompilationCacheWithDir("./.wasm-compilation-cache")
@@ -44,38 +40,33 @@ func NewManager(
 		engine:           engine,
 		envStores:        envStores,
 		compilationCache: compilationCache,
-		discordClient:    discordClient,
+		apps:             apps,
 		limits:           limits,
 	}, nil
 }
 
-func (m *DeploymentManager) Start() {
-	m.stopped = make(chan struct{})
+func (m *DeploymentManager) Start(ctx context.Context) error {
+	err := m.populateEngineDeployments(ctx)
+	if err != nil {
+		return fmt.Errorf("error populating engine deployments: %w", err)
+	}
 
 	go func() {
 		ticker := time.NewTicker(time.Second * 10)
 		defer ticker.Stop()
 
-		err := m.populateEngineDeployments(context.Background())
-		if err != nil {
-			slog.With(logattr.Error(err)).Error("Error populating engine deployments")
-			os.Exit(1)
-		}
-
 		for {
 			select {
-			case <-m.stopped:
+			case <-ctx.Done():
 				return
 			case <-ticker.C:
-				err := m.updateEngineDeployments(context.Background())
+				err := m.updateEngineDeployments(ctx)
 				if err != nil {
 					slog.With(logattr.Error(err)).Error("Error updating engine deployments")
 				}
 			}
 		}
 	}()
-}
 
-func (m *DeploymentManager) Stop() {
-	close(m.stopped)
+	return nil
 }

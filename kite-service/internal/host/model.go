@@ -276,7 +276,12 @@ func (h HostEnvironment) guildIDForCall(ctx context.Context, c call.Call) (disty
 }
 
 func (h HostEnvironment) guildIDForChannelID(ctx context.Context, channelID distype.Snowflake) (distype.Snowflake, error) {
-	channel, err := h.discordState.GetChannel(ctx, channelID)
+	app, err := h.AppState()
+	if err != nil {
+		return "", fmt.Errorf("error getting app state: %w", err)
+	}
+
+	channel, err := app.State().GetChannel(ctx, channelID)
 	if err != nil {
 		if err == store.ErrNotFound {
 			return "", fmt.Errorf("channel %s not found", channelID)

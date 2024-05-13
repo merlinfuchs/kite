@@ -12,6 +12,8 @@ import (
 	"github.com/merlinfuchs/kite/kite-service/pkg/store"
 )
 
+var _ store.DeploymentStore = (*Client)(nil)
+
 func (c *Client) UpsertDeployment(ctx context.Context, deployment model.Deployment) (*model.Deployment, error) {
 	rawManifest, err := json.Marshal(deployment.Manifest)
 	if err != nil {
@@ -28,7 +30,7 @@ func (c *Client) UpsertDeployment(ctx context.Context, deployment model.Deployme
 		Name:            deployment.Name,
 		Key:             deployment.Key,
 		Description:     deployment.Description,
-		GuildID:         deployment.GuildID,
+		AppID:           deployment.AppID,
 		PluginVersionID: nullStringToText(deployment.PluginVersionID),
 		WasmBytes:       deployment.WasmBytes,
 		Manifest:        rawManifest,
@@ -48,10 +50,10 @@ func (c *Client) UpsertDeployment(ctx context.Context, deployment model.Deployme
 	return &res, nil
 }
 
-func (c *Client) DeleteDeployment(ctx context.Context, id string, guildID string) error {
+func (c *Client) DeleteDeployment(ctx context.Context, id string, appID string) error {
 	_, err := c.Q.DeleteDeployment(ctx, pgmodel.DeleteDeploymentParams{
-		ID:      id,
-		GuildID: guildID,
+		ID:    id,
+		AppID: appID,
 	})
 	if err != nil {
 		if err == pgx.ErrNoRows {
@@ -63,10 +65,10 @@ func (c *Client) DeleteDeployment(ctx context.Context, id string, guildID string
 	return nil
 }
 
-func (c *Client) GetDeployment(ctx context.Context, id string, guildID string) (*model.Deployment, error) {
-	row, err := c.Q.GetDeploymentForGuild(ctx, pgmodel.GetDeploymentForGuildParams{
-		ID:      id,
-		GuildID: guildID,
+func (c *Client) GetDeployment(ctx context.Context, id string, appID string) (*model.Deployment, error) {
+	row, err := c.Q.GetDeploymentForApp(ctx, pgmodel.GetDeploymentForAppParams{
+		ID:    id,
+		AppID: appID,
 	})
 	if err != nil {
 		if err == pgx.ErrNoRows {
@@ -100,8 +102,8 @@ func (c *Client) GetDeployments(ctx context.Context) ([]model.Deployment, error)
 	return deployments, nil
 }
 
-func (c *Client) GetDeploymentsForGuild(ctx context.Context, guildID string) ([]model.Deployment, error) {
-	rows, err := c.Q.GetDeploymentsForGuild(ctx, guildID)
+func (c *Client) GetDeploymentsForApp(ctx context.Context, appID string) ([]model.Deployment, error) {
+	rows, err := c.Q.GetDeploymentsForApp(ctx, appID)
 	if err != nil {
 		return nil, err
 	}
@@ -117,8 +119,8 @@ func (c *Client) GetDeploymentsForGuild(ctx context.Context, guildID string) ([]
 	return deployments, nil
 }
 
-func (c *Client) GetGuildIDsWithDeployment(ctx context.Context) ([]string, error) {
-	return c.Q.GetGuildIdsWithDeployments(ctx)
+func (c *Client) GetAppIDsWithDeployment(ctx context.Context) ([]string, error) {
+	return c.Q.GetAppIdsWithDeployments(ctx)
 }
 
 func (c *Client) GetDeploymentsWithUndeployedChanges(ctx context.Context) ([]model.Deployment, error) {
@@ -147,17 +149,17 @@ func (c *Client) GetDeploymentIDs(ctx context.Context) ([]model.PartialDeploymen
 	deployments := make([]model.PartialDeployment, len(rows))
 	for i, row := range rows {
 		deployments[i] = model.PartialDeployment{
-			ID:      row.ID,
-			GuildID: row.GuildID,
+			ID:    row.ID,
+			AppID: row.AppID,
 		}
 	}
 
 	return deployments, nil
 }
 
-func (c *Client) UpdateDeploymentsDeployedAtForGuild(ctx context.Context, guildID string, deployedAt time.Time) error {
-	_, err := c.Q.UpdateDeploymentsDeployedAtForGuild(ctx, pgmodel.UpdateDeploymentsDeployedAtForGuildParams{
-		GuildID:    guildID,
+func (c *Client) UpdateDeploymentsDeployedAtForApp(ctx context.Context, appID string, deployedAt time.Time) error {
+	_, err := c.Q.UpdateDeploymentsDeployedAtForApp(ctx, pgmodel.UpdateDeploymentsDeployedAtForAppParams{
+		AppID:      appID,
 		DeployedAt: timeToTimestamp(deployedAt),
 	})
 	if err != nil {
@@ -185,7 +187,7 @@ func deploymentToModel(deployment pgmodel.Deployment) (model.Deployment, error) 
 		Name:            deployment.Name,
 		Key:             deployment.Key,
 		Description:     deployment.Description,
-		GuildID:         deployment.GuildID,
+		AppID:           deployment.AppID,
 		PluginVersionID: textToNullString(deployment.PluginVersionID),
 		WasmBytes:       deployment.WasmBytes,
 		Manifest:        manifest,

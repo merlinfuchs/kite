@@ -14,7 +14,7 @@ import (
 const createWorkspace = `-- name: CreateWorkspace :one
 INSERT INTO workspaces (
     id,
-    guild_id,
+    app_id,
     type,
     name,
     description,
@@ -30,12 +30,12 @@ INSERT INTO workspaces (
     $6,
     $7,
     $8
-) RETURNING id, guild_id, type, name, description, files, created_at, updated_at
+) RETURNING id, app_id, type, name, description, files, created_at, updated_at
 `
 
 type CreateWorkspaceParams struct {
 	ID          string
-	GuildID     string
+	AppID       string
 	Type        string
 	Name        string
 	Description string
@@ -47,7 +47,7 @@ type CreateWorkspaceParams struct {
 func (q *Queries) CreateWorkspace(ctx context.Context, arg CreateWorkspaceParams) (Workspace, error) {
 	row := q.db.QueryRow(ctx, createWorkspace,
 		arg.ID,
-		arg.GuildID,
+		arg.AppID,
 		arg.Type,
 		arg.Name,
 		arg.Description,
@@ -58,7 +58,7 @@ func (q *Queries) CreateWorkspace(ctx context.Context, arg CreateWorkspaceParams
 	var i Workspace
 	err := row.Scan(
 		&i.ID,
-		&i.GuildID,
+		&i.AppID,
 		&i.Type,
 		&i.Name,
 		&i.Description,
@@ -70,20 +70,20 @@ func (q *Queries) CreateWorkspace(ctx context.Context, arg CreateWorkspaceParams
 }
 
 const deleteWorkspace = `-- name: DeleteWorkspace :one
-DELETE FROM workspaces WHERE id = $1 AND guild_id = $2 RETURNING id, guild_id, type, name, description, files, created_at, updated_at
+DELETE FROM workspaces WHERE id = $1 AND app_id = $2 RETURNING id, app_id, type, name, description, files, created_at, updated_at
 `
 
 type DeleteWorkspaceParams struct {
-	ID      string
-	GuildID string
+	ID    string
+	AppID string
 }
 
 func (q *Queries) DeleteWorkspace(ctx context.Context, arg DeleteWorkspaceParams) (Workspace, error) {
-	row := q.db.QueryRow(ctx, deleteWorkspace, arg.ID, arg.GuildID)
+	row := q.db.QueryRow(ctx, deleteWorkspace, arg.ID, arg.AppID)
 	var i Workspace
 	err := row.Scan(
 		&i.ID,
-		&i.GuildID,
+		&i.AppID,
 		&i.Type,
 		&i.Name,
 		&i.Description,
@@ -94,21 +94,21 @@ func (q *Queries) DeleteWorkspace(ctx context.Context, arg DeleteWorkspaceParams
 	return i, err
 }
 
-const getWorkspaceForGuild = `-- name: GetWorkspaceForGuild :one
-SELECT id, guild_id, type, name, description, files, created_at, updated_at FROM workspaces WHERE id = $1 AND guild_id = $2
+const getWorkspaceForApp = `-- name: GetWorkspaceForApp :one
+SELECT id, app_id, type, name, description, files, created_at, updated_at FROM workspaces WHERE id = $1 AND app_id = $2
 `
 
-type GetWorkspaceForGuildParams struct {
-	ID      string
-	GuildID string
+type GetWorkspaceForAppParams struct {
+	ID    string
+	AppID string
 }
 
-func (q *Queries) GetWorkspaceForGuild(ctx context.Context, arg GetWorkspaceForGuildParams) (Workspace, error) {
-	row := q.db.QueryRow(ctx, getWorkspaceForGuild, arg.ID, arg.GuildID)
+func (q *Queries) GetWorkspaceForApp(ctx context.Context, arg GetWorkspaceForAppParams) (Workspace, error) {
+	row := q.db.QueryRow(ctx, getWorkspaceForApp, arg.ID, arg.AppID)
 	var i Workspace
 	err := row.Scan(
 		&i.ID,
-		&i.GuildID,
+		&i.AppID,
 		&i.Type,
 		&i.Name,
 		&i.Description,
@@ -119,12 +119,12 @@ func (q *Queries) GetWorkspaceForGuild(ctx context.Context, arg GetWorkspaceForG
 	return i, err
 }
 
-const getWorkspacesForGuild = `-- name: GetWorkspacesForGuild :many
-SELECT id, guild_id, type, name, description, files, created_at, updated_at FROM workspaces WHERE guild_id = $1 ORDER BY updated_at DESC
+const getWorkspacesForApp = `-- name: GetWorkspacesForApp :many
+SELECT id, app_id, type, name, description, files, created_at, updated_at FROM workspaces WHERE app_id = $1 ORDER BY updated_at DESC
 `
 
-func (q *Queries) GetWorkspacesForGuild(ctx context.Context, guildID string) ([]Workspace, error) {
-	rows, err := q.db.Query(ctx, getWorkspacesForGuild, guildID)
+func (q *Queries) GetWorkspacesForApp(ctx context.Context, appID string) ([]Workspace, error) {
+	rows, err := q.db.Query(ctx, getWorkspacesForApp, appID)
 	if err != nil {
 		return nil, err
 	}
@@ -134,7 +134,7 @@ func (q *Queries) GetWorkspacesForGuild(ctx context.Context, guildID string) ([]
 		var i Workspace
 		if err := rows.Scan(
 			&i.ID,
-			&i.GuildID,
+			&i.AppID,
 			&i.Type,
 			&i.Name,
 			&i.Description,
@@ -160,13 +160,13 @@ UPDATE workspaces SET
     updated_at = $6
 WHERE 
     id = $1 AND 
-    guild_id = $2 
-RETURNING id, guild_id, type, name, description, files, created_at, updated_at
+    app_id = $2 
+RETURNING id, app_id, type, name, description, files, created_at, updated_at
 `
 
 type UpdateWorkspaceParams struct {
 	ID          string
-	GuildID     string
+	AppID       string
 	Name        string
 	Description string
 	Files       []byte
@@ -176,7 +176,7 @@ type UpdateWorkspaceParams struct {
 func (q *Queries) UpdateWorkspace(ctx context.Context, arg UpdateWorkspaceParams) (Workspace, error) {
 	row := q.db.QueryRow(ctx, updateWorkspace,
 		arg.ID,
-		arg.GuildID,
+		arg.AppID,
 		arg.Name,
 		arg.Description,
 		arg.Files,
@@ -185,7 +185,7 @@ func (q *Queries) UpdateWorkspace(ctx context.Context, arg UpdateWorkspaceParams
 	var i Workspace
 	err := row.Scan(
 		&i.ID,
-		&i.GuildID,
+		&i.AppID,
 		&i.Type,
 		&i.Name,
 		&i.Description,

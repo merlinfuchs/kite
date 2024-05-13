@@ -10,10 +10,12 @@ import (
 	"github.com/merlinfuchs/kite/kite-service/pkg/store"
 )
 
-func (c *Client) GetWorkspace(ctx context.Context, id string, guildID string) (*model.Workspace, error) {
-	workspace, err := c.Q.GetWorkspaceForGuild(ctx, pgmodel.GetWorkspaceForGuildParams{
-		ID:      id,
-		GuildID: guildID,
+var _ store.WorkspaceStore = (*Client)(nil)
+
+func (c *Client) GetWorkspace(ctx context.Context, id string, appID string) (*model.Workspace, error) {
+	workspace, err := c.Q.GetWorkspaceForApp(ctx, pgmodel.GetWorkspaceForAppParams{
+		ID:    id,
+		AppID: appID,
 	})
 	if err != nil {
 		if err == pgx.ErrNoRows {
@@ -30,8 +32,8 @@ func (c *Client) GetWorkspace(ctx context.Context, id string, guildID string) (*
 	return &res, nil
 }
 
-func (c *Client) GetWorkspacesForGuild(ctx context.Context, guildID string) ([]model.Workspace, error) {
-	workspaces, err := c.Q.GetWorkspacesForGuild(ctx, guildID)
+func (c *Client) GetWorkspacesForApp(ctx context.Context, appID string) ([]model.Workspace, error) {
+	workspaces, err := c.Q.GetWorkspacesForApp(ctx, appID)
 	if err != nil {
 		return nil, err
 	}
@@ -55,7 +57,7 @@ func (c *Client) CreateWorkspace(ctx context.Context, workspace model.Workspace)
 
 	w, err := c.Q.CreateWorkspace(ctx, pgmodel.CreateWorkspaceParams{
 		ID:          workspace.ID,
-		GuildID:     workspace.GuildID,
+		AppID:       workspace.AppID,
 		Type:        string(workspace.Type),
 		Name:        workspace.Name,
 		Description: workspace.Description,
@@ -83,7 +85,7 @@ func (c *Client) UpdateWorkspace(ctx context.Context, workspace model.Workspace)
 
 	w, err := c.Q.UpdateWorkspace(ctx, pgmodel.UpdateWorkspaceParams{
 		ID:          workspace.ID,
-		GuildID:     workspace.GuildID,
+		AppID:       workspace.AppID,
 		Name:        workspace.Name,
 		Description: workspace.Description,
 		Files:       files,
@@ -104,10 +106,10 @@ func (c *Client) UpdateWorkspace(ctx context.Context, workspace model.Workspace)
 	return &res, nil
 }
 
-func (c *Client) DeleteWorkspace(ctx context.Context, id string, guildID string) error {
+func (c *Client) DeleteWorkspace(ctx context.Context, id string, appID string) error {
 	_, err := c.Q.DeleteWorkspace(ctx, pgmodel.DeleteWorkspaceParams{
-		ID:      id,
-		GuildID: guildID,
+		ID:    id,
+		AppID: appID,
 	})
 	if err != nil {
 		if err == pgx.ErrNoRows {
@@ -127,7 +129,7 @@ func workspaceToModel(workspace pgmodel.Workspace) (model.Workspace, error) {
 
 	return model.Workspace{
 		ID:          workspace.ID,
-		GuildID:     workspace.GuildID,
+		AppID:       workspace.AppID,
 		Type:        model.WorkspaceType(workspace.Type),
 		Name:        workspace.Name,
 		Description: workspace.Description,

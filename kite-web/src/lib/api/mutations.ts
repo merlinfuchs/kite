@@ -1,5 +1,7 @@
 import { useMutation, useQueryClient } from "react-query";
 import {
+  AppCreateRequest,
+  AppCreateResponse,
   CompileRequest,
   CompileResponse,
   DeploymentCreateRequest,
@@ -13,6 +15,26 @@ import {
 } from "../types/wire";
 import { apiRequest } from "./client";
 
+export function useAppCreateMutation() {
+  const client = useQueryClient();
+
+  return useMutation(
+    (req: AppCreateRequest) =>
+      apiRequest<AppCreateResponse>(`/v1/apps`, {
+        method: "POST",
+        body: JSON.stringify(req),
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }),
+    {
+      onSuccess: () => {
+        client.invalidateQueries(["apps"]);
+      },
+    }
+  );
+}
+
 export function useCompileMutation() {
   return useMutation((req: CompileRequest) =>
     apiRequest<CompileResponse>(`/v1/compile`, {
@@ -25,39 +47,36 @@ export function useCompileMutation() {
   );
 }
 
-export function useDeploymentCreateMutation(guildId: string | null) {
+export function useDeploymentCreateMutation(appId: string | null) {
   const client = useQueryClient();
 
   return useMutation(
     (req: DeploymentCreateRequest) =>
-      apiRequest<DeploymentCreateResponse>(
-        `/v1/guilds/${guildId}/deployments`,
-        {
-          method: "POST",
-          body: JSON.stringify(req),
-          headers: {
-            "Content-Type": "application/json",
-          },
-        }
-      ),
+      apiRequest<DeploymentCreateResponse>(`/v1/apps/${appId}/deployments`, {
+        method: "POST",
+        body: JSON.stringify(req),
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }),
     {
       onSuccess: (res) => {
         if (res.success) {
-          client.invalidateQueries(["guilds", guildId, "quickAccess"]);
-          client.invalidateQueries(["guilds", guildId, "deployments"]);
+          client.invalidateQueries(["apps", appId, "quickAccess"]);
+          client.invalidateQueries(["apps", appId, "deployments"]);
         }
       },
     }
   );
 }
 
-export function useDeploymentDeleteMutation(guildId: string | null) {
+export function useDeploymentDeleteMutation(appId: string | null) {
   const client = useQueryClient();
 
   return useMutation(
     ({ deploymentId }: { deploymentId: string }) =>
       apiRequest<DeploymentDeleteResponse>(
-        `/v1/guilds/${guildId}/deployments/${deploymentId}`,
+        `/v1/apps/${appId}/deployments/${deploymentId}`,
         {
           method: "DELETE",
           headers: {
@@ -68,20 +87,20 @@ export function useDeploymentDeleteMutation(guildId: string | null) {
     {
       onSuccess: (res) => {
         if (res.success) {
-          client.invalidateQueries(["guilds", guildId, "quickAccess"]);
-          client.invalidateQueries(["guilds", guildId, "deployments"]);
+          client.invalidateQueries(["apps", appId, "quickAccess"]);
+          client.invalidateQueries(["apps", appId, "deployments"]);
         }
       },
     }
   );
 }
 
-export function useWorkspaceCreateMutation(guildId: string | null) {
+export function useWorkspaceCreateMutation(appId: string | null) {
   const client = useQueryClient();
 
   return useMutation(
     (req: WorkspaceCreateRequest) =>
-      apiRequest<WorkspaceCreateResponse>(`/v1/guilds/${guildId}/workspaces`, {
+      apiRequest<WorkspaceCreateResponse>(`/v1/apps/${appId}/workspaces`, {
         method: "POST",
         body: JSON.stringify(req),
         headers: {
@@ -91,15 +110,15 @@ export function useWorkspaceCreateMutation(guildId: string | null) {
     {
       onSuccess: (res) => {
         if (res.success) {
-          client.invalidateQueries(["guilds", guildId, "quickAccess"]);
-          client.invalidateQueries(["guilds", guildId, "workspaces"]);
+          client.invalidateQueries(["apps", appId, "quickAccess"]);
+          client.invalidateQueries(["apps", appId, "workspaces"]);
         }
       },
     }
   );
 }
 
-export function useWorkspaceUpdateMutation(guildId: string | null) {
+export function useWorkspaceUpdateMutation(appId: string | null) {
   const client = useQueryClient();
 
   return useMutation(
@@ -111,7 +130,7 @@ export function useWorkspaceUpdateMutation(guildId: string | null) {
       req: WorkspaceUpdateRequest;
     }) =>
       apiRequest<WorkspaceUpdateResponse>(
-        `/v1/guilds/${guildId}/workspaces/${workspaceId}`,
+        `/v1/apps/${appId}/workspaces/${workspaceId}`,
         {
           method: "PUT",
           body: JSON.stringify(req),
@@ -123,21 +142,21 @@ export function useWorkspaceUpdateMutation(guildId: string | null) {
     {
       onSuccess: (res) => {
         if (res.success) {
-          client.invalidateQueries(["guilds", guildId, "quickAccess"]);
-          client.invalidateQueries(["guilds", guildId, "workspaces"]);
+          client.invalidateQueries(["apps", appId, "quickAccess"]);
+          client.invalidateQueries(["apps", appId, "workspaces"]);
         }
       },
     }
   );
 }
 
-export function useWorkspaceDeleteMutation(guildId: string | null) {
+export function useWorkspaceDeleteMutation(appId: string | null) {
   const client = useQueryClient();
 
   return useMutation(
     ({ workspaceId }: { workspaceId: string }) =>
       apiRequest<WorkspaceDeleteResponse>(
-        `/v1/guilds/${guildId}/workspaces/${workspaceId}`,
+        `/v1/apps/${appId}/workspaces/${workspaceId}`,
         {
           method: "DELETE",
           headers: {
@@ -148,8 +167,8 @@ export function useWorkspaceDeleteMutation(guildId: string | null) {
     {
       onSuccess: (res) => {
         if (res.success) {
-          client.invalidateQueries(["guilds", guildId, "quickAccess"]);
-          client.invalidateQueries(["guilds", guildId, "workspaces"]);
+          client.invalidateQueries(["apps", appId, "quickAccess"]);
+          client.invalidateQueries(["apps", appId, "workspaces"]);
         }
       },
     }

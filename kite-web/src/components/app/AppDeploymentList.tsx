@@ -8,8 +8,8 @@ import AppIllustrationPlaceholder from "./AppIllustrationPlaceholder";
 import { useState } from "react";
 import ModalConfirm from "../ModalConfirm";
 
-export default function AppDeploymentList({ guildId }: { guildId: string }) {
-  const { data: resp } = useDeploymentsQuery(guildId);
+export default function AppDeploymentList({ appId }: { appId: string }) {
+  const { data: resp } = useDeploymentsQuery(appId);
 
   const deployments = resp?.success ? resp.data : [];
 
@@ -17,7 +17,7 @@ export default function AppDeploymentList({ guildId }: { guildId: string }) {
     null
   );
 
-  const deleteMutation = useDeploymentDeleteMutation(guildId);
+  const deleteMutation = useDeploymentDeleteMutation(appId);
 
   function deleteDeployment() {
     if (!deleteDeploymentId) return;
@@ -56,7 +56,7 @@ export default function AppDeploymentList({ guildId }: { guildId: string }) {
           {deployments.map((d) => (
             <AppDeploymentListEntry
               key={d.id}
-              guildId={guildId}
+              appId={appId}
               deployment={d}
               onDelete={() => setDeleteDeploymentId(d.id)}
             />

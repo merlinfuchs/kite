@@ -10,8 +10,11 @@ import (
 	"github.com/merlinfuchs/dismod/distype"
 	"github.com/merlinfuchs/kite/kite-service/internal/db/postgres/pgmodel"
 	"github.com/merlinfuchs/kite/kite-service/pkg/model"
+	"github.com/merlinfuchs/kite/kite-service/pkg/store"
 	"github.com/sqlc-dev/pqtype"
 )
+
+var _ store.DeploymentMetricStore = (*Client)(nil)
 
 func (c *Client) CreateDeploymentMetricEntry(ctx context.Context, entry model.DeploymentMetricEntry) error {
 	var rawMetadata pqtype.NullRawMessage
@@ -39,9 +42,9 @@ func (c *Client) CreateDeploymentMetricEntry(ctx context.Context, entry model.De
 	return err
 }
 
-func (c *Client) GetDeploymentsMetricsSummary(ctx context.Context, guildID distype.Snowflake, startAt time.Time, endAt time.Time) (model.DeploymentMetricsSummary, error) {
+func (c *Client) GetDeploymentsMetricsSummary(ctx context.Context, appID distype.Snowflake, startAt time.Time, endAt time.Time) (model.DeploymentMetricsSummary, error) {
 	row, err := c.Q.GetDeploymentsMetricsSummary(ctx, pgmodel.GetDeploymentsMetricsSummaryParams{
-		GuildID: string(guildID),
+		AppID:   string(appID),
 		StartAt: timeToTimestamp(startAt),
 		EndAt:   timeToTimestamp(endAt),
 	})
@@ -130,14 +133,14 @@ func (c *Client) GetDeploymentCallMetrics(ctx context.Context, deploymentID stri
 	return res, nil
 }
 
-func (c *Client) GetDeploymentsEventMetrics(ctx context.Context, guildID distype.Snowflake, startAt time.Time, groupBy time.Duration) ([]model.DeploymentEventMetricEntry, error) {
+func (c *Client) GetDeploymentsEventMetrics(ctx context.Context, appID distype.Snowflake, startAt time.Time, groupBy time.Duration) ([]model.DeploymentEventMetricEntry, error) {
 	precision, step, err := groupByToPrecisionAndStep(groupBy)
 	if err != nil {
 		return nil, err
 	}
 
 	rows, err := c.Q.GetDeploymentsEventMetrics(ctx, pgmodel.GetDeploymentsEventMetricsParams{
-		GuildID:    string(guildID),
+		AppID:      string(appID),
 		StartAt:    timeToTimestamp(startAt),
 		EndAt:      timeToTimestamp(time.Now().UTC()),
 		Precision:  precision,
@@ -161,14 +164,14 @@ func (c *Client) GetDeploymentsEventMetrics(ctx context.Context, guildID distype
 	return res, nil
 }
 
-func (c *Client) GetDeploymentsCallMetrics(ctx context.Context, guildID distype.Snowflake, startAt time.Time, groupBy time.Duration) ([]model.DeploymentCallMetricEntry, error) {
+func (c *Client) GetDeploymentsCallMetrics(ctx context.Context, appID distype.Snowflake, startAt time.Time, groupBy time.Duration) ([]model.DeploymentCallMetricEntry, error) {
 	precision, step, err := groupByToPrecisionAndStep(groupBy)
 	if err != nil {
 		return nil, err
 	}
 
 	rows, err := c.Q.GetDeploymentsCallMetrics(ctx, pgmodel.GetDeploymentsCallMetricsParams{
-		GuildID:    string(guildID),
+		AppID:      string(appID),
 		StartAt:    timeToTimestamp(startAt),
 		EndAt:      timeToTimestamp(time.Now().UTC()),
 		Precision:  precision,

@@ -7,13 +7,13 @@ import (
 )
 
 type KVStorageNamespace struct {
-	GuildID   string
+	AppID     string
 	Namespace string
 	KeyCount  int
 }
 
 type KVStorageValue struct {
-	GuildID   string
+	AppID     string
 	Namespace string
 	Key       string
 	Value     kv.TypedKVValue

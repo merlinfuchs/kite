@@ -27,7 +27,7 @@ func (p *Module) Handle(ctx context.Context, e *event.Event) (HandleResult, erro
 		return HandleResult{}, fmt.Errorf("failed to marshal event: %w", err)
 	}
 	p.currentEvent = raw
-	p.currentGuildID = e.GuildID
+	p.currentGuildID = e.GuildID // TODO: wo we need this?
 
 	fn := p.m.ExportedFunction("kite_handle")
 	if fn == nil {

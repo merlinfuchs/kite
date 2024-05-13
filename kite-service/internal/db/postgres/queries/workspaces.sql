@@ -1,13 +1,13 @@
--- name: GetWorkspaceForGuild :one
-SELECT * FROM workspaces WHERE id = $1 AND guild_id = $2;
+-- name: GetWorkspaceForApp :one
+SELECT * FROM workspaces WHERE id = $1 AND app_id = $2;
 
--- name: GetWorkspacesForGuild :many
-SELECT * FROM workspaces WHERE guild_id = $1 ORDER BY updated_at DESC;
+-- name: GetWorkspacesForApp :many
+SELECT * FROM workspaces WHERE app_id = $1 ORDER BY updated_at DESC;
 
 -- name: CreateWorkspace :one
 INSERT INTO workspaces (
     id,
-    guild_id,
+    app_id,
     type,
     name,
     description,
@@ -33,8 +33,8 @@ UPDATE workspaces SET
     updated_at = $6
 WHERE 
     id = $1 AND 
-    guild_id = $2 
+    app_id = $2 
 RETURNING *;
 
 -- name: DeleteWorkspace :one
-DELETE FROM workspaces WHERE id = $1 AND guild_id = $2 RETURNING *;
+DELETE FROM workspaces WHERE id = $1 AND app_id = $2 RETURNING *;
