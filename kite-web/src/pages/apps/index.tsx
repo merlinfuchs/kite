@@ -1,18 +1,22 @@
+import AppCreateAppModal from "@/components/app/AppCreateAppModal";
 import AppsLayout from "@/components/app/AppsLayout";
-import { getApiUrl } from "@/lib/api/client";
 import { useAppsQuery } from "@/lib/api/queries";
 import { userAvatarUrl } from "@/lib/discord/cdn";
 import { nameAbbreviation } from "@/lib/discord/util";
 import { PlusCircleIcon } from "@heroicons/react/24/outline";
 import Link from "next/link";
+import { useState } from "react";
 
 export default function AppsPage() {
+  const [createModalOpen, setCreateModalOpen] = useState(false);
+
   const { data: appsResp } = useAppsQuery();
 
   const apps = appsResp?.success ? appsResp.data : [];
 
   return (
     <AppsLayout>
+      <AppCreateAppModal open={createModalOpen} setOpen={setCreateModalOpen} />
       <div className="max-w-5xl mx-auto pb-20 pt-10 lg:pt-20 px-5">
         <div className="text-4xl font-bold text-white mb-4">
           Welcome to Kite!
@@ -50,15 +54,14 @@ export default function AppsPage() {
               </div>
             </Link>
           ))}
-          <a
+          <div
             className="rounded-md px-3 py-3 border-2 border-dashed border-dark-7 hover:bg-dark-4 flex items-center group transition-colors"
-            href={getApiUrl("/v1/auth/invite")}
+            role="button"
+            onClick={() => setCreateModalOpen(true)}
           >
             <PlusCircleIcon className="h-14 w-14 text-gray-400 group-hover:text-gray-300 mr-3" />
-            <div className="text-lg font-medium text-gray-100">
-              Add application
-            </div>
-          </a>
+            <div className="text-lg font-medium text-gray-100">Add App</div>
+          </div>
         </div>
       </div>
     </AppsLayout>

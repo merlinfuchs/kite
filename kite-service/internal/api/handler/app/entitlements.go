@@ -7,7 +7,7 @@ import (
 )
 
 func (h *AppHandler) HandleAppEntitlementsResolvedGet(c *fiber.Ctx) error {
-	entitlements, err := h.AppEntitlements.GetResolvedAppEntitlement(c.Context(), distype.Snowflake(c.Params("appID")))
+	entitlements, err := h.appEntitlements.GetResolvedAppEntitlement(c.Context(), distype.Snowflake(c.Params("appID")))
 	if err != nil {
 		return err
 	}

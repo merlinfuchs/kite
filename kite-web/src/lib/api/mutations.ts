@@ -1,5 +1,7 @@
 import { useMutation, useQueryClient } from "react-query";
 import {
+  AppCreateRequest,
+  AppCreateResponse,
   CompileRequest,
   CompileResponse,
   DeploymentCreateRequest,
@@ -12,6 +14,26 @@ import {
   WorkspaceUpdateResponse,
 } from "../types/wire";
 import { apiRequest } from "./client";
+
+export function useAppCreateMutation() {
+  const client = useQueryClient();
+
+  return useMutation(
+    (req: AppCreateRequest) =>
+      apiRequest<AppCreateResponse>(`/v1/apps`, {
+        method: "POST",
+        body: JSON.stringify(req),
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }),
+    {
+      onSuccess: () => {
+        client.invalidateQueries(["apps"]);
+      },
+    }
+  );
+}
 
 export function useCompileMutation() {
   return useMutation((req: CompileRequest) =>

@@ -66,6 +66,9 @@ WHERE id = $1
 RETURNING *;
 
 -- name: GetApp :one
+SELECT * FROM apps WHERE id = $1;
+
+-- name: GetAppForOwnerUser :one
 SELECT * FROM apps WHERE id = $1 AND owner_user_id = $2;
 
 -- name: DeleteApp :exec

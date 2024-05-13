@@ -25,7 +25,7 @@ interface Props {
 
 export default function AppSideBar({ open, setOpen }: Props) {
   const router = useRouter();
-  const appId = router.query.gid as string;
+  const appId = router.query.aid as string;
 
   const { data: userResp } = useUserQuery();
 

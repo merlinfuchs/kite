@@ -124,16 +124,46 @@ func (q *Queries) DeleteApp(ctx context.Context, id string) error {
 }
 
 const getApp = `-- name: GetApp :one
+SELECT id, owner_user_id, token, token_invalid, public_key, user_id, user_name, user_discriminator, user_avatar, user_banner, user_bio, status_type, status_activity_type, status_activity_name, status_activity_state, status_activity_url, created_at, updated_at FROM apps WHERE id = $1
+`
+
+func (q *Queries) GetApp(ctx context.Context, id string) (App, error) {
+	row := q.db.QueryRow(ctx, getApp, id)
+	var i App
+	err := row.Scan(
+		&i.ID,
+		&i.OwnerUserID,
+		&i.Token,
+		&i.TokenInvalid,
+		&i.PublicKey,
+		&i.UserID,
+		&i.UserName,
+		&i.UserDiscriminator,
+		&i.UserAvatar,
+		&i.UserBanner,
+		&i.UserBio,
+		&i.StatusType,
+		&i.StatusActivityType,
+		&i.StatusActivityName,
+		&i.StatusActivityState,
+		&i.StatusActivityUrl,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const getAppForOwnerUser = `-- name: GetAppForOwnerUser :one
 SELECT id, owner_user_id, token, token_invalid, public_key, user_id, user_name, user_discriminator, user_avatar, user_banner, user_bio, status_type, status_activity_type, status_activity_name, status_activity_state, status_activity_url, created_at, updated_at FROM apps WHERE id = $1 AND owner_user_id = $2
 `
 
-type GetAppParams struct {
+type GetAppForOwnerUserParams struct {
 	ID          string
 	OwnerUserID string
 }
 
-func (q *Queries) GetApp(ctx context.Context, arg GetAppParams) (App, error) {
-	row := q.db.QueryRow(ctx, getApp, arg.ID, arg.OwnerUserID)
+func (q *Queries) GetAppForOwnerUser(ctx context.Context, arg GetAppForOwnerUserParams) (App, error) {
+	row := q.db.QueryRow(ctx, getAppForOwnerUser, arg.ID, arg.OwnerUserID)
 	var i App
 	err := row.Scan(
 		&i.ID,

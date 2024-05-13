@@ -54,8 +54,22 @@ func (c *Client) GetAppsForOwnerUser(ctx context.Context, ownerUserID distype.Sn
 	return result, nil
 }
 
-func (c *Client) GetApp(ctx context.Context, id distype.Snowflake, ownerUserID distype.Snowflake) (*model.App, error) {
-	app, err := c.Q.GetApp(ctx, pgmodel.GetAppParams{
+func (c *Client) GetApp(ctx context.Context, id distype.Snowflake) (*model.App, error) {
+	app, err := c.Q.GetApp(ctx, string(id))
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return nil, store.ErrNotFound
+		}
+
+		return nil, err
+	}
+
+	res := appToModel(app)
+	return &res, nil
+}
+
+func (c *Client) GetAppForOwnerUser(ctx context.Context, id distype.Snowflake, ownerUserID distype.Snowflake) (*model.App, error) {
+	app, err := c.Q.GetAppForOwnerUser(ctx, pgmodel.GetAppForOwnerUserParams{
 		ID:          string(id),
 		OwnerUserID: string(ownerUserID),
 	})
