@@ -19,7 +19,7 @@ func (a *App) registerListeners() {
 }
 
 func (a *App) handleReady(s int, e interface{}) {
-	slog.Info("Shard is ready", "shard_id", s)
+	slog.Debug("Shard is ready", "app_id", a.appID, "shard_id", s)
 }
 
 func (a *App) handleAny(_ int, t distype.EventType, e interface{}) {

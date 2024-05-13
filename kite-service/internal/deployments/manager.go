@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
-	"os"
 	"time"
 
 	"github.com/merlinfuchs/kite/kite-service/internal/config"
@@ -22,8 +21,6 @@ type DeploymentManager struct {
 	apps             store.AppProvider
 	compilationCache wazero.CompilationCache
 	limits           config.ServerEngineLimitConfig
-
-	stopped chan struct{}
 }
 
 func NewManager(
@@ -48,33 +45,28 @@ func NewManager(
 	}, nil
 }
 
-func (m *DeploymentManager) Start() {
-	m.stopped = make(chan struct{})
+func (m *DeploymentManager) Start(ctx context.Context) error {
+	err := m.populateEngineDeployments(ctx)
+	if err != nil {
+		return fmt.Errorf("error populating engine deployments: %w", err)
+	}
 
 	go func() {
 		ticker := time.NewTicker(time.Second * 10)
 		defer ticker.Stop()
 
-		err := m.populateEngineDeployments(context.Background())
-		if err != nil {
-			slog.With(logattr.Error(err)).Error("Error populating engine deployments")
-			os.Exit(1)
-		}
-
 		for {
 			select {
-			case <-m.stopped:
+			case <-ctx.Done():
 				return
 			case <-ticker.C:
-				err := m.updateEngineDeployments(context.Background())
+				err := m.updateEngineDeployments(ctx)
 				if err != nil {
 					slog.With(logattr.Error(err)).Error("Error updating engine deployments")
 				}
 			}
 		}
 	}()
-}
 
-func (m *DeploymentManager) Stop() {
-	close(m.stopped)
+	return nil
 }

@@ -2,13 +2,16 @@ package app
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"log/slog"
+	"slices"
 	"sync"
 	"time"
 
 	disgatway "github.com/disgoorg/disgo/gateway"
 	"github.com/merlinfuchs/dismod/distype"
+	"github.com/merlinfuchs/kite/kite-service/internal/logging/logattr"
 	"github.com/merlinfuchs/kite/kite-service/pkg/engine"
 	"github.com/merlinfuchs/kite/kite-service/pkg/model"
 	"github.com/merlinfuchs/kite/kite-service/pkg/store"
@@ -26,7 +29,8 @@ type EventHandlerFunc func(
 type AppManager struct {
 	sync.Mutex
 
-	apps map[distype.Snowflake]*App
+	apps       map[distype.Snowflake]*App
+	lastUpdate time.Time
 
 	appStore      store.AppStore
 	appUsageStore store.AppUsageStore
@@ -45,33 +49,29 @@ func NewManager(
 	}
 }
 
-func (m *AppManager) Run(ctx context.Context) {
-	ticker := time.NewTicker(1 * time.Second)
-	for {
-		select {
-		case <-ctx.Done():
-			ticker.Stop()
-			break
-		case <-ticker.C:
-			apps, err := m.appStore.GetAppsWithValidToken(ctx)
-			if err != nil {
-				slog.With("error", err).Error("Failed to get apps from store")
-				continue
-			}
-
-			appIDs := make([]distype.Snowflake, 0, len(apps))
-
-			for _, app := range apps {
-				err := m.AddApp(ctx, app.ID, &app)
-				if err != nil {
-					slog.With("error", err).Error("Failed to add gateway")
-				}
-				appIDs = append(appIDs, app.ID)
-			}
-
-			m.CleanupApps(ctx, appIDs)
-		}
+func (m *AppManager) Start(ctx context.Context) error {
+	err := m.populateRunningApps(ctx)
+	if err != nil {
+		return fmt.Errorf("error populating running apps: %w", err)
 	}
+
+	go func() {
+		ticker := time.NewTicker(1 * time.Second)
+		for {
+			select {
+			case <-ctx.Done():
+				ticker.Stop()
+				break
+			case <-ticker.C:
+				err := m.updateRunningApps(ctx)
+				if err != nil {
+					slog.With(logattr.Error(err)).Error("Error updating engine deployments")
+				}
+			}
+		}
+	}()
+
+	return nil
 }
 
 func (m *AppManager) Close(ctx context.Context) {
@@ -138,17 +138,11 @@ func (m *AppManager) CleanupApps(ctx context.Context, appIDs []distype.Snowflake
 	defer m.Unlock()
 
 	for appID, g := range m.apps {
-		found := false
-		for _, id := range appIDs {
-			if id == appID {
-				found = true
-				break
-			}
+		if slices.Contains(appIDs, appID) {
+			continue
 		}
 
-		if !found {
-			g.Close(ctx)
-			delete(m.apps, appID)
-		}
+		g.Close(ctx)
+		delete(m.apps, appID)
 	}
 }

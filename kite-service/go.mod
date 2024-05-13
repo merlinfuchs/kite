@@ -26,7 +26,7 @@ require (
 	github.com/riverqueue/river v0.0.22
 	github.com/riverqueue/river/riverdriver/riverpgxv5 v0.0.22
 	github.com/sqlc-dev/pqtype v0.3.0
-	github.com/tetratelabs/wazero v1.6.0
+	github.com/tetratelabs/wazero v1.7.2
 	github.com/urfave/cli/v2 v2.27.0
 	golang.org/x/oauth2 v0.15.0
 	gopkg.in/guregu/null.v4 v4.0.0

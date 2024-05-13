@@ -43,11 +43,16 @@ func RunServer(cfg *config.ServerConfig) error {
 	if err != nil {
 		return fmt.Errorf("failed to create deployment manager: %w", err)
 	}
-	manager.Start()
+
+	if err := manager.Start(context.Background()); err != nil {
+		return fmt.Errorf("failed to start deployment manager: %w", err)
+	}
 
 	appManager.Engine = e
 
-	go appManager.Run(context.Background())
+	if err = appManager.Start(context.Background()); err != nil {
+		return fmt.Errorf("failed to start app manager: %w", err)
+	}
 
 	api := api.New(cfg)
 
