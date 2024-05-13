@@ -63,9 +63,9 @@ func NewApp(
 		sharding.WithShardIDs(shardIDs...),
 		sharding.WithGatewayConfigOpts(
 			gateway.WithIntents(gateway.IntentGuilds|gateway.IntentGuildMessages|gateway.IntentMessageContent), // | gateway.IntentGuildMembers),
-			gateway.WithPresenceOpts(
+			/* gateway.WithPresenceOpts(
 				gateway.WithCustomActivity("kite.onl"),
-			),
+			), */
 		),
 	)
 
@@ -75,6 +75,8 @@ func NewApp(
 	g.cluster = cluster
 	g.client = client
 	g.state = state
+
+	g.registerListeners()
 
 	return g, nil
 }

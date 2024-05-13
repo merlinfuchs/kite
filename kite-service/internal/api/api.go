@@ -93,6 +93,8 @@ func (api *API) RegisterHandlers(engine *engine.Engine, pg *postgres.Client, acc
 	appHandler := app.NewHandler(pg, pg, pg, accessManager)
 	appsGroup.Get("/", appHandler.HandleAppList)
 	appsGroup.Post("/", helpers.WithRequestBody(appHandler.HandleAppCreate))
+	appGroup.Put("/", helpers.WithRequestBody(appHandler.HandleAppTokenUpdate))
+	appGroup.Put("/status", helpers.WithRequestBody(appHandler.HandleAppStatusUpdate))
 	appGroup.Get("/", appHandler.HandleAppGet)
 	appGroup.Get("/usage/summary", appHandler.HandleAppUsageSummaryGet)
 	appGroup.Get("/entitlements/resolved", appHandler.HandleAppEntitlementsResolvedGet)

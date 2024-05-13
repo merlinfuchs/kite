@@ -79,6 +79,54 @@ func (h *AppHandler) HandleAppCreate(c *fiber.Ctx, req wire.AppCreateRequest) er
 	})
 }
 
+func (h *AppHandler) HandleAppTokenUpdate(c *fiber.Ctx, req wire.AppTokenUpdateRequest) error {
+	session := session.GetSession(c)
+	appID := c.Params("appID")
+
+	client := rest.New(rest.NewClient(req.Token))
+
+	disApp, err := client.GetCurrentApplication()
+	if err != nil {
+		return fmt.Errorf("failed to get current application: %w", err)
+	}
+
+	if disApp.ID.String() != appID {
+		return helpers.BadRequest("token_invalid", "The provided token doesn't belong to the bot.")
+	}
+
+	app := appFromDiscordApp(disApp, session.UserID, req.Token)
+	app, err = h.apps.UpdateApp(c.Context(), app)
+	if err != nil {
+		return err
+	}
+
+	return c.JSON(wire.AppTokenUpdateResponse{
+		Success: true,
+		Data:    wire.AppToWire(app),
+	})
+}
+
+func (h *AppHandler) HandleAppStatusUpdate(c *fiber.Ctx, req wire.AppStatusUpdateRequest) error {
+	appID := c.Params("appID")
+
+	app, err := h.apps.UpdateAppStatus(c.Context(), &model.App{
+		ID:                  distype.Snowflake(appID),
+		StatusType:          req.StatusType,
+		StatusActivityType:  req.ActivityType,
+		StatusActivityName:  req.ActivityName,
+		StatusActivityState: req.ActivityState,
+		StatusActivityUrl:   req.ActivityUrl,
+	})
+	if err != nil {
+		return err
+	}
+
+	return c.JSON(wire.AppStatusUpdateResponse{
+		Success: true,
+		Data:    wire.AppToWire(app),
+	})
+}
+
 func (h *AppHandler) HandleAppList(c *fiber.Ctx) error {
 	session := session.GetSession(c)
 

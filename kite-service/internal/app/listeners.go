@@ -12,6 +12,16 @@ import (
 	"github.com/merlinfuchs/kite/kite-service/pkg/store"
 )
 
+func (a *App) registerListeners() {
+	a.cluster.AddEventListener(distype.EventTypeReady, a.handleReady)
+
+	a.cluster.AddAllEventListener(a.handleAny)
+}
+
+func (a *App) handleReady(s int, e interface{}) {
+	slog.Info("Shard is ready", "shard_id", s)
+}
+
 func (a *App) handleAny(_ int, t distype.EventType, e interface{}) {
 	eventType, exists := eventTypeFromEventType(t)
 	if !exists {
