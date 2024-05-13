@@ -5,11 +5,11 @@ import {
 import { useState } from "react";
 import AppIllustrationPlaceholder from "./AppIllustrationPlaceholder";
 
-export default function KVStorageBrowser({ guildId }: { guildId: string }) {
+export default function KVStorageBrowser({ appId }: { appId: string }) {
   const [namespace, setNamespace] = useState<string>("default");
 
-  const { data: namespaceResp } = useKVStorageNamespacesQuery(guildId);
-  const { data: keyResp } = useKVStorageKeysQuery(guildId, namespace);
+  const { data: namespaceResp } = useKVStorageNamespacesQuery(appId);
+  const { data: keyResp } = useKVStorageKeysQuery(appId, namespace);
 
   const namespaces = namespaceResp?.success ? namespaceResp.data : [];
   const keys = keyResp?.success ? keyResp.data : [];
@@ -29,7 +29,11 @@ export default function KVStorageBrowser({ guildId }: { guildId: string }) {
     <div>
       <div className="flex justify-between mb-3">
         <div>
-          <select className="px-3 py-2 rounded bg-dark-1 min-w-64 text-gray-300">
+          <select
+            className="px-3 py-2 rounded bg-dark-1 min-w-64 text-gray-300"
+            value={namespace}
+            onChange={(e) => setNamespace(e.target.value)}
+          >
             {namespaces.map((ns) => (
               <option key={ns.namespace} value={ns.namespace}>
                 {ns.namespace}

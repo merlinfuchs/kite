@@ -1,12 +1,12 @@
-import AppGuildLayout from "@/components/app/AppGuildLayout";
+import AppLayout from "@/components/app/AppLayout";
 import AppKVStorageBrowser from "@/components/app/AppKVStorageBrowser";
 import { useRouteParams } from "@/hooks/route";
 
-export default function GuildKVPage() {
-  const { guildId } = useRouteParams();
+export default function AppKVPage() {
+  const { appId } = useRouteParams();
 
   return (
-    <AppGuildLayout>
+    <AppLayout>
       <div>
         <div className="text-4xl font-bold text-white mb-4">KV Storage</div>
         <div className="text-lg font-light text-gray-300 mb-10">
@@ -15,8 +15,8 @@ export default function GuildKVPage() {
           plugins will use their own unique namespace to store data, so they
           don't have to worry about key collisions.
         </div>
-        <AppKVStorageBrowser guildId={guildId} />
+        <AppKVStorageBrowser appId={appId} />
       </div>
-    </AppGuildLayout>
+    </AppLayout>
   );
 }

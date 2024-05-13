@@ -1,12 +1,12 @@
-import AppGuildLayout from "@/components/app/AppGuildLayout";
+import AppLayout from "@/components/app/AppLayout";
 import AppDeploymentList from "@/components/app/AppDeploymentList";
 import { useRouteParams } from "@/hooks/route";
 
-export default function GuildDeploymentsPage() {
-  const { guildId } = useRouteParams();
+export default function AppDeploymentsPage() {
+  const { appId } = useRouteParams();
 
   return (
-    <AppGuildLayout>
+    <AppLayout>
       <div>
         <div className="text-4xl font-bold text-white mb-4">Deployments</div>
         <div className="text-lg font-light text-gray-300 mb-10">
@@ -14,8 +14,8 @@ export default function GuildDeploymentsPage() {
           deployment from a workspace or by using a brebuilt plugin from the
           marketplace.
         </div>
-        <AppDeploymentList guildId={guildId} />
+        <AppDeploymentList appId={appId} />
       </div>
-    </AppGuildLayout>
+    </AppLayout>
   );
 }

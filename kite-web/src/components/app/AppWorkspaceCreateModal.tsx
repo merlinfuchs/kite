@@ -57,16 +57,16 @@ const defaultFlowFiles: FlatFile[] = [
 interface Props {
   open: boolean;
   setOpen: (open: boolean) => void;
-  guildId: string;
+  appId: string;
 }
 
 export default function AppWorkspaceCreateModal({
   open,
   setOpen,
-  guildId,
+  appId,
 }: Props) {
   const router = useRouter();
-  const createMutation = useWorkspaceCreateMutation(guildId);
+  const createMutation = useWorkspaceCreateMutation(appId);
 
   const [type, setType] = useState<"FLOW" | "JS">("JS");
   const [name, setName] = useState("");
@@ -90,7 +90,7 @@ export default function AppWorkspaceCreateModal({
       {
         onSuccess: (res) => {
           if (res.success) {
-            router.push(`/app/guilds/${guildId}/workspaces/${res.data.id}`);
+            router.push(`/apps/${appId}/workspaces/${res.data.id}`);
           } else {
             toast.error("Failed to create workspace");
           }

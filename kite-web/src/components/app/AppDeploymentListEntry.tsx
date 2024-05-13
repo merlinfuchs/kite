@@ -3,7 +3,7 @@ import Link from "next/link";
 import DeploymentLogSummary from "./AppDeploymentLogSummary";
 
 interface Props {
-  guildId: string;
+  appId: string;
   deployment: Deployment;
   onDelete: () => void;
 }
@@ -18,7 +18,7 @@ const DeploymentMetricsEvents = dynamic(
 );
 
 export default function AppDeploymentListEntry({
-  guildId,
+  appId,
   deployment,
   onDelete,
 }: Props) {
@@ -42,20 +42,17 @@ export default function AppDeploymentListEntry({
           </button>
           <Link
             className="px-3 py-2 bg-dark-4 hover:bg-dark-5 text-gray-100 rounded"
-            href={`/app/guilds/${guildId}/deployments/${deployment.id}`}
+            href={`/apps/${appId}/deployments/${deployment.id}`}
           >
             View Details
           </Link>
         </div>
       </div>
       <div className="bg-dark-1 rounded-md flex flex-col px-1 py-2 space-y-1 mb-5">
-        <DeploymentMetricsEvents
-          guildId={guildId}
-          deploymentId={deployment.id}
-        />
+        <DeploymentMetricsEvents appId={appId} deploymentId={deployment.id} />
       </div>
       <div>
-        <DeploymentLogSummary guildId={guildId} deploymentId={deployment.id} />
+        <DeploymentLogSummary appId={appId} deploymentId={deployment.id} />
       </div>
     </div>
   );

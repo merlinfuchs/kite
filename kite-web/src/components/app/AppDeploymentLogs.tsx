@@ -2,12 +2,12 @@ import { useDeploymentLogEntriesQuery } from "@/lib/api/queries";
 import clsx from "clsx";
 
 interface Props {
-  guildId: string;
+  appId: string;
   deploymentId: string;
 }
 
-export default function ({ guildId, deploymentId }: Props) {
-  const { data: resp } = useDeploymentLogEntriesQuery(guildId, deploymentId);
+export default function ({ appId, deploymentId }: Props) {
+  const { data: resp } = useDeploymentLogEntriesQuery(appId, deploymentId);
 
   const logEntries = resp?.success ? resp.data : [];
 

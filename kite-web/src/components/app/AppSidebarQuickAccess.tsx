@@ -8,19 +8,15 @@ import Link from "next/link";
 import { useRouter } from "next/router";
 import { useMemo } from "react";
 
-export default function AppSidebarQuickAccess({
-  guildId,
-}: {
-  guildId: string;
-}) {
+export default function AppSidebarQuickAccess({ appId }: { appId: string }) {
   const router = useRouter();
-  const { data: resp } = useQuickAccessItemListQuery(guildId);
+  const { data: resp } = useQuickAccessItemListQuery(appId);
 
   const items = useMemo(() => {
     if (!resp || !resp.success) return [];
 
     return resp.data.map((i) => {
-      const url = `/app/guilds/${guildId}/${
+      const url = `/apps/${appId}/${
         i.type === "DEPLOYMENT" ? "deployments" : "workspaces"
       }/${i.id}`;
 

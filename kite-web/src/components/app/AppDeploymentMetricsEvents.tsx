@@ -3,13 +3,16 @@ import { ApexOptions } from "apexcharts";
 import Chart from "react-apexcharts";
 
 interface Props {
-  guildId: string;
+  appId: string;
   deploymentId?: string | null;
 }
 
-export default function GuildMetricsEvents({ guildId, deploymentId }: Props) {
+export default function AppDeploymentMetricsEvents({
+  appId,
+  deploymentId,
+}: Props) {
   const { data: metricsResp } = useDeploymentsEventMetricsQuery(
-    guildId,
+    appId,
     deploymentId
   );
 

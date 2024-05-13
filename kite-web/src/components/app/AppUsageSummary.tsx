@@ -1,17 +1,17 @@
 import {
-  useGuildEntitlementsResolvedQuery,
-  useGuildUsageSummaryQuery,
+  useAppEntitlementsResolvedQuery,
+  useAppUsageSummaryQuery,
 } from "@/lib/api/queries";
 import { ApexOptions } from "apexcharts";
 import Chart from "react-apexcharts";
 
 interface Props {
-  guildId: string;
+  appId: string;
 }
 
-export default function AppGuildUsageSummary({ guildId }: Props) {
-  const { data: usageData } = useGuildUsageSummaryQuery(guildId);
-  const { data: entitlementsData } = useGuildEntitlementsResolvedQuery(guildId);
+export default function AppUsageSummary({ appId }: Props) {
+  const { data: usageData } = useAppUsageSummaryQuery(appId);
+  const { data: entitlementsData } = useAppEntitlementsResolvedQuery(appId);
 
   const totalExecutionTime = usageData?.success
     ? usageData.data.total_event_execution_time

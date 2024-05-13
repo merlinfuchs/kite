@@ -51,17 +51,6 @@ func New(sessionManager *session.SessionManager, userStore store.UserStore, cfg 
 	}
 }
 
-func (h *AuthHandler) HandleAuthInviteRedirect(c *fiber.Ctx) error {
-	oauth2Config := *h.oauth2Config
-	oauth2Config.Scopes = append(oauth2Config.Scopes, discord.ScopeBot, discord.ScopeApplicationsCommands)
-
-	state := setOauthStateCookie(c)
-	url := oauth2Config.AuthCodeURL(state)
-	// TODO: add permissions?
-
-	return c.Redirect(url, http.StatusTemporaryRedirect)
-}
-
 func (h *AuthHandler) HandleAuthRedirect(c *fiber.Ctx) error {
 	state := setOauthStateCookie(c)
 	return c.Redirect(h.oauth2Config.AuthCodeURL(state), http.StatusTemporaryRedirect)
@@ -87,7 +76,7 @@ func (h *AuthHandler) HandleAuthCallback(c *fiber.Ctx) error {
 		return err
 	}
 
-	return c.Redirect(h.cfg.App.AuthCallbackURL()+"/app", http.StatusTemporaryRedirect)
+	return c.Redirect(h.cfg.App.AuthCallbackURL()+"/apps", http.StatusTemporaryRedirect)
 }
 
 func (h *AuthHandler) HandleAuthLogout(c *fiber.Ctx) error {

@@ -1,4 +1,4 @@
-import AppGuildLayout from "@/components/app/AppGuildLayout";
+import AppLayout from "@/components/app/AppLayout";
 import AppDeploymentLogs from "@/components/app/AppDeploymentLogs";
 import { useRouteParams } from "@/hooks/route";
 import { useDeploymentQuery } from "@/lib/api/queries";
@@ -32,15 +32,15 @@ const AppDeploymentMetricsExecutionTime = dynamic(
   }
 );
 
-export default function GuildDeploymentPage() {
-  const { guildId, deploymentId } = useRouteParams();
+export default function AppDeploymentPage() {
+  const { appId, deploymentId } = useRouteParams();
 
-  const { data: resp } = useDeploymentQuery(guildId, deploymentId);
+  const { data: resp } = useDeploymentQuery(appId, deploymentId);
 
   const deployment = resp?.success ? resp.data : null;
 
   return (
-    <AppGuildLayout>
+    <AppLayout>
       <div className="mb-10 bg-dark-2 p-5 rounded-md w-full">
         <div className="flex space-x-5 items-center mb-10">
           <div>
@@ -66,33 +66,27 @@ export default function GuildDeploymentPage() {
       <div className="bg-dark-2 p-3 rounded-md mb-5">
         <div className="text-gray-100 font-bold text-2xl mb-5 mx-2">Logs</div>
         <div className="bg-dark-1 p-3 rounded-md h-64 overflow-y-auto space-y-2">
-          <AppDeploymentLogs guildId={guildId} deploymentId={deploymentId} />
+          <AppDeploymentLogs appId={appId} deploymentId={deploymentId} />
         </div>
       </div>
       <div className="bg-dark-2 px-1 py-2 rounded-md mb-5">
         <div className="text-gray-100 font-bold text-2xl mb-5 mx-5 mt-3">
           Events Handled
         </div>
-        <AppDeploymentMetricsEvents
-          guildId={guildId}
-          deploymentId={deploymentId}
-        />
+        <AppDeploymentMetricsEvents appId={appId} deploymentId={deploymentId} />
       </div>
       <div className="bg-dark-2 px-1 py-2 rounded-md mb-5">
         <div className="text-gray-100 font-bold text-2xl mb-5 mx-5 mt-3">
           Actions Taken
         </div>
-        <AppDeploymentMetricsCalls
-          guildId={guildId}
-          deploymentId={deploymentId}
-        />
+        <AppDeploymentMetricsCalls appId={appId} deploymentId={deploymentId} />
       </div>
       <div className="bg-dark-2 px-1 py-2 rounded-md mb-5">
         <div className="text-gray-100 font-bold text-2xl mb-5 mx-5 mt-3">
           Average Total Time
         </div>
         <AppDeploymentMetricsTotalTime
-          guildId={guildId}
+          appId={appId}
           deploymentId={deploymentId}
         />
       </div>
@@ -101,10 +95,10 @@ export default function GuildDeploymentPage() {
           Average CPU Time
         </div>
         <AppDeploymentMetricsExecutionTime
-          guildId={guildId}
+          appId={appId}
           deploymentId={deploymentId}
         />
       </div>
-    </AppGuildLayout>
+    </AppLayout>
   );
 }

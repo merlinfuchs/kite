@@ -19,7 +19,7 @@ export default function HomeCallToAction() {
         </div>
         <div className="flex">
           <Link
-            href="/app"
+            href="/apps"
             className="px-5 py-3 bg-dark-3 hover:bg-dark-2 rounded-xl text-white"
           >
             Join the Beta

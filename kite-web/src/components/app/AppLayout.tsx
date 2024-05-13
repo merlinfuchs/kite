@@ -1,19 +1,20 @@
-import { ReactNode } from "react";
-import { useUserQuery } from "@/lib/api/queries";
-import LoginPrompt from "../LoginPrompt";
-import BaseLayout from "@/components/BaseLayout";
+import { ReactNode, useState } from "react";
+import AppsLayout from "./AppsLayout";
+import AppSidebar from "./AppSidebar";
+import AppTopbar from "./AppTopbar";
 
-interface Props {
-  children: ReactNode;
-  title?: string;
-}
-
-export default function AppLayout({ children, title }: Props) {
-  const { data: userResp } = useUserQuery();
+export default function AppLayout({ children }: { children: ReactNode }) {
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
-    <BaseLayout title={title}>
-      {!userResp ? null : !userResp.success ? <LoginPrompt /> : children}
-    </BaseLayout>
+    <AppsLayout>
+      <AppTopbar setSidebarOpen={setSidebarOpen} />
+      <div className="flex">
+        <AppSidebar open={sidebarOpen} setOpen={setSidebarOpen} />
+        <div className="pb-32 pt-10 xl:pt-20 px-5 md:px-10 flex flex-auto w-full justify-center">
+          <div className="max-w-5xl w-full">{children}</div>
+        </div>
+      </div>
+    </AppsLayout>
   );
 }

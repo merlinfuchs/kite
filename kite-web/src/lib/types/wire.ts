@@ -5,6 +5,87 @@ import {Manifest} from "./manifest"
 export type Base64 = string
 
 //////////
+// source: app.go
+
+export interface App {
+  id: string;
+  owner_user_id: string;
+  token_invalid: boolean;
+  public_key: string;
+  user_id: string;
+  user_name: string;
+  user_discriminator: string;
+  user_avatar: null | string;
+  user_banner: null | string;
+  user_bio: null | string;
+  status_type: string;
+  status_activity_type: null | number;
+  status_activity_name: null | string;
+  status_activity_state: null | string;
+  status_activity_url: null | string;
+  created_at: string /* RFC3339 */;
+  updated_at: string /* RFC3339 */;
+}
+export interface AppCreateRequest {
+  token: string;
+}
+export type AppCreateResponse = APIResponse<App>;
+export type AppListResponse = APIResponse<App[]>;
+export type AppGetResponse = APIResponse<App>;
+export interface AppTokenUpdateRequest {
+  token: string;
+}
+export type AppTokenUpdateResponse = APIResponse<App>;
+export interface AppStatusUpdateRequest {
+  status_type: string;
+  activity_type: null | number;
+  activity_name: null | string;
+  activity_state: null | string;
+  activity_url: null | string;
+}
+export type AppStatusUpdateResponse = APIResponse<App>;
+export interface AppUserUpdateRequest {
+  user_name: string;
+  user_avatar: null | string;
+  user_banner: null | string;
+  user_bio: null | string;
+}
+export type AppUserUpdateResponse = APIResponse<App>;
+
+//////////
+// source: app_entitlement.go
+
+/**
+ * AppEntitlementResolved represents the resolved entitlements for an app
+ * All times are in milliseconds
+ */
+export interface AppEntitlementResolved {
+  monthly_execution_time_limit: number /* int */;
+}
+export type AppEntitlementResolvedGetResponse = APIResponse<AppEntitlementResolved>;
+
+//////////
+// source: app_usage.go
+
+/**
+ * AppUsageSummary represents a summary of the usage of a app
+ * All times are in milliseconds
+ */
+export interface AppUsageSummary {
+  total_event_count: number /* int */;
+  success_event_count: number /* int */;
+  total_event_execution_time: number /* float32 */;
+  avg_event_execution_time: number /* float32 */;
+  total_event_total_time: number /* float32 */;
+  avg_event_total_time: number /* float32 */;
+  total_call_count: number /* int */;
+  success_call_count: number /* int */;
+  total_call_total_time: number /* float32 */;
+  avg_call_total_time: number /* float32 */;
+}
+export type AppUsageSummaryGetResponse = APIResponse<AppUsageSummary>;
+
+//////////
 // source: auth.go
 
 export interface AuthLoginStartRequest {
@@ -43,7 +124,7 @@ export interface Deployment {
   name: string;
   key: string;
   description: string;
-  guild_id: string;
+  app_id: string;
   plugin_version_id: null | string;
   wasm_size: number /* int */;
   manifest: Manifest;
@@ -114,56 +195,6 @@ export interface DeploymentCallMetricEntry {
 export type DeploymentMetricCallsListResponse = APIResponse<DeploymentCallMetricEntry[]>;
 
 //////////
-// source: guild.go
-
-export interface Guild {
-  id: string;
-  name: string;
-  icon: null | string;
-  description: null | string;
-  created_at: string /* RFC3339 */;
-  updated_at: string /* RFC3339 */;
-  user_is_owner?: boolean;
-  user_permissions?: string;
-  bot_permissions?: string;
-}
-export type GuildListResponse = APIResponse<Guild[]>;
-export type GuildGetResponse = APIResponse<Guild>;
-
-//////////
-// source: guild_entitlement.go
-
-/**
- * GuildEntitlementResolved represents the resolved entitlements for a guild
- * All times are in milliseconds
- */
-export interface GuildEntitlementResolved {
-  monthly_execution_time_limit: number /* int */;
-}
-export type GuildEntitlementResolvedGetResponse = APIResponse<GuildEntitlementResolved>;
-
-//////////
-// source: guild_usage.go
-
-/**
- * GuildUsageSummary represents a summary of the usage of a guild
- * All times are in milliseconds
- */
-export interface GuildUsageSummary {
-  total_event_count: number /* int */;
-  success_event_count: number /* int */;
-  total_event_execution_time: number /* float32 */;
-  avg_event_execution_time: number /* float32 */;
-  total_event_total_time: number /* float32 */;
-  avg_event_total_time: number /* float32 */;
-  total_call_count: number /* int */;
-  success_call_count: number /* int */;
-  total_call_total_time: number /* float32 */;
-  avg_call_total_time: number /* float32 */;
-}
-export type GuildUsageSummaryGetResponse = APIResponse<GuildUsageSummary>;
-
-//////////
 // source: kv_storage.go
 
 export interface KVStorageNamespace {
@@ -185,7 +216,7 @@ export type KVStorageNamespaceKeyListResponse = APIResponse<KVStorageValue[]>;
 
 export interface QuickAccessItem {
   id: string;
-  guild_id: string;
+  app_id: string;
   type: string;
   name: string;
   updated_at: string /* RFC3339 */;
@@ -198,6 +229,7 @@ export type QuickAccessItemListResponse = APIResponse<QuickAccessItem[]>;
 export interface User {
   id: string;
   username: string;
+  email: string;
   discriminator: null | string;
   global_name: null | string;
   avatar: null | string;
@@ -212,7 +244,7 @@ export type UserGetResponse = APIResponse<User>;
 
 export interface Workspace {
   id: string;
-  guild_id: string;
+  app_id: string;
   type: string;
   name: string;
   description: string;

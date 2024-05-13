@@ -1,4 +1,4 @@
-export function guildNameAbbreviation(name: string) {
+export function nameAbbreviation(name: string) {
   const words = name.split(" ");
 
   let res = "";

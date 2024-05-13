@@ -1,15 +1,15 @@
 import { useQuery } from "react-query";
 import {
+  AppEntitlementResolvedGetResponse,
+  AppGetResponse,
+  AppListResponse,
+  AppUsageSummaryGetResponse,
   DeploymentGetResponse,
   DeploymentListResponse,
   DeploymentLogEntryListResponse,
   DeploymentLogSummaryGetResponse,
   DeploymentMetricCallsListResponse,
   DeploymentMetricEventsListResponse,
-  GuildEntitlementResolvedGetResponse,
-  GuildGetResponse,
-  GuildListResponse,
-  GuildUsageSummaryGetResponse,
   KVStorageNamespaceKeyListResponse,
   KVStorageNamespaceListResponse,
   QuickAccessItemListResponse,
@@ -25,123 +25,112 @@ export function useUserQuery() {
   );
 }
 
-export function useGuildsQuery() {
-  return useQuery(["guilds"], () =>
-    apiRequest<GuildListResponse>("/v1/guilds")
+export function useAppsQuery() {
+  return useQuery(["apps"], () => apiRequest<AppListResponse>("/v1/apps"));
+}
+
+export function useAppQuery(appId?: string | null) {
+  return useQuery(
+    ["apps", appId],
+    () => apiRequest<AppGetResponse>(`/v1/apps/${appId}`),
+    { enabled: !!appId }
   );
 }
 
-export function useGuildQuery(guildId?: string | null) {
+export function useWorkspacesQuery(appId?: string | null) {
   return useQuery(
-    ["guilds", guildId],
-    () => apiRequest<GuildGetResponse>(`/v1/guilds/${guildId}`),
-    { enabled: !!guildId }
-  );
-}
-
-export function useWorkspacesQuery(guildId?: string | null) {
-  return useQuery(
-    ["guilds", guildId, "workspaces"],
-    () => apiRequest<WorkspaceListResponse>(`/v1/guilds/${guildId}/workspaces`),
+    ["apps", appId, "workspaces"],
+    () => apiRequest<WorkspaceListResponse>(`/v1/apps/${appId}/workspaces`),
     {
-      enabled: !!guildId,
+      enabled: !!appId,
     }
   );
 }
 
 export function useWorkspaceQuery(
-  guildId?: string | null,
+  appId?: string | null,
   workspaceId?: string | null
 ) {
   return useQuery(
-    ["guilds", guildId, "workspaces", workspaceId],
+    ["apps", appId, "workspaces", workspaceId],
     () =>
       apiRequest<WorkspaceGetResponse>(
-        `/v1/guilds/${guildId}/workspaces/${workspaceId}`
+        `/v1/apps/${appId}/workspaces/${workspaceId}`
       ),
     {
-      enabled: !!guildId && !!workspaceId,
+      enabled: !!appId && !!workspaceId,
     }
   );
 }
 
-export function useDeploymentsQuery(guildId?: string | null) {
+export function useDeploymentsQuery(appId?: string | null) {
   return useQuery(
-    ["guilds", guildId, "deployments"],
-    () =>
-      apiRequest<DeploymentListResponse>(`/v1/guilds/${guildId}/deployments`),
+    ["apps", appId, "deployments"],
+    () => apiRequest<DeploymentListResponse>(`/v1/apps/${appId}/deployments`),
     {
-      enabled: !!guildId,
+      enabled: !!appId,
     }
   );
 }
 
 export function useDeploymentQuery(
-  guildId?: string | null,
+  appId?: string | null,
   deploymentId?: string | null
 ) {
   return useQuery(
-    ["guilds", guildId, "deployments", deploymentId],
+    ["apps", appId, "deployments", deploymentId],
     () =>
       apiRequest<DeploymentGetResponse>(
-        `/v1/guilds/${guildId}/deployments/${deploymentId}`
+        `/v1/apps/${appId}/deployments/${deploymentId}`
       ),
     {
-      enabled: !!guildId,
+      enabled: !!appId,
     }
   );
 }
 
 export function useDeploymentLogEntriesQuery(
-  guildId?: string | null,
+  appId?: string | null,
   deploymentId?: string | null
 ) {
   return useQuery(
-    ["guilds", guildId, "deployments", deploymentId, "logs"],
+    ["apps", appId, "deployments", deploymentId, "logs"],
     () =>
       apiRequest<DeploymentLogEntryListResponse>(
-        `/v1/guilds/${guildId}/deployments/${deploymentId}/logs`
+        `/v1/apps/${appId}/deployments/${deploymentId}/logs`
       ),
     {
-      enabled: !!guildId && !!deploymentId,
+      enabled: !!appId && !!deploymentId,
     }
   );
 }
 
 export function useDeploymentLogSummaryQuery(
-  guildId?: string | null,
+  appId?: string | null,
   deploymentId?: string | null,
   timeframe: "hour" | "day" | "week" | "month" = "day"
 ) {
   return useQuery(
-    [
-      "guilds",
-      guildId,
-      "deployments",
-      deploymentId,
-      "logs",
-      "summary",
-      timeframe,
-    ],
+    ["apps", appId, "deployments", deploymentId, "logs", "summary", timeframe],
     () =>
       apiRequest<DeploymentLogSummaryGetResponse>(
-        `/v1/guilds/${guildId}/deployments/${deploymentId}/logs/summary?timeframe=${timeframe}`
+        `/v1/apps/${appId}/deployments/${deploymentId}/logs/summary?timeframe=${timeframe}`
       ),
     {
-      enabled: !!guildId && !!deploymentId,
+      enabled: !!appId && !!deploymentId,
     }
   );
 }
 
 export function useDeploymentsEventMetricsQuery(
-  guildId?: string | null,
+  appId?: string | null,
   deploymentId?: string | null,
   timeframe: "hour" | "day" | "week" | "month" = "day"
 ) {
   return useQuery(
     [
-      "guilds",
-      guildId,
+      "apps",
+      appId,
       "deployments",
       deploymentId,
       "metrics",
@@ -150,107 +139,95 @@ export function useDeploymentsEventMetricsQuery(
     ],
     () =>
       apiRequest<DeploymentMetricEventsListResponse>(
-        `/v1/guilds/${guildId}/deployments/${
+        `/v1/apps/${appId}/deployments/${
           deploymentId ? deploymentId + "/" : ""
         }metrics/events?timeframe=${timeframe}`
       ),
     {
-      enabled: !!guildId,
+      enabled: !!appId,
     }
   );
 }
 
 export function useDeploymentsCallMetricsQuery(
-  guildId?: string | null,
+  appId?: string | null,
   deploymentId?: string | null,
   timeframe: "hour" | "day" | "week" | "month" = "day"
 ) {
   return useQuery(
-    [
-      "guilds",
-      guildId,
-      "deployments",
-      deploymentId,
-      "metrics",
-      "calls",
-      timeframe,
-    ],
+    ["apps", appId, "deployments", deploymentId, "metrics", "calls", timeframe],
     () =>
       apiRequest<DeploymentMetricCallsListResponse>(
-        `/v1/guilds/${guildId}/deployments/${
+        `/v1/apps/${appId}/deployments/${
           deploymentId ? deploymentId + "/" : ""
         }metrics/calls?timeframe=${timeframe}`
       ),
     {
-      enabled: !!guildId,
+      enabled: !!appId,
     }
   );
 }
 
-export function useKVStorageNamespacesQuery(guildId?: string | null) {
+export function useKVStorageNamespacesQuery(appId?: string | null) {
   return useQuery(
-    ["guilds", guildId, "kv-storage", "namespaces"],
+    ["apps", appId, "kv-storage", "namespaces"],
     () =>
       apiRequest<KVStorageNamespaceListResponse>(
-        `/v1/guilds/${guildId}/kv-storage/namespaces`
+        `/v1/apps/${appId}/kv-storage/namespaces`
       ),
     {
-      enabled: !!guildId,
+      enabled: !!appId,
     }
   );
 }
 
 export function useKVStorageKeysQuery(
-  guildId?: string | null,
+  appId?: string | null,
   namespace?: string | null
 ) {
   return useQuery(
-    ["guilds", guildId, "kv-storage", "namespaces", namespace, "keys"],
+    ["apps", appId, "kv-storage", "namespaces", namespace, "keys"],
     () =>
       apiRequest<KVStorageNamespaceKeyListResponse>(
-        `/v1/guilds/${guildId}/kv-storage/namespaces/${namespace}/keys`
+        `/v1/apps/${appId}/kv-storage/namespaces/${namespace}/keys`
       ),
     {
-      enabled: !!guildId && !!namespace,
+      enabled: !!appId && !!namespace,
     }
   );
 }
 
-export function useQuickAccessItemListQuery(guildId?: string | null) {
+export function useQuickAccessItemListQuery(appId?: string | null) {
   return useQuery(
-    ["guilds", guildId, "quickAccess"],
+    ["apps", appId, "quickAccess"],
     () =>
-      apiRequest<QuickAccessItemListResponse>(
-        `/v1/guilds/${guildId}/quick-access`
-      ),
+      apiRequest<QuickAccessItemListResponse>(`/v1/apps/${appId}/quick-access`),
     {
-      enabled: !!guildId,
+      enabled: !!appId,
     }
   );
 }
 
-export function useGuildUsageSummaryQuery(guildId?: string | null) {
+export function useAppUsageSummaryQuery(appId?: string | null) {
   return useQuery(
-    ["guilds", guildId, "usage", "summary"],
+    ["apps", appId, "usage", "summary"],
     () =>
-      apiRequest<GuildUsageSummaryGetResponse>(
-        `/v1/guilds/${guildId}/usage/summary`
-      ),
+      apiRequest<AppUsageSummaryGetResponse>(`/v1/apps/${appId}/usage/summary`),
     {
-      enabled: !!guildId,
+      enabled: !!appId,
     }
   );
 }
 
-export function useGuildEntitlementsResolvedQuery(guildId?: string | null) {
+export function useAppEntitlementsResolvedQuery(appId?: string | null) {
   return useQuery(
-    ["guilds", guildId, "entitlements", "resolved"],
+    ["apps", appId, "entitlements", "resolved"],
     () =>
-      apiRequest<GuildEntitlementResolvedGetResponse>(
-        `/v1/guilds/${guildId}/entitlements/resolved`
+      apiRequest<AppEntitlementResolvedGetResponse>(
+        `/v1/apps/${appId}/entitlements/resolved`
       ),
     {
-      enabled: !!guildId,
+      enabled: !!appId,
     }
   );
 }

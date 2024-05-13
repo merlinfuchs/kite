@@ -49,7 +49,7 @@ export default function HomeNavbar() {
         </div>
         <div className="hidden lg:flex lg:flex-1 lg:justify-end">
           <Link
-            href="/app"
+            href="/apps"
             className="font-semibold text-white bg-dark-5 hover:bg-dark-4 px-4 py-2.5 rounded-lg flex items-center space-x-3"
           >
             <div>{userResp?.success ? "Open App" : "Login"}</div>
