@@ -21,7 +21,7 @@ func (e *Engine) HandleEvent(ctx context.Context, event *event.Event) {
 
 			err := d.HandleEvent(ctx, event)
 			if err != nil {
-				slog.With(logattr.Error(err)).Error("Error handling event on plugin")
+				slog.With(logattr.Error(err)).Error("Error handling event on module")
 			}
 		}()
 	}

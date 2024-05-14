@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/merlinfuchs/dismod/distype"
 	"github.com/merlinfuchs/kite/kite-sdk-go/event"
 	"github.com/merlinfuchs/kite/kite-sdk-go/log"
 	"github.com/merlinfuchs/kite/kite-sdk-go/manifest"
@@ -44,7 +43,6 @@ type Module struct {
 	currentCallResponse  []byte
 	currentEvent         []byte
 	currentEventResponse *event.EventResponse
-	currentGuildID       distype.Snowflake
 }
 
 func New(

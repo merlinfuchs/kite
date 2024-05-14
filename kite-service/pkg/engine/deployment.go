@@ -14,6 +14,7 @@ import (
 	"github.com/merlinfuchs/kite/kite-sdk-go/manifest"
 	"github.com/merlinfuchs/kite/kite-service/internal/logging/logattr"
 	"github.com/merlinfuchs/kite/kite-service/pkg/module"
+	"github.com/tetratelabs/wazero/sys"
 )
 
 type Deployment struct {
@@ -23,7 +24,7 @@ type Deployment struct {
 	config   DeploymentConfig
 	env      module.HostEnvironment
 
-	pluginPool *pool.ObjectPool
+	modulePool *pool.ObjectPool
 }
 
 type DeploymentConfig struct {
@@ -60,8 +61,8 @@ func NewDeployment(
 		config:   config,
 	}
 
-	factory := pool.NewPooledObjectFactorySimple(dp.pluginFactory)
-	dp.pluginPool = pool.NewObjectPool(context.Background(), factory, &pool.ObjectPoolConfig{
+	factory := pool.NewPooledObjectFactorySimple(dp.moduleFactory)
+	dp.modulePool = pool.NewObjectPool(context.Background(), factory, &pool.ObjectPoolConfig{
 		LIFO:                     true,
 		MaxTotal:                 config.PoolMaxTotal,
 		MaxIdle:                  config.PoolMaxIdle,
@@ -70,16 +71,16 @@ func NewDeployment(
 		TimeBetweenEvictionRuns:  10 * time.Second,
 	})
 	// TODO? This spawns a goroutine for each deployment, maybe we should have a single evictor for all deployments
-	dp.pluginPool.StartEvictor()
+	dp.modulePool.StartEvictor()
 
 	return dp
 }
 
 func (d *Deployment) Close(ctx context.Context) {
-	d.pluginPool.Close(ctx)
+	d.modulePool.Close(ctx)
 }
 
-func (d *Deployment) pluginFactory(ctx context.Context) (interface{}, error) {
+func (d *Deployment) moduleFactory(ctx context.Context) (interface{}, error) {
 	p, err := module.New(ctx, d.wasm, d.config.ModuleConfig, d.env)
 	if err != nil {
 		return nil, err
@@ -88,20 +89,20 @@ func (d *Deployment) pluginFactory(ctx context.Context) (interface{}, error) {
 	return p, nil
 }
 
-func (d *Deployment) BorrowPlugin(ctx context.Context) (*module.Module, error) {
-	obj, err := d.pluginPool.BorrowObject(ctx)
+func (d *Deployment) BorrowModule(ctx context.Context) (*module.Module, error) {
+	obj, err := d.modulePool.BorrowObject(ctx)
 	if err != nil {
 		return nil, err
 	}
 	return obj.(*module.Module), nil
 }
 
-func (d *Deployment) ReturnPlugin(ctx context.Context, p *module.Module) error {
-	return d.pluginPool.ReturnObject(ctx, p)
+func (d *Deployment) ReturnModule(ctx context.Context, p *module.Module) error {
+	return d.modulePool.ReturnObject(ctx, p)
 }
 
-func (d *Deployment) InvalidatePlugin(ctx context.Context, p *module.Module) error {
-	return d.pluginPool.InvalidateObject(ctx, p)
+func (d *Deployment) InvalidateModule(ctx context.Context, p *module.Module) error {
+	return d.modulePool.InvalidateObject(ctx, p)
 }
 
 func (d *Deployment) HandleEvent(ctx context.Context, event *event.Event) error {
@@ -109,12 +110,12 @@ func (d *Deployment) HandleEvent(ctx context.Context, event *event.Event) error 
 		return nil
 	}
 
-	plugin, err := d.BorrowPlugin(ctx)
+	module, err := d.BorrowModule(ctx)
 	if err != nil {
-		return fmt.Errorf("failed to borrow plugin: %w", err)
+		return fmt.Errorf("failed to borrow module: %w", err)
 	}
 
-	res, err := plugin.Handle(ctx, event)
+	res, err := module.Handle(ctx, event)
 
 	fmt.Println("Execution duration: ", res.ExecutionDuration)
 
@@ -123,22 +124,22 @@ func (d *Deployment) HandleEvent(ctx context.Context, event *event.Event) error 
 	if err != nil {
 		slog.With(logattr.Error(err)).Error("failed to handle event")
 
-		// TODO: think about other error types that should invalidate the plugin (e.g. panic / wasm trap)
-		if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
-			fmt.Println("canceled")
-			if err := d.InvalidatePlugin(ctx, plugin); err != nil {
-				slog.With(logattr.Error(err)).Error("failed to invalidate plugin")
+		// TODO: think about other error types that should invalidate the module (e.g. panic / wasm trap) (or just all errors?)
+		_, isExitError := err.(*sys.ExitError)
+		if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) || isExitError {
+			if err := d.InvalidateModule(ctx, module); err != nil {
+				slog.With(logattr.Error(err)).Error("failed to invalidate module")
 			}
 		} else {
-			if err := d.ReturnPlugin(ctx, plugin); err != nil {
-				slog.With(logattr.Error(err)).Error("failed to return plugin")
+			if err := d.ReturnModule(ctx, module); err != nil {
+				slog.With(logattr.Error(err)).Error("failed to return module")
 			}
 		}
 
 		d.env.Log(ctx, log.LogLevelError, err.Error())
 	} else {
-		if err := d.ReturnPlugin(ctx, plugin); err != nil {
-			slog.With(logattr.Error(err)).Error("failed to return plugin")
+		if err := d.ReturnModule(ctx, module); err != nil {
+			slog.With(logattr.Error(err)).Error("failed to return module")
 		}
 	}
 
