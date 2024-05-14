@@ -1,9 +1,6 @@
-import { Call, CallConfig, CallType } from "./call/types";
-import { makeCall } from "./sys";
+import * as discord from "./discord";
+import * as event from "./event";
+import * as call from "./call";
+import * as kv from "./kv";
 
-export function call(type: CallType, data: Call["data"], config?: CallConfig) {
-  makeCall(type, data);
-}
-
-export { discord } from "./discord/index";
-export { event } from "./event/index";
+export { discord, event, call, kv };

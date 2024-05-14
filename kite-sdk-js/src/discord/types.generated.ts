@@ -349,7 +349,27 @@ export interface ChannelGetRequest {
 }
 export type ChannelGetResponse = Channel;
 export interface ChannelModifyRequest {
-} // TODO
+  channel_id: Snowflake;
+  name?: string;
+  type?: ChannelType;
+  position?: number /* int */;
+  topic?: string;
+  nsfw?: boolean;
+  rate_limit_per_user?: number /* int */;
+  bitrate?: number /* int */;
+  user_limit?: number /* int */;
+  permission_overwrites?: PermissionOverwrite[];
+  parent_id?: Snowflake;
+  rtc_region?: string;
+  video_quality_mode?: VideoQualityMode;
+  default_auto_archive_duration?: number /* int */;
+  flags?: ChannelFlags;
+  available_tags?: ForumTag[];
+  default_reaction_emoji?: DefaultReaction;
+  default_thread_rate_limit_per_user?: number /* int */;
+  default_sort_order?: SortOrderType;
+  default_forum_layout?: ForumLayoutType;
+}
 export type ChannelModifyResponse = Channel;
 export interface ChannelDeleteRequest {
   channel_id: Snowflake;
@@ -465,9 +485,31 @@ export interface GuildChannelListRequest {
 }
 export type GuildChannelListResponse = Channel[];
 export interface GuildChannelCreateRequest {
-} // TODO
+  guild_id: Snowflake;
+  name: string;
+  type: ChannelType;
+  topic?: string;
+  bitrate?: number /* int */;
+  user_limit?: number /* int */;
+  rate_limit_per_user?: number /* int */;
+  position?: number /* int */;
+  permission_overwrites?: PermissionOverwrite[];
+  parent_id?: Snowflake;
+  nsfw?: boolean;
+  rtc_region?: string;
+  video_quality_mode?: VideoQualityMode;
+  default_auto_archive_duration?: number /* int */;
+  default_reaction_emoji?: DefaultReaction;
+  available_tags?: ForumTag[];
+  default_sort_order?: SortOrderType;
+  default_forum_layout?: ForumLayoutType;
+  default_thread_rate_limit_per_user?: number /* int */;
+}
 export type GuildChannelCreateResponse = Channel;
-export type GuildChannelModifyPositionsRequest = GuildChannelModifyPositionsEntry[];
+export interface GuildChannelModifyPositionsRequest {
+  guild_id: Snowflake;
+  entries: GuildChannelModifyPositionsEntry[];
+}
 export interface GuildChannelModifyPositionsEntry {
   id: Snowflake;
   position?: number /* int */;
@@ -482,6 +524,73 @@ export interface GuildThreadListActiveRequest {
 export interface GuildThreadListActiveResponse {
   threads: Channel[];
   members: ThreadMember[];
+}
+
+//////////
+// source: command.go
+
+export interface ApplicationCommand {
+  id: Snowflake;
+  type?: ApplicationCommandType;
+  application_id: Snowflake;
+  guild_id?: Snowflake;
+  name: string;
+  name_localizations?: { [key: string]: string};
+  description: string;
+  description_localizations?: { [key: string]: string};
+  options?: ApplicationCommandOption[];
+  default_member_permission: Nullable<string>;
+  dm_permission?: boolean;
+  nsfw?: boolean;
+  version: Snowflake;
+}
+export type ApplicationCommandType = number /* int */;
+export const ApplicationCommandTypeChatInput: ApplicationCommandType = 1;
+export const ApplicationCommandTypeUser: ApplicationCommandType = 2;
+export const ApplicationCommandTypeMessage: ApplicationCommandType = 3;
+export interface ApplicationCommandOption {
+  type: ApplicationCommandOptionType;
+  name: string;
+  name_locations?: { [key: string]: string};
+  description: string;
+  description_locations?: { [key: string]: string};
+  required?: boolean;
+  choices?: ApplicationCommandOptionChoice[];
+  options?: ApplicationCommandOption[];
+  channel_types?: ChannelType[];
+  min_value?: number /* int */;
+  max_value?: number /* int */;
+  min_length?: number /* int */;
+  max_length?: number /* int */;
+  autocomplete?: boolean;
+}
+export type ApplicationCommandOptionType = number /* int */;
+export const ApplicationCommandOptionTypeSubCommand: ApplicationCommandOptionType = 1;
+export const ApplicationCommandOptionTypeSubCommandGroup: ApplicationCommandOptionType = 2;
+export const ApplicationCommandOptionTypeString: ApplicationCommandOptionType = 3;
+export const ApplicationCommandOptionTypeInteger: ApplicationCommandOptionType = 4;
+export const ApplicationCommandOptionTypeBoolean: ApplicationCommandOptionType = 5;
+export const ApplicationCommandOptionTypeUser: ApplicationCommandOptionType = 6;
+export const ApplicationCommandOptionTypeChannel: ApplicationCommandOptionType = 7;
+export const ApplicationCommandOptionTypeRole: ApplicationCommandOptionType = 8;
+export const ApplicationCommandOptionTypeMentionable: ApplicationCommandOptionType = 9;
+export const ApplicationCommandOptionTypeNumber: ApplicationCommandOptionType = 10;
+export const ApplicationCommandOptionTypeAttachment: ApplicationCommandOptionType = 11;
+export interface ApplicationCommandOptionChoice {
+  name: string;
+  name_localizations?: { [key: string]: string};
+  value: any;
+}
+export interface ApplicationCommandCreateRequest {
+  type?: ApplicationCommandType;
+  name: string;
+  name_localizations?: { [key: string]: string};
+  description: string;
+  description_localizations?: { [key: string]: string};
+  options?: ApplicationCommandOption[];
+  default_member_permission: Nullable<string>;
+  dm_permission?: boolean;
+  nsfw?: boolean;
 }
 
 //////////
@@ -728,6 +837,8 @@ export interface ReadyEvent {
   shard: number /* int */[];
   application: Application;
 }
+export interface ResumedEvent {
+}
 
 //////////
 // source: gateway.go
@@ -799,7 +910,7 @@ export interface GatewayBotGetRequest {
 export interface GatewayBotGetResponse {
   url: string;
   shards: number /* int */;
-  SessionStartLimit: SessionStartLimit;
+  session_start_limit: SessionStartLimit;
 }
 export interface SessionStartLimit {
   total: number /* int */;
@@ -1033,33 +1144,17 @@ export interface ApplicationCommandData {
   name: string;
   type: ApplicationCommandType;
   resolved?: ResolvedData;
-  options?: ApplicationCommandOption[];
+  options?: ApplicationCommandDataOption[];
   guild_id?: Snowflake;
   target_id?: Snowflake;
 }
-export type ApplicationCommandType = number /* int */;
-export const ApplicationCommandTypeChatInput: ApplicationCommandType = 1;
-export const ApplicationCommandTypeUser: ApplicationCommandType = 2;
-export const ApplicationCommandTypeMessage: ApplicationCommandType = 3;
-export interface ApplicationCommandOption {
+export interface ApplicationCommandDataOption {
   name: string;
   type: ApplicationCommandOptionType;
   value?: any;
-  options?: ApplicationCommandOption[];
+  options?: ApplicationCommandDataOption[];
   focused?: boolean;
 }
-export type ApplicationCommandOptionType = number /* int */;
-export const ApplicationCommandOptionTypeSubCommand: ApplicationCommandOptionType = 1;
-export const ApplicationCommandOptionTypeSubCommandGroup: ApplicationCommandOptionType = 2;
-export const ApplicationCommandOptionTypeString: ApplicationCommandOptionType = 3;
-export const ApplicationCommandOptionTypeInteger: ApplicationCommandOptionType = 4;
-export const ApplicationCommandOptionTypeBoolean: ApplicationCommandOptionType = 5;
-export const ApplicationCommandOptionTypeUser: ApplicationCommandOptionType = 6;
-export const ApplicationCommandOptionTypeChannel: ApplicationCommandOptionType = 7;
-export const ApplicationCommandOptionTypeRole: ApplicationCommandOptionType = 8;
-export const ApplicationCommandOptionTypeMentionable: ApplicationCommandOptionType = 9;
-export const ApplicationCommandOptionTypeNumber: ApplicationCommandOptionType = 10;
-export const ApplicationCommandOptionTypeAttachment: ApplicationCommandOptionType = 11;
 export interface MessageComponentData {
   custom_id: string;
   component_type: MessageComponentType;
@@ -1068,7 +1163,7 @@ export interface MessageComponentData {
 }
 export interface ModalSubmitData {
   custom_id: string;
-  components: MessageComponent[]; // TODO: implement unmarshalJSON for MessageComponent
+  components: MessageComponent[];
 }
 export interface ResolvedData {
   users?: { [key: Snowflake]: User};
@@ -1080,7 +1175,7 @@ export interface ResolvedData {
 }
 export interface InteractionResponse {
   type: InteractionResponseType;
-  data?: InteractionResponseData; // TODO: implement unmarshaler
+  data?: InteractionResponseData;
 }
 export type InteractionResponseType = number /* int */;
 export const InteractionResponseTypePong: InteractionResponseType = 1;
@@ -1092,8 +1187,8 @@ export const InteractionResponseTypeApplicationCommandAutocompleteResult: Intera
 export const InteractionResponseTypeModal: InteractionResponseType = 9;
 export const InteractionResponseTypePremiumRequired: InteractionResponseType = 10;
 export type InteractionResponseData = any;
-export interface InteractionMessageResponse {
-} // TODO
+export type InteractionMessageCreateResponse = MessageCreateParams;
+export type InteractionMessageUpdateResponse = MessageEditParams;
 export interface InteractionAutocompleteResponse {
 } // TODO
 export interface InteractionModalResponse {
@@ -1111,10 +1206,9 @@ export interface InteractionResponseGetRequest {
   interaction_token: string;
 }
 export type InteractionResponseGetResponse = Message;
-export interface InteractionResponseEditRequest {
+export interface InteractionResponseEditRequest extends MessageEditParams {
   application_id: Snowflake;
   interaction_token: string;
-  MessageEditParams: MessageEditParams;
 }
 export type InteractionResponseEditResponse = Message;
 export interface InteractionResponseDeleteRequest {
@@ -1123,10 +1217,9 @@ export interface InteractionResponseDeleteRequest {
 }
 export interface InteractionResponseDeleteResponse {
 }
-export interface InteractionFollowupCreateRequest {
+export interface InteractionFollowupCreateRequest extends MessageCreateParams {
   application_id: Snowflake;
   interaction_token: string;
-  MessageCreateParams: MessageCreateParams;
 }
 export type InteractionFollowupCreateResponse = Message;
 export interface InteractionFollowupGetRequest {
@@ -1135,11 +1228,10 @@ export interface InteractionFollowupGetRequest {
   message_id: Snowflake;
 }
 export type InteractionFollowupGetResponse = Message;
-export interface InteractionFollowupEditRequest {
+export interface InteractionFollowupEditRequest extends MessageEditParams {
   application_id: Snowflake;
   interaction_token: string;
   message_id: Snowflake;
-  MessageEditParams: MessageEditParams;
 }
 export type InteractionFollowupEditResponse = Message;
 export interface InteractionFollowupDeleteRequest {
@@ -1664,9 +1756,8 @@ export interface MessageGetRequest {
   message_id: Snowflake;
 }
 export type MessageGetResponse = Message;
-export interface MessageCreateRequest {
+export interface MessageCreateRequest extends MessageCreateParams {
   channel_id: Snowflake;
-  MessageCreateParams: MessageCreateParams;
 }
 export type MessageCreateResponse = Message;
 export interface MessageCrosspostRequest {
@@ -1674,10 +1765,9 @@ export interface MessageCrosspostRequest {
   message_id: Snowflake;
 }
 export type MessageCrosspostResponse = Message;
-export interface MessageEditRequest {
+export interface MessageEditRequest extends MessageEditParams {
   channel_id: Snowflake;
   message_id: Snowflake;
-  MessageEditParams: MessageEditParams;
 }
 export type MessageEditResponse = Message;
 export interface MessageDeleteRequest {
@@ -1695,7 +1785,7 @@ export interface MessageBulkDeleteResponse {
 export interface MessageReactionListRequest {
   channel_id: Snowflake;
   message_id: Snowflake;
-  emoji?: string;
+  emoji: string;
   after?: Snowflake;
   limit?: number /* int */;
 }
@@ -1856,7 +1946,10 @@ export interface RoleDeleteRequest {
 }
 export interface RoleDeleteResponse {
 }
-export type RolePositionsModifyRequest = RolePositionsModifyEntry[];
+export interface RolePositionsModifyRequest {
+  guild_id: Snowflake;
+  entries: RolePositionsModifyEntry[];
+}
 export interface RolePositionsModifyEntry {
   id: Snowflake;
   position?: number /* int */;
@@ -2212,12 +2305,11 @@ export interface WebhookDeleteWithTokenRequest {
 }
 export interface WebhookDeleteWithTokenResponse {
 }
-export interface WebhookExecuteRequest {
+export interface WebhookExecuteRequest extends MessageCreateParams {
   webhook_id: Snowflake;
   webhook_token: string;
   wait?: boolean;
   thread_id?: Snowflake;
-  MessageCreateParams: MessageCreateParams;
 }
 export type WebhookExecuteResponse = (Message | undefined);
 export interface WebhookMessageGetRequest {
@@ -2226,11 +2318,10 @@ export interface WebhookMessageGetRequest {
   message_id: Snowflake;
 }
 export type WebhookMessageGetResponse = Message;
-export interface WebhookMessageEditRequest {
+export interface WebhookMessageEditRequest extends MessageEditParams {
   webhook_id: Snowflake;
   webhook_token: string;
   message_id: Snowflake;
-  MessageEditParams: MessageEditParams;
 }
 export type WebhookMessageEditResponse = Message;
 export interface WebhookMessageDeleteRequest {

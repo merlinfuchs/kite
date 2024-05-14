@@ -1,6 +1,6 @@
 packages:
   - path: "github.com/merlinfuchs/dismod/distype"
-    output_path: "../kite-sdk-js/src/discord/types.ts"
+    output_path: "../kite-sdk-js/src/discord/types.generated.ts"
     type_mappings:
       null.Null: Nullable
       null.String: "null | string"
@@ -20,7 +20,7 @@ packages:
       - base.go
 
   - path: "github.com/merlinfuchs/kite/kite-sdk-go/event"
-    output_path: "../kite-sdk-js/src/event/types.ts"
+    output_path: "../kite-sdk-js/src/event/types.generated.ts"
     type_mappings:
       null.Null: Nullable
       null.String: "null | string"
@@ -32,11 +32,9 @@ packages:
       time.Time: "string /* RFC3339 */"
       null.Time: "null | string /* RFC3339 */"
       json.RawMessage: "Record<string, any> | null"
-    frontmatter: |
-      type Nullable<T> = T | null
 
   - path: "github.com/merlinfuchs/kite/kite-sdk-go/call"
-    output_path: "../kite-sdk-js/src/call/types.ts"
+    output_path: "../kite-sdk-js/src/call/types.generated.ts"
     type_mappings:
       null.Null: Nullable
       null.String: "null | string"
@@ -48,11 +46,23 @@ packages:
       time.Time: "string /* RFC3339 */"
       null.Time: "null | string /* RFC3339 */"
       json.RawMessage: "Record<string, any> | null"
-    frontmatter: |
-      type Nullable<T> = T | null
+
+  - path: "github.com/merlinfuchs/kite/kite-sdk-go/kv"
+    output_path: "../kite-sdk-js/src/kv/types.generated.ts"
+    type_mappings:
+      null.Null: Nullable
+      null.String: "null | string"
+      null.Bool: "null | boolean"
+      null.Float: "null | number"
+      null.Int: "null | number"
+      uuid.UUID: "string /* uuid */"
+      uuid.NullUUID: "null | string /* uuid */"
+      time.Time: "string /* RFC3339 */"
+      null.Time: "null | string /* RFC3339 */"
+      json.RawMessage: "Record<string, any> | null"
 
   - path: "github.com/merlinfuchs/kite/kite-sdk-go/fail"
-    output_path: "../kite-sdk-js/src/fail/types.ts"
+    output_path: "../kite-sdk-js/src/fail/types.generated.ts"
     type_mappings:
       null.Null: Nullable
       null.String: "null | string"
@@ -64,5 +74,3 @@ packages:
       time.Time: "string /* RFC3339 */"
       null.Time: "null | string /* RFC3339 */"
       json.RawMessage: "Record<string, any> | null"
-    frontmatter: |
-      type Nullable<T> = T | null

@@ -1,7 +1,7 @@
-import { Event } from "./event/types";
+import { Event } from "../event";
 
 declare var Kite: {
-  call: (call: { type: string; data: any }) => void;
+  call: (call: { type: string; data: any }) => any;
   describe: () => any;
   handle: (event: { type: string; data: any }) => { success: boolean };
 };
@@ -41,5 +41,5 @@ export function addEventHandler(event: string, handler: EventHandler) {
 }
 
 export function makeCall(type: string, data: any) {
-  Kite.call({ type, data });
+  return Kite.call({ type, data });
 }

@@ -1,5 +1,5 @@
-export namespace discord {
-  export function test() {
-    return "test";
-  }
+export * from "./types.generated";
+
+export function test() {
+  return "test";
 }
