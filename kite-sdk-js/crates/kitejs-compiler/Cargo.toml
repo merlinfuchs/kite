@@ -3,6 +3,10 @@ name = "kitejs-compiler"
 version = "0.1.0"
 edition = "2021"
 
+[profile.release]
+lto = true
+opt-level = 's'
+
 [dependencies]
 anyhow = "1.0.79"
 binaryen = { git = "https://github.com/pepyakin/binaryen-rs", rev = "00c98174843f957681ba0bc5cdcc9d15f5d0cb23" }

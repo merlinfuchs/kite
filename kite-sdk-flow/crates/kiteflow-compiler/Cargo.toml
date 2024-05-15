@@ -9,4 +9,11 @@ opt-level = 3
 
 [dependencies]
 anyhow = "1.0.79"
-serde_json = "1.0.111"
+binaryen = { git = "https://github.com/pepyakin/binaryen-rs", rev = "00c98174843f957681ba0bc5cdcc9d15f5d0cb23" }
+wizer = "4.0.0"
+wasmtime = "16"
+wasmtime-wasi = "16"
+wasi-common = "16"
+
+[build-dependencies]
+anyhow = "1.0.79"

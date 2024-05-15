@@ -64,14 +64,6 @@
     },
     {
       "type": "buttonedge",
-      "source": "1707510434931",
-      "sourceHandle": null,
-      "target": "2",
-      "targetHandle": null,
-      "id": "reactflow__edge-1707510434931-2"
-    },
-    {
-      "type": "buttonedge",
       "source": "1",
       "sourceHandle": null,
       "target": "2",

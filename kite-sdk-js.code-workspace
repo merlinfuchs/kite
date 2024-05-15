@@ -1,0 +1,16 @@
+{
+  "folders": [
+    {
+      "name": "kite-sdk-js",
+      "path": "kite-sdk-js"
+    },
+    {
+      "name": "kitejs-compiler",
+      "path": "kite-sdk-js/crates/kitejs-compiler"
+    },
+    {
+      "name": "kitejs-engine",
+      "path": "kite-sdk-js/crates/kitejs-engine"
+    }
+  ]
+}

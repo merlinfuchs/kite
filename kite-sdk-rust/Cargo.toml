@@ -1,0 +1,11 @@
+[package]
+name = "kite-sdk"
+version = "0.1.0"
+edition = "2021"
+
+[profile.release]
+lto = true
+opt-level = 3
+
+[dependencies]
+anyhow = "1.0.79"

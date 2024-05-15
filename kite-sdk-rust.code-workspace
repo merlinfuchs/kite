@@ -1,0 +1,16 @@
+{
+  "folders": [
+    {
+      "name": "kiters",
+      "path": "kite-sdk-rust/crates/kiters"
+    },
+    {
+      "name": "kiters-sys",
+      "path": "kite-sdk-rust/crates/kiters-sys"
+    },
+    {
+      "name": "kiters-macros",
+      "path": "kite-sdk-rust/crates/kiters-macros"
+    }
+  ]
+}

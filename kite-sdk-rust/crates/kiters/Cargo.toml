@@ -1,0 +1,14 @@
+[package]
+name = "kiters"
+version = "0.1.0"
+edition = "2021"
+license = "AGPL-3.0"
+repository = "https://github.com/merlinfuchs/kite"
+
+[profile.release]
+lto = true
+opt-level = 's'
+
+[dependencies]
+kiters-macros = { path = "../kiters-macros", version = "0.1.0" }
+kiters-sys = { path = "../kiters-sys", version = "0.1.0" }

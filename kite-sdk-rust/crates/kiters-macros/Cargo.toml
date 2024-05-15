@@ -1,0 +1,19 @@
+[package]
+name = "kiters-macros"
+version = "0.1.0"
+edition = "2021"
+license = "AGPL-3.0"
+repository = "https://github.com/merlinfuchs/kite"
+
+[lib]
+proc-macro = true
+path = "src/lib.rs"
+
+[profile.release]
+lto = true
+opt-level = 's'
+
+[dependencies]
+proc-macro2 = "1.0.79"
+quote = "1.0.35"
+syn = "2.0.55"

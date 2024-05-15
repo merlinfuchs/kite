@@ -1,0 +1,20 @@
+{
+  "folders": [
+    {
+      "name": "kite-service",
+      "path": "kite-service"
+    },
+    {
+      "name": "kite-web",
+      "path": "kite-web"
+    },
+    {
+      "name": "kite-docs",
+      "path": "kite-docs"
+    },
+    {
+      "name": "kite-sdk-go",
+      "path": "kite-sdk-go"
+    }
+  ]
+}
