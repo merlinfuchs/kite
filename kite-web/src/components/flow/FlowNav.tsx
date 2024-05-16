@@ -1,5 +1,4 @@
 import { FlowData, NodeData } from "@/lib/flow/data";
-import debounce from "@/lib/util/debounce";
 import {
   ArrowLeftIcon,
   ArrowPathIcon,
@@ -67,7 +66,7 @@ export default function FlowNav({
         onClick={onExit}
       >
         <ArrowLeftIcon className="h-5 w-5" />
-        <div>Back to Server</div>
+        <div>Back to App</div>
       </button>
       {isSaving ? (
         <div
@@ -94,7 +93,7 @@ export default function FlowNav({
       {isDeploying ? (
         <div className="flex space-x-2 text-gray-300 hover:text-white items-center">
           <ArrowPathIcon className="h-5 w-5 animate-spin" />
-          <div>Deploying to Server</div>
+          <div>Deploying to App</div>
         </div>
       ) : (
         <button
@@ -102,7 +101,7 @@ export default function FlowNav({
           onClick={deploy}
         >
           <ArrowUpIcon className="h-5 w-5" />
-          <div>Deploy to Server</div>
+          <div>Deploy to App</div>
         </button>
       )}
     </div>

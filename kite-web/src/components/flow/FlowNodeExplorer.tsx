@@ -40,7 +40,7 @@ const nodeCategories = {
   condition: [
     {
       title: "Conditions",
-      nodeTypes: ["condition"],
+      nodeTypes: ["condition_compare"],
     },
   ],
 };

@@ -1,12 +1,10 @@
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
-mod node;
-mod tree;
 mod edge;
+mod node;
 
-pub use node::Node;
-pub use tree::FlowTree;
 pub use edge::Edge;
+pub use node::Node;
 
 #[derive(Clone, Serialize, Deserialize)]
 pub struct FlowData {

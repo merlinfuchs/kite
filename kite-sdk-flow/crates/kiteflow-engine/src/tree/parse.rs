@@ -2,13 +2,11 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::Rc;
 
-use super::edge::Edge;
-use super::node::Node;
+use crate::data::Edge;
+use crate::data::Node;
 
-#[derive(Clone)]
-pub struct FlowTree {
-    pub entries: Vec<SharedFlowNode>,
-}
+use super::tree::FlowTree;
+use super::{FlowNode, SharedFlowNode};
 
 impl FlowTree {
     pub fn new(nodes: &[Node], edges: &[Edge]) -> FlowTree {
@@ -64,12 +62,7 @@ fn transform_node(
 
     match node {
         Node::EntryCommand { id, data } => {
-            let shared_node = Rc::new(RefCell::new(FlowNode::EntryCommand {
-                name: data.name.clone(),
-                description: data.description.clone(),
-                options: vec![],
-                next: vec![],
-            }));
+            let shared_node = SharedFlowNode::default();
             entry_map.insert(node.id().to_string(), shared_node.clone());
 
             let options: Vec<SharedFlowNode> = edge_target_map
@@ -95,8 +88,6 @@ fn transform_node(
                 })
                 .unwrap_or(vec![]);
 
-            shared_node.as_ref().borrow_mut().set_options(options);
-
             let next: Vec<SharedFlowNode> = edge_source_map
                 .get(id.as_str())
                 .map(|targets| {
@@ -117,14 +108,16 @@ fn transform_node(
                 })
                 .unwrap_or(vec![]);
 
-            shared_node.as_ref().borrow_mut().set_next(next);
+            *shared_node.borrow_mut() = FlowNode::EntryCommand {
+                name: data.name.clone(),
+                description: data.description.clone(),
+                options,
+                next,
+            };
             shared_node
         }
         Node::EntryEvent { id, data } => {
-            let shared_node = Rc::new(RefCell::new(FlowNode::EntryEvent {
-                event_type: data.event_type.clone(),
-                next: vec![],
-            }));
+            let shared_node = SharedFlowNode::default();
             entry_map.insert(node.id().to_string(), shared_node.clone());
 
             let next: Vec<SharedFlowNode> = edge_source_map
@@ -147,7 +140,10 @@ fn transform_node(
                 })
                 .unwrap_or(vec![]);
 
-            shared_node.as_ref().borrow_mut().set_next(next);
+            *shared_node.borrow_mut() = FlowNode::EntryEvent {
+                event_type: data.event_type.clone(),
+                next,
+            };
             shared_node
         }
         Node::OptionText { data, .. } => Rc::new(RefCell::new(FlowNode::CommandOptionText {
@@ -156,10 +152,7 @@ fn transform_node(
             required: data.required,
         })),
         Node::ActionResponseText { id, data } => {
-            let shared_node = Rc::new(RefCell::new(FlowNode::ActionResponseText {
-                text: data.text.clone(),
-                next: vec![],
-            }));
+            let shared_node = SharedFlowNode::default();
             entry_map.insert(node.id().to_string(), shared_node.clone());
 
             let next: Vec<SharedFlowNode> = edge_source_map
@@ -182,15 +175,14 @@ fn transform_node(
                 })
                 .unwrap_or(vec![]);
 
-            shared_node.as_ref().borrow_mut().set_next(next);
+            *shared_node.borrow_mut() = FlowNode::ActionResponseText {
+                text: data.text.clone(),
+                next,
+            };
             shared_node
         }
         Node::ActionLog { id, data } => {
-            let shared_node = Rc::new(RefCell::new(FlowNode::ActionLog {
-                log_level: data.log_level.clone(),
-                log_message: data.log_message.clone(),
-                next: vec![],
-            }));
+            let shared_node = SharedFlowNode::default();
             entry_map.insert(node.id().to_string(), shared_node.clone());
 
             let next: Vec<SharedFlowNode> = edge_source_map
@@ -213,125 +205,43 @@ fn transform_node(
                 })
                 .unwrap_or(vec![]);
 
-            // TODO: temp.borrow_mut() = next;
-
-            shared_node.as_ref().borrow_mut().set_next(next);
+            *shared_node.borrow_mut() = FlowNode::ActionLog {
+                log_level: data.log_level.clone(),
+                log_message: data.log_message.clone(),
+                next,
+            };
             shared_node
         }
         Node::EntryError { .. } => Rc::new(RefCell::new(FlowNode::EntryError {})),
-    }
-}
+        Node::ConditionCompare { id } => {
+            let shared_node = SharedFlowNode::default();
+            entry_map.insert(node.id().to_string(), shared_node.clone());
 
-#[derive(Clone)]
-pub enum FlowNode {
-    EntryCommand {
-        name: String,
-        description: String,
-        options: Vec<SharedFlowNode>,
-        next: Vec<SharedFlowNode>,
-    },
-    CommandOptionText {
-        name: String,
-        description: String,
-        required: bool,
-    },
-    EntryEvent {
-        event_type: String,
-        next: Vec<SharedFlowNode>,
-    },
-    EntryError {},
-    ActionResponseText {
-        text: String,
-        next: Vec<SharedFlowNode>,
-    },
-    ActionLog {
-        log_level: String,
-        log_message: String,
-        next: Vec<SharedFlowNode>,
-    },
-}
+            let conditions: Vec<SharedFlowNode> = edge_target_map
+                .get(id.as_str())
+                .map(|targets| {
+                    targets
+                        .iter()
+                        .filter_map(|target| {
+                            node_map.get(target).map(|node| {
+                                transform_node(
+                                    node,
+                                    node_map,
+                                    edge_source_map,
+                                    edge_target_map,
+                                    entry_map,
+                                )
+                            })
+                        })
+                        .collect()
+                })
+                .unwrap_or(vec![]);
 
-impl FlowNode {
-    pub fn set_next(&mut self, new_next: Vec<SharedFlowNode>) {
-        match self {
-            FlowNode::EntryCommand { next, .. } => {
-                *next = new_next;
-            }
-            FlowNode::EntryEvent { next, .. } => {
-                *next = new_next;
-            }
-            FlowNode::ActionResponseText { next, .. } => {
-                *next = new_next;
-            }
-            FlowNode::ActionLog { next, .. } => {
-                *next = new_next;
-            }
-            _ => {}
-        }
-    }
-
-    pub fn set_options(&mut self, new_options: Vec<SharedFlowNode>) {
-        match self {
-            FlowNode::EntryCommand { options, .. } => {
-                *options = new_options;
-            }
-            _ => {}
-        }
-    }
-
-    pub fn walk(&self) {
-        match self {
-            FlowNode::EntryCommand {
-                name,
-                description,
-                options,
-                next,
-            } => {
-                println!("EntryCommand: {} - {}", name, description);
-                for option in options {
-                    option.borrow().walk();
-                }
-                for node in next {
-                    node.borrow().walk();
-                }
-            }
-            FlowNode::CommandOptionText {
-                name,
-                description,
-                required,
-            } => {
-                println!(
-                    "CommandOptionText: {} - {} - {}",
-                    name, description, required
-                );
-            }
-            FlowNode::EntryEvent { event_type, next } => {
-                println!("EntryEvent: {}", event_type);
-                for node in next {
-                    node.borrow().walk();
-                }
-            }
-            FlowNode::EntryError {} => {
-                println!("EntryError");
-            }
-            FlowNode::ActionResponseText { text, next } => {
-                println!("ActionResponseText: {}", text);
-                for node in next {
-                    node.borrow().walk();
-                }
-            }
-            FlowNode::ActionLog {
-                log_level,
-                log_message,
-                next,
-            } => {
-                println!("ActionLog: {} - {}", log_level, log_message);
-                for node in next {
-                    node.borrow().walk();
-                }
-            }
+            *shared_node.borrow_mut() = FlowNode::ConditionCompare {
+                conditions,
+                otherwise: None, // TODO
+            };
+            shared_node
         }
     }
 }
-
-pub type SharedFlowNode = Rc<RefCell<FlowNode>>;

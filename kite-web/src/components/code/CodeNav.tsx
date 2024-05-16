@@ -28,7 +28,7 @@ export default function CodeNav({
     <div className={styles.root}>
       <button className={styles.item} onClick={onExit}>
         <ArrowLeftIcon className={styles.icon} />
-        <div>Back to Server</div>
+        <div>Back to App</div>
       </button>
       {isSaving ? (
         <div className={styles.item} onClick={onSave}>
@@ -49,12 +49,12 @@ export default function CodeNav({
       {isDeploying ? (
         <div className={styles.item} onClick={onSave}>
           <ArrowPathIcon className={clsx(styles.icon, styles.spin)} />
-          Deploying to Server
+          Deploying to App
         </div>
       ) : (
         <button className={styles.item} onClick={onDeploy}>
           <ArrowUpIcon className={styles.icon} />
-          Deploy to Server
+          Deploy to App
         </button>
       )}
     </div>

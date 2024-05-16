@@ -1,10 +1,17 @@
+use std::cell::RefCell;
 use std::io::{self, Read};
 
 use anyhow::Result;
-use engine::{FlowData, FlowTree};
+use data::FlowData;
+use kiters_sys::{EventData, ModuleError};
+use tree::{EventContext, FlowTree};
 
-mod engine;
-mod sys;
+mod data;
+mod tree;
+
+thread_local! {
+    pub static TREE: RefCell<FlowTree> = panic!("Flow tree not initialized");
+}
 
 fn main() -> Result<()> {
     let mut flow_data = String::new();
@@ -16,27 +23,31 @@ fn main() -> Result<()> {
 
     let tree = FlowTree::new(&flow.nodes, &flow.edges);
 
-    println!("Parsed: {}", tree.entries.len());
+    println!("Parsed entries: {}", tree.entries.len());
 
-    for entry in tree.entries {
-        entry.borrow().walk();
+    for event_type in tree.events() {
+        kiters_sys::add_event_handler(&event_type, handle_event);
     }
+
+    TREE.set(tree);
+
+    handle_event(&kiters_sys::Event {
+        app_id: "".to_string(),
+        guild_id: "".to_string(),
+        data: EventData::Initiate,
+    })
+    .expect("Failed to handle initiate event");
 
     Ok(())
 }
 
-#[export_name = "kite_describe"]
-pub extern "C" fn describe() {}
+pub fn handle_event(event: &kiters_sys::Event) -> Result<(), ModuleError> {
+    // kiters_sys::make_call(CallData::Sleep { duration: 100 }, None)?;
 
-#[export_name = "kite_handle"]
-pub extern "C" fn handle(length: u32) {}
+    TREE.with_borrow(|tree: &FlowTree| {
+        let mut ctx = EventContext::default();
 
-#[export_name = "kite_get_api_version"]
-pub extern "C" fn get_api_version() -> u32 {
-    return 0;
-}
-
-#[export_name = "kite_get_api_encoding"]
-pub extern "C" fn get_api_encoding() -> u32 {
-    return 0;
+        tree.handle_event(&mut ctx, event);
+        Ok(())
+    })
 }

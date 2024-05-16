@@ -5,19 +5,41 @@ interface Props {
   type: "source" | "target";
   position: Position;
   color?: string;
+  isConnectable?: boolean;
+  size?: "small" | "medium" | "large";
 }
 
-export default function FlowNodeHandle({ type, position, color }: Props) {
+export default function FlowNodeHandle({
+  type,
+  position,
+  color,
+  isConnectable,
+  size = "medium",
+}: Props) {
+  const sizeMap = {
+    small: "10px",
+    medium: "12px",
+    large: "14px",
+  };
+
   return (
     <Handle
       type={type}
       position={position}
+      isConnectable={isConnectable}
       className="rounded-full"
       style={{
         backgroundColor: color ?? primaryColor,
-        translate: position === Position.Top ? "0 -2px" : "0 2px",
-        height: "10px",
-        width: "10px",
+        translate:
+          position === Position.Top
+            ? "0 -4px"
+            : position === Position.Bottom
+            ? "0 4px"
+            : position === Position.Left
+            ? "-2px 0"
+            : "2px 0",
+        height: sizeMap[size],
+        width: sizeMap[size],
       }}
     />
   );

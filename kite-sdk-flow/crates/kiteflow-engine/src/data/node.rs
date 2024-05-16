@@ -1,14 +1,35 @@
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum Node {
-    EntryCommand { id: String, data: NodeDataEntryCommand },
-    EntryEvent { id: String, data: NodeDataEntryEvent },
-    EntryError { id: String, data: NodeDataEntryError },
-    OptionText { id: String, data: NodeDataOptionText },
-    ActionLog { id: String, data: NodeDataActionLog },
-    ActionResponseText { id: String, data: NodeDataActionResponseText },
+    EntryCommand {
+        id: String,
+        data: NodeDataEntryCommand,
+    },
+    EntryEvent {
+        id: String,
+        data: NodeDataEntryEvent,
+    },
+    EntryError {
+        id: String,
+        data: NodeDataEntryError,
+    },
+    OptionText {
+        id: String,
+        data: NodeDataOptionText,
+    },
+    ActionLog {
+        id: String,
+        data: NodeDataActionLog,
+    },
+    ActionResponseText {
+        id: String,
+        data: NodeDataActionResponseText,
+    },
+    ConditionCompare {
+        id: String,
+    },
 }
 
 impl Node {
@@ -20,11 +41,15 @@ impl Node {
             Node::OptionText { id, .. } => id,
             Node::ActionLog { id, .. } => id,
             Node::ActionResponseText { id, .. } => id,
+            Node::ConditionCompare { id, .. } => id,
         }
     }
 
     pub fn is_entry(&self) -> bool {
-        matches!(self, Node::EntryCommand { .. } | Node::EntryEvent { .. } | Node::EntryError { .. })
+        matches!(
+            self,
+            Node::EntryCommand { .. } | Node::EntryEvent { .. } | Node::EntryError { .. }
+        )
     }
 
     pub fn is_action(&self) -> bool {
@@ -43,12 +68,12 @@ impl Node {
 #[derive(Clone, Serialize, Deserialize)]
 pub struct NodeDataEntryCommand {
     pub name: String,
-    pub description: String
+    pub description: String,
 }
 
 #[derive(Clone, Serialize, Deserialize)]
 pub struct NodeDataEntryEvent {
-    pub event_type: String
+    pub event_type: String,
 }
 
 #[derive(Clone, Serialize, Deserialize)]
@@ -58,17 +83,16 @@ pub struct NodeDataEntryError {}
 pub struct NodeDataOptionText {
     pub name: String,
     pub description: String,
-    pub required: bool
+    pub required: bool,
 }
 
 #[derive(Clone, Serialize, Deserialize)]
 pub struct NodeDataActionLog {
     pub log_level: String,
-    pub log_message: String
+    pub log_message: String,
 }
-
 
 #[derive(Clone, Serialize, Deserialize)]
 pub struct NodeDataActionResponseText {
-    pub text: String
+    pub text: String,
 }

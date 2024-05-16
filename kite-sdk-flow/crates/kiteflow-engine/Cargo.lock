@@ -19,7 +19,16 @@ name = "kiteflow-engine"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "kiters-sys",
  "once_cell",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "kiters-sys"
+version = "0.1.0"
+dependencies = [
  "serde",
  "serde_json",
 ]

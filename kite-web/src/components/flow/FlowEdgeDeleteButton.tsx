@@ -7,7 +7,7 @@ import {
   useReactFlow,
 } from "reactflow";
 
-export default function FlowEdgeButton({
+export default function FlowEdgeDeleteButton({
   id,
   sourceX,
   sourceY,

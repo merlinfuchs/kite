@@ -10,6 +10,15 @@
       "positionAbsolute": { "x": 0, "y": 200 }
     },
     {
+      "width": 384,
+      "height": 80,
+      "id": "7",
+      "type": "entry_event",
+      "position": { "x": 0, "y": 200 },
+      "data": { "event_type": "INITIATE" },
+      "positionAbsolute": { "x": 0, "y": 200 }
+    },
+    {
       "width": 282,
       "height": 64,
       "id": "2",
@@ -57,6 +66,14 @@
     {
       "type": "buttonedge",
       "source": "2",
+      "sourceHandle": null,
+      "target": "1707510434931",
+      "targetHandle": null,
+      "id": "reactflow__edge-2-1707510434931"
+    },
+    {
+      "type": "buttonedge",
+      "source": "7",
       "sourceHandle": null,
       "target": "1707510434931",
       "targetHandle": null,

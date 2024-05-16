@@ -5,26 +5,28 @@ import ReactFlow, {
   Controls,
   Background,
   BackgroundVariant,
-  Node,
   useReactFlow,
-  getOutgoers,
-  Edge,
   useNodesState,
   useEdgesState,
   NodeChange,
   EdgeChange,
+  Edge,
+  Node,
 } from "reactflow";
-import FlowEdgeButton from "./FlowEdgeButton";
+import FlowEdgeDeleteButton from "./FlowEdgeDeleteButton";
+import FlowEdgeFixed from "./FlowEdgeFixed";
 import FlowNodeActionBase from "./FlowNodeActionBase";
-import FlowNodeConditionBase from "./FlowNodeConditionBase";
+import FlowNodeConditionChildCompare from "./FlowNodeConditionItemCompare";
+import FlowNodeConditionCompare from "./FlowNodeConditionCompare";
 import FlowNodeOptionBase from "./FlowNodeOptionBase";
 import FlowNodeEntryCommand from "./FlowNodeEntryCommand";
 import FlowNodeEntryEvent from "./FlowNodeEntryEvent";
 import FlowNodeEntryError from "./FlowNodeEntryError";
 
 import "reactflow/dist/base.css";
-import { FlowData, NodeData } from "../../lib/flow/data";
-import { getId } from "@/lib/flow/util";
+import { FlowData } from "../../lib/flow/data";
+import { createNode, getNodeValues } from "@/lib/flow/nodes";
+import FlowNodeConditionItemElse from "./FlowNodeConditionItemElse";
 
 const nodeTypes = {
   action_response_text: FlowNodeActionBase,
@@ -33,7 +35,9 @@ const nodeTypes = {
   entry_command: FlowNodeEntryCommand,
   entry_event: FlowNodeEntryEvent,
   entry_error: FlowNodeEntryError,
-  condition: FlowNodeConditionBase,
+  condition_compare: FlowNodeConditionCompare,
+  condition_item_compare: FlowNodeConditionChildCompare,
+  condition_item_else: FlowNodeConditionItemElse,
   option_text: FlowNodeOptionBase,
   option_number: FlowNodeOptionBase,
   option_user: FlowNodeOptionBase,
@@ -43,7 +47,8 @@ const nodeTypes = {
 };
 
 const edgeTypes = {
-  buttonedge: FlowEdgeButton,
+  delete_button: FlowEdgeDeleteButton,
+  fixed: FlowEdgeFixed,
 };
 
 interface Props {
@@ -65,15 +70,14 @@ export default function FlowEditor({ initialData, onChange }: Props) {
     [setEdges]
   );
 
-  const { getNodes, getEdges } = useReactFlow();
+  const { getNodes, getEdges, getEdge, getNode } = useReactFlow();
 
   const isValidConnection = useCallback(
     (con: Connection) => {
-      const nodes = getNodes();
-      const edges = getEdges();
+      if (!con.source || !con.target) return false;
 
-      const source = nodes.find((node) => node.id === con.source)!;
-      const target = nodes.find((node) => node.id === con.target)!;
+      const source = getNode(con.source)!;
+      const target = getNode(con.target)!;
 
       // TODO: This is a bit of a mess, but it works for now
       if (target.type === "entry_command" && !source.type?.startsWith("option"))
@@ -118,14 +122,10 @@ export default function FlowEditor({ initialData, onChange }: Props) {
         x: e.clientX,
         y: e.clientY,
       });
-      const newNode = {
-        id: getId(),
-        type,
-        position,
-        data: {},
-      };
+      const [newNodes, newEdges] = createNode(type, position);
 
-      setNodes((nds) => nds.concat(newNode));
+      setNodes((nds) => nds.concat(newNodes));
+      setEdges((eds) => eds.concat(newEdges));
     },
     [rfInstance]
   );
@@ -136,8 +136,37 @@ export default function FlowEditor({ initialData, onChange }: Props) {
   }
 
   function wrappedOnEdgesChange(changes: EdgeChange[]) {
-    onEdgesChange(changes);
-    onChange();
+    const filteredChanges = changes.filter((change) => {
+      if (change.type === "remove") {
+        const edge = getEdge(change.id);
+        return edge?.type !== "fixed";
+      }
+
+      return true;
+    });
+
+    if (filteredChanges.length > 0) {
+      onEdgesChange(filteredChanges);
+      onChange();
+    }
+  }
+
+  function onNodesDelete(deletedNodes: Node[]) {
+    for (const node of deletedNodes) {
+      const nodeValues = getNodeValues(node.type!);
+
+      // delete children if this node owns them
+      if (nodeValues.ownsChildren) {
+        const childIds = edges
+          .filter((edge) => edge.source === node.id)
+          .map((edge) => edge.target);
+
+        setEdges((edges) => edges.filter((edge) => edge.source !== node.id));
+        setNodes((nodes) =>
+          nodes.filter((n) => n.id !== node.id && !childIds.includes(n.id))
+        );
+      }
+    }
   }
 
   return (
@@ -146,6 +175,7 @@ export default function FlowEditor({ initialData, onChange }: Props) {
       edges={edges}
       onNodesChange={wrappedOnNodesChange}
       onEdgesChange={wrappedOnEdgesChange}
+      onNodesDelete={onNodesDelete}
       nodeTypes={nodeTypes}
       edgeTypes={edgeTypes}
       onConnect={onConnect}
@@ -153,7 +183,7 @@ export default function FlowEditor({ initialData, onChange }: Props) {
       onDragOver={onDragOver}
       fitView
       className="bg-dark-4"
-      defaultEdgeOptions={{ type: "buttonedge" }}
+      defaultEdgeOptions={{ type: "delete_button" }}
       isValidConnection={isValidConnection}
       multiSelectionKeyCode={null}
     >

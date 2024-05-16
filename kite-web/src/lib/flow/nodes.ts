@@ -16,14 +16,17 @@ import {
 } from "@heroicons/react/24/solid";
 import { ExoticComponent, useMemo } from "react";
 import {
+  NodeData,
   nodeActionDataSchema,
   nodeActionLogDataSchema,
   nodeCommandDataSchema,
   nodeOptionDataSchema,
 } from "./data";
 import { ZodSchema } from "zod";
+import { Edge, Node, XYPosition } from "reactflow";
+import { getId } from "./util";
 
-export const primaryColor = "#F97316";
+export const primaryColor = "#3B82F6";
 
 export const actionColor = "#3b82f6";
 export const entryColor = "#eab308";
@@ -38,6 +41,7 @@ export interface NodeValues {
   defaultDescription: string;
   dataSchema?: ZodSchema;
   dataFields: string[];
+  ownsChildren?: boolean;
 }
 
 export const nodeTypes: Record<string, NodeValues> = {
@@ -90,13 +94,28 @@ export const nodeTypes: Record<string, NodeValues> = {
     dataSchema: nodeActionLogDataSchema,
     dataFields: ["log_level", "log_message", "custom_label"],
   },
-  condition: {
+  condition_compare: {
     color: conditionColor,
     icon: ArrowsRightLeftIcon,
     defaultTitle: "Comparison Condition",
     defaultDescription:
       "Run actions based on the difference between two values.",
-    dataFields: ["custom_label"],
+    dataFields: ["custom_label", "condition_base_value", "condition_multiple"],
+    ownsChildren: true,
+  },
+  condition_item_compare: {
+    color: conditionColor,
+    icon: QuestionMarkCircleIcon,
+    defaultTitle: "Equal Condition",
+    defaultDescription: "Run actions if the two values are equal.",
+    dataFields: ["condition_item_mode", "condition_item_value"],
+  },
+  condition_item_else: {
+    color: errorColor,
+    icon: QuestionMarkCircleIcon,
+    defaultTitle: "Else",
+    defaultDescription: "Run actions if no other conditions are met.",
+    dataFields: [],
   },
   option_text: {
     color: optionColor,
@@ -156,12 +175,66 @@ const unknownNodeType: NodeValues = {
   dataFields: [],
 };
 
+export function getNodeValues(nodeType: string): NodeValues {
+  const values = nodeTypes[nodeType];
+  if (!values) {
+    return unknownNodeType;
+  }
+  return values;
+}
+
 export function useNodeValues(nodeType: string): NodeValues {
-  return useMemo(() => {
-    const values = nodeTypes[nodeType];
-    if (!values) {
-      return unknownNodeType;
-    }
-    return values;
-  }, [nodeType]);
+  return useMemo(() => getNodeValues(nodeType), [nodeType]);
+}
+
+export function createNode(
+  type: string,
+  position: XYPosition,
+  props?: Partial<Node<NodeData>>
+): [Node<NodeData>[], Edge[]] {
+  // TODO: some nodes may need some default children
+  const id = getId();
+
+  const nodes: Node<NodeData>[] = [
+    {
+      id,
+      type,
+      position,
+      data: {},
+      ...props,
+    },
+  ];
+  const edges: Edge[] = [];
+
+  if (type === "condition_compare") {
+    const [elseNodes, elseEdges] = createNode("condition_item_else", {
+      x: position.x + 200,
+      y: position.y + 200,
+    });
+
+    nodes.push(...elseNodes);
+    edges.push({
+      id: getId(),
+      source: id,
+      target: elseNodes[0].id,
+      type: "fixed",
+    });
+    edges.push(...elseEdges);
+
+    const [compareNodes, compareEdges] = createNode("condition_item_compare", {
+      x: position.x - 150,
+      y: position.y + 200,
+    });
+
+    nodes.push(...compareNodes);
+    edges.push({
+      id: getId(),
+      source: id,
+      target: compareNodes[0].id,
+      type: "fixed",
+    });
+    edges.push(...compareEdges);
+  }
+
+  return [nodes, edges];
 }
