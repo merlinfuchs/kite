@@ -9,18 +9,31 @@ import {
 } from "@heroicons/react/24/solid";
 import { useNodeValues } from "@/lib/flow/nodes";
 import { getId } from "@/lib/flow/util";
+import { CheckIcon } from "@heroicons/react/20/solid";
 
 interface Props {
   nodeId: string;
+}
+
+interface InputProps {
+  type: string;
+  data: NodeData;
+  updateData: (newData: Partial<NodeData>) => void;
+  errors: Record<string, string>;
 }
 
 const intputs: Record<string, any> = {
   custom_label: CustomLabelInput,
   name: NameInput,
   description: DescriptionInput,
+  event_type: EventTypeInput,
   text_response: TextResponseInput,
   log_level: LogLevelInput,
   log_message: LogMessageInput,
+  condition_base_value: ConditionBaseValueInput,
+  condition_allow_multiple: ConditionAllowMultipleInput,
+  condition_item_mode: ConditionItemModeInput,
+  condition_item_value: ConditionItemValueInput,
 };
 
 export default function FlowNodeEditor({ nodeId }: Props) {
@@ -115,6 +128,7 @@ export default function FlowNodeEditor({ nodeId }: Props) {
           return (
             <Input
               key={field}
+              type={node.type}
               data={data}
               updateData={updateData}
               errors={errors}
@@ -142,15 +156,7 @@ export default function FlowNodeEditor({ nodeId }: Props) {
   );
 }
 
-function CustomLabelInput({
-  data,
-  updateData,
-  errors,
-}: {
-  data: NodeData;
-  updateData: (newData: Partial<NodeData>) => void;
-  errors: Record<string, string>;
-}) {
+function CustomLabelInput({ data, updateData, errors }: InputProps) {
   return (
     <BaseInput
       field="custom_label"
@@ -163,15 +169,7 @@ function CustomLabelInput({
   );
 }
 
-function NameInput({
-  data,
-  updateData,
-  errors,
-}: {
-  data: NodeData;
-  updateData: (newData: Partial<NodeData>) => void;
-  errors: Record<string, string>;
-}) {
+function NameInput({ data, updateData, errors }: InputProps) {
   return (
     <BaseInput
       field="name"
@@ -183,15 +181,7 @@ function NameInput({
   );
 }
 
-function DescriptionInput({
-  data,
-  updateData,
-  errors,
-}: {
-  data: NodeData;
-  updateData: (newData: Partial<NodeData>) => void;
-  errors: Record<string, string>;
-}) {
+function DescriptionInput({ data, updateData, errors }: InputProps) {
   return (
     <BaseInput
       field="description"
@@ -203,15 +193,23 @@ function DescriptionInput({
   );
 }
 
-function LogLevelInput({
-  data,
-  updateData,
-  errors,
-}: {
-  data: NodeData;
-  updateData: (newData: Partial<NodeData>) => void;
-  errors: Record<string, string>;
-}) {
+function EventTypeInput({ data, updateData, errors }: InputProps) {
+  return (
+    <BaseInput
+      type="select"
+      field="event_type"
+      title="Event"
+      options={[
+        { value: "DISCORD_MESSAGE_CREATE", label: "Discord Message Create" },
+      ]}
+      value={data.event_type || ""}
+      updateValue={(v) => updateData({ event_type: v || undefined })}
+      errors={errors}
+    />
+  );
+}
+
+function LogLevelInput({ data, updateData, errors }: InputProps) {
   return (
     <BaseInput
       field="log_level"
@@ -230,15 +228,7 @@ function LogLevelInput({
   );
 }
 
-function LogMessageInput({
-  data,
-  updateData,
-  errors,
-}: {
-  data: NodeData;
-  updateData: (newData: Partial<NodeData>) => void;
-  errors: Record<string, string>;
-}) {
+function LogMessageInput({ data, updateData, errors }: InputProps) {
   return (
     <BaseInput
       type="textarea"
@@ -251,15 +241,7 @@ function LogMessageInput({
   );
 }
 
-function TextResponseInput({
-  data,
-  updateData,
-  errors,
-}: {
-  data: NodeData;
-  updateData: (newData: Partial<NodeData>) => void;
-  errors: Record<string, string>;
-}) {
+function TextResponseInput({ data, updateData, errors }: InputProps) {
   return (
     <BaseInput
       type="textarea"
@@ -267,6 +249,62 @@ function TextResponseInput({
       title="Text Response"
       value={data.text || ""}
       updateValue={(v) => updateData({ text: v || undefined })}
+      errors={errors}
+    />
+  );
+}
+
+function ConditionBaseValueInput({ data, updateData, errors }: InputProps) {
+  return (
+    <BaseInput
+      field="condition_base_value"
+      title="Base Value"
+      value={data.condition_base_value || ""}
+      updateValue={(v) => updateData({ condition_base_value: v || undefined })}
+      errors={errors}
+    />
+  );
+}
+
+function ConditionAllowMultipleInput({ data, updateData, errors }: InputProps) {
+  return (
+    <BaseCheckbox
+      field="condition_allow_multiple"
+      title="Allow Multiple"
+      description="Allow multiple conditions to be met. If disabled, only the first condition that is met will be executed."
+      value={data.condition_allow_multiple || false}
+      updateValue={(v) =>
+        updateData({ condition_allow_multiple: v || undefined })
+      }
+      errors={errors}
+    />
+  );
+}
+
+function ConditionItemModeInput({ data, updateData, errors }: InputProps) {
+  return (
+    <BaseInput
+      type="select"
+      field="condition_item_mode"
+      title="Comparison Mode"
+      options={[
+        { value: "equal", label: "Equal" },
+        { value: "not_equal", label: "Not Equal" },
+      ]}
+      value={data.condition_item_mode || ""}
+      updateValue={(v) => updateData({ condition_item_mode: v || undefined })}
+      errors={errors}
+    />
+  );
+}
+
+function ConditionItemValueInput({ data, updateData, errors }: InputProps) {
+  return (
+    <BaseInput
+      field="condition_item_value"
+      title="Comparison Value"
+      value={data.condition_item_value || ""}
+      updateValue={(v) => updateData({ condition_item_value: v || undefined })}
       errors={errors}
     />
   );
@@ -335,6 +373,41 @@ function BaseInput({
           onChange={(e) => updateValue(e.target.value)}
         />
       )}
+      {error && <div className="text-red-500 text-sm mt-1">{error}</div>}
+    </div>
+  );
+}
+
+function BaseCheckbox({
+  field,
+  title,
+  description,
+  errors,
+  value,
+  updateValue,
+}: {
+  field: string;
+  title: string;
+  description?: string;
+  errors: Record<string, string>;
+  value: boolean;
+  updateValue: (value: boolean) => void;
+}) {
+  const error = errors[field];
+
+  return (
+    <div>
+      <div className="font-medium text-gray-100 mb-2">{title}</div>
+      {description ? (
+        <div className="text-gray-300 text-sm mb-2">{description}</div>
+      ) : null}
+      <div
+        className="h-10 w-10 rounded b-dark-2 text-gray-300 bg-dark-2 flex items-center justify-center"
+        onClick={() => updateValue(!value)}
+        role="button"
+      >
+        {value && <CheckIcon className="h-8 w-8" />}
+      </div>
       {error && <div className="text-red-500 text-sm mt-1">{error}</div>}
     </div>
   );

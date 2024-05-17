@@ -3,8 +3,8 @@ use serde::{Deserialize, Serialize};
 mod edge;
 mod node;
 
-pub use edge::Edge;
-pub use node::Node;
+pub use edge::*;
+pub use node::*;
 
 #[derive(Clone, Serialize, Deserialize)]
 pub struct FlowData {

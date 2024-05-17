@@ -45,9 +45,9 @@ pub fn handle_event(event: &kiters_sys::Event) -> Result<(), ModuleError> {
     // kiters_sys::make_call(CallData::Sleep { duration: 100 }, None)?;
 
     TREE.with_borrow(|tree: &FlowTree| {
-        let mut ctx = EventContext::default();
+        let mut ctx = EventContext::new(event);
 
-        tree.handle_event(&mut ctx, event);
+        tree.handle_event(&mut ctx);
         Ok(())
     })
 }

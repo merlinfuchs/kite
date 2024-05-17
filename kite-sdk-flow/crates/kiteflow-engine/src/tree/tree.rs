@@ -1,6 +1,8 @@
 use std::cell::RefCell;
 use std::rc::Rc;
 
+use crate::data::ConditionItemCompareMode;
+
 #[derive(Clone)]
 pub struct FlowTree {
     pub entries: Vec<SharedFlowNode>,
@@ -35,9 +37,34 @@ pub enum FlowNode {
         next: Vec<SharedFlowNode>,
     },
     ConditionCompare {
-        conditions: Vec<SharedFlowNode>,
-        otherwise: Option<SharedFlowNode>,
+        items: Vec<SharedFlowNode>,
+        base_value: String,
+        allow_multiple: bool,
     },
+    ConditionItemCompare {
+        mode: ConditionItemCompareMode,
+        value: String,
+        next: Vec<SharedFlowNode>,
+    },
+    ConditionItemElse {
+        next: Vec<SharedFlowNode>,
+    },
+}
+
+impl FlowNode {
+    pub fn is_condition_item(&self) -> bool {
+        match self {
+            FlowNode::ConditionItemCompare { .. } => true,
+            _ => false,
+        }
+    }
+
+    pub fn is_condition_else(&self) -> bool {
+        match self {
+            FlowNode::ConditionItemElse { .. } => true,
+            _ => false,
+        }
+    }
 }
 
 impl Default for FlowNode {

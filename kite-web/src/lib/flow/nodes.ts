@@ -19,8 +19,11 @@ import {
   NodeData,
   nodeActionDataSchema,
   nodeActionLogDataSchema,
-  nodeCommandDataSchema,
+  nodeEntryCommandDataSchema,
+  nodeConditionCompareDataSchema,
+  nodeConditionItemCompareDataSchema,
   nodeOptionDataSchema,
+  nodeEntryEventDataSchema,
 } from "./data";
 import { ZodSchema } from "zod";
 import { Edge, Node, XYPosition } from "reactflow";
@@ -51,7 +54,7 @@ export const nodeTypes: Record<string, NodeValues> = {
     defaultTitle: "Command",
     defaultDescription:
       "Command entry. Drop different actions and options here!",
-    dataSchema: nodeCommandDataSchema,
+    dataSchema: nodeEntryCommandDataSchema,
     dataFields: ["name", "description"],
   },
   entry_event: {
@@ -60,7 +63,8 @@ export const nodeTypes: Record<string, NodeValues> = {
     defaultTitle: "Listen for Event",
     defaultDescription:
       "Listens for an event to trigger the flow. Drop different actions and options here!",
-    dataFields: [],
+    dataSchema: nodeEntryEventDataSchema,
+    dataFields: ["event_type"],
   },
   entry_error: {
     color: errorColor,
@@ -100,13 +104,19 @@ export const nodeTypes: Record<string, NodeValues> = {
     defaultTitle: "Comparison Condition",
     defaultDescription:
       "Run actions based on the difference between two values.",
-    dataFields: ["custom_label", "condition_base_value", "condition_multiple"],
+    dataSchema: nodeConditionCompareDataSchema,
+    dataFields: [
+      "condition_base_value",
+      "condition_allow_multiple",
+      "custom_label",
+    ],
     ownsChildren: true,
   },
   condition_item_compare: {
     color: conditionColor,
     icon: QuestionMarkCircleIcon,
     defaultTitle: "Equal Condition",
+    dataSchema: nodeConditionItemCompareDataSchema,
     defaultDescription: "Run actions if the two values are equal.",
     dataFields: ["condition_item_mode", "condition_item_value"],
   },

@@ -213,11 +213,11 @@ fn transform_node(
             shared_node
         }
         Node::EntryError { .. } => Rc::new(RefCell::new(FlowNode::EntryError {})),
-        Node::ConditionCompare { id } => {
+        Node::ConditionCompare { id, data } => {
             let shared_node = SharedFlowNode::default();
             entry_map.insert(node.id().to_string(), shared_node.clone());
 
-            let conditions: Vec<SharedFlowNode> = edge_target_map
+            let items: Vec<SharedFlowNode> = edge_target_map
                 .get(id.as_str())
                 .map(|targets| {
                     targets
@@ -238,9 +238,68 @@ fn transform_node(
                 .unwrap_or(vec![]);
 
             *shared_node.borrow_mut() = FlowNode::ConditionCompare {
-                conditions,
-                otherwise: None, // TODO
+                items,
+                base_value: data.condition_base_value.clone(),
+                allow_multiple: data.condition_allow_multiple,
             };
+            shared_node
+        }
+        Node::ConditionItemCompare { id, data } => {
+            let shared_node = SharedFlowNode::default();
+            entry_map.insert(node.id().to_string(), shared_node.clone());
+
+            let next: Vec<SharedFlowNode> = edge_source_map
+                .get(id.as_str())
+                .map(|targets| {
+                    targets
+                        .iter()
+                        .filter_map(|target| {
+                            node_map.get(target).map(|node| {
+                                transform_node(
+                                    node,
+                                    node_map,
+                                    edge_source_map,
+                                    edge_target_map,
+                                    entry_map,
+                                )
+                            })
+                        })
+                        .collect()
+                })
+                .unwrap_or(vec![]);
+
+            *shared_node.borrow_mut() = FlowNode::ConditionItemCompare {
+                mode: data.condition_item_mode.clone(),
+                value: data.condition_item_value.clone(),
+                next,
+            };
+            shared_node
+        }
+        Node::ConditionItemElse { id } => {
+            let shared_node = SharedFlowNode::default();
+            entry_map.insert(node.id().to_string(), shared_node.clone());
+
+            let next: Vec<SharedFlowNode> = edge_source_map
+                .get(id.as_str())
+                .map(|targets| {
+                    targets
+                        .iter()
+                        .filter_map(|target| {
+                            node_map.get(target).map(|node| {
+                                transform_node(
+                                    node,
+                                    node_map,
+                                    edge_source_map,
+                                    edge_target_map,
+                                    entry_map,
+                                )
+                            })
+                        })
+                        .collect()
+                })
+                .unwrap_or(vec![]);
+
+            *shared_node.borrow_mut() = FlowNode::ConditionItemElse { next };
             shared_node
         }
     }

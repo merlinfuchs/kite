@@ -29,6 +29,14 @@ pub enum Node {
     },
     ConditionCompare {
         id: String,
+        data: NodeDataConditionCompare,
+    },
+    ConditionItemCompare {
+        id: String,
+        data: NodeDataConditionItemCompare,
+    },
+    ConditionItemElse {
+        id: String,
     },
 }
 
@@ -42,6 +50,8 @@ impl Node {
             Node::ActionLog { id, .. } => id,
             Node::ActionResponseText { id, .. } => id,
             Node::ConditionCompare { id, .. } => id,
+            Node::ConditionItemCompare { id, .. } => id,
+            Node::ConditionItemElse { id } => id,
         }
     }
 
@@ -95,4 +105,28 @@ pub struct NodeDataActionLog {
 #[derive(Clone, Serialize, Deserialize)]
 pub struct NodeDataActionResponseText {
     pub text: String,
+}
+
+#[derive(Clone, Serialize, Deserialize)]
+pub struct NodeDataConditionCompare {
+    pub condition_base_value: String,
+    #[serde(default)]
+    pub condition_allow_multiple: bool,
+}
+
+#[derive(Clone, Serialize, Deserialize)]
+pub struct NodeDataConditionItemCompare {
+    pub condition_item_mode: ConditionItemCompareMode,
+    pub condition_item_value: String,
+}
+
+#[derive(Clone, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ConditionItemCompareMode {
+    Equal,
+    NotEqual,
+    GreaterThan,
+    GreaterThanOrEqual,
+    LessThan,
+    LessThanOrEqual,
 }
