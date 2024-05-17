@@ -23,7 +23,7 @@ fn main() -> Result<()> {
 
     let tree = FlowTree::new(&flow.nodes, &flow.edges);
 
-    println!("Parsed entries: {}", tree.entries.len());
+    // println!("Parsed entries: {}", tree.entries.len());
 
     for event_type in tree.events() {
         kiters_sys::add_event_handler(&event_type, handle_event);
