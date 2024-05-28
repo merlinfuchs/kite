@@ -151,26 +151,19 @@ type = 'js'
 
 #### 3. Write some code
 
-There is no high level SDK or typings for JavaScript yet, you therefore have to write raw Kite host calls.
+The JavaScript SDK is pretty bare-bones right now, you therefore have to write raw Kite host calls.
 
 ```js
-Kite.handle = function (event) {
-  if (event.type != "DISCORD_MESSAGE_CREATE") return { success: true };
+import { call, event } from "@merlingg/kite-sdk";
 
-  const data = event.data;
-
-  if (data.content == "!ping") {
-    Kite.call({
-      type: "DISCORD_MESSAGE_CREATE",
-      data: {
-        channel_id: data.channel_id,
-        content: "Pong!",
-      },
+event.on("DISCORD_MESSAGE_CREATE", (msg) => {
+  if (msg.content === "!ping") {
+    call.run("DISCORD_MESSAGE_CREATE", {
+      channel_id: msg.channel_id,
+      content: "Pong!",
     });
   }
-
-  return { success: true };
-};
+});
 ```
 
 ## Deploying a Plugin

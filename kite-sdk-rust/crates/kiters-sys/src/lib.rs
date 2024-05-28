@@ -24,6 +24,10 @@ pub fn add_event_handler(
             event_handlers.insert(kind.to_string(), handlers);
         }
     });
+
+    sys::MANIFEST.with_borrow_mut(|manifest| {
+        manifest.events.push(kind.to_string());
+    });
 }
 
 pub fn make_call(data: CallData, config: Option<CallConfig>) -> Result<CallResponse, HostError> {
