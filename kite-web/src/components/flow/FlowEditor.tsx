@@ -67,7 +67,7 @@ export default function FlowEditor({
         onChange();
       }
     },
-    [onNodesChange, onChange]
+    [onNodesChange, onChange, getNode]
   );
 
   const wrappedOnEdgesChange = useCallback(
@@ -89,23 +89,26 @@ export default function FlowEditor({
     [getEdge, onEdgesChange, onChange]
   );
 
-  function onNodesDelete(deletedNodes: Node[]) {
-    for (const node of deletedNodes) {
-      const nodeValues = getNodeValues(node.type!);
+  const onNodesDelete = useCallback(
+    (deletedNodes: Node[]) => {
+      for (const node of deletedNodes) {
+        const nodeValues = getNodeValues(node.type!);
 
-      // delete children if this node owns them
-      if (nodeValues.ownsChildren) {
-        const childIds = edges
-          .filter((edge) => edge.source === node.id)
-          .map((edge) => edge.target);
+        // delete children if this node owns them
+        if (nodeValues.ownsChildren) {
+          const childIds = edges
+            .filter((edge) => edge.source === node.id)
+            .map((edge) => edge.target);
 
-        setEdges((edges) => edges.filter((edge) => edge.source !== node.id));
-        setNodes((nodes) =>
-          nodes.filter((n) => n.id !== node.id && !childIds.includes(n.id))
-        );
+          setEdges((edges) => edges.filter((edge) => edge.source !== node.id));
+          setNodes((nodes) =>
+            nodes.filter((n) => n.id !== node.id && !childIds.includes(n.id))
+          );
+        }
       }
-    }
-  }
+    },
+    [edges, setEdges, setNodes]
+  );
 
   const onDragOver = useCallback((e: DragEvent) => {
     e.preventDefault();
@@ -162,7 +165,7 @@ export default function FlowEditor({
       return !hasCycle(target);*/
       return true;
     },
-    [getNodes, getEdges]
+    [getNode]
   );
 
   return (

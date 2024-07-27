@@ -1,5 +1,5 @@
 import { FlowData, NodeData, NodeProps } from "@/lib/flow/data";
-import { useEffect } from "react";
+import { useCallback, useEffect } from "react";
 import { Node, useReactFlow } from "@xyflow/react";
 import { ArrowLeftIcon, CheckIcon, RefreshCwIcon } from "lucide-react";
 
@@ -18,12 +18,12 @@ export default function FlowNav({
 }: Props) {
   const { getEdges, getNodes } = useReactFlow<Node<NodeProps>>();
 
-  function save() {
+  const save = useCallback(() => {
     onSave({
       nodes: getNodes(),
       edges: getEdges(),
     });
-  }
+  }, [onSave, getNodes, getEdges]);
 
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
@@ -35,7 +35,7 @@ export default function FlowNav({
 
     document.addEventListener("keydown", onKeyDown);
     return () => document.removeEventListener("keydown", onKeyDown);
-  }, [onSave]);
+  }, [onSave, save]);
 
   return (
     <div className="h-12 flex items-center space-x-8 px-4 select-none bg-muted/70">

@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
+import env from "@/lib/env/client";
 
 export default function HomeCTASection() {
   return (
@@ -25,7 +26,7 @@ export default function HomeCTASection() {
             <Link href="/apps">Get started</Link>
           </Button>
           <Button variant="outline" className="w-full md:w-auto" asChild>
-            <a href="https://docs.kite.onl" target="_blank">
+            <a href={env.NEXT_PUBLIC_DOCS_LINK} target="_blank">
               Documentation
             </a>
           </Button>

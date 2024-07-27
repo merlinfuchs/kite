@@ -1,6 +1,7 @@
 import * as React from "react";
 import Link from "next/link";
 import logo from "@/assets/logo/orange@1024.png";
+import env from "@/lib/env/client";
 
 import { cn } from "@/lib/utils";
 import {
@@ -121,7 +122,8 @@ export default function HomeNavbarMenu() {
         </NavigationMenuItem>*/}
         <NavigationMenuItem className="hidden sm:block">
           <NavigationMenuLink
-            href="/docs"
+            href={env.NEXT_PUBLIC_DOCS_LINK}
+            target="_blank"
             className={navigationMenuTriggerStyle()}
           >
             Documentation

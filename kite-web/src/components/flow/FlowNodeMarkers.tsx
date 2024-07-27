@@ -22,7 +22,7 @@ export default function FlowNodeMarkers({
   const isConnected = useMemo(() => {
     if (!showConnectedMarker) return true;
     return edges.some((edge) => edge.target === id);
-  }, [edges]);
+  }, [edges, id, showConnectedMarker]);
 
   const { dataSchema } = useNodeValues(type);
 

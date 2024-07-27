@@ -28,7 +28,7 @@ export function useResponseData<T>(
     if (data !== undefined && callback) {
       callback(data);
     }
-  }, [data]);
+  }, [data, callback]);
 
   return data?.success ? data.data : undefined;
 }

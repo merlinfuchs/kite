@@ -14,7 +14,7 @@ export default function HomeFooter() {
             href="/"
             className="font-bold text-xl flex items-center"
           >
-            <img src={logo.src} className="h-10 w-10 mr-3" />
+            <img src={logo.src} alt="Kite Logo" className="h-10 w-10 mr-3" />
             <div>Kite</div>
           </Link>
         </div>
@@ -59,7 +59,7 @@ export default function HomeFooter() {
           <h3 className="font-bold text-lg">Resources</h3>
           <div>
             <a
-              href="https://docs.kite.onl"
+              href={env.NEXT_PUBLIC_DOCS_LINK}
               className="opacity-60 hover:opacity-100"
               target="_blank"
             >

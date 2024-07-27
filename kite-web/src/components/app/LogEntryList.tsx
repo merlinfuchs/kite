@@ -40,8 +40,6 @@ import { useMemo, useState } from "react";
 
 const logLevels = ["debug", "info", "warn", "error"] as const;
 
-type LogLevel = (typeof logLevels)[number];
-
 export const columns: ColumnDef<LogEntry>[] = [
   {
     accessorKey: "level",
@@ -109,7 +107,7 @@ export default function LogEntryList() {
     const entries = (data ?? []) as LogEntry[];
 
     return entries.filter((entry) => enabledLevels.includes(entry!.level));
-  }, [data?.length, enabledLevels]);
+  }, [data, enabledLevels]);
 
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
