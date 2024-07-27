@@ -19,7 +19,7 @@ interface Props {
   onExit: () => void;
 }
 
-function Flow({
+function InnerFlow({
   flowData,
   hasUnsavedChanges,
   onChange,
@@ -76,8 +76,10 @@ function Flow({
   );
 }
 
-export default (props: Props) => (
-  <ReactFlowProvider>
-    <Flow {...props} />
-  </ReactFlowProvider>
-);
+export default function Flow(props: Props) {
+  return (
+    <ReactFlowProvider>
+      <InnerFlow {...props} />
+    </ReactFlowProvider>
+  );
+}

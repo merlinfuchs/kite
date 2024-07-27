@@ -34,7 +34,7 @@ export default function AppCommandPage() {
 
     updateMutation.mutate(
       {
-        flow_source: data,
+        flow_source: data as any, // TODO
         enabled: true,
       },
       {
@@ -64,7 +64,7 @@ export default function AppCommandPage() {
       </Head>
       {cmd && (
         <Flow
-          flowData={cmd.flow_source}
+          flowData={cmd.flow_source as any} // TODO
           hasUnsavedChanges={hasUnsavedChanges}
           onChange={() => setHasUnsavedChanges(true)}
           isSaving={isSaving}
