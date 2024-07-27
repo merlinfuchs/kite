@@ -22,6 +22,8 @@ export default function HomeLayout({
             "Kite - Create Discord Bots for free with no coding required."
           }
         />
+        <meta property="og:site_name" content="kite.onl" />
+        <meta property="og:image" content="/logo.png" />
       </Head>
       <div className="flex-none">
         <HomeNavbar />
