@@ -17,7 +17,7 @@ export default function AppCommandsPage() {
           Create custom commands for your app to let users interact with it.
         </p>
       </div>
-      <Separator className="my-4" />
+      <Separator className="my-8" />
       <CommandList />
     </AppLayout>
   );

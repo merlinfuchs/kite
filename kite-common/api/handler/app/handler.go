@@ -9,6 +9,7 @@ import (
 	"github.com/kitecloud/kite/kite-common/model"
 	"github.com/kitecloud/kite/kite-common/store"
 	"github.com/kitecloud/kite/kite-common/util"
+	"gopkg.in/guregu/null.v4"
 )
 
 type AppHandler struct {
@@ -64,18 +65,42 @@ func (h *AppHandler) HandleAppCreate(c *handler.Context, req wire.AppCreateReque
 }
 
 func (h *AppHandler) HandleAppUpdate(c *handler.Context, req wire.AppUpdateRequest) (*wire.AppUpdateResponse, error) {
-	appInfo, err := h.getDiscordAppInfo(c.Context(), req.DiscordToken)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get discord app info: %w", err)
+	name := c.App.Name
+	if req.Name.Valid {
+		name = req.Name.String
 	}
 
-	// TODO: check if app id matches
+	description := c.App.Description
+	if req.Description.Valid {
+		description = null.NewString(req.Description.String, req.Description.String != "")
+	}
+
+	discordToken := c.App.DiscordToken
+
+	if req.DiscordToken.Valid {
+		discordToken = req.DiscordToken.String
+
+		appInfo, err := h.getDiscordAppInfo(c.Context(), req.DiscordToken.String)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get discord app info: %w", err)
+		}
+
+		if appInfo.ID != c.App.DiscordID {
+			return nil, fmt.Errorf("discord token belongs to a different app")
+		}
+	}
+
+	if name != c.App.Name {
+		if err := h.updateDiscordAppName(c.Context(), discordToken, name); err != nil {
+			return nil, fmt.Errorf("failed to update discord app name: %w", err)
+		}
+	}
 
 	app, err := h.appStore.UpdateApp(c.Context(), store.AppUpdateOpts{
 		ID:           c.App.ID,
-		Name:         appInfo.Name,
-		Description:  appInfo.Description,
-		DiscordToken: req.DiscordToken,
+		Name:         name,
+		Description:  description,
+		DiscordToken: discordToken,
 		UpdatedAt:    time.Now().UTC(),
 	})
 	if err != nil {

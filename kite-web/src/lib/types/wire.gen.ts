@@ -21,7 +21,9 @@ export interface AppCreateRequest {
 }
 export type AppCreateResponse = App;
 export interface AppUpdateRequest {
-  discord_token: string;
+  name: null | string;
+  description: null | string;
+  discord_token: null | string;
 }
 export type AppUpdateResponse = App;
 export type AppDeleteResponse = Empty;

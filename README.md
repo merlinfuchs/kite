@@ -5,7 +5,7 @@ Make your own Discord Bot with Kite for free without a single line of code. With
 ## TODO
 
 - [x] App home page
-- [ ] App settings page
+- [x] App settings page
 - [ ] Enforce limits (e.g. max number of apps)
 - [x] Implement validation on flow data
 - [ ] Implement command registration with all supported options

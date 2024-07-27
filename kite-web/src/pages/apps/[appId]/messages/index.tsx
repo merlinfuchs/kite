@@ -20,7 +20,7 @@ export default function AppCommandsPage() {
           events in your app.
         </p>
       </div>
-      <Separator className="my-4" />
+      <Separator className="my-8" />
       <AppEmptyPlaceholder
         title="Under construction"
         description="This feature is not yet available. Please check back later."

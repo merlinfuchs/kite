@@ -117,6 +117,7 @@ func (g *Gateway) Close(ctx context.Context) error {
 
 func (g *Gateway) Update(ctx context.Context, app *model.App) {
 	if app.DiscordToken != g.app.DiscordToken {
+		slog.With("app_id", app.ID).Info("Discord token changed, closing gateway")
 		if err := g.Close(ctx); err != nil {
 			slog.With("error", err).Error("failed to close gateway")
 		}

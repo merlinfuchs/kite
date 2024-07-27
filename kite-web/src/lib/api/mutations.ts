@@ -56,7 +56,7 @@ export function useAppUpdateMutation(appId: string) {
   return useMutation({
     mutationFn: (req: AppUpdateRequest) =>
       apiRequest<AppUpdateResponse>(`/v1/apps/${appId}`, {
-        method: "POST",
+        method: "PATCH",
         body: JSON.stringify(req),
         headers: {
           "Content-Type": "application/json",
@@ -64,7 +64,7 @@ export function useAppUpdateMutation(appId: string) {
       }),
     onSuccess: () => {
       client.invalidateQueries({
-        queryKey: ["apps", appId],
+        queryKey: ["apps"],
       });
     },
   });
