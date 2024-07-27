@@ -2,26 +2,32 @@ package gateway
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 	"sync"
+	"time"
 
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/gateway"
 	"github.com/diamondburned/arikawa/v3/session/shard"
 	"github.com/diamondburned/arikawa/v3/state"
 	"github.com/kitecloud/kite/kite-common/model"
+	"github.com/kitecloud/kite/kite-common/store"
 )
 
 type Gateway struct {
 	sync.Mutex
 
+	logStore     store.LogStore
 	eventHandler EventHandler
-	app          *model.App
-	shards       *shard.Manager
+
+	app    *model.App
+	shards *shard.Manager
 }
 
-func NewGateway(app *model.App, eventHandler EventHandler) *Gateway {
+func NewGateway(app *model.App, logStore store.LogStore, eventHandler EventHandler) *Gateway {
 	g := &Gateway{
+		logStore:     logStore,
 		eventHandler: eventHandler,
 		app:          app,
 	}
@@ -40,6 +46,26 @@ func (g *Gateway) startGateway() {
 		s.AddHandler(func(e gateway.Event) {
 			g.eventHandler.HandleEvent(g.app.ID, e)
 		})
+
+		s.AddHandler(func(e *gateway.ReadyEvent) {
+			g.createLogEntry(model.LogLevelInfo, fmt.Sprintf(
+				"Connected to Discord as %s#%s (%s)",
+				e.User.Username, e.User.Discriminator, e.User.ID,
+			))
+
+			if len(e.Guilds) > 100 {
+				g.createLogEntry(model.LogLevelError, "Bots that are in more than 100 servers are currently not supported.")
+
+				ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+				defer cancel()
+
+				if err := g.Close(ctx); err != nil {
+					slog.With("error", err).Error("failed to close gateway")
+				}
+
+				return
+			}
+		})
 	})
 
 	shards, err := shard.NewIdentifiedManager(gateway.IdentifyCommand{
@@ -50,19 +76,25 @@ func (g *Gateway) startGateway() {
 				{
 					Type:  discord.CustomActivity,
 					Name:  "kite.onl",
-					State: "🪁 kite.onl",
+					State: "🪁 Powered by Kite.onl",
 				},
 			},
 		},
 	}, newShard)
 	if err != nil {
-		// TODO: create log entry
+		go g.createLogEntry(model.LogLevelError, fmt.Sprintf("Failed to create shard manager, make sure the token is correct: %v", err))
 		slog.With("error", err).Error("failed to create shard manager")
 		return
 	}
 
+	if shards.NumShards() > 1 {
+		go g.createLogEntry(model.LogLevelError, "Sharding is not supported, your bot is in more than 1000 servers.")
+		slog.With("error", err).Error("sharding is not supported")
+		return
+	}
+
 	if err := shards.Open(context.TODO()); err != nil {
-		// TODO: create log entry
+		go g.createLogEntry(model.LogLevelError, fmt.Sprintf("Failed to open shard manager: %v", err))
 		slog.With("error", err).Error("failed to open shard manager")
 		return
 	}
@@ -93,4 +125,20 @@ func (g *Gateway) Update(ctx context.Context, app *model.App) {
 	}
 
 	g.app = app
+}
+
+func (g *Gateway) createLogEntry(level model.LogLevel, message string) {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+
+	// Create log entry which will be displayed in the dashboard
+	err := g.logStore.CreateLogEntry(ctx, model.LogEntry{
+		AppID:     g.app.ID,
+		Level:     level,
+		Message:   message,
+		CreatedAt: time.Now().UTC(),
+	})
+	if err != nil {
+		slog.With("error", err).With("app_id", g.app.ID).Error("Failed to create log entry from gateway")
+	}
 }

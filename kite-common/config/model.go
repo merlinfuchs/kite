@@ -8,6 +8,7 @@ type Config struct {
 	API      APIConfig      `toml:"api"`
 	App      AppConfig      `toml:"app"`
 	Discord  DiscordConfig  `toml:"discord"`
+	Engine   EngineConfig   `toml:"engine"`
 }
 
 func (cfg *Config) Validate() error {
@@ -52,4 +53,10 @@ type AppConfig struct {
 type DiscordConfig struct {
 	ClientID     string `toml:"client_id" validate:"required"`
 	ClientSecret string `toml:"client_secret" validate:"required"`
+}
+
+type EngineConfig struct {
+	MaxStackDepth int `toml:"max_stack_depth"`
+	MaxOperations int `toml:"max_operations"`
+	MaxActions    int `toml:"max_actions"`
 }

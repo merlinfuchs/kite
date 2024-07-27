@@ -7,6 +7,11 @@ public_base_url = "http://localhost:8080"
 [app]
 public_base_url = "http://localhost:3000"
 
+[engine]
+max_stack_depth = 25
+max_operations = 100
+max_actions = 25
+
 [database.postgres]
 host = "127.0.0.1"
 port = 5432

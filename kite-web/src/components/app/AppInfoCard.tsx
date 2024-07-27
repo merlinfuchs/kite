@@ -1,0 +1,87 @@
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "../ui/button";
+import { CopyIcon, SettingsIcon } from "lucide-react";
+import Link from "next/link";
+import { formatDate } from "@/lib/utils";
+import { useApp } from "@/lib/hooks/api";
+import { Separator } from "../ui/separator";
+import { Badge } from "../ui/badge";
+
+export default function AppInfoCard() {
+  const app = useApp();
+
+  return (
+    <Card className="overflow-hidden">
+      <CardHeader className="flex flex-row items-start bg-muted/50">
+        <div className="grid gap-0.5">
+          <CardTitle className="text-lg">
+            {app?.name || "Unknown App"}
+          </CardTitle>
+          <CardDescription className="group flex items-center gap-2">
+            {app?.id}
+
+            <Button
+              size="icon"
+              variant="outline"
+              className="h-6 w-6 opacity-0 transition-opacity group-hover:opacity-100"
+            >
+              <CopyIcon className="h-3 w-3" />
+              <span className="sr-only">Copy App ID</span>
+            </Button>
+          </CardDescription>
+        </div>
+        <div className="ml-auto flex items-center gap-1">
+          <Button size="sm" variant="default" asChild className="h-8 gap-2">
+            <Link
+              href={{
+                pathname: "/apps/[appId]/settings",
+                query: { appId: app?.id },
+              }}
+            >
+              <SettingsIcon className="h-3.5 w-3.5" />
+              <span className="lg:sr-only xl:not-sr-only xl:whitespace-nowrap">
+                Manage App
+              </span>
+            </Link>
+          </Button>
+        </div>
+      </CardHeader>
+      <CardContent className="p-6 text-sm">
+        <div className="grid gap-3">
+          <div className="font-semibold">App Details</div>
+          <ul className="grid gap-3">
+            <li className="flex items-center justify-between">
+              <span className="text-muted-foreground">Created At</span>
+              <span>{app ? formatDate(new Date(app.created_at)) : null}</span>
+            </li>
+            <li className="flex items-center justify-between">
+              <span className="text-muted-foreground">Last Updated At</span>
+              <span>{app ? formatDate(new Date(app.updated_at)) : null}</span>
+            </li>
+            <li className="flex items-center justify-between">
+              <span className="text-muted-foreground">Discord App ID</span>
+              <span>{app?.discord_id}</span>
+            </li>
+            <li className="flex items-center justify-between">
+              <span className="text-muted-foreground">Owner User ID</span>
+              <span>{app?.owner_user_id}</span>
+            </li>
+          </ul>
+        </div>
+        <Separator className="my-4" />
+        <div className="grid gap-3">
+          <div className="font-semibold">Subscription Plan</div>
+          <div>
+            <Badge className="px-3 py-1">Open Beta</Badge>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}

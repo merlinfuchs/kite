@@ -20,15 +20,17 @@ type GatewayManager struct {
 	sync.Mutex
 
 	appStore     store.AppStore
+	logStore     store.LogStore
 	eventHandler EventHandler
 
 	lastUpdate time.Time
 	gateways   map[string]*Gateway
 }
 
-func NewGatewayManager(appStore store.AppStore, eventHandler EventHandler) *GatewayManager {
+func NewGatewayManager(appStore store.AppStore, logStore store.LogStore, eventHandler EventHandler) *GatewayManager {
 	return &GatewayManager{
 		appStore:     appStore,
+		logStore:     logStore,
 		eventHandler: eventHandler,
 		gateways:     make(map[string]*Gateway),
 	}
@@ -108,7 +110,7 @@ func (m *GatewayManager) addGateway(ctx context.Context, app *model.App) error {
 	if g, ok := m.gateways[app.ID]; ok {
 		g.Update(ctx, app)
 	} else {
-		g := NewGateway(app, m.eventHandler)
+		g := NewGateway(app, m.logStore, m.eventHandler)
 		m.gateways[app.ID] = g
 	}
 

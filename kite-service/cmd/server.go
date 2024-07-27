@@ -49,10 +49,14 @@ func serverStartCMD(c *cli.Context) error {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	engine := engine.NewEngine(pg, pg, pg)
+	engine := engine.NewEngine(engine.EngineConfig{
+		MaxStackDepth: cfg.Engine.MaxStackDepth,
+		MaxOperations: cfg.Engine.MaxOperations,
+		MaxActions:    cfg.Engine.MaxActions,
+	}, pg, pg, pg)
 	engine.Run(ctx)
 
-	gateway := gateway.NewGatewayManager(pg, engine)
+	gateway := gateway.NewGatewayManager(pg, pg, engine)
 	gateway.Run(ctx)
 
 	apiServer := api.NewAPIServer(api.APIServerConfig{

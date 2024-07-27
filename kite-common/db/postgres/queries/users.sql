@@ -7,7 +7,7 @@ SELECT * FROM users WHERE email = $1;
 -- name: GetUserByDiscordID :one
 SELECT * FROM users WHERE discord_id = $1;
 
--- name: UpserUser :one
+-- name: UpsertUser :one
 INSERT INTO users (
     id,
     email,

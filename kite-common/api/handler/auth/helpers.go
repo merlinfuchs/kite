@@ -11,6 +11,7 @@ import (
 
 	"github.com/kitecloud/kite/kite-common/api/handler"
 	"github.com/kitecloud/kite/kite-common/model"
+	"github.com/kitecloud/kite/kite-common/util"
 	"gopkg.in/guregu/null.v4"
 )
 
@@ -55,7 +56,7 @@ func (h *AuthHandler) authenticateWithCode(c *handler.Context, code string) (str
 	}
 
 	_, err = h.userStore.UpsertUser(c.Context(), &model.User{
-		ID:              user.ID,
+		ID:              util.UniqueID(),
 		Email:           user.Email,
 		DisplayName:     displayName,
 		DiscordID:       user.ID,

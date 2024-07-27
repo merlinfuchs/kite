@@ -21,6 +21,7 @@ type App struct {
 
 	id string
 
+	config               EngineConfig
 	appStore             store.AppStore
 	logStore             store.LogStore
 	commandStore         store.CommandStore
@@ -32,7 +33,7 @@ type App struct {
 	providers flow.FlowProviders
 }
 
-func NewApp(id string, appStore store.AppStore, logStore store.LogStore, commandStore store.CommandStore) *App {
+func NewApp(config EngineConfig, id string, appStore store.AppStore, logStore store.LogStore, commandStore store.CommandStore) *App {
 	providers := flow.FlowProviders{
 		Discord: NewDiscordProvider(id, appStore),
 		Log:     NewLogProvider(id, logStore),
@@ -40,6 +41,7 @@ func NewApp(id string, appStore store.AppStore, logStore store.LogStore, command
 
 	return &App{
 		id:           id,
+		config:       config,
 		appStore:     appStore,
 		logStore:     logStore,
 		commandStore: commandStore,
@@ -53,7 +55,7 @@ func (a *App) AddCommand(cmd *model.Command) {
 	a.Lock()
 	defer a.Unlock()
 
-	command, err := NewCommand(cmd, a.providers)
+	command, err := NewCommand(a.config, cmd, a.logStore, a.providers)
 	if err != nil {
 		slog.With("error", err).Error("failed to create command")
 		return
@@ -143,7 +145,7 @@ func (a *App) createLogEntry(level model.LogLevel, message string) {
 		CreatedAt: time.Now().UTC(),
 	})
 	if err != nil {
-		slog.With("error", err).With("app_id", a.id).Error("Failed to create log entry")
+		slog.With("error", err).With("app_id", a.id).Error("Failed to create log entry from engine app")
 	}
 }
 

@@ -54,11 +54,11 @@ export const columns: ColumnDef<LogEntry>[] = [
           className={cn(
             "uppercase text-xs select-none",
             level === "info"
-              ? "bg-blue-500 hover:bg-blue-500/80"
+              ? "bg-blue-500 hover:bg-blue-500/80 text-white"
               : level === "warn"
-              ? "bg-orange-500 hover:bg-orange-500/80"
+              ? "bg-orange-500 hover:bg-orange-500/80 text-white"
               : level === "error"
-              ? "bg-red-500 hover:bg-red-500/80"
+              ? "bg-red-500 hover:bg-red-500/80 text-white"
               : ""
           )}
         >
@@ -134,7 +134,7 @@ export default function LogEntryList() {
   });
 
   return (
-    <div className="w-full">
+    <div className="w-full overflow-x-auto lg:overflow-visible">
       <div className="flex items-center py-4">
         <Input
           placeholder="Filter logs..."
@@ -147,7 +147,7 @@ export default function LogEntryList() {
         <Button
           variant="outline"
           size="icon"
-          className="ml-auto mr-2"
+          className="ml-auto mr-2 flex-none"
           onClick={() => query.refetch()}
         >
           <RefreshCwIcon className="h-4 w-4" />

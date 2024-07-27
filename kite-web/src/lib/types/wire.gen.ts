@@ -9,6 +9,7 @@ export interface App {
   id: string;
   name: string;
   description: null | string;
+  discord_id: string;
   owner_user_id: string;
   creator_user_id: string;
   created_at: string /* RFC3339 */;

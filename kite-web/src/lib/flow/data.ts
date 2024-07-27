@@ -38,8 +38,15 @@ export const nodeOptionDataSchema = nodeBaseDataSchema.extend({
 });
 
 export const nodeEntryCommandDataSchema = nodeBaseDataSchema.extend({
-  name: z.string().max(100).min(3),
-  description: z.string().max(100).min(3),
+  name: z
+    .string()
+    .max(32)
+    .min(1)
+    .regex(
+      /^[a-zA-Z0-9_]+$/,
+      "Must be only alphanumeric characters and underscores"
+    ),
+  description: z.string().max(100).min(1),
 });
 
 export const nodeEntryEventDataSchema = nodeBaseDataSchema.extend({

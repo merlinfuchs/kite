@@ -14,6 +14,7 @@ import (
 type Engine struct {
 	sync.RWMutex
 
+	config       EngineConfig
 	appStore     store.AppStore
 	logStore     store.LogStore
 	commandStore store.CommandStore
@@ -22,8 +23,14 @@ type Engine struct {
 	apps       map[string]*App
 }
 
-func NewEngine(appStore store.AppStore, logStore store.LogStore, commandStore store.CommandStore) *Engine {
+func NewEngine(
+	config EngineConfig,
+	appStore store.AppStore,
+	logStore store.LogStore,
+	commandStore store.CommandStore,
+) *Engine {
 	return &Engine{
+		config:       config,
 		appStore:     appStore,
 		logStore:     logStore,
 		commandStore: commandStore,
@@ -75,7 +82,7 @@ func (m *Engine) populateCommands(ctx context.Context) error {
 	for _, command := range commands {
 		app, ok := m.apps[command.AppID]
 		if !ok {
-			app = NewApp(command.AppID, m.appStore, m.logStore, m.commandStore)
+			app = NewApp(m.config, command.AppID, m.appStore, m.logStore, m.commandStore)
 			m.apps[command.AppID] = app
 		}
 
@@ -120,4 +127,10 @@ func (e *Engine) HandleEvent(appID string, event gateway.Event) {
 	if app != nil {
 		app.HandleEvent(appID, event)
 	}
+}
+
+type EngineConfig struct {
+	MaxStackDepth int
+	MaxOperations int
+	MaxActions    int
 }

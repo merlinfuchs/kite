@@ -31,3 +31,15 @@ export function readFileAsBase64(file: File): Promise<string> {
 export function getUniqueId(): number {
   return Math.floor(Math.random() * 1000000000);
 }
+
+export function formatTime(date: Date): string {
+  return date.toLocaleTimeString("en-US");
+}
+
+export function formatDate(date: Date): string {
+  return date.toLocaleDateString("en-US");
+}
+
+export function formatDateTime(date: Date): string {
+  return date.toLocaleString("en-US");
+}

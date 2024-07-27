@@ -12,6 +12,7 @@ type App struct {
 	ID            string      `json:"id"`
 	Name          string      `json:"name"`
 	Description   null.String `json:"description"`
+	DiscordID     string      `json:"discord_id"`
 	OwnerUserID   string      `json:"owner_user_id"`
 	CreatorUserID string      `json:"creator_user_id"`
 	CreatedAt     time.Time   `json:"created_at"`
@@ -57,6 +58,7 @@ func AppToWire(app *model.App) *App {
 		ID:            app.ID,
 		Name:          app.Name,
 		Description:   app.Description,
+		DiscordID:     app.DiscordID,
 		OwnerUserID:   app.OwnerUserID,
 		CreatorUserID: app.CreatorUserID,
 		CreatedAt:     app.CreatedAt,

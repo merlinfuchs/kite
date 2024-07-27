@@ -1,12 +1,24 @@
 package flow
 
 import (
+	"regexp"
+
 	"github.com/diamondburned/arikawa/v3/api"
+	validation "github.com/go-ozzo/ozzo-validation/v4"
 )
+
+var commandNameRe = regexp.MustCompile(`^[a-z0-9_]+$`)
 
 type FlowData struct {
 	Nodes []FlowNode `json:"nodes"`
 	Edges []FlowEdge `json:"edges"`
+}
+
+func (d FlowData) Validate() error {
+	return validation.ValidateStruct(&d,
+		validation.Field(&d.Nodes),
+		validation.Field(&d.Edges),
+	)
 }
 
 type FlowNodeType string
@@ -35,6 +47,19 @@ type FlowNode struct {
 	Position FlowNodePosition `json:"position"`
 }
 
+func (n FlowNode) Validate() error {
+	err := validation.ValidateStruct(&n,
+		validation.Field(&n.ID, validation.Required),
+		validation.Field(&n.Type, validation.Required),
+		validation.Field(&n.Data, validation.Required),
+	)
+	if err != nil {
+		return err
+	}
+
+	return n.Data.Validate(n.Type)
+}
+
 type FlowNodeData struct {
 	CustomLabel      string              `json:"custom_label,omitempty"`
 	Name             string              `json:"name,omitempty"`
@@ -51,6 +76,28 @@ type FlowNodeData struct {
 	ConditionItemValue     FlowValue         `json:"condition_item_value,omitempty"`
 
 	ResultVariableName string `json:"result_variable_name,omitempty"`
+}
+
+func (d FlowNodeData) Validate(nodeType FlowNodeType) error {
+	// We currently only validate data for entry nodes, as for the other nodes it's less critical that they are valid.
+
+	return validation.ValidateStruct(&d,
+		// Command Entry
+		validation.Field(&d.Name, validation.When(nodeType == FlowNodeTypeEntryCommand,
+			validation.Required,
+			validation.Length(1, 32),
+			validation.Match(commandNameRe),
+		)),
+		validation.Field(&d.Description, validation.When(nodeType == FlowNodeTypeEntryCommand,
+			validation.Required,
+			validation.Length(1, 100),
+		)),
+
+		// Event Entry
+		validation.Field(&d.EventType, validation.When(nodeType == FlowNodeTypeEntryEvent,
+			validation.Required,
+		)),
+	)
 }
 
 type LogLevel string
@@ -84,6 +131,14 @@ type FlowEdge struct {
 	Type   string `json:"type,omitempty"`
 	Source string `json:"source"`
 	Target string `json:"target"`
+}
+
+func (e FlowEdge) Validate() error {
+	return validation.ValidateStruct(&e,
+		validation.Field(&e.ID, validation.Required),
+		validation.Field(&e.Source, validation.Required),
+		validation.Field(&e.Target, validation.Required),
+	)
 }
 
 func (d *FlowData) CommandName() string {

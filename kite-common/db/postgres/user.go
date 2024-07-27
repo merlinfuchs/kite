@@ -49,7 +49,7 @@ func (c *Client) UserByDiscordID(ctx context.Context, discordID string) (*model.
 }
 
 func (c *Client) UpsertUser(ctx context.Context, user *model.User) (*model.User, error) {
-	row, err := c.Q.UpserUser(ctx, pgmodel.UpserUserParams{
+	row, err := c.Q.UpsertUser(ctx, pgmodel.UpsertUserParams{
 		ID:              user.ID,
 		Email:           user.Email,
 		DisplayName:     user.DisplayName,
