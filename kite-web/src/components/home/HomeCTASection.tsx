@@ -25,7 +25,9 @@ export default function HomeCTASection() {
             <Link href="/apps">Get started</Link>
           </Button>
           <Button variant="outline" className="w-full md:w-auto" asChild>
-            <a href="/docs">Documentation</a>
+            <a href="https://docs.kite.onl" target="_blank">
+              Documentation
+            </a>
           </Button>
         </div>
       </div>

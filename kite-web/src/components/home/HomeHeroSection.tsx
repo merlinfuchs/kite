@@ -10,17 +10,16 @@ export default function HomeHeroSection() {
       <div className="text-center lg:text-start space-y-6">
         <main className="text-5xl md:text-6xl font-bold">
           <h1 className="inline">
+            Make{" "}
+            <span className="inline bg-gradient-to-r from-[#58d1f2] to-[#5865F2] text-transparent bg-clip-text">
+              Discord Bots
+            </span>
+          </h1>{" "}
+          with{" "}
+          <h2 className="inline">
             <span className="inline bg-gradient-to-r from-[#f9ad15] to-primary text-transparent bg-clip-text">
               Kite
-            </span>{" "}
-            platform
-          </h1>{" "}
-          for{" "}
-          <h2 className="inline">
-            <span className="inline bg-gradient-to-r from-[#58d1f2] to-[#5865F2] text-transparent bg-clip-text">
-              Discord
-            </span>{" "}
-            applications
+            </span>
           </h2>
         </main>
 

@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"sync"
 
+	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/gateway"
 	"github.com/diamondburned/arikawa/v3/session/shard"
 	"github.com/diamondburned/arikawa/v3/state"
@@ -41,13 +42,27 @@ func (g *Gateway) startGateway() {
 		})
 	})
 
-	shards, err := shard.NewManager("Bot "+g.app.DiscordToken, newShard)
+	shards, err := shard.NewIdentifiedManager(gateway.IdentifyCommand{
+		Token: "Bot " + g.app.DiscordToken,
+		Presence: &gateway.UpdatePresenceCommand{
+			Status: discord.OnlineStatus,
+			Activities: []discord.Activity{
+				{
+					Type:  discord.CustomActivity,
+					Name:  "kite.onl",
+					State: "🪁 kite.onl",
+				},
+			},
+		},
+	}, newShard)
 	if err != nil {
+		// TODO: create log entry
 		slog.With("error", err).Error("failed to create shard manager")
 		return
 	}
 
 	if err := shards.Open(context.TODO()); err != nil {
+		// TODO: create log entry
 		slog.With("error", err).Error("failed to open shard manager")
 		return
 	}
@@ -74,7 +89,7 @@ func (g *Gateway) Update(ctx context.Context, app *model.App) {
 			slog.With("error", err).Error("failed to close gateway")
 		}
 
-		g.startGateway()
+		go g.startGateway()
 	}
 
 	g.app = app

@@ -23,7 +23,7 @@ const tools: { title: string; href: string; description: string }[] = [
   },
   {
     title: "Colored Text",
-    href: "/docs/primitives/hover-card",
+    href: "/tools/colored-text",
     description:
       "Generate colored text that you can use in your Discord message.",
   },

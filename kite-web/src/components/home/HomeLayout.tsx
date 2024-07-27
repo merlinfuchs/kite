@@ -17,7 +17,10 @@ export default function HomeLayout({
         <title>{`${title ? title + " | " : ""}Kite`}</title>
         <meta
           name="description"
-          content={description || "Kite - The Discord platform for everyone"}
+          content={
+            description ||
+            "Kite - Create Discord Bots for free with no coding required."
+          }
         />
       </Head>
       <div className="flex-none">

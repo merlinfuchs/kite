@@ -58,7 +58,11 @@ export default function HomeFooter() {
         <div className="flex flex-col gap-2">
           <h3 className="font-bold text-lg">Resources</h3>
           <div>
-            <a href="/docs" className="opacity-60 hover:opacity-100">
+            <a
+              href="https://docs.kite.onl"
+              className="opacity-60 hover:opacity-100"
+              target="_blank"
+            >
               Documentation
             </a>
           </div>
