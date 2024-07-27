@@ -1,0 +1,43 @@
+packages:
+  - path: "github.com/kitecloud/kite/kite-common/api/wire"
+    output_path: "./kite-web/src/lib/types/wire.gen.ts"
+    type_mappings:
+      null.String: "null | string"
+      null.Bool: "null | boolean"
+      null.Float: "null | number"
+      null.Int: "null | number"
+      uuid.UUID: "string /* uuid */"
+      uuid.NullUUID: "null | string /* uuid */"
+      time.Time: "string /* RFC3339 */"
+      null.Time: "null | string /* RFC3339 */"
+      json.RawMessage: "Record<string, any> | null"
+      manifest.Manifest: "Manifest"
+      Base64: "string"
+      flow.FlowData: "FlowData"
+    exclude_files:
+      - "base.go"
+    frontmatter: |
+      import { FlowData } from './flow.gen';
+      interface Empty {}
+  - path: "github.com/kitecloud/kite/kite-common/core/flow"
+    output_path: "./kite-web/src/lib/types/flow.gen.ts"
+    type_mappings:
+      null.String: "null | string"
+      null.Bool: "null | boolean"
+      null.Float: "null | number"
+      null.Int: "null | number"
+      uuid.UUID: "string /* uuid */"
+      uuid.NullUUID: "null | string /* uuid */"
+      time.Time: "string /* RFC3339 */"
+      null.Time: "null | string /* RFC3339 */"
+      json.RawMessage: "Record<string, any> | null"
+      manifest.Manifest: "Manifest"
+      Base64: "string"
+    exclude_files:
+      - "compile.go"
+      - "execute.go"
+      - "context.go"
+      - "provider.go"
+      - "error.go"
+    frontmatter: |
+      type StringIndexable = Record<string, unknown>;

@@ -1,0 +1,6 @@
+CREATE TABLE IF NOT EXISTS sessions (
+    key_hash TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    created_at TIMESTAMP NOT NULL,
+    expires_at TIMESTAMP NOT NULL
+);

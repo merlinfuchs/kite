@@ -1,0 +1,14 @@
+
+[api]
+host = "127.0.0.1"
+port = 8080
+public_base_url = "http://localhost:8080"
+
+[app]
+public_base_url = "http://localhost:3000"
+
+[database.postgres]
+host = "127.0.0.1"
+port = 5432
+user = "postgres"
+db_name = "kite"
