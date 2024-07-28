@@ -10,6 +10,7 @@ import FlowNodeOptionBase from "@/components/flow/FlowNodeOptionBase";
 import FlowNodeConditionPermissions from "@/components/flow/FlowNodeConditionPermissions";
 import FlowNodeConditionItemPermissions from "@/components/flow/FlowNodeConditionItemPermissions";
 import FlowNodeOptionCommandArgument from "@/components/flow/FlowNodeOptionCommandArgument";
+import FlowNodeBase from "@/components/flow/FlowNodeBase";
 
 export const nodeTypes = {
   entry_command: FlowNodeEntryCommand,

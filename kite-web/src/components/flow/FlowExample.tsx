@@ -3,9 +3,6 @@ import { ReactFlow } from "@xyflow/react";
 
 import "@xyflow/react/dist/base.css";
 import { useHookedTheme } from "@/lib/hooks/theme";
-import FlowNodeEntryCommand from "./FlowNodeEntryCommand";
-import FlowEdgeDeleteButton from "./FlowEdgeDeleteButton";
-import FlowEdgeFixed from "./FlowEdgeFixed";
 import { edgeTypes, nodeTypes } from "@/lib/flow/components";
 
 const initialNodes = [
@@ -28,8 +25,13 @@ const initialNodes = [
   {
     id: "3",
     position: { x: -50, y: -150 },
-    data: { name: "user", description: "The user you want to ban" },
-    type: "option_command_user",
+    data: {
+      name: "user",
+      description: "The user you want to ban",
+      command_argument_type: "user",
+      command_argument_required: true,
+    },
+    type: "option_command_argument",
   },
   {
     id: "4",
@@ -37,8 +39,9 @@ const initialNodes = [
     data: {
       name: "reason",
       description: "Why you want to ban the user",
+      command_argument_type: "string",
     },
-    type: "option_command_text",
+    type: "option_command_argument",
   },
 ];
 const initialEdges = [
