@@ -67,13 +67,8 @@ func (n *CompiledFlowNode) IsCommandEntry() bool {
 	return n.Type == FlowNodeTypeEntryCommand
 }
 
-func (n *CompiledFlowNode) IsCommandOption() bool {
-	return n.Type == FlowNodeTypeOptionCommandText ||
-		n.Type == FlowNodeTypeOptionCommandNumber ||
-		n.Type == FlowNodeTypeOptionCommandUser ||
-		n.Type == FlowNodeTypeOptionCommandChannel ||
-		n.Type == FlowNodeTypeOptionCommandRole ||
-		n.Type == FlowNodeTypeOptionCommandAttachment
+func (n *CompiledFlowNode) IsCommandArgument() bool {
+	return n.Type == FlowNodeTypeOptionCommandArgument
 }
 
 func (n *CompiledFlowNode) CommandName() string {
@@ -90,10 +85,10 @@ func (n *CompiledFlowNode) CommandDescription() string {
 	return n.Data.Description
 }
 
-func (n *CompiledFlowNode) CommandOptions() discord.CommandOptions {
+func (n *CompiledFlowNode) CommandArguments() discord.CommandOptions {
 	res := make(discord.CommandOptions, 0)
 	for _, node := range n.Parents {
-		if node.IsCommandOption() {
+		if node.IsCommandArgument() {
 			// TODO: Implement other option types
 			res = append(res, &discord.StringOption{
 				OptionName:  node.CommandOptionName(),
@@ -107,14 +102,14 @@ func (n *CompiledFlowNode) CommandOptions() discord.CommandOptions {
 }
 
 func (n *CompiledFlowNode) CommandOptionName() string {
-	if !n.IsCommandOption() {
+	if !n.IsCommandArgument() {
 		return ""
 	}
 	return n.Data.Name
 }
 
 func (n *CompiledFlowNode) CommandOptionDescription() string {
-	if !n.IsCommandOption() {
+	if !n.IsCommandArgument() {
 		return ""
 	}
 	return n.Data.Description

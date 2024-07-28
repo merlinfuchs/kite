@@ -87,7 +87,7 @@ func (a *App) DeployCommands(ctx context.Context) error {
 		commands = append(commands, api.CreateCommandData{
 			Name:        flow.CommandName(),
 			Description: flow.CommandDescription(),
-			Options:     flow.CommandOptions(),
+			Options:     flow.CommandArguments(),
 		})
 	}
 

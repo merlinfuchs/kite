@@ -21,12 +21,9 @@ export const nodeTypes = {
   condition_permissions: FlowNodeConditionPermissions,
   condition_item_permissions: FlowNodeConditionItemPermissions,
   condition_item_else: FlowNodeConditionItemElse,
-  option_command_text: FlowNodeOptionBase,
-  option_command_number: FlowNodeOptionBase,
-  option_command_user: FlowNodeOptionBase,
-  option_command_channel: FlowNodeOptionBase,
-  option_command_role: FlowNodeOptionBase,
-  option_command_attachment: FlowNodeOptionBase,
+  option_command_argument: FlowNodeOptionBase,
+  option_command_permissions: FlowNodeOptionBase,
+  option_event_filter: FlowNodeOptionBase,
 };
 
 export const edgeTypes = {

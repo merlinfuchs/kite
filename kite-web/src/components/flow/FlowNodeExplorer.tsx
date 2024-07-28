@@ -8,14 +8,11 @@ const nodeCategories = {
   option: [
     {
       title: "Commands",
-      nodeTypes: [
-        "option_command_text",
-        "option_command_number",
-        "option_command_user",
-        "option_command_channel",
-        "option_command_role",
-        "option_command_attachment",
-      ],
+      nodeTypes: ["option_command_argument", "option_command_permissions"],
+    },
+    {
+      title: "Events",
+      nodeTypes: ["option_event_filter"],
     },
   ],
   action: [

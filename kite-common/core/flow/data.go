@@ -24,22 +24,17 @@ func (d FlowData) Validate() error {
 type FlowNodeType string
 
 const (
-	FlowNodeTypeEntryCommand         FlowNodeType = "entry_command"
-	FlowNodeTypeEntryEvent           FlowNodeType = "entry_event"
-	FlowNodeTypeActionResponseCreate FlowNodeType = "action_response_create"
-	FlowNodeTypeActionMessageCreate  FlowNodeType = "action_message_create"
-	FlowNodeTypeActionLog            FlowNodeType = "action_log"
-	FlowNodeTypeConditionCompare     FlowNodeType = "condition_compare"
-	FlowNodeTypeConditionItemCompare FlowNodeType = "condition_item_compare"
-	FlowNodeTypeConditionItemElse    FlowNodeType = "condition_item_else"
-	// TODO: FlowNodeTypeOptionCommandArgument?
-	// TODO: FlowNodeTypeOptionCommandPermissions?
-	FlowNodeTypeOptionCommandText       FlowNodeType = "option_command_text"
-	FlowNodeTypeOptionCommandNumber     FlowNodeType = "option_command_number"
-	FlowNodeTypeOptionCommandUser       FlowNodeType = "option_command_user"
-	FlowNodeTypeOptionCommandChannel    FlowNodeType = "option_command_channel"
-	FlowNodeTypeOptionCommandRole       FlowNodeType = "option_command_role"
-	FlowNodeTypeOptionCommandAttachment FlowNodeType = "option_command_attachment"
+	FlowNodeTypeEntryCommand             FlowNodeType = "entry_command"
+	FlowNodeTypeEntryEvent               FlowNodeType = "entry_event"
+	FlowNodeTypeActionResponseCreate     FlowNodeType = "action_response_create"
+	FlowNodeTypeActionMessageCreate      FlowNodeType = "action_message_create"
+	FlowNodeTypeActionLog                FlowNodeType = "action_log"
+	FlowNodeTypeConditionCompare         FlowNodeType = "condition_compare"
+	FlowNodeTypeConditionItemCompare     FlowNodeType = "condition_item_compare"
+	FlowNodeTypeConditionItemElse        FlowNodeType = "condition_item_else"
+	FlowNodeTypeOptionCommandArgument    FlowNodeType = "option_command_argument"
+	FlowNodeTypeOptionCommandPermissions FlowNodeType = "option_command_permissions"
+	FlowNodeTypeOptionEventFilter        FlowNodeType = "option_event_filter"
 )
 
 type FlowNode struct {
@@ -97,11 +92,11 @@ func (d FlowNodeData) Validate(nodeType FlowNodeType) error {
 
 		// Command Option
 		// TODO: make all command options one node type?
-		validation.Field(&d.Name, validation.When(nodeType == FlowNodeTypeOptionCommandText,
+		validation.Field(&d.Name, validation.When(nodeType == FlowNodeTypeOptionCommandArgument,
 			validation.Required,
 			validation.Length(1, 32),
 		)),
-		validation.Field(&d.Description, validation.When(nodeType == FlowNodeTypeOptionCommandText,
+		validation.Field(&d.Description, validation.When(nodeType == FlowNodeTypeOptionCommandArgument,
 			validation.Required,
 			validation.Length(1, 100),
 		)),

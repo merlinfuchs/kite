@@ -9,6 +9,9 @@ Make your own Discord Bot with Kite for free without a single line of code. With
 - [x] Enforce limits (e.g. max number of apps)
 - [x] Implement validation on flow data
 - [ ] Implement command registration with all supported options
-- [ ] Design and implement flow values properly
+- [x] Design and implement flow values properly
+- [x] Design and implement node types
+- [ ] Design and implement node data
+- [ ] Design and implement variable system
 - [ ] Implement all existing flow nodes
 - [ ] Add some more common flow nodes

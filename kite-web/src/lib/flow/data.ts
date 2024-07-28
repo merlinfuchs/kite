@@ -49,11 +49,6 @@ export const nodeBaseDataSchema = z.object({
   custom_label: z.string().optional(),
 });
 
-export const nodeOptionDataSchema = nodeBaseDataSchema.extend({
-  name: z.string().max(32).min(1),
-  description: z.string().max(100).min(1),
-});
-
 export const nodeEntryCommandDataSchema = nodeBaseDataSchema.extend({
   name: z
     .string()
@@ -63,6 +58,11 @@ export const nodeEntryCommandDataSchema = nodeBaseDataSchema.extend({
       /^[a-zA-Z0-9_]+$/,
       "Must be only alphanumeric characters and underscores"
     ),
+  description: z.string().max(100).min(1),
+});
+
+export const nodeOptionCommandArgumentDataSchema = nodeBaseDataSchema.extend({
+  name: z.string().max(32).min(1),
   description: z.string().max(100).min(1),
 });
 
