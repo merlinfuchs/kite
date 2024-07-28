@@ -4,9 +4,14 @@ import FlowNodeBase from "./FlowNodeBase";
 import { optionColor } from "@/lib/flow/nodes";
 import FlowNodeHandle from "./FlowNodeHandle";
 
-export default function FlowNodeOptionBase(props: NodeProps) {
+export default function FlowNodeOptionCommandArgument(props: NodeProps) {
   return (
-    <FlowNodeBase {...props} showConnectedMarker={false}>
+    <FlowNodeBase
+      {...props}
+      title={props.data.name}
+      description={props.data.description}
+      showConnectedMarker={false}
+    >
       <FlowNodeHandle
         type="source"
         position={Position.Bottom}

@@ -9,6 +9,7 @@ import FlowNodeConditionItemElse from "@/components/flow/FlowNodeConditionItemEl
 import FlowNodeOptionBase from "@/components/flow/FlowNodeOptionBase";
 import FlowNodeConditionPermissions from "@/components/flow/FlowNodeConditionPermissions";
 import FlowNodeConditionItemPermissions from "@/components/flow/FlowNodeConditionItemPermissions";
+import FlowNodeOptionCommandArgument from "@/components/flow/FlowNodeOptionCommandArgument";
 
 export const nodeTypes = {
   entry_command: FlowNodeEntryCommand,
@@ -21,7 +22,7 @@ export const nodeTypes = {
   condition_permissions: FlowNodeConditionPermissions,
   condition_item_permissions: FlowNodeConditionItemPermissions,
   condition_item_else: FlowNodeConditionItemElse,
-  option_command_argument: FlowNodeOptionBase,
+  option_command_argument: FlowNodeOptionCommandArgument,
   option_command_permissions: FlowNodeOptionBase,
   option_event_filter: FlowNodeOptionBase,
 };

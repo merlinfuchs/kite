@@ -89,30 +89,72 @@ func (n *CompiledFlowNode) CommandArguments() discord.CommandOptions {
 	res := make(discord.CommandOptions, 0)
 	for _, node := range n.Parents {
 		if node.IsCommandArgument() {
-			// TODO: Implement other option types
-			res = append(res, &discord.StringOption{
-				OptionName:  node.CommandOptionName(),
-				Description: node.CommandOptionDescription(),
-				Required:    true,
-			})
+			var o discord.CommandOption
+
+			switch node.Data.CommandArgumentType {
+			case CommandArgumentTypeString:
+				res = append(res, &discord.StringOption{
+					OptionName:  node.Data.Name,
+					Description: node.Data.Description,
+					Required:    node.Data.CommandArgumentRequired,
+				})
+			case CommandArgumentTypeInteger:
+				res = append(res, &discord.IntegerOption{
+					OptionName:  node.Data.Name,
+					Description: node.Data.Description,
+					Required:    node.Data.CommandArgumentRequired,
+				})
+			case CommandArgumentTypeBoolean:
+				res = append(res, &discord.BooleanOption{
+					OptionName:  node.Data.Name,
+					Description: node.Data.Description,
+					Required:    node.Data.CommandArgumentRequired,
+				})
+			case CommandArgumentTypeUser:
+				res = append(res, &discord.UserOption{
+					OptionName:  node.Data.Name,
+					Description: node.Data.Description,
+					Required:    node.Data.CommandArgumentRequired,
+				})
+			case CommandArgumentTypeChannel:
+				res = append(res, &discord.ChannelOption{
+					OptionName:  node.Data.Name,
+					Description: node.Data.Description,
+					Required:    node.Data.CommandArgumentRequired,
+				})
+			case CommandArgumentTypeRole:
+				res = append(res, &discord.RoleOption{
+					OptionName:  node.Data.Name,
+					Description: node.Data.Description,
+					Required:    node.Data.CommandArgumentRequired,
+				})
+			case CommandArgumentTypeMentionable:
+				res = append(res, &discord.MentionableOption{
+					OptionName:  node.Data.Name,
+					Description: node.Data.Description,
+					Required:    node.Data.CommandArgumentRequired,
+				})
+			case CommandArgumentTypeNumber:
+				res = append(res, &discord.NumberOption{
+					OptionName:  node.Data.Name,
+					Description: node.Data.Description,
+					Required:    node.Data.CommandArgumentRequired,
+				})
+			case CommandArgumentTypeAttachment:
+				res = append(res, &discord.AttachmentOption{
+					OptionName:  node.Data.Name,
+					Description: node.Data.Description,
+					Required:    node.Data.CommandArgumentRequired,
+				})
+			}
+
+			if o != nil {
+				res = append(res, o)
+			}
 		}
 	}
 
 	return res
-}
-
-func (n *CompiledFlowNode) CommandOptionName() string {
-	if !n.IsCommandArgument() {
-		return ""
-	}
-	return n.Data.Name
-}
-
-func (n *CompiledFlowNode) CommandOptionDescription() string {
-	if !n.IsCommandArgument() {
-		return ""
-	}
-	return n.Data.Description
 }
 
 func (n *CompiledFlowNode) IsAction() bool {

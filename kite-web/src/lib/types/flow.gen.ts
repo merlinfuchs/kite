@@ -17,16 +17,9 @@ export const FlowNodeTypeActionLog: FlowNodeType = "action_log";
 export const FlowNodeTypeConditionCompare: FlowNodeType = "condition_compare";
 export const FlowNodeTypeConditionItemCompare: FlowNodeType = "condition_item_compare";
 export const FlowNodeTypeConditionItemElse: FlowNodeType = "condition_item_else";
-/**
- * TODO: FlowNodeTypeOptionCommandArgument?
- * TODO: FlowNodeTypeOptionCommandPermissions?
- */
-export const FlowNodeTypeOptionCommandText: FlowNodeType = "option_command_text";
-export const FlowNodeTypeOptionCommandNumber: FlowNodeType = "option_command_number";
-export const FlowNodeTypeOptionCommandUser: FlowNodeType = "option_command_user";
-export const FlowNodeTypeOptionCommandChannel: FlowNodeType = "option_command_channel";
-export const FlowNodeTypeOptionCommandRole: FlowNodeType = "option_command_role";
-export const FlowNodeTypeOptionCommandAttachment: FlowNodeType = "option_command_attachment";
+export const FlowNodeTypeOptionCommandArgument: FlowNodeType = "option_command_argument";
+export const FlowNodeTypeOptionCommandPermissions: FlowNodeType = "option_command_permissions";
+export const FlowNodeTypeOptionEventFilter: FlowNodeType = "option_event_filter";
 export interface FlowNode {
   id: string;
   type?: FlowNodeType;
@@ -34,19 +27,48 @@ export interface FlowNode {
   position: FlowNodePosition;
 }
 export interface FlowNodeData {
-  custom_label?: string;
+  /**
+   * Shared
+   */
   name?: string;
   description?: string;
-  event_type?: string;
+  custom_label?: string;
+  result_variable_name?: string;
+  /**
+   * Command Argument
+   */
+  command_argument_type?: CommandArgumentType;
+  command_argument_required?: boolean;
+  /**
+   * Command Permissions
+   */
+  command_permissions?: string;
+  /**
+   * Message Create & Command Response
+   */
   message_data?: any /* api.SendMessageData */;
   message_ephemeral?: boolean;
+  /**
+   * Event Entry
+   */
+  event_type?: string;
+  /**
+   * Event Filter
+   */
+  event_filter_target?: EventFilterTarget;
+  event_filter_expression?: string;
+  /**
+   * Log
+   */
   log_level?: LogLevel;
   log_message?: string;
+  /**
+   * Condition
+   */
   condition_base_value?: FlowValue;
   condition_allow_multiple?: boolean;
   condition_item_mode?: ConditionItemType;
   condition_item_value?: FlowValue;
-  result_variable_name?: string;
 }
 export type LogLevel = string;
 export const LogLevelDebug: LogLevel = "debug";
@@ -61,6 +83,18 @@ export const ConditionItemModeGreaterThanOrEqual: ConditionItemType = "greater_t
 export const ConditionItemModeLessThan: ConditionItemType = "less_than";
 export const ConditionItemModeLessThanOrEqual: ConditionItemType = "less_than_or_equal";
 export const ConditionItemModeContains: ConditionItemType = "contains";
+export type CommandArgumentType = string;
+export const CommandArgumentTypeString: CommandArgumentType = "string";
+export const CommandArgumentTypeInteger: CommandArgumentType = "integer";
+export const CommandArgumentTypeBoolean: CommandArgumentType = "boolean";
+export const CommandArgumentTypeUser: CommandArgumentType = "user";
+export const CommandArgumentTypeRole: CommandArgumentType = "role";
+export const CommandArgumentTypeChannel: CommandArgumentType = "channel";
+export const CommandArgumentTypeMentionable: CommandArgumentType = "mentionable";
+export const CommandArgumentTypeNumber: CommandArgumentType = "number";
+export const CommandArgumentTypeAttachment: CommandArgumentType = "attachment";
+export type EventFilterTarget = string;
+export const EventFilterTypeMessageContent: EventFilterTarget = "message_content";
 export interface FlowNodePosition {
   x: number /* float64 */;
   y: number /* float64 */;

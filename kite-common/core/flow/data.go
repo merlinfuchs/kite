@@ -58,21 +58,39 @@ func (n FlowNode) Validate() error {
 }
 
 type FlowNodeData struct {
-	CustomLabel      string              `json:"custom_label,omitempty"`
-	Name             string              `json:"name,omitempty"`
-	Description      string              `json:"description,omitempty"`
-	EventType        string              `json:"event_type,omitempty"`
+	// Shared
+	Name               string `json:"name,omitempty"`
+	Description        string `json:"description,omitempty"`
+	CustomLabel        string `json:"custom_label,omitempty"`
+	ResultVariableName string `json:"result_variable_name,omitempty"`
+
+	// Command Argument
+	CommandArgumentType     CommandArgumentType `json:"command_argument_type,omitempty"`
+	CommandArgumentRequired bool                `json:"command_argument_required,omitempty"`
+
+	// Command Permissions
+	CommandPermissions string `json:"command_permissions,omitempty"`
+
+	// Message Create & Command Response
 	MessageData      api.SendMessageData `json:"message_data,omitempty"`
 	MessageEphemeral bool                `json:"message_ephemeral,omitempty"`
-	LogLevel         LogLevel            `json:"log_level,omitempty"`
-	LogMessage       string              `json:"log_message,omitempty"`
 
+	// Event Entry
+	EventType string `json:"event_type,omitempty"`
+
+	// Event Filter
+	EventFilterTarget     EventFilterTarget `json:"event_filter_target,omitempty"`
+	EventFilterExpression string            `json:"event_filter_expression,omitempty"`
+
+	// Log
+	LogLevel   LogLevel `json:"log_level,omitempty"`
+	LogMessage string   `json:"log_message,omitempty"`
+
+	// Condition
 	ConditionBaseValue     FlowValue         `json:"condition_base_value,omitempty"`
 	ConditionAllowMultiple bool              `json:"condition_allow_multiple,omitempty"`
 	ConditionItemMode      ConditionItemType `json:"condition_item_mode,omitempty"`
 	ConditionItemValue     FlowValue         `json:"condition_item_value,omitempty"`
-
-	ResultVariableName string `json:"result_variable_name,omitempty"`
 }
 
 func (d FlowNodeData) Validate(nodeType FlowNodeType) error {
@@ -91,7 +109,6 @@ func (d FlowNodeData) Validate(nodeType FlowNodeType) error {
 		)),
 
 		// Command Option
-		// TODO: make all command options one node type?
 		validation.Field(&d.Name, validation.When(nodeType == FlowNodeTypeOptionCommandArgument,
 			validation.Required,
 			validation.Length(1, 32),
@@ -129,6 +146,26 @@ const (
 	ConditionItemModeContains           ConditionItemType = "contains"
 )
 
+type CommandArgumentType string
+
+const (
+	CommandArgumentTypeString      CommandArgumentType = "string"
+	CommandArgumentTypeInteger     CommandArgumentType = "integer"
+	CommandArgumentTypeBoolean     CommandArgumentType = "boolean"
+	CommandArgumentTypeUser        CommandArgumentType = "user"
+	CommandArgumentTypeRole        CommandArgumentType = "role"
+	CommandArgumentTypeChannel     CommandArgumentType = "channel"
+	CommandArgumentTypeMentionable CommandArgumentType = "mentionable"
+	CommandArgumentTypeNumber      CommandArgumentType = "number"
+	CommandArgumentTypeAttachment  CommandArgumentType = "attachment"
+)
+
+type EventFilterTarget string
+
+const (
+	EventFilterTypeMessageContent EventFilterTarget = "message_content"
+)
+
 type FlowNodePosition struct {
 	X float64 `json:"x"`
 	Y float64 `json:"y"`
@@ -147,22 +184,4 @@ func (e FlowEdge) Validate() error {
 		validation.Field(&e.Source, validation.Required),
 		validation.Field(&e.Target, validation.Required),
 	)
-}
-
-func (d *FlowData) CommandName() string {
-	for _, node := range d.Nodes {
-		if node.Type == "entry_command" {
-			return node.Data.Name
-		}
-	}
-	return ""
-}
-
-func (d *FlowData) CommandDescription() string {
-	for _, node := range d.Nodes {
-		if node.Type == "entry_command" {
-			return node.Data.Description
-		}
-	}
-	return ""
 }

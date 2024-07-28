@@ -39,6 +39,8 @@ const intputs: Record<string, any> = {
   result_variable_name: ResultVariableNameInput,
   name: NameInput,
   description: DescriptionInput,
+  command_argument_type: CommandArgumentTypeInput,
+  command_argument_required: CommandArgumentRequiredInput,
   event_type: EventTypeInput,
   message_data: MessageDataInput,
   message_ephemeral: MessageEphemeralInput,
@@ -223,6 +225,48 @@ function DescriptionInput({ data, updateData, errors }: InputProps) {
       title="Description"
       value={data.description || ""}
       updateValue={(v) => updateData({ description: v || undefined })}
+      errors={errors}
+    />
+  );
+}
+
+function CommandArgumentTypeInput({ data, updateData, errors }: InputProps) {
+  return (
+    <BaseInput
+      field="command_argument_type"
+      title="Argument Type"
+      type="select"
+      options={[
+        { value: "string", label: "Text" },
+        { value: "integer", label: "Whole Number" },
+        { value: "number", label: "Decimal Number" },
+        { value: "boolean", label: "True/False" },
+        { value: "user", label: "User" },
+        { value: "channel", label: "Channel" },
+        { value: "role", label: "Role" },
+        { value: "mentionable", label: "Mentionable" },
+        { value: "attachment", label: "Attachment" },
+      ]}
+      value={data.command_argument_type || ""}
+      updateValue={(v) => updateData({ command_argument_type: v || undefined })}
+      errors={errors}
+    />
+  );
+}
+
+function CommandArgumentRequiredInput({
+  data,
+  updateData,
+  errors,
+}: InputProps) {
+  return (
+    <BaseCheckbox
+      field="command_argument_required"
+      title="Argument Required"
+      value={!!data.command_argument_required}
+      updateValue={(v) =>
+        updateData({ command_argument_required: v || undefined })
+      }
       errors={errors}
     />
   );

@@ -1,33 +1,15 @@
 import { Edge, Node, NodeProps as XYNodeProps } from "@xyflow/react";
 import z from "zod";
+import { FlowNodeData } from "../types/flow.gen";
+
+const numericRegex = /^[0-9]$/;
 
 export interface FlowData {
   nodes: Node<NodeData>[];
   edges: Edge[];
 }
 
-export interface NodeData extends Record<string, unknown> {
-  custom_label?: string;
-  name?: string;
-  description?: string;
-  event_type?: string;
-  message_data?: any;
-  message_ephemeral?: boolean;
-  log_level?: string;
-  log_message?: string;
-
-  condition_base_value?: FlowValue;
-  condition_allow_multiple?: boolean;
-  condition_item_mode?: string;
-  condition_item_value?: FlowValue;
-
-  result_variable_name?: string;
-}
-
-export interface FlowValue {
-  type: string;
-  value: any;
-}
+export type NodeData = FlowNodeData & Record<string, unknown>;
 
 export type NodeProps = XYNodeProps<Node<NodeData>>;
 
@@ -64,6 +46,26 @@ export const nodeEntryCommandDataSchema = nodeBaseDataSchema.extend({
 export const nodeOptionCommandArgumentDataSchema = nodeBaseDataSchema.extend({
   name: z.string().max(32).min(1),
   description: z.string().max(100).min(1),
+  command_argument_type: z
+    .literal("string")
+    .or(z.literal("integer"))
+    .or(z.literal("boolean"))
+    .or(z.literal("user"))
+    .or(z.literal("channel"))
+    .or(z.literal("role"))
+    .or(z.literal("mentionable"))
+    .or(z.literal("number"))
+    .or(z.literal("attachment")),
+  command_argument_required: z.boolean().optional(),
+});
+
+export const nodeOptionCommandPermissionsSchema = nodeBaseDataSchema.extend({
+  command_permissions: z.string().regex(numericRegex),
+});
+
+export const nodeOptionEventFilterSchema = nodeBaseDataSchema.extend({
+  event_filter_target: z.literal("message_content"),
+  event_filter_expression: z.string().max(1000).min(1),
 });
 
 export const nodeEntryEventDataSchema = nodeBaseDataSchema.extend({
@@ -74,6 +76,7 @@ export const nodeActionResponseCreateDataSchema = nodeBaseDataSchema.extend({
   message_data: z.object({
     content: z.string().max(2000).min(1),
   }),
+  message_ephemeral: z.boolean().optional(),
 });
 
 export const nodeActionMessageCreateDataSchema = nodeBaseDataSchema.extend({

@@ -77,10 +77,15 @@ func (h *CommandHandler) HandleCommandCreate(c *handler.Context, req wire.Comman
 }
 
 func (h *CommandHandler) HandleCommandUpdate(c *handler.Context, req wire.CommandUpdateRequest) (*wire.CommandUpdateResponse, error) {
+	cmdFlow, err := flow.CompileCommand(req.FlowSource)
+	if err != nil {
+		return nil, fmt.Errorf("failed to compile command: %w", err)
+	}
+
 	command, err := h.commandStore.UpdateCommand(c.Context(), &model.Command{
 		ID:          c.Command.ID,
-		Name:        req.FlowSource.CommandName(),
-		Description: req.FlowSource.CommandDescription(),
+		Name:        cmdFlow.CommandName(),
+		Description: cmdFlow.CommandDescription(),
 		FlowSource:  req.FlowSource,
 		Enabled:     req.Enabled,
 		UpdatedAt:   time.Now().UTC(),

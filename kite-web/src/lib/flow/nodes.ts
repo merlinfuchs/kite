@@ -9,6 +9,8 @@ import {
   nodeEntryCommandDataSchema,
   nodeEntryEventDataSchema,
   nodeOptionCommandArgumentDataSchema,
+  nodeOptionCommandPermissionsSchema,
+  nodeOptionEventFilterSchema,
 } from "./data";
 import { ZodSchema } from "zod";
 import { Edge, Node, XYPosition } from "@xyflow/react";
@@ -16,20 +18,14 @@ import { getUniqueId } from "../utils";
 import {
   ArrowLeftRightIcon,
   CircleHelpIcon,
-  FileIcon,
   FilterIcon,
-  HashIcon,
   MessageCirclePlusIcon,
   MessageCircleReply,
-  PlusIcon,
   SatelliteDishIcon,
   ScrollTextIcon,
   ShieldCheckIcon,
   SlashSquareIcon,
-  TagIcon,
   TextCursorInputIcon,
-  TextIcon,
-  UserIcon,
   XCircleIcon,
 } from "lucide-react";
 
@@ -152,23 +148,29 @@ export const nodeTypes: Record<string, NodeValues> = {
     defaultTitle: "Command Argument",
     defaultDescription: "Argument for a command.",
     dataSchema: nodeOptionCommandArgumentDataSchema,
-    dataFields: ["name", "description"],
+    dataFields: [
+      "name",
+      "description",
+      "command_argument_type",
+      "command_argument_required",
+    ],
   },
   option_command_permissions: {
     color: optionColor,
     icon: ShieldCheckIcon,
     defaultTitle: "Permission Check",
-    defaultDescription: "Check if the user has the specified permissions.",
-    //dataSchema: nodeOptionDataSchema,
-    dataFields: [],
+    defaultDescription:
+      "Make the command only available to users with the specified permissions.",
+    dataSchema: nodeOptionCommandPermissionsSchema,
+    dataFields: ["command_permissions"],
   },
   option_event_filter: {
     color: optionColor,
     icon: FilterIcon,
     defaultTitle: "Event Filter",
     defaultDescription: "Filter events based on their properties.",
-    //dataSchema: nodeOptionDataSchema,
-    dataFields: [],
+    dataSchema: nodeOptionEventFilterSchema,
+    dataFields: ["event_filter_target", "event_filter_expression"],
   },
 };
 
@@ -197,7 +199,6 @@ export function createNode(
   position: XYPosition,
   props?: Partial<Node<NodeData>>
 ): [Node<NodeData>[], Edge[]] {
-  // TODO: some nodes may need some default children
   const id = getUniqueId().toString();
 
   const nodes: Node<NodeData>[] = [
