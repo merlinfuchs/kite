@@ -4,8 +4,11 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"strconv"
 	"time"
 
+	"github.com/diamondburned/arikawa/v3/api"
+	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/gateway"
 	"github.com/kitecloud/kite/kite-common/core/flow"
 	"github.com/kitecloud/kite/kite-common/model"
@@ -60,6 +63,61 @@ func (c *Command) HandleEvent(appID string, event gateway.Event) {
 		go c.createLogEntry(model.LogLevelError, fmt.Sprintf("Failed to execute command flow: %v", err))
 		slog.With("error", err).Error("Failed to execute command flow")
 	}
+}
+
+func (a *App) DeployCommands(ctx context.Context) error {
+	a.Lock()
+	a.hasUndeployedChanges = false
+
+	var lastUpdatedAt time.Time
+	commands := make([]api.CreateCommandData, 0, len(a.commands))
+	for _, command := range a.commands {
+		cmd := command.cmd
+
+		if cmd.UpdatedAt.After(lastUpdatedAt) {
+			lastUpdatedAt = cmd.UpdatedAt
+		}
+
+		flow, err := flow.CompileCommand(cmd.FlowSource)
+		if err != nil {
+			go a.createLogEntry(model.LogLevelError, fmt.Sprintf("Failed to compile command flow: %v", err))
+			return fmt.Errorf("failed to compile command flow: %w", err)
+		}
+
+		commands = append(commands, api.CreateCommandData{
+			Name:        flow.CommandName(),
+			Description: flow.CommandDescription(),
+			Options:     flow.CommandOptions(),
+		})
+	}
+
+	a.Unlock()
+
+	err := a.commandStore.UpdateCommandsLastDeployedAt(ctx, a.id, lastUpdatedAt)
+	if err != nil {
+		return fmt.Errorf("failed to update last deployed at: %w", err)
+	}
+
+	app, err := a.appStore.App(ctx, a.id)
+	if err != nil {
+		return fmt.Errorf("failed to get app: %w", err)
+	}
+
+	appId, err := strconv.ParseUint(app.DiscordID, 10, 64)
+	if err != nil {
+		return fmt.Errorf("failed to parse app ID: %w", err)
+	}
+
+	client := api.NewClient("Bot " + app.DiscordToken).WithContext(ctx)
+
+	_, err = client.BulkOverwriteCommands(discord.AppID(appId), commands)
+	if err != nil {
+		go a.createLogEntry(model.LogLevelError, fmt.Sprintf("Failed to deploy commands: %v", err))
+		return fmt.Errorf("failed to deploy commands: %w", err)
+	}
+
+	go a.createLogEntry(model.LogLevelInfo, "Successfully deployed commands")
+	return nil
 }
 
 func (c *Command) createLogEntry(level model.LogLevel, message string) {

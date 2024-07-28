@@ -24,14 +24,16 @@ func (d FlowData) Validate() error {
 type FlowNodeType string
 
 const (
-	FlowNodeTypeEntryCommand            FlowNodeType = "entry_command"
-	FlowNodeTypeEntryEvent              FlowNodeType = "entry_event"
-	FlowNodeTypeActionResponseCreate    FlowNodeType = "action_response_create"
-	FlowNodeTypeActionMessageCreate     FlowNodeType = "action_message_create"
-	FlowNodeTypeActionLog               FlowNodeType = "action_log"
-	FlowNodeTypeConditionCompare        FlowNodeType = "condition_compare"
-	FlowNodeTypeConditionItemCompare    FlowNodeType = "condition_item_compare"
-	FlowNodeTypeConditionItemElse       FlowNodeType = "condition_item_else"
+	FlowNodeTypeEntryCommand         FlowNodeType = "entry_command"
+	FlowNodeTypeEntryEvent           FlowNodeType = "entry_event"
+	FlowNodeTypeActionResponseCreate FlowNodeType = "action_response_create"
+	FlowNodeTypeActionMessageCreate  FlowNodeType = "action_message_create"
+	FlowNodeTypeActionLog            FlowNodeType = "action_log"
+	FlowNodeTypeConditionCompare     FlowNodeType = "condition_compare"
+	FlowNodeTypeConditionItemCompare FlowNodeType = "condition_item_compare"
+	FlowNodeTypeConditionItemElse    FlowNodeType = "condition_item_else"
+	// TODO: FlowNodeTypeOptionCommandArgument?
+	// TODO: FlowNodeTypeOptionCommandPermissions?
 	FlowNodeTypeOptionCommandText       FlowNodeType = "option_command_text"
 	FlowNodeTypeOptionCommandNumber     FlowNodeType = "option_command_number"
 	FlowNodeTypeOptionCommandUser       FlowNodeType = "option_command_user"
@@ -89,6 +91,17 @@ func (d FlowNodeData) Validate(nodeType FlowNodeType) error {
 			validation.Match(commandNameRe),
 		)),
 		validation.Field(&d.Description, validation.When(nodeType == FlowNodeTypeEntryCommand,
+			validation.Required,
+			validation.Length(1, 100),
+		)),
+
+		// Command Option
+		// TODO: make all command options one node type?
+		validation.Field(&d.Name, validation.When(nodeType == FlowNodeTypeOptionCommandText,
+			validation.Required,
+			validation.Length(1, 32),
+		)),
+		validation.Field(&d.Description, validation.When(nodeType == FlowNodeTypeOptionCommandText,
 			validation.Required,
 			validation.Length(1, 100),
 		)),

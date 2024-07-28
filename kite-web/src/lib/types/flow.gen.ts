@@ -17,6 +17,10 @@ export const FlowNodeTypeActionLog: FlowNodeType = "action_log";
 export const FlowNodeTypeConditionCompare: FlowNodeType = "condition_compare";
 export const FlowNodeTypeConditionItemCompare: FlowNodeType = "condition_item_compare";
 export const FlowNodeTypeConditionItemElse: FlowNodeType = "condition_item_else";
+/**
+ * TODO: FlowNodeTypeOptionCommandArgument?
+ * TODO: FlowNodeTypeOptionCommandPermissions?
+ */
 export const FlowNodeTypeOptionCommandText: FlowNodeType = "option_command_text";
 export const FlowNodeTypeOptionCommandNumber: FlowNodeType = "option_command_number";
 export const FlowNodeTypeOptionCommandUser: FlowNodeType = "option_command_user";
@@ -77,7 +81,6 @@ export const FlowValueTypeString: FlowValueType = "string";
 export const FlowValueTypeNumber: FlowValueType = "number";
 export const FlowValueTypeMessage: FlowValueType = "message";
 export interface FlowValue {
-  Type: FlowValueType;
-  Value: any;
+  type: FlowValueType;
+  value: any;
 }
-export type Aux = FlowValue;

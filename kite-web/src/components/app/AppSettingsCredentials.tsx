@@ -44,42 +44,45 @@ export default function AppSettingsCredentials() {
         discord_token: "",
       });
     }
-  }, [app]);
+  }, [app, form]);
 
   const updateMutation = useAppTokenUpdateMutation(useAppId());
 
-  const onSubmit = useCallback((data: FormFields) => {
-    if (!data.discord_token) return;
+  const onSubmit = useCallback(
+    (data: FormFields) => {
+      if (!data.discord_token) return;
 
-    updateMutation.mutate(
-      {
-        discord_token: data.discord_token,
-      },
-      {
-        onSuccess(res) {
-          if (res.success) {
-            toast.success("Settings saved!");
-          } else {
-            if (res.error.code === "validation_failed") {
-              setValidationErrors(form, res.error.data);
-            } else {
-              toast.error(
-                `Failed to update app: ${res.error.message} (${res.error.code})`
-              );
-            }
-          }
+      updateMutation.mutate(
+        {
+          discord_token: data.discord_token,
         },
-      }
-    );
-  }, []);
+        {
+          onSuccess(res) {
+            if (res.success) {
+              toast.success("Settings saved!");
+            } else {
+              if (res.error.code === "validation_failed") {
+                setValidationErrors(form, res.error.data);
+              } else {
+                toast.error(
+                  `Failed to update app: ${res.error.message} (${res.error.code})`
+                );
+              }
+            }
+          },
+        }
+      );
+    },
+    [form, updateMutation]
+  );
 
   return (
     <Card x-chunk="dashboard-04-chunk-1">
       <CardHeader>
         <CardTitle>Credentials</CardTitle>
         <CardDescription>
-          Configure your app's credentials here. This is where you can change
-          your app's Discord token.
+          Configure your app&apos;s credentials here. This is where you can
+          change your app&apos;s Discord token.
         </CardDescription>
       </CardHeader>
       <Form {...form}>

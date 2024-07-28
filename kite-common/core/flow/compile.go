@@ -1,6 +1,10 @@
 package flow
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/diamondburned/arikawa/v3/discord"
+)
 
 type FlowCompiler struct{}
 
@@ -86,14 +90,20 @@ func (n *CompiledFlowNode) CommandDescription() string {
 	return n.Data.Description
 }
 
-func (n *CompiledFlowNode) CommandOptions() ([]*CompiledFlowNode, error) {
-	res := make([]*CompiledFlowNode, 0)
+func (n *CompiledFlowNode) CommandOptions() discord.CommandOptions {
+	res := make(discord.CommandOptions, 0)
 	for _, node := range n.Parents {
 		if node.IsCommandOption() {
-			res = append(res, node)
+			// TODO: Implement other option types
+			res = append(res, &discord.StringOption{
+				OptionName:  node.CommandOptionName(),
+				Description: node.CommandOptionDescription(),
+				Required:    true,
+			})
 		}
 	}
-	return res, nil
+
+	return res
 }
 
 func (n *CompiledFlowNode) CommandOptionName() string {

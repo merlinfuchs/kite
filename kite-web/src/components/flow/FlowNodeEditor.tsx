@@ -308,8 +308,19 @@ function ConditionBaseValueInput({ data, updateData, errors }: InputProps) {
     <BaseInput
       field="condition_base_value"
       title="Base Value"
-      value={data.condition_base_value || ""}
-      updateValue={(v) => updateData({ condition_base_value: v || undefined })}
+      value={
+        data.condition_base_value ? `${data.condition_base_value.value}` : ""
+      }
+      updateValue={(v) =>
+        updateData({
+          condition_base_value: v
+            ? {
+                type: "string",
+                value: v,
+              }
+            : undefined,
+        })
+      }
       errors={errors}
     />
   );
@@ -357,8 +368,19 @@ function ConditionItemValueInput({ data, updateData, errors }: InputProps) {
     <BaseInput
       field="condition_item_value"
       title="Comparison Value"
-      value={data.condition_item_value || ""}
-      updateValue={(v) => updateData({ condition_item_value: v || undefined })}
+      value={
+        data.condition_item_value ? `${data.condition_item_value.value}` : ""
+      }
+      updateValue={(v) =>
+        updateData({
+          condition_item_value: v
+            ? {
+                type: "string",
+                value: v,
+              }
+            : undefined,
+        })
+      }
       errors={errors}
     />
   );

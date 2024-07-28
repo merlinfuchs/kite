@@ -47,33 +47,36 @@ export default function AppSettingsAppearance() {
         description: app.description || "",
       });
     }
-  }, [app]);
+  }, [app, form]);
 
   const updateMutation = useAppUpdateMutation(useAppId());
 
-  const onSubmit = useCallback((data: FormFields) => {
-    updateMutation.mutate(
-      {
-        name: data.name,
-        description: data.description || null,
-      },
-      {
-        onSuccess(res) {
-          if (res.success) {
-            toast.success("Settings saved!");
-          } else {
-            if (res.error.code === "validation_failed") {
-              setValidationErrors(form, res.error.data);
-            } else {
-              toast.error(
-                `Failed to update app: ${res.error.message} (${res.error.code})`
-              );
-            }
-          }
+  const onSubmit = useCallback(
+    (data: FormFields) => {
+      updateMutation.mutate(
+        {
+          name: data.name,
+          description: data.description || null,
         },
-      }
-    );
-  }, []);
+        {
+          onSuccess(res) {
+            if (res.success) {
+              toast.success("Settings saved!");
+            } else {
+              if (res.error.code === "validation_failed") {
+                setValidationErrors(form, res.error.data);
+              } else {
+                toast.error(
+                  `Failed to update app: ${res.error.message} (${res.error.code})`
+                );
+              }
+            }
+          },
+        }
+      );
+    },
+    [form, updateMutation]
+  );
 
   return (
     <Card x-chunk="dashboard-04-chunk-1">

@@ -6,7 +6,6 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
-	"unicode"
 
 	"github.com/diamondburned/arikawa/v3/discord"
 )
@@ -23,8 +22,8 @@ const (
 var FlowValueNull = FlowValue{Type: FlowValueTypeNull}
 
 type FlowValue struct {
-	Type  FlowValueType
-	Value interface{}
+	Type  FlowValueType `json:"type"`
+	Value interface{}   `json:"value"`
 }
 
 func (v *FlowValue) HasVariables() bool {
@@ -100,23 +99,6 @@ func (v *FlowValue) Contains(other *FlowValue) bool {
 }
 
 func (v *FlowValue) UnmarshalJSON(data []byte) error {
-	if len(data) == 0 {
-		v.Type = FlowValueTypeNull
-		return nil
-	}
-
-	if data[0] == '"' {
-		v.Type = FlowValueTypeString
-		v.Value = ""
-		return json.Unmarshal(data, &v.Value)
-	}
-
-	if unicode.IsDigit(rune(data[0])) {
-		v.Type = FlowValueTypeNumber
-		v.Value = float64(0)
-		return json.Unmarshal(data, &v.Value)
-	}
-
 	aux := struct {
 		Type  FlowValueType
 		Value json.RawMessage
@@ -145,19 +127,4 @@ func (v *FlowValue) UnmarshalJSON(data []byte) error {
 	}
 
 	return nil
-}
-
-func (v FlowValue) MarshalJSON() ([]byte, error) {
-	if v.Type == FlowValueTypeNull {
-		return []byte("null"), nil
-	}
-	if v.Type == FlowValueTypeString {
-		return json.Marshal(v.Value)
-	}
-	if v.Type == FlowValueTypeNumber {
-		return json.Marshal(v.Value)
-	}
-
-	type Aux FlowValue
-	return json.Marshal(Aux(v))
 }
