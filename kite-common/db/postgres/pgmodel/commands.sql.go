@@ -11,6 +11,17 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const countCommandsByApp = `-- name: CountCommandsByApp :one
+SELECT COUNT(*) FROM commands WHERE app_id = $1
+`
+
+func (q *Queries) CountCommandsByApp(ctx context.Context, appID string) (int64, error) {
+	row := q.db.QueryRow(ctx, countCommandsByApp, appID)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const createCommand = `-- name: CreateCommand :one
 INSERT INTO commands (
     id,

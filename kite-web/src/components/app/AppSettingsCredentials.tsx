@@ -20,24 +20,20 @@ import {
 } from "../ui/form";
 import { useCallback, useEffect } from "react";
 import { useApp } from "@/lib/hooks/api";
-import { useAppUpdateMutation } from "@/lib/api/mutations";
+import { useAppTokenUpdateMutation } from "@/lib/api/mutations";
 import { useAppId } from "@/lib/hooks/params";
 import { toast } from "sonner";
 import { setValidationErrors } from "@/lib/form";
 
 interface FormFields {
-  name: string;
-  description: string;
   discord_token: string;
 }
 
-export default function AppSettingsBot() {
+export default function AppSettingsCredentials() {
   const app = useApp();
 
   const form = useForm<FormFields>({
     defaultValues: {
-      name: "",
-      description: "",
       discord_token: "",
     },
   });
@@ -45,21 +41,19 @@ export default function AppSettingsBot() {
   useEffect(() => {
     if (app) {
       form.reset({
-        name: app.name,
-        description: app.description || "",
         discord_token: "",
       });
     }
   }, [app]);
 
-  const updateMutation = useAppUpdateMutation(useAppId());
+  const updateMutation = useAppTokenUpdateMutation(useAppId());
 
   const onSubmit = useCallback((data: FormFields) => {
+    if (!data.discord_token) return;
+
     updateMutation.mutate(
       {
-        name: data.name || null,
-        description: data.description,
-        discord_token: data.discord_token || null,
+        discord_token: data.discord_token,
       },
       {
         onSuccess(res) {
@@ -82,9 +76,10 @@ export default function AppSettingsBot() {
   return (
     <Card x-chunk="dashboard-04-chunk-1">
       <CardHeader>
-        <CardTitle>Bot Settings</CardTitle>
+        <CardTitle>Credentials</CardTitle>
         <CardDescription>
-          Configure the settings for your Discord bot.
+          Configure your app's credentials here. This is where you can change
+          your app's Discord token.
         </CardDescription>
       </CardHeader>
       <Form {...form}>
@@ -92,39 +87,10 @@ export default function AppSettingsBot() {
           <CardContent className="space-y-5">
             <FormField
               control={form.control}
-              name="name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Name</FormLabel>
-                  <FormControl>
-                    <Input type="text" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="description"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Description</FormLabel>
-                  <FormControl>
-                    <Input type="text" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
               name="discord_token"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Bot Token</FormLabel>
-                  <FormDescription>
-                    Set a new Discord bot token for your app.
-                  </FormDescription>
+                  <FormLabel>Discord Token</FormLabel>
                   <FormControl>
                     <Input type="password" {...field} />
                   </FormControl>
@@ -135,7 +101,9 @@ export default function AppSettingsBot() {
           </CardContent>
 
           <CardFooter className="border-t px-6 py-4">
-            <Button type="submit">Save settings</Button>
+            <Button type="submit" disabled={!form.getValues().discord_token}>
+              Save token
+            </Button>
           </CardFooter>
         </form>
       </Form>

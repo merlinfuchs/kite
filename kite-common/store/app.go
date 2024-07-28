@@ -18,6 +18,7 @@ type AppUpdateOpts struct {
 
 type AppStore interface {
 	AppsByUser(ctx context.Context, userID string) ([]*model.App, error)
+	CountAppsByUser(ctx context.Context, userID string) (int, error)
 	App(ctx context.Context, id string) (*model.App, error)
 	AppCredentials(ctx context.Context, id string) (*model.AppCredentials, error)
 	CreateApp(ctx context.Context, app *model.App) (*model.App, error)

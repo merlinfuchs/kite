@@ -34,19 +34,30 @@ func (req AppCreateRequest) Validate() error {
 type AppCreateResponse = App
 
 type AppUpdateRequest struct {
-	Name         null.String `json:"name"`
-	Description  null.String `json:"description"`
-	DiscordToken null.String `json:"discord_token"`
+	Name        string      `json:"name"`
+	Description null.String `json:"description"`
 }
 
 func (req AppUpdateRequest) Validate() error {
 	return validation.ValidateStruct(&req,
-		validation.Field(&req.Name, validation.Length(0, 80)),
+		validation.Field(&req.Name, validation.Required, validation.Length(0, 80)),
 		validation.Field(&req.Description, validation.Length(0, 200)),
 	)
 }
 
 type AppUpdateResponse = App
+
+type AppTokenUpdateRequest struct {
+	DiscordToken string `json:"discord_token"`
+}
+
+func (req AppTokenUpdateRequest) Validate() error {
+	return validation.ValidateStruct(&req,
+		validation.Field(&req.DiscordToken, validation.Required),
+	)
+}
+
+type AppTokenUpdateResponse = App
 
 type AppDeleteResponse = Empty
 

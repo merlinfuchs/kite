@@ -384,7 +384,7 @@ export default function AppLayout({ children, ...props }: Props) {
         <main
           className={cn(
             "flex-1 flex flex-col",
-            !props.disablePadding && "p-4 sm:px-6 sm:py-0"
+            !props.disablePadding && "p-4 sm:px-6 sm:pb-20"
           )}
         >
           {children}

@@ -40,10 +40,11 @@ type PostgresConfig struct {
 }
 
 type APIConfig struct {
-	Host          string `toml:"host" validate:"required"`
-	Port          int    `toml:"port" validate:"required"`
-	PublicBaseURL string `toml:"public_base_url" validate:"required"`
-	SecureCookies bool   `toml:"secure_cookies"`
+	Host          string           `toml:"host" validate:"required"`
+	Port          int              `toml:"port" validate:"required"`
+	PublicBaseURL string           `toml:"public_base_url" validate:"required"`
+	SecureCookies bool             `toml:"secure_cookies"`
+	UserLimits    UserLimitsConfig `toml:"user_limits"`
 }
 
 type AppConfig struct {
@@ -59,4 +60,9 @@ type EngineConfig struct {
 	MaxStackDepth int `toml:"max_stack_depth"`
 	MaxOperations int `toml:"max_operations"`
 	MaxActions    int `toml:"max_actions"`
+}
+
+type UserLimitsConfig struct {
+	MaxAppsPerUser    int `toml:"max_apps_per_user"`
+	MaxCommandsPerApp int `toml:"max_commands_per_app"`
 }

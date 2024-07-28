@@ -52,7 +52,7 @@ func (s *APIServer) RegisterRoutes(
 	usersGroup.Get("/{userID}", handler.Typed(userHandler.HandlerUserGet))
 
 	// App routes
-	appHandler := app.NewAppHandler(appStore)
+	appHandler := app.NewAppHandler(appStore, s.config.UserLimits.MaxAppsPerUser)
 
 	appsGroup := v1Group.Group("/apps", sessionManager.RequireSession)
 	appsGroup.Get("/", handler.Typed(appHandler.HandleAppList))
@@ -61,6 +61,7 @@ func (s *APIServer) RegisterRoutes(
 	appGroup := appsGroup.Group("/{appID}", accessManager.AppAccess)
 	appGroup.Get("/", handler.Typed(appHandler.HandleAppGet))
 	appGroup.Patch("/", handler.TypedWithBody(appHandler.HandleAppUpdate))
+	appGroup.Put("/token", handler.TypedWithBody(appHandler.HandleAppTokenUpdate))
 	appGroup.Delete("/", handler.Typed(appHandler.HandleAppDelete))
 
 	// Log routes
@@ -70,7 +71,7 @@ func (s *APIServer) RegisterRoutes(
 	logsGroup.Get("/", handler.Typed(logHandler.HandleLogEntryList))
 
 	// Command routes
-	commandsHandler := command.NewCommandHandler(commandStore)
+	commandsHandler := command.NewCommandHandler(commandStore, s.config.UserLimits.MaxCommandsPerApp)
 
 	commandsGroup := appGroup.Group("/commands")
 	commandsGroup.Get("/", handler.Typed(commandsHandler.HandleCommandList))

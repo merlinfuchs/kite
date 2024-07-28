@@ -4,6 +4,9 @@ SELECT * FROM commands WHERE id = $1;
 -- name: GetCommandsByApp :many
 SELECT * FROM commands WHERE app_id = $1;
 
+-- name: CountCommandsByApp :one
+SELECT COUNT(*) FROM commands WHERE app_id = $1;
+
 -- name: CreateCommand :one
 INSERT INTO commands (
     id,

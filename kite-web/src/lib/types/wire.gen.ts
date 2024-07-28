@@ -21,11 +21,14 @@ export interface AppCreateRequest {
 }
 export type AppCreateResponse = App;
 export interface AppUpdateRequest {
-  name: null | string;
+  name: string;
   description: null | string;
-  discord_token: null | string;
 }
 export type AppUpdateResponse = App;
+export interface AppTokenUpdateRequest {
+  discord_token: string;
+}
+export type AppTokenUpdateResponse = App;
 export type AppDeleteResponse = Empty;
 export type AppListResponse = (App | undefined)[];
 

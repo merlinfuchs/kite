@@ -14,12 +14,14 @@ import (
 )
 
 type CommandHandler struct {
-	commandStore store.CommandStore
+	commandStore      store.CommandStore
+	maxCommandsPerApp int
 }
 
-func NewCommandHandler(commandStore store.CommandStore) *CommandHandler {
+func NewCommandHandler(commandStore store.CommandStore, maxCommandsPerApp int) *CommandHandler {
 	return &CommandHandler{
-		commandStore: commandStore,
+		commandStore:      commandStore,
+		maxCommandsPerApp: maxCommandsPerApp,
 	}
 }
 
@@ -42,6 +44,15 @@ func (h *CommandHandler) HandleCommandGet(c *handler.Context) (*wire.CommandGetR
 }
 
 func (h *CommandHandler) HandleCommandCreate(c *handler.Context, req wire.CommandCreateRequest) (*wire.CommandCreateResponse, error) {
+	commandCount, err := h.commandStore.CountCommandsByApp(c.Context(), c.App.ID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to count commands: %w", err)
+	}
+
+	if commandCount >= h.maxCommandsPerApp {
+		return nil, handler.ErrBadRequest("resource_limit", fmt.Sprintf("maximum number of commands (%d) reached", h.maxCommandsPerApp))
+	}
+
 	cmdFlow, err := flow.CompileCommand(req.FlowSource)
 	if err != nil {
 		return nil, fmt.Errorf("failed to compile command: %w", err)

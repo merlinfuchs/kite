@@ -11,6 +11,17 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const countAppsByOwner = `-- name: CountAppsByOwner :one
+SELECT COUNT(*) FROM apps WHERE owner_user_id = $1
+`
+
+func (q *Queries) CountAppsByOwner(ctx context.Context, ownerUserID string) (int64, error) {
+	row := q.db.QueryRow(ctx, countAppsByOwner, ownerUserID)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const createApp = `-- name: CreateApp :one
 INSERT INTO apps (
     id,

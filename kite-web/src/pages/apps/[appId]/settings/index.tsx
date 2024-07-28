@@ -1,7 +1,9 @@
 import AppLayout from "@/components/app/AppLayout";
 import { Separator } from "@/components/ui/separator";
-import AppSettingsBot from "@/components/app/AppSettingsBot";
+import AppSettingsAppearance from "@/components/app/AppSettingsAppearance";
 import AppSettingsCollaborators from "@/components/app/AppSettingsCollaborators";
+import AppSettingsCredentials from "@/components/app/AppSettingsCredentials";
+import AppSettingsDelete from "@/components/app/AppSettingsDelete";
 
 const breadcrumbs = [
   {
@@ -21,8 +23,13 @@ export default function AnalyticsPage() {
       </div>
       <Separator className="my-8" />
       <div className="grid gap-6">
-        <AppSettingsBot />
+        <AppSettingsAppearance />
+        <AppSettingsCredentials />
         <AppSettingsCollaborators />
+
+        <div className="flex justify-end">
+          <AppSettingsDelete />
+        </div>
       </div>
     </AppLayout>
   );

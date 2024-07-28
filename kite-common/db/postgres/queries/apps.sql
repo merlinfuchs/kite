@@ -7,6 +7,9 @@ SELECT discord_id, discord_token FROM apps WHERE id = $1;
 -- name: GetAppsByOwner :many
 SELECT * FROM apps WHERE owner_user_id = $1;
 
+-- name: CountAppsByOwner :one
+SELECT COUNT(*) FROM apps WHERE owner_user_id = $1;
+
 -- name: CreateApp :one
 INSERT INTO apps (
     id,

@@ -25,7 +25,14 @@ func (c *Client) AppsByUser(ctx context.Context, userID string) ([]*model.App, e
 	}
 
 	return apps, nil
+}
 
+func (c *Client) CountAppsByUser(ctx context.Context, userID string) (int, error) {
+	res, err := c.Q.CountAppsByOwner(ctx, userID)
+	if err != nil {
+		return 0, err
+	}
+	return int(res), nil
 }
 
 func (c *Client) App(ctx context.Context, id string) (*model.App, error) {

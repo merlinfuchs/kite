@@ -15,6 +15,12 @@ type APIServerConfig struct {
 	APIPublicBaseURL    string
 	DiscordClientID     string
 	DiscordClientSecret string
+	UserLimits          APIUserLimitsConfig
+}
+
+type APIUserLimitsConfig struct {
+	MaxAppsPerUser    int
+	MaxCommandsPerApp int
 }
 
 type APIServer struct {

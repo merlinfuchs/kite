@@ -3,6 +3,8 @@ import {
   AppCreateRequest,
   AppCreateResponse,
   AppDeleteResponse,
+  AppTokenUpdateRequest,
+  AppTokenUpdateResponse,
   AppUpdateRequest,
   AppUpdateResponse,
   AuthLogoutResponse,
@@ -70,13 +72,33 @@ export function useAppUpdateMutation(appId: string) {
   });
 }
 
+export function useAppTokenUpdateMutation(appId: string) {
+  const client = useQueryClient();
+
+  return useMutation({
+    mutationFn: (req: AppTokenUpdateRequest) =>
+      apiRequest<AppTokenUpdateResponse>(`/v1/apps/${appId}/token`, {
+        method: "PUT",
+        body: JSON.stringify(req),
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }),
+    onSuccess: () => {
+      client.invalidateQueries({
+        queryKey: ["apps"],
+      });
+    },
+  });
+}
+
 export function useAppDeleteMutation(appId: string) {
   const client = useQueryClient();
 
   return useMutation({
     mutationFn: () =>
       apiRequest<AppDeleteResponse>(`/v1/apps/${appId}`, {
-        method: "POST",
+        method: "DELETE",
       }),
     onSuccess: () => {
       client.invalidateQueries({
