@@ -6,6 +6,7 @@ import (
 
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/gateway"
+	"github.com/kitecloud/kite/kite-common/core/template"
 )
 
 type FlowContext struct {
@@ -18,12 +19,27 @@ type FlowContext struct {
 	Variables FlowContextVariables
 }
 
-func NewContext(ctx context.Context, data FlowContextData, providers FlowProviders, limits FlowContextLimits) *FlowContext {
+func NewContext(
+	ctx context.Context,
+	data FlowContextData,
+	providers FlowProviders,
+	limits FlowContextLimits,
+	templates *template.TemplateContext,
+) *FlowContext {
+	// TODO: pass in bot state cabinet or custom interface?
+	if data.Interaction() != nil {
+		templates.AddProvider(template.NewInteractionProvider(nil, data.Interaction()))
+	}
+	if data.GuildID() != 0 {
+		templates.AddProvider(template.NewGuildProvider(nil, data.GuildID(), nil))
+	}
+
 	return &FlowContext{
 		Context: ctx,
 		Data:    data,
 		Variables: FlowContextVariables{
-			Variables: make(map[string]FlowValue),
+			TemplateContext: templates,
+			Variables:       make(map[string]FlowValue),
 		},
 		FlowProviders:     providers,
 		FlowContextLimits: limits,
@@ -35,21 +51,8 @@ type FlowContextData interface {
 	MessageComponentData() discord.ComponentInteraction
 	Interaction() *discord.InteractionEvent
 	EventData() gateway.Event
-	GuildID() string
-	ChannelID() string
-}
-
-type FlowContextVariables struct {
-	Variables map[string]FlowValue
-}
-
-func (v *FlowContextVariables) SetVariable(name string, value FlowValue) {
-	v.Variables[name] = value
-}
-
-func (v *FlowContextVariables) Variable(name string) FlowValue {
-	value := v.Variables[name]
-	return value
+	GuildID() discord.GuildID
+	ChannelID() discord.ChannelID
 }
 
 type FlowContextTemporaries struct {

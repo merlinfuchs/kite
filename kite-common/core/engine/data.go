@@ -13,12 +13,12 @@ func (d *InteractionData) Interaction() *discord.InteractionEvent {
 	return d.interaction
 }
 
-func (d *InteractionData) GuildID() string {
-	return d.interaction.GuildID.String()
+func (d *InteractionData) GuildID() discord.GuildID {
+	return d.interaction.GuildID
 }
 
-func (d *InteractionData) ChannelID() string {
-	return d.interaction.ChannelID.String()
+func (d *InteractionData) ChannelID() discord.ChannelID {
+	return d.interaction.ChannelID
 }
 
 func (d *InteractionData) CommandData() *discord.CommandInteraction {

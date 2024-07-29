@@ -15,8 +15,8 @@ type FlowProviders struct {
 }
 
 type FlowDiscordProvider interface {
-	CreateInteractionResponse(ctx context.Context, interactionID string, interactionToken string, response api.InteractionResponse) error
-	CreateMessage(ctx context.Context, channelID string, message api.SendMessageData) (*discord.Message, error)
+	CreateInteractionResponse(ctx context.Context, interactionID discord.InteractionID, interactionToken string, response api.InteractionResponse) error
+	CreateMessage(ctx context.Context, channelID discord.ChannelID, message api.SendMessageData) (*discord.Message, error)
 }
 
 type FlowKVProvider interface{}

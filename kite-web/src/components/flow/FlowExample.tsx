@@ -44,6 +44,7 @@ const initialNodes = [
     type: "option_command_argument",
   },
 ];
+
 const initialEdges = [
   { id: "e1-2", source: "1", target: "2", type: "fixed" },
   { id: "e3-1", source: "3", target: "1", type: "fixed" },

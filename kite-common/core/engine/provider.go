@@ -42,15 +42,10 @@ func (p *DiscordProvider) clientWithCredentials(ctx context.Context) (*api.Clien
 	return api.NewClient("Bot " + cred.DiscordToken), nil
 }
 
-func (p *DiscordProvider) CreateInteractionResponse(ctx context.Context, interactionID string, interactionToken string, response api.InteractionResponse) error {
+func (p *DiscordProvider) CreateInteractionResponse(ctx context.Context, interactionID discord.InteractionID, interactionToken string, response api.InteractionResponse) error {
 	client := api.NewClient("").WithContext(ctx)
 
-	id, err := discord.ParseSnowflake(interactionID)
-	if err != nil {
-		return fmt.Errorf("failed to parse interaction ID: %w", err)
-	}
-
-	err = client.RespondInteraction(discord.InteractionID(id), interactionToken, response)
+	err := client.RespondInteraction(interactionID, interactionToken, response)
 	if err != nil {
 		return fmt.Errorf("failed to respond to interaction: %w", err)
 	}
@@ -58,18 +53,13 @@ func (p *DiscordProvider) CreateInteractionResponse(ctx context.Context, interac
 	return nil
 }
 
-func (p *DiscordProvider) CreateMessage(ctx context.Context, channelID string, message api.SendMessageData) (*discord.Message, error) {
+func (p *DiscordProvider) CreateMessage(ctx context.Context, channelID discord.ChannelID, message api.SendMessageData) (*discord.Message, error) {
 	client, err := p.clientWithCredentials(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	id, err := discord.ParseSnowflake(channelID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse channel ID: %w", err)
-	}
-
-	msg, err := client.SendMessageComplex(discord.ChannelID(id), message)
+	msg, err := client.SendMessageComplex(channelID, message)
 	if err != nil {
 		return nil, fmt.Errorf("failed to send message: %w", err)
 	}

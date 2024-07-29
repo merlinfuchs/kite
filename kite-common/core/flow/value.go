@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/diamondburned/arikawa/v3/discord"
+	"github.com/kitecloud/kite/kite-common/core/template"
 )
 
 type FlowValueType string
@@ -26,16 +27,30 @@ type FlowValue struct {
 	Value interface{}   `json:"value"`
 }
 
-func (v *FlowValue) HasVariables() bool {
-	return strings.Contains(v.String(), "{{")
-}
-
-func (v *FlowValue) ResolveVariables() {
-	if !v.HasVariables() {
-		return
+func (v *FlowValue) ContainsVariable() bool {
+	if v.Type != FlowValueTypeString {
+		return false
 	}
 
-	// TODO: find and replace any variables in the value
+	return template.ContainsVariable(v.String())
+}
+
+func (v *FlowValue) ResolveVariables(t FlowContextVariables) error {
+	if !v.ContainsVariable() {
+		return nil
+	}
+
+	res, err := t.ParseAndExecute(v.String())
+	if err != nil {
+		return fmt.Errorf("failed to resolve variables: %w", err)
+	}
+
+	*v = FlowValue{
+		Type:  FlowValueTypeString,
+		Value: res,
+	}
+
+	return nil
 }
 
 func (v *FlowValue) String() string {
@@ -49,7 +64,7 @@ func (v *FlowValue) String() string {
 		n, _ := v.Value.(float64)
 		return fmt.Sprintf("%f", n)
 	case FlowValueTypeMessage:
-		m, _ := v.Value.(discord.Message)
+		m, _ := v.Message()
 		return m.ID.String()
 	}
 
@@ -67,6 +82,14 @@ func (v *FlowValue) Number() float64 {
 		n, _ := strconv.ParseFloat(v.String(), 64)
 		return n
 	}
+}
+
+func (v *FlowValue) Message() (discord.Message, bool) {
+	if v.Type != FlowValueTypeMessage {
+		return discord.Message{}, false
+	}
+
+	return v.Value.(discord.Message), true
 }
 
 func (v *FlowValue) Equals(other *FlowValue) bool {

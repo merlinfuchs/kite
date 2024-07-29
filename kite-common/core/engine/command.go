@@ -11,6 +11,7 @@ import (
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/gateway"
 	"github.com/kitecloud/kite/kite-common/core/flow"
+	"github.com/kitecloud/kite/kite-common/core/template"
 	"github.com/kitecloud/kite/kite-common/model"
 	"github.com/kitecloud/kite/kite-common/store"
 )
@@ -57,6 +58,7 @@ func (c *Command) HandleEvent(appID string, event gateway.Event) {
 			MaxOperations: c.config.MaxOperations,
 			MaxActions:    c.config.MaxActions,
 		},
+		template.NewContext(appID, 0),
 	)
 
 	if err := c.flow.Execute(fCtx); err != nil {

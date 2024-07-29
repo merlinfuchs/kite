@@ -25,10 +25,14 @@ const nodeCategories = {
       nodeTypes: ["action_log"],
     },
   ],
-  condition: [
+  control_flow: [
     {
       title: "Conditions",
       nodeTypes: ["condition_compare", "condition_permissions"],
+    },
+    {
+      title: "Loops",
+      nodeTypes: [],
     },
   ],
 };
@@ -95,19 +99,22 @@ function NodeCategories({
           className={clsx("h-1 rounde", category === "action" && "bg-primary")}
         ></div>
       </div>
-      <div onClick={() => setCategory("condition")} className="cursor-pointer">
+      <div
+        onClick={() => setCategory("control_flow")}
+        className="cursor-pointer"
+      >
         <div
           className={clsx(
             "pb-2 px-3 hover:text-foreground",
-            category === "condition" && "text-foreground"
+            category === "control_flow" && "text-foreground"
           )}
         >
-          Conditions
+          Control Flow
         </div>
         <div
           className={clsx(
             "h-1 rounde",
-            category === "condition" && "bg-primary"
+            category === "control_flow" && "bg-primary"
           )}
         ></div>
       </div>

@@ -57,13 +57,18 @@ func TestFlowExecuteCommand(t *testing.T) {
 
 	discordProvider := &TestDiscordProvider{}
 
-	c := NewContext(ctx, &TestContextData{}, FlowProviders{
-		Discord: discordProvider,
-	}, FlowContextLimits{
-		MaxStackDepth: 10,
-		MaxOperations: 1000,
-		MaxActions:    1,
-	})
+	c := NewContext(
+		ctx,
+		&TestContextData{},
+		FlowProviders{
+			Discord: discordProvider,
+		}, FlowContextLimits{
+			MaxStackDepth: 10,
+			MaxOperations: 1000,
+			MaxActions:    1,
+		},
+		nil,
+	)
 
 	err := flowCommandTest.Execute(c)
 	require.NoError(t, err)
@@ -74,12 +79,12 @@ type TestDiscordProvider struct {
 	response api.InteractionResponse
 }
 
-func (p *TestDiscordProvider) CreateInteractionResponse(ctx context.Context, interactionID string, interactionToken string, response api.InteractionResponse) error {
+func (p *TestDiscordProvider) CreateInteractionResponse(ctx context.Context, interactionID discord.InteractionID, interactionToken string, response api.InteractionResponse) error {
 	p.response = response
 	return nil
 }
 
-func (p *TestDiscordProvider) CreateMessage(ctx context.Context, channelID string, message api.SendMessageData) (*discord.Message, error) {
+func (p *TestDiscordProvider) CreateMessage(ctx context.Context, channelID discord.ChannelID, message api.SendMessageData) (*discord.Message, error) {
 	return nil, nil
 }
 
@@ -89,12 +94,12 @@ func (d *TestContextData) Interaction() *discord.InteractionEvent {
 	return &discord.InteractionEvent{}
 }
 
-func (d *TestContextData) GuildID() string {
-	return ""
+func (d *TestContextData) GuildID() discord.GuildID {
+	return 0
 }
 
-func (d *TestContextData) ChannelID() string {
-	return ""
+func (d *TestContextData) ChannelID() discord.ChannelID {
+	return 0
 }
 
 func (d *TestContextData) CommandData() *discord.CommandInteraction {

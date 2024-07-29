@@ -5,6 +5,7 @@ import { useNodeValues } from "@/lib/flow/nodes";
 import { getUniqueId } from "@/lib/utils";
 import {
   CheckIcon,
+  ChevronDownIcon,
   CircleAlertIcon,
   CopyIcon,
   TrashIcon,
@@ -22,6 +23,12 @@ import { Textarea } from "../ui/textarea";
 import { Toggle } from "../ui/toggle";
 import { Switch } from "../ui/switch";
 import { Button } from "../ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuTrigger,
+} from "../ui/dropdown-menu";
 
 interface Props {
   nodeId: string;
@@ -41,6 +48,7 @@ const intputs: Record<string, any> = {
   description: DescriptionInput,
   command_argument_type: CommandArgumentTypeInput,
   command_argument_required: CommandArgumentRequiredInput,
+  command_permissions: CommandPermissionsInput,
   event_type: EventTypeInput,
   message_data: MessageDataInput,
   message_ephemeral: MessageEphemeralInput,
@@ -267,6 +275,26 @@ function CommandArgumentRequiredInput({
       updateValue={(v) =>
         updateData({ command_argument_required: v || undefined })
       }
+      errors={errors}
+    />
+  );
+}
+
+const commandPermissionsOptions = [
+  { value: "8", label: "Administrator" },
+  { value: "16", label: "Moderator" },
+];
+
+function CommandPermissionsInput({ data, updateData, errors }: InputProps) {
+  const rawPermissions = data.command_permissions || "0";
+
+  return (
+    <BaseMultiSelect
+      field="command_permissions"
+      title="Permissions"
+      value={[]}
+      options={commandPermissionsOptions}
+      updateValue={(v) => {}}
       errors={errors}
     />
   );
@@ -513,6 +541,66 @@ function BaseCheckbox({
         <div className="text-muted-foreground text-sm mb-2">{description}</div>
       ) : null}
       <Switch checked={value} onCheckedChange={updateValue} />
+      {error && (
+        <div className="text-red-600 dark:text-red-400 text-sm flex items-center space-x-1 pt-2">
+          <CircleAlertIcon className="h-5 w-5 flex-none" />
+          <div>{error}</div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function BaseMultiSelect({
+  field,
+  title,
+  description,
+  errors,
+  options,
+  value,
+  updateValue,
+}: {
+  field: string;
+  title: string;
+  description?: string;
+  errors: Record<string, string>;
+  options: { value: string; label: string }[];
+  value: string[];
+  updateValue: (value: string[]) => void;
+}) {
+  const error = errors[field];
+
+  return (
+    <div>
+      <div className="font-medium text-foreground mb-2">{title}</div>
+      {description ? (
+        <div className="text-muted-foreground text-sm mb-2">{description}</div>
+      ) : null}
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="outline" className="w-full flex items-center">
+            <div>{value.length} selected</div>
+            <ChevronDownIcon className="h-4 w-4 ml-auto" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent className="w-56">
+          {options.map((o) => (
+            <DropdownMenuCheckboxItem
+              key={o.value}
+              checked={value.includes(o.value)}
+              onCheckedChange={(v) => {
+                if (v) {
+                  updateValue([...value, o.value]);
+                } else {
+                  updateValue(value.filter((val) => val !== o.value));
+                }
+              }}
+            >
+              {o.label}
+            </DropdownMenuCheckboxItem>
+          ))}
+        </DropdownMenuContent>
+      </DropdownMenu>
       {error && (
         <div className="text-red-600 dark:text-red-400 text-sm flex items-center space-x-1 pt-2">
           <CircleAlertIcon className="h-5 w-5 flex-none" />

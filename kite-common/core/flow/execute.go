@@ -41,17 +41,22 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			flags |= discord.EphemeralMessage
 		}
 
+		content, err := ctx.Variables.ParseAndExecute(data.Content)
+		if err != nil {
+			return traceError(n, err)
+		}
+
 		resp := api.InteractionResponse{
 			Type: api.MessageInteractionWithSource,
 			Data: &api.InteractionResponseData{
-				Content: option.NewNullableString(data.Content),
+				Content: option.NewNullableString(content),
 				Embeds:  &data.Embeds,
 				Flags:   flags,
 				// TODO: other fields
 			},
 		}
 
-		err := ctx.Discord.CreateInteractionResponse(ctx, interaction.ID.String(), interaction.Token, resp)
+		err = ctx.Discord.CreateInteractionResponse(ctx, interaction.ID, interaction.Token, resp)
 		if err != nil {
 			return traceError(n, err)
 		}
@@ -75,7 +80,9 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 		ctx.Log.CreateLogEntry(ctx, n.Data.LogLevel, n.Data.LogMessage)
 		return n.executeChildren(ctx)
 	case FlowNodeTypeConditionCompare:
-		n.Data.ConditionBaseValue.ResolveVariables()
+		if err := n.Data.ConditionBaseValue.ResolveVariables(ctx.Variables); err != nil {
+			return traceError(n, err)
+		}
 
 		ctx.Tempories.InitCondition(n.Data.ConditionBaseValue, n.Data.ConditionAllowMultiple)
 
@@ -103,7 +110,9 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			return nil
 		}
 
-		n.Data.ConditionItemValue.ResolveVariables()
+		if err := n.Data.ConditionItemValue.ResolveVariables(ctx.Variables); err != nil {
+			return traceError(n, err)
+		}
 
 		var conditionMet bool
 		switch n.Data.ConditionItemMode {
