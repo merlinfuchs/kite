@@ -9,12 +9,20 @@ import { Button } from "../ui/button";
 import { CopyIcon, SettingsIcon } from "lucide-react";
 import Link from "next/link";
 import { formatDate } from "@/lib/utils";
-import { useApp } from "@/lib/hooks/api";
+import { useApp, useResponseData } from "@/lib/hooks/api";
 import { Separator } from "../ui/separator";
 import { Badge } from "../ui/badge";
+import { useUserQuery } from "@/lib/api/queries";
+import { useCallback } from "react";
 
 export default function AppInfoCard() {
   const app = useApp();
+
+  const ownerUser = useResponseData(useUserQuery(app?.owner_user_id));
+
+  const copyAppId = useCallback(() => {
+    navigator.clipboard.writeText(app?.id || "");
+  }, [app?.id]);
 
   return (
     <Card className="overflow-hidden">
@@ -30,6 +38,7 @@ export default function AppInfoCard() {
               size="icon"
               variant="outline"
               className="h-6 w-6 opacity-0 transition-opacity group-hover:opacity-100"
+              onClick={copyAppId}
             >
               <CopyIcon className="h-3 w-3" />
               <span className="sr-only">Copy App ID</span>
@@ -65,12 +74,14 @@ export default function AppInfoCard() {
               <span>{app ? formatDate(new Date(app.updated_at)) : null}</span>
             </li>
             <li className="flex items-center justify-between">
-              <span className="text-muted-foreground">Discord App ID</span>
-              <span>{app?.discord_id}</span>
+              <span className="text-muted-foreground">Owned By</span>
+              <span>
+                {ownerUser ? ownerUser.display_name : app?.owner_user_id}
+              </span>
             </li>
             <li className="flex items-center justify-between">
-              <span className="text-muted-foreground">Owner User ID</span>
-              <span>{app?.owner_user_id}</span>
+              <span className="text-muted-foreground">Discord App ID</span>
+              <span>{app?.discord_id}</span>
             </li>
           </ul>
         </div>

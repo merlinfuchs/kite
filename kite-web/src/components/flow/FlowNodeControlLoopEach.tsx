@@ -2,14 +2,14 @@ import { Position } from "@xyflow/react";
 import { NodeProps } from "../../lib/flow/data";
 import FlowNodeBase from "./FlowNodeBase";
 import FlowNodeHandle from "./FlowNodeHandle";
-import { conditionColor } from "@/lib/flow/nodes";
+import { controlColor } from "@/lib/flow/nodes";
 
-export default function FlowNodeConditionItemCompare(props: NodeProps) {
+export default function FlowNodeControlLoopEach(props: NodeProps) {
   return (
     <FlowNodeBase {...props}>
       <FlowNodeHandle
         type="target"
-        color={conditionColor}
+        color={controlColor}
         position={Position.Top}
         size="small"
         isConnectable={false}

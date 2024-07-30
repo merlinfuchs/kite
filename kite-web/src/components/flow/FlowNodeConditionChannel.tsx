@@ -7,14 +7,14 @@ import { Button } from "../ui/button";
 import { PlusIcon } from "lucide-react";
 import { getUniqueId } from "@/lib/utils";
 
-export default function FlowNodeConditionCompare(props: NodeProps) {
+export default function FlowNodeConditionChannel(props: NodeProps) {
   const { setNodes, setEdges, getNode } = useReactFlow<NodeType>();
 
   function addItem() {
     const node = getNode(props.id);
     if (!node) return;
 
-    const [newNodes, newEdges] = createNode("control_condition_item_compare", {
+    const [newNodes, newEdges] = createNode("control_condition_item_channel", {
       x: node.position.x + 50,
       y: node.position.y + 300,
     });

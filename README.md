@@ -22,7 +22,8 @@ Make your own Discord Bot with Kite for free without a single line of code. With
 
 - [x] Command entry
 - [x] Command arguments
-- [ ] Command permission check
+- [x] Command permission check
+- [x] Command context check
 
 - [ ] Error entry?
 
@@ -53,6 +54,14 @@ Make your own Discord Bot with Kite for free without a single line of code. With
 - [ ] Create channel
 - [ ] Delete channel
 - [ ] Edit channel
+
+- [ ] Create thread
+- [ ] Delete thread
+- [ ] Edit thread
+
+- [ ] Create role
+- [ ] Delete role
+- [ ] Edit role
 
 - [ ] Ban user
 - [ ] Kick user

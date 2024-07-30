@@ -1,4 +1,5 @@
 import { type ClassValue, clsx } from "clsx";
+import { formatRelative } from "date-fns";
 import { twMerge } from "tailwind-merge";
 
 export function cn(...inputs: ClassValue[]) {
@@ -41,5 +42,5 @@ export function formatDate(date: Date): string {
 }
 
 export function formatDateTime(date: Date): string {
-  return date.toLocaleString("en-US");
+  return formatRelative(date, new Date());
 }

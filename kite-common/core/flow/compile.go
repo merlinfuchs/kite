@@ -2,6 +2,7 @@ package flow
 
 import (
 	"fmt"
+	"strconv"
 
 	"github.com/diamondburned/arikawa/v3/discord"
 )
@@ -69,6 +70,14 @@ func (n *CompiledFlowNode) IsCommandEntry() bool {
 
 func (n *CompiledFlowNode) IsCommandArgument() bool {
 	return n.Type == FlowNodeTypeOptionCommandArgument
+}
+
+func (n *CompiledFlowNode) IsCommandPermissions() bool {
+	return n.Type == FlowNodeTypeOptionCommandPermissions
+}
+
+func (n *CompiledFlowNode) IsCommandContexts() bool {
+	return n.Type == FlowNodeTypeOptionCommandContexts
 }
 
 func (n *CompiledFlowNode) CommandName() string {
@@ -155,6 +164,28 @@ func (n *CompiledFlowNode) CommandArguments() discord.CommandOptions {
 	}
 
 	return res
+}
+
+func (n *CompiledFlowNode) CommandPermissions() discord.Permissions {
+	for _, node := range n.Parents {
+		if node.IsCommandPermissions() {
+			raw, _ := strconv.ParseInt(node.Data.CommandPermissions, 10, 64)
+			return discord.Permissions(raw)
+
+		}
+	}
+
+	return 0
+}
+
+func (n *CompiledFlowNode) CommandDisabledContexts() []CommandContextType {
+	for _, node := range n.Parents {
+		if node.IsCommandContexts() {
+			return node.Data.CommandDisabledContexts
+		}
+	}
+
+	return nil
 }
 
 func (n *CompiledFlowNode) IsAction() bool {

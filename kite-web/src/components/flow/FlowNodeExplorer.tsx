@@ -8,31 +8,92 @@ const nodeCategories = {
   option: [
     {
       title: "Commands",
-      nodeTypes: ["option_command_argument", "option_command_permissions"],
+      nodeTypes: [
+        "option_command_argument",
+        "option_command_permissions",
+        "option_command_contexts",
+      ],
     },
-    {
+    /* {
       title: "Events",
       nodeTypes: ["option_event_filter"],
-    },
+    }, */
   ],
   action: [
     {
-      title: "Messages",
-      nodeTypes: ["action_response_create", "action_message_create"],
+      title: "Responses",
+      nodeTypes: [
+        "action_response_create",
+        "action_response_edit",
+        "action_response_delete",
+      ],
     },
     {
-      title: "Debugging",
-      nodeTypes: ["action_log"],
+      title: "Messages",
+      nodeTypes: [
+        "action_message_create",
+        "action_message_edit",
+        "action_message_delete",
+      ],
+    },
+    {
+      title: "Members",
+      nodeTypes: [
+        "action_member_ban",
+        "action_member_kick",
+        "action_member_timeout",
+      ],
+    },
+    {
+      title: "Channels",
+      nodeTypes: [
+        "action_channel_create",
+        "action_channel_edit",
+        "action_channel_delete",
+      ],
+    },
+    {
+      title: "Threads",
+      nodeTypes: [
+        "action_thread_create",
+        "action_thread_edit",
+        "action_thread_delete",
+      ],
+    },
+    {
+      title: "Roles",
+      nodeTypes: [
+        "action_role_create",
+        "action_role_edit",
+        "action_role_delete",
+      ],
+    },
+    {
+      title: "Variables",
+      nodeTypes: ["action_variable_set", "action_variable_delete"],
+    },
+    /* {
+      title: "Key Value Store",
+      nodeTypes: [],
+    }, */
+    {
+      title: "Other Actions",
+      nodeTypes: ["action_http_request", "action_log"],
     },
   ],
   control_flow: [
     {
       title: "Conditions",
-      nodeTypes: ["condition_compare", "condition_permissions"],
+      nodeTypes: [
+        "control_condition_compare",
+        "control_condition_user",
+        "control_condition_channel",
+        "control_condition_role",
+      ],
     },
     {
       title: "Loops",
-      nodeTypes: [],
+      nodeTypes: ["control_loop", "control_loop_exit"],
     },
   ],
 };

@@ -1,10 +1,9 @@
-import { useMemo } from "react";
+import { useCallback, useMemo } from "react";
 import { Node, useNodes, useReactFlow, useStoreApi } from "@xyflow/react";
 import { NodeData, NodeProps } from "../../lib/flow/data";
 import { useNodeValues } from "@/lib/flow/nodes";
 import { getUniqueId } from "@/lib/utils";
 import {
-  CheckIcon,
   ChevronDownIcon,
   CircleAlertIcon,
   CopyIcon,
@@ -20,7 +19,6 @@ import {
   SelectValue,
 } from "../ui/select";
 import { Textarea } from "../ui/textarea";
-import { Toggle } from "../ui/toggle";
 import { Switch } from "../ui/switch";
 import { Button } from "../ui/button";
 import {
@@ -29,6 +27,11 @@ import {
   DropdownMenuContent,
   DropdownMenuTrigger,
 } from "../ui/dropdown-menu";
+import {
+  decodePermissionsBitset,
+  encodePermissionsBitset,
+  permissionBits,
+} from "@/lib/discord/permissions";
 
 interface Props {
   nodeId: string;
@@ -48,16 +51,20 @@ const intputs: Record<string, any> = {
   description: DescriptionInput,
   command_argument_type: CommandArgumentTypeInput,
   command_argument_required: CommandArgumentRequiredInput,
+  command_contexts: CommandContextsInput,
   command_permissions: CommandPermissionsInput,
   event_type: EventTypeInput,
   message_data: MessageDataInput,
   message_ephemeral: MessageEphemeralInput,
+  audit_log_reason: AuditLogReasonInput,
+  member_target: MemberTargetInput,
   log_level: LogLevelInput,
   log_message: LogMessageInput,
   condition_base_value: ConditionBaseValueInput,
   condition_allow_multiple: ConditionAllowMultipleInput,
   condition_item_mode: ConditionItemModeInput,
   condition_item_value: ConditionItemValueInput,
+  loop_count: ControlLoopCountInput,
 };
 
 export default function FlowNodeEditor({ nodeId }: Props) {
@@ -280,21 +287,59 @@ function CommandArgumentRequiredInput({
   );
 }
 
-const commandPermissionsOptions = [
-  { value: "8", label: "Administrator" },
-  { value: "16", label: "Moderator" },
-];
-
 function CommandPermissionsInput({ data, updateData, errors }: InputProps) {
   const rawPermissions = data.command_permissions || "0";
+
+  const availablePermissions = useMemo(
+    () =>
+      permissionBits.map((p) => ({
+        value: p.bit.toString(),
+        label: p.label,
+      })),
+    []
+  );
+
+  const enabledPermissions = useMemo(
+    () => decodePermissionsBitset(rawPermissions).map((p) => p.bit.toString()),
+    [rawPermissions]
+  );
+
+  const setPermissions = useCallback(
+    (v: string[]) => {
+      const newPerms = encodePermissionsBitset(v.map((p) => parseInt(p)));
+
+      updateData({
+        command_permissions: newPerms === "0" ? undefined : newPerms,
+      });
+    },
+    [updateData]
+  );
 
   return (
     <BaseMultiSelect
       field="command_permissions"
-      title="Permissions"
-      value={[]}
-      options={commandPermissionsOptions}
-      updateValue={(v) => {}}
+      title="Required Permissions"
+      values={enabledPermissions}
+      options={availablePermissions}
+      updateValue={setPermissions}
+      errors={errors}
+    />
+  );
+}
+
+function CommandContextsInput({ data, updateData, errors }: InputProps) {
+  return (
+    <BaseCheckbox
+      field="command_disabled_contexts"
+      title="Enable in DMs"
+      value={!data.command_disabled_contexts?.includes("bot_dm")}
+      updateValue={(v) =>
+        updateData({
+          command_disabled_contexts: v
+            ? undefined
+            : ["bot_dm", "private_channel"],
+        })
+      }
       errors={errors}
     />
   );
@@ -343,6 +388,34 @@ function LogMessageInput({ data, updateData, errors }: InputProps) {
       title="Log Message"
       value={data.log_message || ""}
       updateValue={(v) => updateData({ log_message: v || undefined })}
+      errors={errors}
+    />
+  );
+}
+
+function AuditLogReasonInput({ data, updateData, errors }: InputProps) {
+  return (
+    <BaseInput
+      type="text"
+      field="audit_log_reason"
+      title="Reason"
+      description="This will appear in the Discord audit log."
+      value={data.audit_log_reason || ""}
+      updateValue={(v) => updateData({ audit_log_reason: v || undefined })}
+      errors={errors}
+    />
+  );
+}
+
+function MemberTargetInput({ data, updateData, errors }: InputProps) {
+  return (
+    <BaseInput
+      type="text"
+      field="member_target"
+      title="Target Member"
+      description="The member to target."
+      value={data.member_target || ""}
+      updateValue={(v) => updateData({ member_target: v || undefined })}
       errors={errors}
     />
   );
@@ -458,6 +531,23 @@ function ConditionItemValueInput({ data, updateData, errors }: InputProps) {
   );
 }
 
+function ControlLoopCountInput({ data, updateData, errors }: InputProps) {
+  return (
+    <BaseInput
+      field="loop_count"
+      title="Loop Count"
+      description="The number of times to run the loop."
+      value={data.loop_count || ""}
+      updateValue={(v) =>
+        updateData({
+          loop_count: v || undefined,
+        })
+      }
+      errors={errors}
+    />
+  );
+}
+
 function BaseInput({
   type,
   field,
@@ -557,7 +647,7 @@ function BaseMultiSelect({
   description,
   errors,
   options,
-  value,
+  values,
   updateValue,
 }: {
   field: string;
@@ -565,7 +655,7 @@ function BaseMultiSelect({
   description?: string;
   errors: Record<string, string>;
   options: { value: string; label: string }[];
-  value: string[];
+  values: string[];
   updateValue: (value: string[]) => void;
 }) {
   const error = errors[field];
@@ -579,20 +669,20 @@ function BaseMultiSelect({
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button variant="outline" className="w-full flex items-center">
-            <div>{value.length} selected</div>
+            <div>{values.length} selected</div>
             <ChevronDownIcon className="h-4 w-4 ml-auto" />
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent className="w-56">
+        <DropdownMenuContent className="w-56 h-128 overflow-y-auto">
           {options.map((o) => (
             <DropdownMenuCheckboxItem
               key={o.value}
-              checked={value.includes(o.value)}
+              checked={values.includes(o.value)}
               onCheckedChange={(v) => {
                 if (v) {
-                  updateValue([...value, o.value]);
+                  updateValue([...values, o.value]);
                 } else {
-                  updateValue(value.filter((val) => val !== o.value));
+                  updateValue(values.filter((val) => val !== o.value));
                 }
               }}
             >

@@ -1,4 +1,4 @@
-import { SlashSquareIcon } from "lucide-react";
+import { CheckIcon, SlashSquareIcon } from "lucide-react";
 import {
   Card,
   CardDescription,
@@ -14,6 +14,7 @@ import ConfirmDialog from "../common/ConfirmDialog";
 import { useCommandDeleteMutation } from "@/lib/api/mutations";
 import { useAppId } from "@/lib/hooks/params";
 import { toast } from "sonner";
+import { formatDateTime } from "@/lib/utils";
 
 export default function CommandListEntry({ command }: { command: Command }) {
   const router = useRouter();
@@ -36,12 +37,14 @@ export default function CommandListEntry({ command }: { command: Command }) {
 
   return (
     <Card>
-      {/*<div className="float-right pt-3 pr-4">
-        <div className="flex items-center space-x-1">
+      <div className="float-right pt-3 pr-4">
+        <div className="flex items-center space-x-2">
           <CheckIcon className="h-5 w-5 text-green-500" />
-          <div className="text-sm text-muted-foreground">2 hours ago</div>
+          <div className="text-sm text-muted-foreground">
+            {formatDateTime(new Date(command.updated_at))}
+          </div>
         </div>
-      </div>*/}
+      </div>
       <CardHeader>
         <CardTitle className="text-base flex items-center space-x-2">
           <SlashSquareIcon className="h-5 w-5 text-muted-foreground" />

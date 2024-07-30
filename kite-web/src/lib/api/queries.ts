@@ -9,10 +9,11 @@ import {
   UserGetResponse,
 } from "../types/wire.gen";
 
-export function useUserQuery() {
+export function useUserQuery(userId = "@me") {
   return useQuery({
-    queryKey: ["users", "@me"],
-    queryFn: () => apiRequest<UserGetResponse>(`/v1/users/@me`),
+    queryKey: ["users", userId],
+    queryFn: () => apiRequest<UserGetResponse>(`/v1/users/${userId}`),
+    enabled: !!userId,
   });
 }
 

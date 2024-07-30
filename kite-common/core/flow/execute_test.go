@@ -22,14 +22,14 @@ var flowCommandTest = CompiledFlowNode{
 	Children: []*CompiledFlowNode{
 		{
 			ID:   "1",
-			Type: FlowNodeTypeConditionCompare,
+			Type: FlowNodeTypeControlConditionCompare,
 			Data: FlowNodeData{
 				ConditionBaseValue: FlowValueNull,
 			},
 			Children: []*CompiledFlowNode{
 				{
 					ID:   "2",
-					Type: FlowNodeTypeConditionItemCompare,
+					Type: FlowNodeTypeControlConditionItemCompare,
 					Data: FlowNodeData{
 						ConditionItemMode:  ConditionItemModeEqual,
 						ConditionItemValue: FlowValueNull,

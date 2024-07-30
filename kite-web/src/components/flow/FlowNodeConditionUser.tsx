@@ -2,19 +2,19 @@ import { Position, useReactFlow } from "@xyflow/react";
 import { NodeProps, NodeType } from "../../lib/flow/data";
 import FlowNodeBase from "./FlowNodeBase";
 import FlowNodeHandle from "./FlowNodeHandle";
-import { conditionColor, createNode } from "@/lib/flow/nodes";
+import { controlColor, createNode } from "@/lib/flow/nodes";
 import { Button } from "../ui/button";
 import { PlusIcon } from "lucide-react";
 import { getUniqueId } from "@/lib/utils";
 
-export default function FlowNodeConditionPermissions(props: NodeProps) {
+export default function FlowNodeConditionUser(props: NodeProps) {
   const { setNodes, setEdges, getNode } = useReactFlow<NodeType>();
 
   function addItem() {
     const node = getNode(props.id);
     if (!node) return;
 
-    const [newNodes, newEdges] = createNode("condition_item_permissions", {
+    const [newNodes, newEdges] = createNode("control_condition_item_user", {
       x: node.position.x + 50,
       y: node.position.y + 300,
     });
@@ -44,7 +44,7 @@ export default function FlowNodeConditionPermissions(props: NodeProps) {
       <FlowNodeHandle type="target" position={Position.Top} />
       <FlowNodeHandle
         type="source"
-        color={conditionColor}
+        color={controlColor}
         position={Position.Bottom}
         isConnectable={false}
         size="small"

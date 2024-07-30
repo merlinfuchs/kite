@@ -79,7 +79,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 	case FlowNodeTypeActionLog:
 		ctx.Log.CreateLogEntry(ctx, n.Data.LogLevel, n.Data.LogMessage)
 		return n.executeChildren(ctx)
-	case FlowNodeTypeConditionCompare:
+	case FlowNodeTypeControlConditionCompare:
 		if err := n.Data.ConditionBaseValue.ResolveVariables(ctx.Variables); err != nil {
 			return traceError(n, err)
 		}
@@ -89,7 +89,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 		var elseNode *CompiledFlowNode
 
 		for _, child := range n.Children {
-			if child.Type == FlowNodeTypeConditionItemElse {
+			if child.Type == FlowNodeTypeControlConditionItemElse {
 				elseNode = child
 			} else {
 				if err := child.Execute(ctx); err != nil {
@@ -104,7 +104,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 				return traceError(n, err)
 			}
 		}
-	case FlowNodeTypeConditionItemCompare:
+	case FlowNodeTypeControlConditionItemCompare:
 		if ctx.Tempories.ConditionItemMet && !ctx.Tempories.ConditionAllowMultiple {
 			// Another condition item has already been met
 			return nil
@@ -136,7 +136,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			ctx.Tempories.ConditionItemMet = true
 			return n.executeChildren(ctx)
 		}
-	case FlowNodeTypeConditionItemElse:
+	case FlowNodeTypeControlConditionItemElse:
 		if ctx.Tempories.ConditionItemMet {
 			// Another condition item has already been met
 			return nil

@@ -13,8 +13,16 @@ const initialNodes = [
     type: "entry_command",
   },
   {
+    id: "5",
+    position: { x: 100, y: 150 },
+    data: {
+      member_target: "1",
+    },
+    type: "action_member_ban",
+  },
+  {
     id: "2",
-    position: { x: 50, y: 150 },
+    position: { x: 0, y: 300 },
     data: {
       message_data: {
         content: "You have been banned from the server.",
@@ -46,7 +54,8 @@ const initialNodes = [
 ];
 
 const initialEdges = [
-  { id: "e1-2", source: "1", target: "2", type: "fixed" },
+  { id: "e1-5", source: "1", target: "5", type: "fixed" },
+  { id: "e5-2", source: "5", target: "2", type: "fixed" },
   { id: "e3-1", source: "3", target: "1", type: "fixed" },
   { id: "e4-1", source: "4", target: "1", type: "fixed" },
 ];

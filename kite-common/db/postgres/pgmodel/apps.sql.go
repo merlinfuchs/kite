@@ -148,7 +148,7 @@ func (q *Queries) GetAppIDs(ctx context.Context) ([]string, error) {
 }
 
 const getAppsByOwner = `-- name: GetAppsByOwner :many
-SELECT id, name, description, owner_user_id, creator_user_id, discord_token, discord_id, created_at, updated_at FROM apps WHERE owner_user_id = $1
+SELECT id, name, description, owner_user_id, creator_user_id, discord_token, discord_id, created_at, updated_at FROM apps WHERE owner_user_id = $1 ORDER BY created_at DESC
 `
 
 func (q *Queries) GetAppsByOwner(ctx context.Context, ownerUserID string) ([]App, error) {

@@ -11,15 +11,23 @@ export interface FlowData {
 export type FlowNodeType = string;
 export const FlowNodeTypeEntryCommand: FlowNodeType = "entry_command";
 export const FlowNodeTypeEntryEvent: FlowNodeType = "entry_event";
-export const FlowNodeTypeActionResponseCreate: FlowNodeType = "action_response_create";
-export const FlowNodeTypeActionMessageCreate: FlowNodeType = "action_message_create";
-export const FlowNodeTypeActionLog: FlowNodeType = "action_log";
-export const FlowNodeTypeConditionCompare: FlowNodeType = "condition_compare";
-export const FlowNodeTypeConditionItemCompare: FlowNodeType = "condition_item_compare";
-export const FlowNodeTypeConditionItemElse: FlowNodeType = "condition_item_else";
 export const FlowNodeTypeOptionCommandArgument: FlowNodeType = "option_command_argument";
 export const FlowNodeTypeOptionCommandPermissions: FlowNodeType = "option_command_permissions";
+export const FlowNodeTypeOptionCommandContexts: FlowNodeType = "option_command_contexts";
 export const FlowNodeTypeOptionEventFilter: FlowNodeType = "option_event_filter";
+export const FlowNodeTypeActionResponseCreate: FlowNodeType = "action_response_create";
+export const FlowNodeTypeActionMessageCreate: FlowNodeType = "action_message_create";
+export const FlowNodeTypeActionMemberBan: FlowNodeType = "action_member_ban";
+export const FlowNodeTypeActionMemberKick: FlowNodeType = "action_member_kick";
+export const FlowNodeTypeActionMemberTimeout: FlowNodeType = "action_member_timeout";
+export const FlowNodeTypeActionLog: FlowNodeType = "action_log";
+export const FlowNodeTypeControlConditionCompare: FlowNodeType = "control_condition_compare";
+export const FlowNodeTypeControlConditionItemCompare: FlowNodeType = "control_condition_item_compare";
+export const FlowNodeTypeControlConditionItemElse: FlowNodeType = "control_condition_item_else";
+export const FlowNodeTypeControlLoop: FlowNodeType = "control_loop";
+export const FlowNodeTypeControlLoopEach: FlowNodeType = "control_loop_each";
+export const FlowNodeTypeControlLoopEnd: FlowNodeType = "control_loop_end";
+export const FlowNodeTypeControlLoopExit: FlowNodeType = "control_loop_exit";
 export interface FlowNode {
   id: string;
   type?: FlowNodeType;
@@ -34,6 +42,7 @@ export interface FlowNodeData {
   description?: string;
   custom_label?: string;
   result_variable_name?: string;
+  audit_log_reason?: string;
   /**
    * Command Argument
    */
@@ -44,10 +53,39 @@ export interface FlowNodeData {
    */
   command_permissions?: string;
   /**
+   * Command Contexts
+   */
+  command_disabled_contexts?: CommandContextType[];
+  /**
    * Message Create & Command Response
    */
   message_data?: any /* api.SendMessageData */;
   message_ephemeral?: boolean;
+  /**
+   * Member Ban, Kick, Timeout
+   */
+  member_target?: string;
+  member_timeout_duration?: string;
+  /**
+   * Channel Create, Edit, Delete
+   */
+  channel_target?: string;
+  channel_data?: any /* api.CreateChannelData */;
+  /**
+   * Role Create, Edit, Delete
+   */
+  role_target?: string;
+  role_data?: any /* api.CreateRoleData */;
+  /**
+   * Variable Set, Delete
+   */
+  variable_name?: string;
+  variable_value?: FlowValue;
+  /**
+   * HTTP Request
+   */
+  http_request_data?: {
+  };
   /**
    * Event Entry
    */
@@ -69,6 +107,10 @@ export interface FlowNodeData {
   condition_allow_multiple?: boolean;
   condition_item_mode?: ConditionItemType;
   condition_item_value?: FlowValue;
+  /**
+   * Loop
+   */
+  loop_count?: string;
 }
 export type LogLevel = string;
 export const LogLevelDebug: LogLevel = "debug";
@@ -93,6 +135,10 @@ export const CommandArgumentTypeChannel: CommandArgumentType = "channel";
 export const CommandArgumentTypeMentionable: CommandArgumentType = "mentionable";
 export const CommandArgumentTypeNumber: CommandArgumentType = "number";
 export const CommandArgumentTypeAttachment: CommandArgumentType = "attachment";
+export type CommandContextType = string;
+export const CommandContextTypeGuild: CommandContextType = "guild";
+export const CommandContextTypeBotDM: CommandContextType = "bot_dm";
+export const CommandContextTypePrivateChannel: CommandContextType = "private_channel";
 export type EventFilterTarget = string;
 export const EventFilterTypeMessageContent: EventFilterTarget = "message_content";
 export interface FlowNodePosition {
@@ -117,4 +163,12 @@ export const FlowValueTypeMessage: FlowValueType = "message";
 export interface FlowValue {
   type: FlowValueType;
   value: any;
+}
+
+//////////
+// source: variable.go
+
+export interface FlowContextVariables {
+  TemplateContext?: any /* template.TemplateContext */;
+  Variables: { [key: string]: FlowValue};
 }

@@ -24,17 +24,28 @@ func (d FlowData) Validate() error {
 type FlowNodeType string
 
 const (
-	FlowNodeTypeEntryCommand             FlowNodeType = "entry_command"
-	FlowNodeTypeEntryEvent               FlowNodeType = "entry_event"
-	FlowNodeTypeActionResponseCreate     FlowNodeType = "action_response_create"
-	FlowNodeTypeActionMessageCreate      FlowNodeType = "action_message_create"
-	FlowNodeTypeActionLog                FlowNodeType = "action_log"
-	FlowNodeTypeConditionCompare         FlowNodeType = "condition_compare"
-	FlowNodeTypeConditionItemCompare     FlowNodeType = "condition_item_compare"
-	FlowNodeTypeConditionItemElse        FlowNodeType = "condition_item_else"
+	FlowNodeTypeEntryCommand FlowNodeType = "entry_command"
+	FlowNodeTypeEntryEvent   FlowNodeType = "entry_event"
+
 	FlowNodeTypeOptionCommandArgument    FlowNodeType = "option_command_argument"
 	FlowNodeTypeOptionCommandPermissions FlowNodeType = "option_command_permissions"
+	FlowNodeTypeOptionCommandContexts    FlowNodeType = "option_command_contexts"
 	FlowNodeTypeOptionEventFilter        FlowNodeType = "option_event_filter"
+
+	FlowNodeTypeActionResponseCreate FlowNodeType = "action_response_create"
+	FlowNodeTypeActionMessageCreate  FlowNodeType = "action_message_create"
+	FlowNodeTypeActionMemberBan      FlowNodeType = "action_member_ban"
+	FlowNodeTypeActionMemberKick     FlowNodeType = "action_member_kick"
+	FlowNodeTypeActionMemberTimeout  FlowNodeType = "action_member_timeout"
+	FlowNodeTypeActionLog            FlowNodeType = "action_log"
+
+	FlowNodeTypeControlConditionCompare     FlowNodeType = "control_condition_compare"
+	FlowNodeTypeControlConditionItemCompare FlowNodeType = "control_condition_item_compare"
+	FlowNodeTypeControlConditionItemElse    FlowNodeType = "control_condition_item_else"
+	FlowNodeTypeControlLoop                 FlowNodeType = "control_loop"
+	FlowNodeTypeControlLoopEach             FlowNodeType = "control_loop_each"
+	FlowNodeTypeControlLoopEnd              FlowNodeType = "control_loop_end"
+	FlowNodeTypeControlLoopExit             FlowNodeType = "control_loop_exit"
 )
 
 type FlowNode struct {
@@ -63,6 +74,7 @@ type FlowNodeData struct {
 	Description        string `json:"description,omitempty"`
 	CustomLabel        string `json:"custom_label,omitempty"`
 	ResultVariableName string `json:"result_variable_name,omitempty"`
+	AuditLogReason     string `json:"audit_log_reason,omitempty"`
 
 	// Command Argument
 	CommandArgumentType     CommandArgumentType `json:"command_argument_type,omitempty"`
@@ -71,9 +83,32 @@ type FlowNodeData struct {
 	// Command Permissions
 	CommandPermissions string `json:"command_permissions,omitempty"`
 
-	// Message Create & Command Response
+	// Command Contexts
+	CommandDisabledContexts []CommandContextType `json:"command_disabled_contexts,omitempty"`
+
+	// Message & Response Create, edit, Delete
+	MessageTarget    string              `json:"message_target,omitempty"`
 	MessageData      api.SendMessageData `json:"message_data,omitempty"`
 	MessageEphemeral bool                `json:"message_ephemeral,omitempty"`
+
+	// Member Ban, Kick, Timeout
+	MemberTarget          string `json:"member_target,omitempty"`
+	MemberTimeoutDuration string `json:"member_timeout_duration,omitempty"`
+
+	// Channel Create, Edit, Delete
+	ChannelTarget string                `json:"channel_target,omitempty"`
+	ChannelData   api.CreateChannelData `json:"channel_data,omitempty"`
+
+	// Role Create, Edit, Delete
+	RoleTarget string             `json:"role_target,omitempty"`
+	RoleData   api.CreateRoleData `json:"role_data,omitempty"`
+
+	// Variable Set, Delete
+	VariableName  string    `json:"variable_name,omitempty"`
+	VariableValue FlowValue `json:"variable_value,omitempty"`
+
+	// HTTP Request
+	HTTPRequestData struct{} `json:"http_request_data,omitempty"`
 
 	// Event Entry
 	EventType string `json:"event_type,omitempty"`
@@ -91,6 +126,10 @@ type FlowNodeData struct {
 	ConditionAllowMultiple bool              `json:"condition_allow_multiple,omitempty"`
 	ConditionItemMode      ConditionItemType `json:"condition_item_mode,omitempty"`
 	ConditionItemValue     FlowValue         `json:"condition_item_value,omitempty"`
+	// TODO? user, channel, role specific item properties
+
+	// Loop
+	LoopCount string `json:"loop_count,omitempty"`
 }
 
 func (d FlowNodeData) Validate(nodeType FlowNodeType) error {
@@ -158,6 +197,14 @@ const (
 	CommandArgumentTypeMentionable CommandArgumentType = "mentionable"
 	CommandArgumentTypeNumber      CommandArgumentType = "number"
 	CommandArgumentTypeAttachment  CommandArgumentType = "attachment"
+)
+
+type CommandContextType string
+
+const (
+	CommandContextTypeGuild          CommandContextType = "guild"
+	CommandContextTypeBotDM          CommandContextType = "bot_dm"
+	CommandContextTypePrivateChannel CommandContextType = "private_channel"
 )
 
 type EventFilterTarget string

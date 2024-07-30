@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"slices"
 	"strconv"
 	"time"
 
@@ -80,16 +81,20 @@ func (a *App) DeployCommands(ctx context.Context) error {
 			lastUpdatedAt = cmd.UpdatedAt
 		}
 
-		flow, err := flow.CompileCommand(cmd.FlowSource)
+		node, err := flow.CompileCommand(cmd.FlowSource)
 		if err != nil {
 			go a.createLogEntry(model.LogLevelError, fmt.Sprintf("Failed to compile command flow: %v", err))
 			return fmt.Errorf("failed to compile command flow: %w", err)
 		}
 
+		perms := node.CommandPermissions()
+
 		commands = append(commands, api.CreateCommandData{
-			Name:        flow.CommandName(),
-			Description: flow.CommandDescription(),
-			Options:     flow.CommandArguments(),
+			Name:                     node.CommandName(),
+			Description:              node.CommandDescription(),
+			Options:                  node.CommandArguments(),
+			DefaultMemberPermissions: &perms,
+			NoDMPermission:           slices.Contains(node.CommandDisabledContexts(), flow.CommandContextTypeBotDM),
 		})
 	}
 

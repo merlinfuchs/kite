@@ -2,7 +2,7 @@
 SELECT * FROM commands WHERE id = $1;
 
 -- name: GetCommandsByApp :many
-SELECT * FROM commands WHERE app_id = $1;
+SELECT * FROM commands WHERE app_id = $1 ORDER BY created_at DESC;
 
 -- name: CountCommandsByApp :one
 SELECT COUNT(*) FROM commands WHERE app_id = $1;

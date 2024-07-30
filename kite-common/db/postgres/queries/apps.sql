@@ -5,7 +5,7 @@ SELECT * FROM apps WHERE id = $1;
 SELECT discord_id, discord_token FROM apps WHERE id = $1;
 
 -- name: GetAppsByOwner :many
-SELECT * FROM apps WHERE owner_user_id = $1;
+SELECT * FROM apps WHERE owner_user_id = $1 ORDER BY created_at DESC;
 
 -- name: CountAppsByOwner :one
 SELECT COUNT(*) FROM apps WHERE owner_user_id = $1;

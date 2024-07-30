@@ -115,7 +115,7 @@ func (q *Queries) GetCommand(ctx context.Context, id string) (Command, error) {
 }
 
 const getCommandsByApp = `-- name: GetCommandsByApp :many
-SELECT id, name, description, enabled, app_id, module_id, creator_user_id, flow_source, created_at, updated_at, last_deployed_at FROM commands WHERE app_id = $1
+SELECT id, name, description, enabled, app_id, module_id, creator_user_id, flow_source, created_at, updated_at, last_deployed_at FROM commands WHERE app_id = $1 ORDER BY created_at DESC
 `
 
 func (q *Queries) GetCommandsByApp(ctx context.Context, appID string) ([]Command, error) {

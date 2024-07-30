@@ -56,6 +56,7 @@ type FlowContextData interface {
 }
 
 type FlowContextTemporaries struct {
+	// TODO: nested condition will break this!
 	ConditionBaseValue     FlowValue
 	ConditionItemMet       bool
 	ConditionAllowMultiple bool

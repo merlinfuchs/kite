@@ -2,7 +2,8 @@ import { Edge, Node, NodeProps as XYNodeProps } from "@xyflow/react";
 import z from "zod";
 import { FlowNodeData } from "../types/flow.gen";
 
-const numericRegex = /^[0-9]$/;
+const numericRegex = /^[0-9]+$/;
+const variableRegex = /^\{\{[a-zA-Z0-9_. ]+\}\}$/;
 
 export interface FlowData {
   nodes: Node<NodeData>[];
@@ -63,6 +64,17 @@ export const nodeOptionCommandPermissionsSchema = nodeBaseDataSchema.extend({
   command_permissions: z.string().regex(numericRegex),
 });
 
+export const nodeOptionCommandContextsSchema = nodeBaseDataSchema.extend({
+  command_disabled_contexts: z
+    .array(
+      z
+        .literal("guild")
+        .or(z.literal("bot_dm"))
+        .or(z.literal("private_channel"))
+    )
+    .optional(),
+});
+
 export const nodeOptionEventFilterSchema = nodeBaseDataSchema.extend({
   event_filter_target: z.literal("message_content"),
   event_filter_expression: z.string().max(1000).min(1),
@@ -79,11 +91,142 @@ export const nodeActionResponseCreateDataSchema = nodeBaseDataSchema.extend({
   message_ephemeral: z.boolean().optional(),
 });
 
+export const nodeActionResponseEditDataSchema = nodeBaseDataSchema.extend({
+  message_target: z
+    .string()
+    .regex(numericRegex)
+    .or(z.string().regex(variableRegex)),
+  message_data: z.object({
+    content: z.string().max(2000).min(1),
+  }),
+});
+
+export const nodeActionResponseDeleteDataSchema = nodeBaseDataSchema.extend({
+  message_target: z
+    .string()
+    .regex(numericRegex)
+    .or(z.string().regex(variableRegex)),
+});
+
 export const nodeActionMessageCreateDataSchema = nodeBaseDataSchema.extend({
   message_data: z.object({
     content: z.string().max(2000).min(1),
   }),
   result_variable_name: z.string().optional(),
+});
+
+export const nodeActionMessageEditDataSchema = nodeBaseDataSchema.extend({
+  message_target: z
+    .string()
+    .regex(numericRegex)
+    .or(z.string().regex(variableRegex)),
+  message_data: z.object({
+    content: z.string().max(2000).min(1),
+  }),
+  result_variable_name: z.string().optional(),
+});
+
+export const nodeActionMessageDeleteDataSchema = nodeBaseDataSchema.extend({
+  message_target: z
+    .string()
+    .regex(numericRegex)
+    .or(z.string().regex(variableRegex)),
+  audit_log_reason: z.string().max(512).optional(),
+});
+
+export const nodeActionMemberBanDataSchema = nodeBaseDataSchema.extend({
+  member_target: z
+    .string()
+    .regex(numericRegex)
+    .or(z.string().regex(variableRegex)),
+  audit_log_reason: z.string().max(512).optional(),
+});
+
+export const nodeActionMemberKickDataSchema = nodeBaseDataSchema.extend({
+  member_target: z
+    .string()
+    .regex(numericRegex)
+    .or(z.string().regex(variableRegex)),
+  audit_log_reason: z.string().max(512).optional(),
+});
+
+export const nodeActionMemberTimeoutDataSchema = nodeBaseDataSchema.extend({
+  member_target: z
+    .string()
+    .regex(numericRegex)
+    .or(z.string().regex(variableRegex)),
+  audit_log_reason: z.string().max(512).optional(),
+});
+
+export const nodeActionChannelCreateDataSchema = nodeBaseDataSchema.extend({
+  channel_data: z.object({
+    name: z.string(),
+  }),
+  audit_log_reason: z.string().max(512).optional(),
+});
+
+export const nodeActionChannelEditDataSchema = nodeBaseDataSchema.extend({
+  channel_id: z
+    .string()
+    .regex(numericRegex)
+    .or(z.string().regex(variableRegex)),
+  channel_data: z.object({
+    name: z.string(),
+  }),
+  audit_log_reason: z.string().max(512).optional(),
+});
+
+export const nodeActionChannelDeleteDataSchema = nodeBaseDataSchema.extend({
+  channel_id: z
+    .string()
+    .regex(numericRegex)
+    .or(z.string().regex(variableRegex)),
+  audit_log_reason: z.string().max(512).optional(),
+});
+
+export const nodeActionThreadCreateDataSchema = nodeBaseDataSchema.extend({
+  audit_log_reason: z.string().max(512).optional(),
+});
+
+export const nodeActionThreadEditDataSchema = nodeBaseDataSchema.extend({
+  audit_log_reason: z.string().max(512).optional(),
+});
+
+export const nodeActionThreadDeleteDataSchema = nodeBaseDataSchema.extend({
+  audit_log_reason: z.string().max(512).optional(),
+});
+
+export const nodeActionRoleCreateDataSchema = nodeBaseDataSchema.extend({
+  role_data: z.object({
+    name: z.string(),
+  }),
+  audit_log_reason: z.string().max(512).optional(),
+});
+
+export const nodeActionRoleEditDataSchema = nodeBaseDataSchema.extend({
+  role_id: z.string().regex(numericRegex).or(z.string().regex(variableRegex)),
+  role_data: z.object({
+    name: z.string(),
+  }),
+  audit_log_reason: z.string().max(512).optional(),
+});
+
+export const nodeActionRoleDeleteDataSchema = nodeBaseDataSchema.extend({
+  role_id: z.string().regex(numericRegex).or(z.string().regex(variableRegex)),
+  audit_log_reason: z.string().max(512).optional(),
+});
+
+export const nodeActionVariableSetDataSchema = nodeBaseDataSchema.extend({
+  variable_name: z.string(),
+  variable_value: flowValueSchema,
+});
+
+export const nodeActionVariableDeleteDataSchema = nodeBaseDataSchema.extend({
+  variable_name: z.string(),
+});
+
+export const nodeActionHTTPRequestDataSchema = nodeBaseDataSchema.extend({
+  http_request_data: z.object({}),
 });
 
 export const nodeActionLogDataSchema = nodeBaseDataSchema.extend({
@@ -110,4 +253,11 @@ export const nodeConditionItemCompareDataSchema = nodeBaseDataSchema.extend({
     .or(z.literal("greater_than_or_equal"))
     .or(z.literal("less_than_or_equal"))
     .or(z.literal("contains")),
+});
+
+export const nodeControlLoopDataSchema = nodeBaseDataSchema.extend({
+  loop_count: z
+    .string()
+    .regex(numericRegex)
+    .or(z.string().regex(variableRegex)),
 });

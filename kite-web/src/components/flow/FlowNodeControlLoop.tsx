@@ -2,19 +2,19 @@ import { Position } from "@xyflow/react";
 import { NodeProps } from "../../lib/flow/data";
 import FlowNodeBase from "./FlowNodeBase";
 import FlowNodeHandle from "./FlowNodeHandle";
-import { conditionColor } from "@/lib/flow/nodes";
+import { controlColor } from "@/lib/flow/nodes";
 
-export default function FlowNodeConditionItemElse(props: NodeProps) {
+export default function FlowNodeControlLoop(props: NodeProps) {
   return (
     <FlowNodeBase {...props}>
+      <FlowNodeHandle type="target" position={Position.Top} />
       <FlowNodeHandle
-        type="target"
-        color={conditionColor}
-        position={Position.Top}
+        type="source"
+        color={controlColor}
+        position={Position.Bottom}
         size="small"
         isConnectable={false}
       />
-      <FlowNodeHandle type="source" position={Position.Bottom} />
     </FlowNodeBase>
   );
 }
