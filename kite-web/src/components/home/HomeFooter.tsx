@@ -86,7 +86,7 @@ export default function HomeFooter() {
 
       <section className="container pb-14 text-center">
         <h3>
-          Copyright 2024 &copy; made by{" "}
+          Copyright &copy; {new Date().getFullYear()} made by{" "}
           <a
             target="_blank"
             href="https://merlin.gg"
