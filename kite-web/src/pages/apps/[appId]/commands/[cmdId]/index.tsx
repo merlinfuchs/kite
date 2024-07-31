@@ -3,9 +3,10 @@ import { useCommandUpdateMutation } from "@/lib/api/mutations";
 import { FlowData } from "@/lib/flow/data";
 import { useCommand } from "@/lib/hooks/api";
 import { useAppId, useCommandId } from "@/lib/hooks/params";
+import { useBeforePageExit } from "@/lib/hooks/exit";
 import Head from "next/head";
 import { useRouter } from "next/router";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { toast } from "sonner";
 
 export default function AppCommandPage() {
@@ -29,33 +30,61 @@ export default function AppCommandPage() {
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
-  function save(data: FlowData) {
-    setIsSaving(true);
+  const save = useCallback(
+    (data: FlowData) => {
+      setIsSaving(true);
 
-    updateMutation.mutate(
-      {
-        flow_source: data,
-        enabled: true,
-      },
-      {
-        onSuccess(res) {
-          if (res.success) {
-            toast.success(
-              "Command saved! Is may take up to a minute for all changes to take effect."
-            );
-          } else {
-            toast.error(
-              `Failed to update command: ${res.error.message} (${res.error.code})`
-            );
-          }
+      updateMutation.mutate(
+        {
+          flow_source: data,
+          enabled: true,
         },
-        onSettled() {
-          setIsSaving(false);
-          setHasUnsavedChanges(false);
-        },
+        {
+          onSuccess(res) {
+            if (res.success) {
+              toast.success(
+                "Command saved! Is may take up to a minute for all changes to take effect."
+              );
+            } else {
+              toast.error(
+                `Failed to update command: ${res.error.message} (${res.error.code})`
+              );
+            }
+          },
+          onSettled() {
+            setIsSaving(false);
+            setHasUnsavedChanges(false);
+          },
+        }
+      );
+    },
+    [setIsSaving, setHasUnsavedChanges, updateMutation]
+  );
+
+  const exit = useCallback(() => {
+    if (hasUnsavedChanges) {
+      if (
+        !confirm("You have unsaved changes. Are you sure you want to exit?")
+      ) {
+        return;
       }
-    );
-  }
+    }
+
+    router.push({
+      pathname: "/apps/[appId]/commands",
+      query: { appId: router.query.appId },
+    });
+  }, [hasUnsavedChanges]);
+
+  useBeforePageExit(
+    (e) => {
+      if (hasUnsavedChanges) {
+        e.preventDefault();
+        return "You have unsaved changes. Are you sure you want to exit?";
+      }
+    },
+    [hasUnsavedChanges]
+  );
 
   return (
     <div className="flex min-h-[100dvh] w-full flex-col">
@@ -69,12 +98,7 @@ export default function AppCommandPage() {
           onChange={() => setHasUnsavedChanges(true)}
           isSaving={isSaving}
           onSave={save}
-          onExit={() =>
-            router.push({
-              pathname: "/apps/[appId]/commands",
-              query: { appId: router.query.appId },
-            })
-          }
+          onExit={exit}
         />
       )}
     </div>

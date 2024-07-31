@@ -87,9 +87,10 @@ type FlowNodeData struct {
 	CommandDisabledContexts []CommandContextType `json:"command_disabled_contexts,omitempty"`
 
 	// Message & Response Create, edit, Delete
-	MessageTarget    string              `json:"message_target,omitempty"`
-	MessageData      api.SendMessageData `json:"message_data,omitempty"`
-	MessageEphemeral bool                `json:"message_ephemeral,omitempty"`
+	MessageTarget     string              `json:"message_target,omitempty"`
+	MessageData       api.SendMessageData `json:"message_data,omitempty"`
+	MessageTemplateID string              `json:"message_template_id,omitempty"`
+	MessageEphemeral  bool                `json:"message_ephemeral,omitempty"`
 
 	// Member Ban, Kick, Timeout
 	MemberTarget          string `json:"member_target,omitempty"`
@@ -108,7 +109,7 @@ type FlowNodeData struct {
 	VariableValue FlowValue `json:"variable_value,omitempty"`
 
 	// HTTP Request
-	HTTPRequestData struct{} `json:"http_request_data,omitempty"`
+	HTTPRequestData HTTPRequestData `json:"http_request_data,omitempty"`
 
 	// Event Entry
 	EventType string `json:"event_type,omitempty"`
@@ -126,8 +127,6 @@ type FlowNodeData struct {
 	ConditionAllowMultiple bool              `json:"condition_allow_multiple,omitempty"`
 	ConditionItemMode      ConditionItemType `json:"condition_item_mode,omitempty"`
 	ConditionItemValue     FlowValue         `json:"condition_item_value,omitempty"`
-	// TODO? user, channel, role specific item properties
-
 	// Loop
 	LoopCount string `json:"loop_count,omitempty"`
 }
@@ -212,6 +211,11 @@ type EventFilterTarget string
 const (
 	EventFilterTypeMessageContent EventFilterTarget = "message_content"
 )
+
+type HTTPRequestData struct {
+	URL    string `json:"url,omitempty"`
+	Method string `json:"method,omitempty"`
+}
 
 type FlowNodePosition struct {
 	X float64 `json:"x"`

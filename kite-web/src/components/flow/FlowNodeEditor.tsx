@@ -55,15 +55,34 @@ const intputs: Record<string, any> = {
   command_permissions: CommandPermissionsInput,
   event_type: EventTypeInput,
   message_data: MessageDataInput,
+  // message_template_id: MessageTemplateInput,
+  message_target: MessageTargetInput,
   message_ephemeral: MessageEphemeralInput,
+  channel_data: ChannelDataInput,
+  channel_target: ChannelTargetInput,
+  role_data: RoleDataInput,
+  role_target: RoleTargetInput,
+  variable_name: VariableNameInput,
+  variable_value: VariableValueInput,
+  http_request_data: HttpRequestDataInput,
   audit_log_reason: AuditLogReasonInput,
   member_target: MemberTargetInput,
+  member_timeout_duration: MemberTimeoutDurationInput,
   log_level: LogLevelInput,
   log_message: LogMessageInput,
-  condition_base_value: ConditionBaseValueInput,
+  condition_compare_base_value: ConditionCompareBaseValueInput,
+  condition_item_compare_mode: ConditionItemCompareModeInput,
+  condition_item_compare_value: ConditionItemCompareValueInput,
+  condition_user_base_value: ConditionUserBaseValueInput,
+  condition_item_user_mode: ConditionItemUserModeInput,
+  condition_item_user_value: ConditionItemUserValueInput,
+  condition_channel_base_value: ConditionChannelBaseValueInput,
+  condition_item_channel_mode: ConditionItemChannelModeInput,
+  condition_item_channel_value: ConditionItemChannelValueInput,
+  condition_role_base_value: ConditionRoleBaseValueInput,
+  condition_item_role_mode: ConditionItemRoleModeInput,
+  condition_item_role_value: ConditionItemRoleValueInput,
   condition_allow_multiple: ConditionAllowMultipleInput,
-  condition_item_mode: ConditionItemModeInput,
-  condition_item_value: ConditionItemValueInput,
   loop_count: ControlLoopCountInput,
 };
 
@@ -398,12 +417,60 @@ function AuditLogReasonInput({ data, updateData, errors }: InputProps) {
     <BaseInput
       type="text"
       field="audit_log_reason"
-      title="Reason"
+      title="Audit Log Reason"
       description="This will appear in the Discord audit log."
       value={data.audit_log_reason || ""}
       updateValue={(v) => updateData({ audit_log_reason: v || undefined })}
       errors={errors}
     />
+  );
+}
+
+function HttpRequestDataInput({ data, updateData, errors }: InputProps) {
+  // TODO: top level errors aren't displayed ...
+
+  return (
+    <>
+      <BaseInput
+        type="select"
+        field="http_request_data.method"
+        title="Method"
+        description="The HTTP method to use for the request."
+        options={[
+          { value: "GET", label: "GET" },
+          { value: "POST", label: "POST" },
+          { value: "PUT", label: "PUT" },
+          { value: "PATCH", label: "PATCH" },
+          { value: "DELETE", label: "DELETE" },
+        ]}
+        value={data.http_request_data?.method || ""}
+        updateValue={(v) =>
+          updateData({
+            http_request_data: {
+              ...data.http_request_data,
+              method: v || undefined,
+            },
+          })
+        }
+        errors={errors}
+      />
+      <BaseInput
+        type="text"
+        field="http_request_data.url"
+        title="URL"
+        description="The URL to send the request to."
+        value={data.http_request_data?.url || ""}
+        updateValue={(v) =>
+          updateData({
+            http_request_data: {
+              ...data.http_request_data,
+              url: v || undefined,
+            },
+          })
+        }
+        errors={errors}
+      />
+    </>
   );
 }
 
@@ -413,7 +480,6 @@ function MemberTargetInput({ data, updateData, errors }: InputProps) {
       type="text"
       field="member_target"
       title="Target Member"
-      description="The member to target."
       value={data.member_target || ""}
       updateValue={(v) => updateData({ member_target: v || undefined })}
       errors={errors}
@@ -421,16 +487,80 @@ function MemberTargetInput({ data, updateData, errors }: InputProps) {
   );
 }
 
+function MemberTimeoutDurationInput({ data, updateData, errors }: InputProps) {
+  return (
+    <BaseInput
+      type="select"
+      field="member_timeout_duration"
+      title="Timeout Duration"
+      options={[
+        { value: "60", label: "1 Minute" },
+        { value: "300", label: "5 Minutes" },
+        { value: "600", label: "10 Minutes" },
+        { value: "1800", label: "30 Minutes" },
+        { value: "3600", label: "1 Hour" },
+        { value: "7200", label: "2 Hours" },
+        { value: "14400", label: "4 Hours" },
+        { value: "28800", label: "8 Hours" },
+        { value: "43200", label: "12 Hours" },
+        { value: "86400", label: "1 Day" },
+        { value: "172800", label: "2 Days" },
+        { value: "259200", label: "3 Days" },
+        { value: "604800", label: "1 Week" },
+        { value: "1209600", label: "2 Weeks" },
+        { value: "2419200", label: "1 Month" },
+      ]}
+      value={data.member_timeout_duration || ""}
+      updateValue={(v) =>
+        updateData({ member_timeout_duration: v || undefined })
+      }
+      errors={errors}
+    />
+  );
+}
+
+function MessageTemplateInput({ data, updateData, errors }: InputProps) {
+  return (
+    <BaseInput
+      type="select"
+      field="message_data"
+      title="Message Template"
+      options={[{ value: "1", label: "Welcome Message" }]}
+      value={data.message_template_id || ""}
+      updateValue={(v) => updateData({ message_template_id: v || undefined })}
+      errors={errors}
+    />
+  );
+}
+
 function MessageDataInput({ data, updateData, errors }: InputProps) {
+  if (data.message_template_id) {
+    return null;
+  }
+
   return (
     <BaseInput
       type="textarea"
       field="message_data"
       title="Text Response"
+      description="Right now only text responses are supported, but more options will be added in the future."
       value={data.message_data?.content || ""}
       updateValue={(v) =>
         updateData({ message_data: v ? { content: v } : undefined })
       }
+      errors={errors}
+    />
+  );
+}
+
+function MessageTargetInput({ data, updateData, errors }: InputProps) {
+  return (
+    <BaseInput
+      type="text"
+      field="message_target"
+      title="Target Message"
+      value={data.message_target || ""}
+      updateValue={(v) => updateData({ message_target: v || undefined })}
       errors={errors}
     />
   );
@@ -448,7 +578,101 @@ function MessageEphemeralInput({ data, updateData, errors }: InputProps) {
   );
 }
 
-function ConditionBaseValueInput({ data, updateData, errors }: InputProps) {
+function ChannelDataInput({ data, updateData, errors }: InputProps) {
+  return (
+    <BaseInput
+      type="text"
+      field="channel_data"
+      title="Channel Name"
+      value={data.channel_data?.name || ""}
+      updateValue={(v) =>
+        updateData({ channel_data: v ? { name: v } : undefined })
+      }
+      errors={errors}
+    />
+  );
+}
+
+function ChannelTargetInput({ data, updateData, errors }: InputProps) {
+  return (
+    <BaseInput
+      type="text"
+      field="channel_target"
+      title="Target Channel"
+      value={data.channel_target || ""}
+      updateValue={(v) => updateData({ channel_target: v || undefined })}
+      errors={errors}
+    />
+  );
+}
+
+function RoleDataInput({ data, updateData, errors }: InputProps) {
+  return (
+    <BaseInput
+      type="text"
+      field="role_data"
+      title="Role Name"
+      value={data.role_data?.name || ""}
+      updateValue={(v) =>
+        updateData({ role_data: v ? { name: v } : undefined })
+      }
+      errors={errors}
+    />
+  );
+}
+
+function RoleTargetInput({ data, updateData, errors }: InputProps) {
+  return (
+    <BaseInput
+      type="text"
+      field="role_target"
+      title="Target Role"
+      value={data.role_target || ""}
+      updateValue={(v) => updateData({ role_target: v || undefined })}
+      errors={errors}
+    />
+  );
+}
+
+function VariableNameInput({ data, updateData, errors }: InputProps) {
+  return (
+    <BaseInput
+      type="text"
+      field="variable_name"
+      title="Variable Name"
+      value={data.variable_name || ""}
+      updateValue={(v) => updateData({ variable_name: v || undefined })}
+      errors={errors}
+    />
+  );
+}
+
+function VariableValueInput({ data, updateData, errors }: InputProps) {
+  return (
+    <BaseInput
+      field="variable_value"
+      title="Variable Value"
+      value={data.variable_value ? `${data.variable_value.value}` : ""}
+      updateValue={(v) =>
+        updateData({
+          variable_value: v
+            ? {
+                type: "string",
+                value: v,
+              }
+            : undefined,
+        })
+      }
+      errors={errors}
+    />
+  );
+}
+
+function ConditionCompareBaseValueInput({
+  data,
+  updateData,
+  errors,
+}: InputProps) {
   return (
     <BaseInput
       field="condition_base_value"
@@ -471,22 +695,11 @@ function ConditionBaseValueInput({ data, updateData, errors }: InputProps) {
   );
 }
 
-function ConditionAllowMultipleInput({ data, updateData, errors }: InputProps) {
-  return (
-    <BaseCheckbox
-      field="condition_allow_multiple"
-      title="Allow Multiple"
-      description="Allow multiple conditions to be met. If disabled, only the first condition that is met will be executed."
-      value={data.condition_allow_multiple || false}
-      updateValue={(v) =>
-        updateData({ condition_allow_multiple: v || undefined })
-      }
-      errors={errors}
-    />
-  );
-}
-
-function ConditionItemModeInput({ data, updateData, errors }: InputProps) {
+function ConditionItemCompareModeInput({
+  data,
+  updateData,
+  errors,
+}: InputProps) {
   return (
     <BaseInput
       type="select"
@@ -508,7 +721,11 @@ function ConditionItemModeInput({ data, updateData, errors }: InputProps) {
   );
 }
 
-function ConditionItemValueInput({ data, updateData, errors }: InputProps) {
+function ConditionItemCompareValueInput({
+  data,
+  updateData,
+  errors,
+}: InputProps) {
   return (
     <BaseInput
       field="condition_item_value"
@@ -525,6 +742,223 @@ function ConditionItemValueInput({ data, updateData, errors }: InputProps) {
               }
             : undefined,
         })
+      }
+      errors={errors}
+    />
+  );
+}
+
+function ConditionUserBaseValueInput({ data, updateData, errors }: InputProps) {
+  return (
+    <BaseInput
+      field="condition_base_value"
+      title="Base User ID"
+      value={
+        data.condition_base_value ? `${data.condition_base_value.value}` : ""
+      }
+      updateValue={(v) =>
+        updateData({
+          condition_base_value: v
+            ? {
+                type: "string",
+                value: v,
+              }
+            : undefined,
+        })
+      }
+      errors={errors}
+    />
+  );
+}
+
+function ConditionItemUserModeInput({ data, updateData, errors }: InputProps) {
+  return (
+    <BaseInput
+      type="select"
+      field="condition_item_mode"
+      title="Comparison Mode"
+      options={[
+        { value: "equal", label: "Equal" },
+        { value: "not_equal", label: "Not Equal" },
+        // TODO: one of user ids, has role, has permissions
+      ]}
+      value={data.condition_item_mode || ""}
+      updateValue={(v) => updateData({ condition_item_mode: v || undefined })}
+      errors={errors}
+    />
+  );
+}
+
+function ConditionItemUserValueInput({ data, updateData, errors }: InputProps) {
+  return (
+    <BaseInput
+      field="condition_item_value"
+      title="Comparison User ID"
+      value={
+        data.condition_item_value ? `${data.condition_item_value.value}` : ""
+      }
+      updateValue={(v) =>
+        updateData({
+          condition_item_value: v
+            ? {
+                type: "string",
+                value: v,
+              }
+            : undefined,
+        })
+      }
+      errors={errors}
+    />
+  );
+}
+
+function ConditionChannelBaseValueInput({
+  data,
+  updateData,
+  errors,
+}: InputProps) {
+  return (
+    <BaseInput
+      field="condition_base_value"
+      title="Base Channel ID"
+      value={
+        data.condition_base_value ? `${data.condition_base_value.value}` : ""
+      }
+      updateValue={(v) =>
+        updateData({
+          condition_base_value: v
+            ? {
+                type: "string",
+                value: v,
+              }
+            : undefined,
+        })
+      }
+      errors={errors}
+    />
+  );
+}
+
+function ConditionItemChannelModeInput({
+  data,
+  updateData,
+  errors,
+}: InputProps) {
+  return (
+    <BaseInput
+      type="select"
+      field="condition_item_mode"
+      title="Comparison Mode"
+      options={[
+        { value: "equal", label: "Equal" },
+        { value: "not_equal", label: "Not Equal" },
+      ]}
+      value={data.condition_item_mode || ""}
+      updateValue={(v) => updateData({ condition_item_mode: v || undefined })}
+      errors={errors}
+    />
+  );
+}
+
+function ConditionItemChannelValueInput({
+  data,
+  updateData,
+  errors,
+}: InputProps) {
+  return (
+    <BaseInput
+      field="condition_item_value"
+      title="Comparison Channel ID"
+      value={
+        data.condition_item_value ? `${data.condition_item_value.value}` : ""
+      }
+      updateValue={(v) =>
+        updateData({
+          condition_item_value: v
+            ? {
+                type: "string",
+                value: v,
+              }
+            : undefined,
+        })
+      }
+      errors={errors}
+    />
+  );
+}
+
+function ConditionRoleBaseValueInput({ data, updateData, errors }: InputProps) {
+  return (
+    <BaseInput
+      field="condition_base_value"
+      title="Base Role ID"
+      value={
+        data.condition_base_value ? `${data.condition_base_value.value}` : ""
+      }
+      updateValue={(v) =>
+        updateData({
+          condition_base_value: v
+            ? {
+                type: "string",
+                value: v,
+              }
+            : undefined,
+        })
+      }
+      errors={errors}
+    />
+  );
+}
+
+function ConditionItemRoleModeInput({ data, updateData, errors }: InputProps) {
+  return (
+    <BaseInput
+      type="select"
+      field="condition_item_mode"
+      title="Comparison Mode"
+      options={[
+        { value: "equal", label: "Equal" },
+        { value: "not_equal", label: "Not Equal" },
+      ]}
+      value={data.condition_item_mode || ""}
+      updateValue={(v) => updateData({ condition_item_mode: v || undefined })}
+      errors={errors}
+    />
+  );
+}
+
+function ConditionItemRoleValueInput({ data, updateData, errors }: InputProps) {
+  return (
+    <BaseInput
+      field="condition_item_value"
+      title="Comparison Role ID"
+      value={
+        data.condition_item_value ? `${data.condition_item_value.value}` : ""
+      }
+      updateValue={(v) =>
+        updateData({
+          condition_item_value: v
+            ? {
+                type: "string",
+                value: v,
+              }
+            : undefined,
+        })
+      }
+      errors={errors}
+    />
+  );
+}
+
+function ConditionAllowMultipleInput({ data, updateData, errors }: InputProps) {
+  return (
+    <BaseCheckbox
+      field="condition_allow_multiple"
+      title="Allow Multiple"
+      description="Allow multiple conditions to be met. If disabled, only the first condition that is met will be executed."
+      value={data.condition_allow_multiple || false}
+      updateValue={(v) =>
+        updateData({ condition_allow_multiple: v || undefined })
       }
       errors={errors}
     />
@@ -673,7 +1107,7 @@ function BaseMultiSelect({
             <ChevronDownIcon className="h-4 w-4 ml-auto" />
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent className="w-56 h-128 overflow-y-auto">
+        <DropdownMenuContent className="w-56 max-h-[320px] overflow-y-auto">
           {options.map((o) => (
             <DropdownMenuCheckboxItem
               key={o.value}

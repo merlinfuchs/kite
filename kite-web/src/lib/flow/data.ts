@@ -28,6 +28,8 @@ export const flowValueSchema = z
     })
   );
 
+export const auditLogReasonSchema = z.string().max(512).optional();
+
 export const nodeBaseDataSchema = z.object({
   custom_label: z.string().optional(),
 });
@@ -95,7 +97,8 @@ export const nodeActionResponseEditDataSchema = nodeBaseDataSchema.extend({
   message_target: z
     .string()
     .regex(numericRegex)
-    .or(z.string().regex(variableRegex)),
+    .or(z.string().regex(variableRegex))
+    .or(z.literal("@original")),
   message_data: z.object({
     content: z.string().max(2000).min(1),
   }),
@@ -105,7 +108,8 @@ export const nodeActionResponseDeleteDataSchema = nodeBaseDataSchema.extend({
   message_target: z
     .string()
     .regex(numericRegex)
-    .or(z.string().regex(variableRegex)),
+    .or(z.string().regex(variableRegex))
+    .or(z.literal("@original")),
 });
 
 export const nodeActionMessageCreateDataSchema = nodeBaseDataSchema.extend({
@@ -131,7 +135,7 @@ export const nodeActionMessageDeleteDataSchema = nodeBaseDataSchema.extend({
     .string()
     .regex(numericRegex)
     .or(z.string().regex(variableRegex)),
-  audit_log_reason: z.string().max(512).optional(),
+  audit_log_reason: auditLogReasonSchema,
 });
 
 export const nodeActionMemberBanDataSchema = nodeBaseDataSchema.extend({
@@ -139,7 +143,7 @@ export const nodeActionMemberBanDataSchema = nodeBaseDataSchema.extend({
     .string()
     .regex(numericRegex)
     .or(z.string().regex(variableRegex)),
-  audit_log_reason: z.string().max(512).optional(),
+  audit_log_reason: auditLogReasonSchema,
 });
 
 export const nodeActionMemberKickDataSchema = nodeBaseDataSchema.extend({
@@ -147,7 +151,7 @@ export const nodeActionMemberKickDataSchema = nodeBaseDataSchema.extend({
     .string()
     .regex(numericRegex)
     .or(z.string().regex(variableRegex)),
-  audit_log_reason: z.string().max(512).optional(),
+  audit_log_reason: auditLogReasonSchema,
 });
 
 export const nodeActionMemberTimeoutDataSchema = nodeBaseDataSchema.extend({
@@ -155,65 +159,72 @@ export const nodeActionMemberTimeoutDataSchema = nodeBaseDataSchema.extend({
     .string()
     .regex(numericRegex)
     .or(z.string().regex(variableRegex)),
-  audit_log_reason: z.string().max(512).optional(),
+  member_timeout_duration: z.string().regex(numericRegex),
+  audit_log_reason: auditLogReasonSchema,
 });
 
 export const nodeActionChannelCreateDataSchema = nodeBaseDataSchema.extend({
   channel_data: z.object({
     name: z.string(),
   }),
-  audit_log_reason: z.string().max(512).optional(),
+  audit_log_reason: auditLogReasonSchema,
 });
 
 export const nodeActionChannelEditDataSchema = nodeBaseDataSchema.extend({
-  channel_id: z
+  channel_target: z
     .string()
     .regex(numericRegex)
     .or(z.string().regex(variableRegex)),
   channel_data: z.object({
     name: z.string(),
   }),
-  audit_log_reason: z.string().max(512).optional(),
+  audit_log_reason: auditLogReasonSchema,
 });
 
 export const nodeActionChannelDeleteDataSchema = nodeBaseDataSchema.extend({
-  channel_id: z
+  channel_target: z
     .string()
     .regex(numericRegex)
     .or(z.string().regex(variableRegex)),
-  audit_log_reason: z.string().max(512).optional(),
+  audit_log_reason: auditLogReasonSchema,
 });
 
 export const nodeActionThreadCreateDataSchema = nodeBaseDataSchema.extend({
-  audit_log_reason: z.string().max(512).optional(),
+  audit_log_reason: auditLogReasonSchema,
 });
 
 export const nodeActionThreadEditDataSchema = nodeBaseDataSchema.extend({
-  audit_log_reason: z.string().max(512).optional(),
+  audit_log_reason: auditLogReasonSchema,
 });
 
 export const nodeActionThreadDeleteDataSchema = nodeBaseDataSchema.extend({
-  audit_log_reason: z.string().max(512).optional(),
+  audit_log_reason: auditLogReasonSchema,
 });
 
 export const nodeActionRoleCreateDataSchema = nodeBaseDataSchema.extend({
   role_data: z.object({
     name: z.string(),
   }),
-  audit_log_reason: z.string().max(512).optional(),
+  audit_log_reason: auditLogReasonSchema,
 });
 
 export const nodeActionRoleEditDataSchema = nodeBaseDataSchema.extend({
-  role_id: z.string().regex(numericRegex).or(z.string().regex(variableRegex)),
+  role_target: z
+    .string()
+    .regex(numericRegex)
+    .or(z.string().regex(variableRegex)),
   role_data: z.object({
     name: z.string(),
   }),
-  audit_log_reason: z.string().max(512).optional(),
+  audit_log_reason: auditLogReasonSchema,
 });
 
 export const nodeActionRoleDeleteDataSchema = nodeBaseDataSchema.extend({
-  role_id: z.string().regex(numericRegex).or(z.string().regex(variableRegex)),
-  audit_log_reason: z.string().max(512).optional(),
+  role_target: z
+    .string()
+    .regex(numericRegex)
+    .or(z.string().regex(variableRegex)),
+  audit_log_reason: auditLogReasonSchema,
 });
 
 export const nodeActionVariableSetDataSchema = nodeBaseDataSchema.extend({
@@ -225,8 +236,16 @@ export const nodeActionVariableDeleteDataSchema = nodeBaseDataSchema.extend({
   variable_name: z.string(),
 });
 
-export const nodeActionHTTPRequestDataSchema = nodeBaseDataSchema.extend({
-  http_request_data: z.object({}),
+export const nodeActionHttpRequestDataSchema = nodeBaseDataSchema.extend({
+  http_request_data: z.object({
+    url: z.string().url(),
+    method: z
+      .literal("GET")
+      .or(z.literal("POST"))
+      .or(z.literal("PUT"))
+      .or(z.literal("PATCH"))
+      .or(z.literal("DELETE")),
+  }),
 });
 
 export const nodeActionLogDataSchema = nodeBaseDataSchema.extend({

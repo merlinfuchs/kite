@@ -17,6 +17,7 @@ const (
 	FlowValueTypeNull    FlowValueType = "null"
 	FlowValueTypeString  FlowValueType = "string"
 	FlowValueTypeNumber  FlowValueType = "number"
+	FlowValueTypeArray   FlowValueType = "array"
 	FlowValueTypeMessage FlowValueType = "message"
 )
 
@@ -63,6 +64,13 @@ func (v *FlowValue) String() string {
 	case FlowValueTypeNumber:
 		n, _ := v.Value.(float64)
 		return fmt.Sprintf("%f", n)
+	case FlowValueTypeArray:
+		a, _ := v.Value.([]FlowValue)
+		var res []string
+		for _, v := range a {
+			res = append(res, v.String())
+		}
+		return strings.Join(res, ", ")
 	case FlowValueTypeMessage:
 		m, _ := v.Message()
 		return m.ID.String()
@@ -141,6 +149,8 @@ func (v *FlowValue) UnmarshalJSON(data []byte) error {
 		v.Value = ""
 	case FlowValueTypeNumber:
 		v.Value = float64(0)
+	case FlowValueTypeArray:
+		v.Value = []FlowValue{}
 	case FlowValueTypeMessage:
 		v.Value = discord.Message{}
 	}

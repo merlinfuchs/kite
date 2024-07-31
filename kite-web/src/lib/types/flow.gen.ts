@@ -57,9 +57,11 @@ export interface FlowNodeData {
    */
   command_disabled_contexts?: CommandContextType[];
   /**
-   * Message Create & Command Response
+   * Message & Response Create, edit, Delete
    */
+  message_target?: string;
   message_data?: any /* api.SendMessageData */;
+  message_template_id?: string;
   message_ephemeral?: boolean;
   /**
    * Member Ban, Kick, Timeout
@@ -84,8 +86,7 @@ export interface FlowNodeData {
   /**
    * HTTP Request
    */
-  http_request_data?: {
-  };
+  http_request_data?: HTTPRequestData;
   /**
    * Event Entry
    */
@@ -141,6 +142,10 @@ export const CommandContextTypeBotDM: CommandContextType = "bot_dm";
 export const CommandContextTypePrivateChannel: CommandContextType = "private_channel";
 export type EventFilterTarget = string;
 export const EventFilterTypeMessageContent: EventFilterTarget = "message_content";
+export interface HTTPRequestData {
+  url?: string;
+  method?: string;
+}
 export interface FlowNodePosition {
   x: number /* float64 */;
   y: number /* float64 */;
@@ -159,6 +164,7 @@ export type FlowValueType = string;
 export const FlowValueTypeNull: FlowValueType = "null";
 export const FlowValueTypeString: FlowValueType = "string";
 export const FlowValueTypeNumber: FlowValueType = "number";
+export const FlowValueTypeArray: FlowValueType = "array";
 export const FlowValueTypeMessage: FlowValueType = "message";
 export interface FlowValue {
   type: FlowValueType;

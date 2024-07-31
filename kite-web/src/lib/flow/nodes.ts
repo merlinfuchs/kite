@@ -3,7 +3,7 @@ import {
   nodeActionChannelCreateDataSchema,
   nodeActionChannelDeleteDataSchema,
   nodeActionChannelEditDataSchema,
-  nodeActionHTTPRequestDataSchema,
+  nodeActionHttpRequestDataSchema,
   nodeActionLogDataSchema,
   nodeActionMemberBanDataSchema,
   nodeActionMemberKickDataSchema,
@@ -115,7 +115,12 @@ export const nodeTypes: Record<string, NodeValues> = {
     defaultTitle: "Create response message",
     defaultDescription: "Bot replies to the interaction with a message",
     dataSchema: nodeActionResponseCreateDataSchema,
-    dataFields: ["message_data", "message_ephemeral", "custom_label"],
+    dataFields: [
+      "message_template_id",
+      "message_data",
+      "message_ephemeral",
+      "custom_label",
+    ],
   },
   action_response_edit: {
     color: actionColor,
@@ -125,6 +130,7 @@ export const nodeTypes: Record<string, NodeValues> = {
     dataSchema: nodeActionResponseEditDataSchema,
     dataFields: [
       "message_target",
+      "message_template_id",
       "message_data",
       "message_ephemeral",
       "custom_label",
@@ -144,7 +150,12 @@ export const nodeTypes: Record<string, NodeValues> = {
     defaultTitle: "Create channel message",
     defaultDescription: "Bot sends a message to a channel",
     dataSchema: nodeActionMessageCreateDataSchema,
-    dataFields: ["message_data", "result_variable_name", "custom_label"],
+    dataFields: [
+      "message_template_id",
+      "message_data",
+      "result_variable_name",
+      "custom_label",
+    ],
   },
   action_message_edit: {
     color: actionColor,
@@ -154,6 +165,7 @@ export const nodeTypes: Record<string, NodeValues> = {
     dataSchema: nodeActionMessageEditDataSchema,
     dataFields: [
       "message_target",
+      "message_template_id",
       "message_data",
       "result_variable_name",
       "custom_label",
@@ -202,7 +214,7 @@ export const nodeTypes: Record<string, NodeValues> = {
     defaultTitle: "Create channel",
     defaultDescription: "Create a new channel in the server",
     dataSchema: nodeActionChannelCreateDataSchema,
-    dataFields: ["custom_label"],
+    dataFields: ["channel_data", "audit_log_reason", "custom_label"],
   },
   action_channel_edit: {
     color: actionColor,
@@ -210,7 +222,12 @@ export const nodeTypes: Record<string, NodeValues> = {
     defaultTitle: "Edit channel",
     defaultDescription: "Edit an existing channel in the server",
     dataSchema: nodeActionChannelEditDataSchema,
-    dataFields: ["custom_label"],
+    dataFields: [
+      "channel_target",
+      "channel_data",
+      "audit_log_reason",
+      "custom_label",
+    ],
   },
   action_channel_delete: {
     color: actionColor,
@@ -218,7 +235,7 @@ export const nodeTypes: Record<string, NodeValues> = {
     defaultTitle: "Delete channel",
     defaultDescription: "Delete an existing channel in the server",
     dataSchema: nodeActionChannelDeleteDataSchema,
-    dataFields: ["custom_label"],
+    dataFields: ["channel_target", "audit_log_reason", "custom_label"],
   },
   action_thread_create: {
     color: actionColor,
@@ -226,7 +243,7 @@ export const nodeTypes: Record<string, NodeValues> = {
     defaultTitle: "Create thread",
     defaultDescription: "Create a new thread under a channel",
     dataSchema: nodeActionThreadCreateDataSchema,
-    dataFields: ["custom_label"],
+    dataFields: ["audit_log_reason", "custom_label"],
   },
   action_thread_edit: {
     color: actionColor,
@@ -234,7 +251,7 @@ export const nodeTypes: Record<string, NodeValues> = {
     defaultTitle: "Edit thread",
     defaultDescription: "Edit an existing thread in the server",
     dataSchema: nodeActionThreadEditDataSchema,
-    dataFields: ["custom_label"],
+    dataFields: ["audit_log_reason", "custom_label"],
   },
   action_thread_delete: {
     color: actionColor,
@@ -242,7 +259,7 @@ export const nodeTypes: Record<string, NodeValues> = {
     defaultTitle: "Delete thread",
     defaultDescription: "Delete an existing thread in the server",
     dataSchema: nodeActionThreadDeleteDataSchema,
-    dataFields: ["custom_label"],
+    dataFields: ["audit_log_reason", "custom_label"],
   },
   action_role_create: {
     color: actionColor,
@@ -250,7 +267,7 @@ export const nodeTypes: Record<string, NodeValues> = {
     defaultTitle: "Create role",
     defaultDescription: "Create a new role in the server",
     dataSchema: nodeActionRoleCreateDataSchema,
-    dataFields: ["custom_label"],
+    dataFields: ["role_data", "audit_log_reason", "custom_label"],
   },
   action_role_edit: {
     color: actionColor,
@@ -258,7 +275,12 @@ export const nodeTypes: Record<string, NodeValues> = {
     defaultTitle: "Edit role",
     defaultDescription: "Edit an existing role in the server",
     dataSchema: nodeActionRoleEditDataSchema,
-    dataFields: ["custom_label"],
+    dataFields: [
+      "role_target",
+      "role_data",
+      "audit_log_reason",
+      "custom_label",
+    ],
   },
   action_role_delete: {
     color: actionColor,
@@ -266,7 +288,7 @@ export const nodeTypes: Record<string, NodeValues> = {
     defaultTitle: "Delete role",
     defaultDescription: "Delete an existing role in the server",
     dataSchema: nodeActionRoleDeleteDataSchema,
-    dataFields: ["custom_label"],
+    dataFields: ["role_target", "audit_log_reason", "custom_label"],
   },
   action_variable_set: {
     color: actionColor,
@@ -274,7 +296,7 @@ export const nodeTypes: Record<string, NodeValues> = {
     defaultTitle: "Set variable",
     defaultDescription: "Set a variable to a value",
     dataSchema: nodeActionVariableSetDataSchema,
-    dataFields: ["custom_label"],
+    dataFields: ["variable_name", "variable_value", "custom_label"],
   },
   action_variable_delete: {
     color: actionColor,
@@ -282,15 +304,15 @@ export const nodeTypes: Record<string, NodeValues> = {
     defaultTitle: "Delete variable",
     defaultDescription: "Delete a variable",
     dataSchema: nodeActionVariableDeleteDataSchema,
-    dataFields: ["custom_label"],
+    dataFields: ["variable_name", "custom_label"],
   },
   action_http_request: {
     color: actionColor,
     icon: WebhookIcon,
     defaultTitle: "Send API Request",
     defaultDescription: "Send an API request to an external server",
-    dataSchema: nodeActionHTTPRequestDataSchema,
-    dataFields: ["custom_label"],
+    dataSchema: nodeActionHttpRequestDataSchema,
+    dataFields: ["http_request_data", "custom_label"],
   },
   action_log: {
     color: actionColor,
@@ -309,7 +331,7 @@ export const nodeTypes: Record<string, NodeValues> = {
       "Run actions based on the difference between two values.",
     dataSchema: nodeConditionCompareDataSchema,
     dataFields: [
-      "condition_base_value",
+      "condition_compare_base_value",
       "condition_allow_multiple",
       "custom_label",
     ],
@@ -318,10 +340,10 @@ export const nodeTypes: Record<string, NodeValues> = {
   control_condition_item_compare: {
     color: controlColor,
     icon: CircleHelpIcon,
-    defaultTitle: "Equal Condition",
+    defaultTitle: "Match Condition",
     dataSchema: nodeConditionItemCompareDataSchema,
     defaultDescription: "Run actions if the two values are equal.",
-    dataFields: ["condition_item_mode", "condition_item_value"],
+    dataFields: ["condition_item_compare_mode", "condition_item_compare_value"],
   },
   control_condition_user: {
     color: controlColor,
@@ -329,7 +351,11 @@ export const nodeTypes: Record<string, NodeValues> = {
     defaultTitle: "User Condition",
     defaultDescription: "Run actions based on a user.",
     dataSchema: nodeConditionCompareDataSchema,
-    dataFields: ["custom_label"],
+    dataFields: [
+      "condition_user_base_value",
+      "condition_allow_multiple",
+      "custom_label",
+    ],
     ownsChildren: true,
   },
   control_condition_item_user: {
@@ -338,7 +364,7 @@ export const nodeTypes: Record<string, NodeValues> = {
     defaultTitle: "Match User",
     dataSchema: nodeConditionItemCompareDataSchema,
     defaultDescription: "Run actions if the user meets the criteria.",
-    dataFields: [],
+    dataFields: ["condition_item_user_mode", "condition_item_user_value"],
   },
   control_condition_channel: {
     color: controlColor,
@@ -346,7 +372,11 @@ export const nodeTypes: Record<string, NodeValues> = {
     defaultTitle: "Channel Condition",
     defaultDescription: "Run actions based on a channel.",
     dataSchema: nodeConditionCompareDataSchema,
-    dataFields: ["custom_label"],
+    dataFields: [
+      "condition_channel_base_value",
+      "condition_allow_multiple",
+      "custom_label",
+    ],
     ownsChildren: true,
   },
   control_condition_item_channel: {
@@ -355,7 +385,7 @@ export const nodeTypes: Record<string, NodeValues> = {
     defaultTitle: "Match Channel",
     dataSchema: nodeConditionItemCompareDataSchema,
     defaultDescription: "Run actions if the channel meets the criteria.",
-    dataFields: [],
+    dataFields: ["condition_item_channel_mode", "condition_item_channel_value"],
   },
   control_condition_role: {
     color: controlColor,
@@ -363,7 +393,11 @@ export const nodeTypes: Record<string, NodeValues> = {
     defaultTitle: "Role Condition",
     defaultDescription: "Run actions based on a role.",
     dataSchema: nodeConditionCompareDataSchema,
-    dataFields: ["custom_label"],
+    dataFields: [
+      "condition_role_base_value",
+      "condition_allow_multiple",
+      "custom_label",
+    ],
     ownsChildren: true,
   },
   control_condition_item_role: {
@@ -372,7 +406,7 @@ export const nodeTypes: Record<string, NodeValues> = {
     defaultTitle: "Match Role",
     dataSchema: nodeConditionItemCompareDataSchema,
     defaultDescription: "Run actions if the role meets the criteria.",
-    dataFields: [],
+    dataFields: ["condition_item_role_mode", "condition_item_role_value"],
   },
   control_condition_item_else: {
     color: errorColor,
