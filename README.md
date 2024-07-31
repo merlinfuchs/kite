@@ -12,9 +12,11 @@ Make your own Discord Bot with Kite for free without a single line of code. With
 - [x] Design and implement flow values properly
 - [x] Design and implement node types
 - [x] Design and implement node data
-- [ ] Design and implement variable system
+- [x] Design and implement variable system
+- [x] Add some more common flow nodes
 - [ ] Implement all existing flow nodes
-- [ ] Add some more common flow nodes
+- [ ] Merge kite-common and kite-service
+- [ ] Move flow and template into independent modules
 
 ### Node Types
 
