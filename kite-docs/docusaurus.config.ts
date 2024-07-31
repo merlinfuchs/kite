@@ -3,20 +3,20 @@ import type { Config } from "@docusaurus/types";
 import type * as Preset from "@docusaurus/preset-classic";
 
 const config: Config = {
-  title: "My Site",
-  tagline: "Dinosaurs are cool",
+  title: "Kite",
+  tagline: "Discord Bots made easy",
   favicon: "img/favicon.ico",
 
   // Set the production url of your site here
-  url: "https://your-docusaurus-site.example.com",
+  url: "https://docs.kite.onl",
   // Set the /<baseUrl>/ pathname under which your site is served
   // For GitHub pages deployment, it is often '/<projectName>/'
   baseUrl: "/",
 
   // GitHub pages deployment config.
   // If you aren't using GitHub pages, you don't need these.
-  organizationName: "facebook", // Usually your GitHub org/user name.
-  projectName: "docusaurus", // Usually your repo name.
+  organizationName: "merlinfuchs", // Usually your GitHub org/user name.
+  projectName: "kite", // Usually your repo name.
 
   onBrokenLinks: "throw",
   onBrokenMarkdownLinks: "warn",
@@ -38,13 +38,13 @@ const config: Config = {
           // Please change this to your repo.
           // Remove this to remove the "edit this page" links.
           routeBasePath: "/",
-          editUrl: "https://github.com/merlinfuchs/kite/tree/main/kite-web/",
+          editUrl: "https://github.com/merlinfuchs/kite/tree/main/kite-docs/",
         },
         blog: {
           showReadingTime: true,
           // Please change this to your repo.
           // Remove this to remove the "edit this page" links.
-          editUrl: "https://github.com/merlinfuchs/kite/tree/main/kite-web/",
+          editUrl: "https://github.com/merlinfuchs/kite/tree/main/kite-docs/",
         },
         theme: {
           customCss: "./src/css/custom.css",
@@ -55,11 +55,11 @@ const config: Config = {
 
   themeConfig: {
     // Replace with your project's social card
-    image: "img/docusaurus-social-card.jpg",
+    image: "img/logo.png",
     navbar: {
-      title: "My Site",
+      title: "Kite",
       logo: {
-        alt: "My Site Logo",
+        alt: "Kite Logo",
         src: "img/logo.svg",
       },
       items: [
@@ -69,6 +69,7 @@ const config: Config = {
           position: "left",
           label: "Tutorial",
         },
+        { to: "/blog", label: "Blog", position: "left" },
         {
           href: "https://github.com/merlinfuchs/kite",
           label: "GitHub",
@@ -84,7 +85,7 @@ const config: Config = {
           items: [
             {
               label: "Tutorial",
-              to: "/docs/intro",
+              to: "/intro",
             },
           ],
         },
