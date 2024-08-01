@@ -56,7 +56,10 @@ func (s *APIServer) RegisterRoutes(
 	// App routes
 	appHandler := app.NewAppHandler(appStore, s.config.UserLimits.MaxAppsPerUser)
 
-	appsGroup := v1Group.Group("/apps", sessionManager.RequireSession)
+	appsGroup := v1Group.Group("/apps",
+		sessionManager.RequireSession,
+		handler.RateLimitByUser(60, time.Minute),
+	)
 	appsGroup.Get("/", handler.Typed(appHandler.HandleAppList))
 	appsGroup.Post("/", handler.TypedWithBody(appHandler.HandleAppCreate))
 
@@ -66,7 +69,10 @@ func (s *APIServer) RegisterRoutes(
 		handler.TypedWithBody(appHandler.HandleAppUpdate),
 		handler.RateLimitByUser(2, time.Minute),
 	)
-	appGroup.Put("/token", handler.TypedWithBody(appHandler.HandleAppTokenUpdate))
+	appGroup.Put("/token",
+		handler.TypedWithBody(appHandler.HandleAppTokenUpdate),
+		handler.RateLimitByUser(2, time.Minute),
+	)
 	appGroup.Delete("/", handler.Typed(appHandler.HandleAppDelete))
 
 	// Log routes

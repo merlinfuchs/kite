@@ -26,8 +26,8 @@ export default function HomeCTASection() {
             <Link href="/apps">Get started</Link>
           </Button>
           <Button variant="outline" className="w-full md:w-auto" asChild>
-            <a href={env.NEXT_PUBLIC_DOCS_LINK} target="_blank">
-              Documentation
+            <a href={env.NEXT_PUBLIC_DISCORD_LINK} target="_blank">
+              Join the Discord
             </a>
           </Button>
         </div>

@@ -51,6 +51,8 @@ func (h *AppHandler) HandleAppCreate(c *handler.Context, req wire.AppCreateReque
 		return nil, handler.ErrBadRequest("resource_limit", fmt.Sprintf("maximum number of apps (%d) reached", h.maxAppsPerUser))
 	}
 
+	// TODO: existingApp, err := h.appStore.AppByDiscordID()
+
 	appInfo, err := h.getDiscordAppInfo(c.Context(), req.DiscordToken)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get discord app info: %w", err)

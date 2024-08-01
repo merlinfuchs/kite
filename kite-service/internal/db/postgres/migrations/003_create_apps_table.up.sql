@@ -8,7 +8,7 @@ CREATE TABLE IF NOT EXISTS apps (
     creator_user_id TEXT NOT NULL,
 
     discord_token TEXT NOT NULL,
-    discord_id TEXT NOT NULL,
+    discord_id TEXT NOT NULL UNIQUE,
    
     created_at TIMESTAMP NOT NULL,
     updated_at TIMESTAMP NOT NULL

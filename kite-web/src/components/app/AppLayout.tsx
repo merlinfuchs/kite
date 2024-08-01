@@ -44,6 +44,8 @@ import { toast } from "sonner";
 import DynamicIcon from "../icons/DynamicIcon";
 import { Separator } from "../ui/separator";
 import logo from "@/assets/logo/white@1024.png";
+import BaseLayout from "../common/BaseLayout";
+import OpenBetaPopup from "./OpenBetaPopup";
 
 interface Props {
   breadcrumbs?: {
@@ -165,149 +167,51 @@ export default function AppLayout({ children, ...props }: Props) {
   }, [router.pathname]);
 
   return (
-    <div className="flex min-h-[100dvh] w-full flex-col bg-muted/40">
-      <Head>
-        <title>{`${title} | Kite`}</title>
-      </Head>
-      <aside className="fixed inset-y-0 left-0 z-10 hidden w-14 flex-col border-r bg-background sm:flex">
-        <nav className="flex flex-col items-center gap-4 px-2 sm:py-5">
-          <Link
-            href="/"
-            className="group flex h-9 w-9 shrink-0 items-center justify-center gap-2 rounded-full bg-primary text-lg font-semibold text-primary-foreground md:h-8 md:w-8 md:text-base"
-          >
-            <img
-              src={logo.src}
-              className="h-6 w-6 transition-all group-hover:scale-105"
-              alt="Kite Logo"
-            />
-            <span className="sr-only">Kite.onl</span>
-          </Link>
-          {navItems
-            .filter((i) => !i.bottom)
-            .map((item) => (
-              <Tooltip key={item.href}>
+    <BaseLayout title={title}>
+      <div className="flex min-h-[100dvh] w-full flex-col bg-muted/40">
+        <aside className="fixed inset-y-0 left-0 z-10 hidden w-14 flex-col border-r bg-background sm:flex">
+          <nav className="flex flex-col items-center gap-4 px-2 sm:py-5">
+            <Link
+              href="/"
+              className="group flex h-9 w-9 shrink-0 items-center justify-center gap-2 rounded-full bg-primary text-lg font-semibold text-primary-foreground md:h-8 md:w-8 md:text-base"
+            >
+              <img
+                src={logo.src}
+                className="h-6 w-6 transition-all group-hover:scale-105"
+                alt="Kite Logo"
+              />
+              <span className="sr-only">Kite.onl</span>
+            </Link>
+            {navItems
+              .filter((i) => !i.bottom)
+              .map((item) => (
+                <Tooltip key={item.href}>
+                  <TooltipTrigger asChild>
+                    <Link
+                      href={{
+                        pathname: item.href,
+                        query: router.query,
+                      }}
+                      className={cn(
+                        "flex h-9 w-9 items-center justify-center rounded-lg transition-colors hover:text-foreground md:h-8 md:w-8",
+                        item.active
+                          ? "bg-accent text-accent-foreground"
+                          : "text-muted-foreground"
+                      )}
+                    >
+                      <item.icon className="h-5 w-5" />
+                      <span className="sr-only">{item.label}</span>
+                    </Link>
+                  </TooltipTrigger>
+                  <TooltipContent side="right">{item.label}</TooltipContent>
+                </Tooltip>
+              ))}
+
+            {dashboardPages.length > 0 && <Separator className="my-1" />}
+            {dashboardPages.map((page) => (
+              <Tooltip key={page.href}>
                 <TooltipTrigger asChild>
                   <Link
-                    href={{
-                      pathname: item.href,
-                      query: router.query,
-                    }}
-                    className={cn(
-                      "flex h-9 w-9 items-center justify-center rounded-lg transition-colors hover:text-foreground md:h-8 md:w-8",
-                      item.active
-                        ? "bg-accent text-accent-foreground"
-                        : "text-muted-foreground"
-                    )}
-                  >
-                    <item.icon className="h-5 w-5" />
-                    <span className="sr-only">{item.label}</span>
-                  </Link>
-                </TooltipTrigger>
-                <TooltipContent side="right">{item.label}</TooltipContent>
-              </Tooltip>
-            ))}
-
-          {dashboardPages.length > 0 && <Separator className="my-1" />}
-          {dashboardPages.map((page) => (
-            <Tooltip key={page.href}>
-              <TooltipTrigger asChild>
-                <Link
-                  href={{
-                    pathname: page.href,
-                    query: {
-                      pid: router.query.pid,
-                      appId: page.appId,
-                      path: page.path,
-                    },
-                  }}
-                  className={cn(
-                    "flex h-9 w-9 items-center justify-center rounded-lg transition-colors hover:text-foreground md:h-8 md:w-8",
-                    page.active
-                      ? "bg-accent text-accent-foreground"
-                      : "text-muted-foreground"
-                  )}
-                >
-                  <DynamicIcon name={page.icon} className="h-5 w-5" />
-                  <span className="sr-only">{page.label}</span>
-                </Link>
-              </TooltipTrigger>
-              <TooltipContent side="right">{page.label}</TooltipContent>
-            </Tooltip>
-          ))}
-        </nav>
-        <nav className="mt-auto flex flex-col items-center gap-4 px-2 sm:py-5">
-          {navItems
-            .filter((i) => i.bottom)
-            .map((item) => (
-              <Tooltip key={item.href}>
-                <TooltipTrigger asChild>
-                  <Link
-                    href={{
-                      pathname: item.href,
-                      query: router.query,
-                    }}
-                    className={cn(
-                      "flex h-9 w-9 items-center justify-center rounded-lg transition-colors hover:text-foreground md:h-8 md:w-8",
-                      item.active
-                        ? "bg-accent text-accent-foreground"
-                        : "text-muted-foreground"
-                    )}
-                  >
-                    <item.icon className="h-5 w-5" />
-                    <span className="sr-only">{item.label}</span>
-                  </Link>
-                </TooltipTrigger>
-                <TooltipContent side="right">{item.label}</TooltipContent>
-              </Tooltip>
-            ))}
-        </nav>
-      </aside>
-      <div className="flex flex-1 flex-col sm:gap-6 sm:py-4 sm:pl-14 w-full max-w-[1500px] mx-auto">
-        <header className="sticky top-0 z-30 flex h-14 items-center gap-5 border-b bg-background px-4 sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6">
-          <Sheet>
-            <SheetTrigger asChild>
-              <Button size="icon" variant="outline" className="sm:hidden">
-                <PanelLeft className="h-5 w-5" />
-                <span className="sr-only">Toggle Menu</span>
-              </Button>
-            </SheetTrigger>
-            <SheetContent side="left" className="sm:max-w-xs">
-              <nav className="grid gap-6 text-lg font-medium">
-                <Link
-                  href="/"
-                  className="group flex h-10 w-10 shrink-0 items-center justify-center gap-2 rounded-full bg-primary text-lg font-semibold text-primary-foreground md:text-base"
-                >
-                  <img
-                    src={logo.src}
-                    className="h-6 w-6 transition-all group-hover:scale-105"
-                    alt="Kite Logo"
-                  />
-                  <span className="sr-only">Kite.onl</span>
-                </Link>
-
-                {navItems.map((item) => (
-                  <Link
-                    key={item.href}
-                    href={{
-                      pathname: item.href,
-                      query: router.query,
-                    }}
-                    className={cn(
-                      "flex items-center gap-4 px-2.5 hover:text-foreground",
-                      item.active
-                        ? "text-accent-foreground"
-                        : "text-muted-foreground"
-                    )}
-                  >
-                    <item.icon className="h-5 w-5" />
-                    {item.label}
-                  </Link>
-                ))}
-
-                {dashboardPages.length > 0 && <Separator className="my-1" />}
-                {dashboardPages.map((page) => (
-                  <Link
-                    key={page.href}
                     href={{
                       pathname: page.href,
                       query: {
@@ -317,79 +221,178 @@ export default function AppLayout({ children, ...props }: Props) {
                       },
                     }}
                     className={cn(
-                      "flex items-center gap-4 px-2.5 hover:text-foreground",
-                      page!.active
-                        ? "text-accent-foreground"
+                      "flex h-9 w-9 items-center justify-center rounded-lg transition-colors hover:text-foreground md:h-8 md:w-8",
+                      page.active
+                        ? "bg-accent text-accent-foreground"
                         : "text-muted-foreground"
                     )}
                   >
-                    <DynamicIcon name={page!.icon} className="h-5 w-5" />
-                    {page.label}
+                    <DynamicIcon name={page.icon} className="h-5 w-5" />
+                    <span className="sr-only">{page.label}</span>
                   </Link>
-                ))}
-              </nav>
-            </SheetContent>
-          </Sheet>
-          <Breadcrumb className="hidden md:flex">
-            <BreadcrumbList>
-              {breadcrumbs.map((item, i) => (
-                <Fragment key={item.label}>
-                  <BreadcrumbItem>
-                    {item.href ? (
-                      <BreadcrumbLink asChild>
-                        <Link
-                          href={{
-                            pathname: item.href,
-                            query: router.query,
-                          }}
-                        >
-                          {item.label}
-                        </Link>
-                      </BreadcrumbLink>
-                    ) : (
-                      <BreadcrumbPage>{item.label}</BreadcrumbPage>
-                    )}
-                  </BreadcrumbItem>
-
-                  {i < breadcrumbs.length - 1 && <BreadcrumbSeparator />}
-                </Fragment>
+                </TooltipTrigger>
+                <TooltipContent side="right">{page.label}</TooltipContent>
+              </Tooltip>
+            ))}
+          </nav>
+          <nav className="mt-auto flex flex-col items-center gap-4 px-2 sm:py-5">
+            {navItems
+              .filter((i) => i.bottom)
+              .map((item) => (
+                <Tooltip key={item.href}>
+                  <TooltipTrigger asChild>
+                    <Link
+                      href={{
+                        pathname: item.href,
+                        query: router.query,
+                      }}
+                      className={cn(
+                        "flex h-9 w-9 items-center justify-center rounded-lg transition-colors hover:text-foreground md:h-8 md:w-8",
+                        item.active
+                          ? "bg-accent text-accent-foreground"
+                          : "text-muted-foreground"
+                      )}
+                    >
+                      <item.icon className="h-5 w-5" />
+                      <span className="sr-only">{item.label}</span>
+                    </Link>
+                  </TooltipTrigger>
+                  <TooltipContent side="right">{item.label}</TooltipContent>
+                </Tooltip>
               ))}
-            </BreadcrumbList>
-          </Breadcrumb>
-          <div className="relative ml-auto flex-shrink-0">
-            <ThemeSwitch />
-          </div>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant="outline"
-                size="icon"
-                className="overflow-hidden rounded-full"
-              >
-                <div className="font-medium tracking-wide">
-                  {abbreviateName(user?.display_name || "")}
-                </div>
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuLabel>My Account</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem>Settings</DropdownMenuItem>
-              <DropdownMenuItem>Support</DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem>Logout</DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </header>
-        <main
-          className={cn(
-            "flex-1 flex flex-col",
-            !props.disablePadding && "p-4 sm:px-6 sm:pb-20"
-          )}
-        >
-          {children}
-        </main>
+          </nav>
+        </aside>
+        <div className="flex flex-1 flex-col sm:gap-6 sm:py-4 sm:pl-14 w-full max-w-[1500px] mx-auto">
+          <header className="sticky top-0 z-30 flex h-14 items-center gap-5 border-b bg-background px-4 sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6">
+            <Sheet>
+              <SheetTrigger asChild>
+                <Button size="icon" variant="outline" className="sm:hidden">
+                  <PanelLeft className="h-5 w-5" />
+                  <span className="sr-only">Toggle Menu</span>
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="left" className="sm:max-w-xs">
+                <nav className="grid gap-6 text-lg font-medium">
+                  <Link
+                    href="/"
+                    className="group flex h-10 w-10 shrink-0 items-center justify-center gap-2 rounded-full bg-primary text-lg font-semibold text-primary-foreground md:text-base"
+                  >
+                    <img
+                      src={logo.src}
+                      className="h-6 w-6 transition-all group-hover:scale-105"
+                      alt="Kite Logo"
+                    />
+                    <span className="sr-only">Kite.onl</span>
+                  </Link>
+
+                  {navItems.map((item) => (
+                    <Link
+                      key={item.href}
+                      href={{
+                        pathname: item.href,
+                        query: router.query,
+                      }}
+                      className={cn(
+                        "flex items-center gap-4 px-2.5 hover:text-foreground",
+                        item.active
+                          ? "text-accent-foreground"
+                          : "text-muted-foreground"
+                      )}
+                    >
+                      <item.icon className="h-5 w-5" />
+                      {item.label}
+                    </Link>
+                  ))}
+
+                  {dashboardPages.length > 0 && <Separator className="my-1" />}
+                  {dashboardPages.map((page) => (
+                    <Link
+                      key={page.href}
+                      href={{
+                        pathname: page.href,
+                        query: {
+                          pid: router.query.pid,
+                          appId: page.appId,
+                          path: page.path,
+                        },
+                      }}
+                      className={cn(
+                        "flex items-center gap-4 px-2.5 hover:text-foreground",
+                        page!.active
+                          ? "text-accent-foreground"
+                          : "text-muted-foreground"
+                      )}
+                    >
+                      <DynamicIcon name={page!.icon} className="h-5 w-5" />
+                      {page.label}
+                    </Link>
+                  ))}
+                </nav>
+              </SheetContent>
+            </Sheet>
+            <Breadcrumb className="hidden md:flex">
+              <BreadcrumbList>
+                {breadcrumbs.map((item, i) => (
+                  <Fragment key={item.label}>
+                    <BreadcrumbItem>
+                      {item.href ? (
+                        <BreadcrumbLink asChild>
+                          <Link
+                            href={{
+                              pathname: item.href,
+                              query: router.query,
+                            }}
+                          >
+                            {item.label}
+                          </Link>
+                        </BreadcrumbLink>
+                      ) : (
+                        <BreadcrumbPage>{item.label}</BreadcrumbPage>
+                      )}
+                    </BreadcrumbItem>
+
+                    {i < breadcrumbs.length - 1 && <BreadcrumbSeparator />}
+                  </Fragment>
+                ))}
+              </BreadcrumbList>
+            </Breadcrumb>
+            <div className="relative ml-auto flex-shrink-0">
+              <ThemeSwitch />
+            </div>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="overflow-hidden rounded-full"
+                >
+                  <div className="font-medium tracking-wide">
+                    {abbreviateName(user?.display_name || "")}
+                  </div>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuLabel>My Account</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem>Settings</DropdownMenuItem>
+                <DropdownMenuItem>Support</DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem>Logout</DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </header>
+          <main
+            className={cn(
+              "flex-1 flex flex-col",
+              !props.disablePadding && "p-4 sm:px-6 sm:pb-20"
+            )}
+          >
+            {children}
+          </main>
+        </div>
       </div>
-    </div>
+
+      <OpenBetaPopup />
+    </BaseLayout>
   );
 }

@@ -2,7 +2,7 @@ import z from "zod";
 
 export const clientEnvSchema = z.object({
   NEXT_PUBLIC_API_PUBLIC_BASE_URL: z.string().default("http://localhost:8080"),
-  NEXT_PUBLIC_DOCS_LINK: z.string().default("https://localhost:4000"),
+  NEXT_PUBLIC_DOCS_LINK: z.string().default("http://localhost:4000"),
   NEXT_PUBLIC_GITHUB_LINK: z
     .string()
     .default("https://github.com/merlinfuchs/kite"),

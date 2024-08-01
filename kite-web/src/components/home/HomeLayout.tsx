@@ -1,6 +1,7 @@
 import { ReactNode } from "react";
 import HomeNavbar from "./HomeNavbar";
 import Head from "next/head";
+import BaseLayout from "../common/BaseLayout";
 
 export default function HomeLayout({
   children,
@@ -12,23 +13,13 @@ export default function HomeLayout({
   description?: string;
 }) {
   return (
-    <div className="min-h-[100dvh] flex flex-col overflow-hidden">
-      <Head>
-        <title>{`${title ? title + " | " : ""}Kite`}</title>
-        <meta
-          name="description"
-          content={
-            description ||
-            "Kite - Create Discord Bots for free with no coding required."
-          }
-        />
-        <meta property="og:site_name" content="kite.onl" />
-        <meta property="og:image" content="/logo.png" />
-      </Head>
-      <div className="flex-none">
-        <HomeNavbar />
+    <BaseLayout title={title} description={description}>
+      <div className="min-h-[100dvh] flex flex-col overflow-hidden">
+        <div className="flex-none">
+          <HomeNavbar />
+        </div>
+        <div className="flex-auto overflow-hidden">{children}</div>
       </div>
-      <div className="flex-auto overflow-hidden">{children}</div>
-    </div>
+    </BaseLayout>
   );
 }
