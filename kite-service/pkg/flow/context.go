@@ -6,7 +6,7 @@ import (
 
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/gateway"
-	"github.com/kitecloud/kite/kite-service/internal/core/template"
+	"github.com/kitecloud/kite/kite-service/pkg/template"
 )
 
 type FlowContext struct {

@@ -3,7 +3,7 @@ package model
 import (
 	"time"
 
-	"github.com/kitecloud/kite/kite-service/internal/core/flow"
+	"github.com/kitecloud/kite/kite-service/pkg/flow"
 	"gopkg.in/guregu/null.v4"
 )
 

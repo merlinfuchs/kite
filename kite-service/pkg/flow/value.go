@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	"github.com/diamondburned/arikawa/v3/discord"
-	"github.com/kitecloud/kite/kite-service/internal/core/template"
+	"github.com/kitecloud/kite/kite-service/pkg/template"
 )
 
 type FlowValueType string

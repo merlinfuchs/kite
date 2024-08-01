@@ -1,6 +1,6 @@
 package flow
 
-import "github.com/kitecloud/kite/kite-service/internal/core/template"
+import "github.com/kitecloud/kite/kite-service/pkg/template"
 
 type FlowContextVariables struct {
 	*template.TemplateContext
