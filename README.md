@@ -2,6 +2,8 @@
 
 Make your own Discord Bot with Kite for free without a single line of code. With support for slash commands, buttons, and more.
 
+![Flow Example](./example-flow.png)
+
 ## TODO
 
 - [x] App home page

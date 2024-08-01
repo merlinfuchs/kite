@@ -14,7 +14,7 @@ type ContextProvider interface {
 }
 
 type InteractionProvider struct {
-	state       *statestore.Cabinet
+	state       *statestore.Cabinet // TODO: replace this with a custom interface?
 	interaction *discord.InteractionEvent
 }
 
