@@ -1,15 +1,11 @@
 import Link from "next/link";
 import {
   HomeIcon,
-  LayoutGridIcon,
-  LineChartIcon,
   MailPlusIcon,
-  MousePointerClickIcon,
   PanelLeft,
   SatelliteDishIcon,
   SettingsIcon,
   SlashSquareIcon,
-  WaypointsIcon,
 } from "lucide-react";
 import {
   Breadcrumb,
@@ -34,7 +30,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { Fragment, ReactNode, useMemo } from "react";
+import { Fragment, ReactNode, useCallback, useMemo } from "react";
 import { useRouter } from "next/router";
 import { abbreviateName, cn } from "@/lib/utils";
 import ThemeSwitch from "../common/ThemeSwitch";
@@ -46,6 +42,8 @@ import { Separator } from "../ui/separator";
 import logo from "@/assets/logo/white@1024.png";
 import BaseLayout from "../common/BaseLayout";
 import OpenBetaPopup from "./OpenBetaPopup";
+import env from "@/lib/env/client";
+import { useAuthLogoutMutation } from "@/lib/api/mutations";
 
 interface Props {
   breadcrumbs?: {
@@ -59,6 +57,12 @@ interface Props {
 
 export default function AppLayout({ children, ...props }: Props) {
   const router = useRouter();
+  const logoutMutation = useAuthLogoutMutation();
+
+  const logout = useCallback(() => {
+    router.push("/");
+    setTimeout(() => logoutMutation.mutate(), 500);
+  }, [logoutMutation]);
 
   const user = useUser((res) => {
     if (!res.success) {
@@ -372,12 +376,24 @@ export default function AppLayout({ children, ...props }: Props) {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuLabel>My Account</DropdownMenuLabel>
+                <DropdownMenuLabel>
+                  {user?.display_name || ""}
+                </DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem>Settings</DropdownMenuItem>
-                <DropdownMenuItem>Support</DropdownMenuItem>
+                <DropdownMenuItem asChild className="cursor-pointer">
+                  <Link href={env.NEXT_PUBLIC_DOCS_LINK} target="_blank">
+                    Docs
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild className="cursor-pointer">
+                  <Link href={env.NEXT_PUBLIC_DISCORD_LINK} target="_blank">
+                    Discord
+                  </Link>
+                </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem>Logout</DropdownMenuItem>
+                <DropdownMenuItem onClick={logout} className="cursor-pointer">
+                  Logout
+                </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </header>
