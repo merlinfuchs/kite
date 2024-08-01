@@ -8,12 +8,13 @@ import (
 	"time"
 
 	"github.com/diamondburned/arikawa/v3/gateway"
+	"github.com/diamondburned/arikawa/v3/state"
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/internal/store"
 )
 
 type EventHandler interface {
-	HandleEvent(appID string, event gateway.Event)
+	HandleEvent(appID string, session *state.State, event gateway.Event)
 }
 
 type GatewayManager struct {

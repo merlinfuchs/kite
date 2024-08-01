@@ -7,10 +7,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/diamondburned/arikawa/v3/api"
-	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/gateway"
-	"github.com/diamondburned/arikawa/v3/session/shard"
 	"github.com/diamondburned/arikawa/v3/state"
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/internal/store"
@@ -22,8 +19,8 @@ type Gateway struct {
 	logStore     store.LogStore
 	eventHandler EventHandler
 
-	app    *model.App
-	shards *shard.Manager
+	app     *model.App
+	session *state.State
 }
 
 func NewGateway(app *model.App, logStore store.LogStore, eventHandler EventHandler) *Gateway {
@@ -31,6 +28,7 @@ func NewGateway(app *model.App, logStore store.LogStore, eventHandler EventHandl
 		logStore:     logStore,
 		eventHandler: eventHandler,
 		app:          app,
+		session:      createSession(app),
 	}
 
 	go g.startGateway()
@@ -41,84 +39,52 @@ func (g *Gateway) startGateway() {
 	g.Lock()
 	defer g.Unlock()
 
-	client := api.NewClient("Bot " + g.app.DiscordToken)
-	intents, err := getAppIntents(client)
+	intents, err := getAppIntents(g.session.Client)
 	if err != nil {
 		go g.createLogEntry(model.LogLevelError, fmt.Sprintf("Failed to get app intents: %v", err))
 		slog.With("error", err).Error("failed to get app intents")
 		return
 	}
 
-	newShard := state.NewShardFunc(func(m *shard.Manager, s *state.State) {
-		s.AddIntents(intents)
+	g.session.AddIntents(intents)
 
-		s.AddHandler(func(e gateway.Event) {
-			g.eventHandler.HandleEvent(g.app.ID, e)
-		})
-
-		s.AddHandler(func(e *gateway.ReadyEvent) {
-			g.createLogEntry(model.LogLevelInfo, fmt.Sprintf(
-				"Connected to Discord as %s#%s (%s)",
-				e.User.Username, e.User.Discriminator, e.User.ID,
-			))
-
-			if len(e.Guilds) > 100 {
-				g.createLogEntry(model.LogLevelError, "Bots that are in more than 100 servers are currently not supported.")
-
-				ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-				defer cancel()
-
-				if err := g.Close(ctx); err != nil {
-					slog.With("error", err).Error("failed to close gateway")
-				}
-
-				return
-			}
-		})
+	g.session.AddHandler(func(e gateway.Event) {
+		g.eventHandler.HandleEvent(g.app.ID, g.session, e)
 	})
 
-	shards, err := shard.NewIdentifiedManager(gateway.IdentifyCommand{
-		Token: "Bot " + g.app.DiscordToken,
-		Presence: &gateway.UpdatePresenceCommand{
-			Status: discord.OnlineStatus,
-			Activities: []discord.Activity{
-				{
-					Type:  discord.CustomActivity,
-					Name:  "kite.onl",
-					State: "🪁 Powered by Kite.onl",
-				},
-			},
-		},
-	}, newShard)
-	if err != nil {
-		go g.createLogEntry(model.LogLevelError, fmt.Sprintf("Failed to create shard manager, make sure the token is correct: %v", err))
-		slog.With("error", err).Error("failed to create shard manager")
+	g.session.AddHandler(func(e *gateway.ReadyEvent) {
+		g.createLogEntry(model.LogLevelInfo, fmt.Sprintf(
+			"Connected to Discord as %s#%s (%s)",
+			e.User.Username, e.User.Discriminator, e.User.ID,
+		))
+
+		if len(e.Guilds) > 100 {
+			g.createLogEntry(model.LogLevelError, "Bots that are in more than 100 servers are currently not supported.")
+
+			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			defer cancel()
+
+			if err := g.Close(ctx); err != nil {
+				slog.With("error", err).Error("failed to close gateway")
+			}
+
+			return
+		}
+	})
+
+	if err := g.session.Open(context.TODO()); err != nil {
+		go g.createLogEntry(model.LogLevelError, fmt.Sprintf("Failed to open session: %v", err))
+		slog.With("error", err).Error("failed to open session")
 		return
 	}
-
-	if shards.NumShards() > 1 {
-		go g.createLogEntry(model.LogLevelError, "Sharding is not supported, your bot is in more than 1000 servers.")
-		slog.With("error", err).Error("sharding is not supported")
-		return
-	}
-
-	if err := shards.Open(context.TODO()); err != nil {
-		go g.createLogEntry(model.LogLevelError, fmt.Sprintf("Failed to open shard manager: %v", err))
-		slog.With("error", err).Error("failed to open shard manager")
-		return
-	}
-
-	g.shards = shards
 }
 
 func (g *Gateway) Close(ctx context.Context) error {
 	g.Lock()
 	defer g.Unlock()
 
-	if g.shards != nil {
-		if err := g.shards.Close(); err != nil {
-			return err
-		}
+	if err := g.session.Close(); err != nil {
+		return err
 	}
 
 	return nil
@@ -126,15 +92,18 @@ func (g *Gateway) Close(ctx context.Context) error {
 
 func (g *Gateway) Update(ctx context.Context, app *model.App) {
 	if app.DiscordToken != g.app.DiscordToken {
+		g.app = app
+
 		slog.With("app_id", app.ID).Info("Discord token changed, closing gateway")
 		if err := g.Close(ctx); err != nil {
 			slog.With("error", err).Error("failed to close gateway")
 		}
 
+		g.session = createSession(app)
 		go g.startGateway()
+	} else {
+		g.app = app
 	}
-
-	g.app = app
 }
 
 func (g *Gateway) createLogEntry(level model.LogLevel, message string) {

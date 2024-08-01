@@ -9,7 +9,7 @@ import (
 
 	"github.com/diamondburned/arikawa/v3/api"
 	"github.com/diamondburned/arikawa/v3/discord"
-	statestore "github.com/diamondburned/arikawa/v3/state/store"
+	"github.com/diamondburned/arikawa/v3/state"
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/internal/store"
 	"github.com/kitecloud/kite/kite-service/pkg/flow"
@@ -20,18 +20,18 @@ type DiscordProvider struct {
 
 	appID    string
 	appStore store.AppStore
-	state    *statestore.Cabinet
+	session  *state.State
 }
 
 func NewDiscordProvider(
 	appID string,
 	appStore store.AppStore,
-	state *statestore.Cabinet,
+	session *state.State,
 ) *DiscordProvider {
 	return &DiscordProvider{
 		appID:    appID,
 		appStore: appStore,
-		state:    state,
+		session:  session,
 	}
 }
 

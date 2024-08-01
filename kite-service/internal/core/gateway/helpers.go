@@ -4,7 +4,10 @@ import (
 	"fmt"
 
 	"github.com/diamondburned/arikawa/v3/api"
+	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/gateway"
+	"github.com/diamondburned/arikawa/v3/state"
+	"github.com/kitecloud/kite/kite-service/internal/model"
 )
 
 const GATEWAY_MESSAGE_CONTENT = 18
@@ -22,4 +25,20 @@ func getAppIntents(client *api.Client) (gateway.Intents, error) {
 	}
 
 	return res, nil
+}
+
+func createSession(app *model.App) *state.State {
+	identifier := gateway.DefaultIdentifier("Bot " + app.DiscordToken)
+	identifier.IdentifyCommand.Presence = &gateway.UpdatePresenceCommand{
+		Status: discord.OnlineStatus,
+		Activities: []discord.Activity{
+			{
+				Type:  discord.CustomActivity,
+				Name:  "kite.onl",
+				State: "🪁 Powered by Kite.onl",
+			},
+		},
+	}
+
+	return state.NewWithIdentifier(identifier)
 }

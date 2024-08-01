@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/diamondburned/arikawa/v3/gateway"
+	"github.com/diamondburned/arikawa/v3/state"
 	"github.com/kitecloud/kite/kite-service/internal/store"
 )
 
@@ -130,13 +131,13 @@ func (m *Engine) populateEvents(_ context.Context) error {
 	return nil
 }
 
-func (e *Engine) HandleEvent(appID string, event gateway.Event) {
+func (e *Engine) HandleEvent(appID string, session *state.State, event gateway.Event) {
 	e.RLock()
 	app := e.apps[appID]
 	e.RUnlock()
 
 	if app != nil {
-		app.HandleEvent(appID, event)
+		app.HandleEvent(appID, session, event)
 	}
 }
 

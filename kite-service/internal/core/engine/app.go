@@ -9,9 +9,9 @@ import (
 
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/gateway"
+	"github.com/diamondburned/arikawa/v3/state"
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/internal/store"
-	"github.com/kitecloud/kite/kite-service/pkg/flow"
 )
 
 type App struct {
@@ -19,16 +19,16 @@ type App struct {
 
 	id string
 
-	config               EngineConfig
-	appStore             store.AppStore
-	logStore             store.LogStore
-	commandStore         store.CommandStore
+	config       EngineConfig
+	appStore     store.AppStore
+	logStore     store.LogStore
+	commandStore store.CommandStore
+	httpClient   *http.Client
+
 	hasUndeployedChanges bool
 
 	commands map[string]*Command
 	events   map[string]interface{}
-
-	providers flow.FlowProviders
 }
 
 func NewApp(
@@ -39,21 +39,15 @@ func NewApp(
 	commandStore store.CommandStore,
 	httpClient *http.Client,
 ) *App {
-	providers := flow.FlowProviders{
-		Discord: NewDiscordProvider(id, appStore, nil), // TODO: how do we get the gateway state in here?
-		Log:     NewLogProvider(id, logStore),
-		HTTP:    NewHTTPProvider(httpClient),
-	}
-
 	return &App{
 		id:           id,
 		config:       config,
 		appStore:     appStore,
 		logStore:     logStore,
 		commandStore: commandStore,
+		httpClient:   httpClient,
 		commands:     make(map[string]*Command),
 		events:       make(map[string]interface{}),
-		providers:    providers,
 	}
 }
 
@@ -61,7 +55,7 @@ func (a *App) AddCommand(cmd *model.Command) {
 	a.Lock()
 	defer a.Unlock()
 
-	command, err := NewCommand(a.config, cmd, a.logStore, a.providers)
+	command, err := NewCommand(a.config, cmd, a.appStore, a.logStore, a.httpClient)
 	if err != nil {
 		slog.With("error", err).Error("failed to create command")
 		return
@@ -106,7 +100,7 @@ func (a *App) createLogEntry(level model.LogLevel, message string) {
 	}
 }
 
-func (a *App) HandleEvent(appID string, event gateway.Event) {
+func (a *App) HandleEvent(appID string, session *state.State, event gateway.Event) {
 	a.RLock()
 	defer a.RUnlock()
 
@@ -116,7 +110,7 @@ func (a *App) HandleEvent(appID string, event gateway.Event) {
 		case *discord.CommandInteraction:
 			for _, command := range a.commands {
 				if command.cmd.Name == d.Name {
-					command.HandleEvent(appID, event)
+					command.HandleEvent(appID, session, event)
 				}
 			}
 		}

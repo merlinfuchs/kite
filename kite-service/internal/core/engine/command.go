@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"net/http"
 	"slices"
 	"strconv"
 	"time"
@@ -11,6 +12,7 @@ import (
 	"github.com/diamondburned/arikawa/v3/api"
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/gateway"
+	"github.com/diamondburned/arikawa/v3/state"
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/internal/store"
 	"github.com/kitecloud/kite/kite-service/pkg/flow"
@@ -18,32 +20,46 @@ import (
 )
 
 type Command struct {
-	config    EngineConfig
-	cmd       *model.Command
-	flow      *flow.CompiledFlowNode
-	providers flow.FlowProviders
-	logStore  store.LogStore
+	config     EngineConfig
+	cmd        *model.Command
+	flow       *flow.CompiledFlowNode
+	appStore   store.AppStore
+	logStore   store.LogStore
+	httpClient *http.Client
 }
 
-func NewCommand(config EngineConfig, cmd *model.Command, logStore store.LogStore, providers flow.FlowProviders) (*Command, error) {
+func NewCommand(
+	config EngineConfig,
+	cmd *model.Command,
+	appStore store.AppStore,
+	logStore store.LogStore,
+	httpClient *http.Client,
+) (*Command, error) {
 	flow, err := flow.CompileCommand(cmd.FlowSource)
 	if err != nil {
 		return nil, fmt.Errorf("failed to compile command flow: %w", err)
 	}
 
 	return &Command{
-		config:    config,
-		cmd:       cmd,
-		flow:      flow,
-		providers: providers,
-		logStore:  logStore,
+		config:     config,
+		cmd:        cmd,
+		flow:       flow,
+		appStore:   appStore,
+		logStore:   logStore,
+		httpClient: httpClient,
 	}, nil
 }
 
-func (c *Command) HandleEvent(appID string, event gateway.Event) {
+func (c *Command) HandleEvent(appID string, session *state.State, event gateway.Event) {
 	i, ok := event.(*gateway.InteractionCreateEvent)
 	if !ok {
 		return
+	}
+
+	providers := flow.FlowProviders{
+		Discord: NewDiscordProvider(appID, c.appStore, session),
+		Log:     NewLogProvider(appID, c.logStore),
+		HTTP:    NewHTTPProvider(c.httpClient),
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -53,7 +69,7 @@ func (c *Command) HandleEvent(appID string, event gateway.Event) {
 		&InteractionData{
 			interaction: &i.InteractionEvent,
 		},
-		c.providers,
+		providers,
 		flow.FlowContextLimits{
 			MaxStackDepth: c.config.MaxStackDepth,
 			MaxOperations: c.config.MaxOperations,
