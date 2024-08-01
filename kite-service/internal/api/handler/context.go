@@ -34,6 +34,10 @@ func (c *Context) Header(name string) string {
 	return c.r.Header.Get(name)
 }
 
+func (c *Context) SetHeader(name, value string) {
+	c.w.Header().Set(name, value)
+}
+
 func (c *Context) Cookie(name string) string {
 	cookie, err := c.r.Cookie(name)
 	if err != nil {

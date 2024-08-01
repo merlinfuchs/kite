@@ -1,6 +1,8 @@
 package api
 
 import (
+	"time"
+
 	"github.com/kitecloud/kite/kite-service/internal/api/access"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/app"
@@ -60,7 +62,10 @@ func (s *APIServer) RegisterRoutes(
 
 	appGroup := appsGroup.Group("/{appID}", accessManager.AppAccess)
 	appGroup.Get("/", handler.Typed(appHandler.HandleAppGet))
-	appGroup.Patch("/", handler.TypedWithBody(appHandler.HandleAppUpdate))
+	appGroup.Patch("/",
+		handler.TypedWithBody(appHandler.HandleAppUpdate),
+		handler.RateLimitByUser(2, time.Minute),
+	)
 	appGroup.Put("/token", handler.TypedWithBody(appHandler.HandleAppTokenUpdate))
 	appGroup.Delete("/", handler.Typed(appHandler.HandleAppDelete))
 

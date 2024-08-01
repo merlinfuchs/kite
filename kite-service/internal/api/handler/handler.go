@@ -70,7 +70,10 @@ func Group(mux *http.ServeMux, pathPrefix string, middlewares ...MiddlewareFunc)
 	}
 }
 
-func (g HandlerGroup) Handle(method string, path string, f HandlerFunc) {
+func (g HandlerGroup) Handle(method string, path string, f HandlerFunc, middlewares ...MiddlewareFunc) {
+	for i := len(middlewares) - 1; i >= 0; i-- {
+		f = middlewares[i](f)
+	}
 	for i := len(g.middlewares) - 1; i >= 0; i-- {
 		f = g.middlewares[i](f)
 	}
@@ -81,24 +84,24 @@ func (g HandlerGroup) Handle(method string, path string, f HandlerFunc) {
 	g.mux.Handle(pattern, APIHandler(f))
 }
 
-func (g HandlerGroup) Get(path string, f HandlerFunc) {
-	g.Handle("GET", path, f)
+func (g HandlerGroup) Get(path string, f HandlerFunc, middlewares ...MiddlewareFunc) {
+	g.Handle("GET", path, f, middlewares...)
 }
 
-func (g HandlerGroup) Post(path string, f HandlerFunc) {
-	g.Handle("POST", path, f)
+func (g HandlerGroup) Post(path string, f HandlerFunc, middlewares ...MiddlewareFunc) {
+	g.Handle("POST", path, f, middlewares...)
 }
 
-func (g HandlerGroup) Put(path string, f HandlerFunc) {
-	g.Handle("PUT", path, f)
+func (g HandlerGroup) Put(path string, f HandlerFunc, middlewares ...MiddlewareFunc) {
+	g.Handle("PUT", path, f, middlewares...)
 }
 
-func (g HandlerGroup) Delete(path string, f HandlerFunc) {
-	g.Handle("DELETE", path, f)
+func (g HandlerGroup) Delete(path string, f HandlerFunc, middlewares ...MiddlewareFunc) {
+	g.Handle("DELETE", path, f, middlewares...)
 }
 
-func (g HandlerGroup) Patch(path string, f HandlerFunc) {
-	g.Handle("PATCH", path, f)
+func (g HandlerGroup) Patch(path string, f HandlerFunc, middlewares ...MiddlewareFunc) {
+	g.Handle("PATCH", path, f, middlewares...)
 }
 
 func (g HandlerGroup) Group(pathPrefix string, middlewares ...MiddlewareFunc) HandlerGroup {

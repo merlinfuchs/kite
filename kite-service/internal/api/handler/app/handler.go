@@ -76,8 +76,6 @@ func (h *AppHandler) HandleAppCreate(c *handler.Context, req wire.AppCreateReque
 }
 
 func (h *AppHandler) HandleAppUpdate(c *handler.Context, req wire.AppUpdateRequest) (*wire.AppUpdateResponse, error) {
-	// TODO: ratelimit this endpoint to prevent disabled and enabling apps too quickly
-
 	if req.Name != c.App.Name {
 		if err := h.updateDiscordAppName(c.Context(), c.App.DiscordToken, req.Name); err != nil {
 			return nil, fmt.Errorf("failed to update discord app name: %w", err)

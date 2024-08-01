@@ -56,3 +56,11 @@ func ErrInternal(message string) *Error {
 		Message: message,
 	}
 }
+
+func ErrRateLimit(message string) *Error {
+	return &Error{
+		Status:  http.StatusTooManyRequests,
+		Code:    "rate_limit",
+		Message: message,
+	}
+}
