@@ -2,10 +2,10 @@ version: 2
 sql:
   - engine: "postgresql"
     schema:
-      - "kite-common/db/postgres/migrations"
-    queries: "kite-common/db/postgres/queries"
+      - "kite-service/internal/db/postgres/migrations"
+    queries: "kite-service/internal/db/postgres/queries"
     gen:
       go:
         package: "pgmodel"
         sql_package: "pgx/v5"
-        out: "kite-common/db/postgres/pgmodel"
+        out: "kite-service/internal/db/postgres/pgmodel"

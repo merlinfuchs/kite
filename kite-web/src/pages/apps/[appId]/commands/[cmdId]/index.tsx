@@ -43,7 +43,7 @@ export default function AppCommandPage() {
           onSuccess(res) {
             if (res.success) {
               toast.success(
-                "Command saved! Is may take up to a minute for all changes to take effect."
+                "Command saved! It may take up to a minute for all changes to take effect."
               );
             } else {
               toast.error(

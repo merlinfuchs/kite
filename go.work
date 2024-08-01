@@ -2,5 +2,4 @@ go 1.22.0
 
 use (
     ./kite-service
-	./kite-common
 )

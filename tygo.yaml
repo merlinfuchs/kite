@@ -1,5 +1,5 @@
 packages:
-  - path: "github.com/kitecloud/kite/kite-common/api/wire"
+  - path: "github.com/kitecloud/kite/kite-service/internal/api/wire"
     output_path: "./kite-web/src/lib/types/wire.gen.ts"
     type_mappings:
       null.String: "null | string"
@@ -19,7 +19,7 @@ packages:
     frontmatter: |
       import { FlowData } from './flow.gen';
       interface Empty {}
-  - path: "github.com/kitecloud/kite/kite-common/core/flow"
+  - path: "github.com/kitecloud/kite/kite-service/internal/core/flow"
     output_path: "./kite-web/src/lib/types/flow.gen.ts"
     type_mappings:
       null.String: "null | string"

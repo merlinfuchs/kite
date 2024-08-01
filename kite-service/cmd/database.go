@@ -7,10 +7,10 @@ import (
 	"os"
 
 	"github.com/golang-migrate/migrate/v4"
-	"github.com/kitecloud/kite/kite-common/config"
-	"github.com/kitecloud/kite/kite-common/db/postgres"
-	"github.com/kitecloud/kite/kite-common/logging"
-	"github.com/kitecloud/kite/kite-common/store"
+	"github.com/kitecloud/kite/kite-service/internal/config"
+	"github.com/kitecloud/kite/kite-service/internal/db/postgres"
+	"github.com/kitecloud/kite/kite-service/internal/logging"
+	"github.com/kitecloud/kite/kite-service/internal/store"
 	"github.com/urfave/cli/v2"
 )
 

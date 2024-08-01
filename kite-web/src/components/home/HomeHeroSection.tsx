@@ -9,18 +9,18 @@ export default function HomeHeroSection() {
     <section className="container grid lg:grid-cols-2 place-items-center py-20 md:py-32 gap-10">
       <div className="text-center lg:text-start space-y-6">
         <main className="text-5xl md:text-6xl font-bold">
-          <h1 className="inline">
+          <h2 className="inline">
             Make{" "}
             <span className="inline bg-gradient-to-r from-[#58d1f2] to-[#5865F2] text-transparent bg-clip-text">
               Discord Bots
             </span>
-          </h1>{" "}
+          </h2>{" "}
           with{" "}
-          <h2 className="inline">
+          <h1 className="inline">
             <span className="inline bg-gradient-to-r from-[#f9ad15] to-primary text-transparent bg-clip-text">
               Kite
             </span>
-          </h2>
+          </h1>
         </main>
 
         <p className="text-xl text-muted-foreground md:w-10/12 mx-auto lg:mx-0">

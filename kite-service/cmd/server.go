@@ -5,12 +5,12 @@ import (
 	"fmt"
 	"log/slog"
 
-	"github.com/kitecloud/kite/kite-common/api"
-	"github.com/kitecloud/kite/kite-common/config"
-	"github.com/kitecloud/kite/kite-common/core/engine"
-	"github.com/kitecloud/kite/kite-common/core/gateway"
-	"github.com/kitecloud/kite/kite-common/db/postgres"
-	"github.com/kitecloud/kite/kite-common/logging"
+	"github.com/kitecloud/kite/kite-service/internal/api"
+	"github.com/kitecloud/kite/kite-service/internal/config"
+	"github.com/kitecloud/kite/kite-service/internal/core/engine"
+	"github.com/kitecloud/kite/kite-service/internal/core/gateway"
+	"github.com/kitecloud/kite/kite-service/internal/db/postgres"
+	"github.com/kitecloud/kite/kite-service/internal/logging"
 	"github.com/urfave/cli/v2"
 )
 

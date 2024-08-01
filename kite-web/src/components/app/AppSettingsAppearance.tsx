@@ -28,6 +28,7 @@ import { setValidationErrors } from "@/lib/form";
 interface FormFields {
   name: string;
   description: string;
+  enabled: boolean;
 }
 
 export default function AppSettingsAppearance() {
@@ -37,6 +38,7 @@ export default function AppSettingsAppearance() {
     defaultValues: {
       name: "",
       description: "",
+      enabled: false,
     },
   });
 
@@ -45,6 +47,7 @@ export default function AppSettingsAppearance() {
       form.reset({
         name: app.name,
         description: app.description || "",
+        enabled: app.enabled,
       });
     }
   }, [app, form]);
@@ -57,6 +60,7 @@ export default function AppSettingsAppearance() {
         {
           name: data.name,
           description: data.description || null,
+          enabled: data.enabled,
         },
         {
           onSuccess(res) {
