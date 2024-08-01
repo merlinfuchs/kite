@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"net/http"
 	"sync"
 	"time"
 
@@ -18,6 +19,7 @@ type Engine struct {
 	appStore     store.AppStore
 	logStore     store.LogStore
 	commandStore store.CommandStore
+	httpClient   *http.Client
 
 	lastUpdate time.Time
 	apps       map[string]*App
@@ -28,11 +30,13 @@ func NewEngine(
 	appStore store.AppStore,
 	logStore store.LogStore,
 	commandStore store.CommandStore,
+	httpClient *http.Client,
 ) *Engine {
 	return &Engine{
 		config:       config,
 		appStore:     appStore,
 		logStore:     logStore,
+		httpClient:   httpClient,
 		commandStore: commandStore,
 		apps:         make(map[string]*App),
 	}
@@ -82,7 +86,14 @@ func (m *Engine) populateCommands(ctx context.Context) error {
 	for _, command := range commands {
 		app, ok := m.apps[command.AppID]
 		if !ok {
-			app = NewApp(m.config, command.AppID, m.appStore, m.logStore, m.commandStore)
+			app = NewApp(
+				m.config,
+				command.AppID,
+				m.appStore,
+				m.logStore,
+				m.commandStore,
+				m.httpClient,
+			)
 			m.apps[command.AppID] = app
 		}
 

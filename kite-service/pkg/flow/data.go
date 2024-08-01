@@ -45,8 +45,6 @@ const (
 	FlowNodeTypeActionChannelEdit    FlowNodeType = "action_channel_edit"
 	FlowNodeTypeActionChannelDelete  FlowNodeType = "action_channel_delete"
 	FlowNodeTypeActionThreadCreate   FlowNodeType = "action_thread_create"
-	FlowNodeTypeActionThreadEdit     FlowNodeType = "action_thread_edit"
-	FlowNodeTypeActionThreadDelete   FlowNodeType = "action_thread_delete"
 	FlowNodeTypeActionRoleCreate     FlowNodeType = "action_role_create"
 	FlowNodeTypeActionRoleEdit       FlowNodeType = "action_role_edit"
 	FlowNodeTypeActionRoleDelete     FlowNodeType = "action_role_delete"

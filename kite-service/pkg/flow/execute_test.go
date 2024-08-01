@@ -8,6 +8,7 @@ import (
 	"github.com/diamondburned/arikawa/v3/api"
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/gateway"
+	"github.com/kitecloud/kite/kite-service/pkg/template"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -62,12 +63,13 @@ func TestFlowExecuteCommand(t *testing.T) {
 		&TestContextData{},
 		FlowProviders{
 			Discord: discordProvider,
+			Log:     &MockLogProvider{},
 		}, FlowContextLimits{
 			MaxStackDepth: 10,
 			MaxOperations: 1000,
 			MaxActions:    1,
 		},
-		nil,
+		template.NewContext("", 0),
 	)
 
 	err := flowCommandTest.Execute(c)
@@ -76,16 +78,14 @@ func TestFlowExecuteCommand(t *testing.T) {
 }
 
 type TestDiscordProvider struct {
+	MockDiscordProvider
+
 	response api.InteractionResponse
 }
 
 func (p *TestDiscordProvider) CreateInteractionResponse(ctx context.Context, interactionID discord.InteractionID, interactionToken string, response api.InteractionResponse) error {
 	p.response = response
 	return nil
-}
-
-func (p *TestDiscordProvider) CreateMessage(ctx context.Context, channelID discord.ChannelID, message api.SendMessageData) (*discord.Message, error) {
-	return nil, nil
 }
 
 type TestContextData struct{}
@@ -103,13 +103,13 @@ func (d *TestContextData) ChannelID() discord.ChannelID {
 }
 
 func (d *TestContextData) CommandData() *discord.CommandInteraction {
-	return nil
+	return &discord.CommandInteraction{}
 }
 
 func (d *TestContextData) MessageComponentData() discord.ComponentInteraction {
-	return nil
+	return &discord.UnknownComponent{}
 }
 
 func (d *TestContextData) EventData() gateway.Event {
-	return nil
+	return &gateway.InteractionCreateEvent{}
 }

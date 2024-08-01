@@ -50,14 +50,7 @@ const nodeCategories = {
         "action_channel_create",
         "action_channel_edit",
         "action_channel_delete",
-      ],
-    },
-    {
-      title: "Threads",
-      nodeTypes: [
         "action_thread_create",
-        "action_thread_edit",
-        "action_thread_delete",
       ],
     },
     {

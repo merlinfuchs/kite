@@ -4,28 +4,39 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"net/http"
 	"time"
 
 	"github.com/diamondburned/arikawa/v3/api"
 	"github.com/diamondburned/arikawa/v3/discord"
+	statestore "github.com/diamondburned/arikawa/v3/state/store"
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/internal/store"
 	"github.com/kitecloud/kite/kite-service/pkg/flow"
 )
 
 type DiscordProvider struct {
+	flow.MockDiscordProvider // TODO: remove this
+
 	appID    string
 	appStore store.AppStore
+	state    *statestore.Cabinet
 }
 
-func NewDiscordProvider(appID string, appStore store.AppStore) *DiscordProvider {
+func NewDiscordProvider(
+	appID string,
+	appStore store.AppStore,
+	state *statestore.Cabinet,
+) *DiscordProvider {
 	return &DiscordProvider{
 		appID:    appID,
 		appStore: appStore,
+		state:    state,
 	}
 }
 
 func (p *DiscordProvider) appCredentials(ctx context.Context) (*model.AppCredentials, error) {
+	// TODO: cache this
 	cred, err := p.appStore.AppCredentials(ctx, p.appID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get app credentials: %w", err)
@@ -92,4 +103,18 @@ func (p *LogProvider) CreateLogEntry(ctx context.Context, level flow.LogLevel, m
 	if err != nil {
 		slog.With("error", err).With("app_id", p.appID).Error("Failed to create log entry")
 	}
+}
+
+type HTTPProvider struct {
+	client *http.Client
+}
+
+func NewHTTPProvider(client *http.Client) *HTTPProvider {
+	return &HTTPProvider{
+		client: client,
+	}
+}
+
+func (p *HTTPProvider) HTTPRequest(ctx context.Context, req *http.Request) (*http.Response, error) {
+	return p.client.Do(req)
 }

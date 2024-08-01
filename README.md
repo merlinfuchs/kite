@@ -14,7 +14,15 @@ Make your own Discord Bot with Kite for free without a single line of code. With
 - [x] Design and implement flow values properly
 - [x] Design and implement node types
 - [x] Design and implement node data
-- [x] Design and implement variable system
+- [ ] Design and implement variable system
+  - [x] Implement template engine
+  - Variables = KV?
+    - Variable names are statically defined
+    - Variables aren't persisted
+    - Scope variables by guild, user (+ scope by other variable?)
+    - KV names can be dynamic
+    - KV values are persisted
+    - KV can (optionally?) be shared between commands
 - [x] Add some more common flow nodes
 - [ ] Implement all existing flow nodes
 - [x] Merge kite-common and kite-service
@@ -22,6 +30,7 @@ Make your own Discord Bot with Kite for free without a single line of code. With
 - [x] Add invite to app home page
 - [x] Detect correct intents before connecting
 - [x] Add button to Enable and Disable bot in app settings
+- [x] Merge engine and gateway so the engine can access gateway state?
 
 ### Node Types
 

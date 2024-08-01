@@ -143,7 +143,7 @@ export default function FlowEditor({
       const source = getNode(con.source)!;
       const target = getNode(con.target)!;
 
-      // TODO: This is a bit of a mess, but it works for now
+      // This is a bit of a mess, but it works for now
       if (target.type === "entry_command" && !source.type?.startsWith("option"))
         return false;
       if (source.type?.startsWith("option") && target.type !== "entry_command")

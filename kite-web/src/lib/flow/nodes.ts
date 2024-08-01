@@ -245,22 +245,6 @@ export const nodeTypes: Record<string, NodeValues> = {
     dataSchema: nodeActionThreadCreateDataSchema,
     dataFields: ["audit_log_reason", "custom_label"],
   },
-  action_thread_edit: {
-    color: actionColor,
-    icon: FolderPenIcon,
-    defaultTitle: "Edit thread",
-    defaultDescription: "Edit an existing thread in the server",
-    dataSchema: nodeActionThreadEditDataSchema,
-    dataFields: ["audit_log_reason", "custom_label"],
-  },
-  action_thread_delete: {
-    color: actionColor,
-    icon: FolderMinusIcon,
-    defaultTitle: "Delete thread",
-    defaultDescription: "Delete an existing thread in the server",
-    dataSchema: nodeActionThreadDeleteDataSchema,
-    dataFields: ["audit_log_reason", "custom_label"],
-  },
   action_role_create: {
     color: actionColor,
     icon: BookmarkPlusIcon,

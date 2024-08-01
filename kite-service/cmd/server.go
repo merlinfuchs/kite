@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"net/http"
 
 	"github.com/kitecloud/kite/kite-service/internal/api"
 	"github.com/kitecloud/kite/kite-service/internal/config"
@@ -49,11 +50,17 @@ func serverStartCMD(c *cli.Context) error {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	engine := engine.NewEngine(engine.EngineConfig{
-		MaxStackDepth: cfg.Engine.MaxStackDepth,
-		MaxOperations: cfg.Engine.MaxOperations,
-		MaxActions:    cfg.Engine.MaxActions,
-	}, pg, pg, pg)
+	engine := engine.NewEngine(
+		engine.EngineConfig{
+			MaxStackDepth: cfg.Engine.MaxStackDepth,
+			MaxOperations: cfg.Engine.MaxOperations,
+			MaxActions:    cfg.Engine.MaxActions,
+		},
+		pg,
+		pg,
+		pg,
+		&http.Client{}, // TODO: think about proxying http requests
+	)
 	engine.Run(ctx)
 
 	gateway := gateway.NewGatewayManager(pg, pg, engine)

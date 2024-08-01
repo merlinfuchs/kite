@@ -3,6 +3,7 @@ package engine
 import (
 	"context"
 	"log/slog"
+	"net/http"
 	"sync"
 	"time"
 
@@ -30,10 +31,18 @@ type App struct {
 	providers flow.FlowProviders
 }
 
-func NewApp(config EngineConfig, id string, appStore store.AppStore, logStore store.LogStore, commandStore store.CommandStore) *App {
+func NewApp(
+	config EngineConfig,
+	id string,
+	appStore store.AppStore,
+	logStore store.LogStore,
+	commandStore store.CommandStore,
+	httpClient *http.Client,
+) *App {
 	providers := flow.FlowProviders{
-		Discord: NewDiscordProvider(id, appStore),
+		Discord: NewDiscordProvider(id, appStore, nil), // TODO: how do we get the gateway state in here?
 		Log:     NewLogProvider(id, logStore),
+		HTTP:    NewHTTPProvider(httpClient),
 	}
 
 	return &App{
