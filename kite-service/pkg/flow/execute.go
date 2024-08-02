@@ -2,6 +2,7 @@ package flow
 
 import (
 	"fmt"
+	"strconv"
 
 	"github.com/diamondburned/arikawa/v3/api"
 	"github.com/diamondburned/arikawa/v3/discord"
@@ -62,6 +63,39 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 		}
 
 		return n.executeChildren(ctx)
+	case FlowNodeTypeActionResponseEdit:
+		interaction := ctx.Data.Interaction()
+
+		// TODO: this should figure if it's a follow-up or not
+
+		data := n.Data.MessageData
+
+		content, err := ctx.Variables.ParseAndExecute(data.Content)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		resp := api.EditInteractionResponseData{
+			Content: option.NewNullableString(content),
+			Embeds:  &data.Embeds,
+			// TODO: other fields
+		}
+
+		err = ctx.Discord.EditInteractionResponse(ctx, interaction.AppID, interaction.Token, resp)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		return n.executeChildren(ctx)
+	case FlowNodeTypeActionResponseDelete:
+		interaction := ctx.Data.Interaction()
+
+		err := ctx.Discord.DeleteInteractionResponse(ctx, interaction.AppID, interaction.Token)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		return n.executeChildren(ctx)
 	case FlowNodeTypeActionMessageCreate:
 		msg, err := ctx.Discord.CreateMessage(ctx, ctx.Data.ChannelID(), n.Data.MessageData)
 		if err != nil {
@@ -73,6 +107,101 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 				Type:  FlowValueTypeMessage,
 				Value: *msg,
 			})
+		}
+
+		return n.executeChildren(ctx)
+	case FlowNodeTypeActionMessageEdit:
+		messageTarget, err := ctx.Variables.ParseAndExecute(n.Data.MessageTarget)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		messageID, _ := strconv.ParseInt(messageTarget, 10, 64)
+
+		msg, err := ctx.Discord.EditMessage(
+			ctx,
+			ctx.Data.ChannelID(),
+			discord.MessageID(messageID),
+			api.EditMessageData{
+				Content: option.NewNullableString(n.Data.MessageData.Content),
+				Embeds:  &n.Data.MessageData.Embeds,
+			},
+		)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		if n.Data.ResultVariableName != "" {
+			ctx.Variables.SetVariable(n.Data.ResultVariableName, FlowValue{
+				Type:  FlowValueTypeMessage,
+				Value: *msg,
+			})
+		}
+
+		return n.executeChildren(ctx)
+	case FlowNodeTypeActionMessageDelete:
+		messageTarget, err := ctx.Variables.ParseAndExecute(n.Data.MessageTarget)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		messageID, _ := strconv.ParseInt(messageTarget, 10, 64)
+
+		err = ctx.Discord.DeleteMessage(
+			ctx,
+			ctx.Data.ChannelID(),
+			discord.MessageID(messageID),
+		)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		return n.executeChildren(ctx)
+	case FlowNodeTypeActionMemberBan:
+		memberTarget, err := ctx.Variables.ParseAndExecute(n.Data.MemberTarget)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		memberID, _ := strconv.ParseInt(memberTarget, 10, 64)
+
+		rawDeleteSeconds, err := ctx.Variables.ParseAndExecute(n.Data.MemberBanDeleteMessageDuration)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		deleteSeconds, _ := strconv.Atoi(rawDeleteSeconds)
+
+		err = ctx.Discord.BanMember(
+			ctx,
+			ctx.Data.GuildID(),
+			discord.UserID(memberID),
+			api.BanData{
+				DeleteDays:     option.NewUint(uint(deleteSeconds / 86400)),
+				AuditLogReason: api.AuditLogReason(n.Data.AuditLogReason),
+			},
+		)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		return n.executeChildren(ctx)
+	case FlowNodeTypeActionMemberKick:
+		memberTarget, err := ctx.Variables.ParseAndExecute(n.Data.MemberTarget)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		memberID, _ := strconv.ParseInt(memberTarget, 10, 64)
+
+		err = ctx.Discord.KickMember(
+			ctx,
+			ctx.Data.GuildID(),
+			discord.UserID(memberID),
+			n.Data.AuditLogReason,
+		)
+		if err != nil {
+			return traceError(n, err)
 		}
 
 		return n.executeChildren(ctx)
