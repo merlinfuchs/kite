@@ -35,28 +35,8 @@ func NewDiscordProvider(
 	}
 }
 
-func (p *DiscordProvider) appCredentials(ctx context.Context) (*model.AppCredentials, error) {
-	// TODO: cache this
-	cred, err := p.appStore.AppCredentials(ctx, p.appID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get app credentials: %w", err)
-	}
-	return cred, nil
-}
-
-func (p *DiscordProvider) clientWithCredentials(ctx context.Context) (*api.Client, error) {
-	cred, err := p.appCredentials(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	return api.NewClient("Bot " + cred.DiscordToken), nil
-}
-
 func (p *DiscordProvider) CreateInteractionResponse(ctx context.Context, interactionID discord.InteractionID, interactionToken string, response api.InteractionResponse) error {
-	client := api.NewClient("").WithContext(ctx)
-
-	err := client.RespondInteraction(interactionID, interactionToken, response)
+	err := p.session.RespondInteraction(interactionID, interactionToken, response)
 	if err != nil {
 		return fmt.Errorf("failed to respond to interaction: %w", err)
 	}
@@ -65,12 +45,7 @@ func (p *DiscordProvider) CreateInteractionResponse(ctx context.Context, interac
 }
 
 func (p *DiscordProvider) CreateMessage(ctx context.Context, channelID discord.ChannelID, message api.SendMessageData) (*discord.Message, error) {
-	client, err := p.clientWithCredentials(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	msg, err := client.SendMessageComplex(channelID, message)
+	msg, err := p.session.SendMessageComplex(channelID, message)
 	if err != nil {
 		return nil, fmt.Errorf("failed to send message: %w", err)
 	}

@@ -40,5 +40,6 @@ func createSession(app *model.App) *state.State {
 		},
 	}
 
+	// TODO: configure state to only cache what we need
 	return state.NewWithIdentifier(identifier)
 }

@@ -143,6 +143,7 @@ export const nodeActionMemberBanDataSchema = nodeBaseDataSchema.extend({
     .string()
     .regex(numericRegex)
     .or(z.string().regex(variableRegex)),
+  member_ban_delete_message_duration: z.string().regex(numericRegex),
   audit_log_reason: auditLogReasonSchema,
 });
 
@@ -190,14 +191,11 @@ export const nodeActionChannelDeleteDataSchema = nodeBaseDataSchema.extend({
 });
 
 export const nodeActionThreadCreateDataSchema = nodeBaseDataSchema.extend({
-  audit_log_reason: auditLogReasonSchema,
-});
-
-export const nodeActionThreadEditDataSchema = nodeBaseDataSchema.extend({
-  audit_log_reason: auditLogReasonSchema,
-});
-
-export const nodeActionThreadDeleteDataSchema = nodeBaseDataSchema.extend({
+  message_target: z
+    .string()
+    .regex(numericRegex)
+    .or(z.string().regex(variableRegex))
+    .optional(),
   audit_log_reason: auditLogReasonSchema,
 });
 

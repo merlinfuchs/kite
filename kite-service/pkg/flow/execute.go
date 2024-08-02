@@ -76,6 +76,9 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 		}
 
 		return n.executeChildren(ctx)
+
+	// TODO: implement other action types
+
 	case FlowNodeTypeActionLog:
 		ctx.Log.CreateLogEntry(ctx, n.Data.LogLevel, n.Data.LogMessage)
 		return n.executeChildren(ctx)

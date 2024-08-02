@@ -87,6 +87,7 @@ export interface FlowNodeData {
    * Member Ban, Kick, Timeout
    */
   member_target?: string;
+  member_ban_delete_message_duration?: string;
   member_timeout_duration?: string;
   /**
    * Channel Create, Edit, Delete
@@ -175,6 +176,16 @@ export interface FlowEdge {
   type?: string;
   source: string;
   target: string;
+}
+
+//////////
+// source: provider_mock.go
+
+export interface MockDiscordProvider {
+}
+export interface MockLogProvider {
+}
+export interface MockHTTPprovider {
 }
 
 //////////

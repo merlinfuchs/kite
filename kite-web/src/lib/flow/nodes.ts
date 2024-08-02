@@ -18,8 +18,6 @@ import {
   nodeActionRoleDeleteDataSchema,
   nodeActionRoleEditDataSchema,
   nodeActionThreadCreateDataSchema,
-  nodeActionThreadDeleteDataSchema,
-  nodeActionThreadEditDataSchema,
   nodeActionVariableDeleteDataSchema,
   nodeActionVariableSetDataSchema,
   nodeConditionCompareDataSchema,
@@ -185,7 +183,12 @@ export const nodeTypes: Record<string, NodeValues> = {
     defaultTitle: "Ban member",
     defaultDescription: "Ban a member from the server",
     dataSchema: nodeActionMemberBanDataSchema,
-    dataFields: ["member_target", "audit_log_reason", "custom_label"],
+    dataFields: [
+      "member_target",
+      "member_ban_delete_message_duration",
+      "audit_log_reason",
+      "custom_label",
+    ],
   },
   action_member_kick: {
     color: actionColor,
@@ -240,10 +243,10 @@ export const nodeTypes: Record<string, NodeValues> = {
   action_thread_create: {
     color: actionColor,
     icon: FolderPlusIcon,
-    defaultTitle: "Create thread",
-    defaultDescription: "Create a new thread under a channel",
+    defaultTitle: "Start thread",
+    defaultDescription: "Start a new thread under a message or in a channel",
     dataSchema: nodeActionThreadCreateDataSchema,
-    dataFields: ["audit_log_reason", "custom_label"],
+    dataFields: ["message_target", "audit_log_reason", "custom_label"],
   },
   action_role_create: {
     color: actionColor,

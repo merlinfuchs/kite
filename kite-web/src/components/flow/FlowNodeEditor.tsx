@@ -67,6 +67,7 @@ const intputs: Record<string, any> = {
   http_request_data: HttpRequestDataInput,
   audit_log_reason: AuditLogReasonInput,
   member_target: MemberTargetInput,
+  member_ban_delete_message_duration: MemberBanDeleteMessageDurationInput,
   member_timeout_duration: MemberTimeoutDurationInput,
   log_level: LogLevelInput,
   log_message: LogMessageInput,
@@ -482,6 +483,40 @@ function MemberTargetInput({ data, updateData, errors }: InputProps) {
       title="Target Member"
       value={data.member_target || ""}
       updateValue={(v) => updateData({ member_target: v || undefined })}
+      errors={errors}
+    />
+  );
+}
+
+function MemberBanDeleteMessageDurationInput({
+  data,
+  updateData,
+  errors,
+}: InputProps) {
+  return (
+    <BaseInput
+      type="select"
+      field="member_ban_delete_message_duration"
+      title="Delete Message Duration"
+      options={[
+        { value: "60", label: "1 Minute" },
+        { value: "300", label: "5 Minutes" },
+        { value: "600", label: "10 Minutes" },
+        { value: "1800", label: "30 Minutes" },
+        { value: "3600", label: "1 Hour" },
+        { value: "7200", label: "2 Hours" },
+        { value: "14400", label: "4 Hours" },
+        { value: "28800", label: "8 Hours" },
+        { value: "43200", label: "12 Hours" },
+        { value: "86400", label: "1 Day" },
+        { value: "172800", label: "2 Days" },
+        { value: "259200", label: "3 Days" },
+        { value: "604800", label: "1 Week" },
+      ]}
+      value={data.member_ban_delete_message_duration || ""}
+      updateValue={(v) =>
+        updateData({ member_ban_delete_message_duration: v || undefined })
+      }
       errors={errors}
     />
   );

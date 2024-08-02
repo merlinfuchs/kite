@@ -113,8 +113,9 @@ type FlowNodeData struct {
 	MessageEphemeral  bool                `json:"message_ephemeral,omitempty"`
 
 	// Member Ban, Kick, Timeout
-	MemberTarget          string `json:"member_target,omitempty"`
-	MemberTimeoutDuration string `json:"member_timeout_duration,omitempty"`
+	MemberTarget                   string `json:"member_target,omitempty"`
+	MemberBanDeleteMessageDuration string `json:"member_ban_delete_message_duration,omitempty"`
+	MemberTimeoutDuration          string `json:"member_timeout_duration,omitempty"`
 
 	// Channel Create, Edit, Delete
 	ChannelTarget string                `json:"channel_target,omitempty"`
