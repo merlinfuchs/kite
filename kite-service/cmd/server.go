@@ -23,12 +23,6 @@ var serverCMD = cli.Command{
 			Name:   "start",
 			Usage:  "Start the Kite server.",
 			Action: serverStartCMD,
-			Flags: []cli.Flag{
-				&cli.StringFlag{
-					Name:  "api",
-					Usage: "The Kite API URL to authenticate with.",
-				},
-			},
 		},
 	},
 }
