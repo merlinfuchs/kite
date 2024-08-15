@@ -19,7 +19,7 @@ export default function ToolLayout({
   return (
     <HomeLayout title={title}>
       <div className={cn("py-10 px-5 max-w-4xl mx-auto", className)}>
-        <div className="mb-10">
+        <div className="mb-14">
           <Button variant="outline" asChild>
             <Link href="/tools">
               <ChevronLeftIcon className="h-5 w-5 mr-2 -ml-1" />
@@ -27,8 +27,8 @@ export default function ToolLayout({
             </Link>
           </Button>
         </div>
-        <div className="flex flex-col space-y-1.5 mb-5">
-          <h1 className="text-2xl font-semibold leading-none tracking-tight">
+        <div className="flex flex-col space-y-2 mb-5">
+          <h1 className="text-3xl font-semibold leading-none tracking-tight">
             {title}
           </h1>
           <p className="text-sm text-muted-foreground">{description}</p>

@@ -74,7 +74,7 @@ export default function AppCommandPage() {
       pathname: "/apps/[appId]/commands",
       query: { appId: router.query.appId },
     });
-  }, [hasUnsavedChanges]);
+  }, [hasUnsavedChanges, router]);
 
   useBeforePageExit(
     (e) => {

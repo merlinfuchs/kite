@@ -13,37 +13,41 @@ import {
   NavigationMenuTrigger,
   navigationMenuTriggerStyle,
 } from "@/components/ui/navigation-menu";
-import { PlusCircleIcon, PlusIcon } from "lucide-react";
+import { PlusCircleIcon } from "lucide-react";
 
-const tools: { title: string; href: string; description: string }[] = [
+const tools = [
   {
     title: "Message Creator",
-    href: "/tools/message-creator",
+    href: "https://message.style/app",
     description:
       "Create good looking Discord messages and send them through webhooks!",
+    target: "_blank",
   },
   {
     title: "Colored Text",
-    href: "/tools/colored-text",
+    href: "https://message.style/app/tools/colored-text",
     description:
       "Generate colored text that you can use in your Discord message.",
+    target: "_blank",
+  },
+  {
+    title: "Embed Links",
+    href: "https://message.style/app/tools/embed-links",
+    description:
+      "Generate embeddable links for Discord messages with custom titles, descriptions, and images.",
+    target: "_blank",
+  },
+  {
+    title: "User Lookup",
+    href: "https://dis.wtf/lookup/user",
+    description:
+      "Get information about a Discord user by entering their user ID.",
+    target: "_blank",
   },
   {
     title: "Webhook Info",
     href: "/tools/webhook-info",
     description: "Get information about Discord webhooks from the webhook URL.",
-  },
-  {
-    title: "Embed Links",
-    href: "/tools/embed-links",
-    description:
-      "Generate embeddable links for Discord messages with custom titles, descriptions, and images.",
-  },
-  {
-    title: "Snowflake Lookup",
-    href: "/tools/snowflake-info",
-    description:
-      "Get information about a Discord snowflake (user ID, channel ID, guild ID).",
   },
 ];
 
@@ -90,12 +94,17 @@ export default function HomeNavbarMenu() {
             </ul>
           </NavigationMenuContent>
         </NavigationMenuItem>
-        {/*<NavigationMenuItem>
+        <NavigationMenuItem>
           <NavigationMenuTrigger>Tools</NavigationMenuTrigger>
           <NavigationMenuContent>
             <ul className="grid gap-3 p-4 w-[80dvw] md:w-[500px] md:grid-cols-2 lg:w-[600px]">
               {tools.map((tool) => (
-                <ListItem key={tool.title} title={tool.title} href={tool.href}>
+                <ListItem
+                  key={tool.title}
+                  title={tool.title}
+                  href={tool.href}
+                  target={tool.target}
+                >
                   {tool.description}
                 </ListItem>
               ))}
@@ -119,7 +128,7 @@ export default function HomeNavbarMenu() {
               </li>
             </ul>
           </NavigationMenuContent>
-        </NavigationMenuItem>*/}
+        </NavigationMenuItem>
         <NavigationMenuItem className="hidden sm:block">
           <NavigationMenuLink
             href={env.NEXT_PUBLIC_DOCS_LINK}
@@ -142,7 +151,7 @@ const ListItem = ({
 }: React.ComponentPropsWithoutRef<typeof Link>) => {
   return (
     <li>
-      <Link {...props} legacyBehavior passHref>
+      <Link {...props} passHref>
         <NavigationMenuLink asChild>
           <div
             className={cn(

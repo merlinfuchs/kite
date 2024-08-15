@@ -33,7 +33,7 @@ export default function WebhookInfo({ data }: { data: WebhookData }) {
         </CardHeader>
       </div>
 
-      <CardContent className="grid grid-cols-2 mt-8 text-sm gap-5">
+      <CardContent className="grid sm:grid-cols-2 mt-8 text-sm gap-5">
         <div>
           <div className="font-bold">Guild ID</div>
           <div className="text-muted-foreground">{data.guild_id}</div>

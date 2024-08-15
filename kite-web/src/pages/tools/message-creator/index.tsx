@@ -5,16 +5,7 @@ import MessageEditorPreview from "@/tools/message-creator/components/MessageEdit
 import { Dialog, DialogTrigger } from "@/components/ui/dialog";
 import WebhookExecuteDialog from "@/tools/message-creator/components/WebhookExecuteDialog";
 import HomeLayout from "@/components/home/HomeLayout";
-import {
-  Drawer,
-  DrawerClose,
-  DrawerContent,
-  DrawerDescription,
-  DrawerFooter,
-  DrawerHeader,
-  DrawerTitle,
-  DrawerTrigger,
-} from "@/components/ui/drawer";
+import { Drawer, DrawerContent, DrawerTrigger } from "@/components/ui/drawer";
 
 export default function MessageCreatorPage() {
   return (

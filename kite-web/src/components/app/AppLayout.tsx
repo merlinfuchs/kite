@@ -62,7 +62,7 @@ export default function AppLayout({ children, ...props }: Props) {
   const logout = useCallback(() => {
     router.push("/");
     setTimeout(() => logoutMutation.mutate(), 500);
-  }, [logoutMutation]);
+  }, [logoutMutation, router]);
 
   const user = useUser((res) => {
     if (!res.success) {

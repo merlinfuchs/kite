@@ -3,10 +3,10 @@ import { Button } from "@/components/ui/button";
 import env from "@/lib/env/client";
 import { useEffect } from "react";
 
-export default function LoginPage() {
-  const url =
-    env.NEXT_PUBLIC_API_PUBLIC_BASE_URL + "/v1/auth/login?redirect=/apps";
+const url =
+  env.NEXT_PUBLIC_API_PUBLIC_BASE_URL + "/v1/auth/login?redirect=/apps";
 
+export default function LoginPage() {
   useEffect(() => {
     const timeout = setTimeout(() => {
       window.location.href = url;

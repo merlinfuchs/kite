@@ -4,7 +4,7 @@ export function useBeforePageExit(
   callback: (e: BeforeUnloadEvent) => any,
   deps: DependencyList
 ) {
-  const memoCallback = useCallback(callback, deps);
+  const memoCallback = useCallback(callback, [callback, ...deps]);
 
   useEffect(() => {
     window.addEventListener("beforeunload", memoCallback);
