@@ -80,3 +80,23 @@ type User struct {
 	CreatedAt       pgtype.Timestamp
 	UpdatedAt       pgtype.Timestamp
 }
+
+type Variable struct {
+	ID        string
+	Scope     string
+	Name      string
+	Type      string
+	AppID     string
+	ModuleID  pgtype.Text
+	CreatedAt pgtype.Timestamp
+	UpdatedAt pgtype.Timestamp
+}
+
+type VariableValue struct {
+	ID         int64
+	VariableID pgtype.Text
+	Scope      pgtype.Text
+	Value      []byte
+	CreatedAt  pgtype.Timestamp
+	UpdatedAt  pgtype.Timestamp
+}

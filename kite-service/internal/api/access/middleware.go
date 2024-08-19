@@ -50,3 +50,26 @@ func (m *AccessManager) CommandAccess(next handler.HandlerFunc) handler.HandlerF
 		return next(c)
 	}
 }
+
+func (m *AccessManager) VariableAccess(next handler.HandlerFunc) handler.HandlerFunc {
+	return func(c *handler.Context) error {
+		variableID := c.Param("variableID")
+		appID := c.Param("appID")
+
+		variable, err := m.variableStore.Variable(c.Context(), variableID)
+		if err != nil {
+			if errors.Is(err, store.ErrNotFound) {
+				return handler.ErrNotFound("unknown_variable", "Variable not found")
+			}
+			return err
+		}
+
+		// We assume that app access has already been checked
+		if variable.AppID != appID {
+			return handler.ErrForbidden("missing_access", "Access to variable missing")
+		}
+
+		c.Variabe = variable
+		return next(c)
+	}
+}

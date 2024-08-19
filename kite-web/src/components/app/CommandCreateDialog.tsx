@@ -67,13 +67,9 @@ export default function CommandCreateDialog({
             });
             setOpen(false);
           } else {
-            if (res.error.code === "validation_failed") {
-              setValidationErrors(form, res.error.data);
-            } else {
-              toast.error(
-                `Failed to create command: ${res.error.message} (${res.error.code})`
-              );
-            }
+            toast.error(
+              `Failed to create command: ${res.error.message} (${res.error.code})`
+            );
           }
         },
       }

@@ -10,6 +10,7 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/command"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/logs"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/user"
+	"github.com/kitecloud/kite/kite-service/internal/api/handler/variable"
 	"github.com/kitecloud/kite/kite-service/internal/api/session"
 	"github.com/kitecloud/kite/kite-service/internal/store"
 )
@@ -20,11 +21,12 @@ func (s *APIServer) RegisterRoutes(
 	appStore store.AppStore,
 	logStore store.LogStore,
 	commandStore store.CommandStore,
+	variableStore store.VariableStore,
 ) {
 	sessionManager := session.NewSessionManager(session.SessionManagerConfig{
 		SecureCookies: s.config.SecureCookies,
 	}, sessionStore)
-	accessManager := access.NewAccessManager(appStore, commandStore)
+	accessManager := access.NewAccessManager(appStore, commandStore, variableStore)
 
 	// 404 handler
 	s.mux.Handle("/", handler.APIHandler(func(c *handler.Context) error {
@@ -92,4 +94,16 @@ func (s *APIServer) RegisterRoutes(
 	commandGroup.Get("/", handler.Typed(commandsHandler.HandleCommandGet))
 	commandGroup.Patch("/", handler.TypedWithBody(commandsHandler.HandleCommandUpdate))
 	commandGroup.Delete("/", handler.Typed(commandsHandler.HandleCommandDelete))
+
+	// Variable routes
+	variablesHandler := variable.NewVariableHandler(variableStore, s.config.UserLimits.MaxVariablesPerApp)
+
+	variablesGroup := appGroup.Group("/variables")
+	variablesGroup.Get("/", handler.Typed(variablesHandler.HandleVariableList))
+	variablesGroup.Post("/", handler.TypedWithBody(variablesHandler.HandleVariableCreate))
+
+	variableGroup := variablesGroup.Group("/{variableID}", accessManager.VariableAccess)
+	variableGroup.Get("/", handler.Typed(variablesHandler.HandleVariableGet))
+	variableGroup.Patch("/", handler.TypedWithBody(variablesHandler.HandleVariableUpdate))
+	variableGroup.Delete("/", handler.Typed(variablesHandler.HandleVariableDelete))
 }

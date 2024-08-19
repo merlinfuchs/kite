@@ -7,6 +7,7 @@ public_base_url = "http://localhost:8080"
 [api.user_limits]
 max_apps_per_user = 10
 max_commands_per_app = 25
+max_variables_per_app = 25
 
 [app]
 public_base_url = "http://localhost:3000"

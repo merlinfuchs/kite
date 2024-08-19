@@ -28,7 +28,7 @@ func NewCommandHandler(commandStore store.CommandStore, maxCommandsPerApp int) *
 func (h *CommandHandler) HandleCommandList(c *handler.Context) (*wire.CommandListResponse, error) {
 	commands, err := h.commandStore.CommandsByApp(c.Context(), c.App.ID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get plugins: %w", err)
+		return nil, fmt.Errorf("failed to get commands: %w", err)
 	}
 
 	res := make([]*wire.Command, len(commands))
@@ -44,13 +44,15 @@ func (h *CommandHandler) HandleCommandGet(c *handler.Context) (*wire.CommandGetR
 }
 
 func (h *CommandHandler) HandleCommandCreate(c *handler.Context, req wire.CommandCreateRequest) (*wire.CommandCreateResponse, error) {
-	commandCount, err := h.commandStore.CountCommandsByApp(c.Context(), c.App.ID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to count commands: %w", err)
-	}
+	if h.maxCommandsPerApp != 0 {
+		commandCount, err := h.commandStore.CountCommandsByApp(c.Context(), c.App.ID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to count commands: %w", err)
+		}
 
-	if commandCount >= h.maxCommandsPerApp {
-		return nil, handler.ErrBadRequest("resource_limit", fmt.Sprintf("maximum number of commands (%d) reached", h.maxCommandsPerApp))
+		if commandCount >= h.maxCommandsPerApp {
+			return nil, handler.ErrBadRequest("resource_limit", fmt.Sprintf("maximum number of commands (%d) reached", h.maxCommandsPerApp))
+		}
 	}
 
 	cmdFlow, err := flow.CompileCommand(req.FlowSource)

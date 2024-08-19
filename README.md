@@ -16,13 +16,13 @@ Make your own Discord Bot with Kite for free without a single line of code. With
 - [x] Design and implement node data
 - [ ] Design and implement variable system
   - [x] Implement template engine
-  - Variables = KV?
-    - Variable names are statically defined
-    - Variables aren't persisted
-    - Scope variables by guild, user (+ scope by other variable?)
-    - KV names can be dynamic
-    - KV values are persisted
-    - KV can (optionally?) be shared between commands
+  - Tenorary vs Persisted?
+  - Variables
+    - statically defined
+    - persisted
+    - Scopeed by guild, user, member, channel, global, or custom
+  - Fields
+    - dynamically defined
 - [x] Add some more common flow nodes
 - [ ] Implement all existing flow nodes
 - [x] Merge kite-common and kite-service

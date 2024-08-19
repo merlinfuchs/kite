@@ -5,7 +5,7 @@ CREATE TABLE IF NOT EXISTS commands (
     enabled BOOLEAN NOT NULL DEFAULT FALSE,
 
     app_id TEXT NOT NULL REFERENCES apps(id) ON DELETE CASCADE,
-    module_id TEXT REFERENCES modules(id) ON DELETE CASCADE,
+    module_id TEXT REFERENCES modules(id) ON DELETE SET NULL,
     creator_user_id TEXT NOT NULL,
 
     flow_source JSONB NOT NULL,
