@@ -20,7 +20,9 @@ func (c *Client) VariablesByApp(ctx context.Context, appID string) ([]*model.Var
 
 	var variables []*model.Variable
 	for _, row := range rows {
-		variables = append(variables, rowToVariable(row))
+		v := rowToVariable(row.Variable)
+		v.TotalValues = null.NewInt(row.TotalValues, true)
+		variables = append(variables, v)
 	}
 
 	return variables, nil
@@ -43,7 +45,9 @@ func (c *Client) Variable(ctx context.Context, id string) (*model.Variable, erro
 		return nil, err
 	}
 
-	return rowToVariable(row), nil
+	v := rowToVariable(row.Variable)
+	v.TotalValues = null.NewInt(row.TotalValues, true)
+	return v, nil
 }
 
 func (c *Client) VariableByName(ctx context.Context, appID, name string) (*model.Variable, error) {
@@ -58,7 +62,9 @@ func (c *Client) VariableByName(ctx context.Context, appID, name string) (*model
 		return nil, err
 	}
 
-	return rowToVariable(row), nil
+	v := rowToVariable(row.Variable)
+	v.TotalValues = null.NewInt(row.TotalValues, true)
+	return v, nil
 }
 
 func (c *Client) CreateVariable(ctx context.Context, variable *model.Variable) (*model.Variable, error) {

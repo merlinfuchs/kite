@@ -105,6 +105,7 @@ export interface Variable {
   type: string;
   app_id: string;
   module_id: null | string;
+  total_values: null | number;
   created_at: string /* RFC3339 */;
   updated_at: string /* RFC3339 */;
 }

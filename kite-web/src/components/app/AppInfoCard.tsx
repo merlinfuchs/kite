@@ -14,6 +14,7 @@ import { Separator } from "../ui/separator";
 import { Badge } from "../ui/badge";
 import { useUserQuery } from "@/lib/api/queries";
 import { useCallback } from "react";
+import AppInviteButton from "./AppInviteButton";
 
 export default function AppInfoCard() {
   const app = useApp();
@@ -46,19 +47,7 @@ export default function AppInfoCard() {
           </CardDescription>
         </div>
         <div className="ml-auto flex items-center gap-1">
-          <Button size="sm" variant="default" asChild className="h-8 gap-2">
-            <Link
-              href={{
-                pathname: "/apps/[appId]/settings",
-                query: { appId: app?.id },
-              }}
-            >
-              <SettingsIcon className="h-3.5 w-3.5" />
-              <span className="lg:sr-only xl:not-sr-only xl:whitespace-nowrap">
-                Manage App
-              </span>
-            </Link>
-          </Button>
+          <AppInviteButton />
         </div>
       </CardHeader>
       <CardContent className="p-6 text-sm">

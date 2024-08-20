@@ -87,18 +87,24 @@ export default function AppLayout({ children, ...props }: Props) {
     }
   });
 
-  const breadcrumbs = [
-    {
-      label: "Apps",
-      href: "/apps",
-    },
-    {
-      label: app?.name || "Unknown App",
-      href: props.breadcrumbs?.length ? `/apps/[appId]` : undefined,
-    },
-    ...(props.breadcrumbs || []),
-  ];
-  const title = props.title || app?.name || "Unknown App";
+  const breadcrumbs = useMemo(
+    () => [
+      {
+        label: "Apps",
+        href: "/apps",
+      },
+      {
+        label: app?.name || "Unknown App",
+        href: props.breadcrumbs?.length ? `/apps/[appId]` : undefined,
+      },
+      ...(props.breadcrumbs || []),
+    ],
+    [app, props.breadcrumbs]
+  );
+  const title = useMemo(
+    () => props.title || app?.name || "Unknown App",
+    [app, props.title]
+  );
 
   /*const appId = useAppId();
   const dashboards = useResponseData(useAppDashboardsQuery(projectId));

@@ -28,7 +28,7 @@ export default function CommandListEntry({ command }: { command: Command }) {
           toast.success("Command deleted!");
         } else {
           toast.error(
-            `Failed to load app: ${res.error.message} (${res.error.code})`
+            `Failed to delete command: ${res.error.message} (${res.error.code})`
           );
         }
       },

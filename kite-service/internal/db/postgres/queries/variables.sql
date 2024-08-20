@@ -1,11 +1,21 @@
 -- name: GetVariable :one
-SELECT * FROM variables WHERE id = $1;
+SELECT sqlc.embed(variables), COUNT(variable_values.*) as total_values FROM variables 
+LEFT JOIN variable_values ON variables.id = variable_values.variable_id
+WHERE variables.id = $1
+GROUP BY variables.id;
 
 -- name: GetVariableByName :one
-SELECT * FROM variables WHERE app_id = $1 AND name = $2;
+SELECT sqlc.embed(variables), COUNT(variable_values.*) as total_values FROM variables 
+LEFT JOIN variable_values ON variables.id = variable_values.variable_id
+WHERE app_id = $1 AND name = $2
+GROUP BY variables.id;
 
 -- name: GetVariablesByApp :many
-SELECT * FROM variables WHERE app_id = $1 ORDER BY created_at DESC;
+SELECT sqlc.embed(variables), COUNT(variable_values.*) as total_values FROM variables 
+LEFT JOIN variable_values ON variables.id = variable_values.variable_id
+WHERE variables.app_id = $1 
+GROUP BY variables.id
+ORDER BY variables.created_at DESC;
 
 -- name: CountVariablesByApp :one
 SELECT COUNT(*) FROM variables WHERE app_id = $1;

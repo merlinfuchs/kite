@@ -5,7 +5,6 @@ import AppSettingsCollaborators from "@/components/app/AppSettingsCollaborators"
 import AppSettingsCredentials from "@/components/app/AppSettingsCredentials";
 import AppSettingsDelete from "@/components/app/AppSettingsDelete";
 import AppSettingsDisable from "@/components/app/AppSettingsDisable";
-import AppSettingsInvite from "@/components/app/AppSettingsInvite";
 
 const breadcrumbs = [
   {
@@ -26,18 +25,16 @@ export default function AppSettingsPage() {
             collaborators and other app settings.
           </p>
         </div>
-        <AppSettingsInvite />
+        <div className="flex space-x-3 justify-end">
+          <AppSettingsDisable />
+          <AppSettingsDelete />
+        </div>
       </div>
       <Separator className="my-8" />
       <div className="grid gap-6">
         <AppSettingsAppearance />
         <AppSettingsCredentials />
         <AppSettingsCollaborators />
-
-        <div className="flex space-x-3 justify-end">
-          <AppSettingsDisable />
-          <AppSettingsDelete />
-        </div>
       </div>
     </AppLayout>
   );

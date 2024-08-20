@@ -1,4 +1,9 @@
-import { CheckIcon, SlashSquareIcon, VariableIcon } from "lucide-react";
+import {
+  CheckIcon,
+  SlashSquareIcon,
+  StretchHorizontalIcon,
+  VariableIcon,
+} from "lucide-react";
 import {
   Card,
   CardDescription,
@@ -14,7 +19,6 @@ import ConfirmDialog from "../common/ConfirmDialog";
 import { useVariableDeleteMutation } from "@/lib/api/mutations";
 import { useAppId } from "@/lib/hooks/params";
 import { toast } from "sonner";
-import { formatDateTime } from "@/lib/utils";
 
 export default function VariableListEntry({
   variable,
@@ -32,7 +36,7 @@ export default function VariableListEntry({
           toast.success("Variable deleted!");
         } else {
           toast.error(
-            `Failed to load app: ${res.error.message} (${res.error.code})`
+            `Failed to delete variable: ${res.error.message} (${res.error.code})`
           );
         }
       },
@@ -43,10 +47,8 @@ export default function VariableListEntry({
     <Card>
       <div className="float-right pt-3 pr-4">
         <div className="flex items-center space-x-2">
-          <CheckIcon className="h-5 w-5 text-green-500" />
-          <div className="text-sm text-muted-foreground">
-            {formatDateTime(new Date(variable.updated_at))}
-          </div>
+          <StretchHorizontalIcon className="h-5 w-5 text-muted-foreground" />
+          <div className="text-sm">{variable.total_values || 0} values</div>
         </div>
       </div>
       <CardHeader>
@@ -55,7 +57,16 @@ export default function VariableListEntry({
           <div>{variable.name}</div>
         </CardTitle>
         <CardDescription className="text-sm">
-          {variable.type} / {variable.scope}
+          This variable stores a{" "}
+          <span className="text-foreground">{variable.type}</span>{" "}
+          {variable.scope === "global" ? (
+            "globally."
+          ) : (
+            <span>
+              for each <span className="text-foreground">{variable.scope}</span>
+              .
+            </span>
+          )}
         </CardDescription>
       </CardHeader>
       <CardFooter className="flex space-x-3">

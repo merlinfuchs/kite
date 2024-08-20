@@ -14,14 +14,15 @@ var variableTypes = []interface{}{"string", "integer", "float", "boolean"}
 var variableNameRegex = regexp.MustCompile(`^[a-zA-Z0-9_]+$`)
 
 type Variable struct {
-	ID        string      `json:"id"`
-	Scope     string      `json:"scope"`
-	Name      string      `json:"name"`
-	Type      string      `json:"type"`
-	AppID     string      `json:"app_id"`
-	ModuleID  null.String `json:"module_id"`
-	CreatedAt time.Time   `json:"created_at"`
-	UpdatedAt time.Time   `json:"updated_at"`
+	ID          string      `json:"id"`
+	Scope       string      `json:"scope"`
+	Name        string      `json:"name"`
+	Type        string      `json:"type"`
+	AppID       string      `json:"app_id"`
+	ModuleID    null.String `json:"module_id"`
+	TotalValues null.Int    `json:"total_values"`
+	CreatedAt   time.Time   `json:"created_at"`
+	UpdatedAt   time.Time   `json:"updated_at"`
 }
 
 type VariableGetResponse = Variable
@@ -68,13 +69,14 @@ func VariableToWire(variable *model.Variable) *Variable {
 	}
 
 	return &Variable{
-		ID:        variable.ID,
-		Scope:     variable.Scope,
-		Name:      variable.Name,
-		Type:      variable.Type,
-		AppID:     variable.AppID,
-		ModuleID:  variable.ModuleID,
-		CreatedAt: variable.CreatedAt,
-		UpdatedAt: variable.UpdatedAt,
+		ID:          variable.ID,
+		Scope:       variable.Scope,
+		Name:        variable.Name,
+		Type:        variable.Type,
+		AppID:       variable.AppID,
+		ModuleID:    variable.ModuleID,
+		CreatedAt:   variable.CreatedAt,
+		UpdatedAt:   variable.UpdatedAt,
+		TotalValues: variable.TotalValues,
 	}
 }
