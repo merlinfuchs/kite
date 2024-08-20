@@ -20,7 +20,6 @@ import {
 import { useForm } from "react-hook-form";
 import { useCommandCreateMutation } from "@/lib/api/mutations";
 import { toast } from "sonner";
-import { setValidationErrors } from "@/lib/form";
 import LoadingButton from "../common/LoadingButton";
 import { useAppId } from "@/lib/hooks/params";
 import { getUniqueId } from "@/lib/utils";
@@ -67,13 +66,9 @@ export default function CommandCreateDialog({
             });
             setOpen(false);
           } else {
-            if (res.error.code === "validation_failed") {
-              setValidationErrors(form, res.error.data);
-            } else {
-              toast.error(
-                `Failed to create command: ${res.error.message} (${res.error.code})`
-              );
-            }
+            toast.error(
+              `Failed to create command: ${res.error.message} (${res.error.code})`
+            );
           }
         },
       }

@@ -17,6 +17,7 @@ const initialNodes = [
     position: { x: 100, y: 150 },
     data: {
       member_target: "1",
+      member_ban_delete_message_duration: "1",
     },
     type: "action_member_ban",
   },

@@ -1,13 +1,14 @@
 CREATE TABLE IF NOT EXISTS variables (
     id TEXT PRIMARY KEY,
+    scope TEXT NOT NULL, -- global, guild, user, member, channel, custom
     name TEXT NOT NULL,
-    value JSONB NOT NULL,
-    scope TEXT NOT NULL, -- global, guild, user, channel, ... other variable?
+    type TEXT NOT NULL, -- string, number, boolean, array, object, ...
 
-    command_id TEXT REFERENCES commands(id) ON DELETE CASCADE,
-    -- event_id TEXT REFERENCES events(id) ON DELETE CASCADE,
-    -- message_id TEXT REFERENCES messages(id) ON DELETE CASCADE,
+    app_id TEXT NOT NULL REFERENCES apps(id) ON DELETE CASCADE,
+    module_id TEXT REFERENCES modules(id) ON DELETE SET NULL,
    
     created_at TIMESTAMP NOT NULL,
-    updated_at TIMESTAMP NOT NULL
+    updated_at TIMESTAMP NOT NULL,
+
+    UNIQUE (app_id, name)
 );

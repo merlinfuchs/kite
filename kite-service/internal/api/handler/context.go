@@ -16,6 +16,7 @@ type Context struct {
 	Session *model.Session
 	App     *model.App
 	Command *model.Command
+	Variabe *model.Variable
 }
 
 func (c *Context) Context() context.Context {

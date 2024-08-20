@@ -1,4 +1,9 @@
-import { CheckIcon, SlashSquareIcon } from "lucide-react";
+import {
+  CheckIcon,
+  SlashSquareIcon,
+  StretchHorizontalIcon,
+  VariableIcon,
+} from "lucide-react";
 import {
   Card,
   CardDescription,
@@ -9,26 +14,29 @@ import {
 import { Button } from "../ui/button";
 import { useRouter } from "next/router";
 import Link from "next/link";
-import { Command } from "@/lib/types/wire.gen";
+import { Variable } from "@/lib/types/wire.gen";
 import ConfirmDialog from "../common/ConfirmDialog";
-import { useCommandDeleteMutation } from "@/lib/api/mutations";
+import { useVariableDeleteMutation } from "@/lib/api/mutations";
 import { useAppId } from "@/lib/hooks/params";
 import { toast } from "sonner";
-import { formatDateTime } from "@/lib/utils";
 
-export default function CommandListEntry({ command }: { command: Command }) {
+export default function VariableListEntry({
+  variable,
+}: {
+  variable: Variable;
+}) {
   const router = useRouter();
 
-  const deleteMutation = useCommandDeleteMutation(useAppId(), command.id);
+  const deleteMutation = useVariableDeleteMutation(useAppId(), variable.id);
 
   function remove() {
     deleteMutation.mutate(undefined, {
       onSuccess(res) {
         if (res.success) {
-          toast.success("Command deleted!");
+          toast.success("Variable deleted!");
         } else {
           toast.error(
-            `Failed to delete command: ${res.error.message} (${res.error.code})`
+            `Failed to delete variable: ${res.error.message} (${res.error.code})`
           );
         }
       },
@@ -39,29 +47,36 @@ export default function CommandListEntry({ command }: { command: Command }) {
     <Card>
       <div className="float-right pt-3 pr-4">
         <div className="flex items-center space-x-2">
-          <CheckIcon className="h-5 w-5 text-green-500" />
-          <div className="text-sm text-muted-foreground">
-            {formatDateTime(new Date(command.updated_at))}
-          </div>
+          <StretchHorizontalIcon className="h-5 w-5 text-muted-foreground" />
+          <div className="text-sm">{variable.total_values || 0} values</div>
         </div>
       </div>
       <CardHeader>
         <CardTitle className="text-base flex items-center space-x-2">
-          <SlashSquareIcon className="h-5 w-5 text-muted-foreground" />
-          <div>{command.name}</div>
+          <VariableIcon className="h-5 w-5 text-muted-foreground" />
+          <div>{variable.name}</div>
         </CardTitle>
         <CardDescription className="text-sm">
-          {command.description}
+          This variable stores a{" "}
+          <span className="text-foreground">{variable.type}</span>{" "}
+          {variable.scope === "global" ? (
+            "globally."
+          ) : (
+            <span>
+              for each <span className="text-foreground">{variable.scope}</span>
+              .
+            </span>
+          )}
         </CardDescription>
       </CardHeader>
       <CardFooter className="flex space-x-3">
         <Button size="sm" variant="outline" asChild>
           <Link
             href={{
-              pathname: "/apps/[appId]/commands/[cmdId]",
+              pathname: "/apps/[appId]/variables/[variableId]",
               query: {
                 appId: router.query.appId,
-                cmdId: command.id,
+                variableId: variable.id,
               },
             }}
           >
@@ -69,8 +84,8 @@ export default function CommandListEntry({ command }: { command: Command }) {
           </Link>
         </Button>
         <ConfirmDialog
-          title="Are you sure that you want to delete this command?"
-          description="This will remove the command from your app and cannot be undone."
+          title="Are you sure that you want to delete this variable?"
+          description="This will remove the variable from your app and cannot be undone."
           onConfirm={remove}
         >
           <Button

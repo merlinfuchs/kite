@@ -8,7 +8,7 @@ const breadcrumbs = [
   },
 ];
 
-export default function AppCommandsPage() {
+export default function AppMessagesPage() {
   return (
     <AppLayout title="Message Templates" breadcrumbs={breadcrumbs}>
       <div>

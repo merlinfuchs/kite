@@ -94,3 +94,33 @@ export interface User {
   updated_at: string /* RFC3339 */;
 }
 export type UserGetResponse = User;
+
+//////////
+// source: variable.go
+
+export interface Variable {
+  id: string;
+  scope: string;
+  name: string;
+  type: string;
+  app_id: string;
+  module_id: null | string;
+  total_values: null | number;
+  created_at: string /* RFC3339 */;
+  updated_at: string /* RFC3339 */;
+}
+export type VariableGetResponse = Variable;
+export type VariableListResponse = (Variable | undefined)[];
+export interface VariableCreateRequest {
+  scope: string;
+  name: string;
+  type: string;
+}
+export type VariableCreateResponse = Variable;
+export interface VariableUpdateRequest {
+  scope: string;
+  name: string;
+  type: string;
+}
+export type VariableUpdateResponse = Variable;
+export type VariableDeleteResponse = Empty;

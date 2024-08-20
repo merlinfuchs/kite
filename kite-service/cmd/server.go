@@ -67,10 +67,11 @@ func serverStartCMD(c *cli.Context) error {
 		DiscordClientID:     cfg.Discord.ClientID,
 		DiscordClientSecret: cfg.Discord.ClientSecret,
 		UserLimits: api.APIUserLimitsConfig{
-			MaxAppsPerUser:    cfg.API.UserLimits.MaxAppsPerUser,
-			MaxCommandsPerApp: cfg.API.UserLimits.MaxCommandsPerApp,
+			MaxAppsPerUser:     cfg.API.UserLimits.MaxAppsPerUser,
+			MaxCommandsPerApp:  cfg.API.UserLimits.MaxCommandsPerApp,
+			MaxVariablesPerApp: cfg.API.UserLimits.MaxVariablesPerApp,
 		},
-	}, pg, pg, pg, pg, pg)
+	}, pg, pg, pg, pg, pg, pg)
 	address := fmt.Sprintf("%s:%d", cfg.API.Host, cfg.API.Port)
 	if err := apiServer.Serve(context.Background(), address); err != nil {
 		slog.With("error", err).Error("Failed to start API server")

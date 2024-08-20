@@ -8,7 +8,7 @@ const breadcrumbs = [
   },
 ];
 
-export default function AppCommandsPage() {
+export default function AppEventsPage() {
   return (
     <AppLayout title="Event Listeners" breadcrumbs={breadcrumbs}>
       <div>

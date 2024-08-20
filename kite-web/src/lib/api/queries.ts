@@ -7,6 +7,8 @@ import {
   CommandListResponse,
   LogEntryListResponse,
   UserGetResponse,
+  VariableGetResponse,
+  VariableListResponse,
 } from "../types/wire.gen";
 
 export function useUserQuery(userId = "@me") {
@@ -55,5 +57,25 @@ export function useCommandQuery(appId: string, cmdId: string) {
     queryFn: () =>
       apiRequest<CommandGetResponse>(`/v1/apps/${appId}/commands/${cmdId}`),
     enabled: !!appId && !!cmdId,
+  });
+}
+
+export function useVariablesQuery(appId: string) {
+  return useQuery({
+    queryKey: ["apps", appId, "variables"],
+    queryFn: () =>
+      apiRequest<VariableListResponse>(`/v1/apps/${appId}/variables`),
+    enabled: !!appId,
+  });
+}
+
+export function useVariableQuery(appId: string, variableId: string) {
+  return useQuery({
+    queryKey: ["apps", appId, "variables", variableId],
+    queryFn: () =>
+      apiRequest<VariableGetResponse>(
+        `/v1/apps/${appId}/variables/${variableId}`
+      ),
+    enabled: !!appId && !!variableId,
   });
 }

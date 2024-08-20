@@ -97,6 +97,9 @@ func (c *Client) UpdateCommand(ctx context.Context, command *model.Command) (*mo
 		UpdatedAt:   pgtype.Timestamp{Time: command.UpdatedAt.UTC(), Valid: true},
 	})
 	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, store.ErrNotFound
+		}
 		return nil, err
 	}
 
@@ -137,7 +140,16 @@ func (c *Client) EnabledCommandIDs(ctx context.Context) ([]string, error) {
 }
 
 func (c *Client) DeleteCommand(ctx context.Context, id string) error {
-	return c.Q.DeleteCommand(ctx, id)
+	err := c.Q.DeleteCommand(ctx, id)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return store.ErrNotFound
+		}
+
+		return err
+	}
+
+	return nil
 }
 
 func rowToCommand(row pgmodel.Command) (*model.Command, error) {
