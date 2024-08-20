@@ -19,11 +19,8 @@ import {
   FormMessage,
 } from "../ui/form";
 import { useCallback, useEffect } from "react";
-import { useApp, useVariable } from "@/lib/hooks/api";
-import {
-  useAppUpdateMutation,
-  useVariableUpdateMutation,
-} from "@/lib/api/mutations";
+import { useVariable } from "@/lib/hooks/api";
+import { useVariableUpdateMutation } from "@/lib/api/mutations";
 import { useAppId, useVariableId } from "@/lib/hooks/params";
 import { toast } from "sonner";
 import { setValidationErrors } from "@/lib/form";
@@ -35,6 +32,7 @@ import {
   SelectValue,
 } from "../ui/select";
 import { variableScopes, variableTypes } from "@/lib/variable";
+import ConfirmDialog from "../common/ConfirmDialog";
 
 interface FormFields {
   name: string;
@@ -65,33 +63,32 @@ export default function VariableSettingsCore() {
 
   const updateMutation = useVariableUpdateMutation(useAppId(), useVariableId());
 
-  const onSubmit = useCallback(
-    (data: FormFields) => {
-      updateMutation.mutate(
-        {
-          name: data.name,
-          scope: data.scope,
-          type: data.type,
-        },
-        {
-          onSuccess(res) {
-            if (res.success) {
-              toast.success("Settings saved!");
+  const saveSettings = useCallback(() => {
+    const data = form.getValues();
+
+    updateMutation.mutate(
+      {
+        name: data.name,
+        scope: data.scope,
+        type: data.type,
+      },
+      {
+        onSuccess(res) {
+          if (res.success) {
+            toast.success("Settings saved!");
+          } else {
+            if (res.error.code === "validation_failed") {
+              setValidationErrors(form, res.error.data);
             } else {
-              if (res.error.code === "validation_failed") {
-                setValidationErrors(form, res.error.data);
-              } else {
-                toast.error(
-                  `Failed to update app: ${res.error.message} (${res.error.code})`
-                );
-              }
+              toast.error(
+                `Failed to update app: ${res.error.message} (${res.error.code})`
+              );
             }
-          },
-        }
-      );
-    },
-    [form, updateMutation]
-  );
+          }
+        },
+      }
+    );
+  }, [form, updateMutation]);
 
   return (
     <Card x-chunk="dashboard-04-chunk-1">
@@ -102,7 +99,7 @@ export default function VariableSettingsCore() {
         </CardDescription>
       </CardHeader>
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4">
+        <form className="grid gap-4">
           <CardContent className="space-y-5">
             <FormField
               control={form.control}
@@ -187,7 +184,13 @@ export default function VariableSettingsCore() {
           </CardContent>
 
           <CardFooter className="border-t px-6 py-4">
-            <Button type="submit">Save settings</Button>
+            <ConfirmDialog
+              title="Are you sure that you want to update the variable settings?"
+              description="Changing the scope or type of the variable will delete all associated data and cannot be undone."
+              onConfirm={saveSettings}
+            >
+              <Button>Save settings</Button>
+            </ConfirmDialog>
           </CardFooter>
         </form>
       </Form>

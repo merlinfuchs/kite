@@ -17,3 +17,12 @@ type Variable struct {
 	UpdatedAt   time.Time
 	TotalValues null.Int
 }
+
+type VariableValue struct {
+	ID         int64
+	VariableID string
+	Scope      null.String
+	Value      []byte
+	CreatedAt  time.Time
+	UpdatedAt  time.Time
+}

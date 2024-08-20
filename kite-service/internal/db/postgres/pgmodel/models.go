@@ -94,7 +94,7 @@ type Variable struct {
 
 type VariableValue struct {
 	ID         int64
-	VariableID pgtype.Text
+	VariableID string
 	Scope      pgtype.Text
 	Value      []byte
 	CreatedAt  pgtype.Timestamp

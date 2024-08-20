@@ -139,3 +139,73 @@ func rowToVariable(row pgmodel.Variable) *model.Variable {
 		UpdatedAt: row.UpdatedAt.Time,
 	}
 }
+
+func (c *Client) VariableValues(ctx context.Context, variableID string) ([]*model.VariableValue, error) {
+	rows, err := c.Q.GetVariableValues(ctx, variableID)
+	if err != nil {
+		return nil, err
+	}
+
+	var values []*model.VariableValue
+	for _, row := range rows {
+		values = append(values, rowToVariableValue(row))
+	}
+
+	return values, nil
+}
+
+func (c *Client) VariableValue(ctx context.Context, variableID string, scope null.String) (*model.VariableValue, error) {
+	row, err := c.Q.GetVariableValue(ctx, pgmodel.GetVariableValueParams{
+		VariableID: variableID,
+		Scope:      pgtype.Text{String: scope.String, Valid: scope.Valid},
+	})
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, store.ErrNotFound
+		}
+		return nil, err
+	}
+
+	return rowToVariableValue(row), nil
+}
+
+func (c *Client) SetVariableValue(ctx context.Context, value model.VariableValue) error {
+	_, err := c.Q.SetVariableValue(ctx, pgmodel.SetVariableValueParams{
+		VariableID: value.VariableID,
+		Scope:      pgtype.Text{String: value.Scope.String, Valid: value.Scope.Valid},
+		Value:      value.Value,
+		CreatedAt: pgtype.Timestamp{
+			Time:  value.CreatedAt.UTC(),
+			Valid: true,
+		},
+		UpdatedAt: pgtype.Timestamp{
+			Time:  value.UpdatedAt.UTC(),
+			Valid: true,
+		},
+	})
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (c *Client) DeleteAllVariableValues(ctx context.Context, variableID string) error {
+	err := c.Q.DeleteAllVariableValues(ctx, variableID)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func rowToVariableValue(row pgmodel.VariableValue) *model.VariableValue {
+	return &model.VariableValue{
+		ID:         row.ID,
+		VariableID: row.VariableID,
+		Scope:      null.NewString(row.Scope.String, row.Scope.Valid),
+		Value:      row.Value,
+		CreatedAt:  row.CreatedAt.Time,
+		UpdatedAt:  row.UpdatedAt.Time,
+	}
+}

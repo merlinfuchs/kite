@@ -44,3 +44,26 @@ WHERE id = $1 RETURNING *;
 
 -- name: DeleteVariable :exec
 DELETE FROM variables WHERE id = $1;
+
+-- name: GetVariableValue :one
+SELECT * FROM variable_values WHERE variable_id = $1 AND scope = $2;
+
+-- name: GetVariableValues :many
+SELECT * FROM variable_values WHERE variable_id = $1;
+
+-- name: SetVariableValue :one
+INSERT INTO variable_values (
+    variable_id,
+    scope,
+    value,
+    created_at,
+    updated_at
+) VALUES (
+    $1, $2, $3, $4, $5
+) ON CONFLICT (variable_id, scope) DO UPDATE SET
+    value = EXCLUDED.value,
+    updated_at = EXCLUDED.updated_at
+RETURNING *;
+
+-- name: DeleteAllVariableValues :exec
+DELETE FROM variable_values WHERE variable_id = $1;

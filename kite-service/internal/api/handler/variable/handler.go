@@ -14,12 +14,14 @@ import (
 
 type VariableHandler struct {
 	variableStore      store.VariableStore
+	variableValueStore store.VariableValueStore
 	maxVariablesPerApp int
 }
 
-func NewVariableHandler(variableStore store.VariableStore, maxVariablesPerApp int) *VariableHandler {
+func NewVariableHandler(variableStore store.VariableStore, variableValueStore store.VariableValueStore, maxVariablesPerApp int) *VariableHandler {
 	return &VariableHandler{
 		variableStore:      variableStore,
+		variableValueStore: variableValueStore,
 		maxVariablesPerApp: maxVariablesPerApp,
 	}
 }
@@ -71,6 +73,14 @@ func (h *VariableHandler) HandleVariableCreate(c *handler.Context, req wire.Vari
 }
 
 func (h *VariableHandler) HandleVariableUpdate(c *handler.Context, req wire.VariableUpdateRequest) (*wire.VariableUpdateResponse, error) {
+	if req.Scope != c.Variabe.Scope || req.Type != c.Variabe.Type {
+		// If the scope or type changes, we have to delete all variable values
+		err := h.variableValueStore.DeleteAllVariableValues(c.Context(), c.Variabe.ID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to delete variable values: %w", err)
+		}
+	}
+
 	variable, err := h.variableStore.UpdateVariable(c.Context(), &model.Variable{
 		ID:        c.Variabe.ID,
 		Name:      req.Name,

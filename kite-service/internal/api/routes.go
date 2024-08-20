@@ -22,6 +22,7 @@ func (s *APIServer) RegisterRoutes(
 	logStore store.LogStore,
 	commandStore store.CommandStore,
 	variableStore store.VariableStore,
+	variableValueStore store.VariableValueStore,
 ) {
 	sessionManager := session.NewSessionManager(session.SessionManagerConfig{
 		SecureCookies: s.config.SecureCookies,
@@ -96,7 +97,7 @@ func (s *APIServer) RegisterRoutes(
 	commandGroup.Delete("/", handler.Typed(commandsHandler.HandleCommandDelete))
 
 	// Variable routes
-	variablesHandler := variable.NewVariableHandler(variableStore, s.config.UserLimits.MaxVariablesPerApp)
+	variablesHandler := variable.NewVariableHandler(variableStore, variableValueStore, s.config.UserLimits.MaxVariablesPerApp)
 
 	variablesGroup := appGroup.Group("/variables")
 	variablesGroup.Get("/", handler.Typed(variablesHandler.HandleVariableList))

@@ -73,6 +73,15 @@ func (q *Queries) CreateVariable(ctx context.Context, arg CreateVariableParams) 
 	return i, err
 }
 
+const deleteAllVariableValues = `-- name: DeleteAllVariableValues :exec
+DELETE FROM variable_values WHERE variable_id = $1
+`
+
+func (q *Queries) DeleteAllVariableValues(ctx context.Context, variableID string) error {
+	_, err := q.db.Exec(ctx, deleteAllVariableValues, variableID)
+	return err
+}
+
 const deleteVariable = `-- name: DeleteVariable :exec
 DELETE FROM variables WHERE id = $1
 `
@@ -145,6 +154,60 @@ func (q *Queries) GetVariableByName(ctx context.Context, arg GetVariableByNamePa
 	return i, err
 }
 
+const getVariableValue = `-- name: GetVariableValue :one
+SELECT id, variable_id, scope, value, created_at, updated_at FROM variable_values WHERE variable_id = $1 AND scope = $2
+`
+
+type GetVariableValueParams struct {
+	VariableID string
+	Scope      pgtype.Text
+}
+
+func (q *Queries) GetVariableValue(ctx context.Context, arg GetVariableValueParams) (VariableValue, error) {
+	row := q.db.QueryRow(ctx, getVariableValue, arg.VariableID, arg.Scope)
+	var i VariableValue
+	err := row.Scan(
+		&i.ID,
+		&i.VariableID,
+		&i.Scope,
+		&i.Value,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const getVariableValues = `-- name: GetVariableValues :many
+SELECT id, variable_id, scope, value, created_at, updated_at FROM variable_values WHERE variable_id = $1
+`
+
+func (q *Queries) GetVariableValues(ctx context.Context, variableID string) ([]VariableValue, error) {
+	rows, err := q.db.Query(ctx, getVariableValues, variableID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []VariableValue
+	for rows.Next() {
+		var i VariableValue
+		if err := rows.Scan(
+			&i.ID,
+			&i.VariableID,
+			&i.Scope,
+			&i.Value,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getVariablesByApp = `-- name: GetVariablesByApp :many
 SELECT variables.id, variables.scope, variables.name, variables.type, variables.app_id, variables.module_id, variables.created_at, variables.updated_at, COUNT(variable_values.*) as total_values FROM variables 
 LEFT JOIN variable_values ON variables.id = variable_values.variable_id
@@ -186,6 +249,49 @@ func (q *Queries) GetVariablesByApp(ctx context.Context, appID string) ([]GetVar
 		return nil, err
 	}
 	return items, nil
+}
+
+const setVariableValue = `-- name: SetVariableValue :one
+INSERT INTO variable_values (
+    variable_id,
+    scope,
+    value,
+    created_at,
+    updated_at
+) VALUES (
+    $1, $2, $3, $4, $5
+) ON CONFLICT (variable_id, scope) DO UPDATE SET
+    value = EXCLUDED.value,
+    updated_at = EXCLUDED.updated_at
+RETURNING id, variable_id, scope, value, created_at, updated_at
+`
+
+type SetVariableValueParams struct {
+	VariableID string
+	Scope      pgtype.Text
+	Value      []byte
+	CreatedAt  pgtype.Timestamp
+	UpdatedAt  pgtype.Timestamp
+}
+
+func (q *Queries) SetVariableValue(ctx context.Context, arg SetVariableValueParams) (VariableValue, error) {
+	row := q.db.QueryRow(ctx, setVariableValue,
+		arg.VariableID,
+		arg.Scope,
+		arg.Value,
+		arg.CreatedAt,
+		arg.UpdatedAt,
+	)
+	var i VariableValue
+	err := row.Scan(
+		&i.ID,
+		&i.VariableID,
+		&i.Scope,
+		&i.Value,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
 }
 
 const updateVariable = `-- name: UpdateVariable :one

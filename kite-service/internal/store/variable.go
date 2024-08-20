@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/kitecloud/kite/kite-service/internal/model"
+	"gopkg.in/guregu/null.v4"
 )
 
 type VariableStore interface {
@@ -14,4 +15,11 @@ type VariableStore interface {
 	CreateVariable(ctx context.Context, variable *model.Variable) (*model.Variable, error)
 	UpdateVariable(ctx context.Context, variable *model.Variable) (*model.Variable, error)
 	DeleteVariable(ctx context.Context, id string) error
+}
+
+type VariableValueStore interface {
+	VariableValues(ctx context.Context, variableID string) ([]*model.VariableValue, error)
+	VariableValue(ctx context.Context, variableID string, scope null.String) (*model.VariableValue, error)
+	SetVariableValue(ctx context.Context, value model.VariableValue) error
+	DeleteAllVariableValues(ctx context.Context, variableID string) error
 }
