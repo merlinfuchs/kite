@@ -20,7 +20,6 @@ import {
 import { useForm } from "react-hook-form";
 import { useCommandCreateMutation } from "@/lib/api/mutations";
 import { toast } from "sonner";
-import { setValidationErrors } from "@/lib/form";
 import LoadingButton from "../common/LoadingButton";
 import { useAppId } from "@/lib/hooks/params";
 import { getUniqueId } from "@/lib/utils";

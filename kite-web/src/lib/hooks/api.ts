@@ -6,6 +6,8 @@ import {
   useAppsQuery,
   useUserQuery,
   useCommandQuery,
+  useVariablesQuery,
+  useVariableQuery,
 } from "../api/queries";
 import {
   AppGetResponse,
@@ -13,6 +15,8 @@ import {
   CommandGetResponse,
   CommandListResponse,
   UserGetResponse,
+  VariableGetResponse,
+  VariableListResponse,
 } from "../types/wire.gen";
 import { useRouter } from "next/router";
 
@@ -71,6 +75,27 @@ export function useCommand(
   const query = useCommandQuery(
     router.query.appId as string,
     router.query.cmdId as string
+  );
+  return useResponseData(query, callback);
+}
+
+export function useVariables(
+  callback?: (res: APIResponse<VariableListResponse>) => void
+) {
+  const router = useRouter();
+
+  const query = useVariablesQuery(router.query.appId as string);
+  return useResponseData(query, callback);
+}
+
+export function useVariable(
+  callback?: (res: APIResponse<VariableGetResponse>) => void
+) {
+  const router = useRouter();
+
+  const query = useVariableQuery(
+    router.query.appId as string,
+    router.query.variableId as string
   );
   return useResponseData(query, callback);
 }

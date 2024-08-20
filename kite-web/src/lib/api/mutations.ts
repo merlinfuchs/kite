@@ -13,6 +13,11 @@ import {
   CommandDeleteResponse,
   CommandUpdateRequest,
   CommandUpdateResponse,
+  VariableCreateRequest,
+  VariableCreateResponse,
+  VariableDeleteResponse,
+  VariableUpdateRequest,
+  VariableUpdateResponse,
 } from "../types/wire.gen";
 import { apiRequest } from "./client";
 
@@ -159,6 +164,68 @@ export function useCommandDeleteMutation(appId: string, cmdId: string) {
     onSuccess: () => {
       client.invalidateQueries({
         queryKey: ["apps", appId, "commands"],
+      });
+    },
+  });
+}
+
+export function useVariableCreateMutation(appId: string) {
+  const client = useQueryClient();
+
+  return useMutation({
+    mutationFn: (req: VariableCreateRequest) =>
+      apiRequest<VariableCreateResponse>(`/v1/apps/${appId}/variables`, {
+        method: "POST",
+        body: JSON.stringify(req),
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }),
+    onSuccess: () => {
+      client.invalidateQueries({
+        queryKey: ["apps", appId, "variables"],
+      });
+    },
+  });
+}
+
+export function useVariableUpdateMutation(appId: string, variableId: string) {
+  const client = useQueryClient();
+
+  return useMutation({
+    mutationFn: (req: VariableUpdateRequest) =>
+      apiRequest<VariableUpdateResponse>(
+        `/v1/apps/${appId}/variables/${variableId}`,
+        {
+          method: "PATCH",
+          body: JSON.stringify(req),
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      ),
+    onSuccess: () => {
+      client.invalidateQueries({
+        queryKey: ["apps", appId, "variables"],
+      });
+    },
+  });
+}
+
+export function useVariableDeleteMutation(appId: string, variableId: string) {
+  const client = useQueryClient();
+
+  return useMutation({
+    mutationFn: () =>
+      apiRequest<VariableDeleteResponse>(
+        `/v1/apps/${appId}/variables/${variableId}`,
+        {
+          method: "DELETE",
+        }
+      ),
+    onSuccess: () => {
+      client.invalidateQueries({
+        queryKey: ["apps", appId, "variables"],
       });
     },
   });

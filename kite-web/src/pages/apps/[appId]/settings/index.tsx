@@ -13,7 +13,7 @@ const breadcrumbs = [
   },
 ];
 
-export default function AnalyticsPage() {
+export default function AppSettingsPage() {
   return (
     <AppLayout title="App Settings" breadcrumbs={breadcrumbs}>
       <div className="flex flex-col md:flex-row justify-between items-end space-y-5 md:space-y-0">

@@ -6,6 +6,7 @@ import {
   SatelliteDishIcon,
   SettingsIcon,
   SlashSquareIcon,
+  VariableIcon,
 } from "lucide-react";
 import {
   Breadcrumb,
@@ -159,6 +160,12 @@ export default function AppLayout({ children, ...props }: Props) {
         label: "Message Templates",
         href: `/apps/[appId]/messages`,
         active: isActive(`/apps/[appId]/messages`),
+      },
+      {
+        icon: VariableIcon,
+        label: "Stored Variables",
+        href: `/apps/[appId]/variables`,
+        active: isActive(`/apps/[appId]/variables`),
       },
       {
         icon: SettingsIcon,
