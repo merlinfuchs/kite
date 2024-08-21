@@ -1,5 +1,5 @@
+import AppEmptyPlaceholder from "@/components/app/AppEmptyPlaceholder";
 import AppLayout from "@/components/app/AppLayout";
-import VariableList from "@/components/app/VariableList";
 import { Separator } from "@/components/ui/separator";
 
 const breadcrumbs = [
@@ -22,7 +22,11 @@ export default function AppVariablesPage() {
         </p>
       </div>
       <Separator className="my-8" />
-      <VariableList />
+      <AppEmptyPlaceholder
+        title="Under construction"
+        description="This feature is not yet available. Please check back later."
+      />
+      {/* <VariableList /> */}
     </AppLayout>
   );
 }
