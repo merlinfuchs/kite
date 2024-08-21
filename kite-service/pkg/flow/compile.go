@@ -36,12 +36,12 @@ func compile(data FlowData, entryType FlowNodeType) (*CompiledFlowNode, error) {
 	for _, edge := range data.Edges {
 		parent, ok := nodeMap[edge.Source]
 		if !ok {
-			return nil, nil
+			continue
 		}
 
 		child, ok := nodeMap[edge.Target]
 		if !ok {
-			return nil, nil
+			continue
 		}
 
 		parent.Children = append(parent.Children, child)
