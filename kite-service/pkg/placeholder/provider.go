@@ -1,6 +1,7 @@
 package placeholder
 
 import (
+	"context"
 	"errors"
 	"fmt"
 )
@@ -8,8 +9,8 @@ import (
 var ErrNotFound = errors.New("placeholder not found")
 
 type Provider interface {
-	GetPlaceholder(key string) (Provider, error)
-	ResolvePlaceholder() (string, error)
+	GetPlaceholder(ctx context.Context, key string) (Provider, error)
+	ResolvePlaceholder(ctx context.Context) (string, error)
 }
 
 type StringProvider struct {
@@ -22,11 +23,11 @@ func NewStringProvider(value string) StringProvider {
 	}
 }
 
-func (s StringProvider) GetPlaceholder(key string) (Provider, error) {
+func (s StringProvider) GetPlaceholder(ctx context.Context, key string) (Provider, error) {
 	return nil, ErrNotFound
 }
 
-func (s StringProvider) ResolvePlaceholder() (string, error) {
+func (s StringProvider) ResolvePlaceholder(ctx context.Context) (string, error) {
 	return s.value, nil
 }
 
@@ -40,11 +41,11 @@ func NewStringerProvider[T fmt.Stringer](value T) StringerProvider[T] {
 	}
 }
 
-func (s StringerProvider[T]) GetPlaceholder(key string) (Provider, error) {
+func (s StringerProvider[T]) GetPlaceholder(ctx context.Context, key string) (Provider, error) {
 	return nil, ErrNotFound
 }
 
-func (s StringerProvider[T]) ResolvePlaceholder() (string, error) {
+func (s StringerProvider[T]) ResolvePlaceholder(ctx context.Context) (string, error) {
 	return s.value.String(), nil
 }
 
@@ -66,7 +67,7 @@ func (m MapProvider[T]) Delete(key string) {
 	delete(m.data, key)
 }
 
-func (m MapProvider[T]) GetPlaceholder(key string) (Provider, error) {
+func (m MapProvider[T]) GetPlaceholder(ctx context.Context, key string) (Provider, error) {
 	provider, ok := m.data[key]
 	if !ok {
 		return nil, ErrNotFound
@@ -74,6 +75,6 @@ func (m MapProvider[T]) GetPlaceholder(key string) (Provider, error) {
 	return provider, nil
 }
 
-func (m MapProvider[T]) ResolvePlaceholder() (string, error) {
+func (m MapProvider[T]) ResolvePlaceholder(ctx context.Context) (string, error) {
 	return "", nil
 }

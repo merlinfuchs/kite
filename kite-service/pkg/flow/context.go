@@ -16,7 +16,6 @@ type FlowContext struct {
 
 	Data         FlowContextData
 	Tempories    FlowContextTemporaries
-	Variables    FlowContextVariables
 	Placeholders *placeholder.Engine
 }
 
@@ -35,13 +34,13 @@ func NewContext(
 		templates.AddProvider(template.NewGuildProvider(nil, data.GuildID(), nil))
 	} */
 
-	variables := NewContextVariables()
-	placeholders.AddProvider("variables", &variables)
+	placeholders.AddProvider("variables", &VariablePlaceholderProvider{
+		Variable: providers.Variable,
+	})
 
 	return &FlowContext{
 		Context:           ctx,
 		Data:              data,
-		Variables:         variables,
 		Placeholders:      placeholders,
 		FlowProviders:     providers,
 		FlowContextLimits: limits,

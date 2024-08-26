@@ -41,7 +41,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			flags |= discord.EphemeralMessage
 		}
 
-		content, err := ctx.Placeholders.Fill(data.Content)
+		content, err := ctx.Placeholders.Fill(ctx, data.Content)
 		if err != nil {
 			return traceError(n, err)
 		}
@@ -69,7 +69,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 
 		data := n.Data.MessageData
 
-		content, err := ctx.Placeholders.Fill(data.Content)
+		content, err := ctx.Placeholders.Fill(ctx, data.Content)
 		if err != nil {
 			return traceError(n, err)
 		}
@@ -104,7 +104,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 		// TODO: store result in variable with node id
 		return n.executeChildren(ctx)
 	case FlowNodeTypeActionMessageEdit:
-		if err := n.Data.MessageTarget.FillPlaceholders(ctx.Placeholders); err != nil {
+		if err := n.Data.MessageTarget.FillPlaceholders(ctx, ctx.Placeholders); err != nil {
 			return traceError(n, err)
 		}
 
@@ -126,7 +126,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 		// TODO: store result in variable with node id
 		return n.executeChildren(ctx)
 	case FlowNodeTypeActionMessageDelete:
-		if err := n.Data.MessageTarget.FillPlaceholders(ctx.Placeholders); err != nil {
+		if err := n.Data.MessageTarget.FillPlaceholders(ctx, ctx.Placeholders); err != nil {
 			return traceError(n, err)
 		}
 
@@ -143,19 +143,19 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 
 		return n.executeChildren(ctx)
 	case FlowNodeTypeActionMemberBan:
-		if err := n.Data.MemberTarget.FillPlaceholders(ctx.Placeholders); err != nil {
+		if err := n.Data.MemberTarget.FillPlaceholders(ctx, ctx.Placeholders); err != nil {
 			return traceError(n, err)
 		}
 
 		memberID := n.Data.MemberTarget.Number()
 
-		if err := n.Data.MemberBanDeleteMessageDuration.FillPlaceholders(ctx.Placeholders); err != nil {
+		if err := n.Data.MemberBanDeleteMessageDuration.FillPlaceholders(ctx, ctx.Placeholders); err != nil {
 			return traceError(n, err)
 		}
 
 		deleteSeconds := n.Data.MemberBanDeleteMessageDuration.Number()
 
-		if err := n.Data.AuditLogReason.FillPlaceholders(ctx.Placeholders); err != nil {
+		if err := n.Data.AuditLogReason.FillPlaceholders(ctx, ctx.Placeholders); err != nil {
 			return traceError(n, err)
 		}
 
@@ -174,13 +174,13 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 
 		return n.executeChildren(ctx)
 	case FlowNodeTypeActionMemberKick:
-		if err := n.Data.AuditLogReason.FillPlaceholders(ctx.Placeholders); err != nil {
+		if err := n.Data.AuditLogReason.FillPlaceholders(ctx, ctx.Placeholders); err != nil {
 			return traceError(n, err)
 		}
 
 		memberID := n.Data.MemberTarget.Number()
 
-		if err := n.Data.AuditLogReason.FillPlaceholders(ctx.Placeholders); err != nil {
+		if err := n.Data.AuditLogReason.FillPlaceholders(ctx, ctx.Placeholders); err != nil {
 			return traceError(n, err)
 		}
 
@@ -199,7 +199,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 	// TODO: implement other action types
 
 	case FlowNodeTypeActionLog:
-		err := n.Data.LogMessage.FillPlaceholders(ctx.Placeholders)
+		err := n.Data.LogMessage.FillPlaceholders(ctx, ctx.Placeholders)
 		if err != nil {
 			return traceError(n, err)
 		}
@@ -207,7 +207,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 		ctx.Log.CreateLogEntry(ctx, n.Data.LogLevel, n.Data.LogMessage.String())
 		return n.executeChildren(ctx)
 	case FlowNodeTypeControlConditionCompare:
-		if err := n.Data.ConditionBaseValue.FillPlaceholders(ctx.Placeholders); err != nil {
+		if err := n.Data.ConditionBaseValue.FillPlaceholders(ctx, ctx.Placeholders); err != nil {
 			return traceError(n, err)
 		}
 
@@ -237,7 +237,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			return nil
 		}
 
-		if err := n.Data.ConditionItemValue.FillPlaceholders(ctx.Placeholders); err != nil {
+		if err := n.Data.ConditionItemValue.FillPlaceholders(ctx, ctx.Placeholders); err != nil {
 			return traceError(n, err)
 		}
 

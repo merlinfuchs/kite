@@ -57,7 +57,6 @@ func NewAPIServer(
 }
 
 func (s *APIServer) Serve(ctx context.Context, address string) error {
-	// TODO: Make kite-web URL configurable
 	handler := cors.New(cors.Options{
 		AllowedOrigins:   []string{s.config.AppPublicBaseURL},
 		AllowCredentials: true,

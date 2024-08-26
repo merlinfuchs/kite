@@ -1,6 +1,7 @@
 package placeholder
 
 import (
+	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -37,7 +38,7 @@ func TestFlowExecuteCommand(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.input, func(t *testing.T) {
-			actual, err := engine.Fill(tc.input)
+			actual, err := engine.Fill(context.TODO(), tc.input)
 			assert.NoError(t, err)
 			assert.Equal(t, tc.expected, actual)
 		})

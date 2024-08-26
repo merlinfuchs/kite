@@ -70,7 +70,7 @@ func VariableToWire(variable *model.Variable) *Variable {
 
 	return &Variable{
 		ID:          variable.ID,
-		Scope:       variable.Scope,
+		Scope:       string(variable.Scope),
 		Name:        variable.Name,
 		Type:        variable.Type,
 		AppID:       variable.AppID,

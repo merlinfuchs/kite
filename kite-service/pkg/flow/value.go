@@ -1,6 +1,7 @@
 package flow
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"reflect"
@@ -23,6 +24,7 @@ const (
 
 var FlowValueNull = FlowValue{Type: FlowValueTypeNull}
 
+// TODO: do we need this or can we just have all values be strings?
 type FlowValue struct {
 	Type  FlowValueType `json:"type"`
 	Value interface{}   `json:"value"`
@@ -36,8 +38,8 @@ func (v *FlowValue) ContainsPlaceholder() bool {
 	return placeholder.ContainsPlaceholder(v.String())
 }
 
-func (v *FlowValue) FillPlaceholders(t *placeholder.Engine) error {
-	res, err := t.Fill(v.String())
+func (v *FlowValue) FillPlaceholders(ctx context.Context, t *placeholder.Engine) error {
+	res, err := t.Fill(ctx, v.String())
 	if err != nil {
 		return fmt.Errorf("failed to fill placeholders: %w", err)
 	}
@@ -158,11 +160,11 @@ func (v *FlowValue) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-func (v FlowValue) GetPlaceholder(key string) (placeholder.Provider, error) {
+func (v FlowValue) GetPlaceholder(ctx context.Context, key string) (placeholder.Provider, error) {
 	// TODO: implement for some types
 	return nil, placeholder.ErrNotFound
 }
 
-func (v FlowValue) ResolvePlaceholder() (string, error) {
+func (v FlowValue) ResolvePlaceholder(ctx context.Context) (string, error) {
 	return v.String(), nil
 }

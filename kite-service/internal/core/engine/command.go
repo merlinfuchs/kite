@@ -60,6 +60,7 @@ func (c *Command) HandleEvent(appID string, session *state.State, event gateway.
 		Discord: NewDiscordProvider(appID, c.appStore, session),
 		Log:     NewLogProvider(appID, c.logStore),
 		HTTP:    NewHTTPProvider(c.httpClient),
+		// TODO: Variable provider
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)

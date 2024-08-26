@@ -1,6 +1,7 @@
 package placeholder
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"strings"
@@ -25,7 +26,7 @@ func (e *Engine) AddProvider(key string, provider Provider) {
 	e.providers[key] = provider
 }
 
-func (e *Engine) Fill(input string) (string, error) {
+func (e *Engine) Fill(ctx context.Context, input string) (string, error) {
 	res, err := fasttemplate.ExecuteFuncStringWithErr(input, startTag, endTag, func(w io.Writer, tag string) (int, error) {
 		keys := strings.Split(strings.TrimSpace(tag), ".")
 
@@ -33,7 +34,7 @@ func (e *Engine) Fill(input string) (string, error) {
 
 		for _, key := range keys {
 			var err error
-			provider, err = provider.GetPlaceholder(key)
+			provider, err = provider.GetPlaceholder(ctx, key)
 			if err != nil {
 				if err == ErrNotFound {
 					return 0, nil
@@ -42,7 +43,7 @@ func (e *Engine) Fill(input string) (string, error) {
 			}
 		}
 
-		value, err := provider.ResolvePlaceholder()
+		value, err := provider.ResolvePlaceholder(ctx)
 		if err != nil {
 			return 0, fmt.Errorf("failed to resolve placeholder value: %w", err)
 		}
@@ -56,7 +57,7 @@ func (e *Engine) Fill(input string) (string, error) {
 	return res, nil
 }
 
-func (s Engine) GetPlaceholder(key string) (Provider, error) {
+func (s Engine) GetPlaceholder(ctx context.Context, key string) (Provider, error) {
 	provider, ok := s.providers[key]
 	if !ok {
 		return nil, ErrNotFound
@@ -64,6 +65,6 @@ func (s Engine) GetPlaceholder(key string) (Provider, error) {
 	return provider, nil
 }
 
-func (s Engine) ResolvePlaceholder() (string, error) {
+func (s Engine) ResolvePlaceholder(ctx context.Context) (string, error) {
 	return "", nil
 }
