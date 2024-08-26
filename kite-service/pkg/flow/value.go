@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	"github.com/diamondburned/arikawa/v3/discord"
-	"github.com/kitecloud/kite/kite-service/pkg/template"
+	"github.com/kitecloud/kite/kite-service/pkg/placeholder"
 )
 
 type FlowValueType string
@@ -28,22 +28,18 @@ type FlowValue struct {
 	Value interface{}   `json:"value"`
 }
 
-func (v *FlowValue) ContainsVariable() bool {
+func (v *FlowValue) ContainsPlaceholder() bool {
 	if v.Type != FlowValueTypeString {
 		return false
 	}
 
-	return template.ContainsVariable(v.String())
+	return placeholder.ContainsPlaceholder(v.String())
 }
 
-func (v *FlowValue) ResolveVariables(t FlowContextVariables) error {
-	if !v.ContainsVariable() {
-		return nil
-	}
-
-	res, err := t.ParseAndExecute(v.String())
+func (v *FlowValue) FillPlaceholders(t *placeholder.Engine) error {
+	res, err := t.Fill(v.String())
 	if err != nil {
-		return fmt.Errorf("failed to resolve variables: %w", err)
+		return fmt.Errorf("failed to fill placeholders: %w", err)
 	}
 
 	*v = FlowValue{
@@ -160,4 +156,13 @@ func (v *FlowValue) UnmarshalJSON(data []byte) error {
 	}
 
 	return nil
+}
+
+func (v FlowValue) GetPlaceholder(key string) (placeholder.Provider, error) {
+	// TODO: implement for some types
+	return nil, placeholder.ErrNotFound
+}
+
+func (v FlowValue) ResolvePlaceholder() (string, error) {
+	return v.String(), nil
 }

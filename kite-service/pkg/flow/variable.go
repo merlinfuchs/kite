@@ -1,33 +1,38 @@
 package flow
 
-import "github.com/kitecloud/kite/kite-service/pkg/template"
+import "github.com/kitecloud/kite/kite-service/pkg/placeholder"
 
 type FlowContextVariables struct {
-	*template.TemplateContext
-
 	Variables map[string]FlowValue
+}
+
+func NewContextVariables() FlowContextVariables {
+	return FlowContextVariables{
+		Variables: make(map[string]FlowValue),
+	}
 }
 
 func (v *FlowContextVariables) SetVariable(name string, value FlowValue) {
 	v.Variables[name] = value
-
-	var tValue interface{}
-	switch value.Type {
-	case FlowValueTypeNull:
-		v = nil
-	case FlowValueTypeString:
-		tValue = value.String()
-	case FlowValueTypeNumber:
-		tValue = value.Number()
-	case FlowValueTypeMessage:
-		// TODO: replace with custom message struct?
-		tValue, _ = value.Message()
-	}
-
-	v.SetData("Variables."+name, tValue)
 }
 
-func (v *FlowContextVariables) Variable(name string) FlowValue {
-	value := v.Variables[name]
-	return value
+func (v *FlowContextVariables) Variable(name string) (FlowValue, bool) {
+	value, ok := v.Variables[name]
+	return value, ok
+}
+
+func (v *FlowContextVariables) GetPlaceholder(key string) (placeholder.Provider, error) {
+	if key == "test" {
+		return placeholder.NewStringProvider("yeet"), nil
+	}
+
+	value, ok := v.Variable(key)
+	if !ok {
+		return nil, placeholder.ErrNotFound
+	}
+	return value, nil
+}
+
+func (v *FlowContextVariables) ResolvePlaceholder() (string, error) {
+	return "", nil
 }

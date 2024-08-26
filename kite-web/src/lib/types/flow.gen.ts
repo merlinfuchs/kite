@@ -61,8 +61,7 @@ export interface FlowNodeData {
   name?: string;
   description?: string;
   custom_label?: string;
-  result_variable_name?: string;
-  audit_log_reason?: string;
+  audit_log_reason?: FlowValue;
   /**
    * Command Argument
    */
@@ -79,25 +78,25 @@ export interface FlowNodeData {
   /**
    * Message & Response Create, edit, Delete
    */
-  message_target?: string;
+  message_target?: FlowValue;
   message_data?: any /* api.SendMessageData */;
   message_template_id?: string;
   message_ephemeral?: boolean;
   /**
    * Member Ban, Kick, Timeout
    */
-  member_target?: string;
-  member_ban_delete_message_duration?: string;
-  member_timeout_duration?: string;
+  member_target?: FlowValue;
+  member_ban_delete_message_duration?: FlowValue;
+  member_timeout_duration?: FlowValue;
   /**
    * Channel Create, Edit, Delete
    */
-  channel_target?: string;
+  channel_target?: FlowValue;
   channel_data?: any /* api.CreateChannelData */;
   /**
    * Role Create, Edit, Delete
    */
-  role_target?: string;
+  role_target?: FlowValue;
   role_data?: any /* api.CreateRoleData */;
   /**
    * Variable Set, Delete
@@ -121,7 +120,7 @@ export interface FlowNodeData {
    * Log
    */
   log_level?: LogLevel;
-  log_message?: string;
+  log_message?: FlowValue;
   /**
    * Condition
    */
@@ -132,7 +131,7 @@ export interface FlowNodeData {
   /**
    * Loop
    */
-  loop_count?: string;
+  loop_count?: FlowValue;
 }
 export type LogLevel = string;
 export const LogLevelDebug: LogLevel = "debug";
@@ -206,6 +205,5 @@ export interface FlowValue {
 // source: variable.go
 
 export interface FlowContextVariables {
-  TemplateContext?: any /* template.TemplateContext */;
   Variables: { [key: string]: FlowValue};
 }

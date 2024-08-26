@@ -6,7 +6,7 @@ import (
 
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/gateway"
-	"github.com/kitecloud/kite/kite-service/pkg/template"
+	"github.com/kitecloud/kite/kite-service/pkg/placeholder"
 )
 
 type FlowContext struct {
@@ -14,9 +14,10 @@ type FlowContext struct {
 	FlowProviders
 	FlowContextLimits
 
-	Data      FlowContextData
-	Tempories FlowContextTemporaries
-	Variables FlowContextVariables
+	Data         FlowContextData
+	Tempories    FlowContextTemporaries
+	Variables    FlowContextVariables
+	Placeholders *placeholder.Engine
 }
 
 func NewContext(
@@ -24,23 +25,24 @@ func NewContext(
 	data FlowContextData,
 	providers FlowProviders,
 	limits FlowContextLimits,
-	templates *template.TemplateContext,
+	placeholders *placeholder.Engine,
 ) *FlowContext {
-	// TODO: pass in bot state cabinet or custom interface?
-	if data.Interaction() != nil {
+	// TODO: pass in interaction data to placeholder engine
+	/* if data.Interaction() != nil {
 		templates.AddProvider(template.NewInteractionProvider(nil, data.Interaction()))
 	}
 	if data.GuildID() != 0 {
 		templates.AddProvider(template.NewGuildProvider(nil, data.GuildID(), nil))
-	}
+	} */
+
+	variables := NewContextVariables()
+	placeholders.AddProvider("variables", &variables)
 
 	return &FlowContext{
-		Context: ctx,
-		Data:    data,
-		Variables: FlowContextVariables{
-			TemplateContext: templates,
-			Variables:       make(map[string]FlowValue),
-		},
+		Context:           ctx,
+		Data:              data,
+		Variables:         variables,
+		Placeholders:      placeholders,
 		FlowProviders:     providers,
 		FlowContextLimits: limits,
 	}

@@ -116,7 +116,6 @@ export const nodeActionMessageCreateDataSchema = nodeBaseDataSchema.extend({
   message_data: z.object({
     content: z.string().max(2000).min(1),
   }),
-  result_variable_name: z.string().optional(),
 });
 
 export const nodeActionMessageEditDataSchema = nodeBaseDataSchema.extend({
@@ -127,7 +126,6 @@ export const nodeActionMessageEditDataSchema = nodeBaseDataSchema.extend({
   message_data: z.object({
     content: z.string().max(2000).min(1),
   }),
-  result_variable_name: z.string().optional(),
 });
 
 export const nodeActionMessageDeleteDataSchema = nodeBaseDataSchema.extend({

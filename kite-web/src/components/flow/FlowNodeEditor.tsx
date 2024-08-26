@@ -46,7 +46,6 @@ interface InputProps {
 
 const intputs: Record<string, any> = {
   custom_label: CustomLabelInput,
-  result_variable_name: ResultVariableNameInput,
   name: NameInput,
   description: DescriptionInput,
   command_argument_type: CommandArgumentTypeInput,
@@ -223,19 +222,6 @@ function CustomLabelInput({ data, updateData, errors }: InputProps) {
       description="Set a custom label for this block so its easier to recognize. This is optional."
       value={data.custom_label || ""}
       updateValue={(v) => updateData({ custom_label: v || undefined })}
-      errors={errors}
-    />
-  );
-}
-
-function ResultVariableNameInput({ data, updateData, errors }: InputProps) {
-  return (
-    <BaseInput
-      field="result_variable_name"
-      title="Variable Name"
-      description="Create a variable to store the result of this action. This is optional."
-      value={data.result_variable_name || ""}
-      updateValue={(v) => updateData({ result_variable_name: v || undefined })}
       errors={errors}
     />
   );
