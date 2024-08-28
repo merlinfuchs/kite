@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo, useRef } from "react";
 import { Node, useNodes, useReactFlow, useStoreApi } from "@xyflow/react";
 import { NodeData, NodeProps } from "../../lib/flow/data";
 import { useNodeValues } from "@/lib/flow/nodes";
@@ -32,6 +32,7 @@ import {
   encodePermissionsBitset,
   permissionBits,
 } from "@/lib/discord/permissions";
+import FlowPlaceholderExplorer from "./FlowPlaceholderExplorer";
 
 interface Props {
   nodeId: string;
@@ -570,6 +571,7 @@ function MessageDataInput({ data, updateData, errors }: InputProps) {
         updateData({ message_data: v ? { content: v } : undefined })
       }
       errors={errors}
+      placeholders
     />
   );
 }
@@ -1012,6 +1014,7 @@ function BaseInput({
   errors,
   value,
   updateValue,
+  placeholders,
 }: {
   type?: "text" | "textarea" | "select";
   field: string;
@@ -1021,8 +1024,34 @@ function BaseInput({
   errors: Record<string, string>;
   value: string;
   updateValue: (value: string) => void;
+  placeholders?: boolean;
 }) {
   const error = errors[field];
+
+  const inputRef = useRef<HTMLInputElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  const onPlaceholderSelect = useCallback(
+    (placeholder: string) => {
+      const value = `{{${placeholder}}}`;
+
+      const element =
+        type === "textarea" ? textareaRef.current : inputRef.current;
+
+      if (!element) return;
+
+      const start = element.selectionStart ?? 0;
+      const end = element.selectionEnd ?? 0;
+
+      const newValue =
+        element.value.substring(0, start) +
+        value +
+        element.value.substring(end);
+
+      updateValue(newValue);
+    },
+    [inputRef, textareaRef]
+  );
 
   return (
     <div>
@@ -1030,28 +1059,38 @@ function BaseInput({
       {description ? (
         <div className="text-muted-foreground text-sm mb-2">{description}</div>
       ) : null}
-      {type === "textarea" ? (
-        <Textarea value={value} onChange={(e) => updateValue(e.target.value)} />
-      ) : type === "select" ? (
-        <Select value={value} onValueChange={(v) => updateValue(v)}>
-          <SelectTrigger>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {options?.map((o) => (
-              <SelectItem key={o.value} value={o.value}>
-                {o.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      ) : (
-        <Input
-          type="text"
-          value={value}
-          onChange={(e) => updateValue(e.target.value)}
-        />
-      )}
+      <div className="relative">
+        {type === "textarea" ? (
+          <Textarea
+            value={value}
+            onChange={(e) => updateValue(e.target.value)}
+            ref={textareaRef}
+          />
+        ) : type === "select" ? (
+          <Select value={value} onValueChange={(v) => updateValue(v)}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {options?.map((o) => (
+                <SelectItem key={o.value} value={o.value}>
+                  {o.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        ) : (
+          <Input
+            type="text"
+            value={value}
+            onChange={(e) => updateValue(e.target.value)}
+            ref={inputRef}
+          />
+        )}
+        {placeholders && (
+          <FlowPlaceholderExplorer onSelect={onPlaceholderSelect} />
+        )}
+      </div>
       {error && (
         <div className="text-red-600 dark:text-red-400 text-sm flex items-center space-x-1 pt-2">
           <CircleAlertIcon className="h-5 w-5 flex-none" />
