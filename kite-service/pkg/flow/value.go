@@ -30,6 +30,34 @@ type FlowValue struct {
 	Value interface{}   `json:"value"`
 }
 
+func NewFlowValueString(s string) FlowValue {
+	return FlowValue{
+		Type:  FlowValueTypeString,
+		Value: s,
+	}
+}
+
+func NewFlowValueNumber(n float64) FlowValue {
+	return FlowValue{
+		Type:  FlowValueTypeNumber,
+		Value: n,
+	}
+}
+
+func NewFlowValueArray(a []FlowValue) FlowValue {
+	return FlowValue{
+		Type:  FlowValueTypeArray,
+		Value: a,
+	}
+}
+
+func NewFlowValueMessage(m discord.Message) FlowValue {
+	return FlowValue{
+		Type:  FlowValueTypeMessage,
+		Value: m,
+	}
+}
+
 func (v *FlowValue) ContainsPlaceholder() bool {
 	if v.Type != FlowValueTypeString {
 		return false
@@ -50,6 +78,10 @@ func (v *FlowValue) FillPlaceholders(ctx context.Context, t *placeholder.Engine)
 	}
 
 	return nil
+}
+
+func (v *FlowValue) IsNull() bool {
+	return v.Type == FlowValueTypeNull || v.Type == "" || v.Value == nil
 }
 
 func (v *FlowValue) String() string {

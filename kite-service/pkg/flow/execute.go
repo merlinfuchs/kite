@@ -20,6 +20,9 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 		}
 	}
 
+	// Make node data available to placeholders
+	ctx.nodePlaceholderProvider.setNode(n)
+
 	switch n.Type {
 	case FlowNodeTypeEntryCommand:
 		return n.executeChildren(ctx)
@@ -96,12 +99,12 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 
 		return n.executeChildren(ctx)
 	case FlowNodeTypeActionMessageCreate:
-		_, err := ctx.Discord.CreateMessage(ctx, ctx.Data.ChannelID(), n.Data.MessageData)
+		msg, err := ctx.Discord.CreateMessage(ctx, ctx.Data.ChannelID(), n.Data.MessageData)
 		if err != nil {
 			return traceError(n, err)
 		}
 
-		// TODO: store result in variable with node id
+		n.State.Result = NewFlowValueMessage(*msg)
 		return n.executeChildren(ctx)
 	case FlowNodeTypeActionMessageEdit:
 		if err := n.Data.MessageTarget.FillPlaceholders(ctx, ctx.Placeholders); err != nil {
@@ -110,7 +113,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 
 		messageID := n.Data.MessageTarget.Number()
 
-		_, err := ctx.Discord.EditMessage(
+		msg, err := ctx.Discord.EditMessage(
 			ctx,
 			ctx.Data.ChannelID(),
 			discord.MessageID(messageID),
@@ -123,7 +126,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			return traceError(n, err)
 		}
 
-		// TODO: store result in variable with node id
+		n.State.Result = NewFlowValueMessage(*msg)
 		return n.executeChildren(ctx)
 	case FlowNodeTypeActionMessageDelete:
 		if err := n.Data.MessageTarget.FillPlaceholders(ctx, ctx.Placeholders); err != nil {
@@ -211,8 +214,6 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			return traceError(n, err)
 		}
 
-		ctx.Tempories.InitCondition(n.Data.ConditionBaseValue, n.Data.ConditionAllowMultiple)
-
 		var elseNode *CompiledFlowNode
 
 		for _, child := range n.Children {
@@ -232,7 +233,12 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			}
 		}
 	case FlowNodeTypeControlConditionItemCompare:
-		if ctx.Tempories.ConditionItemMet && !ctx.Tempories.ConditionAllowMultiple {
+		parent := n.FindDirectParentWithType(FlowNodeTypeControlConditionCompare)
+		if parent == nil {
+			return nil
+		}
+
+		if parent.State.ConditionItemMet && parent.Data.ConditionAllowMultiple {
 			// Another condition item has already been met
 			return nil
 		}
@@ -241,30 +247,37 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			return traceError(n, err)
 		}
 
+		baseValue := parent.Data.ConditionBaseValue
+
 		var conditionMet bool
 		switch n.Data.ConditionItemMode {
 		case ConditionItemModeEqual:
-			conditionMet = ctx.Tempories.ConditionBaseValue.Equals(&n.Data.ConditionItemValue)
+			conditionMet = baseValue.Equals(&n.Data.ConditionItemValue)
 		case ConditionItemModeNotEqual:
-			conditionMet = ctx.Tempories.ConditionBaseValue.Equals(&n.Data.ConditionItemValue)
+			conditionMet = baseValue.Equals(&n.Data.ConditionItemValue)
 		case ConditionItemModeGreaterThan:
-			conditionMet = ctx.Tempories.ConditionBaseValue.GreaterThan(&n.Data.ConditionItemValue)
+			conditionMet = baseValue.GreaterThan(&n.Data.ConditionItemValue)
 		case ConditionItemModeGreaterThanOrEqual:
-			conditionMet = ctx.Tempories.ConditionBaseValue.GreaterThanOrEqual(&n.Data.ConditionItemValue)
+			conditionMet = baseValue.GreaterThanOrEqual(&n.Data.ConditionItemValue)
 		case ConditionItemModeLessThan:
-			conditionMet = ctx.Tempories.ConditionBaseValue.LessThan(&n.Data.ConditionItemValue)
+			conditionMet = baseValue.LessThan(&n.Data.ConditionItemValue)
 		case ConditionItemModeLessThanOrEqual:
-			conditionMet = ctx.Tempories.ConditionBaseValue.LessThanOrEqual(&n.Data.ConditionItemValue)
+			conditionMet = baseValue.LessThanOrEqual(&n.Data.ConditionItemValue)
 		case ConditionItemModeContains:
-			conditionMet = ctx.Tempories.ConditionBaseValue.Contains(&n.Data.ConditionItemValue)
+			conditionMet = baseValue.Contains(&n.Data.ConditionItemValue)
 		}
 
 		if conditionMet {
-			ctx.Tempories.ConditionItemMet = true
+			parent.State.ConditionItemMet = true
 			return n.executeChildren(ctx)
 		}
 	case FlowNodeTypeControlConditionItemElse:
-		if ctx.Tempories.ConditionItemMet {
+		parent := n.FindDirectParentWithType(FlowNodeTypeControlConditionCompare)
+		if parent == nil {
+			return nil
+		}
+
+		if parent.State.ConditionItemMet {
 			// Another condition item has already been met
 			return nil
 		}
