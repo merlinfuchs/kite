@@ -194,10 +194,39 @@ func (n *CompiledFlowNode) IsAction() bool {
 		n.Type == FlowNodeTypeActionLog
 }
 
-func (n *CompiledFlowNode) FindDirectParentWithType(t FlowNodeType) *CompiledFlowNode {
+func (n *CompiledFlowNode) FindDirectParentWithType(types ...FlowNodeType) *CompiledFlowNode {
+	for _, t := range types {
+		for _, node := range n.Parents {
+			if node.Type == t {
+				return node
+			}
+		}
+	}
+
+	return nil
+}
+
+func (n *CompiledFlowNode) FindAllParentsWithType(t FlowNodeType) []*CompiledFlowNode {
+	res := make([]*CompiledFlowNode, 0)
+
 	for _, node := range n.Parents {
 		if node.Type == t {
-			return node
+			res = append(res, node)
+		}
+
+		parents := node.FindAllParentsWithType(t)
+		res = append(res, parents...)
+	}
+
+	return res
+}
+
+func (n *CompiledFlowNode) FindDirectChildWithType(types ...FlowNodeType) *CompiledFlowNode {
+	for _, t := range types {
+		for _, node := range n.Children {
+			if node.Type == t {
+				return node
+			}
 		}
 	}
 

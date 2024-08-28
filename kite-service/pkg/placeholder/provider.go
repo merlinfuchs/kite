@@ -119,10 +119,13 @@ func (p InteractionProvider) GetPlaceholder(ctx context.Context, key string) (Pr
 	switch key {
 	case "id":
 		return NewStringProvider(p.interaction.ID.String()), nil
-	case "guild_id":
-		return NewStringProvider(p.interaction.GuildID.String()), nil
-	case "channel_id":
-		return NewStringProvider(p.interaction.ChannelID.String()), nil
+	case "guild":
+		if p.interaction.GuildID == 0 {
+			return nil, ErrNotFound
+		}
+		return NewGuildProvider(p.interaction.GuildID), nil
+	case "channel":
+		return NewChannelProvider(p.interaction.ChannelID), nil
 	case "user":
 		if p.interaction.Member != nil {
 			return NewMemberProvider(p.interaction.Member), nil
@@ -237,7 +240,7 @@ func (p UserProvider) GetPlaceholder(ctx context.Context, key string) (Provider,
 	case "banner_url":
 		return NewStringProvider(p.user.BannerURL()), nil
 	}
-	return nil, nil
+	return nil, ErrNotFound
 }
 
 func (p UserProvider) ResolvePlaceholder(ctx context.Context) (string, error) {
@@ -269,4 +272,50 @@ func (p MemberProvider) GetPlaceholder(ctx context.Context, key string) (Provide
 
 func (p MemberProvider) ResolvePlaceholder(ctx context.Context) (string, error) {
 	return p.member.User.ID.String(), nil
+}
+
+type ChannelProvider struct {
+	channelID discord.ChannelID
+}
+
+func NewChannelProvider(channelID discord.ChannelID) ChannelProvider {
+	return ChannelProvider{
+		channelID: channelID,
+	}
+}
+
+func (p ChannelProvider) GetPlaceholder(ctx context.Context, key string) (Provider, error) {
+	switch key {
+	case "id":
+		return NewStringProvider(p.channelID.String()), nil
+
+	}
+	return nil, ErrNotFound
+}
+
+func (p ChannelProvider) ResolvePlaceholder(ctx context.Context) (string, error) {
+	return p.channelID.String(), nil
+}
+
+type GuildProvider struct {
+	guildID discord.GuildID
+}
+
+func NewGuildProvider(guildID discord.GuildID) GuildProvider {
+	return GuildProvider{
+		guildID: guildID,
+	}
+}
+
+func (p GuildProvider) GetPlaceholder(ctx context.Context, key string) (Provider, error) {
+	switch key {
+	case "id":
+		return NewStringProvider(p.guildID.String()), nil
+
+	}
+	return nil, ErrNotFound
+}
+
+func (p GuildProvider) ResolvePlaceholder(ctx context.Context) (string, error) {
+	return p.guildID.String(), nil
 }

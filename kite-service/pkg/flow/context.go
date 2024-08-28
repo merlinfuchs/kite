@@ -149,4 +149,5 @@ type FlowContextNodeState struct {
 	ConditionBaseValue FlowString
 	ConditionItemMet   bool
 	Result             FlowValue
+	LoopExited         bool
 }

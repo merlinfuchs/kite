@@ -15,6 +15,10 @@ import { ReactNode, useState } from "react";
 
 const placeholderGroups = [
   {
+    label: "Command",
+    placeholders: ["interaction.command.args.[name]"],
+  },
+  {
     label: "User",
     placeholders: [
       "interaction.user.id",
@@ -27,8 +31,12 @@ const placeholderGroups = [
     ],
   },
   {
-    label: "Command",
-    placeholders: ["interaction.command.args.[name]"],
+    label: "Server",
+    placeholders: ["interaction.guild.id"],
+  },
+  {
+    label: "Channel",
+    placeholders: ["interaction.channel.id"],
   },
   {
     label: "Nodes",

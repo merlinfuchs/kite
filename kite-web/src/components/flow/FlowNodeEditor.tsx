@@ -945,6 +945,7 @@ function ControlLoopCountInput({ data, updateData, errors }: InputProps) {
         })
       }
       errors={errors}
+      placeholders
     />
   );
 }
@@ -962,6 +963,7 @@ function ControlSleepDurationInput({ data, updateData, errors }: InputProps) {
         })
       }
       errors={errors}
+      placeholders
     />
   );
 }

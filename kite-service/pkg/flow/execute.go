@@ -329,7 +329,11 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 
 		ctx.Log.CreateLogEntry(ctx, n.Data.LogLevel, logMessage.String())
 		return n.executeChildren(ctx)
-	case FlowNodeTypeControlConditionCompare:
+	case FlowNodeTypeControlConditionCompare,
+		FlowNodeTypeControlConditionUser,
+		FlowNodeTypeControlConditionChannel,
+		FlowNodeTypeControlConditionRole:
+
 		baseValue, err := n.Data.ConditionBaseValue.FillPlaceholders(ctx, ctx.Placeholders)
 		if err != nil {
 			return traceError(n, err)
@@ -338,6 +342,8 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 		nodeState.ConditionBaseValue = baseValue
 
 		var elseNode *CompiledFlowNode
+
+		fmt.Println(n.Type)
 
 		for _, child := range n.Children {
 			if child.Type == FlowNodeTypeControlConditionItemElse {
@@ -363,7 +369,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 
 		parentState := ctx.GetNodeState(parent.ID)
 
-		if parentState.ConditionItemMet && parent.Data.ConditionAllowMultiple {
+		if parentState.ConditionItemMet && !parent.Data.ConditionAllowMultiple {
 			// Another condition item has already been met
 			return nil
 		}
@@ -397,8 +403,53 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			parentState.ConditionItemMet = true
 			return n.executeChildren(ctx)
 		}
+	case FlowNodeTypeControlConditionItemUser,
+		FlowNodeTypeControlConditionItemChannel,
+		FlowNodeTypeControlConditionItemRole:
+		parent := n.FindDirectParentWithType(
+			FlowNodeTypeControlConditionUser,
+			FlowNodeTypeControlConditionChannel,
+			FlowNodeTypeControlConditionRole,
+		)
+		if parent == nil {
+			return nil
+		}
+
+		parentState := ctx.GetNodeState(parent.ID)
+
+		if parentState.ConditionItemMet && !parent.Data.ConditionAllowMultiple {
+			// Another condition item has already been met
+			return nil
+		}
+
+		itemValue, err := n.Data.ConditionItemValue.FillPlaceholders(ctx, ctx.Placeholders)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		baseValue := parentState.ConditionBaseValue
+
+		fmt.Println(baseValue, itemValue)
+
+		var conditionMet bool
+		switch n.Data.ConditionItemMode {
+		case ConditionItemModeEqual:
+			conditionMet = baseValue.Equals(&itemValue)
+		case ConditionItemModeNotEqual:
+			conditionMet = baseValue.Equals(&itemValue)
+		}
+
+		if conditionMet {
+			parentState.ConditionItemMet = true
+			return n.executeChildren(ctx)
+		}
 	case FlowNodeTypeControlConditionItemElse:
-		parent := n.FindDirectParentWithType(FlowNodeTypeControlConditionCompare)
+		parent := n.FindDirectParentWithType(
+			FlowNodeTypeControlConditionCompare,
+			FlowNodeTypeControlConditionUser,
+			FlowNodeTypeControlConditionChannel,
+			FlowNodeTypeControlConditionRole,
+		)
 		if parent == nil {
 			return nil
 		}
@@ -411,6 +462,38 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 		}
 
 		return n.executeChildren(ctx)
+	case FlowNodeTypeControlLoop:
+		loopCount, err := n.Data.LoopCount.FillPlaceholders(ctx, ctx.Placeholders)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		eachNode := n.FindDirectChildWithType(FlowNodeTypeControlLoopEach)
+		endNode := n.FindDirectChildWithType(FlowNodeTypeControlLoopEnd)
+
+		for i := 0; i < int(loopCount.Int()); i++ {
+			if nodeState.LoopExited {
+				break
+			}
+
+			if err := eachNode.Execute(ctx); err != nil {
+				return traceError(n, err)
+			}
+		}
+
+		if err := endNode.Execute(ctx); err != nil {
+			return traceError(n, err)
+		}
+	case FlowNodeTypeControlLoopEach:
+		return n.executeChildren(ctx)
+	case FlowNodeTypeControlLoopEnd:
+		return n.executeChildren(ctx)
+	case FlowNodeTypeControlLoopExit:
+		// Mark all parent loops as exited
+		parentLoops := n.FindAllParentsWithType(FlowNodeTypeControlLoop)
+		for _, loop := range parentLoops {
+			ctx.GetNodeState(loop.ID).LoopExited = true
+		}
 	case FlowNodeTypeControlSleep:
 		sleepSeconds, err := n.Data.SleepDurationSeconds.FillPlaceholders(ctx, ctx.Placeholders)
 		if err != nil {
