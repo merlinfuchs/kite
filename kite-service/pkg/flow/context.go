@@ -13,10 +13,10 @@ type FlowContext struct {
 	context.Context
 	FlowProviders
 	FlowContextLimits
+	FlowContextState
 
-	Data                    FlowContextData
-	Placeholders            *placeholder.Engine
-	nodePlaceholderProvider *nodePlaceholderProvider
+	Data         FlowContextData
+	Placeholders *placeholder.Engine
 }
 
 func NewContext(
@@ -34,16 +34,22 @@ func NewContext(
 		Variable: providers.Variable,
 	})
 
-	nodePlaceHolderProvider := &nodePlaceholderProvider{}
-	placeholders.AddProvider("nodes", nodePlaceHolderProvider)
+	state := FlowContextState{
+		NodeStates: make(map[string]*FlowContextNodeState),
+	}
+
+	flowStatePlaceHolderProvider := &flowStatePlaceholderProvider{
+		state: &state,
+	}
+	placeholders.AddProvider("nodes", flowStatePlaceHolderProvider)
 
 	return &FlowContext{
-		Context:                 ctx,
-		Data:                    data,
-		Placeholders:            placeholders,
-		nodePlaceholderProvider: nodePlaceHolderProvider,
-		FlowProviders:           providers,
-		FlowContextLimits:       limits,
+		Context:           ctx,
+		Data:              data,
+		Placeholders:      placeholders,
+		FlowProviders:     providers,
+		FlowContextLimits: limits,
+		FlowContextState:  state,
 	}
 }
 
@@ -123,4 +129,24 @@ func (c *FlowContext) startAction() error {
 		}
 	}
 	return nil
+}
+
+type FlowContextState struct {
+	NodeStates map[string]*FlowContextNodeState
+}
+
+func (c *FlowContextState) GetNodeState(nodeID string) *FlowContextNodeState {
+	state, ok := c.NodeStates[nodeID]
+	if !ok {
+		state = &FlowContextNodeState{}
+		c.NodeStates[nodeID] = state
+	}
+
+	return state
+}
+
+type FlowContextNodeState struct {
+	ConditionBaseValue FlowString
+	ConditionItemMet   bool
+	Result             FlowValue
 }

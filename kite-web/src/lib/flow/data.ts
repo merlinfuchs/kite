@@ -16,18 +16,6 @@ export type NodeProps = XYNodeProps<Node<NodeData>>;
 
 export type NodeType = Node<NodeData>;
 
-export const flowValueSchema = z
-  .object({
-    type: z.literal("string"),
-    value: z.string(),
-  })
-  .or(
-    z.object({
-      type: z.literal("number"),
-      value: z.number(),
-    })
-  );
-
 export const auditLogReasonSchema = z.string().max(512).optional();
 
 export const nodeBaseDataSchema = z.object({
@@ -113,12 +101,20 @@ export const nodeActionResponseDeleteDataSchema = nodeBaseDataSchema.extend({
 });
 
 export const nodeActionMessageCreateDataSchema = nodeBaseDataSchema.extend({
+  channel_target: z
+    .string()
+    .regex(numericRegex)
+    .or(z.string().regex(variableRegex)),
   message_data: z.object({
     content: z.string().max(2000).min(1),
   }),
 });
 
 export const nodeActionMessageEditDataSchema = nodeBaseDataSchema.extend({
+  channel_target: z
+    .string()
+    .regex(numericRegex)
+    .or(z.string().regex(variableRegex)),
   message_target: z
     .string()
     .regex(numericRegex)
@@ -129,6 +125,10 @@ export const nodeActionMessageEditDataSchema = nodeBaseDataSchema.extend({
 });
 
 export const nodeActionMessageDeleteDataSchema = nodeBaseDataSchema.extend({
+  channel_target: z
+    .string()
+    .regex(numericRegex)
+    .or(z.string().regex(variableRegex)),
   message_target: z
     .string()
     .regex(numericRegex)
@@ -141,7 +141,7 @@ export const nodeActionMemberBanDataSchema = nodeBaseDataSchema.extend({
     .string()
     .regex(numericRegex)
     .or(z.string().regex(variableRegex)),
-  member_ban_delete_message_duration: z.string().regex(numericRegex),
+  member_ban_delete_message_duration_seconds: z.string().regex(numericRegex),
   audit_log_reason: auditLogReasonSchema,
 });
 
@@ -158,78 +158,21 @@ export const nodeActionMemberTimeoutDataSchema = nodeBaseDataSchema.extend({
     .string()
     .regex(numericRegex)
     .or(z.string().regex(variableRegex)),
-  member_timeout_duration: z.string().regex(numericRegex),
+  member_timeout_duration_seconds: z.string().regex(numericRegex),
   audit_log_reason: auditLogReasonSchema,
 });
 
-export const nodeActionChannelCreateDataSchema = nodeBaseDataSchema.extend({
-  channel_data: z.object({
-    name: z.string(),
-  }),
-  audit_log_reason: auditLogReasonSchema,
-});
-
-export const nodeActionChannelEditDataSchema = nodeBaseDataSchema.extend({
-  channel_target: z
+export const nodeActionMemberEditDataSchema = nodeBaseDataSchema.extend({
+  member_target: z
     .string()
     .regex(numericRegex)
     .or(z.string().regex(variableRegex)),
-  channel_data: z.object({
-    name: z.string(),
-  }),
-  audit_log_reason: auditLogReasonSchema,
-});
-
-export const nodeActionChannelDeleteDataSchema = nodeBaseDataSchema.extend({
-  channel_target: z
+  member_nick: z
     .string()
-    .regex(numericRegex)
-    .or(z.string().regex(variableRegex)),
-  audit_log_reason: auditLogReasonSchema,
-});
-
-export const nodeActionThreadCreateDataSchema = nodeBaseDataSchema.extend({
-  message_target: z
-    .string()
-    .regex(numericRegex)
+    .max(32)
     .or(z.string().regex(variableRegex))
     .optional(),
   audit_log_reason: auditLogReasonSchema,
-});
-
-export const nodeActionRoleCreateDataSchema = nodeBaseDataSchema.extend({
-  role_data: z.object({
-    name: z.string(),
-  }),
-  audit_log_reason: auditLogReasonSchema,
-});
-
-export const nodeActionRoleEditDataSchema = nodeBaseDataSchema.extend({
-  role_target: z
-    .string()
-    .regex(numericRegex)
-    .or(z.string().regex(variableRegex)),
-  role_data: z.object({
-    name: z.string(),
-  }),
-  audit_log_reason: auditLogReasonSchema,
-});
-
-export const nodeActionRoleDeleteDataSchema = nodeBaseDataSchema.extend({
-  role_target: z
-    .string()
-    .regex(numericRegex)
-    .or(z.string().regex(variableRegex)),
-  audit_log_reason: auditLogReasonSchema,
-});
-
-export const nodeActionVariableSetDataSchema = nodeBaseDataSchema.extend({
-  variable_name: z.string(),
-  variable_value: flowValueSchema,
-});
-
-export const nodeActionVariableDeleteDataSchema = nodeBaseDataSchema.extend({
-  variable_name: z.string(),
 });
 
 export const nodeActionHttpRequestDataSchema = nodeBaseDataSchema.extend({
@@ -254,12 +197,12 @@ export const nodeActionLogDataSchema = nodeBaseDataSchema.extend({
 });
 
 export const nodeConditionCompareDataSchema = nodeBaseDataSchema.extend({
-  condition_base_value: flowValueSchema,
+  condition_base_value: z.string(),
   condition_allow_multiple: z.boolean().optional(),
 });
 
 export const nodeConditionItemCompareDataSchema = nodeBaseDataSchema.extend({
-  condition_item_value: flowValueSchema,
+  condition_item_value: z.string().optional(),
   condition_item_mode: z
     .literal("equal")
     .or(z.literal("not_equal"))
@@ -272,6 +215,13 @@ export const nodeConditionItemCompareDataSchema = nodeBaseDataSchema.extend({
 
 export const nodeControlLoopDataSchema = nodeBaseDataSchema.extend({
   loop_count: z
+    .string()
+    .regex(numericRegex)
+    .or(z.string().regex(variableRegex)),
+});
+
+export const nodeControlSleepDataSchema = nodeBaseDataSchema.extend({
+  sleep_duration_seconds: z
     .string()
     .regex(numericRegex)
     .or(z.string().regex(variableRegex)),

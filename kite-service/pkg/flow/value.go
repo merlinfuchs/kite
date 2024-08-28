@@ -208,14 +208,13 @@ func (v FlowString) ContainsPlaceholder() bool {
 	return placeholder.ContainsPlaceholder(string(v))
 }
 
-func (v *FlowString) FillPlaceholders(ctx context.Context, t *placeholder.Engine) error {
+func (v *FlowString) FillPlaceholders(ctx context.Context, t *placeholder.Engine) (FlowString, error) {
 	res, err := t.Fill(ctx, v.String())
 	if err != nil {
-		return fmt.Errorf("failed to fill placeholders: %w", err)
+		return "", fmt.Errorf("failed to fill placeholders: %w", err)
 	}
 
-	*v = FlowString(res)
-	return nil
+	return FlowString(res), nil
 }
 
 func (v FlowString) Number() float64 {

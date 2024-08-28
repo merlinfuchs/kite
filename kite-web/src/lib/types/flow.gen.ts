@@ -86,8 +86,9 @@ export interface FlowNodeData {
    * Member Ban, Kick, Timeout
    */
   member_target?: FlowString;
-  member_ban_delete_message_duration?: FlowString;
-  member_timeout_duration?: FlowString;
+  member_ban_delete_message_duration_seconds?: FlowString;
+  member_timeout_duration_seconds?: FlowString;
+  member_nick?: FlowString;
   /**
    * Channel Create, Edit, Delete
    */
@@ -132,6 +133,10 @@ export interface FlowNodeData {
    * Loop
    */
   loop_count?: FlowString;
+  /**
+   * Sleep
+   */
+  sleep_duration_seconds?: FlowString;
 }
 export type LogLevel = string;
 export const LogLevelDebug: LogLevel = "debug";

@@ -25,33 +25,41 @@ func (p *variablePlaceholderProvider) ResolvePlaceholder(ctx context.Context) (s
 	return "", nil
 }
 
-type nodePlaceholderProvider struct {
-	node *CompiledFlowNode
+type flowStatePlaceholderProvider struct {
+	state *FlowContextState
 }
 
-func (p *nodePlaceholderProvider) setNode(node *CompiledFlowNode) {
-	p.node = node
+func (p *flowStatePlaceholderProvider) GetPlaceholder(ctx context.Context, key string) (placeholder.Provider, error) {
+	state := p.state.GetNodeState(key)
+	if state == nil {
+		return nil, placeholder.ErrNotFound
+	}
+
+	return &flowNodeStatePlaceholderProvider{
+		state: state,
+	}, nil
 }
 
-func (p *nodePlaceholderProvider) GetPlaceholder(ctx context.Context, key string) (placeholder.Provider, error) {
+func (p *flowStatePlaceholderProvider) ResolvePlaceholder(ctx context.Context) (string, error) {
+	return "", nil
+}
+
+type flowNodeStatePlaceholderProvider struct {
+	state *FlowContextNodeState
+}
+
+func (p *flowNodeStatePlaceholderProvider) GetPlaceholder(ctx context.Context, key string) (placeholder.Provider, error) {
 	if key == "result" {
-		res := p.node.State.Result
+		res := p.state.Result
 		if res.IsNull() {
 			return nil, placeholder.ErrNotFound
 		}
 		return res, nil
 	}
 
-	node := p.node.FindParentWithID(key)
-	if node == nil {
-		return nil, placeholder.ErrNotFound
-	}
-
-	return &nodePlaceholderProvider{
-		node: node,
-	}, nil
+	return nil, placeholder.ErrNotFound
 }
 
-func (p *nodePlaceholderProvider) ResolvePlaceholder(ctx context.Context) (string, error) {
+func (p *flowNodeStatePlaceholderProvider) ResolvePlaceholder(ctx context.Context) (string, error) {
 	return "", nil
 }

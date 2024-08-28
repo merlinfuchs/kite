@@ -11,6 +11,7 @@ const (
 	FlowNodeErrorMaxOperationsReached    FlowNodeErrorCode = "max_operations_reached"
 	FlowNodeErrorMaxActionsReached       FlowNodeErrorCode = "max_actions_reached"
 	FlowNodeErrorMaxExecutionTimeReached FlowNodeErrorCode = "max_execution_time_reached"
+	FlowNodeErrorTimeout                 FlowNodeErrorCode = "timeout"
 )
 
 type FlowError struct {

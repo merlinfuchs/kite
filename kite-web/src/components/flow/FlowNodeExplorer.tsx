@@ -42,33 +42,9 @@ const nodeCategories = {
         "action_member_ban",
         "action_member_kick",
         "action_member_timeout",
+        "action_member_edit",
       ],
     },
-    {
-      title: "Channels",
-      nodeTypes: [
-        "action_channel_create",
-        "action_channel_edit",
-        "action_channel_delete",
-        "action_thread_create",
-      ],
-    },
-    {
-      title: "Roles",
-      nodeTypes: [
-        "action_role_create",
-        "action_role_edit",
-        "action_role_delete",
-      ],
-    },
-    /* {
-      title: "Variables",
-      nodeTypes: ["action_variable_set", "action_variable_delete"],
-    }, */
-    /* {
-      title: "Key Value Store",
-      nodeTypes: [],
-    }, */
     {
       title: "Other Actions",
       nodeTypes: ["action_http_request", "action_log"],
@@ -87,6 +63,10 @@ const nodeCategories = {
     {
       title: "Loops",
       nodeTypes: ["control_loop", "control_loop_exit"],
+    },
+    {
+      title: "Others",
+      nodeTypes: ["control_sleep"],
     },
   ],
 };

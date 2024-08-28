@@ -62,13 +62,13 @@ const intputs: Record<string, any> = {
   channel_target: ChannelTargetInput,
   role_data: RoleDataInput,
   role_target: RoleTargetInput,
-  variable_name: VariableNameInput,
-  variable_value: VariableValueInput,
   http_request_data: HttpRequestDataInput,
   audit_log_reason: AuditLogReasonInput,
   member_target: MemberTargetInput,
-  member_ban_delete_message_duration: MemberBanDeleteMessageDurationInput,
-  member_timeout_duration: MemberTimeoutDurationInput,
+  member_ban_delete_message_duration_seconds:
+    MemberBanDeleteMessageDurationInput,
+  member_timeout_duration_seconds: MemberTimeoutDurationInput,
+  member_nick: MemberNickInput,
   log_level: LogLevelInput,
   log_message: LogMessageInput,
   condition_compare_base_value: ConditionCompareBaseValueInput,
@@ -85,6 +85,7 @@ const intputs: Record<string, any> = {
   condition_item_role_value: ConditionItemRoleValueInput,
   condition_allow_multiple: ConditionAllowMultipleInput,
   loop_count: ControlLoopCountInput,
+  sleep_duration_seconds: ControlSleepDurationInput,
 };
 
 export default function FlowNodeEditor({ nodeId }: Props) {
@@ -504,9 +505,11 @@ function MemberBanDeleteMessageDurationInput({
         { value: "259200", label: "3 Days" },
         { value: "604800", label: "1 Week" },
       ]}
-      value={data.member_ban_delete_message_duration || ""}
+      value={data.member_ban_delete_message_duration_seconds || ""}
       updateValue={(v) =>
-        updateData({ member_ban_delete_message_duration: v || undefined })
+        updateData({
+          member_ban_delete_message_duration_seconds: v || undefined,
+        })
       }
       errors={errors}
     />
@@ -517,7 +520,7 @@ function MemberTimeoutDurationInput({ data, updateData, errors }: InputProps) {
   return (
     <BaseInput
       type="select"
-      field="member_timeout_duration"
+      field="member_timeout_duration_seconds"
       title="Timeout Duration"
       options={[
         { value: "60", label: "1 Minute" },
@@ -536,10 +539,24 @@ function MemberTimeoutDurationInput({ data, updateData, errors }: InputProps) {
         { value: "1209600", label: "2 Weeks" },
         { value: "2419200", label: "1 Month" },
       ]}
-      value={data.member_timeout_duration || ""}
+      value={data.member_timeout_duration_seconds || ""}
       updateValue={(v) =>
-        updateData({ member_timeout_duration: v || undefined })
+        updateData({ member_timeout_duration_seconds: v || undefined })
       }
+      errors={errors}
+      placeholders
+    />
+  );
+}
+
+function MemberNickInput({ data, updateData, errors }: InputProps) {
+  return (
+    <BaseInput
+      type="text"
+      field="member_nick"
+      title="Member Nickname"
+      value={data.member_nick || ""}
+      updateValue={(v) => updateData({ member_nick: v || undefined })}
       errors={errors}
       placeholders
     />
@@ -660,35 +677,6 @@ function RoleTargetInput({ data, updateData, errors }: InputProps) {
       updateValue={(v) => updateData({ role_target: v || undefined })}
       errors={errors}
       placeholders
-    />
-  );
-}
-
-function VariableNameInput({ data, updateData, errors }: InputProps) {
-  return (
-    <BaseInput
-      type="text"
-      field="variable_name"
-      title="Variable Name"
-      value={data.variable_name || ""}
-      updateValue={(v) => updateData({ variable_name: v || undefined })}
-      errors={errors}
-    />
-  );
-}
-
-function VariableValueInput({ data, updateData, errors }: InputProps) {
-  return (
-    <BaseInput
-      field="variable_value"
-      title="Variable Value"
-      value={data.variable_value || ""}
-      updateValue={(v) =>
-        updateData({
-          variable_value: v || undefined,
-        })
-      }
-      errors={errors}
     />
   );
 }
@@ -952,6 +940,23 @@ function ControlLoopCountInput({ data, updateData, errors }: InputProps) {
       updateValue={(v) =>
         updateData({
           loop_count: v || undefined,
+        })
+      }
+      errors={errors}
+    />
+  );
+}
+
+function ControlSleepDurationInput({ data, updateData, errors }: InputProps) {
+  return (
+    <BaseInput
+      field="sleep_duration_seconds"
+      title="Sleep Duration"
+      description="The number of seconds to sleep for."
+      value={data.sleep_duration_seconds || ""}
+      updateValue={(v) =>
+        updateData({
+          sleep_duration_seconds: v || undefined,
         })
       }
       errors={errors}

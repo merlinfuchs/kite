@@ -55,7 +55,6 @@ type CompiledFlowNode struct {
 	ID       string
 	Type     FlowNodeType
 	Data     FlowNodeData
-	State    CompiledFlowNodeState
 	Parents  []*CompiledFlowNode
 	Children []*CompiledFlowNode
 }
@@ -218,10 +217,4 @@ func (n *CompiledFlowNode) FindParentWithID(id string) *CompiledFlowNode {
 	}
 
 	return nil
-}
-
-type CompiledFlowNodeState struct {
-	// ConditionItemMet is used to track if one of the child condition items has been met
-	ConditionItemMet bool
-	Result           FlowValue
 }

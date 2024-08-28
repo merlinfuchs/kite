@@ -41,15 +41,7 @@ const (
 	FlowNodeTypeActionMemberBan      FlowNodeType = "action_member_ban"
 	FlowNodeTypeActionMemberKick     FlowNodeType = "action_member_kick"
 	FlowNodeTypeActionMemberTimeout  FlowNodeType = "action_member_timeout"
-	FlowNodeTypeActionChannelCreate  FlowNodeType = "action_channel_create"
-	FlowNodeTypeActionChannelEdit    FlowNodeType = "action_channel_edit"
-	FlowNodeTypeActionChannelDelete  FlowNodeType = "action_channel_delete"
-	FlowNodeTypeActionThreadCreate   FlowNodeType = "action_thread_create"
-	FlowNodeTypeActionRoleCreate     FlowNodeType = "action_role_create"
-	FlowNodeTypeActionRoleEdit       FlowNodeType = "action_role_edit"
-	FlowNodeTypeActionRoleDelete     FlowNodeType = "action_role_delete"
-	FlowNodeTypeActionVariableSet    FlowNodeType = "action_variable_set"
-	FlowNodeTypeActionVariableDelete FlowNodeType = "action_variable_delete"
+	FlowNodeTypeActionMemberEdit     FlowNodeType = "action_member_edit"
 	FlowNodeTypeActionHTTPRequest    FlowNodeType = "action_http_request"
 	FlowNodeTypeActionLog            FlowNodeType = "action_log"
 
@@ -66,6 +58,7 @@ const (
 	FlowNodeTypeControlLoopEach             FlowNodeType = "control_loop_each"
 	FlowNodeTypeControlLoopEnd              FlowNodeType = "control_loop_end"
 	FlowNodeTypeControlLoopExit             FlowNodeType = "control_loop_exit"
+	FlowNodeTypeControlSleep                FlowNodeType = "control_sleep"
 )
 
 type FlowNode struct {
@@ -112,9 +105,10 @@ type FlowNodeData struct {
 	MessageEphemeral  bool                `json:"message_ephemeral,omitempty"`
 
 	// Member Ban, Kick, Timeout
-	MemberTarget                   FlowString `json:"member_target,omitempty"`
-	MemberBanDeleteMessageDuration FlowString `json:"member_ban_delete_message_duration,omitempty"`
-	MemberTimeoutDuration          FlowString `json:"member_timeout_duration,omitempty"`
+	MemberTarget                          FlowString `json:"member_target,omitempty"`
+	MemberBanDeleteMessageDurationSeconds FlowString `json:"member_ban_delete_message_duration_seconds,omitempty"`
+	MemberTimeoutDurationSeconds          FlowString `json:"member_timeout_duration_seconds,omitempty"`
+	MemberNick                            FlowString `json:"member_nick,omitempty"`
 
 	// Channel Create, Edit, Delete
 	ChannelTarget FlowString            `json:"channel_target,omitempty"`
@@ -149,6 +143,8 @@ type FlowNodeData struct {
 	ConditionItemValue     FlowString        `json:"condition_item_value,omitempty"`
 	// Loop
 	LoopCount FlowString `json:"loop_count,omitempty"`
+	// Sleep
+	SleepDurationSeconds FlowString `json:"sleep_duration_seconds,omitempty"`
 }
 
 func (d FlowNodeData) Validate(nodeType FlowNodeType) error {

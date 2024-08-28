@@ -14,6 +14,7 @@ import FlowNodeControlLoopEnd from "@/components/flow/FlowNodeControlLoopEnd";
 import FlowNodeControlLoopExit from "@/components/flow/FlowNodeControlLoopExit";
 import FlowNodeConditionChannel from "@/components/flow/FlowNodeConditionChannel";
 import FlowNodeConditionRole from "@/components/flow/FlowNodeConditionRole";
+import FlowNodeControlSleep from "@/components/flow/FlowNodeControlSleep";
 
 export const nodeTypes = {
   entry_command: FlowNodeEntryCommand,
@@ -33,15 +34,7 @@ export const nodeTypes = {
   action_member_ban: FlowNodeActionBase,
   action_member_kick: FlowNodeActionBase,
   action_member_timeout: FlowNodeActionBase,
-  action_channel_create: FlowNodeActionBase,
-  action_channel_edit: FlowNodeActionBase,
-  action_channel_delete: FlowNodeActionBase,
-  action_thread_create: FlowNodeActionBase,
-  action_role_create: FlowNodeActionBase,
-  action_role_edit: FlowNodeActionBase,
-  action_role_delete: FlowNodeActionBase,
-  action_variable_set: FlowNodeActionBase,
-  action_variable_delete: FlowNodeActionBase,
+  action_member_edit: FlowNodeActionBase,
   action_http_request: FlowNodeActionBase,
   action_log: FlowNodeActionBase,
 
@@ -58,6 +51,7 @@ export const nodeTypes = {
   control_loop_each: FlowNodeControlLoopEach,
   control_loop_end: FlowNodeControlLoopEnd,
   control_loop_exit: FlowNodeControlLoopExit,
+  control_sleep: FlowNodeControlSleep,
 };
 
 export const edgeTypes = {

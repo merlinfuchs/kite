@@ -110,7 +110,7 @@ func (a *App) HandleEvent(appID string, session *state.State, event gateway.Even
 		case *discord.CommandInteraction:
 			for _, command := range a.commands {
 				if command.cmd.Name == d.Name {
-					command.HandleEvent(appID, session, event)
+					go command.HandleEvent(appID, session, event)
 				}
 			}
 		}
