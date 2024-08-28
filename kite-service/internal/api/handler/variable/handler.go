@@ -60,7 +60,7 @@ func (h *VariableHandler) HandleVariableCreate(c *handler.Context, req wire.Vari
 		ID:        util.UniqueID(),
 		Name:      req.Name,
 		Type:      req.Type,
-		Scope:     req.Scope,
+		Scope:     model.VariableScope(req.Scope),
 		AppID:     c.App.ID,
 		CreatedAt: time.Now().UTC(),
 		UpdatedAt: time.Now().UTC(),
@@ -73,7 +73,7 @@ func (h *VariableHandler) HandleVariableCreate(c *handler.Context, req wire.Vari
 }
 
 func (h *VariableHandler) HandleVariableUpdate(c *handler.Context, req wire.VariableUpdateRequest) (*wire.VariableUpdateResponse, error) {
-	if req.Scope != c.Variabe.Scope || req.Type != c.Variabe.Type {
+	if req.Scope != string(c.Variabe.Scope) || req.Type != c.Variabe.Type {
 		// If the scope or type changes, we have to delete all variable values
 		err := h.variableValueStore.DeleteAllVariableValues(c.Context(), c.Variabe.ID)
 		if err != nil {
@@ -85,7 +85,7 @@ func (h *VariableHandler) HandleVariableUpdate(c *handler.Context, req wire.Vari
 		ID:        c.Variabe.ID,
 		Name:      req.Name,
 		Type:      req.Type,
-		Scope:     req.Scope,
+		Scope:     model.VariableScope(req.Scope),
 		AppID:     c.App.ID,
 		UpdatedAt: time.Now().UTC(),
 	})

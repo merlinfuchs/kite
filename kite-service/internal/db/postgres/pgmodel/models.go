@@ -51,6 +51,18 @@ type Log struct {
 	CreatedAt pgtype.Timestamp
 }
 
+type MessageTemplate struct {
+	ID          string
+	Name        string
+	Description pgtype.Text
+	Data        []byte
+	FlowSources []byte
+	AppID       string
+	ModuleID    pgtype.Text
+	CreatedAt   pgtype.Timestamp
+	UpdatedAt   pgtype.Timestamp
+}
+
 type Module struct {
 	ID            string
 	Name          string

@@ -148,12 +148,7 @@ export const nodeTypes: Record<string, NodeValues> = {
     defaultTitle: "Create channel message",
     defaultDescription: "Bot sends a message to a channel",
     dataSchema: nodeActionMessageCreateDataSchema,
-    dataFields: [
-      "message_template_id",
-      "message_data",
-      "result_variable_name",
-      "custom_label",
-    ],
+    dataFields: ["message_template_id", "message_data", "custom_label"],
   },
   action_message_edit: {
     color: actionColor,
@@ -165,7 +160,6 @@ export const nodeTypes: Record<string, NodeValues> = {
       "message_target",
       "message_template_id",
       "message_data",
-      "result_variable_name",
       "custom_label",
     ],
   },

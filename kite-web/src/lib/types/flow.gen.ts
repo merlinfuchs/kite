@@ -61,8 +61,7 @@ export interface FlowNodeData {
   name?: string;
   description?: string;
   custom_label?: string;
-  result_variable_name?: string;
-  audit_log_reason?: string;
+  audit_log_reason?: FlowString;
   /**
    * Command Argument
    */
@@ -79,31 +78,31 @@ export interface FlowNodeData {
   /**
    * Message & Response Create, edit, Delete
    */
-  message_target?: string;
+  message_target?: FlowString;
   message_data?: any /* api.SendMessageData */;
   message_template_id?: string;
   message_ephemeral?: boolean;
   /**
    * Member Ban, Kick, Timeout
    */
-  member_target?: string;
-  member_ban_delete_message_duration?: string;
-  member_timeout_duration?: string;
+  member_target?: FlowString;
+  member_ban_delete_message_duration?: FlowString;
+  member_timeout_duration?: FlowString;
   /**
    * Channel Create, Edit, Delete
    */
-  channel_target?: string;
+  channel_target?: FlowString;
   channel_data?: any /* api.CreateChannelData */;
   /**
    * Role Create, Edit, Delete
    */
-  role_target?: string;
+  role_target?: FlowString;
   role_data?: any /* api.CreateRoleData */;
   /**
    * Variable Set, Delete
    */
   variable_name?: string;
-  variable_value?: FlowValue;
+  variable_value?: FlowString;
   /**
    * HTTP Request
    */
@@ -121,18 +120,18 @@ export interface FlowNodeData {
    * Log
    */
   log_level?: LogLevel;
-  log_message?: string;
+  log_message?: FlowString;
   /**
    * Condition
    */
-  condition_base_value?: FlowValue;
+  condition_base_value?: FlowString;
   condition_allow_multiple?: boolean;
   condition_item_mode?: ConditionItemType;
-  condition_item_value?: FlowValue;
+  condition_item_value?: FlowString;
   /**
    * Loop
    */
-  loop_count?: string;
+  loop_count?: FlowString;
 }
 export type LogLevel = string;
 export const LogLevelDebug: LogLevel = "debug";
@@ -179,6 +178,10 @@ export interface FlowEdge {
 }
 
 //////////
+// source: placeholder.go
+
+
+//////////
 // source: provider_mock.go
 
 export interface MockDiscordProvider {
@@ -197,15 +200,14 @@ export const FlowValueTypeString: FlowValueType = "string";
 export const FlowValueTypeNumber: FlowValueType = "number";
 export const FlowValueTypeArray: FlowValueType = "array";
 export const FlowValueTypeMessage: FlowValueType = "message";
+/**
+ * TODO: do we need this or can we just have all values be strings?
+ */
 export interface FlowValue {
   type: FlowValueType;
   value: any;
 }
-
-//////////
-// source: variable.go
-
-export interface FlowContextVariables {
-  TemplateContext?: any /* template.TemplateContext */;
-  Variables: { [key: string]: FlowValue};
-}
+/**
+ * FlowString is a string that can contain placeholders.
+ */
+export type FlowString = string;

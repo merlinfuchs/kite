@@ -8,7 +8,7 @@ import (
 	"github.com/diamondburned/arikawa/v3/api"
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/gateway"
-	"github.com/kitecloud/kite/kite-service/pkg/template"
+	"github.com/kitecloud/kite/kite-service/pkg/placeholder"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -25,7 +25,7 @@ var flowCommandTest = CompiledFlowNode{
 			ID:   "1",
 			Type: FlowNodeTypeControlConditionCompare,
 			Data: FlowNodeData{
-				ConditionBaseValue: FlowValueNull,
+				ConditionBaseValue: "null",
 			},
 			Children: []*CompiledFlowNode{
 				{
@@ -33,7 +33,7 @@ var flowCommandTest = CompiledFlowNode{
 					Type: FlowNodeTypeControlConditionItemCompare,
 					Data: FlowNodeData{
 						ConditionItemMode:  ConditionItemModeEqual,
-						ConditionItemValue: FlowValueNull,
+						ConditionItemValue: "null",
 					},
 					Children: []*CompiledFlowNode{
 						{
@@ -69,7 +69,7 @@ func TestFlowExecuteCommand(t *testing.T) {
 			MaxOperations: 1000,
 			MaxActions:    1,
 		},
-		template.NewContext("", 0),
+		placeholder.NewEngine(),
 	)
 
 	err := flowCommandTest.Execute(c)

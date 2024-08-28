@@ -2,7 +2,6 @@ package flow
 
 import (
 	"fmt"
-	"strconv"
 
 	"github.com/diamondburned/arikawa/v3/api"
 	"github.com/diamondburned/arikawa/v3/discord"
@@ -20,6 +19,9 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			return traceError(n, err)
 		}
 	}
+
+	// Make node data available to placeholders
+	ctx.nodePlaceholderProvider.setNode(n)
 
 	switch n.Type {
 	case FlowNodeTypeEntryCommand:
@@ -42,7 +44,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			flags |= discord.EphemeralMessage
 		}
 
-		content, err := ctx.Variables.ParseAndExecute(data.Content)
+		content, err := ctx.Placeholders.Fill(ctx, data.Content)
 		if err != nil {
 			return traceError(n, err)
 		}
@@ -70,7 +72,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 
 		data := n.Data.MessageData
 
-		content, err := ctx.Variables.ParseAndExecute(data.Content)
+		content, err := ctx.Placeholders.Fill(ctx, data.Content)
 		if err != nil {
 			return traceError(n, err)
 		}
@@ -102,21 +104,14 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			return traceError(n, err)
 		}
 
-		if n.Data.ResultVariableName != "" {
-			ctx.Variables.SetVariable(n.Data.ResultVariableName, FlowValue{
-				Type:  FlowValueTypeMessage,
-				Value: *msg,
-			})
-		}
-
+		n.State.Result = NewFlowValueMessage(*msg)
 		return n.executeChildren(ctx)
 	case FlowNodeTypeActionMessageEdit:
-		messageTarget, err := ctx.Variables.ParseAndExecute(n.Data.MessageTarget)
-		if err != nil {
+		if err := n.Data.MessageTarget.FillPlaceholders(ctx, ctx.Placeholders); err != nil {
 			return traceError(n, err)
 		}
 
-		messageID, _ := strconv.ParseInt(messageTarget, 10, 64)
+		messageID := n.Data.MessageTarget.Number()
 
 		msg, err := ctx.Discord.EditMessage(
 			ctx,
@@ -131,23 +126,16 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			return traceError(n, err)
 		}
 
-		if n.Data.ResultVariableName != "" {
-			ctx.Variables.SetVariable(n.Data.ResultVariableName, FlowValue{
-				Type:  FlowValueTypeMessage,
-				Value: *msg,
-			})
-		}
-
+		n.State.Result = NewFlowValueMessage(*msg)
 		return n.executeChildren(ctx)
 	case FlowNodeTypeActionMessageDelete:
-		messageTarget, err := ctx.Variables.ParseAndExecute(n.Data.MessageTarget)
-		if err != nil {
+		if err := n.Data.MessageTarget.FillPlaceholders(ctx, ctx.Placeholders); err != nil {
 			return traceError(n, err)
 		}
 
-		messageID, _ := strconv.ParseInt(messageTarget, 10, 64)
+		messageID := n.Data.MessageTarget.Number()
 
-		err = ctx.Discord.DeleteMessage(
+		err := ctx.Discord.DeleteMessage(
 			ctx,
 			ctx.Data.ChannelID(),
 			discord.MessageID(messageID),
@@ -158,27 +146,29 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 
 		return n.executeChildren(ctx)
 	case FlowNodeTypeActionMemberBan:
-		memberTarget, err := ctx.Variables.ParseAndExecute(n.Data.MemberTarget)
-		if err != nil {
+		if err := n.Data.MemberTarget.FillPlaceholders(ctx, ctx.Placeholders); err != nil {
 			return traceError(n, err)
 		}
 
-		memberID, _ := strconv.ParseInt(memberTarget, 10, 64)
+		memberID := n.Data.MemberTarget.Number()
 
-		rawDeleteSeconds, err := ctx.Variables.ParseAndExecute(n.Data.MemberBanDeleteMessageDuration)
-		if err != nil {
+		if err := n.Data.MemberBanDeleteMessageDuration.FillPlaceholders(ctx, ctx.Placeholders); err != nil {
 			return traceError(n, err)
 		}
 
-		deleteSeconds, _ := strconv.Atoi(rawDeleteSeconds)
+		deleteSeconds := n.Data.MemberBanDeleteMessageDuration.Number()
 
-		err = ctx.Discord.BanMember(
+		if err := n.Data.AuditLogReason.FillPlaceholders(ctx, ctx.Placeholders); err != nil {
+			return traceError(n, err)
+		}
+
+		err := ctx.Discord.BanMember(
 			ctx,
 			ctx.Data.GuildID(),
 			discord.UserID(memberID),
 			api.BanData{
 				DeleteDays:     option.NewUint(uint(deleteSeconds / 86400)),
-				AuditLogReason: api.AuditLogReason(n.Data.AuditLogReason),
+				AuditLogReason: api.AuditLogReason(n.Data.AuditLogReason.String()),
 			},
 		)
 		if err != nil {
@@ -187,18 +177,21 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 
 		return n.executeChildren(ctx)
 	case FlowNodeTypeActionMemberKick:
-		memberTarget, err := ctx.Variables.ParseAndExecute(n.Data.MemberTarget)
-		if err != nil {
+		if err := n.Data.AuditLogReason.FillPlaceholders(ctx, ctx.Placeholders); err != nil {
 			return traceError(n, err)
 		}
 
-		memberID, _ := strconv.ParseInt(memberTarget, 10, 64)
+		memberID := n.Data.MemberTarget.Number()
 
-		err = ctx.Discord.KickMember(
+		if err := n.Data.AuditLogReason.FillPlaceholders(ctx, ctx.Placeholders); err != nil {
+			return traceError(n, err)
+		}
+
+		err := ctx.Discord.KickMember(
 			ctx,
 			ctx.Data.GuildID(),
 			discord.UserID(memberID),
-			n.Data.AuditLogReason,
+			n.Data.AuditLogReason.String(),
 		)
 		if err != nil {
 			return traceError(n, err)
@@ -209,14 +202,17 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 	// TODO: implement other action types
 
 	case FlowNodeTypeActionLog:
-		ctx.Log.CreateLogEntry(ctx, n.Data.LogLevel, n.Data.LogMessage)
-		return n.executeChildren(ctx)
-	case FlowNodeTypeControlConditionCompare:
-		if err := n.Data.ConditionBaseValue.ResolveVariables(ctx.Variables); err != nil {
+		err := n.Data.LogMessage.FillPlaceholders(ctx, ctx.Placeholders)
+		if err != nil {
 			return traceError(n, err)
 		}
 
-		ctx.Tempories.InitCondition(n.Data.ConditionBaseValue, n.Data.ConditionAllowMultiple)
+		ctx.Log.CreateLogEntry(ctx, n.Data.LogLevel, n.Data.LogMessage.String())
+		return n.executeChildren(ctx)
+	case FlowNodeTypeControlConditionCompare:
+		if err := n.Data.ConditionBaseValue.FillPlaceholders(ctx, ctx.Placeholders); err != nil {
+			return traceError(n, err)
+		}
 
 		var elseNode *CompiledFlowNode
 
@@ -237,39 +233,51 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			}
 		}
 	case FlowNodeTypeControlConditionItemCompare:
-		if ctx.Tempories.ConditionItemMet && !ctx.Tempories.ConditionAllowMultiple {
+		parent := n.FindDirectParentWithType(FlowNodeTypeControlConditionCompare)
+		if parent == nil {
+			return nil
+		}
+
+		if parent.State.ConditionItemMet && parent.Data.ConditionAllowMultiple {
 			// Another condition item has already been met
 			return nil
 		}
 
-		if err := n.Data.ConditionItemValue.ResolveVariables(ctx.Variables); err != nil {
+		if err := n.Data.ConditionItemValue.FillPlaceholders(ctx, ctx.Placeholders); err != nil {
 			return traceError(n, err)
 		}
+
+		baseValue := parent.Data.ConditionBaseValue
 
 		var conditionMet bool
 		switch n.Data.ConditionItemMode {
 		case ConditionItemModeEqual:
-			conditionMet = ctx.Tempories.ConditionBaseValue.Equals(&n.Data.ConditionItemValue)
+			conditionMet = baseValue.Equals(&n.Data.ConditionItemValue)
 		case ConditionItemModeNotEqual:
-			conditionMet = ctx.Tempories.ConditionBaseValue.Equals(&n.Data.ConditionItemValue)
+			conditionMet = baseValue.Equals(&n.Data.ConditionItemValue)
 		case ConditionItemModeGreaterThan:
-			conditionMet = ctx.Tempories.ConditionBaseValue.GreaterThan(&n.Data.ConditionItemValue)
+			conditionMet = baseValue.GreaterThan(&n.Data.ConditionItemValue)
 		case ConditionItemModeGreaterThanOrEqual:
-			conditionMet = ctx.Tempories.ConditionBaseValue.GreaterThanOrEqual(&n.Data.ConditionItemValue)
+			conditionMet = baseValue.GreaterThanOrEqual(&n.Data.ConditionItemValue)
 		case ConditionItemModeLessThan:
-			conditionMet = ctx.Tempories.ConditionBaseValue.LessThan(&n.Data.ConditionItemValue)
+			conditionMet = baseValue.LessThan(&n.Data.ConditionItemValue)
 		case ConditionItemModeLessThanOrEqual:
-			conditionMet = ctx.Tempories.ConditionBaseValue.LessThanOrEqual(&n.Data.ConditionItemValue)
+			conditionMet = baseValue.LessThanOrEqual(&n.Data.ConditionItemValue)
 		case ConditionItemModeContains:
-			conditionMet = ctx.Tempories.ConditionBaseValue.Contains(&n.Data.ConditionItemValue)
+			conditionMet = baseValue.Contains(&n.Data.ConditionItemValue)
 		}
 
 		if conditionMet {
-			ctx.Tempories.ConditionItemMet = true
+			parent.State.ConditionItemMet = true
 			return n.executeChildren(ctx)
 		}
 	case FlowNodeTypeControlConditionItemElse:
-		if ctx.Tempories.ConditionItemMet {
+		parent := n.FindDirectParentWithType(FlowNodeTypeControlConditionCompare)
+		if parent == nil {
+			return nil
+		}
+
+		if parent.State.ConditionItemMet {
 			// Another condition item has already been met
 			return nil
 		}

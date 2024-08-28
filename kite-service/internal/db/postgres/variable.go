@@ -50,6 +50,18 @@ func (c *Client) Variable(ctx context.Context, id string) (*model.Variable, erro
 	return v, nil
 }
 
+func (c *Client) VariableScope(ctx context.Context, id string) (model.VariableScope, error) {
+	row, err := c.Q.GetVariableScope(ctx, id)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return "", store.ErrNotFound
+		}
+		return "", err
+	}
+
+	return model.VariableScope(row), nil
+}
+
 func (c *Client) VariableByName(ctx context.Context, appID, name string) (*model.Variable, error) {
 	row, err := c.Q.GetVariableByName(ctx, pgmodel.GetVariableByNameParams{
 		AppID: appID,
@@ -72,7 +84,7 @@ func (c *Client) CreateVariable(ctx context.Context, variable *model.Variable) (
 		ID:    variable.ID,
 		Name:  variable.Name,
 		Type:  variable.Type,
-		Scope: variable.Scope,
+		Scope: string(variable.Scope),
 		AppID: variable.AppID,
 		ModuleID: pgtype.Text{
 			String: variable.ModuleID.String,
@@ -99,7 +111,7 @@ func (c *Client) UpdateVariable(ctx context.Context, variable *model.Variable) (
 		ID:    variable.ID,
 		Name:  variable.Name,
 		Type:  variable.Type,
-		Scope: variable.Scope,
+		Scope: string(variable.Scope),
 		UpdatedAt: pgtype.Timestamp{
 			Time:  variable.UpdatedAt.UTC(),
 			Valid: true,
@@ -132,7 +144,7 @@ func rowToVariable(row pgmodel.Variable) *model.Variable {
 		ID:        row.ID,
 		Name:      row.Name,
 		Type:      row.Type,
-		Scope:     row.Scope,
+		Scope:     model.VariableScope(row.Scope),
 		AppID:     row.AppID,
 		ModuleID:  null.NewString(row.ModuleID.String, row.ModuleID.Valid),
 		CreatedAt: row.CreatedAt.Time,
@@ -154,10 +166,17 @@ func (c *Client) VariableValues(ctx context.Context, variableID string) ([]*mode
 	return values, nil
 }
 
-func (c *Client) VariableValue(ctx context.Context, variableID string, scope null.String) (*model.VariableValue, error) {
+func (c *Client) VariableValue(ctx context.Context, variableID string, scope model.VariableValueScope) (*model.VariableValue, error) {
+	scopeType, err := c.VariableScope(ctx, variableID)
+	if err != nil {
+		return nil, err
+	}
+
+	resolvedScope := scope.Resolve(scopeType)
+
 	row, err := c.Q.GetVariableValue(ctx, pgmodel.GetVariableValueParams{
 		VariableID: variableID,
-		Scope:      pgtype.Text{String: scope.String, Valid: scope.Valid},
+		Scope:      pgtype.Text{String: resolvedScope.String, Valid: resolvedScope.Valid},
 	})
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -169,10 +188,17 @@ func (c *Client) VariableValue(ctx context.Context, variableID string, scope nul
 	return rowToVariableValue(row), nil
 }
 
-func (c *Client) SetVariableValue(ctx context.Context, value model.VariableValue) error {
-	_, err := c.Q.SetVariableValue(ctx, pgmodel.SetVariableValueParams{
+func (c *Client) SetVariableValue(ctx context.Context, value model.VariableValue, scope model.VariableValueScope) error {
+	scopeType, err := c.VariableScope(ctx, value.VariableID)
+	if err != nil {
+		return err
+	}
+
+	resolvedScope := scope.Resolve(scopeType)
+
+	_, err = c.Q.SetVariableValue(ctx, pgmodel.SetVariableValueParams{
 		VariableID: value.VariableID,
-		Scope:      pgtype.Text{String: value.Scope.String, Valid: value.Scope.Valid},
+		Scope:      pgtype.Text{String: resolvedScope.String, Valid: resolvedScope.Valid},
 		Value:      value.Value,
 		CreatedAt: pgtype.Timestamp{
 			Time:  value.CreatedAt.UTC(),
@@ -184,6 +210,28 @@ func (c *Client) SetVariableValue(ctx context.Context, value model.VariableValue
 		},
 	})
 	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (c *Client) DeleteVariableValue(ctx context.Context, variableID string, scope model.VariableValueScope) error {
+	scopeType, err := c.VariableScope(ctx, variableID)
+	if err != nil {
+		return err
+	}
+
+	resolvedScope := scope.Resolve(scopeType)
+
+	err = c.Q.DeleteVariableValue(ctx, pgmodel.DeleteVariableValueParams{
+		VariableID: variableID,
+		Scope:      pgtype.Text{String: resolvedScope.String, Valid: resolvedScope.Valid},
+	})
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return store.ErrNotFound
+		}
 		return err
 	}
 

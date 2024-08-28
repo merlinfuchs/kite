@@ -91,6 +91,20 @@ func (q *Queries) DeleteVariable(ctx context.Context, id string) error {
 	return err
 }
 
+const deleteVariableValue = `-- name: DeleteVariableValue :exec
+DELETE FROM variable_values WHERE variable_id = $1 AND scope = $2
+`
+
+type DeleteVariableValueParams struct {
+	VariableID string
+	Scope      pgtype.Text
+}
+
+func (q *Queries) DeleteVariableValue(ctx context.Context, arg DeleteVariableValueParams) error {
+	_, err := q.db.Exec(ctx, deleteVariableValue, arg.VariableID, arg.Scope)
+	return err
+}
+
 const getVariable = `-- name: GetVariable :one
 SELECT variables.id, variables.scope, variables.name, variables.type, variables.app_id, variables.module_id, variables.created_at, variables.updated_at, COUNT(variable_values.*) as total_values FROM variables 
 LEFT JOIN variable_values ON variables.id = variable_values.variable_id
@@ -152,6 +166,17 @@ func (q *Queries) GetVariableByName(ctx context.Context, arg GetVariableByNamePa
 		&i.TotalValues,
 	)
 	return i, err
+}
+
+const getVariableScope = `-- name: GetVariableScope :one
+SELECT scope FROM variables WHERE id = $1
+`
+
+func (q *Queries) GetVariableScope(ctx context.Context, id string) (string, error) {
+	row := q.db.QueryRow(ctx, getVariableScope, id)
+	var scope string
+	err := row.Scan(&scope)
+	return scope, err
 }
 
 const getVariableValue = `-- name: GetVariableValue :one

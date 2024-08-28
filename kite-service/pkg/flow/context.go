@@ -6,7 +6,7 @@ import (
 
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/gateway"
-	"github.com/kitecloud/kite/kite-service/pkg/template"
+	"github.com/kitecloud/kite/kite-service/pkg/placeholder"
 )
 
 type FlowContext struct {
@@ -14,9 +14,9 @@ type FlowContext struct {
 	FlowProviders
 	FlowContextLimits
 
-	Data      FlowContextData
-	Tempories FlowContextTemporaries
-	Variables FlowContextVariables
+	Data                    FlowContextData
+	Placeholders            *placeholder.Engine
+	nodePlaceholderProvider *nodePlaceholderProvider
 }
 
 func NewContext(
@@ -24,25 +24,26 @@ func NewContext(
 	data FlowContextData,
 	providers FlowProviders,
 	limits FlowContextLimits,
-	templates *template.TemplateContext,
+	placeholders *placeholder.Engine,
 ) *FlowContext {
-	// TODO: pass in bot state cabinet or custom interface?
 	if data.Interaction() != nil {
-		templates.AddProvider(template.NewInteractionProvider(nil, data.Interaction()))
-	}
-	if data.GuildID() != 0 {
-		templates.AddProvider(template.NewGuildProvider(nil, data.GuildID(), nil))
+		placeholders.AddProvider("interaction", placeholder.NewInteractionProvider(data.Interaction()))
 	}
 
+	placeholders.AddProvider("variables", &variablePlaceholderProvider{
+		Variable: providers.Variable,
+	})
+
+	nodePlaceHolderProvider := &nodePlaceholderProvider{}
+	placeholders.AddProvider("nodes", nodePlaceHolderProvider)
+
 	return &FlowContext{
-		Context: ctx,
-		Data:    data,
-		Variables: FlowContextVariables{
-			TemplateContext: templates,
-			Variables:       make(map[string]FlowValue),
-		},
-		FlowProviders:     providers,
-		FlowContextLimits: limits,
+		Context:                 ctx,
+		Data:                    data,
+		Placeholders:            placeholders,
+		nodePlaceholderProvider: nodePlaceHolderProvider,
+		FlowProviders:           providers,
+		FlowContextLimits:       limits,
 	}
 }
 
@@ -53,19 +54,6 @@ type FlowContextData interface {
 	EventData() gateway.Event
 	GuildID() discord.GuildID
 	ChannelID() discord.ChannelID
-}
-
-type FlowContextTemporaries struct {
-	// TODO: nested condition will break this!
-	ConditionBaseValue     FlowValue
-	ConditionItemMet       bool
-	ConditionAllowMultiple bool
-}
-
-func (t *FlowContextTemporaries) InitCondition(baseValue FlowValue, allowMultiple bool) {
-	t.ConditionBaseValue = baseValue
-	t.ConditionAllowMultiple = allowMultiple
-	t.ConditionItemMet = false
 }
 
 type FlowContextLimits struct {
