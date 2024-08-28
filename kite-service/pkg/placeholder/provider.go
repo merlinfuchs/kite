@@ -165,12 +165,12 @@ func (p CommandProvider) GetPlaceholder(ctx context.Context, key string) (Provid
 	case "name":
 		return NewStringProvider(p.cmd.Name), nil
 	case "options", "args":
-		res := make([]CommandOptionProvider, len(p.cmd.Options))
-		for i, option := range p.cmd.Options {
-			res[i] = NewCommandOptionProvider(p.interaction, &option)
+		res := make(map[string]CommandOptionProvider, len(p.cmd.Options))
+		for _, option := range p.cmd.Options {
+			res[option.Name] = NewCommandOptionProvider(p.interaction, &option)
 		}
 
-		return NewArrayProvider(res), nil
+		return NewMapProvider(res), nil
 	}
 	return nil, ErrNotFound
 }

@@ -609,6 +609,7 @@ function MessageTargetInput({ data, updateData, errors }: InputProps) {
       value={data.message_target || ""}
       updateValue={(v) => updateData({ message_target: v || undefined })}
       errors={errors}
+      placeholders
     />
   );
 }
@@ -649,6 +650,7 @@ function ChannelTargetInput({ data, updateData, errors }: InputProps) {
       value={data.channel_target || ""}
       updateValue={(v) => updateData({ channel_target: v || undefined })}
       errors={errors}
+      placeholders
     />
   );
 }

@@ -100,7 +100,18 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 
 		return n.executeChildren(ctx)
 	case FlowNodeTypeActionMessageCreate:
-		msg, err := ctx.Discord.CreateMessage(ctx, ctx.Data.ChannelID(), n.Data.MessageData)
+		data := n.Data.MessageData
+
+		content, err := ctx.Placeholders.Fill(ctx, data.Content)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		msg, err := ctx.Discord.CreateMessage(ctx, ctx.Data.ChannelID(), api.SendMessageData{
+			Content: content,
+			Embeds:  data.Embeds,
+			// TODO: other fields
+		})
 		if err != nil {
 			return traceError(n, err)
 		}
