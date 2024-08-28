@@ -3,7 +3,7 @@ import z from "zod";
 import { FlowNodeData } from "../types/flow.gen";
 
 const numericRegex = /^[0-9]+$/;
-const variableRegex = /^\{\{[a-zA-Z0-9_. ]+\}\}$/;
+const variableRegex = /^\{\{[a-z0-9_.]+\}\}$/;
 
 export interface FlowData {
   nodes: Node<NodeData>[];

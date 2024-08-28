@@ -25,7 +25,7 @@ var flowCommandTest = CompiledFlowNode{
 			ID:   "1",
 			Type: FlowNodeTypeControlConditionCompare,
 			Data: FlowNodeData{
-				ConditionBaseValue: FlowValueNull,
+				ConditionBaseValue: "null",
 			},
 			Children: []*CompiledFlowNode{
 				{
@@ -33,7 +33,7 @@ var flowCommandTest = CompiledFlowNode{
 					Type: FlowNodeTypeControlConditionItemCompare,
 					Data: FlowNodeData{
 						ConditionItemMode:  ConditionItemModeEqual,
-						ConditionItemValue: FlowValueNull,
+						ConditionItemValue: "null",
 					},
 					Children: []*CompiledFlowNode{
 						{

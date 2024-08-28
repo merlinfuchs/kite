@@ -200,3 +200,58 @@ func (v FlowValue) GetPlaceholder(ctx context.Context, key string) (placeholder.
 func (v FlowValue) ResolvePlaceholder(ctx context.Context) (string, error) {
 	return v.String(), nil
 }
+
+// FlowString is a string that can contain placeholders.
+type FlowString string
+
+func (v FlowString) ContainsPlaceholder() bool {
+	return placeholder.ContainsPlaceholder(string(v))
+}
+
+func (v *FlowString) FillPlaceholders(ctx context.Context, t *placeholder.Engine) error {
+	res, err := t.Fill(ctx, v.String())
+	if err != nil {
+		return fmt.Errorf("failed to fill placeholders: %w", err)
+	}
+
+	*v = FlowString(res)
+	return nil
+}
+
+func (v FlowString) Number() float64 {
+	n, _ := strconv.ParseFloat(string(v), 64)
+	return n
+}
+
+func (v FlowString) String() string {
+	return string(v)
+}
+
+func (v FlowString) Equals(other *FlowString) bool {
+	return v.String() == other.String()
+}
+
+func (v FlowString) EqualsStrict(other *FlowString) bool {
+	// We can't just == the values directly, as they might contain pointers.
+	return reflect.DeepEqual(v, other)
+}
+
+func (v FlowString) GreaterThan(other *FlowString) bool {
+	return v.Number() > other.Number()
+}
+
+func (v FlowString) GreaterThanOrEqual(other *FlowString) bool {
+	return v.Number() >= other.Number()
+}
+
+func (v FlowString) LessThan(other *FlowString) bool {
+	return v.Number() < other.Number()
+}
+
+func (v FlowString) LessThanOrEqual(other *FlowString) bool {
+	return v.Number() <= other.Number()
+}
+
+func (v FlowString) Contains(other *FlowString) bool {
+	return strings.Contains(v.String(), other.String())
+}

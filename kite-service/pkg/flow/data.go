@@ -90,10 +90,10 @@ func (n FlowNode) Validate() error {
 
 type FlowNodeData struct {
 	// Shared
-	Name           string    `json:"name,omitempty"`
-	Description    string    `json:"description,omitempty"`
-	CustomLabel    string    `json:"custom_label,omitempty"`
-	AuditLogReason FlowValue `json:"audit_log_reason,omitempty"`
+	Name           string     `json:"name,omitempty"`
+	Description    string     `json:"description,omitempty"`
+	CustomLabel    string     `json:"custom_label,omitempty"`
+	AuditLogReason FlowString `json:"audit_log_reason,omitempty"`
 
 	// Command Argument
 	CommandArgumentType     CommandArgumentType `json:"command_argument_type,omitempty"`
@@ -106,27 +106,27 @@ type FlowNodeData struct {
 	CommandDisabledContexts []CommandContextType `json:"command_disabled_contexts,omitempty"`
 
 	// Message & Response Create, edit, Delete
-	MessageTarget     FlowValue           `json:"message_target,omitempty"`
+	MessageTarget     FlowString          `json:"message_target,omitempty"`
 	MessageData       api.SendMessageData `json:"message_data,omitempty"`
 	MessageTemplateID string              `json:"message_template_id,omitempty"`
 	MessageEphemeral  bool                `json:"message_ephemeral,omitempty"`
 
 	// Member Ban, Kick, Timeout
-	MemberTarget                   FlowValue `json:"member_target,omitempty"`
-	MemberBanDeleteMessageDuration FlowValue `json:"member_ban_delete_message_duration,omitempty"`
-	MemberTimeoutDuration          FlowValue `json:"member_timeout_duration,omitempty"`
+	MemberTarget                   FlowString `json:"member_target,omitempty"`
+	MemberBanDeleteMessageDuration FlowString `json:"member_ban_delete_message_duration,omitempty"`
+	MemberTimeoutDuration          FlowString `json:"member_timeout_duration,omitempty"`
 
 	// Channel Create, Edit, Delete
-	ChannelTarget FlowValue             `json:"channel_target,omitempty"`
+	ChannelTarget FlowString            `json:"channel_target,omitempty"`
 	ChannelData   api.CreateChannelData `json:"channel_data,omitempty"`
 
 	// Role Create, Edit, Delete
-	RoleTarget FlowValue          `json:"role_target,omitempty"`
+	RoleTarget FlowString         `json:"role_target,omitempty"`
 	RoleData   api.CreateRoleData `json:"role_data,omitempty"`
 
 	// Variable Set, Delete
-	VariableName  string    `json:"variable_name,omitempty"`
-	VariableValue FlowValue `json:"variable_value,omitempty"`
+	VariableName  string     `json:"variable_name,omitempty"`
+	VariableValue FlowString `json:"variable_value,omitempty"`
 
 	// HTTP Request
 	HTTPRequestData HTTPRequestData `json:"http_request_data,omitempty"`
@@ -139,16 +139,16 @@ type FlowNodeData struct {
 	EventFilterExpression string            `json:"event_filter_expression,omitempty"`
 
 	// Log
-	LogLevel   LogLevel  `json:"log_level,omitempty"`
-	LogMessage FlowValue `json:"log_message,omitempty"`
+	LogLevel   LogLevel   `json:"log_level,omitempty"`
+	LogMessage FlowString `json:"log_message,omitempty"`
 
 	// Condition
-	ConditionBaseValue     FlowValue         `json:"condition_base_value,omitempty"`
+	ConditionBaseValue     FlowString        `json:"condition_base_value,omitempty"`
 	ConditionAllowMultiple bool              `json:"condition_allow_multiple,omitempty"`
 	ConditionItemMode      ConditionItemType `json:"condition_item_mode,omitempty"`
-	ConditionItemValue     FlowValue         `json:"condition_item_value,omitempty"`
+	ConditionItemValue     FlowString        `json:"condition_item_value,omitempty"`
 	// Loop
-	LoopCount FlowValue `json:"loop_count,omitempty"`
+	LoopCount FlowString `json:"loop_count,omitempty"`
 }
 
 func (d FlowNodeData) Validate(nodeType FlowNodeType) error {

@@ -54,7 +54,7 @@ export default function PlaceholderExplorer({
           <CommandList>
             <CommandEmpty>No placeholder found.</CommandEmpty>
             {placeholderGroups.map((group) => (
-              <CommandGroup heading={group.label}>
+              <CommandGroup heading={group.label} key={group.label}>
                 {group.placeholders.map((placeholder) => (
                   <CommandItem
                     key={placeholder}
