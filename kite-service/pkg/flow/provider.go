@@ -10,14 +10,15 @@ import (
 )
 
 var (
-	ErrEntityNotFound = errors.New("entity not found")
+	ErrNotFound = errors.New("not found")
 )
 
 type FlowProviders struct {
-	Discord FlowDiscordProvider
-	KV      FlowKVProvider
-	HTTP    FlowHTTPProvider
-	Log     FlowLogProvider
+	Discord  FlowDiscordProvider
+	KV       FlowKVProvider
+	HTTP     FlowHTTPProvider
+	Log      FlowLogProvider
+	Variable FlowVariableProvider
 }
 
 type FlowDiscordProvider interface {
@@ -59,4 +60,10 @@ type FlowHTTPProvider interface {
 
 type FlowLogProvider interface {
 	CreateLogEntry(ctx context.Context, level LogLevel, message string)
+}
+
+type FlowVariableProvider interface {
+	SetVariable(ctx context.Context, id string, value FlowValue) error
+	GetVariable(ctx context.Context, id string) (FlowValue, error)
+	DeleteVariable(ctx context.Context, id string) error
 }

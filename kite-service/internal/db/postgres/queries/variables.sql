@@ -4,6 +4,9 @@ LEFT JOIN variable_values ON variables.id = variable_values.variable_id
 WHERE variables.id = $1
 GROUP BY variables.id;
 
+-- name: GetVariableScope :one
+SELECT scope FROM variables WHERE id = $1;
+
 -- name: GetVariableByName :one
 SELECT sqlc.embed(variables), COUNT(variable_values.*) as total_values FROM variables 
 LEFT JOIN variable_values ON variables.id = variable_values.variable_id
@@ -64,6 +67,9 @@ INSERT INTO variable_values (
     value = EXCLUDED.value,
     updated_at = EXCLUDED.updated_at
 RETURNING *;
+
+-- name: DeleteVariableValue :exec
+DELETE FROM variable_values WHERE variable_id = $1 AND scope = $2;
 
 -- name: DeleteAllVariableValues :exec
 DELETE FROM variable_values WHERE variable_id = $1;

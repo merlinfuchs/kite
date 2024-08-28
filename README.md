@@ -46,10 +46,11 @@ Make your own Discord Bot with Kite for free without a single line of code. With
 ### Control Flow
 
 - [x] Compare condition
-- [ ] Permissions condition?
-- [ ] Argument conditions?
+- [x] User condition
+- [x] Channel condition
+- [x] Role condition
 
-- [ ] Loop N times
+- [x] Loop N times
 - [ ] Sleep
 
 #### Actions
@@ -63,32 +64,29 @@ Make your own Discord Bot with Kite for free without a single line of code. With
 - [x] Create message
   - [x] Current channel
   - [ ] Other channel
-- [ ] Delete message
-- [ ] Edit message
+- [x] Delete message
+- [x] Edit message
 - [ ] Purge messages
 
-- [ ] Create channel
-- [ ] Delete channel
-- [ ] Edit channel
+- [x] Create channel
+- [x] Delete channel
+- [x] Edit channel
 
-- [ ] Create thread
-- [ ] Delete thread
-- [ ] Edit thread
+- [x] Create thread
+- [x] Delete thread
+- [x] Edit thread
 
-- [ ] Create role
-- [ ] Delete role
-- [ ] Edit role
+- [x] Create role
+- [x] Delete role
+- [x] Edit role
 
-- [ ] Ban user
-- [ ] Kick user
-- [ ] Timeout member
+- [x] Ban user
+- [x] Kick user
+- [x] Timeout member
 - [ ] Edit member
 
 - [ ] Set variable
 - [ ] Delete variable
 
-- [ ] Set KV key
-- [ ] Delete KV key
-
-- [ ] API request
+- [x] API request
 - [ ] Random number

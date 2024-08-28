@@ -61,10 +61,10 @@ const nodeCategories = {
         "action_role_delete",
       ],
     },
-    {
+    /* {
       title: "Variables",
       nodeTypes: ["action_variable_set", "action_variable_delete"],
-    },
+    }, */
     /* {
       title: "Key Value Store",
       nodeTypes: [],

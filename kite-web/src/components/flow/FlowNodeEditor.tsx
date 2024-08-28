@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo, useRef } from "react";
 import { Node, useNodes, useReactFlow, useStoreApi } from "@xyflow/react";
 import { NodeData, NodeProps } from "../../lib/flow/data";
 import { useNodeValues } from "@/lib/flow/nodes";
@@ -32,6 +32,7 @@ import {
   encodePermissionsBitset,
   permissionBits,
 } from "@/lib/discord/permissions";
+import FlowPlaceholderExplorer from "./FlowPlaceholderExplorer";
 
 interface Props {
   nodeId: string;
@@ -46,7 +47,6 @@ interface InputProps {
 
 const intputs: Record<string, any> = {
   custom_label: CustomLabelInput,
-  result_variable_name: ResultVariableNameInput,
   name: NameInput,
   description: DescriptionInput,
   command_argument_type: CommandArgumentTypeInput,
@@ -228,19 +228,6 @@ function CustomLabelInput({ data, updateData, errors }: InputProps) {
   );
 }
 
-function ResultVariableNameInput({ data, updateData, errors }: InputProps) {
-  return (
-    <BaseInput
-      field="result_variable_name"
-      title="Variable Name"
-      description="Create a variable to store the result of this action. This is optional."
-      value={data.result_variable_name || ""}
-      updateValue={(v) => updateData({ result_variable_name: v || undefined })}
-      errors={errors}
-    />
-  );
-}
-
 function NameInput({ data, updateData, errors }: InputProps) {
   return (
     <BaseInput
@@ -409,6 +396,7 @@ function LogMessageInput({ data, updateData, errors }: InputProps) {
       value={data.log_message || ""}
       updateValue={(v) => updateData({ log_message: v || undefined })}
       errors={errors}
+      placeholders
     />
   );
 }
@@ -423,6 +411,7 @@ function AuditLogReasonInput({ data, updateData, errors }: InputProps) {
       value={data.audit_log_reason || ""}
       updateValue={(v) => updateData({ audit_log_reason: v || undefined })}
       errors={errors}
+      placeholders
     />
   );
 }
@@ -470,6 +459,7 @@ function HttpRequestDataInput({ data, updateData, errors }: InputProps) {
           })
         }
         errors={errors}
+        placeholders
       />
     </>
   );
@@ -484,6 +474,7 @@ function MemberTargetInput({ data, updateData, errors }: InputProps) {
       value={data.member_target || ""}
       updateValue={(v) => updateData({ member_target: v || undefined })}
       errors={errors}
+      placeholders
     />
   );
 }
@@ -550,6 +541,7 @@ function MemberTimeoutDurationInput({ data, updateData, errors }: InputProps) {
         updateData({ member_timeout_duration: v || undefined })
       }
       errors={errors}
+      placeholders
     />
   );
 }
@@ -584,6 +576,7 @@ function MessageDataInput({ data, updateData, errors }: InputProps) {
         updateData({ message_data: v ? { content: v } : undefined })
       }
       errors={errors}
+      placeholders
     />
   );
 }
@@ -652,6 +645,7 @@ function RoleDataInput({ data, updateData, errors }: InputProps) {
         updateData({ role_data: v ? { name: v } : undefined })
       }
       errors={errors}
+      placeholders
     />
   );
 }
@@ -665,6 +659,7 @@ function RoleTargetInput({ data, updateData, errors }: InputProps) {
       value={data.role_target || ""}
       updateValue={(v) => updateData({ role_target: v || undefined })}
       errors={errors}
+      placeholders
     />
   );
 }
@@ -687,15 +682,10 @@ function VariableValueInput({ data, updateData, errors }: InputProps) {
     <BaseInput
       field="variable_value"
       title="Variable Value"
-      value={data.variable_value ? `${data.variable_value.value}` : ""}
+      value={data.variable_value || ""}
       updateValue={(v) =>
         updateData({
-          variable_value: v
-            ? {
-                type: "string",
-                value: v,
-              }
-            : undefined,
+          variable_value: v || undefined,
         })
       }
       errors={errors}
@@ -712,20 +702,14 @@ function ConditionCompareBaseValueInput({
     <BaseInput
       field="condition_base_value"
       title="Base Value"
-      value={
-        data.condition_base_value ? `${data.condition_base_value.value}` : ""
-      }
+      value={data.condition_base_value || ""}
       updateValue={(v) =>
         updateData({
-          condition_base_value: v
-            ? {
-                type: "string",
-                value: v,
-              }
-            : undefined,
+          condition_base_value: v || undefined,
         })
       }
       errors={errors}
+      placeholders
     />
   );
 }
@@ -765,20 +749,14 @@ function ConditionItemCompareValueInput({
     <BaseInput
       field="condition_item_value"
       title="Comparison Value"
-      value={
-        data.condition_item_value ? `${data.condition_item_value.value}` : ""
-      }
+      value={data.condition_item_value || ""}
       updateValue={(v) =>
         updateData({
-          condition_item_value: v
-            ? {
-                type: "string",
-                value: v,
-              }
-            : undefined,
+          condition_item_value: v || undefined,
         })
       }
       errors={errors}
+      placeholders
     />
   );
 }
@@ -788,20 +766,14 @@ function ConditionUserBaseValueInput({ data, updateData, errors }: InputProps) {
     <BaseInput
       field="condition_base_value"
       title="Base User ID"
-      value={
-        data.condition_base_value ? `${data.condition_base_value.value}` : ""
-      }
+      value={data.condition_base_value || ""}
       updateValue={(v) =>
         updateData({
-          condition_base_value: v
-            ? {
-                type: "string",
-                value: v,
-              }
-            : undefined,
+          condition_base_value: v || undefined,
         })
       }
       errors={errors}
+      placeholders
     />
   );
 }
@@ -829,20 +801,14 @@ function ConditionItemUserValueInput({ data, updateData, errors }: InputProps) {
     <BaseInput
       field="condition_item_value"
       title="Comparison User ID"
-      value={
-        data.condition_item_value ? `${data.condition_item_value.value}` : ""
-      }
+      value={data.condition_item_value || ""}
       updateValue={(v) =>
         updateData({
-          condition_item_value: v
-            ? {
-                type: "string",
-                value: v,
-              }
-            : undefined,
+          condition_item_value: v || undefined,
         })
       }
       errors={errors}
+      placeholders
     />
   );
 }
@@ -856,20 +822,14 @@ function ConditionChannelBaseValueInput({
     <BaseInput
       field="condition_base_value"
       title="Base Channel ID"
-      value={
-        data.condition_base_value ? `${data.condition_base_value.value}` : ""
-      }
+      value={data.condition_base_value || ""}
       updateValue={(v) =>
         updateData({
-          condition_base_value: v
-            ? {
-                type: "string",
-                value: v,
-              }
-            : undefined,
+          condition_base_value: v || undefined,
         })
       }
       errors={errors}
+      placeholders
     />
   );
 }
@@ -904,20 +864,14 @@ function ConditionItemChannelValueInput({
     <BaseInput
       field="condition_item_value"
       title="Comparison Channel ID"
-      value={
-        data.condition_item_value ? `${data.condition_item_value.value}` : ""
-      }
+      value={data.condition_item_value || ""}
       updateValue={(v) =>
         updateData({
-          condition_item_value: v
-            ? {
-                type: "string",
-                value: v,
-              }
-            : undefined,
+          condition_item_value: v || undefined,
         })
       }
       errors={errors}
+      placeholders
     />
   );
 }
@@ -927,20 +881,14 @@ function ConditionRoleBaseValueInput({ data, updateData, errors }: InputProps) {
     <BaseInput
       field="condition_base_value"
       title="Base Role ID"
-      value={
-        data.condition_base_value ? `${data.condition_base_value.value}` : ""
-      }
+      value={data.condition_base_value || ""}
       updateValue={(v) =>
         updateData({
-          condition_base_value: v
-            ? {
-                type: "string",
-                value: v,
-              }
-            : undefined,
+          condition_base_value: v || undefined,
         })
       }
       errors={errors}
+      placeholders
     />
   );
 }
@@ -967,20 +915,14 @@ function ConditionItemRoleValueInput({ data, updateData, errors }: InputProps) {
     <BaseInput
       field="condition_item_value"
       title="Comparison Role ID"
-      value={
-        data.condition_item_value ? `${data.condition_item_value.value}` : ""
-      }
+      value={data.condition_item_value || ""}
       updateValue={(v) =>
         updateData({
-          condition_item_value: v
-            ? {
-                type: "string",
-                value: v,
-              }
-            : undefined,
+          condition_item_value: v || undefined,
         })
       }
       errors={errors}
+      placeholders
     />
   );
 }
@@ -1026,6 +968,7 @@ function BaseInput({
   errors,
   value,
   updateValue,
+  placeholders,
 }: {
   type?: "text" | "textarea" | "select";
   field: string;
@@ -1035,8 +978,34 @@ function BaseInput({
   errors: Record<string, string>;
   value: string;
   updateValue: (value: string) => void;
+  placeholders?: boolean;
 }) {
   const error = errors[field];
+
+  const inputRef = useRef<HTMLInputElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  const onPlaceholderSelect = useCallback(
+    (placeholder: string) => {
+      const value = `{{${placeholder}}}`;
+
+      const element =
+        type === "textarea" ? textareaRef.current : inputRef.current;
+
+      if (!element) return;
+
+      const start = element.selectionStart ?? 0;
+      const end = element.selectionEnd ?? 0;
+
+      const newValue =
+        element.value.substring(0, start) +
+        value +
+        element.value.substring(end);
+
+      updateValue(newValue);
+    },
+    [inputRef, textareaRef]
+  );
 
   return (
     <div>
@@ -1044,28 +1013,38 @@ function BaseInput({
       {description ? (
         <div className="text-muted-foreground text-sm mb-2">{description}</div>
       ) : null}
-      {type === "textarea" ? (
-        <Textarea value={value} onChange={(e) => updateValue(e.target.value)} />
-      ) : type === "select" ? (
-        <Select value={value} onValueChange={(v) => updateValue(v)}>
-          <SelectTrigger>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {options?.map((o) => (
-              <SelectItem key={o.value} value={o.value}>
-                {o.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      ) : (
-        <Input
-          type="text"
-          value={value}
-          onChange={(e) => updateValue(e.target.value)}
-        />
-      )}
+      <div className="relative">
+        {type === "textarea" ? (
+          <Textarea
+            value={value}
+            onChange={(e) => updateValue(e.target.value)}
+            ref={textareaRef}
+          />
+        ) : type === "select" ? (
+          <Select value={value} onValueChange={(v) => updateValue(v)}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {options?.map((o) => (
+                <SelectItem key={o.value} value={o.value}>
+                  {o.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        ) : (
+          <Input
+            type="text"
+            value={value}
+            onChange={(e) => updateValue(e.target.value)}
+            ref={inputRef}
+          />
+        )}
+        {placeholders && (
+          <FlowPlaceholderExplorer onSelect={onPlaceholderSelect} />
+        )}
+      </div>
       {error && (
         <div className="text-red-600 dark:text-red-400 text-sm flex items-center space-x-1 pt-2">
           <CircleAlertIcon className="h-5 w-5 flex-none" />

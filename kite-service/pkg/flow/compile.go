@@ -55,6 +55,7 @@ type CompiledFlowNode struct {
 	ID       string
 	Type     FlowNodeType
 	Data     FlowNodeData
+	State    CompiledFlowNodeState
 	Parents  []*CompiledFlowNode
 	Children []*CompiledFlowNode
 }
@@ -194,11 +195,33 @@ func (n *CompiledFlowNode) IsAction() bool {
 		n.Type == FlowNodeTypeActionLog
 }
 
-func (n *CompiledFlowNode) ParentWithType(t FlowNodeType) *CompiledFlowNode {
-	for _, parent := range n.Parents {
-		if parent.Type == t {
+func (n *CompiledFlowNode) FindDirectParentWithType(t FlowNodeType) *CompiledFlowNode {
+	for _, node := range n.Parents {
+		if node.Type == t {
+			return node
+		}
+	}
+
+	return nil
+}
+
+func (n *CompiledFlowNode) FindParentWithID(id string) *CompiledFlowNode {
+	for _, node := range n.Parents {
+		if node.ID == id {
+			return node
+		}
+
+		parent := node.FindParentWithID(id)
+		if parent != nil {
 			return parent
 		}
 	}
+
 	return nil
+}
+
+type CompiledFlowNodeState struct {
+	// ConditionItemMet is used to track if one of the child condition items has been met
+	ConditionItemMet bool
+	Result           FlowValue
 }

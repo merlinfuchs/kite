@@ -3,7 +3,7 @@ import z from "zod";
 import { FlowNodeData } from "../types/flow.gen";
 
 const numericRegex = /^[0-9]+$/;
-const variableRegex = /^\{\{[a-zA-Z0-9_. ]+\}\}$/;
+const variableRegex = /^\{\{[a-z0-9_.]+\}\}$/;
 
 export interface FlowData {
   nodes: Node<NodeData>[];
@@ -116,7 +116,6 @@ export const nodeActionMessageCreateDataSchema = nodeBaseDataSchema.extend({
   message_data: z.object({
     content: z.string().max(2000).min(1),
   }),
-  result_variable_name: z.string().optional(),
 });
 
 export const nodeActionMessageEditDataSchema = nodeBaseDataSchema.extend({
@@ -127,7 +126,6 @@ export const nodeActionMessageEditDataSchema = nodeBaseDataSchema.extend({
   message_data: z.object({
     content: z.string().max(2000).min(1),
   }),
-  result_variable_name: z.string().optional(),
 });
 
 export const nodeActionMessageDeleteDataSchema = nodeBaseDataSchema.extend({

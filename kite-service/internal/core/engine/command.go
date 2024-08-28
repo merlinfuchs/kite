@@ -16,7 +16,7 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/internal/store"
 	"github.com/kitecloud/kite/kite-service/pkg/flow"
-	"github.com/kitecloud/kite/kite-service/pkg/template"
+	"github.com/kitecloud/kite/kite-service/pkg/placeholder"
 )
 
 type Command struct {
@@ -60,6 +60,7 @@ func (c *Command) HandleEvent(appID string, session *state.State, event gateway.
 		Discord: NewDiscordProvider(appID, c.appStore, session),
 		Log:     NewLogProvider(appID, c.logStore),
 		HTTP:    NewHTTPProvider(c.httpClient),
+		// TODO: Variable provider
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -75,7 +76,7 @@ func (c *Command) HandleEvent(appID string, session *state.State, event gateway.
 			MaxOperations: c.config.MaxOperations,
 			MaxActions:    c.config.MaxActions,
 		},
-		template.NewContext(appID, 0),
+		placeholder.NewEngine(),
 	)
 
 	if err := c.flow.Execute(fCtx); err != nil {
