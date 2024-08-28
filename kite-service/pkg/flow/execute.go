@@ -2,6 +2,7 @@ package flow
 
 import (
 	"fmt"
+	"net/http"
 	"time"
 
 	"github.com/diamondburned/arikawa/v3/api"
@@ -119,8 +120,8 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 
 		msg, err := ctx.Discord.EditMessage(
 			ctx,
-			discord.ChannelID(channelTarget.Number()),
-			discord.MessageID(messageTarget.Number()),
+			discord.ChannelID(channelTarget.Int()),
+			discord.MessageID(messageTarget.Int()),
 			api.EditMessageData{
 				Content: option.NewNullableString(n.Data.MessageData.Content),
 				Embeds:  &n.Data.MessageData.Embeds,
@@ -143,10 +144,16 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			return traceError(n, err)
 		}
 
+		auditLogReason, err := n.Data.AuditLogReason.FillPlaceholders(ctx, ctx.Placeholders)
+		if err != nil {
+			return traceError(n, err)
+		}
+
 		err = ctx.Discord.DeleteMessage(
 			ctx,
-			discord.ChannelID(channelTarget.Number()),
-			discord.MessageID(messageTarget.Number()),
+			discord.ChannelID(channelTarget.Int()),
+			discord.MessageID(messageTarget.Int()),
+			api.AuditLogReason(auditLogReason),
 		)
 		if err != nil {
 			return traceError(n, err)
@@ -172,11 +179,33 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 		err = ctx.Discord.BanMember(
 			ctx,
 			ctx.Data.GuildID(),
-			discord.UserID(memberTarget.Number()),
+			discord.UserID(memberTarget.Int()),
 			api.BanData{
-				DeleteDays:     option.NewUint(uint(messageDeleteSeconds.Number() / 86400)),
+				DeleteDays:     option.NewUint(uint(messageDeleteSeconds.Float() / 86400)),
 				AuditLogReason: api.AuditLogReason(auditLogReason),
 			},
+		)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		return n.executeChildren(ctx)
+	case FlowNodeTypeActionMemberUnban:
+		memberTarget, err := n.Data.MemberTarget.FillPlaceholders(ctx, ctx.Placeholders)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		auditLogReason, err := n.Data.AuditLogReason.FillPlaceholders(ctx, ctx.Placeholders)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		err = ctx.Discord.UnbanMember(
+			ctx,
+			ctx.Data.GuildID(),
+			discord.UserID(memberTarget.Int()),
+			api.AuditLogReason(auditLogReason),
 		)
 		if err != nil {
 			return traceError(n, err)
@@ -197,17 +226,101 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 		err = ctx.Discord.KickMember(
 			ctx,
 			ctx.Data.GuildID(),
-			discord.UserID(memberID.Number()),
-			auditLogReason.String(),
+			discord.UserID(memberID.Int()),
+			api.AuditLogReason(auditLogReason.String()),
 		)
 		if err != nil {
 			return traceError(n, err)
 		}
 
 		return n.executeChildren(ctx)
+	case FlowNodeTypeActionMemberTimeout:
+		memberID, err := n.Data.MemberTarget.FillPlaceholders(ctx, ctx.Placeholders)
+		if err != nil {
+			return traceError(n, err)
+		}
 
-	// TODO: implement other action types
+		timeoutSeconds, err := n.Data.MemberTimeoutDurationSeconds.FillPlaceholders(ctx, ctx.Placeholders)
+		if err != nil {
+			return traceError(n, err)
+		}
 
+		auditLogReason, err := n.Data.AuditLogReason.FillPlaceholders(ctx, ctx.Placeholders)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		communicationDisabledUntil := discord.Timestamp(time.Now().UTC().Add(
+			time.Duration(timeoutSeconds.Float()) * time.Second,
+		))
+
+		err = ctx.Discord.EditMember(
+			ctx,
+			ctx.Data.GuildID(),
+			discord.UserID(memberID.Int()),
+			api.ModifyMemberData{
+				CommunicationDisabledUntil: &communicationDisabledUntil,
+				AuditLogReason:             api.AuditLogReason(auditLogReason.String()),
+			},
+		)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		return n.executeChildren(ctx)
+	case FlowNodeTypeActionMemberEdit:
+		memberID, err := n.Data.MemberTarget.FillPlaceholders(ctx, ctx.Placeholders)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		auditLogReason, err := n.Data.AuditLogReason.FillPlaceholders(ctx, ctx.Placeholders)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		data := api.ModifyMemberData{
+			AuditLogReason: api.AuditLogReason(auditLogReason),
+		}
+
+		if n.Data.MemberData.Nick != nil {
+			nick, err := ctx.Placeholders.Fill(ctx, *n.Data.MemberData.Nick)
+			if err != nil {
+				return traceError(n, err)
+			}
+
+			data.Nick = &nick
+		}
+
+		err = ctx.Discord.EditMember(
+			ctx,
+			ctx.Data.GuildID(),
+			discord.UserID(memberID.Int()),
+			data,
+		)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		return n.executeChildren(ctx)
+	case FlowNodeTypeActionHTTPRequest:
+		url, err := n.Data.HTTPRequestData.URL.FillPlaceholders(ctx, ctx.Placeholders)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		req, err := http.NewRequest(n.Data.HTTPRequestData.Method, url.String(), nil)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		resp, err := ctx.HTTP.HTTPRequest(ctx, req)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		nodeState.Result = NewFlowValueHTTPResponse(*resp)
+		return n.executeChildren(ctx)
 	case FlowNodeTypeActionLog:
 		logMessage, err := n.Data.LogMessage.FillPlaceholders(ctx, ctx.Placeholders)
 		if err != nil {
@@ -217,12 +330,10 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 		ctx.Log.CreateLogEntry(ctx, n.Data.LogLevel, logMessage.String())
 		return n.executeChildren(ctx)
 	case FlowNodeTypeControlConditionCompare:
-		fmt.Println("condition compare", n.Data.ConditionBaseValue)
 		baseValue, err := n.Data.ConditionBaseValue.FillPlaceholders(ctx, ctx.Placeholders)
 		if err != nil {
 			return traceError(n, err)
 		}
-		fmt.Println("condition compare 2", baseValue)
 
 		nodeState.ConditionBaseValue = baseValue
 
@@ -263,9 +374,6 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 		}
 
 		baseValue := parentState.ConditionBaseValue
-
-		fmt.Println("base value: '" + baseValue + "'")
-		fmt.Println("item value: '" + itemValue + "'")
 
 		var conditionMet bool
 		switch n.Data.ConditionItemMode {
@@ -309,7 +417,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			return traceError(n, err)
 		}
 
-		duration := time.Duration(sleepSeconds.Number()) * time.Second
+		duration := time.Duration(sleepSeconds.Float()) * time.Second
 
 		deadline, ok := ctx.Deadline()
 		if ok && time.Now().Add(duration).After(deadline) {

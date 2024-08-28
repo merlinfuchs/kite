@@ -6,6 +6,7 @@ import {
   nodeActionMemberEditDataSchema,
   nodeActionMemberKickDataSchema,
   nodeActionMemberTimeoutDataSchema,
+  nodeActionMemberUnbanDataSchema,
   nodeActionMessageCreateDataSchema,
   nodeActionMessageDeleteDataSchema,
   nodeActionMessageEditDataSchema,
@@ -54,6 +55,7 @@ import {
   WebhookIcon,
   XCircleIcon,
   TimerIcon,
+  UserRoundCheckIcon,
 } from "lucide-react";
 
 export const primaryColor = "#3B82F6";
@@ -183,6 +185,14 @@ export const nodeTypes: Record<string, NodeValues> = {
       "audit_log_reason",
       "custom_label",
     ],
+  },
+  action_member_unban: {
+    color: actionColor,
+    icon: UserRoundCheckIcon,
+    defaultTitle: "Unban member",
+    defaultDescription: "Unban a member from the server",
+    dataSchema: nodeActionMemberUnbanDataSchema,
+    dataFields: ["member_target", "audit_log_reason", "custom_label"],
   },
   action_member_kick: {
     color: actionColor,

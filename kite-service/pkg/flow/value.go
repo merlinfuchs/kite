@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"reflect"
 	"strconv"
 	"strings"
@@ -15,11 +16,12 @@ import (
 type FlowValueType string
 
 const (
-	FlowValueTypeNull    FlowValueType = "null"
-	FlowValueTypeString  FlowValueType = "string"
-	FlowValueTypeNumber  FlowValueType = "number"
-	FlowValueTypeArray   FlowValueType = "array"
-	FlowValueTypeMessage FlowValueType = "message"
+	FlowValueTypeNull         FlowValueType = "null"
+	FlowValueTypeString       FlowValueType = "string"
+	FlowValueTypeNumber       FlowValueType = "number"
+	FlowValueTypeArray        FlowValueType = "array"
+	FlowValueTypeMessage      FlowValueType = "message"
+	FlowValueTypeHTTPResponse FlowValueType = "http_response"
 )
 
 var FlowValueNull = FlowValue{Type: FlowValueTypeNull}
@@ -55,6 +57,13 @@ func NewFlowValueMessage(m discord.Message) FlowValue {
 	return FlowValue{
 		Type:  FlowValueTypeMessage,
 		Value: m,
+	}
+}
+
+func NewFlowValueHTTPResponse(r http.Response) FlowValue {
+	return FlowValue{
+		Type:  FlowValueTypeHTTPResponse,
+		Value: r,
 	}
 }
 
@@ -104,6 +113,9 @@ func (v *FlowValue) String() string {
 	case FlowValueTypeMessage:
 		m, _ := v.Message()
 		return m.ID.String()
+	case FlowValueTypeHTTPResponse:
+		res, _ := v.HTTPResponse()
+		return res.Status
 	}
 
 	return ""
@@ -128,6 +140,14 @@ func (v *FlowValue) Message() (discord.Message, bool) {
 	}
 
 	return v.Value.(discord.Message), true
+}
+
+func (v *FlowValue) HTTPResponse() (http.Response, bool) {
+	if v.Type != FlowValueTypeMessage {
+		return http.Response{}, false
+	}
+
+	return v.Value.(http.Response), true
 }
 
 func (v *FlowValue) Equals(other *FlowValue) bool {
@@ -217,8 +237,13 @@ func (v *FlowString) FillPlaceholders(ctx context.Context, t *placeholder.Engine
 	return FlowString(res), nil
 }
 
-func (v FlowString) Number() float64 {
+func (v FlowString) Float() float64 {
 	n, _ := strconv.ParseFloat(string(v), 64)
+	return n
+}
+
+func (v FlowString) Int() int64 {
+	n, _ := strconv.ParseInt(string(v), 10, 64)
 	return n
 }
 
@@ -236,19 +261,19 @@ func (v FlowString) EqualsStrict(other *FlowString) bool {
 }
 
 func (v FlowString) GreaterThan(other *FlowString) bool {
-	return v.Number() > other.Number()
+	return v.Float() > other.Float()
 }
 
 func (v FlowString) GreaterThanOrEqual(other *FlowString) bool {
-	return v.Number() >= other.Number()
+	return v.Float() >= other.Float()
 }
 
 func (v FlowString) LessThan(other *FlowString) bool {
-	return v.Number() < other.Number()
+	return v.Float() < other.Float()
 }
 
 func (v FlowString) LessThanOrEqual(other *FlowString) bool {
-	return v.Number() <= other.Number()
+	return v.Float() <= other.Float()
 }
 
 func (v FlowString) Contains(other *FlowString) bool {

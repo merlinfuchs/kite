@@ -22,17 +22,10 @@ export const FlowNodeTypeActionMessageCreate: FlowNodeType = "action_message_cre
 export const FlowNodeTypeActionMessageEdit: FlowNodeType = "action_message_edit";
 export const FlowNodeTypeActionMessageDelete: FlowNodeType = "action_message_delete";
 export const FlowNodeTypeActionMemberBan: FlowNodeType = "action_member_ban";
+export const FlowNodeTypeActionMemberUnban: FlowNodeType = "action_member_unban";
 export const FlowNodeTypeActionMemberKick: FlowNodeType = "action_member_kick";
 export const FlowNodeTypeActionMemberTimeout: FlowNodeType = "action_member_timeout";
-export const FlowNodeTypeActionChannelCreate: FlowNodeType = "action_channel_create";
-export const FlowNodeTypeActionChannelEdit: FlowNodeType = "action_channel_edit";
-export const FlowNodeTypeActionChannelDelete: FlowNodeType = "action_channel_delete";
-export const FlowNodeTypeActionThreadCreate: FlowNodeType = "action_thread_create";
-export const FlowNodeTypeActionRoleCreate: FlowNodeType = "action_role_create";
-export const FlowNodeTypeActionRoleEdit: FlowNodeType = "action_role_edit";
-export const FlowNodeTypeActionRoleDelete: FlowNodeType = "action_role_delete";
-export const FlowNodeTypeActionVariableSet: FlowNodeType = "action_variable_set";
-export const FlowNodeTypeActionVariableDelete: FlowNodeType = "action_variable_delete";
+export const FlowNodeTypeActionMemberEdit: FlowNodeType = "action_member_edit";
 export const FlowNodeTypeActionHTTPRequest: FlowNodeType = "action_http_request";
 export const FlowNodeTypeActionLog: FlowNodeType = "action_log";
 export const FlowNodeTypeControlConditionCompare: FlowNodeType = "control_condition_compare";
@@ -48,6 +41,7 @@ export const FlowNodeTypeControlLoop: FlowNodeType = "control_loop";
 export const FlowNodeTypeControlLoopEach: FlowNodeType = "control_loop_each";
 export const FlowNodeTypeControlLoopEnd: FlowNodeType = "control_loop_end";
 export const FlowNodeTypeControlLoopExit: FlowNodeType = "control_loop_exit";
+export const FlowNodeTypeControlSleep: FlowNodeType = "control_sleep";
 export interface FlowNode {
   id: string;
   type?: FlowNodeType;
@@ -88,7 +82,7 @@ export interface FlowNodeData {
   member_target?: FlowString;
   member_ban_delete_message_duration_seconds?: FlowString;
   member_timeout_duration_seconds?: FlowString;
-  member_nick?: FlowString;
+  member_data?: any /* api.ModifyMemberData */;
   /**
    * Channel Create, Edit, Delete
    */

@@ -39,6 +39,7 @@ const (
 	FlowNodeTypeActionMessageEdit    FlowNodeType = "action_message_edit"
 	FlowNodeTypeActionMessageDelete  FlowNodeType = "action_message_delete"
 	FlowNodeTypeActionMemberBan      FlowNodeType = "action_member_ban"
+	FlowNodeTypeActionMemberUnban    FlowNodeType = "action_member_unban"
 	FlowNodeTypeActionMemberKick     FlowNodeType = "action_member_kick"
 	FlowNodeTypeActionMemberTimeout  FlowNodeType = "action_member_timeout"
 	FlowNodeTypeActionMemberEdit     FlowNodeType = "action_member_edit"
@@ -105,10 +106,10 @@ type FlowNodeData struct {
 	MessageEphemeral  bool                `json:"message_ephemeral,omitempty"`
 
 	// Member Ban, Kick, Timeout
-	MemberTarget                          FlowString `json:"member_target,omitempty"`
-	MemberBanDeleteMessageDurationSeconds FlowString `json:"member_ban_delete_message_duration_seconds,omitempty"`
-	MemberTimeoutDurationSeconds          FlowString `json:"member_timeout_duration_seconds,omitempty"`
-	MemberNick                            FlowString `json:"member_nick,omitempty"`
+	MemberTarget                          FlowString           `json:"member_target,omitempty"`
+	MemberBanDeleteMessageDurationSeconds FlowString           `json:"member_ban_delete_message_duration_seconds,omitempty"`
+	MemberTimeoutDurationSeconds          FlowString           `json:"member_timeout_duration_seconds,omitempty"`
+	MemberData                            api.ModifyMemberData `json:"member_data,omitempty"`
 
 	// Channel Create, Edit, Delete
 	ChannelTarget FlowString            `json:"channel_target,omitempty"`
@@ -229,8 +230,8 @@ const (
 )
 
 type HTTPRequestData struct {
-	URL    string `json:"url,omitempty"`
-	Method string `json:"method,omitempty"`
+	URL    FlowString `json:"url,omitempty"`
+	Method string     `json:"method,omitempty"`
 }
 
 type FlowNodePosition struct {

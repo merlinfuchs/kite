@@ -54,6 +54,65 @@ func (p *DiscordProvider) CreateMessage(ctx context.Context, channelID discord.C
 	return msg, nil
 }
 
+func (p *DiscordProvider) EditMessage(ctx context.Context, channelID discord.ChannelID, messageID discord.MessageID, message api.EditMessageData) (*discord.Message, error) {
+	msg, err := p.session.EditMessageComplex(channelID, messageID, message)
+	if err != nil {
+		return nil, fmt.Errorf("failed to edit message: %w", err)
+	}
+
+	return msg, nil
+}
+
+func (p *DiscordProvider) DeleteMessage(
+	ctx context.Context,
+	channelID discord.ChannelID,
+	messageID discord.MessageID,
+	reason api.AuditLogReason,
+) error {
+	err := p.session.DeleteMessage(channelID, messageID, reason)
+	if err != nil {
+		return fmt.Errorf("failed to delete message: %w", err)
+	}
+
+	return nil
+}
+
+func (p *DiscordProvider) BanMember(ctx context.Context, guildID discord.GuildID, userID discord.UserID, data api.BanData) error {
+	err := p.session.Ban(guildID, userID, data)
+	if err != nil {
+		return fmt.Errorf("failed to ban member: %w", err)
+	}
+
+	return nil
+}
+
+func (p *DiscordProvider) UnbanMember(ctx context.Context, guildID discord.GuildID, userID discord.UserID, reason api.AuditLogReason) error {
+	err := p.session.Unban(guildID, userID, reason)
+	if err != nil {
+		return fmt.Errorf("failed to unban member: %w", err)
+	}
+
+	return nil
+}
+
+func (p *DiscordProvider) KickMember(ctx context.Context, guildID discord.GuildID, userID discord.UserID, reason api.AuditLogReason) error {
+	err := p.session.Kick(guildID, userID, reason)
+	if err != nil {
+		return fmt.Errorf("failed to kick member: %w", err)
+	}
+
+	return nil
+}
+
+func (p *DiscordProvider) EditMember(ctx context.Context, guildID discord.GuildID, userID discord.UserID, data api.ModifyMemberData) error {
+	err := p.session.ModifyMember(guildID, userID, data)
+	if err != nil {
+		return fmt.Errorf("failed to edit member: %w", err)
+	}
+
+	return nil
+}
+
 type LogProvider struct {
 	appID    string
 	logStore store.LogStore

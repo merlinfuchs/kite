@@ -553,10 +553,12 @@ function MemberNickInput({ data, updateData, errors }: InputProps) {
   return (
     <BaseInput
       type="text"
-      field="member_nick"
+      field="member_data"
       title="Member Nickname"
-      value={data.member_nick || ""}
-      updateValue={(v) => updateData({ member_nick: v || undefined })}
+      value={data.member_data?.nick || ""}
+      updateValue={(v) =>
+        updateData({ member_data: v ? { nick: v } : undefined })
+      }
       errors={errors}
       placeholders
     />

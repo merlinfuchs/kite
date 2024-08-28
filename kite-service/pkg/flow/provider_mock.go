@@ -70,7 +70,12 @@ func (p *MockDiscordProvider) EditMessage(ctx context.Context, channelID discord
 	return nil, nil
 }
 
-func (p *MockDiscordProvider) DeleteMessage(ctx context.Context, channelID discord.ChannelID, messageID discord.MessageID) error {
+func (p *MockDiscordProvider) DeleteMessage(
+	ctx context.Context,
+	channelID discord.ChannelID,
+	messageID discord.MessageID,
+	reason api.AuditLogReason,
+) error {
 	return nil
 }
 
@@ -78,7 +83,11 @@ func (p *MockDiscordProvider) BanMember(ctx context.Context, guildID discord.Gui
 	return nil
 }
 
-func (p *MockDiscordProvider) KickMember(ctx context.Context, guildID discord.GuildID, userID discord.UserID, reason string) error {
+func (p *MockDiscordProvider) UnbanMember(ctx context.Context, guildID discord.GuildID, userID discord.UserID, reason api.AuditLogReason) error {
+	return nil
+}
+
+func (p *MockDiscordProvider) KickMember(ctx context.Context, guildID discord.GuildID, userID discord.UserID, reason api.AuditLogReason) error {
 
 	return nil
 }

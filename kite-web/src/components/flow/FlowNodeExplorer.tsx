@@ -40,6 +40,7 @@ const nodeCategories = {
       title: "Members",
       nodeTypes: [
         "action_member_ban",
+        "action_member_unban",
         "action_member_kick",
         "action_member_timeout",
         "action_member_edit",

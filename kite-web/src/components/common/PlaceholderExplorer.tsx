@@ -17,8 +17,8 @@ const placeholderGroups = [
   {
     label: "User",
     placeholders: [
-      "interaction.user",
       "interaction.user.id",
+      "interaction.user.mention",
       "interaction.user.username",
       "interaction.user.discriminator",
       "interaction.user.display_name",

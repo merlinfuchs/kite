@@ -145,6 +145,14 @@ export const nodeActionMemberBanDataSchema = nodeBaseDataSchema.extend({
   audit_log_reason: auditLogReasonSchema,
 });
 
+export const nodeActionMemberUnbanDataSchema = nodeBaseDataSchema.extend({
+  member_target: z
+    .string()
+    .regex(numericRegex)
+    .or(z.string().regex(variableRegex)),
+  audit_log_reason: auditLogReasonSchema,
+});
+
 export const nodeActionMemberKickDataSchema = nodeBaseDataSchema.extend({
   member_target: z
     .string()
@@ -167,11 +175,9 @@ export const nodeActionMemberEditDataSchema = nodeBaseDataSchema.extend({
     .string()
     .regex(numericRegex)
     .or(z.string().regex(variableRegex)),
-  member_nick: z
-    .string()
-    .max(32)
-    .or(z.string().regex(variableRegex))
-    .optional(),
+  member_data: z.object({
+    nick: z.string(),
+  }),
   audit_log_reason: auditLogReasonSchema,
 });
 

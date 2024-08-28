@@ -140,7 +140,7 @@ func (p InteractionProvider) GetPlaceholder(ctx context.Context, key string) (Pr
 }
 
 func (p InteractionProvider) ResolvePlaceholder(ctx context.Context) (string, error) {
-	return "", nil
+	return p.interaction.ID.String(), nil
 }
 
 type CommandProvider struct {
@@ -173,7 +173,7 @@ func (p CommandProvider) GetPlaceholder(ctx context.Context, key string) (Provid
 }
 
 func (p CommandProvider) ResolvePlaceholder(ctx context.Context) (string, error) {
-	return p.cmd.Name, nil
+	return p.cmd.ID.String(), nil
 }
 
 type CommandOptionProvider struct {
@@ -241,7 +241,7 @@ func (p UserProvider) GetPlaceholder(ctx context.Context, key string) (Provider,
 }
 
 func (p UserProvider) ResolvePlaceholder(ctx context.Context) (string, error) {
-	return p.user.Mention(), nil
+	return p.user.ID.String(), nil
 }
 
 type MemberProvider struct {
@@ -268,5 +268,5 @@ func (p MemberProvider) GetPlaceholder(ctx context.Context, key string) (Provide
 }
 
 func (p MemberProvider) ResolvePlaceholder(ctx context.Context) (string, error) {
-	return "<@" + p.member.User.ID.String() + ">", nil
+	return p.member.User.ID.String(), nil
 }

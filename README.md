@@ -63,14 +63,14 @@ Make your own Discord Bot with Kite for free without a single line of code. With
 
 - [x] Create message
   - [x] Current channel
-  - [ ] Other channel
+  - [x] Other channel
 - [x] Delete message
 - [x] Edit message
 
 - [x] Ban user
 - [x] Kick user
 - [x] Timeout member
-- [ ] Edit member
+- [x] Edit member
 
 - [x] API request
 - [x] Log message
