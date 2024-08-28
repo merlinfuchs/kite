@@ -13,6 +13,11 @@ import {
   CommandDeleteResponse,
   CommandUpdateRequest,
   CommandUpdateResponse,
+  MessageCreateRequest,
+  MessageCreateResponse,
+  MessageDeleteResponse,
+  MessageUpdateRequest,
+  MessageUpdateResponse,
   VariableCreateRequest,
   VariableCreateResponse,
   VariableDeleteResponse,
@@ -226,6 +231,68 @@ export function useVariableDeleteMutation(appId: string, variableId: string) {
     onSuccess: () => {
       client.invalidateQueries({
         queryKey: ["apps", appId, "variables"],
+      });
+    },
+  });
+}
+
+export function useMessageCreateMutation(appId: string) {
+  const client = useQueryClient();
+
+  return useMutation({
+    mutationFn: (req: MessageCreateRequest) =>
+      apiRequest<MessageCreateResponse>(`/v1/apps/${appId}/messages`, {
+        method: "POST",
+        body: JSON.stringify(req),
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }),
+    onSuccess: () => {
+      client.invalidateQueries({
+        queryKey: ["apps", appId, "messages"],
+      });
+    },
+  });
+}
+
+export function useMessageUpdateMutation(appId: string, messageId: string) {
+  const client = useQueryClient();
+
+  return useMutation({
+    mutationFn: (req: MessageUpdateRequest) =>
+      apiRequest<MessageUpdateResponse>(
+        `/v1/apps/${appId}/messages/${messageId}`,
+        {
+          method: "PATCH",
+          body: JSON.stringify(req),
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      ),
+    onSuccess: () => {
+      client.invalidateQueries({
+        queryKey: ["apps", appId, "messages"],
+      });
+    },
+  });
+}
+
+export function useMessageDeleteMutation(appId: string, messageId: string) {
+  const client = useQueryClient();
+
+  return useMutation({
+    mutationFn: () =>
+      apiRequest<MessageDeleteResponse>(
+        `/v1/apps/${appId}/messages/${messageId}`,
+        {
+          method: "DELETE",
+        }
+      ),
+    onSuccess: () => {
+      client.invalidateQueries({
+        queryKey: ["apps", appId, "messages"],
       });
     },
   });

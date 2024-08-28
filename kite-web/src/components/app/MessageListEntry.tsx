@@ -1,4 +1,4 @@
-import { StretchHorizontalIcon, VariableIcon } from "lucide-react";
+import { CheckIcon, MailIcon } from "lucide-react";
 import {
   Card,
   CardDescription,
@@ -9,29 +9,26 @@ import {
 import { Button } from "../ui/button";
 import { useRouter } from "next/router";
 import Link from "next/link";
-import { Variable } from "@/lib/types/wire.gen";
+import { Message } from "@/lib/types/wire.gen";
 import ConfirmDialog from "../common/ConfirmDialog";
-import { useVariableDeleteMutation } from "@/lib/api/mutations";
 import { useAppId } from "@/lib/hooks/params";
 import { toast } from "sonner";
+import { useMessageDeleteMutation } from "@/lib/api/mutations";
+import { formatDateTime } from "@/lib/utils";
 
-export default function VariableListEntry({
-  variable,
-}: {
-  variable: Variable;
-}) {
+export default function MessageListEntry({ message }: { message: Message }) {
   const router = useRouter();
 
-  const deleteMutation = useVariableDeleteMutation(useAppId(), variable.id);
+  const deleteMutation = useMessageDeleteMutation(useAppId(), message.id);
 
   function remove() {
     deleteMutation.mutate(undefined, {
       onSuccess(res) {
         if (res.success) {
-          toast.success("Variable deleted!");
+          toast.success("Message template deleted!");
         } else {
           toast.error(
-            `Failed to delete variable: ${res.error.message} (${res.error.code})`
+            `Failed to delete message template: ${res.error.message} (${res.error.code})`
           );
         }
       },
@@ -42,36 +39,29 @@ export default function VariableListEntry({
     <Card>
       <div className="float-right pt-3 pr-4">
         <div className="flex items-center space-x-2">
-          <StretchHorizontalIcon className="h-5 w-5 text-muted-foreground" />
-          <div className="text-sm">{variable.total_values || 0} values</div>
+          <CheckIcon className="h-5 w-5 text-green-500" />
+          <div className="text-sm text-muted-foreground">
+            {formatDateTime(new Date(message.updated_at))}
+          </div>
         </div>
       </div>
       <CardHeader>
         <CardTitle className="text-base flex items-center space-x-2">
-          <VariableIcon className="h-5 w-5 text-muted-foreground" />
-          <div>{variable.name}</div>
+          <MailIcon className="h-5 w-5 text-muted-foreground" />
+          <div>{message.name}</div>
         </CardTitle>
         <CardDescription className="text-sm">
-          This variable stores a{" "}
-          <span className="text-foreground">{variable.type}</span>{" "}
-          {variable.scope === "global" ? (
-            "globally."
-          ) : (
-            <span>
-              for each <span className="text-foreground">{variable.scope}</span>
-              .
-            </span>
-          )}
+          {message.description}
         </CardDescription>
       </CardHeader>
       <CardFooter className="flex space-x-3">
         <Button size="sm" variant="outline" asChild>
           <Link
             href={{
-              pathname: "/apps/[appId]/variables/[variableId]",
+              pathname: "/apps/[appId]/messages/[messageId]",
               query: {
                 appId: router.query.appId,
-                variableId: variable.id,
+                messageId: message.id,
               },
             }}
           >
@@ -79,8 +69,8 @@ export default function VariableListEntry({
           </Link>
         </Button>
         <ConfirmDialog
-          title="Are you sure that you want to delete this variable?"
-          description="This will remove the variable from your app and cannot be undone."
+          title="Are you sure that you want to delete this message?"
+          description="This will remove the message from your app and cannot be undone."
           onConfirm={remove}
         >
           <Button

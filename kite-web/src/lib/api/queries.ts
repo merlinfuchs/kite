@@ -6,6 +6,8 @@ import {
   CommandGetResponse,
   CommandListResponse,
   LogEntryListResponse,
+  MessageGetResponse,
+  MessageListResponse,
   UserGetResponse,
   VariableGetResponse,
   VariableListResponse,
@@ -77,5 +79,23 @@ export function useVariableQuery(appId: string, variableId: string) {
         `/v1/apps/${appId}/variables/${variableId}`
       ),
     enabled: !!appId && !!variableId,
+  });
+}
+
+export function useMessagesQuery(appId: string) {
+  return useQuery({
+    queryKey: ["apps", appId, "messages"],
+    queryFn: () =>
+      apiRequest<MessageListResponse>(`/v1/apps/${appId}/messages`),
+    enabled: !!appId,
+  });
+}
+
+export function useMessageQuery(appId: string, messageId: string) {
+  return useQuery({
+    queryKey: ["apps", appId, "messages", messageId],
+    queryFn: () =>
+      apiRequest<MessageGetResponse>(`/v1/apps/${appId}/messages/${messageId}`),
+    enabled: !!appId && !!messageId,
   });
 }

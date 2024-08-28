@@ -8,12 +8,16 @@ import {
   useCommandQuery,
   useVariablesQuery,
   useVariableQuery,
+  useMessagesQuery,
+  useMessageQuery,
 } from "../api/queries";
 import {
   AppGetResponse,
   AppListResponse,
   CommandGetResponse,
   CommandListResponse,
+  MessageGetResponse,
+  MessageListResponse,
   UserGetResponse,
   VariableGetResponse,
   VariableListResponse,
@@ -96,6 +100,27 @@ export function useVariable(
   const query = useVariableQuery(
     router.query.appId as string,
     router.query.variableId as string
+  );
+  return useResponseData(query, callback);
+}
+
+export function useMessages(
+  callback?: (res: APIResponse<MessageListResponse>) => void
+) {
+  const router = useRouter();
+
+  const query = useMessagesQuery(router.query.appId as string);
+  return useResponseData(query, callback);
+}
+
+export function useMessage(
+  callback?: (res: APIResponse<MessageGetResponse>) => void
+) {
+  const router = useRouter();
+
+  const query = useMessageQuery(
+    router.query.appId as string,
+    router.query.messageId as string
   );
   return useResponseData(query, callback);
 }

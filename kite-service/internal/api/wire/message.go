@@ -3,6 +3,7 @@ package wire
 import (
 	"time"
 
+	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/pkg/flow"
 	"gopkg.in/guregu/null.v4"
@@ -32,6 +33,13 @@ type MessageCreateRequest struct {
 	FlowSources map[string]flow.FlowData `json:"flow_sources"`
 }
 
+func (req MessageCreateRequest) Validate() error {
+	return validation.ValidateStruct(&req,
+		validation.Field(&req.Name, validation.Required, validation.Length(1, 100)),
+		validation.Field(&req.Description, validation.Length(0, 255)),
+	)
+}
+
 type MessageCreateResponse = Message
 
 type MessageUpdateRequest struct {
@@ -39,6 +47,13 @@ type MessageUpdateRequest struct {
 	Description null.String              `json:"description"`
 	Data        model.MessageData        `json:"data"`
 	FlowSources map[string]flow.FlowData `json:"flow_sources"`
+}
+
+func (req MessageUpdateRequest) Validate() error {
+	return validation.ValidateStruct(&req,
+		validation.Field(&req.Name, validation.Required, validation.Length(1, 100)),
+		validation.Field(&req.Description, validation.Length(0, 255)),
+	)
 }
 
 type MessageUpdateResponse = Message

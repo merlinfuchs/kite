@@ -81,6 +81,39 @@ export interface LogEntry {
 export type LogEntryListResponse = (LogEntry | undefined)[];
 
 //////////
+// source: message.go
+
+export interface Message {
+  id: string;
+  name: string;
+  description: null | string;
+  app_id: string;
+  module_id: null | string;
+  creator_user_id: string;
+  data: any /* model.MessageData */;
+  flow_sources: { [key: string]: FlowData};
+  created_at: string /* RFC3339 */;
+  updated_at: string /* RFC3339 */;
+}
+export type MessageGetResponse = Message;
+export type MessageListResponse = (Message | undefined)[];
+export interface MessageCreateRequest {
+  name: string;
+  description: null | string;
+  data: any /* model.MessageData */;
+  flow_sources: { [key: string]: FlowData};
+}
+export type MessageCreateResponse = Message;
+export interface MessageUpdateRequest {
+  name: string;
+  description: null | string;
+  data: any /* model.MessageData */;
+  flow_sources: { [key: string]: FlowData};
+}
+export type MessageUpdateResponse = Message;
+export type MessageDeleteResponse = Empty;
+
+//////////
 // source: user.go
 
 export interface User {
