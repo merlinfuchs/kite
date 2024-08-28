@@ -1,4 +1,4 @@
-CREATE TABLE IF NOT EXISTS message_templates (
+CREATE TABLE IF NOT EXISTS messages (
     id TEXT PRIMARY KEY,
     name TEXT NOT NULL,
     description TEXT,
@@ -8,6 +8,7 @@ CREATE TABLE IF NOT EXISTS message_templates (
 
     app_id TEXT NOT NULL REFERENCES apps(id) ON DELETE CASCADE,
     module_id TEXT REFERENCES modules(id) ON DELETE SET NULL,
+    creator_user_id TEXT NOT NULL,
 
     created_at TIMESTAMP NOT NULL,
     updated_at TIMESTAMP NOT NULL

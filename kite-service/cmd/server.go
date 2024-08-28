@@ -70,8 +70,9 @@ func serverStartCMD(c *cli.Context) error {
 			MaxAppsPerUser:     cfg.API.UserLimits.MaxAppsPerUser,
 			MaxCommandsPerApp:  cfg.API.UserLimits.MaxCommandsPerApp,
 			MaxVariablesPerApp: cfg.API.UserLimits.MaxVariablesPerApp,
+			MaxMessagesPerApp:  cfg.API.UserLimits.MaxMessagesPerApp,
 		},
-	}, pg, pg, pg, pg, pg, pg, pg)
+	}, pg, pg, pg, pg, pg, pg, pg, pg)
 	address := fmt.Sprintf("%s:%d", cfg.API.Host, cfg.API.Port)
 	if err := apiServer.Serve(context.Background(), address); err != nil {
 		slog.With("error", err).Error("Failed to start API server")

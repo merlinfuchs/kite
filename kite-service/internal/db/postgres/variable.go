@@ -18,11 +18,11 @@ func (c *Client) VariablesByApp(ctx context.Context, appID string) ([]*model.Var
 		return nil, err
 	}
 
-	var variables []*model.Variable
-	for _, row := range rows {
+	variables := make([]*model.Variable, len(rows))
+	for i, row := range rows {
 		v := rowToVariable(row.Variable)
 		v.TotalValues = null.NewInt(row.TotalValues, true)
-		variables = append(variables, v)
+		variables[i] = v
 	}
 
 	return variables, nil

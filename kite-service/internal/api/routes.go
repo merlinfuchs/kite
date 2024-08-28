@@ -9,6 +9,7 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/auth"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/command"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/logs"
+	"github.com/kitecloud/kite/kite-service/internal/api/handler/message"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/user"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/variable"
 	"github.com/kitecloud/kite/kite-service/internal/api/session"
@@ -23,11 +24,12 @@ func (s *APIServer) RegisterRoutes(
 	commandStore store.CommandStore,
 	variableStore store.VariableStore,
 	variableValueStore store.VariableValueStore,
+	messageStore store.MessageStore,
 ) {
 	sessionManager := session.NewSessionManager(session.SessionManagerConfig{
 		SecureCookies: s.config.SecureCookies,
 	}, sessionStore)
-	accessManager := access.NewAccessManager(appStore, commandStore, variableStore)
+	accessManager := access.NewAccessManager(appStore, commandStore, variableStore, messageStore)
 
 	// 404 handler
 	s.mux.Handle("/", handler.APIHandler(func(c *handler.Context) error {
@@ -107,4 +109,16 @@ func (s *APIServer) RegisterRoutes(
 	variableGroup.Get("/", handler.Typed(variablesHandler.HandleVariableGet))
 	variableGroup.Patch("/", handler.TypedWithBody(variablesHandler.HandleVariableUpdate))
 	variableGroup.Delete("/", handler.Typed(variablesHandler.HandleVariableDelete))
+
+	// Message routes
+	messageHandler := message.NewMessageHandler(messageStore, s.config.UserLimits.MaxMessagesPerApp)
+
+	messagesGroup := appGroup.Group("/messages")
+	messagesGroup.Get("/", handler.Typed(messageHandler.HandleMessageList))
+	messagesGroup.Post("/", handler.TypedWithBody(messageHandler.HandleMessageCreate))
+
+	messageGroup := messagesGroup.Group("/{messageID}", accessManager.MessageAccess)
+	messageGroup.Get("/", handler.Typed(messageHandler.HandleMessageGet))
+	messageGroup.Patch("/", handler.TypedWithBody(messageHandler.HandleMessageUpdate))
+	messageGroup.Delete("/", handler.Typed(messageHandler.HandleMessageDelete))
 }
