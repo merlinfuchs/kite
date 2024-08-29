@@ -52,7 +52,7 @@ function AppMessagePageInner() {
     });
 
     return unsubscribe;
-  }, [ignoreChange]);
+  }, [ignoreChange, messageStore]);
 
   useEffect(() => {
     if (!message) return;
@@ -65,7 +65,7 @@ function AppMessagePageInner() {
     } else {
       toast.error(`Failed to parse message data: ${res.error.message} `);
     }
-  }, [message]);
+  }, [message, replaceMessage]);
 
   const updateMutation = useMessageUpdateMutation(useAppId(), useMessageId());
 
@@ -99,7 +99,13 @@ function AppMessagePageInner() {
         },
       }
     );
-  }, [message, updateMutation, setIsSaving, setHasUnsavedChanges]);
+  }, [
+    message,
+    updateMutation,
+    setIsSaving,
+    setHasUnsavedChanges,
+    messageStore,
+  ]);
 
   const exit = useCallback(() => {
     if (hasUnsavedChanges) {
