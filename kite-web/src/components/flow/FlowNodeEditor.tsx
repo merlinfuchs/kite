@@ -1015,7 +1015,7 @@ function BaseInput({
 
       updateValue(newValue);
     },
-    [inputRef, textareaRef]
+    [inputRef, textareaRef, type, updateValue]
   );
 
   return (

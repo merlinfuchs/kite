@@ -1,23 +1,105 @@
+import MessageEditor from "@/components/message/MessageEditor";
+import MessageEditorPreview from "@/components/message/MessageEditorPreview";
 import MessageNav from "@/components/message/MessageNav";
+import { Button } from "@/components/ui/button";
+import { Drawer, DrawerContent, DrawerTrigger } from "@/components/ui/drawer";
+import { useMessageUpdateMutation } from "@/lib/api/mutations";
+import { useMessage } from "@/lib/hooks/api";
 import { useBeforePageExit } from "@/lib/hooks/exit";
-import MessageEditor from "@/tools/message-creator/components/MessageEditor";
+import { useAppId, useMessageId } from "@/lib/hooks/params";
+import { messageSchema } from "@/lib/message/schemaRestore";
+import {
+  CurrentMessageStoreProvider,
+  useCurrentMessage,
+  useCurrentMessageStore,
+} from "@/lib/message/state";
+import { ViewIcon } from "lucide-react";
 import Head from "next/head";
 import { useRouter } from "next/router";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
 
-export default function AppMessagePage() {
+function AppMessagePageInner() {
   const router = useRouter();
+
+  const ignoreChange = useRef(false);
+
+  const message = useMessage((res) => {
+    if (!res.success) {
+      toast.error(
+        `Failed to load command: ${res?.error.message} (${res?.error.code})`
+      );
+      if (res.error.code === "unknown_message") {
+        router.push({
+          pathname: "/apps/[appId]/commands",
+          query: { appId: router.query.appId },
+        });
+      }
+    }
+  });
+
+  const messageStore = useCurrentMessageStore();
+  const replaceMessage = useCurrentMessage((state) => state.replace);
 
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
+  useEffect(() => {
+    const unsubscribe = messageStore.subscribe(() => {
+      if (!ignoreChange.current) {
+        setHasUnsavedChanges(true);
+      }
+    });
+
+    return unsubscribe;
+  }, [ignoreChange]);
+
+  useEffect(() => {
+    if (!message) return;
+
+    const res = messageSchema.safeParse(message.data);
+    if (res.success) {
+      ignoreChange.current = true;
+      replaceMessage(res.data);
+      ignoreChange.current = false;
+    } else {
+      toast.error(`Failed to parse message data: ${res.error.message} `);
+    }
+  }, [message]);
+
+  const updateMutation = useMessageUpdateMutation(useAppId(), useMessageId());
+
   const save = useCallback(() => {
+    if (!message) return;
+
     setIsSaving(true);
-    setTimeout(() => {
-      setIsSaving(false);
-      setHasUnsavedChanges(false);
-    }, 1000);
-  }, []);
+
+    const data = messageStore.getState();
+
+    updateMutation.mutate(
+      {
+        name: message.name,
+        description: message.description,
+        data: data,
+        flow_sources: {},
+      },
+      {
+        onSuccess(res) {
+          if (res.success) {
+            toast.success("Message saved!");
+          } else {
+            toast.error(
+              `Failed to update message: ${res.error.message} (${res.error.code})`
+            );
+          }
+        },
+        onSettled() {
+          setIsSaving(false);
+          setHasUnsavedChanges(false);
+        },
+      }
+    );
+  }, [message, updateMutation, setIsSaving, setHasUnsavedChanges]);
 
   const exit = useCallback(() => {
     if (hasUnsavedChanges) {
@@ -58,10 +140,43 @@ export default function AppMessagePage() {
             onExit={exit}
           />
         </div>
-        <div className="flex flex-auto overflow-y-hidden relative">
-          <MessageEditor />
-        </div>
+        {message && (
+          <>
+            <div className="flex flex-auto overflow-y-hidden flex-col xl:flex-row h-full">
+              <div className="flex flex-col xl:w-7/12 py-8 space-y-8 h-full overflow-y-auto px-3 md:px-5 lg:px-10 no-scrollbar">
+                <MessageEditor />
+              </div>
+              <div className="hidden xl:block py-5 w-5/12 h-full overflow-y-auto pr-5 no-scrollbar">
+                <MessageEditorPreview className="rounded-lg" />
+              </div>
+            </div>
+
+            <Drawer>
+              <DrawerTrigger asChild>
+                <Button
+                  size="icon"
+                  className="fixed bottom-5 right-5 xl:hidden"
+                >
+                  <ViewIcon />
+                </Button>
+              </DrawerTrigger>
+              <DrawerContent>
+                <div className="max-h-[80dvh] overlfow-x-hidden overflow-y-auto mt-3">
+                  <MessageEditorPreview reducePadding />
+                </div>
+              </DrawerContent>
+            </Drawer>
+          </>
+        )}
       </div>
     </div>
+  );
+}
+
+export default function AppMessagePage() {
+  return (
+    <CurrentMessageStoreProvider>
+      <AppMessagePageInner />
+    </CurrentMessageStoreProvider>
   );
 }

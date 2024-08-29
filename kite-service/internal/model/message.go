@@ -3,6 +3,7 @@ package model
 import (
 	"time"
 
+	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/kitecloud/kite/kite-service/pkg/flow"
 	"gopkg.in/guregu/null.v4"
 )
@@ -22,5 +23,6 @@ type Message struct {
 
 // TODO: move this type into separate "message" pkg?
 type MessageData struct {
-	Content string `json:"content"`
+	Content string          `json:"content"`
+	Embeds  []discord.Embed `json:"embeds"`
 }
