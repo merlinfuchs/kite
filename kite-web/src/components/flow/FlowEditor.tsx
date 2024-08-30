@@ -42,8 +42,7 @@ export default function FlowEditor({
   const [edges, setEdges, onEdgesChange] = useEdgesState(
     initialData?.edges || []
   );
-  const { getNodes, getEdges, getEdge, getNode, screenToFlowPosition } =
-    useReactFlow();
+  const { getEdge, getNode, screenToFlowPosition } = useReactFlow();
 
   const onConnect = useCallback(
     (con: Connection) => setEdges((eds) => addEdge(con, eds)),

@@ -6,10 +6,12 @@ import { useAppId, useCommandId } from "@/lib/hooks/params";
 import { useBeforePageExit } from "@/lib/hooks/exit";
 import Head from "next/head";
 import { useRouter } from "next/router";
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { toast } from "sonner";
 
 export default function AppCommandPage() {
+  const ignoreChange = useRef(false);
+
   const router = useRouter();
   const cmd = useCommand((res) => {
     if (!res.success) {
@@ -22,6 +24,12 @@ export default function AppCommandPage() {
           query: { appId: router.query.appId },
         });
       }
+    } else {
+      // This is a workaround to ignore the initial change event
+      ignoreChange.current = true;
+      setTimeout(() => {
+        ignoreChange.current = false;
+      }, 100);
     }
   });
 
@@ -29,6 +37,12 @@ export default function AppCommandPage() {
 
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+
+  const onChange = useCallback(() => {
+    if (!ignoreChange.current) {
+      setHasUnsavedChanges(true);
+    }
+  }, [setHasUnsavedChanges, ignoreChange]);
 
   const save = useCallback(
     (data: FlowData) => {
@@ -95,7 +109,7 @@ export default function AppCommandPage() {
         <Flow
           flowData={cmd.flow_source}
           hasUnsavedChanges={hasUnsavedChanges}
-          onChange={() => setHasUnsavedChanges(true)}
+          onChange={onChange}
           isSaving={isSaving}
           onSave={save}
           onExit={exit}
