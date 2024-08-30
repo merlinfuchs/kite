@@ -5,15 +5,19 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { forwardRef, ReactNode } from "react";
 
-export default function MessageControlsButton(props: {
+interface Props {
   icon: any;
   label: string;
   onClick: () => void;
   disabled?: boolean;
-}) {
-  return (
-    <TooltipProvider>
+  ref: ReactNode;
+}
+
+const MessageControlsButton = forwardRef<HTMLButtonElement, Props>(
+  (props, ref) => {
+    return (
       <Tooltip>
         <TooltipTrigger asChild>
           <Button
@@ -22,12 +26,15 @@ export default function MessageControlsButton(props: {
             className="rounded-full"
             disabled={props.disabled}
             onClick={props.onClick}
+            ref={ref}
           >
             <props.icon className="w-5 h-5" />
           </Button>
         </TooltipTrigger>
         <TooltipContent>{props.label}</TooltipContent>
       </Tooltip>
-    </TooltipProvider>
-  );
-}
+    );
+  }
+);
+
+export default MessageControlsButton;
