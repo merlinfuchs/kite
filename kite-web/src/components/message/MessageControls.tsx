@@ -1,14 +1,10 @@
-import {
-  CodeIcon,
-  DatabaseBackupIcon,
-  PaintbrushIcon,
-  Trash2Icon,
-} from "lucide-react";
+import { CodeIcon, PaintbrushIcon, Trash2Icon } from "lucide-react";
 import { useCurrentMessage } from "@/lib/message/state";
 import { useShallow } from "zustand/react/shallow";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
 import MessageControlsButton from "./MessageControlsButton";
 import MessageControlsUndo from "./MessageControlsUndo";
+import MessageJSONDialog from "./MessageJSONDialog";
 
 export default function MessageControls() {
   const [clearMessage, resetMessage] = useCurrentMessage(
@@ -21,16 +17,13 @@ export default function MessageControls() {
         <MessageControlsUndo />
       </div>
       <div className="flex items-center space-x-3">
-        <MessageControlsButton
-          icon={CodeIcon}
-          label="JSON Code"
-          onClick={() => {}}
-        />
-        <MessageControlsButton
-          icon={DatabaseBackupIcon}
-          label="Message Backups"
-          onClick={() => {}}
-        />
+        <MessageJSONDialog>
+          <MessageControlsButton
+            icon={CodeIcon}
+            label="JSON Code"
+            onClick={() => {}}
+          />
+        </MessageJSONDialog>
         <ConfirmDialog
           title="Are you sure that you want to reset the message?"
           description="This will reset all your changes and cannot be undone."

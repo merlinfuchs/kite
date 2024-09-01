@@ -7,7 +7,10 @@ import { useMessageUpdateMutation } from "@/lib/api/mutations";
 import { useMessage } from "@/lib/hooks/api";
 import { useBeforePageExit } from "@/lib/hooks/exit";
 import { useAppId, useMessageId } from "@/lib/hooks/params";
-import { messageSchema } from "@/lib/message/schemaRestore";
+import {
+  messageSchema,
+  parseMessageWithAction,
+} from "@/lib/message/schemaRestore";
 import {
   CurrentMessageStoreProvider,
   useCurrentMessage,
@@ -57,13 +60,14 @@ function AppMessagePageInner() {
   useEffect(() => {
     if (!message) return;
 
-    const res = messageSchema.safeParse(message.data);
-    if (res.success) {
+    try {
+      const data = parseMessageWithAction(message.data);
+
       ignoreChange.current = true;
-      replaceMessage(res.data);
+      replaceMessage(data);
       ignoreChange.current = false;
-    } else {
-      toast.error(`Failed to parse message data: ${res.error.message} `);
+    } catch (e) {
+      toast.error(`Failed to parse message data: ${e}`);
     }
   }, [message, replaceMessage]);
 

@@ -183,6 +183,9 @@ export default function FlowEditor({
       onSelectionChange={onSelectionChange}
       colorMode={theme === "dark" ? "dark" : "light"}
       defaultEdgeOptions={{ type: "delete_button" }}
+      proOptions={{
+        hideAttribution: true,
+      }}
       className="!bg-background flex-auto"
       fitView
     >
