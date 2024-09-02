@@ -249,7 +249,7 @@ func (c *Client) DeleteAllVariableValues(ctx context.Context, variableID string)
 
 func rowToVariableValue(row pgmodel.VariableValue) *model.VariableValue {
 	return &model.VariableValue{
-		ID:         row.ID,
+		ID:         uint64(row.ID),
 		VariableID: row.VariableID,
 		Scope:      null.NewString(row.Scope.String, row.Scope.Valid),
 		Value:      row.Value,

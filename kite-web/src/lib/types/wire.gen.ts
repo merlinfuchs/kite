@@ -112,6 +112,26 @@ export interface MessageUpdateRequest {
 }
 export type MessageUpdateResponse = Message;
 export type MessageDeleteResponse = Empty;
+export interface MessageInstance {
+  id: number /* uint64 */;
+  message_id: string;
+  discord_guild_id: string;
+  discord_channel_id: string;
+  discord_message_id: string;
+  flow_sources: { [key: string]: FlowData};
+  created_at: string /* RFC3339 */;
+  updated_at: string /* RFC3339 */;
+}
+export type MessageInstanceListResponse = (MessageInstance | undefined)[];
+export interface MessageInstanceCreateRequest {
+  discord_guild_id: string;
+  discord_channel_id: string;
+}
+export type MessageInstanceCreateResponse = MessageInstance;
+export interface MessageInstanceUpdateRequest {
+}
+export type MessageInstanceUpdateResponse = MessageInstance;
+export type MessageInstanceDeleteResponse = Empty;
 
 //////////
 // source: user.go

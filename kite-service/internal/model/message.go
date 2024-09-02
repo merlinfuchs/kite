@@ -26,3 +26,14 @@ type MessageData struct {
 	Content string          `json:"content"`
 	Embeds  []discord.Embed `json:"embeds"`
 }
+
+type MessageInstance struct {
+	ID               uint64
+	MessageID        string
+	DiscordGuildID   string
+	DiscordChannelID string
+	DiscordMessageID string
+	FlowSources      map[string]flow.FlowData
+	CreatedAt        time.Time
+	UpdatedAt        time.Time
+}

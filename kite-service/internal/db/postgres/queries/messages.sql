@@ -7,21 +7,6 @@ SELECT * FROM messages WHERE app_id = $1 ORDER BY created_at DESC;
 -- name: CountMessagesByApp :one
 SELECT COUNT(*) FROM messages WHERE app_id = $1;
 
-/*
- id TEXT PRIMARY KEY,
-    name TEXT NOT NULL,
-    description TEXT,
-
-    data JSONB NOT NULL, -- message data
-    flow_sources JSONB NOT NULL, -- map of flow source ids to flow source objects
-
-    app_id TEXT NOT NULL REFERENCES apps(id) ON DELETE CASCADE,
-    module_id TEXT REFERENCES modules(id) ON DELETE SET NULL,
-
-    created_at TIMESTAMP NOT NULL,
-    updated_at TIMESTAMP NOT NULL
-    */
-
 -- name: CreateMessage :one
 INSERT INTO messages (
     id,
@@ -49,3 +34,31 @@ WHERE id = $1 RETURNING *;
 
 -- name: DeleteMessage :exec
 DELETE FROM messages WHERE id = $1;
+
+-- name: CreateMessageInstance :one
+INSERT INTO message_instances (
+    message_id,
+    discord_guild_id,
+    discord_channel_id,
+    discord_message_id,
+    flow_sources,
+    created_at,
+    updated_at
+) VALUES (
+    $1, $2, $3, $4, $5, $6, $7
+) RETURNING *;
+
+-- name: GetMessageInstance :one
+SELECT * FROM message_instances WHERE id = $1 AND message_id = $2;
+
+-- name: GetMessageInstancesByMessage :many
+SELECT * FROM message_instances WHERE message_id = $1 ORDER BY created_at DESC;
+
+-- name: UpdateMessageInstance :one
+UPDATE message_instances SET
+    flow_sources = $3,
+    updated_at = $4
+WHERE id = $1 AND message_id = $2 RETURNING *;
+
+-- name: DeleteMessageInstance :exec
+DELETE FROM message_instances WHERE id = $1 AND message_id = $2;

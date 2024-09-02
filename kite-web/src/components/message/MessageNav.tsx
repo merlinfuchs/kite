@@ -4,9 +4,11 @@ import {
   CheckIcon,
   MoonStarIcon,
   RefreshCwIcon,
+  SendIcon,
   SunIcon,
 } from "lucide-react";
 import { useHookedTheme } from "@/lib/hooks/theme";
+import MessageSendDialog from "./MessageSendDialog";
 
 interface Props {
   hasUnsavedChanges: boolean;
@@ -71,6 +73,12 @@ export default function MessageNav({
             <div>No Unsaved Changes</div>
           </div>
         )}
+        <MessageSendDialog>
+          <button className="flex space-x-2 text-foreground/80 hover:text-foreground items-center">
+            <SendIcon className="h-5 w-5" />
+            <div>Send Message</div>
+          </button>
+        </MessageSendDialog>
       </div>
       <div>
         {theme === "dark" ? (

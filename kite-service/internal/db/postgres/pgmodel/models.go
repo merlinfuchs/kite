@@ -64,6 +64,17 @@ type Message struct {
 	UpdatedAt     pgtype.Timestamp
 }
 
+type MessageInstance struct {
+	ID               int64
+	MessageID        string
+	DiscordGuildID   string
+	DiscordChannelID string
+	DiscordMessageID string
+	FlowSources      []byte
+	CreatedAt        pgtype.Timestamp
+	UpdatedAt        pgtype.Timestamp
+}
+
 type Module struct {
 	ID            string
 	Name          string

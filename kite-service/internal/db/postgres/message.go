@@ -155,3 +155,113 @@ func rowToMessage(row pgmodel.Message) (*model.Message, error) {
 		UpdatedAt:     row.UpdatedAt.Time,
 	}, nil
 }
+
+func (c *Client) MessageInstance(ctx context.Context, messageID string, instanceID uint64) (*model.MessageInstance, error) {
+	row, err := c.Q.GetMessageInstance(ctx, pgmodel.GetMessageInstanceParams{
+		MessageID: messageID,
+		ID:        int64(instanceID),
+	})
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return nil, store.ErrNotFound
+		}
+		return nil, err
+	}
+
+	return rowToMessageInstance(row)
+}
+
+func (c *Client) MessageInstancesByMessage(ctx context.Context, messageID string) ([]*model.MessageInstance, error) {
+	rows, err := c.Q.GetMessageInstancesByMessage(ctx, messageID)
+	if err != nil {
+		return nil, err
+	}
+
+	instances := make([]*model.MessageInstance, len(rows))
+	for i, row := range rows {
+		msg, err := rowToMessageInstance(row)
+		if err != nil {
+			return nil, err
+		}
+		instances[i] = msg
+	}
+
+	return instances, nil
+}
+
+func (c *Client) CreateMessageInstance(ctx context.Context, instance *model.MessageInstance) (*model.MessageInstance, error) {
+	flowSources, err := json.Marshal(instance.FlowSources)
+	if err != nil {
+		return nil, err
+	}
+
+	res, err := c.Q.CreateMessageInstance(ctx, pgmodel.CreateMessageInstanceParams{
+		MessageID:        instance.MessageID,
+		DiscordGuildID:   instance.DiscordGuildID,
+		DiscordChannelID: instance.DiscordChannelID,
+		DiscordMessageID: instance.DiscordMessageID,
+		FlowSources:      flowSources,
+		CreatedAt:        pgtype.Timestamp{Time: instance.CreatedAt.UTC(), Valid: true},
+		UpdatedAt:        pgtype.Timestamp{Time: instance.UpdatedAt.UTC(), Valid: true},
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return rowToMessageInstance(res)
+}
+
+func (c *Client) UpdateMessageInstance(ctx context.Context, instance *model.MessageInstance) (*model.MessageInstance, error) {
+	flowSources, err := json.Marshal(instance.FlowSources)
+	if err != nil {
+		return nil, err
+	}
+
+	res, err := c.Q.UpdateMessageInstance(ctx, pgmodel.UpdateMessageInstanceParams{
+		ID:          int64(instance.ID),
+		MessageID:   instance.MessageID,
+		FlowSources: flowSources,
+		UpdatedAt:   pgtype.Timestamp{Time: instance.UpdatedAt.UTC(), Valid: true},
+	})
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return nil, store.ErrNotFound
+		}
+		return nil, err
+	}
+
+	return rowToMessageInstance(res)
+}
+
+func (c *Client) DeleteMessageInstance(ctx context.Context, messageID string, instanceID uint64) error {
+	err := c.Q.DeleteMessageInstance(ctx, pgmodel.DeleteMessageInstanceParams{
+		MessageID: messageID,
+		ID:        int64(instanceID),
+	})
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return store.ErrNotFound
+		}
+		return err
+	}
+
+	return nil
+}
+
+func rowToMessageInstance(row pgmodel.MessageInstance) (*model.MessageInstance, error) {
+	var flowSources map[string]flow.FlowData
+	if err := json.Unmarshal(row.FlowSources, &flowSources); err != nil {
+		return nil, err
+	}
+
+	return &model.MessageInstance{
+		ID:               uint64(row.ID),
+		MessageID:        row.MessageID,
+		DiscordGuildID:   row.DiscordGuildID,
+		DiscordChannelID: row.DiscordChannelID,
+		DiscordMessageID: row.DiscordMessageID,
+		FlowSources:      flowSources,
+		CreatedAt:        row.CreatedAt.Time,
+		UpdatedAt:        row.UpdatedAt.Time,
+	}, nil
+}

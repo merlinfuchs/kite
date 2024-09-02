@@ -25,6 +25,7 @@ func (s *APIServer) RegisterRoutes(
 	variableStore store.VariableStore,
 	variableValueStore store.VariableValueStore,
 	messageStore store.MessageStore,
+	messageInstanceStore store.MessageInstanceStore,
 ) {
 	sessionManager := session.NewSessionManager(session.SessionManagerConfig{
 		SecureCookies: s.config.SecureCookies,
@@ -111,7 +112,7 @@ func (s *APIServer) RegisterRoutes(
 	variableGroup.Delete("/", handler.Typed(variablesHandler.HandleVariableDelete))
 
 	// Message routes
-	messageHandler := message.NewMessageHandler(messageStore, s.config.UserLimits.MaxMessagesPerApp)
+	messageHandler := message.NewMessageHandler(messageStore, messageInstanceStore, s.config.UserLimits.MaxMessagesPerApp)
 
 	messagesGroup := appGroup.Group("/messages")
 	messagesGroup.Get("/", handler.Typed(messageHandler.HandleMessageList))
@@ -121,4 +122,8 @@ func (s *APIServer) RegisterRoutes(
 	messageGroup.Get("/", handler.Typed(messageHandler.HandleMessageGet))
 	messageGroup.Patch("/", handler.TypedWithBody(messageHandler.HandleMessageUpdate))
 	messageGroup.Delete("/", handler.Typed(messageHandler.HandleMessageDelete))
+	messageGroup.Get("/instances", handler.Typed(messageHandler.HandleMessageInstanceList))
+	messageGroup.Post("/instances", handler.TypedWithBody(messageHandler.HandleMessageInstanceCreate))
+	messageGroup.Put("/instances/{instanceID}", handler.Typed(messageHandler.HandleMessageInstanceUpdate))
+	messageGroup.Delete("/instances/{instanceID}", handler.Typed(messageHandler.HandleMessageInstanceDelete))
 }

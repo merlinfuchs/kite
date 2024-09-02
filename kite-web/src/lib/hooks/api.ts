@@ -10,6 +10,7 @@ import {
   useVariableQuery,
   useMessagesQuery,
   useMessageQuery,
+  useMessageInstancesQuery,
 } from "../api/queries";
 import {
   AppGetResponse,
@@ -17,6 +18,7 @@ import {
   CommandGetResponse,
   CommandListResponse,
   MessageGetResponse,
+  MessageInstanceListResponse,
   MessageListResponse,
   UserGetResponse,
   VariableGetResponse,
@@ -119,6 +121,18 @@ export function useMessage(
   const router = useRouter();
 
   const query = useMessageQuery(
+    router.query.appId as string,
+    router.query.messageId as string
+  );
+  return useResponseData(query, callback);
+}
+
+export function useMessageInstances(
+  callback?: (res: APIResponse<MessageInstanceListResponse>) => void
+) {
+  const router = useRouter();
+
+  const query = useMessageInstancesQuery(
     router.query.appId as string,
     router.query.messageId as string
   );

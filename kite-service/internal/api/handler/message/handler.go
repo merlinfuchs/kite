@@ -13,14 +13,20 @@ import (
 )
 
 type MessageHandler struct {
-	messageStore      store.MessageStore
-	maxMessagesPerApp int
+	messageStore         store.MessageStore
+	messageInstanceStore store.MessageInstanceStore
+	maxMessagesPerApp    int
 }
 
-func NewMessageHandler(messageStore store.MessageStore, maxMessagesPerApp int) *MessageHandler {
+func NewMessageHandler(
+	messageStore store.MessageStore,
+	messageInstanceStore store.MessageInstanceStore,
+	maxMessagesPerApp int,
+) *MessageHandler {
 	return &MessageHandler{
-		messageStore:      messageStore,
-		maxMessagesPerApp: maxMessagesPerApp,
+		messageStore:         messageStore,
+		messageInstanceStore: messageInstanceStore,
+		maxMessagesPerApp:    maxMessagesPerApp,
 	}
 }
 

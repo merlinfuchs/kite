@@ -78,3 +78,46 @@ func MessageToWire(variable *model.Message) *Message {
 		UpdatedAt:     variable.UpdatedAt,
 	}
 }
+
+type MessageInstance struct {
+	ID               uint64                   `json:"id"`
+	MessageID        string                   `json:"message_id"`
+	DiscordGuildID   string                   `json:"discord_guild_id"`
+	DiscordChannelID string                   `json:"discord_channel_id"`
+	DiscordMessageID string                   `json:"discord_message_id"`
+	FlowSources      map[string]flow.FlowData `json:"flow_sources"`
+	CreatedAt        time.Time                `json:"created_at"`
+	UpdatedAt        time.Time                `json:"updated_at"`
+}
+
+type MessageInstanceListResponse = []*MessageInstance
+
+type MessageInstanceCreateRequest struct {
+	DiscordGuildID   string `json:"discord_guild_id"`
+	DiscordChannelID string `json:"discord_channel_id"`
+}
+
+type MessageInstanceCreateResponse = MessageInstance
+
+type MessageInstanceUpdateRequest struct{}
+
+type MessageInstanceUpdateResponse = MessageInstance
+
+type MessageInstanceDeleteResponse = Empty
+
+func MessageInstanceToWire(instance *model.MessageInstance) *MessageInstance {
+	if instance == nil {
+		return nil
+	}
+
+	return &MessageInstance{
+		ID:               instance.ID,
+		MessageID:        instance.MessageID,
+		DiscordGuildID:   instance.DiscordGuildID,
+		DiscordChannelID: instance.DiscordChannelID,
+		DiscordMessageID: instance.DiscordMessageID,
+		FlowSources:      instance.FlowSources,
+		CreatedAt:        instance.CreatedAt,
+		UpdatedAt:        instance.UpdatedAt,
+	}
+}

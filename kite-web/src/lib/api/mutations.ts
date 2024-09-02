@@ -16,6 +16,11 @@ import {
   MessageCreateRequest,
   MessageCreateResponse,
   MessageDeleteResponse,
+  MessageInstanceCreateRequest,
+  MessageInstanceCreateResponse,
+  MessageInstanceDeleteResponse,
+  MessageInstanceUpdateRequest,
+  MessageInstanceUpdateResponse,
   MessageUpdateRequest,
   MessageUpdateResponse,
   VariableCreateRequest,
@@ -293,6 +298,85 @@ export function useMessageDeleteMutation(appId: string, messageId: string) {
     onSuccess: () => {
       client.invalidateQueries({
         queryKey: ["apps", appId, "messages"],
+      });
+    },
+  });
+}
+
+export function useMessageInstanceCreateMutation(
+  appId: string,
+  messageId: string
+) {
+  const client = useQueryClient();
+
+  return useMutation({
+    mutationFn: (req: MessageInstanceCreateRequest) =>
+      apiRequest<MessageInstanceCreateResponse>(
+        `/v1/apps/${appId}/messages/${messageId}/instances`,
+        {
+          method: "POST",
+          body: JSON.stringify(req),
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      ),
+    onSuccess: () => {
+      client.invalidateQueries({
+        queryKey: ["apps", appId, "messages", messageId, "instances"],
+      });
+    },
+  });
+}
+
+export function useMessageInstanceUpdateMutation(
+  appId: string,
+  messageId: string,
+  instanceId: number
+) {
+  const client = useQueryClient();
+
+  return useMutation({
+    mutationFn: (req: MessageInstanceUpdateRequest) =>
+      apiRequest<MessageInstanceUpdateResponse>(
+        `/v1/apps/${appId}/messages/${messageId}/instances/${instanceId}`,
+        {
+          method: "PUT",
+          body: JSON.stringify(req),
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      ),
+    onSuccess: () => {
+      client.invalidateQueries({
+        queryKey: ["apps", appId, "messages", messageId, "instances"],
+      });
+    },
+  });
+}
+
+export function useMessageInstanceDeleteMutation(
+  appId: string,
+  messageId: string,
+  instanceId: number
+) {
+  const client = useQueryClient();
+
+  return useMutation({
+    mutationFn: () =>
+      apiRequest<MessageInstanceDeleteResponse>(
+        `/v1/apps/${appId}/messages/${messageId}/instances/${instanceId}`,
+        {
+          method: "DELETE",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      ),
+    onSuccess: () => {
+      client.invalidateQueries({
+        queryKey: ["apps", appId, "messages", messageId, "instances"],
       });
     },
   });

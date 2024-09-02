@@ -23,21 +23,6 @@ func (q *Queries) CountMessagesByApp(ctx context.Context, appID string) (int64, 
 }
 
 const createMessage = `-- name: CreateMessage :one
-/*
- id TEXT PRIMARY KEY,
-    name TEXT NOT NULL,
-    description TEXT,
-
-    data JSONB NOT NULL, -- message data
-    flow_sources JSONB NOT NULL, -- map of flow source ids to flow source objects
-
-    app_id TEXT NOT NULL REFERENCES apps(id) ON DELETE CASCADE,
-    module_id TEXT REFERENCES modules(id) ON DELETE SET NULL,
-
-    created_at TIMESTAMP NOT NULL,
-    updated_at TIMESTAMP NOT NULL
-    */
-
 INSERT INTO messages (
     id,
     name,
@@ -96,12 +81,74 @@ func (q *Queries) CreateMessage(ctx context.Context, arg CreateMessageParams) (M
 	return i, err
 }
 
+const createMessageInstance = `-- name: CreateMessageInstance :one
+INSERT INTO message_instances (
+    message_id,
+    discord_guild_id,
+    discord_channel_id,
+    discord_message_id,
+    flow_sources,
+    created_at,
+    updated_at
+) VALUES (
+    $1, $2, $3, $4, $5, $6, $7
+) RETURNING id, message_id, discord_guild_id, discord_channel_id, discord_message_id, flow_sources, created_at, updated_at
+`
+
+type CreateMessageInstanceParams struct {
+	MessageID        string
+	DiscordGuildID   string
+	DiscordChannelID string
+	DiscordMessageID string
+	FlowSources      []byte
+	CreatedAt        pgtype.Timestamp
+	UpdatedAt        pgtype.Timestamp
+}
+
+func (q *Queries) CreateMessageInstance(ctx context.Context, arg CreateMessageInstanceParams) (MessageInstance, error) {
+	row := q.db.QueryRow(ctx, createMessageInstance,
+		arg.MessageID,
+		arg.DiscordGuildID,
+		arg.DiscordChannelID,
+		arg.DiscordMessageID,
+		arg.FlowSources,
+		arg.CreatedAt,
+		arg.UpdatedAt,
+	)
+	var i MessageInstance
+	err := row.Scan(
+		&i.ID,
+		&i.MessageID,
+		&i.DiscordGuildID,
+		&i.DiscordChannelID,
+		&i.DiscordMessageID,
+		&i.FlowSources,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
 const deleteMessage = `-- name: DeleteMessage :exec
 DELETE FROM messages WHERE id = $1
 `
 
 func (q *Queries) DeleteMessage(ctx context.Context, id string) error {
 	_, err := q.db.Exec(ctx, deleteMessage, id)
+	return err
+}
+
+const deleteMessageInstance = `-- name: DeleteMessageInstance :exec
+DELETE FROM message_instances WHERE id = $1 AND message_id = $2
+`
+
+type DeleteMessageInstanceParams struct {
+	ID        int64
+	MessageID string
+}
+
+func (q *Queries) DeleteMessageInstance(ctx context.Context, arg DeleteMessageInstanceParams) error {
+	_, err := q.db.Exec(ctx, deleteMessageInstance, arg.ID, arg.MessageID)
 	return err
 }
 
@@ -125,6 +172,64 @@ func (q *Queries) GetMessage(ctx context.Context, id string) (Message, error) {
 		&i.UpdatedAt,
 	)
 	return i, err
+}
+
+const getMessageInstance = `-- name: GetMessageInstance :one
+SELECT id, message_id, discord_guild_id, discord_channel_id, discord_message_id, flow_sources, created_at, updated_at FROM message_instances WHERE id = $1 AND message_id = $2
+`
+
+type GetMessageInstanceParams struct {
+	ID        int64
+	MessageID string
+}
+
+func (q *Queries) GetMessageInstance(ctx context.Context, arg GetMessageInstanceParams) (MessageInstance, error) {
+	row := q.db.QueryRow(ctx, getMessageInstance, arg.ID, arg.MessageID)
+	var i MessageInstance
+	err := row.Scan(
+		&i.ID,
+		&i.MessageID,
+		&i.DiscordGuildID,
+		&i.DiscordChannelID,
+		&i.DiscordMessageID,
+		&i.FlowSources,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const getMessageInstancesByMessage = `-- name: GetMessageInstancesByMessage :many
+SELECT id, message_id, discord_guild_id, discord_channel_id, discord_message_id, flow_sources, created_at, updated_at FROM message_instances WHERE message_id = $1 ORDER BY created_at DESC
+`
+
+func (q *Queries) GetMessageInstancesByMessage(ctx context.Context, messageID string) ([]MessageInstance, error) {
+	rows, err := q.db.Query(ctx, getMessageInstancesByMessage, messageID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []MessageInstance
+	for rows.Next() {
+		var i MessageInstance
+		if err := rows.Scan(
+			&i.ID,
+			&i.MessageID,
+			&i.DiscordGuildID,
+			&i.DiscordChannelID,
+			&i.DiscordMessageID,
+			&i.FlowSources,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const getMessagesByApp = `-- name: GetMessagesByApp :many
@@ -200,6 +305,41 @@ func (q *Queries) UpdateMessage(ctx context.Context, arg UpdateMessageParams) (M
 		&i.AppID,
 		&i.ModuleID,
 		&i.CreatorUserID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const updateMessageInstance = `-- name: UpdateMessageInstance :one
+UPDATE message_instances SET
+    flow_sources = $3,
+    updated_at = $4
+WHERE id = $1 AND message_id = $2 RETURNING id, message_id, discord_guild_id, discord_channel_id, discord_message_id, flow_sources, created_at, updated_at
+`
+
+type UpdateMessageInstanceParams struct {
+	ID          int64
+	MessageID   string
+	FlowSources []byte
+	UpdatedAt   pgtype.Timestamp
+}
+
+func (q *Queries) UpdateMessageInstance(ctx context.Context, arg UpdateMessageInstanceParams) (MessageInstance, error) {
+	row := q.db.QueryRow(ctx, updateMessageInstance,
+		arg.ID,
+		arg.MessageID,
+		arg.FlowSources,
+		arg.UpdatedAt,
+	)
+	var i MessageInstance
+	err := row.Scan(
+		&i.ID,
+		&i.MessageID,
+		&i.DiscordGuildID,
+		&i.DiscordChannelID,
+		&i.DiscordMessageID,
+		&i.FlowSources,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)

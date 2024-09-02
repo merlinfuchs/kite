@@ -7,6 +7,7 @@ import {
   CommandListResponse,
   LogEntryListResponse,
   MessageGetResponse,
+  MessageInstanceListResponse,
   MessageListResponse,
   UserGetResponse,
   VariableGetResponse,
@@ -96,6 +97,17 @@ export function useMessageQuery(appId: string, messageId: string) {
     queryKey: ["apps", appId, "messages", messageId],
     queryFn: () =>
       apiRequest<MessageGetResponse>(`/v1/apps/${appId}/messages/${messageId}`),
+    enabled: !!appId && !!messageId,
+  });
+}
+
+export function useMessageInstancesQuery(appId: string, messageId: string) {
+  return useQuery({
+    queryKey: ["apps", appId, "messages", messageId, "instances"],
+    queryFn: () =>
+      apiRequest<MessageInstanceListResponse>(
+        `/v1/apps/${appId}/messages/${messageId}/instances`
+      ),
     enabled: !!appId && !!messageId,
   });
 }

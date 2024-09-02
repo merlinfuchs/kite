@@ -41,6 +41,7 @@ func NewAPIServer(
 	variableStore store.VariableStore,
 	variableValueStore store.VariableValueStore,
 	messageStore store.MessageStore,
+	messageInstanceStore store.MessageInstanceStore,
 ) *APIServer {
 	s := &APIServer{
 		config: config,
@@ -55,6 +56,7 @@ func NewAPIServer(
 		variableStore,
 		variableValueStore,
 		messageStore,
+		messageInstanceStore,
 	)
 	return s
 }
