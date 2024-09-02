@@ -5,6 +5,9 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/diamondburned/arikawa/v3/api"
+	"github.com/diamondburned/arikawa/v3/discord"
+	"github.com/diamondburned/arikawa/v3/utils/json/option"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler"
 	"github.com/kitecloud/kite/kite-service/internal/api/wire"
 	"github.com/kitecloud/kite/kite-service/internal/model"
@@ -26,14 +29,25 @@ func (h *MessageHandler) HandleMessageInstanceList(c *handler.Context) (*wire.Me
 }
 
 func (h *MessageHandler) HandleMessageInstanceCreate(c *handler.Context, req wire.MessageInstanceCreateRequest) (*wire.MessageInstanceCreateResponse, error) {
-	// TODO: send message
-	discordMessageID := "123"
+	client, err := h.appStateManager.AppClient(c.Context(), c.App.ID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get app client: %w", err)
+	}
+
+	channelID, _ := strconv.ParseUint(req.DiscordChannelID, 10, 64)
+
+	msg, err := client.SendMessageComplex(discord.ChannelID(channelID), api.SendMessageData{
+		Content: c.Message.Data.Content,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to send message: %w", err)
+	}
 
 	instance, err := h.messageInstanceStore.CreateMessageInstance(c.Context(), &model.MessageInstance{
 		MessageID:        c.Message.ID,
 		DiscordGuildID:   req.DiscordGuildID,
 		DiscordChannelID: req.DiscordChannelID,
-		DiscordMessageID: discordMessageID,
+		DiscordMessageID: msg.ID.String(),
 		FlowSources:      c.Message.FlowSources,
 		CreatedAt:        time.Now().UTC(),
 		UpdatedAt:        time.Now().UTC(),
@@ -56,7 +70,20 @@ func (h *MessageHandler) HandleMessageInstanceUpdate(c *handler.Context) (*wire.
 		return nil, fmt.Errorf("failed to get message instance: %w", err)
 	}
 
-	// TODO: update discord message
+	client, err := h.appStateManager.AppClient(c.Context(), c.App.ID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get app client: %w", err)
+	}
+
+	channelID, _ := strconv.ParseUint(instance.DiscordChannelID, 10, 64)
+	messageID, _ := strconv.ParseUint(instance.DiscordMessageID, 10, 64)
+
+	_, err = client.EditMessageComplex(discord.ChannelID(channelID), discord.MessageID(messageID), api.EditMessageData{
+		Content: option.NewNullableString(c.Message.Data.Content),
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to edit message: %w", err)
+	}
 
 	instance, err = h.messageInstanceStore.UpdateMessageInstance(c.Context(), &model.MessageInstance{
 		ID:          instance.ID,

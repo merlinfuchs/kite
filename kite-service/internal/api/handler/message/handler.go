@@ -15,17 +15,20 @@ import (
 type MessageHandler struct {
 	messageStore         store.MessageStore
 	messageInstanceStore store.MessageInstanceStore
+	appStateManager      store.AppStateManager
 	maxMessagesPerApp    int
 }
 
 func NewMessageHandler(
 	messageStore store.MessageStore,
 	messageInstanceStore store.MessageInstanceStore,
+	appStateManager store.AppStateManager,
 	maxMessagesPerApp int,
 ) *MessageHandler {
 	return &MessageHandler{
 		messageStore:         messageStore,
 		messageInstanceStore: messageInstanceStore,
+		appStateManager:      appStateManager,
 		maxMessagesPerApp:    maxMessagesPerApp,
 	}
 }

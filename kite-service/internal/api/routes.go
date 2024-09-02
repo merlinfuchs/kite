@@ -114,7 +114,12 @@ func (s *APIServer) RegisterRoutes(
 	variableGroup.Delete("/", handler.Typed(variablesHandler.HandleVariableDelete))
 
 	// Message routes
-	messageHandler := message.NewMessageHandler(messageStore, messageInstanceStore, s.config.UserLimits.MaxMessagesPerApp)
+	messageHandler := message.NewMessageHandler(
+		messageStore,
+		messageInstanceStore,
+		appStateManager,
+		s.config.UserLimits.MaxMessagesPerApp,
+	)
 
 	messagesGroup := appGroup.Group("/messages")
 	messagesGroup.Get("/", handler.Typed(messageHandler.HandleMessageList))
