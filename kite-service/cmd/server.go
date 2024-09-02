@@ -9,6 +9,7 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/api"
 	"github.com/kitecloud/kite/kite-service/internal/config"
 	"github.com/kitecloud/kite/kite-service/internal/core/engine"
+	"github.com/kitecloud/kite/kite-service/internal/core/event"
 	"github.com/kitecloud/kite/kite-service/internal/core/gateway"
 	"github.com/kitecloud/kite/kite-service/internal/db/postgres"
 	"github.com/kitecloud/kite/kite-service/internal/logging"
@@ -57,7 +58,9 @@ func serverStartCMD(c *cli.Context) error {
 	)
 	engine.Run(ctx)
 
-	gateway := gateway.NewGatewayManager(pg, pg, engine)
+	handler := event.NewEventHandlerWrapper(engine, pg)
+
+	gateway := gateway.NewGatewayManager(pg, pg, handler)
 	gateway.Run(ctx)
 
 	apiServer := api.NewAPIServer(api.APIServerConfig{

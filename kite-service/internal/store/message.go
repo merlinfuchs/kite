@@ -21,4 +21,5 @@ type MessageInstanceStore interface {
 	CreateMessageInstance(ctx context.Context, instance *model.MessageInstance) (*model.MessageInstance, error)
 	UpdateMessageInstance(ctx context.Context, instance *model.MessageInstance) (*model.MessageInstance, error)
 	DeleteMessageInstance(ctx context.Context, messageID string, instanceID uint64) error
+	DeleteMessageInstanceByDiscordMessageID(ctx context.Context, discordMessageID string) error
 }

@@ -19,6 +19,7 @@ import MessageSendInstanceEntry from "./MessageSendInstanceEntry";
 import { useMessageInstanceCreateMutation } from "@/lib/api/mutations";
 import { useAppId, useMessageId } from "@/lib/hooks/params";
 import { toast } from "sonner";
+import { ScrollArea } from "../ui/scroll-area";
 
 export default function MessageSendDialog({
   children,
@@ -85,16 +86,21 @@ export default function MessageSendDialog({
         </div>
 
         <Separator />
-        <div className="flex flex-col space-y-5 max-h-64 overflow-y-auto">
-          {instances?.map((instance) => (
-            <MessageSendInstanceEntry key={instance!.id} instance={instance!} />
-          ))}
-          {instances?.length === 0 && (
-            <div className="text-muted-foreground text-center text-sm font-light">
-              There are no instances of this message yet.
-            </div>
-          )}
-        </div>
+        <ScrollArea className="overflow-y-hidden max-h-64 pr-3">
+          <div className="flex flex-col space-y-5">
+            {instances?.map((instance) => (
+              <MessageSendInstanceEntry
+                key={instance!.id}
+                instance={instance!}
+              />
+            ))}
+            {instances?.length === 0 && (
+              <div className="text-muted-foreground text-center text-sm font-light">
+                There are no instances of this message yet.
+              </div>
+            )}
+          </div>
+        </ScrollArea>
         <Separator />
 
         <DialogFooter>

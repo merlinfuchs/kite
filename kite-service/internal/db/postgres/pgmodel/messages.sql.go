@@ -152,6 +152,15 @@ func (q *Queries) DeleteMessageInstance(ctx context.Context, arg DeleteMessageIn
 	return err
 }
 
+const deleteMessageInstanceByDiscordMessageId = `-- name: DeleteMessageInstanceByDiscordMessageId :exec
+DELETE FROM message_instances WHERE discord_message_id = $1
+`
+
+func (q *Queries) DeleteMessageInstanceByDiscordMessageId(ctx context.Context, discordMessageID string) error {
+	_, err := q.db.Exec(ctx, deleteMessageInstanceByDiscordMessageId, discordMessageID)
+	return err
+}
+
 const getMessage = `-- name: GetMessage :one
 SELECT id, name, description, data, flow_sources, app_id, module_id, creator_user_id, created_at, updated_at FROM messages WHERE id = $1
 `

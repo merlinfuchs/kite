@@ -10,7 +10,7 @@ export default function MessageEditor() {
       <MessageControls />
       <MessageBody />
 
-      <Attachmennts />
+      {/* <Attachmennts /> */}
       <MessageEmbedSection />
 
       <MessageValidator />

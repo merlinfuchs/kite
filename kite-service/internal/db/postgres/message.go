@@ -248,6 +248,18 @@ func (c *Client) DeleteMessageInstance(ctx context.Context, messageID string, in
 	return nil
 }
 
+func (c *Client) DeleteMessageInstanceByDiscordMessageID(ctx context.Context, discordMessageID string) error {
+	err := c.Q.DeleteMessageInstanceByDiscordMessageId(ctx, discordMessageID)
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return store.ErrNotFound
+		}
+		return err
+	}
+
+	return nil
+}
+
 func rowToMessageInstance(row pgmodel.MessageInstance) (*model.MessageInstance, error) {
 	var flowSources map[string]flow.FlowData
 	if err := json.Unmarshal(row.FlowSources, &flowSources); err != nil {

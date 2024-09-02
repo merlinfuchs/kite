@@ -62,3 +62,6 @@ WHERE id = $1 AND message_id = $2 RETURNING *;
 
 -- name: DeleteMessageInstance :exec
 DELETE FROM message_instances WHERE id = $1 AND message_id = $2;
+
+-- name: DeleteMessageInstanceByDiscordMessageId :exec
+DELETE FROM message_instances WHERE discord_message_id = $1;

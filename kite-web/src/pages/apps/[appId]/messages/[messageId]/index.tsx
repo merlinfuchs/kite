@@ -3,6 +3,7 @@ import MessageEditorPreview from "@/components/message/MessageEditorPreview";
 import MessageNav from "@/components/message/MessageNav";
 import { Button } from "@/components/ui/button";
 import { Drawer, DrawerContent, DrawerTrigger } from "@/components/ui/drawer";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { useMessageUpdateMutation } from "@/lib/api/mutations";
 import { useMessage } from "@/lib/hooks/api";
 import { useBeforePageExit } from "@/lib/hooks/exit";
@@ -153,10 +154,10 @@ function AppMessagePageInner() {
         {message && (
           <>
             <div className="flex flex-auto overflow-y-hidden flex-col xl:flex-row h-full">
-              <div className="flex flex-col xl:w-7/12 py-8 space-y-8 h-full overflow-y-auto px-3 md:px-5 lg:px-10 no-scrollbar">
+              <ScrollArea className="flex flex-col xl:w-7/12 py-8 space-y-8 h-full px-3 md:px-5 lg:px-10">
                 <MessageEditor />
-              </div>
-              <div className="hidden xl:block py-5 w-5/12 h-full overflow-y-auto pr-5 no-scrollbar">
+              </ScrollArea>
+              <div className="hidden xl:block py-5 w-5/12 h-full pr-5">
                 <MessageEditorPreview className="rounded-lg" />
               </div>
             </div>
