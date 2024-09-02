@@ -17,7 +17,7 @@ export default function MessageBody() {
 
   return (
     <div className="space-y-5">
-      <div className="flex space-x-3">
+      {/* <div className="flex space-x-3">
         <MessageInput
           label="Username"
           type="text"
@@ -33,7 +33,7 @@ export default function MessageBody() {
           onChange={(v) => setAvatarUrl(v || undefined)}
           validationPath="avatar_url"
         />
-      </div>
+      </div> */}
       <MessageInput
         label="Content"
         type="textarea"

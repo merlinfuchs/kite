@@ -44,7 +44,7 @@ export default function MessageJSONDialog({
     } catch (e) {
       toast.error(`Failed to parse message data: ${e}`);
     }
-  }, [msg.replace, raw]);
+  }, [msg, raw]);
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>

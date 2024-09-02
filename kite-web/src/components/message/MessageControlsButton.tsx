@@ -37,4 +37,5 @@ const MessageControlsButton = forwardRef<HTMLButtonElement, Props>(
   }
 );
 
+MessageControlsButton.displayName = "MessageControlsButton";
 export default MessageControlsButton;

@@ -117,3 +117,15 @@ func (m *GatewayManager) addGateway(ctx context.Context, app *model.App) error {
 
 	return nil
 }
+
+func (m *GatewayManager) AppState(ctx context.Context, appID string) (store.AppStateStore, error) {
+	m.Lock()
+	defer m.Unlock()
+
+	g, ok := m.gateways[appID]
+	if !ok {
+		return nil, store.ErrNotFound
+	}
+
+	return g, nil
+}

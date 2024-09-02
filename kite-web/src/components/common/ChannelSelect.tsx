@@ -1,37 +1,76 @@
-import { Input } from "../ui/input";
+import { useAppStateGuildChannels } from "@/lib/hooks/api";
+import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
+import { Button } from "../ui/button";
+import { CheckIcon, ChevronsUpDownIcon } from "lucide-react";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "../ui/select";
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "../ui/command";
+import { cn } from "@/lib/utils";
+import { useState } from "react";
 
 export default function ChannelSelect({
+  guildId,
   value,
   onChange,
 }: {
-  value: string;
-  onChange: (value: string) => void;
+  guildId: string | null;
+  value: string | null;
+  onChange: (value: string | null) => void;
 }) {
-  /* return (
-    <Select>
-      <SelectTrigger className="w-full">
-        <SelectValue placeholder="Channel" />
-      </SelectTrigger>
-      <SelectContent>
-        <SelectItem value="light">Light</SelectItem>
-        <SelectItem value="dark">Dark</SelectItem>
-        <SelectItem value="system">System</SelectItem>
-      </SelectContent>
-    </Select>
-  ); */
+  const channels = useAppStateGuildChannels(guildId);
+
+  const [open, setOpen] = useState(false);
 
   return (
-    <Input
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      placeholder="Channel ID"
-    />
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          variant="outline"
+          role="combobox"
+          aria-expanded={open}
+          className="w-full justify-between truncate flex"
+        >
+          <div className="truncate">
+            {value
+              ? channels?.find((c) => c!.id === value)?.name
+              : "Select channel..."}
+          </div>
+          <ChevronsUpDownIcon className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-[200px] p-0">
+        <Command>
+          <CommandInput placeholder="Search channel..." />
+          <CommandList>
+            <CommandEmpty>No channel found.</CommandEmpty>
+            <CommandGroup>
+              {channels?.map((channel) => (
+                <CommandItem
+                  key={channel!.id}
+                  value={channel!.id}
+                  onSelect={(currentValue) => {
+                    onChange(currentValue);
+                    setOpen(false);
+                  }}
+                >
+                  <CheckIcon
+                    className={cn(
+                      "mr-2 h-4 w-4",
+                      value === channel!.id ? "opacity-100" : "opacity-0"
+                    )}
+                  />
+                  {channel!.name}
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
   );
 }

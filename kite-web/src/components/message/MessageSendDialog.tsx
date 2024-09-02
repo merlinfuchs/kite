@@ -26,8 +26,8 @@ export default function MessageSendDialog({
   children: ReactNode;
 }) {
   const [open, setOpen] = useState(false);
-  const [guildId, setGuildId] = useState("");
-  const [channelId, setChannelId] = useState("");
+  const [guildId, setGuildId] = useState<string | null>(null);
+  const [channelId, setChannelId] = useState<string | null>(null);
 
   const instances = useMessageInstances();
   const createMutation = useMessageInstanceCreateMutation(
@@ -55,7 +55,7 @@ export default function MessageSendDialog({
         },
       }
     );
-  }, [setOpen, createMutation, channelId, guildId]);
+  }, [createMutation, channelId, guildId]);
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -65,13 +65,17 @@ export default function MessageSendDialog({
           <DialogTitle>Send Message</DialogTitle>
           <DialogDescription>
             Send the message to the selected channel. The bot must be in the
-            server and have the "Manage Webhooks" permission.
+            server and have the &quot;Manage Webhooks&quot; permission.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="flex flex-col sm:flex-row gap-2">
+        <div className="flex flex-col sm:flex-row gap-2 overflow-x-hidden">
           <GuildSelect value={guildId} onChange={setGuildId} />
-          <ChannelSelect value={channelId} onChange={setChannelId} />
+          <ChannelSelect
+            guildId={guildId || null}
+            value={channelId}
+            onChange={setChannelId}
+          />
           <LoadingButton
             onClick={createInstance}
             loading={createMutation.isPending}

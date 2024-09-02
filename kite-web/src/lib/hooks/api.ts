@@ -11,6 +11,8 @@ import {
   useMessagesQuery,
   useMessageQuery,
   useMessageInstancesQuery,
+  useAppStateGuildsQuery,
+  useAppStateGuildChannelsQuery,
 } from "../api/queries";
 import {
   AppGetResponse,
@@ -20,6 +22,8 @@ import {
   MessageGetResponse,
   MessageInstanceListResponse,
   MessageListResponse,
+  StateGuildChannelListResponse,
+  StateGuildListResponse,
   UserGetResponse,
   VariableGetResponse,
   VariableListResponse,
@@ -137,4 +141,50 @@ export function useMessageInstances(
     router.query.messageId as string
   );
   return useResponseData(query, callback);
+}
+
+export function useAppStateGuilds(
+  callback?: (res: APIResponse<StateGuildListResponse>) => void
+) {
+  const router = useRouter();
+
+  const query = useAppStateGuildsQuery(router.query.appId as string);
+  return useResponseData(query, callback);
+}
+
+export function useAppStateGuild(guildId: string | null) {
+  const router = useRouter();
+
+  const query = useAppStateGuildsQuery(router.query.appId as string);
+  const data = useResponseData(query);
+
+  return data?.find((g) => g!.id === guildId);
+}
+
+export function useAppStateGuildChannels(
+  guildId: string | null,
+  callback?: (res: APIResponse<StateGuildChannelListResponse>) => void
+) {
+  const router = useRouter();
+
+  const query = useAppStateGuildChannelsQuery(
+    router.query.appId as string,
+    guildId
+  );
+  return useResponseData(query, callback);
+}
+
+export function useAppStateGuildChannel(
+  guildId: string | null,
+  channelId: string | null
+) {
+  const router = useRouter();
+
+  const query = useAppStateGuildChannelsQuery(
+    router.query.appId as string,
+    guildId
+  );
+  const data = useResponseData(query);
+
+  return data?.find((c) => c!.id === channelId);
 }

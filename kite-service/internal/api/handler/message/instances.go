@@ -57,7 +57,6 @@ func (h *MessageHandler) HandleMessageInstanceUpdate(c *handler.Context) (*wire.
 	}
 
 	// TODO: update discord message
-	fmt.Println(instance.DiscordChannelID)
 
 	instance, err = h.messageInstanceStore.UpdateMessageInstance(c.Context(), &model.MessageInstance{
 		ID:          instance.ID,

@@ -6,6 +6,7 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/api/access"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/app"
+	appstate "github.com/kitecloud/kite/kite-service/internal/api/handler/app_state"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/auth"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/command"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/logs"
@@ -26,6 +27,7 @@ func (s *APIServer) RegisterRoutes(
 	variableValueStore store.VariableValueStore,
 	messageStore store.MessageStore,
 	messageInstanceStore store.MessageInstanceStore,
+	appStateManager store.AppStateManager,
 ) {
 	sessionManager := session.NewSessionManager(session.SessionManagerConfig{
 		SecureCookies: s.config.SecureCookies,
@@ -126,4 +128,11 @@ func (s *APIServer) RegisterRoutes(
 	messageGroup.Post("/instances", handler.TypedWithBody(messageHandler.HandleMessageInstanceCreate))
 	messageGroup.Put("/instances/{instanceID}", handler.Typed(messageHandler.HandleMessageInstanceUpdate))
 	messageGroup.Delete("/instances/{instanceID}", handler.Typed(messageHandler.HandleMessageInstanceDelete))
+
+	// State routes
+	stateHandler := appstate.NewAppStateHandler(appStateManager)
+
+	stateGroup := appGroup.Group("/state")
+	stateGroup.Get("/guilds", handler.Typed(stateHandler.HandleStateGuildList))
+	stateGroup.Get("/guilds/{guildID}/channels", handler.Typed(stateHandler.HandleStateGuildChannelList))
 }

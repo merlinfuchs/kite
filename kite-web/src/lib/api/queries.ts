@@ -9,6 +9,8 @@ import {
   MessageGetResponse,
   MessageInstanceListResponse,
   MessageListResponse,
+  StateGuildChannelListResponse,
+  StateGuildListResponse,
   UserGetResponse,
   VariableGetResponse,
   VariableListResponse,
@@ -109,5 +111,28 @@ export function useMessageInstancesQuery(appId: string, messageId: string) {
         `/v1/apps/${appId}/messages/${messageId}/instances`
       ),
     enabled: !!appId && !!messageId,
+  });
+}
+
+export function useAppStateGuildsQuery(appId: string) {
+  return useQuery({
+    queryKey: ["apps", appId, "state", "guilds"],
+    queryFn: () =>
+      apiRequest<StateGuildListResponse>(`/v1/apps/${appId}/state/guilds`),
+    enabled: !!appId,
+  });
+}
+
+export function useAppStateGuildChannelsQuery(
+  appId: string,
+  guildId: string | null
+) {
+  return useQuery({
+    queryKey: ["apps", appId, "state", "guilds", guildId, "channels"],
+    queryFn: () =>
+      apiRequest<StateGuildChannelListResponse>(
+        `/v1/apps/${appId}/state/guilds/${guildId}/channels`
+      ),
+    enabled: !!appId && !!guildId,
   });
 }

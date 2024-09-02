@@ -35,6 +35,23 @@ export type AppDeleteResponse = Empty;
 export type AppListResponse = (App | undefined)[];
 
 //////////
+// source: app_state.go
+
+export interface Guild {
+  id: string;
+  name: string;
+  description: string;
+}
+export type StateGuildListResponse = (Guild | undefined)[];
+export interface Channel {
+  id: string;
+  type: number /* int */;
+  name: string;
+  topic: string;
+}
+export type StateGuildChannelListResponse = (Channel | undefined)[];
+
+//////////
 // source: auth.go
 
 export type AuthLogoutResponse = Empty;
