@@ -20,12 +20,13 @@ import (
 )
 
 type Command struct {
-	config     EngineConfig
-	cmd        *model.Command
-	flow       *flow.CompiledFlowNode
-	appStore   store.AppStore
-	logStore   store.LogStore
-	httpClient *http.Client
+	config       EngineConfig
+	cmd          *model.Command
+	flow         *flow.CompiledFlowNode
+	appStore     store.AppStore
+	logStore     store.LogStore
+	messageStore store.MessageStore
+	httpClient   *http.Client
 }
 
 func NewCommand(
@@ -33,6 +34,7 @@ func NewCommand(
 	cmd *model.Command,
 	appStore store.AppStore,
 	logStore store.LogStore,
+	messageStore store.MessageStore,
 	httpClient *http.Client,
 ) (*Command, error) {
 	flow, err := flow.CompileCommand(cmd.FlowSource)
@@ -41,12 +43,13 @@ func NewCommand(
 	}
 
 	return &Command{
-		config:     config,
-		cmd:        cmd,
-		flow:       flow,
-		appStore:   appStore,
-		logStore:   logStore,
-		httpClient: httpClient,
+		config:       config,
+		cmd:          cmd,
+		flow:         flow,
+		appStore:     appStore,
+		logStore:     logStore,
+		messageStore: messageStore,
+		httpClient:   httpClient,
 	}, nil
 }
 
@@ -57,9 +60,10 @@ func (c *Command) HandleEvent(appID string, session *state.State, event gateway.
 	}
 
 	providers := flow.FlowProviders{
-		Discord: NewDiscordProvider(appID, c.appStore, session),
-		Log:     NewLogProvider(appID, c.logStore),
-		HTTP:    NewHTTPProvider(c.httpClient),
+		Discord:         NewDiscordProvider(appID, c.appStore, session),
+		Log:             NewLogProvider(appID, c.logStore),
+		HTTP:            NewHTTPProvider(c.httpClient),
+		MessageTemplate: NewMessageTemplateProvider(c.messageStore),
 		// TODO: Variable provider
 	}
 

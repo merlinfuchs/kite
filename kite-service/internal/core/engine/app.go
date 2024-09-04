@@ -22,6 +22,7 @@ type App struct {
 	config       EngineConfig
 	appStore     store.AppStore
 	logStore     store.LogStore
+	messageStore store.MessageStore
 	commandStore store.CommandStore
 	httpClient   *http.Client
 
@@ -36,6 +37,7 @@ func NewApp(
 	id string,
 	appStore store.AppStore,
 	logStore store.LogStore,
+	messageStore store.MessageStore,
 	commandStore store.CommandStore,
 	httpClient *http.Client,
 ) *App {
@@ -44,6 +46,7 @@ func NewApp(
 		config:       config,
 		appStore:     appStore,
 		logStore:     logStore,
+		messageStore: messageStore,
 		commandStore: commandStore,
 		httpClient:   httpClient,
 		commands:     make(map[string]*Command),
@@ -55,7 +58,14 @@ func (a *App) AddCommand(cmd *model.Command) {
 	a.Lock()
 	defer a.Unlock()
 
-	command, err := NewCommand(a.config, cmd, a.appStore, a.logStore, a.httpClient)
+	command, err := NewCommand(
+		a.config,
+		cmd,
+		a.appStore,
+		a.logStore,
+		a.messageStore,
+		a.httpClient,
+	)
 	if err != nil {
 		slog.With("error", err).Error("failed to create command")
 		return

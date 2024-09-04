@@ -4,8 +4,8 @@
 // source: data.go
 
 export interface MessageData {
-  content: string;
-  flags: number /* int */;
+  content?: string;
+  flags?: number /* int */;
   embeds: EmbedData[];
 }
 export interface EmbedData {

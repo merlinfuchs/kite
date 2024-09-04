@@ -3,8 +3,8 @@ package message
 import "time"
 
 type MessageData struct {
-	Content string      `json:"content"`
-	Flags   int         `json:"flags"`
+	Content string      `json:"content,omitempty"`
+	Flags   int         `json:"flags,omitempty"`
 	Embeds  []EmbedData `json:"embeds"`
 }
 

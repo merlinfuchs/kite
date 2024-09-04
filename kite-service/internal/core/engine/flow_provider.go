@@ -14,6 +14,7 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/internal/store"
 	"github.com/kitecloud/kite/kite-service/pkg/flow"
+	"github.com/kitecloud/kite/kite-service/pkg/message"
 )
 
 type DiscordProvider struct {
@@ -185,7 +186,7 @@ func (p *VariableProvider) SetVariable(ctx context.Context, id string, value flo
 	return nil
 }
 
-func (p *VariableProvider) GetVariable(ctx context.Context, id string) (flow.FlowValue, error) {
+func (p *VariableProvider) Variable(ctx context.Context, id string) (flow.FlowValue, error) {
 	row, err := p.variableValueStore.VariableValue(ctx, id, p.scope)
 	if err != nil {
 		return flow.FlowValue{}, fmt.Errorf("failed to get variable value: %w", err)
@@ -207,4 +208,23 @@ func (p *VariableProvider) DeleteVariable(ctx context.Context, id string) error 
 	}
 
 	return nil
+}
+
+type MessageTemplateProvider struct {
+	messageStore store.MessageStore
+}
+
+func NewMessageTemplateProvider(messageStore store.MessageStore) *MessageTemplateProvider {
+	return &MessageTemplateProvider{
+		messageStore: messageStore,
+	}
+}
+
+func (p *MessageTemplateProvider) MessageTemplate(ctx context.Context, id string) (*message.MessageData, error) {
+	message, err := p.messageStore.Message(ctx, id)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get message: %w", err)
+	}
+
+	return &message.Data, nil
 }

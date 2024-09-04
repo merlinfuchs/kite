@@ -7,6 +7,7 @@ import (
 
 	"github.com/diamondburned/arikawa/v3/api"
 	"github.com/diamondburned/arikawa/v3/discord"
+	"github.com/kitecloud/kite/kite-service/pkg/message"
 )
 
 var (
@@ -14,11 +15,11 @@ var (
 )
 
 type FlowProviders struct {
-	Discord  FlowDiscordProvider
-	KV       FlowKVProvider
-	HTTP     FlowHTTPProvider
-	Log      FlowLogProvider
-	Variable FlowVariableProvider
+	Discord         FlowDiscordProvider
+	HTTP            FlowHTTPProvider
+	Log             FlowLogProvider
+	Variable        FlowVariableProvider
+	MessageTemplate FlowMessageTemplateProvider
 }
 
 type FlowDiscordProvider interface {
@@ -53,8 +54,6 @@ type FlowDiscordProvider interface {
 	DeleteRole(ctx context.Context, guildID discord.GuildID, roleID discord.RoleID) error
 }
 
-type FlowKVProvider interface{}
-
 type FlowHTTPProvider interface {
 	HTTPRequest(ctx context.Context, req *http.Request) (*http.Response, error)
 }
@@ -65,6 +64,10 @@ type FlowLogProvider interface {
 
 type FlowVariableProvider interface {
 	SetVariable(ctx context.Context, id string, value FlowValue) error
-	GetVariable(ctx context.Context, id string) (FlowValue, error)
+	Variable(ctx context.Context, id string) (FlowValue, error)
 	DeleteVariable(ctx context.Context, id string) error
+}
+
+type FlowMessageTemplateProvider interface {
+	MessageTemplate(ctx context.Context, id string) (*message.MessageData, error)
 }

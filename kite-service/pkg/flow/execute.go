@@ -8,6 +8,7 @@ import (
 	"github.com/diamondburned/arikawa/v3/api"
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/utils/json/option"
+	"github.com/kitecloud/kite/kite-service/pkg/message"
 )
 
 func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
@@ -40,7 +41,17 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 
 		// TODO: this should figure if it's a follow-up or not
 
-		data := n.Data.MessageData.Copy()
+		var data message.MessageData
+		if n.Data.MessageTemplateID != "" {
+			template, err := ctx.MessageTemplate.MessageTemplate(ctx, n.Data.MessageTemplateID)
+			if err != nil {
+				return traceError(n, err)
+			}
+			data = *template
+		} else {
+			data = n.Data.MessageData.Copy()
+		}
+
 		if n.Data.MessageEphemeral {
 			data.Flags |= int(discord.EphemeralMessage)
 		}
@@ -75,9 +86,15 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 
 		// TODO: this should figure if it's a follow-up or not
 
-		data := n.Data.MessageData.Copy()
-		if n.Data.MessageEphemeral {
-			data.Flags |= int(discord.EphemeralMessage)
+		var data message.MessageData
+		if n.Data.MessageTemplateID != "" {
+			template, err := ctx.MessageTemplate.MessageTemplate(ctx, n.Data.MessageTemplateID)
+			if err != nil {
+				return traceError(n, err)
+			}
+			data = *template
+		} else {
+			data = n.Data.MessageData.Copy()
 		}
 
 		var err error
@@ -113,7 +130,17 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 
 		return n.executeChildren(ctx)
 	case FlowNodeTypeActionMessageCreate:
-		data := n.Data.MessageData.Copy()
+		var data message.MessageData
+		if n.Data.MessageTemplateID != "" {
+			template, err := ctx.MessageTemplate.MessageTemplate(ctx, n.Data.MessageTemplateID)
+			if err != nil {
+				return traceError(n, err)
+			}
+			data = *template
+		} else {
+			data = n.Data.MessageData.Copy()
+		}
+
 		if n.Data.MessageEphemeral {
 			data.Flags |= int(discord.EphemeralMessage)
 		}
@@ -144,7 +171,17 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			return traceError(n, err)
 		}
 
-		data := n.Data.MessageData.Copy()
+		var data message.MessageData
+		if n.Data.MessageTemplateID != "" {
+			template, err := ctx.MessageTemplate.MessageTemplate(ctx, n.Data.MessageTemplateID)
+			if err != nil {
+				return traceError(n, err)
+			}
+			data = *template
+		} else {
+			data = n.Data.MessageData.Copy()
+		}
+
 		if n.Data.MessageEphemeral {
 			data.Flags |= int(discord.EphemeralMessage)
 		}
