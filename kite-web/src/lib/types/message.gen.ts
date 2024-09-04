@@ -5,6 +5,7 @@
 
 export interface MessageData {
   content: string;
+  flags: number /* int */;
   embeds: EmbedData[];
 }
 export interface EmbedData {
@@ -15,7 +16,7 @@ export interface EmbedData {
   color?: number /* int */;
   footer?: EmbedFooterData;
   image?: EmbedImageData;
-  thumbnail?: EmbedImageData;
+  thumbnail?: EmbedThumbnailData;
   author?: EmbedAuthorData;
   fields?: EmbedFieldData[];
 }
@@ -24,6 +25,9 @@ export interface EmbedFooterData {
   icon_url?: string;
 }
 export interface EmbedImageData {
+  url?: string;
+}
+export interface EmbedThumbnailData {
   url?: string;
 }
 export interface EmbedAuthorData {

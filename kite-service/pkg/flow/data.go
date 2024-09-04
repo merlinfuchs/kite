@@ -5,6 +5,7 @@ import (
 
 	"github.com/diamondburned/arikawa/v3/api"
 	validation "github.com/go-ozzo/ozzo-validation/v4"
+	"github.com/kitecloud/kite/kite-service/pkg/message"
 )
 
 var commandNameRe = regexp.MustCompile(`^[a-z0-9_]+$`)
@@ -100,31 +101,31 @@ type FlowNodeData struct {
 	CommandDisabledContexts []CommandContextType `json:"command_disabled_contexts,omitempty"`
 
 	// Message & Response Create, edit, Delete
-	MessageTarget     FlowString          `json:"message_target,omitempty"`
-	MessageData       api.SendMessageData `json:"message_data,omitempty"`
-	MessageTemplateID string              `json:"message_template_id,omitempty"`
-	MessageEphemeral  bool                `json:"message_ephemeral,omitempty"`
+	MessageTarget     FlowString           `json:"message_target,omitempty"`
+	MessageData       *message.MessageData `json:"message_data,omitempty"`
+	MessageTemplateID string               `json:"message_template_id,omitempty"`
+	MessageEphemeral  bool                 `json:"message_ephemeral,omitempty"`
 
 	// Member Ban, Kick, Timeout
-	MemberTarget                          FlowString           `json:"member_target,omitempty"`
-	MemberBanDeleteMessageDurationSeconds FlowString           `json:"member_ban_delete_message_duration_seconds,omitempty"`
-	MemberTimeoutDurationSeconds          FlowString           `json:"member_timeout_duration_seconds,omitempty"`
-	MemberData                            api.ModifyMemberData `json:"member_data,omitempty"`
+	MemberTarget                          FlowString            `json:"member_target,omitempty"`
+	MemberBanDeleteMessageDurationSeconds FlowString            `json:"member_ban_delete_message_duration_seconds,omitempty"`
+	MemberTimeoutDurationSeconds          FlowString            `json:"member_timeout_duration_seconds,omitempty"`
+	MemberData                            *api.ModifyMemberData `json:"member_data,omitempty"`
 
 	// Channel Create, Edit, Delete
-	ChannelTarget FlowString            `json:"channel_target,omitempty"`
-	ChannelData   api.CreateChannelData `json:"channel_data,omitempty"`
+	ChannelTarget FlowString             `json:"channel_target,omitempty"`
+	ChannelData   *api.CreateChannelData `json:"channel_data,omitempty"`
 
 	// Role Create, Edit, Delete
-	RoleTarget FlowString         `json:"role_target,omitempty"`
-	RoleData   api.CreateRoleData `json:"role_data,omitempty"`
+	RoleTarget FlowString          `json:"role_target,omitempty"`
+	RoleData   *api.CreateRoleData `json:"role_data,omitempty"`
 
 	// Variable Set, Delete
 	VariableName  string     `json:"variable_name,omitempty"`
 	VariableValue FlowString `json:"variable_value,omitempty"`
 
 	// HTTP Request
-	HTTPRequestData HTTPRequestData `json:"http_request_data,omitempty"`
+	HTTPRequestData *HTTPRequestData `json:"http_request_data,omitempty"`
 
 	// Event Entry
 	EventType string `json:"event_type,omitempty"`

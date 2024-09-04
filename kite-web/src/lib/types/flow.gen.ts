@@ -73,7 +73,7 @@ export interface FlowNodeData {
    * Message & Response Create, edit, Delete
    */
   message_target?: FlowString;
-  message_data?: any /* api.SendMessageData */;
+  message_data?: any /* message.MessageData */;
   message_template_id?: string;
   message_ephemeral?: boolean;
   /**

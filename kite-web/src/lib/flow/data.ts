@@ -74,25 +74,39 @@ export const nodeEntryEventDataSchema = nodeBaseDataSchema.extend({
   event_type: z.string(),
 });
 
-export const nodeActionResponseCreateDataSchema = nodeBaseDataSchema.extend({
-  message_data: z.object({
-    content: z.string().max(2000).min(1),
-  }),
-  message_template_id: z.string().optional(),
-  message_ephemeral: z.boolean().optional(),
-});
+export const nodeActionResponseCreateDataSchema = nodeBaseDataSchema
+  .extend({
+    message_data: z
+      .object({
+        content: z.string().max(2000).min(1),
+      })
+      .optional(),
+    message_template_id: z.string().optional(),
+    message_ephemeral: z.boolean().optional(),
+  })
+  .refine(
+    (data) => !!data.message_data || !!data.message_template_id,
+    "Either message_data or message_template_id is required"
+  );
 
-export const nodeActionResponseEditDataSchema = nodeBaseDataSchema.extend({
-  message_target: z
-    .string()
-    .regex(numericRegex)
-    .or(z.string().regex(variableRegex))
-    .or(z.literal("@original")),
-  message_data: z.object({
-    content: z.string().max(2000).min(1),
-  }),
-  message_template_id: z.string().optional(),
-});
+export const nodeActionResponseEditDataSchema = nodeBaseDataSchema
+  .extend({
+    message_target: z
+      .string()
+      .regex(numericRegex)
+      .or(z.string().regex(variableRegex))
+      .or(z.literal("@original")),
+    message_data: z
+      .object({
+        content: z.string().max(2000).min(1),
+      })
+      .optional(),
+    message_template_id: z.string().optional(),
+  })
+  .refine(
+    (data) => !!data.message_data || !!data.message_template_id,
+    "Either message_data or message_template_id is required"
+  );
 
 export const nodeActionResponseDeleteDataSchema = nodeBaseDataSchema.extend({
   message_target: z
@@ -102,31 +116,45 @@ export const nodeActionResponseDeleteDataSchema = nodeBaseDataSchema.extend({
     .or(z.literal("@original")),
 });
 
-export const nodeActionMessageCreateDataSchema = nodeBaseDataSchema.extend({
-  channel_target: z
-    .string()
-    .regex(numericRegex)
-    .or(z.string().regex(variableRegex)),
-  message_data: z.object({
-    content: z.string().max(2000).min(1),
-  }),
-  message_template_id: z.string().optional(),
-});
+export const nodeActionMessageCreateDataSchema = nodeBaseDataSchema
+  .extend({
+    channel_target: z
+      .string()
+      .regex(numericRegex)
+      .or(z.string().regex(variableRegex)),
+    message_data: z
+      .object({
+        content: z.string().max(2000).min(1),
+      })
+      .optional(),
+    message_template_id: z.string().optional(),
+  })
+  .refine(
+    (data) => !!data.message_data || !!data.message_template_id,
+    "Either message_data or message_template_id is required"
+  );
 
-export const nodeActionMessageEditDataSchema = nodeBaseDataSchema.extend({
-  channel_target: z
-    .string()
-    .regex(numericRegex)
-    .or(z.string().regex(variableRegex)),
-  message_target: z
-    .string()
-    .regex(numericRegex)
-    .or(z.string().regex(variableRegex)),
-  message_data: z.object({
-    content: z.string().max(2000).min(1),
-  }),
-  message_template_id: z.string().optional(),
-});
+export const nodeActionMessageEditDataSchema = nodeBaseDataSchema
+  .extend({
+    channel_target: z
+      .string()
+      .regex(numericRegex)
+      .or(z.string().regex(variableRegex)),
+    message_target: z
+      .string()
+      .regex(numericRegex)
+      .or(z.string().regex(variableRegex)),
+    message_data: z
+      .object({
+        content: z.string().max(2000).min(1),
+      })
+      .optional(),
+    message_template_id: z.string().optional(),
+  })
+  .refine(
+    (data) => !!data.message_data || !!data.message_template_id,
+    "Either message_data or message_template_id is required"
+  );
 
 export const nodeActionMessageDeleteDataSchema = nodeBaseDataSchema.extend({
   channel_target: z

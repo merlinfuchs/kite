@@ -38,26 +38,24 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			}
 		}
 
-		data := n.Data.MessageData
+		// TODO: this should figure if it's a follow-up or not
 
-		var flags discord.MessageFlags
+		data := n.Data.MessageData.Copy()
 		if n.Data.MessageEphemeral {
-			flags |= discord.EphemeralMessage
+			data.Flags |= int(discord.EphemeralMessage)
 		}
 
-		content, err := ctx.Placeholders.Fill(ctx, data.Content)
+		var err error
+		data.Content, err = ctx.Placeholders.Fill(ctx, data.Content)
 		if err != nil {
 			return traceError(n, err)
 		}
 
+		responseData := data.ToInteractionResponseData()
+
 		resp := api.InteractionResponse{
 			Type: api.MessageInteractionWithSource,
-			Data: &api.InteractionResponseData{
-				Content: option.NewNullableString(content),
-				Embeds:  &data.Embeds,
-				Flags:   flags,
-				// TODO: other fields
-			},
+			Data: &responseData,
 		}
 
 		err = ctx.Discord.CreateInteractionResponse(ctx, interaction.ID, interaction.Token, resp)
@@ -68,23 +66,32 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 		return n.executeChildren(ctx)
 	case FlowNodeTypeActionResponseEdit:
 		interaction := ctx.Data.Interaction()
+		if interaction == nil {
+			return &FlowError{
+				Code:    FlowNodeErrorUnknown,
+				Message: "interaction is nil",
+			}
+		}
 
 		// TODO: this should figure if it's a follow-up or not
 
-		data := n.Data.MessageData
+		data := n.Data.MessageData.Copy()
+		if n.Data.MessageEphemeral {
+			data.Flags |= int(discord.EphemeralMessage)
+		}
 
-		content, err := ctx.Placeholders.Fill(ctx, data.Content)
+		var err error
+		data.Content, err = ctx.Placeholders.Fill(ctx, data.Content)
 		if err != nil {
 			return traceError(n, err)
 		}
 
-		resp := api.EditInteractionResponseData{
-			Content: option.NewNullableString(content),
-			Embeds:  &data.Embeds,
-			// TODO: other fields
-		}
+		responseData := data.ToInteractionResponseData()
 
-		err = ctx.Discord.EditInteractionResponse(ctx, interaction.AppID, interaction.Token, resp)
+		err = ctx.Discord.EditInteractionResponse(ctx, interaction.AppID, interaction.Token, api.EditInteractionResponseData{
+			Content: responseData.Content,
+			Embeds:  responseData.Embeds,
+		})
 		if err != nil {
 			return traceError(n, err)
 		}
@@ -92,6 +99,12 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 		return n.executeChildren(ctx)
 	case FlowNodeTypeActionResponseDelete:
 		interaction := ctx.Data.Interaction()
+		if interaction == nil {
+			return &FlowError{
+				Code:    FlowNodeErrorUnknown,
+				Message: "interaction is nil",
+			}
+		}
 
 		err := ctx.Discord.DeleteInteractionResponse(ctx, interaction.AppID, interaction.Token)
 		if err != nil {
@@ -100,18 +113,20 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 
 		return n.executeChildren(ctx)
 	case FlowNodeTypeActionMessageCreate:
-		data := n.Data.MessageData
+		data := n.Data.MessageData.Copy()
+		if n.Data.MessageEphemeral {
+			data.Flags |= int(discord.EphemeralMessage)
+		}
 
-		content, err := ctx.Placeholders.Fill(ctx, data.Content)
+		var err error
+		data.Content, err = ctx.Placeholders.Fill(ctx, data.Content)
 		if err != nil {
 			return traceError(n, err)
 		}
 
-		msg, err := ctx.Discord.CreateMessage(ctx, ctx.Data.ChannelID(), api.SendMessageData{
-			Content: content,
-			Embeds:  data.Embeds,
-			// TODO: other fields
-		})
+		messageData := data.ToSendMessageData()
+
+		msg, err := ctx.Discord.CreateMessage(ctx, ctx.Data.ChannelID(), messageData)
 		if err != nil {
 			return traceError(n, err)
 		}
@@ -129,13 +144,25 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			return traceError(n, err)
 		}
 
+		data := n.Data.MessageData.Copy()
+		if n.Data.MessageEphemeral {
+			data.Flags |= int(discord.EphemeralMessage)
+		}
+
+		data.Content, err = ctx.Placeholders.Fill(ctx, data.Content)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		messageData := data.ToSendMessageData()
+
 		msg, err := ctx.Discord.EditMessage(
 			ctx,
 			discord.ChannelID(channelTarget.Int()),
 			discord.MessageID(messageTarget.Int()),
 			api.EditMessageData{
-				Content: option.NewNullableString(n.Data.MessageData.Content),
-				Embeds:  &n.Data.MessageData.Embeds,
+				Content: option.NewNullableString(messageData.Content),
+				Embeds:  &messageData.Embeds,
 			},
 		)
 		if err != nil {
@@ -294,13 +321,15 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			AuditLogReason: api.AuditLogReason(auditLogReason),
 		}
 
-		if n.Data.MemberData.Nick != nil {
-			nick, err := ctx.Placeholders.Fill(ctx, *n.Data.MemberData.Nick)
-			if err != nil {
-				return traceError(n, err)
-			}
+		if n.Data.MemberData != nil {
+			if n.Data.MemberData.Nick != nil {
+				nick, err := ctx.Placeholders.Fill(ctx, *n.Data.MemberData.Nick)
+				if err != nil {
+					return traceError(n, err)
+				}
 
-			data.Nick = &nick
+				data.Nick = &nick
+			}
 		}
 
 		err = ctx.Discord.EditMember(
@@ -315,6 +344,13 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 
 		return n.executeChildren(ctx)
 	case FlowNodeTypeActionHTTPRequest:
+		if n.Data.HTTPRequestData == nil {
+			return &FlowError{
+				Code:    FlowNodeErrorUnknown,
+				Message: "http_request_data is nil",
+			}
+		}
+
 		url, err := n.Data.HTTPRequestData.URL.FillPlaceholders(ctx, ctx.Placeholders)
 		if err != nil {
 			return traceError(n, err)
