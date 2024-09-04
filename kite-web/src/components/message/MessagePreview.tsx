@@ -27,7 +27,7 @@ export default function MessagePreview({
   reducePadding?: boolean;
 }) {
   return (
-    <DiscordMessages lightTheme={!!lightTheme} className="min-h-full">
+    <DiscordMessages lightTheme={!!lightTheme} className="min-h-full flex-auto">
       <DiscordMessage
         className={cn("m-0 py-3", reducePadding && "pr-5")}
         lightTheme={!!lightTheme}

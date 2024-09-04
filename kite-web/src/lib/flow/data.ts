@@ -78,6 +78,7 @@ export const nodeActionResponseCreateDataSchema = nodeBaseDataSchema.extend({
   message_data: z.object({
     content: z.string().max(2000).min(1),
   }),
+  message_template_id: z.string().optional(),
   message_ephemeral: z.boolean().optional(),
 });
 
@@ -90,6 +91,7 @@ export const nodeActionResponseEditDataSchema = nodeBaseDataSchema.extend({
   message_data: z.object({
     content: z.string().max(2000).min(1),
   }),
+  message_template_id: z.string().optional(),
 });
 
 export const nodeActionResponseDeleteDataSchema = nodeBaseDataSchema.extend({
@@ -108,6 +110,7 @@ export const nodeActionMessageCreateDataSchema = nodeBaseDataSchema.extend({
   message_data: z.object({
     content: z.string().max(2000).min(1),
   }),
+  message_template_id: z.string().optional(),
 });
 
 export const nodeActionMessageEditDataSchema = nodeBaseDataSchema.extend({
@@ -122,6 +125,7 @@ export const nodeActionMessageEditDataSchema = nodeBaseDataSchema.extend({
   message_data: z.object({
     content: z.string().max(2000).min(1),
   }),
+  message_template_id: z.string().optional(),
 });
 
 export const nodeActionMessageDeleteDataSchema = nodeBaseDataSchema.extend({

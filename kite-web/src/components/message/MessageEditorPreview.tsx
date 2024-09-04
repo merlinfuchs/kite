@@ -24,7 +24,7 @@ export default function MessageEditorPreview({
   const { theme } = useHookedTheme();
 
   return (
-    <ScrollArea className={cn("overflow-x-hidden border h-full", className)}>
+    <div className={cn("overflow-x-hidden border h-full", className)}>
       {msg && (
         <MessagePreview
           msg={msg}
@@ -32,6 +32,6 @@ export default function MessageEditorPreview({
           reducePadding={reducePadding}
         />
       )}
-    </ScrollArea>
+    </div>
   );
 }

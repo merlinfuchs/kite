@@ -43,7 +43,6 @@ function AppMessagePageInner() {
   });
 
   const messageStore = useCurrentMessageStore();
-  const replaceMessage = useCurrentMessage((state) => state.replace);
 
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -65,12 +64,13 @@ function AppMessagePageInner() {
       const data = parseMessageWithAction(message.data);
 
       ignoreChange.current = true;
-      replaceMessage(data);
+      messageStore.getState().replace(data);
+      messageStore.temporal.getState().clear();
       ignoreChange.current = false;
     } catch (e) {
       toast.error(`Failed to parse message data: ${e}`);
     }
-  }, [message, replaceMessage]);
+  }, [message, messageStore]);
 
   const updateMutation = useMessageUpdateMutation(useAppId(), useMessageId());
 

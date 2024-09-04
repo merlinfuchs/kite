@@ -6,6 +6,7 @@ import (
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/pkg/flow"
+	"github.com/kitecloud/kite/kite-service/pkg/message"
 	"gopkg.in/guregu/null.v4"
 )
 
@@ -16,7 +17,7 @@ type Message struct {
 	AppID         string                   `json:"app_id"`
 	ModuleID      null.String              `json:"module_id"`
 	CreatorUserID string                   `json:"creator_user_id"`
-	Data          model.MessageData        `json:"data"`
+	Data          message.MessageData      `json:"data"`
 	FlowSources   map[string]flow.FlowData `json:"flow_sources"`
 	CreatedAt     time.Time                `json:"created_at"`
 	UpdatedAt     time.Time                `json:"updated_at"`
@@ -29,7 +30,7 @@ type MessageListResponse = []*Message
 type MessageCreateRequest struct {
 	Name        string                   `json:"name"`
 	Description null.String              `json:"description"`
-	Data        model.MessageData        `json:"data"`
+	Data        message.MessageData      `json:"data"`
 	FlowSources map[string]flow.FlowData `json:"flow_sources"`
 }
 
@@ -45,7 +46,7 @@ type MessageCreateResponse = Message
 type MessageUpdateRequest struct {
 	Name        string                   `json:"name"`
 	Description null.String              `json:"description"`
-	Data        model.MessageData        `json:"data"`
+	Data        message.MessageData      `json:"data"`
 	FlowSources map[string]flow.FlowData `json:"flow_sources"`
 }
 

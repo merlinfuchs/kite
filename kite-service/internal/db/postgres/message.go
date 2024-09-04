@@ -10,6 +10,7 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/internal/store"
 	"github.com/kitecloud/kite/kite-service/pkg/flow"
+	"github.com/kitecloud/kite/kite-service/pkg/message"
 	"gopkg.in/guregu/null.v4"
 )
 
@@ -137,7 +138,7 @@ func rowToMessage(row pgmodel.Message) (*model.Message, error) {
 		return nil, err
 	}
 
-	var data model.MessageData
+	var data message.MessageData
 	if err := json.Unmarshal(row.Data, &data); err != nil {
 		return nil, err
 	}
