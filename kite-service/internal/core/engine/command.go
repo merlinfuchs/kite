@@ -67,7 +67,7 @@ func (c *Command) HandleEvent(appID string, session *state.State, event gateway.
 		// TODO: Variable provider
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
 	fCtx := flow.NewContext(ctx,

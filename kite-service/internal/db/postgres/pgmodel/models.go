@@ -67,6 +67,8 @@ type Message struct {
 type MessageInstance struct {
 	ID               int64
 	MessageID        string
+	Hidden           bool
+	Ephemeral        bool
 	DiscordGuildID   string
 	DiscordChannelID string
 	DiscordMessageID string

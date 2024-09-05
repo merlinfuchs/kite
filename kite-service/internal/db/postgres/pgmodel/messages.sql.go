@@ -92,7 +92,7 @@ INSERT INTO message_instances (
     updated_at
 ) VALUES (
     $1, $2, $3, $4, $5, $6, $7
-) RETURNING id, message_id, discord_guild_id, discord_channel_id, discord_message_id, flow_sources, created_at, updated_at
+) RETURNING id, message_id, hidden, ephemeral, discord_guild_id, discord_channel_id, discord_message_id, flow_sources, created_at, updated_at
 `
 
 type CreateMessageInstanceParams struct {
@@ -119,6 +119,8 @@ func (q *Queries) CreateMessageInstance(ctx context.Context, arg CreateMessageIn
 	err := row.Scan(
 		&i.ID,
 		&i.MessageID,
+		&i.Hidden,
+		&i.Ephemeral,
 		&i.DiscordGuildID,
 		&i.DiscordChannelID,
 		&i.DiscordMessageID,
@@ -184,7 +186,7 @@ func (q *Queries) GetMessage(ctx context.Context, id string) (Message, error) {
 }
 
 const getMessageInstance = `-- name: GetMessageInstance :one
-SELECT id, message_id, discord_guild_id, discord_channel_id, discord_message_id, flow_sources, created_at, updated_at FROM message_instances WHERE id = $1 AND message_id = $2
+SELECT id, message_id, hidden, ephemeral, discord_guild_id, discord_channel_id, discord_message_id, flow_sources, created_at, updated_at FROM message_instances WHERE id = $1 AND message_id = $2
 `
 
 type GetMessageInstanceParams struct {
@@ -198,6 +200,8 @@ func (q *Queries) GetMessageInstance(ctx context.Context, arg GetMessageInstance
 	err := row.Scan(
 		&i.ID,
 		&i.MessageID,
+		&i.Hidden,
+		&i.Ephemeral,
 		&i.DiscordGuildID,
 		&i.DiscordChannelID,
 		&i.DiscordMessageID,
@@ -209,7 +213,7 @@ func (q *Queries) GetMessageInstance(ctx context.Context, arg GetMessageInstance
 }
 
 const getMessageInstancesByMessage = `-- name: GetMessageInstancesByMessage :many
-SELECT id, message_id, discord_guild_id, discord_channel_id, discord_message_id, flow_sources, created_at, updated_at FROM message_instances WHERE message_id = $1 ORDER BY created_at DESC
+SELECT id, message_id, hidden, ephemeral, discord_guild_id, discord_channel_id, discord_message_id, flow_sources, created_at, updated_at FROM message_instances WHERE message_id = $1 ORDER BY created_at DESC
 `
 
 func (q *Queries) GetMessageInstancesByMessage(ctx context.Context, messageID string) ([]MessageInstance, error) {
@@ -224,6 +228,8 @@ func (q *Queries) GetMessageInstancesByMessage(ctx context.Context, messageID st
 		if err := rows.Scan(
 			&i.ID,
 			&i.MessageID,
+			&i.Hidden,
+			&i.Ephemeral,
 			&i.DiscordGuildID,
 			&i.DiscordChannelID,
 			&i.DiscordMessageID,
@@ -324,7 +330,7 @@ const updateMessageInstance = `-- name: UpdateMessageInstance :one
 UPDATE message_instances SET
     flow_sources = $3,
     updated_at = $4
-WHERE id = $1 AND message_id = $2 RETURNING id, message_id, discord_guild_id, discord_channel_id, discord_message_id, flow_sources, created_at, updated_at
+WHERE id = $1 AND message_id = $2 RETURNING id, message_id, hidden, ephemeral, discord_guild_id, discord_channel_id, discord_message_id, flow_sources, created_at, updated_at
 `
 
 type UpdateMessageInstanceParams struct {
@@ -345,6 +351,8 @@ func (q *Queries) UpdateMessageInstance(ctx context.Context, arg UpdateMessageIn
 	err := row.Scan(
 		&i.ID,
 		&i.MessageID,
+		&i.Hidden,
+		&i.Ephemeral,
 		&i.DiscordGuildID,
 		&i.DiscordChannelID,
 		&i.DiscordMessageID,
