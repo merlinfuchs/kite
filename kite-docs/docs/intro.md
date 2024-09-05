@@ -3,46 +3,20 @@ sidebar_position: 1
 slug: /
 ---
 
-# Tutorial Intro
+# Welcome to Kite! 🪁
 
-Let's discover **Docusaurus in less than 5 minutes**.
+I'm happy you found your way to the Kite documentation!
 
-## Getting Started
+This is the place where you will find information regarding setting up your Discord bot and getting started with Kite. Kite is still very much work in progress and many features are not yet ready or just not documented.
 
-Get started by **creating a new site**.
+If you want to keep track of the progress or even contribute you can find the source code on [GitHub](https://github.com/merlinfuchs/kite) or join the [Discord server](https://discord.gg/rNd9jWHnXh).
 
-Or **try Docusaurus immediately** with **[docusaurus.new](https://docusaurus.new)**.
+## What's Kite?
 
-### What you'll need
+Kite is an open source platform for building and hosting Discord bots without the need to write a single line of code. It's powered by an advanced no-code editor and tries to be as beginner friendly as possible.
 
-- [Node.js](https://nodejs.org/en/download/) version 18.0 or above:
-  - When installing Node.js, you are recommended to check all checkboxes related to dependencies.
+While there are already solutions for building Discord bots without the need to code, most of them feel clunky, are missing features, or are not beginner friendly. With Kite I want to close that gap and provide all types of users with the necessary tools to built their own bots.
 
-## Generate a new site
+Ready? Get started [here](/guides/getting-started)!
 
-Generate a new Docusaurus site using the **classic template**.
-
-The classic template will automatically be added to your project after you run the command:
-
-```bash
-npm init docusaurus@latest my-website classic
-```
-
-You can type this command into Command Prompt, Powershell, Terminal, or any other integrated terminal of your code editor.
-
-The command also installs all necessary dependencies you need to run Docusaurus.
-
-## Start your site
-
-Run the development server:
-
-```bash
-cd my-website
-npm run start
-```
-
-The `cd` command changes the directory you're working with. In order to work with your newly created Docusaurus site, you'll need to navigate the terminal there.
-
-The `npm run start` command builds your website locally and serves it through a development server, ready for you to view at http://localhost:3000/.
-
-Open `docs/intro.md` (this page) and edit some lines: the site **reloads automatically** and displays your changes.
+![Example Flow](./img/example-flow.png)

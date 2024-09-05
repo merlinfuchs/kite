@@ -9,6 +9,14 @@ This project is very much work in progress and not ready to be used for anything
 ## High Level Progress
 
 - [x] Slash Commands
+  - [ ] Sub Commands
+  - [x] Basic Placeholders
+  - [ ] Advanced Placeholders
 - [x] Message Templates (MVP)
+  - [x] Embeds
+  - [ ] Attachments
+  - [ ] Interactive Components
 - [ ] Event Listeners
 - [ ] Stored Variables (WIP)
+  - [x] Basic infrastrcuture
+  - [ ] Connect variables to commands

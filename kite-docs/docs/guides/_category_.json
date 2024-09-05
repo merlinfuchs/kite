@@ -1,0 +1,9 @@
+{
+  "label": "Guides",
+  "position": 2,
+  "collapsed": false,
+  "link": {
+    "type": "generated-index",
+    "description": "Guides to get started with Kite and its features."
+  }
+}

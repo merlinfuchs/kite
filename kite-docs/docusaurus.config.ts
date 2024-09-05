@@ -67,12 +67,17 @@ const config: Config = {
           type: "docSidebar",
           sidebarId: "tutorialSidebar",
           position: "left",
-          label: "Tutorial",
+          label: "Documentation",
         },
         { to: "/blog", label: "Blog", position: "left" },
         {
           href: "https://github.com/merlinfuchs/kite",
           label: "GitHub",
+          position: "right",
+        },
+        {
+          href: "https://discord.gg/rNd9jWHnXh",
+          label: "Discord",
           position: "right",
         },
       ],
@@ -84,8 +89,12 @@ const config: Config = {
           title: "Docs",
           items: [
             {
-              label: "Tutorial",
+              label: "Welcome",
               to: "/",
+            },
+            {
+              label: "Getting Started",
+              to: "/guides/getting-started",
             },
           ],
         },
@@ -96,18 +105,22 @@ const config: Config = {
               label: "Discord",
               href: "https://discord.gg/rNd9jWHnXh",
             },
-          ],
-        },
-        {
-          title: "More",
-          items: [
-            {
-              label: "Blog",
-              to: "/blog",
-            },
             {
               label: "GitHub",
               href: "https://github.com/merlinfuchs/kite",
+            },
+          ],
+        },
+        {
+          title: "Legal",
+          items: [
+            {
+              label: "Terms of Service",
+              href: "https://kite.onl/terms",
+            },
+            {
+              label: "Privacy Policy",
+              href: "https://kite.onl/privacy",
             },
           ],
         },
