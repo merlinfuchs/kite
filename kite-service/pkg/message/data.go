@@ -5,7 +5,7 @@ import "time"
 type MessageData struct {
 	Content string      `json:"content,omitempty"`
 	Flags   int         `json:"flags,omitempty"`
-	Embeds  []EmbedData `json:"embeds"`
+	Embeds  []EmbedData `json:"embeds,omitempty"`
 }
 
 type EmbedData struct {

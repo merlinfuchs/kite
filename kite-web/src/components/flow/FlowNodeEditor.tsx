@@ -8,6 +8,7 @@ import {
   CircleAlertIcon,
   CopyIcon,
   PencilIcon,
+  PlusIcon,
   TrashIcon,
   XIcon,
 } from "lucide-react";
@@ -39,6 +40,7 @@ import { useMessages } from "@/lib/hooks/api";
 import Link from "next/link";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
 import { useAppId } from "@/lib/hooks/params";
+import MessageCreateDialog from "../app/MessageCreateDialog";
 
 interface Props {
   nodeId: string;
@@ -592,10 +594,10 @@ function MessageTemplateInput({ data, updateData, errors }: InputProps) {
         errors={errors}
         clearable
       />
-      {data.message_template_id && (
+      {data.message_template_id ? (
         <Tooltip>
           <TooltipTrigger>
-            <Button variant="outline" size="icon">
+            <Button variant="outline" size="icon" asChild>
               <Link
                 href={{
                   pathname: "/apps/[appId]/messages/[messageId]",
@@ -608,6 +610,19 @@ function MessageTemplateInput({ data, updateData, errors }: InputProps) {
             </Button>
           </TooltipTrigger>
           <TooltipContent>Edit message template</TooltipContent>
+        </Tooltip>
+      ) : (
+        <Tooltip>
+          <TooltipTrigger>
+            <MessageCreateDialog
+              onMessageCreated={(v) => updateData({ message_template_id: v })}
+            >
+              <Button variant="outline" size="icon">
+                <PlusIcon className="h-5 w-5" />
+              </Button>
+            </MessageCreateDialog>
+          </TooltipTrigger>
+          <TooltipContent>Create message template</TooltipContent>
         </Tooltip>
       )}
     </div>

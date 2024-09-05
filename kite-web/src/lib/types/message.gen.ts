@@ -6,7 +6,7 @@
 export interface MessageData {
   content?: string;
   flags?: number /* int */;
-  embeds: EmbedData[];
+  embeds?: EmbedData[];
 }
 export interface EmbedData {
   title?: string;

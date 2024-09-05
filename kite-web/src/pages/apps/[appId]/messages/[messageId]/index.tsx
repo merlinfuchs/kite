@@ -154,7 +154,7 @@ function AppMessagePageInner() {
         {message && (
           <>
             <div className="flex flex-auto overflow-y-hidden flex-col xl:flex-row h-full">
-              <ScrollArea className="flex flex-col xl:w-7/12 py-8 space-y-8 h-full px-3 md:px-5 lg:px-10">
+              <ScrollArea className="flex flex-col xl:w-7/12 pt-3 pb-8 space-y-8 h-full px-3 md:px-5 lg:px-10">
                 <MessageEditor />
               </ScrollArea>
               <div className="hidden xl:block py-5 w-5/12 h-full pr-5">

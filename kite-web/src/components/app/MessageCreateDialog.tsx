@@ -31,8 +31,10 @@ interface FormFields {
 
 export default function MessageCreateDialog({
   children,
+  onMessageCreated,
 }: {
   children: ReactNode;
+  onMessageCreated?: (id: string) => void;
 }) {
   const [open, setOpen] = useState(false);
 
@@ -61,6 +63,10 @@ export default function MessageCreateDialog({
           if (res.success) {
             toast.success("Message created!");
             setOpen(false);
+
+            if (onMessageCreated) {
+              onMessageCreated(res.data.id);
+            }
           } else {
             if (res.error.code === "validation_failed") {
               setValidationErrors(form, res.error.data);
@@ -82,7 +88,8 @@ export default function MessageCreateDialog({
         <DialogHeader>
           <DialogTitle>Create message</DialogTitle>
           <DialogDescription>
-            Create a new message of a specific type.
+            Create a message that can be sent and used as a response in your
+            app.
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
