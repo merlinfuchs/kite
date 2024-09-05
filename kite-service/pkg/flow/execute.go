@@ -39,6 +39,11 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			}
 		}
 
+		hasCreatedResponse, err := ctx.Discord.HasCreatedInteractionResponse(ctx, interaction.ID)
+		if err != nil {
+			return traceError(n, err)
+		}
+
 		// TODO: this should figure if it's a follow-up or not
 
 		var data message.MessageData
@@ -56,22 +61,32 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			data.Flags |= int(discord.EphemeralMessage)
 		}
 
-		var err error
 		data.Content, err = ctx.Placeholders.Fill(ctx, data.Content)
 		if err != nil {
 			return traceError(n, err)
 		}
 
-		responseData := data.ToInteractionResponseData()
+		if hasCreatedResponse {
+			responseData := data.ToInteractionResponseData()
 
-		resp := api.InteractionResponse{
-			Type: api.MessageInteractionWithSource,
-			Data: &responseData,
-		}
+			msg, err := ctx.Discord.CreateInteractionFollowup(ctx, interaction.AppID, interaction.Token, responseData)
+			if err != nil {
+				return traceError(n, err)
+			}
 
-		err = ctx.Discord.CreateInteractionResponse(ctx, interaction.ID, interaction.Token, resp)
-		if err != nil {
-			return traceError(n, err)
+			nodeState.Result = NewFlowValueMessage(*msg)
+		} else {
+			responseData := data.ToInteractionResponseData()
+
+			resp := api.InteractionResponse{
+				Type: api.MessageInteractionWithSource,
+				Data: &responseData,
+			}
+
+			err = ctx.Discord.CreateInteractionResponse(ctx, interaction.ID, interaction.Token, resp)
+			if err != nil {
+				return traceError(n, err)
+			}
 		}
 
 		return n.executeChildren(ctx)

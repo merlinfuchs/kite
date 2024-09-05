@@ -128,6 +128,10 @@ func (p *MockDiscordProvider) DeleteRole(ctx context.Context, guildID discord.Gu
 	return nil
 }
 
+func (p *MockDiscordProvider) HasCreatedInteractionResponse(ctx context.Context, interactionID discord.InteractionID) (bool, error) {
+	return false, nil
+}
+
 type MockLogProvider struct{}
 
 func (p *MockLogProvider) CreateLogEntry(ctx context.Context, level LogLevel, message string) {}

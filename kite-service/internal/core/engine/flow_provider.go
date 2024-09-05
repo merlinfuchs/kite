@@ -23,6 +23,8 @@ type DiscordProvider struct {
 	appID    string
 	appStore store.AppStore
 	session  *state.State
+
+	interactionsWithResponse map[discord.InteractionID]struct{}
 }
 
 func NewDiscordProvider(
@@ -34,6 +36,8 @@ func NewDiscordProvider(
 		appID:    appID,
 		appStore: appStore,
 		session:  session,
+
+		interactionsWithResponse: make(map[discord.InteractionID]struct{}),
 	}
 }
 
@@ -43,7 +47,17 @@ func (p *DiscordProvider) CreateInteractionResponse(ctx context.Context, interac
 		return fmt.Errorf("failed to respond to interaction: %w", err)
 	}
 
+	p.interactionsWithResponse[interactionID] = struct{}{}
 	return nil
+}
+
+func (p *DiscordProvider) CreateInteractionFollowup(ctx context.Context, applicationID discord.AppID, token string, data api.InteractionResponseData) (*discord.Message, error) {
+	msg, err := p.session.FollowUpInteraction(applicationID, token, data)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create interaction followup: %w", err)
+	}
+
+	return msg, nil
 }
 
 func (p *DiscordProvider) CreateMessage(ctx context.Context, channelID discord.ChannelID, message api.SendMessageData) (*discord.Message, error) {
@@ -112,6 +126,11 @@ func (p *DiscordProvider) EditMember(ctx context.Context, guildID discord.GuildI
 	}
 
 	return nil
+}
+
+func (p *DiscordProvider) HasCreatedInteractionResponse(ctx context.Context, interactionID discord.InteractionID) (bool, error) {
+	_, ok := p.interactionsWithResponse[interactionID]
+	return ok, nil
 }
 
 type LogProvider struct {

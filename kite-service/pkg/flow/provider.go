@@ -52,6 +52,8 @@ type FlowDiscordProvider interface {
 	CreateRole(ctx context.Context, guildID discord.GuildID, data api.CreateRoleData) (*discord.Role, error)
 	EditRole(ctx context.Context, guildID discord.GuildID, roleID discord.RoleID, data api.ModifyRoleData) (*discord.Role, error)
 	DeleteRole(ctx context.Context, guildID discord.GuildID, roleID discord.RoleID) error
+
+	HasCreatedInteractionResponse(ctx context.Context, interactionID discord.InteractionID) (bool, error)
 }
 
 type FlowHTTPProvider interface {
