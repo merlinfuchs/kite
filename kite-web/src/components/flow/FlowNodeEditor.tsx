@@ -65,6 +65,7 @@ const intputs: Record<string, any> = {
   message_data: MessageDataInput,
   message_template_id: MessageTemplateInput,
   message_target: MessageTargetInput,
+  response_target: ResponseTargetInput,
   message_ephemeral: MessageEphemeralInput,
   channel_data: ChannelDataInput,
   channel_target: ChannelTargetInput,
@@ -660,6 +661,25 @@ function MessageTargetInput({ data, updateData, errors }: InputProps) {
       updateValue={(v) => updateData({ message_target: v || undefined })}
       errors={errors}
       placeholders
+    />
+  );
+}
+
+function ResponseTargetInput({ data, updateData, errors }: InputProps) {
+  return (
+    <BaseInput
+      type="select"
+      field="message_target"
+      title="Target Response"
+      value={data.message_target || ""}
+      options={[
+        {
+          label: "Original Response",
+          value: "@original",
+        },
+      ]}
+      updateValue={(v) => updateData({ message_target: v || undefined })}
+      errors={errors}
     />
   );
 }

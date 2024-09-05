@@ -118,7 +118,7 @@ export const nodeTypes: Record<string, NodeValues> = {
     defaultDescription: "Bot edits an existing interaction response message",
     dataSchema: nodeActionResponseEditDataSchema,
     dataFields: [
-      "message_target",
+      "response_target",
       "message_template_id",
       "message_data",
       "message_ephemeral",
@@ -131,7 +131,7 @@ export const nodeTypes: Record<string, NodeValues> = {
     defaultTitle: "Delete response message",
     defaultDescription: "Bot deletes an existing interaction response message",
     dataSchema: nodeActionResponseDeleteDataSchema,
-    dataFields: ["message_target", "custom_label"],
+    dataFields: ["response_target", "custom_label"],
   },
   action_message_create: {
     color: actionColor,

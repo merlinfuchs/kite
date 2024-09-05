@@ -39,13 +39,6 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			}
 		}
 
-		hasCreatedResponse, err := ctx.Discord.HasCreatedInteractionResponse(ctx, interaction.ID)
-		if err != nil {
-			return traceError(n, err)
-		}
-
-		// TODO: this should figure if it's a follow-up or not
-
 		var data message.MessageData
 		if n.Data.MessageTemplateID != "" {
 			template, err := ctx.MessageTemplate.MessageTemplate(ctx, n.Data.MessageTemplateID)
@@ -61,7 +54,13 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			data.Flags |= int(discord.EphemeralMessage)
 		}
 
+		var err error
 		data.Content, err = ctx.Placeholders.Fill(ctx, data.Content)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		hasCreatedResponse, err := ctx.Discord.HasCreatedInteractionResponse(ctx, interaction.ID)
 		if err != nil {
 			return traceError(n, err)
 		}
@@ -99,8 +98,6 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			}
 		}
 
-		// TODO: this should figure if it's a follow-up or not
-
 		var data message.MessageData
 		if n.Data.MessageTemplateID != "" {
 			template, err := ctx.MessageTemplate.MessageTemplate(ctx, n.Data.MessageTemplateID)
@@ -120,14 +117,32 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 
 		responseData := data.ToInteractionResponseData()
 
-		err = ctx.Discord.EditInteractionResponse(ctx, interaction.AppID, interaction.Token, api.EditInteractionResponseData{
-			Content: responseData.Content,
-			Embeds:  responseData.Embeds,
-		})
-		if err != nil {
-			return traceError(n, err)
+		var msg *discord.Message
+		if n.Data.MessageTarget == "" || n.Data.MessageTarget == "@original" {
+			msg, err = ctx.Discord.EditInteractionResponse(ctx, interaction.AppID, interaction.Token, api.EditInteractionResponseData{
+				Content: responseData.Content,
+				Embeds:  responseData.Embeds,
+			})
+			if err != nil {
+				return traceError(n, err)
+			}
+		} else {
+			msg, err = ctx.Discord.EditInteractionFollowup(
+				ctx,
+				interaction.AppID,
+				interaction.Token,
+				discord.MessageID(n.Data.MessageTarget.Int()),
+				api.EditInteractionResponseData{
+					Content: responseData.Content,
+					Embeds:  responseData.Embeds,
+				},
+			)
+			if err != nil {
+				return traceError(n, err)
+			}
 		}
 
+		nodeState.Result = NewFlowValueMessage(*msg)
 		return n.executeChildren(ctx)
 	case FlowNodeTypeActionResponseDelete:
 		interaction := ctx.Data.Interaction()
@@ -138,9 +153,21 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			}
 		}
 
-		err := ctx.Discord.DeleteInteractionResponse(ctx, interaction.AppID, interaction.Token)
-		if err != nil {
-			return traceError(n, err)
+		if n.Data.MessageTarget == "" || n.Data.MessageTarget == "@original" {
+			err := ctx.Discord.DeleteInteractionResponse(ctx, interaction.AppID, interaction.Token)
+			if err != nil {
+				return traceError(n, err)
+			}
+		} else {
+			err := ctx.Discord.DeleteInteractionFollowup(
+				ctx,
+				interaction.AppID,
+				interaction.Token,
+				discord.MessageID(n.Data.MessageTarget.Int()),
+			)
+			if err != nil {
+				return traceError(n, err)
+			}
 		}
 
 		return n.executeChildren(ctx)

@@ -42,8 +42,8 @@ func (p *MockDiscordProvider) CreateInteractionResponse(ctx context.Context, int
 	return nil
 }
 
-func (p *MockDiscordProvider) EditInteractionResponse(ctx context.Context, applicationID discord.AppID, token string, response api.EditInteractionResponseData) error {
-	return nil
+func (p *MockDiscordProvider) EditInteractionResponse(ctx context.Context, applicationID discord.AppID, token string, response api.EditInteractionResponseData) (*discord.Message, error) {
+	return nil, nil
 }
 
 func (p *MockDiscordProvider) DeleteInteractionResponse(ctx context.Context, applicationID discord.AppID, token string) error {

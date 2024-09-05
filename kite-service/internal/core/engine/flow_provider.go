@@ -51,6 +51,24 @@ func (p *DiscordProvider) CreateInteractionResponse(ctx context.Context, interac
 	return nil
 }
 
+func (p *DiscordProvider) EditInteractionResponse(ctx context.Context, applicationID discord.AppID, token string, response api.EditInteractionResponseData) (*discord.Message, error) {
+	msg, err := p.session.EditInteractionResponse(applicationID, token, response)
+	if err != nil {
+		return nil, fmt.Errorf("failed to edit interaction response: %w", err)
+	}
+
+	return msg, err
+}
+
+func (p *DiscordProvider) DeleteInteractionResponse(ctx context.Context, applicationID discord.AppID, token string) error {
+	err := p.session.DeleteInteractionResponse(applicationID, token)
+	if err != nil {
+		return fmt.Errorf("failed to delete interaction response: %w", err)
+	}
+
+	return nil
+}
+
 func (p *DiscordProvider) CreateInteractionFollowup(ctx context.Context, applicationID discord.AppID, token string, data api.InteractionResponseData) (*discord.Message, error) {
 	msg, err := p.session.FollowUpInteraction(applicationID, token, data)
 	if err != nil {
@@ -58,6 +76,24 @@ func (p *DiscordProvider) CreateInteractionFollowup(ctx context.Context, applica
 	}
 
 	return msg, nil
+}
+
+func (p *DiscordProvider) EditInteractionFollowup(ctx context.Context, applicationID discord.AppID, token string, messageID discord.MessageID, data api.EditInteractionResponseData) (*discord.Message, error) {
+	msg, err := p.session.EditInteractionFollowup(applicationID, messageID, token, data)
+	if err != nil {
+		return nil, fmt.Errorf("failed to edit interaction followup: %w", err)
+	}
+
+	return msg, nil
+}
+
+func (p *DiscordProvider) DeleteInteractionFollowup(ctx context.Context, applicationID discord.AppID, token string, messageID discord.MessageID) error {
+	err := p.session.DeleteInteractionFollowup(applicationID, messageID, token)
+	if err != nil {
+		return fmt.Errorf("failed to delete interaction followup: %w", err)
+	}
+
+	return nil
 }
 
 func (p *DiscordProvider) CreateMessage(ctx context.Context, channelID discord.ChannelID, message api.SendMessageData) (*discord.Message, error) {

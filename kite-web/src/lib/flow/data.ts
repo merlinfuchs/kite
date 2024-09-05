@@ -114,6 +114,7 @@ export const nodeActionResponseDeleteDataSchema = nodeBaseDataSchema.extend({
     .regex(numericRegex)
     .or(z.string().regex(variableRegex))
     .or(z.literal("@original")),
+  audit_log_reason: auditLogReasonSchema,
 });
 
 export const nodeActionMessageCreateDataSchema = nodeBaseDataSchema
