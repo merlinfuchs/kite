@@ -29,6 +29,28 @@ interface FormFields {
   description: string;
 }
 
+const createDefaultMessage = (name: string) => ({
+  content: `You message template: **${name}**`,
+  tts: false,
+  embeds: [
+    {
+      id: 174831423,
+      description:
+        "You can use message templates to create Discord messages that contain embeds and interactive components (soon). They can be used to create standalone messages or as a response to commands or other events.",
+      color: 16735232,
+      author: {
+        name: "About Message Templates",
+      },
+      thumbnail: {
+        url: "https://kite.onl/logo.png",
+      },
+      fields: [],
+    },
+  ],
+  components: [],
+  actions: {},
+});
+
 export default function MessageCreateDialog({
   children,
   onMessageCreated,
@@ -55,7 +77,7 @@ export default function MessageCreateDialog({
       {
         name: data.name,
         description: data.description || null,
-        data: {},
+        data: createDefaultMessage(data.name),
         flow_sources: {},
       },
       {

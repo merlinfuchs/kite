@@ -59,6 +59,7 @@ func (m *EmbedData) ToEmbed() discord.Embed {
 		Footer:      m.Footer.ToEmbedFooter(),
 		Image:       m.Image.ToEmbedImage(),
 		Thumbnail:   m.Thumbnail.ToEmbedThumbnail(),
+		Author:      m.Author.ToEmbedAuthor(),
 		Fields:      fields,
 	}
 }
@@ -110,12 +111,12 @@ func (t *EmbedThumbnailData) ToEmbedThumbnail() *discord.EmbedThumbnail {
 	}
 }
 
-func (a *EmbedAuthorData) ToEmbedAuthor() discord.EmbedAuthor {
+func (a *EmbedAuthorData) ToEmbedAuthor() *discord.EmbedAuthor {
 	if a == nil {
-		return discord.EmbedAuthor{}
+		return nil
 	}
 
-	return discord.EmbedAuthor{
+	return &discord.EmbedAuthor{
 		Name: a.Name,
 		URL:  a.URL,
 		Icon: a.IconURL,
