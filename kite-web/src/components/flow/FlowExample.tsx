@@ -82,6 +82,9 @@ export default function FlowExample() {
         zoomOnPinch={false}
         colorMode={theme === "dark" ? "dark" : "light"}
         className="!bg-transparent"
+        proOptions={{
+          hideAttribution: true,
+        }}
         fitView
       />
     </div>

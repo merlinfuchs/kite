@@ -16,6 +16,8 @@ This project is very much work in progress and not ready to be used for anything
   - [x] Embeds
   - [ ] Attachments
   - [ ] Interactive Components
+  - [ ] Basic placeholders
+  - [ ] Advanced Placeholders
 - [ ] Event Listeners
 - [ ] Stored Variables (WIP)
   - [x] Basic infrastrcuture
