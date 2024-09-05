@@ -18,6 +18,7 @@ const initialNodes = [
     data: {
       member_target: "1",
       member_ban_delete_message_duration: "1",
+      member_ban_delete_message_duration_seconds: "1",
     },
     type: "action_member_ban",
   },
