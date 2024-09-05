@@ -73,7 +73,7 @@ export interface FlowNodeData {
    * Message & Response Create, edit, Delete
    */
   message_target?: FlowString;
-  message_data?: any /* api.SendMessageData */;
+  message_data?: any /* message.MessageData */;
   message_template_id?: string;
   message_ephemeral?: boolean;
   /**
@@ -162,7 +162,7 @@ export const CommandContextTypePrivateChannel: CommandContextType = "private_cha
 export type EventFilterTarget = string;
 export const EventFilterTypeMessageContent: EventFilterTarget = "message_content";
 export interface HTTPRequestData {
-  url?: string;
+  url?: FlowString;
   method?: string;
 }
 export interface FlowNodePosition {
@@ -199,6 +199,7 @@ export const FlowValueTypeString: FlowValueType = "string";
 export const FlowValueTypeNumber: FlowValueType = "number";
 export const FlowValueTypeArray: FlowValueType = "array";
 export const FlowValueTypeMessage: FlowValueType = "message";
+export const FlowValueTypeHTTPResponse: FlowValueType = "http_response";
 /**
  * TODO: do we need this or can we just have all values be strings?
  */

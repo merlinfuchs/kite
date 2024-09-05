@@ -19,6 +19,7 @@ type Engine struct {
 	config       EngineConfig
 	appStore     store.AppStore
 	logStore     store.LogStore
+	messageStore store.MessageStore
 	commandStore store.CommandStore
 	httpClient   *http.Client
 
@@ -30,6 +31,7 @@ func NewEngine(
 	config EngineConfig,
 	appStore store.AppStore,
 	logStore store.LogStore,
+	messageStore store.MessageStore,
 	commandStore store.CommandStore,
 	httpClient *http.Client,
 ) *Engine {
@@ -37,6 +39,7 @@ func NewEngine(
 		config:       config,
 		appStore:     appStore,
 		logStore:     logStore,
+		messageStore: messageStore,
 		httpClient:   httpClient,
 		commandStore: commandStore,
 		apps:         make(map[string]*App),
@@ -92,6 +95,7 @@ func (m *Engine) populateCommands(ctx context.Context) error {
 				command.AppID,
 				m.appStore,
 				m.logStore,
+				m.messageStore,
 				m.commandStore,
 				m.httpClient,
 			)

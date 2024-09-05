@@ -14,6 +14,7 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/internal/store"
 	"github.com/kitecloud/kite/kite-service/pkg/flow"
+	"github.com/kitecloud/kite/kite-service/pkg/message"
 )
 
 type DiscordProvider struct {
@@ -22,6 +23,8 @@ type DiscordProvider struct {
 	appID    string
 	appStore store.AppStore
 	session  *state.State
+
+	interactionsWithResponse map[discord.InteractionID]struct{}
 }
 
 func NewDiscordProvider(
@@ -33,6 +36,8 @@ func NewDiscordProvider(
 		appID:    appID,
 		appStore: appStore,
 		session:  session,
+
+		interactionsWithResponse: make(map[discord.InteractionID]struct{}),
 	}
 }
 
@@ -40,6 +45,52 @@ func (p *DiscordProvider) CreateInteractionResponse(ctx context.Context, interac
 	err := p.session.RespondInteraction(interactionID, interactionToken, response)
 	if err != nil {
 		return fmt.Errorf("failed to respond to interaction: %w", err)
+	}
+
+	p.interactionsWithResponse[interactionID] = struct{}{}
+	return nil
+}
+
+func (p *DiscordProvider) EditInteractionResponse(ctx context.Context, applicationID discord.AppID, token string, response api.EditInteractionResponseData) (*discord.Message, error) {
+	msg, err := p.session.EditInteractionResponse(applicationID, token, response)
+	if err != nil {
+		return nil, fmt.Errorf("failed to edit interaction response: %w", err)
+	}
+
+	return msg, err
+}
+
+func (p *DiscordProvider) DeleteInteractionResponse(ctx context.Context, applicationID discord.AppID, token string) error {
+	err := p.session.DeleteInteractionResponse(applicationID, token)
+	if err != nil {
+		return fmt.Errorf("failed to delete interaction response: %w", err)
+	}
+
+	return nil
+}
+
+func (p *DiscordProvider) CreateInteractionFollowup(ctx context.Context, applicationID discord.AppID, token string, data api.InteractionResponseData) (*discord.Message, error) {
+	msg, err := p.session.FollowUpInteraction(applicationID, token, data)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create interaction followup: %w", err)
+	}
+
+	return msg, nil
+}
+
+func (p *DiscordProvider) EditInteractionFollowup(ctx context.Context, applicationID discord.AppID, token string, messageID discord.MessageID, data api.EditInteractionResponseData) (*discord.Message, error) {
+	msg, err := p.session.EditInteractionFollowup(applicationID, messageID, token, data)
+	if err != nil {
+		return nil, fmt.Errorf("failed to edit interaction followup: %w", err)
+	}
+
+	return msg, nil
+}
+
+func (p *DiscordProvider) DeleteInteractionFollowup(ctx context.Context, applicationID discord.AppID, token string, messageID discord.MessageID) error {
+	err := p.session.DeleteInteractionFollowup(applicationID, messageID, token)
+	if err != nil {
+		return fmt.Errorf("failed to delete interaction followup: %w", err)
 	}
 
 	return nil
@@ -111,6 +162,11 @@ func (p *DiscordProvider) EditMember(ctx context.Context, guildID discord.GuildI
 	}
 
 	return nil
+}
+
+func (p *DiscordProvider) HasCreatedInteractionResponse(ctx context.Context, interactionID discord.InteractionID) (bool, error) {
+	_, ok := p.interactionsWithResponse[interactionID]
+	return ok, nil
 }
 
 type LogProvider struct {
@@ -185,7 +241,7 @@ func (p *VariableProvider) SetVariable(ctx context.Context, id string, value flo
 	return nil
 }
 
-func (p *VariableProvider) GetVariable(ctx context.Context, id string) (flow.FlowValue, error) {
+func (p *VariableProvider) Variable(ctx context.Context, id string) (flow.FlowValue, error) {
 	row, err := p.variableValueStore.VariableValue(ctx, id, p.scope)
 	if err != nil {
 		return flow.FlowValue{}, fmt.Errorf("failed to get variable value: %w", err)
@@ -207,4 +263,23 @@ func (p *VariableProvider) DeleteVariable(ctx context.Context, id string) error 
 	}
 
 	return nil
+}
+
+type MessageTemplateProvider struct {
+	messageStore store.MessageStore
+}
+
+func NewMessageTemplateProvider(messageStore store.MessageStore) *MessageTemplateProvider {
+	return &MessageTemplateProvider{
+		messageStore: messageStore,
+	}
+}
+
+func (p *MessageTemplateProvider) MessageTemplate(ctx context.Context, id string) (*message.MessageData, error) {
+	message, err := p.messageStore.Message(ctx, id)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get message: %w", err)
+	}
+
+	return &message.Data, nil
 }

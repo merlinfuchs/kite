@@ -21,14 +21,14 @@ func (c *Client) CommandsByApp(ctx context.Context, appID string) ([]*model.Comm
 		return nil, err
 	}
 
-	var commands []*model.Command
-	for _, row := range rows {
+	commands := make([]*model.Command, len(rows))
+	for i, row := range rows {
 		cmd, err := rowToCommand(row)
 		if err != nil {
 			return nil, err
 		}
 
-		commands = append(commands, cmd)
+		commands[i] = cmd
 	}
 
 	return commands, nil
@@ -122,14 +122,14 @@ func (c *Client) EnabledCommandsUpdatedSince(ctx context.Context, updatedSince t
 		return nil, err
 	}
 
-	var commands []*model.Command
-	for _, row := range rows {
+	commands := make([]*model.Command, len(rows))
+	for i, row := range rows {
 		cmd, err := rowToCommand(row)
 		if err != nil {
 			return nil, err
 		}
 
-		commands = append(commands, cmd)
+		commands[i] = cmd
 	}
 
 	return commands, nil

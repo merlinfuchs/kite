@@ -41,7 +41,7 @@ func (h *VariableHandler) HandleVariableList(c *handler.Context) (*wire.Variable
 }
 
 func (h *VariableHandler) HandleVariableGet(c *handler.Context) (*wire.VariableGetResponse, error) {
-	return wire.VariableToWire(c.Variabe), nil
+	return wire.VariableToWire(c.Variable), nil
 }
 
 func (h *VariableHandler) HandleVariableCreate(c *handler.Context, req wire.VariableCreateRequest) (*wire.VariableCreateResponse, error) {
@@ -73,16 +73,16 @@ func (h *VariableHandler) HandleVariableCreate(c *handler.Context, req wire.Vari
 }
 
 func (h *VariableHandler) HandleVariableUpdate(c *handler.Context, req wire.VariableUpdateRequest) (*wire.VariableUpdateResponse, error) {
-	if req.Scope != string(c.Variabe.Scope) || req.Type != c.Variabe.Type {
+	if req.Scope != string(c.Variable.Scope) || req.Type != c.Variable.Type {
 		// If the scope or type changes, we have to delete all variable values
-		err := h.variableValueStore.DeleteAllVariableValues(c.Context(), c.Variabe.ID)
+		err := h.variableValueStore.DeleteAllVariableValues(c.Context(), c.Variable.ID)
 		if err != nil {
 			return nil, fmt.Errorf("failed to delete variable values: %w", err)
 		}
 	}
 
 	variable, err := h.variableStore.UpdateVariable(c.Context(), &model.Variable{
-		ID:        c.Variabe.ID,
+		ID:        c.Variable.ID,
 		Name:      req.Name,
 		Type:      req.Type,
 		Scope:     model.VariableScope(req.Scope),
@@ -100,7 +100,7 @@ func (h *VariableHandler) HandleVariableUpdate(c *handler.Context, req wire.Vari
 }
 
 func (h *VariableHandler) HandleVariableDelete(c *handler.Context) (*wire.VariableDeleteResponse, error) {
-	err := h.variableStore.DeleteVariable(c.Context(), c.Variabe.ID)
+	err := h.variableStore.DeleteVariable(c.Context(), c.Variable.ID)
 	if err != nil {
 		if errors.Is(err, store.ErrNotFound) {
 			return nil, handler.ErrNotFound("unknown_variable", "Variable not found")

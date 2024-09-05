@@ -7,6 +7,8 @@ import {
   ChevronDownIcon,
   CircleAlertIcon,
   CopyIcon,
+  PencilIcon,
+  PlusIcon,
   TrashIcon,
   XIcon,
 } from "lucide-react";
@@ -15,6 +17,7 @@ import {
   Select,
   SelectContent,
   SelectItem,
+  SelectSeparator,
   SelectTrigger,
   SelectValue,
 } from "../ui/select";
@@ -33,6 +36,11 @@ import {
   permissionBits,
 } from "@/lib/discord/permissions";
 import FlowPlaceholderExplorer from "./FlowPlaceholderExplorer";
+import { useMessages } from "@/lib/hooks/api";
+import Link from "next/link";
+import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
+import { useAppId } from "@/lib/hooks/params";
+import MessageCreateDialog from "../app/MessageCreateDialog";
 
 interface Props {
   nodeId: string;
@@ -55,8 +63,9 @@ const intputs: Record<string, any> = {
   command_permissions: CommandPermissionsInput,
   event_type: EventTypeInput,
   message_data: MessageDataInput,
-  // message_template_id: MessageTemplateInput,
+  message_template_id: MessageTemplateInput,
   message_target: MessageTargetInput,
+  response_target: ResponseTargetInput,
   message_ephemeral: MessageEphemeralInput,
   channel_data: ChannelDataInput,
   channel_target: ChannelTargetInput,
@@ -566,16 +575,58 @@ function MemberNickInput({ data, updateData, errors }: InputProps) {
 }
 
 function MessageTemplateInput({ data, updateData, errors }: InputProps) {
+  const messages = useMessages();
+
+  const appId = useAppId();
+
   return (
-    <BaseInput
-      type="select"
-      field="message_data"
-      title="Message Template"
-      options={[{ value: "1", label: "Welcome Message" }]}
-      value={data.message_template_id || ""}
-      updateValue={(v) => updateData({ message_template_id: v || undefined })}
-      errors={errors}
-    />
+    <div className="flex space-x-2 items-end">
+      <BaseInput
+        type="select"
+        field="message_data"
+        title="Message Template"
+        description="Select a message template to use for the response."
+        options={messages?.map((m) => ({
+          value: m!.id,
+          label: m!.name,
+        }))}
+        value={data.message_template_id || ""}
+        updateValue={(v) => updateData({ message_template_id: v || undefined })}
+        errors={errors}
+        clearable
+      />
+      {data.message_template_id ? (
+        <Tooltip>
+          <TooltipTrigger>
+            <Button variant="outline" size="icon" asChild>
+              <Link
+                href={{
+                  pathname: "/apps/[appId]/messages/[messageId]",
+                  query: { appId: appId, messageId: data.message_template_id },
+                }}
+                target="_blank"
+              >
+                <PencilIcon className="h-5 w-5" />
+              </Link>
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>Edit message template</TooltipContent>
+        </Tooltip>
+      ) : (
+        <Tooltip>
+          <TooltipTrigger>
+            <MessageCreateDialog
+              onMessageCreated={(v) => updateData({ message_template_id: v })}
+            >
+              <Button variant="outline" size="icon">
+                <PlusIcon className="h-5 w-5" />
+              </Button>
+            </MessageCreateDialog>
+          </TooltipTrigger>
+          <TooltipContent>Create message template</TooltipContent>
+        </Tooltip>
+      )}
+    </div>
   );
 }
 
@@ -610,6 +661,25 @@ function MessageTargetInput({ data, updateData, errors }: InputProps) {
       updateValue={(v) => updateData({ message_target: v || undefined })}
       errors={errors}
       placeholders
+    />
+  );
+}
+
+function ResponseTargetInput({ data, updateData, errors }: InputProps) {
+  return (
+    <BaseInput
+      type="select"
+      field="message_target"
+      title="Target Response"
+      value={data.message_target || ""}
+      options={[
+        {
+          label: "Original Response",
+          value: "@original",
+        },
+      ]}
+      updateValue={(v) => updateData({ message_target: v || undefined })}
+      errors={errors}
     />
   );
 }
@@ -980,6 +1050,7 @@ function BaseInput({
   value,
   updateValue,
   placeholders,
+  clearable,
 }: {
   type?: "text" | "textarea" | "select";
   field: string;
@@ -990,6 +1061,7 @@ function BaseInput({
   value: string;
   updateValue: (value: string) => void;
   placeholders?: boolean;
+  clearable?: boolean;
 }) {
   const error = errors[field];
 
@@ -1015,7 +1087,7 @@ function BaseInput({
 
       updateValue(newValue);
     },
-    [inputRef, textareaRef]
+    [inputRef, textareaRef, type, updateValue]
   );
 
   return (
@@ -1042,6 +1114,21 @@ function BaseInput({
                   {o.label}
                 </SelectItem>
               ))}
+              {clearable && (
+                <>
+                  <SelectSeparator />
+                  <Button
+                    className="w-full px-2"
+                    variant="ghost"
+                    size="sm"
+                    onClick={(e) => {
+                      updateValue("");
+                    }}
+                  >
+                    Clear Selection
+                  </Button>
+                </>
+              )}
             </SelectContent>
           </Select>
         ) : (

@@ -9,6 +9,7 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/api"
 	"github.com/kitecloud/kite/kite-service/internal/config"
 	"github.com/kitecloud/kite/kite-service/internal/core/engine"
+	"github.com/kitecloud/kite/kite-service/internal/core/event"
 	"github.com/kitecloud/kite/kite-service/internal/core/gateway"
 	"github.com/kitecloud/kite/kite-service/internal/db/postgres"
 	"github.com/kitecloud/kite/kite-service/internal/logging"
@@ -53,11 +54,14 @@ func serverStartCMD(c *cli.Context) error {
 		pg,
 		pg,
 		pg,
+		pg,
 		&http.Client{}, // TODO: think about proxying http requests
 	)
 	engine.Run(ctx)
 
-	gateway := gateway.NewGatewayManager(pg, pg, engine)
+	handler := event.NewEventHandlerWrapper(engine, pg)
+
+	gateway := gateway.NewGatewayManager(pg, pg, handler)
 	gateway.Run(ctx)
 
 	apiServer := api.NewAPIServer(api.APIServerConfig{
@@ -70,8 +74,9 @@ func serverStartCMD(c *cli.Context) error {
 			MaxAppsPerUser:     cfg.API.UserLimits.MaxAppsPerUser,
 			MaxCommandsPerApp:  cfg.API.UserLimits.MaxCommandsPerApp,
 			MaxVariablesPerApp: cfg.API.UserLimits.MaxVariablesPerApp,
+			MaxMessagesPerApp:  cfg.API.UserLimits.MaxMessagesPerApp,
 		},
-	}, pg, pg, pg, pg, pg, pg, pg)
+	}, pg, pg, pg, pg, pg, pg, pg, pg, pg, gateway)
 	address := fmt.Sprintf("%s:%d", cfg.API.Host, cfg.API.Port)
 	if err := apiServer.Serve(context.Background(), address); err != nil {
 		slog.With("error", err).Error("Failed to start API server")

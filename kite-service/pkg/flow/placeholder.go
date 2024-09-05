@@ -11,7 +11,7 @@ type variablePlaceholderProvider struct {
 }
 
 func (p *variablePlaceholderProvider) GetPlaceholder(ctx context.Context, key string) (placeholder.Provider, error) {
-	value, err := p.Variable.GetVariable(ctx, key)
+	value, err := p.Variable.Variable(ctx, key)
 	if err != nil {
 		if err == ErrNotFound {
 			return nil, placeholder.ErrNotFound

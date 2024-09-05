@@ -66,4 +66,5 @@ type UserLimitsConfig struct {
 	MaxAppsPerUser     int `toml:"max_apps_per_user"`
 	MaxCommandsPerApp  int `toml:"max_commands_per_app"`
 	MaxVariablesPerApp int `toml:"max_variables_per_app"`
+	MaxMessagesPerApp  int `toml:"max_messages_per_app"`
 }

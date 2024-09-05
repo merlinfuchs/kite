@@ -14,10 +14,12 @@ packages:
       manifest.Manifest: "Manifest"
       Base64: "string"
       flow.FlowData: "FlowData"
+      message.MessageData: "MessageData"
     exclude_files:
       - "base.go"
     frontmatter: |
       import { FlowData } from './flow.gen';
+      import { MessageData } from './message.gen';
       interface Empty {}
   - path: "github.com/kitecloud/kite/kite-service/pkg/flow"
     output_path: "./kite-web/src/lib/types/flow.gen.ts"
@@ -41,3 +43,17 @@ packages:
       - "error.go"
     frontmatter: |
       type StringIndexable = Record<string, unknown>;
+  - path: "github.com/kitecloud/kite/kite-service/pkg/message"
+    output_path: "./kite-web/src/lib/types/message.gen.ts"
+    type_mappings:
+      null.String: "null | string"
+      null.Bool: "null | boolean"
+      null.Float: "null | number"
+      null.Int: "null | number"
+      uuid.UUID: "string /* uuid */"
+      uuid.NullUUID: "null | string /* uuid */"
+      time.Time: "string /* RFC3339 */"
+      null.Time: "null | string /* RFC3339 */"
+      json.RawMessage: "Record<string, any> | null"
+      manifest.Manifest: "Manifest"
+      Base64: "string"

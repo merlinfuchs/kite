@@ -3,7 +3,7 @@ package flow
 import (
 	"testing"
 
-	"github.com/diamondburned/arikawa/v3/api"
+	"github.com/kitecloud/kite/kite-service/pkg/message"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -22,7 +22,7 @@ var flowCommandInput = FlowData{
 			ID:   "1",
 			Type: FlowNodeTypeActionResponseCreate,
 			Data: FlowNodeData{
-				MessageData: api.SendMessageData{
+				MessageData: &message.MessageData{
 					Content: "Pong!",
 				},
 			},
@@ -54,7 +54,7 @@ func TestFlowCompileCommand(t *testing.T) {
 				expected,
 			},
 			Data: FlowNodeData{
-				MessageData: api.SendMessageData{
+				MessageData: &message.MessageData{
 					Content: "Pong!",
 				},
 			},

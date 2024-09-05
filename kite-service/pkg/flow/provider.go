@@ -7,6 +7,7 @@ import (
 
 	"github.com/diamondburned/arikawa/v3/api"
 	"github.com/diamondburned/arikawa/v3/discord"
+	"github.com/kitecloud/kite/kite-service/pkg/message"
 )
 
 var (
@@ -14,11 +15,11 @@ var (
 )
 
 type FlowProviders struct {
-	Discord  FlowDiscordProvider
-	KV       FlowKVProvider
-	HTTP     FlowHTTPProvider
-	Log      FlowLogProvider
-	Variable FlowVariableProvider
+	Discord         FlowDiscordProvider
+	HTTP            FlowHTTPProvider
+	Log             FlowLogProvider
+	Variable        FlowVariableProvider
+	MessageTemplate FlowMessageTemplateProvider
 }
 
 type FlowDiscordProvider interface {
@@ -31,7 +32,7 @@ type FlowDiscordProvider interface {
 	Member(ctx context.Context, guildID discord.GuildID, userID discord.UserID) (*discord.Member, error)
 
 	CreateInteractionResponse(ctx context.Context, interactionID discord.InteractionID, interactionToken string, response api.InteractionResponse) error
-	EditInteractionResponse(ctx context.Context, applicationID discord.AppID, token string, response api.EditInteractionResponseData) error
+	EditInteractionResponse(ctx context.Context, applicationID discord.AppID, token string, response api.EditInteractionResponseData) (*discord.Message, error)
 	DeleteInteractionResponse(ctx context.Context, applicationID discord.AppID, token string) error
 	CreateInteractionFollowup(ctx context.Context, applicationID discord.AppID, token string, data api.InteractionResponseData) (*discord.Message, error)
 	EditInteractionFollowup(ctx context.Context, applicationID discord.AppID, token string, messageID discord.MessageID, data api.EditInteractionResponseData) (*discord.Message, error)
@@ -51,9 +52,9 @@ type FlowDiscordProvider interface {
 	CreateRole(ctx context.Context, guildID discord.GuildID, data api.CreateRoleData) (*discord.Role, error)
 	EditRole(ctx context.Context, guildID discord.GuildID, roleID discord.RoleID, data api.ModifyRoleData) (*discord.Role, error)
 	DeleteRole(ctx context.Context, guildID discord.GuildID, roleID discord.RoleID) error
-}
 
-type FlowKVProvider interface{}
+	HasCreatedInteractionResponse(ctx context.Context, interactionID discord.InteractionID) (bool, error)
+}
 
 type FlowHTTPProvider interface {
 	HTTPRequest(ctx context.Context, req *http.Request) (*http.Response, error)
@@ -65,6 +66,10 @@ type FlowLogProvider interface {
 
 type FlowVariableProvider interface {
 	SetVariable(ctx context.Context, id string, value FlowValue) error
-	GetVariable(ctx context.Context, id string) (FlowValue, error)
+	Variable(ctx context.Context, id string) (FlowValue, error)
 	DeleteVariable(ctx context.Context, id string) error
+}
+
+type FlowMessageTemplateProvider interface {
+	MessageTemplate(ctx context.Context, id string) (*message.MessageData, error)
 }

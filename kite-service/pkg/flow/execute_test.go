@@ -8,6 +8,7 @@ import (
 	"github.com/diamondburned/arikawa/v3/api"
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/gateway"
+	"github.com/kitecloud/kite/kite-service/pkg/message"
 	"github.com/kitecloud/kite/kite-service/pkg/placeholder"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -40,7 +41,7 @@ var flowCommandTest = CompiledFlowNode{
 							ID:   "3",
 							Type: FlowNodeTypeActionResponseCreate,
 							Data: FlowNodeData{
-								MessageData: api.SendMessageData{
+								MessageData: &message.MessageData{
 									Content: "Pong!",
 								},
 							},

@@ -29,7 +29,7 @@ const (
 )
 
 type VariableValue struct {
-	ID         int64
+	ID         uint64
 	VariableID string
 	Scope      null.String
 	Value      []byte

@@ -7,6 +7,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/diamondburned/arikawa/v3/api"
 	"github.com/diamondburned/arikawa/v3/gateway"
 	"github.com/diamondburned/arikawa/v3/state"
 	"github.com/kitecloud/kite/kite-service/internal/model"
@@ -116,4 +117,28 @@ func (m *GatewayManager) addGateway(ctx context.Context, app *model.App) error {
 	}
 
 	return nil
+}
+
+func (m *GatewayManager) AppState(ctx context.Context, appID string) (store.AppStateStore, error) {
+	m.Lock()
+	defer m.Unlock()
+
+	g, ok := m.gateways[appID]
+	if !ok {
+		return nil, store.ErrNotFound
+	}
+
+	return g, nil
+}
+
+func (m *GatewayManager) AppClient(ctx context.Context, appID string) (*api.Client, error) {
+	m.Lock()
+	defer m.Unlock()
+
+	g, ok := m.gateways[appID]
+	if !ok {
+		return nil, store.ErrNotFound
+	}
+
+	return g.session.Client, nil
 }

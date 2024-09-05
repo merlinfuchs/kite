@@ -1,9 +1,4 @@
-import {
-  CheckIcon,
-  SlashSquareIcon,
-  StretchHorizontalIcon,
-  VariableIcon,
-} from "lucide-react";
+import { StretchHorizontalIcon, VariableIcon } from "lucide-react";
 import {
   Card,
   CardDescription,

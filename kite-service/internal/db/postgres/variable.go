@@ -18,11 +18,11 @@ func (c *Client) VariablesByApp(ctx context.Context, appID string) ([]*model.Var
 		return nil, err
 	}
 
-	var variables []*model.Variable
-	for _, row := range rows {
+	variables := make([]*model.Variable, len(rows))
+	for i, row := range rows {
 		v := rowToVariable(row.Variable)
 		v.TotalValues = null.NewInt(row.TotalValues, true)
-		variables = append(variables, v)
+		variables[i] = v
 	}
 
 	return variables, nil
@@ -249,7 +249,7 @@ func (c *Client) DeleteAllVariableValues(ctx context.Context, variableID string)
 
 func rowToVariableValue(row pgmodel.VariableValue) *model.VariableValue {
 	return &model.VariableValue{
-		ID:         row.ID,
+		ID:         uint64(row.ID),
 		VariableID: row.VariableID,
 		Scope:      null.NewString(row.Scope.String, row.Scope.Valid),
 		Value:      row.Value,

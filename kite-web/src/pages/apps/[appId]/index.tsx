@@ -1,6 +1,6 @@
 import AppLayout from "@/components/app/AppLayout";
 import LogEntryList from "@/components/app/LogEntryList";
-import { useApp, useCommands } from "@/lib/hooks/api";
+import { useApp, useCommands, useMessages } from "@/lib/hooks/api";
 import AppInfoCard from "@/components/app/AppInfoCard";
 import AppResourceCard from "@/components/app/AppResourceCard";
 
@@ -8,6 +8,7 @@ export default function AppPage() {
   const app = useApp();
 
   const commands = useCommands();
+  const messages = useMessages();
 
   return (
     <AppLayout>
@@ -34,7 +35,7 @@ export default function AppPage() {
             />
             <AppResourceCard
               title="Messages"
-              count={0}
+              count={messages?.length || 0}
               actionTitle="Manage messages"
               actionHref={{
                 pathname: "/apps/[appId]/messages",

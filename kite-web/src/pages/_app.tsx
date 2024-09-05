@@ -25,7 +25,7 @@ export default function App({ Component, pageProps }: AppProps) {
       `}</style>
       <QueryClientProvider client={queryClient}>
         <ThemeProvider attribute="class">
-          <TooltipProvider>
+          <TooltipProvider delayDuration={200}>
             <Component {...pageProps} />
             <Toaster position="top-right" richColors={true} />
 
