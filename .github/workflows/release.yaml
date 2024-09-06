@@ -1,0 +1,39 @@
+name: Release Builds
+
+on:
+  release:
+    types: [created]
+
+jobs:
+  release:
+    name: Release Server
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      - name: Set up Node
+        uses: actions/setup-node@v2
+        with:
+          node-version: "18"
+      - name: Build Site
+        run: npm install && npm run build
+        working-directory: ./kite-web
+      - name: Build App
+        run: npm install && npm run build
+        working-directory: ./kite-docs
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: ">=1.21.0"
+          check-latest: true
+      - name: Run GoReleaser
+        uses: goreleaser/goreleaser-action@v4
+        with:
+          workdir: kite-service
+          distribution: goreleaser
+          version: latest
+          args: release --clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
