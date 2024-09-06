@@ -17,10 +17,10 @@ jobs:
         uses: actions/setup-node@v2
         with:
           node-version: "18"
-      - name: Build Site
+      - name: Build Website
         run: npm install && npm run build
         working-directory: ./kite-web
-      - name: Build App
+      - name: Build Docs
         run: npm install && npm run build
         working-directory: ./kite-docs
       - name: Set up Go
@@ -29,11 +29,11 @@ jobs:
           go-version: ">=1.21.0"
           check-latest: true
       - name: Run GoReleaser
-        uses: goreleaser/goreleaser-action@v4
+        uses: goreleaser/goreleaser-action@v6
         with:
           workdir: kite-service
           distribution: goreleaser
           version: latest
-          args: release --clean
+          args: release --clean --skip=validate
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -1,3 +1,4 @@
+version: 2
 builds:
   - binary: kite-service
     tags:
