@@ -1,0 +1,5 @@
+builds:
+  - binary: kite-service
+    tags:
+      - kiteweb
+      - kitedocs

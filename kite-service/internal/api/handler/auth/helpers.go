@@ -70,26 +70,6 @@ func (h *AuthHandler) authenticateWithCode(c *handler.Context, code string) (str
 		return "", nil, err
 	}
 
-	resp, err = client.Get("https://discord.com/api/users/@me/guilds")
-	if err != nil {
-		slog.With("error", err).Error("Failed to get guilds")
-		return "", nil, fmt.Errorf("Failed to get guilds: %w", err)
-	}
-
-	guilds := []struct {
-		ID string `json:"id"`
-	}{}
-	err = json.NewDecoder(resp.Body).Decode(&guilds)
-	if err != nil {
-		return "", nil, fmt.Errorf("Failed to decode guilds: %w", err)
-	}
-	resp.Body.Close()
-
-	guildIDs := make([]string, len(guilds))
-	for i, guild := range guilds {
-		guildIDs[i] = guild.ID
-	}
-
 	token, session, err := h.sessionManager.CreateSession(c, user.ID)
 	if err != nil {
 		return "", nil, err
