@@ -44,6 +44,7 @@ type APIConfig struct {
 	Port          int              `toml:"port" validate:"required"`
 	PublicBaseURL string           `toml:"public_base_url" validate:"required"`
 	SecureCookies bool             `toml:"secure_cookies"`
+	StrictCookies bool             `toml:"strict_cookies"`
 	UserLimits    UserLimitsConfig `toml:"user_limits"`
 }
 

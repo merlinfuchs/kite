@@ -30,6 +30,7 @@ func (s *APIServer) RegisterRoutes(
 	appStateManager store.AppStateManager,
 ) {
 	sessionManager := session.NewSessionManager(session.SessionManagerConfig{
+		StrictCookies: s.config.StrictCookies,
 		SecureCookies: s.config.SecureCookies,
 	}, sessionStore)
 	accessManager := access.NewAccessManager(appStore, commandStore, variableStore, messageStore)

@@ -11,6 +11,7 @@ import (
 
 type APIServerConfig struct {
 	SecureCookies       bool
+	StrictCookies       bool
 	AppPublicBaseURL    string
 	APIPublicBaseURL    string
 	DiscordClientID     string

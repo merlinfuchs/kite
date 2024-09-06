@@ -16,6 +16,7 @@ const SessionCookieName = "kite-session"
 const SessionExpiry = 7 * 24 * time.Hour
 
 type SessionManagerConfig struct {
+	StrictCookies bool
 	SecureCookies bool
 }
 
@@ -45,12 +46,17 @@ func (s *SessionManager) CreateSession(c *handler.Context, userID string) (strin
 		return "", nil, fmt.Errorf("failed to create session: %w", err)
 	}
 
+	sameSite := http.SameSiteNoneMode
+	if s.config.StrictCookies {
+		sameSite = http.SameSiteStrictMode
+	}
+
 	c.SetCookie(&http.Cookie{
 		Name:     SessionCookieName,
 		Value:    key,
 		Secure:   s.config.SecureCookies,
 		HttpOnly: true,
-		SameSite: http.SameSiteNoneMode,
+		SameSite: sameSite,
 		MaxAge:   int(SessionExpiry.Seconds()),
 		Path:     "/",
 	})

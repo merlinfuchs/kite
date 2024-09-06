@@ -66,6 +66,7 @@ func serverStartCMD(c *cli.Context) error {
 
 	apiServer := api.NewAPIServer(api.APIServerConfig{
 		SecureCookies:       cfg.API.SecureCookies,
+		StrictCookies:       cfg.API.StrictCookies,
 		APIPublicBaseURL:    cfg.API.PublicBaseURL,
 		AppPublicBaseURL:    cfg.App.PublicBaseURL,
 		DiscordClientID:     cfg.Discord.ClientID,
