@@ -30,8 +30,9 @@ UPDATE apps SET
     name = $2,
     description = $3,
     discord_token = $4,
-    enabled = $5,
-    updated_at = $6
+    discord_status = $5,
+    enabled = $6,
+    updated_at = $7
 WHERE id = $1 RETURNING *;
 
 -- name: DeleteApp :exec

@@ -84,13 +84,25 @@ func (h *AppHandler) HandleAppUpdate(c *handler.Context, req wire.AppUpdateReque
 		}
 	}
 
+	var status *model.AppDiscordStatus
+	if req.DiscordStatus != nil {
+		status = &model.AppDiscordStatus{
+			Status:        req.DiscordStatus.Status,
+			ActivityType:  req.DiscordStatus.ActivityType,
+			ActivityName:  req.DiscordStatus.ActivityName,
+			ActivityState: req.DiscordStatus.ActivityState,
+			ActivityURL:   req.DiscordStatus.ActivityURL,
+		}
+	}
+
 	app, err := h.appStore.UpdateApp(c.Context(), store.AppUpdateOpts{
-		ID:           c.App.ID,
-		Name:         req.Name,
-		Description:  req.Description,
-		DiscordToken: c.App.DiscordToken,
-		Enabled:      req.Enabled,
-		UpdatedAt:    time.Now().UTC(),
+		ID:            c.App.ID,
+		Name:          req.Name,
+		Description:   req.Description,
+		DiscordToken:  c.App.DiscordToken,
+		DiscordStatus: status,
+		Enabled:       req.Enabled,
+		UpdatedAt:     time.Now().UTC(),
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to update app: %w", err)

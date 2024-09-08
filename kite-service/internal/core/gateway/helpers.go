@@ -28,16 +28,31 @@ func getAppIntents(client *api.Client) (gateway.Intents, error) {
 }
 
 func createSession(app *model.App) *state.State {
+	status := discord.OnlineStatus
+	activity := discord.Activity{
+		Type:  discord.CustomActivity,
+		Name:  "kite.onl",
+		State: "🪁 Powered by Kite.onl",
+	}
+
+	fmt.Printf("%+v\n", app.DiscordStatus)
+	if app.DiscordStatus != nil {
+		if app.DiscordStatus.Status != "" {
+			status = discord.Status(app.DiscordStatus.Status)
+		}
+
+		activity = discord.Activity{
+			Type:  discord.ActivityType(app.DiscordStatus.ActivityType),
+			Name:  app.DiscordStatus.ActivityName,
+			State: app.DiscordStatus.ActivityState,
+			URL:   app.DiscordStatus.ActivityURL,
+		}
+	}
+
 	identifier := gateway.DefaultIdentifier("Bot " + app.DiscordToken)
 	identifier.IdentifyCommand.Presence = &gateway.UpdatePresenceCommand{
-		Status: discord.OnlineStatus,
-		Activities: []discord.Activity{
-			{
-				Type:  discord.CustomActivity,
-				Name:  "kite.onl",
-				State: "🪁 Powered by Kite.onl",
-			},
-		},
+		Status:     status,
+		Activities: []discord.Activity{activity},
 	}
 
 	// TODO: configure state to only cache what we need

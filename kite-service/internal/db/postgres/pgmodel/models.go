@@ -19,6 +19,7 @@ type App struct {
 	DiscordID     string
 	CreatedAt     pgtype.Timestamp
 	UpdatedAt     pgtype.Timestamp
+	DiscordStatus []byte
 }
 
 type Collaborator struct {

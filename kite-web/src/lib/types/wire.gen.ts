@@ -12,10 +12,18 @@ export interface App {
   description: null | string;
   enabled: boolean;
   discord_id: string;
+  discord_status?: AppDiscordStatus;
   owner_user_id: string;
   creator_user_id: string;
   created_at: string /* RFC3339 */;
   updated_at: string /* RFC3339 */;
+}
+export interface AppDiscordStatus {
+  status?: string;
+  activity_type?: number /* int */;
+  activity_name?: string;
+  activity_state?: string;
+  activity_url?: string;
 }
 export type AppGetResponse = App;
 export interface AppCreateRequest {
@@ -25,6 +33,7 @@ export type AppCreateResponse = App;
 export interface AppUpdateRequest {
   name: string;
   description: null | string;
+  discord_status?: AppDiscordStatus;
   enabled: boolean;
 }
 export type AppUpdateResponse = App;

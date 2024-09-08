@@ -9,12 +9,13 @@ import (
 )
 
 type AppUpdateOpts struct {
-	ID           string
-	Name         string
-	Description  null.String
-	DiscordToken string
-	Enabled      bool
-	UpdatedAt    time.Time
+	ID            string
+	Name          string
+	Description   null.String
+	DiscordToken  string
+	DiscordStatus *model.AppDiscordStatus
+	Enabled       bool
+	UpdatedAt     time.Time
 }
 
 type AppStore interface {

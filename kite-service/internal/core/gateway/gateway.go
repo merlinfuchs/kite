@@ -91,10 +91,12 @@ func (g *Gateway) Close(ctx context.Context) error {
 }
 
 func (g *Gateway) Update(ctx context.Context, app *model.App) {
-	if app.DiscordToken != g.app.DiscordToken {
+	// TODO: send update presence event when status changed instead of restarting the gateway
+
+	if app.DiscordToken != g.app.DiscordToken || !app.DiscordStatus.Equals(g.app.DiscordStatus) {
 		g.app = app
 
-		slog.With("app_id", app.ID).Info("Discord token changed, closing gateway")
+		slog.With("app_id", app.ID).Info("Discord token or status changed, closing gateway")
 		if err := g.Close(ctx); err != nil {
 			slog.With("error", err).Error("failed to close gateway")
 		}

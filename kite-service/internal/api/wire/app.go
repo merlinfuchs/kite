@@ -9,15 +9,24 @@ import (
 )
 
 type App struct {
-	ID            string      `json:"id"`
-	Name          string      `json:"name"`
-	Description   null.String `json:"description"`
-	Enabled       bool        `json:"enabled"`
-	DiscordID     string      `json:"discord_id"`
-	OwnerUserID   string      `json:"owner_user_id"`
-	CreatorUserID string      `json:"creator_user_id"`
-	CreatedAt     time.Time   `json:"created_at"`
-	UpdatedAt     time.Time   `json:"updated_at"`
+	ID            string            `json:"id"`
+	Name          string            `json:"name"`
+	Description   null.String       `json:"description"`
+	Enabled       bool              `json:"enabled"`
+	DiscordID     string            `json:"discord_id"`
+	DiscordStatus *AppDiscordStatus `json:"discord_status,omitempty"`
+	OwnerUserID   string            `json:"owner_user_id"`
+	CreatorUserID string            `json:"creator_user_id"`
+	CreatedAt     time.Time         `json:"created_at"`
+	UpdatedAt     time.Time         `json:"updated_at"`
+}
+
+type AppDiscordStatus struct {
+	Status        string `json:"status,omitempty"`
+	ActivityType  int    `json:"activity_type,omitempty"`
+	ActivityName  string `json:"activity_name,omitempty"`
+	ActivityState string `json:"activity_state,omitempty"`
+	ActivityURL   string `json:"activity_url,omitempty"`
 }
 
 type AppGetResponse = App
@@ -35,9 +44,10 @@ func (req AppCreateRequest) Validate() error {
 type AppCreateResponse = App
 
 type AppUpdateRequest struct {
-	Name        string      `json:"name"`
-	Description null.String `json:"description"`
-	Enabled     bool        `json:"enabled"`
+	Name          string            `json:"name"`
+	Description   null.String       `json:"description"`
+	DiscordStatus *AppDiscordStatus `json:"discord_status,omitempty"`
+	Enabled       bool              `json:"enabled"`
 }
 
 func (req AppUpdateRequest) Validate() error {
@@ -70,12 +80,24 @@ func AppToWire(app *model.App) *App {
 		return nil
 	}
 
+	var status *AppDiscordStatus
+	if app.DiscordStatus != nil {
+		status = &AppDiscordStatus{
+			Status:        app.DiscordStatus.Status,
+			ActivityType:  app.DiscordStatus.ActivityType,
+			ActivityName:  app.DiscordStatus.ActivityName,
+			ActivityState: app.DiscordStatus.ActivityState,
+			ActivityURL:   app.DiscordStatus.ActivityURL,
+		}
+	}
+
 	return &App{
 		ID:            app.ID,
 		Name:          app.Name,
 		Description:   app.Description,
 		Enabled:       app.Enabled,
 		DiscordID:     app.DiscordID,
+		DiscordStatus: status,
 		OwnerUserID:   app.OwnerUserID,
 		CreatorUserID: app.CreatorUserID,
 		CreatedAt:     app.CreatedAt,

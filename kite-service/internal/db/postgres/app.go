@@ -2,7 +2,9 @@ package postgres
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -21,7 +23,11 @@ func (c *Client) AppsByUser(ctx context.Context, userID string) ([]*model.App, e
 
 	var apps []*model.App
 	for _, row := range rows {
-		apps = append(apps, rowToApp(row))
+		app, err := rowToApp(row)
+		if err != nil {
+			return nil, err
+		}
+		apps = append(apps, app)
 	}
 
 	return apps, nil
@@ -44,7 +50,7 @@ func (c *Client) App(ctx context.Context, id string) (*model.App, error) {
 		return nil, err
 	}
 
-	return rowToApp(row), nil
+	return rowToApp(row)
 }
 
 func (c *Client) AppCredentials(ctx context.Context, id string) (*model.AppCredentials, error) {
@@ -81,10 +87,19 @@ func (c *Client) CreateApp(ctx context.Context, app *model.App) (*model.App, err
 		return nil, err
 	}
 
-	return rowToApp(row), nil
+	return rowToApp(row)
 }
 
 func (c *Client) UpdateApp(ctx context.Context, opts store.AppUpdateOpts) (*model.App, error) {
+	var rawStatus []byte
+	if opts.DiscordStatus != nil {
+		var err error
+		rawStatus, err = json.Marshal(opts.DiscordStatus)
+		if err != nil {
+			return nil, fmt.Errorf("failed to marshal discord status: %w", err)
+		}
+	}
+
 	row, err := c.Q.UpdateApp(ctx, pgmodel.UpdateAppParams{
 		ID:   opts.ID,
 		Name: opts.Name,
@@ -92,15 +107,16 @@ func (c *Client) UpdateApp(ctx context.Context, opts store.AppUpdateOpts) (*mode
 			String: opts.Description.String,
 			Valid:  opts.Description.Valid,
 		},
-		DiscordToken: opts.DiscordToken,
-		Enabled:      opts.Enabled,
-		UpdatedAt:    pgtype.Timestamp{Time: opts.UpdatedAt.UTC(), Valid: true},
+		DiscordToken:  opts.DiscordToken,
+		DiscordStatus: rawStatus,
+		Enabled:       opts.Enabled,
+		UpdatedAt:     pgtype.Timestamp{Time: opts.UpdatedAt.UTC(), Valid: true},
 	})
 	if err != nil {
 		return nil, err
 	}
 
-	return rowToApp(row), nil
+	return rowToApp(row)
 }
 
 func (c *Client) DeleteApp(ctx context.Context, id string) error {
@@ -122,13 +138,25 @@ func (c *Client) EnabledAppsUpdatedSince(ctx context.Context, updatedSince time.
 
 	var apps []*model.App
 	for _, row := range rows {
-		apps = append(apps, rowToApp(row))
+		app, err := rowToApp(row)
+		if err != nil {
+			return nil, err
+		}
+		apps = append(apps, app)
 	}
 
 	return apps, nil
 }
 
-func rowToApp(row pgmodel.App) *model.App {
+func rowToApp(row pgmodel.App) (*model.App, error) {
+	var status *model.AppDiscordStatus
+	if row.DiscordStatus != nil {
+		status = &model.AppDiscordStatus{}
+		if err := json.Unmarshal(row.DiscordStatus, status); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal discord status: %w", err)
+		}
+	}
+
 	return &model.App{
 		ID:            row.ID,
 		Name:          row.Name,
@@ -138,7 +166,8 @@ func rowToApp(row pgmodel.App) *model.App {
 		CreatorUserID: row.CreatorUserID,
 		DiscordToken:  row.DiscordToken,
 		DiscordID:     row.DiscordID,
+		DiscordStatus: status,
 		CreatedAt:     row.CreatedAt.Time,
 		UpdatedAt:     row.UpdatedAt.Time,
-	}
+	}, nil
 }
