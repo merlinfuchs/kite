@@ -91,9 +91,17 @@ func (g *Gateway) Close(ctx context.Context) error {
 }
 
 func (g *Gateway) Update(ctx context.Context, app *model.App) {
-	// TODO: send update presence event when status changed instead of restarting the gateway
+	if !app.DiscordStatus.Equals(g.app.DiscordStatus) {
+		presence := presenceForApp(app)
 
-	if app.DiscordToken != g.app.DiscordToken || !app.DiscordStatus.Equals(g.app.DiscordStatus) {
+		err := g.session.Gateway().Send(ctx, presence)
+		if err != nil {
+			go g.createLogEntry(model.LogLevelError, fmt.Sprintf("Failed to update bot status: %v", err))
+			slog.With("error", err).Error("failed to send presence update")
+		}
+	}
+
+	if app.DiscordToken != g.app.DiscordToken {
 		g.app = app
 
 		slog.With("app_id", app.ID).Info("Discord token or status changed, closing gateway")

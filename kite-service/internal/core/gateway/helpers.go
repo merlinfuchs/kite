@@ -28,6 +28,14 @@ func getAppIntents(client *api.Client) (gateway.Intents, error) {
 }
 
 func createSession(app *model.App) *state.State {
+	identifier := gateway.DefaultIdentifier("Bot " + app.DiscordToken)
+	identifier.IdentifyCommand.Presence = presenceForApp(app)
+
+	// TODO: configure state to only cache what we need
+	return state.NewWithIdentifier(identifier)
+}
+
+func presenceForApp(app *model.App) *gateway.UpdatePresenceCommand {
 	status := discord.OnlineStatus
 	activity := discord.Activity{
 		Type:  discord.CustomActivity,
@@ -35,7 +43,6 @@ func createSession(app *model.App) *state.State {
 		State: "🪁 Powered by Kite.onl",
 	}
 
-	fmt.Printf("%+v\n", app.DiscordStatus)
 	if app.DiscordStatus != nil {
 		if app.DiscordStatus.Status != "" {
 			status = discord.Status(app.DiscordStatus.Status)
@@ -49,12 +56,8 @@ func createSession(app *model.App) *state.State {
 		}
 	}
 
-	identifier := gateway.DefaultIdentifier("Bot " + app.DiscordToken)
-	identifier.IdentifyCommand.Presence = &gateway.UpdatePresenceCommand{
+	return &gateway.UpdatePresenceCommand{
 		Status:     status,
 		Activities: []discord.Activity{activity},
 	}
-
-	// TODO: configure state to only cache what we need
-	return state.NewWithIdentifier(identifier)
 }
