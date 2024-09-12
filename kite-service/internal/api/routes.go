@@ -1,6 +1,7 @@
 package api
 
 import (
+	"log/slog"
 	"time"
 
 	"github.com/kitecloud/kite/kite-service/internal/api/access"
@@ -15,6 +16,7 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/variable"
 	"github.com/kitecloud/kite/kite-service/internal/api/session"
 	"github.com/kitecloud/kite/kite-service/internal/store"
+	kiteweb "github.com/merlinfuchs/kite/kite-web"
 )
 
 func (s *APIServer) RegisterRoutes(
@@ -35,10 +37,17 @@ func (s *APIServer) RegisterRoutes(
 	}, sessionStore)
 	accessManager := access.NewAccessManager(appStore, commandStore, variableStore, messageStore)
 
-	// 404 handler
-	s.mux.Handle("/", handler.APIHandler(func(c *handler.Context) error {
-		return handler.ErrNotFound("unknown_route", "Route not found")
-	}))
+	webHandler, err := kiteweb.NewHandler()
+	if err == nil {
+		slog.Info("Website embedded")
+		s.mux.Handle("/", webHandler)
+	} else {
+		// 404 handler
+		slog.Info("Website not embedded, set 'embedweb' build tag to embed it.")
+		s.mux.Handle("/", handler.APIHandler(func(c *handler.Context) error {
+			return handler.ErrNotFound("unknown_route", "Route not found")
+		}))
+	}
 
 	v1Group := handler.Group(s.mux, "/v1")
 

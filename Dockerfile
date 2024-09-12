@@ -16,11 +16,8 @@ RUN apt-get -y install nodejs
 # Build website
 RUN cd kite-web && npm install && npm run build && cd ..
 
-# Build docs
-RUN cd kite-docs && npm install && npm run build && cd ..
-
 # Build backend
-RUN cd kite-service && go build --tags "kiteweb kitedocs" && cd ..
+RUN cd kite-service && go build --tags "embedweb" && cd ..
 
 FROM debian:stable-slim
 WORKDIR /root/
@@ -30,4 +27,5 @@ RUN apt-get update
 RUN apt-get install -y ca-certificates gnupg build-essential
 
 EXPOSE 8080
+ENV KITE_APP__PUBLIC_BASE_URL=http://localhost:8080
 CMD ./kite-service database migrate postgres up; ./kite-service server start

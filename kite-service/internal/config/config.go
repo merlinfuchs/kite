@@ -7,10 +7,12 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"strings"
 
 	gotoml "github.com/pelletier/go-toml/v2"
 
 	"github.com/knadh/koanf/parsers/toml"
+	"github.com/knadh/koanf/providers/env"
 	"github.com/knadh/koanf/providers/file"
 	"github.com/knadh/koanf/providers/rawbytes"
 	"github.com/knadh/koanf/v2"
@@ -69,6 +71,14 @@ func loadBase(basePath string) (*koanf.Koanf, error) {
 		if !errors.As(err, &pathError) {
 			return nil, fmt.Errorf("Failed to load config file: %v", err)
 		}
+	}
+
+	envProvider := env.Provider("KITE_", ".", func(s string) string {
+		return strings.Replace(strings.ToLower(
+			strings.TrimPrefix(s, "KITE_")), "__", ".", -1)
+	})
+	if err := k.Load(envProvider, nil); err != nil {
+		return nil, fmt.Errorf("Failed to load env config: %v", err)
 	}
 
 	return k, nil

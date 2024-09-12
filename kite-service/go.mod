@@ -1,6 +1,6 @@
 module github.com/kitecloud/kite/kite-service
 
-go 1.22.0
+go 1.22.3
 
 require (
 	github.com/cyrusaf/ctxlog v1.3.2
@@ -16,6 +16,7 @@ require (
 	github.com/knadh/koanf/v2 v2.1.1
 	github.com/lib/pq v1.10.9
 	github.com/matoous/go-nanoid/v2 v2.1.0
+	github.com/merlinfuchs/kite/kite-web v0.0.0
 	github.com/pelletier/go-toml/v2 v2.2.2
 	github.com/ravener/discord-oauth2 v0.0.0-20230514095040-ae65713199b3
 	github.com/rs/cors v1.11.0
@@ -46,8 +47,10 @@ require (
 	github.com/jackc/pgservicefile v0.0.0-20221227161230-091c0ba34f0a // indirect
 	github.com/jackc/puddle/v2 v2.2.1 // indirect
 	github.com/knadh/koanf/maps v0.1.1 // indirect
+	github.com/knadh/koanf/providers/env v0.1.0 // indirect
 	github.com/kr/pretty v0.3.1 // indirect
 	github.com/leodido/go-urn v1.4.0 // indirect
+	github.com/merlinfuchs/go-next-static v0.0.0-20240912153955-d431fbda6f18 // indirect
 	github.com/mitchellh/copystructure v1.2.0 // indirect
 	github.com/mitchellh/reflectwalk v1.0.2 // indirect
 	github.com/pelletier/go-toml v1.9.5 // indirect
@@ -67,3 +70,5 @@ require (
 	google.golang.org/protobuf v1.33.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
+
+replace github.com/merlinfuchs/kite/kite-web v0.0.0 => ../kite-web
