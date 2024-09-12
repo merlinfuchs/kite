@@ -1,4 +1,4 @@
-# Kite
+# 🪁 Kite
 
 [![Release](https://github.com/merlinfuchs/kite/actions/workflows/release.yaml/badge.svg)](https://github.com/merlinfuchs/kite/releases)
 [![Docker image](https://github.com/merlinfuchs/kite/actions/workflows/docker-push.yaml/badge.svg)](https://hub.docker.com/r/merlintor/kite)
@@ -85,6 +85,70 @@ Run the file using `docker-compose up`. It will automatically mount the `kite.to
 Kite should now be accessible in your browser at [localhost:8080](http://localhost:8080).
 
 ### Building from source
+
+#### Building the website
+
+You can download NodeJS and NPM from [nodejs.org](https://nodejs.org/en/download/).
+
+```shell
+# Switch to the kite-web directory
+cd kite-web
+
+# Install dependencies
+npm install
+
+# Start the development server (optional)
+npm run dev
+
+# Build for embedded use in kite-service (recommended)
+OUTPUT=export npm run build
+
+# Build for standalone use
+npm run build
+```
+
+#### Building the docs
+
+You can download NodeJS and NPM from [nodejs.org](https://nodejs.org/en/download/).
+
+```shell
+# Switch to the kite-docs directory
+cd kite-docs
+
+# Install dependencies
+npm install
+
+# Start the development server (optional)
+npm run start
+
+# Build for production use
+npm run build
+```
+
+#### Building the server (kite-service)
+
+Install Go >=1.22 from [go.dev](https://go.dev/doc/install).
+
+```shell
+# Switch to the backend directory
+cd kite-service
+# or if you are in the kite-web / kite-docs directoy
+cd ../kite-service
+
+# Configure the server (see steps above)
+
+# Run database migrations
+go run main.go database migrate postgres up
+
+# Start the development server (optional)
+go run main.go server
+
+# Build and include the kite-web files in the backend binary (build website first)
+go build --tags  "embedweb"
+
+# Build without including the frontend files in the backend binary (you need to serve them yourself)
+go build
+```
 
 ## High Level Progress
 
