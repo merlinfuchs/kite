@@ -29,5 +29,4 @@ RUN apt-get update
 RUN apt-get install -y ca-certificates gnupg build-essential
 
 EXPOSE 8080
-ENV KITE_APP__PUBLIC_BASE_URL=http://localhost:8080
 CMD ./kite-service database migrate postgres up; ./kite-service server start
