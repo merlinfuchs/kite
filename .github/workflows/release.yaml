@@ -18,11 +18,8 @@ jobs:
         with:
           node-version: "18"
       - name: Build Website
-        run: npm install && npm run build
+        run: npm install && NEXT_PUBLIC_API_PUBLIC_BASE_URL=/api npm run build
         working-directory: ./kite-web
-      - name: Build Docs
-        run: npm install && npm run build
-        working-directory: ./kite-docs
       - name: Set up Go
         uses: actions/setup-go@v4
         with:

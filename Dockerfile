@@ -14,6 +14,7 @@ RUN apt-get update
 RUN apt-get -y install nodejs
 
 # Build website
+ENV NEXT_PUBLIC_API_PUBLIC_BASE_URL=/api
 RUN cd kite-web && npm install && npm run build && cd ..
 
 # Build backend
