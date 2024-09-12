@@ -18,7 +18,7 @@ jobs:
         with:
           node-version: "18"
       - name: Build Website
-        run: npm install && NEXT_PUBLIC_API_PUBLIC_BASE_URL="" npm run build
+        run: npm install && OUTPUT=export NEXT_PUBLIC_API_PUBLIC_BASE_URL="" npm run build
         working-directory: ./kite-web
       - name: Set up Go
         uses: actions/setup-go@v4
