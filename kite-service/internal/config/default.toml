@@ -17,9 +17,15 @@ public_base_url = "http://localhost:3000"
 max_stack_depth = 25
 max_operations = 100
 max_actions = 25
+max_asset_size = 8_000_000
 
 [database.postgres]
 host = "127.0.0.1"
 port = 5432
 user = "postgres"
 db_name = "kite"
+
+[database.s3]
+endpoint = "localhost:9000"
+access_key_id = "kite"
+secret_access_key = "1234567890"

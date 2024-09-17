@@ -24,6 +24,7 @@ type APIUserLimitsConfig struct {
 	MaxCommandsPerApp  int
 	MaxVariablesPerApp int
 	MaxMessagesPerApp  int
+	MaxAssetSize       int
 }
 
 type APIServer struct {
@@ -43,6 +44,7 @@ func NewAPIServer(
 	variableValueStore store.VariableValueStore,
 	messageStore store.MessageStore,
 	messageInstanceStore store.MessageInstanceStore,
+	assetStore store.AssetStore,
 	appStateManager store.AppStateManager,
 ) *APIServer {
 	s := &APIServer{
@@ -59,6 +61,7 @@ func NewAPIServer(
 		variableValueStore,
 		messageStore,
 		messageInstanceStore,
+		assetStore,
 		appStateManager,
 	)
 	return s
