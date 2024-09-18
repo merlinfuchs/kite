@@ -13,3 +13,7 @@ CREATE TABLE IF NOT EXISTS assets (
     updated_at TIMESTAMP NOT NULL,
     expires_at TIMESTAMP
 );
+
+CREATE INDEX IF NOT EXISTS assets_app_id ON assets (app_id);
+CREATE INDEX IF NOT EXISTS assets_module_id ON assets (module_id);
+CREATE INDEX IF NOT EXISTS assets_content_hash ON assets (content_hash);
