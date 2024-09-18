@@ -11,6 +11,17 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const countAssetsByContentHash = `-- name: CountAssetsByContentHash :one
+SELECT COUNT(*) FROM assets WHERE content_hash = $1
+`
+
+func (q *Queries) CountAssetsByContentHash(ctx context.Context, contentHash string) (int64, error) {
+	row := q.db.QueryRow(ctx, countAssetsByContentHash, contentHash)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const createAsset = `-- name: CreateAsset :one
 INSERT INTO assets (
     id,
@@ -74,13 +85,27 @@ func (q *Queries) CreateAsset(ctx context.Context, arg CreateAssetParams) (Asset
 	return i, err
 }
 
-const deleteAsset = `-- name: DeleteAsset :exec
-DELETE FROM assets WHERE id = $1
+const deleteAsset = `-- name: DeleteAsset :one
+DELETE FROM assets WHERE id = $1 RETURNING id, name, content_hash, content_type, content_size, app_id, module_id, creator_user_id, created_at, updated_at, expires_at
 `
 
-func (q *Queries) DeleteAsset(ctx context.Context, id string) error {
-	_, err := q.db.Exec(ctx, deleteAsset, id)
-	return err
+func (q *Queries) DeleteAsset(ctx context.Context, id string) (Asset, error) {
+	row := q.db.QueryRow(ctx, deleteAsset, id)
+	var i Asset
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.ContentHash,
+		&i.ContentType,
+		&i.ContentSize,
+		&i.AppID,
+		&i.ModuleID,
+		&i.CreatorUserID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.ExpiresAt,
+	)
+	return i, err
 }
 
 const getAsset = `-- name: GetAsset :one

@@ -18,8 +18,11 @@ INSERT INTO assets (
 -- name: GetAsset :one
 SELECT * FROM assets WHERE id = $1;
 
--- name: DeleteAsset :exec
-DELETE FROM assets WHERE id = $1;
+-- name: DeleteAsset :one
+DELETE FROM assets WHERE id = $1 RETURNING *;
 
 -- name: GetExpiredAssets :many
 SELECT * FROM assets WHERE expires_at < $1;
+
+-- name: CountAssetsByContentHash :one
+SELECT COUNT(*) FROM assets WHERE content_hash = $1;

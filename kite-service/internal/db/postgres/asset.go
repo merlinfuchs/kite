@@ -106,19 +106,21 @@ func (s *AssetStore) AssetWithContent(ctx context.Context, id string) (*model.As
 }
 
 func (s *AssetStore) DeleteAsset(ctx context.Context, id string) error {
-	asset, err := s.Asset(ctx, id)
-	if err != nil {
-		return err
-	}
-
-	err = s.objectStore.DeleteObject(ctx, assetBucketName, asset.ContentHash)
-	if err != nil && !errors.Is(err, store.ErrNotFound) {
-		return fmt.Errorf("failed to delete asset object: %w", err)
-	}
-
-	err = s.pg.Q.DeleteAsset(ctx, id)
+	asset, err := s.pg.Q.DeleteAsset(ctx, id)
 	if err != nil {
 		return fmt.Errorf("failed to delete asset: %w", err)
+	}
+
+	remainingCount, err := s.pg.Q.CountAssetsByContentHash(ctx, asset.ContentHash)
+	if err != nil {
+		return fmt.Errorf("failed to count assets by content hash: %w", err)
+	}
+
+	if remainingCount == 0 {
+		err = s.objectStore.DeleteObject(ctx, assetBucketName, asset.ContentHash)
+		if err != nil && !errors.Is(err, store.ErrNotFound) {
+			return fmt.Errorf("failed to delete asset object: %w", err)
+		}
 	}
 
 	return nil
@@ -134,20 +136,10 @@ func (s *AssetStore) DeleteExpiredAssets(ctx context.Context, timestamp time.Tim
 	}
 
 	for _, asset := range assets {
-		err := s.objectStore.DeleteObject(ctx, assetBucketName, asset.ContentHash)
-		if err != nil && !errors.Is(err, store.ErrNotFound) {
-			slog.Error(
-				"failed to delete asset object",
-				slog.String("asset_id", asset.ID),
-				slog.String("error", err.Error()),
-			)
-			continue
-		}
-
-		err = s.pg.Q.DeleteAsset(ctx, asset.ID)
+		err := s.DeleteAsset(ctx, asset.ID)
 		if err != nil {
 			slog.Error(
-				"failed to delete asset",
+				"failed to delete expired asset",
 				slog.String("asset_id", asset.ID),
 				slog.String("error", err.Error()),
 			)
