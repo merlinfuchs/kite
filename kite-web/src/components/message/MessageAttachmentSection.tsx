@@ -7,6 +7,7 @@ import { ChangeEvent, useCallback, useRef } from "react";
 import { useAssetCreateMutation } from "@/lib/api/mutations";
 import { useAppId } from "@/lib/hooks/params";
 import { toast } from "sonner";
+import AutoAnimate from "../common/AutoAnimate";
 
 export default function MessageAttachmentSection() {
   const attachments = useCurrentMessage(
@@ -52,11 +53,11 @@ export default function MessageAttachmentSection() {
       defaultOpen={false}
       className="space-y-4"
     >
-      <div className="flex flex-wrap gap-4">
+      <AutoAnimate className="flex flex-wrap gap-4">
         {attachments.map((id, i) => (
           <MessageAttachment key={id} attachmentIndex={i} assetId={id} />
         ))}
-      </div>
+      </AutoAnimate>
       <div className="space-x-3">
         <input
           type="file"

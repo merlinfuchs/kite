@@ -4,6 +4,8 @@ import { ReactNode, useState } from "react";
 import { ChevronRightIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import MessageValidationErrorIndicator from "./MessageValidationErrorMarker";
+import AutoAnimate from "../common/AutoAnimate";
+import { useAutoAnimate } from "@formkit/auto-animate/react";
 
 export default function MessageCollapsibleSection({
   children,
@@ -38,12 +40,14 @@ export default function MessageCollapsibleSection({
     xl: "h-7 w-7",
   }[size];
 
+  const [parent] = useAutoAnimate();
+
   return (
     <Collapsible open={open} onOpenChange={setOpen}>
       <div className="flex items-center">
         <CollapsibleTrigger
           className={cn(
-            "font-semibold flex items-center space-x-1 flex-auto",
+            "flex items-center space-x-1 flex-auto text-foreground/90",
             textSize
           )}
         >
@@ -67,7 +71,7 @@ export default function MessageCollapsibleSection({
           <div className="flex-none flex items-center space-x-3">{actions}</div>
         )}
       </div>
-      <CollapsibleContent className={cn("mt-3", className)}>
+      <CollapsibleContent className={cn("mt-3", className)} ref={parent}>
         {children}
       </CollapsibleContent>
     </Collapsible>
