@@ -68,7 +68,7 @@ func (h *AssetHandler) HandleAssetCreate(c *handler.Context) (*wire.AssetCreateR
 }
 
 func (h *AssetHandler) HandleAssetGet(c *handler.Context) (*wire.AssetGetResponse, error) {
-	asset, err := h.assetStore.Asset(c.Context(), c.Param("asset_id"))
+	asset, err := h.assetStore.Asset(c.Context(), c.Param("assetID"))
 	if err != nil {
 		if err == store.ErrNotFound {
 			return nil, handler.ErrNotFound("asset_not_found", "asset not found")
@@ -80,9 +80,7 @@ func (h *AssetHandler) HandleAssetGet(c *handler.Context) (*wire.AssetGetRespons
 }
 
 func (h *AssetHandler) HandleAssetDownload(c *handler.Context) error {
-	// TODO: validate referer to be app
-
-	asset, err := h.assetStore.AssetWithContent(c.Context(), c.Param("asset_id"))
+	asset, err := h.assetStore.AssetWithContent(c.Context(), c.Param("assetID"))
 	if err != nil {
 		if err == store.ErrNotFound {
 			return handler.ErrNotFound("asset_not_found", "asset not found")

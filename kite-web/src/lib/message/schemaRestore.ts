@@ -398,7 +398,13 @@ export const messageAllowedMentionsSchema = z.preprocess(
   )
 );
 
-export const messageThreadName = z.optional(z.string());
+export const messageThreadNameSchema = z.optional(z.string());
+
+export const attachmentSchema = z.object({
+  asset_id: z.preprocess((d) => d ?? undefined, z.string().default("")),
+});
+
+export type MessageAttachment = z.infer<typeof attachmentSchema>;
 
 export const messageSchema = z.object({
   content: z.preprocess(
@@ -408,13 +414,17 @@ export const messageSchema = z.object({
   username: webhookUsernameSchema,
   avatar_url: webhookAvatarUrlSchema,
   tts: messageTtsSchema,
+  attachments: z.preprocess(
+    (d) => d ?? undefined,
+    z.array(attachmentSchema).default([])
+  ),
   embeds: z.preprocess((d) => d ?? undefined, z.array(embedSchema).default([])),
   allowed_mentions: messageAllowedMentionsSchema,
   components: z.preprocess(
     (d) => d ?? undefined,
     z.array(actionRowSchema).default([])
   ),
-  thread_name: messageThreadName,
+  thread_name: messageThreadNameSchema,
   actions: z.preprocess(
     (d) => d ?? undefined,
     z.record(z.string(), messageActionSetSchema).default({})

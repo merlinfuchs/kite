@@ -11,6 +11,7 @@ import {
   MessageComponentSelectMenuOption,
   MessageComponentSelectMenu,
   Emoji,
+  MessageAttachment,
 } from "./schema";
 import { getUniqueId } from "@/lib/utils";
 import { TemporalState, temporal } from "zundo";
@@ -24,6 +25,9 @@ export interface MessageStore extends Message {
   setUsername: (username: string | undefined) => void;
   setAvatarUrl: (avatar_url: string | undefined) => void;
   setThreadName: (thread_name: string | undefined) => void;
+  addAttachment: (attachment: MessageAttachment) => void;
+  clearAttachments: () => void;
+  deleteAttachment: (i: number) => void;
   addEmbed: (embed: MessageEmbed) => void;
   clearEmbeds: () => void;
   moveEmbedDown: (i: number) => void;
@@ -128,6 +132,7 @@ export const emptyMessage: Message = {
   avatar_url: undefined,
   content: "",
   tts: false,
+  attachments: [],
   embeds: [],
   components: [],
 };
@@ -149,6 +154,22 @@ export const createMessageStore = (initial?: Message) => {
           setAvatarUrl: (avatar_url: string | undefined) => set({ avatar_url }),
           setThreadName: (thread_name: string | undefined) =>
             set({ thread_name }),
+          addAttachment: (attachment: MessageAttachment) =>
+            set((state) => {
+              if (!state.attachments) {
+                state.attachments = [attachment];
+              } else {
+                state.attachments.push(attachment);
+              }
+            }),
+          clearAttachments: () => set({ attachments: [] }),
+          deleteAttachment: (i: number) =>
+            set((state) => {
+              if (!state.attachments) {
+                return;
+              }
+              state.attachments.splice(i, 1);
+            }),
           addEmbed: (embed: MessageEmbed) =>
             set((state) => {
               if (!state.embeds) {

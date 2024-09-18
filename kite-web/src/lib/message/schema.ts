@@ -335,7 +335,13 @@ export const messageAllowedMentionsSchema = z.optional(
   })
 );
 
-export const messageThreadName = z.optional(z.string().max(100));
+export const messageThreadNameSchema = z.optional(z.string().max(100));
+
+export const attachmentSchema = z.object({
+  asset_id: z.string(),
+});
+
+export type MessageAttachment = z.infer<typeof attachmentSchema>;
 
 export const messageSchema = z
   .object({
@@ -343,10 +349,11 @@ export const messageSchema = z
     username: webhookUsernameSchema,
     avatar_url: webhookAvatarUrlSchema,
     tts: messageTtsSchema.default(false),
+    attachments: z.array(attachmentSchema).max(10).default([]),
     embeds: z.array(embedSchema).max(10).default([]),
     allowed_mentions: messageAllowedMentionsSchema,
     components: z.array(actionRowSchema).max(5).default([]),
-    thread_name: messageThreadName,
+    thread_name: messageThreadNameSchema,
   })
   .superRefine((data, ctx) => {
     // this currently doesn't take attachments into account

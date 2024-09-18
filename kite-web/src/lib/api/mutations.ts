@@ -7,6 +7,7 @@ import {
   AppTokenUpdateResponse,
   AppUpdateRequest,
   AppUpdateResponse,
+  AssetCreateResponse,
   AuthLogoutResponse,
   CommandCreateRequest,
   CommandCreateResponse,
@@ -369,14 +370,32 @@ export function useMessageInstanceDeleteMutation(
         `/v1/apps/${appId}/messages/${messageId}/instances/${instanceId}`,
         {
           method: "DELETE",
-          headers: {
-            "Content-Type": "application/json",
-          },
         }
       ),
     onSuccess: () => {
       client.invalidateQueries({
         queryKey: ["apps", appId, "messages", messageId, "instances"],
+      });
+    },
+  });
+}
+
+export function useAssetCreateMutation(appId: string) {
+  const client = useQueryClient();
+
+  return useMutation({
+    mutationFn: (file: File) => {
+      const body = new FormData();
+      body.append("file", file);
+
+      return apiRequest<AssetCreateResponse>(`/v1/apps/${appId}/assets`, {
+        method: "POST",
+        body,
+      });
+    },
+    onSuccess: () => {
+      client.invalidateQueries({
+        queryKey: ["apps", appId, "assets"],
       });
     },
   });
