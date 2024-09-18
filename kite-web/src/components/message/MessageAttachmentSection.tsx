@@ -23,6 +23,8 @@ export default function MessageAttachmentSection() {
       const file = e.target.files?.[0];
       if (!file) return;
 
+      const toastId = toast.loading("Uploading attachment...");
+
       createMutation.mutate(file, {
         onSuccess: (res) => {
           if (res.success) {
@@ -34,6 +36,10 @@ export default function MessageAttachmentSection() {
               `Failed to upload asset: ${res.error.message} (${res.error.code})`
             );
           }
+        },
+        onSettled: () => {
+          toast.dismiss(toastId);
+          e.target.value = "";
         },
       });
     },

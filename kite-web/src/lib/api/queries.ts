@@ -115,12 +115,11 @@ export function useMessageInstancesQuery(appId: string, messageId: string) {
   });
 }
 
-export function useAssetQuery(appId: string, assetId: string) {
+export function useAssetQuery(assetId: string) {
   return useQuery({
-    queryKey: ["apps", appId, "assets", assetId],
-    queryFn: () =>
-      apiRequest<AssetGetResponse>(`/v1/apps/${appId}/assets/${assetId}`),
-    enabled: !!appId && !!assetId,
+    queryKey: ["assets", assetId],
+    queryFn: () => apiRequest<AssetGetResponse>(`/v1/assets/${assetId}`),
+    enabled: !!assetId,
   });
 }
 
