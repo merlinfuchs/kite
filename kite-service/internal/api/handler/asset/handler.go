@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"strings"
 	"time"
 
 	"github.com/kitecloud/kite/kite-service/internal/api/handler"
@@ -27,7 +26,7 @@ func NewAssetHandler(assetStore store.AssetStore, maxAssetSize int) *AssetHandle
 }
 
 func (h *AssetHandler) HandleAssetCreate(c *handler.Context) (*wire.AssetCreateResponse, error) {
-	file, header, err := c.FormFile("file", h.maxAssetSize)
+	file, header, err := c.FormFile("file")
 	if err != nil {
 		return nil, handler.ErrBadRequest("invalid_form", "failed to get file from form")
 	}
@@ -36,17 +35,13 @@ func (h *AssetHandler) HandleAssetCreate(c *handler.Context) (*wire.AssetCreateR
 		return nil, handler.ErrBadRequest("resource_limit", fmt.Sprintf("file size exceeds maximum allowed size (%d)", h.maxAssetSize))
 	}
 
-	contentType := header.Header.Get("Content-Type")
-	if !strings.HasPrefix(contentType, "image/") {
-		return nil, handler.ErrBadRequest("invalid_content_type", "only images are allowed")
-	}
-
 	content, err := io.ReadAll(file)
 	if err != nil {
 		return nil, fmt.Errorf("could not read file: %w", err)
 	}
 
 	contentHash := util.HashBytes(content)
+	contentType := header.Header.Get("Content-Type")
 
 	asset, err := h.assetStore.CreateAsset(c.Context(), &model.Asset{
 		ID:            util.UniqueID(),

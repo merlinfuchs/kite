@@ -80,11 +80,7 @@ func (c *Context) ParseBody(v interface{}) error {
 	return nil
 }
 
-func (c *Context) FormFile(name string, maxMemory int64) (multipart.File, *multipart.FileHeader, error) {
-	if err := c.r.ParseMultipartForm(maxMemory); err != nil {
-		return nil, nil, fmt.Errorf("failed to parse multipart form: %w", err)
-	}
-
+func (c *Context) FormFile(name string) (multipart.File, *multipart.FileHeader, error) {
 	return c.r.FormFile(name)
 }
 

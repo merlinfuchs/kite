@@ -52,7 +52,7 @@ export default function MessageAttachmentSection() {
       defaultOpen={false}
       className="space-y-4"
     >
-      <div className="flex gap-4">
+      <div className="flex flex-wrap gap-4">
         {attachments.map((id, i) => (
           <MessageAttachment key={id} attachmentIndex={i} assetId={id} />
         ))}
@@ -63,7 +63,6 @@ export default function MessageAttachmentSection() {
           className="hidden"
           ref={inputRef}
           onChange={onFileUpload}
-          accept="image/*"
         />
 
         <Button
