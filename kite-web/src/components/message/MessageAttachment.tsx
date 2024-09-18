@@ -29,11 +29,6 @@ export default function MessageAttachment({
     }
   });
 
-  const downloadUrl = useMemo(
-    () => getApiUrl(`/v1/assets/${assetId}`),
-    [assetId]
-  );
-
   const remove = useCallback(() => {
     console.log(attachmentIndex);
     deleteAttachment(attachmentIndex);
@@ -59,7 +54,7 @@ export default function MessageAttachment({
       </div>
       {isImage ? (
         <img
-          src={downloadUrl}
+          src={asset?.url}
           alt=""
           className="w-64 rounded-sm bg-muted h-32 object-cover"
         />

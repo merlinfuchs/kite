@@ -1,6 +1,7 @@
 package wire
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/kitecloud/kite/kite-service/internal/model"
@@ -12,6 +13,7 @@ type Asset struct {
 	AppID         string      `json:"app_id"`
 	ModuleID      null.String `json:"module_id"`
 	CreatorUserID string      `json:"creator_user_id"`
+	URL           string      `json:"url"`
 	Name          string      `json:"name"`
 	ContentType   string      `json:"content_type"`
 	ContentHash   string      `json:"content_hash"`
@@ -25,7 +27,7 @@ type AssetCreateResponse = Asset
 
 type AssetGetResponse = Asset
 
-func AssetToWire(asset *model.Asset) *Asset {
+func AssetToWire(asset *model.Asset, apiPublicBaseURL string) *Asset {
 	if asset == nil {
 		return nil
 	}
@@ -35,6 +37,7 @@ func AssetToWire(asset *model.Asset) *Asset {
 		AppID:         asset.AppID,
 		ModuleID:      asset.ModuleID,
 		CreatorUserID: asset.CreatorUserID,
+		URL:           fmt.Sprintf("%s/v1/assets/%s", apiPublicBaseURL, asset.ID),
 		Name:          asset.Name,
 		ContentType:   asset.ContentType,
 		ContentHash:   asset.ContentHash,

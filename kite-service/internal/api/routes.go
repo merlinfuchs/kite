@@ -147,7 +147,10 @@ func (s *APIServer) RegisterRoutes(
 	messageGroup.Delete("/instances/{instanceID}", handler.Typed(messageHandler.HandleMessageInstanceDelete))
 
 	// Asset routes
-	assetHandler := asset.NewAssetHandler(assetStore, s.config.UserLimits.MaxAssetSize)
+	assetHandler := asset.NewAssetHandler(assetStore, asset.AssetHandlerConfig{
+		APIPublicBaseURL: s.config.APIPublicBaseURL,
+		MaxAssetSize:     int64(s.config.UserLimits.MaxAssetSize),
+	})
 
 	assetsGroup := appGroup.Group("/assets")
 	assetsGroup.Post("/", handler.Typed(assetHandler.HandleAssetCreate))

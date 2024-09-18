@@ -13,15 +13,20 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/util"
 )
 
-type AssetHandler struct {
-	assetStore   store.AssetStore
-	maxAssetSize int64
+type AssetHandlerConfig struct {
+	APIPublicBaseURL string
+	MaxAssetSize     int64
 }
 
-func NewAssetHandler(assetStore store.AssetStore, maxAssetSize int) *AssetHandler {
+type AssetHandler struct {
+	config     AssetHandlerConfig
+	assetStore store.AssetStore
+}
+
+func NewAssetHandler(assetStore store.AssetStore, config AssetHandlerConfig) *AssetHandler {
 	return &AssetHandler{
-		assetStore:   assetStore,
-		maxAssetSize: int64(maxAssetSize),
+		config:     config,
+		assetStore: assetStore,
 	}
 }
 
@@ -31,8 +36,11 @@ func (h *AssetHandler) HandleAssetCreate(c *handler.Context) (*wire.AssetCreateR
 		return nil, handler.ErrBadRequest("invalid_form", "failed to get file from form")
 	}
 
-	if h.maxAssetSize != 0 && header.Size > h.maxAssetSize {
-		return nil, handler.ErrBadRequest("resource_limit", fmt.Sprintf("file size exceeds maximum allowed size (%d)", h.maxAssetSize))
+	if h.config.MaxAssetSize != 0 && header.Size > h.config.MaxAssetSize {
+		return nil, handler.ErrBadRequest(
+			"resource_limit",
+			fmt.Sprintf("file size exceeds maximum allowed size (%d)", h.config.MaxAssetSize),
+		)
 	}
 
 	content, err := io.ReadAll(file)
@@ -59,7 +67,7 @@ func (h *AssetHandler) HandleAssetCreate(c *handler.Context) (*wire.AssetCreateR
 		return nil, fmt.Errorf("failed to create asset: %w", err)
 	}
 
-	return wire.AssetToWire(asset), nil
+	return wire.AssetToWire(asset, h.config.APIPublicBaseURL), nil
 }
 
 func (h *AssetHandler) HandleAssetGet(c *handler.Context) (*wire.AssetGetResponse, error) {
@@ -75,7 +83,7 @@ func (h *AssetHandler) HandleAssetGet(c *handler.Context) (*wire.AssetGetRespons
 		return nil, handler.ErrForbidden("missing_access", "asset does not belong to this app")
 	}
 
-	return wire.AssetToWire(asset), nil
+	return wire.AssetToWire(asset, h.config.APIPublicBaseURL), nil
 }
 
 func (h *AssetHandler) HandleAssetDownload(c *handler.Context) error {

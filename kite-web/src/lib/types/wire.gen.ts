@@ -69,6 +69,7 @@ export interface Asset {
   app_id: string;
   module_id: null | string;
   creator_user_id: string;
+  url: string;
   name: string;
   content_type: string;
   content_hash: string;
