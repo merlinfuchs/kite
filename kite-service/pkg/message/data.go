@@ -3,16 +3,21 @@ package message
 import "time"
 
 type MessageData struct {
-	Content string      `json:"content,omitempty"`
-	Flags   int         `json:"flags,omitempty"`
-	Embeds  []EmbedData `json:"embeds,omitempty"`
+	Content     string              `json:"content,omitempty"`
+	Flags       int                 `json:"flags,omitempty"`
+	Attachments []MessageAttachment `json:"attachments,omitempty"`
+	Embeds      []EmbedData         `json:"embeds,omitempty"`
+}
+
+type MessageAttachment struct {
+	AssetID string `json:"asset_id,omitempty"`
 }
 
 type EmbedData struct {
 	Title       string              `json:"title,omitempty"`
 	Description string              `json:"description,omitempty"`
 	URL         string              `json:"url,omitempty"`
-	Timestamp   time.Time           `json:"timestamp,omitempty"`
+	Timestamp   *time.Time          `json:"timestamp,omitempty"`
 	Color       int                 `json:"color,omitempty"`
 	Footer      *EmbedFooterData    `json:"footer,omitempty"`
 	Image       *EmbedImageData     `json:"image,omitempty"`

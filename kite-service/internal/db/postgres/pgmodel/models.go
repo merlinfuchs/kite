@@ -22,6 +22,20 @@ type App struct {
 	DiscordStatus []byte
 }
 
+type Asset struct {
+	ID            string
+	Name          string
+	ContentHash   string
+	ContentType   string
+	ContentSize   int32
+	AppID         string
+	ModuleID      pgtype.Text
+	CreatorUserID string
+	CreatedAt     pgtype.Timestamp
+	UpdatedAt     pgtype.Timestamp
+	ExpiresAt     pgtype.Timestamp
+}
+
 type Collaborator struct {
 	UserID    string
 	AppID     string

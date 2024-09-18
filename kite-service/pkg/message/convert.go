@@ -23,6 +23,22 @@ func (m *MessageData) ToSendMessageData() api.SendMessageData {
 	}
 }
 
+func (m *MessageData) ToEditMessageData() api.EditMessageData {
+	if m == nil {
+		return api.EditMessageData{}
+	}
+
+	embeds := make([]discord.Embed, len(m.Embeds))
+	for i, embed := range m.Embeds {
+		embeds[i] = embed.ToEmbed()
+	}
+
+	return api.EditMessageData{
+		Content: option.NewNullableString(m.Content),
+		Embeds:  &embeds,
+	}
+}
+
 func (m *MessageData) ToInteractionResponseData() api.InteractionResponseData {
 	if m == nil {
 		return api.InteractionResponseData{}
@@ -50,11 +66,16 @@ func (m *EmbedData) ToEmbed() discord.Embed {
 		fields[i] = field.ToEmbedField()
 	}
 
+	var timestamp discord.Timestamp
+	if m.Timestamp != nil {
+		timestamp = discord.NewTimestamp(*m.Timestamp)
+	}
+
 	return discord.Embed{
 		Title:       m.Title,
 		Description: m.Description,
 		URL:         m.URL,
-		Timestamp:   discord.NewTimestamp(m.Timestamp),
+		Timestamp:   timestamp,
 		Color:       discord.Color(m.Color),
 		Footer:      m.Footer.ToEmbedFooter(),
 		Image:       m.Image.ToEmbedImage(),

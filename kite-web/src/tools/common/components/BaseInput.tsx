@@ -13,7 +13,8 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { DatePicker } from "./DatePicker";
-import { CircleAlertIcon } from "lucide-react";
+import { CircleAlertIcon, UploadIcon } from "lucide-react";
+import ImageUploadButton from "./ImageUploadButton";
 
 export type BaseInputProps = {
   label: string;
@@ -26,6 +27,7 @@ export type BaseInputProps = {
       onChange: (value: string) => void;
       maxLength?: number;
       placeholder?: string;
+      imageUpload?: boolean;
     }
   | {
       type: "select";
@@ -74,13 +76,18 @@ export default function BaseInput(props: BaseInputProps) {
       </div>
       <div>
         {type === "text" || type === "url" || type === "email" ? (
-          <Input
-            type={type}
-            value={value}
-            onChange={(e) => onChange(e.target.value)}
-            maxLength={props.maxLength}
-            placeholder={props.placeholder}
-          />
+          <div className="flex space-x-2">
+            <Input
+              type={type}
+              value={value}
+              onChange={(e) => onChange(e.target.value)}
+              maxLength={props.maxLength}
+              placeholder={props.placeholder}
+            />
+            {props.imageUpload && (
+              <ImageUploadButton onImageUploaded={onChange} />
+            )}
+          </div>
         ) : type === "textarea" ? (
           <Textarea
             value={value}

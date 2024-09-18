@@ -1,4 +1,4 @@
-import { CodeIcon, PaintbrushIcon, Trash2Icon } from "lucide-react";
+import { CodeIcon, PaintbrushIcon } from "lucide-react";
 import { useCurrentMessage } from "@/lib/message/state";
 import { useShallow } from "zustand/react/shallow";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
@@ -25,23 +25,12 @@ export default function MessageControls() {
           />
         </MessageJSONDialog>
         <ConfirmDialog
-          title="Are you sure that you want to reset the message?"
-          description="This will reset all your changes and cannot be undone."
-          onConfirm={resetMessage}
-        >
-          <MessageControlsButton
-            icon={PaintbrushIcon}
-            label="Reset Message"
-            onClick={() => {}}
-          />
-        </ConfirmDialog>
-        <ConfirmDialog
           title="Are you sure that you want to clear the message?"
           description="This will clear everything and cannot be undone."
           onConfirm={clearMessage}
         >
           <MessageControlsButton
-            icon={Trash2Icon}
+            icon={PaintbrushIcon}
             label="Clear Message"
             onClick={() => {}}
           />

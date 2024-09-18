@@ -62,6 +62,26 @@ export interface Channel {
 export type StateGuildChannelListResponse = (Channel | undefined)[];
 
 //////////
+// source: asset.go
+
+export interface Asset {
+  id: string;
+  app_id: string;
+  module_id: null | string;
+  creator_user_id: string;
+  url: string;
+  name: string;
+  content_type: string;
+  content_hash: string;
+  content_size: number /* int */;
+  created_at: string /* RFC3339 */;
+  updated_at: string /* RFC3339 */;
+  expires_at: null | string /* RFC3339 */;
+}
+export type AssetCreateResponse = Asset;
+export type AssetGetResponse = Asset;
+
+//////////
 // source: auth.go
 
 export type AuthLogoutResponse = Empty;

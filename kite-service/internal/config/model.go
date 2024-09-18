@@ -22,6 +22,7 @@ func LoadConfig(basePath string) (*Config, error) {
 
 type DatabaseConfig struct {
 	Postgres PostgresConfig `toml:"postgres"`
+	S3       S3Config       `toml:"s3"`
 }
 
 type LoggingConfig struct {
@@ -37,6 +38,13 @@ type PostgresConfig struct {
 	DBName   string `toml:"db_name" validate:"required"`
 	User     string `toml:"user" validate:"required"`
 	Password string `toml:"password"`
+}
+
+type S3Config struct {
+	Endpoint        string `toml:"endpoint" validate:"required"`
+	AccessKeyID     string `toml:"access_key_id" validate:"required"`
+	SecretAccessKey string `toml:"secret_access_key" validate:"required"`
+	Secure          bool   `toml:"secure"`
 }
 
 type APIConfig struct {
@@ -68,4 +76,5 @@ type UserLimitsConfig struct {
 	MaxCommandsPerApp  int `toml:"max_commands_per_app"`
 	MaxVariablesPerApp int `toml:"max_variables_per_app"`
 	MaxMessagesPerApp  int `toml:"max_messages_per_app"`
+	MaxAssetSize       int `toml:"max_asset_size"`
 }

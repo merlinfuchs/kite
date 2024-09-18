@@ -14,7 +14,7 @@ import (
 func TypedWithBody[REQ any, RESP any](next func(c *Context, r REQ) (*RESP, error)) HandlerFunc {
 	return func(c *Context) error {
 		var v REQ
-		if err := c.Body(&v); err != nil {
+		if err := c.ParseBody(&v); err != nil {
 			return err
 		}
 

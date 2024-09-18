@@ -39,6 +39,7 @@ export default function MessageEmbedImages({
         value={imageUrl || ""}
         onChange={(v) => setImageUrl(embedIndex, v || undefined)}
         validationPath={`embeds.${embedIndex}.image.url`}
+        imageUpload
       />
       <MessageInput
         type="url"
@@ -46,6 +47,7 @@ export default function MessageEmbedImages({
         value={thumbnailUrl || ""}
         onChange={(v) => setThumbnailUrl(embedIndex, v || undefined)}
         validationPath={`embeds.${embedIndex}.thumbnail.url`}
+        imageUpload
       />
     </CollapsibleSection>
   );

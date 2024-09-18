@@ -9,6 +9,7 @@ max_apps_per_user = 10
 max_commands_per_app = 25
 max_variables_per_app = 25
 max_messages_per_app = 25
+max_asset_size = 8_000_000
 
 [app]
 public_base_url = "http://localhost:3000"
@@ -23,3 +24,8 @@ host = "127.0.0.1"
 port = 5432
 user = "postgres"
 db_name = "kite"
+
+[database.s3]
+endpoint = "localhost:9000"
+access_key_id = "kite"
+secret_access_key = "1234567890"

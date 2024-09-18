@@ -3,6 +3,7 @@ import { apiRequest } from "./client";
 import {
   AppGetResponse,
   AppListResponse,
+  AssetGetResponse,
   CommandGetResponse,
   CommandListResponse,
   LogEntryListResponse,
@@ -111,6 +112,15 @@ export function useMessageInstancesQuery(appId: string, messageId: string) {
         `/v1/apps/${appId}/messages/${messageId}/instances`
       ),
     enabled: !!appId && !!messageId,
+  });
+}
+
+export function useAssetQuery(appId: string, assetId: string) {
+  return useQuery({
+    queryKey: ["apps", appId, "assets", assetId],
+    queryFn: () =>
+      apiRequest<AssetGetResponse>(`/v1/apps/${appId}/assets/${assetId}`),
+    enabled: !!appId && !!assetId,
   });
 }
 

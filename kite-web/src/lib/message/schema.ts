@@ -3,7 +3,7 @@ import { getUniqueId } from "@/lib/utils";
 
 const VARIABLE_RE = new RegExp("\\{\\{[^}]+\\}\\}");
 
-const HOSTNAME_RE = new RegExp("\\.[a-zA-Z]{2,}$");
+const HOSTNAME_RE = new RegExp("localhost|\\.[a-zA-Z]{2,}$");
 const urlRefinement: [(v: string) => boolean, string] = [
   (v) => {
     if (v.match(VARIABLE_RE)) return true;
@@ -25,6 +25,7 @@ const imageUrlRefinement: [(v: string) => boolean, string] = [
 
     try {
       const url = new URL(v);
+      console.log(url.hostname, !!url.hostname.match(HOSTNAME_RE));
       return !!url.hostname.match(HOSTNAME_RE); // && !!url.pathname.match(IMAGE_PATH_RE) TODO: make better image url regex
     } catch {
       return false;
@@ -335,7 +336,13 @@ export const messageAllowedMentionsSchema = z.optional(
   })
 );
 
-export const messageThreadName = z.optional(z.string().max(100));
+export const messageThreadNameSchema = z.optional(z.string().max(100));
+
+export const attachmentSchema = z.object({
+  asset_id: z.string(),
+});
+
+export type MessageAttachment = z.infer<typeof attachmentSchema>;
 
 export const messageSchema = z
   .object({
@@ -343,10 +350,11 @@ export const messageSchema = z
     username: webhookUsernameSchema,
     avatar_url: webhookAvatarUrlSchema,
     tts: messageTtsSchema.default(false),
+    attachments: z.array(attachmentSchema).max(10).default([]),
     embeds: z.array(embedSchema).max(10).default([]),
     allowed_mentions: messageAllowedMentionsSchema,
     components: z.array(actionRowSchema).max(5).default([]),
-    thread_name: messageThreadName,
+    thread_name: messageThreadNameSchema,
   })
   .superRefine((data, ctx) => {
     // this currently doesn't take attachments into account

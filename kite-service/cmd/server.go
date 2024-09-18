@@ -12,6 +12,7 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/core/event"
 	"github.com/kitecloud/kite/kite-service/internal/core/gateway"
 	"github.com/kitecloud/kite/kite-service/internal/db/postgres"
+	"github.com/kitecloud/kite/kite-service/internal/db/s3"
 	"github.com/kitecloud/kite/kite-service/internal/logging"
 	"github.com/urfave/cli/v2"
 )
@@ -40,6 +41,17 @@ func serverStartCMD(c *cli.Context) error {
 	if err != nil {
 		slog.With("error", err).Error("Failed to create postgres client")
 		return fmt.Errorf("failed to create postgres client: %w", err)
+	}
+
+	s3Client, err := s3.New(cfg.Database.S3)
+	if err != nil {
+		slog.With("error", err).Error("Failed to create S3 client")
+		return fmt.Errorf("failed to create S3 client: %w", err)
+	}
+
+	assetStore, err := postgres.NewAssetStore(context.Background(), pg, s3Client)
+	if err != nil {
+		slog.With("error", err).Warn("Failed to create asset store, continuing without support for assets")
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -76,8 +88,9 @@ func serverStartCMD(c *cli.Context) error {
 			MaxCommandsPerApp:  cfg.API.UserLimits.MaxCommandsPerApp,
 			MaxVariablesPerApp: cfg.API.UserLimits.MaxVariablesPerApp,
 			MaxMessagesPerApp:  cfg.API.UserLimits.MaxMessagesPerApp,
+			MaxAssetSize:       cfg.API.UserLimits.MaxAssetSize,
 		},
-	}, pg, pg, pg, pg, pg, pg, pg, pg, pg, gateway)
+	}, pg, pg, pg, pg, pg, pg, pg, pg, pg, assetStore, gateway)
 	address := fmt.Sprintf("%s:%d", cfg.API.Host, cfg.API.Port)
 	if err := apiServer.Serve(context.Background(), address); err != nil {
 		slog.With("error", err).Error("Failed to start API server")

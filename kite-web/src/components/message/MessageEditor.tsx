@@ -1,4 +1,4 @@
-import Attachmennts from "./MessageAttachmentsSection";
+import MessageAttachmentSection from "./MessageAttachmentSection";
 import MessageEmbedSection from "./MessageEmbedSection";
 import MessageBody from "./MessageBody";
 import MessageControls from "./MessageControls";
@@ -10,7 +10,7 @@ export default function MessageEditor() {
       <MessageControls />
       <MessageBody />
 
-      {/* <Attachmennts /> */}
+      <MessageAttachmentSection />
       <MessageEmbedSection />
 
       <MessageValidator />

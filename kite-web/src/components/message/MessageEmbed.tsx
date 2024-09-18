@@ -23,10 +23,6 @@ export default function MessageEmbed({
   embedId: number;
   embedIndex: number;
 }) {
-  const embedName = useCurrentMessage((state) => {
-    const embed = state.embeds[embedIndex];
-    return embed.author?.name || embed.title;
-  });
   const embedCount = useCurrentMessage((state) => state.embeds.length);
 
   const [moveUp, moveDown, duplicate, remove] = useCurrentMessage(

@@ -6,7 +6,11 @@
 export interface MessageData {
   content?: string;
   flags?: number /* int */;
+  attachments?: MessageAttachment[];
   embeds?: EmbedData[];
+}
+export interface MessageAttachment {
+  asset_id?: string;
 }
 export interface EmbedData {
   title?: string;

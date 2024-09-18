@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"mime/multipart"
 	"net/http"
 
 	"github.com/kitecloud/kite/kite-service/internal/model"
@@ -65,7 +66,7 @@ func (c *Context) Redirect(url string, code int) {
 	http.Redirect(c.w, c.r, url, code)
 }
 
-func (c *Context) Body(v interface{}) error {
+func (c *Context) ParseBody(v interface{}) error {
 	contentType := c.r.Header.Get("Content-Type")
 	if contentType != "application/json" {
 		return fmt.Errorf("invalid content type: %s", contentType)
@@ -79,12 +80,26 @@ func (c *Context) Body(v interface{}) error {
 	return nil
 }
 
+func (c *Context) FormFile(name string) (multipart.File, *multipart.FileHeader, error) {
+	return c.r.FormFile(name)
+}
+
 func (c *Context) JSON(status int, v interface{}) error {
 	c.w.Header().Set("Content-Type", "application/json")
 	c.w.WriteHeader(status)
 
 	if err := json.NewEncoder(c.w).Encode(v); err != nil {
 		return fmt.Errorf("failed to encode response body: %w", err)
+	}
+
+	return nil
+}
+
+func (c *Context) Send(status int, body []byte) error {
+	c.w.WriteHeader(status)
+
+	if _, err := c.w.Write(body); err != nil {
+		return fmt.Errorf("failed to write response body: %w", err)
 	}
 
 	return nil

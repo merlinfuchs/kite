@@ -8,6 +8,7 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/api/handler"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/app"
 	appstate "github.com/kitecloud/kite/kite-service/internal/api/handler/app_state"
+	"github.com/kitecloud/kite/kite-service/internal/api/handler/asset"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/auth"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/command"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/logs"
@@ -29,6 +30,7 @@ func (s *APIServer) RegisterRoutes(
 	variableValueStore store.VariableValueStore,
 	messageStore store.MessageStore,
 	messageInstanceStore store.MessageInstanceStore,
+	assetStore store.AssetStore,
 	appStateManager store.AppStateManager,
 ) {
 	sessionManager := session.NewSessionManager(session.SessionManagerConfig{
@@ -127,6 +129,7 @@ func (s *APIServer) RegisterRoutes(
 	messageHandler := message.NewMessageHandler(
 		messageStore,
 		messageInstanceStore,
+		assetStore,
 		appStateManager,
 		s.config.UserLimits.MaxMessagesPerApp,
 	)
@@ -143,6 +146,21 @@ func (s *APIServer) RegisterRoutes(
 	messageGroup.Post("/instances", handler.TypedWithBody(messageHandler.HandleMessageInstanceCreate))
 	messageGroup.Put("/instances/{instanceID}", handler.Typed(messageHandler.HandleMessageInstanceUpdate))
 	messageGroup.Delete("/instances/{instanceID}", handler.Typed(messageHandler.HandleMessageInstanceDelete))
+
+	// Asset routes
+	assetHandler := asset.NewAssetHandler(assetStore, asset.AssetHandlerConfig{
+		APIPublicBaseURL: s.config.APIPublicBaseURL,
+		MaxAssetSize:     int64(s.config.UserLimits.MaxAssetSize),
+	})
+
+	assetsGroup := appGroup.Group("/assets")
+	assetsGroup.Post("/", handler.Typed(assetHandler.HandleAssetCreate))
+	assetsGroup.Get("/{assetID}", handler.Typed(assetHandler.HandleAssetGet))
+	v1Group.Get(
+		"/assets/{assetID}",
+		assetHandler.HandleAssetDownload,
+		sessionManager.OptionalSession,
+	)
 
 	// State routes
 	stateHandler := appstate.NewAppStateHandler(appStateManager)
