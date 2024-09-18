@@ -14,7 +14,7 @@ import {
   MessageAttachment,
 } from "./schema";
 import { getUniqueId } from "@/lib/utils";
-import { TemporalState, temporal } from "zundo";
+import { temporal } from "zundo";
 import debounce from "just-debounce-it";
 
 export interface MessageStore extends Message {

@@ -7,7 +7,6 @@ import { ChangeEvent, useCallback, useRef } from "react";
 import { useAssetCreateMutation } from "@/lib/api/mutations";
 import { useAppId } from "@/lib/hooks/params";
 import { toast } from "sonner";
-import AutoAnimate from "../common/AutoAnimate";
 
 export default function MessageAttachmentSection() {
   const attachments = useCurrentMessage(
@@ -44,38 +43,38 @@ export default function MessageAttachmentSection() {
         },
       });
     },
-    [inputRef, createMutation, addAttachment]
+    [createMutation, addAttachment]
   );
 
   return (
     <CollapsibleSection
       title="Attachments"
-      defaultOpen={false}
+      valiationPathPrefix="attachments"
       className="space-y-4"
     >
-      <AutoAnimate className="flex flex-wrap gap-4">
+      <div className="flex flex-wrap gap-4">
         {attachments.map((id, i) => (
           <MessageAttachment key={id} attachmentIndex={i} assetId={id} />
         ))}
-      </AutoAnimate>
+      </div>
       <div className="space-x-3">
-        <input
-          type="file"
-          className="hidden"
-          ref={inputRef}
-          onChange={onFileUpload}
-        />
-
         <Button
           onClick={() => inputRef.current?.click()}
-          disabled={!!inputRef.current?.value}
+          disabled={!!inputRef.current?.value || attachments.length >= 10}
         >
           Add Attachment
         </Button>
-        <Button onClick={clearAttachments} variant="destructive">
+        <Button onClick={clearAttachments} variant="outline">
           Clear Attachments
         </Button>
       </div>
+
+      <input
+        type="file"
+        className="hidden"
+        ref={inputRef}
+        onChange={onFileUpload}
+      />
     </CollapsibleSection>
   );
 }

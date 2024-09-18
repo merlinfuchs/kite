@@ -243,7 +243,7 @@ export const buttonSchema = z
     type: z.literal(2),
     style: z.literal(1).or(z.literal(2)).or(z.literal(3)).or(z.literal(4)),
     label: z.preprocess((d) => d ?? undefined, z.string().default("")),
-    emoji: z.optional(z.nullable(emojiSchema)),
+    emoji: z.preprocess((d) => d ?? undefined, z.optional(emojiSchema)),
     disabled: z.preprocess((d) => d ?? undefined, z.optional(z.boolean())),
     action_set_id: z.preprocess(
       (d) => d ?? undefined,
@@ -256,7 +256,7 @@ export const buttonSchema = z
       type: z.literal(2),
       style: z.literal(5),
       label: z.preprocess((d) => d ?? undefined, z.string().default("")),
-      emoji: z.optional(z.nullable(emojiSchema)),
+      emoji: z.preprocess((d) => d ?? undefined, z.optional(emojiSchema)),
       url: z.preprocess((d) => d ?? undefined, z.string().default("")),
       disabled: z.preprocess((d) => d ?? undefined, z.optional(z.boolean())),
       action_set_id: z.string().default(() => getUniqueId().toString()),
