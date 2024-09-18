@@ -23,6 +23,22 @@ func (m *MessageData) ToSendMessageData() api.SendMessageData {
 	}
 }
 
+func (m *MessageData) ToEditMessageData() api.EditMessageData {
+	if m == nil {
+		return api.EditMessageData{}
+	}
+
+	embeds := make([]discord.Embed, len(m.Embeds))
+	for i, embed := range m.Embeds {
+		embeds[i] = embed.ToEmbed()
+	}
+
+	return api.EditMessageData{
+		Content: option.NewNullableString(m.Content),
+		Embeds:  &embeds,
+	}
+}
+
 func (m *MessageData) ToInteractionResponseData() api.InteractionResponseData {
 	if m == nil {
 		return api.InteractionResponseData{}

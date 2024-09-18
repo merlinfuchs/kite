@@ -5,9 +5,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/diamondburned/arikawa/v3/api"
 	"github.com/diamondburned/arikawa/v3/discord"
-	"github.com/diamondburned/arikawa/v3/utils/json/option"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler"
 	"github.com/kitecloud/kite/kite-service/internal/api/wire"
 	"github.com/kitecloud/kite/kite-service/internal/model"
@@ -36,9 +34,13 @@ func (h *MessageHandler) HandleMessageInstanceCreate(c *handler.Context, req wir
 
 	channelID, _ := strconv.ParseUint(req.DiscordChannelID, 10, 64)
 
-	msg, err := client.SendMessageComplex(discord.ChannelID(channelID), api.SendMessageData{
-		Content: c.Message.Data.Content,
-	})
+	data := c.Message.Data.ToSendMessageData()
+	data.Files, err = h.attachmentsToFiles(c.Context(), c.Message.Data.Attachments)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get attachments: %w", err)
+	}
+
+	msg, err := client.SendMessageComplex(discord.ChannelID(channelID), data)
 	if err != nil {
 		return nil, fmt.Errorf("failed to send message: %w", err)
 	}
@@ -78,9 +80,14 @@ func (h *MessageHandler) HandleMessageInstanceUpdate(c *handler.Context) (*wire.
 	channelID, _ := strconv.ParseUint(instance.DiscordChannelID, 10, 64)
 	messageID, _ := strconv.ParseUint(instance.DiscordMessageID, 10, 64)
 
-	_, err = client.EditMessageComplex(discord.ChannelID(channelID), discord.MessageID(messageID), api.EditMessageData{
-		Content: option.NewNullableString(c.Message.Data.Content),
-	})
+	data := c.Message.Data.ToEditMessageData()
+	data.Attachments = &[]discord.Attachment{}
+	data.Files, err = h.attachmentsToFiles(c.Context(), c.Message.Data.Attachments)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get attachments: %w", err)
+	}
+
+	_, err = client.EditMessageComplex(discord.ChannelID(channelID), discord.MessageID(messageID), data)
 	if err != nil {
 		return nil, fmt.Errorf("failed to edit message: %w", err)
 	}

@@ -129,6 +129,7 @@ func (s *APIServer) RegisterRoutes(
 	messageHandler := message.NewMessageHandler(
 		messageStore,
 		messageInstanceStore,
+		assetStore,
 		appStateManager,
 		s.config.UserLimits.MaxMessagesPerApp,
 	)
