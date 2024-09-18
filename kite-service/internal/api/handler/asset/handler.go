@@ -80,6 +80,13 @@ func (h *AssetHandler) HandleAssetGet(c *handler.Context) (*wire.AssetGetRespons
 }
 
 func (h *AssetHandler) HandleAssetDownload(c *handler.Context) error {
+	if c.Session == nil && c.Header("Referer") != "" {
+		// We don't want people to use Kite as a CDN for their assets.
+		// When the asset is used on an external site, the Referer header will be set and the session will be nil.
+		// We have to allow unauthenticated access outside of websites to make assets work inside Discord.
+		return handler.ErrUnauthorized("unauthorized", "session required")
+	}
+
 	asset, err := h.assetStore.AssetWithContent(c.Context(), c.Param("assetID"))
 	if err != nil {
 		if err == store.ErrNotFound {

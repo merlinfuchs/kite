@@ -19,3 +19,15 @@ func (m *SessionManager) RequireSession(next handler.HandlerFunc) handler.Handle
 		return next(c)
 	}
 }
+
+func (m *SessionManager) OptionalSession(next handler.HandlerFunc) handler.HandlerFunc {
+	return func(c *handler.Context) error {
+		session, err := m.Session(c)
+		if err != nil {
+			return err
+		}
+
+		c.Session = session
+		return next(c)
+	}
+}

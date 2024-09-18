@@ -152,7 +152,11 @@ func (s *APIServer) RegisterRoutes(
 	assetsGroup := appGroup.Group("/assets")
 	assetsGroup.Get("/{assetID}", handler.Typed(assetHandler.HandleAssetGet))
 	assetsGroup.Post("/", handler.Typed(assetHandler.HandleAssetCreate))
-	assetsGroup.Get("/{assetID}/download", assetHandler.HandleAssetDownload)
+	v1Group.Get(
+		"/apps/{appID}/assets/{assetID}/download",
+		assetHandler.HandleAssetDownload,
+		sessionManager.OptionalSession,
+	)
 
 	// State routes
 	stateHandler := appstate.NewAppStateHandler(appStateManager)
