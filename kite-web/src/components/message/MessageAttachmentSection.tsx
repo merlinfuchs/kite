@@ -25,7 +25,7 @@ export default function MessageAttachmentSection() {
 
       const toastId = toast.loading("Uploading attachment...");
 
-      createMutation.mutate(file, {
+      createMutation.mutateAsync(file, {
         onSuccess: (res) => {
           if (res.success) {
             addAttachment({
@@ -66,7 +66,10 @@ export default function MessageAttachmentSection() {
           accept="image/*"
         />
 
-        <Button onClick={() => inputRef.current?.click()}>
+        <Button
+          onClick={() => inputRef.current?.click()}
+          disabled={!!inputRef.current?.value}
+        >
           Add Attachment
         </Button>
         <Button onClick={clearAttachments} variant="destructive">
