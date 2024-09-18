@@ -149,10 +149,11 @@ func (s *APIServer) RegisterRoutes(
 	// Asset routes
 	assetHandler := asset.NewAssetHandler(assetStore, s.config.UserLimits.MaxAssetSize)
 
-	appGroup.Post("/assets", handler.Typed(assetHandler.HandleAssetCreate))
-	v1Group.Get("/assets/{assetID}", handler.Typed(assetHandler.HandleAssetGet))
+	assetsGroup := appGroup.Group("/assets")
+	assetsGroup.Post("/", handler.Typed(assetHandler.HandleAssetCreate))
+	assetsGroup.Get("/{assetID}", handler.Typed(assetHandler.HandleAssetGet))
 	v1Group.Get(
-		"/assets/{assetID}/download",
+		"/assets/{assetID}",
 		assetHandler.HandleAssetDownload,
 		sessionManager.OptionalSession,
 	)

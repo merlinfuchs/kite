@@ -76,6 +76,10 @@ func (h *AssetHandler) HandleAssetGet(c *handler.Context) (*wire.AssetGetRespons
 		return nil, fmt.Errorf("failed to get asset: %w", err)
 	}
 
+	if asset.AppID != c.App.ID {
+		return nil, handler.ErrForbidden("missing_access", "asset does not belong to this app")
+	}
+
 	return wire.AssetToWire(asset), nil
 }
 

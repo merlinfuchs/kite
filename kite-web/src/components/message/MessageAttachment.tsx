@@ -19,7 +19,9 @@ export default function MessageAttachment({
 }) {
   const deleteAttachment = useCurrentMessage((state) => state.deleteAttachment);
 
-  const asset = useResponseData(useAssetQuery(assetId), (res) => {
+  const appId = useAppId();
+
+  const asset = useResponseData(useAssetQuery(appId, assetId), (res) => {
     if (!res.success) {
       toast.error(
         `Failed to load asset: ${res?.error.message} (${res?.error.code})`
@@ -28,7 +30,7 @@ export default function MessageAttachment({
   });
 
   const downloadUrl = useMemo(
-    () => getApiUrl(`/v1/assets/${assetId}/download`),
+    () => getApiUrl(`/v1/assets/${assetId}`),
     [assetId]
   );
 
