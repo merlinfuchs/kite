@@ -51,6 +51,7 @@ export default function MessageEmbedFooter({
           value={iconUrl || ""}
           onChange={(v) => setIconUrl(embedIndex, v || undefined)}
           validationPath={`embeds.${embedIndex}.footer.icon_url`}
+          imageUpload
         />
         <MessageInput
           type="date"

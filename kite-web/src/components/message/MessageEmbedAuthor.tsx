@@ -58,6 +58,7 @@ export default function MessageEmbedAuthor({
           value={iconUrl || ""}
           onChange={(v) => setIconUrl(embedIndex, v || undefined)}
           validationPath={`embeds.${embedIndex}.author.icon_url`}
+          imageUpload
         />
       </div>
     </CollapsibleSection>

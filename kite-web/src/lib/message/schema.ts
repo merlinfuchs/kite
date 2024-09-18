@@ -3,7 +3,7 @@ import { getUniqueId } from "@/lib/utils";
 
 const VARIABLE_RE = new RegExp("\\{\\{[^}]+\\}\\}");
 
-const HOSTNAME_RE = new RegExp("\\.[a-zA-Z]{2,}$");
+const HOSTNAME_RE = new RegExp("localhost|\\.[a-zA-Z]{2,}$");
 const urlRefinement: [(v: string) => boolean, string] = [
   (v) => {
     if (v.match(VARIABLE_RE)) return true;
@@ -25,6 +25,7 @@ const imageUrlRefinement: [(v: string) => boolean, string] = [
 
     try {
       const url = new URL(v);
+      console.log(url.hostname, !!url.hostname.match(HOSTNAME_RE));
       return !!url.hostname.match(HOSTNAME_RE); // && !!url.pathname.match(IMAGE_PATH_RE) TODO: make better image url regex
     } catch {
       return false;

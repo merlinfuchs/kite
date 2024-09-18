@@ -66,11 +66,16 @@ func (m *EmbedData) ToEmbed() discord.Embed {
 		fields[i] = field.ToEmbedField()
 	}
 
+	var timestamp discord.Timestamp
+	if m.Timestamp != nil {
+		timestamp = discord.NewTimestamp(*m.Timestamp)
+	}
+
 	return discord.Embed{
 		Title:       m.Title,
 		Description: m.Description,
 		URL:         m.URL,
-		Timestamp:   discord.NewTimestamp(m.Timestamp),
+		Timestamp:   timestamp,
 		Color:       discord.Color(m.Color),
 		Footer:      m.Footer.ToEmbedFooter(),
 		Image:       m.Image.ToEmbedImage(),

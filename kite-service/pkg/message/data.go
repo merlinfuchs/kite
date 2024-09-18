@@ -17,7 +17,7 @@ type EmbedData struct {
 	Title       string              `json:"title,omitempty"`
 	Description string              `json:"description,omitempty"`
 	URL         string              `json:"url,omitempty"`
-	Timestamp   time.Time           `json:"timestamp,omitempty"`
+	Timestamp   *time.Time          `json:"timestamp,omitempty"`
 	Color       int                 `json:"color,omitempty"`
 	Footer      *EmbedFooterData    `json:"footer,omitempty"`
 	Image       *EmbedImageData     `json:"image,omitempty"`
