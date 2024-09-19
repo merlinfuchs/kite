@@ -9,9 +9,9 @@ import {
   TrashIcon,
 } from "lucide-react";
 import MessageInput from "./MessageInput";
-import { Button } from "../ui/button";
 import { useMemo } from "react";
 import MessageEmojiPicker from "./MessageEmojiPicker";
+import FlowPreview from "../flow/FlowPreview";
 
 const buttonColors = {
   1: "#5865F2",
@@ -100,6 +100,7 @@ export default function MessageComponentButton({
         size="md"
         valiationPathPrefix={`components.${rowIndex}.components.${compIndex}`}
         className="space-y-3"
+        animate={false}
         actions={
           <>
             {compIndex > 0 && (
@@ -184,7 +185,7 @@ export default function MessageComponentButton({
             validationPath={`components.${rowIndex}.components.${compIndex}.url`}
           />
         ) : (
-          <Button>Edit Flow</Button>
+          <FlowPreview className="h-64 w-full" onClick={() => {}} />
         )}
       </MessageCollapsibleSection>
     </Card>

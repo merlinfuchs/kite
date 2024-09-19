@@ -4,7 +4,6 @@ import { ReactNode, useState } from "react";
 import { ChevronRightIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import MessageValidationErrorIndicator from "./MessageValidationErrorMarker";
-import AutoAnimate from "../common/AutoAnimate";
 import { useAutoAnimate } from "@formkit/auto-animate/react";
 
 export default function MessageCollapsibleSection({
@@ -15,6 +14,7 @@ export default function MessageCollapsibleSection({
   valiationPathPrefix,
   actions,
   className,
+  animate = true,
 }: {
   children: ReactNode;
   title: string;
@@ -23,6 +23,7 @@ export default function MessageCollapsibleSection({
   valiationPathPrefix?: string | string[];
   actions?: ReactNode;
   className?: string;
+  animate?: boolean;
 }) {
   const [open, setOpen] = useState(defaultOpen);
 
@@ -71,7 +72,10 @@ export default function MessageCollapsibleSection({
           <div className="flex-none flex items-center space-x-3">{actions}</div>
         )}
       </div>
-      <CollapsibleContent className={cn("mt-3", className)} ref={parent}>
+      <CollapsibleContent
+        className={cn("mt-3", className)}
+        ref={animate ? parent : null}
+      >
         {children}
       </CollapsibleContent>
     </Collapsible>
