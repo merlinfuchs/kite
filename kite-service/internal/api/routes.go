@@ -2,6 +2,7 @@ package api
 
 import (
 	"log/slog"
+	"net/http"
 	"time"
 
 	"github.com/kitecloud/kite/kite-service/internal/api/access"
@@ -52,6 +53,10 @@ func (s *APIServer) RegisterRoutes(
 	}
 
 	v1Group := handler.Group(s.mux, "/v1")
+
+	v1Group.Get("/health", func(c *handler.Context) error {
+		return c.Send(http.StatusOK, []byte("OK"))
+	})
 
 	// Auth routes
 	authHandler := auth.NewAuthHandler(auth.AuthHandlerConfig{
