@@ -1,5 +1,5 @@
 import Picker from "@emoji-mart/react";
-import { ReactNode } from "react";
+import { ReactNode, useState } from "react";
 import {
   Popover,
   PopoverContent,
@@ -12,8 +12,10 @@ interface Props {
 }
 
 export default function EmojiPicker({ onEmojiSelect, children }: Props) {
+  const [open, setOpen] = useState(false);
+
   return (
-    <Popover>
+    <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>{children}</PopoverTrigger>
       <PopoverContent className="p-0 border-none">
         <Picker
@@ -23,7 +25,10 @@ export default function EmojiPicker({ onEmojiSelect, children }: Props) {
             );
             return response.json();
           }}
-          onEmojiSelect={(data: any) => onEmojiSelect(data.native)}
+          onEmojiSelect={(data: any) => {
+            onEmojiSelect(data.native);
+            setOpen(false);
+          }}
           categories={[
             "frequent",
             "people",
