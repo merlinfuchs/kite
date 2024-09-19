@@ -77,7 +77,7 @@ export default function MessageComponentRow({
             />
           </>
         }
-        className="space-y-5"
+        className="space-y-3"
       >
         {isButtonRow ? (
           <>

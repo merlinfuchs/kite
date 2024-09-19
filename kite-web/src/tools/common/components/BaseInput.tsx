@@ -13,7 +13,7 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { DatePicker } from "./DatePicker";
-import { CircleAlertIcon, UploadIcon } from "lucide-react";
+import { CircleAlertIcon } from "lucide-react";
 import ImageUploadButton from "./ImageUploadButton";
 
 export type BaseInputProps = {
@@ -96,13 +96,12 @@ export default function BaseInput(props: BaseInputProps) {
             maxRows={15}
           />
         ) : type === "select" ? (
-          <Select>
+          <Select value={value} onValueChange={onChange}>
             <SelectTrigger>
               <SelectValue placeholder={props.placeholder} />
             </SelectTrigger>
             <SelectContent>
               <SelectGroup>
-                <SelectLabel>Fruits</SelectLabel>
                 {props.options.map((option) => (
                   <SelectItem key={option.value} value={option.value}>
                     {option.label}
