@@ -2,6 +2,7 @@
 
 [![Release](https://github.com/merlinfuchs/kite/actions/workflows/release.yaml/badge.svg)](https://github.com/merlinfuchs/kite/releases)
 [![Docker image](https://github.com/merlinfuchs/kite/actions/workflows/docker-push.yaml/badge.svg)](https://hub.docker.com/r/merlintor/kite)
+[![Uptime](https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Fmerlinfuchs%2Fkite-uptime%2Fmaster%2Fapi%2Fkite-api%2Fuptime.json)](https://status.kite.onl/)
 
 [![Release](https://img.shields.io/github/v/release/merlinfuchs/kite)](https://github.com/merlinfuchs/kite/releases/latest)
 [![MIT License](https://img.shields.io/github/license/merlinfuchs/kite)](LICENSE)
