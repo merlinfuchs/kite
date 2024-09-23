@@ -19,6 +19,7 @@ import FlowNodeControlSleep from "@/components/flow/FlowNodeControlSleep";
 export const nodeTypes = {
   entry_command: FlowNodeEntryCommand,
   entry_event: FlowNodeEntryEvent,
+  entry_component_button: FlowNodeEntryEvent,
 
   option_command_argument: FlowNodeOptionCommandArgument,
   option_command_permissions: FlowNodeOptionBase,

@@ -9,8 +9,8 @@ const initialNodes = [
   {
     id: "1",
     position: { x: 0, y: 0 },
-    data: { event_type: "" },
-    type: "entry_event",
+    data: {},
+    type: "entry_component_button",
   },
 ];
 

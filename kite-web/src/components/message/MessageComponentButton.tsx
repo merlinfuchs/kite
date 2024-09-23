@@ -30,7 +30,7 @@ const initialFlow = {
       id: getUniqueId().toString(),
       position: { x: 0, y: 0 },
       data: {},
-      type: "entry_event",
+      type: "entry_component_button",
     },
   ],
   edges: [],
