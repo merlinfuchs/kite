@@ -57,6 +57,8 @@ func NewCommand(
 }
 
 func (c *Command) HandleEvent(appID string, session *state.State, event gateway.Event) {
+	defer c.recoverPanic()
+
 	i, ok := event.(*gateway.InteractionCreateEvent)
 	if !ok {
 		return
@@ -164,5 +166,15 @@ func (c *Command) createLogEntry(level model.LogLevel, message string) {
 	})
 	if err != nil {
 		slog.With("error", err).With("app_id", c.cmd.AppID).Error("Failed to create log entry from engine command")
+	}
+}
+
+func (c *Command) recoverPanic() {
+	if r := recover(); r != nil {
+		go c.createLogEntry(model.LogLevelError, fmt.Sprintf("Recovered from panic: %v", r))
+		slog.With("error", r).
+			With("app_id", c.cmd.AppID).
+			With("command_id", c.cmd.ID).
+			Error("Recovered from panic in command handler")
 	}
 }

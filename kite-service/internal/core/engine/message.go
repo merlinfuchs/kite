@@ -61,6 +61,8 @@ func NewMessageInstance(
 }
 
 func (c *MessageInstance) HandleEvent(appID string, session *state.State, event gateway.Event) {
+	defer c.recoverPanic()
+
 	i, ok := event.(*gateway.InteractionCreateEvent)
 	if !ok {
 		return
@@ -119,5 +121,16 @@ func (c *MessageInstance) createLogEntry(level model.LogLevel, message string) {
 	})
 	if err != nil {
 		slog.With("error", err).With("app_id", "TODO").Error("Failed to create log entry from engine command")
+	}
+}
+
+func (c *MessageInstance) recoverPanic() {
+	if r := recover(); r != nil {
+		go c.createLogEntry(model.LogLevelError, fmt.Sprintf("Recovered from panic: %v", r))
+		slog.With("error", r).
+			With("app_id", "TODO").
+			With("message_id", c.msg.MessageID).
+			With("message_instance_id", c.msg.ID).
+			Error("Recovered from panic in component handler")
 	}
 }

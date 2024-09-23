@@ -141,7 +141,7 @@ func (a *App) HandleEvent(appID string, session *state.State, event gateway.Even
 				return
 			}
 
-			instnace, err := NewMessageInstance(
+			instance, err := NewMessageInstance(
 				a.config,
 				messageInstnace,
 				a.appStore,
@@ -155,7 +155,7 @@ func (a *App) HandleEvent(appID string, session *state.State, event gateway.Even
 				return
 			}
 
-			go instnace.HandleEvent(appID, session, event)
+			go instance.HandleEvent(appID, session, event)
 		}
 	}
 }
