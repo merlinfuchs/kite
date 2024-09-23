@@ -11,6 +11,6 @@ Custom commands are the primary way for users to interact with your bot. Once yo
 Whenever you create a command or update an existing one, Kite will automatically deploy the changes to Discord within 60 seconds.
 Some times it's necessary to restart or reload (ctrl+r) your Discord client for the changes to take appear.
 
-Make sure to check your app's logs in Dashboard's overview page to see if there are any errors!
+Make sure to check your app's logs in the Dashboard's overview page to see if there are any errors!
 
 ![Example Flow](./img/example-flow.png)
