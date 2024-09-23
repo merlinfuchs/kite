@@ -52,6 +52,7 @@ export default function MessageEmbed({
         title={`Embed ${embedIndex + 1}`}
         size="lg"
         valiationPathPrefix={`embeds.${embedIndex}`}
+        defaultOpen={false}
         actions={
           <>
             {embedIndex > 0 && (

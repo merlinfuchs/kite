@@ -130,6 +130,8 @@ export default function MessageComponentButton({
         size="md"
         valiationPathPrefix={`components.${rowIndex}.components.${compIndex}`}
         className="space-y-3"
+        animate={false}
+        defaultOpen={false}
         actions={
           <>
             {compIndex > 0 && (
@@ -215,19 +217,12 @@ export default function MessageComponentButton({
           />
         ) : (
           <>
-            <MessageCollapsibleSection
-              title="Edit Flow"
-              size="md"
-              animate={false}
-              defaultOpen={false}
+            <FlowDialog
+              flowData={flowData || initialFlow}
+              onClose={onFlowDialogClose}
             >
-              <FlowDialog
-                flowData={flowData || initialFlow}
-                onClose={onFlowDialogClose}
-              >
-                <FlowPreview className="h-64 p-16 w-full" onClick={() => {}} />
-              </FlowDialog>
-            </MessageCollapsibleSection>
+              <FlowPreview className="h-64 p-16 w-full" onClick={() => {}} />
+            </FlowDialog>
           </>
         )}
       </MessageCollapsibleSection>
