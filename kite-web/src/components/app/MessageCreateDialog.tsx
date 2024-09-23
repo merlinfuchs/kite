@@ -51,7 +51,6 @@ const createDefaultMessage = (name: string) => ({
   actions: {},
 });
 
-// TODO: forwardref
 export default function MessageCreateDialog({
   children,
   onMessageCreated,

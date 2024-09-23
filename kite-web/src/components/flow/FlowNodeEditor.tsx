@@ -613,18 +613,18 @@ function MessageTemplateInput({ data, updateData, errors }: InputProps) {
           <TooltipContent>Edit message template</TooltipContent>
         </Tooltip>
       ) : (
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <MessageCreateDialog
-              onMessageCreated={(v) => updateData({ message_template_id: v })}
-            >
+        <MessageCreateDialog
+          onMessageCreated={(v) => updateData({ message_template_id: v })}
+        >
+          <Tooltip>
+            <TooltipTrigger>
               <Button variant="outline" size="icon">
                 <PlusIcon className="h-5 w-5" />
               </Button>
-            </MessageCreateDialog>
-          </TooltipTrigger>
-          <TooltipContent>Create message template</TooltipContent>
-        </Tooltip>
+            </TooltipTrigger>
+            <TooltipContent>Create message template</TooltipContent>
+          </Tooltip>
+        </MessageCreateDialog>
       )}
     </div>
   );

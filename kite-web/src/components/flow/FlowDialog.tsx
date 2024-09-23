@@ -1,9 +1,10 @@
 import { FlowData, NodeType } from "@/lib/flow/data";
 import { ReactFlowProvider, useReactFlow } from "@xyflow/react";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useRef } from "react";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogTitle,
   DialogTrigger,
 } from "../ui/dialog";
@@ -52,21 +53,17 @@ export default function FlowDialog({
     dataRef.current = data;
   }, []);
 
-  const [isAnimating, setIsAnimating] = useState(false);
-
   return (
     <Dialog onOpenChange={onOpenChange}>
       <DialogTrigger asChild>{children}</DialogTrigger>
-      <DialogContent
-        className="h-[90dvh] w-full max-w-[90dvw] xl:max-w-7xl p-0"
-        onAnimationEnd={() => setIsAnimating(false)}
-        onAnimationStart={() => setIsAnimating(true)}
-      >
+      {/* We disable animations for the dialog, because react flow doesn't handle it well */}
+      <DialogContent className="h-[90dvh] w-full max-w-[90dvw] xl:max-w-7xl p-0 !animate-none">
         <ReactFlowProvider>
           <DialogTitle className="hidden">Flow Editor</DialogTitle>
-          {isAnimating ? null : (
-            <InnerFlowDialog flowData={flowData} onChange={onChange} />
-          )}
+          <DialogDescription className="hidden">
+            Define what happens.
+          </DialogDescription>
+          <InnerFlowDialog flowData={flowData} onChange={onChange} />
         </ReactFlowProvider>
       </DialogContent>
     </Dialog>
