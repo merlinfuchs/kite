@@ -31,7 +31,7 @@ type FlowDiscordProvider interface {
 	Role(ctx context.Context, guildID discord.GuildID, roleID discord.RoleID) (*discord.Role, error)
 	Member(ctx context.Context, guildID discord.GuildID, userID discord.UserID) (*discord.Member, error)
 
-	CreateInteractionResponse(ctx context.Context, interactionID discord.InteractionID, interactionToken string, response api.InteractionResponse) error
+	CreateInteractionResponse(ctx context.Context, interactionID discord.InteractionID, interactionToken string, response api.InteractionResponse) (*FlowInteractionResponseResource, error)
 	EditInteractionResponse(ctx context.Context, applicationID discord.AppID, token string, response api.EditInteractionResponseData) (*discord.Message, error)
 	DeleteInteractionResponse(ctx context.Context, applicationID discord.AppID, token string) error
 	CreateInteractionFollowup(ctx context.Context, applicationID discord.AppID, token string, data api.InteractionResponseData) (*discord.Message, error)
@@ -56,6 +56,11 @@ type FlowDiscordProvider interface {
 	HasCreatedInteractionResponse(ctx context.Context, interactionID discord.InteractionID) (bool, error)
 }
 
+type FlowInteractionResponseResource struct {
+	Type    api.InteractionResponseType
+	Message *discord.Message
+}
+
 type FlowHTTPProvider interface {
 	HTTPRequest(ctx context.Context, req *http.Request) (*http.Response, error)
 }
@@ -72,4 +77,13 @@ type FlowVariableProvider interface {
 
 type FlowMessageTemplateProvider interface {
 	MessageTemplate(ctx context.Context, id string) (*message.MessageData, error)
+	LinkMessageTemplateInstance(ctx context.Context, instance FlowMessageTemplateInstance) error
+}
+
+type FlowMessageTemplateInstance struct {
+	MessageTemplateID string
+	MessageID         discord.MessageID
+	ChannelID         discord.ChannelID
+	GuildID           discord.GuildID
+	Ephemeral         bool
 }

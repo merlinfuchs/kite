@@ -235,9 +235,9 @@ export const buttonSchema = z
     type: z.literal(2),
     style: z.literal(1).or(z.literal(2)).or(z.literal(3)).or(z.literal(4)),
     label: z.string(),
-    emoji: z.optional(z.nullable(emojiSchema)),
+    emoji: z.optional(emojiSchema),
     disabled: z.optional(z.boolean()),
-    action_set_id: z.string().default(() => getUniqueId().toString()),
+    flow_source_id: z.string().default(() => getUniqueId().toString()),
   })
   .or(
     z.object({
@@ -245,10 +245,10 @@ export const buttonSchema = z
       type: z.literal(2),
       style: z.literal(5),
       label: z.string(),
-      emoji: z.optional(z.nullable(emojiSchema)),
+      emoji: z.optional(emojiSchema),
       url: z.string().refine(...urlRefinement),
       disabled: z.optional(z.boolean()),
-      action_set_id: z.string().default(() => getUniqueId().toString()),
+      flow_source_id: z.string().default(() => getUniqueId().toString()),
     })
   )
   .superRefine((data, ctx) => {
@@ -267,8 +267,7 @@ export const selectMenuOptionSchema = z.object({
   id: uniqueIdSchema.default(() => getUniqueId()),
   label: z.string().min(1).max(100),
   description: z.optional(z.string().min(1).max(100)),
-  emoji: z.optional(z.nullable(emojiSchema)),
-  action_set_id: z.string().default(() => getUniqueId().toString()),
+  emoji: z.optional(emojiSchema),
 });
 
 export type MessageComponentSelectMenuOption = z.infer<
@@ -281,6 +280,7 @@ export const selectMenuSchema = z.object({
   placeholder: z.optional(z.string().max(150)),
   disabled: z.optional(z.boolean()),
   options: z.array(selectMenuOptionSchema).min(1).max(25),
+  flow_source_id: z.string().default(() => getUniqueId().toString()),
 });
 
 export type MessageComponentSelectMenu = z.infer<typeof selectMenuSchema>;

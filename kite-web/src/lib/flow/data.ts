@@ -74,6 +74,8 @@ export const nodeEntryEventDataSchema = nodeBaseDataSchema.extend({
   event_type: z.string(),
 });
 
+export const nodeEntryComponentButtonDataSchema = nodeBaseDataSchema.extend({});
+
 export const nodeActionResponseCreateDataSchema = nodeBaseDataSchema
   .extend({
     message_data: z

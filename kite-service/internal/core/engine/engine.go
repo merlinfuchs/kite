@@ -16,12 +16,13 @@ import (
 type Engine struct {
 	sync.RWMutex
 
-	config       EngineConfig
-	appStore     store.AppStore
-	logStore     store.LogStore
-	messageStore store.MessageStore
-	commandStore store.CommandStore
-	httpClient   *http.Client
+	config               EngineConfig
+	appStore             store.AppStore
+	logStore             store.LogStore
+	messageStore         store.MessageStore
+	messageInstanceStore store.MessageInstanceStore
+	commandStore         store.CommandStore
+	httpClient           *http.Client
 
 	lastUpdate time.Time
 	apps       map[string]*App
@@ -32,17 +33,19 @@ func NewEngine(
 	appStore store.AppStore,
 	logStore store.LogStore,
 	messageStore store.MessageStore,
+	messageInstanceStore store.MessageInstanceStore,
 	commandStore store.CommandStore,
 	httpClient *http.Client,
 ) *Engine {
 	return &Engine{
-		config:       config,
-		appStore:     appStore,
-		logStore:     logStore,
-		messageStore: messageStore,
-		httpClient:   httpClient,
-		commandStore: commandStore,
-		apps:         make(map[string]*App),
+		config:               config,
+		appStore:             appStore,
+		logStore:             logStore,
+		messageStore:         messageStore,
+		messageInstanceStore: messageInstanceStore,
+		httpClient:           httpClient,
+		commandStore:         commandStore,
+		apps:                 make(map[string]*App),
 	}
 }
 
@@ -96,6 +99,7 @@ func (m *Engine) populateCommands(ctx context.Context) error {
 				m.appStore,
 				m.logStore,
 				m.messageStore,
+				m.messageInstanceStore,
 				m.commandStore,
 				m.httpClient,
 			)

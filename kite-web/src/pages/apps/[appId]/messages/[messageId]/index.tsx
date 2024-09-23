@@ -8,12 +8,10 @@ import { useMessageUpdateMutation } from "@/lib/api/mutations";
 import { useMessage } from "@/lib/hooks/api";
 import { useBeforePageExit } from "@/lib/hooks/exit";
 import { useAppId, useMessageId } from "@/lib/hooks/params";
-import {
-  messageSchema,
-  parseMessageWithAction,
-} from "@/lib/message/schemaRestore";
+import { messageSchema, parseMessageData } from "@/lib/message/schemaRestore";
 import {
   CurrentMessageStoreProvider,
+  useCurrentFlowStore,
   useCurrentMessage,
   useCurrentMessageStore,
 } from "@/lib/message/state";
@@ -43,34 +41,45 @@ function AppMessagePageInner() {
   });
 
   const messageStore = useCurrentMessageStore();
+  const flowStore = useCurrentFlowStore();
 
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
-    const unsubscribe = messageStore.subscribe(() => {
+    const unsubscribeMessage = messageStore.subscribe(() => {
       if (!ignoreChange.current) {
         setHasUnsavedChanges(true);
       }
     });
 
-    return unsubscribe;
-  }, [ignoreChange, messageStore]);
+    const unsubscribeFlow = flowStore.subscribe(() => {
+      if (!ignoreChange.current) {
+        setHasUnsavedChanges(true);
+      }
+    });
+
+    return () => {
+      unsubscribeMessage();
+      unsubscribeFlow();
+    };
+  }, [ignoreChange, messageStore, flowStore]);
 
   useEffect(() => {
     if (!message) return;
 
     try {
-      const data = parseMessageWithAction(message.data);
+      const data = parseMessageData(message.data);
 
       ignoreChange.current = true;
       messageStore.getState().replace(data);
       messageStore.temporal.getState().clear();
+      flowStore.getState().replaceAll(message.flow_sources);
       ignoreChange.current = false;
     } catch (e) {
       toast.error(`Failed to parse message data: ${e}`);
     }
-  }, [message, messageStore]);
+  }, [message, messageStore, flowStore]);
 
   const updateMutation = useMessageUpdateMutation(useAppId(), useMessageId());
 
@@ -80,13 +89,14 @@ function AppMessagePageInner() {
     setIsSaving(true);
 
     const data = messageStore.getState();
+    const flowSources = flowStore.getState().flowSources;
 
     updateMutation.mutate(
       {
         name: message.name,
         description: message.description,
         data: data,
-        flow_sources: {},
+        flow_sources: flowSources,
       },
       {
         onSuccess(res) {
@@ -110,6 +120,7 @@ function AppMessagePageInner() {
     setIsSaving,
     setHasUnsavedChanges,
     messageStore,
+    flowStore,
   ]);
 
   const exit = useCallback(() => {

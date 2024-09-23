@@ -16,10 +16,16 @@ func (m *MessageData) ToSendMessageData() api.SendMessageData {
 		embeds[i] = embed.ToEmbed()
 	}
 
+	components := make(discord.ContainerComponents, len(m.Components))
+	for i, component := range m.Components {
+		components[i] = component.ToComponent()
+	}
+
 	return api.SendMessageData{
-		Content: m.Content,
-		Flags:   discord.MessageFlags(m.Flags),
-		Embeds:  embeds,
+		Content:    m.Content,
+		Flags:      discord.MessageFlags(m.Flags),
+		Embeds:     embeds,
+		Components: components,
 	}
 }
 
@@ -33,9 +39,15 @@ func (m *MessageData) ToEditMessageData() api.EditMessageData {
 		embeds[i] = embed.ToEmbed()
 	}
 
+	components := make(discord.ContainerComponents, len(m.Components))
+	for i, component := range m.Components {
+		components[i] = component.ToComponent()
+	}
+
 	return api.EditMessageData{
-		Content: option.NewNullableString(m.Content),
-		Embeds:  &embeds,
+		Content:    option.NewNullableString(m.Content),
+		Embeds:     &embeds,
+		Components: &components,
 	}
 }
 
@@ -49,10 +61,16 @@ func (m *MessageData) ToInteractionResponseData() api.InteractionResponseData {
 		embeds[i] = embed.ToEmbed()
 	}
 
+	components := make(discord.ContainerComponents, len(m.Components))
+	for i, component := range m.Components {
+		components[i] = component.ToComponent()
+	}
+
 	return api.InteractionResponseData{
-		Content: option.NewNullableString(m.Content),
-		Flags:   discord.MessageFlags(m.Flags),
-		Embeds:  &embeds,
+		Content:    option.NewNullableString(m.Content),
+		Flags:      discord.MessageFlags(m.Flags),
+		Embeds:     &embeds,
+		Components: &components,
 	}
 }
 
@@ -141,5 +159,70 @@ func (a *EmbedAuthorData) ToEmbedAuthor() *discord.EmbedAuthor {
 		Name: a.Name,
 		URL:  a.URL,
 		Icon: a.IconURL,
+	}
+}
+
+func (r *ComponentRowData) ToComponent() discord.ContainerComponent {
+	if r == nil {
+		return nil
+	}
+
+	components := make(discord.ActionRowComponent, len(r.Components))
+	for i, component := range r.Components {
+		components[i] = component.ToComponent()
+	}
+
+	return &components
+}
+
+func (c *ComponentData) ToComponent() discord.InteractiveComponent {
+	if c == nil {
+		return nil
+	}
+
+	switch c.Type {
+	case int(discord.ButtonComponentType):
+		var style discord.ButtonComponentStyle
+		switch c.Style {
+		case 2:
+			style = discord.SecondaryButtonStyle()
+		case 3:
+			style = discord.SuccessButtonStyle()
+		case 4:
+			style = discord.DangerButtonStyle()
+		case 5:
+			style = discord.LinkButtonStyle(c.URL)
+		default:
+			style = discord.PrimaryButtonStyle()
+		}
+
+		var customID discord.ComponentID
+		if c.Style != 5 {
+			customID = discord.ComponentID(c.FlowSourceID)
+		}
+
+		return &discord.ButtonComponent{
+			Style:    style,
+			Label:    c.Label,
+			Emoji:    c.Emoji.ToEmoji(),
+			Disabled: c.Disabled,
+			CustomID: customID,
+		}
+	}
+
+	return nil
+}
+
+func (e *ComponentEmojiData) ToEmoji() *discord.ComponentEmoji {
+	if e == nil {
+		return nil
+	}
+
+	id, _ := discord.ParseSnowflake(e.ID)
+
+	return &discord.ComponentEmoji{
+		Name:     e.Name,
+		ID:       discord.EmojiID(id),
+		Animated: e.Animated,
 	}
 }

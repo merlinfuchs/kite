@@ -1,5 +1,4 @@
-import { create, useStore } from "zustand";
-import { persist } from "zustand/middleware";
+import { create } from "zustand";
 import { immer } from "zustand/middleware/immer";
 import {
   MessageComponentButtonStyle,
@@ -14,7 +13,7 @@ import {
   MessageAttachment,
 } from "./schema";
 import { getUniqueId } from "@/lib/utils";
-import { TemporalState, temporal } from "zundo";
+import { temporal } from "zundo";
 import debounce from "just-debounce-it";
 
 export interface MessageStore extends Message {
@@ -547,21 +546,8 @@ export const createMessageStore = (initial?: Message) => {
                 id: getUniqueId(),
                 type: 1,
                 components: row.components.map((comp) => {
-                  if (comp.type === 2) {
-                    const actionId = getUniqueId().toString();
-                    return { ...comp, action_set_id: actionId };
-                  } else {
-                    return {
-                      ...comp,
-                      options: comp.options.map((option) => {
-                        const actionId = getUniqueId().toString();
-                        return {
-                          ...option,
-                          action_set_id: actionId,
-                        };
-                      }),
-                    };
-                  }
+                  const flowSourceId = getUniqueId().toString();
+                  return { ...comp, flow_source_id: flowSourceId };
                 }),
               };
 
@@ -645,7 +631,7 @@ export const createMessageStore = (initial?: Message) => {
               row.components.splice(j + 1, 0, {
                 ...button,
                 id: getUniqueId(),
-                action_set_id: actionId,
+                flow_source_id: actionId,
               });
             }),
           setButtonStyle: (
@@ -835,11 +821,9 @@ export const createMessageStore = (initial?: Message) => {
                 return;
               }
 
-              const actionId = getUniqueId().toString();
               selectMenu.options.splice(k + 1, 0, {
                 ...option,
                 id: getUniqueId(),
-                action_set_id: actionId,
               });
             }),
           deleteSelectMenuOption: (i: number, j: number, k: number) =>

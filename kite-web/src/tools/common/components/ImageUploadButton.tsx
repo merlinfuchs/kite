@@ -36,7 +36,7 @@ export default function ImageUploadButton({
         },
       });
     },
-    [inputRef, createMutation, onImageUploaded]
+    [createMutation, onImageUploaded]
   );
 
   return (
@@ -44,6 +44,7 @@ export default function ImageUploadButton({
       size="icon"
       variant="outline"
       onClick={() => inputRef.current?.click()}
+      disabled={!!inputRef.current?.value}
     >
       <input
         type="file"

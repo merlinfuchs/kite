@@ -30,6 +30,8 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 		return n.executeChildren(ctx)
 	case FlowNodeTypeEntryEvent:
 		return n.executeChildren(ctx)
+	case FlowNodeTypeEntryComponentButton:
+		return n.executeChildren(ctx)
 	case FlowNodeTypeActionResponseCreate:
 		interaction := ctx.Data.Interaction()
 		if interaction == nil {
@@ -65,10 +67,11 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			return traceError(n, err)
 		}
 
+		var msg *discord.Message
 		if hasCreatedResponse {
 			responseData := data.ToInteractionResponseData()
 
-			msg, err := ctx.Discord.CreateInteractionFollowup(ctx, interaction.AppID, interaction.Token, responseData)
+			msg, err = ctx.Discord.CreateInteractionFollowup(ctx, interaction.AppID, interaction.Token, responseData)
 			if err != nil {
 				return traceError(n, err)
 			}
@@ -82,9 +85,26 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 				Data: &responseData,
 			}
 
-			err = ctx.Discord.CreateInteractionResponse(ctx, interaction.ID, interaction.Token, resp)
+			res, err := ctx.Discord.CreateInteractionResponse(ctx, interaction.ID, interaction.Token, resp)
 			if err != nil {
 				return traceError(n, err)
+			}
+
+			if res != nil {
+				msg = res.Message
+			}
+		}
+
+		if n.Data.MessageTemplateID != "" && msg != nil {
+			err := ctx.MessageTemplate.LinkMessageTemplateInstance(ctx, FlowMessageTemplateInstance{
+				MessageTemplateID: n.Data.MessageTemplateID,
+				MessageID:         msg.ID,
+				ChannelID:         ctx.Data.ChannelID(),
+				GuildID:           ctx.Data.GuildID(),
+				Ephemeral:         n.Data.MessageEphemeral,
+			})
+			if err != nil {
+				ctx.Log.CreateLogEntry(ctx, n.Data.LogLevel, fmt.Sprintf("failed to link message template instance: %s", err.Error()))
 			}
 		}
 
@@ -120,8 +140,9 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 		var msg *discord.Message
 		if n.Data.MessageTarget == "" || n.Data.MessageTarget == "@original" {
 			msg, err = ctx.Discord.EditInteractionResponse(ctx, interaction.AppID, interaction.Token, api.EditInteractionResponseData{
-				Content: responseData.Content,
-				Embeds:  responseData.Embeds,
+				Content:    responseData.Content,
+				Embeds:     responseData.Embeds,
+				Components: responseData.Components,
 			})
 			if err != nil {
 				return traceError(n, err)
@@ -139,6 +160,19 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			)
 			if err != nil {
 				return traceError(n, err)
+			}
+		}
+
+		if n.Data.MessageTemplateID != "" {
+			err := ctx.MessageTemplate.LinkMessageTemplateInstance(ctx, FlowMessageTemplateInstance{
+				MessageTemplateID: n.Data.MessageTemplateID,
+				MessageID:         msg.ID,
+				ChannelID:         ctx.Data.ChannelID(),
+				GuildID:           ctx.Data.GuildID(),
+				Ephemeral:         n.Data.MessageEphemeral,
+			})
+			if err != nil {
+				ctx.Log.CreateLogEntry(ctx, n.Data.LogLevel, fmt.Sprintf("failed to link message template instance: %s", err.Error()))
 			}
 		}
 
@@ -200,6 +234,19 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			return traceError(n, err)
 		}
 
+		if n.Data.MessageTemplateID != "" {
+			err := ctx.MessageTemplate.LinkMessageTemplateInstance(ctx, FlowMessageTemplateInstance{
+				MessageTemplateID: n.Data.MessageTemplateID,
+				MessageID:         msg.ID,
+				ChannelID:         ctx.Data.ChannelID(),
+				GuildID:           ctx.Data.GuildID(),
+				Ephemeral:         n.Data.MessageEphemeral,
+			})
+			if err != nil {
+				ctx.Log.CreateLogEntry(ctx, n.Data.LogLevel, fmt.Sprintf("failed to link message template instance: %s", err.Error()))
+			}
+		}
+
 		nodeState.Result = NewFlowValueMessage(*msg)
 		return n.executeChildren(ctx)
 	case FlowNodeTypeActionMessageEdit:
@@ -246,6 +293,19 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 		)
 		if err != nil {
 			return traceError(n, err)
+		}
+
+		if n.Data.MessageTemplateID != "" {
+			err := ctx.MessageTemplate.LinkMessageTemplateInstance(ctx, FlowMessageTemplateInstance{
+				MessageTemplateID: n.Data.MessageTemplateID,
+				MessageID:         msg.ID,
+				ChannelID:         ctx.Data.ChannelID(),
+				GuildID:           ctx.Data.GuildID(),
+				Ephemeral:         n.Data.MessageEphemeral,
+			})
+			if err != nil {
+				ctx.Log.CreateLogEntry(ctx, n.Data.LogLevel, fmt.Sprintf("failed to link message template instance: %s", err.Error()))
+			}
 		}
 
 		nodeState.Result = NewFlowValueMessage(*msg)

@@ -25,8 +25,9 @@ func (d FlowData) Validate() error {
 type FlowNodeType string
 
 const (
-	FlowNodeTypeEntryCommand FlowNodeType = "entry_command"
-	FlowNodeTypeEntryEvent   FlowNodeType = "entry_event"
+	FlowNodeTypeEntryCommand         FlowNodeType = "entry_command"
+	FlowNodeTypeEntryEvent           FlowNodeType = "entry_event"
+	FlowNodeTypeEntryComponentButton FlowNodeType = "entry_component_button"
 
 	FlowNodeTypeOptionCommandArgument    FlowNodeType = "option_command_argument"
 	FlowNodeTypeOptionCommandPermissions FlowNodeType = "option_command_permissions"

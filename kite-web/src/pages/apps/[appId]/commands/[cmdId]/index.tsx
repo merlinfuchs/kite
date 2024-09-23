@@ -1,4 +1,4 @@
-import Flow from "@/components/flow/Flow";
+import FlowPage from "@/components/flow/FlowPage";
 import { useCommandUpdateMutation } from "@/lib/api/mutations";
 import { FlowData } from "@/lib/flow/data";
 import { useCommand } from "@/lib/hooks/api";
@@ -106,7 +106,7 @@ export default function AppCommandPage() {
         <title>Manage Command | Kite</title>
       </Head>
       {cmd && (
-        <Flow
+        <FlowPage
           flowData={cmd.flow_source}
           hasUnsavedChanges={hasUnsavedChanges}
           onChange={onChange}

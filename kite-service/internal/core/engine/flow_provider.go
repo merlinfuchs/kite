@@ -11,6 +11,7 @@ import (
 	"github.com/diamondburned/arikawa/v3/api"
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/state"
+	"github.com/diamondburned/arikawa/v3/utils/sendpart"
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/internal/store"
 	"github.com/kitecloud/kite/kite-service/pkg/flow"
@@ -41,14 +42,24 @@ func NewDiscordProvider(
 	}
 }
 
-func (p *DiscordProvider) CreateInteractionResponse(ctx context.Context, interactionID discord.InteractionID, interactionToken string, response api.InteractionResponse) error {
-	err := p.session.RespondInteraction(interactionID, interactionToken, response)
-	if err != nil {
-		return fmt.Errorf("failed to respond to interaction: %w", err)
+func (p *DiscordProvider) CreateInteractionResponse(ctx context.Context, interactionID discord.InteractionID, interactionToken string, response api.InteractionResponse) (*flow.FlowInteractionResponseResource, error) {
+	endpoint := api.EndpointInteractions + interactionID.String() + "/" + interactionToken + "/callback?with_response=true"
+
+	var res struct {
+		Resource struct {
+			Type    api.InteractionResponseType `json:"type"`
+			Message *discord.Message            `json:"message,omitempty"`
+		} `json:"resource"`
+	}
+	if err := sendpart.POST(p.session.Client.Client, response, &res, endpoint); err != nil {
+		return nil, fmt.Errorf("failed to respond to interaction: %w", err)
 	}
 
 	p.interactionsWithResponse[interactionID] = struct{}{}
-	return nil
+	return &flow.FlowInteractionResponseResource{
+		Type:    res.Resource.Type,
+		Message: res.Resource.Message,
+	}, nil
 }
 
 func (p *DiscordProvider) EditInteractionResponse(ctx context.Context, applicationID discord.AppID, token string, response api.EditInteractionResponseData) (*discord.Message, error) {
@@ -266,12 +277,14 @@ func (p *VariableProvider) DeleteVariable(ctx context.Context, id string) error 
 }
 
 type MessageTemplateProvider struct {
-	messageStore store.MessageStore
+	messageStore         store.MessageStore
+	messageInstanceStore store.MessageInstanceStore
 }
 
-func NewMessageTemplateProvider(messageStore store.MessageStore) *MessageTemplateProvider {
+func NewMessageTemplateProvider(messageStore store.MessageStore, messageInstanceStore store.MessageInstanceStore) *MessageTemplateProvider {
 	return &MessageTemplateProvider{
-		messageStore: messageStore,
+		messageStore:         messageStore,
+		messageInstanceStore: messageInstanceStore,
 	}
 }
 
@@ -282,4 +295,28 @@ func (p *MessageTemplateProvider) MessageTemplate(ctx context.Context, id string
 	}
 
 	return &message.Data, nil
+}
+
+func (p *MessageTemplateProvider) LinkMessageTemplateInstance(ctx context.Context, instance flow.FlowMessageTemplateInstance) error {
+	message, err := p.messageStore.Message(ctx, instance.MessageTemplateID)
+	if err != nil {
+		return fmt.Errorf("failed to get message: %w", err)
+	}
+
+	_, err = p.messageInstanceStore.CreateMessageInstance(ctx, &model.MessageInstance{
+		MessageID:        message.ID,
+		DiscordMessageID: instance.MessageID.String(),
+		DiscordChannelID: instance.ChannelID.String(),
+		DiscordGuildID:   instance.GuildID.String(),
+		Ephemeral:        instance.Ephemeral,
+		Hidden:           true,
+		FlowSources:      message.FlowSources,
+		CreatedAt:        time.Now().UTC(),
+		UpdatedAt:        time.Now().UTC(),
+	})
+	if err != nil {
+		return fmt.Errorf("failed to create message instance: %w", err)
+	}
+
+	return nil
 }

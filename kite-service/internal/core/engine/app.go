@@ -2,6 +2,7 @@ package engine
 
 import (
 	"context"
+	"errors"
 	"log/slog"
 	"net/http"
 	"sync"
@@ -19,17 +20,19 @@ type App struct {
 
 	id string
 
-	config       EngineConfig
-	appStore     store.AppStore
-	logStore     store.LogStore
-	messageStore store.MessageStore
-	commandStore store.CommandStore
-	httpClient   *http.Client
+	config               EngineConfig
+	appStore             store.AppStore
+	logStore             store.LogStore
+	messageStore         store.MessageStore
+	messageInstanceStore store.MessageInstanceStore
+	commandStore         store.CommandStore
+	httpClient           *http.Client
 
 	hasUndeployedChanges bool
 
 	commands map[string]*Command
-	events   map[string]interface{}
+	// TODO: messages LRUCache<*MessageInstance>
+	events map[string]interface{}
 }
 
 func NewApp(
@@ -38,19 +41,21 @@ func NewApp(
 	appStore store.AppStore,
 	logStore store.LogStore,
 	messageStore store.MessageStore,
+	messageInstanceStore store.MessageInstanceStore,
 	commandStore store.CommandStore,
 	httpClient *http.Client,
 ) *App {
 	return &App{
-		id:           id,
-		config:       config,
-		appStore:     appStore,
-		logStore:     logStore,
-		messageStore: messageStore,
-		commandStore: commandStore,
-		httpClient:   httpClient,
-		commands:     make(map[string]*Command),
-		events:       make(map[string]interface{}),
+		id:                   id,
+		config:               config,
+		appStore:             appStore,
+		logStore:             logStore,
+		messageStore:         messageStore,
+		messageInstanceStore: messageInstanceStore,
+		commandStore:         commandStore,
+		httpClient:           httpClient,
+		commands:             make(map[string]*Command),
+		events:               make(map[string]interface{}),
 	}
 }
 
@@ -64,6 +69,7 @@ func (a *App) AddCommand(cmd *model.Command) {
 		a.appStore,
 		a.logStore,
 		a.messageStore,
+		a.messageInstanceStore,
 		a.httpClient,
 	)
 	if err != nil {
@@ -123,6 +129,33 @@ func (a *App) HandleEvent(appID string, session *state.State, event gateway.Even
 					go command.HandleEvent(appID, session, event)
 				}
 			}
+		case *discord.ButtonInteraction:
+			messageID := e.Message.ID.String()
+			messageInstnace, err := a.messageInstanceStore.MessageInstanceByDiscordMessageID(context.TODO(), messageID)
+			if err != nil {
+				if errors.Is(err, store.ErrNotFound) {
+					return
+				}
+
+				slog.With("error", err).Error("failed to get message instance by discord message ID")
+				return
+			}
+
+			instance, err := NewMessageInstance(
+				a.config,
+				messageInstnace,
+				a.appStore,
+				a.logStore,
+				a.messageStore,
+				a.messageInstanceStore,
+				a.httpClient,
+			)
+			if err != nil {
+				slog.With("error", err).Error("failed to create message instance")
+				return
+			}
+
+			go instance.HandleEvent(appID, session, event)
 		}
 	}
 }

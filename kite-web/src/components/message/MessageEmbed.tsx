@@ -1,5 +1,5 @@
 import { Card } from "@/components/ui/card";
-import CollapsibleSection from "./MessageCollapsibleSection";
+import MessageCollapsibleSection from "./MessageCollapsibleSection";
 import { useCurrentMessage } from "@/lib/message/state";
 import { useShallow } from "zustand/react/shallow";
 import { useMemo } from "react";
@@ -48,7 +48,7 @@ export default function MessageEmbed({
         borderLeftColor: colorHex,
       }}
     >
-      <CollapsibleSection
+      <MessageCollapsibleSection
         title={`Embed ${embedIndex + 1}`}
         size="lg"
         valiationPathPrefix={`embeds.${embedIndex}`}
@@ -89,7 +89,7 @@ export default function MessageEmbed({
         <MessageEmbedImages embedIndex={embedIndex} embedId={embedId} />
         <MessageEmbedFooter embedIndex={embedIndex} embedId={embedId} />
         <MessageEmbedFields embedIndex={embedIndex} embedId={embedId} />
-      </CollapsibleSection>
+      </MessageCollapsibleSection>
     </Card>
   );
 }

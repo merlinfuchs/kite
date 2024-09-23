@@ -19,6 +19,7 @@ import {
   nodeControlSleepDataSchema,
   NodeData,
   nodeEntryCommandDataSchema,
+  nodeEntryComponentButtonDataSchema,
   nodeEntryEventDataSchema,
   nodeOptionCommandArgumentDataSchema,
   nodeOptionCommandContextsSchema,
@@ -56,6 +57,7 @@ import {
   XCircleIcon,
   TimerIcon,
   UserRoundCheckIcon,
+  MousePointerClickIcon,
 } from "lucide-react";
 
 export const primaryColor = "#3B82F6";
@@ -93,9 +95,19 @@ export const nodeTypes: Record<string, NodeValues> = {
     icon: SatelliteDishIcon,
     defaultTitle: "Listen for Event",
     defaultDescription:
-      "Listens for an event to trigger the flow. Drop different actions and options here!",
+      "Listens for an event to trigger the flow. Drop different actions here!",
     dataSchema: nodeEntryEventDataSchema,
     dataFields: ["event_type"],
+    fixed: true,
+  },
+  entry_component_button: {
+    color: entryColor,
+    icon: MousePointerClickIcon,
+    defaultTitle: "Button",
+    defaultDescription:
+      "This gets triggered when a user clicks the button. Drop different actions here!",
+    dataSchema: nodeEntryComponentButtonDataSchema,
+    dataFields: [],
     fixed: true,
   },
   action_response_create: {

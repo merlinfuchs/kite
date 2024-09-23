@@ -9,7 +9,7 @@ CREATE TABLE IF NOT EXISTS message_instances (
     discord_channel_id TEXT NOT NULL,
     discord_message_id TEXT NOT NULL UNIQUE,
     
-    flow_sources JSONB NOT NULL, -- map of flow source ids to flow source objects
+    flow_sources JSONB NOT NULL, -- snapshot from the message when sent
 
     created_at TIMESTAMP NOT NULL,
     updated_at TIMESTAMP NOT NULL

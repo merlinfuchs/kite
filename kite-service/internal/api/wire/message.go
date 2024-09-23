@@ -34,6 +34,21 @@ type MessageCreateRequest struct {
 	FlowSources map[string]flow.FlowData `json:"flow_sources"`
 }
 
+func (req *MessageCreateRequest) Sanitize() {
+	// Remove unused flow sources
+	newFlowSources := make(map[string]flow.FlowData, len(req.FlowSources))
+	for _, row := range req.Data.Components {
+		for _, comp := range row.Components {
+			flow, ok := req.FlowSources[comp.FlowSourceID]
+			if ok {
+				newFlowSources[comp.FlowSourceID] = flow
+			}
+		}
+	}
+
+	req.FlowSources = newFlowSources
+}
+
 func (req MessageCreateRequest) Validate() error {
 	return validation.ValidateStruct(&req,
 		validation.Field(&req.Name, validation.Required, validation.Length(1, 100)),
@@ -48,6 +63,21 @@ type MessageUpdateRequest struct {
 	Description null.String              `json:"description"`
 	Data        message.MessageData      `json:"data"`
 	FlowSources map[string]flow.FlowData `json:"flow_sources"`
+}
+
+func (req *MessageUpdateRequest) Sanitize() {
+	// Remove unused flow sources
+	newFlowSources := make(map[string]flow.FlowData, len(req.FlowSources))
+	for _, row := range req.Data.Components {
+		for _, comp := range row.Components {
+			flow, ok := req.FlowSources[comp.FlowSourceID]
+			if ok {
+				newFlowSources[comp.FlowSourceID] = flow
+			}
+		}
+	}
+
+	req.FlowSources = newFlowSources
 }
 
 func (req MessageUpdateRequest) Validate() error {

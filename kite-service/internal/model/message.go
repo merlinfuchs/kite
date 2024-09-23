@@ -27,6 +27,8 @@ type MessageInstance struct {
 	DiscordGuildID   string
 	DiscordChannelID string
 	DiscordMessageID string
+	Ephemeral        bool
+	Hidden           bool
 	FlowSources      map[string]flow.FlowData
 	CreatedAt        time.Time
 	UpdatedAt        time.Time

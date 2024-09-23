@@ -243,9 +243,9 @@ export const buttonSchema = z
     type: z.literal(2),
     style: z.literal(1).or(z.literal(2)).or(z.literal(3)).or(z.literal(4)),
     label: z.preprocess((d) => d ?? undefined, z.string().default("")),
-    emoji: z.optional(z.nullable(emojiSchema)),
+    emoji: z.preprocess((d) => d ?? undefined, z.optional(emojiSchema)),
     disabled: z.preprocess((d) => d ?? undefined, z.optional(z.boolean())),
-    action_set_id: z.preprocess(
+    flow_source_id: z.preprocess(
       (d) => d ?? undefined,
       z.string().default(() => getUniqueId().toString())
     ),
@@ -256,10 +256,10 @@ export const buttonSchema = z
       type: z.literal(2),
       style: z.literal(5),
       label: z.preprocess((d) => d ?? undefined, z.string().default("")),
-      emoji: z.optional(z.nullable(emojiSchema)),
+      emoji: z.preprocess((d) => d ?? undefined, z.optional(emojiSchema)),
       url: z.preprocess((d) => d ?? undefined, z.string().default("")),
       disabled: z.preprocess((d) => d ?? undefined, z.optional(z.boolean())),
-      action_set_id: z.string().default(() => getUniqueId().toString()),
+      flow_source_id: z.string().default(() => getUniqueId().toString()),
     })
   );
 
@@ -270,10 +270,6 @@ export const selectMenuOptionSchema = z.object({
   label: z.preprocess((d) => d ?? undefined, z.string().default("")),
   description: z.preprocess((d) => d || undefined, z.optional(z.string())),
   emoji: z.preprocess((d) => d ?? undefined, z.optional(emojiSchema)),
-  action_set_id: z.preprocess(
-    (d) => d ?? undefined,
-    z.string().default(() => getUniqueId().toString())
-  ),
 });
 
 export type MessageComponentSelectMenuOption = z.infer<
@@ -289,6 +285,7 @@ export const selectMenuSchema = z.object({
     (d) => d ?? undefined,
     z.array(selectMenuOptionSchema).default([])
   ),
+  flow_source_id: z.string().default(() => getUniqueId().toString()),
 });
 
 export type MessageComponentSelectMenu = z.infer<typeof selectMenuSchema>;
@@ -425,37 +422,11 @@ export const messageSchema = z.object({
     z.array(actionRowSchema).default([])
   ),
   thread_name: messageThreadNameSchema,
-  actions: z.preprocess(
-    (d) => d ?? undefined,
-    z.record(z.string(), messageActionSetSchema).default({})
-  ),
 });
 
 export type Message = z.infer<typeof messageSchema>;
 
-export function parseMessageWithAction(raw: any) {
+export function parseMessageData(raw: any) {
   const parsedData = messageSchema.parse(raw);
-
-  // create messing action sets
-  for (const row of parsedData.components) {
-    for (const comp of row.components) {
-      if (comp.type === 2) {
-        if (!parsedData.actions[comp.action_set_id]) {
-          parsedData.actions[comp.action_set_id] = {
-            actions: [],
-          };
-        }
-      } else {
-        for (const option of comp.options) {
-          if (!parsedData.actions[option.action_set_id]) {
-            parsedData.actions[option.action_set_id] = {
-              actions: [],
-            };
-          }
-        }
-      }
-    }
-  }
-
   return parsedData;
 }

@@ -3,6 +3,7 @@ import MessageEmbedSection from "./MessageEmbedSection";
 import MessageBody from "./MessageBody";
 import MessageControls from "./MessageControls";
 import MessageValidator from "./MessageValidator";
+import MessageComponentsSection from "./MessageComponentsSection";
 
 export default function MessageEditor() {
   return (
@@ -12,6 +13,7 @@ export default function MessageEditor() {
 
       <MessageAttachmentSection />
       <MessageEmbedSection />
+      <MessageComponentsSection />
 
       <MessageValidator />
     </div>

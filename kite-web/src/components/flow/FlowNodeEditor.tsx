@@ -597,7 +597,7 @@ function MessageTemplateInput({ data, updateData, errors }: InputProps) {
       />
       {data.message_template_id ? (
         <Tooltip>
-          <TooltipTrigger>
+          <TooltipTrigger asChild>
             <Button variant="outline" size="icon" asChild>
               <Link
                 href={{
@@ -614,7 +614,7 @@ function MessageTemplateInput({ data, updateData, errors }: InputProps) {
         </Tooltip>
       ) : (
         <Tooltip>
-          <TooltipTrigger>
+          <TooltipTrigger asChild>
             <MessageCreateDialog
               onMessageCreated={(v) => updateData({ message_template_id: v })}
             >

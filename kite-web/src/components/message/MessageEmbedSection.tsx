@@ -4,7 +4,6 @@ import MessageEmbed from "./MessageEmbed";
 import { useShallow } from "zustand/react/shallow";
 import { getUniqueId } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import AutoAnimate from "../common/AutoAnimate";
 
 export default function MessageEmbedSection() {
   const embeds = useCurrentMessage(
@@ -19,11 +18,9 @@ export default function MessageEmbedSection() {
       valiationPathPrefix="embeds"
       className="space-y-4"
     >
-      <AutoAnimate className="space-y-4">
-        {embeds.map((id, i) => (
-          <MessageEmbed key={id} embedIndex={i} embedId={id} />
-        ))}
-      </AutoAnimate>
+      {embeds.map((id, i) => (
+        <MessageEmbed key={id} embedIndex={i} embedId={id} />
+      ))}
       <div className="space-x-3">
         <Button
           onClick={() =>
@@ -33,10 +30,11 @@ export default function MessageEmbedSection() {
               fields: [],
             })
           }
+          disabled={embeds.length >= 10}
         >
           Add Embed
         </Button>
-        <Button onClick={clearEmbeds} variant="destructive">
+        <Button onClick={clearEmbeds} variant="outline">
           Clear Embeds
         </Button>
       </div>

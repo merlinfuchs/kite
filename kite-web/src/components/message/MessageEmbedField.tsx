@@ -1,6 +1,5 @@
 import { useCurrentMessage } from "@/lib/message/state";
 import { Card } from "@/components/ui/card";
-import CollapsibleSection from "./MessageCollapsibleSection";
 import MessageInput from "./MessageInput";
 import { useShallow } from "zustand/react/shallow";
 import {
@@ -9,6 +8,7 @@ import {
   CopyIcon,
   TrashIcon,
 } from "lucide-react";
+import MessageCollapsibleSection from "./MessageCollapsibleSection";
 
 export default function MessageEmbedField({
   embedIndex,
@@ -55,7 +55,7 @@ export default function MessageEmbedField({
 
   return (
     <Card className="p-3">
-      <CollapsibleSection
+      <MessageCollapsibleSection
         title={`Field ${fieldIndex + 1}`}
         size="md"
         valiationPathPrefix={`embeds.${embedIndex}.fields.${fieldIndex}`}
@@ -116,7 +116,7 @@ export default function MessageEmbedField({
           onChange={(v) => setValue(embedIndex, fieldIndex, v)}
           validationPath={`embeds.${embedIndex}.fields.${fieldIndex}.value`}
         />
-      </CollapsibleSection>
+      </MessageCollapsibleSection>
     </Card>
   );
 }
