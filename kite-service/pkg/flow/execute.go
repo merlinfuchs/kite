@@ -90,6 +90,8 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			}
 		}
 
+		// TODO: create message instance if message template was used
+
 		return n.executeChildren(ctx)
 	case FlowNodeTypeActionResponseEdit:
 		interaction := ctx.Data.Interaction()
@@ -122,8 +124,9 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 		var msg *discord.Message
 		if n.Data.MessageTarget == "" || n.Data.MessageTarget == "@original" {
 			msg, err = ctx.Discord.EditInteractionResponse(ctx, interaction.AppID, interaction.Token, api.EditInteractionResponseData{
-				Content: responseData.Content,
-				Embeds:  responseData.Embeds,
+				Content:    responseData.Content,
+				Embeds:     responseData.Embeds,
+				Components: responseData.Components,
 			})
 			if err != nil {
 				return traceError(n, err)

@@ -31,7 +31,8 @@ type App struct {
 	hasUndeployedChanges bool
 
 	commands map[string]*Command
-	events   map[string]interface{}
+	// TODO: messages LRUCache<*MessageInstance>
+	events map[string]interface{}
 }
 
 func NewApp(
@@ -129,7 +130,6 @@ func (a *App) HandleEvent(appID string, session *state.State, event gateway.Even
 			}
 		case *discord.ButtonInteraction:
 			messageID := e.Message.ID.String()
-			// TODO: cache with LRU?
 			messageInstnace, err := a.messageInstanceStore.MessageInstanceByDiscordMessageID(context.TODO(), messageID)
 			if err != nil {
 				if errors.Is(err, store.ErrNotFound) {
