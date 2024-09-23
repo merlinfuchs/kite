@@ -1,4 +1,4 @@
-import { CheckIcon, SlashSquareIcon } from "lucide-react";
+import { CheckIcon, CircleDotIcon, SlashSquareIcon } from "lucide-react";
 import {
   Card,
   CardDescription,
@@ -15,6 +15,8 @@ import { useCommandDeleteMutation } from "@/lib/api/mutations";
 import { useAppId } from "@/lib/hooks/params";
 import { toast } from "sonner";
 import { formatDateTime } from "@/lib/utils";
+import { useMemo } from "react";
+import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
 
 export default function CommandListEntry({ command }: { command: Command }) {
   const router = useRouter();
@@ -35,11 +37,39 @@ export default function CommandListEntry({ command }: { command: Command }) {
     });
   }
 
+  const changesDeployed = useMemo(
+    () =>
+      new Date(command.updated_at) <= new Date(command.last_deployed_at || 0),
+    [command]
+  );
+
   return (
     <Card>
       <div className="float-right pt-3 pr-4">
         <div className="flex items-center space-x-2">
-          <CheckIcon className="h-5 w-5 text-green-500" />
+          {changesDeployed ? (
+            <Tooltip>
+              <TooltipTrigger>
+                <CheckIcon className="h-5 w-5 text-green-500" />
+              </TooltipTrigger>
+              <TooltipContent>
+                <div className="text-foreground/90">
+                  All changes have been deployed!
+                </div>
+              </TooltipContent>
+            </Tooltip>
+          ) : (
+            <Tooltip>
+              <TooltipTrigger>
+                <CircleDotIcon className="h-5 w-5 text-orange-500" />
+              </TooltipTrigger>
+              <TooltipContent>
+                <div className="text-foreground/90">
+                  Most recent changes will be deployed soon.
+                </div>
+              </TooltipContent>
+            </Tooltip>
+          )}
           <div className="text-sm text-muted-foreground">
             {formatDateTime(new Date(command.updated_at))}
           </div>
