@@ -31,7 +31,7 @@ export function CurrentMessageStoreProvider({
       validationStore,
       flowStore,
     }),
-    [messageStore, validationStore]
+    [messageStore, validationStore, flowStore]
   );
 
   return (

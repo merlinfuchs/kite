@@ -79,7 +79,7 @@ function AppMessagePageInner() {
     } catch (e) {
       toast.error(`Failed to parse message data: ${e}`);
     }
-  }, [message, messageStore]);
+  }, [message, messageStore, flowStore]);
 
   const updateMutation = useMessageUpdateMutation(useAppId(), useMessageId());
 
@@ -120,6 +120,7 @@ function AppMessagePageInner() {
     setIsSaving,
     setHasUnsavedChanges,
     messageStore,
+    flowStore,
   ]);
 
   const exit = useCallback(() => {

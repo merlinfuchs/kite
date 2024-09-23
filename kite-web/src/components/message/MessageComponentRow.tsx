@@ -91,7 +91,7 @@ export default function MessageComponentRow({
                   compId={id}
                 ></MessageComponentButton>
               ) : (
-                <div></div>
+                <div key={id}></div>
               )
             )}
             <div className="space-x-3">
@@ -121,7 +121,7 @@ export default function MessageComponentRow({
           </>
         ) : (
           <div className="text-muted-foreground">
-            select menus aren't supported yet
+            select menus aren&apos;t supported yet
           </div>
         )}
       </MessageCollapsibleSection>

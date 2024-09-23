@@ -155,16 +155,16 @@ export default function MessagePreview({
 function MessagePreviewAttachment({ assetId }: { assetId: string }) {
   const asset = useResponseData(useAssetQuery(useAppId(), assetId));
 
-  if (!asset) return null;
-
   const [isImage, isVideo, isAudio] = useMemo(
     () => [
-      asset.content_type.startsWith("image/"),
-      asset.content_type.startsWith("video/"),
-      asset.content_type.startsWith("audio/"),
+      asset?.content_type.startsWith("image/"),
+      asset?.content_type.startsWith("video/"),
+      asset?.content_type.startsWith("audio/"),
     ],
     [asset]
   );
+
+  if (!asset) return null;
 
   if (isImage) {
     return (
