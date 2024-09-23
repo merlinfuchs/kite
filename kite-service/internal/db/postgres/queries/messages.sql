@@ -41,17 +41,22 @@ INSERT INTO message_instances (
     discord_guild_id,
     discord_channel_id,
     discord_message_id,
+    ephemeral,
+    hidden,
     flow_sources,
     created_at,
     updated_at
 ) VALUES (
-    $1, $2, $3, $4, $5, $6, $7
+    $1, $2, $3, $4, $5, $6, $7, $8, $9
 ) RETURNING *;
 
 -- name: GetMessageInstance :one
 SELECT * FROM message_instances WHERE id = $1 AND message_id = $2;
 
 -- name: GetMessageInstancesByMessage :many
+SELECT * FROM message_instances WHERE message_id = $1 AND NOT hidden ORDER BY created_at DESC;
+
+-- name: GetMessageInstancesByMessageWithHidden :many
 SELECT * FROM message_instances WHERE message_id = $1 ORDER BY created_at DESC;
 
 -- name: GetMessageInstanceByDiscordMessageId :one

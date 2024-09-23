@@ -13,7 +13,7 @@ import (
 )
 
 func (h *MessageHandler) HandleMessageInstanceList(c *handler.Context) (*wire.MessageInstanceListResponse, error) {
-	instances, err := h.messageInstanceStore.MessageInstancesByMessage(c.Context(), c.Message.ID)
+	instances, err := h.messageInstanceStore.MessageInstancesByMessage(c.Context(), c.Message.ID, false)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get message instances: %w", err)
 	}

@@ -69,6 +69,7 @@ func (a *App) AddCommand(cmd *model.Command) {
 		a.appStore,
 		a.logStore,
 		a.messageStore,
+		a.messageInstanceStore,
 		a.httpClient,
 	)
 	if err != nil {
@@ -146,6 +147,7 @@ func (a *App) HandleEvent(appID string, session *state.State, event gateway.Even
 				a.appStore,
 				a.logStore,
 				a.messageStore,
+				a.messageInstanceStore,
 				a.httpClient,
 			)
 			if err != nil {

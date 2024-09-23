@@ -225,7 +225,7 @@ export default function MessageComponentButton({
                 flowData={flowData || initialFlow}
                 onClose={onFlowDialogClose}
               >
-                <FlowPreview className="h-64 w-full" onClick={() => {}} />
+                <FlowPreview className="h-64 p-16 w-full" onClick={() => {}} />
               </FlowDialog>
             </MessageCollapsibleSection>
           </>

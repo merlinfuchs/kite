@@ -172,8 +172,15 @@ func (c *Client) MessageInstance(ctx context.Context, messageID string, instance
 	return rowToMessageInstance(row)
 }
 
-func (c *Client) MessageInstancesByMessage(ctx context.Context, messageID string) ([]*model.MessageInstance, error) {
-	rows, err := c.Q.GetMessageInstancesByMessage(ctx, messageID)
+func (c *Client) MessageInstancesByMessage(ctx context.Context, messageID string, includeHidden bool) ([]*model.MessageInstance, error) {
+	var rows []pgmodel.MessageInstance
+	var err error
+
+	if includeHidden {
+		rows, err = c.Q.GetMessageInstancesByMessageWithHidden(ctx, messageID)
+	} else {
+		rows, err = c.Q.GetMessageInstancesByMessage(ctx, messageID)
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -213,6 +220,8 @@ func (c *Client) CreateMessageInstance(ctx context.Context, instance *model.Mess
 		DiscordGuildID:   instance.DiscordGuildID,
 		DiscordChannelID: instance.DiscordChannelID,
 		DiscordMessageID: instance.DiscordMessageID,
+		Ephemeral:        instance.Ephemeral,
+		Hidden:           instance.Hidden,
 		FlowSources:      flowSources,
 		CreatedAt:        pgtype.Timestamp{Time: instance.CreatedAt.UTC(), Valid: true},
 		UpdatedAt:        pgtype.Timestamp{Time: instance.UpdatedAt.UTC(), Valid: true},
@@ -285,6 +294,8 @@ func rowToMessageInstance(row pgmodel.MessageInstance) (*model.MessageInstance, 
 		DiscordGuildID:   row.DiscordGuildID,
 		DiscordChannelID: row.DiscordChannelID,
 		DiscordMessageID: row.DiscordMessageID,
+		Ephemeral:        row.Ephemeral,
+		Hidden:           row.Hidden,
 		FlowSources:      flowSources,
 		CreatedAt:        row.CreatedAt.Time,
 		UpdatedAt:        row.UpdatedAt.Time,

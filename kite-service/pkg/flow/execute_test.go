@@ -84,9 +84,9 @@ type TestDiscordProvider struct {
 	response api.InteractionResponse
 }
 
-func (p *TestDiscordProvider) CreateInteractionResponse(ctx context.Context, interactionID discord.InteractionID, interactionToken string, response api.InteractionResponse) error {
+func (p *TestDiscordProvider) CreateInteractionResponse(ctx context.Context, interactionID discord.InteractionID, interactionToken string, response api.InteractionResponse) (*FlowInteractionResponseResource, error) {
 	p.response = response
-	return nil
+	return nil, nil
 }
 
 type TestContextData struct{}

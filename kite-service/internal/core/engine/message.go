@@ -17,13 +17,14 @@ import (
 )
 
 type MessageInstance struct {
-	config       EngineConfig
-	msg          *model.MessageInstance
-	flows        map[string]*flow.CompiledFlowNode
-	appStore     store.AppStore
-	logStore     store.LogStore
-	messageStore store.MessageStore
-	httpClient   *http.Client
+	config               EngineConfig
+	msg                  *model.MessageInstance
+	flows                map[string]*flow.CompiledFlowNode
+	appStore             store.AppStore
+	logStore             store.LogStore
+	messageStore         store.MessageStore
+	messageInstanceStore store.MessageInstanceStore
+	httpClient           *http.Client
 }
 
 func NewMessageInstance(
@@ -32,6 +33,7 @@ func NewMessageInstance(
 	appStore store.AppStore,
 	logStore store.LogStore,
 	messageStore store.MessageStore,
+	messageInstanceStore store.MessageInstanceStore,
 	httpClient *http.Client,
 ) (*MessageInstance, error) {
 	flows := make(map[string]*flow.CompiledFlowNode, len(msg.FlowSources))
@@ -47,13 +49,14 @@ func NewMessageInstance(
 	}
 
 	return &MessageInstance{
-		config:       config,
-		msg:          msg,
-		flows:        flows,
-		appStore:     appStore,
-		logStore:     logStore,
-		messageStore: messageStore,
-		httpClient:   httpClient,
+		config:               config,
+		msg:                  msg,
+		flows:                flows,
+		appStore:             appStore,
+		logStore:             logStore,
+		messageStore:         messageStore,
+		messageInstanceStore: messageInstanceStore,
+		httpClient:           httpClient,
 	}, nil
 }
 
@@ -77,7 +80,7 @@ func (c *MessageInstance) HandleEvent(appID string, session *state.State, event 
 		Discord:         NewDiscordProvider(appID, c.appStore, session),
 		Log:             NewLogProvider(appID, c.logStore),
 		HTTP:            NewHTTPProvider(c.httpClient),
-		MessageTemplate: NewMessageTemplateProvider(c.messageStore),
+		MessageTemplate: NewMessageTemplateProvider(c.messageStore, c.messageInstanceStore),
 		// TODO: Variable provider
 	}
 
