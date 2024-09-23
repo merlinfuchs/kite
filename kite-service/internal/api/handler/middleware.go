@@ -18,6 +18,10 @@ func TypedWithBody[REQ any, RESP any](next func(c *Context, r REQ) (*RESP, error
 			return err
 		}
 
+		if sanitizable, ok := interface{}(&v).(BodySanitize); ok {
+			sanitizable.Sanitize()
+		}
+
 		if validatable, ok := interface{}(&v).(BodyValidate); ok {
 			if err := validatable.Validate(); err != nil {
 				return err
@@ -52,6 +56,10 @@ func Typed[RESP any](next func(c *Context) (*RESP, error)) HandlerFunc {
 
 type BodyValidate interface {
 	Validate() error
+}
+
+type BodySanitize interface {
+	Sanitize()
 }
 
 func RateLimitByUser(tokens uint64, interval time.Duration) MiddlewareFunc {

@@ -212,6 +212,28 @@ func (q *Queries) GetMessageInstance(ctx context.Context, arg GetMessageInstance
 	return i, err
 }
 
+const getMessageInstanceByDiscordMessageId = `-- name: GetMessageInstanceByDiscordMessageId :one
+SELECT id, message_id, hidden, ephemeral, discord_guild_id, discord_channel_id, discord_message_id, flow_sources, created_at, updated_at FROM message_instances WHERE discord_message_id = $1
+`
+
+func (q *Queries) GetMessageInstanceByDiscordMessageId(ctx context.Context, discordMessageID string) (MessageInstance, error) {
+	row := q.db.QueryRow(ctx, getMessageInstanceByDiscordMessageId, discordMessageID)
+	var i MessageInstance
+	err := row.Scan(
+		&i.ID,
+		&i.MessageID,
+		&i.Hidden,
+		&i.Ephemeral,
+		&i.DiscordGuildID,
+		&i.DiscordChannelID,
+		&i.DiscordMessageID,
+		&i.FlowSources,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
 const getMessageInstancesByMessage = `-- name: GetMessageInstancesByMessage :many
 SELECT id, message_id, hidden, ephemeral, discord_guild_id, discord_channel_id, discord_message_id, flow_sources, created_at, updated_at FROM message_instances WHERE message_id = $1 ORDER BY created_at DESC
 `

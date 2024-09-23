@@ -72,4 +72,5 @@ type FlowVariableProvider interface {
 
 type FlowMessageTemplateProvider interface {
 	MessageTemplate(ctx context.Context, id string) (*message.MessageData, error)
+	// TODO: add message instance to store mehtod
 }

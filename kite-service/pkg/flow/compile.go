@@ -13,6 +13,10 @@ func CompileCommand(data FlowData) (*CompiledFlowNode, error) {
 	return compile(data, FlowNodeTypeEntryCommand)
 }
 
+func CompileComponentButton(data FlowData) (*CompiledFlowNode, error) {
+	return compile(data, FlowNodeTypeEntryComponentButton)
+}
+
 func compile(data FlowData, entryType FlowNodeType) (*CompiledFlowNode, error) {
 	var entryNode *CompiledFlowNode
 	nodeMap := make(map[string]*CompiledFlowNode)

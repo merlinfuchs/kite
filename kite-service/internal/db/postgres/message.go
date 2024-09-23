@@ -190,6 +190,18 @@ func (c *Client) MessageInstancesByMessage(ctx context.Context, messageID string
 	return instances, nil
 }
 
+func (c *Client) MessageInstanceByDiscordMessageID(ctx context.Context, discordMessageID string) (*model.MessageInstance, error) {
+	row, err := c.Q.GetMessageInstanceByDiscordMessageId(ctx, discordMessageID)
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return nil, store.ErrNotFound
+		}
+		return nil, err
+	}
+
+	return rowToMessageInstance(row)
+}
+
 func (c *Client) CreateMessageInstance(ctx context.Context, instance *model.MessageInstance) (*model.MessageInstance, error) {
 	flowSources, err := json.Marshal(instance.FlowSources)
 	if err != nil {

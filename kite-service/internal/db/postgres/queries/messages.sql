@@ -54,6 +54,9 @@ SELECT * FROM message_instances WHERE id = $1 AND message_id = $2;
 -- name: GetMessageInstancesByMessage :many
 SELECT * FROM message_instances WHERE message_id = $1 ORDER BY created_at DESC;
 
+-- name: GetMessageInstanceByDiscordMessageId :one
+SELECT * FROM message_instances WHERE discord_message_id = $1;
+
 -- name: UpdateMessageInstance :one
 UPDATE message_instances SET
     flow_sources = $3,

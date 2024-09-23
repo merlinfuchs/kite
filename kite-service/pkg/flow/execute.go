@@ -30,6 +30,8 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 		return n.executeChildren(ctx)
 	case FlowNodeTypeEntryEvent:
 		return n.executeChildren(ctx)
+	case FlowNodeTypeEntryComponentButton:
+		return n.executeChildren(ctx)
 	case FlowNodeTypeActionResponseCreate:
 		interaction := ctx.Data.Interaction()
 		if interaction == nil {
