@@ -3,23 +3,24 @@ import { edgeTypes, nodeTypes } from "@/lib/flow/components";
 import { ReactFlow } from "@xyflow/react";
 import { useHookedTheme } from "@/lib/hooks/theme";
 import "@xyflow/react/dist/base.css";
+import { forwardRef } from "react";
 
 const initialNodes = [
   {
     id: "1",
     position: { x: 0, y: 0 },
-    data: { name: "ban", description: "Ban a user" },
-    type: "entry_command",
+    data: { event_type: "" },
+    type: "entry_event",
   },
 ];
 
-export default function FlowPreview({
-  className,
-  onClick,
-}: {
-  className?: string;
-  onClick: () => void;
-}) {
+const FlowPreview = forwardRef<
+  HTMLDivElement,
+  {
+    className?: string;
+    onClick: () => void;
+  }
+>(({ className, onClick }, ref) => {
   const { theme } = useHookedTheme();
 
   return (
@@ -27,6 +28,7 @@ export default function FlowPreview({
       className={cn("bg-muted/50 rounded-sm nowheel cursor-pointer", className)}
       onClick={onClick}
       role="button"
+      ref={ref}
     >
       <ReactFlow
         nodes={initialNodes}
@@ -49,4 +51,7 @@ export default function FlowPreview({
       />
     </div>
   );
-}
+});
+
+FlowPreview.displayName = "FlowPreview";
+export default FlowPreview;

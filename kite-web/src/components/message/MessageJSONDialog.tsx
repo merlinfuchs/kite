@@ -15,7 +15,7 @@ import { githubDark, githubLight } from "@uiw/codemirror-theme-github";
 import { linter, lintGutter } from "@codemirror/lint";
 import { Button } from "../ui/button";
 import { useCurrentMessage } from "@/lib/message/state";
-import { parseMessageWithAction } from "@/lib/message/schemaRestore";
+import { parseMessageData } from "@/lib/message/schemaRestore";
 import { toast } from "sonner";
 import { useHookedTheme } from "@/lib/hooks/theme";
 
@@ -37,7 +37,7 @@ export default function MessageJSONDialog({
 
   const save = useCallback(() => {
     try {
-      const data = parseMessageWithAction(JSON.parse(raw));
+      const data = parseMessageData(JSON.parse(raw));
 
       msg.replace(data);
       setOpen(false);

@@ -6,7 +6,6 @@ import { Card } from "../ui/card";
 import { Input } from "../ui/input";
 import { Button } from "../ui/button";
 import { PaperclipIcon, TrashIcon } from "lucide-react";
-import { getApiUrl } from "@/lib/api/client";
 import { useCallback, useMemo } from "react";
 import { useCurrentMessage } from "@/lib/message/state";
 

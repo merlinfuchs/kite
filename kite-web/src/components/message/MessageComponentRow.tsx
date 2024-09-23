@@ -102,7 +102,7 @@ export default function MessageComponentRow({
                     type: 2,
                     style: 2,
                     label: "",
-                    action_set_id: getUniqueId().toString(), // TODO: refactor this for flow_source_id
+                    flow_source_id: getUniqueId().toString(), // TODO: refactor this for flow_source_id
                   })
                 }
                 size="sm"

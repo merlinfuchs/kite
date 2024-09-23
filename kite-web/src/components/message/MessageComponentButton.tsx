@@ -1,4 +1,4 @@
-import { useCurrentMessage } from "@/lib/message/state";
+import { useCurrentFlow, useCurrentMessage } from "@/lib/message/state";
 import { useShallow } from "zustand/react/shallow";
 import { Card } from "../ui/card";
 import MessageCollapsibleSection from "./MessageCollapsibleSection";
@@ -9,9 +9,12 @@ import {
   TrashIcon,
 } from "lucide-react";
 import MessageInput from "./MessageInput";
-import { useMemo } from "react";
+import { useCallback, useMemo } from "react";
 import MessageEmojiPicker from "./MessageEmojiPicker";
 import FlowPreview from "../flow/FlowPreview";
+import FlowDialog from "../flow/FlowDialog";
+import { FlowData } from "@/lib/flow/data";
+import { getUniqueId } from "@/lib/utils";
 
 const buttonColors = {
   1: "#5865F2",
@@ -21,11 +24,21 @@ const buttonColors = {
   5: "#4E5058",
 };
 
+const initialFlow = {
+  nodes: [
+    {
+      id: getUniqueId().toString(),
+      position: { x: 0, y: 0 },
+      data: {},
+      type: "entry_event",
+    },
+  ],
+  edges: [],
+};
+
 export default function MessageComponentButton({
   rowIndex,
-  rowId,
   compIndex,
-  compId,
 }: {
   rowIndex: number;
   rowId: number;
@@ -83,6 +96,23 @@ export default function MessageComponentButton({
     [style]
   );
 
+  const flowSourceId = useCurrentMessage(
+    (state) => state.getButton(rowIndex, compIndex)?.flow_source_id
+  );
+
+  const [flowData, replaceFlow] = useCurrentFlow(
+    useShallow((s) => [s.getFlow(flowSourceId || ""), s.replaceFlow])
+  );
+
+  const onFlowDialogClose = useCallback(
+    (d: FlowData) => {
+      if (flowSourceId) {
+        replaceFlow(flowSourceId, d);
+      }
+    },
+    [replaceFlow, flowSourceId]
+  );
+
   if (!style) {
     // This is not a button (should never happen)
     return <div></div>;
@@ -100,7 +130,6 @@ export default function MessageComponentButton({
         size="md"
         valiationPathPrefix={`components.${rowIndex}.components.${compIndex}`}
         className="space-y-3"
-        animate={false}
         actions={
           <>
             {compIndex > 0 && (
@@ -185,7 +214,21 @@ export default function MessageComponentButton({
             validationPath={`components.${rowIndex}.components.${compIndex}.url`}
           />
         ) : (
-          <FlowPreview className="h-64 w-full" onClick={() => {}} />
+          <>
+            <MessageCollapsibleSection
+              title="Edit Flow"
+              size="md"
+              animate={false}
+              defaultOpen={false}
+            >
+              <FlowDialog
+                flowData={flowData || initialFlow}
+                onClose={onFlowDialogClose}
+              >
+                <FlowPreview className="h-64 w-full" onClick={() => {}} />
+              </FlowDialog>
+            </MessageCollapsibleSection>
+          </>
         )}
       </MessageCollapsibleSection>
     </Card>
