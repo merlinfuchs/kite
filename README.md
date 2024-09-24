@@ -159,8 +159,8 @@ go build
   - [ ] Advanced Placeholders
 - [x] Message Templates (MVP)
   - [x] Embeds
-  - [ ] Attachments
-  - [ ] Interactive Components
+  - [x] Attachments
+  - [x] Interactive Components
   - [ ] Basic placeholders
   - [ ] Advanced Placeholders
 - [ ] Event Listeners
