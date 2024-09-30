@@ -72,7 +72,7 @@ export default function FlowPlaceholderExplorer({
   );
 
   return (
-    <div className="absolute top-1.5 right-1.5">
+    <div className="absolute top-1.5 right-1.5 z-20">
       <PlaceholderExplorer onSelect={onSelect} placeholders={placeholders}>
         <VariableIcon
           className="h-5.5 w-5.5 text-muted-foreground hover:text-foreground cursor-pointer"

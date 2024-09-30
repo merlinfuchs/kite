@@ -41,6 +41,7 @@ import Link from "next/link";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
 import { useAppId } from "@/lib/hooks/params";
 import MessageCreateDialog from "../app/MessageCreateDialog";
+import PlaceholderInput from "../common/PlaceholderInput";
 
 interface Props {
   nodeId: string;
@@ -1131,6 +1132,12 @@ function BaseInput({
               )}
             </SelectContent>
           </Select>
+        ) : placeholders ? (
+          <PlaceholderInput
+            value={value}
+            onChange={(v) => updateValue(v)}
+            ref={inputRef}
+          />
         ) : (
           <Input
             type="text"
