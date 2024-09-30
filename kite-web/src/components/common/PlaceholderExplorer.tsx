@@ -13,43 +13,22 @@ import {
 } from "@/components/ui/popover";
 import { ReactNode, useState } from "react";
 
-const placeholderGroups = [
-  {
-    label: "Command",
-    placeholders: ["interaction.command.args.[name]"],
-  },
-  {
-    label: "User",
-    placeholders: [
-      "interaction.user.id",
-      "interaction.user.mention",
-      "interaction.user.username",
-      "interaction.user.discriminator",
-      "interaction.user.display_name",
-      "interaction.user.avatar_url",
-      "interaction.user.banner_url",
-    ],
-  },
-  {
-    label: "Server",
-    placeholders: ["interaction.guild.id"],
-  },
-  {
-    label: "Channel",
-    placeholders: ["interaction.channel.id"],
-  },
-  {
-    label: "Nodes",
-    placeholders: ["interaction.nodes.[id].result"],
-  },
-];
+interface PlaceholderGroup {
+  label: string;
+  placeholders: {
+    label: string;
+    value: string;
+  }[];
+}
 
 export default function PlaceholderExplorer({
   children,
   onSelect,
+  placeholders,
 }: {
   children: ReactNode;
   onSelect: (value: string) => void;
+  placeholders: PlaceholderGroup[];
 }) {
   const [open, setOpen] = useState(false);
 
@@ -61,20 +40,24 @@ export default function PlaceholderExplorer({
           <CommandInput placeholder="Search placeholder..." />
           <CommandList>
             <CommandEmpty>No placeholder found.</CommandEmpty>
-            {placeholderGroups.map((group) => (
+            {placeholders.map((group) => (
               <CommandGroup heading={group.label} key={group.label}>
                 {group.placeholders.map((placeholder) => (
                   <CommandItem
-                    key={placeholder}
-                    value={placeholder}
+                    key={placeholder.value}
+                    value={placeholder.value}
                     onSelect={(currentValue) => {
                       onSelect(currentValue);
                       setOpen(false);
                     }}
+                    className="flex flex-col items-start"
                   >
-                    <span className="text-muted-foreground mr-1">{"{{"}</span>
-                    <span>{placeholder}</span>
-                    <span className="text-muted-foreground ml-1">{"}}"}</span>
+                    <div>{placeholder.label}</div>
+                    <div className="text-xs">
+                      <span className="text-muted-foreground mr-1">{"{{"}</span>
+                      <span>{placeholder.value}</span>
+                      <span className="text-muted-foreground ml-1">{"}}"}</span>
+                    </div>
                   </CommandItem>
                 ))}
               </CommandGroup>
