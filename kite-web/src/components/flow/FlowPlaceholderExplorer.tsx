@@ -68,7 +68,7 @@ export default function FlowPlaceholderExplorer({
 
   const placeholders = useMemo(
     () => [...commandPlaceholders, ...staticPlaceholders, ...nodePlaceholders],
-    [commandPlaceholders, staticPlaceholders, nodePlaceholders]
+    [commandPlaceholders, nodePlaceholders]
   );
 
   return (

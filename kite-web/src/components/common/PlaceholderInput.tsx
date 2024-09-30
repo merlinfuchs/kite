@@ -58,4 +58,5 @@ const PlaceholderInput = forwardRef<
   );
 });
 
+PlaceholderInput.displayName = "PlaceholderInput";
 export default PlaceholderInput;
