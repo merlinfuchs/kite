@@ -1,5 +1,7 @@
-import { forwardRef, useCallback, useMemo, useRef, useState } from "react";
+import { forwardRef, useCallback, useMemo, useRef } from "react";
 import { Input } from "../ui/input";
+
+// See https://akashhamirwasia.com/blog/building-highlighted-input-field-in-react/
 
 const REGEX = /({{.*?}})/g;
 
