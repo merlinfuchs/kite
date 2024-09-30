@@ -120,10 +120,7 @@ export default function VariableSettingsCore() {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Type</FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
-                  >
+                  <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Select the type of the variable" />
@@ -153,10 +150,7 @@ export default function VariableSettingsCore() {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Scope</FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
-                  >
+                  <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Select the scope for the variable" />

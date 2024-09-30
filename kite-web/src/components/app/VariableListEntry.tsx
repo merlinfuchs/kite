@@ -14,6 +14,7 @@ import ConfirmDialog from "../common/ConfirmDialog";
 import { useVariableDeleteMutation } from "@/lib/api/mutations";
 import { useAppId } from "@/lib/hooks/params";
 import { toast } from "sonner";
+import { getVariableScopeName, getVariableTypeName } from "@/lib/variable";
 
 export default function VariableListEntry({
   variable,
@@ -53,12 +54,17 @@ export default function VariableListEntry({
         </CardTitle>
         <CardDescription className="text-sm">
           This variable stores a{" "}
-          <span className="text-foreground">{variable.type}</span>{" "}
+          <span className="text-foreground">
+            {getVariableTypeName(variable.type).toLowerCase()}
+          </span>{" "}
           {variable.scope === "global" ? (
             "globally."
           ) : (
             <span>
-              for each <span className="text-foreground">{variable.scope}</span>
+              for each{" "}
+              <span className="text-foreground">
+                {getVariableScopeName(variable.scope).toLowerCase()}
+              </span>
               .
             </span>
           )}

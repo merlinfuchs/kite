@@ -6,8 +6,13 @@ export const variableTypes = [
   },
   {
     name: "Number",
-    value: "number",
+    value: "float",
     description: "A number variable can store any number, including decimals.",
+  },
+  {
+    name: "Whole Number",
+    value: "integer",
+    description: "A whole number variable can store whole numbers.",
   },
   {
     name: "Boolean",
@@ -35,11 +40,30 @@ export const variableScopes = [
   {
     name: "User",
     value: "user",
-    description: "A user variable stores one value per user.",
+    description:
+      "A user variable stores one value per user across all servers.",
   },
   {
     name: "Member",
     value: "member",
-    description: "A member variable stores one value per member.",
+    description: "A member variable stores one value per user and server.",
   },
 ];
+
+export function getVariableTypeName(type: string) {
+  return variableTypes.find((t) => t.value === type)?.name || "Unknown";
+}
+
+export function getVariableTypeDescription(type: string) {
+  return variableTypes.find((t) => t.value === type)?.description || "Unknown";
+}
+
+export function getVariableScopeName(scope: string) {
+  return variableScopes.find((t) => t.value === scope)?.name || "Unknown";
+}
+
+export function getVariableScopeDescription(scope: string) {
+  return (
+    variableScopes.find((t) => t.value === scope)?.description || "Unknown"
+  );
+}

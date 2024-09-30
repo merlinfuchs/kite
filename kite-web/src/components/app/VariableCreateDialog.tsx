@@ -41,8 +41,10 @@ interface FormFields {
 
 export default function VariableCreateDialog({
   children,
+  onVariableCreated,
 }: {
   children: ReactNode;
+  onVariableCreated?: (id: string) => void;
 }) {
   const [open, setOpen] = useState(false);
 
@@ -71,6 +73,10 @@ export default function VariableCreateDialog({
           if (res.success) {
             toast.success("Variable created!");
             setOpen(false);
+
+            if (onVariableCreated) {
+              onVariableCreated(res.data.id);
+            }
           } else {
             if (res.error.code === "validation_failed") {
               setValidationErrors(form, res.error.data);

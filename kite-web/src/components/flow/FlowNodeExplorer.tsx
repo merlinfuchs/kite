@@ -47,6 +47,14 @@ const nodeCategories = {
       ],
     },
     {
+      title: "Variables",
+      nodeTypes: [
+        "action_variable_set",
+        "action_variable_delete",
+        "action_variable_get",
+      ],
+    },
+    {
       title: "Other Actions",
       nodeTypes: ["action_http_request", "action_log"],
     },

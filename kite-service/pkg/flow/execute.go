@@ -338,7 +338,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 
 		return n.executeChildren(ctx)
 	case FlowNodeTypeActionMemberBan:
-		memberTarget, err := n.Data.MemberTarget.FillPlaceholders(ctx, ctx.Placeholders)
+		memberTarget, err := n.Data.UserTarget.FillPlaceholders(ctx, ctx.Placeholders)
 		if err != nil {
 			return traceError(n, err)
 		}
@@ -368,7 +368,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 
 		return n.executeChildren(ctx)
 	case FlowNodeTypeActionMemberUnban:
-		memberTarget, err := n.Data.MemberTarget.FillPlaceholders(ctx, ctx.Placeholders)
+		memberTarget, err := n.Data.UserTarget.FillPlaceholders(ctx, ctx.Placeholders)
 		if err != nil {
 			return traceError(n, err)
 		}
@@ -390,7 +390,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 
 		return n.executeChildren(ctx)
 	case FlowNodeTypeActionMemberKick:
-		memberID, err := n.Data.MemberTarget.FillPlaceholders(ctx, ctx.Placeholders)
+		memberID, err := n.Data.UserTarget.FillPlaceholders(ctx, ctx.Placeholders)
 		if err != nil {
 			return traceError(n, err)
 		}
@@ -412,7 +412,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 
 		return n.executeChildren(ctx)
 	case FlowNodeTypeActionMemberTimeout:
-		memberID, err := n.Data.MemberTarget.FillPlaceholders(ctx, ctx.Placeholders)
+		memberID, err := n.Data.UserTarget.FillPlaceholders(ctx, ctx.Placeholders)
 		if err != nil {
 			return traceError(n, err)
 		}
@@ -446,7 +446,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 
 		return n.executeChildren(ctx)
 	case FlowNodeTypeActionMemberEdit:
-		memberID, err := n.Data.MemberTarget.FillPlaceholders(ctx, ctx.Placeholders)
+		memberID, err := n.Data.UserTarget.FillPlaceholders(ctx, ctx.Placeholders)
 		if err != nil {
 			return traceError(n, err)
 		}
