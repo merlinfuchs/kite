@@ -253,6 +253,7 @@ export const nodeTypes: Record<string, NodeValues> = {
     dataFields: [
       "variable_id",
       "variable_scope",
+      "variable_operation",
       "variable_value",
       "custom_label",
     ],

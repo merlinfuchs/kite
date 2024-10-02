@@ -156,6 +156,7 @@ func (c *Client) VariableValue(ctx context.Context, variableID string, scope nul
 		VariableID: variableID,
 		Scope:      pgtype.Text{String: scope.String, Valid: scope.Valid},
 	})
+
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, store.ErrNotFound

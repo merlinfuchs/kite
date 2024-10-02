@@ -163,7 +163,7 @@ func (q *Queries) GetVariableByName(ctx context.Context, arg GetVariableByNamePa
 }
 
 const getVariableValue = `-- name: GetVariableValue :one
-SELECT id, variable_id, scope, value, created_at, updated_at FROM variable_values WHERE variable_id = $1 AND scope = $2
+SELECT id, variable_id, scope, value, created_at, updated_at FROM variable_values WHERE variable_id = $1 AND scope IS NOT DISTINCT FROM $2
 `
 
 type GetVariableValueParams struct {

@@ -125,9 +125,10 @@ type FlowNodeData struct {
 	RoleData   *api.CreateRoleData `json:"role_data,omitempty"`
 
 	// Variable Set, Delete
-	VariableID    string     `json:"variable_id,omitempty"`
-	VariableScope FlowString `json:"variable_scope,omitempty"`
-	VariableValue FlowString `json:"variable_value,omitempty"`
+	VariableID        string            `json:"variable_id,omitempty"`
+	VariableScope     FlowString        `json:"variable_scope,omitempty"`
+	VariableValue     FlowString        `json:"variable_value,omitempty"`
+	VariableOperation VariableOperation `json:"variable_operation,omitempty"`
 
 	// HTTP Request
 	HTTPRequestData *HTTPRequestData `json:"http_request_data,omitempty"`
@@ -194,6 +195,20 @@ const (
 	LogLevelWarn  LogLevel = "warn"
 	LogLevelError LogLevel = "error"
 )
+
+type VariableOperation string
+
+const (
+	VariableOperationOverwrite  VariableOperation = "overwrite"
+	VariableOperationAppend     VariableOperation = "append"
+	VariableOperationPrepend    VariableOperation = "prepend"
+	VariableOperationIncrement  VariableOperation = "increment"
+	VariableOperationDecremenet VariableOperation = "decrement"
+)
+
+func (o VariableOperation) IsOverwrite() bool {
+	return o == VariableOperationOverwrite || o == ""
+}
 
 type ConditionItemType string
 

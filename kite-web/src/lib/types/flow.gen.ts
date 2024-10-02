@@ -103,6 +103,7 @@ export interface FlowNodeData {
   variable_id?: string;
   variable_scope?: FlowString;
   variable_value?: FlowString;
+  variable_operation?: VariableOperation;
   /**
    * HTTP Request
    */
@@ -142,6 +143,12 @@ export const LogLevelDebug: LogLevel = "debug";
 export const LogLevelInfo: LogLevel = "info";
 export const LogLevelWarn: LogLevel = "warn";
 export const LogLevelError: LogLevel = "error";
+export type VariableOperation = string;
+export const VariableOperationOverwrite: VariableOperation = "overwrite";
+export const VariableOperationAppend: VariableOperation = "append";
+export const VariableOperationPrepend: VariableOperation = "prepend";
+export const VariableOperationIncrement: VariableOperation = "increment";
+export const VariableOperationDecremenet: VariableOperation = "decrement";
 export type ConditionItemType = string;
 export const ConditionItemModeEqual: ConditionItemType = "equal";
 export const ConditionItemModeNotEqual: ConditionItemType = "not_equal";

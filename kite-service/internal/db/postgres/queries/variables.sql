@@ -44,7 +44,7 @@ WHERE id = $1 RETURNING *;
 DELETE FROM variables WHERE id = $1;
 
 -- name: GetVariableValue :one
-SELECT * FROM variable_values WHERE variable_id = $1 AND scope = $2;
+SELECT * FROM variable_values WHERE variable_id = $1 AND scope IS NOT DISTINCT FROM $2;
 
 -- name: GetVariableValues :many
 SELECT * FROM variable_values WHERE variable_id = $1;

@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import { Node, useNodes, useReactFlow, useStoreApi } from "@xyflow/react";
 import { NodeData, NodeProps } from "../../lib/flow/data";
 import { useNodeValues } from "@/lib/flow/nodes";
@@ -75,6 +75,7 @@ const intputs: Record<string, any> = {
   role_target: RoleTargetInput,
   variable_id: VariableIdInput,
   variable_scope: VariableScopeInput,
+  variable_operation: VariableOperationInput,
   variable_value: VariableValueInput,
   http_request_data: HttpRequestDataInput,
   audit_log_reason: AuditLogReasonInput,
@@ -813,6 +814,12 @@ function VariableScopeInput({ data, updateData, errors }: InputProps) {
     return variable?.scoped;
   }, [variables, data]);
 
+  useEffect(() => {
+    if (scoped === false) {
+      updateData({ variable_scope: undefined });
+    }
+  }, [scoped]);
+
   if (!scoped) return null;
 
   return (
@@ -824,6 +831,26 @@ function VariableScopeInput({ data, updateData, errors }: InputProps) {
       updateValue={(v) => updateData({ variable_scope: v || undefined })}
       errors={errors}
       placeholders
+    />
+  );
+}
+
+function VariableOperationInput({ data, updateData, errors }: InputProps) {
+  return (
+    <BaseInput
+      type="select"
+      field="variable_operation"
+      title="Operation"
+      value={data.variable_operation || ""}
+      updateValue={(v) => updateData({ variable_operation: v || undefined })}
+      options={[
+        { value: "overwrite", label: "Overwrite" },
+        { value: "append", label: "Append" },
+        { value: "prepend", label: "Prepend" },
+        { value: "increment", label: "Increment" },
+        { value: "decrement", label: "Decrement" },
+      ]}
+      errors={errors}
     />
   );
 }

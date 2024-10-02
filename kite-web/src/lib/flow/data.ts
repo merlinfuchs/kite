@@ -220,6 +220,12 @@ export const nodeActionVariableSetSchema = nodeBaseDataSchema.extend({
   variable_id: z.string(),
   variable_scope: z.string().optional(),
   variable_value: z.string(),
+  variable_operation: z
+    .literal("overwrite")
+    .or(z.literal("append"))
+    .or(z.literal("prepend"))
+    .or(z.literal("increment"))
+    .or(z.literal("decrement")),
 });
 
 export const nodeActionVariableDeleteSchema = nodeBaseDataSchema.extend({

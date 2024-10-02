@@ -3,6 +3,7 @@ package engine
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -233,7 +234,7 @@ func NewVariableProvider(variableValueStore store.VariableValueStore) *VariableP
 }
 
 func (p *VariableProvider) SetVariable(ctx context.Context, id string, scope null.String, value flow.FlowValue) error {
-	rawValue, err := json.Marshal(value.Value)
+	rawValue, err := json.Marshal(value)
 	if err != nil {
 		return fmt.Errorf("failed to marshal variable value: %w", err)
 	}
@@ -255,11 +256,14 @@ func (p *VariableProvider) SetVariable(ctx context.Context, id string, scope nul
 func (p *VariableProvider) Variable(ctx context.Context, id string, scope null.String) (flow.FlowValue, error) {
 	row, err := p.variableValueStore.VariableValue(ctx, id, scope)
 	if err != nil {
+		if errors.Is(err, store.ErrNotFound) {
+			return flow.FlowValueNull, flow.ErrNotFound
+		}
 		return flow.FlowValue{}, fmt.Errorf("failed to get variable value: %w", err)
 	}
 
 	var value flow.FlowValue
-	err = json.Unmarshal(row.Value, &value.Value)
+	err = json.Unmarshal(row.Value, &value)
 	if err != nil {
 		return flow.FlowValue{}, fmt.Errorf("failed to unmarshal variable value: %w", err)
 	}
