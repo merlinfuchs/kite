@@ -11,7 +11,9 @@ type variablePlaceholderProvider struct {
 }
 
 func (p *variablePlaceholderProvider) GetPlaceholder(ctx context.Context, key string) (placeholder.Provider, error) {
-	value, err := p.Variable.Variable(ctx, key)
+	scope := FlowVariableScope{} // TODO: fill in default values from interaction
+
+	value, err := p.Variable.Variable(ctx, key, scope)
 	if err != nil {
 		if err == ErrNotFound {
 			return nil, placeholder.ErrNotFound

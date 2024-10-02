@@ -27,6 +27,7 @@ type Command struct {
 	logStore             store.LogStore
 	messageStore         store.MessageStore
 	messageInstanceStore store.MessageInstanceStore
+	variableValueStore   store.VariableValueStore
 	httpClient           *http.Client
 }
 
@@ -37,6 +38,7 @@ func NewCommand(
 	logStore store.LogStore,
 	messageStore store.MessageStore,
 	messageInstanceStore store.MessageInstanceStore,
+	variableValueStore store.VariableValueStore,
 	httpClient *http.Client,
 ) (*Command, error) {
 	flow, err := flow.CompileCommand(cmd.FlowSource)
@@ -52,6 +54,7 @@ func NewCommand(
 		logStore:             logStore,
 		messageStore:         messageStore,
 		messageInstanceStore: messageInstanceStore,
+		variableValueStore:   variableValueStore,
 		httpClient:           httpClient,
 	}, nil
 }
@@ -69,7 +72,7 @@ func (c *Command) HandleEvent(appID string, session *state.State, event gateway.
 		Log:             NewLogProvider(appID, c.logStore),
 		HTTP:            NewHTTPProvider(c.httpClient),
 		MessageTemplate: NewMessageTemplateProvider(c.messageStore, c.messageInstanceStore),
-		// TODO: Variable provider
+		Variable:        NewVariableProvider(c.variableValueStore),
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)

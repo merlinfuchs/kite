@@ -68,6 +68,7 @@ func serverStartCMD(c *cli.Context) error {
 		pg,
 		pg,
 		pg,
+		pg,
 		&http.Client{}, // TODO: think about proxying http requests
 	)
 	engine.Run(ctx)

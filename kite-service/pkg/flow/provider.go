@@ -70,9 +70,15 @@ type FlowLogProvider interface {
 }
 
 type FlowVariableProvider interface {
-	SetVariable(ctx context.Context, id string, value FlowValue) error
-	Variable(ctx context.Context, id string) (FlowValue, error)
-	DeleteVariable(ctx context.Context, id string) error
+	SetVariable(ctx context.Context, id string, scope FlowVariableScope, value FlowValue) error
+	Variable(ctx context.Context, id string, scope FlowVariableScope) (FlowValue, error)
+	DeleteVariable(ctx context.Context, id string, scope FlowVariableScope) error
+}
+
+type FlowVariableScope struct {
+	GuildID   discord.GuildID
+	UserID    discord.UserID
+	ChannelID discord.ChannelID
 }
 
 type FlowMessageTemplateProvider interface {
