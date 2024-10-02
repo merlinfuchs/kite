@@ -16,6 +16,7 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/store"
 	"github.com/kitecloud/kite/kite-service/pkg/flow"
 	"github.com/kitecloud/kite/kite-service/pkg/message"
+	"gopkg.in/guregu/null.v4"
 )
 
 type DiscordProvider struct {
@@ -231,7 +232,7 @@ func NewVariableProvider(variableValueStore store.VariableValueStore) *VariableP
 	}
 }
 
-func (p *VariableProvider) SetVariable(ctx context.Context, id string, scope flow.FlowVariableScope, value flow.FlowValue) error {
+func (p *VariableProvider) SetVariable(ctx context.Context, id string, scope null.String, value flow.FlowValue) error {
 	rawValue, err := json.Marshal(value.Value)
 	if err != nil {
 		return fmt.Errorf("failed to marshal variable value: %w", err)
@@ -239,10 +240,11 @@ func (p *VariableProvider) SetVariable(ctx context.Context, id string, scope flo
 
 	err = p.variableValueStore.SetVariableValue(ctx, model.VariableValue{
 		VariableID: id,
+		Scope:      scope,
 		Value:      rawValue,
 		CreatedAt:  time.Now().UTC(),
 		UpdatedAt:  time.Now().UTC(),
-	}, flowScopeToModel(scope))
+	})
 	if err != nil {
 		return fmt.Errorf("failed to set variable value: %w", err)
 	}
@@ -250,8 +252,8 @@ func (p *VariableProvider) SetVariable(ctx context.Context, id string, scope flo
 	return nil
 }
 
-func (p *VariableProvider) Variable(ctx context.Context, id string, scope flow.FlowVariableScope) (flow.FlowValue, error) {
-	row, err := p.variableValueStore.VariableValue(ctx, id, flowScopeToModel(scope))
+func (p *VariableProvider) Variable(ctx context.Context, id string, scope null.String) (flow.FlowValue, error) {
+	row, err := p.variableValueStore.VariableValue(ctx, id, scope)
 	if err != nil {
 		return flow.FlowValue{}, fmt.Errorf("failed to get variable value: %w", err)
 	}
@@ -265,21 +267,13 @@ func (p *VariableProvider) Variable(ctx context.Context, id string, scope flow.F
 	return value, nil
 }
 
-func (p *VariableProvider) DeleteVariable(ctx context.Context, id string, scope flow.FlowVariableScope) error {
-	err := p.variableValueStore.DeleteVariableValue(ctx, id, flowScopeToModel(scope))
+func (p *VariableProvider) DeleteVariable(ctx context.Context, id string, scope null.String) error {
+	err := p.variableValueStore.DeleteVariableValue(ctx, id, scope)
 	if err != nil {
 		return fmt.Errorf("failed to delete variable value: %w", err)
 	}
 
 	return nil
-}
-
-func flowScopeToModel(scope flow.FlowVariableScope) model.VariableValueScope {
-	return model.VariableValueScope{
-		GuildID:   scope.GuildID.String(),
-		UserID:    scope.UserID.String(),
-		ChannelID: scope.ChannelID.String(),
-	}
 }
 
 type MessageTemplateProvider struct {

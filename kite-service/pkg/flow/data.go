@@ -126,8 +126,8 @@ type FlowNodeData struct {
 
 	// Variable Set, Delete
 	VariableID    string     `json:"variable_id,omitempty"`
+	VariableScope FlowString `json:"variable_scope,omitempty"`
 	VariableValue FlowString `json:"variable_value,omitempty"`
-	GuildTarget   FlowString `json:"guild_target,omitempty"`
 
 	// HTTP Request
 	HTTPRequestData *HTTPRequestData `json:"http_request_data,omitempty"`

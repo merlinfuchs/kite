@@ -218,60 +218,18 @@ export const nodeActionMemberEditDataSchema = nodeBaseDataSchema.extend({
 
 export const nodeActionVariableSetSchema = nodeBaseDataSchema.extend({
   variable_id: z.string(),
+  variable_scope: z.string().optional(),
   variable_value: z.string(),
-  user_target: z
-    .string()
-    .regex(numericRegex)
-    .or(z.string().regex(placeholderRegex))
-    .optional(),
-  channel_target: z
-    .string()
-    .regex(numericRegex)
-    .or(z.string().regex(placeholderRegex))
-    .optional(),
-  guild_target: z
-    .string()
-    .regex(numericRegex)
-    .or(z.string().regex(placeholderRegex))
-    .optional(),
 });
 
 export const nodeActionVariableDeleteSchema = nodeBaseDataSchema.extend({
   variable_id: z.string(),
-  user_target: z
-    .string()
-    .regex(numericRegex)
-    .or(z.string().regex(placeholderRegex))
-    .optional(),
-  channel_target: z
-    .string()
-    .regex(numericRegex)
-    .or(z.string().regex(placeholderRegex))
-    .optional(),
-  guild_target: z
-    .string()
-    .regex(numericRegex)
-    .or(z.string().regex(placeholderRegex))
-    .optional(),
+  variable_scope: z.string().optional(),
 });
 
 export const nodeActionVariableGetSchema = nodeBaseDataSchema.extend({
   variable_id: z.string(),
-  user_target: z
-    .string()
-    .regex(numericRegex)
-    .or(z.string().regex(placeholderRegex))
-    .optional(),
-  channel_target: z
-    .string()
-    .regex(numericRegex)
-    .or(z.string().regex(placeholderRegex))
-    .optional(),
-  guild_target: z
-    .string()
-    .regex(numericRegex)
-    .or(z.string().regex(placeholderRegex))
-    .optional(),
+  variable_scope: z.string().optional(),
 });
 
 export const nodeActionHttpRequestDataSchema = nodeBaseDataSchema.extend({

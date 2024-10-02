@@ -14,7 +14,6 @@ import ConfirmDialog from "../common/ConfirmDialog";
 import { useVariableDeleteMutation } from "@/lib/api/mutations";
 import { useAppId } from "@/lib/hooks/params";
 import { toast } from "sonner";
-import { getVariableScopeName, getVariableTypeName } from "@/lib/variable";
 
 export default function VariableListEntry({
   variable,
@@ -53,21 +52,10 @@ export default function VariableListEntry({
           <div>{variable.name}</div>
         </CardTitle>
         <CardDescription className="text-sm">
-          This variable stores a{" "}
-          <span className="text-foreground">
-            {getVariableTypeName(variable.type).toLowerCase()}
-          </span>{" "}
-          {variable.scope === "global" ? (
-            "globally."
-          ) : (
-            <span>
-              for each{" "}
-              <span className="text-foreground">
-                {getVariableScopeName(variable.scope).toLowerCase()}
-              </span>
-              .
-            </span>
-          )}
+          This variable stores{" "}
+          {variable.scoped
+            ? "multiple values scoped by a specific key."
+            : "one value."}
         </CardDescription>
       </CardHeader>
       <CardFooter className="flex space-x-3">

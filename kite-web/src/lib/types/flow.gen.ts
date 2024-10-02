@@ -101,8 +101,8 @@ export interface FlowNodeData {
    * Variable Set, Delete
    */
   variable_id?: string;
+  variable_scope?: FlowString;
   variable_value?: FlowString;
-  guild_target?: FlowString;
   /**
    * HTTP Request
    */

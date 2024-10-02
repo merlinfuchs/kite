@@ -73,7 +73,6 @@ const intputs: Record<string, any> = {
   channel_target: ChannelTargetInput,
   role_data: RoleDataInput,
   role_target: RoleTargetInput,
-  guild_target: GuildTargetInput,
   variable_id: VariableIdInput,
   variable_scope: VariableScopeInput,
   variable_value: VariableValueInput,
@@ -756,20 +755,6 @@ function RoleTargetInput({ data, updateData, errors }: InputProps) {
   );
 }
 
-function GuildTargetInput({ data, updateData, errors }: InputProps) {
-  return (
-    <BaseInput
-      type="text"
-      field="guild_target"
-      title="Target Server"
-      value={data.guild_target || ""}
-      updateValue={(v) => updateData({ guild_target: v || undefined })}
-      errors={errors}
-      placeholders
-    />
-  );
-}
-
 function VariableIdInput({ data, updateData, errors }: InputProps) {
   const variables = useVariables();
 
@@ -820,22 +805,26 @@ function VariableIdInput({ data, updateData, errors }: InputProps) {
   );
 }
 
-function VariableScopeInput(props: InputProps) {
+function VariableScopeInput({ data, updateData, errors }: InputProps) {
   const variables = useVariables();
 
-  const variableScope = useMemo(() => {
-    const variable = variables?.find((v) => v?.id === props.data.variable_id);
-    return variable?.scope;
-  }, [variables]);
+  const scoped = useMemo(() => {
+    const variable = variables?.find((v) => v?.id === data.variable_id);
+    return variable?.scoped;
+  }, [variables, data]);
+
+  if (!scoped) return null;
 
   return (
-    <>
-      {variableScope === "guild" ||
-        (variableScope === "member" && <GuildTargetInput {...props} />)}
-      {variableScope === "channel" && <ChannelTargetInput {...props} />}
-      {variableScope === "user" ||
-        (variableScope === "member" && <UserTargetInput {...props} />)}
-    </>
+    <BaseInput
+      type="text"
+      field="variable_scope"
+      title="Scope"
+      value={data.variable_scope || ""}
+      updateValue={(v) => updateData({ variable_scope: v || undefined })}
+      errors={errors}
+      placeholders
+    />
   );
 }
 

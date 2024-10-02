@@ -9,6 +9,7 @@ import (
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/utils/json/option"
 	"github.com/kitecloud/kite/kite-service/pkg/message"
+	"gopkg.in/guregu/null.v4"
 )
 
 func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
@@ -483,25 +484,9 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 
 		return n.executeChildren(ctx)
 	case FlowNodeTypeActionVariableSet:
-		guildID, err := n.Data.GuildTarget.FillPlaceholders(ctx, ctx.Placeholders)
+		scope, err := n.Data.VariableScope.FillPlaceholders(ctx, ctx.Placeholders)
 		if err != nil {
 			return traceError(n, err)
-		}
-
-		userID, err := n.Data.UserTarget.FillPlaceholders(ctx, ctx.Placeholders)
-		if err != nil {
-			return traceError(n, err)
-		}
-
-		channelID, err := n.Data.ChannelTarget.FillPlaceholders(ctx, ctx.Placeholders)
-		if err != nil {
-			return traceError(n, err)
-		}
-
-		scope := FlowVariableScope{
-			GuildID:   discord.GuildID(guildID.Int()),
-			UserID:    discord.UserID(userID.Int()),
-			ChannelID: discord.ChannelID(channelID.Int()),
 		}
 
 		value, err := n.Data.VariableValue.FillPlaceholders(ctx, ctx.Placeholders)
@@ -509,59 +494,40 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			return traceError(n, err)
 		}
 
-		err = ctx.Variable.SetVariable(ctx, n.Data.VariableID, scope, NewFlowValueString(value.String()))
+		err = ctx.Variable.SetVariable(
+			ctx,
+			n.Data.VariableID,
+			null.NewString(scope.String(), scope != ""),
+			NewFlowValueString(value.String()),
+		)
 		if err != nil {
 			return traceError(n, err)
 		}
 	case FlowNodeTypeActionVariableDelete:
-		guildID, err := n.Data.GuildTarget.FillPlaceholders(ctx, ctx.Placeholders)
+		scope, err := n.Data.VariableScope.FillPlaceholders(ctx, ctx.Placeholders)
 		if err != nil {
 			return traceError(n, err)
 		}
 
-		userID, err := n.Data.UserTarget.FillPlaceholders(ctx, ctx.Placeholders)
-		if err != nil {
-			return traceError(n, err)
-		}
-
-		channelID, err := n.Data.ChannelTarget.FillPlaceholders(ctx, ctx.Placeholders)
-		if err != nil {
-			return traceError(n, err)
-		}
-
-		scope := FlowVariableScope{
-			GuildID:   discord.GuildID(guildID.Int()),
-			UserID:    discord.UserID(userID.Int()),
-			ChannelID: discord.ChannelID(channelID.Int()),
-		}
-
-		err = ctx.Variable.DeleteVariable(ctx, n.Data.VariableID, scope)
+		err = ctx.Variable.DeleteVariable(
+			ctx,
+			n.Data.VariableID,
+			null.NewString(scope.String(), scope != ""),
+		)
 		if err != nil {
 			return traceError(n, err)
 		}
 	case FlowNodeTypeActionVariableGet:
-		guildID, err := n.Data.GuildTarget.FillPlaceholders(ctx, ctx.Placeholders)
+		scope, err := n.Data.VariableScope.FillPlaceholders(ctx, ctx.Placeholders)
 		if err != nil {
 			return traceError(n, err)
 		}
 
-		userID, err := n.Data.UserTarget.FillPlaceholders(ctx, ctx.Placeholders)
-		if err != nil {
-			return traceError(n, err)
-		}
-
-		channelID, err := n.Data.ChannelTarget.FillPlaceholders(ctx, ctx.Placeholders)
-		if err != nil {
-			return traceError(n, err)
-		}
-
-		scope := FlowVariableScope{
-			GuildID:   discord.GuildID(guildID.Int()),
-			UserID:    discord.UserID(userID.Int()),
-			ChannelID: discord.ChannelID(channelID.Int()),
-		}
-
-		val, err := ctx.Variable.Variable(ctx, n.Data.VariableID, scope)
+		val, err := ctx.Variable.Variable(
+			ctx,
+			n.Data.VariableID,
+			null.NewString(scope.String(), scope != ""),
+		)
 		if err != nil {
 			return traceError(n, err)
 		}
