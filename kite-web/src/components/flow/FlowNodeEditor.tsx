@@ -818,7 +818,7 @@ function VariableScopeInput({ data, updateData, errors }: InputProps) {
     if (scoped === false) {
       updateData({ variable_scope: undefined });
     }
-  }, [scoped]);
+  }, [scoped, updateData]);
 
   if (!scoped) return null;
 
