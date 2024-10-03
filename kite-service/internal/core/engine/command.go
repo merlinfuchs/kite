@@ -122,7 +122,7 @@ func (a *App) DeployCommands(ctx context.Context) error {
 			Name:                     node.CommandName(),
 			Description:              node.CommandDescription(),
 			Options:                  node.CommandArguments(),
-			DefaultMemberPermissions: &perms,
+			DefaultMemberPermissions: perms,
 			NoDMPermission:           slices.Contains(node.CommandDisabledContexts(), flow.CommandContextTypeBotDM),
 		})
 	}

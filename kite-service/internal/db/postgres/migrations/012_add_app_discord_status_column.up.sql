@@ -1,1 +1,1 @@
-ALTER TABLE apps ADD COLUMN discord_status JSONB;
+ALTER TABLE apps ADD COLUMN IF NOT EXISTS discord_status JSONB;

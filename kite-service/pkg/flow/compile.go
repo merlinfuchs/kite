@@ -170,16 +170,17 @@ func (n *CompiledFlowNode) CommandArguments() discord.CommandOptions {
 	return res
 }
 
-func (n *CompiledFlowNode) CommandPermissions() discord.Permissions {
+func (n *CompiledFlowNode) CommandPermissions() *discord.Permissions {
 	for _, node := range n.Parents {
 		if node.IsCommandPermissions() {
 			raw, _ := strconv.ParseInt(node.Data.CommandPermissions, 10, 64)
-			return discord.Permissions(raw)
+			res := discord.Permissions(raw)
+			return &res
 
 		}
 	}
 
-	return 0
+	return nil
 }
 
 func (n *CompiledFlowNode) CommandDisabledContexts() []CommandContextType {
