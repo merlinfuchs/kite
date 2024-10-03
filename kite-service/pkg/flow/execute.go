@@ -531,6 +531,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			return traceError(n, err)
 		}
 
+		nodeState.Result = newValue
 		return n.executeChildren(ctx)
 	case FlowNodeTypeActionVariableDelete:
 		scope, err := n.Data.VariableScope.FillPlaceholders(ctx, ctx.Placeholders)
