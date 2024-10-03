@@ -11,6 +11,7 @@ export interface FlowData {
 export type FlowNodeType = string;
 export const FlowNodeTypeEntryCommand: FlowNodeType = "entry_command";
 export const FlowNodeTypeEntryEvent: FlowNodeType = "entry_event";
+export const FlowNodeTypeEntryComponentButton: FlowNodeType = "entry_component_button";
 export const FlowNodeTypeOptionCommandArgument: FlowNodeType = "option_command_argument";
 export const FlowNodeTypeOptionCommandPermissions: FlowNodeType = "option_command_permissions";
 export const FlowNodeTypeOptionCommandContexts: FlowNodeType = "option_command_contexts";
@@ -28,6 +29,9 @@ export const FlowNodeTypeActionMemberTimeout: FlowNodeType = "action_member_time
 export const FlowNodeTypeActionMemberEdit: FlowNodeType = "action_member_edit";
 export const FlowNodeTypeActionHTTPRequest: FlowNodeType = "action_http_request";
 export const FlowNodeTypeActionLog: FlowNodeType = "action_log";
+export const FlowNodeTypeActionVariableSet: FlowNodeType = "action_variable_set";
+export const FlowNodeTypeActionVariableDelete: FlowNodeType = "action_variable_delete";
+export const FlowNodeTypeActionVariableGet: FlowNodeType = "action_variable_get";
 export const FlowNodeTypeControlConditionCompare: FlowNodeType = "control_condition_compare";
 export const FlowNodeTypeControlConditionItemCompare: FlowNodeType = "control_condition_item_compare";
 export const FlowNodeTypeControlConditionUser: FlowNodeType = "control_condition_user";
@@ -79,7 +83,7 @@ export interface FlowNodeData {
   /**
    * Member Ban, Kick, Timeout
    */
-  member_target?: FlowString;
+  user_target?: FlowString;
   member_ban_delete_message_duration_seconds?: FlowString;
   member_timeout_duration_seconds?: FlowString;
   member_data?: any /* api.ModifyMemberData */;
@@ -96,8 +100,10 @@ export interface FlowNodeData {
   /**
    * Variable Set, Delete
    */
-  variable_name?: string;
+  variable_id?: string;
+  variable_scope?: FlowString;
   variable_value?: FlowString;
+  variable_operation?: VariableOperation;
   /**
    * HTTP Request
    */
@@ -137,6 +143,12 @@ export const LogLevelDebug: LogLevel = "debug";
 export const LogLevelInfo: LogLevel = "info";
 export const LogLevelWarn: LogLevel = "warn";
 export const LogLevelError: LogLevel = "error";
+export type VariableOperation = string;
+export const VariableOperationOverwrite: VariableOperation = "overwrite";
+export const VariableOperationAppend: VariableOperation = "append";
+export const VariableOperationPrepend: VariableOperation = "prepend";
+export const VariableOperationIncrement: VariableOperation = "increment";
+export const VariableOperationDecremenet: VariableOperation = "decrement";
 export type ConditionItemType = string;
 export const ConditionItemModeEqual: ConditionItemType = "equal";
 export const ConditionItemModeNotEqual: ConditionItemType = "not_equal";

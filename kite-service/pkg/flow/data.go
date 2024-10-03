@@ -47,6 +47,9 @@ const (
 	FlowNodeTypeActionMemberEdit     FlowNodeType = "action_member_edit"
 	FlowNodeTypeActionHTTPRequest    FlowNodeType = "action_http_request"
 	FlowNodeTypeActionLog            FlowNodeType = "action_log"
+	FlowNodeTypeActionVariableSet    FlowNodeType = "action_variable_set"
+	FlowNodeTypeActionVariableDelete FlowNodeType = "action_variable_delete"
+	FlowNodeTypeActionVariableGet    FlowNodeType = "action_variable_get"
 
 	FlowNodeTypeControlConditionCompare     FlowNodeType = "control_condition_compare"
 	FlowNodeTypeControlConditionItemCompare FlowNodeType = "control_condition_item_compare"
@@ -108,7 +111,7 @@ type FlowNodeData struct {
 	MessageEphemeral  bool                 `json:"message_ephemeral,omitempty"`
 
 	// Member Ban, Kick, Timeout
-	MemberTarget                          FlowString            `json:"member_target,omitempty"`
+	UserTarget                            FlowString            `json:"user_target,omitempty"`
 	MemberBanDeleteMessageDurationSeconds FlowString            `json:"member_ban_delete_message_duration_seconds,omitempty"`
 	MemberTimeoutDurationSeconds          FlowString            `json:"member_timeout_duration_seconds,omitempty"`
 	MemberData                            *api.ModifyMemberData `json:"member_data,omitempty"`
@@ -122,8 +125,10 @@ type FlowNodeData struct {
 	RoleData   *api.CreateRoleData `json:"role_data,omitempty"`
 
 	// Variable Set, Delete
-	VariableName  string     `json:"variable_name,omitempty"`
-	VariableValue FlowString `json:"variable_value,omitempty"`
+	VariableID        string            `json:"variable_id,omitempty"`
+	VariableScope     FlowString        `json:"variable_scope,omitempty"`
+	VariableValue     FlowString        `json:"variable_value,omitempty"`
+	VariableOperation VariableOperation `json:"variable_operation,omitempty"`
 
 	// HTTP Request
 	HTTPRequestData *HTTPRequestData `json:"http_request_data,omitempty"`
@@ -190,6 +195,20 @@ const (
 	LogLevelWarn  LogLevel = "warn"
 	LogLevelError LogLevel = "error"
 )
+
+type VariableOperation string
+
+const (
+	VariableOperationOverwrite  VariableOperation = "overwrite"
+	VariableOperationAppend     VariableOperation = "append"
+	VariableOperationPrepend    VariableOperation = "prepend"
+	VariableOperationIncrement  VariableOperation = "increment"
+	VariableOperationDecremenet VariableOperation = "decrement"
+)
+
+func (o VariableOperation) IsOverwrite() bool {
+	return o == VariableOperationOverwrite || o == ""
+}
 
 type ConditionItemType string
 

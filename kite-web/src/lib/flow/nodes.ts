@@ -13,6 +13,9 @@ import {
   nodeActionResponseCreateDataSchema,
   nodeActionResponseDeleteDataSchema,
   nodeActionResponseEditDataSchema,
+  nodeActionVariableDeleteSchema,
+  nodeActionVariableGetSchema,
+  nodeActionVariableSetSchema,
   nodeConditionCompareDataSchema,
   nodeConditionItemCompareDataSchema,
   nodeControlLoopDataSchema,
@@ -58,6 +61,7 @@ import {
   TimerIcon,
   UserRoundCheckIcon,
   MousePointerClickIcon,
+  VariableIcon,
 } from "lucide-react";
 
 export const primaryColor = "#3B82F6";
@@ -192,7 +196,7 @@ export const nodeTypes: Record<string, NodeValues> = {
     defaultDescription: "Ban a member from the server",
     dataSchema: nodeActionMemberBanDataSchema,
     dataFields: [
-      "member_target",
+      "user_target",
       "member_ban_delete_message_duration_seconds",
       "audit_log_reason",
       "custom_label",
@@ -204,7 +208,7 @@ export const nodeTypes: Record<string, NodeValues> = {
     defaultTitle: "Unban member",
     defaultDescription: "Unban a member from the server",
     dataSchema: nodeActionMemberUnbanDataSchema,
-    dataFields: ["member_target", "audit_log_reason", "custom_label"],
+    dataFields: ["user_target", "audit_log_reason", "custom_label"],
   },
   action_member_kick: {
     color: actionColor,
@@ -212,7 +216,7 @@ export const nodeTypes: Record<string, NodeValues> = {
     defaultTitle: "Kick member",
     defaultDescription: "Kick a member from the server",
     dataSchema: nodeActionMemberKickDataSchema,
-    dataFields: ["member_target", "audit_log_reason", "custom_label"],
+    dataFields: ["user_target", "audit_log_reason", "custom_label"],
   },
   action_member_timeout: {
     color: actionColor,
@@ -221,7 +225,7 @@ export const nodeTypes: Record<string, NodeValues> = {
     defaultDescription: "Timeout a member in the server",
     dataSchema: nodeActionMemberTimeoutDataSchema,
     dataFields: [
-      "member_target",
+      "user_target",
       "member_timeout_duration_seconds",
       "audit_log_reason",
       "custom_label",
@@ -234,11 +238,41 @@ export const nodeTypes: Record<string, NodeValues> = {
     defaultDescription: "Edit a member in the server",
     dataSchema: nodeActionMemberEditDataSchema,
     dataFields: [
-      "member_target",
+      "user_target",
       "member_nick",
       "audit_log_reason",
       "custom_label",
     ],
+  },
+  action_variable_set: {
+    color: actionColor,
+    icon: VariableIcon,
+    defaultTitle: "Set variable",
+    defaultDescription: "Set the value of a variable",
+    dataSchema: nodeActionVariableSetSchema,
+    dataFields: [
+      "variable_id",
+      "variable_scope",
+      "variable_operation",
+      "variable_value",
+      "custom_label",
+    ],
+  },
+  action_variable_delete: {
+    color: actionColor,
+    icon: VariableIcon,
+    defaultTitle: "Delete variable",
+    defaultDescription: "Delete the value variable",
+    dataSchema: nodeActionVariableDeleteSchema,
+    dataFields: ["variable_id", "variable_scope", "custom_label"],
+  },
+  action_variable_get: {
+    color: actionColor,
+    icon: VariableIcon,
+    defaultTitle: "Get variable",
+    defaultDescription: "Get the value of a variable",
+    dataSchema: nodeActionVariableGetSchema,
+    dataFields: ["variable_id", "variable_scope", "custom_label"],
   },
   action_http_request: {
     color: actionColor,

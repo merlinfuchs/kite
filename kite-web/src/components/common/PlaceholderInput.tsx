@@ -3,7 +3,7 @@ import { Input } from "../ui/input";
 
 // See https://akashhamirwasia.com/blog/building-highlighted-input-field-in-react/
 
-const REGEX = /({{.*?}})/g;
+const REGEX = /({{[a-z0-9_.]+}})/g;
 
 const PlaceholderInput = forwardRef<
   HTMLInputElement,

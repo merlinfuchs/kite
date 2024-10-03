@@ -52,16 +52,10 @@ export default function VariableListEntry({
           <div>{variable.name}</div>
         </CardTitle>
         <CardDescription className="text-sm">
-          This variable stores a{" "}
-          <span className="text-foreground">{variable.type}</span>{" "}
-          {variable.scope === "global" ? (
-            "globally."
-          ) : (
-            <span>
-              for each <span className="text-foreground">{variable.scope}</span>
-              .
-            </span>
-          )}
+          This variable stores{" "}
+          {variable.scoped
+            ? "multiple values scoped by a specific key."
+            : "one value."}
         </CardDescription>
       </CardHeader>
       <CardFooter className="flex space-x-3">

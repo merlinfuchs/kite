@@ -1,6 +1,7 @@
 package flow
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"time"
@@ -9,6 +10,7 @@ import (
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/utils/json/option"
 	"github.com/kitecloud/kite/kite-service/pkg/message"
+	"gopkg.in/guregu/null.v4"
 )
 
 func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
@@ -338,7 +340,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 
 		return n.executeChildren(ctx)
 	case FlowNodeTypeActionMemberBan:
-		memberTarget, err := n.Data.MemberTarget.FillPlaceholders(ctx, ctx.Placeholders)
+		userID, err := n.Data.UserTarget.FillPlaceholders(ctx, ctx.Placeholders)
 		if err != nil {
 			return traceError(n, err)
 		}
@@ -356,7 +358,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 		err = ctx.Discord.BanMember(
 			ctx,
 			ctx.Data.GuildID(),
-			discord.UserID(memberTarget.Int()),
+			discord.UserID(userID.Int()),
 			api.BanData{
 				DeleteDays:     option.NewUint(uint(messageDeleteSeconds.Float() / 86400)),
 				AuditLogReason: api.AuditLogReason(auditLogReason),
@@ -368,7 +370,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 
 		return n.executeChildren(ctx)
 	case FlowNodeTypeActionMemberUnban:
-		memberTarget, err := n.Data.MemberTarget.FillPlaceholders(ctx, ctx.Placeholders)
+		userID, err := n.Data.UserTarget.FillPlaceholders(ctx, ctx.Placeholders)
 		if err != nil {
 			return traceError(n, err)
 		}
@@ -381,7 +383,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 		err = ctx.Discord.UnbanMember(
 			ctx,
 			ctx.Data.GuildID(),
-			discord.UserID(memberTarget.Int()),
+			discord.UserID(userID.Int()),
 			api.AuditLogReason(auditLogReason),
 		)
 		if err != nil {
@@ -390,7 +392,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 
 		return n.executeChildren(ctx)
 	case FlowNodeTypeActionMemberKick:
-		memberID, err := n.Data.MemberTarget.FillPlaceholders(ctx, ctx.Placeholders)
+		userID, err := n.Data.UserTarget.FillPlaceholders(ctx, ctx.Placeholders)
 		if err != nil {
 			return traceError(n, err)
 		}
@@ -403,7 +405,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 		err = ctx.Discord.KickMember(
 			ctx,
 			ctx.Data.GuildID(),
-			discord.UserID(memberID.Int()),
+			discord.UserID(userID.Int()),
 			api.AuditLogReason(auditLogReason.String()),
 		)
 		if err != nil {
@@ -412,7 +414,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 
 		return n.executeChildren(ctx)
 	case FlowNodeTypeActionMemberTimeout:
-		memberID, err := n.Data.MemberTarget.FillPlaceholders(ctx, ctx.Placeholders)
+		memberID, err := n.Data.UserTarget.FillPlaceholders(ctx, ctx.Placeholders)
 		if err != nil {
 			return traceError(n, err)
 		}
@@ -446,7 +448,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 
 		return n.executeChildren(ctx)
 	case FlowNodeTypeActionMemberEdit:
-		memberID, err := n.Data.MemberTarget.FillPlaceholders(ctx, ctx.Placeholders)
+		userID, err := n.Data.UserTarget.FillPlaceholders(ctx, ctx.Placeholders)
 		if err != nil {
 			return traceError(n, err)
 		}
@@ -474,13 +476,95 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 		err = ctx.Discord.EditMember(
 			ctx,
 			ctx.Data.GuildID(),
-			discord.UserID(memberID.Int()),
+			discord.UserID(userID.Int()),
 			data,
 		)
 		if err != nil {
 			return traceError(n, err)
 		}
 
+		return n.executeChildren(ctx)
+	case FlowNodeTypeActionVariableSet:
+		scope, err := n.Data.VariableScope.FillPlaceholders(ctx, ctx.Placeholders)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		value, err := n.Data.VariableValue.FillPlaceholders(ctx, ctx.Placeholders)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		var newValue FlowValue
+
+		if n.Data.VariableOperation.IsOverwrite() {
+			newValue = NewFlowValueString(value.String())
+		} else {
+			current, err := ctx.Variable.Variable(
+				ctx,
+				n.Data.VariableID,
+				null.NewString(scope.String(), scope != ""),
+			)
+			if err != nil && !errors.Is(err, ErrNotFound) {
+				return traceError(n, err)
+			}
+
+			switch n.Data.VariableOperation {
+			case VariableOperationAppend:
+				newValue = NewFlowValueString(current.String() + value.String())
+			case VariableOperationPrepend:
+				newValue = NewFlowValueString(value.String() + current.String())
+			case VariableOperationIncrement:
+				newValue = NewFlowValueNumber(current.Number() + value.Float())
+			case VariableOperationDecremenet:
+				newValue = NewFlowValueNumber(current.Number() - value.Float())
+			}
+		}
+
+		err = ctx.Variable.SetVariable(
+			ctx,
+			n.Data.VariableID,
+			null.NewString(scope.String(), scope != ""),
+			newValue,
+		)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		nodeState.Result = newValue
+		return n.executeChildren(ctx)
+	case FlowNodeTypeActionVariableDelete:
+		scope, err := n.Data.VariableScope.FillPlaceholders(ctx, ctx.Placeholders)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		err = ctx.Variable.DeleteVariable(
+			ctx,
+			n.Data.VariableID,
+			null.NewString(scope.String(), scope != ""),
+		)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		return n.executeChildren(ctx)
+	case FlowNodeTypeActionVariableGet:
+		scope, err := n.Data.VariableScope.FillPlaceholders(ctx, ctx.Placeholders)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		val, err := ctx.Variable.Variable(
+			ctx,
+			n.Data.VariableID,
+			null.NewString(scope.String(), scope != ""),
+		)
+		if err != nil && !errors.Is(err, ErrNotFound) {
+			return traceError(n, err)
+		}
+
+		nodeState.Result = val
 		return n.executeChildren(ctx)
 	case FlowNodeTypeActionHTTPRequest:
 		if n.Data.HTTPRequestData == nil {

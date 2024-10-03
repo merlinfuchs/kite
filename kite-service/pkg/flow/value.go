@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"math"
 	"net/http"
 	"reflect"
 	"strconv"
@@ -102,6 +103,10 @@ func (v *FlowValue) String() string {
 		return s
 	case FlowValueTypeNumber:
 		n, _ := v.Value.(float64)
+		if n == math.Floor(n) {
+			return fmt.Sprintf("%d", int64(n))
+		}
+
 		return fmt.Sprintf("%f", n)
 	case FlowValueTypeArray:
 		a, _ := v.Value.([]FlowValue)

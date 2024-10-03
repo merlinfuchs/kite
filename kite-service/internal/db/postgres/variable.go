@@ -50,18 +50,6 @@ func (c *Client) Variable(ctx context.Context, id string) (*model.Variable, erro
 	return v, nil
 }
 
-func (c *Client) VariableScope(ctx context.Context, id string) (model.VariableScope, error) {
-	row, err := c.Q.GetVariableScope(ctx, id)
-	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return "", store.ErrNotFound
-		}
-		return "", err
-	}
-
-	return model.VariableScope(row), nil
-}
-
 func (c *Client) VariableByName(ctx context.Context, appID, name string) (*model.Variable, error) {
 	row, err := c.Q.GetVariableByName(ctx, pgmodel.GetVariableByNameParams{
 		AppID: appID,
@@ -81,11 +69,10 @@ func (c *Client) VariableByName(ctx context.Context, appID, name string) (*model
 
 func (c *Client) CreateVariable(ctx context.Context, variable *model.Variable) (*model.Variable, error) {
 	row, err := c.Q.CreateVariable(ctx, pgmodel.CreateVariableParams{
-		ID:    variable.ID,
-		Name:  variable.Name,
-		Type:  variable.Type,
-		Scope: string(variable.Scope),
-		AppID: variable.AppID,
+		ID:     variable.ID,
+		Name:   variable.Name,
+		Scoped: variable.Scoped,
+		AppID:  variable.AppID,
 		ModuleID: pgtype.Text{
 			String: variable.ModuleID.String,
 			Valid:  variable.ModuleID.Valid,
@@ -108,10 +95,9 @@ func (c *Client) CreateVariable(ctx context.Context, variable *model.Variable) (
 
 func (c *Client) UpdateVariable(ctx context.Context, variable *model.Variable) (*model.Variable, error) {
 	row, err := c.Q.UpdateVariable(ctx, pgmodel.UpdateVariableParams{
-		ID:    variable.ID,
-		Name:  variable.Name,
-		Type:  variable.Type,
-		Scope: string(variable.Scope),
+		ID:     variable.ID,
+		Name:   variable.Name,
+		Scoped: variable.Scoped,
 		UpdatedAt: pgtype.Timestamp{
 			Time:  variable.UpdatedAt.UTC(),
 			Valid: true,
@@ -143,8 +129,7 @@ func rowToVariable(row pgmodel.Variable) *model.Variable {
 	return &model.Variable{
 		ID:        row.ID,
 		Name:      row.Name,
-		Type:      row.Type,
-		Scope:     model.VariableScope(row.Scope),
+		Scoped:    row.Scoped,
 		AppID:     row.AppID,
 		ModuleID:  null.NewString(row.ModuleID.String, row.ModuleID.Valid),
 		CreatedAt: row.CreatedAt.Time,
@@ -166,18 +151,12 @@ func (c *Client) VariableValues(ctx context.Context, variableID string) ([]*mode
 	return values, nil
 }
 
-func (c *Client) VariableValue(ctx context.Context, variableID string, scope model.VariableValueScope) (*model.VariableValue, error) {
-	scopeType, err := c.VariableScope(ctx, variableID)
-	if err != nil {
-		return nil, err
-	}
-
-	resolvedScope := scope.Resolve(scopeType)
-
+func (c *Client) VariableValue(ctx context.Context, variableID string, scope null.String) (*model.VariableValue, error) {
 	row, err := c.Q.GetVariableValue(ctx, pgmodel.GetVariableValueParams{
 		VariableID: variableID,
-		Scope:      pgtype.Text{String: resolvedScope.String, Valid: resolvedScope.Valid},
+		Scope:      pgtype.Text{String: scope.String, Valid: scope.Valid},
 	})
+
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, store.ErrNotFound
@@ -188,18 +167,14 @@ func (c *Client) VariableValue(ctx context.Context, variableID string, scope mod
 	return rowToVariableValue(row), nil
 }
 
-func (c *Client) SetVariableValue(ctx context.Context, value model.VariableValue, scope model.VariableValueScope) error {
-	scopeType, err := c.VariableScope(ctx, value.VariableID)
-	if err != nil {
-		return err
-	}
-
-	resolvedScope := scope.Resolve(scopeType)
-
-	_, err = c.Q.SetVariableValue(ctx, pgmodel.SetVariableValueParams{
+func (c *Client) SetVariableValue(ctx context.Context, value model.VariableValue) error {
+	_, err := c.Q.SetVariableValue(ctx, pgmodel.SetVariableValueParams{
 		VariableID: value.VariableID,
-		Scope:      pgtype.Text{String: resolvedScope.String, Valid: resolvedScope.Valid},
-		Value:      value.Value,
+		Scope: pgtype.Text{
+			String: value.Scope.String,
+			Valid:  value.Scope.Valid,
+		},
+		Value: value.Value,
 		CreatedAt: pgtype.Timestamp{
 			Time:  value.CreatedAt.UTC(),
 			Valid: true,
@@ -216,17 +191,10 @@ func (c *Client) SetVariableValue(ctx context.Context, value model.VariableValue
 	return nil
 }
 
-func (c *Client) DeleteVariableValue(ctx context.Context, variableID string, scope model.VariableValueScope) error {
-	scopeType, err := c.VariableScope(ctx, variableID)
-	if err != nil {
-		return err
-	}
-
-	resolvedScope := scope.Resolve(scopeType)
-
-	err = c.Q.DeleteVariableValue(ctx, pgmodel.DeleteVariableValueParams{
+func (c *Client) DeleteVariableValue(ctx context.Context, variableID string, scope null.String) error {
+	err := c.Q.DeleteVariableValue(ctx, pgmodel.DeleteVariableValueParams{
 		VariableID: variableID,
-		Scope:      pgtype.Text{String: resolvedScope.String, Valid: resolvedScope.Valid},
+		Scope:      pgtype.Text{String: scope.String, Valid: scope.Valid},
 	})
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {

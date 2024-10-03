@@ -26,22 +26,20 @@ const createVariable = `-- name: CreateVariable :one
 INSERT INTO variables (
     id,
     name,
-    scope,
-    type,
+    scoped,
     app_id,
     module_id,
     created_at,
     updated_at
 ) VALUES (
-    $1, $2, $3, $4, $5, $6, $7, $8
-) RETURNING id, scope, name, type, app_id, module_id, created_at, updated_at
+    $1, $2, $3, $4, $5, $6, $7
+) RETURNING id, name, scoped, app_id, module_id, created_at, updated_at
 `
 
 type CreateVariableParams struct {
 	ID        string
 	Name      string
-	Scope     string
-	Type      string
+	Scoped    bool
 	AppID     string
 	ModuleID  pgtype.Text
 	CreatedAt pgtype.Timestamp
@@ -52,8 +50,7 @@ func (q *Queries) CreateVariable(ctx context.Context, arg CreateVariableParams) 
 	row := q.db.QueryRow(ctx, createVariable,
 		arg.ID,
 		arg.Name,
-		arg.Scope,
-		arg.Type,
+		arg.Scoped,
 		arg.AppID,
 		arg.ModuleID,
 		arg.CreatedAt,
@@ -62,9 +59,8 @@ func (q *Queries) CreateVariable(ctx context.Context, arg CreateVariableParams) 
 	var i Variable
 	err := row.Scan(
 		&i.ID,
-		&i.Scope,
 		&i.Name,
-		&i.Type,
+		&i.Scoped,
 		&i.AppID,
 		&i.ModuleID,
 		&i.CreatedAt,
@@ -106,7 +102,7 @@ func (q *Queries) DeleteVariableValue(ctx context.Context, arg DeleteVariableVal
 }
 
 const getVariable = `-- name: GetVariable :one
-SELECT variables.id, variables.scope, variables.name, variables.type, variables.app_id, variables.module_id, variables.created_at, variables.updated_at, COUNT(variable_values.*) as total_values FROM variables 
+SELECT variables.id, variables.name, variables.scoped, variables.app_id, variables.module_id, variables.created_at, variables.updated_at, COUNT(variable_values.*) as total_values FROM variables 
 LEFT JOIN variable_values ON variables.id = variable_values.variable_id
 WHERE variables.id = $1
 GROUP BY variables.id
@@ -122,9 +118,8 @@ func (q *Queries) GetVariable(ctx context.Context, id string) (GetVariableRow, e
 	var i GetVariableRow
 	err := row.Scan(
 		&i.Variable.ID,
-		&i.Variable.Scope,
 		&i.Variable.Name,
-		&i.Variable.Type,
+		&i.Variable.Scoped,
 		&i.Variable.AppID,
 		&i.Variable.ModuleID,
 		&i.Variable.CreatedAt,
@@ -135,7 +130,7 @@ func (q *Queries) GetVariable(ctx context.Context, id string) (GetVariableRow, e
 }
 
 const getVariableByName = `-- name: GetVariableByName :one
-SELECT variables.id, variables.scope, variables.name, variables.type, variables.app_id, variables.module_id, variables.created_at, variables.updated_at, COUNT(variable_values.*) as total_values FROM variables 
+SELECT variables.id, variables.name, variables.scoped, variables.app_id, variables.module_id, variables.created_at, variables.updated_at, COUNT(variable_values.*) as total_values FROM variables 
 LEFT JOIN variable_values ON variables.id = variable_values.variable_id
 WHERE app_id = $1 AND name = $2
 GROUP BY variables.id
@@ -156,9 +151,8 @@ func (q *Queries) GetVariableByName(ctx context.Context, arg GetVariableByNamePa
 	var i GetVariableByNameRow
 	err := row.Scan(
 		&i.Variable.ID,
-		&i.Variable.Scope,
 		&i.Variable.Name,
-		&i.Variable.Type,
+		&i.Variable.Scoped,
 		&i.Variable.AppID,
 		&i.Variable.ModuleID,
 		&i.Variable.CreatedAt,
@@ -168,19 +162,8 @@ func (q *Queries) GetVariableByName(ctx context.Context, arg GetVariableByNamePa
 	return i, err
 }
 
-const getVariableScope = `-- name: GetVariableScope :one
-SELECT scope FROM variables WHERE id = $1
-`
-
-func (q *Queries) GetVariableScope(ctx context.Context, id string) (string, error) {
-	row := q.db.QueryRow(ctx, getVariableScope, id)
-	var scope string
-	err := row.Scan(&scope)
-	return scope, err
-}
-
 const getVariableValue = `-- name: GetVariableValue :one
-SELECT id, variable_id, scope, value, created_at, updated_at FROM variable_values WHERE variable_id = $1 AND scope = $2
+SELECT id, variable_id, scope, value, created_at, updated_at FROM variable_values WHERE variable_id = $1 AND scope IS NOT DISTINCT FROM $2
 `
 
 type GetVariableValueParams struct {
@@ -234,7 +217,7 @@ func (q *Queries) GetVariableValues(ctx context.Context, variableID string) ([]V
 }
 
 const getVariablesByApp = `-- name: GetVariablesByApp :many
-SELECT variables.id, variables.scope, variables.name, variables.type, variables.app_id, variables.module_id, variables.created_at, variables.updated_at, COUNT(variable_values.*) as total_values FROM variables 
+SELECT variables.id, variables.name, variables.scoped, variables.app_id, variables.module_id, variables.created_at, variables.updated_at, COUNT(variable_values.*) as total_values FROM variables 
 LEFT JOIN variable_values ON variables.id = variable_values.variable_id
 WHERE variables.app_id = $1 
 GROUP BY variables.id
@@ -257,9 +240,8 @@ func (q *Queries) GetVariablesByApp(ctx context.Context, appID string) ([]GetVar
 		var i GetVariablesByAppRow
 		if err := rows.Scan(
 			&i.Variable.ID,
-			&i.Variable.Scope,
 			&i.Variable.Name,
-			&i.Variable.Type,
+			&i.Variable.Scoped,
 			&i.Variable.AppID,
 			&i.Variable.ModuleID,
 			&i.Variable.CreatedAt,
@@ -322,17 +304,15 @@ func (q *Queries) SetVariableValue(ctx context.Context, arg SetVariableValuePara
 const updateVariable = `-- name: UpdateVariable :one
 UPDATE variables SET
     name = $2,
-    scope = $3,
-    type = $4,
-    updated_at = $5
-WHERE id = $1 RETURNING id, scope, name, type, app_id, module_id, created_at, updated_at
+    scoped = $3,
+    updated_at = $4
+WHERE id = $1 RETURNING id, name, scoped, app_id, module_id, created_at, updated_at
 `
 
 type UpdateVariableParams struct {
 	ID        string
 	Name      string
-	Scope     string
-	Type      string
+	Scoped    bool
 	UpdatedAt pgtype.Timestamp
 }
 
@@ -340,16 +320,14 @@ func (q *Queries) UpdateVariable(ctx context.Context, arg UpdateVariableParams) 
 	row := q.db.QueryRow(ctx, updateVariable,
 		arg.ID,
 		arg.Name,
-		arg.Scope,
-		arg.Type,
+		arg.Scoped,
 		arg.UpdatedAt,
 	)
 	var i Variable
 	err := row.Scan(
 		&i.ID,
-		&i.Scope,
 		&i.Name,
-		&i.Type,
+		&i.Scoped,
 		&i.AppID,
 		&i.ModuleID,
 		&i.CreatedAt,

@@ -3,6 +3,7 @@ package engine
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -16,6 +17,7 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/store"
 	"github.com/kitecloud/kite/kite-service/pkg/flow"
 	"github.com/kitecloud/kite/kite-service/pkg/message"
+	"gopkg.in/guregu/null.v4"
 )
 
 type DiscordProvider struct {
@@ -222,29 +224,28 @@ func (p *HTTPProvider) HTTPRequest(ctx context.Context, req *http.Request) (*htt
 }
 
 type VariableProvider struct {
-	scope              model.VariableValueScope
 	variableValueStore store.VariableValueStore
 }
 
-func NewVariableProvider(scope model.VariableValueScope, variableValueStore store.VariableValueStore) *VariableProvider {
+func NewVariableProvider(variableValueStore store.VariableValueStore) *VariableProvider {
 	return &VariableProvider{
-		scope:              scope,
 		variableValueStore: variableValueStore,
 	}
 }
 
-func (p *VariableProvider) SetVariable(ctx context.Context, id string, value flow.FlowValue) error {
-	rawValue, err := json.Marshal(value.Value)
+func (p *VariableProvider) SetVariable(ctx context.Context, id string, scope null.String, value flow.FlowValue) error {
+	rawValue, err := json.Marshal(value)
 	if err != nil {
 		return fmt.Errorf("failed to marshal variable value: %w", err)
 	}
 
 	err = p.variableValueStore.SetVariableValue(ctx, model.VariableValue{
 		VariableID: id,
+		Scope:      scope,
 		Value:      rawValue,
 		CreatedAt:  time.Now().UTC(),
 		UpdatedAt:  time.Now().UTC(),
-	}, p.scope)
+	})
 	if err != nil {
 		return fmt.Errorf("failed to set variable value: %w", err)
 	}
@@ -252,14 +253,17 @@ func (p *VariableProvider) SetVariable(ctx context.Context, id string, value flo
 	return nil
 }
 
-func (p *VariableProvider) Variable(ctx context.Context, id string) (flow.FlowValue, error) {
-	row, err := p.variableValueStore.VariableValue(ctx, id, p.scope)
+func (p *VariableProvider) Variable(ctx context.Context, id string, scope null.String) (flow.FlowValue, error) {
+	row, err := p.variableValueStore.VariableValue(ctx, id, scope)
 	if err != nil {
+		if errors.Is(err, store.ErrNotFound) {
+			return flow.FlowValueNull, flow.ErrNotFound
+		}
 		return flow.FlowValue{}, fmt.Errorf("failed to get variable value: %w", err)
 	}
 
 	var value flow.FlowValue
-	err = json.Unmarshal(row.Value, &value.Value)
+	err = json.Unmarshal(row.Value, &value)
 	if err != nil {
 		return flow.FlowValue{}, fmt.Errorf("failed to unmarshal variable value: %w", err)
 	}
@@ -267,8 +271,8 @@ func (p *VariableProvider) Variable(ctx context.Context, id string) (flow.FlowVa
 	return value, nil
 }
 
-func (p *VariableProvider) DeleteVariable(ctx context.Context, id string) error {
-	err := p.variableValueStore.DeleteVariableValue(ctx, id, p.scope)
+func (p *VariableProvider) DeleteVariable(ctx context.Context, id string, scope null.String) error {
+	err := p.variableValueStore.DeleteVariableValue(ctx, id, scope)
 	if err != nil {
 		return fmt.Errorf("failed to delete variable value: %w", err)
 	}

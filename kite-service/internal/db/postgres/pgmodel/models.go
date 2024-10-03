@@ -124,9 +124,8 @@ type User struct {
 
 type Variable struct {
 	ID        string
-	Scope     string
 	Name      string
-	Type      string
+	Scoped    bool
 	AppID     string
 	ModuleID  pgtype.Text
 	CreatedAt pgtype.Timestamp

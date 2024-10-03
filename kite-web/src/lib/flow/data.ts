@@ -3,7 +3,7 @@ import z from "zod";
 import { FlowNodeData } from "../types/flow.gen";
 
 const numericRegex = /^[0-9]+$/;
-const variableRegex = /^\{\{[a-z0-9_.]+\}\}$/;
+const placeholderRegex = /^\{\{[a-z0-9_.]+\}\}$/;
 
 export interface FlowData {
   nodes: Node<NodeData>[];
@@ -96,7 +96,7 @@ export const nodeActionResponseEditDataSchema = nodeBaseDataSchema
     message_target: z
       .string()
       .regex(numericRegex)
-      .or(z.string().regex(variableRegex))
+      .or(z.string().regex(placeholderRegex))
       .or(z.literal("@original")),
     message_data: z
       .object({
@@ -114,7 +114,7 @@ export const nodeActionResponseDeleteDataSchema = nodeBaseDataSchema.extend({
   message_target: z
     .string()
     .regex(numericRegex)
-    .or(z.string().regex(variableRegex))
+    .or(z.string().regex(placeholderRegex))
     .or(z.literal("@original")),
   audit_log_reason: auditLogReasonSchema,
 });
@@ -124,7 +124,7 @@ export const nodeActionMessageCreateDataSchema = nodeBaseDataSchema
     channel_target: z
       .string()
       .regex(numericRegex)
-      .or(z.string().regex(variableRegex)),
+      .or(z.string().regex(placeholderRegex)),
     message_data: z
       .object({
         content: z.string().max(2000).min(1),
@@ -142,11 +142,11 @@ export const nodeActionMessageEditDataSchema = nodeBaseDataSchema
     channel_target: z
       .string()
       .regex(numericRegex)
-      .or(z.string().regex(variableRegex)),
+      .or(z.string().regex(placeholderRegex)),
     message_target: z
       .string()
       .regex(numericRegex)
-      .or(z.string().regex(variableRegex)),
+      .or(z.string().regex(placeholderRegex)),
     message_data: z
       .object({
         content: z.string().max(2000).min(1),
@@ -163,57 +163,79 @@ export const nodeActionMessageDeleteDataSchema = nodeBaseDataSchema.extend({
   channel_target: z
     .string()
     .regex(numericRegex)
-    .or(z.string().regex(variableRegex)),
+    .or(z.string().regex(placeholderRegex)),
   message_target: z
     .string()
     .regex(numericRegex)
-    .or(z.string().regex(variableRegex)),
+    .or(z.string().regex(placeholderRegex)),
   audit_log_reason: auditLogReasonSchema,
 });
 
 export const nodeActionMemberBanDataSchema = nodeBaseDataSchema.extend({
-  member_target: z
+  user_target: z
     .string()
     .regex(numericRegex)
-    .or(z.string().regex(variableRegex)),
+    .or(z.string().regex(placeholderRegex)),
   member_ban_delete_message_duration_seconds: z.string().regex(numericRegex),
   audit_log_reason: auditLogReasonSchema,
 });
 
 export const nodeActionMemberUnbanDataSchema = nodeBaseDataSchema.extend({
-  member_target: z
+  user_target: z
     .string()
     .regex(numericRegex)
-    .or(z.string().regex(variableRegex)),
+    .or(z.string().regex(placeholderRegex)),
   audit_log_reason: auditLogReasonSchema,
 });
 
 export const nodeActionMemberKickDataSchema = nodeBaseDataSchema.extend({
-  member_target: z
+  user_target: z
     .string()
     .regex(numericRegex)
-    .or(z.string().regex(variableRegex)),
+    .or(z.string().regex(placeholderRegex)),
   audit_log_reason: auditLogReasonSchema,
 });
 
 export const nodeActionMemberTimeoutDataSchema = nodeBaseDataSchema.extend({
-  member_target: z
+  user_target: z
     .string()
     .regex(numericRegex)
-    .or(z.string().regex(variableRegex)),
+    .or(z.string().regex(placeholderRegex)),
   member_timeout_duration_seconds: z.string().regex(numericRegex),
   audit_log_reason: auditLogReasonSchema,
 });
 
 export const nodeActionMemberEditDataSchema = nodeBaseDataSchema.extend({
-  member_target: z
+  user_target: z
     .string()
     .regex(numericRegex)
-    .or(z.string().regex(variableRegex)),
+    .or(z.string().regex(placeholderRegex)),
   member_data: z.object({
     nick: z.string(),
   }),
   audit_log_reason: auditLogReasonSchema,
+});
+
+export const nodeActionVariableSetSchema = nodeBaseDataSchema.extend({
+  variable_id: z.string(),
+  variable_scope: z.string().optional(),
+  variable_value: z.string(),
+  variable_operation: z
+    .literal("overwrite")
+    .or(z.literal("append"))
+    .or(z.literal("prepend"))
+    .or(z.literal("increment"))
+    .or(z.literal("decrement")),
+});
+
+export const nodeActionVariableDeleteSchema = nodeBaseDataSchema.extend({
+  variable_id: z.string(),
+  variable_scope: z.string().optional(),
+});
+
+export const nodeActionVariableGetSchema = nodeBaseDataSchema.extend({
+  variable_id: z.string(),
+  variable_scope: z.string().optional(),
 });
 
 export const nodeActionHttpRequestDataSchema = nodeBaseDataSchema.extend({
@@ -258,12 +280,12 @@ export const nodeControlLoopDataSchema = nodeBaseDataSchema.extend({
   loop_count: z
     .string()
     .regex(numericRegex)
-    .or(z.string().regex(variableRegex)),
+    .or(z.string().regex(placeholderRegex)),
 });
 
 export const nodeControlSleepDataSchema = nodeBaseDataSchema.extend({
   sleep_duration_seconds: z
     .string()
     .regex(numericRegex)
-    .or(z.string().regex(variableRegex)),
+    .or(z.string().regex(placeholderRegex)),
 });

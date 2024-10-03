@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import { Node, useNodes, useReactFlow, useStoreApi } from "@xyflow/react";
 import { NodeData, NodeProps } from "../../lib/flow/data";
 import { useNodeValues } from "@/lib/flow/nodes";
@@ -36,12 +36,13 @@ import {
   permissionBits,
 } from "@/lib/discord/permissions";
 import FlowPlaceholderExplorer from "./FlowPlaceholderExplorer";
-import { useMessages } from "@/lib/hooks/api";
+import { useMessages, useVariable, useVariables } from "@/lib/hooks/api";
 import Link from "next/link";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
 import { useAppId } from "@/lib/hooks/params";
 import MessageCreateDialog from "../app/MessageCreateDialog";
 import PlaceholderInput from "../common/PlaceholderInput";
+import VariableCreateDialog from "../app/VariableCreateDialog";
 
 interface Props {
   nodeId: string;
@@ -72,9 +73,13 @@ const intputs: Record<string, any> = {
   channel_target: ChannelTargetInput,
   role_data: RoleDataInput,
   role_target: RoleTargetInput,
+  variable_id: VariableIdInput,
+  variable_scope: VariableScopeInput,
+  variable_operation: VariableOperationInput,
+  variable_value: VariableValueInput,
   http_request_data: HttpRequestDataInput,
   audit_log_reason: AuditLogReasonInput,
-  member_target: MemberTargetInput,
+  user_target: UserTargetInput,
   member_ban_delete_message_duration_seconds:
     MemberBanDeleteMessageDurationInput,
   member_timeout_duration_seconds: MemberTimeoutDurationInput,
@@ -166,7 +171,7 @@ export default function FlowNodeEditor({ nodeId }: Props) {
   if (!node || !data) return null;
 
   return (
-    <div className="absolute top-0 left-0 bg-background w-96 h-full p-5 flex flex-col overflow-y-hidden">
+    <div className="absolute top-0 left-0 bg-background w-96 h-full p-5 flex flex-col overflow-y-auto">
       <div className="flex-none">
         <div className="flex items-start justify-between mb-5">
           <div className="text-xl font-bold text-foreground">
@@ -202,7 +207,7 @@ export default function FlowNodeEditor({ nodeId }: Props) {
           );
         })}
       </div>
-      <div className="flex-none space-y-3">
+      <div className="flex-none space-y-3 mt-5">
         {!values.fixed && (
           <>
             <button
@@ -476,14 +481,14 @@ function HttpRequestDataInput({ data, updateData, errors }: InputProps) {
   );
 }
 
-function MemberTargetInput({ data, updateData, errors }: InputProps) {
+function UserTargetInput({ data, updateData, errors }: InputProps) {
   return (
     <BaseInput
       type="text"
-      field="member_target"
-      title="Target Member"
-      value={data.member_target || ""}
-      updateValue={(v) => updateData({ member_target: v || undefined })}
+      field="user_target"
+      title="Target User"
+      value={data.user_target || ""}
+      updateValue={(v) => updateData({ user_target: v || undefined })}
       errors={errors}
       placeholders
     />
@@ -584,7 +589,7 @@ function MessageTemplateInput({ data, updateData, errors }: InputProps) {
     <div className="flex space-x-2 items-end">
       <BaseInput
         type="select"
-        field="message_data"
+        field="message_template_id"
         title="Message Template"
         description="Select a message template to use for the response."
         options={messages?.map((m) => ({
@@ -617,14 +622,9 @@ function MessageTemplateInput({ data, updateData, errors }: InputProps) {
         <MessageCreateDialog
           onMessageCreated={(v) => updateData({ message_template_id: v })}
         >
-          <Tooltip>
-            <TooltipTrigger>
-              <Button variant="outline" size="icon">
-                <PlusIcon className="h-5 w-5" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>Create message template</TooltipContent>
-          </Tooltip>
+          <Button variant="outline" size="icon">
+            <PlusIcon className="h-5 w-5" />
+          </Button>
         </MessageCreateDialog>
       )}
     </div>
@@ -750,6 +750,119 @@ function RoleTargetInput({ data, updateData, errors }: InputProps) {
       title="Target Role"
       value={data.role_target || ""}
       updateValue={(v) => updateData({ role_target: v || undefined })}
+      errors={errors}
+      placeholders
+    />
+  );
+}
+
+function VariableIdInput({ data, updateData, errors }: InputProps) {
+  const variables = useVariables();
+
+  const appId = useAppId();
+
+  return (
+    <div className="flex space-x-2 items-end">
+      <BaseInput
+        type="select"
+        field="variable_id"
+        title="Variable"
+        options={variables?.map((v) => ({
+          value: v!.id,
+          label: v!.name,
+        }))}
+        value={data.variable_id || ""}
+        updateValue={(v) => updateData({ variable_id: v || undefined })}
+        errors={errors}
+        clearable
+      />
+      {data.variable_id ? (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button variant="outline" size="icon" asChild>
+              <Link
+                href={{
+                  pathname: "/apps/[appId]/variables/[variableId]",
+                  query: { appId: appId, variableId: data.variable_id },
+                }}
+                target="_blank"
+              >
+                <PencilIcon className="h-5 w-5" />
+              </Link>
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>Manage variable</TooltipContent>
+        </Tooltip>
+      ) : (
+        <VariableCreateDialog
+          onVariableCreated={(v) => updateData({ variable_id: v })}
+        >
+          <Button variant="outline" size="icon">
+            <PlusIcon className="h-5 w-5" />
+          </Button>
+        </VariableCreateDialog>
+      )}
+    </div>
+  );
+}
+
+function VariableScopeInput({ data, updateData, errors }: InputProps) {
+  const variables = useVariables();
+
+  const scoped = useMemo(() => {
+    const variable = variables?.find((v) => v?.id === data.variable_id);
+    return variable?.scoped;
+  }, [variables, data]);
+
+  useEffect(() => {
+    if (scoped === false) {
+      updateData({ variable_scope: undefined });
+    }
+  }, [scoped]);
+
+  if (!scoped) return null;
+
+  return (
+    <BaseInput
+      type="text"
+      field="variable_scope"
+      title="Scope"
+      value={data.variable_scope || ""}
+      updateValue={(v) => updateData({ variable_scope: v || undefined })}
+      errors={errors}
+      placeholders
+    />
+  );
+}
+
+function VariableOperationInput({ data, updateData, errors }: InputProps) {
+  return (
+    <BaseInput
+      type="select"
+      field="variable_operation"
+      title="Operation"
+      value={data.variable_operation || ""}
+      updateValue={(v) => updateData({ variable_operation: v || undefined })}
+      options={[
+        { value: "overwrite", label: "Overwrite" },
+        { value: "append", label: "Append" },
+        { value: "prepend", label: "Prepend" },
+        { value: "increment", label: "Increment" },
+        { value: "decrement", label: "Decrement" },
+      ]}
+      errors={errors}
+    />
+  );
+}
+
+function VariableValueInput({ data, updateData, errors }: InputProps) {
+  return (
+    <BaseInput
+      type="text"
+      field="variable_value"
+      title="Value"
+      value={data.variable_value || ""}
+      updateValue={(v) => updateData({ variable_value: v || undefined })}
       errors={errors}
       placeholders
     />
@@ -1092,7 +1205,7 @@ function BaseInput({
   );
 
   return (
-    <div>
+    <div className="flex-auto">
       <div className="font-medium text-foreground mb-2">{title}</div>
       {description ? (
         <div className="text-muted-foreground text-sm mb-2">{description}</div>

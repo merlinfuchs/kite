@@ -22,6 +22,7 @@ type Engine struct {
 	messageStore         store.MessageStore
 	messageInstanceStore store.MessageInstanceStore
 	commandStore         store.CommandStore
+	variableValueStore   store.VariableValueStore
 	httpClient           *http.Client
 
 	lastUpdate time.Time
@@ -35,6 +36,7 @@ func NewEngine(
 	messageStore store.MessageStore,
 	messageInstanceStore store.MessageInstanceStore,
 	commandStore store.CommandStore,
+	variableValueStore store.VariableValueStore,
 	httpClient *http.Client,
 ) *Engine {
 	return &Engine{
@@ -45,6 +47,7 @@ func NewEngine(
 		messageInstanceStore: messageInstanceStore,
 		httpClient:           httpClient,
 		commandStore:         commandStore,
+		variableValueStore:   variableValueStore,
 		apps:                 make(map[string]*App),
 	}
 }
@@ -101,6 +104,7 @@ func (m *Engine) populateCommands(ctx context.Context) error {
 				m.messageStore,
 				m.messageInstanceStore,
 				m.commandStore,
+				m.variableValueStore,
 				m.httpClient,
 			)
 			m.apps[command.AppID] = app

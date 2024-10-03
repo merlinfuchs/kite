@@ -200,9 +200,8 @@ export type UserGetResponse = User;
 
 export interface Variable {
   id: string;
-  scope: string;
   name: string;
-  type: string;
+  scoped: boolean;
   app_id: string;
   module_id: null | string;
   total_values: null | number;
@@ -212,15 +211,13 @@ export interface Variable {
 export type VariableGetResponse = Variable;
 export type VariableListResponse = (Variable | undefined)[];
 export interface VariableCreateRequest {
-  scope: string;
   name: string;
-  type: string;
+  scoped: boolean;
 }
 export type VariableCreateResponse = Variable;
 export interface VariableUpdateRequest {
-  scope: string;
   name: string;
-  type: string;
+  scoped: boolean;
 }
 export type VariableUpdateResponse = Variable;
 export type VariableDeleteResponse = Empty;

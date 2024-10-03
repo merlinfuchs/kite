@@ -26,6 +26,7 @@ type App struct {
 	messageStore         store.MessageStore
 	messageInstanceStore store.MessageInstanceStore
 	commandStore         store.CommandStore
+	variableValueStore   store.VariableValueStore
 	httpClient           *http.Client
 
 	hasUndeployedChanges bool
@@ -43,6 +44,7 @@ func NewApp(
 	messageStore store.MessageStore,
 	messageInstanceStore store.MessageInstanceStore,
 	commandStore store.CommandStore,
+	variableValueStore store.VariableValueStore,
 	httpClient *http.Client,
 ) *App {
 	return &App{
@@ -53,6 +55,7 @@ func NewApp(
 		messageStore:         messageStore,
 		messageInstanceStore: messageInstanceStore,
 		commandStore:         commandStore,
+		variableValueStore:   variableValueStore,
 		httpClient:           httpClient,
 		commands:             make(map[string]*Command),
 		events:               make(map[string]interface{}),
@@ -70,6 +73,7 @@ func (a *App) AddCommand(cmd *model.Command) {
 		a.logStore,
 		a.messageStore,
 		a.messageInstanceStore,
+		a.variableValueStore,
 		a.httpClient,
 	)
 	if err != nil {
@@ -148,6 +152,7 @@ func (a *App) HandleEvent(appID string, session *state.State, event gateway.Even
 				a.logStore,
 				a.messageStore,
 				a.messageInstanceStore,
+				a.variableValueStore,
 				a.httpClient,
 			)
 			if err != nil {

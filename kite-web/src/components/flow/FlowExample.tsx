@@ -16,7 +16,7 @@ const initialNodes = [
     id: "5",
     position: { x: 100, y: 150 },
     data: {
-      member_target: "1",
+      user_target: "1",
       member_ban_delete_message_duration: "1",
       member_ban_delete_message_duration_seconds: "1",
     },

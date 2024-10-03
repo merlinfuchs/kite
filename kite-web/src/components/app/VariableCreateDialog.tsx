@@ -24,25 +24,19 @@ import { toast } from "sonner";
 import { setValidationErrors } from "@/lib/form";
 import LoadingButton from "../common/LoadingButton";
 import { useAppId } from "@/lib/hooks/params";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "../ui/select";
-import { variableScopes, variableTypes } from "@/lib/variable";
+import { Switch } from "../ui/switch";
 
 interface FormFields {
   name: string;
-  scope: string;
-  type: string;
+  scoped: boolean;
 }
 
 export default function VariableCreateDialog({
   children,
+  onVariableCreated,
 }: {
   children: ReactNode;
+  onVariableCreated?: (id: string) => void;
 }) {
   const [open, setOpen] = useState(false);
 
@@ -52,8 +46,7 @@ export default function VariableCreateDialog({
   const form = useForm<FormFields>({
     defaultValues: {
       name: "",
-      scope: "global",
-      type: "string",
+      scoped: false,
     },
   });
 
@@ -63,14 +56,17 @@ export default function VariableCreateDialog({
     createMutation.mutate(
       {
         name: data.name,
-        scope: data.scope,
-        type: data.type,
+        scoped: data.scoped,
       },
       {
         onSuccess(res) {
           if (res.success) {
             toast.success("Variable created!");
             setOpen(false);
+
+            if (onVariableCreated) {
+              onVariableCreated(res.data.id);
+            }
           } else {
             if (res.error.code === "validation_failed") {
               setValidationErrors(form, res.error.data);
@@ -112,68 +108,23 @@ export default function VariableCreateDialog({
             />
             <FormField
               control={form.control}
-              name="type"
+              name="scoped"
               render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Type</FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select the type of the variable" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {variableTypes.map((type) => (
-                        <SelectItem value={type.value} key={type.value}>
-                          {type.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormDescription>
-                    {
-                      variableTypes.find((type) => type.value === field.value)
-                        ?.description
-                    }
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="scope"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Scope</FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select the scope for the variable" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {variableScopes.map((scope) => (
-                        <SelectItem value={scope.value} key={scope.value}>
-                          {scope.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormDescription>
-                    {
-                      variableScopes.find(
-                        (scope) => scope.value === field.value
-                      )?.description
-                    }
-                  </FormDescription>
-                  <FormMessage />
+                <FormItem className="flex flex-row items-center justify-between rounded-lg border px-4 py-3">
+                  <div className="space-y-0.5">
+                    <FormLabel className="text-sm">Scoped</FormLabel>
+                    <FormDescription>
+                      A scoped variables allows storing multiple values scoped
+                      by a specific key.
+                    </FormDescription>
+                  </div>
+                  <FormControl>
+                    <Switch
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                      aria-readonly
+                    />
+                  </FormControl>
                 </FormItem>
               )}
             />

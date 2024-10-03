@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/kitecloud/kite/kite-service/pkg/placeholder"
+	"gopkg.in/guregu/null.v4"
 )
 
 type variablePlaceholderProvider struct {
@@ -11,7 +12,8 @@ type variablePlaceholderProvider struct {
 }
 
 func (p *variablePlaceholderProvider) GetPlaceholder(ctx context.Context, key string) (placeholder.Provider, error) {
-	value, err := p.Variable.Variable(ctx, key)
+	// TODO: support scopes
+	value, err := p.Variable.Variable(ctx, key, null.String{})
 	if err != nil {
 		if err == ErrNotFound {
 			return nil, placeholder.ErrNotFound
