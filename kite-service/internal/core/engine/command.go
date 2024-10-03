@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
-	"slices"
 	"strconv"
 	"time"
 
@@ -116,20 +115,25 @@ func (a *App) DeployCommands(ctx context.Context) error {
 			return fmt.Errorf("failed to compile command flow: %w", err)
 		}
 
-		perms := node.CommandPermissions()
-
+		data := node.CommandData()
 		commands = append(commands, api.CreateCommandData{
-			Name:                     node.CommandName(),
-			Description:              node.CommandDescription(),
-			Options:                  node.CommandArguments(),
-			DefaultMemberPermissions: perms,
-			NoDMPermission:           slices.Contains(node.CommandDisabledContexts(), flow.CommandContextTypeBotDM),
+			Name:                     data.Name,
+			Description:              data.Description,
+			Options:                  data.Options,
+			DefaultMemberPermissions: data.DefaultMemberPermissions,
+			NoDMPermission:           data.NoDMPermission,
 		})
 	}
 
 	a.Unlock()
 
-	err := a.commandStore.UpdateCommandsLastDeployedAt(ctx, a.id, lastUpdatedAt)
+	commands, err := mergeCommands(commands)
+	if err != nil {
+		go a.createLogEntry(model.LogLevelError, fmt.Sprintf("Failed to merge commands: %v", err))
+		return fmt.Errorf("failed to merge commands: %w", err)
+	}
+
+	err = a.commandStore.UpdateCommandsLastDeployedAt(ctx, a.id, lastUpdatedAt)
 	if err != nil {
 		return fmt.Errorf("failed to update last deployed at: %w", err)
 	}
@@ -154,6 +158,50 @@ func (a *App) DeployCommands(ctx context.Context) error {
 
 	go a.createLogEntry(model.LogLevelInfo, "Successfully deployed commands")
 	return nil
+}
+
+func mergeCommands(commands []api.CreateCommandData) ([]api.CreateCommandData, error) {
+	rootCMDs := make(map[string]*api.CreateCommandData)
+
+	for _, command := range commands {
+		// TODO: think about how to handle different configs for root cmd
+		if c, ok := rootCMDs[command.Name]; ok {
+			c.Options = append(c.Options, command.Options...)
+		} else {
+			rootCMDs[command.Name] = &command
+		}
+	}
+
+	// TODO: detect collisions
+
+	for _, command := range rootCMDs {
+		groups := make(map[string]*discord.SubcommandGroupOption)
+		args := make([]discord.CommandOption, 0, len(command.Options))
+
+		for _, option := range command.Options {
+			if g, ok := option.(*discord.SubcommandGroupOption); ok {
+				if group, ok := groups[g.Name()]; ok {
+					group.Subcommands = append(group.Subcommands, g.Subcommands...)
+				} else {
+					groups[g.Name()] = g
+				}
+			} else {
+				args = append(args, option)
+			}
+		}
+
+		command.Options = args
+		for _, group := range groups {
+			command.Options = append(command.Options, group)
+		}
+	}
+
+	res := make([]api.CreateCommandData, 0, len(rootCMDs))
+	for _, command := range rootCMDs {
+		res = append(res, *command)
+	}
+
+	return res, nil
 }
 
 func (c *Command) createLogEntry(level model.LogLevel, message string) {

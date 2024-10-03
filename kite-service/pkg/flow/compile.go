@@ -2,7 +2,9 @@ package flow
 
 import (
 	"fmt"
+	"slices"
 	"strconv"
+	"strings"
 
 	"github.com/diamondburned/arikawa/v3/discord"
 )
@@ -82,6 +84,52 @@ func (n *CompiledFlowNode) IsCommandPermissions() bool {
 
 func (n *CompiledFlowNode) IsCommandContexts() bool {
 	return n.Type == FlowNodeTypeOptionCommandContexts
+}
+
+func (n *CompiledFlowNode) CommandData() discord.Command {
+	res := discord.Command{
+		Name:                     n.CommandName(),
+		Options:                  n.CommandArguments(),
+		Description:              n.CommandDescription(),
+		DefaultMemberPermissions: n.CommandPermissions(),
+		NoDMPermission:           slices.Contains(n.CommandDisabledContexts(), CommandContextTypeBotDM),
+	}
+
+	namesParts := strings.Split(n.Data.Name, " ")
+	if len(namesParts) == 1 {
+		return res
+	} else {
+		res.Name = namesParts[0]
+
+		var args []discord.CommandOptionValue
+		for _, o := range res.Options {
+			args = append(args, o.(discord.CommandOptionValue))
+		}
+
+		if len(namesParts) == 2 {
+			res.Options = discord.CommandOptions{
+				discord.NewSubcommandOption(
+					namesParts[1],
+					res.Description,
+					args...,
+				),
+			}
+		} else {
+			res.Options = discord.CommandOptions{
+				discord.NewSubcommandGroupOption(
+					namesParts[1],
+					res.Description,
+					discord.NewSubcommandOption(
+						namesParts[2],
+						res.Description,
+						args...,
+					),
+				),
+			}
+		}
+	}
+
+	return res
 }
 
 func (n *CompiledFlowNode) CommandName() string {

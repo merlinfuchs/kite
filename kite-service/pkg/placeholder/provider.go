@@ -167,7 +167,21 @@ func (p CommandProvider) GetPlaceholder(ctx context.Context, key string) (Provid
 	case "options", "args":
 		res := make(map[string]CommandOptionProvider, len(p.cmd.Options))
 		for _, option := range p.cmd.Options {
-			res[option.Name] = NewCommandOptionProvider(p.interaction, &option)
+			if option.Type == discord.SubcommandOptionType {
+				for _, subOption := range option.Options {
+					res[subOption.Name] = NewCommandOptionProvider(p.interaction, &subOption)
+				}
+				break
+			} else if option.Type == discord.SubcommandGroupOptionType {
+				for _, subGroup := range option.Options {
+					for _, subOption := range subGroup.Options {
+						res[subOption.Name] = NewCommandOptionProvider(p.interaction, &subOption)
+					}
+				}
+				break
+			} else {
+				res[option.Name] = NewCommandOptionProvider(p.interaction, &option)
+			}
 		}
 
 		return NewMapProvider(res), nil
