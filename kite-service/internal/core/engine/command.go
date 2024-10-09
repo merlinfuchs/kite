@@ -132,6 +132,7 @@ func (a *App) DeployCommands(ctx context.Context) error {
 	a.Unlock()
 
 	if err := validateCommandNames(commandNames); err != nil {
+		go a.createLogEntry(model.LogLevelError, fmt.Sprintf("invalid command names: %v", err))
 		return fmt.Errorf("invalid command names: %w", err)
 	}
 
@@ -169,14 +170,18 @@ func (a *App) DeployCommands(ctx context.Context) error {
 }
 
 func validateCommandNames(commandNames []string) error {
-	for _, aName := range commandNames {
+	for a, aName := range commandNames {
 		if len(aName) == 0 {
 			return fmt.Errorf("empty command name")
 		}
 
 		aParts := strings.Split(aName, " ")
 
-		for _, bName := range commandNames {
+		for b, bName := range commandNames {
+			if a == b {
+				continue
+			}
+
 			if len(bName) == 0 {
 				return fmt.Errorf("empty command name")
 			}

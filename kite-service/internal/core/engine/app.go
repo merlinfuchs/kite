@@ -100,6 +100,7 @@ func (a *App) RemoveDanglingCommands(commandIDs []string) {
 	for cmdID := range a.commands {
 		if _, ok := commandIDMap[cmdID]; !ok {
 			delete(a.commands, cmdID)
+			a.hasUndeployedChanges = true
 		}
 	}
 }
