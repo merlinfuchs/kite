@@ -3,6 +3,7 @@
 host = "127.0.0.1"
 port = 8080
 public_base_url = "http://localhost:8080"
+strict_cookies = true
 
 [api.user_limits]
 max_apps_per_user = 10
