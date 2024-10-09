@@ -8,7 +8,8 @@ import (
 	"github.com/kitecloud/kite/kite-service/pkg/message"
 )
 
-var commandNameRe = regexp.MustCompile(`^[a-z0-9_]+$`)
+// Allows between 1 and 3 words, each between 1 and 32 characters long.
+var commandNameRe = regexp.MustCompile(`^[-_\p{L}\p{N}]{1,32}( [-_\p{L}\p{N}]{1,32}){0,2}$`)
 
 type FlowData struct {
 	Nodes []FlowNode `json:"nodes"`

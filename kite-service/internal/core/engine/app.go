@@ -100,6 +100,7 @@ func (a *App) RemoveDanglingCommands(commandIDs []string) {
 	for cmdID := range a.commands {
 		if _, ok := commandIDMap[cmdID]; !ok {
 			delete(a.commands, cmdID)
+			a.hasUndeployedChanges = true
 		}
 	}
 }
@@ -128,8 +129,9 @@ func (a *App) HandleEvent(appID string, session *state.State, event gateway.Even
 	case *gateway.InteractionCreateEvent:
 		switch d := e.Data.(type) {
 		case *discord.CommandInteraction:
+			fullName := getFullCommandName(d)
 			for _, command := range a.commands {
-				if command.cmd.Name == d.Name {
+				if command.cmd.Name == fullName {
 					go command.HandleEvent(appID, session, event)
 				}
 			}
@@ -163,4 +165,22 @@ func (a *App) HandleEvent(appID string, session *state.State, event gateway.Even
 			go instance.HandleEvent(appID, session, event)
 		}
 	}
+}
+
+func getFullCommandName(d *discord.CommandInteraction) string {
+	fullName := d.Name
+	for _, option := range d.Options {
+		if option.Type == discord.SubcommandOptionType {
+			fullName += " " + option.Name
+			break
+		} else if option.Type == discord.SubcommandGroupOptionType {
+			fullName += " " + option.Name
+			for _, subOption := range option.Options {
+				fullName += " " + subOption.Name
+			}
+			break
+		}
+	}
+
+	return fullName
 }
