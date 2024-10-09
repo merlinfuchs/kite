@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/diamondburned/arikawa/v3/api"
@@ -101,6 +102,8 @@ func (a *App) DeployCommands(ctx context.Context) error {
 	a.hasUndeployedChanges = false
 
 	var lastUpdatedAt time.Time
+
+	commandNames := make([]string, 0, len(a.commands))
 	commands := make([]api.CreateCommandData, 0, len(a.commands))
 	for _, command := range a.commands {
 		cmd := command.cmd
@@ -123,9 +126,14 @@ func (a *App) DeployCommands(ctx context.Context) error {
 			DefaultMemberPermissions: data.DefaultMemberPermissions,
 			NoDMPermission:           data.NoDMPermission,
 		})
+		commandNames = append(commandNames, node.CommandName())
 	}
 
 	a.Unlock()
+
+	if err := validateCommandNames(commandNames); err != nil {
+		return fmt.Errorf("invalid command names: %w", err)
+	}
 
 	commands, err := mergeCommands(commands)
 	if err != nil {
@@ -160,9 +168,56 @@ func (a *App) DeployCommands(ctx context.Context) error {
 	return nil
 }
 
+func validateCommandNames(commandNames []string) error {
+	for _, aName := range commandNames {
+		if len(aName) == 0 {
+			return fmt.Errorf("empty command name")
+		}
+
+		aParts := strings.Split(aName, " ")
+
+		for _, bName := range commandNames {
+			if len(bName) == 0 {
+				return fmt.Errorf("empty command name")
+			}
+
+			bParts := strings.Split(bName, " ")
+
+			if aParts[0] == bParts[0] {
+				if len(aParts) == 1 && len(bParts) == 1 {
+					return fmt.Errorf("duplicate command name: %s", aName)
+				}
+
+				if len(aParts)+len(bParts) == 3 {
+					// One command has has a subcommand and the other doesn't
+					return fmt.Errorf("mixed nested and unnested commands: %s, %s", aName, bName)
+				}
+
+				if aParts[1] == bParts[1] {
+					if len(aParts) == 2 && len(bParts) == 2 {
+						return fmt.Errorf("duplicate subcommand name: %s", aName)
+					}
+
+					if len(aParts)+len(bParts) == 5 {
+						// One nested subcommand has a subcommand and the other doesn't
+						return fmt.Errorf("mixed nested and unnested subcommands: %s, %s", aName, bName)
+					}
+
+					if aParts[2] == bParts[2] {
+						return fmt.Errorf("duplicate subcommand name: %s", aName)
+					}
+				}
+			}
+		}
+	}
+
+	return nil
+}
+
 func mergeCommands(commands []api.CreateCommandData) ([]api.CreateCommandData, error) {
 	rootCMDs := make(map[string]*api.CreateCommandData)
 
+	// Merge root commands
 	for _, command := range commands {
 		// TODO: think about how to handle different configs for root cmd
 		if c, ok := rootCMDs[command.Name]; ok {
@@ -172,8 +227,7 @@ func mergeCommands(commands []api.CreateCommandData) ([]api.CreateCommandData, e
 		}
 	}
 
-	// TODO: detect collisions
-
+	// Merge sub command groups
 	for _, command := range rootCMDs {
 		groups := make(map[string]*discord.SubcommandGroupOption)
 		args := make([]discord.CommandOption, 0, len(command.Options))
