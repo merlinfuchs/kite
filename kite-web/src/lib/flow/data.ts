@@ -119,6 +119,10 @@ export const nodeActionResponseDeleteDataSchema = nodeBaseDataSchema.extend({
   audit_log_reason: auditLogReasonSchema,
 });
 
+export const nodeActionResponseDeferDataSchema = nodeBaseDataSchema.extend({
+  message_ephemeral: z.boolean().optional(),
+});
+
 export const nodeActionMessageCreateDataSchema = nodeBaseDataSchema
   .extend({
     channel_target: z

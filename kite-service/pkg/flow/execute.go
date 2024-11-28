@@ -207,6 +207,30 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 		}
 
 		return n.executeChildren(ctx)
+	case FlowNodeTypeActionResponseDefer:
+		interaction := ctx.Data.Interaction()
+		if interaction == nil {
+			return &FlowError{
+				Code:    FlowNodeErrorUnknown,
+				Message: "interaction is nil",
+			}
+		}
+
+		resp := api.InteractionResponse{
+			Type: api.DeferredMessageInteractionWithSource,
+			Data: &api.InteractionResponseData{},
+		}
+
+		if n.Data.MessageEphemeral {
+			resp.Data.Flags |= discord.EphemeralMessage
+		}
+
+		_, err := ctx.Discord.CreateInteractionResponse(ctx, interaction.ID, interaction.Token, resp)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		return n.executeChildren(ctx)
 	case FlowNodeTypeActionMessageCreate:
 		var data message.MessageData
 		if n.Data.MessageTemplateID != "" {

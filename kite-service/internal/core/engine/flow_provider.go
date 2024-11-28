@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"sync"
 	"time"
 
 	"github.com/diamondburned/arikawa/v3/api"
@@ -27,6 +28,7 @@ type DiscordProvider struct {
 	appStore store.AppStore
 	session  *state.State
 
+	interactionResponseMutex sync.Mutex
 	interactionsWithResponse map[discord.InteractionID]struct{}
 }
 
@@ -45,6 +47,9 @@ func NewDiscordProvider(
 }
 
 func (p *DiscordProvider) CreateInteractionResponse(ctx context.Context, interactionID discord.InteractionID, interactionToken string, response api.InteractionResponse) (*flow.FlowInteractionResponseResource, error) {
+	p.interactionResponseMutex.Lock()
+	defer p.interactionResponseMutex.Unlock()
+
 	endpoint := api.EndpointInteractions + interactionID.String() + "/" + interactionToken + "/callback?with_response=true"
 
 	var res struct {
@@ -58,6 +63,7 @@ func (p *DiscordProvider) CreateInteractionResponse(ctx context.Context, interac
 	}
 
 	p.interactionsWithResponse[interactionID] = struct{}{}
+
 	return &flow.FlowInteractionResponseResource{
 		Type:    res.Resource.Type,
 		Message: res.Resource.Message,
@@ -178,6 +184,9 @@ func (p *DiscordProvider) EditMember(ctx context.Context, guildID discord.GuildI
 }
 
 func (p *DiscordProvider) HasCreatedInteractionResponse(ctx context.Context, interactionID discord.InteractionID) (bool, error) {
+	p.interactionResponseMutex.Lock()
+	defer p.interactionResponseMutex.Unlock()
+
 	_, ok := p.interactionsWithResponse[interactionID]
 	return ok, nil
 }

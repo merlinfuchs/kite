@@ -19,6 +19,7 @@ export const FlowNodeTypeOptionEventFilter: FlowNodeType = "option_event_filter"
 export const FlowNodeTypeActionResponseCreate: FlowNodeType = "action_response_create";
 export const FlowNodeTypeActionResponseEdit: FlowNodeType = "action_response_edit";
 export const FlowNodeTypeActionResponseDelete: FlowNodeType = "action_response_delete";
+export const FlowNodeTypeActionResponseDefer: FlowNodeType = "action_response_defer";
 export const FlowNodeTypeActionMessageCreate: FlowNodeType = "action_message_create";
 export const FlowNodeTypeActionMessageEdit: FlowNodeType = "action_message_edit";
 export const FlowNodeTypeActionMessageDelete: FlowNodeType = "action_message_delete";

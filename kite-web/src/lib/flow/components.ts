@@ -29,6 +29,7 @@ export const nodeTypes = {
   action_response_create: FlowNodeActionBase,
   action_response_edit: FlowNodeActionBase,
   action_response_delete: FlowNodeActionBase,
+  action_response_defer: FlowNodeActionBase,
   action_message_create: FlowNodeActionBase,
   action_message_edit: FlowNodeActionBase,
   action_message_delete: FlowNodeActionBase,
