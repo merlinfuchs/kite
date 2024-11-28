@@ -18,6 +18,7 @@ var (
 type FlowProviders struct {
 	Discord         FlowDiscordProvider
 	HTTP            FlowHTTPProvider
+	AI              FlowAIProvider
 	Log             FlowLogProvider
 	Variable        FlowVariableProvider
 	MessageTemplate FlowMessageTemplateProvider
@@ -64,6 +65,10 @@ type FlowInteractionResponseResource struct {
 
 type FlowHTTPProvider interface {
 	HTTPRequest(ctx context.Context, req *http.Request) (*http.Response, error)
+}
+
+type FlowAIProvider interface {
+	CreateChatCompletion(ctx context.Context, prompt string) (string, error)
 }
 
 type FlowLogProvider interface {

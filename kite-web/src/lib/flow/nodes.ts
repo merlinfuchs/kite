@@ -1,5 +1,41 @@
-import { ExoticComponent, useMemo } from "react";
+import { Edge, Node, XYPosition } from "@xyflow/react";
 import {
+  ArrowLeftRightIcon,
+  BookmarkIcon,
+  BrainCircuitIcon,
+  CircleHelpIcon,
+  CornerDownRightIcon,
+  FilterIcon,
+  FolderSearchIcon,
+  LogOutIcon,
+  MapPinIcon,
+  MessageCircleOffIcon,
+  MessageCirclePlusIcon,
+  MessageCircleReply,
+  MessageCircleXIcon,
+  MousePointerClickIcon,
+  PenIcon,
+  Repeat2Icon,
+  SatelliteDishIcon,
+  ScrollTextIcon,
+  ShieldCheckIcon,
+  SlashSquareIcon,
+  TextCursorInputIcon,
+  TimerIcon,
+  UserRoundCheckIcon,
+  UserRoundMinusIcon,
+  UserRoundPenIcon,
+  UserRoundXIcon,
+  UserSearchIcon,
+  VariableIcon,
+  WebhookIcon,
+  XCircleIcon,
+} from "lucide-react";
+import { ExoticComponent, useMemo } from "react";
+import { ZodSchema } from "zod";
+import { getUniqueId } from "../utils";
+import {
+  nodeActionAiChatCompletionDataSchema,
   nodeActionHttpRequestDataSchema,
   nodeActionLogDataSchema,
   nodeActionMemberBanDataSchema,
@@ -29,40 +65,6 @@ import {
   nodeOptionCommandPermissionsSchema,
   nodeOptionEventFilterSchema,
 } from "./data";
-import { ZodSchema } from "zod";
-import { Edge, Node, XYPosition } from "@xyflow/react";
-import { getUniqueId } from "../utils";
-import {
-  ArrowLeftRightIcon,
-  BookmarkIcon,
-  CircleHelpIcon,
-  CornerDownRightIcon,
-  FilterIcon,
-  FolderSearchIcon,
-  LogOutIcon,
-  MapPinIcon,
-  MessageCircleOffIcon,
-  MessageCirclePlusIcon,
-  MessageCircleReply,
-  MessageCircleXIcon,
-  PenIcon,
-  Repeat2Icon,
-  SatelliteDishIcon,
-  ScrollTextIcon,
-  ShieldCheckIcon,
-  SlashSquareIcon,
-  TextCursorInputIcon,
-  UserRoundMinusIcon,
-  UserRoundXIcon,
-  UserSearchIcon,
-  UserRoundPenIcon,
-  WebhookIcon,
-  XCircleIcon,
-  TimerIcon,
-  UserRoundCheckIcon,
-  MousePointerClickIcon,
-  VariableIcon,
-} from "lucide-react";
 
 export const primaryColor = "#3B82F6";
 
@@ -281,6 +283,14 @@ export const nodeTypes: Record<string, NodeValues> = {
     defaultDescription: "Send an API request to an external server",
     dataSchema: nodeActionHttpRequestDataSchema,
     dataFields: ["http_request_data", "custom_label"],
+  },
+  action_ai_chat_completion: {
+    color: actionColor,
+    icon: BrainCircuitIcon,
+    defaultTitle: "Ask AI",
+    defaultDescription: "Ask artificial intelligence a question",
+    dataSchema: nodeActionAiChatCompletionDataSchema,
+    dataFields: ["ai_chat_completion_data", "custom_label"],
   },
   action_log: {
     color: actionColor,

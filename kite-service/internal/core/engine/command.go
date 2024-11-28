@@ -17,6 +17,7 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/store"
 	"github.com/kitecloud/kite/kite-service/pkg/flow"
 	"github.com/kitecloud/kite/kite-service/pkg/placeholder"
+	"github.com/sashabaranov/go-openai"
 )
 
 type Command struct {
@@ -29,6 +30,7 @@ type Command struct {
 	messageInstanceStore store.MessageInstanceStore
 	variableValueStore   store.VariableValueStore
 	httpClient           *http.Client
+	openaiClient         *openai.Client
 }
 
 func NewCommand(
@@ -40,6 +42,7 @@ func NewCommand(
 	messageInstanceStore store.MessageInstanceStore,
 	variableValueStore store.VariableValueStore,
 	httpClient *http.Client,
+	openaiClient *openai.Client,
 ) (*Command, error) {
 	flow, err := flow.CompileCommand(cmd.FlowSource)
 	if err != nil {
@@ -56,6 +59,7 @@ func NewCommand(
 		messageInstanceStore: messageInstanceStore,
 		variableValueStore:   variableValueStore,
 		httpClient:           httpClient,
+		openaiClient:         openaiClient,
 	}, nil
 }
 
@@ -67,10 +71,16 @@ func (c *Command) HandleEvent(appID string, session *state.State, event gateway.
 		return
 	}
 
+	var aiProvider flow.FlowAIProvider = &flow.MockAIProvider{}
+	if c.openaiClient != nil {
+		aiProvider = NewAIProvider(c.openaiClient)
+	}
+
 	providers := flow.FlowProviders{
 		Discord:         NewDiscordProvider(appID, c.appStore, session),
 		Log:             NewLogProvider(appID, c.logStore),
 		HTTP:            NewHTTPProvider(c.httpClient),
+		AI:              aiProvider,
 		MessageTemplate: NewMessageTemplateProvider(c.messageStore, c.messageInstanceStore),
 		Variable:        NewVariableProvider(c.variableValueStore),
 	}

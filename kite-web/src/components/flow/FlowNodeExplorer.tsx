@@ -56,7 +56,11 @@ const nodeCategories = {
     },
     {
       title: "Other Actions",
-      nodeTypes: ["action_http_request", "action_log"],
+      nodeTypes: [
+        "action_http_request",
+        "action_ai_chat_completion",
+        "action_log",
+      ],
     },
   ],
   control_flow: [

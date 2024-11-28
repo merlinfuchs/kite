@@ -11,6 +11,7 @@ import (
 	"github.com/diamondburned/arikawa/v3/gateway"
 	"github.com/diamondburned/arikawa/v3/state"
 	"github.com/kitecloud/kite/kite-service/internal/store"
+	"github.com/sashabaranov/go-openai"
 )
 
 type Engine struct {
@@ -24,6 +25,7 @@ type Engine struct {
 	commandStore         store.CommandStore
 	variableValueStore   store.VariableValueStore
 	httpClient           *http.Client
+	openaiClient         *openai.Client
 
 	lastUpdate time.Time
 	apps       map[string]*App
@@ -38,6 +40,7 @@ func NewEngine(
 	commandStore store.CommandStore,
 	variableValueStore store.VariableValueStore,
 	httpClient *http.Client,
+	openaiClient *openai.Client,
 ) *Engine {
 	return &Engine{
 		config:               config,
@@ -48,6 +51,7 @@ func NewEngine(
 		httpClient:           httpClient,
 		commandStore:         commandStore,
 		variableValueStore:   variableValueStore,
+		openaiClient:         openaiClient,
 		apps:                 make(map[string]*App),
 	}
 }
@@ -106,6 +110,7 @@ func (m *Engine) populateCommands(ctx context.Context) error {
 				m.commandStore,
 				m.variableValueStore,
 				m.httpClient,
+				m.openaiClient,
 			)
 			m.apps[command.AppID] = app
 		}

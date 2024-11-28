@@ -566,6 +566,27 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 
 		nodeState.Result = NewFlowValueHTTPResponse(*resp)
 		return n.executeChildren(ctx)
+	case FlowNodeTypeActionAIChatCompletion:
+		data := n.Data.AIChatCompletionData
+		if data == nil || data.Prompt == "" {
+			return &FlowError{
+				Code:    FlowNodeErrorUnknown,
+				Message: "ai_prompt is nil",
+			}
+		}
+
+		prompt, err := data.Prompt.FillPlaceholders(ctx, ctx.Placeholders)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		response, err := ctx.AI.CreateChatCompletion(ctx, prompt.String())
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		nodeState.Result = NewFlowValueString(response)
+		return n.executeChildren(ctx)
 	case FlowNodeTypeActionLog:
 		logMessage, err := n.Data.LogMessage.FillPlaceholders(ctx, ctx.Placeholders)
 		if err != nil {

@@ -250,6 +250,12 @@ export const nodeActionHttpRequestDataSchema = nodeBaseDataSchema.extend({
   }),
 });
 
+export const nodeActionAiChatCompletionDataSchema = nodeBaseDataSchema.extend({
+  ai_chat_completion_data: z.object({
+    prompt: z.string().max(2000).min(1),
+  }),
+});
+
 export const nodeActionLogDataSchema = nodeBaseDataSchema.extend({
   log_level: z
     .literal("debug")

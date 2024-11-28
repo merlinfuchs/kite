@@ -141,3 +141,9 @@ type MockHTTPprovider struct{}
 func (p *MockHTTPprovider) HTTPRequest(ctx context.Context, req *http.Request) (*http.Response, error) {
 	return nil, nil
 }
+
+type MockAIProvider struct{}
+
+func (p *MockAIProvider) CreateChatCompletion(ctx context.Context, prompt string) (string, error) {
+	return "", nil
+}

@@ -16,6 +16,7 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/store"
 	"github.com/kitecloud/kite/kite-service/pkg/flow"
 	"github.com/kitecloud/kite/kite-service/pkg/message"
+	"github.com/sashabaranov/go-openai"
 	"gopkg.in/guregu/null.v4"
 )
 
@@ -220,6 +221,30 @@ func NewHTTPProvider(client *http.Client) *HTTPProvider {
 
 func (p *HTTPProvider) HTTPRequest(ctx context.Context, req *http.Request) (*http.Response, error) {
 	return p.client.Do(req)
+}
+
+type AIProvider struct {
+	client *openai.Client
+}
+
+func NewAIProvider(client *openai.Client) *AIProvider {
+	return &AIProvider{
+		client: client,
+	}
+}
+
+func (p *AIProvider) CreateChatCompletion(ctx context.Context, prompt string) (string, error) {
+	resp, err := p.client.CreateChatCompletion(ctx, openai.ChatCompletionRequest{
+		Model: openai.GPT4oMini,
+		Messages: []openai.ChatCompletionMessage{
+			{Role: openai.ChatMessageRoleUser, Content: prompt},
+		},
+	})
+	if err != nil {
+		return "", fmt.Errorf("failed to create chat completion: %w", err)
+	}
+
+	return resp.Choices[0].Message.Content, nil
 }
 
 type VariableProvider struct {

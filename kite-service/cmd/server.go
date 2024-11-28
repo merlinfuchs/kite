@@ -14,6 +14,7 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/db/postgres"
 	"github.com/kitecloud/kite/kite-service/internal/db/s3"
 	"github.com/kitecloud/kite/kite-service/internal/logging"
+	"github.com/sashabaranov/go-openai"
 	"github.com/urfave/cli/v2"
 )
 
@@ -57,6 +58,11 @@ func serverStartCMD(c *cli.Context) error {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
+	var openaiClient *openai.Client
+	if cfg.OpenAI.APIKey != "" {
+		openaiClient = openai.NewClient(cfg.OpenAI.APIKey)
+	}
+
 	engine := engine.NewEngine(
 		engine.EngineConfig{
 			MaxStackDepth: cfg.Engine.MaxStackDepth,
@@ -70,6 +76,7 @@ func serverStartCMD(c *cli.Context) error {
 		pg,
 		pg,
 		&http.Client{}, // TODO: think about proxying http requests
+		openaiClient,
 	)
 	engine.Run(ctx)
 
