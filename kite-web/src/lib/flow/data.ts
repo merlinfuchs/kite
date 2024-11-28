@@ -141,6 +141,24 @@ export const nodeActionMessageCreateDataSchema = nodeBaseDataSchema
     "Either message_data or message_template_id is required"
   );
 
+export const nodeActionPrivateMessageCreateDataSchema = nodeBaseDataSchema
+  .extend({
+    user_target: z
+      .string()
+      .regex(numericRegex)
+      .or(z.string().regex(placeholderRegex)),
+    message_data: z
+      .object({
+        content: z.string().max(2000).min(1),
+      })
+      .optional(),
+    message_template_id: z.string().optional(),
+  })
+  .refine(
+    (data) => !!data.message_data || !!data.message_template_id,
+    "Either message_data or message_template_id is required"
+  );
+
 export const nodeActionMessageEditDataSchema = nodeBaseDataSchema
   .extend({
     channel_target: z

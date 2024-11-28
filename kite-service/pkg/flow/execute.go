@@ -255,7 +255,12 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 
 		messageData := data.ToSendMessageData()
 
-		msg, err := ctx.Discord.CreateMessage(ctx, ctx.Data.ChannelID(), messageData)
+		channelTarget, err := n.Data.ChannelTarget.FillPlaceholders(ctx, ctx.Placeholders)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		msg, err := ctx.Discord.CreateMessage(ctx, discord.ChannelID(channelTarget.Int()), messageData)
 		if err != nil {
 			return traceError(n, err)
 		}
@@ -362,6 +367,47 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			return traceError(n, err)
 		}
 
+		return n.executeChildren(ctx)
+	case FlowNodeTypeActionPrivateMessageCreate:
+		var data message.MessageData
+		if n.Data.MessageTemplateID != "" {
+			template, err := ctx.MessageTemplate.MessageTemplate(ctx, n.Data.MessageTemplateID)
+			if err != nil {
+				return traceError(n, err)
+			}
+			data = *template
+		} else {
+			data = n.Data.MessageData.Copy()
+		}
+
+		if n.Data.MessageEphemeral {
+			data.Flags |= int(discord.EphemeralMessage)
+		}
+
+		var err error
+		data.Content, err = ctx.Placeholders.Fill(ctx, data.Content)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		messageData := data.ToSendMessageData()
+
+		userTarget, err := n.Data.UserTarget.FillPlaceholders(ctx, ctx.Placeholders)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		channel, err := ctx.Discord.CreatePrivateChannel(ctx, discord.UserID(userTarget.Int()))
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		msg, err := ctx.Discord.CreateMessage(ctx, channel.ID, messageData)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		nodeState.Result = NewFlowValueMessage(*msg)
 		return n.executeChildren(ctx)
 	case FlowNodeTypeActionMemberBan:
 		userID, err := n.Data.UserTarget.FillPlaceholders(ctx, ctx.Placeholders)

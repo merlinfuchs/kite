@@ -108,6 +108,10 @@ func (p *MockDiscordProvider) DeleteChannel(ctx context.Context, channelID disco
 	return nil
 }
 
+func (p *MockDiscordProvider) CreatePrivateChannel(ctx context.Context, userID discord.UserID) (*discord.Channel, error) {
+	return nil, nil
+}
+
 func (p *MockDiscordProvider) StartThreadWithMessage(ctx context.Context, channelID discord.ChannelID, messageID discord.MessageID, data api.StartThreadData) (*discord.Channel, error) {
 	return nil, nil
 }

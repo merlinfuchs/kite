@@ -183,6 +183,15 @@ func (p *DiscordProvider) EditMember(ctx context.Context, guildID discord.GuildI
 	return nil
 }
 
+func (p *DiscordProvider) CreatePrivateChannel(ctx context.Context, userID discord.UserID) (*discord.Channel, error) {
+	channel, err := p.session.CreatePrivateChannel(userID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create DM channel: %w", err)
+	}
+
+	return channel, nil
+}
+
 func (p *DiscordProvider) HasCreatedInteractionResponse(ctx context.Context, interactionID discord.InteractionID) (bool, error) {
 	p.interactionResponseMutex.Lock()
 	defer p.interactionResponseMutex.Unlock()

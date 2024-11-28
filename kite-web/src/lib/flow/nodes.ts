@@ -37,6 +37,7 @@ import { ZodSchema } from "zod";
 import { getUniqueId } from "../utils";
 import {
   nodeActionAiChatCompletionDataSchema,
+  nodeActionPrivateMessageCreateDataSchema,
   nodeActionHttpRequestDataSchema,
   nodeActionLogDataSchema,
   nodeActionMemberBanDataSchema,
@@ -185,6 +186,20 @@ export const nodeTypes: Record<string, NodeValues> = {
       "message_target",
       "message_template_id",
       "message_data",
+      "custom_label",
+    ],
+  },
+  action_private_message_create: {
+    color: actionColor,
+    icon: MessageCirclePlusIcon,
+    defaultTitle: "Create direct message",
+    defaultDescription:
+      "Bot sends a private message to a user if the user allows it",
+    dataSchema: nodeActionPrivateMessageCreateDataSchema,
+    dataFields: [
+      "user_target",
+      "message_data",
+      "message_template_id",
       "custom_label",
     ],
   },
