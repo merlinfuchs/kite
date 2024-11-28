@@ -11,13 +11,13 @@ import (
 )
 
 func (c *Client) CreateBucketIfNotExists(ctx context.Context, bucket string) error {
-	exists, err := c.client.BucketExists(context.Background(), bucket)
+	exists, err := c.client.BucketExists(ctx, bucket)
 	if err != nil {
 		return fmt.Errorf("failed to check if bucket %s exists: %w", bucket, err)
 	}
 
 	if !exists {
-		err = c.client.MakeBucket(context.Background(), bucket, minio.MakeBucketOptions{})
+		err = c.client.MakeBucket(ctx, bucket, minio.MakeBucketOptions{})
 		if err != nil {
 			return fmt.Errorf("failed to create bucket %s: %w", bucket, err)
 		}
