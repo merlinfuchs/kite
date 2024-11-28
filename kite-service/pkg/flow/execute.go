@@ -495,43 +495,18 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			return traceError(n, err)
 		}
 
-		var newValue FlowValue
-
-		if n.Data.VariableOperation.IsOverwrite() {
-			newValue = NewFlowValueString(value.String())
-		} else {
-			current, err := ctx.Variable.Variable(
-				ctx,
-				n.Data.VariableID,
-				null.NewString(scope.String(), scope != ""),
-			)
-			if err != nil && !errors.Is(err, ErrNotFound) {
-				return traceError(n, err)
-			}
-
-			switch n.Data.VariableOperation {
-			case VariableOperationAppend:
-				newValue = NewFlowValueString(current.String() + value.String())
-			case VariableOperationPrepend:
-				newValue = NewFlowValueString(value.String() + current.String())
-			case VariableOperationIncrement:
-				newValue = NewFlowValueNumber(current.Number() + value.Float())
-			case VariableOperationDecremenet:
-				newValue = NewFlowValueNumber(current.Number() - value.Float())
-			}
-		}
-
-		err = ctx.Variable.SetVariable(
+		newValue, err := ctx.Variable.UpdateVariable(
 			ctx,
 			n.Data.VariableID,
 			null.NewString(scope.String(), scope != ""),
-			newValue,
+			n.Data.VariableOperation,
+			NewFlowValueString(value.String()),
 		)
 		if err != nil {
 			return traceError(n, err)
 		}
 
-		nodeState.Result = newValue
+		nodeState.Result = *newValue
 		return n.executeChildren(ctx)
 	case FlowNodeTypeActionVariableDelete:
 		scope, err := n.Data.VariableScope.FillPlaceholders(ctx, ctx.Placeholders)

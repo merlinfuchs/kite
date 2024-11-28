@@ -41,6 +41,7 @@ func (g *Gateway) startGateway() {
 
 	intents, err := getAppIntents(g.session.Client)
 	if err != nil {
+		// TODO: store if the token is invalid
 		go g.createLogEntry(model.LogLevelError, fmt.Sprintf("Failed to get app intents: %v", err))
 		slog.With("error", err).Error("failed to get app intents")
 		return
@@ -72,6 +73,7 @@ func (g *Gateway) startGateway() {
 		}
 	})
 
+	// TODO: replace with r.session.Connect?
 	if err := g.session.Open(context.TODO()); err != nil {
 		go g.createLogEntry(model.LogLevelError, fmt.Sprintf("Failed to open session: %v", err))
 		slog.With("error", err).Error("failed to open session")
