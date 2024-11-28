@@ -2,13 +2,16 @@ package postgres
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
+	"fmt"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/kitecloud/kite/kite-service/internal/db/postgres/pgmodel"
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/internal/store"
+	"github.com/kitecloud/kite/kite-service/pkg/flow"
 	"gopkg.in/guregu/null.v4"
 )
 
@@ -145,7 +148,11 @@ func (c *Client) VariableValues(ctx context.Context, variableID string) ([]*mode
 
 	var values []*model.VariableValue
 	for _, row := range rows {
-		values = append(values, rowToVariableValue(row))
+		v, err := rowToVariableValue(row)
+		if err != nil {
+			return nil, err
+		}
+		values = append(values, &v)
 	}
 
 	return values, nil
@@ -164,31 +171,61 @@ func (c *Client) VariableValue(ctx context.Context, variableID string, scope nul
 		return nil, err
 	}
 
-	return rowToVariableValue(row), nil
+	v, err := rowToVariableValue(row)
+	if err != nil {
+		return nil, err
+	}
+
+	return &v, nil
 }
 
 func (c *Client) SetVariableValue(ctx context.Context, value model.VariableValue) error {
-	_, err := c.Q.SetVariableValue(ctx, pgmodel.SetVariableValueParams{
-		VariableID: value.VariableID,
-		Scope: pgtype.Text{
-			String: value.Scope.String,
-			Valid:  value.Scope.Valid,
-		},
-		Value: value.Value,
-		CreatedAt: pgtype.Timestamp{
-			Time:  value.CreatedAt.UTC(),
-			Valid: true,
-		},
-		UpdatedAt: pgtype.Timestamp{
-			Time:  value.UpdatedAt.UTC(),
-			Valid: true,
-		},
-	})
-	if err != nil {
-		return err
+	_, err := c.setVariableValueWithTx(ctx, nil, value)
+	return err
+}
+
+func (c *Client) UpdateVariableValue(ctx context.Context, operation model.VariableValueOperation, value model.VariableValue) (*model.VariableValue, error) {
+	if operation == flow.VariableOperationOverwrite {
+		return c.setVariableValueWithTx(ctx, nil, value)
 	}
 
-	return nil
+	tx, err := c.DB.Begin(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to begin transaction: %w", err)
+	}
+	defer tx.Rollback(ctx)
+
+	currentValue, err := c.variableValueWithTx(ctx, tx, value.VariableID, value.Scope)
+	if err != nil {
+		if errors.Is(err, store.ErrNotFound) {
+			// Current trasaction is rolled back, we set the value outside of the transaction
+			return c.setVariableValueWithTx(ctx, nil, value)
+		}
+		return nil, fmt.Errorf("failed to get current variable value: %w", err)
+	}
+
+	switch operation {
+	case flow.VariableOperationAppend:
+		value.Data = flow.NewFlowValueString(currentValue.Data.String() + value.Data.String())
+	case flow.VariableOperationPrepend:
+		value.Data = flow.NewFlowValueString(value.Data.String() + currentValue.Data.String())
+	case flow.VariableOperationIncrement:
+		value.Data = flow.NewFlowValueNumber(currentValue.Data.Number() + value.Data.Number())
+	case flow.VariableOperationDecrement:
+		value.Data = flow.NewFlowValueNumber(currentValue.Data.Number() - value.Data.Number())
+	}
+
+	newValue, err := c.setVariableValueWithTx(ctx, tx, value)
+	if err != nil {
+		return nil, fmt.Errorf("failed to set variable value: %w", err)
+	}
+
+	err = tx.Commit(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to commit transaction: %w", err)
+	}
+
+	return newValue, nil
 }
 
 func (c *Client) DeleteVariableValue(ctx context.Context, variableID string, scope null.String) error {
@@ -215,13 +252,75 @@ func (c *Client) DeleteAllVariableValues(ctx context.Context, variableID string)
 	return nil
 }
 
-func rowToVariableValue(row pgmodel.VariableValue) *model.VariableValue {
-	return &model.VariableValue{
+func (c *Client) variableValueWithTx(ctx context.Context, tx pgx.Tx, variableID string, scope null.String) (*model.VariableValue, error) {
+	q := c.Q
+	if tx != nil {
+		q = c.Q.WithTx(tx)
+	}
+
+	row, err := q.GetVariableValueForUpdate(ctx, pgmodel.GetVariableValueForUpdateParams{
+		VariableID: variableID,
+		Scope:      pgtype.Text{String: scope.String, Valid: scope.Valid},
+	})
+
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, store.ErrNotFound
+		}
+		return nil, err
+	}
+
+	v, err := rowToVariableValue(row)
+	if err != nil {
+		return nil, err
+	}
+
+	return &v, nil
+}
+
+func (c *Client) setVariableValueWithTx(ctx context.Context, tx pgx.Tx, value model.VariableValue) (*model.VariableValue, error) {
+	q := c.Q
+	if tx != nil {
+		q = c.Q.WithTx(tx)
+	}
+
+	data, err := json.Marshal(value.Data)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal variable value: %w", err)
+	}
+
+	row, err := q.SetVariableValue(ctx, pgmodel.SetVariableValueParams{
+		VariableID: value.VariableID,
+		Scope:      pgtype.Text{String: value.Scope.String, Valid: value.Scope.Valid},
+		Value:      data,
+		CreatedAt:  pgtype.Timestamp{Time: value.CreatedAt, Valid: true},
+		UpdatedAt:  pgtype.Timestamp{Time: value.UpdatedAt, Valid: true},
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	v, err := rowToVariableValue(row)
+	if err != nil {
+		return nil, err
+	}
+
+	return &v, nil
+}
+
+func rowToVariableValue(row pgmodel.VariableValue) (model.VariableValue, error) {
+	var data model.VariableValueData
+	err := json.Unmarshal(row.Value, &data)
+	if err != nil {
+		return model.VariableValue{}, fmt.Errorf("failed to unmarshal variable value: %w", err)
+	}
+
+	return model.VariableValue{
 		ID:         uint64(row.ID),
 		VariableID: row.VariableID,
 		Scope:      null.NewString(row.Scope.String, row.Scope.Valid),
-		Value:      row.Value,
+		Data:       data,
 		CreatedAt:  row.CreatedAt.Time,
 		UpdatedAt:  row.UpdatedAt.Time,
-	}
+	}, nil
 }

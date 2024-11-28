@@ -2,7 +2,6 @@ package engine
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -233,24 +232,21 @@ func NewVariableProvider(variableValueStore store.VariableValueStore) *VariableP
 	}
 }
 
-func (p *VariableProvider) SetVariable(ctx context.Context, id string, scope null.String, value flow.FlowValue) error {
-	rawValue, err := json.Marshal(value)
-	if err != nil {
-		return fmt.Errorf("failed to marshal variable value: %w", err)
-	}
-
-	err = p.variableValueStore.SetVariableValue(ctx, model.VariableValue{
+func (p *VariableProvider) UpdateVariable(ctx context.Context, id string, scope null.String, operation flow.VariableOperation, value flow.FlowValue) (*flow.FlowValue, error) {
+	v := model.VariableValue{
 		VariableID: id,
 		Scope:      scope,
-		Value:      rawValue,
+		Data:       value,
 		CreatedAt:  time.Now().UTC(),
 		UpdatedAt:  time.Now().UTC(),
-	})
-	if err != nil {
-		return fmt.Errorf("failed to set variable value: %w", err)
 	}
 
-	return nil
+	newValue, err := p.variableValueStore.UpdateVariableValue(ctx, operation, v)
+	if err != nil {
+		return nil, fmt.Errorf("failed to %s variable value: %w", operation, err)
+	}
+
+	return &newValue.Data, nil
 }
 
 func (p *VariableProvider) Variable(ctx context.Context, id string, scope null.String) (flow.FlowValue, error) {
@@ -262,13 +258,7 @@ func (p *VariableProvider) Variable(ctx context.Context, id string, scope null.S
 		return flow.FlowValue{}, fmt.Errorf("failed to get variable value: %w", err)
 	}
 
-	var value flow.FlowValue
-	err = json.Unmarshal(row.Value, &value)
-	if err != nil {
-		return flow.FlowValue{}, fmt.Errorf("failed to unmarshal variable value: %w", err)
-	}
-
-	return value, nil
+	return row.Data, nil
 }
 
 func (p *VariableProvider) DeleteVariable(ctx context.Context, id string, scope null.String) error {

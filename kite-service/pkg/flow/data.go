@@ -200,11 +200,11 @@ const (
 type VariableOperation string
 
 const (
-	VariableOperationOverwrite  VariableOperation = "overwrite"
-	VariableOperationAppend     VariableOperation = "append"
-	VariableOperationPrepend    VariableOperation = "prepend"
-	VariableOperationIncrement  VariableOperation = "increment"
-	VariableOperationDecremenet VariableOperation = "decrement"
+	VariableOperationOverwrite VariableOperation = "overwrite"
+	VariableOperationAppend    VariableOperation = "append"
+	VariableOperationPrepend   VariableOperation = "prepend"
+	VariableOperationIncrement VariableOperation = "increment"
+	VariableOperationDecrement VariableOperation = "decrement"
 )
 
 func (o VariableOperation) IsOverwrite() bool {

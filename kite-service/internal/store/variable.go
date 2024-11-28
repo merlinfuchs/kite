@@ -21,6 +21,7 @@ type VariableValueStore interface {
 	VariableValues(ctx context.Context, variableID string) ([]*model.VariableValue, error)
 	VariableValue(ctx context.Context, variableID string, scope null.String) (*model.VariableValue, error)
 	SetVariableValue(ctx context.Context, value model.VariableValue) error
+	UpdateVariableValue(ctx context.Context, operation model.VariableValueOperation, value model.VariableValue) (*model.VariableValue, error)
 	DeleteVariableValue(ctx context.Context, variableID string, scope null.String) error
 	DeleteAllVariableValues(ctx context.Context, variableID string) error
 }
