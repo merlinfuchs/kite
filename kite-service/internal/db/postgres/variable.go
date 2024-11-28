@@ -180,32 +180,8 @@ func (c *Client) VariableValue(ctx context.Context, variableID string, scope nul
 }
 
 func (c *Client) SetVariableValue(ctx context.Context, value model.VariableValue) error {
-	rawValue, err := json.Marshal(value.Data)
-	if err != nil {
-		return fmt.Errorf("failed to marshal variable value: %w", err)
-	}
-
-	_, err = c.Q.SetVariableValue(ctx, pgmodel.SetVariableValueParams{
-		VariableID: value.VariableID,
-		Scope: pgtype.Text{
-			String: value.Scope.String,
-			Valid:  value.Scope.Valid,
-		},
-		Value: rawValue,
-		CreatedAt: pgtype.Timestamp{
-			Time:  value.CreatedAt.UTC(),
-			Valid: true,
-		},
-		UpdatedAt: pgtype.Timestamp{
-			Time:  value.UpdatedAt.UTC(),
-			Valid: true,
-		},
-	})
-	if err != nil {
-		return err
-	}
-
-	return nil
+	_, err := c.setVariableValueWithTx(ctx, nil, value)
+	return err
 }
 
 func (c *Client) UpdateVariableValue(ctx context.Context, operation model.VariableValueOperation, value model.VariableValue) (*model.VariableValue, error) {
@@ -222,7 +198,8 @@ func (c *Client) UpdateVariableValue(ctx context.Context, operation model.Variab
 	currentValue, err := c.variableValueWithTx(ctx, tx, value.VariableID, value.Scope)
 	if err != nil {
 		if errors.Is(err, store.ErrNotFound) {
-			return c.setVariableValueWithTx(ctx, tx, value)
+			// Current trasaction is rolled back, we set the value outside of the transaction
+			return c.setVariableValueWithTx(ctx, nil, value)
 		}
 		return nil, fmt.Errorf("failed to get current variable value: %w", err)
 	}

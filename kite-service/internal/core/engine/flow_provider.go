@@ -258,8 +258,7 @@ func (p *VariableProvider) Variable(ctx context.Context, id string, scope null.S
 		return flow.FlowValue{}, fmt.Errorf("failed to get variable value: %w", err)
 	}
 
-	newData := flow.FlowValue(row.Data)
-	return newData, nil
+	return row.Data, nil
 }
 
 func (p *VariableProvider) DeleteVariable(ctx context.Context, id string, scope null.String) error {
