@@ -13,6 +13,7 @@ import (
 	"github.com/diamondburned/arikawa/v3/state"
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/internal/store"
+	"github.com/sashabaranov/go-openai"
 )
 
 type App struct {
@@ -28,7 +29,7 @@ type App struct {
 	commandStore         store.CommandStore
 	variableValueStore   store.VariableValueStore
 	httpClient           *http.Client
-
+	openaiClient         *openai.Client
 	hasUndeployedChanges bool
 
 	commands map[string]*Command
@@ -46,6 +47,7 @@ func NewApp(
 	commandStore store.CommandStore,
 	variableValueStore store.VariableValueStore,
 	httpClient *http.Client,
+	openaiClient *openai.Client,
 ) *App {
 	return &App{
 		id:                   id,
@@ -59,6 +61,7 @@ func NewApp(
 		httpClient:           httpClient,
 		commands:             make(map[string]*Command),
 		events:               make(map[string]interface{}),
+		openaiClient:         openaiClient,
 	}
 }
 
@@ -75,6 +78,7 @@ func (a *App) AddCommand(cmd *model.Command) {
 		a.messageInstanceStore,
 		a.variableValueStore,
 		a.httpClient,
+		a.openaiClient,
 	)
 	if err != nil {
 		slog.With("error", err).Error("failed to create command")
@@ -156,6 +160,7 @@ func (a *App) HandleEvent(appID string, session *state.State, event gateway.Even
 				a.messageInstanceStore,
 				a.variableValueStore,
 				a.httpClient,
+				a.openaiClient,
 			)
 			if err != nil {
 				slog.With("error", err).Error("failed to create message instance")

@@ -18,6 +18,7 @@ var (
 type FlowProviders struct {
 	Discord         FlowDiscordProvider
 	HTTP            FlowHTTPProvider
+	AI              FlowAIProvider
 	Log             FlowLogProvider
 	Variable        FlowVariableProvider
 	MessageTemplate FlowMessageTemplateProvider
@@ -48,6 +49,7 @@ type FlowDiscordProvider interface {
 	CreateChannel(ctx context.Context, guildID discord.GuildID, data api.CreateChannelData) (*discord.Channel, error)
 	EditChannel(ctx context.Context, channelID discord.ChannelID, data api.ModifyChannelData) (*discord.Channel, error)
 	DeleteChannel(ctx context.Context, channelID discord.ChannelID) error
+	CreatePrivateChannel(ctx context.Context, userID discord.UserID) (*discord.Channel, error)
 	StartThreadWithMessage(ctx context.Context, channelID discord.ChannelID, messageID discord.MessageID, data api.StartThreadData) (*discord.Channel, error)
 	StartThreadWithoutMessage(ctx context.Context, channelID discord.ChannelID, data api.StartThreadData) (*discord.Channel, error)
 	CreateRole(ctx context.Context, guildID discord.GuildID, data api.CreateRoleData) (*discord.Role, error)
@@ -64,6 +66,10 @@ type FlowInteractionResponseResource struct {
 
 type FlowHTTPProvider interface {
 	HTTPRequest(ctx context.Context, req *http.Request) (*http.Response, error)
+}
+
+type FlowAIProvider interface {
+	CreateChatCompletion(ctx context.Context, prompt string) (string, error)
 }
 
 type FlowLogProvider interface {

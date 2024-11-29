@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"sync"
 	"time"
 
 	"github.com/diamondburned/arikawa/v3/api"
@@ -16,6 +17,7 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/store"
 	"github.com/kitecloud/kite/kite-service/pkg/flow"
 	"github.com/kitecloud/kite/kite-service/pkg/message"
+	"github.com/sashabaranov/go-openai"
 	"gopkg.in/guregu/null.v4"
 )
 
@@ -26,6 +28,7 @@ type DiscordProvider struct {
 	appStore store.AppStore
 	session  *state.State
 
+	interactionResponseMutex sync.Mutex
 	interactionsWithResponse map[discord.InteractionID]struct{}
 }
 
@@ -44,6 +47,9 @@ func NewDiscordProvider(
 }
 
 func (p *DiscordProvider) CreateInteractionResponse(ctx context.Context, interactionID discord.InteractionID, interactionToken string, response api.InteractionResponse) (*flow.FlowInteractionResponseResource, error) {
+	p.interactionResponseMutex.Lock()
+	defer p.interactionResponseMutex.Unlock()
+
 	endpoint := api.EndpointInteractions + interactionID.String() + "/" + interactionToken + "/callback?with_response=true"
 
 	var res struct {
@@ -57,6 +63,7 @@ func (p *DiscordProvider) CreateInteractionResponse(ctx context.Context, interac
 	}
 
 	p.interactionsWithResponse[interactionID] = struct{}{}
+
 	return &flow.FlowInteractionResponseResource{
 		Type:    res.Resource.Type,
 		Message: res.Resource.Message,
@@ -176,7 +183,19 @@ func (p *DiscordProvider) EditMember(ctx context.Context, guildID discord.GuildI
 	return nil
 }
 
+func (p *DiscordProvider) CreatePrivateChannel(ctx context.Context, userID discord.UserID) (*discord.Channel, error) {
+	channel, err := p.session.CreatePrivateChannel(userID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create DM channel: %w", err)
+	}
+
+	return channel, nil
+}
+
 func (p *DiscordProvider) HasCreatedInteractionResponse(ctx context.Context, interactionID discord.InteractionID) (bool, error) {
+	p.interactionResponseMutex.Lock()
+	defer p.interactionResponseMutex.Unlock()
+
 	_, ok := p.interactionsWithResponse[interactionID]
 	return ok, nil
 }
@@ -220,6 +239,31 @@ func NewHTTPProvider(client *http.Client) *HTTPProvider {
 
 func (p *HTTPProvider) HTTPRequest(ctx context.Context, req *http.Request) (*http.Response, error) {
 	return p.client.Do(req)
+}
+
+type AIProvider struct {
+	client *openai.Client
+}
+
+func NewAIProvider(client *openai.Client) *AIProvider {
+	return &AIProvider{
+		client: client,
+	}
+}
+
+func (p *AIProvider) CreateChatCompletion(ctx context.Context, prompt string) (string, error) {
+	resp, err := p.client.CreateChatCompletion(ctx, openai.ChatCompletionRequest{
+		Model: openai.GPT4oMini,
+		Messages: []openai.ChatCompletionMessage{
+			{Role: openai.ChatMessageRoleUser, Content: prompt},
+		},
+		MaxCompletionTokens: 2000,
+	})
+	if err != nil {
+		return "", fmt.Errorf("failed to create chat completion: %w", err)
+	}
+
+	return resp.Choices[0].Message.Content, nil
 }
 
 type VariableProvider struct {

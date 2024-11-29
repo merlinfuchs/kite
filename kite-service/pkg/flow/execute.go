@@ -207,6 +207,30 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 		}
 
 		return n.executeChildren(ctx)
+	case FlowNodeTypeActionResponseDefer:
+		interaction := ctx.Data.Interaction()
+		if interaction == nil {
+			return &FlowError{
+				Code:    FlowNodeErrorUnknown,
+				Message: "interaction is nil",
+			}
+		}
+
+		resp := api.InteractionResponse{
+			Type: api.DeferredMessageInteractionWithSource,
+			Data: &api.InteractionResponseData{},
+		}
+
+		if n.Data.MessageEphemeral {
+			resp.Data.Flags |= discord.EphemeralMessage
+		}
+
+		_, err := ctx.Discord.CreateInteractionResponse(ctx, interaction.ID, interaction.Token, resp)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		return n.executeChildren(ctx)
 	case FlowNodeTypeActionMessageCreate:
 		var data message.MessageData
 		if n.Data.MessageTemplateID != "" {
@@ -231,7 +255,12 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 
 		messageData := data.ToSendMessageData()
 
-		msg, err := ctx.Discord.CreateMessage(ctx, ctx.Data.ChannelID(), messageData)
+		channelTarget, err := n.Data.ChannelTarget.FillPlaceholders(ctx, ctx.Placeholders)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		msg, err := ctx.Discord.CreateMessage(ctx, discord.ChannelID(channelTarget.Int()), messageData)
 		if err != nil {
 			return traceError(n, err)
 		}
@@ -338,6 +367,47 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			return traceError(n, err)
 		}
 
+		return n.executeChildren(ctx)
+	case FlowNodeTypeActionPrivateMessageCreate:
+		var data message.MessageData
+		if n.Data.MessageTemplateID != "" {
+			template, err := ctx.MessageTemplate.MessageTemplate(ctx, n.Data.MessageTemplateID)
+			if err != nil {
+				return traceError(n, err)
+			}
+			data = *template
+		} else {
+			data = n.Data.MessageData.Copy()
+		}
+
+		if n.Data.MessageEphemeral {
+			data.Flags |= int(discord.EphemeralMessage)
+		}
+
+		var err error
+		data.Content, err = ctx.Placeholders.Fill(ctx, data.Content)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		messageData := data.ToSendMessageData()
+
+		userTarget, err := n.Data.UserTarget.FillPlaceholders(ctx, ctx.Placeholders)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		channel, err := ctx.Discord.CreatePrivateChannel(ctx, discord.UserID(userTarget.Int()))
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		msg, err := ctx.Discord.CreateMessage(ctx, channel.ID, messageData)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		nodeState.Result = NewFlowValueMessage(*msg)
 		return n.executeChildren(ctx)
 	case FlowNodeTypeActionMemberBan:
 		userID, err := n.Data.UserTarget.FillPlaceholders(ctx, ctx.Placeholders)
@@ -565,6 +635,27 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 		}
 
 		nodeState.Result = NewFlowValueHTTPResponse(*resp)
+		return n.executeChildren(ctx)
+	case FlowNodeTypeActionAIChatCompletion:
+		data := n.Data.AIChatCompletionData
+		if data == nil || data.Prompt == "" {
+			return &FlowError{
+				Code:    FlowNodeErrorUnknown,
+				Message: "ai_prompt is nil",
+			}
+		}
+
+		prompt, err := data.Prompt.FillPlaceholders(ctx, ctx.Placeholders)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		response, err := ctx.AI.CreateChatCompletion(ctx, prompt.String())
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		nodeState.Result = NewFlowValueString(response)
 		return n.executeChildren(ctx)
 	case FlowNodeTypeActionLog:
 		logMessage, err := n.Data.LogMessage.FillPlaceholders(ctx, ctx.Placeholders)

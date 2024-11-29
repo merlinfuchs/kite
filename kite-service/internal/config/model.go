@@ -9,6 +9,7 @@ type Config struct {
 	App      AppConfig      `toml:"app"`
 	Discord  DiscordConfig  `toml:"discord"`
 	Engine   EngineConfig   `toml:"engine"`
+	OpenAI   OpenAIConfig   `toml:"openai"`
 }
 
 func (cfg *Config) Validate() error {
@@ -77,4 +78,8 @@ type UserLimitsConfig struct {
 	MaxVariablesPerApp int `toml:"max_variables_per_app"`
 	MaxMessagesPerApp  int `toml:"max_messages_per_app"`
 	MaxAssetSize       int `toml:"max_asset_size"`
+}
+
+type OpenAIConfig struct {
+	APIKey string `toml:"api_key"`
 }

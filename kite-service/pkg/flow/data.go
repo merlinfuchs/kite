@@ -35,22 +35,25 @@ const (
 	FlowNodeTypeOptionCommandContexts    FlowNodeType = "option_command_contexts"
 	FlowNodeTypeOptionEventFilter        FlowNodeType = "option_event_filter"
 
-	FlowNodeTypeActionResponseCreate FlowNodeType = "action_response_create"
-	FlowNodeTypeActionResponseEdit   FlowNodeType = "action_response_edit"
-	FlowNodeTypeActionResponseDelete FlowNodeType = "action_response_delete"
-	FlowNodeTypeActionMessageCreate  FlowNodeType = "action_message_create"
-	FlowNodeTypeActionMessageEdit    FlowNodeType = "action_message_edit"
-	FlowNodeTypeActionMessageDelete  FlowNodeType = "action_message_delete"
-	FlowNodeTypeActionMemberBan      FlowNodeType = "action_member_ban"
-	FlowNodeTypeActionMemberUnban    FlowNodeType = "action_member_unban"
-	FlowNodeTypeActionMemberKick     FlowNodeType = "action_member_kick"
-	FlowNodeTypeActionMemberTimeout  FlowNodeType = "action_member_timeout"
-	FlowNodeTypeActionMemberEdit     FlowNodeType = "action_member_edit"
-	FlowNodeTypeActionHTTPRequest    FlowNodeType = "action_http_request"
-	FlowNodeTypeActionLog            FlowNodeType = "action_log"
-	FlowNodeTypeActionVariableSet    FlowNodeType = "action_variable_set"
-	FlowNodeTypeActionVariableDelete FlowNodeType = "action_variable_delete"
-	FlowNodeTypeActionVariableGet    FlowNodeType = "action_variable_get"
+	FlowNodeTypeActionResponseCreate       FlowNodeType = "action_response_create"
+	FlowNodeTypeActionResponseEdit         FlowNodeType = "action_response_edit"
+	FlowNodeTypeActionResponseDelete       FlowNodeType = "action_response_delete"
+	FlowNodeTypeActionResponseDefer        FlowNodeType = "action_response_defer"
+	FlowNodeTypeActionMessageCreate        FlowNodeType = "action_message_create"
+	FlowNodeTypeActionMessageEdit          FlowNodeType = "action_message_edit"
+	FlowNodeTypeActionMessageDelete        FlowNodeType = "action_message_delete"
+	FlowNodeTypeActionPrivateMessageCreate FlowNodeType = "action_private_message_create"
+	FlowNodeTypeActionMemberBan            FlowNodeType = "action_member_ban"
+	FlowNodeTypeActionMemberUnban          FlowNodeType = "action_member_unban"
+	FlowNodeTypeActionMemberKick           FlowNodeType = "action_member_kick"
+	FlowNodeTypeActionMemberTimeout        FlowNodeType = "action_member_timeout"
+	FlowNodeTypeActionMemberEdit           FlowNodeType = "action_member_edit"
+	FlowNodeTypeActionHTTPRequest          FlowNodeType = "action_http_request"
+	FlowNodeTypeActionAIChatCompletion     FlowNodeType = "action_ai_chat_completion"
+	FlowNodeTypeActionLog                  FlowNodeType = "action_log"
+	FlowNodeTypeActionVariableSet          FlowNodeType = "action_variable_set"
+	FlowNodeTypeActionVariableDelete       FlowNodeType = "action_variable_delete"
+	FlowNodeTypeActionVariableGet          FlowNodeType = "action_variable_get"
 
 	FlowNodeTypeControlConditionCompare     FlowNodeType = "control_condition_compare"
 	FlowNodeTypeControlConditionItemCompare FlowNodeType = "control_condition_item_compare"
@@ -133,6 +136,9 @@ type FlowNodeData struct {
 
 	// HTTP Request
 	HTTPRequestData *HTTPRequestData `json:"http_request_data,omitempty"`
+
+	// AI Chat Completion
+	AIChatCompletionData *AIChatCompletionData `json:"ai_chat_completion_data,omitempty"`
 
 	// Event Entry
 	EventType string `json:"event_type,omitempty"`
@@ -254,6 +260,10 @@ const (
 type HTTPRequestData struct {
 	URL    FlowString `json:"url,omitempty"`
 	Method string     `json:"method,omitempty"`
+}
+
+type AIChatCompletionData struct {
+	Prompt FlowString `json:"prompt,omitempty"`
 }
 
 type FlowNodePosition struct {

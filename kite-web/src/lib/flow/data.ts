@@ -119,9 +119,31 @@ export const nodeActionResponseDeleteDataSchema = nodeBaseDataSchema.extend({
   audit_log_reason: auditLogReasonSchema,
 });
 
+export const nodeActionResponseDeferDataSchema = nodeBaseDataSchema.extend({
+  message_ephemeral: z.boolean().optional(),
+});
+
 export const nodeActionMessageCreateDataSchema = nodeBaseDataSchema
   .extend({
     channel_target: z
+      .string()
+      .regex(numericRegex)
+      .or(z.string().regex(placeholderRegex)),
+    message_data: z
+      .object({
+        content: z.string().max(2000).min(1),
+      })
+      .optional(),
+    message_template_id: z.string().optional(),
+  })
+  .refine(
+    (data) => !!data.message_data || !!data.message_template_id,
+    "Either message_data or message_template_id is required"
+  );
+
+export const nodeActionPrivateMessageCreateDataSchema = nodeBaseDataSchema
+  .extend({
+    user_target: z
       .string()
       .regex(numericRegex)
       .or(z.string().regex(placeholderRegex)),
@@ -247,6 +269,12 @@ export const nodeActionHttpRequestDataSchema = nodeBaseDataSchema.extend({
       .or(z.literal("PUT"))
       .or(z.literal("PATCH"))
       .or(z.literal("DELETE")),
+  }),
+});
+
+export const nodeActionAiChatCompletionDataSchema = nodeBaseDataSchema.extend({
+  ai_chat_completion_data: z.object({
+    prompt: z.string().max(2000).min(1),
   }),
 });
 

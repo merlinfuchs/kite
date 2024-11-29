@@ -24,6 +24,7 @@ const nodeCategories = {
       title: "Responses",
       nodeTypes: [
         "action_response_create",
+        "action_response_defer",
         "action_response_edit",
         "action_response_delete",
       ],
@@ -34,6 +35,7 @@ const nodeCategories = {
         "action_message_create",
         "action_message_edit",
         "action_message_delete",
+        "action_private_message_create",
       ],
     },
     {
@@ -56,7 +58,11 @@ const nodeCategories = {
     },
     {
       title: "Other Actions",
-      nodeTypes: ["action_http_request", "action_log"],
+      nodeTypes: [
+        "action_ai_chat_completion",
+        "action_http_request",
+        "action_log",
+      ],
     },
   ],
   control_flow: [

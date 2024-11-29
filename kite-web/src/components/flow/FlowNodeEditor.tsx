@@ -78,6 +78,7 @@ const intputs: Record<string, any> = {
   variable_operation: VariableOperationInput,
   variable_value: VariableValueInput,
   http_request_data: HttpRequestDataInput,
+  ai_chat_completion_data: AiChatCompletionDataInput,
   audit_log_reason: AuditLogReasonInput,
   user_target: UserTargetInput,
   member_ban_delete_message_duration_seconds:
@@ -471,6 +472,32 @@ function HttpRequestDataInput({ data, updateData, errors }: InputProps) {
             http_request_data: {
               ...data.http_request_data,
               url: v || undefined,
+            },
+          })
+        }
+        errors={errors}
+        placeholders
+      />
+    </>
+  );
+}
+
+function AiChatCompletionDataInput({ data, updateData, errors }: InputProps) {
+  // TODO: top level errors aren't displayed ...
+
+  return (
+    <>
+      <BaseInput
+        type="textarea"
+        field="ai_chat_completion_data.prompt"
+        title="Prompt"
+        description="The prompt to send to the AI."
+        value={data.ai_chat_completion_data?.prompt || ""}
+        updateValue={(v) =>
+          updateData({
+            ai_chat_completion_data: {
+              ...data.ai_chat_completion_data,
+              prompt: v || undefined,
             },
           })
         }

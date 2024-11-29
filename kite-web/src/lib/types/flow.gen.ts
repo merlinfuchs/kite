@@ -19,6 +19,7 @@ export const FlowNodeTypeOptionEventFilter: FlowNodeType = "option_event_filter"
 export const FlowNodeTypeActionResponseCreate: FlowNodeType = "action_response_create";
 export const FlowNodeTypeActionResponseEdit: FlowNodeType = "action_response_edit";
 export const FlowNodeTypeActionResponseDelete: FlowNodeType = "action_response_delete";
+export const FlowNodeTypeActionResponseDefer: FlowNodeType = "action_response_defer";
 export const FlowNodeTypeActionMessageCreate: FlowNodeType = "action_message_create";
 export const FlowNodeTypeActionMessageEdit: FlowNodeType = "action_message_edit";
 export const FlowNodeTypeActionMessageDelete: FlowNodeType = "action_message_delete";
@@ -28,6 +29,7 @@ export const FlowNodeTypeActionMemberKick: FlowNodeType = "action_member_kick";
 export const FlowNodeTypeActionMemberTimeout: FlowNodeType = "action_member_timeout";
 export const FlowNodeTypeActionMemberEdit: FlowNodeType = "action_member_edit";
 export const FlowNodeTypeActionHTTPRequest: FlowNodeType = "action_http_request";
+export const FlowNodeTypeActionAIChatCompletion: FlowNodeType = "action_ai_chat_completion";
 export const FlowNodeTypeActionLog: FlowNodeType = "action_log";
 export const FlowNodeTypeActionVariableSet: FlowNodeType = "action_variable_set";
 export const FlowNodeTypeActionVariableDelete: FlowNodeType = "action_variable_delete";
@@ -109,6 +111,10 @@ export interface FlowNodeData {
    */
   http_request_data?: HTTPRequestData;
   /**
+   * AI Chat Completion
+   */
+  ai_chat_completion_data?: AIChatCompletionData;
+  /**
    * Event Entry
    */
   event_type?: string;
@@ -148,7 +154,7 @@ export const VariableOperationOverwrite: VariableOperation = "overwrite";
 export const VariableOperationAppend: VariableOperation = "append";
 export const VariableOperationPrepend: VariableOperation = "prepend";
 export const VariableOperationIncrement: VariableOperation = "increment";
-export const VariableOperationDecremenet: VariableOperation = "decrement";
+export const VariableOperationDecrement: VariableOperation = "decrement";
 export type ConditionItemType = string;
 export const ConditionItemModeEqual: ConditionItemType = "equal";
 export const ConditionItemModeNotEqual: ConditionItemType = "not_equal";
@@ -177,6 +183,9 @@ export interface HTTPRequestData {
   url?: FlowString;
   method?: string;
 }
+export interface AIChatCompletionData {
+  prompt?: FlowString;
+}
 export interface FlowNodePosition {
   x: number /* float64 */;
   y: number /* float64 */;
@@ -200,6 +209,8 @@ export interface MockDiscordProvider {
 export interface MockLogProvider {
 }
 export interface MockHTTPprovider {
+}
+export interface MockAIProvider {
 }
 
 //////////
