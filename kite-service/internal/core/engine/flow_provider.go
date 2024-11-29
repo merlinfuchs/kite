@@ -257,6 +257,7 @@ func (p *AIProvider) CreateChatCompletion(ctx context.Context, prompt string) (s
 		Messages: []openai.ChatCompletionMessage{
 			{Role: openai.ChatMessageRoleUser, Content: prompt},
 		},
+		MaxCompletionTokens: 2000,
 	})
 	if err != nil {
 		return "", fmt.Errorf("failed to create chat completion: %w", err)

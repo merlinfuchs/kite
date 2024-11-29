@@ -192,7 +192,7 @@ export const nodeTypes: Record<string, NodeValues> = {
   action_private_message_create: {
     color: actionColor,
     icon: MessageCirclePlusIcon,
-    defaultTitle: "Create direct message",
+    defaultTitle: "Send direct message",
     defaultDescription:
       "Bot sends a private message to a user if the user allows it",
     dataSchema: nodeActionPrivateMessageCreateDataSchema,
