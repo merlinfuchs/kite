@@ -7,23 +7,22 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Input } from "../ui/input";
+import { useAppTokenUpdateMutation } from "@/lib/api/mutations";
+import { setValidationErrors } from "@/lib/form";
+import { useApp } from "@/lib/hooks/api";
+import { useAppId } from "@/lib/hooks/params";
+import { useCallback, useEffect } from "react";
 import { useForm } from "react-hook-form";
+import { toast } from "sonner";
 import {
   Form,
   FormControl,
-  FormDescription,
   FormField,
   FormItem,
   FormLabel,
   FormMessage,
 } from "../ui/form";
-import { useCallback, useEffect } from "react";
-import { useApp } from "@/lib/hooks/api";
-import { useAppTokenUpdateMutation } from "@/lib/api/mutations";
-import { useAppId } from "@/lib/hooks/params";
-import { toast } from "sonner";
-import { setValidationErrors } from "@/lib/form";
+import { Input } from "../ui/input";
 
 interface FormFields {
   discord_token: string;

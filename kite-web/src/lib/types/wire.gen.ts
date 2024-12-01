@@ -11,6 +11,7 @@ export interface App {
   name: string;
   description: null | string;
   enabled: boolean;
+  disabled_reason: null | string;
   discord_id: string;
   discord_status?: AppDiscordStatus;
   owner_user_id: string;
