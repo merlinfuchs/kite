@@ -77,6 +77,10 @@ export interface FlowNodeData {
    */
   command_disabled_contexts?: CommandContextType[];
   /**
+   * Command Installations
+   */
+  command_disabled_integrations?: CommandDisabledIntegrationType[];
+  /**
    * Message & Response Create, edit, Delete
    */
   message_target?: FlowString;
@@ -178,6 +182,9 @@ export type CommandContextType = string;
 export const CommandContextTypeGuild: CommandContextType = "guild";
 export const CommandContextTypeBotDM: CommandContextType = "bot_dm";
 export const CommandContextTypePrivateChannel: CommandContextType = "private_channel";
+export type CommandDisabledIntegrationType = string;
+export const CommandDisabledIntegrationTypeGuildInstall: CommandDisabledIntegrationType = "guild_install";
+export const CommandDisabledIntegrationTypeUserInstall: CommandDisabledIntegrationType = "user_install";
 export type EventFilterTarget = string;
 export const EventFilterTypeMessageContent: EventFilterTarget = "message_content";
 export interface HTTPRequestData {

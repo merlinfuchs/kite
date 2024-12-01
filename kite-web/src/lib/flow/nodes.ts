@@ -486,9 +486,9 @@ export const nodeTypes: Record<string, NodeValues> = {
     icon: MapPinIcon,
     defaultTitle: "Command Contexts",
     defaultDescription:
-      "Define if the command should be available in direct messages or just in servers.",
+      "Define where your command should be available. By default, it will be available everywhere.",
     dataSchema: nodeOptionCommandContextsSchema,
-    dataFields: ["command_contexts"],
+    dataFields: ["command_contexts", "command_integrations"],
   },
   option_event_filter: {
     color: optionColor,

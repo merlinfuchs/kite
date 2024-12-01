@@ -2,7 +2,6 @@ package flow
 
 import (
 	"fmt"
-	"slices"
 	"strconv"
 	"strings"
 
@@ -92,7 +91,7 @@ func (n *CompiledFlowNode) CommandData() discord.Command {
 		Options:                  n.CommandArguments(),
 		Description:              n.CommandDescription(),
 		DefaultMemberPermissions: n.CommandPermissions(),
-		NoDMPermission:           slices.Contains(n.CommandDisabledContexts(), CommandContextTypeBotDM),
+		Contexts:                 n.CommandContexts(),
 	}
 
 	namesParts := strings.Split(n.Data.Name, " ")
@@ -231,14 +230,65 @@ func (n *CompiledFlowNode) CommandPermissions() *discord.Permissions {
 	return nil
 }
 
-func (n *CompiledFlowNode) CommandDisabledContexts() []CommandContextType {
+func (n *CompiledFlowNode) CommandContexts() []discord.InteractionContext {
+	// True when disabled
+	var guild, botDM, privateChannel bool
+
 	for _, node := range n.Parents {
 		if node.IsCommandContexts() {
-			return node.Data.CommandDisabledContexts
+			for _, ctx := range node.Data.CommandDisabledContexts {
+				switch ctx {
+				case CommandContextTypeGuild:
+					guild = true
+				case CommandContextTypeBotDM:
+					botDM = true
+				case CommandContextTypePrivateChannel:
+					privateChannel = true
+				}
+			}
 		}
 	}
 
-	return nil
+	res := []discord.InteractionContext{}
+	if !guild {
+		res = append(res, discord.InteractionContextGuild)
+	}
+	if !botDM {
+		res = append(res, discord.InteractionContextBotDM)
+	}
+	if !privateChannel {
+		res = append(res, discord.InteractionContextPrivateChannel)
+	}
+
+	return res
+}
+
+func (n *CompiledFlowNode) CommandIntegrations() []discord.ApplicationIntegrationType {
+	// True when disabled
+	var guild, user bool
+
+	for _, node := range n.Parents {
+		if node.IsCommandContexts() {
+			for _, integration := range node.Data.CommandDisabledIntegrations {
+				switch integration {
+				case CommandDisabledIntegrationTypeGuildInstall:
+					guild = true
+				case CommandDisabledIntegrationTypeUserInstall:
+					user = true
+				}
+			}
+		}
+	}
+
+	res := []discord.ApplicationIntegrationType{}
+	if !guild {
+		res = append(res, discord.ApplicationIntegrationTypeGuild)
+	}
+	if !user {
+		res = append(res, discord.ApplicationIntegrationTypeUser)
+	}
+
+	return res
 }
 
 func (n *CompiledFlowNode) IsAction() bool {

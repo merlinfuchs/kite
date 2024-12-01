@@ -28,6 +28,8 @@ import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
   DropdownMenuContent,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "../ui/dropdown-menu";
 import {
@@ -62,6 +64,7 @@ const intputs: Record<string, any> = {
   command_argument_type: CommandArgumentTypeInput,
   command_argument_required: CommandArgumentRequiredInput,
   command_contexts: CommandContextsInput,
+  command_integrations: CommandIntegrationsInput,
   command_permissions: CommandPermissionsInput,
   event_type: EventTypeInput,
   message_data: MessageDataInput,
@@ -345,25 +348,81 @@ function CommandPermissionsInput({ data, updateData, errors }: InputProps) {
       title="Required Permissions"
       values={enabledPermissions}
       options={availablePermissions}
-      updateValue={setPermissions}
+      updateValues={setPermissions}
       errors={errors}
     />
   );
 }
 
 function CommandContextsInput({ data, updateData, errors }: InputProps) {
+  const availableValues = ["guild", "bot_dm", "private_channel"];
+
+  const values = useMemo(() => {
+    return availableValues.filter(
+      (v) => !data.command_disabled_contexts?.includes(v)
+    );
+  }, [data.command_disabled_contexts]);
+
+  const updateValues = useCallback(
+    (values: string[]) => {
+      const newValues = availableValues.filter((v) => !values.includes(v));
+
+      updateData({
+        command_disabled_contexts: newValues.length > 0 ? newValues : undefined,
+      });
+    },
+    [updateData]
+  );
+
   return (
-    <BaseCheckbox
-      field="command_disabled_contexts"
-      title="Enable in DMs"
-      value={!data.command_disabled_contexts?.includes("bot_dm")}
-      updateValue={(v) =>
-        updateData({
-          command_disabled_contexts: v
-            ? undefined
-            : ["bot_dm", "private_channel"],
-        })
-      }
+    <>
+      <BaseMultiSelect
+        field="command_disabled_contexts"
+        title="Contexts"
+        values={values}
+        options={[
+          { value: "guild", label: "In Servers" },
+          { value: "bot_dm", label: "In Bot DMs" },
+          { value: "private_channel", label: "In Other DMs" },
+        ]}
+        updateValues={updateValues}
+        errors={errors}
+      />
+    </>
+  );
+}
+
+function CommandIntegrationsInput({ data, updateData, errors }: InputProps) {
+  const availableValues = ["guild_install", "user_install"];
+
+  const values = useMemo(() => {
+    return availableValues.filter(
+      (v) => !data.command_disabled_integrations?.includes(v)
+    );
+  }, [data.command_disabled_integrations]);
+
+  const updateValues = useCallback(
+    (values: string[]) => {
+      const newValues = availableValues.filter((v) => !values.includes(v));
+
+      updateData({
+        command_disabled_integrations:
+          newValues.length > 0 ? newValues : undefined,
+      });
+    },
+    [updateData]
+  );
+
+  return (
+    <BaseMultiSelect
+      field="command_disabled_integrations"
+      title="Integrations Types"
+      values={values}
+      options={[
+        { value: "guild_install", label: "Server Install" },
+        { value: "user_install", label: "User Install" },
+      ]}
+      updateValues={updateValues}
       errors={errors}
     />
   );
@@ -1341,7 +1400,7 @@ function BaseMultiSelect({
   errors,
   options,
   values,
-  updateValue,
+  updateValues,
 }: {
   field: string;
   title: string;
@@ -1349,7 +1408,7 @@ function BaseMultiSelect({
   errors: Record<string, string>;
   options: { value: string; label: string }[];
   values: string[];
-  updateValue: (value: string[]) => void;
+  updateValues: (value: string[]) => void;
 }) {
   const error = errors[field];
 
@@ -1373,9 +1432,9 @@ function BaseMultiSelect({
               checked={values.includes(o.value)}
               onCheckedChange={(v) => {
                 if (v) {
-                  updateValue([...values, o.value]);
+                  updateValues([...values, o.value]);
                 } else {
-                  updateValue(values.filter((val) => val !== o.value));
+                  updateValues(values.filter((val) => val !== o.value));
                 }
               }}
             >
