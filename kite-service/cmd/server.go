@@ -92,6 +92,8 @@ func serverStartCMD(c *cli.Context) error {
 		AppPublicBaseURL:    cfg.App.PublicBaseURL,
 		DiscordClientID:     cfg.Discord.ClientID,
 		DiscordClientSecret: cfg.Discord.ClientSecret,
+		IFTTTServiceKey:     cfg.IFTTT.ServiceKey,
+		IFTTTClientSecret:   cfg.IFTTT.ClientSecret,
 		UserLimits: api.APIUserLimitsConfig{
 			MaxAppsPerUser:     cfg.API.UserLimits.MaxAppsPerUser,
 			MaxCommandsPerApp:  cfg.API.UserLimits.MaxCommandsPerApp,
@@ -99,7 +101,7 @@ func serverStartCMD(c *cli.Context) error {
 			MaxMessagesPerApp:  cfg.API.UserLimits.MaxMessagesPerApp,
 			MaxAssetSize:       cfg.API.UserLimits.MaxAssetSize,
 		},
-	}, pg, pg, pg, pg, pg, pg, pg, pg, pg, assetStore, gateway)
+	}, pg, pg, pg, pg, pg, pg, pg, pg, pg, assetStore, pg, gateway)
 	address := fmt.Sprintf("%s:%d", cfg.API.Host, cfg.API.Port)
 	if err := apiServer.Serve(context.Background(), address); err != nil {
 		slog.With("error", err).Error("Failed to start API server")

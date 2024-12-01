@@ -7,11 +7,13 @@ import (
 
 	"github.com/kitecloud/kite/kite-service/internal/api/access"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler"
+	apikey "github.com/kitecloud/kite/kite-service/internal/api/handler/api_key"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/app"
 	appstate "github.com/kitecloud/kite/kite-service/internal/api/handler/app_state"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/asset"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/auth"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/command"
+	"github.com/kitecloud/kite/kite-service/internal/api/handler/ifttt"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/logs"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/message"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/user"
@@ -32,6 +34,7 @@ func (s *APIServer) RegisterRoutes(
 	messageStore store.MessageStore,
 	messageInstanceStore store.MessageInstanceStore,
 	assetStore store.AssetStore,
+	apiKeyStore store.APIKeyStore,
 	appStateManager store.AppStateManager,
 ) {
 	sessionManager := session.NewSessionManager(session.SessionManagerConfig{
@@ -152,6 +155,12 @@ func (s *APIServer) RegisterRoutes(
 	messageGroup.Put("/instances/{instanceID}", handler.Typed(messageHandler.HandleMessageInstanceUpdate))
 	messageGroup.Delete("/instances/{instanceID}", handler.Typed(messageHandler.HandleMessageInstanceDelete))
 
+	// API Key routes
+	apiKeyHandler := apikey.NewAPIKeyHandler(apiKeyStore)
+
+	apiKeysGroup := appGroup.Group("/api-keys", sessionManager.RequireSession)
+	apiKeysGroup.Post("/", handler.TypedWithBody(apiKeyHandler.HandleAPIKeyCreate))
+
 	// Asset routes
 	assetHandler := asset.NewAssetHandler(assetStore, asset.AssetHandlerConfig{
 		APIPublicBaseURL: s.config.APIPublicBaseURL,
@@ -166,6 +175,21 @@ func (s *APIServer) RegisterRoutes(
 		assetHandler.HandleAssetDownload,
 		sessionManager.OptionalSession,
 	)
+
+	iftttHandler := ifttt.NewIFTTTHandler(ifttt.IFTTTHandlerConfig{
+		ServiceKey:   s.config.IFTTTServiceKey,
+		ClientSecret: s.config.IFTTTClientSecret,
+	})
+
+	iftttGroup := handler.Group(s.mux, "/ifttt/v1")
+	iftttGroup.Post("/token", handler.TypedWithBody(iftttHandler.HandleTokenExchange))
+
+	iftttGroup.Post("/triggers/action_nodes", handler.TypedWithBody(iftttHandler.HandleTriggerActionNode))
+	iftttGroup.Post("/triggers/action_node/fields/app_id/options", handler.Typed(iftttHandler.HandleFieldAppIDOptions))
+
+	iftttGroup.Post("/actions/event_trigger", handler.TypedWithBody(iftttHandler.HandleActionEventTrigger))
+	iftttGroup.Post("/actions/event_trigger/fields/app_id/options", handler.Typed(iftttHandler.HandleFieldAppIDOptions))
+	iftttGroup.Post("/actions/event_trigger/fields/event_id/options", handler.Typed(iftttHandler.HandleFieldEventIDOptions))
 
 	// State routes
 	stateHandler := appstate.NewAppStateHandler(appStateManager)

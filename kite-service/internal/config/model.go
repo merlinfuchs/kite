@@ -10,6 +10,7 @@ type Config struct {
 	Discord  DiscordConfig  `toml:"discord"`
 	Engine   EngineConfig   `toml:"engine"`
 	OpenAI   OpenAIConfig   `toml:"openai"`
+	IFTTT    IFTTTConfig    `toml:"ifttt"`
 }
 
 func (cfg *Config) Validate() error {
@@ -82,4 +83,9 @@ type UserLimitsConfig struct {
 
 type OpenAIConfig struct {
 	APIKey string `toml:"api_key"`
+}
+
+type IFTTTConfig struct {
+	ServiceKey   string `toml:"service_key"`
+	ClientSecret string `toml:"client_secret"`
 }

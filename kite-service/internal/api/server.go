@@ -16,6 +16,8 @@ type APIServerConfig struct {
 	APIPublicBaseURL    string
 	DiscordClientID     string
 	DiscordClientSecret string
+	IFTTTServiceKey     string
+	IFTTTClientSecret   string
 	UserLimits          APIUserLimitsConfig
 }
 
@@ -45,6 +47,7 @@ func NewAPIServer(
 	messageStore store.MessageStore,
 	messageInstanceStore store.MessageInstanceStore,
 	assetStore store.AssetStore,
+	apiKeyStore store.APIKeyStore,
 	appStateManager store.AppStateManager,
 ) *APIServer {
 	s := &APIServer{
@@ -62,6 +65,7 @@ func NewAPIServer(
 		messageStore,
 		messageInstanceStore,
 		assetStore,
+		apiKeyStore,
 		appStateManager,
 	)
 	return s

@@ -4,6 +4,27 @@ import { MessageData } from './message.gen';
 interface Empty {}
 
 //////////
+// source: api_key.go
+
+export interface APIKey {
+  id: string;
+  type: string;
+  name: string;
+  key: string;
+  key_hash: string;
+  app_id: string;
+  creator_user_id: string;
+  created_at: string /* RFC3339 */;
+  updated_at: string /* RFC3339 */;
+  expires_at: null | string /* RFC3339 */;
+}
+export interface APIKeyCreateRequest {
+  type: string;
+  name: string;
+}
+export type APIKeyCreateResponse = APIKey;
+
+//////////
 // source: app.go
 
 export interface App {
@@ -115,6 +136,17 @@ export interface CommandUpdateRequest {
 }
 export type CommandUpdateResponse = Command;
 export type CommandDeleteResponse = Empty;
+
+//////////
+// source: ifttt.go
+
+export interface IFTTTTokenExchangeRequest {
+  code: string;
+  client_secret: string;
+}
+export interface IFTTTTokenExchangeResponse {
+  access_token: string;
+}
 
 //////////
 // source: log.go
