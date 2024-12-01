@@ -13,3 +13,5 @@ CREATE TABLE IF NOT EXISTS apps (
     created_at TIMESTAMP NOT NULL,
     updated_at TIMESTAMP NOT NULL
 );
+
+CREATE INDEX IF NOT EXISTS apps_owner_user_id ON apps (owner_user_id);

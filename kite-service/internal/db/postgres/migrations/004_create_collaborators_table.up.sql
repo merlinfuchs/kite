@@ -8,3 +8,6 @@ CREATE TABLE IF NOT EXISTS collaborators (
 
     PRIMARY KEY (user_id, app_id)
 );
+
+CREATE INDEX IF NOT EXISTS collaborators_user_id ON collaborators (user_id);
+CREATE INDEX IF NOT EXISTS collaborators_app_id ON collaborators (app_id);

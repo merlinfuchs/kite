@@ -11,3 +11,6 @@ CREATE TABLE IF NOT EXISTS variables (
 
     UNIQUE (app_id, name)
 );
+
+CREATE INDEX IF NOT EXISTS variables_app_id ON variables (app_id);
+CREATE INDEX IF NOT EXISTS variables_module_id ON variables (module_id);
