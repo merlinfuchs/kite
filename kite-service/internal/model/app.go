@@ -7,17 +7,18 @@ import (
 )
 
 type App struct {
-	ID            string
-	Name          string
-	Description   null.String
-	Enabled       bool
-	OwnerUserID   string
-	CreatorUserID string
-	DiscordToken  string
-	DiscordID     string
-	DiscordStatus *AppDiscordStatus
-	CreatedAt     time.Time
-	UpdatedAt     time.Time
+	ID             string
+	Name           string
+	Description    null.String
+	Enabled        bool
+	DisabledReason null.String
+	OwnerUserID    string
+	CreatorUserID  string
+	DiscordToken   string
+	DiscordID      string
+	DiscordStatus  *AppDiscordStatus
+	CreatedAt      time.Time
+	UpdatedAt      time.Time
 }
 
 type AppCredentials struct {

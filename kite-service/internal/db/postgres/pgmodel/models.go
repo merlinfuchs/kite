@@ -9,17 +9,18 @@ import (
 )
 
 type App struct {
-	ID            string
-	Name          string
-	Description   pgtype.Text
-	Enabled       bool
-	OwnerUserID   string
-	CreatorUserID string
-	DiscordToken  string
-	DiscordID     string
-	CreatedAt     pgtype.Timestamp
-	UpdatedAt     pgtype.Timestamp
-	DiscordStatus []byte
+	ID             string
+	Name           string
+	Description    pgtype.Text
+	Enabled        bool
+	OwnerUserID    string
+	CreatorUserID  string
+	DiscordToken   string
+	DiscordID      string
+	CreatedAt      pgtype.Timestamp
+	UpdatedAt      pgtype.Timestamp
+	DiscordStatus  []byte
+	DisabledReason pgtype.Text
 }
 
 type Asset struct {

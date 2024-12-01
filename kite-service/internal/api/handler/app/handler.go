@@ -9,6 +9,7 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/internal/store"
 	"github.com/kitecloud/kite/kite-service/internal/util"
+	"gopkg.in/guregu/null.v4"
 )
 
 type AppHandler struct {
@@ -96,13 +97,14 @@ func (h *AppHandler) HandleAppUpdate(c *handler.Context, req wire.AppUpdateReque
 	}
 
 	app, err := h.appStore.UpdateApp(c.Context(), store.AppUpdateOpts{
-		ID:            c.App.ID,
-		Name:          req.Name,
-		Description:   req.Description,
-		DiscordToken:  c.App.DiscordToken,
-		DiscordStatus: status,
-		Enabled:       req.Enabled,
-		UpdatedAt:     time.Now().UTC(),
+		ID:             c.App.ID,
+		Name:           req.Name,
+		Description:    req.Description,
+		DiscordToken:   c.App.DiscordToken,
+		DiscordStatus:  status,
+		Enabled:        req.Enabled,
+		DisabledReason: null.String{}, // We reset the disabled reason when the app is updated
+		UpdatedAt:      time.Now().UTC(),
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to update app: %w", err)
@@ -126,6 +128,7 @@ func (h *AppHandler) HandleAppTokenUpdate(c *handler.Context, req wire.AppTokenU
 		Name:         c.App.Name,
 		Description:  c.App.Description,
 		DiscordToken: req.DiscordToken,
+		Enabled:      true,
 		UpdatedAt:    time.Now().UTC(),
 	})
 	if err != nil {

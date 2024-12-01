@@ -1,13 +1,4 @@
-import Link from "next/link";
-import {
-  HomeIcon,
-  MailPlusIcon,
-  PanelLeft,
-  SatelliteDishIcon,
-  SettingsIcon,
-  SlashSquareIcon,
-  VariableIcon,
-} from "lucide-react";
+import logo from "@/assets/logo/white@1024.png";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -31,20 +22,29 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { Fragment, ReactNode, useCallback, useMemo } from "react";
-import { useRouter } from "next/router";
-import { abbreviateName, cn } from "@/lib/utils";
-import ThemeSwitch from "../common/ThemeSwitch";
-import Head from "next/head";
+import { useAuthLogoutMutation } from "@/lib/api/mutations";
+import env from "@/lib/env/client";
 import { useApp, useUser } from "@/lib/hooks/api";
+import { abbreviateName, cn } from "@/lib/utils";
+import {
+  HomeIcon,
+  MailPlusIcon,
+  PanelLeft,
+  SatelliteDishIcon,
+  SettingsIcon,
+  SlashSquareIcon,
+  VariableIcon,
+} from "lucide-react";
+import Link from "next/link";
+import { useRouter } from "next/router";
+import { Fragment, ReactNode, useCallback, useMemo } from "react";
 import { toast } from "sonner";
+import BaseLayout from "../common/BaseLayout";
+import ThemeSwitch from "../common/ThemeSwitch";
 import DynamicIcon from "../icons/DynamicIcon";
 import { Separator } from "../ui/separator";
-import logo from "@/assets/logo/white@1024.png";
-import BaseLayout from "../common/BaseLayout";
+import AppDisabledPopup from "./AppDisabledPopup";
 import OpenBetaPopup from "./OpenBetaPopup";
-import env from "@/lib/env/client";
-import { useAuthLogoutMutation } from "@/lib/api/mutations";
 
 interface Props {
   breadcrumbs?: {
@@ -422,6 +422,7 @@ export default function AppLayout({ children, ...props }: Props) {
       </div>
 
       <OpenBetaPopup />
+      <AppDisabledPopup />
     </BaseLayout>
   );
 }

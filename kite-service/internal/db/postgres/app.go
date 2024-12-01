@@ -110,13 +110,28 @@ func (c *Client) UpdateApp(ctx context.Context, opts store.AppUpdateOpts) (*mode
 		DiscordToken:  opts.DiscordToken,
 		DiscordStatus: rawStatus,
 		Enabled:       opts.Enabled,
-		UpdatedAt:     pgtype.Timestamp{Time: opts.UpdatedAt.UTC(), Valid: true},
+		DisabledReason: pgtype.Text{
+			String: opts.DisabledReason.String,
+			Valid:  opts.DisabledReason.Valid,
+		},
+		UpdatedAt: pgtype.Timestamp{Time: opts.UpdatedAt.UTC(), Valid: true},
 	})
 	if err != nil {
 		return nil, err
 	}
 
 	return rowToApp(row)
+}
+
+func (c *Client) DisableApp(ctx context.Context, opts store.AppDisableOpts) error {
+	return c.Q.DisableApp(ctx, pgmodel.DisableAppParams{
+		ID: opts.ID,
+		DisabledReason: pgtype.Text{
+			String: opts.DisabledReason.String,
+			Valid:  opts.DisabledReason.Valid,
+		},
+		UpdatedAt: pgtype.Timestamp{Time: opts.UpdatedAt.UTC(), Valid: true},
+	})
 }
 
 func (c *Client) DeleteApp(ctx context.Context, id string) error {
@@ -158,16 +173,17 @@ func rowToApp(row pgmodel.App) (*model.App, error) {
 	}
 
 	return &model.App{
-		ID:            row.ID,
-		Name:          row.Name,
-		Description:   null.NewString(row.Description.String, row.Description.Valid),
-		Enabled:       row.Enabled,
-		OwnerUserID:   row.OwnerUserID,
-		CreatorUserID: row.CreatorUserID,
-		DiscordToken:  row.DiscordToken,
-		DiscordID:     row.DiscordID,
-		DiscordStatus: status,
-		CreatedAt:     row.CreatedAt.Time,
-		UpdatedAt:     row.UpdatedAt.Time,
+		ID:             row.ID,
+		Name:           row.Name,
+		Description:    null.NewString(row.Description.String, row.Description.Valid),
+		Enabled:        row.Enabled,
+		DisabledReason: null.NewString(row.DisabledReason.String, row.DisabledReason.Valid),
+		OwnerUserID:    row.OwnerUserID,
+		CreatorUserID:  row.CreatorUserID,
+		DiscordToken:   row.DiscordToken,
+		DiscordID:      row.DiscordID,
+		DiscordStatus:  status,
+		CreatedAt:      row.CreatedAt.Time,
+		UpdatedAt:      row.UpdatedAt.Time,
 	}, nil
 }

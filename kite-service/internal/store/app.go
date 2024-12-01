@@ -9,13 +9,20 @@ import (
 )
 
 type AppUpdateOpts struct {
-	ID            string
-	Name          string
-	Description   null.String
-	DiscordToken  string
-	DiscordStatus *model.AppDiscordStatus
-	Enabled       bool
-	UpdatedAt     time.Time
+	ID             string
+	Name           string
+	Description    null.String
+	DiscordToken   string
+	DiscordStatus  *model.AppDiscordStatus
+	Enabled        bool
+	DisabledReason null.String
+	UpdatedAt      time.Time
+}
+
+type AppDisableOpts struct {
+	ID             string
+	DisabledReason null.String
+	UpdatedAt      time.Time
 }
 
 type AppStore interface {
@@ -25,6 +32,7 @@ type AppStore interface {
 	AppCredentials(ctx context.Context, id string) (*model.AppCredentials, error)
 	CreateApp(ctx context.Context, app *model.App) (*model.App, error)
 	UpdateApp(ctx context.Context, opts AppUpdateOpts) (*model.App, error)
+	DisableApp(ctx context.Context, opts AppDisableOpts) error
 	DeleteApp(ctx context.Context, id string) error
 	EnabledAppIDs(ctx context.Context) ([]string, error)
 	EnabledAppsUpdatedSince(ctx context.Context, updatedSince time.Time) ([]*model.App, error)
