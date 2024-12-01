@@ -4,34 +4,40 @@ sidebar_position: 2
 
 # User Installable Apps
 
-Most apps on Discord are installed by server admins to their servers and are only available on that server. However, some apps are designed to be installed by users to their own accounts which makes them available on any server the user is on. While these types of apps are less powerful, they can be useful for utility apps that are not server specific.
+Discord apps are typically installed by server administrators and only work within their specific servers. However, Discord also supports user-installable apps that work across all servers a user has access to. While these apps have some limitations compared to server-installed apps, they're perfect for personal utility tools that you want to use anywhere.
 
-With Kite you can create user installable Discord apps in a few clicks without having to write a single line of code. In this guide, we will go through the steps to create a user installable app with Kite and add it to your account.
+Kite makes it easy to create user-installable Discord apps without writing any code. This guide will walk you through creating and configuring a user-installable app with Kite.
 
-Some servers disallow the usage of user installable apps for moderation reasons. If you are experiencing issues with your app not working, please check the server's settings.
+:::note
+Some Discord servers may restrict the usage of user-installable apps for moderation purposes. If your app isn't working in a particular server, check that server's settings.
+:::
 
-## Creating Your app
+## Creating Your App
 
-To create your Discord app, please follow the steps in the [getting started guide](/guides/getting-started).
+To create your Discord app, follow the steps in the [getting started guide](/guides/getting-started).
 
-## Configuring the Installation Contexts
+## Configuring Installation Settings
 
-Once your app is created, you need to configure the installation contexts. To do this, open your app in the [Discord Developer Portal](https://discord.com/developers/applications) and switch to the `Installation' section on the left side.
+After creating your app, you'll need to configure how it can be installed. Open your app in the [Discord Developer Portal](https://discord.com/developers/applications) and navigate to the `Installation` section in the left sidebar.
 
-Under `Installation Contexts`, check the box for `User Install` and save the changes. You can optionally disable `Guild Install` if you don't want your app to be installable on servers.
+Under `Installation Contexts`, enable the `User Install` checkbox and save your changes. If you want your app to be exclusively user-installable, you can optionally disable the `Guild Install` option.
 
 ![Developer Portal Installation](./img/devportal-installation.png)
 
-## Adding the App to Your Account
+## Installing the App
 
-Now you can already add the app to your Discord account by clicking on `Invite app` in the top right corner of the Kite dashboard. You can then select between installing the app to your account or a specific server. For this guide, we will install the app to our account.
+You can now add the app to your Discord account by clicking `Invite app` in the top-right corner of the Kite dashboard. You'll have the option to install the app either to your personal account or to a specific server. For this guide, we'll install it to your account.
 
-Once the app is installed, you can use any commands of the app in any server you are in and also in private messages with the bot or other users.
+Once installed, you can use the app's commands in any server you're a member of, as well as in direct messages with the bot or other users.
 
-## Configuring Commands
+## Managing Command Availability
 
-By default, all commands created with Kite are available both when the app is installed to a server and when it is installed to a user's account. If you want some commands to only be available when the app is installed to a server or only when it is installed to a user's account, you can configure that using the `Command Contexts` option node in the Kite Flow editor.
+By default, all commands created in Kite work regardless of how the app was installed (user or server installation). However, you can customize this using the `Command Contexts` option node in the Kite Flow editor.
 
-With the same node, you can also configure if your command should be available only in DMs or only on servers.
+This node allows you to:
+
+- Restrict commands to only work with server installations
+- Restrict commands to only work with user installations
+- Specify whether commands work in DMs, servers, or both
 
 ![Command Contexts](./img/example-cmd-contexts.png)
