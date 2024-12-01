@@ -107,6 +107,8 @@ type FlowNodeData struct {
 
 	// Command Contexts
 	CommandDisabledContexts []CommandContextType `json:"command_disabled_contexts,omitempty"`
+	// Command Installations
+	CommandDisabledIntegrations []CommandDisabledIntegrationType `json:"command_disabled_integrations,omitempty"`
 
 	// Message & Response Create, edit, Delete
 	MessageTarget     FlowString           `json:"message_target,omitempty"`
@@ -249,6 +251,13 @@ const (
 	CommandContextTypeGuild          CommandContextType = "guild"
 	CommandContextTypeBotDM          CommandContextType = "bot_dm"
 	CommandContextTypePrivateChannel CommandContextType = "private_channel"
+)
+
+type CommandDisabledIntegrationType string
+
+const (
+	CommandDisabledIntegrationTypeGuildInstall CommandDisabledIntegrationType = "guild_install"
+	CommandDisabledIntegrationTypeUserInstall  CommandDisabledIntegrationType = "user_install"
 )
 
 type EventFilterTarget string

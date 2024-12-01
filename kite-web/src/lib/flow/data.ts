@@ -63,6 +63,9 @@ export const nodeOptionCommandContextsSchema = nodeBaseDataSchema.extend({
         .or(z.literal("private_channel"))
     )
     .optional(),
+  command_disabled_integrations: z
+    .array(z.literal("guild_install").or(z.literal("user_install")))
+    .optional(),
 });
 
 export const nodeOptionEventFilterSchema = nodeBaseDataSchema.extend({

@@ -163,6 +163,7 @@ github.com/merlinfuchs/arikawa/v3 v3.4.0 h1:oVTSZDBBdn8KcxDY2wNb9Txd4K88Tk7PouHC
 github.com/merlinfuchs/arikawa/v3 v3.4.0/go.mod h1:WVkbdenUfsCCkptIlqSglF4eo2/HSXv74eCqGnOZaYY=
 github.com/merlinfuchs/arikawa/v3 v3.4.1-0.20241201100740-9fd8e3713516 h1:do6tBi7vQnjegYDolPGP4nuw37KBrnSWkKs50PeOSEQ=
 github.com/merlinfuchs/arikawa/v3 v3.4.1-0.20241201100740-9fd8e3713516/go.mod h1:P7gJBCKgdAVRFLK+N5pIvzfo+vLrLVquduPKz4znoEQ=
+github.com/merlinfuchs/arikawa/v3 v3.4.1-0.20241201143250-f3d1e0416b7d/go.mod h1:P7gJBCKgdAVRFLK+N5pIvzfo+vLrLVquduPKz4znoEQ=
 github.com/microcosm-cc/bluemonday v1.0.24/go.mod h1:ArQySAMps0790cHSkdPEJ7bGkF2VePWH773hsJNSHf8=
 github.com/microsoft/go-mssqldb v1.0.0/go.mod h1:+4wZTUnz/SV6nffv+RRRB/ss8jPng5Sho2SmM1l2ts4=
 github.com/minio/asm2plan9s v0.0.0-20200509001527-cdd76441f9d8/go.mod h1:mC1jAcsrzbxHt8iiaC+zU4b1ylILSosueou12R++wfY=
