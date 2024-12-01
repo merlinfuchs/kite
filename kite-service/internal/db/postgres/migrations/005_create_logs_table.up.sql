@@ -7,3 +7,5 @@ CREATE TABLE IF NOT EXISTS logs (
    
     created_at TIMESTAMP NOT NULL
 );
+
+CREATE INDEX IF NOT EXISTS logs_app_id ON logs (app_id);

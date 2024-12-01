@@ -14,3 +14,5 @@ CREATE TABLE IF NOT EXISTS message_instances (
     created_at TIMESTAMP NOT NULL,
     updated_at TIMESTAMP NOT NULL
 );
+
+CREATE INDEX IF NOT EXISTS message_instances_message_id ON message_instances (message_id);

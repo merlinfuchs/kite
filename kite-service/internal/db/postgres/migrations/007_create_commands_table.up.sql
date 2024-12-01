@@ -14,3 +14,6 @@ CREATE TABLE IF NOT EXISTS commands (
     updated_at TIMESTAMP NOT NULL,
     last_deployed_at TIMESTAMP
 );
+
+CREATE INDEX IF NOT EXISTS commands_app_id ON commands (app_id);
+CREATE INDEX IF NOT EXISTS commands_module_id ON commands (module_id);

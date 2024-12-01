@@ -9,3 +9,6 @@ CREATE TABLE IF NOT EXISTS variable_values (
 
     UNIQUE NULLS NOT DISTINCT (variable_id, scope)
 );
+
+CREATE INDEX IF NOT EXISTS variable_values_variable_id ON variable_values (variable_id);
+CREATE INDEX IF NOT EXISTS variable_values_scope ON variable_values (scope);
