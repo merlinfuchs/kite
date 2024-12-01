@@ -135,6 +135,10 @@ func (a *App) DeployCommands(ctx context.Context) error {
 			Options:                  data.Options,
 			DefaultMemberPermissions: data.DefaultMemberPermissions,
 			NoDMPermission:           data.NoDMPermission,
+			IntegrationTypes: []discord.ApplicationIntegrationType{
+				discord.ApplicationIntegrationTypeGuild,
+				discord.ApplicationIntegrationTypeUser,
+			},
 		})
 		commandNames = append(commandNames, node.CommandName())
 	}
