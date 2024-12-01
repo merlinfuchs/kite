@@ -74,8 +74,8 @@ func (m *GatewayManager) populateGateways(ctx context.Context) error {
 		return fmt.Errorf("failed to remove dangling apps: %w", err)
 	}
 
-	for _, integration := range apps {
-		if err := m.addGateway(ctx, integration); err != nil {
+	for _, app := range apps {
+		if err := m.addGateway(ctx, app); err != nil {
 			slog.With("error", err).Error("failed to add gateway")
 		}
 	}
@@ -112,7 +112,7 @@ func (m *GatewayManager) addGateway(ctx context.Context, app *model.App) error {
 	if g, ok := m.gateways[app.ID]; ok {
 		g.Update(ctx, app)
 	} else {
-		g := NewGateway(app, m.logStore, m.eventHandler)
+		g := NewGateway(app, m.logStore, m.appStore, m.eventHandler)
 		m.gateways[app.ID] = g
 	}
 

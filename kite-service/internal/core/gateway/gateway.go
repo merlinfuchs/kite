@@ -2,30 +2,37 @@ package gateway
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
+	"net/http"
 	"sync"
 	"time"
 
 	"github.com/diamondburned/arikawa/v3/gateway"
+	"github.com/diamondburned/arikawa/v3/session"
 	"github.com/diamondburned/arikawa/v3/state"
+	"github.com/diamondburned/arikawa/v3/utils/httputil"
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/internal/store"
+	"gopkg.in/guregu/null.v4"
 )
 
 type Gateway struct {
 	sync.Mutex
 
 	logStore     store.LogStore
+	appStore     store.AppStore
 	eventHandler EventHandler
 
 	app     *model.App
 	session *state.State
 }
 
-func NewGateway(app *model.App, logStore store.LogStore, eventHandler EventHandler) *Gateway {
+func NewGateway(app *model.App, logStore store.LogStore, appStore store.AppStore, eventHandler EventHandler) *Gateway {
 	g := &Gateway{
 		logStore:     logStore,
+		appStore:     appStore,
 		eventHandler: eventHandler,
 		app:          app,
 		session:      createSession(app),
@@ -41,8 +48,14 @@ func (g *Gateway) startGateway() {
 
 	intents, err := getAppIntents(g.session.Client)
 	if err != nil {
-		// TODO: store if the token is invalid
-		go g.createLogEntry(model.LogLevelError, fmt.Sprintf("Failed to get app intents: %v", err))
+		var httpErr *httputil.HTTPError
+		if errors.As(err, &httpErr) && httpErr.Status == http.StatusUnauthorized {
+			g.createLogEntry(model.LogLevelError, "Discord bot token is invalid, please update it")
+			g.disableApp("Discord bot token is invalid, please update it")
+			return
+		}
+
+		g.createLogEntry(model.LogLevelError, fmt.Sprintf("Failed to get app intents: %v", err))
 		slog.With("error", err).Error("failed to get app intents")
 		return
 	}
@@ -73,10 +86,10 @@ func (g *Gateway) startGateway() {
 		}
 	})
 
-	// TODO: replace with r.session.Connect?
-	if err := g.session.Open(context.TODO()); err != nil {
-		go g.createLogEntry(model.LogLevelError, fmt.Sprintf("Failed to open session: %v", err))
-		slog.With("error", err).Error("failed to open session")
+	if err := g.session.Connect(context.TODO()); err != nil {
+		// Fatal error, we can't recover
+		g.createLogEntry(model.LogLevelError, fmt.Sprintf("Failed to connect to gateway: %v", err))
+		g.disableApp(fmt.Sprintf("Failed to connect to gateway: %v", err))
 		return
 	}
 }
@@ -85,7 +98,9 @@ func (g *Gateway) Close(ctx context.Context) error {
 	g.Lock()
 	defer g.Unlock()
 
-	if err := g.session.Close(); err != nil {
+	err := g.session.Close()
+
+	if err != nil && !errors.Is(err, session.ErrClosed) {
 		return err
 	}
 
@@ -131,5 +146,19 @@ func (g *Gateway) createLogEntry(level model.LogLevel, message string) {
 	})
 	if err != nil {
 		slog.With("error", err).With("app_id", g.app.ID).Error("Failed to create log entry from gateway")
+	}
+}
+
+func (g *Gateway) disableApp(reason string) {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+
+	err := g.appStore.DisableApp(ctx, store.AppDisableOpts{
+		ID:             g.app.ID,
+		DisabledReason: null.StringFrom(reason),
+		UpdatedAt:      time.Now().UTC(),
+	})
+	if err != nil {
+		slog.With("error", err).With("app_id", g.app.ID).Error("Failed to disable app from gateway")
 	}
 }

@@ -9,16 +9,17 @@ import (
 )
 
 type App struct {
-	ID            string            `json:"id"`
-	Name          string            `json:"name"`
-	Description   null.String       `json:"description"`
-	Enabled       bool              `json:"enabled"`
-	DiscordID     string            `json:"discord_id"`
-	DiscordStatus *AppDiscordStatus `json:"discord_status,omitempty"`
-	OwnerUserID   string            `json:"owner_user_id"`
-	CreatorUserID string            `json:"creator_user_id"`
-	CreatedAt     time.Time         `json:"created_at"`
-	UpdatedAt     time.Time         `json:"updated_at"`
+	ID             string            `json:"id"`
+	Name           string            `json:"name"`
+	Description    null.String       `json:"description"`
+	Enabled        bool              `json:"enabled"`
+	DisabledReason null.String       `json:"disabled_reason"`
+	DiscordID      string            `json:"discord_id"`
+	DiscordStatus  *AppDiscordStatus `json:"discord_status,omitempty"`
+	OwnerUserID    string            `json:"owner_user_id"`
+	CreatorUserID  string            `json:"creator_user_id"`
+	CreatedAt      time.Time         `json:"created_at"`
+	UpdatedAt      time.Time         `json:"updated_at"`
 }
 
 type AppDiscordStatus struct {
@@ -92,15 +93,16 @@ func AppToWire(app *model.App) *App {
 	}
 
 	return &App{
-		ID:            app.ID,
-		Name:          app.Name,
-		Description:   app.Description,
-		Enabled:       app.Enabled,
-		DiscordID:     app.DiscordID,
-		DiscordStatus: status,
-		OwnerUserID:   app.OwnerUserID,
-		CreatorUserID: app.CreatorUserID,
-		CreatedAt:     app.CreatedAt,
-		UpdatedAt:     app.UpdatedAt,
+		ID:             app.ID,
+		Name:           app.Name,
+		Description:    app.Description,
+		Enabled:        app.Enabled,
+		DisabledReason: app.DisabledReason,
+		DiscordID:      app.DiscordID,
+		DiscordStatus:  status,
+		OwnerUserID:    app.OwnerUserID,
+		CreatorUserID:  app.CreatorUserID,
+		CreatedAt:      app.CreatedAt,
+		UpdatedAt:      app.UpdatedAt,
 	}
 }

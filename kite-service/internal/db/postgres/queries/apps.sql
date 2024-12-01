@@ -32,8 +32,16 @@ UPDATE apps SET
     discord_token = $4,
     discord_status = $5,
     enabled = $6,
-    updated_at = $7
+    disabled_reason = $7,
+    updated_at = $8
 WHERE id = $1 RETURNING *;
+
+-- name: DisableApp :exec
+UPDATE apps SET
+    enabled = FALSE,
+    disabled_reason = $2,
+    updated_at = $3
+WHERE id = $1;
 
 -- name: DeleteApp :exec
 DELETE FROM apps WHERE id = $1;
