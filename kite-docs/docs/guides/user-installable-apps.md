@@ -6,7 +6,7 @@ sidebar_position: 2
 
 Most apps on Discord are installed by server admins to their servers and are only available on that server. However, some apps are designed to be installed by users to their own accounts which makes them available on any server the user is on. While these types of apps are less powerful, they can be useful for utility apps that are not server specific.
 
-With Kite you can create user installable Discord apps without having to write a single line of code. In this guide, we will go through the steps to create a user installable app with Kite and add it to your account.
+With Kite you can create user installable Discord apps in a few clicks without having to write a single line of code. In this guide, we will go through the steps to create a user installable app with Kite and add it to your account.
 
 Some servers disallow the usage of user installable apps for moderation reasons. If you are experiencing issues with your app not working, please check the server's settings.
 
