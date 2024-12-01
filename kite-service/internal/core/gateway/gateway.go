@@ -74,14 +74,7 @@ func (g *Gateway) startGateway() {
 
 		if len(e.Guilds) > 100 {
 			g.createLogEntry(model.LogLevelError, "Bots that are in more than 100 servers are currently not supported.")
-
-			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-			defer cancel()
-
-			if err := g.Close(ctx); err != nil {
-				slog.With("error", err).Error("failed to close gateway")
-			}
-
+			g.disableApp("Bots that are in more than 100 servers are currently not supported.")
 			return
 		}
 	})
