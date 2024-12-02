@@ -7,6 +7,8 @@ import (
 	"strconv"
 
 	"github.com/diamondburned/arikawa/v3/discord"
+	"github.com/diamondburned/arikawa/v3/gateway"
+	"github.com/diamondburned/arikawa/v3/utils/ws"
 )
 
 var ErrNotFound = errors.New("placeholder not found")
@@ -218,6 +220,122 @@ func (p CommandOptionProvider) GetPlaceholder(ctx context.Context, key string) (
 
 func (p CommandOptionProvider) ResolvePlaceholder(ctx context.Context) (string, error) {
 	return p.option.String(), nil
+}
+
+type EventProvider struct {
+	user    *discord.User
+	member  *discord.Member
+	channel *discord.Channel
+	message *discord.Message
+	guild   *discord.Guild
+	event   ws.Event
+}
+
+func NewEventProvider(event ws.Event) EventProvider {
+	p := EventProvider{
+		event: event,
+	}
+
+	switch d := event.(type) {
+	case *gateway.MessageCreateEvent:
+		p.message = &d.Message
+		p.user = &d.Author
+		p.member = d.Member
+		p.channel = &discord.Channel{
+			ID: d.ChannelID,
+		}
+		if p.member != nil {
+			p.user = &p.member.User
+		}
+		if d.GuildID != 0 {
+			p.guild = &discord.Guild{
+				ID: d.GuildID,
+			}
+		}
+	case *gateway.MessageUpdateEvent:
+		p.message = &d.Message
+		p.user = &d.Author
+		p.member = d.Member
+		p.channel = &discord.Channel{
+			ID: d.ChannelID,
+		}
+		if d.GuildID != 0 {
+			p.guild = &discord.Guild{
+				ID: d.GuildID,
+			}
+		}
+		if p.member != nil {
+			p.user = &p.member.User
+		}
+	}
+
+	return p
+}
+
+func (p EventProvider) GetPlaceholder(ctx context.Context, key string) (Provider, error) {
+	switch key {
+	case "type":
+		return NewStringProvider(string(p.event.EventType())), nil
+	case "message":
+		if p.message == nil {
+			return nil, ErrNotFound
+		}
+		return NewMessageProvider(p.message), nil
+	case "user":
+		if p.user == nil {
+			return nil, ErrNotFound
+		}
+		if p.member != nil {
+			return NewMemberProvider(p.member), nil
+		}
+		return NewUserProvider(p.user), nil
+	case "member":
+		if p.member == nil {
+			return nil, ErrNotFound
+		}
+		return NewMemberProvider(p.member), nil
+	case "channel":
+		if p.channel == nil {
+			return nil, ErrNotFound
+		}
+		return NewChannelProvider(p.channel.ID), nil
+	case "guild":
+		if p.guild == nil {
+			return nil, ErrNotFound
+		}
+		return NewGuildProvider(p.guild.ID), nil
+	}
+	return nil, ErrNotFound
+}
+
+func (p EventProvider) ResolvePlaceholder(ctx context.Context) (string, error) {
+	return string(p.event.EventType()), nil
+}
+
+type MessageProvider struct {
+	msg *discord.Message
+}
+
+func NewMessageProvider(msg *discord.Message) MessageProvider {
+	return MessageProvider{
+		msg: msg,
+	}
+}
+
+func (p MessageProvider) GetPlaceholder(ctx context.Context, key string) (Provider, error) {
+	switch key {
+	case "id":
+		return NewStringProvider(p.msg.ID.String()), nil
+	case "user", "author":
+		return NewUserProvider(&p.msg.Author), nil
+	case "content":
+		return NewStringProvider(p.msg.Content), nil
+	}
+	return nil, ErrNotFound
+}
+
+func (p MessageProvider) ResolvePlaceholder(ctx context.Context) (string, error) {
+	return p.msg.ID.String(), nil
 }
 
 type UserProvider struct {

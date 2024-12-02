@@ -70,10 +70,13 @@ func (m *Engine) Run(ctx context.Context) {
 				updateTicker.Stop()
 				return
 			case <-updateTicker.C:
-				if err := m.populateCommands(ctx); err != nil {
+				lastUpdate := m.lastUpdate
+				m.lastUpdate = time.Now().UTC()
+
+				if err := m.populateCommands(ctx, lastUpdate); err != nil {
 					slog.With("error", err).Error("failed to populate commands in engine")
 				}
-				if err := m.populateEventListeners(ctx); err != nil {
+				if err := m.populateEventListeners(ctx, lastUpdate); err != nil {
 					slog.With("error", err).Error("failed to populate events in engine")
 				}
 			case <-deployTicker.C:
@@ -83,14 +86,11 @@ func (m *Engine) Run(ctx context.Context) {
 	}()
 }
 
-func (m *Engine) populateCommands(ctx context.Context) error {
+func (m *Engine) populateCommands(ctx context.Context, lastUpdate time.Time) error {
 	commandIDs, err := m.commandStore.EnabledCommandIDs(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to get enabled command IDs: %w", err)
 	}
-
-	lastUpdate := m.lastUpdate
-	m.lastUpdate = time.Now().UTC()
 
 	commands, err := m.commandStore.EnabledCommandsUpdatedSince(ctx, lastUpdate)
 	if err != nil {
@@ -128,14 +128,11 @@ func (m *Engine) populateCommands(ctx context.Context) error {
 	return nil
 }
 
-func (m *Engine) populateEventListeners(ctx context.Context) error {
+func (m *Engine) populateEventListeners(ctx context.Context, lastUpdate time.Time) error {
 	listenerIDs, err := m.eventListenerStore.EnabledEventListenerIDs(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to get enabled event listener IDs: %w", err)
 	}
-
-	lastUpdate := m.lastUpdate
-	m.lastUpdate = time.Now().UTC()
 
 	listeners, err := m.eventListenerStore.EnabledEventListenersUpdatedSince(ctx, lastUpdate)
 	if err != nil {

@@ -112,7 +112,6 @@ export default function FlowNodeExplorer() {
     const sections = nodeCategories[category];
     if (!sections) return [];
 
-    console.log(contextType);
     return sections.filter(
       (s) => !s.contextTypes || s.contextTypes.includes(contextType)
     );

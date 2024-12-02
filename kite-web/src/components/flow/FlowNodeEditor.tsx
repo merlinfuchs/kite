@@ -38,7 +38,7 @@ import {
   permissionBits,
 } from "@/lib/discord/permissions";
 import FlowPlaceholderExplorer from "./FlowPlaceholderExplorer";
-import { useMessages, useVariable, useVariables } from "@/lib/hooks/api";
+import { useMessages, useVariables } from "@/lib/hooks/api";
 import Link from "next/link";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
 import { useAppId } from "@/lib/hooks/params";
