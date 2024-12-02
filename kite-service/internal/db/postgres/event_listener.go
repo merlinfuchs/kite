@@ -70,17 +70,15 @@ func (c *Client) CreateEventListener(ctx context.Context, listener *model.EventL
 	}
 
 	row, err := c.Q.CreateEventListener(ctx, pgmodel.CreateEventListenerParams{
-		ID:          listener.ID,
-		Name:        listener.Name,
-		Description: listener.Description,
-		Enabled:     listener.Enabled,
-		AppID:       listener.AppID,
+		ID:      listener.ID,
+		Enabled: listener.Enabled,
+		AppID:   listener.AppID,
 		ModuleID: pgtype.Text{
 			String: listener.ModuleID.String,
 			Valid:  listener.ModuleID.Valid,
 		},
 		CreatorUserID: listener.CreatorUserID,
-		Integration:   string(listener.Integration),
+		Source:        string(listener.Source),
 		Type:          string(listener.Type),
 		Filter:        rawFilter,
 		FlowSource:    flowSource,
@@ -109,14 +107,12 @@ func (c *Client) UpdateEventListener(ctx context.Context, listener *model.EventL
 	}
 
 	row, err := c.Q.UpdateEventListener(ctx, pgmodel.UpdateEventListenerParams{
-		ID:          listener.ID,
-		Name:        listener.Name,
-		Description: listener.Description,
-		Enabled:     listener.Enabled,
-		Type:        string(listener.Type),
-		Filter:      rawFilter,
-		FlowSource:  flowSource,
-		UpdatedAt:   pgtype.Timestamp{Time: listener.UpdatedAt.UTC(), Valid: true},
+		ID:         listener.ID,
+		Enabled:    listener.Enabled,
+		Type:       string(listener.Type),
+		Filter:     rawFilter,
+		FlowSource: flowSource,
+		UpdatedAt:  pgtype.Timestamp{Time: listener.UpdatedAt.UTC(), Valid: true},
 	})
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -182,13 +178,11 @@ func rowToEventListener(row pgmodel.EventListener) (*model.EventListener, error)
 
 	return &model.EventListener{
 		ID:            row.ID,
-		Name:          row.Name,
-		Description:   row.Description,
 		Enabled:       row.Enabled,
 		AppID:         row.AppID,
 		ModuleID:      null.NewString(row.ModuleID.String, row.ModuleID.Valid),
 		CreatorUserID: row.CreatorUserID,
-		Integration:   model.IntegrationType(row.Integration),
+		Source:        model.EventSource(row.Source),
 		Type:          model.EventListenerType(row.Type),
 		Filter:        filter,
 		FlowSource:    flowSource,

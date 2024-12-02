@@ -212,7 +212,7 @@ func (a *App) HandleEvent(appID string, session *state.State, event gateway.Even
 	default:
 		eventType := model.EventTypeFromDiscordEventType(e.EventType())
 		for _, listener := range a.listeners {
-			if listener.listener.Integration != model.IntegrationDiscord {
+			if listener.listener.Source != model.EventSourceDiscord {
 				continue
 			}
 

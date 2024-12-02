@@ -304,20 +304,6 @@ func (n *CompiledFlowNode) CommandIntegrations() []discord.ApplicationIntegratio
 	return res
 }
 
-func (n *CompiledFlowNode) EventListenerName() string {
-	if !n.IsEventListenerEntry() {
-		return ""
-	}
-	return n.Data.Name
-}
-
-func (n *CompiledFlowNode) EventListenerDescription() string {
-	if !n.IsEventListenerEntry() {
-		return ""
-	}
-	return n.Data.Description
-}
-
 func (n *CompiledFlowNode) EventListenerType() string {
 	if !n.IsEventListenerEntry() {
 		return ""

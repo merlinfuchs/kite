@@ -122,8 +122,6 @@ export type CommandDeleteResponse = Empty;
 
 export interface EventListener {
   id: string;
-  name: string;
-  description: string;
   enabled: boolean;
   app_id: string;
   module_id: null | string;
@@ -140,13 +138,12 @@ export interface EventListenerFilter {
 export type EventListenerGetResponse = EventListener;
 export type EventListenerListResponse = (EventListener | undefined)[];
 export interface EventListenerCreateRequest {
-  integration: string;
+  source: string;
   flow_source: FlowData;
   enabled: boolean;
 }
 export type EventListenerCreateResponse = EventListener;
 export interface EventListenerUpdateRequest {
-  integration: string;
   flow_source: FlowData;
   enabled: boolean;
 }

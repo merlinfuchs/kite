@@ -435,7 +435,9 @@ function EventTypeInput({ data, updateData, errors }: InputProps) {
       field="event_type"
       title="Event"
       options={[
-        { value: "DISCORD_MESSAGE_CREATE", label: "Discord Message Create" },
+        { value: "message_create", label: "Message Create" },
+        { value: "message_update", label: "Message Update" },
+        { value: "message_delete", label: "Message Delete" },
       ]}
       value={data.event_type || ""}
       updateValue={(v) => updateData({ event_type: v || undefined })}

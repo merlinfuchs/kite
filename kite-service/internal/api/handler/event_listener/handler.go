@@ -62,11 +62,9 @@ func (h *EventListenerHandler) HandleEventListenerCreate(c *handler.Context, req
 
 	eventListener, err := h.eventListenerStore.CreateEventListener(c.Context(), &model.EventListener{
 		ID:            util.UniqueID(),
-		Name:          eventFlow.EventListenerName(),
-		Description:   eventFlow.EventListenerDescription(),
 		AppID:         c.App.ID,
 		CreatorUserID: c.Session.UserID,
-		Integration:   model.IntegrationType(req.Integration),
+		Source:        model.EventSource(req.Source),
 		Type:          model.EventListenerType(eventFlow.EventListenerType()),
 		// TODO: Filter:        eventFlow.EventListenerFilter(),
 		FlowSource: req.FlowSource,
@@ -88,10 +86,8 @@ func (h *EventListenerHandler) HandleEventListenerUpdate(c *handler.Context, req
 	}
 
 	eventListener, err := h.eventListenerStore.UpdateEventListener(c.Context(), &model.EventListener{
-		ID:          c.EventListener.ID,
-		Name:        eventFlow.EventListenerName(),
-		Description: eventFlow.EventListenerDescription(),
-		Type:        model.EventListenerType(eventFlow.EventListenerType()),
+		ID:   c.EventListener.ID,
+		Type: model.EventListenerType(eventFlow.EventListenerType()),
 		// TODO: Filter:      eventFlow.EventListenerFilter(),
 		FlowSource: req.FlowSource,
 		Enabled:    req.Enabled,

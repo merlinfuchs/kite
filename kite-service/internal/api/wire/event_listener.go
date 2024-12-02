@@ -11,13 +11,11 @@ import (
 
 type EventListener struct {
 	ID            string               `json:"id"`
-	Name          string               `json:"name"`
-	Description   string               `json:"description"`
 	Enabled       bool                 `json:"enabled"`
 	AppID         string               `json:"app_id"`
 	ModuleID      null.String          `json:"module_id"`
 	CreatorUserID string               `json:"creator_user_id"`
-	Integration   string               `json:"integration"`
+	Source        string               `json:"integration"`
 	Type          string               `json:"type"`
 	Filter        *EventListenerFilter `json:"filter"`
 	FlowSource    flow.FlowData        `json:"flow_source"`
@@ -32,14 +30,14 @@ type EventListenerGetResponse = EventListener
 type EventListenerListResponse = []*EventListener
 
 type EventListenerCreateRequest struct {
-	Integration string        `json:"integration"`
-	FlowSource  flow.FlowData `json:"flow_source"`
-	Enabled     bool          `json:"enabled"`
+	Source     string        `json:"source"`
+	FlowSource flow.FlowData `json:"flow_source"`
+	Enabled    bool          `json:"enabled"`
 }
 
 func (req EventListenerCreateRequest) Validate() error {
 	return validation.ValidateStruct(&req,
-		validation.Field(&req.Integration, validation.Required, validation.In(string(model.IntegrationDiscord))),
+		validation.Field(&req.Source, validation.Required, validation.In(string(model.EventSourceDiscord))),
 		validation.Field(&req.FlowSource, validation.Required),
 	)
 }
@@ -47,14 +45,12 @@ func (req EventListenerCreateRequest) Validate() error {
 type EventListenerCreateResponse = EventListener
 
 type EventListenerUpdateRequest struct {
-	Integration string        `json:"integration"`
-	FlowSource  flow.FlowData `json:"flow_source"`
-	Enabled     bool          `json:"enabled"`
+	FlowSource flow.FlowData `json:"flow_source"`
+	Enabled    bool          `json:"enabled"`
 }
 
 func (req EventListenerUpdateRequest) Validate() error {
 	return validation.ValidateStruct(&req,
-		validation.Field(&req.Integration, validation.Required, validation.In(string(model.IntegrationDiscord))),
 		validation.Field(&req.FlowSource, validation.Required),
 	)
 }
@@ -70,13 +66,11 @@ func EventListenerToWire(eventListener *model.EventListener) *EventListener {
 
 	return &EventListener{
 		ID:            eventListener.ID,
-		Name:          eventListener.Name,
-		Description:   eventListener.Description,
 		Enabled:       eventListener.Enabled,
 		AppID:         eventListener.AppID,
 		ModuleID:      eventListener.ModuleID,
 		CreatorUserID: eventListener.CreatorUserID,
-		Integration:   string(eventListener.Integration),
+		Source:        string(eventListener.Source),
 		Type:          string(eventListener.Type),
 		Filter:        (*EventListenerFilter)(eventListener.Filter),
 		FlowSource:    eventListener.FlowSource,
