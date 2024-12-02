@@ -679,8 +679,6 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 
 		var elseNode *CompiledFlowNode
 
-		fmt.Println(n.Type)
-
 		for _, child := range n.Children {
 			if child.Type == FlowNodeTypeControlConditionItemElse {
 				elseNode = child
@@ -764,8 +762,6 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 		}
 
 		baseValue := parentState.ConditionBaseValue
-
-		fmt.Println(baseValue, itemValue)
 
 		var conditionMet bool
 		switch n.Data.ConditionItemMode {
