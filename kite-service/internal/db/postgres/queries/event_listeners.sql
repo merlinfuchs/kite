@@ -16,13 +16,14 @@ INSERT INTO event_listeners (
     app_id,
     module_id,
     creator_user_id,
+    integration,
     type,
     filter,
     flow_source,
     created_at,
     updated_at
 ) VALUES (
-    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12
+    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13
 ) RETURNING *;
 
 -- name: UpdateEventListener :one

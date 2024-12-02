@@ -8,6 +8,7 @@ CREATE TABLE IF NOT EXISTS event_listeners (
     module_id TEXT REFERENCES modules(id) ON DELETE SET NULL,
     creator_user_id TEXT NOT NULL,
 
+    integration TEXT NOT NULL,
     type TEXT NOT NULL,
     filter JSONB,
     flow_source JSONB NOT NULL,

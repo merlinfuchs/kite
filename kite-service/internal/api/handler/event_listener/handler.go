@@ -66,6 +66,7 @@ func (h *EventListenerHandler) HandleEventListenerCreate(c *handler.Context, req
 		Description:   eventFlow.EventListenerDescription(),
 		AppID:         c.App.ID,
 		CreatorUserID: c.Session.UserID,
+		Integration:   model.IntegrationType(req.Integration),
 		Type:          model.EventListenerType(eventFlow.EventListenerType()),
 		// TODO: Filter:        eventFlow.EventListenerFilter(),
 		FlowSource: req.FlowSource,

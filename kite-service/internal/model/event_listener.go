@@ -9,14 +9,20 @@ import (
 	"gopkg.in/guregu/null.v4"
 )
 
+type IntegrationType string
+
+const (
+	IntegrationDiscord IntegrationType = "discord"
+)
+
 type EventListenerType string
 
 const (
-	EventListenerTypeDiscordMessageCreate EventListenerType = "discord_message_create"
+	EventListenerTypeDiscordMessageCreate EventListenerType = "message_create"
 )
 
 func EventTypeFromDiscordEventType(eventType ws.EventType) EventListenerType {
-	return EventListenerType("discord_" + strings.ToLower(string(eventType)))
+	return EventListenerType(strings.ToLower(string(eventType)))
 }
 
 type EventListener struct {
@@ -27,6 +33,7 @@ type EventListener struct {
 	AppID         string
 	ModuleID      null.String
 	CreatorUserID string
+	Integration   IntegrationType
 	Type          EventListenerType
 	Filter        *EventListenerFilter
 	FlowSource    flow.FlowData

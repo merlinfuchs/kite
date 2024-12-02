@@ -67,6 +67,7 @@ type EventListener struct {
 	AppID         string
 	ModuleID      pgtype.Text
 	CreatorUserID string
+	Integration   string
 	Type          string
 	Filter        []byte
 	FlowSource    []byte
