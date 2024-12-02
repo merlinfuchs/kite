@@ -9,6 +9,7 @@ import (
 
 	"github.com/diamondburned/arikawa/v3/gateway"
 	"github.com/diamondburned/arikawa/v3/state"
+	"github.com/diamondburned/arikawa/v3/utils/ws"
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/internal/store"
 	"github.com/kitecloud/kite/kite-service/pkg/flow"
@@ -61,6 +62,11 @@ func NewEventListener(
 
 func (l *EventListener) HandleEvent(appID string, session *state.State, event gateway.Event) {
 	defer l.recoverPanic()
+
+	// TODO: check listener specific filters as well
+	if !l.shouldHandleEvent(event) {
+		return
+	}
 
 	var aiProvider flow.FlowAIProvider = &flow.MockAIProvider{}
 	if l.openaiClient != nil {
@@ -122,4 +128,18 @@ func (l *EventListener) recoverPanic() {
 			With("event_listener_id", l.listener.ID).
 			Error("Recovered from panic in event listener handler")
 	}
+}
+
+func (l *EventListener) shouldHandleEvent(e ws.Event) bool {
+	switch d := e.(type) {
+	case *gateway.MessageCreateEvent:
+		// TODO?: It would be better if we check if the author is specifically the current app
+		return !d.Author.Bot
+	case *gateway.MessageUpdateEvent:
+		return !d.Author.Bot
+	case *gateway.MessageDeleteEvent:
+		return true
+	}
+
+	return false
 }

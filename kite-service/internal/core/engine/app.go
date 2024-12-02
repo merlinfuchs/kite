@@ -33,7 +33,7 @@ type App struct {
 	hasUndeployedChanges bool
 
 	commands map[string]*Command
-	// TODO: messages LRUCache<*MessageInstance>
+	// TODO?: Cache messages (LRUCache<*MessageInstance>)
 	listeners map[string]*EventListener
 }
 
@@ -193,6 +193,7 @@ func (a *App) HandleEvent(appID string, session *state.State, event gateway.Even
 
 			instance, err := NewMessageInstance(
 				a.config,
+				a.id,
 				messageInstnace,
 				a.appStore,
 				a.logStore,
@@ -220,7 +221,6 @@ func (a *App) HandleEvent(appID string, session *state.State, event gateway.Even
 				continue
 			}
 
-			// TODO: check filter
 			listener.HandleEvent(appID, session, event)
 		}
 	}

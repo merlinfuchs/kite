@@ -545,7 +545,7 @@ export function createNode(
   ];
   const edges: Edge[] = [];
 
-  // TODO: connect option types to entry automatically?
+  // TODO?: connect option types to entry automatically?
 
   if (conditionChildType.hasOwnProperty(type)) {
     const [elseNodes, elseEdges] = createNode("control_condition_item_else", {
