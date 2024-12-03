@@ -251,13 +251,27 @@ func NewAIProvider(client *openai.Client) *AIProvider {
 	}
 }
 
-func (p *AIProvider) CreateChatCompletion(ctx context.Context, prompt string) (string, error) {
+func (p *AIProvider) CreateChatCompletion(ctx context.Context, opts flow.CreateChatCompletionOpts) (string, error) {
+	messages := []openai.ChatCompletionMessage{
+		{Role: openai.ChatMessageRoleUser, Content: opts.Prompt},
+	}
+
+	if opts.SystemPrompt != "" {
+		messages = append(messages, openai.ChatCompletionMessage{
+			Role:    openai.ChatMessageRoleSystem,
+			Content: opts.SystemPrompt,
+		})
+	}
+
+	maxCompletionTokens := 2000
+	if opts.MaxCompletionTokens > 0 && opts.MaxCompletionTokens < maxCompletionTokens {
+		maxCompletionTokens = opts.MaxCompletionTokens
+	}
+
 	resp, err := p.client.CreateChatCompletion(ctx, openai.ChatCompletionRequest{
-		Model: openai.GPT4oMini,
-		Messages: []openai.ChatCompletionMessage{
-			{Role: openai.ChatMessageRoleUser, Content: prompt},
-		},
-		MaxCompletionTokens: 2000,
+		Model:               openai.GPT4oMini,
+		Messages:            messages,
+		MaxCompletionTokens: maxCompletionTokens,
 	})
 	if err != nil {
 		return "", fmt.Errorf("failed to create chat completion: %w", err)

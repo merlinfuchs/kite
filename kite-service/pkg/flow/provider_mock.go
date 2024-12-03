@@ -148,6 +148,6 @@ func (p *MockHTTPprovider) HTTPRequest(ctx context.Context, req *http.Request) (
 
 type MockAIProvider struct{}
 
-func (p *MockAIProvider) CreateChatCompletion(ctx context.Context, prompt string) (string, error) {
+func (p *MockAIProvider) CreateChatCompletion(ctx context.Context, opts CreateChatCompletionOpts) (string, error) {
 	return "", nil
 }

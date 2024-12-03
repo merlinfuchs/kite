@@ -548,9 +548,26 @@ function AiChatCompletionDataInput({ data, updateData, errors }: InputProps) {
     <>
       <BaseInput
         type="textarea"
+        field="ai_chat_completion_data.system_prompt"
+        title="System Prompt"
+        description="Tell the AI how to behave. (optional)"
+        value={data.ai_chat_completion_data?.system_prompt || ""}
+        updateValue={(v) =>
+          updateData({
+            ai_chat_completion_data: {
+              ...data.ai_chat_completion_data,
+              system_prompt: v || undefined,
+            },
+          })
+        }
+        errors={errors}
+        placeholders
+      />
+      <BaseInput
+        type="textarea"
         field="ai_chat_completion_data.prompt"
         title="Prompt"
-        description="The prompt to send to the AI."
+        description="The message to send to the AI which it will respond to."
         value={data.ai_chat_completion_data?.prompt || ""}
         updateValue={(v) =>
           updateData({
