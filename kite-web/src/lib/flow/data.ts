@@ -277,7 +277,13 @@ export const nodeActionHttpRequestDataSchema = nodeBaseDataSchema.extend({
 
 export const nodeActionAiChatCompletionDataSchema = nodeBaseDataSchema.extend({
   ai_chat_completion_data: z.object({
+    system_prompt: z.string().max(2000).optional(),
     prompt: z.string().max(2000).min(1),
+    max_completion_tokens: z
+      .string()
+      .regex(numericRegex)
+      .or(z.string().regex(placeholderRegex))
+      .optional(),
   }),
 });
 

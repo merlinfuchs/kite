@@ -154,7 +154,7 @@ go build
 ## High Level Progress
 
 - [x] Slash Commands
-  - [ ] Sub Commands
+  - [x] Sub Commands
   - [x] Basic Placeholders
   - [ ] Advanced Placeholders
 - [x] Message Templates (MVP)
@@ -164,6 +164,6 @@ go build
   - [ ] Basic placeholders
   - [ ] Advanced Placeholders
 - [ ] Event Listeners
-- [ ] Stored Variables (WIP)
+- [x] Stored Variables (WIP)
   - [x] Basic infrastrcuture
-  - [ ] Connect variables to commands
+  - [x] Connect variables to commands

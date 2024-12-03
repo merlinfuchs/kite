@@ -192,7 +192,9 @@ export interface HTTPRequestData {
   method?: string;
 }
 export interface AIChatCompletionData {
+  system_prompt?: FlowString;
   prompt?: FlowString;
+  max_completion_tokens?: FlowString;
 }
 export interface FlowNodePosition {
   x: number /* float64 */;

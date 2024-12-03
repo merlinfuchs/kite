@@ -272,7 +272,9 @@ type HTTPRequestData struct {
 }
 
 type AIChatCompletionData struct {
-	Prompt FlowString `json:"prompt,omitempty"`
+	SystemPrompt        FlowString `json:"system_prompt,omitempty"`
+	Prompt              FlowString `json:"prompt,omitempty"`
+	MaxCompletionTokens FlowString `json:"max_completion_tokens,omitempty"`
 }
 
 type FlowNodePosition struct {

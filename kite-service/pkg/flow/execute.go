@@ -645,12 +645,26 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			}
 		}
 
+		systemPrompt, err := data.SystemPrompt.FillPlaceholders(ctx, ctx.Placeholders)
+		if err != nil {
+			return traceError(n, err)
+		}
+
 		prompt, err := data.Prompt.FillPlaceholders(ctx, ctx.Placeholders)
 		if err != nil {
 			return traceError(n, err)
 		}
 
-		response, err := ctx.AI.CreateChatCompletion(ctx, prompt.String())
+		maxCompletionTokens, err := data.MaxCompletionTokens.FillPlaceholders(ctx, ctx.Placeholders)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		response, err := ctx.AI.CreateChatCompletion(ctx, CreateChatCompletionOpts{
+			SystemPrompt:        systemPrompt.String(),
+			Prompt:              prompt.String(),
+			MaxCompletionTokens: int(maxCompletionTokens.Int()),
+		})
 		if err != nil {
 			return traceError(n, err)
 		}

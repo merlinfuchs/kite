@@ -312,8 +312,9 @@ export const nodeTypes: Record<string, NodeValues> = {
   action_ai_chat_completion: {
     color: actionColor,
     icon: BrainCircuitIcon,
-    defaultTitle: "Ask AI",
-    defaultDescription: "Ask artificial intelligence a question",
+    defaultTitle: "Chat with AI",
+    defaultDescription:
+      "Ask artificial intelligence a question or let it respond to a prompt",
     dataSchema: nodeActionAiChatCompletionDataSchema,
     dataFields: ["ai_chat_completion_data", "custom_label"],
   },

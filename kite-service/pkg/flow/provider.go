@@ -69,7 +69,13 @@ type FlowHTTPProvider interface {
 }
 
 type FlowAIProvider interface {
-	CreateChatCompletion(ctx context.Context, prompt string) (string, error)
+	CreateChatCompletion(ctx context.Context, opts CreateChatCompletionOpts) (string, error)
+}
+
+type CreateChatCompletionOpts struct {
+	SystemPrompt        string
+	Prompt              string
+	MaxCompletionTokens int
 }
 
 type FlowLogProvider interface {
