@@ -125,7 +125,7 @@ func (a *App) DeployCommands(ctx context.Context) error {
 		node, err := flow.CompileCommand(cmd.FlowSource)
 		if err != nil {
 			go a.createLogEntry(model.LogLevelError, fmt.Sprintf("Failed to compile command flow: %v", err))
-			return fmt.Errorf("failed to compile command flow: %w", err)
+			return nil
 		}
 
 		data := node.CommandData()
@@ -144,13 +144,13 @@ func (a *App) DeployCommands(ctx context.Context) error {
 
 	if err := validateCommandNames(commandNames); err != nil {
 		go a.createLogEntry(model.LogLevelError, fmt.Sprintf("invalid command names: %v", err))
-		return fmt.Errorf("invalid command names: %w", err)
+		return nil
 	}
 
 	commands, err := mergeCommands(commands)
 	if err != nil {
 		go a.createLogEntry(model.LogLevelError, fmt.Sprintf("Failed to merge commands: %v", err))
-		return fmt.Errorf("failed to merge commands: %w", err)
+		return nil
 	}
 
 	err = a.commandStore.UpdateCommandsLastDeployedAt(ctx, a.id, lastUpdatedAt)
@@ -173,7 +173,7 @@ func (a *App) DeployCommands(ctx context.Context) error {
 	_, err = client.BulkOverwriteCommands(discord.AppID(appId), commands)
 	if err != nil {
 		go a.createLogEntry(model.LogLevelError, fmt.Sprintf("Failed to deploy commands: %v", err))
-		return fmt.Errorf("failed to deploy commands: %w", err)
+		return nil
 	}
 
 	go a.createLogEntry(model.LogLevelInfo, "Successfully deployed commands")

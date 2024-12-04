@@ -171,6 +171,7 @@ func (s *APIServer) RegisterRoutes(
 	stateHandler := appstate.NewAppStateHandler(appStateManager)
 
 	stateGroup := appGroup.Group("/state")
+	stateGroup.Get("/", handler.Typed(stateHandler.HandleStateStatusGet))
 	stateGroup.Get("/guilds", handler.Typed(stateHandler.HandleStateGuildList))
 	stateGroup.Get("/guilds/{guildID}/channels", handler.Typed(stateHandler.HandleStateGuildChannelList))
 }

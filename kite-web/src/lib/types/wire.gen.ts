@@ -48,6 +48,10 @@ export type AppListResponse = (App | undefined)[];
 //////////
 // source: app_state.go
 
+export interface AppStateStatus {
+  online: boolean;
+}
+export type StateStatusGetResponse = AppStateStatus;
 export interface Guild {
   id: string;
   name: string;

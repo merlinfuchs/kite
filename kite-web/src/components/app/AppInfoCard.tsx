@@ -12,7 +12,7 @@ import { formatDate } from "@/lib/utils";
 import { useApp, useResponseData } from "@/lib/hooks/api";
 import { Separator } from "../ui/separator";
 import { Badge } from "../ui/badge";
-import { useUserQuery } from "@/lib/api/queries";
+import { useAppStateStatusQuery, useUserQuery } from "@/lib/api/queries";
 import { useCallback } from "react";
 import AppInviteButton from "./AppInviteButton";
 
@@ -20,6 +20,8 @@ export default function AppInfoCard() {
   const app = useApp();
 
   const ownerUser = useResponseData(useUserQuery(app?.owner_user_id));
+
+  const appStatus = useResponseData(useAppStateStatusQuery(app?.id));
 
   const copyAppId = useCallback(() => {
     navigator.clipboard.writeText(app?.id || "");
@@ -71,6 +73,16 @@ export default function AppInfoCard() {
             <li className="flex items-center justify-between">
               <span className="text-muted-foreground">Discord App ID</span>
               <span>{app?.discord_id}</span>
+            </li>
+            <li className="flex items-center justify-between">
+              <span className="text-muted-foreground">App Status</span>
+              <span>
+                {appStatus === undefined
+                  ? "-"
+                  : appStatus.online
+                  ? "Online"
+                  : "Offline"}
+              </span>
             </li>
           </ul>
         </div>

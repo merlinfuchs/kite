@@ -94,8 +94,13 @@ func (m *GatewayManager) removeDanglingGateways(ctx context.Context, appIDs []st
 
 	for id, gateway := range m.gateways {
 		if _, ok := lookupMap[id]; !ok {
-			if err := gateway.Close(ctx); err != nil {
-				slog.With("error", err).Error("failed to close gateway")
+			// Close should timeout after 5 seconds
+			if err := gateway.Close(); err != nil {
+				slog.Error(
+					"Failed to close gateway",
+					slog.String("app_id", id),
+					slog.String("error", err.Error()),
+				)
 			}
 
 			delete(m.gateways, id)

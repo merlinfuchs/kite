@@ -31,6 +31,9 @@ func createSession(app *model.App) *state.State {
 	identifier := gateway.DefaultIdentifier("Bot " + app.DiscordToken)
 	identifier.IdentifyCommand.Presence = presenceForApp(app)
 
+	// TODO: pass in custom opts instead of modifying the default
+	gateway.DefaultGatewayOpts.AlwaysCloseGracefully = false
+
 	// TODO: configure state to only cache what we need
 	return state.NewWithIdentifier(identifier)
 }
