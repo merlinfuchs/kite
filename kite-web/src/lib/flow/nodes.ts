@@ -323,7 +323,7 @@ export const nodeTypes: Record<string, NodeValues> = {
     icon: ScrollTextIcon,
     defaultTitle: "Log Message",
     defaultDescription:
-      "Log some text which is only visible in the deployment logs",
+      "Log some text which is only visible in the application logs",
     dataSchema: nodeActionLogDataSchema,
     dataFields: ["log_level", "log_message", "custom_label"],
   },
