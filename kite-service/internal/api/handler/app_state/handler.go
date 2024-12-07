@@ -1,6 +1,7 @@
 package appstate
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/kitecloud/kite/kite-service/internal/api/handler"
@@ -16,13 +17,34 @@ func NewAppStateHandler(appStateManager store.AppStateManager) *AppStateHandler 
 	return &AppStateHandler{appStateManager: appStateManager}
 }
 
+func (h *AppStateHandler) HandleStateStatusGet(c *handler.Context) (*wire.StateStatusGetResponse, error) {
+	state, err := h.appStateManager.AppState(c.Context(), c.App.ID)
+	if err != nil {
+		if errors.Is(err, store.ErrNotFound) {
+			// App state not found, app is not running
+			return &wire.AppStateStatus{}, nil
+		}
+
+		return nil, fmt.Errorf("failed to get app state: %w", err)
+	}
+
+	status, err := state.AppStatus(c.Context())
+	if err != nil {
+		return nil, fmt.Errorf("failed to get app status: %w", err)
+	}
+
+	return &wire.AppStateStatus{
+		Online: status.Online,
+	}, nil
+}
+
 func (h *AppStateHandler) HandleStateGuildList(c *handler.Context) (*wire.StateGuildListResponse, error) {
 	state, err := h.appStateManager.AppState(c.Context(), c.App.ID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get app state: %w", err)
 	}
 
-	guilds, err := state.Guilds(c.Context())
+	guilds, err := state.AppGuilds(c.Context())
 	if err != nil {
 		return nil, fmt.Errorf("failed to get guilds: %w", err)
 	}
@@ -43,7 +65,7 @@ func (h *AppStateHandler) HandleStateGuildChannelList(c *handler.Context) (*wire
 		return nil, fmt.Errorf("failed to get app state: %w", err)
 	}
 
-	channels, err := state.GuildChannels(c.Context(), guildID)
+	channels, err := state.AppGuildChannels(c.Context(), guildID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get guild channels: %w", err)
 	}

@@ -14,6 +14,7 @@ import {
   MessageListResponse,
   StateGuildChannelListResponse,
   StateGuildListResponse,
+  StateStatusGetResponse,
   UserGetResponse,
   VariableGetResponse,
   VariableListResponse,
@@ -145,6 +146,15 @@ export function useAssetQuery(appId: string, assetId: string) {
     queryFn: () =>
       apiRequest<AssetGetResponse>(`/v1/apps/${appId}/assets/${assetId}`),
     enabled: !!appId && !!assetId,
+  });
+}
+
+export function useAppStateStatusQuery(appId?: string) {
+  return useQuery({
+    queryKey: ["apps", appId, "state", "status"],
+    queryFn: () =>
+      apiRequest<StateStatusGetResponse>(`/v1/apps/${appId}/state`),
+    enabled: !!appId,
   });
 }
 

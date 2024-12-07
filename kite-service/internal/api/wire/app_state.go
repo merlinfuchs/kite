@@ -2,6 +2,12 @@ package wire
 
 import "github.com/diamondburned/arikawa/v3/discord"
 
+type AppStateStatus struct {
+	Online bool `json:"online"`
+}
+
+type StateStatusGetResponse = AppStateStatus
+
 type Guild struct {
 	ID          string `json:"id"`
 	Name        string `json:"name"`

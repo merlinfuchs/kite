@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
-	"sync"
 	"time"
 
 	"github.com/diamondburned/arikawa/v3/gateway"
@@ -19,8 +18,6 @@ import (
 )
 
 type Gateway struct {
-	sync.Mutex
-
 	logStore     store.LogStore
 	appStore     store.AppStore
 	eventHandler EventHandler
@@ -43,9 +40,6 @@ func NewGateway(app *model.App, logStore store.LogStore, appStore store.AppStore
 }
 
 func (g *Gateway) startGateway() {
-	g.Lock()
-	defer g.Unlock()
-
 	intents, err := getAppIntents(g.session.Client)
 	if err != nil {
 		var httpErr *httputil.HTTPError
@@ -56,7 +50,11 @@ func (g *Gateway) startGateway() {
 		}
 
 		g.createLogEntry(model.LogLevelError, fmt.Sprintf("Failed to get app intents: %v", err))
-		slog.With("error", err).Error("failed to get app intents")
+		slog.Error(
+			"Failed to get app intents",
+			slog.String("app_id", g.app.ID),
+			slog.String("error", err.Error()),
+		)
 		return
 	}
 
@@ -87,14 +85,11 @@ func (g *Gateway) startGateway() {
 	}
 }
 
-func (g *Gateway) Close(ctx context.Context) error {
-	g.Lock()
-	defer g.Unlock()
-
+func (g *Gateway) Close() error {
 	err := g.session.Close()
 
 	if err != nil && !errors.Is(err, session.ErrClosed) {
-		return err
+		return fmt.Errorf("failed to close gateway: %w", err)
 	}
 
 	return nil
@@ -107,16 +102,27 @@ func (g *Gateway) Update(ctx context.Context, app *model.App) {
 		err := g.session.Gateway().Send(ctx, presence)
 		if err != nil {
 			go g.createLogEntry(model.LogLevelError, fmt.Sprintf("Failed to update bot status: %v", err))
-			slog.With("error", err).Error("failed to send presence update")
+			slog.Error(
+				"Failed to send presence update",
+				slog.String("app_id", app.ID),
+				slog.String("error", err.Error()),
+			)
 		}
 	}
 
 	if app.DiscordToken != g.app.DiscordToken {
 		g.app = app
 
-		slog.With("app_id", app.ID).Info("Discord token or status changed, closing gateway")
-		if err := g.Close(ctx); err != nil {
-			slog.With("error", err).Error("failed to close gateway")
+		slog.Info(
+			"Discord token or status changed, closing gateway",
+			slog.String("app_id", app.ID),
+		)
+		if err := g.Close(); err != nil {
+			slog.Error(
+				"Failed to close gateway",
+				slog.String("error", err.Error()),
+				slog.String("app_id", app.ID),
+			)
 		}
 
 		g.session = createSession(app)
@@ -138,7 +144,11 @@ func (g *Gateway) createLogEntry(level model.LogLevel, message string) {
 		CreatedAt: time.Now().UTC(),
 	})
 	if err != nil {
-		slog.With("error", err).With("app_id", g.app.ID).Error("Failed to create log entry from gateway")
+		slog.Error(
+			"Failed to create log entry from gateway",
+			slog.String("error", err.Error()),
+			slog.String("app_id", g.app.ID),
+		)
 	}
 }
 
@@ -152,6 +162,10 @@ func (g *Gateway) disableApp(reason string) {
 		UpdatedAt:      time.Now().UTC(),
 	})
 	if err != nil {
-		slog.With("error", err).With("app_id", g.app.ID).Error("Failed to disable app from gateway")
+		slog.Error(
+			"Failed to disable app from gateway",
+			slog.String("error", err.Error()),
+			slog.String("app_id", g.app.ID),
+		)
 	}
 }
