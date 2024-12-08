@@ -61,12 +61,13 @@ type Command struct {
 
 type EventListener struct {
 	ID            string
+	Source        string
+	Type          string
+	Description   string
 	Enabled       bool
 	AppID         string
 	ModuleID      pgtype.Text
 	CreatorUserID string
-	Source        string
-	Type          string
 	Filter        []byte
 	FlowSource    []byte
 	CreatedAt     pgtype.Timestamp

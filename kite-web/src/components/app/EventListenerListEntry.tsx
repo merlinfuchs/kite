@@ -68,7 +68,7 @@ export default function EventListenerListEntry({
           <div>{listener.type}</div>
         </CardTitle>
         <CardDescription className="text-sm">
-          Listening for {listener.type} events
+          {listener.description}
         </CardDescription>
       </CardHeader>
       <CardFooter className="flex space-x-3">

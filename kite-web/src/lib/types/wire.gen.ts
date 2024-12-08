@@ -126,12 +126,13 @@ export type CommandDeleteResponse = Empty;
 
 export interface EventListener {
   id: string;
+  source: string;
+  type: string;
+  description: string;
   enabled: boolean;
   app_id: string;
   module_id: null | string;
   creator_user_id: string;
-  integration: string;
-  type: string;
   filter?: EventListenerFilter;
   flow_source: FlowData;
   created_at: string /* RFC3339 */;

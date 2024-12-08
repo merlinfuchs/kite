@@ -12,6 +12,7 @@ import { ReactNode, useState } from "react";
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -35,6 +36,7 @@ import {
 interface FormFields {
   source: string;
   type: string;
+  description: string;
 }
 
 export default function EventListenerCreateDialog({
@@ -52,6 +54,7 @@ export default function EventListenerCreateDialog({
     defaultValues: {
       source: "discord",
       type: "",
+      description: "",
     },
   });
 
@@ -61,7 +64,7 @@ export default function EventListenerCreateDialog({
     createMutation.mutate(
       {
         source: data.source,
-        flow_source: getInitialFlowData(data.type),
+        flow_source: getInitialFlowData(data.type, data.description),
         enabled: true,
       },
       {
@@ -95,6 +98,22 @@ export default function EventListenerCreateDialog({
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4">
+            <FormField
+              control={form.control}
+              name="description"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Description</FormLabel>
+                  <FormDescription>
+                    What will you use this event listener for?
+                  </FormDescription>
+                  <FormControl>
+                    <Input type="text" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
             <FormField
               control={form.control}
               name="source"
@@ -155,13 +174,13 @@ export default function EventListenerCreateDialog({
   );
 }
 
-function getInitialFlowData(type: string) {
+function getInitialFlowData(type: string, description: string) {
   return {
     nodes: [
       {
         id: getUniqueId().toString(),
         position: { x: 0, y: 0 },
-        data: { event_type: type },
+        data: { event_type: type, description },
         type: "entry_event",
       },
     ],

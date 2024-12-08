@@ -11,12 +11,13 @@ import (
 
 type EventListener struct {
 	ID            string               `json:"id"`
+	Source        string               `json:"source"`
+	Type          string               `json:"type"`
+	Description   string               `json:"description"`
 	Enabled       bool                 `json:"enabled"`
 	AppID         string               `json:"app_id"`
 	ModuleID      null.String          `json:"module_id"`
 	CreatorUserID string               `json:"creator_user_id"`
-	Source        string               `json:"integration"`
-	Type          string               `json:"type"`
 	Filter        *EventListenerFilter `json:"filter"`
 	FlowSource    flow.FlowData        `json:"flow_source"`
 	CreatedAt     time.Time            `json:"created_at"`
@@ -66,12 +67,13 @@ func EventListenerToWire(eventListener *model.EventListener) *EventListener {
 
 	return &EventListener{
 		ID:            eventListener.ID,
+		Source:        string(eventListener.Source),
+		Type:          string(eventListener.Type),
+		Description:   eventListener.Description,
 		Enabled:       eventListener.Enabled,
 		AppID:         eventListener.AppID,
 		ModuleID:      eventListener.ModuleID,
 		CreatorUserID: eventListener.CreatorUserID,
-		Source:        string(eventListener.Source),
-		Type:          string(eventListener.Type),
 		Filter:        (*EventListenerFilter)(eventListener.Filter),
 		FlowSource:    eventListener.FlowSource,
 		CreatedAt:     eventListener.CreatedAt,

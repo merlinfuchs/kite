@@ -70,16 +70,17 @@ func (c *Client) CreateEventListener(ctx context.Context, listener *model.EventL
 	}
 
 	row, err := c.Q.CreateEventListener(ctx, pgmodel.CreateEventListenerParams{
-		ID:      listener.ID,
-		Enabled: listener.Enabled,
-		AppID:   listener.AppID,
+		ID:          listener.ID,
+		Source:      string(listener.Source),
+		Type:        string(listener.Type),
+		Description: listener.Description,
+		Enabled:     listener.Enabled,
+		AppID:       listener.AppID,
 		ModuleID: pgtype.Text{
 			String: listener.ModuleID.String,
 			Valid:  listener.ModuleID.Valid,
 		},
 		CreatorUserID: listener.CreatorUserID,
-		Source:        string(listener.Source),
-		Type:          string(listener.Type),
 		Filter:        rawFilter,
 		FlowSource:    flowSource,
 		CreatedAt:     pgtype.Timestamp{Time: listener.CreatedAt.UTC(), Valid: true},
@@ -107,12 +108,13 @@ func (c *Client) UpdateEventListener(ctx context.Context, listener *model.EventL
 	}
 
 	row, err := c.Q.UpdateEventListener(ctx, pgmodel.UpdateEventListenerParams{
-		ID:         listener.ID,
-		Enabled:    listener.Enabled,
-		Type:       string(listener.Type),
-		Filter:     rawFilter,
-		FlowSource: flowSource,
-		UpdatedAt:  pgtype.Timestamp{Time: listener.UpdatedAt.UTC(), Valid: true},
+		ID:          listener.ID,
+		Enabled:     listener.Enabled,
+		Type:        string(listener.Type),
+		Description: listener.Description,
+		Filter:      rawFilter,
+		FlowSource:  flowSource,
+		UpdatedAt:   pgtype.Timestamp{Time: listener.UpdatedAt.UTC(), Valid: true},
 	})
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -178,12 +180,13 @@ func rowToEventListener(row pgmodel.EventListener) (*model.EventListener, error)
 
 	return &model.EventListener{
 		ID:            row.ID,
+		Source:        model.EventSource(row.Source),
+		Type:          model.EventListenerType(row.Type),
+		Description:   row.Description,
 		Enabled:       row.Enabled,
 		AppID:         row.AppID,
 		ModuleID:      null.NewString(row.ModuleID.String, row.ModuleID.Valid),
 		CreatorUserID: row.CreatorUserID,
-		Source:        model.EventSource(row.Source),
-		Type:          model.EventListenerType(row.Type),
 		Filter:        filter,
 		FlowSource:    flowSource,
 		CreatedAt:     row.CreatedAt.Time,

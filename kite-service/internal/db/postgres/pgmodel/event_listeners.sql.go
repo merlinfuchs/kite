@@ -25,29 +25,31 @@ func (q *Queries) CountEventListenersByApp(ctx context.Context, appID string) (i
 const createEventListener = `-- name: CreateEventListener :one
 INSERT INTO event_listeners (
     id,
+    source,
+    type,
+    description,
     enabled,
     app_id,
     module_id,
     creator_user_id,
-    source,
-    type,
     filter,
     flow_source,
     created_at,
     updated_at
 ) VALUES (
-    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11
-) RETURNING id, enabled, app_id, module_id, creator_user_id, source, type, filter, flow_source, created_at, updated_at
+    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12
+) RETURNING id, source, type, description, enabled, app_id, module_id, creator_user_id, filter, flow_source, created_at, updated_at
 `
 
 type CreateEventListenerParams struct {
 	ID            string
+	Source        string
+	Type          string
+	Description   string
 	Enabled       bool
 	AppID         string
 	ModuleID      pgtype.Text
 	CreatorUserID string
-	Source        string
-	Type          string
 	Filter        []byte
 	FlowSource    []byte
 	CreatedAt     pgtype.Timestamp
@@ -57,12 +59,13 @@ type CreateEventListenerParams struct {
 func (q *Queries) CreateEventListener(ctx context.Context, arg CreateEventListenerParams) (EventListener, error) {
 	row := q.db.QueryRow(ctx, createEventListener,
 		arg.ID,
+		arg.Source,
+		arg.Type,
+		arg.Description,
 		arg.Enabled,
 		arg.AppID,
 		arg.ModuleID,
 		arg.CreatorUserID,
-		arg.Source,
-		arg.Type,
 		arg.Filter,
 		arg.FlowSource,
 		arg.CreatedAt,
@@ -71,12 +74,13 @@ func (q *Queries) CreateEventListener(ctx context.Context, arg CreateEventListen
 	var i EventListener
 	err := row.Scan(
 		&i.ID,
+		&i.Source,
+		&i.Type,
+		&i.Description,
 		&i.Enabled,
 		&i.AppID,
 		&i.ModuleID,
 		&i.CreatorUserID,
-		&i.Source,
-		&i.Type,
 		&i.Filter,
 		&i.FlowSource,
 		&i.CreatedAt,
@@ -119,7 +123,7 @@ func (q *Queries) GetEnabledEventListenerIDs(ctx context.Context) ([]string, err
 }
 
 const getEnabledEventListenersUpdatesSince = `-- name: GetEnabledEventListenersUpdatesSince :many
-SELECT id, enabled, app_id, module_id, creator_user_id, source, type, filter, flow_source, created_at, updated_at FROM event_listeners WHERE enabled = TRUE AND updated_at > $1
+SELECT id, source, type, description, enabled, app_id, module_id, creator_user_id, filter, flow_source, created_at, updated_at FROM event_listeners WHERE enabled = TRUE AND updated_at > $1
 `
 
 func (q *Queries) GetEnabledEventListenersUpdatesSince(ctx context.Context, updatedAt pgtype.Timestamp) ([]EventListener, error) {
@@ -133,12 +137,13 @@ func (q *Queries) GetEnabledEventListenersUpdatesSince(ctx context.Context, upda
 		var i EventListener
 		if err := rows.Scan(
 			&i.ID,
+			&i.Source,
+			&i.Type,
+			&i.Description,
 			&i.Enabled,
 			&i.AppID,
 			&i.ModuleID,
 			&i.CreatorUserID,
-			&i.Source,
-			&i.Type,
 			&i.Filter,
 			&i.FlowSource,
 			&i.CreatedAt,
@@ -155,7 +160,7 @@ func (q *Queries) GetEnabledEventListenersUpdatesSince(ctx context.Context, upda
 }
 
 const getEventListener = `-- name: GetEventListener :one
-SELECT id, enabled, app_id, module_id, creator_user_id, source, type, filter, flow_source, created_at, updated_at FROM event_listeners WHERE id = $1
+SELECT id, source, type, description, enabled, app_id, module_id, creator_user_id, filter, flow_source, created_at, updated_at FROM event_listeners WHERE id = $1
 `
 
 func (q *Queries) GetEventListener(ctx context.Context, id string) (EventListener, error) {
@@ -163,12 +168,13 @@ func (q *Queries) GetEventListener(ctx context.Context, id string) (EventListene
 	var i EventListener
 	err := row.Scan(
 		&i.ID,
+		&i.Source,
+		&i.Type,
+		&i.Description,
 		&i.Enabled,
 		&i.AppID,
 		&i.ModuleID,
 		&i.CreatorUserID,
-		&i.Source,
-		&i.Type,
 		&i.Filter,
 		&i.FlowSource,
 		&i.CreatedAt,
@@ -178,7 +184,7 @@ func (q *Queries) GetEventListener(ctx context.Context, id string) (EventListene
 }
 
 const getEventListenersByApp = `-- name: GetEventListenersByApp :many
-SELECT id, enabled, app_id, module_id, creator_user_id, source, type, filter, flow_source, created_at, updated_at FROM event_listeners WHERE app_id = $1 ORDER BY created_at DESC
+SELECT id, source, type, description, enabled, app_id, module_id, creator_user_id, filter, flow_source, created_at, updated_at FROM event_listeners WHERE app_id = $1 ORDER BY created_at DESC
 `
 
 func (q *Queries) GetEventListenersByApp(ctx context.Context, appID string) ([]EventListener, error) {
@@ -192,12 +198,13 @@ func (q *Queries) GetEventListenersByApp(ctx context.Context, appID string) ([]E
 		var i EventListener
 		if err := rows.Scan(
 			&i.ID,
+			&i.Source,
+			&i.Type,
+			&i.Description,
 			&i.Enabled,
 			&i.AppID,
 			&i.ModuleID,
 			&i.CreatorUserID,
-			&i.Source,
-			&i.Type,
 			&i.Filter,
 			&i.FlowSource,
 			&i.CreatedAt,
@@ -218,18 +225,20 @@ UPDATE event_listeners SET
     enabled = $2,
     type = $3,
     filter = $4,
-    flow_source = $5,
-    updated_at = $6
-WHERE id = $1 RETURNING id, enabled, app_id, module_id, creator_user_id, source, type, filter, flow_source, created_at, updated_at
+    description = $5,
+    flow_source = $6,
+    updated_at = $7
+WHERE id = $1 RETURNING id, source, type, description, enabled, app_id, module_id, creator_user_id, filter, flow_source, created_at, updated_at
 `
 
 type UpdateEventListenerParams struct {
-	ID         string
-	Enabled    bool
-	Type       string
-	Filter     []byte
-	FlowSource []byte
-	UpdatedAt  pgtype.Timestamp
+	ID          string
+	Enabled     bool
+	Type        string
+	Filter      []byte
+	Description string
+	FlowSource  []byte
+	UpdatedAt   pgtype.Timestamp
 }
 
 func (q *Queries) UpdateEventListener(ctx context.Context, arg UpdateEventListenerParams) (EventListener, error) {
@@ -238,18 +247,20 @@ func (q *Queries) UpdateEventListener(ctx context.Context, arg UpdateEventListen
 		arg.Enabled,
 		arg.Type,
 		arg.Filter,
+		arg.Description,
 		arg.FlowSource,
 		arg.UpdatedAt,
 	)
 	var i EventListener
 	err := row.Scan(
 		&i.ID,
+		&i.Source,
+		&i.Type,
+		&i.Description,
 		&i.Enabled,
 		&i.AppID,
 		&i.ModuleID,
 		&i.CreatorUserID,
-		&i.Source,
-		&i.Type,
 		&i.Filter,
 		&i.FlowSource,
 		&i.CreatedAt,

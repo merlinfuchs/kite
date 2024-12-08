@@ -27,12 +27,13 @@ func EventTypeFromDiscordEventType(eventType ws.EventType) EventListenerType {
 
 type EventListener struct {
 	ID            string
+	Source        EventSource
+	Type          EventListenerType
+	Description   string
 	Enabled       bool
 	AppID         string
 	ModuleID      null.String
 	CreatorUserID string
-	Source        EventSource
-	Type          EventListenerType
 	Filter        *EventListenerFilter
 	FlowSource    flow.FlowData
 	CreatedAt     time.Time

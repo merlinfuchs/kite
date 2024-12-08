@@ -318,6 +318,13 @@ func (n *CompiledFlowNode) EventListenerFilter() string {
 	return n.Data.EventType
 }
 
+func (n *CompiledFlowNode) EventDescription() string {
+	if !n.IsEventListenerEntry() {
+		return ""
+	}
+	return n.Data.Description
+}
+
 func (n *CompiledFlowNode) IsAction() bool {
 	return n.Type == FlowNodeTypeActionResponseCreate ||
 		n.Type == FlowNodeTypeActionMessageCreate ||

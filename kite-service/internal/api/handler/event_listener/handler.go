@@ -66,6 +66,7 @@ func (h *EventListenerHandler) HandleEventListenerCreate(c *handler.Context, req
 		CreatorUserID: c.Session.UserID,
 		Source:        model.EventSource(req.Source),
 		Type:          model.EventListenerType(eventFlow.EventListenerType()),
+		Description:   eventFlow.EventDescription(),
 		// TODO: Filter:        eventFlow.EventListenerFilter(),
 		FlowSource: req.FlowSource,
 		Enabled:    req.Enabled,
@@ -86,8 +87,9 @@ func (h *EventListenerHandler) HandleEventListenerUpdate(c *handler.Context, req
 	}
 
 	eventListener, err := h.eventListenerStore.UpdateEventListener(c.Context(), &model.EventListener{
-		ID:   c.EventListener.ID,
-		Type: model.EventListenerType(eventFlow.EventListenerType()),
+		ID:          c.EventListener.ID,
+		Type:        model.EventListenerType(eventFlow.EventListenerType()),
+		Description: eventFlow.EventDescription(),
 		// TODO: Filter:      eventFlow.EventListenerFilter(),
 		FlowSource: req.FlowSource,
 		Enabled:    req.Enabled,

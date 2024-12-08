@@ -1,13 +1,14 @@
 CREATE TABLE IF NOT EXISTS event_listeners (
     id TEXT PRIMARY KEY,
+    source TEXT NOT NULL,
+    type TEXT NOT NULL,
+    description TEXT NOT NULL,
     enabled BOOLEAN NOT NULL DEFAULT FALSE,
 
     app_id TEXT NOT NULL REFERENCES apps(id) ON DELETE CASCADE,
     module_id TEXT REFERENCES modules(id) ON DELETE SET NULL,
     creator_user_id TEXT NOT NULL,
 
-    source TEXT NOT NULL,
-    type TEXT NOT NULL,
     filter JSONB,
     flow_source JSONB NOT NULL,
    
