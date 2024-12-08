@@ -10,6 +10,7 @@ max_apps_per_user = 10
 max_commands_per_app = 25
 max_variables_per_app = 25
 max_messages_per_app = 25
+max_event_listeners_per_app = 5
 max_asset_size = 8_000_000
 
 [app]

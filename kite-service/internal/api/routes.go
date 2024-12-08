@@ -12,6 +12,7 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/asset"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/auth"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/command"
+	eventlistener "github.com/kitecloud/kite/kite-service/internal/api/handler/event_listener"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/logs"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/message"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/user"
@@ -31,6 +32,7 @@ func (s *APIServer) RegisterRoutes(
 	variableValueStore store.VariableValueStore,
 	messageStore store.MessageStore,
 	messageInstanceStore store.MessageInstanceStore,
+	eventListenerStore store.EventListenerStore,
 	assetStore store.AssetStore,
 	appStateManager store.AppStateManager,
 ) {
@@ -38,7 +40,7 @@ func (s *APIServer) RegisterRoutes(
 		StrictCookies: s.config.StrictCookies,
 		SecureCookies: s.config.SecureCookies,
 	}, sessionStore)
-	accessManager := access.NewAccessManager(appStore, commandStore, variableStore, messageStore)
+	accessManager := access.NewAccessManager(appStore, commandStore, variableStore, messageStore, eventListenerStore)
 
 	webHandler, err := kiteweb.NewHandler()
 	if err == nil {
@@ -117,6 +119,18 @@ func (s *APIServer) RegisterRoutes(
 	commandGroup.Get("/", handler.Typed(commandsHandler.HandleCommandGet))
 	commandGroup.Patch("/", handler.TypedWithBody(commandsHandler.HandleCommandUpdate))
 	commandGroup.Delete("/", handler.Typed(commandsHandler.HandleCommandDelete))
+
+	// Event listener routes
+	eventListenerHandler := eventlistener.NewEventListenerHandler(eventListenerStore, s.config.UserLimits.MaxEventListenersPerApp)
+
+	eventListenersGroup := appGroup.Group("/event-listeners")
+	eventListenersGroup.Get("/", handler.Typed(eventListenerHandler.HandleEventListenerList))
+	eventListenersGroup.Post("/", handler.TypedWithBody(eventListenerHandler.HandleEventListenerCreate))
+
+	eventListenerGroup := eventListenersGroup.Group("/{listenerID}", accessManager.EventListenerAccess)
+	eventListenerGroup.Get("/", handler.Typed(eventListenerHandler.HandleEventListenerGet))
+	eventListenerGroup.Patch("/", handler.TypedWithBody(eventListenerHandler.HandleEventListenerUpdate))
+	eventListenerGroup.Delete("/", handler.Typed(eventListenerHandler.HandleEventListenerDelete))
 
 	// Variable routes
 	variablesHandler := variable.NewVariableHandler(variableStore, variableValueStore, s.config.UserLimits.MaxVariablesPerApp)

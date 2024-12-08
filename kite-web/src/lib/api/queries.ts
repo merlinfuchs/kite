@@ -6,6 +6,8 @@ import {
   AssetGetResponse,
   CommandGetResponse,
   CommandListResponse,
+  EventListenerGetResponse,
+  EventListenerListResponse,
   LogEntryListResponse,
   MessageGetResponse,
   MessageInstanceListResponse,
@@ -64,6 +66,28 @@ export function useCommandQuery(appId: string, cmdId: string) {
     queryFn: () =>
       apiRequest<CommandGetResponse>(`/v1/apps/${appId}/commands/${cmdId}`),
     enabled: !!appId && !!cmdId,
+  });
+}
+
+export function useEventListenersQuery(appId: string) {
+  return useQuery({
+    queryKey: ["apps", appId, "event-listeners"],
+    queryFn: () =>
+      apiRequest<EventListenerListResponse>(
+        `/v1/apps/${appId}/event-listeners`
+      ),
+    enabled: !!appId,
+  });
+}
+
+export function useEventListenerQuery(appId: string, eventId: string) {
+  return useQuery({
+    queryKey: ["apps", appId, "event-listeners", eventId],
+    queryFn: () =>
+      apiRequest<EventListenerGetResponse>(
+        `/v1/apps/${appId}/event-listeners/${eventId}`
+      ),
+    enabled: !!appId && !!eventId,
   });
 }
 

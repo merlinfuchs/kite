@@ -229,7 +229,7 @@ func (ml databaseMigrationLogger) Printf(format string, v ...interface{}) {
 	ml.logger.Info(fmt.Sprintf(format, v...))
 }
 
-// Printf is like fmt.Printf
+// Verbose returns the verbose flag
 func (ml databaseMigrationLogger) Verbose() bool {
 	return ml.verbose
 }

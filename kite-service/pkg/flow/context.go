@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/diamondburned/arikawa/v3/discord"
-	"github.com/diamondburned/arikawa/v3/gateway"
+	"github.com/diamondburned/arikawa/v3/utils/ws"
 	"github.com/kitecloud/kite/kite-service/pkg/placeholder"
 )
 
@@ -28,6 +28,9 @@ func NewContext(
 ) *FlowContext {
 	if data.Interaction() != nil {
 		placeholders.AddProvider("interaction", placeholder.NewInteractionProvider(data.Interaction()))
+	}
+	if data.Event() != nil {
+		placeholders.AddProvider("event", placeholder.NewEventProvider(data.Event()))
 	}
 
 	placeholders.AddProvider("variables", &variablePlaceholderProvider{
@@ -57,7 +60,7 @@ type FlowContextData interface {
 	CommandData() *discord.CommandInteraction
 	MessageComponentData() discord.ComponentInteraction
 	Interaction() *discord.InteractionEvent
-	EventData() gateway.Event
+	Event() ws.Event
 	GuildID() discord.GuildID
 	ChannelID() discord.ChannelID
 }

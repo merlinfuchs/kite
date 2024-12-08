@@ -19,3 +19,8 @@ export function useMessageId() {
   const router = useRouter();
   return router.query.messageId as string;
 }
+
+export function useEventId() {
+  const router = useRouter();
+  return router.query.eventId as string;
+}

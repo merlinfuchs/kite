@@ -106,7 +106,7 @@ export const nodeTypes: Record<string, NodeValues> = {
     defaultDescription:
       "Listens for an event to trigger the flow. Drop different actions here!",
     dataSchema: nodeEntryEventDataSchema,
-    dataFields: ["event_type"],
+    dataFields: ["event_type", "description"],
     fixed: true,
   },
   entry_component_button: {
@@ -323,7 +323,7 @@ export const nodeTypes: Record<string, NodeValues> = {
     icon: ScrollTextIcon,
     defaultTitle: "Log Message",
     defaultDescription:
-      "Log some text which is only visible in the deployment logs",
+      "Log some text which is only visible in the application logs",
     dataSchema: nodeActionLogDataSchema,
     dataFields: ["log_level", "log_message", "custom_label"],
   },
@@ -546,7 +546,7 @@ export function createNode(
   ];
   const edges: Edge[] = [];
 
-  // TODO: connect option types to entry automatically?
+  // TODO?: connect option types to entry automatically?
 
   if (conditionChildType.hasOwnProperty(type)) {
     const [elseNodes, elseEdges] = createNode("control_condition_item_else", {

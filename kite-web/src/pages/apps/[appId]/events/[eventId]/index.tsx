@@ -1,26 +1,26 @@
 import FlowPage from "@/components/flow/FlowPage";
-import { useCommandUpdateMutation } from "@/lib/api/mutations";
+import { useEventListenerUpdateMutation } from "@/lib/api/mutations";
 import { FlowData } from "@/lib/flow/data";
-import { useCommand } from "@/lib/hooks/api";
-import { useAppId, useCommandId } from "@/lib/hooks/params";
+import { useEventListener } from "@/lib/hooks/api";
+import { useAppId, useEventId } from "@/lib/hooks/params";
 import { useBeforePageExit } from "@/lib/hooks/exit";
 import Head from "next/head";
 import { useRouter } from "next/router";
 import { useCallback, useRef, useState } from "react";
 import { toast } from "sonner";
 
-export default function AppCommandPage() {
+export default function AppEventListenerPage() {
   const ignoreChange = useRef(false);
 
   const router = useRouter();
-  const cmd = useCommand((res) => {
+  const listener = useEventListener((res) => {
     if (!res.success) {
       toast.error(
-        `Failed to load command: ${res?.error.message} (${res?.error.code})`
+        `Failed to load event listener: ${res?.error.message} (${res?.error.code})`
       );
-      if (res.error.code === "unknown_command") {
+      if (res.error.code === "unknown_event_listener") {
         router.push({
-          pathname: "/apps/[appId]/commands",
+          pathname: "/apps/[appId]/events",
           query: { appId: router.query.appId },
         });
       }
@@ -33,7 +33,10 @@ export default function AppCommandPage() {
     }
   });
 
-  const updateMutation = useCommandUpdateMutation(useAppId(), useCommandId());
+  const updateMutation = useEventListenerUpdateMutation(
+    useAppId(),
+    useEventId()
+  );
 
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -57,11 +60,11 @@ export default function AppCommandPage() {
           onSuccess(res) {
             if (res.success) {
               toast.success(
-                "Command saved! It may take up to a minute for all changes to take effect."
+                "Event listener saved! It may take up to a minute for all changes to take effect."
               );
             } else {
               toast.error(
-                `Failed to update command: ${res.error.message} (${res.error.code})`
+                `Failed to update event listener: ${res.error.message} (${res.error.code})`
               );
             }
           },
@@ -85,7 +88,7 @@ export default function AppCommandPage() {
     }
 
     router.push({
-      pathname: "/apps/[appId]/commands",
+      pathname: "/apps/[appId]/events",
       query: { appId: router.query.appId },
     });
   }, [hasUnsavedChanges, router]);
@@ -103,12 +106,12 @@ export default function AppCommandPage() {
   return (
     <div className="flex min-h-[100dvh] w-full flex-col">
       <Head>
-        <title>Manage Command | Kite</title>
+        <title>Manage Event Listener | Kite</title>
       </Head>
-      {cmd && (
+      {listener && (
         <FlowPage
-          flowData={cmd.flow_source}
-          context="command"
+          flowData={listener.flow_source}
+          context="event_discord"
           hasUnsavedChanges={hasUnsavedChanges}
           onChange={onChange}
           isSaving={isSaving}

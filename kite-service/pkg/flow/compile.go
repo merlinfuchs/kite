@@ -18,6 +18,10 @@ func CompileComponentButton(data FlowData) (*CompiledFlowNode, error) {
 	return compile(data, FlowNodeTypeEntryComponentButton)
 }
 
+func CompileEventListener(data FlowData) (*CompiledFlowNode, error) {
+	return compile(data, FlowNodeTypeEntryEvent)
+}
+
 func compile(data FlowData, entryType FlowNodeType) (*CompiledFlowNode, error) {
 	var entryNode *CompiledFlowNode
 	nodeMap := make(map[string]*CompiledFlowNode)
@@ -65,8 +69,17 @@ type CompiledFlowNode struct {
 }
 
 func (n *CompiledFlowNode) IsEntry() bool {
-	return n.Type == FlowNodeTypeEntryCommand || n.Type == FlowNodeTypeEntryEvent
+	return n.Type == FlowNodeTypeEntryCommand ||
+		n.Type == FlowNodeTypeEntryComponentButton ||
+		n.Type == FlowNodeTypeEntryEvent
+}
 
+func (n *CompiledFlowNode) IsComponentButtonEntry() bool {
+	return n.Type == FlowNodeTypeEntryComponentButton
+}
+
+func (n *CompiledFlowNode) IsEventListenerEntry() bool {
+	return n.Type == FlowNodeTypeEntryEvent
 }
 
 func (n *CompiledFlowNode) IsCommandEntry() bool {
@@ -289,6 +302,27 @@ func (n *CompiledFlowNode) CommandIntegrations() []discord.ApplicationIntegratio
 	}
 
 	return res
+}
+
+func (n *CompiledFlowNode) EventListenerType() string {
+	if !n.IsEventListenerEntry() {
+		return ""
+	}
+	return n.Data.EventType
+}
+
+func (n *CompiledFlowNode) EventListenerFilter() string {
+	if !n.IsEventListenerEntry() {
+		return ""
+	}
+	return n.Data.EventType
+}
+
+func (n *CompiledFlowNode) EventDescription() string {
+	if !n.IsEventListenerEntry() {
+		return ""
+	}
+	return n.Data.Description
 }
 
 func (n *CompiledFlowNode) IsAction() bool {

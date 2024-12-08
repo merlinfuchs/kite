@@ -2,7 +2,7 @@ package engine
 
 import (
 	"github.com/diamondburned/arikawa/v3/discord"
-	"github.com/diamondburned/arikawa/v3/gateway"
+	"github.com/diamondburned/arikawa/v3/utils/ws"
 )
 
 type InteractionData struct {
@@ -31,8 +31,34 @@ func (d *InteractionData) MessageComponentData() discord.ComponentInteraction {
 	return data
 }
 
-func (d *InteractionData) EventData() gateway.Event {
+func (d *InteractionData) Event() ws.Event {
 	return nil
 }
 
-type EventData struct{}
+type EventData struct {
+	event ws.Event
+}
+
+func (d *EventData) Interaction() *discord.InteractionEvent {
+	return nil
+}
+
+func (d *EventData) GuildID() discord.GuildID {
+	return 0
+}
+
+func (d *EventData) ChannelID() discord.ChannelID {
+	return 0
+}
+
+func (d *EventData) CommandData() *discord.CommandInteraction {
+	return nil
+}
+
+func (d *EventData) MessageComponentData() discord.ComponentInteraction {
+	return nil
+}
+
+func (d *EventData) Event() ws.Event {
+	return d.event
+}

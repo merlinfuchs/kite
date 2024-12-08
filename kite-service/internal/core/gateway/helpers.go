@@ -10,6 +10,8 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/model"
 )
 
+const GATEWAY_GUILD_MEMBERS = 1 << 14
+const GATEWAY_GUILD_MEMBERS_LIMITED = 1 << 15
 const GATEWAY_MESSAGE_CONTENT = 18
 const GATEWAY_MESSAGE_CONTENT_LIMITED = 19
 
@@ -22,6 +24,9 @@ func getAppIntents(client *api.Client) (gateway.Intents, error) {
 	res := gateway.IntentGuilds | gateway.IntentGuildMessages
 	if app.Flags&GATEWAY_MESSAGE_CONTENT != 0 || app.Flags&GATEWAY_MESSAGE_CONTENT_LIMITED != 0 {
 		res |= gateway.IntentMessageContent
+	}
+	if app.Flags&GATEWAY_GUILD_MEMBERS != 0 || app.Flags&GATEWAY_GUILD_MEMBERS_LIMITED != 0 {
+		res |= gateway.IntentGuildMembers
 	}
 
 	return res, nil

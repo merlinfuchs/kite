@@ -1,5 +1,5 @@
-import AppEmptyPlaceholder from "@/components/app/AppEmptyPlaceholder";
 import AppLayout from "@/components/app/AppLayout";
+import EventListenerList from "@/components/app/EventListerList";
 import { Separator } from "@/components/ui/separator";
 
 const breadcrumbs = [
@@ -20,10 +20,7 @@ export default function AppEventsPage() {
         </p>
       </div>
       <Separator className="my-8" />
-      <AppEmptyPlaceholder
-        title="Under construction"
-        description="This feature is not yet available. Please check back later."
-      />
+      <EventListenerList />
     </AppLayout>
   );
 }

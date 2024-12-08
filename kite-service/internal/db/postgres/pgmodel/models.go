@@ -59,6 +59,21 @@ type Command struct {
 	LastDeployedAt pgtype.Timestamp
 }
 
+type EventListener struct {
+	ID            string
+	Source        string
+	Type          string
+	Description   string
+	Enabled       bool
+	AppID         string
+	ModuleID      pgtype.Text
+	CreatorUserID string
+	Filter        []byte
+	FlowSource    []byte
+	CreatedAt     pgtype.Timestamp
+	UpdatedAt     pgtype.Timestamp
+}
+
 type Log struct {
 	ID        int64
 	AppID     string

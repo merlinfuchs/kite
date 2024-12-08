@@ -14,11 +14,12 @@ type Context struct {
 	r *http.Request
 	w http.ResponseWriter
 
-	Session  *model.Session
-	App      *model.App
-	Command  *model.Command
-	Variable *model.Variable
-	Message  *model.Message
+	Session       *model.Session
+	App           *model.App
+	Command       *model.Command
+	Variable      *model.Variable
+	Message       *model.Message
+	EventListener *model.EventListener
 }
 
 func (c *Context) Context() context.Context {

@@ -13,12 +13,16 @@ import {
   useMessageInstancesQuery,
   useAppStateGuildsQuery,
   useAppStateGuildChannelsQuery,
+  useEventListenerQuery,
+  useEventListenersQuery,
 } from "../api/queries";
 import {
   AppGetResponse,
   AppListResponse,
   CommandGetResponse,
   CommandListResponse,
+  EventListenerGetResponse,
+  EventListenerListResponse,
   MessageGetResponse,
   MessageInstanceListResponse,
   MessageListResponse,
@@ -85,6 +89,27 @@ export function useCommand(
   const query = useCommandQuery(
     router.query.appId as string,
     router.query.cmdId as string
+  );
+  return useResponseData(query, callback);
+}
+
+export function useEventListeners(
+  callback?: (res: APIResponse<EventListenerListResponse>) => void
+) {
+  const router = useRouter();
+
+  const query = useEventListenersQuery(router.query.appId as string);
+  return useResponseData(query, callback);
+}
+
+export function useEventListener(
+  callback?: (res: APIResponse<EventListenerGetResponse>) => void
+) {
+  const router = useRouter();
+
+  const query = useEventListenerQuery(
+    router.query.appId as string,
+    router.query.eventId as string
   );
   return useResponseData(query, callback);
 }

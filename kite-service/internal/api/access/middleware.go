@@ -96,3 +96,26 @@ func (m *AccessManager) MessageAccess(next handler.HandlerFunc) handler.HandlerF
 		return next(c)
 	}
 }
+
+func (m *AccessManager) EventListenerAccess(next handler.HandlerFunc) handler.HandlerFunc {
+	return func(c *handler.Context) error {
+		listenerID := c.Param("listenerID")
+		appID := c.Param("appID")
+
+		eventListener, err := m.eventListenerStore.EventListener(c.Context(), listenerID)
+		if err != nil {
+			if errors.Is(err, store.ErrNotFound) {
+				return handler.ErrNotFound("unknown_event_listener", "Event listener not found")
+			}
+			return err
+		}
+
+		// We assume that app access has already been checked
+		if eventListener.AppID != appID {
+			return handler.ErrForbidden("missing_access", "Access to event listener missing")
+		}
+
+		c.EventListener = eventListener
+		return next(c)
+	}
+}

@@ -19,6 +19,7 @@ import (
 
 type MessageInstance struct {
 	config               EngineConfig
+	appID                string
 	msg                  *model.MessageInstance
 	flows                map[string]*flow.CompiledFlowNode
 	appStore             store.AppStore
@@ -32,6 +33,7 @@ type MessageInstance struct {
 
 func NewMessageInstance(
 	config EngineConfig,
+	appID string,
 	msg *model.MessageInstance,
 	appStore store.AppStore,
 	logStore store.LogStore,
@@ -55,6 +57,7 @@ func NewMessageInstance(
 
 	return &MessageInstance{
 		config:               config,
+		appID:                appID,
 		msg:                  msg,
 		flows:                flows,
 		appStore:             appStore,
@@ -127,13 +130,13 @@ func (c *MessageInstance) createLogEntry(level model.LogLevel, message string) {
 
 	// Create log entry which will be displayed in the dashboard
 	err := c.logStore.CreateLogEntry(ctx, model.LogEntry{
-		AppID:     "TODO", // TODO: appID
+		AppID:     c.appID,
 		Level:     level,
 		Message:   message,
 		CreatedAt: time.Now().UTC(),
 	})
 	if err != nil {
-		slog.With("error", err).With("app_id", "TODO").Error("Failed to create log entry from engine command")
+		slog.With("error", err).With("app_id", c.appID).Error("Failed to create log entry from engine command")
 	}
 }
 
@@ -141,7 +144,7 @@ func (c *MessageInstance) recoverPanic() {
 	if r := recover(); r != nil {
 		go c.createLogEntry(model.LogLevelError, fmt.Sprintf("Recovered from panic: %v", r))
 		slog.With("error", r).
-			With("app_id", "TODO").
+			With("app_id", c.appID).
 			With("message_id", c.msg.MessageID).
 			With("message_instance_id", c.msg.ID).
 			Error("Recovered from panic in component handler")

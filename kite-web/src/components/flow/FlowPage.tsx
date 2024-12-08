@@ -3,9 +3,11 @@ import FlowNav from "./FlowNav";
 import { ReactFlowProvider, useReactFlow } from "@xyflow/react";
 import { useCallback } from "react";
 import Flow from "./Flow";
+import { FlowContextType } from "@/lib/flow/context";
 
 interface Props {
   flowData: FlowData;
+  context: FlowContextType;
   hasUnsavedChanges: boolean;
   onChange: () => void;
   isSaving: boolean;
@@ -15,6 +17,7 @@ interface Props {
 
 function InnerFlowPage({
   flowData,
+  context,
   hasUnsavedChanges,
   onChange,
   isSaving,
@@ -40,7 +43,7 @@ function InnerFlowPage({
           onExit={onExit}
         />
       </div>
-      <Flow flowData={flowData} onChange={onChange} />
+      <Flow flowData={flowData} context={context} onChange={onChange} />
     </div>
   );
 }

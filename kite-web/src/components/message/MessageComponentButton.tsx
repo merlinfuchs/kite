@@ -219,6 +219,7 @@ export default function MessageComponentButton({
           <>
             <FlowDialog
               flowData={flowData || initialFlow}
+              context="component_button"
               onClose={onFlowDialogClose}
             >
               <FlowPreview className="h-64 p-16 w-full" onClick={() => {}} />

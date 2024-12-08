@@ -75,6 +75,7 @@ func serverStartCMD(c *cli.Context) error {
 		pg,
 		pg,
 		pg,
+		pg,
 		&http.Client{}, // TODO: think about proxying http requests
 		openaiClient,
 	)
@@ -93,13 +94,14 @@ func serverStartCMD(c *cli.Context) error {
 		DiscordClientID:     cfg.Discord.ClientID,
 		DiscordClientSecret: cfg.Discord.ClientSecret,
 		UserLimits: api.APIUserLimitsConfig{
-			MaxAppsPerUser:     cfg.API.UserLimits.MaxAppsPerUser,
-			MaxCommandsPerApp:  cfg.API.UserLimits.MaxCommandsPerApp,
-			MaxVariablesPerApp: cfg.API.UserLimits.MaxVariablesPerApp,
-			MaxMessagesPerApp:  cfg.API.UserLimits.MaxMessagesPerApp,
-			MaxAssetSize:       cfg.API.UserLimits.MaxAssetSize,
+			MaxAppsPerUser:          cfg.API.UserLimits.MaxAppsPerUser,
+			MaxCommandsPerApp:       cfg.API.UserLimits.MaxCommandsPerApp,
+			MaxVariablesPerApp:      cfg.API.UserLimits.MaxVariablesPerApp,
+			MaxMessagesPerApp:       cfg.API.UserLimits.MaxMessagesPerApp,
+			MaxEventListenersPerApp: cfg.API.UserLimits.MaxEventListenersPerApp,
+			MaxAssetSize:            cfg.API.UserLimits.MaxAssetSize,
 		},
-	}, pg, pg, pg, pg, pg, pg, pg, pg, pg, assetStore, gateway)
+	}, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, assetStore, gateway)
 	address := fmt.Sprintf("%s:%d", cfg.API.Host, cfg.API.Port)
 	if err := apiServer.Serve(context.Background(), address); err != nil {
 		slog.With("error", err).Error("Failed to start API server")
