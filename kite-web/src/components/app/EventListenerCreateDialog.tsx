@@ -156,6 +156,12 @@ export default function EventListenerCreateDialog({
                       <SelectItem value="message_update">
                         Message Update
                       </SelectItem>
+                      <SelectItem value="guild_member_add">
+                        Guild Member Add
+                      </SelectItem>
+                      <SelectItem value="guild_member_remove">
+                        Guild Member Remove
+                      </SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />

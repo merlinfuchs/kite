@@ -267,6 +267,29 @@ func NewEventProvider(event ws.Event) EventProvider {
 		if p.member != nil {
 			p.user = &p.member.User
 		}
+	case *gateway.MessageDeleteEvent:
+		p.message = &discord.Message{
+			ID: d.ID,
+		}
+		p.channel = &discord.Channel{
+			ID: d.ChannelID,
+		}
+		if d.GuildID != 0 {
+			p.guild = &discord.Guild{
+				ID: d.GuildID,
+			}
+		}
+	case *gateway.GuildMemberAddEvent:
+		p.member = &d.Member
+		p.user = &d.Member.User
+		p.guild = &discord.Guild{
+			ID: d.GuildID,
+		}
+	case *gateway.GuildMemberRemoveEvent:
+		p.user = &d.User
+		p.guild = &discord.Guild{
+			ID: d.GuildID,
+		}
 	}
 
 	return p
@@ -277,33 +300,34 @@ func (p EventProvider) GetPlaceholder(ctx context.Context, key string) (Provider
 	case "type":
 		return NewStringProvider(string(p.event.EventType())), nil
 	case "message":
-		if p.message == nil {
-			return nil, ErrNotFound
+		if p.message != nil {
+			return NewMessageProvider(p.message), nil
 		}
-		return NewMessageProvider(p.message), nil
 	case "user":
-		if p.user == nil {
-			return nil, ErrNotFound
-		}
 		if p.member != nil {
+			// Prefer member over user
 			return NewMemberProvider(p.member), nil
 		}
-		return NewUserProvider(p.user), nil
+		if p.user != nil {
+			return NewUserProvider(p.user), nil
+		}
 	case "member":
 		if p.member == nil {
-			return nil, ErrNotFound
+			if p.user == nil {
+				return nil, ErrNotFound
+			}
+			// Fallback to user
+			return NewUserProvider(p.user), nil
 		}
 		return NewMemberProvider(p.member), nil
 	case "channel":
-		if p.channel == nil {
-			return nil, ErrNotFound
+		if p.channel != nil {
+			return NewChannelProvider(p.channel.ID), nil
 		}
-		return NewChannelProvider(p.channel.ID), nil
 	case "guild":
-		if p.guild == nil {
-			return nil, ErrNotFound
+		if p.guild != nil {
+			return NewGuildProvider(p.guild.ID), nil
 		}
-		return NewGuildProvider(p.guild.ID), nil
 	}
 	return nil, ErrNotFound
 }

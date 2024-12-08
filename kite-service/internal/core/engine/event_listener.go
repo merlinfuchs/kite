@@ -139,6 +139,10 @@ func (l *EventListener) shouldHandleEvent(e ws.Event) bool {
 		return !d.Author.Bot
 	case *gateway.MessageDeleteEvent:
 		return true
+	case *gateway.GuildMemberAddEvent:
+		return true
+	case *gateway.GuildMemberRemoveEvent:
+		return true
 	}
 
 	return false
