@@ -14,6 +14,11 @@ import {
   CommandDeleteResponse,
   CommandUpdateRequest,
   CommandUpdateResponse,
+  EventListenerCreateRequest,
+  EventListenerCreateResponse,
+  EventListenerDeleteResponse,
+  EventListenerUpdateRequest,
+  EventListenerUpdateResponse,
   MessageCreateRequest,
   MessageCreateResponse,
   MessageDeleteResponse,
@@ -175,6 +180,71 @@ export function useCommandDeleteMutation(appId: string, cmdId: string) {
     onSuccess: () => {
       client.invalidateQueries({
         queryKey: ["apps", appId, "commands"],
+      });
+    },
+  });
+}
+
+export function useEventListenerCreateMutation(appId: string) {
+  const client = useQueryClient();
+
+  return useMutation({
+    mutationFn: (req: EventListenerCreateRequest) =>
+      apiRequest<EventListenerCreateResponse>(
+        `/v1/apps/${appId}/event-listeners`,
+        {
+          method: "POST",
+          body: JSON.stringify(req),
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      ),
+    onSuccess: () => {
+      client.invalidateQueries({
+        queryKey: ["apps", appId, "event-listeners"],
+      });
+    },
+  });
+}
+
+export function useEventListenerUpdateMutation(appId: string, eventId: string) {
+  const client = useQueryClient();
+
+  return useMutation({
+    mutationFn: (req: EventListenerUpdateRequest) =>
+      apiRequest<EventListenerUpdateResponse>(
+        `/v1/apps/${appId}/event-listeners/${eventId}`,
+        {
+          method: "PATCH",
+          body: JSON.stringify(req),
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      ),
+    onSuccess: () => {
+      client.invalidateQueries({
+        queryKey: ["apps", appId, "event-listeners"],
+      });
+    },
+  });
+}
+
+export function useEventListenerDeleteMutation(appId: string, eventId: string) {
+  const client = useQueryClient();
+
+  return useMutation({
+    mutationFn: () =>
+      apiRequest<EventListenerDeleteResponse>(
+        `/v1/apps/${appId}/event-listeners/${eventId}`,
+        {
+          method: "DELETE",
+        }
+      ),
+    onSuccess: () => {
+      client.invalidateQueries({
+        queryKey: ["apps", appId, "event-listeners"],
       });
     },
   });

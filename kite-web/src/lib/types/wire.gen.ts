@@ -122,6 +122,40 @@ export type CommandUpdateResponse = Command;
 export type CommandDeleteResponse = Empty;
 
 //////////
+// source: event_listener.go
+
+export interface EventListener {
+  id: string;
+  source: string;
+  type: string;
+  description: string;
+  enabled: boolean;
+  app_id: string;
+  module_id: null | string;
+  creator_user_id: string;
+  filter?: EventListenerFilter;
+  flow_source: FlowData;
+  created_at: string /* RFC3339 */;
+  updated_at: string /* RFC3339 */;
+}
+export interface EventListenerFilter {
+}
+export type EventListenerGetResponse = EventListener;
+export type EventListenerListResponse = (EventListener | undefined)[];
+export interface EventListenerCreateRequest {
+  source: string;
+  flow_source: FlowData;
+  enabled: boolean;
+}
+export type EventListenerCreateResponse = EventListener;
+export interface EventListenerUpdateRequest {
+  flow_source: FlowData;
+  enabled: boolean;
+}
+export type EventListenerUpdateResponse = EventListener;
+export type EventListenerDeleteResponse = Empty;
+
+//////////
 // source: log.go
 
 export interface LogEntry {

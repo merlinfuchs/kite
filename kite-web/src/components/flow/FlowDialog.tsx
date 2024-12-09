@@ -9,12 +9,15 @@ import {
   DialogTrigger,
 } from "../ui/dialog";
 import Flow from "./Flow";
+import { FlowContextType } from "@/lib/flow/context";
 
 function InnerFlowDialog({
   flowData,
+  context,
   onChange,
 }: {
   flowData: FlowData;
+  context: FlowContextType;
   onChange: (d: FlowData) => void;
 }) {
   const { getNodes, getEdges } = useReactFlow<NodeType>();
@@ -26,16 +29,18 @@ function InnerFlowDialog({
     });
   }, [getNodes, getEdges, onChange]);
 
-  return <Flow flowData={flowData} onChange={handleChange} />;
+  return <Flow flowData={flowData} context={context} onChange={handleChange} />;
 }
 
 export default function FlowDialog({
   children,
   onClose,
   flowData,
+  context,
 }: {
   flowData: FlowData;
   onClose: (data: FlowData) => void;
+  context: FlowContextType;
   children: React.ReactNode;
 }) {
   const dataRef = useRef(flowData);
@@ -63,7 +68,11 @@ export default function FlowDialog({
           <DialogDescription className="hidden">
             Define what happens.
           </DialogDescription>
-          <InnerFlowDialog flowData={flowData} onChange={onChange} />
+          <InnerFlowDialog
+            flowData={flowData}
+            context={context}
+            onChange={onChange}
+          />
         </ReactFlowProvider>
       </DialogContent>
     </Dialog>

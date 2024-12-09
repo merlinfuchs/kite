@@ -3,60 +3,7 @@ import PlaceholderExplorer from "../common/PlaceholderExplorer";
 import { Edge, getIncomers, Node, useEdges, useNodes } from "@xyflow/react";
 import { useMemo } from "react";
 import { getNodeValues } from "@/lib/flow/nodes";
-
-const staticPlaceholders = [
-  {
-    label: "User",
-    placeholders: [
-      {
-        label: "User ID",
-        value: "interaction.user.id",
-      },
-      {
-        label: "User Mention",
-        value: "interaction.user.mention",
-      },
-      {
-        label: "User Username",
-        value: "interaction.user.username",
-      },
-      {
-        label: "User Discriminator",
-        value: "interaction.user.discriminator",
-      },
-      {
-        label: "User Display Name",
-        value: "interaction.user.display_name",
-      },
-      {
-        label: "User Avatar URL",
-        value: "interaction.user.avatar_url",
-      },
-      {
-        label: "User Banner URL",
-        value: "interaction.user.banner_url",
-      },
-    ],
-  },
-  {
-    label: "Server",
-    placeholders: [
-      {
-        label: "Server ID",
-        value: "interaction.guild.id",
-      },
-    ],
-  },
-  {
-    label: "Channel",
-    placeholders: [
-      {
-        label: "Channel ID",
-        value: "interaction.channel.id",
-      },
-    ],
-  },
-];
+import { useFlowContext } from "@/lib/flow/context";
 
 export default function FlowPlaceholderExplorer({
   onSelect,
@@ -65,10 +12,11 @@ export default function FlowPlaceholderExplorer({
 }) {
   const nodePlaceholders = useNodePlaceholders();
   const commandPlaceholders = useCommandPlaceholders();
+  const globalPlaceholders = useGlobalPlaceholders();
 
   const placeholders = useMemo(
-    () => [...commandPlaceholders, ...staticPlaceholders, ...nodePlaceholders],
-    [commandPlaceholders, nodePlaceholders]
+    () => [...commandPlaceholders, ...globalPlaceholders, ...nodePlaceholders],
+    [commandPlaceholders, globalPlaceholders, nodePlaceholders]
   );
 
   return (
@@ -83,6 +31,81 @@ export default function FlowPlaceholderExplorer({
   );
 }
 
+function useGlobalPlaceholders() {
+  const contextType = useFlowContext((c) => c.type);
+
+  const baseKey = useMemo(
+    () => (contextType === "event_discord" ? "event" : "interaction"),
+    [contextType]
+  );
+
+  const res = [
+    {
+      label: "User",
+      placeholders: [
+        {
+          label: "User ID",
+          value: `${baseKey}.user.id`,
+        },
+        {
+          label: "User Mention",
+          value: `${baseKey}.user.mention`,
+        },
+        {
+          label: "User Username",
+          value: `${baseKey}.user.username`,
+        },
+        {
+          label: "User Discriminator",
+          value: `${baseKey}.user.discriminator`,
+        },
+        {
+          label: "User Display Name",
+          value: `${baseKey}.user.display_name`,
+        },
+        {
+          label: "User Avatar URL",
+          value: `${baseKey}.user.avatar_url`,
+        },
+        {
+          label: "User Banner URL",
+          value: `${baseKey}.user.banner_url`,
+        },
+      ],
+    },
+    {
+      label: "Server",
+      placeholders: [
+        {
+          label: "Server ID",
+          value: `${baseKey}.guild.id`,
+        },
+      ],
+    },
+    {
+      label: "Channel",
+      placeholders: [
+        {
+          label: "Channel ID",
+          value: `${baseKey}.channel.id`,
+        },
+      ],
+    },
+  ];
+
+  if (contextType === "event_discord") {
+    res.push({
+      label: "Message",
+      placeholders: [
+        { label: "Message ID", value: `${baseKey}.message.id` },
+        { label: "Message Content", value: `${baseKey}.message.content` },
+      ],
+    });
+  }
+
+  return res;
+}
+
 function useCommandPlaceholders() {
   const nodes = useNodes();
 
@@ -90,6 +113,11 @@ function useCommandPlaceholders() {
     () => nodes.filter((n) => n.type === "option_command_argument"),
     [nodes]
   );
+
+  const contextType = useFlowContext((c) => c.type);
+  if (contextType !== "command") {
+    return [];
+  }
 
   // TODO: take arg type into account
   return [

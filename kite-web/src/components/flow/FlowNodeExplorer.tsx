@@ -1,8 +1,9 @@
 import { NodeValues, nodeTypes } from "@/lib/flow/nodes";
 import clsx from "clsx";
-import { DragEvent, useState } from "react";
+import { DragEvent, useMemo, useState } from "react";
 import { useReactFlow } from "@xyflow/react";
 import { getUniqueId } from "@/lib/utils";
+import { useFlowContext } from "@/lib/flow/context";
 
 const nodeCategories = {
   option: [
@@ -13,6 +14,12 @@ const nodeCategories = {
         "option_command_permissions",
         "option_command_contexts",
       ],
+      contextTypes: ["command"],
+    },
+    {
+      title: "Events",
+      nodeTypes: ["option_command_contexts"],
+      contextTypes: ["event_discord"],
     },
     /* {
       title: "Events",
@@ -28,6 +35,7 @@ const nodeCategories = {
         "action_response_edit",
         "action_response_delete",
       ],
+      contextTypes: ["command", "component_button"],
     },
     {
       title: "Messages",
@@ -37,6 +45,7 @@ const nodeCategories = {
         "action_message_delete",
         "action_private_message_create",
       ],
+      contextTypes: null,
     },
     {
       title: "Members",
@@ -47,6 +56,7 @@ const nodeCategories = {
         "action_member_timeout",
         "action_member_edit",
       ],
+      contextTypes: null,
     },
     {
       title: "Variables",
@@ -55,6 +65,7 @@ const nodeCategories = {
         "action_variable_delete",
         "action_variable_get",
       ],
+      contextTypes: null,
     },
     {
       title: "Other Actions",
@@ -63,6 +74,7 @@ const nodeCategories = {
         "action_http_request",
         "action_log",
       ],
+      contextTypes: null,
     },
   ],
   control_flow: [
@@ -74,14 +86,17 @@ const nodeCategories = {
         "control_condition_channel",
         "control_condition_role",
       ],
+      contextTypes: null,
     },
     {
       title: "Loops",
       nodeTypes: ["control_loop", "control_loop_exit"],
+      contextTypes: null,
     },
     {
       title: "Others",
       nodeTypes: ["control_sleep"],
+      contextTypes: null,
     },
   ],
 };
@@ -91,7 +106,16 @@ type NodeCategory = keyof typeof nodeCategories;
 export default function FlowNodeExplorer() {
   const [category, setCategory] = useState<NodeCategory>("action");
 
-  const sections = nodeCategories[category];
+  const contextType = useFlowContext((c) => c.type);
+
+  const sections = useMemo(() => {
+    const sections = nodeCategories[category];
+    if (!sections) return [];
+
+    return sections.filter(
+      (s) => !s.contextTypes || s.contextTypes.includes(contextType)
+    );
+  }, [category, contextType]);
 
   return (
     <div className="w-96 h-full flex flex-col bg-muted/40">

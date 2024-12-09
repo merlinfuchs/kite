@@ -23,6 +23,7 @@ type Engine struct {
 	messageStore         store.MessageStore
 	messageInstanceStore store.MessageInstanceStore
 	commandStore         store.CommandStore
+	eventListenerStore   store.EventListenerStore
 	variableValueStore   store.VariableValueStore
 	httpClient           *http.Client
 	openaiClient         *openai.Client
@@ -38,6 +39,7 @@ func NewEngine(
 	messageStore store.MessageStore,
 	messageInstanceStore store.MessageInstanceStore,
 	commandStore store.CommandStore,
+	eventListenerStore store.EventListenerStore,
 	variableValueStore store.VariableValueStore,
 	httpClient *http.Client,
 	openaiClient *openai.Client,
@@ -50,6 +52,7 @@ func NewEngine(
 		messageInstanceStore: messageInstanceStore,
 		httpClient:           httpClient,
 		commandStore:         commandStore,
+		eventListenerStore:   eventListenerStore,
 		variableValueStore:   variableValueStore,
 		openaiClient:         openaiClient,
 		apps:                 make(map[string]*App),
@@ -67,10 +70,13 @@ func (m *Engine) Run(ctx context.Context) {
 				updateTicker.Stop()
 				return
 			case <-updateTicker.C:
-				if err := m.populateCommands(ctx); err != nil {
+				lastUpdate := m.lastUpdate
+				m.lastUpdate = time.Now().UTC()
+
+				if err := m.populateCommands(ctx, lastUpdate); err != nil {
 					slog.With("error", err).Error("failed to populate commands in engine")
 				}
-				if err := m.populateEvents(ctx); err != nil {
+				if err := m.populateEventListeners(ctx, lastUpdate); err != nil {
 					slog.With("error", err).Error("failed to populate events in engine")
 				}
 			case <-deployTicker.C:
@@ -80,14 +86,11 @@ func (m *Engine) Run(ctx context.Context) {
 	}()
 }
 
-func (m *Engine) populateCommands(ctx context.Context) error {
+func (m *Engine) populateCommands(ctx context.Context, lastUpdate time.Time) error {
 	commandIDs, err := m.commandStore.EnabledCommandIDs(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to get enabled command IDs: %w", err)
 	}
-
-	lastUpdate := m.lastUpdate
-	m.lastUpdate = time.Now().UTC()
 
 	commands, err := m.commandStore.EnabledCommandsUpdatedSince(ctx, lastUpdate)
 	if err != nil {
@@ -125,6 +128,48 @@ func (m *Engine) populateCommands(ctx context.Context) error {
 	return nil
 }
 
+func (m *Engine) populateEventListeners(ctx context.Context, lastUpdate time.Time) error {
+	listenerIDs, err := m.eventListenerStore.EnabledEventListenerIDs(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to get enabled event listener IDs: %w", err)
+	}
+
+	listeners, err := m.eventListenerStore.EnabledEventListenersUpdatedSince(ctx, lastUpdate)
+	if err != nil {
+		return fmt.Errorf("failed to get event listeners: %w", err)
+	}
+
+	m.Lock()
+	defer m.Unlock()
+
+	for _, listener := range listeners {
+		app, ok := m.apps[listener.AppID]
+		if !ok {
+			app = NewApp(
+				m.config,
+				listener.AppID,
+				m.appStore,
+				m.logStore,
+				m.messageStore,
+				m.messageInstanceStore,
+				m.commandStore,
+				m.variableValueStore,
+				m.httpClient,
+				m.openaiClient,
+			)
+			m.apps[listener.AppID] = app
+		}
+
+		app.AddEventListener(listener)
+	}
+
+	for _, app := range m.apps {
+		app.RemoveDanglingEventListeners(listenerIDs)
+	}
+
+	return nil
+}
+
 func (m *Engine) deployCommands(ctx context.Context) {
 	m.Lock()
 	defer m.Unlock()
@@ -142,10 +187,6 @@ func (m *Engine) deployCommands(ctx context.Context) {
 			}()
 		}
 	}
-}
-
-func (m *Engine) populateEvents(_ context.Context) error {
-	return nil
 }
 
 func (e *Engine) HandleEvent(appID string, session *state.State, event gateway.Event) {

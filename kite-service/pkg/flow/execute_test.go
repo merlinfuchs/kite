@@ -8,6 +8,7 @@ import (
 	"github.com/diamondburned/arikawa/v3/api"
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/gateway"
+	"github.com/diamondburned/arikawa/v3/utils/ws"
 	"github.com/kitecloud/kite/kite-service/pkg/message"
 	"github.com/kitecloud/kite/kite-service/pkg/placeholder"
 	"github.com/stretchr/testify/assert"
@@ -104,13 +105,13 @@ func (d *TestContextData) ChannelID() discord.ChannelID {
 }
 
 func (d *TestContextData) CommandData() *discord.CommandInteraction {
-	return &discord.CommandInteraction{}
+	return nil
 }
 
 func (d *TestContextData) MessageComponentData() discord.ComponentInteraction {
-	return &discord.UnknownComponent{}
+	return nil
 }
 
-func (d *TestContextData) EventData() gateway.Event {
+func (d *TestContextData) Event() ws.Event {
 	return &gateway.InteractionCreateEvent{}
 }

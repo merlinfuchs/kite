@@ -33,8 +33,8 @@ type App struct {
 	hasUndeployedChanges bool
 
 	commands map[string]*Command
-	// TODO: messages LRUCache<*MessageInstance>
-	events map[string]interface{}
+	// TODO?: Cache messages (LRUCache<*MessageInstance>)
+	listeners map[string]*EventListener
 }
 
 func NewApp(
@@ -60,7 +60,7 @@ func NewApp(
 		variableValueStore:   variableValueStore,
 		httpClient:           httpClient,
 		commands:             make(map[string]*Command),
-		events:               make(map[string]interface{}),
+		listeners:            make(map[string]*EventListener),
 		openaiClient:         openaiClient,
 	}
 }
@@ -104,6 +104,46 @@ func (a *App) RemoveDanglingCommands(commandIDs []string) {
 	for cmdID := range a.commands {
 		if _, ok := commandIDMap[cmdID]; !ok {
 			delete(a.commands, cmdID)
+			a.hasUndeployedChanges = true
+		}
+	}
+}
+
+func (a *App) AddEventListener(listener *model.EventListener) {
+	a.Lock()
+	defer a.Unlock()
+
+	eventListener, err := NewEventListener(
+		a.config,
+		listener,
+		a.appStore,
+		a.logStore,
+		a.messageStore,
+		a.messageInstanceStore,
+		a.variableValueStore,
+		a.httpClient,
+		a.openaiClient,
+	)
+	if err != nil {
+		slog.With("error", err).Error("failed to create event listener")
+		return
+	}
+
+	a.listeners[listener.ID] = eventListener
+}
+
+func (a *App) RemoveDanglingEventListeners(listenerIDs []string) {
+	a.Lock()
+	defer a.Unlock()
+
+	listenerIDMap := make(map[string]struct{}, len(listenerIDs))
+	for _, listenerID := range listenerIDs {
+		listenerIDMap[listenerID] = struct{}{}
+	}
+
+	for listenerID := range a.listeners {
+		if _, ok := listenerIDMap[listenerID]; !ok {
+			delete(a.listeners, listenerID)
 			a.hasUndeployedChanges = true
 		}
 	}
@@ -153,6 +193,7 @@ func (a *App) HandleEvent(appID string, session *state.State, event gateway.Even
 
 			instance, err := NewMessageInstance(
 				a.config,
+				a.id,
 				messageInstnace,
 				a.appStore,
 				a.logStore,
@@ -168,6 +209,19 @@ func (a *App) HandleEvent(appID string, session *state.State, event gateway.Even
 			}
 
 			go instance.HandleEvent(appID, session, event)
+		}
+	default:
+		eventType := model.EventTypeFromDiscordEventType(e.EventType())
+		for _, listener := range a.listeners {
+			if listener.listener.Source != model.EventSourceDiscord {
+				continue
+			}
+
+			if listener.listener.Type != eventType {
+				continue
+			}
+
+			listener.HandleEvent(appID, session, event)
 		}
 	}
 }
