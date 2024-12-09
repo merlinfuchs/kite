@@ -1,6 +1,11 @@
 import AppLayout from "@/components/app/AppLayout";
 import LogEntryList from "@/components/app/LogEntryList";
-import { useApp, useCommands, useMessages } from "@/lib/hooks/api";
+import {
+  useApp,
+  useCommands,
+  useEventListeners,
+  useMessages,
+} from "@/lib/hooks/api";
 import AppInfoCard from "@/components/app/AppInfoCard";
 import AppResourceCard from "@/components/app/AppResourceCard";
 
@@ -9,6 +14,7 @@ export default function AppPage() {
 
   const commands = useCommands();
   const messages = useMessages();
+  const eventListeners = useEventListeners();
 
   return (
     <AppLayout>
@@ -25,8 +31,8 @@ export default function AppPage() {
               }}
             />
             <AppResourceCard
-              title="Events"
-              count={0}
+              title="Event Listeners"
+              count={eventListeners?.length || 0}
               actionTitle="Manage events"
               actionHref={{
                 pathname: "/apps/[appId]/events",
