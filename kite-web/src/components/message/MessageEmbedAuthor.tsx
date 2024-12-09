@@ -43,6 +43,7 @@ export default function MessageEmbedAuthor({
         value={name || ""}
         onChange={(v) => setName(embedIndex, v)}
         validationPath={`embeds.${embedIndex}.author.name`}
+        placeholders
       />
       <div className="flex space-x-3">
         <MessageInput
@@ -51,6 +52,7 @@ export default function MessageEmbedAuthor({
           value={url || ""}
           onChange={(v) => setUrl(embedIndex, v || undefined)}
           validationPath={`embeds.${embedIndex}.author.url`}
+          placeholders
         />
         <MessageInput
           type="url"

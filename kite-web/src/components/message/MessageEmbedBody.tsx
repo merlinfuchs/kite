@@ -52,6 +52,7 @@ export default function MessageEmbedBody({
         value={title || ""}
         onChange={(v) => setTitle(embedIndex, v || undefined)}
         validationPath={`embeds.${embedIndex}.title`}
+        placeholders
       />
       <MessageInput
         type="textarea"
@@ -60,6 +61,7 @@ export default function MessageEmbedBody({
         value={description || ""}
         onChange={(v) => setDescription(embedIndex, v || undefined)}
         validationPath={`embeds.${embedIndex}.description`}
+        placeholders
       />
       <div className="flex space-x-3">
         <MessageInput
@@ -68,6 +70,7 @@ export default function MessageEmbedBody({
           value={url || ""}
           onChange={(v) => setUrl(embedIndex, v || undefined)}
           validationPath={`embeds.${embedIndex}.url`}
+          placeholders
         />
         <MessageInput
           type="color"

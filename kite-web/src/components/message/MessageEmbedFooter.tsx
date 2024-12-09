@@ -43,6 +43,7 @@ export default function MessageEmbedFooter({
         value={text || ""}
         onChange={(v) => setText(embedIndex, v || undefined)}
         validationPath={`embeds.${embedIndex}.footer.text`}
+        placeholders
       />
       <div className="flex space-x-3">
         <MessageInput

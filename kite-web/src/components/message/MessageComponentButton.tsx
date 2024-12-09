@@ -205,6 +205,7 @@ export default function MessageComponentButton({
             value={label}
             onChange={(v) => setLabel(rowIndex, compIndex, v)}
             validationPath={`components.${rowIndex}.components.${compIndex}.label`}
+            placeholders
           />
         </div>
         {style === 5 ? (
@@ -214,6 +215,7 @@ export default function MessageComponentButton({
             value={url}
             onChange={(v) => setUrl(rowIndex, compIndex, v)}
             validationPath={`components.${rowIndex}.components.${compIndex}.url`}
+            placeholders
           />
         ) : (
           <>

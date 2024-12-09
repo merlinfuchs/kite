@@ -1,8 +1,11 @@
 import { useValidationErrors } from "@/lib/message/state";
 import BaseInput, { BaseInputProps } from "@/tools/common/components/BaseInput";
+import { useCallback } from "react";
+import MessagePlaceholderExplorer from "./MessagePlaceholderExplorer";
 
 type Props = BaseInputProps & {
   validationPath?: string;
+  placeholders?: boolean;
 };
 
 export default function MessageInput(props: Props) {
@@ -12,5 +15,22 @@ export default function MessageInput(props: Props) {
       state.getIssueByPath(props.validationPath)?.message
   );
 
-  return <BaseInput {...props} error={issue} />;
+  const onPlaceholderSelect = useCallback(
+    (placeholder: string) => {
+      const value = `{{${placeholder}}}`;
+
+      // TODO?: This is pretty hacky, we should think about baking placeholder support into the BaseInput component
+      props.onChange((props.value + value) as never);
+    },
+    [props.onChange]
+  );
+
+  return (
+    <div className="relative w-full">
+      <BaseInput {...props} error={issue} />
+      {props.placeholders && (
+        <MessagePlaceholderExplorer onSelect={onPlaceholderSelect} />
+      )}
+    </div>
+  );
 }
