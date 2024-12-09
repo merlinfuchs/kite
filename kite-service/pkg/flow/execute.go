@@ -58,8 +58,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			data.Flags |= int(discord.EphemeralMessage)
 		}
 
-		var err error
-		data.Content, err = ctx.Placeholders.Fill(ctx, data.Content)
+		err := ctx.Placeholders.FillMessage(ctx, &data)
 		if err != nil {
 			return traceError(n, err)
 		}
@@ -131,8 +130,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			data = n.Data.MessageData.Copy()
 		}
 
-		var err error
-		data.Content, err = ctx.Placeholders.Fill(ctx, data.Content)
+		err := ctx.Placeholders.FillMessage(ctx, &data)
 		if err != nil {
 			return traceError(n, err)
 		}
@@ -247,8 +245,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			data.Flags |= int(discord.EphemeralMessage)
 		}
 
-		var err error
-		data.Content, err = ctx.Placeholders.Fill(ctx, data.Content)
+		err := ctx.Placeholders.FillMessage(ctx, &data)
 		if err != nil {
 			return traceError(n, err)
 		}
@@ -306,7 +303,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			data.Flags |= int(discord.EphemeralMessage)
 		}
 
-		data.Content, err = ctx.Placeholders.Fill(ctx, data.Content)
+		err = ctx.Placeholders.FillMessage(ctx, &data)
 		if err != nil {
 			return traceError(n, err)
 		}
@@ -384,8 +381,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			data.Flags |= int(discord.EphemeralMessage)
 		}
 
-		var err error
-		data.Content, err = ctx.Placeholders.Fill(ctx, data.Content)
+		err := ctx.Placeholders.FillMessage(ctx, &data)
 		if err != nil {
 			return traceError(n, err)
 		}

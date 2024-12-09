@@ -438,8 +438,8 @@ function EventTypeInput({ data, updateData, errors }: InputProps) {
         { value: "message_create", label: "Message Create" },
         { value: "message_update", label: "Message Update" },
         { value: "message_delete", label: "Message Delete" },
-        { value: "guild_member_add", label: "Guild Member Add" },
-        { value: "guild_member_remove", label: "Guild Member Remove" },
+        { value: "guild_member_add", label: "Server Member Add" },
+        { value: "guild_member_remove", label: "Server Member Remove" },
       ]}
       value={data.event_type || ""}
       updateValue={(v) => updateData({ event_type: v || undefined })}

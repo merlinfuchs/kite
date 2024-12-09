@@ -6,6 +6,7 @@ import (
 	"io"
 	"strings"
 
+	"github.com/kitecloud/kite/kite-service/pkg/message"
 	"github.com/valyala/fasttemplate"
 )
 
@@ -55,6 +56,109 @@ func (e *Engine) Fill(ctx context.Context, input string) (string, error) {
 	}
 
 	return res, nil
+}
+
+func (e *Engine) FillMessage(ctx context.Context, msg *message.MessageData) error {
+	var err error
+
+	msg.Content, err = e.Fill(ctx, msg.Content)
+	if err != nil {
+		return err
+	}
+
+	for i := range msg.Embeds {
+		embed := &msg.Embeds[i]
+
+		embed.Title, err = e.Fill(ctx, embed.Title)
+		if err != nil {
+			return err
+		}
+
+		embed.Description, err = e.Fill(ctx, embed.Description)
+		if err != nil {
+			return err
+		}
+
+		embed.URL, err = e.Fill(ctx, embed.URL)
+		if err != nil {
+			return err
+		}
+
+		if embed.Author != nil {
+			embed.Author.Name, err = e.Fill(ctx, embed.Author.Name)
+			if err != nil {
+				return err
+			}
+
+			embed.Author.IconURL, err = e.Fill(ctx, embed.Author.IconURL)
+			if err != nil {
+				return err
+			}
+
+			embed.Author.URL, err = e.Fill(ctx, embed.Author.URL)
+			if err != nil {
+				return err
+			}
+		}
+
+		if embed.Footer != nil {
+			embed.Footer.Text, err = e.Fill(ctx, embed.Footer.Text)
+			if err != nil {
+				return err
+			}
+
+			embed.Footer.IconURL, err = e.Fill(ctx, embed.Footer.IconURL)
+			if err != nil {
+				return err
+			}
+		}
+
+		for _, field := range embed.Fields {
+			field.Name, err = e.Fill(ctx, field.Name)
+			if err != nil {
+				return err
+			}
+
+			field.Value, err = e.Fill(ctx, field.Value)
+			if err != nil {
+				return err
+			}
+		}
+
+		if embed.Image != nil {
+			embed.Image.URL, err = e.Fill(ctx, embed.Image.URL)
+			if err != nil {
+				return err
+			}
+		}
+
+		if embed.Thumbnail != nil {
+			embed.Thumbnail.URL, err = e.Fill(ctx, embed.Thumbnail.URL)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	for i := range msg.Components {
+		row := &msg.Components[i]
+
+		for j := range row.Components {
+			component := &row.Components[j]
+
+			component.Label, err = e.Fill(ctx, component.Label)
+			if err != nil {
+				return err
+			}
+
+			component.URL, err = e.Fill(ctx, component.URL)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
 }
 
 func (s Engine) GetPlaceholder(ctx context.Context, key string) (Provider, error) {

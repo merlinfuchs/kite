@@ -157,10 +157,10 @@ export default function EventListenerCreateDialog({
                         Message Update
                       </SelectItem>
                       <SelectItem value="guild_member_add">
-                        Guild Member Add
+                        Server Member Add
                       </SelectItem>
                       <SelectItem value="guild_member_remove">
-                        Guild Member Remove
+                        Server Member Remove
                       </SelectItem>
                     </SelectContent>
                   </Select>
