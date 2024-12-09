@@ -99,6 +99,7 @@ export default function MessageEmbedField({
             value={name}
             onChange={(v) => setName(embedIndex, fieldIndex, v)}
             validationPath={`embeds.${embedIndex}.fields.${fieldIndex}.name`}
+            placeholders
           />
           <MessageInput
             type="toggle"
@@ -115,6 +116,7 @@ export default function MessageEmbedField({
           value={value}
           onChange={(v) => setValue(embedIndex, fieldIndex, v)}
           validationPath={`embeds.${embedIndex}.fields.${fieldIndex}.value`}
+          placeholders
         />
       </MessageCollapsibleSection>
     </Card>

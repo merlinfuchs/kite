@@ -41,6 +41,7 @@ export default function MessageBody() {
         onChange={setContent}
         maxLength={2000}
         validationPath="content"
+        placeholders
       />
     </div>
   );
