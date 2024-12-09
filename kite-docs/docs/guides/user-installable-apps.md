@@ -32,9 +32,9 @@ Once installed, you can use the app's commands in any server you're a member of,
 
 ## Managing Command Availability
 
-By default, all commands created in Kite work regardless of how the app was installed (user or server installation). However, you can customize this using the `Command Contexts` option node in the Kite Flow editor.
+By default, all commands created in Kite work regardless of how the app was installed (user or server installation). However, you can customize this using the `Command Contexts` option block in the Kite Flow editor.
 
-This node allows you to:
+This block allows you to:
 
 - Restrict commands to only work with server installations
 - Restrict commands to only work with user installations

@@ -17,7 +17,8 @@ export default function HomeCTASection() {
           </h2>
           <p className="text-muted-foreground text-xl mt-4 mb-8 lg:mb-0">
             Kite lets you create your own Discord bot without writing a single
-            line of code. With support for slash commands, buttons, and more.
+            line of code. With support for slash commands, buttons, events, and
+            more.
           </p>
         </div>
 

@@ -31,6 +31,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../ui/select";
+import Link from "next/link";
+import { ExternalLinkIcon } from "lucide-react";
 
 interface FormFields {
   name: string;
@@ -251,8 +253,22 @@ export default function AppSettingsAppearance() {
             )}
           </CardContent>
 
-          <CardFooter className="border-t px-6 py-4">
+          <CardFooter className="flex flex-wrap border-t px-6 py-4 gap-3">
             <Button type="submit">Save settings</Button>
+            <Button
+              variant="outline"
+              type="button"
+              className="flex gap-2"
+              asChild
+            >
+              <Link
+                href={`https://discord.com/developers/applications/${app?.discord_id}`}
+                target="_blank"
+              >
+                <div>Manage on Discord</div>
+                <ExternalLinkIcon className="w-4 h-4" />
+              </Link>
+            </Button>
           </CardFooter>
         </form>
       </Form>

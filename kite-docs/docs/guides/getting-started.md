@@ -47,9 +47,9 @@ Just click on `Invite app` at top-right of the dashboard's overview page and sel
 
 1. Click on the `/` icon in the sidebar on the left side of the dashboard
 2. Click on `Create command` and give your command a name and description
-3. In the no-code editor drag in a `Create response message` node from the node explorer on the left side
-4. Connect it to the command node by dragging your mouse from the blue dod of one node to the other
-5. Click on the `Create response message` node and type in some text for the response
+3. In the no-code editor drag in a `Create response message` block from the block explorer on the left side
+4. Connect it to the command block by dragging your mouse from the blue dod of one block to the other
+5. Click on the `Create response message` block and type in some text for the response
 6. Save the command by clicking on `Save Changes` at the top
 
 ![Example Flow](./img/example-flow.png)

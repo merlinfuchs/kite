@@ -27,7 +27,7 @@ const FAQList: FAQProps[] = [
   {
     question: "Does Kite support slash commands and other Discord features?",
     answer:
-      "Kite currently supports slash commands, responding to them, and a few more actions. We are working on adding more features.",
+      "Kite currently supports slash commands, message components, and event listeners. You can respond to slash commands and message components, and run actions based on events. We are working on adding more features!",
     value: "item-3",
   },
   {
@@ -39,7 +39,7 @@ const FAQList: FAQProps[] = [
   {
     question: "Can I create multiple bots?",
     answer:
-      "Yes. You can create multiple bots with Kite. There is currently no limit to the number of bots you can create.",
+      "Yes. You can create up to 10 bots with Kite. This limit may change in the future.",
     value: "item-5",
   },
 ];

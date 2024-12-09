@@ -25,7 +25,7 @@ export default function HomeHeroSection() {
 
         <p className="text-xl text-muted-foreground md:w-10/12 mx-auto lg:mx-0">
           Make your own Discord Bot with Kite for free without a single line of
-          code. With support for slash commands, buttons, and more.
+          code. With support for slash commands, buttons, events, and more.
         </p>
 
         <div className="space-y-4 md:space-y-0 md:space-x-4">
