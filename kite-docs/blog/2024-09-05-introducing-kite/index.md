@@ -1,6 +1,6 @@
 ---
-slug: kite-is-here
-title: Kite is Here!
+slug: introducing-kite
+title: Introducing Kite
 authors: [merlin]
 tags: []
 ---
