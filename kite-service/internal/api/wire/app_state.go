@@ -1,6 +1,11 @@
 package wire
 
-import "github.com/diamondburned/arikawa/v3/discord"
+import (
+	"time"
+
+	"github.com/diamondburned/arikawa/v3/discord"
+	"gopkg.in/guregu/null.v4"
+)
 
 type AppStateStatus struct {
 	Online bool `json:"online"`
@@ -9,9 +14,11 @@ type AppStateStatus struct {
 type StateStatusGetResponse = AppStateStatus
 
 type Guild struct {
-	ID          string `json:"id"`
-	Name        string `json:"name"`
-	Description string `json:"description"`
+	ID          string      `json:"id"`
+	Name        string      `json:"name"`
+	Description string      `json:"description"`
+	IconURL     null.String `json:"icon_url"`
+	CreatedAt   time.Time   `json:"created_at"`
 }
 
 type StateGuildListResponse = []*Guild
@@ -21,10 +28,14 @@ func GuildToWire(guild *discord.Guild) *Guild {
 		return nil
 	}
 
+	iconURL := guild.IconURL()
+
 	return &Guild{
 		ID:          guild.ID.String(),
 		Name:        guild.Name,
 		Description: guild.Description,
+		IconURL:     null.NewString(iconURL, iconURL != ""),
+		CreatedAt:   guild.CreatedAt(),
 	}
 }
 
@@ -36,6 +47,8 @@ type Channel struct {
 }
 
 type StateGuildChannelListResponse = []*Channel
+
+type StateGuildLeaveResponse = Empty
 
 func ChannelToWire(channel *discord.Channel) *Channel {
 	if channel == nil {

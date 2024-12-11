@@ -3,7 +3,9 @@ package appstate
 import (
 	"errors"
 	"fmt"
+	"strconv"
 
+	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler"
 	"github.com/kitecloud/kite/kite-service/internal/api/wire"
 	"github.com/kitecloud/kite/kite-service/internal/store"
@@ -76,4 +78,23 @@ func (h *AppStateHandler) HandleStateGuildChannelList(c *handler.Context) (*wire
 	}
 
 	return &res, nil
+}
+
+func (h *AppStateHandler) HandleStateGuildLeave(c *handler.Context) (*wire.StateGuildLeaveResponse, error) {
+	guildID, err := strconv.ParseInt(c.Param("guildID"), 10, 64)
+	if err != nil {
+		return nil, fmt.Errorf("invalid guild ID: %w", err)
+	}
+
+	client, err := h.appStateManager.AppClient(c.Context(), c.App.ID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get app state: %w", err)
+	}
+
+	err = client.WithContext(c.Context()).LeaveGuild(discord.GuildID(guildID))
+	if err != nil {
+		return nil, fmt.Errorf("failed to leave guild: %w", err)
+	}
+
+	return &wire.StateGuildLeaveResponse{}, nil
 }

@@ -29,6 +29,7 @@ import { abbreviateName, cn } from "@/lib/utils";
 import {
   HomeIcon,
   MailPlusIcon,
+  NotebookTabsIcon,
   PanelLeft,
   SatelliteDishIcon,
   SettingsIcon,
@@ -172,6 +173,12 @@ export default function AppLayout({ children, ...props }: Props) {
         label: "Stored Variables",
         href: `/apps/[appId]/variables`,
         active: isActive(`/apps/[appId]/variables`),
+      },
+      {
+        icon: NotebookTabsIcon,
+        label: "Server Explorer",
+        href: `/apps/[appId]/state`,
+        active: isActive(`/apps/[appId]/state`),
       },
       {
         icon: SettingsIcon,

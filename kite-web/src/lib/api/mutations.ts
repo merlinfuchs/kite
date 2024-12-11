@@ -29,6 +29,7 @@ import {
   MessageInstanceUpdateResponse,
   MessageUpdateRequest,
   MessageUpdateResponse,
+  StateGuildLeaveResponse,
   VariableCreateRequest,
   VariableCreateResponse,
   VariableDeleteResponse,
@@ -445,6 +446,25 @@ export function useMessageInstanceDeleteMutation(
     onSuccess: () => {
       client.invalidateQueries({
         queryKey: ["apps", appId, "messages", messageId, "instances"],
+      });
+    },
+  });
+}
+
+export function useAppStateGuildLeaveMutation(appId: string) {
+  const client = useQueryClient();
+
+  return useMutation({
+    mutationFn: (guildId: string) =>
+      apiRequest<StateGuildLeaveResponse>(
+        `/v1/apps/${appId}/state/guilds/${guildId}`,
+        {
+          method: "DELETE",
+        }
+      ),
+    onSuccess: () => {
+      client.invalidateQueries({
+        queryKey: ["apps", appId, "state", "guilds"],
       });
     },
   });

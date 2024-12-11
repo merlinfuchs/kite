@@ -56,6 +56,8 @@ export interface Guild {
   id: string;
   name: string;
   description: string;
+  icon_url: null | string;
+  created_at: string /* RFC3339 */;
 }
 export type StateGuildListResponse = (Guild | undefined)[];
 export interface Channel {
@@ -65,6 +67,7 @@ export interface Channel {
   topic: string;
 }
 export type StateGuildChannelListResponse = (Channel | undefined)[];
+export type StateGuildLeaveResponse = Empty;
 
 //////////
 // source: asset.go
