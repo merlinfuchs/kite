@@ -22,7 +22,7 @@ export default function MessageInput(props: Props) {
       // TODO?: This is pretty hacky, we should think about baking placeholder support into the BaseInput component
       props.onChange((props.value + value) as never);
     },
-    [props.onChange]
+    [props]
   );
 
   return (

@@ -354,18 +354,20 @@ function CommandPermissionsInput({ data, updateData, errors }: InputProps) {
   );
 }
 
-function CommandContextsInput({ data, updateData, errors }: InputProps) {
-  const availableValues = ["guild", "bot_dm", "private_channel"];
+const availableCommandContextsValues = ["guild", "bot_dm", "private_channel"];
 
+function CommandContextsInput({ data, updateData, errors }: InputProps) {
   const values = useMemo(() => {
-    return availableValues.filter(
+    return availableCommandContextsValues.filter(
       (v) => !data.command_disabled_contexts?.includes(v)
     );
   }, [data.command_disabled_contexts]);
 
   const updateValues = useCallback(
     (values: string[]) => {
-      const newValues = availableValues.filter((v) => !values.includes(v));
+      const newValues = availableCommandContextsValues.filter(
+        (v) => !values.includes(v)
+      );
 
       updateData({
         command_disabled_contexts: newValues.length > 0 ? newValues : undefined,
@@ -392,18 +394,20 @@ function CommandContextsInput({ data, updateData, errors }: InputProps) {
   );
 }
 
-function CommandIntegrationsInput({ data, updateData, errors }: InputProps) {
-  const availableValues = ["guild_install", "user_install"];
+const availableCommandIntegrationsValues = ["guild_install", "user_install"];
 
+function CommandIntegrationsInput({ data, updateData, errors }: InputProps) {
   const values = useMemo(() => {
-    return availableValues.filter(
+    return availableCommandIntegrationsValues.filter(
       (v) => !data.command_disabled_integrations?.includes(v)
     );
   }, [data.command_disabled_integrations]);
 
   const updateValues = useCallback(
     (values: string[]) => {
-      const newValues = availableValues.filter((v) => !values.includes(v));
+      const newValues = availableCommandIntegrationsValues.filter(
+        (v) => !values.includes(v)
+      );
 
       updateData({
         command_disabled_integrations:
