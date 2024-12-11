@@ -72,7 +72,7 @@ export const columns: ColumnDef<Guild>[] = [
   {
     id: "actions",
     enableHiding: false,
-    cell: ({ row }) => {
+    cell: function RowActionCell({ row }) {
       const payment = row.original;
 
       const leaveMutation = useAppStateGuildLeaveMutation(useAppId());
