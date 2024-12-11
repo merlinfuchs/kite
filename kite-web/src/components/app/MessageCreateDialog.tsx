@@ -36,7 +36,7 @@ const createDefaultMessage = (name: string) => ({
     {
       id: 174831423,
       description:
-        "You can use message templates to create Discord messages that contain embeds and interactive components (soon). They can be used to create standalone messages or as a response to commands or other events.",
+        "You can use message templates to create Discord messages that contain embeds and interactive components. They can be used to create standalone messages or as a response to commands or other events.",
       color: 16735232,
       author: {
         name: "About Message Templates",

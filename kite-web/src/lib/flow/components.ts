@@ -15,11 +15,12 @@ import FlowNodeControlLoopExit from "@/components/flow/FlowNodeControlLoopExit";
 import FlowNodeConditionChannel from "@/components/flow/FlowNodeConditionChannel";
 import FlowNodeConditionRole from "@/components/flow/FlowNodeConditionRole";
 import FlowNodeControlSleep from "@/components/flow/FlowNodeControlSleep";
+import FlowNodeEntryComponentButton from "@/components/flow/FlowNodeEntryComponentButton";
 
 export const nodeTypes = {
   entry_command: FlowNodeEntryCommand,
   entry_event: FlowNodeEntryEvent,
-  entry_component_button: FlowNodeEntryEvent,
+  entry_component_button: FlowNodeEntryComponentButton,
 
   option_command_argument: FlowNodeOptionCommandArgument,
   option_command_permissions: FlowNodeOptionBase,

@@ -70,7 +70,8 @@ func (g *Gateway) startGateway() {
 			e.User.Username, e.User.Discriminator, e.User.ID,
 		))
 
-		if len(e.Guilds) > 100 {
+		// TODO: remove bypass for Kite when entitlements are implemented
+		if len(e.Guilds) > 100 && e.User.ID != 844710218864656414 {
 			g.createLogEntry(model.LogLevelError, "Bots that are in more than 100 servers are currently not supported.")
 			g.disableApp("Bots that are in more than 100 servers are currently not supported.")
 			return
