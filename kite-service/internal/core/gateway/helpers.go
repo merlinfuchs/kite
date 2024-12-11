@@ -10,10 +10,12 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/model"
 )
 
-const GATEWAY_GUILD_MEMBERS = 1 << 14
-const GATEWAY_GUILD_MEMBERS_LIMITED = 1 << 15
-const GATEWAY_MESSAGE_CONTENT = 18
-const GATEWAY_MESSAGE_CONTENT_LIMITED = 19
+const (
+	GATEWAY_GUILD_MEMBERS           = 1 << 14
+	GATEWAY_GUILD_MEMBERS_LIMITED   = 1 << 15
+	GATEWAY_MESSAGE_CONTENT         = 1 << 18
+	GATEWAY_MESSAGE_CONTENT_LIMITED = 1 << 19
+)
 
 func getAppIntents(client *api.Client) (gateway.Intents, error) {
 	app, err := client.CurrentApplication()
