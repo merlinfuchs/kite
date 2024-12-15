@@ -77,10 +77,16 @@ func (m *Engine) Run(ctx context.Context) {
 				m.lastUpdate = time.Now().UTC()
 
 				if err := m.populateCommands(ctx, lastUpdate); err != nil {
-					slog.With("error", err).Error("failed to populate commands in engine")
+					slog.Error(
+						"Failed to populate commands in engine",
+						slog.String("error", err.Error()),
+					)
 				}
 				if err := m.populateEventListeners(ctx, lastUpdate); err != nil {
-					slog.With("error", err).Error("failed to populate events in engine")
+					slog.Error(
+						"Failed to populate event listeners in engine",
+						slog.String("error", err.Error()),
+					)
 				}
 			case <-deployTicker.C:
 				m.deployCommands(ctx)
@@ -185,9 +191,16 @@ func (m *Engine) deployCommands(ctx context.Context) {
 				ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 				defer cancel()
 
-				slog.With("app_id", app.id).Info("Deploying commands for app")
+				slog.Debug(
+					"Deploying commands for app",
+					slog.String("app_id", app.id),
+				)
 				if err := app.DeployCommands(ctx); err != nil {
-					slog.With("app_id", app.id).With("error", err).Error("failed to deploy commands")
+					slog.Error(
+						"Failed to deploy commands",
+						slog.String("app_id", app.id),
+						slog.String("error", err.Error()),
+					)
 				}
 			}()
 		}
