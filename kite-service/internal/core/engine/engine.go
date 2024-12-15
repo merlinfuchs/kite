@@ -202,5 +202,5 @@ func (e *Engine) HandleEvent(appID string, session *state.State, event gateway.E
 type EngineConfig struct {
 	MaxStackDepth int
 	MaxOperations int
-	MaxActions    int
+	MaxCredits    int
 }

@@ -69,7 +69,7 @@ type DiscordConfig struct {
 type EngineConfig struct {
 	MaxStackDepth int `toml:"max_stack_depth"`
 	MaxOperations int `toml:"max_operations"`
-	MaxActions    int `toml:"max_actions"`
+	MaxCredits    int `toml:"max_credits"`
 }
 
 type UserLimitsConfig struct {

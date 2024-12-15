@@ -113,7 +113,7 @@ func (c *MessageInstance) HandleEvent(appID string, session *state.State, event 
 		flow.FlowContextLimits{
 			MaxStackDepth: c.config.MaxStackDepth,
 			MaxOperations: c.config.MaxOperations,
-			MaxActions:    c.config.MaxActions,
+			MaxCredits:    c.config.MaxCredits,
 		},
 		placeholder.NewEngine(),
 	)

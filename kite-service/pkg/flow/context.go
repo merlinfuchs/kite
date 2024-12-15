@@ -68,14 +68,14 @@ type FlowContextData interface {
 type FlowContextLimits struct {
 	MaxStackDepth int
 	MaxOperations int
-	MaxActions    int
+	MaxCredits    int
 
 	stackDepth int
 	operations int
-	actions    int
+	credits    int
 }
 
-func (c *FlowContext) startOperation() error {
+func (c *FlowContext) startOperation(credits int) error {
 	if c.Err() != nil {
 		return c.Err()
 	}
@@ -88,6 +88,10 @@ func (c *FlowContext) startOperation() error {
 		return err
 	}
 
+	if err := c.increaseCredits(credits); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -97,7 +101,7 @@ func (c *FlowContext) endOperation() {
 
 func (c *FlowContext) increaseStackDepth() error {
 	c.stackDepth++
-	if c.stackDepth > c.MaxStackDepth {
+	if c.stackDepth > c.MaxStackDepth && c.MaxStackDepth != 0 {
 		return &FlowError{
 			Code:    FlowNodeErrorMaxStackDepthReached,
 			Message: fmt.Sprintf("max stack depth reached: %d", c.MaxStackDepth),
@@ -114,7 +118,7 @@ func (c *FlowContext) decreaseStackDepth() {
 
 func (c *FlowContext) increaseOperations() error {
 	c.operations++
-	if c.operations > c.MaxOperations {
+	if c.operations > c.MaxOperations && c.MaxOperations != 0 {
 		return &FlowError{
 			Code:    FlowNodeErrorMaxOperationsReached,
 			Message: fmt.Sprintf("operations limit exceeded: %d", c.MaxOperations),
@@ -123,12 +127,12 @@ func (c *FlowContext) increaseOperations() error {
 	return nil
 }
 
-func (c *FlowContext) startAction() error {
-	c.actions++
-	if c.actions > c.MaxActions {
+func (c *FlowContext) increaseCredits(credits int) error {
+	c.credits += credits
+	if c.credits > c.MaxCredits && c.MaxCredits != 0 {
 		return &FlowError{
-			Code:    FlowNodeErrorMaxActionsReached,
-			Message: fmt.Sprintf("actions limit exceeded: %d", c.MaxActions),
+			Code:    FlowNodeErrorMaxCreditsReached,
+			Message: fmt.Sprintf("credits limit exceeded: %d", c.MaxCredits),
 		}
 	}
 	return nil

@@ -67,7 +67,7 @@ func serverStartCMD(c *cli.Context) error {
 		engine.EngineConfig{
 			MaxStackDepth: cfg.Engine.MaxStackDepth,
 			MaxOperations: cfg.Engine.MaxOperations,
-			MaxActions:    cfg.Engine.MaxActions,
+			MaxCredits:    cfg.Engine.MaxCredits,
 		},
 		pg,
 		pg,

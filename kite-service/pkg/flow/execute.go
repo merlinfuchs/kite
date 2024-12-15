@@ -14,16 +14,10 @@ import (
 )
 
 func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
-	if err := ctx.startOperation(); err != nil {
+	if err := ctx.startOperation(n.CreditsCost()); err != nil {
 		return traceError(n, err)
 	}
 	defer ctx.endOperation()
-
-	if n.IsAction() {
-		if err := ctx.startAction(); err != nil {
-			return traceError(n, err)
-		}
-	}
 
 	nodeState := ctx.GetNodeState(n.ID)
 
@@ -862,6 +856,11 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 	}
 
 	return nil
+}
+
+func (n *CompiledFlowNode) CreditsCost() int {
+	// TODO: Compute credits based on node type
+	return 1
 }
 
 func (n *CompiledFlowNode) executeChildren(ctx *FlowContext) error {

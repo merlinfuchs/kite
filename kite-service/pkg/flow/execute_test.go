@@ -54,6 +54,12 @@ var flowCommandTest = CompiledFlowNode{
 	},
 }
 
+func init() {
+	flowCommandTest.Children[0].Children[0].Parents = []*CompiledFlowNode{
+		flowCommandTest.Children[0],
+	}
+}
+
 func TestFlowExecuteCommand(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
@@ -69,13 +75,15 @@ func TestFlowExecuteCommand(t *testing.T) {
 		}, FlowContextLimits{
 			MaxStackDepth: 10,
 			MaxOperations: 1000,
-			MaxActions:    1,
+			MaxCredits:    1000,
 		},
 		placeholder.NewEngine(),
 	)
 
 	err := flowCommandTest.Execute(c)
 	require.NoError(t, err)
+	require.NotNil(t, discordProvider.response.Data)
+	require.NotNil(t, discordProvider.response.Data.Content)
 	assert.Equal(t, "Pong!", discordProvider.response.Data.Content.Val)
 }
 

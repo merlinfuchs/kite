@@ -9,7 +9,7 @@ const (
 	FlowNodeErrorUnknownNodeType         FlowNodeErrorCode = "unknown_node_type"
 	FlowNodeErrorMaxStackDepthReached    FlowNodeErrorCode = "max_stack_depth_reached"
 	FlowNodeErrorMaxOperationsReached    FlowNodeErrorCode = "max_operations_reached"
-	FlowNodeErrorMaxActionsReached       FlowNodeErrorCode = "max_actions_reached"
+	FlowNodeErrorMaxCreditsReached       FlowNodeErrorCode = "max_credits_reached"
 	FlowNodeErrorMaxExecutionTimeReached FlowNodeErrorCode = "max_execution_time_reached"
 	FlowNodeErrorTimeout                 FlowNodeErrorCode = "timeout"
 )

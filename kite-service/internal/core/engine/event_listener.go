@@ -93,7 +93,7 @@ func (l *EventListener) HandleEvent(appID string, session *state.State, event ga
 		flow.FlowContextLimits{
 			MaxStackDepth: l.config.MaxStackDepth,
 			MaxOperations: l.config.MaxOperations,
-			MaxActions:    l.config.MaxActions,
+			MaxCredits:    l.config.MaxCredits,
 		},
 		placeholder.NewEngine(),
 	)
