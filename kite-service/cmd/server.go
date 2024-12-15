@@ -11,6 +11,7 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/core/engine"
 	"github.com/kitecloud/kite/kite-service/internal/core/event"
 	"github.com/kitecloud/kite/kite-service/internal/core/gateway"
+	"github.com/kitecloud/kite/kite-service/internal/core/usage"
 	"github.com/kitecloud/kite/kite-service/internal/db/postgres"
 	"github.com/kitecloud/kite/kite-service/internal/db/s3"
 	"github.com/kitecloud/kite/kite-service/internal/logging"
@@ -86,6 +87,9 @@ func serverStartCMD(c *cli.Context) error {
 
 	gateway := gateway.NewGatewayManager(pg, pg, handler)
 	gateway.Run(ctx)
+
+	usage := usage.NewUsageManager(pg, pg, cfg.UserLimits.CreditsPerMonth)
+	usage.Run(ctx)
 
 	apiServer := api.NewAPIServer(api.APIServerConfig{
 		SecureCookies:       cfg.API.SecureCookies,

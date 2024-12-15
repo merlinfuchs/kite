@@ -16,3 +16,6 @@ SELECT * FROM usage_records WHERE app_id = $1 AND created_at BETWEEN $2 AND $3 O
 
 -- name: GetUsageCreditsUsedByAppBetween :one
 SELECT SUM(credits_used) FROM usage_records WHERE app_id = $1 AND created_at BETWEEN $2 AND $3;
+
+-- name: GetAllUsageCreditsUsedBetween :many
+SELECT app_id, SUM(credits_used) FROM usage_records WHERE created_at BETWEEN $1 AND $2 GROUP BY app_id;

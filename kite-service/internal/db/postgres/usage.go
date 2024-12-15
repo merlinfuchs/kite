@@ -53,6 +53,23 @@ func (c *Client) UsageCreditsUsedBetween(ctx context.Context, appID string, star
 	return int(res), nil
 }
 
+func (c *Client) AllUsageCreditsUsedBetween(ctx context.Context, start time.Time, end time.Time) (map[string]int, error) {
+	rows, err := c.Q.GetAllUsageCreditsUsedBetween(ctx, pgmodel.GetAllUsageCreditsUsedBetweenParams{
+		CreatedAt:   pgtype.Timestamp{Time: start, Valid: true},
+		CreatedAt_2: pgtype.Timestamp{Time: end, Valid: true},
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	res := make(map[string]int, len(rows))
+	for _, row := range rows {
+		res[row.AppID] = int(row.Sum)
+	}
+
+	return res, nil
+}
+
 func rowToUsageRecord(row pgmodel.UsageRecord) model.UsageRecord {
 	return model.UsageRecord{
 		ID:              row.ID,

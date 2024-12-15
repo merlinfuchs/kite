@@ -48,6 +48,40 @@ func (q *Queries) CreateUsageRecord(ctx context.Context, arg CreateUsageRecordPa
 	return err
 }
 
+const getAllUsageCreditsUsedBetween = `-- name: GetAllUsageCreditsUsedBetween :many
+SELECT app_id, SUM(credits_used) FROM usage_records WHERE created_at BETWEEN $1 AND $2 GROUP BY app_id
+`
+
+type GetAllUsageCreditsUsedBetweenParams struct {
+	CreatedAt   pgtype.Timestamp
+	CreatedAt_2 pgtype.Timestamp
+}
+
+type GetAllUsageCreditsUsedBetweenRow struct {
+	AppID string
+	Sum   int64
+}
+
+func (q *Queries) GetAllUsageCreditsUsedBetween(ctx context.Context, arg GetAllUsageCreditsUsedBetweenParams) ([]GetAllUsageCreditsUsedBetweenRow, error) {
+	rows, err := q.db.Query(ctx, getAllUsageCreditsUsedBetween, arg.CreatedAt, arg.CreatedAt_2)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetAllUsageCreditsUsedBetweenRow
+	for rows.Next() {
+		var i GetAllUsageCreditsUsedBetweenRow
+		if err := rows.Scan(&i.AppID, &i.Sum); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getUsageCreditsUsedByAppBetween = `-- name: GetUsageCreditsUsedByAppBetween :one
 SELECT SUM(credits_used) FROM usage_records WHERE app_id = $1 AND created_at BETWEEN $2 AND $3
 `

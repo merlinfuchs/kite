@@ -22,7 +22,7 @@ func NewEntitlementsHandler(usageStore store.UsageStore, creditsPerMonth int) *E
 }
 
 func (h *EntitlementsHandler) HandleEntitlementsCreditsGet(c *handler.Context) (*wire.EntitlementsCreditsGetResponse, error) {
-	start, end := startAndEndOfMonth(time.Now())
+	start, end := startAndEndOfMonth(time.Now().UTC())
 
 	creditsUsed, err := h.usageStore.UsageCreditsUsedBetween(c.Context(), c.App.ID, start, end)
 	if err != nil {
