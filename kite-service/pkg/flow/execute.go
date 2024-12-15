@@ -859,8 +859,18 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 }
 
 func (n *CompiledFlowNode) CreditsCost() int {
-	// TODO: Compute credits based on node type
-	return 1
+	if !n.IsAction() {
+		return 1
+	}
+
+	switch n.Type {
+	case FlowNodeTypeActionAIChatCompletion:
+		return 5
+	case FlowNodeTypeActionHTTPRequest:
+		return 3
+	}
+
+	return 0
 }
 
 func (n *CompiledFlowNode) executeChildren(ctx *FlowContext) error {
