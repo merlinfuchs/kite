@@ -60,7 +60,7 @@ export default function ColorPicker({ value, onChange }: Props) {
             role="button"
           />
         </PopoverTrigger>
-        <PopoverContent>
+        <PopoverContent className="z-30">
           <HexColorPicker color={"#" + hexColor} onChange={setHexColor} />
         </PopoverContent>
       </Popover>
