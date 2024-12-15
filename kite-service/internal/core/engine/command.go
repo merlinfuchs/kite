@@ -18,6 +18,7 @@ import (
 	"github.com/kitecloud/kite/kite-service/pkg/flow"
 	"github.com/kitecloud/kite/kite-service/pkg/placeholder"
 	"github.com/sashabaranov/go-openai"
+	"gopkg.in/guregu/null.v4"
 )
 
 type Command struct {
@@ -26,6 +27,7 @@ type Command struct {
 	flow                 *flow.CompiledFlowNode
 	appStore             store.AppStore
 	logStore             store.LogStore
+	usageStore           store.UsageStore
 	messageStore         store.MessageStore
 	messageInstanceStore store.MessageInstanceStore
 	variableValueStore   store.VariableValueStore
@@ -38,6 +40,7 @@ func NewCommand(
 	cmd *model.Command,
 	appStore store.AppStore,
 	logStore store.LogStore,
+	usageStore store.UsageStore,
 	messageStore store.MessageStore,
 	messageInstanceStore store.MessageInstanceStore,
 	variableValueStore store.VariableValueStore,
@@ -55,6 +58,7 @@ func NewCommand(
 		flow:                 flow,
 		appStore:             appStore,
 		logStore:             logStore,
+		usageStore:           usageStore,
 		messageStore:         messageStore,
 		messageInstanceStore: messageInstanceStore,
 		variableValueStore:   variableValueStore,
@@ -102,9 +106,11 @@ func (c *Command) HandleEvent(appID string, session *state.State, event gateway.
 	)
 
 	if err := c.flow.Execute(fCtx); err != nil {
-		go c.createLogEntry(model.LogLevelError, fmt.Sprintf("Failed to execute command flow: %v", err))
 		slog.With("error", err).Error("Failed to execute command flow")
+		c.createLogEntry(model.LogLevelError, fmt.Sprintf("Failed to execute command flow: %v", err))
 	}
+
+	c.createUsageRecord(fCtx.CreditsUsed())
 }
 
 func (a *App) DeployCommands(ctx context.Context) error {
@@ -284,6 +290,22 @@ func (c *Command) createLogEntry(level model.LogLevel, message string) {
 		Level:     level,
 		Message:   message,
 		CreatedAt: time.Now().UTC(),
+	})
+	if err != nil {
+		slog.With("error", err).With("app_id", c.cmd.AppID).Error("Failed to create log entry from engine command")
+	}
+}
+
+func (c *Command) createUsageRecord(creditsUsed int) {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+
+	err := c.usageStore.CreateUsageRecord(ctx, model.UsageRecord{
+		AppID:       c.cmd.AppID,
+		Type:        model.UsageRecordTypeFlowExecution,
+		CommandID:   null.NewString(c.cmd.ID, true),
+		CreditsUsed: uint32(creditsUsed),
+		CreatedAt:   time.Now().UTC(),
 	})
 	if err != nil {
 		slog.With("error", err).With("app_id", c.cmd.AppID).Error("Failed to create log entry from engine command")

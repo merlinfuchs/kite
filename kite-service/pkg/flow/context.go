@@ -75,6 +75,10 @@ type FlowContextLimits struct {
 	credits    int
 }
 
+func (c *FlowContextLimits) CreditsUsed() int {
+	return c.credits
+}
+
 func (c *FlowContext) startOperation(credits int) error {
 	if c.Err() != nil {
 		return c.Err()

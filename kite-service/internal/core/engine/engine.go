@@ -20,6 +20,7 @@ type Engine struct {
 	config               EngineConfig
 	appStore             store.AppStore
 	logStore             store.LogStore
+	usageStore           store.UsageStore
 	messageStore         store.MessageStore
 	messageInstanceStore store.MessageInstanceStore
 	commandStore         store.CommandStore
@@ -36,6 +37,7 @@ func NewEngine(
 	config EngineConfig,
 	appStore store.AppStore,
 	logStore store.LogStore,
+	usageStore store.UsageStore,
 	messageStore store.MessageStore,
 	messageInstanceStore store.MessageInstanceStore,
 	commandStore store.CommandStore,
@@ -48,6 +50,7 @@ func NewEngine(
 		config:               config,
 		appStore:             appStore,
 		logStore:             logStore,
+		usageStore:           usageStore,
 		messageStore:         messageStore,
 		messageInstanceStore: messageInstanceStore,
 		httpClient:           httpClient,
@@ -108,6 +111,7 @@ func (m *Engine) populateCommands(ctx context.Context, lastUpdate time.Time) err
 				command.AppID,
 				m.appStore,
 				m.logStore,
+				m.usageStore,
 				m.messageStore,
 				m.messageInstanceStore,
 				m.commandStore,
@@ -150,6 +154,7 @@ func (m *Engine) populateEventListeners(ctx context.Context, lastUpdate time.Tim
 				listener.AppID,
 				m.appStore,
 				m.logStore,
+				m.usageStore,
 				m.messageStore,
 				m.messageInstanceStore,
 				m.commandStore,

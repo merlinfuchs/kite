@@ -24,6 +24,7 @@ type App struct {
 	config               EngineConfig
 	appStore             store.AppStore
 	logStore             store.LogStore
+	usageStore           store.UsageStore
 	messageStore         store.MessageStore
 	messageInstanceStore store.MessageInstanceStore
 	commandStore         store.CommandStore
@@ -42,6 +43,7 @@ func NewApp(
 	id string,
 	appStore store.AppStore,
 	logStore store.LogStore,
+	usageStore store.UsageStore,
 	messageStore store.MessageStore,
 	messageInstanceStore store.MessageInstanceStore,
 	commandStore store.CommandStore,
@@ -54,6 +56,7 @@ func NewApp(
 		config:               config,
 		appStore:             appStore,
 		logStore:             logStore,
+		usageStore:           usageStore,
 		messageStore:         messageStore,
 		messageInstanceStore: messageInstanceStore,
 		commandStore:         commandStore,
@@ -74,6 +77,7 @@ func (a *App) AddCommand(cmd *model.Command) {
 		cmd,
 		a.appStore,
 		a.logStore,
+		a.usageStore,
 		a.messageStore,
 		a.messageInstanceStore,
 		a.variableValueStore,
@@ -118,6 +122,7 @@ func (a *App) AddEventListener(listener *model.EventListener) {
 		listener,
 		a.appStore,
 		a.logStore,
+		a.usageStore,
 		a.messageStore,
 		a.messageInstanceStore,
 		a.variableValueStore,
@@ -197,6 +202,7 @@ func (a *App) HandleEvent(appID string, session *state.State, event gateway.Even
 				messageInstnace,
 				a.appStore,
 				a.logStore,
+				a.usageStore,
 				a.messageStore,
 				a.messageInstanceStore,
 				a.variableValueStore,

@@ -127,6 +127,17 @@ type Session struct {
 	ExpiresAt pgtype.Timestamp
 }
 
+type UsageRecord struct {
+	ID              int64
+	Type            string
+	AppID           string
+	CommandID       pgtype.Text
+	EventListenerID pgtype.Text
+	MessageID       pgtype.Text
+	CreditsUsed     int32
+	CreatedAt       pgtype.Timestamp
+}
+
 type User struct {
 	ID              string
 	Email           string

@@ -15,6 +15,7 @@ import (
 	"github.com/kitecloud/kite/kite-service/pkg/flow"
 	"github.com/kitecloud/kite/kite-service/pkg/placeholder"
 	"github.com/sashabaranov/go-openai"
+	"gopkg.in/guregu/null.v4"
 )
 
 type MessageInstance struct {
@@ -24,6 +25,7 @@ type MessageInstance struct {
 	flows                map[string]*flow.CompiledFlowNode
 	appStore             store.AppStore
 	logStore             store.LogStore
+	usageStore           store.UsageStore
 	messageStore         store.MessageStore
 	messageInstanceStore store.MessageInstanceStore
 	variableValueStore   store.VariableValueStore
@@ -37,6 +39,7 @@ func NewMessageInstance(
 	msg *model.MessageInstance,
 	appStore store.AppStore,
 	logStore store.LogStore,
+	usageStore store.UsageStore,
 	messageStore store.MessageStore,
 	messageInstanceStore store.MessageInstanceStore,
 	variableValueStore store.VariableValueStore,
@@ -62,6 +65,7 @@ func NewMessageInstance(
 		flows:                flows,
 		appStore:             appStore,
 		logStore:             logStore,
+		usageStore:           usageStore,
 		messageStore:         messageStore,
 		messageInstanceStore: messageInstanceStore,
 		variableValueStore:   variableValueStore,
@@ -119,9 +123,11 @@ func (c *MessageInstance) HandleEvent(appID string, session *state.State, event 
 	)
 
 	if err := targetFlow.Execute(fCtx); err != nil {
-		go c.createLogEntry(model.LogLevelError, fmt.Sprintf("Failed to execute command flow: %v", err))
-		slog.With("error", err).Error("Failed to execute command flow")
+		slog.With("error", err).Error("Failed to execute message instance flow")
+		c.createLogEntry(model.LogLevelError, fmt.Sprintf("Failed to execute message instance flow: %v", err))
 	}
+
+	c.createUsageRecord(fCtx.CreditsUsed())
 }
 
 func (c *MessageInstance) createLogEntry(level model.LogLevel, message string) {
@@ -136,7 +142,23 @@ func (c *MessageInstance) createLogEntry(level model.LogLevel, message string) {
 		CreatedAt: time.Now().UTC(),
 	})
 	if err != nil {
-		slog.With("error", err).With("app_id", c.appID).Error("Failed to create log entry from engine command")
+		slog.With("error", err).With("app_id", c.appID).Error("Failed to create log entry from engine message instance")
+	}
+}
+
+func (c *MessageInstance) createUsageRecord(creditsUsed int) {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+
+	err := c.usageStore.CreateUsageRecord(ctx, model.UsageRecord{
+		AppID:       c.appID,
+		Type:        model.UsageRecordTypeFlowExecution,
+		MessageID:   null.NewString(c.msg.MessageID, true),
+		CreditsUsed: uint32(creditsUsed),
+		CreatedAt:   time.Now().UTC(),
+	})
+	if err != nil {
+		slog.With("error", err).With("app_id", c.appID).Error("Failed to create usage record from engine message instance")
 	}
 }
 

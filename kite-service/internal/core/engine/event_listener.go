@@ -15,6 +15,7 @@ import (
 	"github.com/kitecloud/kite/kite-service/pkg/flow"
 	"github.com/kitecloud/kite/kite-service/pkg/placeholder"
 	"github.com/sashabaranov/go-openai"
+	"gopkg.in/guregu/null.v4"
 )
 
 type EventListener struct {
@@ -23,6 +24,7 @@ type EventListener struct {
 	flow                 *flow.CompiledFlowNode
 	appStore             store.AppStore
 	logStore             store.LogStore
+	usageStore           store.UsageStore
 	messageStore         store.MessageStore
 	messageInstanceStore store.MessageInstanceStore
 	variableValueStore   store.VariableValueStore
@@ -35,6 +37,7 @@ func NewEventListener(
 	listener *model.EventListener,
 	appStore store.AppStore,
 	logStore store.LogStore,
+	usageStore store.UsageStore,
 	messageStore store.MessageStore,
 	messageInstanceStore store.MessageInstanceStore,
 	variableValueStore store.VariableValueStore,
@@ -52,6 +55,7 @@ func NewEventListener(
 		flow:                 flow,
 		appStore:             appStore,
 		logStore:             logStore,
+		usageStore:           usageStore,
 		messageStore:         messageStore,
 		messageInstanceStore: messageInstanceStore,
 		variableValueStore:   variableValueStore,
@@ -99,9 +103,11 @@ func (l *EventListener) HandleEvent(appID string, session *state.State, event ga
 	)
 
 	if err := l.flow.Execute(fCtx); err != nil {
-		go l.createLogEntry(model.LogLevelError, fmt.Sprintf("Failed to execute event listener flow: %v", err))
 		slog.With("error", err).Error("Failed to execute event listener flow")
+		l.createLogEntry(model.LogLevelError, fmt.Sprintf("Failed to execute event listener flow: %v", err))
 	}
+
+	l.createUsageRecord(fCtx.CreditsUsed())
 }
 
 func (l *EventListener) createLogEntry(level model.LogLevel, message string) {
@@ -117,6 +123,22 @@ func (l *EventListener) createLogEntry(level model.LogLevel, message string) {
 	})
 	if err != nil {
 		slog.With("error", err).With("app_id", l.listener.AppID).Error("Failed to create log entry from engine event listener")
+	}
+}
+
+func (l *EventListener) createUsageRecord(creditsUsed int) {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+
+	err := l.usageStore.CreateUsageRecord(ctx, model.UsageRecord{
+		AppID:           l.listener.AppID,
+		Type:            model.UsageRecordTypeFlowExecution,
+		EventListenerID: null.NewString(l.listener.ID, true),
+		CreditsUsed:     uint32(creditsUsed),
+		CreatedAt:       time.Now().UTC(),
+	})
+	if err != nil {
+		slog.With("error", err).With("app_id", l.listener.AppID).Error("Failed to create usage record from engine event listener")
 	}
 }
 
