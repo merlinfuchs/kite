@@ -6,6 +6,7 @@ import {
   AssetGetResponse,
   CommandGetResponse,
   CommandListResponse,
+  EntitlementsCreditsGetResponse,
   EventListenerGetResponse,
   EventListenerListResponse,
   LogEntryListResponse,
@@ -47,6 +48,17 @@ export function useLogEntriesQuery(appId: string) {
   return useQuery({
     queryKey: ["apps", appId, "logs"],
     queryFn: () => apiRequest<LogEntryListResponse>(`/v1/apps/${appId}/logs`),
+    enabled: !!appId,
+  });
+}
+
+export function useEntitlementsCreditsQuery(appId: string) {
+  return useQuery({
+    queryKey: ["apps", appId, "entitlements", "credits"],
+    queryFn: () =>
+      apiRequest<EntitlementsCreditsGetResponse>(
+        `/v1/apps/${appId}/entitlements/credits`
+      ),
     enabled: !!appId,
   });
 }

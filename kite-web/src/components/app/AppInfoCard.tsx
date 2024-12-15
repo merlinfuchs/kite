@@ -9,7 +9,11 @@ import { Button } from "../ui/button";
 import { CopyIcon, SettingsIcon } from "lucide-react";
 import Link from "next/link";
 import { formatDate } from "@/lib/utils";
-import { useApp, useResponseData } from "@/lib/hooks/api";
+import {
+  useApp,
+  useEntitlementsCredits,
+  useResponseData,
+} from "@/lib/hooks/api";
 import { Separator } from "../ui/separator";
 import { Badge } from "../ui/badge";
 import { useAppStateStatusQuery, useUserQuery } from "@/lib/api/queries";
@@ -22,6 +26,8 @@ export default function AppInfoCard() {
   const ownerUser = useResponseData(useUserQuery(app?.owner_user_id));
 
   const appStatus = useResponseData(useAppStateStatusQuery(app?.id));
+
+  const credits = useEntitlementsCredits();
 
   const copyAppId = useCallback(() => {
     navigator.clipboard.writeText(app?.id || "");

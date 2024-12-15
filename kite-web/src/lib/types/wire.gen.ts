@@ -125,6 +125,14 @@ export type CommandUpdateResponse = Command;
 export type CommandDeleteResponse = Empty;
 
 //////////
+// source: entitlement.go
+
+export interface EntitlementsCreditsGetResponse {
+  total_credits: number /* int */;
+  credits_used: number /* int */;
+}
+
+//////////
 // source: event_listener.go
 
 export interface EventListener {

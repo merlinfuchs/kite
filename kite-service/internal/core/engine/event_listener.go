@@ -134,7 +134,7 @@ func (l *EventListener) createUsageRecord(creditsUsed int) {
 		AppID:           l.listener.AppID,
 		Type:            model.UsageRecordTypeFlowExecution,
 		EventListenerID: null.NewString(l.listener.ID, true),
-		CreditsUsed:     uint32(creditsUsed),
+		CreditsUsed:     creditsUsed,
 		CreatedAt:       time.Now().UTC(),
 	})
 	if err != nil {

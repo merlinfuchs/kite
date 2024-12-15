@@ -304,7 +304,7 @@ func (c *Command) createUsageRecord(creditsUsed int) {
 		AppID:       c.cmd.AppID,
 		Type:        model.UsageRecordTypeFlowExecution,
 		CommandID:   null.NewString(c.cmd.ID, true),
-		CreditsUsed: uint32(creditsUsed),
+		CreditsUsed: creditsUsed,
 		CreatedAt:   time.Now().UTC(),
 	})
 	if err != nil {

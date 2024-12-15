@@ -40,7 +40,7 @@ func (c *Client) UsageRecordsBetween(ctx context.Context, appID string, start ti
 	return records, nil
 }
 
-func (c *Client) UsageCreditsUsedBetween(ctx context.Context, appID string, start time.Time, end time.Time) (uint32, error) {
+func (c *Client) UsageCreditsUsedBetween(ctx context.Context, appID string, start time.Time, end time.Time) (int, error) {
 	res, err := c.Q.GetUsageCreditsUsedByAppBetween(ctx, pgmodel.GetUsageCreditsUsedByAppBetweenParams{
 		AppID:       appID,
 		CreatedAt:   pgtype.Timestamp{Time: start, Valid: true},
@@ -50,7 +50,7 @@ func (c *Client) UsageCreditsUsedBetween(ctx context.Context, appID string, star
 		return 0, err
 	}
 
-	return uint32(res), nil
+	return int(res), nil
 }
 
 func rowToUsageRecord(row pgmodel.UsageRecord) model.UsageRecord {
@@ -61,7 +61,7 @@ func rowToUsageRecord(row pgmodel.UsageRecord) model.UsageRecord {
 		CommandID:       null.NewString(row.CommandID.String, row.CommandID.Valid),
 		EventListenerID: null.NewString(row.EventListenerID.String, row.EventListenerID.Valid),
 		MessageID:       null.NewString(row.MessageID.String, row.MessageID.Valid),
-		CreditsUsed:     uint32(row.CreditsUsed),
+		CreditsUsed:     int(row.CreditsUsed),
 		CreatedAt:       row.CreatedAt.Time,
 	}
 }

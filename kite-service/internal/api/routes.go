@@ -12,6 +12,7 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/asset"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/auth"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/command"
+	"github.com/kitecloud/kite/kite-service/internal/api/handler/entitlements"
 	eventlistener "github.com/kitecloud/kite/kite-service/internal/api/handler/event_listener"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/logs"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/message"
@@ -27,6 +28,7 @@ func (s *APIServer) RegisterRoutes(
 	sessionStore store.SessionStore,
 	appStore store.AppStore,
 	logStore store.LogStore,
+	usageStore store.UsageStore,
 	commandStore store.CommandStore,
 	variableStore store.VariableStore,
 	variableValueStore store.VariableValueStore,
@@ -107,6 +109,12 @@ func (s *APIServer) RegisterRoutes(
 
 	logsGroup := appGroup.Group("/logs", accessManager.AppAccess)
 	logsGroup.Get("/", handler.Typed(logHandler.HandleLogEntryList))
+
+	// Entitlements routes
+	entitlementsHandler := entitlements.NewEntitlementsHandler(usageStore, s.config.UserLimits.CreditsPerMonth)
+
+	entitlementsGroup := appGroup.Group("/entitlements")
+	entitlementsGroup.Get("/credits", handler.Typed(entitlementsHandler.HandleEntitlementsCreditsGet))
 
 	// Command routes
 	commandsHandler := command.NewCommandHandler(commandStore, s.config.UserLimits.MaxCommandsPerApp)

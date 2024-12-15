@@ -154,7 +154,7 @@ func (c *MessageInstance) createUsageRecord(creditsUsed int) {
 		AppID:       c.appID,
 		Type:        model.UsageRecordTypeFlowExecution,
 		MessageID:   null.NewString(c.msg.MessageID, true),
-		CreditsUsed: uint32(creditsUsed),
+		CreditsUsed: creditsUsed,
 		CreatedAt:   time.Now().UTC(),
 	})
 	if err != nil {

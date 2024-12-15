@@ -15,12 +15,14 @@ import {
   useAppStateGuildChannelsQuery,
   useEventListenerQuery,
   useEventListenersQuery,
+  useEntitlementsCreditsQuery,
 } from "../api/queries";
 import {
   AppGetResponse,
   AppListResponse,
   CommandGetResponse,
   CommandListResponse,
+  EntitlementsCreditsGetResponse,
   EventListenerGetResponse,
   EventListenerListResponse,
   MessageGetResponse,
@@ -165,6 +167,15 @@ export function useMessageInstances(
     router.query.appId as string,
     router.query.messageId as string
   );
+  return useResponseData(query, callback);
+}
+
+export function useEntitlementsCredits(
+  callback?: (res: APIResponse<EntitlementsCreditsGetResponse>) => void
+) {
+  const router = useRouter();
+
+  const query = useEntitlementsCreditsQuery(router.query.appId as string);
   return useResponseData(query, callback);
 }
 
