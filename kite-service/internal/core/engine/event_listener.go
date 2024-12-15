@@ -132,7 +132,7 @@ func (l *EventListener) createUsageRecord(creditsUsed int) {
 
 	err := l.usageStore.CreateUsageRecord(ctx, model.UsageRecord{
 		AppID:           l.listener.AppID,
-		Type:            model.UsageRecordTypeFlowExecution,
+		Type:            model.UsageRecordTypeEventListenerFlowExecution,
 		EventListenerID: null.NewString(l.listener.ID, true),
 		CreditsUsed:     creditsUsed,
 		CreatedAt:       time.Now().UTC(),

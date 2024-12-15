@@ -302,7 +302,7 @@ func (c *Command) createUsageRecord(creditsUsed int) {
 
 	err := c.usageStore.CreateUsageRecord(ctx, model.UsageRecord{
 		AppID:       c.cmd.AppID,
-		Type:        model.UsageRecordTypeFlowExecution,
+		Type:        model.UsageRecordTypeCommandFlowExecution,
 		CommandID:   null.NewString(c.cmd.ID, true),
 		CreditsUsed: creditsUsed,
 		CreatedAt:   time.Now().UTC(),

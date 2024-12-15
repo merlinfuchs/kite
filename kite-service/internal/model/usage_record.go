@@ -9,7 +9,9 @@ import (
 type UsageRecordType string
 
 const (
-	UsageRecordTypeFlowExecution UsageRecordType = "flow_execution"
+	UsageRecordTypeCommandFlowExecution       UsageRecordType = "command_flow_execution"
+	UsageRecordTypeEventListenerFlowExecution UsageRecordType = "event_listener_flow_execution"
+	UsageRecordTypeMessageFlowExecution       UsageRecordType = "message_flow_execution"
 )
 
 type UsageRecord struct {

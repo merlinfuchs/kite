@@ -1,6 +1,6 @@
 CREATE TABLE IF NOT EXISTS usage_records (
     id BIGSERIAL PRIMARY KEY,
-    type TEXT NOT NULL, -- always flow_execution right now
+    type TEXT NOT NULL,
 
     app_id TEXT NOT NULL REFERENCES apps(id) ON DELETE CASCADE,
     command_id TEXT REFERENCES commands(id) ON DELETE SET NULL,

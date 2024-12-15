@@ -152,7 +152,7 @@ func (c *MessageInstance) createUsageRecord(creditsUsed int) {
 
 	err := c.usageStore.CreateUsageRecord(ctx, model.UsageRecord{
 		AppID:       c.appID,
-		Type:        model.UsageRecordTypeFlowExecution,
+		Type:        model.UsageRecordTypeMessageFlowExecution,
 		MessageID:   null.NewString(c.msg.MessageID, true),
 		CreditsUsed: creditsUsed,
 		CreatedAt:   time.Now().UTC(),
