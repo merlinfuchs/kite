@@ -24,9 +24,9 @@ func (c *Client) CreateUsageRecord(ctx context.Context, record model.UsageRecord
 
 func (c *Client) UsageRecordsBetween(ctx context.Context, appID string, start time.Time, end time.Time) ([]model.UsageRecord, error) {
 	rows, err := c.Q.GetUsageRecordsByAppBetween(ctx, pgmodel.GetUsageRecordsByAppBetweenParams{
-		AppID:       appID,
-		CreatedAt:   pgtype.Timestamp{Time: start, Valid: true},
-		CreatedAt_2: pgtype.Timestamp{Time: end, Valid: true},
+		AppID:   appID,
+		StartAt: pgtype.Timestamp{Time: start, Valid: true},
+		EndAt:   pgtype.Timestamp{Time: end, Valid: true},
 	})
 	if err != nil {
 		return nil, err
@@ -42,9 +42,9 @@ func (c *Client) UsageRecordsBetween(ctx context.Context, appID string, start ti
 
 func (c *Client) UsageCreditsUsedBetween(ctx context.Context, appID string, start time.Time, end time.Time) (int, error) {
 	res, err := c.Q.GetUsageCreditsUsedByAppBetween(ctx, pgmodel.GetUsageCreditsUsedByAppBetweenParams{
-		AppID:       appID,
-		CreatedAt:   pgtype.Timestamp{Time: start, Valid: true},
-		CreatedAt_2: pgtype.Timestamp{Time: end, Valid: true},
+		AppID:   appID,
+		StartAt: pgtype.Timestamp{Time: start, Valid: true},
+		EndAt:   pgtype.Timestamp{Time: end, Valid: true},
 	})
 	if err != nil {
 		return 0, err
@@ -55,8 +55,8 @@ func (c *Client) UsageCreditsUsedBetween(ctx context.Context, appID string, star
 
 func (c *Client) AllUsageCreditsUsedBetween(ctx context.Context, start time.Time, end time.Time) (map[string]int, error) {
 	rows, err := c.Q.GetAllUsageCreditsUsedBetween(ctx, pgmodel.GetAllUsageCreditsUsedBetweenParams{
-		CreatedAt:   pgtype.Timestamp{Time: start, Valid: true},
-		CreatedAt_2: pgtype.Timestamp{Time: end, Valid: true},
+		StartAt: pgtype.Timestamp{Time: start, Valid: true},
+		EndAt:   pgtype.Timestamp{Time: end, Valid: true},
 	})
 	if err != nil {
 		return nil, err

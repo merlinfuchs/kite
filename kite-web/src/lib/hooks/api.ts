@@ -15,14 +15,15 @@ import {
   useAppStateGuildChannelsQuery,
   useEventListenerQuery,
   useEventListenersQuery,
-  useEntitlementsCreditsQuery,
+  useUsageCreditsQuery,
+  useLogSummaryQuery,
 } from "../api/queries";
 import {
   AppGetResponse,
   AppListResponse,
   CommandGetResponse,
   CommandListResponse,
-  EntitlementsCreditsGetResponse,
+  UsageCreditsGetResponse,
   EventListenerGetResponse,
   EventListenerListResponse,
   MessageGetResponse,
@@ -33,6 +34,7 @@ import {
   UserGetResponse,
   VariableGetResponse,
   VariableListResponse,
+  LogSummaryGetResponse,
 } from "../types/wire.gen";
 import { useRouter } from "next/router";
 
@@ -170,12 +172,21 @@ export function useMessageInstances(
   return useResponseData(query, callback);
 }
 
-export function useEntitlementsCredits(
-  callback?: (res: APIResponse<EntitlementsCreditsGetResponse>) => void
+export function useLogSummary(
+  callback?: (res: APIResponse<LogSummaryGetResponse>) => void
 ) {
   const router = useRouter();
 
-  const query = useEntitlementsCreditsQuery(router.query.appId as string);
+  const query = useLogSummaryQuery(router.query.appId as string);
+  return useResponseData(query, callback);
+}
+
+export function useUsageCredits(
+  callback?: (res: APIResponse<UsageCreditsGetResponse>) => void
+) {
+  const router = useRouter();
+
+  const query = useUsageCreditsQuery(router.query.appId as string);
   return useResponseData(query, callback);
 }
 

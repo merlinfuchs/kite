@@ -1,4 +1,4 @@
-package entitlements
+package usage
 
 import (
 	"fmt"
@@ -9,19 +9,19 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/store"
 )
 
-type EntitlementsHandler struct {
+type UsageHandler struct {
 	usageStore      store.UsageStore
 	creditsPerMonth int
 }
 
-func NewEntitlementsHandler(usageStore store.UsageStore, creditsPerMonth int) *EntitlementsHandler {
-	return &EntitlementsHandler{
+func NewUsageHandler(usageStore store.UsageStore, creditsPerMonth int) *UsageHandler {
+	return &UsageHandler{
 		usageStore:      usageStore,
 		creditsPerMonth: creditsPerMonth,
 	}
 }
 
-func (h *EntitlementsHandler) HandleEntitlementsCreditsGet(c *handler.Context) (*wire.EntitlementsCreditsGetResponse, error) {
+func (h *UsageHandler) HandleUsageCreditsGet(c *handler.Context) (*wire.UsageCreditsGetResponse, error) {
 	start, end := startAndEndOfMonth(time.Now().UTC())
 
 	creditsUsed, err := h.usageStore.UsageCreditsUsedBetween(c.Context(), c.App.ID, start, end)
@@ -29,7 +29,7 @@ func (h *EntitlementsHandler) HandleEntitlementsCreditsGet(c *handler.Context) (
 		return nil, fmt.Errorf("failed to get total credits: %w", err)
 	}
 
-	return &wire.EntitlementsCreditsGetResponse{
+	return &wire.UsageCreditsGetResponse{
 		TotalCredits: h.creditsPerMonth,
 		CreditsUsed:  creditsUsed,
 	}, nil

@@ -53,8 +53,8 @@ SELECT app_id, SUM(credits_used) FROM usage_records WHERE created_at BETWEEN $1 
 `
 
 type GetAllUsageCreditsUsedBetweenParams struct {
-	CreatedAt   pgtype.Timestamp
-	CreatedAt_2 pgtype.Timestamp
+	StartAt pgtype.Timestamp
+	EndAt   pgtype.Timestamp
 }
 
 type GetAllUsageCreditsUsedBetweenRow struct {
@@ -63,7 +63,7 @@ type GetAllUsageCreditsUsedBetweenRow struct {
 }
 
 func (q *Queries) GetAllUsageCreditsUsedBetween(ctx context.Context, arg GetAllUsageCreditsUsedBetweenParams) ([]GetAllUsageCreditsUsedBetweenRow, error) {
-	rows, err := q.db.Query(ctx, getAllUsageCreditsUsedBetween, arg.CreatedAt, arg.CreatedAt_2)
+	rows, err := q.db.Query(ctx, getAllUsageCreditsUsedBetween, arg.StartAt, arg.EndAt)
 	if err != nil {
 		return nil, err
 	}
@@ -87,13 +87,13 @@ SELECT SUM(credits_used) FROM usage_records WHERE app_id = $1 AND created_at BET
 `
 
 type GetUsageCreditsUsedByAppBetweenParams struct {
-	AppID       string
-	CreatedAt   pgtype.Timestamp
-	CreatedAt_2 pgtype.Timestamp
+	AppID   string
+	StartAt pgtype.Timestamp
+	EndAt   pgtype.Timestamp
 }
 
 func (q *Queries) GetUsageCreditsUsedByAppBetween(ctx context.Context, arg GetUsageCreditsUsedByAppBetweenParams) (int64, error) {
-	row := q.db.QueryRow(ctx, getUsageCreditsUsedByAppBetween, arg.AppID, arg.CreatedAt, arg.CreatedAt_2)
+	row := q.db.QueryRow(ctx, getUsageCreditsUsedByAppBetween, arg.AppID, arg.StartAt, arg.EndAt)
 	var sum int64
 	err := row.Scan(&sum)
 	return sum, err
@@ -104,13 +104,13 @@ SELECT id, type, app_id, command_id, event_listener_id, message_id, credits_used
 `
 
 type GetUsageRecordsByAppBetweenParams struct {
-	AppID       string
-	CreatedAt   pgtype.Timestamp
-	CreatedAt_2 pgtype.Timestamp
+	AppID   string
+	StartAt pgtype.Timestamp
+	EndAt   pgtype.Timestamp
 }
 
 func (q *Queries) GetUsageRecordsByAppBetween(ctx context.Context, arg GetUsageRecordsByAppBetweenParams) ([]UsageRecord, error) {
-	rows, err := q.db.Query(ctx, getUsageRecordsByAppBetween, arg.AppID, arg.CreatedAt, arg.CreatedAt_2)
+	rows, err := q.db.Query(ctx, getUsageRecordsByAppBetween, arg.AppID, arg.StartAt, arg.EndAt)
 	if err != nil {
 		return nil, err
 	}

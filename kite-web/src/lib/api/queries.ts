@@ -6,16 +6,17 @@ import {
   AssetGetResponse,
   CommandGetResponse,
   CommandListResponse,
-  EntitlementsCreditsGetResponse,
   EventListenerGetResponse,
   EventListenerListResponse,
   LogEntryListResponse,
+  LogSummaryGetResponse,
   MessageGetResponse,
   MessageInstanceListResponse,
   MessageListResponse,
   StateGuildChannelListResponse,
   StateGuildListResponse,
   StateStatusGetResponse,
+  UsageCreditsGetResponse,
   UserGetResponse,
   VariableGetResponse,
   VariableListResponse,
@@ -52,13 +53,20 @@ export function useLogEntriesQuery(appId: string) {
   });
 }
 
-export function useEntitlementsCreditsQuery(appId: string) {
+export function useLogSummaryQuery(appId: string) {
   return useQuery({
-    queryKey: ["apps", appId, "entitlements", "credits"],
+    queryKey: ["apps", appId, "logs", "summary"],
     queryFn: () =>
-      apiRequest<EntitlementsCreditsGetResponse>(
-        `/v1/apps/${appId}/entitlements/credits`
-      ),
+      apiRequest<LogSummaryGetResponse>(`/v1/apps/${appId}/logs/summary`),
+    enabled: !!appId,
+  });
+}
+
+export function useUsageCreditsQuery(appId: string) {
+  return useQuery({
+    queryKey: ["apps", appId, "usage", "credits"],
+    queryFn: () =>
+      apiRequest<UsageCreditsGetResponse>(`/v1/apps/${appId}/usage/credits`),
     enabled: !!appId,
   });
 }

@@ -3,6 +3,7 @@ package logs
 import (
 	"fmt"
 	"strconv"
+	"time"
 
 	"github.com/kitecloud/kite/kite-service/internal/api/handler"
 	"github.com/kitecloud/kite/kite-service/internal/api/wire"
@@ -17,6 +18,15 @@ func NewLogHandler(logStore store.LogStore) *LogHandler {
 	return &LogHandler{
 		logStore: logStore,
 	}
+}
+
+func (h *LogHandler) HandleLogSummaryGet(c *handler.Context) (*wire.LogSummaryGetResponse, error) {
+	entries, err := h.logStore.LogSummary(c.Context(), c.App.ID, time.Now().UTC().Add(-time.Hour*24), time.Now().UTC())
+	if err != nil {
+		return nil, fmt.Errorf("failed to get log entries: %w", err)
+	}
+
+	return wire.LogSummaryToWire(entries), nil
 }
 
 func (h *LogHandler) HandleLogEntryList(c *handler.Context) (*wire.LogEntryListResponse, error) {

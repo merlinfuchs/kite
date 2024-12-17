@@ -12,10 +12,10 @@ INSERT INTO usage_records (
 ) RETURNING *;
 
 -- name: GetUsageRecordsByAppBetween :many
-SELECT * FROM usage_records WHERE app_id = $1 AND created_at BETWEEN $2 AND $3 ORDER BY created_at DESC;
+SELECT * FROM usage_records WHERE app_id = @app_id AND created_at BETWEEN @start_at AND @end_at ORDER BY created_at DESC;
 
 -- name: GetUsageCreditsUsedByAppBetween :one
-SELECT SUM(credits_used) FROM usage_records WHERE app_id = $1 AND created_at BETWEEN $2 AND $3;
+SELECT SUM(credits_used) FROM usage_records WHERE app_id = @app_id AND created_at BETWEEN @start_at AND @end_at;
 
 -- name: GetAllUsageCreditsUsedBetween :many
-SELECT app_id, SUM(credits_used) FROM usage_records WHERE created_at BETWEEN $1 AND $2 GROUP BY app_id;
+SELECT app_id, SUM(credits_used) FROM usage_records WHERE created_at BETWEEN @start_at AND @end_at GROUP BY app_id;

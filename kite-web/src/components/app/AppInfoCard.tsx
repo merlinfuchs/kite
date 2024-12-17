@@ -5,19 +5,14 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Button } from "../ui/button";
-import { CopyIcon, SettingsIcon } from "lucide-react";
-import Link from "next/link";
-import { formatDate } from "@/lib/utils";
-import {
-  useApp,
-  useEntitlementsCredits,
-  useResponseData,
-} from "@/lib/hooks/api";
-import { Separator } from "../ui/separator";
-import { Badge } from "../ui/badge";
 import { useAppStateStatusQuery, useUserQuery } from "@/lib/api/queries";
+import { useApp, useResponseData, useUsageCredits } from "@/lib/hooks/api";
+import { formatDate } from "@/lib/utils";
+import { CopyIcon } from "lucide-react";
 import { useCallback } from "react";
+import { Badge } from "../ui/badge";
+import { Button } from "../ui/button";
+import { Separator } from "../ui/separator";
 import AppInviteButton from "./AppInviteButton";
 
 export default function AppInfoCard() {
@@ -26,8 +21,6 @@ export default function AppInfoCard() {
   const ownerUser = useResponseData(useUserQuery(app?.owner_user_id));
 
   const appStatus = useResponseData(useAppStateStatusQuery(app?.id));
-
-  const credits = useEntitlementsCredits();
 
   const copyAppId = useCallback(() => {
     navigator.clipboard.writeText(app?.id || "");

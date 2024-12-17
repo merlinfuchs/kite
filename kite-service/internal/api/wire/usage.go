@@ -1,6 +1,6 @@
 package wire
 
-type EntitlementsCreditsGetResponse struct {
+type UsageCreditsGetResponse struct {
 	TotalCredits int `json:"total_credits"`
 	CreditsUsed  int `json:"credits_used"`
 }

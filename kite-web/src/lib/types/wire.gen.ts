@@ -125,14 +125,6 @@ export type CommandUpdateResponse = Command;
 export type CommandDeleteResponse = Empty;
 
 //////////
-// source: entitlement.go
-
-export interface EntitlementsCreditsGetResponse {
-  total_credits: number /* int */;
-  credits_used: number /* int */;
-}
-
-//////////
 // source: event_listener.go
 
 export interface EventListener {
@@ -176,6 +168,14 @@ export interface LogEntry {
   created_at: string /* RFC3339 */;
 }
 export type LogEntryListResponse = (LogEntry | undefined)[];
+export interface LogSummary {
+  total_entries: number /* int64 */;
+  total_errors: number /* int64 */;
+  total_warnings: number /* int64 */;
+  total_infos: number /* int64 */;
+  total_debugs: number /* int64 */;
+}
+export type LogSummaryGetResponse = LogSummary;
 
 //////////
 // source: message.go
@@ -229,6 +229,14 @@ export interface MessageInstanceUpdateRequest {
 }
 export type MessageInstanceUpdateResponse = MessageInstance;
 export type MessageInstanceDeleteResponse = Empty;
+
+//////////
+// source: usage.go
+
+export interface UsageCreditsGetResponse {
+  total_credits: number /* int */;
+  credits_used: number /* int */;
+}
 
 //////////
 // source: user.go
