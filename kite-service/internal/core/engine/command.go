@@ -159,11 +159,6 @@ func (a *App) DeployCommands(ctx context.Context) error {
 		return nil
 	}
 
-	err = a.commandStore.UpdateCommandsLastDeployedAt(ctx, a.id, lastUpdatedAt)
-	if err != nil {
-		return fmt.Errorf("failed to update last deployed at: %w", err)
-	}
-
 	app, err := a.appStore.App(ctx, a.id)
 	if err != nil {
 		return fmt.Errorf("failed to get app: %w", err)
@@ -180,6 +175,11 @@ func (a *App) DeployCommands(ctx context.Context) error {
 	if err != nil {
 		go a.createLogEntry(model.LogLevelError, fmt.Sprintf("Failed to deploy commands: %v", err))
 		return nil
+	}
+
+	err = a.commandStore.UpdateCommandsLastDeployedAt(ctx, a.id, lastUpdatedAt)
+	if err != nil {
+		return fmt.Errorf("failed to update last deployed at: %w", err)
 	}
 
 	go a.createLogEntry(model.LogLevelInfo, "Successfully deployed commands")
