@@ -16,6 +16,8 @@ import {
   StateGuildChannelListResponse,
   StateGuildListResponse,
   StateStatusGetResponse,
+  UsageByDayListResponse,
+  UsageByTypeListResponse,
   UsageCreditsGetResponse,
   UserGetResponse,
   VariableGetResponse,
@@ -67,6 +69,24 @@ export function useUsageCreditsQuery(appId: string) {
     queryKey: ["apps", appId, "usage", "credits"],
     queryFn: () =>
       apiRequest<UsageCreditsGetResponse>(`/v1/apps/${appId}/usage/credits`),
+    enabled: !!appId,
+  });
+}
+
+export function useUsageCreditsByDayQuery(appId: string) {
+  return useQuery({
+    queryKey: ["apps", appId, "usage", "by-day"],
+    queryFn: () =>
+      apiRequest<UsageByDayListResponse>(`/v1/apps/${appId}/usage/by-day`),
+    enabled: !!appId,
+  });
+}
+
+export function useUsageCreditsByTypeQuery(appId: string) {
+  return useQuery({
+    queryKey: ["apps", appId, "usage", "by-type"],
+    queryFn: () =>
+      apiRequest<UsageByTypeListResponse>(`/v1/apps/${appId}/usage/by-type`),
     enabled: !!appId,
   });
 }

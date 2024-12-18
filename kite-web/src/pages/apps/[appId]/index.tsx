@@ -1,16 +1,14 @@
+import { AppChartCards } from "@/components/app/AppChartCards";
+import AppInfoCard from "@/components/app/AppInfoCard";
 import AppLayout from "@/components/app/AppLayout";
-import LogEntryList from "@/components/app/LogEntryList";
+import AppResourceCard from "@/components/app/AppResourceCard";
+import UsageCreditsByDayChart from "@/components/app/UsageCreditsByDayChart";
 import {
   useApp,
   useCommands,
   useEventListeners,
   useMessages,
 } from "@/lib/hooks/api";
-import AppInfoCard from "@/components/app/AppInfoCard";
-import AppResourceCard from "@/components/app/AppResourceCard";
-import { AppChartCards } from "@/components/app/AppChartCards";
-import LogSummaryCard from "@/components/app/LogSummaryCard";
-import { UsageCreditsByDayChart } from "@/components/app/UsageCreditsByDayChart";
 
 export default function AppPage() {
   const app = useApp();

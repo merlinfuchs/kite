@@ -237,6 +237,16 @@ export interface UsageCreditsGetResponse {
   total_credits: number /* int */;
   credits_used: number /* int */;
 }
+export type UsageByDayListResponse = (UsageByDayEntry | undefined)[];
+export interface UsageByDayEntry {
+  date: string /* RFC3339 */;
+  credits_used: number /* int */;
+}
+export type UsageByTypeListResponse = (UsageByTypeEntry | undefined)[];
+export interface UsageByTypeEntry {
+  type: string;
+  credits_used: number /* int */;
+}
 
 //////////
 // source: user.go

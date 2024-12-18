@@ -1,10 +1,10 @@
 import LogSummaryCard from "./LogSummaryCard";
-import { UsageCreditsByEntityChart } from "./UsageCreditsByEntityChart";
+import UsageCreditsByTypeChart from "./UsageCreditsByTypeChart";
 
 export function AppChartCards() {
   return (
     <div className="grid gap-4 lg:grid-cols-2">
-      <UsageCreditsByEntityChart />
+      <UsageCreditsByTypeChart />
       <LogSummaryCard />
     </div>
   );

@@ -13,7 +13,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { useUsageCredits } from "@/lib/hooks/api";
+import { useUsageCredits, useUsageCreditsByDay } from "@/lib/hooks/api";
 import {
   ChartConfig,
   ChartContainer,
@@ -21,93 +21,7 @@ import {
   ChartTooltipContent,
 } from "../ui/chart";
 import { formatNumber } from "@/lib/utils";
-
-const data = [
-  {
-    credits_used: 10400,
-  },
-  {
-    credits_used: 14405,
-  },
-  {
-    credits_used: 9400,
-  },
-  {
-    credits_used: 8200,
-  },
-  {
-    credits_used: 7000,
-  },
-  {
-    credits_used: 9600,
-  },
-  {
-    credits_used: 11244,
-  },
-  {
-    credits_used: 26475,
-  },
-  {
-    credits_used: 10400,
-  },
-  {
-    credits_used: 14405,
-  },
-  {
-    credits_used: 9400,
-  },
-  {
-    credits_used: 8200,
-  },
-  {
-    credits_used: 7000,
-  },
-  {
-    credits_used: 9600,
-  },
-  {
-    credits_used: 11244,
-  },
-  {
-    credits_used: 26475,
-  },
-  {
-    credits_used: 10400,
-  },
-  {
-    credits_used: 14405,
-  },
-  {
-    credits_used: 9400,
-  },
-  {
-    credits_used: 8200,
-  },
-  {
-    credits_used: 7000,
-  },
-  {
-    credits_used: 9600,
-  },
-  {
-    credits_used: 11244,
-  },
-  {
-    credits_used: 26475,
-  },
-  {
-    credits_used: 10400,
-  },
-  {
-    credits_used: 14405,
-  },
-  {
-    credits_used: 9400,
-  },
-  {
-    credits_used: 8200,
-  },
-];
+import { useMemo } from "react";
 
 const chartConfig = {
   credits_used: {
@@ -116,8 +30,22 @@ const chartConfig = {
   },
 } satisfies ChartConfig;
 
-export function UsageCreditsByDayChart() {
+export default function UsageCreditsByDayChart() {
   const credits = useUsageCredits();
+
+  const creditsByDay = useUsageCreditsByDay();
+
+  const chartData = useMemo(
+    () =>
+      creditsByDay?.map((c) => ({
+        date: new Date(c!.date).toLocaleDateString("en-US", {
+          month: "short",
+          day: "numeric",
+        }),
+        credits_used: c!.credits_used,
+      })) || [],
+    [creditsByDay]
+  );
 
   return (
     <Card>
@@ -140,12 +68,18 @@ export function UsageCreditsByDayChart() {
         <div className="h-[150px] sm:h-[225px]">
           <ResponsiveContainer width="100%" height="100%">
             <ChartContainer config={chartConfig}>
-              <BarChart accessibilityLayer data={data}>
+              <BarChart accessibilityLayer data={chartData}>
                 <ChartTooltip
                   cursor={false}
                   content={<ChartTooltipContent indicator="dashed" />}
                 />
                 <CartesianGrid vertical={false} />
+                <XAxis
+                  dataKey="date"
+                  tickLine={false}
+                  tickMargin={10}
+                  axisLine={false}
+                />
                 <Bar
                   dataKey="credits_used"
                   radius={[4, 4, 0, 0]}

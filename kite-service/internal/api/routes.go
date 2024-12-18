@@ -116,6 +116,8 @@ func (s *APIServer) RegisterRoutes(
 
 	usageGroup := appGroup.Group("/usage")
 	usageGroup.Get("/credits", handler.Typed(usageHandler.HandleUsageCreditsGet))
+	usageGroup.Get("/by-day", handler.Typed(usageHandler.HandleUsageByDayList))
+	usageGroup.Get("/by-type", handler.Typed(usageHandler.HandleUsageByTypeList))
 
 	// Command routes
 	commandsHandler := command.NewCommandHandler(commandStore, s.config.UserLimits.MaxCommandsPerApp)

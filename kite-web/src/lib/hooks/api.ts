@@ -1,42 +1,46 @@
+import { useRouter } from "next/router";
 import { useEffect } from "react";
-import { APIResponse } from "../api/response";
 import {
-  useCommandsQuery,
   useAppQuery,
   useAppsQuery,
-  useUserQuery,
-  useCommandQuery,
-  useVariablesQuery,
-  useVariableQuery,
-  useMessagesQuery,
-  useMessageQuery,
-  useMessageInstancesQuery,
-  useAppStateGuildsQuery,
   useAppStateGuildChannelsQuery,
+  useAppStateGuildsQuery,
+  useCommandQuery,
+  useCommandsQuery,
   useEventListenerQuery,
   useEventListenersQuery,
-  useUsageCreditsQuery,
   useLogSummaryQuery,
+  useMessageInstancesQuery,
+  useMessageQuery,
+  useMessagesQuery,
+  useUsageCreditsByDayQuery,
+  useUsageCreditsByTypeQuery,
+  useUsageCreditsQuery,
+  useUserQuery,
+  useVariableQuery,
+  useVariablesQuery,
 } from "../api/queries";
+import { APIResponse } from "../api/response";
 import {
   AppGetResponse,
   AppListResponse,
   CommandGetResponse,
   CommandListResponse,
-  UsageCreditsGetResponse,
   EventListenerGetResponse,
   EventListenerListResponse,
+  LogSummaryGetResponse,
   MessageGetResponse,
   MessageInstanceListResponse,
   MessageListResponse,
   StateGuildChannelListResponse,
   StateGuildListResponse,
+  UsageByDayListResponse,
+  UsageByTypeListResponse,
+  UsageCreditsGetResponse,
   UserGetResponse,
   VariableGetResponse,
   VariableListResponse,
-  LogSummaryGetResponse,
 } from "../types/wire.gen";
-import { useRouter } from "next/router";
 
 export function useResponseData<T>(
   {
@@ -187,6 +191,24 @@ export function useUsageCredits(
   const router = useRouter();
 
   const query = useUsageCreditsQuery(router.query.appId as string);
+  return useResponseData(query, callback);
+}
+
+export function useUsageCreditsByDay(
+  callback?: (res: APIResponse<UsageByDayListResponse>) => void
+) {
+  const router = useRouter();
+
+  const query = useUsageCreditsByDayQuery(router.query.appId as string);
+  return useResponseData(query, callback);
+}
+
+export function useUsageCreditsByType(
+  callback?: (res: APIResponse<UsageByTypeListResponse>) => void
+) {
+  const router = useRouter();
+
+  const query = useUsageCreditsByTypeQuery(router.query.appId as string);
   return useResponseData(query, callback);
 }
 

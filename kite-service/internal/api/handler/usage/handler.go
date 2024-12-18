@@ -35,6 +35,44 @@ func (h *UsageHandler) HandleUsageCreditsGet(c *handler.Context) (*wire.UsageCre
 	}, nil
 }
 
+func (h *UsageHandler) HandleUsageByDayList(c *handler.Context) (*wire.UsageByDayListResponse, error) {
+	start, end := startAndEndOfMonth(time.Now().UTC())
+
+	entries, err := h.usageStore.UsageCreditsUsedByDayBetween(c.Context(), c.App.ID, start, end)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get usage by day: %w", err)
+	}
+
+	res := make(wire.UsageByDayListResponse, 0, len(entries))
+	for _, entry := range entries {
+		res = append(res, &wire.UsageByDayEntry{
+			Date:        entry.Date,
+			CreditsUsed: entry.CreditsUsed,
+		})
+	}
+
+	return &res, nil
+}
+
+func (h *UsageHandler) HandleUsageByTypeList(c *handler.Context) (*wire.UsageByTypeListResponse, error) {
+	start, end := startAndEndOfMonth(time.Now().UTC())
+
+	entries, err := h.usageStore.UsageCreditsUsedByTypeBetween(c.Context(), c.App.ID, start, end)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get usage by type: %w", err)
+	}
+
+	res := make(wire.UsageByTypeListResponse, 0, len(entries))
+	for _, entry := range entries {
+		res = append(res, &wire.UsageByTypeEntry{
+			Type:        string(entry.Type),
+			CreditsUsed: entry.CreditsUsed,
+		})
+	}
+
+	return &res, nil
+}
+
 func startAndEndOfMonth(t time.Time) (time.Time, time.Time) {
 	year, month, _ := t.Date()
 	start := time.Date(year, month, 1, 0, 0, 0, 0, t.Location())

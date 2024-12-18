@@ -13,46 +13,46 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart";
-
-const chartData = [
-  { browser: "chrome", visitors: 275, fill: "var(--color-chrome)" },
-  { browser: "safari", visitors: 200, fill: "var(--color-safari)" },
-  { browser: "firefox", visitors: 187, fill: "var(--color-firefox)" },
-  { browser: "edge", visitors: 173, fill: "var(--color-edge)" },
-  { browser: "other", visitors: 90, fill: "var(--color-other)" },
-];
+import { useUsageCreditsByType } from "@/lib/hooks/api";
+import { useMemo } from "react";
 
 const chartConfig = {
-  visitors: {
-    label: "Visitors",
+  credits_used: {
+    label: "Credits Used",
   },
-  chrome: {
-    label: "Chrome",
-    color: "hsl(var(--chart-1))",
-  },
-  safari: {
-    label: "Safari",
-    color: "hsl(var(--chart-2))",
-  },
-  firefox: {
-    label: "Firefox",
+  command_flow_execution: {
+    label: "Commands",
     color: "hsl(var(--chart-3))",
   },
-  edge: {
-    label: "Edge",
+  event_listener_flow_execution: {
+    label: "Events",
     color: "hsl(var(--chart-4))",
   },
-  other: {
-    label: "Other",
+  message_flow_execution: {
+    label: "Messages",
     color: "hsl(var(--chart-5))",
   },
 } satisfies ChartConfig;
 
-export function UsageCreditsByEntityChart() {
+export default function UsageCreditsByTypeChart() {
+  const creditsByType = useUsageCreditsByType();
+
+  const chartData = useMemo(
+    () =>
+      creditsByType?.map((credit) => ({
+        type: credit!.type,
+        credits_used: credit!.credits_used,
+        fill: `var(--color-${credit!.type})`,
+      })) || [],
+    [creditsByType]
+  );
+
+  console.log(chartConfig);
+
   return (
     <Card>
       <CardHeader>
-        <CardDescription>Usage by Flow</CardDescription>
+        <CardDescription>Usage by Type</CardDescription>
       </CardHeader>
       <CardContent>
         <div className="mt-4 h-[150px] sm:h-[200px]">
@@ -60,11 +60,11 @@ export function UsageCreditsByEntityChart() {
             <ChartContainer config={chartConfig}>
               <PieChart>
                 <ChartTooltip
-                  content={<ChartTooltipContent nameKey="visitors" hideLabel />}
+                  content={<ChartTooltipContent nameKey="type" hideLabel />}
                 />
                 <Pie
                   data={chartData}
-                  dataKey="visitors"
+                  dataKey="credits_used"
                   labelLine={false}
                   label={({ payload, ...props }) => {
                     return (
@@ -81,7 +81,7 @@ export function UsageCreditsByEntityChart() {
                       </text>
                     );
                   }}
-                  nameKey="browser"
+                  nameKey="type"
                 />
               </PieChart>
             </ChartContainer>

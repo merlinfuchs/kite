@@ -24,3 +24,13 @@ type UsageRecord struct {
 	CreditsUsed     int
 	CreatedAt       time.Time
 }
+
+type UsageCreditsUsedByType struct {
+	Type        UsageRecordType
+	CreditsUsed int
+}
+
+type UsageCreditsUsedByDay struct {
+	Date        time.Time
+	CreditsUsed int
+}
