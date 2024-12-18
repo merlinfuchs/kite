@@ -83,7 +83,7 @@ func (q *Queries) GetAllUsageCreditsUsedBetween(ctx context.Context, arg GetAllU
 }
 
 const getUsageCreditsUsedByAppBetween = `-- name: GetUsageCreditsUsedByAppBetween :one
-SELECT SUM(credits_used) FROM usage_records WHERE app_id = $1 AND created_at BETWEEN $2 AND $3
+SELECT COALESCE(SUM(credits_used), 0)::int FROM usage_records WHERE app_id = $1 AND created_at BETWEEN $2 AND $3
 `
 
 type GetUsageCreditsUsedByAppBetweenParams struct {
@@ -92,11 +92,11 @@ type GetUsageCreditsUsedByAppBetweenParams struct {
 	EndAt   pgtype.Timestamp
 }
 
-func (q *Queries) GetUsageCreditsUsedByAppBetween(ctx context.Context, arg GetUsageCreditsUsedByAppBetweenParams) (int64, error) {
+func (q *Queries) GetUsageCreditsUsedByAppBetween(ctx context.Context, arg GetUsageCreditsUsedByAppBetweenParams) (int32, error) {
 	row := q.db.QueryRow(ctx, getUsageCreditsUsedByAppBetween, arg.AppID, arg.StartAt, arg.EndAt)
-	var sum int64
-	err := row.Scan(&sum)
-	return sum, err
+	var column_1 int32
+	err := row.Scan(&column_1)
+	return column_1, err
 }
 
 const getUsageCreditsUsedByDayBetween = `-- name: GetUsageCreditsUsedByDayBetween :many

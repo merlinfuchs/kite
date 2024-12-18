@@ -859,15 +859,15 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 }
 
 func (n *CompiledFlowNode) CreditsCost() int {
-	if !n.IsAction() {
-		return 1
-	}
-
 	switch n.Type {
 	case FlowNodeTypeActionAIChatCompletion:
 		return 5
 	case FlowNodeTypeActionHTTPRequest:
 		return 3
+	}
+
+	if n.IsAction() {
+		return 1
 	}
 
 	return 0
