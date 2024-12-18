@@ -1,4 +1,4 @@
-import { Pie, PieChart, ResponsiveContainer } from "recharts";
+import { LabelList, Pie, PieChart, ResponsiveContainer } from "recharts";
 
 import {
   Card,
@@ -33,6 +33,13 @@ const chartConfig = {
     color: "hsl(var(--chart-5))",
   },
 } satisfies ChartConfig;
+
+const typeNames: Record<string, string> = {
+  credits_used: "Credits Used",
+  command_flow_execution: "Commands",
+  event_listener_flow_execution: "Events",
+  message_flow_execution: "Messages",
+};
 
 export default function UsageCreditsByTypeChart() {
   const creditsByType = useUsageCreditsByType();
@@ -77,7 +84,7 @@ export default function UsageCreditsByTypeChart() {
                         dominantBaseline={props.dominantBaseline}
                         fill="hsla(var(--foreground))"
                       >
-                        {payload.visitors}
+                        {typeNames[payload.type]}
                       </text>
                     );
                   }}
