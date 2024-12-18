@@ -102,3 +102,39 @@ func (q *Queries) GetLogEntriesByAppBefore(ctx context.Context, arg GetLogEntrie
 	}
 	return items, nil
 }
+
+const getLogSummary = `-- name: GetLogSummary :one
+SELECT COUNT(*) AS total_entries,
+       SUM(CASE WHEN level = 'error' THEN 1 ELSE 0 END) AS total_errors,
+       SUM(CASE WHEN level = 'warn' THEN 1 ELSE 0 END) AS total_warnings,
+       SUM(CASE WHEN level = 'info' THEN 1 ELSE 0 END) AS total_infos,
+       SUM(CASE WHEN level = 'debug' THEN 1 ELSE 0 END) AS total_debugs
+FROM logs WHERE app_id = $1 AND created_at >= $2 AND created_at < $3
+`
+
+type GetLogSummaryParams struct {
+	AppID   string
+	StartAt pgtype.Timestamp
+	EndAt   pgtype.Timestamp
+}
+
+type GetLogSummaryRow struct {
+	TotalEntries  int64
+	TotalErrors   int64
+	TotalWarnings int64
+	TotalInfos    int64
+	TotalDebugs   int64
+}
+
+func (q *Queries) GetLogSummary(ctx context.Context, arg GetLogSummaryParams) (GetLogSummaryRow, error) {
+	row := q.db.QueryRow(ctx, getLogSummary, arg.AppID, arg.StartAt, arg.EndAt)
+	var i GetLogSummaryRow
+	err := row.Scan(
+		&i.TotalEntries,
+		&i.TotalErrors,
+		&i.TotalWarnings,
+		&i.TotalInfos,
+		&i.TotalDebugs,
+	)
+	return i, err
+}

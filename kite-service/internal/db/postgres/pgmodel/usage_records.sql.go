@@ -48,21 +48,137 @@ func (q *Queries) CreateUsageRecord(ctx context.Context, arg CreateUsageRecordPa
 	return err
 }
 
+const getAllUsageCreditsUsedBetween = `-- name: GetAllUsageCreditsUsedBetween :many
+SELECT app_id, SUM(credits_used) FROM usage_records WHERE created_at BETWEEN $1 AND $2 GROUP BY app_id
+`
+
+type GetAllUsageCreditsUsedBetweenParams struct {
+	StartAt pgtype.Timestamp
+	EndAt   pgtype.Timestamp
+}
+
+type GetAllUsageCreditsUsedBetweenRow struct {
+	AppID string
+	Sum   int64
+}
+
+func (q *Queries) GetAllUsageCreditsUsedBetween(ctx context.Context, arg GetAllUsageCreditsUsedBetweenParams) ([]GetAllUsageCreditsUsedBetweenRow, error) {
+	rows, err := q.db.Query(ctx, getAllUsageCreditsUsedBetween, arg.StartAt, arg.EndAt)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetAllUsageCreditsUsedBetweenRow
+	for rows.Next() {
+		var i GetAllUsageCreditsUsedBetweenRow
+		if err := rows.Scan(&i.AppID, &i.Sum); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getUsageCreditsUsedByAppBetween = `-- name: GetUsageCreditsUsedByAppBetween :one
 SELECT SUM(credits_used) FROM usage_records WHERE app_id = $1 AND created_at BETWEEN $2 AND $3
 `
 
 type GetUsageCreditsUsedByAppBetweenParams struct {
-	AppID       string
-	CreatedAt   pgtype.Timestamp
-	CreatedAt_2 pgtype.Timestamp
+	AppID   string
+	StartAt pgtype.Timestamp
+	EndAt   pgtype.Timestamp
 }
 
 func (q *Queries) GetUsageCreditsUsedByAppBetween(ctx context.Context, arg GetUsageCreditsUsedByAppBetweenParams) (int64, error) {
-	row := q.db.QueryRow(ctx, getUsageCreditsUsedByAppBetween, arg.AppID, arg.CreatedAt, arg.CreatedAt_2)
+	row := q.db.QueryRow(ctx, getUsageCreditsUsedByAppBetween, arg.AppID, arg.StartAt, arg.EndAt)
 	var sum int64
 	err := row.Scan(&sum)
 	return sum, err
+}
+
+const getUsageCreditsUsedByDayBetween = `-- name: GetUsageCreditsUsedByDayBetween :many
+SELECT 
+    d.dt as date, 
+    coalesce(u.credits_used, 0) as credits_used 
+FROM (
+    SELECT dt::date 
+    FROM generate_series($1::timestamp, $2::timestamp, '1 day'::interval) dt
+) d
+LEFT JOIN (
+    SELECT DATE(created_at) as date, SUM(credits_used) as credits_used 
+    FROM usage_records 
+    WHERE app_id = $3 AND created_at BETWEEN $1 AND $2 
+    GROUP BY DATE(created_at)
+) u ON d.dt = u.date
+`
+
+type GetUsageCreditsUsedByDayBetweenParams struct {
+	StartAt pgtype.Timestamp
+	EndAt   pgtype.Timestamp
+	AppID   string
+}
+
+type GetUsageCreditsUsedByDayBetweenRow struct {
+	Date        pgtype.Date
+	CreditsUsed int64
+}
+
+func (q *Queries) GetUsageCreditsUsedByDayBetween(ctx context.Context, arg GetUsageCreditsUsedByDayBetweenParams) ([]GetUsageCreditsUsedByDayBetweenRow, error) {
+	rows, err := q.db.Query(ctx, getUsageCreditsUsedByDayBetween, arg.StartAt, arg.EndAt, arg.AppID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetUsageCreditsUsedByDayBetweenRow
+	for rows.Next() {
+		var i GetUsageCreditsUsedByDayBetweenRow
+		if err := rows.Scan(&i.Date, &i.CreditsUsed); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getUsageCreditsUsedByTypeBetween = `-- name: GetUsageCreditsUsedByTypeBetween :many
+SELECT type, SUM(credits_used) FROM usage_records WHERE app_id = $1 AND created_at BETWEEN $2 AND $3 GROUP BY type
+`
+
+type GetUsageCreditsUsedByTypeBetweenParams struct {
+	AppID   string
+	StartAt pgtype.Timestamp
+	EndAt   pgtype.Timestamp
+}
+
+type GetUsageCreditsUsedByTypeBetweenRow struct {
+	Type string
+	Sum  int64
+}
+
+func (q *Queries) GetUsageCreditsUsedByTypeBetween(ctx context.Context, arg GetUsageCreditsUsedByTypeBetweenParams) ([]GetUsageCreditsUsedByTypeBetweenRow, error) {
+	rows, err := q.db.Query(ctx, getUsageCreditsUsedByTypeBetween, arg.AppID, arg.StartAt, arg.EndAt)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetUsageCreditsUsedByTypeBetweenRow
+	for rows.Next() {
+		var i GetUsageCreditsUsedByTypeBetweenRow
+		if err := rows.Scan(&i.Type, &i.Sum); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const getUsageRecordsByAppBetween = `-- name: GetUsageRecordsByAppBetween :many
@@ -70,13 +186,13 @@ SELECT id, type, app_id, command_id, event_listener_id, message_id, credits_used
 `
 
 type GetUsageRecordsByAppBetweenParams struct {
-	AppID       string
-	CreatedAt   pgtype.Timestamp
-	CreatedAt_2 pgtype.Timestamp
+	AppID   string
+	StartAt pgtype.Timestamp
+	EndAt   pgtype.Timestamp
 }
 
 func (q *Queries) GetUsageRecordsByAppBetween(ctx context.Context, arg GetUsageRecordsByAppBetweenParams) ([]UsageRecord, error) {
-	rows, err := q.db.Query(ctx, getUsageRecordsByAppBetween, arg.AppID, arg.CreatedAt, arg.CreatedAt_2)
+	rows, err := q.db.Query(ctx, getUsageRecordsByAppBetween, arg.AppID, arg.StartAt, arg.EndAt)
 	if err != nil {
 		return nil, err
 	}

@@ -1,13 +1,14 @@
+import { AppChartCards } from "@/components/app/AppChartCards";
+import AppInfoCard from "@/components/app/AppInfoCard";
 import AppLayout from "@/components/app/AppLayout";
-import LogEntryList from "@/components/app/LogEntryList";
+import AppResourceCard from "@/components/app/AppResourceCard";
+import UsageCreditsByDayChart from "@/components/app/UsageCreditsByDayChart";
 import {
   useApp,
   useCommands,
   useEventListeners,
   useMessages,
 } from "@/lib/hooks/api";
-import AppInfoCard from "@/components/app/AppInfoCard";
-import AppResourceCard from "@/components/app/AppResourceCard";
 
 export default function AppPage() {
   const app = useApp();
@@ -49,7 +50,8 @@ export default function AppPage() {
               }}
             />
           </div>
-          <LogEntryList />
+          <UsageCreditsByDayChart />
+          <AppChartCards />
         </div>
         <div className="order-1 lg:order-2">
           <AppInfoCard />

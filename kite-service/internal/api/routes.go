@@ -15,6 +15,7 @@ import (
 	eventlistener "github.com/kitecloud/kite/kite-service/internal/api/handler/event_listener"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/logs"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/message"
+	"github.com/kitecloud/kite/kite-service/internal/api/handler/usage"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/user"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/variable"
 	"github.com/kitecloud/kite/kite-service/internal/api/session"
@@ -27,6 +28,7 @@ func (s *APIServer) RegisterRoutes(
 	sessionStore store.SessionStore,
 	appStore store.AppStore,
 	logStore store.LogStore,
+	usageStore store.UsageStore,
 	commandStore store.CommandStore,
 	variableStore store.VariableStore,
 	variableValueStore store.VariableValueStore,
@@ -107,6 +109,15 @@ func (s *APIServer) RegisterRoutes(
 
 	logsGroup := appGroup.Group("/logs", accessManager.AppAccess)
 	logsGroup.Get("/", handler.Typed(logHandler.HandleLogEntryList))
+	logsGroup.Get("/summary", handler.Typed(logHandler.HandleLogSummaryGet))
+
+	// Usage routes
+	usageHandler := usage.NewUsageHandler(usageStore, s.config.UserLimits.CreditsPerMonth)
+
+	usageGroup := appGroup.Group("/usage")
+	usageGroup.Get("/credits", handler.Typed(usageHandler.HandleUsageCreditsGet))
+	usageGroup.Get("/by-day", handler.Typed(usageHandler.HandleUsageByDayList))
+	usageGroup.Get("/by-type", handler.Typed(usageHandler.HandleUsageByTypeList))
 
 	// Command routes
 	commandsHandler := command.NewCommandHandler(commandStore, s.config.UserLimits.MaxCommandsPerApp)

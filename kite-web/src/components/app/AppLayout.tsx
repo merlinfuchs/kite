@@ -29,6 +29,7 @@ import { abbreviateName, cn } from "@/lib/utils";
 import {
   HomeIcon,
   MailPlusIcon,
+  MessageSquareWarningIcon,
   NotebookTabsIcon,
   PanelLeft,
   SatelliteDishIcon,
@@ -179,6 +180,14 @@ export default function AppLayout({ children, ...props }: Props) {
         label: "Server Explorer",
         href: `/apps/[appId]/state`,
         active: isActive(`/apps/[appId]/state`),
+        bottom: true,
+      },
+      {
+        icon: MessageSquareWarningIcon,
+        label: "Logs",
+        href: `/apps/[appId]/logs`,
+        active: isActive(`/apps/[appId]/logs`),
+        bottom: true,
       },
       {
         icon: SettingsIcon,

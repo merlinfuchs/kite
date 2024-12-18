@@ -2,6 +2,7 @@ package postgres
 
 import (
 	"context"
+	"time"
 
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/kitecloud/kite/kite-service/internal/db/postgres/pgmodel"
@@ -49,7 +50,25 @@ func (c *Client) LogEntriesByApp(ctx context.Context, appID string, beforeID int
 	}
 
 	return res, nil
+}
 
+func (c *Client) LogSummary(ctx context.Context, appID string, start time.Time, end time.Time) (*model.LogSummary, error) {
+	res, err := c.Q.GetLogSummary(ctx, pgmodel.GetLogSummaryParams{
+		AppID:   appID,
+		StartAt: pgtype.Timestamp{Time: start, Valid: true},
+		EndAt:   pgtype.Timestamp{Time: end, Valid: true},
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return &model.LogSummary{
+		TotalEntries:  res.TotalEntries,
+		TotalErrors:   res.TotalErrors,
+		TotalWarnings: res.TotalWarnings,
+		TotalInfos:    res.TotalInfos,
+		TotalDebugs:   res.TotalDebugs,
+	}, nil
 }
 
 func rowToLogEntry(row pgmodel.Log) *model.LogEntry {

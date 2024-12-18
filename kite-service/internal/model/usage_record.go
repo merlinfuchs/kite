@@ -9,7 +9,9 @@ import (
 type UsageRecordType string
 
 const (
-	UsageRecordTypeFlowExecution UsageRecordType = "flow_execution"
+	UsageRecordTypeCommandFlowExecution       UsageRecordType = "command_flow_execution"
+	UsageRecordTypeEventListenerFlowExecution UsageRecordType = "event_listener_flow_execution"
+	UsageRecordTypeMessageFlowExecution       UsageRecordType = "message_flow_execution"
 )
 
 type UsageRecord struct {
@@ -19,6 +21,16 @@ type UsageRecord struct {
 	CommandID       null.String
 	EventListenerID null.String
 	MessageID       null.String
-	CreditsUsed     uint32
+	CreditsUsed     int
 	CreatedAt       time.Time
+}
+
+type UsageCreditsUsedByType struct {
+	Type        UsageRecordType
+	CreditsUsed int
+}
+
+type UsageCreditsUsedByDay struct {
+	Date        time.Time
+	CreditsUsed int
 }

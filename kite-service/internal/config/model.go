@@ -3,13 +3,14 @@ package config
 import "github.com/go-playground/validator/v10"
 
 type Config struct {
-	Logging  LoggingConfig  `toml:"logging"`
-	Database DatabaseConfig `toml:"database"`
-	API      APIConfig      `toml:"api"`
-	App      AppConfig      `toml:"app"`
-	Discord  DiscordConfig  `toml:"discord"`
-	Engine   EngineConfig   `toml:"engine"`
-	OpenAI   OpenAIConfig   `toml:"openai"`
+	Logging    LoggingConfig    `toml:"logging"`
+	Database   DatabaseConfig   `toml:"database"`
+	API        APIConfig        `toml:"api"`
+	App        AppConfig        `toml:"app"`
+	UserLimits UserLimitsConfig `toml:"user_limits"`
+	Discord    DiscordConfig    `toml:"discord"`
+	Engine     EngineConfig     `toml:"engine"`
+	OpenAI     OpenAIConfig     `toml:"openai"`
 }
 
 func (cfg *Config) Validate() error {
@@ -49,12 +50,11 @@ type S3Config struct {
 }
 
 type APIConfig struct {
-	Host          string           `toml:"host" validate:"required"`
-	Port          int              `toml:"port" validate:"required"`
-	PublicBaseURL string           `toml:"public_base_url" validate:"required"`
-	SecureCookies bool             `toml:"secure_cookies"`
-	StrictCookies bool             `toml:"strict_cookies"`
-	UserLimits    UserLimitsConfig `toml:"user_limits"`
+	Host          string `toml:"host" validate:"required"`
+	Port          int    `toml:"port" validate:"required"`
+	PublicBaseURL string `toml:"public_base_url" validate:"required"`
+	SecureCookies bool   `toml:"secure_cookies"`
+	StrictCookies bool   `toml:"strict_cookies"`
 }
 
 type AppConfig struct {
@@ -79,6 +79,7 @@ type UserLimitsConfig struct {
 	MaxMessagesPerApp       int `toml:"max_messages_per_app"`
 	MaxEventListenersPerApp int `toml:"max_event_listeners_per_app"`
 	MaxAssetSize            int `toml:"max_asset_size"`
+	CreditsPerMonth         int `toml:"credits_per_month"`
 }
 
 type OpenAIConfig struct {

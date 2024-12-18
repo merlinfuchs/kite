@@ -21,9 +21,7 @@ export default function AppInviteButton() {
         <Button size="sm" variant="default" className="h-8 gap-2">
           <ChevronDownIcon className="h-3.5 w-3.5" />
 
-          <span className="lg:sr-only xl:not-sr-only xl:whitespace-nowrap">
-            Invite app
-          </span>
+          <span className="xl:whitespace-nowrap">Invite app</span>
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent>
@@ -34,9 +32,7 @@ export default function AppInviteButton() {
             className="w-full flex items-center gap-2"
           >
             <ExternalLinkIcon className="h-3.5 w-3.5" />
-            <span className="lg:sr-only xl:not-sr-only xl:whitespace-nowrap">
-              Add app to server
-            </span>
+            <span className="xl:whitespace-nowrap">Add app to server</span>
           </Link>
         </DropdownMenuItem>
         <DropdownMenuItem>
@@ -46,9 +42,7 @@ export default function AppInviteButton() {
             className="w-full flex items-center gap-2"
           >
             <ExternalLinkIcon className="h-3.5 w-3.5" />
-            <span className="lg:sr-only xl:not-sr-only xl:whitespace-nowrap">
-              Add app to account
-            </span>
+            <span className="xl:whitespace-nowrap">Add app to account</span>
           </Link>
         </DropdownMenuItem>
       </DropdownMenuContent>

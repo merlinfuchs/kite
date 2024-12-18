@@ -326,9 +326,7 @@ func (n *CompiledFlowNode) EventDescription() string {
 }
 
 func (n *CompiledFlowNode) IsAction() bool {
-	return n.Type == FlowNodeTypeActionResponseCreate ||
-		n.Type == FlowNodeTypeActionMessageCreate ||
-		n.Type == FlowNodeTypeActionLog
+	return strings.HasPrefix(string(n.Type), "action_")
 }
 
 func (n *CompiledFlowNode) FindDirectParentWithType(types ...FlowNodeType) *CompiledFlowNode {

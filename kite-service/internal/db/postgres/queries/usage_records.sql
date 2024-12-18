@@ -12,7 +12,28 @@ INSERT INTO usage_records (
 ) RETURNING *;
 
 -- name: GetUsageRecordsByAppBetween :many
-SELECT * FROM usage_records WHERE app_id = $1 AND created_at BETWEEN $2 AND $3 ORDER BY created_at DESC;
+SELECT * FROM usage_records WHERE app_id = @app_id AND created_at BETWEEN @start_at AND @end_at ORDER BY created_at DESC;
 
 -- name: GetUsageCreditsUsedByAppBetween :one
-SELECT SUM(credits_used) FROM usage_records WHERE app_id = $1 AND created_at BETWEEN $2 AND $3;
+SELECT SUM(credits_used) FROM usage_records WHERE app_id = @app_id AND created_at BETWEEN @start_at AND @end_at;
+
+-- name: GetUsageCreditsUsedByTypeBetween :many
+SELECT type, SUM(credits_used) FROM usage_records WHERE app_id = @app_id AND created_at BETWEEN @start_at AND @end_at GROUP BY type;
+
+-- name: GetUsageCreditsUsedByDayBetween :many
+SELECT 
+    d.dt as date, 
+    coalesce(u.credits_used, 0) as credits_used 
+FROM (
+    SELECT dt::date 
+    FROM generate_series(@start_at::timestamp, @end_at::timestamp, '1 day'::interval) dt
+) d
+LEFT JOIN (
+    SELECT DATE(created_at) as date, SUM(credits_used) as credits_used 
+    FROM usage_records 
+    WHERE app_id = @app_id AND created_at BETWEEN @start_at AND @end_at 
+    GROUP BY DATE(created_at)
+) u ON d.dt = u.date;
+
+-- name: GetAllUsageCreditsUsedBetween :many
+SELECT app_id, SUM(credits_used) FROM usage_records WHERE created_at BETWEEN @start_at AND @end_at GROUP BY app_id;

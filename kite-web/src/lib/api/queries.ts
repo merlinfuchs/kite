@@ -9,12 +9,16 @@ import {
   EventListenerGetResponse,
   EventListenerListResponse,
   LogEntryListResponse,
+  LogSummaryGetResponse,
   MessageGetResponse,
   MessageInstanceListResponse,
   MessageListResponse,
   StateGuildChannelListResponse,
   StateGuildListResponse,
   StateStatusGetResponse,
+  UsageByDayListResponse,
+  UsageByTypeListResponse,
+  UsageCreditsGetResponse,
   UserGetResponse,
   VariableGetResponse,
   VariableListResponse,
@@ -47,6 +51,42 @@ export function useLogEntriesQuery(appId: string) {
   return useQuery({
     queryKey: ["apps", appId, "logs"],
     queryFn: () => apiRequest<LogEntryListResponse>(`/v1/apps/${appId}/logs`),
+    enabled: !!appId,
+  });
+}
+
+export function useLogSummaryQuery(appId: string) {
+  return useQuery({
+    queryKey: ["apps", appId, "logs", "summary"],
+    queryFn: () =>
+      apiRequest<LogSummaryGetResponse>(`/v1/apps/${appId}/logs/summary`),
+    enabled: !!appId,
+  });
+}
+
+export function useUsageCreditsQuery(appId: string) {
+  return useQuery({
+    queryKey: ["apps", appId, "usage", "credits"],
+    queryFn: () =>
+      apiRequest<UsageCreditsGetResponse>(`/v1/apps/${appId}/usage/credits`),
+    enabled: !!appId,
+  });
+}
+
+export function useUsageCreditsByDayQuery(appId: string) {
+  return useQuery({
+    queryKey: ["apps", appId, "usage", "by-day"],
+    queryFn: () =>
+      apiRequest<UsageByDayListResponse>(`/v1/apps/${appId}/usage/by-day`),
+    enabled: !!appId,
+  });
+}
+
+export function useUsageCreditsByTypeQuery(appId: string) {
+  return useQuery({
+    queryKey: ["apps", appId, "usage", "by-type"],
+    queryFn: () =>
+      apiRequest<UsageByTypeListResponse>(`/v1/apps/${appId}/usage/by-type`),
     enabled: !!appId,
   });
 }

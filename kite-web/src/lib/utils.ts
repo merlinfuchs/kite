@@ -44,3 +44,8 @@ export function formatDate(date: Date): string {
 export function formatDateTime(date: Date): string {
   return formatRelative(date, new Date());
 }
+
+export function formatNumber(x: number | undefined | null) {
+  if (!x) return "0";
+  return x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+}
