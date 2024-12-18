@@ -13,6 +13,7 @@ var app = cli.App{
 	Commands: []*cli.Command{
 		&serverCMD,
 		&databaseCMD,
+		&adminCMD,
 	},
 }
 

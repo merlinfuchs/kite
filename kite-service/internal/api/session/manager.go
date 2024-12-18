@@ -1,6 +1,7 @@
 package session
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"net/http"
@@ -32,18 +33,10 @@ func NewSessionManager(config SessionManagerConfig, sessionStore store.SessionSt
 	}
 }
 
-func (s *SessionManager) CreateSession(c *handler.Context, userID string) (string, *model.Session, error) {
-	key := util.SecureKey()
-	keyHash := util.HashKey(key)
-
-	session, err := s.sessionStore.CreateSession(c.Context(), &model.Session{
-		KeyHash:   keyHash,
-		UserID:    userID,
-		CreatedAt: time.Now().UTC(),
-		ExpiresAt: time.Now().UTC().Add(SessionExpiry),
-	})
+func (s *SessionManager) CreateSessionCookie(c *handler.Context, userID string) (string, *model.Session, error) {
+	key, session, err := s.CreateSession(c.Context(), userID)
 	if err != nil {
-		return "", nil, fmt.Errorf("failed to create session: %w", err)
+		return "", nil, err
 	}
 
 	sameSite := http.SameSiteNoneMode
@@ -60,6 +53,23 @@ func (s *SessionManager) CreateSession(c *handler.Context, userID string) (strin
 		MaxAge:   int(SessionExpiry.Seconds()),
 		Path:     "/",
 	})
+
+	return key, session, nil
+}
+
+func (s *SessionManager) CreateSession(ctx context.Context, userID string) (string, *model.Session, error) {
+	key := util.SecureKey()
+	keyHash := util.HashKey(key)
+
+	session, err := s.sessionStore.CreateSession(ctx, &model.Session{
+		KeyHash:   keyHash,
+		UserID:    userID,
+		CreatedAt: time.Now().UTC(),
+		ExpiresAt: time.Now().UTC().Add(SessionExpiry),
+	})
+	if err != nil {
+		return "", nil, fmt.Errorf("failed to create session: %w", err)
+	}
 
 	return key, session, nil
 }

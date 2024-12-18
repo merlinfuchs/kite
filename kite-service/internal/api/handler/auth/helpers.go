@@ -70,7 +70,7 @@ func (h *AuthHandler) authenticateWithCode(c *handler.Context, code string) (str
 		return "", nil, err
 	}
 
-	token, session, err := h.sessionManager.CreateSession(c, user.ID)
+	token, session, err := h.sessionManager.CreateSessionCookie(c, user.ID)
 	if err != nil {
 		return "", nil, err
 	}
