@@ -22,6 +22,9 @@ import {
 } from "../ui/chart";
 import { formatNumber } from "@/lib/utils";
 import { useMemo } from "react";
+import { CircleHelpIcon } from "lucide-react";
+import Link from "next/link";
+import env from "@/lib/env/client";
 
 const chartConfig = {
   credits_used: {
@@ -50,7 +53,15 @@ export default function UsageCreditsByDayChart() {
   return (
     <Card>
       <CardHeader>
-        <CardDescription>Monthly Usage</CardDescription>
+        <CardDescription className="flex items-center gap-2">
+          <div>Monthly Usage</div>
+          <Link
+            href={`${env.NEXT_PUBLIC_DOCS_LINK}/reference/credit-system`}
+            target="_blank"
+          >
+            <CircleHelpIcon className="w-5 h-5 hover:text-foreground" />
+          </Link>
+        </CardDescription>
         <div className="flex items-end gap-2">
           <CardTitle className="text-4xl">
             {formatNumber(credits?.credits_used)}
