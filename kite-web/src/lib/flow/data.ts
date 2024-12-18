@@ -35,7 +35,11 @@ export const nodeEntryCommandDataSchema = nodeBaseDataSchema.extend({
 });
 
 export const nodeOptionCommandArgumentDataSchema = nodeBaseDataSchema.extend({
-  name: z.string().max(32).min(1),
+  name: z
+    .string()
+    .max(32)
+    .min(1)
+    .regex(/^[a-z0-9_]+$/),
   description: z.string().max(100).min(1),
   command_argument_type: z
     .literal("string")

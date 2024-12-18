@@ -11,6 +11,9 @@ import (
 // Allows between 1 and 3 words, each between 1 and 32 characters long.
 var commandNameRe = regexp.MustCompile(`^[-_\p{L}\p{N}]{1,32}( [-_\p{L}\p{N}]{1,32}){0,2}$`)
 
+// Allows only alphanumeric characters and underscores.
+var commandOptionNameRe = regexp.MustCompile(`^[a-z0-9_]+$`)
+
 type FlowData struct {
 	Nodes []FlowNode `json:"nodes"`
 	Edges []FlowEdge `json:"edges"`
@@ -183,6 +186,7 @@ func (d FlowNodeData) Validate(nodeType FlowNodeType) error {
 		validation.Field(&d.Name, validation.When(nodeType == FlowNodeTypeOptionCommandArgument,
 			validation.Required,
 			validation.Length(1, 32),
+			validation.Match(commandOptionNameRe),
 		)),
 		validation.Field(&d.Description, validation.When(nodeType == FlowNodeTypeOptionCommandArgument,
 			validation.Required,
