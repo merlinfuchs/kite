@@ -15,7 +15,7 @@ max_variables_per_app = 25
 max_messages_per_app = 25
 max_event_listeners_per_app = 5
 max_asset_size = 8_000_000
-credits_per_month = 10_000
+credits_per_month = 100_000
 
 [engine]
 max_stack_depth = 25
