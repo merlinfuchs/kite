@@ -148,7 +148,7 @@ func (v *FlowValue) Message() (discord.Message, bool) {
 }
 
 func (v *FlowValue) HTTPResponse() (http.Response, bool) {
-	if v.Type != FlowValueTypeMessage {
+	if v.Type != FlowValueTypeHTTPResponse {
 		return http.Response{}, false
 	}
 
