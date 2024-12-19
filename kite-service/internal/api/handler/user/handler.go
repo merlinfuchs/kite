@@ -21,8 +21,12 @@ func NewUserHandler(userStore store.UserStore) *UserHandler {
 
 func (h *UserHandler) HandlerUserGet(c *handler.Context) (*wire.UserGetResponse, error) {
 	userID := c.Param("userID")
+
+	// We only want to return the email for the current user
+	withEmail := false
 	if userID == "@me" {
 		userID = c.Session.UserID
+		withEmail = true
 	}
 
 	user, err := h.userStore.User(c.Context(), userID)
@@ -33,5 +37,5 @@ func (h *UserHandler) HandlerUserGet(c *handler.Context) (*wire.UserGetResponse,
 		return nil, fmt.Errorf("failed to get user: %w", err)
 	}
 
-	return wire.UserToWire(user), nil
+	return wire.UserToWire(user, withEmail), nil
 }

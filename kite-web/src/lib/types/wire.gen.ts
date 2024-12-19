@@ -253,7 +253,7 @@ export interface UsageByTypeEntry {
 
 export interface User {
   id: string;
-  email: string;
+  email: null | string;
   display_name: string;
   discord_id: string;
   discord_username: string;

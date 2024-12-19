@@ -9,7 +9,7 @@ import (
 
 type User struct {
 	ID              string      `json:"id"`
-	Email           string      `json:"email"`
+	Email           null.String `json:"email"`
 	DisplayName     string      `json:"display_name"`
 	DiscordID       string      `json:"discord_id"`
 	DiscordUsername string      `json:"discord_username"`
@@ -20,14 +20,14 @@ type User struct {
 
 type UserGetResponse = User
 
-func UserToWire(user *model.User) *User {
+func UserToWire(user *model.User, withEmail bool) *User {
 	if user == nil {
 		return nil
 	}
 
 	return &User{
 		ID:              user.ID,
-		Email:           user.Email,
+		Email:           null.NewString(user.Email, withEmail),
 		DisplayName:     user.DisplayName,
 		DiscordID:       user.DiscordID,
 		DiscordUsername: user.DiscordUsername,
