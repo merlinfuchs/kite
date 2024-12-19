@@ -96,6 +96,14 @@ func (p *MockDiscordProvider) EditMember(ctx context.Context, guildID discord.Gu
 	return nil
 }
 
+func (p *MockDiscordProvider) AddMemberRole(ctx context.Context, guildID discord.GuildID, userID discord.UserID, roleID discord.RoleID, reason api.AuditLogReason) error {
+	return nil
+}
+
+func (p *MockDiscordProvider) RemoveMemberRole(ctx context.Context, guildID discord.GuildID, userID discord.UserID, roleID discord.RoleID, reason api.AuditLogReason) error {
+	return nil
+}
+
 func (p *MockDiscordProvider) CreateChannel(ctx context.Context, guildID discord.GuildID, data api.CreateChannelData) (*discord.Channel, error) {
 	return nil, nil
 }

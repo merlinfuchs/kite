@@ -51,6 +51,8 @@ const (
 	FlowNodeTypeActionMemberKick           FlowNodeType = "action_member_kick"
 	FlowNodeTypeActionMemberTimeout        FlowNodeType = "action_member_timeout"
 	FlowNodeTypeActionMemberEdit           FlowNodeType = "action_member_edit"
+	FlowNodeTypeActionMemberRoleAdd        FlowNodeType = "action_member_role_add"
+	FlowNodeTypeActionMemberRoleRemove     FlowNodeType = "action_member_role_remove"
 	FlowNodeTypeActionHTTPRequest          FlowNodeType = "action_http_request"
 	FlowNodeTypeActionAIChatCompletion     FlowNodeType = "action_ai_chat_completion"
 	FlowNodeTypeActionLog                  FlowNodeType = "action_log"
@@ -119,7 +121,7 @@ type FlowNodeData struct {
 	MessageTemplateID string               `json:"message_template_id,omitempty"`
 	MessageEphemeral  bool                 `json:"message_ephemeral,omitempty"`
 
-	// Member Ban, Kick, Timeout
+	// Member Ban, Kick, Timeout, Edit
 	UserTarget                            FlowString            `json:"user_target,omitempty"`
 	MemberBanDeleteMessageDurationSeconds FlowString            `json:"member_ban_delete_message_duration_seconds,omitempty"`
 	MemberTimeoutDurationSeconds          FlowString            `json:"member_timeout_duration_seconds,omitempty"`

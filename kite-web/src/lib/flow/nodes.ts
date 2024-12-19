@@ -2,6 +2,8 @@ import { Edge, Node, XYPosition } from "@xyflow/react";
 import {
   ArrowLeftRightIcon,
   BookmarkIcon,
+  BookmarkMinusIcon,
+  BookmarkPlusIcon,
   BrainCircuitIcon,
   CircleHelpIcon,
   CornerDownRightIcon,
@@ -67,6 +69,8 @@ import {
   nodeOptionCommandContextsSchema,
   nodeOptionCommandPermissionsSchema,
   nodeOptionEventFilterSchema,
+  nodeActionMemberRoleAddDataSchema,
+  nodeActionMemberRoleRemoveDataSchema,
 } from "./data";
 
 export const primaryColor = "#3B82F6";
@@ -267,6 +271,32 @@ export const nodeTypes: Record<string, NodeValues> = {
     dataFields: [
       "user_target",
       "member_nick",
+      "audit_log_reason",
+      "custom_label",
+    ],
+  },
+  action_member_role_add: {
+    color: actionColor,
+    icon: BookmarkPlusIcon,
+    defaultTitle: "Add role to member",
+    defaultDescription: "Add a role to a member",
+    dataSchema: nodeActionMemberRoleAddDataSchema,
+    dataFields: [
+      "user_target",
+      "role_target",
+      "audit_log_reason",
+      "custom_label",
+    ],
+  },
+  action_member_role_remove: {
+    color: actionColor,
+    icon: BookmarkMinusIcon,
+    defaultTitle: "Remove role from member",
+    defaultDescription: "Remove a role from a member",
+    dataSchema: nodeActionMemberRoleRemoveDataSchema,
+    dataFields: [
+      "user_target",
+      "role_target",
       "audit_log_reason",
       "custom_label",
     ],

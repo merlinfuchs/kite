@@ -245,6 +245,30 @@ export const nodeActionMemberEditDataSchema = nodeBaseDataSchema.extend({
   audit_log_reason: auditLogReasonSchema,
 });
 
+export const nodeActionMemberRoleAddDataSchema = nodeBaseDataSchema.extend({
+  user_target: z
+    .string()
+    .regex(numericRegex)
+    .or(z.string().regex(placeholderRegex)),
+  role_target: z
+    .string()
+    .regex(numericRegex)
+    .or(z.string().regex(placeholderRegex)),
+  audit_log_reason: auditLogReasonSchema,
+});
+
+export const nodeActionMemberRoleRemoveDataSchema = nodeBaseDataSchema.extend({
+  user_target: z
+    .string()
+    .regex(numericRegex)
+    .or(z.string().regex(placeholderRegex)),
+  role_target: z
+    .string()
+    .regex(numericRegex)
+    .or(z.string().regex(placeholderRegex)),
+  audit_log_reason: auditLogReasonSchema,
+});
+
 export const nodeActionVariableSetSchema = nodeBaseDataSchema.extend({
   variable_id: z.string(),
   variable_scope: z.string().optional(),
