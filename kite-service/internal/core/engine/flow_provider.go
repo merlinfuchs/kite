@@ -183,6 +183,26 @@ func (p *DiscordProvider) EditMember(ctx context.Context, guildID discord.GuildI
 	return nil
 }
 
+func (p *DiscordProvider) AddMemberRole(ctx context.Context, guildID discord.GuildID, userID discord.UserID, roleID discord.RoleID, reason api.AuditLogReason) error {
+	err := p.session.AddRole(guildID, userID, roleID, api.AddRoleData{
+		AuditLogReason: reason,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to add role: %w", err)
+	}
+
+	return nil
+}
+
+func (p *DiscordProvider) RemoveMemberRole(ctx context.Context, guildID discord.GuildID, userID discord.UserID, roleID discord.RoleID, reason api.AuditLogReason) error {
+	err := p.session.RemoveRole(guildID, userID, roleID, reason)
+	if err != nil {
+		return fmt.Errorf("failed to remove role: %w", err)
+	}
+
+	return nil
+}
+
 func (p *DiscordProvider) CreatePrivateChannel(ctx context.Context, userID discord.UserID) (*discord.Channel, error) {
 	channel, err := p.session.CreatePrivateChannel(userID)
 	if err != nil {

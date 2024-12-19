@@ -544,6 +544,56 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 		}
 
 		return n.executeChildren(ctx)
+	case FlowNodeTypeActionMemberRoleAdd:
+		userID, err := n.Data.UserTarget.FillPlaceholders(ctx, ctx.Placeholders)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		roleID, err := n.Data.RoleTarget.FillPlaceholders(ctx, ctx.Placeholders)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		auditLogReason, err := n.Data.AuditLogReason.FillPlaceholders(ctx, ctx.Placeholders)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		err = ctx.Discord.AddMemberRole(
+			ctx,
+			ctx.Data.GuildID(),
+			discord.UserID(userID.Int()),
+			discord.RoleID(roleID.Int()),
+			api.AuditLogReason(auditLogReason),
+		)
+
+		return n.executeChildren(ctx)
+	case FlowNodeTypeActionMemberRoleRemove:
+		userID, err := n.Data.UserTarget.FillPlaceholders(ctx, ctx.Placeholders)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		roleID, err := n.Data.RoleTarget.FillPlaceholders(ctx, ctx.Placeholders)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		auditLogReason, err := n.Data.AuditLogReason.FillPlaceholders(ctx, ctx.Placeholders)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		err = ctx.Discord.RemoveMemberRole(
+			ctx,
+			ctx.Data.GuildID(),
+			discord.UserID(userID.Int()),
+			discord.RoleID(roleID.Int()),
+			api.AuditLogReason(auditLogReason),
+		)
+
+		return n.executeChildren(ctx)
 	case FlowNodeTypeActionVariableSet:
 		scope, err := n.Data.VariableScope.FillPlaceholders(ctx, ctx.Placeholders)
 		if err != nil {

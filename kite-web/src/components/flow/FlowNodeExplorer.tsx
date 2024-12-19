@@ -59,6 +59,11 @@ const nodeCategories = {
       contextTypes: null,
     },
     {
+      title: "Roles",
+      nodeTypes: ["action_member_role_add", "action_member_role_remove"],
+      contextTypes: null,
+    },
+    {
       title: "Variables",
       nodeTypes: [
         "action_variable_set",

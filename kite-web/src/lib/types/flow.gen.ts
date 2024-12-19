@@ -29,6 +29,8 @@ export const FlowNodeTypeActionMemberUnban: FlowNodeType = "action_member_unban"
 export const FlowNodeTypeActionMemberKick: FlowNodeType = "action_member_kick";
 export const FlowNodeTypeActionMemberTimeout: FlowNodeType = "action_member_timeout";
 export const FlowNodeTypeActionMemberEdit: FlowNodeType = "action_member_edit";
+export const FlowNodeTypeActionMemberRoleAdd: FlowNodeType = "action_member_role_add";
+export const FlowNodeTypeActionMemberRoleRemove: FlowNodeType = "action_member_role_remove";
 export const FlowNodeTypeActionHTTPRequest: FlowNodeType = "action_http_request";
 export const FlowNodeTypeActionAIChatCompletion: FlowNodeType = "action_ai_chat_completion";
 export const FlowNodeTypeActionLog: FlowNodeType = "action_log";
@@ -88,7 +90,7 @@ export interface FlowNodeData {
   message_template_id?: string;
   message_ephemeral?: boolean;
   /**
-   * Member Ban, Kick, Timeout
+   * Member Ban, Kick, Timeout, Edit
    */
   user_target?: FlowString;
   member_ban_delete_message_duration_seconds?: FlowString;
