@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"math"
 	"net/http"
 	"reflect"
@@ -218,6 +219,24 @@ func (v *FlowValue) UnmarshalJSON(data []byte) error {
 }
 
 func (v FlowValue) GetPlaceholder(ctx context.Context, key string) (placeholder.Provider, error) {
+	switch v.Type {
+	case FlowValueTypeHTTPResponse:
+		resp, _ := v.HTTPResponse()
+
+		switch key {
+		case "status":
+			return placeholder.NewStringProvider(resp.Status), nil
+		case "status_code":
+			return placeholder.NewStringProvider(strconv.Itoa(resp.StatusCode)), nil
+		case "body":
+			body, err := io.ReadAll(resp.Body)
+			if err != nil {
+				return nil, err
+			}
+			return placeholder.NewStringProvider(string(body)), nil
+		}
+	}
+
 	// TODO: implement for some types
 	return nil, placeholder.ErrNotFound
 }
