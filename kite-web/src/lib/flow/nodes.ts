@@ -71,6 +71,7 @@ import {
   nodeOptionEventFilterSchema,
   nodeActionMemberRoleAddDataSchema,
   nodeActionMemberRoleRemoveDataSchema,
+  nodeActionExpressionEvaluateDataSchema,
 } from "./data";
 
 export const primaryColor = "#3B82F6";
@@ -347,6 +348,15 @@ export const nodeTypes: Record<string, NodeValues> = {
       "Ask artificial intelligence a question or let it respond to a prompt",
     dataSchema: nodeActionAiChatCompletionDataSchema,
     dataFields: ["ai_chat_completion_data", "custom_label"],
+  },
+  action_expression_evaluate: {
+    color: actionColor,
+    icon: BrainCircuitIcon,
+    defaultTitle: "Evaluate Expression",
+    defaultDescription:
+      "Evalute math or other logical expressions",
+    dataSchema: nodeActionExpressionEvaluateDataSchema,
+    dataFields: ["expression", "custom_label"],
   },
   action_log: {
     color: actionColor,

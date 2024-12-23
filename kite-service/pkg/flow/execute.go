@@ -9,6 +9,7 @@ import (
 	"github.com/diamondburned/arikawa/v3/api"
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/utils/json/option"
+	"github.com/kitecloud/kite/kite-service/pkg/eval"
 	"github.com/kitecloud/kite/kite-service/pkg/message"
 	"gopkg.in/guregu/null.v4"
 )
@@ -710,6 +711,19 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 		}
 
 		nodeState.Result = NewFlowValueString(response)
+		return n.executeChildren(ctx)
+	case FlowNodeTypeActionExpressionEvaluate:
+		expression, err := n.Data.Expression.FillPlaceholders(ctx, ctx.Placeholders)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		res, err := eval.Eval(ctx, expression.String(), ctx.EvalEnv)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		nodeState.Result = NewFlowValueString(fmt.Sprintf("%v", res))
 		return n.executeChildren(ctx)
 	case FlowNodeTypeActionLog:
 		logMessage, err := n.Data.LogMessage.FillPlaceholders(ctx, ctx.Placeholders)

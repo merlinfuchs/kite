@@ -75,6 +75,7 @@ const nodeCategories = {
     {
       title: "Other Actions",
       nodeTypes: [
+        "action_expression_evaluate",
         "action_ai_chat_completion",
         "action_http_request",
         "action_log",

@@ -6,6 +6,7 @@ require (
 	github.com/cyrusaf/ctxlog v1.3.2
 	github.com/diamondburned/arikawa/v3 v3.4.0
 	github.com/endobit/clog v0.4.0
+	github.com/expr-lang/expr v1.16.9
 	github.com/go-ozzo/ozzo-validation/v4 v4.3.0
 	github.com/go-playground/validator/v10 v10.21.0
 	github.com/golang-migrate/migrate/v4 v4.17.1

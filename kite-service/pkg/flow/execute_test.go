@@ -9,6 +9,7 @@ import (
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/gateway"
 	"github.com/diamondburned/arikawa/v3/utils/ws"
+	"github.com/kitecloud/kite/kite-service/pkg/eval"
 	"github.com/kitecloud/kite/kite-service/pkg/message"
 	"github.com/kitecloud/kite/kite-service/pkg/placeholder"
 	"github.com/stretchr/testify/assert"
@@ -78,6 +79,7 @@ func TestFlowExecuteCommand(t *testing.T) {
 			MaxCredits:    1000,
 		},
 		placeholder.NewEngine(),
+		eval.FlowEnv{},
 	)
 
 	err := flowCommandTest.Execute(c)

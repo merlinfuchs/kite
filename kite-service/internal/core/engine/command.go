@@ -15,6 +15,7 @@ import (
 	"github.com/diamondburned/arikawa/v3/state"
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/internal/store"
+	"github.com/kitecloud/kite/kite-service/pkg/eval"
 	"github.com/kitecloud/kite/kite-service/pkg/flow"
 	"github.com/kitecloud/kite/kite-service/pkg/placeholder"
 	"github.com/sashabaranov/go-openai"
@@ -103,6 +104,10 @@ func (c *Command) HandleEvent(appID string, session *state.State, event gateway.
 			MaxCredits:    c.config.MaxCredits,
 		},
 		placeholder.NewEngine(),
+		eval.FlowEnv{
+			VariableEnv: eval.NewVariableEnv(nil), // TODO
+			Interaction: eval.NewInteractionEnv(&i.InteractionEvent),
+		},
 	)
 
 	if err := c.flow.Execute(fCtx); err != nil {

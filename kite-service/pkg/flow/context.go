@@ -6,6 +6,7 @@ import (
 
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/utils/ws"
+	"github.com/kitecloud/kite/kite-service/pkg/eval"
 	"github.com/kitecloud/kite/kite-service/pkg/placeholder"
 )
 
@@ -17,6 +18,7 @@ type FlowContext struct {
 
 	Data         FlowContextData
 	Placeholders *placeholder.Engine
+	EvalEnv      eval.FlowEnv
 }
 
 func NewContext(
@@ -25,6 +27,7 @@ func NewContext(
 	providers FlowProviders,
 	limits FlowContextLimits,
 	placeholders *placeholder.Engine,
+	evalEnv eval.FlowEnv,
 ) *FlowContext {
 	if data.Interaction() != nil {
 		placeholders.AddProvider("interaction", placeholder.NewInteractionProvider(data.Interaction()))
@@ -50,6 +53,7 @@ func NewContext(
 		Context:           ctx,
 		Data:              data,
 		Placeholders:      placeholders,
+		EvalEnv:           evalEnv,
 		FlowProviders:     providers,
 		FlowContextLimits: limits,
 		FlowContextState:  state,
