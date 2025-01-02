@@ -14,7 +14,6 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/store"
 	"github.com/kitecloud/kite/kite-service/pkg/eval"
 	"github.com/kitecloud/kite/kite-service/pkg/flow"
-	"github.com/kitecloud/kite/kite-service/pkg/placeholder"
 	"github.com/sashabaranov/go-openai"
 	"gopkg.in/guregu/null.v4"
 )
@@ -120,8 +119,7 @@ func (c *MessageInstance) HandleEvent(appID string, session *state.State, event 
 			MaxOperations: c.config.MaxOperations,
 			MaxCredits:    c.config.MaxCredits,
 		},
-		placeholder.NewEngine(),
-		eval.FlowEnv{},
+		eval.NewEnvWithInteraction(&i.InteractionEvent),
 	)
 
 	if err := targetFlow.Execute(fCtx); err != nil {

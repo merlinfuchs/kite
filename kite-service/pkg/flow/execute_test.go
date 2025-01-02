@@ -11,7 +11,6 @@ import (
 	"github.com/diamondburned/arikawa/v3/utils/ws"
 	"github.com/kitecloud/kite/kite-service/pkg/eval"
 	"github.com/kitecloud/kite/kite-service/pkg/message"
-	"github.com/kitecloud/kite/kite-service/pkg/placeholder"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -78,8 +77,7 @@ func TestFlowExecuteCommand(t *testing.T) {
 			MaxOperations: 1000,
 			MaxCredits:    1000,
 		},
-		placeholder.NewEngine(),
-		eval.FlowEnv{},
+		eval.Env{},
 	)
 
 	err := flowCommandTest.Execute(c)

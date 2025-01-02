@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
 	"math"
 	"net/http"
 	"reflect"
@@ -12,7 +11,7 @@ import (
 	"strings"
 
 	"github.com/diamondburned/arikawa/v3/discord"
-	"github.com/kitecloud/kite/kite-service/pkg/placeholder"
+	"github.com/kitecloud/kite/kite-service/pkg/eval"
 )
 
 type FlowValueType string
@@ -67,28 +66,6 @@ func NewFlowValueHTTPResponse(r http.Response) FlowValue {
 		Type:  FlowValueTypeHTTPResponse,
 		Value: r,
 	}
-}
-
-func (v *FlowValue) ContainsPlaceholder() bool {
-	if v.Type != FlowValueTypeString {
-		return false
-	}
-
-	return placeholder.ContainsPlaceholder(v.String())
-}
-
-func (v *FlowValue) FillPlaceholders(ctx context.Context, t *placeholder.Engine) error {
-	res, err := t.Fill(ctx, v.String())
-	if err != nil {
-		return fmt.Errorf("failed to fill placeholders: %w", err)
-	}
-
-	*v = FlowValue{
-		Type:  FlowValueTypeString,
-		Value: res,
-	}
-
-	return nil
 }
 
 func (v *FlowValue) IsNull() bool {
@@ -218,29 +195,6 @@ func (v *FlowValue) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-func (v FlowValue) GetPlaceholder(ctx context.Context, key string) (placeholder.Provider, error) {
-	switch v.Type {
-	case FlowValueTypeHTTPResponse:
-		resp, _ := v.HTTPResponse()
-
-		switch key {
-		case "status":
-			return placeholder.NewStringProvider(resp.Status), nil
-		case "status_code":
-			return placeholder.NewStringProvider(strconv.Itoa(resp.StatusCode)), nil
-		case "body":
-			body, err := io.ReadAll(resp.Body)
-			if err != nil {
-				return nil, err
-			}
-			return placeholder.NewStringProvider(string(body)), nil
-		}
-	}
-
-	// TODO: implement for some types
-	return nil, placeholder.ErrNotFound
-}
-
 func (v FlowValue) ResolvePlaceholder(ctx context.Context) (string, error) {
 	return v.String(), nil
 }
@@ -248,14 +202,10 @@ func (v FlowValue) ResolvePlaceholder(ctx context.Context) (string, error) {
 // FlowString is a string that can contain placeholders.
 type FlowString string
 
-func (v FlowString) ContainsPlaceholder() bool {
-	return placeholder.ContainsPlaceholder(string(v))
-}
-
-func (v *FlowString) FillPlaceholders(ctx context.Context, t *placeholder.Engine) (FlowString, error) {
-	res, err := t.Fill(ctx, v.String())
+func (v *FlowString) EvalTemplate(ctx context.Context, t eval.Env) (FlowString, error) {
+	res, err := eval.EvalTemplate(ctx, v.String(), t)
 	if err != nil {
-		return "", fmt.Errorf("failed to fill placeholders: %w", err)
+		return "", fmt.Errorf("failed to eval template: %w", err)
 	}
 
 	return FlowString(res), nil

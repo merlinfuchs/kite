@@ -53,7 +53,19 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			data.Flags |= int(discord.EphemeralMessage)
 		}
 
-		err := ctx.Placeholders.FillMessage(ctx, &data)
+		err := data.EachString(func(s *string) error {
+			if s == nil {
+				return nil
+			}
+
+			res, err := eval.EvalTemplate(ctx, *s, ctx.EvalEnv)
+			if err != nil {
+				return err
+			}
+
+			*s = res
+			return nil
+		})
 		if err != nil {
 			return traceError(n, err)
 		}
@@ -125,7 +137,19 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			data = n.Data.MessageData.Copy()
 		}
 
-		err := ctx.Placeholders.FillMessage(ctx, &data)
+		err := data.EachString(func(s *string) error {
+			if s == nil {
+				return nil
+			}
+
+			res, err := eval.EvalTemplate(ctx, *s, ctx.EvalEnv)
+			if err != nil {
+				return err
+			}
+
+			*s = res
+			return nil
+		})
 		if err != nil {
 			return traceError(n, err)
 		}
@@ -240,14 +264,26 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			data.Flags |= int(discord.EphemeralMessage)
 		}
 
-		err := ctx.Placeholders.FillMessage(ctx, &data)
+		err := data.EachString(func(s *string) error {
+			if s == nil {
+				return nil
+			}
+
+			res, err := eval.EvalTemplate(ctx, *s, ctx.EvalEnv)
+			if err != nil {
+				return err
+			}
+
+			*s = res
+			return nil
+		})
 		if err != nil {
 			return traceError(n, err)
 		}
 
 		messageData := data.ToSendMessageData()
 
-		channelTarget, err := n.Data.ChannelTarget.FillPlaceholders(ctx, ctx.Placeholders)
+		channelTarget, err := n.Data.ChannelTarget.EvalTemplate(ctx, ctx.EvalEnv)
 		if err != nil {
 			return traceError(n, err)
 		}
@@ -273,12 +309,12 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 		nodeState.Result = NewFlowValueMessage(*msg)
 		return n.executeChildren(ctx)
 	case FlowNodeTypeActionMessageEdit:
-		channelTarget, err := n.Data.ChannelTarget.FillPlaceholders(ctx, ctx.Placeholders)
+		channelTarget, err := n.Data.ChannelTarget.EvalTemplate(ctx, ctx.EvalEnv)
 		if err != nil {
 			return traceError(n, err)
 		}
 
-		messageTarget, err := n.Data.MessageTarget.FillPlaceholders(ctx, ctx.Placeholders)
+		messageTarget, err := n.Data.MessageTarget.EvalTemplate(ctx, ctx.EvalEnv)
 		if err != nil {
 			return traceError(n, err)
 		}
@@ -298,7 +334,19 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			data.Flags |= int(discord.EphemeralMessage)
 		}
 
-		err = ctx.Placeholders.FillMessage(ctx, &data)
+		err = data.EachString(func(s *string) error {
+			if s == nil {
+				return nil
+			}
+
+			res, err := eval.EvalTemplate(ctx, *s, ctx.EvalEnv)
+			if err != nil {
+				return err
+			}
+
+			*s = res
+			return nil
+		})
 		if err != nil {
 			return traceError(n, err)
 		}
@@ -334,17 +382,17 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 		nodeState.Result = NewFlowValueMessage(*msg)
 		return n.executeChildren(ctx)
 	case FlowNodeTypeActionMessageDelete:
-		channelTarget, err := n.Data.ChannelTarget.FillPlaceholders(ctx, ctx.Placeholders)
+		channelTarget, err := n.Data.ChannelTarget.EvalTemplate(ctx, ctx.EvalEnv)
 		if err != nil {
 			return traceError(n, err)
 		}
 
-		messageTarget, err := n.Data.MessageTarget.FillPlaceholders(ctx, ctx.Placeholders)
+		messageTarget, err := n.Data.MessageTarget.EvalTemplate(ctx, ctx.EvalEnv)
 		if err != nil {
 			return traceError(n, err)
 		}
 
-		auditLogReason, err := n.Data.AuditLogReason.FillPlaceholders(ctx, ctx.Placeholders)
+		auditLogReason, err := n.Data.AuditLogReason.EvalTemplate(ctx, ctx.EvalEnv)
 		if err != nil {
 			return traceError(n, err)
 		}
@@ -376,14 +424,26 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			data.Flags |= int(discord.EphemeralMessage)
 		}
 
-		err := ctx.Placeholders.FillMessage(ctx, &data)
+		err := data.EachString(func(s *string) error {
+			if s == nil {
+				return nil
+			}
+
+			res, err := eval.EvalTemplate(ctx, *s, ctx.EvalEnv)
+			if err != nil {
+				return err
+			}
+
+			*s = res
+			return nil
+		})
 		if err != nil {
 			return traceError(n, err)
 		}
 
 		messageData := data.ToSendMessageData()
 
-		userTarget, err := n.Data.UserTarget.FillPlaceholders(ctx, ctx.Placeholders)
+		userTarget, err := n.Data.UserTarget.EvalTemplate(ctx, ctx.EvalEnv)
 		if err != nil {
 			return traceError(n, err)
 		}
@@ -401,17 +461,17 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 		nodeState.Result = NewFlowValueMessage(*msg)
 		return n.executeChildren(ctx)
 	case FlowNodeTypeActionMemberBan:
-		userID, err := n.Data.UserTarget.FillPlaceholders(ctx, ctx.Placeholders)
+		userID, err := n.Data.UserTarget.EvalTemplate(ctx, ctx.EvalEnv)
 		if err != nil {
 			return traceError(n, err)
 		}
 
-		messageDeleteSeconds, err := n.Data.MemberBanDeleteMessageDurationSeconds.FillPlaceholders(ctx, ctx.Placeholders)
+		messageDeleteSeconds, err := n.Data.MemberBanDeleteMessageDurationSeconds.EvalTemplate(ctx, ctx.EvalEnv)
 		if err != nil {
 			return traceError(n, err)
 		}
 
-		auditLogReason, err := n.Data.AuditLogReason.FillPlaceholders(ctx, ctx.Placeholders)
+		auditLogReason, err := n.Data.AuditLogReason.EvalTemplate(ctx, ctx.EvalEnv)
 		if err != nil {
 			return traceError(n, err)
 		}
@@ -431,12 +491,12 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 
 		return n.executeChildren(ctx)
 	case FlowNodeTypeActionMemberUnban:
-		userID, err := n.Data.UserTarget.FillPlaceholders(ctx, ctx.Placeholders)
+		userID, err := n.Data.UserTarget.EvalTemplate(ctx, ctx.EvalEnv)
 		if err != nil {
 			return traceError(n, err)
 		}
 
-		auditLogReason, err := n.Data.AuditLogReason.FillPlaceholders(ctx, ctx.Placeholders)
+		auditLogReason, err := n.Data.AuditLogReason.EvalTemplate(ctx, ctx.EvalEnv)
 		if err != nil {
 			return traceError(n, err)
 		}
@@ -453,12 +513,12 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 
 		return n.executeChildren(ctx)
 	case FlowNodeTypeActionMemberKick:
-		userID, err := n.Data.UserTarget.FillPlaceholders(ctx, ctx.Placeholders)
+		userID, err := n.Data.UserTarget.EvalTemplate(ctx, ctx.EvalEnv)
 		if err != nil {
 			return traceError(n, err)
 		}
 
-		auditLogReason, err := n.Data.AuditLogReason.FillPlaceholders(ctx, ctx.Placeholders)
+		auditLogReason, err := n.Data.AuditLogReason.EvalTemplate(ctx, ctx.EvalEnv)
 		if err != nil {
 			return traceError(n, err)
 		}
@@ -475,17 +535,17 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 
 		return n.executeChildren(ctx)
 	case FlowNodeTypeActionMemberTimeout:
-		memberID, err := n.Data.UserTarget.FillPlaceholders(ctx, ctx.Placeholders)
+		memberID, err := n.Data.UserTarget.EvalTemplate(ctx, ctx.EvalEnv)
 		if err != nil {
 			return traceError(n, err)
 		}
 
-		timeoutSeconds, err := n.Data.MemberTimeoutDurationSeconds.FillPlaceholders(ctx, ctx.Placeholders)
+		timeoutSeconds, err := n.Data.MemberTimeoutDurationSeconds.EvalTemplate(ctx, ctx.EvalEnv)
 		if err != nil {
 			return traceError(n, err)
 		}
 
-		auditLogReason, err := n.Data.AuditLogReason.FillPlaceholders(ctx, ctx.Placeholders)
+		auditLogReason, err := n.Data.AuditLogReason.EvalTemplate(ctx, ctx.EvalEnv)
 		if err != nil {
 			return traceError(n, err)
 		}
@@ -509,12 +569,12 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 
 		return n.executeChildren(ctx)
 	case FlowNodeTypeActionMemberEdit:
-		userID, err := n.Data.UserTarget.FillPlaceholders(ctx, ctx.Placeholders)
+		userID, err := n.Data.UserTarget.EvalTemplate(ctx, ctx.EvalEnv)
 		if err != nil {
 			return traceError(n, err)
 		}
 
-		auditLogReason, err := n.Data.AuditLogReason.FillPlaceholders(ctx, ctx.Placeholders)
+		auditLogReason, err := n.Data.AuditLogReason.EvalTemplate(ctx, ctx.EvalEnv)
 		if err != nil {
 			return traceError(n, err)
 		}
@@ -525,7 +585,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 
 		if n.Data.MemberData != nil {
 			if n.Data.MemberData.Nick != nil {
-				nick, err := ctx.Placeholders.Fill(ctx, *n.Data.MemberData.Nick)
+				nick, err := eval.EvalTemplate(ctx, *n.Data.MemberData.Nick, ctx.EvalEnv)
 				if err != nil {
 					return traceError(n, err)
 				}
@@ -546,17 +606,17 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 
 		return n.executeChildren(ctx)
 	case FlowNodeTypeActionMemberRoleAdd:
-		userID, err := n.Data.UserTarget.FillPlaceholders(ctx, ctx.Placeholders)
+		userID, err := n.Data.UserTarget.EvalTemplate(ctx, ctx.EvalEnv)
 		if err != nil {
 			return traceError(n, err)
 		}
 
-		roleID, err := n.Data.RoleTarget.FillPlaceholders(ctx, ctx.Placeholders)
+		roleID, err := n.Data.RoleTarget.EvalTemplate(ctx, ctx.EvalEnv)
 		if err != nil {
 			return traceError(n, err)
 		}
 
-		auditLogReason, err := n.Data.AuditLogReason.FillPlaceholders(ctx, ctx.Placeholders)
+		auditLogReason, err := n.Data.AuditLogReason.EvalTemplate(ctx, ctx.EvalEnv)
 		if err != nil {
 			return traceError(n, err)
 		}
@@ -571,17 +631,17 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 
 		return n.executeChildren(ctx)
 	case FlowNodeTypeActionMemberRoleRemove:
-		userID, err := n.Data.UserTarget.FillPlaceholders(ctx, ctx.Placeholders)
+		userID, err := n.Data.UserTarget.EvalTemplate(ctx, ctx.EvalEnv)
 		if err != nil {
 			return traceError(n, err)
 		}
 
-		roleID, err := n.Data.RoleTarget.FillPlaceholders(ctx, ctx.Placeholders)
+		roleID, err := n.Data.RoleTarget.EvalTemplate(ctx, ctx.EvalEnv)
 		if err != nil {
 			return traceError(n, err)
 		}
 
-		auditLogReason, err := n.Data.AuditLogReason.FillPlaceholders(ctx, ctx.Placeholders)
+		auditLogReason, err := n.Data.AuditLogReason.EvalTemplate(ctx, ctx.EvalEnv)
 		if err != nil {
 			return traceError(n, err)
 		}
@@ -596,12 +656,12 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 
 		return n.executeChildren(ctx)
 	case FlowNodeTypeActionVariableSet:
-		scope, err := n.Data.VariableScope.FillPlaceholders(ctx, ctx.Placeholders)
+		scope, err := n.Data.VariableScope.EvalTemplate(ctx, ctx.EvalEnv)
 		if err != nil {
 			return traceError(n, err)
 		}
 
-		value, err := n.Data.VariableValue.FillPlaceholders(ctx, ctx.Placeholders)
+		value, err := n.Data.VariableValue.EvalTemplate(ctx, ctx.EvalEnv)
 		if err != nil {
 			return traceError(n, err)
 		}
@@ -620,7 +680,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 		nodeState.Result = *newValue
 		return n.executeChildren(ctx)
 	case FlowNodeTypeActionVariableDelete:
-		scope, err := n.Data.VariableScope.FillPlaceholders(ctx, ctx.Placeholders)
+		scope, err := n.Data.VariableScope.EvalTemplate(ctx, ctx.EvalEnv)
 		if err != nil {
 			return traceError(n, err)
 		}
@@ -636,7 +696,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 
 		return n.executeChildren(ctx)
 	case FlowNodeTypeActionVariableGet:
-		scope, err := n.Data.VariableScope.FillPlaceholders(ctx, ctx.Placeholders)
+		scope, err := n.Data.VariableScope.EvalTemplate(ctx, ctx.EvalEnv)
 		if err != nil {
 			return traceError(n, err)
 		}
@@ -660,7 +720,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			}
 		}
 
-		url, err := n.Data.HTTPRequestData.URL.FillPlaceholders(ctx, ctx.Placeholders)
+		url, err := n.Data.HTTPRequestData.URL.EvalTemplate(ctx, ctx.EvalEnv)
 		if err != nil {
 			return traceError(n, err)
 		}
@@ -686,17 +746,17 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			}
 		}
 
-		systemPrompt, err := data.SystemPrompt.FillPlaceholders(ctx, ctx.Placeholders)
+		systemPrompt, err := data.SystemPrompt.EvalTemplate(ctx, ctx.EvalEnv)
 		if err != nil {
 			return traceError(n, err)
 		}
 
-		prompt, err := data.Prompt.FillPlaceholders(ctx, ctx.Placeholders)
+		prompt, err := data.Prompt.EvalTemplate(ctx, ctx.EvalEnv)
 		if err != nil {
 			return traceError(n, err)
 		}
 
-		maxCompletionTokens, err := data.MaxCompletionTokens.FillPlaceholders(ctx, ctx.Placeholders)
+		maxCompletionTokens, err := data.MaxCompletionTokens.EvalTemplate(ctx, ctx.EvalEnv)
 		if err != nil {
 			return traceError(n, err)
 		}
@@ -713,7 +773,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 		nodeState.Result = NewFlowValueString(response)
 		return n.executeChildren(ctx)
 	case FlowNodeTypeActionExpressionEvaluate:
-		expression, err := n.Data.Expression.FillPlaceholders(ctx, ctx.Placeholders)
+		expression, err := n.Data.Expression.EvalTemplate(ctx, ctx.EvalEnv)
 		if err != nil {
 			return traceError(n, err)
 		}
@@ -726,7 +786,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 		nodeState.Result = NewFlowValueString(fmt.Sprintf("%v", res))
 		return n.executeChildren(ctx)
 	case FlowNodeTypeActionLog:
-		logMessage, err := n.Data.LogMessage.FillPlaceholders(ctx, ctx.Placeholders)
+		logMessage, err := n.Data.LogMessage.EvalTemplate(ctx, ctx.EvalEnv)
 		if err != nil {
 			return traceError(n, err)
 		}
@@ -738,7 +798,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 		FlowNodeTypeControlConditionChannel,
 		FlowNodeTypeControlConditionRole:
 
-		baseValue, err := n.Data.ConditionBaseValue.FillPlaceholders(ctx, ctx.Placeholders)
+		baseValue, err := n.Data.ConditionBaseValue.EvalTemplate(ctx, ctx.EvalEnv)
 		if err != nil {
 			return traceError(n, err)
 		}
@@ -776,7 +836,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			return nil
 		}
 
-		itemValue, err := n.Data.ConditionItemValue.FillPlaceholders(ctx, ctx.Placeholders)
+		itemValue, err := n.Data.ConditionItemValue.EvalTemplate(ctx, ctx.EvalEnv)
 		if err != nil {
 			return traceError(n, err)
 		}
@@ -824,7 +884,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			return nil
 		}
 
-		itemValue, err := n.Data.ConditionItemValue.FillPlaceholders(ctx, ctx.Placeholders)
+		itemValue, err := n.Data.ConditionItemValue.EvalTemplate(ctx, ctx.EvalEnv)
 		if err != nil {
 			return traceError(n, err)
 		}
@@ -863,7 +923,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 
 		return n.executeChildren(ctx)
 	case FlowNodeTypeControlLoop:
-		loopCount, err := n.Data.LoopCount.FillPlaceholders(ctx, ctx.Placeholders)
+		loopCount, err := n.Data.LoopCount.EvalTemplate(ctx, ctx.EvalEnv)
 		if err != nil {
 			return traceError(n, err)
 		}
@@ -895,7 +955,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			ctx.GetNodeState(loop.ID).LoopExited = true
 		}
 	case FlowNodeTypeControlSleep:
-		sleepSeconds, err := n.Data.SleepDurationSeconds.FillPlaceholders(ctx, ctx.Placeholders)
+		sleepSeconds, err := n.Data.SleepDurationSeconds.EvalTemplate(ctx, ctx.EvalEnv)
 		if err != nil {
 			return traceError(n, err)
 		}

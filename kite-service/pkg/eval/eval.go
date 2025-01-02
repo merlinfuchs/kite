@@ -12,7 +12,9 @@ import (
 const templateStartTag = "{{"
 const templateEndTag = "}}"
 
-func Eval(ctx context.Context, expression string, env any) (any, error) {
+func Eval(ctx context.Context, expression string, env Env) (any, error) {
+	env["ctx"] = ctx
+
 	program, err := expr.Compile(
 		expression,
 		expr.Env(env),
@@ -32,7 +34,7 @@ func Eval(ctx context.Context, expression string, env any) (any, error) {
 	return result, nil
 }
 
-func EvalTemplate(ctx context.Context, template string, env any) (string, error) {
+func EvalTemplate(ctx context.Context, template string, env Env) (string, error) {
 	res, err := fasttemplate.ExecuteFuncStringWithErr(
 		template,
 		templateStartTag,

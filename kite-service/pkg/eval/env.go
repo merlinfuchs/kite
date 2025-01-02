@@ -1,56 +1,103 @@
 package eval
 
 import (
-	"context"
-
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/utils/ws"
-	"gopkg.in/guregu/null.v4"
 )
 
-type MessageTemplateEnv struct {
-	VariableEnv
-
-	Interaction *InteractionEnv `expr:"interaction"`
-	Event       *EventEnv       `expr:"event"`
-}
-
-type FlowEnv struct {
-	VariableEnv
-
-	Interaction *InteractionEnv `expr:"interaction"`
-	Event       *EventEnv       `expr:"event"`
-}
-
-type VariableEnv struct {
-	provider VariableProvider
-
-	VariableFunc func(ctx context.Context, id string, scope null.String) (string, error) `expr:"var"`
-}
-
-func NewVariableEnv(provider VariableProvider) VariableEnv {
-	return VariableEnv{
-		provider: provider,
-		// VariableFunc: provider.VariableValue,
-	}
-}
+type Env map[string]any
 
 type InteractionEnv struct {
 	interaction *discord.InteractionEvent
 
-	ID        string `expr:"id"`
-	ChannelID string `expr:"channel_id"`
-	GuildID   string `expr:"guild_id"`
+	ID        string      `expr:"id"`
+	ChannelID string      `expr:"channel_id"`
+	GuildID   string      `expr:"guild_id"`
+	Command   *CommandEnv `expr:"command"`
 }
 
 func NewInteractionEnv(i *discord.InteractionEvent) *InteractionEnv {
-	return &InteractionEnv{
+	e := &InteractionEnv{
 		interaction: i,
 
 		ID:        i.ID.String(),
 		ChannelID: i.ChannelID.String(),
 		GuildID:   i.GuildID.String(),
 	}
+
+	if i.Data.InteractionType() == discord.CommandInteractionType {
+		e.Command = NewCommandEnv(i)
+	}
+
+	return e
+}
+
+func NewEnvWithInteraction(i *discord.InteractionEvent) Env {
+	interactionEnv := NewInteractionEnv(i)
+	env := Env{
+		"interaction": interactionEnv,
+	}
+	if interactionEnv.Command != nil {
+		env["arg"] = interactionEnv.Command.ArgFunc
+	}
+
+	return env
+}
+
+func (e InteractionEnv) String() string {
+	return e.interaction.ID.String()
+}
+
+type CommandEnv struct {
+	interaction *discord.InteractionEvent
+	cmd         *discord.CommandInteraction
+
+	ArgFunc func(name string) *CommandOptionEnv `expr:"arg"`
+}
+
+func NewCommandEnv(i *discord.InteractionEvent) *CommandEnv {
+	data, _ := i.Data.(*discord.CommandInteraction)
+
+	return &CommandEnv{
+		interaction: i,
+		cmd:         data,
+
+		ArgFunc: func(name string) *CommandOptionEnv {
+			for _, option := range data.Options {
+				if option.Name == name {
+					return NewCommandOptionEnv(i, data, &option)
+				}
+			}
+
+			return nil
+		},
+	}
+}
+
+func (c CommandEnv) String() string {
+	return c.cmd.ID.String()
+}
+
+type CommandOptionEnv struct {
+	interaction *discord.InteractionEvent
+	cmd         *discord.CommandInteraction
+	option      *discord.CommandInteractionOption
+}
+
+func NewCommandOptionEnv(
+	i *discord.InteractionEvent,
+	cmd *discord.CommandInteraction,
+	option *discord.CommandInteractionOption,
+) *CommandOptionEnv {
+	return &CommandOptionEnv{
+		interaction: i,
+		cmd:         cmd,
+		option:      option,
+	}
+}
+
+func (o CommandOptionEnv) String() string {
+	return o.option.String()
 }
 
 type EventEnv struct {
@@ -66,6 +113,12 @@ type EventEnv struct {
 func NewEventEnv(event ws.Event) *EventEnv {
 	return &EventEnv{
 		event: event,
+	}
+}
+
+func NewEnvWithEvent(event ws.Event) Env {
+	return Env{
+		"event": NewEventEnv(event),
 	}
 }
 
