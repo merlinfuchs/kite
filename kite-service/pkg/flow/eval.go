@@ -26,6 +26,6 @@ func (e *nodeEvalEnv) GetNode(ctx context.Context, rawID any) (any, error) {
 	}
 
 	return map[string]any{
-		"result": state.Result.String(),
+		"result": state.Result.Value,
 	}, nil
 }

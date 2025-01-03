@@ -58,7 +58,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 				return nil
 			}
 
-			res, err := eval.EvalTemplate(ctx, *s, ctx.EvalEnv)
+			res, err := eval.EvalTemplateToString(ctx, *s, ctx.EvalEnv)
 			if err != nil {
 				return err
 			}
@@ -142,7 +142,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 				return nil
 			}
 
-			res, err := eval.EvalTemplate(ctx, *s, ctx.EvalEnv)
+			res, err := eval.EvalTemplateToString(ctx, *s, ctx.EvalEnv)
 			if err != nil {
 				return err
 			}
@@ -167,11 +167,16 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 				return traceError(n, err)
 			}
 		} else {
+			messageTarget, err := n.Data.MessageTarget.EvalTemplate(ctx, ctx.EvalEnv)
+			if err != nil {
+				return traceError(n, err)
+			}
+
 			msg, err = ctx.Discord.EditInteractionFollowup(
 				ctx,
 				interaction.AppID,
 				interaction.Token,
-				discord.MessageID(n.Data.MessageTarget.Int()),
+				discord.MessageID(messageTarget.Int()),
 				api.EditInteractionResponseData{
 					Content: responseData.Content,
 					Embeds:  responseData.Embeds,
@@ -212,11 +217,16 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 				return traceError(n, err)
 			}
 		} else {
-			err := ctx.Discord.DeleteInteractionFollowup(
+			messageTarget, err := n.Data.MessageTarget.EvalTemplate(ctx, ctx.EvalEnv)
+			if err != nil {
+				return traceError(n, err)
+			}
+
+			err = ctx.Discord.DeleteInteractionFollowup(
 				ctx,
 				interaction.AppID,
 				interaction.Token,
-				discord.MessageID(n.Data.MessageTarget.Int()),
+				discord.MessageID(messageTarget.Int()),
 			)
 			if err != nil {
 				return traceError(n, err)
@@ -269,7 +279,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 				return nil
 			}
 
-			res, err := eval.EvalTemplate(ctx, *s, ctx.EvalEnv)
+			res, err := eval.EvalTemplateToString(ctx, *s, ctx.EvalEnv)
 			if err != nil {
 				return err
 			}
@@ -339,7 +349,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 				return nil
 			}
 
-			res, err := eval.EvalTemplate(ctx, *s, ctx.EvalEnv)
+			res, err := eval.EvalTemplateToString(ctx, *s, ctx.EvalEnv)
 			if err != nil {
 				return err
 			}
@@ -401,7 +411,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			ctx,
 			discord.ChannelID(channelTarget.Int()),
 			discord.MessageID(messageTarget.Int()),
-			api.AuditLogReason(auditLogReason),
+			api.AuditLogReason(auditLogReason.String()),
 		)
 		if err != nil {
 			return traceError(n, err)
@@ -429,7 +439,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 				return nil
 			}
 
-			res, err := eval.EvalTemplate(ctx, *s, ctx.EvalEnv)
+			res, err := eval.EvalTemplateToString(ctx, *s, ctx.EvalEnv)
 			if err != nil {
 				return err
 			}
@@ -482,7 +492,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			discord.UserID(userID.Int()),
 			api.BanData{
 				DeleteDays:     option.NewUint(uint(messageDeleteSeconds.Float() / 86400)),
-				AuditLogReason: api.AuditLogReason(auditLogReason),
+				AuditLogReason: api.AuditLogReason(auditLogReason.String()),
 			},
 		)
 		if err != nil {
@@ -505,7 +515,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			ctx,
 			ctx.Data.GuildID(),
 			discord.UserID(userID.Int()),
-			api.AuditLogReason(auditLogReason),
+			api.AuditLogReason(auditLogReason.String()),
 		)
 		if err != nil {
 			return traceError(n, err)
@@ -580,12 +590,12 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 		}
 
 		data := api.ModifyMemberData{
-			AuditLogReason: api.AuditLogReason(auditLogReason),
+			AuditLogReason: api.AuditLogReason(auditLogReason.String()),
 		}
 
 		if n.Data.MemberData != nil {
 			if n.Data.MemberData.Nick != nil {
-				nick, err := eval.EvalTemplate(ctx, *n.Data.MemberData.Nick, ctx.EvalEnv)
+				nick, err := eval.EvalTemplateToString(ctx, *n.Data.MemberData.Nick, ctx.EvalEnv)
 				if err != nil {
 					return traceError(n, err)
 				}
@@ -626,7 +636,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			ctx.Data.GuildID(),
 			discord.UserID(userID.Int()),
 			discord.RoleID(roleID.Int()),
-			api.AuditLogReason(auditLogReason),
+			api.AuditLogReason(auditLogReason.String()),
 		)
 
 		return n.executeChildren(ctx)
@@ -651,7 +661,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			ctx.Data.GuildID(),
 			discord.UserID(userID.Int()),
 			discord.RoleID(roleID.Int()),
-			api.AuditLogReason(auditLogReason),
+			api.AuditLogReason(auditLogReason.String()),
 		)
 
 		return n.executeChildren(ctx)
@@ -669,9 +679,9 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 		newValue, err := ctx.Variable.UpdateVariable(
 			ctx,
 			n.Data.VariableID,
-			null.NewString(scope.String(), scope != ""),
+			null.NewString(scope.String(), !scope.IsEmpty()),
 			n.Data.VariableOperation,
-			NewFlowValueString(value.String()),
+			value,
 		)
 		if err != nil {
 			return traceError(n, err)
@@ -688,7 +698,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 		err = ctx.Variable.DeleteVariable(
 			ctx,
 			n.Data.VariableID,
-			null.NewString(scope.String(), scope != ""),
+			null.NewString(scope.String(), !scope.IsEmpty()),
 		)
 		if err != nil {
 			return traceError(n, err)
@@ -704,7 +714,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 		val, err := ctx.Variable.Variable(
 			ctx,
 			n.Data.VariableID,
-			null.NewString(scope.String(), scope != ""),
+			null.NewString(scope.String(), !scope.IsEmpty()),
 		)
 		if err != nil && !errors.Is(err, ErrNotFound) {
 			return traceError(n, err)
@@ -783,7 +793,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			return traceError(n, err)
 		}
 
-		nodeState.Result = NewFlowValueString(fmt.Sprintf("%v", res))
+		nodeState.Result = NewFlowValue(res)
 		return n.executeChildren(ctx)
 	case FlowNodeTypeActionLog:
 		logMessage, err := n.Data.LogMessage.EvalTemplate(ctx, ctx.EvalEnv)

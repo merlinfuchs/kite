@@ -210,9 +210,9 @@ func (c *Client) UpdateVariableValue(ctx context.Context, operation model.Variab
 	case flow.VariableOperationPrepend:
 		value.Data = flow.NewFlowValueString(value.Data.String() + currentValue.Data.String())
 	case flow.VariableOperationIncrement:
-		value.Data = flow.NewFlowValueNumber(currentValue.Data.Number() + value.Data.Number())
+		value.Data = flow.NewFlowValueNumber(currentValue.Data.Float() + value.Data.Float())
 	case flow.VariableOperationDecrement:
-		value.Data = flow.NewFlowValueNumber(currentValue.Data.Number() - value.Data.Number())
+		value.Data = flow.NewFlowValueNumber(currentValue.Data.Float() - value.Data.Float())
 	}
 
 	newValue, err := c.setVariableValueWithTx(ctx, tx, value)

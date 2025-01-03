@@ -146,7 +146,7 @@ func (c *FlowContextState) GetNodeState(nodeID string) *FlowContextNodeState {
 }
 
 type FlowContextNodeState struct {
-	ConditionBaseValue FlowString
+	ConditionBaseValue FlowValue
 	ConditionItemMet   bool
 	Result             FlowValue
 	LoopExited         bool
