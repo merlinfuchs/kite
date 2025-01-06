@@ -25,12 +25,12 @@ func Eval(ctx context.Context, expression string, env Env) (thing.Any, error) {
 		expr.Timezone("UTC"),
 	)
 	if err != nil {
-		return thing.New(nil), fmt.Errorf("eval error: %w", err)
+		return thing.Null, fmt.Errorf("eval error: %w", err)
 	}
 
 	result, err := expr.Run(program, env)
 	if err != nil {
-		return thing.New(nil), fmt.Errorf("eval error: %w", err)
+		return thing.Null, fmt.Errorf("eval error: %w", err)
 	}
 
 	return thing.New(result), nil

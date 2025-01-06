@@ -36,7 +36,7 @@ func (e *nodeEvalEnv) GetNode(ctx context.Context, rawID any) (any, error) {
 func (ctx *FlowContext) EvalTemplate(template string) (thing.Any, error) {
 	res, err := eval.EvalTemplate(ctx, template, ctx.EvalEnv)
 	if err != nil {
-		return thing.New(nil), fmt.Errorf("failed to evaluate template: %w", err)
+		return thing.Null, fmt.Errorf("failed to evaluate template: %w", err)
 	}
 	return thing.New(res), nil
 }
