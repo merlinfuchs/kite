@@ -32,7 +32,7 @@ interaction: # For command and button interactions
     avatar_url: string
     banner_url: string
     mention: string
-    roles?: []string
+    role_ids?: []string
     nick?: string
   channel:
     id: string
@@ -48,7 +48,7 @@ event: # For event listeners
     avatar_url: string
     banner_url: string
     mention: string
-    roles?: []string
+    role_ids?: []string
     nick?: string
   message?: # For message events
     id: string
