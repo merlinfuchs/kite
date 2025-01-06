@@ -7,13 +7,14 @@ import (
 	"strings"
 
 	"github.com/expr-lang/expr"
+	"github.com/kitecloud/kite/kite-service/pkg/thing"
 	"github.com/valyala/fasttemplate"
 )
 
 const templateStartTag = "{{"
 const templateEndTag = "}}"
 
-func Eval(ctx context.Context, expression string, env Env) (any, error) {
+func Eval(ctx context.Context, expression string, env Env) (thing.Any, error) {
 	env["ctx"] = ctx
 
 	program, err := expr.Compile(
@@ -24,15 +25,15 @@ func Eval(ctx context.Context, expression string, env Env) (any, error) {
 		expr.Timezone("UTC"),
 	)
 	if err != nil {
-		return nil, fmt.Errorf("eval error: %w", err)
+		return thing.Null, fmt.Errorf("eval error: %w", err)
 	}
 
 	result, err := expr.Run(program, env)
 	if err != nil {
-		return nil, fmt.Errorf("eval error: %w", err)
+		return thing.Null, fmt.Errorf("eval error: %w", err)
 	}
 
-	return result, nil
+	return thing.New(result), nil
 }
 
 func EvalTemplate(ctx context.Context, template string, env Env) (any, error) {

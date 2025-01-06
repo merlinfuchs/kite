@@ -65,7 +65,7 @@ export interface FlowNodeData {
   name?: string;
   description?: string;
   custom_label?: string;
-  audit_log_reason?: FlowString;
+  audit_log_reason?: string;
   /**
    * Command Argument
    */
@@ -86,33 +86,33 @@ export interface FlowNodeData {
   /**
    * Message & Response Create, edit, Delete
    */
-  message_target?: FlowString;
+  message_target?: string;
   message_data?: any /* message.MessageData */;
   message_template_id?: string;
   message_ephemeral?: boolean;
   /**
    * Member Ban, Kick, Timeout, Edit
    */
-  user_target?: FlowString;
-  member_ban_delete_message_duration_seconds?: FlowString;
-  member_timeout_duration_seconds?: FlowString;
+  user_target?: string;
+  member_ban_delete_message_duration_seconds?: string;
+  member_timeout_duration_seconds?: string;
   member_data?: any /* api.ModifyMemberData */;
   /**
    * Channel Create, Edit, Delete
    */
-  channel_target?: FlowString;
+  channel_target?: string;
   channel_data?: any /* api.CreateChannelData */;
   /**
    * Role Create, Edit, Delete
    */
-  role_target?: FlowString;
+  role_target?: string;
   role_data?: any /* api.CreateRoleData */;
   /**
    * Variable Set, Delete
    */
   variable_id?: string;
-  variable_scope?: FlowString;
-  variable_value?: FlowString;
+  variable_scope?: string;
+  variable_value?: string;
   variable_operation?: VariableOperation;
   /**
    * HTTP Request
@@ -135,26 +135,26 @@ export interface FlowNodeData {
    * Log
    */
   log_level?: LogLevel;
-  log_message?: FlowString;
+  log_message?: string;
   /**
    * Expression Evaluate
    */
-  expression?: FlowString;
+  expression?: string;
   /**
    * Condition
    */
-  condition_base_value?: FlowString;
+  condition_base_value?: string;
   condition_allow_multiple?: boolean;
   condition_item_mode?: ConditionItemType;
-  condition_item_value?: FlowString;
+  condition_item_value?: string;
   /**
    * Loop
    */
-  loop_count?: FlowString;
+  loop_count?: string;
   /**
    * Sleep
    */
-  sleep_duration_seconds?: FlowString;
+  sleep_duration_seconds?: string;
 }
 export type LogLevel = string;
 export const LogLevelDebug: LogLevel = "debug";
@@ -195,13 +195,13 @@ export const CommandDisabledIntegrationTypeUserInstall: CommandDisabledIntegrati
 export type EventFilterTarget = string;
 export const EventFilterTypeMessageContent: EventFilterTarget = "message_content";
 export interface HTTPRequestData {
-  url?: FlowString;
+  url?: string;
   method?: string;
 }
 export interface AIChatCompletionData {
-  system_prompt?: FlowString;
-  prompt?: FlowString;
-  max_completion_tokens?: FlowString;
+  system_prompt?: string;
+  prompt?: string;
+  max_completion_tokens?: string;
 }
 export interface FlowNodePosition {
   x: number /* float64 */;
@@ -215,10 +215,6 @@ export interface FlowEdge {
 }
 
 //////////
-// source: placeholder.go
-
-
-//////////
 // source: provider_mock.go
 
 export interface MockDiscordProvider {
@@ -229,25 +225,3 @@ export interface MockHTTPprovider {
 }
 export interface MockAIProvider {
 }
-
-//////////
-// source: value.go
-
-export type FlowValueType = string;
-export const FlowValueTypeNull: FlowValueType = "null";
-export const FlowValueTypeString: FlowValueType = "string";
-export const FlowValueTypeNumber: FlowValueType = "number";
-export const FlowValueTypeArray: FlowValueType = "array";
-export const FlowValueTypeMessage: FlowValueType = "message";
-export const FlowValueTypeHTTPResponse: FlowValueType = "http_response";
-/**
- * TODO: do we need this or can we just have all values be strings?
- */
-export interface FlowValue {
-  type: FlowValueType;
-  value: any;
-}
-/**
- * FlowString is a string that can contain placeholders.
- */
-export type FlowString = string;

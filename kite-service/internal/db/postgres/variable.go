@@ -12,6 +12,7 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/internal/store"
 	"github.com/kitecloud/kite/kite-service/pkg/flow"
+	"github.com/kitecloud/kite/kite-service/pkg/thing"
 	"gopkg.in/guregu/null.v4"
 )
 
@@ -206,13 +207,13 @@ func (c *Client) UpdateVariableValue(ctx context.Context, operation model.Variab
 
 	switch operation {
 	case flow.VariableOperationAppend:
-		value.Data = flow.NewFlowValueString(currentValue.Data.String() + value.Data.String())
+		value.Data = currentValue.Data.Append(value.Data)
 	case flow.VariableOperationPrepend:
-		value.Data = flow.NewFlowValueString(value.Data.String() + currentValue.Data.String())
+		value.Data = value.Data.Append(currentValue.Data)
 	case flow.VariableOperationIncrement:
-		value.Data = flow.NewFlowValueNumber(currentValue.Data.Float() + value.Data.Float())
+		value.Data = currentValue.Data.Add(value.Data)
 	case flow.VariableOperationDecrement:
-		value.Data = flow.NewFlowValueNumber(currentValue.Data.Float() - value.Data.Float())
+		value.Data = currentValue.Data.Sub(value.Data)
 	}
 
 	newValue, err := c.setVariableValueWithTx(ctx, tx, value)
@@ -309,7 +310,7 @@ func (c *Client) setVariableValueWithTx(ctx context.Context, tx pgx.Tx, value mo
 }
 
 func rowToVariableValue(row pgmodel.VariableValue) (model.VariableValue, error) {
-	var data model.VariableValueData
+	var data thing.Any
 	err := json.Unmarshal(row.Value, &data)
 	if err != nil {
 		return model.VariableValue{}, fmt.Errorf("failed to unmarshal variable value: %w", err)

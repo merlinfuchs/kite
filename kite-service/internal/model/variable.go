@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/kitecloud/kite/kite-service/pkg/flow"
+	"github.com/kitecloud/kite/kite-service/pkg/thing"
 	"gopkg.in/guregu/null.v4"
 )
 
@@ -22,10 +23,9 @@ type VariableValue struct {
 	ID         uint64
 	VariableID string
 	Scope      null.String
-	Data       VariableValueData
+	Data       thing.Any
 	CreatedAt  time.Time
 	UpdatedAt  time.Time
 }
 
 type VariableValueOperation = flow.VariableOperation
-type VariableValueData = flow.FlowValue

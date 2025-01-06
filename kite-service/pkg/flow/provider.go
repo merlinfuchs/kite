@@ -8,6 +8,7 @@ import (
 	"github.com/diamondburned/arikawa/v3/api"
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/kitecloud/kite/kite-service/pkg/message"
+	"github.com/kitecloud/kite/kite-service/pkg/thing"
 	"gopkg.in/guregu/null.v4"
 )
 
@@ -85,8 +86,8 @@ type FlowLogProvider interface {
 }
 
 type FlowVariableProvider interface {
-	UpdateVariable(ctx context.Context, id string, scope null.String, operation VariableOperation, value FlowValue) (*FlowValue, error)
-	Variable(ctx context.Context, id string, scope null.String) (FlowValue, error)
+	UpdateVariable(ctx context.Context, id string, scope null.String, operation VariableOperation, value thing.Any) (thing.Any, error)
+	Variable(ctx context.Context, id string, scope null.String) (thing.Any, error)
 	DeleteVariable(ctx context.Context, id string, scope null.String) error
 }
 

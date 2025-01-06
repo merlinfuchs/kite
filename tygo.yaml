@@ -37,10 +37,11 @@ packages:
       Base64: "string"
     exclude_files:
       - "compile.go"
-      - "execute.go"
       - "context.go"
-      - "provider.go"
       - "error.go"
+      - "eval.go"
+      - "execute.go"
+      - "provider.go"
     frontmatter: |
       type StringIndexable = Record<string, unknown>;
   - path: "github.com/kitecloud/kite/kite-service/pkg/message"

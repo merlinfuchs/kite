@@ -7,6 +7,7 @@ import (
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/utils/ws"
 	"github.com/kitecloud/kite/kite-service/pkg/eval"
+	"github.com/kitecloud/kite/kite-service/pkg/thing"
 )
 
 type FlowContext struct {
@@ -146,8 +147,8 @@ func (c *FlowContextState) GetNodeState(nodeID string) *FlowContextNodeState {
 }
 
 type FlowContextNodeState struct {
-	ConditionBaseValue FlowValue
+	ConditionBaseValue thing.Any
 	ConditionItemMet   bool
-	Result             FlowValue
+	Result             thing.Any
 	LoopExited         bool
 }
