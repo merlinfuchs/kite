@@ -25,6 +25,7 @@ const (
 	FlowValueTypeArray        FlowValueType = "array"
 	FlowValueTypeMessage      FlowValueType = "message"
 	FlowValueTypeHTTPResponse FlowValueType = "http_response"
+	FlowValueTypeAny          FlowValueType = "any"
 )
 
 var FlowValueNull = FlowValue{Type: FlowValueTypeNull}
@@ -69,7 +70,14 @@ func NewFlowValue(v interface{}) FlowValue {
 	case http.Response:
 		return NewFlowValueHTTPResponse(v)
 	default:
-		return NewFlowValueString(fmt.Sprintf("%v", v))
+		return NewFlowValueAny(v)
+	}
+}
+
+func NewFlowValueAny(v any) FlowValue {
+	return FlowValue{
+		Type:  FlowValueTypeAny,
+		Value: v,
 	}
 }
 
@@ -159,9 +167,9 @@ func (v FlowValue) String() string {
 	case FlowValueTypeHTTPResponse:
 		res, _ := v.HTTPResponse()
 		return res.Status
+	default:
+		return fmt.Sprintf("%v", v.Value)
 	}
-
-	return ""
 }
 
 func (v FlowValue) Float() float64 {
@@ -296,6 +304,19 @@ func (v *FlowValue) UnmarshalJSON(data []byte) error {
 
 func (v FlowValue) ResolvePlaceholder(ctx context.Context) (string, error) {
 	return v.String(), nil
+}
+
+func (v FlowValue) EvalEnv() any {
+	switch v.Type {
+	case FlowValueTypeHTTPResponse:
+		resp, _ := v.HTTPResponse()
+		return eval.NewHTTPResponseEnv(&resp)
+	case FlowValueTypeMessage:
+		msg, _ := v.Message()
+		return eval.NewMessageEnv(&msg)
+	default:
+		return v.Value
+	}
 }
 
 // FlowString is a string that can contain placeholders

@@ -14,8 +14,6 @@ const templateStartTag = "{{"
 const templateEndTag = "}}"
 
 func Eval(ctx context.Context, expression string, env Env) (any, error) {
-	fmt.Println("eval expression: ", expression)
-
 	env["ctx"] = ctx
 
 	program, err := expr.Compile(
@@ -26,28 +24,35 @@ func Eval(ctx context.Context, expression string, env Env) (any, error) {
 		expr.Timezone("UTC"),
 	)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("eval error: %w", err)
 	}
 
 	result, err := expr.Run(program, env)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("eval error: %w", err)
 	}
 
-	fmt.Printf("eval result: %T\n", result)
 	return result, nil
 }
 
 func EvalTemplate(ctx context.Context, template string, env Env) (any, error) {
+	template = strings.TrimSpace(template)
+	if template == "" {
+		return "", nil
+	}
+
 	// Special case when template only contains one placeholder
-	if strings.Count(template, templateStartTag) == 1 && strings.Count(template, templateEndTag) == 1 {
+	// We can just evaluate the expression directly and return the result with the original type
+	if strings.HasPrefix(template, templateStartTag) &&
+		strings.HasSuffix(template, templateEndTag) &&
+		strings.Count(template, templateStartTag) == 1 &&
+		strings.Count(template, templateEndTag) == 1 {
 		template = template[len(templateStartTag) : len(template)-len(templateEndTag)]
 		res, err := Eval(ctx, template, env)
 		if err != nil {
 			return nil, err
 		}
 
-		fmt.Printf("eval template result: %T\n", res)
 		return res, nil
 	}
 
