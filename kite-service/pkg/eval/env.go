@@ -1,6 +1,7 @@
 package eval
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -65,16 +66,18 @@ type CommandEnv struct {
 	interaction *discord.InteractionEvent
 	cmd         *discord.CommandInteraction
 
-	ID   string                       `expr:"id" json:"id"`
-	Args map[string]*CommandOptionEnv `expr:"args" json:"args"`
+	ID   string         `expr:"id" json:"id"`
+	Args map[string]any `expr:"args" json:"args"`
 }
 
 func NewCommandEnv(i *discord.InteractionEvent) *CommandEnv {
 	data, _ := i.Data.(*discord.CommandInteraction)
 
-	args := make(map[string]*CommandOptionEnv)
+	args := make(map[string]any)
 	for _, option := range data.Options {
-		args[option.Name] = NewCommandOptionEnv(i, data, &option)
+		var value any
+		_ = json.Unmarshal(option.Value, &value)
+		args[option.Name] = value
 	}
 
 	return &CommandEnv{
@@ -88,28 +91,6 @@ func NewCommandEnv(i *discord.InteractionEvent) *CommandEnv {
 
 func (c CommandEnv) String() string {
 	return c.ID
-}
-
-type CommandOptionEnv struct {
-	interaction *discord.InteractionEvent
-	cmd         *discord.CommandInteraction
-	option      *discord.CommandInteractionOption
-}
-
-func NewCommandOptionEnv(
-	i *discord.InteractionEvent,
-	cmd *discord.CommandInteraction,
-	option *discord.CommandInteractionOption,
-) *CommandOptionEnv {
-	return &CommandOptionEnv{
-		interaction: i,
-		cmd:         cmd,
-		option:      option,
-	}
-}
-
-func (o CommandOptionEnv) String() string {
-	return o.option.String()
 }
 
 type EventEnv struct {
