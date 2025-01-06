@@ -325,7 +325,7 @@ func (p *VariableProvider) UpdateVariable(ctx context.Context, id string, scope 
 		return thing.Null, fmt.Errorf("failed to %s variable value: %w", operation, err)
 	}
 
-	return thing.New(newValue.Data), nil
+	return newValue.Data, nil
 }
 
 func (p *VariableProvider) Variable(ctx context.Context, id string, scope null.String) (thing.Any, error) {
@@ -337,7 +337,7 @@ func (p *VariableProvider) Variable(ctx context.Context, id string, scope null.S
 		return thing.Null, fmt.Errorf("failed to get variable value: %w", err)
 	}
 
-	return thing.New(row.Data), nil
+	return row.Data, nil
 }
 
 func (p *VariableProvider) DeleteVariable(ctx context.Context, id string, scope null.String) error {
