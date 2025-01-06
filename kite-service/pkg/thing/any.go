@@ -23,7 +23,7 @@ func (w *Any) UnmarshalJSON(data []byte) error {
 	return json.Unmarshal(data, &w.Inner)
 }
 
-func (w *Any) MarshalJSON() ([]byte, error) {
+func (w Any) MarshalJSON() ([]byte, error) {
 	return json.Marshal(w.Inner)
 }
 

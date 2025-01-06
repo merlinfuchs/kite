@@ -16,11 +16,11 @@ type Env map[string]any
 type InteractionEnv struct {
 	interaction *discord.InteractionEvent
 
-	ID      string      `expr:"id"`
-	Channel *ChannelEnv `expr:"channel"`
-	Guild   *GuildEnv   `expr:"guild"`
-	User    any         `expr:"user"`
-	Command *CommandEnv `expr:"command"`
+	ID      string      `expr:"id" json:"id"`
+	Channel *ChannelEnv `expr:"channel" json:"channel"`
+	Guild   *GuildEnv   `expr:"guild" json:"guild"`
+	User    any         `expr:"user" json:"user"`
+	Command *CommandEnv `expr:"command" json:"command"`
 }
 
 func NewInteractionEnv(i *discord.InteractionEvent) *InteractionEnv {
@@ -65,8 +65,8 @@ type CommandEnv struct {
 	interaction *discord.InteractionEvent
 	cmd         *discord.CommandInteraction
 
-	ID   string                       `expr:"id"`
-	Args map[string]*CommandOptionEnv `expr:"args"`
+	ID   string                       `expr:"id" json:"id"`
+	Args map[string]*CommandOptionEnv `expr:"args" json:"args"`
 }
 
 func NewCommandEnv(i *discord.InteractionEvent) *CommandEnv {
@@ -115,11 +115,11 @@ func (o CommandOptionEnv) String() string {
 type EventEnv struct {
 	event ws.Event
 
-	User    any         `expr:"user"`
-	Member  any         `expr:"member"`
-	Channel *ChannelEnv `expr:"channel"`
-	Message *MessageEnv `expr:"message"`
-	Guild   *GuildEnv   `expr:"guild"`
+	User    any         `expr:"user" json:"user"`
+	Member  any         `expr:"member" json:"member"`
+	Channel *ChannelEnv `expr:"channel" json:"channel"`
+	Message *MessageEnv `expr:"message" json:"message"`
+	Guild   *GuildEnv   `expr:"guild" json:"guild"`
 }
 
 func NewEventEnv(event ws.Event) *EventEnv {
@@ -182,13 +182,13 @@ func NewEnvWithEvent(event ws.Event) Env {
 }
 
 type UserEnv struct {
-	ID            string `expr:"id"`
-	Username      string `expr:"username"`
-	Discriminator string `expr:"discriminator"`
-	DisplayName   string `expr:"display_name"`
-	Mention       string `expr:"mention"`
-	AvatarURL     string `expr:"avatar_url"`
-	BannerURL     string `expr:"banner_url"`
+	ID            string `expr:"id" json:"id"`
+	Username      string `expr:"username" json:"username"`
+	Discriminator string `expr:"discriminator" json:"discriminator"`
+	DisplayName   string `expr:"display_name" json:"display_name"`
+	Mention       string `expr:"mention" json:"mention"`
+	AvatarURL     string `expr:"avatar_url" json:"avatar_url"`
+	BannerURL     string `expr:"banner_url" json:"banner_url"`
 }
 
 func (u UserEnv) String() string {
@@ -211,8 +211,8 @@ func NewUserEnv(user *discord.User) *UserEnv {
 type MemberEnv struct {
 	UserEnv
 
-	Nick    string   `expr:"nick"`
-	RoleIDs []string `expr:"role_ids"`
+	Nick    string   `expr:"nick" json:"nick"`
+	RoleIDs []string `expr:"role_ids" json:"role_ids"`
 }
 
 func (m MemberEnv) String() string {
@@ -234,7 +234,7 @@ func NewMemberEnv(member *discord.Member) *MemberEnv {
 }
 
 type ChannelEnv struct {
-	ID string `expr:"id"`
+	ID string `expr:"id" json:"id"`
 }
 
 func NewChannelEnv(channelID discord.ChannelID) *ChannelEnv {
@@ -248,8 +248,8 @@ func (c ChannelEnv) String() string {
 }
 
 type MessageEnv struct {
-	ID      string `expr:"id"`
-	Content string `expr:"content"`
+	ID      string `expr:"id" json:"id"`
+	Content string `expr:"content" json:"content"`
 }
 
 func NewMessageEnv(msg *discord.Message) *MessageEnv {
@@ -264,7 +264,7 @@ func (m MessageEnv) String() string {
 }
 
 type GuildEnv struct {
-	ID string `expr:"id"`
+	ID string `expr:"id" json:"id"`
 }
 
 func NewGuildEnv(guildID discord.GuildID) *GuildEnv {
@@ -280,9 +280,9 @@ func (g GuildEnv) String() string {
 type HTTPResponseEnv struct {
 	resp *http.Response
 
-	Status     string                 `expr:"status"`
-	StatusCode int                    `expr:"status_codxc  e"`
-	BodyFunc   func() (string, error) `expr:"body"`
+	Status     string                 `expr:"status" json:"status"`
+	StatusCode int                    `expr:"status_code" json:"status_code"`
+	BodyFunc   func() (string, error) `expr:"body" json:"-"`
 }
 
 func NewHTTPResponseEnv(resp *http.Response) *HTTPResponseEnv {
