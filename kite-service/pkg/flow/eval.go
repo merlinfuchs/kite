@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/kitecloud/kite/kite-service/pkg/eval"
+	"github.com/kitecloud/kite/kite-service/pkg/thing"
 )
 
 type nodeEvalEnv struct {
@@ -32,10 +33,10 @@ func (e *nodeEvalEnv) GetNode(ctx context.Context, rawID any) (any, error) {
 	}, nil
 }
 
-func (ctx *FlowContext) EvalTemplate(template string) (Value, error) {
+func (ctx *FlowContext) EvalTemplate(template string) (thing.Any, error) {
 	res, err := eval.EvalTemplate(ctx, template, ctx.EvalEnv)
 	if err != nil {
-		return Value{}, fmt.Errorf("failed to evaluate template: %w", err)
+		return thing.New(nil), fmt.Errorf("failed to evaluate template: %w", err)
 	}
-	return Value{Inner: res}, nil
+	return thing.New(res), nil
 }

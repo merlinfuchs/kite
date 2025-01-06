@@ -11,6 +11,7 @@ import (
 	"github.com/diamondburned/arikawa/v3/utils/json/option"
 	"github.com/kitecloud/kite/kite-service/pkg/eval"
 	"github.com/kitecloud/kite/kite-service/pkg/message"
+	"github.com/kitecloud/kite/kite-service/pkg/thing"
 	"gopkg.in/guregu/null.v4"
 )
 
@@ -84,7 +85,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 				return traceError(n, err)
 			}
 
-			nodeState.Result = NewValue(*msg)
+			nodeState.Result = thing.New(*msg)
 		} else {
 			responseData := data.ToInteractionResponseData()
 
@@ -200,7 +201,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			}
 		}
 
-		nodeState.Result = NewValue(*msg)
+		nodeState.Result = thing.New(*msg)
 		return n.executeChildren(ctx)
 	case FlowNodeTypeActionResponseDelete:
 		interaction := ctx.Data.Interaction()
@@ -316,7 +317,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			}
 		}
 
-		nodeState.Result = NewValue(*msg)
+		nodeState.Result = thing.New(*msg)
 		return n.executeChildren(ctx)
 	case FlowNodeTypeActionMessageEdit:
 		channelTarget, err := ctx.EvalTemplate(n.Data.ChannelTarget)
@@ -389,7 +390,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			}
 		}
 
-		nodeState.Result = NewValue(*msg)
+		nodeState.Result = thing.New(*msg)
 		return n.executeChildren(ctx)
 	case FlowNodeTypeActionMessageDelete:
 		channelTarget, err := ctx.EvalTemplate(n.Data.ChannelTarget)
@@ -468,7 +469,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			return traceError(n, err)
 		}
 
-		nodeState.Result = NewValue(*msg)
+		nodeState.Result = thing.New(*msg)
 		return n.executeChildren(ctx)
 	case FlowNodeTypeActionMemberBan:
 		userID, err := ctx.EvalTemplate(n.Data.UserTarget)
@@ -687,7 +688,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			return traceError(n, err)
 		}
 
-		nodeState.Result = NewValue(newValue)
+		nodeState.Result = newValue
 		return n.executeChildren(ctx)
 	case FlowNodeTypeActionVariableDelete:
 		scope, err := ctx.EvalTemplate(n.Data.VariableScope)
@@ -720,7 +721,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			return traceError(n, err)
 		}
 
-		nodeState.Result = NewValue(val)
+		nodeState.Result = val
 		return n.executeChildren(ctx)
 	case FlowNodeTypeActionHTTPRequest:
 		if n.Data.HTTPRequestData == nil {
@@ -745,7 +746,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			return traceError(n, err)
 		}
 
-		nodeState.Result = NewValue(*resp)
+		nodeState.Result = thing.New(*resp)
 		return n.executeChildren(ctx)
 	case FlowNodeTypeActionAIChatCompletion:
 		data := n.Data.AIChatCompletionData
@@ -780,7 +781,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			return traceError(n, err)
 		}
 
-		nodeState.Result = NewValue(response)
+		nodeState.Result = thing.New(response)
 		return n.executeChildren(ctx)
 	case FlowNodeTypeActionExpressionEvaluate:
 		expression, err := ctx.EvalTemplate(n.Data.Expression)
@@ -793,7 +794,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			return traceError(n, err)
 		}
 
-		nodeState.Result = NewValue(res)
+		nodeState.Result = res
 		return n.executeChildren(ctx)
 	case FlowNodeTypeActionLog:
 		logMessage, err := ctx.EvalTemplate(n.Data.LogMessage)

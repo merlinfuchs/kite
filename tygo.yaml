@@ -42,7 +42,6 @@ packages:
       - "eval.go"
       - "execute.go"
       - "provider.go"
-      - "value.go"
     frontmatter: |
       type StringIndexable = Record<string, unknown>;
   - path: "github.com/kitecloud/kite/kite-service/pkg/message"

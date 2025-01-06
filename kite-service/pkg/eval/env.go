@@ -277,6 +277,8 @@ func (g GuildEnv) String() string {
 }
 
 type HTTPResponseEnv struct {
+	resp *http.Response
+
 	Status     string                 `expr:"status"`
 	StatusCode int                    `expr:"status_code"`
 	BodyFunc   func() (string, error) `expr:"body"`
@@ -284,6 +286,8 @@ type HTTPResponseEnv struct {
 
 func NewHTTPResponseEnv(resp *http.Response) *HTTPResponseEnv {
 	return &HTTPResponseEnv{
+		resp: resp,
+
 		Status:     resp.Status,
 		StatusCode: resp.StatusCode,
 		BodyFunc: func() (string, error) {

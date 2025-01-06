@@ -1,26 +1,37 @@
-package flow
+package thing
 
 import (
+	"encoding/json"
 	"fmt"
 	"reflect"
 	"strconv"
 	"strings"
 )
 
-// Value is a wrapper around any with some helper methods
-type Value struct {
+var Null = New(nil)
+
+// Any is a wrapper around any with some helper methods
+type Any struct {
 	Inner any
 }
 
-func NewValue(v any) Value {
-	return Value{Inner: v}
+func New(v any) Any {
+	return Any{Inner: v}
 }
 
-func (w Value) String() string {
+func (w *Any) UnmarshalJSON(data []byte) error {
+	return json.Unmarshal(data, &w.Inner)
+}
+
+func (w *Any) MarshalJSON() ([]byte, error) {
+	return json.Marshal(w.Inner)
+}
+
+func (w Any) String() string {
 	return fmt.Sprintf("%v", w.Inner)
 }
 
-func (w Value) Int() int64 {
+func (w Any) Int() int64 {
 	switch v := w.Inner.(type) {
 	case int:
 		return int64(v)
@@ -60,7 +71,7 @@ func (w Value) Int() int64 {
 	}
 }
 
-func (w Value) Float() float64 {
+func (w Any) Float() float64 {
 	switch v := w.Inner.(type) {
 	case int:
 		return float64(v)
@@ -100,7 +111,7 @@ func (w Value) Float() float64 {
 	}
 }
 
-func (w Value) Bool() bool {
+func (w Any) Bool() bool {
 	switch v := w.Inner.(type) {
 	case bool:
 		return v
@@ -109,35 +120,48 @@ func (w Value) Bool() bool {
 	}
 }
 
-func (w Value) Equals(other *Value) bool {
+func (w Any) Equals(other *Any) bool {
 	return w.String() == other.String()
 }
 
-func (w Value) EqualsStrict(other *Value) bool {
+func (w Any) EqualsStrict(other *Any) bool {
 	return reflect.DeepEqual(w.Inner, other.Inner)
 }
 
-func (w Value) GreaterThan(other *Value) bool {
+func (w Any) GreaterThan(other *Any) bool {
 	return w.Float() > other.Float()
 }
 
-func (w Value) GreaterThanOrEqual(other *Value) bool {
+func (w Any) GreaterThanOrEqual(other *Any) bool {
 	return w.Float() >= other.Float()
 }
 
-func (w Value) LessThan(other *Value) bool {
+func (w Any) LessThan(other *Any) bool {
 	return w.Float() < other.Float()
 }
 
-func (w Value) LessThanOrEqual(other *Value) bool {
+func (w Any) LessThanOrEqual(other *Any) bool {
 	return w.Float() <= other.Float()
 }
 
-func (w Value) Contains(other *Value) bool {
+func (w Any) Contains(other *Any) bool {
 	// TODO: handle arrays and objects?
 	return strings.Contains(w.String(), other.String())
 }
 
-func (w Value) IsEmpty() bool {
+func (w Any) IsEmpty() bool {
 	return w.String() == ""
+}
+
+func (w Any) Append(other Any) Any {
+	// TODO: implement for arrays
+	return New(w.String() + other.String())
+}
+
+func (w Any) Add(other Any) Any {
+	return New(w.Float() + other.Float())
+}
+
+func (w Any) Sub(other Any) Any {
+	return New(w.Float() - other.Float())
 }

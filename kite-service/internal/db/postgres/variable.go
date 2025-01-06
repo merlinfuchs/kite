@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"strconv"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
@@ -13,6 +12,7 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/internal/store"
 	"github.com/kitecloud/kite/kite-service/pkg/flow"
+	"github.com/kitecloud/kite/kite-service/pkg/thing"
 	"gopkg.in/guregu/null.v4"
 )
 
@@ -207,15 +207,13 @@ func (c *Client) UpdateVariableValue(ctx context.Context, operation model.Variab
 
 	switch operation {
 	case flow.VariableOperationAppend:
-		// TODO: implement for arrays
-		value.Data = jsonToString(currentValue.Data) + jsonToString(value.Data)
+		value.Data = currentValue.Data.Append(value.Data)
 	case flow.VariableOperationPrepend:
-		// TODO: implement for arrays
-		value.Data = jsonToString(value.Data) + jsonToString(currentValue.Data)
+		value.Data = value.Data.Append(currentValue.Data)
 	case flow.VariableOperationIncrement:
-		value.Data = jsonToFloat64(currentValue.Data) + jsonToFloat64(value.Data)
+		value.Data = currentValue.Data.Add(value.Data)
 	case flow.VariableOperationDecrement:
-		value.Data = jsonToFloat64(currentValue.Data) - jsonToFloat64(value.Data)
+		value.Data = currentValue.Data.Sub(value.Data)
 	}
 
 	newValue, err := c.setVariableValueWithTx(ctx, tx, value)
@@ -312,7 +310,7 @@ func (c *Client) setVariableValueWithTx(ctx context.Context, tx pgx.Tx, value mo
 }
 
 func rowToVariableValue(row pgmodel.VariableValue) (model.VariableValue, error) {
-	var data any
+	var data thing.Any
 	err := json.Unmarshal(row.Value, &data)
 	if err != nil {
 		return model.VariableValue{}, fmt.Errorf("failed to unmarshal variable value: %w", err)
@@ -326,24 +324,4 @@ func rowToVariableValue(row pgmodel.VariableValue) (model.VariableValue, error) 
 		CreatedAt:  row.CreatedAt.Time,
 		UpdatedAt:  row.UpdatedAt.Time,
 	}, nil
-}
-
-func jsonToFloat64(data any) float64 {
-	switch v := data.(type) {
-	case float64:
-		return v
-	case string:
-		f, _ := strconv.ParseFloat(v, 64)
-		return f
-	case bool:
-		if v {
-			return 1
-		}
-		return 0
-	}
-	return 0
-}
-
-func jsonToString(data any) string {
-	return fmt.Sprintf("%v", data)
 }
