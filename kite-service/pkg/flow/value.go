@@ -286,7 +286,8 @@ func (v FlowValue) ResolvePlaceholder(ctx context.Context) (string, error) {
 	return v.String(), nil
 }
 
-// FlowString is a string that can contain placeholders and may produce a different type of value.
+// FlowString is a string that can contain placeholders
+// and may produce a different type of value when evaluated.
 type FlowString string
 
 func (v *FlowString) EvalTemplate(ctx context.Context, t eval.Env) (FlowValue, error) {

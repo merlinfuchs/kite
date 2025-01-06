@@ -156,13 +156,13 @@ go build
 - [x] Slash Commands
   - [x] Sub Commands
   - [x] Basic Placeholders
-  - [ ] Advanced Placeholders
+  - [x] Advanced Placeholders
 - [x] Message Templates (MVP)
   - [x] Embeds
   - [x] Attachments
   - [x] Interactive Components
-  - [ ] Basic placeholders
-  - [ ] Advanced Placeholders
+  - [x] Basic placeholders
+  - [x] Advanced Placeholders
 - [x] Event Listeners
 - [x] Stored Variables (WIP)
   - [x] Basic infrastrcuture
