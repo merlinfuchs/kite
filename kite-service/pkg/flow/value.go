@@ -11,7 +11,7 @@ import (
 	"strings"
 
 	"github.com/diamondburned/arikawa/v3/discord"
-	"github.com/kitecloud/kite/kite-service/pkg/placeholder"
+	"github.com/kitecloud/kite/kite-service/pkg/eval"
 )
 
 type FlowValueType string
@@ -19,18 +19,66 @@ type FlowValueType string
 const (
 	FlowValueTypeNull         FlowValueType = "null"
 	FlowValueTypeString       FlowValueType = "string"
-	FlowValueTypeNumber       FlowValueType = "number"
+	FlowValueTypeBool         FlowValueType = "bool"
+	FlowValueTypeFloat        FlowValueType = "number"
+	FlowValueTypeInt          FlowValueType = "int"
 	FlowValueTypeArray        FlowValueType = "array"
 	FlowValueTypeMessage      FlowValueType = "message"
 	FlowValueTypeHTTPResponse FlowValueType = "http_response"
+	FlowValueTypeAny          FlowValueType = "any"
 )
 
 var FlowValueNull = FlowValue{Type: FlowValueTypeNull}
 
-// TODO: do we need this or can we just have all values be strings?
 type FlowValue struct {
 	Type  FlowValueType `json:"type"`
 	Value interface{}   `json:"value"`
+}
+
+func NewFlowValue(v interface{}) FlowValue {
+	switch v := v.(type) {
+	case string:
+		return NewFlowValueString(v)
+	case bool:
+		return NewFlowValueBool(v)
+	case float64:
+		return NewFlowValueNumber(v)
+	case float32:
+		return NewFlowValueNumber(float64(v))
+	case int64:
+		return NewFlowValueInt(v)
+	case int32:
+		return NewFlowValueInt(int64(v))
+	case int16:
+		return NewFlowValueInt(int64(v))
+	case int8:
+		return NewFlowValueInt(int64(v))
+	case uint64:
+		return NewFlowValueInt(int64(v))
+	case uint32:
+		return NewFlowValueInt(int64(v))
+	case uint16:
+		return NewFlowValueInt(int64(v))
+	case uint8:
+		return NewFlowValueInt(int64(v))
+	case int:
+		return NewFlowValueInt(int64(v))
+	case []FlowValue:
+		return NewFlowValueArray(v)
+	case discord.Message:
+		return NewFlowValueMessage(v)
+	case http.Response:
+		return NewFlowValueHTTPResponse(v)
+	default:
+		return NewFlowValueAny(v)
+	}
+}
+
+func NewFlowValueAny(v any) FlowValue {
+	return FlowValue{
+		Type:  FlowValueTypeAny,
+		Value: v,
+	}
 }
 
 func NewFlowValueString(s string) FlowValue {
@@ -40,10 +88,24 @@ func NewFlowValueString(s string) FlowValue {
 	}
 }
 
+func NewFlowValueBool(b bool) FlowValue {
+	return FlowValue{
+		Type:  FlowValueTypeBool,
+		Value: b,
+	}
+}
+
 func NewFlowValueNumber(n float64) FlowValue {
 	return FlowValue{
-		Type:  FlowValueTypeNumber,
+		Type:  FlowValueTypeFloat,
 		Value: n,
+	}
+}
+
+func NewFlowValueInt(i int64) FlowValue {
+	return FlowValue{
+		Type:  FlowValueTypeInt,
+		Value: i,
 	}
 }
 
@@ -68,40 +130,24 @@ func NewFlowValueHTTPResponse(r http.Response) FlowValue {
 	}
 }
 
-func (v *FlowValue) ContainsPlaceholder() bool {
-	if v.Type != FlowValueTypeString {
-		return false
-	}
-
-	return placeholder.ContainsPlaceholder(v.String())
-}
-
-func (v *FlowValue) FillPlaceholders(ctx context.Context, t *placeholder.Engine) error {
-	res, err := t.Fill(ctx, v.String())
-	if err != nil {
-		return fmt.Errorf("failed to fill placeholders: %w", err)
-	}
-
-	*v = FlowValue{
-		Type:  FlowValueTypeString,
-		Value: res,
-	}
-
-	return nil
-}
-
 func (v *FlowValue) IsNull() bool {
 	return v.Type == FlowValueTypeNull || v.Type == "" || v.Value == nil
 }
 
-func (v *FlowValue) String() string {
+func (v FlowValue) String() string {
 	switch v.Type {
 	case FlowValueTypeNull:
 		return "null"
 	case FlowValueTypeString:
 		s, _ := v.Value.(string)
 		return s
-	case FlowValueTypeNumber:
+	case FlowValueTypeBool:
+		b, _ := v.Value.(bool)
+		return strconv.FormatBool(b)
+	case FlowValueTypeInt:
+		i, _ := v.Value.(int64)
+		return fmt.Sprintf("%d", i)
+	case FlowValueTypeFloat:
 		n, _ := v.Value.(float64)
 		if n == math.Floor(n) {
 			return fmt.Sprintf("%d", int64(n))
@@ -121,25 +167,56 @@ func (v *FlowValue) String() string {
 	case FlowValueTypeHTTPResponse:
 		res, _ := v.HTTPResponse()
 		return res.Status
+	default:
+		return fmt.Sprintf("%v", v.Value)
 	}
-
-	return ""
 }
 
-func (v *FlowValue) Number() float64 {
+func (v FlowValue) Float() float64 {
 	switch v.Type {
 	case FlowValueTypeNull:
 		return 0
-	case FlowValueTypeNumber:
+	case FlowValueTypeBool:
+		b, _ := v.Value.(bool)
+		if b {
+			return 1
+		}
+		return 0
+	case FlowValueTypeFloat:
 		n, _ := v.Value.(float64)
 		return n
+	case FlowValueTypeInt:
+		i, _ := v.Value.(int64)
+		return float64(i)
 	default:
 		n, _ := strconv.ParseFloat(v.String(), 64)
 		return n
 	}
 }
 
-func (v *FlowValue) Message() (discord.Message, bool) {
+func (v FlowValue) Int() int64 {
+	switch v.Type {
+	case FlowValueTypeNull:
+		return 0
+	case FlowValueTypeBool:
+		b, _ := v.Value.(bool)
+		if b {
+			return 1
+		}
+		return 0
+	case FlowValueTypeInt:
+		i, _ := v.Value.(int64)
+		return i
+	case FlowValueTypeFloat:
+		n, _ := v.Value.(float64)
+		return int64(n)
+	default:
+		n, _ := strconv.ParseInt(v.String(), 10, 64)
+		return n
+	}
+}
+
+func (v FlowValue) Message() (discord.Message, bool) {
 	if v.Type != FlowValueTypeMessage {
 		return discord.Message{}, false
 	}
@@ -147,7 +224,7 @@ func (v *FlowValue) Message() (discord.Message, bool) {
 	return v.Value.(discord.Message), true
 }
 
-func (v *FlowValue) HTTPResponse() (http.Response, bool) {
+func (v FlowValue) HTTPResponse() (http.Response, bool) {
 	if v.Type != FlowValueTypeHTTPResponse {
 		return http.Response{}, false
 	}
@@ -155,33 +232,37 @@ func (v *FlowValue) HTTPResponse() (http.Response, bool) {
 	return v.Value.(http.Response), true
 }
 
-func (v *FlowValue) Equals(other *FlowValue) bool {
+func (v FlowValue) Equals(other *FlowValue) bool {
 	return v.String() == other.String()
 }
 
-func (v *FlowValue) EqualsStrict(other *FlowValue) bool {
+func (v FlowValue) EqualsStrict(other *FlowValue) bool {
 	// We can't just == the values directly, as they might contain pointers.
 	return reflect.DeepEqual(v, other)
 }
 
-func (v *FlowValue) GreaterThan(other *FlowValue) bool {
-	return v.Number() > other.Number()
+func (v FlowValue) GreaterThan(other *FlowValue) bool {
+	return v.Float() > other.Float()
 }
 
-func (v *FlowValue) GreaterThanOrEqual(other *FlowValue) bool {
-	return v.Number() >= other.Number()
+func (v FlowValue) GreaterThanOrEqual(other *FlowValue) bool {
+	return v.Float() >= other.Float()
 }
 
-func (v *FlowValue) LessThan(other *FlowValue) bool {
-	return v.Number() < other.Number()
+func (v FlowValue) LessThan(other *FlowValue) bool {
+	return v.Float() < other.Float()
 }
 
-func (v *FlowValue) LessThanOrEqual(other *FlowValue) bool {
-	return v.Number() <= other.Number()
+func (v FlowValue) LessThanOrEqual(other *FlowValue) bool {
+	return v.Float() <= other.Float()
 }
 
-func (v *FlowValue) Contains(other *FlowValue) bool {
+func (v FlowValue) Contains(other *FlowValue) bool {
 	return strings.Contains(v.String(), other.String())
+}
+
+func (v FlowValue) IsEmpty() bool {
+	return v.String() == ""
 }
 
 func (v *FlowValue) UnmarshalJSON(data []byte) error {
@@ -202,7 +283,11 @@ func (v *FlowValue) UnmarshalJSON(data []byte) error {
 		return nil
 	case FlowValueTypeString:
 		v.Value = ""
-	case FlowValueTypeNumber:
+	case FlowValueTypeBool:
+		v.Value = false
+	case FlowValueTypeInt:
+		v.Value = int64(0)
+	case FlowValueTypeFloat:
 		v.Value = float64(0)
 	case FlowValueTypeArray:
 		v.Value = []FlowValue{}
@@ -217,70 +302,40 @@ func (v *FlowValue) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-func (v FlowValue) GetPlaceholder(ctx context.Context, key string) (placeholder.Provider, error) {
-	// TODO: implement for some types
-	return nil, placeholder.ErrNotFound
-}
-
 func (v FlowValue) ResolvePlaceholder(ctx context.Context) (string, error) {
 	return v.String(), nil
 }
 
-// FlowString is a string that can contain placeholders.
+func (v FlowValue) EvalEnv() any {
+	switch v.Type {
+	case FlowValueTypeHTTPResponse:
+		resp, _ := v.HTTPResponse()
+		return eval.NewHTTPResponseEnv(&resp)
+	case FlowValueTypeMessage:
+		msg, _ := v.Message()
+		return eval.NewMessageEnv(&msg)
+	default:
+		return v.Value
+	}
+}
+
+// FlowString is a string that can contain placeholders
+// and may produce a different type of value when evaluated.
 type FlowString string
 
-func (v FlowString) ContainsPlaceholder() bool {
-	return placeholder.ContainsPlaceholder(string(v))
-}
-
-func (v *FlowString) FillPlaceholders(ctx context.Context, t *placeholder.Engine) (FlowString, error) {
-	res, err := t.Fill(ctx, v.String())
+func (v *FlowString) EvalTemplate(ctx context.Context, t eval.Env) (FlowValue, error) {
+	res, err := eval.EvalTemplate(ctx, v.String(), t)
 	if err != nil {
-		return "", fmt.Errorf("failed to fill placeholders: %w", err)
+		return FlowValueNull, fmt.Errorf("failed to eval template: %w", err)
 	}
 
-	return FlowString(res), nil
-}
-
-func (v FlowString) Float() float64 {
-	n, _ := strconv.ParseFloat(string(v), 64)
-	return n
-}
-
-func (v FlowString) Int() int64 {
-	n, _ := strconv.ParseInt(string(v), 10, 64)
-	return n
+	return NewFlowValue(res), nil
 }
 
 func (v FlowString) String() string {
 	return string(v)
 }
 
-func (v FlowString) Equals(other *FlowString) bool {
-	return v.String() == other.String()
-}
-
-func (v FlowString) EqualsStrict(other *FlowString) bool {
-	// We can't just == the values directly, as they might contain pointers.
-	return reflect.DeepEqual(v, other)
-}
-
-func (v FlowString) GreaterThan(other *FlowString) bool {
-	return v.Float() > other.Float()
-}
-
-func (v FlowString) GreaterThanOrEqual(other *FlowString) bool {
-	return v.Float() >= other.Float()
-}
-
-func (v FlowString) LessThan(other *FlowString) bool {
-	return v.Float() < other.Float()
-}
-
-func (v FlowString) LessThanOrEqual(other *FlowString) bool {
-	return v.Float() <= other.Float()
-}
-
-func (v FlowString) Contains(other *FlowString) bool {
-	return strings.Contains(v.String(), other.String())
+func (v FlowString) StringValue() FlowValue {
+	return NewFlowValueString(string(v))
 }

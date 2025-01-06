@@ -315,6 +315,10 @@ export const nodeActionAiChatCompletionDataSchema = nodeBaseDataSchema.extend({
   }),
 });
 
+export const nodeActionExpressionEvaluateDataSchema = nodeBaseDataSchema.extend({
+  expression: z.string().max(2000)
+});
+
 export const nodeActionLogDataSchema = nodeBaseDataSchema.extend({
   log_level: z
     .literal("debug")

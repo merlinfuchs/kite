@@ -6,7 +6,7 @@ import (
 
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/utils/ws"
-	"github.com/kitecloud/kite/kite-service/pkg/placeholder"
+	"github.com/kitecloud/kite/kite-service/pkg/eval"
 )
 
 type FlowContext struct {
@@ -15,8 +15,8 @@ type FlowContext struct {
 	FlowContextLimits
 	FlowContextState
 
-	Data         FlowContextData
-	Placeholders *placeholder.Engine
+	Data    FlowContextData
+	EvalEnv eval.Env
 }
 
 func NewContext(
@@ -24,32 +24,21 @@ func NewContext(
 	data FlowContextData,
 	providers FlowProviders,
 	limits FlowContextLimits,
-	placeholders *placeholder.Engine,
+	evalEnv eval.Env,
 ) *FlowContext {
-	if data.Interaction() != nil {
-		placeholders.AddProvider("interaction", placeholder.NewInteractionProvider(data.Interaction()))
-	}
-	if data.Event() != nil {
-		placeholders.AddProvider("event", placeholder.NewEventProvider(data.Event()))
-	}
-
-	placeholders.AddProvider("variables", &variablePlaceholderProvider{
-		Variable: providers.Variable,
-	})
-
 	state := FlowContextState{
 		NodeStates: make(map[string]*FlowContextNodeState),
 	}
 
-	flowStatePlaceHolderProvider := &flowStatePlaceholderProvider{
+	evalEnv["node"] = (&nodeEvalEnv{
 		state: &state,
-	}
-	placeholders.AddProvider("nodes", flowStatePlaceHolderProvider)
+	}).GetNode
 
 	return &FlowContext{
-		Context:           ctx,
-		Data:              data,
-		Placeholders:      placeholders,
+		Context: ctx,
+		Data:    data,
+		// Placeholders:      placeholders,
+		EvalEnv:           evalEnv,
 		FlowProviders:     providers,
 		FlowContextLimits: limits,
 		FlowContextState:  state,
@@ -157,7 +146,7 @@ func (c *FlowContextState) GetNodeState(nodeID string) *FlowContextNodeState {
 }
 
 type FlowContextNodeState struct {
-	ConditionBaseValue FlowString
+	ConditionBaseValue FlowValue
 	ConditionItemMet   bool
 	Result             FlowValue
 	LoopExited         bool

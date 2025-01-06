@@ -1,8 +1,13 @@
-import { useCallback, useEffect, useMemo, useRef } from "react";
-import { Node, useNodes, useReactFlow, useStoreApi } from "@xyflow/react";
-import { NodeData, NodeProps } from "../../lib/flow/data";
+import {
+  decodePermissionsBitset,
+  encodePermissionsBitset,
+  permissionBits,
+} from "@/lib/discord/permissions";
 import { useNodeValues } from "@/lib/flow/nodes";
+import { useMessages, useVariables } from "@/lib/hooks/api";
+import { useAppId } from "@/lib/hooks/params";
 import { getUniqueId } from "@/lib/utils";
+import { Node, useNodes, useReactFlow, useStoreApi } from "@xyflow/react";
 import {
   ChevronDownIcon,
   CircleAlertIcon,
@@ -12,6 +17,19 @@ import {
   TrashIcon,
   XIcon,
 } from "lucide-react";
+import Link from "next/link";
+import { useCallback, useEffect, useMemo, useRef } from "react";
+import { NodeData, NodeProps } from "../../lib/flow/data";
+import MessageCreateDialog from "../app/MessageCreateDialog";
+import VariableCreateDialog from "../app/VariableCreateDialog";
+import PlaceholderInput from "../common/PlaceholderInput";
+import { Button } from "../ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuTrigger
+} from "../ui/dropdown-menu";
 import { Input } from "../ui/input";
 import {
   Select,
@@ -21,30 +39,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../ui/select";
-import { Textarea } from "../ui/textarea";
 import { Switch } from "../ui/switch";
-import { Button } from "../ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuCheckboxItem,
-  DropdownMenuContent,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "../ui/dropdown-menu";
-import {
-  decodePermissionsBitset,
-  encodePermissionsBitset,
-  permissionBits,
-} from "@/lib/discord/permissions";
-import FlowPlaceholderExplorer from "./FlowPlaceholderExplorer";
-import { useMessages, useVariables } from "@/lib/hooks/api";
-import Link from "next/link";
+import { Textarea } from "../ui/textarea";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
-import { useAppId } from "@/lib/hooks/params";
-import MessageCreateDialog from "../app/MessageCreateDialog";
-import PlaceholderInput from "../common/PlaceholderInput";
-import VariableCreateDialog from "../app/VariableCreateDialog";
+import FlowPlaceholderExplorer from "./FlowPlaceholderExplorer";
 
 interface Props {
   nodeId: string;
@@ -82,6 +80,7 @@ const intputs: Record<string, any> = {
   variable_value: VariableValueInput,
   http_request_data: HttpRequestDataInput,
   ai_chat_completion_data: AiChatCompletionDataInput,
+  expression: ExpressionInput,
   audit_log_reason: AuditLogReasonInput,
   user_target: UserTargetInput,
   member_ban_delete_message_duration_seconds:
@@ -589,6 +588,25 @@ function AiChatCompletionDataInput({ data, updateData, errors }: InputProps) {
         placeholders
       />
     </>
+  );
+}
+
+function ExpressionInput({ data, updateData, errors }: InputProps) {
+  return (
+      <BaseInput
+        type="textarea"
+        field="expression"
+        title="Expression"
+        description="The expression to evaluate"
+        value={data.expression|| ""}
+        updateValue={(v) =>
+          updateData({
+            expression: v || undefined,
+          })
+        }
+        errors={errors}
+        placeholders
+      />
   );
 }
 

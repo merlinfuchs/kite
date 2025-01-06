@@ -33,6 +33,7 @@ export const FlowNodeTypeActionMemberRoleAdd: FlowNodeType = "action_member_role
 export const FlowNodeTypeActionMemberRoleRemove: FlowNodeType = "action_member_role_remove";
 export const FlowNodeTypeActionHTTPRequest: FlowNodeType = "action_http_request";
 export const FlowNodeTypeActionAIChatCompletion: FlowNodeType = "action_ai_chat_completion";
+export const FlowNodeTypeActionExpressionEvaluate: FlowNodeType = "action_expression_evaluate";
 export const FlowNodeTypeActionLog: FlowNodeType = "action_log";
 export const FlowNodeTypeActionVariableSet: FlowNodeType = "action_variable_set";
 export const FlowNodeTypeActionVariableDelete: FlowNodeType = "action_variable_delete";
@@ -135,6 +136,10 @@ export interface FlowNodeData {
    */
   log_level?: LogLevel;
   log_message?: FlowString;
+  /**
+   * Expression Evaluate
+   */
+  expression?: FlowString;
   /**
    * Condition
    */

@@ -157,7 +157,7 @@ function useNodePlaceholders() {
         // TODO: take node result type into account
         return {
           label,
-          value: `nodes.${n.id}.result`,
+          value: `node(${n.id}).result`,
         };
       });
   }, [nodes, edges]);

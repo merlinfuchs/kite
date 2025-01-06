@@ -12,6 +12,16 @@ type MessageData struct {
 	Components  []ComponentRowData  `json:"components,omitempty"`
 }
 
+func (m *MessageData) EachString(replace func(s *string) error) error {
+	if err := replace(&m.Content); err != nil {
+		return err
+	}
+
+	// TODO: other strings
+
+	return nil
+}
+
 type MessageAttachment struct {
 	AssetID string `json:"asset_id,omitempty"`
 }

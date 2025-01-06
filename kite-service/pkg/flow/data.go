@@ -55,6 +55,7 @@ const (
 	FlowNodeTypeActionMemberRoleRemove     FlowNodeType = "action_member_role_remove"
 	FlowNodeTypeActionHTTPRequest          FlowNodeType = "action_http_request"
 	FlowNodeTypeActionAIChatCompletion     FlowNodeType = "action_ai_chat_completion"
+	FlowNodeTypeActionExpressionEvaluate   FlowNodeType = "action_expression_evaluate"
 	FlowNodeTypeActionLog                  FlowNodeType = "action_log"
 	FlowNodeTypeActionVariableSet          FlowNodeType = "action_variable_set"
 	FlowNodeTypeActionVariableDelete       FlowNodeType = "action_variable_delete"
@@ -157,6 +158,9 @@ type FlowNodeData struct {
 	// Log
 	LogLevel   LogLevel   `json:"log_level,omitempty"`
 	LogMessage FlowString `json:"log_message,omitempty"`
+
+	// Expression Evaluate
+	Expression FlowString `json:"expression,omitempty"`
 
 	// Condition
 	ConditionBaseValue     FlowString        `json:"condition_base_value,omitempty"`
