@@ -84,7 +84,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 				return traceError(n, err)
 			}
 
-			nodeState.Result = NewFlowValueMessage(*msg)
+			nodeState.Result = NewValue(*msg)
 		} else {
 			responseData := data.ToInteractionResponseData()
 
@@ -167,7 +167,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 				return traceError(n, err)
 			}
 		} else {
-			messageTarget, err := n.Data.MessageTarget.EvalTemplate(ctx, ctx.EvalEnv)
+			messageTarget, err := ctx.EvalTemplate(n.Data.MessageTarget)
 			if err != nil {
 				return traceError(n, err)
 			}
@@ -200,7 +200,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			}
 		}
 
-		nodeState.Result = NewFlowValueMessage(*msg)
+		nodeState.Result = NewValue(*msg)
 		return n.executeChildren(ctx)
 	case FlowNodeTypeActionResponseDelete:
 		interaction := ctx.Data.Interaction()
@@ -217,7 +217,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 				return traceError(n, err)
 			}
 		} else {
-			messageTarget, err := n.Data.MessageTarget.EvalTemplate(ctx, ctx.EvalEnv)
+			messageTarget, err := ctx.EvalTemplate(n.Data.MessageTarget)
 			if err != nil {
 				return traceError(n, err)
 			}
@@ -293,7 +293,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 
 		messageData := data.ToSendMessageData()
 
-		channelTarget, err := n.Data.ChannelTarget.EvalTemplate(ctx, ctx.EvalEnv)
+		channelTarget, err := ctx.EvalTemplate(n.Data.ChannelTarget)
 		if err != nil {
 			return traceError(n, err)
 		}
@@ -316,15 +316,15 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			}
 		}
 
-		nodeState.Result = NewFlowValueMessage(*msg)
+		nodeState.Result = NewValue(*msg)
 		return n.executeChildren(ctx)
 	case FlowNodeTypeActionMessageEdit:
-		channelTarget, err := n.Data.ChannelTarget.EvalTemplate(ctx, ctx.EvalEnv)
+		channelTarget, err := ctx.EvalTemplate(n.Data.ChannelTarget)
 		if err != nil {
 			return traceError(n, err)
 		}
 
-		messageTarget, err := n.Data.MessageTarget.EvalTemplate(ctx, ctx.EvalEnv)
+		messageTarget, err := ctx.EvalTemplate(n.Data.MessageTarget)
 		if err != nil {
 			return traceError(n, err)
 		}
@@ -389,20 +389,20 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			}
 		}
 
-		nodeState.Result = NewFlowValueMessage(*msg)
+		nodeState.Result = NewValue(*msg)
 		return n.executeChildren(ctx)
 	case FlowNodeTypeActionMessageDelete:
-		channelTarget, err := n.Data.ChannelTarget.EvalTemplate(ctx, ctx.EvalEnv)
+		channelTarget, err := ctx.EvalTemplate(n.Data.ChannelTarget)
 		if err != nil {
 			return traceError(n, err)
 		}
 
-		messageTarget, err := n.Data.MessageTarget.EvalTemplate(ctx, ctx.EvalEnv)
+		messageTarget, err := ctx.EvalTemplate(n.Data.MessageTarget)
 		if err != nil {
 			return traceError(n, err)
 		}
 
-		auditLogReason, err := n.Data.AuditLogReason.EvalTemplate(ctx, ctx.EvalEnv)
+		auditLogReason, err := ctx.EvalTemplate(n.Data.AuditLogReason)
 		if err != nil {
 			return traceError(n, err)
 		}
@@ -453,7 +453,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 
 		messageData := data.ToSendMessageData()
 
-		userTarget, err := n.Data.UserTarget.EvalTemplate(ctx, ctx.EvalEnv)
+		userTarget, err := ctx.EvalTemplate(n.Data.UserTarget)
 		if err != nil {
 			return traceError(n, err)
 		}
@@ -468,20 +468,20 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			return traceError(n, err)
 		}
 
-		nodeState.Result = NewFlowValueMessage(*msg)
+		nodeState.Result = NewValue(*msg)
 		return n.executeChildren(ctx)
 	case FlowNodeTypeActionMemberBan:
-		userID, err := n.Data.UserTarget.EvalTemplate(ctx, ctx.EvalEnv)
+		userID, err := ctx.EvalTemplate(n.Data.UserTarget)
 		if err != nil {
 			return traceError(n, err)
 		}
 
-		messageDeleteSeconds, err := n.Data.MemberBanDeleteMessageDurationSeconds.EvalTemplate(ctx, ctx.EvalEnv)
+		messageDeleteSeconds, err := ctx.EvalTemplate(n.Data.MemberBanDeleteMessageDurationSeconds)
 		if err != nil {
 			return traceError(n, err)
 		}
 
-		auditLogReason, err := n.Data.AuditLogReason.EvalTemplate(ctx, ctx.EvalEnv)
+		auditLogReason, err := ctx.EvalTemplate(n.Data.AuditLogReason)
 		if err != nil {
 			return traceError(n, err)
 		}
@@ -501,12 +501,12 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 
 		return n.executeChildren(ctx)
 	case FlowNodeTypeActionMemberUnban:
-		userID, err := n.Data.UserTarget.EvalTemplate(ctx, ctx.EvalEnv)
+		userID, err := ctx.EvalTemplate(n.Data.UserTarget)
 		if err != nil {
 			return traceError(n, err)
 		}
 
-		auditLogReason, err := n.Data.AuditLogReason.EvalTemplate(ctx, ctx.EvalEnv)
+		auditLogReason, err := ctx.EvalTemplate(n.Data.AuditLogReason)
 		if err != nil {
 			return traceError(n, err)
 		}
@@ -523,12 +523,12 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 
 		return n.executeChildren(ctx)
 	case FlowNodeTypeActionMemberKick:
-		userID, err := n.Data.UserTarget.EvalTemplate(ctx, ctx.EvalEnv)
+		userID, err := ctx.EvalTemplate(n.Data.UserTarget)
 		if err != nil {
 			return traceError(n, err)
 		}
 
-		auditLogReason, err := n.Data.AuditLogReason.EvalTemplate(ctx, ctx.EvalEnv)
+		auditLogReason, err := ctx.EvalTemplate(n.Data.AuditLogReason)
 		if err != nil {
 			return traceError(n, err)
 		}
@@ -545,17 +545,17 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 
 		return n.executeChildren(ctx)
 	case FlowNodeTypeActionMemberTimeout:
-		memberID, err := n.Data.UserTarget.EvalTemplate(ctx, ctx.EvalEnv)
+		memberID, err := ctx.EvalTemplate(n.Data.UserTarget)
 		if err != nil {
 			return traceError(n, err)
 		}
 
-		timeoutSeconds, err := n.Data.MemberTimeoutDurationSeconds.EvalTemplate(ctx, ctx.EvalEnv)
+		timeoutSeconds, err := ctx.EvalTemplate(n.Data.MemberTimeoutDurationSeconds)
 		if err != nil {
 			return traceError(n, err)
 		}
 
-		auditLogReason, err := n.Data.AuditLogReason.EvalTemplate(ctx, ctx.EvalEnv)
+		auditLogReason, err := ctx.EvalTemplate(n.Data.AuditLogReason)
 		if err != nil {
 			return traceError(n, err)
 		}
@@ -579,12 +579,12 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 
 		return n.executeChildren(ctx)
 	case FlowNodeTypeActionMemberEdit:
-		userID, err := n.Data.UserTarget.EvalTemplate(ctx, ctx.EvalEnv)
+		userID, err := ctx.EvalTemplate(n.Data.UserTarget)
 		if err != nil {
 			return traceError(n, err)
 		}
 
-		auditLogReason, err := n.Data.AuditLogReason.EvalTemplate(ctx, ctx.EvalEnv)
+		auditLogReason, err := ctx.EvalTemplate(n.Data.AuditLogReason)
 		if err != nil {
 			return traceError(n, err)
 		}
@@ -616,17 +616,17 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 
 		return n.executeChildren(ctx)
 	case FlowNodeTypeActionMemberRoleAdd:
-		userID, err := n.Data.UserTarget.EvalTemplate(ctx, ctx.EvalEnv)
+		userID, err := ctx.EvalTemplate(n.Data.UserTarget)
 		if err != nil {
 			return traceError(n, err)
 		}
 
-		roleID, err := n.Data.RoleTarget.EvalTemplate(ctx, ctx.EvalEnv)
+		roleID, err := ctx.EvalTemplate(n.Data.RoleTarget)
 		if err != nil {
 			return traceError(n, err)
 		}
 
-		auditLogReason, err := n.Data.AuditLogReason.EvalTemplate(ctx, ctx.EvalEnv)
+		auditLogReason, err := ctx.EvalTemplate(n.Data.AuditLogReason)
 		if err != nil {
 			return traceError(n, err)
 		}
@@ -641,17 +641,17 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 
 		return n.executeChildren(ctx)
 	case FlowNodeTypeActionMemberRoleRemove:
-		userID, err := n.Data.UserTarget.EvalTemplate(ctx, ctx.EvalEnv)
+		userID, err := ctx.EvalTemplate(n.Data.UserTarget)
 		if err != nil {
 			return traceError(n, err)
 		}
 
-		roleID, err := n.Data.RoleTarget.EvalTemplate(ctx, ctx.EvalEnv)
+		roleID, err := ctx.EvalTemplate(n.Data.RoleTarget)
 		if err != nil {
 			return traceError(n, err)
 		}
 
-		auditLogReason, err := n.Data.AuditLogReason.EvalTemplate(ctx, ctx.EvalEnv)
+		auditLogReason, err := ctx.EvalTemplate(n.Data.AuditLogReason)
 		if err != nil {
 			return traceError(n, err)
 		}
@@ -666,12 +666,12 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 
 		return n.executeChildren(ctx)
 	case FlowNodeTypeActionVariableSet:
-		scope, err := n.Data.VariableScope.EvalTemplate(ctx, ctx.EvalEnv)
+		scope, err := ctx.EvalTemplate(n.Data.VariableScope)
 		if err != nil {
 			return traceError(n, err)
 		}
 
-		value, err := n.Data.VariableValue.EvalTemplate(ctx, ctx.EvalEnv)
+		value, err := ctx.EvalTemplate(n.Data.VariableValue)
 		if err != nil {
 			return traceError(n, err)
 		}
@@ -687,10 +687,10 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			return traceError(n, err)
 		}
 
-		nodeState.Result = *newValue
+		nodeState.Result = NewValue(newValue)
 		return n.executeChildren(ctx)
 	case FlowNodeTypeActionVariableDelete:
-		scope, err := n.Data.VariableScope.EvalTemplate(ctx, ctx.EvalEnv)
+		scope, err := ctx.EvalTemplate(n.Data.VariableScope)
 		if err != nil {
 			return traceError(n, err)
 		}
@@ -706,7 +706,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 
 		return n.executeChildren(ctx)
 	case FlowNodeTypeActionVariableGet:
-		scope, err := n.Data.VariableScope.EvalTemplate(ctx, ctx.EvalEnv)
+		scope, err := ctx.EvalTemplate(n.Data.VariableScope)
 		if err != nil {
 			return traceError(n, err)
 		}
@@ -720,7 +720,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			return traceError(n, err)
 		}
 
-		nodeState.Result = val
+		nodeState.Result = NewValue(val)
 		return n.executeChildren(ctx)
 	case FlowNodeTypeActionHTTPRequest:
 		if n.Data.HTTPRequestData == nil {
@@ -730,7 +730,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			}
 		}
 
-		url, err := n.Data.HTTPRequestData.URL.EvalTemplate(ctx, ctx.EvalEnv)
+		url, err := ctx.EvalTemplate(n.Data.HTTPRequestData.URL)
 		if err != nil {
 			return traceError(n, err)
 		}
@@ -745,7 +745,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			return traceError(n, err)
 		}
 
-		nodeState.Result = NewFlowValueHTTPResponse(*resp)
+		nodeState.Result = NewValue(*resp)
 		return n.executeChildren(ctx)
 	case FlowNodeTypeActionAIChatCompletion:
 		data := n.Data.AIChatCompletionData
@@ -756,17 +756,17 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			}
 		}
 
-		systemPrompt, err := data.SystemPrompt.EvalTemplate(ctx, ctx.EvalEnv)
+		systemPrompt, err := ctx.EvalTemplate(data.SystemPrompt)
 		if err != nil {
 			return traceError(n, err)
 		}
 
-		prompt, err := data.Prompt.EvalTemplate(ctx, ctx.EvalEnv)
+		prompt, err := ctx.EvalTemplate(data.Prompt)
 		if err != nil {
 			return traceError(n, err)
 		}
 
-		maxCompletionTokens, err := data.MaxCompletionTokens.EvalTemplate(ctx, ctx.EvalEnv)
+		maxCompletionTokens, err := ctx.EvalTemplate(data.MaxCompletionTokens)
 		if err != nil {
 			return traceError(n, err)
 		}
@@ -780,10 +780,10 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			return traceError(n, err)
 		}
 
-		nodeState.Result = NewFlowValueString(response)
+		nodeState.Result = NewValue(response)
 		return n.executeChildren(ctx)
 	case FlowNodeTypeActionExpressionEvaluate:
-		expression, err := n.Data.Expression.EvalTemplate(ctx, ctx.EvalEnv)
+		expression, err := ctx.EvalTemplate(n.Data.Expression)
 		if err != nil {
 			return traceError(n, err)
 		}
@@ -793,10 +793,10 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			return traceError(n, err)
 		}
 
-		nodeState.Result = NewFlowValue(res)
+		nodeState.Result = NewValue(res)
 		return n.executeChildren(ctx)
 	case FlowNodeTypeActionLog:
-		logMessage, err := n.Data.LogMessage.EvalTemplate(ctx, ctx.EvalEnv)
+		logMessage, err := ctx.EvalTemplate(n.Data.LogMessage)
 		if err != nil {
 			return traceError(n, err)
 		}
@@ -808,7 +808,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 		FlowNodeTypeControlConditionChannel,
 		FlowNodeTypeControlConditionRole:
 
-		baseValue, err := n.Data.ConditionBaseValue.EvalTemplate(ctx, ctx.EvalEnv)
+		baseValue, err := ctx.EvalTemplate(n.Data.ConditionBaseValue)
 		if err != nil {
 			return traceError(n, err)
 		}
@@ -846,7 +846,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			return nil
 		}
 
-		itemValue, err := n.Data.ConditionItemValue.EvalTemplate(ctx, ctx.EvalEnv)
+		itemValue, err := ctx.EvalTemplate(n.Data.ConditionItemValue)
 		if err != nil {
 			return traceError(n, err)
 		}
@@ -894,7 +894,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			return nil
 		}
 
-		itemValue, err := n.Data.ConditionItemValue.EvalTemplate(ctx, ctx.EvalEnv)
+		itemValue, err := ctx.EvalTemplate(n.Data.ConditionItemValue)
 		if err != nil {
 			return traceError(n, err)
 		}
@@ -933,7 +933,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 
 		return n.executeChildren(ctx)
 	case FlowNodeTypeControlLoop:
-		loopCount, err := n.Data.LoopCount.EvalTemplate(ctx, ctx.EvalEnv)
+		loopCount, err := ctx.EvalTemplate(n.Data.LoopCount)
 		if err != nil {
 			return traceError(n, err)
 		}
@@ -965,7 +965,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			ctx.GetNodeState(loop.ID).LoopExited = true
 		}
 	case FlowNodeTypeControlSleep:
-		sleepSeconds, err := n.Data.SleepDurationSeconds.EvalTemplate(ctx, ctx.EvalEnv)
+		sleepSeconds, err := ctx.EvalTemplate(n.Data.SleepDurationSeconds)
 		if err != nil {
 			return traceError(n, err)
 		}

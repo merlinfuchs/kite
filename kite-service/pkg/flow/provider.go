@@ -85,8 +85,8 @@ type FlowLogProvider interface {
 }
 
 type FlowVariableProvider interface {
-	UpdateVariable(ctx context.Context, id string, scope null.String, operation VariableOperation, value FlowValue) (*FlowValue, error)
-	Variable(ctx context.Context, id string, scope null.String) (FlowValue, error)
+	UpdateVariable(ctx context.Context, id string, scope null.String, operation VariableOperation, value any) (any, error)
+	Variable(ctx context.Context, id string, scope null.String) (any, error)
 	DeleteVariable(ctx context.Context, id string, scope null.String) error
 }
 

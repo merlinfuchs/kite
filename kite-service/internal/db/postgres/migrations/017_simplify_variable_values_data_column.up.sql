@@ -1,0 +1,1 @@
+UPDATE variable_values SET value = value::jsonb->'value';

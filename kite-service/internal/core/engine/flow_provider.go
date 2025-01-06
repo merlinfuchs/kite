@@ -310,7 +310,7 @@ func NewVariableProvider(variableValueStore store.VariableValueStore) *VariableP
 	}
 }
 
-func (p *VariableProvider) UpdateVariable(ctx context.Context, id string, scope null.String, operation flow.VariableOperation, value flow.FlowValue) (*flow.FlowValue, error) {
+func (p *VariableProvider) UpdateVariable(ctx context.Context, id string, scope null.String, operation flow.VariableOperation, value any) (any, error) {
 	v := model.VariableValue{
 		VariableID: id,
 		Scope:      scope,
@@ -327,13 +327,13 @@ func (p *VariableProvider) UpdateVariable(ctx context.Context, id string, scope 
 	return &newValue.Data, nil
 }
 
-func (p *VariableProvider) Variable(ctx context.Context, id string, scope null.String) (flow.FlowValue, error) {
+func (p *VariableProvider) Variable(ctx context.Context, id string, scope null.String) (any, error) {
 	row, err := p.variableValueStore.VariableValue(ctx, id, scope)
 	if err != nil {
 		if errors.Is(err, store.ErrNotFound) {
-			return flow.FlowValueNull, flow.ErrNotFound
+			return nil, flow.ErrNotFound
 		}
-		return flow.FlowValue{}, fmt.Errorf("failed to get variable value: %w", err)
+		return nil, fmt.Errorf("failed to get variable value: %w", err)
 	}
 
 	return row.Data, nil

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strconv"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
@@ -206,13 +207,15 @@ func (c *Client) UpdateVariableValue(ctx context.Context, operation model.Variab
 
 	switch operation {
 	case flow.VariableOperationAppend:
-		value.Data = flow.NewFlowValueString(currentValue.Data.String() + value.Data.String())
+		// TODO: implement for arrays
+		value.Data = jsonToString(currentValue.Data) + jsonToString(value.Data)
 	case flow.VariableOperationPrepend:
-		value.Data = flow.NewFlowValueString(value.Data.String() + currentValue.Data.String())
+		// TODO: implement for arrays
+		value.Data = jsonToString(value.Data) + jsonToString(currentValue.Data)
 	case flow.VariableOperationIncrement:
-		value.Data = flow.NewFlowValueNumber(currentValue.Data.Float() + value.Data.Float())
+		value.Data = jsonToFloat64(currentValue.Data) + jsonToFloat64(value.Data)
 	case flow.VariableOperationDecrement:
-		value.Data = flow.NewFlowValueNumber(currentValue.Data.Float() - value.Data.Float())
+		value.Data = jsonToFloat64(currentValue.Data) - jsonToFloat64(value.Data)
 	}
 
 	newValue, err := c.setVariableValueWithTx(ctx, tx, value)
@@ -309,7 +312,7 @@ func (c *Client) setVariableValueWithTx(ctx context.Context, tx pgx.Tx, value mo
 }
 
 func rowToVariableValue(row pgmodel.VariableValue) (model.VariableValue, error) {
-	var data model.VariableValueData
+	var data any
 	err := json.Unmarshal(row.Value, &data)
 	if err != nil {
 		return model.VariableValue{}, fmt.Errorf("failed to unmarshal variable value: %w", err)
@@ -323,4 +326,24 @@ func rowToVariableValue(row pgmodel.VariableValue) (model.VariableValue, error) 
 		CreatedAt:  row.CreatedAt.Time,
 		UpdatedAt:  row.UpdatedAt.Time,
 	}, nil
+}
+
+func jsonToFloat64(data any) float64 {
+	switch v := data.(type) {
+	case float64:
+		return v
+	case string:
+		f, _ := strconv.ParseFloat(v, 64)
+		return f
+	case bool:
+		if v {
+			return 1
+		}
+		return 0
+	}
+	return 0
+}
+
+func jsonToString(data any) string {
+	return fmt.Sprintf("%v", data)
 }

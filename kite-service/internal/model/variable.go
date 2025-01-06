@@ -22,10 +22,9 @@ type VariableValue struct {
 	ID         uint64
 	VariableID string
 	Scope      null.String
-	Data       VariableValueData
+	Data       any
 	CreatedAt  time.Time
 	UpdatedAt  time.Time
 }
 
 type VariableValueOperation = flow.VariableOperation
-type VariableValueData = flow.FlowValue
