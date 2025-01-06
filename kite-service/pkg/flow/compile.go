@@ -222,7 +222,12 @@ func (n *CompiledFlowNode) CommandArguments() discord.CommandOptions {
 			}
 
 			if o != nil {
-				res = append(res, o)
+				// Required arguments should be the first in the list
+				if node.Data.CommandArgumentRequired {
+					res = append([]discord.CommandOption{o}, res...)
+				} else {
+					res = append(res, o)
+				}
 			}
 		}
 	}
