@@ -85,7 +85,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 				return traceError(n, err)
 			}
 
-			nodeState.Result = thing.New(*msg)
+			nodeState.Result = thing.New(msg)
 		} else {
 			responseData := data.ToInteractionResponseData()
 
@@ -201,7 +201,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			}
 		}
 
-		nodeState.Result = thing.New(*msg)
+		nodeState.Result = thing.New(msg)
 		return n.executeChildren(ctx)
 	case FlowNodeTypeActionResponseDelete:
 		interaction := ctx.Data.Interaction()
@@ -317,7 +317,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			}
 		}
 
-		nodeState.Result = thing.New(*msg)
+		nodeState.Result = thing.New(msg)
 		return n.executeChildren(ctx)
 	case FlowNodeTypeActionMessageEdit:
 		channelTarget, err := ctx.EvalTemplate(n.Data.ChannelTarget)
@@ -390,7 +390,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			}
 		}
 
-		nodeState.Result = thing.New(*msg)
+		nodeState.Result = thing.New(msg)
 		return n.executeChildren(ctx)
 	case FlowNodeTypeActionMessageDelete:
 		channelTarget, err := ctx.EvalTemplate(n.Data.ChannelTarget)
@@ -469,7 +469,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			return traceError(n, err)
 		}
 
-		nodeState.Result = thing.New(*msg)
+		nodeState.Result = thing.New(msg)
 		return n.executeChildren(ctx)
 	case FlowNodeTypeActionMemberBan:
 		userID, err := ctx.EvalTemplate(n.Data.UserTarget)
@@ -746,7 +746,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			return traceError(n, err)
 		}
 
-		nodeState.Result = thing.New(*resp)
+		nodeState.Result = thing.New(resp)
 		return n.executeChildren(ctx)
 	case FlowNodeTypeActionAIChatCompletion:
 		data := n.Data.AIChatCompletionData

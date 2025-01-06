@@ -29,7 +29,7 @@ func (e *nodeEvalEnv) GetNode(ctx context.Context, rawID any) (any, error) {
 	}
 
 	return map[string]any{
-		"result": state.Result.Inner,
+		"result": eval.NewAnyEnv(state.Result),
 	}, nil
 }
 

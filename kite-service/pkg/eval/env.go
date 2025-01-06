@@ -8,6 +8,7 @@ import (
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/gateway"
 	"github.com/diamondburned/arikawa/v3/utils/ws"
+	"github.com/kitecloud/kite/kite-service/pkg/thing"
 )
 
 type Env map[string]any
@@ -280,7 +281,7 @@ type HTTPResponseEnv struct {
 	resp *http.Response
 
 	Status     string                 `expr:"status"`
-	StatusCode int                    `expr:"status_code"`
+	StatusCode int                    `expr:"status_codxc  e"`
 	BodyFunc   func() (string, error) `expr:"body"`
 }
 
@@ -302,4 +303,27 @@ func NewHTTPResponseEnv(resp *http.Response) *HTTPResponseEnv {
 
 func (h HTTPResponseEnv) String() string {
 	return h.Status
+}
+
+func NewAnyEnv(v any) any {
+	switch v := v.(type) {
+	case thing.Any:
+		return NewAnyEnv(v.Inner)
+	case *discord.Message:
+		return NewMessageEnv(v)
+	case *http.Response:
+		return NewHTTPResponseEnv(v)
+	case *discord.User:
+		return NewUserEnv(v)
+	case *discord.Member:
+		return NewMemberEnv(v)
+	case *discord.Channel:
+		return NewChannelEnv(v.ID)
+	case *discord.Guild:
+		return NewGuildEnv(v.ID)
+	case *discord.InteractionEvent:
+		return NewInteractionEnv(v)
+	default:
+		return v
+	}
 }
