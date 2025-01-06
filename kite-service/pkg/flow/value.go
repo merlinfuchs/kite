@@ -188,11 +188,23 @@ func (v FlowValue) Float() float64 {
 
 func (v FlowValue) Int() int64 {
 	switch v.Type {
+	case FlowValueTypeNull:
+		return 0
+	case FlowValueTypeBool:
+		b, _ := v.Value.(bool)
+		if b {
+			return 1
+		}
+		return 0
 	case FlowValueTypeInt:
 		i, _ := v.Value.(int64)
 		return i
+	case FlowValueTypeFloat:
+		n, _ := v.Value.(float64)
+		return int64(n)
 	default:
-		return int64(v.Float())
+		n, _ := strconv.ParseInt(v.String(), 10, 64)
+		return n
 	}
 }
 
