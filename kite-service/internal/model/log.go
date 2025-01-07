@@ -1,6 +1,10 @@
 package model
 
-import "time"
+import (
+	"time"
+
+	"gopkg.in/guregu/null.v4"
+)
 
 type LogLevel string
 
@@ -12,11 +16,14 @@ const (
 )
 
 type LogEntry struct {
-	ID        int64     `json:"id"`
-	AppID     string    `json:"app_id"`
-	Level     LogLevel  `json:"level"`
-	Message   string    `json:"message"`
-	CreatedAt time.Time `json:"created_at"`
+	ID              int64       `json:"id"`
+	AppID           string      `json:"app_id"`
+	Level           LogLevel    `json:"level"`
+	Message         string      `json:"message"`
+	CommandID       null.String `json:"command_id"`
+	EventListenerID null.String `json:"event_listener_id"`
+	MessageID       null.String `json:"message_id"`
+	CreatedAt       time.Time   `json:"created_at"`
 }
 
 type LogSummary struct {

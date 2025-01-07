@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { apiRequest } from "./client";
 import {
+  AppEntityListResponse,
   AppGetResponse,
   AppListResponse,
   AssetGetResponse,
@@ -43,6 +44,15 @@ export function useAppQuery(appId: string) {
   return useQuery({
     queryKey: ["apps", appId],
     queryFn: () => apiRequest<AppGetResponse>(`/v1/apps/${appId}`),
+    enabled: !!appId,
+  });
+}
+
+export function useAppEntitiesQuery(appId: string) {
+  return useQuery({
+    queryKey: ["apps", appId, "entities"],
+    queryFn: () =>
+      apiRequest<AppEntityListResponse>(`/v1/apps/${appId}/entities`),
     enabled: !!appId,
   });
 }

@@ -51,3 +51,32 @@ SELECT id FROM apps WHERE enabled = TRUE;
 
 -- name: GetEnabledAppsUpdatedSince :many
 SELECT * FROM apps WHERE enabled = TRUE AND updated_at > $1;
+
+-- name: GetAppEntities :many
+SELECT 
+    id,
+    'command' AS type,
+    name
+FROM commands
+WHERE commands.app_id = $1
+UNION ALL
+SELECT 
+    id,
+    'event_listener' AS type,
+    type as name
+FROM event_listeners
+WHERE event_listeners.app_id = $1
+UNION ALL
+SELECT 
+    id,
+    'message' AS type,
+    name
+FROM messages
+WHERE messages.app_id = $1
+UNION ALL
+SELECT 
+    id,
+    'variable' AS type,
+    name
+FROM variables
+WHERE variables.app_id = $1;

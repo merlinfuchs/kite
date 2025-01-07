@@ -12,14 +12,17 @@ import (
 )
 
 const createLogEntry = `-- name: CreateLogEntry :exec
-INSERT INTO logs (app_id, message, level, created_at) VALUES ($1, $2, $3, $4) RETURNING id, app_id, message, level, created_at
+INSERT INTO logs (app_id, message, level, command_id, event_listener_id, message_id, created_at) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id, app_id, message, level, created_at, command_id, event_listener_id, message_id
 `
 
 type CreateLogEntryParams struct {
-	AppID     string
-	Message   string
-	Level     string
-	CreatedAt pgtype.Timestamp
+	AppID           string
+	Message         string
+	Level           string
+	CommandID       pgtype.Text
+	EventListenerID pgtype.Text
+	MessageID       pgtype.Text
+	CreatedAt       pgtype.Timestamp
 }
 
 func (q *Queries) CreateLogEntry(ctx context.Context, arg CreateLogEntryParams) error {
@@ -27,13 +30,16 @@ func (q *Queries) CreateLogEntry(ctx context.Context, arg CreateLogEntryParams) 
 		arg.AppID,
 		arg.Message,
 		arg.Level,
+		arg.CommandID,
+		arg.EventListenerID,
+		arg.MessageID,
 		arg.CreatedAt,
 	)
 	return err
 }
 
 const getLogEntriesByApp = `-- name: GetLogEntriesByApp :many
-SELECT id, app_id, message, level, created_at FROM logs WHERE app_id = $1 ORDER BY created_at DESC LIMIT $2
+SELECT id, app_id, message, level, created_at, command_id, event_listener_id, message_id FROM logs WHERE app_id = $1 ORDER BY created_at DESC LIMIT $2
 `
 
 type GetLogEntriesByAppParams struct {
@@ -56,6 +62,9 @@ func (q *Queries) GetLogEntriesByApp(ctx context.Context, arg GetLogEntriesByApp
 			&i.Message,
 			&i.Level,
 			&i.CreatedAt,
+			&i.CommandID,
+			&i.EventListenerID,
+			&i.MessageID,
 		); err != nil {
 			return nil, err
 		}
@@ -68,7 +77,7 @@ func (q *Queries) GetLogEntriesByApp(ctx context.Context, arg GetLogEntriesByApp
 }
 
 const getLogEntriesByAppBefore = `-- name: GetLogEntriesByAppBefore :many
-SELECT id, app_id, message, level, created_at FROM logs WHERE app_id = $1 AND id < $2 ORDER BY created_at DESC LIMIT $3
+SELECT id, app_id, message, level, created_at, command_id, event_listener_id, message_id FROM logs WHERE app_id = $1 AND id < $2 ORDER BY created_at DESC LIMIT $3
 `
 
 type GetLogEntriesByAppBeforeParams struct {
@@ -92,6 +101,9 @@ func (q *Queries) GetLogEntriesByAppBefore(ctx context.Context, arg GetLogEntrie
 			&i.Message,
 			&i.Level,
 			&i.CreatedAt,
+			&i.CommandID,
+			&i.EventListenerID,
+			&i.MessageID,
 		); err != nil {
 			return nil, err
 		}

@@ -36,4 +36,5 @@ type AppStore interface {
 	DeleteApp(ctx context.Context, id string) error
 	EnabledAppIDs(ctx context.Context) ([]string, error)
 	EnabledAppsUpdatedSince(ctx context.Context, updatedSince time.Time) ([]*model.App, error)
+	AppEntities(ctx context.Context, appID string) ([]*model.AppEntity, error)
 }

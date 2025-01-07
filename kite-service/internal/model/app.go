@@ -49,3 +49,18 @@ func (s *AppDiscordStatus) Equals(other *AppDiscordStatus) bool {
 		s.ActivityState == other.ActivityState &&
 		s.ActivityURL == other.ActivityURL
 }
+
+type AppEntity struct {
+	ID   string
+	Type AppEntityType
+	Name string
+}
+
+type AppEntityType string
+
+const (
+	AppEntityTypeCommand       AppEntityType = "command"
+	AppEntityTypeMessage       AppEntityType = "message"
+	AppEntityTypeEventListener AppEntityType = "event_listener"
+	AppEntityTypeVariable      AppEntityType = "variable"
+)

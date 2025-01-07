@@ -12,7 +12,14 @@ import {
   getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table";
-import { ChevronDown, RefreshCwIcon } from "lucide-react";
+import {
+  ChevronDown,
+  MailPlusIcon,
+  RefreshCwIcon,
+  SatelliteDishIcon,
+  SquareSlash,
+  SquareSlashIcon,
+} from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -35,12 +42,17 @@ import { cn } from "@/lib/utils";
 import { LogEntry } from "@/lib/types/wire.gen";
 import { useLogEntriesQuery } from "@/lib/api/queries";
 import { useAppId } from "@/lib/hooks/params";
-import { useResponseData } from "@/lib/hooks/api";
+import { useAppEntities, useResponseData } from "@/lib/hooks/api";
 import { useMemo, useState } from "react";
 
 const logLevels = ["debug", "info", "warn", "error"] as const;
 
-export const columns: ColumnDef<LogEntry>[] = [
+export const columns: ColumnDef<{
+  level: string;
+  message: string;
+  source_id: string | null;
+  created_at: string;
+}>[] = [
   {
     accessorKey: "level",
     header: "Level",
@@ -71,6 +83,38 @@ export const columns: ColumnDef<LogEntry>[] = [
     accessorKey: "message",
     header: "Message",
     cell: ({ row }) => <div>{row.getValue("message")}</div>,
+  },
+  {
+    accessorKey: "source_id",
+    header: "Source",
+
+    cell: function SourceCell({ row }) {
+      const sourceID = row.getValue<string>("source_id");
+
+      const entities = useAppEntities();
+
+      const entity = useMemo(() => {
+        if (!sourceID) return null;
+        return entities?.find((entity) => entity!.id === sourceID);
+      }, [entities, sourceID]);
+
+      if (!entity) return null;
+
+      return (
+        <div className="flex items-center gap-1.5 text-foreground/80">
+          {entity.type === "command" ? (
+            <SquareSlashIcon className="h-4 w-4" />
+          ) : entity.type === "event_listener" ? (
+            <SatelliteDishIcon className="h-4 w-4" />
+          ) : entity.type === "message" ? (
+            <MailPlusIcon className="h-4 w-4" />
+          ) : (
+            <SquareSlash className="h-4 w-4" />
+          )}
+          <div>{entity?.name ?? sourceID}</div>
+        </div>
+      );
+    },
   },
   {
     accessorKey: "created_at",
@@ -106,7 +150,15 @@ export default function LogEntryList() {
   const logEntries = useMemo(() => {
     const entries = (data ?? []) as LogEntry[];
 
-    return entries.filter((entry) => enabledLevels.includes(entry!.level));
+    return entries
+      .filter((entry) => enabledLevels.includes(entry!.level))
+      .map((entry) => ({
+        level: entry.level,
+        message: entry.message,
+        source_id:
+          entry.command_id ?? entry.event_listener_id ?? entry.message_id,
+        created_at: entry.created_at,
+      }));
   }, [data, enabledLevels]);
 
   const [sorting, setSorting] = useState<SortingState>([]);

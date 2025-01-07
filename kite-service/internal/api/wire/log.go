@@ -4,13 +4,17 @@ import (
 	"time"
 
 	"github.com/kitecloud/kite/kite-service/internal/model"
+	"gopkg.in/guregu/null.v4"
 )
 
 type LogEntry struct {
-	ID        int64     `json:"id"`
-	Message   string    `json:"message"`
-	Level     string    `json:"level"`
-	CreatedAt time.Time `json:"created_at"`
+	ID              int64       `json:"id"`
+	Message         string      `json:"message"`
+	Level           string      `json:"level"`
+	CommandID       null.String `json:"command_id"`
+	EventListenerID null.String `json:"event_listener_id"`
+	MessageID       null.String `json:"message_id"`
+	CreatedAt       time.Time   `json:"created_at"`
 }
 
 type LogEntryListResponse = []*LogEntry
@@ -31,10 +35,13 @@ func LogEntryToWire(entry *model.LogEntry) *LogEntry {
 	}
 
 	return &LogEntry{
-		ID:        entry.ID,
-		Message:   entry.Message,
-		Level:     string(entry.Level),
-		CreatedAt: entry.CreatedAt,
+		ID:              entry.ID,
+		Message:         entry.Message,
+		Level:           string(entry.Level),
+		CommandID:       entry.CommandID,
+		EventListenerID: entry.EventListenerID,
+		MessageID:       entry.MessageID,
+		CreatedAt:       entry.CreatedAt,
 	}
 }
 

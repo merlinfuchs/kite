@@ -1,5 +1,5 @@
 -- name: CreateLogEntry :exec
-INSERT INTO logs (app_id, message, level, created_at) VALUES ($1, $2, $3, $4) RETURNING *;
+INSERT INTO logs (app_id, message, level, command_id, event_listener_id, message_id, created_at) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *;
 
 -- name: GetLogEntriesByApp :many
 SELECT * FROM logs WHERE app_id = $1 ORDER BY created_at DESC LIMIT $2;
