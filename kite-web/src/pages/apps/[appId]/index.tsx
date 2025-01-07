@@ -3,19 +3,20 @@ import AppInfoCard from "@/components/app/AppInfoCard";
 import AppLayout from "@/components/app/AppLayout";
 import AppResourceCard from "@/components/app/AppResourceCard";
 import UsageCreditsByDayChart from "@/components/app/UsageCreditsByDayChart";
-import {
-  useApp,
-  useCommands,
-  useEventListeners,
-  useMessages,
-} from "@/lib/hooks/api";
+import { useApp, useAppEntities } from "@/lib/hooks/api";
+import { useMemo } from "react";
 
 export default function AppPage() {
   const app = useApp();
 
-  const commands = useCommands();
-  const messages = useMessages();
-  const eventListeners = useEventListeners();
+  const entities = useAppEntities();
+
+  const entityCounts = useMemo(() => {
+    return entities?.reduce((acc, entity) => {
+      acc[entity!.type] = (acc[entity!.type] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+  }, [entities]);
 
   return (
     <AppLayout>
@@ -24,7 +25,7 @@ export default function AppPage() {
           <div className="grid gap-4 grid-cols-1 lg:grid-cols-3">
             <AppResourceCard
               title="Commands"
-              count={commands?.length || 0}
+              count={entityCounts?.command || 0}
               actionTitle="Manage commands"
               actionHref={{
                 pathname: "/apps/[appId]/commands",
@@ -33,7 +34,7 @@ export default function AppPage() {
             />
             <AppResourceCard
               title="Event Listeners"
-              count={eventListeners?.length || 0}
+              count={entityCounts?.event_listener || 0}
               actionTitle="Manage events"
               actionHref={{
                 pathname: "/apps/[appId]/events",
@@ -42,7 +43,7 @@ export default function AppPage() {
             />
             <AppResourceCard
               title="Messages"
-              count={messages?.length || 0}
+              count={entityCounts?.message || 0}
               actionTitle="Manage messages"
               actionHref={{
                 pathname: "/apps/[appId]/messages",

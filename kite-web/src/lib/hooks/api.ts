@@ -1,6 +1,7 @@
 import { useRouter } from "next/router";
 import { useEffect } from "react";
 import {
+  useAppEntitiesQuery,
   useAppQuery,
   useAppsQuery,
   useAppStateGuildChannelsQuery,
@@ -22,6 +23,7 @@ import {
 } from "../api/queries";
 import { APIResponse } from "../api/response";
 import {
+  AppEntityListResponse,
   AppGetResponse,
   AppListResponse,
   CommandGetResponse,
@@ -77,6 +79,15 @@ export function useApp(callback?: (res: APIResponse<AppGetResponse>) => void) {
   const router = useRouter();
 
   const query = useAppQuery(router.query.appId as string);
+  return useResponseData(query, callback);
+}
+
+export function useAppEntities(
+  callback?: (res: APIResponse<AppEntityListResponse>) => void
+) {
+  const router = useRouter();
+
+  const query = useAppEntitiesQuery(router.query.appId as string);
   return useResponseData(query, callback);
 }
 

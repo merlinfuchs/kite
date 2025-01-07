@@ -163,6 +163,24 @@ func (c *Client) EnabledAppsUpdatedSince(ctx context.Context, updatedSince time.
 	return apps, nil
 }
 
+func (c *Client) AppEntities(ctx context.Context, appID string) ([]*model.AppEntity, error) {
+	rows, err := c.Q.GetAppEntities(ctx, appID)
+	if err != nil {
+		return nil, err
+	}
+
+	var entities []*model.AppEntity
+	for _, row := range rows {
+		entities = append(entities, &model.AppEntity{
+			ID:   row.ID,
+			Type: model.AppEntityType(row.Type),
+			Name: row.Name,
+		})
+	}
+
+	return entities, nil
+}
+
 func rowToApp(row pgmodel.App) (*model.App, error) {
 	var status *model.AppDiscordStatus
 	if row.DiscordStatus != nil {

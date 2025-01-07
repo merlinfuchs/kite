@@ -2,6 +2,7 @@ package app
 
 import (
 	"fmt"
+	"log/slog"
 	"time"
 
 	"github.com/kitecloud/kite/kite-service/internal/api/handler"
@@ -45,6 +46,11 @@ func (h *AppHandler) HandleAppGet(c *handler.Context) (*wire.AppGetResponse, err
 func (h *AppHandler) HandleAppCreate(c *handler.Context, req wire.AppCreateRequest) (*wire.AppCreateResponse, error) {
 	appCount, err := h.appStore.CountAppsByUser(c.Context(), c.Session.UserID)
 	if err != nil {
+		slog.Error(
+			"Failed to count apps",
+			slog.String("user_id", c.Session.UserID),
+			slog.String("error", err.Error()),
+		)
 		return nil, fmt.Errorf("failed to count apps: %w", err)
 	}
 
@@ -72,6 +78,11 @@ func (h *AppHandler) HandleAppCreate(c *handler.Context, req wire.AppCreateReque
 		UpdatedAt:     time.Now().UTC(),
 	})
 	if err != nil {
+		slog.Error(
+			"Failed to create app",
+			slog.String("app_id", app.ID),
+			slog.String("error", err.Error()),
+		)
 		return nil, fmt.Errorf("failed to create app: %w", err)
 	}
 
@@ -81,6 +92,11 @@ func (h *AppHandler) HandleAppCreate(c *handler.Context, req wire.AppCreateReque
 func (h *AppHandler) HandleAppUpdate(c *handler.Context, req wire.AppUpdateRequest) (*wire.AppUpdateResponse, error) {
 	if req.Name != c.App.Name {
 		if err := h.updateDiscordAppName(c.Context(), c.App.DiscordToken, req.Name); err != nil {
+			slog.Error(
+				"Failed to update discord app name",
+				slog.String("app_id", c.App.ID),
+				slog.String("error", err.Error()),
+			)
 			return nil, fmt.Errorf("failed to update discord app name: %w", err)
 		}
 	}
@@ -116,6 +132,11 @@ func (h *AppHandler) HandleAppUpdate(c *handler.Context, req wire.AppUpdateReque
 func (h *AppHandler) HandleAppTokenUpdate(c *handler.Context, req wire.AppTokenUpdateRequest) (*wire.AppTokenUpdateResponse, error) {
 	appInfo, err := h.getDiscordAppInfo(c.Context(), req.DiscordToken)
 	if err != nil {
+		slog.Error(
+			"Failed to get discord app info",
+			slog.String("app_id", c.App.ID),
+			slog.String("error", err.Error()),
+		)
 		return nil, fmt.Errorf("failed to get discord app info: %w", err)
 	}
 
@@ -132,6 +153,11 @@ func (h *AppHandler) HandleAppTokenUpdate(c *handler.Context, req wire.AppTokenU
 		UpdatedAt:    time.Now().UTC(),
 	})
 	if err != nil {
+		slog.Error(
+			"Failed to update app",
+			slog.String("app_id", c.App.ID),
+			slog.String("error", err.Error()),
+		)
 		return nil, fmt.Errorf("failed to update app: %w", err)
 	}
 
@@ -144,4 +170,27 @@ func (h *AppHandler) HandleAppDelete(c *handler.Context) (*wire.AppDeleteRespons
 	}
 
 	return &wire.AppDeleteResponse{}, nil
+}
+
+func (h *AppHandler) HandleAppEntityList(c *handler.Context) (*wire.AppEntityListResponse, error) {
+	entities, err := h.appStore.AppEntities(c.Context(), c.App.ID)
+	if err != nil {
+		slog.Error(
+			"Failed to get app entities",
+			slog.String("app_id", c.App.ID),
+			slog.String("error", err.Error()),
+		)
+		return nil, fmt.Errorf("failed to get app entities: %w", err)
+	}
+
+	res := make([]*wire.AppEntity, len(entities))
+	for i, entity := range entities {
+		res[i] = &wire.AppEntity{
+			ID:   entity.ID,
+			Type: string(entity.Type),
+			Name: entity.Name,
+		}
+	}
+
+	return &res, nil
 }

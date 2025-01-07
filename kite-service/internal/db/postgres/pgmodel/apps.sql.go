@@ -148,6 +148,62 @@ func (q *Queries) GetAppCredentials(ctx context.Context, id string) (GetAppCrede
 	return i, err
 }
 
+const getAppEntities = `-- name: GetAppEntities :many
+SELECT 
+    id,
+    'command' AS type,
+    name
+FROM commands
+WHERE commands.app_id = $1
+UNION ALL
+SELECT 
+    id,
+    'event_listener' AS type,
+    type as name
+FROM event_listeners
+WHERE event_listeners.app_id = $1
+UNION ALL
+SELECT 
+    id,
+    'message' AS type,
+    name
+FROM messages
+WHERE messages.app_id = $1
+UNION ALL
+SELECT 
+    id,
+    'variable' AS type,
+    name
+FROM variables
+WHERE variables.app_id = $1
+`
+
+type GetAppEntitiesRow struct {
+	ID   string
+	Type string
+	Name string
+}
+
+func (q *Queries) GetAppEntities(ctx context.Context, appID string) ([]GetAppEntitiesRow, error) {
+	rows, err := q.db.Query(ctx, getAppEntities, appID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetAppEntitiesRow
+	for rows.Next() {
+		var i GetAppEntitiesRow
+		if err := rows.Scan(&i.ID, &i.Type, &i.Name); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getAppsByOwner = `-- name: GetAppsByOwner :many
 SELECT id, name, description, enabled, owner_user_id, creator_user_id, discord_token, discord_id, created_at, updated_at, discord_status, disabled_reason FROM apps WHERE owner_user_id = $1 ORDER BY created_at DESC
 `

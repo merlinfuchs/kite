@@ -44,6 +44,12 @@ export interface AppTokenUpdateRequest {
 export type AppTokenUpdateResponse = App;
 export type AppDeleteResponse = Empty;
 export type AppListResponse = (App | undefined)[];
+export type AppEntityListResponse = (AppEntity | undefined)[];
+export interface AppEntity {
+  id: string;
+  type: string;
+  name: string;
+}
 
 //////////
 // source: app_state.go
@@ -165,6 +171,9 @@ export interface LogEntry {
   id: number /* int64 */;
   message: string;
   level: string;
+  command_id: null | string;
+  event_listener_id: null | string;
+  message_id: null | string;
   created_at: string /* RFC3339 */;
 }
 export type LogEntryListResponse = (LogEntry | undefined)[];
