@@ -75,11 +75,14 @@ type EventListener struct {
 }
 
 type Log struct {
-	ID        int64
-	AppID     string
-	Message   string
-	Level     string
-	CreatedAt pgtype.Timestamp
+	ID              int64
+	AppID           string
+	Message         string
+	Level           string
+	CreatedAt       pgtype.Timestamp
+	CommandID       pgtype.Text
+	EventListenerID pgtype.Text
+	MessageID       pgtype.Text
 }
 
 type Message struct {
