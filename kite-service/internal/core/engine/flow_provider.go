@@ -224,12 +224,19 @@ func (p *DiscordProvider) HasCreatedInteractionResponse(ctx context.Context, int
 type LogProvider struct {
 	appID    string
 	logStore store.LogStore
+
+	CommandID       null.String
+	EventListenerID null.String
+	MessageID       null.String
 }
 
-func NewLogProvider(appID string, logStore store.LogStore) *LogProvider {
+func NewLogProvider(appID string, logStore store.LogStore, commandID, eventListenerID, messageID null.String) *LogProvider {
 	return &LogProvider{
-		appID:    appID,
-		logStore: logStore,
+		appID:           appID,
+		logStore:        logStore,
+		CommandID:       commandID,
+		EventListenerID: eventListenerID,
+		MessageID:       messageID,
 	}
 }
 
@@ -238,10 +245,13 @@ func (p *LogProvider) CreateLogEntry(ctx context.Context, level flow.LogLevel, m
 	defer cancel()
 
 	err := p.logStore.CreateLogEntry(ctx, model.LogEntry{
-		AppID:     p.appID,
-		Level:     model.LogLevel(level),
-		Message:   message,
-		CreatedAt: time.Now().UTC(),
+		AppID:           p.appID,
+		Level:           model.LogLevel(level),
+		Message:         message,
+		CommandID:       p.CommandID,
+		EventListenerID: p.EventListenerID,
+		MessageID:       p.MessageID,
+		CreatedAt:       time.Now().UTC(),
 	})
 	if err != nil {
 		slog.With("error", err).With("app_id", p.appID).Error("Failed to create log entry")

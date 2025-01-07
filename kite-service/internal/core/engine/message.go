@@ -98,8 +98,14 @@ func (c *MessageInstance) HandleEvent(appID string, session *state.State, event 
 	}
 
 	providers := flow.FlowProviders{
-		Discord:         NewDiscordProvider(appID, c.appStore, session),
-		Log:             NewLogProvider(appID, c.logStore),
+		Discord: NewDiscordProvider(appID, c.appStore, session),
+		Log: NewLogProvider(
+			appID,
+			c.logStore,
+			null.String{},
+			null.String{},
+			null.NewString(c.msg.MessageID, true),
+		),
 		HTTP:            NewHTTPProvider(c.httpClient),
 		AI:              aiProvider,
 		MessageTemplate: NewMessageTemplateProvider(c.messageStore, c.messageInstanceStore),
@@ -139,6 +145,7 @@ func (c *MessageInstance) createLogEntry(level model.LogLevel, message string) {
 		AppID:     c.appID,
 		Level:     level,
 		Message:   message,
+		MessageID: null.NewString(c.msg.MessageID, true),
 		CreatedAt: time.Now().UTC(),
 	})
 	if err != nil {

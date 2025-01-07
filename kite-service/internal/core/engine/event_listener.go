@@ -78,8 +78,14 @@ func (l *EventListener) HandleEvent(appID string, session *state.State, event ga
 	}
 
 	providers := flow.FlowProviders{
-		Discord:         NewDiscordProvider(appID, l.appStore, session),
-		Log:             NewLogProvider(appID, l.logStore),
+		Discord: NewDiscordProvider(appID, l.appStore, session),
+		Log: NewLogProvider(
+			appID,
+			l.logStore,
+			null.String{},
+			null.NewString(l.listener.ID, true),
+			null.String{},
+		),
 		HTTP:            NewHTTPProvider(l.httpClient),
 		AI:              aiProvider,
 		MessageTemplate: NewMessageTemplateProvider(l.messageStore, l.messageInstanceStore),
@@ -116,10 +122,11 @@ func (l *EventListener) createLogEntry(level model.LogLevel, message string) {
 
 	// Create log entry which will be displayed in the dashboard
 	err := l.logStore.CreateLogEntry(ctx, model.LogEntry{
-		AppID:     l.listener.AppID,
-		Level:     level,
-		Message:   message,
-		CreatedAt: time.Now().UTC(),
+		AppID:           l.listener.AppID,
+		Level:           level,
+		Message:         message,
+		EventListenerID: null.NewString(l.listener.ID, true),
+		CreatedAt:       time.Now().UTC(),
 	})
 	if err != nil {
 		slog.With("error", err).With("app_id", l.listener.AppID).Error("Failed to create log entry from engine event listener")
