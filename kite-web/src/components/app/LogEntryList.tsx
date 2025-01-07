@@ -88,7 +88,7 @@ export const columns: ColumnDef<{
     accessorKey: "source_id",
     header: "Source",
 
-    cell: ({ row }) => {
+    cell: function SourceCell({ row }) {
       const sourceID = row.getValue<string>("source_id");
 
       const entities = useAppEntities();
