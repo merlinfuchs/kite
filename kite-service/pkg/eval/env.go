@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strconv"
 
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/gateway"
@@ -17,11 +18,11 @@ type Env map[string]any
 type InteractionEnv struct {
 	interaction *discord.InteractionEvent
 
-	ID      string      `expr:"id" json:"id"`
-	Channel *ChannelEnv `expr:"channel" json:"channel"`
-	Guild   *GuildEnv   `expr:"guild" json:"guild"`
-	User    any         `expr:"user" json:"user"`
-	Command *CommandEnv `expr:"command" json:"command"`
+	ID      string        `expr:"id" json:"id"`
+	Channel *SnowflakeEnv `expr:"channel" json:"channel"`
+	Guild   *SnowflakeEnv `expr:"guild" json:"guild"`
+	User    any           `expr:"user" json:"user"`
+	Command *CommandEnv   `expr:"command" json:"command"`
 }
 
 func NewInteractionEnv(i *discord.InteractionEvent) *InteractionEnv {
@@ -29,7 +30,7 @@ func NewInteractionEnv(i *discord.InteractionEvent) *InteractionEnv {
 		interaction: i,
 
 		ID:      i.ID.String(),
-		Channel: NewChannelEnv(i.ChannelID),
+		Channel: NewSnowflakeEnv(i.ChannelID),
 	}
 
 	if i.User != nil {
@@ -39,7 +40,7 @@ func NewInteractionEnv(i *discord.InteractionEvent) *InteractionEnv {
 	}
 
 	if i.GuildID != 0 {
-		e.Guild = NewGuildEnv(i.GuildID)
+		e.Guild = NewSnowflakeEnv(i.GuildID)
 	}
 
 	if i.Data.InteractionType() == discord.CommandInteractionType {
@@ -77,7 +78,32 @@ func NewCommandEnv(i *discord.InteractionEvent) *CommandEnv {
 	for _, option := range data.Options {
 		var value any
 		_ = json.Unmarshal(option.Value, &value)
-		args[option.Name] = value
+
+		switch option.Type {
+		case discord.UserOptionType:
+			userID, _ := strconv.ParseInt(value.(string), 10, 64)
+			user := data.Resolved.Users[discord.UserID(userID)]
+			args[option.Name] = NewUserEnv(&user)
+		case discord.RoleOptionType:
+			roleID, _ := strconv.ParseInt(value.(string), 10, 64)
+			role := data.Resolved.Roles[discord.RoleID(roleID)]
+			args[option.Name] = NewRoleEnv(&role)
+		case discord.ChannelOptionType:
+			channelID, _ := strconv.ParseInt(value.(string), 10, 64)
+			channel := data.Resolved.Channels[discord.ChannelID(channelID)]
+			args[option.Name] = NewChannelEnv(&channel)
+		case discord.MentionableOptionType:
+			mentionableID, _ := strconv.ParseInt(value.(string), 10, 64)
+			user, ok := data.Resolved.Users[discord.UserID(mentionableID)]
+			if ok {
+				args[option.Name] = NewUserEnv(&user)
+			} else {
+				role := data.Resolved.Roles[discord.RoleID(mentionableID)]
+				args[option.Name] = NewRoleEnv(&role)
+			}
+		default:
+			args[option.Name] = value
+		}
 	}
 
 	return &CommandEnv{
@@ -96,11 +122,11 @@ func (c CommandEnv) String() string {
 type EventEnv struct {
 	event ws.Event
 
-	User    any         `expr:"user" json:"user"`
-	Member  any         `expr:"member" json:"member"`
-	Channel *ChannelEnv `expr:"channel" json:"channel"`
-	Message *MessageEnv `expr:"message" json:"message"`
-	Guild   *GuildEnv   `expr:"guild" json:"guild"`
+	User    any           `expr:"user" json:"user"`
+	Member  any           `expr:"member" json:"member"`
+	Channel *SnowflakeEnv `expr:"channel" json:"channel"`
+	Message *MessageEnv   `expr:"message" json:"message"`
+	Guild   *SnowflakeEnv `expr:"guild" json:"guild"`
 }
 
 func NewEventEnv(event ws.Event) *EventEnv {
@@ -117,9 +143,9 @@ func NewEventEnv(event ws.Event) *EventEnv {
 			env.User = NewUserEnv(&e.Author)
 			env.Member = env.User
 		}
-		env.Channel = NewChannelEnv(e.ChannelID)
+		env.Channel = NewSnowflakeEnv(e.ChannelID)
 		if e.GuildID != 0 {
-			env.Guild = NewGuildEnv(e.GuildID)
+			env.Guild = NewSnowflakeEnv(e.GuildID)
 		}
 		env.Message = NewMessageEnv(&e.Message)
 	case *gateway.MessageUpdateEvent:
@@ -130,27 +156,27 @@ func NewEventEnv(event ws.Event) *EventEnv {
 			env.User = NewUserEnv(&e.Author)
 			env.Member = env.User
 		}
-		env.Channel = NewChannelEnv(e.ChannelID)
+		env.Channel = NewSnowflakeEnv(e.ChannelID)
 		if e.GuildID != 0 {
-			env.Guild = NewGuildEnv(e.GuildID)
+			env.Guild = NewSnowflakeEnv(e.GuildID)
 		}
 		env.Message = NewMessageEnv(&e.Message)
 	case *gateway.MessageDeleteEvent:
 		env.Message = NewMessageEnv(&discord.Message{
 			ID: e.ID,
 		})
-		env.Channel = NewChannelEnv(e.ChannelID)
+		env.Channel = NewSnowflakeEnv(e.ChannelID)
 		if e.GuildID != 0 {
-			env.Guild = NewGuildEnv(e.GuildID)
+			env.Guild = NewSnowflakeEnv(e.GuildID)
 		}
 	case *gateway.GuildMemberAddEvent:
 		env.Member = NewMemberEnv(&e.Member)
 		env.User = env.Member
-		env.Guild = NewGuildEnv(e.GuildID)
+		env.Guild = NewSnowflakeEnv(e.GuildID)
 	case *gateway.GuildMemberRemoveEvent:
 		env.User = NewUserEnv(&e.User)
 		env.Member = env.User
-		env.Guild = NewGuildEnv(e.GuildID)
+		env.Guild = NewSnowflakeEnv(e.GuildID)
 	}
 
 	return env
@@ -215,17 +241,39 @@ func NewMemberEnv(member *discord.Member) *MemberEnv {
 }
 
 type ChannelEnv struct {
-	ID string `expr:"id" json:"id"`
+	ID      string `expr:"id" json:"id"`
+	Name    string `expr:"name" json:"name"`
+	Mention string `expr:"mention" json:"mention"`
 }
 
-func NewChannelEnv(channelID discord.ChannelID) *ChannelEnv {
+func NewChannelEnv(channel *discord.Channel) *ChannelEnv {
 	return &ChannelEnv{
-		ID: channelID.String(),
+		ID:      channel.ID.String(),
+		Name:    channel.Name,
+		Mention: fmt.Sprintf("<#%s>", channel.ID.String()),
 	}
 }
 
 func (c ChannelEnv) String() string {
 	return c.ID
+}
+
+type RoleEnv struct {
+	ID      string `expr:"id" json:"id"`
+	Name    string `expr:"name" json:"name"`
+	Mention string `expr:"mention" json:"mention"`
+}
+
+func NewRoleEnv(role *discord.Role) *RoleEnv {
+	return &RoleEnv{
+		ID:      role.ID.String(),
+		Name:    role.Name,
+		Mention: fmt.Sprintf("<@&%s>", role.ID.String()),
+	}
+}
+
+func (r RoleEnv) String() string {
+	return r.ID
 }
 
 type MessageEnv struct {
@@ -245,17 +293,33 @@ func (m MessageEnv) String() string {
 }
 
 type GuildEnv struct {
-	ID string `expr:"id" json:"id"`
+	ID   string `expr:"id" json:"id"`
+	Name string `expr:"name" json:"name"`
 }
 
-func NewGuildEnv(guildID discord.GuildID) *GuildEnv {
+func NewGuildEnv(guild *discord.Guild) *GuildEnv {
 	return &GuildEnv{
-		ID: guildID.String(),
+		ID:   guild.ID.String(),
+		Name: guild.Name,
 	}
 }
 
 func (g GuildEnv) String() string {
 	return g.ID
+}
+
+type SnowflakeEnv struct {
+	ID string `expr:"id" json:"id"`
+}
+
+func NewSnowflakeEnv[T fmt.Stringer](id T) *SnowflakeEnv {
+	return &SnowflakeEnv{
+		ID: id.String(),
+	}
+}
+
+func (s SnowflakeEnv) String() string {
+	return s.ID
 }
 
 type HTTPResponseEnv struct {
@@ -299,9 +363,9 @@ func NewAnyEnv(v any) any {
 	case *discord.Member:
 		return NewMemberEnv(v)
 	case *discord.Channel:
-		return NewChannelEnv(v.ID)
+		return NewChannelEnv(v)
 	case *discord.Guild:
-		return NewGuildEnv(v.ID)
+		return NewGuildEnv(v)
 	case *discord.InteractionEvent:
 		return NewInteractionEnv(v)
 	default:
