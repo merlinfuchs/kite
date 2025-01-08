@@ -17,7 +17,83 @@ func (m *MessageData) EachString(replace func(s *string) error) error {
 		return err
 	}
 
-	// TODO: other strings
+	for e, _ := range m.Embeds {
+		embed := &m.Embeds[e]
+
+		if err := replace(&embed.Description); err != nil {
+			return err
+		}
+
+		if err := replace(&embed.Title); err != nil {
+			return err
+		}
+
+		if err := replace(&embed.URL); err != nil {
+			return err
+		}
+
+		if embed.Author != nil {
+			if err := replace(&embed.Author.Name); err != nil {
+				return err
+			}
+
+			if err := replace(&embed.Author.URL); err != nil {
+				return err
+			}
+
+			if err := replace(&embed.Author.IconURL); err != nil {
+				return err
+			}
+		}
+
+		if embed.Footer != nil {
+			if err := replace(&embed.Footer.Text); err != nil {
+				return err
+			}
+
+			if err := replace(&embed.Footer.IconURL); err != nil {
+				return err
+			}
+		}
+
+		if embed.Image != nil {
+			if err := replace(&embed.Image.URL); err != nil {
+				return err
+			}
+		}
+
+		if embed.Thumbnail != nil {
+			if err := replace(&embed.Thumbnail.URL); err != nil {
+				return err
+			}
+		}
+
+		for f, _ := range embed.Fields {
+			field := &embed.Fields[f]
+
+			if err := replace(&field.Name); err != nil {
+				return err
+			}
+
+			if err := replace(&field.Value); err != nil {
+				return err
+			}
+		}
+	}
+
+	for c, _ := range m.Components {
+		component := &m.Components[c]
+
+		for _, option := range component.Components {
+			if err := replace(&option.Label); err != nil {
+				return err
+			}
+
+			if err := replace(&option.Placeholder); err != nil {
+				return err
+			}
+		}
+	}
 
 	return nil
 }
