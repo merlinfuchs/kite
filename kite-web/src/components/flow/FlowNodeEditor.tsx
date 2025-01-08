@@ -1303,8 +1303,8 @@ function ControlSleepDurationInput({ data, updateData, errors }: InputProps) {
   return (
     <BaseInput
       field="sleep_duration_seconds"
-      title="Sleep Duration"
-      description="The number of seconds to sleep for."
+      title="Wait Duration"
+      description="The number of seconds to wait before continuing."
       value={data.sleep_duration_seconds || ""}
       updateValue={(v) =>
         updateData({

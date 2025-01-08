@@ -507,7 +507,7 @@ export const nodeTypes: Record<string, NodeValues> = {
   control_sleep: {
     color: controlColor,
     icon: TimerIcon,
-    defaultTitle: "Sleep",
+    defaultTitle: "Wait",
     defaultDescription: "Pause the flow for a set amount of time.",
     dataSchema: nodeControlSleepDataSchema,
     dataFields: ["sleep_duration_seconds"],
