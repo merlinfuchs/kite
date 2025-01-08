@@ -104,6 +104,7 @@ func (s *APIServer) RegisterRoutes(
 		handler.RateLimitByUser(2, time.Minute),
 	)
 	appGroup.Delete("/", handler.Typed(appHandler.HandleAppDelete))
+	appGroup.Get("/emojis", handler.Typed(appHandler.HandleAppEmojisList))
 	appGroup.Get("/entities", handler.Typed(appHandler.HandleAppEntityList))
 
 	// Log routes

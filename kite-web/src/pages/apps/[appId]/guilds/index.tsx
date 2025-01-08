@@ -1,9 +1,6 @@
-import { BigChartCard } from "@/components/app/BigChartCard";
-import { ChartCards } from "@/components/app/ChartCards";
 import AppLayout from "@/components/app/AppLayout";
-import { Separator } from "@/components/ui/separator";
-import { useAppStateGuilds } from "@/lib/hooks/api";
 import AppStateGuildList from "@/components/app/AppStateGuildList";
+import { Separator } from "@/components/ui/separator";
 
 const breadcrumbs = [
   {
@@ -11,9 +8,7 @@ const breadcrumbs = [
   },
 ];
 
-export default function AppStatePage() {
-  const guilds = useAppStateGuilds();
-
+export default function AppGuildsPage() {
   return (
     <AppLayout title="App Analytics" breadcrumbs={breadcrumbs}>
       <div>

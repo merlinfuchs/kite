@@ -33,8 +33,10 @@ import {
   NotebookTabsIcon,
   PanelLeft,
   SatelliteDishIcon,
+  ServerIcon,
   SettingsIcon,
   SlashSquareIcon,
+  SmilePlusIcon,
   VariableIcon,
 } from "lucide-react";
 import Link from "next/link";
@@ -176,10 +178,17 @@ export default function AppLayout({ children, ...props }: Props) {
         active: isActive(`/apps/[appId]/variables`),
       },
       {
-        icon: NotebookTabsIcon,
+        icon: SmilePlusIcon,
+        label: "Emoji Explorer",
+        href: `/apps/[appId]/emojis`,
+        active: isActive(`/apps/[appId]/emojis`),
+        bottom: true,
+      },
+      {
+        icon: ServerIcon,
         label: "Server Explorer",
-        href: `/apps/[appId]/state`,
-        active: isActive(`/apps/[appId]/state`),
+        href: `/apps/[appId]/guilds`,
+        active: isActive(`/apps/[appId]/guilds`),
         bottom: true,
       },
       {

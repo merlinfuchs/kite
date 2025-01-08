@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { apiRequest } from "./client";
 import {
+  AppEmojiListResponse,
   AppEntityListResponse,
   AppGetResponse,
   AppListResponse,
@@ -44,6 +45,14 @@ export function useAppQuery(appId: string) {
   return useQuery({
     queryKey: ["apps", appId],
     queryFn: () => apiRequest<AppGetResponse>(`/v1/apps/${appId}`),
+    enabled: !!appId,
+  });
+}
+
+export function useAppEmojisQuery(appId: string) {
+  return useQuery({
+    queryKey: ["apps", appId, "emojis"],
+    queryFn: () => apiRequest<AppEmojiListResponse>(`/v1/apps/${appId}/emojis`),
     enabled: !!appId,
   });
 }

@@ -47,6 +47,13 @@ export interface AppTokenUpdateRequest {
 export type AppTokenUpdateResponse = App;
 export type AppDeleteResponse = Empty;
 export type AppListResponse = (App | undefined)[];
+export type AppEmojiListResponse = (AppEmoji | undefined)[];
+export interface AppEmoji {
+  id: string;
+  name: string;
+  animated: boolean;
+  available: boolean;
+}
 export type AppEntityListResponse = (AppEntity | undefined)[];
 export interface AppEntity {
   id: string;

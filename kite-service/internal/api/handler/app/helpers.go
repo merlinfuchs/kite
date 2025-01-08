@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/diamondburned/arikawa/v3/api"
+	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/utils/httputil"
 	"github.com/diamondburned/arikawa/v3/utils/json/option"
 	"github.com/kitecloud/kite/kite-service/internal/model"
@@ -56,6 +57,21 @@ func (h *AppHandler) updateDiscordBotUser(ctx context.Context, app *model.App) e
 	}
 
 	return nil
+}
+
+func (h *AppHandler) getAppEmojis(ctx context.Context, app *model.App) ([]discord.Emoji, error) {
+	client := api.NewClient("Bot " + app.DiscordToken).WithContext(ctx)
+
+	var res struct {
+		Items []discord.Emoji `json:"items"`
+	}
+
+	err := client.RequestJSON(&res, "GET", api.EndpointApplications+app.DiscordID+"/emojis")
+	if err != nil {
+		return nil, err
+	}
+
+	return res.Items, nil
 }
 
 type DiscordAppInfo struct {

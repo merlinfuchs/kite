@@ -1,6 +1,7 @@
 import { useRouter } from "next/router";
 import { useEffect } from "react";
 import {
+  useAppEmojisQuery,
   useAppEntitiesQuery,
   useAppQuery,
   useAppsQuery,
@@ -23,6 +24,7 @@ import {
 } from "../api/queries";
 import { APIResponse } from "../api/response";
 import {
+  AppEmojiListResponse,
   AppEntityListResponse,
   AppGetResponse,
   AppListResponse,
@@ -88,6 +90,15 @@ export function useAppEntities(
   const router = useRouter();
 
   const query = useAppEntitiesQuery(router.query.appId as string);
+  return useResponseData(query, callback);
+}
+
+export function useAppEmojis(
+  callback?: (res: APIResponse<AppEmojiListResponse>) => void
+) {
+  const router = useRouter();
+
+  const query = useAppEmojisQuery(router.query.appId as string);
   return useResponseData(query, callback);
 }
 
