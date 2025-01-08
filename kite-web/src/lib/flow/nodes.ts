@@ -73,6 +73,7 @@ import {
   nodeActionMemberRoleRemoveDataSchema,
   nodeActionExpressionEvaluateDataSchema,
 } from "./data";
+import env from "../env/client";
 
 export const primaryColor = "#3B82F6";
 
@@ -91,6 +92,7 @@ export interface NodeValues {
   dataFields: string[];
   ownsChildren?: boolean;
   fixed?: boolean;
+  helpUrl?: string;
 }
 
 export const nodeTypes: Record<string, NodeValues> = {
@@ -353,10 +355,10 @@ export const nodeTypes: Record<string, NodeValues> = {
     color: actionColor,
     icon: BrainCircuitIcon,
     defaultTitle: "Evaluate Expression",
-    defaultDescription:
-      "Evalute math or other logical expressions",
+    defaultDescription: "Evalute math or other logical expressions",
     dataSchema: nodeActionExpressionEvaluateDataSchema,
     dataFields: ["expression", "custom_label"],
+    helpUrl: env.NEXT_PUBLIC_DOCS_LINK + "/reference/expressions",
   },
   action_log: {
     color: actionColor,

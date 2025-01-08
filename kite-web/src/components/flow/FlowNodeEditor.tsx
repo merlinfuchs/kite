@@ -12,6 +12,7 @@ import {
   ChevronDownIcon,
   CircleAlertIcon,
   CopyIcon,
+  HelpCircleIcon,
   PencilIcon,
   PlusIcon,
   TrashIcon,
@@ -28,7 +29,7 @@ import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
   DropdownMenuContent,
-  DropdownMenuTrigger
+  DropdownMenuTrigger,
 } from "../ui/dropdown-menu";
 import { Input } from "../ui/input";
 import {
@@ -186,8 +187,15 @@ export default function FlowNodeEditor({ nodeId }: Props) {
           />
         </div>
         <div className="mb-5">
-          <div className="text-lg font-bold text-foreground mb-1">
-            {values.defaultTitle}
+          <div className="flex items-center gap-1.5">
+            <div className="text-lg font-bold text-foreground mb-1">
+              {values.defaultTitle}
+            </div>
+            {values.helpUrl && (
+              <Link href={values.helpUrl} target="_blank">
+                <HelpCircleIcon className="h-5 w-5 text-muted-foreground hover:text-foreground" />
+              </Link>
+            )}
           </div>
           <div className="text-muted-foreground">
             {values.defaultDescription}
@@ -593,20 +601,20 @@ function AiChatCompletionDataInput({ data, updateData, errors }: InputProps) {
 
 function ExpressionInput({ data, updateData, errors }: InputProps) {
   return (
-      <BaseInput
-        type="textarea"
-        field="expression"
-        title="Expression"
-        description="The expression to evaluate"
-        value={data.expression|| ""}
-        updateValue={(v) =>
-          updateData({
-            expression: v || undefined,
-          })
-        }
-        errors={errors}
-        placeholders
-      />
+    <BaseInput
+      type="textarea"
+      field="expression"
+      title="Expression"
+      description="The expression to evaluate"
+      value={data.expression || ""}
+      updateValue={(v) =>
+        updateData({
+          expression: v || undefined,
+        })
+      }
+      errors={errors}
+      placeholders
+    />
   );
 }
 
