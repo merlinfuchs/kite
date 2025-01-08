@@ -4,6 +4,7 @@ import { Button } from "../ui/button";
 import { useAppId } from "@/lib/hooks/params";
 import { toast } from "sonner";
 import { useRouter } from "next/router";
+import { Card, CardContent } from "../ui/card";
 
 export default function AppSettingsDelete() {
   const router = useRouter();
@@ -25,14 +26,30 @@ export default function AppSettingsDelete() {
   }
 
   return (
-    <ConfirmDialog
-      title="Are you sure that you want to delete this app?"
-      description="This remove all associated data and cannot be undone."
-      onConfirm={remove}
-    >
-      <Button variant="destructive" className="space-x-2 flex items-center">
-        <div>Delete app</div>
-      </Button>
-    </ConfirmDialog>
+    <Card x-chunk="dashboard-04-chunk-2">
+      <CardContent className="pt-6 space-y-5">
+        <div className="flex justify-between items-center">
+          <div>
+            <div className="font-bold pb-1">Delete App</div>
+            <div className="text-muted-foreground">
+              Deleting your app will remove it from Kite and delete all
+              associated data.
+            </div>
+          </div>
+          <ConfirmDialog
+            title="Are you sure that you want to delete this app?"
+            description="This remove all associated data and cannot be undone."
+            onConfirm={remove}
+          >
+            <Button
+              variant="destructive"
+              className="space-x-2 flex items-center"
+            >
+              <div>Delete app</div>
+            </Button>
+          </ConfirmDialog>
+        </div>
+      </CardContent>
+    </Card>
   );
 }

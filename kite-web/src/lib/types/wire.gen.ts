@@ -34,10 +34,13 @@ export type AppCreateResponse = App;
 export interface AppUpdateRequest {
   name: string;
   description: null | string;
-  discord_status?: AppDiscordStatus;
   enabled: boolean;
 }
 export type AppUpdateResponse = App;
+export interface AppStatusUpdateRequest {
+  discord_status?: AppDiscordStatus;
+}
+export type AppStatusUpdateResponse = App;
 export interface AppTokenUpdateRequest {
   discord_token: string;
 }

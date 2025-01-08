@@ -90,8 +90,22 @@ func (h *AppHandler) HandleAppCreate(c *handler.Context, req wire.AppCreateReque
 }
 
 func (h *AppHandler) HandleAppUpdate(c *handler.Context, req wire.AppUpdateRequest) (*wire.AppUpdateResponse, error) {
-	if req.Name != c.App.Name {
-		if err := h.updateDiscordAppName(c.Context(), c.App.DiscordToken, req.Name); err != nil {
+	app, err := h.appStore.UpdateApp(c.Context(), store.AppUpdateOpts{
+		ID:             c.App.ID,
+		Name:           req.Name,
+		Description:    req.Description,
+		DiscordToken:   c.App.DiscordToken,
+		DiscordStatus:  c.App.DiscordStatus,
+		Enabled:        req.Enabled,
+		DisabledReason: c.App.DisabledReason,
+		UpdatedAt:      time.Now().UTC(),
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to update app: %w", err)
+	}
+
+	if req.Name != c.App.Name || req.Description != c.App.Description {
+		if err := h.updateDiscordApp(c.Context(), app); err != nil {
 			slog.Error(
 				"Failed to update discord app name",
 				slog.String("app_id", c.App.ID),
@@ -101,6 +115,21 @@ func (h *AppHandler) HandleAppUpdate(c *handler.Context, req wire.AppUpdateReque
 		}
 	}
 
+	if req.Name != c.App.Name {
+		if err := h.updateDiscordBotUser(c.Context(), app); err != nil {
+			slog.Error(
+				"Failed to update discord bot user",
+				slog.String("app_id", c.App.ID),
+				slog.String("error", err.Error()),
+			)
+			return nil, fmt.Errorf("failed to update discord bot user: %w", err)
+		}
+	}
+
+	return wire.AppToWire(app), nil
+}
+
+func (h *AppHandler) HandleAppStatusUpdate(c *handler.Context, req wire.AppStatusUpdateRequest) (*wire.AppStatusUpdateResponse, error) {
 	var status *model.AppDiscordStatus
 	if req.DiscordStatus != nil {
 		status = &model.AppDiscordStatus{
@@ -114,16 +143,16 @@ func (h *AppHandler) HandleAppUpdate(c *handler.Context, req wire.AppUpdateReque
 
 	app, err := h.appStore.UpdateApp(c.Context(), store.AppUpdateOpts{
 		ID:             c.App.ID,
-		Name:           req.Name,
-		Description:    req.Description,
+		Name:           c.App.Name,
+		Description:    c.App.Description,
 		DiscordToken:   c.App.DiscordToken,
 		DiscordStatus:  status,
-		Enabled:        req.Enabled,
-		DisabledReason: null.String{}, // We reset the disabled reason when the app is updated
+		Enabled:        c.App.Enabled,
+		DisabledReason: c.App.DisabledReason,
 		UpdatedAt:      time.Now().UTC(),
 	})
 	if err != nil {
-		return nil, fmt.Errorf("failed to update app: %w", err)
+		return nil, fmt.Errorf("failed to update app status: %w", err)
 	}
 
 	return wire.AppToWire(app), nil
@@ -145,12 +174,14 @@ func (h *AppHandler) HandleAppTokenUpdate(c *handler.Context, req wire.AppTokenU
 	}
 
 	app, err := h.appStore.UpdateApp(c.Context(), store.AppUpdateOpts{
-		ID:           c.App.ID,
-		Name:         c.App.Name,
-		Description:  c.App.Description,
-		DiscordToken: req.DiscordToken,
-		Enabled:      true,
-		UpdatedAt:    time.Now().UTC(),
+		ID:             c.App.ID,
+		Name:           c.App.Name,
+		Description:    c.App.Description,
+		DiscordToken:   req.DiscordToken,
+		DiscordStatus:  c.App.DiscordStatus,
+		Enabled:        true,
+		DisabledReason: null.String{}, // We reset the disabled reason when the app token is updated
+		UpdatedAt:      time.Now().UTC(),
 	})
 	if err != nil {
 		slog.Error(

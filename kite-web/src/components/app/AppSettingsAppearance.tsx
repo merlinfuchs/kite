@@ -7,43 +7,30 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Input } from "../ui/input";
+import { useAppUpdateMutation } from "@/lib/api/mutations";
+import { setValidationErrors } from "@/lib/form";
+import { useApp } from "@/lib/hooks/api";
+import { useAppId } from "@/lib/hooks/params";
+import { ExternalLinkIcon } from "lucide-react";
+import Link from "next/link";
+import { useCallback, useEffect } from "react";
 import { useForm } from "react-hook-form";
+import { toast } from "sonner";
 import {
   Form,
   FormControl,
-  FormDescription,
   FormField,
   FormItem,
   FormLabel,
   FormMessage,
 } from "../ui/form";
-import { useCallback, useEffect } from "react";
-import { useApp } from "@/lib/hooks/api";
-import { useAppUpdateMutation } from "@/lib/api/mutations";
-import { useAppId } from "@/lib/hooks/params";
-import { toast } from "sonner";
-import { setValidationErrors } from "@/lib/form";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "../ui/select";
-import Link from "next/link";
-import { ExternalLinkIcon } from "lucide-react";
+import { Input } from "../ui/input";
+import { Textarea } from "../ui/textarea";
 
 interface FormFields {
   name: string;
   description: string;
   enabled: boolean;
-  discord_status: {
-    status: string;
-    activity_type?: string;
-    activity_name?: string;
-    activity_url?: string;
-  };
 }
 
 export default function AppSettingsAppearance() {
@@ -54,12 +41,6 @@ export default function AppSettingsAppearance() {
       name: "",
       description: "",
       enabled: false,
-      discord_status: {
-        status: "",
-        activity_type: "0",
-        activity_name: "",
-        activity_url: "",
-      },
     },
   });
 
@@ -69,12 +50,6 @@ export default function AppSettingsAppearance() {
         name: app.name,
         description: app.description || "",
         enabled: app.enabled,
-        discord_status: {
-          status: app.discord_status?.status || "",
-          activity_type: app.discord_status?.activity_type?.toString() || "0",
-          activity_name: app.discord_status?.activity_name || "",
-          activity_url: app.discord_status?.activity_url || "",
-        },
       });
     }
   }, [app, form]);
@@ -88,17 +63,6 @@ export default function AppSettingsAppearance() {
           name: data.name,
           description: data.description || null,
           enabled: data.enabled,
-          discord_status: !!data.discord_status.status
-            ? {
-                status: data.discord_status.status,
-                activity_type:
-                  parseInt(data.discord_status.activity_type || "0") ||
-                  undefined,
-                activity_name: data.discord_status.activity_name || undefined,
-                activity_state: data.discord_status.activity_name || undefined,
-                activity_url: data.discord_status.activity_url || undefined,
-              }
-            : undefined,
         },
         {
           onSuccess(res) {
@@ -119,8 +83,6 @@ export default function AppSettingsAppearance() {
     },
     [form, updateMutation]
   );
-
-  const discordStatus = form.watch("discord_status.status");
 
   return (
     <Card x-chunk="dashboard-04-chunk-1">
@@ -153,104 +115,12 @@ export default function AppSettingsAppearance() {
                 <FormItem>
                   <FormLabel>Description</FormLabel>
                   <FormControl>
-                    <Input type="text" {...field} />
+                    <Textarea {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
-            <div className="flex space-x-3 items-end">
-              <FormField
-                control={form.control}
-                name="discord_status.status"
-                render={({ field }) => (
-                  <FormItem className="min-w-48">
-                    <FormLabel>Custom Status</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select custom status" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="online">Online</SelectItem>
-                        <SelectItem value="dnd">Do Not Disturb</SelectItem>
-                        <SelectItem value="idle">AFK</SelectItem>
-                        <SelectItem value="invisible">Invisible</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <Button
-                variant="outline"
-                type="button"
-                onClick={() => form.setValue("discord_status.status", "")}
-              >
-                Clear
-              </Button>
-            </div>
-            {discordStatus && (
-              <div className="flex space-x-3">
-                <FormField
-                  control={form.control}
-                  name="discord_status.activity_type"
-                  render={({ field }) => (
-                    <FormItem className="min-w-48">
-                      <FormLabel>Activity Type</FormLabel>
-                      <Select
-                        onValueChange={field.onChange}
-                        value={field.value}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select a custom status inside Discord for your app" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="0">Playing</SelectItem>
-                          <SelectItem value="1">Streaming</SelectItem>
-                          <SelectItem value="2">Listening</SelectItem>
-                          <SelectItem value="3">Watching</SelectItem>
-                          <SelectItem value="5">Competing</SelectItem>
-                          <SelectItem value="4">Custom</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="discord_status.activity_name"
-                  render={({ field }) => (
-                    <FormItem className="w-full">
-                      <FormLabel>Activity Name</FormLabel>
-                      <FormControl>
-                        <Input type="text" className="w-full" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="discord_status.activity_url"
-                  render={({ field }) => (
-                    <FormItem className="w-full">
-                      <FormLabel>Activity URL</FormLabel>
-                      <FormControl>
-                        <Input type="url" className="w-full" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-            )}
           </CardContent>
 
           <CardFooter className="flex flex-wrap border-t px-6 py-4 gap-3">
