@@ -1033,6 +1033,8 @@ func (n *CompiledFlowNode) CreditsCost() int {
 
 func (n *CompiledFlowNode) executeChildren(ctx *FlowContext) error {
 	for _, child := range n.Children {
+		// We could spawn a goroutine here to execute children in parallel
+		// but we'll just execute them sequentially for now
 		if err := child.Execute(ctx); err != nil {
 			return traceError(n, err)
 		}
