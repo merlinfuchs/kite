@@ -5,7 +5,9 @@ import (
 	"fmt"
 
 	"github.com/diamondburned/arikawa/v3/api"
+	"github.com/diamondburned/arikawa/v3/utils/httputil"
 	"github.com/diamondburned/arikawa/v3/utils/json/option"
+	"github.com/kitecloud/kite/kite-service/internal/model"
 	"gopkg.in/guregu/null.v4"
 )
 
@@ -24,15 +26,33 @@ func (h *AppHandler) getDiscordAppInfo(ctx context.Context, token string) (*Disc
 	}, nil
 }
 
-func (h *AppHandler) updateDiscordAppName(ctx context.Context, token string, name string) error {
-	client := api.NewClient("Bot " + token).WithContext(ctx)
+func (h *AppHandler) updateDiscordApp(ctx context.Context, app *model.App) error {
+	client := api.NewClient("Bot " + app.DiscordToken).WithContext(ctx)
+
+	req := struct {
+		Name        string `json:"name"`
+		Description string `json:"description"`
+	}{
+		Name:        app.Name,
+		Description: app.Description.String,
+	}
+
+	_, err := client.Request("PATCH", api.EndpointApplications+app.DiscordID, httputil.WithJSONBody(req))
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (h *AppHandler) updateDiscordBotUser(ctx context.Context, app *model.App) error {
+	client := api.NewClient("Bot " + app.DiscordToken).WithContext(ctx)
 
 	_, err := client.ModifyCurrentUser(api.ModifyCurrentUserData{
-		Username: option.NewString(name),
-		// TODO: avatar
+		Username: option.NewString(app.Name),
 	})
 	if err != nil {
-		return fmt.Errorf("failed to update current user: %w", err)
+		return err
 	}
 
 	return nil

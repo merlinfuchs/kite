@@ -94,10 +94,11 @@ func (s *APIServer) RegisterRoutes(
 
 	appGroup := appsGroup.Group("/{appID}", accessManager.AppAccess)
 	appGroup.Get("/", handler.Typed(appHandler.HandleAppGet))
-	appGroup.Patch("/",
+	appGroup.Put("/",
 		handler.TypedWithBody(appHandler.HandleAppUpdate),
 		handler.RateLimitByUser(2, time.Minute),
 	)
+	appGroup.Put("/status", handler.TypedWithBody(appHandler.HandleAppStatusUpdate))
 	appGroup.Put("/token",
 		handler.TypedWithBody(appHandler.HandleAppTokenUpdate),
 		handler.RateLimitByUser(2, time.Minute),

@@ -5,6 +5,7 @@ import AppSettingsCollaborators from "@/components/app/AppSettingsCollaborators"
 import AppSettingsCredentials from "@/components/app/AppSettingsCredentials";
 import AppSettingsDelete from "@/components/app/AppSettingsDelete";
 import AppSettingsDisable from "@/components/app/AppSettingsDisable";
+import AppSettingsPresence from "@/components/app/AppSettingsPresence";
 
 const breadcrumbs = [
   {
@@ -33,6 +34,7 @@ export default function AppSettingsPage() {
       <Separator className="my-8" />
       <div className="grid gap-6">
         <AppSettingsAppearance />
+        <AppSettingsPresence />
         <AppSettingsCredentials />
         <AppSettingsCollaborators />
       </div>

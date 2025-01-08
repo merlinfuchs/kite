@@ -3,6 +3,8 @@ import {
   AppCreateRequest,
   AppCreateResponse,
   AppDeleteResponse,
+  AppStatusUpdateRequest,
+  AppStatusUpdateResponse,
   AppTokenUpdateRequest,
   AppTokenUpdateResponse,
   AppUpdateRequest,
@@ -80,7 +82,7 @@ export function useAppUpdateMutation(appId: string) {
   return useMutation({
     mutationFn: (req: AppUpdateRequest) =>
       apiRequest<AppUpdateResponse>(`/v1/apps/${appId}`, {
-        method: "PATCH",
+        method: "PUT",
         body: JSON.stringify(req),
         headers: {
           "Content-Type": "application/json",
@@ -89,6 +91,26 @@ export function useAppUpdateMutation(appId: string) {
     onSuccess: () => {
       client.invalidateQueries({
         queryKey: ["apps"],
+      });
+    },
+  });
+}
+
+export function useAppStatusUpdateMutation(appId: string) {
+  const client = useQueryClient();
+
+  return useMutation({
+    mutationFn: (req: AppStatusUpdateRequest) =>
+      apiRequest<AppStatusUpdateResponse>(`/v1/apps/${appId}/status`, {
+        method: "PUT",
+        body: JSON.stringify(req),
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }),
+    onSuccess: () => {
+      client.invalidateQueries({
+        queryKey: ["apps", appId],
       });
     },
   });

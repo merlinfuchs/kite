@@ -45,10 +45,9 @@ func (req AppCreateRequest) Validate() error {
 type AppCreateResponse = App
 
 type AppUpdateRequest struct {
-	Name          string            `json:"name"`
-	Description   null.String       `json:"description"`
-	DiscordStatus *AppDiscordStatus `json:"discord_status,omitempty"`
-	Enabled       bool              `json:"enabled"`
+	Name        string      `json:"name"`
+	Description null.String `json:"description"`
+	Enabled     bool        `json:"enabled"`
 }
 
 func (req AppUpdateRequest) Validate() error {
@@ -59,6 +58,15 @@ func (req AppUpdateRequest) Validate() error {
 }
 
 type AppUpdateResponse = App
+type AppStatusUpdateRequest struct {
+	DiscordStatus *AppDiscordStatus `json:"discord_status,omitempty"`
+}
+
+func (req AppStatusUpdateRequest) Validate() error {
+	return nil
+}
+
+type AppStatusUpdateResponse = App
 
 type AppTokenUpdateRequest struct {
 	DiscordToken string `json:"discord_token"`
