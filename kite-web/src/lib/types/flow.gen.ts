@@ -34,6 +34,7 @@ export const FlowNodeTypeActionMemberRoleRemove: FlowNodeType = "action_member_r
 export const FlowNodeTypeActionHTTPRequest: FlowNodeType = "action_http_request";
 export const FlowNodeTypeActionAIChatCompletion: FlowNodeType = "action_ai_chat_completion";
 export const FlowNodeTypeActionExpressionEvaluate: FlowNodeType = "action_expression_evaluate";
+export const FlowNodeTypeActionRandomGenerate: FlowNodeType = "action_random_generate";
 export const FlowNodeTypeActionLog: FlowNodeType = "action_log";
 export const FlowNodeTypeActionVariableSet: FlowNodeType = "action_variable_set";
 export const FlowNodeTypeActionVariableDelete: FlowNodeType = "action_variable_delete";
@@ -122,6 +123,11 @@ export interface FlowNodeData {
    * AI Chat Completion
    */
   ai_chat_completion_data?: AIChatCompletionData;
+  /**
+   * Random Generate
+   */
+  random_min?: string;
+  random_max?: string;
   /**
    * Event Entry
    */

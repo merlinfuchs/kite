@@ -82,6 +82,8 @@ const intputs: Record<string, any> = {
   http_request_data: HttpRequestDataInput,
   ai_chat_completion_data: AiChatCompletionDataInput,
   expression: ExpressionInput,
+  random_min: RandomMinInput,
+  random_max: RandomMaxInput,
   audit_log_reason: AuditLogReasonInput,
   user_target: UserTargetInput,
   member_ban_delete_message_duration_seconds:
@@ -614,6 +616,30 @@ function ExpressionInput({ data, updateData, errors }: InputProps) {
       }
       errors={errors}
       placeholders
+    />
+  );
+}
+
+function RandomMinInput({ data, updateData, errors }: InputProps) {
+  return (
+    <BaseInput
+      field="random_min"
+      title="Min"
+      value={data.random_min || ""}
+      updateValue={(v) => updateData({ random_min: v || undefined })}
+      errors={errors}
+    />
+  );
+}
+
+function RandomMaxInput({ data, updateData, errors }: InputProps) {
+  return (
+    <BaseInput
+      field="random_max"
+      title="Max"
+      value={data.random_max || ""}
+      updateValue={(v) => updateData({ random_max: v || undefined })}
+      errors={errors}
     />
   );
 }

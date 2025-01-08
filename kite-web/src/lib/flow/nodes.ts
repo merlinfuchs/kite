@@ -7,6 +7,7 @@ import {
   BrainCircuitIcon,
   CircleHelpIcon,
   CornerDownRightIcon,
+  DicesIcon,
   FilterIcon,
   FolderSearchIcon,
   LogOutIcon,
@@ -72,6 +73,7 @@ import {
   nodeActionMemberRoleAddDataSchema,
   nodeActionMemberRoleRemoveDataSchema,
   nodeActionExpressionEvaluateDataSchema,
+  nodeActionRandomGenerateDataSchema,
 } from "./data";
 import env from "../env/client";
 
@@ -359,6 +361,14 @@ export const nodeTypes: Record<string, NodeValues> = {
     dataSchema: nodeActionExpressionEvaluateDataSchema,
     dataFields: ["expression", "custom_label"],
     helpUrl: env.NEXT_PUBLIC_DOCS_LINK + "/reference/expressions",
+  },
+  action_random_generate: {
+    color: actionColor,
+    icon: DicesIcon,
+    defaultTitle: "Generate Random Number",
+    defaultDescription: "Generate a random number in a range",
+    dataSchema: nodeActionRandomGenerateDataSchema,
+    dataFields: ["random_min", "random_max", "custom_label"],
   },
   action_log: {
     color: actionColor,
