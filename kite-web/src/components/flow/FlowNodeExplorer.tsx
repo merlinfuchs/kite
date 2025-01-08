@@ -78,6 +78,7 @@ const nodeCategories = {
         "action_expression_evaluate",
         "action_ai_chat_completion",
         "action_http_request",
+        "action_random_generate",
         "action_log",
       ],
       contextTypes: null,

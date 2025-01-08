@@ -3,6 +3,7 @@ package flow
 import (
 	"errors"
 	"fmt"
+	"math/rand"
 	"net/http"
 	"time"
 
@@ -782,6 +783,28 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 		}
 
 		nodeState.Result = thing.New(response)
+		return n.executeChildren(ctx)
+	case FlowNodeTypeActionRandomGenerate:
+		min, err := ctx.EvalTemplate(n.Data.RandomMin)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		max, err := ctx.EvalTemplate(n.Data.RandomMax)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		minInt := int(min.Int())
+		maxInt := int(max.Int())
+		if maxInt <= 0 || minInt >= maxInt {
+			return &FlowError{
+				Code:    FlowNodeErrorUnknown,
+				Message: "random_generate_max must be greater than random_generate_min and greater than 0",
+			}
+		}
+
+		nodeState.Result = thing.New(rand.Intn(maxInt + minInt))
 		return n.executeChildren(ctx)
 	case FlowNodeTypeActionExpressionEvaluate:
 		expression, err := ctx.EvalTemplate(n.Data.Expression)

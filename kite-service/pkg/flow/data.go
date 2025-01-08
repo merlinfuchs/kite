@@ -56,6 +56,7 @@ const (
 	FlowNodeTypeActionHTTPRequest          FlowNodeType = "action_http_request"
 	FlowNodeTypeActionAIChatCompletion     FlowNodeType = "action_ai_chat_completion"
 	FlowNodeTypeActionExpressionEvaluate   FlowNodeType = "action_expression_evaluate"
+	FlowNodeTypeActionRandomGenerate       FlowNodeType = "action_random_generate"
 	FlowNodeTypeActionLog                  FlowNodeType = "action_log"
 	FlowNodeTypeActionVariableSet          FlowNodeType = "action_variable_set"
 	FlowNodeTypeActionVariableDelete       FlowNodeType = "action_variable_delete"
@@ -147,6 +148,10 @@ type FlowNodeData struct {
 
 	// AI Chat Completion
 	AIChatCompletionData *AIChatCompletionData `json:"ai_chat_completion_data,omitempty"`
+
+	// Random Generate
+	RandomMin string `json:"random_min,omitempty"`
+	RandomMax string `json:"random_max,omitempty"`
 
 	// Event Entry
 	EventType string `json:"event_type,omitempty"`

@@ -315,8 +315,21 @@ export const nodeActionAiChatCompletionDataSchema = nodeBaseDataSchema.extend({
   }),
 });
 
-export const nodeActionExpressionEvaluateDataSchema = nodeBaseDataSchema.extend({
-  expression: z.string().max(2000)
+export const nodeActionExpressionEvaluateDataSchema = nodeBaseDataSchema.extend(
+  {
+    expression: z.string().max(2000),
+  }
+);
+
+export const nodeActionRandomGenerateDataSchema = nodeBaseDataSchema.extend({
+  random_min: z
+    .string()
+    .regex(numericRegex)
+    .or(z.string().regex(placeholderRegex)),
+  random_max: z
+    .string()
+    .regex(numericRegex)
+    .or(z.string().regex(placeholderRegex)),
 });
 
 export const nodeActionLogDataSchema = nodeBaseDataSchema.extend({
