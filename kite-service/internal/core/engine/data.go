@@ -2,6 +2,7 @@ package engine
 
 import (
 	"github.com/diamondburned/arikawa/v3/discord"
+	"github.com/diamondburned/arikawa/v3/gateway"
 	"github.com/diamondburned/arikawa/v3/utils/ws"
 )
 
@@ -44,10 +45,32 @@ func (d *EventData) Interaction() *discord.InteractionEvent {
 }
 
 func (d *EventData) GuildID() discord.GuildID {
+	switch data := d.event.(type) {
+	case *gateway.MessageCreateEvent:
+		return data.GuildID
+	case *gateway.MessageDeleteEvent:
+		return data.GuildID
+	case *gateway.MessageUpdateEvent:
+		return data.GuildID
+	case *gateway.GuildMemberAddEvent:
+		return data.GuildID
+	case *gateway.GuildMemberRemoveEvent:
+		return data.GuildID
+	case *gateway.GuildMemberUpdateEvent:
+		return data.GuildID
+	}
 	return 0
 }
 
 func (d *EventData) ChannelID() discord.ChannelID {
+	switch data := d.event.(type) {
+	case *gateway.MessageCreateEvent:
+		return data.ChannelID
+	case *gateway.MessageDeleteEvent:
+		return data.ChannelID
+	case *gateway.MessageUpdateEvent:
+		return data.ChannelID
+	}
 	return 0
 }
 
