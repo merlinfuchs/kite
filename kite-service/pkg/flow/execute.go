@@ -640,6 +640,9 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			discord.RoleID(roleID.Int()),
 			api.AuditLogReason(auditLogReason.String()),
 		)
+		if err != nil {
+			return traceError(n, err)
+		}
 
 		return n.executeChildren(ctx)
 	case FlowNodeTypeActionMemberRoleRemove:
@@ -665,6 +668,9 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			discord.RoleID(roleID.Int()),
 			api.AuditLogReason(auditLogReason.String()),
 		)
+		if err != nil {
+			return traceError(n, err)
+		}
 
 		return n.executeChildren(ctx)
 	case FlowNodeTypeActionVariableSet:
