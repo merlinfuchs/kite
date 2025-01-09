@@ -47,7 +47,7 @@ export const columns: ColumnDef<{ id: string; name: string; url: string }>[] = [
     cell: ({ row }) => <div>{row.getValue("id")}</div>,
   },
   {
-    accessorKey: "id",
+    accessorKey: "created_at",
     header: "Created At",
     cell: ({ row }) => {
       const id = row.original?.id;

@@ -1,4 +1,4 @@
-import EmojiPicker from "@/components/common/EmojiPicker";
+import EmojiPicker, { PickerEmoji } from "@/components/common/EmojiPicker";
 import { Emoji } from "@/lib/message/schema";
 import Twemoji from "../common/Twemoji";
 import { Button } from "../ui/button";
@@ -10,8 +10,12 @@ interface Props {
 }
 
 export default function MessageEmojiPicker({ emoji, onChange }: Props) {
-  function onEmojiSelect(emoji: string) {
-    onChange({ name: emoji, animated: false });
+  function onEmojiSelect(emoji: PickerEmoji) {
+    if (emoji.native) {
+      onChange({ name: emoji.name, animated: false });
+    } else {
+      onChange({ name: emoji.name, id: emoji.id, animated: emoji.animated });
+    }
   }
 
   return (
@@ -25,7 +29,15 @@ export default function MessageEmojiPicker({ emoji, onChange }: Props) {
         <div className="bg-dark-2 rounded flex">
           <EmojiPicker onEmojiSelect={onEmojiSelect}>
             <Button size="icon" variant="outline">
-              {emoji ? (
+              {emoji?.id ? (
+                <img
+                  src={`https://cdn.discordapp.com/emojis/${emoji.id}.${
+                    emoji.animated ? "gif" : "webp"
+                  }`}
+                  alt=""
+                  className="h-6 w-6"
+                />
+              ) : emoji ? (
                 <Twemoji
                   options={{
                     className: "h-6 w-6",
