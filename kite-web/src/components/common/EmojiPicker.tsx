@@ -1,18 +1,56 @@
 import Picker from "@emoji-mart/react";
-import { ReactNode, useState } from "react";
+import { ReactNode, useMemo, useState } from "react";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { useAppEmojis } from "@/lib/hooks/api";
+
+export type PickerEmoji =
+  | {
+      native: true;
+      name: string;
+    }
+  | {
+      native: false;
+      id: string;
+      name: string;
+      animated: boolean;
+    };
 
 interface Props {
-  onEmojiSelect: (emoji: string) => void;
+  onEmojiSelect: (emoji: PickerEmoji) => void;
   children: ReactNode;
 }
 
 export default function EmojiPicker({ onEmojiSelect, children }: Props) {
   const [open, setOpen] = useState(false);
+
+  const appEmojis = useAppEmojis();
+
+  const customEmojis = useMemo(() => {
+    if (!appEmojis) return [];
+
+    return [
+      {
+        id: "custom",
+        name: "Custom Emojis",
+        emojis: appEmojis.map((emoji) => ({
+          id: emoji!.id,
+          name: emoji!.name,
+          keywords: ["discord", "custom"],
+          skins: [
+            {
+              src: `https://cdn.discordapp.com/emojis/${emoji!.id}.${
+                emoji!.animated ? "gif" : "webp"
+              }`,
+            },
+          ],
+        })),
+      },
+    ];
+  }, [appEmojis]);
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -25,12 +63,23 @@ export default function EmojiPicker({ onEmojiSelect, children }: Props) {
             );
             return response.json();
           }}
-          onEmojiSelect={(data: any) => {
-            onEmojiSelect(data.native);
+          onEmojiSelect={(emoji: any) => {
+            if (emoji.native) {
+              onEmojiSelect({ native: true, name: emoji.native });
+            } else {
+              onEmojiSelect({
+                native: false,
+                id: emoji.id,
+                name: emoji.name,
+                animated: emoji.src.endsWith(".gif"),
+              });
+            }
             setOpen(false);
           }}
+          custom={customEmojis}
           categories={[
             "frequent",
+            "custom",
             "people",
             "nature",
             "foods",

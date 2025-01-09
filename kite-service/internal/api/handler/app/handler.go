@@ -203,6 +203,25 @@ func (h *AppHandler) HandleAppDelete(c *handler.Context) (*wire.AppDeleteRespons
 	return &wire.AppDeleteResponse{}, nil
 }
 
+func (h *AppHandler) HandleAppEmojisList(c *handler.Context) (*wire.AppEmojiListResponse, error) {
+	emojis, err := h.getAppEmojis(c.Context(), c.App)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get app emojis: %w", err)
+	}
+
+	res := make([]*wire.AppEmoji, len(emojis))
+	for i, emoji := range emojis {
+		res[i] = &wire.AppEmoji{
+			ID:        emoji.ID.String(),
+			Name:      emoji.Name,
+			Animated:  emoji.Animated,
+			Available: emoji.Available,
+		}
+	}
+
+	return &res, nil
+}
+
 func (h *AppHandler) HandleAppEntityList(c *handler.Context) (*wire.AppEntityListResponse, error) {
 	entities, err := h.appStore.AppEntities(c.Context(), c.App.ID)
 	if err != nil {

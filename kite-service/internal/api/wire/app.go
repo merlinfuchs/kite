@@ -115,6 +115,15 @@ func AppToWire(app *model.App) *App {
 	}
 }
 
+type AppEmojiListResponse = []*AppEmoji
+
+type AppEmoji struct {
+	ID        string `json:"id"`
+	Name      string `json:"name"`
+	Animated  bool   `json:"animated"`
+	Available bool   `json:"available"`
+}
+
 type AppEntityListResponse = []*AppEntity
 
 type AppEntity struct {

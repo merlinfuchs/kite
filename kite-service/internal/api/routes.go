@@ -44,6 +44,11 @@ func (s *APIServer) RegisterRoutes(
 	}, sessionStore)
 	accessManager := access.NewAccessManager(appStore, commandStore, variableStore, messageStore, eventListenerStore)
 
+	cacheManager, err := handler.NewCacheManager(10000)
+	if err != nil {
+		panic(err)
+	}
+
 	webHandler, err := kiteweb.NewHandler()
 	if err == nil {
 		slog.Info("Website embedded")
@@ -104,6 +109,10 @@ func (s *APIServer) RegisterRoutes(
 		handler.RateLimitByUser(2, time.Minute),
 	)
 	appGroup.Delete("/", handler.Typed(appHandler.HandleAppDelete))
+	appGroup.Get("/emojis",
+		handler.Typed(appHandler.HandleAppEmojisList),
+		handler.CacheByUser(cacheManager, time.Minute),
+	)
 	appGroup.Get("/entities", handler.Typed(appHandler.HandleAppEntityList))
 
 	// Log routes
