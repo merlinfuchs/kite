@@ -29,7 +29,7 @@ export const nodeEntryCommandDataSchema = nodeBaseDataSchema.extend({
     .min(1)
     .regex(
       /^[-_a-z0-9]{1,32}( [-_a-z0-9]{1,32}){0,2}$/,
-      "Must be only alphanumeric characters and underscores, and have at most 3 words"
+      "Must be only lowercase alphanumeric characters and underscores, and have at most 3 words"
     ),
   description: z.string().max(100).min(1),
 });
