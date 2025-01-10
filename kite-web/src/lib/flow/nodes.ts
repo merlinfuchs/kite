@@ -1,5 +1,5 @@
 import { Edge, Node, XYPosition } from "@xyflow/react";
-import { humanId, poolSize } from "human-id";
+import { humanId, nouns, verbs } from "human-id";
 import {
   ArrowLeftRightIcon,
   BookmarkIcon,
@@ -663,11 +663,13 @@ export function createNode(
 }
 
 function getNodeId(): string {
+  // This gives us a pool size of 75000
+  // There is a small chance of collision, but reactflow handles it gracefully
   return humanId({
     separator: "",
     capitalize: false,
     addAdverb: false,
-    adjectiveCount: 1,
+    adjectiveCount: 0,
   });
 }
 
