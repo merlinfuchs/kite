@@ -17,7 +17,7 @@ type FlowContext struct {
 	FlowContextState
 
 	Data    FlowContextData
-	EvalEnv eval.Env
+	EvalCtx eval.Context
 }
 
 func NewContext(
@@ -25,21 +25,22 @@ func NewContext(
 	data FlowContextData,
 	providers FlowProviders,
 	limits FlowContextLimits,
-	evalEnv eval.Env,
+	evalCtx eval.Context,
 ) *FlowContext {
 	state := FlowContextState{
 		NodeStates: make(map[string]*FlowContextNodeState),
 	}
 
-	evalEnv["node"] = (&nodeEvalEnv{
+	evalCtx.Env["node"] = (&nodeEvalEnv{
 		state: &state,
 	}).GetNode
+	evalCtx.Patchers = append(evalCtx.Patchers, &nodeEvalPatcher{})
 
 	return &FlowContext{
 		Context: ctx,
 		Data:    data,
 		// Placeholders:      placeholders,
-		EvalEnv:           evalEnv,
+		EvalCtx:           evalCtx,
 		FlowProviders:     providers,
 		FlowContextLimits: limits,
 		FlowContextState:  state,

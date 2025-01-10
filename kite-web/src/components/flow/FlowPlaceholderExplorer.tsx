@@ -131,6 +131,8 @@ function useCommandPlaceholders() {
   ];
 }
 
+const numericRegex = /^[0-9]+$/;
+
 function useNodePlaceholders() {
   const nodes = useNodes();
   const edges = useEdges();
@@ -154,11 +156,15 @@ function useNodePlaceholders() {
           label = data.defaultTitle;
         }
 
+        let value: string;
+        if (numericRegex.test(n.id)) {
+          value = `nodes[${n.id}].result`;
+        } else {
+          value = `nodes.${n.id}.result`;
+        }
+
         // TODO: take node result type into account
-        return {
-          label,
-          value: `node(${n.id}).result`,
-        };
+        return { label, value };
       });
   }, [nodes, edges]);
 

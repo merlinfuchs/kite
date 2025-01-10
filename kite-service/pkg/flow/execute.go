@@ -60,7 +60,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 				return nil
 			}
 
-			res, err := eval.EvalTemplateToString(ctx, *s, ctx.EvalEnv)
+			res, err := eval.EvalTemplateToString(ctx, *s, ctx.EvalCtx)
 			if err != nil {
 				return err
 			}
@@ -144,7 +144,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 				return nil
 			}
 
-			res, err := eval.EvalTemplateToString(ctx, *s, ctx.EvalEnv)
+			res, err := eval.EvalTemplateToString(ctx, *s, ctx.EvalCtx)
 			if err != nil {
 				return err
 			}
@@ -281,7 +281,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 				return nil
 			}
 
-			res, err := eval.EvalTemplateToString(ctx, *s, ctx.EvalEnv)
+			res, err := eval.EvalTemplateToString(ctx, *s, ctx.EvalCtx)
 			if err != nil {
 				return err
 			}
@@ -351,7 +351,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 				return nil
 			}
 
-			res, err := eval.EvalTemplateToString(ctx, *s, ctx.EvalEnv)
+			res, err := eval.EvalTemplateToString(ctx, *s, ctx.EvalCtx)
 			if err != nil {
 				return err
 			}
@@ -441,7 +441,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 				return nil
 			}
 
-			res, err := eval.EvalTemplateToString(ctx, *s, ctx.EvalEnv)
+			res, err := eval.EvalTemplateToString(ctx, *s, ctx.EvalCtx)
 			if err != nil {
 				return err
 			}
@@ -597,7 +597,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 
 		if n.Data.MemberData != nil {
 			if n.Data.MemberData.Nick != nil {
-				nick, err := eval.EvalTemplateToString(ctx, *n.Data.MemberData.Nick, ctx.EvalEnv)
+				nick, err := eval.EvalTemplateToString(ctx, *n.Data.MemberData.Nick, ctx.EvalCtx)
 				if err != nil {
 					return traceError(n, err)
 				}
@@ -818,7 +818,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			return traceError(n, err)
 		}
 
-		res, err := eval.Eval(ctx, expression.String(), ctx.EvalEnv)
+		res, err := eval.Eval(ctx, expression.String(), ctx.EvalCtx)
 		if err != nil {
 			return traceError(n, err)
 		}

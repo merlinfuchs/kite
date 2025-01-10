@@ -1,4 +1,5 @@
 import { Edge, Node, XYPosition } from "@xyflow/react";
+import { humanId, nouns, verbs } from "human-id";
 import {
   ArrowLeftRightIcon,
   BookmarkIcon,
@@ -37,20 +38,25 @@ import {
 } from "lucide-react";
 import { ExoticComponent, useMemo } from "react";
 import { ZodSchema } from "zod";
+import env from "../env/client";
 import { getUniqueId } from "../utils";
 import {
   nodeActionAiChatCompletionDataSchema,
-  nodeActionPrivateMessageCreateDataSchema,
+  nodeActionExpressionEvaluateDataSchema,
   nodeActionHttpRequestDataSchema,
   nodeActionLogDataSchema,
   nodeActionMemberBanDataSchema,
   nodeActionMemberEditDataSchema,
   nodeActionMemberKickDataSchema,
+  nodeActionMemberRoleAddDataSchema,
+  nodeActionMemberRoleRemoveDataSchema,
   nodeActionMemberTimeoutDataSchema,
   nodeActionMemberUnbanDataSchema,
   nodeActionMessageCreateDataSchema,
   nodeActionMessageDeleteDataSchema,
   nodeActionMessageEditDataSchema,
+  nodeActionPrivateMessageCreateDataSchema,
+  nodeActionRandomGenerateDataSchema,
   nodeActionResponseCreateDataSchema,
   nodeActionResponseDeferDataSchema,
   nodeActionResponseDeleteDataSchema,
@@ -70,12 +76,7 @@ import {
   nodeOptionCommandContextsSchema,
   nodeOptionCommandPermissionsSchema,
   nodeOptionEventFilterSchema,
-  nodeActionMemberRoleAddDataSchema,
-  nodeActionMemberRoleRemoveDataSchema,
-  nodeActionExpressionEvaluateDataSchema,
-  nodeActionRandomGenerateDataSchema,
 } from "./data";
-import env from "../env/client";
 
 export const primaryColor = "#3B82F6";
 
@@ -585,7 +586,7 @@ export function createNode(
   position: XYPosition,
   props?: Partial<Node<NodeData>>
 ): [Node<NodeData>[], Edge[]] {
-  const id = getUniqueId().toString();
+  const id = getNodeId();
 
   const nodes: Node<NodeData>[] = [
     {
@@ -608,7 +609,7 @@ export function createNode(
 
     nodes.push(...elseNodes);
     edges.push({
-      id: getUniqueId().toString(),
+      id: getEdgeId(),
       source: id,
       target: elseNodes[0].id,
       type: "fixed",
@@ -622,7 +623,7 @@ export function createNode(
 
     nodes.push(...compareNodes);
     edges.push({
-      id: getUniqueId().toString(),
+      id: getEdgeId(),
       source: id,
       target: compareNodes[0].id,
       type: "fixed",
@@ -636,7 +637,7 @@ export function createNode(
 
     nodes.push(...endNodes);
     edges.push({
-      id: getUniqueId().toString(),
+      id: getEdgeId(),
       source: id,
       target: endNodes[0].id,
       type: "fixed",
@@ -650,7 +651,7 @@ export function createNode(
 
     nodes.push(...eachNodes);
     edges.push({
-      id: getUniqueId().toString(),
+      id: getEdgeId(),
       source: id,
       target: eachNodes[0].id,
       type: "fixed",
@@ -659,4 +660,19 @@ export function createNode(
   }
 
   return [nodes, edges];
+}
+
+function getNodeId(): string {
+  // This gives us a pool size of 75000
+  // There is a small chance of collision, but reactflow handles it gracefully
+  return humanId({
+    separator: "",
+    capitalize: false,
+    addAdverb: false,
+    adjectiveCount: 0,
+  });
+}
+
+function getEdgeId(): string {
+  return getUniqueId().toString();
 }

@@ -125,7 +125,7 @@ func (c *MessageInstance) HandleEvent(appID string, session *state.State, event 
 			MaxOperations: c.config.MaxOperations,
 			MaxCredits:    c.config.MaxCredits,
 		},
-		eval.NewEnvWithInteraction(&i.InteractionEvent),
+		eval.NewContextFromInteraction(&i.InteractionEvent),
 	)
 
 	if err := targetFlow.Execute(fCtx); err != nil {

@@ -105,7 +105,7 @@ func (l *EventListener) HandleEvent(appID string, session *state.State, event ga
 			MaxOperations: l.config.MaxOperations,
 			MaxCredits:    l.config.MaxCredits,
 		},
-		eval.NewEnvWithEvent(event),
+		eval.NewContextFromEvent(event),
 	)
 
 	if err := l.flow.Execute(fCtx); err != nil {

@@ -10,8 +10,14 @@ import (
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/gateway"
 	"github.com/diamondburned/arikawa/v3/utils/ws"
+	"github.com/expr-lang/expr/ast"
 	"github.com/kitecloud/kite/kite-service/pkg/thing"
 )
+
+type Context struct {
+	Env      Env
+	Patchers []ast.Visitor
+}
 
 type Env map[string]any
 
@@ -50,13 +56,14 @@ func NewInteractionEnv(i *discord.InteractionEvent) *InteractionEnv {
 	return e
 }
 
-func NewEnvWithInteraction(i *discord.InteractionEvent) Env {
+func NewContextFromInteraction(i *discord.InteractionEvent) Context {
 	interactionEnv := NewInteractionEnv(i)
-	env := Env{
-		"interaction": interactionEnv,
-	}
 
-	return env
+	return Context{
+		Env: Env{
+			"interaction": interactionEnv,
+		},
+	}
 }
 
 func (e InteractionEnv) String() string {
@@ -182,9 +189,11 @@ func NewEventEnv(event ws.Event) *EventEnv {
 	return env
 }
 
-func NewEnvWithEvent(event ws.Event) Env {
-	return Env{
-		"event": NewEventEnv(event),
+func NewContextFromEvent(event ws.Event) Context {
+	return Context{
+		Env: Env{
+			"event": NewEventEnv(event),
+		},
 	}
 }
 

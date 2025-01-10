@@ -199,8 +199,11 @@ export default function FlowNodeEditor({ nodeId }: Props) {
               </Link>
             )}
           </div>
-          <div className="text-muted-foreground">
+          <div className="text-muted-foreground mb-3">
             {values.defaultDescription}
+          </div>
+          <div className="flex">
+            <div className="bg-muted rounded px-2 py-1 text-xs">{nodeId}</div>
           </div>
         </div>
       </div>
