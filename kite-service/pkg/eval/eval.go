@@ -14,21 +14,25 @@ import (
 const templateStartTag = "{{"
 const templateEndTag = "}}"
 
-func Eval(ctx context.Context, expression string, env Env) (thing.Any, error) {
-	env["ctx"] = ctx
+func Eval(ctx context.Context, expression string, c Context) (thing.Any, error) {
+	c.Env["ctx"] = ctx
 
-	program, err := expr.Compile(
-		expression,
-		expr.Env(env),
+	opts := []expr.Option{
+		expr.Env(c.Env),
 		expr.AllowUndefinedVariables(),
 		expr.WithContext("ctx"),
 		expr.Timezone("UTC"),
-	)
+	}
+	for _, p := range c.Patchers {
+		opts = append(opts, expr.Patch(p))
+	}
+
+	program, err := expr.Compile(expression, opts...)
 	if err != nil {
 		return thing.Null, fmt.Errorf("eval error: %w", err)
 	}
 
-	result, err := expr.Run(program, env)
+	result, err := expr.Run(program, c.Env)
 	if err != nil {
 		return thing.Null, fmt.Errorf("eval error: %w", err)
 	}
@@ -36,7 +40,7 @@ func Eval(ctx context.Context, expression string, env Env) (thing.Any, error) {
 	return thing.New(result), nil
 }
 
-func EvalTemplate(ctx context.Context, template string, env Env) (any, error) {
+func EvalTemplate(ctx context.Context, template string, c Context) (any, error) {
 	template = strings.TrimSpace(template)
 	if template == "" {
 		return "", nil
@@ -49,7 +53,7 @@ func EvalTemplate(ctx context.Context, template string, env Env) (any, error) {
 		strings.Count(template, templateStartTag) == 1 &&
 		strings.Count(template, templateEndTag) == 1 {
 		template = template[len(templateStartTag) : len(template)-len(templateEndTag)]
-		res, err := Eval(ctx, template, env)
+		res, err := Eval(ctx, template, c)
 		if err != nil {
 			return nil, err
 		}
@@ -62,7 +66,7 @@ func EvalTemplate(ctx context.Context, template string, env Env) (any, error) {
 		templateStartTag,
 		templateEndTag,
 		func(w io.Writer, tag string) (int, error) {
-			res, err := Eval(ctx, tag, env)
+			res, err := Eval(ctx, tag, c)
 			if err != nil {
 				return 0, err
 			}
@@ -79,8 +83,8 @@ func EvalTemplate(ctx context.Context, template string, env Env) (any, error) {
 	return res, nil
 }
 
-func EvalTemplateToString(ctx context.Context, template string, env Env) (string, error) {
-	res, err := EvalTemplate(ctx, template, env)
+func EvalTemplateToString(ctx context.Context, template string, c Context) (string, error) {
+	res, err := EvalTemplate(ctx, template, c)
 	if err != nil {
 		return "", err
 	}

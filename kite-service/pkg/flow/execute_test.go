@@ -77,7 +77,7 @@ func TestFlowExecuteCommand(t *testing.T) {
 			MaxOperations: 1000,
 			MaxCredits:    1000,
 		},
-		eval.Env{},
+		eval.Context{},
 	)
 
 	err := flowCommandTest.Execute(c)

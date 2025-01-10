@@ -158,9 +158,9 @@ function useNodePlaceholders() {
 
         let value: string;
         if (numericRegex.test(n.id)) {
-          value = `node(${n.id}).result`;
+          value = `nodes[${n.id}].result`;
         } else {
-          value = `node('${n.id}').result`;
+          value = `nodes.${n.id}.result`;
         }
 
         // TODO: take node result type into account
