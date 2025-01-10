@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"sync"
 
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/utils/ws"
@@ -13,6 +14,8 @@ import (
 
 type FlowContext struct {
 	context.Context
+	waitGroup *sync.WaitGroup
+
 	FlowProviders
 	FlowContextLimits
 	FlowContextState
@@ -38,14 +41,32 @@ func NewContext(
 	evalCtx.Patchers = append(evalCtx.Patchers, &nodeEvalPatcher{})
 
 	return &FlowContext{
-		Context: ctx,
-		Data:    data,
+		Context:   ctx,
+		waitGroup: &sync.WaitGroup{},
+
+		Data: data,
 		// Placeholders:      placeholders,
 		EvalCtx:           evalCtx,
 		FlowProviders:     providers,
 		FlowContextLimits: limits,
 		FlowContextState:  state,
 	}
+}
+
+func (c *FlowContext) Copy() *FlowContext {
+	return &FlowContext{
+		Context:           c.Context,
+		waitGroup:         c.waitGroup,
+		Data:              c.Data,
+		EvalCtx:           c.EvalCtx,
+		FlowProviders:     c.FlowProviders,
+		FlowContextLimits: c.FlowContextLimits,
+		FlowContextState:  c.FlowContextState.Copy(),
+	}
+}
+
+func (c *FlowContext) Wait() {
+	c.waitGroup.Wait()
 }
 
 type FlowContextData interface {
@@ -148,8 +169,8 @@ func (s *FlowContextState) GetNodeState(nodeID string) *FlowContextNodeState {
 	return state
 }
 
-func (s *FlowContextState) Copy() *FlowContextState {
-	copy := &FlowContextState{
+func (s *FlowContextState) Copy() FlowContextState {
+	copy := FlowContextState{
 		NodeStates: make(map[string]*FlowContextNodeState, len(s.NodeStates)),
 	}
 

@@ -108,11 +108,7 @@ func (l *EventListener) HandleEvent(appID string, session *state.State, event ga
 		eval.NewContextFromEvent(event),
 	)
 
-	if err := l.flow.Execute(fCtx); err != nil {
-		slog.With("error", err).Error("Failed to execute event listener flow")
-		l.createLogEntry(model.LogLevelError, fmt.Sprintf("Failed to execute event listener flow: %v", err))
-	}
-
+	l.flow.Execute(fCtx)
 	l.createUsageRecord(fCtx.CreditsUsed())
 }
 

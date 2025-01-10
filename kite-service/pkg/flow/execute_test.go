@@ -77,11 +77,14 @@ func TestFlowExecuteCommand(t *testing.T) {
 			MaxOperations: 1000,
 			MaxCredits:    1000,
 		},
-		eval.Context{},
+		eval.Context{
+			Env: eval.Env{},
+		},
 	)
 
-	err := flowCommandTest.Execute(c)
-	require.NoError(t, err)
+	flowCommandTest.Execute(c)
+	c.Wait()
+
 	require.NotNil(t, discordProvider.response.Data)
 	require.NotNil(t, discordProvider.response.Data.Content)
 	assert.Equal(t, "Pong!", discordProvider.response.Data.Content.Val)

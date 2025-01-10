@@ -16,21 +16,28 @@ import (
 	"gopkg.in/guregu/null.v4"
 )
 
-func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
+func (n *CompiledFlowNode) Execute(ctx *FlowContext) {
 	if err := ctx.startOperation(n.CreditsCost()); err != nil {
-		return traceError(n, err)
+		ctx.Log.CreateLogEntry(ctx, LogLevelError, fmt.Sprintf("Failed to start flow operation: %s", err.Error()))
 	}
 	defer ctx.endOperation()
 
+	err := n.execute(ctx)
+	if err != nil {
+		ctx.Log.CreateLogEntry(ctx, LogLevelError, fmt.Sprintf("Failed to execute flow node: %s", err.Error()))
+	}
+}
+
+func (n *CompiledFlowNode) execute(ctx *FlowContext) error {
 	nodeState := ctx.GetNodeState(n.ID)
 
 	switch n.Type {
 	case FlowNodeTypeEntryCommand:
-		return n.executeChildren(ctx)
+		n.executeChildren(ctx)
 	case FlowNodeTypeEntryEvent:
-		return n.executeChildren(ctx)
+		n.executeChildren(ctx)
 	case FlowNodeTypeEntryComponentButton:
-		return n.executeChildren(ctx)
+		n.executeChildren(ctx)
 	case FlowNodeTypeActionResponseCreate:
 		interaction := ctx.Data.Interaction()
 		if interaction == nil {
@@ -114,11 +121,11 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 				Ephemeral:         n.Data.MessageEphemeral,
 			})
 			if err != nil {
-				ctx.Log.CreateLogEntry(ctx, n.Data.LogLevel, fmt.Sprintf("failed to link message template instance: %s", err.Error()))
+				ctx.Log.CreateLogEntry(ctx, LogLevelError, fmt.Sprintf("failed to link message template instance: %s", err.Error()))
 			}
 		}
 
-		return n.executeChildren(ctx)
+		n.executeChildren(ctx)
 	case FlowNodeTypeActionResponseEdit:
 		interaction := ctx.Data.Interaction()
 		if interaction == nil {
@@ -198,12 +205,12 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 				Ephemeral:         n.Data.MessageEphemeral,
 			})
 			if err != nil {
-				ctx.Log.CreateLogEntry(ctx, n.Data.LogLevel, fmt.Sprintf("failed to link message template instance: %s", err.Error()))
+				ctx.Log.CreateLogEntry(ctx, LogLevelError, fmt.Sprintf("failed to link message template instance: %s", err.Error()))
 			}
 		}
 
 		nodeState.Result = thing.New(msg)
-		return n.executeChildren(ctx)
+		n.executeChildren(ctx)
 	case FlowNodeTypeActionResponseDelete:
 		interaction := ctx.Data.Interaction()
 		if interaction == nil {
@@ -235,7 +242,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			}
 		}
 
-		return n.executeChildren(ctx)
+		n.executeChildren(ctx)
 	case FlowNodeTypeActionResponseDefer:
 		interaction := ctx.Data.Interaction()
 		if interaction == nil {
@@ -259,7 +266,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			return traceError(n, err)
 		}
 
-		return n.executeChildren(ctx)
+		n.executeChildren(ctx)
 	case FlowNodeTypeActionMessageCreate:
 		var data message.MessageData
 		if n.Data.MessageTemplateID != "" {
@@ -314,12 +321,12 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 				Ephemeral:         n.Data.MessageEphemeral,
 			})
 			if err != nil {
-				ctx.Log.CreateLogEntry(ctx, n.Data.LogLevel, fmt.Sprintf("failed to link message template instance: %s", err.Error()))
+				ctx.Log.CreateLogEntry(ctx, LogLevelError, fmt.Sprintf("failed to link message template instance: %s", err.Error()))
 			}
 		}
 
 		nodeState.Result = thing.New(msg)
-		return n.executeChildren(ctx)
+		n.executeChildren(ctx)
 	case FlowNodeTypeActionMessageEdit:
 		channelTarget, err := ctx.EvalTemplate(n.Data.ChannelTarget)
 		if err != nil {
@@ -387,12 +394,12 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 				Ephemeral:         n.Data.MessageEphemeral,
 			})
 			if err != nil {
-				ctx.Log.CreateLogEntry(ctx, n.Data.LogLevel, fmt.Sprintf("failed to link message template instance: %s", err.Error()))
+				ctx.Log.CreateLogEntry(ctx, LogLevelError, fmt.Sprintf("failed to link message template instance: %s", err.Error()))
 			}
 		}
 
 		nodeState.Result = thing.New(msg)
-		return n.executeChildren(ctx)
+		n.executeChildren(ctx)
 	case FlowNodeTypeActionMessageDelete:
 		channelTarget, err := ctx.EvalTemplate(n.Data.ChannelTarget)
 		if err != nil {
@@ -419,7 +426,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			return traceError(n, err)
 		}
 
-		return n.executeChildren(ctx)
+		n.executeChildren(ctx)
 	case FlowNodeTypeActionPrivateMessageCreate:
 		var data message.MessageData
 		if n.Data.MessageTemplateID != "" {
@@ -471,7 +478,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 		}
 
 		nodeState.Result = thing.New(msg)
-		return n.executeChildren(ctx)
+		n.executeChildren(ctx)
 	case FlowNodeTypeActionMemberBan:
 		userID, err := ctx.EvalTemplate(n.Data.UserTarget)
 		if err != nil {
@@ -501,7 +508,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			return traceError(n, err)
 		}
 
-		return n.executeChildren(ctx)
+		n.executeChildren(ctx)
 	case FlowNodeTypeActionMemberUnban:
 		userID, err := ctx.EvalTemplate(n.Data.UserTarget)
 		if err != nil {
@@ -523,7 +530,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			return traceError(n, err)
 		}
 
-		return n.executeChildren(ctx)
+		n.executeChildren(ctx)
 	case FlowNodeTypeActionMemberKick:
 		userID, err := ctx.EvalTemplate(n.Data.UserTarget)
 		if err != nil {
@@ -545,7 +552,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			return traceError(n, err)
 		}
 
-		return n.executeChildren(ctx)
+		n.executeChildren(ctx)
 	case FlowNodeTypeActionMemberTimeout:
 		memberID, err := ctx.EvalTemplate(n.Data.UserTarget)
 		if err != nil {
@@ -579,7 +586,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			return traceError(n, err)
 		}
 
-		return n.executeChildren(ctx)
+		n.executeChildren(ctx)
 	case FlowNodeTypeActionMemberEdit:
 		userID, err := ctx.EvalTemplate(n.Data.UserTarget)
 		if err != nil {
@@ -616,7 +623,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			return traceError(n, err)
 		}
 
-		return n.executeChildren(ctx)
+		n.executeChildren(ctx)
 	case FlowNodeTypeActionMemberRoleAdd:
 		userID, err := ctx.EvalTemplate(n.Data.UserTarget)
 		if err != nil {
@@ -644,7 +651,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			return traceError(n, err)
 		}
 
-		return n.executeChildren(ctx)
+		n.executeChildren(ctx)
 	case FlowNodeTypeActionMemberRoleRemove:
 		userID, err := ctx.EvalTemplate(n.Data.UserTarget)
 		if err != nil {
@@ -672,7 +679,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			return traceError(n, err)
 		}
 
-		return n.executeChildren(ctx)
+		n.executeChildren(ctx)
 	case FlowNodeTypeActionVariableSet:
 		scope, err := ctx.EvalTemplate(n.Data.VariableScope)
 		if err != nil {
@@ -696,7 +703,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 		}
 
 		nodeState.Result = newValue
-		return n.executeChildren(ctx)
+		n.executeChildren(ctx)
 	case FlowNodeTypeActionVariableDelete:
 		scope, err := ctx.EvalTemplate(n.Data.VariableScope)
 		if err != nil {
@@ -712,7 +719,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			return traceError(n, err)
 		}
 
-		return n.executeChildren(ctx)
+		n.executeChildren(ctx)
 	case FlowNodeTypeActionVariableGet:
 		scope, err := ctx.EvalTemplate(n.Data.VariableScope)
 		if err != nil {
@@ -729,7 +736,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 		}
 
 		nodeState.Result = val
-		return n.executeChildren(ctx)
+		n.executeChildren(ctx)
 	case FlowNodeTypeActionHTTPRequest:
 		if n.Data.HTTPRequestData == nil {
 			return &FlowError{
@@ -754,7 +761,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 		}
 
 		nodeState.Result = thing.New(resp)
-		return n.executeChildren(ctx)
+		n.executeChildren(ctx)
 	case FlowNodeTypeActionAIChatCompletion:
 		data := n.Data.AIChatCompletionData
 		if data == nil || data.Prompt == "" {
@@ -789,7 +796,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 		}
 
 		nodeState.Result = thing.New(response)
-		return n.executeChildren(ctx)
+		n.executeChildren(ctx)
 	case FlowNodeTypeActionRandomGenerate:
 		min, err := ctx.EvalTemplate(n.Data.RandomMin)
 		if err != nil {
@@ -811,7 +818,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 		}
 
 		nodeState.Result = thing.New(rand.Intn(maxInt + minInt))
-		return n.executeChildren(ctx)
+		n.executeChildren(ctx)
 	case FlowNodeTypeActionExpressionEvaluate:
 		expression, err := ctx.EvalTemplate(n.Data.Expression)
 		if err != nil {
@@ -824,7 +831,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 		}
 
 		nodeState.Result = res
-		return n.executeChildren(ctx)
+		n.executeChildren(ctx)
 	case FlowNodeTypeActionLog:
 		logMessage, err := ctx.EvalTemplate(n.Data.LogMessage)
 		if err != nil {
@@ -832,7 +839,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 		}
 
 		ctx.Log.CreateLogEntry(ctx, n.Data.LogLevel, logMessage.String())
-		return n.executeChildren(ctx)
+		n.executeChildren(ctx)
 	case FlowNodeTypeControlConditionCompare,
 		FlowNodeTypeControlConditionUser,
 		FlowNodeTypeControlConditionChannel,
@@ -851,17 +858,15 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			if child.Type == FlowNodeTypeControlConditionItemElse {
 				elseNode = child
 			} else {
-				if err := child.Execute(ctx); err != nil {
-					return traceError(n, err)
-				}
+				// We intentionally don't copy the context here because the child
+				// must be able to mutate the node state
+				child.Execute(ctx)
 			}
 		}
 
 		if elseNode != nil {
 			// else node has to be executed last
-			if err := elseNode.Execute(ctx); err != nil {
-				return traceError(n, err)
-			}
+			elseNode.Execute(ctx)
 		}
 	case FlowNodeTypeControlConditionItemCompare:
 		parent := n.FindDirectParentWithType(FlowNodeTypeControlConditionCompare)
@@ -903,7 +908,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 
 		if conditionMet {
 			parentState.ConditionItemMet = true
-			return n.executeChildren(ctx)
+			n.executeChildren(ctx)
 		}
 	case FlowNodeTypeControlConditionItemUser,
 		FlowNodeTypeControlConditionItemChannel,
@@ -941,7 +946,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 
 		if conditionMet {
 			parentState.ConditionItemMet = true
-			return n.executeChildren(ctx)
+			n.executeChildren(ctx)
 		}
 	case FlowNodeTypeControlConditionItemElse:
 		parent := n.FindDirectParentWithType(
@@ -961,33 +966,35 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			return nil
 		}
 
-		return n.executeChildren(ctx)
+		n.executeChildren(ctx)
 	case FlowNodeTypeControlLoop:
 		loopCount, err := ctx.EvalTemplate(n.Data.LoopCount)
 		if err != nil {
 			return traceError(n, err)
 		}
 
+		if loopCount.Int() <= 0 {
+			return nil
+		}
+
 		eachNode := n.FindDirectChildWithType(FlowNodeTypeControlLoopEach)
 		endNode := n.FindDirectChildWithType(FlowNodeTypeControlLoopEnd)
 
+		// TODO: This won't work with FlowNodeTypeControlLoopExit because of parallel execution
+		// Generally having loop iterations happening in parallel is weird ...
 		for i := 0; i < int(loopCount.Int()); i++ {
 			if nodeState.LoopExited {
 				break
 			}
 
-			if err := eachNode.Execute(ctx); err != nil {
-				return traceError(n, err)
-			}
+			eachNode.Execute(ctx)
 		}
 
-		if err := endNode.Execute(ctx); err != nil {
-			return traceError(n, err)
-		}
+		endNode.Execute(ctx)
 	case FlowNodeTypeControlLoopEach:
-		return n.executeChildren(ctx)
+		n.executeChildren(ctx)
 	case FlowNodeTypeControlLoopEnd:
-		return n.executeChildren(ctx)
+		n.executeChildren(ctx)
 	case FlowNodeTypeControlLoopExit:
 		// Mark all parent loops as exited
 		parentLoops := n.FindAllParentsWithType(FlowNodeTypeControlLoop)
@@ -1011,7 +1018,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 		}
 
 		time.Sleep(duration)
-		return n.executeChildren(ctx)
+		n.executeChildren(ctx)
 	default:
 		return &FlowError{
 			Code:    FlowNodeErrorUnknownNodeType,
@@ -1037,13 +1044,19 @@ func (n *CompiledFlowNode) CreditsCost() int {
 	return 0
 }
 
-func (n *CompiledFlowNode) executeChildren(ctx *FlowContext) error {
-	for _, child := range n.Children {
-		// We could spawn a goroutine here to execute children in parallel
-		// but we'll just execute them sequentially for now
-		if err := child.Execute(ctx); err != nil {
-			return traceError(n, err)
-		}
+func (n *CompiledFlowNode) executeChildren(ctx *FlowContext) {
+	if len(n.Children) == 1 {
+		// No need to spawn a goroutine if there's only one child
+		n.Children[0].Execute(ctx.Copy())
+		return
 	}
-	return nil
+
+	for _, child := range n.Children {
+		ctx.waitGroup.Add(1)
+
+		go func() {
+			child.Execute(ctx.Copy())
+			ctx.waitGroup.Done()
+		}()
+	}
 }
