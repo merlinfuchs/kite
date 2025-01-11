@@ -3,7 +3,7 @@ import {
   encodePermissionsBitset,
   permissionBits,
 } from "@/lib/discord/permissions";
-import { useNodeValues } from "@/lib/flow/nodes";
+import { getNodeId, useNodeValues } from "@/lib/flow/nodes";
 import { useMessages, useVariables } from "@/lib/hooks/api";
 import { useAppId } from "@/lib/hooks/params";
 import { getUniqueId } from "@/lib/utils";
@@ -149,7 +149,7 @@ export default function FlowNodeEditor({ nodeId }: Props) {
 
     const newNode = {
       ...node,
-      id: getUniqueId().toString(),
+      id: getNodeId(),
       selected: false,
       position: {
         x: node?.position.x! + 100,

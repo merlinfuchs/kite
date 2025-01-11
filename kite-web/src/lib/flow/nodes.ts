@@ -662,7 +662,7 @@ export function createNode(
   return [nodes, edges];
 }
 
-function getNodeId(): string {
+export function getNodeId(): string {
   // This gives us a pool size of 75000
   // There is a small chance of collision, but reactflow handles it gracefully
   return humanId({
@@ -673,6 +673,6 @@ function getNodeId(): string {
   });
 }
 
-function getEdgeId(): string {
+export function getEdgeId(): string {
   return getUniqueId().toString();
 }
