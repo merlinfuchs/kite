@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math/rand"
 	"net/http"
+	"sync"
 	"time"
 
 	"github.com/diamondburned/arikawa/v3/api"
@@ -980,14 +981,20 @@ func (n *CompiledFlowNode) execute(ctx *FlowContext) error {
 		eachNode := n.FindDirectChildWithType(FlowNodeTypeControlLoopEach)
 		endNode := n.FindDirectChildWithType(FlowNodeTypeControlLoopEnd)
 
-		// TODO: This won't work with FlowNodeTypeControlLoopExit because of parallel execution
-		// Generally having loop iterations happening in parallel is weird ...
+		// TODO: This won't work with FlowNodeTypeControlLoopExit because node state is copied ...
 		for i := 0; i < int(loopCount.Int()); i++ {
 			if nodeState.LoopExited {
 				break
 			}
 
-			eachNode.Execute(ctx)
+			// We want loop iterations to be executed sequentially
+			// So we copy the context, replace the wait group, and wait for all children to finish
+			newCtx := ctx.Copy()
+			newCtx.waitGroup = &sync.WaitGroup{}
+
+			eachNode.Execute(newCtx)
+
+			newCtx.waitGroup.Wait()
 		}
 
 		endNode.Execute(ctx)
