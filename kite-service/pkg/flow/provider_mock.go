@@ -159,3 +159,9 @@ type MockAIProvider struct{}
 func (p *MockAIProvider) CreateChatCompletion(ctx context.Context, opts CreateChatCompletionOpts) (string, error) {
 	return "", nil
 }
+
+type MockSuspendPointProvider struct{}
+
+func (p *MockSuspendPointProvider) CreateSuspendPoint(ctx context.Context, _ FlowSuspendPoint) error {
+	return nil
+}

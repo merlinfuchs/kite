@@ -42,6 +42,7 @@ const (
 	FlowNodeTypeActionResponseEdit         FlowNodeType = "action_response_edit"
 	FlowNodeTypeActionResponseDelete       FlowNodeType = "action_response_delete"
 	FlowNodeTypeActionResponseDefer        FlowNodeType = "action_response_defer"
+	FlowNodeTypeActionResponseModal        FlowNodeType = "action_response_modal"
 	FlowNodeTypeActionMessageCreate        FlowNodeType = "action_message_create"
 	FlowNodeTypeActionMessageEdit          FlowNodeType = "action_message_edit"
 	FlowNodeTypeActionMessageDelete        FlowNodeType = "action_message_delete"

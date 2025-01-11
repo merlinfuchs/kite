@@ -260,6 +260,34 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 		}
 
 		return n.executeChildren(ctx)
+	case FlowNodeTypeActionResponseModal:
+		interaction := ctx.Data.Interaction()
+		if interaction == nil {
+			return &FlowError{
+				Code:    FlowNodeErrorUnknown,
+				Message: "interaction is nil",
+			}
+		}
+
+		suspendPoint, err := ctx.suspend(FlowSuspendPointTypeModal, n.ID)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		resp := api.InteractionResponse{
+			Type: api.ModalResponse,
+			Data: &api.InteractionResponseData{
+				CustomID: option.NewNullableString("suspend:" + suspendPoint.ID),
+				// TODO: components
+			},
+		}
+
+		_, err = ctx.Discord.CreateInteractionResponse(ctx, interaction.ID, interaction.Token, resp)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		return traceError(n, nil)
 	case FlowNodeTypeActionMessageCreate:
 		var data message.MessageData
 		if n.Data.MessageTemplateID != "" {

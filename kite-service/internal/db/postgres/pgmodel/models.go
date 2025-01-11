@@ -130,6 +130,20 @@ type Session struct {
 	ExpiresAt pgtype.Timestamp
 }
 
+type SuspendPoint struct {
+	ID              string
+	Type            string
+	AppID           string
+	CommandID       pgtype.Text
+	EventListenerID pgtype.Text
+	MessageID       pgtype.Text
+	FlowSourceID    pgtype.Text
+	FlowNodeID      string
+	FlowState       []byte
+	CreatedAt       pgtype.Timestamp
+	ExpiresAt       pgtype.Timestamp
+}
+
 type UsageRecord struct {
 	ID              int64
 	Type            string

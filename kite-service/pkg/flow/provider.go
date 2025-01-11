@@ -23,6 +23,7 @@ type FlowProviders struct {
 	Log             FlowLogProvider
 	Variable        FlowVariableProvider
 	MessageTemplate FlowMessageTemplateProvider
+	SuspendPoint    FlowSuspendPointProvider
 }
 
 type FlowDiscordProvider interface {
@@ -103,3 +104,20 @@ type FlowMessageTemplateInstance struct {
 	GuildID           discord.GuildID
 	Ephemeral         bool
 }
+
+type FlowSuspendPointProvider interface {
+	CreateSuspendPoint(ctx context.Context, p FlowSuspendPoint) error
+}
+
+type FlowSuspendPoint struct {
+	ID     string
+	Type   FlowSuspendPointType
+	NodeID string
+	State  FlowContextState
+}
+
+type FlowSuspendPointType string
+
+const (
+	FlowSuspendPointTypeModal FlowSuspendPointType = "modal"
+)
