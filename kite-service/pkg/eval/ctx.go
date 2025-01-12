@@ -108,6 +108,10 @@ func NewCommandEnv(i *discord.InteractionEvent) *CommandEnv {
 				role := data.Resolved.Roles[discord.RoleID(mentionableID)]
 				args[option.Name] = NewRoleEnv(&role)
 			}
+		case discord.AttachmentOptionType:
+			attachmentID, _ := strconv.ParseInt(value.(string), 10, 64)
+			attachment := data.Resolved.Attachments[discord.AttachmentID(attachmentID)]
+			args[option.Name] = NewAttachmentEnv(&attachment)
 		default:
 			args[option.Name] = value
 		}
@@ -315,6 +319,26 @@ func NewGuildEnv(guild *discord.Guild) *GuildEnv {
 
 func (g GuildEnv) String() string {
 	return g.ID
+}
+
+type AttachmentEnv struct {
+	ID       string `expr:"id" json:"id"`
+	URL      string `expr:"url" json:"url"`
+	ProxyURL string `expr:"proxy_url" json:"proxy_url"`
+	Filename string `expr:"filename" json:"filename"`
+}
+
+func NewAttachmentEnv(attachment *discord.Attachment) *AttachmentEnv {
+	return &AttachmentEnv{
+		ID:       attachment.ID.String(),
+		URL:      attachment.URL,
+		ProxyURL: attachment.Proxy,
+		Filename: attachment.Filename,
+	}
+}
+
+func (a AttachmentEnv) String() string {
+	return a.URL
 }
 
 type SnowflakeEnv struct {
