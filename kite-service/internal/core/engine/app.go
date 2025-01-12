@@ -3,8 +3,10 @@ package engine
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log/slog"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 
@@ -13,7 +15,10 @@ import (
 	"github.com/diamondburned/arikawa/v3/state"
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/internal/store"
+	"github.com/kitecloud/kite/kite-service/pkg/eval"
+	"github.com/kitecloud/kite/kite-service/pkg/flow"
 	"github.com/sashabaranov/go-openai"
+	"gopkg.in/guregu/null.v4"
 )
 
 type App struct {
@@ -219,6 +224,85 @@ func (a *App) HandleEvent(appID string, session *state.State, event gateway.Even
 			}
 
 			go instance.HandleEvent(appID, session, event)
+		case *discord.ModalInteraction:
+			customID := string(d.CustomID)
+			if !strings.HasPrefix(customID, "suspend:") {
+				return
+			}
+
+			suspendPointID := customID[len("suspend:"):]
+			suspendPoint, err := a.suspendPointStore.SuspendPoint(context.TODO(), suspendPointID)
+			if err != nil {
+				if errors.Is(err, store.ErrNotFound) {
+					return
+				}
+
+				slog.Error(
+					"Failed to get suspend point",
+					slog.String("suspend_point_id", suspendPointID),
+					slog.String("error", err.Error()),
+				)
+				return
+			}
+
+			if suspendPoint.CommandID.Valid {
+				command, ok := a.commands[suspendPoint.CommandID.String]
+				if !ok {
+					return
+				}
+
+				node := command.flow.FindChildWithID(suspendPoint.FlowNodeID)
+
+				var aiProvider flow.FlowAIProvider = &flow.MockAIProvider{}
+				if a.openaiClient != nil {
+					aiProvider = NewAIProvider(a.openaiClient)
+				}
+
+				providers := flow.FlowProviders{
+					Discord: NewDiscordProvider(appID, a.appStore, session),
+					Log: NewLogProvider(
+						appID,
+						a.logStore,
+						null.StringFrom(command.cmd.ID),
+						null.String{},
+						null.String{},
+					),
+					HTTP:            NewHTTPProvider(a.httpClient),
+					AI:              aiProvider,
+					MessageTemplate: NewMessageTemplateProvider(a.messageStore, a.messageInstanceStore),
+					Variable:        NewVariableProvider(a.variableValueStore),
+					SuspendPoint: NewSuspendPointProvider(
+						a.suspendPointStore,
+						command.cmd.AppID,
+						null.StringFrom(command.cmd.ID),
+						null.String{},
+						null.String{},
+					),
+				}
+
+				ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+				defer cancel()
+
+				fCtx := flow.NewContext(ctx,
+					&InteractionData{
+						interaction: &e.InteractionEvent,
+					},
+					providers,
+					flow.FlowContextLimits{
+						MaxStackDepth: a.config.MaxStackDepth,
+						MaxOperations: a.config.MaxOperations,
+						MaxCredits:    a.config.MaxCredits,
+					},
+					eval.NewContextFromInteraction(&e.InteractionEvent),
+				)
+
+				for _, child := range node.Children {
+					if err := child.Execute(fCtx); err != nil {
+						slog.With("error", err).Error("Failed to execute command flow")
+						command.createLogEntry(model.LogLevelError, fmt.Sprintf("Failed to execute command flow: %v", err))
+					}
+				}
+			}
 		}
 	default:
 		eventType := model.EventTypeFromDiscordEventType(e.EventType())
