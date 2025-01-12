@@ -42,7 +42,6 @@ const (
 	FlowNodeTypeActionResponseEdit         FlowNodeType = "action_response_edit"
 	FlowNodeTypeActionResponseDelete       FlowNodeType = "action_response_delete"
 	FlowNodeTypeActionResponseDefer        FlowNodeType = "action_response_defer"
-	FlowNodeTypeActionResponseModal        FlowNodeType = "action_response_modal"
 	FlowNodeTypeActionMessageCreate        FlowNodeType = "action_message_create"
 	FlowNodeTypeActionMessageEdit          FlowNodeType = "action_message_edit"
 	FlowNodeTypeActionMessageDelete        FlowNodeType = "action_message_delete"
@@ -77,6 +76,8 @@ const (
 	FlowNodeTypeControlLoopEnd              FlowNodeType = "control_loop_end"
 	FlowNodeTypeControlLoopExit             FlowNodeType = "control_loop_exit"
 	FlowNodeTypeControlSleep                FlowNodeType = "control_sleep"
+
+	FlowNodeTypeSuspendResponseModal FlowNodeType = "suspend_response_modal"
 )
 
 type FlowNode struct {

@@ -29,6 +29,7 @@ type App struct {
 	messageInstanceStore store.MessageInstanceStore
 	commandStore         store.CommandStore
 	variableValueStore   store.VariableValueStore
+	suspendPointStore    store.SuspendPointStore
 	httpClient           *http.Client
 	openaiClient         *openai.Client
 	hasUndeployedChanges bool
@@ -48,6 +49,7 @@ func NewApp(
 	messageInstanceStore store.MessageInstanceStore,
 	commandStore store.CommandStore,
 	variableValueStore store.VariableValueStore,
+	suspendPointStore store.SuspendPointStore,
 	httpClient *http.Client,
 	openaiClient *openai.Client,
 ) *App {
@@ -61,6 +63,7 @@ func NewApp(
 		messageInstanceStore: messageInstanceStore,
 		commandStore:         commandStore,
 		variableValueStore:   variableValueStore,
+		suspendPointStore:    suspendPointStore,
 		httpClient:           httpClient,
 		commands:             make(map[string]*Command),
 		listeners:            make(map[string]*EventListener),
@@ -81,6 +84,7 @@ func (a *App) AddCommand(cmd *model.Command) {
 		a.messageStore,
 		a.messageInstanceStore,
 		a.variableValueStore,
+		a.suspendPointStore,
 		a.httpClient,
 		a.openaiClient,
 	)

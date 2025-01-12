@@ -106,7 +106,7 @@ type FlowMessageTemplateInstance struct {
 }
 
 type FlowSuspendPointProvider interface {
-	CreateSuspendPoint(ctx context.Context, p FlowSuspendPoint) error
+	CreateSuspendPoint(ctx context.Context, p FlowSuspendPoint) (FlowSuspendPoint, error)
 }
 
 type FlowSuspendPoint struct {

@@ -34,6 +34,7 @@ const nodeCategories = {
         "action_response_defer",
         "action_response_edit",
         "action_response_delete",
+        "suspend_response_modal",
       ],
       contextTypes: ["command", "component_button"],
     },

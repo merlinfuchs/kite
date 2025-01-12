@@ -9,7 +9,7 @@ import (
 
 type SuspendPoint struct {
 	ID              string
-	Type            string
+	Type            SuspendPointType
 	AppID           string
 	CommandID       null.String
 	EventListenerID null.String
@@ -20,3 +20,9 @@ type SuspendPoint struct {
 	CreatedAt       time.Time
 	ExpiresAt       null.Time
 }
+
+type SuspendPointType string
+
+const (
+	SuspendPointTypeModal SuspendPointType = "modal"
+)

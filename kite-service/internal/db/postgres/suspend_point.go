@@ -24,7 +24,7 @@ func (c *Client) CreateSuspendPoint(ctx context.Context, suspendPoint *model.Sus
 
 	row, err := c.Q.CreateSuspendPoint(ctx, pgmodel.CreateSuspendPointParams{
 		ID:              suspendPoint.ID,
-		Type:            suspendPoint.Type,
+		Type:            string(suspendPoint.Type),
 		AppID:           suspendPoint.AppID,
 		CommandID:       pgtype.Text{String: suspendPoint.CommandID.String, Valid: suspendPoint.CommandID.Valid},
 		EventListenerID: pgtype.Text{String: suspendPoint.EventListenerID.String, Valid: suspendPoint.EventListenerID.Valid},
@@ -71,7 +71,7 @@ func rowToSuspendPoint(row pgmodel.SuspendPoint) (*model.SuspendPoint, error) {
 
 	return &model.SuspendPoint{
 		ID:              row.ID,
-		Type:            row.Type,
+		Type:            model.SuspendPointType(row.Type),
 		AppID:           row.AppID,
 		CommandID:       null.NewString(row.CommandID.String, row.CommandID.Valid),
 		EventListenerID: null.NewString(row.EventListenerID.String, row.EventListenerID.Valid),

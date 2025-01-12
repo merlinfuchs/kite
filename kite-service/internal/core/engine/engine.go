@@ -26,6 +26,7 @@ type Engine struct {
 	commandStore         store.CommandStore
 	eventListenerStore   store.EventListenerStore
 	variableValueStore   store.VariableValueStore
+	suspendPointStore    store.SuspendPointStore
 	httpClient           *http.Client
 	openaiClient         *openai.Client
 
@@ -43,6 +44,7 @@ func NewEngine(
 	commandStore store.CommandStore,
 	eventListenerStore store.EventListenerStore,
 	variableValueStore store.VariableValueStore,
+	suspendPointStore store.SuspendPointStore,
 	httpClient *http.Client,
 	openaiClient *openai.Client,
 ) *Engine {
@@ -57,6 +59,7 @@ func NewEngine(
 		commandStore:         commandStore,
 		eventListenerStore:   eventListenerStore,
 		variableValueStore:   variableValueStore,
+		suspendPointStore:    suspendPointStore,
 		openaiClient:         openaiClient,
 		apps:                 make(map[string]*App),
 	}
@@ -122,6 +125,7 @@ func (m *Engine) populateCommands(ctx context.Context, lastUpdate time.Time) err
 				m.messageInstanceStore,
 				m.commandStore,
 				m.variableValueStore,
+				m.suspendPointStore,
 				m.httpClient,
 				m.openaiClient,
 			)
@@ -165,6 +169,7 @@ func (m *Engine) populateEventListeners(ctx context.Context, lastUpdate time.Tim
 				m.messageInstanceStore,
 				m.commandStore,
 				m.variableValueStore,
+				m.suspendPointStore,
 				m.httpClient,
 				m.openaiClient,
 			)

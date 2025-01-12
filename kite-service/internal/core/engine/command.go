@@ -31,6 +31,7 @@ type Command struct {
 	messageStore         store.MessageStore
 	messageInstanceStore store.MessageInstanceStore
 	variableValueStore   store.VariableValueStore
+	suspendPointStore    store.SuspendPointStore
 	httpClient           *http.Client
 	openaiClient         *openai.Client
 }
@@ -44,6 +45,7 @@ func NewCommand(
 	messageStore store.MessageStore,
 	messageInstanceStore store.MessageInstanceStore,
 	variableValueStore store.VariableValueStore,
+	suspendPointStore store.SuspendPointStore,
 	httpClient *http.Client,
 	openaiClient *openai.Client,
 ) (*Command, error) {
@@ -62,6 +64,7 @@ func NewCommand(
 		messageStore:         messageStore,
 		messageInstanceStore: messageInstanceStore,
 		variableValueStore:   variableValueStore,
+		suspendPointStore:    suspendPointStore,
 		httpClient:           httpClient,
 		openaiClient:         openaiClient,
 	}, nil
@@ -93,6 +96,13 @@ func (c *Command) HandleEvent(appID string, session *state.State, event gateway.
 		AI:              aiProvider,
 		MessageTemplate: NewMessageTemplateProvider(c.messageStore, c.messageInstanceStore),
 		Variable:        NewVariableProvider(c.variableValueStore),
+		SuspendPoint: NewSuspendPointProvider(
+			c.suspendPointStore,
+			c.cmd.AppID,
+			null.StringFrom(c.cmd.ID),
+			null.String{},
+			null.String{},
+		),
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)

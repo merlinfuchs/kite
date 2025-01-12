@@ -16,6 +16,7 @@ import FlowNodeConditionChannel from "@/components/flow/FlowNodeConditionChannel
 import FlowNodeConditionRole from "@/components/flow/FlowNodeConditionRole";
 import FlowNodeControlSleep from "@/components/flow/FlowNodeControlSleep";
 import FlowNodeEntryComponentButton from "@/components/flow/FlowNodeEntryComponentButton";
+import FlowNodeSuspendBase from "@/components/flow/FlowNodeSuspendBase";
 
 export const nodeTypes = {
   entry_command: FlowNodeEntryCommand,
@@ -65,6 +66,8 @@ export const nodeTypes = {
   control_loop_end: FlowNodeControlLoopEnd,
   control_loop_exit: FlowNodeControlLoopExit,
   control_sleep: FlowNodeControlSleep,
+
+  suspend_response_modal: FlowNodeSuspendBase,
 };
 
 export const edgeTypes = {

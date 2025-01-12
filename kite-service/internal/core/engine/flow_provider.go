@@ -15,6 +15,7 @@ import (
 	"github.com/diamondburned/arikawa/v3/utils/sendpart"
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/internal/store"
+	"github.com/kitecloud/kite/kite-service/internal/util"
 	"github.com/kitecloud/kite/kite-service/pkg/flow"
 	"github.com/kitecloud/kite/kite-service/pkg/message"
 	"github.com/kitecloud/kite/kite-service/pkg/thing"
@@ -402,4 +403,46 @@ func (p *MessageTemplateProvider) LinkMessageTemplateInstance(ctx context.Contex
 	}
 
 	return nil
+}
+
+type SuspendPointProvider struct {
+	suspendPointStore store.SuspendPointStore
+
+	appID           string
+	CommandID       null.String
+	EventListenerID null.String
+	MessageID       null.String
+}
+
+func NewSuspendPointProvider(
+	suspendPointStore store.SuspendPointStore,
+	appID string,
+	commandID, eventListenerID, messageID null.String,
+) *SuspendPointProvider {
+	return &SuspendPointProvider{
+		suspendPointStore: suspendPointStore,
+		appID:             appID,
+		CommandID:         commandID,
+		EventListenerID:   eventListenerID,
+		MessageID:         messageID,
+	}
+}
+
+func (p *SuspendPointProvider) CreateSuspendPoint(ctx context.Context, s flow.FlowSuspendPoint) (flow.FlowSuspendPoint, error) {
+	s.ID = util.UniqueID()
+
+	_, err := p.suspendPointStore.CreateSuspendPoint(ctx, &model.SuspendPoint{
+		ID:              s.ID,
+		Type:            model.SuspendPointType(s.Type),
+		AppID:           p.appID,
+		CommandID:       p.CommandID,
+		EventListenerID: p.EventListenerID,
+		MessageID:       p.MessageID,
+		FlowNodeID:      s.NodeID,
+		FlowState:       s.State,
+		CreatedAt:       time.Now().UTC(),
+		// TODO: expiy based on type?
+	})
+
+	return s, err
 }

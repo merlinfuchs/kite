@@ -135,7 +135,7 @@ func (c *FlowContext) increaseCredits(credits int) error {
 }
 
 func (c *FlowContext) suspend(t FlowSuspendPointType, nodeID string) (*FlowSuspendPoint, error) {
-	err := c.SuspendPoint.CreateSuspendPoint(c.Context, FlowSuspendPoint{
+	s, err := c.SuspendPoint.CreateSuspendPoint(c.Context, FlowSuspendPoint{
 		Type:   t,
 		NodeID: nodeID,
 		State:  c.FlowContextState.Copy(),
@@ -144,14 +144,27 @@ func (c *FlowContext) suspend(t FlowSuspendPointType, nodeID string) (*FlowSuspe
 		return nil, err
 	}
 
-	return &FlowSuspendPoint{
-		NodeID: nodeID,
-		State:  c.FlowContextState.Copy(),
-	}, nil
+	return &s, nil
 }
 
 type FlowContextState struct {
-	NodeStates map[string]*FlowContextNodeState
+	NodeStates map[string]*FlowContextNodeState `json:"node_states"`
+}
+
+func (s FlowContextState) MarshalJSON() ([]byte, error) {
+	aux := struct {
+		NodeStates map[string]*FlowContextNodeState `json:"node_states"`
+	}{
+		NodeStates: make(map[string]*FlowContextNodeState, len(s.NodeStates)),
+	}
+	// We don't want to serialize empty node states
+	for k, v := range s.NodeStates {
+		if !v.IsEmpty() {
+			aux.NodeStates[k] = v
+		}
+	}
+
+	return json.Marshal(aux)
 }
 
 func (s *FlowContextState) GetNodeState(nodeID string) *FlowContextNodeState {
@@ -185,10 +198,34 @@ func (s *FlowContextState) Deserialize(data []byte) error {
 }
 
 type FlowContextNodeState struct {
-	ConditionBaseValue thing.Any `json:"condition_base_value"`
-	ConditionItemMet   bool      `json:"condition_item_met"`
-	Result             thing.Any `json:"result"`
-	LoopExited         bool      `json:"loop_exited"`
+	ConditionBaseValue thing.Any `json:"condition_base_value,omitempty"`
+	ConditionItemMet   bool      `json:"condition_item_met,omitempty"`
+	Result             thing.Any `json:"result,omitempty"`
+	LoopExited         bool      `json:"loop_exited,omitempty"`
+}
+
+func (s *FlowContextNodeState) MarshalJSON() ([]byte, error) {
+	// We want to ommit nil values
+	aux := struct {
+		ConditionBaseValue any  `json:"condition_base_value,omitempty"`
+		ConditionItemMet   bool `json:"condition_item_met,omitempty"`
+		Result             any  `json:"result,omitempty"`
+		LoopExited         bool `json:"loop_exited,omitempty"`
+	}{
+		ConditionBaseValue: s.ConditionBaseValue.Inner,
+		ConditionItemMet:   s.ConditionItemMet,
+		Result:             s.Result.Inner,
+		LoopExited:         s.LoopExited,
+	}
+
+	return json.Marshal(aux)
+}
+
+func (s *FlowContextNodeState) IsEmpty() bool {
+	return s.ConditionBaseValue.IsNil() &&
+		!s.ConditionItemMet &&
+		s.Result.IsNil() &&
+		!s.LoopExited
 }
 
 func (s *FlowContextNodeState) Copy() *FlowContextNodeState {

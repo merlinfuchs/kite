@@ -260,7 +260,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 		}
 
 		return n.executeChildren(ctx)
-	case FlowNodeTypeActionResponseModal:
+	case FlowNodeTypeSuspendResponseModal:
 		interaction := ctx.Data.Interaction()
 		if interaction == nil {
 			return &FlowError{
@@ -274,11 +274,21 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			return traceError(n, err)
 		}
 
+		row := discord.ActionRowComponent([]discord.InteractiveComponent{
+			&discord.TextInputComponent{
+				CustomID: "1",
+				Label:    "Suspend point",
+				Style:    discord.TextInputShortStyle,
+				Required: true,
+			},
+		})
+
 		resp := api.InteractionResponse{
 			Type: api.ModalResponse,
 			Data: &api.InteractionResponseData{
-				CustomID: option.NewNullableString("suspend:" + suspendPoint.ID),
-				// TODO: components
+				CustomID:   option.NewNullableString("suspend:" + suspendPoint.ID),
+				Title:      option.NewNullableString("Suspend point"),
+				Components: &discord.ContainerComponents{&row},
 			},
 		}
 
