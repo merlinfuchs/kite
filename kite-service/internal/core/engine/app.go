@@ -3,9 +3,7 @@ package engine
 import (
 	"context"
 	"errors"
-	"fmt"
 	"log/slog"
-	"net/http"
 	"strings"
 	"sync"
 	"time"
@@ -15,9 +13,6 @@ import (
 	"github.com/diamondburned/arikawa/v3/state"
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/internal/store"
-	"github.com/kitecloud/kite/kite-service/pkg/eval"
-	"github.com/kitecloud/kite/kite-service/pkg/flow"
-	"github.com/sashabaranov/go-openai"
 	"gopkg.in/guregu/null.v4"
 )
 
@@ -26,17 +21,7 @@ type App struct {
 
 	id string
 
-	config               EngineConfig
-	appStore             store.AppStore
-	logStore             store.LogStore
-	usageStore           store.UsageStore
-	messageStore         store.MessageStore
-	messageInstanceStore store.MessageInstanceStore
-	commandStore         store.CommandStore
-	variableValueStore   store.VariableValueStore
-	suspendPointStore    store.SuspendPointStore
-	httpClient           *http.Client
-	openaiClient         *openai.Client
+	stores               Env
 	hasUndeployedChanges bool
 
 	commands map[string]*Command
@@ -45,34 +30,14 @@ type App struct {
 }
 
 func NewApp(
-	config EngineConfig,
 	id string,
-	appStore store.AppStore,
-	logStore store.LogStore,
-	usageStore store.UsageStore,
-	messageStore store.MessageStore,
-	messageInstanceStore store.MessageInstanceStore,
-	commandStore store.CommandStore,
-	variableValueStore store.VariableValueStore,
-	suspendPointStore store.SuspendPointStore,
-	httpClient *http.Client,
-	openaiClient *openai.Client,
+	stores Env,
 ) *App {
 	return &App{
-		id:                   id,
-		config:               config,
-		appStore:             appStore,
-		logStore:             logStore,
-		usageStore:           usageStore,
-		messageStore:         messageStore,
-		messageInstanceStore: messageInstanceStore,
-		commandStore:         commandStore,
-		variableValueStore:   variableValueStore,
-		suspendPointStore:    suspendPointStore,
-		httpClient:           httpClient,
-		commands:             make(map[string]*Command),
-		listeners:            make(map[string]*EventListener),
-		openaiClient:         openaiClient,
+		id:        id,
+		stores:    stores,
+		commands:  make(map[string]*Command),
+		listeners: make(map[string]*EventListener),
 	}
 }
 
@@ -81,17 +46,8 @@ func (a *App) AddCommand(cmd *model.Command) {
 	defer a.Unlock()
 
 	command, err := NewCommand(
-		a.config,
 		cmd,
-		a.appStore,
-		a.logStore,
-		a.usageStore,
-		a.messageStore,
-		a.messageInstanceStore,
-		a.variableValueStore,
-		a.suspendPointStore,
-		a.httpClient,
-		a.openaiClient,
+		a.stores,
 	)
 	if err != nil {
 		slog.With("error", err).Error("failed to create command")
@@ -127,16 +83,8 @@ func (a *App) AddEventListener(listener *model.EventListener) {
 	defer a.Unlock()
 
 	eventListener, err := NewEventListener(
-		a.config,
 		listener,
-		a.appStore,
-		a.logStore,
-		a.usageStore,
-		a.messageStore,
-		a.messageInstanceStore,
-		a.variableValueStore,
-		a.httpClient,
-		a.openaiClient,
+		a.stores,
 	)
 	if err != nil {
 		slog.With("error", err).Error("failed to create event listener")
@@ -168,7 +116,7 @@ func (a *App) createLogEntry(level model.LogLevel, message string) {
 	defer cancel()
 
 	// Create log entry which will be displayed in the dashboard
-	err := a.logStore.CreateLogEntry(ctx, model.LogEntry{
+	err := a.stores.LogStore.CreateLogEntry(ctx, model.LogEntry{
 		AppID:     a.id,
 		Level:     level,
 		Message:   message,
@@ -195,7 +143,7 @@ func (a *App) HandleEvent(appID string, session *state.State, event gateway.Even
 			}
 		case *discord.ButtonInteraction:
 			messageID := e.Message.ID.String()
-			messageInstnace, err := a.messageInstanceStore.MessageInstanceByDiscordMessageID(context.TODO(), messageID)
+			messageInstnace, err := a.stores.MessageInstanceStore.MessageInstanceByDiscordMessageID(context.TODO(), messageID)
 			if err != nil {
 				if errors.Is(err, store.ErrNotFound) {
 					return
@@ -206,17 +154,9 @@ func (a *App) HandleEvent(appID string, session *state.State, event gateway.Even
 			}
 
 			instance, err := NewMessageInstance(
-				a.config,
 				a.id,
 				messageInstnace,
-				a.appStore,
-				a.logStore,
-				a.usageStore,
-				a.messageStore,
-				a.messageInstanceStore,
-				a.variableValueStore,
-				a.httpClient,
-				a.openaiClient,
+				a.stores,
 			)
 			if err != nil {
 				slog.With("error", err).Error("failed to create message instance")
@@ -231,7 +171,7 @@ func (a *App) HandleEvent(appID string, session *state.State, event gateway.Even
 			}
 
 			suspendPointID := customID[len("suspend:"):]
-			suspendPoint, err := a.suspendPointStore.SuspendPoint(context.TODO(), suspendPointID)
+			suspendPoint, err := a.stores.SuspendPointStore.SuspendPoint(context.TODO(), suspendPointID)
 			if err != nil {
 				if errors.Is(err, store.ErrNotFound) {
 					return
@@ -253,55 +193,16 @@ func (a *App) HandleEvent(appID string, session *state.State, event gateway.Even
 
 				node := command.flow.FindChildWithID(suspendPoint.FlowNodeID)
 
-				var aiProvider flow.FlowAIProvider = &flow.MockAIProvider{}
-				if a.openaiClient != nil {
-					aiProvider = NewAIProvider(a.openaiClient)
-				}
-
-				providers := flow.FlowProviders{
-					Discord: NewDiscordProvider(appID, a.appStore, session),
-					Log: NewLogProvider(
-						appID,
-						a.logStore,
-						null.StringFrom(command.cmd.ID),
-						null.String{},
-						null.String{},
-					),
-					HTTP:            NewHTTPProvider(a.httpClient),
-					AI:              aiProvider,
-					MessageTemplate: NewMessageTemplateProvider(a.messageStore, a.messageInstanceStore),
-					Variable:        NewVariableProvider(a.variableValueStore),
-					SuspendPoint: NewSuspendPointProvider(
-						a.suspendPointStore,
-						command.cmd.AppID,
-						null.StringFrom(command.cmd.ID),
-						null.String{},
-						null.String{},
-					),
-				}
-
-				ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-				defer cancel()
-
-				fCtx := flow.NewContext(ctx,
-					&InteractionData{
-						interaction: &e.InteractionEvent,
+				a.stores.executeFlowEvent(
+					a.id,
+					node,
+					session,
+					event,
+					entityLinks{
+						CommandID: null.NewString(command.cmd.ID, true),
 					},
-					providers,
-					flow.FlowContextLimits{
-						MaxStackDepth: a.config.MaxStackDepth,
-						MaxOperations: a.config.MaxOperations,
-						MaxCredits:    a.config.MaxCredits,
-					},
-					eval.NewContextFromInteraction(&e.InteractionEvent),
+					true,
 				)
-
-				for _, child := range node.Children {
-					if err := child.Execute(fCtx); err != nil {
-						slog.With("error", err).Error("Failed to execute command flow")
-						command.createLogEntry(model.LogLevelError, fmt.Sprintf("Failed to execute command flow: %v", err))
-					}
-				}
 			}
 		}
 	default:

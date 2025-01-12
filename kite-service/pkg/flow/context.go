@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"time"
 
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/utils/ws"
@@ -19,15 +20,19 @@ type FlowContext struct {
 
 	Data    FlowContextData
 	EvalCtx eval.Context
+	Cancel  context.CancelFunc
 }
 
 func NewContext(
 	ctx context.Context,
+	timeout time.Duration,
 	data FlowContextData,
 	providers FlowProviders,
 	limits FlowContextLimits,
 	evalCtx eval.Context,
 ) *FlowContext {
+	ctx, cancel := context.WithTimeout(ctx, timeout)
+
 	state := FlowContextState{
 		NodeStates: make(map[string]*FlowContextNodeState),
 	}
@@ -39,6 +44,7 @@ func NewContext(
 
 	return &FlowContext{
 		Context: ctx,
+		Cancel:  cancel,
 		Data:    data,
 		// Placeholders:      placeholders,
 		EvalCtx:           evalCtx,

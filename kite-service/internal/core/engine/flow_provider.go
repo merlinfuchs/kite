@@ -226,18 +226,14 @@ type LogProvider struct {
 	appID    string
 	logStore store.LogStore
 
-	CommandID       null.String
-	EventListenerID null.String
-	MessageID       null.String
+	links entityLinks
 }
 
-func NewLogProvider(appID string, logStore store.LogStore, commandID, eventListenerID, messageID null.String) *LogProvider {
+func NewLogProvider(appID string, logStore store.LogStore, links entityLinks) *LogProvider {
 	return &LogProvider{
-		appID:           appID,
-		logStore:        logStore,
-		CommandID:       commandID,
-		EventListenerID: eventListenerID,
-		MessageID:       messageID,
+		appID:    appID,
+		logStore: logStore,
+		links:    links,
 	}
 }
 
@@ -249,9 +245,9 @@ func (p *LogProvider) CreateLogEntry(ctx context.Context, level flow.LogLevel, m
 		AppID:           p.appID,
 		Level:           model.LogLevel(level),
 		Message:         message,
-		CommandID:       p.CommandID,
-		EventListenerID: p.EventListenerID,
-		MessageID:       p.MessageID,
+		CommandID:       p.links.CommandID,
+		EventListenerID: p.links.EventListenerID,
+		MessageID:       p.links.MessageID,
 		CreatedAt:       time.Now().UTC(),
 	})
 	if err != nil {
@@ -408,23 +404,19 @@ func (p *MessageTemplateProvider) LinkMessageTemplateInstance(ctx context.Contex
 type SuspendPointProvider struct {
 	suspendPointStore store.SuspendPointStore
 
-	appID           string
-	CommandID       null.String
-	EventListenerID null.String
-	MessageID       null.String
+	appID string
+	links entityLinks
 }
 
 func NewSuspendPointProvider(
 	suspendPointStore store.SuspendPointStore,
 	appID string,
-	commandID, eventListenerID, messageID null.String,
+	links entityLinks,
 ) *SuspendPointProvider {
 	return &SuspendPointProvider{
 		suspendPointStore: suspendPointStore,
 		appID:             appID,
-		CommandID:         commandID,
-		EventListenerID:   eventListenerID,
-		MessageID:         messageID,
+		links:             links,
 	}
 }
 
@@ -435,9 +427,9 @@ func (p *SuspendPointProvider) CreateSuspendPoint(ctx context.Context, s flow.Fl
 		ID:              s.ID,
 		Type:            model.SuspendPointType(s.Type),
 		AppID:           p.appID,
-		CommandID:       p.CommandID,
-		EventListenerID: p.EventListenerID,
-		MessageID:       p.MessageID,
+		CommandID:       p.links.CommandID,
+		EventListenerID: p.links.EventListenerID,
+		MessageID:       p.links.MessageID,
 		FlowNodeID:      s.NodeID,
 		FlowState:       s.State,
 		CreatedAt:       time.Now().UTC(),
