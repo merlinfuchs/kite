@@ -79,6 +79,7 @@ func TestFlowExecuteCommand(t *testing.T) {
 			MaxCredits:    1000,
 		},
 		eval.Context{},
+		nil,
 	)
 	defer c.Cancel()
 

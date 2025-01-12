@@ -63,7 +63,13 @@ func (s Env) flowProviders(appID string, session *state.State, links entityLinks
 	}
 }
 
-func (s Env) flowContext(appID string, session *state.State, event gateway.Event, links entityLinks) *flow.FlowContext {
+func (s Env) flowContext(
+	appID string,
+	session *state.State,
+	event gateway.Event,
+	links entityLinks,
+	state *flow.FlowContextState,
+) *flow.FlowContext {
 	providers := s.flowProviders(appID, session, links)
 
 	var fCtx *flow.FlowContext
@@ -83,6 +89,7 @@ func (s Env) flowContext(appID string, session *state.State, event gateway.Event
 				MaxCredits:    s.Config.MaxCredits,
 			},
 			eval.NewContextFromInteraction(&e.InteractionEvent),
+			state,
 		)
 	default:
 		fCtx = flow.NewContext(
@@ -98,6 +105,7 @@ func (s Env) flowContext(appID string, session *state.State, event gateway.Event
 				MaxCredits:    s.Config.MaxCredits,
 			},
 			eval.NewContextFromEvent(event),
+			state,
 		)
 	}
 
@@ -110,11 +118,12 @@ func (s Env) executeFlowEvent(
 	session *state.State,
 	event gateway.Event,
 	links entityLinks,
+	state *flow.FlowContextState,
 	children bool,
 ) {
 	defer s.recoverPanic(appID, links)
 
-	fCtx := s.flowContext(appID, session, event, links)
+	fCtx := s.flowContext(appID, session, event, links, state)
 	defer fCtx.Cancel()
 
 	var err error

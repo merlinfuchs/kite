@@ -201,6 +201,7 @@ func (a *App) HandleEvent(appID string, session *state.State, event gateway.Even
 					entityLinks{
 						CommandID: null.NewString(command.cmd.ID, true),
 					},
+					&suspendPoint.FlowState,
 					true,
 				)
 			}

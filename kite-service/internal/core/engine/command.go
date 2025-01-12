@@ -56,6 +56,23 @@ func (c *Command) HandleEvent(appID string, session *state.State, event gateway.
 		session,
 		event,
 		links,
+		nil,
+		false,
+	)
+}
+
+func (c *Command) HandleResumeEvent(appID string, nodeID string, session *state.State, event gateway.Event) {
+	links := entityLinks{
+		CommandID: null.NewString(c.cmd.ID, true),
+	}
+
+	c.env.executeFlowEvent(
+		c.cmd.AppID,
+		c.flow,
+		session,
+		event,
+		links,
+		nil,
 		false,
 	)
 }

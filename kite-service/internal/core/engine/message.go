@@ -74,6 +74,7 @@ func (m *MessageInstance) HandleEvent(appID string, session *state.State, event 
 		session,
 		event,
 		links,
+		nil,
 		false,
 	)
 }

@@ -30,15 +30,18 @@ func NewContext(
 	providers FlowProviders,
 	limits FlowContextLimits,
 	evalCtx eval.Context,
+	state *FlowContextState,
 ) *FlowContext {
 	ctx, cancel := context.WithTimeout(ctx, timeout)
 
-	state := FlowContextState{
-		NodeStates: make(map[string]*FlowContextNodeState),
+	if state == nil {
+		state = &FlowContextState{
+			NodeStates: make(map[string]*FlowContextNodeState),
+		}
 	}
 
 	evalCtx.Env["node"] = (&nodeEvalEnv{
-		state: &state,
+		state: state,
 	}).GetNode
 	evalCtx.Patchers = append(evalCtx.Patchers, &nodeEvalPatcher{})
 
@@ -50,7 +53,7 @@ func NewContext(
 		EvalCtx:           evalCtx,
 		FlowProviders:     providers,
 		FlowContextLimits: limits,
-		FlowContextState:  state,
+		FlowContextState:  *state,
 	}
 }
 
