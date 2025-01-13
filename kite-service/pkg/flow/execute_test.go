@@ -68,6 +68,7 @@ func TestFlowExecuteCommand(t *testing.T) {
 
 	c := NewContext(
 		ctx,
+		5*time.Second,
 		&TestContextData{},
 		FlowProviders{
 			Discord: discordProvider,
@@ -78,7 +79,9 @@ func TestFlowExecuteCommand(t *testing.T) {
 			MaxCredits:    1000,
 		},
 		eval.Context{},
+		nil,
 	)
+	defer c.Cancel()
 
 	err := flowCommandTest.Execute(c)
 	require.NoError(t, err)

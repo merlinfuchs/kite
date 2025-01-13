@@ -123,6 +123,21 @@ type Module struct {
 	UpdatedAt     pgtype.Timestamp
 }
 
+type ResumePoint struct {
+	ID                string
+	Type              string
+	AppID             string
+	CommandID         pgtype.Text
+	EventListenerID   pgtype.Text
+	MessageID         pgtype.Text
+	MessageInstanceID pgtype.Int8
+	FlowSourceID      pgtype.Text
+	FlowNodeID        string
+	FlowState         []byte
+	CreatedAt         pgtype.Timestamp
+	ExpiresAt         pgtype.Timestamp
+}
+
 type Session struct {
 	KeyHash   string
 	UserID    string

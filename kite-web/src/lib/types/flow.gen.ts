@@ -53,6 +53,7 @@ export const FlowNodeTypeControlLoopEach: FlowNodeType = "control_loop_each";
 export const FlowNodeTypeControlLoopEnd: FlowNodeType = "control_loop_end";
 export const FlowNodeTypeControlLoopExit: FlowNodeType = "control_loop_exit";
 export const FlowNodeTypeControlSleep: FlowNodeType = "control_sleep";
+export const FlowNodeTypeSuspendResponseModal: FlowNodeType = "suspend_response_modal";
 export interface FlowNode {
   id: string;
   type?: FlowNodeType;
@@ -230,4 +231,6 @@ export interface MockLogProvider {
 export interface MockHTTPprovider {
 }
 export interface MockAIProvider {
+}
+export interface MockSuspendPointProvider {
 }

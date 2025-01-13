@@ -76,6 +76,8 @@ const (
 	FlowNodeTypeControlLoopEnd              FlowNodeType = "control_loop_end"
 	FlowNodeTypeControlLoopExit             FlowNodeType = "control_loop_exit"
 	FlowNodeTypeControlSleep                FlowNodeType = "control_sleep"
+
+	FlowNodeTypeSuspendResponseModal FlowNodeType = "suspend_response_modal"
 )
 
 type FlowNode struct {

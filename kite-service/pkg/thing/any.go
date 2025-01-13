@@ -153,6 +153,10 @@ func (w Any) IsEmpty() bool {
 	return w.String() == ""
 }
 
+func (w Any) IsNil() bool {
+	return w.Inner == nil
+}
+
 func (w Any) Append(other Any) Any {
 	// TODO: implement for arrays
 	return New(w.String() + other.String())

@@ -4,61 +4,28 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
-	"net/http"
 	"sync"
 	"time"
 
 	"github.com/diamondburned/arikawa/v3/gateway"
 	"github.com/diamondburned/arikawa/v3/state"
-	"github.com/kitecloud/kite/kite-service/internal/store"
-	"github.com/sashabaranov/go-openai"
 )
 
 type Engine struct {
 	sync.RWMutex
 
-	config               EngineConfig
-	appStore             store.AppStore
-	logStore             store.LogStore
-	usageStore           store.UsageStore
-	messageStore         store.MessageStore
-	messageInstanceStore store.MessageInstanceStore
-	commandStore         store.CommandStore
-	eventListenerStore   store.EventListenerStore
-	variableValueStore   store.VariableValueStore
-	httpClient           *http.Client
-	openaiClient         *openai.Client
+	stores Env
 
 	lastUpdate time.Time
 	apps       map[string]*App
 }
 
 func NewEngine(
-	config EngineConfig,
-	appStore store.AppStore,
-	logStore store.LogStore,
-	usageStore store.UsageStore,
-	messageStore store.MessageStore,
-	messageInstanceStore store.MessageInstanceStore,
-	commandStore store.CommandStore,
-	eventListenerStore store.EventListenerStore,
-	variableValueStore store.VariableValueStore,
-	httpClient *http.Client,
-	openaiClient *openai.Client,
+	stores Env,
 ) *Engine {
 	return &Engine{
-		config:               config,
-		appStore:             appStore,
-		logStore:             logStore,
-		usageStore:           usageStore,
-		messageStore:         messageStore,
-		messageInstanceStore: messageInstanceStore,
-		httpClient:           httpClient,
-		commandStore:         commandStore,
-		eventListenerStore:   eventListenerStore,
-		variableValueStore:   variableValueStore,
-		openaiClient:         openaiClient,
-		apps:                 make(map[string]*App),
+		stores: stores,
+		apps:   make(map[string]*App),
 	}
 }
 
@@ -96,12 +63,12 @@ func (m *Engine) Run(ctx context.Context) {
 }
 
 func (m *Engine) populateCommands(ctx context.Context, lastUpdate time.Time) error {
-	commandIDs, err := m.commandStore.EnabledCommandIDs(ctx)
+	commandIDs, err := m.stores.CommandStore.EnabledCommandIDs(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to get enabled command IDs: %w", err)
 	}
 
-	commands, err := m.commandStore.EnabledCommandsUpdatedSince(ctx, lastUpdate)
+	commands, err := m.stores.CommandStore.EnabledCommandsUpdatedSince(ctx, lastUpdate)
 	if err != nil {
 		return fmt.Errorf("failed to get commands: %w", err)
 	}
@@ -113,17 +80,8 @@ func (m *Engine) populateCommands(ctx context.Context, lastUpdate time.Time) err
 		app, ok := m.apps[command.AppID]
 		if !ok {
 			app = NewApp(
-				m.config,
 				command.AppID,
-				m.appStore,
-				m.logStore,
-				m.usageStore,
-				m.messageStore,
-				m.messageInstanceStore,
-				m.commandStore,
-				m.variableValueStore,
-				m.httpClient,
-				m.openaiClient,
+				m.stores,
 			)
 			m.apps[command.AppID] = app
 		}
@@ -139,12 +97,12 @@ func (m *Engine) populateCommands(ctx context.Context, lastUpdate time.Time) err
 }
 
 func (m *Engine) populateEventListeners(ctx context.Context, lastUpdate time.Time) error {
-	listenerIDs, err := m.eventListenerStore.EnabledEventListenerIDs(ctx)
+	listenerIDs, err := m.stores.EventListenerStore.EnabledEventListenerIDs(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to get enabled event listener IDs: %w", err)
 	}
 
-	listeners, err := m.eventListenerStore.EnabledEventListenersUpdatedSince(ctx, lastUpdate)
+	listeners, err := m.stores.EventListenerStore.EnabledEventListenersUpdatedSince(ctx, lastUpdate)
 	if err != nil {
 		return fmt.Errorf("failed to get event listeners: %w", err)
 	}
@@ -156,17 +114,8 @@ func (m *Engine) populateEventListeners(ctx context.Context, lastUpdate time.Tim
 		app, ok := m.apps[listener.AppID]
 		if !ok {
 			app = NewApp(
-				m.config,
 				listener.AppID,
-				m.appStore,
-				m.logStore,
-				m.usageStore,
-				m.messageStore,
-				m.messageInstanceStore,
-				m.commandStore,
-				m.variableValueStore,
-				m.httpClient,
-				m.openaiClient,
+				m.stores,
 			)
 			m.apps[listener.AppID] = app
 		}

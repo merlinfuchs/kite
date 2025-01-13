@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 	"log/slog"
-	"net/http"
+	"strings"
 	"sync"
 	"time"
 
@@ -13,7 +13,7 @@ import (
 	"github.com/diamondburned/arikawa/v3/state"
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/internal/store"
-	"github.com/sashabaranov/go-openai"
+	"gopkg.in/guregu/null.v4"
 )
 
 type App struct {
@@ -21,16 +21,7 @@ type App struct {
 
 	id string
 
-	config               EngineConfig
-	appStore             store.AppStore
-	logStore             store.LogStore
-	usageStore           store.UsageStore
-	messageStore         store.MessageStore
-	messageInstanceStore store.MessageInstanceStore
-	commandStore         store.CommandStore
-	variableValueStore   store.VariableValueStore
-	httpClient           *http.Client
-	openaiClient         *openai.Client
+	stores               Env
 	hasUndeployedChanges bool
 
 	commands map[string]*Command
@@ -39,32 +30,14 @@ type App struct {
 }
 
 func NewApp(
-	config EngineConfig,
 	id string,
-	appStore store.AppStore,
-	logStore store.LogStore,
-	usageStore store.UsageStore,
-	messageStore store.MessageStore,
-	messageInstanceStore store.MessageInstanceStore,
-	commandStore store.CommandStore,
-	variableValueStore store.VariableValueStore,
-	httpClient *http.Client,
-	openaiClient *openai.Client,
+	stores Env,
 ) *App {
 	return &App{
-		id:                   id,
-		config:               config,
-		appStore:             appStore,
-		logStore:             logStore,
-		usageStore:           usageStore,
-		messageStore:         messageStore,
-		messageInstanceStore: messageInstanceStore,
-		commandStore:         commandStore,
-		variableValueStore:   variableValueStore,
-		httpClient:           httpClient,
-		commands:             make(map[string]*Command),
-		listeners:            make(map[string]*EventListener),
-		openaiClient:         openaiClient,
+		id:        id,
+		stores:    stores,
+		commands:  make(map[string]*Command),
+		listeners: make(map[string]*EventListener),
 	}
 }
 
@@ -73,16 +46,8 @@ func (a *App) AddCommand(cmd *model.Command) {
 	defer a.Unlock()
 
 	command, err := NewCommand(
-		a.config,
 		cmd,
-		a.appStore,
-		a.logStore,
-		a.usageStore,
-		a.messageStore,
-		a.messageInstanceStore,
-		a.variableValueStore,
-		a.httpClient,
-		a.openaiClient,
+		a.stores,
 	)
 	if err != nil {
 		slog.With("error", err).Error("failed to create command")
@@ -118,16 +83,8 @@ func (a *App) AddEventListener(listener *model.EventListener) {
 	defer a.Unlock()
 
 	eventListener, err := NewEventListener(
-		a.config,
 		listener,
-		a.appStore,
-		a.logStore,
-		a.usageStore,
-		a.messageStore,
-		a.messageInstanceStore,
-		a.variableValueStore,
-		a.httpClient,
-		a.openaiClient,
+		a.stores,
 	)
 	if err != nil {
 		slog.With("error", err).Error("failed to create event listener")
@@ -159,7 +116,7 @@ func (a *App) createLogEntry(level model.LogLevel, message string) {
 	defer cancel()
 
 	// Create log entry which will be displayed in the dashboard
-	err := a.logStore.CreateLogEntry(ctx, model.LogEntry{
+	err := a.stores.LogStore.CreateLogEntry(ctx, model.LogEntry{
 		AppID:     a.id,
 		Level:     level,
 		Message:   message,
@@ -186,7 +143,7 @@ func (a *App) HandleEvent(appID string, session *state.State, event gateway.Even
 			}
 		case *discord.ButtonInteraction:
 			messageID := e.Message.ID.String()
-			messageInstnace, err := a.messageInstanceStore.MessageInstanceByDiscordMessageID(context.TODO(), messageID)
+			messageInstnace, err := a.stores.MessageInstanceStore.MessageInstanceByDiscordMessageID(context.TODO(), messageID)
 			if err != nil {
 				if errors.Is(err, store.ErrNotFound) {
 					return
@@ -197,17 +154,9 @@ func (a *App) HandleEvent(appID string, session *state.State, event gateway.Even
 			}
 
 			instance, err := NewMessageInstance(
-				a.config,
 				a.id,
 				messageInstnace,
-				a.appStore,
-				a.logStore,
-				a.usageStore,
-				a.messageStore,
-				a.messageInstanceStore,
-				a.variableValueStore,
-				a.httpClient,
-				a.openaiClient,
+				a.stores,
 			)
 			if err != nil {
 				slog.With("error", err).Error("failed to create message instance")
@@ -215,6 +164,107 @@ func (a *App) HandleEvent(appID string, session *state.State, event gateway.Even
 			}
 
 			go instance.HandleEvent(appID, session, event)
+		case *discord.ModalInteraction:
+			customID := string(d.CustomID)
+			if !strings.HasPrefix(customID, "resume:") {
+				return
+			}
+
+			resumePointID := customID[len("resume:"):]
+			resumePoint, err := a.stores.ResumePointStore.ResumePoint(context.TODO(), resumePointID)
+			if err != nil {
+				if errors.Is(err, store.ErrNotFound) {
+					return
+				}
+
+				slog.Error(
+					"Failed to get resume point",
+					slog.String("resume_point_id", resumePointID),
+					slog.String("error", err.Error()),
+				)
+				return
+			}
+
+			if resumePoint.CommandID.Valid {
+				command, ok := a.commands[resumePoint.CommandID.String]
+				if !ok {
+					return
+				}
+
+				node := command.flow.FindChildWithID(resumePoint.FlowNodeID)
+
+				a.stores.executeFlowEvent(
+					a.id,
+					node,
+					session,
+					event,
+					entityLinks{
+						CommandID: null.NewString(command.cmd.ID, true),
+					},
+					&resumePoint.FlowState,
+					true,
+				)
+			}
+
+			if resumePoint.MessageInstanceID.Valid {
+				messageInstance, err := a.stores.MessageInstanceStore.MessageInstance(
+					context.TODO(),
+					resumePoint.MessageID.String,
+					uint64(resumePoint.MessageInstanceID.Int64),
+				)
+				if err != nil {
+					if !errors.Is(err, store.ErrNotFound) {
+						slog.Error(
+							"Failed to get message instance from resume point",
+							slog.String("resume_point_id", resumePointID),
+							slog.String("message_id", resumePoint.MessageID.String),
+							slog.Int64("message_instance_id", resumePoint.MessageInstanceID.Int64),
+							slog.String("error", err.Error()),
+						)
+					}
+					return
+				}
+
+				instance, err := NewMessageInstance(
+					a.id,
+					messageInstance,
+					a.stores,
+				)
+				if err != nil {
+					slog.Error(
+						"Failed to create message instance",
+						slog.String("resume_point_id", resumePointID),
+						slog.String("message_id", resumePoint.MessageID.String),
+						slog.Int64("message_instance_id", resumePoint.MessageInstanceID.Int64),
+						slog.String("error", err.Error()),
+					)
+					return
+				}
+
+				targetFlow, ok := instance.flows[resumePoint.FlowSourceID.String]
+				if !ok {
+					slog.Error(
+						"Failed to get target flow from resume point",
+						slog.String("resume_point_id", resumePointID),
+						slog.String("message_id", resumePoint.MessageID.String),
+						slog.Int64("message_instance_id", resumePoint.MessageInstanceID.Int64),
+						slog.String("flow_source_id", resumePoint.FlowSourceID.String),
+					)
+					return
+				}
+
+				node := targetFlow.FindChildWithID(resumePoint.FlowNodeID)
+
+				a.stores.executeFlowEvent(
+					a.id,
+					node,
+					session,
+					event,
+					entityLinks{},
+					&resumePoint.FlowState,
+					true,
+				)
+			}
 		}
 	default:
 		eventType := model.EventTypeFromDiscordEventType(e.EventType())
