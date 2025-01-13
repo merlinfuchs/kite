@@ -124,17 +124,18 @@ type Module struct {
 }
 
 type ResumePoint struct {
-	ID              string
-	Type            string
-	AppID           string
-	CommandID       pgtype.Text
-	EventListenerID pgtype.Text
-	MessageID       pgtype.Text
-	FlowSourceID    pgtype.Text
-	FlowNodeID      string
-	FlowState       []byte
-	CreatedAt       pgtype.Timestamp
-	ExpiresAt       pgtype.Timestamp
+	ID                string
+	Type              string
+	AppID             string
+	CommandID         pgtype.Text
+	EventListenerID   pgtype.Text
+	MessageID         pgtype.Text
+	MessageInstanceID pgtype.Int8
+	FlowSourceID      pgtype.Text
+	FlowNodeID        string
+	FlowState         []byte
+	CreatedAt         pgtype.Timestamp
+	ExpiresAt         pgtype.Timestamp
 }
 
 type Session struct {

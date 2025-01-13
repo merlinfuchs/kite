@@ -8,17 +8,18 @@ import (
 )
 
 type ResumePoint struct {
-	ID              string
-	Type            ResumePointType
-	AppID           string
-	CommandID       null.String
-	EventListenerID null.String
-	MessageID       null.String
-	FlowSourceID    null.String
-	FlowNodeID      string
-	FlowState       flow.FlowContextState
-	CreatedAt       time.Time
-	ExpiresAt       null.Time
+	ID                string
+	Type              ResumePointType
+	AppID             string
+	CommandID         null.String
+	EventListenerID   null.String
+	MessageID         null.String
+	MessageInstanceID null.Int
+	FlowSourceID      null.String
+	FlowNodeID        string
+	FlowState         flow.FlowContextState
+	CreatedAt         time.Time
+	ExpiresAt         null.Time
 }
 
 type ResumePointType string

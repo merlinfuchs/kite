@@ -424,15 +424,17 @@ func (p *ResumePointProvider) CreateResumePoint(ctx context.Context, s flow.Flow
 	s.ID = util.UniqueID()
 
 	_, err := p.resumePointStore.CreateResumePoint(ctx, &model.ResumePoint{
-		ID:              s.ID,
-		Type:            model.ResumePointType(s.Type),
-		AppID:           p.appID,
-		CommandID:       p.links.CommandID,
-		EventListenerID: p.links.EventListenerID,
-		MessageID:       p.links.MessageID,
-		FlowNodeID:      s.NodeID,
-		FlowState:       s.State,
-		CreatedAt:       time.Now().UTC(),
+		ID:                s.ID,
+		Type:              model.ResumePointType(s.Type),
+		AppID:             p.appID,
+		CommandID:         p.links.CommandID,
+		EventListenerID:   p.links.EventListenerID,
+		MessageID:         p.links.MessageID,
+		MessageInstanceID: p.links.MessageInstanceID,
+		FlowSourceID:      p.links.FlowSourceID,
+		FlowNodeID:        s.NodeID,
+		FlowState:         s.State,
+		CreatedAt:         time.Now().UTC(),
 		// TODO: expiry based on type?
 	})
 

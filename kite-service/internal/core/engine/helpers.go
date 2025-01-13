@@ -33,9 +33,11 @@ type Env struct {
 }
 
 type entityLinks struct {
-	CommandID       null.String
-	MessageID       null.String
-	EventListenerID null.String
+	CommandID         null.String
+	EventListenerID   null.String
+	MessageID         null.String
+	MessageInstanceID null.Int
+	FlowSourceID      null.String // For message templates that have multiple flows
 }
 
 func (s Env) flowProviders(appID string, session *state.State, links entityLinks) flow.FlowProviders {

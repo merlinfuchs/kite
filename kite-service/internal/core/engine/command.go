@@ -61,22 +61,6 @@ func (c *Command) HandleEvent(appID string, session *state.State, event gateway.
 	)
 }
 
-func (c *Command) HandleResumeEvent(appID string, nodeID string, session *state.State, event gateway.Event) {
-	links := entityLinks{
-		CommandID: null.NewString(c.cmd.ID, true),
-	}
-
-	c.env.executeFlowEvent(
-		c.cmd.AppID,
-		c.flow,
-		session,
-		event,
-		links,
-		nil,
-		false,
-	)
-}
-
 func (a *App) DeployCommands(ctx context.Context) error {
 	a.Lock()
 	a.hasUndeployedChanges = false

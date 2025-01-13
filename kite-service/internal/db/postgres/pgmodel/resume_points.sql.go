@@ -19,28 +19,30 @@ INSERT INTO resume_points (
     command_id, 
     event_listener_id, 
     message_id, 
+    message_instance_id,
     flow_source_id, 
     flow_node_id, 
     flow_state, 
     created_at, 
     expires_at
 )
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
-RETURNING id, type, app_id, command_id, event_listener_id, message_id, flow_source_id, flow_node_id, flow_state, created_at, expires_at
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+RETURNING id, type, app_id, command_id, event_listener_id, message_id, message_instance_id, flow_source_id, flow_node_id, flow_state, created_at, expires_at
 `
 
 type CreateResumePointParams struct {
-	ID              string
-	Type            string
-	AppID           string
-	CommandID       pgtype.Text
-	EventListenerID pgtype.Text
-	MessageID       pgtype.Text
-	FlowSourceID    pgtype.Text
-	FlowNodeID      string
-	FlowState       []byte
-	CreatedAt       pgtype.Timestamp
-	ExpiresAt       pgtype.Timestamp
+	ID                string
+	Type              string
+	AppID             string
+	CommandID         pgtype.Text
+	EventListenerID   pgtype.Text
+	MessageID         pgtype.Text
+	MessageInstanceID pgtype.Int8
+	FlowSourceID      pgtype.Text
+	FlowNodeID        string
+	FlowState         []byte
+	CreatedAt         pgtype.Timestamp
+	ExpiresAt         pgtype.Timestamp
 }
 
 func (q *Queries) CreateResumePoint(ctx context.Context, arg CreateResumePointParams) (ResumePoint, error) {
@@ -51,6 +53,7 @@ func (q *Queries) CreateResumePoint(ctx context.Context, arg CreateResumePointPa
 		arg.CommandID,
 		arg.EventListenerID,
 		arg.MessageID,
+		arg.MessageInstanceID,
 		arg.FlowSourceID,
 		arg.FlowNodeID,
 		arg.FlowState,
@@ -65,6 +68,7 @@ func (q *Queries) CreateResumePoint(ctx context.Context, arg CreateResumePointPa
 		&i.CommandID,
 		&i.EventListenerID,
 		&i.MessageID,
+		&i.MessageInstanceID,
 		&i.FlowSourceID,
 		&i.FlowNodeID,
 		&i.FlowState,
@@ -93,7 +97,7 @@ func (q *Queries) DeleteResumePoint(ctx context.Context, id string) error {
 }
 
 const resumePoint = `-- name: ResumePoint :one
-SELECT id, type, app_id, command_id, event_listener_id, message_id, flow_source_id, flow_node_id, flow_state, created_at, expires_at FROM resume_points WHERE id = $1
+SELECT id, type, app_id, command_id, event_listener_id, message_id, message_instance_id, flow_source_id, flow_node_id, flow_state, created_at, expires_at FROM resume_points WHERE id = $1
 `
 
 func (q *Queries) ResumePoint(ctx context.Context, id string) (ResumePoint, error) {
@@ -106,6 +110,7 @@ func (q *Queries) ResumePoint(ctx context.Context, id string) (ResumePoint, erro
 		&i.CommandID,
 		&i.EventListenerID,
 		&i.MessageID,
+		&i.MessageInstanceID,
 		&i.FlowSourceID,
 		&i.FlowNodeID,
 		&i.FlowState,

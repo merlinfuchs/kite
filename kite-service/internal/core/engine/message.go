@@ -49,10 +49,6 @@ func NewMessageInstance(
 }
 
 func (m *MessageInstance) HandleEvent(appID string, session *state.State, event gateway.Event) {
-	links := entityLinks{
-		MessageID: null.NewString(m.msg.MessageID, true),
-	}
-
 	i, ok := event.(*gateway.InteractionCreateEvent)
 	if !ok {
 		return
@@ -63,7 +59,15 @@ func (m *MessageInstance) HandleEvent(appID string, session *state.State, event 
 		return
 	}
 
-	targetFlow, ok := m.flows[string(d.CustomID)]
+	flowSourceID := string(d.CustomID)
+
+	links := entityLinks{
+		MessageID:         null.NewString(m.msg.MessageID, true),
+		MessageInstanceID: null.NewInt(int64(m.msg.ID), true),
+		FlowSourceID:      null.NewString(flowSourceID, true),
+	}
+
+	targetFlow, ok := m.flows[flowSourceID]
 	if !ok {
 		return
 	}

@@ -205,6 +205,66 @@ func (a *App) HandleEvent(appID string, session *state.State, event gateway.Even
 					true,
 				)
 			}
+
+			if resumePoint.MessageInstanceID.Valid {
+				messageInstance, err := a.stores.MessageInstanceStore.MessageInstance(
+					context.TODO(),
+					resumePoint.MessageID.String,
+					uint64(resumePoint.MessageInstanceID.Int64),
+				)
+				if err != nil {
+					if !errors.Is(err, store.ErrNotFound) {
+						slog.Error(
+							"Failed to get message instance from resume point",
+							slog.String("resume_point_id", resumePointID),
+							slog.String("message_id", resumePoint.MessageID.String),
+							slog.Int64("message_instance_id", resumePoint.MessageInstanceID.Int64),
+							slog.String("error", err.Error()),
+						)
+					}
+					return
+				}
+
+				instance, err := NewMessageInstance(
+					a.id,
+					messageInstance,
+					a.stores,
+				)
+				if err != nil {
+					slog.Error(
+						"Failed to create message instance",
+						slog.String("resume_point_id", resumePointID),
+						slog.String("message_id", resumePoint.MessageID.String),
+						slog.Int64("message_instance_id", resumePoint.MessageInstanceID.Int64),
+						slog.String("error", err.Error()),
+					)
+					return
+				}
+
+				targetFlow, ok := instance.flows[resumePoint.FlowSourceID.String]
+				if !ok {
+					slog.Error(
+						"Failed to get target flow from resume point",
+						slog.String("resume_point_id", resumePointID),
+						slog.String("message_id", resumePoint.MessageID.String),
+						slog.Int64("message_instance_id", resumePoint.MessageInstanceID.Int64),
+						slog.String("flow_source_id", resumePoint.FlowSourceID.String),
+					)
+					return
+				}
+
+				node := targetFlow.FindChildWithID(resumePoint.FlowNodeID)
+
+				a.stores.executeFlowEvent(
+					a.id,
+					node,
+					session,
+					event,
+					entityLinks{},
+					&resumePoint.FlowState,
+					true,
+				)
+			}
 		}
 	default:
 		eventType := model.EventTypeFromDiscordEventType(e.EventType())
