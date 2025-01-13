@@ -111,11 +111,7 @@ func (c *Command) HandleEvent(appID string, session *state.State, event gateway.
 		eval.NewContextFromInteraction(&i.InteractionEvent),
 	)
 
-	if err := c.flow.Execute(fCtx); err != nil {
-		slog.With("error", err).Error("Failed to execute command flow")
-		c.createLogEntry(model.LogLevelError, fmt.Sprintf("Failed to execute command flow: %v", err))
-	}
-
+	c.flow.Execute(fCtx)
 	c.createUsageRecord(fCtx.CreditsUsed())
 }
 

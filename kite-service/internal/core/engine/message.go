@@ -128,11 +128,7 @@ func (c *MessageInstance) HandleEvent(appID string, session *state.State, event 
 		eval.NewContextFromInteraction(&i.InteractionEvent),
 	)
 
-	if err := targetFlow.Execute(fCtx); err != nil {
-		slog.With("error", err).Error("Failed to execute message instance flow")
-		c.createLogEntry(model.LogLevelError, fmt.Sprintf("Failed to execute message instance flow: %v", err))
-	}
-
+	targetFlow.Execute(fCtx)
 	c.createUsageRecord(fCtx.CreditsUsed())
 }
 

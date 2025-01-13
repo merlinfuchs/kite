@@ -2,7 +2,9 @@ package flow
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"sync"
 
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/utils/ws"
@@ -12,6 +14,8 @@ import (
 
 type FlowContext struct {
 	context.Context
+	waitGroup *sync.WaitGroup
+
 	FlowProviders
 	FlowContextLimits
 	FlowContextState
@@ -37,14 +41,32 @@ func NewContext(
 	evalCtx.Patchers = append(evalCtx.Patchers, &nodeEvalPatcher{})
 
 	return &FlowContext{
-		Context: ctx,
-		Data:    data,
+		Context:   ctx,
+		waitGroup: &sync.WaitGroup{},
+
+		Data: data,
 		// Placeholders:      placeholders,
 		EvalCtx:           evalCtx,
 		FlowProviders:     providers,
 		FlowContextLimits: limits,
 		FlowContextState:  state,
 	}
+}
+
+func (c *FlowContext) Copy() *FlowContext {
+	return &FlowContext{
+		Context:           c.Context,
+		waitGroup:         c.waitGroup,
+		Data:              c.Data,
+		EvalCtx:           c.EvalCtx,
+		FlowProviders:     c.FlowProviders,
+		FlowContextLimits: c.FlowContextLimits,
+		FlowContextState:  c.FlowContextState.Copy(),
+	}
+}
+
+func (c *FlowContext) Wait() {
+	c.waitGroup.Wait()
 }
 
 type FlowContextData interface {
@@ -137,19 +159,48 @@ type FlowContextState struct {
 	NodeStates map[string]*FlowContextNodeState
 }
 
-func (c *FlowContextState) GetNodeState(nodeID string) *FlowContextNodeState {
-	state, ok := c.NodeStates[nodeID]
+func (s *FlowContextState) GetNodeState(nodeID string) *FlowContextNodeState {
+	state, ok := s.NodeStates[nodeID]
 	if !ok {
 		state = &FlowContextNodeState{}
-		c.NodeStates[nodeID] = state
+		s.NodeStates[nodeID] = state
 	}
 
 	return state
 }
 
+func (s *FlowContextState) Copy() FlowContextState {
+	copy := FlowContextState{
+		NodeStates: make(map[string]*FlowContextNodeState, len(s.NodeStates)),
+	}
+
+	for k, v := range s.NodeStates {
+		copy.NodeStates[k] = v.Copy()
+	}
+
+	return copy
+}
+
+func (s *FlowContextNodeState) Serialize() ([]byte, error) {
+	return json.Marshal(s)
+}
+
+func (s *FlowContextNodeState) Deserialize(data []byte) error {
+	return json.Unmarshal(data, s)
+}
+
 type FlowContextNodeState struct {
-	ConditionBaseValue thing.Any
-	ConditionItemMet   bool
-	Result             thing.Any
-	LoopExited         bool
+	ConditionBaseValue thing.Any `json:"condition_base_value"`
+	ConditionItemMet   bool      `json:"condition_item_met"`
+	Result             thing.Any `json:"result"`
+	LoopExited         bool      `json:"loop_exited"`
+}
+
+func (s *FlowContextNodeState) Copy() *FlowContextNodeState {
+	return &FlowContextNodeState{
+		ConditionBaseValue: s.ConditionBaseValue,
+		ConditionItemMet:   s.ConditionItemMet,
+		Result:             s.Result,
+		LoopExited:         s.LoopExited,
+	}
 }
