@@ -1,4 +1,4 @@
-CREATE TABLE IF NOT EXISTS suspend_points (
+CREATE TABLE IF NOT EXISTS resume_points (
     id TEXT PRIMARY KEY,
     type TEXT NOT NULL,
 
@@ -15,7 +15,7 @@ CREATE TABLE IF NOT EXISTS suspend_points (
     expires_at TIMESTAMP
 );
 
-CREATE INDEX IF NOT EXISTS suspend_points_app_id ON suspend_points (app_id);
-CREATE INDEX IF NOT EXISTS suspend_points_command_id ON suspend_points (command_id);
-CREATE INDEX IF NOT EXISTS suspend_points_event_listener_id ON suspend_points (event_listener_id);
-CREATE INDEX IF NOT EXISTS suspend_points_message_id ON suspend_points (message_id);
+CREATE INDEX IF NOT EXISTS resume_points_app_id ON resume_points (app_id);
+CREATE INDEX IF NOT EXISTS resume_points_command_id ON resume_points (command_id);
+CREATE INDEX IF NOT EXISTS resume_points_event_listener_id ON resume_points (event_listener_id);
+CREATE INDEX IF NOT EXISTS resume_points_message_id ON resume_points (message_id);

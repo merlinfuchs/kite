@@ -401,31 +401,31 @@ func (p *MessageTemplateProvider) LinkMessageTemplateInstance(ctx context.Contex
 	return nil
 }
 
-type SuspendPointProvider struct {
-	suspendPointStore store.SuspendPointStore
+type ResumePointProvider struct {
+	resumePointStore store.ResumePointStore
 
 	appID string
 	links entityLinks
 }
 
-func NewSuspendPointProvider(
-	suspendPointStore store.SuspendPointStore,
+func NewResumePointProvider(
+	resumePointStore store.ResumePointStore,
 	appID string,
 	links entityLinks,
-) *SuspendPointProvider {
-	return &SuspendPointProvider{
-		suspendPointStore: suspendPointStore,
-		appID:             appID,
-		links:             links,
+) *ResumePointProvider {
+	return &ResumePointProvider{
+		resumePointStore: resumePointStore,
+		appID:            appID,
+		links:            links,
 	}
 }
 
-func (p *SuspendPointProvider) CreateSuspendPoint(ctx context.Context, s flow.FlowSuspendPoint) (flow.FlowSuspendPoint, error) {
+func (p *ResumePointProvider) CreateResumePoint(ctx context.Context, s flow.FlowResumePoint) (flow.FlowResumePoint, error) {
 	s.ID = util.UniqueID()
 
-	_, err := p.suspendPointStore.CreateSuspendPoint(ctx, &model.SuspendPoint{
+	_, err := p.resumePointStore.CreateResumePoint(ctx, &model.ResumePoint{
 		ID:              s.ID,
-		Type:            model.SuspendPointType(s.Type),
+		Type:            model.ResumePointType(s.Type),
 		AppID:           p.appID,
 		CommandID:       p.links.CommandID,
 		EventListenerID: p.links.EventListenerID,
@@ -433,7 +433,7 @@ func (p *SuspendPointProvider) CreateSuspendPoint(ctx context.Context, s flow.Fl
 		FlowNodeID:      s.NodeID,
 		FlowState:       s.State,
 		CreatedAt:       time.Now().UTC(),
-		// TODO: expiy based on type?
+		// TODO: expiry based on type?
 	})
 
 	return s, err

@@ -160,8 +160,8 @@ func (p *MockAIProvider) CreateChatCompletion(ctx context.Context, opts CreateCh
 	return "", nil
 }
 
-type MockSuspendPointProvider struct{}
+type MockResumePointProvider struct{}
 
-func (p *MockSuspendPointProvider) CreateSuspendPoint(ctx context.Context, _ FlowSuspendPoint) error {
+func (p *MockResumePointProvider) CreateResumePoint(ctx context.Context, _ FlowResumePoint) error {
 	return nil
 }

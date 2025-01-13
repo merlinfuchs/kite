@@ -79,7 +79,7 @@ func serverStartCMD(c *cli.Context) error {
 			CommandStore:         pg,
 			EventListenerStore:   pg,
 			VariableValueStore:   pg,
-			SuspendPointStore:    pg,
+			ResumePointStore:     pg,
 			HttpClient:           &http.Client{}, // TODO: think about proxying http requests
 			OpenaiClient:         openaiClient,
 		},

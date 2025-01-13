@@ -143,8 +143,8 @@ func (c *FlowContext) increaseCredits(credits int) error {
 	return nil
 }
 
-func (c *FlowContext) suspend(t FlowSuspendPointType, nodeID string) (*FlowSuspendPoint, error) {
-	s, err := c.SuspendPoint.CreateSuspendPoint(c.Context, FlowSuspendPoint{
+func (c *FlowContext) suspend(t FlowResumePointType, nodeID string) (*FlowResumePoint, error) {
+	s, err := c.ResumePoint.CreateResumePoint(c.Context, FlowResumePoint{
 		Type:   t,
 		NodeID: nodeID,
 		State:  c.FlowContextState.Copy(),

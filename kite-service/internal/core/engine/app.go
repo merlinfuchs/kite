@@ -166,32 +166,32 @@ func (a *App) HandleEvent(appID string, session *state.State, event gateway.Even
 			go instance.HandleEvent(appID, session, event)
 		case *discord.ModalInteraction:
 			customID := string(d.CustomID)
-			if !strings.HasPrefix(customID, "suspend:") {
+			if !strings.HasPrefix(customID, "resume:") {
 				return
 			}
 
-			suspendPointID := customID[len("suspend:"):]
-			suspendPoint, err := a.stores.SuspendPointStore.SuspendPoint(context.TODO(), suspendPointID)
+			resumePointID := customID[len("resume:"):]
+			resumePoint, err := a.stores.ResumePointStore.ResumePoint(context.TODO(), resumePointID)
 			if err != nil {
 				if errors.Is(err, store.ErrNotFound) {
 					return
 				}
 
 				slog.Error(
-					"Failed to get suspend point",
-					slog.String("suspend_point_id", suspendPointID),
+					"Failed to get resume point",
+					slog.String("resume_point_id", resumePointID),
 					slog.String("error", err.Error()),
 				)
 				return
 			}
 
-			if suspendPoint.CommandID.Valid {
-				command, ok := a.commands[suspendPoint.CommandID.String]
+			if resumePoint.CommandID.Valid {
+				command, ok := a.commands[resumePoint.CommandID.String]
 				if !ok {
 					return
 				}
 
-				node := command.flow.FindChildWithID(suspendPoint.FlowNodeID)
+				node := command.flow.FindChildWithID(resumePoint.FlowNodeID)
 
 				a.stores.executeFlowEvent(
 					a.id,
@@ -201,7 +201,7 @@ func (a *App) HandleEvent(appID string, session *state.State, event gateway.Even
 					entityLinks{
 						CommandID: null.NewString(command.cmd.ID, true),
 					},
-					&suspendPoint.FlowState,
+					&resumePoint.FlowState,
 					true,
 				)
 			}

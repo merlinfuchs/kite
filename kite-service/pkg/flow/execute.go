@@ -269,7 +269,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			}
 		}
 
-		suspendPoint, err := ctx.suspend(FlowSuspendPointTypeModal, n.ID)
+		resumePoint, err := ctx.suspend(FlowResumePointTypeModal, n.ID)
 		if err != nil {
 			return traceError(n, err)
 		}
@@ -277,7 +277,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 		row := discord.ActionRowComponent([]discord.InteractiveComponent{
 			&discord.TextInputComponent{
 				CustomID: "1",
-				Label:    "Suspend point",
+				Label:    "Resume point",
 				Style:    discord.TextInputShortStyle,
 				Required: true,
 			},
@@ -286,8 +286,8 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 		resp := api.InteractionResponse{
 			Type: api.ModalResponse,
 			Data: &api.InteractionResponseData{
-				CustomID:   option.NewNullableString("suspend:" + suspendPoint.ID),
-				Title:      option.NewNullableString("Suspend point"),
+				CustomID:   option.NewNullableString("resume:" + resumePoint.ID),
+				Title:      option.NewNullableString("Resume point"),
 				Components: &discord.ContainerComponents{&row},
 			},
 		}

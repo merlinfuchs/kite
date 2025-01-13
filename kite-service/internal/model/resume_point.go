@@ -7,9 +7,9 @@ import (
 	"gopkg.in/guregu/null.v4"
 )
 
-type SuspendPoint struct {
+type ResumePoint struct {
 	ID              string
-	Type            SuspendPointType
+	Type            ResumePointType
 	AppID           string
 	CommandID       null.String
 	EventListenerID null.String
@@ -21,8 +21,8 @@ type SuspendPoint struct {
 	ExpiresAt       null.Time
 }
 
-type SuspendPointType string
+type ResumePointType string
 
 const (
-	SuspendPointTypeModal SuspendPointType = "modal"
+	ResumePointTypeModal ResumePointType = "modal"
 )

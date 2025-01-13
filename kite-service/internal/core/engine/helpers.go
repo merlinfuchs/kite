@@ -27,7 +27,7 @@ type Env struct {
 	CommandStore         store.CommandStore
 	EventListenerStore   store.EventListenerStore
 	VariableValueStore   store.VariableValueStore
-	SuspendPointStore    store.SuspendPointStore
+	ResumePointStore     store.ResumePointStore
 	HttpClient           *http.Client
 	OpenaiClient         *openai.Client
 }
@@ -55,8 +55,8 @@ func (s Env) flowProviders(appID string, session *state.State, links entityLinks
 		AI:              aiProvider,
 		MessageTemplate: NewMessageTemplateProvider(s.MessageStore, s.MessageInstanceStore),
 		Variable:        NewVariableProvider(s.VariableValueStore),
-		SuspendPoint: NewSuspendPointProvider(
-			s.SuspendPointStore,
+		ResumePoint: NewResumePointProvider(
+			s.ResumePointStore,
 			appID,
 			links,
 		),

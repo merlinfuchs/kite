@@ -123,14 +123,7 @@ type Module struct {
 	UpdatedAt     pgtype.Timestamp
 }
 
-type Session struct {
-	KeyHash   string
-	UserID    string
-	CreatedAt pgtype.Timestamp
-	ExpiresAt pgtype.Timestamp
-}
-
-type SuspendPoint struct {
+type ResumePoint struct {
 	ID              string
 	Type            string
 	AppID           string
@@ -142,6 +135,13 @@ type SuspendPoint struct {
 	FlowState       []byte
 	CreatedAt       pgtype.Timestamp
 	ExpiresAt       pgtype.Timestamp
+}
+
+type Session struct {
+	KeyHash   string
+	UserID    string
+	CreatedAt pgtype.Timestamp
+	ExpiresAt pgtype.Timestamp
 }
 
 type UsageRecord struct {
