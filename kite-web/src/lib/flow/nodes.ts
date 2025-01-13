@@ -77,6 +77,7 @@ import {
   nodeOptionCommandContextsSchema,
   nodeOptionCommandPermissionsSchema,
   nodeOptionEventFilterSchema,
+  nodeSuspendResponseModalDataSchema,
 } from "./data";
 
 export const primaryColor = "#3B82F6";
@@ -560,7 +561,8 @@ export const nodeTypes: Record<string, NodeValues> = {
     defaultTitle: "Show Modal",
     defaultDescription:
       "Show a modal to the user and suspend the flow until the user submits the modal.",
-    dataFields: [],
+    dataSchema: nodeSuspendResponseModalDataSchema,
+    dataFields: ["modal_data", "custom_label"],
     helpUrl: env.NEXT_PUBLIC_DOCS_LINK + "/reference/sub-flows",
   },
 };

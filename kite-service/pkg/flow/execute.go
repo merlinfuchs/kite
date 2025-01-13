@@ -269,26 +269,42 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			}
 		}
 
+		if n.Data.ModalData == nil {
+			return &FlowError{
+				Code:    FlowNodeErrorUnknown,
+				Message: "modal data is nil",
+			}
+		}
+
 		resumePoint, err := ctx.suspend(FlowResumePointTypeModal, n.ID)
 		if err != nil {
 			return traceError(n, err)
 		}
 
-		row := discord.ActionRowComponent([]discord.InteractiveComponent{
-			&discord.TextInputComponent{
-				CustomID: "1",
-				Label:    "Resume point",
-				Style:    discord.TextInputShortStyle,
-				Required: true,
-			},
-		})
+		componentRows := make(discord.ContainerComponents, len(n.Data.ModalData.Components))
+		for i, row := range n.Data.ModalData.Components {
+			r := make(discord.ActionRowComponent, len(row.Components))
+			for j, component := range row.Components {
+				r[j] = &discord.TextInputComponent{
+					CustomID:     discord.ComponentID(component.CustomID),
+					Label:        component.Label,
+					Style:        discord.TextInputStyle(component.Style),
+					Required:     component.Required,
+					LengthLimits: [2]int{component.MinLength, component.MaxLength},
+					Value:        component.Value,
+					Placeholder:  component.Placeholder,
+				}
+			}
+
+			componentRows[i] = discord.ContainerComponent(&r)
+		}
 
 		resp := api.InteractionResponse{
 			Type: api.ModalResponse,
 			Data: &api.InteractionResponseData{
 				CustomID:   option.NewNullableString("resume:" + resumePoint.ID),
-				Title:      option.NewNullableString("Resume point"),
-				Components: &discord.ContainerComponents{&row},
+				Title:      option.NewNullableString(n.Data.ModalData.Title),
+				Components: &componentRows,
 			},
 		}
 
