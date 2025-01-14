@@ -24,19 +24,21 @@ type Env map[string]any
 type InteractionEnv struct {
 	interaction *discord.InteractionEvent
 
-	ID      string        `expr:"id" json:"id"`
-	Channel *SnowflakeEnv `expr:"channel" json:"channel"`
-	Guild   *SnowflakeEnv `expr:"guild" json:"guild"`
-	User    any           `expr:"user" json:"user"`
-	Command *CommandEnv   `expr:"command" json:"command"`
+	ID         string                   `expr:"id" json:"id"`
+	Channel    *SnowflakeEnv            `expr:"channel" json:"channel"`
+	Guild      *SnowflakeEnv            `expr:"guild" json:"guild"`
+	User       any                      `expr:"user" json:"user"`
+	Command    *CommandEnv              `expr:"command" json:"command"`
+	Components map[string]*ComponentEnv `expr:"components" json:"components"`
 }
 
 func NewInteractionEnv(i *discord.InteractionEvent) *InteractionEnv {
 	e := &InteractionEnv{
 		interaction: i,
 
-		ID:      i.ID.String(),
-		Channel: NewSnowflakeEnv(i.ChannelID),
+		ID:         i.ID.String(),
+		Channel:    NewSnowflakeEnv(i.ChannelID),
+		Components: NewComponentsEnv(i),
 	}
 
 	if i.User != nil {
@@ -128,6 +130,52 @@ func NewCommandEnv(i *discord.InteractionEvent) *CommandEnv {
 
 func (c CommandEnv) String() string {
 	return c.ID
+}
+
+type ComponentEnv struct {
+	CustomID string `expr:"custom_id" json:"custom_id"`
+	Value    string `expr:"value" json:"value"`
+}
+
+func NewComponentsEnv(i *discord.InteractionEvent) map[string]*ComponentEnv {
+	components := make(map[string]*ComponentEnv)
+
+	data, ok := i.Data.(*discord.ModalInteraction)
+	if !ok {
+		return components
+	}
+
+	for _, row := range data.Components {
+		actionRow, ok := row.(*discord.ActionRowComponent)
+		if !ok {
+			continue
+		}
+
+		for _, component := range *actionRow {
+			c := NewComponentEnv(component)
+			if c != nil {
+				components[c.CustomID] = c
+			}
+		}
+	}
+
+	return components
+}
+
+func NewComponentEnv(component discord.InteractiveComponent) *ComponentEnv {
+	switch c := component.(type) {
+	case *discord.TextInputComponent:
+		return &ComponentEnv{
+			CustomID: string(c.CustomID),
+			Value:    c.Value,
+		}
+	}
+
+	return nil
+}
+
+func (c ComponentEnv) String() string {
+	return c.Value
 }
 
 type EventEnv struct {
