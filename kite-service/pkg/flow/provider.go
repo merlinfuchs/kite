@@ -23,6 +23,7 @@ type FlowProviders struct {
 	Log             FlowLogProvider
 	Variable        FlowVariableProvider
 	MessageTemplate FlowMessageTemplateProvider
+	ResumePoint     FlowResumePointProvider
 }
 
 type FlowDiscordProvider interface {
@@ -103,3 +104,20 @@ type FlowMessageTemplateInstance struct {
 	GuildID           discord.GuildID
 	Ephemeral         bool
 }
+
+type FlowResumePointProvider interface {
+	CreateResumePoint(ctx context.Context, p FlowResumePoint) (FlowResumePoint, error)
+}
+
+type FlowResumePoint struct {
+	ID     string
+	Type   FlowResumePointType
+	NodeID string
+	State  FlowContextState
+}
+
+type FlowResumePointType string
+
+const (
+	FlowResumePointTypeModal FlowResumePointType = "modal"
+)

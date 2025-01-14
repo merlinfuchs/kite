@@ -15,6 +15,7 @@ import (
 	"github.com/diamondburned/arikawa/v3/utils/sendpart"
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/internal/store"
+	"github.com/kitecloud/kite/kite-service/internal/util"
 	"github.com/kitecloud/kite/kite-service/pkg/flow"
 	"github.com/kitecloud/kite/kite-service/pkg/message"
 	"github.com/kitecloud/kite/kite-service/pkg/thing"
@@ -225,18 +226,14 @@ type LogProvider struct {
 	appID    string
 	logStore store.LogStore
 
-	CommandID       null.String
-	EventListenerID null.String
-	MessageID       null.String
+	links entityLinks
 }
 
-func NewLogProvider(appID string, logStore store.LogStore, commandID, eventListenerID, messageID null.String) *LogProvider {
+func NewLogProvider(appID string, logStore store.LogStore, links entityLinks) *LogProvider {
 	return &LogProvider{
-		appID:           appID,
-		logStore:        logStore,
-		CommandID:       commandID,
-		EventListenerID: eventListenerID,
-		MessageID:       messageID,
+		appID:    appID,
+		logStore: logStore,
+		links:    links,
 	}
 }
 
@@ -248,9 +245,9 @@ func (p *LogProvider) CreateLogEntry(ctx context.Context, level flow.LogLevel, m
 		AppID:           p.appID,
 		Level:           model.LogLevel(level),
 		Message:         message,
-		CommandID:       p.CommandID,
-		EventListenerID: p.EventListenerID,
-		MessageID:       p.MessageID,
+		CommandID:       p.links.CommandID,
+		EventListenerID: p.links.EventListenerID,
+		MessageID:       p.links.MessageID,
 		CreatedAt:       time.Now().UTC(),
 	})
 	if err != nil {
@@ -402,4 +399,44 @@ func (p *MessageTemplateProvider) LinkMessageTemplateInstance(ctx context.Contex
 	}
 
 	return nil
+}
+
+type ResumePointProvider struct {
+	resumePointStore store.ResumePointStore
+
+	appID string
+	links entityLinks
+}
+
+func NewResumePointProvider(
+	resumePointStore store.ResumePointStore,
+	appID string,
+	links entityLinks,
+) *ResumePointProvider {
+	return &ResumePointProvider{
+		resumePointStore: resumePointStore,
+		appID:            appID,
+		links:            links,
+	}
+}
+
+func (p *ResumePointProvider) CreateResumePoint(ctx context.Context, s flow.FlowResumePoint) (flow.FlowResumePoint, error) {
+	s.ID = util.UniqueID()
+
+	_, err := p.resumePointStore.CreateResumePoint(ctx, &model.ResumePoint{
+		ID:                s.ID,
+		Type:              model.ResumePointType(s.Type),
+		AppID:             p.appID,
+		CommandID:         p.links.CommandID,
+		EventListenerID:   p.links.EventListenerID,
+		MessageID:         p.links.MessageID,
+		MessageInstanceID: p.links.MessageInstanceID,
+		FlowSourceID:      p.links.FlowSourceID,
+		FlowNodeID:        s.NodeID,
+		FlowState:         s.State,
+		CreatedAt:         time.Now().UTC(),
+		// TODO: expiry based on type?
+	})
+
+	return s, err
 }

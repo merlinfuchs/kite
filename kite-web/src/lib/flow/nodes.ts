@@ -20,6 +20,7 @@ import {
   MessageCircleXIcon,
   MousePointerClickIcon,
   PenIcon,
+  PictureInPicture2Icon,
   Repeat2Icon,
   SatelliteDishIcon,
   ScrollTextIcon,
@@ -76,6 +77,7 @@ import {
   nodeOptionCommandContextsSchema,
   nodeOptionCommandPermissionsSchema,
   nodeOptionEventFilterSchema,
+  nodeSuspendResponseModalDataSchema,
 } from "./data";
 
 export const primaryColor = "#3B82F6";
@@ -84,7 +86,8 @@ export const actionColor = "#3b82f6";
 export const entryColor = "#eab308";
 export const errorColor = "#ef4444";
 export const controlColor = "#22c55e";
-export const optionColor = "#a855f7";
+export const optionColor = "#8b5cf6";
+export const suspendColor = "#d946ef";
 
 export interface NodeValues {
   color: string;
@@ -551,6 +554,16 @@ export const nodeTypes: Record<string, NodeValues> = {
     defaultDescription: "Filter events based on their properties.",
     dataSchema: nodeOptionEventFilterSchema,
     dataFields: ["event_filter_target", "event_filter_expression"],
+  },
+  suspend_response_modal: {
+    color: suspendColor,
+    icon: PictureInPicture2Icon,
+    defaultTitle: "Show Modal",
+    defaultDescription:
+      "Show a modal to the user and suspend the flow until the user submits the modal.",
+    dataSchema: nodeSuspendResponseModalDataSchema,
+    dataFields: ["modal_data", "custom_label"],
+    helpUrl: env.NEXT_PUBLIC_DOCS_LINK + "/reference/sub-flows",
   },
 };
 

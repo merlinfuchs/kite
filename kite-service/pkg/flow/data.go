@@ -76,6 +76,8 @@ const (
 	FlowNodeTypeControlLoopEnd              FlowNodeType = "control_loop_end"
 	FlowNodeTypeControlLoopExit             FlowNodeType = "control_loop_exit"
 	FlowNodeTypeControlSleep                FlowNodeType = "control_sleep"
+
+	FlowNodeTypeSuspendResponseModal FlowNodeType = "suspend_response_modal"
 )
 
 type FlowNode struct {
@@ -122,6 +124,9 @@ type FlowNodeData struct {
 	MessageData       *message.MessageData `json:"message_data,omitempty"`
 	MessageTemplateID string               `json:"message_template_id,omitempty"`
 	MessageEphemeral  bool                 `json:"message_ephemeral,omitempty"`
+
+	// Modal
+	ModalData *ModalData `json:"modal_data,omitempty"`
 
 	// Member Ban, Kick, Timeout, Edit
 	UserTarget                            string                `json:"user_target,omitempty"`
@@ -284,6 +289,23 @@ type EventFilterTarget string
 const (
 	EventFilterTypeMessageContent EventFilterTarget = "message_content"
 )
+
+type ModalData struct {
+	Title      string               `json:"title,omitempty"`
+	Components []ModalComponentData `json:"components,omitempty"`
+}
+
+type ModalComponentData struct {
+	CustomID    string               `json:"custom_id,omitempty"`
+	Style       int                  `json:"style,omitempty"`
+	Label       string               `json:"label,omitempty"`
+	MinLength   int                  `json:"min_length,omitempty"`
+	MaxLength   int                  `json:"max_length,omitempty"`
+	Required    bool                 `json:"required,omitempty"`
+	Value       string               `json:"value,omitempty"`
+	Placeholder string               `json:"placeholder,omitempty"`
+	Components  []ModalComponentData `json:"components,omitempty"`
+}
 
 type HTTPRequestData struct {
 	URL    string `json:"url,omitempty"`

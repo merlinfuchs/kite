@@ -53,6 +53,7 @@ export const FlowNodeTypeControlLoopEach: FlowNodeType = "control_loop_each";
 export const FlowNodeTypeControlLoopEnd: FlowNodeType = "control_loop_end";
 export const FlowNodeTypeControlLoopExit: FlowNodeType = "control_loop_exit";
 export const FlowNodeTypeControlSleep: FlowNodeType = "control_sleep";
+export const FlowNodeTypeSuspendResponseModal: FlowNodeType = "suspend_response_modal";
 export interface FlowNode {
   id: string;
   type?: FlowNodeType;
@@ -91,6 +92,10 @@ export interface FlowNodeData {
   message_data?: any /* message.MessageData */;
   message_template_id?: string;
   message_ephemeral?: boolean;
+  /**
+   * Modal
+   */
+  modal_data?: ModalData;
   /**
    * Member Ban, Kick, Timeout, Edit
    */
@@ -200,6 +205,21 @@ export const CommandDisabledIntegrationTypeGuildInstall: CommandDisabledIntegrat
 export const CommandDisabledIntegrationTypeUserInstall: CommandDisabledIntegrationType = "user_install";
 export type EventFilterTarget = string;
 export const EventFilterTypeMessageContent: EventFilterTarget = "message_content";
+export interface ModalData {
+  title?: string;
+  components?: ModalComponentData[];
+}
+export interface ModalComponentData {
+  custom_id?: string;
+  style?: number /* uint */;
+  label?: string;
+  min_length?: number /* int */;
+  max_length?: number /* int */;
+  required?: boolean;
+  value?: string;
+  placeholder?: string;
+  components?: ModalComponentData[];
+}
 export interface HTTPRequestData {
   url?: string;
   method?: string;
@@ -230,4 +250,6 @@ export interface MockLogProvider {
 export interface MockHTTPprovider {
 }
 export interface MockAIProvider {
+}
+export interface MockResumePointProvider {
 }

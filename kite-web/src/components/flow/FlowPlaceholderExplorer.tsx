@@ -4,12 +4,14 @@ import { Edge, getIncomers, Node, useEdges, useNodes } from "@xyflow/react";
 import { useMemo } from "react";
 import { getNodeValues } from "@/lib/flow/nodes";
 import { useFlowContext } from "@/lib/flow/context";
+import { NodeData } from "@/lib/flow/data";
 
 export default function FlowPlaceholderExplorer({
   onSelect,
 }: {
   onSelect: (value: string) => void;
 }) {
+  // TODO: only compute when explorer is open
   const nodePlaceholders = useNodePlaceholders();
   const commandPlaceholders = useCommandPlaceholders();
   const globalPlaceholders = useGlobalPlaceholders();
@@ -138,8 +140,8 @@ function useNodePlaceholders() {
   const edges = useEdges();
 
   // Optimize or debounce this?
-  const items = useMemo(() => {
-    let parents: Node[] = [];
+  return useMemo(() => {
+    let parents: Node<NodeData>[] = [];
     for (const node of nodes) {
       if (node.selected) {
         parents = getParentNodes(node, nodes, edges);
@@ -147,33 +149,65 @@ function useNodePlaceholders() {
       }
     }
 
-    return parents
-      .filter((n) => n.type?.startsWith("action_"))
-      .map((n) => {
-        let label = n.data.custom_label as string;
+    const nodeItems: { label: string; value: string }[] = [];
+    const componentItems: { label: string; value: string }[] = [];
+
+    for (const parent of parents) {
+      if (parent.type?.startsWith("action_")) {
+        let label = parent.data.custom_label;
         if (!label) {
-          const data = getNodeValues(n.type!);
+          const data = getNodeValues(parent.type!);
           label = data.defaultTitle;
         }
 
         let value: string;
-        if (numericRegex.test(n.id)) {
-          value = `nodes[${n.id}].result`;
+        if (numericRegex.test(parent.id)) {
+          value = `nodes[${parent.id}].result`;
         } else {
-          value = `nodes.${n.id}.result`;
+          value = `nodes.${parent.id}.result`;
         }
 
-        // TODO: take node result type into account
-        return { label, value };
-      });
-  }, [nodes, edges]);
+        nodeItems.push({ label, value });
+      }
 
-  return [
-    {
-      label: "Node Results",
-      placeholders: items,
-    },
-  ];
+      if (parent?.type === "suspend_response_modal") {
+        if (!parent.data.modal_data?.components) {
+          continue;
+        }
+
+        for (const row of parent.data.modal_data.components) {
+          if (!row?.components) {
+            continue;
+          }
+
+          for (const component of row.components) {
+            componentItems.push({
+              label: component.label ?? "Unknown Input",
+              value: `interaction.components.${component.custom_id}`,
+            });
+          }
+        }
+      }
+    }
+
+    const res = [];
+
+    if (componentItems.length > 0) {
+      res.push({
+        label: "Modal Inputs",
+        placeholders: componentItems,
+      });
+    }
+
+    if (nodeItems.length > 0) {
+      res.push({
+        label: "Node Results",
+        placeholders: nodeItems,
+      });
+    }
+
+    return res;
+  }, [nodes, edges]);
 }
 
 function getParentNodes(current: Node, nodes: Node[], edges: Edge[]) {

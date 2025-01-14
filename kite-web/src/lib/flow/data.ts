@@ -130,6 +130,34 @@ export const nodeActionResponseDeferDataSchema = nodeBaseDataSchema.extend({
   message_ephemeral: z.boolean().optional(),
 });
 
+export const nodeSuspendResponseModalDataSchema = nodeBaseDataSchema.extend({
+  modal_data: z.object({
+    title: z.string().max(45).min(1),
+    components: z
+      .array(
+        z.object({
+          components: z
+            .array(
+              z.object({
+                custom_id: z.string().max(100).min(1),
+                label: z.string().max(45).min(1),
+                style: z.literal(1).or(z.literal(2)),
+                required: z.boolean().optional(),
+                min_length: z.number().optional(),
+                max_length: z.number().optional(),
+                value: z.string().max(4000).min(1).optional(),
+                placeholder: z.string().max(4000).min(1).optional(),
+              })
+            )
+            .min(1)
+            .max(1),
+        })
+      )
+      .min(1)
+      .max(5),
+  }),
+});
+
 export const nodeActionMessageCreateDataSchema = nodeBaseDataSchema
   .extend({
     channel_target: z

@@ -65,21 +65,24 @@ func serverStartCMD(c *cli.Context) error {
 	}
 
 	engine := engine.NewEngine(
-		engine.EngineConfig{
-			MaxStackDepth: cfg.Engine.MaxStackDepth,
-			MaxOperations: cfg.Engine.MaxOperations,
-			MaxCredits:    cfg.Engine.MaxCredits,
+		engine.Env{
+			Config: engine.EngineConfig{
+				MaxStackDepth: cfg.Engine.MaxStackDepth,
+				MaxOperations: cfg.Engine.MaxOperations,
+				MaxCredits:    cfg.Engine.MaxCredits,
+			},
+			AppStore:             pg,
+			LogStore:             pg,
+			UsageStore:           pg,
+			MessageStore:         pg,
+			MessageInstanceStore: pg,
+			CommandStore:         pg,
+			EventListenerStore:   pg,
+			VariableValueStore:   pg,
+			ResumePointStore:     pg,
+			HttpClient:           &http.Client{}, // TODO: think about proxying http requests
+			OpenaiClient:         openaiClient,
 		},
-		pg,
-		pg,
-		pg,
-		pg,
-		pg,
-		pg,
-		pg,
-		pg,
-		&http.Client{}, // TODO: think about proxying http requests
-		openaiClient,
 	)
 	engine.Run(ctx)
 

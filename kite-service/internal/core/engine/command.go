@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
-	"net/http"
 	"strconv"
 	"strings"
 	"time"
@@ -14,109 +13,52 @@ import (
 	"github.com/diamondburned/arikawa/v3/gateway"
 	"github.com/diamondburned/arikawa/v3/state"
 	"github.com/kitecloud/kite/kite-service/internal/model"
-	"github.com/kitecloud/kite/kite-service/internal/store"
-	"github.com/kitecloud/kite/kite-service/pkg/eval"
 	"github.com/kitecloud/kite/kite-service/pkg/flow"
-	"github.com/sashabaranov/go-openai"
 	"gopkg.in/guregu/null.v4"
 )
 
 type Command struct {
-	config               EngineConfig
-	cmd                  *model.Command
-	flow                 *flow.CompiledFlowNode
-	appStore             store.AppStore
-	logStore             store.LogStore
-	usageStore           store.UsageStore
-	messageStore         store.MessageStore
-	messageInstanceStore store.MessageInstanceStore
-	variableValueStore   store.VariableValueStore
-	httpClient           *http.Client
-	openaiClient         *openai.Client
+	cmd  *model.Command
+	flow *flow.CompiledFlowNode
+	env  Env
 }
 
 func NewCommand(
-	config EngineConfig,
 	cmd *model.Command,
-	appStore store.AppStore,
-	logStore store.LogStore,
-	usageStore store.UsageStore,
-	messageStore store.MessageStore,
-	messageInstanceStore store.MessageInstanceStore,
-	variableValueStore store.VariableValueStore,
-	httpClient *http.Client,
-	openaiClient *openai.Client,
+	env Env,
 ) (*Command, error) {
 	flow, err := flow.CompileCommand(cmd.FlowSource)
 	if err != nil {
+		slog.Error(
+			"Failed to compile command flow",
+			slog.String("app_id", cmd.AppID),
+			slog.String("command_id", cmd.ID),
+			slog.String("error", err.Error()),
+		)
 		return nil, fmt.Errorf("failed to compile command flow: %w", err)
 	}
 
 	return &Command{
-		config:               config,
-		cmd:                  cmd,
-		flow:                 flow,
-		appStore:             appStore,
-		logStore:             logStore,
-		usageStore:           usageStore,
-		messageStore:         messageStore,
-		messageInstanceStore: messageInstanceStore,
-		variableValueStore:   variableValueStore,
-		httpClient:           httpClient,
-		openaiClient:         openaiClient,
+		cmd:  cmd,
+		flow: flow,
+		env:  env,
 	}, nil
 }
 
 func (c *Command) HandleEvent(appID string, session *state.State, event gateway.Event) {
-	defer c.recoverPanic()
-
-	i, ok := event.(*gateway.InteractionCreateEvent)
-	if !ok {
-		return
+	links := entityLinks{
+		CommandID: null.NewString(c.cmd.ID, true),
 	}
 
-	var aiProvider flow.FlowAIProvider = &flow.MockAIProvider{}
-	if c.openaiClient != nil {
-		aiProvider = NewAIProvider(c.openaiClient)
-	}
-
-	providers := flow.FlowProviders{
-		Discord: NewDiscordProvider(appID, c.appStore, session),
-		Log: NewLogProvider(
-			appID,
-			c.logStore,
-			null.StringFrom(c.cmd.ID),
-			null.String{},
-			null.String{},
-		),
-		HTTP:            NewHTTPProvider(c.httpClient),
-		AI:              aiProvider,
-		MessageTemplate: NewMessageTemplateProvider(c.messageStore, c.messageInstanceStore),
-		Variable:        NewVariableProvider(c.variableValueStore),
-	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-	defer cancel()
-
-	fCtx := flow.NewContext(ctx,
-		&InteractionData{
-			interaction: &i.InteractionEvent,
-		},
-		providers,
-		flow.FlowContextLimits{
-			MaxStackDepth: c.config.MaxStackDepth,
-			MaxOperations: c.config.MaxOperations,
-			MaxCredits:    c.config.MaxCredits,
-		},
-		eval.NewContextFromInteraction(&i.InteractionEvent),
+	c.env.executeFlowEvent(
+		c.cmd.AppID,
+		c.flow,
+		session,
+		event,
+		links,
+		nil,
+		false,
 	)
-
-	if err := c.flow.Execute(fCtx); err != nil {
-		slog.With("error", err).Error("Failed to execute command flow")
-		c.createLogEntry(model.LogLevelError, fmt.Sprintf("Failed to execute command flow: %v", err))
-	}
-
-	c.createUsageRecord(fCtx.CreditsUsed())
 }
 
 func (a *App) DeployCommands(ctx context.Context) error {
@@ -165,7 +107,7 @@ func (a *App) DeployCommands(ctx context.Context) error {
 		return nil
 	}
 
-	app, err := a.appStore.App(ctx, a.id)
+	app, err := a.stores.AppStore.App(ctx, a.id)
 	if err != nil {
 		return fmt.Errorf("failed to get app: %w", err)
 	}
@@ -183,7 +125,7 @@ func (a *App) DeployCommands(ctx context.Context) error {
 		return nil
 	}
 
-	err = a.commandStore.UpdateCommandsLastDeployedAt(ctx, a.id, lastUpdatedAt)
+	err = a.stores.CommandStore.UpdateCommandsLastDeployedAt(ctx, a.id, lastUpdatedAt)
 	if err != nil {
 		return fmt.Errorf("failed to update last deployed at: %w", err)
 	}
@@ -284,47 +226,4 @@ func mergeCommands(commands []api.CreateCommandData) ([]api.CreateCommandData, e
 	}
 
 	return res, nil
-}
-
-func (c *Command) createLogEntry(level model.LogLevel, message string) {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
-	defer cancel()
-
-	// Create log entry which will be displayed in the dashboard
-	err := c.logStore.CreateLogEntry(ctx, model.LogEntry{
-		AppID:     c.cmd.AppID,
-		Level:     level,
-		Message:   message,
-		CommandID: null.NewString(c.cmd.ID, true),
-		CreatedAt: time.Now().UTC(),
-	})
-	if err != nil {
-		slog.With("error", err).With("app_id", c.cmd.AppID).Error("Failed to create log entry from engine command")
-	}
-}
-
-func (c *Command) createUsageRecord(creditsUsed int) {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
-	defer cancel()
-
-	err := c.usageStore.CreateUsageRecord(ctx, model.UsageRecord{
-		AppID:       c.cmd.AppID,
-		Type:        model.UsageRecordTypeCommandFlowExecution,
-		CommandID:   null.NewString(c.cmd.ID, true),
-		CreditsUsed: creditsUsed,
-		CreatedAt:   time.Now().UTC(),
-	})
-	if err != nil {
-		slog.With("error", err).With("app_id", c.cmd.AppID).Error("Failed to create log entry from engine command")
-	}
-}
-
-func (c *Command) recoverPanic() {
-	if r := recover(); r != nil {
-		go c.createLogEntry(model.LogLevelError, fmt.Sprintf("Recovered from panic: %v", r))
-		slog.With("error", r).
-			With("app_id", c.cmd.AppID).
-			With("command_id", c.cmd.ID).
-			Error("Recovered from panic in command handler")
-	}
 }

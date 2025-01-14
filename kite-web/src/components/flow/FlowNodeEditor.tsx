@@ -44,6 +44,17 @@ import { Switch } from "../ui/switch";
 import { Textarea } from "../ui/textarea";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
 import FlowPlaceholderExplorer from "./FlowPlaceholderExplorer";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "../ui/dialog";
+import { Separator } from "../ui/separator";
+import { Card } from "../ui/card";
+import { ModalComponentData } from "@/lib/types/flow.gen";
 
 interface Props {
   nodeId: string;
@@ -71,6 +82,7 @@ const intputs: Record<string, any> = {
   message_target: MessageTargetInput,
   response_target: ResponseTargetInput,
   message_ephemeral: MessageEphemeralInput,
+  modal_data: ModalDataInput,
   channel_data: ChannelDataInput,
   channel_target: ChannelTargetInput,
   role_data: RoleDataInput,
@@ -863,6 +875,185 @@ function MessageEphemeralInput({ data, updateData, errors }: InputProps) {
   );
 }
 
+function ModalDataInput({ data, updateData, errors }: InputProps) {
+  const addInput = useCallback(() => {
+    updateData({
+      modal_data: {
+        title: data.modal_data?.title,
+        components: [
+          ...(data.modal_data?.components || []),
+          { components: [{ style: 1 }] },
+        ],
+      },
+    });
+  }, [updateData, data]);
+
+  const clearInputs = useCallback(() => {
+    updateData({
+      modal_data: {
+        title: data.modal_data?.title,
+        components: [],
+      },
+    });
+  }, [updateData, data]);
+
+  const updateComponentField = useCallback(
+    (r: number, c: number, newData: Partial<ModalComponentData>) => {
+      const current = data.modal_data || {};
+      if (!current.components) return;
+
+      const row = current.components[r];
+      if (!row || !row.components) return;
+
+      const component = row.components[c];
+      if (!component) return;
+
+      Object.assign(component, newData);
+
+      updateData({
+        modal_data: current,
+      });
+    },
+    [updateData, data]
+  );
+
+  return (
+    <>
+      <Dialog>
+        <DialogTrigger asChild>
+          <Button className="w-full" variant="secondary">
+            Configure Modal
+          </Button>
+        </DialogTrigger>
+        <DialogContent className="overflow-y-scroll max-h-[90dvh] max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Configure Modal</DialogTitle>
+            <DialogDescription>
+              Configure your modal here! A modal must have a title and at least
+              one input component.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <BaseInput
+              type="text"
+              field="modal_data"
+              title="Title"
+              value={data.modal_data?.title || ""}
+              updateValue={(v) =>
+                updateData({
+                  modal_data: {
+                    title: v || undefined,
+                    components: data.modal_data?.components,
+                  },
+                })
+              }
+              errors={errors}
+              placeholders
+            />
+
+            <div className="space-y-3">
+              <div className="font-medium text-foreground">Inputs</div>
+              {data.modal_data?.components?.map((row, r) =>
+                row?.components?.map((component, c) => (
+                  <Card className="space-y-3 p-3 -mx-1" key={`${r}-${c}`}>
+                    <div className="flex space-x-3">
+                      <BaseInput
+                        type="select"
+                        field={`modal_data.components.${r}.components.${c}.type`}
+                        title="Type"
+                        value={component.style?.toString() || "1"}
+                        options={[
+                          {
+                            label: "Short",
+                            value: "1",
+                          },
+                          {
+                            label: "Paragraph",
+                            value: "2",
+                          },
+                        ]}
+                        updateValue={(v) =>
+                          updateComponentField(r, c, {
+                            style: parseInt(v) || 1,
+                          })
+                        }
+                        errors={errors}
+                      />
+                      <BaseCheckbox
+                        field={`modal_data.components.${r}.components.${c}.required`}
+                        title="Required"
+                        value={component?.required || false}
+                        updateValue={(v) =>
+                          updateComponentField(r, c, {
+                            required: v,
+                          })
+                        }
+                        errors={errors}
+                      />
+                    </div>
+                    <BaseInput
+                      type="text"
+                      field={`modal_data.components.${r}.components.${c}.custom_id`}
+                      title="Identifier"
+                      description="Used to identify the input in your flow."
+                      value={component?.custom_id || ""}
+                      updateValue={(v) =>
+                        updateComponentField(r, c, {
+                          custom_id: v || undefined,
+                        })
+                      }
+                      errors={errors}
+                      placeholders
+                    />
+                    <BaseInput
+                      type="text"
+                      field={`modal_data.components.${r}.components.${c}.label`}
+                      title="Label"
+                      value={component?.label || ""}
+                      updateValue={(v) =>
+                        updateComponentField(r, c, {
+                          label: v || undefined,
+                        })
+                      }
+                      errors={errors}
+                      placeholders
+                    />
+                    <BaseInput
+                      type="text"
+                      field={`modal_data.components.${r}.components.${c}.placeholder`}
+                      title="Placeholder"
+                      value={component?.placeholder || ""}
+                      updateValue={(v) =>
+                        updateComponentField(r, c, {
+                          placeholder: v || undefined,
+                        })
+                      }
+                      errors={errors}
+                      placeholders
+                    />
+                  </Card>
+                ))
+              )}
+            </div>
+
+            <div className="flex space-x-3">
+              <Button
+                onClick={addInput}
+                disabled={(data.modal_data?.components?.length || 0) >= 5}
+              >
+                Add Input
+              </Button>
+              <Button variant="outline" onClick={clearInputs}>
+                Clear Inputs
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+}
+
 function ChannelDataInput({ data, updateData, errors }: InputProps) {
   return (
     <BaseInput
@@ -1372,11 +1563,11 @@ function BaseInput({
 
   return (
     <div className="flex-auto">
-      <div className="font-medium text-foreground mb-2">{title}</div>
+      <div className="font-medium text-foreground">{title}</div>
       {description ? (
-        <div className="text-muted-foreground text-sm mb-2">{description}</div>
+        <div className="text-muted-foreground text-sm mt-1">{description}</div>
       ) : null}
-      <div className="relative">
+      <div className="relative mt-2">
         {type === "textarea" ? (
           <Textarea
             value={value}

@@ -387,3 +387,17 @@ func (n *CompiledFlowNode) FindParentWithID(id string) *CompiledFlowNode {
 
 	return nil
 }
+
+func (n *CompiledFlowNode) FindChildWithID(nodeID string) *CompiledFlowNode {
+	if n.ID == nodeID {
+		return n
+	}
+
+	for _, child := range n.Children {
+		if node := child.FindChildWithID(nodeID); node != nil {
+			return node
+		}
+	}
+
+	return nil
+}
