@@ -19,10 +19,14 @@ interaction: # For command and button interactions
   command: # For command interactions
     id: string
     args: # Arguments passed to the command
-      arg1: string
-      arg2: string
-      arg3: string
+      arg1: any
+      arg2: any
+      arg3: any
       ...
+
+  components: # For modal interactions, the values of the components
+    component1: string
+    component2: string
 
   user:
     id: string
