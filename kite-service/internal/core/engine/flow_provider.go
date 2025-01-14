@@ -423,6 +423,11 @@ func NewResumePointProvider(
 func (p *ResumePointProvider) CreateResumePoint(ctx context.Context, s flow.FlowResumePoint) (flow.FlowResumePoint, error) {
 	s.ID = util.UniqueID()
 
+	var expiresAt null.Time
+	if s.Type == flow.FlowResumePointTypeModal {
+		expiresAt = null.NewTime(time.Now().UTC().Add(time.Hour*1), true)
+	}
+
 	_, err := p.resumePointStore.CreateResumePoint(ctx, &model.ResumePoint{
 		ID:                s.ID,
 		Type:              model.ResumePointType(s.Type),
@@ -435,7 +440,7 @@ func (p *ResumePointProvider) CreateResumePoint(ctx context.Context, s flow.Flow
 		FlowNodeID:        s.NodeID,
 		FlowState:         s.State,
 		CreatedAt:         time.Now().UTC(),
-		// TODO: expiry based on type?
+		ExpiresAt:         expiresAt,
 	})
 
 	return s, err
