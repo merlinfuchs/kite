@@ -1,6 +1,7 @@
 package message
 
 import (
+	"fmt"
 	"time"
 )
 
@@ -44,6 +45,10 @@ func (m *MessageData) EachString(replace func(s *string) error) error {
 			if err := replace(&embed.Author.IconURL); err != nil {
 				return err
 			}
+
+			if embed.Author.Name == "" {
+				embed.Author = nil
+			}
 		}
 
 		if embed.Footer != nil {
@@ -54,17 +59,30 @@ func (m *MessageData) EachString(replace func(s *string) error) error {
 			if err := replace(&embed.Footer.IconURL); err != nil {
 				return err
 			}
+
+			if embed.Footer.Text == "" {
+				embed.Footer = nil
+			}
 		}
 
 		if embed.Image != nil {
 			if err := replace(&embed.Image.URL); err != nil {
 				return err
 			}
+
+			fmt.Println()
+			if embed.Image.URL == "" {
+				embed.Image = nil
+			}
 		}
 
 		if embed.Thumbnail != nil {
 			if err := replace(&embed.Thumbnail.URL); err != nil {
 				return err
+			}
+
+			if embed.Thumbnail.URL == "" {
+				embed.Thumbnail = nil
 			}
 		}
 

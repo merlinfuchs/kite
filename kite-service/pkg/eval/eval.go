@@ -40,10 +40,10 @@ func Eval(ctx context.Context, expression string, c Context) (thing.Any, error) 
 	return thing.New(result), nil
 }
 
-func EvalTemplate(ctx context.Context, template string, c Context) (any, error) {
+func EvalTemplate(ctx context.Context, template string, c Context) (thing.Any, error) {
 	template = strings.TrimSpace(template)
 	if template == "" {
-		return "", nil
+		return thing.Null, nil
 	}
 
 	// Special case when template only contains one placeholder
@@ -55,7 +55,7 @@ func EvalTemplate(ctx context.Context, template string, c Context) (any, error) 
 		template = template[len(templateStartTag) : len(template)-len(templateEndTag)]
 		res, err := Eval(ctx, template, c)
 		if err != nil {
-			return nil, err
+			return thing.Null, err
 		}
 
 		return res, nil
@@ -71,22 +71,30 @@ func EvalTemplate(ctx context.Context, template string, c Context) (any, error) 
 				return 0, err
 			}
 
+			if res.IsNil() {
+				return w.Write([]byte(""))
+			}
+
 			// This will call the String() method if it exists
 			val := fmt.Sprintf("%v", res)
 			return w.Write([]byte(val))
 		},
 	)
 	if err != nil {
-		return "", err
+		return thing.Null, err
 	}
 
-	return res, nil
+	return thing.New(res), nil
 }
 
 func EvalTemplateToString(ctx context.Context, template string, c Context) (string, error) {
 	res, err := EvalTemplate(ctx, template, c)
 	if err != nil {
 		return "", err
+	}
+
+	if res.IsNil() {
+		return "", nil
 	}
 
 	return fmt.Sprintf("%v", res), nil
