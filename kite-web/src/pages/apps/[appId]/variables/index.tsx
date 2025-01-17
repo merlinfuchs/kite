@@ -1,4 +1,5 @@
 import AppLayout from "@/components/app/AppLayout";
+import AppLayoutV2 from "@/components/app/AppLayoutV2";
 import VariableList from "@/components/app/VariableList";
 import { Separator } from "@/components/ui/separator";
 import env from "@/lib/env/client";
@@ -10,7 +11,7 @@ const breadcrumbs = [
 
 export default function AppVariablesPage() {
   return (
-    <AppLayout title="Stored Variables" breadcrumbs={breadcrumbs}>
+    <AppLayoutV2 title="Stored Variables" breadcrumbs={breadcrumbs}>
       <div>
         <h1 className="text-lg font-semibold md:text-2xl mb-1">
           Stored Variables
@@ -30,6 +31,6 @@ export default function AppVariablesPage() {
       </div>
       <Separator className="my-8" />
       <VariableList />
-    </AppLayout>
+    </AppLayoutV2>
   );
 }

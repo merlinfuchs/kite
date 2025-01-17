@@ -2,6 +2,7 @@ import { BigChartCard } from "@/components/app/BigChartCard";
 import { ChartCards } from "@/components/app/ChartCards";
 import AppLayout from "@/components/app/AppLayout";
 import { Separator } from "@/components/ui/separator";
+import AppLayoutV2 from "@/components/app/AppLayoutV2";
 
 const breadcrumbs = [
   {
@@ -11,7 +12,7 @@ const breadcrumbs = [
 
 export default function AppAnalyticsPage() {
   return (
-    <AppLayout title="App Analytics" breadcrumbs={breadcrumbs}>
+    <AppLayoutV2 title="App Analytics" breadcrumbs={breadcrumbs}>
       <div>
         <h1 className="text-lg font-semibold md:text-2xl mb-1">Analytics</h1>
         <p className="text-muted-foreground text-sm">
@@ -24,6 +25,6 @@ export default function AppAnalyticsPage() {
         <ChartCards />
         <BigChartCard />
       </div>
-    </AppLayout>
+    </AppLayoutV2>
   );
 }

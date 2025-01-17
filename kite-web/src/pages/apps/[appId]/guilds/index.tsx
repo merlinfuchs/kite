@@ -1,4 +1,5 @@
 import AppLayout from "@/components/app/AppLayout";
+import AppLayoutV2 from "@/components/app/AppLayoutV2";
 import AppStateGuildList from "@/components/app/AppStateGuildList";
 import { Separator } from "@/components/ui/separator";
 
@@ -10,7 +11,7 @@ const breadcrumbs = [
 
 export default function AppGuildsPage() {
   return (
-    <AppLayout title="App Analytics" breadcrumbs={breadcrumbs}>
+    <AppLayoutV2 title="App Analytics" breadcrumbs={breadcrumbs}>
       <div>
         <h1 className="text-lg font-semibold md:text-2xl mb-1">
           Server Explorer
@@ -23,6 +24,6 @@ export default function AppGuildsPage() {
       <div className="space-y-5">
         <AppStateGuildList />
       </div>
-    </AppLayout>
+    </AppLayoutV2>
   );
 }

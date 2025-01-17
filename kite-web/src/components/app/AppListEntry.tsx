@@ -6,7 +6,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { PackageIcon } from "lucide-react";
+import { BotIcon, PackageIcon } from "lucide-react";
 import Link from "next/link";
 
 export default function AppListEntry({ app }: { app: App }) {
@@ -24,7 +24,7 @@ export default function AppListEntry({ app }: { app: App }) {
       </Button>
       <CardHeader>
         <CardTitle className="text-base flex items-center space-x-2">
-          <PackageIcon className="h-5 w-5 text-muted-foreground" />
+          <BotIcon className="h-5 w-5 text-muted-foreground" />
           <div>{app.name}</div>
         </CardTitle>
         <CardDescription className="text-sm">{app.description}</CardDescription>

@@ -1,6 +1,7 @@
 import { AppChartCards } from "@/components/app/AppChartCards";
 import AppInfoCard from "@/components/app/AppInfoCard";
 import AppLayout from "@/components/app/AppLayout";
+import AppLayoutV2 from "@/components/app/AppLayoutV2";
 import AppResourceCard from "@/components/app/AppResourceCard";
 import UsageCreditsByDayChart from "@/components/app/UsageCreditsByDayChart";
 import { useApp, useAppEntities } from "@/lib/hooks/api";
@@ -19,7 +20,7 @@ export default function AppPage() {
   }, [entities]);
 
   return (
-    <AppLayout>
+    <AppLayoutV2>
       <main className="grid flex-1 items-start gap-4 sm:py-0 md:gap-8 lg:grid-cols-3">
         <div className="grid auto-rows-max items-start gap-4 md:gap-8 lg:col-span-2 order-2 lg:order-1">
           <div className="grid gap-4 grid-cols-1 lg:grid-cols-3">
@@ -58,6 +59,6 @@ export default function AppPage() {
           <AppInfoCard />
         </div>
       </main>
-    </AppLayout>
+    </AppLayoutV2>
   );
 }

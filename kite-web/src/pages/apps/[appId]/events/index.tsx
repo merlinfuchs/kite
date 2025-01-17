@@ -1,4 +1,5 @@
 import AppLayout from "@/components/app/AppLayout";
+import AppLayoutV2 from "@/components/app/AppLayoutV2";
 import EventListenerList from "@/components/app/EventListerList";
 import { Separator } from "@/components/ui/separator";
 import env from "@/lib/env/client";
@@ -11,7 +12,7 @@ const breadcrumbs = [
 
 export default function AppEventsPage() {
   return (
-    <AppLayout title="Event Listeners" breadcrumbs={breadcrumbs}>
+    <AppLayoutV2 title="Event Listeners" breadcrumbs={breadcrumbs}>
       <div>
         <h1 className="text-lg font-semibold md:text-2xl mb-1">
           Event Listeners
@@ -29,6 +30,6 @@ export default function AppEventsPage() {
       </div>
       <Separator className="my-8" />
       <EventListenerList />
-    </AppLayout>
+    </AppLayoutV2>
   );
 }

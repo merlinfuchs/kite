@@ -6,6 +6,7 @@ import AppSettingsCredentials from "@/components/app/AppSettingsCredentials";
 import AppSettingsDelete from "@/components/app/AppSettingsDelete";
 import AppSettingsPresence from "@/components/app/AppSettingsPresence";
 import AppSettingsControls from "@/components/app/AppSettingsControls";
+import AppLayoutV2 from "@/components/app/AppLayoutV2";
 
 const breadcrumbs = [
   {
@@ -15,7 +16,7 @@ const breadcrumbs = [
 
 export default function AppSettingsPage() {
   return (
-    <AppLayout title="App Settings" breadcrumbs={breadcrumbs}>
+    <AppLayoutV2 title="App Settings" breadcrumbs={breadcrumbs}>
       <div className="flex flex-col md:flex-row justify-between items-end space-y-5 md:space-y-0">
         <div>
           <h1 className="text-lg font-semibold md:text-2xl mb-1">
@@ -36,6 +37,6 @@ export default function AppSettingsPage() {
         <AppSettingsCollaborators />
         <AppSettingsDelete />
       </div>
-    </AppLayout>
+    </AppLayoutV2>
   );
 }
