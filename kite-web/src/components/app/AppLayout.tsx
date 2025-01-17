@@ -55,12 +55,13 @@ export default function AppLayout({ children, ...props }: Props) {
     [app, props.title]
   );
 
+  // TODO: remember open state of sidebar on desktop
   return (
     <BaseLayout title={props.title}>
       <SidebarProvider className="bg-muted/30">
         <AppSidebar />
         <SidebarInset className="bg-transparent min-h-[100dvh] max-w-[1500px] mx-auto">
-          <header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12">
+          <header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear">
             <div className="flex items-center gap-2 justify-between px-4 w-full">
               <div className="flex items-center gap-2">
                 <SidebarTrigger className="-ml-1" />
