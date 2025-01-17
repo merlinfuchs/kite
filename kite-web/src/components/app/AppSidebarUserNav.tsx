@@ -43,10 +43,6 @@ export default function AppSidebarUserNav() {
               className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
             >
               <Avatar className="h-8 w-8 rounded-lg">
-                <AvatarImage
-                  src={user?.discord_avatar || ""}
-                  alt={user?.display_name}
-                />
                 <AvatarFallback className="rounded-lg">
                   {appreviateDisplayName(user?.display_name || "")}
                 </AvatarFallback>
@@ -69,10 +65,6 @@ export default function AppSidebarUserNav() {
             <DropdownMenuLabel className="p-0 font-normal">
               <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
                 <Avatar className="h-8 w-8 rounded-lg">
-                  <AvatarImage
-                    src={user?.discord_avatar || ""}
-                    alt={user?.display_name}
-                  />
                   <AvatarFallback className="rounded-lg">
                     {appreviateDisplayName(user?.display_name || "")}
                   </AvatarFallback>
