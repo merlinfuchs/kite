@@ -1,6 +1,4 @@
 import AppLayout from "@/components/app/AppLayout";
-import AppLayoutV2 from "@/components/app/AppLayoutV2";
-import VariableList from "@/components/app/VariableList";
 import VariableSettingsCore from "@/components/app/VariableSettingsCore";
 import { Separator } from "@/components/ui/separator";
 import { useVariable } from "@/lib/hooks/api";
@@ -39,7 +37,7 @@ export default function AppVariablesPage() {
   );
 
   return (
-    <AppLayoutV2 title={variable?.name || "unknown"} breadcrumbs={breadcrumbs}>
+    <AppLayout title={variable?.name || "unknown"} breadcrumbs={breadcrumbs}>
       <div>
         <h1 className="text-lg font-semibold md:text-2xl mb-1">
           <span className="text-muted-foreground">Variable:</span>{" "}
@@ -51,6 +49,6 @@ export default function AppVariablesPage() {
       </div>
       <Separator className="my-8" />
       <VariableSettingsCore />
-    </AppLayoutV2>
+    </AppLayout>
   );
 }

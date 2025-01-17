@@ -1,5 +1,4 @@
 import AppLayout from "@/components/app/AppLayout";
-import AppLayoutV2 from "@/components/app/AppLayoutV2";
 import AppStateEmojiList from "@/components/app/AppStateEmojiList";
 import { Separator } from "@/components/ui/separator";
 import { useApp } from "@/lib/hooks/api";
@@ -17,7 +16,7 @@ export default function AppGuildsPage() {
   const appEmojisUrl = `https://discord.com/developers/applications/${app?.discord_id}/emojis`;
 
   return (
-    <AppLayoutV2 title="App Analytics" breadcrumbs={breadcrumbs}>
+    <AppLayout title="App Analytics" breadcrumbs={breadcrumbs}>
       <div>
         <h1 className="text-lg font-semibold md:text-2xl mb-1">
           Emoji Explorer
@@ -38,6 +37,6 @@ export default function AppGuildsPage() {
       <div className="space-y-5">
         <AppStateEmojiList />
       </div>
-    </AppLayoutV2>
+    </AppLayout>
   );
 }

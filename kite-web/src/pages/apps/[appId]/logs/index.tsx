@@ -1,7 +1,6 @@
 import AppLayout from "@/components/app/AppLayout";
-import { Separator } from "@/components/ui/separator";
 import LogEntryList from "@/components/app/LogEntryList";
-import AppLayoutV2 from "@/components/app/AppLayoutV2";
+import { Separator } from "@/components/ui/separator";
 
 const breadcrumbs = [
   {
@@ -11,7 +10,7 @@ const breadcrumbs = [
 
 export default function AppLogsPage() {
   return (
-    <AppLayoutV2 title="Logs" breadcrumbs={breadcrumbs}>
+    <AppLayout title="Logs" breadcrumbs={breadcrumbs}>
       <div>
         <h1 className="text-lg font-semibold md:text-2xl mb-1">Logs</h1>
         <p className="text-muted-foreground text-sm">
@@ -23,6 +22,6 @@ export default function AppLogsPage() {
       <div className="space-y-5">
         <LogEntryList />
       </div>
-    </AppLayoutV2>
+    </AppLayout>
   );
 }

@@ -1,5 +1,4 @@
 import AppLayout from "@/components/app/AppLayout";
-import AppLayoutV2 from "@/components/app/AppLayoutV2";
 import MessageList from "@/components/app/MessageList";
 import { Separator } from "@/components/ui/separator";
 import env from "@/lib/env/client";
@@ -12,7 +11,7 @@ const breadcrumbs = [
 
 export default function AppMessagesPage() {
   return (
-    <AppLayoutV2 title="Message Templates" breadcrumbs={breadcrumbs}>
+    <AppLayout title="Message Templates" breadcrumbs={breadcrumbs}>
       <div>
         <h1 className="text-lg font-semibold md:text-2xl mb-1">
           Message Templates
@@ -31,6 +30,6 @@ export default function AppMessagesPage() {
       </div>
       <Separator className="my-8" />
       <MessageList />
-    </AppLayoutV2>
+    </AppLayout>
   );
 }

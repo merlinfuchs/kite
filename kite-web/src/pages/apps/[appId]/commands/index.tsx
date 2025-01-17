@@ -1,8 +1,7 @@
-import CommandList from "@/components/app/CommandList";
 import AppLayout from "@/components/app/AppLayout";
+import CommandList from "@/components/app/CommandList";
 import { Separator } from "@/components/ui/separator";
 import env from "@/lib/env/client";
-import AppLayoutV2 from "@/components/app/AppLayoutV2";
 
 const breadcrumbs = [
   {
@@ -12,7 +11,7 @@ const breadcrumbs = [
 
 export default function AppCommandsPage() {
   return (
-    <AppLayoutV2 title="Commands" breadcrumbs={breadcrumbs}>
+    <AppLayout title="Commands" breadcrumbs={breadcrumbs}>
       <div>
         <h1 className="text-lg font-semibold md:text-2xl mb-1">Commands</h1>
         <p className="text-muted-foreground text-sm">
@@ -28,6 +27,6 @@ export default function AppCommandsPage() {
       </div>
       <Separator className="my-8" />
       <CommandList />
-    </AppLayoutV2>
+    </AppLayout>
   );
 }
