@@ -53,8 +53,6 @@ export default function UsageCreditsByTypeChart() {
     [creditsByType]
   );
 
-  console.log(chartConfig);
-
   return (
     <Card>
       <CardHeader>

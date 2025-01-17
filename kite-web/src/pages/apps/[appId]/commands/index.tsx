@@ -1,5 +1,5 @@
-import CommandList from "@/components/app/CommandList";
 import AppLayout from "@/components/app/AppLayout";
+import CommandList from "@/components/app/CommandList";
 import { Separator } from "@/components/ui/separator";
 import env from "@/lib/env/client";
 

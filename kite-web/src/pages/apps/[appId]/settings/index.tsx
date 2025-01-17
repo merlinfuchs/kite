@@ -1,11 +1,11 @@
 import AppLayout from "@/components/app/AppLayout";
-import { Separator } from "@/components/ui/separator";
 import AppSettingsAppearance from "@/components/app/AppSettingsAppearance";
 import AppSettingsCollaborators from "@/components/app/AppSettingsCollaborators";
+import AppSettingsControls from "@/components/app/AppSettingsControls";
 import AppSettingsCredentials from "@/components/app/AppSettingsCredentials";
 import AppSettingsDelete from "@/components/app/AppSettingsDelete";
 import AppSettingsPresence from "@/components/app/AppSettingsPresence";
-import AppSettingsControls from "@/components/app/AppSettingsControls";
+import { Separator } from "@/components/ui/separator";
 
 const breadcrumbs = [
   {

@@ -29,7 +29,6 @@ export default function MessageAttachment({
   });
 
   const remove = useCallback(() => {
-    console.log(attachmentIndex);
     deleteAttachment(attachmentIndex);
   }, [deleteAttachment, attachmentIndex]);
 

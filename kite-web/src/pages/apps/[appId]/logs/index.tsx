@@ -1,6 +1,6 @@
 import AppLayout from "@/components/app/AppLayout";
-import { Separator } from "@/components/ui/separator";
 import LogEntryList from "@/components/app/LogEntryList";
+import { Separator } from "@/components/ui/separator";
 
 const breadcrumbs = [
   {

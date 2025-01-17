@@ -1,6 +1,6 @@
+import AppLayout from "@/components/app/AppLayout";
 import { BigChartCard } from "@/components/app/BigChartCard";
 import { ChartCards } from "@/components/app/ChartCards";
-import AppLayout from "@/components/app/AppLayout";
 import { Separator } from "@/components/ui/separator";
 
 const breadcrumbs = [

@@ -1,5 +1,4 @@
 import AppLayout from "@/components/app/AppLayout";
-import VariableList from "@/components/app/VariableList";
 import VariableSettingsCore from "@/components/app/VariableSettingsCore";
 import { Separator } from "@/components/ui/separator";
 import { useVariable } from "@/lib/hooks/api";

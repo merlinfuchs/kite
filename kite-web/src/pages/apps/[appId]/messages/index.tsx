@@ -29,10 +29,6 @@ export default function AppMessagesPage() {
         </p>
       </div>
       <Separator className="my-8" />
-      {/* <AppEmptyPlaceholder
-        title="Under construction"
-        description="This feature is not yet available. Please check back later."
-      /> */}
       <MessageList />
     </AppLayout>
   );
