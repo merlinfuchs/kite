@@ -126,7 +126,7 @@ export default function AppSidebarMainNav() {
               </SidebarMenuItem>
             </Collapsible>
           ) : (
-            <SidebarMenuItem>
+            <SidebarMenuItem key={item.title}>
               <SidebarMenuButton
                 tooltip={item.title}
                 asChild
