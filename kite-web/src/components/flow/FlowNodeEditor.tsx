@@ -681,7 +681,7 @@ function MemberBanDeleteMessageDurationInput({
   return (
     <BaseInput
       type="select"
-      field="member_ban_delete_message_duration"
+      field="member_ban_delete_message_duration_seconds"
       title="Delete Message Duration"
       options={[
         { value: "60", label: "1 Minute" },
