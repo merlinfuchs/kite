@@ -133,6 +133,10 @@ export interface CommandCreateRequest {
   enabled: boolean;
 }
 export type CommandCreateResponse = Command;
+export interface CommandsImportRequest {
+  commands: CommandCreateRequest[];
+}
+export type CommandsImportResponse = (Command | undefined)[];
 export interface CommandUpdateRequest {
   flow_source: FlowData;
   enabled: boolean;
@@ -167,6 +171,10 @@ export interface EventListenerCreateRequest {
   enabled: boolean;
 }
 export type EventListenerCreateResponse = EventListener;
+export interface EventListenersImportRequest {
+  event_listeners: EventListenerCreateRequest[];
+}
+export type EventListenersImportResponse = (EventListener | undefined)[];
 export interface EventListenerUpdateRequest {
   flow_source: FlowData;
   enabled: boolean;
@@ -220,6 +228,10 @@ export interface MessageCreateRequest {
   flow_sources: { [key: string]: FlowData};
 }
 export type MessageCreateResponse = Message;
+export interface MessagesImportRequest {
+  messages: MessageCreateRequest[];
+}
+export type MessagesImportResponse = (Message | undefined)[];
 export interface MessageUpdateRequest {
   name: string;
   description: null | string;
@@ -302,6 +314,10 @@ export interface VariableCreateRequest {
   scoped: boolean;
 }
 export type VariableCreateResponse = Variable;
+export interface VariablesImportRequest {
+  variables: VariableCreateRequest[];
+}
+export type VariablesImportResponse = (Variable | undefined)[];
 export interface VariableUpdateRequest {
   name: string;
   scoped: boolean;

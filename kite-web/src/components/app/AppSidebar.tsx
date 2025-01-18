@@ -1,18 +1,4 @@
 import {
-  AudioWaveform,
-  Bot,
-  Command,
-  GalleryVerticalEnd,
-  LibraryBigIcon,
-  MailPlusIcon,
-  MessageSquareWarningIcon,
-  SatelliteDishIcon,
-  Settings2Icon,
-  SlashSquareIcon,
-  TelescopeIcon,
-  VariableIcon,
-} from "lucide-react";
-import {
   Sidebar,
   SidebarContent,
   SidebarFooter,
@@ -20,6 +6,7 @@ import {
   SidebarRail,
 } from "@/components/ui/sidebar";
 import AppSidebarAppSwitcher from "./AppSidebarAppSwitcher";
+import AppSidebarExternalNav from "./AppSidebarExternalNav";
 import AppSidebarMainNav from "./AppSidebarMainNav";
 import AppSidebarStudioNav from "./AppSidebarStudioNav";
 import AppSidebarUserNav from "./AppSidebarUserNav";
@@ -33,6 +20,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       <SidebarContent>
         <AppSidebarMainNav />
         <AppSidebarStudioNav />
+        <AppSidebarExternalNav />
       </SidebarContent>
       <SidebarFooter>
         <AppSidebarUserNav />

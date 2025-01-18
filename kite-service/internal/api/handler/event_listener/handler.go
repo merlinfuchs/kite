@@ -80,6 +80,51 @@ func (h *EventListenerHandler) HandleEventListenerCreate(c *handler.Context, req
 	return wire.EventListenerToWire(eventListener), nil
 }
 
+func (h *EventListenerHandler) HandleEventListenersImport(c *handler.Context, req wire.EventListenersImportRequest) (*wire.EventListenersImportResponse, error) {
+	if h.maxEventListenersPerApp != 0 {
+		eventListenerCount, err := h.eventListenerStore.CountEventListenersByApp(c.Context(), c.App.ID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to count event listeners: %w", err)
+		}
+
+		newEventListenerCount := eventListenerCount + len(req.EventListeners)
+
+		if newEventListenerCount > h.maxEventListenersPerApp {
+			return nil, handler.ErrBadRequest("resource_limit", fmt.Sprintf("maximum number of event listeners (%d) reached", h.maxEventListenersPerApp))
+		}
+	}
+
+	res := make([]*wire.EventListener, len(req.EventListeners))
+
+	for i, listener := range req.EventListeners {
+		eventFlow, err := flow.CompileEventListener(listener.FlowSource)
+		if err != nil {
+			return nil, fmt.Errorf("failed to compile event listener: %w", err)
+		}
+
+		eventListener, err := h.eventListenerStore.CreateEventListener(c.Context(), &model.EventListener{
+			ID:            util.UniqueID(),
+			AppID:         c.App.ID,
+			CreatorUserID: c.Session.UserID,
+			Source:        model.EventSource(listener.Source),
+			Type:          model.EventListenerType(eventFlow.EventListenerType()),
+			Description:   eventFlow.EventDescription(),
+			// TODO: Filter:        eventFlow.EventListenerFilter(),
+			FlowSource: listener.FlowSource,
+			Enabled:    listener.Enabled,
+			CreatedAt:  time.Now().UTC(),
+			UpdatedAt:  time.Now().UTC(),
+		})
+		if err != nil {
+			return nil, fmt.Errorf("failed to create event listener: %w", err)
+		}
+
+		res[i] = wire.EventListenerToWire(eventListener)
+	}
+
+	return &res, nil
+}
+
 func (h *EventListenerHandler) HandleEventListenerUpdate(c *handler.Context, req wire.EventListenerUpdateRequest) (*wire.EventListenerUpdateResponse, error) {
 	eventFlow, err := flow.CompileEventListener(req.FlowSource)
 	if err != nil {

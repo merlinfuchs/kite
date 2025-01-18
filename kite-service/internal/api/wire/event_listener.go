@@ -45,6 +45,18 @@ func (req EventListenerCreateRequest) Validate() error {
 
 type EventListenerCreateResponse = EventListener
 
+type EventListenersImportRequest struct {
+	EventListeners []EventListenerCreateRequest `json:"event_listeners"`
+}
+
+func (req EventListenersImportRequest) Validate() error {
+	return validation.ValidateStruct(&req,
+		validation.Field(&req.EventListeners, validation.Required),
+	)
+}
+
+type EventListenersImportResponse = []*EventListener
+
 type EventListenerUpdateRequest struct {
 	FlowSource flow.FlowData `json:"flow_source"`
 	Enabled    bool          `json:"enabled"`

@@ -39,6 +39,18 @@ func (req VariableCreateRequest) Validate() error {
 
 type VariableCreateResponse = Variable
 
+type VariablesImportRequest struct {
+	Variables []VariableCreateRequest `json:"variables"`
+}
+
+func (req VariablesImportRequest) Validate() error {
+	return validation.ValidateStruct(&req,
+		validation.Field(&req.Variables, validation.Required),
+	)
+}
+
+type VariablesImportResponse = []*Variable
+
 type VariableUpdateRequest struct {
 	Name   string `json:"name"`
 	Scoped bool   `json:"scoped"`

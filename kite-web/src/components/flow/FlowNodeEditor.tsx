@@ -925,7 +925,7 @@ function ModalDataInput({ data, updateData, errors }: InputProps) {
             Configure Modal
           </Button>
         </DialogTrigger>
-        <DialogContent className="overflow-y-scroll max-h-[90dvh] max-w-2xl">
+        <DialogContent className="overflow-y-auto max-h-[90dvh] max-w-2xl">
           <DialogHeader>
             <DialogTitle>Configure Modal</DialogTitle>
             <DialogDescription>

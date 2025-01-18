@@ -40,6 +40,18 @@ func (req CommandCreateRequest) Validate() error {
 
 type CommandCreateResponse = Command
 
+type CommandsImportRequest struct {
+	Commands []CommandCreateRequest `json:"commands"`
+}
+
+func (req CommandsImportRequest) Validate() error {
+	return validation.ValidateStruct(&req,
+		validation.Field(&req.Commands, validation.Required),
+	)
+}
+
+type CommandsImportResponse = []*Command
+
 type CommandUpdateRequest struct {
 	FlowSource flow.FlowData `json:"flow_source"`
 	Enabled    bool          `json:"enabled"`
