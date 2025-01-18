@@ -14,11 +14,15 @@ import {
   CommandCreateRequest,
   CommandCreateResponse,
   CommandDeleteResponse,
+  CommandsImportRequest,
+  CommandsImportResponse,
   CommandUpdateRequest,
   CommandUpdateResponse,
   EventListenerCreateRequest,
   EventListenerCreateResponse,
   EventListenerDeleteResponse,
+  EventListenersImportRequest,
+  EventListenersImportResponse,
   EventListenerUpdateRequest,
   EventListenerUpdateResponse,
   MessageCreateRequest,
@@ -29,12 +33,16 @@ import {
   MessageInstanceDeleteResponse,
   MessageInstanceUpdateRequest,
   MessageInstanceUpdateResponse,
+  MessagesImportRequest,
+  MessagesImportResponse,
   MessageUpdateRequest,
   MessageUpdateResponse,
   StateGuildLeaveResponse,
   VariableCreateRequest,
   VariableCreateResponse,
   VariableDeleteResponse,
+  VariablesImportRequest,
+  VariablesImportResponse,
   VariableUpdateRequest,
   VariableUpdateResponse,
 } from "../types/wire.gen";
@@ -172,6 +180,26 @@ export function useCommandCreateMutation(appId: string) {
   });
 }
 
+export function useCommandsImportMutation(appId: string) {
+  const client = useQueryClient();
+
+  return useMutation({
+    mutationFn: (req: CommandsImportRequest) =>
+      apiRequest<CommandsImportResponse>(`/v1/apps/${appId}/commands/import`, {
+        method: "POST",
+        body: JSON.stringify(req),
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }),
+    onSuccess: () => {
+      client.invalidateQueries({
+        queryKey: ["apps", appId, "commands"],
+      });
+    },
+  });
+}
+
 export function useCommandUpdateMutation(appId: string, cmdId: string) {
   const client = useQueryClient();
 
@@ -215,6 +243,29 @@ export function useEventListenerCreateMutation(appId: string) {
     mutationFn: (req: EventListenerCreateRequest) =>
       apiRequest<EventListenerCreateResponse>(
         `/v1/apps/${appId}/event-listeners`,
+        {
+          method: "POST",
+          body: JSON.stringify(req),
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      ),
+    onSuccess: () => {
+      client.invalidateQueries({
+        queryKey: ["apps", appId, "event-listeners"],
+      });
+    },
+  });
+}
+
+export function useEventListenersImportMutation(appId: string) {
+  const client = useQueryClient();
+
+  return useMutation({
+    mutationFn: (req: EventListenersImportRequest) =>
+      apiRequest<EventListenersImportResponse>(
+        `/v1/apps/${appId}/event-listeners/import`,
         {
           method: "POST",
           body: JSON.stringify(req),
@@ -293,6 +344,29 @@ export function useVariableCreateMutation(appId: string) {
   });
 }
 
+export function useVariablesImportMutation(appId: string) {
+  const client = useQueryClient();
+
+  return useMutation({
+    mutationFn: (req: VariablesImportRequest) =>
+      apiRequest<VariablesImportResponse>(
+        `/v1/apps/${appId}/variables/import`,
+        {
+          method: "POST",
+          body: JSON.stringify(req),
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      ),
+    onSuccess: () => {
+      client.invalidateQueries({
+        queryKey: ["apps", appId, "variables"],
+      });
+    },
+  });
+}
+
 export function useVariableUpdateMutation(appId: string, variableId: string) {
   const client = useQueryClient();
 
@@ -341,6 +415,26 @@ export function useMessageCreateMutation(appId: string) {
   return useMutation({
     mutationFn: (req: MessageCreateRequest) =>
       apiRequest<MessageCreateResponse>(`/v1/apps/${appId}/messages`, {
+        method: "POST",
+        body: JSON.stringify(req),
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }),
+    onSuccess: () => {
+      client.invalidateQueries({
+        queryKey: ["apps", appId, "messages"],
+      });
+    },
+  });
+}
+
+export function useMessagesImportMutation(appId: string) {
+  const client = useQueryClient();
+
+  return useMutation({
+    mutationFn: (req: MessagesImportRequest) =>
+      apiRequest<MessagesImportResponse>(`/v1/apps/${appId}/messages/import`, {
         method: "POST",
         body: JSON.stringify(req),
         headers: {

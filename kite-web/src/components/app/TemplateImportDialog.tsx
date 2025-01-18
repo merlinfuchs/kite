@@ -1,10 +1,11 @@
-import { Template } from "@/lib/flow/templates";
-import { SlashSquareIcon } from "lucide-react";
-import { ReactNode, useState } from "react";
+import { prepareTemplateFlow, Template } from "@/lib/flow/templates";
+import { SatelliteDishIcon, SlashSquareIcon } from "lucide-react";
+import { ReactNode, useCallback, useState } from "react";
 import { Button } from "../ui/button";
 import { Card, CardDescription, CardTitle } from "../ui/card";
 import {
   Dialog,
+  DialogClose,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -13,6 +14,12 @@ import {
   DialogTrigger,
 } from "../ui/dialog";
 import { Switch } from "../ui/switch";
+import {
+  useCommandsImportMutation,
+  useEventListenersImportMutation,
+} from "@/lib/api/mutations";
+import { useAppId } from "@/lib/hooks/params";
+import { toast } from "sonner";
 
 export function TemplateImportDialog({
   children,
@@ -21,53 +28,161 @@ export function TemplateImportDialog({
   children: ReactNode;
   template: Template;
 }) {
-  const [disabledCommands, setDisabledCommands] = useState<string[]>([]);
+  const [dialogOpen, setDialogOpen] = useState(false);
+
+  const [disabledCommands, setDisabledCommands] = useState<number[]>([]);
+  const [disabledEventListeners, setDisabledEventListeners] = useState<
+    number[]
+  >([]);
+
+  const appId = useAppId();
+
+  const commandsImportMutation = useCommandsImportMutation(appId);
+  const eventListenersImportMutation = useEventListenersImportMutation(appId);
+
+  const handleImport = useCallback(() => {
+    const commands = template.commands
+      .filter((_, i) => !disabledCommands.includes(i))
+      .map((c) => ({
+        enabled: true,
+        flow_source: prepareTemplateFlow(c.flow_source),
+      }));
+    const eventListeners = template.eventListeners
+      .filter((_, i) => !disabledEventListeners.includes(i))
+      .map((c) => ({
+        enabled: true,
+        source: c.source,
+        flow_source: prepareTemplateFlow(c.flow_source),
+      }));
+
+    if (commands.length != 0) {
+      commandsImportMutation.mutate(
+        { commands },
+        {
+          onSuccess: (res) => {
+            if (res.success) {
+              toast.success(
+                `${commands.length} commands imported successfully`
+              );
+            } else {
+              toast.error(
+                `Failed to import commands: ${res.error.message} (${res.error.code})`
+              );
+            }
+          },
+        }
+      );
+    }
+    if (eventListeners.length != 0) {
+      eventListenersImportMutation.mutate(
+        { event_listeners: eventListeners },
+        {
+          onSuccess: (res) => {
+            if (res.success) {
+              toast.success(
+                `${eventListeners.length} event listeners imported successfully`
+              );
+            } else {
+              toast.error(
+                `Failed to import event listeners: ${res.error.message} (${res.error.code})`
+              );
+            }
+          },
+        }
+      );
+    }
+
+    setDialogOpen(false);
+  }, [template, disabledCommands, disabledEventListeners]);
 
   return (
-    <Dialog>
+    <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
       <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent className="overflow-y-auto max-h-[90dvh] max-w-2xl">
         <DialogHeader>
-          <DialogTitle className="mb-1">{template.name}</DialogTitle>
+          <DialogTitle className="mb-1">{template.name} Template</DialogTitle>
           <DialogDescription>{template.description}</DialogDescription>
         </DialogHeader>
-        <div className="mb-3 mt-2">
-          <div className="mb-3">
-            <div className="font-medium mb-0.5">Commands</div>
-            <div className="text-sm text-muted-foreground">
-              Select the commands you want to import.
-            </div>
-          </div>
-          <div className="flex flex-col gap-3">
-            {template.commands.map((command, i) => (
-              <Card className="px-4 pb-4 pt-3" key={i}>
-                <div className="float float-right">
-                  <Switch
-                    checked={!disabledCommands.includes(command.name)}
-                    onCheckedChange={(checked) => {
-                      setDisabledCommands(
-                        checked
-                          ? disabledCommands.filter((c) => c !== command.name)
-                          : [...disabledCommands, command.name]
-                      );
-                    }}
-                  />
+        <div className="mb-3 mt-2 space-y-5">
+          {!!template.commands.length && (
+            <div>
+              <div className="mb-3">
+                <div className="font-medium mb-0.5">Commands</div>
+                <div className="text-sm text-muted-foreground">
+                  Select the commands you want to import.
                 </div>
+              </div>
+              <div className="flex flex-col gap-3">
+                {template.commands.map((command, i) => (
+                  <Card className="px-4 pb-4 pt-3" key={i}>
+                    <div className="float float-right">
+                      <Switch
+                        checked={!disabledCommands.includes(i)}
+                        onCheckedChange={(checked) => {
+                          setDisabledCommands(
+                            checked
+                              ? disabledCommands.filter((c) => c !== i)
+                              : [...disabledCommands, i]
+                          );
+                        }}
+                      />
+                    </div>
 
-                <div className="flex items-center gap-1.5 mb-0.5">
-                  <SlashSquareIcon className="text-muted-foreground h-5 w-5" />
-                  <CardTitle className="text-lg">{command.name}</CardTitle>
+                    <div className="flex items-center gap-1.5 mb-0.5">
+                      <SlashSquareIcon className="text-muted-foreground h-5 w-5" />
+                      <CardTitle className="text-lg">{command.name}</CardTitle>
+                    </div>
+                    <CardDescription className="text-sm">
+                      {command.description}
+                    </CardDescription>
+                  </Card>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {!!template.eventListeners.length && (
+            <div>
+              <div className="mb-3">
+                <div className="font-medium mb-0.5">Event Listeners</div>
+                <div className="text-sm text-muted-foreground">
+                  Select the event listeners you want to import.
                 </div>
-                <CardDescription className="text-sm">
-                  {command.description}
-                </CardDescription>
-              </Card>
-            ))}
-          </div>
+              </div>
+              <div className="flex flex-col gap-3">
+                {template.eventListeners.map((listener, i) => (
+                  <Card className="px-4 pb-4 pt-3" key={i}>
+                    <div className="float float-right">
+                      <Switch
+                        checked={!disabledEventListeners.includes(i)}
+                        onCheckedChange={(checked) => {
+                          setDisabledEventListeners(
+                            checked
+                              ? disabledEventListeners.filter((c) => c !== i)
+                              : [...disabledEventListeners, i]
+                          );
+                        }}
+                      />
+                    </div>
+
+                    <div className="flex items-center gap-1.5 mb-0.5">
+                      <SatelliteDishIcon className="text-muted-foreground h-5 w-5" />
+                      <CardTitle className="text-lg">{listener.type}</CardTitle>
+                    </div>
+                    <CardDescription className="text-sm">
+                      {listener.description}
+                    </CardDescription>
+                  </Card>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
         <DialogFooter>
-          <Button variant="outline">Cancel</Button>
-          <Button>Import</Button>
+          <DialogClose asChild>
+            <Button variant="outline">Cancel</Button>
+          </DialogClose>
+          <Button onClick={handleImport}>Import</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

@@ -2,7 +2,7 @@ import { Edge, Node } from "@xyflow/react";
 import { getLayoutedElements } from "./layout";
 import { getEdgeId, getNodeId } from "./nodes";
 import { NodeData } from "./data";
-import { GavelIcon, LucideIcon } from "lucide-react";
+import { BrainCircuitIcon, GavelIcon, LucideIcon } from "lucide-react";
 
 export type Template = {
   name: string;
@@ -16,17 +16,19 @@ export type Template = {
       edges: Edge[];
     };
   }[];
+  eventListeners: {
+    source: string;
+    type: string;
+    description: string;
+    flow_source: {
+      nodes: Omit<Node<NodeData>, "position">[];
+      edges: Edge[];
+    };
+  }[];
 };
 
 export function getTemplates() {
-  return [
-    getModerationTemplate(),
-    getModerationTemplate(),
-    getModerationTemplate(),
-    getModerationTemplate(),
-    getModerationTemplate(),
-    getModerationTemplate(),
-  ];
+  return [getModerationTemplate(), getAITemplate()];
 }
 
 export function prepareTemplateFlow(flow: {
@@ -128,6 +130,36 @@ export function getModerationTemplate(): Template {
       {
         name: "mute",
         description: "Mute a user in the server.",
+        flow_source: {
+          nodes: [],
+          edges: [],
+        },
+      },
+    ],
+    eventListeners: [],
+  };
+}
+
+export function getAITemplate(): Template {
+  return {
+    name: "AI",
+    description: "A number of AI commands to help you manage your server.",
+    icon: BrainCircuitIcon,
+    commands: [
+      {
+        name: "ask",
+        description: "Ask a question to the AI.",
+        flow_source: {
+          nodes: [],
+          edges: [],
+        },
+      },
+    ],
+    eventListeners: [
+      {
+        source: "discord",
+        type: "message_create",
+        description: "Ask a question to the AI by pinging the bot.",
         flow_source: {
           nodes: [],
           edges: [],
