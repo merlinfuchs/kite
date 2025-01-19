@@ -53,18 +53,21 @@ export function getModerationTemplate(): Template {
   const moderationBanOptionPermissionsNodeId = getNodeId();
   const moderationBanOptionReasonNodeId = getNodeId();
   const moderationBanActionMemberBanNodeId = getNodeId();
+  const moderationBanActionResponseNodeId = getNodeId();
 
   const moderationUnbanEntryNodeId = getNodeId();
   const moderationUnbanOptionUserIdNodeId = getNodeId();
   const moderationUnbanOptionPermissionsNodeId = getNodeId();
   const moderationUnbanOptionReasonNodeId = getNodeId();
   const moderationUnbanActionMemberUnbanNodeId = getNodeId();
+  const moderationUnbanActionResponseNodeId = getNodeId();
 
   const moderationKickEntryNodeId = getNodeId();
   const moderationKickOptionUserIdNodeId = getNodeId();
   const moderationKickOptionPermissionsNodeId = getNodeId();
   const moderationKickOptionReasonNodeId = getNodeId();
   const moderationKickActionMemberKickNodeId = getNodeId();
+  const moderationKickActionResponseNodeId = getNodeId();
 
   const moderationMuteEntryNodeId = getNodeId();
   const moderationMuteOptionUserIdNodeId = getNodeId();
@@ -72,7 +75,7 @@ export function getModerationTemplate(): Template {
   const moderationMuteOptionDurationNodeId = getNodeId();
   const moderationMuteOptionReasonNodeId = getNodeId();
   const moderationMuteActionMemberTimeoutNodeId = getNodeId();
-
+  const moderationMuteActionResponseNodeId = getNodeId();
   return {
     name: "Moderation",
     description:
@@ -128,6 +131,17 @@ export function getModerationTemplate(): Template {
                 member_ban_delete_message_duration_seconds: "3600",
               },
             },
+            {
+              id: moderationBanActionResponseNodeId,
+              type: "action_response_create",
+              data: {
+                message_data: {
+                  content:
+                    "The user {{interaction.command.args.user.mention}} has been banned.",
+                },
+                message_ephemeral: true,
+              },
+            },
           ],
           edges: [
             {
@@ -149,6 +163,11 @@ export function getModerationTemplate(): Template {
               id: getEdgeId(),
               source: moderationBanEntryNodeId,
               target: moderationBanActionMemberBanNodeId,
+            },
+            {
+              id: getEdgeId(),
+              source: moderationBanActionMemberBanNodeId,
+              target: moderationBanActionResponseNodeId,
             },
           ],
         },
@@ -201,6 +220,17 @@ export function getModerationTemplate(): Template {
                 audit_log_reason: "{{interaction.command.args.reason}}",
               },
             },
+            {
+              id: moderationUnbanActionResponseNodeId,
+              type: "action_response_create",
+              data: {
+                message_data: {
+                  content:
+                    "The user {{interaction.command.args.user.mention}} has been unbanned.",
+                },
+                message_ephemeral: true,
+              },
+            },
           ],
           edges: [
             {
@@ -222,6 +252,11 @@ export function getModerationTemplate(): Template {
               id: getEdgeId(),
               source: moderationUnbanEntryNodeId,
               target: moderationUnbanActionMemberUnbanNodeId,
+            },
+            {
+              id: getEdgeId(),
+              source: moderationUnbanActionMemberUnbanNodeId,
+              target: moderationUnbanActionResponseNodeId,
             },
           ],
         },
@@ -274,6 +309,17 @@ export function getModerationTemplate(): Template {
                 audit_log_reason: "{{interaction.command.args.reason}}",
               },
             },
+            {
+              id: moderationKickActionResponseNodeId,
+              type: "action_response_create",
+              data: {
+                message_data: {
+                  content:
+                    "The user {{interaction.command.args.user.mention}} has been kicked.",
+                },
+                message_ephemeral: true,
+              },
+            },
           ],
           edges: [
             {
@@ -295,6 +341,11 @@ export function getModerationTemplate(): Template {
               id: getEdgeId(),
               source: moderationKickEntryNodeId,
               target: moderationKickActionMemberKickNodeId,
+            },
+            {
+              id: getEdgeId(),
+              source: moderationKickActionMemberKickNodeId,
+              target: moderationKickActionResponseNodeId,
             },
           ],
         },
@@ -359,6 +410,17 @@ export function getModerationTemplate(): Template {
                 audit_log_reason: "{{interaction.command.args.reason}}",
               },
             },
+            {
+              id: moderationMuteActionResponseNodeId,
+              type: "action_response_create",
+              data: {
+                message_data: {
+                  content:
+                    "The user {{interaction.command.args.user.mention}} has been muted for `{{interaction.command.args.duration}}` seconds.",
+                },
+                message_ephemeral: true,
+              },
+            },
           ],
           edges: [
             {
@@ -385,6 +447,11 @@ export function getModerationTemplate(): Template {
               id: getEdgeId(),
               source: moderationMuteEntryNodeId,
               target: moderationMuteActionMemberTimeoutNodeId,
+            },
+            {
+              id: getEdgeId(),
+              source: moderationMuteActionMemberTimeoutNodeId,
+              target: moderationMuteActionResponseNodeId,
             },
           ],
         },
