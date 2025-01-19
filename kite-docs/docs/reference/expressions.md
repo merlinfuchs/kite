@@ -61,6 +61,11 @@ event: # For event listeners
     id: string
   guild?:
     id: string
+
+app:
+  user: # Access the underlying user of the app
+    id: string
+    mention: string
 ```
 
 ## Examples
