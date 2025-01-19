@@ -501,7 +501,7 @@ export function getAITemplate(): Template {
               id: aiAskEventConditionItemNodeId,
               type: "control_condition_item_compare",
               data: {
-                condition_item_value: "<@{{app.discord_id}}>", // TODO: get app id
+                condition_item_value: "{{app.user.mention}}",
                 condition_item_mode: "contains",
               },
             },
@@ -523,7 +523,7 @@ export function getAITemplate(): Template {
               id: aiAskEventActionMessageCreateNodeId,
               type: "action_message_create",
               data: {
-                channel_target: "{{event.message.channel_id}}",
+                channel_target: "{{event.channel.id}}",
                 message_data: {
                   content: `{{nodes.${aiAskEventActionAiChatCompletionNodeId}.result}}`,
                 },

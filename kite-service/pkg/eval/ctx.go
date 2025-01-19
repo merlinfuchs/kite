@@ -9,6 +9,7 @@ import (
 
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/gateway"
+	"github.com/diamondburned/arikawa/v3/state"
 	"github.com/diamondburned/arikawa/v3/utils/ws"
 	"github.com/expr-lang/expr/ast"
 	"github.com/kitecloud/kite/kite-service/pkg/thing"
@@ -58,12 +59,13 @@ func NewInteractionEnv(i *discord.InteractionEvent) *InteractionEnv {
 	return e
 }
 
-func NewContextFromInteraction(i *discord.InteractionEvent) Context {
+func NewContextFromInteraction(i *discord.InteractionEvent, session *state.State) Context {
 	interactionEnv := NewInteractionEnv(i)
 
 	return Context{
 		Env: Env{
 			"interaction": interactionEnv,
+			"app":         NewAppEnv(session),
 		},
 	}
 }
@@ -241,10 +243,11 @@ func NewEventEnv(event ws.Event) *EventEnv {
 	return env
 }
 
-func NewContextFromEvent(event ws.Event) Context {
+func NewContextFromEvent(event ws.Event, session *state.State) Context {
 	return Context{
 		Env: Env{
 			"event": NewEventEnv(event),
+			"app":   NewAppEnv(session),
 		},
 	}
 }
@@ -451,5 +454,17 @@ func NewAnyEnv(v any) any {
 		return NewInteractionEnv(v)
 	default:
 		return v
+	}
+}
+
+type AppEnv struct {
+	User *UserEnv `expr:"user" json:"user"`
+}
+
+func NewAppEnv(session *state.State) *AppEnv {
+	user := session.Ready().User
+
+	return &AppEnv{
+		User: NewUserEnv(&user),
 	}
 }
