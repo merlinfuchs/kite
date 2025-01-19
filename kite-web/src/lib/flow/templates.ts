@@ -2,16 +2,28 @@ import { Edge, Node } from "@xyflow/react";
 import { getLayoutedElements } from "./layout";
 import { getEdgeId, getNodeId } from "./nodes";
 import { NodeData } from "./data";
-import { BrainCircuitIcon, GavelIcon, LucideIcon } from "lucide-react";
+import {
+  BrainCircuitIcon,
+  GavelIcon,
+  LucideIcon,
+  UserRoundPlusIcon,
+} from "lucide-react";
 
 export type Template = {
   name: string;
   description: string;
   icon: LucideIcon;
+  inputs: {
+    key: string;
+    label: string;
+    description: string;
+    type: "text" | "textarea";
+    required: boolean;
+  }[];
   commands: {
     name: string;
     description: string;
-    flow_source: {
+    flowSource(inputs: Record<string, any>): {
       nodes: Omit<Node<NodeData>, "position">[];
       edges: Edge[];
     };
@@ -20,7 +32,7 @@ export type Template = {
     source: string;
     type: string;
     description: string;
-    flow_source: {
+    flowSource(inputs: Record<string, any>): {
       nodes: Omit<Node<NodeData>, "position">[];
       edges: Edge[];
     };
@@ -28,7 +40,7 @@ export type Template = {
 };
 
 export function getTemplates() {
-  return [getModerationTemplate(), getAITemplate()];
+  return [getModerationTemplate(), getAITemplate(), getWelcomerTemplate()];
 }
 
 export function prepareTemplateFlow(flow: {
@@ -81,11 +93,12 @@ export function getModerationTemplate(): Template {
     description:
       "A number of moderation commands to help you manage your server.",
     icon: GavelIcon,
+    inputs: [],
     commands: [
       {
         name: "ban",
         description: "Ban a user from the server.",
-        flow_source: {
+        flowSource: (inputs) => ({
           nodes: [
             {
               id: moderationBanEntryNodeId,
@@ -170,12 +183,12 @@ export function getModerationTemplate(): Template {
               target: moderationBanActionResponseNodeId,
             },
           ],
-        },
+        }),
       },
       {
         name: "unban",
         description: "Unban a user from the server.",
-        flow_source: {
+        flowSource: (inputs) => ({
           nodes: [
             {
               id: moderationUnbanEntryNodeId,
@@ -259,12 +272,12 @@ export function getModerationTemplate(): Template {
               target: moderationUnbanActionResponseNodeId,
             },
           ],
-        },
+        }),
       },
       {
         name: "kick",
         description: "Kick a user from the server.",
-        flow_source: {
+        flowSource: (inputs) => ({
           nodes: [
             {
               id: moderationKickEntryNodeId,
@@ -348,12 +361,12 @@ export function getModerationTemplate(): Template {
               target: moderationKickActionResponseNodeId,
             },
           ],
-        },
+        }),
       },
       {
         name: "mute",
         description: "Mute a user in the server.",
-        flow_source: {
+        flowSource: (inputs) => ({
           nodes: [
             {
               id: moderationMuteEntryNodeId,
@@ -454,7 +467,7 @@ export function getModerationTemplate(): Template {
               target: moderationMuteActionResponseNodeId,
             },
           ],
-        },
+        }),
       },
     ],
     eventListeners: [],
@@ -475,14 +488,24 @@ export function getAITemplate(): Template {
   const aiAskEventActionMessageCreateNodeId = getNodeId();
 
   return {
-    name: "AI",
+    name: "Ask AI",
     description: "A command and event listener to let users ask AI questions.",
     icon: BrainCircuitIcon,
+    inputs: [
+      {
+        key: "system_prompt",
+        label: "Personality",
+        description:
+          "Give the AI a personality. Tell it how to respond to questions.",
+        type: "textarea",
+        required: false,
+      },
+    ],
     commands: [
       {
         name: "ask",
         description: "Ask a question to the AI.",
-        flow_source: {
+        flowSource: (inputs) => ({
           nodes: [
             {
               id: aiAskCommandEntryNodeId,
@@ -507,6 +530,7 @@ export function getAITemplate(): Template {
               type: "action_ai_chat_completion",
               data: {
                 ai_chat_completion_data: {
+                  system_prompt: inputs.system_prompt ?? undefined,
                   prompt: "{{interaction.command.args.question}}",
                 },
               },
@@ -539,7 +563,7 @@ export function getAITemplate(): Template {
               target: aiAskCommandActionResponseCreateNodeId,
             },
           ],
-        },
+        }),
       },
     ],
     eventListeners: [
@@ -547,7 +571,7 @@ export function getAITemplate(): Template {
         source: "discord",
         type: "message_create",
         description: "Ask a question to the AI by pinging the bot.",
-        flow_source: {
+        flowSource: (inputs) => ({
           nodes: [
             {
               id: aiAskEventEntryNodeId,
@@ -582,6 +606,7 @@ export function getAITemplate(): Template {
               type: "action_ai_chat_completion",
               data: {
                 ai_chat_completion_data: {
+                  system_prompt: inputs.system_prompt ?? undefined,
                   prompt: "{{event.message.content}}",
                 },
               },
@@ -624,7 +649,64 @@ export function getAITemplate(): Template {
               target: aiAskEventActionMessageCreateNodeId,
             },
           ],
-        },
+        }),
+      },
+    ],
+  };
+}
+
+export function getWelcomerTemplate(): Template {
+  const welcomerEntryNodeId = getNodeId();
+  const welcomerActionMessageCreateNodeId = getNodeId();
+
+  return {
+    name: "Welcomer",
+    description: "An event listener to welcome new users to the server.",
+    icon: UserRoundPlusIcon,
+    inputs: [
+      {
+        key: "channel_id",
+        label: "Channel ID",
+        description: "The channel to send the welcome messages to.",
+        type: "text",
+        required: true,
+      },
+    ],
+    commands: [],
+    eventListeners: [
+      {
+        source: "discord",
+        type: "guild_member_add",
+        description: "Welcome a new user to the server.",
+        flowSource: (inputs) => ({
+          nodes: [
+            {
+              id: welcomerEntryNodeId,
+              type: "entry_event",
+              data: {
+                event_type: "guild_member_add",
+                description: "Welcome a new user to the server.",
+              },
+            },
+            {
+              id: welcomerActionMessageCreateNodeId,
+              type: "action_message_create",
+              data: {
+                channel_target: inputs.channel_id,
+                message_data: {
+                  content: "Welcome {{event.user.mention}} to the server!",
+                },
+              },
+            },
+          ],
+          edges: [
+            {
+              id: getEdgeId(),
+              source: welcomerEntryNodeId,
+              target: welcomerActionMessageCreateNodeId,
+            },
+          ],
+        }),
       },
     ],
   };

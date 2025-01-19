@@ -20,6 +20,8 @@ import {
 } from "@/lib/api/mutations";
 import { useAppId } from "@/lib/hooks/params";
 import { toast } from "sonner";
+import { Label } from "../ui/label";
+import { Input } from "../ui/input";
 
 export function TemplateImportDialog({
   children,
@@ -40,19 +42,28 @@ export function TemplateImportDialog({
   const commandsImportMutation = useCommandsImportMutation(appId);
   const eventListenersImportMutation = useEventListenersImportMutation(appId);
 
+  const [inputValues, setInputValues] = useState<Record<string, string>>({});
+
   const handleImport = useCallback(() => {
+    for (const input of template.inputs) {
+      if (input.required && !inputValues[input.key]) {
+        toast.error(`${input.label} is required`);
+        return;
+      }
+    }
+
     const commands = template.commands
       .filter((_, i) => !disabledCommands.includes(i))
       .map((c) => ({
         enabled: true,
-        flow_source: prepareTemplateFlow(c.flow_source),
+        flow_source: prepareTemplateFlow(c.flowSource(inputValues)),
       }));
     const eventListeners = template.eventListeners
       .filter((_, i) => !disabledEventListeners.includes(i))
       .map((c) => ({
         enabled: true,
         source: c.source,
-        flow_source: prepareTemplateFlow(c.flow_source),
+        flow_source: prepareTemplateFlow(c.flowSource(inputValues)),
       }));
 
     if (commands.length != 0) {
@@ -93,7 +104,7 @@ export function TemplateImportDialog({
     }
 
     setDialogOpen(false);
-  }, [template, disabledCommands, disabledEventListeners]);
+  }, [template, disabledCommands, disabledEventListeners, inputValues]);
 
   return (
     <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
@@ -104,6 +115,41 @@ export function TemplateImportDialog({
           <DialogDescription>{template.description}</DialogDescription>
         </DialogHeader>
         <div className="mb-3 mt-2 space-y-5">
+          {!!template.inputs.length && (
+            <div className="flex flex-col gap-3">
+              {template.inputs.map((input) => (
+                <div key={input.key}>
+                  <div className="mb-3">
+                    <div className="flex items-center gap-2">
+                      <div className="font-medium mb-0.5">{input.label}</div>
+                      <div className="text-xs text-muted-foreground">
+                        {input.required ? (
+                          <span className="text-red-500">required</span>
+                        ) : (
+                          <span className="text-muted-foreground">
+                            optional
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="text-sm text-muted-foreground">
+                      {input.description}
+                    </div>
+                  </div>
+                  <Input
+                    value={inputValues[input.key] || ""}
+                    onChange={(e) =>
+                      setInputValues({
+                        ...inputValues,
+                        [input.key]: e.target.value,
+                      })
+                    }
+                  />
+                </div>
+              ))}
+            </div>
+          )}
+
           {!!template.commands.length && (
             <div>
               <div className="mb-3">
