@@ -211,7 +211,7 @@ export interface ModalData {
 }
 export interface ModalComponentData {
   custom_id?: string;
-  style?: number /* uint */;
+  style?: number /* int */;
   label?: string;
   min_length?: number /* int */;
   max_length?: number /* int */;

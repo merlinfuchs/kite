@@ -71,6 +71,41 @@ func (h *VariableHandler) HandleVariableCreate(c *handler.Context, req wire.Vari
 	return wire.VariableToWire(variable), nil
 }
 
+func (h *VariableHandler) HandleVariablesImport(c *handler.Context, req wire.VariablesImportRequest) (*wire.VariablesImportResponse, error) {
+	if h.maxVariablesPerApp != 0 {
+		variableCount, err := h.variableStore.CountVariablesByApp(c.Context(), c.App.ID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to count variables: %w", err)
+		}
+
+		newVariableCount := variableCount + len(req.Variables)
+
+		if newVariableCount > h.maxVariablesPerApp {
+			return nil, handler.ErrBadRequest("resource_limit", fmt.Sprintf("maximum number of variables (%d) reached", h.maxVariablesPerApp))
+		}
+	}
+
+	res := make([]*wire.Variable, len(req.Variables))
+
+	for i, v := range req.Variables {
+		variable, err := h.variableStore.CreateVariable(c.Context(), &model.Variable{
+			ID:        util.UniqueID(),
+			Name:      v.Name,
+			Scoped:    v.Scoped,
+			AppID:     c.App.ID,
+			CreatedAt: time.Now().UTC(),
+			UpdatedAt: time.Now().UTC(),
+		})
+		if err != nil {
+			return nil, fmt.Errorf("failed to create variable: %w", err)
+		}
+
+		res[i] = wire.VariableToWire(variable)
+	}
+
+	return &res, nil
+}
+
 func (h *VariableHandler) HandleVariableUpdate(c *handler.Context, req wire.VariableUpdateRequest) (*wire.VariableUpdateResponse, error) {
 	if req.Scoped != c.Variable.Scoped {
 		// If the scoped flag changes, delete all variable values.

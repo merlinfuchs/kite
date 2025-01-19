@@ -60,12 +60,12 @@ export default function AppSidebarStudioNav() {
         icon: VariableIcon,
         active: isActive("/apps/[appId]/variables"),
       },
-      /* {
+      {
         name: "Templates",
         url: "/apps/[appId]/templates",
         icon: LibraryBigIcon,
         active: isActive("/apps/[appId]/templates"),
-      }, */
+      },
     ];
   }, [isActive]);
 

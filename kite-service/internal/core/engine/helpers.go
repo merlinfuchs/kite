@@ -90,7 +90,7 @@ func (s Env) flowContext(
 				MaxOperations: s.Config.MaxOperations,
 				MaxCredits:    s.Config.MaxCredits,
 			},
-			eval.NewContextFromInteraction(&e.InteractionEvent),
+			eval.NewContextFromInteraction(&e.InteractionEvent, session),
 			state,
 		)
 	default:
@@ -106,7 +106,7 @@ func (s Env) flowContext(
 				MaxOperations: s.Config.MaxOperations,
 				MaxCredits:    s.Config.MaxCredits,
 			},
-			eval.NewContextFromEvent(event),
+			eval.NewContextFromEvent(event, session),
 			state,
 		)
 	}

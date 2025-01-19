@@ -78,6 +78,48 @@ func (h *CommandHandler) HandleCommandCreate(c *handler.Context, req wire.Comman
 	return wire.CommandToWire(command), nil
 }
 
+func (h *CommandHandler) HandleCommandsImport(c *handler.Context, req wire.CommandsImportRequest) (*wire.CommandsImportResponse, error) {
+	if h.maxCommandsPerApp != 0 {
+		commandCount, err := h.commandStore.CountCommandsByApp(c.Context(), c.App.ID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to count commands: %w", err)
+		}
+
+		newCommandCount := commandCount + len(req.Commands)
+
+		if newCommandCount > h.maxCommandsPerApp {
+			return nil, handler.ErrBadRequest("resource_limit", fmt.Sprintf("maximum number of commands (%d) reached", h.maxCommandsPerApp))
+		}
+	}
+
+	res := make([]*wire.Command, len(req.Commands))
+	for i, cmd := range req.Commands {
+		cmdFlow, err := flow.CompileCommand(cmd.FlowSource)
+		if err != nil {
+			return nil, fmt.Errorf("failed to compile command: %w", err)
+		}
+
+		command, err := h.commandStore.CreateCommand(c.Context(), &model.Command{
+			ID:            util.UniqueID(),
+			Name:          cmdFlow.CommandName(),
+			Description:   cmdFlow.CommandDescription(),
+			AppID:         c.App.ID,
+			CreatorUserID: c.Session.UserID,
+			FlowSource:    cmd.FlowSource,
+			Enabled:       cmd.Enabled,
+			CreatedAt:     time.Now().UTC(),
+			UpdatedAt:     time.Now().UTC(),
+		})
+		if err != nil {
+			return nil, fmt.Errorf("failed to create command: %w", err)
+		}
+
+		res[i] = wire.CommandToWire(command)
+	}
+
+	return &res, nil
+}
+
 func (h *CommandHandler) HandleCommandUpdate(c *handler.Context, req wire.CommandUpdateRequest) (*wire.CommandUpdateResponse, error) {
 	cmdFlow, err := flow.CompileCommand(req.FlowSource)
 	if err != nil {

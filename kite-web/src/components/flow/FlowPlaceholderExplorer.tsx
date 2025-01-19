@@ -93,6 +93,19 @@ function useGlobalPlaceholders() {
         },
       ],
     },
+    {
+      label: "App",
+      placeholders: [
+        {
+          label: "App User ID",
+          value: `app.user.id`,
+        },
+        {
+          label: "App User Mention",
+          value: `app.user.mention`,
+        },
+      ],
+    },
   ];
 
   if (contextType === "event_discord") {

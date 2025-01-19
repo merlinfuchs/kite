@@ -136,6 +136,7 @@ func (s *APIServer) RegisterRoutes(
 	commandsGroup := appGroup.Group("/commands")
 	commandsGroup.Get("/", handler.Typed(commandsHandler.HandleCommandList))
 	commandsGroup.Post("/", handler.TypedWithBody(commandsHandler.HandleCommandCreate))
+	commandsGroup.Post("/import", handler.TypedWithBody(commandsHandler.HandleCommandsImport))
 
 	commandGroup := commandsGroup.Group("/{commandID}", accessManager.CommandAccess)
 	commandGroup.Get("/", handler.Typed(commandsHandler.HandleCommandGet))
@@ -148,6 +149,7 @@ func (s *APIServer) RegisterRoutes(
 	eventListenersGroup := appGroup.Group("/event-listeners")
 	eventListenersGroup.Get("/", handler.Typed(eventListenerHandler.HandleEventListenerList))
 	eventListenersGroup.Post("/", handler.TypedWithBody(eventListenerHandler.HandleEventListenerCreate))
+	eventListenersGroup.Post("/import", handler.TypedWithBody(eventListenerHandler.HandleEventListenersImport))
 
 	eventListenerGroup := eventListenersGroup.Group("/{listenerID}", accessManager.EventListenerAccess)
 	eventListenerGroup.Get("/", handler.Typed(eventListenerHandler.HandleEventListenerGet))
@@ -160,6 +162,7 @@ func (s *APIServer) RegisterRoutes(
 	variablesGroup := appGroup.Group("/variables")
 	variablesGroup.Get("/", handler.Typed(variablesHandler.HandleVariableList))
 	variablesGroup.Post("/", handler.TypedWithBody(variablesHandler.HandleVariableCreate))
+	variablesGroup.Post("/import", handler.TypedWithBody(variablesHandler.HandleVariablesImport))
 
 	variableGroup := variablesGroup.Group("/{variableID}", accessManager.VariableAccess)
 	variableGroup.Get("/", handler.Typed(variablesHandler.HandleVariableGet))
@@ -178,6 +181,7 @@ func (s *APIServer) RegisterRoutes(
 	messagesGroup := appGroup.Group("/messages")
 	messagesGroup.Get("/", handler.Typed(messageHandler.HandleMessageList))
 	messagesGroup.Post("/", handler.TypedWithBody(messageHandler.HandleMessageCreate))
+	messagesGroup.Post("/import", handler.TypedWithBody(messageHandler.HandleMessagesImport))
 
 	messageGroup := messagesGroup.Group("/{messageID}", accessManager.MessageAccess)
 	messageGroup.Get("/", handler.Typed(messageHandler.HandleMessageGet))

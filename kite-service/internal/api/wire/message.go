@@ -58,6 +58,24 @@ func (req MessageCreateRequest) Validate() error {
 
 type MessageCreateResponse = Message
 
+type MessagesImportRequest struct {
+	Messages []MessageCreateRequest `json:"messages"`
+}
+
+func (req *MessagesImportRequest) Sanitize() {
+	for _, message := range req.Messages {
+		message.Sanitize()
+	}
+}
+
+func (req MessagesImportRequest) Validate() error {
+	return validation.ValidateStruct(&req,
+		validation.Field(&req.Messages, validation.Required),
+	)
+}
+
+type MessagesImportResponse = []*Message
+
 type MessageUpdateRequest struct {
 	Name        string                   `json:"name"`
 	Description null.String              `json:"description"`

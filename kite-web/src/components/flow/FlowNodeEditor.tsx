@@ -681,7 +681,7 @@ function MemberBanDeleteMessageDurationInput({
   return (
     <BaseInput
       type="select"
-      field="member_ban_delete_message_duration"
+      field="member_ban_delete_message_duration_seconds"
       title="Delete Message Duration"
       options={[
         { value: "60", label: "1 Minute" },
@@ -925,7 +925,7 @@ function ModalDataInput({ data, updateData, errors }: InputProps) {
             Configure Modal
           </Button>
         </DialogTrigger>
-        <DialogContent className="overflow-y-scroll max-h-[90dvh] max-w-2xl">
+        <DialogContent className="overflow-y-auto max-h-[90dvh] max-w-2xl">
           <DialogHeader>
             <DialogTitle>Configure Modal</DialogTitle>
             <DialogDescription>
