@@ -13,8 +13,9 @@ export const getLayoutedElements = (
   nodes.forEach((node) =>
     g.setNode(node.id, {
       ...node,
-      width: node.measured?.width ?? 0,
-      height: node.measured?.height ?? 0,
+      // We set a default width and height because the nodes are not measured yet in some cases
+      width: node.measured?.width ?? 350,
+      height: node.measured?.height ?? 150,
     })
   );
 

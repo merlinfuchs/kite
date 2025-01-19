@@ -501,7 +501,7 @@ export function getAITemplate(): Template {
               id: aiAskEventConditionItemNodeId,
               type: "control_condition_item_compare",
               data: {
-                condition_item_value: "<@1234567890>", // TODO: get app id
+                condition_item_value: "<@{{app.discord_id}}>", // TODO: get app id
                 condition_item_mode: "contains",
               },
             },
