@@ -142,6 +142,7 @@ func (s *APIServer) RegisterRoutes(
 	commandGroup.Get("/", handler.Typed(commandsHandler.HandleCommandGet))
 	commandGroup.Patch("/", handler.TypedWithBody(commandsHandler.HandleCommandUpdate))
 	commandGroup.Delete("/", handler.Typed(commandsHandler.HandleCommandDelete))
+	commandGroup.Put("/enabled", handler.TypedWithBody(commandsHandler.HandleCommandUpdateEnabled))
 
 	// Event listener routes
 	eventListenerHandler := eventlistener.NewEventListenerHandler(eventListenerStore, s.config.UserLimits.MaxEventListenersPerApp)
@@ -155,6 +156,7 @@ func (s *APIServer) RegisterRoutes(
 	eventListenerGroup.Get("/", handler.Typed(eventListenerHandler.HandleEventListenerGet))
 	eventListenerGroup.Patch("/", handler.TypedWithBody(eventListenerHandler.HandleEventListenerUpdate))
 	eventListenerGroup.Delete("/", handler.Typed(eventListenerHandler.HandleEventListenerDelete))
+	eventListenerGroup.Put("/enabled", handler.TypedWithBody(eventListenerHandler.HandleEventListenerUpdateEnabled))
 
 	// Variable routes
 	variablesHandler := variable.NewVariableHandler(variableStore, variableValueStore, s.config.UserLimits.MaxVariablesPerApp)

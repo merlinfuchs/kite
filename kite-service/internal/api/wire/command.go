@@ -65,6 +65,16 @@ func (req CommandUpdateRequest) Validate() error {
 
 type CommandUpdateResponse = Command
 
+type CommandUpdateEnabledRequest struct {
+	Enabled bool `json:"enabled"`
+}
+
+func (req CommandUpdateEnabledRequest) Validate() error {
+	return nil
+}
+
+type CommandUpdateEnabledResponse = Command
+
 type CommandDeleteResponse = Empty
 
 func CommandToWire(command *model.Command) *Command {
