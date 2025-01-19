@@ -592,7 +592,7 @@ export function getAITemplate(): Template {
               data: {
                 channel_target: "{{event.channel.id}}",
                 message_data: {
-                  content: `{{nodes.${aiAskEventActionAiChatCompletionNodeId}.result}}`,
+                  content: `{{event.user.mention}} {{nodes.${aiAskEventActionAiChatCompletionNodeId}.result}}`,
                 },
               },
             },
