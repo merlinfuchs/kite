@@ -16,6 +16,8 @@ import {
   CommandDeleteResponse,
   CommandsImportRequest,
   CommandsImportResponse,
+  CommandUpdateEnabledRequest,
+  CommandUpdateEnabledResponse,
   CommandUpdateRequest,
   CommandUpdateResponse,
   EventListenerCreateRequest,
@@ -23,6 +25,8 @@ import {
   EventListenerDeleteResponse,
   EventListenersImportRequest,
   EventListenersImportResponse,
+  EventListenerUpdateEnabledRequest,
+  EventListenerUpdateEnabledResponse,
   EventListenerUpdateRequest,
   EventListenerUpdateResponse,
   MessageCreateRequest,
@@ -220,6 +224,29 @@ export function useCommandUpdateMutation(appId: string, cmdId: string) {
   });
 }
 
+export function useCommandUpdateEnabledMutation(appId: string, cmdId: string) {
+  const client = useQueryClient();
+
+  return useMutation({
+    mutationFn: (req: CommandUpdateEnabledRequest) =>
+      apiRequest<CommandUpdateEnabledResponse>(
+        `/v1/apps/${appId}/commands/${cmdId}/enabled`,
+        {
+          method: "PUT",
+          body: JSON.stringify(req),
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      ),
+    onSuccess: () => {
+      client.invalidateQueries({
+        queryKey: ["apps", appId, "commands"],
+      });
+    },
+  });
+}
+
 export function useCommandDeleteMutation(appId: string, cmdId: string) {
   const client = useQueryClient();
 
@@ -291,6 +318,32 @@ export function useEventListenerUpdateMutation(appId: string, eventId: string) {
         `/v1/apps/${appId}/event-listeners/${eventId}`,
         {
           method: "PATCH",
+          body: JSON.stringify(req),
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      ),
+    onSuccess: () => {
+      client.invalidateQueries({
+        queryKey: ["apps", appId, "event-listeners"],
+      });
+    },
+  });
+}
+
+export function useEventListenerUpdateEnabledMutation(
+  appId: string,
+  eventId: string
+) {
+  const client = useQueryClient();
+
+  return useMutation({
+    mutationFn: (req: EventListenerUpdateEnabledRequest) =>
+      apiRequest<EventListenerUpdateEnabledResponse>(
+        `/v1/apps/${appId}/event-listeners/${eventId}/enabled`,
+        {
+          method: "PUT",
           body: JSON.stringify(req),
           headers: {
             "Content-Type": "application/json",

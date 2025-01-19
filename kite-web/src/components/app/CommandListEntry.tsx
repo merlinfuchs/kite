@@ -11,19 +11,29 @@ import { useRouter } from "next/router";
 import Link from "next/link";
 import { Command } from "@/lib/types/wire.gen";
 import ConfirmDialog from "../common/ConfirmDialog";
-import { useCommandDeleteMutation } from "@/lib/api/mutations";
+import {
+  useCommandDeleteMutation,
+  useCommandUpdateEnabledMutation,
+} from "@/lib/api/mutations";
 import { useAppId } from "@/lib/hooks/params";
 import { toast } from "sonner";
 import { formatDateTime } from "@/lib/utils";
-import { useMemo } from "react";
+import { useCallback, useMemo } from "react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
+import { Switch } from "../ui/switch";
 
 export default function CommandListEntry({ command }: { command: Command }) {
   const router = useRouter();
 
-  const deleteMutation = useCommandDeleteMutation(useAppId(), command.id);
+  const appId = useAppId();
 
-  function remove() {
+  const deleteMutation = useCommandDeleteMutation(appId, command.id);
+  const updateEnabledMutation = useCommandUpdateEnabledMutation(
+    appId,
+    command.id
+  );
+
+  const remove = useCallback(() => {
     deleteMutation.mutate(undefined, {
       onSuccess(res) {
         if (res.success) {
@@ -35,7 +45,13 @@ export default function CommandListEntry({ command }: { command: Command }) {
         }
       },
     });
-  }
+  }, [deleteMutation]);
+
+  const toggleEnabled = useCallback(() => {
+    updateEnabledMutation.mutate({
+      enabled: !command.enabled,
+    });
+  }, [updateEnabledMutation, command.enabled]);
 
   const changesDeployed = useMemo(
     () =>
@@ -44,8 +60,8 @@ export default function CommandListEntry({ command }: { command: Command }) {
   );
 
   return (
-    <Card>
-      <div className="float-right pt-3 pr-4">
+    <Card className="relative">
+      <div className="absolute top-0 right-0 py-3 pr-3 h-full flex flex-col justify-between">
         <div className="flex items-center space-x-2">
           {changesDeployed ? (
             <Tooltip>
@@ -73,6 +89,9 @@ export default function CommandListEntry({ command }: { command: Command }) {
           <div className="text-sm text-muted-foreground">
             {formatDateTime(new Date(command.updated_at))}
           </div>
+        </div>
+        <div className="flex justify-end">
+          <Switch checked={command.enabled} onCheckedChange={toggleEnabled} />
         </div>
       </div>
       <CardHeader>

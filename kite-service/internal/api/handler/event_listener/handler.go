@@ -150,6 +150,25 @@ func (h *EventListenerHandler) HandleEventListenerUpdate(c *handler.Context, req
 	return wire.EventListenerToWire(eventListener), nil
 }
 
+func (h *EventListenerHandler) HandleEventListenerUpdateEnabled(c *handler.Context, req wire.EventListenerUpdateEnabledRequest) (*wire.EventListenerUpdateEnabledResponse, error) {
+	eventListener, err := h.eventListenerStore.UpdateEventListener(c.Context(), &model.EventListener{
+		ID:          c.EventListener.ID,
+		Type:        c.EventListener.Type,
+		Description: c.EventListener.Description,
+		FlowSource:  c.EventListener.FlowSource,
+		Enabled:     req.Enabled,
+		UpdatedAt:   time.Now().UTC(),
+	})
+	if err != nil {
+		if errors.Is(err, store.ErrNotFound) {
+			return nil, handler.ErrNotFound("unknown_event_listener", "Event listener not found")
+		}
+		return nil, fmt.Errorf("failed to update event listener: %w", err)
+	}
+
+	return wire.EventListenerToWire(eventListener), nil
+}
+
 func (h *EventListenerHandler) HandleEventListenerDelete(c *handler.Context) (*wire.EventListenerDeleteResponse, error) {
 	err := h.eventListenerStore.DeleteEventListener(c.Context(), c.EventListener.ID)
 	if err != nil {

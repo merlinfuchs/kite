@@ -70,6 +70,16 @@ func (req EventListenerUpdateRequest) Validate() error {
 
 type EventListenerUpdateResponse = EventListener
 
+type EventListenerUpdateEnabledRequest struct {
+	Enabled bool `json:"enabled"`
+}
+
+func (req EventListenerUpdateEnabledRequest) Validate() error {
+	return nil
+}
+
+type EventListenerUpdateEnabledResponse = EventListener
+
 type EventListenerDeleteResponse = Empty
 
 func EventListenerToWire(eventListener *model.EventListener) *EventListener {

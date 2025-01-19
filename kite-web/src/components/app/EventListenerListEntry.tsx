@@ -10,12 +10,17 @@ import { Button } from "../ui/button";
 import { useRouter } from "next/router";
 import Link from "next/link";
 import ConfirmDialog from "../common/ConfirmDialog";
-import { useEventListenerDeleteMutation } from "@/lib/api/mutations";
+import {
+  useEventListenerDeleteMutation,
+  useEventListenerUpdateEnabledMutation,
+} from "@/lib/api/mutations";
 import { useAppId } from "@/lib/hooks/params";
 import { toast } from "sonner";
 import { formatDateTime } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
 import { EventListener } from "@/lib/types/wire.gen";
+import { Switch } from "../ui/switch";
+import { useCallback } from "react";
 
 export default function EventListenerListEntry({
   listener,
@@ -24,12 +29,16 @@ export default function EventListenerListEntry({
 }) {
   const router = useRouter();
 
-  const deleteMutation = useEventListenerDeleteMutation(
-    useAppId(),
+  const appId = useAppId();
+
+  const deleteMutation = useEventListenerDeleteMutation(appId, listener.id);
+
+  const updateEnabledMutation = useEventListenerUpdateEnabledMutation(
+    appId,
     listener.id
   );
 
-  function remove() {
+  const remove = useCallback(() => {
     deleteMutation.mutate(undefined, {
       onSuccess(res) {
         if (res.success) {
@@ -41,11 +50,15 @@ export default function EventListenerListEntry({
         }
       },
     });
-  }
+  }, [deleteMutation]);
+
+  const toggleEnabled = useCallback(() => {
+    updateEnabledMutation.mutate({ enabled: !listener.enabled });
+  }, [updateEnabledMutation, listener.enabled]);
 
   return (
-    <Card>
-      <div className="float-right pt-3 pr-4">
+    <Card className="relative">
+      <div className="absolute top-0 right-0 py-3 pr-3 h-full flex flex-col justify-between">
         <div className="flex items-center space-x-2">
           <Tooltip>
             <TooltipTrigger>
@@ -60,6 +73,9 @@ export default function EventListenerListEntry({
           <div className="text-sm text-muted-foreground">
             {formatDateTime(new Date(listener.updated_at))}
           </div>
+        </div>
+        <div className="flex justify-end">
+          <Switch checked={listener.enabled} onCheckedChange={toggleEnabled} />
         </div>
       </div>
       <CardHeader>
