@@ -476,7 +476,7 @@ export function getAITemplate(): Template {
 
   return {
     name: "AI",
-    description: "A number of AI commands to help you manage your server.",
+    description: "A command and event listener to let users ask AI questions.",
     icon: BrainCircuitIcon,
     commands: [
       {
