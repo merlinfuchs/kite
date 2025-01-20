@@ -49,7 +49,7 @@ export default function PrivacyPolicyPage() {
               <strong>Company</strong> (referred to as either &quot;the
               Company&quot;, &quot;We&quot;, &quot;Us&quot; or &quot;Our&quot;
               in this Agreement) refers to Merlin Fuchs, Alte Str. 5, 04229
-              Leipzig.
+              Leipzig, Germany.
             </p>
           </li>
           <li>

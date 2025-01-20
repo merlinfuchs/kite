@@ -81,6 +81,12 @@ export default function HomeFooter() {
               Privacy Policy
             </Link>
           </div>
+
+          <div>
+            <Link href="/refund" className="opacity-60 hover:opacity-100">
+              Refund Policy
+            </Link>
+          </div>
         </div>
       </section>
 
