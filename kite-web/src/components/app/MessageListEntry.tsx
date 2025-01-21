@@ -1,4 +1,10 @@
-import { CheckIcon, MailIcon } from "lucide-react";
+import {
+  CheckIcon,
+  CopyPlusIcon,
+  EllipsisIcon,
+  MailIcon,
+  Trash2Icon,
+} from "lucide-react";
 import {
   Card,
   CardDescription,
@@ -15,6 +21,14 @@ import { useAppId } from "@/lib/hooks/params";
 import { toast } from "sonner";
 import { useMessageDeleteMutation } from "@/lib/api/mutations";
 import { formatDateTime } from "@/lib/utils";
+import { DropdownMenuItem } from "../ui/dropdown-menu";
+import {
+  DropdownMenu,
+  DropdownMenuGroup,
+  DropdownMenuContent,
+  DropdownMenuTrigger,
+} from "../ui/dropdown-menu";
+import MessageDuplicateDialog from "./MessageDuplicateDialog";
 
 export default function MessageListEntry({ message }: { message: Message }) {
   const router = useRouter();
@@ -68,19 +82,33 @@ export default function MessageListEntry({ message }: { message: Message }) {
             Manage
           </Link>
         </Button>
-        <ConfirmDialog
-          title="Are you sure that you want to delete this message?"
-          description="This will remove the message from your app and cannot be undone."
-          onConfirm={remove}
-        >
-          <Button
-            size="sm"
-            variant="ghost"
-            className="space-x-2 flex items-center"
-          >
-            <div>Delete</div>
-          </Button>
-        </ConfirmDialog>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button size="icon" variant="ghost">
+              <EllipsisIcon className="h-5 w-5 text-muted-foreground" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent>
+            <DropdownMenuGroup>
+              <ConfirmDialog
+                title="Are you sure that you want to delete this message?"
+                description="This will remove the message from your app and cannot be undone."
+                onConfirm={remove}
+              >
+                <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                  <Trash2Icon className="h-4 w-4 mr-2 text-muted-foreground" />
+                  Delete Message
+                </DropdownMenuItem>
+              </ConfirmDialog>
+              <MessageDuplicateDialog message={message}>
+                <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                  <CopyPlusIcon className="h-4 w-4 mr-2 text-muted-foreground" />
+                  Duplicate Message
+                </DropdownMenuItem>
+              </MessageDuplicateDialog>
+            </DropdownMenuGroup>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </CardFooter>
     </Card>
   );

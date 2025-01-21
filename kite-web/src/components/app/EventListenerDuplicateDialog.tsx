@@ -12,39 +12,51 @@ import { ReactNode, useState } from "react";
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
   FormMessage,
 } from "../ui/form";
 import { useForm } from "react-hook-form";
-import { useCommandCreateMutation } from "@/lib/api/mutations";
+import { useEventListenerCreateMutation } from "@/lib/api/mutations";
 import { toast } from "sonner";
 import LoadingButton from "../common/LoadingButton";
 import { useAppId } from "@/lib/hooks/params";
 import { getUniqueId } from "@/lib/utils";
 import { useRouter } from "next/router";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../ui/select";
+import { EventListener } from "@/lib/types/wire.gen";
+import { FlowData } from "@/lib/types/flow.gen";
 
 interface FormFields {
-  name: string;
+  source: string;
+  type: string;
   description: string;
 }
 
-export default function CommandCreateDialog({
+export default function EventListenerDuplicateDialog({
   children,
+  listener,
 }: {
   children: ReactNode;
+  listener: EventListener;
 }) {
   const [open, setOpen] = useState(false);
 
   const router = useRouter();
   const appId = useAppId();
 
-  const createMutation = useCommandCreateMutation(appId);
+  const createMutation = useEventListenerCreateMutation(appId);
   const form = useForm<FormFields>({
     defaultValues: {
-      name: "",
-      description: "",
+      description: listener.description,
     },
   });
 
@@ -53,26 +65,27 @@ export default function CommandCreateDialog({
 
     createMutation.mutate(
       {
-        flow_source: getInitialFlowData(data.name, data.description),
+        source: listener.source,
+        flow_source: updateFlowData(listener.flow_source, data.description),
         enabled: true,
       },
       {
         onSuccess(res) {
           if (res.success) {
-            toast.success("Command created!");
+            toast.success("Event listener duplicated!");
             setOpen(false);
 
             setTimeout(
               () =>
                 router.push({
-                  pathname: "/apps/[appId]/commands/[cmdId]",
-                  query: { appId, cmdId: res.data.id },
+                  pathname: "/apps/[appId]/events/[eventId]",
+                  query: { appId, eventId: res.data.id },
                 }),
               500
             );
           } else {
             toast.error(
-              `Failed to create command: ${res.error.message} (${res.error.code})`
+              `Failed to duplicate event listener: ${res.error.message} (${res.error.code})`
             );
           }
         },
@@ -85,32 +98,22 @@ export default function CommandCreateDialog({
       <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Create Command</DialogTitle>
+          <DialogTitle>Duplicate Event Listener</DialogTitle>
           <DialogDescription>
-            Create a new command with a name and description.
+            Duplicate an existing event listener with a new description.
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4">
             <FormField
               control={form.control}
-              name="name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Name</FormLabel>
-                  <FormControl>
-                    <Input type="text" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
               name="description"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Description</FormLabel>
+                  <FormDescription>
+                    What will you use this event listener for?
+                  </FormDescription>
                   <FormControl>
                     <Input type="text" {...field} />
                   </FormControl>
@@ -120,7 +123,7 @@ export default function CommandCreateDialog({
             />
             <DialogFooter>
               <LoadingButton type="submit" loading={createMutation.isPending}>
-                Create command
+                Duplicate event listener
               </LoadingButton>
             </DialogFooter>
           </form>
@@ -130,16 +133,17 @@ export default function CommandCreateDialog({
   );
 }
 
-function getInitialFlowData(name: string, description: string) {
+function updateFlowData(flowData: FlowData, description: string) {
   return {
-    nodes: [
-      {
-        id: getUniqueId().toString(),
-        position: { x: 0, y: 0 },
-        data: { name, description },
-        type: "entry_command",
-      },
-    ],
-    edges: [],
+    nodes: flowData.nodes.map((node) => {
+      if (node.type === "entry_event") {
+        return {
+          ...node,
+          data: { ...node.data, description },
+        };
+      }
+      return { ...node };
+    }),
+    edges: [...flowData.edges],
   };
 }

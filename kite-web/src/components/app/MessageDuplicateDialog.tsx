@@ -18,33 +18,36 @@ import {
   FormMessage,
 } from "../ui/form";
 import { useForm } from "react-hook-form";
-import { useCommandCreateMutation } from "@/lib/api/mutations";
 import { toast } from "sonner";
+import { setValidationErrors } from "@/lib/form";
 import LoadingButton from "../common/LoadingButton";
 import { useAppId } from "@/lib/hooks/params";
-import { getUniqueId } from "@/lib/utils";
-import { useRouter } from "next/router";
+import { useMessageCreateMutation } from "@/lib/api/mutations";
+import { Message } from "@/lib/types/wire.gen";
 
 interface FormFields {
   name: string;
   description: string;
 }
 
-export default function CommandCreateDialog({
+export default function MessageCreateDialog({
   children,
+  message,
+  onMessageCreated,
 }: {
   children: ReactNode;
+  message: Message;
+  onMessageCreated?: (id: string) => void;
 }) {
   const [open, setOpen] = useState(false);
 
-  const router = useRouter();
   const appId = useAppId();
 
-  const createMutation = useCommandCreateMutation(appId);
+  const createMutation = useMessageCreateMutation(appId);
   const form = useForm<FormFields>({
     defaultValues: {
-      name: "",
-      description: "",
+      name: message.name,
+      description: message.description || undefined,
     },
   });
 
@@ -53,27 +56,28 @@ export default function CommandCreateDialog({
 
     createMutation.mutate(
       {
-        flow_source: getInitialFlowData(data.name, data.description),
-        enabled: true,
+        name: data.name,
+        description: data.description || null,
+        data: message.data,
+        flow_sources: {},
       },
       {
         onSuccess(res) {
           if (res.success) {
-            toast.success("Command created!");
+            toast.success("Message duplicated!");
             setOpen(false);
 
-            setTimeout(
-              () =>
-                router.push({
-                  pathname: "/apps/[appId]/commands/[cmdId]",
-                  query: { appId, cmdId: res.data.id },
-                }),
-              500
-            );
+            if (onMessageCreated) {
+              onMessageCreated(res.data.id);
+            }
           } else {
-            toast.error(
-              `Failed to create command: ${res.error.message} (${res.error.code})`
-            );
+            if (res.error.code === "validation_failed") {
+              setValidationErrors(form, res.error.data);
+            } else {
+              toast.error(
+                `Failed to duplicate message: ${res.error.message} (${res.error.code})`
+              );
+            }
           }
         },
       }
@@ -85,9 +89,9 @@ export default function CommandCreateDialog({
       <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Create Command</DialogTitle>
+          <DialogTitle>Duplicate message</DialogTitle>
           <DialogDescription>
-            Create a new command with a name and description.
+            Duplicate an existing message with a new name and description.
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -120,7 +124,7 @@ export default function CommandCreateDialog({
             />
             <DialogFooter>
               <LoadingButton type="submit" loading={createMutation.isPending}>
-                Create command
+                Duplicate message
               </LoadingButton>
             </DialogFooter>
           </form>
@@ -128,18 +132,4 @@ export default function CommandCreateDialog({
       </DialogContent>
     </Dialog>
   );
-}
-
-function getInitialFlowData(name: string, description: string) {
-  return {
-    nodes: [
-      {
-        id: getUniqueId().toString(),
-        position: { x: 0, y: 0 },
-        data: { name, description },
-        type: "entry_command",
-      },
-    ],
-    edges: [],
-  };
 }

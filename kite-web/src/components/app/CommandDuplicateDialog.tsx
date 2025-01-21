@@ -22,18 +22,21 @@ import { useCommandCreateMutation } from "@/lib/api/mutations";
 import { toast } from "sonner";
 import LoadingButton from "../common/LoadingButton";
 import { useAppId } from "@/lib/hooks/params";
-import { getUniqueId } from "@/lib/utils";
 import { useRouter } from "next/router";
+import { Command } from "@/lib/types/wire.gen";
+import { FlowData } from "@/lib/types/flow.gen";
 
 interface FormFields {
   name: string;
   description: string;
 }
 
-export default function CommandCreateDialog({
+export default function CommandDuplicateDialog({
   children,
+  command,
 }: {
   children: ReactNode;
+  command: Command;
 }) {
   const [open, setOpen] = useState(false);
 
@@ -43,8 +46,8 @@ export default function CommandCreateDialog({
   const createMutation = useCommandCreateMutation(appId);
   const form = useForm<FormFields>({
     defaultValues: {
-      name: "",
-      description: "",
+      name: command.name,
+      description: command.description,
     },
   });
 
@@ -53,13 +56,17 @@ export default function CommandCreateDialog({
 
     createMutation.mutate(
       {
-        flow_source: getInitialFlowData(data.name, data.description),
+        flow_source: updateFlowData(
+          command.flow_source,
+          data.name,
+          data.description
+        ),
         enabled: true,
       },
       {
         onSuccess(res) {
           if (res.success) {
-            toast.success("Command created!");
+            toast.success("Command duplicated!");
             setOpen(false);
 
             setTimeout(
@@ -72,7 +79,7 @@ export default function CommandCreateDialog({
             );
           } else {
             toast.error(
-              `Failed to create command: ${res.error.message} (${res.error.code})`
+              `Failed to duplicate command: ${res.error.message} (${res.error.code})`
             );
           }
         },
@@ -85,9 +92,9 @@ export default function CommandCreateDialog({
       <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Create Command</DialogTitle>
+          <DialogTitle>Duplicate Command</DialogTitle>
           <DialogDescription>
-            Create a new command with a name and description.
+            Duplicate this command with a new name and description.
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -120,7 +127,7 @@ export default function CommandCreateDialog({
             />
             <DialogFooter>
               <LoadingButton type="submit" loading={createMutation.isPending}>
-                Create command
+                Duplicate command
               </LoadingButton>
             </DialogFooter>
           </form>
@@ -130,16 +137,17 @@ export default function CommandCreateDialog({
   );
 }
 
-function getInitialFlowData(name: string, description: string) {
+function updateFlowData(flowData: FlowData, name: string, description: string) {
   return {
-    nodes: [
-      {
-        id: getUniqueId().toString(),
-        position: { x: 0, y: 0 },
-        data: { name, description },
-        type: "entry_command",
-      },
-    ],
-    edges: [],
+    nodes: flowData.nodes.map((node) => {
+      if (node.type === "entry_command") {
+        return {
+          ...node,
+          data: { ...node.data, name, description },
+        };
+      }
+      return { ...node };
+    }),
+    edges: [...flowData.edges],
   };
 }
