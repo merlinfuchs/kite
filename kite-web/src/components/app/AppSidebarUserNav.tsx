@@ -79,7 +79,7 @@ export default function AppSidebarUserNav() {
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuItem className="gap-2 cursor-pointer" onClick={logout}>
-              <LogOutIcon />
+              <LogOutIcon className="size-4" />
               Log out
             </DropdownMenuItem>
           </DropdownMenuContent>
