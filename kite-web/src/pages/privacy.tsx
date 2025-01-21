@@ -172,11 +172,7 @@ export default function PrivacyPolicyPage() {
           Service through the following Third-party Social Media Services:
         </p>
         <ul>
-          <li>Google</li>
-          <li>Facebook</li>
-          <li>Instagram</li>
-          <li>Twitter</li>
-          <li>LinkedIn</li>
+          <li>Discord</li>
         </ul>
         <p>
           If You decide to register through or otherwise grant us access to a

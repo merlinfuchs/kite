@@ -1,4 +1,23 @@
-import { CheckIcon, SatelliteDishIcon } from "lucide-react";
+import {
+  useEventListenerDeleteMutation,
+  useEventListenerUpdateEnabledMutation,
+} from "@/lib/api/mutations";
+import { useAppId } from "@/lib/hooks/params";
+import { EventListener } from "@/lib/types/wire.gen";
+import { formatDateTime } from "@/lib/utils";
+import {
+  CheckIcon,
+  CopyPlusIcon,
+  EllipsisIcon,
+  SatelliteDishIcon,
+  Trash2Icon,
+} from "lucide-react";
+import Link from "next/link";
+import { useRouter } from "next/router";
+import { useCallback } from "react";
+import { toast } from "sonner";
+import ConfirmDialog from "../common/ConfirmDialog";
+import { Button } from "../ui/button";
 import {
   Card,
   CardDescription,
@@ -6,21 +25,16 @@ import {
   CardHeader,
   CardTitle,
 } from "../ui/card";
-import { Button } from "../ui/button";
-import { useRouter } from "next/router";
-import Link from "next/link";
-import ConfirmDialog from "../common/ConfirmDialog";
 import {
-  useEventListenerDeleteMutation,
-  useEventListenerUpdateEnabledMutation,
-} from "@/lib/api/mutations";
-import { useAppId } from "@/lib/hooks/params";
-import { toast } from "sonner";
-import { formatDateTime } from "@/lib/utils";
-import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
-import { EventListener } from "@/lib/types/wire.gen";
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "../ui/dropdown-menu";
 import { Switch } from "../ui/switch";
-import { useCallback } from "react";
+import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
+import EventListenerDuplicateDialog from "./EventListenerDuplicateDialog";
 
 export default function EventListenerListEntry({
   listener,
@@ -101,19 +115,33 @@ export default function EventListenerListEntry({
             Manage
           </Link>
         </Button>
-        <ConfirmDialog
-          title="Are you sure that you want to delete this event listener?"
-          description="This will remove the event listener from your app and cannot be undone."
-          onConfirm={remove}
-        >
-          <Button
-            size="sm"
-            variant="ghost"
-            className="space-x-2 flex items-center"
-          >
-            <div>Delete</div>
-          </Button>
-        </ConfirmDialog>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button size="icon" variant="ghost">
+              <EllipsisIcon className="h-5 w-5 text-muted-foreground" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent>
+            <DropdownMenuGroup>
+              <ConfirmDialog
+                title="Are you sure that you want to delete this event listener?"
+                description="This will remove the event listener from your app and cannot be undone."
+                onConfirm={remove}
+              >
+                <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                  <Trash2Icon className="h-4 w-4 mr-2 text-muted-foreground" />
+                  Delete Event Listener
+                </DropdownMenuItem>
+              </ConfirmDialog>
+              <EventListenerDuplicateDialog listener={listener}>
+                <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                  <CopyPlusIcon className="h-4 w-4 mr-2 text-muted-foreground" />
+                  Duplicate Event Listener
+                </DropdownMenuItem>
+              </EventListenerDuplicateDialog>
+            </DropdownMenuGroup>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </CardFooter>
     </Card>
   );
