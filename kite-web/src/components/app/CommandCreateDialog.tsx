@@ -60,11 +60,16 @@ export default function CommandCreateDialog({
         onSuccess(res) {
           if (res.success) {
             toast.success("Command created!");
-            router.push({
-              pathname: "/apps/[appId]/commands/[cmdId]",
-              query: { appId, cmdId: res.data.id },
-            });
             setOpen(false);
+
+            setTimeout(
+              () =>
+                router.push({
+                  pathname: "/apps/[appId]/commands/[cmdId]",
+                  query: { appId, cmdId: res.data.id },
+                }),
+              500
+            );
           } else {
             toast.error(
               `Failed to create command: ${res.error.message} (${res.error.code})`

@@ -67,11 +67,16 @@ export default function CommandDuplicateDialog({
         onSuccess(res) {
           if (res.success) {
             toast.success("Command duplicated!");
-            router.push({
-              pathname: "/apps/[appId]/commands/[cmdId]",
-              query: { appId, cmdId: res.data.id },
-            });
             setOpen(false);
+
+            setTimeout(
+              () =>
+                router.push({
+                  pathname: "/apps/[appId]/commands/[cmdId]",
+                  query: { appId, cmdId: res.data.id },
+                }),
+              500
+            );
           } else {
             toast.error(
               `Failed to duplicate command: ${res.error.message} (${res.error.code})`

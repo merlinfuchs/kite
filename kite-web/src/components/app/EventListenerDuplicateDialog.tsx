@@ -73,11 +73,16 @@ export default function EventListenerDuplicateDialog({
         onSuccess(res) {
           if (res.success) {
             toast.success("Event listener duplicated!");
-            router.push({
-              pathname: "/apps/[appId]/events/[eventId]",
-              query: { appId, eventId: res.data.id },
-            });
             setOpen(false);
+
+            setTimeout(
+              () =>
+                router.push({
+                  pathname: "/apps/[appId]/events/[eventId]",
+                  query: { appId, eventId: res.data.id },
+                }),
+              500
+            );
           } else {
             toast.error(
               `Failed to duplicate event listener: ${res.error.message} (${res.error.code})`
