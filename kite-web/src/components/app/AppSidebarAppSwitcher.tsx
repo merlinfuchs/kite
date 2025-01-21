@@ -1,4 +1,4 @@
-import { BotIcon, ChevronsUpDown, PackageIcon, Plus } from "lucide-react";
+import { BotIcon, ChevronsUpDown, CogIcon } from "lucide-react";
 
 import {
   DropdownMenu,
@@ -15,8 +15,8 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { useApp, useApps } from "@/lib/hooks/api";
-import { useRouter } from "next/router";
 import Link from "next/link";
+import { useRouter } from "next/router";
 import { useCallback } from "react";
 
 export default function AppSidebarAppSwitcher() {
@@ -84,9 +84,9 @@ export default function AppSidebarAppSwitcher() {
             <DropdownMenuItem className="gap-2 p-2 cursor-pointer" asChild>
               <Link href="/apps">
                 <div className="flex size-6 items-center justify-center rounded-md border bg-background">
-                  <Plus className="size-4" />
+                  <CogIcon className="size-4" />
                 </div>
-                <div className="font-medium text-muted-foreground">Add app</div>
+                <div className="font-medium text-muted-foreground">Manage apps</div>
               </Link>
             </DropdownMenuItem>
           </DropdownMenuContent>
