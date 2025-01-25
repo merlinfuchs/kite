@@ -112,7 +112,7 @@ func serverStartCMD(c *cli.Context) error {
 		},
 	}, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, assetStore, gateway)
 	address := fmt.Sprintf("%s:%d", cfg.API.Host, cfg.API.Port)
-	if err := apiServer.Serve(context.Background(), address); err != nil {
+	if err := apiServer.Serve(ctx, address); err != nil {
 		slog.With("error", err).Error("Failed to start API server")
 		return fmt.Errorf("failed to start API server: %w", err)
 	}
