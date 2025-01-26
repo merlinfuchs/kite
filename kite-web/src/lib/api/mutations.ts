@@ -11,6 +11,8 @@ import {
   AppUpdateResponse,
   AssetCreateResponse,
   AuthLogoutResponse,
+  BillingCheckoutRequest,
+  BillingCheckoutResponse,
   CommandCreateRequest,
   CommandCreateResponse,
   CommandDeleteResponse,
@@ -656,6 +658,23 @@ export function useAssetCreateMutation(appId: string) {
       client.invalidateQueries({
         queryKey: ["apps", appId, "assets"],
       });
+    },
+  });
+}
+
+export function useCheckoutCreateMutation(appId: string) {
+  return useMutation({
+    mutationFn: (req: BillingCheckoutRequest) => {
+      return apiRequest<BillingCheckoutResponse>(
+        `/v1/apps/${appId}/billing/checkout`,
+        {
+          method: "POST",
+          body: JSON.stringify(req),
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
     },
   });
 }

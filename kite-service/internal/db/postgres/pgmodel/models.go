@@ -59,6 +59,18 @@ type Command struct {
 	LastDeployedAt pgtype.Timestamp
 }
 
+type Entitlement struct {
+	ID                          string
+	Type                        string
+	SubscriptionID              pgtype.Text
+	AppID                       string
+	FeatureUsageCreditsPerMonth int32
+	FeatureMaxCollaborator      int32
+	CreatedAt                   pgtype.Timestamp
+	UpdatedAt                   pgtype.Timestamp
+	EndsAt                      pgtype.Timestamp
+}
+
 type EventListener struct {
 	ID            string
 	Source        string
@@ -143,6 +155,24 @@ type Session struct {
 	UserID    string
 	CreatedAt pgtype.Timestamp
 	ExpiresAt pgtype.Timestamp
+}
+
+type Subscription struct {
+	ID                         string
+	Source                     string
+	Status                     string
+	StatusFormatted            string
+	CreatedAt                  pgtype.Timestamp
+	UpdatedAt                  pgtype.Timestamp
+	RenewsAt                   pgtype.Timestamp
+	TrialEndsAt                pgtype.Timestamp
+	EndsAt                     pgtype.Timestamp
+	UserID                     string
+	LemonsqueezySubscriptionID pgtype.Text
+	LemonsqueezyCustomerID     pgtype.Text
+	LemonsqueezyOrderID        pgtype.Text
+	LemonsqueezyProductID      pgtype.Text
+	LemonsqueezyVariantID      pgtype.Text
 }
 
 type UsageRecord struct {

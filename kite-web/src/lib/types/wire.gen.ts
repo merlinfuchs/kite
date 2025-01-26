@@ -111,6 +111,18 @@ export type AssetGetResponse = Asset;
 export type AuthLogoutResponse = Empty;
 
 //////////
+// source: billing.go
+
+export interface BillingWebhookResponse {
+}
+export interface BillingCheckoutRequest {
+  dark?: boolean;
+}
+export interface BillingCheckoutResponse {
+  url: string;
+}
+
+//////////
 // source: command.go
 
 export interface Command {

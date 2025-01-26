@@ -2,6 +2,7 @@ import { AppChartCards } from "@/components/app/AppChartCards";
 import AppInfoCard from "@/components/app/AppInfoCard";
 import AppLayout from "@/components/app/AppLayout";
 import AppResourceCard from "@/components/app/AppResourceCard";
+import { BillingCheckoutButton } from "@/components/app/BillingCheckoutButton";
 import UsageCreditsByDayChart from "@/components/app/UsageCreditsByDayChart";
 import { useApp, useAppEntities } from "@/lib/hooks/api";
 import { useMemo } from "react";
@@ -58,6 +59,8 @@ export default function AppPage() {
           <AppInfoCard />
         </div>
       </main>
+
+      <BillingCheckoutButton />
     </AppLayout>
   );
 }
