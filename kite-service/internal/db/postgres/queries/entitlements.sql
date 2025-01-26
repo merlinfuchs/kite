@@ -20,3 +20,11 @@ ON CONFLICT (subscription_id) DO UPDATE SET
     updated_at = EXCLUDED.updated_at,
     ends_at = EXCLUDED.ends_at
 RETURNING *;
+
+-- name: UpdateSubscriptionEntitlement :one
+UPDATE entitlements SET
+    feature_usage_credits_per_month = $2,
+    feature_max_collaborator = $3,
+    updated_at = $4,
+    ends_at = $5
+WHERE subscription_id = $1 RETURNING *;

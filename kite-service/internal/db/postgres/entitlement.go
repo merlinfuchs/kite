@@ -42,6 +42,21 @@ func (c *Client) UpsertSubscriptionEntitlement(ctx context.Context, entitlement 
 	return rowToEntitlement(row), nil
 }
 
+func (c *Client) UpdateSubscriptionEntitlement(ctx context.Context, entitlement model.Entitlement) (*model.Entitlement, error) {
+	row, err := c.Q.UpdateSubscriptionEntitlement(ctx, pgmodel.UpdateSubscriptionEntitlementParams{
+		SubscriptionID:              pgtype.Text{String: entitlement.SubscriptionID.String, Valid: entitlement.SubscriptionID.Valid},
+		FeatureUsageCreditsPerMonth: entitlement.FeatureUsageCreditsPerMonth,
+		FeatureMaxCollaborator:      entitlement.FeatureMaxCollaborator,
+		UpdatedAt:                   pgtype.Timestamp{Time: entitlement.UpdatedAt, Valid: true},
+		EndsAt:                      pgtype.Timestamp{Time: entitlement.EndsAt.Time, Valid: entitlement.EndsAt.Valid},
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return rowToEntitlement(row), nil
+}
+
 func rowToEntitlement(row pgmodel.Entitlement) *model.Entitlement {
 	return &model.Entitlement{
 		ID:                          row.ID,

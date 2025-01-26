@@ -32,4 +32,3 @@ ON CONFLICT (lemonsqueezy_subscription_id) DO UPDATE SET
     lemonsqueezy_product_id = EXCLUDED.lemonsqueezy_product_id,
     lemonsqueezy_variant_id = EXCLUDED.lemonsqueezy_variant_id
 RETURNING *;
-

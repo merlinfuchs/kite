@@ -78,18 +78,21 @@ func (h *BillingHandler) HandleBillingWebhook(c *handler.Context, body json.RawM
 		entitlementEndsAt = sub.EndsAt.Time
 	}
 
+	entitlement := model.Entitlement{
+		ID:                          util.UniqueID(),
+		Type:                        "subscription",
+		SubscriptionID:              null.StringFrom(subscription.ID),
+		AppID:                       appID,
+		FeatureUsageCreditsPerMonth: 100,
+		FeatureMaxCollaborator:      10,
+		CreatedAt:                   time.Now().UTC(),
+		UpdatedAt:                   time.Now().UTC(),
+		EndsAt:                      null.TimeFrom(entitlementEndsAt),
+	}
+
 	if appID != "" {
-		_, err := h.entitlementStore.UpsertSubscriptionEntitlement(c.Context(), model.Entitlement{
-			ID:                          util.UniqueID(),
-			Type:                        "subscription",
-			SubscriptionID:              null.StringFrom(subscription.ID),
-			AppID:                       appID,
-			FeatureUsageCreditsPerMonth: 100,
-			FeatureMaxCollaborator:      10,
-			CreatedAt:                   time.Now().UTC(),
-			UpdatedAt:                   time.Now().UTC(),
-			EndsAt:                      null.TimeFrom(entitlementEndsAt),
-		})
+		// Create a new entitlement or update the existing one
+		_, err := h.entitlementStore.UpsertSubscriptionEntitlement(c.Context(), entitlement)
 		if err != nil {
 			slog.Error(
 				"Failed to upsert subscription entitlement",
@@ -98,6 +101,17 @@ func (h *BillingHandler) HandleBillingWebhook(c *handler.Context, body json.RawM
 				slog.String("error", err.Error()),
 			)
 			return nil, fmt.Errorf("failed to upsert subscription entitlement: %w", err)
+		}
+	} else {
+		// We don't have the app ID, but there might be an entitlement anyway, so we update that
+		_, err := h.entitlementStore.UpdateSubscriptionEntitlement(c.Context(), entitlement)
+		if err != nil {
+			slog.Error(
+				"Failed to update subscription entitlement",
+				slog.String("subscription_id", subscription.ID),
+				slog.String("error", err.Error()),
+			)
+			return nil, fmt.Errorf("failed to update subscription entitlement: %w", err)
 		}
 	}
 

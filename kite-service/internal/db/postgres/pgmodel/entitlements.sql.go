@@ -45,6 +45,46 @@ func (q *Queries) GetEntitlements(ctx context.Context, appID string) ([]Entitlem
 	return items, nil
 }
 
+const updateSubscriptionEntitlement = `-- name: UpdateSubscriptionEntitlement :one
+UPDATE entitlements SET
+    feature_usage_credits_per_month = $2,
+    feature_max_collaborator = $3,
+    updated_at = $4,
+    ends_at = $5
+WHERE subscription_id = $1 RETURNING id, type, subscription_id, app_id, feature_usage_credits_per_month, feature_max_collaborator, created_at, updated_at, ends_at
+`
+
+type UpdateSubscriptionEntitlementParams struct {
+	SubscriptionID              pgtype.Text
+	FeatureUsageCreditsPerMonth int32
+	FeatureMaxCollaborator      int32
+	UpdatedAt                   pgtype.Timestamp
+	EndsAt                      pgtype.Timestamp
+}
+
+func (q *Queries) UpdateSubscriptionEntitlement(ctx context.Context, arg UpdateSubscriptionEntitlementParams) (Entitlement, error) {
+	row := q.db.QueryRow(ctx, updateSubscriptionEntitlement,
+		arg.SubscriptionID,
+		arg.FeatureUsageCreditsPerMonth,
+		arg.FeatureMaxCollaborator,
+		arg.UpdatedAt,
+		arg.EndsAt,
+	)
+	var i Entitlement
+	err := row.Scan(
+		&i.ID,
+		&i.Type,
+		&i.SubscriptionID,
+		&i.AppID,
+		&i.FeatureUsageCreditsPerMonth,
+		&i.FeatureMaxCollaborator,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.EndsAt,
+	)
+	return i, err
+}
+
 const upsertSubscriptionEntitlement = `-- name: UpsertSubscriptionEntitlement :one
 INSERT INTO entitlements (
     id,
