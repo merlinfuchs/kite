@@ -58,8 +58,9 @@ export default function MessageSendDialog({
     );
   }, [createMutation, channelId, guildId]);
 
+  // We had to set modal={false} because otherwise the popovers don't work
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={setOpen} modal={false}>
       <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent>
         <DialogHeader>
