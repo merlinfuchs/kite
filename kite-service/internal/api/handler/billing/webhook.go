@@ -46,6 +46,7 @@ func (h *BillingHandler) HandleBillingWebhook(c *handler.Context, body json.RawM
 
 	subscription, err := h.subscriptionStore.UpsertLemonSqueezySubscription(c.Context(), model.Subscription{
 		ID:                         util.UniqueID(),
+		DisplayName:                sub.ProductName,
 		Source:                     model.SubscriptionSourceLemonSqueezy,
 		Status:                     sub.Status,
 		StatusFormatted:            sub.StatusFormatted,

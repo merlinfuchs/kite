@@ -49,16 +49,45 @@ type BillingCheckoutResponse struct {
 	URL string `json:"url"`
 }
 
-type BillingSubscription struct {
-	ID string `json:"id"`
+type SubscriptionManageResponse struct {
+	UpdatePaymentMethodURL string `json:"update_payment_method_url"`
+	CustomerPortalURL      string `json:"customer_portal_url"`
 }
 
-func SubscriptionToWire(subscription *model.Subscription) *BillingSubscription {
+type Subscription struct {
+	ID              string    `json:"id"`
+	DisplayName     string    `json:"display_name"`
+	Source          string    `json:"source"`
+	Status          string    `json:"status"`
+	StatusFormatted string    `json:"status_formatted"`
+	CreatedAt       time.Time `json:"created_at"`
+	UpdatedAt       time.Time `json:"updated_at"`
+	RenewsAt        time.Time `json:"renews_at"`
+	TrialEndsAt     null.Time `json:"trial_ends_at"`
+	EndsAt          null.Time `json:"ends_at"`
+	UserID          string    `json:"user_id"`
+	Manageable      bool      `json:"manageable"`
+}
+
+type SubscriptionListResponse = []*Subscription
+
+func SubscriptionToWire(subscription *model.Subscription, userID string) *Subscription {
 	if subscription == nil {
 		return nil
 	}
 
-	return &BillingSubscription{
-		ID: subscription.ID,
+	return &Subscription{
+		ID:              subscription.ID,
+		DisplayName:     subscription.DisplayName,
+		Source:          string(subscription.Source),
+		Status:          subscription.Status,
+		StatusFormatted: subscription.StatusFormatted,
+		CreatedAt:       subscription.CreatedAt,
+		UpdatedAt:       subscription.UpdatedAt,
+		RenewsAt:        subscription.RenewsAt,
+		TrialEndsAt:     subscription.TrialEndsAt,
+		EndsAt:          subscription.EndsAt,
+		UserID:          subscription.UserID,
+		Manageable:      subscription.UserID == userID && subscription.LemonsqueezySubscriptionID.Valid,
 	}
 }

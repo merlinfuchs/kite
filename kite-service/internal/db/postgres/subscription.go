@@ -23,9 +23,33 @@ func (c *Client) Subscriptions(ctx context.Context, userID string) ([]*model.Sub
 	return subs, nil
 }
 
+func (c *Client) SubscriptionsByAppID(ctx context.Context, appID string) ([]*model.Subscription, error) {
+	rows, err := c.Q.GetSubscriptionsByAppID(ctx, appID)
+	if err != nil {
+		return nil, err
+	}
+
+	subs := make([]*model.Subscription, 0, len(rows))
+	for _, row := range rows {
+		subs = append(subs, rowToSubscription(row))
+	}
+
+	return subs, nil
+}
+
+func (c *Client) Subscription(ctx context.Context, subscriptionID string) (*model.Subscription, error) {
+	row, err := c.Q.GetSubscription(ctx, subscriptionID)
+	if err != nil {
+		return nil, err
+	}
+
+	return rowToSubscription(row), nil
+}
+
 func (c *Client) UpsertLemonSqueezySubscription(ctx context.Context, sub model.Subscription) (*model.Subscription, error) {
 	row, err := c.Q.UpsertLemonSqueezySubscription(ctx, pgmodel.UpsertLemonSqueezySubscriptionParams{
 		ID:                         sub.ID,
+		DisplayName:                sub.DisplayName,
 		Source:                     string(sub.Source),
 		Status:                     sub.Status,
 		StatusFormatted:            sub.StatusFormatted,
@@ -55,6 +79,7 @@ func rowToSubscription(row pgmodel.Subscription) *model.Subscription {
 
 	return &model.Subscription{
 		ID:                         row.ID,
+		DisplayName:                row.DisplayName,
 		Source:                     model.SubscriptionSource(row.Source),
 		Status:                     row.Status,
 		StatusFormatted:            row.StatusFormatted,

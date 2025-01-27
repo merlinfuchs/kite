@@ -128,8 +128,12 @@ func (s *APIServer) RegisterRoutes(
 
 	v1Group.Post("/billing/webhook", handler.TypedWithBody(billingHandler.HandleBillingWebhook))
 
-	billingGroup := appGroup.Group("/billing")
-	billingGroup.Post("/checkout", handler.TypedWithBody(billingHandler.HandleBillingCheckout))
+	userBillingGroup := v1Group.Group("/billing", sessionManager.RequireSession)
+	userBillingGroup.Get("/subscriptions/{subscriptionID}/manage", handler.Typed(billingHandler.HandleSubscriptionManage))
+
+	appBillingGroup := appGroup.Group("/billing")
+	appBillingGroup.Get("/subscriptions", handler.Typed(billingHandler.HandleAppSubscriptionList))
+	appBillingGroup.Post("/checkout", handler.TypedWithBody(billingHandler.HandleAppCheckout))
 
 	// Log routes
 	logHandler := logs.NewLogHandler(logStore)

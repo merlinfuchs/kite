@@ -113,14 +113,65 @@ export type AuthLogoutResponse = Empty;
 //////////
 // source: billing.go
 
+export interface BillingWebhookRequest {
+  meta: {
+    event_name: string;
+    custom_data: { [key: string]: any};
+  };
+  data: {
+    id: string;
+    attributes: {
+      store_id: number /* int */;
+      customer_id: number /* int */;
+      order_id: number /* int */;
+      order_item_id: number /* int */;
+      product_id: number /* int */;
+      variant_id: number /* int */;
+      product_name: string;
+      variant_name: string;
+      user_name: string;
+      user_email: string;
+      status: string;
+      status_formatted: string;
+      card_brand: string;
+      card_last_four: string;
+      cancelled: boolean;
+      trial_ends_at: null | string /* RFC3339 */;
+      billing_anchor: number /* int */;
+      renews_at: string /* RFC3339 */;
+      ends_at: null | string /* RFC3339 */;
+      created_at: string /* RFC3339 */;
+      updated_at: string /* RFC3339 */;
+      test_mode: boolean;
+    };
+  };
+}
 export interface BillingWebhookResponse {
 }
 export interface BillingCheckoutRequest {
-  dark?: boolean;
 }
 export interface BillingCheckoutResponse {
   url: string;
 }
+export interface SubscriptionManageResponse {
+  update_payment_method_url: string;
+  customer_portal_url: string;
+}
+export interface Subscription {
+  id: string;
+  display_name: string;
+  source: string;
+  status: string;
+  status_formatted: string;
+  created_at: string /* RFC3339 */;
+  updated_at: string /* RFC3339 */;
+  renews_at: string /* RFC3339 */;
+  trial_ends_at: null | string /* RFC3339 */;
+  ends_at: null | string /* RFC3339 */;
+  user_id: string;
+  manageable: boolean;
+}
+export type SubscriptionListResponse = (Subscription | undefined)[];
 
 //////////
 // source: command.go
@@ -159,6 +210,24 @@ export interface CommandUpdateEnabledRequest {
 }
 export type CommandUpdateEnabledResponse = Command;
 export type CommandDeleteResponse = Empty;
+
+//////////
+// source: entitlement.go
+
+export interface Entitlement {
+  id: string;
+  default: boolean;
+  subscription?: Subscription;
+  feature_set: EntitlementFeatureSet;
+  created_at: string /* RFC3339 */;
+  updated_at: string /* RFC3339 */;
+}
+export interface EntitlementFeatureSet {
+  usage_credits_per_month: number /* int */;
+  max_collaborators: number /* int */;
+}
+export type EntitlementListResponse = (Entitlement | undefined)[];
+export type EntitlementFeaturesGetResponse = EntitlementFeatureSet;
 
 //////////
 // source: event_listener.go

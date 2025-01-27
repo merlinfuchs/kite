@@ -18,6 +18,7 @@ import {
   StateGuildChannelListResponse,
   StateGuildListResponse,
   StateStatusGetResponse,
+  SubscriptionListResponse,
   UsageByDayListResponse,
   UsageByTypeListResponse,
   UsageCreditsGetResponse,
@@ -237,5 +238,16 @@ export function useAppStateGuildChannelsQuery(
         `/v1/apps/${appId}/state/guilds/${guildId}/channels`
       ),
     enabled: !!appId && !!guildId,
+  });
+}
+
+export function useAppSubscriptionsQuery(appId: string) {
+  return useQuery({
+    queryKey: ["apps", appId, "subscriptions"],
+    queryFn: () =>
+      apiRequest<SubscriptionListResponse>(
+        `/v1/apps/${appId}/billing/subscriptions`
+      ),
+    enabled: !!appId,
   });
 }

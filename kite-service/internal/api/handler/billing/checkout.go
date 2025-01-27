@@ -9,7 +9,7 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/api/wire"
 )
 
-func (h *BillingHandler) HandleBillingCheckout(c *handler.Context, req wire.BillingCheckoutRequest) (*wire.BillingCheckoutResponse, error) {
+func (h *BillingHandler) HandleAppCheckout(c *handler.Context, req wire.BillingCheckoutRequest) (*wire.BillingCheckoutResponse, error) {
 	user, err := h.userStore.User(c.Context(), c.Session.UserID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get user: %w", err)

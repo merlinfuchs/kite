@@ -5,7 +5,7 @@ import { useCallback } from "react";
 import { toast } from "sonner";
 import { useHookedTheme } from "@/lib/hooks/theme";
 
-export function BillingCheckoutButton() {
+export function AppCheckoutButton() {
   const appId = useAppId();
   const checkoutMutation = useCheckoutCreateMutation(appId);
 

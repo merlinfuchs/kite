@@ -1,5 +1,6 @@
 CREATE TABLE IF NOT EXISTS subscriptions (
     id TEXT PRIMARY KEY,
+    display_name TEXT NOT NULL,
     source TEXT NOT NULL, -- always "lemonsqueezy"
     status TEXT NOT NULL, -- "on_trial", "active", "paused", "past_due", "unpaid", "canceled", "expired"
     status_formatted TEXT NOT NULL,

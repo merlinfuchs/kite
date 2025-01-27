@@ -158,6 +158,7 @@ type Session struct {
 
 type Subscription struct {
 	ID                         string
+	DisplayName                string
 	Source                     string
 	Status                     string
 	StatusFormatted            string

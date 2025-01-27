@@ -8,6 +8,7 @@ import (
 
 type Subscription struct {
 	ID                         string
+	DisplayName                string
 	Source                     SubscriptionSource
 	Status                     string
 	StatusFormatted            string

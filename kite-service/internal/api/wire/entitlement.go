@@ -7,7 +7,7 @@ import (
 type Entitlement struct {
 	ID           string                `json:"id"`
 	Default      bool                  `json:"default"`
-	Subscription *BillingSubscription  `json:"subscription"`
+	Subscription *Subscription         `json:"subscription"`
 	FeatureSet   EntitlementFeatureSet `json:"feature_set"`
 	CreatedAt    time.Time             `json:"created_at"`
 	UpdatedAt    time.Time             `json:"updated_at"`

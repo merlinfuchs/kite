@@ -23,23 +23,6 @@ func (c *Client) Entitlements(ctx context.Context, appID string) ([]*model.Entit
 	return entitlements, nil
 }
 
-func (c *Client) EntitlementsWithSubscription(ctx context.Context, appID string) ([]*model.EntitlementWithSubscription, error) {
-	rows, err := c.Q.GetEntitlementsWithSubscription(ctx, appID)
-	if err != nil {
-		return nil, err
-	}
-
-	entitlements := make([]*model.EntitlementWithSubscription, 0, len(rows))
-	for _, row := range rows {
-		entitlements = append(entitlements, &model.EntitlementWithSubscription{
-			Entitlement:  *rowToEntitlement(row.Entitlement),
-			Subscription: rowToSubscription(row.Subscription),
-		})
-	}
-
-	return entitlements, nil
-}
-
 func (c *Client) UpsertSubscriptionEntitlement(ctx context.Context, entitlement model.Entitlement) (*model.Entitlement, error) {
 	row, err := c.Q.UpsertSubscriptionEntitlement(ctx, pgmodel.UpsertSubscriptionEntitlementParams{
 		ID:             entitlement.ID,
