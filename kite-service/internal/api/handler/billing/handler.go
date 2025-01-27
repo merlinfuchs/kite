@@ -10,6 +10,14 @@ type BillingHandlerConfig struct {
 	LemonSqueezySigningSecret string
 	TestMode                  bool
 	AppPublicBaseURL          string
+	FeatureSets               []FeatureSet
+}
+
+type FeatureSet struct {
+	ID                          string
+	Default                     bool
+	FeatureUsageCreditsPerMonth int
+	FeatureMaxCollaborator      int
 }
 
 type BillingHandler struct {

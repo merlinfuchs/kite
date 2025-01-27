@@ -12,7 +12,7 @@ import (
 )
 
 const getEntitlements = `-- name: GetEntitlements :many
-SELECT id, type, subscription_id, app_id, feature_usage_credits_per_month, feature_max_collaborator, created_at, updated_at, ends_at FROM entitlements WHERE app_id = $1
+SELECT id, type, subscription_id, app_id, feature_set_id, created_at, updated_at, ends_at FROM entitlements WHERE app_id = $1
 `
 
 func (q *Queries) GetEntitlements(ctx context.Context, appID string) ([]Entitlement, error) {
@@ -29,8 +29,7 @@ func (q *Queries) GetEntitlements(ctx context.Context, appID string) ([]Entitlem
 			&i.Type,
 			&i.SubscriptionID,
 			&i.AppID,
-			&i.FeatureUsageCreditsPerMonth,
-			&i.FeatureMaxCollaborator,
+			&i.FeatureSetID,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.EndsAt,
@@ -45,28 +44,80 @@ func (q *Queries) GetEntitlements(ctx context.Context, appID string) ([]Entitlem
 	return items, nil
 }
 
+const getEntitlementsWithSubscription = `-- name: GetEntitlementsWithSubscription :many
+SELECT entitlements.id, entitlements.type, entitlements.subscription_id, entitlements.app_id, entitlements.feature_set_id, entitlements.created_at, entitlements.updated_at, entitlements.ends_at, subscriptions.id, subscriptions.source, subscriptions.status, subscriptions.status_formatted, subscriptions.created_at, subscriptions.updated_at, subscriptions.renews_at, subscriptions.trial_ends_at, subscriptions.ends_at, subscriptions.user_id, subscriptions.lemonsqueezy_subscription_id, subscriptions.lemonsqueezy_customer_id, subscriptions.lemonsqueezy_order_id, subscriptions.lemonsqueezy_product_id, subscriptions.lemonsqueezy_variant_id FROM entitlements 
+LEFT JOIN subscriptions ON entitlements.subscription_id = subscriptions.id 
+WHERE entitlements.app_id = $1
+`
+
+type GetEntitlementsWithSubscriptionRow struct {
+	Entitlement  Entitlement
+	Subscription Subscription
+}
+
+func (q *Queries) GetEntitlementsWithSubscription(ctx context.Context, appID string) ([]GetEntitlementsWithSubscriptionRow, error) {
+	rows, err := q.db.Query(ctx, getEntitlementsWithSubscription, appID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetEntitlementsWithSubscriptionRow
+	for rows.Next() {
+		var i GetEntitlementsWithSubscriptionRow
+		if err := rows.Scan(
+			&i.Entitlement.ID,
+			&i.Entitlement.Type,
+			&i.Entitlement.SubscriptionID,
+			&i.Entitlement.AppID,
+			&i.Entitlement.FeatureSetID,
+			&i.Entitlement.CreatedAt,
+			&i.Entitlement.UpdatedAt,
+			&i.Entitlement.EndsAt,
+			&i.Subscription.ID,
+			&i.Subscription.Source,
+			&i.Subscription.Status,
+			&i.Subscription.StatusFormatted,
+			&i.Subscription.CreatedAt,
+			&i.Subscription.UpdatedAt,
+			&i.Subscription.RenewsAt,
+			&i.Subscription.TrialEndsAt,
+			&i.Subscription.EndsAt,
+			&i.Subscription.UserID,
+			&i.Subscription.LemonsqueezySubscriptionID,
+			&i.Subscription.LemonsqueezyCustomerID,
+			&i.Subscription.LemonsqueezyOrderID,
+			&i.Subscription.LemonsqueezyProductID,
+			&i.Subscription.LemonsqueezyVariantID,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const updateSubscriptionEntitlement = `-- name: UpdateSubscriptionEntitlement :one
 UPDATE entitlements SET
-    feature_usage_credits_per_month = $2,
-    feature_max_collaborator = $3,
-    updated_at = $4,
-    ends_at = $5
-WHERE subscription_id = $1 RETURNING id, type, subscription_id, app_id, feature_usage_credits_per_month, feature_max_collaborator, created_at, updated_at, ends_at
+    feature_set_id = $2,
+    updated_at = $3,
+    ends_at = $4
+WHERE subscription_id = $1 RETURNING id, type, subscription_id, app_id, feature_set_id, created_at, updated_at, ends_at
 `
 
 type UpdateSubscriptionEntitlementParams struct {
-	SubscriptionID              pgtype.Text
-	FeatureUsageCreditsPerMonth int32
-	FeatureMaxCollaborator      int32
-	UpdatedAt                   pgtype.Timestamp
-	EndsAt                      pgtype.Timestamp
+	SubscriptionID pgtype.Text
+	FeatureSetID   string
+	UpdatedAt      pgtype.Timestamp
+	EndsAt         pgtype.Timestamp
 }
 
 func (q *Queries) UpdateSubscriptionEntitlement(ctx context.Context, arg UpdateSubscriptionEntitlementParams) (Entitlement, error) {
 	row := q.db.QueryRow(ctx, updateSubscriptionEntitlement,
 		arg.SubscriptionID,
-		arg.FeatureUsageCreditsPerMonth,
-		arg.FeatureMaxCollaborator,
+		arg.FeatureSetID,
 		arg.UpdatedAt,
 		arg.EndsAt,
 	)
@@ -76,8 +127,7 @@ func (q *Queries) UpdateSubscriptionEntitlement(ctx context.Context, arg UpdateS
 		&i.Type,
 		&i.SubscriptionID,
 		&i.AppID,
-		&i.FeatureUsageCreditsPerMonth,
-		&i.FeatureMaxCollaborator,
+		&i.FeatureSetID,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.EndsAt,
@@ -91,31 +141,28 @@ INSERT INTO entitlements (
     type,
     subscription_id,
     app_id,
-    feature_usage_credits_per_month,
-    feature_max_collaborator,
+    feature_set_id,
     created_at,
     updated_at,
     ends_at
 )
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) 
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8) 
 ON CONFLICT (subscription_id) DO UPDATE SET 
-    feature_usage_credits_per_month = EXCLUDED.feature_usage_credits_per_month,
-    feature_max_collaborator = EXCLUDED.feature_max_collaborator,
+    feature_set_id = EXCLUDED.feature_set_id,
     updated_at = EXCLUDED.updated_at,
     ends_at = EXCLUDED.ends_at
-RETURNING id, type, subscription_id, app_id, feature_usage_credits_per_month, feature_max_collaborator, created_at, updated_at, ends_at
+RETURNING id, type, subscription_id, app_id, feature_set_id, created_at, updated_at, ends_at
 `
 
 type UpsertSubscriptionEntitlementParams struct {
-	ID                          string
-	Type                        string
-	SubscriptionID              pgtype.Text
-	AppID                       string
-	FeatureUsageCreditsPerMonth int32
-	FeatureMaxCollaborator      int32
-	CreatedAt                   pgtype.Timestamp
-	UpdatedAt                   pgtype.Timestamp
-	EndsAt                      pgtype.Timestamp
+	ID             string
+	Type           string
+	SubscriptionID pgtype.Text
+	AppID          string
+	FeatureSetID   string
+	CreatedAt      pgtype.Timestamp
+	UpdatedAt      pgtype.Timestamp
+	EndsAt         pgtype.Timestamp
 }
 
 func (q *Queries) UpsertSubscriptionEntitlement(ctx context.Context, arg UpsertSubscriptionEntitlementParams) (Entitlement, error) {
@@ -124,8 +171,7 @@ func (q *Queries) UpsertSubscriptionEntitlement(ctx context.Context, arg UpsertS
 		arg.Type,
 		arg.SubscriptionID,
 		arg.AppID,
-		arg.FeatureUsageCreditsPerMonth,
-		arg.FeatureMaxCollaborator,
+		arg.FeatureSetID,
 		arg.CreatedAt,
 		arg.UpdatedAt,
 		arg.EndsAt,
@@ -136,8 +182,7 @@ func (q *Queries) UpsertSubscriptionEntitlement(ctx context.Context, arg UpsertS
 		&i.Type,
 		&i.SubscriptionID,
 		&i.AppID,
-		&i.FeatureUsageCreditsPerMonth,
-		&i.FeatureMaxCollaborator,
+		&i.FeatureSetID,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.EndsAt,

@@ -2,15 +2,16 @@ CREATE TABLE IF NOT EXISTS entitlements (
     id TEXT PRIMARY KEY,
     type TEXT NOT NULL, -- "subscription", "manual"
 
-    subscription_id TEXT UNIQUE REFERENCES subscriptions(id) ON DELETE CASCADE,
+    subscription_id TEXT REFERENCES subscriptions(id) ON DELETE CASCADE,
     app_id TEXT NOT NULL REFERENCES apps(id) ON DELETE CASCADE,
 
-    feature_usage_credits_per_month INTEGER NOT NULL,
-    feature_max_collaborator INTEGER NOT NULL,
+    feature_set_id TEXT NOT NULL, -- usually LemonSqueezy Product ID
 
     created_at TIMESTAMP NOT NULL,
     updated_at TIMESTAMP NOT NULL,
-    ends_at TIMESTAMP
+    ends_at TIMESTAMP,
+
+    UNIQUE (subscription_id, app_id)
 );
 
 CREATE INDEX IF NOT EXISTS entitlements_subscription_id ON entitlements (subscription_id);

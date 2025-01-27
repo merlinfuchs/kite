@@ -88,7 +88,15 @@ type OpenAIConfig struct {
 }
 
 type BillingConfig struct {
-	LemonSqueezyAPIKey        string `toml:"lemonsqueezy_api_key"`
-	LemonSqueezySigningSecret string `toml:"lemonsqueezy_signing_secret"`
-	TestMode                  bool   `toml:"test_mode"`
+	LemonSqueezyAPIKey        string                    `toml:"lemonsqueezy_api_key"`
+	LemonSqueezySigningSecret string                    `toml:"lemonsqueezy_signing_secret"`
+	TestMode                  bool                      `toml:"test_mode"`
+	FeatureSets               []BillingFeatureSetConfig `toml:"feature_sets"`
+}
+
+type BillingFeatureSetConfig struct {
+	ID                          string `toml:"id"`
+	Default                     bool   `toml:"default"`
+	FeatureUsageCreditsPerMonth int    `toml:"feature_usage_credits_per_month"`
+	FeatureMaxCollaborators     int    `toml:"feature_max_collaborators"`
 }

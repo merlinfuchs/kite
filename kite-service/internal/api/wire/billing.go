@@ -3,6 +3,7 @@ package wire
 import (
 	"time"
 
+	"github.com/kitecloud/kite/kite-service/internal/model"
 	"gopkg.in/guregu/null.v4"
 )
 
@@ -46,4 +47,18 @@ type BillingCheckoutRequest struct{}
 
 type BillingCheckoutResponse struct {
 	URL string `json:"url"`
+}
+
+type BillingSubscription struct {
+	ID string `json:"id"`
+}
+
+func SubscriptionToWire(subscription *model.Subscription) *BillingSubscription {
+	if subscription == nil {
+		return nil
+	}
+
+	return &BillingSubscription{
+		ID: subscription.ID,
+	}
 }

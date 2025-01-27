@@ -79,15 +79,14 @@ func (h *BillingHandler) HandleBillingWebhook(c *handler.Context, body json.RawM
 	}
 
 	entitlement := model.Entitlement{
-		ID:                          util.UniqueID(),
-		Type:                        "subscription",
-		SubscriptionID:              null.StringFrom(subscription.ID),
-		AppID:                       appID,
-		FeatureUsageCreditsPerMonth: 100,
-		FeatureMaxCollaborator:      10,
-		CreatedAt:                   time.Now().UTC(),
-		UpdatedAt:                   time.Now().UTC(),
-		EndsAt:                      null.TimeFrom(entitlementEndsAt),
+		ID:             util.UniqueID(),
+		Type:           "subscription",
+		SubscriptionID: null.StringFrom(subscription.ID),
+		AppID:          appID,
+		FeatureSetID:   fmt.Sprintf("%d", sub.ProductID),
+		CreatedAt:      time.Now().UTC(),
+		UpdatedAt:      time.Now().UTC(),
+		EndsAt:         null.TimeFrom(entitlementEndsAt),
 	}
 
 	if appID != "" {

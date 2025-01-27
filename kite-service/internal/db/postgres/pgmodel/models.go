@@ -60,15 +60,14 @@ type Command struct {
 }
 
 type Entitlement struct {
-	ID                          string
-	Type                        string
-	SubscriptionID              pgtype.Text
-	AppID                       string
-	FeatureUsageCreditsPerMonth int32
-	FeatureMaxCollaborator      int32
-	CreatedAt                   pgtype.Timestamp
-	UpdatedAt                   pgtype.Timestamp
-	EndsAt                      pgtype.Timestamp
+	ID             string
+	Type           string
+	SubscriptionID pgtype.Text
+	AppID          string
+	FeatureSetID   string
+	CreatedAt      pgtype.Timestamp
+	UpdatedAt      pgtype.Timestamp
+	EndsAt         pgtype.Timestamp
 }
 
 type EventListener struct {

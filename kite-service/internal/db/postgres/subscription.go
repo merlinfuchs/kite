@@ -49,6 +49,10 @@ func (c *Client) UpsertLemonSqueezySubscription(ctx context.Context, sub model.S
 }
 
 func rowToSubscription(row pgmodel.Subscription) *model.Subscription {
+	if row.ID == "" {
+		return nil
+	}
+
 	return &model.Subscription{
 		ID:                         row.ID,
 		Source:                     model.SubscriptionSource(row.Source),
