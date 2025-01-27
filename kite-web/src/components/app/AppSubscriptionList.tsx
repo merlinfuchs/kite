@@ -7,7 +7,7 @@ export default function AppSubscriptionList() {
   return (
     <div className="flex flex-col gap-4">
       {subscriptions?.map((sub) => (
-        <AppSubscriptionListEntry subscription={sub!} />
+        <AppSubscriptionListEntry key={sub!.id} subscription={sub!} />
       ))}
     </div>
   );
