@@ -11,6 +11,7 @@ type Config struct {
 	Discord    DiscordConfig    `toml:"discord"`
 	Engine     EngineConfig     `toml:"engine"`
 	OpenAI     OpenAIConfig     `toml:"openai"`
+	Billing    BillingConfig    `toml:"billing"`
 }
 
 func (cfg *Config) Validate() error {
@@ -84,4 +85,18 @@ type UserLimitsConfig struct {
 
 type OpenAIConfig struct {
 	APIKey string `toml:"api_key"`
+}
+
+type BillingConfig struct {
+	LemonSqueezyAPIKey        string                    `toml:"lemonsqueezy_api_key"`
+	LemonSqueezySigningSecret string                    `toml:"lemonsqueezy_signing_secret"`
+	TestMode                  bool                      `toml:"test_mode"`
+	FeatureSets               []BillingFeatureSetConfig `toml:"feature_sets"`
+}
+
+type BillingFeatureSetConfig struct {
+	ID                          string `toml:"id"`
+	Default                     bool   `toml:"default"`
+	FeatureUsageCreditsPerMonth int    `toml:"feature_usage_credits_per_month"`
+	FeatureMaxCollaborators     int    `toml:"feature_max_collaborators"`
 }

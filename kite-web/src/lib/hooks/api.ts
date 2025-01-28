@@ -7,6 +7,7 @@ import {
   useAppsQuery,
   useAppStateGuildChannelsQuery,
   useAppStateGuildsQuery,
+  useAppSubscriptionsQuery,
   useCommandQuery,
   useCommandsQuery,
   useEventListenerQuery,
@@ -38,6 +39,7 @@ import {
   MessageListResponse,
   StateGuildChannelListResponse,
   StateGuildListResponse,
+  SubscriptionListResponse,
   UsageByDayListResponse,
   UsageByTypeListResponse,
   UsageCreditsGetResponse,
@@ -278,4 +280,13 @@ export function useAppStateGuildChannel(
   const data = useResponseData(query);
 
   return data?.find((c) => c!.id === channelId);
+}
+
+export function useAppSubscriptions(
+  callback?: (res: APIResponse<SubscriptionListResponse>) => void
+) {
+  const router = useRouter();
+
+  const query = useAppSubscriptionsQuery(router.query.appId as string);
+  return useResponseData(query, callback);
 }
