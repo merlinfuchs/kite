@@ -24,6 +24,9 @@ type Gateway struct {
 
 	app     *model.App
 	session *state.State
+
+	ctx    context.Context
+	cancel context.CancelFunc
 }
 
 func NewGateway(app *model.App, logStore store.LogStore, appStore store.AppStore, eventHandler EventHandler) *Gateway {
@@ -34,6 +37,8 @@ func NewGateway(app *model.App, logStore store.LogStore, appStore store.AppStore
 		app:          app,
 		session:      createSession(app),
 	}
+
+	g.ctx, g.cancel = context.WithCancel(context.Background())
 
 	go g.startGateway()
 	return g
@@ -78,7 +83,7 @@ func (g *Gateway) startGateway() {
 		}
 	})
 
-	if err := g.session.Connect(context.TODO()); err != nil {
+	if err := g.session.Connect(g.ctx); err != nil {
 		// Fatal error, we can't recover
 		g.createLogEntry(model.LogLevelError, fmt.Sprintf("Failed to connect to gateway: %v", err))
 		g.disableApp(fmt.Sprintf("Failed to connect to gateway: %v", err))
@@ -87,6 +92,7 @@ func (g *Gateway) startGateway() {
 }
 
 func (g *Gateway) Close() error {
+	g.cancel()
 	err := g.session.Close()
 
 	if err != nil && !errors.Is(err, session.ErrClosed) {
