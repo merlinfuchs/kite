@@ -830,6 +830,8 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 		req.URL.RawQuery = query.Encode()
 
 		if n.Data.HTTPRequestData.BodyJSON != nil {
+			// This can potentially break the JSON if an expression returns a string containing double quotes
+			// We should probably escape the expression results or only run the eval engine on the actual JSON values
 			body, err := ctx.EvalTemplate(string(n.Data.HTTPRequestData.BodyJSON))
 			if err != nil {
 				return traceError(n, err)
