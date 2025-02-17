@@ -233,7 +233,11 @@ export const nodeActionMemberBanDataSchema = nodeBaseDataSchema.extend({
     .string()
     .regex(numericRegex)
     .or(z.string().regex(placeholderRegex)),
-  member_ban_delete_message_duration_seconds: z.string().regex(numericRegex),
+  member_ban_delete_message_duration_seconds: z
+    .string()
+    .regex(numericRegex)
+    .or(z.string().regex(placeholderRegex))
+    .optional(),
   audit_log_reason: auditLogReasonSchema,
 });
 
@@ -258,7 +262,10 @@ export const nodeActionMemberTimeoutDataSchema = nodeBaseDataSchema.extend({
     .string()
     .regex(numericRegex)
     .or(z.string().regex(placeholderRegex)),
-  member_timeout_duration_seconds: z.string().regex(numericRegex),
+  member_timeout_duration_seconds: z
+    .string()
+    .regex(numericRegex)
+    .or(z.string().regex(placeholderRegex)),
   audit_log_reason: auditLogReasonSchema,
 });
 

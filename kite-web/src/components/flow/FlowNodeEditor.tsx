@@ -680,24 +680,10 @@ function MemberBanDeleteMessageDurationInput({
 }: InputProps) {
   return (
     <BaseInput
-      type="select"
+      type="text"
       field="member_ban_delete_message_duration_seconds"
       title="Delete Message Duration"
-      options={[
-        { value: "60", label: "1 Minute" },
-        { value: "300", label: "5 Minutes" },
-        { value: "600", label: "10 Minutes" },
-        { value: "1800", label: "30 Minutes" },
-        { value: "3600", label: "1 Hour" },
-        { value: "7200", label: "2 Hours" },
-        { value: "14400", label: "4 Hours" },
-        { value: "28800", label: "8 Hours" },
-        { value: "43200", label: "12 Hours" },
-        { value: "86400", label: "1 Day" },
-        { value: "172800", label: "2 Days" },
-        { value: "259200", label: "3 Days" },
-        { value: "604800", label: "1 Week" },
-      ]}
+      description="Number of seconds to delete messages for."
       value={data.member_ban_delete_message_duration_seconds || ""}
       updateValue={(v) =>
         updateData({
@@ -705,6 +691,7 @@ function MemberBanDeleteMessageDurationInput({
         })
       }
       errors={errors}
+      placeholders
     />
   );
 }
@@ -712,26 +699,10 @@ function MemberBanDeleteMessageDurationInput({
 function MemberTimeoutDurationInput({ data, updateData, errors }: InputProps) {
   return (
     <BaseInput
-      type="select"
+      type="text"
       field="member_timeout_duration_seconds"
       title="Timeout Duration"
-      options={[
-        { value: "60", label: "1 Minute" },
-        { value: "300", label: "5 Minutes" },
-        { value: "600", label: "10 Minutes" },
-        { value: "1800", label: "30 Minutes" },
-        { value: "3600", label: "1 Hour" },
-        { value: "7200", label: "2 Hours" },
-        { value: "14400", label: "4 Hours" },
-        { value: "28800", label: "8 Hours" },
-        { value: "43200", label: "12 Hours" },
-        { value: "86400", label: "1 Day" },
-        { value: "172800", label: "2 Days" },
-        { value: "259200", label: "3 Days" },
-        { value: "604800", label: "1 Week" },
-        { value: "1209600", label: "2 Weeks" },
-        { value: "2419200", label: "1 Month" },
-      ]}
+      description="Number of seconds to timeout the user for."
       value={data.member_timeout_duration_seconds || ""}
       updateValue={(v) =>
         updateData({ member_timeout_duration_seconds: v || undefined })
