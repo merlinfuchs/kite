@@ -223,6 +223,13 @@ export interface ModalComponentData {
 export interface HTTPRequestData {
   url?: string;
   method?: string;
+  headers?: HTTPRequestDataKeyValue[];
+  query?: HTTPRequestDataKeyValue[];
+  body_json?: Record<string, any> | null;
+}
+export interface HTTPRequestDataKeyValue {
+  key: string;
+  value: string;
 }
 export interface AIChatCompletionData {
   system_prompt?: string;

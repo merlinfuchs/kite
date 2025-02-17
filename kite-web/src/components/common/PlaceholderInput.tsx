@@ -10,8 +10,9 @@ const PlaceholderInput = forwardRef<
   {
     value: string;
     onChange: (value: string) => void;
+    placeholder?: string;
   }
->(({ value, onChange }, ref) => {
+>(({ value, onChange, placeholder }, ref) => {
   const renderRef = useRef<HTMLDivElement>(null);
 
   const syncScroll = useCallback((e: any) => {
@@ -46,6 +47,7 @@ const PlaceholderInput = forwardRef<
         onChange={(e) => onChange(e.target.value)}
         className="bg-transparent absolute inset-0 z-10"
         ref={ref}
+        placeholder={placeholder}
       />
       <div
         ref={renderRef}
