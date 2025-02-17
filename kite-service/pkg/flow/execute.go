@@ -1,8 +1,10 @@
 package flow
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
+	"io"
 	"math/rand"
 	"net/http"
 	"time"
@@ -792,14 +794,51 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			}
 		}
 
+		method := n.Data.HTTPRequestData.Method
+		if method == "" {
+			method = "GET"
+		}
+
 		url, err := ctx.EvalTemplate(n.Data.HTTPRequestData.URL)
 		if err != nil {
 			return traceError(n, err)
 		}
 
-		req, err := http.NewRequest(n.Data.HTTPRequestData.Method, url.String(), nil)
+		req, err := http.NewRequest(method, url.String(), nil)
 		if err != nil {
 			return traceError(n, err)
+		}
+
+		for _, header := range n.Data.HTTPRequestData.Headers {
+			value, err := ctx.EvalTemplate(header.Value)
+			if err != nil {
+				return traceError(n, err)
+			}
+
+			req.Header.Add(header.Key, value.String())
+		}
+
+		query := req.URL.Query()
+		for _, queryParam := range n.Data.HTTPRequestData.Query {
+			value, err := ctx.EvalTemplate(queryParam.Value)
+			if err != nil {
+				return traceError(n, err)
+			}
+
+			query.Add(queryParam.Key, value.String())
+		}
+		req.URL.RawQuery = query.Encode()
+
+		if n.Data.HTTPRequestData.BodyJSON != nil {
+			// This can potentially break the JSON if an expression returns a string containing double quotes
+			// We should probably escape the expression results or only run the eval engine on the actual JSON values
+			body, err := ctx.EvalTemplate(string(n.Data.HTTPRequestData.BodyJSON))
+			if err != nil {
+				return traceError(n, err)
+			}
+
+			req.Header.Set("Content-Type", "application/json")
+			req.Body = io.NopCloser(bytes.NewReader([]byte(body.String())))
 		}
 
 		resp, err := ctx.HTTP.HTTPRequest(ctx, req)

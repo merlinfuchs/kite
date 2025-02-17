@@ -67,6 +67,7 @@
     "react-day-picker": "^8.10.1",
     "react-dom": "^18",
     "react-hook-form": "^7.52.0",
+    "react-json-view": "^1.21.3",
     "react-markdown": "^9.0.1",
     "react-textarea-autosize": "^8.5.3",
     "react-twemoji": "^0.5.0",
@@ -92,6 +93,10 @@
     "typescript": "^5"
   },
   "overrides": {
-    "@radix-ui/react-focus-scope": "1.1.1"
+    "@radix-ui/react-focus-scope": "1.1.1",
+    "react-json-view": {
+      "react": "$react",
+      "react-dom": "$react-dom"
+    }
   }
 }

@@ -13,6 +13,7 @@ import {
   CircleAlertIcon,
   CopyIcon,
   HelpCircleIcon,
+  MinusIcon,
   PencilIcon,
   PlusIcon,
   TrashIcon,
@@ -54,7 +55,8 @@ import {
 } from "../ui/dialog";
 import { Separator } from "../ui/separator";
 import { Card } from "../ui/card";
-import { ModalComponentData } from "@/lib/types/flow.gen";
+import { HTTPRequestData, ModalComponentData } from "@/lib/types/flow.gen";
+import JsonEditor from "../common/JsonEditor";
 
 interface Props {
   nodeId: string;
@@ -527,49 +529,160 @@ function AuditLogReasonInput({ data, updateData, errors }: InputProps) {
 function HttpRequestDataInput({ data, updateData, errors }: InputProps) {
   // TODO: top level errors aren't displayed ...
 
+  const updateField = useCallback(
+    (newData: Partial<HTTPRequestData>) => {
+      updateData({
+        http_request_data: {
+          ...data.http_request_data,
+          ...newData,
+        },
+      });
+    },
+    [updateData, data]
+  );
+
+  const addHeader = useCallback(() => {
+    updateData({
+      http_request_data: {
+        ...data.http_request_data,
+        headers: [
+          ...(data.http_request_data?.headers || []),
+          { key: "", value: "" },
+        ],
+      },
+    });
+  }, [data, updateData]);
+
+  const updateHeader = useCallback(
+    (index: number, key: string, value: string) => {
+      updateData({
+        http_request_data: {
+          ...data.http_request_data,
+          headers: data.http_request_data?.headers?.map((h, i) =>
+            i === index ? { key, value } : h
+          ),
+        },
+      });
+    },
+    [data, updateData]
+  );
+
+  const removeHeader = useCallback(
+    (index: number) => {
+      updateData({
+        http_request_data: {
+          ...data.http_request_data,
+          headers: data.http_request_data?.headers?.filter(
+            (_, i) => i !== index
+          ),
+        },
+      });
+    },
+    [data, updateData]
+  );
+
   return (
-    <>
-      <BaseInput
-        type="select"
-        field="http_request_data.method"
-        title="Method"
-        description="The HTTP method to use for the request."
-        options={[
-          { value: "GET", label: "GET" },
-          { value: "POST", label: "POST" },
-          { value: "PUT", label: "PUT" },
-          { value: "PATCH", label: "PATCH" },
-          { value: "DELETE", label: "DELETE" },
-        ]}
-        value={data.http_request_data?.method || ""}
-        updateValue={(v) =>
-          updateData({
-            http_request_data: {
-              ...data.http_request_data,
-              method: v || undefined,
-            },
-          })
-        }
-        errors={errors}
-      />
-      <BaseInput
-        type="text"
-        field="http_request_data.url"
-        title="URL"
-        description="The URL to send the request to."
-        value={data.http_request_data?.url || ""}
-        updateValue={(v) =>
-          updateData({
-            http_request_data: {
-              ...data.http_request_data,
-              url: v || undefined,
-            },
-          })
-        }
-        errors={errors}
-        placeholders
-      />
-    </>
+    <Dialog>
+      <DialogTrigger asChild>
+        <Button className="w-full" variant="secondary">
+          Configure Request
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="overflow-y-auto max-h-[90dvh] max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>Configure HTTP Request</DialogTitle>
+          <DialogDescription>
+            Configure your HTTP request here to make an API call to a 3rd party
+            service.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-3">
+          <BaseInput
+            type="select"
+            field="http_request_data.method"
+            title="Method"
+            description="The HTTP method to use for the request."
+            options={[
+              { value: "GET", label: "GET" },
+              { value: "POST", label: "POST" },
+              { value: "PUT", label: "PUT" },
+              { value: "PATCH", label: "PATCH" },
+              { value: "DELETE", label: "DELETE" },
+            ]}
+            value={data.http_request_data?.method || ""}
+            updateValue={(v) => updateField({ method: v })}
+            errors={errors}
+          />
+          <BaseInput
+            type="text"
+            field="http_request_data.url"
+            title="URL"
+            description="The URL to send the request to."
+            value={data.http_request_data?.url || ""}
+            updateValue={(v) => updateField({ url: v })}
+            errors={errors}
+            placeholders
+          />
+          <div>
+            <div className="font-medium text-foreground mb-1">Headers</div>
+            <div className="text-muted-foreground text-sm mb-2">
+              The headers to send with the request.
+            </div>
+            <div className="flex flex-col gap-3">
+              {data.http_request_data?.headers?.map((h, i) => (
+                <div className="flex gap-2" key={i}>
+                  <Input
+                    type="text"
+                    placeholder="Key"
+                    value={h.key || ""}
+                    onChange={(e) => updateHeader(i, e.target.value, h.value)}
+                  />
+                  <Input
+                    type="text"
+                    placeholder="Value"
+                    value={h.value || ""}
+                    onChange={(e) => updateHeader(i, h.key, e.target.value)}
+                  />
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="flex-none"
+                    onClick={() => removeHeader(i)}
+                  >
+                    <MinusIcon className="h-5 w-5" />
+                  </Button>
+                </div>
+              ))}
+
+              <div className="flex">
+                <Button variant="outline" size="icon" onClick={addHeader}>
+                  <PlusIcon className="h-5 w-5" />
+                </Button>
+              </div>
+            </div>
+          </div>
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <div className="font-medium text-foreground">JSON Body</div>
+              <Switch
+                checked={!!data.http_request_data?.body_json}
+                onCheckedChange={(checked) =>
+                  updateField({
+                    body_json: checked ? {} : undefined,
+                  })
+                }
+              />
+            </div>
+            {!!data.http_request_data?.body_json && (
+              <JsonEditor
+                src={data.http_request_data?.body_json || {}}
+                onChange={(v) => updateField({ body_json: v })}
+              />
+            )}
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -889,139 +1002,137 @@ function ModalDataInput({ data, updateData, errors }: InputProps) {
   );
 
   return (
-    <>
-      <Dialog>
-        <DialogTrigger asChild>
-          <Button className="w-full" variant="secondary">
-            Configure Modal
-          </Button>
-        </DialogTrigger>
-        <DialogContent className="overflow-y-auto max-h-[90dvh] max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Configure Modal</DialogTitle>
-            <DialogDescription>
-              Configure your modal here! A modal must have a title and at least
-              one input component.
-            </DialogDescription>
-          </DialogHeader>
+    <Dialog>
+      <DialogTrigger asChild>
+        <Button className="w-full" variant="secondary">
+          Configure Modal
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="overflow-y-auto max-h-[90dvh] max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>Configure Modal</DialogTitle>
+          <DialogDescription>
+            Configure your modal here! A modal must have a title and at least
+            one input component.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-3">
+          <BaseInput
+            type="text"
+            field="modal_data"
+            title="Title"
+            value={data.modal_data?.title || ""}
+            updateValue={(v) =>
+              updateData({
+                modal_data: {
+                  title: v || undefined,
+                  components: data.modal_data?.components,
+                },
+              })
+            }
+            errors={errors}
+            placeholders
+          />
+
           <div className="space-y-3">
-            <BaseInput
-              type="text"
-              field="modal_data"
-              title="Title"
-              value={data.modal_data?.title || ""}
-              updateValue={(v) =>
-                updateData({
-                  modal_data: {
-                    title: v || undefined,
-                    components: data.modal_data?.components,
-                  },
-                })
-              }
-              errors={errors}
-              placeholders
-            />
-
-            <div className="space-y-3">
-              <div className="font-medium text-foreground">Inputs</div>
-              {data.modal_data?.components?.map((row, r) =>
-                row?.components?.map((component, c) => (
-                  <Card className="space-y-3 p-3 -mx-1" key={`${r}-${c}`}>
-                    <div className="flex space-x-3">
-                      <BaseInput
-                        type="select"
-                        field={`modal_data.components.${r}.components.${c}.type`}
-                        title="Type"
-                        value={component.style?.toString() || "1"}
-                        options={[
-                          {
-                            label: "Short",
-                            value: "1",
-                          },
-                          {
-                            label: "Paragraph",
-                            value: "2",
-                          },
-                        ]}
-                        updateValue={(v) =>
-                          updateComponentField(r, c, {
-                            style: parseInt(v) || 1,
-                          })
-                        }
-                        errors={errors}
-                      />
-                      <BaseCheckbox
-                        field={`modal_data.components.${r}.components.${c}.required`}
-                        title="Required"
-                        value={component?.required || false}
-                        updateValue={(v) =>
-                          updateComponentField(r, c, {
-                            required: v,
-                          })
-                        }
-                        errors={errors}
-                      />
-                    </div>
+            <div className="font-medium text-foreground">Inputs</div>
+            {data.modal_data?.components?.map((row, r) =>
+              row?.components?.map((component, c) => (
+                <Card className="space-y-3 p-3 -mx-1" key={`${r}-${c}`}>
+                  <div className="flex space-x-3">
                     <BaseInput
-                      type="text"
-                      field={`modal_data.components.${r}.components.${c}.custom_id`}
-                      title="Identifier"
-                      description="Used to identify the input in your flow."
-                      value={component?.custom_id || ""}
+                      type="select"
+                      field={`modal_data.components.${r}.components.${c}.type`}
+                      title="Type"
+                      value={component.style?.toString() || "1"}
+                      options={[
+                        {
+                          label: "Short",
+                          value: "1",
+                        },
+                        {
+                          label: "Paragraph",
+                          value: "2",
+                        },
+                      ]}
                       updateValue={(v) =>
                         updateComponentField(r, c, {
-                          custom_id: v || undefined,
+                          style: parseInt(v) || 1,
                         })
                       }
                       errors={errors}
-                      placeholders
                     />
-                    <BaseInput
-                      type="text"
-                      field={`modal_data.components.${r}.components.${c}.label`}
-                      title="Label"
-                      value={component?.label || ""}
+                    <BaseCheckbox
+                      field={`modal_data.components.${r}.components.${c}.required`}
+                      title="Required"
+                      value={component?.required || false}
                       updateValue={(v) =>
                         updateComponentField(r, c, {
-                          label: v || undefined,
+                          required: v,
                         })
                       }
                       errors={errors}
-                      placeholders
                     />
-                    <BaseInput
-                      type="text"
-                      field={`modal_data.components.${r}.components.${c}.placeholder`}
-                      title="Placeholder"
-                      value={component?.placeholder || ""}
-                      updateValue={(v) =>
-                        updateComponentField(r, c, {
-                          placeholder: v || undefined,
-                        })
-                      }
-                      errors={errors}
-                      placeholders
-                    />
-                  </Card>
-                ))
-              )}
-            </div>
-
-            <div className="flex space-x-3">
-              <Button
-                onClick={addInput}
-                disabled={(data.modal_data?.components?.length || 0) >= 5}
-              >
-                Add Input
-              </Button>
-              <Button variant="outline" onClick={clearInputs}>
-                Clear Inputs
-              </Button>
-            </div>
+                  </div>
+                  <BaseInput
+                    type="text"
+                    field={`modal_data.components.${r}.components.${c}.custom_id`}
+                    title="Identifier"
+                    description="Used to identify the input in your flow."
+                    value={component?.custom_id || ""}
+                    updateValue={(v) =>
+                      updateComponentField(r, c, {
+                        custom_id: v || undefined,
+                      })
+                    }
+                    errors={errors}
+                    placeholders
+                  />
+                  <BaseInput
+                    type="text"
+                    field={`modal_data.components.${r}.components.${c}.label`}
+                    title="Label"
+                    value={component?.label || ""}
+                    updateValue={(v) =>
+                      updateComponentField(r, c, {
+                        label: v || undefined,
+                      })
+                    }
+                    errors={errors}
+                    placeholders
+                  />
+                  <BaseInput
+                    type="text"
+                    field={`modal_data.components.${r}.components.${c}.placeholder`}
+                    title="Placeholder"
+                    value={component?.placeholder || ""}
+                    updateValue={(v) =>
+                      updateComponentField(r, c, {
+                        placeholder: v || undefined,
+                      })
+                    }
+                    errors={errors}
+                    placeholders
+                  />
+                </Card>
+              ))
+            )}
           </div>
-        </DialogContent>
-      </Dialog>
-    </>
+
+          <div className="flex space-x-3">
+            <Button
+              onClick={addInput}
+              disabled={(data.modal_data?.components?.length || 0) >= 5}
+            >
+              Add Input
+            </Button>
+            <Button variant="outline" onClick={clearInputs}>
+              Clear Inputs
+            </Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 

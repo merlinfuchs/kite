@@ -1,6 +1,7 @@
 package flow
 
 import (
+	"encoding/json"
 	"regexp"
 
 	"github.com/diamondburned/arikawa/v3/api"
@@ -308,8 +309,16 @@ type ModalComponentData struct {
 }
 
 type HTTPRequestData struct {
-	URL    string `json:"url,omitempty"`
-	Method string `json:"method,omitempty"`
+	URL      string                    `json:"url,omitempty"`
+	Method   string                    `json:"method,omitempty"`
+	Headers  []HTTPRequestDataKeyValue `json:"headers,omitempty"`
+	Query    []HTTPRequestDataKeyValue `json:"query,omitempty"`
+	BodyJSON json.RawMessage           `json:"body_json,omitempty"`
+}
+
+type HTTPRequestDataKeyValue struct {
+	Key   string `json:"key"`
+	Value string `json:"value"`
 }
 
 type AIChatCompletionData struct {
