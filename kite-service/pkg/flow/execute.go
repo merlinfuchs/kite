@@ -1034,6 +1034,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 		case ConditionItemModeHasRole:
 			member, ok := thing.Cast[RolesCastable](baseValue)
 			if !ok {
+				// TODO?: fetch member by id from discord?
 				return nil
 			}
 

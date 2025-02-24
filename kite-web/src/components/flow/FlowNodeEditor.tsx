@@ -1378,9 +1378,9 @@ function ConditionItemUserModeInput({ data, updateData, errors }: InputProps) {
         { value: "equal", label: "Equal" },
         { value: "not_equal", label: "Not Equal" },
         { value: "has_role", label: "Has Role" },
-        { value: "not_has_role", label: "Not Has Role" },
+        { value: "not_has_role", label: "Does Not Have Role" },
         { value: "has_permission", label: "Has Permission" },
-        { value: "not_has_permission", label: "Not Has Permission" },
+        { value: "not_has_permission", label: "Does Not Have Permission" },
       ]}
       value={data.condition_item_mode || ""}
       updateValue={(v) => updateData({ condition_item_mode: v || undefined })}
