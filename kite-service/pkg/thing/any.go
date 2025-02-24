@@ -16,6 +16,9 @@ type Any struct {
 }
 
 func New(v any) Any {
+	if a, ok := v.(Any); ok {
+		return a
+	}
 	return Any{Inner: v}
 }
 
@@ -168,4 +171,11 @@ func (w Any) Add(other Any) Any {
 
 func (w Any) Sub(other Any) Any {
 	return New(w.Float() - other.Float())
+}
+
+func Cast[T any](v Any) (T, bool) {
+	if t, ok := v.Inner.(T); ok {
+		return t, true
+	}
+	return *new(T), false
 }

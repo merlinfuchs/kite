@@ -6,7 +6,6 @@ import {
 import { getNodeId, useNodeValues } from "@/lib/flow/nodes";
 import { useMessages, useVariables } from "@/lib/hooks/api";
 import { useAppId } from "@/lib/hooks/params";
-import { getUniqueId } from "@/lib/utils";
 import { Node, useNodes, useReactFlow, useStoreApi } from "@xyflow/react";
 import {
   ChevronDownIcon,
@@ -341,40 +340,16 @@ function CommandArgumentRequiredInput({
 }
 
 function CommandPermissionsInput({ data, updateData, errors }: InputProps) {
-  const rawPermissions = data.command_permissions || "0";
-
-  const availablePermissions = useMemo(
-    () =>
-      permissionBits.map((p) => ({
-        value: p.bit.toString(),
-        label: p.label,
-      })),
-    []
-  );
-
-  const enabledPermissions = useMemo(
-    () => decodePermissionsBitset(rawPermissions).map((p) => p.bit.toString()),
-    [rawPermissions]
-  );
-
-  const setPermissions = useCallback(
-    (v: string[]) => {
-      const newPerms = encodePermissionsBitset(v.map((p) => parseInt(p)));
-
-      updateData({
-        command_permissions: newPerms === "0" ? undefined : newPerms,
-      });
-    },
-    [updateData]
-  );
-
   return (
-    <BaseMultiSelect
+    <BasePermissionInput
       field="command_permissions"
       title="Required Permissions"
-      values={enabledPermissions}
-      options={availablePermissions}
-      updateValues={setPermissions}
+      value={data.command_permissions || "0"}
+      updateValue={(v) =>
+        updateData({
+          command_permissions: v === "0" ? undefined : v,
+        })
+      }
       errors={errors}
     />
   );
@@ -1380,7 +1355,7 @@ function ConditionUserBaseValueInput({ data, updateData, errors }: InputProps) {
   return (
     <BaseInput
       field="condition_base_value"
-      title="Base User ID"
+      title="Base User"
       value={data.condition_base_value || ""}
       updateValue={(v) =>
         updateData({
@@ -1402,7 +1377,10 @@ function ConditionItemUserModeInput({ data, updateData, errors }: InputProps) {
       options={[
         { value: "equal", label: "Equal" },
         { value: "not_equal", label: "Not Equal" },
-        // TODO: one of user ids, has role, has permissions
+        { value: "has_role", label: "Has Role" },
+        { value: "not_has_role", label: "Does Not Have Role" },
+        { value: "has_permission", label: "Has Permission" },
+        { value: "not_has_permission", label: "Does Not Have Permission" },
       ]}
       value={data.condition_item_mode || ""}
       updateValue={(v) => updateData({ condition_item_mode: v || undefined })}
@@ -1412,10 +1390,47 @@ function ConditionItemUserModeInput({ data, updateData, errors }: InputProps) {
 }
 
 function ConditionItemUserValueInput({ data, updateData, errors }: InputProps) {
+  if (
+    data.condition_item_mode === "has_role" ||
+    data.condition_item_mode === "not_has_role"
+  ) {
+    return (
+      <BaseInput
+        field="condition_item_value"
+        title="Comparison Role"
+        value={data.condition_item_value || ""}
+        updateValue={(v) =>
+          updateData({
+            condition_item_value: v || undefined,
+          })
+        }
+        errors={errors}
+        placeholders
+      />
+    );
+  } else if (
+    data.condition_item_mode === "has_permission" ||
+    data.condition_item_mode === "not_has_permission"
+  ) {
+    return (
+      <BasePermissionInput
+        field="condition_item_value"
+        title="Comparison Permission"
+        value={data.condition_item_value || "0"}
+        updateValue={(v) =>
+          updateData({
+            condition_item_value: v === "0" ? undefined : v,
+          })
+        }
+        errors={errors}
+      />
+    );
+  }
+
   return (
     <BaseInput
       field="condition_item_value"
-      title="Comparison User ID"
+      title="Comparison User"
       value={data.condition_item_value || ""}
       updateValue={(v) =>
         updateData({
@@ -1436,7 +1451,7 @@ function ConditionChannelBaseValueInput({
   return (
     <BaseInput
       field="condition_base_value"
-      title="Base Channel ID"
+      title="Base Channel"
       value={data.condition_base_value || ""}
       updateValue={(v) =>
         updateData({
@@ -1478,7 +1493,7 @@ function ConditionItemChannelValueInput({
   return (
     <BaseInput
       field="condition_item_value"
-      title="Comparison Channel ID"
+      title="Comparison Channel"
       value={data.condition_item_value || ""}
       updateValue={(v) =>
         updateData({
@@ -1495,7 +1510,7 @@ function ConditionRoleBaseValueInput({ data, updateData, errors }: InputProps) {
   return (
     <BaseInput
       field="condition_base_value"
-      title="Base Role ID"
+      title="Base Role"
       value={data.condition_base_value || ""}
       updateValue={(v) =>
         updateData({
@@ -1529,7 +1544,7 @@ function ConditionItemRoleValueInput({ data, updateData, errors }: InputProps) {
   return (
     <BaseInput
       field="condition_item_value"
-      title="Comparison Role ID"
+      title="Comparison Role"
       value={data.condition_item_value || ""}
       updateValue={(v) =>
         updateData({
@@ -1803,5 +1818,56 @@ function BaseMultiSelect({
         </div>
       )}
     </div>
+  );
+}
+
+function BasePermissionInput({
+  field,
+  title,
+  description,
+  errors,
+  value,
+  updateValue,
+}: {
+  field: string;
+  title: string;
+  description?: string;
+  errors: Record<string, string>;
+  value: string;
+  updateValue: (value: string) => void;
+}) {
+  const availablePermissions = useMemo(
+    () =>
+      permissionBits.map((p) => ({
+        value: p.bit.toString(),
+        label: p.label,
+      })),
+    []
+  );
+
+  const enabledPermissions = useMemo(
+    () => decodePermissionsBitset(value || "0").map((p) => p.bit.toString()),
+    [value]
+  );
+
+  const setPermissions = useCallback(
+    (v: string[]) => {
+      const newPerms = encodePermissionsBitset(v.map((p) => parseInt(p)));
+
+      updateValue(newPerms);
+    },
+    [updateValue]
+  );
+
+  return (
+    <BaseMultiSelect
+      field={field}
+      title={title}
+      description={description}
+      values={enabledPermissions}
+      options={availablePermissions}
+      updateValues={setPermissions}
+      errors={errors}
+    />
   );
 }

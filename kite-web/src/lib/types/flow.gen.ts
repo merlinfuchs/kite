@@ -186,6 +186,13 @@ export const ConditionItemModeGreaterThanOrEqual: ConditionItemType = "greater_t
 export const ConditionItemModeLessThan: ConditionItemType = "less_than";
 export const ConditionItemModeLessThanOrEqual: ConditionItemType = "less_than_or_equal";
 export const ConditionItemModeContains: ConditionItemType = "contains";
+/**
+ * User condition
+ */
+export const ConditionItemModeHasRole: ConditionItemType = "has_role";
+export const ConditionItemModeNotHasRole: ConditionItemType = "not_has_role";
+export const ConditionItemModeHasPermission: ConditionItemType = "has_permission";
+export const ConditionItemModeNotHasPermission: ConditionItemType = "not_has_permission";
 export type CommandArgumentType = string;
 export const CommandArgumentTypeString: CommandArgumentType = "string";
 export const CommandArgumentTypeInteger: CommandArgumentType = "integer";

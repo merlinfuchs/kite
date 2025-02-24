@@ -254,6 +254,12 @@ const (
 	ConditionItemModeLessThan           ConditionItemType = "less_than"
 	ConditionItemModeLessThanOrEqual    ConditionItemType = "less_than_or_equal"
 	ConditionItemModeContains           ConditionItemType = "contains"
+
+	// User condition
+	ConditionItemModeHasRole          ConditionItemType = "has_role"
+	ConditionItemModeNotHasRole       ConditionItemType = "not_has_role"
+	ConditionItemModeHasPermission    ConditionItemType = "has_permission"
+	ConditionItemModeNotHasPermission ConditionItemType = "not_has_permission"
 )
 
 type CommandArgumentType string

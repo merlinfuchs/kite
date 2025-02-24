@@ -7,6 +7,7 @@ import (
 	"io"
 	"math/rand"
 	"net/http"
+	"slices"
 	"time"
 
 	"github.com/diamondburned/arikawa/v3/api"
@@ -1030,6 +1031,61 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			conditionMet = baseValue.Equals(&itemValue)
 		case ConditionItemModeNotEqual:
 			conditionMet = baseValue.Equals(&itemValue)
+		case ConditionItemModeHasRole:
+			member, ok := thing.Cast[RolesCastable](baseValue)
+			if !ok {
+				// TODO?: fetch member by id from discord?
+				return nil
+			}
+
+			conditionMet = member.HasRole(itemValue.String())
+		case ConditionItemModeNotHasRole:
+			member, ok := thing.Cast[RolesCastable](baseValue)
+			if !ok {
+				return nil
+			}
+
+			conditionMet = !member.HasRole(itemValue.String())
+		case ConditionItemModeHasPermission:
+			member, ok := thing.Cast[RolesCastable](baseValue)
+			if !ok {
+				return nil
+			}
+
+			roles, err := ctx.Discord.GuildRoles(ctx, ctx.Data.GuildID())
+			if err != nil {
+				return traceError(n, err)
+			}
+
+			var permission discord.Permissions
+			for _, role := range roles {
+				if slices.Contains(member.Roles(), role.ID.String()) {
+					permission |= role.Permissions
+				}
+			}
+
+			itemPermissions := discord.Permissions(itemValue.Int())
+			conditionMet = permission&itemPermissions == itemPermissions
+		case ConditionItemModeNotHasPermission:
+			member, ok := thing.Cast[RolesCastable](baseValue)
+			if !ok {
+				return nil
+			}
+
+			roles, err := ctx.Discord.GuildRoles(ctx, ctx.Data.GuildID())
+			if err != nil {
+				return traceError(n, err)
+			}
+
+			var permission discord.Permissions
+			for _, role := range roles {
+				if slices.Contains(member.Roles(), role.ID.String()) {
+					permission |= role.Permissions
+				}
+			}
+
+			itemPermissions := discord.Permissions(itemValue.Int())
+			conditionMet = permission&itemPermissions != itemPermissions
 		}
 
 		if conditionMet {
@@ -1139,4 +1195,9 @@ func (n *CompiledFlowNode) ExecuteChildren(ctx *FlowContext) error {
 		}
 	}
 	return nil
+}
+
+type RolesCastable interface {
+	HasRole(roleID string) bool
+	Roles() []string
 }

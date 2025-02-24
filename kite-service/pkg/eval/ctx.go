@@ -94,7 +94,13 @@ func NewCommandEnv(i *discord.InteractionEvent) *CommandEnv {
 		case discord.UserOptionType:
 			userID, _ := strconv.ParseInt(value.(string), 10, 64)
 			user := data.Resolved.Users[discord.UserID(userID)]
-			args[option.Name] = NewUserEnv(&user)
+
+			if member, ok := data.Resolved.Members[discord.UserID(userID)]; ok {
+				member.User = user
+				args[option.Name] = NewMemberEnv(&member)
+			} else {
+				args[option.Name] = NewUserEnv(&user)
+			}
 		case discord.RoleOptionType:
 			roleID, _ := strconv.ParseInt(value.(string), 10, 64)
 			role := data.Resolved.Roles[discord.RoleID(roleID)]
@@ -288,6 +294,19 @@ type MemberEnv struct {
 
 func (m MemberEnv) String() string {
 	return m.UserEnv.String()
+}
+
+func (m MemberEnv) HasRole(roleID string) bool {
+	for _, id := range m.RoleIDs {
+		if id == roleID {
+			return true
+		}
+	}
+	return false
+}
+
+func (m MemberEnv) Roles() []string {
+	return m.RoleIDs
 }
 
 func NewMemberEnv(member *discord.Member) *MemberEnv {
