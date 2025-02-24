@@ -26,7 +26,7 @@ export default function AppSettingsDelete() {
   }
 
   return (
-    <Card x-chunk="dashboard-04-chunk-2">
+    <Card>
       <CardContent className="pt-6 space-y-5">
         <div className="flex justify-between items-center">
           <div>

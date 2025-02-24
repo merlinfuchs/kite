@@ -15,12 +15,14 @@ import (
 
 type AppHandler struct {
 	appStore       store.AppStore
+	userStore      store.UserStore
 	maxAppsPerUser int
 }
 
-func NewAppHandler(appStore store.AppStore, maxAppsPerUser int) *AppHandler {
+func NewAppHandler(appStore store.AppStore, userStore store.UserStore, maxAppsPerUser int) *AppHandler {
 	return &AppHandler{
 		appStore:       appStore,
+		userStore:      userStore,
 		maxAppsPerUser: maxAppsPerUser,
 	}
 }
@@ -196,6 +198,10 @@ func (h *AppHandler) HandleAppTokenUpdate(c *handler.Context, req wire.AppTokenU
 }
 
 func (h *AppHandler) HandleAppDelete(c *handler.Context) (*wire.AppDeleteResponse, error) {
+	if !c.UserAppRole.CanDeleteApp() {
+		return nil, handler.ErrForbidden("missing_permissions", "You don't have permissions to delete this app")
+	}
+
 	if err := h.appStore.DeleteApp(c.Context(), c.App.ID); err != nil {
 		return nil, fmt.Errorf("failed to delete app: %w", err)
 	}

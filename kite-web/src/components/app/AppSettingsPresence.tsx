@@ -112,7 +112,7 @@ export default function AppSettingsPresence() {
   const discordStatus = form.watch("discord_status.status");
 
   return (
-    <Card x-chunk="dashboard-04-chunk-1">
+    <Card>
       <CardHeader>
         <CardTitle>Custom Status</CardTitle>
         <CardDescription>

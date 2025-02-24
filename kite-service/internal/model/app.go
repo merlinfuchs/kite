@@ -50,6 +50,30 @@ func (s *AppDiscordStatus) Equals(other *AppDiscordStatus) bool {
 		s.ActivityURL == other.ActivityURL
 }
 
+type AppCollaboratorRole string
+
+const (
+	AppCollaboratorRoleOwner AppCollaboratorRole = "owner"
+	AppCollaboratorRoleAdmin AppCollaboratorRole = "admin"
+)
+
+func (r AppCollaboratorRole) CanDeleteApp() bool {
+	return r == AppCollaboratorRoleOwner
+}
+
+func (r AppCollaboratorRole) CanManageCollaborators() bool {
+	return r == AppCollaboratorRoleOwner
+}
+
+type AppCollaborator struct {
+	AppID     string
+	UserID    string
+	User      *User
+	Role      AppCollaboratorRole
+	CreatedAt time.Time
+	UpdatedAt time.Time
+}
+
 type AppEntity struct {
 	ID   string
 	Type AppEntityType

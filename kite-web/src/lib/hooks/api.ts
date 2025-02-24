@@ -1,6 +1,7 @@
 import { useRouter } from "next/router";
 import { useEffect } from "react";
 import {
+  useAppCollaboratorsQuery,
   useAppEmojisQuery,
   useAppEntitiesQuery,
   useAppQuery,
@@ -27,6 +28,7 @@ import {
 } from "../api/queries";
 import { APIResponse } from "../api/response";
 import {
+  AppCollaboratorListResponse,
   AppEmojiListResponse,
   AppEntityListResponse,
   AppGetResponse,
@@ -284,6 +286,15 @@ export function useAppStateGuildChannel(
   const data = useResponseData(query);
 
   return data?.find((c) => c!.id === channelId);
+}
+
+export function useAppCollaborators(
+  callback?: (res: APIResponse<AppCollaboratorListResponse>) => void
+) {
+  const router = useRouter();
+
+  const query = useAppCollaboratorsQuery(router.query.appId as string);
+  return useResponseData(query, callback);
 }
 
 export function useAppSubscriptions(

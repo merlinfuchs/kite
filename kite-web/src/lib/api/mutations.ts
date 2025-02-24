@@ -1,5 +1,8 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
+  AppCollaboratorCreateRequest,
+  AppCollaboratorCreateResponse,
+  AppCollaboratorDeleteResponse,
   AppCreateRequest,
   AppCreateResponse,
   AppDeleteResponse,
@@ -658,6 +661,48 @@ export function useAssetCreateMutation(appId: string) {
     onSuccess: () => {
       client.invalidateQueries({
         queryKey: ["apps", appId, "assets"],
+      });
+    },
+  });
+}
+
+export function useAppCollaboratorCreateMutation(appId: string) {
+  const client = useQueryClient();
+
+  return useMutation({
+    mutationFn: (req: AppCollaboratorCreateRequest) =>
+      apiRequest<AppCollaboratorCreateResponse>(
+        `/v1/apps/${appId}/collaborators`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(req),
+        }
+      ),
+    onSuccess: () => {
+      client.invalidateQueries({
+        queryKey: ["apps", appId, "collaborators"],
+      });
+    },
+  });
+}
+
+export function useAppCollaboratorDeleteMutation(appId: string) {
+  const client = useQueryClient();
+
+  return useMutation({
+    mutationFn: (collaboratorId: string) =>
+      apiRequest<AppCollaboratorDeleteResponse>(
+        `/v1/apps/${appId}/collaborators/${collaboratorId}`,
+        {
+          method: "DELETE",
+        }
+      ),
+    onSuccess: () => {
+      client.invalidateQueries({
+        queryKey: ["apps", appId, "collaborators"],
       });
     },
   });
