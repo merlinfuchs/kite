@@ -390,7 +390,11 @@ export const nodeConditionItemCompareDataSchema = nodeBaseDataSchema.extend({
     .or(z.literal("less_than"))
     .or(z.literal("greater_than_or_equal"))
     .or(z.literal("less_than_or_equal"))
-    .or(z.literal("contains")),
+    .or(z.literal("contains"))
+    .or(z.literal("has_role"))
+    .or(z.literal("not_has_role"))
+    .or(z.literal("has_permission"))
+    .or(z.literal("not_has_permission")),
 });
 
 export const nodeControlLoopDataSchema = nodeBaseDataSchema.extend({

@@ -198,7 +198,12 @@ export type Permission = (typeof permissionBits)[number];
 export type PermissionBit = Permission["bit"];
 
 export function decodePermissionsBitset(value: string): Permission[] {
-  const bits = BigInt(value);
+  let bits = BigInt(0);
+  try {
+    bits = BigInt(value);
+  } catch (e) {
+    return [];
+  }
 
   const permissions: Permission[] = [];
 
