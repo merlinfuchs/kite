@@ -13,17 +13,13 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  useAppCollaborators,
-  useAppFeature,
-  useAppFeatures,
-} from "@/lib/hooks/api";
+import { useAppCollaboratorDeleteMutation } from "@/lib/api/mutations";
+import { useAppCollaborators, useAppFeature } from "@/lib/hooks/api";
+import { useAppId } from "@/lib/hooks/params";
 import { MinusIcon } from "lucide-react";
 import ConfirmDialog from "../common/ConfirmDialog";
 import { Button } from "../ui/button";
 import AppCollaboratorAddDialog from "./AppCollaboratorAddDialog";
-import { useAppCollaboratorDeleteMutation } from "@/lib/api/mutations";
-import { useAppId } from "@/lib/hooks/params";
 
 export default function AppSettingsCollaborators() {
   const appId = useAppId();

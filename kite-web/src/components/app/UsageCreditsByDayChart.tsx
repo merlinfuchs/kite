@@ -13,23 +13,22 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import env from "@/lib/env/client";
 import {
   useAppFeature,
-  useAppFeatures,
   useUsageCredits,
   useUsageCreditsByDay,
 } from "@/lib/hooks/api";
+import { formatNumber } from "@/lib/utils";
+import { CircleHelpIcon } from "lucide-react";
+import Link from "next/link";
+import { useMemo } from "react";
 import {
   ChartConfig,
   ChartContainer,
   ChartTooltip,
   ChartTooltipContent,
 } from "../ui/chart";
-import { formatNumber } from "@/lib/utils";
-import { useMemo } from "react";
-import { CircleHelpIcon } from "lucide-react";
-import Link from "next/link";
-import env from "@/lib/env/client";
 
 const chartConfig = {
   credits_used: {
