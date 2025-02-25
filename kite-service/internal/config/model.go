@@ -80,7 +80,6 @@ type UserLimitsConfig struct {
 	MaxMessagesPerApp       int `toml:"max_messages_per_app"`
 	MaxEventListenersPerApp int `toml:"max_event_listeners_per_app"`
 	MaxAssetSize            int `toml:"max_asset_size"`
-	CreditsPerMonth         int `toml:"credits_per_month"`
 }
 
 type OpenAIConfig struct {

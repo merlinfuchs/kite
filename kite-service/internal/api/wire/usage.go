@@ -3,8 +3,7 @@ package wire
 import "time"
 
 type UsageCreditsGetResponse struct {
-	TotalCredits int `json:"total_credits"`
-	CreditsUsed  int `json:"credits_used"`
+	CreditsUsed int `json:"credits_used"`
 }
 
 type UsageByDayListResponse []*UsageByDayEntry

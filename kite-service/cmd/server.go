@@ -91,7 +91,7 @@ func serverStartCMD(c *cli.Context) error {
 	gateway := gateway.NewGatewayManager(pg, pg, handler)
 	gateway.Run(ctx)
 
-	usage := usage.NewUsageManager(pg, pg, cfg.UserLimits.CreditsPerMonth)
+	usage := usage.NewUsageManager(pg, pg, 10000) // TODO: make this dynamic
 	usage.Run(ctx)
 
 	apiServer := api.NewAPIServer(api.APIServerConfig{
@@ -108,7 +108,6 @@ func serverStartCMD(c *cli.Context) error {
 			MaxMessagesPerApp:       cfg.UserLimits.MaxMessagesPerApp,
 			MaxEventListenersPerApp: cfg.UserLimits.MaxEventListenersPerApp,
 			MaxAssetSize:            cfg.UserLimits.MaxAssetSize,
-			CreditsPerMonth:         cfg.UserLimits.CreditsPerMonth,
 		},
 		Billing: api.BillingConfig{
 			LemonSqueezyAPIKey:        cfg.Billing.LemonSqueezyAPIKey,

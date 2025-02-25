@@ -9,6 +9,7 @@ import {
   BillingPlanListResponse,
   CommandGetResponse,
   CommandListResponse,
+  EntitlementFeaturesGetResponse,
   EventListenerGetResponse,
   EventListenerListResponse,
   LogEntryListResponse,
@@ -257,5 +258,16 @@ export function useBillingPlansQuery() {
   return useQuery({
     queryKey: ["billing", "plans"],
     queryFn: () => apiRequest<BillingPlanListResponse>(`/v1/billing/plans`),
+  });
+}
+
+export function useEntitlementFeaturesQuery(appId: string) {
+  return useQuery({
+    queryKey: ["apps", appId, "entitlements", "features"],
+    queryFn: () =>
+      apiRequest<EntitlementFeaturesGetResponse>(
+        `/v1/apps/${appId}/billing/entitlements/features`
+      ),
+    enabled: !!appId,
   });
 }

@@ -137,6 +137,7 @@ func (s *APIServer) RegisterRoutes(
 	appBillingGroup := appGroup.Group("/billing")
 	appBillingGroup.Get("/subscriptions", handler.Typed(billingHandler.HandleAppSubscriptionList))
 	appBillingGroup.Post("/checkout", handler.TypedWithBody(billingHandler.HandleAppCheckout))
+	appBillingGroup.Get("/entitlements/features", handler.Typed(billingHandler.HandleEntitlementFeaturesGet))
 
 	// Log routes
 	logHandler := logs.NewLogHandler(logStore)
@@ -146,7 +147,7 @@ func (s *APIServer) RegisterRoutes(
 	logsGroup.Get("/summary", handler.Typed(logHandler.HandleLogSummaryGet))
 
 	// Usage routes
-	usageHandler := usage.NewUsageHandler(usageStore, s.config.UserLimits.CreditsPerMonth)
+	usageHandler := usage.NewUsageHandler(usageStore)
 
 	usageGroup := appGroup.Group("/usage")
 	usageGroup.Get("/credits", handler.Typed(usageHandler.HandleUsageCreditsGet))
