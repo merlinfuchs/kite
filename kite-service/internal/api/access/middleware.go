@@ -4,6 +4,7 @@ import (
 	"errors"
 
 	"github.com/kitecloud/kite/kite-service/internal/api/handler"
+	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/internal/store"
 )
 
@@ -20,7 +21,17 @@ func (m *AccessManager) AppAccess(next handler.HandlerFunc) handler.HandlerFunc 
 		}
 
 		if app.OwnerUserID != c.Session.UserID {
-			return handler.ErrForbidden("missing_access", "Access to app missing")
+			collaborator, err := m.appStore.Collaborator(c.Context(), appID, c.Session.UserID)
+			if err != nil {
+				if errors.Is(err, store.ErrNotFound) {
+					return handler.ErrForbidden("missing_access", "Access to app missing")
+				}
+				return err
+			}
+
+			c.UserAppRole = collaborator.Role
+		} else {
+			c.UserAppRole = model.AppCollaboratorRoleOwner
 		}
 
 		c.App = app

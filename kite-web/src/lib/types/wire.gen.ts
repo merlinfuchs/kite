@@ -196,6 +196,23 @@ export interface BillingPlan {
 export type BillingPlanListResponse = (BillingPlan | undefined)[];
 
 //////////
+// source: collaborator.go
+
+export interface AppCollaborator {
+  user: User;
+  role: string;
+  created_at: string /* RFC3339 */;
+  updated_at: string /* RFC3339 */;
+}
+export type AppCollaboratorListResponse = (AppCollaborator | undefined)[];
+export interface AppCollaboratorCreateRequest {
+  discord_user_id: string;
+  role: string;
+}
+export type AppCollaboratorCreateResponse = AppCollaborator;
+export type AppCollaboratorDeleteResponse = Empty;
+
+//////////
 // source: command.go
 
 export interface Command {

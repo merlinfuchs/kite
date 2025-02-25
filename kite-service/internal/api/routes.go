@@ -93,7 +93,12 @@ func (s *APIServer) RegisterRoutes(
 	usersGroup.Get("/{userID}", handler.Typed(userHandler.HandlerUserGet))
 
 	// App routes
-	appHandler := app.NewAppHandler(appStore, s.config.UserLimits.MaxAppsPerUser)
+	appHandler := app.NewAppHandler(
+		appStore,
+		userStore,
+		featureManager,
+		s.config.UserLimits.MaxAppsPerUser,
+	)
 
 	appsGroup := v1Group.Group("/apps",
 		sessionManager.RequireSession,
@@ -119,6 +124,9 @@ func (s *APIServer) RegisterRoutes(
 		handler.CacheByUser(cacheManager, time.Minute),
 	)
 	appGroup.Get("/entities", handler.Typed(appHandler.HandleAppEntityList))
+	appGroup.Get("/collaborators", handler.Typed(appHandler.HandleAppCollaboratorsList))
+	appGroup.Post("/collaborators", handler.TypedWithBody(appHandler.HandleAppCollaboratorCreate))
+	appGroup.Delete("/collaborators/{userID}", handler.Typed(appHandler.HandleAppCollaboratorDelete))
 
 	// Billing routes
 	billingHandler := billing.NewBillingHandler(billing.BillingHandlerConfig{

@@ -19,6 +19,7 @@ import { useApp } from "@/lib/hooks/api";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import ThemeSwitch from "../common/ThemeSwitch";
+import { toast } from "sonner";
 
 interface Props {
   breadcrumbs?: {
@@ -31,7 +32,21 @@ interface Props {
 }
 
 export default function AppLayout({ children, ...props }: Props) {
-  const app = useApp();
+  const app = useApp((res) => {
+    if (!res.success) {
+      toast.error(
+        `Failed to load app: ${res?.error.message} (${res?.error.code})`
+      );
+      if (
+        res.error.code === "unknown_app" ||
+        res.error.code === "missing_access"
+      ) {
+        router.push({
+          pathname: "/apps",
+        });
+      }
+    }
+  });
 
   const router = useRouter();
 

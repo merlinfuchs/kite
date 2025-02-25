@@ -1,6 +1,7 @@
 import { useRouter } from "next/router";
 import { useEffect } from "react";
 import {
+  useAppCollaboratorsQuery,
   useAppEmojisQuery,
   useAppEntitiesQuery,
   useAppQuery,
@@ -13,7 +14,7 @@ import {
   useCommandsQuery,
   useEventListenerQuery,
   useEventListenersQuery,
-  useFeaturesQuery,
+  useAppFeaturesQuery,
   useLogSummaryQuery,
   useMessageInstancesQuery,
   useMessageQuery,
@@ -27,6 +28,7 @@ import {
 } from "../api/queries";
 import { APIResponse } from "../api/response";
 import {
+  AppCollaboratorListResponse,
   AppEmojiListResponse,
   AppEntityListResponse,
   AppGetResponse,
@@ -286,6 +288,15 @@ export function useAppStateGuildChannel(
   return data?.find((c) => c!.id === channelId);
 }
 
+export function useAppCollaborators(
+  callback?: (res: APIResponse<AppCollaboratorListResponse>) => void
+) {
+  const router = useRouter();
+
+  const query = useAppCollaboratorsQuery(router.query.appId as string);
+  return useResponseData(query, callback);
+}
+
 export function useAppSubscriptions(
   callback?: (res: APIResponse<SubscriptionListResponse>) => void
 ) {
@@ -302,11 +313,18 @@ export function useBillingPlans(
   return useResponseData(query, callback);
 }
 
-export function useFeatures(
+export function useAppFeatures(
   callback?: (res: APIResponse<FeaturesGetResponse>) => void
 ) {
   const router = useRouter();
 
-  const query = useFeaturesQuery(router.query.appId as string);
+  const query = useAppFeaturesQuery(router.query.appId as string);
   return useResponseData(query, callback);
+}
+
+export function useAppFeature<T>(
+  accessor: (features: FeaturesGetResponse) => T
+): T | undefined {
+  const features = useAppFeatures();
+  return features ? accessor(features) : undefined;
 }

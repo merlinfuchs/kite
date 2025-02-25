@@ -18,7 +18,7 @@ export default function AppPremiumPage() {
           Manage your app&apos;s access to premium features and subscriptions.
         </p>
       </div>
-      <Separator className="mt-8 mb-32" />
+      <Separator className="my-8 xl:mb-20" />
 
       <AppPricingList />
 

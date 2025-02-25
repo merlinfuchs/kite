@@ -16,7 +16,7 @@ import (
 )
 
 func (c *Client) AppsByUser(ctx context.Context, userID string) ([]*model.App, error) {
-	rows, err := c.Q.GetAppsByOwner(ctx, userID)
+	rows, err := c.Q.GetAppsByCollaborator(ctx, userID)
 	if err != nil {
 		return nil, err
 	}

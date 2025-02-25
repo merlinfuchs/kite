@@ -13,22 +13,22 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import env from "@/lib/env/client";
 import {
-  useFeatures,
+  useAppFeature,
   useUsageCredits,
   useUsageCreditsByDay,
 } from "@/lib/hooks/api";
+import { formatNumber } from "@/lib/utils";
+import { CircleHelpIcon } from "lucide-react";
+import Link from "next/link";
+import { useMemo } from "react";
 import {
   ChartConfig,
   ChartContainer,
   ChartTooltip,
   ChartTooltipContent,
 } from "../ui/chart";
-import { formatNumber } from "@/lib/utils";
-import { useMemo } from "react";
-import { CircleHelpIcon } from "lucide-react";
-import Link from "next/link";
-import env from "@/lib/env/client";
 
 const chartConfig = {
   credits_used: {
@@ -40,9 +40,7 @@ const chartConfig = {
 export default function UsageCreditsByDayChart() {
   const credits = useUsageCredits();
 
-  const features = useFeatures();
-
-  const creditsPerMonth = features?.usage_credits_per_month || 0;
+  const creditsPerMonth = useAppFeature((f) => f.usage_credits_per_month || 0);
 
   const creditsByDay = useUsageCreditsByDay();
 

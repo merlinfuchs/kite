@@ -85,7 +85,7 @@ export default function AppSettingsAppearance() {
   );
 
   return (
-    <Card x-chunk="dashboard-04-chunk-1">
+    <Card>
       <CardHeader>
         <CardTitle>Appearance</CardTitle>
         <CardDescription>

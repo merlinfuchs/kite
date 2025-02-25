@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { apiRequest } from "./client";
 import {
+  AppCollaboratorListResponse,
   AppEmojiListResponse,
   AppEntityListResponse,
   AppGetResponse,
@@ -243,6 +244,17 @@ export function useAppStateGuildChannelsQuery(
   });
 }
 
+export function useAppCollaboratorsQuery(appId: string) {
+  return useQuery({
+    queryKey: ["apps", appId, "collaborators"],
+    queryFn: () =>
+      apiRequest<AppCollaboratorListResponse>(
+        `/v1/apps/${appId}/collaborators`
+      ),
+    enabled: !!appId,
+  });
+}
+
 export function useAppSubscriptionsQuery(appId: string) {
   return useQuery({
     queryKey: ["apps", appId, "subscriptions"],
@@ -261,7 +273,7 @@ export function useBillingPlansQuery() {
   });
 }
 
-export function useFeaturesQuery(appId: string) {
+export function useAppFeaturesQuery(appId: string) {
   return useQuery({
     queryKey: ["apps", appId, "billing", "features"],
     queryFn: () =>
