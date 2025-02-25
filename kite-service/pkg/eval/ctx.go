@@ -427,7 +427,6 @@ func (s SnowflakeEnv) String() string {
 
 type HTTPResponseEnv struct {
 	resp *http.Response
-	body []byte
 
 	Status     string                 `expr:"status" json:"status"`
 	StatusCode int                    `expr:"status_code" json:"status_code"`
@@ -440,19 +439,13 @@ func NewHTTPResponseEnv(resp *http.Response) *HTTPResponseEnv {
 
 		Status:     resp.Status,
 		StatusCode: resp.StatusCode,
-	}
-	res.BodyFunc = func() (string, error) {
-		if res.body != nil {
-			return string(res.body), nil
-		}
-
-		body, err := io.ReadAll(resp.Body)
-		if err != nil {
-			return "", err
-		}
-
-		res.body = body
-		return string(body), nil
+		BodyFunc: func() (string, error) {
+			body, err := io.ReadAll(resp.Body)
+			if err != nil {
+				return "", err
+			}
+			return string(body), nil
+		},
 	}
 
 	return res

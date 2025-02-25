@@ -1,6 +1,8 @@
 package session
 
 import (
+	"fmt"
+
 	"github.com/kitecloud/kite/kite-service/internal/api/handler"
 )
 
@@ -8,7 +10,7 @@ func (m *SessionManager) RequireSession(next handler.HandlerFunc) handler.Handle
 	return func(c *handler.Context) error {
 		session, err := m.Session(c)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to get session: %w", err)
 		}
 
 		if session == nil {
