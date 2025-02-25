@@ -90,15 +90,15 @@ func serverStartCMD(c *cli.Context) error {
 
 	handler := event.NewEventHandlerWrapper(engine, pg)
 
-	gateway := gateway.NewGatewayManager(pg, pg, handler)
-	gateway.Run(ctx)
-
 	billingPlans := make([]model.Plan, len(cfg.Billing.Plans))
 	for i, plan := range cfg.Billing.Plans {
 		billingPlans[i] = model.Plan(plan)
 	}
 
 	featureManager := feature.NewManager(pg, billingPlans)
+
+	gateway := gateway.NewGatewayManager(pg, pg, featureManager, handler)
+	gateway.Run(ctx)
 
 	usage := usage.NewUsageManager(pg, pg, featureManager) // TODO: make this dynamic
 	usage.Run(ctx)

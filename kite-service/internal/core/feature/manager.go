@@ -35,6 +35,9 @@ func (m *Manager) PlanByLemonSqueezyProductID(productID string) *model.Plan {
 }
 
 func (m *Manager) AppFeatures(ctx context.Context, appID string) model.Features {
+	ctx, cancel := context.WithTimeout(ctx, 3*time.Second)
+	defer cancel()
+
 	entitlements, err := m.entitlementStore.ActiveEntitlements(ctx, appID, time.Now().UTC())
 	if err != nil {
 		slog.Error(

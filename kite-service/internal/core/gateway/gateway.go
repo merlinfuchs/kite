@@ -12,15 +12,17 @@ import (
 	"github.com/diamondburned/arikawa/v3/session"
 	"github.com/diamondburned/arikawa/v3/state"
 	"github.com/diamondburned/arikawa/v3/utils/httputil"
+	"github.com/kitecloud/kite/kite-service/internal/core/feature"
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/internal/store"
 	"gopkg.in/guregu/null.v4"
 )
 
 type Gateway struct {
-	logStore     store.LogStore
-	appStore     store.AppStore
-	eventHandler EventHandler
+	logStore       store.LogStore
+	appStore       store.AppStore
+	featureManager *feature.Manager
+	eventHandler   EventHandler
 
 	app     *model.App
 	session *state.State
@@ -29,13 +31,20 @@ type Gateway struct {
 	cancel context.CancelFunc
 }
 
-func NewGateway(app *model.App, logStore store.LogStore, appStore store.AppStore, eventHandler EventHandler) *Gateway {
+func NewGateway(
+	app *model.App,
+	logStore store.LogStore,
+	appStore store.AppStore,
+	featureManager *feature.Manager,
+	eventHandler EventHandler,
+) *Gateway {
 	g := &Gateway{
-		logStore:     logStore,
-		appStore:     appStore,
-		eventHandler: eventHandler,
-		app:          app,
-		session:      createSession(app),
+		logStore:       logStore,
+		appStore:       appStore,
+		featureManager: featureManager,
+		eventHandler:   eventHandler,
+		app:            app,
+		session:        createSession(app),
 	}
 
 	g.ctx, g.cancel = context.WithCancel(context.Background())
@@ -75,8 +84,8 @@ func (g *Gateway) startGateway() {
 			e.User.Username, e.User.Discriminator, e.User.ID,
 		))
 
-		// TODO: remove bypass for Kite when entitlements are implemented
-		if len(e.Guilds) > 100 && e.User.ID != 844710218864656414 {
+		features := g.featureManager.AppFeatures(g.ctx, g.app.ID)
+		if len(e.Guilds) > features.MaxGuilds {
 			g.createLogEntry(model.LogLevelError, "Bots that are in more than 100 servers are currently not supported.")
 			g.disableApp("Bots that are in more than 100 servers are currently not supported.")
 			return
