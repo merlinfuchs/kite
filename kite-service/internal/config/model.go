@@ -73,6 +73,7 @@ type EngineConfig struct {
 	MaxCredits    int `toml:"max_credits"`
 }
 
+// TODO: Move these to plan features
 type UserLimitsConfig struct {
 	MaxAppsPerUser          int `toml:"max_apps_per_user"`
 	MaxCommandsPerApp       int `toml:"max_commands_per_app"`
