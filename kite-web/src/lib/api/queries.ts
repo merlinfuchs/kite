@@ -11,6 +11,7 @@ import {
   CommandListResponse,
   EventListenerGetResponse,
   EventListenerListResponse,
+  FeaturesGetResponse,
   LogEntryListResponse,
   LogSummaryGetResponse,
   MessageGetResponse,
@@ -257,5 +258,14 @@ export function useBillingPlansQuery() {
   return useQuery({
     queryKey: ["billing", "plans"],
     queryFn: () => apiRequest<BillingPlanListResponse>(`/v1/billing/plans`),
+  });
+}
+
+export function useFeaturesQuery(appId: string) {
+  return useQuery({
+    queryKey: ["apps", appId, "billing", "features"],
+    queryFn: () =>
+      apiRequest<FeaturesGetResponse>(`/v1/apps/${appId}/billing/features`),
+    enabled: !!appId,
   });
 }

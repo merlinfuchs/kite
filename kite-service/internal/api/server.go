@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/kitecloud/kite/kite-service/internal/config"
+	"github.com/kitecloud/kite/kite-service/internal/core/feature"
 	"github.com/kitecloud/kite/kite-service/internal/store"
 	"github.com/rs/cors"
 )
@@ -28,7 +29,6 @@ type APIUserLimitsConfig struct {
 	MaxMessagesPerApp       int
 	MaxEventListenersPerApp int
 	MaxAssetSize            int
-	CreditsPerMonth         int
 }
 
 type BillingConfig struct {
@@ -62,6 +62,7 @@ func NewAPIServer(
 	entitlementStore store.EntitlementStore,
 	assetStore store.AssetStore,
 	appStateManager store.AppStateManager,
+	featureManager *feature.Manager,
 ) *APIServer {
 	s := &APIServer{
 		config: config,
@@ -83,6 +84,7 @@ func NewAPIServer(
 		entitlementStore,
 		assetStore,
 		appStateManager,
+		featureManager,
 	)
 	return s
 }

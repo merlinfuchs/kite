@@ -2,6 +2,7 @@ package postgres
 
 import (
 	"context"
+	"time"
 
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/kitecloud/kite/kite-service/internal/db/postgres/pgmodel"
@@ -11,6 +12,23 @@ import (
 
 func (c *Client) Entitlements(ctx context.Context, appID string) ([]*model.Entitlement, error) {
 	rows, err := c.Q.GetEntitlements(ctx, appID)
+	if err != nil {
+		return nil, err
+	}
+
+	entitlements := make([]*model.Entitlement, 0, len(rows))
+	for _, row := range rows {
+		entitlements = append(entitlements, rowToEntitlement(row))
+	}
+
+	return entitlements, nil
+}
+
+func (c *Client) ActiveEntitlements(ctx context.Context, appID string, now time.Time) ([]*model.Entitlement, error) {
+	rows, err := c.Q.GetActiveEntitlements(ctx, pgmodel.GetActiveEntitlementsParams{
+		AppID:  appID,
+		EndsAt: pgtype.Timestamp{Time: now, Valid: true},
+	})
 	if err != nil {
 		return nil, err
 	}

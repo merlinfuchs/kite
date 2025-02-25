@@ -73,6 +73,7 @@ type EngineConfig struct {
 	MaxCredits    int `toml:"max_credits"`
 }
 
+// TODO: Move these to plan features
 type UserLimitsConfig struct {
 	MaxAppsPerUser          int `toml:"max_apps_per_user"`
 	MaxCommandsPerApp       int `toml:"max_commands_per_app"`
@@ -80,7 +81,6 @@ type UserLimitsConfig struct {
 	MaxMessagesPerApp       int `toml:"max_messages_per_app"`
 	MaxEventListenersPerApp int `toml:"max_event_listeners_per_app"`
 	MaxAssetSize            int `toml:"max_asset_size"`
-	CreditsPerMonth         int `toml:"credits_per_month"`
 }
 
 type OpenAIConfig struct {

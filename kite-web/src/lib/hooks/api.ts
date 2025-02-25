@@ -13,6 +13,7 @@ import {
   useCommandsQuery,
   useEventListenerQuery,
   useEventListenersQuery,
+  useFeaturesQuery,
   useLogSummaryQuery,
   useMessageInstancesQuery,
   useMessageQuery,
@@ -35,6 +36,7 @@ import {
   CommandListResponse,
   EventListenerGetResponse,
   EventListenerListResponse,
+  FeaturesGetResponse,
   LogSummaryGetResponse,
   MessageGetResponse,
   MessageInstanceListResponse,
@@ -297,5 +299,14 @@ export function useBillingPlans(
   callback?: (res: APIResponse<BillingPlanListResponse>) => void
 ) {
   const query = useBillingPlansQuery();
+  return useResponseData(query, callback);
+}
+
+export function useFeatures(
+  callback?: (res: APIResponse<FeaturesGetResponse>) => void
+) {
+  const router = useRouter();
+
+  const query = useFeaturesQuery(router.query.appId as string);
   return useResponseData(query, callback);
 }

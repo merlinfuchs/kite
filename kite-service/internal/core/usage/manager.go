@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"time"
 
+	"github.com/kitecloud/kite/kite-service/internal/core/feature"
 	"github.com/kitecloud/kite/kite-service/internal/store"
 	"gopkg.in/guregu/null.v4"
 )
@@ -14,14 +15,14 @@ type UsageManager struct {
 	appStore   store.AppStore
 	usageStore store.UsageStore
 
-	creditsPerMonth int
+	featureManager *feature.Manager
 }
 
-func NewUsageManager(appStore store.AppStore, usageStore store.UsageStore, creditsPerMonth int) *UsageManager {
+func NewUsageManager(appStore store.AppStore, usageStore store.UsageStore, featureManager *feature.Manager) *UsageManager {
 	return &UsageManager{
-		appStore:        appStore,
-		usageStore:      usageStore,
-		creditsPerMonth: creditsPerMonth,
+		appStore:       appStore,
+		usageStore:     usageStore,
+		featureManager: featureManager,
 	}
 }
 
@@ -55,7 +56,9 @@ func (m *UsageManager) disableAppsWithNoCredits(ctx context.Context) error {
 	}
 
 	for appID, creditsUsed := range creditsUsed {
-		if creditsUsed >= m.creditsPerMonth {
+		features := m.featureManager.AppFeatures(ctx, appID)
+
+		if creditsUsed >= features.UsageCreditsPerMonth {
 			dCtx, cancel := context.WithTimeout(ctx, time.Second)
 			defer cancel()
 
