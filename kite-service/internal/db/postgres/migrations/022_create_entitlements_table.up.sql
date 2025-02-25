@@ -5,7 +5,8 @@ CREATE TABLE IF NOT EXISTS entitlements (
     subscription_id TEXT REFERENCES subscriptions(id) ON DELETE CASCADE,
     app_id TEXT NOT NULL REFERENCES apps(id) ON DELETE CASCADE,
 
-    feature_set_id TEXT NOT NULL, -- usually LemonSqueezy Product ID
+    lemonsqueezy_product_id TEXT,
+    lemonsqueezy_variant_id TEXT,
 
     created_at TIMESTAMP NOT NULL,
     updated_at TIMESTAMP NOT NULL,

@@ -1,8 +1,13 @@
 import AppLayout from "@/components/app/AppLayout";
-import { breadcrumbs } from "../commands";
 import { Separator } from "@/components/ui/separator";
 import AppSubscriptionList from "@/components/app/AppSubscriptionList";
 import AppPricingList from "@/components/app/AppPricingList";
+
+const breadcrumbs = [
+  {
+    label: "Premium",
+  },
+];
 
 export default function AppPremiumPage() {
   return (

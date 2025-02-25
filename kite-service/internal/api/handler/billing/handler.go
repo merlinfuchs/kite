@@ -2,22 +2,17 @@ package billing
 
 import (
 	"github.com/NdoleStudio/lemonsqueezy-go"
+	"github.com/kitecloud/kite/kite-service/internal/config"
 	"github.com/kitecloud/kite/kite-service/internal/store"
 )
 
 type BillingHandlerConfig struct {
 	LemonSqueezyAPIKey        string
 	LemonSqueezySigningSecret string
+	LemonSqueezyStoreID       string
 	TestMode                  bool
 	AppPublicBaseURL          string
-	FeatureSets               []FeatureSet
-}
-
-type FeatureSet struct {
-	ID                          string
-	Default                     bool
-	FeatureUsageCreditsPerMonth int
-	FeatureMaxCollaborator      int
+	Plans                     []config.BillingPlanConfig
 }
 
 type BillingHandler struct {

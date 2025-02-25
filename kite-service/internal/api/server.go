@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"net/http"
 
+	"github.com/kitecloud/kite/kite-service/internal/config"
 	"github.com/kitecloud/kite/kite-service/internal/store"
 	"github.com/rs/cors"
 )
@@ -33,7 +34,9 @@ type APIUserLimitsConfig struct {
 type BillingConfig struct {
 	LemonSqueezyAPIKey        string
 	LemonSqueezySigningSecret string
+	LemonSqueezyStoreID       string
 	TestMode                  bool
+	Plans                     []config.BillingPlanConfig
 }
 
 type APIServer struct {

@@ -9,73 +9,41 @@ import {
   CardTitle,
 } from "../ui/card";
 import { Badge } from "../ui/badge";
-import { useAppSubscriptions } from "@/lib/hooks/api";
-import { ReactNode } from "react";
-
-interface PricingProps {
-  title: string;
-  popular: boolean;
-  current: boolean;
-  price: number;
-  description: string;
-  benefitList: string[];
-}
-
-const pricingList: PricingProps[] = [
-  {
-    title: "Basic",
-    popular: false,
-    current: true,
-    price: 0,
-    description: "Get started with Kite for free. No credit card required.",
-    benefitList: [
-      "1 Collaborator",
-      "10,000 credits / month",
-      "Up to 25 servers",
-      "Community support",
-    ],
-  },
-  {
-    title: "Premium",
-    popular: true,
-    current: false,
-    price: 5.99,
-    description: "Get more out of Kite with the premium plan for your app.",
-    benefitList: [
-      "5 Collaborators",
-      "100,000 credits / month",
-      "Up to 1,000 servers",
-      "Priority support",
-    ],
-  },
-  {
-    title: "Ultimate",
-    popular: false,
-    current: false,
-    price: 14.99,
-    description:
-      "Get the most out of Kite with the ultimate plan for your app.",
-    benefitList: [
-      "25 Collaborators",
-      "1,000,000 credits / month",
-      "Up to 2,500 servers",
-      "Priority support",
-    ],
-  },
-];
+import { useAppSubscriptions, useBillingPlans } from "@/lib/hooks/api";
+import { ReactNode, useMemo } from "react";
+import { useLemonSqueezyCheckout } from "@/lib/hooks/lemonsqueezy";
 
 export default function AppPricingList() {
   const subscriptions = useAppSubscriptions();
 
-  const activeSubscription = subscriptions?.find(
+  const activeSubscriptions = subscriptions?.filter(
     (subscription) => subscription!.status !== "expired"
   );
 
-  console.log(activeSubscription);
+  const plans = useBillingPlans();
+
+  const pricings = useMemo(() => {
+    return (
+      plans
+        ?.filter((plan) => !plan!.hidden)
+        .map((plan) => {
+          return {
+            ...plan!,
+            current: activeSubscriptions?.some(
+              (subscription) =>
+                subscription!.lemonsqueezy_product_id ===
+                plan!.lemonsqueezy_product_id
+            ),
+          };
+        }) ?? []
+    );
+  }, [activeSubscriptions, plans]);
+
+  const checkout = useLemonSqueezyCheckout();
 
   return (
     <div className="grid lg:grid-cols-2 xl:grid-cols-3 gap-8 xl:mx-16">
-      {pricingList.map((pricing: PricingProps) => (
+      {pricings.map((pricing) => (
         <Card
           key={pricing.title}
           className={
@@ -104,8 +72,9 @@ export default function AppPricingList() {
           <CardContent>
             <Button
               className="w-full"
-              disabled={pricing.current}
+              disabled={pricing.current || pricing.price === 0}
               variant={pricing.popular ? "default" : "outline"}
+              onClick={() => checkout(pricing.lemonsqueezy_variant_id)}
             >
               {pricing.current ? "Current Plan" : "Get Started"}
             </Button>
@@ -115,12 +84,30 @@ export default function AppPricingList() {
 
           <CardFooter className="flex">
             <div className="space-y-4">
-              {pricing.benefitList.map((benefit) => (
-                <span key={benefit} className="flex">
-                  <CheckIcon className="text-green-500" />{" "}
-                  <h3 className="ml-2">{benefit}</h3>
-                </span>
-              ))}
+              <span className="flex">
+                <CheckIcon className="text-green-500" />{" "}
+                <h3 className="ml-2">
+                  {pricing.feature_max_collaborators} Collaborator
+                </h3>
+              </span>
+              <span className="flex">
+                <CheckIcon className="text-green-500" />{" "}
+                <h3 className="ml-2">
+                  {pricing.feature_usage_credits_per_month} Credits / month
+                </h3>
+              </span>
+              <span className="flex">
+                <CheckIcon className="text-green-500" />{" "}
+                <h3 className="ml-2">{pricing.feature_max_guilds} Servers</h3>
+              </span>
+              <span className="flex">
+                <CheckIcon className="text-green-500" />{" "}
+                <h3 className="ml-2">
+                  {pricing.feature_priority_support
+                    ? "Priority support"
+                    : "Community support"}
+                </h3>
+              </span>
             </div>
           </CardFooter>
         </Card>

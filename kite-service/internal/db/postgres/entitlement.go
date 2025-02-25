@@ -25,14 +25,15 @@ func (c *Client) Entitlements(ctx context.Context, appID string) ([]*model.Entit
 
 func (c *Client) UpsertSubscriptionEntitlement(ctx context.Context, entitlement model.Entitlement) (*model.Entitlement, error) {
 	row, err := c.Q.UpsertSubscriptionEntitlement(ctx, pgmodel.UpsertSubscriptionEntitlementParams{
-		ID:             entitlement.ID,
-		Type:           entitlement.Type,
-		SubscriptionID: pgtype.Text{String: entitlement.SubscriptionID.String, Valid: entitlement.SubscriptionID.Valid},
-		AppID:          entitlement.AppID,
-		FeatureSetID:   entitlement.FeatureSetID,
-		CreatedAt:      pgtype.Timestamp{Time: entitlement.CreatedAt, Valid: true},
-		UpdatedAt:      pgtype.Timestamp{Time: entitlement.UpdatedAt, Valid: true},
-		EndsAt:         pgtype.Timestamp{Time: entitlement.EndsAt.Time, Valid: entitlement.EndsAt.Valid},
+		ID:                    entitlement.ID,
+		Type:                  entitlement.Type,
+		SubscriptionID:        pgtype.Text{String: entitlement.SubscriptionID.String, Valid: entitlement.SubscriptionID.Valid},
+		AppID:                 entitlement.AppID,
+		LemonsqueezyProductID: pgtype.Text{String: entitlement.LemonSqueezyProductID.String, Valid: entitlement.LemonSqueezyProductID.Valid},
+		LemonsqueezyVariantID: pgtype.Text{String: entitlement.LemonSqueezyVariantID.String, Valid: entitlement.LemonSqueezyVariantID.Valid},
+		CreatedAt:             pgtype.Timestamp{Time: entitlement.CreatedAt, Valid: true},
+		UpdatedAt:             pgtype.Timestamp{Time: entitlement.UpdatedAt, Valid: true},
+		EndsAt:                pgtype.Timestamp{Time: entitlement.EndsAt.Time, Valid: entitlement.EndsAt.Valid},
 	})
 	if err != nil {
 		return nil, err
@@ -43,10 +44,11 @@ func (c *Client) UpsertSubscriptionEntitlement(ctx context.Context, entitlement 
 
 func (c *Client) UpdateSubscriptionEntitlement(ctx context.Context, entitlement model.Entitlement) (*model.Entitlement, error) {
 	row, err := c.Q.UpdateSubscriptionEntitlement(ctx, pgmodel.UpdateSubscriptionEntitlementParams{
-		SubscriptionID: pgtype.Text{String: entitlement.SubscriptionID.String, Valid: entitlement.SubscriptionID.Valid},
-		FeatureSetID:   entitlement.FeatureSetID,
-		UpdatedAt:      pgtype.Timestamp{Time: entitlement.UpdatedAt, Valid: true},
-		EndsAt:         pgtype.Timestamp{Time: entitlement.EndsAt.Time, Valid: entitlement.EndsAt.Valid},
+		SubscriptionID:        pgtype.Text{String: entitlement.SubscriptionID.String, Valid: entitlement.SubscriptionID.Valid},
+		LemonsqueezyProductID: pgtype.Text{String: entitlement.LemonSqueezyProductID.String, Valid: entitlement.LemonSqueezyProductID.Valid},
+		LemonsqueezyVariantID: pgtype.Text{String: entitlement.LemonSqueezyVariantID.String, Valid: entitlement.LemonSqueezyVariantID.Valid},
+		UpdatedAt:             pgtype.Timestamp{Time: entitlement.UpdatedAt, Valid: true},
+		EndsAt:                pgtype.Timestamp{Time: entitlement.EndsAt.Time, Valid: entitlement.EndsAt.Valid},
 	})
 	if err != nil {
 		return nil, err
@@ -57,13 +59,14 @@ func (c *Client) UpdateSubscriptionEntitlement(ctx context.Context, entitlement 
 
 func rowToEntitlement(row pgmodel.Entitlement) *model.Entitlement {
 	return &model.Entitlement{
-		ID:             row.ID,
-		Type:           row.Type,
-		SubscriptionID: null.NewString(row.SubscriptionID.String, row.SubscriptionID.Valid),
-		AppID:          row.AppID,
-		FeatureSetID:   row.FeatureSetID,
-		CreatedAt:      row.CreatedAt.Time,
-		UpdatedAt:      row.UpdatedAt.Time,
-		EndsAt:         null.NewTime(row.EndsAt.Time, row.EndsAt.Valid),
+		ID:                    row.ID,
+		Type:                  row.Type,
+		SubscriptionID:        null.NewString(row.SubscriptionID.String, row.SubscriptionID.Valid),
+		AppID:                 row.AppID,
+		LemonSqueezyProductID: null.NewString(row.LemonsqueezyProductID.String, row.LemonsqueezyProductID.Valid),
+		LemonSqueezyVariantID: null.NewString(row.LemonsqueezyVariantID.String, row.LemonsqueezyVariantID.Valid),
+		CreatedAt:             row.CreatedAt.Time,
+		UpdatedAt:             row.UpdatedAt.Time,
+		EndsAt:                null.NewTime(row.EndsAt.Time, row.EndsAt.Valid),
 	}
 }

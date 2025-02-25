@@ -149,6 +149,7 @@ export interface BillingWebhookRequest {
 export interface BillingWebhookResponse {
 }
 export interface BillingCheckoutRequest {
+  lemonsqueezy_variant_id: string;
 }
 export interface BillingCheckoutResponse {
   url: string;
@@ -169,9 +170,30 @@ export interface Subscription {
   trial_ends_at: null | string /* RFC3339 */;
   ends_at: null | string /* RFC3339 */;
   user_id: string;
+  lemonsqueezy_subscription_id: null | string;
+  lemonsqueezy_customer_id: null | string;
+  lemonsqueezy_order_id: null | string;
+  lemonsqueezy_product_id: null | string;
+  lemonsqueezy_variant_id: null | string;
   manageable: boolean;
 }
 export type SubscriptionListResponse = (Subscription | undefined)[];
+export interface BillingPlan {
+  id: string;
+  title: string;
+  description: string;
+  price: number /* float32 */;
+  default: boolean;
+  popular: boolean;
+  hidden: boolean;
+  lemonsqueezy_product_id: string;
+  lemonsqueezy_variant_id: string;
+  feature_max_collaborators: number /* int */;
+  feature_usage_credits_per_month: number /* int */;
+  feature_max_guilds: number /* int */;
+  feature_priority_support: boolean;
+}
+export type BillingPlanListResponse = (BillingPlan | undefined)[];
 
 //////////
 // source: command.go
@@ -214,20 +236,11 @@ export type CommandDeleteResponse = Empty;
 //////////
 // source: entitlement.go
 
-export interface Entitlement {
-  id: string;
-  default: boolean;
-  subscription?: Subscription;
-  feature_set: EntitlementFeatureSet;
-  created_at: string /* RFC3339 */;
-  updated_at: string /* RFC3339 */;
-}
-export interface EntitlementFeatureSet {
+export interface EntitlementFeatures {
   usage_credits_per_month: number /* int */;
   max_collaborators: number /* int */;
 }
-export type EntitlementListResponse = (Entitlement | undefined)[];
-export type EntitlementFeaturesGetResponse = EntitlementFeatureSet;
+export type EntitlementFeaturesGetResponse = EntitlementFeatures;
 
 //////////
 // source: event_listener.go

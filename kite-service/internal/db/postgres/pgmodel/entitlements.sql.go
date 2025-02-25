@@ -12,7 +12,7 @@ import (
 )
 
 const getEntitlements = `-- name: GetEntitlements :many
-SELECT id, type, subscription_id, app_id, feature_set_id, created_at, updated_at, ends_at FROM entitlements WHERE app_id = $1 ORDER BY created_at DESC
+SELECT id, type, subscription_id, app_id, lemonsqueezy_product_id, lemonsqueezy_variant_id, created_at, updated_at, ends_at FROM entitlements WHERE app_id = $1 ORDER BY created_at DESC
 `
 
 func (q *Queries) GetEntitlements(ctx context.Context, appID string) ([]Entitlement, error) {
@@ -29,7 +29,8 @@ func (q *Queries) GetEntitlements(ctx context.Context, appID string) ([]Entitlem
 			&i.Type,
 			&i.SubscriptionID,
 			&i.AppID,
-			&i.FeatureSetID,
+			&i.LemonsqueezyProductID,
+			&i.LemonsqueezyVariantID,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.EndsAt,
@@ -46,23 +47,26 @@ func (q *Queries) GetEntitlements(ctx context.Context, appID string) ([]Entitlem
 
 const updateSubscriptionEntitlement = `-- name: UpdateSubscriptionEntitlement :one
 UPDATE entitlements SET
-    feature_set_id = $2,
-    updated_at = $3,
-    ends_at = $4
-WHERE subscription_id = $1 RETURNING id, type, subscription_id, app_id, feature_set_id, created_at, updated_at, ends_at
+    lemonsqueezy_product_id = $2,
+    lemonsqueezy_variant_id = $3,
+    updated_at = $4,
+    ends_at = $5
+WHERE subscription_id = $1 RETURNING id, type, subscription_id, app_id, lemonsqueezy_product_id, lemonsqueezy_variant_id, created_at, updated_at, ends_at
 `
 
 type UpdateSubscriptionEntitlementParams struct {
-	SubscriptionID pgtype.Text
-	FeatureSetID   string
-	UpdatedAt      pgtype.Timestamp
-	EndsAt         pgtype.Timestamp
+	SubscriptionID        pgtype.Text
+	LemonsqueezyProductID pgtype.Text
+	LemonsqueezyVariantID pgtype.Text
+	UpdatedAt             pgtype.Timestamp
+	EndsAt                pgtype.Timestamp
 }
 
 func (q *Queries) UpdateSubscriptionEntitlement(ctx context.Context, arg UpdateSubscriptionEntitlementParams) (Entitlement, error) {
 	row := q.db.QueryRow(ctx, updateSubscriptionEntitlement,
 		arg.SubscriptionID,
-		arg.FeatureSetID,
+		arg.LemonsqueezyProductID,
+		arg.LemonsqueezyVariantID,
 		arg.UpdatedAt,
 		arg.EndsAt,
 	)
@@ -72,7 +76,8 @@ func (q *Queries) UpdateSubscriptionEntitlement(ctx context.Context, arg UpdateS
 		&i.Type,
 		&i.SubscriptionID,
 		&i.AppID,
-		&i.FeatureSetID,
+		&i.LemonsqueezyProductID,
+		&i.LemonsqueezyVariantID,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.EndsAt,
@@ -86,28 +91,31 @@ INSERT INTO entitlements (
     type,
     subscription_id,
     app_id,
-    feature_set_id,
+    lemonsqueezy_product_id,
+    lemonsqueezy_variant_id,
     created_at,
     updated_at,
     ends_at
 )
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8) 
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) 
 ON CONFLICT (subscription_id, app_id) DO UPDATE SET 
-    feature_set_id = EXCLUDED.feature_set_id,
+    lemonsqueezy_product_id = EXCLUDED.lemonsqueezy_product_id,
+    lemonsqueezy_variant_id = EXCLUDED.lemonsqueezy_variant_id,
     updated_at = EXCLUDED.updated_at,
     ends_at = EXCLUDED.ends_at
-RETURNING id, type, subscription_id, app_id, feature_set_id, created_at, updated_at, ends_at
+RETURNING id, type, subscription_id, app_id, lemonsqueezy_product_id, lemonsqueezy_variant_id, created_at, updated_at, ends_at
 `
 
 type UpsertSubscriptionEntitlementParams struct {
-	ID             string
-	Type           string
-	SubscriptionID pgtype.Text
-	AppID          string
-	FeatureSetID   string
-	CreatedAt      pgtype.Timestamp
-	UpdatedAt      pgtype.Timestamp
-	EndsAt         pgtype.Timestamp
+	ID                    string
+	Type                  string
+	SubscriptionID        pgtype.Text
+	AppID                 string
+	LemonsqueezyProductID pgtype.Text
+	LemonsqueezyVariantID pgtype.Text
+	CreatedAt             pgtype.Timestamp
+	UpdatedAt             pgtype.Timestamp
+	EndsAt                pgtype.Timestamp
 }
 
 func (q *Queries) UpsertSubscriptionEntitlement(ctx context.Context, arg UpsertSubscriptionEntitlementParams) (Entitlement, error) {
@@ -116,7 +124,8 @@ func (q *Queries) UpsertSubscriptionEntitlement(ctx context.Context, arg UpsertS
 		arg.Type,
 		arg.SubscriptionID,
 		arg.AppID,
-		arg.FeatureSetID,
+		arg.LemonsqueezyProductID,
+		arg.LemonsqueezyVariantID,
 		arg.CreatedAt,
 		arg.UpdatedAt,
 		arg.EndsAt,
@@ -127,7 +136,8 @@ func (q *Queries) UpsertSubscriptionEntitlement(ctx context.Context, arg UpsertS
 		&i.Type,
 		&i.SubscriptionID,
 		&i.AppID,
-		&i.FeatureSetID,
+		&i.LemonsqueezyProductID,
+		&i.LemonsqueezyVariantID,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.EndsAt,

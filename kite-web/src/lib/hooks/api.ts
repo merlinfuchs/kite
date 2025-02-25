@@ -8,6 +8,7 @@ import {
   useAppStateGuildChannelsQuery,
   useAppStateGuildsQuery,
   useAppSubscriptionsQuery,
+  useBillingPlansQuery,
   useCommandQuery,
   useCommandsQuery,
   useEventListenerQuery,
@@ -29,6 +30,7 @@ import {
   AppEntityListResponse,
   AppGetResponse,
   AppListResponse,
+  BillingPlanListResponse,
   CommandGetResponse,
   CommandListResponse,
   EventListenerGetResponse,
@@ -288,5 +290,12 @@ export function useAppSubscriptions(
   const router = useRouter();
 
   const query = useAppSubscriptionsQuery(router.query.appId as string);
+  return useResponseData(query, callback);
+}
+
+export function useBillingPlans(
+  callback?: (res: APIResponse<BillingPlanListResponse>) => void
+) {
+  const query = useBillingPlansQuery();
   return useResponseData(query, callback);
 }

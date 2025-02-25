@@ -7,21 +7,24 @@ INSERT INTO entitlements (
     type,
     subscription_id,
     app_id,
-    feature_set_id,
+    lemonsqueezy_product_id,
+    lemonsqueezy_variant_id,
     created_at,
     updated_at,
     ends_at
 )
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8) 
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) 
 ON CONFLICT (subscription_id, app_id) DO UPDATE SET 
-    feature_set_id = EXCLUDED.feature_set_id,
+    lemonsqueezy_product_id = EXCLUDED.lemonsqueezy_product_id,
+    lemonsqueezy_variant_id = EXCLUDED.lemonsqueezy_variant_id,
     updated_at = EXCLUDED.updated_at,
     ends_at = EXCLUDED.ends_at
 RETURNING *;
 
 -- name: UpdateSubscriptionEntitlement :one
 UPDATE entitlements SET
-    feature_set_id = $2,
-    updated_at = $3,
-    ends_at = $4
+    lemonsqueezy_product_id = $2,
+    lemonsqueezy_variant_id = $3,
+    updated_at = $4,
+    ends_at = $5
 WHERE subscription_id = $1 RETURNING *;

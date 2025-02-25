@@ -6,6 +6,7 @@ import {
   AppGetResponse,
   AppListResponse,
   AssetGetResponse,
+  BillingPlanListResponse,
   CommandGetResponse,
   CommandListResponse,
   EventListenerGetResponse,
@@ -249,5 +250,12 @@ export function useAppSubscriptionsQuery(appId: string) {
         `/v1/apps/${appId}/billing/subscriptions`
       ),
     enabled: !!appId,
+  });
+}
+
+export function useBillingPlansQuery() {
+  return useQuery({
+    queryKey: ["billing", "plans"],
+    queryFn: () => apiRequest<BillingPlanListResponse>(`/v1/billing/plans`),
   });
 }
