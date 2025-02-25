@@ -65,6 +65,10 @@ type AppConfig struct {
 type DiscordConfig struct {
 	ClientID     string `toml:"client_id" validate:"required"`
 	ClientSecret string `toml:"client_secret" validate:"required"`
+	// BotToken is used to hand out roles to users
+	BotToken string `toml:"bot_token"`
+	// GuildID is the ID of the guild to hand out roles to users
+	GuildID string `toml:"guild_id"`
 }
 
 type EngineConfig struct {
@@ -106,6 +110,8 @@ type BillingPlanConfig struct {
 
 	LemonSqueezyProductID string `toml:"lemonsqueezy_product_id"`
 	LemonSqueezyVariantID string `toml:"lemonsqueezy_variant_id"`
+
+	DiscordRoleID string `toml:"discord_role_id"`
 
 	FeatureMaxCollaborators     int  `toml:"feature_max_collaborators"`
 	FeatureUsageCreditsPerMonth int  `toml:"feature_usage_credits_per_month"`

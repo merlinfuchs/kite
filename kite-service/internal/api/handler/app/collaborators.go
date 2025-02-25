@@ -42,7 +42,7 @@ func (h *AppHandler) HandleAppCollaboratorCreate(c *handler.Context, req wire.Ap
 		return nil, handler.ErrForbidden("missing_permissions", "You don't have permissions to add collaborators to this app")
 	}
 
-	features := h.featureManager.AppFeatures(c.Context(), c.App.ID)
+	features := h.planManager.AppFeatures(c.Context(), c.App.ID)
 	if features.MaxCollaborators != 0 {
 		collaboratorCount, err := h.appStore.CountCollaboratorsByApp(c.Context(), c.App.ID)
 		if err != nil {

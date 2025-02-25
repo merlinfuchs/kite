@@ -37,6 +37,20 @@ func (c *Client) SubscriptionsByAppID(ctx context.Context, appID string) ([]*mod
 	return subs, nil
 }
 
+func (c *Client) AllSubscriptions(ctx context.Context) ([]*model.Subscription, error) {
+	rows, err := c.Q.GetAllSubscriptions(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	subs := make([]*model.Subscription, 0, len(rows))
+	for _, row := range rows {
+		subs = append(subs, rowToSubscription(row))
+	}
+
+	return subs, nil
+}
+
 func (c *Client) Subscription(ctx context.Context, subscriptionID string) (*model.Subscription, error) {
 	row, err := c.Q.GetSubscription(ctx, subscriptionID)
 	if err != nil {

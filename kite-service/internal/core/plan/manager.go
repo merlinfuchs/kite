@@ -1,4 +1,4 @@
-package feature
+package plan
 
 import (
 	"context"
@@ -9,23 +9,38 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/store"
 )
 
-type Manager struct {
-	entitlementStore store.EntitlementStore
-	plans            []model.Plan
+type PlanManagerConfig struct {
+	DiscordBotToken string
+	DiscordGuildID  string
 }
 
-func NewManager(entitlementStore store.EntitlementStore, plans []model.Plan) *Manager {
-	return &Manager{
-		entitlementStore: entitlementStore,
-		plans:            plans,
+type PlanManager struct {
+	entitlementStore  store.EntitlementStore
+	subscriptionStore store.SubscriptionStore
+	plans             []model.Plan
+
+	config PlanManagerConfig
+}
+
+func NewPlanManager(
+	entitlementStore store.EntitlementStore,
+	subscriptionStore store.SubscriptionStore,
+	plans []model.Plan,
+	config PlanManagerConfig,
+) *PlanManager {
+	return &PlanManager{
+		entitlementStore:  entitlementStore,
+		subscriptionStore: subscriptionStore,
+		plans:             plans,
+		config:            config,
 	}
 }
 
-func (m *Manager) Plans() []model.Plan {
+func (m *PlanManager) Plans() []model.Plan {
 	return m.plans
 }
 
-func (m *Manager) PlanByLemonSqueezyProductID(productID string) *model.Plan {
+func (m *PlanManager) PlanByLemonSqueezyProductID(productID string) *model.Plan {
 	for _, plan := range m.plans {
 		if plan.LemonSqueezyProductID == productID {
 			return &plan
@@ -34,7 +49,7 @@ func (m *Manager) PlanByLemonSqueezyProductID(productID string) *model.Plan {
 	return nil
 }
 
-func (m *Manager) AppFeatures(ctx context.Context, appID string) model.Features {
+func (m *PlanManager) AppFeatures(ctx context.Context, appID string) model.Features {
 	ctx, cancel := context.WithTimeout(ctx, 3*time.Second)
 	defer cancel()
 

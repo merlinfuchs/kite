@@ -6,7 +6,7 @@ import (
 )
 
 func (h *BillingHandler) HandleBillingPlanList(c *handler.Context) (*wire.BillingPlanListResponse, error) {
-	plans := h.featureManager.Plans()
+	plans := h.planManager.Plans()
 
 	res := make(wire.BillingPlanListResponse, len(plans))
 	for i, plan := range plans {

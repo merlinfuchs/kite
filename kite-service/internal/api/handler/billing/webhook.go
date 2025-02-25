@@ -79,7 +79,7 @@ func (h *BillingHandler) HandleBillingWebhook(c *handler.Context, body json.RawM
 		entitlementEndsAt = sub.EndsAt.Time
 	}
 
-	plan := h.featureManager.PlanByLemonSqueezyProductID(fmt.Sprintf("%d", sub.ProductID))
+	plan := h.planManager.PlanByLemonSqueezyProductID(fmt.Sprintf("%d", sub.ProductID))
 	if plan == nil {
 		slog.Error(
 			"Failed to find plan ID for subscription",
