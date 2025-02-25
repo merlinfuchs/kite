@@ -117,5 +117,5 @@ This will return the result of the expression.
 This will return the value of the `somefield` field in the JSON response of a HTTP request block.
 
 ```python
-{{ fromJSON(node(123).result.body()).somefield }}
+{{ fromJSON(nodes["owlspush"].result.body()).somefield }}
 ```
