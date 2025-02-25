@@ -21,7 +21,6 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/variable"
 	"github.com/kitecloud/kite/kite-service/internal/api/session"
 	"github.com/kitecloud/kite/kite-service/internal/core/feature"
-	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/internal/store"
 	kiteweb "github.com/merlinfuchs/kite/kite-web"
 )
@@ -42,6 +41,7 @@ func (s *APIServer) RegisterRoutes(
 	entitlementStore store.EntitlementStore,
 	assetStore store.AssetStore,
 	appStateManager store.AppStateManager,
+	featureManager *feature.Manager,
 ) {
 	sessionManager := session.NewSessionManager(session.SessionManagerConfig{
 		StrictCookies: s.config.StrictCookies,
@@ -120,13 +120,6 @@ func (s *APIServer) RegisterRoutes(
 	)
 	appGroup.Get("/entities", handler.Typed(appHandler.HandleAppEntityList))
 
-	billingPlans := make([]model.Plan, len(s.config.Billing.Plans))
-	for i, plan := range s.config.Billing.Plans {
-		billingPlans[i] = model.Plan(plan)
-	}
-
-	featureManager := feature.NewManager(entitlementStore, billingPlans)
-
 	// Billing routes
 	billingHandler := billing.NewBillingHandler(billing.BillingHandlerConfig{
 		LemonSqueezyAPIKey:        s.config.Billing.LemonSqueezyAPIKey,
@@ -134,7 +127,6 @@ func (s *APIServer) RegisterRoutes(
 		LemonSqueezyStoreID:       s.config.Billing.LemonSqueezyStoreID,
 		TestMode:                  s.config.Billing.TestMode,
 		AppPublicBaseURL:          s.config.AppPublicBaseURL,
-		Plans:                     billingPlans,
 	}, userStore, subscriptionStore, entitlementStore, featureManager)
 
 	v1Group.Post("/billing/webhook", handler.TypedWithBody(billingHandler.HandleBillingWebhook))

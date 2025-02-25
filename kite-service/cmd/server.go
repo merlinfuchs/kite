@@ -10,11 +10,13 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/config"
 	"github.com/kitecloud/kite/kite-service/internal/core/engine"
 	"github.com/kitecloud/kite/kite-service/internal/core/event"
+	"github.com/kitecloud/kite/kite-service/internal/core/feature"
 	"github.com/kitecloud/kite/kite-service/internal/core/gateway"
 	"github.com/kitecloud/kite/kite-service/internal/core/usage"
 	"github.com/kitecloud/kite/kite-service/internal/db/postgres"
 	"github.com/kitecloud/kite/kite-service/internal/db/s3"
 	"github.com/kitecloud/kite/kite-service/internal/logging"
+	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/sashabaranov/go-openai"
 	"github.com/urfave/cli/v2"
 )
@@ -91,7 +93,14 @@ func serverStartCMD(c *cli.Context) error {
 	gateway := gateway.NewGatewayManager(pg, pg, handler)
 	gateway.Run(ctx)
 
-	usage := usage.NewUsageManager(pg, pg, 10000) // TODO: make this dynamic
+	billingPlans := make([]model.Plan, len(cfg.Billing.Plans))
+	for i, plan := range cfg.Billing.Plans {
+		billingPlans[i] = model.Plan(plan)
+	}
+
+	featureManager := feature.NewManager(pg, billingPlans)
+
+	usage := usage.NewUsageManager(pg, pg, featureManager) // TODO: make this dynamic
 	usage.Run(ctx)
 
 	apiServer := api.NewAPIServer(api.APIServerConfig{
@@ -116,7 +125,7 @@ func serverStartCMD(c *cli.Context) error {
 			TestMode:                  cfg.Billing.TestMode,
 			Plans:                     cfg.Billing.Plans,
 		},
-	}, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, assetStore, gateway)
+	}, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, assetStore, gateway, featureManager)
 	address := fmt.Sprintf("%s:%d", cfg.API.Host, cfg.API.Port)
 	if err := apiServer.Serve(ctx, address); err != nil {
 		slog.With("error", err).Error("Failed to start API server")

@@ -21,6 +21,19 @@ func NewManager(entitlementStore store.EntitlementStore, plans []model.Plan) *Ma
 	}
 }
 
+func (m *Manager) Plans() []model.Plan {
+	return m.plans
+}
+
+func (m *Manager) PlanByLemonSqueezyProductID(productID string) *model.Plan {
+	for _, plan := range m.plans {
+		if plan.LemonSqueezyProductID == productID {
+			return &plan
+		}
+	}
+	return nil
+}
+
 func (m *Manager) AppFeatures(ctx context.Context, appID string) model.Features {
 	entitlements, err := m.entitlementStore.ActiveEntitlements(ctx, appID, time.Now().UTC())
 	if err != nil {

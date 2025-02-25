@@ -3,7 +3,6 @@ package billing
 import (
 	"github.com/NdoleStudio/lemonsqueezy-go"
 	"github.com/kitecloud/kite/kite-service/internal/core/feature"
-	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/internal/store"
 )
 
@@ -13,7 +12,6 @@ type BillingHandlerConfig struct {
 	LemonSqueezyStoreID       string
 	TestMode                  bool
 	AppPublicBaseURL          string
-	Plans                     []model.Plan
 }
 
 type BillingHandler struct {

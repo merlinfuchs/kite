@@ -6,8 +6,10 @@ import (
 )
 
 func (h *BillingHandler) HandleBillingPlanList(c *handler.Context) (*wire.BillingPlanListResponse, error) {
-	res := make(wire.BillingPlanListResponse, len(h.config.Plans))
-	for i, plan := range h.config.Plans {
+	plans := h.featureManager.Plans()
+
+	res := make(wire.BillingPlanListResponse, len(plans))
+	for i, plan := range plans {
 		p := wire.BillingPlan(plan)
 		res[i] = &p
 	}
