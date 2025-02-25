@@ -2,6 +2,7 @@ package app
 
 import (
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/kitecloud/kite/kite-service/internal/api/handler"
@@ -39,6 +40,19 @@ func (h *AppHandler) HandleAppCollaboratorsList(c *handler.Context) (*wire.AppCo
 func (h *AppHandler) HandleAppCollaboratorCreate(c *handler.Context, req wire.AppCollaboratorCreateRequest) (*wire.AppCollaboratorCreateResponse, error) {
 	if !c.UserAppRole.CanManageCollaborators() {
 		return nil, handler.ErrForbidden("missing_permissions", "You don't have permissions to add collaborators to this app")
+	}
+
+	features := h.featureManager.AppFeatures(c.Context(), c.App.ID)
+	if features.MaxCollaborators != 0 {
+		collaboratorCount, err := h.appStore.CountCollaboratorsByApp(c.Context(), c.App.ID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to count collaborators: %w", err)
+		}
+
+		// We count the owner as a collaborator
+		if (collaboratorCount + 1) >= features.MaxCollaborators {
+			return nil, handler.ErrBadRequest("resource_limit", fmt.Sprintf("maximum number of collaborators (%d) reached", features.MaxCollaborators))
+		}
 	}
 
 	user, err := h.userStore.UserByDiscordID(c.Context(), req.DiscordUserID)

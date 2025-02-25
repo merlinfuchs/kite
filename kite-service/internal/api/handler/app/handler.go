@@ -7,6 +7,7 @@ import (
 
 	"github.com/kitecloud/kite/kite-service/internal/api/handler"
 	"github.com/kitecloud/kite/kite-service/internal/api/wire"
+	"github.com/kitecloud/kite/kite-service/internal/core/feature"
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/internal/store"
 	"github.com/kitecloud/kite/kite-service/internal/util"
@@ -16,13 +17,15 @@ import (
 type AppHandler struct {
 	appStore       store.AppStore
 	userStore      store.UserStore
+	featureManager *feature.Manager
 	maxAppsPerUser int
 }
 
-func NewAppHandler(appStore store.AppStore, userStore store.UserStore, maxAppsPerUser int) *AppHandler {
+func NewAppHandler(appStore store.AppStore, userStore store.UserStore, featureManager *feature.Manager, maxAppsPerUser int) *AppHandler {
 	return &AppHandler{
 		appStore:       appStore,
 		userStore:      userStore,
+		featureManager: featureManager,
 		maxAppsPerUser: maxAppsPerUser,
 	}
 }

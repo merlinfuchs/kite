@@ -11,6 +11,18 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const countCollaboratorsByApp = `-- name: CountCollaboratorsByApp :one
+SELECT COUNT(*) FROM collaborators
+WHERE app_id = $1
+`
+
+func (q *Queries) CountCollaboratorsByApp(ctx context.Context, appID string) (int64, error) {
+	row := q.db.QueryRow(ctx, countCollaboratorsByApp, appID)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const createCollaborator = `-- name: CreateCollaborator :one
 INSERT INTO collaborators (app_id, user_id, role, created_at, updated_at)
 VALUES ($1, $2, $3, $4, $5)

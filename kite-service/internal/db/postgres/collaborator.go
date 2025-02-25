@@ -40,6 +40,14 @@ func (c *Client) CollaboratorsByApp(ctx context.Context, appID string) ([]*model
 	return collaborators, nil
 }
 
+func (c *Client) CountCollaboratorsByApp(ctx context.Context, appID string) (int, error) {
+	row, err := c.Q.CountCollaboratorsByApp(ctx, appID)
+	if err != nil {
+		return 0, err
+	}
+	return int(row), nil
+}
+
 func (c *Client) CreateCollaborator(ctx context.Context, collaborator *model.AppCollaborator) (*model.AppCollaborator, error) {
 	row, err := c.Q.CreateCollaborator(ctx, pgmodel.CreateCollaboratorParams{
 		AppID:     collaborator.AppID,

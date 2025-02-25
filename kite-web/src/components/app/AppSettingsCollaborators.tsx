@@ -13,7 +13,11 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { useAppCollaborators } from "@/lib/hooks/api";
+import {
+  useAppCollaborators,
+  useAppFeature,
+  useAppFeatures,
+} from "@/lib/hooks/api";
 import { MinusIcon } from "lucide-react";
 import ConfirmDialog from "../common/ConfirmDialog";
 import { Button } from "../ui/button";
@@ -23,15 +27,22 @@ import { useAppId } from "@/lib/hooks/params";
 
 export default function AppSettingsCollaborators() {
   const appId = useAppId();
-
   const collaborators = useAppCollaborators();
+
+  const maxCollaborators = useAppFeature((f) => f.max_collaborators) || 0;
+  const currentCollaborators = collaborators?.length || 0;
 
   const deleteMutation = useAppCollaboratorDeleteMutation(appId);
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Collaborators</CardTitle>
+        <div className="flex gap-3">
+          <CardTitle>Collaborators</CardTitle>
+          <div className="text-muted-foreground">
+            {currentCollaborators} / {maxCollaborators}
+          </div>
+        </div>
         <CardDescription>
           Add or remove other users who can manage this app.
         </CardDescription>
@@ -75,7 +86,12 @@ export default function AppSettingsCollaborators() {
         </Table>
 
         <AppCollaboratorAddDialog>
-          <Button variant="outline">Add Collaborator</Button>
+          <Button
+            variant="outline"
+            disabled={currentCollaborators >= maxCollaborators}
+          >
+            Add Collaborator
+          </Button>
         </AppCollaboratorAddDialog>
       </CardContent>
     </Card>

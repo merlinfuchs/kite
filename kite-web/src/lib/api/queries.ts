@@ -273,7 +273,7 @@ export function useBillingPlansQuery() {
   });
 }
 
-export function useFeaturesQuery(appId: string) {
+export function useAppFeaturesQuery(appId: string) {
   return useQuery({
     queryKey: ["apps", appId, "billing", "features"],
     queryFn: () =>

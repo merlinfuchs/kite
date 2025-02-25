@@ -93,7 +93,12 @@ func (s *APIServer) RegisterRoutes(
 	usersGroup.Get("/{userID}", handler.Typed(userHandler.HandlerUserGet))
 
 	// App routes
-	appHandler := app.NewAppHandler(appStore, userStore, s.config.UserLimits.MaxAppsPerUser)
+	appHandler := app.NewAppHandler(
+		appStore,
+		userStore,
+		featureManager,
+		s.config.UserLimits.MaxAppsPerUser,
+	)
 
 	appsGroup := v1Group.Group("/apps",
 		sessionManager.RequireSession,
