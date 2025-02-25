@@ -10,8 +10,8 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/config"
 	"github.com/kitecloud/kite/kite-service/internal/core/engine"
 	"github.com/kitecloud/kite/kite-service/internal/core/event"
-	"github.com/kitecloud/kite/kite-service/internal/core/feature"
 	"github.com/kitecloud/kite/kite-service/internal/core/gateway"
+	"github.com/kitecloud/kite/kite-service/internal/core/plan"
 	"github.com/kitecloud/kite/kite-service/internal/core/usage"
 	"github.com/kitecloud/kite/kite-service/internal/db/postgres"
 	"github.com/kitecloud/kite/kite-service/internal/db/s3"
@@ -95,12 +95,16 @@ func serverStartCMD(c *cli.Context) error {
 		billingPlans[i] = model.Plan(plan)
 	}
 
-	featureManager := feature.NewManager(pg, billingPlans)
+	planManager := plan.NewPlanManager(pg, pg, billingPlans, plan.PlanManagerConfig{
+		DiscordBotToken: cfg.Discord.BotToken,
+		DiscordGuildID:  cfg.Discord.GuildID,
+	})
+	planManager.Run(ctx)
 
-	gateway := gateway.NewGatewayManager(pg, pg, featureManager, handler)
+	gateway := gateway.NewGatewayManager(pg, pg, planManager, handler)
 	gateway.Run(ctx)
 
-	usage := usage.NewUsageManager(pg, pg, featureManager)
+	usage := usage.NewUsageManager(pg, pg, planManager)
 	usage.Run(ctx)
 
 	apiServer := api.NewAPIServer(api.APIServerConfig{
@@ -125,7 +129,7 @@ func serverStartCMD(c *cli.Context) error {
 			TestMode:                  cfg.Billing.TestMode,
 			Plans:                     cfg.Billing.Plans,
 		},
-	}, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, assetStore, gateway, featureManager)
+	}, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, assetStore, gateway, planManager)
 	address := fmt.Sprintf("%s:%d", cfg.API.Host, cfg.API.Port)
 	if err := apiServer.Serve(ctx, address); err != nil {
 		slog.With("error", err).Error("Failed to start API server")

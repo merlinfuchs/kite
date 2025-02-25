@@ -10,7 +10,7 @@ import (
 	"github.com/diamondburned/arikawa/v3/api"
 	"github.com/diamondburned/arikawa/v3/gateway"
 	"github.com/diamondburned/arikawa/v3/state"
-	"github.com/kitecloud/kite/kite-service/internal/core/feature"
+	"github.com/kitecloud/kite/kite-service/internal/core/plan"
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/internal/store"
 )
@@ -22,10 +22,10 @@ type EventHandler interface {
 type GatewayManager struct {
 	sync.Mutex
 
-	appStore       store.AppStore
-	logStore       store.LogStore
-	featureManager *feature.Manager
-	eventHandler   EventHandler
+	appStore     store.AppStore
+	logStore     store.LogStore
+	planManager  *plan.PlanManager
+	eventHandler EventHandler
 
 	lastUpdate time.Time
 	gateways   map[string]*Gateway
@@ -34,15 +34,15 @@ type GatewayManager struct {
 func NewGatewayManager(
 	appStore store.AppStore,
 	logStore store.LogStore,
-	featureManager *feature.Manager,
+	planManager *plan.PlanManager,
 	eventHandler EventHandler,
 ) *GatewayManager {
 	return &GatewayManager{
-		appStore:       appStore,
-		logStore:       logStore,
-		featureManager: featureManager,
-		eventHandler:   eventHandler,
-		gateways:       make(map[string]*Gateway),
+		appStore:     appStore,
+		logStore:     logStore,
+		planManager:  planManager,
+		eventHandler: eventHandler,
+		gateways:     make(map[string]*Gateway),
 	}
 }
 
@@ -125,7 +125,7 @@ func (m *GatewayManager) addGateway(ctx context.Context, app *model.App) error {
 	if g, ok := m.gateways[app.ID]; ok {
 		g.Update(ctx, app)
 	} else {
-		g := NewGateway(app, m.logStore, m.appStore, m.featureManager, m.eventHandler)
+		g := NewGateway(app, m.logStore, m.appStore, m.planManager, m.eventHandler)
 		m.gateways[app.ID] = g
 	}
 

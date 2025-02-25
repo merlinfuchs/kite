@@ -4,6 +4,9 @@ SELECT * FROM subscriptions WHERE user_id = $1 ORDER BY created_at DESC;
 -- name: GetSubscriptionsByAppID :many
 SELECT subscriptions.* FROM subscriptions LEFT JOIN entitlements ON subscriptions.id = entitlements.subscription_id WHERE entitlements.app_id = $1 ORDER BY subscriptions.created_at DESC;
 
+-- name: GetAllSubscriptions :many
+SELECT * FROM subscriptions ORDER BY created_at DESC;
+
 -- name: GetSubscription :one
 SELECT * FROM subscriptions WHERE id = $1;
 
