@@ -51,6 +51,7 @@ func (m *Manager) AppFeatures(ctx context.Context, appID string) model.Features 
 	for _, plan := range m.plans {
 		if plan.Default {
 			features = features.Merge(plan.Features())
+			continue
 		}
 
 		for _, entitlement := range entitlements {

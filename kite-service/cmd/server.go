@@ -100,7 +100,7 @@ func serverStartCMD(c *cli.Context) error {
 	gateway := gateway.NewGatewayManager(pg, pg, featureManager, handler)
 	gateway.Run(ctx)
 
-	usage := usage.NewUsageManager(pg, pg, featureManager) // TODO: make this dynamic
+	usage := usage.NewUsageManager(pg, pg, featureManager)
 	usage.Run(ctx)
 
 	apiServer := api.NewAPIServer(api.APIServerConfig{
