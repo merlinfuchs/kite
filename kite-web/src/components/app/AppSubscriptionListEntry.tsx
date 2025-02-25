@@ -8,12 +8,21 @@ import {
   CardHeader,
   CardTitle,
 } from "../ui/card";
+import {
+  useLemonSqueezyCustomerPortal,
+  useLemonSqueezyUpdatePaymentMethod,
+} from "@/lib/hooks/lemonsqueezy";
 
 export default function AppSubscriptionListEntry({
   subscription,
 }: {
   subscription: Subscription;
 }) {
+  const updatePaymentMethod = useLemonSqueezyUpdatePaymentMethod(
+    subscription.id
+  );
+  const openCustomerPortal = useLemonSqueezyCustomerPortal(subscription.id);
+
   return (
     <Card>
       <CardHeader>
@@ -31,12 +40,25 @@ export default function AppSubscriptionListEntry({
             </CardDescription>
           </div>
           <div>
-            <Badge variant="outline">{subscription.status_formatted}</Badge>
+            <Badge
+              variant={subscription.status !== "ended" ? "default" : "outline"}
+            >
+              {subscription.status_formatted}
+            </Badge>
           </div>
         </div>
       </CardHeader>
-      <CardFooter>
-        <Button variant="outline">Manage</Button>
+      <CardFooter className="gap-3">
+        {subscription.manageable && (
+          <>
+            <Button variant="outline" onClick={() => updatePaymentMethod()}>
+              Update Billing
+            </Button>
+            <Button variant="outline" onClick={() => openCustomerPortal()}>
+              Manage
+            </Button>
+          </>
+        )}
       </CardFooter>
     </Card>
   );

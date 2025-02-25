@@ -132,7 +132,7 @@ func (s *APIServer) RegisterRoutes(
 	v1Group.Get("/billing/plans", handler.Typed(billingHandler.HandleBillingPlanList))
 
 	userBillingGroup := v1Group.Group("/billing", sessionManager.RequireSession)
-	userBillingGroup.Get("/subscriptions/{subscriptionID}/manage", handler.Typed(billingHandler.HandleSubscriptionManage))
+	userBillingGroup.Post("/subscriptions/{subscriptionID}/manage", handler.Typed(billingHandler.HandleSubscriptionManage))
 
 	appBillingGroup := appGroup.Group("/billing")
 	appBillingGroup.Get("/subscriptions", handler.Typed(billingHandler.HandleAppSubscriptionList))

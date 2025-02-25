@@ -680,14 +680,11 @@ export function useCheckoutCreateMutation(appId: string) {
   });
 }
 
-export function useAppSubscriptionManageMutation(
-  appId: string,
-  subscriptionId: string
-) {
+export function useAppSubscriptionManageMutation(subscriptionId: string) {
   return useMutation({
     mutationFn: () =>
       apiRequest<SubscriptionManageResponse>(
-        `/v1/apps/${appId}/billing/subscriptions/${subscriptionId}/manage`,
+        `/v1/billing/subscriptions/${subscriptionId}/manage`,
         {
           method: "POST",
         }
