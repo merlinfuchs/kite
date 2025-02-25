@@ -99,6 +99,7 @@ func serverStartCMD(c *cli.Context) error {
 		DiscordBotToken: cfg.Discord.BotToken,
 		DiscordGuildID:  cfg.Discord.GuildID,
 	})
+	planManager.Run(ctx)
 
 	gateway := gateway.NewGatewayManager(pg, pg, planManager, handler)
 	gateway.Run(ctx)
