@@ -10,14 +10,12 @@ import (
 )
 
 type UsageHandler struct {
-	usageStore      store.UsageStore
-	creditsPerMonth int
+	usageStore store.UsageStore
 }
 
-func NewUsageHandler(usageStore store.UsageStore, creditsPerMonth int) *UsageHandler {
+func NewUsageHandler(usageStore store.UsageStore) *UsageHandler {
 	return &UsageHandler{
-		usageStore:      usageStore,
-		creditsPerMonth: creditsPerMonth,
+		usageStore: usageStore,
 	}
 }
 
@@ -30,8 +28,7 @@ func (h *UsageHandler) HandleUsageCreditsGet(c *handler.Context) (*wire.UsageCre
 	}
 
 	return &wire.UsageCreditsGetResponse{
-		TotalCredits: h.creditsPerMonth,
-		CreditsUsed:  creditsUsed,
+		CreditsUsed: creditsUsed,
 	}, nil
 }
 

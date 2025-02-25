@@ -11,6 +11,7 @@ type Config struct {
 	Discord    DiscordConfig    `toml:"discord"`
 	Engine     EngineConfig     `toml:"engine"`
 	OpenAI     OpenAIConfig     `toml:"openai"`
+	Billing    BillingConfig    `toml:"billing"`
 }
 
 func (cfg *Config) Validate() error {
@@ -64,6 +65,10 @@ type AppConfig struct {
 type DiscordConfig struct {
 	ClientID     string `toml:"client_id" validate:"required"`
 	ClientSecret string `toml:"client_secret" validate:"required"`
+	// BotToken is used to hand out roles to users
+	BotToken string `toml:"bot_token"`
+	// GuildID is the ID of the guild to hand out roles to users
+	GuildID string `toml:"guild_id"`
 }
 
 type EngineConfig struct {
@@ -72,6 +77,7 @@ type EngineConfig struct {
 	MaxCredits    int `toml:"max_credits"`
 }
 
+// TODO: Move these to plan features
 type UserLimitsConfig struct {
 	MaxAppsPerUser          int `toml:"max_apps_per_user"`
 	MaxCommandsPerApp       int `toml:"max_commands_per_app"`
@@ -79,9 +85,36 @@ type UserLimitsConfig struct {
 	MaxMessagesPerApp       int `toml:"max_messages_per_app"`
 	MaxEventListenersPerApp int `toml:"max_event_listeners_per_app"`
 	MaxAssetSize            int `toml:"max_asset_size"`
-	CreditsPerMonth         int `toml:"credits_per_month"`
 }
 
 type OpenAIConfig struct {
 	APIKey string `toml:"api_key"`
+}
+
+type BillingConfig struct {
+	LemonSqueezyAPIKey        string              `toml:"lemonsqueezy_api_key"`
+	LemonSqueezySigningSecret string              `toml:"lemonsqueezy_signing_secret"`
+	LemonSqueezyStoreID       string              `toml:"lemonsqueezy_store_id"`
+	TestMode                  bool                `toml:"test_mode"`
+	Plans                     []BillingPlanConfig `toml:"plans"`
+}
+
+type BillingPlanConfig struct {
+	ID          string  `toml:"id" validate:"required"`
+	Title       string  `toml:"title" validate:"required"`
+	Description string  `toml:"description" validate:"required"`
+	Price       float32 `toml:"price" validate:"required"`
+	Default     bool    `toml:"default"`
+	Popular     bool    `toml:"popular"`
+	Hidden      bool    `toml:"hidden"`
+
+	LemonSqueezyProductID string `toml:"lemonsqueezy_product_id"`
+	LemonSqueezyVariantID string `toml:"lemonsqueezy_variant_id"`
+
+	DiscordRoleID string `toml:"discord_role_id"`
+
+	FeatureMaxCollaborators     int  `toml:"feature_max_collaborators"`
+	FeatureUsageCreditsPerMonth int  `toml:"feature_usage_credits_per_month"`
+	FeatureMaxGuilds            int  `toml:"feature_max_guilds"`
+	FeaturePrioritySupport      bool `toml:"feature_priority_support"`
 }

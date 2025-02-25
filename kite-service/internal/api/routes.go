@@ -11,6 +11,7 @@ import (
 	appstate "github.com/kitecloud/kite/kite-service/internal/api/handler/app_state"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/asset"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/auth"
+	"github.com/kitecloud/kite/kite-service/internal/api/handler/billing"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/command"
 	eventlistener "github.com/kitecloud/kite/kite-service/internal/api/handler/event_listener"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/logs"
@@ -19,6 +20,7 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/user"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/variable"
 	"github.com/kitecloud/kite/kite-service/internal/api/session"
+	"github.com/kitecloud/kite/kite-service/internal/core/plan"
 	"github.com/kitecloud/kite/kite-service/internal/store"
 	kiteweb "github.com/merlinfuchs/kite/kite-web"
 )
@@ -35,8 +37,11 @@ func (s *APIServer) RegisterRoutes(
 	messageStore store.MessageStore,
 	messageInstanceStore store.MessageInstanceStore,
 	eventListenerStore store.EventListenerStore,
+	subscriptionStore store.SubscriptionStore,
+	entitlementStore store.EntitlementStore,
 	assetStore store.AssetStore,
 	appStateManager store.AppStateManager,
+	planManager *plan.PlanManager,
 ) {
 	sessionManager := session.NewSessionManager(session.SessionManagerConfig{
 		StrictCookies: s.config.StrictCookies,
@@ -88,7 +93,12 @@ func (s *APIServer) RegisterRoutes(
 	usersGroup.Get("/{userID}", handler.Typed(userHandler.HandlerUserGet))
 
 	// App routes
-	appHandler := app.NewAppHandler(appStore, s.config.UserLimits.MaxAppsPerUser)
+	appHandler := app.NewAppHandler(
+		appStore,
+		userStore,
+		planManager,
+		s.config.UserLimits.MaxAppsPerUser,
+	)
 
 	appsGroup := v1Group.Group("/apps",
 		sessionManager.RequireSession,
@@ -114,6 +124,29 @@ func (s *APIServer) RegisterRoutes(
 		handler.CacheByUser(cacheManager, time.Minute),
 	)
 	appGroup.Get("/entities", handler.Typed(appHandler.HandleAppEntityList))
+	appGroup.Get("/collaborators", handler.Typed(appHandler.HandleAppCollaboratorsList))
+	appGroup.Post("/collaborators", handler.TypedWithBody(appHandler.HandleAppCollaboratorCreate))
+	appGroup.Delete("/collaborators/{userID}", handler.Typed(appHandler.HandleAppCollaboratorDelete))
+
+	// Billing routes
+	billingHandler := billing.NewBillingHandler(billing.BillingHandlerConfig{
+		LemonSqueezyAPIKey:        s.config.Billing.LemonSqueezyAPIKey,
+		LemonSqueezySigningSecret: s.config.Billing.LemonSqueezySigningSecret,
+		LemonSqueezyStoreID:       s.config.Billing.LemonSqueezyStoreID,
+		TestMode:                  s.config.Billing.TestMode,
+		AppPublicBaseURL:          s.config.AppPublicBaseURL,
+	}, userStore, subscriptionStore, entitlementStore, planManager)
+
+	v1Group.Post("/billing/webhook", handler.TypedWithBody(billingHandler.HandleBillingWebhook))
+	v1Group.Get("/billing/plans", handler.Typed(billingHandler.HandleBillingPlanList))
+
+	userBillingGroup := v1Group.Group("/billing", sessionManager.RequireSession)
+	userBillingGroup.Post("/subscriptions/{subscriptionID}/manage", handler.Typed(billingHandler.HandleSubscriptionManage))
+
+	appBillingGroup := appGroup.Group("/billing")
+	appBillingGroup.Get("/subscriptions", handler.Typed(billingHandler.HandleAppSubscriptionList))
+	appBillingGroup.Post("/checkout", handler.TypedWithBody(billingHandler.HandleAppCheckout))
+	appBillingGroup.Get("/features", handler.Typed(billingHandler.HandleFeaturesGet))
 
 	// Log routes
 	logHandler := logs.NewLogHandler(logStore)
@@ -123,7 +156,7 @@ func (s *APIServer) RegisterRoutes(
 	logsGroup.Get("/summary", handler.Typed(logHandler.HandleLogSummaryGet))
 
 	// Usage routes
-	usageHandler := usage.NewUsageHandler(usageStore, s.config.UserLimits.CreditsPerMonth)
+	usageHandler := usage.NewUsageHandler(usageStore)
 
 	usageGroup := appGroup.Group("/usage")
 	usageGroup.Get("/credits", handler.Typed(usageHandler.HandleUsageCreditsGet))

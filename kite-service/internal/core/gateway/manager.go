@@ -10,6 +10,7 @@ import (
 	"github.com/diamondburned/arikawa/v3/api"
 	"github.com/diamondburned/arikawa/v3/gateway"
 	"github.com/diamondburned/arikawa/v3/state"
+	"github.com/kitecloud/kite/kite-service/internal/core/plan"
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/internal/store"
 )
@@ -23,16 +24,23 @@ type GatewayManager struct {
 
 	appStore     store.AppStore
 	logStore     store.LogStore
+	planManager  *plan.PlanManager
 	eventHandler EventHandler
 
 	lastUpdate time.Time
 	gateways   map[string]*Gateway
 }
 
-func NewGatewayManager(appStore store.AppStore, logStore store.LogStore, eventHandler EventHandler) *GatewayManager {
+func NewGatewayManager(
+	appStore store.AppStore,
+	logStore store.LogStore,
+	planManager *plan.PlanManager,
+	eventHandler EventHandler,
+) *GatewayManager {
 	return &GatewayManager{
 		appStore:     appStore,
 		logStore:     logStore,
+		planManager:  planManager,
 		eventHandler: eventHandler,
 		gateways:     make(map[string]*Gateway),
 	}
@@ -117,7 +125,7 @@ func (m *GatewayManager) addGateway(ctx context.Context, app *model.App) error {
 	if g, ok := m.gateways[app.ID]; ok {
 		g.Update(ctx, app)
 	} else {
-		g := NewGateway(app, m.logStore, m.appStore, m.eventHandler)
+		g := NewGateway(app, m.logStore, m.appStore, m.planManager, m.eventHandler)
 		m.gateways[app.ID] = g
 	}
 

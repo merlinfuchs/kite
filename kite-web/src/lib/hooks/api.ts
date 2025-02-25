@@ -1,16 +1,20 @@
 import { useRouter } from "next/router";
 import { useEffect } from "react";
 import {
+  useAppCollaboratorsQuery,
   useAppEmojisQuery,
   useAppEntitiesQuery,
   useAppQuery,
   useAppsQuery,
   useAppStateGuildChannelsQuery,
   useAppStateGuildsQuery,
+  useAppSubscriptionsQuery,
+  useBillingPlansQuery,
   useCommandQuery,
   useCommandsQuery,
   useEventListenerQuery,
   useEventListenersQuery,
+  useAppFeaturesQuery,
   useLogSummaryQuery,
   useMessageInstancesQuery,
   useMessageQuery,
@@ -24,20 +28,24 @@ import {
 } from "../api/queries";
 import { APIResponse } from "../api/response";
 import {
+  AppCollaboratorListResponse,
   AppEmojiListResponse,
   AppEntityListResponse,
   AppGetResponse,
   AppListResponse,
+  BillingPlanListResponse,
   CommandGetResponse,
   CommandListResponse,
   EventListenerGetResponse,
   EventListenerListResponse,
+  FeaturesGetResponse,
   LogSummaryGetResponse,
   MessageGetResponse,
   MessageInstanceListResponse,
   MessageListResponse,
   StateGuildChannelListResponse,
   StateGuildListResponse,
+  SubscriptionListResponse,
   UsageByDayListResponse,
   UsageByTypeListResponse,
   UsageCreditsGetResponse,
@@ -278,4 +286,45 @@ export function useAppStateGuildChannel(
   const data = useResponseData(query);
 
   return data?.find((c) => c!.id === channelId);
+}
+
+export function useAppCollaborators(
+  callback?: (res: APIResponse<AppCollaboratorListResponse>) => void
+) {
+  const router = useRouter();
+
+  const query = useAppCollaboratorsQuery(router.query.appId as string);
+  return useResponseData(query, callback);
+}
+
+export function useAppSubscriptions(
+  callback?: (res: APIResponse<SubscriptionListResponse>) => void
+) {
+  const router = useRouter();
+
+  const query = useAppSubscriptionsQuery(router.query.appId as string);
+  return useResponseData(query, callback);
+}
+
+export function useBillingPlans(
+  callback?: (res: APIResponse<BillingPlanListResponse>) => void
+) {
+  const query = useBillingPlansQuery();
+  return useResponseData(query, callback);
+}
+
+export function useAppFeatures(
+  callback?: (res: APIResponse<FeaturesGetResponse>) => void
+) {
+  const router = useRouter();
+
+  const query = useAppFeaturesQuery(router.query.appId as string);
+  return useResponseData(query, callback);
+}
+
+export function useAppFeature<T>(
+  accessor: (features: FeaturesGetResponse) => T
+): T | undefined {
+  const features = useAppFeatures();
+  return features ? accessor(features) : undefined;
 }

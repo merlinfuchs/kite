@@ -1,5 +1,8 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
+  AppCollaboratorCreateRequest,
+  AppCollaboratorCreateResponse,
+  AppCollaboratorDeleteResponse,
   AppCreateRequest,
   AppCreateResponse,
   AppDeleteResponse,
@@ -11,6 +14,8 @@ import {
   AppUpdateResponse,
   AssetCreateResponse,
   AuthLogoutResponse,
+  BillingCheckoutRequest,
+  BillingCheckoutResponse,
   CommandCreateRequest,
   CommandCreateResponse,
   CommandDeleteResponse,
@@ -42,6 +47,7 @@ import {
   MessageUpdateRequest,
   MessageUpdateResponse,
   StateGuildLeaveResponse,
+  SubscriptionManageResponse,
   VariableCreateRequest,
   VariableCreateResponse,
   VariableDeleteResponse,
@@ -657,5 +663,76 @@ export function useAssetCreateMutation(appId: string) {
         queryKey: ["apps", appId, "assets"],
       });
     },
+  });
+}
+
+export function useAppCollaboratorCreateMutation(appId: string) {
+  const client = useQueryClient();
+
+  return useMutation({
+    mutationFn: (req: AppCollaboratorCreateRequest) =>
+      apiRequest<AppCollaboratorCreateResponse>(
+        `/v1/apps/${appId}/collaborators`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(req),
+        }
+      ),
+    onSuccess: () => {
+      client.invalidateQueries({
+        queryKey: ["apps", appId, "collaborators"],
+      });
+    },
+  });
+}
+
+export function useAppCollaboratorDeleteMutation(appId: string) {
+  const client = useQueryClient();
+
+  return useMutation({
+    mutationFn: (collaboratorId: string) =>
+      apiRequest<AppCollaboratorDeleteResponse>(
+        `/v1/apps/${appId}/collaborators/${collaboratorId}`,
+        {
+          method: "DELETE",
+        }
+      ),
+    onSuccess: () => {
+      client.invalidateQueries({
+        queryKey: ["apps", appId, "collaborators"],
+      });
+    },
+  });
+}
+
+export function useCheckoutCreateMutation(appId: string) {
+  return useMutation({
+    mutationFn: (req: BillingCheckoutRequest) => {
+      return apiRequest<BillingCheckoutResponse>(
+        `/v1/apps/${appId}/billing/checkout`,
+        {
+          method: "POST",
+          body: JSON.stringify(req),
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+    },
+  });
+}
+
+export function useAppSubscriptionManageMutation(subscriptionId: string) {
+  return useMutation({
+    mutationFn: () =>
+      apiRequest<SubscriptionManageResponse>(
+        `/v1/billing/subscriptions/${subscriptionId}/manage`,
+        {
+          method: "POST",
+        }
+      ),
   });
 }

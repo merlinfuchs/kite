@@ -1,15 +1,18 @@
 import { useQuery } from "@tanstack/react-query";
 import { apiRequest } from "./client";
 import {
+  AppCollaboratorListResponse,
   AppEmojiListResponse,
   AppEntityListResponse,
   AppGetResponse,
   AppListResponse,
   AssetGetResponse,
+  BillingPlanListResponse,
   CommandGetResponse,
   CommandListResponse,
   EventListenerGetResponse,
   EventListenerListResponse,
+  FeaturesGetResponse,
   LogEntryListResponse,
   LogSummaryGetResponse,
   MessageGetResponse,
@@ -18,6 +21,7 @@ import {
   StateGuildChannelListResponse,
   StateGuildListResponse,
   StateStatusGetResponse,
+  SubscriptionListResponse,
   UsageByDayListResponse,
   UsageByTypeListResponse,
   UsageCreditsGetResponse,
@@ -237,5 +241,43 @@ export function useAppStateGuildChannelsQuery(
         `/v1/apps/${appId}/state/guilds/${guildId}/channels`
       ),
     enabled: !!appId && !!guildId,
+  });
+}
+
+export function useAppCollaboratorsQuery(appId: string) {
+  return useQuery({
+    queryKey: ["apps", appId, "collaborators"],
+    queryFn: () =>
+      apiRequest<AppCollaboratorListResponse>(
+        `/v1/apps/${appId}/collaborators`
+      ),
+    enabled: !!appId,
+  });
+}
+
+export function useAppSubscriptionsQuery(appId: string) {
+  return useQuery({
+    queryKey: ["apps", appId, "subscriptions"],
+    queryFn: () =>
+      apiRequest<SubscriptionListResponse>(
+        `/v1/apps/${appId}/billing/subscriptions`
+      ),
+    enabled: !!appId,
+  });
+}
+
+export function useBillingPlansQuery() {
+  return useQuery({
+    queryKey: ["billing", "plans"],
+    queryFn: () => apiRequest<BillingPlanListResponse>(`/v1/billing/plans`),
+  });
+}
+
+export function useAppFeaturesQuery(appId: string) {
+  return useQuery({
+    queryKey: ["apps", appId, "billing", "features"],
+    queryFn: () =>
+      apiRequest<FeaturesGetResponse>(`/v1/apps/${appId}/billing/features`),
+    enabled: !!appId,
   });
 }

@@ -7,6 +7,12 @@ SELECT discord_id, discord_token FROM apps WHERE id = $1;
 -- name: GetAppsByOwner :many
 SELECT * FROM apps WHERE owner_user_id = $1 ORDER BY created_at DESC;
 
+-- name: GetAppsByCollaborator :many
+SELECT a.* FROM apps a
+LEFT JOIN collaborators c ON a.id = c.app_id
+WHERE a.owner_user_id = @user_id OR c.user_id = @user_id
+ORDER BY a.created_at DESC;
+
 -- name: CountAppsByOwner :one
 SELECT COUNT(*) FROM apps WHERE owner_user_id = $1;
 

@@ -11,10 +11,12 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/core/engine"
 	"github.com/kitecloud/kite/kite-service/internal/core/event"
 	"github.com/kitecloud/kite/kite-service/internal/core/gateway"
+	"github.com/kitecloud/kite/kite-service/internal/core/plan"
 	"github.com/kitecloud/kite/kite-service/internal/core/usage"
 	"github.com/kitecloud/kite/kite-service/internal/db/postgres"
 	"github.com/kitecloud/kite/kite-service/internal/db/s3"
 	"github.com/kitecloud/kite/kite-service/internal/logging"
+	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/sashabaranov/go-openai"
 	"github.com/urfave/cli/v2"
 )
@@ -88,10 +90,21 @@ func serverStartCMD(c *cli.Context) error {
 
 	handler := event.NewEventHandlerWrapper(engine, pg)
 
-	gateway := gateway.NewGatewayManager(pg, pg, handler)
+	billingPlans := make([]model.Plan, len(cfg.Billing.Plans))
+	for i, plan := range cfg.Billing.Plans {
+		billingPlans[i] = model.Plan(plan)
+	}
+
+	planManager := plan.NewPlanManager(pg, pg, billingPlans, plan.PlanManagerConfig{
+		DiscordBotToken: cfg.Discord.BotToken,
+		DiscordGuildID:  cfg.Discord.GuildID,
+	})
+	planManager.Run(ctx)
+
+	gateway := gateway.NewGatewayManager(pg, pg, planManager, handler)
 	gateway.Run(ctx)
 
-	usage := usage.NewUsageManager(pg, pg, cfg.UserLimits.CreditsPerMonth)
+	usage := usage.NewUsageManager(pg, pg, planManager)
 	usage.Run(ctx)
 
 	apiServer := api.NewAPIServer(api.APIServerConfig{
@@ -108,9 +121,15 @@ func serverStartCMD(c *cli.Context) error {
 			MaxMessagesPerApp:       cfg.UserLimits.MaxMessagesPerApp,
 			MaxEventListenersPerApp: cfg.UserLimits.MaxEventListenersPerApp,
 			MaxAssetSize:            cfg.UserLimits.MaxAssetSize,
-			CreditsPerMonth:         cfg.UserLimits.CreditsPerMonth,
 		},
-	}, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, assetStore, gateway)
+		Billing: api.BillingConfig{
+			LemonSqueezyAPIKey:        cfg.Billing.LemonSqueezyAPIKey,
+			LemonSqueezySigningSecret: cfg.Billing.LemonSqueezySigningSecret,
+			LemonSqueezyStoreID:       cfg.Billing.LemonSqueezyStoreID,
+			TestMode:                  cfg.Billing.TestMode,
+			Plans:                     cfg.Billing.Plans,
+		},
+	}, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, assetStore, gateway, planManager)
 	address := fmt.Sprintf("%s:%d", cfg.API.Host, cfg.API.Port)
 	if err := apiServer.Serve(ctx, address); err != nil {
 		slog.With("error", err).Error("Failed to start API server")

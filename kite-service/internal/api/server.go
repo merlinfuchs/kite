@@ -5,6 +5,8 @@ import (
 	"log/slog"
 	"net/http"
 
+	"github.com/kitecloud/kite/kite-service/internal/config"
+	"github.com/kitecloud/kite/kite-service/internal/core/plan"
 	"github.com/kitecloud/kite/kite-service/internal/store"
 	"github.com/rs/cors"
 )
@@ -17,6 +19,7 @@ type APIServerConfig struct {
 	DiscordClientID     string
 	DiscordClientSecret string
 	UserLimits          APIUserLimitsConfig
+	Billing             BillingConfig
 }
 
 type APIUserLimitsConfig struct {
@@ -26,7 +29,14 @@ type APIUserLimitsConfig struct {
 	MaxMessagesPerApp       int
 	MaxEventListenersPerApp int
 	MaxAssetSize            int
-	CreditsPerMonth         int
+}
+
+type BillingConfig struct {
+	LemonSqueezyAPIKey        string
+	LemonSqueezySigningSecret string
+	LemonSqueezyStoreID       string
+	TestMode                  bool
+	Plans                     []config.BillingPlanConfig
 }
 
 type APIServer struct {
@@ -48,8 +58,11 @@ func NewAPIServer(
 	messageStore store.MessageStore,
 	messageInstanceStore store.MessageInstanceStore,
 	eventListenerStore store.EventListenerStore,
+	subscriptionStore store.SubscriptionStore,
+	entitlementStore store.EntitlementStore,
 	assetStore store.AssetStore,
 	appStateManager store.AppStateManager,
+	planManager *plan.PlanManager,
 ) *APIServer {
 	s := &APIServer{
 		config: config,
@@ -67,8 +80,11 @@ func NewAPIServer(
 		messageStore,
 		messageInstanceStore,
 		eventListenerStore,
+		subscriptionStore,
+		entitlementStore,
 		assetStore,
 		appStateManager,
+		planManager,
 	)
 	return s
 }

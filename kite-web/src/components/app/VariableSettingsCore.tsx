@@ -80,7 +80,7 @@ export default function VariableSettingsCore() {
   }, [form, updateMutation]);
 
   return (
-    <Card x-chunk="dashboard-04-chunk-1">
+    <Card>
       <CardHeader>
         <CardTitle>Variable Settings</CardTitle>
         <CardDescription>

@@ -7,6 +7,7 @@ import (
 
 	"github.com/kitecloud/kite/kite-service/internal/api/handler"
 	"github.com/kitecloud/kite/kite-service/internal/api/wire"
+	"github.com/kitecloud/kite/kite-service/internal/core/plan"
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/internal/store"
 	"github.com/kitecloud/kite/kite-service/internal/util"
@@ -15,12 +16,21 @@ import (
 
 type AppHandler struct {
 	appStore       store.AppStore
+	userStore      store.UserStore
+	planManager    *plan.PlanManager
 	maxAppsPerUser int
 }
 
-func NewAppHandler(appStore store.AppStore, maxAppsPerUser int) *AppHandler {
+func NewAppHandler(
+	appStore store.AppStore,
+	userStore store.UserStore,
+	planManager *plan.PlanManager,
+	maxAppsPerUser int,
+) *AppHandler {
 	return &AppHandler{
 		appStore:       appStore,
+		userStore:      userStore,
+		planManager:    planManager,
 		maxAppsPerUser: maxAppsPerUser,
 	}
 }
@@ -196,6 +206,10 @@ func (h *AppHandler) HandleAppTokenUpdate(c *handler.Context, req wire.AppTokenU
 }
 
 func (h *AppHandler) HandleAppDelete(c *handler.Context) (*wire.AppDeleteResponse, error) {
+	if !c.UserAppRole.CanDeleteApp() {
+		return nil, handler.ErrForbidden("missing_permissions", "You don't have permissions to delete this app")
+	}
+
 	if err := h.appStore.DeleteApp(c.Context(), c.App.ID); err != nil {
 		return nil, fmt.Errorf("failed to delete app: %w", err)
 	}
