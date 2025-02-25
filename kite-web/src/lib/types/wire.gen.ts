@@ -111,6 +111,91 @@ export type AssetGetResponse = Asset;
 export type AuthLogoutResponse = Empty;
 
 //////////
+// source: billing.go
+
+export interface BillingWebhookRequest {
+  meta: {
+    event_name: string;
+    custom_data: { [key: string]: any};
+  };
+  data: {
+    id: string;
+    attributes: {
+      store_id: number /* int */;
+      customer_id: number /* int */;
+      order_id: number /* int */;
+      order_item_id: number /* int */;
+      product_id: number /* int */;
+      variant_id: number /* int */;
+      product_name: string;
+      variant_name: string;
+      user_name: string;
+      user_email: string;
+      status: string;
+      status_formatted: string;
+      card_brand: string;
+      card_last_four: string;
+      cancelled: boolean;
+      trial_ends_at: null | string /* RFC3339 */;
+      billing_anchor: number /* int */;
+      renews_at: string /* RFC3339 */;
+      ends_at: null | string /* RFC3339 */;
+      created_at: string /* RFC3339 */;
+      updated_at: string /* RFC3339 */;
+      test_mode: boolean;
+    };
+  };
+}
+export interface BillingWebhookResponse {
+}
+export interface BillingCheckoutRequest {
+  lemonsqueezy_variant_id: string;
+}
+export interface BillingCheckoutResponse {
+  url: string;
+}
+export interface SubscriptionManageResponse {
+  update_payment_method_url: string;
+  customer_portal_url: string;
+}
+export interface Subscription {
+  id: string;
+  display_name: string;
+  source: string;
+  status: string;
+  status_formatted: string;
+  created_at: string /* RFC3339 */;
+  updated_at: string /* RFC3339 */;
+  renews_at: string /* RFC3339 */;
+  trial_ends_at: null | string /* RFC3339 */;
+  ends_at: null | string /* RFC3339 */;
+  user_id: string;
+  lemonsqueezy_subscription_id: null | string;
+  lemonsqueezy_customer_id: null | string;
+  lemonsqueezy_order_id: null | string;
+  lemonsqueezy_product_id: null | string;
+  lemonsqueezy_variant_id: null | string;
+  manageable: boolean;
+}
+export type SubscriptionListResponse = (Subscription | undefined)[];
+export interface BillingPlan {
+  id: string;
+  title: string;
+  description: string;
+  price: number /* float32 */;
+  default: boolean;
+  popular: boolean;
+  hidden: boolean;
+  lemonsqueezy_product_id: string;
+  lemonsqueezy_variant_id: string;
+  feature_max_collaborators: number /* int */;
+  feature_usage_credits_per_month: number /* int */;
+  feature_max_guilds: number /* int */;
+  feature_priority_support: boolean;
+}
+export type BillingPlanListResponse = (BillingPlan | undefined)[];
+
+//////////
 // source: command.go
 
 export interface Command {
@@ -147,6 +232,15 @@ export interface CommandUpdateEnabledRequest {
 }
 export type CommandUpdateEnabledResponse = Command;
 export type CommandDeleteResponse = Empty;
+
+//////////
+// source: entitlement.go
+
+export interface EntitlementFeatures {
+  usage_credits_per_month: number /* int */;
+  max_collaborators: number /* int */;
+}
+export type EntitlementFeaturesGetResponse = EntitlementFeatures;
 
 //////////
 // source: event_listener.go

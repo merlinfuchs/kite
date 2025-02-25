@@ -110,7 +110,14 @@ func serverStartCMD(c *cli.Context) error {
 			MaxAssetSize:            cfg.UserLimits.MaxAssetSize,
 			CreditsPerMonth:         cfg.UserLimits.CreditsPerMonth,
 		},
-	}, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, assetStore, gateway)
+		Billing: api.BillingConfig{
+			LemonSqueezyAPIKey:        cfg.Billing.LemonSqueezyAPIKey,
+			LemonSqueezySigningSecret: cfg.Billing.LemonSqueezySigningSecret,
+			LemonSqueezyStoreID:       cfg.Billing.LemonSqueezyStoreID,
+			TestMode:                  cfg.Billing.TestMode,
+			Plans:                     cfg.Billing.Plans,
+		},
+	}, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, assetStore, gateway)
 	address := fmt.Sprintf("%s:%d", cfg.API.Host, cfg.API.Port)
 	if err := apiServer.Serve(ctx, address); err != nil {
 		slog.With("error", err).Error("Failed to start API server")

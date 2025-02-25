@@ -11,6 +11,8 @@ import {
   AppUpdateResponse,
   AssetCreateResponse,
   AuthLogoutResponse,
+  BillingCheckoutRequest,
+  BillingCheckoutResponse,
   CommandCreateRequest,
   CommandCreateResponse,
   CommandDeleteResponse,
@@ -42,6 +44,7 @@ import {
   MessageUpdateRequest,
   MessageUpdateResponse,
   StateGuildLeaveResponse,
+  SubscriptionManageResponse,
   VariableCreateRequest,
   VariableCreateResponse,
   VariableDeleteResponse,
@@ -657,5 +660,34 @@ export function useAssetCreateMutation(appId: string) {
         queryKey: ["apps", appId, "assets"],
       });
     },
+  });
+}
+
+export function useCheckoutCreateMutation(appId: string) {
+  return useMutation({
+    mutationFn: (req: BillingCheckoutRequest) => {
+      return apiRequest<BillingCheckoutResponse>(
+        `/v1/apps/${appId}/billing/checkout`,
+        {
+          method: "POST",
+          body: JSON.stringify(req),
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+    },
+  });
+}
+
+export function useAppSubscriptionManageMutation(subscriptionId: string) {
+  return useMutation({
+    mutationFn: () =>
+      apiRequest<SubscriptionManageResponse>(
+        `/v1/billing/subscriptions/${subscriptionId}/manage`,
+        {
+          method: "POST",
+        }
+      ),
   });
 }

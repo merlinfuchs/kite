@@ -1,5 +1,6 @@
 import {
   ChevronRightIcon,
+  CrownIcon,
   LayoutDashboardIcon,
   MessageSquareWarningIcon,
   Settings2Icon,
@@ -48,6 +49,12 @@ export default function AppSidebarMainNav() {
         url: "/apps/[appId]",
         icon: LayoutDashboardIcon,
         active: isActive("/apps/[appId]", true),
+      },
+      {
+        title: "Premium",
+        url: "/apps/[appId]/premium",
+        icon: CrownIcon,
+        active: isActive("/apps/[appId]/premium"),
       },
       {
         title: "Settings",

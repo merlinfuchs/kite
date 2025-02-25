@@ -32,3 +32,14 @@ db_name = "kite"
 endpoint = "localhost:9000"
 access_key_id = "kite"
 secret_access_key = "1234567890"
+
+[[billing.plans]]
+id = "basic"
+title = "Basic"
+description = "Get started with Kite for free. No credit card required."
+price = 0
+default = true
+feature_max_collaborators = 1
+feature_usage_credits_per_month = 10000
+feature_max_guilds = 100
+feature_priority_support = false
