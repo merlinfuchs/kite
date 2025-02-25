@@ -11,6 +11,44 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const getActiveEntitlements = `-- name: GetActiveEntitlements :many
+SELECT id, type, subscription_id, app_id, plan_id, created_at, updated_at, ends_at FROM entitlements WHERE app_id = $1 AND ends_at IS NULL OR ends_at > $2 ORDER BY created_at DESC
+`
+
+type GetActiveEntitlementsParams struct {
+	AppID  string
+	EndsAt pgtype.Timestamp
+}
+
+func (q *Queries) GetActiveEntitlements(ctx context.Context, arg GetActiveEntitlementsParams) ([]Entitlement, error) {
+	rows, err := q.db.Query(ctx, getActiveEntitlements, arg.AppID, arg.EndsAt)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Entitlement
+	for rows.Next() {
+		var i Entitlement
+		if err := rows.Scan(
+			&i.ID,
+			&i.Type,
+			&i.SubscriptionID,
+			&i.AppID,
+			&i.PlanID,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.EndsAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getEntitlements = `-- name: GetEntitlements :many
 SELECT id, type, subscription_id, app_id, plan_id, created_at, updated_at, ends_at FROM entitlements WHERE app_id = $1 ORDER BY created_at DESC
 `

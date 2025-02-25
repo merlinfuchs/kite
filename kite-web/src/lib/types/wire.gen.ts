@@ -234,17 +234,6 @@ export type CommandUpdateEnabledResponse = Command;
 export type CommandDeleteResponse = Empty;
 
 //////////
-// source: entitlement.go
-
-export interface EntitlementFeatures {
-  usage_credits_per_month: number /* int */;
-  max_collaborators: number /* int */;
-  max_guilds: number /* int */;
-  priority_support: boolean;
-}
-export type EntitlementFeaturesGetResponse = EntitlementFeatures;
-
-//////////
 // source: event_listener.go
 
 export interface EventListener {
@@ -285,6 +274,17 @@ export interface EventListenerUpdateEnabledRequest {
 }
 export type EventListenerUpdateEnabledResponse = EventListener;
 export type EventListenerDeleteResponse = Empty;
+
+//////////
+// source: feature.go
+
+export interface Features {
+  max_collaborators: number /* int */;
+  usage_credits_per_month: number /* int */;
+  max_guilds: number /* int */;
+  priority_support: boolean;
+}
+export type FeaturesGetResponse = Features;
 
 //////////
 // source: log.go

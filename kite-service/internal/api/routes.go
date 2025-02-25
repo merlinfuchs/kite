@@ -20,6 +20,8 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/user"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/variable"
 	"github.com/kitecloud/kite/kite-service/internal/api/session"
+	"github.com/kitecloud/kite/kite-service/internal/core/feature"
+	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/internal/store"
 	kiteweb "github.com/merlinfuchs/kite/kite-web"
 )
@@ -118,6 +120,13 @@ func (s *APIServer) RegisterRoutes(
 	)
 	appGroup.Get("/entities", handler.Typed(appHandler.HandleAppEntityList))
 
+	billingPlans := make([]model.Plan, len(s.config.Billing.Plans))
+	for i, plan := range s.config.Billing.Plans {
+		billingPlans[i] = model.Plan(plan)
+	}
+
+	featureManager := feature.NewManager(entitlementStore, billingPlans)
+
 	// Billing routes
 	billingHandler := billing.NewBillingHandler(billing.BillingHandlerConfig{
 		LemonSqueezyAPIKey:        s.config.Billing.LemonSqueezyAPIKey,
@@ -125,8 +134,8 @@ func (s *APIServer) RegisterRoutes(
 		LemonSqueezyStoreID:       s.config.Billing.LemonSqueezyStoreID,
 		TestMode:                  s.config.Billing.TestMode,
 		AppPublicBaseURL:          s.config.AppPublicBaseURL,
-		Plans:                     s.config.Billing.Plans,
-	}, userStore, subscriptionStore, entitlementStore)
+		Plans:                     billingPlans,
+	}, userStore, subscriptionStore, entitlementStore, featureManager)
 
 	v1Group.Post("/billing/webhook", handler.TypedWithBody(billingHandler.HandleBillingWebhook))
 	v1Group.Get("/billing/plans", handler.Typed(billingHandler.HandleBillingPlanList))
@@ -137,7 +146,7 @@ func (s *APIServer) RegisterRoutes(
 	appBillingGroup := appGroup.Group("/billing")
 	appBillingGroup.Get("/subscriptions", handler.Typed(billingHandler.HandleAppSubscriptionList))
 	appBillingGroup.Post("/checkout", handler.TypedWithBody(billingHandler.HandleAppCheckout))
-	appBillingGroup.Get("/entitlements/features", handler.Typed(billingHandler.HandleEntitlementFeaturesGet))
+	appBillingGroup.Get("/features", handler.Typed(billingHandler.HandleFeaturesGet))
 
 	// Log routes
 	logHandler := logs.NewLogHandler(logStore)

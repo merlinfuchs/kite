@@ -2,7 +2,8 @@ package billing
 
 import (
 	"github.com/NdoleStudio/lemonsqueezy-go"
-	"github.com/kitecloud/kite/kite-service/internal/config"
+	"github.com/kitecloud/kite/kite-service/internal/core/feature"
+	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/internal/store"
 )
 
@@ -12,7 +13,7 @@ type BillingHandlerConfig struct {
 	LemonSqueezyStoreID       string
 	TestMode                  bool
 	AppPublicBaseURL          string
-	Plans                     []config.BillingPlanConfig
+	Plans                     []model.Plan
 }
 
 type BillingHandler struct {
@@ -20,6 +21,7 @@ type BillingHandler struct {
 	userStore         store.UserStore
 	subscriptionStore store.SubscriptionStore
 	entitlementStore  store.EntitlementStore
+	featureManager    *feature.Manager
 
 	client *lemonsqueezy.Client
 }
@@ -29,6 +31,7 @@ func NewBillingHandler(
 	userStore store.UserStore,
 	subscriptionStore store.SubscriptionStore,
 	entitlementStore store.EntitlementStore,
+	featureManager *feature.Manager,
 ) *BillingHandler {
 	client := lemonsqueezy.New(
 		lemonsqueezy.WithAPIKey(config.LemonSqueezyAPIKey),
@@ -40,6 +43,7 @@ func NewBillingHandler(
 		userStore:         userStore,
 		subscriptionStore: subscriptionStore,
 		entitlementStore:  entitlementStore,
+		featureManager:    featureManager,
 
 		client: client,
 	}

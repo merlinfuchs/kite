@@ -14,7 +14,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import {
-  useEntitlementFeatures,
+  useFeatures,
   useUsageCredits,
   useUsageCreditsByDay,
 } from "@/lib/hooks/api";
@@ -40,9 +40,9 @@ const chartConfig = {
 export default function UsageCreditsByDayChart() {
   const credits = useUsageCredits();
 
-  const entitlements = useEntitlementFeatures();
+  const features = useFeatures();
 
-  const creditsPerMonth = entitlements?.usage_credits_per_month || 0;
+  const creditsPerMonth = features?.usage_credits_per_month || 0;
 
   const creditsByDay = useUsageCreditsByDay();
 
