@@ -79,16 +79,31 @@ func (h *BillingHandler) HandleBillingWebhook(c *handler.Context, body json.RawM
 		entitlementEndsAt = sub.EndsAt.Time
 	}
 
+	var planID string
+	for _, plan := range h.config.Plans {
+		if plan.LemonSqueezyProductID == fmt.Sprintf("%d", sub.ProductID) {
+			planID = plan.ID
+			break
+		}
+	}
+	if planID == "" {
+		slog.Error(
+			"Failed to find plan ID for subscription",
+			slog.String("ls_subscription_id", req.Data.ID),
+			slog.String("ls_product_id", fmt.Sprintf("%d", sub.ProductID)),
+		)
+		return nil, fmt.Errorf("failed to find plan ID for subscription")
+	}
+
 	entitlement := model.Entitlement{
-		ID:                    util.UniqueID(),
-		Type:                  "subscription",
-		SubscriptionID:        null.StringFrom(subscription.ID),
-		AppID:                 appID,
-		LemonSqueezyProductID: null.StringFrom(fmt.Sprintf("%d", sub.ProductID)),
-		LemonSqueezyVariantID: null.StringFrom(fmt.Sprintf("%d", sub.VariantID)),
-		CreatedAt:             time.Now().UTC(),
-		UpdatedAt:             time.Now().UTC(),
-		EndsAt:                null.TimeFrom(entitlementEndsAt),
+		ID:             util.UniqueID(),
+		Type:           "subscription",
+		SubscriptionID: null.StringFrom(subscription.ID),
+		AppID:          appID,
+		PlanID:         planID,
+		CreatedAt:      time.Now().UTC(),
+		UpdatedAt:      time.Now().UTC(),
+		EndsAt:         null.TimeFrom(entitlementEndsAt),
 	}
 
 	if appID != "" {

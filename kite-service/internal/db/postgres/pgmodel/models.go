@@ -60,15 +60,14 @@ type Command struct {
 }
 
 type Entitlement struct {
-	ID                    string
-	Type                  string
-	SubscriptionID        pgtype.Text
-	AppID                 string
-	LemonsqueezyProductID pgtype.Text
-	LemonsqueezyVariantID pgtype.Text
-	CreatedAt             pgtype.Timestamp
-	UpdatedAt             pgtype.Timestamp
-	EndsAt                pgtype.Timestamp
+	ID             string
+	Type           string
+	SubscriptionID pgtype.Text
+	AppID          string
+	PlanID         string
+	CreatedAt      pgtype.Timestamp
+	UpdatedAt      pgtype.Timestamp
+	EndsAt         pgtype.Timestamp
 }
 
 type EventListener struct {

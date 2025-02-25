@@ -12,6 +12,7 @@ import { Badge } from "../ui/badge";
 import { useAppSubscriptions, useBillingPlans } from "@/lib/hooks/api";
 import { ReactNode, useMemo } from "react";
 import { useLemonSqueezyCheckout } from "@/lib/hooks/lemonsqueezy";
+import { formatNumber } from "@/lib/utils";
 
 export default function AppPricingList() {
   const subscriptions = useAppSubscriptions();
@@ -93,7 +94,8 @@ export default function AppPricingList() {
               <span className="flex">
                 <CheckIcon className="text-green-500" />{" "}
                 <h3 className="ml-2">
-                  {pricing.feature_usage_credits_per_month} Credits / month
+                  {formatNumber(pricing.feature_usage_credits_per_month)}{" "}
+                  Credits / month
                 </h3>
               </span>
               <span className="flex">

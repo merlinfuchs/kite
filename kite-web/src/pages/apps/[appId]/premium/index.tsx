@@ -22,10 +22,6 @@ export default function AppPremiumPage() {
 
       <AppPricingList />
 
-      <h2 className="text-lg font-semibold md:text-2xl mt-32 mb-6">
-        Subscription History
-      </h2>
-
       <AppSubscriptionList />
     </AppLayout>
   );
