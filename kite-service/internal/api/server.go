@@ -28,7 +28,6 @@ type APIUserLimitsConfig struct {
 	MaxMessagesPerApp       int
 	MaxEventListenersPerApp int
 	MaxAssetSize            int
-	CreditsPerMonth         int
 }
 
 type BillingConfig struct {

@@ -239,6 +239,8 @@ export type CommandDeleteResponse = Empty;
 export interface EntitlementFeatures {
   usage_credits_per_month: number /* int */;
   max_collaborators: number /* int */;
+  max_guilds: number /* int */;
+  priority_support: boolean;
 }
 export type EntitlementFeaturesGetResponse = EntitlementFeatures;
 
@@ -367,7 +369,6 @@ export type MessageInstanceDeleteResponse = Empty;
 // source: usage.go
 
 export interface UsageCreditsGetResponse {
-  total_credits: number /* int */;
   credits_used: number /* int */;
 }
 export type UsageByDayListResponse = (UsageByDayEntry | undefined)[];

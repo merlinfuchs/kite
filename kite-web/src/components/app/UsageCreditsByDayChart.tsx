@@ -13,7 +13,11 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { useUsageCredits, useUsageCreditsByDay } from "@/lib/hooks/api";
+import {
+  useEntitlementFeatures,
+  useUsageCredits,
+  useUsageCreditsByDay,
+} from "@/lib/hooks/api";
 import {
   ChartConfig,
   ChartContainer,
@@ -35,6 +39,10 @@ const chartConfig = {
 
 export default function UsageCreditsByDayChart() {
   const credits = useUsageCredits();
+
+  const entitlements = useEntitlementFeatures();
+
+  const creditsPerMonth = entitlements?.usage_credits_per_month || 0;
 
   const creditsByDay = useUsageCreditsByDay();
 
@@ -69,7 +77,7 @@ export default function UsageCreditsByDayChart() {
           <p className="text-sm text-muted-foreground pb-1">
             of{" "}
             <span className="text-foreground">
-              {formatNumber(credits?.total_credits)}
+              {formatNumber(creditsPerMonth)}
             </span>{" "}
             credits used
           </p>
