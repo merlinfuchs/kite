@@ -83,6 +83,9 @@ func (m *GatewayManager) populateGateways(ctx context.Context) error {
 	}
 
 	for _, app := range apps {
+		// Starting thousands of gateways at once can cause problems internally.
+		time.Sleep(100 * time.Millisecond)
+
 		if err := m.addGateway(ctx, app); err != nil {
 			slog.With("error", err).Error("failed to add gateway")
 		}
