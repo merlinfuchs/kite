@@ -17,6 +17,7 @@ type PlanManagerConfig struct {
 type PlanManager struct {
 	entitlementStore  store.EntitlementStore
 	subscriptionStore store.SubscriptionStore
+	userStore         store.UserStore
 	plans             []model.Plan
 
 	config PlanManagerConfig
@@ -25,12 +26,14 @@ type PlanManager struct {
 func NewPlanManager(
 	entitlementStore store.EntitlementStore,
 	subscriptionStore store.SubscriptionStore,
+	userStore store.UserStore,
 	plans []model.Plan,
 	config PlanManagerConfig,
 ) *PlanManager {
 	return &PlanManager{
 		entitlementStore:  entitlementStore,
 		subscriptionStore: subscriptionStore,
+		userStore:         userStore,
 		plans:             plans,
 		config:            config,
 	}

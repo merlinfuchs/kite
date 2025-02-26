@@ -48,18 +48,16 @@ export default function AppSubscriptionListEntry({
           </div>
         </div>
       </CardHeader>
-      <CardFooter className="gap-3">
-        {subscription.manageable && (
-          <>
-            <Button variant="outline" onClick={() => updatePaymentMethod()}>
-              Update Billing
-            </Button>
-            <Button variant="outline" onClick={() => openCustomerPortal()}>
-              Manage
-            </Button>
-          </>
-        )}
-      </CardFooter>
+      {subscription.manageable && (
+        <CardFooter className="gap-3">
+          <Button variant="outline" onClick={() => updatePaymentMethod()}>
+            Update Billing
+          </Button>
+          <Button variant="outline" onClick={() => openCustomerPortal()}>
+            Manage
+          </Button>
+        </CardFooter>
+      )}
     </Card>
   );
 }

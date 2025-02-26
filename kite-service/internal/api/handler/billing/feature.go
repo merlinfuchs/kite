@@ -11,10 +11,3 @@ func (h *BillingHandler) HandleFeaturesGet(c *handler.Context) (*wire.FeaturesGe
 	res := wire.Features(features)
 	return &res, nil
 }
-
-func max(a, b int) int {
-	if a > b {
-		return a
-	}
-	return b
-}

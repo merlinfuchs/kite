@@ -89,6 +89,7 @@ export default function AppPricingList() {
                 <CheckIcon className="text-green-500" />{" "}
                 <h3 className="ml-2">
                   {pricing.feature_max_collaborators} Collaborator
+                  {pricing.feature_max_collaborators === 1 ? "" : "s"}
                 </h3>
               </span>
               <span className="flex">

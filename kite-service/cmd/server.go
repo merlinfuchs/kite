@@ -95,7 +95,7 @@ func serverStartCMD(c *cli.Context) error {
 		billingPlans[i] = model.Plan(plan)
 	}
 
-	planManager := plan.NewPlanManager(pg, pg, billingPlans, plan.PlanManagerConfig{
+	planManager := plan.NewPlanManager(pg, pg, pg, billingPlans, plan.PlanManagerConfig{
 		DiscordBotToken: cfg.Discord.BotToken,
 		DiscordGuildID:  cfg.Discord.GuildID,
 	})

@@ -20,6 +20,7 @@ import { MinusIcon } from "lucide-react";
 import ConfirmDialog from "../common/ConfirmDialog";
 import { Button } from "../ui/button";
 import AppCollaboratorAddDialog from "./AppCollaboratorAddDialog";
+import { toast } from "sonner";
 
 export default function AppSettingsCollaborators() {
   const appId = useAppId();
@@ -67,7 +68,15 @@ export default function AppSettingsCollaborators() {
                       title="Remove Collaborator"
                       description="Are you sure you want to remove this collaborator?"
                       onConfirm={() => {
-                        deleteMutation.mutate(collaborator!.user.id);
+                        deleteMutation.mutate(collaborator!.user.id, {
+                          onSuccess: (res) => {
+                            if (!res.success) {
+                              toast.error(
+                                `Failed to remove collaborator: ${res.error.message} (${res.error.code})`
+                              );
+                            }
+                          },
+                        });
                       }}
                     >
                       <Button variant="ghost" size="icon">

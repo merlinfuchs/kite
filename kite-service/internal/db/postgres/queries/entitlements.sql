@@ -2,7 +2,7 @@
 SELECT * FROM entitlements WHERE app_id = $1 ORDER BY created_at DESC;
 
 -- name: GetActiveEntitlements :many
-SELECT * FROM entitlements WHERE app_id = $1 AND ends_at IS NULL OR ends_at > $2 ORDER BY created_at DESC;
+SELECT * FROM entitlements WHERE app_id = $1 AND (ends_at IS NULL OR ends_at > $2) ORDER BY created_at DESC;
 
 -- name: UpsertSubscriptionEntitlement :one
 INSERT INTO entitlements (

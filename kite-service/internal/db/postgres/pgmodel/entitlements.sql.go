@@ -12,7 +12,7 @@ import (
 )
 
 const getActiveEntitlements = `-- name: GetActiveEntitlements :many
-SELECT id, type, subscription_id, app_id, plan_id, created_at, updated_at, ends_at FROM entitlements WHERE app_id = $1 AND ends_at IS NULL OR ends_at > $2 ORDER BY created_at DESC
+SELECT id, type, subscription_id, app_id, plan_id, created_at, updated_at, ends_at FROM entitlements WHERE app_id = $1 AND (ends_at IS NULL OR ends_at > $2) ORDER BY created_at DESC
 `
 
 type GetActiveEntitlementsParams struct {

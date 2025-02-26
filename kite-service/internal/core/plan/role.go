@@ -34,7 +34,7 @@ func (m *PlanManager) handOutRoles(ctx context.Context) error {
 		return nil
 	}
 
-	client := api.NewClient(m.config.DiscordBotToken)
+	client := api.NewClient("Bot " + m.config.DiscordBotToken)
 
 	subscriptions, err := m.subscriptionStore.AllSubscriptions(ctx)
 	if err != nil {
@@ -66,7 +66,17 @@ func (m *PlanManager) handOutRoles(ctx context.Context) error {
 			continue
 		}
 
-		discordUserID, err := strconv.ParseUint(sub.UserID, 10, 64)
+		user, err := m.userStore.User(ctx, sub.UserID)
+		if err != nil {
+			slog.Error(
+				"Failed to get user by ID",
+				slog.String("error", err.Error()),
+				slog.String("subscription_id", sub.ID),
+			)
+			continue
+		}
+
+		discordUserID, err := strconv.ParseUint(user.DiscordID, 10, 64)
 		if err != nil {
 			slog.Error(
 				"Failed to parse discord user ID from subscription",
