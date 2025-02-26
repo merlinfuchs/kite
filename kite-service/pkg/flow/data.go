@@ -192,7 +192,8 @@ func (d FlowNodeData) Validate(nodeType FlowNodeType) error {
 		validation.Field(&d.Name, validation.When(nodeType == FlowNodeTypeEntryCommand,
 			validation.Required,
 			validation.Length(1, 32),
-			validation.Match(commandNameRe),
+			validation.Match(commandNameRe).
+				Error("must be lowercase without special characters and up to two spaces"),
 		)),
 		validation.Field(&d.Description, validation.When(nodeType == FlowNodeTypeEntryCommand,
 			validation.Required,
@@ -203,7 +204,8 @@ func (d FlowNodeData) Validate(nodeType FlowNodeType) error {
 		validation.Field(&d.Name, validation.When(nodeType == FlowNodeTypeOptionCommandArgument,
 			validation.Required,
 			validation.Length(1, 32),
-			validation.Match(commandOptionNameRe),
+			validation.Match(commandOptionNameRe).
+				Error("must be lowercase without special characters"),
 		)),
 		validation.Field(&d.Description, validation.When(nodeType == FlowNodeTypeOptionCommandArgument,
 			validation.Required,

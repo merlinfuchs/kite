@@ -33,7 +33,13 @@ type VariableCreateRequest struct {
 
 func (req VariableCreateRequest) Validate() error {
 	return validation.ValidateStruct(&req,
-		validation.Field(&req.Name, validation.Required, validation.Length(1, 100), validation.Match(variableNameRegex)),
+		validation.Field(
+			&req.Name,
+			validation.Required,
+			validation.Length(1, 100),
+			validation.Match(variableNameRegex).
+				Error("must only consist of letters, numbers, and underscores"),
+		),
 	)
 }
 
@@ -58,7 +64,13 @@ type VariableUpdateRequest struct {
 
 func (req VariableUpdateRequest) Validate() error {
 	return validation.ValidateStruct(&req,
-		validation.Field(&req.Name, validation.Required, validation.Length(1, 100), validation.Match(variableNameRegex)),
+		validation.Field(
+			&req.Name,
+			validation.Required,
+			validation.Length(1, 100),
+			validation.Match(variableNameRegex).
+				Error("must only consist of letters, numbers, and underscores"),
+		),
 	)
 }
 

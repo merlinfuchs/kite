@@ -24,6 +24,7 @@ import LoadingButton from "../common/LoadingButton";
 import { useAppId } from "@/lib/hooks/params";
 import { getUniqueId } from "@/lib/utils";
 import { useRouter } from "next/router";
+import { setValidationErrors } from "@/lib/form";
 
 interface FormFields {
   name: string;
@@ -71,9 +72,16 @@ export default function CommandCreateDialog({
               500
             );
           } else {
-            toast.error(
-              `Failed to create command: ${res.error.message} (${res.error.code})`
-            );
+            if (res.error.code === "validation_failed") {
+              setValidationErrors(form, res.error.data, {
+                "flow_source.nodes.0.name": "name",
+                "flow_source.nodes.0.description": "description",
+              });
+            } else {
+              toast.error(
+                `Failed to create command: ${res.error.message} (${res.error.code})`
+              );
+            }
           }
         },
       }
