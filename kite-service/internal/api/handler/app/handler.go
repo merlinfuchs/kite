@@ -90,7 +90,7 @@ func (h *AppHandler) HandleAppCreate(c *handler.Context, req wire.AppCreateReque
 	if err != nil {
 		slog.Error(
 			"Failed to create app",
-			slog.String("app_id", app.ID),
+			slog.String("discord_id", appInfo.ID),
 			slog.String("error", err.Error()),
 		)
 		return nil, fmt.Errorf("failed to create app: %w", err)
