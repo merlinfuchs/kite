@@ -2,9 +2,9 @@
 sidebar_position: 4
 ---
 
-# Stored Variable
+# Shared Variable
 
-With Stored Variables you can store information across commands, events, and message templates.
+With Shared Variables you can store information across commands, events, and message templates.
 
 They can be accessed in commands or event listeners using the "Set variable" or "Get variable" blocks.
 

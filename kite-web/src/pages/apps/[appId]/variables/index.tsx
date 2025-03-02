@@ -4,19 +4,19 @@ import { Separator } from "@/components/ui/separator";
 import env from "@/lib/env/client";
 const breadcrumbs = [
   {
-    label: "Stored Variables",
+    label: "Shared Variables",
   },
 ];
 
 export default function AppVariablesPage() {
   return (
-    <AppLayout title="Stored Variables" breadcrumbs={breadcrumbs}>
+    <AppLayout title="Shared Variables" breadcrumbs={breadcrumbs}>
       <div>
         <h1 className="text-lg font-semibold md:text-2xl mb-1">
-          Stored Variables
+          Shared Variables
         </h1>
         <p className="text-muted-foreground text-sm">
-          Manage stored variables in your app. Stored variables are key-value
+          Manage shared variables in your app. Shared variables are key-value
           pairs that can be used to store data across commands, events, and
           more.{" "}
           <a

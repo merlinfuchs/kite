@@ -55,7 +55,7 @@ export default function AppSidebarStudioNav() {
         active: isActive("/apps/[appId]/messages"),
       },
       {
-        name: "Stores Variables",
+        name: "Shared Variables",
         url: "/apps/[appId]/variables",
         icon: VariableIcon,
         active: isActive("/apps/[appId]/variables"),
