@@ -4,6 +4,7 @@ import { DragEvent, useMemo, useState } from "react";
 import { useReactFlow } from "@xyflow/react";
 import { getUniqueId } from "@/lib/utils";
 import { useFlowContext } from "@/lib/flow/context";
+import { ScrollArea } from "../ui/scroll-area";
 
 const nodeCategories = {
   option: [
@@ -136,24 +137,26 @@ export default function FlowNodeExplorer() {
         </div>
       </div>
       <NodeCategories category={category} setCategory={setCategory} />
-      <div className="overflow-y-auto flex-auto space-y-3 px-2 pb-5">
-        {sections.map((section, i) => (
-          <div key={i}>
-            <div className="text-foreground font-medium mb-2 px-1">
-              {section.title}
+      <ScrollArea className="flex-auto mr-1">
+        <div className="space-y-3 pl-2 pr-1 pb-5">
+          {sections.map((section, i) => (
+            <div key={i}>
+              <div className="text-foreground font-medium mb-2 px-1">
+                {section.title}
+              </div>
+              <div className="space-y-2">
+                {section.nodeTypes.map((type) => (
+                  <AvailableNode
+                    key={type}
+                    type={type}
+                    values={nodeTypes[type]}
+                  />
+                ))}
+              </div>
             </div>
-            <div className="space-y-2">
-              {section.nodeTypes.map((type) => (
-                <AvailableNode
-                  key={type}
-                  type={type}
-                  values={nodeTypes[type]}
-                />
-              ))}
-            </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      </ScrollArea>
     </div>
   );
 }
