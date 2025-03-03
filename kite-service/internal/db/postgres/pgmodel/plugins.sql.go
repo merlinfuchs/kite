@@ -25,6 +25,37 @@ func (q *Queries) DeletePluginInstance(ctx context.Context, arg DeletePluginInst
 	return err
 }
 
+const getEnabledPluginInstancesUpdatedSince = `-- name: GetEnabledPluginInstancesUpdatedSince :many
+SELECT plugin_id, app_id, enabled, config, created_at, updated_at FROM plugin_instances WHERE enabled = TRUE AND updated_at > $1
+`
+
+func (q *Queries) GetEnabledPluginInstancesUpdatedSince(ctx context.Context, updatedAt pgtype.Timestamp) ([]PluginInstance, error) {
+	rows, err := q.db.Query(ctx, getEnabledPluginInstancesUpdatedSince, updatedAt)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []PluginInstance
+	for rows.Next() {
+		var i PluginInstance
+		if err := rows.Scan(
+			&i.PluginID,
+			&i.AppID,
+			&i.Enabled,
+			&i.Config,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getPartialEnabledPluginInstanceIDs = `-- name: GetPartialEnabledPluginInstanceIDs :many
 SELECT app_id, plugin_id FROM plugin_instances WHERE enabled = TRUE
 `
@@ -75,37 +106,6 @@ func (q *Queries) GetPluginInstance(ctx context.Context, arg GetPluginInstancePa
 		&i.UpdatedAt,
 	)
 	return i, err
-}
-
-const getPluginInstancesUpdatedSince = `-- name: GetPluginInstancesUpdatedSince :many
-SELECT plugin_id, app_id, enabled, config, created_at, updated_at FROM plugin_instances WHERE updated_at > $1
-`
-
-func (q *Queries) GetPluginInstancesUpdatedSince(ctx context.Context, updatedAt pgtype.Timestamp) ([]PluginInstance, error) {
-	rows, err := q.db.Query(ctx, getPluginInstancesUpdatedSince, updatedAt)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []PluginInstance
-	for rows.Next() {
-		var i PluginInstance
-		if err := rows.Scan(
-			&i.PluginID,
-			&i.AppID,
-			&i.Enabled,
-			&i.Config,
-			&i.CreatedAt,
-			&i.UpdatedAt,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
 }
 
 const upsertPluginInstance = `-- name: UpsertPluginInstance :one

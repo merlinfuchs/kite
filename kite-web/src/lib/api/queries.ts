@@ -18,7 +18,7 @@ import {
   MessageGetResponse,
   MessageInstanceListResponse,
   MessageListResponse,
-  PluginGetResponse,
+  PluginInstanceGetResponse,
   PluginListResponse,
   StateGuildChannelListResponse,
   StateGuildListResponse,
@@ -296,7 +296,7 @@ export function usePluginInstanceQuery(appId: string, pluginId: string) {
   return useQuery({
     queryKey: ["apps", appId, "plugins", pluginId, "instance"],
     queryFn: () =>
-      apiRequest<PluginGetResponse>(
+      apiRequest<PluginInstanceGetResponse>(
         `/v1/apps/${appId}/plugins/${pluginId}/instance`
       ),
     enabled: !!appId && !!pluginId,

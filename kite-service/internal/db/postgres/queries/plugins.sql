@@ -1,8 +1,8 @@
 -- name: GetPartialEnabledPluginInstanceIDs :many
 SELECT app_id, plugin_id FROM plugin_instances WHERE enabled = TRUE;
 
--- name: GetPluginInstancesUpdatedSince :many
-SELECT * FROM plugin_instances WHERE updated_at > $1;
+-- name: GetEnabledPluginInstancesUpdatedSince :many
+SELECT * FROM plugin_instances WHERE enabled = TRUE AND updated_at > $1;
 
 -- name: UpsertPluginInstance :one
 INSERT INTO plugin_instances (

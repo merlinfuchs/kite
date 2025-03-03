@@ -162,6 +162,10 @@ func (a *App) HandleEvent(appID string, session *state.State, event gateway.Even
 	a.RLock()
 	defer a.RUnlock()
 
+	for _, plugin := range a.plugins {
+		plugin.HandleEvent(appID, session, event)
+	}
+
 	switch e := event.(type) {
 	case *gateway.InteractionCreateEvent:
 		switch d := e.Data.(type) {

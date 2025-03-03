@@ -26,7 +26,7 @@ func (c *Client) EnabledPluginInstanceIDs(ctx context.Context) (map[string][]str
 }
 
 func (c *Client) EnabledPluginInstancesUpdatedSince(ctx context.Context, lastUpdate time.Time) ([]*model.PluginInstance, error) {
-	rows, err := c.Q.GetPluginInstancesUpdatedSince(ctx, pgtype.Timestamp{Time: lastUpdate, Valid: true})
+	rows, err := c.Q.GetEnabledPluginInstancesUpdatedSince(ctx, pgtype.Timestamp{Time: lastUpdate, Valid: true})
 	if err != nil {
 		return nil, err
 	}

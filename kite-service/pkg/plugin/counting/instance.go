@@ -46,6 +46,13 @@ func (p *CountingPluginInstance) HandleEvent(c plugin.Context, event gateway.Eve
 		return nil
 	}
 
+	if e.Content == "!ping" {
+		_, err := c.Client().SendMessage(e.ChannelID, "Pong!")
+		if err != nil {
+			return err
+		}
+	}
+
 	channelIDs := p.config.GetStringArray(channelsConfigKey)
 	if !slices.Contains(channelIDs, e.ChannelID.String()) {
 		return nil

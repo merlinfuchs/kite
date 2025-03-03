@@ -24,7 +24,7 @@ func newPluginContext(
 	return &pluginContext{
 		Context:             ctx,
 		pluginValueProvider: newPluginValueProvider(ctx, store, appID, pluginID),
-		client:              client,
+		client:              client.WithContext(ctx),
 	}
 }
 

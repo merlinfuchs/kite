@@ -45,7 +45,7 @@ import {
   MessageGetResponse,
   MessageInstanceListResponse,
   MessageListResponse,
-  PluginGetResponse,
+  PluginInstanceGetResponse,
   PluginListResponse,
   StateGuildChannelListResponse,
   StateGuildListResponse,
@@ -344,7 +344,7 @@ export function usePlugins(
 
 export function usePluginInstance(
   pluginId: string,
-  callback?: (res: APIResponse<PluginGetResponse>) => void
+  callback?: (res: APIResponse<PluginInstanceGetResponse>) => void
 ) {
   const router = useRouter();
 
