@@ -8,6 +8,7 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/config"
 	"github.com/kitecloud/kite/kite-service/internal/core/plan"
 	"github.com/kitecloud/kite/kite-service/internal/store"
+	"github.com/kitecloud/kite/kite-service/pkg/plugin"
 	"github.com/rs/cors"
 )
 
@@ -63,6 +64,7 @@ func NewAPIServer(
 	assetStore store.AssetStore,
 	appStateManager store.AppStateManager,
 	planManager *plan.PlanManager,
+	pluginRegistry *plugin.Registry,
 ) *APIServer {
 	s := &APIServer{
 		config: config,
@@ -85,6 +87,7 @@ func NewAPIServer(
 		assetStore,
 		appStateManager,
 		planManager,
+		pluginRegistry,
 	)
 	return s
 }

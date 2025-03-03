@@ -55,6 +55,12 @@ func (m *Engine) Run(ctx context.Context) {
 						slog.String("error", err.Error()),
 					)
 				}
+				if err := m.populatePlugins(ctx, lastUpdate); err != nil {
+					slog.Error(
+						"Failed to populate plugins in engine",
+						slog.String("error", err.Error()),
+					)
+				}
 			case <-deployTicker.C:
 				m.deployCommands(ctx)
 			}
@@ -125,6 +131,40 @@ func (m *Engine) populateEventListeners(ctx context.Context, lastUpdate time.Tim
 
 	for _, app := range m.apps {
 		app.RemoveDanglingEventListeners(listenerIDs)
+	}
+
+	return nil
+}
+
+func (m *Engine) populatePlugins(ctx context.Context, lastUpdate time.Time) error {
+	pluginInstanceIDs, err := m.stores.PluginInstanceStore.EnabledPluginInstanceIDs(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to get enabled plugin instances: %w", err)
+	}
+
+	pluginInstances, err := m.stores.PluginInstanceStore.EnabledPluginInstancesUpdatedSince(ctx, lastUpdate)
+	if err != nil {
+		return fmt.Errorf("failed to get plugin instances: %w", err)
+	}
+
+	m.Lock()
+	defer m.Unlock()
+
+	for _, pluginInstance := range pluginInstances {
+		app, ok := m.apps[pluginInstance.AppID]
+		if !ok {
+			app = NewApp(
+				pluginInstance.AppID,
+				m.stores,
+			)
+			m.apps[pluginInstance.AppID] = app
+		}
+
+		app.AddPlugin(pluginInstance)
+	}
+
+	for _, app := range m.apps {
+		app.RemoveDanglingPlugins(pluginInstanceIDs[app.id])
 	}
 
 	return nil

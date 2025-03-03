@@ -16,12 +16,14 @@ import (
 	eventlistener "github.com/kitecloud/kite/kite-service/internal/api/handler/event_listener"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/logs"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/message"
+	pluginhandler "github.com/kitecloud/kite/kite-service/internal/api/handler/plugin"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/usage"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/user"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/variable"
 	"github.com/kitecloud/kite/kite-service/internal/api/session"
 	"github.com/kitecloud/kite/kite-service/internal/core/plan"
 	"github.com/kitecloud/kite/kite-service/internal/store"
+	"github.com/kitecloud/kite/kite-service/pkg/plugin"
 	kiteweb "github.com/merlinfuchs/kite/kite-web"
 )
 
@@ -42,6 +44,7 @@ func (s *APIServer) RegisterRoutes(
 	assetStore store.AssetStore,
 	appStateManager store.AppStateManager,
 	planManager *plan.PlanManager,
+	pluginRegistry *plugin.Registry,
 ) {
 	sessionManager := session.NewSessionManager(session.SessionManagerConfig{
 		StrictCookies: s.config.StrictCookies,
@@ -162,6 +165,14 @@ func (s *APIServer) RegisterRoutes(
 	usageGroup.Get("/credits", handler.Typed(usageHandler.HandleUsageCreditsGet))
 	usageGroup.Get("/by-day", handler.Typed(usageHandler.HandleUsageByDayList))
 	usageGroup.Get("/by-type", handler.Typed(usageHandler.HandleUsageByTypeList))
+
+	// Plugin routes
+	pluginHandler := pluginhandler.NewPluginHandler(pluginRegistry, nil, nil)
+
+	pluginsGroup := appGroup.Group("/plugins")
+	pluginsGroup.Get("/", handler.Typed(pluginHandler.HandlePluginList))
+	pluginsGroup.Get("/{pluginID}", handler.Typed(pluginHandler.HandlePluginGet))
+	pluginsGroup.Put("/{pluginID}", handler.TypedWithBody(pluginHandler.HandlePluginInstanceUpdate))
 
 	// Command routes
 	commandsHandler := command.NewCommandHandler(commandStore, s.config.UserLimits.MaxCommandsPerApp)

@@ -134,6 +134,25 @@ type Module struct {
 	UpdatedAt     pgtype.Timestamp
 }
 
+type PluginInstance struct {
+	ID        string
+	AppID     string
+	PluginID  string
+	Enabled   bool
+	Config    []byte
+	CreatedAt pgtype.Timestamp
+	UpdatedAt pgtype.Timestamp
+}
+
+type PluginValue struct {
+	PluginID  string
+	Key       string
+	AppID     string
+	Value     []byte
+	CreatedAt pgtype.Timestamp
+	UpdatedAt pgtype.Timestamp
+}
+
 type ResumePoint struct {
 	ID                string
 	Type              string

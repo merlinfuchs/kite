@@ -17,6 +17,8 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/db/s3"
 	"github.com/kitecloud/kite/kite-service/internal/logging"
 	"github.com/kitecloud/kite/kite-service/internal/model"
+	"github.com/kitecloud/kite/kite-service/pkg/plugin"
+	"github.com/kitecloud/kite/kite-service/pkg/plugin/counting"
 	"github.com/sashabaranov/go-openai"
 	"github.com/urfave/cli/v2"
 )
@@ -66,6 +68,9 @@ func serverStartCMD(c *cli.Context) error {
 		openaiClient = openai.NewClient(cfg.OpenAI.APIKey)
 	}
 
+	pluginRegistry := plugin.NewRegistry()
+	pluginRegistry.Register(counting.NewCountingPlugin())
+
 	engine := engine.NewEngine(
 		engine.Env{
 			Config: engine.EngineConfig{
@@ -82,6 +87,7 @@ func serverStartCMD(c *cli.Context) error {
 			EventListenerStore:   pg,
 			VariableValueStore:   pg,
 			ResumePointStore:     pg,
+			PluginRegistry:       pluginRegistry,
 			HttpClient:           &http.Client{}, // TODO: think about proxying http requests
 			OpenaiClient:         openaiClient,
 		},
@@ -107,29 +113,48 @@ func serverStartCMD(c *cli.Context) error {
 	usage := usage.NewUsageManager(pg, pg, planManager)
 	usage.Run(ctx)
 
-	apiServer := api.NewAPIServer(api.APIServerConfig{
-		SecureCookies:       cfg.API.SecureCookies,
-		StrictCookies:       cfg.API.StrictCookies,
-		APIPublicBaseURL:    cfg.API.PublicBaseURL,
-		AppPublicBaseURL:    cfg.App.PublicBaseURL,
-		DiscordClientID:     cfg.Discord.ClientID,
-		DiscordClientSecret: cfg.Discord.ClientSecret,
-		UserLimits: api.APIUserLimitsConfig{
-			MaxAppsPerUser:          cfg.UserLimits.MaxAppsPerUser,
-			MaxCommandsPerApp:       cfg.UserLimits.MaxCommandsPerApp,
-			MaxVariablesPerApp:      cfg.UserLimits.MaxVariablesPerApp,
-			MaxMessagesPerApp:       cfg.UserLimits.MaxMessagesPerApp,
-			MaxEventListenersPerApp: cfg.UserLimits.MaxEventListenersPerApp,
-			MaxAssetSize:            cfg.UserLimits.MaxAssetSize,
+	apiServer := api.NewAPIServer(
+		api.APIServerConfig{
+			SecureCookies:       cfg.API.SecureCookies,
+			StrictCookies:       cfg.API.StrictCookies,
+			APIPublicBaseURL:    cfg.API.PublicBaseURL,
+			AppPublicBaseURL:    cfg.App.PublicBaseURL,
+			DiscordClientID:     cfg.Discord.ClientID,
+			DiscordClientSecret: cfg.Discord.ClientSecret,
+			UserLimits: api.APIUserLimitsConfig{
+				MaxAppsPerUser:          cfg.UserLimits.MaxAppsPerUser,
+				MaxCommandsPerApp:       cfg.UserLimits.MaxCommandsPerApp,
+				MaxVariablesPerApp:      cfg.UserLimits.MaxVariablesPerApp,
+				MaxMessagesPerApp:       cfg.UserLimits.MaxMessagesPerApp,
+				MaxEventListenersPerApp: cfg.UserLimits.MaxEventListenersPerApp,
+				MaxAssetSize:            cfg.UserLimits.MaxAssetSize,
+			},
+			Billing: api.BillingConfig{
+				LemonSqueezyAPIKey:        cfg.Billing.LemonSqueezyAPIKey,
+				LemonSqueezySigningSecret: cfg.Billing.LemonSqueezySigningSecret,
+				LemonSqueezyStoreID:       cfg.Billing.LemonSqueezyStoreID,
+				TestMode:                  cfg.Billing.TestMode,
+				Plans:                     cfg.Billing.Plans,
+			},
 		},
-		Billing: api.BillingConfig{
-			LemonSqueezyAPIKey:        cfg.Billing.LemonSqueezyAPIKey,
-			LemonSqueezySigningSecret: cfg.Billing.LemonSqueezySigningSecret,
-			LemonSqueezyStoreID:       cfg.Billing.LemonSqueezyStoreID,
-			TestMode:                  cfg.Billing.TestMode,
-			Plans:                     cfg.Billing.Plans,
-		},
-	}, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, assetStore, gateway, planManager)
+		pg,
+		pg,
+		pg,
+		pg,
+		pg,
+		pg,
+		pg,
+		pg,
+		pg,
+		pg,
+		pg,
+		pg,
+		pg,
+		assetStore,
+		gateway,
+		planManager,
+		pluginRegistry,
+	)
 	address := fmt.Sprintf("%s:%d", cfg.API.Host, cfg.API.Port)
 	if err := apiServer.Serve(ctx, address); err != nil {
 		slog.With("error", err).Error("Failed to start API server")

@@ -3,6 +3,7 @@ package engine
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log/slog"
 	"strings"
 	"sync"
@@ -27,6 +28,7 @@ type App struct {
 	commands map[string]*Command
 	// TODO?: Cache messages (LRUCache<*MessageInstance>)
 	listeners map[string]*EventListener
+	plugins   map[string]*PluginInstance
 }
 
 func NewApp(
@@ -38,6 +40,7 @@ func NewApp(
 		stores:    stores,
 		commands:  make(map[string]*Command),
 		listeners: make(map[string]*EventListener),
+		plugins:   make(map[string]*PluginInstance),
 	}
 }
 
@@ -106,7 +109,35 @@ func (a *App) RemoveDanglingEventListeners(listenerIDs []string) {
 	for listenerID := range a.listeners {
 		if _, ok := listenerIDMap[listenerID]; !ok {
 			delete(a.listeners, listenerID)
-			a.hasUndeployedChanges = true
+		}
+	}
+}
+
+func (a *App) AddPlugin(plugin *model.PluginInstance) {
+	a.Lock()
+	defer a.Unlock()
+
+	pluginInstance, err := NewPluginInstance(plugin, a.stores)
+	if err != nil {
+		a.createLogEntry(model.LogLevelError, fmt.Sprintf("Failed to create plugin instance: %s", err))
+		return
+	}
+
+	a.plugins[plugin.PluginID] = pluginInstance
+}
+
+func (a *App) RemoveDanglingPlugins(pluginIDs []string) {
+	a.Lock()
+	defer a.Unlock()
+
+	pluginIDMap := make(map[string]struct{}, len(pluginIDs))
+	for _, pluginID := range pluginIDs {
+		pluginIDMap[pluginID] = struct{}{}
+	}
+
+	for pluginID := range a.plugins {
+		if _, ok := pluginIDMap[pluginID]; !ok {
+			delete(a.plugins, pluginID)
 		}
 	}
 }
