@@ -87,6 +87,8 @@ func serverStartCMD(c *cli.Context) error {
 			EventListenerStore:   pg,
 			VariableValueStore:   pg,
 			ResumePointStore:     pg,
+			PluginInstanceStore:  pg,
+			PluginValueStore:     nil, // TODO
 			PluginRegistry:       pluginRegistry,
 			HttpClient:           &http.Client{}, // TODO: think about proxying http requests
 			OpenaiClient:         openaiClient,
@@ -151,6 +153,8 @@ func serverStartCMD(c *cli.Context) error {
 		pg,
 		pg,
 		assetStore,
+		pg,
+		nil, // TODO
 		gateway,
 		planManager,
 		pluginRegistry,

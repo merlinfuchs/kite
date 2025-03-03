@@ -40,7 +40,7 @@ func (h *PluginHandler) HandlePluginList(c *handler.Context) (*wire.PluginListRe
 	return &res, nil
 }
 
-func (h *PluginHandler) HandlePluginGet(c *handler.Context) (*wire.PluginGetResponse, error) {
+func (h *PluginHandler) HandlePluginInstanceGet(c *handler.Context) (*wire.PluginInstanceGetResponse, error) {
 	pluginID := c.Param("pluginID")
 
 	plugin := h.registry.Plugin(pluginID)
@@ -49,17 +49,23 @@ func (h *PluginHandler) HandlePluginGet(c *handler.Context) (*wire.PluginGetResp
 	}
 
 	instance, err := h.pluginInstanceStore.PluginInstance(c.Context(), c.App.ID, pluginID)
-	if err != nil && !errors.Is(err, store.ErrNotFound) {
+	if err != nil {
+		if errors.Is(err, store.ErrNotFound) {
+			return &wire.PluginInstance{
+				AppID:    c.App.ID,
+				PluginID: pluginID,
+				Enabled:  false,
+				Config:   nil,
+			}, nil
+		}
+
 		return nil, err
 	}
 
-	return &wire.PluginGetResponse{
-		Plugin:   *wire.PluginToWire(plugin),
-		Instance: wire.PluginInstanceToWire(instance),
-	}, nil
+	return wire.PluginInstanceToWire(instance), nil
 }
 
-func (h *PluginHandler) HandlePluginInstanceUpdate(c *handler.Context, req *wire.PluginUpdateRequest) (*wire.PluginUpdateResponse, error) {
+func (h *PluginHandler) HandlePluginInstanceUpdate(c *handler.Context, req *wire.PluginInstanceUpdateRequest) (*wire.PluginInstanceUpdateResponse, error) {
 	pluginID := c.Param("pluginID")
 	appID := c.Param("appID")
 
@@ -80,8 +86,5 @@ func (h *PluginHandler) HandlePluginInstanceUpdate(c *handler.Context, req *wire
 		return nil, err
 	}
 
-	return &wire.PluginUpdateResponse{
-		Plugin:   *wire.PluginToWire(plugin),
-		Instance: wire.PluginInstanceToWire(instance),
-	}, nil
+	return wire.PluginInstanceToWire(instance), nil
 }

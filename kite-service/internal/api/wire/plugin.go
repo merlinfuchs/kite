@@ -47,20 +47,13 @@ type PluginInstance struct {
 
 type PluginListResponse = []Plugin
 
-type PluginGetResponse struct {
-	Plugin
-	Instance *PluginInstance `json:"instance"`
-}
-
-type PluginUpdateRequest struct {
+type PluginInstanceGetResponse = PluginInstance
+type PluginInstanceUpdateRequest struct {
 	Enabled bool            `json:"enabled"`
 	Config  json.RawMessage `json:"config"`
 }
 
-type PluginUpdateResponse struct {
-	Plugin
-	Instance *PluginInstance `json:"instance"`
-}
+type PluginInstanceUpdateResponse = PluginInstance
 
 func PluginToWire(plugin plugin.Plugin) *Plugin {
 	metadata := plugin.Metadata()

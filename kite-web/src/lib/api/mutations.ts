@@ -46,6 +46,8 @@ import {
   MessagesImportResponse,
   MessageUpdateRequest,
   MessageUpdateResponse,
+  PluginInstanceUpdateRequest,
+  PluginInstanceUpdateResponse,
   StateGuildLeaveResponse,
   SubscriptionManageResponse,
   VariableCreateRequest,
@@ -734,5 +736,31 @@ export function useAppSubscriptionManageMutation(subscriptionId: string) {
           method: "POST",
         }
       ),
+  });
+}
+
+export function usePluginInstanceUpdateMutation(
+  appId: string,
+  pluginId: string
+) {
+  const client = useQueryClient();
+
+  return useMutation({
+    mutationFn: (req: PluginInstanceUpdateRequest) =>
+      apiRequest<PluginInstanceUpdateResponse>(
+        `/v1/apps/${appId}/plugins/${pluginId}/instance`,
+        {
+          method: "PUT",
+          body: JSON.stringify(req),
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      ),
+    onSuccess: () => {
+      client.invalidateQueries({
+        queryKey: ["apps", appId, "plugins", pluginId, "instance"],
+      });
+    },
   });
 }

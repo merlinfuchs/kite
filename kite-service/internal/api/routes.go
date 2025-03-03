@@ -42,6 +42,8 @@ func (s *APIServer) RegisterRoutes(
 	subscriptionStore store.SubscriptionStore,
 	entitlementStore store.EntitlementStore,
 	assetStore store.AssetStore,
+	pluginInstanceStore store.PluginInstanceStore,
+	pluginValueStore store.PluginValueStore,
 	appStateManager store.AppStateManager,
 	planManager *plan.PlanManager,
 	pluginRegistry *plugin.Registry,
@@ -167,12 +169,12 @@ func (s *APIServer) RegisterRoutes(
 	usageGroup.Get("/by-type", handler.Typed(usageHandler.HandleUsageByTypeList))
 
 	// Plugin routes
-	pluginHandler := pluginhandler.NewPluginHandler(pluginRegistry, nil, nil)
+	pluginHandler := pluginhandler.NewPluginHandler(pluginRegistry, pluginInstanceStore, pluginValueStore)
 
 	pluginsGroup := appGroup.Group("/plugins")
 	pluginsGroup.Get("/", handler.Typed(pluginHandler.HandlePluginList))
-	pluginsGroup.Get("/{pluginID}", handler.Typed(pluginHandler.HandlePluginGet))
-	pluginsGroup.Put("/{pluginID}", handler.TypedWithBody(pluginHandler.HandlePluginInstanceUpdate))
+	pluginsGroup.Get("/{pluginID}/instance", handler.Typed(pluginHandler.HandlePluginInstanceGet))
+	pluginsGroup.Put("/{pluginID}/instance", handler.TypedWithBody(pluginHandler.HandlePluginInstanceUpdate))
 
 	// Command routes
 	commandsHandler := command.NewCommandHandler(commandStore, s.config.UserLimits.MaxCommandsPerApp)

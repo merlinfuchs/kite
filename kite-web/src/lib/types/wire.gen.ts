@@ -384,6 +384,49 @@ export type MessageInstanceUpdateResponse = MessageInstance;
 export type MessageInstanceDeleteResponse = Empty;
 
 //////////
+// source: plugin.go
+
+export interface Plugin {
+  id: string;
+  name: string;
+  description: string;
+  icon: string;
+  author: string;
+  version: string;
+  config: PluginConfig;
+}
+export interface PluginConfig {
+  sections: PluginConfigSection[];
+}
+export interface PluginConfigSection {
+  name: string;
+  description: string;
+  fields: PluginConfigField[];
+}
+export interface PluginConfigField {
+  key: string;
+  type: string;
+  item_type: string;
+  name: string;
+  description: string;
+}
+export interface PluginInstance {
+  app_id: string;
+  plugin_id: string;
+  enabled: boolean;
+  config: Record<string, any> | null;
+  created_at: string /* RFC3339 */;
+  updated_at: string /* RFC3339 */;
+}
+export type PluginListResponse = Plugin[];
+export type PluginInstanceGetResponse = PluginInstance;
+export interface PluginInstanceUpdateRequest {
+  enabled: boolean;
+  config: Record<string, any> | null;
+}
+export type PluginInstanceUpdateResponse = PluginInstance;
+
+//////////
 // source: usage.go
 
 export interface UsageCreditsGetResponse {

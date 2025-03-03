@@ -25,6 +25,8 @@ import {
   useUserQuery,
   useVariableQuery,
   useVariablesQuery,
+  usePluginsQuery,
+  usePluginInstanceQuery,
 } from "../api/queries";
 import { APIResponse } from "../api/response";
 import {
@@ -43,6 +45,8 @@ import {
   MessageGetResponse,
   MessageInstanceListResponse,
   MessageListResponse,
+  PluginGetResponse,
+  PluginListResponse,
   StateGuildChannelListResponse,
   StateGuildListResponse,
   SubscriptionListResponse,
@@ -327,4 +331,23 @@ export function useAppFeature<T>(
 ): T | undefined {
   const features = useAppFeatures();
   return features ? accessor(features) : undefined;
+}
+
+export function usePlugins(
+  callback?: (res: APIResponse<PluginListResponse>) => void
+) {
+  const router = useRouter();
+
+  const query = usePluginsQuery(router.query.appId as string);
+  return useResponseData(query, callback);
+}
+
+export function usePluginInstance(
+  pluginId: string,
+  callback?: (res: APIResponse<PluginGetResponse>) => void
+) {
+  const router = useRouter();
+
+  const query = usePluginInstanceQuery(router.query.appId as string, pluginId);
+  return useResponseData(query, callback);
 }
