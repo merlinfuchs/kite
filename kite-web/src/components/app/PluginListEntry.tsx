@@ -7,7 +7,6 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Plugin } from "@/lib/types/wire.gen";
-import { BlocksIcon, CalculatorIcon } from "lucide-react";
 import { PluginConfigureDialog } from "./PluginConfigureDialog";
 import { Switch } from "../ui/switch";
 import { usePluginInstanceUpdateMutation } from "@/lib/api/mutations";
@@ -15,6 +14,7 @@ import { useAppId } from "@/lib/hooks/params";
 import { usePluginInstance } from "@/lib/hooks/api";
 import { useCallback, useMemo } from "react";
 import DynamicIcon from "../icons/DynamicIcon";
+import { Badge } from "../ui/badge";
 
 export function PluginListEntry({ plugin }: { plugin: Plugin }) {
   const appId = useAppId();
@@ -36,7 +36,7 @@ export function PluginListEntry({ plugin }: { plugin: Plugin }) {
     <Card>
       <CardHeader className="flex flex-row gap-4 p-4 items-start">
         <div className="h-10 w-10 bg-primary/40 flex-none rounded-md flex items-center justify-center">
-          <CalculatorIcon
+          <DynamicIcon
             name={plugin.icon as any}
             className="w-6 h-6 text-primary"
           />
@@ -46,13 +46,19 @@ export function PluginListEntry({ plugin }: { plugin: Plugin }) {
           <CardDescription>{plugin.description}</CardDescription>
         </div>
         <div className="flex-none">
-          <Switch checked={enabled} onCheckedChange={toggleEnabled} />
+          {plugin.default ? (
+            <Badge variant="outline">Default</Badge>
+          ) : (
+            <Switch checked={enabled} onCheckedChange={toggleEnabled} />
+          )}
         </div>
       </CardHeader>
       <CardFooter className="p-4 pt-1 flex justify-end">
-        <PluginConfigureDialog plugin={plugin}>
-          <Button variant="outline">Configure</Button>
-        </PluginConfigureDialog>
+        {!plugin.default && (
+          <PluginConfigureDialog plugin={plugin}>
+            <Button variant="outline">Configure</Button>
+          </PluginConfigureDialog>
+        )}
       </CardFooter>
     </Card>
   );

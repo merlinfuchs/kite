@@ -392,8 +392,8 @@ export interface Plugin {
   description: string;
   icon: string;
   author: string;
-  version: string;
   config: PluginConfig;
+  default: boolean;
 }
 export interface PluginConfig {
   sections: PluginConfigSection[];

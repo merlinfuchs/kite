@@ -12,7 +12,7 @@ func NewCountingPlugin() *CountingPlugin {
 	return &CountingPlugin{}
 }
 
-func (p *CountingPlugin) Instance(config plugin.ConfigValues) (plugin.PluginInstance, error) {
+func (p *CountingPlugin) Instance(appID string, config plugin.ConfigValues) (plugin.PluginInstance, error) {
 	return &CountingPluginInstance{
 		config: config,
 	}, nil
@@ -22,17 +22,17 @@ func (p *CountingPlugin) ID() string {
 	return "counting"
 }
 
+func (p *CountingPlugin) IsDefault() bool {
+	return false
+}
+
 func (p *CountingPlugin) Metadata() plugin.Metadata {
 	return plugin.Metadata{
 		Name:        "Counting",
-		Description: "A plugin for counting messages in a channel",
-		Icon:        "diff",
+		Description: "Create counting channels where users can try to count up.",
+		Icon:        "calculator",
 		Author:      "Merlin",
 	}
-}
-
-func (p *CountingPlugin) Version() string {
-	return "0.0.1"
 }
 
 func (p *CountingPlugin) Config() plugin.Config {

@@ -117,7 +117,7 @@ func (a *App) AddPlugin(plugin *model.PluginInstance) {
 	a.Lock()
 	defer a.Unlock()
 
-	pluginInstance, err := NewPluginInstance(plugin, a.stores)
+	pluginInstance, err := NewPluginInstance(a.id, plugin, a.stores)
 	if err != nil {
 		a.createLogEntry(model.LogLevelError, fmt.Sprintf("Failed to create plugin instance: %s", err))
 		return
@@ -163,6 +163,7 @@ func (a *App) HandleEvent(appID string, session *state.State, event gateway.Even
 	defer a.RUnlock()
 
 	for _, plugin := range a.plugins {
+		// TODO: check if plugin is interested in this event
 		plugin.HandleEvent(appID, session, event)
 	}
 

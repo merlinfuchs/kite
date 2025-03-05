@@ -19,7 +19,7 @@ type PluginInstance struct {
 	env      Env
 }
 
-func NewPluginInstance(model *model.PluginInstance, env Env) (*PluginInstance, error) {
+func NewPluginInstance(appID string, model *model.PluginInstance, env Env) (*PluginInstance, error) {
 	pl := env.PluginRegistry.Plugin(model.PluginID)
 	if pl == nil {
 		return nil, fmt.Errorf("plugin not found")
@@ -31,7 +31,7 @@ func NewPluginInstance(model *model.PluginInstance, env Env) (*PluginInstance, e
 		return nil, fmt.Errorf("failed to unmarshal config: %w", err)
 	}
 
-	instance, err := pl.Instance(config)
+	instance, err := pl.Instance(appID, config)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create plugin instance: %w", err)
 	}
@@ -44,11 +44,23 @@ func NewPluginInstance(model *model.PluginInstance, env Env) (*PluginInstance, e
 	}, nil
 }
 
-func (p *PluginInstance) HandleEvent(_ string, session *state.State, event gateway.Event) {
+func (p *PluginInstance) Update(ctx context.Context, discord *state.State) error {
+	c := newPluginContext(
+		ctx,
+		p.env.PluginValueStore,
+		discord,
+		p.model.AppID,
+		p.model.PluginID,
+	)
+
+	return p.instance.Update(c)
+}
+
+func (p *PluginInstance) HandleEvent(_ string, discord *state.State, event gateway.Event) {
 	c := newPluginContext(
 		context.Background(),
 		p.env.PluginValueStore,
-		session.Client,
+		discord,
 		p.model.AppID,
 		p.model.PluginID,
 	)

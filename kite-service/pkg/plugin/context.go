@@ -5,14 +5,14 @@ import (
 	"encoding/json"
 	"errors"
 
-	"github.com/diamondburned/arikawa/v3/api"
+	"github.com/diamondburned/arikawa/v3/state"
 )
 
 type Context interface {
 	context.Context
 	ValueStore
 
-	Client() *api.Client
+	Discord() *state.State
 }
 
 var ErrValueNotFound = errors.New("value not found")

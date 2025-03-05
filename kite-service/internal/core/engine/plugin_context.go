@@ -4,32 +4,32 @@ import (
 	"context"
 	"encoding/json"
 
-	"github.com/diamondburned/arikawa/v3/api"
+	"github.com/diamondburned/arikawa/v3/state"
 	"github.com/kitecloud/kite/kite-service/internal/store"
 )
 
 type pluginContext struct {
 	context.Context
 	*pluginValueProvider
-	client *api.Client
+	discord *state.State
 }
 
 func newPluginContext(
 	ctx context.Context,
 	store store.PluginValueStore,
-	client *api.Client,
+	discord *state.State,
 	appID string,
 	pluginID string,
 ) *pluginContext {
 	return &pluginContext{
 		Context:             ctx,
 		pluginValueProvider: newPluginValueProvider(ctx, store, appID, pluginID),
-		client:              client.WithContext(ctx),
+		discord:             discord.WithContext(ctx),
 	}
 }
 
-func (c *pluginContext) Client() *api.Client {
-	return c.client
+func (c *pluginContext) Discord() *state.State {
+	return c.discord
 }
 
 type pluginValueProvider struct {

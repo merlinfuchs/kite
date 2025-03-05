@@ -174,20 +174,43 @@ func (m *Engine) deployCommands(ctx context.Context) {
 	m.Lock()
 	defer m.Unlock()
 
-	for _, app := range m.apps {
-		if app.hasUndeployedChanges {
+	for _, a := range m.apps {
+		app, err := m.stores.AppStore.App(ctx, a.id)
+		if err != nil {
+			slog.Error(
+				"Failed to get app",
+				slog.String("app_id", a.id),
+				slog.String("error", err.Error()),
+			)
+			continue
+		}
+
+		discord := state.New("Bot " + app.DiscordToken).WithContext(ctx)
+
+		for _, plugin := range a.plugins {
+			err := plugin.Update(ctx, discord)
+			if err != nil {
+				slog.Error(
+					"Failed to update plugin",
+					slog.String("plugin_id", plugin.model.PluginID),
+					slog.String("error", err.Error()),
+				)
+			}
+		}
+
+		if a.hasUndeployedChanges {
 			go func() {
 				ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 				defer cancel()
 
 				slog.Debug(
 					"Deploying commands for app",
-					slog.String("app_id", app.id),
+					slog.String("app_id", a.id),
 				)
-				if err := app.DeployCommands(ctx); err != nil {
+				if err := a.DeployCommands(ctx); err != nil {
 					slog.Error(
 						"Failed to deploy commands",
-						slog.String("app_id", app.id),
+						slog.String("app_id", a.id),
 						slog.String("error", err.Error()),
 					)
 				}

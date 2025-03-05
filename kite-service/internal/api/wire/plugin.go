@@ -14,8 +14,8 @@ type Plugin struct {
 	Description string       `json:"description"`
 	Icon        string       `json:"icon"`
 	Author      string       `json:"author"`
-	Version     string       `json:"version"`
 	Config      PluginConfig `json:"config"`
+	Default     bool         `json:"default"`
 }
 
 type PluginConfig struct {
@@ -64,7 +64,7 @@ func PluginToWire(plugin plugin.Plugin) *Plugin {
 		Description: metadata.Description,
 		Icon:        metadata.Icon,
 		Author:      metadata.Author,
-		Version:     plugin.Version(),
+		Default:     plugin.IsDefault(),
 	}
 }
 

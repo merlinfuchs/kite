@@ -1,30 +1,25 @@
 package plugin
 
 import (
-	"github.com/diamondburned/arikawa/v3/discord"
+	"github.com/diamondburned/arikawa/v3/api"
 	"github.com/diamondburned/arikawa/v3/gateway"
 )
 
 type Plugin interface {
 	ID() string
+	IsDefault() bool
 	Metadata() Metadata
-	Version() string
 	Config() Config
 
-	Instance(config ConfigValues) (PluginInstance, error)
+	Instance(appID string, config ConfigValues) (PluginInstance, error)
 }
 
 type PluginInstance interface {
 	Events() []Event
 	Commands() []Command
 
-	Update(ctx Context) (UpdateResult, error)
-	HandleEvent(ctx Context, event gateway.Event) error
-}
-
-type UpdateResult struct {
-	CommandsChanged bool
-	EventsChanged   bool
+	Update(c Context) error
+	HandleEvent(c Context, event gateway.Event) error
 }
 
 type Metadata struct {
@@ -55,5 +50,5 @@ const (
 
 type Command struct {
 	ID   string
-	Data discord.Command
+	Data api.CreateCommandData
 }

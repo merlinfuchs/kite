@@ -18,6 +18,7 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/logging"
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/pkg/plugin"
+	"github.com/kitecloud/kite/kite-service/pkg/plugin/builder"
 	"github.com/kitecloud/kite/kite-service/pkg/plugin/counting"
 	"github.com/sashabaranov/go-openai"
 	"github.com/urfave/cli/v2"
@@ -70,6 +71,27 @@ func serverStartCMD(c *cli.Context) error {
 
 	pluginRegistry := plugin.NewRegistry()
 	pluginRegistry.Register(counting.NewCountingPlugin())
+	pluginRegistry.Register(builder.NewBuilderPlugin(builder.Env{
+		Config: builder.BuilderConfig{
+			MaxStackDepth: cfg.Engine.MaxStackDepth,
+			MaxOperations: cfg.Engine.MaxOperations,
+			MaxCredits:    cfg.Engine.MaxCredits,
+		},
+		AppStore:             pg,
+		LogStore:             pg,
+		UsageStore:           pg,
+		MessageStore:         pg,
+		MessageInstanceStore: pg,
+		CommandStore:         pg,
+		EventListenerStore:   pg,
+		VariableValueStore:   pg,
+		ResumePointStore:     pg,
+		PluginInstanceStore:  pg,
+		PluginValueStore:     nil, // TODO
+		PluginRegistry:       pluginRegistry,
+		HttpClient:           &http.Client{}, // TODO: think about proxying http requests
+		OpenaiClient:         openaiClient,
+	}))
 
 	engine := engine.NewEngine(
 		engine.Env{

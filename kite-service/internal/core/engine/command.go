@@ -67,6 +67,8 @@ func (a *App) DeployCommands(ctx context.Context) error {
 
 	var lastUpdatedAt time.Time
 
+	// TODOO: take plugins into account
+
 	commandNames := make([]string, 0, len(a.commands))
 	commands := make([]api.CreateCommandData, 0, len(a.commands))
 	for _, command := range a.commands {

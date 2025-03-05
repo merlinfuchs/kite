@@ -4,7 +4,7 @@ import (
 	"slices"
 	"strconv"
 
-	"github.com/diamondburned/arikawa/v3/discord"
+	"github.com/diamondburned/arikawa/v3/api"
 	"github.com/diamondburned/arikawa/v3/gateway"
 	"github.com/kitecloud/kite/kite-service/pkg/plugin"
 )
@@ -13,8 +13,8 @@ type CountingPluginInstance struct {
 	config plugin.ConfigValues
 }
 
-func (p *CountingPluginInstance) Update(c plugin.Context) (plugin.UpdateResult, error) {
-	return plugin.UpdateResult{}, nil
+func (p *CountingPluginInstance) Update(c plugin.Context) error {
+	return nil
 }
 
 func (p *CountingPluginInstance) Events() []plugin.Event {
@@ -32,7 +32,7 @@ func (p *CountingPluginInstance) Commands() []plugin.Command {
 	return []plugin.Command{
 		{
 			ID: "counting_toggle",
-			Data: discord.Command{
+			Data: api.CreateCommandData{
 				Name:        "toggle",
 				Description: "Toggle the counting game in the current channel",
 			},
@@ -47,7 +47,7 @@ func (p *CountingPluginInstance) HandleEvent(c plugin.Context, event gateway.Eve
 	}
 
 	if e.Content == "!ping" {
-		_, err := c.Client().SendMessage(e.ChannelID, "Pong!")
+		_, err := c.Discord().SendMessage(e.ChannelID, "Pong!")
 		if err != nil {
 			return err
 		}
