@@ -18,7 +18,7 @@ type PluginInstance interface {
 	Events() []Event
 	Commands() []Command
 
-	Update(c Context) error
+	Update(c Context, config ConfigValues) error
 	HandleEvent(c Context, event gateway.Event) error
 }
 

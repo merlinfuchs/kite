@@ -6,6 +6,7 @@ import (
 
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/pkg/plugin"
+	"gopkg.in/guregu/null.v4"
 )
 
 type Plugin struct {
@@ -37,12 +38,13 @@ type PluginConfigField struct {
 }
 
 type PluginInstance struct {
-	AppID     string          `json:"app_id"`
-	PluginID  string          `json:"plugin_id"`
-	Enabled   bool            `json:"enabled"`
-	Config    json.RawMessage `json:"config"`
-	CreatedAt time.Time       `json:"created_at"`
-	UpdatedAt time.Time       `json:"updated_at"`
+	AppID              string          `json:"app_id"`
+	PluginID           string          `json:"plugin_id"`
+	Enabled            bool            `json:"enabled"`
+	Config             json.RawMessage `json:"config"`
+	CreatedAt          time.Time       `json:"created_at"`
+	UpdatedAt          time.Time       `json:"updated_at"`
+	CommandsDeployedAt null.Time       `json:"commands_deployed_at"`
 }
 
 type PluginListResponse = []Plugin
@@ -74,11 +76,12 @@ func PluginInstanceToWire(instance *model.PluginInstance) *PluginInstance {
 	}
 
 	return &PluginInstance{
-		AppID:     instance.AppID,
-		PluginID:  instance.PluginID,
-		Enabled:   instance.Enabled,
-		Config:    instance.Config,
-		CreatedAt: instance.CreatedAt,
-		UpdatedAt: instance.UpdatedAt,
+		AppID:              instance.AppID,
+		PluginID:           instance.PluginID,
+		Enabled:            instance.Enabled,
+		Config:             instance.Config,
+		CreatedAt:          instance.CreatedAt,
+		UpdatedAt:          instance.UpdatedAt,
+		CommandsDeployedAt: instance.CommandsDeployedAt,
 	}
 }

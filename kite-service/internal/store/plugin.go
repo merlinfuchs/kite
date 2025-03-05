@@ -13,6 +13,7 @@ type PluginInstanceStore interface {
 	EnabledPluginInstancesUpdatedSince(ctx context.Context, lastUpdate time.Time) ([]*model.PluginInstance, error)
 	PluginInstance(ctx context.Context, appID string, pluginID string) (*model.PluginInstance, error)
 	UpsertPluginInstance(ctx context.Context, pluginInstance model.PluginInstance) (*model.PluginInstance, error)
+	UpdatePluginInstancesCommandsDeployedAt(ctx context.Context, appID string, commandsDeployedAt time.Time) error
 }
 
 type PluginValueStore interface {

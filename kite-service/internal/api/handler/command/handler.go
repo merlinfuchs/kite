@@ -1,6 +1,7 @@
 package command
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"time"
@@ -11,17 +12,20 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/store"
 	"github.com/kitecloud/kite/kite-service/internal/util"
 	"github.com/kitecloud/kite/kite-service/pkg/flow"
+	"github.com/kitecloud/kite/kite-service/pkg/plugin/builder"
 )
 
 type CommandHandler struct {
-	commandStore      store.CommandStore
-	maxCommandsPerApp int
+	commandStore        store.CommandStore
+	pluginInstanceStore store.PluginInstanceStore
+	maxCommandsPerApp   int
 }
 
-func NewCommandHandler(commandStore store.CommandStore, maxCommandsPerApp int) *CommandHandler {
+func NewCommandHandler(commandStore store.CommandStore, pluginInstanceStore store.PluginInstanceStore, maxCommandsPerApp int) *CommandHandler {
 	return &CommandHandler{
-		commandStore:      commandStore,
-		maxCommandsPerApp: maxCommandsPerApp,
+		commandStore:        commandStore,
+		pluginInstanceStore: pluginInstanceStore,
+		maxCommandsPerApp:   maxCommandsPerApp,
 	}
 }
 
@@ -75,6 +79,11 @@ func (h *CommandHandler) HandleCommandCreate(c *handler.Context, req wire.Comman
 		return nil, fmt.Errorf("failed to create command: %w", err)
 	}
 
+	err = h.updateBuilderPluginInstance(c.Context(), c.App.ID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to update builder plugin instance: %w", err)
+	}
+
 	return wire.CommandToWire(command), nil
 }
 
@@ -117,6 +126,11 @@ func (h *CommandHandler) HandleCommandsImport(c *handler.Context, req wire.Comma
 		res[i] = wire.CommandToWire(command)
 	}
 
+	err := h.updateBuilderPluginInstance(c.Context(), c.App.ID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to update builder plugin instance: %w", err)
+	}
+
 	return &res, nil
 }
 
@@ -141,6 +155,11 @@ func (h *CommandHandler) HandleCommandUpdate(c *handler.Context, req wire.Comman
 		return nil, fmt.Errorf("failed to update command: %w", err)
 	}
 
+	err = h.updateBuilderPluginInstance(c.Context(), c.App.ID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to update builder plugin instance: %w", err)
+	}
+
 	return wire.CommandToWire(command), nil
 }
 
@@ -160,6 +179,11 @@ func (h *CommandHandler) HandleCommandUpdateEnabled(c *handler.Context, req wire
 		return nil, fmt.Errorf("failed to update command: %w", err)
 	}
 
+	err = h.updateBuilderPluginInstance(c.Context(), c.App.ID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to update builder plugin instance: %w", err)
+	}
+
 	return wire.CommandToWire(command), nil
 }
 
@@ -172,5 +196,27 @@ func (h *CommandHandler) HandleCommandDelete(c *handler.Context) (*wire.CommandD
 		return nil, fmt.Errorf("failed to delete command: %w", err)
 	}
 
+	err = h.updateBuilderPluginInstance(c.Context(), c.App.ID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to update builder plugin instance: %w", err)
+	}
+
 	return &wire.CommandDeleteResponse{}, nil
+}
+
+// updateBuilderPluginInstance signals the engine to update the builder plugin instance
+func (h *CommandHandler) updateBuilderPluginInstance(ctx context.Context, appID string) error {
+	_, err := h.pluginInstanceStore.UpsertPluginInstance(ctx, model.PluginInstance{
+		AppID:     appID,
+		PluginID:  builder.PluginID,
+		Enabled:   true,
+		Config:    []byte(`{}`),
+		CreatedAt: time.Now().UTC(),
+		UpdatedAt: time.Now().UTC(),
+	})
+	if err != nil {
+		return fmt.Errorf("failed to upsert plugin instance: %w", err)
+	}
+
+	return nil
 }

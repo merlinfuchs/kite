@@ -1,6 +1,7 @@
 package eventlistener
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"time"
@@ -11,16 +12,19 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/store"
 	"github.com/kitecloud/kite/kite-service/internal/util"
 	"github.com/kitecloud/kite/kite-service/pkg/flow"
+	"github.com/kitecloud/kite/kite-service/pkg/plugin/builder"
 )
 
 type EventListenerHandler struct {
 	eventListenerStore      store.EventListenerStore
+	pluginInstanceStore     store.PluginInstanceStore
 	maxEventListenersPerApp int
 }
 
-func NewEventListenerHandler(eventListenerStore store.EventListenerStore, maxEventListenersPerApp int) *EventListenerHandler {
+func NewEventListenerHandler(eventListenerStore store.EventListenerStore, pluginInstanceStore store.PluginInstanceStore, maxEventListenersPerApp int) *EventListenerHandler {
 	return &EventListenerHandler{
 		eventListenerStore:      eventListenerStore,
+		pluginInstanceStore:     pluginInstanceStore,
 		maxEventListenersPerApp: maxEventListenersPerApp,
 	}
 }
@@ -77,6 +81,11 @@ func (h *EventListenerHandler) HandleEventListenerCreate(c *handler.Context, req
 		return nil, fmt.Errorf("failed to create event listener: %w", err)
 	}
 
+	err = h.updateBuilderPluginInstance(c.Context(), c.App.ID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to update builder plugin instance: %w", err)
+	}
+
 	return wire.EventListenerToWire(eventListener), nil
 }
 
@@ -122,6 +131,11 @@ func (h *EventListenerHandler) HandleEventListenersImport(c *handler.Context, re
 		res[i] = wire.EventListenerToWire(eventListener)
 	}
 
+	err := h.updateBuilderPluginInstance(c.Context(), c.App.ID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to update builder plugin instance: %w", err)
+	}
+
 	return &res, nil
 }
 
@@ -147,6 +161,11 @@ func (h *EventListenerHandler) HandleEventListenerUpdate(c *handler.Context, req
 		return nil, fmt.Errorf("failed to update event listener: %w", err)
 	}
 
+	err = h.updateBuilderPluginInstance(c.Context(), c.App.ID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to update builder plugin instance: %w", err)
+	}
+
 	return wire.EventListenerToWire(eventListener), nil
 }
 
@@ -166,6 +185,11 @@ func (h *EventListenerHandler) HandleEventListenerUpdateEnabled(c *handler.Conte
 		return nil, fmt.Errorf("failed to update event listener: %w", err)
 	}
 
+	err = h.updateBuilderPluginInstance(c.Context(), c.App.ID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to update builder plugin instance: %w", err)
+	}
+
 	return wire.EventListenerToWire(eventListener), nil
 }
 
@@ -178,5 +202,27 @@ func (h *EventListenerHandler) HandleEventListenerDelete(c *handler.Context) (*w
 		return nil, fmt.Errorf("failed to delete event listener: %w", err)
 	}
 
+	err = h.updateBuilderPluginInstance(c.Context(), c.App.ID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to update builder plugin instance: %w", err)
+	}
+
 	return &wire.EventListenerDeleteResponse{}, nil
+}
+
+// updateBuilderPluginInstance signals the engine to update the builder plugin instance
+func (h *EventListenerHandler) updateBuilderPluginInstance(ctx context.Context, appID string) error {
+	_, err := h.pluginInstanceStore.UpsertPluginInstance(ctx, model.PluginInstance{
+		AppID:     appID,
+		PluginID:  builder.PluginID,
+		Enabled:   true,
+		Config:    []byte(`{}`),
+		CreatedAt: time.Now().UTC(),
+		UpdatedAt: time.Now().UTC(),
+	})
+	if err != nil {
+		return fmt.Errorf("failed to upsert plugin instance: %w", err)
+	}
+
+	return nil
 }

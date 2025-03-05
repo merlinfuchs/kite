@@ -4,6 +4,8 @@ import (
 	"github.com/kitecloud/kite/kite-service/pkg/plugin"
 )
 
+const PluginID = "builder"
+
 // BuilderPlugin encapsulates the logic for custom commands, event listeners, and message templates.
 // It forwards events to the correctl flow and deploys command changes to Discord.
 type BuilderPlugin struct {
@@ -23,7 +25,7 @@ func (p *BuilderPlugin) Instance(appID string, config plugin.ConfigValues) (plug
 }
 
 func (p *BuilderPlugin) ID() string {
-	return "builder"
+	return PluginID
 }
 
 func (p *BuilderPlugin) IsDefault() bool {

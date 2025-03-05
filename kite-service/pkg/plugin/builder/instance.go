@@ -60,8 +60,9 @@ func (p *BuilderPluginInstance) Commands() []plugin.Command {
 	return p.commandData
 }
 
-func (p *BuilderPluginInstance) Update(c plugin.Context) error {
+func (p *BuilderPluginInstance) Update(c plugin.Context, config plugin.ConfigValues) error {
 	p.Lock()
+	p.config = config
 	lastUpdate := p.lastUpdate
 	p.lastUpdate = time.Now().UTC()
 	p.Unlock()

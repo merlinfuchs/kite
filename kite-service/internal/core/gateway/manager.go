@@ -7,7 +7,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/diamondburned/arikawa/v3/api"
 	"github.com/diamondburned/arikawa/v3/gateway"
 	"github.com/diamondburned/arikawa/v3/state"
 	"github.com/kitecloud/kite/kite-service/internal/core/plan"
@@ -147,7 +146,7 @@ func (m *GatewayManager) AppState(ctx context.Context, appID string) (store.AppS
 	return g, nil
 }
 
-func (m *GatewayManager) AppClient(ctx context.Context, appID string) (*api.Client, error) {
+func (m *GatewayManager) AppClient(ctx context.Context, appID string) (*state.State, error) {
 	m.Lock()
 	defer m.Unlock()
 
@@ -156,5 +155,5 @@ func (m *GatewayManager) AppClient(ctx context.Context, appID string) (*api.Clie
 		return nil, store.ErrNotFound
 	}
 
-	return g.session.Client, nil
+	return g.session, nil
 }

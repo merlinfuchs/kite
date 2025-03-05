@@ -13,7 +13,8 @@ type CountingPluginInstance struct {
 	config plugin.ConfigValues
 }
 
-func (p *CountingPluginInstance) Update(c plugin.Context) error {
+func (p *CountingPluginInstance) Update(c plugin.Context, config plugin.ConfigValues) error {
+	p.config = config
 	return nil
 }
 

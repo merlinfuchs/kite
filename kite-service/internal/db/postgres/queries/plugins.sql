@@ -31,3 +31,6 @@ SELECT * FROM plugin_instances WHERE app_id = $1 AND plugin_id = $2;
 
 -- name: DeletePluginInstance :exec
 DELETE FROM plugin_instances WHERE app_id = $1 AND plugin_id = $2;
+
+-- name: UpdatePluginInstancesCommandsDeployedAt :exec
+UPDATE plugin_instances SET commands_deployed_at = $2 WHERE app_id = $1;

@@ -94,7 +94,7 @@ func serverStartCMD(c *cli.Context) error {
 	}))
 
 	engine := engine.NewEngine(
-		engine.Env{
+		&engine.Env{
 			Config: engine.EngineConfig{
 				MaxStackDepth: cfg.Engine.MaxStackDepth,
 				MaxOperations: cfg.Engine.MaxOperations,
@@ -133,6 +133,8 @@ func serverStartCMD(c *cli.Context) error {
 
 	gateway := gateway.NewGatewayManager(pg, pg, planManager, handler)
 	gateway.Run(ctx)
+
+	engine.SetAppStateManager(gateway)
 
 	usage := usage.NewUsageManager(pg, pg, planManager)
 	usage.Run(ctx)

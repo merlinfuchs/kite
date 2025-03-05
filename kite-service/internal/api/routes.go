@@ -177,7 +177,11 @@ func (s *APIServer) RegisterRoutes(
 	pluginsGroup.Put("/{pluginID}/instance", handler.TypedWithBody(pluginHandler.HandlePluginInstanceUpdate))
 
 	// Command routes
-	commandsHandler := command.NewCommandHandler(commandStore, s.config.UserLimits.MaxCommandsPerApp)
+	commandsHandler := command.NewCommandHandler(
+		commandStore,
+		pluginInstanceStore,
+		s.config.UserLimits.MaxCommandsPerApp,
+	)
 
 	commandsGroup := appGroup.Group("/commands")
 	commandsGroup.Get("/", handler.Typed(commandsHandler.HandleCommandList))
@@ -191,7 +195,11 @@ func (s *APIServer) RegisterRoutes(
 	commandGroup.Put("/enabled", handler.TypedWithBody(commandsHandler.HandleCommandUpdateEnabled))
 
 	// Event listener routes
-	eventListenerHandler := eventlistener.NewEventListenerHandler(eventListenerStore, s.config.UserLimits.MaxEventListenersPerApp)
+	eventListenerHandler := eventlistener.NewEventListenerHandler(
+		eventListenerStore,
+		pluginInstanceStore,
+		s.config.UserLimits.MaxEventListenersPerApp,
+	)
 
 	eventListenersGroup := appGroup.Group("/event-listeners")
 	eventListenersGroup.Get("/", handler.Typed(eventListenerHandler.HandleEventListenerList))

@@ -10,6 +10,7 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/db/postgres/pgmodel"
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/internal/store"
+	"gopkg.in/guregu/null.v4"
 )
 
 func (c *Client) EnabledPluginInstanceIDs(ctx context.Context) (map[string][]string, error) {
@@ -76,13 +77,21 @@ func (c *Client) DeletePluginInstance(ctx context.Context, appID string, pluginI
 	})
 }
 
+func (c *Client) UpdatePluginInstancesCommandsDeployedAt(ctx context.Context, appID string, commandsDeployedAt time.Time) error {
+	return c.Q.UpdatePluginInstancesCommandsDeployedAt(ctx, pgmodel.UpdatePluginInstancesCommandsDeployedAtParams{
+		AppID:              appID,
+		CommandsDeployedAt: pgtype.Timestamp{Time: commandsDeployedAt, Valid: true},
+	})
+}
+
 func rowToPluginInstance(row pgmodel.PluginInstance) *model.PluginInstance {
 	return &model.PluginInstance{
-		AppID:     row.AppID,
-		PluginID:  row.PluginID,
-		Enabled:   row.Enabled,
-		Config:    row.Config,
-		CreatedAt: row.CreatedAt.Time,
-		UpdatedAt: row.UpdatedAt.Time,
+		AppID:              row.AppID,
+		PluginID:           row.PluginID,
+		Enabled:            row.Enabled,
+		Config:             row.Config,
+		CreatedAt:          row.CreatedAt.Time,
+		UpdatedAt:          row.UpdatedAt.Time,
+		CommandsDeployedAt: null.NewTime(row.CommandsDeployedAt.Time, row.CommandsDeployedAt.Valid),
 	}
 }
