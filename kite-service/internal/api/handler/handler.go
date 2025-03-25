@@ -105,9 +105,13 @@ func (g HandlerGroup) Patch(path string, f HandlerFunc, middlewares ...Middlewar
 }
 
 func (g HandlerGroup) Group(pathPrefix string, middlewares ...MiddlewareFunc) HandlerGroup {
+	combinedMiddleware := make([]MiddlewareFunc, len(g.middlewares)+len(middlewares))
+	copy(combinedMiddleware, g.middlewares)
+	copy(combinedMiddleware[len(g.middlewares):], middlewares)
+
 	return HandlerGroup{
 		mux:         g.mux,
 		pathPrefix:  g.pathPrefix + pathPrefix,
-		middlewares: append(g.middlewares, middlewares...),
+		middlewares: combinedMiddleware,
 	}
 }
