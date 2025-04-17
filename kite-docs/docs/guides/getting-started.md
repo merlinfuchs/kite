@@ -20,7 +20,7 @@ Open the [Discord Developer Portal](https://discord.com/developers/applications)
 2. Upload an icon for your app
 3. Make sure the `Interaction Endpoint Url` is blank
 4. Switch to the `Bot` section on the left side
-5. Enabel the `Presence Intent`, `Server Members Intent`, and `Message Content Intent`
+5. Enable the `Presence Intent`, `Server Members Intent`, and `Message Content Intent`
 6. Click on `Reset Token` and copy the token for your bot
 
 Instead of creating a new application, you can also add any existing application to Kite. Just make sure to configure them correctly as described above.
@@ -48,7 +48,7 @@ Just click on `Invite app` at top-right of the dashboard's overview page and sel
 1. Click on the `/` icon in the sidebar on the left side of the dashboard
 2. Click on `Create command` and give your command a name and description
 3. In the no-code editor drag in a `Create response message` block from the block explorer on the left side
-4. Connect it to the command block by dragging your mouse from the blue dod of one block to the other
+4. Connect it to the command block by dragging your mouse from the blue dot of one block to the other
 5. Click on the `Create response message` block and type in some text for the response
 6. Save the command by clicking on `Save Changes` at the top
 
