@@ -154,7 +154,7 @@ func validateCommandNames(commandNames []string) error {
 			bParts := strings.Split(bName, " ")
 
 			if aParts[0] == bParts[0] {
-				if len(aParts) == 1 && len(bParts) == 1 {
+				if len(aParts) == 1 || len(bParts) == 1 {
 					return fmt.Errorf("duplicate command name: %s", aName)
 				}
 
@@ -164,7 +164,7 @@ func validateCommandNames(commandNames []string) error {
 				}
 
 				if aParts[1] == bParts[1] {
-					if len(aParts) == 2 && len(bParts) == 2 {
+					if len(aParts) == 2 || len(bParts) == 2 {
 						return fmt.Errorf("duplicate subcommand name: %s", aName)
 					}
 
