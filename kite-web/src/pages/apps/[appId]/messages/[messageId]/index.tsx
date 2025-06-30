@@ -8,11 +8,10 @@ import { useMessageUpdateMutation } from "@/lib/api/mutations";
 import { useMessage } from "@/lib/hooks/api";
 import { useBeforePageExit } from "@/lib/hooks/exit";
 import { useAppId, useMessageId } from "@/lib/hooks/params";
-import { messageSchema, parseMessageData } from "@/lib/message/schemaRestore";
+import { parseMessageData } from "@/lib/message/schemaRestore";
 import {
   CurrentMessageStoreProvider,
   useCurrentFlowStore,
-  useCurrentMessage,
   useCurrentMessageStore,
 } from "@/lib/message/state";
 import { ViewIcon } from "lucide-react";
@@ -29,11 +28,11 @@ function AppMessagePageInner() {
   const message = useMessage((res) => {
     if (!res.success) {
       toast.error(
-        `Failed to load command: ${res?.error.message} (${res?.error.code})`
+        `Failed to load message: ${res?.error.message} (${res?.error.code})`
       );
       if (res.error.code === "unknown_message") {
         router.push({
-          pathname: "/apps/[appId]/commands",
+          pathname: "/apps/[appId]/messages",
           query: { appId: router.query.appId },
         });
       }

@@ -56,6 +56,7 @@ import { Separator } from "../ui/separator";
 import { Card } from "../ui/card";
 import { HTTPRequestData, ModalComponentData } from "@/lib/types/flow.gen";
 import JsonEditor from "../common/JsonEditor";
+import MessageEditorDialog from "../message/MessageEditorDialog";
 
 interface Props {
   nodeId: string;
@@ -828,7 +829,7 @@ function MessageTemplateInput({ data, updateData, errors }: InputProps) {
         type="select"
         field="message_template_id"
         title="Message Template"
-        description="Select a message template to use for the response."
+        description="Select a message message template to add embeds and interactive components to your response."
         options={messages?.map((m) => ({
           value: m!.id,
           label: m!.name,
@@ -839,22 +840,14 @@ function MessageTemplateInput({ data, updateData, errors }: InputProps) {
         clearable
       />
       {data.message_template_id ? (
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button variant="outline" size="icon" asChild>
-              <Link
-                href={{
-                  pathname: "/apps/[appId]/messages/[messageId]",
-                  query: { appId: appId, messageId: data.message_template_id },
-                }}
-                target="_blank"
-              >
-                <PencilIcon className="h-5 w-5" />
-              </Link>
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>Edit message template</TooltipContent>
-        </Tooltip>
+        <MessageEditorDialog
+          messageId={data.message_template_id}
+          onClose={() => {}}
+        >
+          <Button variant="outline" size="icon" className="flex-none">
+            <PencilIcon className="h-5 w-5" />
+          </Button>
+        </MessageEditorDialog>
       ) : (
         <MessageCreateDialog
           onMessageCreated={(v) => updateData({ message_template_id: v })}

@@ -66,7 +66,7 @@ export default function FlowDialog({
         <ReactFlowProvider>
           <DialogTitle className="hidden">Flow Editor</DialogTitle>
           <DialogDescription className="hidden">
-            Define what happens.
+            Edit your flow.
           </DialogDescription>
           <InnerFlowDialog
             flowData={flowData}
