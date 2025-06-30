@@ -28,10 +28,12 @@ type MessageGetResponse = Message
 type MessageListResponse = []*Message
 
 type MessageCreateRequest struct {
-	Name        string                   `json:"name"`
-	Description null.String              `json:"description"`
-	Data        message.MessageData      `json:"data"`
-	FlowSources map[string]flow.FlowData `json:"flow_sources"`
+	Name            string                   `json:"name"`
+	Description     null.String              `json:"description"`
+	Data            message.MessageData      `json:"data"`
+	FlowSources     map[string]flow.FlowData `json:"flow_sources"`
+	CommandID       null.String              `json:"command_id"`
+	EventListenerID null.String              `json:"event_listener_id"`
 }
 
 func (req *MessageCreateRequest) Sanitize() {

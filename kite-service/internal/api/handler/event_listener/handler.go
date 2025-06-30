@@ -15,12 +15,14 @@ import (
 
 type EventListenerHandler struct {
 	eventListenerStore      store.EventListenerStore
+	messageStore            store.MessageStore
 	maxEventListenersPerApp int
 }
 
-func NewEventListenerHandler(eventListenerStore store.EventListenerStore, maxEventListenersPerApp int) *EventListenerHandler {
+func NewEventListenerHandler(eventListenerStore store.EventListenerStore, messageStore store.MessageStore, maxEventListenersPerApp int) *EventListenerHandler {
 	return &EventListenerHandler{
 		eventListenerStore:      eventListenerStore,
+		messageStore:            messageStore,
 		maxEventListenersPerApp: maxEventListenersPerApp,
 	}
 }
@@ -176,6 +178,11 @@ func (h *EventListenerHandler) HandleEventListenerDelete(c *handler.Context) (*w
 			return nil, handler.ErrNotFound("unknown_event_listener", "Event listener not found")
 		}
 		return nil, fmt.Errorf("failed to delete event listener: %w", err)
+	}
+
+	err = h.messageStore.DeleteMessagesByEventListener(c.Context(), c.EventListener.ID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to delete messages: %w", err)
 	}
 
 	return &wire.EventListenerDeleteResponse{}, nil

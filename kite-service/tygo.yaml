@@ -1,6 +1,6 @@
 packages:
   - path: "github.com/kitecloud/kite/kite-service/internal/api/wire"
-    output_path: "./kite-web/src/lib/types/wire.gen.ts"
+    output_path: "../kite-web/src/lib/types/wire.gen.ts"
     type_mappings:
       null.String: "null | string"
       null.Bool: "null | boolean"
@@ -22,7 +22,7 @@ packages:
       import { MessageData } from './message.gen';
       interface Empty {}
   - path: "github.com/kitecloud/kite/kite-service/pkg/flow"
-    output_path: "./kite-web/src/lib/types/flow.gen.ts"
+    output_path: "../kite-web/src/lib/types/flow.gen.ts"
     type_mappings:
       null.String: "null | string"
       null.Bool: "null | boolean"
@@ -45,7 +45,7 @@ packages:
     frontmatter: |
       type StringIndexable = Record<string, unknown>;
   - path: "github.com/kitecloud/kite/kite-service/pkg/message"
-    output_path: "./kite-web/src/lib/types/message.gen.ts"
+    output_path: "../kite-web/src/lib/types/message.gen.ts"
     type_mappings:
       null.String: "null | string"
       null.Bool: "null | boolean"

@@ -1,11 +1,17 @@
 -- name: GetMessage :one
 SELECT * FROM messages WHERE id = $1;
 
--- name: GetMessagesByApp :many
-SELECT * FROM messages WHERE app_id = $1 ORDER BY created_at DESC;
+-- name: GetPublicMessagesByApp :many
+SELECT * FROM messages WHERE app_id = $1 AND command_id IS NULL AND event_listener_id IS NULL ORDER BY created_at DESC;
 
--- name: CountMessagesByApp :one
-SELECT COUNT(*) FROM messages WHERE app_id = $1;
+-- name: CountPublicMessagesByApp :one
+SELECT COUNT(*) FROM messages WHERE app_id = $1 AND command_id IS NULL AND event_listener_id IS NULL;
+
+-- name: GetMessagesByCommand :many
+SELECT * FROM messages WHERE command_id = $1 ORDER BY created_at DESC;
+
+-- name: GetMessagesByEventListener :many
+SELECT * FROM messages WHERE event_listener_id = $1 ORDER BY created_at DESC;
 
 -- name: CreateMessage :one
 INSERT INTO messages (
@@ -17,10 +23,12 @@ INSERT INTO messages (
     creator_user_id,
     data,
     flow_sources,
+    command_id,
+    event_listener_id,
     created_at,
     updated_at
 ) VALUES (
-    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10
+    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12
 ) RETURNING *;
 
 -- name: UpdateMessage :one
@@ -34,6 +42,12 @@ WHERE id = $1 RETURNING *;
 
 -- name: DeleteMessage :exec
 DELETE FROM messages WHERE id = $1;
+
+-- name: DeleteMessagesByCommand :exec
+DELETE FROM messages WHERE command_id = $1;
+
+-- name: DeleteMessagesByEventListener :exec
+DELETE FROM messages WHERE event_listener_id = $1;
 
 -- name: CreateMessageInstance :one
 INSERT INTO message_instances (

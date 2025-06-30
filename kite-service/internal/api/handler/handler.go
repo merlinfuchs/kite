@@ -3,6 +3,7 @@ package handler
 import (
 	"errors"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"strings"
 
@@ -32,6 +33,12 @@ func APIHandler(f HandlerFunc) http.Handler {
 						Data:    err,
 					}
 				} else {
+					slog.Error(
+						"Internal server error",
+						slog.String("method", r.Method),
+						slog.String("path", r.URL.Path),
+						slog.String("error", err.Error()),
+					)
 					aerr = ErrInternal(err.Error())
 				}
 			}

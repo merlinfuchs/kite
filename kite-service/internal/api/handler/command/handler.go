@@ -15,12 +15,14 @@ import (
 
 type CommandHandler struct {
 	commandStore      store.CommandStore
+	messageStore      store.MessageStore
 	maxCommandsPerApp int
 }
 
-func NewCommandHandler(commandStore store.CommandStore, maxCommandsPerApp int) *CommandHandler {
+func NewCommandHandler(commandStore store.CommandStore, messageStore store.MessageStore, maxCommandsPerApp int) *CommandHandler {
 	return &CommandHandler{
 		commandStore:      commandStore,
+		messageStore:      messageStore,
 		maxCommandsPerApp: maxCommandsPerApp,
 	}
 }
@@ -170,6 +172,11 @@ func (h *CommandHandler) HandleCommandDelete(c *handler.Context) (*wire.CommandD
 			return nil, handler.ErrNotFound("unknown_command", "Command not found")
 		}
 		return nil, fmt.Errorf("failed to delete command: %w", err)
+	}
+
+	err = h.messageStore.DeleteMessagesByCommand(c.Context(), c.Command.ID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to delete messages: %w", err)
 	}
 
 	return &wire.CommandDeleteResponse{}, nil

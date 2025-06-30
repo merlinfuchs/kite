@@ -37,7 +37,20 @@ func NewMessageHandler(
 }
 
 func (h *MessageHandler) HandleMessageList(c *handler.Context) (*wire.MessageListResponse, error) {
-	messages, err := h.messageStore.MessagesByApp(c.Context(), c.App.ID)
+	commandID := c.Query("command_id")
+	eventListenerID := c.Query("event_listener_id")
+
+	var messages []*model.Message
+	var err error
+
+	if commandID != "" {
+		messages, err = h.messageStore.MessagesByCommand(c.Context(), commandID)
+	} else if eventListenerID != "" {
+		messages, err = h.messageStore.MessagesByEventListener(c.Context(), eventListenerID)
+	} else {
+		messages, err = h.messageStore.PublicMessagesByApp(c.Context(), c.App.ID)
+	}
+
 	if err != nil {
 		return nil, fmt.Errorf("failed to get messages: %w", err)
 	}
@@ -56,7 +69,7 @@ func (h *MessageHandler) HandleMessageGet(c *handler.Context) (*wire.MessageGetR
 
 func (h *MessageHandler) HandleMessageCreate(c *handler.Context, req wire.MessageCreateRequest) (*wire.MessageCreateResponse, error) {
 	if h.maxMessagesPerApp != 0 {
-		messageCount, err := h.messageStore.CountMessagesByApp(c.Context(), c.App.ID)
+		messageCount, err := h.messageStore.CountPublicMessagesByApp(c.Context(), c.App.ID)
 		if err != nil {
 			return nil, fmt.Errorf("failed to count messages: %w", err)
 		}
@@ -67,15 +80,17 @@ func (h *MessageHandler) HandleMessageCreate(c *handler.Context, req wire.Messag
 	}
 
 	message, err := h.messageStore.CreateMessage(c.Context(), &model.Message{
-		ID:            util.UniqueID(),
-		Name:          req.Name,
-		Description:   req.Description,
-		AppID:         c.App.ID,
-		CreatorUserID: c.Session.UserID,
-		Data:          req.Data,
-		FlowSources:   req.FlowSources,
-		CreatedAt:     time.Now().UTC(),
-		UpdatedAt:     time.Now().UTC(),
+		ID:              util.UniqueID(),
+		Name:            req.Name,
+		Description:     req.Description,
+		AppID:           c.App.ID,
+		CreatorUserID:   c.Session.UserID,
+		Data:            req.Data,
+		FlowSources:     req.FlowSources,
+		CommandID:       req.CommandID,
+		EventListenerID: req.EventListenerID,
+		CreatedAt:       time.Now().UTC(),
+		UpdatedAt:       time.Now().UTC(),
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create message: %w", err)
@@ -86,7 +101,7 @@ func (h *MessageHandler) HandleMessageCreate(c *handler.Context, req wire.Messag
 
 func (h *MessageHandler) HandleMessagesImport(c *handler.Context, req wire.MessagesImportRequest) (*wire.MessagesImportResponse, error) {
 	if h.maxMessagesPerApp != 0 {
-		messageCount, err := h.messageStore.CountMessagesByApp(c.Context(), c.App.ID)
+		messageCount, err := h.messageStore.CountPublicMessagesByApp(c.Context(), c.App.ID)
 		if err != nil {
 			return nil, fmt.Errorf("failed to count messages: %w", err)
 		}
@@ -102,15 +117,17 @@ func (h *MessageHandler) HandleMessagesImport(c *handler.Context, req wire.Messa
 
 	for i, msg := range req.Messages {
 		message, err := h.messageStore.CreateMessage(c.Context(), &model.Message{
-			ID:            util.UniqueID(),
-			Name:          msg.Name,
-			Description:   msg.Description,
-			AppID:         c.App.ID,
-			CreatorUserID: c.Session.UserID,
-			Data:          msg.Data,
-			FlowSources:   msg.FlowSources,
-			CreatedAt:     time.Now().UTC(),
-			UpdatedAt:     time.Now().UTC(),
+			ID:              util.UniqueID(),
+			Name:            msg.Name,
+			Description:     msg.Description,
+			AppID:           c.App.ID,
+			CreatorUserID:   c.Session.UserID,
+			Data:            msg.Data,
+			FlowSources:     msg.FlowSources,
+			CommandID:       msg.CommandID,
+			EventListenerID: msg.EventListenerID,
+			CreatedAt:       time.Now().UTC(),
+			UpdatedAt:       time.Now().UTC(),
 		})
 		if err != nil {
 			return nil, fmt.Errorf("failed to create message: %w", err)

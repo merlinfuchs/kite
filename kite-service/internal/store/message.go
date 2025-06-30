@@ -7,12 +7,16 @@ import (
 )
 
 type MessageStore interface {
-	MessagesByApp(ctx context.Context, appID string) ([]*model.Message, error)
-	CountMessagesByApp(ctx context.Context, appID string) (int, error)
+	PublicMessagesByApp(ctx context.Context, appID string) ([]*model.Message, error)
+	CountPublicMessagesByApp(ctx context.Context, appID string) (int, error)
+	MessagesByCommand(ctx context.Context, commandID string) ([]*model.Message, error)
+	MessagesByEventListener(ctx context.Context, eventListenerID string) ([]*model.Message, error)
 	Message(ctx context.Context, id string) (*model.Message, error)
 	CreateMessage(ctx context.Context, variable *model.Message) (*model.Message, error)
 	UpdateMessage(ctx context.Context, variable *model.Message) (*model.Message, error)
 	DeleteMessage(ctx context.Context, id string) error
+	DeleteMessagesByCommand(ctx context.Context, commandID string) error
+	DeleteMessagesByEventListener(ctx context.Context, eventListenerID string) error
 }
 
 type MessageInstanceStore interface {

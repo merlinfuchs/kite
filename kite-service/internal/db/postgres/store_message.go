@@ -14,8 +14,8 @@ import (
 	"gopkg.in/guregu/null.v4"
 )
 
-func (c *Client) MessagesByApp(ctx context.Context, appID string) ([]*model.Message, error) {
-	rows, err := c.Q.GetMessagesByApp(ctx, appID)
+func (c *Client) PublicMessagesByApp(ctx context.Context, appID string) ([]*model.Message, error) {
+	rows, err := c.Q.GetPublicMessagesByApp(ctx, appID)
 	if err != nil {
 		return nil, err
 	}
@@ -32,12 +32,54 @@ func (c *Client) MessagesByApp(ctx context.Context, appID string) ([]*model.Mess
 	return messages, nil
 }
 
-func (c *Client) CountMessagesByApp(ctx context.Context, appID string) (int, error) {
-	res, err := c.Q.CountMessagesByApp(ctx, appID)
+func (c *Client) CountPublicMessagesByApp(ctx context.Context, appID string) (int, error) {
+	res, err := c.Q.CountPublicMessagesByApp(ctx, appID)
 	if err != nil {
 		return 0, err
 	}
 	return int(res), nil
+}
+
+func (c *Client) MessagesByCommand(ctx context.Context, commandID string) ([]*model.Message, error) {
+	rows, err := c.Q.GetMessagesByCommand(ctx, pgtype.Text{
+		String: commandID,
+		Valid:  true,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	messages := make([]*model.Message, len(rows))
+	for i, row := range rows {
+		msg, err := rowToMessage(row)
+		if err != nil {
+			return nil, err
+		}
+		messages[i] = msg
+	}
+
+	return messages, nil
+}
+
+func (c *Client) MessagesByEventListener(ctx context.Context, eventListenerID string) ([]*model.Message, error) {
+	rows, err := c.Q.GetMessagesByEventListener(ctx, pgtype.Text{
+		String: eventListenerID,
+		Valid:  true,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	messages := make([]*model.Message, len(rows))
+	for i, row := range rows {
+		msg, err := rowToMessage(row)
+		if err != nil {
+			return nil, err
+		}
+		messages[i] = msg
+	}
+
+	return messages, nil
 }
 
 func (c *Client) Message(ctx context.Context, id string) (*model.Message, error) {
@@ -78,8 +120,16 @@ func (c *Client) CreateMessage(ctx context.Context, variable *model.Message) (*m
 		CreatorUserID: variable.CreatorUserID,
 		FlowSources:   flowSources,
 		Data:          data,
-		CreatedAt:     pgtype.Timestamp{Time: variable.CreatedAt.UTC(), Valid: true},
-		UpdatedAt:     pgtype.Timestamp{Time: variable.UpdatedAt.UTC(), Valid: true},
+		CommandID: pgtype.Text{
+			String: variable.CommandID.String,
+			Valid:  variable.CommandID.Valid,
+		},
+		EventListenerID: pgtype.Text{
+			String: variable.EventListenerID.String,
+			Valid:  variable.EventListenerID.Valid,
+		},
+		CreatedAt: pgtype.Timestamp{Time: variable.CreatedAt.UTC(), Valid: true},
+		UpdatedAt: pgtype.Timestamp{Time: variable.UpdatedAt.UTC(), Valid: true},
 	})
 	if err != nil {
 		return nil, err
@@ -129,6 +179,28 @@ func (c *Client) DeleteMessage(ctx context.Context, id string) error {
 		return err
 	}
 
+	return nil
+}
+
+func (c *Client) DeleteMessagesByCommand(ctx context.Context, commandID string) error {
+	err := c.Q.DeleteMessagesByCommand(ctx, pgtype.Text{
+		String: commandID,
+		Valid:  true,
+	})
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (c *Client) DeleteMessagesByEventListener(ctx context.Context, eventListenerID string) error {
+	err := c.Q.DeleteMessagesByEventListener(ctx, pgtype.Text{
+		String: eventListenerID,
+		Valid:  true,
+	})
+	if err != nil {
+		return err
+	}
 	return nil
 }
 

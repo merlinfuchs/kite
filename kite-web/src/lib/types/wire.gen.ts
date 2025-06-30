@@ -348,6 +348,8 @@ export interface MessageCreateRequest {
   description: null | string;
   data: MessageData;
   flow_sources: { [key: string]: FlowData};
+  command_id: null | string;
+  event_listener_id: null | string;
 }
 export type MessageCreateResponse = Message;
 export interface MessagesImportRequest {
