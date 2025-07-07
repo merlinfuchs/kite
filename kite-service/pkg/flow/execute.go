@@ -16,6 +16,7 @@ import (
 	"github.com/kitecloud/kite/kite-service/pkg/eval"
 	"github.com/kitecloud/kite/kite-service/pkg/message"
 	"github.com/kitecloud/kite/kite-service/pkg/thing"
+	"github.com/sashabaranov/go-openai"
 	"gopkg.in/guregu/null.v4"
 )
 
@@ -874,6 +875,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 		}
 
 		response, err := ctx.AI.CreateChatCompletion(ctx, CreateChatCompletionOpts{
+			Model:               data.Model,
 			SystemPrompt:        systemPrompt.String(),
 			Prompt:              prompt.String(),
 			MaxCompletionTokens: int(maxCompletionTokens.Int()),
@@ -1174,7 +1176,14 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 func (n *CompiledFlowNode) CreditsCost() int {
 	switch n.Type {
 	case FlowNodeTypeActionAIChatCompletion:
-		return 5
+		switch n.Data.AIChatCompletionData.Model {
+		case openai.GPT4Dot1:
+			return 100
+		case openai.GPT4Dot1Mini:
+			return 20
+		default:
+			return 5
+		}
 	case FlowNodeTypeActionHTTPRequest:
 		return 3
 	}

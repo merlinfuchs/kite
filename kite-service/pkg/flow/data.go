@@ -7,6 +7,7 @@ import (
 	"github.com/diamondburned/arikawa/v3/api"
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/kitecloud/kite/kite-service/pkg/message"
+	"github.com/sashabaranov/go-openai"
 )
 
 // Allows between 1 and 3 words, each between 1 and 32 characters long.
@@ -220,6 +221,11 @@ func (d FlowNodeData) Validate(nodeType FlowNodeType) error {
 			validation.Required,
 			validation.Length(1, 100),
 		)),
+
+		// AI Chat Completion
+		validation.Field(&d.AIChatCompletionData, validation.When(nodeType == FlowNodeTypeActionAIChatCompletion,
+			validation.Required,
+		)),
 	)
 }
 
@@ -330,9 +336,18 @@ type HTTPRequestDataKeyValue struct {
 }
 
 type AIChatCompletionData struct {
+	Model               string `json:"model,omitempty"`
 	SystemPrompt        string `json:"system_prompt,omitempty"`
 	Prompt              string `json:"prompt,omitempty"`
 	MaxCompletionTokens string `json:"max_completion_tokens,omitempty"`
+}
+
+func (d AIChatCompletionData) Validate() error {
+	return validation.ValidateStruct(&d,
+		validation.Field(&d.Model, validation.In(openai.GPT4Dot1, openai.GPT4Dot1Mini, openai.GPT4oMini, openai.GPT4Dot1Nano)),
+		validation.Field(&d.Prompt, validation.Required, validation.Length(1, 2000)),
+		//validation.Field(&d.MaxCompletionTokens, validation.Required),
+	)
 }
 
 type FlowNodePosition struct {

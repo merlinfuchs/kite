@@ -239,6 +239,7 @@ export interface HTTPRequestDataKeyValue {
   value: string;
 }
 export interface AIChatCompletionData {
+  model?: string;
   system_prompt?: string;
   prompt?: string;
   max_completion_tokens?: string;

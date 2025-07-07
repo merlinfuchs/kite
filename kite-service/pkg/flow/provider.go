@@ -77,6 +77,7 @@ type FlowAIProvider interface {
 }
 
 type CreateChatCompletionOpts struct {
+	Model               string
 	SystemPrompt        string
 	Prompt              string
 	MaxCompletionTokens int

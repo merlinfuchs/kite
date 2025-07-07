@@ -667,6 +667,28 @@ function AiChatCompletionDataInput({ data, updateData, errors }: InputProps) {
   return (
     <>
       <BaseInput
+        type="select"
+        field="ai_chat_completion_data.model"
+        title="Model"
+        description="The model to use for the AI chat completion. More powerful models cost more credits."
+        options={[
+          { value: "gpt-4.1", label: "Smartest (gpt-4.1)" },
+          { value: "gpt-4.1-mini", label: "Balanced (gpt-4.1-mini)" },
+          { value: "gpt-4.1-nano", label: "Cheap & Fast (gpt-4.1-nano)" },
+          { value: "gpt-4o-mini", label: "Cheap & Fast (gpt-4o-mini)" },
+        ]}
+        value={data.ai_chat_completion_data?.model || "gpt-4.1-nano"}
+        updateValue={(v) =>
+          updateData({
+            ai_chat_completion_data: {
+              ...data.ai_chat_completion_data,
+              model: v || undefined,
+            },
+          })
+        }
+        errors={errors}
+      />
+      <BaseInput
         type="textarea"
         field="ai_chat_completion_data.system_prompt"
         title="System Prompt"
