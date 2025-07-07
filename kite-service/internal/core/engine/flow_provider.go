@@ -231,6 +231,39 @@ func (p *DiscordProvider) HasCreatedInteractionResponse(ctx context.Context, int
 	return ok, nil
 }
 
+func (p *DiscordProvider) AutoDeferInteraction(
+	ctx context.Context,
+	interactionID discord.InteractionID,
+	interactionToken string,
+	flags discord.MessageFlags,
+) {
+	select {
+	case <-ctx.Done():
+		return
+	case <-time.After(2500 * time.Millisecond):
+		hasCreatedResponse, err := p.HasCreatedInteractionResponse(ctx, interactionID)
+		if err != nil {
+			return
+		}
+
+		if !hasCreatedResponse {
+			_, err := p.CreateInteractionResponse(ctx, interactionID, interactionToken, api.InteractionResponse{
+				Type: api.DeferredMessageInteractionWithSource,
+				Data: &api.InteractionResponseData{
+					Flags: flags,
+				},
+			})
+			if err != nil {
+				slog.Error(
+					"Failed to auto-defer interaction",
+					slog.String("interaction_id", interactionID.String()),
+					slog.String("error", err.Error()),
+				)
+			}
+		}
+	}
+}
+
 type LogProvider struct {
 	appID    string
 	logStore store.LogStore
@@ -260,7 +293,11 @@ func (p *LogProvider) CreateLogEntry(ctx context.Context, level flow.LogLevel, m
 		CreatedAt:       time.Now().UTC(),
 	})
 	if err != nil {
-		slog.With("error", err).With("app_id", p.appID).Error("Failed to create log entry")
+		slog.Error(
+			"Failed to create log entry",
+			slog.String("app_id", p.appID),
+			slog.String("error", err.Error()),
+		)
 	}
 }
 

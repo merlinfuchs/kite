@@ -194,6 +194,7 @@ func (a *App) HandleEvent(appID string, session *state.State, event gateway.Even
 				node := command.flow.FindChildWithID(resumePoint.FlowNodeID)
 
 				a.stores.executeFlowEvent(
+					context.Background(),
 					a.id,
 					node,
 					session,
@@ -256,6 +257,7 @@ func (a *App) HandleEvent(appID string, session *state.State, event gateway.Even
 				node := targetFlow.FindChildWithID(resumePoint.FlowNodeID)
 
 				a.stores.executeFlowEvent(
+					context.Background(),
 					a.id,
 					node,
 					session,

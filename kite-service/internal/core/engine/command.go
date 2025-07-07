@@ -51,6 +51,7 @@ func (c *Command) HandleEvent(appID string, session *state.State, event gateway.
 	}
 
 	c.env.executeFlowEvent(
+		context.Background(),
 		c.cmd.AppID,
 		c.flow,
 		session,

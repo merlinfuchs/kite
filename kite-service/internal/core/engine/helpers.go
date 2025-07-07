@@ -66,6 +66,7 @@ func (s Env) flowProviders(appID string, session *state.State, links entityLinks
 }
 
 func (s Env) flowContext(
+	ctx context.Context,
 	appID string,
 	session *state.State,
 	event gateway.Event,
@@ -78,8 +79,11 @@ func (s Env) flowContext(
 
 	switch e := event.(type) {
 	case *gateway.InteractionCreateEvent:
+		// TODO?: We could try to infer if the interaction response will be public or not
+		go providers.Discord.AutoDeferInteraction(ctx, e.InteractionEvent.ID, e.InteractionEvent.Token, 0)
+
 		fCtx = flow.NewContext(
-			context.Background(),
+			ctx,
 			30*time.Second,
 			&InteractionData{
 				interaction: &e.InteractionEvent,
@@ -95,7 +99,7 @@ func (s Env) flowContext(
 		)
 	default:
 		fCtx = flow.NewContext(
-			context.Background(),
+			ctx,
 			30*time.Second,
 			&EventData{
 				event: event,
@@ -115,6 +119,7 @@ func (s Env) flowContext(
 }
 
 func (s Env) executeFlowEvent(
+	ctx context.Context,
 	appID string,
 	node *flow.CompiledFlowNode,
 	session *state.State,
@@ -125,7 +130,10 @@ func (s Env) executeFlowEvent(
 ) {
 	defer s.recoverPanic(appID, links)
 
-	fCtx := s.flowContext(appID, session, event, links, state)
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	fCtx := s.flowContext(ctx, appID, session, event, links, state)
 	defer fCtx.Cancel()
 
 	var err error

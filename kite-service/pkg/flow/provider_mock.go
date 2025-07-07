@@ -144,6 +144,9 @@ func (p *MockDiscordProvider) HasCreatedInteractionResponse(ctx context.Context,
 	return false, nil
 }
 
+func (p *MockDiscordProvider) AutoDeferInteraction(ctx context.Context, interactionID discord.InteractionID, interactionToken string, flags discord.MessageFlags) {
+}
+
 type MockLogProvider struct{}
 
 func (p *MockLogProvider) CreateLogEntry(ctx context.Context, level LogLevel, message string) {}

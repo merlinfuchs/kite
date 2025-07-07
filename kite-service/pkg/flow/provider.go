@@ -61,6 +61,7 @@ type FlowDiscordProvider interface {
 	DeleteRole(ctx context.Context, guildID discord.GuildID, roleID discord.RoleID) error
 
 	HasCreatedInteractionResponse(ctx context.Context, interactionID discord.InteractionID) (bool, error)
+	AutoDeferInteraction(ctx context.Context, interactionID discord.InteractionID, interactionToken string, flags discord.MessageFlags)
 }
 
 type FlowInteractionResponseResource struct {

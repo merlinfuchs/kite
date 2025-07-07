@@ -1,6 +1,7 @@
 package engine
 
 import (
+	"context"
 	"log/slog"
 
 	"github.com/diamondburned/arikawa/v3/discord"
@@ -73,6 +74,7 @@ func (m *MessageInstance) HandleEvent(appID string, session *state.State, event 
 	}
 
 	m.env.executeFlowEvent(
+		context.Background(),
 		m.appID,
 		targetFlow,
 		session,

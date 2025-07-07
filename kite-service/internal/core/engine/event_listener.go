@@ -1,6 +1,7 @@
 package engine
 
 import (
+	"context"
 	"fmt"
 	"log/slog"
 
@@ -51,6 +52,7 @@ func (l *EventListener) HandleEvent(appID string, session *state.State, event ga
 	}
 
 	l.env.executeFlowEvent(
+		context.Background(),
 		l.listener.AppID,
 		l.flow,
 		session,
