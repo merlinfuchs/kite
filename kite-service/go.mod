@@ -26,7 +26,7 @@ require (
 	github.com/pelletier/go-toml/v2 v2.2.2
 	github.com/ravener/discord-oauth2 v0.0.0-20230514095040-ae65713199b3
 	github.com/rs/cors v1.11.0
-	github.com/sashabaranov/go-openai v1.35.7
+	github.com/sashabaranov/go-openai v1.40.3
 	github.com/sethvargo/go-limiter v1.0.0
 	github.com/stretchr/testify v1.9.0
 	github.com/urfave/cli/v2 v2.27.2

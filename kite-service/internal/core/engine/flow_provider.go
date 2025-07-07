@@ -300,13 +300,13 @@ func (p *AIProvider) CreateChatCompletion(ctx context.Context, opts flow.CreateC
 		})
 	}
 
-	maxCompletionTokens := 2000
+	maxCompletionTokens := 500
 	if opts.MaxCompletionTokens > 0 && opts.MaxCompletionTokens < maxCompletionTokens {
 		maxCompletionTokens = opts.MaxCompletionTokens
 	}
 
 	resp, err := p.client.CreateChatCompletion(ctx, openai.ChatCompletionRequest{
-		Model:               openai.GPT4oMini,
+		Model:               openai.GPT4Dot1Nano,
 		Messages:            messages,
 		MaxCompletionTokens: maxCompletionTokens,
 	})
