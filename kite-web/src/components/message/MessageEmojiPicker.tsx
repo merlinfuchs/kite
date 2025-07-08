@@ -26,39 +26,37 @@ export default function MessageEmojiPicker({ emoji, onChange }: Props) {
         </div>
       </div>
       <div className="flex">
-        <div className="bg-dark-2 rounded flex">
-          <EmojiPicker onEmojiSelect={onEmojiSelect}>
-            <Button size="icon" variant="outline">
-              {emoji?.id ? (
-                <img
-                  src={`https://cdn.discordapp.com/emojis/${emoji.id}.${
-                    emoji.animated ? "gif" : "webp"
-                  }`}
-                  alt=""
-                  className="h-6 w-6"
-                />
-              ) : emoji ? (
-                <Twemoji
-                  options={{
-                    className: "h-6 w-6",
-                  }}
-                >
-                  {emoji.name}
-                </Twemoji>
-              ) : (
-                <SmileIcon className="h-6 w-6 text-foreground/80" />
-              )}
-            </Button>
-          </EmojiPicker>
-          {emoji && (
-            <div
-              className="flex items-center cursor-pointer pr-1 text-muted-foreground hover:text-foreground"
-              onClick={() => onChange(undefined)}
-            >
-              <XIcon className="h-5 w-5" />
-            </div>
-          )}
-        </div>
+        <EmojiPicker onEmojiSelect={onEmojiSelect}>
+          <Button size="icon" variant="outline">
+            {emoji?.id ? (
+              <img
+                src={`https://cdn.discordapp.com/emojis/${emoji.id}.${
+                  emoji.animated ? "gif" : "webp"
+                }`}
+                alt=""
+                className="h-6 w-6"
+              />
+            ) : emoji ? (
+              <Twemoji
+                options={{
+                  className: "h-6 w-6",
+                }}
+              >
+                {emoji.name}
+              </Twemoji>
+            ) : (
+              <SmileIcon className="h-6 w-6 text-foreground/80" />
+            )}
+          </Button>
+        </EmojiPicker>
+        {emoji && (
+          <div
+            className="flex items-center cursor-pointer pr-1 text-muted-foreground hover:text-foreground"
+            onClick={() => onChange(undefined)}
+          >
+            <XIcon className="h-5 w-5" />
+          </div>
+        )}
       </div>
     </div>
   );

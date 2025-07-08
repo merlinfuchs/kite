@@ -54,10 +54,10 @@ export default function FlowEdgeDeleteButton({
             // if you have an interactive element, set pointer-events: all
             pointerEvents: "all",
           }}
-          className="nodrag nopan cursor-pointer h-4 w-4 rounded-full flex items-center justify-center bg-dark-5"
+          className="nodrag nopan cursor-pointer h-4 w-4 rounded-full flex items-center justify-center bg-muted"
           onClick={onEdgeClick}
         >
-          <XIcon className="h-3 w-3 text-dark-10" />
+          <XIcon className="h-3 w-3 text-foreground" />
         </div>
       </EdgeLabelRenderer>
     </>

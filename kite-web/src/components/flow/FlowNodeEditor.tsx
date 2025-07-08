@@ -240,20 +240,22 @@ export default function FlowNodeEditor({ nodeId }: Props) {
       <div className="flex-none space-y-3 mt-5">
         {!values.fixed && (
           <>
-            <button
-              className="bg-red-500 hover:bg-red-600 px-3 py-2 w-full rounded text-white font-medium flex space-x-2 justify-center items-center"
+            <Button
+              variant="destructive"
               onClick={deleteNode}
+              className="w-full flex gap-2"
             >
               <TrashIcon className="h-5 w-5" />
               <div>Delete Block</div>
-            </button>
-            <button
-              className="bg-dark-5 hover:bg-dark-4 px-3 py-2 w-full rounded text-white font-medium flex space-x-2 justify-center items-center"
+            </Button>
+            <Button
+              variant="secondary"
               onClick={duplicateNode}
+              className="w-full flex gap-2"
             >
               <CopyIcon className="h-5 w-5" />
               <div>Duplicate Block</div>
-            </button>
+            </Button>
           </>
         )}
       </div>
@@ -915,9 +917,7 @@ function MessageDataInput({ data, updateData, errors }: InputProps) {
         onClose={(v) => updateData({ message_data: v })}
         message={data.message_data || {}}
       >
-        <Button className="w-full" variant="secondary">
-          Edit Message
-        </Button>
+        <Button className="w-full">Edit Message</Button>
       </MessageEditorDialog>
     </>
   );
@@ -1013,9 +1013,7 @@ function ModalDataInput({ data, updateData, errors }: InputProps) {
   return (
     <Dialog>
       <DialogTrigger asChild>
-        <Button className="w-full" variant="secondary">
-          Configure Modal
-        </Button>
+        <Button className="w-full">Configure Modal</Button>
       </DialogTrigger>
       <DialogContent className="overflow-y-auto max-h-[90dvh] max-w-2xl">
         <DialogHeader>

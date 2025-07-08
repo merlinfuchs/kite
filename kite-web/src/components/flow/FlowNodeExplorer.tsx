@@ -240,7 +240,7 @@ function AvailableNode({ type, values }: { type: string; values: NodeValues }) {
 
   return (
     <div
-      className="p-2 hover:bg-dark-4 rounded relative select-none cursor-grab"
+      className="p-2 hover:bg-muted rounded-md relative select-none cursor-grab"
       onDragStart={onStartDrag}
       onClick={onClick}
       draggable
