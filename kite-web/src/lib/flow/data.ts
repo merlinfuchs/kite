@@ -87,7 +87,7 @@ export const nodeActionResponseCreateDataSchema = nodeBaseDataSchema
   .extend({
     message_data: z
       .object({
-        content: z.string().max(2000).min(1),
+        content: z.string().max(2000),
       })
       .optional(),
     message_template_id: z.string().optional(),
