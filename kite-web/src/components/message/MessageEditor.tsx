@@ -5,7 +5,11 @@ import MessageControls from "./MessageControls";
 import MessageValidator from "./MessageValidator";
 import MessageComponentsSection from "./MessageComponentsSection";
 
-export default function MessageEditor() {
+export default function MessageEditor({
+  disableComponents,
+}: {
+  disableComponents?: boolean;
+}) {
   return (
     <div className="space-y-8">
       <MessageControls />
@@ -13,7 +17,7 @@ export default function MessageEditor() {
 
       <MessageAttachmentSection />
       <MessageEmbedSection />
-      <MessageComponentsSection />
+      {!disableComponents && <MessageComponentsSection />}
 
       <MessageValidator />
     </div>

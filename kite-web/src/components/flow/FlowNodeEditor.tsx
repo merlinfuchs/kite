@@ -56,6 +56,7 @@ import { Separator } from "../ui/separator";
 import { Card } from "../ui/card";
 import { HTTPRequestData, ModalComponentData } from "@/lib/types/flow.gen";
 import JsonEditor from "../common/JsonEditor";
+import MessageEditorDialog from "../message/MessageEditorDialog";
 
 interface Props {
   nodeId: string;
@@ -896,18 +897,29 @@ function MessageDataInput({ data, updateData, errors }: InputProps) {
   }
 
   return (
-    <BaseInput
-      type="textarea"
-      field="message_data"
-      title="Text Response"
-      description="Right now only text responses are supported, but more options will be added in the future."
-      value={data.message_data?.content || ""}
-      updateValue={(v) =>
-        updateData({ message_data: v ? { content: v } : undefined })
-      }
-      errors={errors}
-      placeholders
-    />
+    <>
+      <BaseInput
+        type="textarea"
+        field="message_data"
+        title="Text Response"
+        description="Right now only text responses are supported, but more options will be added in the future."
+        value={data.message_data?.content || ""}
+        updateValue={(v) =>
+          updateData({ message_data: v ? { content: v } : undefined })
+        }
+        errors={errors}
+        placeholders
+      />
+
+      <MessageEditorDialog
+        onClose={(v) => updateData({ message_data: v })}
+        message={data.message_data || {}}
+      >
+        <Button className="w-full" variant="secondary">
+          Edit Message
+        </Button>
+      </MessageEditorDialog>
+    </>
   );
 }
 
