@@ -903,8 +903,8 @@ function MessageDataInput({ data, updateData, errors }: InputProps) {
       <BaseInput
         type="textarea"
         field="message_data"
-        title="Text Response"
-        description="Right now only text responses are supported, but more options will be added in the future."
+        title="Response"
+        description="Edit the text response here or click below to have a full message editor. Use a message template if you want interactive components."
         value={data.message_data?.content || ""}
         updateValue={(v) =>
           updateData({ message_data: v ? { content: v } : undefined })
