@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"runtime/debug"
 	"time"
 
 	"github.com/diamondburned/arikawa/v3/gateway"
@@ -205,7 +206,8 @@ func (s Env) recoverPanic(appID string, links entityLinks) {
 			With("command_id", links.CommandID.String).
 			With("message_id", links.MessageID.String).
 			With("event_listener_id", links.EventListenerID.String).
-			Error("Recovered from panic in message instance handler")
+			Error("Recovered from panic in engine handler")
+		fmt.Println(string(debug.Stack()))
 
 		s.createLogEntry(
 			appID,

@@ -43,26 +43,42 @@ func (f EmbedFieldData) Copy() EmbedFieldData {
 	}
 }
 
-func (f EmbedFooterData) Copy() *EmbedFooterData {
+func (f *EmbedFooterData) Copy() *EmbedFooterData {
+	if f == nil {
+		return nil
+	}
+
 	return &EmbedFooterData{
 		Text:    f.Text,
 		IconURL: f.IconURL,
 	}
 }
 
-func (f EmbedImageData) Copy() *EmbedImageData {
+func (f *EmbedImageData) Copy() *EmbedImageData {
+	if f == nil {
+		return nil
+	}
+
 	return &EmbedImageData{
 		URL: f.URL,
 	}
 }
 
-func (f EmbedThumbnailData) Copy() *EmbedThumbnailData {
+func (f *EmbedThumbnailData) Copy() *EmbedThumbnailData {
+	if f == nil {
+		return nil
+	}
+
 	return &EmbedThumbnailData{
 		URL: f.URL,
 	}
 }
 
-func (a EmbedAuthorData) Copy() *EmbedAuthorData {
+func (a *EmbedAuthorData) Copy() *EmbedAuthorData {
+	if a == nil {
+		return nil
+	}
+
 	return &EmbedAuthorData{
 		Name:    a.Name,
 		URL:     a.URL,
