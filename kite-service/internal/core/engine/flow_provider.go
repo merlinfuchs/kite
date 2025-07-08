@@ -240,7 +240,7 @@ func (p *DiscordProvider) AutoDeferInteraction(
 	select {
 	case <-ctx.Done():
 		return
-	case <-time.After(2500 * time.Millisecond):
+	case <-time.After(1500 * time.Millisecond):
 		hasCreatedResponse, err := p.HasCreatedInteractionResponse(ctx, interactionID)
 		if err != nil {
 			return

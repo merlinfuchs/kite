@@ -79,6 +79,13 @@ func (g *Gateway) startGateway() {
 	})
 
 	g.session.AddHandler(func(e *gateway.ReadyEvent) {
+		slog.Info(
+			"Received ready event",
+			slog.String("app_id", g.app.ID),
+			slog.String("user_id", e.User.ID.String()),
+			slog.String("username", e.User.Username),
+			slog.Int("guilds", len(e.Guilds)),
+		)
 		g.createLogEntry(model.LogLevelInfo, fmt.Sprintf(
 			"Connected to Discord as %s#%s (%s)",
 			e.User.Username, e.User.Discriminator, e.User.ID,

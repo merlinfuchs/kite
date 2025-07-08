@@ -82,12 +82,16 @@ func (m *GatewayManager) populateGateways(ctx context.Context) error {
 		return fmt.Errorf("failed to remove dangling apps: %w", err)
 	}
 
-	for _, app := range apps {
-		// Starting thousands of gateways at once can cause problems internally.
-		time.Sleep(100 * time.Millisecond)
+	if len(apps) != 0 {
+		slog.Info("Populating gateways", slog.Int("count", len(apps)))
 
-		if err := m.addGateway(ctx, app); err != nil {
-			slog.With("error", err).Error("failed to add gateway")
+		for _, app := range apps {
+			// Starting thousands of gateways at once can cause problems internally.
+			time.Sleep(100 * time.Millisecond)
+
+			if err := m.addGateway(ctx, app); err != nil {
+				slog.With("error", err).Error("failed to add gateway")
+			}
 		}
 	}
 
@@ -103,6 +107,7 @@ func (m *GatewayManager) removeDanglingGateways(ctx context.Context, appIDs []st
 		lookupMap[id] = struct{}{}
 	}
 
+	var removed int
 	for id, gateway := range m.gateways {
 		if _, ok := lookupMap[id]; !ok {
 			// Close should timeout after 5 seconds
@@ -115,7 +120,12 @@ func (m *GatewayManager) removeDanglingGateways(ctx context.Context, appIDs []st
 			}
 
 			delete(m.gateways, id)
+			removed++
 		}
+	}
+
+	if removed != 0 {
+		slog.Info("Removed dangling gateways", slog.Int("count", removed))
 	}
 
 	return nil
