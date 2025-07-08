@@ -126,6 +126,15 @@ func (m *GatewayManager) addGateway(ctx context.Context, app *model.App) error {
 	defer m.Unlock()
 
 	if g, ok := m.gateways[app.ID]; ok {
+		// Some times arikawa fails to keep the gateway alive, so we need to
+		// re-add it.
+		if g.session.Gateway() == nil {
+			g.Close()
+			delete(m.gateways, app.ID)
+
+			return m.addGateway(ctx, app)
+		}
+
 		g.Update(ctx, app)
 	} else {
 		g := NewGateway(app, m.logStore, m.appStore, m.planManager, m.eventHandler)
