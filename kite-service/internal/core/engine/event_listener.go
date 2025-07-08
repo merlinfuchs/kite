@@ -59,7 +59,6 @@ func (l *EventListener) HandleEvent(appID string, session *state.State, event ga
 		event,
 		links,
 		nil,
-		false,
 	)
 }
 

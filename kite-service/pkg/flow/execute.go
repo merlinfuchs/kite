@@ -30,25 +30,21 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 
 	switch n.Type {
 	case FlowNodeTypeEntryCommand, FlowNodeTypeEntryComponentButton:
-		interaction := ctx.Data.Interaction()
-		if interaction == nil {
-			return &FlowError{
-				Code:    FlowNodeErrorUnknown,
-				Message: "interaction is nil",
-			}
+		if ctx.EntryNodeID != n.ID {
+			return fmt.Errorf("entry node ID does not match")
 		}
 
-		// We check if the next response will be ephemeral and adjust the defer flags accordingly
-		var responseFlags discord.MessageFlags
-		respondeNode := n.FindChildWithType(FlowNodeTypeActionResponseCreate, FlowNodeTypeActionResponseEdit, FlowNodeTypeActionResponseDefer)
-		if respondeNode != nil && respondeNode.Data.MessageEphemeral {
-			responseFlags |= discord.EphemeralMessage
+		err := n.autoDeferInteraction(ctx)
+		if err != nil {
+			return traceError(n, err)
 		}
-
-		go ctx.Discord.AutoDeferInteraction(ctx, interaction.ID, interaction.Token, responseFlags)
 
 		return n.ExecuteChildren(ctx)
 	case FlowNodeTypeEntryEvent:
+		if ctx.EntryNodeID != n.ID {
+			return fmt.Errorf("entry node ID does not match")
+		}
+
 		return n.ExecuteChildren(ctx)
 	case FlowNodeTypeActionResponseCreate:
 		interaction := ctx.Data.Interaction()
@@ -280,6 +276,15 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 
 		return n.ExecuteChildren(ctx)
 	case FlowNodeTypeSuspendResponseModal:
+		if ctx.EntryNodeID == n.ID {
+			err := n.autoDeferInteraction(ctx)
+			if err != nil {
+				return traceError(n, err)
+			}
+
+			return n.ExecuteChildren(ctx)
+		}
+
 		interaction := ctx.Data.Interaction()
 		if interaction == nil {
 			return &FlowError{
@@ -1218,6 +1223,26 @@ func (n *CompiledFlowNode) ExecuteChildren(ctx *FlowContext) error {
 			return traceError(n, err)
 		}
 	}
+	return nil
+}
+
+func (n *CompiledFlowNode) autoDeferInteraction(ctx *FlowContext) error {
+	interaction := ctx.Data.Interaction()
+	if interaction == nil {
+		return &FlowError{
+			Code:    FlowNodeErrorUnknown,
+			Message: "interaction is nil",
+		}
+	}
+
+	// We check if the next response will be ephemeral and adjust the defer flags accordingly
+	var responseFlags discord.MessageFlags
+	respondeNode := n.FindChildWithType(FlowNodeTypeActionResponseCreate, FlowNodeTypeActionResponseEdit, FlowNodeTypeActionResponseDefer)
+	if respondeNode != nil && respondeNode.Data.MessageEphemeral {
+		responseFlags |= discord.EphemeralMessage
+	}
+
+	go ctx.Discord.AutoDeferInteraction(ctx, interaction.ID, interaction.Token, responseFlags)
 	return nil
 }
 

@@ -58,7 +58,6 @@ func (c *Command) HandleEvent(appID string, session *state.State, event gateway.
 		event,
 		links,
 		nil,
-		false,
 	)
 }
 

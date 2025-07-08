@@ -68,6 +68,7 @@ func (s Env) flowProviders(appID string, session *state.State, links entityLinks
 func (s Env) flowContext(
 	ctx context.Context,
 	appID string,
+	entryNodeID string,
 	session *state.State,
 	event gateway.Event,
 	links entityLinks,
@@ -82,6 +83,7 @@ func (s Env) flowContext(
 		fCtx = flow.NewContext(
 			ctx,
 			30*time.Second,
+			entryNodeID,
 			&InteractionData{
 				interaction: &e.InteractionEvent,
 			},
@@ -98,6 +100,7 @@ func (s Env) flowContext(
 		fCtx = flow.NewContext(
 			ctx,
 			30*time.Second,
+			entryNodeID,
 			&EventData{
 				event: event,
 			},
@@ -123,23 +126,16 @@ func (s Env) executeFlowEvent(
 	event gateway.Event,
 	links entityLinks,
 	state *flow.FlowContextState,
-	children bool,
 ) {
 	defer s.recoverPanic(appID, links)
 
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
-	fCtx := s.flowContext(ctx, appID, session, event, links, state)
+	fCtx := s.flowContext(ctx, appID, node.ID, session, event, links, state)
 	defer fCtx.Cancel()
 
-	var err error
-	if children {
-		err = node.ExecuteChildren(fCtx)
-	} else {
-		err = node.Execute(fCtx)
-	}
-
+	err := node.Execute(fCtx)
 	if err != nil {
 		slog.Error(
 			"Failed to execute flow event",

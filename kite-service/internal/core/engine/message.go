@@ -81,6 +81,5 @@ func (m *MessageInstance) HandleEvent(appID string, session *state.State, event 
 		event,
 		links,
 		nil,
-		false,
 	)
 }

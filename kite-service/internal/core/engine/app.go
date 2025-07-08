@@ -203,7 +203,6 @@ func (a *App) HandleEvent(appID string, session *state.State, event gateway.Even
 						CommandID: null.NewString(command.cmd.ID, true),
 					},
 					&resumePoint.FlowState,
-					true,
 				)
 			}
 
@@ -264,7 +263,6 @@ func (a *App) HandleEvent(appID string, session *state.State, event gateway.Even
 					event,
 					entityLinks{},
 					&resumePoint.FlowState,
-					true,
 				)
 			}
 		}

@@ -249,6 +249,12 @@ func NewEventEnv(event ws.Event) *EventEnv {
 	return env
 }
 
+func NewContext(env Env) Context {
+	return Context{
+		Env: env,
+	}
+}
+
 func NewContextFromEvent(event ws.Event, session *state.State) Context {
 	return Context{
 		Env: Env{
