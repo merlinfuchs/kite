@@ -677,7 +677,7 @@ function AiChatCompletionDataInput({ data, updateData, errors }: InputProps) {
           { value: "gpt-4.1-nano", label: "Cheap & Fast (gpt-4.1-nano)" },
           { value: "gpt-4o-mini", label: "Cheap & Fast (gpt-4o-mini)" },
         ]}
-        value={data.ai_chat_completion_data?.model || "gpt-4.1-nano"}
+        value={data.ai_chat_completion_data?.model || "gpt-4o-mini"}
         updateValue={(v) =>
           updateData({
             ai_chat_completion_data: {
