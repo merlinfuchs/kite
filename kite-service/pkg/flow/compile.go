@@ -373,6 +373,27 @@ func (n *CompiledFlowNode) FindDirectChildWithType(types ...FlowNodeType) *Compi
 	return nil
 }
 
+func (n *CompiledFlowNode) FindChildWithType(types ...FlowNodeType) *CompiledFlowNode {
+	// We first want to check all direct children
+	for _, node := range n.Children {
+		for _, t := range types {
+			if node.Type == t {
+				return node
+			}
+		}
+	}
+
+	// If no direct children are found, we want to check all children recursively
+	for _, node := range n.Children {
+		child := node.FindChildWithType(types...)
+		if child != nil {
+			return child
+		}
+	}
+
+	return nil
+}
+
 func (n *CompiledFlowNode) FindParentWithID(id string) *CompiledFlowNode {
 	for _, node := range n.Parents {
 		if node.ID == id {

@@ -29,11 +29,26 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 	nodeState := ctx.GetNodeState(n.ID)
 
 	switch n.Type {
-	case FlowNodeTypeEntryCommand:
+	case FlowNodeTypeEntryCommand, FlowNodeTypeEntryComponentButton:
+		interaction := ctx.Data.Interaction()
+		if interaction == nil {
+			return &FlowError{
+				Code:    FlowNodeErrorUnknown,
+				Message: "interaction is nil",
+			}
+		}
+
+		// We check if the next response will be ephemeral and adjust the defer flags accordingly
+		var responseFlags discord.MessageFlags
+		respondeNode := n.FindChildWithType(FlowNodeTypeActionResponseCreate, FlowNodeTypeActionResponseEdit, FlowNodeTypeActionResponseDefer)
+		if respondeNode != nil && respondeNode.Data.MessageEphemeral {
+			responseFlags |= discord.EphemeralMessage
+		}
+
+		go ctx.Discord.AutoDeferInteraction(ctx, interaction.ID, interaction.Token, responseFlags)
+
 		return n.ExecuteChildren(ctx)
 	case FlowNodeTypeEntryEvent:
-		return n.ExecuteChildren(ctx)
-	case FlowNodeTypeEntryComponentButton:
 		return n.ExecuteChildren(ctx)
 	case FlowNodeTypeActionResponseCreate:
 		interaction := ctx.Data.Interaction()

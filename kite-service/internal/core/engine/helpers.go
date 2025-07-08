@@ -79,9 +79,6 @@ func (s Env) flowContext(
 
 	switch e := event.(type) {
 	case *gateway.InteractionCreateEvent:
-		// TODO?: We could try to infer if the interaction response will be public or not
-		go providers.Discord.AutoDeferInteraction(ctx, e.InteractionEvent.ID, e.InteractionEvent.Token, 0)
-
 		fCtx = flow.NewContext(
 			ctx,
 			30*time.Second,
