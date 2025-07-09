@@ -6,7 +6,11 @@ import (
 	"github.com/diamondburned/arikawa/v3/utils/json/option"
 )
 
-func (m *MessageData) ToSendMessageData() api.SendMessageData {
+type ConvertOptions struct {
+	ComponentIDFactory componentIDFactory
+}
+
+func (m *MessageData) ToSendMessageData(opts ConvertOptions) api.SendMessageData {
 	if m == nil {
 		return api.SendMessageData{}
 	}
@@ -18,7 +22,7 @@ func (m *MessageData) ToSendMessageData() api.SendMessageData {
 
 	components := make(discord.ContainerComponents, len(m.Components))
 	for i, component := range m.Components {
-		components[i] = component.ToComponent()
+		components[i] = component.ToComponent(opts)
 	}
 
 	return api.SendMessageData{
@@ -29,7 +33,7 @@ func (m *MessageData) ToSendMessageData() api.SendMessageData {
 	}
 }
 
-func (m *MessageData) ToEditMessageData() api.EditMessageData {
+func (m *MessageData) ToEditMessageData(opts ConvertOptions) api.EditMessageData {
 	if m == nil {
 		return api.EditMessageData{}
 	}
@@ -41,7 +45,7 @@ func (m *MessageData) ToEditMessageData() api.EditMessageData {
 
 	components := make(discord.ContainerComponents, len(m.Components))
 	for i, component := range m.Components {
-		components[i] = component.ToComponent()
+		components[i] = component.ToComponent(opts)
 	}
 
 	return api.EditMessageData{
@@ -51,7 +55,7 @@ func (m *MessageData) ToEditMessageData() api.EditMessageData {
 	}
 }
 
-func (m *MessageData) ToInteractionResponseData() api.InteractionResponseData {
+func (m *MessageData) ToInteractionResponseData(opts ConvertOptions) api.InteractionResponseData {
 	if m == nil {
 		return api.InteractionResponseData{}
 	}
@@ -63,7 +67,7 @@ func (m *MessageData) ToInteractionResponseData() api.InteractionResponseData {
 
 	components := make(discord.ContainerComponents, len(m.Components))
 	for i, component := range m.Components {
-		components[i] = component.ToComponent()
+		components[i] = component.ToComponent(opts)
 	}
 
 	return api.InteractionResponseData{
@@ -162,20 +166,20 @@ func (a *EmbedAuthorData) ToEmbedAuthor() *discord.EmbedAuthor {
 	}
 }
 
-func (r *ComponentRowData) ToComponent() discord.ContainerComponent {
+func (r *ComponentRowData) ToComponent(opts ConvertOptions) discord.ContainerComponent {
 	if r == nil {
 		return nil
 	}
 
 	components := make(discord.ActionRowComponent, len(r.Components))
 	for i, component := range r.Components {
-		components[i] = component.ToComponent()
+		components[i] = component.ToComponent(opts)
 	}
 
 	return &components
 }
 
-func (c *ComponentData) ToComponent() discord.InteractiveComponent {
+func (c *ComponentData) ToComponent(opts ConvertOptions) discord.InteractiveComponent {
 	if c == nil {
 		return nil
 	}
@@ -198,7 +202,11 @@ func (c *ComponentData) ToComponent() discord.InteractiveComponent {
 
 		var customID discord.ComponentID
 		if c.Style != 5 {
-			customID = discord.ComponentID(c.FlowSourceID)
+			if opts.ComponentIDFactory != nil {
+				customID = opts.ComponentIDFactory(c)
+			} else {
+				customID = discord.ComponentID(c.FlowSourceID)
+			}
 		}
 
 		return &discord.ButtonComponent{
@@ -226,3 +234,5 @@ func (e *ComponentEmojiData) ToEmoji() *discord.ComponentEmoji {
 		Animated: e.Animated,
 	}
 }
+
+type componentIDFactory func(component *ComponentData) discord.ComponentID

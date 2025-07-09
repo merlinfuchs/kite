@@ -16,7 +16,7 @@ import FlowDialog from "../flow/FlowDialog";
 import { FlowData } from "@/lib/flow/data";
 import { getUniqueId } from "@/lib/utils";
 
-const buttonColors = {
+export const buttonColors = {
   1: "#5865F2",
   2: "#4E5058",
   3: "#57F287",
@@ -39,11 +39,13 @@ const initialFlow = {
 export default function MessageComponentButton({
   rowIndex,
   compIndex,
+  disableFlowEditor,
 }: {
   rowIndex: number;
   rowId: number;
   compIndex: number;
   compId: number;
+  disableFlowEditor?: boolean;
 }) {
   const buttonCount = useCurrentMessage(
     (state) => state.components[rowIndex].components.length
@@ -219,13 +221,15 @@ export default function MessageComponentButton({
           />
         ) : (
           <>
-            <FlowDialog
-              flowData={flowData || initialFlow}
-              context="component_button"
-              onClose={onFlowDialogClose}
-            >
-              <FlowPreview className="h-64 p-16 w-full" onClick={() => {}} />
-            </FlowDialog>
+            {!disableFlowEditor && (
+              <FlowDialog
+                flowData={flowData || initialFlow}
+                context="component_button"
+                onClose={onFlowDialogClose}
+              >
+                <FlowPreview className="h-64 p-16 w-full" onClick={() => {}} />
+              </FlowDialog>
+            )}
           </>
         )}
       </MessageCollapsibleSection>

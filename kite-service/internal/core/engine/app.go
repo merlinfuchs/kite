@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"log/slog"
-	"strings"
 	"sync"
 	"time"
 
@@ -13,6 +12,7 @@ import (
 	"github.com/diamondburned/arikawa/v3/state"
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/internal/store"
+	"github.com/kitecloud/kite/kite-service/pkg/message"
 	"gopkg.in/guregu/null.v4"
 )
 
@@ -163,6 +163,49 @@ func (a *App) HandleEvent(appID string, session *state.State, event gateway.Even
 				}
 			}
 		case *discord.ButtonInteraction:
+			customID := string(d.CustomID)
+			resumePointID, _, isResume := message.DecodeCustomIDMessageComponentResumePoint(customID)
+			if isResume {
+				resumePoint, err := a.stores.ResumePointStore.ResumePoint(context.TODO(), resumePointID)
+				if err != nil {
+					if errors.Is(err, store.ErrNotFound) {
+						return
+					}
+
+					slog.Error(
+						"Failed to get resume point",
+						slog.String("resume_point_id", resumePointID),
+						slog.String("error", err.Error()),
+					)
+					return
+				}
+
+				if resumePoint.CommandID.Valid {
+					a.RLock()
+					defer a.RUnlock()
+
+					command, ok := a.commands[resumePoint.CommandID.String]
+					if !ok {
+						return
+					}
+
+					node := command.flow.FindChildWithID(resumePoint.FlowNodeID)
+
+					go a.stores.executeFlowEvent(
+						context.Background(),
+						a.id,
+						node,
+						session,
+						event,
+						entityLinks{
+							CommandID: null.NewString(command.cmd.ID, true),
+						},
+						&resumePoint.FlowState,
+					)
+				}
+				return
+			}
+
 			messageID := e.Message.ID.String()
 			messageInstnace, err := a.stores.MessageInstanceStore.MessageInstanceByDiscordMessageID(context.TODO(), messageID)
 			if err != nil {
@@ -187,11 +230,11 @@ func (a *App) HandleEvent(appID string, session *state.State, event gateway.Even
 			go instance.HandleEvent(appID, session, event)
 		case *discord.ModalInteraction:
 			customID := string(d.CustomID)
-			if !strings.HasPrefix(customID, "resume:") {
+			resumePointID, ok := message.DecodeCustomIDModalResumePoint(customID)
+			if !ok {
 				return
 			}
 
-			resumePointID := customID[len("resume:"):]
 			resumePoint, err := a.stores.ResumePointStore.ResumePoint(context.TODO(), resumePointID)
 			if err != nil {
 				if errors.Is(err, store.ErrNotFound) {

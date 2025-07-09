@@ -19,7 +19,6 @@ func (h *BillingHandler) HandleBillingWebhook(c *handler.Context, body json.RawM
 	signature := c.Header("X-Signature")
 
 	if !h.client.Webhooks.Verify(c.Context(), signature, body) {
-		fmt.Println("failed to verify webhook signature")
 		return nil, fmt.Errorf("failed to verify webhook signature")
 	}
 

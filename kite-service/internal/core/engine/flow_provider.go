@@ -479,6 +479,9 @@ func (p *ResumePointProvider) CreateResumePoint(ctx context.Context, s flow.Flow
 		expiresAt = null.NewTime(time.Now().UTC().Add(time.Hour*1), true)
 	}
 
+	// TODO: Implement some kind of expiration for other resume point types
+	// Maybe based on last usage?
+
 	_, err := p.resumePointStore.CreateResumePoint(ctx, &model.ResumePoint{
 		ID:                s.ID,
 		Type:              model.ResumePointType(s.Type),

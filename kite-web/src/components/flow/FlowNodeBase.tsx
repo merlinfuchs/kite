@@ -9,15 +9,18 @@ interface Props extends NodeProps {
   children: ReactNode;
   highlight?: boolean;
   showConnectedMarker?: boolean;
+  color?: string;
 }
 
 export default function FlowNodeBase(props: Props) {
   const {
-    color,
+    color: defaultColor,
     icon: Icon,
     defaultTitle,
     defaultDescription,
   } = useNodeValues(props.type);
+
+  const color = props.color || defaultColor;
 
   return (
     <div

@@ -44,14 +44,26 @@ func TestFlowCompileCommand(t *testing.T) {
 			Name:        "ping",
 			Description: "Pong!",
 		},
+		Children: ConnectedFlowNodes{
+			Handles: make(map[string][]*CompiledFlowNode),
+		},
+		Parents: ConnectedFlowNodes{
+			Handles: make(map[string][]*CompiledFlowNode),
+		},
 	}
 
-	expected.Children = []*CompiledFlowNode{
+	expected.Children.Default = []*CompiledFlowNode{
 		{
 			ID:   "1",
 			Type: FlowNodeTypeActionResponseCreate,
-			Parents: []*CompiledFlowNode{
-				expected,
+			Parents: ConnectedFlowNodes{
+				Default: []*CompiledFlowNode{
+					expected,
+				},
+				Handles: make(map[string][]*CompiledFlowNode),
+			},
+			Children: ConnectedFlowNodes{
+				Handles: make(map[string][]*CompiledFlowNode),
 			},
 			Data: FlowNodeData{
 				MessageData: &message.MessageData{

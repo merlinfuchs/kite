@@ -15,9 +15,11 @@ import MessageComponentButton from "./MessageComponentButton";
 export default function MessageComponentRow({
   rowIndex,
   rowId,
+  disableFlowEditor,
 }: {
   rowIndex: number;
   rowId: number;
+  disableFlowEditor?: boolean;
 }) {
   const rowCount = useCurrentMessage((state) => state.components.length);
   const components = useCurrentMessage(
@@ -89,6 +91,7 @@ export default function MessageComponentRow({
                   rowId={rowId}
                   compIndex={i}
                   compId={id}
+                  disableFlowEditor={disableFlowEditor}
                 ></MessageComponentButton>
               ) : (
                 <div key={id}></div>

@@ -10,6 +10,7 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/api/wire"
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/internal/store"
+	"github.com/kitecloud/kite/kite-service/pkg/message"
 )
 
 func (h *MessageHandler) HandleMessageInstanceList(c *handler.Context) (*wire.MessageInstanceListResponse, error) {
@@ -34,7 +35,7 @@ func (h *MessageHandler) HandleMessageInstanceCreate(c *handler.Context, req wir
 
 	channelID, _ := strconv.ParseUint(req.DiscordChannelID, 10, 64)
 
-	data := c.Message.Data.ToSendMessageData()
+	data := c.Message.Data.ToSendMessageData(message.ConvertOptions{})
 	data.Files, err = h.attachmentsToFiles(c.Context(), c.Message.Data.Attachments)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get attachments: %w", err)
@@ -80,7 +81,7 @@ func (h *MessageHandler) HandleMessageInstanceUpdate(c *handler.Context) (*wire.
 	channelID, _ := strconv.ParseUint(instance.DiscordChannelID, 10, 64)
 	messageID, _ := strconv.ParseUint(instance.DiscordMessageID, 10, 64)
 
-	data := c.Message.Data.ToEditMessageData()
+	data := c.Message.Data.ToEditMessageData(message.ConvertOptions{})
 	data.Attachments = &[]discord.Attachment{}
 	data.Files, err = h.attachmentsToFiles(c.Context(), c.Message.Data.Attachments)
 	if err != nil {

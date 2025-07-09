@@ -25,6 +25,7 @@ import { useAppId } from "@/lib/hooks/params";
 import { getUniqueId } from "@/lib/utils";
 import { useRouter } from "next/router";
 import { setValidationErrors } from "@/lib/form";
+import { getNodeId } from "@/lib/flow/nodes";
 
 interface FormFields {
   name: string;
@@ -142,7 +143,7 @@ function getInitialFlowData(name: string, description: string) {
   return {
     nodes: [
       {
-        id: getUniqueId().toString(),
+        id: getNodeId(),
         position: { x: 0, y: 0 },
         data: { name, description },
         type: "entry_command",

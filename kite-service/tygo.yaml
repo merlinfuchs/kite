@@ -35,6 +35,7 @@ packages:
       json.RawMessage: "Record<string, any> | null"
       manifest.Manifest: "Manifest"
       Base64: "string"
+      message.MessageData: "MessageData"
     exclude_files:
       - "compile.go"
       - "context.go"
@@ -43,6 +44,7 @@ packages:
       - "execute.go"
       - "provider.go"
     frontmatter: |
+      import { MessageData } from './message.gen';
       type StringIndexable = Record<string, unknown>;
   - path: "github.com/kitecloud/kite/kite-service/pkg/message"
     output_path: "../kite-web/src/lib/types/message.gen.ts"

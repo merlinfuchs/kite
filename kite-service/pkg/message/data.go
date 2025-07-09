@@ -1,7 +1,6 @@
 package message
 
 import (
-	"fmt"
 	"time"
 )
 
@@ -70,7 +69,6 @@ func (m *MessageData) EachString(replace func(s *string) error) error {
 				return err
 			}
 
-			fmt.Println()
 			if embed.Image.URL == "" {
 				embed.Image = nil
 			}

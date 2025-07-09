@@ -32,6 +32,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../ui/select";
+import { getNodeId } from "@/lib/flow/nodes";
 
 interface FormFields {
   source: string;
@@ -189,7 +190,7 @@ function getInitialFlowData(type: string, description: string) {
   return {
     nodes: [
       {
-        id: getUniqueId().toString(),
+        id: getNodeId(),
         position: { x: 0, y: 0 },
         data: { event_type: type, description },
         type: "entry_event",
