@@ -6,6 +6,7 @@ import { suspendColor } from "@/lib/flow/nodes";
 import { ComponentData } from "@/lib/types/message.gen";
 import { cn } from "@/lib/utils";
 import { buttonColors } from "../message/MessageComponentButton";
+import { MousePointerClickIcon } from "lucide-react";
 
 export default function FlowNodeActionMessage(props: NodeProps) {
   const messageData = props.data.message_data;
@@ -46,13 +47,18 @@ function ButtonHandle({ comp }: { comp: ComponentData }) {
     return null;
   }
 
+  const color = buttonColors[(comp.style ?? 1) as keyof typeof buttonColors];
+
   return (
     <div className="relative">
       <div
-        className="px-2 shadow-md rounded-md relative max-w-32 min-w-16 text-center h-8 flex items-center justify-center text-white"
-        style={{ backgroundColor: buttonColors[comp.style] }}
+        className="px-2 shadow-md rounded-md relative max-w-32 min-w-16 text-center h-8 flex items-center justify-center text-white gap-2"
+        style={{
+          backgroundColor: color,
+        }}
         key={comp.id}
       >
+        <MousePointerClickIcon className="w-4 h-4" />
         <div className="text-sm truncate">{comp.label}</div>
       </div>
 

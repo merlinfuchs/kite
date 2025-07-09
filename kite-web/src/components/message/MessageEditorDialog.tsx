@@ -65,7 +65,7 @@ function MessageEditorDialogInner({
       const data = messageStore.getState();
       onClose(data);
     },
-    [message]
+    [message, onClose, messageStore]
   );
 
   return (

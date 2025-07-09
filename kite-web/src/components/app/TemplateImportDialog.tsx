@@ -104,7 +104,14 @@ export function TemplateImportDialog({
     }
 
     setDialogOpen(false);
-  }, [template, disabledCommands, disabledEventListeners, inputValues]);
+  }, [
+    template,
+    disabledCommands,
+    disabledEventListeners,
+    inputValues,
+    commandsImportMutation,
+    eventListenersImportMutation,
+  ]);
 
   return (
     <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
