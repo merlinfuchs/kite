@@ -441,14 +441,24 @@ func (n *CompiledFlowNode) FindParentWithID(id string) *CompiledFlowNode {
 	return nil
 }
 
-func (n *CompiledFlowNode) FindChildWithID(nodeID string) *CompiledFlowNode {
+func (n *CompiledFlowNode) FindChildWithID(nodeID string, includeSubFlows bool) *CompiledFlowNode {
 	if n.ID == nodeID {
 		return n
 	}
 
 	for _, child := range n.Children.Default {
-		if node := child.FindChildWithID(nodeID); node != nil {
+		if node := child.FindChildWithID(nodeID, includeSubFlows); node != nil {
 			return node
+		}
+	}
+
+	if includeSubFlows {
+		for _, children := range n.Children.Handles {
+			for _, child := range children {
+				if node := child.FindChildWithID(nodeID, includeSubFlows); node != nil {
+					return node
+				}
+			}
 		}
 	}
 

@@ -189,7 +189,15 @@ func (a *App) HandleEvent(appID string, session *state.State, event gateway.Even
 						return
 					}
 
-					node := command.flow.FindChildWithID(resumePoint.FlowNodeID)
+					node := command.flow.FindChildWithID(resumePoint.FlowNodeID, true)
+					if node == nil {
+						slog.Error(
+							"Failed to find node in flow",
+							slog.String("resume_point_id", resumePointID),
+							slog.String("command_id", resumePoint.CommandID.String),
+						)
+						return
+					}
 
 					go a.stores.executeFlowEvent(
 						context.Background(),
@@ -258,7 +266,15 @@ func (a *App) HandleEvent(appID string, session *state.State, event gateway.Even
 					return
 				}
 
-				node := command.flow.FindChildWithID(resumePoint.FlowNodeID)
+				node := command.flow.FindChildWithID(resumePoint.FlowNodeID, true)
+				if node == nil {
+					slog.Error(
+						"Failed to find node in flow",
+						slog.String("resume_point_id", resumePointID),
+						slog.String("command_id", resumePoint.CommandID.String),
+					)
+					return
+				}
 
 				go a.stores.executeFlowEvent(
 					context.Background(),
@@ -320,7 +336,18 @@ func (a *App) HandleEvent(appID string, session *state.State, event gateway.Even
 					return
 				}
 
-				node := targetFlow.FindChildWithID(resumePoint.FlowNodeID)
+				node := targetFlow.FindChildWithID(resumePoint.FlowNodeID, true)
+				if node == nil {
+					slog.Error(
+						"Failed to find node in flow",
+						slog.String("resume_point_id", resumePointID),
+						slog.String("message_id", resumePoint.MessageID.String),
+						slog.Int64("message_instance_id", resumePoint.MessageInstanceID.Int64),
+						slog.String("flow_source_id", resumePoint.FlowSourceID.String),
+					)
+					return
+				}
+
 				go a.stores.executeFlowEvent(
 					context.Background(),
 					a.id,
