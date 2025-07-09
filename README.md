@@ -39,8 +39,6 @@ You can also set the config values using environment variables. For example `KIT
 Install Docker and docker-compose and create a docker-compose.yaml file with the following contents:
 
 ```yaml
-version: "3.8"
-
 services:
   postgres:
     image: postgres

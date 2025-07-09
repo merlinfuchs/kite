@@ -6,6 +6,8 @@ import (
 	"log/slog"
 	"net/http"
 
+	disapi "github.com/diamondburned/arikawa/v3/api"
+	"github.com/diamondburned/arikawa/v3/utils/httputil"
 	"github.com/kitecloud/kite/kite-service/internal/api"
 	"github.com/kitecloud/kite/kite-service/internal/config"
 	"github.com/kitecloud/kite/kite-service/internal/core/engine"
@@ -40,6 +42,8 @@ func serverStartCMD(c *cli.Context) error {
 	}
 
 	logging.SetupLogger(cfg.Logging)
+
+	patchDiscordProxyURL(cfg)
 
 	pg, err := postgres.New(postgres.BuildConnectionDSN(cfg.Database.Postgres))
 	if err != nil {
@@ -137,4 +141,31 @@ func serverStartCMD(c *cli.Context) error {
 	}
 
 	return nil
+}
+
+func patchDiscordProxyURL(cfg *config.Config) {
+	if cfg.Discord.ProxyURL == "" {
+		return
+	}
+
+	slog.Info("Using Proxy for Discord API", "url", cfg.Discord.ProxyURL)
+
+	httputil.Retries = 10
+
+	disapi.BaseEndpoint = cfg.Discord.ProxyURL
+	disapi.Endpoint = disapi.BaseEndpoint + disapi.Path + "/"
+	disapi.EndpointGateway = disapi.Endpoint + "gateway"
+	disapi.EndpointGatewayBot = disapi.EndpointGateway + "/bot"
+	disapi.EndpointApplications = disapi.Endpoint + "applications/"
+	disapi.EndpointChannels = disapi.Endpoint + "channels/"
+	disapi.EndpointGuilds = disapi.Endpoint + "guilds/"
+	disapi.EndpointUsers = disapi.Endpoint + "users/"
+	disapi.EndpointWebhooks = disapi.Endpoint + "webhooks/"
+	disapi.EndpointInvites = disapi.Endpoint + "invites/"
+	disapi.EndpointInteractions = disapi.Endpoint + "interactions/"
+	disapi.EndpointStageInstances = disapi.Endpoint + "stage-instances/"
+	disapi.EndpointMe = disapi.Endpoint + "users/@me"
+	disapi.EndpointAuth = disapi.Endpoint + "auth/"
+	disapi.EndpointLogin = disapi.EndpointAuth + "login"
+	disapi.EndpointTOTP = disapi.EndpointAuth + "mfa/totp"
 }
