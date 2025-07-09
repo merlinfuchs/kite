@@ -25,5 +25,6 @@ type ResumePoint struct {
 type ResumePointType string
 
 const (
-	ResumePointTypeModal ResumePointType = "modal"
+	ResumePointTypeModal             ResumePointType = "modal"
+	ResumePointTypeMessageComponents ResumePointType = "message_components"
 )

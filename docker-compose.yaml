@@ -27,6 +27,14 @@ services:
     volumes:
       - kite-local-minio:/data
 
+  nirn-proxy:
+    image: ghcr.io/germanoeich/nirn-proxy:main
+    ports:
+      - "8888:8080"
+    environment:
+      - ENABLE_METRICS=false
+      - REQUEST_TIMEOUT=10000
+
 volumes:
   kite-local-postgres:
   kite-local-minio:
