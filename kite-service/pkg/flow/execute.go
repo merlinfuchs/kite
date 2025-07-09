@@ -8,6 +8,7 @@ import (
 	"math/rand"
 	"net/http"
 	"slices"
+	"strings"
 	"time"
 
 	"github.com/diamondburned/arikawa/v3/api"
@@ -60,6 +61,19 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			}
 		}
 
+		if ctx.EntryNodeID == n.ID {
+			err := n.autoDeferInteraction(ctx)
+			if err != nil {
+				return traceError(n, err)
+			}
+
+			data := interaction.Data.(*discord.ButtonInteraction)
+
+			compID := strings.Split(string(data.CustomID), "_")[1]
+
+			return n.ExecuteChildrenByHandle(ctx, "component_"+compID)
+		}
+
 		var data message.MessageData
 		if n.Data.MessageTemplateID != "" {
 			template, err := ctx.MessageTemplate.MessageTemplate(ctx, n.Data.MessageTemplateID)
@@ -97,10 +111,25 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			return traceError(n, err)
 		}
 
+		var suspendPoint *FlowResumePoint
+		if n.Data.MessageTemplateID == "" && len(data.Components) > 0 {
+			suspendPoint, err = ctx.suspend(FlowResumePointTypeMessageComponents, n.ID)
+			if err != nil {
+				return traceError(n, err)
+			}
+		}
+
+		responseData := data.ToInteractionResponseData(message.ConvertOptions{
+			ComponentIDFactory: func(component *message.ComponentData) discord.ComponentID {
+				if suspendPoint != nil {
+					return discord.ComponentID(fmt.Sprintf("resume:%s_%d", suspendPoint.ID, component.ID))
+				}
+				return discord.ComponentID(component.FlowSourceID)
+			},
+		})
+
 		var msg *discord.Message
 		if hasCreatedResponse {
-			responseData := data.ToInteractionResponseData()
-
 			msg, err = ctx.Discord.CreateInteractionFollowup(ctx, interaction.AppID, interaction.Token, responseData)
 			if err != nil {
 				return traceError(n, err)
@@ -108,8 +137,6 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 
 			nodeState.Result = thing.New(msg)
 		} else {
-			responseData := data.ToInteractionResponseData()
-
 			resp := api.InteractionResponse{
 				Type: api.MessageInteractionWithSource,
 				Data: &responseData,
@@ -176,7 +203,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			return traceError(n, err)
 		}
 
-		responseData := data.ToInteractionResponseData()
+		responseData := data.ToInteractionResponseData(message.ConvertOptions{})
 
 		var msg *discord.Message
 		if n.Data.MessageTarget == "" || n.Data.MessageTarget == "@original" {
@@ -376,7 +403,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			return traceError(n, err)
 		}
 
-		messageData := data.ToSendMessageData()
+		messageData := data.ToSendMessageData(message.ConvertOptions{})
 
 		channelTarget, err := ctx.EvalTemplate(n.Data.ChannelTarget)
 		if err != nil {
@@ -446,7 +473,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			return traceError(n, err)
 		}
 
-		messageData := data.ToSendMessageData()
+		messageData := data.ToSendMessageData(message.ConvertOptions{})
 
 		msg, err := ctx.Discord.EditMessage(
 			ctx,
@@ -536,7 +563,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			return traceError(n, err)
 		}
 
-		messageData := data.ToSendMessageData()
+		messageData := data.ToSendMessageData(message.ConvertOptions{})
 
 		userTarget, err := ctx.EvalTemplate(n.Data.UserTarget)
 		if err != nil {
@@ -1218,6 +1245,23 @@ func (n *CompiledFlowNode) CreditsCost() int {
 	}
 
 	return 0
+}
+
+func (n *CompiledFlowNode) ExecuteChildrenByHandle(ctx *FlowContext, handle string) error {
+	children, ok := n.Children.Handles[handle]
+	if !ok {
+		return nil
+	}
+
+	for _, child := range children {
+		// We could spawn a goroutine here to execute children in parallel
+		// but we'll just execute them sequentially for now
+		if err := child.Execute(ctx); err != nil {
+			return traceError(n, err)
+		}
+	}
+
+	return nil
 }
 
 func (n *CompiledFlowNode) ExecuteChildren(ctx *FlowContext) error {

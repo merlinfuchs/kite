@@ -35,7 +35,7 @@ export default function FlowNodeActionResponse(props: NodeProps) {
                 <FlowNodeHandle
                   type="source"
                   position={Position.Bottom}
-                  id={`component_${row.id}_${comp.id}`}
+                  id={`component_${comp.id}`}
                   size="small"
                 />
               </div>

@@ -3,6 +3,7 @@ package engine
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log/slog"
 	"strings"
 	"sync"
@@ -163,6 +164,58 @@ func (a *App) HandleEvent(appID string, session *state.State, event gateway.Even
 				}
 			}
 		case *discord.ButtonInteraction:
+			customID := string(d.CustomID)
+			if strings.HasPrefix(customID, "resume:") {
+				resumeParts := strings.Split(customID[len("resume:"):], "_")
+				if len(resumeParts) != 2 {
+					return
+				}
+
+				resumePointID := resumeParts[0]
+				componentID := resumeParts[1]
+
+				resumePoint, err := a.stores.ResumePointStore.ResumePoint(context.TODO(), resumePointID)
+				if err != nil {
+					if errors.Is(err, store.ErrNotFound) {
+						return
+					}
+
+					slog.Error(
+						"Failed to get resume point",
+						slog.String("resume_point_id", resumePointID),
+						slog.String("error", err.Error()),
+					)
+					return
+				}
+
+				fmt.Println("Resuming flow from message components", resumePointID, componentID)
+
+				if resumePoint.CommandID.Valid {
+					a.RLock()
+					defer a.RUnlock()
+
+					command, ok := a.commands[resumePoint.CommandID.String]
+					if !ok {
+						return
+					}
+
+					node := command.flow.FindChildWithID(resumePoint.FlowNodeID)
+
+					go a.stores.executeFlowEvent(
+						context.Background(),
+						a.id,
+						node,
+						session,
+						event,
+						entityLinks{
+							CommandID: null.NewString(command.cmd.ID, true),
+						},
+						&resumePoint.FlowState,
+					)
+				}
+				return
+			}
+
 			messageID := e.Message.ID.String()
 			messageInstnace, err := a.stores.MessageInstanceStore.MessageInstanceByDiscordMessageID(context.TODO(), messageID)
 			if err != nil {

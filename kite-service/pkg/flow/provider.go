@@ -121,5 +121,6 @@ type FlowResumePoint struct {
 type FlowResumePointType string
 
 const (
-	FlowResumePointTypeModal FlowResumePointType = "modal"
+	FlowResumePointTypeModal             FlowResumePointType = "modal"
+	FlowResumePointTypeMessageComponents FlowResumePointType = "message_components"
 )
