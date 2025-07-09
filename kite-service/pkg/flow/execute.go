@@ -8,7 +8,6 @@ import (
 	"math/rand"
 	"net/http"
 	"slices"
-	"strings"
 	"time"
 
 	"github.com/diamondburned/arikawa/v3/api"
@@ -53,6 +52,10 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 
 		return n.ExecuteChildren(ctx)
 	case FlowNodeTypeActionResponseCreate:
+		if ctx.EntryNodeID == n.ID {
+			return n.resumeFromComponent(ctx)
+		}
+
 		interaction := ctx.Data.Interaction()
 		if interaction == nil {
 			return &FlowError{
@@ -61,47 +64,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			}
 		}
 
-		if ctx.EntryNodeID == n.ID {
-			err := n.autoDeferInteraction(ctx)
-			if err != nil {
-				return traceError(n, err)
-			}
-
-			data := interaction.Data.(*discord.ButtonInteraction)
-
-			compID := strings.Split(string(data.CustomID), "_")[1]
-
-			return n.ExecuteChildrenByHandle(ctx, "component_"+compID)
-		}
-
-		var data message.MessageData
-		if n.Data.MessageTemplateID != "" {
-			template, err := ctx.MessageTemplate.MessageTemplate(ctx, n.Data.MessageTemplateID)
-			if err != nil {
-				return traceError(n, err)
-			}
-			data = *template
-		} else {
-			data = n.Data.MessageData.Copy()
-		}
-
-		if n.Data.MessageEphemeral {
-			data.Flags |= int(discord.EphemeralMessage)
-		}
-
-		err := data.EachString(func(s *string) error {
-			if s == nil {
-				return nil
-			}
-
-			res, err := eval.EvalTemplateToString(ctx, *s, ctx.EvalCtx)
-			if err != nil {
-				return err
-			}
-
-			*s = res
-			return nil
-		})
+		responseData, err := n.prepareMessageResponseData(ctx)
 		if err != nil {
 			return traceError(n, err)
 		}
@@ -110,23 +73,6 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 		if err != nil {
 			return traceError(n, err)
 		}
-
-		var suspendPoint *FlowResumePoint
-		if n.Data.MessageTemplateID == "" && len(data.Components) > 0 {
-			suspendPoint, err = ctx.suspend(FlowResumePointTypeMessageComponents, n.ID)
-			if err != nil {
-				return traceError(n, err)
-			}
-		}
-
-		responseData := data.ToInteractionResponseData(message.ConvertOptions{
-			ComponentIDFactory: func(component *message.ComponentData) discord.ComponentID {
-				if suspendPoint != nil {
-					return discord.ComponentID(fmt.Sprintf("resume:%s_%d", suspendPoint.ID, component.ID))
-				}
-				return discord.ComponentID(component.FlowSourceID)
-			},
-		})
 
 		var msg *discord.Message
 		if hasCreatedResponse {
@@ -167,6 +113,10 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 
 		return n.ExecuteChildren(ctx)
 	case FlowNodeTypeActionResponseEdit:
+		if ctx.EntryNodeID == n.ID {
+			return n.resumeFromComponent(ctx)
+		}
+
 		interaction := ctx.Data.Interaction()
 		if interaction == nil {
 			return &FlowError{
@@ -175,35 +125,10 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			}
 		}
 
-		var data message.MessageData
-		if n.Data.MessageTemplateID != "" {
-			template, err := ctx.MessageTemplate.MessageTemplate(ctx, n.Data.MessageTemplateID)
-			if err != nil {
-				return traceError(n, err)
-			}
-			data = *template
-		} else {
-			data = n.Data.MessageData.Copy()
-		}
-
-		err := data.EachString(func(s *string) error {
-			if s == nil {
-				return nil
-			}
-
-			res, err := eval.EvalTemplateToString(ctx, *s, ctx.EvalCtx)
-			if err != nil {
-				return err
-			}
-
-			*s = res
-			return nil
-		})
+		responseData, err := n.prepareMessageResponseData(ctx)
 		if err != nil {
 			return traceError(n, err)
 		}
-
-		responseData := data.ToInteractionResponseData(message.ConvertOptions{})
 
 		var msg *discord.Message
 		if n.Data.MessageTarget == "" || n.Data.MessageTarget == "@original" {
@@ -358,7 +283,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 		resp := api.InteractionResponse{
 			Type: api.ModalResponse,
 			Data: &api.InteractionResponseData{
-				CustomID:   option.NewNullableString("resume:" + resumePoint.ID),
+				CustomID:   option.NewNullableString(message.CustomIDModalResumePoint(resumePoint.ID)),
 				Title:      option.NewNullableString(n.Data.ModalData.Title),
 				Components: &componentRows,
 			},
@@ -371,39 +296,14 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 
 		return traceError(n, nil)
 	case FlowNodeTypeActionMessageCreate:
-		var data message.MessageData
-		if n.Data.MessageTemplateID != "" {
-			template, err := ctx.MessageTemplate.MessageTemplate(ctx, n.Data.MessageTemplateID)
-			if err != nil {
-				return traceError(n, err)
-			}
-			data = *template
-		} else {
-			data = n.Data.MessageData.Copy()
+		if ctx.EntryNodeID == n.ID {
+			return n.resumeFromComponent(ctx)
 		}
 
-		if n.Data.MessageEphemeral {
-			data.Flags |= int(discord.EphemeralMessage)
-		}
-
-		err := data.EachString(func(s *string) error {
-			if s == nil {
-				return nil
-			}
-
-			res, err := eval.EvalTemplateToString(ctx, *s, ctx.EvalCtx)
-			if err != nil {
-				return err
-			}
-
-			*s = res
-			return nil
-		})
+		messageData, err := n.prepareMessageSendData(ctx)
 		if err != nil {
 			return traceError(n, err)
 		}
-
-		messageData := data.ToSendMessageData(message.ConvertOptions{})
 
 		channelTarget, err := ctx.EvalTemplate(n.Data.ChannelTarget)
 		if err != nil {
@@ -431,6 +331,10 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 		nodeState.Result = thing.New(msg)
 		return n.ExecuteChildren(ctx)
 	case FlowNodeTypeActionMessageEdit:
+		if ctx.EntryNodeID == n.ID {
+			return n.resumeFromComponent(ctx)
+		}
+
 		channelTarget, err := ctx.EvalTemplate(n.Data.ChannelTarget)
 		if err != nil {
 			return traceError(n, err)
@@ -441,39 +345,10 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			return traceError(n, err)
 		}
 
-		var data message.MessageData
-		if n.Data.MessageTemplateID != "" {
-			template, err := ctx.MessageTemplate.MessageTemplate(ctx, n.Data.MessageTemplateID)
-			if err != nil {
-				return traceError(n, err)
-			}
-			data = *template
-		} else {
-			data = n.Data.MessageData.Copy()
-		}
-
-		if n.Data.MessageEphemeral {
-			data.Flags |= int(discord.EphemeralMessage)
-		}
-
-		err = data.EachString(func(s *string) error {
-			if s == nil {
-				return nil
-			}
-
-			res, err := eval.EvalTemplateToString(ctx, *s, ctx.EvalCtx)
-			if err != nil {
-				return err
-			}
-
-			*s = res
-			return nil
-		})
+		messageData, err := n.prepareMessageSendData(ctx)
 		if err != nil {
 			return traceError(n, err)
 		}
-
-		messageData := data.ToSendMessageData(message.ConvertOptions{})
 
 		msg, err := ctx.Discord.EditMessage(
 			ctx,
@@ -531,39 +406,14 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 
 		return n.ExecuteChildren(ctx)
 	case FlowNodeTypeActionPrivateMessageCreate:
-		var data message.MessageData
-		if n.Data.MessageTemplateID != "" {
-			template, err := ctx.MessageTemplate.MessageTemplate(ctx, n.Data.MessageTemplateID)
-			if err != nil {
-				return traceError(n, err)
-			}
-			data = *template
-		} else {
-			data = n.Data.MessageData.Copy()
+		if ctx.EntryNodeID == n.ID {
+			return n.resumeFromComponent(ctx)
 		}
 
-		if n.Data.MessageEphemeral {
-			data.Flags |= int(discord.EphemeralMessage)
-		}
-
-		err := data.EachString(func(s *string) error {
-			if s == nil {
-				return nil
-			}
-
-			res, err := eval.EvalTemplateToString(ctx, *s, ctx.EvalCtx)
-			if err != nil {
-				return err
-			}
-
-			*s = res
-			return nil
-		})
+		messageData, err := n.prepareMessageSendData(ctx)
 		if err != nil {
 			return traceError(n, err)
 		}
-
-		messageData := data.ToSendMessageData(message.ConvertOptions{})
 
 		userTarget, err := ctx.EvalTemplate(n.Data.UserTarget)
 		if err != nil {
@@ -1293,6 +1143,120 @@ func (n *CompiledFlowNode) autoDeferInteraction(ctx *FlowContext) error {
 
 	go ctx.Discord.AutoDeferInteraction(ctx, interaction.ID, interaction.Token, responseFlags)
 	return nil
+}
+
+func (n *CompiledFlowNode) resumeFromComponent(ctx *FlowContext) error {
+	interaction := ctx.Data.Interaction()
+	if interaction == nil {
+		return &FlowError{
+			Code:    FlowNodeErrorUnknown,
+			Message: "interaction is nil",
+		}
+	}
+
+	err := n.autoDeferInteraction(ctx)
+	if err != nil {
+		return traceError(n, err)
+	}
+
+	data := interaction.Data.(*discord.ButtonInteraction)
+	_, compID, ok := message.DecodeCustomIDMessageComponentResumePoint(string(data.CustomID))
+	if !ok {
+		return &FlowError{
+			Code:    FlowNodeErrorUnknown,
+			Message: "invalid custom ID",
+		}
+	}
+
+	return n.ExecuteChildrenByHandle(ctx, fmt.Sprintf("component_%d", compID))
+}
+
+func (n *CompiledFlowNode) prepareMessageData(ctx *FlowContext) (message.MessageData, error) {
+	var data message.MessageData
+	if n.Data.MessageTemplateID != "" {
+		template, err := ctx.MessageTemplate.MessageTemplate(ctx, n.Data.MessageTemplateID)
+		if err != nil {
+			return message.MessageData{}, err
+		}
+		data = *template
+	} else {
+		data = n.Data.MessageData.Copy()
+	}
+
+	if n.Data.MessageEphemeral {
+		data.Flags |= int(discord.EphemeralMessage)
+	}
+
+	err := data.EachString(func(s *string) error {
+		if s == nil {
+			return nil
+		}
+
+		res, err := eval.EvalTemplateToString(ctx, *s, ctx.EvalCtx)
+		if err != nil {
+			return err
+		}
+
+		*s = res
+		return nil
+	})
+	if err != nil {
+		return message.MessageData{}, err
+	}
+
+	return data, nil
+}
+
+func (n *CompiledFlowNode) prepareMessageResponseData(ctx *FlowContext) (api.InteractionResponseData, error) {
+	data, err := n.prepareMessageData(ctx)
+	if err != nil {
+		return api.InteractionResponseData{}, err
+	}
+
+	var resumePoint *FlowResumePoint
+	if n.Data.MessageTemplateID == "" && len(data.Components) > 0 {
+		resumePoint, err = ctx.suspend(FlowResumePointTypeMessageComponents, n.ID)
+		if err != nil {
+			return api.InteractionResponseData{}, err
+		}
+	}
+
+	responseData := data.ToInteractionResponseData(message.ConvertOptions{
+		ComponentIDFactory: func(component *message.ComponentData) discord.ComponentID {
+			if resumePoint != nil {
+				return discord.ComponentID(message.CustomIDMessageComponentResumePoint(resumePoint.ID, component.ID))
+			}
+			return discord.ComponentID(component.FlowSourceID)
+		},
+	})
+
+	return responseData, nil
+}
+
+func (n *CompiledFlowNode) prepareMessageSendData(ctx *FlowContext) (api.SendMessageData, error) {
+	data, err := n.prepareMessageData(ctx)
+	if err != nil {
+		return api.SendMessageData{}, err
+	}
+
+	var resumePoint *FlowResumePoint
+	if n.Data.MessageTemplateID == "" && len(data.Components) > 0 {
+		resumePoint, err = ctx.suspend(FlowResumePointTypeMessageComponents, n.ID)
+		if err != nil {
+			return api.SendMessageData{}, err
+		}
+	}
+
+	sendData := data.ToSendMessageData(message.ConvertOptions{
+		ComponentIDFactory: func(component *message.ComponentData) discord.ComponentID {
+			if resumePoint != nil {
+				return discord.ComponentID(message.CustomIDMessageComponentResumePoint(resumePoint.ID, component.ID))
+			}
+			return discord.ComponentID(component.FlowSourceID)
+		},
+	})
+
+	return sendData, nil
 }
 
 type RolesCastable interface {

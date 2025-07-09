@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
-	"strings"
 	"sync"
 	"time"
 
@@ -14,6 +13,7 @@ import (
 	"github.com/diamondburned/arikawa/v3/state"
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/internal/store"
+	"github.com/kitecloud/kite/kite-service/pkg/message"
 	"gopkg.in/guregu/null.v4"
 )
 
@@ -165,15 +165,8 @@ func (a *App) HandleEvent(appID string, session *state.State, event gateway.Even
 			}
 		case *discord.ButtonInteraction:
 			customID := string(d.CustomID)
-			if strings.HasPrefix(customID, "resume:") {
-				resumeParts := strings.Split(customID[len("resume:"):], "_")
-				if len(resumeParts) != 2 {
-					return
-				}
-
-				resumePointID := resumeParts[0]
-				componentID := resumeParts[1]
-
+			resumePointID, componentID, isResume := message.DecodeCustomIDMessageComponentResumePoint(customID)
+			if isResume {
 				resumePoint, err := a.stores.ResumePointStore.ResumePoint(context.TODO(), resumePointID)
 				if err != nil {
 					if errors.Is(err, store.ErrNotFound) {
@@ -240,11 +233,11 @@ func (a *App) HandleEvent(appID string, session *state.State, event gateway.Even
 			go instance.HandleEvent(appID, session, event)
 		case *discord.ModalInteraction:
 			customID := string(d.CustomID)
-			if !strings.HasPrefix(customID, "resume:") {
+			resumePointID, ok := message.DecodeCustomIDModalResumePoint(customID)
+			if !ok {
 				return
 			}
 
-			resumePointID := customID[len("resume:"):]
 			resumePoint, err := a.stores.ResumePointStore.ResumePoint(context.TODO(), resumePointID)
 			if err != nil {
 				if errors.Is(err, store.ErrNotFound) {
