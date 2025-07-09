@@ -907,7 +907,12 @@ function MessageDataInput({ data, updateData, errors }: InputProps) {
         description="Edit the text response here or click below to have a full message editor. Use a message template if you want interactive components."
         value={data.message_data?.content || ""}
         updateValue={(v) =>
-          updateData({ message_data: v ? { content: v } : undefined })
+          updateData({
+            message_data: {
+              ...data.message_data,
+              content: v || undefined,
+            },
+          })
         }
         errors={errors}
         placeholders

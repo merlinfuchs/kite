@@ -54,7 +54,7 @@ export default function PlaceholderExplorer({
   }, [placeholders]);
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover open={open} onOpenChange={setOpen} modal>
       <PopoverTrigger asChild>{children}</PopoverTrigger>
       <PopoverContent className="w-[350px] p-0">
         <Command>
