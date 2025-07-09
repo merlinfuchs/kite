@@ -207,7 +207,7 @@ func (s Env) recoverPanic(appID string, links entityLinks) {
 			With("message_id", links.MessageID.String).
 			With("event_listener_id", links.EventListenerID.String).
 			Error("Recovered from panic in engine handler")
-		fmt.Println(string(debug.Stack()))
+		fmt.Println(fmt.Sprintf("%s", r), "\n", string(debug.Stack()))
 
 		s.createLogEntry(
 			appID,

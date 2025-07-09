@@ -2,6 +2,7 @@ package plan
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"strconv"
@@ -9,6 +10,7 @@ import (
 
 	"github.com/diamondburned/arikawa/v3/api"
 	"github.com/diamondburned/arikawa/v3/discord"
+	"github.com/diamondburned/arikawa/v3/utils/httputil"
 )
 
 func (m *PlanManager) Run(ctx context.Context) {
@@ -107,12 +109,14 @@ func (m *PlanManager) handOutRoles(ctx context.Context) error {
 			},
 		)
 		if err != nil {
-			// TODO: ignore member not found error
-			slog.Error(
-				"Failed to add role",
-				slog.String("error", err.Error()),
-				slog.String("subscription_id", sub.ID),
-			)
+			var dErr *httputil.HTTPError
+			if !errors.As(err, &dErr) || dErr.Status != 404 {
+				slog.Error(
+					"Failed to add role",
+					slog.String("error", err.Error()),
+					slog.String("subscription_id", sub.ID),
+				)
+			}
 			continue
 		}
 	}

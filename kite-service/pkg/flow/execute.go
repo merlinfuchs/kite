@@ -21,6 +21,11 @@ import (
 )
 
 func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
+	if n == nil {
+		// TODO: Figure out why nodes are some times nil, this is probably a bug in the compiler?
+		return fmt.Errorf("node is nil")
+	}
+
 	if err := ctx.startOperation(n.CreditsCost()); err != nil {
 		return traceError(n, err)
 	}

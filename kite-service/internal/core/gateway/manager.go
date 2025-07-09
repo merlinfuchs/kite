@@ -138,7 +138,7 @@ func (m *GatewayManager) addGateway(ctx context.Context, app *model.App) error {
 	if g, ok := m.gateways[app.ID]; ok {
 		// Some times arikawa fails to keep the gateway alive, so we need to
 		// re-add it.
-		if g.session.Gateway() == nil {
+		if !g.session.GatewayIsAlive() {
 			g.Close()
 			delete(m.gateways, app.ID)
 
