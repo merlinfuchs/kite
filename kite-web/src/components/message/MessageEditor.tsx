@@ -6,9 +6,9 @@ import MessageValidator from "./MessageValidator";
 import MessageComponentsSection from "./MessageComponentsSection";
 
 export default function MessageEditor({
-  disableComponents,
+  disableFlowEditor,
 }: {
-  disableComponents?: boolean;
+  disableFlowEditor?: boolean;
 }) {
   return (
     <div className="space-y-8">
@@ -17,7 +17,7 @@ export default function MessageEditor({
 
       <MessageAttachmentSection />
       <MessageEmbedSection />
-      {!disableComponents && <MessageComponentsSection />}
+      <MessageComponentsSection disableFlowEditor={disableFlowEditor} />
 
       <MessageValidator />
     </div>

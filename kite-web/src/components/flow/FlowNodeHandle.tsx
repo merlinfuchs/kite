@@ -8,6 +8,7 @@ interface Props {
   color?: string;
   isConnectable?: boolean;
   size?: "small" | "medium" | "large";
+  id?: string;
 }
 
 export default function FlowNodeHandle({
@@ -16,6 +17,7 @@ export default function FlowNodeHandle({
   color,
   isConnectable,
   size = "medium",
+  id,
 }: Props) {
   const sizeMap = {
     small: "10px",
@@ -25,6 +27,7 @@ export default function FlowNodeHandle({
 
   return (
     <Handle
+      id={id}
       type={type}
       position={position}
       isConnectable={isConnectable}
@@ -33,9 +36,9 @@ export default function FlowNodeHandle({
         backgroundColor: color ?? primaryColor,
         translate:
           position === Position.Top
-            ? "0 -4px"
+            ? "0 -3px"
             : position === Position.Bottom
-            ? "0 4px"
+            ? "0 3px"
             : position === Position.Left
             ? "-2px 0"
             : "2px 0",

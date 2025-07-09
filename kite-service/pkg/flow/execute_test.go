@@ -22,28 +22,34 @@ var flowCommandTest = CompiledFlowNode{
 		Name:        "ping",
 		Description: "Pong!",
 	},
-	Children: []*CompiledFlowNode{
-		{
-			ID:   "1",
-			Type: FlowNodeTypeControlConditionCompare,
-			Data: FlowNodeData{
-				ConditionBaseValue: "null",
-			},
-			Children: []*CompiledFlowNode{
-				{
-					ID:   "2",
-					Type: FlowNodeTypeControlConditionItemCompare,
-					Data: FlowNodeData{
-						ConditionItemMode:  ConditionItemModeEqual,
-						ConditionItemValue: "null",
-					},
-					Children: []*CompiledFlowNode{
+	Children: ConnectedFlowNodes{
+		Default: []*CompiledFlowNode{
+			{
+				ID:   "1",
+				Type: FlowNodeTypeControlConditionCompare,
+				Data: FlowNodeData{
+					ConditionBaseValue: "null",
+				},
+				Children: ConnectedFlowNodes{
+					Default: []*CompiledFlowNode{
 						{
-							ID:   "3",
-							Type: FlowNodeTypeActionResponseCreate,
+							ID:   "2",
+							Type: FlowNodeTypeControlConditionItemCompare,
 							Data: FlowNodeData{
-								MessageData: &message.MessageData{
-									Content: "Pong!",
+								ConditionItemMode:  ConditionItemModeEqual,
+								ConditionItemValue: "null",
+							},
+							Children: ConnectedFlowNodes{
+								Default: []*CompiledFlowNode{
+									{
+										ID:   "3",
+										Type: FlowNodeTypeActionResponseCreate,
+										Data: FlowNodeData{
+											MessageData: &message.MessageData{
+												Content: "Pong!",
+											},
+										},
+									},
 								},
 							},
 						},
@@ -55,8 +61,8 @@ var flowCommandTest = CompiledFlowNode{
 }
 
 func init() {
-	flowCommandTest.Children[0].Children[0].Parents = []*CompiledFlowNode{
-		flowCommandTest.Children[0],
+	flowCommandTest.Children.Default[0].Children.Default[0].Parents.Default = []*CompiledFlowNode{
+		flowCommandTest.Children.Default[0],
 	}
 }
 

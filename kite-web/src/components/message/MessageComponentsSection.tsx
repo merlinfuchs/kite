@@ -6,7 +6,11 @@ import { getUniqueId } from "@/lib/utils";
 import { useCallback } from "react";
 import MessageComponentRow from "./MessageComponentRow";
 
-export default function MessageComponentsSection() {
+export default function MessageComponentsSection({
+  disableFlowEditor,
+}: {
+  disableFlowEditor?: boolean;
+}) {
   const components = useCurrentMessage(
     useShallow((state) => state.components.map((e) => e.id))
   );
@@ -46,7 +50,12 @@ export default function MessageComponentsSection() {
       className="space-y-4"
     >
       {components.map((id, i) => (
-        <MessageComponentRow key={id} rowIndex={i} rowId={id} />
+        <MessageComponentRow
+          key={id}
+          rowIndex={i}
+          rowId={id}
+          disableFlowEditor={disableFlowEditor}
+        />
       ))}
       <div className="space-x-3">
         <Button onClick={addButtonRow}>Add Button Row</Button>

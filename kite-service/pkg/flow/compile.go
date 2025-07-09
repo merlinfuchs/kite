@@ -30,6 +30,12 @@ func compile(data FlowData, entryType FlowNodeType) (*CompiledFlowNode, error) {
 			ID:   node.ID,
 			Type: node.Type,
 			Data: node.Data,
+			Parents: ConnectedFlowNodes{
+				Handles: make(map[string][]*CompiledFlowNode),
+			},
+			Children: ConnectedFlowNodes{
+				Handles: make(map[string][]*CompiledFlowNode),
+			},
 		}
 		nodeMap[node.ID] = compiledNode
 
@@ -53,8 +59,29 @@ func compile(data FlowData, entryType FlowNodeType) (*CompiledFlowNode, error) {
 			continue
 		}
 
-		parent.Children = append(parent.Children, child)
-		child.Parents = append(child.Parents, parent)
+		if edge.SourceHandle == "" {
+			parent.Children.Default = append(parent.Children.Default, child)
+		} else {
+			if _, ok := parent.Children.Handles[edge.SourceHandle]; !ok {
+				parent.Children.Handles[edge.SourceHandle] = []*CompiledFlowNode{
+					child,
+				}
+			} else {
+				parent.Children.Handles[edge.SourceHandle] = append(parent.Children.Handles[edge.SourceHandle], child)
+			}
+		}
+
+		if edge.TargetHandle == "" {
+			child.Parents.Default = append(child.Parents.Default, parent)
+		} else {
+			if _, ok := child.Parents.Handles[edge.TargetHandle]; !ok {
+				child.Parents.Handles[edge.TargetHandle] = []*CompiledFlowNode{
+					parent,
+				}
+			} else {
+				child.Parents.Handles[edge.TargetHandle] = append(child.Parents.Handles[edge.TargetHandle], parent)
+			}
+		}
 	}
 
 	return entryNode, nil
@@ -64,8 +91,13 @@ type CompiledFlowNode struct {
 	ID       string
 	Type     FlowNodeType
 	Data     FlowNodeData
-	Parents  []*CompiledFlowNode
-	Children []*CompiledFlowNode
+	Parents  ConnectedFlowNodes
+	Children ConnectedFlowNodes
+}
+
+type ConnectedFlowNodes struct {
+	Default []*CompiledFlowNode
+	Handles map[string][]*CompiledFlowNode
 }
 
 func (n *CompiledFlowNode) IsEntry() bool {
@@ -160,7 +192,7 @@ func (n *CompiledFlowNode) CommandDescription() string {
 
 func (n *CompiledFlowNode) CommandArguments() discord.CommandOptions {
 	res := make(discord.CommandOptions, 0)
-	for _, node := range n.Parents {
+	for _, node := range n.Parents.Default {
 		if node.IsCommandArgument() {
 			var o discord.CommandOption
 
@@ -236,7 +268,7 @@ func (n *CompiledFlowNode) CommandArguments() discord.CommandOptions {
 }
 
 func (n *CompiledFlowNode) CommandPermissions() *discord.Permissions {
-	for _, node := range n.Parents {
+	for _, node := range n.Parents.Default {
 		if node.IsCommandPermissions() {
 			raw, _ := strconv.ParseInt(node.Data.CommandPermissions, 10, 64)
 			res := discord.Permissions(raw)
@@ -252,7 +284,7 @@ func (n *CompiledFlowNode) CommandContexts() []discord.InteractionContext {
 	// True when disabled
 	var guild, botDM, privateChannel bool
 
-	for _, node := range n.Parents {
+	for _, node := range n.Parents.Default {
 		if node.IsCommandContexts() {
 			for _, ctx := range node.Data.CommandDisabledContexts {
 				switch ctx {
@@ -285,7 +317,7 @@ func (n *CompiledFlowNode) CommandIntegrations() []discord.ApplicationIntegratio
 	// True when disabled
 	var guild, user bool
 
-	for _, node := range n.Parents {
+	for _, node := range n.Parents.Default {
 		if node.IsCommandContexts() {
 			for _, integration := range node.Data.CommandDisabledIntegrations {
 				switch integration {
@@ -336,7 +368,7 @@ func (n *CompiledFlowNode) IsAction() bool {
 
 func (n *CompiledFlowNode) FindDirectParentWithType(types ...FlowNodeType) *CompiledFlowNode {
 	for _, t := range types {
-		for _, node := range n.Parents {
+		for _, node := range n.Parents.Default {
 			if node.Type == t {
 				return node
 			}
@@ -349,7 +381,7 @@ func (n *CompiledFlowNode) FindDirectParentWithType(types ...FlowNodeType) *Comp
 func (n *CompiledFlowNode) FindAllParentsWithType(t FlowNodeType) []*CompiledFlowNode {
 	res := make([]*CompiledFlowNode, 0)
 
-	for _, node := range n.Parents {
+	for _, node := range n.Parents.Default {
 		if node.Type == t {
 			res = append(res, node)
 		}
@@ -363,7 +395,7 @@ func (n *CompiledFlowNode) FindAllParentsWithType(t FlowNodeType) []*CompiledFlo
 
 func (n *CompiledFlowNode) FindDirectChildWithType(types ...FlowNodeType) *CompiledFlowNode {
 	for _, t := range types {
-		for _, node := range n.Children {
+		for _, node := range n.Children.Default {
 			if node.Type == t {
 				return node
 			}
@@ -375,7 +407,7 @@ func (n *CompiledFlowNode) FindDirectChildWithType(types ...FlowNodeType) *Compi
 
 func (n *CompiledFlowNode) FindChildWithType(types ...FlowNodeType) *CompiledFlowNode {
 	// We first want to check all direct children
-	for _, node := range n.Children {
+	for _, node := range n.Children.Default {
 		for _, t := range types {
 			if node.Type == t {
 				return node
@@ -384,7 +416,7 @@ func (n *CompiledFlowNode) FindChildWithType(types ...FlowNodeType) *CompiledFlo
 	}
 
 	// If no direct children are found, we want to check all children recursively
-	for _, node := range n.Children {
+	for _, node := range n.Children.Default {
 		child := node.FindChildWithType(types...)
 		if child != nil {
 			return child
@@ -395,7 +427,7 @@ func (n *CompiledFlowNode) FindChildWithType(types ...FlowNodeType) *CompiledFlo
 }
 
 func (n *CompiledFlowNode) FindParentWithID(id string) *CompiledFlowNode {
-	for _, node := range n.Parents {
+	for _, node := range n.Parents.Default {
 		if node.ID == id {
 			return node
 		}
@@ -414,7 +446,7 @@ func (n *CompiledFlowNode) FindChildWithID(nodeID string) *CompiledFlowNode {
 		return n
 	}
 
-	for _, child := range n.Children {
+	for _, child := range n.Children.Default {
 		if node := child.FindChildWithID(nodeID); node != nil {
 			return node
 		}

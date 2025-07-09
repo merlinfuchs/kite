@@ -10,9 +10,22 @@ func (m *MessageData) Copy() MessageData {
 		embeds[i] = embed.Copy()
 	}
 
+	components := make([]ComponentRowData, len(m.Components))
+	for i, component := range m.Components {
+		components[i] = component.Copy()
+	}
+
+	attachments := make([]MessageAttachment, len(m.Attachments))
+	for i, attachment := range m.Attachments {
+		attachments[i] = attachment.Copy()
+	}
+
 	return MessageData{
-		Content: m.Content,
-		Embeds:  embeds,
+		Content:     m.Content,
+		Flags:       m.Flags,
+		Embeds:      embeds,
+		Attachments: attachments,
+		Components:  components,
 	}
 }
 
@@ -83,5 +96,83 @@ func (a *EmbedAuthorData) Copy() *EmbedAuthorData {
 		Name:    a.Name,
 		URL:     a.URL,
 		IconURL: a.IconURL,
+	}
+}
+
+func (c ComponentRowData) Copy() ComponentRowData {
+	components := make([]ComponentData, len(c.Components))
+	for i, component := range c.Components {
+		components[i] = component.Copy()
+	}
+
+	return ComponentRowData{
+		ID:         c.ID,
+		Components: components,
+	}
+}
+
+/*
+Style int                 `json:"style,omitempty"`
+	Label string              `json:"label,omitempty"`
+	Emoji *ComponentEmojiData `json:"emoji,omitempty"`
+	URL   string              `json:"url,omitempty"`
+
+	// Select Menu
+	Placeholder string                      `json:"placeholder,omitempty"`
+	MinValues   int                         `json:"min_values,omitempty"`
+	MaxValues   int                         `json:"max_values,omitempty"`
+	Options     []ComponentSelectOptionData `json:"options,omitempty"`
+
+	FlowSourceID string `json:"flow_source_id,omitempty"`
+*/
+
+func (c ComponentData) Copy() ComponentData {
+	options := make([]ComponentSelectOptionData, len(c.Options))
+	for i, option := range c.Options {
+		options[i] = option.Copy()
+	}
+
+	return ComponentData{
+		ID:           c.ID,
+		Type:         c.Type,
+		Disabled:     c.Disabled,
+		Style:        c.Style,
+		Label:        c.Label,
+		Emoji:        c.Emoji.Copy(),
+		URL:          c.URL,
+		Placeholder:  c.Placeholder,
+		MinValues:    c.MinValues,
+		MaxValues:    c.MaxValues,
+		Options:      options,
+		FlowSourceID: c.FlowSourceID,
+	}
+}
+
+func (c *ComponentEmojiData) Copy() *ComponentEmojiData {
+	if c == nil {
+		return nil
+	}
+
+	return &ComponentEmojiData{
+		Name:     c.Name,
+		ID:       c.ID,
+		Animated: c.Animated,
+	}
+}
+
+func (c ComponentSelectOptionData) Copy() ComponentSelectOptionData {
+	return ComponentSelectOptionData{
+		ID:           c.ID,
+		Label:        c.Label,
+		Description:  c.Description,
+		Emoji:        c.Emoji.Copy(),
+		Default:      c.Default,
+		FlowSourceID: c.FlowSourceID,
+	}
+}
+
+func (c MessageAttachment) Copy() MessageAttachment {
+	return MessageAttachment{
+		AssetID: c.AssetID,
 	}
 }

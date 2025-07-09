@@ -17,6 +17,7 @@ import FlowNodeConditionRole from "@/components/flow/FlowNodeConditionRole";
 import FlowNodeControlSleep from "@/components/flow/FlowNodeControlSleep";
 import FlowNodeEntryComponentButton from "@/components/flow/FlowNodeEntryComponentButton";
 import FlowNodeSuspendBase from "@/components/flow/FlowNodeSuspendBase";
+import FlowNodeActionResponse from "@/components/flow/FlowNodeActionResponse";
 
 export const nodeTypes = {
   entry_command: FlowNodeEntryCommand,
@@ -28,8 +29,8 @@ export const nodeTypes = {
   option_command_contexts: FlowNodeOptionBase,
   option_event_filter: FlowNodeOptionBase,
 
-  action_response_create: FlowNodeActionBase,
-  action_response_edit: FlowNodeActionBase,
+  action_response_create: FlowNodeActionResponse,
+  action_response_edit: FlowNodeActionResponse,
   action_response_delete: FlowNodeActionBase,
   action_response_defer: FlowNodeActionBase,
   action_message_create: FlowNodeActionBase,

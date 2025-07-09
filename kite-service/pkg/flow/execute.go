@@ -968,7 +968,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 
 		var elseNode *CompiledFlowNode
 
-		for _, child := range n.Children {
+		for _, child := range n.Children.Default {
 			if child.Type == FlowNodeTypeControlConditionItemElse {
 				elseNode = child
 			} else {
@@ -1221,7 +1221,7 @@ func (n *CompiledFlowNode) CreditsCost() int {
 }
 
 func (n *CompiledFlowNode) ExecuteChildren(ctx *FlowContext) error {
-	for _, child := range n.Children {
+	for _, child := range n.Children.Default {
 		// We could spawn a goroutine here to execute children in parallel
 		// but we'll just execute them sequentially for now
 		if err := child.Execute(ctx); err != nil {

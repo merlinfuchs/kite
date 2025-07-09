@@ -356,10 +356,12 @@ type FlowNodePosition struct {
 }
 
 type FlowEdge struct {
-	ID     string `json:"id"`
-	Type   string `json:"type,omitempty"`
-	Source string `json:"source"`
-	Target string `json:"target"`
+	ID           string `json:"id"`
+	Type         string `json:"type,omitempty"`
+	Source       string `json:"source"`
+	Target       string `json:"target"`
+	SourceHandle string `json:"sourceHandle,omitempty"`
+	TargetHandle string `json:"targetHandle,omitempty"`
 }
 
 func (e FlowEdge) Validate() error {
