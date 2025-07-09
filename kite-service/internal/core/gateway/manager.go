@@ -140,9 +140,9 @@ func (m *GatewayManager) addGateway(ctx context.Context, app *model.App) error {
 		// re-add it.
 		if !g.session.GatewayIsAlive() {
 			g.Close()
-			delete(m.gateways, app.ID)
 
-			return m.addGateway(ctx, app)
+			g := NewGateway(app, m.logStore, m.appStore, m.planManager, m.eventHandler)
+			m.gateways[app.ID] = g
 		}
 
 		go g.Update(ctx, app)

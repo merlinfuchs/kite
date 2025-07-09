@@ -68,7 +68,8 @@ type DiscordConfig struct {
 	// BotToken is used to hand out roles to users
 	BotToken string `toml:"bot_token"`
 	// GuildID is the ID of the guild to hand out roles to users
-	GuildID string `toml:"guild_id"`
+	GuildID  string `toml:"guild_id"`
+	ProxyURL string `toml:"proxy_url"`
 }
 
 type EngineConfig struct {
