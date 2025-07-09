@@ -111,21 +111,6 @@ func (c ComponentRowData) Copy() ComponentRowData {
 	}
 }
 
-/*
-Style int                 `json:"style,omitempty"`
-	Label string              `json:"label,omitempty"`
-	Emoji *ComponentEmojiData `json:"emoji,omitempty"`
-	URL   string              `json:"url,omitempty"`
-
-	// Select Menu
-	Placeholder string                      `json:"placeholder,omitempty"`
-	MinValues   int                         `json:"min_values,omitempty"`
-	MaxValues   int                         `json:"max_values,omitempty"`
-	Options     []ComponentSelectOptionData `json:"options,omitempty"`
-
-	FlowSourceID string `json:"flow_source_id,omitempty"`
-*/
-
 func (c ComponentData) Copy() ComponentData {
 	options := make([]ComponentSelectOptionData, len(c.Options))
 	for i, option := range c.Options {
