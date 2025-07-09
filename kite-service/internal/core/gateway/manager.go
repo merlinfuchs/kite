@@ -145,7 +145,7 @@ func (m *GatewayManager) addGateway(ctx context.Context, app *model.App) error {
 			return m.addGateway(ctx, app)
 		}
 
-		g.Update(ctx, app)
+		go g.Update(ctx, app)
 	} else {
 		g := NewGateway(app, m.logStore, m.appStore, m.planManager, m.eventHandler)
 		m.gateways[app.ID] = g

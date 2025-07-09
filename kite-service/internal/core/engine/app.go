@@ -42,9 +42,6 @@ func NewApp(
 }
 
 func (a *App) AddCommand(cmd *model.Command) {
-	a.Lock()
-	defer a.Unlock()
-
 	command, err := NewCommand(
 		cmd,
 		a.stores,
@@ -54,6 +51,9 @@ func (a *App) AddCommand(cmd *model.Command) {
 		return
 	}
 
+	a.Lock()
+	defer a.Unlock()
+
 	a.commands[cmd.ID] = command
 
 	if !cmd.LastDeployedAt.Valid || cmd.LastDeployedAt.Time.Before(cmd.UpdatedAt) {
@@ -62,13 +62,13 @@ func (a *App) AddCommand(cmd *model.Command) {
 }
 
 func (a *App) RemoveDanglingCommands(commandIDs []string) {
-	a.Lock()
-	defer a.Unlock()
-
 	commandIDMap := make(map[string]struct{}, len(commandIDs))
 	for _, commandID := range commandIDs {
 		commandIDMap[commandID] = struct{}{}
 	}
+
+	a.Lock()
+	defer a.Unlock()
 
 	for cmdID := range a.commands {
 		if _, ok := commandIDMap[cmdID]; !ok {
@@ -79,9 +79,6 @@ func (a *App) RemoveDanglingCommands(commandIDs []string) {
 }
 
 func (a *App) AddEventListener(listener *model.EventListener) {
-	a.Lock()
-	defer a.Unlock()
-
 	eventListener, err := NewEventListener(
 		listener,
 		a.stores,
@@ -91,17 +88,20 @@ func (a *App) AddEventListener(listener *model.EventListener) {
 		return
 	}
 
+	a.Lock()
+	defer a.Unlock()
+
 	a.listeners[listener.ID] = eventListener
 }
 
 func (a *App) RemoveDanglingEventListeners(listenerIDs []string) {
-	a.Lock()
-	defer a.Unlock()
-
 	listenerIDMap := make(map[string]struct{}, len(listenerIDs))
 	for _, listenerID := range listenerIDs {
 		listenerIDMap[listenerID] = struct{}{}
 	}
+
+	a.Lock()
+	defer a.Unlock()
 
 	for listenerID := range a.listeners {
 		if _, ok := listenerIDMap[listenerID]; !ok {
@@ -128,17 +128,38 @@ func (a *App) createLogEntry(level model.LogLevel, message string) {
 }
 
 func (a *App) HandleEvent(appID string, session *state.State, event gateway.Event) {
-	a.RLock()
-	defer a.RUnlock()
-
 	switch e := event.(type) {
 	case *gateway.InteractionCreateEvent:
+		timeDiff := time.Since(e.ID.Time())
+		if timeDiff > 500*time.Millisecond {
+			slog.Warn(
+				"Received interaction event late",
+				slog.String("app_id", appID),
+				slog.String("interaction_id", e.ID.String()),
+				slog.String("time_diff", timeDiff.String()),
+			)
+		}
+
 		switch d := e.Data.(type) {
 		case *discord.CommandInteraction:
 			fullName := getFullCommandName(d)
+
+			lockStart := time.Now()
+			a.RLock()
+			defer a.RUnlock()
+			lockDiff := time.Since(lockStart)
+			if lockDiff > 100*time.Millisecond {
+				slog.Warn(
+					"Locking app took too long",
+					slog.String("app_id", appID),
+					slog.String("lock_duration", lockDiff.String()),
+				)
+			}
+
 			for _, command := range a.commands {
 				if command.cmd.Name == fullName {
 					go command.HandleEvent(appID, session, event)
+					break
 				}
 			}
 		case *discord.ButtonInteraction:
@@ -186,6 +207,9 @@ func (a *App) HandleEvent(appID string, session *state.State, event gateway.Even
 			}
 
 			if resumePoint.CommandID.Valid {
+				a.RLock()
+				defer a.RUnlock()
+
 				command, ok := a.commands[resumePoint.CommandID.String]
 				if !ok {
 					return
@@ -193,7 +217,7 @@ func (a *App) HandleEvent(appID string, session *state.State, event gateway.Even
 
 				node := command.flow.FindChildWithID(resumePoint.FlowNodeID)
 
-				a.stores.executeFlowEvent(
+				go a.stores.executeFlowEvent(
 					context.Background(),
 					a.id,
 					node,
@@ -254,8 +278,7 @@ func (a *App) HandleEvent(appID string, session *state.State, event gateway.Even
 				}
 
 				node := targetFlow.FindChildWithID(resumePoint.FlowNodeID)
-
-				a.stores.executeFlowEvent(
+				go a.stores.executeFlowEvent(
 					context.Background(),
 					a.id,
 					node,
@@ -268,6 +291,10 @@ func (a *App) HandleEvent(appID string, session *state.State, event gateway.Even
 		}
 	default:
 		eventType := model.EventTypeFromDiscordEventType(e.EventType())
+
+		a.RLock()
+		defer a.RUnlock()
+
 		for _, listener := range a.listeners {
 			if listener.listener.Source != model.EventSourceDiscord {
 				continue
@@ -277,7 +304,7 @@ func (a *App) HandleEvent(appID string, session *state.State, event gateway.Even
 				continue
 			}
 
-			listener.HandleEvent(appID, session, event)
+			go listener.HandleEvent(appID, session, event)
 		}
 	}
 }
