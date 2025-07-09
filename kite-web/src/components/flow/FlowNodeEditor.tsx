@@ -904,7 +904,7 @@ function MessageDataInput({ data, updateData, errors }: InputProps) {
         type="textarea"
         field="message_data"
         title="Response"
-        description="Edit the text response here or click below to have a full message editor. Use a message template if you want interactive components."
+        description="Edit the text response here or click below to have a full message editor with support for embeds and components."
         value={data.message_data?.content || ""}
         updateValue={(v) =>
           updateData({

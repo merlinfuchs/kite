@@ -12,7 +12,7 @@ Make your own Discord Bot with Kite for free without a single line of code. With
 
 ![Flow Example](./example-flow.png)
 
-This project is very much work in progress and not ready to be used for anything serious. Only some parts of the Discord API are covered and more complex logic can not be implemented.
+This project is very much work in progress and doesn't have all the features yet. Only some parts of the Discord API are covered and more complex logic is hard to implement right now.
 
 ## Self Hosting
 
