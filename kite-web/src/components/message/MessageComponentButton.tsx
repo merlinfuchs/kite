@@ -16,7 +16,7 @@ import FlowDialog from "../flow/FlowDialog";
 import { FlowData } from "@/lib/flow/data";
 import { getUniqueId } from "@/lib/utils";
 
-const buttonColors = {
+export const buttonColors = {
   1: "#5865F2",
   2: "#4E5058",
   3: "#57F287",
