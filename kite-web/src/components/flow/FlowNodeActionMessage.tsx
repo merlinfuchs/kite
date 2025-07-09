@@ -65,9 +65,14 @@ function ButtonHandle({ comp }: { comp: ComponentData }) {
       <FlowNodeHandle
         type="source"
         position={Position.Bottom}
-        id={`component_${comp.id}`}
+        id={buttonHandleId(comp)}
         size="small"
       />
     </div>
   );
+}
+
+function buttonHandleId(comp: ComponentData) {
+  // NOTE: The format has to match with the backend for the resume point to work
+  return `component_${comp.id}`;
 }

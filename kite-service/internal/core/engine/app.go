@@ -3,7 +3,6 @@ package engine
 import (
 	"context"
 	"errors"
-	"fmt"
 	"log/slog"
 	"sync"
 	"time"
@@ -165,7 +164,7 @@ func (a *App) HandleEvent(appID string, session *state.State, event gateway.Even
 			}
 		case *discord.ButtonInteraction:
 			customID := string(d.CustomID)
-			resumePointID, componentID, isResume := message.DecodeCustomIDMessageComponentResumePoint(customID)
+			resumePointID, _, isResume := message.DecodeCustomIDMessageComponentResumePoint(customID)
 			if isResume {
 				resumePoint, err := a.stores.ResumePointStore.ResumePoint(context.TODO(), resumePointID)
 				if err != nil {
@@ -180,8 +179,6 @@ func (a *App) HandleEvent(appID string, session *state.State, event gateway.Even
 					)
 					return
 				}
-
-				fmt.Println("Resuming flow from message components", resumePointID, componentID)
 
 				if resumePoint.CommandID.Valid {
 					a.RLock()
