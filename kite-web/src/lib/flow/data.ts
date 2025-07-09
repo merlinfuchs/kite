@@ -83,13 +83,13 @@ export const nodeEntryEventDataSchema = nodeBaseDataSchema.extend({
 
 export const nodeEntryComponentButtonDataSchema = nodeBaseDataSchema.extend({});
 
+export const nodeMessageDataSchema = z.object({
+  content: z.string().max(2000),
+});
+
 export const nodeActionResponseCreateDataSchema = nodeBaseDataSchema
   .extend({
-    message_data: z
-      .object({
-        content: z.string().max(2000),
-      })
-      .optional(),
+    message_data: nodeMessageDataSchema.optional(),
     message_template_id: z.string().optional(),
     message_ephemeral: z.boolean().optional(),
   })
@@ -105,11 +105,7 @@ export const nodeActionResponseEditDataSchema = nodeBaseDataSchema
       .regex(numericRegex)
       .or(z.string().regex(placeholderRegex))
       .or(z.literal("@original")),
-    message_data: z
-      .object({
-        content: z.string().max(2000).min(1),
-      })
-      .optional(),
+    message_data: nodeMessageDataSchema.optional(),
     message_template_id: z.string().optional(),
   })
   .refine(
@@ -164,11 +160,7 @@ export const nodeActionMessageCreateDataSchema = nodeBaseDataSchema
       .string()
       .regex(numericRegex)
       .or(z.string().regex(placeholderRegex)),
-    message_data: z
-      .object({
-        content: z.string().max(2000).min(1),
-      })
-      .optional(),
+    message_data: nodeMessageDataSchema.optional(),
     message_template_id: z.string().optional(),
   })
   .refine(
@@ -182,11 +174,7 @@ export const nodeActionPrivateMessageCreateDataSchema = nodeBaseDataSchema
       .string()
       .regex(numericRegex)
       .or(z.string().regex(placeholderRegex)),
-    message_data: z
-      .object({
-        content: z.string().max(2000).min(1),
-      })
-      .optional(),
+    message_data: nodeMessageDataSchema.optional(),
     message_template_id: z.string().optional(),
   })
   .refine(
@@ -204,11 +192,7 @@ export const nodeActionMessageEditDataSchema = nodeBaseDataSchema
       .string()
       .regex(numericRegex)
       .or(z.string().regex(placeholderRegex)),
-    message_data: z
-      .object({
-        content: z.string().max(2000).min(1),
-      })
-      .optional(),
+    message_data: nodeMessageDataSchema.optional(),
     message_template_id: z.string().optional(),
   })
   .refine(
