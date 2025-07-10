@@ -1063,8 +1063,12 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			}
 		}
 
-		time.Sleep(duration)
-		return n.ExecuteChildren(ctx)
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-time.After(duration):
+			return n.ExecuteChildren(ctx)
+		}
 	default:
 		return &FlowError{
 			Code:    FlowNodeErrorUnknownNodeType,
