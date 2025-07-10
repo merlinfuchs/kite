@@ -924,6 +924,26 @@ function MessageDataInput({ data, updateData, errors }: InputProps) {
       >
         <Button className="w-full">Edit Message</Button>
       </MessageEditorDialog>
+
+      <BaseCheckbox
+        field="message_data.allowed_mentions"
+        title="Allow Role Pings"
+        description="By default, only users can be pinged. Enable this to allow roles and @everyone to be pinged as well."
+        value={!!data.message_data?.allowed_mentions}
+        updateValue={(v) =>
+          updateData({
+            message_data: {
+              ...data.message_data,
+              allowed_mentions: v
+                ? {
+                    parse: ["roles", "everyone", "users"],
+                  }
+                : undefined,
+            },
+          })
+        }
+        errors={errors}
+      />
     </>
   );
 }
@@ -966,6 +986,7 @@ function MessageEphemeralInput({ data, updateData, errors }: InputProps) {
     <BaseCheckbox
       field="message_ephemeral"
       title="Public Response"
+      description="If enabled, the response will be visible to everyone. If disabled, the response will only be visible to the user who triggered the flow."
       value={!data.message_ephemeral}
       updateValue={(v) => updateData({ message_ephemeral: !v || undefined })}
       errors={errors}

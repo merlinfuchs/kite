@@ -1,19 +1,18 @@
 import { NodeProps } from "@/lib/flow/data";
-import FlowNodeBase from "./FlowNodeBase";
-import FlowNodeHandle from "./FlowNodeHandle";
-import { Position } from "@xyflow/react";
 import { suspendColor } from "@/lib/flow/nodes";
 import { ComponentData } from "@/lib/types/message.gen";
-import { cn } from "@/lib/utils";
-import { buttonColors } from "../message/MessageComponentButton";
+import { Position } from "@xyflow/react";
 import { MousePointerClickIcon } from "lucide-react";
+import { buttonColors } from "../message/MessageComponentButton";
+import FlowNodeBase from "./FlowNodeBase";
+import FlowNodeHandle from "./FlowNodeHandle";
+import { useMemo } from "react";
 
 export default function FlowNodeActionMessage(props: NodeProps) {
-  const messageData = props.data.message_data;
-
-  const components = messageData?.components || [];
-
-  console.log(components);
+  const components = useMemo(() => {
+    const messageData = props.data.message_data;
+    return messageData?.components || [];
+  }, [props.data.message_data]);
 
   return (
     <div className="relative">

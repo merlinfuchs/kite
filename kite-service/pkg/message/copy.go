@@ -21,11 +21,12 @@ func (m *MessageData) Copy() MessageData {
 	}
 
 	return MessageData{
-		Content:     m.Content,
-		Flags:       m.Flags,
-		Embeds:      embeds,
-		Attachments: attachments,
-		Components:  components,
+		Content:         m.Content,
+		Flags:           m.Flags,
+		Embeds:          embeds,
+		Attachments:     attachments,
+		Components:      components,
+		AllowedMentions: m.AllowedMentions.Copy(),
 	}
 }
 
@@ -159,5 +160,18 @@ func (c ComponentSelectOptionData) Copy() ComponentSelectOptionData {
 func (c MessageAttachment) Copy() MessageAttachment {
 	return MessageAttachment{
 		AssetID: c.AssetID,
+	}
+}
+
+func (a *AllowedMentionsData) Copy() *AllowedMentionsData {
+	if a == nil {
+		return nil
+	}
+
+	parse := make([]string, len(a.Parse))
+	copy(parse, a.Parse)
+
+	return &AllowedMentionsData{
+		Parse: parse,
 	}
 }

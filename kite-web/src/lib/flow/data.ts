@@ -3,7 +3,7 @@ import z from "zod";
 import { FlowNodeData } from "../types/flow.gen";
 
 const numericRegex = /^[0-9]+$/;
-const floatRegex = /^[0-9]+\.[0-9]+$/;
+const decimalRegex = /^[0-9]+\.[0-9]+$/;
 const placeholderRegex = /^\{\{[a-z0-9_.]+\}\}$/;
 
 export interface FlowData {
@@ -86,6 +86,19 @@ export const nodeEntryComponentButtonDataSchema = nodeBaseDataSchema.extend({});
 
 export const nodeMessageDataSchema = z.object({
   content: z.string().max(2000),
+  allowed_mentions: z
+    .object({
+      parse: z
+        .array(
+          z.union([
+            z.literal("users"),
+            z.literal("roles"),
+            z.literal("everyone"),
+          ])
+        )
+        .optional(),
+    })
+    .optional(),
 });
 
 export const nodeActionResponseCreateDataSchema = nodeBaseDataSchema
@@ -400,6 +413,6 @@ export const nodeControlLoopDataSchema = nodeBaseDataSchema.extend({
 export const nodeControlSleepDataSchema = nodeBaseDataSchema.extend({
   sleep_duration_seconds: z
     .string()
-    .regex(floatRegex)
+    .regex(decimalRegex)
     .or(z.string().regex(placeholderRegex)),
 });

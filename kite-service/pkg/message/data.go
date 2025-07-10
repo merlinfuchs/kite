@@ -5,11 +5,12 @@ import (
 )
 
 type MessageData struct {
-	Content     string              `json:"content,omitempty"`
-	Flags       int                 `json:"flags,omitempty"`
-	Attachments []MessageAttachment `json:"attachments,omitempty"`
-	Embeds      []EmbedData         `json:"embeds,omitempty"`
-	Components  []ComponentRowData  `json:"components,omitempty"`
+	Content         string               `json:"content,omitempty"`
+	Flags           int                  `json:"flags,omitempty"`
+	Attachments     []MessageAttachment  `json:"attachments,omitempty"`
+	Embeds          []EmbedData          `json:"embeds,omitempty"`
+	Components      []ComponentRowData   `json:"components,omitempty"`
+	AllowedMentions *AllowedMentionsData `json:"allowed_mentions,omitempty"`
 }
 
 func (m *MessageData) EachString(replace func(s *string) error) error {
@@ -17,7 +18,7 @@ func (m *MessageData) EachString(replace func(s *string) error) error {
 		return err
 	}
 
-	for e, _ := range m.Embeds {
+	for e := range m.Embeds {
 		embed := &m.Embeds[e]
 
 		if err := replace(&embed.Description); err != nil {
@@ -84,7 +85,7 @@ func (m *MessageData) EachString(replace func(s *string) error) error {
 			}
 		}
 
-		for f, _ := range embed.Fields {
+		for f := range embed.Fields {
 			field := &embed.Fields[f]
 
 			if err := replace(&field.Name); err != nil {
@@ -97,7 +98,7 @@ func (m *MessageData) EachString(replace func(s *string) error) error {
 		}
 	}
 
-	for c, _ := range m.Components {
+	for c := range m.Components {
 		component := &m.Components[c]
 
 		for _, option := range component.Components {
@@ -202,4 +203,8 @@ type ComponentEmojiData struct {
 	Name     string `json:"name,omitempty"`
 	ID       string `json:"id,omitempty"`
 	Animated bool   `json:"animated,omitempty"`
+}
+
+type AllowedMentionsData struct {
+	Parse []string `json:"parse,omitempty"`
 }

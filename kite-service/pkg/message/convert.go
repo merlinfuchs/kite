@@ -26,10 +26,11 @@ func (m *MessageData) ToSendMessageData(opts ConvertOptions) api.SendMessageData
 	}
 
 	return api.SendMessageData{
-		Content:    m.Content,
-		Flags:      discord.MessageFlags(m.Flags),
-		Embeds:     embeds,
-		Components: components,
+		Content:         m.Content,
+		Flags:           discord.MessageFlags(m.Flags),
+		Embeds:          embeds,
+		Components:      components,
+		AllowedMentions: m.AllowedMentions.ToAllowedMentions(),
 	}
 }
 
@@ -48,10 +49,18 @@ func (m *MessageData) ToEditMessageData(opts ConvertOptions) api.EditMessageData
 		components[i] = component.ToComponent(opts)
 	}
 
+	var flags *discord.MessageFlags
+	if m.Flags != 0 {
+		f := discord.MessageFlags(m.Flags)
+		flags = &f
+	}
+
 	return api.EditMessageData{
-		Content:    option.NewNullableString(m.Content),
-		Embeds:     &embeds,
-		Components: &components,
+		Content:         option.NewNullableString(m.Content),
+		Flags:           flags,
+		Embeds:          &embeds,
+		Components:      &components,
+		AllowedMentions: m.AllowedMentions.ToAllowedMentions(),
 	}
 }
 
@@ -71,10 +80,11 @@ func (m *MessageData) ToInteractionResponseData(opts ConvertOptions) api.Interac
 	}
 
 	return api.InteractionResponseData{
-		Content:    option.NewNullableString(m.Content),
-		Flags:      discord.MessageFlags(m.Flags),
-		Embeds:     &embeds,
-		Components: &components,
+		Content:         option.NewNullableString(m.Content),
+		Flags:           discord.MessageFlags(m.Flags),
+		Embeds:          &embeds,
+		Components:      &components,
+		AllowedMentions: m.AllowedMentions.ToAllowedMentions(),
 	}
 }
 
@@ -232,6 +242,25 @@ func (e *ComponentEmojiData) ToEmoji() *discord.ComponentEmoji {
 		Name:     e.Name,
 		ID:       discord.EmojiID(id),
 		Animated: e.Animated,
+	}
+}
+
+func (a *AllowedMentionsData) ToAllowedMentions() *api.AllowedMentions {
+	if a == nil {
+		return &api.AllowedMentions{
+			Parse: []api.AllowedMentionType{
+				api.AllowUserMention,
+			},
+		}
+	}
+
+	parse := make([]api.AllowedMentionType, len(a.Parse))
+	for i, p := range a.Parse {
+		parse[i] = api.AllowedMentionType(p)
+	}
+
+	return &api.AllowedMentions{
+		Parse: parse,
 	}
 }
 

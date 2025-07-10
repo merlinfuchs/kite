@@ -385,12 +385,14 @@ export const messageAllowedMentionsSchema = z.preprocess(
   (d) => d ?? undefined,
   z.optional(
     z.object({
-      parse: z.array(
-        z.literal("users").or(z.literal("roles")).or(z.literal("everyone"))
-      ),
-      roles: z.array(z.string()),
-      users: z.array(z.string()),
-      replied_user: z.boolean(),
+      parse: z
+        .array(
+          z.literal("users").or(z.literal("roles")).or(z.literal("everyone"))
+        )
+        .optional(),
+      roles: z.array(z.string()).optional(),
+      users: z.array(z.string()).optional(),
+      replied_user: z.boolean().optional(),
     })
   )
 );

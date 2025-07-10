@@ -254,8 +254,8 @@ export interface FlowEdge {
   type?: string;
   source: string;
   target: string;
-  source_handle?: string;
-  target_handle?: string;
+  sourceHandle?: string;
+  targetHandle?: string;
 }
 
 //////////
