@@ -3,6 +3,7 @@ import z from "zod";
 import { FlowNodeData } from "../types/flow.gen";
 
 const numericRegex = /^[0-9]+$/;
+const floatRegex = /^[0-9]+\.[0-9]+$/;
 const placeholderRegex = /^\{\{[a-z0-9_.]+\}\}$/;
 
 export interface FlowData {
@@ -399,6 +400,6 @@ export const nodeControlLoopDataSchema = nodeBaseDataSchema.extend({
 export const nodeControlSleepDataSchema = nodeBaseDataSchema.extend({
   sleep_duration_seconds: z
     .string()
-    .regex(numericRegex)
+    .regex(floatRegex)
     .or(z.string().regex(placeholderRegex)),
 });
