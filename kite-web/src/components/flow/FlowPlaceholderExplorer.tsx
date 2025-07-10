@@ -58,12 +58,12 @@ function useGlobalPlaceholders() {
           value: `${baseKey}.user.username`,
         },
         {
-          label: "User Discriminator",
-          value: `${baseKey}.user.discriminator`,
-        },
-        {
           label: "User Display Name",
           value: `${baseKey}.user.display_name`,
+        },
+        {
+          label: "User Nickname",
+          value: `${baseKey}.user.nick`,
         },
         {
           label: "User Avatar URL",
