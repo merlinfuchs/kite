@@ -59,27 +59,27 @@ func compile(data FlowData, entryType FlowNodeType) (*CompiledFlowNode, error) {
 			continue
 		}
 
-		if edge.SourceHandle == "" {
+		if !edge.SourceHandle.Valid {
 			parent.Children.Default = append(parent.Children.Default, child)
 		} else {
-			if _, ok := parent.Children.Handles[edge.SourceHandle]; !ok {
-				parent.Children.Handles[edge.SourceHandle] = []*CompiledFlowNode{
+			if _, ok := parent.Children.Handles[edge.SourceHandle.String]; !ok {
+				parent.Children.Handles[edge.SourceHandle.String] = []*CompiledFlowNode{
 					child,
 				}
 			} else {
-				parent.Children.Handles[edge.SourceHandle] = append(parent.Children.Handles[edge.SourceHandle], child)
+				parent.Children.Handles[edge.SourceHandle.String] = append(parent.Children.Handles[edge.SourceHandle.String], child)
 			}
 		}
 
-		if edge.TargetHandle == "" {
+		if !edge.TargetHandle.Valid {
 			child.Parents.Default = append(child.Parents.Default, parent)
 		} else {
-			if _, ok := child.Parents.Handles[edge.TargetHandle]; !ok {
-				child.Parents.Handles[edge.TargetHandle] = []*CompiledFlowNode{
+			if _, ok := child.Parents.Handles[edge.TargetHandle.String]; !ok {
+				child.Parents.Handles[edge.TargetHandle.String] = []*CompiledFlowNode{
 					parent,
 				}
 			} else {
-				child.Parents.Handles[edge.TargetHandle] = append(child.Parents.Handles[edge.TargetHandle], parent)
+				child.Parents.Handles[edge.TargetHandle.String] = append(child.Parents.Handles[edge.TargetHandle.String], parent)
 			}
 		}
 	}

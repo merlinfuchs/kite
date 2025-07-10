@@ -8,6 +8,7 @@ import (
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/kitecloud/kite/kite-service/pkg/message"
 	"github.com/sashabaranov/go-openai"
+	"gopkg.in/guregu/null.v4"
 )
 
 // Allows between 1 and 3 words, each between 1 and 32 characters long.
@@ -356,12 +357,12 @@ type FlowNodePosition struct {
 }
 
 type FlowEdge struct {
-	ID           string `json:"id"`
-	Type         string `json:"type,omitempty"`
-	Source       string `json:"source"`
-	Target       string `json:"target"`
-	SourceHandle string `json:"sourceHandle,omitempty"`
-	TargetHandle string `json:"targetHandle,omitempty"`
+	ID           string      `json:"id"`
+	Type         string      `json:"type,omitempty"`
+	Source       string      `json:"source"`
+	Target       string      `json:"target"`
+	SourceHandle null.String `json:"sourceHandle,omitempty"`
+	TargetHandle null.String `json:"targetHandle,omitempty"`
 }
 
 func (e FlowEdge) Validate() error {

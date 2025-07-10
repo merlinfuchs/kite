@@ -60,3 +60,7 @@ packages:
       json.RawMessage: "Record<string, any> | null"
       manifest.Manifest: "Manifest"
       Base64: "string"
+    exclude_files:
+      - "convert.go"
+      - "copy.go"
+      - "helpers.go"
