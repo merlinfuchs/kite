@@ -183,6 +183,7 @@ export default function FlowEditor({
       onSelectionChange={onSelectionChange}
       colorMode={theme === "dark" ? "dark" : "light"}
       defaultEdgeOptions={{ type: "delete_button" }}
+      multiSelectionKeyCode={null}
       proOptions={{
         hideAttribution: true,
       }}
