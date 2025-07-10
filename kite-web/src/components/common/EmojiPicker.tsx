@@ -53,7 +53,7 @@ export default function EmojiPicker({ onEmojiSelect, children }: Props) {
   }, [appEmojis]);
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover open={open} onOpenChange={setOpen} modal>
       <PopoverTrigger asChild>{children}</PopoverTrigger>
       <PopoverContent className="p-0 border-none">
         <Picker
