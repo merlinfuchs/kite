@@ -31,7 +31,6 @@ interaction: # For command and button interactions
   user:
     id: string
     username: string
-    discriminator: string
     display_name: string
     avatar_url: string
     banner_url: string
@@ -47,7 +46,6 @@ event: # For event listeners
   user:
     id: string
     username: string
-    discriminator: string
     display_name: string
     avatar_url: string
     banner_url: string
