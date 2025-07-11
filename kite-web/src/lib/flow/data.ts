@@ -226,6 +226,37 @@ export const nodeActionMessageDeleteDataSchema = nodeBaseDataSchema.extend({
   audit_log_reason: auditLogReasonSchema,
 });
 
+export const emojiDataSchema = z.object({
+  id: z.string().optional(),
+  name: z.string().min(1),
+});
+
+export const nodeActionMessageReactionCreateDataSchema =
+  nodeBaseDataSchema.extend({
+    channel_target: z
+      .string()
+      .regex(numericRegex)
+      .or(z.string().regex(placeholderRegex)),
+    message_target: z
+      .string()
+      .regex(numericRegex)
+      .or(z.string().regex(placeholderRegex)),
+    emoji_data: emojiDataSchema,
+  });
+
+export const nodeActionMessageReactionDeleteDataSchema =
+  nodeBaseDataSchema.extend({
+    channel_target: z
+      .string()
+      .regex(numericRegex)
+      .or(z.string().regex(placeholderRegex)),
+    message_target: z
+      .string()
+      .regex(numericRegex)
+      .or(z.string().regex(placeholderRegex)),
+    emoji_data: emojiDataSchema,
+  });
+
 export const nodeActionMemberBanDataSchema = nodeBaseDataSchema.extend({
   user_target: z
     .string()

@@ -37,6 +37,8 @@ export const nodeTypes = {
   action_message_edit: FlowNodeActionMessage,
   action_message_delete: FlowNodeActionBase,
   action_private_message_create: FlowNodeActionMessage,
+  action_message_reaction_create: FlowNodeActionBase,
+  action_message_reaction_delete: FlowNodeActionBase,
   action_member_ban: FlowNodeActionBase,
   action_member_unban: FlowNodeActionBase,
   action_member_kick: FlowNodeActionBase,

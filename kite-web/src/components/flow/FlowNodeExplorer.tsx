@@ -46,6 +46,8 @@ const nodeCategories = {
         "action_message_edit",
         "action_message_delete",
         "action_private_message_create",
+        "action_message_reaction_create",
+        "action_message_reaction_delete",
       ],
       contextTypes: null,
     },
