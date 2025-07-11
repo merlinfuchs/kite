@@ -73,9 +73,10 @@ type DiscordConfig struct {
 }
 
 type EngineConfig struct {
-	MaxStackDepth int `toml:"max_stack_depth"`
-	MaxOperations int `toml:"max_operations"`
-	MaxCredits    int `toml:"max_credits"`
+	MaxStackDepth int    `toml:"max_stack_depth"`
+	MaxOperations int    `toml:"max_operations"`
+	MaxCredits    int    `toml:"max_credits"`
+	HTTPProxyURL  string `toml:"http_proxy_url"`
 }
 
 // TODO: Move these to plan features

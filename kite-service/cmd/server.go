@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"net/url"
 
 	disapi "github.com/diamondburned/arikawa/v3/api"
 	"github.com/diamondburned/arikawa/v3/utils/httputil"
@@ -86,7 +87,7 @@ func serverStartCMD(c *cli.Context) error {
 			EventListenerStore:   pg,
 			VariableValueStore:   pg,
 			ResumePointStore:     pg,
-			HttpClient:           &http.Client{}, // TODO: think about proxying http requests
+			HttpClient:           engineHTTPClient(cfg),
 			OpenaiClient:         openaiClient,
 		},
 	)
@@ -168,4 +169,24 @@ func patchDiscordProxyURL(cfg *config.Config) {
 	disapi.EndpointAuth = disapi.Endpoint + "auth/"
 	disapi.EndpointLogin = disapi.EndpointAuth + "login"
 	disapi.EndpointTOTP = disapi.EndpointAuth + "mfa/totp"
+}
+
+func engineHTTPClient(cfg *config.Config) *http.Client {
+	if cfg.Engine.HTTPProxyURL != "" {
+		proxyURL, err := url.Parse(cfg.Engine.HTTPProxyURL)
+		if err != nil {
+			slog.With("error", err).Error("Failed to parse proxy URL")
+			return nil
+		}
+
+		slog.Info("Using HTTP proxy for Engine", "url", cfg.Engine.HTTPProxyURL)
+
+		return &http.Client{
+			Transport: &http.Transport{
+				Proxy: http.ProxyURL(proxyURL),
+			},
+		}
+	}
+
+	return &http.Client{}
 }
