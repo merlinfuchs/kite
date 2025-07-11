@@ -1963,7 +1963,7 @@ function BaseEmojiPicker({
   onChange,
 }: {
   title: string;
-  description: string;
+  description?: string;
   field: string;
   errors: Record<string, string>;
   emoji: EmojiData | undefined;
