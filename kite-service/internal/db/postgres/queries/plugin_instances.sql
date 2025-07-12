@@ -1,5 +1,5 @@
 -- name: GetPluginInstance :one
-SELECT * FROM plugin_instances WHERE id = $1;
+SELECT * FROM plugin_instances WHERE app_id = $1 AND plugin_id = $2;
 
 -- name: GetPluginInstancesByApp :many
 SELECT * FROM plugin_instances WHERE app_id = $1 ORDER BY created_at DESC;
@@ -23,10 +23,10 @@ INSERT INTO plugin_instances (
 
 -- name: UpdatePluginInstance :one
 UPDATE plugin_instances SET
-    enabled = $2,
-    config = $3,
-    updated_at = $4
-WHERE id = $1 RETURNING *;
+    enabled = $3,
+    config = $4,
+    updated_at = $5
+WHERE app_id = $1 AND plugin_id = $2 RETURNING *;
 
 -- name: UpdatePluginInstancesLastDeployedAt :exec
 UPDATE plugin_instances SET
@@ -40,4 +40,4 @@ SELECT * FROM plugin_instances WHERE enabled = TRUE AND updated_at > $1;
 SELECT id FROM plugin_instances WHERE enabled = TRUE;
 
 -- name: DeletePluginInstance :exec
-DELETE FROM plugin_instances WHERE id = $1;
+DELETE FROM plugin_instances WHERE app_id = $1 AND plugin_id = $2;

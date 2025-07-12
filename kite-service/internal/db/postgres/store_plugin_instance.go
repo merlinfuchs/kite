@@ -42,8 +42,11 @@ func (c *Client) CountPluginInstancesByApp(ctx context.Context, appID string) (i
 	return int(res), nil
 }
 
-func (c *Client) PluginInstance(ctx context.Context, id string) (*model.PluginInstance, error) {
-	row, err := c.Q.GetPluginInstance(ctx, id)
+func (c *Client) PluginInstance(ctx context.Context, appID string, pluginID string) (*model.PluginInstance, error) {
+	row, err := c.Q.GetPluginInstance(ctx, pgmodel.GetPluginInstanceParams{
+		AppID:    appID,
+		PluginID: pluginID,
+	})
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, store.ErrNotFound
@@ -84,7 +87,8 @@ func (c *Client) UpdatePluginInstance(ctx context.Context, instance *model.Plugi
 	}
 
 	row, err := c.Q.UpdatePluginInstance(ctx, pgmodel.UpdatePluginInstanceParams{
-		ID:        instance.ID,
+		AppID:     instance.AppID,
+		PluginID:  instance.PluginID,
 		Enabled:   instance.Enabled,
 		Config:    config,
 		UpdatedAt: pgtype.Timestamp{Time: instance.UpdatedAt.UTC(), Valid: true},
@@ -132,8 +136,11 @@ func (c *Client) EnabledPluginInstanceIDs(ctx context.Context) ([]string, error)
 	return c.Q.GetEnabledPluginInstanceIDs(ctx)
 }
 
-func (c *Client) DeletePluginInstance(ctx context.Context, id string) error {
-	err := c.Q.DeletePluginInstance(ctx, id)
+func (c *Client) DeletePluginInstance(ctx context.Context, appID string, pluginID string) error {
+	err := c.Q.DeletePluginInstance(ctx, pgmodel.DeletePluginInstanceParams{
+		AppID:    appID,
+		PluginID: pluginID,
+	})
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return store.ErrNotFound

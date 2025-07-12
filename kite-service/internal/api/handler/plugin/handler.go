@@ -75,6 +75,8 @@ func (h *PluginHandler) HandlePluginInstanceCreate(c *handler.Context, req wire.
 func (h *PluginHandler) HandlePluginInstanceUpdate(c *handler.Context, req wire.PluginInstanceUpdateRequest) (*wire.PluginInstanceUpdateResponse, error) {
 	pluginInstance, err := h.pluginInstanceStore.UpdatePluginInstance(c.Context(), &model.PluginInstance{
 		ID:        c.PluginInstance.ID,
+		AppID:     c.App.ID,
+		PluginID:  c.PluginInstance.PluginID,
 		Config:    req.Config,
 		Enabled:   req.Enabled,
 		UpdatedAt: time.Now().UTC(),
@@ -92,6 +94,8 @@ func (h *PluginHandler) HandlePluginInstanceUpdate(c *handler.Context, req wire.
 func (h *PluginHandler) HandlePluginInstanceUpdateEnabled(c *handler.Context, req wire.PluginInstanceUpdateEnabledRequest) (*wire.PluginInstanceUpdateEnabledResponse, error) {
 	pluginInstance, err := h.pluginInstanceStore.UpdatePluginInstance(c.Context(), &model.PluginInstance{
 		ID:        c.PluginInstance.ID,
+		AppID:     c.App.ID,
+		PluginID:  c.PluginInstance.PluginID,
 		Config:    c.PluginInstance.Config,
 		Enabled:   req.Enabled,
 		UpdatedAt: time.Now().UTC(),
@@ -107,7 +111,7 @@ func (h *PluginHandler) HandlePluginInstanceUpdateEnabled(c *handler.Context, re
 }
 
 func (h *PluginHandler) HandlePluginInstanceDelete(c *handler.Context) (*wire.PluginInstanceDeleteResponse, error) {
-	err := h.pluginInstanceStore.DeletePluginInstance(c.Context(), c.PluginInstance.ID)
+	err := h.pluginInstanceStore.DeletePluginInstance(c.Context(), c.App.ID, c.PluginInstance.ID)
 	if err != nil {
 		if errors.Is(err, store.ErrNotFound) {
 			return nil, handler.ErrNotFound("unknown_plugin_instance", "Plugin instance not found")

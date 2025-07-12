@@ -8,11 +8,18 @@ import (
 	"github.com/diamondburned/arikawa/v3/api"
 	"github.com/diamondburned/arikawa/v3/gateway"
 	"github.com/kitecloud/kite/kite-service/pkg/plugin"
+	"github.com/kitecloud/kite/kite-service/pkg/provider"
+	"github.com/kitecloud/kite/kite-service/pkg/thing"
 )
 
 type CountingPluginInstance struct {
+	plugin *CountingPlugin
 	appID  string
 	config plugin.ConfigValues
+}
+
+func (p *CountingPluginInstance) Plugin() plugin.Plugin {
+	return p.plugin
 }
 
 func (p *CountingPluginInstance) Update(ctx context.Context, config plugin.ConfigValues) error {
@@ -67,24 +74,28 @@ func (p *CountingPluginInstance) HandleEvent(c plugin.Context, event gateway.Eve
 		return nil
 	}
 
-	num, err := strconv.Atoi(e.Content)
+	num, err := strconv.ParseInt(e.Content, 10, 64)
 	if err != nil || num <= 0 {
 		return nil
 	}
 
-	nextNum, err := c.IncreaseKey(e.ChannelID.String(), 1)
+	nextNum, err := c.UpdateValue(
+		c, e.ChannelID.String(),
+		provider.VariableOperationIncrement,
+		thing.New(1),
+	)
 	if err != nil {
 		return err
 	}
 
-	if nextNum != num {
-		_, err := c.DeleteKey(e.ChannelID.String())
+	if nextNum.Int() != num {
+		err := c.DeleteValue(c, e.ChannelID.String())
 		if err != nil {
 			return err
 		}
 
 		_, err = c.Discord().CreateMessage(c, e.ChannelID, api.SendMessageData{
-			Content: "The count is incorrect. The next number is " + strconv.Itoa(nextNum),
+			Content: "The count is incorrect. The next number is " + nextNum.String(),
 		})
 		if err != nil {
 			return err
@@ -98,6 +109,18 @@ func (p *CountingPluginInstance) HandleEvent(c plugin.Context, event gateway.Eve
 		return err
 	}
 
+	return nil
+}
+
+func (p *CountingPluginInstance) HandleCommand(c plugin.Context, event *gateway.InteractionCreateEvent) error {
+	return nil
+}
+
+func (p *CountingPluginInstance) HandleComponent(c plugin.Context, event *gateway.InteractionCreateEvent) error {
+	return nil
+}
+
+func (p *CountingPluginInstance) HandleModal(c plugin.Context, event *gateway.InteractionCreateEvent) error {
 	return nil
 }
 

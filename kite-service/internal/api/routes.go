@@ -212,7 +212,7 @@ func (s *APIServer) RegisterRoutes(
 	pluginInstancesGroup.Get("/", handler.Typed(pluginHandler.HandlePluginInstanceList))
 	pluginInstancesGroup.Post("/", handler.TypedWithBody(pluginHandler.HandlePluginInstanceCreate))
 
-	pluginInstanceGroup := pluginInstancesGroup.Group("/{pluginInstanceID}", accessManager.PluginInstanceAccess)
+	pluginInstanceGroup := pluginInstancesGroup.Group("/{pluginID}", accessManager.PluginInstanceAccess)
 	pluginInstanceGroup.Get("/", handler.Typed(pluginHandler.HandlePluginInstanceGet))
 	pluginInstanceGroup.Patch("/", handler.TypedWithBody(pluginHandler.HandlePluginInstanceUpdate))
 	pluginInstanceGroup.Delete("/", handler.Typed(pluginHandler.HandlePluginInstanceDelete))

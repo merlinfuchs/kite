@@ -93,6 +93,7 @@ func serverStartCMD(c *cli.Context) error {
 			CommandStore:         pg,
 			EventListenerStore:   pg,
 			PluginInstanceStore:  pg,
+			PluginValueStore:     pg,
 			PluginRegistry:       pluginRegistry,
 			VariableValueStore:   pg,
 			ResumePointStore:     pg,

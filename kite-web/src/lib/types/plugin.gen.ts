@@ -32,22 +32,22 @@ export const ConfigFieldTypeArray: ConfigFieldType = "array";
 export type Plugin = any;
 export type PluginInstance = any;
 export interface Metadata {
-  Name: string;
-  Description: string;
-  Icon: string;
-  Author: string;
+  name: string;
+  description: string;
+  icon: string;
+  author: string;
 }
 export interface Event {
-  ID: string;
-  Source: EventSource;
-  Type: EventType;
-  Description: string;
+  id: string;
+  source: EventSource;
+  type: EventType;
+  description: string;
 }
 export type EventSource = string;
 export const EventSourceDiscord: EventSource = "discord";
 export type EventType = string;
 export const EventTypeMessageCreate: EventType = "message_create";
 export interface Command {
-  ID: string;
-  Data: any /* api.CreateCommandData */;
+  id: string;
+  data: any /* api.CreateCommandData */;
 }

@@ -75,11 +75,16 @@ func (q *Queries) CreatePluginInstance(ctx context.Context, arg CreatePluginInst
 }
 
 const deletePluginInstance = `-- name: DeletePluginInstance :exec
-DELETE FROM plugin_instances WHERE id = $1
+DELETE FROM plugin_instances WHERE app_id = $1 AND plugin_id = $2
 `
 
-func (q *Queries) DeletePluginInstance(ctx context.Context, id string) error {
-	_, err := q.db.Exec(ctx, deletePluginInstance, id)
+type DeletePluginInstanceParams struct {
+	AppID    string
+	PluginID string
+}
+
+func (q *Queries) DeletePluginInstance(ctx context.Context, arg DeletePluginInstanceParams) error {
+	_, err := q.db.Exec(ctx, deletePluginInstance, arg.AppID, arg.PluginID)
 	return err
 }
 
@@ -142,11 +147,16 @@ func (q *Queries) GetEnabledPluginInstancesUpdatesSince(ctx context.Context, upd
 }
 
 const getPluginInstance = `-- name: GetPluginInstance :one
-SELECT id, plugin_id, enabled, app_id, creator_user_id, config, created_at, updated_at, last_deployed_at FROM plugin_instances WHERE id = $1
+SELECT id, plugin_id, enabled, app_id, creator_user_id, config, created_at, updated_at, last_deployed_at FROM plugin_instances WHERE app_id = $1 AND plugin_id = $2
 `
 
-func (q *Queries) GetPluginInstance(ctx context.Context, id string) (PluginInstance, error) {
-	row := q.db.QueryRow(ctx, getPluginInstance, id)
+type GetPluginInstanceParams struct {
+	AppID    string
+	PluginID string
+}
+
+func (q *Queries) GetPluginInstance(ctx context.Context, arg GetPluginInstanceParams) (PluginInstance, error) {
+	row := q.db.QueryRow(ctx, getPluginInstance, arg.AppID, arg.PluginID)
 	var i PluginInstance
 	err := row.Scan(
 		&i.ID,
@@ -198,14 +208,15 @@ func (q *Queries) GetPluginInstancesByApp(ctx context.Context, appID string) ([]
 
 const updatePluginInstance = `-- name: UpdatePluginInstance :one
 UPDATE plugin_instances SET
-    enabled = $2,
-    config = $3,
-    updated_at = $4
-WHERE id = $1 RETURNING id, plugin_id, enabled, app_id, creator_user_id, config, created_at, updated_at, last_deployed_at
+    enabled = $3,
+    config = $4,
+    updated_at = $5
+WHERE app_id = $1 AND plugin_id = $2 RETURNING id, plugin_id, enabled, app_id, creator_user_id, config, created_at, updated_at, last_deployed_at
 `
 
 type UpdatePluginInstanceParams struct {
-	ID        string
+	AppID     string
+	PluginID  string
 	Enabled   bool
 	Config    []byte
 	UpdatedAt pgtype.Timestamp
@@ -213,7 +224,8 @@ type UpdatePluginInstanceParams struct {
 
 func (q *Queries) UpdatePluginInstance(ctx context.Context, arg UpdatePluginInstanceParams) (PluginInstance, error) {
 	row := q.db.QueryRow(ctx, updatePluginInstance,
-		arg.ID,
+		arg.AppID,
+		arg.PluginID,
 		arg.Enabled,
 		arg.Config,
 		arg.UpdatedAt,

@@ -17,6 +17,7 @@ func NewCountingPlugin() *CountingPlugin {
 
 func (p *CountingPlugin) Instance(ctx context.Context, appID string, config plugin.ConfigValues) (plugin.PluginInstance, error) {
 	return &CountingPluginInstance{
+		plugin: p,
 		appID:  appID,
 		config: config,
 	}, nil
@@ -30,7 +31,7 @@ func (p *CountingPlugin) Metadata() plugin.Metadata {
 	return plugin.Metadata{
 		Name:        "Counting",
 		Description: "Create counting channels where users can try to count up.",
-		Icon:        "calculator",
+		Icon:        "arrow-up-1-0",
 		Author:      "Merlin",
 	}
 }

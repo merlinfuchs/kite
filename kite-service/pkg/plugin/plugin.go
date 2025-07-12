@@ -16,26 +16,31 @@ type Plugin interface {
 }
 
 type PluginInstance interface {
+	Plugin() Plugin
+
 	Events() []Event
 	Commands() []Command
 
 	Update(ctx context.Context, config ConfigValues) error
 	HandleEvent(c Context, event gateway.Event) error
+	HandleCommand(c Context, event *gateway.InteractionCreateEvent) error
+	HandleComponent(c Context, event *gateway.InteractionCreateEvent) error
+	HandleModal(c Context, event *gateway.InteractionCreateEvent) error
 	Close() error
 }
 
 type Metadata struct {
-	Name        string
-	Description string
-	Icon        string
-	Author      string
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	Icon        string `json:"icon"`
+	Author      string `json:"author"`
 }
 
 type Event struct {
-	ID          string
-	Source      EventSource
-	Type        EventType
-	Description string
+	ID          string      `json:"id"`
+	Source      EventSource `json:"source"`
+	Type        EventType   `json:"type"`
+	Description string      `json:"description"`
 }
 
 type EventSource string
@@ -51,6 +56,6 @@ const (
 )
 
 type Command struct {
-	ID   string
-	Data api.CreateCommandData
+	ID   string                `json:"id"`
+	Data api.CreateCommandData `json:"data"`
 }

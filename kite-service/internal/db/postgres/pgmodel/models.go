@@ -146,6 +146,15 @@ type PluginInstance struct {
 	LastDeployedAt pgtype.Timestamp
 }
 
+type PluginValue struct {
+	ID               int64
+	PluginInstanceID string
+	Key              string
+	Value            []byte
+	CreatedAt        pgtype.Timestamp
+	UpdatedAt        pgtype.Timestamp
+}
+
 type ResumePoint struct {
 	ID                string
 	Type              string

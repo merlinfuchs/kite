@@ -133,10 +133,10 @@ func (m *AccessManager) EventListenerAccess(next handler.HandlerFunc) handler.Ha
 
 func (m *AccessManager) PluginInstanceAccess(next handler.HandlerFunc) handler.HandlerFunc {
 	return func(c *handler.Context) error {
-		pluginInstanceID := c.Param("pluginInstanceID")
+		pluginID := c.Param("pluginID")
 		appID := c.Param("appID")
 
-		pluginInstance, err := m.pluginInstanceStore.PluginInstance(c.Context(), pluginInstanceID)
+		pluginInstance, err := m.pluginInstanceStore.PluginInstance(c.Context(), appID, pluginID)
 		if err != nil {
 			if errors.Is(err, store.ErrNotFound) {
 				return handler.ErrNotFound("unknown_plugin_instance", "Plugin instance not found")

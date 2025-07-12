@@ -2,7 +2,6 @@ package engine
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"log/slog"
 	"sync"
@@ -14,13 +13,13 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/internal/store"
 	"github.com/kitecloud/kite/kite-service/pkg/message"
-	"github.com/kitecloud/kite/kite-service/pkg/plugin"
 	"github.com/kitecloud/kite/kite-service/pkg/provider"
+	"github.com/kitecloud/kite/kite-service/pkg/thing"
 	"gopkg.in/guregu/null.v4"
 )
 
 var valueProvider = &provider.MockValueProvider{
-	Values: make(map[string]json.RawMessage),
+	Values: make(map[string]thing.Any),
 }
 
 type App struct {
@@ -28,10 +27,10 @@ type App struct {
 
 	id string
 
-	stores               Env
+	env                  Env
 	hasUndeployedChanges bool
 
-	pluginInstances map[string]plugin.PluginInstance
+	pluginInstances map[string]*pluginInstance
 	commands        map[string]*Command
 	listeners       map[string]*EventListener
 	// TODO?: Cache messages (LRUCache<*MessageInstance>)
@@ -43,15 +42,15 @@ func NewApp(
 ) *App {
 	return &App{
 		id:              id,
-		stores:          stores,
+		env:             stores,
 		commands:        make(map[string]*Command),
 		listeners:       make(map[string]*EventListener),
-		pluginInstances: make(map[string]plugin.PluginInstance),
+		pluginInstances: make(map[string]*pluginInstance),
 	}
 }
 
 func (a *App) AddPluginInstance(pluginInstance *model.PluginInstance) {
-	plugin := a.stores.PluginRegistry.Plugin(pluginInstance.PluginID)
+	plugin := a.env.PluginRegistry.Plugin(pluginInstance.PluginID)
 	if plugin == nil {
 		slog.With("plugin_id", pluginInstance.PluginID).Error("Unknown plugin")
 		return
@@ -62,7 +61,11 @@ func (a *App) AddPluginInstance(pluginInstance *model.PluginInstance) {
 	a.Unlock()
 
 	if existing != nil {
-		existing.Update(context.TODO(), pluginInstance.Config)
+		err := existing.Update(context.TODO(), pluginInstance)
+		if err != nil {
+			slog.With("error", err).Error("failed to update plugin instance")
+			return
+		}
 	} else {
 		instance, err := plugin.Instance(context.TODO(), a.id, pluginInstance.Config)
 		if err != nil {
@@ -71,7 +74,7 @@ func (a *App) AddPluginInstance(pluginInstance *model.PluginInstance) {
 		}
 
 		a.Lock()
-		a.pluginInstances[pluginInstance.ID] = instance
+		a.pluginInstances[pluginInstance.ID] = newPluginInstance(pluginInstance, instance, a.env)
 		a.Unlock()
 	}
 
@@ -108,7 +111,7 @@ func (a *App) RemoveDanglingPluginInstances(pluginInstanceIDs []string) {
 func (a *App) AddCommand(cmd *model.Command) {
 	command, err := NewCommand(
 		cmd,
-		a.stores,
+		a.env,
 	)
 	if err != nil {
 		slog.With("error", err).Error("failed to create command")
@@ -145,7 +148,7 @@ func (a *App) RemoveDanglingCommands(commandIDs []string) {
 func (a *App) AddEventListener(listener *model.EventListener) {
 	eventListener, err := NewEventListener(
 		listener,
-		a.stores,
+		a.env,
 	)
 	if err != nil {
 		slog.With("error", err).Error("failed to create event listener")
@@ -180,7 +183,7 @@ func (a *App) createLogEntry(level model.LogLevel, message string) {
 	defer cancel()
 
 	// Create log entry which will be displayed in the dashboard
-	err := a.stores.LogStore.CreateLogEntry(ctx, model.LogEntry{
+	err := a.env.LogStore.CreateLogEntry(ctx, model.LogEntry{
 		AppID:     a.id,
 		Level:     level,
 		Message:   message,
@@ -192,19 +195,7 @@ func (a *App) createLogEntry(level model.LogLevel, message string) {
 }
 
 func (a *App) HandleEvent(appID string, session *state.State, event gateway.Event) {
-	for _, plugin := range a.pluginInstances {
-		pluginCtx := &pluginContext{
-			Context:       context.TODO(),
-			ValueProvider: valueProvider,
-			appID:         appID,
-			discord:       NewDiscordProvider(appID, a.stores.AppStore, session),
-		}
-
-		err := plugin.HandleEvent(pluginCtx, event)
-		if err != nil {
-			slog.With("error", err).With("app_id", a.id).Error("Failed to handle event from engine app")
-		}
-	}
+	a.dispatchEventToPlugins(session, event)
 
 	switch e := event.(type) {
 	case *gateway.InteractionCreateEvent:
@@ -244,7 +235,7 @@ func (a *App) HandleEvent(appID string, session *state.State, event gateway.Even
 			customID := string(d.CustomID)
 			resumePointID, _, isResume := message.DecodeCustomIDMessageComponentResumePoint(customID)
 			if isResume {
-				resumePoint, err := a.stores.ResumePointStore.ResumePoint(context.TODO(), resumePointID)
+				resumePoint, err := a.env.ResumePointStore.ResumePoint(context.TODO(), resumePointID)
 				if err != nil {
 					if errors.Is(err, store.ErrNotFound) {
 						return
@@ -277,7 +268,7 @@ func (a *App) HandleEvent(appID string, session *state.State, event gateway.Even
 						return
 					}
 
-					go a.stores.executeFlowEvent(
+					go a.env.executeFlowEvent(
 						context.Background(),
 						a.id,
 						node,
@@ -293,7 +284,7 @@ func (a *App) HandleEvent(appID string, session *state.State, event gateway.Even
 			}
 
 			messageID := e.Message.ID.String()
-			messageInstnace, err := a.stores.MessageInstanceStore.MessageInstanceByDiscordMessageID(context.TODO(), messageID)
+			messageInstnace, err := a.env.MessageInstanceStore.MessageInstanceByDiscordMessageID(context.TODO(), messageID)
 			if err != nil {
 				if errors.Is(err, store.ErrNotFound) {
 					return
@@ -306,7 +297,7 @@ func (a *App) HandleEvent(appID string, session *state.State, event gateway.Even
 			instance, err := NewMessageInstance(
 				a.id,
 				messageInstnace,
-				a.stores,
+				a.env,
 			)
 			if err != nil {
 				slog.With("error", err).Error("failed to create message instance")
@@ -321,7 +312,7 @@ func (a *App) HandleEvent(appID string, session *state.State, event gateway.Even
 				return
 			}
 
-			resumePoint, err := a.stores.ResumePointStore.ResumePoint(context.TODO(), resumePointID)
+			resumePoint, err := a.env.ResumePointStore.ResumePoint(context.TODO(), resumePointID)
 			if err != nil {
 				if errors.Is(err, store.ErrNotFound) {
 					return
@@ -354,7 +345,7 @@ func (a *App) HandleEvent(appID string, session *state.State, event gateway.Even
 					return
 				}
 
-				go a.stores.executeFlowEvent(
+				go a.env.executeFlowEvent(
 					context.Background(),
 					a.id,
 					node,
@@ -368,7 +359,7 @@ func (a *App) HandleEvent(appID string, session *state.State, event gateway.Even
 			}
 
 			if resumePoint.MessageInstanceID.Valid {
-				messageInstance, err := a.stores.MessageInstanceStore.MessageInstance(
+				messageInstance, err := a.env.MessageInstanceStore.MessageInstance(
 					context.TODO(),
 					resumePoint.MessageID.String,
 					uint64(resumePoint.MessageInstanceID.Int64),
@@ -389,7 +380,7 @@ func (a *App) HandleEvent(appID string, session *state.State, event gateway.Even
 				instance, err := NewMessageInstance(
 					a.id,
 					messageInstance,
-					a.stores,
+					a.env,
 				)
 				if err != nil {
 					slog.Error(
@@ -426,7 +417,7 @@ func (a *App) HandleEvent(appID string, session *state.State, event gateway.Even
 					return
 				}
 
-				go a.stores.executeFlowEvent(
+				go a.env.executeFlowEvent(
 					context.Background(),
 					a.id,
 					node,
@@ -473,17 +464,4 @@ func getFullCommandName(d *discord.CommandInteraction) string {
 	}
 
 	return fullName
-}
-
-type pluginContext struct {
-	context.Context
-
-	provider.ValueProvider
-
-	appID   string
-	discord provider.DiscordProvider
-}
-
-func (c *pluginContext) Discord() provider.DiscordProvider {
-	return c.discord
 }

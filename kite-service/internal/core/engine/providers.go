@@ -518,3 +518,53 @@ func (p *ResumePointProvider) CreateResumePoint(ctx context.Context, s flow.Resu
 
 	return s, err
 }
+
+type ValueProvider struct {
+	pluginInstanceID string
+	pluginValueStore store.PluginValueStore
+}
+
+func NewValueProvider(pluginInstanceID string, pluginValueStore store.PluginValueStore) *ValueProvider {
+	return &ValueProvider{
+		pluginInstanceID: pluginInstanceID,
+		pluginValueStore: pluginValueStore,
+	}
+}
+
+func (p *ValueProvider) UpdateValue(ctx context.Context, key string, op provider.VariableOperation, value thing.Any) (thing.Any, error) {
+	v := model.PluginValue{
+		PluginInstanceID: p.pluginInstanceID,
+		Key:              key,
+		Value:            value,
+		CreatedAt:        time.Now().UTC(),
+		UpdatedAt:        time.Now().UTC(),
+	}
+
+	newValue, err := p.pluginValueStore.UpdatePluginValue(ctx, op, v)
+	if err != nil {
+		return thing.Null, fmt.Errorf("failed to %s plugin value: %w", op, err)
+	}
+
+	return newValue.Value, nil
+}
+
+func (p *ValueProvider) GetValue(ctx context.Context, key string) (thing.Any, error) {
+	v, err := p.pluginValueStore.GetPluginValue(ctx, p.pluginInstanceID, key)
+	if err != nil {
+		if errors.Is(err, store.ErrNotFound) {
+			return thing.Null, provider.ErrNotFound
+		}
+		return thing.Null, fmt.Errorf("failed to get plugin value: %w", err)
+	}
+
+	return v.Value, nil
+}
+
+func (p *ValueProvider) DeleteValue(ctx context.Context, key string) error {
+	err := p.pluginValueStore.DeletePluginValue(ctx, p.pluginInstanceID, key)
+	if err != nil {
+		return fmt.Errorf("failed to delete plugin value: %w", err)
+	}
+
+	return nil
+}
