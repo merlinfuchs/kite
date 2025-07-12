@@ -92,12 +92,13 @@ func serverStartCMD(c *cli.Context) error {
 			MessageInstanceStore: pg,
 			CommandStore:         pg,
 			EventListenerStore:   pg,
+			PluginInstanceStore:  pg,
+			PluginRegistry:       pluginRegistry,
 			VariableValueStore:   pg,
 			ResumePointStore:     pg,
 			HttpClient:           engineHTTPClient(cfg),
 			OpenaiClient:         openaiClient,
 		},
-		pluginRegistry,
 	)
 	engine.Run(ctx)
 

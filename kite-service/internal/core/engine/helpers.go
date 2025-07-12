@@ -14,6 +14,7 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/store"
 	"github.com/kitecloud/kite/kite-service/pkg/eval"
 	"github.com/kitecloud/kite/kite-service/pkg/flow"
+	"github.com/kitecloud/kite/kite-service/pkg/plugin"
 	"github.com/kitecloud/kite/kite-service/pkg/provider"
 	"github.com/sashabaranov/go-openai"
 	"gopkg.in/guregu/null.v4"
@@ -28,6 +29,8 @@ type Env struct {
 	MessageInstanceStore store.MessageInstanceStore
 	CommandStore         store.CommandStore
 	EventListenerStore   store.EventListenerStore
+	PluginInstanceStore  store.PluginInstanceStore
+	PluginRegistry       *plugin.Registry
 	VariableValueStore   store.VariableValueStore
 	ResumePointStore     store.ResumePointStore
 	HttpClient           *http.Client

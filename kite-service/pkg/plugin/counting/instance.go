@@ -1,6 +1,7 @@
 package counting
 
 import (
+	"context"
 	"slices"
 	"strconv"
 
@@ -14,7 +15,7 @@ type CountingPluginInstance struct {
 	config plugin.ConfigValues
 }
 
-func (p *CountingPluginInstance) Update(c plugin.Context, config plugin.ConfigValues) error {
+func (p *CountingPluginInstance) Update(ctx context.Context, config plugin.ConfigValues) error {
 	p.config = config
 	return nil
 }
@@ -97,5 +98,9 @@ func (p *CountingPluginInstance) HandleEvent(c plugin.Context, event gateway.Eve
 		return err
 	}
 
+	return nil
+}
+
+func (p *CountingPluginInstance) Close() error {
 	return nil
 }

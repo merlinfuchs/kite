@@ -20,8 +20,9 @@ type PluginInstance interface {
 	Events() []Event
 	Commands() []Command
 
-	Update(c Context, config ConfigValues) error
+	Update(ctx context.Context, config ConfigValues) error
 	HandleEvent(c Context, event gateway.Event) error
+	Close() error
 }
 
 type Metadata struct {

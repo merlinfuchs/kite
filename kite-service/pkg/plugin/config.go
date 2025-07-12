@@ -1,49 +1,51 @@
 package plugin
 
-type ConfigValues map[string]interface{}
+import (
+	"encoding/json"
+)
+
+type ConfigValues map[string]json.RawMessage
 
 func NewConfigValues() ConfigValues {
 	return make(ConfigValues)
 }
 
 func (c ConfigValues) GetString(key string) string {
-	v, _ := c[key].(string)
-	return v
+	return UnmarshalConfigValue[string](c[key])
 }
 
 func (c ConfigValues) GetInt(key string) int {
-	v, _ := c[key].(int)
-	return v
+	return UnmarshalConfigValue[int](c[key])
 }
 
 func (c ConfigValues) GetBool(key string) bool {
-	v, _ := c[key].(bool)
-	return v
+	return UnmarshalConfigValue[bool](c[key])
 }
 
 func (c ConfigValues) GetFloat(key string) float64 {
-	v, _ := c[key].(float64)
-	return v
+	return UnmarshalConfigValue[float64](c[key])
 }
 
 func (c ConfigValues) GetStringArray(key string) []string {
-	v, _ := c[key].([]string)
-	return v
+	return UnmarshalConfigValue[[]string](c[key])
 }
 
 func (c ConfigValues) GetIntArray(key string) []int {
-	v, _ := c[key].([]int)
-	return v
+	return UnmarshalConfigValue[[]int](c[key])
 }
 
 func (c ConfigValues) GetFloatArray(key string) []float64 {
-	v, _ := c[key].([]float64)
-	return v
+	return UnmarshalConfigValue[[]float64](c[key])
 }
 
 func (c ConfigValues) GetBoolArray(key string) []bool {
-	v, _ := c[key].([]bool)
-	return v
+	return UnmarshalConfigValue[[]bool](c[key])
+}
+
+func UnmarshalConfigValue[T any](v json.RawMessage) T {
+	var t T
+	_ = json.Unmarshal(v, &t)
+	return t
 }
 
 type Config struct {

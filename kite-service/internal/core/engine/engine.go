@@ -9,14 +9,12 @@ import (
 
 	"github.com/diamondburned/arikawa/v3/gateway"
 	"github.com/diamondburned/arikawa/v3/state"
-	"github.com/kitecloud/kite/kite-service/pkg/plugin"
 )
 
 type Engine struct {
 	sync.RWMutex
 
-	stores         Env
-	pluginRegistry *plugin.Registry
+	stores Env
 
 	lastUpdate time.Time
 	apps       map[string]*App
@@ -24,12 +22,10 @@ type Engine struct {
 
 func NewEngine(
 	stores Env,
-	pluginRegistry *plugin.Registry,
 ) *Engine {
 	return &Engine{
-		stores:         stores,
-		pluginRegistry: pluginRegistry,
-		apps:           make(map[string]*App),
+		stores: stores,
+		apps:   make(map[string]*App),
 	}
 }
 
@@ -93,22 +89,51 @@ func (e *Engine) Run(ctx context.Context) {
 }
 
 func (e *Engine) populatePlugins(ctx context.Context, lastUpdate time.Time) error {
-	countingPlugin := e.pluginRegistry.Plugin("counting")
-	if countingPlugin == nil {
-		return fmt.Errorf("counting plugin not found")
+	pluginInstances, err := e.stores.PluginInstanceStore.EnabledPluginInstancesUpdatedSince(ctx, lastUpdate)
+	if err != nil {
+		return fmt.Errorf("failed to get plugin instances: %w", err)
 	}
 
+	lockStart := time.Now()
 	e.Lock()
 	defer e.Unlock()
+	lockDiff := time.Since(lockStart)
+	if lockDiff > 250*time.Millisecond {
+		slog.Warn(
+			"Locking engine for plugins took too long",
+			slog.String("lock_duration", lockDiff.String()),
+		)
+	}
 
-	for _, app := range e.apps {
-		app.AddPlugin(countingPlugin)
+	for _, pluginInstance := range pluginInstances {
+		app, ok := e.apps[pluginInstance.AppID]
+		if !ok {
+			app = NewApp(
+				pluginInstance.AppID,
+				e.stores,
+			)
+			e.apps[pluginInstance.AppID] = app
+		}
+
+		app.AddPluginInstance(pluginInstance)
 	}
 
 	return nil
 }
 
 func (e *Engine) removeDanglingPlugins(ctx context.Context) error {
+	pluginInstanceIDs, err := e.stores.PluginInstanceStore.EnabledPluginInstanceIDs(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to get enabled plugin instance IDs: %w", err)
+	}
+
+	e.RLock()
+	defer e.RUnlock()
+
+	for _, app := range e.apps {
+		app.RemoveDanglingPluginInstances(pluginInstanceIDs)
+	}
+
 	return nil
 }
 

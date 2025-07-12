@@ -31,9 +31,9 @@ type App struct {
 	stores               Env
 	hasUndeployedChanges bool
 
-	plugins   map[string]plugin.PluginInstance
-	commands  map[string]*Command
-	listeners map[string]*EventListener
+	pluginInstances map[string]plugin.PluginInstance
+	commands        map[string]*Command
+	listeners       map[string]*EventListener
 	// TODO?: Cache messages (LRUCache<*MessageInstance>)
 }
 
@@ -42,31 +42,67 @@ func NewApp(
 	stores Env,
 ) *App {
 	return &App{
-		id:        id,
-		stores:    stores,
-		commands:  make(map[string]*Command),
-		listeners: make(map[string]*EventListener),
-		plugins:   make(map[string]plugin.PluginInstance),
+		id:              id,
+		stores:          stores,
+		commands:        make(map[string]*Command),
+		listeners:       make(map[string]*EventListener),
+		pluginInstances: make(map[string]plugin.PluginInstance),
 	}
 }
 
-func (a *App) AddPlugin(mod plugin.Plugin) {
-	instance, err := mod.Instance(context.TODO(), a.id, plugin.ConfigValues{
-		"channels": []string{
-			"1139202553091981442",
-		},
-	})
-	if err != nil {
-		slog.With("error", err).Error("failed to create module instance")
+func (a *App) AddPluginInstance(pluginInstance *model.PluginInstance) {
+	plugin := a.stores.PluginRegistry.Plugin(pluginInstance.PluginID)
+	if plugin == nil {
+		slog.With("plugin_id", pluginInstance.PluginID).Error("Unknown plugin")
 		return
+	}
+
+	a.Lock()
+	existing := a.pluginInstances[pluginInstance.ID]
+	a.Unlock()
+
+	if existing != nil {
+		existing.Update(context.TODO(), pluginInstance.Config)
+	} else {
+		instance, err := plugin.Instance(context.TODO(), a.id, pluginInstance.Config)
+		if err != nil {
+			slog.With("error", err).Error("failed to create module instance")
+			return
+		}
+
+		a.Lock()
+		a.pluginInstances[pluginInstance.ID] = instance
+		a.Unlock()
 	}
 
 	a.Lock()
 	defer a.Unlock()
 
-	a.plugins[mod.ID()] = instance
+	if !pluginInstance.LastDeployedAt.Valid || pluginInstance.LastDeployedAt.Time.Before(pluginInstance.UpdatedAt) {
+		a.hasUndeployedChanges = true
+	}
+}
 
-	a.hasUndeployedChanges = true
+func (a *App) RemoveDanglingPluginInstances(pluginInstanceIDs []string) {
+	pluginInstanceIDMap := make(map[string]struct{}, len(pluginInstanceIDs))
+	for _, pluginInstanceID := range pluginInstanceIDs {
+		pluginInstanceIDMap[pluginInstanceID] = struct{}{}
+	}
+
+	a.Lock()
+	defer a.Unlock()
+
+	for pluginInstanceID, pluginInstance := range a.pluginInstances {
+		if _, ok := pluginInstanceIDMap[pluginInstanceID]; !ok {
+			err := pluginInstance.Close()
+			if err != nil {
+				slog.With("error", err).Error("failed to close plugin instance")
+			}
+
+			delete(a.pluginInstances, pluginInstanceID)
+			a.hasUndeployedChanges = true
+		}
+	}
 }
 
 func (a *App) AddCommand(cmd *model.Command) {
@@ -156,7 +192,7 @@ func (a *App) createLogEntry(level model.LogLevel, message string) {
 }
 
 func (a *App) HandleEvent(appID string, session *state.State, event gateway.Event) {
-	for _, plugin := range a.plugins {
+	for _, plugin := range a.pluginInstances {
 		pluginCtx := &pluginContext{
 			Context:       context.TODO(),
 			ValueProvider: valueProvider,
