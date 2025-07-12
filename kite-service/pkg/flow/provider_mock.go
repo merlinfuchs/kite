@@ -79,6 +79,14 @@ func (p *MockDiscordProvider) DeleteMessage(
 	return nil
 }
 
+func (p *MockDiscordProvider) CreateMessageReaction(ctx context.Context, channelID discord.ChannelID, messageID discord.MessageID, emoji discord.APIEmoji) error {
+	return nil
+}
+
+func (p *MockDiscordProvider) DeleteMessageReaction(ctx context.Context, channelID discord.ChannelID, messageID discord.MessageID, emoji discord.APIEmoji) error {
+	return nil
+}
+
 func (p *MockDiscordProvider) BanMember(ctx context.Context, guildID discord.GuildID, userID discord.UserID, data api.BanData) error {
 	return nil
 }

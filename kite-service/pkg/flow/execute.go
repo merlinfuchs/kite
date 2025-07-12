@@ -432,6 +432,57 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 
 		nodeState.Result = thing.New(msg)
 		return n.ExecuteChildren(ctx)
+	case FlowNodeTypeActionMessageReactionCreate:
+		channelTarget, err := ctx.EvalTemplate(n.Data.ChannelTarget)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		messageTarget, err := ctx.EvalTemplate(n.Data.MessageTarget)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		if n.Data.EmojiData == nil {
+			return &FlowError{
+				Code:    FlowNodeErrorUnknown,
+				Message: "emoji_data is nil",
+			}
+		}
+
+		emoji := discord.APIEmoji(n.Data.EmojiData.Name)
+		if n.Data.EmojiData.ID != "" {
+			emoji = discord.APIEmoji(fmt.Sprintf("%s:%s", n.Data.EmojiData.Name, n.Data.EmojiData.ID))
+		}
+
+		err = ctx.Discord.CreateMessageReaction(ctx, discord.ChannelID(channelTarget.Int()), discord.MessageID(messageTarget.Int()), emoji)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		return n.ExecuteChildren(ctx)
+	case FlowNodeTypeActionMessageReactionDelete:
+		channelTarget, err := ctx.EvalTemplate(n.Data.ChannelTarget)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		messageTarget, err := ctx.EvalTemplate(n.Data.MessageTarget)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		emoji := discord.APIEmoji(n.Data.EmojiData.Name)
+		if n.Data.EmojiData.ID != "" {
+			emoji = discord.APIEmoji(fmt.Sprintf("%s:%s", n.Data.EmojiData.Name, n.Data.EmojiData.ID))
+		}
+
+		err = ctx.Discord.DeleteMessageReaction(ctx, discord.ChannelID(channelTarget.Int()), discord.MessageID(messageTarget.Int()), emoji)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		return n.ExecuteChildren(ctx)
 	case FlowNodeTypeActionMemberBan:
 		userID, err := ctx.EvalTemplate(n.Data.UserTarget)
 		if err != nil {
