@@ -12,3 +12,4 @@ CREATE TABLE IF NOT EXISTS plugin_values (
 );
 
 CREATE INDEX IF NOT EXISTS plugin_values_plugin_instance_id ON plugin_values (plugin_instance_id);
+CREATE INDEX IF NOT EXISTS plugin_values_plugin_instance_key ON plugin_values (key);

@@ -3,7 +3,6 @@ package provider
 import (
 	"context"
 	"errors"
-	"fmt"
 
 	"github.com/kitecloud/kite/kite-service/pkg/thing"
 )
@@ -22,7 +21,6 @@ type MockValueProvider struct {
 
 func (p *MockValueProvider) UpdateValue(ctx context.Context, key string, op VariableOperation, value thing.Any) (thing.Any, error) {
 	currentValue, err := p.GetValue(ctx, key)
-	fmt.Println("currentValue", currentValue)
 	if err != nil {
 		if errors.Is(err, ErrNotFound) {
 			p.Values[key] = value
