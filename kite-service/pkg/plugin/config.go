@@ -49,21 +49,21 @@ func UnmarshalConfigValue[T any](v json.RawMessage) T {
 }
 
 type Config struct {
-	Sections []ConfigSection
+	Sections []ConfigSection `json:"sections"`
 }
 
 type ConfigSection struct {
-	Name        string
-	Description string
-	Fields      []ConfigField
+	Name        string        `json:"name"`
+	Description string        `json:"description"`
+	Fields      []ConfigField `json:"fields"`
 }
 
 type ConfigField struct {
-	Key         string
-	Type        ConfigFieldType
-	ItemType    ConfigFieldType
-	Name        string
-	Description string
+	Key         string          `json:"key"`
+	Type        ConfigFieldType `json:"type"`
+	ItemType    ConfigFieldType `json:"item_type"`
+	Name        string          `json:"name"`
+	Description string          `json:"description"`
 }
 
 type ConfigFieldType string

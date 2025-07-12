@@ -136,6 +136,11 @@ func (a *App) DeployCommands(ctx context.Context) error {
 		return fmt.Errorf("failed to update last deployed at: %w", err)
 	}
 
+	err = a.stores.PluginInstanceStore.UpdatePluginInstancesLastDeployedAt(ctx, a.id, lastUpdatedAt)
+	if err != nil {
+		return fmt.Errorf("failed to update last deployed at: %w", err)
+	}
+
 	go a.createLogEntry(model.LogLevelInfo, "Successfully deployed commands")
 	return nil
 }

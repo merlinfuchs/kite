@@ -9,7 +9,6 @@ import (
 
 type Plugin interface {
 	ID() string
-	IsDefault() bool
 	Metadata() Metadata
 	Config() Config
 

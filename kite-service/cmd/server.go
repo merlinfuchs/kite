@@ -143,7 +143,10 @@ func serverStartCMD(c *cli.Context) error {
 			TestMode:                  cfg.Billing.TestMode,
 			Plans:                     cfg.Billing.Plans,
 		},
-	}, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, assetStore, gateway, planManager)
+	},
+		pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg,
+		assetStore, gateway, planManager, pluginRegistry,
+	)
 	address := fmt.Sprintf("%s:%d", cfg.API.Host, cfg.API.Port)
 	if err := apiServer.Serve(ctx, address); err != nil {
 		slog.With("error", err).Error("Failed to start API server")

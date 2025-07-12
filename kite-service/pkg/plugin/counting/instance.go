@@ -36,7 +36,7 @@ func (p *CountingPluginInstance) Commands() []plugin.Command {
 		{
 			ID: "counting_toggle",
 			Data: api.CreateCommandData{
-				Name:        "toggle",
+				Name:        "counting-toggle",
 				Description: "Toggle the counting game in the current channel",
 			},
 		},

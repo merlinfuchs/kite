@@ -26,10 +26,6 @@ func (p *CountingPlugin) ID() string {
 	return "counting"
 }
 
-func (p *CountingPlugin) IsDefault() bool {
-	return false
-}
-
 func (p *CountingPlugin) Metadata() plugin.Metadata {
 	return plugin.Metadata{
 		Name:        "Counting",
