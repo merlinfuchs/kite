@@ -151,8 +151,8 @@ func (c *FlowContext) SetEntryNodeID(nodeID string) {
 	c.EntryNodeID = nodeID
 }
 
-func (c *FlowContext) suspend(t FlowResumePointType, nodeID string) (*FlowResumePoint, error) {
-	s, err := c.ResumePoint.CreateResumePoint(c.Context, FlowResumePoint{
+func (c *FlowContext) suspend(t ResumePointType, nodeID string) (*ResumePoint, error) {
+	s, err := c.ResumePoint.CreateResumePoint(c.Context, ResumePoint{
 		Type:   t,
 		NodeID: nodeID,
 		State:  c.FlowContextState.Copy(),

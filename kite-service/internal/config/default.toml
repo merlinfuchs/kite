@@ -18,7 +18,7 @@ max_asset_size = 8_000_000
 credits_per_month = 100_000
 
 [engine]
-max_stack_depth = 25
+max_stack_depth = 100
 max_operations = 100
 max_credits = 250
 

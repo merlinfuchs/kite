@@ -3,7 +3,7 @@ package model
 import (
 	"time"
 
-	"github.com/kitecloud/kite/kite-service/pkg/flow"
+	"github.com/kitecloud/kite/kite-service/pkg/provider"
 	"github.com/kitecloud/kite/kite-service/pkg/thing"
 	"gopkg.in/guregu/null.v4"
 )
@@ -28,4 +28,4 @@ type VariableValue struct {
 	UpdatedAt  time.Time
 }
 
-type VariableValueOperation = flow.VariableOperation
+type VariableValueOperation = provider.VariableOperation

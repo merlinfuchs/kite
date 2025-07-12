@@ -25,6 +25,8 @@ import {
   useUserQuery,
   useVariableQuery,
   useVariablesQuery,
+  usePluginsQuery,
+  usePluginInstanceQuery,
 } from "../api/queries";
 import { APIResponse } from "../api/response";
 import {
@@ -43,6 +45,8 @@ import {
   MessageGetResponse,
   MessageInstanceListResponse,
   MessageListResponse,
+  PluginInstanceGetResponse,
+  PluginListResponse,
   StateGuildChannelListResponse,
   StateGuildListResponse,
   SubscriptionListResponse,
@@ -53,6 +57,7 @@ import {
   VariableGetResponse,
   VariableListResponse,
 } from "../types/wire.gen";
+import { useAppId, usePluginId } from "./params";
 
 export function useResponseData<T>(
   {
@@ -327,4 +332,26 @@ export function useAppFeature<T>(
 ): T | undefined {
   const features = useAppFeatures();
   return features ? accessor(features) : undefined;
+}
+
+export function usePlugins(
+  callback?: (res: APIResponse<PluginListResponse>) => void
+) {
+  const query = usePluginsQuery();
+  return useResponseData(query, callback);
+}
+
+export function usePlugin(
+  callback?: (res: APIResponse<PluginListResponse>) => void
+) {
+  const plugins = usePlugins(callback);
+  const pluginId = usePluginId();
+  return plugins?.find((p) => p!.id === pluginId);
+}
+
+export function usePluginInstance(
+  callback?: (res: APIResponse<PluginInstanceGetResponse>) => void
+) {
+  const query = usePluginInstanceQuery(useAppId(), usePluginId());
+  return useResponseData(query, callback);
 }

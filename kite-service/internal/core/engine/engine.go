@@ -44,6 +44,12 @@ func (e *Engine) Run(ctx context.Context) {
 				lastUpdate := e.lastUpdate
 				e.lastUpdate = time.Now().UTC()
 
+				if err := e.populatePlugins(ctx, lastUpdate); err != nil {
+					slog.Error(
+						"Failed to populate plugins in engine",
+						slog.String("error", err.Error()),
+					)
+				}
 				if err := e.populateCommands(ctx, lastUpdate); err != nil {
 					slog.Error(
 						"Failed to populate commands in engine",
@@ -57,6 +63,12 @@ func (e *Engine) Run(ctx context.Context) {
 					)
 				}
 			case <-removeTicker.C:
+				if err := e.removeDanglingPlugins(ctx); err != nil {
+					slog.Error(
+						"Failed to remove dangling plugins in engine",
+						slog.String("error", err.Error()),
+					)
+				}
 				if err := e.removeDanglingCommands(ctx); err != nil {
 					slog.Error(
 						"Failed to remove dangling commands in engine",
@@ -74,6 +86,55 @@ func (e *Engine) Run(ctx context.Context) {
 			}
 		}
 	}()
+}
+
+func (e *Engine) populatePlugins(ctx context.Context, lastUpdate time.Time) error {
+	pluginInstances, err := e.stores.PluginInstanceStore.EnabledPluginInstancesUpdatedSince(ctx, lastUpdate)
+	if err != nil {
+		return fmt.Errorf("failed to get plugin instances: %w", err)
+	}
+
+	lockStart := time.Now()
+	e.Lock()
+	defer e.Unlock()
+	lockDiff := time.Since(lockStart)
+	if lockDiff > 250*time.Millisecond {
+		slog.Warn(
+			"Locking engine for plugins took too long",
+			slog.String("lock_duration", lockDiff.String()),
+		)
+	}
+
+	for _, pluginInstance := range pluginInstances {
+		app, ok := e.apps[pluginInstance.AppID]
+		if !ok {
+			app = NewApp(
+				pluginInstance.AppID,
+				e.stores,
+			)
+			e.apps[pluginInstance.AppID] = app
+		}
+
+		app.AddPluginInstance(pluginInstance)
+	}
+
+	return nil
+}
+
+func (e *Engine) removeDanglingPlugins(ctx context.Context) error {
+	pluginInstanceIDs, err := e.stores.PluginInstanceStore.EnabledPluginInstanceIDs(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to get enabled plugin instance IDs: %w", err)
+	}
+
+	e.RLock()
+	defer e.RUnlock()
+
+	for _, app := range e.apps {
+		app.RemoveDanglingPluginInstances(pluginInstanceIDs)
+	}
+
+	return nil
 }
 
 func (e *Engine) populateCommands(ctx context.Context, lastUpdate time.Time) error {

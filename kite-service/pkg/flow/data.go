@@ -7,6 +7,7 @@ import (
 	"github.com/diamondburned/arikawa/v3/api"
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/kitecloud/kite/kite-service/pkg/message"
+	"github.com/kitecloud/kite/kite-service/pkg/provider"
 	"github.com/sashabaranov/go-openai"
 	"gopkg.in/guregu/null.v4"
 )
@@ -151,10 +152,10 @@ type FlowNodeData struct {
 	RoleData   *api.CreateRoleData `json:"role_data,omitempty"`
 
 	// Variable Set, Delete
-	VariableID        string            `json:"variable_id,omitempty"`
-	VariableScope     string            `json:"variable_scope,omitempty"`
-	VariableValue     string            `json:"variable_value,omitempty"`
-	VariableOperation VariableOperation `json:"variable_operation,omitempty"`
+	VariableID        string                     `json:"variable_id,omitempty"`
+	VariableScope     string                     `json:"variable_scope,omitempty"`
+	VariableValue     string                     `json:"variable_value,omitempty"`
+	VariableOperation provider.VariableOperation `json:"variable_operation,omitempty"`
 
 	// HTTP Request
 	HTTPRequestData *HTTPRequestData `json:"http_request_data,omitempty"`
@@ -174,8 +175,8 @@ type FlowNodeData struct {
 	EventFilterExpression string            `json:"event_filter_expression,omitempty"`
 
 	// Log
-	LogLevel   LogLevel `json:"log_level,omitempty"`
-	LogMessage string   `json:"log_message,omitempty"`
+	LogLevel   provider.LogLevel `json:"log_level,omitempty"`
+	LogMessage string            `json:"log_message,omitempty"`
 
 	// Expression Evaluate
 	Expression string `json:"expression,omitempty"`
@@ -233,29 +234,6 @@ func (d FlowNodeData) Validate(nodeType FlowNodeType) error {
 			validation.Required,
 		)),
 	)
-}
-
-type LogLevel string
-
-const (
-	LogLevelDebug LogLevel = "debug"
-	LogLevelInfo  LogLevel = "info"
-	LogLevelWarn  LogLevel = "warn"
-	LogLevelError LogLevel = "error"
-)
-
-type VariableOperation string
-
-const (
-	VariableOperationOverwrite VariableOperation = "overwrite"
-	VariableOperationAppend    VariableOperation = "append"
-	VariableOperationPrepend   VariableOperation = "prepend"
-	VariableOperationIncrement VariableOperation = "increment"
-	VariableOperationDecrement VariableOperation = "decrement"
-)
-
-func (o VariableOperation) IsOverwrite() bool {
-	return o == VariableOperationOverwrite || o == ""
 }
 
 type ConditionItemType string

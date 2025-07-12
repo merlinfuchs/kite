@@ -24,3 +24,8 @@ export function useEventId() {
   const router = useRouter();
   return router.query.eventId as string;
 }
+
+export function usePluginId() {
+  const router = useRouter();
+  return router.query.pluginId as string;
+}
