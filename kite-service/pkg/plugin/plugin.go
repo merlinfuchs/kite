@@ -1,4 +1,4 @@
-package module
+package plugin
 
 import (
 	"context"
@@ -7,16 +7,16 @@ import (
 	"github.com/diamondburned/arikawa/v3/gateway"
 )
 
-type Module interface {
+type Plugin interface {
 	ID() string
 	IsDefault() bool
 	Metadata() Metadata
 	Config() Config
 
-	Instance(ctx context.Context, appID string, config ConfigValues) (ModuleInstance, error)
+	Instance(ctx context.Context, appID string, config ConfigValues) (PluginInstance, error)
 }
 
-type ModuleInstance interface {
+type PluginInstance interface {
 	Events() []Event
 	Commands() []Command
 

@@ -9,14 +9,14 @@ import (
 
 	"github.com/diamondburned/arikawa/v3/gateway"
 	"github.com/diamondburned/arikawa/v3/state"
-	"github.com/kitecloud/kite/kite-service/pkg/module"
+	"github.com/kitecloud/kite/kite-service/pkg/plugin"
 )
 
 type Engine struct {
 	sync.RWMutex
 
 	stores         Env
-	moduleRegistry *module.Registry
+	pluginRegistry *plugin.Registry
 
 	lastUpdate time.Time
 	apps       map[string]*App
@@ -24,11 +24,11 @@ type Engine struct {
 
 func NewEngine(
 	stores Env,
-	moduleRegistry *module.Registry,
+	pluginRegistry *plugin.Registry,
 ) *Engine {
 	return &Engine{
 		stores:         stores,
-		moduleRegistry: moduleRegistry,
+		pluginRegistry: pluginRegistry,
 		apps:           make(map[string]*App),
 	}
 }
@@ -48,9 +48,9 @@ func (e *Engine) Run(ctx context.Context) {
 				lastUpdate := e.lastUpdate
 				e.lastUpdate = time.Now().UTC()
 
-				if err := e.populateModules(ctx, lastUpdate); err != nil {
+				if err := e.populatePlugins(ctx, lastUpdate); err != nil {
 					slog.Error(
-						"Failed to populate modules in engine",
+						"Failed to populate plugins in engine",
 						slog.String("error", err.Error()),
 					)
 				}
@@ -67,9 +67,9 @@ func (e *Engine) Run(ctx context.Context) {
 					)
 				}
 			case <-removeTicker.C:
-				if err := e.removeDanglingModules(ctx); err != nil {
+				if err := e.removeDanglingPlugins(ctx); err != nil {
 					slog.Error(
-						"Failed to remove dangling modules in engine",
+						"Failed to remove dangling plugins in engine",
 						slog.String("error", err.Error()),
 					)
 				}
@@ -92,23 +92,23 @@ func (e *Engine) Run(ctx context.Context) {
 	}()
 }
 
-func (e *Engine) populateModules(ctx context.Context, lastUpdate time.Time) error {
-	countingModule := e.moduleRegistry.Module("counting")
-	if countingModule == nil {
-		return fmt.Errorf("counting module not found")
+func (e *Engine) populatePlugins(ctx context.Context, lastUpdate time.Time) error {
+	countingPlugin := e.pluginRegistry.Plugin("counting")
+	if countingPlugin == nil {
+		return fmt.Errorf("counting plugin not found")
 	}
 
 	e.Lock()
 	defer e.Unlock()
 
 	for _, app := range e.apps {
-		app.AddModule(countingModule)
+		app.AddPlugin(countingPlugin)
 	}
 
 	return nil
 }
 
-func (e *Engine) removeDanglingModules(ctx context.Context) error {
+func (e *Engine) removeDanglingPlugins(ctx context.Context) error {
 	return nil
 }
 

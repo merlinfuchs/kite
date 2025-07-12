@@ -6,32 +6,32 @@ import (
 
 	"github.com/diamondburned/arikawa/v3/api"
 	"github.com/diamondburned/arikawa/v3/gateway"
-	"github.com/kitecloud/kite/kite-service/pkg/module"
+	"github.com/kitecloud/kite/kite-service/pkg/plugin"
 )
 
-type CountingModuleInstance struct {
+type CountingPluginInstance struct {
 	appID  string
-	config module.ConfigValues
+	config plugin.ConfigValues
 }
 
-func (p *CountingModuleInstance) Update(c module.Context, config module.ConfigValues) error {
+func (p *CountingPluginInstance) Update(c plugin.Context, config plugin.ConfigValues) error {
 	p.config = config
 	return nil
 }
 
-func (p *CountingModuleInstance) Events() []module.Event {
-	return []module.Event{
+func (p *CountingPluginInstance) Events() []plugin.Event {
+	return []plugin.Event{
 		{
 			ID:          "counting_message_create",
-			Source:      module.EventSourceDiscord,
-			Type:        module.EventTypeMessageCreate,
+			Source:      plugin.EventSourceDiscord,
+			Type:        plugin.EventTypeMessageCreate,
 			Description: "Check if the message is a counting message",
 		},
 	}
 }
 
-func (p *CountingModuleInstance) Commands() []module.Command {
-	return []module.Command{
+func (p *CountingPluginInstance) Commands() []plugin.Command {
+	return []plugin.Command{
 		{
 			ID: "counting_toggle",
 			Data: api.CreateCommandData{
@@ -42,7 +42,7 @@ func (p *CountingModuleInstance) Commands() []module.Command {
 	}
 }
 
-func (p *CountingModuleInstance) HandleEvent(c module.Context, event gateway.Event) error {
+func (p *CountingPluginInstance) HandleEvent(c plugin.Context, event gateway.Event) error {
 	e, ok := event.(*gateway.MessageCreateEvent)
 	if !ok {
 		return nil

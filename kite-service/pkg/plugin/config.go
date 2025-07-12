@@ -1,4 +1,4 @@
-package module
+package plugin
 
 type ConfigValues map[string]interface{}
 
