@@ -94,6 +94,12 @@ func (a *App) DeployCommands(ctx context.Context) error {
 		commandNames = append(commandNames, node.CommandName())
 	}
 
+	for _, module := range a.modules {
+		for _, command := range module.Commands() {
+			commands = append(commands, command.Data)
+		}
+	}
+
 	a.Unlock()
 
 	if err := validateCommandNames(commandNames); err != nil {

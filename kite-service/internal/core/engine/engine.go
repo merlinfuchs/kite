@@ -9,12 +9,14 @@ import (
 
 	"github.com/diamondburned/arikawa/v3/gateway"
 	"github.com/diamondburned/arikawa/v3/state"
+	"github.com/kitecloud/kite/kite-service/pkg/module"
 )
 
 type Engine struct {
 	sync.RWMutex
 
-	stores Env
+	stores         Env
+	moduleRegistry *module.Registry
 
 	lastUpdate time.Time
 	apps       map[string]*App
@@ -22,10 +24,12 @@ type Engine struct {
 
 func NewEngine(
 	stores Env,
+	moduleRegistry *module.Registry,
 ) *Engine {
 	return &Engine{
-		stores: stores,
-		apps:   make(map[string]*App),
+		stores:         stores,
+		moduleRegistry: moduleRegistry,
+		apps:           make(map[string]*App),
 	}
 }
 
@@ -44,6 +48,12 @@ func (e *Engine) Run(ctx context.Context) {
 				lastUpdate := e.lastUpdate
 				e.lastUpdate = time.Now().UTC()
 
+				if err := e.populateModules(ctx, lastUpdate); err != nil {
+					slog.Error(
+						"Failed to populate modules in engine",
+						slog.String("error", err.Error()),
+					)
+				}
 				if err := e.populateCommands(ctx, lastUpdate); err != nil {
 					slog.Error(
 						"Failed to populate commands in engine",
@@ -57,6 +67,12 @@ func (e *Engine) Run(ctx context.Context) {
 					)
 				}
 			case <-removeTicker.C:
+				if err := e.removeDanglingModules(ctx); err != nil {
+					slog.Error(
+						"Failed to remove dangling modules in engine",
+						slog.String("error", err.Error()),
+					)
+				}
 				if err := e.removeDanglingCommands(ctx); err != nil {
 					slog.Error(
 						"Failed to remove dangling commands in engine",
@@ -74,6 +90,26 @@ func (e *Engine) Run(ctx context.Context) {
 			}
 		}
 	}()
+}
+
+func (e *Engine) populateModules(ctx context.Context, lastUpdate time.Time) error {
+	countingModule := e.moduleRegistry.Module("counting")
+	if countingModule == nil {
+		return fmt.Errorf("counting module not found")
+	}
+
+	e.Lock()
+	defer e.Unlock()
+
+	for _, app := range e.apps {
+		app.AddModule(countingModule)
+	}
+
+	return nil
+}
+
+func (e *Engine) removeDanglingModules(ctx context.Context) error {
+	return nil
 }
 
 func (e *Engine) populateCommands(ctx context.Context, lastUpdate time.Time) error {

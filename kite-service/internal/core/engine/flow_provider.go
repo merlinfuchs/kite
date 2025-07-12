@@ -18,13 +18,14 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/util"
 	"github.com/kitecloud/kite/kite-service/pkg/flow"
 	"github.com/kitecloud/kite/kite-service/pkg/message"
+	"github.com/kitecloud/kite/kite-service/pkg/provider"
 	"github.com/kitecloud/kite/kite-service/pkg/thing"
 	"github.com/sashabaranov/go-openai"
 	"gopkg.in/guregu/null.v4"
 )
 
 type DiscordProvider struct {
-	flow.MockDiscordProvider // TODO: remove this
+	provider.MockDiscordProvider // TODO: remove this
 
 	appID    string
 	appStore store.AppStore
@@ -57,7 +58,7 @@ func (p *DiscordProvider) GuildRoles(ctx context.Context, guildID discord.GuildI
 	return roles, nil
 }
 
-func (p *DiscordProvider) CreateInteractionResponse(ctx context.Context, interactionID discord.InteractionID, interactionToken string, response api.InteractionResponse) (*flow.FlowInteractionResponseResource, error) {
+func (p *DiscordProvider) CreateInteractionResponse(ctx context.Context, interactionID discord.InteractionID, interactionToken string, response api.InteractionResponse) (*provider.InteractionResponseResource, error) {
 	p.interactionResponseMutex.Lock()
 	defer p.interactionResponseMutex.Unlock()
 
@@ -75,7 +76,7 @@ func (p *DiscordProvider) CreateInteractionResponse(ctx context.Context, interac
 
 	p.interactionsWithResponse[interactionID] = struct{}{}
 
-	return &flow.FlowInteractionResponseResource{
+	return &provider.InteractionResponseResource{
 		Type:    res.Resource.Type,
 		Message: res.Resource.Message,
 	}, nil
@@ -297,7 +298,7 @@ func NewLogProvider(appID string, logStore store.LogStore, links entityLinks) *L
 	}
 }
 
-func (p *LogProvider) CreateLogEntry(ctx context.Context, level flow.LogLevel, message string) {
+func (p *LogProvider) CreateLogEntry(ctx context.Context, level provider.LogLevel, message string) {
 	ctx, cancel := context.WithTimeout(ctx, time.Second)
 	defer cancel()
 
@@ -343,7 +344,7 @@ func NewAIProvider(client *openai.Client) *AIProvider {
 	}
 }
 
-func (p *AIProvider) CreateChatCompletion(ctx context.Context, opts flow.CreateChatCompletionOpts) (string, error) {
+func (p *AIProvider) CreateChatCompletion(ctx context.Context, opts provider.CreateChatCompletionOpts) (string, error) {
 	messages := []openai.ChatCompletionMessage{
 		{Role: openai.ChatMessageRoleUser, Content: opts.Prompt},
 	}
@@ -387,7 +388,7 @@ func NewVariableProvider(variableValueStore store.VariableValueStore) *VariableP
 	}
 }
 
-func (p *VariableProvider) UpdateVariable(ctx context.Context, id string, scope null.String, operation flow.VariableOperation, value thing.Any) (thing.Any, error) {
+func (p *VariableProvider) UpdateVariable(ctx context.Context, id string, scope null.String, operation provider.VariableOperation, value thing.Any) (thing.Any, error) {
 	v := model.VariableValue{
 		VariableID: id,
 		Scope:      scope,
@@ -408,7 +409,7 @@ func (p *VariableProvider) Variable(ctx context.Context, id string, scope null.S
 	row, err := p.variableValueStore.VariableValue(ctx, id, scope)
 	if err != nil {
 		if errors.Is(err, store.ErrNotFound) {
-			return thing.Null, flow.ErrNotFound
+			return thing.Null, provider.ErrNotFound
 		}
 		return thing.Null, fmt.Errorf("failed to get variable value: %w", err)
 	}
@@ -446,7 +447,7 @@ func (p *MessageTemplateProvider) MessageTemplate(ctx context.Context, id string
 	return &message.Data, nil
 }
 
-func (p *MessageTemplateProvider) LinkMessageTemplateInstance(ctx context.Context, instance flow.FlowMessageTemplateInstance) error {
+func (p *MessageTemplateProvider) LinkMessageTemplateInstance(ctx context.Context, instance provider.MessageTemplateInstance) error {
 	message, err := p.messageStore.Message(ctx, instance.MessageTemplateID)
 	if err != nil {
 		return fmt.Errorf("failed to get message: %w", err)
@@ -489,11 +490,11 @@ func NewResumePointProvider(
 	}
 }
 
-func (p *ResumePointProvider) CreateResumePoint(ctx context.Context, s flow.FlowResumePoint) (flow.FlowResumePoint, error) {
+func (p *ResumePointProvider) CreateResumePoint(ctx context.Context, s flow.ResumePoint) (flow.ResumePoint, error) {
 	s.ID = util.UniqueID()
 
 	var expiresAt null.Time
-	if s.Type == flow.FlowResumePointTypeModal {
+	if s.Type == flow.ResumePointTypeModal {
 		expiresAt = null.NewTime(time.Now().UTC().Add(time.Hour*1), true)
 	}
 

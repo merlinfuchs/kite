@@ -15,6 +15,7 @@ import (
 	"github.com/diamondburned/arikawa/v3/utils/json/option"
 	"github.com/kitecloud/kite/kite-service/pkg/eval"
 	"github.com/kitecloud/kite/kite-service/pkg/message"
+	"github.com/kitecloud/kite/kite-service/pkg/provider"
 	"github.com/kitecloud/kite/kite-service/pkg/thing"
 	"github.com/sashabaranov/go-openai"
 	"gopkg.in/guregu/null.v4"
@@ -99,7 +100,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 		}
 
 		if n.Data.MessageTemplateID != "" && msg != nil {
-			err := ctx.MessageTemplate.LinkMessageTemplateInstance(ctx, FlowMessageTemplateInstance{
+			err := ctx.MessageTemplate.LinkMessageTemplateInstance(ctx, provider.MessageTemplateInstance{
 				MessageTemplateID: n.Data.MessageTemplateID,
 				MessageID:         msg.ID,
 				ChannelID:         ctx.Data.ChannelID(),
@@ -162,7 +163,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 		}
 
 		if n.Data.MessageTemplateID != "" {
-			err := ctx.MessageTemplate.LinkMessageTemplateInstance(ctx, FlowMessageTemplateInstance{
+			err := ctx.MessageTemplate.LinkMessageTemplateInstance(ctx, provider.MessageTemplateInstance{
 				MessageTemplateID: n.Data.MessageTemplateID,
 				MessageID:         msg.ID,
 				ChannelID:         ctx.Data.ChannelID(),
@@ -257,7 +258,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			}
 		}
 
-		resumePoint, err := ctx.suspend(FlowResumePointTypeModal, n.ID)
+		resumePoint, err := ctx.suspend(ResumePointTypeModal, n.ID)
 		if err != nil {
 			return traceError(n, err)
 		}
@@ -316,7 +317,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 		}
 
 		if n.Data.MessageTemplateID != "" {
-			err := ctx.MessageTemplate.LinkMessageTemplateInstance(ctx, FlowMessageTemplateInstance{
+			err := ctx.MessageTemplate.LinkMessageTemplateInstance(ctx, provider.MessageTemplateInstance{
 				MessageTemplateID: n.Data.MessageTemplateID,
 				MessageID:         msg.ID,
 				ChannelID:         ctx.Data.ChannelID(),
@@ -364,7 +365,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 		}
 
 		if n.Data.MessageTemplateID != "" {
-			err := ctx.MessageTemplate.LinkMessageTemplateInstance(ctx, FlowMessageTemplateInstance{
+			err := ctx.MessageTemplate.LinkMessageTemplateInstance(ctx, provider.MessageTemplateInstance{
 				MessageTemplateID: n.Data.MessageTemplateID,
 				MessageID:         msg.ID,
 				ChannelID:         ctx.Data.ChannelID(),
@@ -735,7 +736,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			n.Data.VariableID,
 			null.NewString(scope.String(), !scope.IsEmpty()),
 		)
-		if err != nil && !errors.Is(err, ErrNotFound) {
+		if err != nil && !errors.Is(err, provider.ErrNotFound) {
 			return traceError(n, err)
 		}
 
@@ -827,7 +828,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			return traceError(n, err)
 		}
 
-		response, err := ctx.AI.CreateChatCompletion(ctx, CreateChatCompletionOpts{
+		response, err := ctx.AI.CreateChatCompletion(ctx, provider.CreateChatCompletionOpts{
 			Model:               data.Model,
 			SystemPrompt:        systemPrompt.String(),
 			Prompt:              prompt.String(),
@@ -1268,9 +1269,9 @@ func (n *CompiledFlowNode) prepareMessageResponseData(ctx *FlowContext) (api.Int
 		return api.InteractionResponseData{}, err
 	}
 
-	var resumePoint *FlowResumePoint
+	var resumePoint *ResumePoint
 	if n.Data.MessageTemplateID == "" && len(data.Components) > 0 {
-		resumePoint, err = ctx.suspend(FlowResumePointTypeMessageComponents, n.ID)
+		resumePoint, err = ctx.suspend(ResumePointTypeMessageComponents, n.ID)
 		if err != nil {
 			return api.InteractionResponseData{}, err
 		}
@@ -1294,9 +1295,9 @@ func (n *CompiledFlowNode) prepareMessageSendData(ctx *FlowContext) (api.SendMes
 		return api.SendMessageData{}, err
 	}
 
-	var resumePoint *FlowResumePoint
+	var resumePoint *ResumePoint
 	if n.Data.MessageTemplateID == "" && len(data.Components) > 0 {
-		resumePoint, err = ctx.suspend(FlowResumePointTypeMessageComponents, n.ID)
+		resumePoint, err = ctx.suspend(ResumePointTypeMessageComponents, n.ID)
 		if err != nil {
 			return api.SendMessageData{}, err
 		}

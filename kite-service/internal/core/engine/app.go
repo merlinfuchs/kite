@@ -2,6 +2,7 @@ package engine
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"log/slog"
 	"sync"
@@ -13,8 +14,14 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/internal/store"
 	"github.com/kitecloud/kite/kite-service/pkg/message"
+	"github.com/kitecloud/kite/kite-service/pkg/module"
+	"github.com/kitecloud/kite/kite-service/pkg/provider"
 	"gopkg.in/guregu/null.v4"
 )
+
+var valueProvider = &provider.MockValueProvider{
+	Values: make(map[string]json.RawMessage),
+}
 
 type App struct {
 	sync.RWMutex
@@ -24,9 +31,10 @@ type App struct {
 	stores               Env
 	hasUndeployedChanges bool
 
-	commands map[string]*Command
-	// TODO?: Cache messages (LRUCache<*MessageInstance>)
+	modules   map[string]module.ModuleInstance
+	commands  map[string]*Command
 	listeners map[string]*EventListener
+	// TODO?: Cache messages (LRUCache<*MessageInstance>)
 }
 
 func NewApp(
@@ -38,7 +46,27 @@ func NewApp(
 		stores:    stores,
 		commands:  make(map[string]*Command),
 		listeners: make(map[string]*EventListener),
+		modules:   make(map[string]module.ModuleInstance),
 	}
+}
+
+func (a *App) AddModule(mod module.Module) {
+	instance, err := mod.Instance(context.TODO(), a.id, module.ConfigValues{
+		"channels": []string{
+			"1139202553091981442",
+		},
+	})
+	if err != nil {
+		slog.With("error", err).Error("failed to create module instance")
+		return
+	}
+
+	a.Lock()
+	defer a.Unlock()
+
+	a.modules[mod.ID()] = instance
+
+	a.hasUndeployedChanges = true
 }
 
 func (a *App) AddCommand(cmd *model.Command) {
@@ -128,6 +156,20 @@ func (a *App) createLogEntry(level model.LogLevel, message string) {
 }
 
 func (a *App) HandleEvent(appID string, session *state.State, event gateway.Event) {
+	for _, module := range a.modules {
+		moduleCtx := &moduleContext{
+			Context:       context.TODO(),
+			ValueProvider: valueProvider,
+			appID:         appID,
+			discord:       NewDiscordProvider(appID, a.stores.AppStore, session),
+		}
+
+		err := module.HandleEvent(moduleCtx, event)
+		if err != nil {
+			slog.With("error", err).With("app_id", a.id).Error("Failed to handle event from engine app")
+		}
+	}
+
 	switch e := event.(type) {
 	case *gateway.InteractionCreateEvent:
 		timeDiff := time.Since(e.ID.Time())
@@ -395,4 +437,17 @@ func getFullCommandName(d *discord.CommandInteraction) string {
 	}
 
 	return fullName
+}
+
+type moduleContext struct {
+	context.Context
+
+	provider.ValueProvider
+
+	appID   string
+	discord provider.DiscordProvider
+}
+
+func (c *moduleContext) Discord() provider.DiscordProvider {
+	return c.discord
 }

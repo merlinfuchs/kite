@@ -14,6 +14,7 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/store"
 	"github.com/kitecloud/kite/kite-service/pkg/eval"
 	"github.com/kitecloud/kite/kite-service/pkg/flow"
+	"github.com/kitecloud/kite/kite-service/pkg/provider"
 	"github.com/sashabaranov/go-openai"
 	"gopkg.in/guregu/null.v4"
 )
@@ -42,7 +43,7 @@ type entityLinks struct {
 }
 
 func (s Env) flowProviders(appID string, session *state.State, links entityLinks) flow.FlowProviders {
-	var aiProvider flow.FlowAIProvider = &flow.MockAIProvider{}
+	var aiProvider provider.AIProvider = &provider.MockAIProvider{}
 	if s.OpenaiClient != nil {
 		aiProvider = NewAIProvider(s.OpenaiClient)
 	}

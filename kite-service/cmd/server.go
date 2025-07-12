@@ -20,6 +20,8 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/db/s3"
 	"github.com/kitecloud/kite/kite-service/internal/logging"
 	"github.com/kitecloud/kite/kite-service/internal/model"
+	"github.com/kitecloud/kite/kite-service/pkg/module"
+	"github.com/kitecloud/kite/kite-service/pkg/module/counting"
 	"github.com/sashabaranov/go-openai"
 	"github.com/urfave/cli/v2"
 )
@@ -71,6 +73,11 @@ func serverStartCMD(c *cli.Context) error {
 		openaiClient = openai.NewClient(cfg.OpenAI.APIKey)
 	}
 
+	moduleRegistry := module.NewRegistry()
+	moduleRegistry.Register(
+		counting.NewCountingModule(),
+	)
+
 	engine := engine.NewEngine(
 		engine.Env{
 			Config: engine.EngineConfig{
@@ -90,6 +97,7 @@ func serverStartCMD(c *cli.Context) error {
 			HttpClient:           engineHTTPClient(cfg),
 			OpenaiClient:         openaiClient,
 		},
+		moduleRegistry,
 	)
 	engine.Run(ctx)
 
