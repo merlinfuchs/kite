@@ -2,9 +2,11 @@ package plugin
 
 import (
 	"context"
+	"strings"
 
 	"github.com/diamondburned/arikawa/v3/api"
 	"github.com/diamondburned/arikawa/v3/gateway"
+	"github.com/diamondburned/arikawa/v3/utils/ws"
 )
 
 type Plugin interface {
@@ -51,6 +53,10 @@ type EventType string
 const (
 	EventTypeMessageCreate EventType = "message_create"
 )
+
+func (t EventType) DiscordEventType() ws.EventType {
+	return ws.EventType(strings.ToUpper(string(t)))
+}
 
 type Command struct {
 	ID   string                `json:"id"`

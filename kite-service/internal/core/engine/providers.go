@@ -552,7 +552,7 @@ func (p *ValueProvider) GetValue(ctx context.Context, key string) (thing.Any, er
 	v, err := p.pluginValueStore.GetPluginValue(ctx, p.pluginInstanceID, key)
 	if err != nil {
 		if errors.Is(err, store.ErrNotFound) {
-			return thing.Null, provider.ErrNotFound
+			return thing.Null, nil
 		}
 		return thing.Null, fmt.Errorf("failed to get plugin value: %w", err)
 	}

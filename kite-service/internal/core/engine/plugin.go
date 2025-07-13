@@ -5,8 +5,10 @@ import (
 	"log/slog"
 	"slices"
 
+	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/gateway"
 	"github.com/diamondburned/arikawa/v3/state"
+	"github.com/diamondburned/arikawa/v3/utils/ws"
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/pkg/plugin"
 	"github.com/kitecloud/kite/kite-service/pkg/provider"
@@ -17,6 +19,8 @@ type pluginInstance struct {
 	plugin   plugin.Plugin
 	instance plugin.PluginInstance
 	env      Env
+
+	eventTypes map[ws.EventType]bool
 }
 
 func newPluginInstance(
@@ -30,11 +34,14 @@ func newPluginInstance(
 		plugin:   plugin,
 		instance: instance,
 		env:      env,
+
+		eventTypes: computeEventTypes(plugin, model.EnabledResourceIDs),
 	}
 }
 
 func (p *pluginInstance) Update(ctx context.Context, model *model.PluginInstance) error {
 	p.model = model
+	p.eventTypes = computeEventTypes(p.plugin, model.EnabledResourceIDs)
 	return p.instance.Update(ctx, model.Config)
 }
 
@@ -44,7 +51,6 @@ func (p *pluginInstance) Close() error {
 
 func (p *pluginInstance) Commands() []plugin.Command {
 	commands := p.plugin.Commands()
-
 	filtered := make([]plugin.Command, 0, len(commands))
 	for _, command := range commands {
 		if slices.Contains(p.model.EnabledResourceIDs, command.ID) {
@@ -57,7 +63,6 @@ func (p *pluginInstance) Commands() []plugin.Command {
 
 func (p *pluginInstance) Events() []plugin.Event {
 	events := p.plugin.Events()
-
 	filtered := make([]plugin.Event, 0, len(events))
 	for _, event := range events {
 		if slices.Contains(p.model.EnabledResourceIDs, event.ID) {
@@ -69,23 +74,52 @@ func (p *pluginInstance) Events() []plugin.Event {
 }
 
 func (p *pluginInstance) HandleEvent(ctx context.Context, session *state.State, event gateway.Event) {
-	pluginCtx := &pluginContext{
-		Context:       context.TODO(),
-		ValueProvider: NewValueProvider(p.model.ID, p.env.PluginValueStore),
-		appID:         p.model.AppID,
-		discord:       NewDiscordProvider(p.model.AppID, p.env.AppStore, session),
+	var err error
+
+	switch e := event.(type) {
+	case *gateway.InteractionCreateEvent:
+		switch e.Data.(type) {
+		case *discord.CommandInteraction:
+			err = p.instance.HandleCommand(p.pluginContext(ctx, session), e)
+		case discord.ComponentInteraction:
+			err = p.instance.HandleComponent(p.pluginContext(ctx, session), e)
+		case *discord.ModalInteraction:
+			err = p.instance.HandleModal(p.pluginContext(ctx, session), e)
+		}
+	default:
+		wants := p.eventTypes[event.EventType()]
+		if !wants {
+			return
+		}
+
+		err = p.instance.HandleEvent(p.pluginContext(ctx, session), event)
 	}
 
-	err := p.instance.HandleEvent(pluginCtx, event)
 	if err != nil {
 		slog.Error(
 			"Failed to handle event from plugin",
 			slog.String("plugin_id", p.model.PluginID),
+			slog.String("event_type", string(event.EventType())),
 			slog.String("error", err.Error()),
 		)
-		return
 	}
+}
 
+func (p *pluginInstance) pluginContext(ctx context.Context, session *state.State) *pluginContext {
+	return &pluginContext{
+		Context:       ctx,
+		ValueProvider: NewValueProvider(p.model.ID, p.env.PluginValueStore),
+		appID:         p.model.AppID,
+		discord:       NewDiscordProvider(p.model.AppID, p.env.AppStore, session),
+	}
+}
+
+func computeEventTypes(pl plugin.Plugin, enabledResourceIDs []string) map[ws.EventType]bool {
+	types := make(map[ws.EventType]bool)
+	for _, event := range pl.Events() {
+		types[event.Type.DiscordEventType()] = slices.Contains(enabledResourceIDs, event.ID)
+	}
+	return types
 }
 
 func (a *App) dispatchEventToPlugins(session *state.State, event gateway.Event) {

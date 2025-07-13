@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/diamondburned/arikawa/v3/api"
+	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/kitecloud/kite/kite-service/pkg/plugin"
 )
 
@@ -38,23 +39,7 @@ func (p *CountingPlugin) Metadata() plugin.Metadata {
 }
 
 func (p *CountingPlugin) Config() plugin.Config {
-	return plugin.Config{
-		Sections: []plugin.ConfigSection{
-			{
-				Name:        "Counting",
-				Description: "Counting configuration",
-				Fields: []plugin.ConfigField{
-					{
-						Key:         channelsConfigKey,
-						Name:        "Channels",
-						Description: "The channels to count messages in",
-						Type:        plugin.ConfigFieldTypeArray,
-						ItemType:    plugin.ConfigFieldTypeString,
-					},
-				},
-			},
-		},
-	}
+	return plugin.Config{}
 }
 
 func (p *CountingPlugin) Events() []plugin.Event {
@@ -63,18 +48,21 @@ func (p *CountingPlugin) Events() []plugin.Event {
 			ID:          "event_message_create",
 			Source:      plugin.EventSourceDiscord,
 			Type:        plugin.EventTypeMessageCreate,
-			Description: "Check if the message is a counting message",
+			Description: "Check if the message is a counting message and if it is, increment the counter",
 		},
 	}
 }
 
 func (p *CountingPlugin) Commands() []plugin.Command {
+	perms := discord.PermissionManageChannels
+
 	return []plugin.Command{
 		{
 			ID: "cmd_toggle",
 			Data: api.CreateCommandData{
-				Name:        "counting-toggle",
-				Description: "Toggle the counting game in the current channel",
+				Name:                     "counting-toggle",
+				Description:              "Toggle the counting game in the current channel",
+				DefaultMemberPermissions: &perms,
 			},
 		},
 	}

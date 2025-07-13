@@ -1,6 +1,5 @@
 import AppLayout from "@/components/app/AppLayout";
 import { PluginList } from "@/components/app/PluginList";
-import { TemplateList } from "@/components/app/TemplateList";
 import { Separator } from "@/components/ui/separator";
 
 const breadcrumbs = [

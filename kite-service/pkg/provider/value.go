@@ -11,6 +11,8 @@ import (
 // Values are usually scoped to a specific plugin or other entity.
 type ValueProvider interface {
 	UpdateValue(ctx context.Context, key string, op VariableOperation, value thing.Any) (thing.Any, error)
+	// GetValue returns the value for the given key.
+	// If the value is not found, it returns thing.Null and no error.
 	GetValue(ctx context.Context, key string) (thing.Any, error)
 	DeleteValue(ctx context.Context, key string) error
 }
@@ -51,7 +53,7 @@ func (p *MockValueProvider) UpdateValue(ctx context.Context, key string, op Vari
 func (p *MockValueProvider) GetValue(ctx context.Context, key string) (thing.Any, error) {
 	v, ok := p.Values[key]
 	if !ok {
-		return thing.Null, ErrNotFound
+		return thing.Null, nil
 	}
 	return v, nil
 }

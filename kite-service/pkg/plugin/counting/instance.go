@@ -2,11 +2,12 @@ package counting
 
 import (
 	"context"
-	"slices"
 	"strconv"
 
 	"github.com/diamondburned/arikawa/v3/api"
+	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/gateway"
+	"github.com/diamondburned/arikawa/v3/utils/json/option"
 	"github.com/kitecloud/kite/kite-service/pkg/plugin"
 	"github.com/kitecloud/kite/kite-service/pkg/provider"
 	"github.com/kitecloud/kite/kite-service/pkg/thing"
@@ -38,8 +39,12 @@ func (p *CountingPluginInstance) HandleEvent(c plugin.Context, event gateway.Eve
 		}
 	}
 
-	channelIDs := p.config.GetStringArray(channelsConfigKey)
-	if !slices.Contains(channelIDs, e.ChannelID.String()) {
+	value, err := c.GetValue(c, e.ChannelID.String())
+	if err != nil {
+		return err
+	}
+
+	if value == thing.Null {
 		return nil
 	}
 
@@ -86,6 +91,54 @@ func (p *CountingPluginInstance) HandleEvent(c plugin.Context, event gateway.Eve
 }
 
 func (p *CountingPluginInstance) HandleCommand(c plugin.Context, event *gateway.InteractionCreateEvent) error {
+	data, ok := event.Data.(*discord.CommandInteraction)
+	if !ok {
+		return nil
+	}
+
+	if data.Name != "counting-toggle" {
+		return nil
+	}
+
+	value, err := c.GetValue(c, event.ChannelID.String())
+	if err != nil {
+		return err
+	}
+
+	if value != thing.Null {
+		err := c.DeleteValue(c, event.ChannelID.String())
+		if err != nil {
+			return err
+		}
+
+		_, err = c.Discord().CreateInteractionResponse(c, event.ID, event.Token, api.InteractionResponse{
+			Type: api.MessageInteractionWithSource,
+			Data: &api.InteractionResponseData{
+				Content: option.NewNullableString("Counting is now disabled."),
+				Flags:   discord.EphemeralMessage,
+			},
+		})
+		if err != nil {
+			return err
+		}
+	} else {
+		_, err := c.UpdateValue(c, event.ChannelID.String(), provider.VariableOperationOverwrite, thing.New(0))
+		if err != nil {
+			return err
+		}
+
+		_, err = c.Discord().CreateInteractionResponse(c, event.ID, event.Token, api.InteractionResponse{
+			Type: api.MessageInteractionWithSource,
+			Data: &api.InteractionResponseData{
+				Content: option.NewNullableString("Counting is now enabled."),
+				Flags:   discord.EphemeralMessage,
+			},
+		})
+		if err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
