@@ -19,6 +19,7 @@ import {
   MessageInstanceListResponse,
   MessageListResponse,
   PluginInstanceGetResponse,
+  PluginInstanceListResponse,
   PluginListResponse,
   StateGuildChannelListResponse,
   StateGuildListResponse,
@@ -288,6 +289,15 @@ export function usePluginsQuery() {
   return useQuery({
     queryKey: ["plugins"],
     queryFn: () => apiRequest<PluginListResponse>(`/v1/plugins`),
+  });
+}
+
+export function usePluginInstancesQuery(appId: string) {
+  return useQuery({
+    queryKey: ["apps", appId, "plugins"],
+    queryFn: () =>
+      apiRequest<PluginInstanceListResponse>(`/v1/apps/${appId}/plugins`),
+    enabled: !!appId,
   });
 }
 

@@ -74,7 +74,12 @@ func (a *App) AddPluginInstance(pluginInstance *model.PluginInstance) {
 		}
 
 		a.Lock()
-		a.pluginInstances[pluginInstance.ID] = newPluginInstance(pluginInstance, instance, a.env)
+		a.pluginInstances[pluginInstance.ID] = newPluginInstance(
+			pluginInstance,
+			plugin,
+			instance,
+			a.env,
+		)
 		a.Unlock()
 	}
 

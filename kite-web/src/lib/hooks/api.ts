@@ -27,6 +27,7 @@ import {
   useVariablesQuery,
   usePluginsQuery,
   usePluginInstanceQuery,
+  usePluginInstancesQuery,
 } from "../api/queries";
 import { APIResponse } from "../api/response";
 import {
@@ -46,6 +47,7 @@ import {
   MessageInstanceListResponse,
   MessageListResponse,
   PluginInstanceGetResponse,
+  PluginInstanceListResponse,
   PluginListResponse,
   StateGuildChannelListResponse,
   StateGuildListResponse,
@@ -347,6 +349,13 @@ export function usePlugin(
   const plugins = usePlugins(callback);
   const pluginId = usePluginId();
   return plugins?.find((p) => p!.id === pluginId);
+}
+
+export function usePluginInstances(
+  callback?: (res: APIResponse<PluginInstanceListResponse>) => void
+) {
+  const query = usePluginInstancesQuery(useAppId());
+  return useResponseData(query, callback);
 }
 
 export function usePluginInstance(

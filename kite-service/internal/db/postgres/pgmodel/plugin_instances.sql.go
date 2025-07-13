@@ -30,22 +30,24 @@ INSERT INTO plugin_instances (
     app_id,
     creator_user_id,
     config,
+    enabled_resource_ids,
     created_at,
     updated_at
 ) VALUES (
-    $1, $2, $3, $4, $5, $6, $7, $8
-) RETURNING id, plugin_id, enabled, app_id, creator_user_id, config, created_at, updated_at, last_deployed_at
+    $1, $2, $3, $4, $5, $6, $7, $8, $9
+) RETURNING id, plugin_id, enabled, app_id, creator_user_id, config, enabled_resource_ids, created_at, updated_at, last_deployed_at
 `
 
 type CreatePluginInstanceParams struct {
-	ID            string
-	PluginID      string
-	Enabled       bool
-	AppID         string
-	CreatorUserID string
-	Config        []byte
-	CreatedAt     pgtype.Timestamp
-	UpdatedAt     pgtype.Timestamp
+	ID                 string
+	PluginID           string
+	Enabled            bool
+	AppID              string
+	CreatorUserID      string
+	Config             []byte
+	EnabledResourceIds []string
+	CreatedAt          pgtype.Timestamp
+	UpdatedAt          pgtype.Timestamp
 }
 
 func (q *Queries) CreatePluginInstance(ctx context.Context, arg CreatePluginInstanceParams) (PluginInstance, error) {
@@ -56,6 +58,7 @@ func (q *Queries) CreatePluginInstance(ctx context.Context, arg CreatePluginInst
 		arg.AppID,
 		arg.CreatorUserID,
 		arg.Config,
+		arg.EnabledResourceIds,
 		arg.CreatedAt,
 		arg.UpdatedAt,
 	)
@@ -67,6 +70,7 @@ func (q *Queries) CreatePluginInstance(ctx context.Context, arg CreatePluginInst
 		&i.AppID,
 		&i.CreatorUserID,
 		&i.Config,
+		&i.EnabledResourceIds,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.LastDeployedAt,
@@ -113,7 +117,7 @@ func (q *Queries) GetEnabledPluginInstanceIDs(ctx context.Context) ([]string, er
 }
 
 const getEnabledPluginInstancesUpdatesSince = `-- name: GetEnabledPluginInstancesUpdatesSince :many
-SELECT id, plugin_id, enabled, app_id, creator_user_id, config, created_at, updated_at, last_deployed_at FROM plugin_instances WHERE enabled = TRUE AND updated_at > $1
+SELECT id, plugin_id, enabled, app_id, creator_user_id, config, enabled_resource_ids, created_at, updated_at, last_deployed_at FROM plugin_instances WHERE enabled = TRUE AND updated_at > $1
 `
 
 func (q *Queries) GetEnabledPluginInstancesUpdatesSince(ctx context.Context, updatedAt pgtype.Timestamp) ([]PluginInstance, error) {
@@ -132,6 +136,7 @@ func (q *Queries) GetEnabledPluginInstancesUpdatesSince(ctx context.Context, upd
 			&i.AppID,
 			&i.CreatorUserID,
 			&i.Config,
+			&i.EnabledResourceIds,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.LastDeployedAt,
@@ -147,7 +152,7 @@ func (q *Queries) GetEnabledPluginInstancesUpdatesSince(ctx context.Context, upd
 }
 
 const getPluginInstance = `-- name: GetPluginInstance :one
-SELECT id, plugin_id, enabled, app_id, creator_user_id, config, created_at, updated_at, last_deployed_at FROM plugin_instances WHERE app_id = $1 AND plugin_id = $2
+SELECT id, plugin_id, enabled, app_id, creator_user_id, config, enabled_resource_ids, created_at, updated_at, last_deployed_at FROM plugin_instances WHERE app_id = $1 AND plugin_id = $2
 `
 
 type GetPluginInstanceParams struct {
@@ -165,6 +170,7 @@ func (q *Queries) GetPluginInstance(ctx context.Context, arg GetPluginInstancePa
 		&i.AppID,
 		&i.CreatorUserID,
 		&i.Config,
+		&i.EnabledResourceIds,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.LastDeployedAt,
@@ -173,7 +179,7 @@ func (q *Queries) GetPluginInstance(ctx context.Context, arg GetPluginInstancePa
 }
 
 const getPluginInstancesByApp = `-- name: GetPluginInstancesByApp :many
-SELECT id, plugin_id, enabled, app_id, creator_user_id, config, created_at, updated_at, last_deployed_at FROM plugin_instances WHERE app_id = $1 ORDER BY created_at DESC
+SELECT id, plugin_id, enabled, app_id, creator_user_id, config, enabled_resource_ids, created_at, updated_at, last_deployed_at FROM plugin_instances WHERE app_id = $1 ORDER BY created_at DESC
 `
 
 func (q *Queries) GetPluginInstancesByApp(ctx context.Context, appID string) ([]PluginInstance, error) {
@@ -192,6 +198,7 @@ func (q *Queries) GetPluginInstancesByApp(ctx context.Context, appID string) ([]
 			&i.AppID,
 			&i.CreatorUserID,
 			&i.Config,
+			&i.EnabledResourceIds,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.LastDeployedAt,
@@ -210,16 +217,18 @@ const updatePluginInstance = `-- name: UpdatePluginInstance :one
 UPDATE plugin_instances SET
     enabled = $3,
     config = $4,
-    updated_at = $5
-WHERE app_id = $1 AND plugin_id = $2 RETURNING id, plugin_id, enabled, app_id, creator_user_id, config, created_at, updated_at, last_deployed_at
+    enabled_resource_ids = $5,
+    updated_at = $6
+WHERE app_id = $1 AND plugin_id = $2 RETURNING id, plugin_id, enabled, app_id, creator_user_id, config, enabled_resource_ids, created_at, updated_at, last_deployed_at
 `
 
 type UpdatePluginInstanceParams struct {
-	AppID     string
-	PluginID  string
-	Enabled   bool
-	Config    []byte
-	UpdatedAt pgtype.Timestamp
+	AppID              string
+	PluginID           string
+	Enabled            bool
+	Config             []byte
+	EnabledResourceIds []string
+	UpdatedAt          pgtype.Timestamp
 }
 
 func (q *Queries) UpdatePluginInstance(ctx context.Context, arg UpdatePluginInstanceParams) (PluginInstance, error) {
@@ -228,6 +237,7 @@ func (q *Queries) UpdatePluginInstance(ctx context.Context, arg UpdatePluginInst
 		arg.PluginID,
 		arg.Enabled,
 		arg.Config,
+		arg.EnabledResourceIds,
 		arg.UpdatedAt,
 	)
 	var i PluginInstance
@@ -238,6 +248,7 @@ func (q *Queries) UpdatePluginInstance(ctx context.Context, arg UpdatePluginInst
 		&i.AppID,
 		&i.CreatorUserID,
 		&i.Config,
+		&i.EnabledResourceIds,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.LastDeployedAt,

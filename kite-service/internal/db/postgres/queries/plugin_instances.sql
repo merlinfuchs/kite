@@ -15,17 +15,19 @@ INSERT INTO plugin_instances (
     app_id,
     creator_user_id,
     config,
+    enabled_resource_ids,
     created_at,
     updated_at
 ) VALUES (
-    $1, $2, $3, $4, $5, $6, $7, $8
+    $1, $2, $3, $4, $5, $6, $7, $8, $9
 ) RETURNING *;
 
 -- name: UpdatePluginInstance :one
 UPDATE plugin_instances SET
     enabled = $3,
     config = $4,
-    updated_at = $5
+    enabled_resource_ids = $5,
+    updated_at = $6
 WHERE app_id = $1 AND plugin_id = $2 RETURNING *;
 
 -- name: UpdatePluginInstancesLastDeployedAt :exec

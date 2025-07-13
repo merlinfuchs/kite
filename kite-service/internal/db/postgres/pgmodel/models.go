@@ -135,15 +135,16 @@ type Module struct {
 }
 
 type PluginInstance struct {
-	ID             string
-	PluginID       string
-	Enabled        bool
-	AppID          string
-	CreatorUserID  string
-	Config         []byte
-	CreatedAt      pgtype.Timestamp
-	UpdatedAt      pgtype.Timestamp
-	LastDeployedAt pgtype.Timestamp
+	ID                 string
+	PluginID           string
+	Enabled            bool
+	AppID              string
+	CreatorUserID      string
+	Config             []byte
+	EnabledResourceIds []string
+	CreatedAt          pgtype.Timestamp
+	UpdatedAt          pgtype.Timestamp
+	LastDeployedAt     pgtype.Timestamp
 }
 
 type PluginValue struct {

@@ -11,16 +11,13 @@ type Plugin interface {
 	ID() string
 	Metadata() Metadata
 	Config() Config
+	Events() []Event
+	Commands() []Command
 
 	Instance(ctx context.Context, appID string, config ConfigValues) (PluginInstance, error)
 }
 
 type PluginInstance interface {
-	Plugin() Plugin
-
-	Events() []Event
-	Commands() []Command
-
 	Update(ctx context.Context, config ConfigValues) error
 	HandleEvent(c Context, event gateway.Event) error
 	HandleCommand(c Context, event *gateway.InteractionCreateEvent) error

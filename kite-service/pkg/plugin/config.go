@@ -64,6 +64,7 @@ type ConfigField struct {
 	ItemType    ConfigFieldType `json:"item_type"`
 	Name        string          `json:"name"`
 	Description string          `json:"description"`
+	Required    bool            `json:"required"`
 }
 
 type ConfigFieldType string

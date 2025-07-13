@@ -56,14 +56,15 @@ func (h *PluginHandler) HandlePluginInstanceGet(c *handler.Context) (*wire.Plugi
 
 func (h *PluginHandler) HandlePluginInstanceCreate(c *handler.Context, req wire.PluginInstanceCreateRequest) (*wire.PluginInstanceCreateResponse, error) {
 	pluginInstance, err := h.pluginInstanceStore.CreatePluginInstance(c.Context(), &model.PluginInstance{
-		ID:            util.UniqueID(),
-		PluginID:      req.PluginID,
-		AppID:         c.App.ID,
-		CreatorUserID: c.Session.UserID,
-		Config:        req.Config,
-		Enabled:       req.Enabled,
-		CreatedAt:     time.Now().UTC(),
-		UpdatedAt:     time.Now().UTC(),
+		ID:                 util.UniqueID(),
+		PluginID:           req.PluginID,
+		AppID:              c.App.ID,
+		CreatorUserID:      c.Session.UserID,
+		Config:             req.Config,
+		EnabledResourceIDs: req.EnabledResourceIDs,
+		Enabled:            req.Enabled,
+		CreatedAt:          time.Now().UTC(),
+		UpdatedAt:          time.Now().UTC(),
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create plugin instance: %w", err)
@@ -74,12 +75,13 @@ func (h *PluginHandler) HandlePluginInstanceCreate(c *handler.Context, req wire.
 
 func (h *PluginHandler) HandlePluginInstanceUpdate(c *handler.Context, req wire.PluginInstanceUpdateRequest) (*wire.PluginInstanceUpdateResponse, error) {
 	pluginInstance, err := h.pluginInstanceStore.UpdatePluginInstance(c.Context(), &model.PluginInstance{
-		ID:        c.PluginInstance.ID,
-		AppID:     c.App.ID,
-		PluginID:  c.PluginInstance.PluginID,
-		Config:    req.Config,
-		Enabled:   req.Enabled,
-		UpdatedAt: time.Now().UTC(),
+		ID:                 c.PluginInstance.ID,
+		AppID:              c.App.ID,
+		PluginID:           c.PluginInstance.PluginID,
+		Config:             req.Config,
+		EnabledResourceIDs: req.EnabledResourceIDs,
+		Enabled:            req.Enabled,
+		UpdatedAt:          time.Now().UTC(),
 	})
 	if err != nil {
 		if errors.Is(err, store.ErrNotFound) {
@@ -93,12 +95,13 @@ func (h *PluginHandler) HandlePluginInstanceUpdate(c *handler.Context, req wire.
 
 func (h *PluginHandler) HandlePluginInstanceUpdateEnabled(c *handler.Context, req wire.PluginInstanceUpdateEnabledRequest) (*wire.PluginInstanceUpdateEnabledResponse, error) {
 	pluginInstance, err := h.pluginInstanceStore.UpdatePluginInstance(c.Context(), &model.PluginInstance{
-		ID:        c.PluginInstance.ID,
-		AppID:     c.App.ID,
-		PluginID:  c.PluginInstance.PluginID,
-		Config:    c.PluginInstance.Config,
-		Enabled:   req.Enabled,
-		UpdatedAt: time.Now().UTC(),
+		ID:                 c.PluginInstance.ID,
+		AppID:              c.App.ID,
+		PluginID:           c.PluginInstance.PluginID,
+		Config:             c.PluginInstance.Config,
+		EnabledResourceIDs: c.PluginInstance.EnabledResourceIDs,
+		Enabled:            req.Enabled,
+		UpdatedAt:          time.Now().UTC(),
 	})
 	if err != nil {
 		if errors.Is(err, store.ErrNotFound) {

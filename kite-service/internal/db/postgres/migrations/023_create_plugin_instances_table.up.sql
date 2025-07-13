@@ -7,6 +7,7 @@ CREATE TABLE IF NOT EXISTS plugin_instances (
     creator_user_id TEXT NOT NULL,
 
     config JSONB NOT NULL,
+    enabled_resource_ids TEXT[] NOT NULL,
    
     created_at TIMESTAMP NOT NULL,
     updated_at TIMESTAMP NOT NULL,

@@ -8,13 +8,14 @@ import (
 )
 
 type PluginInstance struct {
-	ID             string
-	PluginID       string
-	Enabled        bool
-	AppID          string
-	CreatorUserID  string
-	Config         plugin.ConfigValues
-	CreatedAt      time.Time
-	UpdatedAt      time.Time
-	LastDeployedAt null.Time
+	ID                 string
+	PluginID           string
+	Enabled            bool
+	AppID              string
+	CreatorUserID      string
+	Config             plugin.ConfigValues
+	EnabledResourceIDs []string
+	CreatedAt          time.Time
+	UpdatedAt          time.Time
+	LastDeployedAt     null.Time
 }

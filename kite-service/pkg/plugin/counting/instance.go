@@ -18,36 +18,9 @@ type CountingPluginInstance struct {
 	config plugin.ConfigValues
 }
 
-func (p *CountingPluginInstance) Plugin() plugin.Plugin {
-	return p.plugin
-}
-
 func (p *CountingPluginInstance) Update(ctx context.Context, config plugin.ConfigValues) error {
 	p.config = config
 	return nil
-}
-
-func (p *CountingPluginInstance) Events() []plugin.Event {
-	return []plugin.Event{
-		{
-			ID:          "counting_message_create",
-			Source:      plugin.EventSourceDiscord,
-			Type:        plugin.EventTypeMessageCreate,
-			Description: "Check if the message is a counting message",
-		},
-	}
-}
-
-func (p *CountingPluginInstance) Commands() []plugin.Command {
-	return []plugin.Command{
-		{
-			ID: "counting_toggle",
-			Data: api.CreateCommandData{
-				Name:        "counting-toggle",
-				Description: "Toggle the counting game in the current channel",
-			},
-		},
-	}
 }
 
 func (p *CountingPluginInstance) HandleEvent(c plugin.Context, event gateway.Event) error {

@@ -3,6 +3,7 @@ package counting
 import (
 	"context"
 
+	"github.com/diamondburned/arikawa/v3/api"
 	"github.com/kitecloud/kite/kite-service/pkg/plugin"
 )
 
@@ -51,6 +52,29 @@ func (p *CountingPlugin) Config() plugin.Config {
 						ItemType:    plugin.ConfigFieldTypeString,
 					},
 				},
+			},
+		},
+	}
+}
+
+func (p *CountingPlugin) Events() []plugin.Event {
+	return []plugin.Event{
+		{
+			ID:          "event_message_create",
+			Source:      plugin.EventSourceDiscord,
+			Type:        plugin.EventTypeMessageCreate,
+			Description: "Check if the message is a counting message",
+		},
+	}
+}
+
+func (p *CountingPlugin) Commands() []plugin.Command {
+	return []plugin.Command{
+		{
+			ID: "cmd_toggle",
+			Data: api.CreateCommandData{
+				Name:        "counting-toggle",
+				Description: "Toggle the counting game in the current channel",
 			},
 		},
 	}

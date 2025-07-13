@@ -95,7 +95,7 @@ func (a *App) DeployCommands(ctx context.Context) error {
 	}
 
 	for _, plugin := range a.pluginInstances {
-		for _, command := range plugin.instance.Commands() {
+		for _, command := range plugin.Commands() {
 			commands = append(commands, command.Data)
 		}
 	}

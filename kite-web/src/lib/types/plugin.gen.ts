@@ -18,6 +18,7 @@ export interface ConfigField {
   item_type: ConfigFieldType;
   name: string;
   description: string;
+  required: boolean;
 }
 export type ConfigFieldType = string;
 export const ConfigFieldTypeString: ConfigFieldType = "string";

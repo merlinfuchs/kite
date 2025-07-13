@@ -3,6 +3,7 @@ package engine
 import (
 	"context"
 	"log/slog"
+	"slices"
 
 	"github.com/diamondburned/arikawa/v3/gateway"
 	"github.com/diamondburned/arikawa/v3/state"
@@ -13,17 +14,20 @@ import (
 
 type pluginInstance struct {
 	model    *model.PluginInstance
+	plugin   plugin.Plugin
 	instance plugin.PluginInstance
 	env      Env
 }
 
 func newPluginInstance(
 	model *model.PluginInstance,
+	plugin plugin.Plugin,
 	instance plugin.PluginInstance,
 	env Env,
 ) *pluginInstance {
 	return &pluginInstance{
 		model:    model,
+		plugin:   plugin,
 		instance: instance,
 		env:      env,
 	}
@@ -36,6 +40,32 @@ func (p *pluginInstance) Update(ctx context.Context, model *model.PluginInstance
 
 func (p *pluginInstance) Close() error {
 	return p.instance.Close()
+}
+
+func (p *pluginInstance) Commands() []plugin.Command {
+	commands := p.plugin.Commands()
+
+	filtered := make([]plugin.Command, 0, len(commands))
+	for _, command := range commands {
+		if slices.Contains(p.model.EnabledResourceIDs, command.ID) {
+			filtered = append(filtered, command)
+		}
+	}
+
+	return filtered
+}
+
+func (p *pluginInstance) Events() []plugin.Event {
+	events := p.plugin.Events()
+
+	filtered := make([]plugin.Event, 0, len(events))
+	for _, event := range events {
+		if slices.Contains(p.model.EnabledResourceIDs, event.ID) {
+			filtered = append(filtered, event)
+		}
+	}
+
+	return filtered
 }
 
 func (p *pluginInstance) HandleEvent(ctx context.Context, session *state.State, event gateway.Event) {

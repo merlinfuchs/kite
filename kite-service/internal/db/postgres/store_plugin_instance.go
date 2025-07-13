@@ -64,14 +64,15 @@ func (c *Client) CreatePluginInstance(ctx context.Context, instance *model.Plugi
 	}
 
 	row, err := c.Q.CreatePluginInstance(ctx, pgmodel.CreatePluginInstanceParams{
-		ID:            instance.ID,
-		PluginID:      instance.PluginID,
-		Enabled:       instance.Enabled,
-		AppID:         instance.AppID,
-		CreatorUserID: instance.CreatorUserID,
-		Config:        config,
-		CreatedAt:     pgtype.Timestamp{Time: instance.CreatedAt.UTC(), Valid: true},
-		UpdatedAt:     pgtype.Timestamp{Time: instance.UpdatedAt.UTC(), Valid: true},
+		ID:                 instance.ID,
+		PluginID:           instance.PluginID,
+		Enabled:            instance.Enabled,
+		AppID:              instance.AppID,
+		CreatorUserID:      instance.CreatorUserID,
+		Config:             config,
+		EnabledResourceIds: instance.EnabledResourceIDs,
+		CreatedAt:          pgtype.Timestamp{Time: instance.CreatedAt.UTC(), Valid: true},
+		UpdatedAt:          pgtype.Timestamp{Time: instance.UpdatedAt.UTC(), Valid: true},
 	})
 	if err != nil {
 		return nil, err
@@ -87,11 +88,12 @@ func (c *Client) UpdatePluginInstance(ctx context.Context, instance *model.Plugi
 	}
 
 	row, err := c.Q.UpdatePluginInstance(ctx, pgmodel.UpdatePluginInstanceParams{
-		AppID:     instance.AppID,
-		PluginID:  instance.PluginID,
-		Enabled:   instance.Enabled,
-		Config:    config,
-		UpdatedAt: pgtype.Timestamp{Time: instance.UpdatedAt.UTC(), Valid: true},
+		AppID:              instance.AppID,
+		PluginID:           instance.PluginID,
+		Enabled:            instance.Enabled,
+		Config:             config,
+		EnabledResourceIds: instance.EnabledResourceIDs,
+		UpdatedAt:          pgtype.Timestamp{Time: instance.UpdatedAt.UTC(), Valid: true},
 	})
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -159,14 +161,15 @@ func rowToPluginInstance(row pgmodel.PluginInstance) (*model.PluginInstance, err
 	}
 
 	return &model.PluginInstance{
-		ID:             row.ID,
-		PluginID:       row.PluginID,
-		Enabled:        row.Enabled,
-		AppID:          row.AppID,
-		CreatorUserID:  row.CreatorUserID,
-		Config:         config,
-		CreatedAt:      row.CreatedAt.Time,
-		UpdatedAt:      row.UpdatedAt.Time,
-		LastDeployedAt: null.NewTime(row.LastDeployedAt.Time, row.LastDeployedAt.Valid),
+		ID:                 row.ID,
+		PluginID:           row.PluginID,
+		Enabled:            row.Enabled,
+		AppID:              row.AppID,
+		CreatorUserID:      row.CreatorUserID,
+		Config:             config,
+		EnabledResourceIDs: row.EnabledResourceIds,
+		CreatedAt:          row.CreatedAt.Time,
+		UpdatedAt:          row.UpdatedAt.Time,
+		LastDeployedAt:     null.NewTime(row.LastDeployedAt.Time, row.LastDeployedAt.Valid),
 	}, nil
 }
