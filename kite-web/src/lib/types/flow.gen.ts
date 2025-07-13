@@ -25,6 +25,8 @@ export const FlowNodeTypeActionMessageCreate: FlowNodeType = "action_message_cre
 export const FlowNodeTypeActionMessageEdit: FlowNodeType = "action_message_edit";
 export const FlowNodeTypeActionMessageDelete: FlowNodeType = "action_message_delete";
 export const FlowNodeTypeActionPrivateMessageCreate: FlowNodeType = "action_private_message_create";
+export const FlowNodeTypeActionMessageReactionCreate: FlowNodeType = "action_message_reaction_create";
+export const FlowNodeTypeActionMessageReactionDelete: FlowNodeType = "action_message_reaction_delete";
 export const FlowNodeTypeActionMemberBan: FlowNodeType = "action_member_ban";
 export const FlowNodeTypeActionMemberUnban: FlowNodeType = "action_member_unban";
 export const FlowNodeTypeActionMemberKick: FlowNodeType = "action_member_kick";
@@ -87,12 +89,16 @@ export interface FlowNodeData {
    */
   command_disabled_integrations?: CommandDisabledIntegrationType[];
   /**
-   * Message & Response Create, edit, Delete
+   * Message & Response Create, Edit, Delete
    */
   message_target?: string;
   message_data?: MessageData;
   message_template_id?: string;
   message_ephemeral?: boolean;
+  /**
+   * Message Reaction Create, Delete
+   */
+  emoji_data?: EmojiData;
   /**
    * Modal
    */
@@ -213,6 +219,13 @@ export const CommandDisabledIntegrationTypeGuildInstall: CommandDisabledIntegrat
 export const CommandDisabledIntegrationTypeUserInstall: CommandDisabledIntegrationType = "user_install";
 export type EventFilterTarget = string;
 export const EventFilterTypeMessageContent: EventFilterTarget = "message_content";
+export interface EmojiData {
+  id?: string;
+  /**
+   * Name is the name of a custom emoji or the unicode of a standard emoji.
+   */
+  name?: string;
+}
 export interface ModalData {
   title?: string;
   components?: ModalComponentData[];

@@ -158,6 +158,24 @@ func (p *DiscordProvider) DeleteMessage(
 	return nil
 }
 
+func (p *DiscordProvider) CreateMessageReaction(ctx context.Context, channelID discord.ChannelID, messageID discord.MessageID, emoji discord.APIEmoji) error {
+	err := p.session.React(channelID, messageID, emoji)
+	if err != nil {
+		return fmt.Errorf("failed to create message reaction: %w", err)
+	}
+
+	return nil
+}
+
+func (p *DiscordProvider) DeleteMessageReaction(ctx context.Context, channelID discord.ChannelID, messageID discord.MessageID, emoji discord.APIEmoji) error {
+	err := p.session.Unreact(channelID, messageID, emoji)
+	if err != nil {
+		return fmt.Errorf("failed to delete message reaction: %w", err)
+	}
+
+	return nil
+}
+
 func (p *DiscordProvider) BanMember(ctx context.Context, guildID discord.GuildID, userID discord.UserID, data api.BanData) error {
 	err := p.session.Ban(guildID, userID, data)
 	if err != nil {

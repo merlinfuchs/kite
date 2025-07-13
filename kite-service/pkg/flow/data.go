@@ -41,29 +41,31 @@ const (
 	FlowNodeTypeOptionCommandContexts    FlowNodeType = "option_command_contexts"
 	FlowNodeTypeOptionEventFilter        FlowNodeType = "option_event_filter"
 
-	FlowNodeTypeActionResponseCreate       FlowNodeType = "action_response_create"
-	FlowNodeTypeActionResponseEdit         FlowNodeType = "action_response_edit"
-	FlowNodeTypeActionResponseDelete       FlowNodeType = "action_response_delete"
-	FlowNodeTypeActionResponseDefer        FlowNodeType = "action_response_defer"
-	FlowNodeTypeActionMessageCreate        FlowNodeType = "action_message_create"
-	FlowNodeTypeActionMessageEdit          FlowNodeType = "action_message_edit"
-	FlowNodeTypeActionMessageDelete        FlowNodeType = "action_message_delete"
-	FlowNodeTypeActionPrivateMessageCreate FlowNodeType = "action_private_message_create"
-	FlowNodeTypeActionMemberBan            FlowNodeType = "action_member_ban"
-	FlowNodeTypeActionMemberUnban          FlowNodeType = "action_member_unban"
-	FlowNodeTypeActionMemberKick           FlowNodeType = "action_member_kick"
-	FlowNodeTypeActionMemberTimeout        FlowNodeType = "action_member_timeout"
-	FlowNodeTypeActionMemberEdit           FlowNodeType = "action_member_edit"
-	FlowNodeTypeActionMemberRoleAdd        FlowNodeType = "action_member_role_add"
-	FlowNodeTypeActionMemberRoleRemove     FlowNodeType = "action_member_role_remove"
-	FlowNodeTypeActionHTTPRequest          FlowNodeType = "action_http_request"
-	FlowNodeTypeActionAIChatCompletion     FlowNodeType = "action_ai_chat_completion"
-	FlowNodeTypeActionExpressionEvaluate   FlowNodeType = "action_expression_evaluate"
-	FlowNodeTypeActionRandomGenerate       FlowNodeType = "action_random_generate"
-	FlowNodeTypeActionLog                  FlowNodeType = "action_log"
-	FlowNodeTypeActionVariableSet          FlowNodeType = "action_variable_set"
-	FlowNodeTypeActionVariableDelete       FlowNodeType = "action_variable_delete"
-	FlowNodeTypeActionVariableGet          FlowNodeType = "action_variable_get"
+	FlowNodeTypeActionResponseCreate        FlowNodeType = "action_response_create"
+	FlowNodeTypeActionResponseEdit          FlowNodeType = "action_response_edit"
+	FlowNodeTypeActionResponseDelete        FlowNodeType = "action_response_delete"
+	FlowNodeTypeActionResponseDefer         FlowNodeType = "action_response_defer"
+	FlowNodeTypeActionMessageCreate         FlowNodeType = "action_message_create"
+	FlowNodeTypeActionMessageEdit           FlowNodeType = "action_message_edit"
+	FlowNodeTypeActionMessageDelete         FlowNodeType = "action_message_delete"
+	FlowNodeTypeActionPrivateMessageCreate  FlowNodeType = "action_private_message_create"
+	FlowNodeTypeActionMessageReactionCreate FlowNodeType = "action_message_reaction_create"
+	FlowNodeTypeActionMessageReactionDelete FlowNodeType = "action_message_reaction_delete"
+	FlowNodeTypeActionMemberBan             FlowNodeType = "action_member_ban"
+	FlowNodeTypeActionMemberUnban           FlowNodeType = "action_member_unban"
+	FlowNodeTypeActionMemberKick            FlowNodeType = "action_member_kick"
+	FlowNodeTypeActionMemberTimeout         FlowNodeType = "action_member_timeout"
+	FlowNodeTypeActionMemberEdit            FlowNodeType = "action_member_edit"
+	FlowNodeTypeActionMemberRoleAdd         FlowNodeType = "action_member_role_add"
+	FlowNodeTypeActionMemberRoleRemove      FlowNodeType = "action_member_role_remove"
+	FlowNodeTypeActionHTTPRequest           FlowNodeType = "action_http_request"
+	FlowNodeTypeActionAIChatCompletion      FlowNodeType = "action_ai_chat_completion"
+	FlowNodeTypeActionExpressionEvaluate    FlowNodeType = "action_expression_evaluate"
+	FlowNodeTypeActionRandomGenerate        FlowNodeType = "action_random_generate"
+	FlowNodeTypeActionLog                   FlowNodeType = "action_log"
+	FlowNodeTypeActionVariableSet           FlowNodeType = "action_variable_set"
+	FlowNodeTypeActionVariableDelete        FlowNodeType = "action_variable_delete"
+	FlowNodeTypeActionVariableGet           FlowNodeType = "action_variable_get"
 
 	FlowNodeTypeControlConditionCompare     FlowNodeType = "control_condition_compare"
 	FlowNodeTypeControlConditionItemCompare FlowNodeType = "control_condition_item_compare"
@@ -122,11 +124,14 @@ type FlowNodeData struct {
 	// Command Installations
 	CommandDisabledIntegrations []CommandDisabledIntegrationType `json:"command_disabled_integrations,omitempty"`
 
-	// Message & Response Create, edit, Delete
+	// Message & Response Create, Edit, Delete
 	MessageTarget     string               `json:"message_target,omitempty"`
 	MessageData       *message.MessageData `json:"message_data,omitempty"`
 	MessageTemplateID string               `json:"message_template_id,omitempty"`
 	MessageEphemeral  bool                 `json:"message_ephemeral,omitempty"`
+
+	// Message Reaction Create, Delete
+	EmojiData *EmojiData `json:"emoji_data,omitempty"`
 
 	// Modal
 	ModalData *ModalData `json:"modal_data,omitempty"`
@@ -305,6 +310,12 @@ type EventFilterTarget string
 const (
 	EventFilterTypeMessageContent EventFilterTarget = "message_content"
 )
+
+type EmojiData struct {
+	ID string `json:"id,omitempty"`
+	// Name is the name of a custom emoji or the unicode of a standard emoji.
+	Name string `json:"name,omitempty"`
+}
 
 type ModalData struct {
 	Title      string               `json:"title,omitempty"`

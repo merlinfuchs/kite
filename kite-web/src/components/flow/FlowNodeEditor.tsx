@@ -15,6 +15,7 @@ import {
   MinusIcon,
   PencilIcon,
   PlusIcon,
+  SmileIcon,
   TrashIcon,
   XIcon,
 } from "lucide-react";
@@ -54,9 +55,15 @@ import {
 } from "../ui/dialog";
 import { Separator } from "../ui/separator";
 import { Card } from "../ui/card";
-import { HTTPRequestData, ModalComponentData } from "@/lib/types/flow.gen";
+import {
+  EmojiData,
+  HTTPRequestData,
+  ModalComponentData,
+} from "@/lib/types/flow.gen";
 import JsonEditor from "../common/JsonEditor";
 import MessageEditorDialog from "../message/MessageEditorDialog";
+import EmojiPicker, { PickerEmoji } from "../common/EmojiPicker";
+import Twemoji from "../common/Twemoji";
 
 interface Props {
   nodeId: string;
@@ -82,6 +89,7 @@ const intputs: Record<string, any> = {
   message_data: MessageDataInput,
   message_template_id: MessageTemplateInput,
   message_target: MessageTargetInput,
+  emoji_data: EmojiDataInput,
   response_target: ResponseTargetInput,
   message_ephemeral: MessageEphemeralInput,
   modal_data: ModalDataInput,
@@ -990,6 +998,22 @@ function MessageEphemeralInput({ data, updateData, errors }: InputProps) {
       value={!data.message_ephemeral}
       updateValue={(v) => updateData({ message_ephemeral: !v || undefined })}
       errors={errors}
+    />
+  );
+}
+
+function EmojiDataInput({ data, updateData, errors }: InputProps) {
+  return (
+    <BaseEmojiPicker
+      title="Emoji"
+      field="emoji_data"
+      errors={errors}
+      emoji={data.emoji_data}
+      onChange={(emoji) =>
+        updateData({
+          emoji_data: emoji,
+        })
+      }
     />
   );
 }
@@ -1927,5 +1951,69 @@ function BasePermissionInput({
       updateValues={setPermissions}
       errors={errors}
     />
+  );
+}
+
+function BaseEmojiPicker({
+  title,
+  description,
+  field,
+  errors,
+  emoji,
+  onChange,
+}: {
+  title: string;
+  description?: string;
+  field: string;
+  errors: Record<string, string>;
+  emoji: EmojiData | undefined;
+  onChange: (emoji: EmojiData | undefined) => void;
+}) {
+  const error = errors[field];
+
+  return (
+    <div className="flex-none">
+      <div className="font-medium text-foreground mb-2">{title}</div>
+      {description ? (
+        <div className="text-muted-foreground text-sm mb-2">{description}</div>
+      ) : null}
+      <div className="flex">
+        <EmojiPicker onEmojiSelect={onChange}>
+          <Button size="icon" variant="outline">
+            {emoji?.id ? (
+              <img
+                src={`https://cdn.discordapp.com/emojis/${emoji.id}.webp`}
+                alt=""
+                className="h-6 w-6"
+              />
+            ) : emoji ? (
+              <Twemoji
+                options={{
+                  className: "h-6 w-6",
+                }}
+              >
+                {emoji.name}
+              </Twemoji>
+            ) : (
+              <SmileIcon className="h-6 w-6 text-foreground/80" />
+            )}
+          </Button>
+        </EmojiPicker>
+        {emoji && (
+          <div
+            className="flex items-center cursor-pointer pr-1 text-muted-foreground hover:text-foreground"
+            onClick={() => onChange(undefined)}
+          >
+            <XIcon className="h-5 w-5" />
+          </div>
+        )}
+      </div>
+      {error && (
+        <div className="text-red-600 dark:text-red-400 text-sm flex items-center space-x-1 pt-2">
+          <CircleAlertIcon className="h-5 w-5 flex-none" />
+          <div>{error}</div>
+        </div>
+      )}
+    </div>
   );
 }
