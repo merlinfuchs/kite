@@ -7,10 +7,11 @@ sidebar_position: 1
 Custom commands are the primary way for users to interact with your bot. Once you create your first command, users will be able to use it by typing `/` into the Discord chat.
 
 :::warning
+
 Discord expects your bot to respond to an interaction within **3 seconds**
 If no response is sent in time, users will see an “Interaction Failed” error.
-
 To prevent this, you can use the `Defer Response` block to acknowledge the interaction immediately and give your bot more time to process.
+
 :::
 
 ## Sub-Commands
