@@ -49,6 +49,15 @@ func NewDiscordProvider(
 	}
 }
 
+func (p *DiscordProvider) Message(ctx context.Context, channelID discord.ChannelID, messageID discord.MessageID) (*discord.Message, error) {
+	msg, err := p.session.Message(channelID, messageID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get message: %w", err)
+	}
+
+	return msg, nil
+}
+
 func (p *DiscordProvider) GuildRoles(ctx context.Context, guildID discord.GuildID) ([]discord.Role, error) {
 	roles, err := p.session.Roles(guildID)
 	if err != nil {

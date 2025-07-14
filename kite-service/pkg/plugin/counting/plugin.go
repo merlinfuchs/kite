@@ -17,7 +17,6 @@ func NewCountingPlugin() *CountingPlugin {
 
 func (p *CountingPlugin) Instance(ctx context.Context, appID string, config plugin.ConfigValues) (plugin.PluginInstance, error) {
 	return &CountingPluginInstance{
-		plugin: p,
 		appID:  appID,
 		config: config,
 	}, nil

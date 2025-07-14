@@ -22,6 +22,7 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/pkg/plugin"
 	"github.com/kitecloud/kite/kite-service/pkg/plugin/counting"
+	"github.com/kitecloud/kite/kite-service/pkg/plugin/starboard"
 	"github.com/sashabaranov/go-openai"
 	"github.com/urfave/cli/v2"
 )
@@ -76,6 +77,7 @@ func serverStartCMD(c *cli.Context) error {
 	pluginRegistry := plugin.NewRegistry()
 	pluginRegistry.Register(
 		counting.NewCountingPlugin(),
+		starboard.NewStarboardPlugin(),
 	)
 
 	engine := engine.NewEngine(

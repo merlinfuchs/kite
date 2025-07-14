@@ -97,6 +97,7 @@ func (p *pluginInstance) HandleEvent(ctx context.Context, session *state.State, 
 	}
 
 	if err != nil {
+		// TODO: Log to the plugin instance's log store
 		slog.Error(
 			"Failed to handle event from plugin",
 			slog.String("plugin_id", p.model.PluginID),

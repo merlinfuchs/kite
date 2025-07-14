@@ -51,7 +51,9 @@ const (
 type EventType string
 
 const (
-	EventTypeMessageCreate EventType = "message_create"
+	EventTypeMessageCreate         EventType = "message_create"
+	EventTypeMessageReactionAdd    EventType = "message_reaction_add"
+	EventTypeMessageReactionRemove EventType = "message_reaction_remove"
 )
 
 func (t EventType) DiscordEventType() ws.EventType {

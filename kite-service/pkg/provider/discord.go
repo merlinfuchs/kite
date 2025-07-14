@@ -16,6 +16,7 @@ type DiscordProvider interface {
 	User(ctx context.Context, userID discord.UserID) (*discord.User, error)
 	Role(ctx context.Context, guildID discord.GuildID, roleID discord.RoleID) (*discord.Role, error)
 	Member(ctx context.Context, guildID discord.GuildID, userID discord.UserID) (*discord.Member, error)
+	Message(ctx context.Context, channelID discord.ChannelID, messageID discord.MessageID) (*discord.Message, error)
 
 	CreateInteractionResponse(ctx context.Context, interactionID discord.InteractionID, interactionToken string, response api.InteractionResponse) (*InteractionResponseResource, error)
 	EditInteractionResponse(ctx context.Context, applicationID discord.AppID, token string, response api.EditInteractionResponseData) (*discord.Message, error)
@@ -80,6 +81,10 @@ func (p *MockDiscordProvider) Role(ctx context.Context, guildID discord.GuildID,
 }
 
 func (p *MockDiscordProvider) Member(ctx context.Context, guildID discord.GuildID, userID discord.UserID) (*discord.Member, error) {
+	return nil, nil
+}
+
+func (p *MockDiscordProvider) Message(ctx context.Context, channelID discord.ChannelID, messageID discord.MessageID) (*discord.Message, error) {
 	return nil, nil
 }
 

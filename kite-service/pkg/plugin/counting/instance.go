@@ -15,7 +15,6 @@ import (
 )
 
 type CountingPluginInstance struct {
-	plugin *CountingPlugin
 	appID  string
 	config plugin.ConfigValues
 }

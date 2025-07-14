@@ -33,15 +33,15 @@ export function PluginListEntry({
   }
 
   return (
-    <Card>
-      <CardHeader className="flex flex-row gap-4 p-4">
+    <Card className="flex flex-col">
+      <CardHeader className="flex flex-row gap-4 p-4 flex-auto">
         <div className="h-10 w-10 bg-primary/40 flex-none rounded-md flex items-center justify-center">
           <DynamicIcon
             name={plugin.metadata.icon as any}
             className="w-6 h-6 text-primary"
           />
         </div>
-        <div>
+        <div className="flex-auto">
           <div className="flex items-start justify-between">
             <CardTitle className="mb-2">{plugin.metadata.name}</CardTitle>
             <Switch
