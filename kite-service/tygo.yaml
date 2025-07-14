@@ -15,11 +15,17 @@ packages:
       Base64: "string"
       flow.FlowData: "FlowData"
       message.MessageData: "MessageData"
+      plugin.ConfigValues: "PluginConfigValues"
+      plugin.Metadata: "PluginMetadata"
+      plugin.Config: "PluginConfig"
+      plugin.Command: "PluginCommand"
+      plugin.Event: "PluginEvent"
     exclude_files:
       - "base.go"
     frontmatter: |
       import { FlowData } from './flow.gen';
       import { MessageData } from './message.gen';
+      import { ConfigValues as PluginConfigValues, Metadata as PluginMetadata, Config as PluginConfig, Command as PluginCommand, Event as PluginEvent } from './plugin.gen';
       interface Empty {}
   - path: "github.com/kitecloud/kite/kite-service/pkg/flow"
     output_path: "../kite-web/src/lib/types/flow.gen.ts"
@@ -64,3 +70,20 @@ packages:
       - "convert.go"
       - "copy.go"
       - "helpers.go"
+  - path: "github.com/kitecloud/kite/kite-service/pkg/plugin"
+    output_path: "../kite-web/src/lib/types/plugin.gen.ts"
+    type_mappings:
+      null.String: "null | string"
+      null.Bool: "null | boolean"
+      null.Float: "null | number"
+      null.Int: "null | number"
+      uuid.UUID: "string /* uuid */"
+      uuid.NullUUID: "null | string /* uuid */"
+      time.Time: "string /* RFC3339 */"
+      null.Time: "null | string /* RFC3339 */"
+      json.RawMessage: "Record<string, any> | null"
+      manifest.Manifest: "Manifest"
+      Base64: "string"
+    exclude_files:
+      - "context.go"
+      - "registry.go"

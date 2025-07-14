@@ -3,6 +3,7 @@ package handler
 import (
 	"errors"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"strings"
 
@@ -33,6 +34,12 @@ func APIHandler(f HandlerFunc) http.Handler {
 					}
 				} else {
 					aerr = ErrInternal(err.Error())
+					slog.Error(
+						"Unexpected error in API handler",
+						slog.String("error", err.Error()),
+						slog.String("method", r.Method),
+						slog.String("path", r.URL.Path),
+					)
 				}
 			}
 

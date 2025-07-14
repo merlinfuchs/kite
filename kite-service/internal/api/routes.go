@@ -16,12 +16,14 @@ import (
 	eventlistener "github.com/kitecloud/kite/kite-service/internal/api/handler/event_listener"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/logs"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/message"
+	pluginhandler "github.com/kitecloud/kite/kite-service/internal/api/handler/plugin"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/usage"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/user"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/variable"
 	"github.com/kitecloud/kite/kite-service/internal/api/session"
 	"github.com/kitecloud/kite/kite-service/internal/core/plan"
 	"github.com/kitecloud/kite/kite-service/internal/store"
+	"github.com/kitecloud/kite/kite-service/pkg/plugin"
 	kiteweb "github.com/merlinfuchs/kite/kite-web"
 )
 
@@ -37,17 +39,26 @@ func (s *APIServer) RegisterRoutes(
 	messageStore store.MessageStore,
 	messageInstanceStore store.MessageInstanceStore,
 	eventListenerStore store.EventListenerStore,
+	pluginInstanceStore store.PluginInstanceStore,
 	subscriptionStore store.SubscriptionStore,
 	entitlementStore store.EntitlementStore,
 	assetStore store.AssetStore,
 	appStateManager store.AppStateManager,
 	planManager *plan.PlanManager,
+	pluginRegistry *plugin.Registry,
 ) {
 	sessionManager := session.NewSessionManager(session.SessionManagerConfig{
 		StrictCookies: s.config.StrictCookies,
 		SecureCookies: s.config.SecureCookies,
 	}, sessionStore)
-	accessManager := access.NewAccessManager(appStore, commandStore, variableStore, messageStore, eventListenerStore)
+	accessManager := access.NewAccessManager(
+		appStore,
+		commandStore,
+		variableStore,
+		messageStore,
+		eventListenerStore,
+		pluginInstanceStore,
+	)
 
 	cacheManager, err := handler.NewCacheManager(10000)
 	if err != nil {
@@ -190,6 +201,22 @@ func (s *APIServer) RegisterRoutes(
 	eventListenerGroup.Patch("/", handler.TypedWithBody(eventListenerHandler.HandleEventListenerUpdate))
 	eventListenerGroup.Delete("/", handler.Typed(eventListenerHandler.HandleEventListenerDelete))
 	eventListenerGroup.Put("/enabled", handler.TypedWithBody(eventListenerHandler.HandleEventListenerUpdateEnabled))
+
+	// Plugin instance routes
+	pluginHandler := pluginhandler.NewPluginHandler(pluginRegistry, pluginInstanceStore)
+
+	pluginsGroup := v1Group.Group("/plugins")
+	pluginsGroup.Get("/", handler.Typed(pluginHandler.HandlePluginList))
+
+	pluginInstancesGroup := appGroup.Group("/plugins")
+	pluginInstancesGroup.Get("/", handler.Typed(pluginHandler.HandlePluginInstanceList))
+	pluginInstancesGroup.Post("/", handler.TypedWithBody(pluginHandler.HandlePluginInstanceCreate))
+
+	pluginInstanceGroup := pluginInstancesGroup.Group("/{pluginID}", accessManager.PluginInstanceAccess)
+	pluginInstanceGroup.Get("/", handler.Typed(pluginHandler.HandlePluginInstanceGet))
+	pluginInstanceGroup.Patch("/", handler.TypedWithBody(pluginHandler.HandlePluginInstanceUpdate))
+	pluginInstanceGroup.Delete("/", handler.Typed(pluginHandler.HandlePluginInstanceDelete))
+	pluginInstanceGroup.Put("/enabled", handler.TypedWithBody(pluginHandler.HandlePluginInstanceUpdateEnabled))
 
 	// Variable routes
 	variablesHandler := variable.NewVariableHandler(variableStore, variableValueStore, s.config.UserLimits.MaxVariablesPerApp)

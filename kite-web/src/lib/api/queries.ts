@@ -18,6 +18,9 @@ import {
   MessageGetResponse,
   MessageInstanceListResponse,
   MessageListResponse,
+  PluginInstanceGetResponse,
+  PluginInstanceListResponse,
+  PluginListResponse,
   StateGuildChannelListResponse,
   StateGuildListResponse,
   StateStatusGetResponse,
@@ -279,5 +282,32 @@ export function useAppFeaturesQuery(appId: string) {
     queryFn: () =>
       apiRequest<FeaturesGetResponse>(`/v1/apps/${appId}/billing/features`),
     enabled: !!appId,
+  });
+}
+
+export function usePluginsQuery() {
+  return useQuery({
+    queryKey: ["plugins"],
+    queryFn: () => apiRequest<PluginListResponse>(`/v1/plugins`),
+  });
+}
+
+export function usePluginInstancesQuery(appId: string) {
+  return useQuery({
+    queryKey: ["apps", appId, "plugins"],
+    queryFn: () =>
+      apiRequest<PluginInstanceListResponse>(`/v1/apps/${appId}/plugins`),
+    enabled: !!appId,
+  });
+}
+
+export function usePluginInstanceQuery(appId: string, pluginId: string) {
+  return useQuery({
+    queryKey: ["apps", appId, "plugins", pluginId],
+    queryFn: () =>
+      apiRequest<PluginInstanceGetResponse>(
+        `/v1/apps/${appId}/plugins/${pluginId}`
+      ),
+    enabled: !!appId && !!pluginId,
   });
 }

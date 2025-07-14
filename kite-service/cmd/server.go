@@ -20,6 +20,9 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/db/s3"
 	"github.com/kitecloud/kite/kite-service/internal/logging"
 	"github.com/kitecloud/kite/kite-service/internal/model"
+	"github.com/kitecloud/kite/kite-service/pkg/plugin"
+	"github.com/kitecloud/kite/kite-service/pkg/plugin/counting"
+	"github.com/kitecloud/kite/kite-service/pkg/plugin/starboard"
 	"github.com/sashabaranov/go-openai"
 	"github.com/urfave/cli/v2"
 )
@@ -71,6 +74,12 @@ func serverStartCMD(c *cli.Context) error {
 		openaiClient = openai.NewClient(cfg.OpenAI.APIKey)
 	}
 
+	pluginRegistry := plugin.NewRegistry()
+	pluginRegistry.Register(
+		counting.NewCountingPlugin(),
+		starboard.NewStarboardPlugin(),
+	)
+
 	engine := engine.NewEngine(
 		engine.Env{
 			Config: engine.EngineConfig{
@@ -85,6 +94,9 @@ func serverStartCMD(c *cli.Context) error {
 			MessageInstanceStore: pg,
 			CommandStore:         pg,
 			EventListenerStore:   pg,
+			PluginInstanceStore:  pg,
+			PluginValueStore:     pg,
+			PluginRegistry:       pluginRegistry,
 			VariableValueStore:   pg,
 			ResumePointStore:     pg,
 			HttpClient:           engineHTTPClient(cfg),
@@ -134,7 +146,10 @@ func serverStartCMD(c *cli.Context) error {
 			TestMode:                  cfg.Billing.TestMode,
 			Plans:                     cfg.Billing.Plans,
 		},
-	}, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, assetStore, gateway, planManager)
+	},
+		pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg,
+		assetStore, gateway, planManager, pluginRegistry,
+	)
 	address := fmt.Sprintf("%s:%d", cfg.API.Host, cfg.API.Port)
 	if err := apiServer.Serve(ctx, address); err != nil {
 		slog.With("error", err).Error("Failed to start API server")

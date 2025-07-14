@@ -94,6 +94,12 @@ func (a *App) DeployCommands(ctx context.Context) error {
 		commandNames = append(commandNames, node.CommandName())
 	}
 
+	for _, plugin := range a.pluginInstances {
+		for _, command := range plugin.Commands() {
+			commands = append(commands, command.Data)
+		}
+	}
+
 	a.Unlock()
 
 	if err := validateCommandNames(commandNames); err != nil {
@@ -107,7 +113,7 @@ func (a *App) DeployCommands(ctx context.Context) error {
 		return nil
 	}
 
-	app, err := a.stores.AppStore.App(ctx, a.id)
+	app, err := a.env.AppStore.App(ctx, a.id)
 	if err != nil {
 		return fmt.Errorf("failed to get app: %w", err)
 	}
@@ -125,7 +131,12 @@ func (a *App) DeployCommands(ctx context.Context) error {
 		return nil
 	}
 
-	err = a.stores.CommandStore.UpdateCommandsLastDeployedAt(ctx, a.id, lastUpdatedAt)
+	err = a.env.CommandStore.UpdateCommandsLastDeployedAt(ctx, a.id, lastUpdatedAt)
+	if err != nil {
+		return fmt.Errorf("failed to update last deployed at: %w", err)
+	}
+
+	err = a.env.PluginInstanceStore.UpdatePluginInstancesLastDeployedAt(ctx, a.id, lastUpdatedAt)
 	if err != nil {
 		return fmt.Errorf("failed to update last deployed at: %w", err)
 	}
