@@ -14,8 +14,9 @@ export default function AppPluginsPage() {
       <div>
         <h1 className="text-lg font-semibold md:text-2xl mb-1">Plugins</h1>
         <p className="text-muted-foreground text-sm">
-          Plugins are used to extend the functionality of your app. They can
-          contain commands, event listeners, message templates, and more.
+          Plugins are used to extend the functionality of your app without
+          having to build things yourself. Plugins work separately from your own
+          commands, events, and message templates.
         </p>
       </div>
       <Separator className="my-8" />

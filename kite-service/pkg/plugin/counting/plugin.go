@@ -8,8 +8,6 @@ import (
 	"github.com/kitecloud/kite/kite-service/pkg/plugin"
 )
 
-const channelsConfigKey = "channels"
-
 type CountingPlugin struct {
 }
 

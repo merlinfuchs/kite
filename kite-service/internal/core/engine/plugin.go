@@ -80,6 +80,7 @@ func (p *pluginInstance) HandleEvent(ctx context.Context, session *state.State, 
 	case *gateway.InteractionCreateEvent:
 		switch e.Data.(type) {
 		case *discord.CommandInteraction:
+			// TODO: Check if the command belongs to this plugin
 			err = p.instance.HandleCommand(p.pluginContext(ctx, session), e)
 		case discord.ComponentInteraction:
 			err = p.instance.HandleComponent(p.pluginContext(ctx, session), e)

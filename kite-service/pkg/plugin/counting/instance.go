@@ -2,6 +2,7 @@ package counting
 
 import (
 	"context"
+	"fmt"
 	"strconv"
 
 	"github.com/diamondburned/arikawa/v3/api"
@@ -30,21 +31,12 @@ func (p *CountingPluginInstance) HandleEvent(c plugin.Context, event gateway.Eve
 		return nil
 	}
 
-	if e.Content == "!ping" {
-		_, err := c.Discord().CreateMessage(c, e.ChannelID, api.SendMessageData{
-			Content: "Pong!",
-		})
-		if err != nil {
-			return err
-		}
-	}
-
-	value, err := c.GetValue(c, e.ChannelID.String())
+	enabled, err := c.GetValue(c, countEnabledKey(e.ChannelID.String()))
 	if err != nil {
 		return err
 	}
 
-	if value == thing.Null {
+	if !enabled.Bool() {
 		return nil
 	}
 
@@ -58,7 +50,8 @@ func (p *CountingPluginInstance) HandleEvent(c plugin.Context, event gateway.Eve
 	}
 
 	nextNum, err := c.UpdateValue(
-		c, e.ChannelID.String(),
+		c,
+		countValueKey(e.ChannelID.String()),
 		provider.VariableOperationIncrement,
 		thing.New(1),
 	)
@@ -66,20 +59,57 @@ func (p *CountingPluginInstance) HandleEvent(c plugin.Context, event gateway.Eve
 		return err
 	}
 
-	if nextNum.Int() != num {
-		err := c.DeleteValue(c, e.ChannelID.String())
+	lastUser, err := c.GetValue(c, countLastUserKey(e.ChannelID.String()))
+	if err != nil {
+		return err
+	}
+
+	if lastUser.String() == e.Author.ID.String() {
+		err := cleanupCounting(c, e.ChannelID.String())
 		if err != nil {
 			return err
 		}
 
 		_, err = c.Discord().CreateMessage(c, e.ChannelID, api.SendMessageData{
-			Content: "The count is incorrect. The next number is " + nextNum.String(),
+			Content: fmt.Sprintf("%s RUINED IT AT **%d**. **You can't count two numbers in a row.**", e.Author.Mention(), nextNum.Int()-1),
+			Reference: &discord.MessageReference{
+				MessageID: e.ID,
+			},
 		})
 		if err != nil {
 			return err
 		}
 
 		return nil
+	}
+
+	if nextNum.Int() != num {
+		err := cleanupCounting(c, e.ChannelID.String())
+		if err != nil {
+			return err
+		}
+
+		_, err = c.Discord().CreateMessage(c, e.ChannelID, api.SendMessageData{
+			Content: fmt.Sprintf("%s RUINED IT AT **%d**. The next number was **%d**.", e.Author.Mention(), nextNum.Int()-1, nextNum.Int()),
+			Reference: &discord.MessageReference{
+				MessageID: e.ID,
+			},
+		})
+		if err != nil {
+			return err
+		}
+
+		return nil
+	}
+
+	_, err = c.UpdateValue(
+		c,
+		countLastUserKey(e.ChannelID.String()),
+		provider.VariableOperationOverwrite,
+		thing.New(e.Author.ID.String()),
+	)
+	if err != nil {
+		return err
 	}
 
 	err = c.Discord().CreateMessageReaction(c, e.ChannelID, e.ID, "✅")
@@ -106,7 +136,7 @@ func (p *CountingPluginInstance) HandleCommand(c plugin.Context, event *gateway.
 	}
 
 	if value != thing.Null {
-		err := c.DeleteValue(c, event.ChannelID.String())
+		err := c.DeleteValue(c, countEnabledKey(event.ChannelID.String()))
 		if err != nil {
 			return err
 		}
@@ -122,7 +152,12 @@ func (p *CountingPluginInstance) HandleCommand(c plugin.Context, event *gateway.
 			return err
 		}
 	} else {
-		_, err := c.UpdateValue(c, event.ChannelID.String(), provider.VariableOperationOverwrite, thing.New(0))
+		_, err := c.UpdateValue(
+			c,
+			countEnabledKey(event.ChannelID.String()),
+			provider.VariableOperationOverwrite,
+			thing.New(true),
+		)
 		if err != nil {
 			return err
 		}
@@ -152,4 +187,30 @@ func (p *CountingPluginInstance) HandleModal(c plugin.Context, event *gateway.In
 
 func (p *CountingPluginInstance) Close() error {
 	return nil
+}
+
+func cleanupCounting(c plugin.Context, channelID string) error {
+	err := c.DeleteValue(c, countValueKey(channelID))
+	if err != nil {
+		return err
+	}
+
+	err = c.DeleteValue(c, countLastUserKey(channelID))
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func countEnabledKey(channelID string) string {
+	return "counting-enabled:" + channelID
+}
+
+func countValueKey(channelID string) string {
+	return "counting-value:" + channelID
+}
+
+func countLastUserKey(channelID string) string {
+	return "counting-last-user:" + channelID
 }
