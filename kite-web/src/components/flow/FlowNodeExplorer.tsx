@@ -1,4 +1,4 @@
-import { NodeValues, nodeTypes } from "@/lib/flow/nodes";
+import { NodeValues, createNode, nodeTypes } from "@/lib/flow/nodes";
 import clsx from "clsx";
 import { DragEvent, useMemo, useState } from "react";
 import { useReactFlow } from "@xyflow/react";
@@ -222,7 +222,7 @@ function NodeCategories({
 }
 
 function AvailableNode({ type, values }: { type: string; values: NodeValues }) {
-  const { addNodes } = useReactFlow();
+  const { addNodes, addEdges } = useReactFlow();
 
   function onStartDrag(e: DragEvent) {
     e.dataTransfer.setData("application/reactflow", type);
@@ -230,14 +230,12 @@ function AvailableNode({ type, values }: { type: string; values: NodeValues }) {
   }
 
   function onClick() {
-    addNodes([
-      {
-        id: getUniqueId().toString(),
-        type,
-        position: { x: 0, y: 0 },
-        data: {},
-      },
-    ]);
+    const [nodes, edges] = createNode(type, {
+      x: 0 + 200 * Math.random() - 100,
+      y: 0 + 100 * Math.random() + 200,
+    });
+    addNodes(nodes);
+    addEdges(edges);
   }
 
   return (
