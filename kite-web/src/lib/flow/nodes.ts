@@ -24,6 +24,7 @@ import {
   Repeat2Icon,
   SatelliteDishIcon,
   ScrollTextIcon,
+  SearchIcon,
   ShieldCheckIcon,
   SlashSquareIcon,
   TextCursorInputIcon,
@@ -43,6 +44,7 @@ import env from "../env/client";
 import { getUniqueId } from "../utils";
 import {
   nodeActionAiChatCompletionDataSchema,
+  nodeActionAiWebSearchCompletionDataSchema,
   nodeActionExpressionEvaluateDataSchema,
   nodeActionHttpRequestDataSchema,
   nodeActionLogDataSchema,
@@ -101,6 +103,7 @@ export interface NodeValues {
   ownsChildren?: boolean;
   fixed?: boolean;
   helpUrl?: string;
+  creditsCost?: number | ((data: NodeData) => number);
 }
 
 export const nodeTypes: Record<string, NodeValues> = {
@@ -146,6 +149,7 @@ export const nodeTypes: Record<string, NodeValues> = {
       "message_ephemeral",
       "custom_label",
     ],
+    creditsCost: 1,
   },
   action_response_edit: {
     color: actionColor,
@@ -159,6 +163,7 @@ export const nodeTypes: Record<string, NodeValues> = {
       "message_data",
       "custom_label",
     ],
+    creditsCost: 1,
   },
   action_response_delete: {
     color: actionColor,
@@ -167,6 +172,7 @@ export const nodeTypes: Record<string, NodeValues> = {
     defaultDescription: "Bot deletes an existing interaction response message",
     dataSchema: nodeActionResponseDeleteDataSchema,
     dataFields: ["response_target", "custom_label"],
+    creditsCost: 1,
   },
   action_response_defer: {
     color: actionColor,
@@ -176,6 +182,7 @@ export const nodeTypes: Record<string, NodeValues> = {
       "Bot defers the response to the interaction to give time for further processing",
     dataSchema: nodeActionResponseDeferDataSchema,
     dataFields: ["message_ephemeral", "custom_label"],
+    creditsCost: 1,
   },
   action_message_create: {
     color: actionColor,
@@ -189,6 +196,7 @@ export const nodeTypes: Record<string, NodeValues> = {
       "message_data",
       "custom_label",
     ],
+    creditsCost: 1,
   },
   action_message_edit: {
     color: actionColor,
@@ -203,6 +211,7 @@ export const nodeTypes: Record<string, NodeValues> = {
       "message_data",
       "custom_label",
     ],
+    creditsCost: 1,
   },
   action_private_message_create: {
     color: actionColor,
@@ -217,6 +226,7 @@ export const nodeTypes: Record<string, NodeValues> = {
       "message_template_id",
       "custom_label",
     ],
+    creditsCost: 1,
   },
   action_message_delete: {
     color: actionColor,
@@ -230,6 +240,7 @@ export const nodeTypes: Record<string, NodeValues> = {
       "audit_log_reason",
       "custom_label",
     ],
+    creditsCost: 1,
   },
   action_message_reaction_create: {
     color: actionColor,
@@ -243,6 +254,7 @@ export const nodeTypes: Record<string, NodeValues> = {
       "emoji_data",
       "custom_label",
     ],
+    creditsCost: 1,
   },
   action_message_reaction_delete: {
     color: actionColor,
@@ -256,6 +268,7 @@ export const nodeTypes: Record<string, NodeValues> = {
       "emoji_data",
       "custom_label",
     ],
+    creditsCost: 1,
   },
   action_member_ban: {
     color: actionColor,
@@ -269,6 +282,7 @@ export const nodeTypes: Record<string, NodeValues> = {
       "audit_log_reason",
       "custom_label",
     ],
+    creditsCost: 1,
   },
   action_member_unban: {
     color: actionColor,
@@ -277,6 +291,7 @@ export const nodeTypes: Record<string, NodeValues> = {
     defaultDescription: "Unban a member from the server",
     dataSchema: nodeActionMemberUnbanDataSchema,
     dataFields: ["user_target", "audit_log_reason", "custom_label"],
+    creditsCost: 1,
   },
   action_member_kick: {
     color: actionColor,
@@ -285,6 +300,7 @@ export const nodeTypes: Record<string, NodeValues> = {
     defaultDescription: "Kick a member from the server",
     dataSchema: nodeActionMemberKickDataSchema,
     dataFields: ["user_target", "audit_log_reason", "custom_label"],
+    creditsCost: 1,
   },
   action_member_timeout: {
     color: actionColor,
@@ -298,6 +314,7 @@ export const nodeTypes: Record<string, NodeValues> = {
       "audit_log_reason",
       "custom_label",
     ],
+    creditsCost: 1,
   },
   action_member_edit: {
     color: actionColor,
@@ -311,6 +328,7 @@ export const nodeTypes: Record<string, NodeValues> = {
       "audit_log_reason",
       "custom_label",
     ],
+    creditsCost: 1,
   },
   action_member_role_add: {
     color: actionColor,
@@ -324,6 +342,7 @@ export const nodeTypes: Record<string, NodeValues> = {
       "audit_log_reason",
       "custom_label",
     ],
+    creditsCost: 1,
   },
   action_member_role_remove: {
     color: actionColor,
@@ -337,6 +356,7 @@ export const nodeTypes: Record<string, NodeValues> = {
       "audit_log_reason",
       "custom_label",
     ],
+    creditsCost: 1,
   },
   action_variable_set: {
     color: actionColor,
@@ -351,6 +371,7 @@ export const nodeTypes: Record<string, NodeValues> = {
       "variable_value",
       "custom_label",
     ],
+    creditsCost: 1,
   },
   action_variable_delete: {
     color: actionColor,
@@ -359,6 +380,7 @@ export const nodeTypes: Record<string, NodeValues> = {
     defaultDescription: "Delete the value of a shared variable",
     dataSchema: nodeActionVariableDeleteSchema,
     dataFields: ["variable_id", "variable_scope", "custom_label"],
+    creditsCost: 1,
   },
   action_variable_get: {
     color: actionColor,
@@ -367,6 +389,7 @@ export const nodeTypes: Record<string, NodeValues> = {
     defaultDescription: "Get the value of a shared variable",
     dataSchema: nodeActionVariableGetSchema,
     dataFields: ["variable_id", "variable_scope", "custom_label"],
+    creditsCost: 1,
   },
   action_http_request: {
     color: actionColor,
@@ -375,15 +398,46 @@ export const nodeTypes: Record<string, NodeValues> = {
     defaultDescription: "Send an API request to an external server",
     dataSchema: nodeActionHttpRequestDataSchema,
     dataFields: ["http_request_data", "custom_label"],
+    creditsCost: 3,
   },
   action_ai_chat_completion: {
     color: actionColor,
     icon: BrainCircuitIcon,
-    defaultTitle: "Chat with AI",
+    defaultTitle: "Ask AI",
     defaultDescription:
       "Ask artificial intelligence a question or let it respond to a prompt",
     dataSchema: nodeActionAiChatCompletionDataSchema,
     dataFields: ["ai_chat_completion_data", "custom_label"],
+    creditsCost: (data) => {
+      const model = data.ai_chat_completion_data?.model;
+      switch (model) {
+        case "gpt-4.1":
+          return 100;
+        case "gpt-4.1-mini":
+          return 20;
+        default:
+          return 5;
+      }
+    },
+  },
+  action_ai_web_search: {
+    color: actionColor,
+    icon: SearchIcon,
+    defaultTitle: "Search the Web",
+    defaultDescription: "Search the web for the latest information using AI",
+    dataSchema: nodeActionAiWebSearchCompletionDataSchema,
+    dataFields: ["ai_web_search_data", "custom_label"],
+    creditsCost: (data) => {
+      const model = data.ai_chat_completion_data?.model;
+      switch (model) {
+        case "gpt-4.1":
+          return 500;
+        case "gpt-4.1-mini":
+          return 100;
+        default:
+          return 25;
+      }
+    },
   },
   action_expression_evaluate: {
     color: actionColor,
@@ -393,6 +447,7 @@ export const nodeTypes: Record<string, NodeValues> = {
     dataSchema: nodeActionExpressionEvaluateDataSchema,
     dataFields: ["expression", "custom_label"],
     helpUrl: env.NEXT_PUBLIC_DOCS_LINK + "/reference/expressions",
+    creditsCost: 1,
   },
   action_random_generate: {
     color: actionColor,
@@ -401,6 +456,7 @@ export const nodeTypes: Record<string, NodeValues> = {
     defaultDescription: "Generate a random number in a range",
     dataSchema: nodeActionRandomGenerateDataSchema,
     dataFields: ["random_min", "random_max", "custom_label"],
+    creditsCost: 1,
   },
   action_log: {
     color: actionColor,
@@ -410,6 +466,7 @@ export const nodeTypes: Record<string, NodeValues> = {
       "Log some text which is only visible in the application logs",
     dataSchema: nodeActionLogDataSchema,
     dataFields: ["log_level", "log_message", "custom_label"],
+    creditsCost: 1,
   },
   control_condition_compare: {
     color: controlColor,

@@ -14,11 +14,16 @@ By default, your app has **10,000 credits available per month**. This is usually
 
 Most actions in flows will consume **1 credit per execution** with a few exceptions:
 
-- **`Chat with AI` block**:
+- **`Ask AI` block**:
   - `gpt-4.1`: 100 credits per execution
   - `gpt-4.1-mini`: 20 credits per execution
   - `gpt-4.1-nano`: 5 credits per execution
-  - `gpt-4o-mini`: 5 credits per execution
+  - `gpt-4o-mini` (default): 5 credits per execution
+- **`Search The Web` block**:
+  - `gpt-4.1`: 500 credits per execution
+  - `gpt-4.1-mini`: 100 credits per execution
+  - `gpt-4.1-nano`: 25 credits per execution
+  - `gpt-4o-mini` (default): 25 credits per execution
 - **`Send API request` block**: 3 credits per execution
 
 Conditions, loops, and other control flow blocks will not consume any credits.
