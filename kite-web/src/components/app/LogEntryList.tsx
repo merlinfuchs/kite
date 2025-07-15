@@ -37,13 +37,12 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Badge } from "../ui/badge";
-import { cn } from "@/lib/utils";
-import { LogEntry } from "@/lib/types/wire.gen";
 import { useLogEntriesQuery } from "@/lib/api/queries";
-import { useAppId } from "@/lib/hooks/params";
 import { useAppEntities, useResponseData } from "@/lib/hooks/api";
+import { useAppId } from "@/lib/hooks/params";
+import { LogEntry } from "@/lib/types/wire.gen";
 import { useMemo, useState } from "react";
+import LogLevelBadge from "./LogLevelBadge";
 
 const logLevels = ["debug", "info", "warn", "error"] as const;
 
@@ -60,23 +59,7 @@ export const columns: ColumnDef<{
     cell: ({ row }) => {
       const level = row.getValue<string>("level");
 
-      return (
-        <Badge
-          variant="secondary"
-          className={cn(
-            "uppercase text-xs select-none",
-            level === "info"
-              ? "bg-blue-500 hover:bg-blue-500/80 text-white"
-              : level === "warn"
-              ? "bg-orange-500 hover:bg-orange-500/80 text-white"
-              : level === "error"
-              ? "bg-red-500 hover:bg-red-500/80 text-white"
-              : ""
-          )}
-        >
-          {level}
-        </Badge>
-      );
+      return <LogLevelBadge level={level} />;
     },
   },
   {
@@ -136,8 +119,24 @@ export const columns: ColumnDef<{
   },
 ];
 
-export default function LogEntryList() {
-  const query = useLogEntriesQuery(useAppId());
+export default function LogEntryList({
+  commandId,
+  eventId,
+  messageId,
+  disableFilters,
+  disablePagination,
+}: {
+  commandId?: string;
+  eventId?: string;
+  messageId?: string;
+  disableFilters?: boolean;
+  disablePagination?: boolean;
+}) {
+  const query = useLogEntriesQuery(useAppId(), {
+    commandId,
+    eventId,
+    messageId,
+  });
   const data = useResponseData(query);
 
   const [enabledLevels, setEnabledLevels] = useState<string[]>([
@@ -187,49 +186,55 @@ export default function LogEntryList() {
 
   return (
     <div className="w-full overflow-x-auto lg:overflow-visible">
-      <div className="flex items-center py-4">
-        <Input
-          placeholder="Filter logs..."
-          value={(table.getColumn("message")?.getFilterValue() as string) ?? ""}
-          onChange={(event) =>
-            table.getColumn("message")?.setFilterValue(event.target.value)
-          }
-          className="max-w-sm mr-2"
-        />
-        <Button
-          variant="outline"
-          size="icon"
-          className="ml-auto mr-2 flex-none"
-          onClick={() => query.refetch()}
-        >
-          <RefreshCwIcon className="h-4 w-4" />
-        </Button>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline">
-              Levels <ChevronDown className="ml-2 h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            {logLevels.map((level) => {
-              return (
-                <DropdownMenuCheckboxItem
-                  key={level}
-                  className="capitalize"
-                  checked={enabledLevels.includes(level)}
-                  onCheckedChange={(value) => {
-                    setEnabledLevels((prev) =>
-                      value ? [...prev, level] : prev.filter((l) => l !== level)
-                    );
-                  }}
-                >
-                  {level}
-                </DropdownMenuCheckboxItem>
-              );
-            })}
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </div>
+      {!disableFilters && (
+        <div className="flex items-center py-4">
+          <Input
+            placeholder="Filter logs..."
+            value={
+              (table.getColumn("message")?.getFilterValue() as string) ?? ""
+            }
+            onChange={(event) =>
+              table.getColumn("message")?.setFilterValue(event.target.value)
+            }
+            className="max-w-sm mr-2"
+          />
+          <Button
+            variant="outline"
+            size="icon"
+            className="ml-auto mr-2 flex-none"
+            onClick={() => query.refetch()}
+          >
+            <RefreshCwIcon className="h-4 w-4" />
+          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline">
+                Levels <ChevronDown className="ml-2 h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              {logLevels.map((level) => {
+                return (
+                  <DropdownMenuCheckboxItem
+                    key={level}
+                    className="capitalize"
+                    checked={enabledLevels.includes(level)}
+                    onCheckedChange={(value) => {
+                      setEnabledLevels((prev) =>
+                        value
+                          ? [...prev, level]
+                          : prev.filter((l) => l !== level)
+                      );
+                    }}
+                  >
+                    {level}
+                  </DropdownMenuCheckboxItem>
+                );
+              })}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      )}
       <div className="rounded-md border">
         <Table>
           <TableHeader>
@@ -280,30 +285,32 @@ export default function LogEntryList() {
           </TableBody>
         </Table>
       </div>
-      <div className="flex items-center justify-end space-x-2 py-4">
-        <div className="flex-1 text-sm text-muted-foreground">
-          {table.getFilteredRowModel().rows.length} of{" "}
-          {table.getRowModel().rows.length} log(s) shown.
+      {!disablePagination && (
+        <div className="flex items-center justify-end space-x-2 py-4">
+          <div className="flex-1 text-sm text-muted-foreground">
+            {table.getFilteredRowModel().rows.length} of{" "}
+            {table.getRowModel().rows.length} log(s) shown.
+          </div>
+          <div className="space-x-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => table.previousPage()}
+              disabled={!table.getCanPreviousPage()}
+            >
+              Previous
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => table.nextPage()}
+              disabled={!table.getCanNextPage()}
+            >
+              Next
+            </Button>
+          </div>
         </div>
-        <div className="space-x-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => table.previousPage()}
-            disabled={!table.getCanPreviousPage()}
-          >
-            Previous
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => table.nextPage()}
-            disabled={!table.getCanNextPage()}
-          >
-            Next
-          </Button>
-        </div>
-      </div>
+      )}
     </div>
   );
 }

@@ -2,10 +2,30 @@
 INSERT INTO logs (app_id, message, level, command_id, event_listener_id, message_id, created_at) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *;
 
 -- name: GetLogEntriesByApp :many
-SELECT * FROM logs WHERE app_id = $1 ORDER BY created_at DESC LIMIT $2;
+SELECT * FROM logs 
+WHERE 
+    app_id = $1 AND 
+    (sqlc.narg(before_id)::bigint IS NULL OR id < sqlc.narg(before_id)::bigint) 
+ORDER BY created_at DESC LIMIT $2;
 
--- name: GetLogEntriesByAppBefore :many
-SELECT * FROM logs WHERE app_id = $1 AND id < $2 ORDER BY created_at DESC LIMIT $3;
+-- name: GetLogEntriesByCommand :many
+SELECT * FROM logs 
+WHERE 
+    app_id = $1 AND 
+    command_id = $2 AND 
+    (sqlc.narg(before_id)::bigint IS NULL OR id < sqlc.narg(before_id)::bigint) 
+ORDER BY created_at DESC LIMIT $3;
+
+-- name: GetLogEntriesByEvent :many
+SELECT * FROM logs 
+WHERE 
+    app_id = $1 AND 
+    event_listener_id = $2 AND 
+    (sqlc.narg(before_id)::bigint IS NULL OR id < sqlc.narg(before_id)::bigint) 
+ORDER BY created_at DESC LIMIT $3;
+
+-- name: GetLogEntriesByMessage :many
+SELECT * FROM logs WHERE app_id = $1 AND message_id = $2 AND (sqlc.narg(before_id)::bigint IS NULL OR id < sqlc.narg(before_id)::bigint) ORDER BY created_at DESC LIMIT $3;
 
 -- name: GetLogSummary :one
 SELECT COUNT(*) AS total_entries,

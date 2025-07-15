@@ -8,6 +8,7 @@ import Head from "next/head";
 import { useRouter } from "next/router";
 import { useCallback, useRef, useState } from "react";
 import { toast } from "sonner";
+import { LogEntryListDrawer } from "@/components/app/LogEntryListDrawer";
 
 export default function AppCommandPage() {
   const ignoreChange = useRef(false);
@@ -37,6 +38,7 @@ export default function AppCommandPage() {
 
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [logsOpen, setLogsOpen] = useState(false);
 
   const onChange = useCallback(() => {
     if (!ignoreChange.current) {
@@ -106,15 +108,23 @@ export default function AppCommandPage() {
         <title>Manage Command | Kite</title>
       </Head>
       {cmd && (
-        <FlowPage
-          flowData={cmd.flow_source}
-          context="command"
-          hasUnsavedChanges={hasUnsavedChanges}
-          onChange={onChange}
-          isSaving={isSaving}
-          onSave={save}
-          onExit={exit}
-        />
+        <>
+          <FlowPage
+            flowData={cmd.flow_source}
+            context="command"
+            hasUnsavedChanges={hasUnsavedChanges}
+            onChange={onChange}
+            isSaving={isSaving}
+            onSave={save}
+            onExit={exit}
+            onLogsView={() => setLogsOpen(true)}
+          />
+          <LogEntryListDrawer
+            commandId={cmd.id}
+            open={logsOpen}
+            onOpenChange={setLogsOpen}
+          />
+        </>
       )}
     </div>
   );
