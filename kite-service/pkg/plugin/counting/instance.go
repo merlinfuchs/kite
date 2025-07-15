@@ -129,7 +129,7 @@ func (p *CountingPluginInstance) HandleCommand(c plugin.Context, event *gateway.
 		return nil
 	}
 
-	value, err := c.GetValue(c, event.ChannelID.String())
+	value, err := c.GetValue(c, countEnabledKey(event.ChannelID.String()))
 	if err != nil {
 		return err
 	}
