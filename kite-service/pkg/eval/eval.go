@@ -15,7 +15,7 @@ const templateStartTag = "{{"
 const templateEndTag = "}}"
 
 func Eval(ctx context.Context, expression string, c Context) (thing.Any, error) {
-	c.Env["ctx"] = ctx
+	c.Env["ctx"] = proxyContext{ctx: ctx}
 
 	opts := []expr.Option{
 		expr.Env(c.Env),
