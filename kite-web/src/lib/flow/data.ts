@@ -387,6 +387,27 @@ export const nodeActionAiChatCompletionDataSchema = nodeBaseDataSchema.extend({
   }),
 });
 
+export const nodeActionAiWebSearchCompletionDataSchema =
+  nodeBaseDataSchema.extend({
+    ai_chat_completion_data: z.object({
+      model: z
+        .union([
+          z.literal("gpt-4.1"),
+          z.literal("gpt-4.1-mini"),
+          z.literal("gpt-4.1-nano"),
+          z.literal("gpt-4o-mini"),
+        ])
+        .optional(),
+      system_prompt: z.string().max(2000).optional(),
+      prompt: z.string().max(2000).min(1),
+      max_completion_tokens: z
+        .string()
+        .regex(numericRegex)
+        .or(z.string().regex(placeholderRegex))
+        .optional(),
+    }),
+  });
+
 export const nodeActionExpressionEvaluateDataSchema = nodeBaseDataSchema.extend(
   {
     expression: z.string().max(2000),

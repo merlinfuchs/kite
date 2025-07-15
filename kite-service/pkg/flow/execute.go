@@ -10,6 +10,8 @@ import (
 	"slices"
 	"time"
 
+	"github.com/openai/openai-go"
+
 	"github.com/diamondburned/arikawa/v3/api"
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/utils/json/option"
@@ -17,7 +19,6 @@ import (
 	"github.com/kitecloud/kite/kite-service/pkg/message"
 	"github.com/kitecloud/kite/kite-service/pkg/provider"
 	"github.com/kitecloud/kite/kite-service/pkg/thing"
-	"github.com/sashabaranov/go-openai"
 	"gopkg.in/guregu/null.v4"
 )
 
@@ -809,7 +810,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 		if data == nil || data.Prompt == "" {
 			return &FlowError{
 				Code:    FlowNodeErrorUnknown,
-				Message: "ai_prompt is nil",
+				Message: "ai_chat_completion_data is nil",
 			}
 		}
 
@@ -828,11 +829,48 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			return traceError(n, err)
 		}
 
-		response, err := ctx.AI.CreateChatCompletion(ctx, provider.CreateChatCompletionOpts{
-			Model:               data.Model,
-			SystemPrompt:        systemPrompt.String(),
-			Prompt:              prompt.String(),
-			MaxCompletionTokens: int(maxCompletionTokens.Int()),
+		response, err := ctx.AI.CreateResponse(ctx, provider.CreateResponseOpts{
+			Model:           data.Model,
+			Prompt:          prompt.String(),
+			SystemPrompt:    systemPrompt.String(),
+			MaxOutputTokens: int(maxCompletionTokens.Int()),
+		})
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		nodeState.Result = thing.New(response)
+		return n.ExecuteChildren(ctx)
+	case FlowNodeTypeActionAISearchWeb:
+		data := n.Data.AIChatCompletionData
+		if data == nil || data.Prompt == "" {
+			return &FlowError{
+				Code:    FlowNodeErrorUnknown,
+				Message: "ai_search_web_data is nil",
+			}
+		}
+
+		systemPrompt, err := ctx.EvalTemplate(data.SystemPrompt)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		prompt, err := ctx.EvalTemplate(data.Prompt)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		maxCompletionTokens, err := ctx.EvalTemplate(data.MaxCompletionTokens)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		response, err := ctx.AI.CreateResponse(ctx, provider.CreateResponseOpts{
+			Model:           data.Model,
+			Prompt:          prompt.String(),
+			SystemPrompt:    systemPrompt.String(),
+			MaxOutputTokens: int(maxCompletionTokens.Int()),
+			Tools:           []provider.AIToolType{provider.AIToolTypeWebSearchPreview},
 		})
 		if err != nil {
 			return traceError(n, err)
@@ -1134,13 +1172,32 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 func (n *CompiledFlowNode) CreditsCost() int {
 	switch n.Type {
 	case FlowNodeTypeActionAIChatCompletion:
-		switch n.Data.AIChatCompletionData.Model {
-		case openai.GPT4Dot1:
+		data := n.Data.AIChatCompletionData
+		if data == nil {
+			return 0
+		}
+
+		switch data.Model {
+		case openai.ChatModelGPT4_1:
 			return 100
-		case openai.GPT4Dot1Mini:
+		case openai.ChatModelGPT4_1Mini:
 			return 20
 		default:
 			return 5
+		}
+	case FlowNodeTypeActionAISearchWeb:
+		data := n.Data.AIChatCompletionData
+		if data == nil {
+			return 0
+		}
+
+		switch data.Model {
+		case openai.ChatModelGPT4_1:
+			return 500
+		case openai.ChatModelGPT4_1Mini:
+			return 100
+		default:
+			return 25
 		}
 	case FlowNodeTypeActionHTTPRequest:
 		return 3

@@ -36,6 +36,7 @@ export const FlowNodeTypeActionMemberRoleAdd: FlowNodeType = "action_member_role
 export const FlowNodeTypeActionMemberRoleRemove: FlowNodeType = "action_member_role_remove";
 export const FlowNodeTypeActionHTTPRequest: FlowNodeType = "action_http_request";
 export const FlowNodeTypeActionAIChatCompletion: FlowNodeType = "action_ai_chat_completion";
+export const FlowNodeTypeActionAISearchWeb: FlowNodeType = "action_ai_web_search";
 export const FlowNodeTypeActionExpressionEvaluate: FlowNodeType = "action_expression_evaluate";
 export const FlowNodeTypeActionRandomGenerate: FlowNodeType = "action_random_generate";
 export const FlowNodeTypeActionLog: FlowNodeType = "action_log";

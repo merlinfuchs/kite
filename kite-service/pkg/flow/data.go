@@ -61,6 +61,7 @@ const (
 	FlowNodeTypeActionMemberRoleRemove      FlowNodeType = "action_member_role_remove"
 	FlowNodeTypeActionHTTPRequest           FlowNodeType = "action_http_request"
 	FlowNodeTypeActionAIChatCompletion      FlowNodeType = "action_ai_chat_completion"
+	FlowNodeTypeActionAISearchWeb           FlowNodeType = "action_ai_web_search"
 	FlowNodeTypeActionExpressionEvaluate    FlowNodeType = "action_expression_evaluate"
 	FlowNodeTypeActionRandomGenerate        FlowNodeType = "action_random_generate"
 	FlowNodeTypeActionLog                   FlowNodeType = "action_log"
@@ -336,7 +337,6 @@ func (d AIChatCompletionData) Validate() error {
 	return validation.ValidateStruct(&d,
 		validation.Field(&d.Model, validation.In(openai.GPT4Dot1, openai.GPT4Dot1Mini, openai.GPT4oMini, openai.GPT4Dot1Nano)),
 		validation.Field(&d.Prompt, validation.Required, validation.Length(1, 2000)),
-		//validation.Field(&d.MaxCompletionTokens, validation.Required),
 	)
 }
 
