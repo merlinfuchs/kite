@@ -4,7 +4,7 @@ sidebar_position: 5
 
 # Expressions
 
-Kite supports performing calculations and transformations on data using expressions. Expressions are available in the `Evaluate Expression` block and in every placeholder surrounded by `{{` and `}}`.
+Kite supports performing calculations and transformations on data using expressions. Expressions are available in the `Evaluate Expression` block (**which also supports multi-line input**) and in every placeholder surrounded by `{{` and `}}`.
 
 ## Expression Syntax
 
