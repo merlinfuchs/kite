@@ -15,57 +15,39 @@ Expressions are powered by the [Expr](https://expr-lang.org) language, you can l
 Kite provides the following variables in the expression environment:
 
 ```yaml
-interaction: # For command and button interactions
-  command: # For command interactions
-    id: string
-    args: # Arguments passed to the command
-      arg1: any
-      arg2: any
-      arg3: any
-      ...
+user:
+  id: string
+  username: string
+  discriminator: string
+  display_name: string
+  avatar_url: string
+  banner_url: string
+  mention: string
+  role_ids?: []string
+  nick?: string
 
-  components: # For modal interactions, the values of the components
-    component1: string
-    component2: string
+message?: # For message events
+  id: string
+  content: string
 
-  user:
-    id: string
-    username: string
-    discriminator: string
-    display_name: string
-    avatar_url: string
-    banner_url: string
-    mention: string
-    role_ids?: []string
-    nick?: string
-  channel:
-    id: string
-  guild?:
-    id: string
+channel:
+  id: string
 
-event: # For event listeners
-  user:
-    id: string
-    username: string
-    discriminator: string
-    display_name: string
-    avatar_url: string
-    banner_url: string
-    mention: string
-    role_ids?: []string
-    nick?: string
-  message?: # For message events
-    id: string
-    content: string
-  channel?:
-    id: string
-  guild?:
-    id: string
+guild?: # For events and interactions inside a server
+  id: string # The id of the server
 
 app:
   user: # Access the underlying user of the app
     id: string
     mention: string
+```
+
+There are also a few special variables for accessing dynamic variables:
+
+```py
+arg('name') # Access value of a command argument
+input('identifier') # Access value of a modal input
+result('id') # Access the result of a previous block
 ```
 
 ## Examples
@@ -74,10 +56,10 @@ When using the `Evaluate Expression` block, you must omit the `{{` and `}}` from
 
 ### Get Command Argument
 
-This will return the value of the `myargs` argument passed to the command.
+This will return the value of the `myarg` argument passed to the command.
 
 ```python
-{{ interaction.command.args.myargs }}
+{{ arg('myarg') }}
 ```
 
 ### Get User Display Name
@@ -85,7 +67,7 @@ This will return the value of the `myargs` argument passed to the command.
 This will return the display name of the user who clicked the button or triggered the command or event.
 
 ```python
-{{ interaction.user.display_name }}
+{{ user.display_name }}
 ```
 
 ### Get Message Content
@@ -93,7 +75,7 @@ This will return the display name of the user who clicked the button or triggere
 This will return the content of the message that was sent.
 
 ```python
-{{ event.message.content }}
+{{ message.content }}
 ```
 
 ### Check if User Has Role
@@ -101,7 +83,7 @@ This will return the content of the message that was sent.
 This will return true if the user has the role with the ID `123`.
 
 ```python
-{{ "123" in interaction.user.roles }}
+{{ "123" in user.roles }}
 ```
 
 ### Do Some Math
@@ -114,8 +96,8 @@ This will return the result of the expression.
 
 ### Decode JSON Response
 
-This will return the value of the `somefield` field in the JSON response of a HTTP request block.
+This will return the value of the `somefield` field in the JSON response of a HTTP request block with the id `owlspush`.
 
 ```python
-{{ fromJSON(nodes["owlspush"].result.body()).somefield }}
+{{ fromJSON(result('owlspush').body()).somefield }}
 ```
