@@ -14,13 +14,19 @@ interface FAQProps {
 
 const FAQList: FAQProps[] = [
   {
+    question: "What is Kite?",
+    answer:
+      "Kite is an open source platform for building and hosting Discord bots without the need to write a single line of code. It's powered by an advanced no-code editor and free to use for everyone.",
+  },
+  {
     question: "Is Kite free to use?",
-    answer: "Yes. Kite is open source and free to use for everyone.",
+    answer:
+      "Yes. Kite is open source and free to use for everyone. Your bots will be hosted 24/7 and all the necessary features are free to use!",
   },
   {
     question: "Can I customize the name and avatar of my Discord bot?",
     answer:
-      "Yes. With Kite you create the bot yourself so you can customize the name and avatar however you like.",
+      "Yes. With Kite you create the bot yourself so you can customize the name and avatar however you like. You can even customize the bot's status and activity for free, without any limitations!",
   },
   {
     question: "Does Kite support slash commands and other Discord features?",
