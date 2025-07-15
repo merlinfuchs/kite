@@ -4,7 +4,7 @@ import { FlowNodeData } from "../types/flow.gen";
 
 const numericRegex = /^[0-9]+$/;
 const decimalRegex = /^[0-9]+(\.[0-9]+)?$/;
-const placeholderRegex = /^\{\{[a-z0-9_.]+\}\}$/;
+const placeholderRegex = /^\{\{[a-z0-9_'().]+\}\}$/;
 
 export interface FlowData {
   nodes: Node<NodeData>[];
