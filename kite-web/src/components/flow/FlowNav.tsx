@@ -5,6 +5,7 @@ import {
   ArrowLeftIcon,
   CheckIcon,
   LogsIcon,
+  MessageSquareWarningIcon,
   MoonStarIcon,
   RefreshCwIcon,
   SunIcon,
@@ -86,7 +87,7 @@ export default function FlowNav({
             className="flex space-x-2 text-foreground/80 hover:text-foreground items-center"
             onClick={onLogsView}
           >
-            <LogsIcon className="h-5 w-5" />
+            <MessageSquareWarningIcon className="h-5 w-5" />
             <div>View Logs</div>
           </button>
         )}
