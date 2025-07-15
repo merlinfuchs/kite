@@ -83,7 +83,7 @@ This will return the content of the message that was sent.
 This will return true if the user has the role with the ID `123`.
 
 ```python
-{{ "123" in user.roles }}
+{{ "123" in user.role_ids }}
 ```
 
 ### Do Some Math
