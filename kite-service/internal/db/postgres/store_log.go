@@ -36,23 +36,89 @@ func (c *Client) CreateLogEntry(ctx context.Context, entry model.LogEntry) error
 }
 
 func (c *Client) LogEntriesByApp(ctx context.Context, appID string, beforeID int64, limit int) ([]*model.LogEntry, error) {
-	var rows []pgmodel.Log
-	var err error
-
-	if beforeID == 0 {
-		rows, err = c.Q.GetLogEntriesByApp(ctx, pgmodel.GetLogEntriesByAppParams{
-			AppID: appID,
-			Limit: int32(limit),
-		})
-	} else {
-		rows, err = c.Q.GetLogEntriesByAppBefore(ctx, pgmodel.GetLogEntriesByAppBeforeParams{
-			AppID: appID,
-			ID:    beforeID,
-			Limit: int32(limit),
-		})
-
+	rows, err := c.Q.GetLogEntriesByApp(ctx, pgmodel.GetLogEntriesByAppParams{
+		AppID: appID,
+		Limit: int32(limit),
+		BeforeID: pgtype.Int8{
+			Int64: beforeID,
+			Valid: beforeID != 0,
+		},
+	})
+	if err != nil {
+		return nil, err
 	}
 
+	var res []*model.LogEntry
+	for _, row := range rows {
+		res = append(res, rowToLogEntry(row))
+	}
+
+	return res, nil
+}
+
+func (c *Client) LogEntriesByCommand(ctx context.Context, appID string, commandID string, beforeID int64, limit int) ([]*model.LogEntry, error) {
+	rows, err := c.Q.GetLogEntriesByCommand(ctx, pgmodel.GetLogEntriesByCommandParams{
+		AppID: appID,
+		CommandID: pgtype.Text{
+			String: commandID,
+			Valid:  true,
+		},
+		Limit: int32(limit),
+		BeforeID: pgtype.Int8{
+			Int64: beforeID,
+			Valid: beforeID != 0,
+		},
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	var res []*model.LogEntry
+	for _, row := range rows {
+		res = append(res, rowToLogEntry(row))
+	}
+
+	return res, nil
+}
+
+func (c *Client) LogEntriesByEvent(ctx context.Context, appID string, eventID string, beforeID int64, limit int) ([]*model.LogEntry, error) {
+	rows, err := c.Q.GetLogEntriesByEvent(ctx, pgmodel.GetLogEntriesByEventParams{
+		AppID: appID,
+		EventListenerID: pgtype.Text{
+			String: eventID,
+			Valid:  true,
+		},
+		Limit: int32(limit),
+		BeforeID: pgtype.Int8{
+			Int64: beforeID,
+			Valid: beforeID != 0,
+		},
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	var res []*model.LogEntry
+	for _, row := range rows {
+		res = append(res, rowToLogEntry(row))
+	}
+
+	return res, nil
+}
+
+func (c *Client) LogEntriesByMessage(ctx context.Context, appID string, messageID string, beforeID int64, limit int) ([]*model.LogEntry, error) {
+	rows, err := c.Q.GetLogEntriesByMessage(ctx, pgmodel.GetLogEntriesByMessageParams{
+		AppID: appID,
+		MessageID: pgtype.Text{
+			String: messageID,
+			Valid:  true,
+		},
+		Limit: int32(limit),
+		BeforeID: pgtype.Int8{
+			Int64: beforeID,
+			Valid: beforeID != 0,
+		},
+	})
 	if err != nil {
 		return nil, err
 	}

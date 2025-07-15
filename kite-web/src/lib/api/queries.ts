@@ -73,10 +73,36 @@ export function useAppEntitiesQuery(appId: string) {
   });
 }
 
-export function useLogEntriesQuery(appId: string) {
+export function useLogEntriesQuery(
+  appId: string,
+  args?: {
+    limit?: number;
+    commandId?: string;
+    eventId?: string;
+    messageId?: string;
+  }
+) {
+  const query = new URLSearchParams();
+  if (args?.commandId) {
+    query.set("command_id", args.commandId);
+  }
+  if (args?.eventId) {
+    query.set("event_id", args.eventId);
+  }
+  if (args?.messageId) {
+    query.set("message_id", args.messageId);
+  }
+  if (args?.limit) {
+    query.set("limit", args.limit.toString());
+  }
+
   return useQuery({
-    queryKey: ["apps", appId, "logs"],
-    queryFn: () => apiRequest<LogEntryListResponse>(`/v1/apps/${appId}/logs`),
+    queryKey: ["apps", appId, "logs", args],
+    queryFn: () =>
+      apiRequest<LogEntryListResponse>(
+        `/v1/apps/${appId}/logs?${query.toString()}`
+      ),
+    staleTime: 1000 * 60,
     enabled: !!appId,
   });
 }

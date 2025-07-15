@@ -4,6 +4,7 @@ import { Node, useReactFlow } from "@xyflow/react";
 import {
   ArrowLeftIcon,
   CheckIcon,
+  LogsIcon,
   MoonStarIcon,
   RefreshCwIcon,
   SunIcon,
@@ -15,6 +16,7 @@ interface Props {
   isSaving: boolean;
   onSave: (d: FlowData) => void;
   onExit: () => void;
+  onLogsView?: () => void;
 }
 
 export default function FlowNav({
@@ -22,6 +24,7 @@ export default function FlowNav({
   isSaving,
   onSave,
   onExit,
+  onLogsView,
 }: Props) {
   const { theme, setTheme } = useHookedTheme();
 
@@ -77,6 +80,15 @@ export default function FlowNav({
             <CheckIcon className="h-5 w-5" />
             <div>No Unsaved Changes</div>
           </div>
+        )}
+        {onLogsView && (
+          <button
+            className="flex space-x-2 text-foreground/80 hover:text-foreground items-center"
+            onClick={onLogsView}
+          >
+            <LogsIcon className="h-5 w-5" />
+            <div>View Logs</div>
+          </button>
         )}
       </div>
       {/*isDeploying ? (

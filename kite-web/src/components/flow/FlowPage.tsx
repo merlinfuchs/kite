@@ -13,6 +13,7 @@ interface Props {
   isSaving: boolean;
   onSave: (data: FlowData) => void;
   onExit: () => void;
+  onLogsView?: () => void;
 }
 
 function InnerFlowPage({
@@ -23,6 +24,7 @@ function InnerFlowPage({
   isSaving,
   onSave,
   onExit,
+  onLogsView,
 }: Props) {
   const { getNodes, getEdges } = useReactFlow<NodeType>();
 
@@ -41,6 +43,7 @@ function InnerFlowPage({
           isSaving={isSaving}
           onSave={save}
           onExit={onExit}
+          onLogsView={onLogsView}
         />
       </div>
       <Flow flowData={flowData} context={context} onChange={onChange} />
