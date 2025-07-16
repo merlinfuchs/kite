@@ -29,10 +29,17 @@
   --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.3);
 }
 
-.theme-doc-breadcrumbs {
+/* Hide breadcrumbs */
+ul.breadcrumbs {
   display: none !important;
 }
 
-.pagination-nav__label::after {
-  content: '→' !important;
+/* Add arrow before the PREVIOUS pagination label */
+.pagination-nav__link--prev .pagination-nav__label::before {
+  content: '← ';
+}
+
+/* Add arrow after the NEXT pagination label */
+.pagination-nav__link--next .pagination-nav__label::after {
+  content: ' →';
 }
