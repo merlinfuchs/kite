@@ -34,5 +34,5 @@
 }
 
 .pagination-nav__label::after {
-  content: ' →' !important;
+  content: '→' !important;
 }
