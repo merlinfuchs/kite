@@ -17,6 +17,12 @@ body:
         ### Make sure you are **only** asking a question and not reporting a bug or requesting a feature.
         If your question contains "isn't working" or "can you add", this is most likely the wrong template.
         If you are in doubt whether this is the right template, **USE ANOTHER TEMPLATE**!
+  - type: checkboxes
+    attributes:
+      label: Please ask all non-technical questions in our Discord: https://discord.gg/rNd9jWHnXh
+      options:
+        - label: Yes I want to ask a technical question
+          required: true
   - type: textarea
     id: question
     attributes:
