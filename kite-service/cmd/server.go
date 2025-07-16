@@ -23,7 +23,8 @@ import (
 	"github.com/kitecloud/kite/kite-service/pkg/plugin"
 	"github.com/kitecloud/kite/kite-service/pkg/plugin/counting"
 	"github.com/kitecloud/kite/kite-service/pkg/plugin/starboard"
-	"github.com/sashabaranov/go-openai"
+	"github.com/openai/openai-go"
+	"github.com/openai/openai-go/option"
 	"github.com/urfave/cli/v2"
 )
 
@@ -69,9 +70,9 @@ func serverStartCMD(c *cli.Context) error {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	var openaiClient *openai.Client
+	var openaiClient openai.Client
 	if cfg.OpenAI.APIKey != "" {
-		openaiClient = openai.NewClient(cfg.OpenAI.APIKey)
+		openaiClient = openai.NewClient(option.WithAPIKey(cfg.OpenAI.APIKey))
 	}
 
 	pluginRegistry := plugin.NewRegistry()
@@ -100,7 +101,7 @@ func serverStartCMD(c *cli.Context) error {
 			VariableValueStore:   pg,
 			ResumePointStore:     pg,
 			HttpClient:           engineHTTPClient(cfg),
-			OpenaiClient:         openaiClient,
+			OpenaiClient:         &openaiClient,
 		},
 	)
 	engine.Run(ctx)

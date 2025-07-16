@@ -20,7 +20,8 @@ import (
 	"github.com/kitecloud/kite/kite-service/pkg/message"
 	"github.com/kitecloud/kite/kite-service/pkg/provider"
 	"github.com/kitecloud/kite/kite-service/pkg/thing"
-	"github.com/sashabaranov/go-openai"
+	"github.com/openai/openai-go"
+	"github.com/openai/openai-go/responses"
 	"gopkg.in/guregu/null.v4"
 )
 
@@ -353,38 +354,63 @@ func NewAIProvider(client *openai.Client) *AIProvider {
 	}
 }
 
-func (p *AIProvider) CreateChatCompletion(ctx context.Context, opts provider.CreateChatCompletionOpts) (string, error) {
-	messages := []openai.ChatCompletionMessage{
-		{Role: openai.ChatMessageRoleUser, Content: opts.Prompt},
+func (p *AIProvider) CreateResponse(ctx context.Context, opts provider.CreateResponseOpts) (string, error) {
+	tools := []responses.ToolUnionParam{}
+	for _, tool := range opts.Tools {
+		switch tool {
+		case provider.AIToolTypeWebSearchPreview:
+			tools = append(tools, responses.ToolUnionParam{
+				OfWebSearchPreview: &responses.WebSearchToolParam{
+					Type: responses.WebSearchToolTypeWebSearchPreview,
+				},
+			})
+		}
 	}
 
+	inputs := responses.ResponseInputParam{
+		{
+			OfMessage: &responses.EasyInputMessageParam{
+				Role: responses.EasyInputMessageRoleUser,
+				Content: responses.EasyInputMessageContentUnionParam{
+					OfString: openai.String(opts.Prompt),
+				},
+			},
+		},
+	}
 	if opts.SystemPrompt != "" {
-		messages = append(messages, openai.ChatCompletionMessage{
-			Role:    openai.ChatMessageRoleSystem,
-			Content: opts.SystemPrompt,
+		inputs = append(inputs, responses.ResponseInputItemUnionParam{
+			OfMessage: &responses.EasyInputMessageParam{
+				Role: responses.EasyInputMessageRoleSystem,
+				Content: responses.EasyInputMessageContentUnionParam{
+					OfString: openai.String(opts.SystemPrompt),
+				},
+			},
 		})
-	}
-
-	maxCompletionTokens := 500
-	if opts.MaxCompletionTokens > 0 && opts.MaxCompletionTokens < maxCompletionTokens {
-		maxCompletionTokens = opts.MaxCompletionTokens
 	}
 
 	model := opts.Model
 	if model == "" {
-		model = openai.GPT4oMini
+		model = openai.ChatModelGPT4oMini
 	}
 
-	resp, err := p.client.CreateChatCompletion(ctx, openai.ChatCompletionRequest{
-		Model:               model,
-		Messages:            messages,
-		MaxCompletionTokens: maxCompletionTokens,
+	maxOutputTokens := 500
+	if opts.MaxOutputTokens > 0 && opts.MaxOutputTokens < maxOutputTokens {
+		maxOutputTokens = opts.MaxOutputTokens
+	}
+
+	resp, err := p.client.Responses.New(ctx, responses.ResponseNewParams{
+		Model: model,
+		Input: responses.ResponseNewParamsInputUnion{
+			OfInputItemList: inputs,
+		},
+		MaxOutputTokens: openai.Int(int64(maxOutputTokens)),
+		Tools:           tools,
 	})
 	if err != nil {
-		return "", fmt.Errorf("failed to create chat completion: %w", err)
+		return "", fmt.Errorf("failed to create response: %w", err)
 	}
 
-	return resp.Choices[0].Message.Content, nil
+	return resp.OutputText(), nil
 }
 
 type VariableProvider struct {
