@@ -7,9 +7,12 @@ body:
   - type: checkboxes
     attributes:
       label: DO NOT REMOVE OR SKIP THE TEMPLATE
-      description: Fill all fields even if you think it is irrelevant for the issue
+      description: Fill all fields even if you think it is irrelevant for the issue |
+      Please ask all non-technical questions in our Discord: https://discord.gg/rNd9jWHnXh
       options:
         - label: I understand that my issue may get **closed without notice** if I *intentionally* remove or skip any mandatory\* field
+          required: true
+        - label: Yes I want to ask a technical question
           required: true
   - type: markdown
     attributes:
@@ -17,12 +20,6 @@ body:
         ### Make sure you are **only** asking a question and not reporting a bug or requesting a feature.
         If your question contains "isn't working" or "can you add", this is most likely the wrong template.
         If you are in doubt whether this is the right template, **USE ANOTHER TEMPLATE**!
-  - type: checkboxes
-    attributes:
-      label: Please ask all non-technical questions in our Discord: https://discord.gg/rNd9jWHnXh
-      options:
-        - label: Yes I want to ask a technical question
-          required: true
   - type: textarea
     id: question
     attributes:
