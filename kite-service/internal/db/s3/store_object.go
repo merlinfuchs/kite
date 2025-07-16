@@ -32,7 +32,8 @@ func (c *Client) UploadObject(ctx context.Context, bucket string, object *model.
 	length := int64(len(object.Content))
 
 	_, err := c.client.PutObject(ctx, bucket, object.Name, reader, length, minio.PutObjectOptions{
-		ContentType: object.ContentType,
+		ContentType:          object.ContentType,
+		ServerSideEncryption: c.encryption,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to upload object %s to bucket %s: %w", object.Name, bucket, err)
@@ -56,7 +57,8 @@ func (c *Client) UploadObjectIfNotExists(ctx context.Context, bucket string, obj
 	}
 
 	_, err = c.client.PutObject(ctx, bucket, object.Name, reader, length, minio.PutObjectOptions{
-		ContentType: object.ContentType,
+		ContentType:          object.ContentType,
+		ServerSideEncryption: c.encryption,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to upload object %s to bucket %s: %w", object.Name, bucket, err)
@@ -66,7 +68,9 @@ func (c *Client) UploadObjectIfNotExists(ctx context.Context, bucket string, obj
 }
 
 func (c *Client) DownloadObject(ctx context.Context, bucket string, name string) (*model.Object, error) {
-	object, err := c.client.GetObject(ctx, bucket, name, minio.GetObjectOptions{})
+	object, err := c.client.GetObject(ctx, bucket, name, minio.GetObjectOptions{
+		ServerSideEncryption: c.encryption,
+	})
 	if err != nil {
 		if err.Error() == "The specified key does not exist." {
 			return nil, store.ErrNotFound
