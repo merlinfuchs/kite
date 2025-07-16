@@ -7,6 +7,7 @@ import (
 	"io"
 
 	"github.com/kitecloud/kite/kite-service/internal/model"
+	"github.com/kitecloud/kite/kite-service/internal/store"
 	"github.com/minio/minio-go/v7"
 )
 
@@ -67,7 +68,9 @@ func (c *Client) UploadObjectIfNotExists(ctx context.Context, bucket string, obj
 func (c *Client) DownloadObject(ctx context.Context, bucket string, name string) (*model.Object, error) {
 	object, err := c.client.GetObject(ctx, bucket, name, minio.GetObjectOptions{})
 	if err != nil {
-		// TODO: handle not found
+		if err.Error() == "The specified key does not exist." {
+			return nil, store.ErrNotFound
+		}
 		return nil, err
 	}
 
