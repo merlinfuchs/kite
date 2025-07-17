@@ -13,14 +13,8 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/internal/store"
 	"github.com/kitecloud/kite/kite-service/pkg/message"
-	"github.com/kitecloud/kite/kite-service/pkg/provider"
-	"github.com/kitecloud/kite/kite-service/pkg/thing"
 	"gopkg.in/guregu/null.v4"
 )
-
-var valueProvider = &provider.MockValueProvider{
-	Values: make(map[string]thing.Any),
-}
 
 type App struct {
 	sync.RWMutex

@@ -397,7 +397,7 @@ func NewVariableProvider(variableValueStore store.VariableValueStore) *VariableP
 	}
 }
 
-func (p *VariableProvider) UpdateVariable(ctx context.Context, id string, scope null.String, operation provider.VariableOperation, value thing.Any) (thing.Any, error) {
+func (p *VariableProvider) UpdateVariable(ctx context.Context, id string, scope null.String, operation provider.VariableOperation, value thing.Thing) (thing.Thing, error) {
 	v := model.VariableValue{
 		VariableID: id,
 		Scope:      scope,
@@ -414,7 +414,7 @@ func (p *VariableProvider) UpdateVariable(ctx context.Context, id string, scope 
 	return newValue.Data, nil
 }
 
-func (p *VariableProvider) Variable(ctx context.Context, id string, scope null.String) (thing.Any, error) {
+func (p *VariableProvider) Variable(ctx context.Context, id string, scope null.String) (thing.Thing, error) {
 	row, err := p.variableValueStore.VariableValue(ctx, id, scope)
 	if err != nil {
 		if errors.Is(err, store.ErrNotFound) {
@@ -510,7 +510,7 @@ func (p *ResumePointProvider) CreateResumePoint(ctx context.Context, s flow.Resu
 	// TODO: Implement some kind of expiration for other resume point types
 	// Maybe based on last usage?
 
-	_, err := p.resumePointStore.CreateResumePoint(ctx, &model.ResumePoint{
+	err := p.resumePointStore.CreateResumePoint(ctx, &model.ResumePoint{
 		ID:                s.ID,
 		Type:              model.ResumePointType(s.Type),
 		AppID:             p.appID,
@@ -540,7 +540,7 @@ func NewValueProvider(pluginInstanceID string, pluginValueStore store.PluginValu
 	}
 }
 
-func (p *ValueProvider) UpdateValue(ctx context.Context, key string, op provider.VariableOperation, value thing.Any) (thing.Any, error) {
+func (p *ValueProvider) UpdateValue(ctx context.Context, key string, op provider.VariableOperation, value thing.Thing) (thing.Thing, error) {
 	v := model.PluginValue{
 		PluginInstanceID: p.pluginInstanceID,
 		Key:              key,
@@ -557,7 +557,7 @@ func (p *ValueProvider) UpdateValue(ctx context.Context, key string, op provider
 	return newValue.Value, nil
 }
 
-func (p *ValueProvider) GetValue(ctx context.Context, key string) (thing.Any, error) {
+func (p *ValueProvider) GetValue(ctx context.Context, key string) (thing.Thing, error) {
 	v, err := p.pluginValueStore.GetPluginValue(ctx, p.pluginInstanceID, key)
 	if err != nil {
 		if errors.Is(err, store.ErrNotFound) {

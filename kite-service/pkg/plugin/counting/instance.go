@@ -52,7 +52,7 @@ func (p *CountingPluginInstance) HandleEvent(c plugin.Context, event gateway.Eve
 		c,
 		countValueKey(e.ChannelID.String()),
 		provider.VariableOperationIncrement,
-		thing.New(1),
+		thing.NewInt(1),
 	)
 	if err != nil {
 		return err
@@ -105,7 +105,7 @@ func (p *CountingPluginInstance) HandleEvent(c plugin.Context, event gateway.Eve
 		c,
 		countLastUserKey(e.ChannelID.String()),
 		provider.VariableOperationOverwrite,
-		thing.New(e.Author.ID.String()),
+		thing.NewString(e.Author.ID.String()),
 	)
 	if err != nil {
 		return err
@@ -155,7 +155,7 @@ func (p *CountingPluginInstance) HandleCommand(c plugin.Context, event *gateway.
 			c,
 			countEnabledKey(event.ChannelID.String()),
 			provider.VariableOperationOverwrite,
-			thing.New(true),
+			thing.NewBool(true),
 		)
 		if err != nil {
 			return err

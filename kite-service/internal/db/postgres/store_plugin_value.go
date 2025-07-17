@@ -135,7 +135,7 @@ func (c *Client) setPluginValueWithTx(ctx context.Context, tx pgx.Tx, value mode
 }
 
 func rowToPluginValue(row pgmodel.PluginValue) (*model.PluginValue, error) {
-	var data thing.Any
+	var data thing.Thing
 	err := json.Unmarshal(row.Value, &data)
 	if err != nil {
 		return nil, fmt.Errorf("failed to unmarshal plugin value: %w", err)
