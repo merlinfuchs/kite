@@ -21,6 +21,14 @@ export const auditLogReasonSchema = z.string().max(512).optional();
 
 export const nodeBaseDataSchema = z.object({
   custom_label: z.string().optional(),
+  result_key: z
+    .string()
+    .max(32)
+    .regex(
+      /^[a-z0-9_]+$/,
+      "Must be lowercase without special characters or spaces"
+    )
+    .optional(),
 });
 
 export const nodeEntryCommandDataSchema = nodeBaseDataSchema.extend({
