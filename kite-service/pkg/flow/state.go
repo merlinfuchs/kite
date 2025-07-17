@@ -42,7 +42,9 @@ func (s *FlowContextState) Copy() FlowContextState {
 	}
 
 	for k, v := range s.NodeStates {
-		copy.NodeStates[k] = v.Copy()
+		if !v.IsEmpty() {
+			copy.NodeStates[k] = v.Copy()
+		}
 	}
 
 	return copy
