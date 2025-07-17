@@ -48,6 +48,7 @@ type S3Config struct {
 	AccessKeyID     string `toml:"access_key_id" validate:"required"`
 	SecretAccessKey string `toml:"secret_access_key" validate:"required"`
 	Secure          bool   `toml:"secure"`
+	SSECKey         string `toml:"ssec_key"`
 }
 
 type APIConfig struct {

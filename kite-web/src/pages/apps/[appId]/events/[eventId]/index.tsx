@@ -8,6 +8,7 @@ import Head from "next/head";
 import { useRouter } from "next/router";
 import { useCallback, useRef, useState } from "react";
 import { toast } from "sonner";
+import { LogEntryListDrawer } from "@/components/app/LogEntryListDrawer";
 
 export default function AppEventListenerPage() {
   const ignoreChange = useRef(false);
@@ -40,6 +41,7 @@ export default function AppEventListenerPage() {
 
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [logsOpen, setLogsOpen] = useState(false);
 
   const onChange = useCallback(() => {
     if (!ignoreChange.current) {
@@ -117,8 +119,14 @@ export default function AppEventListenerPage() {
           isSaving={isSaving}
           onSave={save}
           onExit={exit}
+          onLogsView={() => setLogsOpen(true)}
         />
       )}
+      <LogEntryListDrawer
+        eventId={listener?.id}
+        open={logsOpen}
+        onOpenChange={setLogsOpen}
+      />
     </div>
   );
 }

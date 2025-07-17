@@ -132,7 +132,7 @@ const intputs: Record<string, any> = {
 };
 
 export default function FlowNodeEditor({ nodeId }: Props) {
-  const { setNodes } = useReactFlow<Node<NodeProps>>();
+  const { setNodes, deleteElements } = useReactFlow<Node<NodeProps>>();
   const store = useStoreApi();
 
   function close() {
@@ -142,6 +142,7 @@ export default function FlowNodeEditor({ nodeId }: Props) {
   const nodes = useNodes<Node<NodeProps>>();
 
   const node = nodes.find((n) => n.id === nodeId);
+  const nodeValues = useNodeValues(node?.type ?? "");
 
   const data = node?.data;
 
@@ -163,11 +164,13 @@ export default function FlowNodeEditor({ nodeId }: Props) {
   }
 
   function deleteNode() {
-    setNodes((nodes) => nodes.filter((n) => n.id !== nodeId));
+    deleteElements({
+      nodes: [node!],
+    });
   }
 
   function duplicateNode() {
-    if (!node) return;
+    if (!node || nodeValues.ownsChildren) return;
 
     const newNode = {
       ...node,
@@ -256,14 +259,16 @@ export default function FlowNodeEditor({ nodeId }: Props) {
               <TrashIcon className="h-5 w-5" />
               <div>Delete Block</div>
             </Button>
-            <Button
-              variant="secondary"
-              onClick={duplicateNode}
-              className="w-full flex gap-2"
-            >
-              <CopyIcon className="h-5 w-5" />
-              <div>Duplicate Block</div>
-            </Button>
+            {!nodeValues.ownsChildren && (
+              <Button
+                variant="secondary"
+                onClick={duplicateNode}
+                className="w-full flex gap-2"
+              >
+                <CopyIcon className="h-5 w-5" />
+                <div>Duplicate Block</div>
+              </Button>
+            )}
           </>
         )}
       </div>

@@ -39,16 +39,21 @@ func (q *Queries) CreateLogEntry(ctx context.Context, arg CreateLogEntryParams) 
 }
 
 const getLogEntriesByApp = `-- name: GetLogEntriesByApp :many
-SELECT id, app_id, message, level, created_at, command_id, event_listener_id, message_id FROM logs WHERE app_id = $1 ORDER BY created_at DESC LIMIT $2
+SELECT id, app_id, message, level, created_at, command_id, event_listener_id, message_id FROM logs 
+WHERE 
+    app_id = $1 AND 
+    ($3::bigint IS NULL OR id < $3::bigint) 
+ORDER BY created_at DESC LIMIT $2
 `
 
 type GetLogEntriesByAppParams struct {
-	AppID string
-	Limit int32
+	AppID    string
+	Limit    int32
+	BeforeID pgtype.Int8
 }
 
 func (q *Queries) GetLogEntriesByApp(ctx context.Context, arg GetLogEntriesByAppParams) ([]Log, error) {
-	rows, err := q.db.Query(ctx, getLogEntriesByApp, arg.AppID, arg.Limit)
+	rows, err := q.db.Query(ctx, getLogEntriesByApp, arg.AppID, arg.Limit, arg.BeforeID)
 	if err != nil {
 		return nil, err
 	}
@@ -76,18 +81,124 @@ func (q *Queries) GetLogEntriesByApp(ctx context.Context, arg GetLogEntriesByApp
 	return items, nil
 }
 
-const getLogEntriesByAppBefore = `-- name: GetLogEntriesByAppBefore :many
-SELECT id, app_id, message, level, created_at, command_id, event_listener_id, message_id FROM logs WHERE app_id = $1 AND id < $2 ORDER BY created_at DESC LIMIT $3
+const getLogEntriesByCommand = `-- name: GetLogEntriesByCommand :many
+SELECT id, app_id, message, level, created_at, command_id, event_listener_id, message_id FROM logs 
+WHERE 
+    app_id = $1 AND 
+    command_id = $2 AND 
+    ($4::bigint IS NULL OR id < $4::bigint) 
+ORDER BY created_at DESC LIMIT $3
 `
 
-type GetLogEntriesByAppBeforeParams struct {
-	AppID string
-	ID    int64
-	Limit int32
+type GetLogEntriesByCommandParams struct {
+	AppID     string
+	CommandID pgtype.Text
+	Limit     int32
+	BeforeID  pgtype.Int8
 }
 
-func (q *Queries) GetLogEntriesByAppBefore(ctx context.Context, arg GetLogEntriesByAppBeforeParams) ([]Log, error) {
-	rows, err := q.db.Query(ctx, getLogEntriesByAppBefore, arg.AppID, arg.ID, arg.Limit)
+func (q *Queries) GetLogEntriesByCommand(ctx context.Context, arg GetLogEntriesByCommandParams) ([]Log, error) {
+	rows, err := q.db.Query(ctx, getLogEntriesByCommand,
+		arg.AppID,
+		arg.CommandID,
+		arg.Limit,
+		arg.BeforeID,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Log
+	for rows.Next() {
+		var i Log
+		if err := rows.Scan(
+			&i.ID,
+			&i.AppID,
+			&i.Message,
+			&i.Level,
+			&i.CreatedAt,
+			&i.CommandID,
+			&i.EventListenerID,
+			&i.MessageID,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getLogEntriesByEvent = `-- name: GetLogEntriesByEvent :many
+SELECT id, app_id, message, level, created_at, command_id, event_listener_id, message_id FROM logs 
+WHERE 
+    app_id = $1 AND 
+    event_listener_id = $2 AND 
+    ($4::bigint IS NULL OR id < $4::bigint) 
+ORDER BY created_at DESC LIMIT $3
+`
+
+type GetLogEntriesByEventParams struct {
+	AppID           string
+	EventListenerID pgtype.Text
+	Limit           int32
+	BeforeID        pgtype.Int8
+}
+
+func (q *Queries) GetLogEntriesByEvent(ctx context.Context, arg GetLogEntriesByEventParams) ([]Log, error) {
+	rows, err := q.db.Query(ctx, getLogEntriesByEvent,
+		arg.AppID,
+		arg.EventListenerID,
+		arg.Limit,
+		arg.BeforeID,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Log
+	for rows.Next() {
+		var i Log
+		if err := rows.Scan(
+			&i.ID,
+			&i.AppID,
+			&i.Message,
+			&i.Level,
+			&i.CreatedAt,
+			&i.CommandID,
+			&i.EventListenerID,
+			&i.MessageID,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getLogEntriesByMessage = `-- name: GetLogEntriesByMessage :many
+SELECT id, app_id, message, level, created_at, command_id, event_listener_id, message_id FROM logs WHERE app_id = $1 AND message_id = $2 AND ($4::bigint IS NULL OR id < $4::bigint) ORDER BY created_at DESC LIMIT $3
+`
+
+type GetLogEntriesByMessageParams struct {
+	AppID     string
+	MessageID pgtype.Text
+	Limit     int32
+	BeforeID  pgtype.Int8
+}
+
+func (q *Queries) GetLogEntriesByMessage(ctx context.Context, arg GetLogEntriesByMessageParams) ([]Log, error) {
+	rows, err := q.db.Query(ctx, getLogEntriesByMessage,
+		arg.AppID,
+		arg.MessageID,
+		arg.Limit,
+		arg.BeforeID,
+	)
 	if err != nil {
 		return nil, err
 	}

@@ -126,7 +126,7 @@ export interface FlowNodeData {
   variable_id?: string;
   variable_scope?: string;
   variable_value?: string;
-  variable_operation?: VariableOperation;
+  variable_operation?: any /* provider.VariableOperation */;
   /**
    * HTTP Request
    */
@@ -152,7 +152,7 @@ export interface FlowNodeData {
   /**
    * Log
    */
-  log_level?: LogLevel;
+  log_level?: any /* provider.LogLevel */;
   log_message?: string;
   /**
    * Expression Evaluate
@@ -174,17 +174,6 @@ export interface FlowNodeData {
    */
   sleep_duration_seconds?: string;
 }
-export type LogLevel = string;
-export const LogLevelDebug: LogLevel = "debug";
-export const LogLevelInfo: LogLevel = "info";
-export const LogLevelWarn: LogLevel = "warn";
-export const LogLevelError: LogLevel = "error";
-export type VariableOperation = string;
-export const VariableOperationOverwrite: VariableOperation = "overwrite";
-export const VariableOperationAppend: VariableOperation = "append";
-export const VariableOperationPrepend: VariableOperation = "prepend";
-export const VariableOperationIncrement: VariableOperation = "increment";
-export const VariableOperationDecrement: VariableOperation = "decrement";
 export type ConditionItemType = string;
 export const ConditionItemModeEqual: ConditionItemType = "equal";
 export const ConditionItemModeNotEqual: ConditionItemType = "not_equal";
@@ -269,18 +258,4 @@ export interface FlowEdge {
   target: string;
   sourceHandle?: null | string;
   targetHandle?: null | string;
-}
-
-//////////
-// source: provider_mock.go
-
-export interface MockDiscordProvider {
-}
-export interface MockLogProvider {
-}
-export interface MockHTTPprovider {
-}
-export interface MockAIProvider {
-}
-export interface MockResumePointProvider {
 }

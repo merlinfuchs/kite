@@ -11,6 +11,7 @@ import (
 	"github.com/diamondburned/arikawa/v3/utils/ws"
 	"github.com/kitecloud/kite/kite-service/pkg/eval"
 	"github.com/kitecloud/kite/kite-service/pkg/message"
+	"github.com/kitecloud/kite/kite-service/pkg/provider"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -79,7 +80,7 @@ func TestFlowExecuteCommand(t *testing.T) {
 		&TestContextData{},
 		FlowProviders{
 			Discord: discordProvider,
-			Log:     &MockLogProvider{},
+			Log:     &provider.MockLogProvider{},
 		}, FlowContextLimits{
 			MaxStackDepth: 10,
 			MaxOperations: 1000,
@@ -98,12 +99,12 @@ func TestFlowExecuteCommand(t *testing.T) {
 }
 
 type TestDiscordProvider struct {
-	MockDiscordProvider
+	provider.MockDiscordProvider
 
 	response api.InteractionResponse
 }
 
-func (p *TestDiscordProvider) CreateInteractionResponse(ctx context.Context, interactionID discord.InteractionID, interactionToken string, response api.InteractionResponse) (*FlowInteractionResponseResource, error) {
+func (p *TestDiscordProvider) CreateInteractionResponse(ctx context.Context, interactionID discord.InteractionID, interactionToken string, response api.InteractionResponse) (*provider.InteractionResponseResource, error) {
 	p.response = response
 	return nil, nil
 }

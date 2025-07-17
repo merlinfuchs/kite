@@ -46,6 +46,10 @@ import {
   MessagesImportResponse,
   MessageUpdateRequest,
   MessageUpdateResponse,
+  PluginInstanceCreateRequest,
+  PluginInstanceCreateResponse,
+  PluginInstanceUpdateRequest,
+  PluginInstanceUpdateResponse,
   StateGuildLeaveResponse,
   SubscriptionManageResponse,
   VariableCreateRequest,
@@ -56,7 +60,7 @@ import {
   VariableUpdateRequest,
   VariableUpdateResponse,
 } from "../types/wire.gen";
-import { apiRequest } from "./client";
+import client, { apiRequest } from "./client";
 
 export function useAuthLogoutMutation() {
   const client = useQueryClient();
@@ -734,5 +738,47 @@ export function useAppSubscriptionManageMutation(subscriptionId: string) {
           method: "POST",
         }
       ),
+  });
+}
+
+export function usePluginInstanceCreateMutation(appId: string) {
+  return useMutation({
+    mutationFn: (req: PluginInstanceCreateRequest) =>
+      apiRequest<PluginInstanceCreateResponse>(`/v1/apps/${appId}/plugins`, {
+        method: "POST",
+        body: JSON.stringify(req),
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }),
+    onSuccess: () => {
+      client.invalidateQueries({
+        queryKey: ["apps", appId, "plugins"],
+      });
+    },
+  });
+}
+
+export function usePluginInstanceUpdateMutation(
+  appId: string,
+  pluginId: string
+) {
+  return useMutation({
+    mutationFn: (req: PluginInstanceUpdateRequest) =>
+      apiRequest<PluginInstanceUpdateResponse>(
+        `/v1/apps/${appId}/plugins/${pluginId}`,
+        {
+          method: "PATCH",
+          body: JSON.stringify(req),
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      ),
+    onSuccess: () => {
+      client.invalidateQueries({
+        queryKey: ["apps", appId, "plugins"],
+      });
+    },
   });
 }
