@@ -38,9 +38,7 @@ func NewContext(
 	ctx, cancel := context.WithTimeout(ctx, timeout)
 
 	if state == nil {
-		state = &FlowContextState{
-			NodeStates: make(map[string]*FlowContextNodeState),
-		}
+		state = NewFlowContextState()
 	}
 
 	nodeEvalEnv := &nodeEvalEnv{
@@ -177,7 +175,15 @@ func (c *FlowContext) suspend(t ResumePointType, nodeID string) (*ResumePoint, e
 }
 
 type FlowContextState struct {
+	ResultKeys map[string]string                `json:"result_keys"`
 	NodeStates map[string]*FlowContextNodeState `json:"node_states"`
+}
+
+func NewFlowContextState() *FlowContextState {
+	return &FlowContextState{
+		ResultKeys: make(map[string]string),
+		NodeStates: make(map[string]*FlowContextNodeState),
+	}
 }
 
 func (s FlowContextState) MarshalJSON() ([]byte, error) {
@@ -196,19 +202,45 @@ func (s FlowContextState) MarshalJSON() ([]byte, error) {
 	return json.Marshal(aux)
 }
 
-func (s *FlowContextState) GetNodeState(nodeID string) *FlowContextNodeState {
-	state, ok := s.NodeStates[nodeID]
+func (s *FlowContextState) GetNodeState(node *CompiledFlowNode) *FlowContextNodeState {
+	if node.Data.ResultKey != "" {
+		s.ResultKeys[node.Data.ResultKey] = node.ID
+	}
+
+	state, ok := s.NodeStates[node.ID]
 	if !ok {
 		state = &FlowContextNodeState{}
-		s.NodeStates[nodeID] = state
+		s.NodeStates[node.ID] = state
 	}
 
 	return state
 }
 
+func (s *FlowContextState) GetNodeResult(keyOrID string) thing.Any {
+	id, ok := s.ResultKeys[keyOrID]
+
+	var state *FlowContextNodeState
+	if ok {
+		state = s.NodeStates[id]
+	} else {
+		state = s.NodeStates[keyOrID]
+	}
+
+	if state == nil {
+		return thing.Null
+	}
+
+	return state.Result
+}
+
 func (s *FlowContextState) Copy() FlowContextState {
 	copy := FlowContextState{
+		ResultKeys: make(map[string]string, len(s.ResultKeys)),
 		NodeStates: make(map[string]*FlowContextNodeState, len(s.NodeStates)),
+	}
+
+	for k, v := range s.ResultKeys {
+		copy.ResultKeys[k] = v
 	}
 
 	for k, v := range s.NodeStates {

@@ -20,6 +20,7 @@ export default function FlowNodeActionMessage(props: NodeProps) {
         {...props}
         highlight={components?.length > 0}
         color={components?.length > 0 ? suspendColor : undefined}
+        showId
       >
         <FlowNodeHandle type="target" position={Position.Top} />
         <FlowNodeHandle

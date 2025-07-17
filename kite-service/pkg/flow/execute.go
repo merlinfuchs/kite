@@ -32,7 +32,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 	}
 	defer ctx.endOperation()
 
-	nodeState := ctx.GetNodeState(n.ID)
+	nodeState := ctx.GetNodeState(n)
 
 	switch n.Type {
 	case FlowNodeTypeEntryCommand, FlowNodeTypeEntryComponentButton:
@@ -919,7 +919,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			return nil
 		}
 
-		parentState := ctx.GetNodeState(parent.ID)
+		parentState := ctx.GetNodeState(parent)
 
 		if parentState.ConditionItemMet && !parent.Data.ConditionAllowMultiple {
 			// Another condition item has already been met
@@ -967,7 +967,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			return nil
 		}
 
-		parentState := ctx.GetNodeState(parent.ID)
+		parentState := ctx.GetNodeState(parent)
 
 		if parentState.ConditionItemMet && !parent.Data.ConditionAllowMultiple {
 			// Another condition item has already been met
@@ -1059,7 +1059,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			return nil
 		}
 
-		parentState := ctx.GetNodeState(parent.ID)
+		parentState := ctx.GetNodeState(parent)
 
 		if parentState.ConditionItemMet {
 			// Another condition item has already been met
@@ -1097,7 +1097,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 		// Mark all parent loops as exited
 		parentLoops := n.FindAllParentsWithType(FlowNodeTypeControlLoop)
 		for _, loop := range parentLoops {
-			ctx.GetNodeState(loop.ID).LoopExited = true
+			ctx.GetNodeState(loop).LoopExited = true
 		}
 	case FlowNodeTypeControlSleep:
 		sleepSeconds, err := ctx.EvalTemplate(n.Data.SleepDurationSeconds)

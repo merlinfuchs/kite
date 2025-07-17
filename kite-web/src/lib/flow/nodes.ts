@@ -389,9 +389,10 @@ export const nodeTypes: Record<string, NodeValues> = {
     color: actionColor,
     icon: BrainCircuitIcon,
     defaultTitle: "Evaluate Expression",
-    defaultDescription: "Evalute math or other logical expressions",
+    defaultDescription:
+      "Evalute math or other logical expressions and use the result later",
     dataSchema: nodeActionExpressionEvaluateDataSchema,
-    dataFields: ["expression", "custom_label"],
+    dataFields: ["expression", "result_key", "custom_label"],
     helpUrl: env.NEXT_PUBLIC_DOCS_LINK + "/reference/expressions",
   },
   action_random_generate: {

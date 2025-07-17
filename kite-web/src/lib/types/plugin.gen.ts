@@ -48,6 +48,8 @@ export type EventSource = string;
 export const EventSourceDiscord: EventSource = "discord";
 export type EventType = string;
 export const EventTypeMessageCreate: EventType = "message_create";
+export const EventTypeMessageReactionAdd: EventType = "message_reaction_add";
+export const EventTypeMessageReactionRemove: EventType = "message_reaction_remove";
 export interface Command {
   id: string;
   data: any /* api.CreateCommandData */;

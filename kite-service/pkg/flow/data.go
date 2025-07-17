@@ -15,8 +15,11 @@ import (
 // Allows between 1 and 3 words, each between 1 and 32 characters long.
 var commandNameRe = regexp.MustCompile(`^[-_a-z0-9]{1,32}( [-_a-z0-9]{1,32}){0,2}$`)
 
-// Allows only alphanumeric characters and underscores.
+// Allows only lowercase alphanumeric characters and underscores.
 var commandOptionNameRe = regexp.MustCompile(`^[a-z0-9_]+$`)
+
+// Allows only lowercase alphanumeric characters and underscores.
+var resultKeyRe = regexp.MustCompile(`^[a-z0-9_]+$`)
 
 type FlowData struct {
 	Nodes []FlowNode `json:"nodes"`
@@ -112,6 +115,7 @@ type FlowNodeData struct {
 	Description    string `json:"description,omitempty"`
 	CustomLabel    string `json:"custom_label,omitempty"`
 	AuditLogReason string `json:"audit_log_reason,omitempty"`
+	ResultKey      string `json:"result_key,omitempty"`
 
 	// Command Argument
 	CommandArgumentType     CommandArgumentType `json:"command_argument_type,omitempty"`
@@ -196,6 +200,12 @@ func (d FlowNodeData) Validate(nodeType FlowNodeType) error {
 	// We currently only validate data for entry nodes, as for the other nodes it's less critical that they are valid.
 
 	return validation.ValidateStruct(&d,
+		// Shared
+		validation.Field(&d.ResultKey,
+			validation.Length(1, 32),
+			validation.Match(resultKeyRe).Error("must be lowercase without special characters"),
+		),
+
 		// Command Entry
 		validation.Field(&d.Name, validation.When(nodeType == FlowNodeTypeEntryCommand,
 			validation.Required,
