@@ -71,6 +71,7 @@ export interface FlowNodeData {
   description?: string;
   custom_label?: string;
   audit_log_reason?: string;
+  result_key?: string;
   /**
    * Command Argument
    */

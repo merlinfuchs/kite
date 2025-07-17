@@ -391,7 +391,7 @@ export const nodeTypes: Record<string, NodeValues> = {
     defaultTitle: "Evaluate Expression",
     defaultDescription: "Evalute math or other logical expressions",
     dataSchema: nodeActionExpressionEvaluateDataSchema,
-    dataFields: ["expression", "custom_label"],
+    dataFields: ["expression", "result_key", "custom_label"],
     helpUrl: env.NEXT_PUBLIC_DOCS_LINK + "/reference/expressions",
   },
   action_random_generate: {
