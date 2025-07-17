@@ -6,7 +6,7 @@ sidebar_position: 7
 
 Many blocks in Kite return values that can be reused later in the flow using the format `{{nodes.nodeName.result}}`.
 
-The table below describes some of the most common block outputs and how to use them:
+The table below **describes some of the most common block outputs** and how to use them:
 
 | Block                                           | Output                                                                 |
 |------------------------------------------------|-------------------------------------------------------------------------|

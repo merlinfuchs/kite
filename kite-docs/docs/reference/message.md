@@ -2,7 +2,7 @@
 sidebar_position: 2
 ---
 
-# Message Template
+# Message Templates
 
 Message Templates are the best way to create highly customized Discord messages. These templates can then be used as a standalone message inside Discord or as a response to commands and events.
 

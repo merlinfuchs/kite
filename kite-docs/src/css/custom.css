@@ -13,6 +13,12 @@
   --ifm-color-primary-lightest: #3cad6e;
   --ifm-code-font-size: 95%;
   --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.1);
+
+  --table-header-bgcolor: #f7fafc;
+  --table-row-separator-color: #e2e8f0;
+
+  --code-text-bgcolor: rgba(229, 143, 86, 0.1);
+  --code-text-color: var(--ifm-color-primary);
 }
 
 /* Dark mode palette */
@@ -25,6 +31,9 @@
   --ifm-color-primary-lighter: #32d8b4;
   --ifm-color-primary-lightest: #4fddbf;
   --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.3);
+
+  --table-header-bgcolor: rgb(255, 255, 255, 0.04);
+   --table-row-separator-color: rgba(255, 255, 255, 0.16);
 }
 
 /* Hide breadcrumbs */
@@ -43,24 +52,34 @@ ul.breadcrumbs {
 /* Category links in sidebar */
 .menu__link--sublist {
   font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.13em;
-  line-height: 35px;
+  font-weight: bolder;
   text-transform: uppercase;
   transition: color 0.3s ease;
-  background-color: transparent !important;
+  margin: 10px;
   color: rgb(20, 20, 20) !important;
+}
+
+html[data-theme='dark'] .menu__link--sublist {
+  color: rgb(255, 255, 255) !important;
+}
+
+.menu__list-item-collapsible {
+  background-color: transparent !important;
 }
 
 /* Active category link */
 .menu__link--sublist.menu__link--active {
   color: rgb(20, 20, 20) !important;
-  background-color: transparent !important;
 }
 
 /* Inactive regular (non-category) link styles */
 .menu__link:not(.menu__link--sublist):not(.menu__link--active) {
-  color: rgb(68, 91, 120) !important;
+  color: rgb(96, 103, 112) !important;
+  background-color: transparent !important;
+}
+
+html[data-theme='dark'] .menu__link:not(.menu__link--sublist):not(.menu__link--active) {
+  color: rgb(218, 221, 225) !important;
   background-color: transparent !important;
 }
 
@@ -71,10 +90,8 @@ ul.breadcrumbs {
 
 /* Base styling for all regular links */
 .menu__link:not(.menu__link--sublist) {
-  font-size: 0.813rem;
-  font-weight: 500;
-  line-height: 1.5;
-  transition: color 0.3s ease;
+  font-size: 15px;
+  transition: color 0.3s ease, background-color 0.3s ease; 
 }
 
 /* GitHub & Discord icon links (navbar) */
@@ -140,4 +157,176 @@ html[data-theme='dark'] .header-discord-link::before {
 /* Right padding for content column */
 .col.docItemCol_VOVn {
   padding-left: 36px;
+}
+
+table,
+thead,
+tr,
+th,
+td {
+  border: none !important;
+}
+
+table thead tr th {
+  padding: 5px 10px;
+  text-align: left;
+  font-weight: bolder;
+  font-size: smaller;
+}
+
+tr {
+  border-bottom: 1px solid var(--table-row-separator-color) !important;
+}
+
+tbody tr {
+  background-color: transparent !important;
+  font-size: 14px;
+}
+
+tbody tr td {
+  padding: 10px 10px;
+}
+
+thead tr {
+  background-color: var(--table-header-bgcolor);
+}
+
+h1 {
+  font-size: xx-large;
+  font-weight: 800;
+  margin-top: 20px;
+}
+
+h2 {
+  margin-top: 40px !important;
+  font-size: x-large;
+}
+
+h3 {
+  margin-top: 60px !important;
+  font-size: large;
+}
+
+h4 {
+  font-size: 16px;
+}
+
+.theme-doc-sidebar-item-category {
+  margin-bottom: 30px;
+}
+
+code {
+  background-color: var(--code-text-bgcolor);
+  padding: 2px 5px;
+  color: var(--code-text-color);
+  box-shadow: none;
+  border: none;
+}
+
+/* Links */
+
+.theme-doc-markdown.markdown article a[href] {
+  text-decoration: underline;
+  text-decoration-color: var(--ifm-color-primary);
+}
+
+.theme-doc-markdown.markdown article a[href]::after,
+.theme-doc-markdown.markdown article [role="link"][href]::after,
+[class^="docItemContainer_"] article a[href]::after,
+[class^="docItemContainer_"] article [role="link"][href]::after {
+  content: ' ↗';
+  text-decoration: none !important;
+  display: inline-block;
+  vertical-align: baseline;
+}
+
+.theme-doc-markdown.markdown article h2 a[href],
+.theme-doc-markdown.markdown article h3 a[href] {
+  text-decoration: none !important;
+}
+
+.theme-doc-markdown.markdown article h2 a[href]::after,
+.theme-doc-markdown.markdown article h3 a[href]::after {
+  content: none !important;
+}
+
+[class^="docItemContainer_"] article a[href] {
+  text-decoration: underline;
+  text-decoration-color: var(--ifm-color-primary);
+}
+
+[class^="docItemContainer_"] article a[href]::after,
+[class^="docItemContainer_"] article [role="link"][href]::after {
+  content: ' ↗';
+  text-decoration: none !important;
+  display: inline-block;
+  vertical-align: baseline;
+}
+
+[class^="docItemContainer_"] article h2 a[href],
+[class^="docItemContainer_"] article h3 a[href] {
+  text-decoration: none !important;
+}
+
+[class^="docItemContainer_"] article h2 a[href]::after,
+[class^="docItemContainer_"] article h3 a[href]::after {
+  content: none !important;
+}
+
+.theme-doc-markdown.markdown article img,
+[class^="docItemContainer_"] article img {
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+}
+
+/*
+  Mark components with their categories
+*/
+
+.menu__link[href*="event-listeners"]:after,
+.menu__link[href*="sub-flows"]:after {
+  content: "Flow";
+  display: inline-block;
+  position: relative;
+  top: 1px;
+  margin-right: auto;
+  margin-left: 10px;
+  padding: 3px 6px;
+  border-radius: 10px;
+  color: #ff6ac6;
+  background-color: #fff5fb;
+  text-transform: uppercase;
+  font-size: 8px;
+  line-height: 10px;
+  height: 10px;
+  font-weight: 800;
+}
+html[data-theme="dark"] .menu__link[href*="event-listeners"]:after,
+html[data-theme="dark"] .menu__link[href*="sub-flows"]:after {
+  background-color: #402636;
+}
+
+.menu__link[href*="expressions"]:after,
+.menu__link[href*="blocks-outputs"]:after {
+  content: "Blocks";
+  display: inline-block;
+  position: relative;
+  top: 1px;
+  margin-right: auto;
+  margin-left: 10px;
+  padding: 3px 6px;
+  border-radius: 10px;
+  color: #2ea6d4;
+  background-color: #ecf9ff;
+  text-transform: uppercase;
+  font-size: 8px;
+  line-height: 10px;
+  height: 10px;
+  font-weight: 800;
+}
+
+html[data-theme="dark"] .menu__link[href*="expressions"]:after,
+html[data-theme="dark"] .menu__link[href*="block-outputs"]:after {
+  background-color: #212f35;
 }

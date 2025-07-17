@@ -2,7 +2,7 @@
 sidebar_position: 1
 ---
 
-# Custom Command
+# Custom Commands
 
 Custom commands are the primary way for users to interact with your bot. Once you create your first command, users will be able to use it by typing `/` into the Discord chat.
 

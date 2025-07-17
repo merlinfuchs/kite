@@ -6,7 +6,7 @@ sidebar_position: 1
 
 Let's get started! The first step is to create a new Discord application!
 
-:::tip
+:::note
 
 Discord uses the terms `bot` and `app` interchangeably in their documentation and basically everywhere else. While `app` is technically the right term, we also some times use the term `bot` here.
 
@@ -39,7 +39,7 @@ You have now added your app to Kite and are ready to create your first command!
 
 ## Invite the App
 
-You can now invite your app to your Discord server. It usually makes sense to first test your app on a small Discord server before adding it to a real one with a lot of people.
+You can now invite your app to your Discord server. We recommend testing it first on a small server before adding it to a larger one with many members.
 
 Just click on `Invite app` at top-right of the dashboard's overview page and select the server that you want to add your app to.
 
@@ -47,10 +47,10 @@ Just click on `Invite app` at top-right of the dashboard's overview page and sel
 
 1. Click on the `/` icon in the sidebar on the left side of the dashboard
 2. Click on `Create command` and give your command a name and description
-3. In the no-code editor drag in a `Create response message` block from the block explorer on the left side
+3. In the no-code editor, drag a `Create response message` block from the block explorer on the left side
 4. Connect it to the command block by dragging your mouse from the blue dot of one block to the other
-5. Click on the `Create response message` block and type in some text for the response
-6. Save the command by clicking on `Save Changes` at the top
+5. Click on the `Create response message` block and enter the text you want for the response
+6. Save the command by clicking on `Save Changes` at the top, now wait for the changes to be deployed
 
 ![Example Flow](./img/example-flow.png)
 
