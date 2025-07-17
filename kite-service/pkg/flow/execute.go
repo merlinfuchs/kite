@@ -83,7 +83,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 				return traceError(n, err)
 			}
 
-			nodeState.Result = thing.New(msg)
+			nodeState.Result = thing.NewDiscordMessage(*msg)
 		} else {
 			resp := api.InteractionResponse{
 				Type: api.MessageInteractionWithSource,
@@ -176,7 +176,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			}
 		}
 
-		nodeState.Result = thing.New(msg)
+		nodeState.Result = thing.NewDiscordMessage(*msg)
 		return n.ExecuteChildren(ctx)
 	case FlowNodeTypeActionResponseDelete:
 		interaction := ctx.Data.Interaction()
@@ -261,7 +261,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 
 		resumePoint, err := ctx.suspend(ResumePointTypeModal, n.ID)
 		if err != nil {
-			return traceError(n, err)
+			return traceError(n, fmt.Errorf("failed to suspend: %w", err))
 		}
 
 		componentRows := make(discord.ContainerComponents, len(n.Data.ModalData.Components))
@@ -330,7 +330,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			}
 		}
 
-		nodeState.Result = thing.New(msg)
+		nodeState.Result = thing.NewDiscordMessage(*msg)
 		return n.ExecuteChildren(ctx)
 	case FlowNodeTypeActionMessageEdit:
 		if ctx.EntryNodeID == n.ID {
@@ -378,7 +378,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			}
 		}
 
-		nodeState.Result = thing.New(msg)
+		nodeState.Result = thing.NewDiscordMessage(*msg)
 		return n.ExecuteChildren(ctx)
 	case FlowNodeTypeActionMessageDelete:
 		channelTarget, err := ctx.EvalTemplate(n.Data.ChannelTarget)
@@ -432,7 +432,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			return traceError(n, err)
 		}
 
-		nodeState.Result = thing.New(msg)
+		nodeState.Result = thing.NewDiscordMessage(*msg)
 		return n.ExecuteChildren(ctx)
 	case FlowNodeTypeActionMessageReactionCreate:
 		channelTarget, err := ctx.EvalTemplate(n.Data.ChannelTarget)
@@ -444,6 +444,8 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 		if err != nil {
 			return traceError(n, err)
 		}
+
+		fmt.Println("messageTarget", messageTarget.String())
 
 		if n.Data.EmojiData == nil {
 			return &FlowError{
@@ -803,7 +805,11 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			return traceError(n, err)
 		}
 
-		nodeState.Result = thing.New(resp)
+		nodeState.Result, err = thing.NewFromHTTPResponse(resp)
+		if err != nil {
+			return traceError(n, err)
+		}
+
 		return n.ExecuteChildren(ctx)
 	case FlowNodeTypeActionAIChatCompletion:
 		data := n.Data.AIChatCompletionData
@@ -876,7 +882,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			return traceError(n, err)
 		}
 
-		nodeState.Result = thing.New(response)
+		nodeState.Result = thing.NewString(response)
 		return n.ExecuteChildren(ctx)
 	case FlowNodeTypeActionRandomGenerate:
 		min, err := ctx.EvalTemplate(n.Data.RandomMin)
@@ -898,7 +904,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			}
 		}
 
-		nodeState.Result = thing.New(rand.Intn(maxInt + minInt))
+		nodeState.Result = thing.NewInt(rand.Intn(maxInt + minInt))
 		return n.ExecuteChildren(ctx)
 	case FlowNodeTypeActionExpressionEvaluate:
 		expression, err := ctx.EvalTemplate(n.Data.Expression)

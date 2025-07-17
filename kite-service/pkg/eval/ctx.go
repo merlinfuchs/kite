@@ -494,8 +494,8 @@ func (h HTTPResponseEnv) String() string {
 
 func NewAnyEnv(v any) any {
 	switch v := v.(type) {
-	case thing.Any:
-		return NewAnyEnv(v.Inner)
+	case thing.Thing:
+		return NewAnyEnv(v.Value)
 	case *discord.Message:
 		return NewMessageEnv(v)
 	case *http.Response:

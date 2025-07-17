@@ -16,13 +16,13 @@ import (
 	"gopkg.in/guregu/null.v4"
 )
 
-func (c *Client) CreateResumePoint(ctx context.Context, resumePoint *model.ResumePoint) (*model.ResumePoint, error) {
+func (c *Client) CreateResumePoint(ctx context.Context, resumePoint *model.ResumePoint) error {
 	flowState, err := json.Marshal(resumePoint.FlowState)
 	if err != nil {
-		return nil, fmt.Errorf("failed to marshal flow state: %w", err)
+		return fmt.Errorf("failed to marshal flow state: %w", err)
 	}
 
-	row, err := c.Q.CreateResumePoint(ctx, pgmodel.CreateResumePointParams{
+	err = c.Q.CreateResumePoint(ctx, pgmodel.CreateResumePointParams{
 		ID:                resumePoint.ID,
 		Type:              string(resumePoint.Type),
 		AppID:             resumePoint.AppID,
@@ -37,10 +37,10 @@ func (c *Client) CreateResumePoint(ctx context.Context, resumePoint *model.Resum
 		ExpiresAt:         pgtype.Timestamp{Time: resumePoint.ExpiresAt.Time, Valid: resumePoint.ExpiresAt.Valid},
 	})
 	if err != nil {
-		return nil, fmt.Errorf("failed to create resume point: %w", err)
+		return fmt.Errorf("failed to create resume point: %w", err)
 	}
 
-	return rowToResumePoint(row)
+	return nil
 }
 
 func (c *Client) DeleteResumePoint(ctx context.Context, id string) error {

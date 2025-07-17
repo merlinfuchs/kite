@@ -23,7 +23,7 @@ type VariableValue struct {
 	ID         uint64
 	VariableID string
 	Scope      null.String
-	Data       thing.Any
+	Data       thing.Thing
 	CreatedAt  time.Time
 	UpdatedAt  time.Time
 }
