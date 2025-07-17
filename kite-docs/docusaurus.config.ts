@@ -72,13 +72,13 @@ const config: Config = {
         { to: "/blog", label: "Blog", position: "left" },
         {
           href: "https://github.com/merlinfuchs/kite",
-          label: "",
+          label: "\u200B",
           position: "right",
           className: 'header-github-link',
         },
         {
           href: "https://discord.gg/rNd9jWHnXh",
-          label: "",
+          label: "\u200B",
           position: "right",
           className: 'header-discord-link',
         },

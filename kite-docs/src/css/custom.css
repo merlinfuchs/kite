@@ -1,12 +1,10 @@
 /**
- * Any CSS included here will be global. The classic template
- * bundles Infima by default. Infima is a CSS framework designed to
- * work well for content-centric websites.
+ * Global CSS overrides and variables for Docusaurus + Infima.
  */
 
-/* You can override the default Infima variables here. */
+/* Override Infima variables */
 :root {
-  --ifm-color-primary: hsl(24.6 95% 53.1%);
+  --ifm-color-primary: hsl(25, 90%, 55%);
   --ifm-color-primary-dark: #29784c;
   --ifm-color-primary-darker: #277148;
   --ifm-color-primary-darkest: #205d3b;
@@ -17,7 +15,7 @@
   --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.1);
 }
 
-/* For readability concerns, you should choose a lighter palette in dark mode. */
+/* Dark mode palette */
 [data-theme="dark"] {
   --ifm-color-primary: hsl(20.5 90.2% 48.2%);
   --ifm-color-primary-dark: #21af90;
@@ -34,74 +32,112 @@ ul.breadcrumbs {
   display: none !important;
 }
 
-/* Add arrow before the PREVIOUS pagination label */
+/* Pagination arrows customization */
 .pagination-nav__link--prev .pagination-nav__label::before {
   content: '← ';
 }
-
-/* Add arrow after the NEXT pagination label */
 .pagination-nav__link--next .pagination-nav__label::after {
   content: ' →';
 }
 
-.menu__list-item .menu__link {
+/* Category links in sidebar */
+.menu__link--sublist {
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.13em;
   line-height: 35px;
   text-transform: uppercase;
+  transition: color 0.3s ease;
+  background-color: transparent !important;
+  color: rgb(20, 20, 20) !important;
 }
 
-.menu__link,
-.menu__link--active,
-.menu__link:hover,
-.menu__link--active:hover {
+/* Active category link */
+.menu__link--sublist.menu__link--active {
+  color: rgb(20, 20, 20) !important;
   background-color: transparent !important;
 }
 
-.menu__link--active,
-.menu__link:hover {
-  color: var(--ifm-menu-color-active) !important;
+/* Inactive regular (non-category) link styles */
+.menu__link:not(.menu__link--sublist):not(.menu__link--active) {
+  color: rgb(68, 91, 120) !important;
+  background-color: transparent !important;
 }
 
-/* GitHub icon */
-
-.header-github-link:hover {
-  opacity: 0.6;
-}
-.header-github-link::before {
-  content: '';
-  width: 24px;
-  height: 24px;
-  display: flex;
-  background: url("/icons/github.svg") no-repeat center center;
-  background-size: contain;
+/* Active regular (non-category) link background */
+.menu__link--active:not(.menu__link--sublist) {
+  background-color: hsla(25, 95%, 53%, 0.09);
 }
 
-/* Dark mode version */
-html[data-theme='dark'] .header-github-link::before {
-  background: url("/icons/github-dark.svg") no-repeat center center;
-  background-size: contain;
+/* Base styling for all regular links */
+.menu__link:not(.menu__link--sublist) {
+  font-size: 0.813rem;
+  font-weight: 500;
+  line-height: 1.5;
+  transition: color 0.3s ease;
 }
 
-
-/* Discord icon */
-
+/* GitHub & Discord icon links (navbar) */
+.header-github-link,
+.header-discord-link {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  padding-left: 28px; /* space for icon */
+  cursor: pointer;
+  transition: opacity 0.3s ease;
+}
+.header-github-link:hover,
 .header-discord-link:hover {
   opacity: 0.6;
 }
+
+/* Icon base styling */
+.header-github-link::before,
 .header-discord-link::before {
   content: '';
+  position: absolute;
+  top: 50%;
+  left: 8px;
   width: 24px;
   height: 24px;
-  display: flex;
-  background: url("/icons/discord.svg") no-repeat center center;
+  transform: translateY(-50%);
+  background-repeat: no-repeat;
+  background-position: center;
   background-size: contain;
 }
 
-/* Dark mode version */
+/* GitHub icon (light/dark) */
+.header-github-link::before {
+  background-image: url("/icons/github-dark.svg");
+}
+html[data-theme='dark'] .header-github-link::before {
+  background-image: url("/icons/github.svg");
+}
+
+/* Discord icon (light/dark) */
+.header-discord-link::before {
+  background-image: url("/icons/discord-dark.svg");
+}
 html[data-theme='dark'] .header-discord-link::before {
-  background: url("/icons/discord-dark.svg") no-repeat center center;
-  background-size: contain;
+  background-image: url("/icons/discord.svg");
 }
 
+/* Hide external link icon inside GitHub/Discord */
+.header-github-link .iconExternalLink_nPIU,
+.header-discord-link .iconExternalLink_nPIU {
+  display: none !important;
+}
+
+/* Navbar spacing on the right side */
+.navbar__items.navbar__items--right {
+  padding-right: 16px;
+  gap: 10px;
+  display: flex;
+  align-items: center;
+}
+
+/* Right padding for content column */
+.col.docItemCol_VOVn {
+  padding-left: 36px;
+}
