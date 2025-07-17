@@ -5,7 +5,7 @@ import { NodeProps } from "@/lib/flow/data";
 
 export default function FlowNodeActionBase(props: NodeProps) {
   return (
-    <FlowNodeBase {...props}>
+    <FlowNodeBase {...props} showId>
       <FlowNodeHandle type="target" position={Position.Top} />
       <FlowNodeHandle type="source" position={Position.Bottom} />
     </FlowNodeBase>
