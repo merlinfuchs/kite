@@ -43,3 +43,65 @@ ul.breadcrumbs {
 .pagination-nav__link--next .pagination-nav__label::after {
   content: ' →';
 }
+
+.menu__list-item .menu__link {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.13em;
+  line-height: 35px;
+  text-transform: uppercase;
+}
+
+.menu__link,
+.menu__link--active,
+.menu__link:hover,
+.menu__link--active:hover {
+  background-color: transparent !important;
+}
+
+.menu__link--active,
+.menu__link:hover {
+  color: var(--ifm-menu-color-active) !important;
+}
+
+/* GitHub icon */
+
+.header-github-link:hover {
+  opacity: 0.6;
+}
+.header-github-link::before {
+  content: '';
+  width: 24px;
+  height: 24px;
+  display: flex;
+  background: url("/icons/github.svg") no-repeat center center;
+  background-size: contain;
+}
+
+/* Dark mode version */
+html[data-theme='dark'] .header-github-link::before {
+  background: url("/icons/github-dark.svg") no-repeat center center;
+  background-size: contain;
+}
+
+
+/* Discord icon */
+
+.header-discord-link:hover {
+  opacity: 0.6;
+}
+.header-discord-link::before {
+  content: '';
+  width: 24px;
+  height: 24px;
+  display: flex;
+  background: url("/icons/discord.svg") no-repeat center center;
+  background-size: contain;
+}
+
+/* Dark mode version */
+html[data-theme='dark'] .header-discord-link::before {
+  background: url("/icons/discord-dark.svg") no-repeat center center;
+  background-size: contain;
+}
+
