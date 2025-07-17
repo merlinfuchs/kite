@@ -310,7 +310,7 @@ func (c *Client) setVariableValueWithTx(ctx context.Context, tx pgx.Tx, value mo
 }
 
 func rowToVariableValue(row pgmodel.VariableValue) (model.VariableValue, error) {
-	var data thing.Any
+	var data thing.Thing
 	err := json.Unmarshal(row.Value, &data)
 	if err != nil {
 		return model.VariableValue{}, fmt.Errorf("failed to unmarshal variable value: %w", err)

@@ -23,18 +23,18 @@ func (o VariableOperation) IsOverwrite() bool {
 
 // VariableProvider provides access to user-defined variables and their values.
 type VariableProvider interface {
-	UpdateVariable(ctx context.Context, id string, scope null.String, operation VariableOperation, value thing.Any) (thing.Any, error)
-	Variable(ctx context.Context, id string, scope null.String) (thing.Any, error)
+	UpdateVariable(ctx context.Context, id string, scope null.String, operation VariableOperation, value thing.Thing) (thing.Thing, error)
+	Variable(ctx context.Context, id string, scope null.String) (thing.Thing, error)
 	DeleteVariable(ctx context.Context, id string, scope null.String) error
 }
 
 type MockVariableProvider struct{}
 
-func (p *MockVariableProvider) UpdateVariable(ctx context.Context, id string, scope null.String, operation VariableOperation, value thing.Any) (thing.Any, error) {
+func (p *MockVariableProvider) UpdateVariable(ctx context.Context, id string, scope null.String, operation VariableOperation, value thing.Thing) (thing.Thing, error) {
 	return thing.Null, nil
 }
 
-func (p *MockVariableProvider) Variable(ctx context.Context, id string, scope null.String) (thing.Any, error) {
+func (p *MockVariableProvider) Variable(ctx context.Context, id string, scope null.String) (thing.Thing, error) {
 	return thing.Null, nil
 }
 
