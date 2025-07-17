@@ -1,10 +1,10 @@
-import { VariableIcon } from "lucide-react";
-import PlaceholderExplorer from "../common/PlaceholderExplorer";
-import { Edge, getIncomers, Node, useEdges, useNodes } from "@xyflow/react";
-import { useMemo } from "react";
-import { getNodeValues } from "@/lib/flow/nodes";
 import { useFlowContext } from "@/lib/flow/context";
 import { NodeData } from "@/lib/flow/data";
+import { getNodeValues } from "@/lib/flow/nodes";
+import { Edge, getIncomers, Node, useEdges, useNodes } from "@xyflow/react";
+import { VariableIcon } from "lucide-react";
+import { useMemo } from "react";
+import PlaceholderExplorer from "../common/PlaceholderExplorer";
 
 export default function FlowPlaceholderExplorer({
   onSelect,
@@ -151,8 +151,6 @@ function useCommandPlaceholders() {
   ];
 }
 
-const numericRegex = /^[0-9]+$/;
-
 function useNodePlaceholders() {
   const nodes = useNodes();
   const edges = useEdges();
@@ -178,7 +176,12 @@ function useNodePlaceholders() {
           label = data.defaultTitle;
         }
 
-        nodeItems.push({ label, value: `result('${parent.id}')` });
+        let key = parent.id;
+        if (parent.data.result_key) {
+          key = parent.data.result_key;
+        }
+
+        nodeItems.push({ label, value: `result('${key}')` });
       }
 
       if (parent?.type === "suspend_response_modal") {

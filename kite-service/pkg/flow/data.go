@@ -113,6 +113,7 @@ type FlowNodeData struct {
 	Description    string `json:"description,omitempty"`
 	CustomLabel    string `json:"custom_label,omitempty"`
 	AuditLogReason string `json:"audit_log_reason,omitempty"`
+	ResultKey      string `json:"result_key,omitempty"`
 
 	// Command Argument
 	CommandArgumentType     CommandArgumentType `json:"command_argument_type,omitempty"`
