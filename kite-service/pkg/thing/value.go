@@ -10,6 +10,7 @@ import (
 const maxBodySize = 64 * 1024 // 64KB
 
 type HTTPResponseValue struct {
+	Status     string            `json:"status"`
 	StatusCode int               `json:"status_code"`
 	Body       []byte            `json:"body"`
 	Headers    map[string]string `json:"headers"`
@@ -32,6 +33,7 @@ func NewHTTPResponseValue(v *http.Response) (HTTPResponseValue, error) {
 	}
 
 	return HTTPResponseValue{
+		Status:     v.Status,
 		StatusCode: v.StatusCode,
 		Body:       body,
 		Headers:    headers,

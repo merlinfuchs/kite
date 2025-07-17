@@ -3,6 +3,7 @@ package thing
 import (
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"reflect"
 	"strconv"
@@ -22,6 +23,11 @@ const (
 	AnyTypeFloat          Type = "float"
 	AnyTypeBool           Type = "bool"
 	AnyTypeDiscordMessage Type = "discord_message"
+	AnyTypeDiscordUser    Type = "discord_user"
+	AnyTypeDiscordMember  Type = "discord_member"
+	AnyTypeDiscordChannel Type = "discord_channel"
+	AnyTypeDiscordGuild   Type = "discord_guild"
+	AnyTypeDiscordRole    Type = "discord_role"
 	AnyTypeHTTPResponse   Type = "http_response"
 	AnyTypeArray          Type = "array"
 	AnyTypeObject         Type = "object"
@@ -69,6 +75,31 @@ func (w *Thing) UnmarshalJSON(data []byte) error {
 			}
 		case AnyTypeDiscordMessage:
 			w.Value, err = UnmarshalValue[discord.Message](aux.Value)
+			if err != nil {
+				return err
+			}
+		case AnyTypeDiscordUser:
+			w.Value, err = UnmarshalValue[discord.User](aux.Value)
+			if err != nil {
+				return err
+			}
+		case AnyTypeDiscordMember:
+			w.Value, err = UnmarshalValue[discord.Member](aux.Value)
+			if err != nil {
+				return err
+			}
+		case AnyTypeDiscordChannel:
+			w.Value, err = UnmarshalValue[discord.Channel](aux.Value)
+			if err != nil {
+				return err
+			}
+		case AnyTypeDiscordGuild:
+			w.Value, err = UnmarshalValue[discord.Guild](aux.Value)
+			if err != nil {
+				return err
+			}
+		case AnyTypeDiscordRole:
+			w.Value, err = UnmarshalValue[discord.Role](aux.Value)
 			if err != nil {
 				return err
 			}
@@ -159,6 +190,16 @@ func NewGuessType(v any) (Thing, error) {
 		return NewArray(v), nil
 	case discord.Message:
 		return NewDiscordMessage(v), nil
+	case discord.User:
+		return NewDiscordUser(v), nil
+	case discord.Member:
+		return NewDiscordMember(v), nil
+	case discord.Channel:
+		return NewDiscordChannel(v), nil
+	case discord.Guild:
+		return NewDiscordGuild(v), nil
+	case discord.Role:
+		return NewDiscordRole(v), nil
 	case HTTPResponseValue:
 		return NewHTTPResponse(v), nil
 	case map[string]Thing:
@@ -166,6 +207,7 @@ func NewGuessType(v any) (Thing, error) {
 	case nil:
 		return Null, nil
 	default:
+		slog.Error("unable to guess type for value", "type", reflect.TypeOf(v))
 		return Null, fmt.Errorf("unable to guess type for value: %T", v)
 	}
 }
@@ -213,6 +255,41 @@ func NewDiscordMessage(v discord.Message) Thing {
 	}
 }
 
+func NewDiscordUser(v discord.User) Thing {
+	return Thing{
+		Type:  AnyTypeDiscordUser,
+		Value: v,
+	}
+}
+
+func NewDiscordChannel(v discord.Channel) Thing {
+	return Thing{
+		Type:  AnyTypeDiscordChannel,
+		Value: v,
+	}
+}
+
+func NewDiscordMember(v discord.Member) Thing {
+	return Thing{
+		Type:  AnyTypeDiscordMember,
+		Value: v,
+	}
+}
+
+func NewDiscordGuild(v discord.Guild) Thing {
+	return Thing{
+		Type:  AnyTypeDiscordGuild,
+		Value: v,
+	}
+}
+
+func NewDiscordRole(v discord.Role) Thing {
+	return Thing{
+		Type:  AnyTypeDiscordRole,
+		Value: v,
+	}
+}
+
 func NewHTTPResponse(v HTTPResponseValue) Thing {
 	return Thing{
 		Type:  AnyTypeHTTPResponse,
@@ -255,6 +332,16 @@ func (w Thing) String() string {
 		return strconv.FormatBool(w.Value.(bool))
 	case AnyTypeDiscordMessage:
 		return w.Value.(discord.Message).ID.String()
+	case AnyTypeDiscordUser:
+		return w.Value.(discord.User).ID.String()
+	case AnyTypeDiscordMember:
+		return w.Value.(discord.Member).User.ID.String()
+	case AnyTypeDiscordChannel:
+		return w.Value.(discord.Channel).ID.String()
+	case AnyTypeDiscordGuild:
+		return w.Value.(discord.Guild).ID.String()
+	case AnyTypeDiscordRole:
+		return w.Value.(discord.Role).ID.String()
 	case AnyTypeHTTPResponse:
 		return string(w.Value.(HTTPResponseValue).Body)
 	case AnyTypeArray:

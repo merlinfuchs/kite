@@ -444,8 +444,6 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			return traceError(n, err)
 		}
 
-		fmt.Println("messageTarget", messageTarget.String())
-
 		if n.Data.EmojiData == nil {
 			return &FlowError{
 				Code:    FlowNodeErrorUnknown,
