@@ -2,7 +2,7 @@
 sidebar_position: 3
 ---
 
-# Event Listener
+# Event Listeners
 
 With Event Listeners you can listen for events inside the Discord servers that your bot is in. Right now, Kite supports the following events:
 

@@ -8,7 +8,7 @@ Kite supports performing calculations and transformations on data using expressi
 
 ## Expression Syntax
 
-Expressions are powered by the [Expr](https://expr-lang.org) language, you can learn more about the features and syntax [here](https://expr-lang.org/docs/language-definition).
+Expressions are powered by the [Expr](https://expr-lang.org) language, you can learn more about the features and syntax [here](https://expr-lang.org/docs/language-definition)
 
 ## Available Variables
 

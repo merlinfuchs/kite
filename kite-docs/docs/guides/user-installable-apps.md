@@ -14,7 +14,7 @@ Some Discord servers may restrict the usage of user-installable apps for moderat
 
 ## Creating Your App
 
-To create your Discord app, follow the steps in the [getting started guide](/guides/getting-started).
+To create your Discord app, follow the steps in the [getting started guide](/guides/getting-started)
 
 ## Configuring Installation Settings
 

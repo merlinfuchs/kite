@@ -1,12 +1,10 @@
 /**
- * Any CSS included here will be global. The classic template
- * bundles Infima by default. Infima is a CSS framework designed to
- * work well for content-centric websites.
+ * Global CSS overrides and variables for Docusaurus + Infima.
  */
 
-/* You can override the default Infima variables here. */
+/* Override Infima variables */
 :root {
-  --ifm-color-primary: hsl(24.6 95% 53.1%);
+  --ifm-color-primary: hsl(25, 90%, 55%);
   --ifm-color-primary-dark: #29784c;
   --ifm-color-primary-darker: #277148;
   --ifm-color-primary-darkest: #205d3b;
@@ -15,9 +13,15 @@
   --ifm-color-primary-lightest: #3cad6e;
   --ifm-code-font-size: 95%;
   --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.1);
+
+  --table-header-bgcolor: #f7fafc;
+  --table-row-separator-color: #e2e8f0;
+
+  --code-text-bgcolor: rgba(229, 143, 86, 0.1);
+  --code-text-color: var(--ifm-color-primary);
 }
 
-/* For readability concerns, you should choose a lighter palette in dark mode. */
+/* Dark mode palette */
 [data-theme="dark"] {
   --ifm-color-primary: hsl(20.5 90.2% 48.2%);
   --ifm-color-primary-dark: #21af90;
@@ -27,5 +31,350 @@
   --ifm-color-primary-lighter: #32d8b4;
   --ifm-color-primary-lightest: #4fddbf;
   --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.3);
+
+  --table-header-bgcolor: rgb(255, 255, 255, 0.04);
+   --table-row-separator-color: rgba(255, 255, 255, 0.16);
 }
 
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@700;780&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@400;600;800&display=swap');
+
+/* Hide breadcrumbs */
+ul.breadcrumbs {
+  display: none !important;
+}
+
+/* Pagination arrows customization */
+.pagination-nav__link--prev .pagination-nav__label::before {
+  content: '← ';
+  font-weight: 400;
+}
+.pagination-nav__link--next .pagination-nav__label::after {
+  content: ' →';
+  font-weight: 400;
+}
+
+/* Category links in sidebar */
+.menu__link--sublist {
+  font-size: 12px;
+  font-weight: bolder;
+  text-transform: uppercase;
+  transition: color 0.3s ease;
+  margin: 10px;
+  color: rgb(20, 20, 20) !important;
+}
+
+html[data-theme='dark'] .menu__link--sublist {
+  color: rgb(255, 255, 255) !important;
+}
+
+.menu__list-item-collapsible {
+  background-color: transparent !important;
+}
+
+/* Active category link */
+.menu__link--sublist.menu__link--active {
+  color: rgb(20, 20, 20) !important;
+}
+
+/* Inactive regular (non-category) link styles */
+.menu__link:not(.menu__link--sublist):not(.menu__link--active) {
+  color: rgb(96, 103, 112) !important;
+  background-color: transparent !important;
+}
+
+html[data-theme='dark'] .menu__link:not(.menu__link--sublist):not(.menu__link--active) {
+  color: rgb(218, 221, 225) !important;
+  background-color: transparent !important;
+}
+
+/* Active regular (non-category) link background */
+.menu__link--active:not(.menu__link--sublist) {
+  background-color: hsla(25, 95%, 53%, 0.09);
+}
+
+/* Base styling for all regular links */
+.menu__link:not(.menu__link--sublist) {
+  font-size: 15px;
+  transition: color 0.3s ease, background-color 0.3s ease; 
+  padding-left: 18px;
+}
+
+/* GitHub & Discord icon links (navbar) */
+.header-github-link,
+.header-discord-link {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  padding-left: 28px; /* space for icon */
+  cursor: pointer;
+  transition: opacity 0.3s ease;
+}
+.header-github-link:hover,
+.header-discord-link:hover {
+  opacity: 0.6;
+}
+
+/* Icon base styling */
+.header-github-link::before,
+.header-discord-link::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 8px;
+  width: 24px;
+  height: 24px;
+  transform: translateY(-50%);
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: contain;
+}
+
+/* GitHub icon (light/dark) */
+.header-github-link::before {
+  background-image: url("/icons/github-dark.svg");
+}
+html[data-theme='dark'] .header-github-link::before {
+  background-image: url("/icons/github.svg");
+}
+
+/* Discord icon (light/dark) */
+.header-discord-link::before {
+  background-image: url("/icons/discord-dark.svg");
+}
+html[data-theme='dark'] .header-discord-link::before {
+  background-image: url("/icons/discord.svg");
+}
+
+/* Hide external link icon inside GitHub/Discord */
+.header-github-link .iconExternalLink_nPIU,
+.header-discord-link .iconExternalLink_nPIU {
+  display: none !important;
+}
+
+/* Navbar spacing on the right side */
+.navbar__items.navbar__items--right {
+  padding-right: 16px;
+  gap: 10px;
+  display: flex;
+  align-items: center;
+}
+
+/* Right padding for content column */
+.col.docItemCol_VOVn {
+  padding-left: 40px;
+  padding-right: 14px;
+}
+
+table,
+thead,
+tr,
+th,
+td {
+  border: none !important;
+}
+
+table thead tr th {
+  padding: 5px 10px;
+  text-align: left;
+  font-weight: bolder;
+  font-size: smaller;
+}
+
+tr {
+  border-bottom: 1px solid var(--table-row-separator-color) !important;
+}
+
+tbody tr {
+  background-color: transparent !important;
+  font-size: 14px;
+}
+
+tbody tr td {
+  padding: 10px 10px;
+}
+
+thead tr {
+  background-color: var(--table-header-bgcolor);
+}
+
+h1 {
+  font-size: 3rem;
+  font-weight: 780;
+  margin-top: 20px;
+}
+
+h2 {
+  margin-top: 40px !important;
+  font-weight: 700;
+  font-size: 1,7rem;
+}
+
+h3 {
+  margin-top: 60px !important;
+  font-size: large;
+}
+
+h4 {
+  font-size: 16px;
+}
+
+h1, h2, h3, h4 {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  color: rgb(28, 30, 33) !important;
+}
+
+html[data-theme='dark'] h1, 
+html[data-theme='dark'] h2, 
+html[data-theme='dark'] h3,
+html[data-theme='dark'] h4 {
+  color: rgb(255, 255, 255) !important;
+}
+
+.theme-doc-sidebar-item-category {
+  margin-bottom: 30px;
+}
+
+code {
+  background-color: var(--code-text-bgcolor);
+  padding: 2px 5px;
+  color: var(--code-text-color);
+  box-shadow: none;
+  border: none;
+}
+
+/* Links */
+
+.theme-doc-markdown.markdown article a[href],
+[class^="docItemContainer_"] article a[href] {
+  text-decoration: none;
+  position: relative;
+  border-radius: 4px;
+  transition: color 0.3s ease, box-shadow 0.3s ease;
+  text-underline-offset: 3px;
+  color: var(--ifm-color-primary);
+}
+
+.theme-doc-markdown.markdown article a[href]::before,
+[class^="docItemContainer_"] article a[href]::before {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: 0%;
+  height: 2px;
+  background-color: var(--ifm-color-primary);
+  transition: width 0.4s ease;
+  border-radius: 1px;
+}
+
+.theme-doc-markdown.markdown article a[href]:hover::before,
+[class^="docItemContainer_"] article a[href]:hover::before {
+  width: 100%;
+}
+
+.theme-doc-markdown.markdown article a[href]::after,
+[class^="docItemContainer_"] article a[href]::after {
+  content: '\00a0\00a0↗';
+  display: inline-block;
+  opacity: 0;
+  transform: translateY(4px) scale(0.95);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+  margin-left: 0.2em;
+  pointer-events: none;
+}
+
+.theme-doc-markdown.markdown article a[href]:hover::after,
+[class^="docItemContainer_"] article a[href]:hover::after {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
+
+.theme-doc-markdown.markdown article a[href]:hover,
+[class^="docItemContainer_"] article a[href]:hover {
+  color: var(--ifm-color-primary);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+}
+
+.theme-doc-markdown.markdown article h2 a[href]::after,
+.theme-doc-markdown.markdown article h3 a[href]::after,
+[class^="docItemContainer_"] article h2 a[href]::after,
+[class^="docItemContainer_"] article h3 a[href]::after {
+  content: none !important;
+}
+
+
+
+/* Images */
+.theme-doc-markdown.markdown article img,
+[class^="docItemContainer_"] article img {
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+  transition: transform .2s ease, box-shadow .2s ease;
+}
+
+.theme-doc-markdown.markdown article img:hover,
+[class^="docItemContainer_"] article img:hover{
+  transform: scale(1.015);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  outline: 2px solid rgb(0, 0, 0);
+  outline-offset: 2px;
+}
+
+html[data-theme='dark'] .theme-doc-markdown.markdown article img:hover,
+html[data-theme='dark'] [class^="docItemContainer_"] article img:hover{
+  outline: 2px solid rgb(230, 238, 250);
+}
+
+/* Category Index card */
+.text--truncate.cardTitle_rnsV {
+  margin-top: 0px !important;
+}
+
+/* Custom Bullets */
+article ul > li {
+  list-style: none;
+  position: relative;
+  padding-left: 1.1em;
+}
+
+article ul > li::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0.5em;
+  width: 0.6em;
+  height: 0.6em;
+  background-color: rgb(209, 213, 219);
+  border-radius: 50%;
+}
+
+/* Remove nested list bullets */
+article ul ul > li::before {
+  content: none;
+}
+
+/* Self-Explanatory, isn't it? */
+.theme-admonition {
+  border-radius: 0;
+  background-color: transparent;
+}
+
+/* Table of contents on the left */
+.table-of-contents.table-of-contents__left-border a {
+  font-size: .875rem;
+  line-height: 1.25rem;
+  font-family: 'Nunito Sans', system-ui, arial, sans-serif;
+  font-weight: 600;
+  transition: color 0.3 ease;
+}
+
+.table-of-contents.table-of-contents__left-border a:not(.table-of-contents__link--active) {
+  color: rgb(95, 114, 121);
+}
+
+.table-of-contents.table-of-contents__left-border {
+  padding-top: 32px;
+  border-left: none;
+}
