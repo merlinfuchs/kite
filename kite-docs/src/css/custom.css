@@ -37,6 +37,7 @@
 }
 
 @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@700;780&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@400;600;800&display=swap');
 
 /* Hide breadcrumbs */
 ul.breadcrumbs {
@@ -220,12 +221,15 @@ h4 {
 
 h1, h2, h3, h4 {
   font-family: 'Plus Jakarta Sans', sans-serif;
-  color: rgb(28, 30, 33);
+  color: rgb(28, 30, 33) !important;
 }
 
-html[data-theme='dark'] h1, h2, h3, h4 {
-  color: rgb(255, 255, 255);
-}    
+html[data-theme='dark'] h1, 
+html[data-theme='dark'] h2, 
+html[data-theme='dark'] h3,
+html[data-theme='dark'] h4 {
+  color: rgb(255, 255, 255) !important;
+}
 
 .theme-doc-sidebar-item-category {
   margin-bottom: 30px;
@@ -244,35 +248,52 @@ code {
 .theme-doc-markdown.markdown article a[href],
 [class^="docItemContainer_"] article a[href] {
   text-decoration: none;
-  transition: all 0.3s ease, box-shadow 0.3s ease;
-  text-underline-offset: 3px;
   position: relative;
   border-radius: 4px;
+  transition: color 0.3s ease, box-shadow 0.3s ease;
+  text-underline-offset: 3px;
+  color: var(--ifm-color-primary);
 }
 
-.theme-doc-markdown.markdown article a[href]:hover,
-[class^="docItemContainer_"] article a[href]:hover {
-  text-decoration: underline;
-  text-decoration-color: var(--ifm-color-primary);
+.theme-doc-markdown.markdown article a[href]::before,
+[class^="docItemContainer_"] article a[href]::before {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: 0%;
+  height: 2px;
+  background-color: var(--ifm-color-primary);
+  transition: width 0.4s ease;
+  border-radius: 1px;
+}
+
+.theme-doc-markdown.markdown article a[href]:hover::before,
+[class^="docItemContainer_"] article a[href]:hover::before {
+  width: 100%;
 }
 
 .theme-doc-markdown.markdown article a[href]::after,
 [class^="docItemContainer_"] article a[href]::after {
-  content: '\00a0 ';
+  content: '\00a0\00a0↗';
   display: inline-block;
-  transition: opacity 0.3s ease, transform 0.3s ease, text-decoration 0.3s ease;
   opacity: 0;
-  transform: translateY(+2px);
+  transform: translateY(4px) scale(0.95);
+  transition: opacity 0.3s ease, transform 0.3s ease;
   margin-left: 0.2em;
-  text-decoration: none;
+  pointer-events: none;
 }
 
 .theme-doc-markdown.markdown article a[href]:hover::after,
 [class^="docItemContainer_"] article a[href]:hover::after {
-  content: '↗';
   opacity: 1;
-  transform: translateY(0);
-  text-decoration: none;
+  transform: translateY(0) scale(1);
+}
+
+.theme-doc-markdown.markdown article a[href]:hover,
+[class^="docItemContainer_"] article a[href]:hover {
+  color: var(--ifm-color-primary);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
 }
 
 .theme-doc-markdown.markdown article h2 a[href]::after,
@@ -283,12 +304,27 @@ code {
 }
 
 
+
 /* Images */
 .theme-doc-markdown.markdown article img,
 [class^="docItemContainer_"] article img {
   border-radius: 8px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
   overflow: hidden;
+  transition: transform .2s ease, box-shadow .2s ease;
+}
+
+.theme-doc-markdown.markdown article img:hover,
+[class^="docItemContainer_"] article img:hover{
+  transform: scale(1.015);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  outline: 2px solid rgb(0, 0, 0);
+  outline-offset: 2px;
+}
+
+html[data-theme='dark'] .theme-doc-markdown.markdown article img:hover,
+html[data-theme='dark'] [class^="docItemContainer_"] article img:hover{
+  outline: 2px solid rgb(230, 238, 250);
 }
 
 /* Category Index card */
@@ -317,4 +353,28 @@ article ul > li::before {
 /* Remove nested list bullets */
 article ul ul > li::before {
   content: none;
+}
+
+/* Self-Explanatory, isn't it? */
+.theme-admonition {
+  border-radius: 0;
+  background-color: transparent;
+}
+
+/* Table of contents on the left */
+.table-of-contents.table-of-contents__left-border a {
+  font-size: .875rem;
+  line-height: 1.25rem;
+  font-family: 'Nunito Sans', system-ui, arial, sans-serif;
+  font-weight: 600;
+  transition: color 0.3 ease;
+}
+
+.table-of-contents.table-of-contents__left-border a:not(.table-of-contents__link--active) {
+  color: rgb(95, 114, 121);
+}
+
+.table-of-contents.table-of-contents__left-border {
+  padding-top: 32px;
+  border-left: none;
 }

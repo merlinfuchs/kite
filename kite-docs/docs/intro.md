@@ -9,7 +9,7 @@ I'm happy you found your way to the Kite documentation!
 
 This is the place where you will find information regarding setting up your Discord bot and getting started with Kite. Kite is still very much work in progress and many features are not yet ready or just not documented.
 
-If you want to keep track of the progress or even contribute you can find the source code on [GitHub](https://github.com/merlinfuchs/kite) or join the [Discord server](https://discord.gg/rNd9jWHnXh).
+If you want to keep track of the progress or even contribute you can find the source code on [GitHub](https://github.com/merlinfuchs/kite) or join the [Discord server](https://discord.gg/rNd9jWHnXh)
 
 ## What's Kite?
 
