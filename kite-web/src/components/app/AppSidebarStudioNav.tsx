@@ -5,6 +5,7 @@ import {
   type LucideIcon,
   MailPlusIcon,
   SatelliteDishIcon,
+  BlocksIcon,
 } from "lucide-react";
 
 import {
@@ -59,6 +60,12 @@ export default function AppSidebarStudioNav() {
         url: "/apps/[appId]/variables",
         icon: VariableIcon,
         active: isActive("/apps/[appId]/variables"),
+      },
+      {
+        name: "Plugins",
+        url: "/apps/[appId]/plugins",
+        icon: BlocksIcon,
+        active: isActive("/apps/[appId]/plugins"),
       },
       {
         name: "Templates",

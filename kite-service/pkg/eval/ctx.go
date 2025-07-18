@@ -29,6 +29,7 @@ type InteractionEnv struct {
 	Channel    *SnowflakeEnv            `expr:"channel" json:"channel"`
 	Guild      *SnowflakeEnv            `expr:"guild" json:"guild"`
 	User       any                      `expr:"user" json:"user"`
+	Member     any                      `expr:"member" json:"member"`
 	Command    *CommandEnv              `expr:"command" json:"command"`
 	Components map[string]*ComponentEnv `expr:"components" json:"components"`
 }
@@ -45,7 +46,8 @@ func NewInteractionEnv(i *discord.InteractionEvent) *InteractionEnv {
 	if i.User != nil {
 		e.User = NewUserEnv(i.User)
 	} else {
-		e.User = NewMemberEnv(i.Member)
+		e.Member = NewMemberEnv(i.Member)
+		e.User = e.Member
 	}
 
 	if i.GuildID != 0 {
@@ -65,7 +67,22 @@ func NewContextFromInteraction(i *discord.InteractionEvent, session *state.State
 	return Context{
 		Env: Env{
 			"interaction": interactionEnv,
+			"channel":     interactionEnv.Channel,
+			"guild":       interactionEnv.Guild,
+			"server":      interactionEnv.Guild,
+			"user":        interactionEnv.User,
+			"member":      interactionEnv.Member,
 			"app":         NewAppEnv(session),
+
+			"arg": func(name string) any {
+				return interactionEnv.Command.Args[name]
+			},
+			"input": func(customID string) any {
+				if component, ok := interactionEnv.Components[customID]; ok {
+					return component.Value
+				}
+				return nil
+			},
 		},
 	}
 }
@@ -258,8 +275,14 @@ func NewContext(env Env) Context {
 func NewContextFromEvent(event ws.Event, session *state.State) Context {
 	return Context{
 		Env: Env{
-			"event": NewEventEnv(event),
-			"app":   NewAppEnv(session),
+			"event":   NewEventEnv(event),
+			"user":    NewEventEnv(event).User,
+			"member":  NewEventEnv(event).Member,
+			"channel": NewEventEnv(event).Channel,
+			"guild":   NewEventEnv(event).Guild,
+			"server":  NewEventEnv(event).Guild,
+			"message": NewEventEnv(event).Message,
+			"app":     NewAppEnv(session),
 		},
 	}
 }

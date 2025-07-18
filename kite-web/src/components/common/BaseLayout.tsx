@@ -12,7 +12,9 @@ export default function BaseLayout({
   return (
     <>
       <Head>
-        <title key="title">{`${title ? title + " | " : ""}Kite`}</title>
+        <title key="title">
+          {`Kite | ${title ?? "Custom Discord Bots for Free"}`}
+        </title>
         <meta
           name="description"
           key="description"

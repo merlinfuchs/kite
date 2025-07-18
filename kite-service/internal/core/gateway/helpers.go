@@ -23,7 +23,7 @@ func getAppIntents(client *api.Client) (gateway.Intents, error) {
 		return 0, fmt.Errorf("failed to get current application: %w", err)
 	}
 
-	res := gateway.IntentGuilds | gateway.IntentGuildMessages
+	res := gateway.IntentGuilds | gateway.IntentGuildMessages | gateway.IntentGuildMessageReactions
 	if app.Flags&GATEWAY_MESSAGE_CONTENT != 0 || app.Flags&GATEWAY_MESSAGE_CONTENT_LIMITED != 0 {
 		res |= gateway.IntentMessageContent
 	}

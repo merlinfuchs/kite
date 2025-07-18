@@ -43,9 +43,21 @@ func NewContext(
 		}
 	}
 
-	evalCtx.Env["node"] = (&nodeEvalEnv{
+	nodeEvalEnv := &nodeEvalEnv{
 		state: state,
-	}).GetNode
+	}
+
+	evalCtx.Env["node"] = nodeEvalEnv.GetNode
+	evalCtx.Env["result"] = func(id string) (any, error) {
+		node, err := nodeEvalEnv.GetNode(id)
+		if err != nil {
+			return nil, err
+		}
+		if node == nil {
+			return nil, nil
+		}
+		return node.(map[string]any)["result"], nil
+	}
 	evalCtx.Patchers = append(evalCtx.Patchers, &nodeEvalPatcher{})
 
 	return &FlowContext{
@@ -151,8 +163,8 @@ func (c *FlowContext) SetEntryNodeID(nodeID string) {
 	c.EntryNodeID = nodeID
 }
 
-func (c *FlowContext) suspend(t FlowResumePointType, nodeID string) (*FlowResumePoint, error) {
-	s, err := c.ResumePoint.CreateResumePoint(c.Context, FlowResumePoint{
+func (c *FlowContext) suspend(t ResumePointType, nodeID string) (*ResumePoint, error) {
+	s, err := c.ResumePoint.CreateResumePoint(c.Context, ResumePoint{
 		Type:   t,
 		NodeID: nodeID,
 		State:  c.FlowContextState.Copy(),

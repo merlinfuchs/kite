@@ -11,7 +11,7 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/db/postgres/pgmodel"
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/internal/store"
-	"github.com/kitecloud/kite/kite-service/pkg/flow"
+	"github.com/kitecloud/kite/kite-service/pkg/provider"
 	"github.com/kitecloud/kite/kite-service/pkg/thing"
 	"gopkg.in/guregu/null.v4"
 )
@@ -186,7 +186,7 @@ func (c *Client) SetVariableValue(ctx context.Context, value model.VariableValue
 }
 
 func (c *Client) UpdateVariableValue(ctx context.Context, operation model.VariableValueOperation, value model.VariableValue) (*model.VariableValue, error) {
-	if operation == flow.VariableOperationOverwrite {
+	if operation == provider.VariableOperationOverwrite {
 		return c.setVariableValueWithTx(ctx, nil, value)
 	}
 
@@ -206,13 +206,13 @@ func (c *Client) UpdateVariableValue(ctx context.Context, operation model.Variab
 	}
 
 	switch operation {
-	case flow.VariableOperationAppend:
+	case provider.VariableOperationAppend:
 		value.Data = currentValue.Data.Append(value.Data)
-	case flow.VariableOperationPrepend:
+	case provider.VariableOperationPrepend:
 		value.Data = value.Data.Append(currentValue.Data)
-	case flow.VariableOperationIncrement:
+	case provider.VariableOperationIncrement:
 		value.Data = currentValue.Data.Add(value.Data)
-	case flow.VariableOperationDecrement:
+	case provider.VariableOperationDecrement:
 		value.Data = currentValue.Data.Sub(value.Data)
 	}
 

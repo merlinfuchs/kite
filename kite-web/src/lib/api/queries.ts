@@ -18,6 +18,9 @@ import {
   MessageGetResponse,
   MessageInstanceListResponse,
   MessageListResponse,
+  PluginInstanceGetResponse,
+  PluginInstanceListResponse,
+  PluginListResponse,
   StateGuildChannelListResponse,
   StateGuildListResponse,
   StateStatusGetResponse,
@@ -70,10 +73,36 @@ export function useAppEntitiesQuery(appId: string) {
   });
 }
 
-export function useLogEntriesQuery(appId: string) {
+export function useLogEntriesQuery(
+  appId: string,
+  args?: {
+    limit?: number;
+    commandId?: string;
+    eventId?: string;
+    messageId?: string;
+  }
+) {
+  const query = new URLSearchParams();
+  if (args?.commandId) {
+    query.set("command_id", args.commandId);
+  }
+  if (args?.eventId) {
+    query.set("event_id", args.eventId);
+  }
+  if (args?.messageId) {
+    query.set("message_id", args.messageId);
+  }
+  if (args?.limit) {
+    query.set("limit", args.limit.toString());
+  }
+
   return useQuery({
-    queryKey: ["apps", appId, "logs"],
-    queryFn: () => apiRequest<LogEntryListResponse>(`/v1/apps/${appId}/logs`),
+    queryKey: ["apps", appId, "logs", args],
+    queryFn: () =>
+      apiRequest<LogEntryListResponse>(
+        `/v1/apps/${appId}/logs?${query.toString()}`
+      ),
+    staleTime: 1000 * 60,
     enabled: !!appId,
   });
 }
@@ -279,5 +308,32 @@ export function useAppFeaturesQuery(appId: string) {
     queryFn: () =>
       apiRequest<FeaturesGetResponse>(`/v1/apps/${appId}/billing/features`),
     enabled: !!appId,
+  });
+}
+
+export function usePluginsQuery() {
+  return useQuery({
+    queryKey: ["plugins"],
+    queryFn: () => apiRequest<PluginListResponse>(`/v1/plugins`),
+  });
+}
+
+export function usePluginInstancesQuery(appId: string) {
+  return useQuery({
+    queryKey: ["apps", appId, "plugins"],
+    queryFn: () =>
+      apiRequest<PluginInstanceListResponse>(`/v1/apps/${appId}/plugins`),
+    enabled: !!appId,
+  });
+}
+
+export function usePluginInstanceQuery(appId: string, pluginId: string) {
+  return useQuery({
+    queryKey: ["apps", appId, "plugins", pluginId],
+    queryFn: () =>
+      apiRequest<PluginInstanceGetResponse>(
+        `/v1/apps/${appId}/plugins/${pluginId}`
+      ),
+    enabled: !!appId && !!pluginId,
   });
 }

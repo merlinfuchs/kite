@@ -36,42 +36,37 @@ export default function FlowPlaceholderExplorer({
 function useGlobalPlaceholders() {
   const contextType = useFlowContext((c) => c.type);
 
-  const baseKey = useMemo(
-    () => (contextType === "event_discord" ? "event" : "interaction"),
-    [contextType]
-  );
-
   const res = [
     {
       label: "User",
       placeholders: [
         {
           label: "User ID",
-          value: `${baseKey}.user.id`,
+          value: `user.id`,
         },
         {
           label: "User Mention",
-          value: `${baseKey}.user.mention`,
+          value: `user.mention`,
         },
         {
           label: "User Username",
-          value: `${baseKey}.user.username`,
+          value: `user.username`,
         },
         {
           label: "User Display Name",
-          value: `${baseKey}.user.display_name`,
+          value: `user.display_name`,
         },
         {
           label: "User Nickname",
-          value: `${baseKey}.user.nick`,
+          value: `user.nick`,
         },
         {
           label: "User Avatar URL",
-          value: `${baseKey}.user.avatar_url`,
+          value: `user.avatar_url`,
         },
         {
           label: "User Banner URL",
-          value: `${baseKey}.user.banner_url`,
+          value: `user.banner_url`,
         },
       ],
     },
@@ -80,7 +75,7 @@ function useGlobalPlaceholders() {
       placeholders: [
         {
           label: "Server ID",
-          value: `${baseKey}.guild.id`,
+          value: `guild.id`,
         },
       ],
     },
@@ -89,7 +84,7 @@ function useGlobalPlaceholders() {
       placeholders: [
         {
           label: "Channel ID",
-          value: `${baseKey}.channel.id`,
+          value: `channel.id`,
         },
       ],
     },
@@ -112,8 +107,8 @@ function useGlobalPlaceholders() {
     res.push({
       label: "Message",
       placeholders: [
-        { label: "Message ID", value: `${baseKey}.message.id` },
-        { label: "Message Content", value: `${baseKey}.message.content` },
+        { label: "Message ID", value: `message.id` },
+        { label: "Message Content", value: `message.content` },
       ],
     });
   }
@@ -140,7 +135,7 @@ function useCommandPlaceholders() {
       label: "Command",
       placeholders: argNodes.map((n) => ({
         label: `Command Arg '${n.data.name}'`,
-        value: `interaction.command.args.${n.data.name}`,
+        value: `arg('${n.data.name}')`,
       })),
     },
   ];
@@ -173,14 +168,7 @@ function useNodePlaceholders() {
           label = data.defaultTitle;
         }
 
-        let value: string;
-        if (numericRegex.test(parent.id)) {
-          value = `nodes[${parent.id}].result`;
-        } else {
-          value = `nodes.${parent.id}.result`;
-        }
-
-        nodeItems.push({ label, value });
+        nodeItems.push({ label, value: `result('${parent.id}')` });
       }
 
       if (parent?.type === "suspend_response_modal") {
@@ -196,7 +184,7 @@ function useNodePlaceholders() {
           for (const component of row.components) {
             componentItems.push({
               label: component.label ?? "Unknown Input",
-              value: `interaction.components.${component.custom_id}`,
+              value: `input('${component.custom_id}')`,
             });
           }
         }
