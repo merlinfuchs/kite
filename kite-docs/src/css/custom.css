@@ -221,7 +221,11 @@ h4 {
 h1, h2, h3, h4 {
   font-family: 'Plus Jakarta Sans', sans-serif;
   color: rgb(28, 30, 33);
-}  
+}
+
+html[data-theme='dark'] h1, h2, h3, h4 {
+  color: rgb(255, 255, 255);
+}    
 
 .theme-doc-sidebar-item-category {
   margin-bottom: 30px;
