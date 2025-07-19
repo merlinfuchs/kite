@@ -23,6 +23,7 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/api/session"
 	"github.com/kitecloud/kite/kite-service/internal/core/plan"
 	"github.com/kitecloud/kite/kite-service/internal/store"
+	"github.com/kitecloud/kite/kite-service/internal/util"
 	"github.com/kitecloud/kite/kite-service/pkg/plugin"
 	kiteweb "github.com/merlinfuchs/kite/kite-web"
 )
@@ -46,6 +47,7 @@ func (s *APIServer) RegisterRoutes(
 	appStateManager store.AppStateManager,
 	planManager *plan.PlanManager,
 	pluginRegistry *plugin.Registry,
+	tokenCrypt *util.SymmetricCrypt,
 ) {
 	sessionManager := session.NewSessionManager(session.SessionManagerConfig{
 		StrictCookies: s.config.StrictCookies,
@@ -109,6 +111,7 @@ func (s *APIServer) RegisterRoutes(
 		userStore,
 		planManager,
 		s.config.UserLimits.MaxAppsPerUser,
+		tokenCrypt,
 	)
 
 	appsGroup := v1Group.Group("/apps",

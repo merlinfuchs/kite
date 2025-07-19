@@ -13,6 +13,7 @@ import (
 )
 
 func (h *AppHandler) getDiscordAppInfo(ctx context.Context, token string) (*DiscordAppInfo, error) {
+	// TODO: decrypt token
 	client := api.NewClient("Bot " + token).WithContext(ctx)
 
 	app, err := client.CurrentApplication()
@@ -28,6 +29,7 @@ func (h *AppHandler) getDiscordAppInfo(ctx context.Context, token string) (*Disc
 }
 
 func (h *AppHandler) updateDiscordApp(ctx context.Context, app *model.App) error {
+	// TODO: decrypt token
 	client := api.NewClient("Bot " + app.DiscordToken).WithContext(ctx)
 
 	req := struct {
@@ -47,6 +49,7 @@ func (h *AppHandler) updateDiscordApp(ctx context.Context, app *model.App) error
 }
 
 func (h *AppHandler) updateDiscordBotUser(ctx context.Context, app *model.App) error {
+	// TODO: decrypt token
 	client := api.NewClient("Bot " + app.DiscordToken).WithContext(ctx)
 
 	_, err := client.ModifyCurrentUser(api.ModifyCurrentUserData{
@@ -60,6 +63,7 @@ func (h *AppHandler) updateDiscordBotUser(ctx context.Context, app *model.App) e
 }
 
 func (h *AppHandler) getAppEmojis(ctx context.Context, app *model.App) ([]discord.Emoji, error) {
+	// TODO: decrypt token
 	client := api.NewClient("Bot " + app.DiscordToken).WithContext(ctx)
 
 	var res struct {

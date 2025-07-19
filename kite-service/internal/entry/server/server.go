@@ -16,6 +16,7 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/db/s3"
 	"github.com/kitecloud/kite/kite-service/internal/logging"
 	"github.com/kitecloud/kite/kite-service/internal/model"
+	"github.com/kitecloud/kite/kite-service/internal/util"
 	"github.com/kitecloud/kite/kite-service/pkg/plugin"
 	"github.com/kitecloud/kite/kite-service/pkg/plugin/counting"
 	"github.com/kitecloud/kite/kite-service/pkg/plugin/starboard"
@@ -107,6 +108,12 @@ func StartServer(c context.Context) error {
 	usage := usage.NewUsageManager(pg, pg, planManager)
 	usage.Run(ctx)
 
+	tokenCrypt, err := util.NewSymmetricCrypt(cfg.Encryption.TokenEncryptionKey)
+	if err != nil {
+		slog.With("error", err).Error("Failed to create token crypt")
+		return fmt.Errorf("failed to create token crypt: %w", err)
+	}
+
 	apiServer := api.NewAPIServer(api.APIServerConfig{
 		SecureCookies:       cfg.API.SecureCookies,
 		StrictCookies:       cfg.API.StrictCookies,
@@ -131,7 +138,7 @@ func StartServer(c context.Context) error {
 		},
 	},
 		pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg,
-		assetStore, gateway, planManager, pluginRegistry,
+		assetStore, gateway, planManager, pluginRegistry, tokenCrypt,
 	)
 	address := fmt.Sprintf("%s:%d", cfg.API.Host, cfg.API.Port)
 	if err := apiServer.Serve(ctx, address); err != nil {

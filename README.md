@@ -30,6 +30,9 @@ To configure the server you can create a file called `kite.toml` with the follow
 [discord]
 client_id = "..." # Your Discord client ID used for Oauth2
 client_secret = "..." # Your Discord client secret used for Oauth2
+
+[encryption]
+token_encryption_key = "..." # Your secret for encrypting Discord tokens
 ```
 
 You can also set the config values using environment variables. For example `KITE_DISCORD__CLIENT_ID` will set the discord client id.

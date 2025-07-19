@@ -12,6 +12,7 @@ type Config struct {
 	Engine     EngineConfig     `toml:"engine"`
 	OpenAI     OpenAIConfig     `toml:"openai"`
 	Billing    BillingConfig    `toml:"billing"`
+	Encryption EncryptionConfig `toml:"encryption"`
 }
 
 func (cfg *Config) Validate() error {
@@ -61,6 +62,10 @@ type APIConfig struct {
 
 type AppConfig struct {
 	PublicBaseURL string `toml:"public_base_url" validate:"required"`
+}
+
+type EncryptionConfig struct {
+	TokenEncryptionKey string `toml:"token_encryption_key" validate:"required"`
 }
 
 type DiscordConfig struct {

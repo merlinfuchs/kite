@@ -19,6 +19,8 @@ type AppHandler struct {
 	userStore      store.UserStore
 	planManager    *plan.PlanManager
 	maxAppsPerUser int
+
+	tokenCrypt *util.SymmetricCrypt
 }
 
 func NewAppHandler(
@@ -26,12 +28,14 @@ func NewAppHandler(
 	userStore store.UserStore,
 	planManager *plan.PlanManager,
 	maxAppsPerUser int,
+	tokenCrypt *util.SymmetricCrypt,
 ) *AppHandler {
 	return &AppHandler{
 		appStore:       appStore,
 		userStore:      userStore,
 		planManager:    planManager,
 		maxAppsPerUser: maxAppsPerUser,
+		tokenCrypt:     tokenCrypt,
 	}
 }
 
@@ -75,6 +79,11 @@ func (h *AppHandler) HandleAppCreate(c *handler.Context, req wire.AppCreateReque
 		return nil, fmt.Errorf("failed to get discord app info: %w", err)
 	}
 
+	encryptedToken, err := h.tokenCrypt.EncryptString(req.DiscordToken)
+	if err != nil {
+		return nil, fmt.Errorf("failed to encrypt discord token: %w", err)
+	}
+
 	app, err := h.appStore.CreateApp(c.Context(), &model.App{
 		ID:            util.UniqueID(),
 		Name:          appInfo.Name,
@@ -82,7 +91,7 @@ func (h *AppHandler) HandleAppCreate(c *handler.Context, req wire.AppCreateReque
 		Enabled:       true,
 		OwnerUserID:   c.Session.UserID,
 		CreatorUserID: c.Session.UserID,
-		DiscordToken:  req.DiscordToken,
+		DiscordToken:  encryptedToken,
 		DiscordID:     appInfo.ID,
 		CreatedAt:     time.Now().UTC(),
 		UpdatedAt:     time.Now().UTC(),
@@ -183,11 +192,16 @@ func (h *AppHandler) HandleAppTokenUpdate(c *handler.Context, req wire.AppTokenU
 		return nil, fmt.Errorf("discord token belongs to a different app")
 	}
 
+	encryptedToken, err := h.tokenCrypt.EncryptString(req.DiscordToken)
+	if err != nil {
+		return nil, fmt.Errorf("failed to encrypt discord token: %w", err)
+	}
+
 	app, err := h.appStore.UpdateApp(c.Context(), store.AppUpdateOpts{
 		ID:             c.App.ID,
 		Name:           c.App.Name,
 		Description:    c.App.Description,
-		DiscordToken:   req.DiscordToken,
+		DiscordToken:   encryptedToken,
 		DiscordStatus:  c.App.DiscordStatus,
 		Enabled:        true,
 		DisabledReason: null.String{}, // We reset the disabled reason when the app token is updated

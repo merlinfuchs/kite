@@ -123,6 +123,7 @@ func (a *App) DeployCommands(ctx context.Context) error {
 		return fmt.Errorf("failed to parse app ID: %w", err)
 	}
 
+	// TODO: decrypt token
 	client := api.NewClient("Bot " + app.DiscordToken).WithContext(ctx)
 
 	_, err = client.BulkOverwriteCommands(discord.AppID(appId), commands)

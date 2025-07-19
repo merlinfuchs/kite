@@ -35,6 +35,7 @@ func getAppIntents(client *api.Client) (gateway.Intents, error) {
 }
 
 func createSession(app *model.App) *state.State {
+	// TODO: decrypt token
 	identifier := gateway.DefaultIdentifier("Bot " + app.DiscordToken)
 	identifier.IdentifyCommand.Presence = presenceForApp(app)
 
