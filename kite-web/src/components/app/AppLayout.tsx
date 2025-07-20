@@ -20,6 +20,8 @@ import Link from "next/link";
 import { useRouter } from "next/router";
 import ThemeSwitch from "../common/ThemeSwitch";
 import { toast } from "sonner";
+import AppDisabledPopup from "./AppDisabledPopup";
+import OpenBetaPopup from "./OpenBetaPopup";
 
 interface Props {
   breadcrumbs?: {
@@ -117,6 +119,9 @@ export default function AppLayout({ children, ...props }: Props) {
             </div>
           </header>
           <main className="p-4 pt-8 sm:pb-20 sm:px-6 w-full">{children}</main>
+
+          <AppDisabledPopup />
+          <OpenBetaPopup />
         </SidebarInset>
       </SidebarProvider>
     </BaseLayout>
