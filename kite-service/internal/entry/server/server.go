@@ -16,7 +16,6 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/db/s3"
 	"github.com/kitecloud/kite/kite-service/internal/logging"
 	"github.com/kitecloud/kite/kite-service/internal/model"
-	"github.com/kitecloud/kite/kite-service/internal/store"
 	"github.com/kitecloud/kite/kite-service/internal/util"
 	"github.com/kitecloud/kite/kite-service/pkg/plugin"
 	"github.com/kitecloud/kite/kite-service/pkg/plugin/counting"
@@ -59,12 +58,6 @@ func StartServer(c context.Context) error {
 	if err != nil {
 		slog.With("error", err).Error("Failed to create token crypt")
 		return fmt.Errorf("failed to create token crypt: %w", err)
-	}
-
-	err = encryptExistingTokens(pg, tokenCrypt)
-	if err != nil {
-		slog.With("error", err).Error("Failed to encrypt existing tokens")
-		return fmt.Errorf("failed to encrypt existing tokens: %w", err)
 	}
 
 	var openaiClient openai.Client
@@ -153,43 +146,6 @@ func StartServer(c context.Context) error {
 	if err := apiServer.Serve(ctx, address); err != nil {
 		slog.With("error", err).Error("Failed to start API server")
 		return fmt.Errorf("failed to start API server: %w", err)
-	}
-
-	return nil
-}
-
-func encryptExistingTokens(pg *postgres.Client, tokenCrypt *util.SymmetricCrypt) error {
-	apps, err := pg.AllApps(context.Background())
-	if err != nil {
-		return fmt.Errorf("failed to get apps: %w", err)
-	}
-
-	for _, app := range apps {
-		_, err := tokenCrypt.DecryptString(app.DiscordToken)
-		if err == nil {
-			slog.With("app_id", app.ID).Info("Skipping app with already encrypted token")
-			continue
-		}
-
-		token, err := tokenCrypt.EncryptString(app.DiscordToken)
-		if err != nil {
-			return fmt.Errorf("failed to encrypt token: %w", err)
-		}
-		app.DiscordToken = token
-
-		_, err = pg.UpdateApp(context.Background(), store.AppUpdateOpts{
-			ID:             app.ID,
-			Name:           app.Name,
-			Description:    app.Description,
-			DiscordToken:   token,
-			DiscordStatus:  app.DiscordStatus,
-			Enabled:        app.Enabled,
-			DisabledReason: app.DisabledReason,
-			UpdatedAt:      app.UpdatedAt,
-		})
-		if err != nil {
-			return fmt.Errorf("failed to update app: %w", err)
-		}
 	}
 
 	return nil
