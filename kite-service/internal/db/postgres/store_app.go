@@ -15,19 +15,37 @@ import (
 	"gopkg.in/guregu/null.v4"
 )
 
+func (c *Client) AllApps(ctx context.Context) ([]*model.App, error) {
+	rows, err := c.Q.GetAllApps(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	apps := make([]*model.App, len(rows))
+	for i, row := range rows {
+		app, err := rowToApp(row)
+		if err != nil {
+			return nil, err
+		}
+		apps[i] = app
+	}
+
+	return apps, nil
+}
+
 func (c *Client) AppsByUser(ctx context.Context, userID string) ([]*model.App, error) {
 	rows, err := c.Q.GetAppsByCollaborator(ctx, userID)
 	if err != nil {
 		return nil, err
 	}
 
-	var apps []*model.App
-	for _, row := range rows {
+	apps := make([]*model.App, len(rows))
+	for i, row := range rows {
 		app, err := rowToApp(row)
 		if err != nil {
 			return nil, err
 		}
-		apps = append(apps, app)
+		apps[i] = app
 	}
 
 	return apps, nil

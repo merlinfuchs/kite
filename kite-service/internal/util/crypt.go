@@ -5,6 +5,7 @@ import (
 	"crypto/cipher"
 	"crypto/rand"
 	"encoding/base64"
+	"encoding/hex"
 	"fmt"
 	"io"
 )
@@ -14,8 +15,13 @@ type SymmetricCrypt struct {
 }
 
 func NewSymmetricCrypt(key string) (*SymmetricCrypt, error) {
+	keyBytes, err := hex.DecodeString(key)
+	if err != nil {
+		return nil, fmt.Errorf("failed to decode key: %w", err)
+	}
+
 	return &SymmetricCrypt{
-		key: []byte(key),
+		key: keyBytes,
 	}, nil
 }
 

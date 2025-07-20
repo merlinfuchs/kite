@@ -108,6 +108,43 @@ func (q *Queries) DisableApp(ctx context.Context, arg DisableAppParams) error {
 	return err
 }
 
+const getAllApps = `-- name: GetAllApps :many
+SELECT id, name, description, enabled, owner_user_id, creator_user_id, discord_token, discord_id, created_at, updated_at, discord_status, disabled_reason FROM apps
+`
+
+func (q *Queries) GetAllApps(ctx context.Context) ([]App, error) {
+	rows, err := q.db.Query(ctx, getAllApps)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []App
+	for rows.Next() {
+		var i App
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.Description,
+			&i.Enabled,
+			&i.OwnerUserID,
+			&i.CreatorUserID,
+			&i.DiscordToken,
+			&i.DiscordID,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.DiscordStatus,
+			&i.DisabledReason,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getApp = `-- name: GetApp :one
 SELECT id, name, description, enabled, owner_user_id, creator_user_id, discord_token, discord_id, created_at, updated_at, discord_status, disabled_reason FROM apps WHERE id = $1
 `

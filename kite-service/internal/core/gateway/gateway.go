@@ -15,6 +15,7 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/core/plan"
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/internal/store"
+	"github.com/kitecloud/kite/kite-service/internal/util"
 	"gopkg.in/guregu/null.v4"
 )
 
@@ -23,6 +24,7 @@ type Gateway struct {
 	appStore     store.AppStore
 	planManager  *plan.PlanManager
 	eventHandler EventHandler
+	tokenCrypt   *util.SymmetricCrypt
 
 	app     *model.App
 	session *state.State
@@ -37,20 +39,27 @@ func NewGateway(
 	appStore store.AppStore,
 	planManager *plan.PlanManager,
 	eventHandler EventHandler,
-) *Gateway {
+	tokenCrypt *util.SymmetricCrypt,
+) (*Gateway, error) {
+	session, err := createSession(tokenCrypt, app)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create session: %w", err)
+	}
+
 	g := &Gateway{
 		logStore:     logStore,
 		appStore:     appStore,
 		planManager:  planManager,
 		eventHandler: eventHandler,
+		tokenCrypt:   tokenCrypt,
 		app:          app,
-		session:      createSession(app),
+		session:      session,
 	}
 
 	g.ctx, g.cancel = context.WithCancel(context.Background())
 
 	go g.startGateway()
-	return g
+	return g, nil
 }
 
 func (g *Gateway) startGateway() {
@@ -148,7 +157,13 @@ func (g *Gateway) Update(ctx context.Context, app *model.App) {
 			)
 		}
 
-		g.session = createSession(app)
+		session, err := createSession(g.tokenCrypt, app)
+		if err != nil {
+			g.createLogEntry(model.LogLevelError, fmt.Sprintf("Failed to create session: %v", err))
+			return
+		}
+
+		g.session = session
 		go g.startGateway()
 	} else {
 		g.app = app

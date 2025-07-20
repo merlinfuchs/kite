@@ -1,3 +1,6 @@
+-- name: GetAllApps :many
+SELECT * FROM apps;
+
 -- name: GetApp :one
 SELECT * FROM apps WHERE id = $1;
 
