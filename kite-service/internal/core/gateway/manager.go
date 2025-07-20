@@ -13,6 +13,7 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/core/plan"
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/internal/store"
+	"github.com/kitecloud/kite/kite-service/internal/util"
 )
 
 type EventHandler interface {
@@ -26,6 +27,7 @@ type GatewayManager struct {
 	logStore     store.LogStore
 	planManager  *plan.PlanManager
 	eventHandler EventHandler
+	tokenCrypt   *util.SymmetricCrypt
 
 	lastUpdate time.Time
 	gateways   map[string]*Gateway
@@ -36,12 +38,14 @@ func NewGatewayManager(
 	logStore store.LogStore,
 	planManager *plan.PlanManager,
 	eventHandler EventHandler,
+	tokenCrypt *util.SymmetricCrypt,
 ) *GatewayManager {
 	return &GatewayManager{
 		appStore:     appStore,
 		logStore:     logStore,
 		planManager:  planManager,
 		eventHandler: eventHandler,
+		tokenCrypt:   tokenCrypt,
 		gateways:     make(map[string]*Gateway),
 	}
 }
@@ -144,13 +148,21 @@ func (m *GatewayManager) addGateway(ctx context.Context, app *model.App) error {
 		if !g.session.GatewayIsAlive() {
 			g.Close()
 
-			g := NewGateway(app, m.logStore, m.appStore, m.planManager, m.eventHandler)
+			g, err := NewGateway(app, m.logStore, m.appStore, m.planManager, m.eventHandler, m.tokenCrypt)
+			if err != nil {
+				return fmt.Errorf("failed to create gateway: %w", err)
+			}
+
 			m.gateways[app.ID] = g
 		}
 
 		go g.Update(ctx, app)
 	} else {
-		g := NewGateway(app, m.logStore, m.appStore, m.planManager, m.eventHandler)
+		g, err := NewGateway(app, m.logStore, m.appStore, m.planManager, m.eventHandler, m.tokenCrypt)
+		if err != nil {
+			return fmt.Errorf("failed to create gateway: %w", err)
+		}
+
 		m.gateways[app.ID] = g
 	}
 

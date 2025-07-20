@@ -123,7 +123,12 @@ func (a *App) DeployCommands(ctx context.Context) error {
 		return fmt.Errorf("failed to parse app ID: %w", err)
 	}
 
-	client := api.NewClient("Bot " + app.DiscordToken).WithContext(ctx)
+	token, err := a.env.TokenCrypt.DecryptString(app.DiscordToken)
+	if err != nil {
+		return fmt.Errorf("failed to decrypt token: %w", err)
+	}
+
+	client := api.NewClient("Bot " + token).WithContext(ctx)
 
 	_, err = client.BulkOverwriteCommands(discord.AppID(appId), commands)
 	if err != nil {

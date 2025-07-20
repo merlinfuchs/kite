@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { persist } from "zustand/middleware";
 // import { persist } from "zustand/middleware";
 
 export interface BetaPopupStore {
@@ -8,14 +9,14 @@ export interface BetaPopupStore {
 }
 
 export const useBetaPopupStore = create<BetaPopupStore>()(
-  // persist(
-  (set) => ({
-    popupClosed: false,
+  persist(
+    (set) => ({
+      popupClosed: false,
 
-    setPopupClosed: (popupClosed) => {
-      set({ popupClosed });
-    },
-  })
-  // { name: "kite-beta-podpup" }
-  //)
+      setPopupClosed: (popupClosed) => {
+        set({ popupClosed });
+      },
+    }),
+    { name: "kite-beta-podpup" }
+  )
 );

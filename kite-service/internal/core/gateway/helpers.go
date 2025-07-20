@@ -8,6 +8,7 @@ import (
 	"github.com/diamondburned/arikawa/v3/gateway"
 	"github.com/diamondburned/arikawa/v3/state"
 	"github.com/kitecloud/kite/kite-service/internal/model"
+	"github.com/kitecloud/kite/kite-service/internal/util"
 )
 
 const (
@@ -34,15 +35,20 @@ func getAppIntents(client *api.Client) (gateway.Intents, error) {
 	return res, nil
 }
 
-func createSession(app *model.App) *state.State {
-	identifier := gateway.DefaultIdentifier("Bot " + app.DiscordToken)
+func createSession(tokenCrypt *util.SymmetricCrypt, app *model.App) (*state.State, error) {
+	token, err := tokenCrypt.DecryptString(app.DiscordToken)
+	if err != nil {
+		return nil, fmt.Errorf("failed to decrypt token: %w", err)
+	}
+
+	identifier := gateway.DefaultIdentifier("Bot " + token)
 	identifier.IdentifyCommand.Presence = presenceForApp(app)
 
 	// TODO: pass in custom opts instead of modifying the default
 	gateway.DefaultGatewayOpts.AlwaysCloseGracefully = false
 
 	// TODO: configure state to only cache what we need
-	return state.NewWithIdentifier(identifier)
+	return state.NewWithIdentifier(identifier), nil
 }
 
 func presenceForApp(app *model.App) *gateway.UpdatePresenceCommand {

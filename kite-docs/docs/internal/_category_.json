@@ -1,0 +1,8 @@
+{
+  "label": "Internal",
+  "position": 4,
+  "link": {
+    "type": "generated-index",
+    "description": "Information about the internal workings of Kite."
+  }
+}

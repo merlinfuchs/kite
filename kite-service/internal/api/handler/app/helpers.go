@@ -12,6 +12,15 @@ import (
 	"gopkg.in/guregu/null.v4"
 )
 
+func (h *AppHandler) getAppClient(ctx context.Context, app *model.App) (*api.Client, error) {
+	token, err := h.tokenCrypt.DecryptString(app.DiscordToken)
+	if err != nil {
+		return nil, fmt.Errorf("failed to decrypt token: %w", err)
+	}
+
+	return api.NewClient("Bot " + token).WithContext(ctx), nil
+}
+
 func (h *AppHandler) getDiscordAppInfo(ctx context.Context, token string) (*DiscordAppInfo, error) {
 	client := api.NewClient("Bot " + token).WithContext(ctx)
 
@@ -28,7 +37,10 @@ func (h *AppHandler) getDiscordAppInfo(ctx context.Context, token string) (*Disc
 }
 
 func (h *AppHandler) updateDiscordApp(ctx context.Context, app *model.App) error {
-	client := api.NewClient("Bot " + app.DiscordToken).WithContext(ctx)
+	client, err := h.getAppClient(ctx, app)
+	if err != nil {
+		return fmt.Errorf("failed to get app client: %w", err)
+	}
 
 	req := struct {
 		Name        string `json:"name"`
@@ -38,7 +50,7 @@ func (h *AppHandler) updateDiscordApp(ctx context.Context, app *model.App) error
 		Description: app.Description.String,
 	}
 
-	_, err := client.Request("PATCH", api.EndpointApplications+app.DiscordID, httputil.WithJSONBody(req))
+	_, err = client.Request("PATCH", api.EndpointApplications+app.DiscordID, httputil.WithJSONBody(req))
 	if err != nil {
 		return err
 	}
@@ -47,9 +59,12 @@ func (h *AppHandler) updateDiscordApp(ctx context.Context, app *model.App) error
 }
 
 func (h *AppHandler) updateDiscordBotUser(ctx context.Context, app *model.App) error {
-	client := api.NewClient("Bot " + app.DiscordToken).WithContext(ctx)
+	client, err := h.getAppClient(ctx, app)
+	if err != nil {
+		return fmt.Errorf("failed to get app client: %w", err)
+	}
 
-	_, err := client.ModifyCurrentUser(api.ModifyCurrentUserData{
+	_, err = client.ModifyCurrentUser(api.ModifyCurrentUserData{
 		Username: option.NewString(app.Name),
 	})
 	if err != nil {
@@ -60,13 +75,16 @@ func (h *AppHandler) updateDiscordBotUser(ctx context.Context, app *model.App) e
 }
 
 func (h *AppHandler) getAppEmojis(ctx context.Context, app *model.App) ([]discord.Emoji, error) {
-	client := api.NewClient("Bot " + app.DiscordToken).WithContext(ctx)
+	client, err := h.getAppClient(ctx, app)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get app client: %w", err)
+	}
 
 	var res struct {
 		Items []discord.Emoji `json:"items"`
 	}
 
-	err := client.RequestJSON(&res, "GET", api.EndpointApplications+app.DiscordID+"/emojis")
+	err = client.RequestJSON(&res, "GET", api.EndpointApplications+app.DiscordID+"/emojis")
 	if err != nil {
 		return nil, err
 	}

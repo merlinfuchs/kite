@@ -12,6 +12,7 @@ import (
 	"github.com/diamondburned/arikawa/v3/state"
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/internal/store"
+	"github.com/kitecloud/kite/kite-service/internal/util"
 	"github.com/kitecloud/kite/kite-service/pkg/eval"
 	"github.com/kitecloud/kite/kite-service/pkg/flow"
 	"github.com/kitecloud/kite/kite-service/pkg/plugin"
@@ -36,6 +37,7 @@ type Env struct {
 	ResumePointStore     store.ResumePointStore
 	HttpClient           *http.Client
 	OpenaiClient         *openai.Client
+	TokenCrypt           *util.SymmetricCrypt
 }
 
 type entityLinks struct {
