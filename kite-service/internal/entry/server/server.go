@@ -164,7 +164,12 @@ func encryptExistingTokens(pg *postgres.Client, tokenCrypt *util.SymmetricCrypt)
 	}
 
 	for _, app := range apps {
-		fmt.Println(app.ID)
+		_, err := tokenCrypt.DecryptString(app.DiscordToken)
+		if err == nil {
+			slog.With("app_id", app.ID).Info("Skipping app with already encrypted token")
+			continue
+		}
+
 		token, err := tokenCrypt.EncryptString(app.DiscordToken)
 		if err != nil {
 			return fmt.Errorf("failed to encrypt token: %w", err)
