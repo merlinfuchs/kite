@@ -75,9 +75,17 @@ func NewContextFromInteraction(i *discord.InteractionEvent, session *state.State
 			"app":         NewAppEnv(session),
 
 			"arg": func(name string) any {
+				if interactionEnv.Command == nil {
+					return nil
+				}
+
 				return interactionEnv.Command.Args[name]
 			},
 			"input": func(customID string) any {
+				if interactionEnv.Components == nil {
+					return nil
+				}
+
 				if component, ok := interactionEnv.Components[customID]; ok {
 					return component.Value
 				}
