@@ -51,6 +51,7 @@ export const nodeTypes = {
   action_variable_get: FlowNodeActionBase,
   action_http_request: FlowNodeActionBase,
   action_ai_chat_completion: FlowNodeActionBase,
+  action_ai_web_search: FlowNodeActionBase,
   action_expression_evaluate: FlowNodeActionBase,
   action_random_generate: FlowNodeActionBase,
   action_log: FlowNodeActionBase,

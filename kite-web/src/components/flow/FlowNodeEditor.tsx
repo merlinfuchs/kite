@@ -103,6 +103,7 @@ const intputs: Record<string, any> = {
   variable_value: VariableValueInput,
   http_request_data: HttpRequestDataInput,
   ai_chat_completion_data: AiChatCompletionDataInput,
+  ai_web_search_data: AiWebSearchDataInput,
   expression: ExpressionInput,
   random_min: RandomMinInput,
   random_max: RandomMaxInput,
@@ -201,6 +202,11 @@ export default function FlowNodeEditor({ nodeId }: Props) {
 
   if (!node || !data) return null;
 
+  const creditsCost =
+    typeof values.creditsCost === "function"
+      ? values.creditsCost(data)
+      : values.creditsCost;
+
   return (
     <div className="absolute top-0 left-0 bg-background w-96 h-full p-5 flex flex-col overflow-y-auto">
       <div className="flex-none">
@@ -227,8 +233,14 @@ export default function FlowNodeEditor({ nodeId }: Props) {
           <div className="text-muted-foreground mb-3">
             {values.defaultDescription}
           </div>
-          <div className="flex">
+          <div className="flex gap-2 flex-wrap">
             <div className="bg-muted rounded px-2 py-1 text-xs">{nodeId}</div>
+            {creditsCost && (
+              <div className="bg-muted rounded px-2 py-1 text-xs flex gap-1">
+                {creditsCost}
+                <div>credit{creditsCost === 1 ? "" : "s"}</div>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -686,7 +698,7 @@ function AiChatCompletionDataInput({ data, updateData, errors }: InputProps) {
         type="select"
         field="ai_chat_completion_data.model"
         title="Model"
-        description="The model to use for the AI chat completion. More powerful models cost more credits."
+        description="The AI model to use. More powerful models cost more credits."
         options={[
           { value: "gpt-4.1", label: "Smartest (gpt-4.1)" },
           { value: "gpt-4.1-mini", label: "Balanced (gpt-4.1-mini)" },
@@ -726,6 +738,54 @@ function AiChatCompletionDataInput({ data, updateData, errors }: InputProps) {
         field="ai_chat_completion_data.prompt"
         title="Prompt"
         description="The message to send to the AI which it will respond to."
+        value={data.ai_chat_completion_data?.prompt || ""}
+        updateValue={(v) =>
+          updateData({
+            ai_chat_completion_data: {
+              ...data.ai_chat_completion_data,
+              prompt: v || undefined,
+            },
+          })
+        }
+        errors={errors}
+        placeholders
+      />
+    </>
+  );
+}
+
+function AiWebSearchDataInput({ data, updateData, errors }: InputProps) {
+  // TODO: top level errors aren't displayed ...
+
+  return (
+    <>
+      <BaseInput
+        type="select"
+        field="ai_chat_completion_data.model"
+        title="Model"
+        description="The AI model to use. More powerful models cost more credits."
+        options={[
+          { value: "gpt-4.1", label: "Smartest (gpt-4.1)" },
+          { value: "gpt-4.1-mini", label: "Balanced (gpt-4.1-mini)" },
+          { value: "gpt-4.1-nano", label: "Cheap & Fast (gpt-4.1-nano)" },
+          { value: "gpt-4o-mini", label: "Cheap & Fast (gpt-4o-mini)" },
+        ]}
+        value={data.ai_chat_completion_data?.model || "gpt-4o-mini"}
+        updateValue={(v) =>
+          updateData({
+            ai_chat_completion_data: {
+              ...data.ai_chat_completion_data,
+              model: v || undefined,
+            },
+          })
+        }
+        errors={errors}
+      />
+      <BaseInput
+        type="textarea"
+        field="ai_chat_completion_data.prompt"
+        title="Query"
+        description="The search query to send to the AI."
         value={data.ai_chat_completion_data?.prompt || ""}
         updateValue={(v) =>
           updateData({

@@ -1,21 +1,30 @@
 package provider
 
-import "context"
+import (
+	"context"
+)
 
 // AIProvider provides access to AI services.
 type AIProvider interface {
-	CreateChatCompletion(ctx context.Context, opts CreateChatCompletionOpts) (string, error)
+	CreateResponse(ctx context.Context, opts CreateResponseOpts) (string, error)
 }
 
-type CreateChatCompletionOpts struct {
-	Model               string
-	SystemPrompt        string
-	Prompt              string
-	MaxCompletionTokens int
+type CreateResponseOpts struct {
+	Model           string
+	SystemPrompt    string
+	Prompt          string
+	Tools           []AIToolType
+	MaxOutputTokens int
 }
+
+type AIToolType string
+
+const (
+	AIToolTypeWebSearchPreview AIToolType = "web_search_preview"
+)
 
 type MockAIProvider struct{}
 
-func (m *MockAIProvider) CreateChatCompletion(ctx context.Context, opts CreateChatCompletionOpts) (string, error) {
+func (m *MockAIProvider) CreateResponse(ctx context.Context, opts CreateResponseOpts) (string, error) {
 	return "", nil
 }

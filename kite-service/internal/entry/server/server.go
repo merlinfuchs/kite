@@ -21,7 +21,8 @@ import (
 	"github.com/kitecloud/kite/kite-service/pkg/plugin"
 	"github.com/kitecloud/kite/kite-service/pkg/plugin/counting"
 	"github.com/kitecloud/kite/kite-service/pkg/plugin/starboard"
-	"github.com/sashabaranov/go-openai"
+	"github.com/openai/openai-go"
+	"github.com/openai/openai-go/option"
 )
 
 func StartServer(c context.Context) error {
@@ -66,9 +67,9 @@ func StartServer(c context.Context) error {
 		return fmt.Errorf("failed to encrypt existing tokens: %w", err)
 	}
 
-	var openaiClient *openai.Client
+	var openaiClient openai.Client
 	if cfg.OpenAI.APIKey != "" {
-		openaiClient = openai.NewClient(cfg.OpenAI.APIKey)
+		openaiClient = openai.NewClient(option.WithAPIKey(cfg.OpenAI.APIKey))
 	}
 
 	pluginRegistry := plugin.NewRegistry()
@@ -97,7 +98,7 @@ func StartServer(c context.Context) error {
 			VariableValueStore:   pg,
 			ResumePointStore:     pg,
 			HttpClient:           engineHTTPClient(cfg),
-			OpenaiClient:         openaiClient,
+			OpenaiClient:         &openaiClient,
 			TokenCrypt:           tokenCrypt,
 		},
 	)
