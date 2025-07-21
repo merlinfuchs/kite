@@ -17,20 +17,20 @@ var Null = NewAny(nil)
 type Type string
 
 const (
-	AnyTypeAny            Type = "any"
-	AnyTypeString         Type = "string"
-	AnyTypeInt            Type = "int"
-	AnyTypeFloat          Type = "float"
-	AnyTypeBool           Type = "bool"
-	AnyTypeDiscordMessage Type = "discord_message"
-	AnyTypeDiscordUser    Type = "discord_user"
-	AnyTypeDiscordMember  Type = "discord_member"
-	AnyTypeDiscordChannel Type = "discord_channel"
-	AnyTypeDiscordGuild   Type = "discord_guild"
-	AnyTypeDiscordRole    Type = "discord_role"
-	AnyTypeHTTPResponse   Type = "http_response"
-	AnyTypeArray          Type = "array"
-	AnyTypeObject         Type = "object"
+	TypeAny            Type = "any"
+	TypeString         Type = "string"
+	TypeInt            Type = "int"
+	TypeFloat          Type = "float"
+	TypeBool           Type = "bool"
+	TypeDiscordMessage Type = "discord_message"
+	TypeDiscordUser    Type = "discord_user"
+	TypeDiscordMember  Type = "discord_member"
+	TypeDiscordChannel Type = "discord_channel"
+	TypeDiscordGuild   Type = "discord_guild"
+	TypeDiscordRole    Type = "discord_role"
+	TypeHTTPResponse   Type = "http_response"
+	TypeArray          Type = "array"
+	TypeObject         Type = "object"
 )
 
 // Thing is a wrapper around any with some helper methods
@@ -48,72 +48,72 @@ func (w *Thing) UnmarshalJSON(data []byte) error {
 		w.Type = aux.Type
 
 		switch aux.Type {
-		case AnyTypeAny:
+		case TypeAny:
 			w.Value, err = UnmarshalValue[any](aux.Value)
 			if err != nil {
 				return err
 			}
-		case AnyTypeString:
+		case TypeString:
 			w.Value, err = UnmarshalValue[string](aux.Value)
 			if err != nil {
 				return err
 			}
-		case AnyTypeInt:
+		case TypeInt:
 			w.Value, err = UnmarshalValue[int64](aux.Value)
 			if err != nil {
 				return err
 			}
-		case AnyTypeFloat:
+		case TypeFloat:
 			w.Value, err = UnmarshalValue[float64](aux.Value)
 			if err != nil {
 				return err
 			}
-		case AnyTypeBool:
+		case TypeBool:
 			w.Value, err = UnmarshalValue[bool](aux.Value)
 			if err != nil {
 				return err
 			}
-		case AnyTypeDiscordMessage:
+		case TypeDiscordMessage:
 			w.Value, err = UnmarshalValue[discord.Message](aux.Value)
 			if err != nil {
 				return err
 			}
-		case AnyTypeDiscordUser:
+		case TypeDiscordUser:
 			w.Value, err = UnmarshalValue[discord.User](aux.Value)
 			if err != nil {
 				return err
 			}
-		case AnyTypeDiscordMember:
+		case TypeDiscordMember:
 			w.Value, err = UnmarshalValue[discord.Member](aux.Value)
 			if err != nil {
 				return err
 			}
-		case AnyTypeDiscordChannel:
+		case TypeDiscordChannel:
 			w.Value, err = UnmarshalValue[discord.Channel](aux.Value)
 			if err != nil {
 				return err
 			}
-		case AnyTypeDiscordGuild:
+		case TypeDiscordGuild:
 			w.Value, err = UnmarshalValue[discord.Guild](aux.Value)
 			if err != nil {
 				return err
 			}
-		case AnyTypeDiscordRole:
+		case TypeDiscordRole:
 			w.Value, err = UnmarshalValue[discord.Role](aux.Value)
 			if err != nil {
 				return err
 			}
-		case AnyTypeHTTPResponse:
+		case TypeHTTPResponse:
 			w.Value, err = UnmarshalValue[HTTPResponseValue](aux.Value)
 			if err != nil {
 				return err
 			}
-		case AnyTypeArray:
+		case TypeArray:
 			w.Value, err = UnmarshalValue[[]Thing](aux.Value)
 			if err != nil {
 				return err
 			}
-		case AnyTypeObject:
+		case TypeObject:
 			w.Value, err = UnmarshalValue[map[string]Thing](aux.Value)
 			if err != nil {
 				return err
@@ -126,9 +126,17 @@ func (w *Thing) UnmarshalJSON(data []byte) error {
 	}
 
 	// This is for backwards compatibility with values missing the type field
-	fmt.Println("Falling back to AnyTypeAny")
-	w.Type = AnyTypeAny
-	return json.Unmarshal(data, &w.Value)
+	fmt.Println("Falling back to guess type")
+	var value any
+	if err := json.Unmarshal(data, &value); err != nil {
+		return err
+	}
+
+	t := NewGuessTypeWithFallback(value)
+
+	w.Type = t.Type
+	w.Value = t.Value
+	return nil
 }
 
 func UnmarshalValue[T any](data []byte) (T, error) {
@@ -145,7 +153,7 @@ func NewAny(v any) Thing {
 	}
 
 	return Thing{
-		Type:  AnyTypeAny,
+		Type:  TypeAny,
 		Value: v,
 	}
 }
@@ -222,77 +230,77 @@ func NewGuessTypeWithFallback(v any) Thing {
 
 func NewString(v string) Thing {
 	return Thing{
-		Type:  AnyTypeString,
+		Type:  TypeString,
 		Value: v,
 	}
 }
 
 func NewInt[T int | int8 | int16 | int32 | int64 | uint | uint8 | uint16 | uint32 | uint64](v T) Thing {
 	return Thing{
-		Type:  AnyTypeInt,
+		Type:  TypeInt,
 		Value: int64(v),
 	}
 }
 
 func NewFloat[T float32 | float64](v T) Thing {
 	return Thing{
-		Type:  AnyTypeFloat,
+		Type:  TypeFloat,
 		Value: float64(v),
 	}
 }
 
 func NewBool(v bool) Thing {
 	return Thing{
-		Type:  AnyTypeBool,
+		Type:  TypeBool,
 		Value: v,
 	}
 }
 
 func NewDiscordMessage(v discord.Message) Thing {
 	return Thing{
-		Type:  AnyTypeDiscordMessage,
+		Type:  TypeDiscordMessage,
 		Value: v,
 	}
 }
 
 func NewDiscordUser(v discord.User) Thing {
 	return Thing{
-		Type:  AnyTypeDiscordUser,
+		Type:  TypeDiscordUser,
 		Value: v,
 	}
 }
 
 func NewDiscordChannel(v discord.Channel) Thing {
 	return Thing{
-		Type:  AnyTypeDiscordChannel,
+		Type:  TypeDiscordChannel,
 		Value: v,
 	}
 }
 
 func NewDiscordMember(v discord.Member) Thing {
 	return Thing{
-		Type:  AnyTypeDiscordMember,
+		Type:  TypeDiscordMember,
 		Value: v,
 	}
 }
 
 func NewDiscordGuild(v discord.Guild) Thing {
 	return Thing{
-		Type:  AnyTypeDiscordGuild,
+		Type:  TypeDiscordGuild,
 		Value: v,
 	}
 }
 
 func NewDiscordRole(v discord.Role) Thing {
 	return Thing{
-		Type:  AnyTypeDiscordRole,
+		Type:  TypeDiscordRole,
 		Value: v,
 	}
 }
 
 func NewHTTPResponse(v HTTPResponseValue) Thing {
 	return Thing{
-		Type:  AnyTypeHTTPResponse,
+		Type:  TypeHTTPResponse,
 		Value: v,
 	}
 }
@@ -308,45 +316,45 @@ func NewFromHTTPResponse(v *http.Response) (Thing, error) {
 
 func NewArray(v []Thing) Thing {
 	return Thing{
-		Type:  AnyTypeArray,
+		Type:  TypeArray,
 		Value: v,
 	}
 }
 
 func NewObject(v map[string]Thing) Thing {
 	return Thing{
-		Type:  AnyTypeObject,
+		Type:  TypeObject,
 		Value: v,
 	}
 }
 
 func (w Thing) String() string {
 	switch w.Type {
-	case AnyTypeString:
+	case TypeString:
 		return w.Value.(string)
-	case AnyTypeInt:
+	case TypeInt:
 		return strconv.FormatInt(w.Value.(int64), 10)
-	case AnyTypeFloat:
+	case TypeFloat:
 		return strconv.FormatFloat(w.Value.(float64), 'f', -1, 64)
-	case AnyTypeBool:
+	case TypeBool:
 		return strconv.FormatBool(w.Value.(bool))
-	case AnyTypeDiscordMessage:
+	case TypeDiscordMessage:
 		return w.Value.(discord.Message).ID.String()
-	case AnyTypeDiscordUser:
+	case TypeDiscordUser:
 		return w.Value.(discord.User).ID.String()
-	case AnyTypeDiscordMember:
+	case TypeDiscordMember:
 		return w.Value.(discord.Member).User.ID.String()
-	case AnyTypeDiscordChannel:
+	case TypeDiscordChannel:
 		return w.Value.(discord.Channel).ID.String()
-	case AnyTypeDiscordGuild:
+	case TypeDiscordGuild:
 		return w.Value.(discord.Guild).ID.String()
-	case AnyTypeDiscordRole:
+	case TypeDiscordRole:
 		return w.Value.(discord.Role).ID.String()
-	case AnyTypeHTTPResponse:
+	case TypeHTTPResponse:
 		return string(w.Value.(HTTPResponseValue).Body)
-	case AnyTypeArray:
+	case TypeArray:
 		return fmt.Sprintf("%v", w.Value)
-	case AnyTypeObject:
+	case TypeObject:
 		return fmt.Sprintf("%v", w.Value)
 	default:
 		return fmt.Sprintf("%v", w.Value)
@@ -355,25 +363,25 @@ func (w Thing) String() string {
 
 func (w Thing) Int() int64 {
 	switch w.Type {
-	case AnyTypeInt:
+	case TypeInt:
 		return w.Value.(int64)
-	case AnyTypeFloat:
+	case TypeFloat:
 		return int64(w.Float())
-	case AnyTypeString:
+	case TypeString:
 		i, _ := strconv.ParseInt(w.Value.(string), 10, 64)
 		return i
-	case AnyTypeBool:
+	case TypeBool:
 		if w.Value.(bool) {
 			return 1
 		}
 		return 0
-	case AnyTypeArray:
+	case TypeArray:
 		return int64(len(w.Array()))
-	case AnyTypeObject:
+	case TypeObject:
 		return int64(len(w.Object()))
-	case AnyTypeDiscordMessage:
+	case TypeDiscordMessage:
 		return int64(w.DiscordMessage().ID)
-	case AnyTypeHTTPResponse:
+	case TypeHTTPResponse:
 		return int64(w.HTTPResponse().StatusCode)
 	default:
 		return 0
@@ -382,14 +390,14 @@ func (w Thing) Int() int64 {
 
 func (w Thing) Float() float64 {
 	switch w.Type {
-	case AnyTypeInt:
+	case TypeInt:
 		return float64(w.Value.(int64))
-	case AnyTypeFloat:
+	case TypeFloat:
 		return w.Value.(float64)
-	case AnyTypeString:
+	case TypeString:
 		f, _ := strconv.ParseFloat(w.Value.(string), 64)
 		return f
-	case AnyTypeBool:
+	case TypeBool:
 		if w.Value.(bool) {
 			return 1
 		}
@@ -401,17 +409,17 @@ func (w Thing) Float() float64 {
 
 func (w Thing) Bool() bool {
 	switch w.Type {
-	case AnyTypeBool:
+	case TypeBool:
 		return w.Value.(bool)
-	case AnyTypeInt:
+	case TypeInt:
 		return w.Value.(int64) != 0
-	case AnyTypeFloat:
+	case TypeFloat:
 		return w.Value.(float64) != 0
-	case AnyTypeString:
+	case TypeString:
 		return w.Value.(string) != ""
-	case AnyTypeDiscordMessage:
+	case TypeDiscordMessage:
 		return w.Value != nil
-	case AnyTypeHTTPResponse:
+	case TypeHTTPResponse:
 		return w.Value != nil
 	default:
 		return false
@@ -420,7 +428,7 @@ func (w Thing) Bool() bool {
 
 func (w Thing) Object() map[string]Thing {
 	switch w.Type {
-	case AnyTypeObject:
+	case TypeObject:
 		return w.Value.(map[string]Thing)
 	default:
 		return nil
@@ -429,7 +437,7 @@ func (w Thing) Object() map[string]Thing {
 
 func (w Thing) Array() []Thing {
 	switch w.Type {
-	case AnyTypeArray:
+	case TypeArray:
 		return w.Value.([]Thing)
 	default:
 		return nil
@@ -437,14 +445,54 @@ func (w Thing) Array() []Thing {
 }
 
 func (w Thing) DiscordMessage() discord.Message {
-	if w.Type == AnyTypeDiscordMessage {
+	if w.Type == TypeDiscordMessage {
 		return w.Value.(discord.Message)
 	}
 	return discord.Message{}
 }
 
+func (w Thing) DiscordUser() discord.User {
+
+	if w.Type == TypeDiscordUser {
+		return w.Value.(discord.User)
+	}
+	return discord.User{}
+}
+
+func (w Thing) DiscordMember() discord.Member {
+
+	if w.Type == TypeDiscordMember {
+		return w.Value.(discord.Member)
+	}
+	return discord.Member{}
+}
+
+func (w Thing) DiscordChannel() discord.Channel {
+
+	if w.Type == TypeDiscordChannel {
+		return w.Value.(discord.Channel)
+	}
+	return discord.Channel{}
+}
+
+func (w Thing) DiscordGuild() discord.Guild {
+
+	if w.Type == TypeDiscordGuild {
+		return w.Value.(discord.Guild)
+	}
+	return discord.Guild{}
+}
+
+func (w Thing) DiscordRole() discord.Role {
+
+	if w.Type == TypeDiscordRole {
+		return w.Value.(discord.Role)
+	}
+	return discord.Role{}
+}
+
 func (w Thing) HTTPResponse() HTTPResponseValue {
-	if w.Type == AnyTypeHTTPResponse {
+	if w.Type == TypeHTTPResponse {
 		return w.Value.(HTTPResponseValue)
 	}
 	return HTTPResponseValue{}

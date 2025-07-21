@@ -532,25 +532,35 @@ func (h HTTPResponseEnv) String() string {
 
 func NewThingEnv(t thing.Thing) any {
 	switch t.Type {
-	case thing.AnyTypeString:
+	case thing.TypeString:
 		return t.String()
-	case thing.AnyTypeInt:
+	case thing.TypeInt:
 		return t.Int()
-	case thing.AnyTypeFloat:
+	case thing.TypeFloat:
 		return t.Float()
-	case thing.AnyTypeBool:
+	case thing.TypeBool:
 		return t.Bool()
-	case thing.AnyTypeDiscordMessage:
+	case thing.TypeDiscordMessage:
 		return NewMessageEnv(t.DiscordMessage())
-	case thing.AnyTypeHTTPResponse:
+	case thing.TypeDiscordUser:
+		return NewUserEnv(t.DiscordUser())
+	case thing.TypeDiscordMember:
+		return NewMemberEnv(t.DiscordMember())
+	case thing.TypeDiscordChannel:
+		return NewChannelEnv(t.DiscordChannel())
+	case thing.TypeDiscordGuild:
+		return NewGuildEnv(t.DiscordGuild())
+	case thing.TypeDiscordRole:
+		return NewRoleEnv(t.DiscordRole())
+	case thing.TypeHTTPResponse:
 		return NewHTTPResponseEnv(t.HTTPResponse())
-	case thing.AnyTypeArray:
+	case thing.TypeArray:
 		res := make([]any, len(t.Array()))
 		for i, v := range t.Array() {
 			res[i] = NewThingEnv(v)
 		}
 		return res
-	case thing.AnyTypeObject:
+	case thing.TypeObject:
 		res := make(map[string]any, len(t.Object()))
 		for k, v := range t.Object() {
 			res[k] = NewThingEnv(v)
