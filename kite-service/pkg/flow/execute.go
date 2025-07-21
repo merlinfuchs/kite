@@ -843,7 +843,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			return traceError(n, err)
 		}
 
-		nodeState.Result = thing.New(response)
+		nodeState.Result = thing.NewString(response)
 		return n.ExecuteChildren(ctx)
 	case FlowNodeTypeActionAISearchWeb:
 		data := n.Data.AIChatCompletionData
