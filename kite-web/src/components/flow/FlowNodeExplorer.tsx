@@ -1,9 +1,8 @@
+import { useFlowContext } from "@/lib/flow/context";
 import { NodeValues, createNode, nodeTypes } from "@/lib/flow/nodes";
+import { useReactFlow } from "@xyflow/react";
 import clsx from "clsx";
 import { DragEvent, useMemo, useState } from "react";
-import { useReactFlow } from "@xyflow/react";
-import { getUniqueId } from "@/lib/utils";
-import { useFlowContext } from "@/lib/flow/context";
 import { ScrollArea } from "../ui/scroll-area";
 
 const nodeCategories = {

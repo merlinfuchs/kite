@@ -36,6 +36,7 @@ export default function PlaceholderExplorer({
   tab,
   tabs,
   onTabChange,
+  hideBrackets,
 }: {
   children: ReactNode;
   onSelect: (value: string) => void;
@@ -46,6 +47,7 @@ export default function PlaceholderExplorer({
     value: string;
   }[];
   onTabChange?: (value: string) => void;
+  hideBrackets?: boolean;
 }) {
   const [open, setOpen] = useState(false);
 
@@ -97,9 +99,19 @@ export default function PlaceholderExplorer({
                   >
                     <div>{placeholder.label}</div>
                     <div className="text-xs">
-                      <span className="text-muted-foreground mr-1">{"{{"}</span>
-                      <span>{placeholder.value}</span>
-                      <span className="text-muted-foreground ml-1">{"}}"}</span>
+                      {!hideBrackets ? (
+                        <>
+                          <span className="text-muted-foreground mr-1">
+                            {"{{"}
+                          </span>
+                          <span>{placeholder.value}</span>
+                          <span className="text-muted-foreground ml-1">
+                            {"}}"}
+                          </span>
+                        </>
+                      ) : (
+                        <span>{placeholder.value}</span>
+                      )}
                     </div>
                   </CommandItem>
                 ))}

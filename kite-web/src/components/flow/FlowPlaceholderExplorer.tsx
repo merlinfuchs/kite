@@ -8,8 +8,10 @@ import { NodeData } from "@/lib/flow/data";
 
 export default function FlowPlaceholderExplorer({
   onSelect,
+  hideBrackets,
 }: {
   onSelect: (value: string) => void;
+  hideBrackets?: boolean;
 }) {
   // TODO: only compute when explorer is open
   const nodePlaceholders = useNodePlaceholders();
@@ -23,7 +25,11 @@ export default function FlowPlaceholderExplorer({
 
   return (
     <div className="absolute top-1.5 right-1.5 z-20">
-      <PlaceholderExplorer onSelect={onSelect} placeholders={placeholders}>
+      <PlaceholderExplorer
+        onSelect={onSelect}
+        placeholders={placeholders}
+        hideBrackets={hideBrackets}
+      >
         <VariableIcon
           className="h-5.5 w-5.5 text-muted-foreground hover:text-foreground cursor-pointer"
           role="button"

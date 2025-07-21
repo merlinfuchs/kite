@@ -817,6 +817,7 @@ function ExpressionInput({ data, updateData, errors }: InputProps) {
       }
       errors={errors}
       placeholders
+      disablePlaceholderBrackets
     />
   );
 }
@@ -1765,6 +1766,7 @@ function BaseInput({
   value,
   updateValue,
   placeholders,
+  disablePlaceholderBrackets,
   clearable,
 }: {
   type?: "text" | "textarea" | "select";
@@ -1776,6 +1778,7 @@ function BaseInput({
   value: string;
   updateValue: (value: string) => void;
   placeholders?: boolean;
+  disablePlaceholderBrackets?: boolean;
   clearable?: boolean;
 }) {
   const error = errors[field];
@@ -1785,7 +1788,9 @@ function BaseInput({
 
   const onPlaceholderSelect = useCallback(
     (placeholder: string) => {
-      const value = `{{${placeholder}}}`;
+      const value = disablePlaceholderBrackets
+        ? placeholder
+        : `{{${placeholder}}}`;
 
       const element =
         type === "textarea" ? textareaRef.current : inputRef.current;
@@ -1861,7 +1866,10 @@ function BaseInput({
           />
         )}
         {placeholders && (
-          <FlowPlaceholderExplorer onSelect={onPlaceholderSelect} />
+          <FlowPlaceholderExplorer
+            onSelect={onPlaceholderSelect}
+            hideBrackets={disablePlaceholderBrackets}
+          />
         )}
       </div>
       {error && (
