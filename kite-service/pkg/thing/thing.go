@@ -3,7 +3,6 @@ package thing
 import (
 	"encoding/json"
 	"fmt"
-	"log/slog"
 	"net/http"
 	"reflect"
 	"strconv"
@@ -126,7 +125,7 @@ func (w *Thing) UnmarshalJSON(data []byte) error {
 	}
 
 	// This is for backwards compatibility with values missing the type field
-	fmt.Println("Falling back to guess type")
+	// We try to guess the type from the value and fallback to TypeAny if we can't
 	var value any
 	if err := json.Unmarshal(data, &value); err != nil {
 		return err
@@ -187,8 +186,14 @@ func NewGuessType(v any) (Thing, error) {
 	case uint64:
 		return NewInt(v), nil
 	case float32:
+		if v == float32(int32(v)) {
+			return NewInt(int32(v)), nil
+		}
 		return NewFloat(v), nil
 	case float64:
+		if v == float64(int64(v)) {
+			return NewInt(int64(v)), nil
+		}
 		return NewFloat(v), nil
 	case bool:
 		return NewBool(v), nil
@@ -215,7 +220,6 @@ func NewGuessType(v any) (Thing, error) {
 	case nil:
 		return Null, nil
 	default:
-		slog.Error("unable to guess type for value", "type", reflect.TypeOf(v))
 		return Null, fmt.Errorf("unable to guess type for value: %T", v)
 	}
 }
@@ -381,10 +385,25 @@ func (w Thing) Int() int64 {
 		return int64(len(w.Object()))
 	case TypeDiscordMessage:
 		return int64(w.DiscordMessage().ID)
+	case TypeDiscordUser:
+		return int64(w.DiscordUser().ID)
+	case TypeDiscordMember:
+		return int64(w.DiscordMember().User.ID)
+	case TypeDiscordChannel:
+		return int64(w.DiscordChannel().ID)
+	case TypeDiscordGuild:
+		return int64(w.DiscordGuild().ID)
+	case TypeDiscordRole:
+		return int64(w.DiscordRole().ID)
 	case TypeHTTPResponse:
 		return int64(w.HTTPResponse().StatusCode)
 	default:
-		return 0
+		str := w.String()
+		if str == "" {
+			return 0
+		}
+		i, _ := strconv.ParseInt(str, 10, 64)
+		return i
 	}
 }
 
@@ -402,8 +421,31 @@ func (w Thing) Float() float64 {
 			return 1
 		}
 		return 0
+	case TypeArray:
+		return float64(len(w.Array()))
+	case TypeObject:
+		return float64(len(w.Object()))
+	case TypeDiscordMessage:
+		return float64(w.DiscordMessage().ID)
+	case TypeDiscordUser:
+		return float64(w.DiscordUser().ID)
+	case TypeDiscordMember:
+		return float64(w.DiscordMember().User.ID)
+	case TypeDiscordChannel:
+		return float64(w.DiscordChannel().ID)
+	case TypeDiscordGuild:
+		return float64(w.DiscordGuild().ID)
+	case TypeDiscordRole:
+		return float64(w.DiscordRole().ID)
+	case TypeHTTPResponse:
+		return float64(w.HTTPResponse().StatusCode)
 	default:
-		return 0
+		str := w.String()
+		if str == "" {
+			return 0
+		}
+		f, _ := strconv.ParseFloat(str, 64)
+		return f
 	}
 }
 
@@ -416,13 +458,14 @@ func (w Thing) Bool() bool {
 	case TypeFloat:
 		return w.Value.(float64) != 0
 	case TypeString:
-		return w.Value.(string) != ""
-	case TypeDiscordMessage:
-		return w.Value != nil
-	case TypeHTTPResponse:
-		return w.Value != nil
+		v := w.Value.(string)
+		return v != "" && v != "null" && v != "undefined" && v != "0" && v != "false"
+	case TypeArray:
+		return len(w.Array()) > 0
+	case TypeObject:
+		return len(w.Object()) > 0
 	default:
-		return false
+		return w.Value != nil
 	}
 }
 
