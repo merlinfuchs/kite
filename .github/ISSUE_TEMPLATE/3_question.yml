@@ -9,7 +9,6 @@ body:
       value: |
         ### Make sure you are **only** asking a question and not reporting a bug or requesting a feature.
         If your question contains "isn't working" or "can you add", this is most likely the wrong template.
-        If you are in doubt whether this is the right template, **USE ANOTHER TEMPLATE**!
   - type: textarea
     id: question
     attributes:
