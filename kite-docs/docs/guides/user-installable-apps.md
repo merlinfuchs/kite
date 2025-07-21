@@ -8,13 +8,13 @@ Discord apps are typically installed by server administrators and only work with
 
 Kite makes it easy to create user-installable Discord apps without writing any code. This guide will walk you through creating and configuring a user-installable app with Kite.
 
-:::note
+:::tip
 Some Discord servers may restrict the usage of user-installable apps for moderation purposes. If your app isn't working in a particular server, check that server's settings.
 :::
 
 ## Creating Your App
 
-To create your Discord app, follow the steps in the [getting started guide](/guides/getting-started)
+To create your Discord app, follow the steps in the [getting started guide](/guides/getting-started).
 
 ## Configuring Installation Settings
 

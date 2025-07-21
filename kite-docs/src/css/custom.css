@@ -36,8 +36,7 @@
    --table-row-separator-color: rgba(255, 255, 255, 0.16);
 }
 
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@700;780&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@400;600;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@780&display=swap');
 
 /* Hide breadcrumbs */
 ul.breadcrumbs {
@@ -60,9 +59,14 @@ ul.breadcrumbs {
   font-weight: bolder;
   text-transform: uppercase;
   transition: color 0.3s ease;
-  margin: 10px;
+  padding-left: 18px;
   color: rgb(20, 20, 20) !important;
 }
+
+li.theme-doc-sidebar-item-category {
+  margin-bottom: 4px !important;
+}
+
 
 html[data-theme='dark'] .menu__link--sublist {
   color: rgb(255, 255, 255) !important;
@@ -70,11 +74,6 @@ html[data-theme='dark'] .menu__link--sublist {
 
 .menu__list-item-collapsible {
   background-color: transparent !important;
-}
-
-/* Active category link */
-.menu__link--sublist.menu__link--active {
-  color: rgb(20, 20, 20) !important;
 }
 
 /* Inactive regular (non-category) link styles */
@@ -131,6 +130,41 @@ html[data-theme='dark'] .menu__link:not(.menu__link--sublist):not(.menu__link--a
 }
 
 /* GitHub icon (light/dark) */
+/* GitHub & Discord icon links (navbar) */
+.header-github-link,
+.header-discord-link {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  padding-left: 36px; /* Leaves space for icon*/
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: opacity 0.3s ease, color 0.3s ease;
+  text-decoration: none;
+}
+
+.header-github-link:hover,
+.header-discord-link:hover {
+  opacity: 0.8;
+}
+
+/* Icon */
+.header-github-link::before,
+.header-discord-link::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 8px;
+  width: 20px;
+  height: 20px;
+  transform: translateY(-50%);
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: contain;
+}
+
+/* GitHub icon (light/dark) */
 .header-github-link::before {
   background-image: url("/icons/github-dark.svg");
 }
@@ -146,7 +180,7 @@ html[data-theme='dark'] .header-discord-link::before {
   background-image: url("/icons/discord.svg");
 }
 
-/* Hide external link icon inside GitHub/Discord */
+/* Hide external link icons in header links */
 .header-github-link .iconExternalLink_nPIU,
 .header-discord-link .iconExternalLink_nPIU {
   display: none !important;
@@ -161,7 +195,7 @@ html[data-theme='dark'] .header-discord-link::before {
 }
 
 /* Right padding for content column */
-.col.docItemCol_VOVn {
+.docMainContainer_TBSr {
   padding-left: 40px;
   padding-right: 14px;
 }
@@ -173,6 +207,7 @@ th,
 td {
   border: none !important;
 }
+
 
 table thead tr th {
   padding: 5px 10px;
@@ -191,6 +226,8 @@ tbody tr {
 }
 
 tbody tr td {
+  border-left: 1px solid var(--table-row-separator-color) !important;
+  border-right: 1px solid var(--table-row-separator-color) !important;
   padding: 10px 10px;
 }
 
@@ -199,6 +236,7 @@ thead tr {
 }
 
 h1 {
+  font-family: 'Plus Jakarta Sans', sans-serif;
   font-size: 3rem;
   font-weight: 780;
   margin-top: 20px;
@@ -220,7 +258,6 @@ h4 {
 }
 
 h1, h2, h3, h4 {
-  font-family: 'Plus Jakarta Sans', sans-serif;
   color: rgb(28, 30, 33) !important;
 }
 
@@ -247,84 +284,67 @@ code {
 
 .theme-doc-markdown.markdown article a[href],
 [class^="docItemContainer_"] article a[href] {
+  color: var(--ifm-color-primary);
   text-decoration: none;
-  position: relative;
   border-radius: 4px;
-  transition: color 0.3s ease, box-shadow 0.3s ease;
-  text-underline-offset: 3px;
-  color: var(--ifm-color-primary);
+  position: relative;
 }
 
-.theme-doc-markdown.markdown article a[href]::before,
-[class^="docItemContainer_"] article a[href]::before {
-  content: '';
-  position: absolute;
-  bottom: -2px;
-  left: 0;
-  width: 0%;
-  height: 2px;
-  background-color: var(--ifm-color-primary);
-  transition: width 0.4s ease;
-  border-radius: 1px;
-}
+@media (hover: hover) and (pointer: fine) {
+  .theme-doc-markdown.markdown article a[href],
+  [class^="docItemContainer_"] article a[href] {
+    background-image: linear-gradient(to right, var(--ifm-color-primary) 0%, var(--ifm-color-primary) 100%);
+    background-repeat: no-repeat;
+    background-position: 0 100%;
+    padding-bottom: 1px;
+    background-size: 0% 2px;
+    transition: 
+      background-size 0.4s cubic-bezier(0.4, 0, 0.2, 1), 
+      background-color 0.3s cubic-bezier(0.4, 0, 0.2, 1), 
+      color 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
 
-.theme-doc-markdown.markdown article a[href]:hover::before,
-[class^="docItemContainer_"] article a[href]:hover::before {
-  width: 100%;
-}
+  .theme-doc-markdown.markdown article a[href]:hover,
+  [class^="docItemContainer_"] article a[href]:hover {
+    background-size: 100% 2px;
+    background-color: rgba(0, 0, 0, 0.05);
+    color: var(--ifm-color-primary);
+  }
 
-.theme-doc-markdown.markdown article a[href]::after,
-[class^="docItemContainer_"] article a[href]::after {
-  content: '\00a0\00a0↗';
-  display: inline-block;
-  opacity: 0;
-  transform: translateY(4px) scale(0.95);
-  transition: opacity 0.3s ease, transform 0.3s ease;
-  margin-left: 0.2em;
-  pointer-events: none;
-}
+  .theme-doc-markdown.markdown article a[href]::after,
+  [class^="docItemContainer_"] article a[href]::after {
+    content: '';
+    display: inline-block;
+    margin-left: 0.2em;
+    pointer-events: none;
+    font-weight: 600;
+    font-size: 0.9em;
+    opacity: 0.6;
+    transform: translateY(4px) scale(0.95);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
 
-.theme-doc-markdown.markdown article a[href]:hover::after,
-[class^="docItemContainer_"] article a[href]:hover::after {
-  opacity: 1;
-  transform: translateY(0) scale(1);
-}
-
-.theme-doc-markdown.markdown article a[href]:hover,
-[class^="docItemContainer_"] article a[href]:hover {
-  color: var(--ifm-color-primary);
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+  .theme-doc-markdown.markdown article a[href]:hover::after,
+  [class^="docItemContainer_"] article a[href]:hover::after {
+    content: '↗';
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 .theme-doc-markdown.markdown article h2 a[href]::after,
 .theme-doc-markdown.markdown article h3 a[href]::after,
 [class^="docItemContainer_"] article h2 a[href]::after,
 [class^="docItemContainer_"] article h3 a[href]::after {
-  content: none !important;
+  content: none;
 }
-
-
 
 /* Images */
 .theme-doc-markdown.markdown article img,
 [class^="docItemContainer_"] article img {
   border-radius: 8px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
   overflow: hidden;
-  transition: transform .2s ease, box-shadow .2s ease;
-}
-
-.theme-doc-markdown.markdown article img:hover,
-[class^="docItemContainer_"] article img:hover{
-  transform: scale(1.015);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  outline: 2px solid rgb(0, 0, 0);
-  outline-offset: 2px;
-}
-
-html[data-theme='dark'] .theme-doc-markdown.markdown article img:hover,
-html[data-theme='dark'] [class^="docItemContainer_"] article img:hover{
-  outline: 2px solid rgb(230, 238, 250);
 }
 
 /* Category Index card */
@@ -332,49 +352,7 @@ html[data-theme='dark'] [class^="docItemContainer_"] article img:hover{
   margin-top: 0px !important;
 }
 
-/* Custom Bullets */
-article ul > li {
-  list-style: none;
-  position: relative;
-  padding-left: 1.1em;
-}
-
-article ul > li::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 0.5em;
-  width: 0.6em;
-  height: 0.6em;
-  background-color: rgb(209, 213, 219);
-  border-radius: 50%;
-}
-
-/* Remove nested list bullets */
-article ul ul > li::before {
-  content: none;
-}
-
 /* Self-Explanatory, isn't it? */
 .theme-admonition {
   border-radius: 0;
-  background-color: transparent;
-}
-
-/* Table of contents on the left */
-.table-of-contents.table-of-contents__left-border a {
-  font-size: .875rem;
-  line-height: 1.25rem;
-  font-family: 'Nunito Sans', system-ui, arial, sans-serif;
-  font-weight: 600;
-  transition: color 0.3 ease;
-}
-
-.table-of-contents.table-of-contents__left-border a:not(.table-of-contents__link--active) {
-  color: rgb(95, 114, 121);
-}
-
-.table-of-contents.table-of-contents__left-border {
-  padding-top: 32px;
-  border-left: none;
 }

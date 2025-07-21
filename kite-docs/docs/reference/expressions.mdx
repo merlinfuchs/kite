@@ -1,6 +1,7 @@
 ---
 sidebar_position: 5
 ---
+import ParametrizedCodeBlock from '@site/src/components/ParametrizedCodeBlock';
 
 # Expressions
 
@@ -101,3 +102,16 @@ This will return the value of the `somefield` field in the JSON response of a HT
 ```python
 {{ fromJSON(result('owlspush').body()).somefield }}
 ```
+This will return the value of a field in the JSON response of a HTTP request block.
+
+Fill in the values below to customize your expression.
+
+
+<ParametrizedCodeBlock
+  fields={[
+    { name: 'block', label: 'Block ID', default: 'owlspush' },
+    { name: 'field', label: 'Field Name', default: 'somefield' },
+  ]}
+  language="python"
+  template={`{{ fromJSON(result('{{block}}').body()){{field}} }}`}
+/>
