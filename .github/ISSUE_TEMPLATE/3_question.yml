@@ -4,15 +4,6 @@ title: "[Question] ISSUE_TITLE"
 labels: [question]
 
 body:
-  - type: checkboxes
-    attributes:
-      label: DO NOT REMOVE OR SKIP THE TEMPLATE
-      description: Fill all fields even if you think it is irrelevant for the issue. Please ask all non-technical questions in our Discord [https://discord.gg/rNd9jWHnXh](https://discord.gg/rNd9jWHnXh)
-      options:
-        - label: I understand that my issue may get **closed without notice** if I *intentionally* remove or skip any mandatory\* field
-          required: true
-        - label: Yes I want to ask a technical question
-          required: true
   - type: markdown
     attributes:
       value: |
@@ -22,7 +13,7 @@ body:
   - type: textarea
     id: question
     attributes:
-      label: Provide a well enough worded question
-      placeholder: Provide any additional information and as much context and examples as possible
+      label: Question
+      placeholder: Provide any relevant information and as much context and examples as possible
     validations:
       required: true

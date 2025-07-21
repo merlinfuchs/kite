@@ -1,0 +1,13 @@
+name: Suggest an improvement
+description: Suggest an improvement or request a new feature
+title: "[Suggestion] ISSUE_TITLE"
+labels: [enhancement]
+
+body:
+  - type: textarea
+    id: description
+    attributes:
+      label: Suggestion
+      placeholder: Provide any relevant information, any suggested solutions, use-cases, and as much context and examples as possible
+    validations:
+      required: true

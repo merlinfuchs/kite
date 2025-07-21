@@ -4,17 +4,10 @@ title: "[Bug] ISSUE_TITLE"
 labels: [bug]
 
 body:
-  - type: checkboxes
-    attributes:
-      label: DO NOT REMOVE OR SKIP THE TEMPLATE
-      description: Fill all fields even if you think it is irrelevant for the issue
-      options:
-        - label: I understand that my issue may get **closed without notice** if I *intentionally* remove or skip any mandatory\* field
-          required: true
   - type: textarea
     id: description
     attributes:
-      label: Provide a well enough worded description
-      placeholder: Provide any additional information, any suggested solutions, and as much context and examples as possible
+      label: Problem Description
+      placeholder: Provide any relevant information, any suggested solutions, and as much context and examples as possible
     validations:
       required: true
