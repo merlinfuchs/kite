@@ -11,7 +11,7 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
-const createResumePoint = `-- name: CreateResumePoint :one
+const createResumePoint = `-- name: CreateResumePoint :exec
 INSERT INTO resume_points (
     id, 
     type,
@@ -27,7 +27,6 @@ INSERT INTO resume_points (
     expires_at
 )
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
-RETURNING id, type, app_id, command_id, event_listener_id, message_id, message_instance_id, flow_source_id, flow_node_id, flow_state, created_at, expires_at
 `
 
 type CreateResumePointParams struct {
@@ -45,8 +44,8 @@ type CreateResumePointParams struct {
 	ExpiresAt         pgtype.Timestamp
 }
 
-func (q *Queries) CreateResumePoint(ctx context.Context, arg CreateResumePointParams) (ResumePoint, error) {
-	row := q.db.QueryRow(ctx, createResumePoint,
+func (q *Queries) CreateResumePoint(ctx context.Context, arg CreateResumePointParams) error {
+	_, err := q.db.Exec(ctx, createResumePoint,
 		arg.ID,
 		arg.Type,
 		arg.AppID,
@@ -60,22 +59,7 @@ func (q *Queries) CreateResumePoint(ctx context.Context, arg CreateResumePointPa
 		arg.CreatedAt,
 		arg.ExpiresAt,
 	)
-	var i ResumePoint
-	err := row.Scan(
-		&i.ID,
-		&i.Type,
-		&i.AppID,
-		&i.CommandID,
-		&i.EventListenerID,
-		&i.MessageID,
-		&i.MessageInstanceID,
-		&i.FlowSourceID,
-		&i.FlowNodeID,
-		&i.FlowState,
-		&i.CreatedAt,
-		&i.ExpiresAt,
-	)
-	return i, err
+	return err
 }
 
 const deleteExpiredResumePoints = `-- name: DeleteExpiredResumePoints :exec

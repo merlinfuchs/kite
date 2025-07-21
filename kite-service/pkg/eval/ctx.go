@@ -3,8 +3,6 @@ package eval
 import (
 	"encoding/json"
 	"fmt"
-	"io"
-	"net/http"
 	"strconv"
 
 	"github.com/diamondburned/arikawa/v3/discord"
@@ -44,9 +42,9 @@ func NewInteractionEnv(i *discord.InteractionEvent) *InteractionEnv {
 	}
 
 	if i.User != nil {
-		e.User = NewUserEnv(i.User)
+		e.User = NewUserEnv(*i.User)
 	} else {
-		e.Member = NewMemberEnv(i.Member)
+		e.Member = NewMemberEnv(*i.Member)
 		e.User = e.Member
 	}
 
@@ -122,26 +120,26 @@ func NewCommandEnv(i *discord.InteractionEvent) *CommandEnv {
 
 			if member, ok := data.Resolved.Members[discord.UserID(userID)]; ok {
 				member.User = user
-				args[option.Name] = NewMemberEnv(&member)
+				args[option.Name] = NewMemberEnv(member)
 			} else {
-				args[option.Name] = NewUserEnv(&user)
+				args[option.Name] = NewUserEnv(user)
 			}
 		case discord.RoleOptionType:
 			roleID, _ := strconv.ParseInt(value.(string), 10, 64)
 			role := data.Resolved.Roles[discord.RoleID(roleID)]
-			args[option.Name] = NewRoleEnv(&role)
+			args[option.Name] = NewRoleEnv(role)
 		case discord.ChannelOptionType:
 			channelID, _ := strconv.ParseInt(value.(string), 10, 64)
 			channel := data.Resolved.Channels[discord.ChannelID(channelID)]
-			args[option.Name] = NewChannelEnv(&channel)
+			args[option.Name] = NewChannelEnv(channel)
 		case discord.MentionableOptionType:
 			mentionableID, _ := strconv.ParseInt(value.(string), 10, 64)
 			user, ok := data.Resolved.Users[discord.UserID(mentionableID)]
 			if ok {
-				args[option.Name] = NewUserEnv(&user)
+				args[option.Name] = NewUserEnv(user)
 			} else {
 				role := data.Resolved.Roles[discord.RoleID(mentionableID)]
-				args[option.Name] = NewRoleEnv(&role)
+				args[option.Name] = NewRoleEnv(role)
 			}
 		case discord.AttachmentOptionType:
 			attachmentID, _ := strconv.ParseInt(value.(string), 10, 64)
@@ -229,32 +227,32 @@ func NewEventEnv(event ws.Event) *EventEnv {
 	switch e := event.(type) {
 	case *gateway.MessageCreateEvent:
 		if e.Member != nil {
-			env.Member = NewMemberEnv(e.Member)
+			env.Member = NewMemberEnv(*e.Member)
 			env.User = env.Member
 		} else {
-			env.User = NewUserEnv(&e.Author)
+			env.User = NewUserEnv(e.Author)
 			env.Member = env.User
 		}
 		env.Channel = NewSnowflakeEnv(e.ChannelID)
 		if e.GuildID != 0 {
 			env.Guild = NewSnowflakeEnv(e.GuildID)
 		}
-		env.Message = NewMessageEnv(&e.Message)
+		env.Message = NewMessageEnv(e.Message)
 	case *gateway.MessageUpdateEvent:
 		if e.Member != nil {
-			env.Member = NewMemberEnv(e.Member)
+			env.Member = NewMemberEnv(*e.Member)
 			env.User = env.Member
 		} else {
-			env.User = NewUserEnv(&e.Author)
+			env.User = NewUserEnv(e.Author)
 			env.Member = env.User
 		}
 		env.Channel = NewSnowflakeEnv(e.ChannelID)
 		if e.GuildID != 0 {
 			env.Guild = NewSnowflakeEnv(e.GuildID)
 		}
-		env.Message = NewMessageEnv(&e.Message)
+		env.Message = NewMessageEnv(e.Message)
 	case *gateway.MessageDeleteEvent:
-		env.Message = NewMessageEnv(&discord.Message{
+		env.Message = NewMessageEnv(discord.Message{
 			ID: e.ID,
 		})
 		env.Channel = NewSnowflakeEnv(e.ChannelID)
@@ -262,11 +260,11 @@ func NewEventEnv(event ws.Event) *EventEnv {
 			env.Guild = NewSnowflakeEnv(e.GuildID)
 		}
 	case *gateway.GuildMemberAddEvent:
-		env.Member = NewMemberEnv(&e.Member)
+		env.Member = NewMemberEnv(e.Member)
 		env.User = env.Member
 		env.Guild = NewSnowflakeEnv(e.GuildID)
 	case *gateway.GuildMemberRemoveEvent:
-		env.User = NewUserEnv(&e.User)
+		env.User = NewUserEnv(e.User)
 		env.Member = env.User
 		env.Guild = NewSnowflakeEnv(e.GuildID)
 	}
@@ -296,6 +294,8 @@ func NewContextFromEvent(event ws.Event, session *state.State) Context {
 }
 
 type UserEnv struct {
+	og discord.User
+
 	ID            string `expr:"id" json:"id"`
 	Username      string `expr:"username" json:"username"`
 	Discriminator string `expr:"discriminator" json:"discriminator"`
@@ -305,12 +305,18 @@ type UserEnv struct {
 	BannerURL     string `expr:"banner_url" json:"banner_url"`
 }
 
+func (u UserEnv) thing() thing.Thing {
+	return thing.NewDiscordUser(u.og)
+}
+
 func (u UserEnv) String() string {
 	return u.ID
 }
 
-func NewUserEnv(user *discord.User) *UserEnv {
+func NewUserEnv(user discord.User) *UserEnv {
 	return &UserEnv{
+		og: user,
+
 		ID:            user.ID.String(),
 		Username:      user.Username,
 		Discriminator: user.Discriminator,
@@ -346,14 +352,14 @@ func (m MemberEnv) Roles() []string {
 	return m.RoleIDs
 }
 
-func NewMemberEnv(member *discord.Member) *MemberEnv {
+func NewMemberEnv(member discord.Member) *MemberEnv {
 	roleIDs := make([]string, len(member.RoleIDs))
 	for i, role := range member.RoleIDs {
 		roleIDs[i] = role.String()
 	}
 
 	return &MemberEnv{
-		UserEnv: *NewUserEnv(&member.User),
+		UserEnv: *NewUserEnv(member.User),
 
 		Nick:    member.Nick,
 		RoleIDs: roleIDs,
@@ -361,17 +367,25 @@ func NewMemberEnv(member *discord.Member) *MemberEnv {
 }
 
 type ChannelEnv struct {
+	og discord.Channel
+
 	ID      string `expr:"id" json:"id"`
 	Name    string `expr:"name" json:"name"`
 	Mention string `expr:"mention" json:"mention"`
 }
 
-func NewChannelEnv(channel *discord.Channel) *ChannelEnv {
+func NewChannelEnv(channel discord.Channel) *ChannelEnv {
 	return &ChannelEnv{
+		og: channel,
+
 		ID:      channel.ID.String(),
 		Name:    channel.Name,
 		Mention: fmt.Sprintf("<#%s>", channel.ID.String()),
 	}
+}
+
+func (c ChannelEnv) thing() thing.Thing {
+	return thing.NewDiscordChannel(c.og)
 }
 
 func (c ChannelEnv) String() string {
@@ -379,17 +393,25 @@ func (c ChannelEnv) String() string {
 }
 
 type RoleEnv struct {
+	og discord.Role
+
 	ID      string `expr:"id" json:"id"`
 	Name    string `expr:"name" json:"name"`
 	Mention string `expr:"mention" json:"mention"`
 }
 
-func NewRoleEnv(role *discord.Role) *RoleEnv {
+func NewRoleEnv(role discord.Role) *RoleEnv {
 	return &RoleEnv{
+		og: role,
+
 		ID:      role.ID.String(),
 		Name:    role.Name,
 		Mention: fmt.Sprintf("<@&%s>", role.ID.String()),
 	}
+}
+
+func (r RoleEnv) thing() thing.Thing {
+	return thing.NewDiscordRole(r.og)
 }
 
 func (r RoleEnv) String() string {
@@ -397,15 +419,23 @@ func (r RoleEnv) String() string {
 }
 
 type MessageEnv struct {
+	og discord.Message
+
 	ID      string `expr:"id" json:"id"`
 	Content string `expr:"content" json:"content"`
 }
 
-func NewMessageEnv(msg *discord.Message) *MessageEnv {
+func NewMessageEnv(msg discord.Message) *MessageEnv {
 	return &MessageEnv{
+		og: msg,
+
 		ID:      msg.ID.String(),
 		Content: msg.Content,
 	}
+}
+
+func (m MessageEnv) thing() thing.Thing {
+	return thing.NewDiscordMessage(m.og)
 }
 
 func (m MessageEnv) String() string {
@@ -413,15 +443,23 @@ func (m MessageEnv) String() string {
 }
 
 type GuildEnv struct {
+	og discord.Guild
+
 	ID   string `expr:"id" json:"id"`
 	Name string `expr:"name" json:"name"`
 }
 
-func NewGuildEnv(guild *discord.Guild) *GuildEnv {
+func NewGuildEnv(guild discord.Guild) *GuildEnv {
 	return &GuildEnv{
+		og: guild,
+
 		ID:   guild.ID.String(),
 		Name: guild.Name,
 	}
+}
+
+func (g GuildEnv) thing() thing.Thing {
+	return thing.NewDiscordGuild(g.og)
 }
 
 func (g GuildEnv) String() string {
@@ -463,55 +501,73 @@ func (s SnowflakeEnv) String() string {
 }
 
 type HTTPResponseEnv struct {
-	resp *http.Response
+	og thing.HTTPResponseValue
 
 	Status     string                 `expr:"status" json:"status"`
 	StatusCode int                    `expr:"status_code" json:"status_code"`
 	BodyFunc   func() (string, error) `expr:"body" json:"-"`
 }
 
-func NewHTTPResponseEnv(resp *http.Response) *HTTPResponseEnv {
+func NewHTTPResponseEnv(resp thing.HTTPResponseValue) *HTTPResponseEnv {
 	res := &HTTPResponseEnv{
-		resp: resp,
+		og: resp,
 
 		Status:     resp.Status,
 		StatusCode: resp.StatusCode,
 		BodyFunc: func() (string, error) {
-			body, err := io.ReadAll(resp.Body)
-			if err != nil {
-				return "", err
-			}
-			return string(body), nil
+			return string(resp.Body), nil
 		},
 	}
 
 	return res
 }
 
+func (h HTTPResponseEnv) thing() thing.Thing {
+	return thing.NewHTTPResponse(h.og)
+}
+
 func (h HTTPResponseEnv) String() string {
 	return h.Status
 }
 
-func NewAnyEnv(v any) any {
-	switch v := v.(type) {
-	case thing.Any:
-		return NewAnyEnv(v.Inner)
-	case *discord.Message:
-		return NewMessageEnv(v)
-	case *http.Response:
-		return NewHTTPResponseEnv(v)
-	case *discord.User:
-		return NewUserEnv(v)
-	case *discord.Member:
-		return NewMemberEnv(v)
-	case *discord.Channel:
-		return NewChannelEnv(v)
-	case *discord.Guild:
-		return NewGuildEnv(v)
-	case *discord.InteractionEvent:
-		return NewInteractionEnv(v)
+func NewThingEnv(t thing.Thing) any {
+	switch t.Type {
+	case thing.TypeString:
+		return t.String()
+	case thing.TypeInt:
+		return t.Int()
+	case thing.TypeFloat:
+		return t.Float()
+	case thing.TypeBool:
+		return t.Bool()
+	case thing.TypeDiscordMessage:
+		return NewMessageEnv(t.DiscordMessage())
+	case thing.TypeDiscordUser:
+		return NewUserEnv(t.DiscordUser())
+	case thing.TypeDiscordMember:
+		return NewMemberEnv(t.DiscordMember())
+	case thing.TypeDiscordChannel:
+		return NewChannelEnv(t.DiscordChannel())
+	case thing.TypeDiscordGuild:
+		return NewGuildEnv(t.DiscordGuild())
+	case thing.TypeDiscordRole:
+		return NewRoleEnv(t.DiscordRole())
+	case thing.TypeHTTPResponse:
+		return NewHTTPResponseEnv(t.HTTPResponse())
+	case thing.TypeArray:
+		res := make([]any, len(t.Array()))
+		for i, v := range t.Array() {
+			res[i] = NewThingEnv(v)
+		}
+		return res
+	case thing.TypeObject:
+		res := make(map[string]any, len(t.Object()))
+		for k, v := range t.Object() {
+			res[k] = NewThingEnv(v)
+		}
+		return res
 	default:
-		return v
+		return t.Value
 	}
 }
 
@@ -523,6 +579,10 @@ func NewAppEnv(session *state.State) *AppEnv {
 	user := session.Ready().User
 
 	return &AppEnv{
-		User: NewUserEnv(&user),
+		User: NewUserEnv(user),
 	}
+}
+
+type toThing interface {
+	thing() thing.Thing
 }

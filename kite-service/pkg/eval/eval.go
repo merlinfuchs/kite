@@ -14,7 +14,7 @@ import (
 const templateStartTag = "{{"
 const templateEndTag = "}}"
 
-func Eval(ctx context.Context, expression string, c Context) (thing.Any, error) {
+func Eval(ctx context.Context, expression string, c Context) (thing.Thing, error) {
 	c.Env["ctx"] = proxyContext{ctx: ctx}
 
 	opts := []expr.Option{
@@ -37,10 +37,14 @@ func Eval(ctx context.Context, expression string, c Context) (thing.Any, error) 
 		return thing.Null, fmt.Errorf("eval error: %w", err)
 	}
 
-	return thing.New(result), nil
+	if t, ok := result.(toThing); ok {
+		return t.thing(), nil
+	}
+
+	return thing.NewGuessTypeWithFallback(result), nil
 }
 
-func EvalTemplate(ctx context.Context, template string, c Context) (thing.Any, error) {
+func EvalTemplate(ctx context.Context, template string, c Context) (thing.Thing, error) {
 	template = strings.TrimSpace(template)
 	if template == "" {
 		return thing.Null, nil
@@ -84,7 +88,7 @@ func EvalTemplate(ctx context.Context, template string, c Context) (thing.Any, e
 		return thing.Null, err
 	}
 
-	return thing.New(res), nil
+	return thing.NewString(res), nil
 }
 
 func EvalTemplateToString(ctx context.Context, template string, c Context) (string, error) {

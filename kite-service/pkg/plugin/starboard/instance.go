@@ -94,7 +94,7 @@ func (p *StarboardPluginInstance) HandleEvent(c plugin.Context, event gateway.Ev
 			c,
 			starboardMessageKey(config.ChannelID.String(), e.MessageID.String()),
 			provider.VariableOperationOverwrite,
-			thing.New(newMessage.ID),
+			thing.NewInt(int64(newMessage.ID)),
 		)
 		if err != nil {
 			return fmt.Errorf("failed to update existing message ID: %w", err)
@@ -164,7 +164,7 @@ func (p *StarboardPluginInstance) HandleCommand(c plugin.Context, event *gateway
 				c,
 				starboardConfigKey(event.GuildID.String()),
 				provider.VariableOperationOverwrite,
-				thing.New(string(rawConfig)),
+				thing.NewString(string(rawConfig)),
 			)
 			if err != nil {
 				return err

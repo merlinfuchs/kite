@@ -29,16 +29,16 @@ func (e *nodeEvalEnv) GetNode(rawID any) (any, error) {
 	}
 
 	return map[string]any{
-		"result": eval.NewAnyEnv(state.Result),
+		"result": eval.NewThingEnv(state.Result),
 	}, nil
 }
 
-func (ctx *FlowContext) EvalTemplate(template string) (thing.Any, error) {
+func (ctx *FlowContext) EvalTemplate(template string) (thing.Thing, error) {
 	res, err := eval.EvalTemplate(ctx, template, ctx.EvalCtx)
 	if err != nil {
 		return thing.Null, fmt.Errorf("failed to evaluate template: %w", err)
 	}
-	return thing.New(res), nil
+	return res, nil
 }
 
 type nodeEvalPatcher struct{}

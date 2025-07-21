@@ -2,14 +2,12 @@ package flow
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"time"
 
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/utils/ws"
 	"github.com/kitecloud/kite/kite-service/pkg/eval"
-	"github.com/kitecloud/kite/kite-service/pkg/thing"
 )
 
 type FlowContext struct {
@@ -174,94 +172,4 @@ func (c *FlowContext) suspend(t ResumePointType, nodeID string) (*ResumePoint, e
 	}
 
 	return &s, nil
-}
-
-type FlowContextState struct {
-	NodeStates map[string]*FlowContextNodeState `json:"node_states"`
-}
-
-func (s FlowContextState) MarshalJSON() ([]byte, error) {
-	aux := struct {
-		NodeStates map[string]*FlowContextNodeState `json:"node_states"`
-	}{
-		NodeStates: make(map[string]*FlowContextNodeState, len(s.NodeStates)),
-	}
-	// We don't want to serialize empty node states
-	for k, v := range s.NodeStates {
-		if !v.IsEmpty() {
-			aux.NodeStates[k] = v
-		}
-	}
-
-	return json.Marshal(aux)
-}
-
-func (s *FlowContextState) GetNodeState(nodeID string) *FlowContextNodeState {
-	state, ok := s.NodeStates[nodeID]
-	if !ok {
-		state = &FlowContextNodeState{}
-		s.NodeStates[nodeID] = state
-	}
-
-	return state
-}
-
-func (s *FlowContextState) Copy() FlowContextState {
-	copy := FlowContextState{
-		NodeStates: make(map[string]*FlowContextNodeState, len(s.NodeStates)),
-	}
-
-	for k, v := range s.NodeStates {
-		copy.NodeStates[k] = v.Copy()
-	}
-
-	return copy
-}
-
-func (s *FlowContextState) Serialize() ([]byte, error) {
-	return json.Marshal(s)
-}
-
-func (s *FlowContextState) Deserialize(data []byte) error {
-	return json.Unmarshal(data, s)
-}
-
-type FlowContextNodeState struct {
-	ConditionBaseValue thing.Any `json:"condition_base_value,omitempty"`
-	ConditionItemMet   bool      `json:"condition_item_met,omitempty"`
-	Result             thing.Any `json:"result,omitempty"`
-	LoopExited         bool      `json:"loop_exited,omitempty"`
-}
-
-func (s *FlowContextNodeState) MarshalJSON() ([]byte, error) {
-	// We want to ommit nil values
-	aux := struct {
-		ConditionBaseValue any  `json:"condition_base_value,omitempty"`
-		ConditionItemMet   bool `json:"condition_item_met,omitempty"`
-		Result             any  `json:"result,omitempty"`
-		LoopExited         bool `json:"loop_exited,omitempty"`
-	}{
-		ConditionBaseValue: s.ConditionBaseValue.Inner,
-		ConditionItemMet:   s.ConditionItemMet,
-		Result:             s.Result.Inner,
-		LoopExited:         s.LoopExited,
-	}
-
-	return json.Marshal(aux)
-}
-
-func (s *FlowContextNodeState) IsEmpty() bool {
-	return s.ConditionBaseValue.IsNil() &&
-		!s.ConditionItemMet &&
-		s.Result.IsNil() &&
-		!s.LoopExited
-}
-
-func (s *FlowContextNodeState) Copy() *FlowContextNodeState {
-	return &FlowContextNodeState{
-		ConditionBaseValue: s.ConditionBaseValue,
-		ConditionItemMet:   s.ConditionItemMet,
-		Result:             s.Result,
-		LoopExited:         s.LoopExited,
-	}
 }
