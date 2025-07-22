@@ -6,6 +6,7 @@ import {
   BookmarkMinusIcon,
   BookmarkPlusIcon,
   BrainCircuitIcon,
+  CalculatorIcon,
   CircleHelpIcon,
   CornerDownRightIcon,
   DicesIcon,
@@ -441,10 +442,10 @@ export const nodeTypes: Record<string, NodeValues> = {
   },
   action_expression_evaluate: {
     color: actionColor,
-    icon: BrainCircuitIcon,
-    defaultTitle: "Evaluate Expression",
+    icon: CalculatorIcon,
+    defaultTitle: "Calculate Value",
     defaultDescription:
-      "Evalute math or other logical expressions and use the result later",
+      "Evaluate math or other logical expressions and use the result later",
     dataSchema: nodeActionExpressionEvaluateDataSchema,
     dataFields: ["expression", "result_key", "custom_label"],
     helpUrl: env.NEXT_PUBLIC_DOCS_LINK + "/reference/expressions",
