@@ -33,8 +33,6 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 	}
 	defer ctx.endOperation()
 
-	nodeState := ctx.GetNodeState(n.ID)
-
 	switch n.Type {
 	case FlowNodeTypeEntryCommand, FlowNodeTypeEntryComponentButton:
 		if ctx.EntryNodeID != n.ID {
@@ -83,7 +81,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 				return traceError(n, err)
 			}
 
-			nodeState.Result = thing.NewDiscordMessage(*msg)
+			ctx.StoreNodeResult(n, thing.NewDiscordMessage(*msg))
 		} else {
 			resp := api.InteractionResponse{
 				Type: api.MessageInteractionWithSource,
@@ -176,7 +174,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			}
 		}
 
-		nodeState.Result = thing.NewDiscordMessage(*msg)
+		ctx.StoreNodeResult(n, thing.NewDiscordMessage(*msg))
 		return n.ExecuteChildren(ctx)
 	case FlowNodeTypeActionResponseDelete:
 		interaction := ctx.Data.Interaction()
@@ -330,7 +328,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			}
 		}
 
-		nodeState.Result = thing.NewDiscordMessage(*msg)
+		ctx.StoreNodeResult(n, thing.NewDiscordMessage(*msg))
 		return n.ExecuteChildren(ctx)
 	case FlowNodeTypeActionMessageEdit:
 		if ctx.EntryNodeID == n.ID {
@@ -378,7 +376,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			}
 		}
 
-		nodeState.Result = thing.NewDiscordMessage(*msg)
+		ctx.StoreNodeResult(n, thing.NewDiscordMessage(*msg))
 		return n.ExecuteChildren(ctx)
 	case FlowNodeTypeActionMessageDelete:
 		channelTarget, err := ctx.EvalTemplate(n.Data.ChannelTarget)
@@ -432,7 +430,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			return traceError(n, err)
 		}
 
-		nodeState.Result = thing.NewDiscordMessage(*msg)
+		ctx.StoreNodeResult(n, thing.NewDiscordMessage(*msg))
 		return n.ExecuteChildren(ctx)
 	case FlowNodeTypeActionMessageReactionCreate:
 		channelTarget, err := ctx.EvalTemplate(n.Data.ChannelTarget)
@@ -708,7 +706,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			return traceError(n, err)
 		}
 
-		nodeState.Result = newValue
+		ctx.StoreNodeResult(n, newValue)
 		return n.ExecuteChildren(ctx)
 	case FlowNodeTypeActionVariableDelete:
 		scope, err := ctx.EvalTemplate(n.Data.VariableScope)
@@ -741,7 +739,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			return traceError(n, err)
 		}
 
-		nodeState.Result = val
+		ctx.StoreNodeResult(n, val)
 		return n.ExecuteChildren(ctx)
 	case FlowNodeTypeActionHTTPRequest:
 		if n.Data.HTTPRequestData == nil {
@@ -803,11 +801,12 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			return traceError(n, err)
 		}
 
-		nodeState.Result, err = thing.NewFromHTTPResponse(resp)
+		result, err := thing.NewFromHTTPResponse(resp)
 		if err != nil {
 			return traceError(n, err)
 		}
 
+		ctx.StoreNodeResult(n, result)
 		return n.ExecuteChildren(ctx)
 	case FlowNodeTypeActionAIChatCompletion:
 		data := n.Data.AIChatCompletionData
@@ -843,7 +842,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			return traceError(n, err)
 		}
 
-		nodeState.Result = thing.NewString(response)
+		ctx.StoreNodeResult(n, thing.NewString(response))
 		return n.ExecuteChildren(ctx)
 	case FlowNodeTypeActionAISearchWeb:
 		data := n.Data.AIChatCompletionData
@@ -880,7 +879,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			return traceError(n, err)
 		}
 
-		nodeState.Result = thing.NewString(response)
+		ctx.StoreNodeResult(n, thing.NewString(response))
 		return n.ExecuteChildren(ctx)
 	case FlowNodeTypeActionRandomGenerate:
 		min, err := ctx.EvalTemplate(n.Data.RandomMin)
@@ -902,7 +901,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			}
 		}
 
-		nodeState.Result = thing.NewInt(rand.Intn(maxInt + minInt))
+		ctx.StoreNodeResult(n, thing.NewInt(rand.Intn(maxInt+minInt)))
 		return n.ExecuteChildren(ctx)
 	case FlowNodeTypeActionExpressionEvaluate:
 		expression, err := ctx.EvalTemplate(n.Data.Expression)
@@ -915,7 +914,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			return traceError(n, err)
 		}
 
-		nodeState.Result = res
+		ctx.StoreNodeResult(n, res)
 		return n.ExecuteChildren(ctx)
 	case FlowNodeTypeActionLog:
 		logMessage, err := ctx.EvalTemplate(n.Data.LogMessage)
@@ -935,7 +934,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			return traceError(n, err)
 		}
 
-		nodeState.ConditionBaseValue = baseValue
+		ctx.StoreNodeBaseValue(n, baseValue)
 
 		var elseNode *CompiledFlowNode
 
@@ -1118,6 +1117,8 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 
 		eachNode := n.FindDirectChildWithType(FlowNodeTypeControlLoopEach)
 		endNode := n.FindDirectChildWithType(FlowNodeTypeControlLoopEnd)
+
+		nodeState := ctx.GetNodeState(n.ID)
 
 		for i := 0; i < int(loopCount.Int()); i++ {
 			if nodeState.LoopExited {

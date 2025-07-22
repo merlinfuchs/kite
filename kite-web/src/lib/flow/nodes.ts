@@ -6,6 +6,7 @@ import {
   BookmarkMinusIcon,
   BookmarkPlusIcon,
   BrainCircuitIcon,
+  CalculatorIcon,
   CircleHelpIcon,
   CornerDownRightIcon,
   DicesIcon,
@@ -147,6 +148,7 @@ export const nodeTypes: Record<string, NodeValues> = {
       "message_template_id",
       "message_data",
       "message_ephemeral",
+      "temporary_name",
       "custom_label",
     ],
     creditsCost: 1,
@@ -161,6 +163,7 @@ export const nodeTypes: Record<string, NodeValues> = {
       "response_target",
       "message_template_id",
       "message_data",
+      "temporary_name",
       "custom_label",
     ],
     creditsCost: 1,
@@ -194,6 +197,7 @@ export const nodeTypes: Record<string, NodeValues> = {
       "channel_target",
       "message_template_id",
       "message_data",
+      "temporary_name",
       "custom_label",
     ],
     creditsCost: 1,
@@ -209,6 +213,7 @@ export const nodeTypes: Record<string, NodeValues> = {
       "message_target",
       "message_template_id",
       "message_data",
+      "temporary_name",
       "custom_label",
     ],
     creditsCost: 1,
@@ -224,6 +229,7 @@ export const nodeTypes: Record<string, NodeValues> = {
       "user_target",
       "message_data",
       "message_template_id",
+      "temporary_name",
       "custom_label",
     ],
     creditsCost: 1,
@@ -361,14 +367,15 @@ export const nodeTypes: Record<string, NodeValues> = {
   action_variable_set: {
     color: actionColor,
     icon: VariableIcon,
-    defaultTitle: "Set variable",
-    defaultDescription: "Set the value of a global variable",
+    defaultTitle: "Set stored variable",
+    defaultDescription: "Set the value of a stored variable",
     dataSchema: nodeActionVariableSetSchema,
     dataFields: [
       "variable_id",
       "variable_scope",
       "variable_operation",
       "variable_value",
+      "temporary_name",
       "custom_label",
     ],
     creditsCost: 1,
@@ -376,8 +383,8 @@ export const nodeTypes: Record<string, NodeValues> = {
   action_variable_delete: {
     color: actionColor,
     icon: VariableIcon,
-    defaultTitle: "Delete variable",
-    defaultDescription: "Delete the value of a global variable",
+    defaultTitle: "Delete stored variable",
+    defaultDescription: "Delete the value of a stored variable",
     dataSchema: nodeActionVariableDeleteSchema,
     dataFields: ["variable_id", "variable_scope", "custom_label"],
     creditsCost: 1,
@@ -385,10 +392,15 @@ export const nodeTypes: Record<string, NodeValues> = {
   action_variable_get: {
     color: actionColor,
     icon: VariableIcon,
-    defaultTitle: "Get variable",
-    defaultDescription: "Get the value of a global variable",
+    defaultTitle: "Get stored variable",
+    defaultDescription: "Get the value of a stored variable",
     dataSchema: nodeActionVariableGetSchema,
-    dataFields: ["variable_id", "variable_scope", "custom_label"],
+    dataFields: [
+      "variable_id",
+      "variable_scope",
+      "temporary_name",
+      "custom_label",
+    ],
     creditsCost: 1,
   },
   action_http_request: {
@@ -397,7 +409,7 @@ export const nodeTypes: Record<string, NodeValues> = {
     defaultTitle: "Send API Request",
     defaultDescription: "Send an API request to an external server",
     dataSchema: nodeActionHttpRequestDataSchema,
-    dataFields: ["http_request_data", "custom_label"],
+    dataFields: ["http_request_data", "temporary_name", "custom_label"],
     creditsCost: 3,
   },
   action_ai_chat_completion: {
@@ -407,7 +419,7 @@ export const nodeTypes: Record<string, NodeValues> = {
     defaultDescription:
       "Ask artificial intelligence a question or let it respond to a prompt",
     dataSchema: nodeActionAiChatCompletionDataSchema,
-    dataFields: ["ai_chat_completion_data", "custom_label"],
+    dataFields: ["ai_chat_completion_data", "temporary_name", "custom_label"],
     creditsCost: (data) => {
       const model = data.ai_chat_completion_data?.model;
       switch (model) {
@@ -426,7 +438,7 @@ export const nodeTypes: Record<string, NodeValues> = {
     defaultTitle: "Search the Web",
     defaultDescription: "Search the web for the latest information using AI",
     dataSchema: nodeActionAiWebSearchCompletionDataSchema,
-    dataFields: ["ai_web_search_data", "custom_label"],
+    dataFields: ["ai_web_search_data", "temporary_name", "custom_label"],
     creditsCost: (data) => {
       const model = data.ai_chat_completion_data?.model;
       switch (model) {
@@ -441,11 +453,12 @@ export const nodeTypes: Record<string, NodeValues> = {
   },
   action_expression_evaluate: {
     color: actionColor,
-    icon: BrainCircuitIcon,
-    defaultTitle: "Evaluate Expression",
-    defaultDescription: "Evalute math or other logical expressions",
+    icon: CalculatorIcon,
+    defaultTitle: "Calculate Value",
+    defaultDescription:
+      "Evaluate math or other logical expressions and use the result later",
     dataSchema: nodeActionExpressionEvaluateDataSchema,
-    dataFields: ["expression", "custom_label"],
+    dataFields: ["expression", "temporary_name", "custom_label"],
     helpUrl: env.NEXT_PUBLIC_DOCS_LINK + "/reference/expressions",
     creditsCost: 1,
   },
@@ -455,7 +468,7 @@ export const nodeTypes: Record<string, NodeValues> = {
     defaultTitle: "Generate Random Number",
     defaultDescription: "Generate a random number in a range",
     dataSchema: nodeActionRandomGenerateDataSchema,
-    dataFields: ["random_min", "random_max", "custom_label"],
+    dataFields: ["random_min", "random_max", "temporary_name", "custom_label"],
     creditsCost: 1,
   },
   action_log: {

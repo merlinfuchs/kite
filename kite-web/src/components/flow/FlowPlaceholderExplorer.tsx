@@ -1,10 +1,10 @@
-import { VariableIcon } from "lucide-react";
-import PlaceholderExplorer from "../common/PlaceholderExplorer";
-import { Edge, getIncomers, Node, useEdges, useNodes } from "@xyflow/react";
-import { useMemo } from "react";
-import { getNodeValues } from "@/lib/flow/nodes";
 import { useFlowContext } from "@/lib/flow/context";
 import { NodeData } from "@/lib/flow/data";
+import { getNodeValues } from "@/lib/flow/nodes";
+import { Edge, getIncomers, Node, useEdges, useNodes } from "@xyflow/react";
+import { VariableIcon } from "lucide-react";
+import { useMemo } from "react";
+import PlaceholderExplorer from "../common/PlaceholderExplorer";
 
 export default function FlowPlaceholderExplorer({
   onSelect,
@@ -151,8 +151,6 @@ function useCommandPlaceholders() {
   ];
 }
 
-const numericRegex = /^[0-9]+$/;
-
 function useNodePlaceholders() {
   const nodes = useNodes();
   const edges = useEdges();
@@ -168,7 +166,10 @@ function useNodePlaceholders() {
     }
 
     const nodeItems: { label: string; value: string }[] = [];
+    const resultKeyItems: { label: string; value: string }[] = [];
     const componentItems: { label: string; value: string }[] = [];
+
+    const seenResultKeys = new Set<string>();
 
     for (const parent of parents) {
       if (parent.type?.startsWith("action_")) {
@@ -179,6 +180,18 @@ function useNodePlaceholders() {
         }
 
         nodeItems.push({ label, value: `result('${parent.id}')` });
+      }
+
+      if (
+        parent.data.temporary_name &&
+        !seenResultKeys.has(parent.data.temporary_name)
+      ) {
+        seenResultKeys.add(parent.data.temporary_name);
+
+        resultKeyItems.push({
+          label: `Temporary Variable '${parent.data.temporary_name}'`,
+          value: `var('${parent.data.temporary_name}')`,
+        });
       }
 
       if (parent?.type === "suspend_response_modal") {
@@ -207,6 +220,13 @@ function useNodePlaceholders() {
       res.push({
         label: "Modal Inputs",
         placeholders: componentItems,
+      });
+    }
+
+    if (resultKeyItems.length > 0) {
+      res.push({
+        label: "Temporary Variables",
+        placeholders: resultKeyItems,
       });
     }
 

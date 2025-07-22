@@ -10,6 +10,7 @@ interface Props extends NodeProps {
   highlight?: boolean;
   showConnectedMarker?: boolean;
   color?: string;
+  showId?: boolean;
 }
 
 export default function FlowNodeBase(props: Props) {
@@ -24,7 +25,7 @@ export default function FlowNodeBase(props: Props) {
 
   return (
     <div
-      className="pl-2.5 pr-4 py-2.5 shadow-md rounded bg-muted border-2 relative max-w-sm min-w-32 cursor-grab"
+      className="pl-2.5 pr-4 py-2.5 shadow-md rounded bg-muted border-2 relative max-w-sm min-w-32 cursor-grab group"
       style={{
         borderColor: props.selected
           ? primaryColor
@@ -33,6 +34,12 @@ export default function FlowNodeBase(props: Props) {
           : undefined,
       }}
     >
+      {props.showId && (
+        <div className="text-[9px] font-light text-foreground/90 absolute -top-6 right-0 bg-muted rounded-[3px] px-1 py-0.5 max-w-24 truncate hidden group-hover:block">
+          {props.id}
+        </div>
+      )}
+
       <div className="flex items-start space-x-3">
         <div
           className="rounded-md w-8 h-8 flex justify-center items-center flex-none"

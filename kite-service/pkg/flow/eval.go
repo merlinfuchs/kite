@@ -23,13 +23,8 @@ func (e *nodeEvalEnv) GetNode(rawID any) (any, error) {
 		return nil, fmt.Errorf("invalid node id type: %T", rawID)
 	}
 
-	state := e.state.GetNodeState(id)
-	if state == nil {
-		return nil, nil
-	}
-
 	return map[string]any{
-		"result": eval.NewThingEnv(state.Result),
+		"result": eval.NewThingEnv(e.state.GetNodeResult(id)),
 	}, nil
 }
 

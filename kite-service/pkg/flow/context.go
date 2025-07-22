@@ -36,9 +36,7 @@ func NewContext(
 	ctx, cancel := context.WithTimeout(ctx, timeout)
 
 	if state == nil {
-		state = &FlowContextState{
-			NodeStates: make(map[string]*FlowContextNodeState),
-		}
+		state = NewFlowContextState()
 	}
 
 	nodeEvalEnv := &nodeEvalEnv{
@@ -47,14 +45,10 @@ func NewContext(
 
 	evalCtx.Env["node"] = nodeEvalEnv.GetNode
 	evalCtx.Env["result"] = func(id string) (any, error) {
-		node, err := nodeEvalEnv.GetNode(id)
-		if err != nil {
-			return nil, err
-		}
-		if node == nil {
-			return nil, nil
-		}
-		return node.(map[string]any)["result"], nil
+		return eval.NewThingEnv(state.GetNodeResult(id)), nil
+	}
+	evalCtx.Env["var"] = func(name string) (any, error) {
+		return eval.NewThingEnv(state.GetTemporary(name)), nil
 	}
 	evalCtx.Patchers = append(evalCtx.Patchers, &nodeEvalPatcher{})
 

@@ -7,19 +7,35 @@ import (
 )
 
 type FlowContextState struct {
-	NodeStates map[string]*FlowContextNodeState `json:"node_states"`
+	NodeStates  map[string]*FlowContextNodeState `json:"node_states"`
+	Temporaries map[string]thing.Thing           `json:"temporaries"`
+}
+
+func NewFlowContextState() *FlowContextState {
+	return &FlowContextState{
+		NodeStates:  make(map[string]*FlowContextNodeState),
+		Temporaries: make(map[string]thing.Thing),
+	}
 }
 
 func (s FlowContextState) MarshalJSON() ([]byte, error) {
 	aux := struct {
-		NodeStates map[string]*FlowContextNodeState `json:"node_states"`
+		NodeStates  map[string]*FlowContextNodeState `json:"node_states"`
+		Temporaries map[string]thing.Thing           `json:"temporaries"`
 	}{
-		NodeStates: make(map[string]*FlowContextNodeState, len(s.NodeStates)),
+		NodeStates:  make(map[string]*FlowContextNodeState, len(s.NodeStates)),
+		Temporaries: make(map[string]thing.Thing, len(s.Temporaries)),
 	}
 	// We don't want to serialize empty node states
 	for k, v := range s.NodeStates {
 		if !v.IsEmpty() {
 			aux.NodeStates[k] = v
+		}
+	}
+
+	for k, v := range s.Temporaries {
+		if !v.IsNil() {
+			aux.Temporaries[k] = v
 		}
 	}
 
@@ -36,14 +52,55 @@ func (s *FlowContextState) GetNodeState(nodeID string) *FlowContextNodeState {
 	return state
 }
 
+func (s *FlowContextState) GetNodeResult(id string) thing.Thing {
+	state := s.NodeStates[id]
+	if state == nil {
+		return thing.Null
+	}
+
+	return state.Result
+}
+
+func (s *FlowContextState) StoreNodeResult(node *CompiledFlowNode, result thing.Thing) {
+	state := s.GetNodeState(node.ID)
+	state.Result = result
+	if node.Data.TemporaryName != "" {
+		s.Temporaries[node.Data.TemporaryName] = result
+	}
+}
+
+func (s *FlowContextState) StoreNodeBaseValue(node *CompiledFlowNode, value thing.Thing) {
+	state := s.GetNodeState(node.ID)
+	state.ConditionBaseValue = value
+}
+
+func (s *FlowContextState) GetTemporary(name string) thing.Thing {
+	if v, ok := s.Temporaries[name]; ok {
+		return v
+	}
+
+	return thing.Null
+}
+
+func (s *FlowContextState) SetTemporary(name string, value thing.Thing) {
+	s.Temporaries[name] = value
+}
+
 func (s *FlowContextState) Copy() FlowContextState {
 	copy := FlowContextState{
-		NodeStates: make(map[string]*FlowContextNodeState, len(s.NodeStates)),
+		NodeStates:  make(map[string]*FlowContextNodeState, len(s.NodeStates)),
+		Temporaries: make(map[string]thing.Thing, len(s.Temporaries)),
 	}
 
 	for k, v := range s.NodeStates {
 		if !v.IsEmpty() {
 			copy.NodeStates[k] = v.Copy()
+		}
+	}
+
+	for k, v := range s.Temporaries {
+		if !v.IsNil() {
+			copy.Temporaries[k] = v
 		}
 	}
 

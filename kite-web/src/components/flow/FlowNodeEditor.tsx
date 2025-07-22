@@ -6,6 +6,11 @@ import {
 import { getNodeId, useNodeValues } from "@/lib/flow/nodes";
 import { useMessages, useVariables } from "@/lib/hooks/api";
 import { useAppId } from "@/lib/hooks/params";
+import {
+  EmojiData,
+  HTTPRequestData,
+  ModalComponentData,
+} from "@/lib/types/flow.gen";
 import { Node, useNodes, useReactFlow, useStoreApi } from "@xyflow/react";
 import {
   ChevronDownIcon,
@@ -24,8 +29,21 @@ import { useCallback, useEffect, useMemo, useRef } from "react";
 import { NodeData, NodeProps } from "../../lib/flow/data";
 import MessageCreateDialog from "../app/MessageCreateDialog";
 import VariableCreateDialog from "../app/VariableCreateDialog";
+import EmojiPicker from "../common/EmojiPicker";
+import JsonEditor from "../common/JsonEditor";
 import PlaceholderInput from "../common/PlaceholderInput";
+import Twemoji from "../common/Twemoji";
+import MessageEditorDialog from "../message/MessageEditorDialog";
 import { Button } from "../ui/button";
+import { Card } from "../ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "../ui/dialog";
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
@@ -45,31 +63,13 @@ import { Switch } from "../ui/switch";
 import { Textarea } from "../ui/textarea";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
 import FlowPlaceholderExplorer from "./FlowPlaceholderExplorer";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "../ui/dialog";
-import { Separator } from "../ui/separator";
-import { Card } from "../ui/card";
-import {
-  EmojiData,
-  HTTPRequestData,
-  ModalComponentData,
-} from "@/lib/types/flow.gen";
-import JsonEditor from "../common/JsonEditor";
-import MessageEditorDialog from "../message/MessageEditorDialog";
-import EmojiPicker, { PickerEmoji } from "../common/EmojiPicker";
-import Twemoji from "../common/Twemoji";
 
 interface Props {
   nodeId: string;
 }
 
 interface InputProps {
+  id: string;
   type: string;
   data: NodeData;
   updateData: (newData: Partial<NodeData>) => void;
@@ -78,6 +78,7 @@ interface InputProps {
 
 const intputs: Record<string, any> = {
   custom_label: CustomLabelInput,
+  temporary_name: TemporaryNameInput,
   name: NameInput,
   description: DescriptionInput,
   command_argument_type: CommandArgumentTypeInput,
@@ -133,14 +134,14 @@ const intputs: Record<string, any> = {
 };
 
 export default function FlowNodeEditor({ nodeId }: Props) {
-  const { setNodes, deleteElements } = useReactFlow<Node<NodeProps>>();
+  const { setNodes, deleteElements } = useReactFlow<Node<NodeData>>();
   const store = useStoreApi();
 
   function close() {
     store.getState().addSelectedNodes([]);
   }
 
-  const nodes = useNodes<Node<NodeProps>>();
+  const nodes = useNodes<Node<NodeData>>();
 
   const node = nodes.find((n) => n.id === nodeId);
   const nodeValues = useNodeValues(node?.type ?? "");
@@ -252,6 +253,7 @@ export default function FlowNodeEditor({ nodeId }: Props) {
           return (
             <Input
               key={field}
+              id={nodeId}
               type={node.type}
               data={data}
               updateData={updateData}
@@ -296,6 +298,19 @@ function CustomLabelInput({ data, updateData, errors }: InputProps) {
       description="Set a custom label for this block so its easier to recognize. This is optional."
       value={data.custom_label || ""}
       updateValue={(v) => updateData({ custom_label: v || undefined })}
+      errors={errors}
+    />
+  );
+}
+
+function TemporaryNameInput({ data, updateData, errors }: InputProps) {
+  return (
+    <BaseInput
+      field="temporary_name"
+      title="Temporary Variable"
+      description="Store the result of this block in a temporary variable to use later."
+      value={data.temporary_name || ""}
+      updateValue={(v) => updateData({ temporary_name: v || undefined })}
       errors={errors}
     />
   );
@@ -1764,6 +1779,7 @@ function BaseInput({
   description,
   errors,
   value,
+  placeholder,
   updateValue,
   placeholders,
   disablePlaceholderBrackets,
@@ -1776,6 +1792,7 @@ function BaseInput({
   description?: string;
   errors: Record<string, string>;
   value: string;
+  placeholder?: string;
   updateValue: (value: string) => void;
   placeholders?: boolean;
   disablePlaceholderBrackets?: boolean;
@@ -1822,6 +1839,7 @@ function BaseInput({
             value={value}
             onChange={(e) => updateValue(e.target.value)}
             ref={textareaRef}
+            placeholder={placeholder}
           />
         ) : type === "select" ? (
           <Select value={value} onValueChange={(v) => updateValue(v)}>
@@ -1856,6 +1874,7 @@ function BaseInput({
             value={value}
             onChange={(v) => updateValue(v)}
             ref={inputRef}
+            placeholder={placeholder}
           />
         ) : (
           <Input
@@ -1863,6 +1882,7 @@ function BaseInput({
             value={value}
             onChange={(e) => updateValue(e.target.value)}
             ref={inputRef}
+            placeholder={placeholder}
           />
         )}
         {placeholders && (
