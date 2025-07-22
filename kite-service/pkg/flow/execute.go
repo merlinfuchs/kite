@@ -1030,23 +1030,23 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 		case ConditionItemModeNotEqual:
 			conditionMet = baseValue.Equals(&itemValue)
 		case ConditionItemModeHasRole:
-			member, ok := thing.Cast[RolesCastable](baseValue)
-			if !ok {
+			member := baseValue.DiscordMember()
+			if !member.User.ID.IsValid() {
 				// TODO?: fetch member by id from discord?
 				return nil
 			}
-
-			conditionMet = member.HasRole(itemValue.String())
+			conditionMet = slices.Contains(member.RoleIDs, discord.RoleID(itemValue.Int()))
 		case ConditionItemModeNotHasRole:
-			member, ok := thing.Cast[RolesCastable](baseValue)
-			if !ok {
+			member := baseValue.DiscordMember()
+			if !member.User.ID.IsValid() {
+				// TODO?: fetch member by id from discord?
 				return nil
 			}
-
-			conditionMet = !member.HasRole(itemValue.String())
+			conditionMet = !slices.Contains(member.RoleIDs, discord.RoleID(itemValue.Int()))
 		case ConditionItemModeHasPermission:
-			member, ok := thing.Cast[RolesCastable](baseValue)
-			if !ok {
+			member := baseValue.DiscordMember()
+			if !member.User.ID.IsValid() {
+				// TODO?: fetch member by id from discord?
 				return nil
 			}
 
@@ -1057,7 +1057,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 
 			var permission discord.Permissions
 			for _, role := range roles {
-				if slices.Contains(member.Roles(), role.ID.String()) {
+				if slices.Contains(member.RoleIDs, role.ID) {
 					permission |= role.Permissions
 				}
 			}
@@ -1065,8 +1065,9 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			itemPermissions := discord.Permissions(itemValue.Int())
 			conditionMet = permission&itemPermissions == itemPermissions
 		case ConditionItemModeNotHasPermission:
-			member, ok := thing.Cast[RolesCastable](baseValue)
-			if !ok {
+			member := baseValue.DiscordMember()
+			if !member.User.ID.IsValid() {
+				// TODO?: fetch member by id from discord?
 				return nil
 			}
 
@@ -1077,7 +1078,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 
 			var permission discord.Permissions
 			for _, role := range roles {
-				if slices.Contains(member.Roles(), role.ID.String()) {
+				if slices.Contains(member.RoleIDs, role.ID) {
 					permission |= role.Permissions
 				}
 			}
@@ -1374,9 +1375,4 @@ func (n *CompiledFlowNode) prepareMessageSendData(ctx *FlowContext) (api.SendMes
 	})
 
 	return sendData, nil
-}
-
-type RolesCastable interface {
-	HasRole(roleID string) bool
-	Roles() []string
 }

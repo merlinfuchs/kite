@@ -41,11 +41,12 @@ func NewInteractionEnv(i *discord.InteractionEvent) *InteractionEnv {
 		Components: NewComponentsEnv(i),
 	}
 
-	if i.User != nil {
-		e.User = NewUserEnv(*i.User)
-	} else {
+	if i.Member != nil {
 		e.Member = NewMemberEnv(*i.Member)
 		e.User = e.Member
+	} else {
+		e.User = NewUserEnv(*i.User)
+		e.Member = e.User
 	}
 
 	if i.GuildID != 0 {
@@ -329,6 +330,8 @@ func NewUserEnv(user discord.User) *UserEnv {
 }
 
 type MemberEnv struct {
+	og discord.Member
+
 	UserEnv
 
 	Nick    string   `expr:"nick" json:"nick"`
@@ -339,19 +342,6 @@ func (m MemberEnv) String() string {
 	return m.UserEnv.String()
 }
 
-func (m MemberEnv) HasRole(roleID string) bool {
-	for _, id := range m.RoleIDs {
-		if id == roleID {
-			return true
-		}
-	}
-	return false
-}
-
-func (m MemberEnv) Roles() []string {
-	return m.RoleIDs
-}
-
 func NewMemberEnv(member discord.Member) *MemberEnv {
 	roleIDs := make([]string, len(member.RoleIDs))
 	for i, role := range member.RoleIDs {
@@ -359,11 +349,17 @@ func NewMemberEnv(member discord.Member) *MemberEnv {
 	}
 
 	return &MemberEnv{
+		og: member,
+
 		UserEnv: *NewUserEnv(member.User),
 
 		Nick:    member.Nick,
 		RoleIDs: roleIDs,
 	}
+}
+
+func (m MemberEnv) thing() thing.Thing {
+	return thing.NewDiscordMember(m.og)
 }
 
 type ChannelEnv struct {

@@ -586,10 +586,3 @@ func (w Thing) Add(other Thing) Thing {
 func (w Thing) Sub(other Thing) Thing {
 	return NewFloat(w.Float() - other.Float())
 }
-
-func Cast[T any](v Thing) (T, bool) {
-	if t, ok := v.Value.(T); ok {
-		return t, true
-	}
-	return *new(T), false
-}
