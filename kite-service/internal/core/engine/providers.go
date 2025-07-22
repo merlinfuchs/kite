@@ -1,7 +1,9 @@
 package engine
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -602,4 +604,75 @@ func (p *ValueProvider) DeleteValue(ctx context.Context, key string) error {
 	}
 
 	return nil
+}
+
+type RobloxProvider struct {
+	client *http.Client
+}
+
+func NewRobloxProvider(client *http.Client) *RobloxProvider {
+	return &RobloxProvider{
+		client: client,
+	}
+}
+
+func (p *RobloxProvider) UserByID(ctx context.Context, id int64) (*thing.RobloxUserValue, error) {
+	req, err := http.NewRequestWithContext(ctx, "GET", fmt.Sprintf("https://users.roblox.com/v1/users/%d", id), nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create roblox user request: %w", err)
+	}
+
+	req.Header.Set("Accept", "application/json")
+
+	resp, err := p.client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get roblox user: %w", err)
+	}
+
+	if resp.StatusCode == http.StatusNotFound {
+		return nil, provider.ErrNotFound
+	}
+
+	var v thing.RobloxUserValue
+	if err := json.NewDecoder(resp.Body).Decode(&v); err != nil {
+		return nil, fmt.Errorf("failed to decode roblox user: %w", err)
+	}
+
+	return &v, nil
+}
+
+func (p *RobloxProvider) UsersByUsername(ctx context.Context, username string) ([]thing.RobloxUserValue, error) {
+	data := struct {
+		Usernames []string `json:"usernames"`
+	}{
+		Usernames: []string{username},
+	}
+
+	body, err := json.Marshal(data)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal roblox users request: %w", err)
+	}
+
+	req, err := http.NewRequestWithContext(ctx, "POST", "https://users.roblox.com/v1/usernames/users", bytes.NewReader(body))
+	if err != nil {
+		return nil, fmt.Errorf("failed to create roblox users request: %w", err)
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Accept", "application/json")
+
+	resp, err := p.client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get roblox users: %w", err)
+	}
+
+	var v struct {
+		Data []thing.RobloxUserValue `json:"data"`
+	}
+
+	if err := json.NewDecoder(resp.Body).Decode(&v); err != nil {
+		return nil, fmt.Errorf("failed to decode roblox users: %w", err)
+	}
+
+	return v.Data, nil
 }

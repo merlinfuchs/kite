@@ -76,6 +76,11 @@ const nodeCategories = {
       contextTypes: null,
     },
     {
+      title: "Roblox Actions",
+      nodeTypes: ["action_roblox_user_get"],
+      contextTypes: null,
+    },
+    {
       title: "Other Actions",
       nodeTypes: [
         "action_expression_evaluate",

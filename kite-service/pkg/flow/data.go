@@ -62,6 +62,7 @@ const (
 	FlowNodeTypeActionMemberEdit            FlowNodeType = "action_member_edit"
 	FlowNodeTypeActionMemberRoleAdd         FlowNodeType = "action_member_role_add"
 	FlowNodeTypeActionMemberRoleRemove      FlowNodeType = "action_member_role_remove"
+	FlowNodeTypeActionRobloxUserGet         FlowNodeType = "action_roblox_user_get"
 	FlowNodeTypeActionHTTPRequest           FlowNodeType = "action_http_request"
 	FlowNodeTypeActionAIChatCompletion      FlowNodeType = "action_ai_chat_completion"
 	FlowNodeTypeActionAISearchWeb           FlowNodeType = "action_ai_web_search"
@@ -157,6 +158,10 @@ type FlowNodeData struct {
 	// Role Create, Edit, Delete
 	RoleTarget string              `json:"role_target,omitempty"`
 	RoleData   *api.CreateRoleData `json:"role_data,omitempty"`
+
+	// Roblox User Get
+	RobloxUserTarget string           `json:"roblox_user_target,omitempty"`
+	RobloxLookupMode RobloxLookupType `json:"roblox_lookup_mode,omitempty"`
 
 	// Variable Set, Delete
 	VariableID        string                     `json:"variable_id,omitempty"`
@@ -300,6 +305,13 @@ type EventFilterTarget string
 
 const (
 	EventFilterTypeMessageContent EventFilterTarget = "message_content"
+)
+
+type RobloxLookupType string
+
+const (
+	RobloxLookupTypeID   RobloxLookupType = "id"
+	RobloxLookupTypeName RobloxLookupType = "username"
 )
 
 type EmojiData struct {

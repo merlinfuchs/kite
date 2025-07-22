@@ -341,6 +341,12 @@ export const nodeActionMemberRoleRemoveDataSchema = nodeBaseDataSchema.extend({
   audit_log_reason: auditLogReasonSchema,
 });
 
+export const nodeActionRobloxUserGetDataSchema = nodeBaseDataSchema.extend({
+  roblox_user_target: z.string(),
+  roblox_lookup_mode: z.enum(["id", "username"]),
+  custom_label: z.string().optional(),
+});
+
 export const nodeActionVariableSetSchema = nodeBaseDataSchema.extend({
   variable_id: z.string(),
   variable_scope: z.string().optional(),

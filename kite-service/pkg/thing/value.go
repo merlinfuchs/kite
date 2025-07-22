@@ -39,3 +39,14 @@ func NewHTTPResponseValue(v *http.Response) (HTTPResponseValue, error) {
 		Headers:    headers,
 	}, nil
 }
+
+type RobloxUserValue struct {
+	ID                     int64  `json:"id"`
+	Name                   string `json:"name"`
+	DisplayName            string `json:"displayName"`
+	Description            string `json:"description"`
+	CreatedAt              string `json:"created"`
+	IsBanned               bool   `json:"isBanned"`
+	HasVerifiedBadge       bool   `json:"hasVerifiedBadge"`
+	ExternalAppDisplayName string `json:"externalAppDisplayName"`
+}

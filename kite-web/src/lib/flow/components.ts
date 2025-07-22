@@ -46,6 +46,7 @@ export const nodeTypes = {
   action_member_edit: FlowNodeActionBase,
   action_member_role_add: FlowNodeActionBase,
   action_member_role_remove: FlowNodeActionBase,
+  action_roblox_user_get: FlowNodeActionBase,
   action_variable_set: FlowNodeActionBase,
   action_variable_delete: FlowNodeActionBase,
   action_variable_get: FlowNodeActionBase,

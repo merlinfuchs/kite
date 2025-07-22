@@ -27,6 +27,7 @@ const (
 	TypeDiscordChannel Type = "discord_channel"
 	TypeDiscordGuild   Type = "discord_guild"
 	TypeDiscordRole    Type = "discord_role"
+	TypeRobloxUser     Type = "roblox_user"
 	TypeHTTPResponse   Type = "http_response"
 	TypeArray          Type = "array"
 	TypeObject         Type = "object"
@@ -99,6 +100,11 @@ func (w *Thing) UnmarshalJSON(data []byte) error {
 			}
 		case TypeDiscordRole:
 			w.Value, err = UnmarshalValue[discord.Role](aux.Value)
+			if err != nil {
+				return err
+			}
+		case TypeRobloxUser:
+			w.Value, err = UnmarshalValue[RobloxUserValue](aux.Value)
 			if err != nil {
 				return err
 			}
@@ -217,6 +223,8 @@ func NewGuessType(v any) (Thing, error) {
 		return NewDiscordGuild(v), nil
 	case discord.Role:
 		return NewDiscordRole(v), nil
+	case RobloxUserValue:
+		return NewRobloxUser(v), nil
 	case HTTPResponseValue:
 		return NewHTTPResponse(v), nil
 	case map[string]Thing:
@@ -306,6 +314,13 @@ func NewDiscordRole(v discord.Role) Thing {
 	}
 }
 
+func NewRobloxUser(v RobloxUserValue) Thing {
+	return Thing{
+		Type:  TypeRobloxUser,
+		Value: v,
+	}
+}
+
 func NewHTTPResponse(v HTTPResponseValue) Thing {
 	return Thing{
 		Type:  TypeHTTPResponse,
@@ -358,6 +373,8 @@ func (w Thing) String() string {
 		return w.Value.(discord.Guild).ID.String()
 	case TypeDiscordRole:
 		return w.Value.(discord.Role).ID.String()
+	case TypeRobloxUser:
+		return strconv.FormatInt(w.Value.(RobloxUserValue).ID, 10)
 	case TypeHTTPResponse:
 		return string(w.Value.(HTTPResponseValue).Body)
 	case TypeArray:
@@ -399,6 +416,8 @@ func (w Thing) Int() int64 {
 		return int64(w.DiscordGuild().ID)
 	case TypeDiscordRole:
 		return int64(w.DiscordRole().ID)
+	case TypeRobloxUser:
+		return int64(w.RobloxUser().ID)
 	case TypeHTTPResponse:
 		return int64(w.HTTPResponse().StatusCode)
 	default:
@@ -441,6 +460,8 @@ func (w Thing) Float() float64 {
 		return float64(w.DiscordGuild().ID)
 	case TypeDiscordRole:
 		return float64(w.DiscordRole().ID)
+	case TypeRobloxUser:
+		return float64(w.RobloxUser().ID)
 	case TypeHTTPResponse:
 		return float64(w.HTTPResponse().StatusCode)
 	default:
@@ -536,6 +557,13 @@ func (w Thing) DiscordRole() discord.Role {
 		return w.Value.(discord.Role)
 	}
 	return discord.Role{}
+}
+
+func (w Thing) RobloxUser() RobloxUserValue {
+	if w.Type == TypeRobloxUser {
+		return w.Value.(RobloxUserValue)
+	}
+	return RobloxUserValue{}
 }
 
 func (w Thing) HTTPResponse() HTTPResponseValue {
