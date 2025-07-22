@@ -26,7 +26,7 @@ export default function AppVariablesPage() {
   const breadcrumbs = useMemo(
     () => [
       {
-        label: "Shared Variables",
+        label: "Global Variables",
         href: `/apps/[appId]/variables`,
       },
       {
@@ -44,7 +44,7 @@ export default function AppVariablesPage() {
           {variable?.name || "unknown"}
         </h1>
         <p className="text-muted-foreground text-sm">
-          Configure your shared variable and define what data it stores.
+          Configure your global variable and define what data it stores.
         </p>
       </div>
       <Separator className="my-8" />

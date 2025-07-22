@@ -67,7 +67,7 @@ const nodeCategories = {
       contextTypes: null,
     },
     {
-      title: "Variables",
+      title: "Global Variables",
       nodeTypes: [
         "action_variable_set",
         "action_variable_delete",

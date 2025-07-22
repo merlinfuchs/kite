@@ -2,9 +2,9 @@
 sidebar_position: 4
 ---
 
-# Shared Variable
+# Global Variables
 
-With Shared Variables you can store information across commands, events, and message templates.
+With Global Variables you can store information across commands, events, and message templates.
 
 They can be accessed in commands or event listeners using the "Set variable" or "Get variable" blocks.
 

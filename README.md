@@ -167,6 +167,6 @@ go build
   - [x] Basic placeholders
   - [x] Advanced Placeholders
 - [x] Event Listeners
-- [x] Shared Variables
+- [x] Global Variables
   - [x] Basic infrastrcuture
   - [x] Connect variables to commands

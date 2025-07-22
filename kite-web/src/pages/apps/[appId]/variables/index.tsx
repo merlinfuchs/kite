@@ -4,19 +4,19 @@ import { Separator } from "@/components/ui/separator";
 import env from "@/lib/env/client";
 const breadcrumbs = [
   {
-    label: "Shared Variables",
+    label: "Global Variables",
   },
 ];
 
 export default function AppVariablesPage() {
   return (
-    <AppLayout title="Shared Variables" breadcrumbs={breadcrumbs}>
+    <AppLayout title="Global Variables" breadcrumbs={breadcrumbs}>
       <div>
         <h1 className="text-lg font-semibold md:text-2xl mb-1">
-          Shared Variables
+          Global Variables
         </h1>
         <p className="text-muted-foreground text-sm">
-          Manage shared variables in your app. Shared variables are key-value
+          Manage global variables in your app. Global variables are key-value
           pairs that can be used to store data across commands, events, and
           more.{" "}
           <a
