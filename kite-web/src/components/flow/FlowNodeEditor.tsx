@@ -808,7 +808,7 @@ function ExpressionInput({ data, updateData, errors }: InputProps) {
       type="textarea"
       field="expression"
       title="Expression"
-      description="The expression to evaluate"
+      description="The expression to evaluate without the double curly brackets"
       value={data.expression || ""}
       updateValue={(v) =>
         updateData({

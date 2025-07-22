@@ -410,7 +410,12 @@ export const nodeActionAiWebSearchCompletionDataSchema =
 
 export const nodeActionExpressionEvaluateDataSchema = nodeBaseDataSchema.extend(
   {
-    expression: z.string().max(2000),
+    expression: z
+      .string()
+      .max(2000)
+      .refine((val) => !val.startsWith("{{"), {
+        message: "Remove the double curly brackets around the expression",
+      }),
   }
 );
 
