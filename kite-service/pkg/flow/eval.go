@@ -24,7 +24,7 @@ func (e *nodeEvalEnv) GetNode(rawID any) (any, error) {
 	}
 
 	return map[string]any{
-		"result": eval.NewThingEnv(e.state.GetNodeResultByID(id)),
+		"result": eval.NewThingEnv(e.state.GetNodeResult(id)),
 	}, nil
 }
 

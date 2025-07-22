@@ -2,30 +2,29 @@ package flow
 
 import (
 	"encoding/json"
-	"fmt"
 
 	"github.com/kitecloud/kite/kite-service/pkg/thing"
 )
 
 type FlowContextState struct {
-	NodeStates map[string]*FlowContextNodeState `json:"node_states"`
-	ResultKeys map[string]string                `json:"result_keys"`
+	NodeStates  map[string]*FlowContextNodeState `json:"node_states"`
+	Temporaries map[string]thing.Thing           `json:"temporaries"`
 }
 
 func NewFlowContextState() *FlowContextState {
 	return &FlowContextState{
-		NodeStates: make(map[string]*FlowContextNodeState),
-		ResultKeys: make(map[string]string),
+		NodeStates:  make(map[string]*FlowContextNodeState),
+		Temporaries: make(map[string]thing.Thing),
 	}
 }
 
 func (s FlowContextState) MarshalJSON() ([]byte, error) {
 	aux := struct {
-		NodeStates map[string]*FlowContextNodeState `json:"node_states"`
-		ResultKeys map[string]string                `json:"result_keys"`
+		NodeStates  map[string]*FlowContextNodeState `json:"node_states"`
+		Temporaries map[string]thing.Thing           `json:"temporaries"`
 	}{
-		NodeStates: make(map[string]*FlowContextNodeState, len(s.NodeStates)),
-		ResultKeys: s.ResultKeys,
+		NodeStates:  make(map[string]*FlowContextNodeState, len(s.NodeStates)),
+		Temporaries: make(map[string]thing.Thing, len(s.Temporaries)),
 	}
 	// We don't want to serialize empty node states
 	for k, v := range s.NodeStates {
@@ -34,25 +33,26 @@ func (s FlowContextState) MarshalJSON() ([]byte, error) {
 		}
 	}
 
+	for k, v := range s.Temporaries {
+		if !v.IsNil() {
+			aux.Temporaries[k] = v
+		}
+	}
+
 	return json.Marshal(aux)
 }
 
-func (s *FlowContextState) GetNodeState(node *CompiledFlowNode) *FlowContextNodeState {
-	// Remember the result key of the node so we can access it later
-	if node.Data.ResultKey != "" {
-		s.ResultKeys[node.Data.ResultKey] = node.ID
-	}
-
-	state, ok := s.NodeStates[node.ID]
+func (s *FlowContextState) GetNodeState(nodeID string) *FlowContextNodeState {
+	state, ok := s.NodeStates[nodeID]
 	if !ok {
 		state = &FlowContextNodeState{}
-		s.NodeStates[node.ID] = state
+		s.NodeStates[nodeID] = state
 	}
 
 	return state
 }
 
-func (s *FlowContextState) GetNodeResultByID(id string) thing.Thing {
+func (s *FlowContextState) GetNodeResult(id string) thing.Thing {
 	state := s.NodeStates[id]
 	if state == nil {
 		return thing.Null
@@ -61,20 +61,35 @@ func (s *FlowContextState) GetNodeResultByID(id string) thing.Thing {
 	return state.Result
 }
 
-func (s *FlowContextState) GetNodeResultByKey(key string) thing.Thing {
-	fmt.Println("GetNodeResultByKey", key)
-	fmt.Println("ResultKeys", s.ResultKeys)
-	if id, ok := s.ResultKeys[key]; ok {
-		return s.GetNodeResultByID(id)
+func (s *FlowContextState) StoreNodeResult(node *CompiledFlowNode, result thing.Thing) {
+	state := s.GetNodeState(node.ID)
+	state.Result = result
+	if node.Data.TemporaryName != "" {
+		s.Temporaries[node.Data.TemporaryName] = result
+	}
+}
+
+func (s *FlowContextState) StoreNodeBaseValue(node *CompiledFlowNode, value thing.Thing) {
+	state := s.GetNodeState(node.ID)
+	state.ConditionBaseValue = value
+}
+
+func (s *FlowContextState) GetTemporary(name string) thing.Thing {
+	if v, ok := s.Temporaries[name]; ok {
+		return v
 	}
 
 	return thing.Null
 }
 
+func (s *FlowContextState) SetTemporary(name string, value thing.Thing) {
+	s.Temporaries[name] = value
+}
+
 func (s *FlowContextState) Copy() FlowContextState {
 	copy := FlowContextState{
-		NodeStates: make(map[string]*FlowContextNodeState, len(s.NodeStates)),
-		ResultKeys: make(map[string]string, len(s.ResultKeys)),
+		NodeStates:  make(map[string]*FlowContextNodeState, len(s.NodeStates)),
+		Temporaries: make(map[string]thing.Thing, len(s.Temporaries)),
 	}
 
 	for k, v := range s.NodeStates {
@@ -83,8 +98,10 @@ func (s *FlowContextState) Copy() FlowContextState {
 		}
 	}
 
-	for k, v := range s.ResultKeys {
-		copy.ResultKeys[k] = v
+	for k, v := range s.Temporaries {
+		if !v.IsNil() {
+			copy.Temporaries[k] = v
+		}
 	}
 
 	return copy

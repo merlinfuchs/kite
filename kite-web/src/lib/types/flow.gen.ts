@@ -72,7 +72,10 @@ export interface FlowNodeData {
   description?: string;
   custom_label?: string;
   audit_log_reason?: string;
-  result_key?: string;
+  /**
+   * Temporary Variables
+   */
+  temporary_name?: string;
   /**
    * Command Argument
    */
@@ -260,4 +263,18 @@ export interface FlowEdge {
   target: string;
   sourceHandle?: null | string;
   targetHandle?: null | string;
+}
+
+//////////
+// source: state.go
+
+export interface FlowContextState {
+  node_states: { [key: string]: FlowContextNodeState | undefined};
+  temporaries: { [key: string]: any /* thing.Thing */};
+}
+export interface FlowContextNodeState {
+  condition_base_value?: any /* thing.Thing */;
+  condition_item_met?: boolean;
+  result?: any /* thing.Thing */;
+  loop_exited?: boolean;
 }

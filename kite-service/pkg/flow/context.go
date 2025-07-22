@@ -45,10 +45,10 @@ func NewContext(
 
 	evalCtx.Env["node"] = nodeEvalEnv.GetNode
 	evalCtx.Env["result"] = func(id string) (any, error) {
-		return eval.NewThingEnv(state.GetNodeResultByID(id)), nil
+		return eval.NewThingEnv(state.GetNodeResult(id)), nil
 	}
-	evalCtx.Env["var"] = func(key string) (any, error) {
-		return eval.NewThingEnv(state.GetNodeResultByKey(key)), nil
+	evalCtx.Env["var"] = func(name string) (any, error) {
+		return eval.NewThingEnv(state.GetTemporary(name)), nil
 	}
 	evalCtx.Patchers = append(evalCtx.Patchers, &nodeEvalPatcher{})
 

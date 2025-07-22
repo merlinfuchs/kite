@@ -116,7 +116,9 @@ type FlowNodeData struct {
 	Description    string `json:"description,omitempty"`
 	CustomLabel    string `json:"custom_label,omitempty"`
 	AuditLogReason string `json:"audit_log_reason,omitempty"`
-	ResultKey      string `json:"result_key,omitempty"`
+
+	// Temporary Variables
+	TemporaryName string `json:"temporary_name,omitempty"`
 
 	// Command Argument
 	CommandArgumentType     CommandArgumentType `json:"command_argument_type,omitempty"`
@@ -202,7 +204,7 @@ func (d FlowNodeData) Validate(nodeType FlowNodeType) error {
 
 	return validation.ValidateStruct(&d,
 		// Shared
-		validation.Field(&d.ResultKey,
+		validation.Field(&d.TemporaryName,
 			validation.Length(1, 32),
 			validation.Match(resultKeyRe).Error("must be lowercase without special characters"),
 		),

@@ -183,14 +183,14 @@ function useNodePlaceholders() {
       }
 
       if (
-        parent.data.result_key &&
-        !seenResultKeys.has(parent.data.result_key)
+        parent.data.temporary_name &&
+        !seenResultKeys.has(parent.data.temporary_name)
       ) {
-        seenResultKeys.add(parent.data.result_key);
+        seenResultKeys.add(parent.data.temporary_name);
 
         resultKeyItems.push({
-          label: `Temporary Variable '${parent.data.result_key}'`,
-          value: `var('${parent.data.result_key}')`,
+          label: `Temporary Variable '${parent.data.temporary_name}'`,
+          value: `var('${parent.data.temporary_name}')`,
         });
       }
 

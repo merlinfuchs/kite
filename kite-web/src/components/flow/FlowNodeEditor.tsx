@@ -78,7 +78,7 @@ interface InputProps {
 
 const intputs: Record<string, any> = {
   custom_label: CustomLabelInput,
-  result_key: ResultKeyInput,
+  temporary_name: TemporaryNameInput,
   name: NameInput,
   description: DescriptionInput,
   command_argument_type: CommandArgumentTypeInput,
@@ -303,14 +303,14 @@ function CustomLabelInput({ data, updateData, errors }: InputProps) {
   );
 }
 
-function ResultKeyInput({ data, updateData, errors }: InputProps) {
+function TemporaryNameInput({ data, updateData, errors }: InputProps) {
   return (
     <BaseInput
-      field="result_key"
+      field="temporary_name"
       title="Temporary Variable"
       description="Store the result of this block in a temporary variable to use later."
-      value={data.result_key || ""}
-      updateValue={(v) => updateData({ result_key: v || undefined })}
+      value={data.temporary_name || ""}
+      updateValue={(v) => updateData({ temporary_name: v || undefined })}
       errors={errors}
     />
   );
