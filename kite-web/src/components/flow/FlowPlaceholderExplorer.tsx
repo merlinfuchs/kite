@@ -47,6 +47,10 @@ function useGlobalPlaceholders() {
       label: "User",
       placeholders: [
         {
+          label: "User",
+          value: `user`,
+        },
+        {
           label: "User ID",
           value: `user.id`,
         },

@@ -47,39 +47,43 @@ export default function MessagePlaceholderExplorer({
   );
 }
 
-function useGlobalPlaceholders(baseKey: "interaction" | "event") {
+function useGlobalPlaceholders(context: "interaction" | "event") {
   return useMemo(() => {
     const res = [
       {
         label: "User",
         placeholders: [
           {
+            label: "User",
+            value: `user`,
+          },
+          {
             label: "User ID",
-            value: `${baseKey}.user.id`,
+            value: `user.id`,
           },
           {
             label: "User Mention",
-            value: `${baseKey}.user.mention`,
+            value: `user.mention`,
           },
           {
             label: "User Username",
-            value: `${baseKey}.user.username`,
+            value: `user.username`,
           },
           {
             label: "User Discriminator",
-            value: `${baseKey}.user.discriminator`,
+            value: `user.discriminator`,
           },
           {
             label: "User Display Name",
-            value: `${baseKey}.user.display_name`,
+            value: `user.display_name`,
           },
           {
             label: "User Avatar URL",
-            value: `${baseKey}.user.avatar_url`,
+            value: `user.avatar_url`,
           },
           {
             label: "User Banner URL",
-            value: `${baseKey}.user.banner_url`,
+            value: `user.banner_url`,
           },
         ],
       },
@@ -88,7 +92,7 @@ function useGlobalPlaceholders(baseKey: "interaction" | "event") {
         placeholders: [
           {
             label: "Server ID",
-            value: `${baseKey}.guild.id`,
+            value: `guild.id`,
           },
         ],
       },
@@ -97,21 +101,21 @@ function useGlobalPlaceholders(baseKey: "interaction" | "event") {
         placeholders: [
           {
             label: "Channel ID",
-            value: `${baseKey}.channel.id`,
+            value: `channel.id`,
           },
         ],
       },
     ];
 
-    if (baseKey === "event") {
+    if (context === "event") {
       res.push({
         label: "Message",
         placeholders: [
-          { label: "Message ID", value: `${baseKey}.message.id` },
-          { label: "Message Content", value: `${baseKey}.message.content` },
+          { label: "Message ID", value: `message.id` },
+          { label: "Message Content", value: `message.content` },
         ],
       });
     }
     return res;
-  }, [baseKey]);
+  }, [context]);
 }
