@@ -56,7 +56,7 @@ export default function AppSidebarStudioNav() {
         active: isActive("/apps/[appId]/messages"),
       },
       {
-        name: "Global Variables",
+        name: "Stored Variables",
         url: "/apps/[appId]/variables",
         icon: VariableIcon,
         active: isActive("/apps/[appId]/variables"),

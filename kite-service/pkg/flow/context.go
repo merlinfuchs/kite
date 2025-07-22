@@ -45,14 +45,10 @@ func NewContext(
 
 	evalCtx.Env["node"] = nodeEvalEnv.GetNode
 	evalCtx.Env["result"] = func(id string) (any, error) {
-		node, err := nodeEvalEnv.GetNode(id)
-		if err != nil {
-			return nil, err
-		}
-		if node == nil {
-			return nil, nil
-		}
-		return node.(map[string]any)["result"], nil
+		return eval.NewThingEnv(state.GetNodeResultByID(id)), nil
+	}
+	evalCtx.Env["var"] = func(key string) (any, error) {
+		return eval.NewThingEnv(state.GetNodeResultByKey(key)), nil
 	}
 	evalCtx.Patchers = append(evalCtx.Patchers, &nodeEvalPatcher{})
 
@@ -170,128 +166,4 @@ func (c *FlowContext) suspend(t ResumePointType, nodeID string) (*ResumePoint, e
 	}
 
 	return &s, nil
-}
-
-type FlowContextState struct {
-	ResultKeys map[string]string                `json:"result_keys"`
-	NodeStates map[string]*FlowContextNodeState `json:"node_states"`
-}
-
-func NewFlowContextState() *FlowContextState {
-	return &FlowContextState{
-		ResultKeys: make(map[string]string),
-		NodeStates: make(map[string]*FlowContextNodeState),
-	}
-}
-
-func (s FlowContextState) MarshalJSON() ([]byte, error) {
-	aux := struct {
-		NodeStates map[string]*FlowContextNodeState `json:"node_states"`
-	}{
-		NodeStates: make(map[string]*FlowContextNodeState, len(s.NodeStates)),
-	}
-	// We don't want to serialize empty node states
-	for k, v := range s.NodeStates {
-		if !v.IsEmpty() {
-			aux.NodeStates[k] = v
-		}
-	}
-
-	return json.Marshal(aux)
-}
-
-func (s *FlowContextState) GetNodeState(node *CompiledFlowNode) *FlowContextNodeState {
-	if node.Data.ResultKey != "" {
-		s.ResultKeys[node.Data.ResultKey] = node.ID
-	}
-
-	state, ok := s.NodeStates[node.ID]
-	if !ok {
-		state = &FlowContextNodeState{}
-		s.NodeStates[node.ID] = state
-	}
-
-	return state
-}
-
-func (s *FlowContextState) GetNodeResult(keyOrID string) thing.Any {
-	id, ok := s.ResultKeys[keyOrID]
-
-	var state *FlowContextNodeState
-	if ok {
-		state = s.NodeStates[id]
-	} else {
-		state = s.NodeStates[keyOrID]
-	}
-
-	if state == nil {
-		return thing.Null
-	}
-
-	return state.Result
-}
-
-func (s *FlowContextState) Copy() FlowContextState {
-	copy := FlowContextState{
-		ResultKeys: make(map[string]string, len(s.ResultKeys)),
-		NodeStates: make(map[string]*FlowContextNodeState, len(s.NodeStates)),
-	}
-
-	for k, v := range s.ResultKeys {
-		copy.ResultKeys[k] = v
-	}
-
-	for k, v := range s.NodeStates {
-		copy.NodeStates[k] = v.Copy()
-	}
-
-	return copy
-}
-
-func (s *FlowContextState) Serialize() ([]byte, error) {
-	return json.Marshal(s)
-}
-
-func (s *FlowContextState) Deserialize(data []byte) error {
-	return json.Unmarshal(data, s)
-}
-
-type FlowContextNodeState struct {
-	ConditionBaseValue thing.Any `json:"condition_base_value,omitempty"`
-	ConditionItemMet   bool      `json:"condition_item_met,omitempty"`
-	Result             thing.Any `json:"result,omitempty"`
-	LoopExited         bool      `json:"loop_exited,omitempty"`
-}
-
-func (s *FlowContextNodeState) MarshalJSON() ([]byte, error) {
-	// We want to ommit nil values
-	aux := struct {
-		ConditionBaseValue any  `json:"condition_base_value,omitempty"`
-		ConditionItemMet   bool `json:"condition_item_met,omitempty"`
-		Result             any  `json:"result,omitempty"`
-		LoopExited         bool `json:"loop_exited,omitempty"`
-	}{
-		ConditionBaseValue: s.ConditionBaseValue.Inner,
-		ConditionItemMet:   s.ConditionItemMet,
-		Result:             s.Result.Inner,
-		LoopExited:         s.LoopExited,
-	}
-
-	return json.Marshal(aux)
-}
-
-func (s *FlowContextNodeState) IsEmpty() bool {
-	return s.ConditionBaseValue.IsNil() &&
-		!s.ConditionItemMet &&
-		s.Result.IsNil() &&
-		!s.LoopExited
-}
-
-func (s *FlowContextNodeState) Copy() *FlowContextNodeState {
-	return &FlowContextNodeState{
-		ConditionBaseValue: s.ConditionBaseValue,
-		ConditionItemMet:   s.ConditionItemMet,
-		Result:             s.Result,
-		LoopExited:         s.LoopExited,
-	}
 }

@@ -166,7 +166,10 @@ function useNodePlaceholders() {
     }
 
     const nodeItems: { label: string; value: string }[] = [];
+    const resultKeyItems: { label: string; value: string }[] = [];
     const componentItems: { label: string; value: string }[] = [];
+
+    const seenResultKeys = new Set<string>();
 
     for (const parent of parents) {
       if (parent.type?.startsWith("action_")) {
@@ -176,12 +179,19 @@ function useNodePlaceholders() {
           label = data.defaultTitle;
         }
 
-        let key = parent.id;
-        if (parent.data.result_key) {
-          key = parent.data.result_key;
-        }
+        nodeItems.push({ label, value: `result('${parent.id}')` });
+      }
 
-        nodeItems.push({ label, value: `result('${key}')` });
+      if (
+        parent.data.result_key &&
+        !seenResultKeys.has(parent.data.result_key)
+      ) {
+        seenResultKeys.add(parent.data.result_key);
+
+        resultKeyItems.push({
+          label: `Temporary Variable '${parent.data.result_key}'`,
+          value: `var('${parent.data.result_key}')`,
+        });
       }
 
       if (parent?.type === "suspend_response_modal") {
@@ -210,6 +220,13 @@ function useNodePlaceholders() {
       res.push({
         label: "Modal Inputs",
         placeholders: componentItems,
+      });
+    }
+
+    if (resultKeyItems.length > 0) {
+      res.push({
+        label: "Temporary Variables",
+        placeholders: resultKeyItems,
       });
     }
 

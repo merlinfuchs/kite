@@ -361,8 +361,8 @@ export const nodeTypes: Record<string, NodeValues> = {
   action_variable_set: {
     color: actionColor,
     icon: VariableIcon,
-    defaultTitle: "Set variable",
-    defaultDescription: "Set the value of a global variable",
+    defaultTitle: "Set stored variable",
+    defaultDescription: "Set the value of a stored variable",
     dataSchema: nodeActionVariableSetSchema,
     dataFields: [
       "variable_id",
@@ -376,8 +376,8 @@ export const nodeTypes: Record<string, NodeValues> = {
   action_variable_delete: {
     color: actionColor,
     icon: VariableIcon,
-    defaultTitle: "Delete variable",
-    defaultDescription: "Delete the value of a global variable",
+    defaultTitle: "Delete stored variable",
+    defaultDescription: "Delete the value of a stored variable",
     dataSchema: nodeActionVariableDeleteSchema,
     dataFields: ["variable_id", "variable_scope", "custom_label"],
     creditsCost: 1,
@@ -385,8 +385,8 @@ export const nodeTypes: Record<string, NodeValues> = {
   action_variable_get: {
     color: actionColor,
     icon: VariableIcon,
-    defaultTitle: "Get variable",
-    defaultDescription: "Get the value of a global variable",
+    defaultTitle: "Get stored variable",
+    defaultDescription: "Get the value of a stored variable",
     dataSchema: nodeActionVariableGetSchema,
     dataFields: ["variable_id", "variable_scope", "custom_label"],
     creditsCost: 1,

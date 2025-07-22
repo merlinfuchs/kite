@@ -242,10 +242,6 @@ export default function FlowNodeEditor({ nodeId }: Props) {
                 <div>credit{creditsCost === 1 ? "" : "s"}</div>
               </div>
             )}
-          <div className="flex">
-            <div className="bg-muted rounded px-2 py-1 text-xs">
-              {data?.result_key || nodeId}
-            </div>
           </div>
         </div>
       </div>
@@ -307,15 +303,14 @@ function CustomLabelInput({ data, updateData, errors }: InputProps) {
   );
 }
 
-function ResultKeyInput({ id, data, updateData, errors }: InputProps) {
+function ResultKeyInput({ data, updateData, errors }: InputProps) {
   return (
     <BaseInput
       field="result_key"
-      title="Result Key"
-      description="Set a custom key for this block so its easier to reference the result in other blocks."
+      title="Temporary Variable"
+      description="Store the result of this block in a temporary variable to use later."
       value={data.result_key || ""}
       updateValue={(v) => updateData({ result_key: v || undefined })}
-      placeholder={id}
       errors={errors}
     />
   );

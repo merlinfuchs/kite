@@ -35,8 +35,8 @@ export default function FlowNodeBase(props: Props) {
       }}
     >
       {props.showId && (
-        <div className="text-[8px] font-light text-foreground/90 absolute -top-6 right-0 bg-muted rounded-[3px] px-1 py-0.5 max-w-24 truncate hidden group-hover:block">
-          {props.data.result_key || props.id}
+        <div className="text-[9px] font-light text-foreground/90 absolute -top-6 right-0 bg-muted rounded-[3px] px-1 py-0.5 max-w-24 truncate hidden group-hover:block">
+          {props.id}
         </div>
       )}
 

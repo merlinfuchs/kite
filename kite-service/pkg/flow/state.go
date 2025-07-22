@@ -2,19 +2,30 @@ package flow
 
 import (
 	"encoding/json"
+	"fmt"
 
 	"github.com/kitecloud/kite/kite-service/pkg/thing"
 )
 
 type FlowContextState struct {
 	NodeStates map[string]*FlowContextNodeState `json:"node_states"`
+	ResultKeys map[string]string                `json:"result_keys"`
+}
+
+func NewFlowContextState() *FlowContextState {
+	return &FlowContextState{
+		NodeStates: make(map[string]*FlowContextNodeState),
+		ResultKeys: make(map[string]string),
+	}
 }
 
 func (s FlowContextState) MarshalJSON() ([]byte, error) {
 	aux := struct {
 		NodeStates map[string]*FlowContextNodeState `json:"node_states"`
+		ResultKeys map[string]string                `json:"result_keys"`
 	}{
 		NodeStates: make(map[string]*FlowContextNodeState, len(s.NodeStates)),
+		ResultKeys: s.ResultKeys,
 	}
 	// We don't want to serialize empty node states
 	for k, v := range s.NodeStates {
@@ -26,25 +37,54 @@ func (s FlowContextState) MarshalJSON() ([]byte, error) {
 	return json.Marshal(aux)
 }
 
-func (s *FlowContextState) GetNodeState(nodeID string) *FlowContextNodeState {
-	state, ok := s.NodeStates[nodeID]
+func (s *FlowContextState) GetNodeState(node *CompiledFlowNode) *FlowContextNodeState {
+	// Remember the result key of the node so we can access it later
+	if node.Data.ResultKey != "" {
+		s.ResultKeys[node.Data.ResultKey] = node.ID
+	}
+
+	state, ok := s.NodeStates[node.ID]
 	if !ok {
 		state = &FlowContextNodeState{}
-		s.NodeStates[nodeID] = state
+		s.NodeStates[node.ID] = state
 	}
 
 	return state
 }
 
+func (s *FlowContextState) GetNodeResultByID(id string) thing.Thing {
+	state := s.NodeStates[id]
+	if state == nil {
+		return thing.Null
+	}
+
+	return state.Result
+}
+
+func (s *FlowContextState) GetNodeResultByKey(key string) thing.Thing {
+	fmt.Println("GetNodeResultByKey", key)
+	fmt.Println("ResultKeys", s.ResultKeys)
+	if id, ok := s.ResultKeys[key]; ok {
+		return s.GetNodeResultByID(id)
+	}
+
+	return thing.Null
+}
+
 func (s *FlowContextState) Copy() FlowContextState {
 	copy := FlowContextState{
 		NodeStates: make(map[string]*FlowContextNodeState, len(s.NodeStates)),
+		ResultKeys: make(map[string]string, len(s.ResultKeys)),
 	}
 
 	for k, v := range s.NodeStates {
 		if !v.IsEmpty() {
 			copy.NodeStates[k] = v.Copy()
 		}
+	}
+
+	for k, v := range s.ResultKeys {
+		copy.ResultKeys[k] = v
 	}
 
 	return copy

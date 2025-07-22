@@ -12,19 +12,19 @@ type nodeEvalEnv struct {
 	state *FlowContextState
 }
 
-func (e *nodeEvalEnv) GetNode(rawKey any) (any, error) {
-	var key string
-	switch raw := rawKey.(type) {
+func (e *nodeEvalEnv) GetNode(rawID any) (any, error) {
+	var id string
+	switch raw := rawID.(type) {
 	case string:
-		key = raw
+		id = raw
 	case int:
-		key = fmt.Sprintf("%d", raw)
+		id = fmt.Sprintf("%d", raw)
 	default:
-		return nil, fmt.Errorf("invalid node key type: %T", rawKey)
+		return nil, fmt.Errorf("invalid node id type: %T", rawID)
 	}
 
 	return map[string]any{
-		"result": eval.NewAnyEnv(e.state.GetNodeResult(key)),
+		"result": eval.NewThingEnv(e.state.GetNodeResultByID(id)),
 	}, nil
 }
 
