@@ -362,19 +362,19 @@ func (w Thing) String() string {
 	case TypeBool:
 		return strconv.FormatBool(w.Value.(bool))
 	case TypeDiscordMessage:
-		return w.Value.(discord.Message).ID.String()
+		return w.Value.(discord.Message).Content
 	case TypeDiscordUser:
-		return w.Value.(discord.User).ID.String()
+		return w.Value.(discord.User).Mention()
 	case TypeDiscordMember:
-		return w.Value.(discord.Member).User.ID.String()
+		return w.Value.(discord.Member).Mention()
 	case TypeDiscordChannel:
-		return w.Value.(discord.Channel).ID.String()
+		return w.Value.(discord.Channel).Mention()
 	case TypeDiscordGuild:
-		return w.Value.(discord.Guild).ID.String()
+		return w.Value.(discord.Guild).Name
 	case TypeDiscordRole:
-		return w.Value.(discord.Role).ID.String()
+		return w.Value.(discord.Role).Mention()
 	case TypeRobloxUser:
-		return strconv.FormatInt(w.Value.(RobloxUserValue).ID, 10)
+		return w.Value.(RobloxUserValue).Name
 	case TypeHTTPResponse:
 		return string(w.Value.(HTTPResponseValue).Body)
 	case TypeArray:
@@ -383,6 +383,41 @@ func (w Thing) String() string {
 		return fmt.Sprintf("%v", w.Value)
 	default:
 		return fmt.Sprintf("%v", w.Value)
+	}
+}
+
+func (w Thing) Snowflake() discord.Snowflake {
+	switch w.Type {
+	case TypeString:
+		id, _ := strconv.ParseInt(w.Value.(string), 10, 64)
+		return discord.Snowflake(id)
+	case TypeInt:
+		return discord.Snowflake(w.Value.(int64))
+	case TypeFloat:
+		return discord.Snowflake(int64(w.Value.(float64)))
+	case TypeBool:
+		if w.Value.(bool) {
+			return 1
+		}
+		return 0
+	case TypeDiscordMessage:
+		return discord.Snowflake(w.Value.(discord.Message).ID)
+	case TypeDiscordUser:
+		return discord.Snowflake(w.Value.(discord.User).ID)
+	case TypeDiscordMember:
+		return discord.Snowflake(w.Value.(discord.Member).User.ID)
+	case TypeDiscordChannel:
+		return discord.Snowflake(w.Value.(discord.Channel).ID)
+	case TypeDiscordGuild:
+		return discord.Snowflake(w.Value.(discord.Guild).ID)
+	case TypeDiscordRole:
+		return discord.Snowflake(w.Value.(discord.Role).ID)
+	case TypeRobloxUser:
+		return discord.Snowflake(w.Value.(RobloxUserValue).ID)
+	case TypeHTTPResponse:
+		return discord.Snowflake(int64(w.Value.(HTTPResponseValue).StatusCode))
+	default:
+		return discord.NullSnowflake
 	}
 }
 

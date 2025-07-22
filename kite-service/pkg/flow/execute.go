@@ -150,7 +150,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 				ctx,
 				interaction.AppID,
 				interaction.Token,
-				discord.MessageID(messageTarget.Int()),
+				discord.MessageID(messageTarget.Snowflake()),
 				api.EditInteractionResponseData{
 					Content: responseData.Content,
 					Embeds:  responseData.Embeds,
@@ -200,7 +200,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 				ctx,
 				interaction.AppID,
 				interaction.Token,
-				discord.MessageID(messageTarget.Int()),
+				discord.MessageID(messageTarget.Snowflake()),
 			)
 			if err != nil {
 				return traceError(n, err)
@@ -310,7 +310,11 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			return traceError(n, err)
 		}
 
-		msg, err := ctx.Discord.CreateMessage(ctx, discord.ChannelID(channelTarget.Int()), messageData)
+		msg, err := ctx.Discord.CreateMessage(
+			ctx,
+			discord.ChannelID(channelTarget.Snowflake()),
+			messageData,
+		)
 		if err != nil {
 			return traceError(n, err)
 		}
@@ -352,8 +356,8 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 
 		msg, err := ctx.Discord.EditMessage(
 			ctx,
-			discord.ChannelID(channelTarget.Int()),
-			discord.MessageID(messageTarget.Int()),
+			discord.ChannelID(channelTarget.Snowflake()),
+			discord.MessageID(messageTarget.Snowflake()),
 			api.EditMessageData{
 				Content: option.NewNullableString(messageData.Content),
 				Embeds:  &messageData.Embeds,
@@ -396,8 +400,8 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 
 		err = ctx.Discord.DeleteMessage(
 			ctx,
-			discord.ChannelID(channelTarget.Int()),
-			discord.MessageID(messageTarget.Int()),
+			discord.ChannelID(channelTarget.Snowflake()),
+			discord.MessageID(messageTarget.Snowflake()),
 			api.AuditLogReason(auditLogReason.String()),
 		)
 		if err != nil {
@@ -420,7 +424,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			return traceError(n, err)
 		}
 
-		channel, err := ctx.Discord.CreatePrivateChannel(ctx, discord.UserID(userTarget.Int()))
+		channel, err := ctx.Discord.CreatePrivateChannel(ctx, discord.UserID(userTarget.Snowflake()))
 		if err != nil {
 			return traceError(n, err)
 		}
@@ -455,7 +459,12 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			emoji = discord.APIEmoji(fmt.Sprintf("%s:%s", n.Data.EmojiData.Name, n.Data.EmojiData.ID))
 		}
 
-		err = ctx.Discord.CreateMessageReaction(ctx, discord.ChannelID(channelTarget.Int()), discord.MessageID(messageTarget.Int()), emoji)
+		err = ctx.Discord.CreateMessageReaction(
+			ctx,
+			discord.ChannelID(channelTarget.Snowflake()),
+			discord.MessageID(messageTarget.Snowflake()),
+			emoji,
+		)
 		if err != nil {
 			return traceError(n, err)
 		}
@@ -477,7 +486,12 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			emoji = discord.APIEmoji(fmt.Sprintf("%s:%s", n.Data.EmojiData.Name, n.Data.EmojiData.ID))
 		}
 
-		err = ctx.Discord.DeleteMessageReaction(ctx, discord.ChannelID(channelTarget.Int()), discord.MessageID(messageTarget.Int()), emoji)
+		err = ctx.Discord.DeleteMessageReaction(
+			ctx,
+			discord.ChannelID(channelTarget.Snowflake()),
+			discord.MessageID(messageTarget.Snowflake()),
+			emoji,
+		)
 		if err != nil {
 			return traceError(n, err)
 		}
@@ -502,7 +516,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 		err = ctx.Discord.BanMember(
 			ctx,
 			ctx.Data.GuildID(),
-			discord.UserID(userID.Int()),
+			discord.UserID(userID.Snowflake()),
 			api.BanData{
 				DeleteDays:     option.NewUint(uint(messageDeleteSeconds.Float() / 86400)),
 				AuditLogReason: api.AuditLogReason(auditLogReason.String()),
@@ -527,7 +541,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 		err = ctx.Discord.UnbanMember(
 			ctx,
 			ctx.Data.GuildID(),
-			discord.UserID(userID.Int()),
+			discord.UserID(userID.Snowflake()),
 			api.AuditLogReason(auditLogReason.String()),
 		)
 		if err != nil {
@@ -549,7 +563,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 		err = ctx.Discord.KickMember(
 			ctx,
 			ctx.Data.GuildID(),
-			discord.UserID(userID.Int()),
+			discord.UserID(userID.Snowflake()),
 			api.AuditLogReason(auditLogReason.String()),
 		)
 		if err != nil {
@@ -580,7 +594,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 		err = ctx.Discord.EditMember(
 			ctx,
 			ctx.Data.GuildID(),
-			discord.UserID(memberID.Int()),
+			discord.UserID(memberID.Snowflake()),
 			api.ModifyMemberData{
 				CommunicationDisabledUntil: &communicationDisabledUntil,
 				AuditLogReason:             api.AuditLogReason(auditLogReason.String()),
@@ -620,7 +634,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 		err = ctx.Discord.EditMember(
 			ctx,
 			ctx.Data.GuildID(),
-			discord.UserID(userID.Int()),
+			discord.UserID(userID.Snowflake()),
 			data,
 		)
 		if err != nil {
@@ -647,8 +661,8 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 		err = ctx.Discord.AddMemberRole(
 			ctx,
 			ctx.Data.GuildID(),
-			discord.UserID(userID.Int()),
-			discord.RoleID(roleID.Int()),
+			discord.UserID(userID.Snowflake()),
+			discord.RoleID(roleID.Snowflake()),
 			api.AuditLogReason(auditLogReason.String()),
 		)
 		if err != nil {
@@ -675,8 +689,8 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 		err = ctx.Discord.RemoveMemberRole(
 			ctx,
 			ctx.Data.GuildID(),
-			discord.UserID(userID.Int()),
-			discord.RoleID(roleID.Int()),
+			discord.UserID(userID.Snowflake()),
+			discord.RoleID(roleID.Snowflake()),
 			api.AuditLogReason(auditLogReason.String()),
 		)
 		if err != nil {
