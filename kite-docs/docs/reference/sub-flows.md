@@ -6,7 +6,18 @@ sidebar_position: 6
 
 Some flow blocks can be used to create sub-flows. These blocks act as a boundary between the main flow and the sub-flow and are highlighted in pink in the flow editor.
 
-Contextual placeholders like the `interaction` placeholders of the main flow aren't available in the sub-flow and are replaced with the `interaction` placeholder of the sub-flow. Node results on the other hand remain available.
+:::warning
+Contextual placeholders like the `interaction` placeholders of the main flow aren't available in the sub-flow and are replaced with the `interaction` placeholder of the sub-flow. Node results and temporary variables on the other hand remain available.
+
+To work around this, you can use a `Calculate Value` block to create a temporary variable with the value of contextual placeholder before entering the sub-flow. This way you can still access the value in the sub-flow.
+
+<details>
+<summary>Show Example</summary>
+
+![Calculate Contextual Variable](./img/example-calculate-var.png)
+
+</details>
+:::
 
 ## Modals
 
