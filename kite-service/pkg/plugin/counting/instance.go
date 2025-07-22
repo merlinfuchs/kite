@@ -30,6 +30,10 @@ func (p *CountingPluginInstance) HandleEvent(c plugin.Context, event gateway.Eve
 		return nil
 	}
 
+	if e.Author.Bot {
+		return nil
+	}
+
 	enabled, err := c.GetValue(c, countEnabledKey(e.ChannelID.String()))
 	if err != nil {
 		return err
