@@ -110,6 +110,7 @@ const intputs: Record<string, any> = {
   random_max: RandomMaxInput,
   audit_log_reason: AuditLogReasonInput,
   user_target: UserTargetInput,
+  guild_target: GuildTargetInput,
   member_ban_delete_message_duration_seconds:
     MemberBanDeleteMessageDurationInput,
   member_timeout_duration_seconds: MemberTimeoutDurationInput,
@@ -871,6 +872,20 @@ function UserTargetInput({ data, updateData, errors }: InputProps) {
       title="Target User"
       value={data.user_target || ""}
       updateValue={(v) => updateData({ user_target: v || undefined })}
+      errors={errors}
+      placeholders
+    />
+  );
+}
+
+function GuildTargetInput({ data, updateData, errors }: InputProps) {
+  return (
+    <BaseInput
+      type="text"
+      field="guild_target"
+      title="Target Guild"
+      value={data.guild_target || ""}
+      updateValue={(v) => updateData({ guild_target: v || undefined })}
       errors={errors}
       placeholders
     />

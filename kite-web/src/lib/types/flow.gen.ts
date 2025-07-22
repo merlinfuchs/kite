@@ -34,6 +34,12 @@ export const FlowNodeTypeActionMemberTimeout: FlowNodeType = "action_member_time
 export const FlowNodeTypeActionMemberEdit: FlowNodeType = "action_member_edit";
 export const FlowNodeTypeActionMemberRoleAdd: FlowNodeType = "action_member_role_add";
 export const FlowNodeTypeActionMemberRoleRemove: FlowNodeType = "action_member_role_remove";
+export const FlowNodeTypeActionMemberGet: FlowNodeType = "action_member_get";
+export const FlowNodeTypeActionUserGet: FlowNodeType = "action_user_get";
+export const FlowNodeTypeActionChannelGet: FlowNodeType = "action_channel_get";
+export const FlowNodeTypeActionRoleGet: FlowNodeType = "action_role_get";
+export const FlowNodeTypeActionGuildGet: FlowNodeType = "action_guild_get";
+export const FlowNodeTypeActionMessageGet: FlowNodeType = "action_message_get";
 export const FlowNodeTypeActionRobloxUserGet: FlowNodeType = "action_roblox_user_get";
 export const FlowNodeTypeActionHTTPRequest: FlowNodeType = "action_http_request";
 export const FlowNodeTypeActionAIChatCompletion: FlowNodeType = "action_ai_chat_completion";
@@ -95,6 +101,10 @@ export interface FlowNodeData {
    */
   command_disabled_integrations?: CommandDisabledIntegrationType[];
   /**
+   * Guild Get
+   */
+  guild_target?: string;
+  /**
    * Message & Response Create, Edit, Delete
    */
   message_target?: string;
@@ -110,19 +120,19 @@ export interface FlowNodeData {
    */
   modal_data?: ModalData;
   /**
-   * Member Ban, Kick, Timeout, Edit
+   * Member Ban, Kick, Timeout, Edit, Get
    */
   user_target?: string;
   member_ban_delete_message_duration_seconds?: string;
   member_timeout_duration_seconds?: string;
   member_data?: any /* api.ModifyMemberData */;
   /**
-   * Channel Create, Edit, Delete
+   * Channel Create, Edit, Delete, Get
    */
   channel_target?: string;
   channel_data?: any /* api.CreateChannelData */;
   /**
-   * Role Create, Edit, Delete
+   * Role Create, Edit, Delete, Get
    */
   role_target?: string;
   role_data?: any /* api.CreateRoleData */;

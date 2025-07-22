@@ -341,6 +341,64 @@ export const nodeActionMemberRoleRemoveDataSchema = nodeBaseDataSchema.extend({
   audit_log_reason: auditLogReasonSchema,
 });
 
+export const nodeActionMemberGetDataSchema = nodeBaseDataSchema.extend({
+  guild_target: z
+    .string()
+    .regex(numericRegex)
+    .or(z.string().regex(placeholderRegex))
+    .optional(),
+  user_target: z
+    .string()
+    .regex(numericRegex)
+    .or(z.string().regex(placeholderRegex)),
+  temporary_name: z.string().optional(),
+});
+
+export const nodeActionUserGetDataSchema = nodeBaseDataSchema.extend({
+  user_target: z
+    .string()
+    .regex(numericRegex)
+    .or(z.string().regex(placeholderRegex)),
+  temporary_name: z.string().optional(),
+});
+
+export const nodeActionChannelGetDataSchema = nodeBaseDataSchema.extend({
+  channel_target: z
+    .string()
+    .regex(numericRegex)
+    .or(z.string().regex(placeholderRegex)),
+  temporary_name: z.string().optional(),
+});
+
+export const nodeActionRoleGetDataSchema = nodeBaseDataSchema.extend({
+  guild_target: z
+    .string()
+    .regex(numericRegex)
+    .or(z.string().regex(placeholderRegex))
+    .optional(),
+  role_target: z
+    .string()
+    .regex(numericRegex)
+    .or(z.string().regex(placeholderRegex)),
+  temporary_name: z.string().optional(),
+});
+
+export const nodeActionGuildGetDataSchema = nodeBaseDataSchema.extend({
+  guild_target: z
+    .string()
+    .regex(numericRegex)
+    .or(z.string().regex(placeholderRegex)),
+  temporary_name: z.string().optional(),
+});
+
+export const nodeActionMessageGetDataSchema = nodeBaseDataSchema.extend({
+  message_target: z
+    .string()
+    .regex(numericRegex)
+    .or(z.string().regex(placeholderRegex)),
+  temporary_name: z.string().optional(),
+});
+
 export const nodeActionRobloxUserGetDataSchema = nodeBaseDataSchema.extend({
   roblox_user_target: z.string(),
   roblox_lookup_mode: z.enum(["id", "username"]),
