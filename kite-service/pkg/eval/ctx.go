@@ -550,6 +550,8 @@ func NewThingEnv(t thing.Thing) any {
 		return NewRoleEnv(t.DiscordRole())
 	case thing.TypeHTTPResponse:
 		return NewHTTPResponseEnv(t.HTTPResponse())
+	case thing.TypeRobloxUser:
+		return NewRobloxUserEnv(t.RobloxUser())
 	case thing.TypeArray:
 		res := make([]any, len(t.Array()))
 		for i, v := range t.Array() {
@@ -576,5 +578,37 @@ func NewAppEnv(session *state.State) *AppEnv {
 
 	return &AppEnv{
 		User: NewUserEnv(user),
+	}
+}
+
+type RobloxUserEnv struct {
+	og thing.RobloxUserValue
+
+	ID                     int64  `expr:"id" json:"id"`
+	Name                   string `expr:"name" json:"name"`
+	DisplayName            string `expr:"display_name" json:"display_name"`
+	Description            string `expr:"description" json:"description"`
+	CreatedAt              string `expr:"created_at" json:"created_at"`
+	IsBanned               bool   `expr:"is_banned" json:"is_banned"`
+	HasVerifiedBadge       bool   `expr:"has_verified_badge" json:"has_verified_badge"`
+	ExternalAppDisplayName string `expr:"external_app_display_name" json:"external_app_display_name"`
+}
+
+func (r RobloxUserEnv) String() string {
+	return strconv.FormatInt(r.ID, 10)
+}
+
+func NewRobloxUserEnv(user thing.RobloxUserValue) *RobloxUserEnv {
+	return &RobloxUserEnv{
+		og: user,
+
+		ID:                     user.ID,
+		Name:                   user.Name,
+		DisplayName:            user.DisplayName,
+		Description:            user.Description,
+		CreatedAt:              user.CreatedAt,
+		IsBanned:               user.IsBanned,
+		HasVerifiedBadge:       user.HasVerifiedBadge,
+		ExternalAppDisplayName: user.ExternalAppDisplayName,
 	}
 }

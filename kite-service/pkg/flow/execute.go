@@ -684,6 +684,35 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 		}
 
 		return n.ExecuteChildren(ctx)
+	case FlowNodeTypeActionRobloxUserGet:
+		userID, err := ctx.EvalTemplate(n.Data.RobloxUserTarget)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		res := thing.Null
+
+		switch n.Data.RobloxLookupMode {
+		case RobloxLookupTypeID:
+			user, err := ctx.Roblox.UserByID(ctx, userID.Int())
+			if err != nil && !errors.Is(err, provider.ErrNotFound) {
+				return traceError(n, err)
+			}
+			if user != nil {
+				res = thing.NewRobloxUser(*user)
+			}
+		case RobloxLookupTypeName:
+			users, err := ctx.Roblox.UsersByUsername(ctx, userID.String())
+			if err != nil && !errors.Is(err, provider.ErrNotFound) {
+				return traceError(n, err)
+			}
+			if len(users) > 0 {
+				res = thing.NewRobloxUser(users[0])
+			}
+		}
+
+		ctx.StoreNodeResult(n, res)
+		return n.ExecuteChildren(ctx)
 	case FlowNodeTypeActionVariableSet:
 		scope, err := ctx.EvalTemplate(n.Data.VariableScope)
 		if err != nil {

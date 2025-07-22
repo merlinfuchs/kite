@@ -34,6 +34,7 @@ export const FlowNodeTypeActionMemberTimeout: FlowNodeType = "action_member_time
 export const FlowNodeTypeActionMemberEdit: FlowNodeType = "action_member_edit";
 export const FlowNodeTypeActionMemberRoleAdd: FlowNodeType = "action_member_role_add";
 export const FlowNodeTypeActionMemberRoleRemove: FlowNodeType = "action_member_role_remove";
+export const FlowNodeTypeActionRobloxUserGet: FlowNodeType = "action_roblox_user_get";
 export const FlowNodeTypeActionHTTPRequest: FlowNodeType = "action_http_request";
 export const FlowNodeTypeActionAIChatCompletion: FlowNodeType = "action_ai_chat_completion";
 export const FlowNodeTypeActionAISearchWeb: FlowNodeType = "action_ai_web_search";
@@ -126,6 +127,11 @@ export interface FlowNodeData {
   role_target?: string;
   role_data?: any /* api.CreateRoleData */;
   /**
+   * Roblox User Get
+   */
+  roblox_user_target?: string;
+  roblox_lookup_mode?: RobloxLookupType;
+  /**
    * Variable Set, Delete
    */
   variable_id?: string;
@@ -213,6 +219,9 @@ export const CommandDisabledIntegrationTypeGuildInstall: CommandDisabledIntegrat
 export const CommandDisabledIntegrationTypeUserInstall: CommandDisabledIntegrationType = "user_install";
 export type EventFilterTarget = string;
 export const EventFilterTypeMessageContent: EventFilterTarget = "message_content";
+export type RobloxLookupType = string;
+export const RobloxLookupTypeID: RobloxLookupType = "id";
+export const RobloxLookupTypeName: RobloxLookupType = "username";
 export interface EmojiData {
   id?: string;
   /**
