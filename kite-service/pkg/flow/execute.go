@@ -698,6 +698,123 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 		}
 
 		return n.ExecuteChildren(ctx)
+	case FlowNodeTypeActionMemberGet:
+		memberID, err := ctx.EvalTemplate(n.Data.UserTarget)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		member, err := ctx.Discord.Member(ctx, ctx.Data.GuildID(), discord.UserID(memberID.Snowflake()))
+		if err != nil && !errors.Is(err, provider.ErrNotFound) {
+			return traceError(n, err)
+		}
+
+		if member != nil {
+			ctx.StoreNodeResult(n, thing.NewDiscordMember(*member))
+		} else {
+			ctx.StoreNodeResult(n, thing.Null)
+		}
+
+		return n.ExecuteChildren(ctx)
+	case FlowNodeTypeActionUserGet:
+		userID, err := ctx.EvalTemplate(n.Data.UserTarget)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		user, err := ctx.Discord.User(ctx, discord.UserID(userID.Snowflake()))
+		if err != nil && !errors.Is(err, provider.ErrNotFound) {
+			return traceError(n, err)
+		}
+
+		if user != nil {
+			ctx.StoreNodeResult(n, thing.NewDiscordUser(*user))
+		} else {
+			ctx.StoreNodeResult(n, thing.Null)
+		}
+
+		return n.ExecuteChildren(ctx)
+	case FlowNodeTypeActionChannelGet:
+		channelID, err := ctx.EvalTemplate(n.Data.ChannelTarget)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		channel, err := ctx.Discord.Channel(ctx, discord.ChannelID(channelID.Snowflake()))
+		if err != nil && !errors.Is(err, provider.ErrNotFound) {
+			return traceError(n, err)
+		}
+
+		if channel != nil {
+			ctx.StoreNodeResult(n, thing.NewDiscordChannel(*channel))
+		} else {
+			ctx.StoreNodeResult(n, thing.Null)
+		}
+
+		return n.ExecuteChildren(ctx)
+	case FlowNodeTypeActionRoleGet:
+		roleID, err := ctx.EvalTemplate(n.Data.RoleTarget)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		role, err := ctx.Discord.Role(ctx, ctx.Data.GuildID(), discord.RoleID(roleID.Snowflake()))
+		if err != nil && !errors.Is(err, provider.ErrNotFound) {
+			return traceError(n, err)
+		}
+
+		if role != nil {
+			ctx.StoreNodeResult(n, thing.NewDiscordRole(*role))
+		} else {
+			ctx.StoreNodeResult(n, thing.Null)
+		}
+
+		return n.ExecuteChildren(ctx)
+	case FlowNodeTypeActionGuildGet:
+		guildID, err := ctx.EvalTemplate(n.Data.GuildTarget)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		guild, err := ctx.Discord.Guild(ctx, discord.GuildID(guildID.Snowflake()))
+		if err != nil && !errors.Is(err, provider.ErrNotFound) {
+			return traceError(n, err)
+		}
+
+		if guild != nil {
+			ctx.StoreNodeResult(n, thing.NewDiscordGuild(*guild))
+		} else {
+			ctx.StoreNodeResult(n, thing.Null)
+		}
+
+		return n.ExecuteChildren(ctx)
+	case FlowNodeTypeActionMessageGet:
+		channelID, err := ctx.EvalTemplate(n.Data.ChannelTarget)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		messageID, err := ctx.EvalTemplate(n.Data.MessageTarget)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		message, err := ctx.Discord.Message(
+			ctx,
+			discord.ChannelID(channelID.Snowflake()),
+			discord.MessageID(messageID.Snowflake()),
+		)
+		if err != nil && !errors.Is(err, provider.ErrNotFound) {
+			return traceError(n, err)
+		}
+
+		if message != nil {
+			ctx.StoreNodeResult(n, thing.NewDiscordMessage(*message))
+		} else {
+			ctx.StoreNodeResult(n, thing.Null)
+		}
+
+		return n.ExecuteChildren(ctx)
 	case FlowNodeTypeActionRobloxUserGet:
 		userID, err := ctx.EvalTemplate(n.Data.RobloxUserTarget)
 		if err != nil {

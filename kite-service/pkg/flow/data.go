@@ -62,6 +62,12 @@ const (
 	FlowNodeTypeActionMemberEdit            FlowNodeType = "action_member_edit"
 	FlowNodeTypeActionMemberRoleAdd         FlowNodeType = "action_member_role_add"
 	FlowNodeTypeActionMemberRoleRemove      FlowNodeType = "action_member_role_remove"
+	FlowNodeTypeActionMemberGet             FlowNodeType = "action_member_get"
+	FlowNodeTypeActionUserGet               FlowNodeType = "action_user_get"
+	FlowNodeTypeActionChannelGet            FlowNodeType = "action_channel_get"
+	FlowNodeTypeActionRoleGet               FlowNodeType = "action_role_get"
+	FlowNodeTypeActionGuildGet              FlowNodeType = "action_guild_get"
+	FlowNodeTypeActionMessageGet            FlowNodeType = "action_message_get"
 	FlowNodeTypeActionRobloxUserGet         FlowNodeType = "action_roblox_user_get"
 	FlowNodeTypeActionHTTPRequest           FlowNodeType = "action_http_request"
 	FlowNodeTypeActionAIChatCompletion      FlowNodeType = "action_ai_chat_completion"
@@ -133,6 +139,9 @@ type FlowNodeData struct {
 	// Command Installations
 	CommandDisabledIntegrations []CommandDisabledIntegrationType `json:"command_disabled_integrations,omitempty"`
 
+	// Guild Get
+	GuildTarget string `json:"guild_target,omitempty"`
+
 	// Message & Response Create, Edit, Delete
 	MessageTarget     string               `json:"message_target,omitempty"`
 	MessageData       *message.MessageData `json:"message_data,omitempty"`
@@ -145,17 +154,17 @@ type FlowNodeData struct {
 	// Modal
 	ModalData *ModalData `json:"modal_data,omitempty"`
 
-	// Member Ban, Kick, Timeout, Edit
+	// Member Ban, Kick, Timeout, Edit, Get
 	UserTarget                            string                `json:"user_target,omitempty"`
 	MemberBanDeleteMessageDurationSeconds string                `json:"member_ban_delete_message_duration_seconds,omitempty"`
 	MemberTimeoutDurationSeconds          string                `json:"member_timeout_duration_seconds,omitempty"`
 	MemberData                            *api.ModifyMemberData `json:"member_data,omitempty"`
 
-	// Channel Create, Edit, Delete
+	// Channel Create, Edit, Delete, Get
 	ChannelTarget string                 `json:"channel_target,omitempty"`
 	ChannelData   *api.CreateChannelData `json:"channel_data,omitempty"`
 
-	// Role Create, Edit, Delete
+	// Role Create, Edit, Delete, Get
 	RoleTarget string              `json:"role_target,omitempty"`
 	RoleData   *api.CreateRoleData `json:"role_data,omitempty"`
 

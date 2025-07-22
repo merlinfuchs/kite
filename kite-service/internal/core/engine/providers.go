@@ -14,6 +14,7 @@ import (
 	"github.com/diamondburned/arikawa/v3/api"
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/state"
+	disstore "github.com/diamondburned/arikawa/v3/state/store"
 	"github.com/diamondburned/arikawa/v3/utils/sendpart"
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/internal/store"
@@ -52,9 +53,72 @@ func NewDiscordProvider(
 	}
 }
 
+func (p *DiscordProvider) Member(ctx context.Context, guildID discord.GuildID, userID discord.UserID) (*discord.Member, error) {
+	member, err := p.session.Member(guildID, userID)
+	if err != nil {
+		if util.IsDiscordRestStatusCode(err, http.StatusNotFound) || errors.Is(err, disstore.ErrNotFound) {
+			return nil, provider.ErrNotFound
+		}
+		return nil, fmt.Errorf("failed to get member: %w", err)
+	}
+
+	return member, nil
+}
+
+func (p *DiscordProvider) User(ctx context.Context, userID discord.UserID) (*discord.User, error) {
+	user, err := p.session.User(userID)
+	if err != nil {
+		if util.IsDiscordRestStatusCode(err, http.StatusNotFound) || errors.Is(err, disstore.ErrNotFound) {
+			return nil, provider.ErrNotFound
+		}
+		return nil, fmt.Errorf("failed to get user: %w", err)
+	}
+
+	return user, nil
+}
+
+func (p *DiscordProvider) Channel(ctx context.Context, channelID discord.ChannelID) (*discord.Channel, error) {
+	channel, err := p.session.Channel(channelID)
+	if err != nil {
+		if util.IsDiscordRestStatusCode(err, http.StatusNotFound) || errors.Is(err, disstore.ErrNotFound) {
+			return nil, provider.ErrNotFound
+		}
+		return nil, fmt.Errorf("failed to get channel: %w", err)
+	}
+
+	return channel, nil
+}
+
+func (p *DiscordProvider) Role(ctx context.Context, guildID discord.GuildID, roleID discord.RoleID) (*discord.Role, error) {
+	role, err := p.session.Role(guildID, roleID)
+	if err != nil {
+		if util.IsDiscordRestStatusCode(err, http.StatusNotFound) || errors.Is(err, disstore.ErrNotFound) {
+			return nil, provider.ErrNotFound
+		}
+		return nil, fmt.Errorf("failed to get role: %w", err)
+	}
+
+	return role, nil
+}
+
+func (p *DiscordProvider) Guild(ctx context.Context, guildID discord.GuildID) (*discord.Guild, error) {
+	guild, err := p.session.Guild(guildID)
+	if err != nil {
+		if util.IsDiscordRestStatusCode(err, http.StatusNotFound) || errors.Is(err, disstore.ErrNotFound) {
+			return nil, provider.ErrNotFound
+		}
+		return nil, fmt.Errorf("failed to get guild: %w", err)
+	}
+
+	return guild, nil
+}
+
 func (p *DiscordProvider) Message(ctx context.Context, channelID discord.ChannelID, messageID discord.MessageID) (*discord.Message, error) {
 	msg, err := p.session.Message(channelID, messageID)
 	if err != nil {
+		if util.IsDiscordRestStatusCode(err, http.StatusNotFound) || errors.Is(err, disstore.ErrNotFound) {
+			return nil, provider.ErrNotFound
+		}
 		return nil, fmt.Errorf("failed to get message: %w", err)
 	}
 
