@@ -162,6 +162,10 @@ func NewGuessType(v any) (Thing, error) {
 		return a, nil
 	}
 
+	if t, ok := v.(ToThing); ok {
+		return t.Thing(), nil
+	}
+
 	switch v := v.(type) {
 	case string:
 		return NewString(v), nil
@@ -585,4 +589,8 @@ func (w Thing) Add(other Thing) Thing {
 
 func (w Thing) Sub(other Thing) Thing {
 	return NewFloat(w.Float() - other.Float())
+}
+
+type ToThing interface {
+	Thing() Thing
 }

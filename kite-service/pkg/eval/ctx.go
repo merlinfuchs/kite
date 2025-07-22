@@ -306,7 +306,7 @@ type UserEnv struct {
 	BannerURL     string `expr:"banner_url" json:"banner_url"`
 }
 
-func (u UserEnv) thing() thing.Thing {
+func (u UserEnv) Thing() thing.Thing {
 	return thing.NewDiscordUser(u.og)
 }
 
@@ -358,7 +358,7 @@ func NewMemberEnv(member discord.Member) *MemberEnv {
 	}
 }
 
-func (m MemberEnv) thing() thing.Thing {
+func (m MemberEnv) Thing() thing.Thing {
 	return thing.NewDiscordMember(m.og)
 }
 
@@ -380,7 +380,7 @@ func NewChannelEnv(channel discord.Channel) *ChannelEnv {
 	}
 }
 
-func (c ChannelEnv) thing() thing.Thing {
+func (c ChannelEnv) Thing() thing.Thing {
 	return thing.NewDiscordChannel(c.og)
 }
 
@@ -406,7 +406,7 @@ func NewRoleEnv(role discord.Role) *RoleEnv {
 	}
 }
 
-func (r RoleEnv) thing() thing.Thing {
+func (r RoleEnv) Thing() thing.Thing {
 	return thing.NewDiscordRole(r.og)
 }
 
@@ -430,7 +430,7 @@ func NewMessageEnv(msg discord.Message) *MessageEnv {
 	}
 }
 
-func (m MessageEnv) thing() thing.Thing {
+func (m MessageEnv) Thing() thing.Thing {
 	return thing.NewDiscordMessage(m.og)
 }
 
@@ -454,7 +454,7 @@ func NewGuildEnv(guild discord.Guild) *GuildEnv {
 	}
 }
 
-func (g GuildEnv) thing() thing.Thing {
+func (g GuildEnv) Thing() thing.Thing {
 	return thing.NewDiscordGuild(g.og)
 }
 
@@ -518,7 +518,7 @@ func NewHTTPResponseEnv(resp thing.HTTPResponseValue) *HTTPResponseEnv {
 	return res
 }
 
-func (h HTTPResponseEnv) thing() thing.Thing {
+func (h HTTPResponseEnv) Thing() thing.Thing {
 	return thing.NewHTTPResponse(h.og)
 }
 
@@ -577,8 +577,4 @@ func NewAppEnv(session *state.State) *AppEnv {
 	return &AppEnv{
 		User: NewUserEnv(user),
 	}
-}
-
-type toThing interface {
-	thing() thing.Thing
 }

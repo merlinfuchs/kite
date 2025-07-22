@@ -37,10 +37,6 @@ func Eval(ctx context.Context, expression string, c Context) (thing.Thing, error
 		return thing.Null, fmt.Errorf("eval error: %w", err)
 	}
 
-	if t, ok := result.(toThing); ok {
-		return t.thing(), nil
-	}
-
 	return thing.NewGuessTypeWithFallback(result), nil
 }
 
