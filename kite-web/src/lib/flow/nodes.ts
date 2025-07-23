@@ -1,5 +1,5 @@
 import { Edge, Node, XYPosition } from "@xyflow/react";
-import { humanId, nouns, verbs } from "human-id";
+import { humanId } from "human-id";
 import {
   ArrowLeftRightIcon,
   BookmarkIcon,
@@ -12,6 +12,7 @@ import {
   DicesIcon,
   FilterIcon,
   FolderSearchIcon,
+  FrownIcon,
   GamepadIcon,
   LogOutIcon,
   MailSearchIcon,
@@ -31,6 +32,7 @@ import {
   ServerIcon,
   ShieldCheckIcon,
   SlashSquareIcon,
+  SmilePlusIcon,
   TextCursorInputIcon,
   TimerIcon,
   UserRoundCheckIcon,
@@ -261,7 +263,7 @@ export const nodeTypes: Record<string, NodeValues> = {
   },
   action_message_reaction_create: {
     color: actionColor,
-    icon: MessageCirclePlusIcon,
+    icon: SmilePlusIcon,
     defaultTitle: "Create message reaction",
     defaultDescription: "Bot adds a reaction to a message",
     dataSchema: nodeActionMessageReactionCreateDataSchema,
@@ -275,7 +277,7 @@ export const nodeTypes: Record<string, NodeValues> = {
   },
   action_message_reaction_delete: {
     color: actionColor,
-    icon: MessageCircleXIcon,
+    icon: FrownIcon,
     defaultTitle: "Delete message reaction",
     defaultDescription: "Bot deletes a reaction from a message",
     dataSchema: nodeActionMessageReactionDeleteDataSchema,
@@ -336,7 +338,7 @@ export const nodeTypes: Record<string, NodeValues> = {
   action_member_edit: {
     color: actionColor,
     icon: UserRoundPenIcon,
-    defaultTitle: "Edit member",
+    defaultTitle: "Edit member nickname",
     defaultDescription: "Edit a member in the server",
     dataSchema: nodeActionMemberEditDataSchema,
     dataFields: [

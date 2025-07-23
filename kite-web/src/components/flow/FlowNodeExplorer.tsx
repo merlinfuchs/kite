@@ -45,9 +45,9 @@ const nodeCategories = {
         "action_message_edit",
         "action_message_delete",
         "action_private_message_create",
+        "action_message_get",
         "action_message_reaction_create",
         "action_message_reaction_delete",
-        "action_message_get",
       ],
       contextTypes: null,
     },
@@ -60,8 +60,12 @@ const nodeCategories = {
         "action_member_timeout",
         "action_member_edit",
         "action_member_get",
-        "action_user_get",
       ],
+      contextTypes: null,
+    },
+    {
+      title: "Users",
+      nodeTypes: ["action_user_get"],
       contextTypes: null,
     },
     {
@@ -73,9 +77,15 @@ const nodeCategories = {
       ],
       contextTypes: null,
     },
+
     {
       title: "Servers",
-      nodeTypes: ["action_guild_get", "action_channel_get"],
+      nodeTypes: ["action_guild_get"],
+      contextTypes: null,
+    },
+    {
+      title: "Channels",
+      nodeTypes: ["action_channel_get"],
       contextTypes: null,
     },
     {
@@ -88,7 +98,7 @@ const nodeCategories = {
       contextTypes: null,
     },
     {
-      title: "Roblox Actions",
+      title: "Roblox",
       nodeTypes: ["action_roblox_user_get"],
       contextTypes: null,
     },
