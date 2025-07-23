@@ -699,12 +699,23 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 
 		return n.ExecuteChildren(ctx)
 	case FlowNodeTypeActionMemberGet:
+		guildID := ctx.Data.GuildID()
+
+		if n.Data.GuildTarget != "" {
+			guildTarget, err := ctx.EvalTemplate(n.Data.GuildTarget)
+			if err != nil {
+				return traceError(n, err)
+			}
+
+			guildID = discord.GuildID(guildTarget.Snowflake())
+		}
+
 		memberID, err := ctx.EvalTemplate(n.Data.UserTarget)
 		if err != nil {
 			return traceError(n, err)
 		}
 
-		member, err := ctx.Discord.Member(ctx, ctx.Data.GuildID(), discord.UserID(memberID.Snowflake()))
+		member, err := ctx.Discord.Member(ctx, guildID, discord.UserID(memberID.Snowflake()))
 		if err != nil && !errors.Is(err, provider.ErrNotFound) {
 			return traceError(n, err)
 		}
@@ -753,12 +764,23 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 
 		return n.ExecuteChildren(ctx)
 	case FlowNodeTypeActionRoleGet:
+		guildID := ctx.Data.GuildID()
+
+		if n.Data.GuildTarget != "" {
+			guildTarget, err := ctx.EvalTemplate(n.Data.GuildTarget)
+			if err != nil {
+				return traceError(n, err)
+			}
+
+			guildID = discord.GuildID(guildTarget.Snowflake())
+		}
+
 		roleID, err := ctx.EvalTemplate(n.Data.RoleTarget)
 		if err != nil {
 			return traceError(n, err)
 		}
 
-		role, err := ctx.Discord.Role(ctx, ctx.Data.GuildID(), discord.RoleID(roleID.Snowflake()))
+		role, err := ctx.Discord.Role(ctx, guildID, discord.RoleID(roleID.Snowflake()))
 		if err != nil && !errors.Is(err, provider.ErrNotFound) {
 			return traceError(n, err)
 		}
@@ -789,9 +811,15 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 
 		return n.ExecuteChildren(ctx)
 	case FlowNodeTypeActionMessageGet:
-		channelID, err := ctx.EvalTemplate(n.Data.ChannelTarget)
-		if err != nil {
-			return traceError(n, err)
+		channelID := ctx.Data.ChannelID()
+
+		if n.Data.ChannelTarget != "" {
+			channelTarget, err := ctx.EvalTemplate(n.Data.ChannelTarget)
+			if err != nil {
+				return traceError(n, err)
+			}
+
+			channelID = discord.ChannelID(channelTarget.Snowflake())
 		}
 
 		messageID, err := ctx.EvalTemplate(n.Data.MessageTarget)
@@ -801,7 +829,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 
 		message, err := ctx.Discord.Message(
 			ctx,
-			discord.ChannelID(channelID.Snowflake()),
+			channelID,
 			discord.MessageID(messageID.Snowflake()),
 		)
 		if err != nil && !errors.Is(err, provider.ErrNotFound) {

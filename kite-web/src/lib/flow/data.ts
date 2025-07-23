@@ -392,6 +392,11 @@ export const nodeActionGuildGetDataSchema = nodeBaseDataSchema.extend({
 });
 
 export const nodeActionMessageGetDataSchema = nodeBaseDataSchema.extend({
+  channel_target: z
+    .string()
+    .regex(numericRegex)
+    .or(z.string().regex(placeholderRegex))
+    .optional(),
   message_target: z
     .string()
     .regex(numericRegex)

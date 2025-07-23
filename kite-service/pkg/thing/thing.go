@@ -634,7 +634,7 @@ func (w Thing) Contains(other *Thing) bool {
 }
 
 func (w Thing) IsEmpty() bool {
-	return w.String() == ""
+	return w.String() == "" || w.String() == "0"
 }
 
 func (w Thing) IsNil() bool {

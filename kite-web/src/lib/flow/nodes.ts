@@ -377,7 +377,7 @@ export const nodeTypes: Record<string, NodeValues> = {
   },
   action_member_get: {
     color: actionColor,
-    icon: UserRoundPenIcon,
+    icon: UserRoundSearchIcon,
     defaultTitle: "Get member",
     defaultDescription: "Get a member by ID",
     dataSchema: nodeActionMemberGetDataSchema,
