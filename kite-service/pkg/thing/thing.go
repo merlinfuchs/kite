@@ -416,6 +416,18 @@ func (w Thing) Snowflake() discord.Snowflake {
 		return discord.Snowflake(w.Value.(RobloxUserValue).ID)
 	case TypeHTTPResponse:
 		return discord.Snowflake(int64(w.Value.(HTTPResponseValue).StatusCode))
+	case TypeArray:
+		arr := w.Array()
+		if len(arr) != 0 {
+			return arr[0].Snowflake()
+		}
+		return discord.NullSnowflake
+	case TypeObject:
+		obj := w.Object()
+		if id, ok := obj["id"]; ok {
+			return id.Snowflake()
+		}
+		return discord.NullSnowflake
 	default:
 		return discord.NullSnowflake
 	}
