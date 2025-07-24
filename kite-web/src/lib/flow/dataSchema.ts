@@ -371,6 +371,60 @@ export const nodeActionChannelGetDataSchema = nodeBaseDataSchema.extend({
   temporary_name: z.string().optional(),
 });
 
+export const channelDataSchema = z.object({
+  name: z.string().max(100).min(1),
+  type: z.number(),
+  topic: z.string().max(1000).min(1).optional(),
+  nsfw: z.boolean().optional(),
+  parent: z
+    .string()
+    .regex(numericRegex)
+    .or(z.string().regex(placeholderRegex))
+    .optional(),
+});
+
+export const nodeActionChannelCreateDataSchema = nodeBaseDataSchema.extend({
+  channel_data: channelDataSchema,
+  audit_log_reason: auditLogReasonSchema,
+  temporary_name: z.string().optional(),
+});
+
+export const nodeActionChannelEditDataSchema = nodeBaseDataSchema.extend({
+  channel_target: z
+    .string()
+    .regex(numericRegex)
+    .or(z.string().regex(placeholderRegex)),
+  channel_data: channelDataSchema,
+  audit_log_reason: auditLogReasonSchema,
+  temporary_name: z.string().optional(),
+});
+
+export const nodeActionChannelDeleteDataSchema = nodeBaseDataSchema.extend({
+  channel_target: z
+    .string()
+    .regex(numericRegex)
+    .or(z.string().regex(placeholderRegex)),
+  audit_log_reason: auditLogReasonSchema,
+});
+
+export const nodeActionThreadCreateDataSchema = nodeBaseDataSchema.extend({
+  channel_target: z
+    .string()
+    .regex(numericRegex)
+    .or(z.string().regex(placeholderRegex)),
+  channel_data: channelDataSchema,
+  audit_log_reason: auditLogReasonSchema,
+});
+
+export const nodeActionForumPostCreateDataSchema = nodeBaseDataSchema.extend({
+  channel_target: z
+    .string()
+    .regex(numericRegex)
+    .or(z.string().regex(placeholderRegex)),
+  channel_data: channelDataSchema,
+  audit_log_reason: auditLogReasonSchema,
+});
+
 export const nodeActionRoleGetDataSchema = nodeBaseDataSchema.extend({
   guild_target: z
     .string()
