@@ -63,6 +63,7 @@ import { Switch } from "../ui/switch";
 import { Textarea } from "../ui/textarea";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
 import FlowPlaceholderExplorer from "./FlowPlaceholderExplorer";
+import env from "@/lib/env/client";
 
 interface Props {
   nodeId: string;
@@ -228,11 +229,14 @@ export default function FlowNodeEditor({ nodeId }: Props) {
             <div className="text-lg font-bold text-foreground mb-1">
               {values.defaultTitle}
             </div>
-            {values.helpUrl && (
-              <Link href={values.helpUrl} target="_blank">
-                <HelpCircleIcon className="h-5 w-5 text-muted-foreground hover:text-foreground" />
-              </Link>
-            )}
+            <Link
+              href={
+                env.NEXT_PUBLIC_DOCS_LINK + "/reference/blocks#" + node.type
+              }
+              target="_blank"
+            >
+              <HelpCircleIcon className="h-5 w-5 text-muted-foreground hover:text-foreground" />
+            </Link>
           </div>
           <div className="text-muted-foreground mb-3">
             {values.defaultDescription}

@@ -29,7 +29,6 @@ export default function EmbedFlowNodePage() {
     const sendResizeMessage = () => {
       if (containerRef.current && window.parent !== window) {
         const rect = containerRef.current.getBoundingClientRect();
-        console.log(rect.width, containerRef.current.scrollWidth);
         window.parent.postMessage(
           {
             type: "resize",

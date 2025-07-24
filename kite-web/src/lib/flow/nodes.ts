@@ -116,7 +116,6 @@ export interface NodeValues {
   dataFields: string[];
   ownsChildren?: boolean;
   fixed?: boolean;
-  helpUrl?: string;
   creditsCost?: number | ((data: NodeData) => number);
 }
 
@@ -435,7 +434,7 @@ export const nodeTypes: Record<string, NodeValues> = {
   action_message_get: {
     color: actionColor,
     icon: MailSearchIcon,
-    defaultTitle: "Get message",
+    defaultTitle: "Get channel message",
     defaultDescription: "Get a message from a channel",
     dataSchema: nodeActionMessageGetDataSchema,
     dataFields: ["message_target", "temporary_name", "custom_label"],
@@ -550,7 +549,6 @@ export const nodeTypes: Record<string, NodeValues> = {
       "Evaluate math or other logical expressions and use the result later",
     dataSchema: nodeActionExpressionEvaluateDataSchema,
     dataFields: ["expression", "temporary_name", "custom_label"],
-    helpUrl: env.NEXT_PUBLIC_DOCS_LINK + "/reference/expressions",
     creditsCost: 1,
   },
   action_random_generate: {
@@ -752,7 +750,6 @@ export const nodeTypes: Record<string, NodeValues> = {
       "Show a modal to the user and suspend the flow until the user submits the modal.",
     dataSchema: nodeSuspendResponseModalDataSchema,
     dataFields: ["modal_data", "custom_label"],
-    helpUrl: env.NEXT_PUBLIC_DOCS_LINK + "/reference/sub-flows",
   },
 };
 

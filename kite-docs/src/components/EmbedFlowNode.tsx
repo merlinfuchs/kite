@@ -1,6 +1,10 @@
 import { useEffect, useRef, useState } from "react";
+import { useColorMode } from "@docusaurus/theme-common";
 
 export default function EmbedFlowNode({ type }: { type: string }) {
+  return null;
+  const { colorMode } = useColorMode();
+
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [dimensions, setDimensions] = useState({
     width: "100%",
@@ -28,20 +32,28 @@ export default function EmbedFlowNode({ type }: { type: string }) {
     };
   }, []);
 
+  const queryParams = new URLSearchParams();
+  queryParams.set("type", type);
+  if (colorMode === "dark") {
+    queryParams.set("theme", "dark");
+  }
+
   return (
-    <iframe
-      ref={iframeRef}
-      src={`http://localhost:3000/embed/flow/node?type=${type}`}
-      style={{
-        width: dimensions.width,
-        height: dimensions.height,
-        border: "none",
-        borderRadius: "10px",
-        overflow: "hidden",
-        display: "block",
-        minWidth: "0",
-        minHeight: "0",
-      }}
-    />
+    <div style={{ margin: "10px 0" }}>
+      <iframe
+        ref={iframeRef}
+        src={`http://localhost:3000/embed/flow/node?${queryParams.toString()}`}
+        style={{
+          width: dimensions.width,
+          height: dimensions.height,
+          border: "none",
+          borderRadius: "10px",
+          overflow: "hidden",
+          display: "block",
+          minWidth: "0",
+          minHeight: "0",
+        }}
+      />
+    </div>
   );
 }
