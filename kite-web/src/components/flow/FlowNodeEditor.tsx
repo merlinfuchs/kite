@@ -137,6 +137,27 @@ const intputs: Record<string, any> = {
   sleep_duration_seconds: ControlSleepDurationInput,
 };
 
+function nodeTypeDocsPage(nodeType: string) {
+  let group: string | null = null;
+  if (nodeType.startsWith("action_")) {
+    group = "actions";
+  } else if (nodeType.startsWith("control_")) {
+    group = "controls";
+  } else if (nodeType.startsWith("option_")) {
+    group = "options";
+  } else if (nodeType.startsWith("entry_")) {
+    group = "entries";
+  }
+
+  if (!group) {
+    return null;
+  }
+
+  return (
+    env.NEXT_PUBLIC_DOCS_LINK + "/reference/blocks/" + group + "/" + nodeType
+  );
+}
+
 export default function FlowNodeEditor({ nodeId }: Props) {
   const { setNodes, deleteElements } = useReactFlow<Node<NodeData>>();
   const store = useStoreApi();
@@ -212,6 +233,8 @@ export default function FlowNodeEditor({ nodeId }: Props) {
       ? values.creditsCost(data)
       : values.creditsCost;
 
+  const docsPage = nodeTypeDocsPage(node.type!);
+
   return (
     <div className="absolute top-0 left-0 bg-background w-96 h-full p-5 flex flex-col overflow-y-auto">
       <div className="flex-none">
@@ -229,14 +252,11 @@ export default function FlowNodeEditor({ nodeId }: Props) {
             <div className="text-lg font-bold text-foreground mb-1">
               {values.defaultTitle}
             </div>
-            <Link
-              href={
-                env.NEXT_PUBLIC_DOCS_LINK + "/reference/blocks#" + node.type
-              }
-              target="_blank"
-            >
-              <HelpCircleIcon className="h-5 w-5 text-muted-foreground hover:text-foreground" />
-            </Link>
+            {docsPage && (
+              <Link href={docsPage} target="_blank">
+                <HelpCircleIcon className="h-5 w-5 text-muted-foreground hover:text-foreground" />
+              </Link>
+            )}
           </div>
           <div className="text-muted-foreground mb-3">
             {values.defaultDescription}

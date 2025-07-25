@@ -1,0 +1,8 @@
+{
+  "label": "Control Flow",
+  "position": 3,
+  "link": {
+    "type": "generated-index",
+    "description": "Information about the control flow blocks that can be used in Kite flows."
+  }
+}
