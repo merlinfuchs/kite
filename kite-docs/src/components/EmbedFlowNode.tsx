@@ -1,9 +1,14 @@
 import { useEffect, useRef, useState } from "react";
 import { useColorMode } from "@docusaurus/theme-common";
+import { useInView } from "react-intersection-observer";
 
 export default function EmbedFlowNode({ type }: { type: string }) {
-  return null;
   const { colorMode } = useColorMode();
+
+  const { ref, inView, entry } = useInView({
+    triggerOnce: true,
+    threshold: 0,
+  });
 
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [dimensions, setDimensions] = useState({
@@ -39,21 +44,23 @@ export default function EmbedFlowNode({ type }: { type: string }) {
   }
 
   return (
-    <div style={{ margin: "10px 0" }}>
-      <iframe
-        ref={iframeRef}
-        src={`http://localhost:3000/embed/flow/node?${queryParams.toString()}`}
-        style={{
-          width: dimensions.width,
-          height: dimensions.height,
-          border: "none",
-          borderRadius: "10px",
-          overflow: "hidden",
-          display: "block",
-          minWidth: "0",
-          minHeight: "0",
-        }}
-      />
+    <div style={{ margin: "10px 0" }} ref={ref}>
+      {inView && (
+        <iframe
+          ref={iframeRef}
+          src={`http://localhost:3000/embed/flow/node?${queryParams.toString()}`}
+          style={{
+            width: dimensions.width,
+            height: dimensions.height,
+            border: "none",
+            borderRadius: "10px",
+            overflow: "hidden",
+            display: "block",
+            minWidth: "0",
+            minHeight: "0",
+          }}
+        />
+      )}
     </div>
   );
 }
