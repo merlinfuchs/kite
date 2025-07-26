@@ -96,7 +96,8 @@ import {
   nodeOptionCommandPermissionsSchema,
   nodeOptionEventFilterSchema,
   nodeSuspendResponseModalDataSchema,
-} from "./data";
+} from "./dataSchema";
+import { nodeActionMessageCreateResultSchema } from "./resultSchema";
 
 export const primaryColor = "#3B82F6";
 
@@ -114,6 +115,7 @@ export interface NodeValues {
   defaultDescription: string;
   dataSchema?: ZodSchema;
   dataFields: string[];
+  resultSchema?: ZodSchema;
   ownsChildren?: boolean;
   fixed?: boolean;
   creditsCost?: number | ((data: NodeData) => number);
@@ -212,6 +214,7 @@ export const nodeTypes: Record<string, NodeValues> = {
       "temporary_name",
       "custom_label",
     ],
+    resultSchema: nodeActionMessageCreateResultSchema,
     creditsCost: 1,
   },
   action_message_edit: {

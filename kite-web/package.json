@@ -79,6 +79,7 @@
     "tailwindcss-animate": "^1.0.7",
     "vaul": "^0.9.9",
     "zod": "^3.23.8",
+    "zod-to-json-schema": "^3.24.6",
     "zundo": "^2.1.0",
     "zustand": "^4.5.4"
   },

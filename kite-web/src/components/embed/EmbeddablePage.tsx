@@ -1,14 +1,20 @@
 import { useNodeValues } from "@/lib/flow/nodes";
 import { useRouter } from "next/router";
-import { useEffect, useRef } from "react";
+import { ReactNode, useEffect, useRef } from "react";
 
-export default function EmbedFlowNodePage() {
+export default function EmbeddablePage({
+  children,
+  className,
+}: {
+  children: ReactNode;
+  className?: string;
+}) {
   const router = useRouter();
   const containerRef = useRef<HTMLDivElement>(null);
 
-  const { type, theme = "light" } = router.query;
+  const { nodeType, theme = "light" } = router.query;
 
-  const values = useNodeValues(type as string);
+  const values = useNodeValues(nodeType as string);
 
   useEffect(() => {
     // Remove any fixed width and ensure no horizontal scroll
@@ -58,25 +64,10 @@ export default function EmbedFlowNodePage() {
   return (
     <div
       ref={containerRef}
-      className="p-3 bg-muted relative select-none inline-block w-[400px]"
+      className={className}
       style={{ maxWidth: "100%", overflow: "hidden" }}
     >
-      <div className="flex items-start space-x-3">
-        <div
-          className="rounded-md w-8 h-8 flex justify-center items-center flex-none"
-          style={{ backgroundColor: values.color }}
-        >
-          <values.icon className="h-5 w-5 text-white" />
-        </div>
-        <div className="overflow-hidden flex-1 min-w-0">
-          <div className="font-medium text-foreground leading-5 mb-1 truncate">
-            {values.defaultTitle}
-          </div>
-          <div className="text-sm text-muted-foreground">
-            {values.defaultDescription}
-          </div>
-        </div>
-      </div>
+      {children}
     </div>
   );
 }

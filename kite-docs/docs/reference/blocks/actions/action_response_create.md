@@ -3,6 +3,7 @@ sidebar_position: 4
 ---
 
 import EmbedFlowNode from "../../../../src/components/EmbedFlowNode";
+import NodeInfoExplorer from "../../../../src/components/NodeInfoExplorer";
 
 # Create response message
 
@@ -13,3 +14,5 @@ You can either configure the message in the block directly or use a message temp
 If the message contains interactive components, the flow will be suspended until the user interacts with the message. See [Sub-Flows](/reference/sub-flows) for more information on how interactive components work.
 
 <EmbedFlowNode type="action_response_create" />
+
+<NodeInfoExplorer type="action_response_create" />

@@ -13,7 +13,7 @@ import { useCallback, useMemo } from "react";
 import MessageEmojiPicker from "./MessageEmojiPicker";
 import FlowPreview from "../flow/FlowPreview";
 import FlowDialog from "../flow/FlowDialog";
-import { FlowData } from "@/lib/flow/data";
+import { FlowData } from "@/lib/flow/dataSchema";
 import { getUniqueId } from "@/lib/utils";
 
 export const buttonColors = {

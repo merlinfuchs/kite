@@ -1,4 +1,4 @@
-import { NodeProps } from "@/lib/flow/data";
+import { NodeProps } from "@/lib/flow/dataSchema";
 import { ReactNode } from "react";
 import { primaryColor, useNodeValues } from "@/lib/flow/nodes";
 import FlowNodeMarkers from "./FlowNodeMarkers";

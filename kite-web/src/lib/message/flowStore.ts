@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { FlowData } from "../flow/data";
+import { FlowData } from "../flow/dataSchema";
 import { immer } from "zustand/middleware/immer";
 
 export interface FlowStore {
