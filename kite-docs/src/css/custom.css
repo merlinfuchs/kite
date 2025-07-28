@@ -52,3 +52,11 @@
   display: flex;
   align-items: center;
 }
+
+ol {
+  list-style-type: decimal;
+}
+
+ul {
+  list-style-type: disc;
+}
