@@ -3,9 +3,12 @@ sidebar_position: 43
 ---
 
 import EmbedFlowNode from "../../../../src/components/EmbedFlowNode";
+import NodeInfoExplorer from "../../../../src/components/NodeInfoExplorer";
 
-# Exit loop
-
-The `Exit loop` block allows you to exit out of a loop before it has completed all iterations. This is useful for creating early termination conditions or breaking out of loops when certain criteria are met.
+# Exit Loop
 
 <EmbedFlowNode type="control_loop_exit" />
+
+The `Exit Loop` block allows you to exit a loop early based on a condition. This is useful for creating conditional loops or breaking out of infinite loops.
+
+<NodeInfoExplorer type="control_loop_exit" />

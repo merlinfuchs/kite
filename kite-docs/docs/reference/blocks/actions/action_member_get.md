@@ -1,11 +1,14 @@
 ---
-sidebar_position: 17
+sidebar_position: 24
 ---
 
 import EmbedFlowNode from "../../../../src/components/EmbedFlowNode";
+import NodeInfoExplorer from "../../../../src/components/NodeInfoExplorer";
 
 # Get member
 
-The `Get member` block is used to get a member by their ID from a specific server.
-
 <EmbedFlowNode type="action_member_get" />
+
+The `Get member` block is used to get a member by their ID.
+
+<NodeInfoExplorer type="action_member_get" />

@@ -138,7 +138,10 @@ const config: Config = {
     },
   } satisfies Preset.ThemeConfig,
 
-  plugins: ["./src/plugins/webpack-fallback.js"],
+  plugins: [
+    "./src/plugins/webpack-config.js",
+    "./src/plugins/tailwind-config.js",
+  ],
 };
 
 export default config;

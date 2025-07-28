@@ -62,7 +62,7 @@ export default function EmbedBase({
   const url = `${customFields.appBaseUrl}${src}?${queryParams.toString()}`;
 
   return (
-    <div style={{ margin: "10px 0" }} ref={ref}>
+    <div style={{ margin: "20px 0" }} ref={ref}>
       {inView && (
         <iframe
           ref={iframeRef}

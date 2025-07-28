@@ -1,7 +1,5 @@
-import type { JsonSchema7Type } from "zod-to-json-schema";
 import { JsonSchemaViewer } from "@stoplight/json-schema-viewer";
-import { injectStyles } from "@stoplight/mosaic";
-import { useEffect } from "react";
+import type { JsonSchema7Type } from "zod-to-json-schema";
 import "./JsonSchemaExplorer.css";
 
 export default function JsonSchemaExplorer({
@@ -12,11 +10,11 @@ export default function JsonSchemaExplorer({
   return (
     <JsonSchemaViewer
       name="JSON Schema"
-      schema={schema as any}
+      schema={schema}
       expanded={true}
-      hideTopBar={false}
+      hideTopBar={true}
       emptyText="No schema defined"
-      defaultExpandedDepth={0}
+      defaultExpandedDepth={1}
     />
   );
 }

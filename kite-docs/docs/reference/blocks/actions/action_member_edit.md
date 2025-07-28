@@ -1,13 +1,14 @@
 ---
-sidebar_position: 22
+sidebar_position: 25
 ---
 
 import EmbedFlowNode from "../../../../src/components/EmbedFlowNode";
+import NodeInfoExplorer from "../../../../src/components/NodeInfoExplorer";
 
-# Edit member nickname
-
-The `Edit member nickname` block is used to edit the nickname of a member.
-
-Right now only the nickname can be edited. In the future we will add more options.
+# Edit member
 
 <EmbedFlowNode type="action_member_edit" />
+
+The `Edit member` block is used to edit a member's nickname or timeout status.
+
+<NodeInfoExplorer type="action_member_edit" />

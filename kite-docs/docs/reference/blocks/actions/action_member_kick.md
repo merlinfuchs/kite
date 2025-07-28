@@ -1,11 +1,14 @@
 ---
-sidebar_position: 20
+sidebar_position: 19
 ---
 
 import EmbedFlowNode from "../../../../src/components/EmbedFlowNode";
+import NodeInfoExplorer from "../../../../src/components/NodeInfoExplorer";
 
 # Kick member
 
+<EmbedFlowNode type="action_member_kick" />
+
 The `Kick member` block is used to kick a member from a server.
 
-<EmbedFlowNode type="action_member_kick" />
+<NodeInfoExplorer type="action_member_kick" />
