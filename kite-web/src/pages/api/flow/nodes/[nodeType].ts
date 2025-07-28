@@ -7,6 +7,7 @@ type ResponseData = {
   title: string;
   description: string;
   color: string;
+  icon: string;
   dataSchema: JsonSchema7Type | null;
   resultSchema: JsonSchema7Type | null;
   dataFields: string[];
@@ -69,6 +70,7 @@ export default function handler(
     title: values.defaultTitle,
     description: values.defaultDescription,
     color: values.color,
+    icon: values.icon,
     dataSchema,
     resultSchema,
     dataFields: values.dataFields,

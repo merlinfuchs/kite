@@ -1896,7 +1896,7 @@ function BaseInput({
 
       updateValue(newValue);
     },
-    [inputRef, textareaRef, type, updateValue]
+    [inputRef, textareaRef, type, updateValue, disablePlaceholderBrackets]
   );
 
   return (

@@ -123,7 +123,7 @@ export const suspendColor = "#d946ef";
 
 export interface NodeValues {
   color: string;
-  icon: ExoticComponent<{ className: string }>;
+  icon: string;
   defaultTitle: string;
   defaultDescription: string;
   dataSchema?: ZodSchema;
@@ -137,7 +137,7 @@ export interface NodeValues {
 export const nodeTypes: Record<string, NodeValues> = {
   entry_command: {
     color: entryColor,
-    icon: SlashSquareIcon,
+    icon: "square-slash",
     defaultTitle: "Command",
     defaultDescription:
       "Command entry. Drop different actions and options here!",
@@ -147,7 +147,7 @@ export const nodeTypes: Record<string, NodeValues> = {
   },
   entry_event: {
     color: entryColor,
-    icon: SatelliteDishIcon,
+    icon: "satellite-dish",
     defaultTitle: "Listen for Event",
     defaultDescription:
       "Listens for an event to trigger the flow. Drop different actions here!",
@@ -157,7 +157,7 @@ export const nodeTypes: Record<string, NodeValues> = {
   },
   entry_component_button: {
     color: entryColor,
-    icon: MousePointerClickIcon,
+    icon: "mouse-pointer-click",
     defaultTitle: "Button",
     defaultDescription:
       "This gets triggered when a user clicks the button. Drop different actions here!",
@@ -167,7 +167,7 @@ export const nodeTypes: Record<string, NodeValues> = {
   },
   action_response_create: {
     color: actionColor,
-    icon: MessageCircleReply,
+    icon: "message-circle-reply",
     defaultTitle: "Create response message",
     defaultDescription: "Bot replies to the interaction with a message",
     dataSchema: nodeActionResponseCreateDataSchema,
@@ -183,7 +183,7 @@ export const nodeTypes: Record<string, NodeValues> = {
   },
   action_response_edit: {
     color: actionColor,
-    icon: PenIcon,
+    icon: "pen",
     defaultTitle: "Edit response message",
     defaultDescription: "Bot edits an existing interaction response message",
     dataSchema: nodeActionResponseEditDataSchema,
@@ -199,7 +199,7 @@ export const nodeTypes: Record<string, NodeValues> = {
   },
   action_response_delete: {
     color: actionColor,
-    icon: MessageCircleXIcon,
+    icon: "message-circle-x",
     defaultTitle: "Delete response message",
     defaultDescription: "Bot deletes an existing interaction response message",
     dataSchema: nodeActionResponseDeleteDataSchema,
@@ -208,7 +208,7 @@ export const nodeTypes: Record<string, NodeValues> = {
   },
   action_response_defer: {
     color: actionColor,
-    icon: MessageCircleQuestionIcon,
+    icon: "message-circle-question",
     defaultTitle: "Defer response",
     defaultDescription:
       "Bot defers the response to the interaction to give time for further processing",
@@ -218,7 +218,7 @@ export const nodeTypes: Record<string, NodeValues> = {
   },
   action_message_create: {
     color: actionColor,
-    icon: MessageCirclePlusIcon,
+    icon: "message-circle-plus",
     defaultTitle: "Create channel message",
     defaultDescription: "Bot sends a message to a channel",
     dataSchema: nodeActionMessageCreateDataSchema,
@@ -234,7 +234,7 @@ export const nodeTypes: Record<string, NodeValues> = {
   },
   action_message_edit: {
     color: actionColor,
-    icon: PenIcon,
+    icon: "pen",
     defaultTitle: "Edit channel message",
     defaultDescription: "Bot edits an existing message in a channel",
     dataSchema: nodeActionMessageEditDataSchema,
@@ -251,7 +251,7 @@ export const nodeTypes: Record<string, NodeValues> = {
   },
   action_private_message_create: {
     color: actionColor,
-    icon: MessageCirclePlusIcon,
+    icon: "message-circle-plus",
     defaultTitle: "Send direct message",
     defaultDescription:
       "Bot sends a private message to a user if the user allows it",
@@ -268,7 +268,7 @@ export const nodeTypes: Record<string, NodeValues> = {
   },
   action_message_delete: {
     color: actionColor,
-    icon: MessageCircleXIcon,
+    icon: "message-circle-x",
     defaultTitle: "Delete channel message",
     defaultDescription: "Bot deletes an existing message in a channel",
     dataSchema: nodeActionMessageDeleteDataSchema,
@@ -282,7 +282,7 @@ export const nodeTypes: Record<string, NodeValues> = {
   },
   action_message_reaction_create: {
     color: actionColor,
-    icon: SmilePlusIcon,
+    icon: "smile-plus",
     defaultTitle: "Create message reaction",
     defaultDescription: "Bot adds a reaction to a message",
     dataSchema: nodeActionMessageReactionCreateDataSchema,
@@ -296,7 +296,7 @@ export const nodeTypes: Record<string, NodeValues> = {
   },
   action_message_reaction_delete: {
     color: actionColor,
-    icon: FrownIcon,
+    icon: "frown",
     defaultTitle: "Delete message reaction",
     defaultDescription: "Bot deletes a reaction from a message",
     dataSchema: nodeActionMessageReactionDeleteDataSchema,
@@ -310,7 +310,7 @@ export const nodeTypes: Record<string, NodeValues> = {
   },
   action_member_ban: {
     color: actionColor,
-    icon: UserRoundXIcon,
+    icon: "user-round-x",
     defaultTitle: "Ban member",
     defaultDescription: "Ban a member from the server",
     dataSchema: nodeActionMemberBanDataSchema,
@@ -324,7 +324,7 @@ export const nodeTypes: Record<string, NodeValues> = {
   },
   action_member_unban: {
     color: actionColor,
-    icon: UserRoundCheckIcon,
+    icon: "user-round-check",
     defaultTitle: "Unban member",
     defaultDescription: "Unban a member from the server",
     dataSchema: nodeActionMemberUnbanDataSchema,
@@ -333,7 +333,7 @@ export const nodeTypes: Record<string, NodeValues> = {
   },
   action_member_kick: {
     color: actionColor,
-    icon: UserRoundMinusIcon,
+    icon: "user-round-minus",
     defaultTitle: "Kick member",
     defaultDescription: "Kick a member from the server",
     dataSchema: nodeActionMemberKickDataSchema,
@@ -342,7 +342,7 @@ export const nodeTypes: Record<string, NodeValues> = {
   },
   action_member_timeout: {
     color: actionColor,
-    icon: MessageCircleOffIcon,
+    icon: "message-circle-off",
     defaultTitle: "Timeout member",
     defaultDescription: "Timeout a member in the server",
     dataSchema: nodeActionMemberTimeoutDataSchema,
@@ -356,7 +356,7 @@ export const nodeTypes: Record<string, NodeValues> = {
   },
   action_member_edit: {
     color: actionColor,
-    icon: UserRoundPenIcon,
+    icon: "user-round-pen",
     defaultTitle: "Edit member nickname",
     defaultDescription: "Edit a member in the server",
     dataSchema: nodeActionMemberEditDataSchema,
@@ -370,7 +370,7 @@ export const nodeTypes: Record<string, NodeValues> = {
   },
   action_member_role_add: {
     color: actionColor,
-    icon: BookmarkPlusIcon,
+    icon: "bookmark-plus",
     defaultTitle: "Add role to member",
     defaultDescription: "Add a role to a member",
     dataSchema: nodeActionMemberRoleAddDataSchema,
@@ -384,7 +384,7 @@ export const nodeTypes: Record<string, NodeValues> = {
   },
   action_member_role_remove: {
     color: actionColor,
-    icon: BookmarkMinusIcon,
+    icon: "bookmark-minus",
     defaultTitle: "Remove role from member",
     defaultDescription: "Remove a role from a member",
     dataSchema: nodeActionMemberRoleRemoveDataSchema,
@@ -398,7 +398,7 @@ export const nodeTypes: Record<string, NodeValues> = {
   },
   action_member_get: {
     color: actionColor,
-    icon: UserRoundSearchIcon,
+    icon: "user-round-search",
     defaultTitle: "Get member",
     defaultDescription: "Get a member by ID",
     dataSchema: nodeActionMemberGetDataSchema,
@@ -413,7 +413,7 @@ export const nodeTypes: Record<string, NodeValues> = {
   },
   action_user_get: {
     color: actionColor,
-    icon: UserRoundSearchIcon,
+    icon: "user-round-search",
     defaultTitle: "Get user",
     defaultDescription: "Get a user by ID",
     dataSchema: nodeActionUserGetDataSchema,
@@ -422,7 +422,7 @@ export const nodeTypes: Record<string, NodeValues> = {
   },
   action_channel_get: {
     color: actionColor,
-    icon: FolderSearchIcon,
+    icon: "folder-search",
     defaultTitle: "Get channel",
     defaultDescription: "Get a channel by ID",
     dataSchema: nodeActionChannelGetDataSchema,
@@ -432,7 +432,7 @@ export const nodeTypes: Record<string, NodeValues> = {
   },
   action_role_get: {
     color: actionColor,
-    icon: BookmarkIcon,
+    icon: "bookmark",
     defaultTitle: "Get role",
     defaultDescription: "Get a role by ID",
     dataSchema: nodeActionRoleGetDataSchema,
@@ -447,7 +447,7 @@ export const nodeTypes: Record<string, NodeValues> = {
   },
   action_guild_get: {
     color: actionColor,
-    icon: ServerIcon,
+    icon: "server",
     defaultTitle: "Get server",
     defaultDescription: "Get a server / guild by ID",
     dataSchema: nodeActionGuildGetDataSchema,
@@ -457,7 +457,7 @@ export const nodeTypes: Record<string, NodeValues> = {
   },
   action_message_get: {
     color: actionColor,
-    icon: MailSearchIcon,
+    icon: "mail-search",
     defaultTitle: "Get channel message",
     defaultDescription: "Get a message from a channel",
     dataSchema: nodeActionMessageGetDataSchema,
@@ -467,7 +467,7 @@ export const nodeTypes: Record<string, NodeValues> = {
   },
   action_roblox_user_get: {
     color: actionColor,
-    icon: GamepadIcon,
+    icon: "gamepad",
     defaultTitle: "Get Roblox User",
     defaultDescription: "Get a Roblox user by ID or username",
     dataSchema: nodeActionRobloxUserGetDataSchema,
@@ -482,7 +482,7 @@ export const nodeTypes: Record<string, NodeValues> = {
   },
   action_variable_set: {
     color: actionColor,
-    icon: VariableIcon,
+    icon: "variable",
     defaultTitle: "Set stored variable",
     defaultDescription: "Set the value of a stored variable",
     dataSchema: nodeActionVariableSetSchema,
@@ -498,7 +498,7 @@ export const nodeTypes: Record<string, NodeValues> = {
   },
   action_variable_delete: {
     color: actionColor,
-    icon: VariableIcon,
+    icon: "variable",
     defaultTitle: "Delete stored variable",
     defaultDescription: "Delete the value of a stored variable",
     dataSchema: nodeActionVariableDeleteSchema,
@@ -507,7 +507,7 @@ export const nodeTypes: Record<string, NodeValues> = {
   },
   action_variable_get: {
     color: actionColor,
-    icon: VariableIcon,
+    icon: "variable",
     defaultTitle: "Get stored variable",
     defaultDescription: "Get the value of a stored variable",
     dataSchema: nodeActionVariableGetSchema,
@@ -521,7 +521,7 @@ export const nodeTypes: Record<string, NodeValues> = {
   },
   action_http_request: {
     color: actionColor,
-    icon: WebhookIcon,
+    icon: "webhook",
     defaultTitle: "Send API Request",
     defaultDescription: "Send an API request to an external server",
     dataSchema: nodeActionHttpRequestDataSchema,
@@ -530,7 +530,7 @@ export const nodeTypes: Record<string, NodeValues> = {
   },
   action_ai_chat_completion: {
     color: actionColor,
-    icon: BrainCircuitIcon,
+    icon: "brain-circuit",
     defaultTitle: "Ask AI",
     defaultDescription:
       "Ask artificial intelligence a question or let it respond to a prompt",
@@ -550,7 +550,7 @@ export const nodeTypes: Record<string, NodeValues> = {
   },
   action_ai_web_search: {
     color: actionColor,
-    icon: SearchIcon,
+    icon: "search",
     defaultTitle: "Search the Web",
     defaultDescription: "Search the web for the latest information using AI",
     dataSchema: nodeActionAiWebSearchCompletionDataSchema,
@@ -569,7 +569,7 @@ export const nodeTypes: Record<string, NodeValues> = {
   },
   action_expression_evaluate: {
     color: actionColor,
-    icon: CalculatorIcon,
+    icon: "calculator",
     defaultTitle: "Calculate Value",
     defaultDescription:
       "Evaluate math or other logical expressions and use the result later",
@@ -579,7 +579,7 @@ export const nodeTypes: Record<string, NodeValues> = {
   },
   action_random_generate: {
     color: actionColor,
-    icon: DicesIcon,
+    icon: "dices",
     defaultTitle: "Generate Random Number",
     defaultDescription: "Generate a random number in a range",
     dataSchema: nodeActionRandomGenerateDataSchema,
@@ -588,7 +588,7 @@ export const nodeTypes: Record<string, NodeValues> = {
   },
   action_log: {
     color: actionColor,
-    icon: ScrollTextIcon,
+    icon: "scroll-text",
     defaultTitle: "Log Message",
     defaultDescription:
       "Log some text which is only visible in the application logs",
@@ -598,7 +598,7 @@ export const nodeTypes: Record<string, NodeValues> = {
   },
   control_condition_compare: {
     color: controlColor,
-    icon: ArrowLeftRightIcon,
+    icon: "arrow-left-right",
     defaultTitle: "Comparison Condition",
     defaultDescription:
       "Run actions based on the difference between two values.",
@@ -612,7 +612,7 @@ export const nodeTypes: Record<string, NodeValues> = {
   },
   control_condition_item_compare: {
     color: controlColor,
-    icon: CircleHelpIcon,
+    icon: "circle-help",
     defaultTitle: "Match Condition",
     dataSchema: nodeConditionItemCompareDataSchema,
     defaultDescription: "Run actions if the two values are equal.",
@@ -620,7 +620,7 @@ export const nodeTypes: Record<string, NodeValues> = {
   },
   control_condition_user: {
     color: controlColor,
-    icon: UserSearchIcon,
+    icon: "user-search",
     defaultTitle: "User Condition",
     defaultDescription: "Run actions based on a user.",
     dataSchema: nodeConditionCompareDataSchema,
@@ -633,7 +633,7 @@ export const nodeTypes: Record<string, NodeValues> = {
   },
   control_condition_item_user: {
     color: controlColor,
-    icon: CircleHelpIcon,
+    icon: "circle-help",
     defaultTitle: "Match User",
     dataSchema: nodeConditionItemCompareDataSchema,
     defaultDescription: "Run actions if the user meets the criteria.",
@@ -641,7 +641,7 @@ export const nodeTypes: Record<string, NodeValues> = {
   },
   control_condition_channel: {
     color: controlColor,
-    icon: FolderSearchIcon,
+    icon: "folder-search",
     defaultTitle: "Channel Condition",
     defaultDescription: "Run actions based on a channel.",
     dataSchema: nodeConditionCompareDataSchema,
@@ -654,7 +654,7 @@ export const nodeTypes: Record<string, NodeValues> = {
   },
   control_condition_item_channel: {
     color: controlColor,
-    icon: CircleHelpIcon,
+    icon: "circle-help",
     defaultTitle: "Match Channel",
     dataSchema: nodeConditionItemCompareDataSchema,
     defaultDescription: "Run actions if the channel meets the criteria.",
@@ -662,7 +662,7 @@ export const nodeTypes: Record<string, NodeValues> = {
   },
   control_condition_role: {
     color: controlColor,
-    icon: BookmarkIcon,
+    icon: "bookmark",
     defaultTitle: "Role Condition",
     defaultDescription: "Run actions based on a role.",
     dataSchema: nodeConditionCompareDataSchema,
@@ -675,7 +675,7 @@ export const nodeTypes: Record<string, NodeValues> = {
   },
   control_condition_item_role: {
     color: controlColor,
-    icon: CircleHelpIcon,
+    icon: "circle-help",
     defaultTitle: "Match Role",
     dataSchema: nodeConditionItemCompareDataSchema,
     defaultDescription: "Run actions if the role meets the criteria.",
@@ -683,7 +683,7 @@ export const nodeTypes: Record<string, NodeValues> = {
   },
   control_condition_item_else: {
     color: errorColor,
-    icon: XCircleIcon,
+    icon: "x-circle",
     defaultTitle: "Else",
     defaultDescription: "Run actions if no other conditions are met.",
     dataFields: [],
@@ -691,7 +691,7 @@ export const nodeTypes: Record<string, NodeValues> = {
   },
   control_loop: {
     color: controlColor,
-    icon: Repeat2Icon,
+    icon: "repeat-2",
     defaultTitle: "Run a loop",
     dataSchema: nodeControlLoopDataSchema,
     defaultDescription: "Run a set of actions multiple times.",
@@ -700,7 +700,7 @@ export const nodeTypes: Record<string, NodeValues> = {
   },
   control_loop_each: {
     color: controlColor,
-    icon: Repeat2Icon,
+    icon: "repeat-2",
     defaultTitle: "Each loop iteration",
     defaultDescription: "Run actions for each iteration of the loop.",
     dataFields: [],
@@ -708,7 +708,7 @@ export const nodeTypes: Record<string, NodeValues> = {
   },
   control_loop_end: {
     color: controlColor,
-    icon: CornerDownRightIcon,
+    icon: "corner-down-right",
     defaultTitle: "After loop",
     defaultDescription: "Run actions after the loop has finished.",
     dataFields: [],
@@ -716,14 +716,14 @@ export const nodeTypes: Record<string, NodeValues> = {
   },
   control_loop_exit: {
     color: controlColor,
-    icon: LogOutIcon,
+    icon: "log-out",
     defaultTitle: "Exit loop",
     defaultDescription: "Exit out of the loop.",
     dataFields: [],
   },
   control_sleep: {
     color: controlColor,
-    icon: TimerIcon,
+    icon: "timer",
     defaultTitle: "Wait",
     defaultDescription: "Pause the flow for a set amount of time.",
     dataSchema: nodeControlSleepDataSchema,
@@ -731,7 +731,7 @@ export const nodeTypes: Record<string, NodeValues> = {
   },
   option_command_argument: {
     color: optionColor,
-    icon: TextCursorInputIcon,
+    icon: "text-cursor-input",
     defaultTitle: "Command Argument",
     defaultDescription: "Argument for a command.",
     dataSchema: nodeOptionCommandArgumentDataSchema,
@@ -744,7 +744,7 @@ export const nodeTypes: Record<string, NodeValues> = {
   },
   option_command_permissions: {
     color: optionColor,
-    icon: ShieldCheckIcon,
+    icon: "shield-check",
     defaultTitle: "Command Permissions",
     defaultDescription:
       "Make the command only available to users with the specified permissions.",
@@ -753,7 +753,7 @@ export const nodeTypes: Record<string, NodeValues> = {
   },
   option_command_contexts: {
     color: optionColor,
-    icon: MapPinIcon,
+    icon: "map-pin",
     defaultTitle: "Command Contexts",
     defaultDescription:
       "Define where your command should be available. By default, it will be available everywhere.",
@@ -762,7 +762,7 @@ export const nodeTypes: Record<string, NodeValues> = {
   },
   option_event_filter: {
     color: optionColor,
-    icon: FilterIcon,
+    icon: "filter",
     defaultTitle: "Event Filter",
     defaultDescription: "Filter events based on their properties.",
     dataSchema: nodeOptionEventFilterSchema,
@@ -770,7 +770,7 @@ export const nodeTypes: Record<string, NodeValues> = {
   },
   suspend_response_modal: {
     color: suspendColor,
-    icon: PictureInPicture2Icon,
+    icon: "picture-in-picture-2",
     defaultTitle: "Show Modal",
     defaultDescription:
       "Show a modal to the user and suspend the flow until the user submits the modal.",
@@ -781,7 +781,7 @@ export const nodeTypes: Record<string, NodeValues> = {
 
 const unknownNodeType: NodeValues = {
   color: "#ff0000",
-  icon: CircleHelpIcon,
+  icon: "circle-help",
   defaultTitle: "Unknown",
   defaultDescription: "Unknown node type.",
   dataFields: [],

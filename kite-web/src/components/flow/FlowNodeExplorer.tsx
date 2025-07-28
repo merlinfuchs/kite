@@ -4,6 +4,7 @@ import { useReactFlow } from "@xyflow/react";
 import clsx from "clsx";
 import { DragEvent, useMemo, useState } from "react";
 import { ScrollArea } from "../ui/scroll-area";
+import DynamicIcon from "../icons/DynamicIcon";
 
 const nodeCategories = {
   option: [
@@ -277,7 +278,10 @@ function AvailableNode({ type, values }: { type: string; values: NodeValues }) {
           className="rounded-md w-8 h-8 flex justify-center items-center flex-none"
           style={{ backgroundColor: values.color }}
         >
-          <values.icon className="h-5 w-5 text-white" />
+          <DynamicIcon
+            name={values.icon as any}
+            className="h-5 w-5 text-white"
+          />
         </div>
         <div className="overflow-hidden">
           <div className="font-medium text-foreground leading-5 mb-1 truncate">
