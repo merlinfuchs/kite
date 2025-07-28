@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import JsonSchemaExplorer from "./JsonSchemaExplorer";
 import { cn } from "../lib/util";
 import type { JsonSchema7Type } from "zod-to-json-schema";
+import useDocusaurusContext from "@docusaurus/useDocusaurusContext";
 
 type NodeInfo = {
   title: string;
@@ -17,10 +18,14 @@ export default function NodeInfoExplorer({ type }: { type: string }) {
   const [tab, setTab] = useState<"data" | "result">("result");
   const [data, setData] = useState<NodeInfo | null>(null);
 
+  const {
+    siteConfig: { customFields },
+  } = useDocusaurusContext();
+
   useEffect(() => {
     const abortController = new AbortController();
 
-    fetch(`http://localhost:3000/api/flow/nodes/${type}`, {
+    fetch(`${customFields.appBaseUrl}/api/flow/nodes/${type}`, {
       signal: abortController.signal,
     })
       .then((res) => res.json())
