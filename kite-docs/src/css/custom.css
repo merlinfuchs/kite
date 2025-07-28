@@ -29,3 +29,34 @@
   --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.3);
 }
 
+@import "tailwindcss";
+
+@custom-variant dark (&:is([data-theme="dark"] *));
+
+.breadcrumbs {
+  display: flex;
+  align-items: center;
+}
+
+.breadcrumbs__item {
+  display: flex;
+  align-items: center;
+}
+
+.navbar__item {
+  display: flex;
+  align-items: center;
+}
+
+.theme-edit-this-page {
+  display: flex;
+  align-items: center;
+}
+
+ol {
+  list-style-type: decimal;
+}
+
+ul {
+  list-style-type: disc;
+}

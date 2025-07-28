@@ -1,4 +1,4 @@
-import { FlowData, NodeType } from "@/lib/flow/data";
+import { FlowData, NodeType } from "@/lib/flow/dataSchema";
 import { ReactFlowProvider, useReactFlow } from "@xyflow/react";
 import { useCallback, useRef } from "react";
 import {

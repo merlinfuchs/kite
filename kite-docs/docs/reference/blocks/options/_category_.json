@@ -1,0 +1,8 @@
+{
+  "label": "Options",
+  "position": 3,
+  "link": {
+    "type": "generated-index",
+    "description": "Information about the options that can be used in Kite flows."
+  }
+}

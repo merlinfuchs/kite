@@ -1,7 +1,7 @@
 import { Edge, Node } from "@xyflow/react";
 import { getLayoutedElements } from "./layout";
 import { getEdgeId, getNodeId } from "./nodes";
-import { NodeData } from "./data";
+import { NodeData } from "./dataSchema";
 import {
   BrainCircuitIcon,
   GavelIcon,

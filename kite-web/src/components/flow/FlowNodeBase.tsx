@@ -1,7 +1,8 @@
-import { NodeProps } from "@/lib/flow/data";
+import { NodeProps } from "@/lib/flow/dataSchema";
 import { ReactNode } from "react";
 import { primaryColor, useNodeValues } from "@/lib/flow/nodes";
 import FlowNodeMarkers from "./FlowNodeMarkers";
+import DynamicIcon from "../icons/DynamicIcon";
 
 interface Props extends NodeProps {
   title?: string;
@@ -16,7 +17,7 @@ interface Props extends NodeProps {
 export default function FlowNodeBase(props: Props) {
   const {
     color: defaultColor,
-    icon: Icon,
+    icon,
     defaultTitle,
     defaultDescription,
   } = useNodeValues(props.type);
@@ -45,7 +46,7 @@ export default function FlowNodeBase(props: Props) {
           className="rounded-md w-8 h-8 flex justify-center items-center flex-none"
           style={{ backgroundColor: color }}
         >
-          <Icon className="h-5 w-5 text-white" />
+          <DynamicIcon name={icon as any} className="h-5 w-5 text-white" />
         </div>
         <div className="overflow-hidden">
           <div className="text-sm font-medium text-foreground leading-5 mb-1 truncate">

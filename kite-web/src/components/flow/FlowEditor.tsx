@@ -18,7 +18,7 @@ import {
 
 import "@xyflow/react/dist/base.css";
 import { useHookedTheme } from "@/lib/hooks/theme";
-import { FlowData } from "@/lib/flow/data";
+import { FlowData } from "@/lib/flow/dataSchema";
 import { createNode, getNodeValues } from "@/lib/flow/nodes";
 import { edgeTypes, nodeTypes } from "@/lib/flow/components";
 

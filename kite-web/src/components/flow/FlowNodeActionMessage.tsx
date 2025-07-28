@@ -1,4 +1,4 @@
-import { NodeProps } from "@/lib/flow/data";
+import { NodeProps } from "@/lib/flow/dataSchema";
 import { suspendColor } from "@/lib/flow/nodes";
 import { ComponentData } from "@/lib/types/message.gen";
 import { Position } from "@xyflow/react";

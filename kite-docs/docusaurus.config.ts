@@ -1,6 +1,7 @@
 import { themes as prismThemes } from "prism-react-renderer";
 import type { Config } from "@docusaurus/types";
 import type * as Preset from "@docusaurus/preset-classic";
+import "dotenv/config";
 
 const config: Config = {
   title: "Kite",
@@ -27,6 +28,10 @@ const config: Config = {
   i18n: {
     defaultLocale: "en",
     locales: ["en"],
+  },
+
+  customFields: {
+    appBaseUrl: process.env.APP_BASE_URL || "http://localhost:3000",
   },
 
   presets: [
@@ -132,6 +137,11 @@ const config: Config = {
       darkTheme: prismThemes.dracula,
     },
   } satisfies Preset.ThemeConfig,
+
+  plugins: [
+    "./src/plugins/webpack-config.js",
+    "./src/plugins/tailwind-config.js",
+  ],
 };
 
 export default config;

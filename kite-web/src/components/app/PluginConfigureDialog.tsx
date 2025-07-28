@@ -1,14 +1,11 @@
 import {
-  useCommandsImportMutation,
-  useEventListenersImportMutation,
   usePluginInstanceCreateMutation,
   usePluginInstanceUpdateMutation,
 } from "@/lib/api/mutations";
-import { prepareTemplateFlow, Template } from "@/lib/flow/templates";
 import { useAppId } from "@/lib/hooks/params";
+import { Plugin, PluginInstance } from "@/lib/types/wire.gen";
 import { SatelliteDishIcon, SlashSquareIcon } from "lucide-react";
 import { ReactNode, useCallback, useEffect, useState } from "react";
-import { toast } from "sonner";
 import { Button } from "../ui/button";
 import { Card, CardDescription, CardTitle } from "../ui/card";
 import {
@@ -23,7 +20,6 @@ import {
 } from "../ui/dialog";
 import { Input } from "../ui/input";
 import { Switch } from "../ui/switch";
-import { Plugin, PluginInstance } from "@/lib/types/wire.gen";
 
 export function PluginConfigureDialog({
   children,
@@ -75,7 +71,15 @@ export function PluginConfigureDialog({
     }
 
     setDialogOpen(false);
-  }, [plugin, instance, enabled, config, enabledResourceIds]);
+  }, [
+    plugin,
+    instance,
+    enabled,
+    config,
+    enabledResourceIds,
+    createMutation,
+    updateMutation,
+  ]);
 
   return (
     <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>

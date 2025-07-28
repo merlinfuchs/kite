@@ -4,6 +4,7 @@ import { useReactFlow } from "@xyflow/react";
 import clsx from "clsx";
 import { DragEvent, useMemo, useState } from "react";
 import { ScrollArea } from "../ui/scroll-area";
+import DynamicIcon from "../icons/DynamicIcon";
 
 const nodeCategories = {
   option: [
@@ -31,9 +32,9 @@ const nodeCategories = {
       title: "Responses",
       nodeTypes: [
         "action_response_create",
-        "action_response_defer",
         "action_response_edit",
         "action_response_delete",
+        "action_response_defer",
         "suspend_response_modal",
       ],
       contextTypes: ["command", "component_button"],
@@ -44,8 +45,8 @@ const nodeCategories = {
         "action_message_create",
         "action_message_edit",
         "action_message_delete",
-        "action_private_message_create",
         "action_message_get",
+        "action_private_message_create",
         "action_message_reaction_create",
         "action_message_reaction_delete",
       ],
@@ -277,7 +278,10 @@ function AvailableNode({ type, values }: { type: string; values: NodeValues }) {
           className="rounded-md w-8 h-8 flex justify-center items-center flex-none"
           style={{ backgroundColor: values.color }}
         >
-          <values.icon className="h-5 w-5 text-white" />
+          <DynamicIcon
+            name={values.icon as any}
+            className="h-5 w-5 text-white"
+          />
         </div>
         <div className="overflow-hidden">
           <div className="font-medium text-foreground leading-5 mb-1 truncate">

@@ -181,7 +181,8 @@ export const nodeActionMessageCreateDataSchema = nodeBaseDataSchema
     channel_target: z
       .string()
       .regex(numericRegex)
-      .or(z.string().regex(placeholderRegex)),
+      .or(z.string().regex(placeholderRegex))
+      .describe("The channel to send the message to"),
     message_data: nodeMessageDataSchema.optional(),
     message_template_id: z.string().optional(),
   })

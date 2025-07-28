@@ -1,6 +1,6 @@
 import FlowPage from "@/components/flow/FlowPage";
 import { useEventListenerUpdateMutation } from "@/lib/api/mutations";
-import { FlowData } from "@/lib/flow/data";
+import { FlowData } from "@/lib/flow/dataSchema";
 import { useEventListener } from "@/lib/hooks/api";
 import { useAppId, useEventId } from "@/lib/hooks/params";
 import { useBeforePageExit } from "@/lib/hooks/exit";

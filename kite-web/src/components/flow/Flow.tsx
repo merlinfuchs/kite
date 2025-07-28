@@ -1,4 +1,4 @@
-import { FlowData } from "@/lib/flow/data";
+import { FlowData } from "@/lib/flow/dataSchema";
 import FlowEditor from "./FlowEditor";
 import FlowNodeEditor from "./FlowNodeEditor";
 import FlowNodeExplorer from "./FlowNodeExplorer";

@@ -1,5 +1,5 @@
 import { Position, useReactFlow } from "@xyflow/react";
-import { NodeProps, NodeType } from "../../lib/flow/data";
+import { NodeProps, NodeType } from "../../lib/flow/dataSchema";
 import FlowNodeBase from "./FlowNodeBase";
 import FlowNodeHandle from "./FlowNodeHandle";
 import { controlColor, createNode } from "@/lib/flow/nodes";

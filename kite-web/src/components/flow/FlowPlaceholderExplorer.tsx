@@ -1,5 +1,5 @@
 import { useFlowContext } from "@/lib/flow/context";
-import { NodeData } from "@/lib/flow/data";
+import { NodeData } from "@/lib/flow/dataSchema";
 import { getNodeValues } from "@/lib/flow/nodes";
 import { Edge, getIncomers, Node, useEdges, useNodes } from "@xyflow/react";
 import { VariableIcon } from "lucide-react";

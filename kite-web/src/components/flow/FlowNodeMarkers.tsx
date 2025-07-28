@@ -1,4 +1,4 @@
-import { NodeData } from "@/lib/flow/data";
+import { NodeData } from "@/lib/flow/dataSchema";
 import { LinkIcon } from "lucide-react";
 import { useMemo } from "react";
 import { useEdges } from "@xyflow/react";
