@@ -1,6 +1,7 @@
 import { getNodeValues } from "@/lib/flow/nodes";
 import type { NextApiRequest, NextApiResponse } from "next";
 import { JsonSchema7Type, zodToJsonSchema } from "zod-to-json-schema";
+import env from "@/lib/env/server";
 
 type ResponseData = {
   title: string;
@@ -15,10 +16,7 @@ type ResponseData = {
 // CORS middleware function
 function corsMiddleware(req: NextApiRequest, res: NextApiResponse) {
   // Allow requests from the docs site
-  const allowedOrigins = [
-    "https://docs.kite.onl",
-    "http://localhost:4000", // For local development
-  ];
+  const allowedOrigins = [env.NEXT_PUBLIC_DOCS_LINK];
 
   const origin = req.headers.origin;
 
@@ -56,10 +54,15 @@ export default function handler(
   const values = getNodeValues(nodeType as string);
 
   const dataSchema = values.dataSchema
-    ? zodToJsonSchema(values.dataSchema)
+    ? zodToJsonSchema(values.dataSchema, {
+        $refStrategy: "none",
+      })
     : null;
+
   const resultSchema = values.resultSchema
-    ? zodToJsonSchema(values.resultSchema)
+    ? zodToJsonSchema(values.resultSchema, {
+        $refStrategy: "none",
+      })
     : null;
 
   res.status(200).json({

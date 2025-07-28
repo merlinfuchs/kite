@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
+import JsonSchemaExplorer from "./JsonSchemaExplorer";
 
 type NodeInfo = {
   title: string;
   description: string;
   color: string;
   dataSchema: any | null;
+  resultSchema: any | null;
   dataFields: string[];
   creditsCost: number | null;
 };
@@ -41,5 +43,16 @@ export default function NodeInfoExplorer({ type }: { type: string }) {
     return <div>Loading...</div>;
   }
 
-  return null;
+  return (
+    <div>
+      <div className="sl-stack--16">
+        <h2>Data Schema</h2>
+        <JsonSchemaExplorer schema={data.dataSchema} />
+      </div>
+      <div className="sl-stack--16">
+        <h2>Result Schema</h2>
+        <JsonSchemaExplorer schema={data.resultSchema} />
+      </div>
+    </div>
+  );
 }

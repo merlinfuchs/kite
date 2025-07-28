@@ -97,7 +97,20 @@ import {
   nodeOptionEventFilterSchema,
   nodeSuspendResponseModalDataSchema,
 } from "./dataSchema";
-import { nodeActionMessageCreateResultSchema } from "./resultSchema";
+import {
+  nodeActionMessageCreateResultSchema,
+  nodeActionMessageEditResultSchema,
+  nodeActionResponseCreateResultSchema,
+  nodeActionResponseEditResultSchema,
+  nodeActionPrivateMessageCreateResultSchema,
+  nodeActionMessageGetResultSchema,
+  nodeActionUserGetResultSchema,
+  nodeActionMemberGetResultSchema,
+  nodeActionChannelGetResultSchema,
+  nodeActionGuildGetResultSchema,
+  nodeActionRobloxUserGetResultSchema,
+  nodeActionRoleGetResultSchema,
+} from "./resultSchema";
 
 export const primaryColor = "#3B82F6";
 
@@ -158,6 +171,7 @@ export const nodeTypes: Record<string, NodeValues> = {
     defaultTitle: "Create response message",
     defaultDescription: "Bot replies to the interaction with a message",
     dataSchema: nodeActionResponseCreateDataSchema,
+    resultSchema: nodeActionResponseCreateResultSchema,
     dataFields: [
       "message_template_id",
       "message_data",
@@ -173,6 +187,7 @@ export const nodeTypes: Record<string, NodeValues> = {
     defaultTitle: "Edit response message",
     defaultDescription: "Bot edits an existing interaction response message",
     dataSchema: nodeActionResponseEditDataSchema,
+    resultSchema: nodeActionResponseEditResultSchema,
     dataFields: [
       "response_target",
       "message_template_id",
@@ -207,6 +222,7 @@ export const nodeTypes: Record<string, NodeValues> = {
     defaultTitle: "Create channel message",
     defaultDescription: "Bot sends a message to a channel",
     dataSchema: nodeActionMessageCreateDataSchema,
+    resultSchema: nodeActionMessageCreateResultSchema,
     dataFields: [
       "channel_target",
       "message_template_id",
@@ -214,7 +230,6 @@ export const nodeTypes: Record<string, NodeValues> = {
       "temporary_name",
       "custom_label",
     ],
-    resultSchema: nodeActionMessageCreateResultSchema,
     creditsCost: 1,
   },
   action_message_edit: {
@@ -223,6 +238,7 @@ export const nodeTypes: Record<string, NodeValues> = {
     defaultTitle: "Edit channel message",
     defaultDescription: "Bot edits an existing message in a channel",
     dataSchema: nodeActionMessageEditDataSchema,
+    resultSchema: nodeActionMessageEditResultSchema,
     dataFields: [
       "channel_target",
       "message_target",
@@ -240,6 +256,7 @@ export const nodeTypes: Record<string, NodeValues> = {
     defaultDescription:
       "Bot sends a private message to a user if the user allows it",
     dataSchema: nodeActionPrivateMessageCreateDataSchema,
+    resultSchema: nodeActionPrivateMessageCreateResultSchema,
     dataFields: [
       "user_target",
       "message_data",
@@ -385,6 +402,7 @@ export const nodeTypes: Record<string, NodeValues> = {
     defaultTitle: "Get member",
     defaultDescription: "Get a member by ID",
     dataSchema: nodeActionMemberGetDataSchema,
+    resultSchema: nodeActionMemberGetResultSchema,
     dataFields: [
       "guild_target",
       "user_target",
@@ -408,6 +426,7 @@ export const nodeTypes: Record<string, NodeValues> = {
     defaultTitle: "Get channel",
     defaultDescription: "Get a channel by ID",
     dataSchema: nodeActionChannelGetDataSchema,
+    resultSchema: nodeActionChannelGetResultSchema,
     dataFields: ["channel_target", "temporary_name", "custom_label"],
     creditsCost: 1,
   },
@@ -417,6 +436,7 @@ export const nodeTypes: Record<string, NodeValues> = {
     defaultTitle: "Get role",
     defaultDescription: "Get a role by ID",
     dataSchema: nodeActionRoleGetDataSchema,
+    resultSchema: nodeActionRoleGetResultSchema,
     dataFields: [
       "guild_target",
       "role_target",
@@ -431,6 +451,7 @@ export const nodeTypes: Record<string, NodeValues> = {
     defaultTitle: "Get server",
     defaultDescription: "Get a server / guild by ID",
     dataSchema: nodeActionGuildGetDataSchema,
+    resultSchema: nodeActionGuildGetResultSchema,
     dataFields: ["guild_target", "temporary_name", "custom_label"],
     creditsCost: 1,
   },
@@ -440,6 +461,7 @@ export const nodeTypes: Record<string, NodeValues> = {
     defaultTitle: "Get channel message",
     defaultDescription: "Get a message from a channel",
     dataSchema: nodeActionMessageGetDataSchema,
+    resultSchema: nodeActionMessageGetResultSchema,
     dataFields: ["message_target", "temporary_name", "custom_label"],
     creditsCost: 1,
   },
@@ -449,6 +471,7 @@ export const nodeTypes: Record<string, NodeValues> = {
     defaultTitle: "Get Roblox User",
     defaultDescription: "Get a Roblox user by ID or username",
     dataSchema: nodeActionRobloxUserGetDataSchema,
+    resultSchema: nodeActionRobloxUserGetResultSchema,
     dataFields: [
       "roblox_user_target",
       "roblox_lookup_mode",

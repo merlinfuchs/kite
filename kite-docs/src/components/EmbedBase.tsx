@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useColorMode } from "@docusaurus/theme-common";
 import { useInView } from "react-intersection-observer";
+import useDocusaurusContext from "@docusaurus/useDocusaurusContext";
 
 export default function EmbedBase({
   src,
@@ -10,6 +11,10 @@ export default function EmbedBase({
   params?: Record<string, string>;
 }) {
   const { colorMode } = useColorMode();
+
+  const {
+    siteConfig: { customFields },
+  } = useDocusaurusContext();
 
   const { ref, inView, entry } = useInView({
     triggerOnce: true,
@@ -54,12 +59,14 @@ export default function EmbedBase({
     queryParams.set("theme", "dark");
   }
 
+  const url = `${customFields.appBaseUrl}${src}?${queryParams.toString()}`;
+
   return (
     <div style={{ margin: "10px 0" }} ref={ref}>
       {inView && (
         <iframe
           ref={iframeRef}
-          src={`${src}?${queryParams.toString()}`}
+          src={url}
           style={{
             width: dimensions.width,
             height: dimensions.height,
