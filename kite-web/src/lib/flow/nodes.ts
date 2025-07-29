@@ -683,7 +683,7 @@ export const nodeTypes: Record<string, NodeValues> = {
   },
   control_condition_item_else: {
     color: errorColor,
-    icon: "x-circle",
+    icon: "circle-x",
     defaultTitle: "Else",
     defaultDescription: "Run actions if no other conditions are met.",
     dataFields: [],
