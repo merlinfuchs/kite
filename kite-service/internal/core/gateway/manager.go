@@ -96,7 +96,11 @@ func (m *GatewayManager) populateGateways(ctx context.Context) error {
 				return ctx.Err()
 			case <-time.After(100 * time.Millisecond):
 				if err := m.addGateway(ctx, app); err != nil {
-					slog.With("error", err).Error("failed to add gateway")
+					slog.Error(
+						"Failed to add gateway",
+						slog.String("app_id", app.ID),
+						slog.String("error", err.Error()),
+					)
 				}
 			}
 		}
@@ -143,28 +147,24 @@ func (m *GatewayManager) addGateway(ctx context.Context, app *model.App) error {
 	defer m.Unlock()
 
 	if g, ok := m.gateways[app.ID]; ok {
+		if g.session.GatewayIsAlive() {
+			go g.Update(ctx, app)
+			return nil
+		}
+
 		// Some times arikawa fails to keep the gateway alive, so we need to
 		// re-add it.
-		if !g.session.GatewayIsAlive() {
-			g.Close()
-
-			g, err := NewGateway(app, m.logStore, m.appStore, m.planManager, m.eventHandler, m.tokenCrypt)
-			if err != nil {
-				return fmt.Errorf("failed to create gateway: %w", err)
-			}
-
-			m.gateways[app.ID] = g
+		if err := g.Close(); err != nil {
+			return fmt.Errorf("failed to close gateway: %w", err)
 		}
-
-		go g.Update(ctx, app)
-	} else {
-		g, err := NewGateway(app, m.logStore, m.appStore, m.planManager, m.eventHandler, m.tokenCrypt)
-		if err != nil {
-			return fmt.Errorf("failed to create gateway: %w", err)
-		}
-
-		m.gateways[app.ID] = g
 	}
+
+	g, err := NewGateway(app, m.logStore, m.appStore, m.planManager, m.eventHandler, m.tokenCrypt)
+	if err != nil {
+		return fmt.Errorf("failed to create gateway: %w", err)
+	}
+
+	m.gateways[app.ID] = g
 
 	return nil
 }
