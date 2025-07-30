@@ -379,15 +379,25 @@ func (n *CompiledFlowNode) FindDirectParentWithType(types ...FlowNodeType) *Comp
 }
 
 func (n *CompiledFlowNode) FindAllParentsWithType(t FlowNodeType) []*CompiledFlowNode {
+	return n.findAllParentsWithType(t, make(map[string]bool))
+}
+
+func (n *CompiledFlowNode) findAllParentsWithType(t FlowNodeType, visited map[string]bool) []*CompiledFlowNode {
 	res := make([]*CompiledFlowNode, 0)
+
+	// Mark this node as visited to prevent cycles
+	visited[n.ID] = true
 
 	for _, node := range n.Parents.Default {
 		if node.Type == t {
 			res = append(res, node)
 		}
 
-		parents := node.FindAllParentsWithType(t)
-		res = append(res, parents...)
+		// Only recurse if we haven't visited this node before
+		if !visited[node.ID] {
+			parents := node.findAllParentsWithType(t, visited)
+			res = append(res, parents...)
+		}
 	}
 
 	return res
@@ -406,6 +416,13 @@ func (n *CompiledFlowNode) FindDirectChildWithType(types ...FlowNodeType) *Compi
 }
 
 func (n *CompiledFlowNode) FindChildWithType(types ...FlowNodeType) *CompiledFlowNode {
+	return n.findChildWithType(make(map[string]bool), types...)
+}
+
+func (n *CompiledFlowNode) findChildWithType(visited map[string]bool, types ...FlowNodeType) *CompiledFlowNode {
+	// Mark this node as visited to prevent cycles
+	visited[n.ID] = true
+
 	// We first want to check all direct children
 	for _, node := range n.Children.Default {
 		for _, t := range types {
@@ -417,9 +434,12 @@ func (n *CompiledFlowNode) FindChildWithType(types ...FlowNodeType) *CompiledFlo
 
 	// If no direct children are found, we want to check all children recursively
 	for _, node := range n.Children.Default {
-		child := node.FindChildWithType(types...)
-		if child != nil {
-			return child
+		// Only recurse if we haven't visited this node before
+		if !visited[node.ID] {
+			child := node.findChildWithType(visited, types...)
+			if child != nil {
+				return child
+			}
 		}
 	}
 
@@ -427,14 +447,24 @@ func (n *CompiledFlowNode) FindChildWithType(types ...FlowNodeType) *CompiledFlo
 }
 
 func (n *CompiledFlowNode) FindParentWithID(id string) *CompiledFlowNode {
+	return n.findParentWithID(id, make(map[string]bool))
+}
+
+func (n *CompiledFlowNode) findParentWithID(id string, visited map[string]bool) *CompiledFlowNode {
+	// Mark this node as visited to prevent cycles
+	visited[n.ID] = true
+
 	for _, node := range n.Parents.Default {
 		if node.ID == id {
 			return node
 		}
 
-		parent := node.FindParentWithID(id)
-		if parent != nil {
-			return parent
+		// Only recurse if we haven't visited this node before
+		if !visited[node.ID] {
+			parent := node.findParentWithID(id, visited)
+			if parent != nil {
+				return parent
+			}
 		}
 	}
 
@@ -442,21 +472,34 @@ func (n *CompiledFlowNode) FindParentWithID(id string) *CompiledFlowNode {
 }
 
 func (n *CompiledFlowNode) FindChildWithID(nodeID string, includeSubFlows bool) *CompiledFlowNode {
+	return n.findChildWithID(nodeID, includeSubFlows, make(map[string]bool))
+}
+
+func (n *CompiledFlowNode) findChildWithID(nodeID string, includeSubFlows bool, visited map[string]bool) *CompiledFlowNode {
 	if n.ID == nodeID {
 		return n
 	}
 
+	// Mark this node as visited to prevent cycles
+	visited[n.ID] = true
+
 	for _, child := range n.Children.Default {
-		if node := child.FindChildWithID(nodeID, includeSubFlows); node != nil {
-			return node
+		// Only recurse if we haven't visited this node before
+		if !visited[child.ID] {
+			if node := child.findChildWithID(nodeID, includeSubFlows, visited); node != nil {
+				return node
+			}
 		}
 	}
 
 	if includeSubFlows {
 		for _, children := range n.Children.Handles {
 			for _, child := range children {
-				if node := child.FindChildWithID(nodeID, includeSubFlows); node != nil {
-					return node
+				// Only recurse if we haven't visited this node before
+				if !visited[child.ID] {
+					if node := child.findChildWithID(nodeID, includeSubFlows, visited); node != nil {
+						return node
+					}
 				}
 			}
 		}

@@ -157,6 +157,7 @@ func (m *GatewayManager) addGateway(ctx context.Context, app *model.App) error {
 		if err := g.Close(); err != nil {
 			return fmt.Errorf("failed to close gateway: %w", err)
 		}
+		delete(m.gateways, app.ID)
 	}
 
 	g, err := NewGateway(app, m.logStore, m.appStore, m.planManager, m.eventHandler, m.tokenCrypt)
