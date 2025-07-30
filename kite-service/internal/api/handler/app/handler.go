@@ -109,6 +109,11 @@ func (h *AppHandler) HandleAppCreate(c *handler.Context, req wire.AppCreateReque
 }
 
 func (h *AppHandler) HandleAppUpdate(c *handler.Context, req wire.AppUpdateRequest) (*wire.AppUpdateResponse, error) {
+	disabledReason := c.App.DisabledReason
+	if req.Enabled {
+		disabledReason = null.String{}
+	}
+
 	app, err := h.appStore.UpdateApp(c.Context(), store.AppUpdateOpts{
 		ID:             c.App.ID,
 		Name:           req.Name,
@@ -116,7 +121,7 @@ func (h *AppHandler) HandleAppUpdate(c *handler.Context, req wire.AppUpdateReque
 		DiscordToken:   c.App.DiscordToken,
 		DiscordStatus:  c.App.DiscordStatus,
 		Enabled:        req.Enabled,
-		DisabledReason: c.App.DisabledReason,
+		DisabledReason: disabledReason,
 		UpdatedAt:      time.Now().UTC(),
 	})
 	if err != nil {
