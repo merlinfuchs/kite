@@ -8,8 +8,11 @@ import (
 	"runtime/debug"
 	"time"
 
+	"github.com/diamondburned/arikawa/v3/api"
+	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/gateway"
 	"github.com/diamondburned/arikawa/v3/state"
+	"github.com/diamondburned/arikawa/v3/utils/json/option"
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/internal/store"
 	"github.com/kitecloud/kite/kite-service/internal/util"
@@ -161,6 +164,8 @@ func (s Env) executeFlowEvent(
 			fmt.Sprintf("Failed to execute flow event: %v", err),
 			links,
 		)
+
+		s.createInteractionErrorResponse(fCtx, err)
 	}
 
 	s.createUsageRecord(
@@ -168,6 +173,36 @@ func (s Env) executeFlowEvent(
 		fCtx.CreditsUsed(),
 		links,
 	)
+}
+
+func (s Env) createInteractionErrorResponse(fCtx *flow.FlowContext, err error) {
+	interaction := fCtx.Data.Interaction()
+	if interaction == nil {
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(fCtx, time.Second*10)
+	defer cancel()
+
+	errStr := err.Error()
+	if len(errStr) > 1800 {
+		errStr = errStr[:1800]
+	}
+
+	respData := api.InteractionResponseData{
+		Content: option.NewNullableString("An error occurred while executing the flow event: ```" + errStr + "```"),
+		Flags:   discord.EphemeralMessage,
+	}
+
+	hasCreatedResponse, _ := fCtx.Discord.HasCreatedInteractionResponse(ctx, interaction.ID)
+	if hasCreatedResponse {
+		_, _ = fCtx.Discord.CreateInteractionFollowup(ctx, interaction.AppID, interaction.Token, respData)
+	} else {
+		_, _ = fCtx.Discord.CreateInteractionResponse(ctx, interaction.ID, interaction.Token, api.InteractionResponse{
+			Type: api.MessageInteractionWithSource,
+			Data: &respData,
+		})
+	}
 }
 
 func (s Env) createLogEntry(appID string, level model.LogLevel, message string, links entityLinks) {
