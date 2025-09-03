@@ -809,14 +809,29 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 
 			channelData.CategoryID = discord.ChannelID(parentTarget.Snowflake())
 		}
-		if n.Data.ChannelData.Bitrate != 0 {
-			channelData.VoiceBitrate = uint(n.Data.ChannelData.Bitrate)
+		if n.Data.ChannelData.Bitrate != "" {
+			bitrate, err := ctx.EvalTemplate(n.Data.ChannelData.Bitrate)
+			if err != nil {
+				return traceError(n, err)
+			}
+
+			channelData.VoiceBitrate = uint(bitrate.Int())
 		}
-		if n.Data.ChannelData.UserLimit != 0 {
-			channelData.VoiceUserLimit = uint(n.Data.ChannelData.UserLimit)
+		if n.Data.ChannelData.UserLimit != "" {
+			userLimit, err := ctx.EvalTemplate(n.Data.ChannelData.UserLimit)
+			if err != nil {
+				return traceError(n, err)
+			}
+
+			channelData.VoiceUserLimit = uint(userLimit.Int())
 		}
-		if n.Data.ChannelData.Position != 0 {
-			channelData.Position = option.NewInt(n.Data.ChannelData.Position)
+		if n.Data.ChannelData.Position != "" {
+			position, err := ctx.EvalTemplate(n.Data.ChannelData.Position)
+			if err != nil {
+				return traceError(n, err)
+			}
+
+			channelData.Position = option.NewInt(int(position.Int()))
 		}
 		for _, overwrite := range n.Data.ChannelData.PermissionOverwrites {
 			overwriteTarget, err := ctx.EvalTemplate(overwrite.ID)
@@ -869,14 +884,29 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 
 			channelData.CategoryID = discord.ChannelID(parentTarget.Snowflake())
 		}
-		if n.Data.ChannelData.Bitrate != 0 {
-			channelData.VoiceBitrate = option.NewNullableUint(uint(n.Data.ChannelData.Bitrate))
+		if n.Data.ChannelData.Bitrate != "" {
+			bitrate, err := ctx.EvalTemplate(n.Data.ChannelData.Bitrate)
+			if err != nil {
+				return traceError(n, err)
+			}
+
+			channelData.VoiceBitrate = option.NewNullableUint(uint(bitrate.Int()))
 		}
-		if n.Data.ChannelData.UserLimit != 0 {
-			channelData.VoiceUserLimit = option.NewNullableUint(uint(n.Data.ChannelData.UserLimit))
+		if n.Data.ChannelData.UserLimit != "" {
+			userLimit, err := ctx.EvalTemplate(n.Data.ChannelData.UserLimit)
+			if err != nil {
+				return traceError(n, err)
+			}
+
+			channelData.VoiceUserLimit = option.NewNullableUint(uint(userLimit.Int()))
 		}
-		if n.Data.ChannelData.Position != 0 {
-			channelData.Position = option.NewNullableInt(n.Data.ChannelData.Position)
+		if n.Data.ChannelData.Position != "" {
+			position, err := ctx.EvalTemplate(n.Data.ChannelData.Position)
+			if err != nil {
+				return traceError(n, err)
+			}
+
+			channelData.Position = option.NewNullableInt(int(position.Int()))
 		}
 
 		overwrites := make([]discord.Overwrite, 0, len(n.Data.ChannelData.PermissionOverwrites))

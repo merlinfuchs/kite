@@ -328,18 +328,18 @@ const (
 )
 
 type ChannelData struct {
-	Name                 string                `json:"name,omitempty"`
-	Type                 int                   `json:"type,omitempty"`
-	Topic                string                `json:"topic,omitempty"`
-	NSFW                 bool                  `json:"nsfw,omitempty"`
-	ParentID             string                `json:"parent,omitempty"`
-	Bitrate              int                   `json:"bitrate,omitempty"`
-	UserLimit            int                   `json:"user_limit,omitempty"`
-	Position             int                   `json:"position,omitempty"`
-	PermissionOverwrites []PermissionOverwrite `json:"permission_overwrites,omitempty"`
+	Name                 string                    `json:"name,omitempty"`
+	Type                 int                       `json:"type,omitempty"`
+	Topic                string                    `json:"topic,omitempty"`
+	NSFW                 bool                      `json:"nsfw,omitempty"`
+	ParentID             string                    `json:"parent,omitempty"`
+	Bitrate              string                    `json:"bitrate,omitempty"`
+	UserLimit            string                    `json:"user_limit,omitempty"`
+	Position             string                    `json:"position,omitempty"`
+	PermissionOverwrites []PermissionOverwriteData `json:"permission_overwrites,omitempty"`
 }
 
-type PermissionOverwrite struct {
+type PermissionOverwriteData struct {
 	ID    string `json:"id,omitempty"`
 	Type  int    `json:"type,omitempty"`
 	Allow string `json:"allow,omitempty"`

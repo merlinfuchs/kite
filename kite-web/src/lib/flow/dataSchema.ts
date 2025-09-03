@@ -376,35 +376,53 @@ export const channelDataSchema = z.object({
   type: z.number().optional(),
   topic: z.string().max(1000).min(1).optional(),
   nsfw: z.boolean().optional(),
-  bitrate: z.number().optional(),
-  user_limit: z.number().optional(),
-  position: z.number().optional(),
+  bitrate: z
+    .string()
+    .regex(numericRegex)
+    .or(z.string().regex(placeholderRegex))
+    .optional(),
+  user_limit: z
+    .string()
+    .regex(numericRegex)
+    .or(z.string().regex(placeholderRegex))
+    .optional(),
+  position: z
+    .string()
+    .regex(numericRegex)
+    .or(z.string().regex(placeholderRegex))
+    .optional(),
   parent: z
     .string()
     .regex(numericRegex)
     .or(z.string().regex(placeholderRegex))
     .optional(),
-  permission_overwrites: z.array(
-    z.object({
-      id: z.string().regex(numericRegex).or(z.string().regex(placeholderRegex)),
-      type: z.literal(0).or(z.literal(1)),
-      allow: z
-        .string()
-        .regex(numericRegex)
-        .or(z.string().regex(placeholderRegex)),
-      deny: z
-        .string()
-        .regex(numericRegex)
-        .or(z.string().regex(placeholderRegex)),
-    })
-  ),
+  permission_overwrites: z
+    .array(
+      z.object({
+        id: z
+          .string()
+          .regex(numericRegex)
+          .or(z.string().regex(placeholderRegex)),
+        type: z.literal(0).or(z.literal(1)).optional(),
+        allow: z
+          .string()
+          .regex(numericRegex)
+          .or(z.string().regex(placeholderRegex)),
+        deny: z
+          .string()
+          .regex(numericRegex)
+          .or(z.string().regex(placeholderRegex)),
+      })
+    )
+    .optional(),
 });
 
 export const nodeActionChannelCreateDataSchema = nodeBaseDataSchema.extend({
   guild_target: z
     .string()
     .regex(numericRegex)
-    .or(z.string().regex(placeholderRegex)),
+    .or(z.string().regex(placeholderRegex))
+    .optional(),
   channel_data: channelDataSchema,
   audit_log_reason: auditLogReasonSchema,
   temporary_name: z.string().optional(),

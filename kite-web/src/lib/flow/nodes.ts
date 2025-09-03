@@ -395,6 +395,7 @@ export const nodeTypes: Record<string, NodeValues> = {
     defaultDescription: "Create a channel",
     dataSchema: nodeActionChannelCreateDataSchema,
     dataFields: [
+      "guild_target",
       "channel_data",
       "audit_log_reason",
       "temporary_name",

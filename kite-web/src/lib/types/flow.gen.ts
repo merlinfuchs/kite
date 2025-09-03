@@ -243,9 +243,16 @@ export interface ChannelData {
   topic?: string;
   nsfw?: boolean;
   parent?: string;
-  bitrate?: number /* int */;
-  user_limit?: number /* int */;
-  position?: number /* int */;
+  bitrate?: string;
+  user_limit?: string;
+  position?: string;
+  permission_overwrites?: PermissionOverwriteData[];
+}
+export interface PermissionOverwriteData {
+  id?: string;
+  type?: number /* int */;
+  allow?: string;
+  deny?: string;
 }
 export interface RoleData {
   name?: string;
