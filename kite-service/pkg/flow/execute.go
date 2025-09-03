@@ -797,9 +797,10 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 		}
 
 		channelData := api.CreateChannelData{
-			Name: n.Data.ChannelData.Name,
-			Type: discord.ChannelType(n.Data.ChannelData.Type),
-			NSFW: n.Data.ChannelData.NSFW,
+			Name:  n.Data.ChannelData.Name,
+			Topic: n.Data.ChannelData.Topic,
+			Type:  discord.ChannelType(n.Data.ChannelData.Type),
+			NSFW:  n.Data.ChannelData.NSFW,
 		}
 		if n.Data.ChannelData.ParentID != "" {
 			parentTarget, err := ctx.EvalTemplate(n.Data.ChannelData.ParentID)
@@ -875,6 +876,14 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 				Val:  n.Data.ChannelData.NSFW,
 				Init: true,
 			},
+		}
+		if n.Data.ChannelData.Topic != "" {
+			topic, err := ctx.EvalTemplate(n.Data.ChannelData.Topic)
+			if err != nil {
+				return traceError(n, err)
+			}
+
+			channelData.Topic = option.NewNullableString(topic.String())
 		}
 		if n.Data.ChannelData.ParentID != "" {
 			parentTarget, err := ctx.EvalTemplate(n.Data.ChannelData.ParentID)
