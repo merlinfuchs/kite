@@ -54,6 +54,10 @@ func (m *GatewayManager) Run(ctx context.Context) {
 	ticker := time.NewTicker(10 * time.Second)
 
 	go func() {
+		if err := m.populateGateways(ctx); err != nil {
+			slog.With("error", err).Error("failed to populate gateways")
+		}
+
 		for {
 			select {
 			case <-ctx.Done():
