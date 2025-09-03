@@ -373,17 +373,38 @@ export const nodeActionChannelGetDataSchema = nodeBaseDataSchema.extend({
 
 export const channelDataSchema = z.object({
   name: z.string().max(100).min(1),
-  type: z.number(),
+  type: z.number().optional(),
   topic: z.string().max(1000).min(1).optional(),
   nsfw: z.boolean().optional(),
+  bitrate: z.number().optional(),
+  user_limit: z.number().optional(),
+  position: z.number().optional(),
   parent: z
     .string()
     .regex(numericRegex)
     .or(z.string().regex(placeholderRegex))
     .optional(),
+  permission_overwrites: z.array(
+    z.object({
+      id: z.string().regex(numericRegex).or(z.string().regex(placeholderRegex)),
+      type: z.literal(0).or(z.literal(1)),
+      allow: z
+        .string()
+        .regex(numericRegex)
+        .or(z.string().regex(placeholderRegex)),
+      deny: z
+        .string()
+        .regex(numericRegex)
+        .or(z.string().regex(placeholderRegex)),
+    })
+  ),
 });
 
 export const nodeActionChannelCreateDataSchema = nodeBaseDataSchema.extend({
+  guild_target: z
+    .string()
+    .regex(numericRegex)
+    .or(z.string().regex(placeholderRegex)),
   channel_data: channelDataSchema,
   audit_log_reason: auditLogReasonSchema,
   temporary_name: z.string().optional(),

@@ -318,6 +318,33 @@ func (p *DiscordProvider) CreatePrivateChannel(ctx context.Context, userID disco
 	return channel, nil
 }
 
+func (p *DiscordProvider) CreateChannel(ctx context.Context, guildID discord.GuildID, data api.CreateChannelData) (*discord.Channel, error) {
+	channel, err := p.session.CreateChannel(guildID, data)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create channel: %w", err)
+	}
+
+	return channel, nil
+}
+
+func (p *DiscordProvider) EditChannel(ctx context.Context, channelID discord.ChannelID, data api.ModifyChannelData) error {
+	err := p.session.ModifyChannel(channelID, data)
+	if err != nil {
+		return fmt.Errorf("failed to edit channel: %w", err)
+	}
+
+	return nil
+}
+
+func (p *DiscordProvider) DeleteChannel(ctx context.Context, channelID discord.ChannelID, reason api.AuditLogReason) error {
+	err := p.session.DeleteChannel(channelID, reason)
+	if err != nil {
+		return fmt.Errorf("failed to delete channel: %w", err)
+	}
+
+	return nil
+}
+
 func (p *DiscordProvider) HasCreatedInteractionResponse(ctx context.Context, interactionID discord.InteractionID) (bool, error) {
 	p.interactionResponseMutex.Lock()
 	defer p.interactionResponseMutex.Unlock()
