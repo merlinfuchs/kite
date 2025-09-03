@@ -110,7 +110,9 @@ func NewCommandEnv(i *discord.InteractionEvent) *CommandEnv {
 	data, _ := i.Data.(*discord.CommandInteraction)
 
 	args := make(map[string]any)
-	for _, option := range data.Options {
+
+	var addArg func(option discord.CommandInteractionOption)
+	addArg = func(option discord.CommandInteractionOption) {
 		var value any
 		_ = json.Unmarshal(option.Value, &value)
 
@@ -146,9 +148,21 @@ func NewCommandEnv(i *discord.InteractionEvent) *CommandEnv {
 			attachmentID, _ := strconv.ParseInt(value.(string), 10, 64)
 			attachment := data.Resolved.Attachments[discord.AttachmentID(attachmentID)]
 			args[option.Name] = NewAttachmentEnv(&attachment)
+		case discord.SubcommandGroupOptionType:
+			for _, subcommand := range option.Options {
+				addArg(subcommand)
+			}
+		case discord.SubcommandOptionType:
+			for _, option := range option.Options {
+				addArg(option)
+			}
 		default:
 			args[option.Name] = value
 		}
+	}
+
+	for _, option := range data.Options {
+		addArg(option)
 	}
 
 	return &CommandEnv{
