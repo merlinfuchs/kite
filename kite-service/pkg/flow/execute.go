@@ -132,13 +132,34 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 
 		var msg *discord.Message
 		if n.Data.MessageTarget == "" || n.Data.MessageTarget == "@original" {
-			msg, err = ctx.Discord.EditInteractionResponse(ctx, interaction.AppID, interaction.Token, api.EditInteractionResponseData{
-				Content:    responseData.Content,
-				Embeds:     responseData.Embeds,
-				Components: responseData.Components,
-			})
+			hasCreatedResponse, err := ctx.Discord.HasCreatedInteractionResponse(ctx, interaction.ID)
 			if err != nil {
 				return traceError(n, err)
+			}
+
+			if hasCreatedResponse {
+				msg, err = ctx.Discord.EditInteractionResponse(ctx, interaction.AppID, interaction.Token, api.EditInteractionResponseData{
+					Content:    responseData.Content,
+					Embeds:     responseData.Embeds,
+					Components: responseData.Components,
+				})
+				if err != nil {
+					return traceError(n, err)
+				}
+			} else {
+				resp := api.InteractionResponse{
+					Type: api.UpdateMessage,
+					Data: &responseData,
+				}
+
+				res, err := ctx.Discord.CreateInteractionResponse(ctx, interaction.ID, interaction.Token, resp)
+				if err != nil {
+					return traceError(n, err)
+				}
+
+				if res != nil {
+					msg = res.Message
+				}
 			}
 		} else {
 			messageTarget, err := ctx.EvalTemplate(n.Data.MessageTarget)
