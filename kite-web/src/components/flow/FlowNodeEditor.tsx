@@ -1714,42 +1714,26 @@ function ThreadDataInput({ data, updateData, errors }: InputProps) {
               type="select"
               field={`channel_data.type`}
               title="Type"
-              value={data.channel_data?.type?.toString() || "0"}
+              value={data.channel_data?.type?.toString() || "11"}
               options={[
                 {
-                  label: "Text",
-                  value: "0",
+                  label: "Public Thread",
+                  value: "11",
                 },
                 {
-                  label: "Voice",
-                  value: "2",
+                  label: "Private Thread",
+                  value: "12",
                 },
                 {
-                  label: "Category",
-                  value: "4",
-                },
-                {
-                  label: "Announcement",
-                  value: "5",
-                },
-                {
-                  label: "Stage",
-                  value: "13",
-                },
-                {
-                  label: "Forum",
-                  value: "15",
-                },
-                {
-                  label: "Media",
-                  value: "16",
+                  label: "Announcement Thread",
+                  value: "10",
                 },
               ]}
               updateValue={(v) =>
                 updateData({
                   channel_data: {
                     ...data.channel_data,
-                    type: parseInt(v) || 0,
+                    type: parseInt(v) || undefined,
                   },
                 })
               }
