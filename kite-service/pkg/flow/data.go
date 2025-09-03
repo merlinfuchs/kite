@@ -68,6 +68,8 @@ const (
 	FlowNodeTypeActionChannelEdit           FlowNodeType = "action_channel_edit"
 	FlowNodeTypeActionChannelDelete         FlowNodeType = "action_channel_delete"
 	FlowNodeTypeActionThreadCreate          FlowNodeType = "action_thread_create"
+	FlowNodeTypeActionThreadMemberAdd       FlowNodeType = "action_thread_member_add"
+	FlowNodeTypeActionThreadMemberRemove    FlowNodeType = "action_thread_member_remove"
 	FlowNodeTypeActionForumPostCreate       FlowNodeType = "action_forum_post_create"
 	FlowNodeTypeActionRoleGet               FlowNodeType = "action_role_get"
 	FlowNodeTypeActionGuildGet              FlowNodeType = "action_guild_get"

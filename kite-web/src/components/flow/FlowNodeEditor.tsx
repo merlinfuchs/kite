@@ -97,6 +97,7 @@ const intputs: Record<string, any> = {
   message_ephemeral: MessageEphemeralInput,
   modal_data: ModalDataInput,
   channel_data: ChannelDataInput,
+  thread_data: ThreadDataInput,
   channel_target: ChannelTargetInput,
   role_data: RoleDataInput,
   role_target: RoleTargetInput,
@@ -1471,6 +1472,7 @@ function ChannelDataInput({ data, updateData, errors }: InputProps) {
               })
             }
             errors={errors}
+            placeholders
           />
 
           {(!data.channel_data?.type ||
@@ -1491,6 +1493,7 @@ function ChannelDataInput({ data, updateData, errors }: InputProps) {
                 })
               }
               errors={errors}
+              placeholders
             />
           )}
 
@@ -1652,6 +1655,140 @@ function ChannelDataInput({ data, updateData, errors }: InputProps) {
               Clear Overwrites
             </Button>
           </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function ThreadDataInput({ data, updateData, errors }: InputProps) {
+  return (
+    <Dialog>
+      <DialogTrigger asChild>
+        <Button className="w-full">Configure Thread</Button>
+      </DialogTrigger>
+      <DialogContent className="overflow-y-auto max-h-[90dvh] max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>Configure Thread</DialogTitle>
+          <DialogDescription>
+            Configure your thread here! A thread must have a name and can be
+            associated with a message or be independent.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-3">
+          <BaseInput
+            type="text"
+            field="channel_data.parent"
+            title="Parent Channel"
+            description="The parent channel that the thread will be created in."
+            value={data.channel_data?.parent || ""}
+            updateValue={(v) =>
+              updateData({
+                channel_data: {
+                  ...data.channel_data,
+                  parent: v || undefined,
+                },
+              })
+            }
+            errors={errors}
+            placeholders
+          />
+
+          <BaseInput
+            type="text"
+            field="message_target"
+            title="Message Target"
+            description="The message to start the thread from. Leave blank to create an independent thread."
+            value={data.message_target || ""}
+            updateValue={(v) =>
+              updateData({
+                message_target: v || undefined,
+              })
+            }
+            errors={errors}
+            placeholders
+          />
+
+          {!data.message_target && (
+            <BaseInput
+              type="select"
+              field={`channel_data.type`}
+              title="Type"
+              value={data.channel_data?.type?.toString() || "0"}
+              options={[
+                {
+                  label: "Text",
+                  value: "0",
+                },
+                {
+                  label: "Voice",
+                  value: "2",
+                },
+                {
+                  label: "Category",
+                  value: "4",
+                },
+                {
+                  label: "Announcement",
+                  value: "5",
+                },
+                {
+                  label: "Stage",
+                  value: "13",
+                },
+                {
+                  label: "Forum",
+                  value: "15",
+                },
+                {
+                  label: "Media",
+                  value: "16",
+                },
+              ]}
+              updateValue={(v) =>
+                updateData({
+                  channel_data: {
+                    ...data.channel_data,
+                    type: parseInt(v) || 0,
+                  },
+                })
+              }
+              errors={errors}
+            />
+          )}
+
+          <BaseInput
+            type="text"
+            field="channel_data.name"
+            title="Name"
+            description="The name for the channel."
+            value={data.channel_data?.name || ""}
+            updateValue={(v) =>
+              updateData({
+                channel_data: { ...data.channel_data, name: v || undefined },
+              })
+            }
+            errors={errors}
+            placeholders
+          />
+
+          {(!data.channel_data?.type || data.channel_data.type === 0) && (
+            <BaseCheckbox
+              field="channel_data.invitable"
+              title="Invitable"
+              description="Whether non-moderators can add new members to the thread."
+              value={data.channel_data?.invitable || false}
+              updateValue={(v) =>
+                updateData({
+                  channel_data: {
+                    ...data.channel_data,
+                    invitable: v,
+                  },
+                })
+              }
+              errors={errors}
+            />
+          )}
         </div>
       </DialogContent>
     </Dialog>

@@ -415,6 +415,7 @@ export const channelDataSchema = z.object({
       })
     )
     .optional(),
+  invitable: z.boolean().optional(),
 });
 
 export const nodeActionChannelCreateDataSchema = nodeBaseDataSchema.extend({
@@ -451,9 +452,34 @@ export const nodeActionThreadCreateDataSchema = nodeBaseDataSchema.extend({
     .string()
     .regex(numericRegex)
     .or(z.string().regex(placeholderRegex)),
+  message_target: z
+    .string()
+    .regex(numericRegex)
+    .or(z.string().regex(placeholderRegex))
+    .optional(),
   channel_data: channelDataSchema,
   audit_log_reason: auditLogReasonSchema,
 });
+
+export const nodeActionThreadMemberAddDataSchema = nodeBaseDataSchema.extend({
+  channel_target: z
+    .string()
+    .regex(numericRegex)
+    .or(z.string().regex(placeholderRegex)),
+  user_target: z.string(),
+  audit_log_reason: auditLogReasonSchema,
+});
+
+export const nodeActionThreadMemberRemoveDataSchema = nodeBaseDataSchema.extend(
+  {
+    channel_target: z
+      .string()
+      .regex(numericRegex)
+      .or(z.string().regex(placeholderRegex)),
+    user_target: z.string(),
+    audit_log_reason: auditLogReasonSchema,
+  }
+);
 
 export const nodeActionForumPostCreateDataSchema = nodeBaseDataSchema.extend({
   channel_target: z

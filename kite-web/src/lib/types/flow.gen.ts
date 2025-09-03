@@ -250,7 +250,6 @@ export interface ChannelData {
   /**
    * Thread specific
    */
-  auto_archive_duration?: string;
   invitable?: boolean;
 }
 export interface PermissionOverwriteData {

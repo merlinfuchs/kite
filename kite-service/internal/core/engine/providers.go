@@ -363,6 +363,24 @@ func (p *DiscordProvider) StartThreadWithoutMessage(ctx context.Context, channel
 	return thread, nil
 }
 
+func (p *DiscordProvider) AddThreadMember(ctx context.Context, channelID discord.ChannelID, userID discord.UserID) error {
+	err := p.session.AddThreadMember(channelID, userID)
+	if err != nil {
+		return fmt.Errorf("failed to add thread member: %w", err)
+	}
+
+	return nil
+}
+
+func (p *DiscordProvider) RemoveThreadMember(ctx context.Context, channelID discord.ChannelID, userID discord.UserID) error {
+	err := p.session.RemoveThreadMember(channelID, userID)
+	if err != nil {
+		return fmt.Errorf("failed to remove thread member: %w", err)
+	}
+
+	return nil
+}
+
 func (p *DiscordProvider) HasCreatedInteractionResponse(ctx context.Context, interactionID discord.InteractionID) (bool, error) {
 	p.interactionResponseMutex.Lock()
 	defer p.interactionResponseMutex.Unlock()

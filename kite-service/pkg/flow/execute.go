@@ -974,7 +974,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 
 		return n.ExecuteChildren(ctx)
 	case FlowNodeTypeActionThreadCreate:
-		channelTarget, err := ctx.EvalTemplate(n.Data.ChannelTarget)
+		parentTarget, err := ctx.EvalTemplate(n.Data.ChannelData.ParentID)
 		if err != nil {
 			return traceError(n, err)
 		}
@@ -994,10 +994,10 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 		}
 
 		var thread *discord.Channel
-		if messageTarget.IsEmpty() {
+		if messageTarget.IsEmpty() || messageTarget.IsNil() {
 			thread, err = ctx.Discord.StartThreadWithoutMessage(
 				ctx,
-				discord.ChannelID(channelTarget.Snowflake()),
+				discord.ChannelID(parentTarget.Snowflake()),
 				threadData,
 			)
 			if err != nil {
@@ -1006,7 +1006,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 		} else {
 			thread, err = ctx.Discord.StartThreadWithMessage(
 				ctx,
-				discord.ChannelID(channelTarget.Snowflake()),
+				discord.ChannelID(parentTarget.Snowflake()),
 				discord.MessageID(messageTarget.Snowflake()),
 				threadData,
 			)
@@ -1016,6 +1016,48 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 		}
 
 		ctx.StoreNodeResult(n, thing.NewDiscordChannel(*thread))
+		return n.ExecuteChildren(ctx)
+	case FlowNodeTypeActionThreadMemberAdd:
+		channelTarget, err := ctx.EvalTemplate(n.Data.ChannelTarget)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		userTarget, err := ctx.EvalTemplate(n.Data.UserTarget)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		err = ctx.Discord.AddThreadMember(
+			ctx,
+			discord.ChannelID(channelTarget.Snowflake()),
+			discord.UserID(userTarget.Snowflake()),
+		)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		return n.ExecuteChildren(ctx)
+	case FlowNodeTypeActionThreadMemberRemove:
+		channelTarget, err := ctx.EvalTemplate(n.Data.ChannelTarget)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		userTarget, err := ctx.EvalTemplate(n.Data.UserTarget)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		err = ctx.Discord.RemoveThreadMember(
+			ctx,
+			discord.ChannelID(channelTarget.Snowflake()),
+			discord.UserID(userTarget.Snowflake()),
+		)
+		if err != nil {
+			return traceError(n, err)
+		}
+
 		return n.ExecuteChildren(ctx)
 	case FlowNodeTypeActionForumPostCreate:
 		return n.ExecuteChildren(ctx)
