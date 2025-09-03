@@ -301,6 +301,7 @@ type UserEnv struct {
 	Username      string `expr:"username" json:"username"`
 	Discriminator string `expr:"discriminator" json:"discriminator"`
 	DisplayName   string `expr:"display_name" json:"display_name"`
+	Name          string `expr:"name" json:"name"`
 	Mention       string `expr:"mention" json:"mention"`
 	AvatarURL     string `expr:"avatar_url" json:"avatar_url"`
 	BannerURL     string `expr:"banner_url" json:"banner_url"`
@@ -315,17 +316,22 @@ func (u UserEnv) String() string {
 }
 
 func NewUserEnv(user discord.User) *UserEnv {
+	displayName := user.DisplayName
+	if displayName == "" {
+		displayName = user.Username
+	}
+
 	return &UserEnv{
 		og: user,
 
 		ID:            user.ID.String(),
 		Username:      user.Username,
 		Discriminator: user.Discriminator,
-		DisplayName:   user.DisplayName,
-
-		Mention:   fmt.Sprintf("<@%s>", user.ID.String()),
-		AvatarURL: user.AvatarURL(),
-		BannerURL: user.BannerURL(),
+		DisplayName:   displayName,
+		Name:          displayName,
+		Mention:       fmt.Sprintf("<@%s>", user.ID.String()),
+		AvatarURL:     user.AvatarURL(),
+		BannerURL:     user.BannerURL(),
 	}
 }
 
