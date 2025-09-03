@@ -51,7 +51,7 @@ func NewGatewayManager(
 }
 
 func (m *GatewayManager) Run(ctx context.Context) {
-	ticker := time.NewTicker(1 * time.Second)
+	ticker := time.NewTicker(10 * time.Second)
 
 	go func() {
 		for {

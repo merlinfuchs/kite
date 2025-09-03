@@ -190,7 +190,7 @@ func (s Env) createLogEntry(appID string, level model.LogLevel, message string, 
 }
 
 func (s Env) createUsageRecord(appID string, creditsUsed int, links entityLinks) {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 	defer cancel()
 
 	err := s.UsageStore.CreateUsageRecord(ctx, model.UsageRecord{

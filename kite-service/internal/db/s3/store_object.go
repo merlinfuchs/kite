@@ -46,7 +46,9 @@ func (c *Client) UploadObjectIfNotExists(ctx context.Context, bucket string, obj
 	reader := bytes.NewReader(object.Content)
 	length := int64(len(object.Content))
 
-	exists, err := c.client.StatObject(ctx, bucket, object.Name, minio.StatObjectOptions{})
+	exists, err := c.client.StatObject(ctx, bucket, object.Name, minio.StatObjectOptions{
+		ServerSideEncryption: c.encryption,
+	})
 	// TODO: refactor to not use error string
 	if err != nil && err.Error() != "The specified key does not exist." {
 		return err
