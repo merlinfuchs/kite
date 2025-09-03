@@ -1475,6 +1475,10 @@ func (n *CompiledFlowNode) resumeFromComponent(ctx *FlowContext) error {
 		}
 	}
 
+	// NOTE: Hack fix to stop endless recursion
+	// TODO: Find a better solution
+	ctx.EntryNodeID = ""
+
 	return n.ExecuteChildrenByHandle(ctx, fmt.Sprintf("component_%d", compID))
 }
 

@@ -243,12 +243,21 @@ function useNodePlaceholders() {
 
 function getParentNodes(current: Node, nodes: Node[], edges: Edge[]) {
   const res: Node[] = [];
+  const visited = new Set<string>();
 
-  const incomers = getIncomers(current, nodes, edges);
-  for (const incomer of incomers) {
-    res.push(incomer);
-    res.push(...getParentNodes(incomer, nodes, edges));
+  function traverse(node: Node) {
+    if (visited.has(node.id)) {
+      return;
+    }
+    visited.add(node.id);
+
+    const incomers = getIncomers(node, nodes, edges);
+    for (const incomer of incomers) {
+      res.push(incomer);
+      traverse(incomer);
+    }
   }
 
+  traverse(current);
   return res;
 }
