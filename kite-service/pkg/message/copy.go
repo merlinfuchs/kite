@@ -46,6 +46,7 @@ func (m EmbedData) Copy() EmbedData {
 		Footer:      m.Footer.Copy(),
 		Image:       m.Image.Copy(),
 		Thumbnail:   m.Thumbnail.Copy(),
+		Fields:      fields,
 	}
 }
 
