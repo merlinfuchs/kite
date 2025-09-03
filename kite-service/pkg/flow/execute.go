@@ -974,6 +974,48 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 
 		return n.ExecuteChildren(ctx)
 	case FlowNodeTypeActionThreadCreate:
+		channelTarget, err := ctx.EvalTemplate(n.Data.ChannelTarget)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		messageTarget, err := ctx.EvalTemplate(n.Data.MessageTarget)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		threadData := api.StartThreadData{
+			Name:      n.Data.ChannelData.Name,
+			Type:      discord.ChannelType(n.Data.ChannelData.Type),
+			Invitable: n.Data.ChannelData.Invitable,
+		}
+		if threadData.Type == 0 {
+			threadData.Type = discord.GuildPublicThread
+		}
+
+		var thread *discord.Channel
+		if messageTarget.IsEmpty() {
+			thread, err = ctx.Discord.StartThreadWithoutMessage(
+				ctx,
+				discord.ChannelID(channelTarget.Snowflake()),
+				threadData,
+			)
+			if err != nil {
+				return traceError(n, err)
+			}
+		} else {
+			thread, err = ctx.Discord.StartThreadWithMessage(
+				ctx,
+				discord.ChannelID(channelTarget.Snowflake()),
+				discord.MessageID(messageTarget.Snowflake()),
+				threadData,
+			)
+			if err != nil {
+				return traceError(n, err)
+			}
+		}
+
+		ctx.StoreNodeResult(n, thing.NewDiscordChannel(*thread))
 		return n.ExecuteChildren(ctx)
 	case FlowNodeTypeActionForumPostCreate:
 		return n.ExecuteChildren(ctx)

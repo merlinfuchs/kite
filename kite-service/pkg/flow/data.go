@@ -337,6 +337,9 @@ type ChannelData struct {
 	UserLimit            string                    `json:"user_limit,omitempty"`
 	Position             string                    `json:"position,omitempty"`
 	PermissionOverwrites []PermissionOverwriteData `json:"permission_overwrites,omitempty"`
+
+	// Thread specific
+	Invitable bool `json:"invitable,omitempty"`
 }
 
 type PermissionOverwriteData struct {

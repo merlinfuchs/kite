@@ -345,6 +345,24 @@ func (p *DiscordProvider) DeleteChannel(ctx context.Context, channelID discord.C
 	return nil
 }
 
+func (p *DiscordProvider) StartThreadWithMessage(ctx context.Context, channelID discord.ChannelID, messageID discord.MessageID, data api.StartThreadData) (*discord.Channel, error) {
+	thread, err := p.session.StartThreadWithMessage(channelID, messageID, data)
+	if err != nil {
+		return nil, fmt.Errorf("failed to start thread with message: %w", err)
+	}
+
+	return thread, nil
+}
+
+func (p *DiscordProvider) StartThreadWithoutMessage(ctx context.Context, channelID discord.ChannelID, data api.StartThreadData) (*discord.Channel, error) {
+	thread, err := p.session.StartThreadWithoutMessage(channelID, data)
+	if err != nil {
+		return nil, fmt.Errorf("failed to start thread without message: %w", err)
+	}
+
+	return thread, nil
+}
+
 func (p *DiscordProvider) HasCreatedInteractionResponse(ctx context.Context, interactionID discord.InteractionID) (bool, error) {
 	p.interactionResponseMutex.Lock()
 	defer p.interactionResponseMutex.Unlock()

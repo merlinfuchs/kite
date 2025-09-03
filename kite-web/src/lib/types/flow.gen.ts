@@ -247,6 +247,11 @@ export interface ChannelData {
   user_limit?: string;
   position?: string;
   permission_overwrites?: PermissionOverwriteData[];
+  /**
+   * Thread specific
+   */
+  auto_archive_duration?: string;
+  invitable?: boolean;
 }
 export interface PermissionOverwriteData {
   id?: string;

@@ -92,7 +92,6 @@ const nodeCategories = {
         "action_channel_delete",
         "action_channel_get",
         "action_thread_create",
-        "action_forum_post_create",
       ],
       contextTypes: null,
     },
