@@ -1516,6 +1516,14 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 		}
 
 		return n.ExecuteChildren(ctx)
+	case FlowNodeTypeControlErrorHandler:
+		err := n.ExecuteChildren(ctx)
+		if err != nil {
+			ctx.StoreNodeResult(n, thing.NewString(err.Error()))
+			return n.ExecuteChildrenByHandle(ctx, "error")
+		}
+
+		return nil
 	case FlowNodeTypeControlLoop:
 		loopCount, err := ctx.EvalTemplate(n.Data.LoopCount)
 		if err != nil {

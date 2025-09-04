@@ -141,6 +141,11 @@ const nodeCategories = {
       contextTypes: null,
     },
     {
+      title: "Errors",
+      nodeTypes: ["control_error_handler"],
+      contextTypes: null,
+    },
+    {
       title: "Others",
       nodeTypes: ["control_sleep"],
       contextTypes: null,
