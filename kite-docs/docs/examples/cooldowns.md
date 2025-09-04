@@ -53,7 +53,7 @@ Replace "2m" with your desired duration. (see below)
 ::::info
 ### 📌 Correct Usage for `duration`
 
-- Valid time units are \"s\", \"m\", \"h\".
+- Valid time units are \"s\", \"m\", \"h\".  
 _for eg._
   - if you want 2 hour cooldown - `{{duration("2h").Seconds()}}`
   - 2 hour 30 mins - `{{duration("2h30m").Seconds()}}`
