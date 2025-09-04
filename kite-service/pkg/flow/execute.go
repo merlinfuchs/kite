@@ -35,8 +35,8 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 
 	switch n.Type {
 	case FlowNodeTypeEntryCommand, FlowNodeTypeEntryComponentButton:
-		if ctx.EntryNodeID != n.ID {
-			return fmt.Errorf("entry node ID does not match")
+		if !ctx.IsEntry() {
+			return fmt.Errorf("command entry isn't the entry node")
 		}
 
 		err := n.autoDeferInteraction(ctx)
@@ -46,13 +46,13 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 
 		return n.ExecuteChildren(ctx)
 	case FlowNodeTypeEntryEvent:
-		if ctx.EntryNodeID != n.ID {
-			return fmt.Errorf("entry node ID does not match")
+		if !ctx.IsEntry() {
+			return fmt.Errorf("event entry isn't the entry node")
 		}
 
 		return n.ExecuteChildren(ctx)
 	case FlowNodeTypeActionResponseCreate:
-		if ctx.EntryNodeID == n.ID {
+		if ctx.IsEntry() {
 			return n.resumeFromComponent(ctx)
 		}
 
@@ -113,7 +113,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 
 		return n.ExecuteChildren(ctx)
 	case FlowNodeTypeActionResponseEdit:
-		if ctx.EntryNodeID == n.ID {
+		if ctx.IsEntry() {
 			return n.resumeFromComponent(ctx)
 		}
 
@@ -254,7 +254,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 
 		return n.ExecuteChildren(ctx)
 	case FlowNodeTypeSuspendResponseModal:
-		if ctx.EntryNodeID == n.ID {
+		if ctx.IsEntry() {
 			err := n.autoDeferInteraction(ctx)
 			if err != nil {
 				return traceError(n, err)
@@ -317,7 +317,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 
 		return traceError(n, nil)
 	case FlowNodeTypeActionMessageCreate:
-		if ctx.EntryNodeID == n.ID {
+		if ctx.IsEntry() {
 			return n.resumeFromComponent(ctx)
 		}
 
@@ -356,7 +356,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 		ctx.StoreNodeResult(n, thing.NewDiscordMessage(*msg))
 		return n.ExecuteChildren(ctx)
 	case FlowNodeTypeActionMessageEdit:
-		if ctx.EntryNodeID == n.ID {
+		if ctx.IsEntry() {
 			return n.resumeFromComponent(ctx)
 		}
 
@@ -431,7 +431,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 
 		return n.ExecuteChildren(ctx)
 	case FlowNodeTypeActionPrivateMessageCreate:
-		if ctx.EntryNodeID == n.ID {
+		if ctx.IsEntry() {
 			return n.resumeFromComponent(ctx)
 		}
 
@@ -783,6 +783,283 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			ctx.StoreNodeResult(n, thing.Null)
 		}
 
+		return n.ExecuteChildren(ctx)
+	case FlowNodeTypeActionChannelCreate:
+		guildID := ctx.Data.GuildID()
+
+		if n.Data.GuildTarget != "" {
+			guildTarget, err := ctx.EvalTemplate(n.Data.GuildTarget)
+			if err != nil {
+				return traceError(n, err)
+			}
+
+			guildID = discord.GuildID(guildTarget.Snowflake())
+		}
+
+		channelData := api.CreateChannelData{
+			Name:  n.Data.ChannelData.Name,
+			Topic: n.Data.ChannelData.Topic,
+			Type:  discord.ChannelType(n.Data.ChannelData.Type),
+			NSFW:  n.Data.ChannelData.NSFW,
+		}
+		if n.Data.ChannelData.ParentID != "" {
+			parentTarget, err := ctx.EvalTemplate(n.Data.ChannelData.ParentID)
+			if err != nil {
+				return traceError(n, err)
+			}
+
+			channelData.CategoryID = discord.ChannelID(parentTarget.Snowflake())
+		}
+		if n.Data.ChannelData.Bitrate != "" {
+			bitrate, err := ctx.EvalTemplate(n.Data.ChannelData.Bitrate)
+			if err != nil {
+				return traceError(n, err)
+			}
+
+			channelData.VoiceBitrate = uint(bitrate.Int())
+		}
+		if n.Data.ChannelData.UserLimit != "" {
+			userLimit, err := ctx.EvalTemplate(n.Data.ChannelData.UserLimit)
+			if err != nil {
+				return traceError(n, err)
+			}
+
+			channelData.VoiceUserLimit = uint(userLimit.Int())
+		}
+		if n.Data.ChannelData.Position != "" {
+			position, err := ctx.EvalTemplate(n.Data.ChannelData.Position)
+			if err != nil {
+				return traceError(n, err)
+			}
+
+			channelData.Position = option.NewInt(int(position.Int()))
+		}
+		for _, overwrite := range n.Data.ChannelData.PermissionOverwrites {
+			overwriteTarget, err := ctx.EvalTemplate(overwrite.ID)
+			if err != nil {
+				return traceError(n, err)
+			}
+
+			allow, err := eval.EvalTemplate(ctx, overwrite.Allow, ctx.EvalCtx)
+			if err != nil {
+				return traceError(n, err)
+			}
+			deny, err := eval.EvalTemplate(ctx, overwrite.Deny, ctx.EvalCtx)
+			if err != nil {
+				return traceError(n, err)
+			}
+
+			channelData.Overwrites = append(channelData.Overwrites, discord.Overwrite{
+				ID:    discord.Snowflake(overwriteTarget.Snowflake()),
+				Type:  discord.OverwriteType(overwrite.Type),
+				Allow: discord.Permissions(allow.Int()),
+				Deny:  discord.Permissions(deny.Int()),
+			})
+		}
+
+		channel, err := ctx.Discord.CreateChannel(ctx, guildID, channelData)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		ctx.StoreNodeResult(n, thing.NewDiscordChannel(*channel))
+		return n.ExecuteChildren(ctx)
+	case FlowNodeTypeActionChannelEdit:
+		channelTarget, err := ctx.EvalTemplate(n.Data.ChannelTarget)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		channelData := api.ModifyChannelData{
+			Name: n.Data.ChannelData.Name,
+			NSFW: &option.NullableBoolData{
+				Val:  n.Data.ChannelData.NSFW,
+				Init: true,
+			},
+		}
+		if n.Data.ChannelData.Topic != "" {
+			topic, err := ctx.EvalTemplate(n.Data.ChannelData.Topic)
+			if err != nil {
+				return traceError(n, err)
+			}
+
+			channelData.Topic = option.NewNullableString(topic.String())
+		}
+		if n.Data.ChannelData.ParentID != "" {
+			parentTarget, err := ctx.EvalTemplate(n.Data.ChannelData.ParentID)
+			if err != nil {
+				return traceError(n, err)
+			}
+
+			channelData.CategoryID = discord.ChannelID(parentTarget.Snowflake())
+		}
+		if n.Data.ChannelData.Bitrate != "" {
+			bitrate, err := ctx.EvalTemplate(n.Data.ChannelData.Bitrate)
+			if err != nil {
+				return traceError(n, err)
+			}
+
+			channelData.VoiceBitrate = option.NewNullableUint(uint(bitrate.Int()))
+		}
+		if n.Data.ChannelData.UserLimit != "" {
+			userLimit, err := ctx.EvalTemplate(n.Data.ChannelData.UserLimit)
+			if err != nil {
+				return traceError(n, err)
+			}
+
+			channelData.VoiceUserLimit = option.NewNullableUint(uint(userLimit.Int()))
+		}
+		if n.Data.ChannelData.Position != "" {
+			position, err := ctx.EvalTemplate(n.Data.ChannelData.Position)
+			if err != nil {
+				return traceError(n, err)
+			}
+
+			channelData.Position = option.NewNullableInt(int(position.Int()))
+		}
+
+		overwrites := make([]discord.Overwrite, 0, len(n.Data.ChannelData.PermissionOverwrites))
+		for _, overwrite := range n.Data.ChannelData.PermissionOverwrites {
+			overwriteTarget, err := ctx.EvalTemplate(overwrite.ID)
+			if err != nil {
+				return traceError(n, err)
+			}
+
+			allow, err := eval.EvalTemplate(ctx, overwrite.Allow, ctx.EvalCtx)
+			if err != nil {
+				return traceError(n, err)
+			}
+			deny, err := eval.EvalTemplate(ctx, overwrite.Deny, ctx.EvalCtx)
+			if err != nil {
+				return traceError(n, err)
+			}
+
+			overwrites = append(overwrites, discord.Overwrite{
+				ID:    discord.Snowflake(overwriteTarget.Snowflake()),
+				Type:  discord.OverwriteType(overwrite.Type),
+				Allow: discord.Permissions(allow.Int()),
+				Deny:  discord.Permissions(deny.Int()),
+			})
+		}
+		if len(overwrites) > 0 {
+			channelData.Overwrites = &overwrites
+		}
+
+		err = ctx.Discord.EditChannel(ctx, discord.ChannelID(channelTarget.Snowflake()), channelData)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		// TODO: ctx.StoreNodeResult(n, thing.NewDiscordChannel(*channel))
+		return n.ExecuteChildren(ctx)
+	case FlowNodeTypeActionChannelDelete:
+		channelTarget, err := ctx.EvalTemplate(n.Data.ChannelTarget)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		auditLogReason, err := ctx.EvalTemplate(n.Data.AuditLogReason)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		err = ctx.Discord.DeleteChannel(
+			ctx,
+			discord.ChannelID(channelTarget.Snowflake()),
+			api.AuditLogReason(auditLogReason.String()),
+		)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		return n.ExecuteChildren(ctx)
+	case FlowNodeTypeActionThreadCreate:
+		parentTarget, err := ctx.EvalTemplate(n.Data.ChannelData.ParentID)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		messageTarget, err := ctx.EvalTemplate(n.Data.MessageTarget)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		threadData := api.StartThreadData{
+			Name:      n.Data.ChannelData.Name,
+			Type:      discord.ChannelType(n.Data.ChannelData.Type),
+			Invitable: n.Data.ChannelData.Invitable,
+		}
+		if threadData.Type == 0 {
+			threadData.Type = discord.GuildPublicThread
+		}
+
+		var thread *discord.Channel
+		if messageTarget.IsEmpty() || messageTarget.IsNil() {
+			thread, err = ctx.Discord.StartThreadWithoutMessage(
+				ctx,
+				discord.ChannelID(parentTarget.Snowflake()),
+				threadData,
+			)
+			if err != nil {
+				return traceError(n, err)
+			}
+		} else {
+			thread, err = ctx.Discord.StartThreadWithMessage(
+				ctx,
+				discord.ChannelID(parentTarget.Snowflake()),
+				discord.MessageID(messageTarget.Snowflake()),
+				threadData,
+			)
+			if err != nil {
+				return traceError(n, err)
+			}
+		}
+
+		ctx.StoreNodeResult(n, thing.NewDiscordChannel(*thread))
+		return n.ExecuteChildren(ctx)
+	case FlowNodeTypeActionThreadMemberAdd:
+		channelTarget, err := ctx.EvalTemplate(n.Data.ChannelTarget)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		userTarget, err := ctx.EvalTemplate(n.Data.UserTarget)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		err = ctx.Discord.AddThreadMember(
+			ctx,
+			discord.ChannelID(channelTarget.Snowflake()),
+			discord.UserID(userTarget.Snowflake()),
+		)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		return n.ExecuteChildren(ctx)
+	case FlowNodeTypeActionThreadMemberRemove:
+		channelTarget, err := ctx.EvalTemplate(n.Data.ChannelTarget)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		userTarget, err := ctx.EvalTemplate(n.Data.UserTarget)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		err = ctx.Discord.RemoveThreadMember(
+			ctx,
+			discord.ChannelID(channelTarget.Snowflake()),
+			discord.UserID(userTarget.Snowflake()),
+		)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		return n.ExecuteChildren(ctx)
+	case FlowNodeTypeActionForumPostCreate:
 		return n.ExecuteChildren(ctx)
 	case FlowNodeTypeActionRoleGet:
 		guildID := ctx.Data.GuildID()
@@ -1495,10 +1772,6 @@ func (n *CompiledFlowNode) resumeFromComponent(ctx *FlowContext) error {
 			Message: "invalid custom ID",
 		}
 	}
-
-	// NOTE: Hack fix to stop endless recursion
-	// TODO: Find a better solution
-	ctx.EntryNodeID = ""
 
 	return n.ExecuteChildrenByHandle(ctx, fmt.Sprintf("component_%d", compID))
 }

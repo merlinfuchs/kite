@@ -37,6 +37,11 @@ export const FlowNodeTypeActionMemberRoleRemove: FlowNodeType = "action_member_r
 export const FlowNodeTypeActionMemberGet: FlowNodeType = "action_member_get";
 export const FlowNodeTypeActionUserGet: FlowNodeType = "action_user_get";
 export const FlowNodeTypeActionChannelGet: FlowNodeType = "action_channel_get";
+export const FlowNodeTypeActionChannelCreate: FlowNodeType = "action_channel_create";
+export const FlowNodeTypeActionChannelEdit: FlowNodeType = "action_channel_edit";
+export const FlowNodeTypeActionChannelDelete: FlowNodeType = "action_channel_delete";
+export const FlowNodeTypeActionThreadCreate: FlowNodeType = "action_thread_create";
+export const FlowNodeTypeActionForumPostCreate: FlowNodeType = "action_forum_post_create";
 export const FlowNodeTypeActionRoleGet: FlowNodeType = "action_role_get";
 export const FlowNodeTypeActionGuildGet: FlowNodeType = "action_guild_get";
 export const FlowNodeTypeActionMessageGet: FlowNodeType = "action_message_get";
@@ -125,17 +130,17 @@ export interface FlowNodeData {
   user_target?: string;
   member_ban_delete_message_duration_seconds?: string;
   member_timeout_duration_seconds?: string;
-  member_data?: any /* api.ModifyMemberData */;
+  member_data?: MemberData;
   /**
    * Channel Create, Edit, Delete, Get
    */
   channel_target?: string;
-  channel_data?: any /* api.CreateChannelData */;
+  channel_data?: ChannelData;
   /**
    * Role Create, Edit, Delete, Get
    */
   role_target?: string;
-  role_data?: any /* api.CreateRoleData */;
+  role_data?: RoleData;
   /**
    * Roblox User Get
    */
@@ -232,6 +237,37 @@ export const EventFilterTypeMessageContent: EventFilterTarget = "message_content
 export type RobloxLookupType = string;
 export const RobloxLookupTypeID: RobloxLookupType = "id";
 export const RobloxLookupTypeName: RobloxLookupType = "username";
+export interface ChannelData {
+  name?: string;
+  type?: number /* int */;
+  topic?: string;
+  nsfw?: boolean;
+  parent?: string;
+  bitrate?: string;
+  user_limit?: string;
+  position?: string;
+  permission_overwrites?: PermissionOverwriteData[];
+  /**
+   * Thread specific
+   */
+  invitable?: boolean;
+}
+export interface PermissionOverwriteData {
+  id?: string;
+  type?: number /* int */;
+  allow?: string;
+  deny?: string;
+}
+export interface RoleData {
+  name?: string;
+  color?: number /* int */;
+  hoist?: boolean;
+  permissions?: number /* int */;
+  position?: number /* int */;
+}
+export interface MemberData {
+  nick?: string;
+}
 export interface EmojiData {
   id?: string;
   /**

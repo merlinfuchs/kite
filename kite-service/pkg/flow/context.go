@@ -16,8 +16,6 @@ type FlowContext struct {
 	FlowContextLimits
 	FlowContextState
 
-	EntryNodeID string
-
 	Data    FlowContextData
 	EvalCtx eval.Context
 	Cancel  context.CancelFunc
@@ -26,7 +24,6 @@ type FlowContext struct {
 func NewContext(
 	ctx context.Context,
 	timeout time.Duration,
-	entryNodeID string,
 	data FlowContextData,
 	providers FlowProviders,
 	limits FlowContextLimits,
@@ -53,10 +50,9 @@ func NewContext(
 	evalCtx.Patchers = append(evalCtx.Patchers, &nodeEvalPatcher{})
 
 	return &FlowContext{
-		Context:     ctx,
-		Cancel:      cancel,
-		EntryNodeID: entryNodeID,
-		Data:        data,
+		Context: ctx,
+		Cancel:  cancel,
+		Data:    data,
 		// Placeholders:      placeholders,
 		EvalCtx:           evalCtx,
 		FlowProviders:     providers,
@@ -151,8 +147,8 @@ func (c *FlowContext) increaseCredits(credits int) error {
 	return nil
 }
 
-func (c *FlowContext) SetEntryNodeID(nodeID string) {
-	c.EntryNodeID = nodeID
+func (c *FlowContext) IsEntry() bool {
+	return c.stackDepth == 1
 }
 
 func (c *FlowContext) suspend(t ResumePointType, nodeID string) (*ResumePoint, error) {

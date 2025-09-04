@@ -8,8 +8,11 @@ import (
 	"runtime/debug"
 	"time"
 
+	"github.com/diamondburned/arikawa/v3/api"
+	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/gateway"
 	"github.com/diamondburned/arikawa/v3/state"
+	"github.com/diamondburned/arikawa/v3/utils/json/option"
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/internal/store"
 	"github.com/kitecloud/kite/kite-service/internal/util"
@@ -77,7 +80,6 @@ func (s Env) flowProviders(appID string, session *state.State, links entityLinks
 func (s Env) flowContext(
 	ctx context.Context,
 	appID string,
-	entryNodeID string,
 	session *state.State,
 	event gateway.Event,
 	links entityLinks,
@@ -92,7 +94,6 @@ func (s Env) flowContext(
 		fCtx = flow.NewContext(
 			ctx,
 			30*time.Second,
-			entryNodeID,
 			&InteractionData{
 				interaction: &e.InteractionEvent,
 			},
@@ -109,7 +110,6 @@ func (s Env) flowContext(
 		fCtx = flow.NewContext(
 			ctx,
 			30*time.Second,
-			entryNodeID,
 			&EventData{
 				event: event,
 			},
@@ -141,7 +141,7 @@ func (s Env) executeFlowEvent(
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
-	fCtx := s.flowContext(ctx, appID, node.ID, session, event, links, state)
+	fCtx := s.flowContext(ctx, appID, session, event, links, state)
 	defer fCtx.Cancel()
 
 	err := node.Execute(fCtx)
@@ -161,6 +161,8 @@ func (s Env) executeFlowEvent(
 			fmt.Sprintf("Failed to execute flow event: %v", err),
 			links,
 		)
+
+		s.createInteractionErrorResponse(fCtx, err)
 	}
 
 	s.createUsageRecord(
@@ -168,6 +170,36 @@ func (s Env) executeFlowEvent(
 		fCtx.CreditsUsed(),
 		links,
 	)
+}
+
+func (s Env) createInteractionErrorResponse(fCtx *flow.FlowContext, err error) {
+	interaction := fCtx.Data.Interaction()
+	if interaction == nil {
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(fCtx, time.Second*10)
+	defer cancel()
+
+	errStr := err.Error()
+	if len(errStr) > 1800 {
+		errStr = errStr[:1800]
+	}
+
+	respData := api.InteractionResponseData{
+		Content: option.NewNullableString("An error occurred while executing the flow event: ```" + errStr + "```"),
+		Flags:   discord.EphemeralMessage,
+	}
+
+	hasCreatedResponse, _ := fCtx.Discord.HasCreatedInteractionResponse(ctx, interaction.ID)
+	if hasCreatedResponse {
+		_, _ = fCtx.Discord.CreateInteractionFollowup(ctx, interaction.AppID, interaction.Token, respData)
+	} else {
+		_, _ = fCtx.Discord.CreateInteractionResponse(ctx, interaction.ID, interaction.Token, api.InteractionResponse{
+			Type: api.MessageInteractionWithSource,
+			Data: &respData,
+		})
+	}
 }
 
 func (s Env) createLogEntry(appID string, level model.LogLevel, message string, links entityLinks) {

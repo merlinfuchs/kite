@@ -86,7 +86,15 @@ const nodeCategories = {
     },
     {
       title: "Channels",
-      nodeTypes: ["action_channel_get"],
+      nodeTypes: [
+        "action_channel_create",
+        "action_channel_edit",
+        "action_channel_delete",
+        "action_channel_get",
+        "action_thread_create",
+        "action_thread_member_add",
+        "action_thread_member_remove",
+      ],
       contextTypes: null,
     },
     {
