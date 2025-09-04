@@ -27,12 +27,11 @@ Add cooldowns to your commands or event listeners to prevent spam and have more 
   - **Get Stored Variable**
   - **Comparison Condition**
 
-### **Get Stored Variable**
-
+**Get Stored Variable**
 - **Variable** : `cooldown`
 - **Scope** : `{{user.id}}` / `{{guild.id}}` / `0` [ see above for correct usage ]
 
-### **Comparison Condition**
+**Comparison Condition**
 - **Base Value :**
 ```go
 {{now().Unix() - (result('GET_VARIABLE') ?? 0)}}
@@ -51,7 +50,8 @@ Replace 'GET_VARIABLE' with your actual block's name.
 Replace "2m" with your desired duration. (see below)
 :::
 
-### 📌 Correct Usage for `duration` :
+:::info
+### 📌 Correct Usage for `duration`
 
 - Valid time units are \"s\", \"m\", \"h\".
 - _for eg._
@@ -63,6 +63,7 @@ Replace "2m" with your desired duration. (see below)
 - Days tag - **\"d\" is not accepted**
 - If you want `x days` cooldown, you'll have to convert it to hours.
   - _for eg._ : 4 days = **96h** , 2d 3h = **51h** , etc.
+:::
 
 ## 📝 - Step 3
 
@@ -80,11 +81,12 @@ At the end of your actual command flow, add the **Set Stored Variable** block
 
 ![Cooldown Flow](./img/cooldowns-flow.png)
 
-> [!TIP]
-> - *If you have multiple commands where you want to have a separate cooldown for each command, you can create command-wise scopes.*
-> - Just add your command name before the actual scope.
->
-> *for eg.,*
-> - I've 2 commands `/echo` & `/ping` and I want to add user cooldown to both. In this case I'll use the following scopes:
->    - `echo-{{user.id}}`
->    - `ping-{{user.id}}`
+:::tip
+*If you have multiple commands where you want to have a separate cooldown for each command, you can create command-wise scopes.*
+
+Just add your command name before the actual scope. *for eg.,*
+I've 2 commands `/echo` & `/ping` and I want to add user cooldown to both. In this case I'll use the following scopes:
+   - `echo-{{user.id}}`
+   - `ping-{{user.id}}`
+
+:::
