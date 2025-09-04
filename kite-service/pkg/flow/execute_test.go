@@ -76,7 +76,6 @@ func TestFlowExecuteCommand(t *testing.T) {
 	c := NewContext(
 		ctx,
 		5*time.Second,
-		"0",
 		&TestContextData{},
 		FlowProviders{
 			Discord: discordProvider,

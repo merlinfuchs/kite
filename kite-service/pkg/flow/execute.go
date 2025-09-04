@@ -35,8 +35,8 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 
 	switch n.Type {
 	case FlowNodeTypeEntryCommand, FlowNodeTypeEntryComponentButton:
-		if ctx.EntryNodeID != n.ID {
-			return fmt.Errorf("entry node ID does not match")
+		if !ctx.IsEntry() {
+			return fmt.Errorf("command entry isn't the entry node")
 		}
 
 		err := n.autoDeferInteraction(ctx)
@@ -46,13 +46,13 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 
 		return n.ExecuteChildren(ctx)
 	case FlowNodeTypeEntryEvent:
-		if ctx.EntryNodeID != n.ID {
-			return fmt.Errorf("entry node ID does not match")
+		if !ctx.IsEntry() {
+			return fmt.Errorf("event entry isn't the entry node")
 		}
 
 		return n.ExecuteChildren(ctx)
 	case FlowNodeTypeActionResponseCreate:
-		if ctx.EntryNodeID == n.ID {
+		if ctx.IsEntry() {
 			return n.resumeFromComponent(ctx)
 		}
 
@@ -113,7 +113,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 
 		return n.ExecuteChildren(ctx)
 	case FlowNodeTypeActionResponseEdit:
-		if ctx.EntryNodeID == n.ID {
+		if ctx.IsEntry() {
 			return n.resumeFromComponent(ctx)
 		}
 
@@ -254,7 +254,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 
 		return n.ExecuteChildren(ctx)
 	case FlowNodeTypeSuspendResponseModal:
-		if ctx.EntryNodeID == n.ID {
+		if ctx.IsEntry() {
 			err := n.autoDeferInteraction(ctx)
 			if err != nil {
 				return traceError(n, err)
@@ -317,7 +317,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 
 		return traceError(n, nil)
 	case FlowNodeTypeActionMessageCreate:
-		if ctx.EntryNodeID == n.ID {
+		if ctx.IsEntry() {
 			return n.resumeFromComponent(ctx)
 		}
 
@@ -356,7 +356,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 		ctx.StoreNodeResult(n, thing.NewDiscordMessage(*msg))
 		return n.ExecuteChildren(ctx)
 	case FlowNodeTypeActionMessageEdit:
-		if ctx.EntryNodeID == n.ID {
+		if ctx.IsEntry() {
 			return n.resumeFromComponent(ctx)
 		}
 
@@ -431,7 +431,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 
 		return n.ExecuteChildren(ctx)
 	case FlowNodeTypeActionPrivateMessageCreate:
-		if ctx.EntryNodeID == n.ID {
+		if ctx.IsEntry() {
 			return n.resumeFromComponent(ctx)
 		}
 
@@ -1772,10 +1772,6 @@ func (n *CompiledFlowNode) resumeFromComponent(ctx *FlowContext) error {
 			Message: "invalid custom ID",
 		}
 	}
-
-	// NOTE: Hack fix to stop endless recursion
-	// TODO: Find a better solution
-	ctx.EntryNodeID = ""
 
 	return n.ExecuteChildrenByHandle(ctx, fmt.Sprintf("component_%d", compID))
 }
