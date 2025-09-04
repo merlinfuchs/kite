@@ -1,10 +1,15 @@
 package flow
 
 import (
+	"context"
 	"encoding/json"
 	"regexp"
 
+	"github.com/diamondburned/arikawa/v3/api"
+	"github.com/diamondburned/arikawa/v3/discord"
+	"github.com/diamondburned/arikawa/v3/utils/json/option"
 	validation "github.com/go-ozzo/ozzo-validation/v4"
+	"github.com/kitecloud/kite/kite-service/pkg/eval"
 	"github.com/kitecloud/kite/kite-service/pkg/message"
 	"github.com/kitecloud/kite/kite-service/pkg/provider"
 	"github.com/sashabaranov/go-openai"
@@ -342,6 +347,76 @@ type ChannelData struct {
 
 	// Thread specific
 	Invitable bool `json:"invitable,omitempty"`
+}
+
+func (d *ChannelData) ToCreateChannelData(ctx context.Context, evalCtx eval.Context) (api.CreateChannelData, error) {
+	res := api.CreateChannelData{
+		Type:       discord.ChannelType(d.Type),
+		NSFW:       d.NSFW,
+		Overwrites: make([]discord.Overwrite, 0, len(d.PermissionOverwrites)),
+	}
+
+	name, err := eval.EvalTemplate(ctx, d.Name, evalCtx)
+	if err != nil {
+		return res, err
+	}
+	res.Name = name.String()
+
+	topic, err := eval.EvalTemplate(ctx, d.Topic, evalCtx)
+	if err != nil {
+		return res, err
+	}
+	res.Topic = topic.String()
+
+	parentID, err := eval.EvalTemplate(ctx, d.ParentID, evalCtx)
+	if err != nil {
+		return res, err
+	}
+	res.CategoryID = discord.ChannelID(parentID.Snowflake())
+
+	bitrate, err := eval.EvalTemplate(ctx, d.Bitrate, evalCtx)
+	if err != nil {
+		return res, err
+	}
+	res.VoiceBitrate = uint(bitrate.Int())
+
+	userLimit, err := eval.EvalTemplate(ctx, d.UserLimit, evalCtx)
+	if err != nil {
+		return res, err
+	}
+	res.VoiceUserLimit = uint(userLimit.Int())
+
+	position, err := eval.EvalTemplate(ctx, d.Position, evalCtx)
+	if err != nil {
+		return res, err
+	}
+	res.Position = option.NewInt(int(position.Int()))
+
+	for _, overwrite := range d.PermissionOverwrites {
+		id, err := eval.EvalTemplate(ctx, overwrite.ID, evalCtx)
+		if err != nil {
+			return res, err
+		}
+
+		allow, err := eval.EvalTemplate(ctx, overwrite.Allow, evalCtx)
+		if err != nil {
+			return res, err
+		}
+
+		deny, err := eval.EvalTemplate(ctx, overwrite.Deny, evalCtx)
+		if err != nil {
+			return res, err
+		}
+
+		res.Overwrites = append(res.Overwrites, discord.Overwrite{
+			ID:    discord.Snowflake(id.Snowflake()),
+			Type:  discord.OverwriteType(overwrite.Type),
+			Allow: discord.Permissions(allow.Int()),
+			Deny:  discord.Permissions(deny.Int()),
+		})
+	}
+
+	return res, nil
 }
 
 type PermissionOverwriteData struct {

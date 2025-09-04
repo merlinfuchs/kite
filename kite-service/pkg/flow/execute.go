@@ -785,8 +785,11 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 
 		return n.ExecuteChildren(ctx)
 	case FlowNodeTypeActionChannelCreate:
-		guildID := ctx.Data.GuildID()
+		if n.Data.ChannelData == nil {
+			return traceError(n, fmt.Errorf("channel data is required"))
+		}
 
+		guildID := ctx.Data.GuildID()
 		if n.Data.GuildTarget != "" {
 			guildTarget, err := ctx.EvalTemplate(n.Data.GuildTarget)
 			if err != nil {
@@ -796,65 +799,9 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			guildID = discord.GuildID(guildTarget.Snowflake())
 		}
 
-		channelData := api.CreateChannelData{
-			Name:  n.Data.ChannelData.Name,
-			Topic: n.Data.ChannelData.Topic,
-			Type:  discord.ChannelType(n.Data.ChannelData.Type),
-			NSFW:  n.Data.ChannelData.NSFW,
-		}
-		if n.Data.ChannelData.ParentID != "" {
-			parentTarget, err := ctx.EvalTemplate(n.Data.ChannelData.ParentID)
-			if err != nil {
-				return traceError(n, err)
-			}
-
-			channelData.CategoryID = discord.ChannelID(parentTarget.Snowflake())
-		}
-		if n.Data.ChannelData.Bitrate != "" {
-			bitrate, err := ctx.EvalTemplate(n.Data.ChannelData.Bitrate)
-			if err != nil {
-				return traceError(n, err)
-			}
-
-			channelData.VoiceBitrate = uint(bitrate.Int())
-		}
-		if n.Data.ChannelData.UserLimit != "" {
-			userLimit, err := ctx.EvalTemplate(n.Data.ChannelData.UserLimit)
-			if err != nil {
-				return traceError(n, err)
-			}
-
-			channelData.VoiceUserLimit = uint(userLimit.Int())
-		}
-		if n.Data.ChannelData.Position != "" {
-			position, err := ctx.EvalTemplate(n.Data.ChannelData.Position)
-			if err != nil {
-				return traceError(n, err)
-			}
-
-			channelData.Position = option.NewInt(int(position.Int()))
-		}
-		for _, overwrite := range n.Data.ChannelData.PermissionOverwrites {
-			overwriteTarget, err := ctx.EvalTemplate(overwrite.ID)
-			if err != nil {
-				return traceError(n, err)
-			}
-
-			allow, err := eval.EvalTemplate(ctx, overwrite.Allow, ctx.EvalCtx)
-			if err != nil {
-				return traceError(n, err)
-			}
-			deny, err := eval.EvalTemplate(ctx, overwrite.Deny, ctx.EvalCtx)
-			if err != nil {
-				return traceError(n, err)
-			}
-
-			channelData.Overwrites = append(channelData.Overwrites, discord.Overwrite{
-				ID:    discord.Snowflake(overwriteTarget.Snowflake()),
-				Type:  discord.OverwriteType(overwrite.Type),
-				Allow: discord.Permissions(allow.Int()),
-				Deny:  discord.Permissions(deny.Int()),
-			})
+		channelData, err := n.Data.ChannelData.ToCreateChannelData(ctx, ctx.EvalCtx)
+		if err != nil {
+			return traceError(n, err)
 		}
 
 		channel, err := ctx.Discord.CreateChannel(ctx, guildID, channelData)
@@ -865,87 +812,52 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 		ctx.StoreNodeResult(n, thing.NewDiscordChannel(*channel))
 		return n.ExecuteChildren(ctx)
 	case FlowNodeTypeActionChannelEdit:
+		if n.Data.ChannelData == nil {
+			return traceError(n, fmt.Errorf("channel data is required"))
+		}
+
 		channelTarget, err := ctx.EvalTemplate(n.Data.ChannelTarget)
 		if err != nil {
 			return traceError(n, err)
 		}
 
-		channelData := api.ModifyChannelData{
-			Name: n.Data.ChannelData.Name,
+		createData, err := n.Data.ChannelData.ToCreateChannelData(ctx, ctx.EvalCtx)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		editData := api.ModifyChannelData{
+			Name: createData.Name,
 			NSFW: &option.NullableBoolData{
-				Val:  n.Data.ChannelData.NSFW,
+				Val:  createData.NSFW,
 				Init: true,
 			},
 		}
-		if n.Data.ChannelData.Topic != "" {
-			topic, err := ctx.EvalTemplate(n.Data.ChannelData.Topic)
-			if err != nil {
-				return traceError(n, err)
-			}
-
-			channelData.Topic = option.NewNullableString(topic.String())
+		if createData.Topic != "" {
+			editData.Topic = option.NewNullableString(createData.Topic)
 		}
-		if n.Data.ChannelData.ParentID != "" {
+		if createData.CategoryID != discord.NullChannelID && createData.CategoryID != 0 {
 			parentTarget, err := ctx.EvalTemplate(n.Data.ChannelData.ParentID)
 			if err != nil {
 				return traceError(n, err)
 			}
 
-			channelData.CategoryID = discord.ChannelID(parentTarget.Snowflake())
+			editData.CategoryID = discord.ChannelID(parentTarget.Snowflake())
 		}
-		if n.Data.ChannelData.Bitrate != "" {
-			bitrate, err := ctx.EvalTemplate(n.Data.ChannelData.Bitrate)
-			if err != nil {
-				return traceError(n, err)
-			}
-
-			channelData.VoiceBitrate = option.NewNullableUint(uint(bitrate.Int()))
+		if createData.VoiceBitrate != 0 {
+			editData.VoiceBitrate = option.NewNullableUint(createData.VoiceBitrate)
 		}
-		if n.Data.ChannelData.UserLimit != "" {
-			userLimit, err := ctx.EvalTemplate(n.Data.ChannelData.UserLimit)
-			if err != nil {
-				return traceError(n, err)
-			}
-
-			channelData.VoiceUserLimit = option.NewNullableUint(uint(userLimit.Int()))
+		if createData.VoiceUserLimit != 0 {
+			editData.VoiceUserLimit = option.NewNullableUint(createData.VoiceUserLimit)
 		}
-		if n.Data.ChannelData.Position != "" {
-			position, err := ctx.EvalTemplate(n.Data.ChannelData.Position)
-			if err != nil {
-				return traceError(n, err)
-			}
-
-			channelData.Position = option.NewNullableInt(int(position.Int()))
+		if createData.Position != nil {
+			editData.Position = option.NewNullableInt(*createData.Position)
+		}
+		if len(createData.Overwrites) > 0 {
+			editData.Overwrites = &createData.Overwrites
 		}
 
-		overwrites := make([]discord.Overwrite, 0, len(n.Data.ChannelData.PermissionOverwrites))
-		for _, overwrite := range n.Data.ChannelData.PermissionOverwrites {
-			overwriteTarget, err := ctx.EvalTemplate(overwrite.ID)
-			if err != nil {
-				return traceError(n, err)
-			}
-
-			allow, err := eval.EvalTemplate(ctx, overwrite.Allow, ctx.EvalCtx)
-			if err != nil {
-				return traceError(n, err)
-			}
-			deny, err := eval.EvalTemplate(ctx, overwrite.Deny, ctx.EvalCtx)
-			if err != nil {
-				return traceError(n, err)
-			}
-
-			overwrites = append(overwrites, discord.Overwrite{
-				ID:    discord.Snowflake(overwriteTarget.Snowflake()),
-				Type:  discord.OverwriteType(overwrite.Type),
-				Allow: discord.Permissions(allow.Int()),
-				Deny:  discord.Permissions(deny.Int()),
-			})
-		}
-		if len(overwrites) > 0 {
-			channelData.Overwrites = &overwrites
-		}
-
-		err = ctx.Discord.EditChannel(ctx, discord.ChannelID(channelTarget.Snowflake()), channelData)
+		err = ctx.Discord.EditChannel(ctx, discord.ChannelID(channelTarget.Snowflake()), editData)
 		if err != nil {
 			return traceError(n, err)
 		}
@@ -974,6 +886,10 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 
 		return n.ExecuteChildren(ctx)
 	case FlowNodeTypeActionThreadCreate:
+		if n.Data.ChannelData == nil {
+			return traceError(n, fmt.Errorf("channel data is required"))
+		}
+
 		parentTarget, err := ctx.EvalTemplate(n.Data.ChannelData.ParentID)
 		if err != nil {
 			return traceError(n, err)
@@ -984,8 +900,13 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			return traceError(n, err)
 		}
 
+		channelName, err := ctx.EvalTemplate(n.Data.ChannelData.Name)
+		if err != nil {
+			return traceError(n, err)
+		}
+
 		threadData := api.StartThreadData{
-			Name:      n.Data.ChannelData.Name,
+			Name:      channelName.String(),
 			Type:      discord.ChannelType(n.Data.ChannelData.Type),
 			Invitable: n.Data.ChannelData.Invitable,
 		}
