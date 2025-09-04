@@ -95,6 +95,10 @@ export interface FlowNodeData {
    */
   command_argument_type?: CommandArgumentType;
   command_argument_required?: boolean;
+  command_argument_choices?: CommandArgumentChoiceData[];
+  command_argument_min_value?: number /* float64 */;
+  command_argument_max_value?: number /* float64 */;
+  command_argument_max_length?: number /* int */;
   /**
    * Command Permissions
    */
@@ -239,6 +243,10 @@ export const EventFilterTypeMessageContent: EventFilterTarget = "message_content
 export type RobloxLookupType = string;
 export const RobloxLookupTypeID: RobloxLookupType = "id";
 export const RobloxLookupTypeName: RobloxLookupType = "username";
+export interface CommandArgumentChoiceData {
+  name?: string;
+  value?: string;
+}
 export interface ChannelData {
   name?: string;
   type?: number /* int */;

@@ -139,8 +139,12 @@ type FlowNodeData struct {
 	TemporaryName string `json:"temporary_name,omitempty"`
 
 	// Command Argument
-	CommandArgumentType     CommandArgumentType `json:"command_argument_type,omitempty"`
-	CommandArgumentRequired bool                `json:"command_argument_required,omitempty"`
+	CommandArgumentType      CommandArgumentType         `json:"command_argument_type,omitempty"`
+	CommandArgumentRequired  bool                        `json:"command_argument_required,omitempty"`
+	CommandArgumentChoices   []CommandArgumentChoiceData `json:"command_argument_choices,omitempty"`
+	CommandArgumentMinValue  float64                     `json:"command_argument_min_value,omitempty"`
+	CommandArgumentMaxValue  float64                     `json:"command_argument_max_value,omitempty"`
+	CommandArgumentMaxLength int                         `json:"command_argument_max_length,omitempty"`
 
 	// Command Permissions
 	CommandPermissions string `json:"command_permissions,omitempty"`
@@ -333,6 +337,11 @@ const (
 	RobloxLookupTypeID   RobloxLookupType = "id"
 	RobloxLookupTypeName RobloxLookupType = "username"
 )
+
+type CommandArgumentChoiceData struct {
+	Name  string `json:"name,omitempty"`
+	Value string `json:"value,omitempty"`
+}
 
 type ChannelData struct {
 	Name                 string                    `json:"name,omitempty"`
