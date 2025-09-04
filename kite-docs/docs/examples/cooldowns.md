@@ -50,20 +50,23 @@ Replace 'GET_VARIABLE' with your actual block's name.
 Replace "2m" with your desired duration. (see below)
 :::
 
-:::info
+::::info
 ### 📌 Correct Usage for `duration`
 
 - Valid time units are \"s\", \"m\", \"h\".
-- _for eg._
+_for eg._
   - if you want 2 hour cooldown - `{{duration("2h").Seconds()}}`
   - 2 hour 30 mins - `{{duration("2h30m").Seconds()}}`
   - 2 hour 30 mins 5 seconds - `{{duration("2h30m5s").Seconds()}}`
   - 20 m 10 s - `{{duration("20m10s").Seconds()}}`
 
-- Days tag - **\"d\" is not accepted**
-- If you want `x days` cooldown, you'll have to convert it to hours.
-  - _for eg._ : 4 days = **96h** , 2d 3h = **51h** , etc.
+:::warning
+Days tag - **\"d\" is not accepted**
+If you want `x days` cooldown, you'll have to convert it to hours.
+- _for eg._ : 4 days = **96h** , 2d 3h = **51h** , etc.
+
 :::
+::::
 
 ## 📝 - Step 3
 
