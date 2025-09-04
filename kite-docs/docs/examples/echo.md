@@ -2,6 +2,8 @@
 sidebar_position: 1
 ---
 
+import EmbedFlowNode from "../../../../src/components/EmbedFlowNode";
+
 # Beginner - Echo Command
 
 A simple echo command that repeats your texts to get new users started with the basic structure and feature of the command builder.
@@ -26,7 +28,8 @@ If you want to add a space in argument's name use the underscore ( \_ ).
 :::
 
 ## Sending your message 💬
-- From the actions menu, select the **Create Channel Message** block.
+- From the actions menu, select the **Create Channel Message** block.  
+  <EmbedFlowNode type="action_message_create" />  
 - Set the target channel as `{{channel.id}}`
 - Click **Edit Message** and then **Add embed**
         - In the description box, put `{{arg('text')}}`
