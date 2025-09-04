@@ -7,6 +7,7 @@ import { getNodeId, useNodeValues } from "@/lib/flow/nodes";
 import { useMessages, useVariables } from "@/lib/hooks/api";
 import { useAppId } from "@/lib/hooks/params";
 import {
+  CommandArgumentChoiceData,
   EmojiData,
   HTTPRequestData,
   ModalComponentData,
@@ -85,6 +86,10 @@ const intputs: Record<string, any> = {
   description: DescriptionInput,
   command_argument_type: CommandArgumentTypeInput,
   command_argument_required: CommandArgumentRequiredInput,
+  command_argument_min_value: CommandArgumentMinValueInput,
+  command_argument_max_value: CommandArgumentMaxValueInput,
+  command_argument_max_length: CommandArgumentMaxLengthInput,
+  command_argument_choices: CommandArgumentChoicesInput,
   command_contexts: CommandContextsInput,
   command_integrations: CommandIntegrationsInput,
   command_permissions: CommandPermissionsInput,
@@ -408,6 +413,166 @@ function CommandArgumentRequiredInput({
       }
       errors={errors}
     />
+  );
+}
+
+function CommandArgumentMinValueInput({
+  data,
+  updateData,
+  errors,
+}: InputProps) {
+  if (
+    data.command_argument_type !== "number" &&
+    data.command_argument_type !== "integer"
+  )
+    return null;
+
+  return (
+    <BaseInput
+      type="text"
+      field="command_argument_min_value"
+      title="Minimum Value"
+      value={data.command_argument_min_value?.toString() || ""}
+      updateValue={(v) =>
+        updateData({
+          command_argument_min_value: parseFloat(v) || undefined,
+        })
+      }
+      errors={errors}
+    />
+  );
+}
+
+function CommandArgumentMaxValueInput({
+  data,
+  updateData,
+  errors,
+}: InputProps) {
+  if (
+    data.command_argument_type !== "number" &&
+    data.command_argument_type !== "integer"
+  )
+    return null;
+
+  return (
+    <BaseInput
+      type="text"
+      field="command_argument_max_value"
+      title="Maximum Value"
+      value={data.command_argument_max_value?.toString() || ""}
+      updateValue={(v) =>
+        updateData({
+          command_argument_max_value: parseFloat(v) || undefined,
+        })
+      }
+      errors={errors}
+    />
+  );
+}
+
+function CommandArgumentMaxLengthInput({
+  data,
+  updateData,
+  errors,
+}: InputProps) {
+  if (data.command_argument_type !== "string") return null;
+
+  return (
+    <BaseInput
+      type="text"
+      field="command_argument_max_length"
+      title="Maximum Length"
+      value={data.command_argument_max_length?.toString() || ""}
+      updateValue={(v) =>
+        updateData({ command_argument_max_length: parseInt(v) || undefined })
+      }
+      errors={errors}
+    />
+  );
+}
+
+function CommandArgumentChoicesInput({ data, updateData, errors }: InputProps) {
+  const addChoice = useCallback(() => {
+    updateData({
+      command_argument_choices: [
+        ...(data.command_argument_choices || []),
+        { name: "", value: "" },
+      ],
+    });
+  }, [updateData, data]);
+
+  const clearChoices = useCallback(() => {
+    updateData({
+      command_argument_choices: [],
+    });
+  }, [updateData, data]);
+
+  const removeChoice = useCallback(
+    (i: number) => {
+      updateData({
+        command_argument_choices: data.command_argument_choices?.filter(
+          (_, j) => j !== i
+        ),
+      });
+    },
+    [updateData, data]
+  );
+
+  const updateChoice = useCallback(
+    (i: number, newData: Partial<CommandArgumentChoiceData>) => {
+      const choice = data.command_argument_choices?.[i];
+      if (!choice) return;
+
+      Object.assign(choice, newData);
+
+      updateData({
+        command_argument_choices: data.command_argument_choices,
+      });
+    },
+    [updateData, data]
+  );
+
+  if (
+    data.command_argument_type !== "string" &&
+    data.command_argument_type !== "integer" &&
+    data.command_argument_type !== "number"
+  )
+    return null;
+
+  return (
+    <div>
+      <div className="font-medium text-foreground mb-2">Choices</div>
+      <div className="text-muted-foreground text-sm mb-2">
+        Let users choose from a list of options. Leave this blank to allow any
+        value.
+      </div>
+      <div className="flex flex-col gap-3 mb-3">
+        {data.command_argument_choices?.map((choice, i) => (
+          <div className="flex gap-2" key={i}>
+            <Input
+              type="text"
+              placeholder="Name"
+              value={choice.name || ""}
+              onChange={(e) => updateChoice(i, { name: e.target.value })}
+            />
+            <Input
+              type="text"
+              placeholder="Value"
+              value={choice.value || ""}
+              onChange={(e) => updateChoice(i, { value: e.target.value })}
+            />
+          </div>
+        ))}
+      </div>
+      <div className="flex space-x-2">
+        <Button variant="outline" size="icon" onClick={addChoice}>
+          <PlusIcon className="h-5 w-5" />
+        </Button>
+        <Button variant="outline" size="icon" onClick={clearChoices}>
+          <TrashIcon className="h-5 w-5" />
+        </Button>
+      </div>
+    </div>
   );
 }
 
@@ -1726,7 +1891,7 @@ function ThreadDataInput({ data, updateData, errors }: InputProps) {
                 },
                 {
                   label: "Announcement Thread",
-                  value: "10",
+                  value: "10 ",
                 },
               ]}
               updateValue={(v) =>

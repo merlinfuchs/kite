@@ -61,6 +61,17 @@ export const nodeOptionCommandArgumentDataSchema = nodeBaseDataSchema.extend({
     .or(z.literal("number"))
     .or(z.literal("attachment")),
   command_argument_required: z.boolean().optional(),
+  min_value: z.number().optional(),
+  max_value: z.number().optional(),
+  max_length: z.number().optional(),
+  choices: z
+    .array(
+      z.object({
+        name: z.string().min(1).max(100),
+        value: z.string().min(1).max(100),
+      })
+    )
+    .optional(),
 });
 
 export const nodeOptionCommandPermissionsSchema = nodeBaseDataSchema.extend({

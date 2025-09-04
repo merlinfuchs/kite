@@ -790,6 +790,10 @@ export const nodeTypes: Record<string, NodeValues> = {
       "description",
       "command_argument_type",
       "command_argument_required",
+      "command_argument_min_value",
+      "command_argument_max_value",
+      "command_argument_max_length",
+      "command_argument_choices",
     ],
   },
   option_command_permissions: {

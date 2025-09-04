@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/diamondburned/arikawa/v3/discord"
+	"github.com/diamondburned/arikawa/v3/utils/json/option"
 )
 
 type FlowCompiler struct{}
@@ -198,16 +199,62 @@ func (n *CompiledFlowNode) CommandArguments() discord.CommandOptions {
 
 			switch node.Data.CommandArgumentType {
 			case CommandArgumentTypeString:
+				var maxLength option.Int
+				if node.Data.CommandArgumentMaxLength != 0 {
+					maxLength = option.NewInt(node.Data.CommandArgumentMaxLength)
+				}
+
+				var choices []discord.StringChoice
+				for _, choice := range node.Data.CommandArgumentChoices {
+					if choice.Name == "" || choice.Value == "" {
+						continue
+					}
+
+					choices = append(choices, discord.StringChoice{
+						Name:  choice.Name,
+						Value: choice.Value,
+					})
+				}
+
 				o = &discord.StringOption{
 					OptionName:  node.Data.Name,
 					Description: node.Data.Description,
 					Required:    node.Data.CommandArgumentRequired,
+					MaxLength:   maxLength,
+					Choices:     choices,
 				}
 			case CommandArgumentTypeInteger:
+				var minValue option.Int
+				if node.Data.CommandArgumentMinValue != 0 {
+					minValue = option.NewInt(int(node.Data.CommandArgumentMinValue))
+				}
+
+				var maxValue option.Int
+				if node.Data.CommandArgumentMaxValue != 0 {
+					maxValue = option.NewInt(int(node.Data.CommandArgumentMaxValue))
+				}
+
+				var choices []discord.IntegerChoice
+				for _, choice := range node.Data.CommandArgumentChoices {
+					if choice.Name == "" || choice.Value == "" {
+						continue
+					}
+
+					value, _ := strconv.ParseInt(choice.Value, 10, 64)
+
+					choices = append(choices, discord.IntegerChoice{
+						Name:  choice.Name,
+						Value: int(value),
+					})
+				}
+
 				o = &discord.IntegerOption{
 					OptionName:  node.Data.Name,
 					Description: node.Data.Description,
 					Required:    node.Data.CommandArgumentRequired,
+					Min:         minValue,
+					Max:         maxValue,
+					Choices:     choices,
 				}
 			case CommandArgumentTypeBoolean:
 				o = &discord.BooleanOption{
@@ -240,10 +287,37 @@ func (n *CompiledFlowNode) CommandArguments() discord.CommandOptions {
 					Required:    node.Data.CommandArgumentRequired,
 				}
 			case CommandArgumentTypeNumber:
+				var minValue option.Float
+				if node.Data.CommandArgumentMinValue != 0 {
+					minValue = option.NewFloat(node.Data.CommandArgumentMinValue)
+				}
+
+				var maxValue option.Float
+				if node.Data.CommandArgumentMaxValue != 0 {
+					maxValue = option.NewFloat(node.Data.CommandArgumentMaxValue)
+				}
+
+				var choices []discord.NumberChoice
+				for _, choice := range node.Data.CommandArgumentChoices {
+					if choice.Name == "" || choice.Value == "" {
+						continue
+					}
+
+					value, _ := strconv.ParseFloat(choice.Value, 64)
+
+					choices = append(choices, discord.NumberChoice{
+						Name:  choice.Name,
+						Value: value,
+					})
+				}
+
 				o = &discord.NumberOption{
 					OptionName:  node.Data.Name,
 					Description: node.Data.Description,
 					Required:    node.Data.CommandArgumentRequired,
+					Min:         minValue,
+					Max:         maxValue,
+					Choices:     choices,
 				}
 			case CommandArgumentTypeAttachment:
 				o = &discord.AttachmentOption{
