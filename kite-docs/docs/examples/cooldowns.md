@@ -35,8 +35,9 @@ Add cooldowns to your commands or event listeners to prevent spam and have more 
 ```go
 {{now().Unix() - (result('GET_VARIABLE') ?? 0)}}
 ```
-> [!NOTE]
-> Replace 'GET_VARIABLE' with your actual block's name.
+:::note
+Replace 'GET_VARIABLE' with your actual block's name.
+:::
 
 - **Match Condition**
   - **Comparison Mode** - `LESS THAN`
