@@ -4,12 +4,12 @@ sidebar_position: 1
 
 # Beginner - Echo Command
 
-A simple echo command that repeats your texts to get new users started with the basic  structure and feature of the command builder.
+A simple echo command that repeats your texts to get new users started with the basic structure and feature of the command builder.
 
-## Creating your command
+## Creating your command 🌟
 - Go to commands section of your Kite dashboard and make a command with the name echo.
 
-## Adding arguments to your command
+## Adding arguments to your command ✅
 - Now that you've created your command, go to `Options` section of your command builder and select the **Command Arguments** block.
 - Connect this block to the little purple dot of your command name.
 - Inside the **Command Arguments** block settings, add these :
@@ -19,11 +19,11 @@ A simple echo command that repeats your texts to get new users started with the 
         - **Argument Required** - True
 
 :::note
-Arguments name can only be in small letters and can't contain any special characters except for an underscore (\_).
-If you want to add a space in argument's name use the underscore (\_).
+Arguments name can only be in small letters and can't contain any special characters except for an underscore ( \_ ).  
+If you want to add a space in argument's name use the underscore ( \_ ).
 :::
 
-## Sending your message
+## Sending your message 💬
 - From the actions menu, select the **Create Channel Message** block.
 - Set the target channel as `{{channel.id}}`
 - Click **Edit Message** and then **Add embed**
@@ -33,7 +33,7 @@ If you want to add a space in argument's name use the underscore (\_).
 
 ![Echo Embed Example](./img/echo-embed.png)
 
-## Acknowledging your command
+## Acknowledging your command ✏️
 :::info
 Discord requires interactions (slash commands, modals & buttons) to compulsorily have a "response" otherwise it shows a red alert on your screend saying "This interaction failed." even if your command works as expected. To prevent this, we use the **Create Response** block.
 :::
@@ -48,3 +48,7 @@ Discord requires interactions (slash commands, modals & buttons) to compulsorily
 - Click **Save Changes** at the top of your page.
 - Voilà! You've created your first command.
 - Refresh your Discord client and run the command in your server.
+
+:::tip 
+You can add the **Command Permissions** block along-side your arguments block to restrict the usage of command to users with certain permissions.
+:::
