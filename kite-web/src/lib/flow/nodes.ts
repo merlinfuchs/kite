@@ -742,7 +742,7 @@ export const nodeTypes: Record<string, NodeValues> = {
   control_error_handler: {
     color: errorColor,
     icon: "circle-alert",
-    defaultTitle: "Handle Error",
+    defaultTitle: "Handle Errors",
     defaultDescription:
       "Handle errors that occur in the flow after this block.",
     dataFields: ["temporary_name", "custom_label"],
