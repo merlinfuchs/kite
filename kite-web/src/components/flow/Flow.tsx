@@ -1,18 +1,19 @@
+import { FlowContextStoreProvider, FlowContextType } from "@/lib/flow/context";
 import { FlowData } from "@/lib/flow/dataSchema";
-import FlowEditor from "./FlowEditor";
-import FlowNodeEditor from "./FlowNodeEditor";
-import FlowNodeExplorer from "./FlowNodeExplorer";
 import { OnSelectionChangeParams } from "@xyflow/react";
 import { useCallback, useState } from "react";
-import { FlowContextStoreProvider, FlowContextType } from "@/lib/flow/context";
+import FlowEditor from "./FlowEditor";
+import FlowMenu from "./FlowMenu";
+import { LogEntry } from "@/lib/types/wire.gen";
 
 interface Props {
   flowData: FlowData;
+  logs?: LogEntry[];
   context: FlowContextType;
   onChange: () => void;
 }
 
-export default function Flow({ flowData, context, onChange }: Props) {
+export default function Flow({ flowData, logs, context, onChange }: Props) {
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
 
   const onSelectionChange = useCallback(
@@ -29,10 +30,8 @@ export default function Flow({ flowData, context, onChange }: Props) {
   return (
     <FlowContextStoreProvider type={context}>
       <div className="flex flex-auto overflow-y-hidden relative">
-        <div className="flex-none">
-          <FlowNodeExplorer />
-          {selectedNodeId && <FlowNodeEditor nodeId={selectedNodeId} />}
-        </div>
+        <FlowMenu selectedNodeId={selectedNodeId} logs={logs} />
+
         <div className="flex-auto">
           <FlowEditor
             initialData={flowData}

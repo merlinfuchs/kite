@@ -1,7 +1,7 @@
 import FlowPage from "@/components/flow/FlowPage";
 import { useCommandUpdateMutation } from "@/lib/api/mutations";
 import { FlowData } from "@/lib/flow/dataSchema";
-import { useCommand } from "@/lib/hooks/api";
+import { useCommand, useResponseData } from "@/lib/hooks/api";
 import { useAppId, useCommandId } from "@/lib/hooks/params";
 import { useBeforePageExit } from "@/lib/hooks/exit";
 import Head from "next/head";
@@ -9,6 +9,7 @@ import { useRouter } from "next/router";
 import { useCallback, useRef, useState } from "react";
 import { toast } from "sonner";
 import { LogEntryListDrawer } from "@/components/app/LogEntryListDrawer";
+import { useLogEntriesQuery } from "@/lib/api/queries";
 
 export default function AppCommandPage() {
   const ignoreChange = useRef(false);
@@ -38,7 +39,6 @@ export default function AppCommandPage() {
 
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [logsOpen, setLogsOpen] = useState(false);
 
   const onChange = useCallback(() => {
     if (!ignoreChange.current) {
@@ -102,29 +102,28 @@ export default function AppCommandPage() {
     [hasUnsavedChanges]
   );
 
+  const logsQuery = useLogEntriesQuery(useAppId(), {
+    limit: 10,
+    commandId: useCommandId(),
+  });
+  const logs = useResponseData(logsQuery);
+
   return (
     <div className="flex min-h-[100dvh] w-full flex-col">
       <Head>
         <title>Manage Command | Kite</title>
       </Head>
       {cmd && (
-        <>
-          <FlowPage
-            flowData={cmd.flow_source}
-            context="command"
-            hasUnsavedChanges={hasUnsavedChanges}
-            onChange={onChange}
-            isSaving={isSaving}
-            onSave={save}
-            onExit={exit}
-            onLogsView={() => setLogsOpen(true)}
-          />
-          <LogEntryListDrawer
-            commandId={cmd.id}
-            open={logsOpen}
-            onOpenChange={setLogsOpen}
-          />
-        </>
+        <FlowPage
+          flowData={cmd.flow_source}
+          context="command"
+          hasUnsavedChanges={hasUnsavedChanges}
+          onChange={onChange}
+          isSaving={isSaving}
+          onSave={save}
+          onExit={exit}
+          logs={logs}
+        />
       )}
     </div>
   );

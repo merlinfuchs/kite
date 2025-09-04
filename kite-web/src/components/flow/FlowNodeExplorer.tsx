@@ -155,9 +155,11 @@ const nodeCategories = {
 
 type NodeCategory = keyof typeof nodeCategories;
 
-export default function FlowNodeExplorer() {
-  const [category, setCategory] = useState<NodeCategory>("action");
-
+export default function FlowNodeExplorer({
+  category,
+}: {
+  category: NodeCategory;
+}) {
   const contextType = useFlowContext((c) => c.type);
 
   const sections = useMemo(() => {
@@ -170,21 +172,29 @@ export default function FlowNodeExplorer() {
   }, [category, contextType]);
 
   return (
-    <div className="w-96 h-full flex flex-col bg-muted/40">
-      <div className="p-5 flex-none mb-2">
+    <div className="w-full h-full flex flex-col">
+      <div className="p-5 flex-none">
         <div className="text-xl font-bold text-foreground mb-2">
-          Block Explorer
+          {category === "action"
+            ? "Action"
+            : category === "control_flow"
+            ? "Control Flow"
+            : "Option"}{" "}
+          Blocks
         </div>
         <div className="text-muted-foreground">
-          With Blocks you define what your bot does and how it works.
+          {category === "action"
+            ? "With Action Blocks you can perform actions with your app."
+            : category === "control_flow"
+            ? "With Control Flow Blocks you define how your app behaves."
+            : "With Option Blocks you add option to other blocks."}
         </div>
       </div>
-      <NodeCategories category={category} setCategory={setCategory} />
       <ScrollArea className="flex-auto mr-1">
-        <div className="space-y-3 pl-2 pr-1 pb-5">
+        <div className="space-y-3 pl-3 pr-1 pb-5">
           {sections.map((section, i) => (
             <div key={i}>
-              <div className="text-foreground font-medium mb-2 px-1">
+              <div className="text-foreground font-medium mb-2 px-2">
                 {section.title}
               </div>
               <div className="space-y-2">

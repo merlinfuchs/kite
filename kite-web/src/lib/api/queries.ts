@@ -13,6 +13,7 @@ import {
   EventListenerGetResponse,
   EventListenerListResponse,
   FeaturesGetResponse,
+  LogEntry,
   LogEntryListResponse,
   LogSummaryGetResponse,
   MessageGetResponse,
@@ -99,9 +100,7 @@ export function useLogEntriesQuery(
   return useQuery({
     queryKey: ["apps", appId, "logs", args],
     queryFn: () =>
-      apiRequest<LogEntryListResponse>(
-        `/v1/apps/${appId}/logs?${query.toString()}`
-      ),
+      apiRequest<LogEntry[]>(`/v1/apps/${appId}/logs?${query.toString()}`),
     staleTime: 1000 * 60,
     enabled: !!appId,
   });
