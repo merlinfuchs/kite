@@ -3,13 +3,14 @@ sidebar_position: 1
 ---
 
 # Beginner - Echo Command
-
 A simple echo command that repeats your texts to get new users started with the basic structure and feature of the command builder.
+
+![Echo Demo](./img/echo-demo.gif)
 
 ## Creating your command 🌟
 - Go to commands section of your Kite dashboard and make a command with the name echo.
 
-## Adding arguments to your command ✅
+## Adding arguments to your command
 - Now that you've created your command, go to `Options` section of your command builder and select the **Command Arguments** block.
 - Connect this block to the little purple dot of your command name.
 - Inside the **Command Arguments** block settings, add these :
@@ -44,7 +45,7 @@ Discord requires interactions (slash commands, modals & buttons) to compulsorily
 
 ![Echo Command Flow](./img/echo-flow.png)
 
-## Save your command
+## 💌 Save your command
 - Click **Save Changes** at the top of your page.
 - Voilà! You've created your first command.
 - Refresh your Discord client and run the command in your server.
