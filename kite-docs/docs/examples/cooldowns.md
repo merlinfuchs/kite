@@ -2,7 +2,7 @@
 
 Add cooldowns to your commands or event listeners to prevent spam and have more control over your commands.
 
-![Cooldown Result](./img/cooldowns-result.png)
+![Cooldown Result](./img/cooldown-result.png)
 
 ## 📝 - Step 1
 
