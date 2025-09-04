@@ -34,7 +34,10 @@ func (m *AccessManager) AppAccess(next handler.HandlerFunc) handler.HandlerFunc 
 			c.UserAppRole = model.AppCollaboratorRoleOwner
 		}
 
+		features := m.planManager.AppFeatures(c.Context(), appID)
+
 		c.App = app
+		c.Features = features
 		return next(c)
 	}
 }

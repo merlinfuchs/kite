@@ -9,11 +9,6 @@ strict_cookies = true
 public_base_url = "http://localhost:3000"
 
 [user_limits]
-max_apps_per_user = 10
-max_commands_per_app = 25
-max_variables_per_app = 25
-max_messages_per_app = 25
-max_event_listeners_per_app = 5
 max_asset_size = 8_000_000
 credits_per_month = 100_000
 
@@ -42,4 +37,8 @@ default = true
 feature_max_collaborators = 1
 feature_usage_credits_per_month = 10000
 feature_max_guilds = 100
+feature_max_commands = 25
+feature_max_variables = 25
+feature_max_messages = 25
+feature_max_event_listeners = 5
 feature_priority_support = false

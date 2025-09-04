@@ -106,6 +106,18 @@ export default function AppPricingList() {
               <span className="flex">
                 <CheckIcon className="text-green-500" />{" "}
                 <h3 className="ml-2">
+                  {pricing.feature_max_commands} Commands & Variables
+                </h3>
+              </span>
+              <span className="flex">
+                <CheckIcon className="text-green-500" />{" "}
+                <h3 className="ml-2">
+                  {pricing.feature_max_event_listeners} Event Listeners
+                </h3>
+              </span>
+              <span className="flex">
+                <CheckIcon className="text-green-500" />{" "}
+                <h3 className="ml-2">
                   {pricing.feature_priority_support
                     ? "Priority support"
                     : "Community support"}

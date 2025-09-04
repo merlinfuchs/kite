@@ -1,6 +1,9 @@
 package access
 
-import "github.com/kitecloud/kite/kite-service/internal/store"
+import (
+	"github.com/kitecloud/kite/kite-service/internal/core/plan"
+	"github.com/kitecloud/kite/kite-service/internal/store"
+)
 
 type AccessManager struct {
 	appStore            store.AppStore
@@ -9,6 +12,7 @@ type AccessManager struct {
 	messageStore        store.MessageStore
 	eventListenerStore  store.EventListenerStore
 	pluginInstanceStore store.PluginInstanceStore
+	planManager         *plan.PlanManager
 }
 
 func NewAccessManager(
@@ -18,6 +22,7 @@ func NewAccessManager(
 	messageStore store.MessageStore,
 	eventListenerStore store.EventListenerStore,
 	pluginInstanceStore store.PluginInstanceStore,
+	planManager *plan.PlanManager,
 ) *AccessManager {
 	return &AccessManager{
 		appStore:            appStore,
@@ -26,5 +31,6 @@ func NewAccessManager(
 		messageStore:        messageStore,
 		eventListenerStore:  eventListenerStore,
 		pluginInstanceStore: pluginInstanceStore,
+		planManager:         planManager,
 	}
 }

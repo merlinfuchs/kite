@@ -42,16 +42,15 @@ func (h *AppHandler) HandleAppCollaboratorCreate(c *handler.Context, req wire.Ap
 		return nil, handler.ErrForbidden("missing_permissions", "You don't have permissions to add collaborators to this app")
 	}
 
-	features := h.planManager.AppFeatures(c.Context(), c.App.ID)
-	if features.MaxCollaborators != 0 {
+	if c.Features.MaxCollaborators != 0 {
 		collaboratorCount, err := h.appStore.CountCollaboratorsByApp(c.Context(), c.App.ID)
 		if err != nil {
 			return nil, fmt.Errorf("failed to count collaborators: %w", err)
 		}
 
 		// We count the owner as a collaborator
-		if (collaboratorCount + 1) >= features.MaxCollaborators {
-			return nil, handler.ErrBadRequest("resource_limit", fmt.Sprintf("maximum number of collaborators (%d) reached", features.MaxCollaborators))
+		if (collaboratorCount + 1) >= c.Features.MaxCollaborators {
+			return nil, handler.ErrBadRequest("resource_limit", fmt.Sprintf("maximum number of collaborators (%d) reached", c.Features.MaxCollaborators))
 		}
 	}
 

@@ -85,14 +85,9 @@ type EngineConfig struct {
 	HTTPProxyURL  string `toml:"http_proxy_url"`
 }
 
-// TODO: Move these to plan features
 type UserLimitsConfig struct {
-	MaxAppsPerUser          int `toml:"max_apps_per_user"`
-	MaxCommandsPerApp       int `toml:"max_commands_per_app"`
-	MaxVariablesPerApp      int `toml:"max_variables_per_app"`
-	MaxMessagesPerApp       int `toml:"max_messages_per_app"`
-	MaxEventListenersPerApp int `toml:"max_event_listeners_per_app"`
-	MaxAssetSize            int `toml:"max_asset_size"`
+	MaxAppsPerUser int `toml:"max_apps_per_user"`
+	MaxAssetSize   int `toml:"max_asset_size"`
 }
 
 type OpenAIConfig struct {
@@ -124,5 +119,9 @@ type BillingPlanConfig struct {
 	FeatureMaxCollaborators     int  `toml:"feature_max_collaborators"`
 	FeatureUsageCreditsPerMonth int  `toml:"feature_usage_credits_per_month"`
 	FeatureMaxGuilds            int  `toml:"feature_max_guilds"`
+	FeatureMaxCommands          int  `toml:"feature_max_commands"`
+	FeatureMaxVariables         int  `toml:"feature_max_variables"`
+	FeatureMaxMessages          int  `toml:"feature_max_messages"`
+	FeatureMaxEventListeners    int  `toml:"feature_max_event_listeners"`
 	FeaturePrioritySupport      bool `toml:"feature_priority_support"`
 }

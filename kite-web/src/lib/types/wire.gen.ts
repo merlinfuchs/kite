@@ -193,6 +193,10 @@ export interface BillingPlan {
   feature_max_collaborators: number /* int */;
   feature_usage_credits_per_month: number /* int */;
   feature_max_guilds: number /* int */;
+  feature_max_commands: number /* int */;
+  feature_max_variables: number /* int */;
+  feature_max_messages: number /* int */;
+  feature_max_event_listeners: number /* int */;
   feature_priority_support: boolean;
 }
 export type BillingPlanListResponse = (BillingPlan | undefined)[];
@@ -301,6 +305,10 @@ export interface Features {
   max_collaborators: number /* int */;
   usage_credits_per_month: number /* int */;
   max_guilds: number /* int */;
+  max_commands: number /* int */;
+  max_variables: number /* int */;
+  max_messages: number /* int */;
+  max_event_listeners: number /* int */;
   priority_support: boolean;
 }
 export type FeaturesGetResponse = Features;

@@ -25,12 +25,8 @@ type APIServerConfig struct {
 }
 
 type APIUserLimitsConfig struct {
-	MaxAppsPerUser          int
-	MaxCommandsPerApp       int
-	MaxVariablesPerApp      int
-	MaxMessagesPerApp       int
-	MaxEventListenersPerApp int
-	MaxAssetSize            int
+	MaxAppsPerUser int
+	MaxAssetSize   int
 }
 
 type BillingConfig struct {

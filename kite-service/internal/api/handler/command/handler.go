@@ -14,14 +14,12 @@ import (
 )
 
 type CommandHandler struct {
-	commandStore      store.CommandStore
-	maxCommandsPerApp int
+	commandStore store.CommandStore
 }
 
-func NewCommandHandler(commandStore store.CommandStore, maxCommandsPerApp int) *CommandHandler {
+func NewCommandHandler(commandStore store.CommandStore) *CommandHandler {
 	return &CommandHandler{
-		commandStore:      commandStore,
-		maxCommandsPerApp: maxCommandsPerApp,
+		commandStore: commandStore,
 	}
 }
 
@@ -44,14 +42,14 @@ func (h *CommandHandler) HandleCommandGet(c *handler.Context) (*wire.CommandGetR
 }
 
 func (h *CommandHandler) HandleCommandCreate(c *handler.Context, req wire.CommandCreateRequest) (*wire.CommandCreateResponse, error) {
-	if h.maxCommandsPerApp != 0 {
+	if c.Features.MaxCommands != 0 {
 		commandCount, err := h.commandStore.CountCommandsByApp(c.Context(), c.App.ID)
 		if err != nil {
 			return nil, fmt.Errorf("failed to count commands: %w", err)
 		}
 
-		if commandCount >= h.maxCommandsPerApp {
-			return nil, handler.ErrBadRequest("resource_limit", fmt.Sprintf("maximum number of commands (%d) reached", h.maxCommandsPerApp))
+		if commandCount >= c.Features.MaxCommands {
+			return nil, handler.ErrBadRequest("resource_limit", fmt.Sprintf("maximum number of commands (%d) reached", c.Features.MaxCommands))
 		}
 	}
 
@@ -79,7 +77,7 @@ func (h *CommandHandler) HandleCommandCreate(c *handler.Context, req wire.Comman
 }
 
 func (h *CommandHandler) HandleCommandsImport(c *handler.Context, req wire.CommandsImportRequest) (*wire.CommandsImportResponse, error) {
-	if h.maxCommandsPerApp != 0 {
+	if c.Features.MaxCommands != 0 {
 		commandCount, err := h.commandStore.CountCommandsByApp(c.Context(), c.App.ID)
 		if err != nil {
 			return nil, fmt.Errorf("failed to count commands: %w", err)
@@ -87,8 +85,8 @@ func (h *CommandHandler) HandleCommandsImport(c *handler.Context, req wire.Comma
 
 		newCommandCount := commandCount + len(req.Commands)
 
-		if newCommandCount > h.maxCommandsPerApp {
-			return nil, handler.ErrBadRequest("resource_limit", fmt.Sprintf("maximum number of commands (%d) reached", h.maxCommandsPerApp))
+		if newCommandCount > c.Features.MaxCommands {
+			return nil, handler.ErrBadRequest("resource_limit", fmt.Sprintf("maximum number of commands (%d) reached", c.Features.MaxCommands))
 		}
 	}
 

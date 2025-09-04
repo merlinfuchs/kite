@@ -60,6 +60,7 @@ func (s *APIServer) RegisterRoutes(
 		messageStore,
 		eventListenerStore,
 		pluginInstanceStore,
+		planManager,
 	)
 
 	cacheManager, err := handler.NewCacheManager(10000)
@@ -109,7 +110,6 @@ func (s *APIServer) RegisterRoutes(
 	appHandler := app.NewAppHandler(
 		appStore,
 		userStore,
-		planManager,
 		s.config.UserLimits.MaxAppsPerUser,
 		tokenCrypt,
 	)
@@ -178,7 +178,7 @@ func (s *APIServer) RegisterRoutes(
 	usageGroup.Get("/by-type", handler.Typed(usageHandler.HandleUsageByTypeList))
 
 	// Command routes
-	commandsHandler := command.NewCommandHandler(commandStore, s.config.UserLimits.MaxCommandsPerApp)
+	commandsHandler := command.NewCommandHandler(commandStore)
 
 	commandsGroup := appGroup.Group("/commands")
 	commandsGroup.Get("/", handler.Typed(commandsHandler.HandleCommandList))
@@ -192,7 +192,7 @@ func (s *APIServer) RegisterRoutes(
 	commandGroup.Put("/enabled", handler.TypedWithBody(commandsHandler.HandleCommandUpdateEnabled))
 
 	// Event listener routes
-	eventListenerHandler := eventlistener.NewEventListenerHandler(eventListenerStore, s.config.UserLimits.MaxEventListenersPerApp)
+	eventListenerHandler := eventlistener.NewEventListenerHandler(eventListenerStore)
 
 	eventListenersGroup := appGroup.Group("/event-listeners")
 	eventListenersGroup.Get("/", handler.Typed(eventListenerHandler.HandleEventListenerList))
@@ -222,7 +222,7 @@ func (s *APIServer) RegisterRoutes(
 	pluginInstanceGroup.Put("/enabled", handler.TypedWithBody(pluginHandler.HandlePluginInstanceUpdateEnabled))
 
 	// Variable routes
-	variablesHandler := variable.NewVariableHandler(variableStore, variableValueStore, s.config.UserLimits.MaxVariablesPerApp)
+	variablesHandler := variable.NewVariableHandler(variableStore, variableValueStore)
 
 	variablesGroup := appGroup.Group("/variables")
 	variablesGroup.Get("/", handler.Typed(variablesHandler.HandleVariableList))
@@ -240,7 +240,6 @@ func (s *APIServer) RegisterRoutes(
 		messageInstanceStore,
 		assetStore,
 		appStateManager,
-		s.config.UserLimits.MaxMessagesPerApp,
 	)
 
 	messagesGroup := appGroup.Group("/messages")

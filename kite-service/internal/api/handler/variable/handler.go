@@ -15,14 +15,12 @@ import (
 type VariableHandler struct {
 	variableStore      store.VariableStore
 	variableValueStore store.VariableValueStore
-	maxVariablesPerApp int
 }
 
-func NewVariableHandler(variableStore store.VariableStore, variableValueStore store.VariableValueStore, maxVariablesPerApp int) *VariableHandler {
+func NewVariableHandler(variableStore store.VariableStore, variableValueStore store.VariableValueStore) *VariableHandler {
 	return &VariableHandler{
 		variableStore:      variableStore,
 		variableValueStore: variableValueStore,
-		maxVariablesPerApp: maxVariablesPerApp,
 	}
 }
 
@@ -45,14 +43,14 @@ func (h *VariableHandler) HandleVariableGet(c *handler.Context) (*wire.VariableG
 }
 
 func (h *VariableHandler) HandleVariableCreate(c *handler.Context, req wire.VariableCreateRequest) (*wire.VariableCreateResponse, error) {
-	if h.maxVariablesPerApp != 0 {
+	if c.Features.MaxVariables != 0 {
 		variableCount, err := h.variableStore.CountVariablesByApp(c.Context(), c.App.ID)
 		if err != nil {
 			return nil, fmt.Errorf("failed to count variables: %w", err)
 		}
 
-		if variableCount >= h.maxVariablesPerApp {
-			return nil, handler.ErrBadRequest("resource_limit", fmt.Sprintf("maximum number of variables (%d) reached", h.maxVariablesPerApp))
+		if variableCount >= c.Features.MaxVariables {
+			return nil, handler.ErrBadRequest("resource_limit", fmt.Sprintf("maximum number of variables (%d) reached", c.Features.MaxVariables))
 		}
 	}
 
@@ -72,7 +70,7 @@ func (h *VariableHandler) HandleVariableCreate(c *handler.Context, req wire.Vari
 }
 
 func (h *VariableHandler) HandleVariablesImport(c *handler.Context, req wire.VariablesImportRequest) (*wire.VariablesImportResponse, error) {
-	if h.maxVariablesPerApp != 0 {
+	if c.Features.MaxVariables != 0 {
 		variableCount, err := h.variableStore.CountVariablesByApp(c.Context(), c.App.ID)
 		if err != nil {
 			return nil, fmt.Errorf("failed to count variables: %w", err)
@@ -80,8 +78,8 @@ func (h *VariableHandler) HandleVariablesImport(c *handler.Context, req wire.Var
 
 		newVariableCount := variableCount + len(req.Variables)
 
-		if newVariableCount > h.maxVariablesPerApp {
-			return nil, handler.ErrBadRequest("resource_limit", fmt.Sprintf("maximum number of variables (%d) reached", h.maxVariablesPerApp))
+		if newVariableCount > c.Features.MaxVariables {
+			return nil, handler.ErrBadRequest("resource_limit", fmt.Sprintf("maximum number of variables (%d) reached", c.Features.MaxVariables))
 		}
 	}
 

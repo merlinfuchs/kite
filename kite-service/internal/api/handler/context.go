@@ -17,6 +17,7 @@ type Context struct {
 	Session        *model.Session
 	App            *model.App
 	UserAppRole    model.AppCollaboratorRole
+	Features       model.Features
 	Command        *model.Command
 	Variable       *model.Variable
 	Message        *model.Message
