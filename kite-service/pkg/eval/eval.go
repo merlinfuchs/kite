@@ -58,7 +58,7 @@ func EvalTemplate(ctx context.Context, template string, c Context) (thing.Thing,
 			return thing.Null, err
 		}
 
-		return res, nil
+		return replaceNewlines(res), nil
 	}
 
 	res, err := fasttemplate.ExecuteFuncStringWithErr(
@@ -84,7 +84,14 @@ func EvalTemplate(ctx context.Context, template string, c Context) (thing.Thing,
 		return thing.Null, err
 	}
 
-	return thing.NewString(res), nil
+	return replaceNewlines(thing.NewString(res)), nil
+}
+
+func replaceNewlines(s thing.Thing) thing.Thing {
+	if s.Type == thing.TypeString {
+		return thing.NewString(strings.ReplaceAll(s.String(), "\\n", "\n"))
+	}
+	return s
 }
 
 func EvalTemplateToString(ctx context.Context, template string, c Context) (string, error) {
