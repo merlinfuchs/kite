@@ -14,14 +14,12 @@ import (
 )
 
 type EventListenerHandler struct {
-	eventListenerStore      store.EventListenerStore
-	maxEventListenersPerApp int
+	eventListenerStore store.EventListenerStore
 }
 
-func NewEventListenerHandler(eventListenerStore store.EventListenerStore, maxEventListenersPerApp int) *EventListenerHandler {
+func NewEventListenerHandler(eventListenerStore store.EventListenerStore) *EventListenerHandler {
 	return &EventListenerHandler{
-		eventListenerStore:      eventListenerStore,
-		maxEventListenersPerApp: maxEventListenersPerApp,
+		eventListenerStore: eventListenerStore,
 	}
 }
 
@@ -44,14 +42,14 @@ func (h *EventListenerHandler) HandleEventListenerGet(c *handler.Context) (*wire
 }
 
 func (h *EventListenerHandler) HandleEventListenerCreate(c *handler.Context, req wire.EventListenerCreateRequest) (*wire.EventListenerCreateResponse, error) {
-	if h.maxEventListenersPerApp != 0 {
+	if c.Features.MaxEventListeners != 0 {
 		eventListenerCount, err := h.eventListenerStore.CountEventListenersByApp(c.Context(), c.App.ID)
 		if err != nil {
 			return nil, fmt.Errorf("failed to count event listeners: %w", err)
 		}
 
-		if eventListenerCount >= h.maxEventListenersPerApp {
-			return nil, handler.ErrBadRequest("resource_limit", fmt.Sprintf("maximum number of event listeners (%d) reached", h.maxEventListenersPerApp))
+		if eventListenerCount >= c.Features.MaxEventListeners {
+			return nil, handler.ErrBadRequest("resource_limit", fmt.Sprintf("maximum number of event listeners (%d) reached", c.Features.MaxEventListeners))
 		}
 	}
 
@@ -81,7 +79,7 @@ func (h *EventListenerHandler) HandleEventListenerCreate(c *handler.Context, req
 }
 
 func (h *EventListenerHandler) HandleEventListenersImport(c *handler.Context, req wire.EventListenersImportRequest) (*wire.EventListenersImportResponse, error) {
-	if h.maxEventListenersPerApp != 0 {
+	if c.Features.MaxEventListeners != 0 {
 		eventListenerCount, err := h.eventListenerStore.CountEventListenersByApp(c.Context(), c.App.ID)
 		if err != nil {
 			return nil, fmt.Errorf("failed to count event listeners: %w", err)
@@ -89,8 +87,8 @@ func (h *EventListenerHandler) HandleEventListenersImport(c *handler.Context, re
 
 		newEventListenerCount := eventListenerCount + len(req.EventListeners)
 
-		if newEventListenerCount > h.maxEventListenersPerApp {
-			return nil, handler.ErrBadRequest("resource_limit", fmt.Sprintf("maximum number of event listeners (%d) reached", h.maxEventListenersPerApp))
+		if newEventListenerCount > c.Features.MaxEventListeners {
+			return nil, handler.ErrBadRequest("resource_limit", fmt.Sprintf("maximum number of event listeners (%d) reached", c.Features.MaxEventListeners))
 		}
 	}
 

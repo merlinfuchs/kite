@@ -121,6 +121,10 @@ type BillingPlan struct {
 	FeatureMaxCollaborators     int  `json:"feature_max_collaborators"`
 	FeatureUsageCreditsPerMonth int  `json:"feature_usage_credits_per_month"`
 	FeatureMaxGuilds            int  `json:"feature_max_guilds"`
+	FeatureMaxCommands          int  `json:"feature_max_commands"`
+	FeatureMaxVariables         int  `json:"feature_max_variables"`
+	FeatureMaxMessages          int  `json:"feature_max_messages"`
+	FeatureMaxEventListeners    int  `json:"feature_max_event_listeners"`
 	FeaturePrioritySupport      bool `json:"feature_priority_support"`
 }
 

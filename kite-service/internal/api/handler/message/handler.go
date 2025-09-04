@@ -17,7 +17,6 @@ type MessageHandler struct {
 	messageInstanceStore store.MessageInstanceStore
 	assetStore           store.AssetStore
 	appStateManager      store.AppStateManager
-	maxMessagesPerApp    int
 }
 
 func NewMessageHandler(
@@ -25,14 +24,12 @@ func NewMessageHandler(
 	messageInstanceStore store.MessageInstanceStore,
 	assetStore store.AssetStore,
 	appStateManager store.AppStateManager,
-	maxMessagesPerApp int,
 ) *MessageHandler {
 	return &MessageHandler{
 		messageStore:         messageStore,
 		messageInstanceStore: messageInstanceStore,
 		assetStore:           assetStore,
 		appStateManager:      appStateManager,
-		maxMessagesPerApp:    maxMessagesPerApp,
 	}
 }
 
@@ -55,14 +52,14 @@ func (h *MessageHandler) HandleMessageGet(c *handler.Context) (*wire.MessageGetR
 }
 
 func (h *MessageHandler) HandleMessageCreate(c *handler.Context, req wire.MessageCreateRequest) (*wire.MessageCreateResponse, error) {
-	if h.maxMessagesPerApp != 0 {
+	if c.Features.MaxMessages != 0 {
 		messageCount, err := h.messageStore.CountMessagesByApp(c.Context(), c.App.ID)
 		if err != nil {
 			return nil, fmt.Errorf("failed to count messages: %w", err)
 		}
 
-		if messageCount >= h.maxMessagesPerApp {
-			return nil, handler.ErrBadRequest("resource_limit", fmt.Sprintf("maximum number of messages (%d) reached", h.maxMessagesPerApp))
+		if messageCount >= c.Features.MaxMessages {
+			return nil, handler.ErrBadRequest("resource_limit", fmt.Sprintf("maximum number of messages (%d) reached", c.Features.MaxMessages))
 		}
 	}
 
@@ -85,7 +82,7 @@ func (h *MessageHandler) HandleMessageCreate(c *handler.Context, req wire.Messag
 }
 
 func (h *MessageHandler) HandleMessagesImport(c *handler.Context, req wire.MessagesImportRequest) (*wire.MessagesImportResponse, error) {
-	if h.maxMessagesPerApp != 0 {
+	if c.Features.MaxMessages != 0 {
 		messageCount, err := h.messageStore.CountMessagesByApp(c.Context(), c.App.ID)
 		if err != nil {
 			return nil, fmt.Errorf("failed to count messages: %w", err)
@@ -93,8 +90,8 @@ func (h *MessageHandler) HandleMessagesImport(c *handler.Context, req wire.Messa
 
 		newMessageCount := messageCount + len(req.Messages)
 
-		if newMessageCount > h.maxMessagesPerApp {
-			return nil, handler.ErrBadRequest("resource_limit", fmt.Sprintf("maximum number of messages (%d) reached", h.maxMessagesPerApp))
+		if newMessageCount > c.Features.MaxMessages {
+			return nil, handler.ErrBadRequest("resource_limit", fmt.Sprintf("maximum number of messages (%d) reached", c.Features.MaxMessages))
 		}
 	}
 
