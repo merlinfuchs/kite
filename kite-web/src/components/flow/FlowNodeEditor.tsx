@@ -10,6 +10,7 @@ import {
   EmojiData,
   HTTPRequestData,
   ModalComponentData,
+  PermissionOverwriteData,
 } from "@/lib/types/flow.gen";
 import { Node, useNodes, useReactFlow, useStoreApi } from "@xyflow/react";
 import {
@@ -96,6 +97,7 @@ const intputs: Record<string, any> = {
   message_ephemeral: MessageEphemeralInput,
   modal_data: ModalDataInput,
   channel_data: ChannelDataInput,
+  thread_data: ThreadDataInput,
   channel_target: ChannelTargetInput,
   role_data: RoleDataInput,
   role_target: RoleTargetInput,
@@ -1347,17 +1349,433 @@ function ModalDataInput({ data, updateData, errors }: InputProps) {
 }
 
 function ChannelDataInput({ data, updateData, errors }: InputProps) {
+  const addOverwrite = useCallback(() => {
+    updateData({
+      channel_data: {
+        ...data.channel_data,
+        permission_overwrites: [
+          ...(data.channel_data?.permission_overwrites || []),
+          { type: 0, allow: "0", deny: "0" },
+        ],
+      },
+    });
+  }, [updateData, data]);
+
+  const clearOverwrites = useCallback(() => {
+    updateData({
+      channel_data: { ...data.channel_data, permission_overwrites: [] },
+    });
+  }, [updateData, data]);
+
+  const updateOverwrite = useCallback(
+    (i: number, newData: Partial<PermissionOverwriteData>) => {
+      const overwrite = data.channel_data?.permission_overwrites?.[i];
+      if (!overwrite) return;
+
+      Object.assign(overwrite, newData);
+
+      updateData({
+        channel_data: data.channel_data,
+      });
+    },
+    [updateData, data]
+  );
+
   return (
-    <BaseInput
-      type="text"
-      field="channel_data"
-      title="Channel Name"
-      value={data.channel_data?.name || ""}
-      updateValue={(v) =>
-        updateData({ channel_data: v ? { name: v } : undefined })
-      }
-      errors={errors}
-    />
+    <Dialog>
+      <DialogTrigger asChild>
+        <Button className="w-full">Configure Channel</Button>
+      </DialogTrigger>
+      <DialogContent className="overflow-y-auto max-h-[90dvh] max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>Configure Channel</DialogTitle>
+          <DialogDescription>
+            Configure your channel here! A channel must have one of the
+            available types and a name. All other fields are optional.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-3">
+          <div className="flex space-x-3">
+            <BaseInput
+              type="select"
+              field={`channel_data.type`}
+              title="Type"
+              value={data.channel_data?.type?.toString() || "0"}
+              options={[
+                {
+                  label: "Text",
+                  value: "0",
+                },
+                {
+                  label: "Voice",
+                  value: "2",
+                },
+                {
+                  label: "Category",
+                  value: "4",
+                },
+                {
+                  label: "Announcement",
+                  value: "5",
+                },
+                {
+                  label: "Stage",
+                  value: "13",
+                },
+                {
+                  label: "Forum",
+                  value: "15",
+                },
+                {
+                  label: "Media",
+                  value: "16",
+                },
+              ]}
+              updateValue={(v) =>
+                updateData({
+                  channel_data: {
+                    ...data.channel_data,
+                    type: parseInt(v) || 0,
+                  },
+                })
+              }
+              errors={errors}
+            />
+
+            {(!data.channel_data?.type || data.channel_data.type === 0) && (
+              <BaseCheckbox
+                field="channel_data.nsfw"
+                title="NSFW"
+                value={data.channel_data?.nsfw || false}
+                updateValue={(v) =>
+                  updateData({
+                    channel_data: {
+                      ...data.channel_data,
+                      nsfw: v,
+                    },
+                  })
+                }
+                errors={errors}
+              />
+            )}
+          </div>
+
+          <BaseInput
+            type="text"
+            field="channel_data.name"
+            title="Name"
+            description="The name for the channel."
+            value={data.channel_data?.name || ""}
+            updateValue={(v) =>
+              updateData({
+                channel_data: { ...data.channel_data, name: v || undefined },
+              })
+            }
+            errors={errors}
+            placeholders
+          />
+
+          {(!data.channel_data?.type ||
+            data.channel_data.type === 0 ||
+            data.channel_data.type === 5) && (
+            <BaseInput
+              type="text"
+              field="channel_data.topic"
+              title="Topic"
+              description="The topic for the channel."
+              value={data.channel_data?.topic || ""}
+              updateValue={(v) =>
+                updateData({
+                  channel_data: {
+                    ...data.channel_data,
+                    topic: v || undefined,
+                  },
+                })
+              }
+              errors={errors}
+              placeholders
+            />
+          )}
+
+          {data.channel_data?.type === 2 ||
+            (data.channel_data?.type === 13 && (
+              <>
+                <BaseInput
+                  type="text"
+                  field="channel_data.bitrate"
+                  title="Bitrate"
+                  description="The bitrate for the channel."
+                  value={data.channel_data?.bitrate || ""}
+                  updateValue={(v) =>
+                    updateData({
+                      channel_data: {
+                        ...data.channel_data,
+                        bitrate: v || undefined,
+                      },
+                    })
+                  }
+                  errors={errors}
+                  placeholders
+                />
+                <BaseInput
+                  type="text"
+                  field="channel_data.user_limit"
+                  title="User Limit"
+                  description="The user limit for the channel."
+                  value={data.channel_data?.user_limit?.toString() || ""}
+                  updateValue={(v) =>
+                    updateData({
+                      channel_data: {
+                        ...data.channel_data,
+                        user_limit: v || undefined,
+                      },
+                    })
+                  }
+                  errors={errors}
+                  placeholders
+                />
+              </>
+            ))}
+
+          {data.channel_data?.type !== 4 && (
+            <BaseInput
+              type="text"
+              field="channel_data.parent"
+              title="Category"
+              description="The category that the channel will be created in."
+              value={data.channel_data?.parent || ""}
+              updateValue={(v) =>
+                updateData({
+                  channel_data: {
+                    ...data.channel_data,
+                    parent: v || undefined,
+                  },
+                })
+              }
+              errors={errors}
+              placeholders
+            />
+          )}
+
+          <BaseInput
+            type="text"
+            field="channel_data.position"
+            title="Position"
+            description="The position for the channel."
+            value={data.channel_data?.position?.toString() || ""}
+            updateValue={(v) =>
+              updateData({
+                channel_data: {
+                  ...data.channel_data,
+                  position: v || undefined,
+                },
+              })
+            }
+            errors={errors}
+            placeholders
+          />
+
+          <div className="space-y-3">
+            <div className="font-medium text-foreground">
+              Permission Overwrites
+            </div>
+
+            {data.channel_data?.permission_overwrites?.map((overwrite, i) => (
+              <Card className="space-y-3 p-3 -mx-1" key={i}>
+                <BaseInput
+                  type="select"
+                  field={`channel_data.permission_overwrites.${i}.type`}
+                  title="Type"
+                  value={overwrite.type?.toString() || "0"}
+                  options={[
+                    {
+                      label: "Role",
+                      value: "0",
+                    },
+                    {
+                      label: "User",
+                      value: "1",
+                    },
+                  ]}
+                  updateValue={(v) =>
+                    updateOverwrite(i, {
+                      type: parseInt(v) || 0,
+                    })
+                  }
+                  errors={errors}
+                />
+                <BaseInput
+                  type="text"
+                  field={`channel_data.permission_overwrites.${i}.id`}
+                  title={overwrite.type === 0 ? "Role" : "User"}
+                  description="Used to identify the input in your flow."
+                  value={overwrite.id || ""}
+                  updateValue={(v) =>
+                    updateOverwrite(i, {
+                      id: v || undefined,
+                    })
+                  }
+                  errors={errors}
+                  placeholders
+                />
+                <BasePermissionInput
+                  field={`channel_data.permission_overwrites.${i}.allow`}
+                  title="Allow"
+                  value={overwrite.allow || ""}
+                  updateValue={(v) =>
+                    updateOverwrite(i, {
+                      allow: v || undefined,
+                    })
+                  }
+                  errors={errors}
+                />
+                <BasePermissionInput
+                  field={`channel_data.permission_overwrites.${i}.deny`}
+                  title="Deny"
+                  value={overwrite.deny || ""}
+                  updateValue={(v) =>
+                    updateOverwrite(i, {
+                      deny: v || undefined,
+                    })
+                  }
+                  errors={errors}
+                />
+              </Card>
+            ))}
+          </div>
+
+          <div className="flex space-x-3">
+            <Button
+              onClick={addOverwrite}
+              disabled={(data.modal_data?.components?.length || 0) >= 5}
+            >
+              Add Overwrite
+            </Button>
+            <Button variant="outline" onClick={clearOverwrites}>
+              Clear Overwrites
+            </Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function ThreadDataInput({ data, updateData, errors }: InputProps) {
+  return (
+    <Dialog>
+      <DialogTrigger asChild>
+        <Button className="w-full">Configure Thread</Button>
+      </DialogTrigger>
+      <DialogContent className="overflow-y-auto max-h-[90dvh] max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>Configure Thread</DialogTitle>
+          <DialogDescription>
+            Configure your thread here! A thread must have a name and can be
+            associated with a message or be independent.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-3">
+          <BaseInput
+            type="text"
+            field="channel_data.parent"
+            title="Parent Channel"
+            description="The parent channel that the thread will be created in."
+            value={data.channel_data?.parent || ""}
+            updateValue={(v) =>
+              updateData({
+                channel_data: {
+                  ...data.channel_data,
+                  parent: v || undefined,
+                },
+              })
+            }
+            errors={errors}
+            placeholders
+          />
+
+          <BaseInput
+            type="text"
+            field="message_target"
+            title="Message Target"
+            description="The message to start the thread from. Leave blank to create an independent thread."
+            value={data.message_target || ""}
+            updateValue={(v) =>
+              updateData({
+                message_target: v || undefined,
+              })
+            }
+            errors={errors}
+            placeholders
+          />
+
+          {!data.message_target && (
+            <BaseInput
+              type="select"
+              field={`channel_data.type`}
+              title="Type"
+              value={data.channel_data?.type?.toString() || "11"}
+              options={[
+                {
+                  label: "Public Thread",
+                  value: "11",
+                },
+                {
+                  label: "Private Thread",
+                  value: "12",
+                },
+                {
+                  label: "Announcement Thread",
+                  value: "10",
+                },
+              ]}
+              updateValue={(v) =>
+                updateData({
+                  channel_data: {
+                    ...data.channel_data,
+                    type: parseInt(v) || undefined,
+                  },
+                })
+              }
+              errors={errors}
+            />
+          )}
+
+          <BaseInput
+            type="text"
+            field="channel_data.name"
+            title="Name"
+            description="The name for the channel."
+            value={data.channel_data?.name || ""}
+            updateValue={(v) =>
+              updateData({
+                channel_data: { ...data.channel_data, name: v || undefined },
+              })
+            }
+            errors={errors}
+            placeholders
+          />
+
+          {(!data.channel_data?.type || data.channel_data.type === 0) && (
+            <BaseCheckbox
+              field="channel_data.invitable"
+              title="Invitable"
+              description="Whether non-moderators can add new members to the thread."
+              value={data.channel_data?.invitable || false}
+              updateValue={(v) =>
+                updateData({
+                  channel_data: {
+                    ...data.channel_data,
+                    invitable: v,
+                  },
+                })
+              }
+              errors={errors}
+            />
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 

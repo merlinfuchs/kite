@@ -36,11 +36,13 @@ type DiscordProvider interface {
 	AddMemberRole(ctx context.Context, guildID discord.GuildID, userID discord.UserID, roleID discord.RoleID, reason api.AuditLogReason) error
 	RemoveMemberRole(ctx context.Context, guildID discord.GuildID, userID discord.UserID, roleID discord.RoleID, reason api.AuditLogReason) error
 	CreateChannel(ctx context.Context, guildID discord.GuildID, data api.CreateChannelData) (*discord.Channel, error)
-	EditChannel(ctx context.Context, channelID discord.ChannelID, data api.ModifyChannelData) (*discord.Channel, error)
-	DeleteChannel(ctx context.Context, channelID discord.ChannelID) error
+	EditChannel(ctx context.Context, channelID discord.ChannelID, data api.ModifyChannelData) error
+	DeleteChannel(ctx context.Context, channelID discord.ChannelID, reason api.AuditLogReason) error
 	CreatePrivateChannel(ctx context.Context, userID discord.UserID) (*discord.Channel, error)
 	StartThreadWithMessage(ctx context.Context, channelID discord.ChannelID, messageID discord.MessageID, data api.StartThreadData) (*discord.Channel, error)
 	StartThreadWithoutMessage(ctx context.Context, channelID discord.ChannelID, data api.StartThreadData) (*discord.Channel, error)
+	AddThreadMember(ctx context.Context, channelID discord.ChannelID, userID discord.UserID) error
+	RemoveThreadMember(ctx context.Context, channelID discord.ChannelID, userID discord.UserID) error
 	CreateRole(ctx context.Context, guildID discord.GuildID, data api.CreateRoleData) (*discord.Role, error)
 	EditRole(ctx context.Context, guildID discord.GuildID, roleID discord.RoleID, data api.ModifyRoleData) (*discord.Role, error)
 	DeleteRole(ctx context.Context, guildID discord.GuildID, roleID discord.RoleID) error
@@ -166,11 +168,11 @@ func (p *MockDiscordProvider) CreateChannel(ctx context.Context, guildID discord
 	return nil, nil
 }
 
-func (p *MockDiscordProvider) EditChannel(ctx context.Context, channelID discord.ChannelID, data api.ModifyChannelData) (*discord.Channel, error) {
-	return nil, nil
+func (p *MockDiscordProvider) EditChannel(ctx context.Context, channelID discord.ChannelID, data api.ModifyChannelData) error {
+	return nil
 }
 
-func (p *MockDiscordProvider) DeleteChannel(ctx context.Context, channelID discord.ChannelID) error {
+func (p *MockDiscordProvider) DeleteChannel(ctx context.Context, channelID discord.ChannelID, reason api.AuditLogReason) error {
 	return nil
 }
 
@@ -184,6 +186,14 @@ func (p *MockDiscordProvider) StartThreadWithMessage(ctx context.Context, channe
 
 func (p *MockDiscordProvider) StartThreadWithoutMessage(ctx context.Context, channelID discord.ChannelID, data api.StartThreadData) (*discord.Channel, error) {
 	return nil, nil
+}
+
+func (p *MockDiscordProvider) AddThreadMember(ctx context.Context, channelID discord.ChannelID, userID discord.UserID) error {
+	return nil
+}
+
+func (p *MockDiscordProvider) RemoveThreadMember(ctx context.Context, channelID discord.ChannelID, userID discord.UserID) error {
+	return nil
 }
 
 func (p *MockDiscordProvider) CreateRole(ctx context.Context, guildID discord.GuildID, data api.CreateRoleData) (*discord.Role, error) {

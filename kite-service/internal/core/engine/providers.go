@@ -318,6 +318,69 @@ func (p *DiscordProvider) CreatePrivateChannel(ctx context.Context, userID disco
 	return channel, nil
 }
 
+func (p *DiscordProvider) CreateChannel(ctx context.Context, guildID discord.GuildID, data api.CreateChannelData) (*discord.Channel, error) {
+	channel, err := p.session.CreateChannel(guildID, data)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create channel: %w", err)
+	}
+
+	return channel, nil
+}
+
+func (p *DiscordProvider) EditChannel(ctx context.Context, channelID discord.ChannelID, data api.ModifyChannelData) error {
+	err := p.session.ModifyChannel(channelID, data)
+	if err != nil {
+		return fmt.Errorf("failed to edit channel: %w", err)
+	}
+
+	return nil
+}
+
+func (p *DiscordProvider) DeleteChannel(ctx context.Context, channelID discord.ChannelID, reason api.AuditLogReason) error {
+	err := p.session.DeleteChannel(channelID, reason)
+	if err != nil {
+		return fmt.Errorf("failed to delete channel: %w", err)
+	}
+
+	return nil
+}
+
+func (p *DiscordProvider) StartThreadWithMessage(ctx context.Context, channelID discord.ChannelID, messageID discord.MessageID, data api.StartThreadData) (*discord.Channel, error) {
+	thread, err := p.session.StartThreadWithMessage(channelID, messageID, data)
+	if err != nil {
+		return nil, fmt.Errorf("failed to start thread with message: %w", err)
+	}
+
+	return thread, nil
+}
+
+func (p *DiscordProvider) StartThreadWithoutMessage(ctx context.Context, channelID discord.ChannelID, data api.StartThreadData) (*discord.Channel, error) {
+	thread, err := p.session.StartThreadWithoutMessage(channelID, data)
+	if err != nil {
+		return nil, fmt.Errorf("failed to start thread without message: %w", err)
+	}
+
+	return thread, nil
+}
+
+func (p *DiscordProvider) AddThreadMember(ctx context.Context, channelID discord.ChannelID, userID discord.UserID) error {
+	err := p.session.AddThreadMember(channelID, userID)
+	if err != nil {
+		return fmt.Errorf("failed to add thread member: %w", err)
+	}
+
+	return nil
+}
+
+func (p *DiscordProvider) RemoveThreadMember(ctx context.Context, channelID discord.ChannelID, userID discord.UserID) error {
+	err := p.session.RemoveThreadMember(channelID, userID)
+	if err != nil {
+		return fmt.Errorf("failed to remove thread member: %w", err)
+	}
+
+	return nil
+}
+
 func (p *DiscordProvider) HasCreatedInteractionResponse(ctx context.Context, interactionID discord.InteractionID) (bool, error) {
 	p.interactionResponseMutex.Lock()
 	defer p.interactionResponseMutex.Unlock()

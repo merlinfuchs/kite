@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"regexp"
 
-	"github.com/diamondburned/arikawa/v3/api"
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/kitecloud/kite/kite-service/pkg/message"
 	"github.com/kitecloud/kite/kite-service/pkg/provider"
@@ -65,6 +64,13 @@ const (
 	FlowNodeTypeActionMemberGet             FlowNodeType = "action_member_get"
 	FlowNodeTypeActionUserGet               FlowNodeType = "action_user_get"
 	FlowNodeTypeActionChannelGet            FlowNodeType = "action_channel_get"
+	FlowNodeTypeActionChannelCreate         FlowNodeType = "action_channel_create"
+	FlowNodeTypeActionChannelEdit           FlowNodeType = "action_channel_edit"
+	FlowNodeTypeActionChannelDelete         FlowNodeType = "action_channel_delete"
+	FlowNodeTypeActionThreadCreate          FlowNodeType = "action_thread_create"
+	FlowNodeTypeActionThreadMemberAdd       FlowNodeType = "action_thread_member_add"
+	FlowNodeTypeActionThreadMemberRemove    FlowNodeType = "action_thread_member_remove"
+	FlowNodeTypeActionForumPostCreate       FlowNodeType = "action_forum_post_create"
 	FlowNodeTypeActionRoleGet               FlowNodeType = "action_role_get"
 	FlowNodeTypeActionGuildGet              FlowNodeType = "action_guild_get"
 	FlowNodeTypeActionMessageGet            FlowNodeType = "action_message_get"
@@ -155,18 +161,18 @@ type FlowNodeData struct {
 	ModalData *ModalData `json:"modal_data,omitempty"`
 
 	// Member Ban, Kick, Timeout, Edit, Get
-	UserTarget                            string                `json:"user_target,omitempty"`
-	MemberBanDeleteMessageDurationSeconds string                `json:"member_ban_delete_message_duration_seconds,omitempty"`
-	MemberTimeoutDurationSeconds          string                `json:"member_timeout_duration_seconds,omitempty"`
-	MemberData                            *api.ModifyMemberData `json:"member_data,omitempty"`
+	UserTarget                            string      `json:"user_target,omitempty"`
+	MemberBanDeleteMessageDurationSeconds string      `json:"member_ban_delete_message_duration_seconds,omitempty"`
+	MemberTimeoutDurationSeconds          string      `json:"member_timeout_duration_seconds,omitempty"`
+	MemberData                            *MemberData `json:"member_data,omitempty"`
 
 	// Channel Create, Edit, Delete, Get
-	ChannelTarget string                 `json:"channel_target,omitempty"`
-	ChannelData   *api.CreateChannelData `json:"channel_data,omitempty"`
+	ChannelTarget string       `json:"channel_target,omitempty"`
+	ChannelData   *ChannelData `json:"channel_data,omitempty"`
 
 	// Role Create, Edit, Delete, Get
-	RoleTarget string              `json:"role_target,omitempty"`
-	RoleData   *api.CreateRoleData `json:"role_data,omitempty"`
+	RoleTarget string    `json:"role_target,omitempty"`
+	RoleData   *RoleData `json:"role_data,omitempty"`
 
 	// Roblox User Get
 	RobloxUserTarget string           `json:"roblox_user_target,omitempty"`
@@ -322,6 +328,40 @@ const (
 	RobloxLookupTypeID   RobloxLookupType = "id"
 	RobloxLookupTypeName RobloxLookupType = "username"
 )
+
+type ChannelData struct {
+	Name                 string                    `json:"name,omitempty"`
+	Type                 int                       `json:"type,omitempty"`
+	Topic                string                    `json:"topic,omitempty"`
+	NSFW                 bool                      `json:"nsfw,omitempty"`
+	ParentID             string                    `json:"parent,omitempty"`
+	Bitrate              string                    `json:"bitrate,omitempty"`
+	UserLimit            string                    `json:"user_limit,omitempty"`
+	Position             string                    `json:"position,omitempty"`
+	PermissionOverwrites []PermissionOverwriteData `json:"permission_overwrites,omitempty"`
+
+	// Thread specific
+	Invitable bool `json:"invitable,omitempty"`
+}
+
+type PermissionOverwriteData struct {
+	ID    string `json:"id,omitempty"`
+	Type  int    `json:"type,omitempty"`
+	Allow string `json:"allow,omitempty"`
+	Deny  string `json:"deny,omitempty"`
+}
+
+type RoleData struct {
+	Name        string `json:"name,omitempty"`
+	Color       int    `json:"color,omitempty"`
+	Hoist       bool   `json:"hoist,omitempty"`
+	Permissions int    `json:"permissions,omitempty"`
+	Position    int    `json:"position,omitempty"`
+}
+
+type MemberData struct {
+	Nick *string `json:"nick,omitempty"`
+}
 
 type EmojiData struct {
 	ID string `json:"id,omitempty"`
