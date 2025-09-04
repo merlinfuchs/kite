@@ -31,6 +31,8 @@ If you want to add a space in argument's name use the underscore (\_).
         - For the Author section, put `{{user.username}}` in the name field and `{{user.avatar_url}}` in the Icon URL field.
 - Exit the message editor.
 
+![Echo Embed Example](./img/echo-embed.png)
+
 ## Acknowledging your command
 :::info
 Discord requires interactions (slash commands, modals & buttons) to compulsorily have a "response" otherwise it shows a red alert on your screend saying "This interaction failed." even if your command works as expected. To prevent this, we use the **Create Response** block.
@@ -39,6 +41,8 @@ Discord requires interactions (slash commands, modals & buttons) to compulsorily
 - Add the **Create Response Message** block after the previous block.
 - In the response field type anything acknowledging that user's command is successful. (for eg. "doneso")
 - Scroll down on the block settings, and turn off the "Public Response" to make it visible only to the user who ran the command.
+
+![Echo Command Flow](./img/echo-flow.png)
 
 ## Save your command
 - Click **Save Changes** at the top of your page.
