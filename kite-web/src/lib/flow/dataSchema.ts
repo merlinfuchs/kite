@@ -459,10 +459,6 @@ export const nodeActionChannelDeleteDataSchema = nodeBaseDataSchema.extend({
 });
 
 export const nodeActionThreadCreateDataSchema = nodeBaseDataSchema.extend({
-  channel_target: z
-    .string()
-    .regex(numericRegex)
-    .or(z.string().regex(placeholderRegex)),
   message_target: z
     .string()
     .regex(numericRegex)
