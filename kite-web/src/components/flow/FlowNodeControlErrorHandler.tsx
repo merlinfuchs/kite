@@ -13,7 +13,7 @@ export default function FlowNodeControlErrorHandler(props: NodeProps) {
       <div className="flex items-center justify-around gap-3">
         <div className="relative">
           <div className="px-2 py-1 shadow-md rounded-b bg-muted relative text-center flex items-center justify-center text-white gap-2">
-            <div className="text-xs truncate">On Error</div>
+            <div className="text-xs truncate">Handle Error</div>
           </div>
 
           <FlowNodeHandle
