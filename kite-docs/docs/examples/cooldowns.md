@@ -9,15 +9,17 @@ Add cooldowns to your commands or event listeners to prevent spam and have more 
 - Create a variable named \"cooldown\" from your [Kite](https://kite.onl/) dashboard - **Stored Variables** tab.
 - Set the variable as scoped.
 
-> [!IMPORTANT]
-> ### Usage of scopes ⚙️
-> 
-> - **`user.id` - for user-specific cooldowns**
->    - _if `x` user invokes the command, it won't affect `y` user._
-> - **`guild.id` - for server-wide cooldowns**
->    - _if `x` user invokes the command, **all the users** in the server will be on cooldown for using the command._
-> - **`0` - for global cooldown**
->    - _if `x` user invokes the command in any server, all the users across all the server the bot is present in would be on cooldown for using the command._
+:::info
+### Usage of scopes ⚙️
+ 
+- **`user.id` - for user-specific cooldowns**
+   - _if `x` user invokes the command, it won't affect `y` user._
+- **`guild.id` - for server-wide cooldowns**
+   - _if `x` user invokes the command, **all the users** in the server will be on cooldown for using the command._
+- **`0` - for global cooldown**
+   - _if `x` user invokes the command in any server, all the users across all the server the bot is present in would be on cooldown for using the command._
+
+:::
 
 ## 📝 - Step 2
 
@@ -45,8 +47,9 @@ Replace 'GET_VARIABLE' with your actual block's name.
 ```go
 {{duration("2m").Seconds()}}
 ```
-> [!NOTE]
-> Replace "2m" with your desired duration. (see below)
+:::note
+Replace "2m" with your desired duration. (see below)
+:::
 
 ### 📌 Correct Usage for `duration` :
 
