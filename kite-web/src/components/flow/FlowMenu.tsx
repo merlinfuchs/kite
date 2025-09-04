@@ -1,23 +1,18 @@
-import FlowNodeEditor from "./FlowNodeEditor";
-import FlowNodeExplorer from "./FlowNodeExplorer";
-import { OnSelectionChangeParams } from "@xyflow/react";
-import { useCallback, useState } from "react";
-import { FlowContextStoreProvider, FlowContextType } from "@/lib/flow/context";
+import { LogEntry } from "@/lib/types/wire.gen";
+import { cn } from "@/lib/utils";
 import {
   BoxIcon,
-  CircleEllipsisIcon,
-  EqualNotIcon,
   GitCompareIcon,
   LucideIcon,
   MessageSquareWarningIcon,
-  RectangleEllipsisIcon,
   TextCursorInputIcon,
 } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
-import { cn } from "@/lib/utils";
-import { LogEntry } from "@/lib/types/wire.gen";
-import LogEntryList from "../app/LogEntryList";
 import FlowLogList from "./FlowLogList";
+import FlowNodeEditor from "./FlowNodeEditor";
+import FlowNodeExplorer from "./FlowNodeExplorer";
+import { useStoreApi } from "@xyflow/react";
 
 type Tab = "action" | "control_flow" | "option" | "logs";
 
@@ -30,6 +25,16 @@ export default function FlowMenu({
 }) {
   const [tab, setTab] = useState<Tab>("action");
 
+  const store = useStoreApi();
+
+  const wrappedSetTab = useCallback(
+    (tab: Tab) => {
+      setTab(tab);
+      store.getState().addSelectedNodes([]);
+    },
+    [store, setTab]
+  );
+
   return (
     <div className="flex flex-none">
       <div className="flex-none flex flex-col justify-between bg-muted/50">
@@ -39,21 +44,21 @@ export default function FlowMenu({
             icon={BoxIcon}
             title="Action Blocks"
             tab={tab}
-            setTab={setTab}
+            setTab={wrappedSetTab}
           />
           <Tab
             id="control_flow"
             icon={GitCompareIcon}
             title="Control Flow Blocks"
             tab={tab}
-            setTab={setTab}
+            setTab={wrappedSetTab}
           />
           <Tab
             id="option"
             icon={TextCursorInputIcon}
             title="Option Blocks"
             tab={tab}
-            setTab={setTab}
+            setTab={wrappedSetTab}
           />
         </div>
         <div className="flex-none flex flex-col items-center gap-1">
@@ -62,7 +67,7 @@ export default function FlowMenu({
             icon={MessageSquareWarningIcon}
             title="Logs"
             tab={tab}
-            setTab={setTab}
+            setTab={wrappedSetTab}
           />
         </div>
       </div>
