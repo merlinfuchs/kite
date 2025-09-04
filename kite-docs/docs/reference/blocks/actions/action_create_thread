@@ -1,0 +1,19 @@
+---
+sidebar_position: 45
+---
+
+# Create Thread
+
+The `Create Thread` block is used to create a thread in a chosen channel.
+
+## Settings
+
+>`Parent Channel` The parent channel that the thread will be created in.
+>
+>`Message Target` The message to start the thread from. Leave blank to create an independent thread.
+>
+>`Type` 
+>
+>`Name` The name for the channel.
+>
+>`Invitable` Whether non-moderators can add new members to the thread.
