@@ -7,7 +7,7 @@ import (
 	"strings"
 )
 
-const maxBodySize = 64 * 1024 // 64KB
+const maxBodySize = 4 * 1024 * 1024 // 4MB
 
 type HTTPResponseValue struct {
 	Status     string            `json:"status"`
