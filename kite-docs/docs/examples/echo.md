@@ -14,7 +14,8 @@ A simple echo command that repeats your texts to get new users started with the 
 - Go to commands section of your Kite dashboard and make a command with the name echo.
 
 ## Adding arguments to your command
-- Now that you've created your command, go to `Options` section of your command builder and select the **Command Arguments** block.
+- Now that you've created your command, go to `Options` section of your command builder and select the **Command Arguments** block.  
+  <EmbedFlowNode type="option_command_argument" />  
 - Connect this block to the little purple dot of your command name.
 - Inside the **Command Arguments** block settings, add these :
         - **Name** - `text`
@@ -43,7 +44,8 @@ If you want to add a space in argument's name use the underscore ( \_ ).
 Discord requires interactions (slash commands, modals & buttons) to compulsorily have a "response" otherwise it shows a red alert on your screend saying "This interaction failed." even if your command works as expected. To prevent this, we use the **Create Response** block.
 :::
 
-- Add the **Create Response Message** block after the previous block.
+- Add the **Create Response Message** block after the previous block.  
+  <EmbedFlowNode type="action_response_create" />  
 - In the response field type anything acknowledging that user's command is successful. (for eg. "doneso")
 - Scroll down on the block settings, and turn off the "Public Response" to make it visible only to the user who ran the command.
 
