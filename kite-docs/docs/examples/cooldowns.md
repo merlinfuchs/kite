@@ -63,7 +63,7 @@ _for eg._
 :::warning
 Days tag - **\"d\" is not accepted**  
 - If you want `x days` cooldown, you'll have to convert it to hours.
- - _for eg._ : 4 days = **96h** , 2d 3h = **51h** , etc.
+  - _for eg._ : 4 days = **96h** , 2d 3h = **51h** , etc.
 
 :::
 ::::
