@@ -1,3 +1,7 @@
+---
+sidebar_position: 2
+---
+
 # Command Cooldowns
 
 Add cooldowns to your commands or event listeners to prevent spam and have more control over your commands.
