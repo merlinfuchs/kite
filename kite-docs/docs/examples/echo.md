@@ -10,10 +10,10 @@ A simple echo command that repeats your texts to get new users started with the 
 
 ![Echo Demo](./img/echo-demo.gif)
 
-## Creating your command 🌟
+## 🌟 Creating your command 
 - Go to commands section of your Kite dashboard and make a command with the name echo.
 
-## Adding arguments to your command
+## 📝 Adding arguments
 - Now that you've created your command, go to `Options` section of your command builder and select the **Command Arguments** block.  
   <EmbedFlowNode type="option_command_argument" />  
 - Connect this block to the little purple dot of your command name.
@@ -28,7 +28,7 @@ Arguments name can only be in small letters and can't contain any special charac
 If you want to add a space in argument's name use the underscore ( \_ ).
 :::
 
-## Sending your message 💬
+## 💬 Sending message 
 - From the actions menu, select the **Create Channel Message** block.  
   <EmbedFlowNode type="action_message_create" />  
 - Set the target channel as `{{channel.id}}`
@@ -39,7 +39,7 @@ If you want to add a space in argument's name use the underscore ( \_ ).
 
 ![Echo Embed Example](./img/echo-embed.png)
 
-## Acknowledging your command ✏️
+## ✏️ Acknowledging your command 
 :::info
 Discord requires interactions (slash commands, modals & buttons) to compulsorily have a "response" otherwise it shows a red alert on your screend saying "This interaction failed." even if your command works as expected. To prevent this, we use the **Create Response** block.
 :::
