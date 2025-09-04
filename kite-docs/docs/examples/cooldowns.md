@@ -84,8 +84,8 @@ At the end of your actual command flow, add the **Set Stored Variable** block
 :::tip
 *If you have multiple commands where you want to have a separate cooldown for each command, you can create command-wise scopes.*
 
-Just add your command name before the actual scope. *for eg.,*
-I've 2 commands `/echo` & `/ping` and I want to add user cooldown to both. In this case I'll use the following scopes:
+Just add your command name before the actual scope. *for eg.,*  
+I've 2 commands `/echo` & `/ping` and I want to add user cooldown to both. In this case I'll use the following scopes:  
    - `echo-{{user.id}}`
    - `ping-{{user.id}}`
 
