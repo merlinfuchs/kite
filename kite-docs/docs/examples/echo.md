@@ -2,7 +2,7 @@
 sidebar_position: 1
 ---
 
-import EmbedFlowNode from "../../../../src/components/EmbedFlowNode";
+import EmbedFlowNode from "../../src/components/EmbedFlowNode";
 
 # Beginner - Echo Command
 
