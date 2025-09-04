@@ -3,6 +3,7 @@ sidebar_position: 1
 ---
 
 # Beginner - Echo Command
+
 A simple echo command that repeats your texts to get new users started with the basic structure and feature of the command builder.
 
 ![Echo Demo](./img/echo-demo.gif)
