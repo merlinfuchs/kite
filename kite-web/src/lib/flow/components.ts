@@ -18,6 +18,8 @@ import FlowNodeControlSleep from "@/components/flow/FlowNodeControlSleep";
 import FlowNodeEntryComponentButton from "@/components/flow/FlowNodeEntryComponentButton";
 import FlowNodeSuspendBase from "@/components/flow/FlowNodeSuspendBase";
 import FlowNodeActionMessage from "@/components/flow/FlowNodeActionMessage";
+import FlowNodeBase from "@/components/flow/FlowNodeBase";
+import FlowNodeControlErrorHandler from "@/components/flow/FlowNodeControlErrorHandler";
 
 export const nodeTypes = {
   entry_command: FlowNodeEntryCommand,
@@ -79,6 +81,7 @@ export const nodeTypes = {
   control_condition_role: FlowNodeConditionRole,
   control_condition_item_role: FlowNodeConditionItem,
   control_condition_item_else: FlowNodeConditionItem,
+  control_error_handler: FlowNodeControlErrorHandler,
   control_loop: FlowNodeControlLoop,
   control_loop_each: FlowNodeControlLoopEach,
   control_loop_end: FlowNodeControlLoopEnd,

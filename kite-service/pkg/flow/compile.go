@@ -60,7 +60,7 @@ func compile(data FlowData, entryType FlowNodeType) (*CompiledFlowNode, error) {
 			continue
 		}
 
-		if !edge.SourceHandle.Valid {
+		if !edge.SourceHandle.Valid || edge.SourceHandle.String == "" || edge.SourceHandle.String == "default" {
 			parent.Children.Default = append(parent.Children.Default, child)
 		} else {
 			if _, ok := parent.Children.Handles[edge.SourceHandle.String]; !ok {

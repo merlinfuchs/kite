@@ -172,7 +172,10 @@ function useNodePlaceholders() {
     const seenResultKeys = new Set<string>();
 
     for (const parent of parents) {
-      if (parent.type?.startsWith("action_")) {
+      if (
+        parent.type?.startsWith("action_") ||
+        parent.type === "control_error_handler"
+      ) {
         let label = parent.data.custom_label;
         if (!label) {
           const data = getNodeValues(parent.type!);

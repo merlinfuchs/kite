@@ -739,6 +739,15 @@ export const nodeTypes: Record<string, NodeValues> = {
     dataFields: [],
     fixed: true,
   },
+  control_error_handler: {
+    color: errorColor,
+    icon: "circle-alert",
+    defaultTitle: "Handle Errors",
+    defaultDescription:
+      "Handle errors that occur in the flow after this block.",
+    dataFields: ["temporary_name", "custom_label"],
+    ownsChildren: true,
+  },
   control_loop: {
     color: controlColor,
     icon: "repeat-2",

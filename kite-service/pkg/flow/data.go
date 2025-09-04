@@ -99,6 +99,7 @@ const (
 	FlowNodeTypeControlConditionRole        FlowNodeType = "control_condition_role"
 	FlowNodeTypeControlConditionItemRole    FlowNodeType = "control_condition_item_role"
 	FlowNodeTypeControlConditionItemElse    FlowNodeType = "control_condition_item_else"
+	FlowNodeTypeControlErrorHandler         FlowNodeType = "control_error_handler"
 	FlowNodeTypeControlLoop                 FlowNodeType = "control_loop"
 	FlowNodeTypeControlLoopEach             FlowNodeType = "control_loop_each"
 	FlowNodeTypeControlLoopEnd              FlowNodeType = "control_loop_end"

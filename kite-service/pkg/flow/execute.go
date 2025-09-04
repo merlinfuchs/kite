@@ -2,6 +2,7 @@ package flow
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -44,13 +45,24 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			return traceError(n, err)
 		}
 
-		return n.ExecuteChildren(ctx)
+		err = n.ExecuteChildren(ctx)
+		if err != nil {
+			createDefaultErrorResponse(ctx, err)
+			return traceError(n, err)
+		}
+
+		return nil
 	case FlowNodeTypeEntryEvent:
 		if !ctx.IsEntry() {
 			return fmt.Errorf("event entry isn't the entry node")
 		}
 
-		return n.ExecuteChildren(ctx)
+		err := n.ExecuteChildren(ctx)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		return nil
 	case FlowNodeTypeActionResponseCreate:
 		if ctx.IsEntry() {
 			return n.resumeFromComponent(ctx)
@@ -260,7 +272,13 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 				return traceError(n, err)
 			}
 
-			return n.ExecuteChildren(ctx)
+			err = n.ExecuteChildren(ctx)
+			if err != nil {
+				createDefaultErrorResponse(ctx, err)
+				return traceError(n, err)
+			}
+
+			return nil
 		}
 
 		interaction := ctx.Data.Interaction()
@@ -1516,6 +1534,14 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 		}
 
 		return n.ExecuteChildren(ctx)
+	case FlowNodeTypeControlErrorHandler:
+		err := n.ExecuteChildren(ctx)
+		if err != nil {
+			ctx.StoreNodeResult(n, thing.NewString(err.Error()))
+			return n.ExecuteChildrenByHandle(ctx, "error")
+		}
+
+		return nil
 	case FlowNodeTypeControlLoop:
 		loopCount, err := ctx.EvalTemplate(n.Data.LoopCount)
 		if err != nil {
@@ -1694,7 +1720,13 @@ func (n *CompiledFlowNode) resumeFromComponent(ctx *FlowContext) error {
 		}
 	}
 
-	return n.ExecuteChildrenByHandle(ctx, fmt.Sprintf("component_%d", compID))
+	err = n.ExecuteChildrenByHandle(ctx, fmt.Sprintf("component_%d", compID))
+	if err != nil {
+		createDefaultErrorResponse(ctx, err)
+		return traceError(n, err)
+	}
+
+	return nil
 }
 
 func (n *CompiledFlowNode) prepareMessageData(ctx *FlowContext) (message.MessageData, error) {
@@ -1783,4 +1815,34 @@ func (n *CompiledFlowNode) prepareMessageSendData(ctx *FlowContext) (api.SendMes
 	})
 
 	return sendData, nil
+}
+
+func createDefaultErrorResponse(fCtx *FlowContext, err error) {
+	interaction := fCtx.Data.Interaction()
+	if interaction == nil {
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(fCtx, time.Second*10)
+	defer cancel()
+
+	errStr := err.Error()
+	if len(errStr) > 1800 {
+		errStr = errStr[:1800]
+	}
+
+	respData := api.InteractionResponseData{
+		Content: option.NewNullableString("An error occurred while executing the flow event: ```" + errStr + "```"),
+		Flags:   discord.EphemeralMessage,
+	}
+
+	hasCreatedResponse, _ := fCtx.Discord.HasCreatedInteractionResponse(ctx, interaction.ID)
+	if hasCreatedResponse {
+		_, _ = fCtx.Discord.CreateInteractionFollowup(ctx, interaction.AppID, interaction.Token, respData)
+	} else {
+		_, _ = fCtx.Discord.CreateInteractionResponse(ctx, interaction.ID, interaction.Token, api.InteractionResponse{
+			Type: api.MessageInteractionWithSource,
+			Data: &respData,
+		})
+	}
 }
