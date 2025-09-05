@@ -109,6 +109,7 @@ export default function AppEventListenerPage() {
   const logsQuery = useLogEntriesQuery(useAppId(), {
     limit: 10,
     eventId: useEventId(),
+    refetchInterval: 10000,
   });
   const logs = useResponseData(logsQuery);
 

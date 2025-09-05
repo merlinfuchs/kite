@@ -1,15 +1,14 @@
 import FlowPage from "@/components/flow/FlowPage";
 import { useCommandUpdateMutation } from "@/lib/api/mutations";
+import { useLogEntriesQuery } from "@/lib/api/queries";
 import { FlowData } from "@/lib/flow/dataSchema";
 import { useCommand, useResponseData } from "@/lib/hooks/api";
-import { useAppId, useCommandId } from "@/lib/hooks/params";
 import { useBeforePageExit } from "@/lib/hooks/exit";
+import { useAppId, useCommandId } from "@/lib/hooks/params";
 import Head from "next/head";
 import { useRouter } from "next/router";
 import { useCallback, useRef, useState } from "react";
 import { toast } from "sonner";
-import { LogEntryListDrawer } from "@/components/app/LogEntryListDrawer";
-import { useLogEntriesQuery } from "@/lib/api/queries";
 
 export default function AppCommandPage() {
   const ignoreChange = useRef(false);
@@ -105,6 +104,7 @@ export default function AppCommandPage() {
   const logsQuery = useLogEntriesQuery(useAppId(), {
     limit: 10,
     commandId: useCommandId(),
+    refetchInterval: 10000,
   });
   const logs = useResponseData(logsQuery);
 

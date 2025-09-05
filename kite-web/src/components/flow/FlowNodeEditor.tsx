@@ -66,6 +66,7 @@ import { Textarea } from "../ui/textarea";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
 import FlowPlaceholderExplorer from "./FlowPlaceholderExplorer";
 import env from "@/lib/env/client";
+import { ScrollArea } from "../ui/scroll-area";
 
 interface Props {
   nodeId: string;
@@ -243,83 +244,89 @@ export default function FlowNodeEditor({ nodeId }: Props) {
   const docsPage = nodeTypeDocsPage(node.type!);
 
   return (
-    <div className="absolute top-0 left-0 bg-background w-96 h-full p-5 flex flex-col overflow-y-auto">
-      <div className="flex-none">
-        <div className="flex items-start justify-between mb-5">
-          <div className="text-xl font-bold text-foreground">
-            Block Settings
-          </div>
-          <XIcon
-            className="h-6 w-6 text-muted-foreground hover:text-foreground cursor-pointer"
-            onClick={close}
-          />
-        </div>
-        <div className="mb-5">
-          <div className="flex items-center gap-1.5">
-            <div className="text-lg font-bold text-foreground mb-1">
-              {values.defaultTitle}
-            </div>
-            {docsPage && (
-              <Link href={docsPage} target="_blank">
-                <HelpCircleIcon className="h-5 w-5 text-muted-foreground hover:text-foreground" />
-              </Link>
-            )}
-          </div>
-          <div className="text-muted-foreground mb-3">
-            {values.defaultDescription}
-          </div>
-          <div className="flex gap-2 flex-wrap">
-            <div className="bg-muted rounded px-2 py-1 text-xs">{nodeId}</div>
-            {creditsCost && (
-              <div className="bg-muted rounded px-2 py-1 text-xs flex gap-1">
-                {creditsCost}
-                <div>credit{creditsCost === 1 ? "" : "s"}</div>
+    <div className="absolute top-0 left-0 bg-background w-96 h-full flex flex-col">
+      <ScrollArea>
+        <div className="p-5">
+          <div className="flex-none">
+            <div className="flex items-start justify-between mb-5">
+              <div className="text-xl font-bold text-foreground">
+                Block Settings
               </div>
+              <XIcon
+                className="h-6 w-6 text-muted-foreground hover:text-foreground cursor-pointer"
+                onClick={close}
+              />
+            </div>
+            <div className="mb-5">
+              <div className="flex items-center gap-1.5">
+                <div className="text-lg font-bold text-foreground mb-1">
+                  {values.defaultTitle}
+                </div>
+                {docsPage && (
+                  <Link href={docsPage} target="_blank">
+                    <HelpCircleIcon className="h-5 w-5 text-muted-foreground hover:text-foreground" />
+                  </Link>
+                )}
+              </div>
+              <div className="text-muted-foreground mb-3">
+                {values.defaultDescription}
+              </div>
+              <div className="flex gap-2 flex-wrap">
+                <div className="bg-muted rounded px-2 py-1 text-xs">
+                  {nodeId}
+                </div>
+                {creditsCost && (
+                  <div className="bg-muted rounded px-2 py-1 text-xs flex gap-1">
+                    {creditsCost}
+                    <div>credit{creditsCost === 1 ? "" : "s"}</div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+          <div className="space-y-3 flex-auto">
+            {values.dataFields.map((field) => {
+              const Input = intputs[field];
+              if (!Input) return null;
+
+              return (
+                <Input
+                  key={field}
+                  id={nodeId}
+                  type={node.type}
+                  data={data}
+                  updateData={updateData}
+                  errors={errors}
+                />
+              );
+            })}
+          </div>
+          <div className="flex-none space-y-3 mt-5">
+            {!values.fixed && (
+              <>
+                <Button
+                  variant="destructive"
+                  onClick={deleteNode}
+                  className="w-full flex gap-2"
+                >
+                  <TrashIcon className="h-5 w-5" />
+                  <div>Delete Block</div>
+                </Button>
+                {!nodeValues.ownsChildren && (
+                  <Button
+                    variant="secondary"
+                    onClick={duplicateNode}
+                    className="w-full flex gap-2"
+                  >
+                    <CopyIcon className="h-5 w-5" />
+                    <div>Duplicate Block</div>
+                  </Button>
+                )}
+              </>
             )}
           </div>
         </div>
-      </div>
-      <div className="space-y-3 flex-auto">
-        {values.dataFields.map((field) => {
-          const Input = intputs[field];
-          if (!Input) return null;
-
-          return (
-            <Input
-              key={field}
-              id={nodeId}
-              type={node.type}
-              data={data}
-              updateData={updateData}
-              errors={errors}
-            />
-          );
-        })}
-      </div>
-      <div className="flex-none space-y-3 mt-5">
-        {!values.fixed && (
-          <>
-            <Button
-              variant="destructive"
-              onClick={deleteNode}
-              className="w-full flex gap-2"
-            >
-              <TrashIcon className="h-5 w-5" />
-              <div>Delete Block</div>
-            </Button>
-            {!nodeValues.ownsChildren && (
-              <Button
-                variant="secondary"
-                onClick={duplicateNode}
-                className="w-full flex gap-2"
-              >
-                <CopyIcon className="h-5 w-5" />
-                <div>Duplicate Block</div>
-              </Button>
-            )}
-          </>
-        )}
-      </div>
+      </ScrollArea>
     </div>
   );
 }
