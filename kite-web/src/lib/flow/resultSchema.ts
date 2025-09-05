@@ -69,6 +69,14 @@ export const nodeActionGuildGetResultSchema = guildResultSchema;
 
 export const nodeActionRoleGetResultSchema = roleResultSchema;
 
+export const nodeActionChannelCreateResultSchema = channelResultSchema;
+
+export const nodeActionChannelEditResultSchema = channelResultSchema;
+
+export const nodeActionThreadCreateResultSchema = channelResultSchema;
+
+export const nodeActionForumPostCreateResultSchema = channelResultSchema;
+
 export const nodeActionRobloxUserGetResultSchema = z.object({
   description: z.string().describe("The description of the Roblox user"),
   created: z

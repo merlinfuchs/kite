@@ -59,7 +59,11 @@ import {
   nodeSuspendResponseModalDataSchema,
 } from "./dataSchema";
 import {
+  nodeActionChannelCreateResultSchema,
   nodeActionChannelGetResultSchema,
+  nodeActionChannelEditResultSchema,
+  nodeActionThreadCreateResultSchema,
+  nodeActionForumPostCreateResultSchema,
   nodeActionGuildGetResultSchema,
   nodeActionMemberGetResultSchema,
   nodeActionMessageCreateResultSchema,
@@ -396,6 +400,7 @@ export const nodeTypes: Record<string, NodeValues> = {
     defaultTitle: "Create channel",
     defaultDescription: "Create a channel",
     dataSchema: nodeActionChannelCreateDataSchema,
+    resultSchema: nodeActionChannelCreateResultSchema,
     dataFields: [
       "guild_target",
       "channel_data",
@@ -403,6 +408,7 @@ export const nodeTypes: Record<string, NodeValues> = {
       "temporary_name",
       "custom_label",
     ],
+    creditsCost: 1,
   },
   action_channel_edit: {
     color: actionColor,
@@ -410,6 +416,7 @@ export const nodeTypes: Record<string, NodeValues> = {
     defaultTitle: "Edit channel",
     defaultDescription: "Edit a channel or thread",
     dataSchema: nodeActionChannelEditDataSchema,
+    resultSchema: nodeActionChannelEditResultSchema,
     dataFields: [
       "channel_target",
       "channel_data",
@@ -417,6 +424,7 @@ export const nodeTypes: Record<string, NodeValues> = {
       "temporary_name",
       "custom_label",
     ],
+    creditsCost: 1,
   },
   action_channel_delete: {
     color: actionColor,
@@ -425,6 +433,7 @@ export const nodeTypes: Record<string, NodeValues> = {
     defaultDescription: "Delete a channel or thread ",
     dataSchema: nodeActionChannelDeleteDataSchema,
     dataFields: ["channel_target", "audit_log_reason", "custom_label"],
+    creditsCost: 1,
   },
   action_thread_create: {
     color: actionColor,
@@ -432,12 +441,14 @@ export const nodeTypes: Record<string, NodeValues> = {
     defaultTitle: "Create thread",
     defaultDescription: "Create a thread",
     dataSchema: nodeActionThreadCreateDataSchema,
+    resultSchema: nodeActionThreadCreateResultSchema,
     dataFields: [
       "thread_data",
       "audit_log_reason",
       "temporary_name",
       "custom_label",
     ],
+    creditsCost: 1,
   },
   action_forum_post_create: {
     color: actionColor,
@@ -445,6 +456,7 @@ export const nodeTypes: Record<string, NodeValues> = {
     defaultTitle: "Create forum post",
     defaultDescription: "Create a forum post",
     dataSchema: nodeActionForumPostCreateDataSchema,
+    resultSchema: nodeActionForumPostCreateResultSchema,
     dataFields: [
       "channel_target",
       "channel_data",
@@ -452,6 +464,7 @@ export const nodeTypes: Record<string, NodeValues> = {
       "temporary_name",
       "custom_label",
     ],
+    creditsCost: 1,
   },
 
   action_thread_member_add: {
@@ -466,6 +479,7 @@ export const nodeTypes: Record<string, NodeValues> = {
       "audit_log_reason",
       "custom_label",
     ],
+    creditsCost: 1,
   },
   action_thread_member_remove: {
     color: actionColor,
@@ -479,6 +493,7 @@ export const nodeTypes: Record<string, NodeValues> = {
       "audit_log_reason",
       "custom_label",
     ],
+    creditsCost: 1,
   },
   action_role_get: {
     color: actionColor,
