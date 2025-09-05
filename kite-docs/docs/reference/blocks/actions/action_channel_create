@@ -37,7 +37,8 @@ You can choose different types of channels including:
 >
 >`Position` The position for the channel.
 
-<NodeInfoExplorer type="action_channel_create" />
 
 ## Permission Overwrites
 Here you can choose the permissions for the channel.
+
+<NodeInfoExplorer type="action_channel_create" />
