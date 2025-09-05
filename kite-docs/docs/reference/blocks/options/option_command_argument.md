@@ -37,7 +37,7 @@ Here you can choose what kind of option you want to use.
 >
 > `Attatchment`: Allows the user to attatch a file.
 
-## Choices
+### Choices
 Choices allow the user to select a value from a predefined set of options.
 
 ## Output
