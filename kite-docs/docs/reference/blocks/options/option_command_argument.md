@@ -47,8 +47,8 @@ To use the result of your option later in your flow you will use the variable
 
 :::tip
 
-<NodeInfoExplorer type="option_command_argument" />
 `ARGNAME` should be replaced with the name of your chosen argument.
 
 :::
 
+<NodeInfoExplorer type="option_command_argument" />
