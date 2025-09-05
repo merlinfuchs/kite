@@ -29,8 +29,8 @@ SELECT * FROM logs WHERE app_id = $1 AND message_id = $2 AND (sqlc.narg(before_i
 
 -- name: GetLogSummary :one
 SELECT COUNT(*) AS total_entries,
-       SUM(CASE WHEN level = 'error' THEN 1 ELSE 0 END) AS total_errors,
-       SUM(CASE WHEN level = 'warn' THEN 1 ELSE 0 END) AS total_warnings,
-       SUM(CASE WHEN level = 'info' THEN 1 ELSE 0 END) AS total_infos,
-       SUM(CASE WHEN level = 'debug' THEN 1 ELSE 0 END) AS total_debugs
+       COALESCE(SUM(CASE WHEN level = 'error' THEN 1 ELSE 0 END), 0) AS total_errors,
+       COALESCE(SUM(CASE WHEN level = 'warn' THEN 1 ELSE 0 END), 0) AS total_warnings,
+       COALESCE(SUM(CASE WHEN level = 'info' THEN 1 ELSE 0 END), 0) AS total_infos,
+       COALESCE(SUM(CASE WHEN level = 'debug' THEN 1 ELSE 0 END), 0) AS total_debugs
 FROM logs WHERE app_id = @app_id AND created_at >= @start_at AND created_at < @end_at;

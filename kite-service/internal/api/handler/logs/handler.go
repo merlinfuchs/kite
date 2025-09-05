@@ -24,7 +24,7 @@ func NewLogHandler(logStore store.LogStore) *LogHandler {
 func (h *LogHandler) HandleLogSummaryGet(c *handler.Context) (*wire.LogSummaryGetResponse, error) {
 	entries, err := h.logStore.LogSummary(c.Context(), c.App.ID, time.Now().UTC().Add(-time.Hour*24), time.Now().UTC())
 	if err != nil {
-		return nil, fmt.Errorf("failed to get log entries: %w", err)
+		return nil, fmt.Errorf("failed to get log summary: %w", err)
 	}
 
 	return wire.LogSummaryToWire(entries), nil
