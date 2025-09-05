@@ -7,9 +7,9 @@ import NodeInfoExplorer from "../../../../src/components/NodeInfoExplorer";
 
 # Command Argument
 
-The `Command Argument` block allows you to define arguments for your slash commands. You can specify the argument name, description, and type to create interactive command interfaces.
-
 <EmbedFlowNode type="option_command_argument" />
+
+The `Command Argument` block allows you to define arguments for your slash commands. You can specify the argument name, description, and type to create interactive command interfaces.
 
 ## Fields
 
@@ -47,6 +47,7 @@ To use the result of your option later in your flow you will use the variable
 
 :::tip
 
+<NodeInfoExplorer type="option_command_argument" />
 `ARGNAME` should be replaced with the name of your chosen argument.
 
 :::
