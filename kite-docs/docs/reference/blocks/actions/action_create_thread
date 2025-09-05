@@ -1,8 +1,13 @@
 ---
-sidebar_position: 45
+sidebar_position: 26
 ---
 
+import EmbedFlowNode from "../../../../src/components/EmbedFlowNode";
+import NodeInfoExplorer from "../../../../src/components/NodeInfoExplorer";
+
 # Create Thread
+
+<EmbedFlowNode type="action_thread_create" />
 
 The `Create Thread` block is used to create a thread in a chosen channel.
 
@@ -17,3 +22,5 @@ The `Create Thread` block is used to create a thread in a chosen channel.
 >`Name` The name for the channel.
 >
 >`Invitable` Whether non-moderators can add new members to the thread.
+
+<NodeInfoExplorer type="action_thread_create" />
