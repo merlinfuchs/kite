@@ -4,27 +4,28 @@ import { ReactFlowProvider, useReactFlow } from "@xyflow/react";
 import { useCallback } from "react";
 import Flow from "./Flow";
 import { FlowContextType } from "@/lib/flow/context";
+import { LogEntry } from "@/lib/types/wire.gen";
 
 interface Props {
   flowData: FlowData;
+  logs?: LogEntry[];
   context: FlowContextType;
   hasUnsavedChanges: boolean;
   onChange: () => void;
   isSaving: boolean;
   onSave: (data: FlowData) => void;
   onExit: () => void;
-  onLogsView?: () => void;
 }
 
 function InnerFlowPage({
   flowData,
+  logs,
   context,
   hasUnsavedChanges,
   onChange,
   isSaving,
   onSave,
   onExit,
-  onLogsView,
 }: Props) {
   const { getNodes, getEdges } = useReactFlow<NodeType>();
 
@@ -43,10 +44,14 @@ function InnerFlowPage({
           isSaving={isSaving}
           onSave={save}
           onExit={onExit}
-          onLogsView={onLogsView}
         />
       </div>
-      <Flow flowData={flowData} context={context} onChange={onChange} />
+      <Flow
+        flowData={flowData}
+        logs={logs}
+        context={context}
+        onChange={onChange}
+      />
     </div>
   );
 }
