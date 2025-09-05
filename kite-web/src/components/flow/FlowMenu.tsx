@@ -104,7 +104,7 @@ function Tab({
           className={cn(
             "p-3 cursor-pointer",
             tab === id
-              ? "text-foreground bg-background/50"
+              ? "text-foreground bg-background/50 border-l-[3px] border-primary"
               : "text-muted-foreground hover:text-foreground hover:bg-background/20"
           )}
           onClick={() => setTab(id)}
