@@ -9,8 +9,8 @@ strict_cookies = true
 public_base_url = "http://localhost:3000"
 
 [user_limits]
+max_apps_per_user = 10
 max_asset_size = 8_000_000
-credits_per_month = 100_000
 
 [engine]
 max_stack_depth = 100
