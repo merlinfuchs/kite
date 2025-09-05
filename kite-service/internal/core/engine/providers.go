@@ -655,7 +655,9 @@ func NewResumePointProvider(
 }
 
 func (p *ResumePointProvider) CreateResumePoint(ctx context.Context, s flow.ResumePoint) (flow.ResumePoint, error) {
-	s.ID = util.UniqueID()
+	if s.ID == "" {
+		s.ID = util.UniqueID()
+	}
 
 	var expiresAt null.Time
 	if s.Type == flow.ResumePointTypeModal {
