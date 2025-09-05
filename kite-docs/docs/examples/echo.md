@@ -54,6 +54,7 @@ Discord requires interactions (slash commands, modals & buttons) to compulsorily
 ## 💌 Save your command
 - Click **Save Changes** at the top of your page.
 - Voilà! You've created your first command.
+>  It can take up to a minute for the changes to be deployed. This is indicated by the orange circle in the command list. It's advisable to wait until the orange circle changes to a green checkmark.
 - Refresh your Discord client and run the command in your server.
 
 :::tip 
