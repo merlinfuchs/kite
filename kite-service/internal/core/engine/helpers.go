@@ -143,15 +143,6 @@ func (s Env) executeFlowEvent(
 
 	err := node.Execute(fCtx)
 	if err != nil {
-		slog.Error(
-			"Failed to execute flow event",
-			slog.String("app_id", appID),
-			slog.String("command_id", links.CommandID.String),
-			slog.String("message_id", links.MessageID.String),
-			slog.String("event_listener_id", links.EventListenerID.String),
-			slog.String("error", err.Error()),
-		)
-
 		s.createLogEntry(
 			appID,
 			model.LogLevelError,
