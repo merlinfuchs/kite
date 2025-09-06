@@ -1,10 +1,11 @@
 import { useFlowContext } from "@/lib/flow/context";
-import { NodeValues, createNode, nodeTypes } from "@/lib/flow/nodes";
+import { NodeValues, createNode, getNodeValues } from "@/lib/flow/nodes";
 import { useReactFlow } from "@xyflow/react";
-import clsx from "clsx";
+import { SearchIcon } from "lucide-react";
 import { DragEvent, useMemo, useState } from "react";
-import { ScrollArea } from "../ui/scroll-area";
 import DynamicIcon from "../icons/DynamicIcon";
+import { Input } from "../ui/input";
+import { ScrollArea } from "../ui/scroll-area";
 
 const nodeCategories = {
   option: [
@@ -162,14 +163,38 @@ export default function FlowNodeExplorer({
 }) {
   const contextType = useFlowContext((c) => c.type);
 
-  const sections = useMemo(() => {
-    const sections = nodeCategories[category];
-    if (!sections) return [];
+  const [search, setSearch] = useState("");
 
-    return sections.filter(
-      (s) => !s.contextTypes || s.contextTypes.includes(contextType)
-    );
-  }, [category, contextType]);
+  const sections = useMemo(() => {
+    return nodeCategories[category].map((s) => ({
+      ...s,
+      nodes: s.nodeTypes.map((t) => {
+        const nodeValues = getNodeValues(t);
+        return {
+          values: nodeValues,
+          type: t,
+        };
+      }),
+    }));
+  }, [category]);
+
+  const filteredSections = useMemo(() => {
+    const normalizedSearch = search.toLowerCase().trim();
+    return sections
+      .map((s) => ({
+        ...s,
+        nodes: s.nodes.filter(
+          (n) =>
+            n.values.defaultTitle.toLowerCase().includes(normalizedSearch) ||
+            n.values.defaultDescription.toLowerCase().includes(normalizedSearch)
+        ),
+      }))
+      .filter(
+        (s) =>
+          s.nodes.length > 0 &&
+          (!s.contextTypes || s.contextTypes.includes(contextType))
+      );
+  }, [category, contextType, search]);
 
   return (
     <div className="w-full h-full flex flex-col">
@@ -182,27 +207,36 @@ export default function FlowNodeExplorer({
             : "Option"}{" "}
           Blocks
         </div>
-        <div className="text-muted-foreground">
+        <div className="text-muted-foreground mb-5">
           {category === "action"
             ? "With Action Blocks you can perform actions with your app."
             : category === "control_flow"
             ? "With Control Flow Blocks you define how your app behaves."
             : "With Option Blocks you add option to other blocks."}
         </div>
+        <div className="relative">
+          <Input
+            placeholder="Search ..."
+            className="pl-10"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+          <SearchIcon className="absolute size-5 left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+        </div>
       </div>
       <ScrollArea className="flex-auto mr-1">
         <div className="space-y-3 pl-3 pr-1 pb-5">
-          {sections.map((section, i) => (
+          {filteredSections.map((section, i) => (
             <div key={i}>
               <div className="text-foreground font-medium mb-2 px-2">
                 {section.title}
               </div>
               <div className="space-y-2">
-                {section.nodeTypes.map((type) => (
+                {section.nodes.map((node) => (
                   <AvailableNode
-                    key={type}
-                    type={type}
-                    values={nodeTypes[type]}
+                    key={node.type}
+                    type={node.type}
+                    values={node.values}
                   />
                 ))}
               </div>
@@ -210,64 +244,6 @@ export default function FlowNodeExplorer({
           ))}
         </div>
       </ScrollArea>
-    </div>
-  );
-}
-
-function NodeCategories({
-  category,
-  setCategory,
-}: {
-  category: NodeCategory;
-  setCategory: (tab: NodeCategory) => void;
-}) {
-  return (
-    <div className="flex space-x-3 text-lg mb-3 px-5 justify-between text-muted-foreground border-b-2 border-dark-5">
-      <div onClick={() => setCategory("action")} className="cursor-pointer">
-        <div
-          className={clsx(
-            "pb-2 px-3 hover:text-foreground",
-            category === "action" && "text-foreground"
-          )}
-        >
-          Actions
-        </div>
-        <div
-          className={clsx("h-1 rounde", category === "action" && "bg-primary")}
-        ></div>
-      </div>
-      <div
-        onClick={() => setCategory("control_flow")}
-        className="cursor-pointer"
-      >
-        <div
-          className={clsx(
-            "pb-2 px-3 hover:text-foreground",
-            category === "control_flow" && "text-foreground"
-          )}
-        >
-          Control Flow
-        </div>
-        <div
-          className={clsx(
-            "h-1 rounde",
-            category === "control_flow" && "bg-primary"
-          )}
-        ></div>
-      </div>
-      <div onClick={() => setCategory("option")} className="cursor-pointer">
-        <div
-          className={clsx(
-            "pb-2 px-3 hover:text-foreground",
-            category === "option" && "text-foreground"
-          )}
-        >
-          Options
-        </div>
-        <div
-          className={clsx("h-1 rounde", category === "option" && "bg-primary")}
-        ></div>
-      </div>
     </div>
   );
 }
