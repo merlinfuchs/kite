@@ -6,7 +6,7 @@ import EmbedFlowNode from "../../../../src/components/EmbedFlowNode";
 import NodeInfoExplorer from "../../../../src/components/NodeInfoExplorer";
 
 
-# Create channel.
+# Create channel
 
 <EmbedFlowNode type="action_channel_create" />
 
