@@ -47,7 +47,13 @@ func NewAuthHandler(config AuthHandlerConfig, userStore store.UserStore, session
 func (h *AuthHandler) HandleAuthLogin(c *handler.Context) error {
 	state := h.setOauthStateCookie(c)
 	h.setOauthRedirectCookie(c)
-	c.Redirect(h.oauth2Config.AuthCodeURL(state), http.StatusTemporaryRedirect)
+	c.Redirect(
+		h.oauth2Config.AuthCodeURL(
+			state,
+			oauth2.SetAuthURLParam("prompt", "none"),
+		),
+		http.StatusTemporaryRedirect,
+	)
 	return nil
 }
 
