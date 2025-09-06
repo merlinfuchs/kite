@@ -1,9 +1,9 @@
-import React, { DragEvent, useCallback } from "react";
 import {
   addEdge,
   Background,
   BackgroundVariant,
   Connection,
+  ControlButton,
   Controls,
   Edge,
   EdgeChange,
@@ -15,12 +15,15 @@ import {
   useNodesState,
   useReactFlow,
 } from "@xyflow/react";
+import { DragEvent, useCallback } from "react";
 
-import "@xyflow/react/dist/base.css";
-import { useHookedTheme } from "@/lib/hooks/theme";
-import { FlowData } from "@/lib/flow/dataSchema";
-import { createNode, getNodeValues } from "@/lib/flow/nodes";
 import { edgeTypes, nodeTypes } from "@/lib/flow/components";
+import { FlowData } from "@/lib/flow/dataSchema";
+import { getLayoutedElements } from "@/lib/flow/layout";
+import { createNode, getNodeValues } from "@/lib/flow/nodes";
+import { useHookedTheme } from "@/lib/hooks/theme";
+import "@xyflow/react/dist/base.css";
+import { ListTreeIcon } from "lucide-react";
 
 interface Props {
   initialData?: FlowData;
@@ -42,7 +45,7 @@ export default function FlowEditor({
   const [edges, setEdges, onEdgesChange] = useEdgesState(
     initialData?.edges || []
   );
-  const { getEdge, getNode, screenToFlowPosition } = useReactFlow();
+  const { getEdge, getNode, screenToFlowPosition, fitView } = useReactFlow();
 
   const onConnect = useCallback(
     (con: Connection) => setEdges((eds) => addEdge(con, eds)),
@@ -108,6 +111,17 @@ export default function FlowEditor({
     },
     [edges, setEdges, setNodes]
   );
+
+  const format = useCallback(() => {
+    const formattedNodes = getLayoutedElements(nodes, edges, {
+      direction: "TB",
+    });
+
+    setNodes(formattedNodes.nodes);
+    setTimeout(() => {
+      fitView();
+    }, 50);
+  }, [nodes, edges, setNodes, fitView]);
 
   const onDragOver = useCallback((e: DragEvent) => {
     e.preventDefault();
@@ -190,7 +204,15 @@ export default function FlowEditor({
       className="!bg-background flex-auto"
       fitView
     >
-      <Controls showInteractive={false} />
+      <Controls
+        showInteractive={false}
+        position="bottom-right"
+        className="scale-110"
+      >
+        <ControlButton onClick={format}>
+          <ListTreeIcon className="size-5" />
+        </ControlButton>
+      </Controls>
       <Background
         variant={BackgroundVariant.Dots}
         gap={18}

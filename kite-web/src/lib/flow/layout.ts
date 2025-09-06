@@ -7,7 +7,11 @@ export const getLayoutedElements = (
   options: { direction: "TB" | "LR" }
 ) => {
   const g = new Dagre.graphlib.Graph().setDefaultEdgeLabel(() => ({}));
-  g.setGraph({ rankdir: options.direction });
+  g.setGraph({
+    rankdir: options.direction,
+    nodesep: 100, // Horizontal spacing between nodes on the same rank
+    ranksep: 100, // Vertical spacing between ranks (in TB direction)
+  });
 
   edges.forEach((edge) => g.setEdge(edge.source, edge.target));
   nodes.forEach((node) =>
