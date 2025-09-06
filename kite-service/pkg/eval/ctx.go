@@ -522,6 +522,7 @@ type HTTPResponseEnv struct {
 	Status     string                 `expr:"status" json:"status"`
 	StatusCode int                    `expr:"status_code" json:"status_code"`
 	BodyFunc   func() (string, error) `expr:"body" json:"-"`
+	DataFunc   func() (any, error)    `expr:"data" json:"-"`
 }
 
 func NewHTTPResponseEnv(resp thing.HTTPResponseValue) *HTTPResponseEnv {
@@ -532,6 +533,13 @@ func NewHTTPResponseEnv(resp thing.HTTPResponseValue) *HTTPResponseEnv {
 		StatusCode: resp.StatusCode,
 		BodyFunc: func() (string, error) {
 			return string(resp.Body), nil
+		},
+		DataFunc: func() (any, error) {
+			var v any
+			if err := json.Unmarshal(resp.Body, &v); err != nil {
+				return nil, fmt.Errorf("failed to unmarshal response body: %w", err)
+			}
+			return v, nil
 		},
 	}
 

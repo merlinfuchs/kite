@@ -99,5 +99,5 @@ This will return the result of the expression.
 This will return the value of the `somefield` field in the JSON response of a HTTP request block with the id `owlspush`.
 
 ```python
-{{ fromJSON(result('owlspush').body()).somefield }}
+{{ result('owlspush').data().somefield }}
 ```
