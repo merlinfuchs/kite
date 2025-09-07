@@ -141,7 +141,7 @@ func (s Env) executeFlowEvent(
 	fCtx := s.flowContext(ctx, appID, session, event, links, state)
 	defer fCtx.Cancel()
 
-	shouldExecute, err := node.FilterEvents(fCtx)
+	shouldExecute, err := node.FilterEvent(fCtx)
 	if err != nil {
 		s.createLogEntry(
 			appID,

@@ -427,7 +427,7 @@ func (n *CompiledFlowNode) EventListenerType() string {
 	return n.Data.EventType
 }
 
-func (n *CompiledFlowNode) FilterEvents(ctx *FlowContext) (bool, error) {
+func (n *CompiledFlowNode) FilterEvent(ctx *FlowContext) (bool, error) {
 	if len(n.Parents.Default) == 0 {
 		return true, nil
 	}
