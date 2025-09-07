@@ -95,6 +95,9 @@ const intputs: Record<string, any> = {
   command_integrations: CommandIntegrationsInput,
   command_permissions: CommandPermissionsInput,
   event_type: EventTypeInput,
+  event_filter_target: EventFilterTargetInput,
+  event_filter_mode: EventFilterModeInput,
+  event_filter_value: EventFilterValueInput,
   message_data: MessageDataInput,
   message_template_id: MessageTemplateInput,
   message_target: MessageTargetInput,
@@ -692,6 +695,65 @@ function EventTypeInput({ data, updateData, errors }: InputProps) {
       ]}
       value={data.event_type || ""}
       updateValue={(v) => updateData({ event_type: v || undefined })}
+      errors={errors}
+    />
+  );
+}
+
+function EventFilterTargetInput({ data, updateData, errors }: InputProps) {
+  return (
+    <BaseInput
+      type="select"
+      field="event_filter_target"
+      title="Filter Target"
+      options={[
+        { value: "message_content", label: "Message Content" },
+        { value: "user_id", label: "User ID" },
+        { value: "guild_id", label: "Guild ID" },
+        { value: "channel_id", label: "Channel ID" },
+      ]}
+      value={data.event_filter_target || ""}
+      updateValue={(v) =>
+        updateData({
+          event_filter_target: v || undefined,
+        })
+      }
+      errors={errors}
+    />
+  );
+}
+
+function EventFilterModeInput({ data, updateData, errors }: InputProps) {
+  return (
+    <BaseInput
+      type="select"
+      field="event_filter_mode"
+      title="Filter Mode"
+      options={[
+        { value: "equal", label: "Equal" },
+        { value: "not_equal", label: "Not Equal" },
+        { value: "contains", label: "Contains" },
+        { value: "starts_with", label: "Starts With" },
+        { value: "ends_with", label: "Ends With" },
+      ]}
+      value={data.event_filter_mode || ""}
+      updateValue={(v) => updateData({ event_filter_mode: v || undefined })}
+      errors={errors}
+    />
+  );
+}
+
+function EventFilterValueInput({ data, updateData, errors }: InputProps) {
+  return (
+    <BaseInput
+      field="event_filter_value"
+      title="Filter Value"
+      value={data.event_filter_value || ""}
+      updateValue={(v) =>
+        updateData({
+          event_filter_value: v || undefined,
+        })
+      }
       errors={errors}
     />
   );
@@ -2147,6 +2209,8 @@ function ConditionItemCompareModeInput({
         { value: "greater_than_or_equal", label: "Greater Than or Equal" },
         { value: "less_than_or_equal", label: "Less Than or Equal" },
         { value: "contains", label: "Contains" },
+        { value: "starts_with", label: "Starts With" },
+        { value: "ends_with", label: "Ends With" },
       ]}
       value={data.condition_item_mode || ""}
       updateValue={(v) => updateData({ condition_item_mode: v || undefined })}

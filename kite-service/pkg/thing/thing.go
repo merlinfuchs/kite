@@ -645,6 +645,14 @@ func (w Thing) Contains(other *Thing) bool {
 	return strings.Contains(w.String(), other.String())
 }
 
+func (w Thing) StartsWith(other *Thing) bool {
+	return strings.HasPrefix(w.String(), other.String())
+}
+
+func (w Thing) EndsWith(other *Thing) bool {
+	return strings.HasSuffix(w.String(), other.String())
+}
+
 func (w Thing) IsEmpty() bool {
 	return w.String() == "" || w.String() == "0"
 }

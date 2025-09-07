@@ -844,7 +844,11 @@ export const nodeTypes: Record<string, NodeValues> = {
     defaultTitle: "Event Filter",
     defaultDescription: "Filter events based on their properties.",
     dataSchema: nodeOptionEventFilterSchema,
-    dataFields: ["event_filter_target", "event_filter_expression"],
+    dataFields: [
+      "event_filter_target",
+      "event_filter_mode",
+      "event_filter_value",
+    ],
   },
   suspend_response_modal: {
     color: suspendColor,

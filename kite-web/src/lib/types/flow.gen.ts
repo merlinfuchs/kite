@@ -66,6 +66,7 @@ export const FlowNodeTypeControlConditionItemChannel: FlowNodeType = "control_co
 export const FlowNodeTypeControlConditionRole: FlowNodeType = "control_condition_role";
 export const FlowNodeTypeControlConditionItemRole: FlowNodeType = "control_condition_item_role";
 export const FlowNodeTypeControlConditionItemElse: FlowNodeType = "control_condition_item_else";
+export const FlowNodeTypeControlErrorHandler: FlowNodeType = "control_error_handler";
 export const FlowNodeTypeControlLoop: FlowNodeType = "control_loop";
 export const FlowNodeTypeControlLoopEach: FlowNodeType = "control_loop_each";
 export const FlowNodeTypeControlLoopEnd: FlowNodeType = "control_loop_end";
@@ -180,7 +181,8 @@ export interface FlowNodeData {
    * Event Filter
    */
   event_filter_target?: EventFilterTarget;
-  event_filter_expression?: string;
+  event_filter_mode?: ComparsionMode;
+  event_filter_value?: string;
   /**
    * Log
    */
@@ -195,7 +197,7 @@ export interface FlowNodeData {
    */
   condition_base_value?: string;
   condition_allow_multiple?: boolean;
-  condition_item_mode?: ConditionItemType;
+  condition_item_mode?: ComparsionMode;
   condition_item_value?: string;
   /**
    * Loop
@@ -206,21 +208,23 @@ export interface FlowNodeData {
    */
   sleep_duration_seconds?: string;
 }
-export type ConditionItemType = string;
-export const ConditionItemModeEqual: ConditionItemType = "equal";
-export const ConditionItemModeNotEqual: ConditionItemType = "not_equal";
-export const ConditionItemModeGreaterThan: ConditionItemType = "greater_than";
-export const ConditionItemModeGreaterThanOrEqual: ConditionItemType = "greater_than_or_equal";
-export const ConditionItemModeLessThan: ConditionItemType = "less_than";
-export const ConditionItemModeLessThanOrEqual: ConditionItemType = "less_than_or_equal";
-export const ConditionItemModeContains: ConditionItemType = "contains";
+export type ComparsionMode = string;
+export const ComparsionModeEqual: ComparsionMode = "equal";
+export const ComparsionModeNotEqual: ComparsionMode = "not_equal";
+export const ComparsionModeGreaterThan: ComparsionMode = "greater_than";
+export const ComparsionModeGreaterThanOrEqual: ComparsionMode = "greater_than_or_equal";
+export const ComparsionModeLessThan: ComparsionMode = "less_than";
+export const ComparsionModeLessThanOrEqual: ComparsionMode = "less_than_or_equal";
+export const ComparsionModeContains: ComparsionMode = "contains";
+export const ComparsionModeStartsWith: ComparsionMode = "starts_with";
+export const ComparsionModeEndsWith: ComparsionMode = "ends_with";
 /**
  * User condition
  */
-export const ConditionItemModeHasRole: ConditionItemType = "has_role";
-export const ConditionItemModeNotHasRole: ConditionItemType = "not_has_role";
-export const ConditionItemModeHasPermission: ConditionItemType = "has_permission";
-export const ConditionItemModeNotHasPermission: ConditionItemType = "not_has_permission";
+export const ComparsionModeHasRole: ComparsionMode = "has_role";
+export const ComparsionModeNotHasRole: ComparsionMode = "not_has_role";
+export const ComparsionModeHasPermission: ComparsionMode = "has_permission";
+export const ComparsionModeNotHasPermission: ComparsionMode = "not_has_permission";
 export type CommandArgumentType = string;
 export const CommandArgumentTypeString: CommandArgumentType = "string";
 export const CommandArgumentTypeInteger: CommandArgumentType = "integer";
@@ -240,6 +244,9 @@ export const CommandDisabledIntegrationTypeGuildInstall: CommandDisabledIntegrat
 export const CommandDisabledIntegrationTypeUserInstall: CommandDisabledIntegrationType = "user_install";
 export type EventFilterTarget = string;
 export const EventFilterTypeMessageContent: EventFilterTarget = "message_content";
+export const EventFilterTypeUserID: EventFilterTarget = "user_id";
+export const EventFilterTypeGuildID: EventFilterTarget = "guild_id";
+export const EventFilterTypeChannelID: EventFilterTarget = "channel_id";
 export type RobloxLookupType = string;
 export const RobloxLookupTypeID: RobloxLookupType = "id";
 export const RobloxLookupTypeName: RobloxLookupType = "username";

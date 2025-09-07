@@ -14,6 +14,10 @@ func (d *InteractionData) Interaction() *discord.InteractionEvent {
 	return d.interaction
 }
 
+func (d *InteractionData) UserID() discord.UserID {
+	return d.interaction.SenderID()
+}
+
 func (d *InteractionData) GuildID() discord.GuildID {
 	return d.interaction.GuildID
 }
@@ -42,6 +46,22 @@ type EventData struct {
 
 func (d *EventData) Interaction() *discord.InteractionEvent {
 	return nil
+}
+
+func (d *EventData) UserID() discord.UserID {
+	switch data := d.event.(type) {
+	case *gateway.MessageCreateEvent:
+		return data.Author.ID
+	case *gateway.MessageUpdateEvent:
+		return data.Author.ID
+	case *gateway.GuildMemberAddEvent:
+		return data.User.ID
+	case *gateway.GuildMemberRemoveEvent:
+		return data.User.ID
+	case *gateway.GuildMemberUpdateEvent:
+		return data.User.ID
+	}
+	return 0
 }
 
 func (d *EventData) GuildID() discord.GuildID {

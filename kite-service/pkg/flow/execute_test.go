@@ -37,7 +37,7 @@ var flowCommandTest = CompiledFlowNode{
 							ID:   "2",
 							Type: FlowNodeTypeControlConditionItemCompare,
 							Data: FlowNodeData{
-								ConditionItemMode:  ConditionItemModeEqual,
+								ConditionItemMode:  ComparsionModeEqual,
 								ConditionItemValue: "null",
 							},
 							Children: ConnectedFlowNodes{
@@ -112,6 +112,10 @@ type TestContextData struct{}
 
 func (d *TestContextData) Interaction() *discord.InteractionEvent {
 	return &discord.InteractionEvent{}
+}
+
+func (d *TestContextData) UserID() discord.UserID {
+	return 0
 }
 
 func (d *TestContextData) GuildID() discord.GuildID {

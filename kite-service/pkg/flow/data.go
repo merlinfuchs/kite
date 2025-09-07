@@ -208,8 +208,9 @@ type FlowNodeData struct {
 	EventType string `json:"event_type,omitempty"`
 
 	// Event Filter
-	EventFilterTarget     EventFilterTarget `json:"event_filter_target,omitempty"`
-	EventFilterExpression string            `json:"event_filter_expression,omitempty"`
+	EventFilterTarget EventFilterTarget `json:"event_filter_target,omitempty"`
+	EventFilterMode   ComparsionMode    `json:"event_filter_mode,omitempty"`
+	EventFilterValue  string            `json:"event_filter_value,omitempty"`
 
 	// Log
 	LogLevel   provider.LogLevel `json:"log_level,omitempty"`
@@ -219,10 +220,10 @@ type FlowNodeData struct {
 	Expression string `json:"expression,omitempty"`
 
 	// Condition
-	ConditionBaseValue     string            `json:"condition_base_value,omitempty"`
-	ConditionAllowMultiple bool              `json:"condition_allow_multiple,omitempty"`
-	ConditionItemMode      ConditionItemType `json:"condition_item_mode,omitempty"`
-	ConditionItemValue     string            `json:"condition_item_value,omitempty"`
+	ConditionBaseValue     string         `json:"condition_base_value,omitempty"`
+	ConditionAllowMultiple bool           `json:"condition_allow_multiple,omitempty"`
+	ConditionItemMode      ComparsionMode `json:"condition_item_mode,omitempty"`
+	ConditionItemValue     string         `json:"condition_item_value,omitempty"`
 	// Loop
 	LoopCount string `json:"loop_count,omitempty"`
 	// Sleep
@@ -279,22 +280,24 @@ func (d FlowNodeData) Validate(nodeType FlowNodeType) error {
 	)
 }
 
-type ConditionItemType string
+type ComparsionMode string
 
 const (
-	ConditionItemModeEqual              ConditionItemType = "equal"
-	ConditionItemModeNotEqual           ConditionItemType = "not_equal"
-	ConditionItemModeGreaterThan        ConditionItemType = "greater_than"
-	ConditionItemModeGreaterThanOrEqual ConditionItemType = "greater_than_or_equal"
-	ConditionItemModeLessThan           ConditionItemType = "less_than"
-	ConditionItemModeLessThanOrEqual    ConditionItemType = "less_than_or_equal"
-	ConditionItemModeContains           ConditionItemType = "contains"
+	ComparsionModeEqual              ComparsionMode = "equal"
+	ComparsionModeNotEqual           ComparsionMode = "not_equal"
+	ComparsionModeGreaterThan        ComparsionMode = "greater_than"
+	ComparsionModeGreaterThanOrEqual ComparsionMode = "greater_than_or_equal"
+	ComparsionModeLessThan           ComparsionMode = "less_than"
+	ComparsionModeLessThanOrEqual    ComparsionMode = "less_than_or_equal"
+	ComparsionModeContains           ComparsionMode = "contains"
+	ComparsionModeStartsWith         ComparsionMode = "starts_with"
+	ComparsionModeEndsWith           ComparsionMode = "ends_with"
 
 	// User condition
-	ConditionItemModeHasRole          ConditionItemType = "has_role"
-	ConditionItemModeNotHasRole       ConditionItemType = "not_has_role"
-	ConditionItemModeHasPermission    ConditionItemType = "has_permission"
-	ConditionItemModeNotHasPermission ConditionItemType = "not_has_permission"
+	ComparsionModeHasRole          ComparsionMode = "has_role"
+	ComparsionModeNotHasRole       ComparsionMode = "not_has_role"
+	ComparsionModeHasPermission    ComparsionMode = "has_permission"
+	ComparsionModeNotHasPermission ComparsionMode = "not_has_permission"
 )
 
 type CommandArgumentType string
@@ -330,6 +333,9 @@ type EventFilterTarget string
 
 const (
 	EventFilterTypeMessageContent EventFilterTarget = "message_content"
+	EventFilterTypeUserID         EventFilterTarget = "user_id"
+	EventFilterTypeGuildID        EventFilterTarget = "guild_id"
+	EventFilterTypeChannelID      EventFilterTarget = "channel_id"
 )
 
 type RobloxLookupType string

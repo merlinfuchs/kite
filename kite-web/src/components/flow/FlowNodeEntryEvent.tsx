@@ -2,6 +2,7 @@ import { Position } from "@xyflow/react";
 import { NodeProps } from "../../lib/flow/dataSchema";
 import FlowNodeBase from "./FlowNodeBase";
 import FlowNodeHandle from "./FlowNodeHandle";
+import { optionColor } from "@/lib/flow/nodes";
 
 export default function FlowNodeEntryEvent(props: NodeProps) {
   const eventName = props.data.event_type?.split("_").join(" ") || "";
@@ -14,6 +15,11 @@ export default function FlowNodeEntryEvent(props: NodeProps) {
       highlight={true}
       showConnectedMarker={false}
     >
+      <FlowNodeHandle
+        type="target"
+        position={Position.Top}
+        color={optionColor}
+      />
       <FlowNodeHandle type="source" position={Position.Bottom} />
     </FlowNodeBase>
   );

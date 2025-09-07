@@ -1401,20 +1401,24 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 
 		var conditionMet bool
 		switch n.Data.ConditionItemMode {
-		case ConditionItemModeEqual:
+		case ComparsionModeEqual:
 			conditionMet = baseValue.Equals(&itemValue)
-		case ConditionItemModeNotEqual:
+		case ComparsionModeNotEqual:
 			conditionMet = baseValue.Equals(&itemValue)
-		case ConditionItemModeGreaterThan:
+		case ComparsionModeGreaterThan:
 			conditionMet = baseValue.GreaterThan(&itemValue)
-		case ConditionItemModeGreaterThanOrEqual:
+		case ComparsionModeGreaterThanOrEqual:
 			conditionMet = baseValue.GreaterThanOrEqual(&itemValue)
-		case ConditionItemModeLessThan:
+		case ComparsionModeLessThan:
 			conditionMet = baseValue.LessThan(&itemValue)
-		case ConditionItemModeLessThanOrEqual:
+		case ComparsionModeLessThanOrEqual:
 			conditionMet = baseValue.LessThanOrEqual(&itemValue)
-		case ConditionItemModeContains:
+		case ComparsionModeContains:
 			conditionMet = baseValue.Contains(&itemValue)
+		case ComparsionModeStartsWith:
+			conditionMet = baseValue.StartsWith(&itemValue)
+		case ComparsionModeEndsWith:
+			conditionMet = baseValue.EndsWith(&itemValue)
 		}
 
 		if conditionMet {
@@ -1449,25 +1453,25 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 
 		var conditionMet bool
 		switch n.Data.ConditionItemMode {
-		case ConditionItemModeEqual:
+		case ComparsionModeEqual:
 			conditionMet = baseValue.Equals(&itemValue)
-		case ConditionItemModeNotEqual:
+		case ComparsionModeNotEqual:
 			conditionMet = baseValue.Equals(&itemValue)
-		case ConditionItemModeHasRole:
+		case ComparsionModeHasRole:
 			member := baseValue.DiscordMember()
 			if !member.User.ID.IsValid() {
 				// TODO?: fetch member by id from discord?
 				return nil
 			}
 			conditionMet = slices.Contains(member.RoleIDs, discord.RoleID(itemValue.Int()))
-		case ConditionItemModeNotHasRole:
+		case ComparsionModeNotHasRole:
 			member := baseValue.DiscordMember()
 			if !member.User.ID.IsValid() {
 				// TODO?: fetch member by id from discord?
 				return nil
 			}
 			conditionMet = !slices.Contains(member.RoleIDs, discord.RoleID(itemValue.Int()))
-		case ConditionItemModeHasPermission:
+		case ComparsionModeHasPermission:
 			member := baseValue.DiscordMember()
 			if !member.User.ID.IsValid() {
 				// TODO?: fetch member by id from discord?
@@ -1488,7 +1492,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 
 			itemPermissions := discord.Permissions(itemValue.Int())
 			conditionMet = permission&itemPermissions == itemPermissions
-		case ConditionItemModeNotHasPermission:
+		case ComparsionModeNotHasPermission:
 			member := baseValue.DiscordMember()
 			if !member.User.ID.IsValid() {
 				// TODO?: fetch member by id from discord?

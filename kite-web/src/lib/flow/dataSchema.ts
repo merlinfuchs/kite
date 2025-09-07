@@ -19,6 +19,21 @@ export type NodeType = Node<NodeData>;
 
 export const auditLogReasonSchema = z.string().max(512).optional();
 
+export const conditionItemModeSchema = z
+  .literal("equal")
+  .or(z.literal("not_equal"))
+  .or(z.literal("greater_than"))
+  .or(z.literal("less_than"))
+  .or(z.literal("greater_than_or_equal"))
+  .or(z.literal("less_than_or_equal"))
+  .or(z.literal("contains"))
+  .or(z.literal("starts_with"))
+  .or(z.literal("ends_with"))
+  .or(z.literal("has_role"))
+  .or(z.literal("not_has_role"))
+  .or(z.literal("has_permission"))
+  .or(z.literal("not_has_permission"));
+
 export const nodeBaseDataSchema = z.object({
   custom_label: z.string().optional(),
   result_key: z
@@ -93,8 +108,9 @@ export const nodeOptionCommandContextsSchema = nodeBaseDataSchema.extend({
 });
 
 export const nodeOptionEventFilterSchema = nodeBaseDataSchema.extend({
-  event_filter_target: z.literal("message_content"),
-  event_filter_expression: z.string().max(1000).min(1),
+  event_filter_target: z.string(),
+  event_filter_mode: conditionItemModeSchema,
+  event_filter_value: z.string().max(1000).min(1),
 });
 
 export const nodeEntryEventDataSchema = nodeBaseDataSchema.extend({
@@ -650,18 +666,7 @@ export const nodeConditionCompareDataSchema = nodeBaseDataSchema.extend({
 
 export const nodeConditionItemCompareDataSchema = nodeBaseDataSchema.extend({
   condition_item_value: z.string().optional(),
-  condition_item_mode: z
-    .literal("equal")
-    .or(z.literal("not_equal"))
-    .or(z.literal("greater_than"))
-    .or(z.literal("less_than"))
-    .or(z.literal("greater_than_or_equal"))
-    .or(z.literal("less_than_or_equal"))
-    .or(z.literal("contains"))
-    .or(z.literal("has_role"))
-    .or(z.literal("not_has_role"))
-    .or(z.literal("has_permission"))
-    .or(z.literal("not_has_permission")),
+  condition_item_mode: conditionItemModeSchema,
 });
 
 export const nodeControlLoopDataSchema = nodeBaseDataSchema.extend({
