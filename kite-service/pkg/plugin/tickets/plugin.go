@@ -46,14 +46,7 @@ func (p *TicketsPlugin) Config() plugin.Config {
 }
 
 func (p *TicketsPlugin) Events() []plugin.Event {
-	return []plugin.Event{
-		{
-			ID:          "event_message_reaction_add",
-			Source:      plugin.EventSourceDiscord,
-			Type:        plugin.EventTypeMessageReactionAdd,
-			Description: "Check if the message has surpassed the threshold for the starboard",
-		},
-	}
+	return []plugin.Event{}
 }
 
 func (p *TicketsPlugin) Commands() []plugin.Command {
@@ -61,36 +54,20 @@ func (p *TicketsPlugin) Commands() []plugin.Command {
 
 	return []plugin.Command{
 		{
-			ID: "cmd_ticket",
+			ID: "cmd_tickets",
 			Data: api.CreateCommandData{
-				Name:                     "ticket",
-				Description:              "Configure the ticket for the current server",
+				Name:                     "tickets",
+				Description:              "Configure the ticket system for the current server",
 				DefaultMemberPermissions: &perms,
 				Options: discord.CommandOptions{
 					&discord.SubcommandOption{
-						OptionName:  "enable",
-						Description: "Enable the starboard for the current server",
-						Options: []discord.CommandOptionValue{
-							&discord.ChannelOption{
-								OptionName:  "channel",
-								Description: "The channel to use as the starboard",
-								Required:    true,
-							},
-							&discord.IntegerOption{
-								OptionName:  "threshold",
-								Description: "The number of stars required to pin a message to the starboard",
-								Required:    true,
-							},
-							&discord.StringOption{
-								OptionName:  "emoji",
-								Description: "The emoji to use instead of a ⭐️",
-								Required:    false,
-							},
-						},
+						OptionName:  "setup",
+						Description: "Setup the ticket system for the current server",
+						Options:     []discord.CommandOptionValue{},
 					},
 					&discord.SubcommandOption{
 						OptionName:  "disable",
-						Description: "Disable the starboard for the current server",
+						Description: "Disable the ticket system for the current server",
 					},
 				},
 			},

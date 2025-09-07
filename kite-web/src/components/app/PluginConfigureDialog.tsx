@@ -145,7 +145,7 @@ export function PluginConfigureDialog({
               <div className="mb-3">
                 <div className="font-medium mb-0.5">Commands</div>
                 <div className="text-sm text-muted-foreground">
-                  Select the commands you want to import.
+                  Select the commands you want to enable.
                 </div>
               </div>
               <div className="flex flex-col gap-3">
@@ -186,7 +186,7 @@ export function PluginConfigureDialog({
               <div className="mb-3">
                 <div className="font-medium mb-0.5">Event Listeners</div>
                 <div className="text-sm text-muted-foreground">
-                  Select the event listeners you want to import.
+                  Select the event listeners you want to enable.
                 </div>
               </div>
               <div className="flex flex-col gap-3">
