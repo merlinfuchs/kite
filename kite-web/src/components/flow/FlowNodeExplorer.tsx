@@ -20,7 +20,7 @@ const nodeCategories = {
     },
     {
       title: "Events",
-      nodeTypes: ["option_command_contexts"],
+      nodeTypes: ["option_event_filter"],
       contextTypes: ["event_discord"],
     },
     /* {
