@@ -20,6 +20,7 @@ import (
 	"github.com/kitecloud/kite/kite-service/pkg/plugin"
 	"github.com/kitecloud/kite/kite-service/pkg/plugin/counting"
 	"github.com/kitecloud/kite/kite-service/pkg/plugin/starboard"
+	"github.com/kitecloud/kite/kite-service/pkg/plugin/tickets"
 	"github.com/openai/openai-go"
 	"github.com/openai/openai-go/option"
 )
@@ -69,6 +70,7 @@ func StartServer(c context.Context) error {
 	pluginRegistry.Register(
 		counting.NewCountingPlugin(),
 		starboard.NewStarboardPlugin(),
+		tickets.NewTicketsPlugin(),
 	)
 
 	engine := engine.NewEngine(
