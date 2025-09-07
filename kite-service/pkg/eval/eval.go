@@ -37,7 +37,8 @@ func Eval(ctx context.Context, expression string, c Context) (thing.Thing, error
 		return thing.Null, fmt.Errorf("eval error: %w", err)
 	}
 
-	return thing.NewGuessTypeWithFallback(result), nil
+	res := thing.NewGuessTypeWithFallback(result)
+	return replaceNewlines(res), nil
 }
 
 func EvalTemplate(ctx context.Context, template string, c Context) (thing.Thing, error) {
@@ -58,7 +59,7 @@ func EvalTemplate(ctx context.Context, template string, c Context) (thing.Thing,
 			return thing.Null, err
 		}
 
-		return replaceNewlines(res), nil
+		return res, nil
 	}
 
 	res, err := fasttemplate.ExecuteFuncStringWithErr(
@@ -84,12 +85,31 @@ func EvalTemplate(ctx context.Context, template string, c Context) (thing.Thing,
 		return thing.Null, err
 	}
 
-	return replaceNewlines(thing.NewString(res)), nil
+	return thing.NewString(res), nil
 }
 
+// replaceNewlines replaces \n with actual newlines in a string
+// It also replaces \\n with \n so escaping is preserved
 func replaceNewlines(s thing.Thing) thing.Thing {
 	if s.Type == thing.TypeString {
-		return thing.NewString(strings.ReplaceAll(s.String(), "\\n", "\n"))
+		str := s.String()
+		var result strings.Builder
+		result.Grow(len(str))
+
+		for i := 0; i < len(str); i++ {
+			// Check for escaped backslash followed by n
+			if i < len(str)-2 && str[i] == '\\' && str[i+1] == '\\' && str[i+2] == 'n' {
+				result.WriteString("\\n")
+				i += 2 // Skip the next two characters
+			} else if i < len(str)-1 && str[i] == '\\' && str[i+1] == 'n' {
+				// Regular \n case
+				result.WriteString("\n")
+				i++ // Skip the next character
+			} else {
+				result.WriteString(string(str[i]))
+			}
+		}
+		return thing.NewString(result.String())
 	}
 	return s
 }

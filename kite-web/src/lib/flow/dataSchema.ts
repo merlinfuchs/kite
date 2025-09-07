@@ -634,7 +634,8 @@ export const nodeActionExpressionEvaluateDataSchema = nodeBaseDataSchema.extend(
       .string()
       .max(2000)
       .refine((val) => !val.startsWith("{{"), {
-        message: "Remove the double curly brackets around the expression",
+        message:
+          "In most cases, you don't need to use the double curly brackets around the expression here. Only use them if you want to include a placeholder in the expression.",
       }),
   }
 );
