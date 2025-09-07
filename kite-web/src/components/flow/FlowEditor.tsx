@@ -205,6 +205,7 @@ export default function FlowEditor({
       colorMode={theme === "dark" ? "dark" : "light"}
       defaultEdgeOptions={{ type: "delete_button" }}
       multiSelectionKeyCode={null}
+      deleteKeyCode={["Backspace", "Delete"]}
       proOptions={{
         hideAttribution: true,
       }}
