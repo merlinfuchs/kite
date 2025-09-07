@@ -88,6 +88,32 @@ func (c *Client) UpdatePluginValue(ctx context.Context, operation model.PluginVa
 	return newValue, nil
 }
 
+func (c *Client) SearchPluginValues(ctx context.Context, pluginInstanceID string, metadata map[string]string) ([]*model.PluginValue, error) {
+	rawMetadata, err := json.Marshal(metadata)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal plugin value metadata: %w", err)
+	}
+
+	rows, err := c.Q.SearchPluginValues(ctx, pgmodel.SearchPluginValuesParams{
+		PluginInstanceID: pluginInstanceID,
+		Metadata:         rawMetadata,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	values := make([]*model.PluginValue, 0, len(rows))
+	for _, row := range rows {
+		v, err := rowToPluginValue(row)
+		if err != nil {
+			return nil, err
+		}
+		values = append(values, v)
+	}
+
+	return values, nil
+}
+
 func (c *Client) pluginValueWithTx(ctx context.Context, tx pgx.Tx, pluginInstanceID string, key string) (*model.PluginValue, error) {
 	q := c.Q
 	if tx != nil {
@@ -120,10 +146,19 @@ func (c *Client) setPluginValueWithTx(ctx context.Context, tx pgx.Tx, value mode
 		return nil, fmt.Errorf("failed to marshal plugin value: %w", err)
 	}
 
+	var metadata []byte
+	if value.Metadata != nil {
+		metadata, err = json.Marshal(value.Metadata)
+		if err != nil {
+			return nil, fmt.Errorf("failed to marshal plugin value metadata: %w", err)
+		}
+	}
+
 	row, err := q.SetPluginValue(ctx, pgmodel.SetPluginValueParams{
 		PluginInstanceID: value.PluginInstanceID,
 		Key:              value.Key,
 		Value:            data,
+		Metadata:         metadata,
 		CreatedAt:        pgtype.Timestamp{Time: value.CreatedAt, Valid: true},
 		UpdatedAt:        pgtype.Timestamp{Time: value.UpdatedAt, Valid: true},
 	})

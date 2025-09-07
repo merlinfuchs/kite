@@ -26,7 +26,7 @@ func (q *Queries) DeletePluginValue(ctx context.Context, arg DeletePluginValuePa
 }
 
 const getPluginValue = `-- name: GetPluginValue :one
-SELECT id, plugin_instance_id, key, value, created_at, updated_at FROM plugin_values WHERE plugin_instance_id = $1 AND key = $2
+SELECT id, plugin_instance_id, key, value, created_at, updated_at, metadata FROM plugin_values WHERE plugin_instance_id = $1 AND key = $2
 `
 
 type GetPluginValueParams struct {
@@ -44,12 +44,13 @@ func (q *Queries) GetPluginValue(ctx context.Context, arg GetPluginValueParams) 
 		&i.Value,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.Metadata,
 	)
 	return i, err
 }
 
 const getPluginValueForUpdate = `-- name: GetPluginValueForUpdate :one
-SELECT id, plugin_instance_id, key, value, created_at, updated_at FROM plugin_values WHERE plugin_instance_id = $1 AND key = $2 FOR UPDATE
+SELECT id, plugin_instance_id, key, value, created_at, updated_at, metadata FROM plugin_values WHERE plugin_instance_id = $1 AND key = $2 FOR UPDATE
 `
 
 type GetPluginValueForUpdateParams struct {
@@ -67,8 +68,46 @@ func (q *Queries) GetPluginValueForUpdate(ctx context.Context, arg GetPluginValu
 		&i.Value,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.Metadata,
 	)
 	return i, err
+}
+
+const searchPluginValues = `-- name: SearchPluginValues :many
+SELECT id, plugin_instance_id, key, value, created_at, updated_at, metadata FROM plugin_values WHERE plugin_instance_id = $1 AND metadata @> $2
+`
+
+type SearchPluginValuesParams struct {
+	PluginInstanceID string
+	Metadata         []byte
+}
+
+func (q *Queries) SearchPluginValues(ctx context.Context, arg SearchPluginValuesParams) ([]PluginValue, error) {
+	rows, err := q.db.Query(ctx, searchPluginValues, arg.PluginInstanceID, arg.Metadata)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []PluginValue
+	for rows.Next() {
+		var i PluginValue
+		if err := rows.Scan(
+			&i.ID,
+			&i.PluginInstanceID,
+			&i.Key,
+			&i.Value,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.Metadata,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const setPluginValue = `-- name: SetPluginValue :one
@@ -76,20 +115,23 @@ INSERT INTO plugin_values (
     plugin_instance_id,
     key,
     value,
+    metadata,
     created_at,
     updated_at
 ) VALUES (
-    $1, $2, $3, $4, $5
+    $1, $2, $3, $4, $5, $6
 ) ON CONFLICT (plugin_instance_id, key) DO UPDATE SET
     value = EXCLUDED.value,
+    metadata = EXCLUDED.metadata,
     updated_at = EXCLUDED.updated_at
-RETURNING id, plugin_instance_id, key, value, created_at, updated_at
+RETURNING id, plugin_instance_id, key, value, created_at, updated_at, metadata
 `
 
 type SetPluginValueParams struct {
 	PluginInstanceID string
 	Key              string
 	Value            []byte
+	Metadata         []byte
 	CreatedAt        pgtype.Timestamp
 	UpdatedAt        pgtype.Timestamp
 }
@@ -99,6 +141,7 @@ func (q *Queries) SetPluginValue(ctx context.Context, arg SetPluginValueParams) 
 		arg.PluginInstanceID,
 		arg.Key,
 		arg.Value,
+		arg.Metadata,
 		arg.CreatedAt,
 		arg.UpdatedAt,
 	)
@@ -110,6 +153,7 @@ func (q *Queries) SetPluginValue(ctx context.Context, arg SetPluginValueParams) 
 		&i.Value,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.Metadata,
 	)
 	return i, err
 }

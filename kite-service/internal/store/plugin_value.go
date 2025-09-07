@@ -11,4 +11,5 @@ type PluginValueStore interface {
 	UpdatePluginValue(ctx context.Context, operation model.PluginValueOperation, value model.PluginValue) (*model.PluginValue, error)
 	GetPluginValue(ctx context.Context, pluginInstanceID, key string) (*model.PluginValue, error)
 	DeletePluginValue(ctx context.Context, pluginInstanceID, key string) error
+	SearchPluginValues(ctx context.Context, pluginInstanceID string, metadata map[string]string) ([]*model.PluginValue, error)
 }

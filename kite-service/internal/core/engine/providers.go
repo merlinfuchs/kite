@@ -695,11 +695,23 @@ func NewValueProvider(pluginInstanceID string, pluginValueStore store.PluginValu
 	}
 }
 
-func (p *ValueProvider) UpdateValue(ctx context.Context, key string, op provider.VariableOperation, value thing.Thing) (thing.Thing, error) {
+func (p *ValueProvider) UpdateValue(
+	ctx context.Context,
+	key string,
+	op provider.VariableOperation,
+	value thing.Thing,
+	opts ...provider.MetadataOption,
+) (thing.Thing, error) {
+	metadata := make(map[string]string, len(opts))
+	for _, opt := range opts {
+		opt(metadata)
+	}
+
 	v := model.PluginValue{
 		PluginInstanceID: p.pluginInstanceID,
 		Key:              key,
 		Value:            value,
+		Metadata:         metadata,
 		CreatedAt:        time.Now().UTC(),
 		UpdatedAt:        time.Now().UTC(),
 	}
@@ -731,6 +743,25 @@ func (p *ValueProvider) DeleteValue(ctx context.Context, key string) error {
 	}
 
 	return nil
+}
+
+func (p *ValueProvider) SearchValues(ctx context.Context, opts ...provider.MetadataOption) ([]thing.Thing, error) {
+	metadata := make(map[string]string, len(opts))
+	for _, opt := range opts {
+		opt(metadata)
+	}
+
+	values, err := p.pluginValueStore.SearchPluginValues(ctx, p.pluginInstanceID, metadata)
+	if err != nil {
+		return nil, fmt.Errorf("failed to search plugin values: %w", err)
+	}
+
+	res := make([]thing.Thing, 0, len(values))
+	for _, value := range values {
+		res = append(res, value.Value)
+	}
+
+	return res, nil
 }
 
 type RobloxProvider struct {

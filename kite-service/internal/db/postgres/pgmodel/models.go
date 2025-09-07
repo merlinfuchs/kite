@@ -154,6 +154,7 @@ type PluginValue struct {
 	Value            []byte
 	CreatedAt        pgtype.Timestamp
 	UpdatedAt        pgtype.Timestamp
+	Metadata         []byte
 }
 
 type ResumePoint struct {
