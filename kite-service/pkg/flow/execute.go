@@ -1326,7 +1326,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			}
 		}
 
-		ctx.StoreNodeResult(n, thing.NewInt(rand.Intn(maxInt+minInt)))
+		ctx.StoreNodeResult(n, thing.NewInt(rand.Intn(maxInt-minInt)+minInt))
 		return n.ExecuteChildren(ctx)
 	case FlowNodeTypeActionExpressionEvaluate:
 		expression, err := ctx.EvalTemplate(n.Data.Expression)
