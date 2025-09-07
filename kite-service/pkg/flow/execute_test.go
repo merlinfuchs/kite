@@ -114,6 +114,10 @@ func (d *TestContextData) Interaction() *discord.InteractionEvent {
 	return &discord.InteractionEvent{}
 }
 
+func (d *TestContextData) UserID() discord.UserID {
+	return 0
+}
+
 func (d *TestContextData) GuildID() discord.GuildID {
 	return 0
 }

@@ -208,8 +208,9 @@ type FlowNodeData struct {
 	EventType string `json:"event_type,omitempty"`
 
 	// Event Filter
-	EventFilterTarget     EventFilterTarget `json:"event_filter_target,omitempty"`
-	EventFilterExpression string            `json:"event_filter_expression,omitempty"`
+	EventFilterTarget EventFilterTarget `json:"event_filter_target,omitempty"`
+	EventFilterMode   ComparsionMode    `json:"event_filter_mode,omitempty"`
+	EventFilterValue  string            `json:"event_filter_value,omitempty"`
 
 	// Log
 	LogLevel   provider.LogLevel `json:"log_level,omitempty"`
@@ -332,6 +333,9 @@ type EventFilterTarget string
 
 const (
 	EventFilterTypeMessageContent EventFilterTarget = "message_content"
+	EventFilterTypeUserID         EventFilterTarget = "user_id"
+	EventFilterTypeGuildID        EventFilterTarget = "guild_id"
+	EventFilterTypeChannelID      EventFilterTarget = "channel_id"
 )
 
 type RobloxLookupType string

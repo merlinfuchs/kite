@@ -141,7 +141,22 @@ func (s Env) executeFlowEvent(
 	fCtx := s.flowContext(ctx, appID, session, event, links, state)
 	defer fCtx.Cancel()
 
-	err := node.Execute(fCtx)
+	shouldExecute, err := node.FilterEvents(fCtx)
+	if err != nil {
+		s.createLogEntry(
+			appID,
+			model.LogLevelError,
+			fmt.Sprintf("Failed to filter events: %v", err),
+			links,
+		)
+		return
+	}
+
+	if !shouldExecute {
+		return
+	}
+
+	err = node.Execute(fCtx)
 	if err != nil {
 		s.createLogEntry(
 			appID,

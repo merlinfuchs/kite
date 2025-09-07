@@ -845,7 +845,7 @@ export const nodeTypes: Record<string, NodeValues> = {
     defaultDescription: "Filter events based on their properties.",
     dataSchema: nodeOptionEventFilterSchema,
     dataFields: [
-      "event_filter_base_value",
+      "event_filter_target",
       "event_filter_mode",
       "event_filter_value",
     ],

@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/diamondburned/arikawa/v3/discord"
+	"github.com/diamondburned/arikawa/v3/gateway"
 	"github.com/diamondburned/arikawa/v3/utils/json/option"
 )
 
@@ -129,6 +130,10 @@ func (n *CompiledFlowNode) IsCommandPermissions() bool {
 
 func (n *CompiledFlowNode) IsCommandContexts() bool {
 	return n.Type == FlowNodeTypeOptionCommandContexts
+}
+
+func (n *CompiledFlowNode) IsEventFilter() bool {
+	return n.Type == FlowNodeTypeOptionEventFilter
 }
 
 func (n *CompiledFlowNode) CommandData() discord.Command {
@@ -422,11 +427,54 @@ func (n *CompiledFlowNode) EventListenerType() string {
 	return n.Data.EventType
 }
 
-func (n *CompiledFlowNode) EventListenerFilter() string {
-	if !n.IsEventListenerEntry() {
-		return ""
+func (n *CompiledFlowNode) FilterEvents(ctx *FlowContext) (bool, error) {
+	if len(n.Parents.Default) == 0 {
+		return true, nil
 	}
-	return n.Data.EventType
+
+	for _, node := range n.Parents.Default {
+		if node.IsEventFilter() {
+			var target string
+
+			switch node.Data.EventFilterTarget {
+			case EventFilterTypeMessageContent:
+				if msg, ok := ctx.Data.Event().(*gateway.MessageCreateEvent); ok {
+					target = msg.Content
+				}
+			case EventFilterTypeUserID:
+				target = ctx.Data.UserID().String()
+			case EventFilterTypeGuildID:
+				target = ctx.Data.GuildID().String()
+			case EventFilterTypeChannelID:
+				target = ctx.Data.ChannelID().String()
+			}
+
+			switch node.Data.EventFilterMode {
+			case ComparsionModeEqual:
+				if target != node.Data.EventFilterValue {
+					return false, nil
+				}
+			case ComparsionModeNotEqual:
+				if target == node.Data.EventFilterValue {
+					return false, nil
+				}
+			case ComparsionModeContains:
+				if !strings.Contains(target, node.Data.EventFilterValue) {
+					return false, nil
+				}
+			case ComparsionModeStartsWith:
+				if !strings.HasPrefix(target, node.Data.EventFilterValue) {
+					return false, nil
+				}
+			case ComparsionModeEndsWith:
+				if !strings.HasSuffix(target, node.Data.EventFilterValue) {
+					return false, nil
+				}
+			}
+		}
+	}
+
+	return true, nil
 }
 
 func (n *CompiledFlowNode) EventDescription() string {

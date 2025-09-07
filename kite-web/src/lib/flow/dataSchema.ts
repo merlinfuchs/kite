@@ -108,9 +108,9 @@ export const nodeOptionCommandContextsSchema = nodeBaseDataSchema.extend({
 });
 
 export const nodeOptionEventFilterSchema = nodeBaseDataSchema.extend({
-  condition_base_value: z.string().regex(placeholderRegex),
-  condition_item_mode: conditionItemModeSchema,
-  condition_item_value: z.string().max(1000).min(1),
+  event_filter_target: z.string(),
+  event_filter_mode: conditionItemModeSchema,
+  event_filter_value: z.string().max(1000).min(1),
 });
 
 export const nodeEntryEventDataSchema = nodeBaseDataSchema.extend({

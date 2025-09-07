@@ -66,6 +66,7 @@ type FlowContextData interface {
 	MessageComponentData() discord.ComponentInteraction
 	Interaction() *discord.InteractionEvent
 	Event() ws.Event
+	UserID() discord.UserID
 	GuildID() discord.GuildID
 	ChannelID() discord.ChannelID
 }
