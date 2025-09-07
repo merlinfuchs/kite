@@ -112,100 +112,100 @@ func (p *StarboardPluginInstance) HandleCommand(c plugin.Context, event *gateway
 		return nil
 	}
 
-	if data.Name != "starboard" {
+	if data.Name != "starboard" || len(data.Options) == 0 {
 		return nil
 	}
 
-	for _, opt := range data.Options {
-		switch opt.Name {
-		case "enable":
-			var channelID discord.ChannelID
-			var threshold int
-			emoji := discord.Emoji{
-				Name: "⭐",
-			}
-			for _, subOpt := range opt.Options {
-				switch subOpt.Name {
-				case "channel":
-					_ = subOpt.Value.UnmarshalTo(&channelID)
-				case "threshold":
-					_ = subOpt.Value.UnmarshalTo(&threshold)
-				case "emoji":
-					var rawEmoji string
-					_ = subOpt.Value.UnmarshalTo(&rawEmoji)
-					if customEmojiRegex.MatchString(rawEmoji) {
-						matches := customEmojiRegex.FindStringSubmatch(rawEmoji)
-						emojiID, err := discord.ParseSnowflake(matches[2])
-						if err != nil {
-							return err
-						}
-						emoji = discord.Emoji{
-							Name: matches[1],
-							ID:   discord.EmojiID(emojiID),
-						}
-					} else {
-						emoji = discord.Emoji{
-							Name: rawEmoji,
-						}
+	subCMD := data.Options[0]
+
+	switch subCMD.Name {
+	case "enable":
+		var channelID discord.ChannelID
+		var threshold int
+		emoji := discord.Emoji{
+			Name: "⭐",
+		}
+		for _, subOpt := range subCMD.Options {
+			switch subOpt.Name {
+			case "channel":
+				_ = subOpt.Value.UnmarshalTo(&channelID)
+			case "threshold":
+				_ = subOpt.Value.UnmarshalTo(&threshold)
+			case "emoji":
+				var rawEmoji string
+				_ = subOpt.Value.UnmarshalTo(&rawEmoji)
+				if customEmojiRegex.MatchString(rawEmoji) {
+					matches := customEmojiRegex.FindStringSubmatch(rawEmoji)
+					emojiID, err := discord.ParseSnowflake(matches[2])
+					if err != nil {
+						return err
+					}
+					emoji = discord.Emoji{
+						Name: matches[1],
+						ID:   discord.EmojiID(emojiID),
+					}
+				} else {
+					emoji = discord.Emoji{
+						Name: rawEmoji,
 					}
 				}
 			}
-
-			rawConfig, err := json.Marshal(StarboardConfig{
-				ChannelID: channelID,
-				Threshold: threshold,
-				Emoji:     emoji,
-			})
-			if err != nil {
-				return err
-			}
-
-			_, err = c.UpdateValue(
-				c,
-				starboardConfigKey(event.GuildID.String()),
-				provider.VariableOperationOverwrite,
-				thing.NewString(string(rawConfig)),
-			)
-			if err != nil {
-				return err
-			}
-
-			_, err = c.Discord().CreateInteractionResponse(c, event.ID, event.Token, api.InteractionResponse{
-				Type: api.MessageInteractionWithSource,
-				Data: &api.InteractionResponseData{
-					Content: option.NewNullableString(fmt.Sprintf(
-						"Starboard has been enabled for this server. Messages will be copied to <#%d> when they have %d %s reactions.",
-						channelID,
-						threshold,
-						emoji,
-					)),
-					Flags: discord.EphemeralMessage,
-				},
-			})
-			if err != nil {
-				return err
-			}
-
-			return nil
-		case "disable":
-			err := c.DeleteValue(c, starboardConfigKey(event.GuildID.String()))
-			if err != nil {
-				return err
-			}
-
-			_, err = c.Discord().CreateInteractionResponse(c, event.ID, event.Token, api.InteractionResponse{
-				Type: api.MessageInteractionWithSource,
-				Data: &api.InteractionResponseData{
-					Content: option.NewNullableString("Starboard has been disabled for this server."),
-					Flags:   discord.EphemeralMessage,
-				},
-			})
-			if err != nil {
-				return err
-			}
-
-			return nil
 		}
+
+		rawConfig, err := json.Marshal(StarboardConfig{
+			ChannelID: channelID,
+			Threshold: threshold,
+			Emoji:     emoji,
+		})
+		if err != nil {
+			return err
+		}
+
+		_, err = c.UpdateValue(
+			c,
+			starboardConfigKey(event.GuildID.String()),
+			provider.VariableOperationOverwrite,
+			thing.NewString(string(rawConfig)),
+		)
+		if err != nil {
+			return err
+		}
+
+		_, err = c.Discord().CreateInteractionResponse(c, event.ID, event.Token, api.InteractionResponse{
+			Type: api.MessageInteractionWithSource,
+			Data: &api.InteractionResponseData{
+				Content: option.NewNullableString(fmt.Sprintf(
+					"Starboard has been enabled for this server. Messages will be copied to <#%d> when they have %d %s reactions.",
+					channelID,
+					threshold,
+					emoji,
+				)),
+				Flags: discord.EphemeralMessage,
+			},
+		})
+		if err != nil {
+			return err
+		}
+
+		return nil
+	case "disable":
+		err := c.DeleteValue(c, starboardConfigKey(event.GuildID.String()))
+		if err != nil {
+			return err
+		}
+
+		_, err = c.Discord().CreateInteractionResponse(c, event.ID, event.Token, api.InteractionResponse{
+			Type: api.MessageInteractionWithSource,
+			Data: &api.InteractionResponseData{
+				Content: option.NewNullableString("Starboard has been disabled for this server."),
+				Flags:   discord.EphemeralMessage,
+			},
+		})
+		if err != nil {
+			return err
+		}
+
+		return nil
 	}
 
 	return nil
