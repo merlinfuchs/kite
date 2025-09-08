@@ -1840,6 +1840,7 @@ func (n *CompiledFlowNode) prepareMessageSendData(ctx *FlowContext) (api.SendMes
 
 	var resumePointID string
 	if n.Data.MessageTemplateID == "" && len(data.Components) > 0 {
+		// The resume point will be created after the message has been sent, we just need the ID here already
 		resumePointID = util.UniqueID()
 	}
 
