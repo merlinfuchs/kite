@@ -15,6 +15,7 @@ import env from "@/lib/env/client";
 
 export default function UpsellPopup() {
   const shouldUpsell = useUpsellStateStore((s) => s.shouldUpsell);
+  const initializeStore = useUpsellStateStore((s) => s.initialize);
   const setUpsellClosed = useUpsellStateStore((s) => s.setUpsellClosed);
 
   const [showUpsell, setShowUpsell] = useState(false);
@@ -28,6 +29,10 @@ export default function UpsellPopup() {
       clearInterval(interval);
     };
   }, [shouldUpsell]);
+
+  useEffect(() => {
+    initializeStore();
+  }, [initializeStore]);
 
   const appId = useAppId();
 

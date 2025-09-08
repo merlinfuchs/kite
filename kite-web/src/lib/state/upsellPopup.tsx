@@ -7,6 +7,8 @@ export interface UpsellStateStore {
   pageFirstOpenedAt: number;
   upsellClosed: boolean;
 
+  initialize: () => void;
+
   setUpsellClosed: (upsellClosed: boolean) => void;
   shouldUpsell: () => boolean;
 }
@@ -14,8 +16,14 @@ export interface UpsellStateStore {
 export const useUpsellStateStore = create<UpsellStateStore>()(
   persist(
     (set, get) => ({
-      pageFirstOpenedAt: Date.now(),
+      pageFirstOpenedAt: 0,
       upsellClosed: false,
+
+      initialize: () => {
+        if (get().pageFirstOpenedAt === 0) {
+          set({ pageFirstOpenedAt: Date.now() });
+        }
+      },
 
       setUpsellClosed: (upsellClosed: boolean) => set({ upsellClosed }),
       shouldUpsell: () => {
