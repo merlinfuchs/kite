@@ -152,8 +152,9 @@ func (c *FlowContext) IsEntry() bool {
 	return c.stackDepth == 1
 }
 
-func (c *FlowContext) suspend(t ResumePointType, nodeID string) (*ResumePoint, error) {
+func (c *FlowContext) suspend(t ResumePointType, resumePointID string, nodeID string) (*ResumePoint, error) {
 	s, err := c.ResumePoint.CreateResumePoint(c.Context, ResumePoint{
+		ID:     resumePointID,
 		Type:   t,
 		NodeID: nodeID,
 		State:  c.FlowContextState.Copy(),

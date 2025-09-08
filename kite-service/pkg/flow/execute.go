@@ -16,6 +16,7 @@ import (
 	"github.com/diamondburned/arikawa/v3/api"
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/utils/json/option"
+	"github.com/kitecloud/kite/kite-service/internal/util"
 	"github.com/kitecloud/kite/kite-service/pkg/eval"
 	"github.com/kitecloud/kite/kite-service/pkg/message"
 	"github.com/kitecloud/kite/kite-service/pkg/provider"
@@ -76,7 +77,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			}
 		}
 
-		responseData, err := n.prepareMessageResponseData(ctx)
+		responseData, resumePointID, err := n.prepareMessageResponseData(ctx)
 		if err != nil {
 			return traceError(n, err)
 		}
@@ -92,8 +93,6 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			if err != nil {
 				return traceError(n, err)
 			}
-
-			ctx.StoreNodeResult(n, thing.NewDiscordMessage(*msg))
 		} else {
 			resp := api.InteractionResponse{
 				Type: api.MessageInteractionWithSource,
@@ -107,6 +106,17 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 
 			if res != nil {
 				msg = res.Message
+			}
+		}
+
+		if msg != nil {
+			ctx.StoreNodeResult(n, thing.NewDiscordMessage(*msg))
+		}
+		if resumePointID != "" {
+			// We have to create the resume point after the message has been stored
+			_, err = ctx.suspend(ResumePointTypeMessageComponents, resumePointID, n.ID)
+			if err != nil {
+				return traceError(n, err)
 			}
 		}
 
@@ -137,7 +147,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			}
 		}
 
-		responseData, err := n.prepareMessageResponseData(ctx)
+		responseData, resumePointID, err := n.prepareMessageResponseData(ctx)
 		if err != nil {
 			return traceError(n, err)
 		}
@@ -194,6 +204,17 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			}
 		}
 
+		if msg != nil {
+			ctx.StoreNodeResult(n, thing.NewDiscordMessage(*msg))
+		}
+		if resumePointID != "" {
+			// We have to create the resume point after the message has been stored
+			_, err = ctx.suspend(ResumePointTypeMessageComponents, resumePointID, n.ID)
+			if err != nil {
+				return traceError(n, err)
+			}
+		}
+
 		if n.Data.MessageTemplateID != "" {
 			err := ctx.MessageTemplate.LinkMessageTemplateInstance(ctx, provider.MessageTemplateInstance{
 				MessageTemplateID: n.Data.MessageTemplateID,
@@ -207,7 +228,6 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			}
 		}
 
-		ctx.StoreNodeResult(n, thing.NewDiscordMessage(*msg))
 		return n.ExecuteChildren(ctx)
 	case FlowNodeTypeActionResponseDelete:
 		interaction := ctx.Data.Interaction()
@@ -296,7 +316,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			}
 		}
 
-		resumePoint, err := ctx.suspend(ResumePointTypeModal, n.ID)
+		resumePoint, err := ctx.suspend(ResumePointTypeModal, util.UniqueID(), n.ID)
 		if err != nil {
 			return traceError(n, fmt.Errorf("failed to suspend: %w", err))
 		}
@@ -339,7 +359,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			return n.resumeFromComponent(ctx)
 		}
 
-		messageData, err := n.prepareMessageSendData(ctx)
+		messageData, resumePointID, err := n.prepareMessageSendData(ctx)
 		if err != nil {
 			return traceError(n, err)
 		}
@@ -358,6 +378,15 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			return traceError(n, err)
 		}
 
+		ctx.StoreNodeResult(n, thing.NewDiscordMessage(*msg))
+		if resumePointID != "" {
+			// We have to create the resume point after the message has been stored
+			_, err = ctx.suspend(ResumePointTypeMessageComponents, resumePointID, n.ID)
+			if err != nil {
+				return traceError(n, err)
+			}
+		}
+
 		if n.Data.MessageTemplateID != "" {
 			err := ctx.MessageTemplate.LinkMessageTemplateInstance(ctx, provider.MessageTemplateInstance{
 				MessageTemplateID: n.Data.MessageTemplateID,
@@ -371,7 +400,6 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			}
 		}
 
-		ctx.StoreNodeResult(n, thing.NewDiscordMessage(*msg))
 		return n.ExecuteChildren(ctx)
 	case FlowNodeTypeActionMessageEdit:
 		if ctx.IsEntry() {
@@ -388,7 +416,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			return traceError(n, err)
 		}
 
-		messageData, err := n.prepareMessageSendData(ctx)
+		messageData, resumePointID, err := n.prepareMessageSendData(ctx)
 		if err != nil {
 			return traceError(n, err)
 		}
@@ -406,6 +434,15 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			return traceError(n, err)
 		}
 
+		ctx.StoreNodeResult(n, thing.NewDiscordMessage(*msg))
+		if resumePointID != "" {
+			// We have to create the resume point after the message has been stored
+			_, err = ctx.suspend(ResumePointTypeMessageComponents, resumePointID, n.ID)
+			if err != nil {
+				return traceError(n, err)
+			}
+		}
+
 		if n.Data.MessageTemplateID != "" {
 			err := ctx.MessageTemplate.LinkMessageTemplateInstance(ctx, provider.MessageTemplateInstance{
 				MessageTemplateID: n.Data.MessageTemplateID,
@@ -419,7 +456,6 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			}
 		}
 
-		ctx.StoreNodeResult(n, thing.NewDiscordMessage(*msg))
 		return n.ExecuteChildren(ctx)
 	case FlowNodeTypeActionMessageDelete:
 		channelTarget, err := ctx.EvalTemplate(n.Data.ChannelTarget)
@@ -453,7 +489,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			return n.resumeFromComponent(ctx)
 		}
 
-		messageData, err := n.prepareMessageSendData(ctx)
+		messageData, resumePointID, err := n.prepareMessageSendData(ctx)
 		if err != nil {
 			return traceError(n, err)
 		}
@@ -474,6 +510,14 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 		}
 
 		ctx.StoreNodeResult(n, thing.NewDiscordMessage(*msg))
+		if resumePointID != "" {
+			// We have to create the resume point after the message has been stored
+			_, err = ctx.suspend(ResumePointTypeMessageComponents, resumePointID, n.ID)
+			if err != nil {
+				return traceError(n, err)
+			}
+		}
+
 		return n.ExecuteChildren(ctx)
 	case FlowNodeTypeActionMessageReactionCreate:
 		channelTarget, err := ctx.EvalTemplate(n.Data.ChannelTarget)
@@ -1769,56 +1813,51 @@ func (n *CompiledFlowNode) prepareMessageData(ctx *FlowContext) (message.Message
 	return data, nil
 }
 
-func (n *CompiledFlowNode) prepareMessageResponseData(ctx *FlowContext) (api.InteractionResponseData, error) {
+func (n *CompiledFlowNode) prepareMessageResponseData(ctx *FlowContext) (api.InteractionResponseData, string, error) {
 	data, err := n.prepareMessageData(ctx)
 	if err != nil {
-		return api.InteractionResponseData{}, err
+		return api.InteractionResponseData{}, "", err
 	}
 
-	var resumePoint *ResumePoint
+	var resumePointID string
 	if n.Data.MessageTemplateID == "" && len(data.Components) > 0 {
-		resumePoint, err = ctx.suspend(ResumePointTypeMessageComponents, n.ID)
-		if err != nil {
-			return api.InteractionResponseData{}, err
-		}
+		resumePointID = util.UniqueID()
 	}
 
 	responseData := data.ToInteractionResponseData(message.ConvertOptions{
 		ComponentIDFactory: func(component *message.ComponentData) discord.ComponentID {
-			if resumePoint != nil {
-				return discord.ComponentID(message.CustomIDMessageComponentResumePoint(resumePoint.ID, component.ID))
+			if resumePointID != "" {
+				return discord.ComponentID(message.CustomIDMessageComponentResumePoint(resumePointID, component.ID))
 			}
 			return discord.ComponentID(component.FlowSourceID)
 		},
 	})
 
-	return responseData, nil
+	return responseData, resumePointID, nil
 }
 
-func (n *CompiledFlowNode) prepareMessageSendData(ctx *FlowContext) (api.SendMessageData, error) {
+func (n *CompiledFlowNode) prepareMessageSendData(ctx *FlowContext) (api.SendMessageData, string, error) {
 	data, err := n.prepareMessageData(ctx)
 	if err != nil {
-		return api.SendMessageData{}, err
+		return api.SendMessageData{}, "", err
 	}
 
-	var resumePoint *ResumePoint
+	var resumePointID string
 	if n.Data.MessageTemplateID == "" && len(data.Components) > 0 {
-		resumePoint, err = ctx.suspend(ResumePointTypeMessageComponents, n.ID)
-		if err != nil {
-			return api.SendMessageData{}, err
-		}
+		// The resume point will be created after the message has been sent, we just need the ID here already
+		resumePointID = util.UniqueID()
 	}
 
 	sendData := data.ToSendMessageData(message.ConvertOptions{
 		ComponentIDFactory: func(component *message.ComponentData) discord.ComponentID {
-			if resumePoint != nil {
-				return discord.ComponentID(message.CustomIDMessageComponentResumePoint(resumePoint.ID, component.ID))
+			if resumePointID != "" {
+				return discord.ComponentID(message.CustomIDMessageComponentResumePoint(resumePointID, component.ID))
 			}
 			return discord.ComponentID(component.FlowSourceID)
 		},
 	})
 
-	return sendData, nil
+	return sendData, resumePointID, nil
 }
 
 func createDefaultErrorResponse(fCtx *FlowContext, err error) {
