@@ -13,7 +13,7 @@ The `Set stored variable` block is used to store a value in a variable that can 
 
 ### Settings
 
-> `Variable` Select a variable from your [Stored Variables](https://docs.kite.onl/reference/event/) list.
+> `Variable` Select a variable from your [Stored Variables](https://docs.kite.onl/reference/variable) list.
 > 
 > `Operation` What should your variable do?
 >
