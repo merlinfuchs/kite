@@ -22,6 +22,7 @@ import ThemeSwitch from "../common/ThemeSwitch";
 import { toast } from "sonner";
 import AppDisabledPopup from "./AppDisabledPopup";
 import OpenBetaPopup from "./OpenBetaPopup";
+import UpsellPopup from "./UpsellPopup";
 
 interface Props {
   breadcrumbs?: {
@@ -122,6 +123,7 @@ export default function AppLayout({ children, ...props }: Props) {
 
           <AppDisabledPopup />
           <OpenBetaPopup />
+          <UpsellPopup />
         </SidebarInset>
       </SidebarProvider>
     </BaseLayout>

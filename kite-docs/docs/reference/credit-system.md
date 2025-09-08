@@ -6,7 +6,7 @@ sidebar_position: 5
 
 Kite is free to use, but we do have a credit system in place to prevent abuse. Most actions taken by your app in flows will consume credits.
 
-By default, your app has **10,000 credits available per month**. This is usually more than enough for most apps. In the future you will be able to pay for more credits.
+By default, your app has **10,000 credits available per month**. This is usually more than enough for most apps. Subscribe to one of the **Premium** plans to get more credits.
 
 ![Credit System](./img/example-usage.png)
 
