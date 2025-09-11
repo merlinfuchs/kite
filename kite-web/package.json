@@ -62,6 +62,7 @@
     "just-debounce-it": "^3.2.0",
     "lucide-react": "^0.436.0",
     "next": "^14.2.25",
+    "next-plausible": "^3.12.4",
     "next-themes": "^0.3.0",
     "react": "^18",
     "react-colorful": "^5.6.1",
