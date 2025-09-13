@@ -1,0 +1,9 @@
+{
+  "label": "Examples",
+  "position": 3,
+  "collapsed": false,
+  "link": {
+    "type": "generated-index",
+    "description": "Some examples for building your own commands and event listeners with Kite."
+  }
+}
