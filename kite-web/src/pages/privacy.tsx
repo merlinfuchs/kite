@@ -6,7 +6,7 @@ export default function PrivacyPolicyPage() {
     <HomeLayout title="Privacy Policy">
       <div className="prose dark:prose-invert text-foreground mx-auto my-16 max-w-7xl px-5">
         <h1>Privacy Policy</h1>
-        <p>Last updated: July 27, 2024</p>
+        <p>Last updated: September 24, 2025</p>
         <p>
           This Privacy Policy describes Our policies and procedures on the
           collection, use and disclosure of Your information when You use the
@@ -141,6 +141,9 @@ export default function PrivacyPolicyPage() {
             <p>Email address</p>
           </li>
           <li>
+            <p>Payment information (processed by Lemon Squeezy)</p>
+          </li>
+          <li>
             <p>Usage Data</p>
           </li>
         </ul>
@@ -188,6 +191,38 @@ export default function PrivacyPolicyPage() {
           during registration or otherwise, You are giving the Company
           permission to use, share, and store it in a manner consistent with
           this Privacy Policy.
+        </p>
+        <h4>Payment Information</h4>
+        <p>
+          When You subscribe to our premium services, payment processing is
+          handled by Lemon Squeezy, our third-party payment processor. When You
+          make a payment, You will be redirected to Lemon Squeezy&apos;s secure
+          website where You will enter Your payment information directly. We do
+          not store Your payment card details on our servers.
+        </p>
+        <p>
+          Lemon Squeezy may collect and process the following information from
+          You:
+        </p>
+        <ul>
+          <li>Payment card information (card number, expiry date, CVV)</li>
+          <li>Billing address and contact information</li>
+          <li>Transaction details and payment history</li>
+        </ul>
+        <p>
+          We share Your user ID and subscription details with Lemon Squeezy to
+          facilitate the payment process and manage Your subscription. Lemon
+          Squeezy has its own privacy policy and terms of service that govern
+          how they handle Your payment information. We encourage You to review
+          Lemon Squeezy&apos;s privacy policy at{" "}
+          <a
+            href="https://www.lemonsqueezy.com/privacy"
+            rel="external nofollow noopener"
+            target="_blank"
+          >
+            https://www.lemonsqueezy.com/privacy
+          </a>
+          .
         </p>
         <h4>Tracking Technologies and Cookies</h4>
         <p>
@@ -302,7 +337,9 @@ export default function PrivacyPolicyPage() {
               <strong>For the performance of a contract:</strong> the
               development, compliance and undertaking of the purchase contract
               for the products, items or services You have purchased or of any
-              other contract with Us through the Service.
+              other contract with Us through the Service, including processing
+              payments and managing subscriptions through our payment processor,
+              Lemon Squeezy.
             </p>
           </li>
           <li>
@@ -359,7 +396,9 @@ export default function PrivacyPolicyPage() {
           <li>
             <strong>With Service Providers:</strong> We may share Your personal
             information with Service Providers to monitor and analyze the use of
-            our Service, to contact You.
+            our Service, to contact You, and to process payments. We share Your
+            user ID and payment information with Lemon Squeezy, our payment
+            processor, to facilitate subscription services.
           </li>
           <li>
             <strong>For business transfers:</strong> We may share or transfer
