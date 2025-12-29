@@ -23,20 +23,39 @@ To run Kite you will also need to run a [Postgres](https://www.postgresql.org/) 
 
 ### Configure the server
 
-To configure the server you can create a file called `kite.toml` with the following fields:
+**IMPORTANT: You must configure your credentials before running Kite!**
 
-```toml
-[discord]
-client_id = "..." # Your Discord client ID used for Oauth2
-client_secret = "..." # Your Discord client secret used for Oauth2
+1. **Copy the example configuration files:**
+   ```bash
+   cp kite.toml.example kite.toml
+   cp kite-service/.env.example kite-service/.env
+   ```
 
-[encryption]
-token_encryption_key = "..." # HEX encoded AES key for encrypting Discord tokens
+2. **Edit `kite.toml` with your credentials:**
+   - Set your Discord application **Client ID**
+   - Set your Discord application **Client Secret**
+   - Set your generated **encryption key**
+
+   ```toml
+   [discord]
+   client_id = "YOUR_DISCORD_CLIENT_ID"
+   client_secret = "YOUR_DISCORD_CLIENT_SECRET"
+
+   [encryption]
+   token_encryption_key = "YOUR_GENERATED_ENCRYPTION_KEY"
+   ```
+
+3. **Edit `kite-service/.env` if running locally** (not needed for Docker):
+   - Fill in the same Discord credentials
+   - Configure local database settings if needed
+
+**To generate an encryption key:**
+```bash
+openssl enc -aes-256-cbc -k secret -P -md sha1
 ```
+Copy the **key** value (64 character hex string).
 
-To generate an encryption key for tokens you can use `openssl enc -aes-256-cbc -k secret -P -md sha1`.
-
-You can also set the config values using environment variables. For example `KITE_DISCORD__CLIENT_ID` will set the discord client id.
+You can also set config values using environment variables. For example `KITE_DISCORD__CLIENT_ID` will set the discord client id.
 
 ### Using Docker (docker-compose)
 

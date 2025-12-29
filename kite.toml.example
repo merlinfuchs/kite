@@ -1,0 +1,6 @@
+[discord]
+client_id = "YOUR_DISCORD_CLIENT_ID"
+client_secret = "YOUR_DISCORD_CLIENT_SECRET"
+
+[encryption]
+token_encryption_key = "YOUR_GENERATED_ENCRYPTION_KEY"

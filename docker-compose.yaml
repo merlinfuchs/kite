@@ -1,37 +1,66 @@
 services:
   postgres:
-    image: postgres
+    image: postgres:16
     restart: always
     ports:
-      - "${PG_HOST_PORT:-5432}:5432"
-    volumes:
-      - kite-local-postgres:/var/lib/postgresql/data
+      - "5434:5432"
     environment:
       POSTGRES_USER: postgres
-      POSTGRES_DB: kite
-      PGUSER: postgres
-      PGDATA: /var/lib/postgresql/data/pgdata
       POSTGRES_HOST_AUTH_METHOD: trust
+      POSTGRES_DB: kite
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - kite-local-postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   minio:
     image: quay.io/minio/minio
     command: server --console-address ":9001" /data
+    restart: always
     ports:
       - "9000:9000"
       - "9001:9001"
     environment:
-      MINIO_ROOT_USER: kite
-      MINIO_ROOT_PASSWORD: 1234567890
+      MINIO_ROOT_USER: "kite"
+      MINIO_ROOT_PASSWORD: "1234567890"
     volumes:
       - kite-local-minio:/data
 
-  nirn-proxy:
-    image: ghcr.io/germanoeich/nirn-proxy:main
+  kite:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: always
     ports:
-      - "8888:8080"
+      - "8080:8080"
     environment:
-      - ENABLE_METRICS=false
-      - REQUEST_TIMEOUT=10000
+      - KITE_API__HOST=0.0.0.0
+      - KITE_DATABASE__POSTGRES__HOST=postgres
+      - KITE_DATABASE__POSTGRES__PORT=5432
+      - KITE_DATABASE__POSTGRES__USER=postgres
+      - KITE_DATABASE__POSTGRES__DB_NAME=kite
+      - KITE_DATABASE__S3__ENDPOINT=minio:9000
+      - KITE_DATABASE__S3__ACCESS_KEY=kite
+      - KITE_DATABASE__S3__SECRET_KEY=1234567890
+      - KITE_DATABASE__S3__BUCKET=kite
+      - KITE_APP__PUBLIC_BASE_URL=http://localhost:8080
+      - KITE_API__PUBLIC_BASE_URL=http://localhost:8080
+      - KITE_STORAGE__S3__ENDPOINT=minio:9000
+      - KITE_STORAGE__S3__ACCESS_KEY=kite
+      - KITE_STORAGE__S3__SECRET_KEY=1234567890
+      - KITE_STORAGE__S3__BUCKET=kite
+      - KITE_STORAGE__S3__PUBLIC_BASE_URL=http://localhost:9000
+    volumes:
+      - ./kite.toml:/root/kite.toml:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+      minio:
+        condition: service_started
 
 volumes:
   kite-local-postgres:
