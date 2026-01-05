@@ -17,13 +17,15 @@ type Client struct {
 	connectionDSN string
 }
 
-func New(connectionDSN string) (*Client, error) {
+func New(connectionDSN string, clusterCount int) (*Client, error) {
 	config, err := pgxpool.ParseConfig(connectionDSN)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to parse postgres config: %v", err)
 	}
 
-	config.MaxConns = 50
+	// This assumes that Postgres is configured to support a total of 100 connections.
+	// We max out at 80 to allow for some overhead.
+	config.MaxConns = int32(80 / clusterCount)
 	config.MinConns = 10
 	config.MaxConnLifetime = 30 * time.Minute
 	config.MaxConnIdleTime = 5 * time.Minute

@@ -38,7 +38,7 @@ func adminImpersonateCMD(c *cli.Context) error {
 
 	logging.SetupLogger(cfg.Logging)
 
-	pg, err := postgres.New(postgres.BuildConnectionDSN(cfg.Database.Postgres))
+	pg, err := postgres.New(postgres.BuildConnectionDSN(cfg.Database.Postgres), 1)
 	if err != nil {
 		slog.Error(
 			"Failed to create postgres client",

@@ -34,7 +34,7 @@ func StartServer(c context.Context) error {
 
 	patchDiscordProxyURL(cfg)
 
-	pg, err := postgres.New(postgres.BuildConnectionDSN(cfg.Database.Postgres))
+	pg, err := postgres.New(postgres.BuildConnectionDSN(cfg.Database.Postgres), cfg.ClusterCount)
 	if err != nil {
 		slog.With("error", err).Error("Failed to create postgres client")
 		return fmt.Errorf("failed to create postgres client: %w", err)

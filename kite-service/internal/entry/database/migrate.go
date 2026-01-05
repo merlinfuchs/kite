@@ -30,7 +30,7 @@ func RunDatabaseMigrations(database string, operation string, opts DatabaseMigra
 
 	switch database {
 	case "postgres":
-		pg, err := postgres.New(postgres.BuildConnectionDSN(cfg.Database.Postgres))
+		pg, err := postgres.New(postgres.BuildConnectionDSN(cfg.Database.Postgres), 1)
 		if err != nil {
 			l.With("error", err).Error("Failed to create postgres client")
 			os.Exit(1)
