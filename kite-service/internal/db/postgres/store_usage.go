@@ -112,6 +112,10 @@ func (c *Client) AllUsageCreditsUsedBetween(ctx context.Context, start time.Time
 	return res, nil
 }
 
+func (c *Client) DeleteUsageRecordsBefore(ctx context.Context, before time.Time) error {
+	return c.Q.DeleteUsageRecordsBefore(ctx, pgtype.Timestamp{Time: before, Valid: true})
+}
+
 func rowToUsageRecord(row pgmodel.UsageRecord) model.UsageRecord {
 	return model.UsageRecord{
 		ID:              row.ID,

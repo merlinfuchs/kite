@@ -37,3 +37,6 @@ LEFT JOIN (
 
 -- name: GetAllUsageCreditsUsedBetween :many
 SELECT app_id, SUM(credits_used) FROM usage_records WHERE created_at BETWEEN @start_at AND @end_at GROUP BY app_id;
+
+-- name: DeleteUsageRecordsBefore :exec
+DELETE FROM usage_records WHERE created_at < @before_at;

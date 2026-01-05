@@ -48,6 +48,15 @@ func (q *Queries) CreateUsageRecord(ctx context.Context, arg CreateUsageRecordPa
 	return err
 }
 
+const deleteUsageRecordsBefore = `-- name: DeleteUsageRecordsBefore :exec
+DELETE FROM usage_records WHERE created_at < $1
+`
+
+func (q *Queries) DeleteUsageRecordsBefore(ctx context.Context, beforeAt pgtype.Timestamp) error {
+	_, err := q.db.Exec(ctx, deleteUsageRecordsBefore, beforeAt)
+	return err
+}
+
 const getAllUsageCreditsUsedBetween = `-- name: GetAllUsageCreditsUsedBetween :many
 SELECT app_id, SUM(credits_used) FROM usage_records WHERE created_at BETWEEN $1 AND $2 GROUP BY app_id
 `

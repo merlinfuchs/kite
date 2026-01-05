@@ -13,8 +13,10 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/util"
 )
 
-const SessionCookieName = "kite-session"
-const SessionExpiry = 7 * 24 * time.Hour
+const (
+	SessionCookieName = "kite-session"
+	SessionExpiry     = 7 * 24 * time.Hour
+)
 
 type SessionManagerConfig struct {
 	StrictCookies bool
