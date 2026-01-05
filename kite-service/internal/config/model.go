@@ -13,11 +13,18 @@ type Config struct {
 	OpenAI     OpenAIConfig     `toml:"openai"`
 	Billing    BillingConfig    `toml:"billing"`
 	Encryption EncryptionConfig `toml:"encryption"`
+
+	ClusterCount int `toml:"cluster_count"`
+	ClusterIndex int `toml:"cluster_index"`
 }
 
 func (cfg *Config) Validate() error {
 	validate := validator.New(validator.WithRequiredStructEnabled())
 	return validate.Struct(cfg)
+}
+
+func (cfg Config) IsPrimaryCluster() bool {
+	return cfg.ClusterIndex == 0
 }
 
 func LoadConfig(basePath string) (*Config, error) {
