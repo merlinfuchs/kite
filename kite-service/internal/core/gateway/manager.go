@@ -98,14 +98,28 @@ func (m *GatewayManager) populateGateways(ctx context.Context) error {
 		return fmt.Errorf("failed to remove dangling apps: %w", err)
 	}
 
-	if len(apps) != 0 {
-		slog.Info("Populating gateways", slog.Int("count", len(apps)))
+	if len(apps) == 0 {
+		return nil
+	}
 
-		for _, app := range apps {
-			if util.CluserForKey(app.ID, m.config.ClusterCount) != m.config.ClusterIndex {
-				continue
-			}
+	filteredApps := make([]*model.App, 0, len(apps))
+	for _, app := range apps {
+		if util.CluserForKey(app.ID, m.config.ClusterCount) != m.config.ClusterIndex {
+			continue
+		}
+		filteredApps = append(filteredApps, app)
+	}
 
+	slog.Info(
+		"Populating gateways",
+		slog.Int("total_apps", len(apps)),
+		slog.Int("filtered_apps", len(filteredApps)),
+		slog.Int("cluster_count", m.config.ClusterCount),
+		slog.Int("cluster_index", m.config.ClusterIndex),
+	)
+
+	if len(filteredApps) != 0 {
+		for _, app := range filteredApps {
 			// Starting thousands of gateways at once can cause problems internally.
 			select {
 			case <-ctx.Done():
