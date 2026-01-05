@@ -6,7 +6,7 @@ import env from "@/lib/env/client";
 const queryClient = new QueryClient({
   queryCache: new QueryCache({
     onError: (err) => {
-      toast.error(`Unexpect API error: ${err}`);
+      toast.error(`Error: ${err}`);
     },
   }),
   defaultOptions: {
@@ -38,5 +38,14 @@ export function apiRequest<T>(path: string, options?: RequestInit) {
   return fetch(getApiUrl(path), {
     ...options,
     credentials: "include",
-  }).then((res) => res.json()) as Promise<APIResponse<T>>;
+  }).then(async (res) => {
+    try {
+      return await res.json();
+    } catch (err) {
+      if (res.status === 429) {
+        throw new Error("Rate limit exceeded, try again later");
+      }
+      throw new Error("Unexpected API error: " + res.statusText);
+    }
+  }) as Promise<APIResponse<T>>;
 }
