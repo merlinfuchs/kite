@@ -3,6 +3,7 @@ package app
 import (
 	"fmt"
 	"log/slog"
+	"net/http"
 	"time"
 
 	"github.com/kitecloud/kite/kite-service/internal/api/handler"
@@ -72,6 +73,14 @@ func (h *AppHandler) HandleAppCreate(c *handler.Context, req wire.AppCreateReque
 
 	appInfo, err := h.getDiscordAppInfo(c.Context(), req.DiscordToken)
 	if err != nil {
+		if util.IsDiscordRestStatusCode(err, http.StatusUnauthorized) {
+			return nil, handler.ErrBadRequest("invalid_discord_token", "Invalid Discord token")
+		}
+		slog.Error(
+			"Failed to get discord app info",
+			slog.String("user_id", c.Session.UserID),
+			slog.String("error", err.Error()),
+		)
 		return nil, fmt.Errorf("failed to get discord app info: %w", err)
 	}
 
@@ -126,6 +135,10 @@ func (h *AppHandler) HandleAppUpdate(c *handler.Context, req wire.AppUpdateReque
 
 	if req.Name != c.App.Name || req.Description != c.App.Description {
 		if err := h.updateDiscordApp(c.Context(), app); err != nil {
+			if util.IsDiscordRestStatusCode(err, http.StatusUnauthorized) {
+				return nil, handler.ErrBadRequest("invalid_discord_token", "Invalid Discord token")
+			}
+
 			slog.Error(
 				"Failed to update discord app name",
 				slog.String("app_id", c.App.ID),
@@ -137,6 +150,10 @@ func (h *AppHandler) HandleAppUpdate(c *handler.Context, req wire.AppUpdateReque
 
 	if req.Name != c.App.Name {
 		if err := h.updateDiscordBotUser(c.Context(), app); err != nil {
+			if util.IsDiscordRestStatusCode(err, http.StatusUnauthorized) {
+				return nil, handler.ErrBadRequest("invalid_discord_token", "Invalid Discord token")
+			}
+
 			slog.Error(
 				"Failed to update discord bot user",
 				slog.String("app_id", c.App.ID),
@@ -181,6 +198,10 @@ func (h *AppHandler) HandleAppStatusUpdate(c *handler.Context, req wire.AppStatu
 func (h *AppHandler) HandleAppTokenUpdate(c *handler.Context, req wire.AppTokenUpdateRequest) (*wire.AppTokenUpdateResponse, error) {
 	appInfo, err := h.getDiscordAppInfo(c.Context(), req.DiscordToken)
 	if err != nil {
+		if util.IsDiscordRestStatusCode(err, http.StatusUnauthorized) {
+			return nil, handler.ErrBadRequest("invalid_discord_token", "Invalid Discord token")
+		}
+
 		slog.Error(
 			"Failed to get discord app info",
 			slog.String("app_id", c.App.ID),

@@ -34,3 +34,6 @@ SELECT COUNT(*) AS total_entries,
        COALESCE(SUM(CASE WHEN level = 'info' THEN 1 ELSE 0 END), 0)::bigint AS total_infos,
        COALESCE(SUM(CASE WHEN level = 'debug' THEN 1 ELSE 0 END), 0)::bigint AS total_debugs
 FROM logs WHERE app_id = @app_id AND created_at >= @start_at AND created_at < @end_at;
+
+-- name: DeleteLogEntriesBefore :exec
+DELETE FROM logs WHERE created_at < @before_at;

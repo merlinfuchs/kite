@@ -113,7 +113,7 @@ func StartServer(c context.Context) error {
 	gateway := gateway.NewGatewayManager(pg, pg, planManager, handler, tokenCrypt)
 	gateway.Run(ctx)
 
-	usage := usage.NewUsageManager(pg, pg, planManager)
+	usage := usage.NewUsageManager(pg, pg, pg, planManager)
 	usage.Run(ctx)
 
 	apiServer := api.NewAPIServer(api.APIServerConfig{

@@ -38,6 +38,15 @@ func (q *Queries) CreateLogEntry(ctx context.Context, arg CreateLogEntryParams) 
 	return err
 }
 
+const deleteLogEntriesBefore = `-- name: DeleteLogEntriesBefore :exec
+DELETE FROM logs WHERE created_at < $1
+`
+
+func (q *Queries) DeleteLogEntriesBefore(ctx context.Context, beforeAt pgtype.Timestamp) error {
+	_, err := q.db.Exec(ctx, deleteLogEntriesBefore, beforeAt)
+	return err
+}
+
 const getLogEntriesByApp = `-- name: GetLogEntriesByApp :many
 SELECT id, app_id, message, level, created_at, command_id, event_listener_id, message_id FROM logs 
 WHERE 

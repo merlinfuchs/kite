@@ -150,6 +150,10 @@ func (c *Client) LogSummary(ctx context.Context, appID string, start time.Time, 
 	}, nil
 }
 
+func (c *Client) DeleteLogEntriesBefore(ctx context.Context, before time.Time) error {
+	return c.Q.DeleteLogEntriesBefore(ctx, pgtype.Timestamp{Time: before, Valid: true})
+}
+
 func rowToLogEntry(row pgmodel.Log) *model.LogEntry {
 	return &model.LogEntry{
 		ID:              row.ID,

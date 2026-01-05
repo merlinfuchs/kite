@@ -11,23 +11,36 @@ import (
 	"gopkg.in/guregu/null.v4"
 )
 
+const (
+	UsageRecordExpiry = 3 * 30 * 24 * time.Hour
+	LogEntryExpiry    = 30 * 24 * time.Hour
+)
+
 type UsageManager struct {
 	appStore   store.AppStore
 	usageStore store.UsageStore
+	logStore   store.LogStore
 
 	planManager *plan.PlanManager
 }
 
-func NewUsageManager(appStore store.AppStore, usageStore store.UsageStore, planManager *plan.PlanManager) *UsageManager {
+func NewUsageManager(
+	appStore store.AppStore,
+	usageStore store.UsageStore,
+	logStore store.LogStore,
+	planManager *plan.PlanManager,
+) *UsageManager {
 	return &UsageManager{
 		appStore:    appStore,
 		usageStore:  usageStore,
+		logStore:    logStore,
 		planManager: planManager,
 	}
 }
 
 func (m *UsageManager) Run(ctx context.Context) {
 	ticker := time.NewTicker(1 * time.Minute)
+	cleanupTicker := time.NewTicker(1 * time.Second)
 
 	go func() {
 		for {
@@ -39,6 +52,19 @@ func (m *UsageManager) Run(ctx context.Context) {
 				if err := m.disableAppsWithNoCredits(ctx); err != nil {
 					slog.Error(
 						"Failed to disable apps with no credits",
+						slog.String("error", err.Error()),
+					)
+				}
+			case <-cleanupTicker.C:
+				if err := m.cleanupUsageRecords(ctx); err != nil {
+					slog.Error(
+						"Failed to cleanup usage records",
+						slog.String("error", err.Error()),
+					)
+				}
+				if err := m.cleanupLogEntries(ctx); err != nil {
+					slog.Error(
+						"Failed to cleanup log entries",
 						slog.String("error", err.Error()),
 					)
 				}
@@ -77,6 +103,27 @@ func (m *UsageManager) disableAppsWithNoCredits(ctx context.Context) error {
 		}
 	}
 
+	return nil
+}
+
+func (m *UsageManager) cleanupUsageRecords(ctx context.Context) error {
+	expiry := time.Now().UTC().Add(-UsageRecordExpiry)
+
+	err := m.usageStore.DeleteUsageRecordsBefore(ctx, expiry)
+	if err != nil {
+		return fmt.Errorf("failed to delete usage records: %w", err)
+	}
+
+	return nil
+}
+
+func (m *UsageManager) cleanupLogEntries(ctx context.Context) error {
+	expiry := time.Now().UTC().Add(-LogEntryExpiry)
+
+	err := m.logStore.DeleteLogEntriesBefore(ctx, expiry)
+	if err != nil {
+		return fmt.Errorf("failed to delete log entries: %w", err)
+	}
 	return nil
 }
 

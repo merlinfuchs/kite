@@ -3,6 +3,7 @@ package postgres
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/kitecloud/kite/kite-service/internal/config"
@@ -17,7 +18,18 @@ type Client struct {
 }
 
 func New(connectionDSN string) (*Client, error) {
-	db, err := pgxpool.New(context.Background(), connectionDSN)
+	config, err := pgxpool.ParseConfig(connectionDSN)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to parse postgres config: %v", err)
+	}
+
+	config.MaxConns = 50
+	config.MinConns = 10
+	config.MaxConnLifetime = 30 * time.Minute
+	config.MaxConnIdleTime = 5 * time.Minute
+	config.HealthCheckPeriod = 1 * time.Minute
+
+	db, err := pgxpool.NewWithConfig(context.Background(), config)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to connect to postgres db: %v", err)
 	}
