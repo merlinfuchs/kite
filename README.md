@@ -61,6 +61,18 @@ services:
       timeout: 30s
       retries: 3
 
+  minio:
+    image: quay.io/minio/minio
+    command: server --console-address ":9001" /data
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      MINIO_ROOT_USER: kite
+      MINIO_ROOT_PASSWORD: 1234567890
+    volumes:
+      - kite-local-minio:/data
+
   kite:
     image: merlintor/kite:latest
     restart: always
@@ -71,6 +83,10 @@ services:
       - KITE_DATABASE__POSTGRES__HOST=postgres
       - KITE_DATABASE__POSTGRES__USER=postgres
       - KITE_DATABASE__POSTGRES__DB_NAME=kite
+      - KITE_DATABASE__S3__ENDPOINT=minio:9000
+      - KITE_DATABASE__S3__ACCESS_KEY_ID=kite
+      - KITE_DATABASE__S3__SECRET_ACCESS_KEY=1234567890
+      - KITE_DATABASE__S3__SECURE=false
       - KITE_APP__PUBLIC_BASE_URL=http://localhost:8080
       - KITE_API__PUBLIC_BASE_URL=http://localhost:8080
     volumes:
