@@ -14,4 +14,5 @@ type LogStore interface {
 	LogEntriesByEvent(ctx context.Context, appID string, eventID string, beforeID int64, limit int) ([]*model.LogEntry, error)
 	LogEntriesByMessage(ctx context.Context, appID string, messageID string, beforeID int64, limit int) ([]*model.LogEntry, error)
 	LogSummary(ctx context.Context, appID string, start time.Time, end time.Time) (*model.LogSummary, error)
+	DeleteLogEntriesBefore(ctx context.Context, before time.Time) error
 }

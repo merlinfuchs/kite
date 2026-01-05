@@ -193,6 +193,10 @@ func (s Env) createLogEntry(appID string, level model.LogLevel, message string, 
 }
 
 func (s Env) createUsageRecord(appID string, creditsUsed int, links entityLinks) {
+	if creditsUsed == 0 {
+		return
+	}
+
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*30)
 	defer cancel()
 
