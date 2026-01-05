@@ -14,6 +14,8 @@ import (
 )
 
 type APIServerConfig struct {
+	ClusterCount        int
+	ClusterIndex        int
 	SecureCookies       bool
 	StrictCookies       bool
 	AppPublicBaseURL    string

@@ -15,6 +15,16 @@ import (
 	"github.com/sethvargo/go-limiter/memorystore"
 )
 
+func ClusterIndexProvider(clusterCount int, clusterIndex int) MiddlewareFunc {
+	return func(next HandlerFunc) HandlerFunc {
+		return func(c *Context) error {
+			c.SetHeader("X-Cluster-Count", fmt.Sprintf("%d", clusterCount))
+			c.SetHeader("X-Cluster-Index", fmt.Sprintf("%d", clusterIndex))
+			return next(c)
+		}
+	}
+}
+
 func TypedWithBody[REQ any, RESP any](next func(c *Context, r REQ) (*RESP, error)) HandlerFunc {
 	return func(c *Context) error {
 		var v REQ

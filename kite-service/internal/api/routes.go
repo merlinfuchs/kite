@@ -80,7 +80,10 @@ func (s *APIServer) RegisterRoutes(
 		}))
 	}
 
-	v1Group := handler.Group(s.mux, "/v1")
+	v1Group := handler.Group(
+		s.mux, "/v1",
+		handler.ClusterIndexProvider(s.config.ClusterCount, s.config.ClusterIndex),
+	)
 
 	v1Group.Get("/health", func(c *handler.Context) error {
 		return c.Send(http.StatusOK, []byte("OK"))

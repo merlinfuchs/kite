@@ -117,6 +117,8 @@ func StartServer(c context.Context, cfg *config.Config) error {
 	}
 
 	apiServer := api.NewAPIServer(api.APIServerConfig{
+		ClusterCount:        cfg.ClusterCount,
+		ClusterIndex:        cfg.ClusterIndex,
 		SecureCookies:       cfg.API.SecureCookies,
 		StrictCookies:       cfg.API.StrictCookies,
 		APIPublicBaseURL:    cfg.API.PublicBaseURL,
