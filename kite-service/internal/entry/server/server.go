@@ -14,7 +14,6 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/core/usage"
 	"github.com/kitecloud/kite/kite-service/internal/db/postgres"
 	"github.com/kitecloud/kite/kite-service/internal/db/s3"
-	"github.com/kitecloud/kite/kite-service/internal/logging"
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/internal/util"
 	"github.com/kitecloud/kite/kite-service/pkg/plugin"
@@ -24,14 +23,7 @@ import (
 	"github.com/openai/openai-go/option"
 )
 
-func StartServer(c context.Context) error {
-	cfg, err := config.LoadConfig(".")
-	if err != nil {
-		return fmt.Errorf("failed to load config: %w", err)
-	}
-
-	logging.SetupLogger(cfg.Logging)
-
+func StartServer(c context.Context, cfg *config.Config) error {
 	patchDiscordProxyURL(cfg)
 
 	pg, err := postgres.New(postgres.BuildConnectionDSN(cfg.Database.Postgres), cfg.ClusterCount)

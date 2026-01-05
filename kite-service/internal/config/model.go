@@ -23,7 +23,7 @@ func (cfg *Config) Validate() error {
 	return validate.Struct(cfg)
 }
 
-func (cfg Config) IsPrimaryCluster() bool {
+func (cfg *Config) IsPrimaryCluster() bool {
 	return cfg.ClusterIndex == 0
 }
 
