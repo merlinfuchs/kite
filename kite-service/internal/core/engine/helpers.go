@@ -174,7 +174,7 @@ func (s Env) executeFlowEvent(
 }
 
 func (s Env) createLogEntry(appID string, level model.LogLevel, message string, links entityLinks) {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 	defer cancel()
 
 	// Create log entry which will be displayed in the dashboard
@@ -193,9 +193,10 @@ func (s Env) createLogEntry(appID string, level model.LogLevel, message string, 
 }
 
 func (s Env) createUsageRecord(appID string, creditsUsed int, links entityLinks) {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*30)
 	defer cancel()
 
+	start := time.Now()
 	err := s.UsageStore.CreateUsageRecord(ctx, model.UsageRecord{
 		AppID:           appID,
 		Type:            model.UsageRecordTypeCommandFlowExecution,
@@ -205,6 +206,14 @@ func (s Env) createUsageRecord(appID string, creditsUsed int, links entityLinks)
 		CreditsUsed:     creditsUsed,
 		CreatedAt:       time.Now().UTC(),
 	})
+	duration := time.Since(start)
+
+	if duration > time.Second*10 {
+		slog.With("duration", duration).
+			With("app_id", appID).
+			Warn("Usage record creation took longer than 10 seconds")
+	}
+
 	if err != nil {
 		slog.With("error", err).With("app_id", appID).Error("Failed to create usage record from engine")
 	}
