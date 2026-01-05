@@ -20,9 +20,15 @@ type EventHandler interface {
 	HandleEvent(appID string, session *state.State, event gateway.Event)
 }
 
+type GatewayManagerConfig struct {
+	ClusterCount int
+	ClusterIndex int
+}
+
 type GatewayManager struct {
 	sync.Mutex
 
+	config       GatewayManagerConfig
 	appStore     store.AppStore
 	logStore     store.LogStore
 	planManager  *plan.PlanManager
@@ -39,8 +45,10 @@ func NewGatewayManager(
 	planManager *plan.PlanManager,
 	eventHandler EventHandler,
 	tokenCrypt *util.SymmetricCrypt,
+	config GatewayManagerConfig,
 ) *GatewayManager {
 	return &GatewayManager{
+		config:       config,
 		appStore:     appStore,
 		logStore:     logStore,
 		planManager:  planManager,
@@ -94,6 +102,10 @@ func (m *GatewayManager) populateGateways(ctx context.Context) error {
 		slog.Info("Populating gateways", slog.Int("count", len(apps)))
 
 		for _, app := range apps {
+			if util.CluserForKey(app.ID, m.config.ClusterCount) != m.config.ClusterIndex {
+				continue
+			}
+
 			// Starting thousands of gateways at once can cause problems internally.
 			select {
 			case <-ctx.Done():

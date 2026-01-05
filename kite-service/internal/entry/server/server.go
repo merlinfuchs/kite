@@ -77,6 +77,8 @@ func StartServer(c context.Context) error {
 				MaxStackDepth: cfg.Engine.MaxStackDepth,
 				MaxOperations: cfg.Engine.MaxOperations,
 				MaxCredits:    cfg.Engine.MaxCredits,
+				ClusterCount:  cfg.ClusterCount,
+				ClusterIndex:  cfg.ClusterIndex,
 			},
 			AppStore:             pg,
 			LogStore:             pg,
@@ -108,13 +110,19 @@ func StartServer(c context.Context) error {
 		DiscordBotToken: cfg.Discord.BotToken,
 		DiscordGuildID:  cfg.Discord.GuildID,
 	})
-	planManager.Run(ctx)
 
-	gateway := gateway.NewGatewayManager(pg, pg, planManager, handler, tokenCrypt)
+	gateway := gateway.NewGatewayManager(pg, pg, planManager, handler, tokenCrypt, gateway.GatewayManagerConfig{
+		ClusterCount: cfg.ClusterCount,
+		ClusterIndex: cfg.ClusterIndex,
+	})
 	gateway.Run(ctx)
 
 	usage := usage.NewUsageManager(pg, pg, pg, planManager)
-	usage.Run(ctx)
+
+	if cfg.IsPrimaryCluster() {
+		planManager.Run(ctx)
+		usage.Run(ctx)
+	}
 
 	apiServer := api.NewAPIServer(api.APIServerConfig{
 		SecureCookies:       cfg.API.SecureCookies,
