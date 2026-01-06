@@ -35,7 +35,9 @@ export function CommandDeployDialog({
       onSuccess(res) {
         if (res.success) {
           if (res.data.deployed) {
-            toast.success("Commands deployed successfully");
+            toast.success(
+              "Commands deployed successfully! Restart your Discord client if the changes are not visible immediately."
+            );
             onOpenChange(false);
             setError(null);
           } else {
@@ -64,8 +66,8 @@ export function CommandDeployDialog({
           <DialogTitle>Deploy Commands</DialogTitle>
           <DialogDescription>
             Deploy the commands so they are available inside Discord. Whenever
-            you make changes to a command's appearance, you need to deploy it
-            again for the changes to take effect.
+            you make changes to a command&apos;s appearance, you need to deploy
+            it again for the changes to take effect.
             <br />
             <br />
             You can only deploy commands once every 30 seconds, so only deploy

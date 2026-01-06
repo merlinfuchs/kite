@@ -60,7 +60,7 @@ export default function AppCommandPage() {
           onSuccess(res) {
             if (res.success) {
               toast.success(
-                "Command saved! It may take up to a minute for all changes to take effect."
+                "Command saved! Make sure to deploy the command for the changes to take effect in Discord."
               );
             } else {
               toast.error(
