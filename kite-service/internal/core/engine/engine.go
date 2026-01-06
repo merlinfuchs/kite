@@ -41,7 +41,6 @@ func (e *Engine) Run(ctx context.Context) {
 		for {
 			select {
 			case <-ctx.Done():
-				updateTicker.Stop()
 				return
 			case <-updateTicker.C:
 				lastUpdate := e.lastUpdate
@@ -99,7 +98,7 @@ func (e *Engine) populatePlugins(ctx context.Context, lastUpdate time.Time) erro
 	e.Lock()
 	defer e.Unlock()
 	lockDiff := time.Since(lockStart)
-	if lockDiff > 250*time.Millisecond {
+	if lockDiff > 5*time.Second {
 		slog.Warn(
 			"Locking engine for plugins took too long",
 			slog.String("lock_duration", lockDiff.String()),
@@ -152,7 +151,7 @@ func (e *Engine) populateCommands(ctx context.Context, lastUpdate time.Time) err
 	e.Lock()
 	defer e.Unlock()
 	lockDiff := time.Since(lockStart)
-	if lockDiff > 250*time.Millisecond {
+	if lockDiff > 5*time.Second {
 		slog.Warn(
 			"Locking engine for commands took too long",
 			slog.String("lock_duration", lockDiff.String()),
@@ -247,9 +246,9 @@ func (e *Engine) HandleEvent(appID string, session *state.State, event gateway.E
 	app := e.apps[appID]
 	e.RUnlock()
 	lockDiff := time.Since(lockStart)
-	if lockDiff > 100*time.Millisecond {
+	if lockDiff > 500*time.Millisecond {
 		slog.Warn(
-			"Locking engine for event took too long",
+			"Locking engine for handling event took too long",
 			slog.String("app_id", appID),
 			slog.String("lock_duration", lockDiff.String()),
 		)

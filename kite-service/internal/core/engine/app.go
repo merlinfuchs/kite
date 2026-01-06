@@ -114,8 +114,17 @@ func (a *App) AddCommand(cmd *model.Command) {
 		return
 	}
 
+	lockStart := time.Now()
 	a.Lock()
 	defer a.Unlock()
+	lockDiff := time.Since(lockStart)
+	if lockDiff > 500*time.Millisecond {
+		slog.Warn(
+			"Locking app for adding command took too long",
+			slog.String("app_id", a.id),
+			slog.String("lock_duration", lockDiff.String()),
+		)
+	}
 
 	a.commands[cmd.ID] = command
 }
