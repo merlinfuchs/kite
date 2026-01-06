@@ -11,8 +11,10 @@ import (
 	"github.com/valyala/fasttemplate"
 )
 
-const templateStartTag = "{{"
-const templateEndTag = "}}"
+const (
+	templateStartTag = "{{"
+	templateEndTag   = "}}"
+)
 
 func Eval(ctx context.Context, expression string, c Context) (thing.Thing, error) {
 	c.Env["ctx"] = proxyContext{ctx: ctx}
@@ -96,17 +98,18 @@ func replaceNewlines(s thing.Thing) thing.Thing {
 		var result strings.Builder
 		result.Grow(len(str))
 
-		for i := 0; i < len(str); i++ {
+		runes := []rune(str)
+		for i := 0; i < len(runes); i++ {
 			// Check for escaped backslash followed by n
-			if i < len(str)-2 && str[i] == '\\' && str[i+1] == '\\' && str[i+2] == 'n' {
+			if i < len(runes)-2 && runes[i] == '\\' && runes[i+1] == '\\' && runes[i+2] == 'n' {
 				result.WriteString("\\n")
-				i += 2 // Skip the next two characters
-			} else if i < len(str)-1 && str[i] == '\\' && str[i+1] == 'n' {
+				i += 2 // Skip the next two runes
+			} else if i < len(runes)-1 && runes[i] == '\\' && runes[i+1] == 'n' {
 				// Regular \n case
 				result.WriteString("\n")
-				i++ // Skip the next character
+				i++ // Skip the next rune
 			} else {
-				result.WriteString(string(str[i]))
+				result.WriteRune(runes[i])
 			}
 		}
 		return thing.NewString(result.String())
