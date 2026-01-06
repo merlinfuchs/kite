@@ -7,6 +7,7 @@ import (
 
 	"github.com/kitecloud/kite/kite-service/internal/api"
 	"github.com/kitecloud/kite/kite-service/internal/config"
+	"github.com/kitecloud/kite/kite-service/internal/core/command"
 	"github.com/kitecloud/kite/kite-service/internal/core/engine"
 	"github.com/kitecloud/kite/kite-service/internal/core/event"
 	"github.com/kitecloud/kite/kite-service/internal/core/gateway"
@@ -91,6 +92,8 @@ func StartServer(c context.Context, cfg *config.Config) error {
 	)
 	engine.Run(ctx)
 
+	commandManager := command.NewCommandManager(pg, pg, pg, pluginRegistry, tokenCrypt)
+
 	handler := event.NewEventHandlerWrapper(engine, pg)
 
 	billingPlans := make([]model.Plan, len(cfg.Billing.Plans))
@@ -137,7 +140,7 @@ func StartServer(c context.Context, cfg *config.Config) error {
 		},
 	},
 		pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg,
-		assetStore, gateway, planManager, pluginRegistry, tokenCrypt,
+		assetStore, gateway, planManager, pluginRegistry, tokenCrypt, commandManager,
 	)
 	address := fmt.Sprintf("%s:%d", cfg.API.Host, cfg.API.Port)
 	if err := apiServer.Serve(ctx, address); err != nil {

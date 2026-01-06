@@ -11,6 +11,9 @@ interface Props {
   logs?: LogEntry[];
   context: FlowContextType;
   hasUnsavedChanges: boolean;
+  hasUndeployedChanges?: boolean;
+  isDeploying?: boolean;
+  onDeploy?: () => void;
   onChange: () => void;
   isSaving: boolean;
   onSave: (data: FlowData) => void;
@@ -24,6 +27,8 @@ function InnerFlowPage({
   hasUnsavedChanges,
   onChange,
   isSaving,
+  hasUndeployedChanges,
+  onDeploy,
   onSave,
   onExit,
 }: Props) {
@@ -42,6 +47,8 @@ function InnerFlowPage({
         <FlowNav
           hasUnsavedChanges={hasUnsavedChanges}
           isSaving={isSaving}
+          hasUndeployedChanges={hasUndeployedChanges}
+          onDeploy={onDeploy}
           onSave={save}
           onExit={onExit}
         />

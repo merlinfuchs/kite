@@ -45,3 +45,6 @@ SELECT id FROM commands WHERE enabled = TRUE;
 
 -- name: DeleteCommand :exec
 DELETE FROM commands WHERE id = $1;
+
+-- name: DinstinctAppIDsWithUndeployedCommands :many
+SELECT DISTINCT app_id FROM commands WHERE last_deployed_at IS NULL OR last_deployed_at < updated_at;

@@ -19,6 +19,7 @@ import {
   CommandCreateRequest,
   CommandCreateResponse,
   CommandDeleteResponse,
+  CommandsDeployResponse,
   CommandsImportRequest,
   CommandsImportResponse,
   CommandUpdateEnabledRequest,
@@ -778,6 +779,20 @@ export function usePluginInstanceUpdateMutation(
     onSuccess: () => {
       client.invalidateQueries({
         queryKey: ["apps", appId, "plugins"],
+      });
+    },
+  });
+}
+
+export function useCommandsDeployMutation(appId: string) {
+  return useMutation({
+    mutationFn: () =>
+      apiRequest<CommandsDeployResponse>(`/v1/apps/${appId}/commands/deploy`, {
+        method: "POST",
+      }),
+    onSuccess: () => {
+      client.invalidateQueries({
+        queryKey: ["apps", appId, "commands"],
       });
     },
   });

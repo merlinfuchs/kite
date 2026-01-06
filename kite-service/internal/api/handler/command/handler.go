@@ -3,10 +3,13 @@ package command
 import (
 	"errors"
 	"fmt"
+	"net/http"
 	"time"
 
+	"github.com/diamondburned/arikawa/v3/utils/httputil"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler"
 	"github.com/kitecloud/kite/kite-service/internal/api/wire"
+	"github.com/kitecloud/kite/kite-service/internal/core/command"
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/internal/store"
 	"github.com/kitecloud/kite/kite-service/internal/util"
@@ -14,12 +17,17 @@ import (
 )
 
 type CommandHandler struct {
-	commandStore store.CommandStore
+	commandStore   store.CommandStore
+	commandManager *command.CommandManager
 }
 
-func NewCommandHandler(commandStore store.CommandStore) *CommandHandler {
+func NewCommandHandler(
+	commandStore store.CommandStore,
+	commandManager *command.CommandManager,
+) *CommandHandler {
 	return &CommandHandler{
-		commandStore: commandStore,
+		commandStore:   commandStore,
+		commandManager: commandManager,
 	}
 }
 
@@ -171,4 +179,28 @@ func (h *CommandHandler) HandleCommandDelete(c *handler.Context) (*wire.CommandD
 	}
 
 	return &wire.CommandDeleteResponse{}, nil
+}
+
+func (h *CommandHandler) HandleCommandsDeploy(c *handler.Context) (*wire.CommandsDeployResponse, error) {
+	err := h.commandManager.DeployCommandsForApp(c.Context(), c.App.ID)
+	if err != nil {
+		var restErr *httputil.HTTPError
+		if errors.As(err, &restErr) {
+			if restErr.Status == http.StatusTooManyRequests {
+				return nil, handler.ErrRateLimit("You are making too many requests. Please try again later.")
+			}
+
+			if restErr.Status == http.StatusBadRequest {
+				return &wire.CommandsDeployResponse{
+					Deployed: false,
+					Error:    restErr.Body,
+				}, nil
+			}
+		}
+		return nil, fmt.Errorf("failed to deploy commands: %w", err)
+	}
+
+	return &wire.CommandsDeployResponse{
+		Deployed: true,
+	}, nil
 }

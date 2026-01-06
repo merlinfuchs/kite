@@ -92,6 +92,30 @@ func (q *Queries) DeletePluginInstance(ctx context.Context, arg DeletePluginInst
 	return err
 }
 
+const dinstinctAppIDsWithUndeployedPluginInstances = `-- name: DinstinctAppIDsWithUndeployedPluginInstances :many
+SELECT DISTINCT app_id FROM plugin_instances WHERE last_deployed_at IS NULL OR last_deployed_at < updated_at
+`
+
+func (q *Queries) DinstinctAppIDsWithUndeployedPluginInstances(ctx context.Context) ([]string, error) {
+	rows, err := q.db.Query(ctx, dinstinctAppIDsWithUndeployedPluginInstances)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []string
+	for rows.Next() {
+		var app_id string
+		if err := rows.Scan(&app_id); err != nil {
+			return nil, err
+		}
+		items = append(items, app_id)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getEnabledPluginInstanceIDs = `-- name: GetEnabledPluginInstanceIDs :many
 SELECT id FROM plugin_instances WHERE enabled = TRUE
 `
