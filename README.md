@@ -97,6 +97,7 @@ services:
 
 volumes:
   kite-local-postgres:
+  kite-local-minio:
 ```
 
 Run the file using `docker-compose up`. It will automatically mount the `kite.toml` file into the container. You should not configure postgres in your config file as it's using the postgres instance from the container.
