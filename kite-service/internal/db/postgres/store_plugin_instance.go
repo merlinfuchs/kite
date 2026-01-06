@@ -154,6 +154,10 @@ func (c *Client) DeletePluginInstance(ctx context.Context, appID string, pluginI
 	return nil
 }
 
+func (c *Client) DinstinctAppIDsWithUndeployedPluginInstances(ctx context.Context) ([]string, error) {
+	return c.Q.DinstinctAppIDsWithUndeployedPluginInstances(ctx)
+}
+
 func rowToPluginInstance(row pgmodel.PluginInstance) (*model.PluginInstance, error) {
 	var config plugin.ConfigValues
 	if err := json.Unmarshal(row.Config, &config); err != nil {

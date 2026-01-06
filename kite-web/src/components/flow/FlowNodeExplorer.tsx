@@ -194,7 +194,7 @@ export default function FlowNodeExplorer({
           s.nodes.length > 0 &&
           (!s.contextTypes || s.contextTypes.includes(contextType))
       );
-  }, [category, contextType, search]);
+  }, [sections, contextType, search]);
 
   return (
     <div className="w-full h-full flex flex-col">

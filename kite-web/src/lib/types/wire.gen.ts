@@ -255,6 +255,10 @@ export interface CommandUpdateEnabledRequest {
 }
 export type CommandUpdateEnabledResponse = Command;
 export type CommandDeleteResponse = Empty;
+export interface CommandsDeployResponse {
+  deployed: boolean;
+  error?: Record<string, any> | null;
+}
 
 //////////
 // source: event_listener.go

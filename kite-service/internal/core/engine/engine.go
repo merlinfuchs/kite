@@ -31,11 +31,13 @@ func NewEngine(
 }
 
 func (e *Engine) Run(ctx context.Context) {
-	updateTicker := time.NewTicker(1 * time.Second)
-	removeTicker := time.NewTicker(60 * time.Second)
-	deployTicker := time.NewTicker(60 * time.Second)
-
 	go func() {
+		updateTicker := time.NewTicker(1 * time.Second)
+		defer updateTicker.Stop()
+
+		removeTicker := time.NewTicker(60 * time.Second)
+		defer removeTicker.Stop()
+
 		for {
 			select {
 			case <-ctx.Done():
@@ -82,8 +84,6 @@ func (e *Engine) Run(ctx context.Context) {
 						slog.String("error", err.Error()),
 					)
 				}
-			case <-deployTicker.C:
-				e.deployCommands(ctx)
 			}
 		}
 	}()
@@ -238,36 +238,6 @@ func (e *Engine) removeDanglingEventListeners(ctx context.Context) error {
 	}
 
 	return nil
-}
-
-func (e *Engine) deployCommands(ctx context.Context) {
-	e.Lock()
-	defer e.Unlock()
-
-	for _, app := range e.apps {
-		if util.CluserForKey(app.id, e.env.Config.ClusterCount) != e.env.Config.ClusterIndex {
-			continue
-		}
-
-		if app.hasUndeployedChanges {
-			go func() {
-				ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
-				defer cancel()
-
-				slog.Debug(
-					"Deploying commands for app",
-					slog.String("app_id", app.id),
-				)
-				if err := app.DeployCommands(ctx); err != nil {
-					slog.Error(
-						"Failed to deploy commands",
-						slog.String("app_id", app.id),
-						slog.String("error", err.Error()),
-					)
-				}
-			}()
-		}
-	}
 }
 
 // HandleEvent blocks until the event is handled by the corresponding app.

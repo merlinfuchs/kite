@@ -43,3 +43,6 @@ SELECT id FROM plugin_instances WHERE enabled = TRUE;
 
 -- name: DeletePluginInstance :exec
 DELETE FROM plugin_instances WHERE app_id = $1 AND plugin_id = $2;
+
+-- name: DinstinctAppIDsWithUndeployedPluginInstances :many
+SELECT DISTINCT app_id FROM plugin_instances WHERE last_deployed_at IS NULL OR last_deployed_at < updated_at;

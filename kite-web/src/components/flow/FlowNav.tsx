@@ -1,28 +1,32 @@
-import { FlowData, NodeData, NodeProps } from "@/lib/flow/dataSchema";
-import { useCallback, useEffect } from "react";
+import { FlowData, NodeProps } from "@/lib/flow/dataSchema";
+import { useHookedTheme } from "@/lib/hooks/theme";
 import { Node, useReactFlow } from "@xyflow/react";
 import {
   ArrowLeftIcon,
+  ArrowUpIcon,
   CheckIcon,
-  LogsIcon,
-  MessageSquareWarningIcon,
   MoonStarIcon,
   RefreshCwIcon,
   SunIcon,
 } from "lucide-react";
-import { useHookedTheme } from "@/lib/hooks/theme";
+import { useCallback, useEffect } from "react";
 
 interface Props {
   hasUnsavedChanges: boolean;
+  hasUndeployedChanges?: boolean;
   isSaving: boolean;
+  isDeploying?: boolean;
   onSave: (d: FlowData) => void;
+  onDeploy?: () => void;
   onExit: () => void;
 }
 
 export default function FlowNav({
   hasUnsavedChanges,
+  hasUndeployedChanges,
   isSaving,
   onSave,
+  onDeploy,
   onExit,
 }: Props) {
   const { theme, setTheme } = useHookedTheme();
@@ -80,6 +84,21 @@ export default function FlowNav({
             <div>No Unsaved Changes</div>
           </div>
         )}
+        {hasUndeployedChanges ? (
+          <button
+            className="flex space-x-2 text-foreground hover:text-white items-center disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled={hasUnsavedChanges}
+            onClick={onDeploy}
+          >
+            <ArrowUpIcon className="h-5 w-5" />
+            <div>Deploy Changes</div>
+          </button>
+        ) : hasUndeployedChanges === false ? (
+          <div className="flex space-x-2 text-foreground/80 items-center">
+            <CheckIcon className="h-5 w-5" />
+            <div>Changed Deployed</div>
+          </div>
+        ) : null}
       </div>
       {/*isDeploying ? (
         <div className="flex space-x-2 text-foreground hover:text-white items-center">

@@ -515,7 +515,7 @@ function CommandArgumentChoicesInput({ data, updateData, errors }: InputProps) {
     updateData({
       command_argument_choices: [],
     });
-  }, [updateData, data]);
+  }, [updateData]);
 
   const removeChoice = useCallback(
     (i: number) => {

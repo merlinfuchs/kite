@@ -152,6 +152,10 @@ func (c *Client) DeleteCommand(ctx context.Context, id string) error {
 	return nil
 }
 
+func (c *Client) DinstinctAppIDsWithUndeployedCommands(ctx context.Context) ([]string, error) {
+	return c.Q.DinstinctAppIDsWithUndeployedCommands(ctx)
+}
+
 func rowToCommand(row pgmodel.Command) (*model.Command, error) {
 	var flowSource flow.FlowData
 	if err := json.Unmarshal(row.FlowSource, &flowSource); err != nil {

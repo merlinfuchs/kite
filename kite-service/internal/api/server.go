@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/kitecloud/kite/kite-service/internal/config"
+	"github.com/kitecloud/kite/kite-service/internal/core/command"
 	"github.com/kitecloud/kite/kite-service/internal/core/plan"
 	"github.com/kitecloud/kite/kite-service/internal/store"
 	"github.com/kitecloud/kite/kite-service/internal/util"
@@ -66,6 +67,7 @@ func NewAPIServer(
 	planManager *plan.PlanManager,
 	pluginRegistry *plugin.Registry,
 	tokenCrypt *util.SymmetricCrypt,
+	commandManager *command.CommandManager,
 ) *APIServer {
 	s := &APIServer{
 		config: config,
@@ -91,6 +93,7 @@ func NewAPIServer(
 		planManager,
 		pluginRegistry,
 		tokenCrypt,
+		commandManager,
 	)
 	return s
 }

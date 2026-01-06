@@ -21,8 +21,7 @@ type App struct {
 
 	id string
 
-	env                  Env
-	hasUndeployedChanges bool
+	env Env
 
 	pluginInstances map[string]*pluginInstance
 	commands        map[string]*Command
@@ -46,7 +45,10 @@ func NewApp(
 func (a *App) AddPluginInstance(pluginInstance *model.PluginInstance) {
 	plugin := a.env.PluginRegistry.Plugin(pluginInstance.PluginID)
 	if plugin == nil {
-		slog.With("plugin_id", pluginInstance.PluginID).Error("Unknown plugin")
+		slog.Warn(
+			"Unknown plugin",
+			slog.String("plugin_id", pluginInstance.PluginID),
+		)
 		return
 	}
 
@@ -79,10 +81,6 @@ func (a *App) AddPluginInstance(pluginInstance *model.PluginInstance) {
 
 	a.Lock()
 	defer a.Unlock()
-
-	if !pluginInstance.LastDeployedAt.Valid || pluginInstance.LastDeployedAt.Time.Before(pluginInstance.UpdatedAt) {
-		a.hasUndeployedChanges = true
-	}
 }
 
 func (a *App) RemoveDanglingPluginInstances(pluginInstanceIDs []string) {
@@ -102,7 +100,6 @@ func (a *App) RemoveDanglingPluginInstances(pluginInstanceIDs []string) {
 			}
 
 			delete(a.pluginInstances, pluginInstanceID)
-			a.hasUndeployedChanges = true
 		}
 	}
 }
@@ -121,10 +118,6 @@ func (a *App) AddCommand(cmd *model.Command) {
 	defer a.Unlock()
 
 	a.commands[cmd.ID] = command
-
-	if !cmd.LastDeployedAt.Valid || cmd.LastDeployedAt.Time.Before(cmd.UpdatedAt) {
-		a.hasUndeployedChanges = true
-	}
 }
 
 func (a *App) RemoveDanglingCommands(commandIDs []string) {
@@ -139,7 +132,6 @@ func (a *App) RemoveDanglingCommands(commandIDs []string) {
 	for cmdID := range a.commands {
 		if _, ok := commandIDMap[cmdID]; !ok {
 			delete(a.commands, cmdID)
-			a.hasUndeployedChanges = true
 		}
 	}
 }
@@ -172,24 +164,7 @@ func (a *App) RemoveDanglingEventListeners(listenerIDs []string) {
 	for listenerID := range a.listeners {
 		if _, ok := listenerIDMap[listenerID]; !ok {
 			delete(a.listeners, listenerID)
-			a.hasUndeployedChanges = true
 		}
-	}
-}
-
-func (a *App) createLogEntry(level model.LogLevel, message string) {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
-	defer cancel()
-
-	// Create log entry which will be displayed in the dashboard
-	err := a.env.LogStore.CreateLogEntry(ctx, model.LogEntry{
-		AppID:     a.id,
-		Level:     level,
-		Message:   message,
-		CreatedAt: time.Now().UTC(),
-	})
-	if err != nil {
-		slog.With("error", err).With("app_id", a.id).Error("Failed to create log entry from engine app")
 	}
 }
 

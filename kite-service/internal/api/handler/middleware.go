@@ -103,7 +103,7 @@ func RateLimitByUser(tokens uint64, interval time.Duration) MiddlewareFunc {
 
 			if !ok {
 				c.SetHeader("Retry-After", resetTime)
-				return ErrRateLimit("Rate limit exceeded, try again later")
+				return ErrRateLimit("You are making too many requests. Please try again later.")
 			}
 
 			return next(c)
