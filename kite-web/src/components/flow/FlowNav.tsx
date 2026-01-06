@@ -79,14 +79,14 @@ export default function FlowNav({
             <div>Save Changes</div>
           </button>
         ) : (
-          <div className="flex space-x-2 text-foreground/80 items-center">
+          <div className="flex space-x-2 text-foreground/70 items-center">
             <CheckIcon className="h-5 w-5" />
             <div>No Unsaved Changes</div>
           </div>
         )}
         {hasUndeployedChanges ? (
           <button
-            className="flex space-x-2 text-foreground hover:text-white items-center disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex space-x-2 text-foreground/80 hover:text-foreground items-center disabled:opacity-50 disabled:cursor-not-allowed"
             disabled={hasUnsavedChanges}
             onClick={onDeploy}
           >
@@ -94,26 +94,12 @@ export default function FlowNav({
             <div>Deploy Changes</div>
           </button>
         ) : hasUndeployedChanges === false ? (
-          <div className="flex space-x-2 text-foreground/80 items-center">
+          <div className="flex space-x-2 text-foreground/70 items-center">
             <CheckIcon className="h-5 w-5" />
             <div>Changed Deployed</div>
           </div>
         ) : null}
       </div>
-      {/*isDeploying ? (
-        <div className="flex space-x-2 text-foreground hover:text-white items-center">
-          <RefreshCwIcon className="h-5 w-5 animate-spin" />
-          <div>Deploying Changes</div>
-        </div>
-      ) : (
-        <button
-          className="flex space-x-2 text-foreground hover:text-white items-center"
-          onClick={deploy}
-        >
-          <ArrowUpIcon className="h-5 w-5" />
-          <div>Deploy Changes</div>
-        </button>
-      )*/}
       <div>
         {theme === "dark" ? (
           <MoonStarIcon
