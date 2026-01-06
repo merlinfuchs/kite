@@ -51,6 +51,7 @@ import {
   NodeData,
   nodeEntryCommandDataSchema,
   nodeEntryComponentButtonDataSchema,
+  nodeEntryComponentSelectDataSchema,
   nodeEntryEventDataSchema,
   nodeOptionCommandArgumentDataSchema,
   nodeOptionCommandContextsSchema,
@@ -126,6 +127,16 @@ export const nodeTypes: Record<string, NodeValues> = {
     defaultDescription:
       "This gets triggered when a user clicks the button. Drop different actions here!",
     dataSchema: nodeEntryComponentButtonDataSchema,
+    dataFields: [],
+    fixed: true,
+  },
+  entry_component_select: {
+    color: entryColor,
+    icon: "list",
+    defaultTitle: "Select Menu",
+    defaultDescription:
+      "This gets triggered when a user selects an option. Drop different actions here!",
+    dataSchema: nodeEntryComponentSelectDataSchema,
     dataFields: [],
     fixed: true,
   },
