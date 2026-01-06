@@ -59,7 +59,7 @@ export function CommandDeployDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       {children && <DialogTrigger asChild>{children}</DialogTrigger>}
-      <DialogContent className="sm:max-w-xl">
+      <DialogContent className="sm:max-w-xl w-full overflow-x-auto">
         <DialogHeader>
           <DialogTitle>Deploy Commands</DialogTitle>
           <DialogDescription>
