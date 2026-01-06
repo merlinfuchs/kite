@@ -151,14 +151,16 @@ func (m *GatewayManager) removeDanglingGateways(ctx context.Context, appIDs []st
 	var removed int
 	for id, gateway := range m.gateways {
 		if _, ok := lookupMap[id]; !ok {
-			// Close should timeout after 5 seconds
-			if err := gateway.Close(); err != nil {
-				slog.Error(
-					"Failed to close gateway",
-					slog.String("app_id", id),
-					slog.String("error", err.Error()),
-				)
-			}
+			go func() {
+				// Close should timeout after 5 seconds
+				if err := gateway.Close(); err != nil {
+					slog.Error(
+						"Failed to close gateway",
+						slog.String("app_id", id),
+						slog.String("error", err.Error()),
+					)
+				}
+			}()
 
 			delete(m.gateways, id)
 			removed++
@@ -182,11 +184,13 @@ func (m *GatewayManager) addGateway(ctx context.Context, app *model.App) error {
 			return nil
 		}
 
-		// Some times arikawa fails to keep the gateway alive, so we need to
-		// re-add it.
-		if err := g.Close(); err != nil {
-			return fmt.Errorf("failed to close gateway: %w", err)
-		}
+		go func() {
+			// Some times arikawa fails to keep the gateway alive, so we need to
+			// re-add it.
+			if err := g.Close(); err != nil {
+				slog.Error("Failed to close gateway", slog.String("app_id", app.ID), slog.String("error", err.Error()))
+			}
+		}()
 		delete(m.gateways, app.ID)
 	}
 
