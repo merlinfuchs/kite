@@ -20,6 +20,10 @@ func CompileComponentButton(data FlowData) (*CompiledFlowNode, error) {
 	return compile(data, FlowNodeTypeEntryComponentButton)
 }
 
+func CompileComponentSelect(data FlowData) (*CompiledFlowNode, error) {
+	return compile(data, FlowNodeTypeEntryComponentSelect)
+}
+
 func CompileEventListener(data FlowData) (*CompiledFlowNode, error) {
 	return compile(data, FlowNodeTypeEntryEvent)
 }
@@ -105,11 +109,16 @@ type ConnectedFlowNodes struct {
 func (n *CompiledFlowNode) IsEntry() bool {
 	return n.Type == FlowNodeTypeEntryCommand ||
 		n.Type == FlowNodeTypeEntryComponentButton ||
+		n.Type == FlowNodeTypeEntryComponentSelect ||
 		n.Type == FlowNodeTypeEntryEvent
 }
 
 func (n *CompiledFlowNode) IsComponentButtonEntry() bool {
 	return n.Type == FlowNodeTypeEntryComponentButton
+}
+
+func (n *CompiledFlowNode) IsComponentSelectEntry() bool {
+	return n.Type == FlowNodeTypeEntryComponentSelect
 }
 
 func (n *CompiledFlowNode) IsEventListenerEntry() bool {
