@@ -30,6 +30,7 @@ type InteractionEnv struct {
 	Member     any                      `expr:"member" json:"member"`
 	Command    *CommandEnv              `expr:"command" json:"command"`
 	Components map[string]*ComponentEnv `expr:"components" json:"components"`
+	Values     []string                 `expr:"values" json:"values"`
 }
 
 func NewInteractionEnv(i *discord.InteractionEvent) *InteractionEnv {
@@ -39,6 +40,7 @@ func NewInteractionEnv(i *discord.InteractionEvent) *InteractionEnv {
 		ID:         i.ID.String(),
 		Channel:    NewSnowflakeEnv(i.ChannelID),
 		Components: NewComponentsEnv(i),
+		Values:     []string{},
 	}
 
 	if i.Member != nil {
@@ -57,6 +59,11 @@ func NewInteractionEnv(i *discord.InteractionEvent) *InteractionEnv {
 		e.Command = NewCommandEnv(i)
 	}
 
+	// Extract selected values from select menu interactions
+	if selectData, ok := i.Data.(*discord.StringSelectInteraction); ok {
+		e.Values = selectData.Values
+	}
+
 	return e
 }
 
@@ -72,6 +79,7 @@ func NewContextFromInteraction(i *discord.InteractionEvent, session *state.State
 			"user":        interactionEnv.User,
 			"member":      interactionEnv.Member,
 			"app":         NewAppEnv(session),
+			"values":      interactionEnv.Values,
 
 			"arg": func(name string) any {
 				if interactionEnv.Command == nil {
@@ -89,6 +97,12 @@ func NewContextFromInteraction(i *discord.InteractionEvent, session *state.State
 					return component.Value
 				}
 				return nil
+			},
+			"value": func(index int) any {
+				if index < 0 || index >= len(interactionEnv.Values) {
+					return nil
+				}
+				return interactionEnv.Values[index]
 			},
 		},
 	}
