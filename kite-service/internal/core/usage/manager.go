@@ -40,7 +40,7 @@ func NewUsageManager(
 
 func (m *UsageManager) Run(ctx context.Context) {
 	ticker := time.NewTicker(1 * time.Minute)
-	cleanupTicker := time.NewTicker(1 * time.Second)
+	cleanupTicker := time.NewTicker(1 * time.Hour)
 
 	go func() {
 		for {

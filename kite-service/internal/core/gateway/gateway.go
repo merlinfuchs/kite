@@ -171,7 +171,7 @@ func (g *Gateway) Update(ctx context.Context, app *model.App) {
 }
 
 func (g *Gateway) createLogEntry(level model.LogLevel, message string) {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
 	// Create log entry which will be displayed in the dashboard
