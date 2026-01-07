@@ -16,6 +16,8 @@ import {
   DiscordImageAttachment,
   DiscordMessage,
   DiscordMessages,
+  DiscordStringSelectMenu,
+  DiscordStringSelectMenuOption,
   DiscordVideoAttachment,
 } from "@skyra/discord-components-react";
 import MessageMarkdown from "./MessageMarkdown";
@@ -141,6 +143,25 @@ export default function MessagePreview({
                     >
                       {comp.label}
                     </DiscordButton>
+                  ) : comp.type === 3 ? (
+                    <DiscordStringSelectMenu
+                      key={comp.id}
+                      placeholder={comp.placeholder || "Select an option"}
+                      disabled={comp.disabled}
+                    >
+                      {comp.options.map((opt) => (
+                        <DiscordStringSelectMenuOption
+                          key={opt.id}
+                          label={opt.label}
+                          description={opt.description}
+                          emoji={
+                            opt.emoji?.name
+                              ? getTwemojiUrl(opt.emoji.name)
+                              : undefined
+                          }
+                        />
+                      ))}
+                    </DiscordStringSelectMenu>
                   ) : null
                 )}
               </DiscordActionRow>
