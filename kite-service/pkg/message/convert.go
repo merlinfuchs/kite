@@ -226,9 +226,48 @@ func (c *ComponentData) ToComponent(opts ConvertOptions) discord.InteractiveComp
 			Disabled: c.Disabled,
 			CustomID: customID,
 		}
+	case int(discord.StringSelectComponentType):
+		var customID discord.ComponentID
+		if opts.ComponentIDFactory != nil {
+			customID = opts.ComponentIDFactory(c)
+		} else {
+			customID = discord.ComponentID(c.FlowSourceID)
+		}
+
+		options := make([]discord.SelectOption, len(c.Options))
+		for i, opt := range c.Options {
+			options[i] = opt.ToSelectOption()
+		}
+
+		return &discord.StringSelectComponent{
+			CustomID:    customID,
+			Placeholder: c.Placeholder,
+			Disabled:    c.Disabled,
+			Options:     options,
+			ValueLimits: [2]int{c.MinValues, c.MaxValues},
+		}
 	}
 
 	return nil
+}
+
+func (o *ComponentSelectOptionData) ToSelectOption() discord.SelectOption {
+	if o == nil {
+		return discord.SelectOption{}
+	}
+
+	var emoji *discord.ComponentEmoji
+	if o.Emoji != nil {
+		emoji = o.Emoji.ToEmoji()
+	}
+
+	return discord.SelectOption{
+		Label:       o.Label,
+		Value:       o.FlowSourceID,
+		Description: o.Description,
+		Emoji:       emoji,
+		Default:     o.Default,
+	}
 }
 
 func (e *ComponentEmojiData) ToEmoji() *discord.ComponentEmoji {

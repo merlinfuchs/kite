@@ -36,7 +36,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 	defer ctx.endOperation()
 
 	switch n.Type {
-	case FlowNodeTypeEntryCommand, FlowNodeTypeEntryComponentButton:
+	case FlowNodeTypeEntryCommand, FlowNodeTypeEntryComponentButton, FlowNodeTypeEntryComponentSelect:
 		if !ctx.IsEntry() {
 			return fmt.Errorf("command entry isn't the entry node")
 		}

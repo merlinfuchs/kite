@@ -27,18 +27,23 @@ func NewMessageInstance(
 	flows := make(map[string]*flow.CompiledFlowNode, len(msg.FlowSources))
 
 	for id, flowSource := range msg.FlowSources {
-		flow, err := flow.CompileComponentButton(flowSource)
+		// Try to compile as button first, then as select menu
+		compiledFlow, err := flow.CompileComponentButton(flowSource)
 		if err != nil {
-			slog.Error(
-				"Failed to compile component button flow",
-				slog.String("app_id", appID),
-				slog.String("message_id", msg.MessageID),
-				slog.String("error", err.Error()),
-			)
-			continue
+			// Try compiling as select menu
+			compiledFlow, err = flow.CompileComponentSelect(flowSource)
+			if err != nil {
+				slog.Error(
+					"Failed to compile component flow",
+					slog.String("app_id", appID),
+					slog.String("message_id", msg.MessageID),
+					slog.String("error", err.Error()),
+				)
+				continue
+			}
 		}
 
-		flows[id] = flow
+		flows[id] = compiledFlow
 	}
 
 	return &MessageInstance{
@@ -55,12 +60,16 @@ func (m *MessageInstance) HandleEvent(appID string, session *state.State, event 
 		return
 	}
 
-	d, ok := i.InteractionEvent.Data.(*discord.ButtonInteraction)
-	if !ok {
+	var flowSourceID string
+
+	switch d := i.InteractionEvent.Data.(type) {
+	case *discord.ButtonInteraction:
+		flowSourceID = string(d.CustomID)
+	case *discord.StringSelectInteraction:
+		flowSourceID = string(d.CustomID)
+	default:
 		return
 	}
-
-	flowSourceID := string(d.CustomID)
 
 	links := entityLinks{
 		MessageID:         null.NewString(m.msg.MessageID, true),
