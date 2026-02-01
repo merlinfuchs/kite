@@ -267,6 +267,7 @@ export const selectMenuOptionSchema = z.object({
   label: z.string().min(1).max(100),
   description: z.optional(z.string().min(1).max(100)),
   emoji: z.optional(emojiSchema),
+  default: z.optional(z.boolean()),
   flow_source_id: z.string().default(() => getUniqueId().toString()),
 });
 
@@ -279,6 +280,8 @@ export const selectMenuSchema = z.object({
   type: z.literal(3),
   placeholder: z.optional(z.string().max(150)),
   disabled: z.optional(z.boolean()),
+  min_values: z.optional(z.number().min(0).max(25)),
+  max_values: z.optional(z.number().min(1).max(25)),
   options: z.array(selectMenuOptionSchema).min(1).max(25),
   flow_source_id: z.string().default(() => getUniqueId().toString()),
 });

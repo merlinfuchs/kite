@@ -270,6 +270,7 @@ export const selectMenuOptionSchema = z.object({
   label: z.preprocess((d) => d ?? undefined, z.string().default("")),
   description: z.preprocess((d) => d || undefined, z.optional(z.string())),
   emoji: z.preprocess((d) => d ?? undefined, z.optional(emojiSchema)),
+  default: z.preprocess((d) => d ?? undefined, z.optional(z.boolean())),
   flow_source_id: z.string().default(() => getUniqueId().toString()),
 });
 
@@ -282,6 +283,8 @@ export const selectMenuSchema = z.object({
   type: z.literal(3),
   placeholder: z.preprocess((d) => d ?? undefined, z.optional(z.string())),
   disabled: z.preprocess((d) => d ?? undefined, z.optional(z.boolean())),
+  min_values: z.preprocess((d) => d ?? undefined, z.optional(z.number())),
+  max_values: z.preprocess((d) => d ?? undefined, z.optional(z.number())),
   options: z.preprocess(
     (d) => d ?? undefined,
     z.array(selectMenuOptionSchema).default([])

@@ -57,6 +57,20 @@ export default function MessageComponentSelectMenu({
     ])
   );
 
+  const [minValues, setMinValues] = useCurrentMessage(
+    useShallow((state) => [
+      state.getSelectMenu(rowIndex, compIndex)?.min_values,
+      state.setSelectMenuMinValues,
+    ])
+  );
+
+  const [maxValues, setMaxValues] = useCurrentMessage(
+    useShallow((state) => [
+      state.getSelectMenu(rowIndex, compIndex)?.max_values,
+      state.setSelectMenuMaxValues,
+    ])
+  );
+
   const options = useCurrentMessage(
     useShallow((state) =>
       (state.getSelectMenu(rowIndex, compIndex)?.options || []).map((o) => o.id)
@@ -81,12 +95,13 @@ export default function MessageComponentSelectMenu({
     ])
   );
 
-  const [setOptionLabel, setOptionDescription, setOptionEmoji] =
+  const [setOptionLabel, setOptionDescription, setOptionEmoji, setOptionDefault] =
     useCurrentMessage(
       useShallow((state) => [
         state.setSelectMenuOptionLabel,
         state.setSelectMenuOptionDescription,
         state.setSelectMenuOptionEmoji,
+        state.setSelectMenuOptionDefault,
       ])
     );
 
@@ -158,6 +173,37 @@ export default function MessageComponentSelectMenu({
           </div>
         </div>
 
+        <div className="flex space-x-3">
+          <div className="flex-1">
+            <MessageInput
+              type="select"
+              label="Min Values"
+              placeholder="Select min values"
+              value={String(minValues ?? 1)}
+              options={Array.from({ length: 26 }, (_, i) => ({
+                label: String(i),
+                value: String(i),
+              }))}
+              onChange={(v) => setMinValues(rowIndex, compIndex, parseInt(v) || undefined)}
+              validationPath={`components.${rowIndex}.components.${compIndex}.min_values`}
+            />
+          </div>
+          <div className="flex-1">
+            <MessageInput
+              type="select"
+              label="Max Values"
+              placeholder="Select max values"
+              value={String(maxValues ?? 1)}
+              options={Array.from({ length: 25 }, (_, i) => ({
+                label: String(i + 1),
+                value: String(i + 1),
+              }))}
+              onChange={(v) => setMaxValues(rowIndex, compIndex, parseInt(v) || undefined)}
+              validationPath={`components.${rowIndex}.components.${compIndex}.max_values`}
+            />
+          </div>
+        </div>
+
         <MessageCollapsibleSection
           title="Options"
           size="sm"
@@ -184,6 +230,9 @@ export default function MessageComponentSelectMenu({
               }
               setEmoji={(emoji) =>
                 setOptionEmoji(rowIndex, compIndex, optionIndex, emoji)
+              }
+              setDefault={(isDefault) =>
+                setOptionDefault(rowIndex, compIndex, optionIndex, isDefault)
               }
             />
           ))}
@@ -233,6 +282,7 @@ function SelectMenuOption({
   setLabel,
   setDescription,
   setEmoji,
+  setDefault,
 }: {
   rowIndex: number;
   compIndex: number;
@@ -245,6 +295,7 @@ function SelectMenuOption({
   setLabel: (label: string) => void;
   setDescription: (description: string | undefined) => void;
   setEmoji: (emoji: { id?: string; name: string; animated: boolean } | undefined) => void;
+  setDefault: (isDefault: boolean | undefined) => void;
 }) {
   const option = useCurrentMessage((state) => {
     const menu = state.getSelectMenu(rowIndex, compIndex);
@@ -309,14 +360,27 @@ function SelectMenuOption({
             validationPath={`components.${rowIndex}.components.${compIndex}.options.${optionIndex}.label`}
           />
         </div>
-        <MessageInput
-          type="text"
-          label="Description"
-          maxLength={100}
-          value={option.description || ""}
-          onChange={(v) => setDescription(v || undefined)}
-          validationPath={`components.${rowIndex}.components.${compIndex}.options.${optionIndex}.description`}
-        />
+        <div className="flex space-x-2">
+          <div className="flex-1">
+            <MessageInput
+              type="text"
+              label="Description"
+              maxLength={100}
+              value={option.description || ""}
+              onChange={(v) => setDescription(v || undefined)}
+              validationPath={`components.${rowIndex}.components.${compIndex}.options.${optionIndex}.description`}
+            />
+          </div>
+          <div className="flex-none">
+            <MessageInput
+              type="toggle"
+              label="Default"
+              value={option.default || false}
+              onChange={(v) => setDefault(v || undefined)}
+              validationPath={`components.${rowIndex}.components.${compIndex}.options.${optionIndex}.default`}
+            />
+          </div>
+        </div>
       </MessageCollapsibleSection>
     </Card>
   );
