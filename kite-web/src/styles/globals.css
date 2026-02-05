@@ -96,3 +96,10 @@
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
+
+/* Prevent text wrapping inside the Discord select menu shadow DOM.
+   white-space is inherited and crosses the shadow boundary. */
+discord-string-select-menu {
+  white-space: nowrap;
+  overflow: hidden;
+}

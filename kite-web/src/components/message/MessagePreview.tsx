@@ -38,6 +38,10 @@ const buttonStyles = {
   5: "secondary",
 } as const;
 
+const previewSelectPlaceholderMaxChars = 18;
+const previewSelectOptionLabelMaxChars = 24;
+const previewSelectOptionDescriptionMaxChars = 32;
+
 export default function MessagePreview({
   msg,
   lightTheme,
@@ -146,14 +150,22 @@ export default function MessagePreview({
                   ) : comp.type === 3 ? (
                     <DiscordStringSelectMenu
                       key={comp.id}
-                      placeholder={comp.placeholder || "Select an option"}
+                      placeholder={formatPreviewSelectPlaceholder(
+                        comp.placeholder
+                      )}
                       disabled={comp.disabled}
                     >
                       {comp.options.map((opt) => (
                         <DiscordStringSelectMenuOption
                           key={opt.id}
-                          label={opt.label}
-                          description={opt.description}
+                          label={truncatePreviewText(
+                            opt.label,
+                            previewSelectOptionLabelMaxChars
+                          )}
+                          description={truncatePreviewText(
+                            opt.description,
+                            previewSelectOptionDescriptionMaxChars
+                          )}
                           emoji={
                             opt.emoji?.name
                               ? getTwemojiUrl(opt.emoji.name)
@@ -228,4 +240,19 @@ function getTwemojiUrl(emoji: string) {
   const codePoints = emoji.codePointAt(0)?.toString(16);
   if (!codePoints) return "";
   return `${baseUrl}${codePoints}.png`;
+}
+
+function truncatePreviewText(
+  value: string | undefined,
+  maxChars: number
+): string | undefined {
+  if (!value) return undefined;
+
+  const normalized = value.replace(/\s+/g, " ").trim();
+  if (normalized.length <= maxChars) return normalized;
+  return `${normalized.slice(0, maxChars - 1).trimEnd()}…`;
+}
+
+function formatPreviewSelectPlaceholder(value: string | undefined): string {
+  return truncatePreviewText(value, previewSelectPlaceholderMaxChars) || "Select an option";
 }
