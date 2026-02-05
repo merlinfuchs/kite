@@ -872,6 +872,7 @@ export const createMessageStore = (initial?: Message) => {
               selectMenu.options.splice(k + 1, 0, {
                 ...option,
                 id: getUniqueId(),
+                flow_source_id: getUniqueId().toString(),
               });
             }),
           deleteSelectMenuOption: (i: number, j: number, k: number) =>

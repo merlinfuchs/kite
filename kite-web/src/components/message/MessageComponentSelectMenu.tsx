@@ -184,7 +184,14 @@ export default function MessageComponentSelectMenu({
                 label: String(i),
                 value: String(i),
               }))}
-              onChange={(v) => setMinValues(rowIndex, compIndex, parseInt(v) || undefined)}
+              onChange={(v) => {
+                const parsed = Number.parseInt(v, 10);
+                setMinValues(
+                  rowIndex,
+                  compIndex,
+                  Number.isNaN(parsed) ? undefined : parsed
+                );
+              }}
               validationPath={`components.${rowIndex}.components.${compIndex}.min_values`}
             />
           </div>
@@ -198,7 +205,14 @@ export default function MessageComponentSelectMenu({
                 label: String(i + 1),
                 value: String(i + 1),
               }))}
-              onChange={(v) => setMaxValues(rowIndex, compIndex, parseInt(v) || undefined)}
+              onChange={(v) => {
+                const parsed = Number.parseInt(v, 10);
+                setMaxValues(
+                  rowIndex,
+                  compIndex,
+                  Number.isNaN(parsed) ? undefined : parsed
+                );
+              }}
               validationPath={`components.${rowIndex}.components.${compIndex}.max_values`}
             />
           </div>
