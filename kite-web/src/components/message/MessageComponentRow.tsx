@@ -11,6 +11,7 @@ import {
 import { Button } from "../ui/button";
 import { getUniqueId } from "@/lib/utils";
 import MessageComponentButton from "./MessageComponentButton";
+import MessageComponentSelectMenu from "./MessageComponentSelectMenu";
 
 export default function MessageComponentRow({
   rowIndex,
@@ -29,6 +30,9 @@ export default function MessageComponentRow({
   );
   const isButtonRow = useCurrentMessage((state) =>
     state.components[rowIndex].components.every((c) => c.type === 2)
+  );
+  const isSelectMenuRow = useCurrentMessage((state) =>
+    state.components[rowIndex].components.some((c) => c.type === 3)
   );
   const [moveUp, moveDown, duplicate, remove] = useCurrentMessage(
     useShallow((state) => [
@@ -122,9 +126,20 @@ export default function MessageComponentRow({
               </Button>
             </div>
           </>
+        ) : isSelectMenuRow ? (
+          <>
+            {components.map((id, i) => (
+              <MessageComponentSelectMenu
+                key={id}
+                rowIndex={rowIndex}
+                compIndex={i}
+                disableFlowEditor={disableFlowEditor}
+              />
+            ))}
+          </>
         ) : (
           <div className="text-muted-foreground">
-            select menus aren&apos;t supported yet
+            Unknown component type
           </div>
         )}
       </MessageCollapsibleSection>
