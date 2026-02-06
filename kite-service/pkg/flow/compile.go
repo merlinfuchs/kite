@@ -24,6 +24,14 @@ func CompileComponentSelect(data FlowData) (*CompiledFlowNode, error) {
 	return compile(data, FlowNodeTypeEntryComponentSelect)
 }
 
+func CompileComponentTextDisplay(data FlowData) (*CompiledFlowNode, error) {
+    return compile(data, FlowNodeTypeEntryComponentTextDisplay)
+}
+
+func CompileComponentSection(data FlowData) (*CompiledFlowNode, error) {
+    return compile(data, FlowNodeTypeEntryComponentSection)
+}
+
 func CompileEventListener(data FlowData) (*CompiledFlowNode, error) {
 	return compile(data, FlowNodeTypeEntryEvent)
 }

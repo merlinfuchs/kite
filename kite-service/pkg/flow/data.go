@@ -45,6 +45,18 @@ const (
 	FlowNodeTypeEntryComponentButton FlowNodeType = "entry_component_button"
 	FlowNodeTypeEntryComponentSelect FlowNodeType = "entry_component_select"
 
+	FlowNodeTypeEntryComponentSection      		FlowNodeType = "entry_component_section"
+    FlowNodeTypeEntryComponentTextDisplay  		FlowNodeType = "entry_component_text_display"
+    FlowNodeTypeEntryComponentMediaGallery 		FlowNodeType = "entry_component_media_gallery"
+	FlowNodeTypeEntryComponentContainer    		FlowNodeType = "entry_component_container"
+    FlowNodeTypeEntryComponentSeparator    		FlowNodeType = "entry_component_separator"
+    FlowNodeTypeEntryComponentThumbnail    		FlowNodeType = "entry_component_thumbnail"
+    FlowNodeTypeEntryComponentFile         		FlowNodeType = "entry_component_file"
+    FlowNodeTypeEntryComponentUserSelect  	 	FlowNodeType = "entry_component_user_select"
+    FlowNodeTypeEntryComponentRoleSelect   		FlowNodeType = "entry_component_role_select"
+    FlowNodeTypeEntryComponentMentionableSelect FlowNodeType = "entry_component_mentionable_select"
+    FlowNodeTypeEntryComponentChannelSelect     FlowNodeType = "entry_component_channel_select"
+
 	FlowNodeTypeOptionCommandArgument    FlowNodeType = "option_command_argument"
 	FlowNodeTypeOptionCommandPermissions FlowNodeType = "option_command_permissions"
 	FlowNodeTypeOptionCommandContexts    FlowNodeType = "option_command_contexts"
