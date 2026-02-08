@@ -11,6 +11,15 @@ import {
   MessageComponentSelectMenu,
   Emoji,
   MessageAttachment,
+  MessageComponentSection,
+  MessageComponentTextDisplay,
+  MessageComponentThumbnail,
+  MessageComponentMediaGallery,
+  MessageComponentMediaGalleryItem,
+  MessageComponentFile,
+  MessageComponentSeparator,
+  MessageComponentContainer,
+  MediaItem,
 } from "./schema";
 import { getUniqueId } from "@/lib/utils";
 import { temporal } from "zundo";
@@ -58,12 +67,17 @@ export interface MessageStore extends Message {
   deleteEmbedField: (i: number, j: number) => void;
   duplicateEmbedField: (i: number, j: number) => void;
   clearEmbedFields: (i: number) => void;
+  
+  // Component Row methods
   addComponentRow: (row: MessageComponentActionRow) => void;
+  addContainer: (container: MessageComponentContainer) => void;
   clearComponentRows: () => void;
   moveComponentRowUp: (i: number) => void;
   moveComponentRowDown: (i: number) => void;
   duplicateComponentRow: (i: number) => void;
   deleteComponentRow: (i: number) => void;
+  
+  // Button methods
   addButton: (i: number, button: MessageComponentButton) => void;
   clearButtons: (i: number) => void;
   moveButtonDown: (i: number, j: number) => void;
@@ -83,6 +97,8 @@ export interface MessageStore extends Message {
     j: number,
     disabled: boolean | undefined
   ) => void;
+  
+  // Select Menu methods
   setSelectMenuPlaceholder: (
     i: number,
     j: number,
@@ -138,8 +154,64 @@ export interface MessageStore extends Message {
     isDefault: boolean | undefined
   ) => void;
 
+  // Section (Type 9) methods
+  addSection: (i: number, section: MessageComponentSection) => void;
+  addTextDisplayToSection: (i: number, j: number, textDisplay: MessageComponentTextDisplay) => void;
+  deleteTextDisplayFromSection: (i: number, j: number, k: number) => void;
+  setTextDisplayContent: (i: number, j: number, k: number, content: string) => void;
+  setSectionAccessory: (
+    i: number,
+    j: number,
+    accessory: MessageComponentThumbnail | MessageComponentButton | undefined
+  ) => void;
+
+  // Text Display (Type 10) methods - when standalone in container
+  addTextDisplay: (i: number, textDisplay: MessageComponentTextDisplay) => void;
+  setStandaloneTextDisplayContent: (i: number, j: number, content: string) => void;
+
+  // Media Gallery (Type 12) methods
+  addMediaGallery: (i: number, gallery: MessageComponentMediaGallery) => void;
+  addMediaGalleryItem: (i: number, j: number, item: MessageComponentMediaGalleryItem) => void;
+  deleteMediaGalleryItem: (i: number, j: number, k: number) => void;
+  setMediaGalleryItemUrl: (i: number, j: number, k: number, url: string) => void;
+  setMediaGalleryItemDescription: (
+    i: number,
+    j: number,
+    k: number,
+    description: string | undefined
+  ) => void;
+  setMediaGalleryItemSpoiler: (
+    i: number,
+    j: number,
+    k: number,
+    spoiler: boolean | undefined
+  ) => void;
+  moveMediaGalleryItemUp: (i: number, j: number, k: number) => void;
+  moveMediaGalleryItemDown: (i: number, j: number, k: number) => void;
+
+  // File (Type 13) methods
+  addFile: (i: number, file: MessageComponentFile) => void;
+  setFileUrl: (i: number, j: number, url: string) => void;
+  setFileSpoiler: (i: number, j: number, spoiler: boolean | undefined) => void;
+
+  // Separator (Type 14) methods
+  addSeparator: (i: number, separator: MessageComponentSeparator) => void;
+  setSeparatorDivider: (i: number, j: number, divider: boolean) => void;
+  setSeparatorSpacing: (i: number, j: number, spacing: 1 | 2) => void;
+
+  // Container (Type 17) methods
+  setContainerAccentColor: (i: number, color: number | undefined) => void;
+  setContainerSpoiler: (i: number, spoiler: boolean | undefined) => void;
+  addComponentToContainer: (i: number, component: any) => void;
+  deleteComponentFromContainer: (i: number, j: number) => void;
+  moveContainerComponentUp: (i: number, j: number) => void;
+  moveContainerComponentDown: (i: number, j: number) => void;
+
+  // Getter methods
   getSelectMenu: (i: number, j: number) => MessageComponentSelectMenu | null;
   getButton: (i: number, j: number) => MessageComponentButton | null;
+  getSection: (i: number, j: number) => MessageComponentSection | null;
+  getContainer: (i: number) => MessageComponentContainer | null;
 }
 
 export const emptyMessage: Message = {
@@ -301,7 +373,7 @@ export const createMessageStore = (initial?: Message) => {
                 }
               } else {
                 if (!embed.author) {
-                  embed.author = { url, name: "" };
+                  embed.author = { name: "", url };
                 } else {
                   embed.author.url = url;
                 }
@@ -324,7 +396,7 @@ export const createMessageStore = (initial?: Message) => {
                 }
               } else {
                 if (!embed.author) {
-                  embed.author = { icon_url, name: "" };
+                  embed.author = { name: "", icon_url };
                 } else {
                   embed.author.icon_url = icon_url;
                 }
@@ -332,19 +404,31 @@ export const createMessageStore = (initial?: Message) => {
             }),
           setEmbedThumbnailUrl: (i: number, url: string | undefined) => {
             set((state) => {
-              if (state.embeds && state.embeds[i]) {
-                state.embeds[i].thumbnail = url ? { url } : undefined;
+              const embed = state.embeds && state.embeds[i];
+              if (!embed) {
+                return;
+              }
+              if (!url) {
+                embed.thumbnail = undefined;
+              } else {
+                embed.thumbnail = { url };
               }
             });
           },
           setEmbedImageUrl: (i: number, url: string | undefined) => {
             set((state) => {
-              if (state.embeds && state.embeds[i]) {
-                state.embeds[i].image = url ? { url } : undefined;
+              const embed = state.embeds && state.embeds[i];
+              if (!embed) {
+                return;
+              }
+              if (!url) {
+                embed.image = undefined;
+              } else {
+                embed.image = { url };
               }
             });
           },
-          setEmbedFooterText: (i: number, text: string | undefined) => {
+          setEmbedFooterText: (i: number, text: string | undefined) =>
             set((state) => {
               const embed = state.embeds && state.embeds[i];
               if (!embed) {
@@ -366,9 +450,8 @@ export const createMessageStore = (initial?: Message) => {
                   embed.footer.text = text;
                 }
               }
-            });
-          },
-          setEmbedFooterIconUrl: (i: number, icon_url: string | undefined) => {
+            }),
+          setEmbedFooterIconUrl: (i: number, icon_url: string | undefined) =>
             set((state) => {
               const embed = state.embeds && state.embeds[i];
               if (!embed) {
@@ -390,22 +473,23 @@ export const createMessageStore = (initial?: Message) => {
                   embed.footer.icon_url = icon_url;
                 }
               }
-            });
-          },
-          setEmbedColor: (i: number, color: number | undefined) => {
+            }),
+          setEmbedColor: (i: number, color: number | undefined) =>
             set((state) => {
-              if (state.embeds && state.embeds[i]) {
-                state.embeds[i].color = color;
+              const embed = state.embeds && state.embeds[i];
+              if (!embed) {
+                return;
               }
-            });
-          },
-          setEmbedTimestamp: (i: number, timestamp: string | undefined) => {
+              embed.color = color;
+            }),
+          setEmbedTimestamp: (i: number, timestamp: string | undefined) =>
             set((state) => {
-              if (state.embeds && state.embeds[i]) {
-                state.embeds[i].timestamp = timestamp;
+              const embed = state.embeds && state.embeds[i];
+              if (!embed) {
+                return;
               }
-            });
-          },
+              embed.timestamp = timestamp;
+            }),
           addEmbedField: (i: number, field: EmbedField) =>
             set((state) => {
               const embed = state.embeds && state.embeds[i];
@@ -458,13 +542,18 @@ export const createMessageStore = (initial?: Message) => {
               }
               field.inline = inline;
             }),
-          deleteEmbedField: (i: number, j: number) => {
+          moveEmbedFieldUp: (i: number, j: number) => {
             set((state) => {
               const embed = state.embeds && state.embeds[i];
               if (!embed) {
                 return;
               }
+              const field = embed.fields && embed.fields[j];
+              if (!field) {
+                return;
+              }
               embed.fields && embed.fields.splice(j, 1);
+              embed.fields && embed.fields.splice(j - 1, 0, field);
             });
           },
           moveEmbedFieldDown: (i: number, j: number) => {
@@ -481,20 +570,14 @@ export const createMessageStore = (initial?: Message) => {
               embed.fields && embed.fields.splice(j + 1, 0, field);
             });
           },
-          moveEmbedFieldUp: (i: number, j: number) => {
+          deleteEmbedField: (i: number, j: number) =>
             set((state) => {
               const embed = state.embeds && state.embeds[i];
               if (!embed) {
                 return;
               }
-              const field = embed.fields && embed.fields[j];
-              if (!field) {
-                return;
-              }
               embed.fields && embed.fields.splice(j, 1);
-              embed.fields && embed.fields.splice(j - 1, 0, field);
-            });
-          },
+            }),
           duplicateEmbedField: (i: number, j: number) => {
             set((state) => {
               const embed = state.embeds && state.embeds[i];
@@ -520,12 +603,22 @@ export const createMessageStore = (initial?: Message) => {
               }
               embed.fields = [];
             }),
+          
+          // Component Row methods
           addComponentRow: (row: MessageComponentActionRow) =>
             set((state) => {
               if (!state.components) {
                 state.components = [row];
               } else {
                 state.components.push(row);
+              }
+            }),
+          addContainer: (container: MessageComponentContainer) =>
+            set((state) => {
+              if (!state.components) {
+                state.components = [container];
+              } else {
+                state.components.push(container);
               }
             }),
           clearComponentRows: () =>
@@ -557,27 +650,40 @@ export const createMessageStore = (initial?: Message) => {
                 return;
               }
 
-              // This is a bit complex because we can't allow duplicated action set ids
-              const newRow: MessageComponentActionRow = {
-                id: getUniqueId(),
-                type: 1,
-                components: row.components.map((comp) => {
-                  const flowSourceId = getUniqueId().toString();
-                  return { ...comp, flow_source_id: flowSourceId };
-                }),
-              };
-
-              // TODO: change action set ids
-              state.components.splice(i + 1, 0, newRow);
+              if (row.type === 1) {
+                // Action Row
+                const newRow: MessageComponentActionRow = {
+                  id: getUniqueId(),
+                  type: 1,
+                  components: row.components.map((comp) => {
+                    const flowSourceId = getUniqueId().toString();
+                    return { ...comp, flow_source_id: flowSourceId, id: getUniqueId() };
+                  }),
+                };
+                state.components.splice(i + 1, 0, newRow);
+              } else if (row.type === 17) {
+                // Container - duplicate with new IDs
+                const newContainer: MessageComponentContainer = {
+                  ...row,
+                  id: getUniqueId(),
+                  components: row.components.map((comp: any) => ({
+                    ...comp,
+                    id: getUniqueId(),
+                  })),
+                };
+                state.components.splice(i + 1, 0, newContainer);
+              }
             }),
           deleteComponentRow: (i: number) =>
             set((state) => {
               state.components.splice(i, 1);
             }),
+          
+          // Button methods
           addButton: (i: number, button: MessageComponentButton) =>
             set((state) => {
               const row = state.components && state.components[i];
-              if (!row) {
+              if (!row || row.type !== 1) {
                 return;
               }
 
@@ -590,7 +696,7 @@ export const createMessageStore = (initial?: Message) => {
           clearButtons: (i: number) =>
             set((state) => {
               const row = state.components && state.components[i];
-              if (!row) {
+              if (!row || row.type !== 1) {
                 return;
               }
 
@@ -599,7 +705,7 @@ export const createMessageStore = (initial?: Message) => {
           deleteButton: (i: number, j: number) =>
             set((state) => {
               const row = state.components[i];
-              if (!row) {
+              if (!row || row.type !== 1) {
                 return;
               }
 
@@ -608,7 +714,7 @@ export const createMessageStore = (initial?: Message) => {
           moveButtonUp: (i: number, j: number) =>
             set((state) => {
               const row = state.components[i];
-              if (!row) {
+              if (!row || row.type !== 1) {
                 return;
               }
               const button = row.components[j];
@@ -621,7 +727,7 @@ export const createMessageStore = (initial?: Message) => {
           moveButtonDown: (i: number, j: number) =>
             set((state) => {
               const row = state.components && state.components[i];
-              if (!row) {
+              if (!row || row.type !== 1) {
                 return;
               }
               const button = row.components[j];
@@ -634,7 +740,7 @@ export const createMessageStore = (initial?: Message) => {
           duplicateButton: (i: number, j: number) =>
             set((state) => {
               const row = state.components && state.components[i];
-              if (!row) {
+              if (!row || row.type !== 1) {
                 return;
               }
               const button = row.components && row.components[j];
@@ -657,7 +763,7 @@ export const createMessageStore = (initial?: Message) => {
           ) =>
             set((state) => {
               const row = state.components && state.components[i];
-              if (!row) {
+              if (!row || row.type !== 1) {
                 return;
               }
               const button = row.components && row.components[j];
@@ -673,7 +779,7 @@ export const createMessageStore = (initial?: Message) => {
           setButtonLabel: (i: number, j: number, label: string) =>
             set((state) => {
               const row = state.components && state.components[i];
-              if (!row) {
+              if (!row || row.type !== 1) {
                 return;
               }
               const button = row.components && row.components[j];
@@ -685,7 +791,7 @@ export const createMessageStore = (initial?: Message) => {
           setButtonEmoji: (i: number, j: number, emoji: Emoji | undefined) =>
             set((state) => {
               const row = state.components && state.components[i];
-              if (!row) {
+              if (!row || row.type !== 1) {
                 return;
               }
               const button = row.components && row.components[j];
@@ -697,11 +803,11 @@ export const createMessageStore = (initial?: Message) => {
           setButtonUrl: (i: number, j: number, url: string) =>
             set((state) => {
               const row = state.components && state.components[i];
-              if (!row) {
+              if (!row || row.type !== 1) {
                 return;
               }
               const button = row.components && row.components[j];
-              if (!button || button.type !== 2 || button.style !== 5) {
+              if (!button || button.type !== 2) {
                 return;
               }
               button.url = url;
@@ -713,15 +819,17 @@ export const createMessageStore = (initial?: Message) => {
           ) =>
             set((state) => {
               const row = state.components && state.components[i];
-              if (!row) {
+              if (!row || row.type !== 1) {
                 return;
               }
               const button = row.components && row.components[j];
-              if (!button) {
+              if (!button || button.type !== 2) {
                 return;
               }
               button.disabled = disabled;
             }),
+          
+          // Select Menu methods
           setSelectMenuPlaceholder: (
             i: number,
             j: number,
@@ -729,7 +837,7 @@ export const createMessageStore = (initial?: Message) => {
           ) =>
             set((state) => {
               const row = state.components && state.components[i];
-              if (!row) {
+              if (!row || row.type !== 1) {
                 return;
               }
               const selectMenu = row.components && row.components[j];
@@ -745,7 +853,7 @@ export const createMessageStore = (initial?: Message) => {
           ) =>
             set((state) => {
               const row = state.components && state.components[i];
-              if (!row) {
+              if (!row || row.type !== 1) {
                 return;
               }
               const selectMenu = row.components && row.components[j];
@@ -761,7 +869,7 @@ export const createMessageStore = (initial?: Message) => {
           ) =>
             set((state) => {
               const row = state.components && state.components[i];
-              if (!row) {
+              if (!row || row.type !== 1) {
                 return;
               }
               const selectMenu = row.components && row.components[j];
@@ -777,7 +885,7 @@ export const createMessageStore = (initial?: Message) => {
           ) =>
             set((state) => {
               const row = state.components && state.components[i];
-              if (!row) {
+              if (!row || row.type !== 1) {
                 return;
               }
               const selectMenu = row.components && row.components[j];
@@ -793,14 +901,13 @@ export const createMessageStore = (initial?: Message) => {
           ) =>
             set((state) => {
               const row = state.components && state.components[i];
-              if (!row) {
+              if (!row || row.type !== 1) {
                 return;
               }
               const selectMenu = row.components && row.components[j];
               if (!selectMenu || selectMenu.type !== 3) {
                 return;
               }
-
               if (!selectMenu.options) {
                 selectMenu.options = [option];
               } else {
@@ -810,20 +917,19 @@ export const createMessageStore = (initial?: Message) => {
           clearSelectMenuOptions: (i: number, j: number) =>
             set((state) => {
               const row = state.components && state.components[i];
-              if (!row) {
+              if (!row || row.type !== 1) {
                 return;
               }
               const selectMenu = row.components && row.components[j];
               if (!selectMenu || selectMenu.type !== 3) {
                 return;
               }
-
               selectMenu.options = [];
             }),
           moveSelectMenuOptionDown: (i: number, j: number, k: number) =>
             set((state) => {
               const row = state.components && state.components[i];
-              if (!row) {
+              if (!row || row.type !== 1) {
                 return;
               }
               const selectMenu = row.components && row.components[j];
@@ -840,7 +946,7 @@ export const createMessageStore = (initial?: Message) => {
           moveSelectMenuOptionUp: (i: number, j: number, k: number) =>
             set((state) => {
               const row = state.components && state.components[i];
-              if (!row) {
+              if (!row || row.type !== 1) {
                 return;
               }
               const selectMenu = row.components && row.components[j];
@@ -857,7 +963,7 @@ export const createMessageStore = (initial?: Message) => {
           duplicateSelectMenuOption: (i: number, j: number, k: number) =>
             set((state) => {
               const row = state.components && state.components[i];
-              if (!row) {
+              if (!row || row.type !== 1) {
                 return;
               }
               const selectMenu = row.components && row.components[j];
@@ -878,7 +984,7 @@ export const createMessageStore = (initial?: Message) => {
           deleteSelectMenuOption: (i: number, j: number, k: number) =>
             set((state) => {
               const row = state.components && state.components[i];
-              if (!row) {
+              if (!row || row.type !== 1) {
                 return;
               }
               const selectMenu = row.components && row.components[j];
@@ -896,7 +1002,7 @@ export const createMessageStore = (initial?: Message) => {
           ) =>
             set((state) => {
               const row = state.components && state.components[i];
-              if (!row) {
+              if (!row || row.type !== 1) {
                 return;
               }
               const selectMenu = row.components && row.components[j];
@@ -917,7 +1023,7 @@ export const createMessageStore = (initial?: Message) => {
           ) =>
             set((state) => {
               const row = state.components && state.components[i];
-              if (!row) {
+              if (!row || row.type !== 1) {
                 return;
               }
               const selectMenu = row.components && row.components[j];
@@ -938,7 +1044,7 @@ export const createMessageStore = (initial?: Message) => {
           ) =>
             set((state) => {
               const row = state.components && state.components[i];
-              if (!row) {
+              if (!row || row.type !== 1) {
                 return;
               }
               const selectMenu = row.components && row.components[j];
@@ -959,7 +1065,7 @@ export const createMessageStore = (initial?: Message) => {
           ) =>
             set((state) => {
               const row = state.components && state.components[i];
-              if (!row) {
+              if (!row || row.type !== 1) {
                 return;
               }
               const selectMenu = row.components && row.components[j];
@@ -973,10 +1079,370 @@ export const createMessageStore = (initial?: Message) => {
               option.default = isDefault;
             }),
 
+          // ===================================================================
+          // COMPONENTS V2 METHODS
+          // ===================================================================
+
+          // Section (Type 9) methods
+          addSection: (i: number, section: MessageComponentSection) =>
+            set((state) => {
+              const container = state.components && state.components[i];
+              if (!container || container.type !== 17) {
+                return;
+              }
+              container.components.push(section);
+            }),
+          addTextDisplayToSection: (
+            i: number,
+            j: number,
+            textDisplay: MessageComponentTextDisplay
+          ) =>
+            set((state) => {
+              const container = state.components && state.components[i];
+              if (!container || container.type !== 17) {
+                return;
+              }
+              const section = container.components[j];
+              if (!section || section.type !== 9) {
+                return;
+              }
+              section.components.push(textDisplay);
+            }),
+          deleteTextDisplayFromSection: (i: number, j: number, k: number) =>
+            set((state) => {
+              const container = state.components && state.components[i];
+              if (!container || container.type !== 17) {
+                return;
+              }
+              const section = container.components[j];
+              if (!section || section.type !== 9) {
+                return;
+              }
+              section.components.splice(k, 1);
+            }),
+          setTextDisplayContent: (
+            i: number,
+            j: number,
+            k: number,
+            content: string
+          ) =>
+            set((state) => {
+              const container = state.components && state.components[i];
+              if (!container || container.type !== 17) {
+                return;
+              }
+              const section = container.components[j];
+              if (!section || section.type !== 9) {
+                return;
+              }
+              const textDisplay = section.components[k];
+              if (!textDisplay || textDisplay.type !== 10) {
+                return;
+              }
+              textDisplay.content = content;
+            }),
+          setSectionAccessory: (
+            i: number,
+            j: number,
+            accessory: MessageComponentThumbnail | MessageComponentButton | undefined
+          ) =>
+            set((state) => {
+              const container = state.components && state.components[i];
+              if (!container || container.type !== 17) {
+                return;
+              }
+              const section = container.components[j];
+              if (!section || section.type !== 9) {
+                return;
+              }
+              section.accessory = accessory;
+            }),
+
+          // Text Display (Type 10) methods - standalone in container
+          addTextDisplay: (i: number, textDisplay: MessageComponentTextDisplay) =>
+            set((state) => {
+              const container = state.components && state.components[i];
+              if (!container || container.type !== 17) {
+                return;
+              }
+              container.components.push(textDisplay);
+            }),
+          setStandaloneTextDisplayContent: (i: number, j: number, content: string) =>
+            set((state) => {
+              const container = state.components && state.components[i];
+              if (!container || container.type !== 17) {
+                return;
+              }
+              const textDisplay = container.components[j];
+              if (!textDisplay || textDisplay.type !== 10) {
+                return;
+              }
+              textDisplay.content = content;
+            }),
+
+          // Media Gallery (Type 12) methods
+          addMediaGallery: (i: number, gallery: MessageComponentMediaGallery) =>
+            set((state) => {
+              const container = state.components && state.components[i];
+              if (!container || container.type !== 17) {
+                return;
+              }
+              container.components.push(gallery);
+            }),
+          addMediaGalleryItem: (
+            i: number,
+            j: number,
+            item: MessageComponentMediaGalleryItem
+          ) =>
+            set((state) => {
+              const container = state.components && state.components[i];
+              if (!container || container.type !== 17) {
+                return;
+              }
+              const gallery = container.components[j];
+              if (!gallery || gallery.type !== 12) {
+                return;
+              }
+              gallery.items.push(item);
+            }),
+          deleteMediaGalleryItem: (i: number, j: number, k: number) =>
+            set((state) => {
+              const container = state.components && state.components[i];
+              if (!container || container.type !== 17) {
+                return;
+              }
+              const gallery = container.components[j];
+              if (!gallery || gallery.type !== 12) {
+                return;
+              }
+              gallery.items.splice(k, 1);
+            }),
+          setMediaGalleryItemUrl: (i: number, j: number, k: number, url: string) =>
+            set((state) => {
+              const container = state.components && state.components[i];
+              if (!container || container.type !== 17) {
+                return;
+              }
+              const gallery = container.components[j];
+              if (!gallery || gallery.type !== 12) {
+                return;
+              }
+              const item = gallery.items[k];
+              if (!item) {
+                return;
+              }
+              item.media.url = url;
+            }),
+          setMediaGalleryItemDescription: (
+            i: number,
+            j: number,
+            k: number,
+            description: string | undefined
+          ) =>
+            set((state) => {
+              const container = state.components && state.components[i];
+              if (!container || container.type !== 17) {
+                return;
+              }
+              const gallery = container.components[j];
+              if (!gallery || gallery.type !== 12) {
+                return;
+              }
+              const item = gallery.items[k];
+              if (!item) {
+                return;
+              }
+              item.description = description;
+            }),
+          setMediaGalleryItemSpoiler: (
+            i: number,
+            j: number,
+            k: number,
+            spoiler: boolean | undefined
+          ) =>
+            set((state) => {
+              const container = state.components && state.components[i];
+              if (!container || container.type !== 17) {
+                return;
+              }
+              const gallery = container.components[j];
+              if (!gallery || gallery.type !== 12) {
+                return;
+              }
+              const item = gallery.items[k];
+              if (!item) {
+                return;
+              }
+              item.spoiler = spoiler;
+            }),
+          moveMediaGalleryItemUp: (i: number, j: number, k: number) =>
+            set((state) => {
+              const container = state.components && state.components[i];
+              if (!container || container.type !== 17) {
+                return;
+              }
+              const gallery = container.components[j];
+              if (!gallery || gallery.type !== 12) {
+                return;
+              }
+              const item = gallery.items[k];
+              if (!item) {
+                return;
+              }
+              gallery.items.splice(k, 1);
+              gallery.items.splice(k - 1, 0, item);
+            }),
+          moveMediaGalleryItemDown: (i: number, j: number, k: number) =>
+            set((state) => {
+              const container = state.components && state.components[i];
+              if (!container || container.type !== 17) {
+                return;
+              }
+              const gallery = container.components[j];
+              if (!gallery || gallery.type !== 12) {
+                return;
+              }
+              const item = gallery.items[k];
+              if (!item) {
+                return;
+              }
+              gallery.items.splice(k, 1);
+              gallery.items.splice(k + 1, 0, item);
+            }),
+
+          // File (Type 13) methods
+          addFile: (i: number, file: MessageComponentFile) =>
+            set((state) => {
+              const container = state.components && state.components[i];
+              if (!container || container.type !== 17) {
+                return;
+              }
+              container.components.push(file);
+            }),
+          setFileUrl: (i: number, j: number, url: string) =>
+            set((state) => {
+              const container = state.components && state.components[i];
+              if (!container || container.type !== 17) {
+                return;
+              }
+              const file = container.components[j];
+              if (!file || file.type !== 13) {
+                return;
+              }
+              file.file.url = url;
+            }),
+          setFileSpoiler: (i: number, j: number, spoiler: boolean | undefined) =>
+            set((state) => {
+              const container = state.components && state.components[i];
+              if (!container || container.type !== 17) {
+                return;
+              }
+              const file = container.components[j];
+              if (!file || file.type !== 13) {
+                return;
+              }
+              file.spoiler = spoiler;
+            }),
+
+          // Separator (Type 14) methods
+          addSeparator: (i: number, separator: MessageComponentSeparator) =>
+            set((state) => {
+              const container = state.components && state.components[i];
+              if (!container || container.type !== 17) {
+                return;
+              }
+              container.components.push(separator);
+            }),
+          setSeparatorDivider: (i: number, j: number, divider: boolean) =>
+            set((state) => {
+              const container = state.components && state.components[i];
+              if (!container || container.type !== 17) {
+                return;
+              }
+              const separator = container.components[j];
+              if (!separator || separator.type !== 14) {
+                return;
+              }
+              separator.divider = divider;
+            }),
+          setSeparatorSpacing: (i: number, j: number, spacing: 1 | 2) =>
+            set((state) => {
+              const container = state.components && state.components[i];
+              if (!container || container.type !== 17) {
+                return;
+              }
+              const separator = container.components[j];
+              if (!separator || separator.type !== 14) {
+                return;
+              }
+              separator.spacing = spacing;
+            }),
+
+          // Container (Type 17) methods
+          setContainerAccentColor: (i: number, color: number | undefined) =>
+            set((state) => {
+              const container = state.components && state.components[i];
+              if (!container || container.type !== 17) {
+                return;
+              }
+              container.accent_color = color;
+            }),
+          setContainerSpoiler: (i: number, spoiler: boolean | undefined) =>
+            set((state) => {
+              const container = state.components && state.components[i];
+              if (!container || container.type !== 17) {
+                return;
+              }
+              container.spoiler = spoiler;
+            }),
+          addComponentToContainer: (i: number, component: any) =>
+            set((state) => {
+              const container = state.components && state.components[i];
+              if (!container || container.type !== 17) {
+                return;
+              }
+              container.components.push(component);
+            }),
+          deleteComponentFromContainer: (i: number, j: number) =>
+            set((state) => {
+              const container = state.components && state.components[i];
+              if (!container || container.type !== 17) {
+                return;
+              }
+              container.components.splice(j, 1);
+            }),
+          moveContainerComponentUp: (i: number, j: number) =>
+            set((state) => {
+              const container = state.components && state.components[i];
+              if (!container || container.type !== 17) {
+                return;
+              }
+              const component = container.components[j];
+              if (!component) {
+                return;
+              }
+              container.components.splice(j, 1);
+              container.components.splice(j - 1, 0, component);
+            }),
+          moveContainerComponentDown: (i: number, j: number) =>
+            set((state) => {
+              const container = state.components && state.components[i];
+              if (!container || container.type !== 17) {
+                return;
+              }
+              const component = container.components[j];
+              if (!component) {
+                return;
+              }
+              container.components.splice(j, 1);
+              container.components.splice(j + 1, 0, component);
+            }),
+
+          // Getter methods
           getSelectMenu: (i: number, j: number) => {
             const state = get();
             const row = state.components && state.components[i];
-            if (!row) {
+            if (!row || row.type !== 1) {
               return null;
             }
 
@@ -989,13 +1455,34 @@ export const createMessageStore = (initial?: Message) => {
           getButton: (i: number, j: number) => {
             const state = get();
             const row = state.components && state.components[i];
-            if (!row) {
+            if (!row || row.type !== 1) {
               return null;
             }
 
             const button = row.components && row.components[j];
             if (button && button.type === 2) {
               return button;
+            }
+            return null;
+          },
+          getSection: (i: number, j: number) => {
+            const state = get();
+            const container = state.components && state.components[i];
+            if (!container || container.type !== 17) {
+              return null;
+            }
+
+            const section = container.components && container.components[j];
+            if (section && section.type === 9) {
+              return section;
+            }
+            return null;
+          },
+          getContainer: (i: number) => {
+            const state = get();
+            const container = state.components && state.components[i];
+            if (container && container.type === 17) {
+              return container;
             }
             return null;
           },
