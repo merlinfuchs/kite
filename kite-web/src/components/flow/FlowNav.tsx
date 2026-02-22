@@ -96,7 +96,7 @@ export default function FlowNav({
         ) : hasUndeployedChanges === false ? (
           <div className="flex space-x-2 text-foreground/70 items-center">
             <CheckIcon className="h-5 w-5" />
-            <div>Changed Deployed</div>
+            <div>Changes Deployed</div>
           </div>
         ) : null}
       </div>

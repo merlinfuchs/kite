@@ -4,10 +4,10 @@ import (
 	"encoding/binary"
 )
 
-// MurmurHash2_32 implements the 32-bit MurmurHash2 algorithm (Austin Appleby).
+// murmurHash2_32 implements the 32-bit MurmurHash2 algorithm (Austin Appleby).
 // This is the algorithm NGINX uses for split_clients.
 // Seed is configurable; NGINX effectively uses seed=0 for split_clients.
-func MurmurHash2_32(data []byte, seed uint32) uint32 {
+func murmurHash2_32(data []byte, seed uint32) uint32 {
 	const (
 		m uint32 = 0x5bd1e995
 		r uint32 = 24
@@ -60,7 +60,7 @@ func CluserForKey(key string, clusterCount int) int {
 	}
 
 	// NGINX will hash the bytes of the variable/string; in Go strings are bytes (UTF-8 for typical IDs).
-	h := MurmurHash2_32([]byte(key), 0)
+	h := murmurHash2_32([]byte(key), 0)
 
 	// Map to [0, shardCount) by splitting the 32-bit space into shardCount equal ranges:
 	// shard = floor(h / 2^32 * shardCount) == (uint64(h) * uint64(shardCount)) >> 32
