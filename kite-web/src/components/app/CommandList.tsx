@@ -4,6 +4,7 @@ import AppEmptyPlaceholder from "./AppEmptyPlaceholder";
 import { Skeleton } from "../ui/skeleton";
 import AutoAnimate from "../common/AutoAnimate";
 import CommandCreateDialog from "./CommandCreateDialog";
+import { receiveCommandShare } from "./CommandShareDialog";
 import { useCommands } from "@/lib/hooks/api";
 import { CommandDeployDialog } from "./CommandDeployDialog";
 import { useState } from "react";
@@ -15,6 +16,12 @@ export default function CommandList() {
     <CommandCreateDialog>
       <Button>Create command</Button>
     </CommandCreateDialog>
+  );
+  
+  const cmdImportButton = (
+    <CommandShareDialog>
+      <Button>Import command</Button>
+    </CommandShareDialog>
   );
 
   const hasUndeployedCommands = commands?.some(
@@ -46,6 +53,7 @@ export default function CommandList() {
 
           <div className="flex gap-5 justify-between flex-col md:flex-row">
             {cmdCreateButton}
+            {cmdImportButton}
 
             <CommandDeployDialog
               open={deployDialogOpen}
