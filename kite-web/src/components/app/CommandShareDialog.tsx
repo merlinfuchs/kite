@@ -1,4 +1,5 @@
 import React from "react";
+import { FlowData } from '../lib/types/flow.gen';
 
 const PREFIX = "LemonCube's Kite Command Share";
 
