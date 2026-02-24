@@ -4,7 +4,7 @@ import AppEmptyPlaceholder from "./AppEmptyPlaceholder";
 import { Skeleton } from "../ui/skeleton";
 import AutoAnimate from "../common/AutoAnimate";
 import CommandCreateDialog from "./CommandCreateDialog";
-import { receiveCommandShare } from "./CommandShareDialog";
+import { CommandShareDialog } from "./CommandShareDialog";
 import { useCommands } from "@/lib/hooks/api";
 import { CommandDeployDialog } from "./CommandDeployDialog";
 import { useState } from "react";
@@ -19,9 +19,9 @@ export default function CommandList() {
   );
   
   const cmdImportButton = (
-    <receiveCommandShare>
+    <CommandShareDialog>
       <Button>Import command</Button>
-    </receiveCommandShare>
+    </CommandShareDialog>
   );
 
   const hasUndeployedCommands = commands?.some(
