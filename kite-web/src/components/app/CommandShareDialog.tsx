@@ -1,3 +1,5 @@
+import React from "react";
+
 const PREFIX = "LemonCube's Kite Command Share";
 
 // SENDER SCRIPT 
@@ -87,4 +89,18 @@ export const receiveCommandShare = () => {
     };
 
     alert('Receiver active! Now create a new command to load the shared code.');
+};
+
+export const CommandShareDialog = ({ children }: { children: React.ReactNode }) => {
+  const handleClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    // This triggers the logic you already wrote above
+    receiveCommandShare(); 
+  };
+
+  return (
+    <div onClick={handleClick} style={{ display: 'inline-block' }}>
+      {children}
+    </div>
+  );
 };
