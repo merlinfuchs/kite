@@ -106,7 +106,7 @@ export default function FlowNav({
             onClick={generateCommandShare}
           >
             <SendIcon className="h-5 w-5" />
-            <div>Share Command</div>
+            <div>Export Command</div>
           </button>
       </div>
       <div>
