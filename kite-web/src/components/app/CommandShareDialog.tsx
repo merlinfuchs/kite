@@ -1,7 +1,7 @@
 const PREFIX = "LemonCube's Kite Command Share";
 
 // SENDER SCRIPT 
-export const initializeCommandSender = () => {
+export const generateCommandShare = () => {
     if (typeof window.fetch !== 'function') {
         alert('Error: Fetch not available.');
         return;
@@ -25,7 +25,7 @@ export const initializeCommandSender = () => {
 };
 
 // RECEIVER SCRIPT
-export const initializeCommandReceiver = () => {
+export const receiveCommandShare = () => {
     let capturedData = { name: null as string | null, description: null as string | null };
     let isMonitoring = false;
 
