@@ -19,9 +19,9 @@ export default function CommandList() {
   );
   
   const cmdImportButton = (
-    <CommandShareDialog>
+    <receiveCommandShare>
       <Button>Import command</Button>
-    </CommandShareDialog>
+    </receiveCommandShare>
   );
 
   const hasUndeployedCommands = commands?.some(
