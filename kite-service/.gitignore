@@ -1,2 +1,4 @@
 kite.toml
 kite-service
+kite-service.exe
+.env
