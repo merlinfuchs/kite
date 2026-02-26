@@ -1,12 +1,14 @@
 import React from "react";
 import { FlowData } from '../lib/types/flow.gen';
+import { toast } from "sonner";
+import env from "@/lib/env/client";
 
-const PREFIX = "LemonCube's Kite Command Share";
+const PREFIX = "Kite Command Share";
 
 // SENDER SCRIPT 
 export const generateCommandShare = () => {
     if (typeof window.fetch !== 'function') {
-        alert('Error: Fetch not available.');
+        toast.error("Error: Fetch not available.");
         return;
     }
 
@@ -15,16 +17,16 @@ export const generateCommandShare = () => {
         if (options?.method?.toUpperCase() === 'PATCH' && options.body) {
             const body = options.body.toString();
             navigator.clipboard.writeText(body).then(() => {
-                alert('SUCCESS: Sharing code copied to clipboard!');
+                toast.success("SUCCESS: Sharing code copied to clipboard!");
             }).catch(() => {
                 console.log("Payload:", body);
-                alert('Copy failed. Check console.');
+                toast.error("Copy failed. Check console. (Ctrl + Shift + I)");
             });
         }
         return originalFetch.apply(this, arguments as any);
     };
-    
-    alert(PREFIX + ' Sender active! Click "Save Changes" to generate code.');
+
+    toast.success('Sender active! Click "Save Changes" to generate code.');
 };
 
 // RECEIVER SCRIPT
@@ -49,10 +51,10 @@ export const receiveCommandShare = () => {
                 body: JSON.stringify(parsed),
                 credentials: 'include'
             }).then(res => {
-                if (res.ok) alert('Success! Reload to see changes.');
+                if (res.ok) window.location.reload();
             });
         } catch (e) {
-            console.error(PREFIX + " Error:", e);
+            toast.error(PREFIX + " Error:", e);
         }
     };
 
@@ -63,7 +65,7 @@ export const receiveCommandShare = () => {
     }
     const appId = urlMatch[1];
     
-    const storedPayload = prompt(PREFIX + " Enter sharing code:");
+    const storedPayload = prompt("Enter KCS sharing code:");
     if (!storedPayload) return;
 
     const originalFetch = window.fetch;
@@ -89,7 +91,7 @@ export const receiveCommandShare = () => {
         return originalFetch.apply(this, arguments as any);
     };
 
-    alert('Receiver active! Now create a new command to load the shared code.');
+    toast.success("Receiver active! Now create a new command to load the shared code.");
 };
 
 export const CommandShareDialog = ({ children }: { children: React.ReactNode }) => {
