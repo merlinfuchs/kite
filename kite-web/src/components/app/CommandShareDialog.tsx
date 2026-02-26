@@ -43,7 +43,7 @@ export const receiveCommandShare = () => {
                 return node;
             });
 
-            fetch(`https://api.kite.onl/v1/apps/${appId}/commands/${commandId}`, {
+            fetch(env.NEXT_PUBLIC_API_PUBLIC_BASE_URL + `/v1/apps/${appId}/commands/${commandId}`, {
                 method: "PATCH",
                 headers: { "accept": "application/json", "Content-Type": "application/json" },
                 body: JSON.stringify(parsed),
