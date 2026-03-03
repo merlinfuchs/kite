@@ -70,7 +70,7 @@ export default function MessageEmbedFooter({
 
             let input = v.trim();
             
-            // Allow Discord <t:...:format> expressions literally
+            // Allow Discord <t:...:format> expressions
             if (/^<t:.*?:[RrTtDdFf]?>$/.test(input)) {
               setTimestamp(embedIndex, input);
               return;
