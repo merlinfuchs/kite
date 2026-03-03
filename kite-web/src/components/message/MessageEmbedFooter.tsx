@@ -60,7 +60,7 @@ export default function MessageEmbedFooter({
 
         <MessageInput
           type="text"
-          label="Timestamp (Unix, ISO, Discord Expression)"
+          label="Timestamp"
           value={timestamp || ""}
           onChange={(v) => {
             if (!v) {
