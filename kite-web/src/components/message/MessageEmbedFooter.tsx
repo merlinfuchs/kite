@@ -55,7 +55,7 @@ export default function MessageEmbedFooter({
           imageUpload
         />
         <MessageInput
-          type="date"
+          type="text"
           label="Timestamp"
           value={timestamp}
           onChange={(v) => setTimestamp(embedIndex, v)}
