@@ -4,7 +4,7 @@
 [![Docker image](https://github.com/merlinfuchs/kite/actions/workflows/docker-push.yaml/badge.svg)](https://hub.docker.com/r/merlintor/kite)
 
 [![Release](https://img.shields.io/github/v/release/merlinfuchs/kite)](https://github.com/merlinfuchs/kite/releases/latest)
-[![MIT License](https://img.shields.io/github/license/merlinfuchs/kite)](LICENSE)
+[![License](https://img.shields.io/github/license/merlinfuchs/kite)](LICENSE)
 [![Discord Server](https://img.shields.io/discord/845800518458540083)](https://discord.gg/rNd9jWHnXh)
 
 Make your own Discord Bot with Kite for free without a single line of code. With support for slash commands, buttons, events,and more.
