@@ -86,6 +86,14 @@ This will return true if the user has the role with the ID `123`.
 {{ "123" in user.role_ids }}
 ```
 
+### Check User Creation Date
+
+This will return the user’s account creation timestamp.
+
+```python
+<t:{{ floor(((int(user.id) / 4194304) + 1420070400000) / 1000) }}:f>
+```
+
 ### Do Some Math
 
 This will return the result of the expression.
