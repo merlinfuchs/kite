@@ -6,14 +6,14 @@ sidebar_position: 5
 
 Kite is free to use, but we do have a credit system in place to prevent abuse. Most actions taken by your app in flows will consume [a set amount](#cost-breakdown) of credits.
 
-By default, your app has **10,000 credits available per month**. While this is usually more than enough, you can subscribe to **Kite Premium** for 10 times more credits. For more information on premium plans, click the Premium tab in your app settings.
+By default, your app has **10,000 credits available per month**. This is usually more than enough for most apps. You can always subscribe to one of the **Premium** plans to get more credits.
 
-You can track your credits on the dashboard in the Monthly Usage section.
+You can track your credit usage on the dashboard in the Monthly Usage section.
 ![Credit System](./img/example-usage.png)
 
 ## Cost Breakdown
 
-All actions in flows will consume **1 credit per execution** with a few exceptions:
+Most actions in flows will consume **1 credit per execution** with a few exceptions:
 
 - **`Ask AI` block**:
   - `gpt-4.1`: 100 credits per execution
