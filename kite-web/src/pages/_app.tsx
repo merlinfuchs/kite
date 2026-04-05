@@ -8,25 +8,12 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClientProvider } from "@tanstack/react-query";
 import queryClient from "@/lib/api/client";
 import { SpeedInsights } from "@vercel/speed-insights/next";
-import { Analytics } from "@vercel/analytics/react";
-import * as swetrix from "swetrix";
+import AnalyticsProvider from "@/components/common/AnalyticsProvider";
 
 const fontSans = FontSans({
   subsets: ["latin"],
   variable: "--font-sans",
 });
-
-if (process.env.NODE_ENV === "production" && typeof window !== "undefined") {
-  document.addEventListener("DOMContentLoaded", () => {
-    swetrix.init("1Lhc9ncbpz6e", {
-      apiURL: "https://swetrix.vaven.io/log",
-    });
-    swetrix.trackViews();
-    swetrix.trackErrors({
-      sampleRate: 1,
-    });
-  });
-}
 
 export default function App({ Component, pageProps }: AppProps) {
   return (
@@ -43,7 +30,7 @@ export default function App({ Component, pageProps }: AppProps) {
             <Toaster position="top-right" richColors={true} />
 
             <SpeedInsights />
-            <Analytics />
+            <AnalyticsProvider />
           </TooltipProvider>
         </ThemeProvider>
       </QueryClientProvider>
