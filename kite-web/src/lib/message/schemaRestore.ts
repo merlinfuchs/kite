@@ -270,6 +270,8 @@ export const selectMenuOptionSchema = z.object({
   label: z.preprocess((d) => d ?? undefined, z.string().default("")),
   description: z.preprocess((d) => d || undefined, z.optional(z.string())),
   emoji: z.preprocess((d) => d ?? undefined, z.optional(emojiSchema)),
+  default: z.preprocess((d) => d ?? undefined, z.optional(z.boolean())),
+  flow_source_id: z.string().default(() => getUniqueId().toString()),
 });
 
 export type MessageComponentSelectMenuOption = z.infer<
@@ -281,6 +283,8 @@ export const selectMenuSchema = z.object({
   type: z.literal(3),
   placeholder: z.preprocess((d) => d ?? undefined, z.optional(z.string())),
   disabled: z.preprocess((d) => d ?? undefined, z.optional(z.boolean())),
+  min_values: z.preprocess((d) => d ?? undefined, z.optional(z.number())),
+  max_values: z.preprocess((d) => d ?? undefined, z.optional(z.number())),
   options: z.preprocess(
     (d) => d ?? undefined,
     z.array(selectMenuOptionSchema).default([])
@@ -290,6 +294,138 @@ export const selectMenuSchema = z.object({
 
 export type MessageComponentSelectMenu = z.infer<typeof selectMenuSchema>;
 
+// ============================================================================
+// COMPONENTS V2 - NEW SCHEMAS
+// ============================================================================
+
+// Media Item (used by Thumbnail, File, Media Gallery)
+export const mediaItemSchema = z.object({
+  url: z.preprocess((d) => d ?? undefined, z.string().default("")),
+});
+
+export type MediaItem = z.infer<typeof mediaItemSchema>;
+
+// Text Display Component (Type 10)
+export const textDisplaySchema = z.object({
+  id: uniqueIdSchema,
+  type: z.literal(10),
+  content: z.preprocess((d) => d ?? undefined, z.string().default("")),
+});
+
+export type MessageComponentTextDisplay = z.infer<typeof textDisplaySchema>;
+
+// Thumbnail Component (Type 11)
+export const thumbnailSchema = z.object({
+  id: uniqueIdSchema,
+  type: z.literal(11),
+  media: z.preprocess((d) => d ?? undefined, mediaItemSchema),
+  description: z.preprocess((d) => d ?? undefined, z.optional(z.string())),
+  spoiler: z.preprocess((d) => d ?? undefined, z.optional(z.boolean())),
+});
+
+export type MessageComponentThumbnail = z.infer<typeof thumbnailSchema>;
+
+// Section Component (Type 9)
+export const sectionSchema = z.object({
+  id: uniqueIdSchema,
+  type: z.literal(9),
+  components: z.preprocess(
+    (d) => d ?? undefined,
+    z.array(textDisplaySchema).default([])
+  ),
+  accessory: z.preprocess(
+    (d) => d ?? undefined,
+    z.optional(
+      z.union([
+        thumbnailSchema,
+        z.lazy(() => buttonSchema),
+      ])
+    )
+  ),
+});
+
+export type MessageComponentSection = z.infer<typeof sectionSchema>;
+
+// Media Gallery Item
+export const mediaGalleryItemSchema = z.object({
+  id: uniqueIdSchema,
+  media: z.preprocess((d) => d ?? undefined, mediaItemSchema),
+  description: z.preprocess((d) => d ?? undefined, z.optional(z.string())),
+  spoiler: z.preprocess((d) => d ?? undefined, z.optional(z.boolean())),
+});
+
+export type MessageComponentMediaGalleryItem = z.infer<
+  typeof mediaGalleryItemSchema
+>;
+
+// Media Gallery Component (Type 12)
+export const mediaGallerySchema = z.object({
+  id: uniqueIdSchema,
+  type: z.literal(12),
+  items: z.preprocess(
+    (d) => d ?? undefined,
+    z.array(mediaGalleryItemSchema).default([])
+  ),
+});
+
+export type MessageComponentMediaGallery = z.infer<typeof mediaGallerySchema>;
+
+// File Component (Type 13)
+export const fileSchema = z.object({
+  id: uniqueIdSchema,
+  type: z.literal(13),
+  file: z.preprocess((d) => d ?? undefined, mediaItemSchema),
+  spoiler: z.preprocess((d) => d ?? undefined, z.optional(z.boolean())),
+});
+
+export type MessageComponentFile = z.infer<typeof fileSchema>;
+
+// Separator Component (Type 14)
+export const separatorSchema = z.object({
+  id: uniqueIdSchema,
+  type: z.literal(14),
+  divider: z.preprocess((d) => d ?? undefined, z.boolean().default(true)),
+  spacing: z.preprocess(
+    (d) => d ?? undefined,
+    z.union([z.literal(1), z.literal(2)]).default(1)
+  ),
+});
+
+export type MessageComponentSeparator = z.infer<typeof separatorSchema>;
+
+// Container Sub-Components (what can go inside a container)
+export const containerSubComponentSchema = z.union([
+  z.lazy(() => actionRowSchema),
+  sectionSchema,
+  textDisplaySchema,
+  mediaGallerySchema,
+  fileSchema,
+  separatorSchema,
+]);
+
+export type MessageComponentContainerSubComponent = z.infer<
+  typeof containerSubComponentSchema
+>;
+
+// Container Component (Type 17)
+export const containerSchema = z.object({
+  id: uniqueIdSchema,
+  type: z.literal(17),
+  components: z.preprocess(
+    (d) => d ?? undefined,
+    z.array(containerSubComponentSchema).default([])
+  ),
+  accent_color: z.preprocess((d) => d ?? undefined, z.optional(z.number())),
+  spoiler: z.preprocess((d) => d ?? undefined, z.optional(z.boolean())),
+});
+
+export type MessageComponentContainer = z.infer<typeof containerSchema>;
+
+// ============================================================================
+// END COMPONENTS V2
+// ============================================================================
+
+// Action Row Component (Type 1)
 export const actionRowSchema = z.object({
   id: uniqueIdSchema,
   type: z.preprocess((d) => d ?? undefined, z.literal(1).default(1)),
@@ -300,6 +436,22 @@ export const actionRowSchema = z.object({
 });
 
 export type MessageComponentActionRow = z.infer<typeof actionRowSchema>;
+
+// Updated Component Schema - now includes all V2 types
+export const componentSchema = z.union([
+  actionRowSchema,
+  buttonSchema,
+  selectMenuSchema,
+  sectionSchema,
+  textDisplaySchema,
+  thumbnailSchema,
+  mediaGallerySchema,
+  fileSchema,
+  separatorSchema,
+  containerSchema,
+]);
+
+export type MessageComponent = z.infer<typeof componentSchema>;
 
 export const messageActionSchema = z
   .object({
@@ -419,9 +571,10 @@ export const messageSchema = z.object({
   ),
   embeds: z.preprocess((d) => d ?? undefined, z.array(embedSchema).default([])),
   allowed_mentions: messageAllowedMentionsSchema,
+  // Updated to accept both ActionRows and root-level Containers
   components: z.preprocess(
     (d) => d ?? undefined,
-    z.array(actionRowSchema).default([])
+    z.array(z.union([actionRowSchema, containerSchema])).default([])
   ),
   thread_name: messageThreadNameSchema,
 });

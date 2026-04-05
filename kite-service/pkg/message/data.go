@@ -168,7 +168,7 @@ type ComponentRowData struct {
 }
 
 type ComponentData struct {
-	ID int `json:"id,omitempty"`
+	ID string `json:"id,omitempty"`
 
 	Type     int  `json:"type,omitempty"`
 	Disabled bool `json:"disabled,omitempty"`
@@ -186,6 +186,43 @@ type ComponentData struct {
 	Options     []ComponentSelectOptionData `json:"options,omitempty"`
 
 	FlowSourceID string `json:"flow_source_id,omitempty"`
+
+	// Nested Components
+	Components []ComponentData `json:"components,omitempty"`
+
+	// Text Display
+	Content string `json:"content,omitempty"`
+
+	// Section Accessory
+	Accessory *ComponentData `json:"accessory,omitempty"`
+
+	// Media & Files
+	Media       *MediaData `json:"media,omitempty"`
+	File        *MediaData `json:"file,omitempty"`
+	Description string     `json:"description,omitempty"`
+	Spoiler     bool       `json:"spoiler,omitempty"`
+
+	// Media Gallery
+	Items []MediaGalleryItemData `json:"items,omitempty"`
+
+	// Separator
+	Divider bool `json:"divider,omitempty"`
+	Spacing int  `json:"spacing,omitempty"`
+
+	// Container
+	AccentColor *int `json:"accent_color,omitempty"`
+}
+
+// Supporting data structures
+type MediaData struct {
+	URL string `json:"url,omitempty"`
+}
+
+type MediaGalleryItemData struct {
+	ID          string    `json:"id,omitempty"`
+	Media       MediaData `json:"media,omitempty"`
+	Description string    `json:"description,omitempty"`
+	Spoiler     bool      `json:"spoiler,omitempty"`
 }
 
 type ComponentSelectOptionData struct {
