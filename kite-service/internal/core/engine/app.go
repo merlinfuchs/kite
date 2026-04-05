@@ -288,6 +288,29 @@ func (a *App) HandleEvent(appID string, session *state.State, event gateway.Even
 			}
 
 			go instance.HandleEvent(appID, session, event)
+		case *discord.StringSelectInteraction:
+			messageID := e.Message.ID.String()
+			messageInstnace, err := a.env.MessageInstanceStore.MessageInstanceByDiscordMessageID(context.TODO(), messageID)
+			if err != nil {
+				if errors.Is(err, store.ErrNotFound) {
+					return
+				}
+
+				slog.With("error", err).Error("failed to get message instance by discord message ID")
+				return
+			}
+
+			instance, err := NewMessageInstance(
+				a.id,
+				messageInstnace,
+				a.env,
+			)
+			if err != nil {
+				slog.With("error", err).Error("failed to create message instance")
+				return
+			}
+
+			go instance.HandleEvent(appID, session, event)
 		case *discord.ModalInteraction:
 			customID := string(d.CustomID)
 			resumePointID, ok := message.DecodeCustomIDModalResumePoint(customID)
