@@ -29,11 +29,26 @@ export default function MessageEmbedFooter({
     ])
   );
 
+  const handleTimestamp = (v: string) => {
+    if (!v) return setTimestamp(embedIndex, undefined);
+    let input = v.trim();
+    if (/^<t:\d+:[RrTtDdFf]?>$/.test(input)) return setTimestamp(embedIndex, input);
+    input = input.replace(/\{\{now\(\)\.Unix\(\)\}\}/g, () => Math.floor(Date.now() / 1000).toString());
+    if (/^\d+$/.test(input)) {
+      const unix = Number(input);
+      const date = input.length === 13 ? new Date(unix) : new Date(unix * 1000);
+      if (!isNaN(date.getTime())) return setTimestamp(embedIndex, date.toISOString());
+    }
+    const parsed = new Date(input);
+    if (!isNaN(parsed.getTime())) return setTimestamp(embedIndex, parsed.toISOString());
+    setTimestamp(embedIndex, input);
+  };
+
   return (
     <CollapsibleSection
       title="Footer"
       size="md"
-      valiationPathPrefix={`embeds.${embedIndex}.footer`}
+      validationPathPrefix={`embeds.${embedIndex}.footer`}
       className="space-y-3"
     >
       <MessageInput
@@ -55,10 +70,10 @@ export default function MessageEmbedFooter({
           imageUpload
         />
         <MessageInput
-          type="date"
+          type="text"
           label="Timestamp"
-          value={timestamp}
-          onChange={(v) => setTimestamp(embedIndex, v)}
+          value={timestamp || ""}
+          onChange={handleTimestamp}
           validationPath={`embeds.${embedIndex}.timestamp`}
         />
       </div>
