@@ -980,7 +980,14 @@ function AiChatCompletionDataInput({ data, updateData, errors }: InputProps) {
         options={[
           { value: "gpt-4.1", label: "Smartest (gpt-4.1)" },
           { value: "gpt-4.1-mini", label: "Balanced (gpt-4.1-mini)" },
-          { value: "gpt-4.1-nano", label: "Cheap & Fast (gpt-4.1-nano)" },
+          {
+            value: "gpt-4.1-nano",
+            label: "Cheap & Fast (gpt-4.1-nano) (deprecated)",
+          },
+          {
+            value: "gpt-5.4-nano",
+            label: "Cheap & Fast (gpt-5-nano)",
+          },
           { value: "gpt-4o-mini", label: "Cheap & Fast (gpt-4o-mini)" },
         ]}
         value={data.ai_chat_completion_data?.model || "gpt-4o-mini"}
@@ -1045,7 +1052,11 @@ function AiWebSearchDataInput({ data, updateData, errors }: InputProps) {
         options={[
           { value: "gpt-4.1", label: "Smartest (gpt-4.1)" },
           { value: "gpt-4.1-mini", label: "Balanced (gpt-4.1-mini)" },
-          { value: "gpt-4.1-nano", label: "Cheap & Fast (gpt-4.1-nano)" },
+          {
+            value: "gpt-4.1-nano",
+            label: "Cheap & Fast (gpt-4.1-nano) (deprecated)",
+          },
+          { value: "gpt-5-nano", label: "Cheap & Fast (gpt-5-nano)" },
           { value: "gpt-4o-mini", label: "Cheap & Fast (gpt-4o-mini)" },
         ]}
         value={data.ai_chat_completion_data?.model || "gpt-4o-mini"}

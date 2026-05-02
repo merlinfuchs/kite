@@ -594,6 +594,7 @@ export const nodeActionAiChatCompletionDataSchema = nodeBaseDataSchema.extend({
         z.literal("gpt-4.1"),
         z.literal("gpt-4.1-mini"),
         z.literal("gpt-4.1-nano"),
+        z.literal("gpt-5-nano"),
         z.literal("gpt-4o-mini"),
       ])
       .optional(),
@@ -615,6 +616,7 @@ export const nodeActionAiWebSearchCompletionDataSchema =
           z.literal("gpt-4.1"),
           z.literal("gpt-4.1-mini"),
           z.literal("gpt-4.1-nano"),
+          z.literal("gpt-5-nano"),
           z.literal("gpt-4o-mini"),
         ])
         .optional(),
