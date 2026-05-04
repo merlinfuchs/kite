@@ -1,4 +1,5 @@
 import { FlowData, NodeProps } from "@/lib/flow/dataSchema";
+import { generateCommandShare } from '../app/CommandShareDialog';
 import { useHookedTheme } from "@/lib/hooks/theme";
 import { Node, useReactFlow } from "@xyflow/react";
 import {
@@ -7,6 +8,7 @@ import {
   CheckIcon,
   MoonStarIcon,
   RefreshCwIcon,
+  SendIcon,
   SunIcon,
 } from "lucide-react";
 import { useCallback, useEffect } from "react";
@@ -99,6 +101,13 @@ export default function FlowNav({
             <div>Changes Deployed</div>
           </div>
         ) : null}
+        <button
+            className="flex space-x-2 text-foreground/80 hover:text-foreground items-center disabled:opacity-50 disabled:cursor-not-allowed"
+            onClick={generateCommandShare}
+          >
+            <SendIcon className="h-5 w-5" />
+            <div>Export Command</div>
+          </button>
       </div>
       <div>
         {theme === "dark" ? (

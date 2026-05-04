@@ -1,1 +1,10 @@
 .DS_Store
+
+# Sensitive configuration files with real credentials
+kite.toml
+kite-service/.env
+kite-service/kite-service.exe
+
+# Keep example files - these should be committed
+!kite.toml.example
+!kite-service/.env.example
