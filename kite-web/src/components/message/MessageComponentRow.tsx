@@ -11,6 +11,8 @@ import {
 import { Button } from "../ui/button";
 import { getUniqueId } from "@/lib/utils";
 import MessageComponentButton from "./MessageComponentButton";
+import MessageComponentSelectMenu from "./MessageComponentSelectMenu";
+import MessageComponentContainer from "./MessageComponentContainer";
 
 export default function MessageComponentRow({
   rowIndex,
@@ -22,14 +24,30 @@ export default function MessageComponentRow({
   disableFlowEditor?: boolean;
 }) {
   const rowCount = useCurrentMessage((state) => state.components.length);
+  const componentType = useCurrentMessage(
+    (state) => state.components[rowIndex]?.type
+  );
   const components = useCurrentMessage(
-    useShallow((state) =>
-      state.components[rowIndex].components.map((c) => c.id)
-    )
+    useShallow((state) => {
+      const row = state.components[rowIndex];
+      if (!row) return [];
+      // Only ActionRows have a components array that we iterate over here
+      if (row.type === 1) {
+        return row.components.map((c) => c.id);
+      }
+      return [];
+    })
   );
-  const isButtonRow = useCurrentMessage((state) =>
-    state.components[rowIndex].components.every((c) => c.type === 2)
-  );
+  const isButtonRow = useCurrentMessage((state) => {
+    const row = state.components[rowIndex];
+    if (!row || row.type !== 1) return false;
+    return row.components.every((c) => c.type === 2);
+  });
+  const isSelectMenuRow = useCurrentMessage((state) => {
+    const row = state.components[rowIndex];
+    if (!row || row.type !== 1) return false;
+    return row.components.some((c) => c.type === 3);
+  });
   const [moveUp, moveDown, duplicate, remove] = useCurrentMessage(
     useShallow((state) => [
       state.moveComponentRowUp,
@@ -43,6 +61,26 @@ export default function MessageComponentRow({
     useShallow((state) => [state.addButton, state.clearButtons])
   );
 
+  // Container component (type 17) - render differently
+  if (componentType === 17) {
+    const container = useCurrentMessage((state) => {
+      const comp = state.components[rowIndex];
+      return comp && comp.type === 17 ? comp : null;
+    });
+
+    if (!container) return null;
+
+    return (
+      <Card className="px-4 py-3">
+        <MessageComponentContainer
+          component={container}
+          containerIndex={rowIndex}
+        />
+      </Card>
+    );
+  }
+
+  // Action Row component (type 1) - existing behavior
   return (
     <Card className="px-4 py-3">
       <MessageCollapsibleSection
@@ -105,7 +143,7 @@ export default function MessageComponentRow({
                     type: 2,
                     style: 2,
                     label: "",
-                    flow_source_id: getUniqueId().toString(), // TODO: refactor this for flow_source_id
+                    flow_source_id: getUniqueId().toString(),
                   })
                 }
                 size="sm"
@@ -122,9 +160,20 @@ export default function MessageComponentRow({
               </Button>
             </div>
           </>
+        ) : isSelectMenuRow ? (
+          <>
+            {components.map((id, i) => (
+              <MessageComponentSelectMenu
+                key={id}
+                rowIndex={rowIndex}
+                compIndex={i}
+                disableFlowEditor={disableFlowEditor}
+              />
+            ))}
+          </>
         ) : (
           <div className="text-muted-foreground">
-            select menus aren&apos;t supported yet
+            Unknown component type
           </div>
         )}
       </MessageCollapsibleSection>

@@ -119,6 +119,8 @@ export const nodeEntryEventDataSchema = nodeBaseDataSchema.extend({
 
 export const nodeEntryComponentButtonDataSchema = nodeBaseDataSchema.extend({});
 
+export const nodeEntryComponentSelectDataSchema = nodeBaseDataSchema.extend({});
+
 export const nodeMessageDataSchema = z.object({
   content: z.string().max(2000),
   allowed_mentions: z

@@ -15,6 +15,7 @@ export default function MessageComponentsSection({
     useShallow((state) => state.components.map((e) => e.id))
   );
   const addRow = useCurrentMessage((state) => state.addComponentRow);
+  const addContainer = useCurrentMessage((state) => state.addContainer);
   const clearComponents = useCurrentMessage(
     (state) => state.clearComponentRows
   );
@@ -28,7 +29,7 @@ export default function MessageComponentsSection({
     });
   }, [components, addRow]);
 
-  /* const addSelectMenuRow = useCallback(() => {
+  const addSelectMenuRow = useCallback(() => {
     if (components.length >= 5) return;
     addRow({
       id: getUniqueId(),
@@ -37,11 +38,24 @@ export default function MessageComponentsSection({
         {
           id: getUniqueId(),
           type: 3,
-          options: [],
+          placeholder: "",
+          options: [
+            { id: getUniqueId(), label: "Option 1", flow_source_id: getUniqueId().toString() },
+          ],
+          flow_source_id: getUniqueId().toString(),
         },
       ],
     });
-  }, [components, addRow]); */
+  }, [components, addRow]);
+
+  const addContainerComponent = useCallback(() => {
+    if (components.length >= 5) return;
+    addContainer({
+      id: getUniqueId(),
+      type: 17,
+      components: [],
+    });
+  }, [components, addContainer]);
 
   return (
     <CollapsibleSection
@@ -59,6 +73,8 @@ export default function MessageComponentsSection({
       ))}
       <div className="space-x-3">
         <Button onClick={addButtonRow}>Add Button Row</Button>
+        <Button onClick={addSelectMenuRow}>Add Select Menu Row</Button>
+        <Button onClick={addContainerComponent}>Add Container</Button>
         <Button onClick={clearComponents} variant="outline">
           Clear Components
         </Button>

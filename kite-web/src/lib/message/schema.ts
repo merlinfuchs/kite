@@ -110,17 +110,7 @@ export const embedAuthorSchema = z.optional(
 
 export type EmbedAuthor = z.infer<typeof embedAuthorSchema>;
 
-export const embedProviderNameSchema = z.string().min(1).max(256);
-
-export type EmbedProviderName = z.infer<typeof embedProviderNameSchema>;
-
-export const embedProviderUrlSchema = z.optional(
-  z.string().refine(...urlRefinement)
-);
-
-export type EmbedProviderUrl = z.infer<typeof embedProviderUrlSchema>;
-
-export const embedProviderSchema = z.optional(
+export const embedProviderNameSchema = z.optional(
   z.object({
     name: embedProviderNameSchema,
     url: embedProviderUrlSchema,
@@ -267,6 +257,8 @@ export const selectMenuOptionSchema = z.object({
   label: z.string().min(1).max(100),
   description: z.optional(z.string().min(1).max(100)),
   emoji: z.optional(emojiSchema),
+  default: z.optional(z.boolean()),
+  flow_source_id: z.string().default(() => getUniqueId().toString()),
 });
 
 export type MessageComponentSelectMenuOption = z.infer<
@@ -278,12 +270,124 @@ export const selectMenuSchema = z.object({
   type: z.literal(3),
   placeholder: z.optional(z.string().max(150)),
   disabled: z.optional(z.boolean()),
+  min_values: z.optional(z.number().min(0).max(25)),
+  max_values: z.optional(z.number().min(1).max(25)),
   options: z.array(selectMenuOptionSchema).min(1).max(25),
   flow_source_id: z.string().default(() => getUniqueId().toString()),
 });
 
 export type MessageComponentSelectMenu = z.infer<typeof selectMenuSchema>;
 
+// Media Item (used by Thumbnail, File, Media Gallery)
+export const mediaItemSchema = z.object({
+  url: z.string().refine(...urlRefinement),
+});
+
+export type MediaItem = z.infer<typeof mediaItemSchema>;
+
+// Text Display Component (Type 10)
+export const textDisplaySchema = z.object({
+  id: uniqueIdSchema.default(() => getUniqueId()),
+  type: z.literal(10),
+  content: z.string().max(4000),
+});
+
+export type MessageComponentTextDisplay = z.infer<typeof textDisplaySchema>;
+
+// Thumbnail Component (Type 11)
+export const thumbnailSchema = z.object({
+  id: uniqueIdSchema.default(() => getUniqueId()),
+  type: z.literal(11),
+  media: mediaItemSchema,
+  description: z.optional(z.string().max(100)),
+  spoiler: z.optional(z.boolean()),
+});
+
+export type MessageComponentThumbnail = z.infer<typeof thumbnailSchema>;
+
+// Section Component (Type 9)
+// Note: Using z.lazy() for recursive button reference to avoid circular dependency
+export const sectionSchema = z.object({
+  id: uniqueIdSchema.default(() => getUniqueId()),
+  type: z.literal(9),
+  components: z.array(textDisplaySchema).min(1).max(10),
+  accessory: z.optional(
+    z.union([
+      thumbnailSchema,
+      z.lazy(() => buttonSchema), // Lazy to avoid circular reference
+    ])
+  ),
+});
+
+export type MessageComponentSection = z.infer<typeof sectionSchema>;
+
+// Media Gallery Item
+export const mediaGalleryItemSchema = z.object({
+  id: uniqueIdSchema.default(() => getUniqueId()),
+  media: mediaItemSchema,
+  description: z.optional(z.string().max(100)),
+  spoiler: z.optional(z.boolean()),
+});
+
+export type MessageComponentMediaGalleryItem = z.infer<
+  typeof mediaGalleryItemSchema
+>;
+
+// Media Gallery Component (Type 12)
+export const mediaGallerySchema = z.object({
+  id: uniqueIdSchema.default(() => getUniqueId()),
+  type: z.literal(12),
+  items: z.array(mediaGalleryItemSchema).min(1).max(10),
+});
+
+export type MessageComponentMediaGallery = z.infer<typeof mediaGallerySchema>;
+
+// File Component (Type 13)
+export const fileSchema = z.object({
+  id: uniqueIdSchema.default(() => getUniqueId()),
+  type: z.literal(13),
+  file: mediaItemSchema,
+  spoiler: z.optional(z.boolean()),
+});
+
+export type MessageComponentFile = z.infer<typeof fileSchema>;
+
+// Separator Component (Type 14)
+export const separatorSchema = z.object({
+  id: uniqueIdSchema.default(() => getUniqueId()),
+  type: z.literal(14),
+  divider: z.boolean().default(true),
+  spacing: z.union([z.literal(1), z.literal(2)]).default(1),
+});
+
+export type MessageComponentSeparator = z.infer<typeof separatorSchema>;
+
+// Container Sub-Components (what can go inside a container)
+export const containerSubComponentSchema = z.union([
+  z.lazy(() => actionRowSchema),
+  sectionSchema,
+  textDisplaySchema,
+  mediaGallerySchema,
+  fileSchema,
+  separatorSchema,
+]);
+
+export type MessageComponentContainerSubComponent = z.infer<
+  typeof containerSubComponentSchema
+>;
+
+// Container Component (Type 17)
+export const containerSchema = z.object({
+  id: uniqueIdSchema.default(() => getUniqueId()),
+  type: z.literal(17),
+  components: z.array(containerSubComponentSchema).min(1).max(10),
+  accent_color: z.optional(z.number().max(16777215)), // Same max as embed color
+  spoiler: z.optional(z.boolean()),
+});
+
+export type MessageComponentContainer = z.infer<typeof containerSchema>;
+
+// Action Row Component (Type 1)
 export const actionRowSchema = z.object({
   id: uniqueIdSchema.default(() => getUniqueId()),
   type: z.literal(1),
@@ -291,6 +395,21 @@ export const actionRowSchema = z.object({
 });
 
 export type MessageComponentActionRow = z.infer<typeof actionRowSchema>;
+
+export const componentSchema = z.union([
+  actionRowSchema,
+  buttonSchema,
+  selectMenuSchema,
+  sectionSchema,
+  textDisplaySchema,
+  thumbnailSchema,
+  mediaGallerySchema,
+  fileSchema,
+  separatorSchema,
+  containerSchema,
+]);
+
+export type MessageComponent = z.infer<typeof componentSchema>;
 
 export const messageContentSchema = z.string().max(2000);
 
@@ -354,7 +473,11 @@ export const messageSchema = z
     attachments: z.array(attachmentSchema).max(10).default([]),
     embeds: z.array(embedSchema).max(10).default([]),
     allowed_mentions: messageAllowedMentionsSchema,
-    components: z.array(actionRowSchema).max(5).default([]),
+    // Updated to accept both ActionRows and root-level Containers
+    components: z
+      .array(z.union([actionRowSchema, containerSchema]))
+      .max(5)
+      .default([]),
     thread_name: messageThreadNameSchema,
   })
   .superRefine((data, ctx) => {
