@@ -17,7 +17,7 @@ export default function AnalyticsProvider() {
     }
   }, [user?.id, op.identify]);
 
-  if (process.env.NODE_ENV !== "production" && typeof window === "undefined") {
+  if (process.env.NODE_ENV !== "production" || typeof window === "undefined") {
     return null;
   }
 
