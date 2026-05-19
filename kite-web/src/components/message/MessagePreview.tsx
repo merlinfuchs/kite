@@ -141,6 +141,33 @@ export default function MessagePreview({
                     >
                       {comp.label}
                     </DiscordButton>
+                  ) : comp.type === 3 ? (
+                    <select
+                      key={comp.id}
+                      disabled={comp.disabled}
+                      defaultValue=""
+                      style={{
+                        background: "var(--background-secondary, #2b2d31)",
+                        color: "var(--text-normal, #dbdee1)",
+                        border: "1px solid var(--background-tertiary, #1e1f22)",
+                        borderRadius: "4px",
+                        padding: "10px 32px 10px 12px",
+                        width: "100%",
+                        fontSize: "14px",
+                        cursor: comp.disabled ? "not-allowed" : "pointer",
+                        opacity: comp.disabled ? 0.5 : 1,
+                        appearance: "none",
+                      }}
+                    >
+                      <option value="" disabled>
+                        {comp.placeholder || "Make a selection"}
+                      </option>
+                      {comp.options?.map((opt, i) => (
+                        <option key={i} value={opt.label}>
+                          {opt.label}
+                        </option>
+                      ))}
+                    </select>
                   ) : null
                 )}
               </DiscordActionRow>

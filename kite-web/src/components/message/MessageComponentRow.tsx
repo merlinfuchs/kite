@@ -11,6 +11,7 @@ import {
 import { Button } from "../ui/button";
 import { getUniqueId } from "@/lib/utils";
 import MessageComponentButton from "./MessageComponentButton";
+import MessageComponentSelectMenu from "./MessageComponentSelectMenu";
 
 export default function MessageComponentRow({
   rowIndex,
@@ -27,9 +28,10 @@ export default function MessageComponentRow({
       state.components[rowIndex].components.map((c) => c.id)
     )
   );
-  const isButtonRow = useCurrentMessage((state) =>
-    state.components[rowIndex].components.every((c) => c.type === 2)
+  const isSelectMenuRow = useCurrentMessage((state) =>
+    state.components[rowIndex].components.some((c) => c.type === 3)
   );
+
   const [moveUp, moveDown, duplicate, remove] = useCurrentMessage(
     useShallow((state) => [
       state.moveComponentRowUp,
@@ -43,10 +45,14 @@ export default function MessageComponentRow({
     useShallow((state) => [state.addButton, state.clearButtons])
   );
 
+  const rowLabel = isSelectMenuRow
+    ? `Row ${rowIndex + 1} — Select Menu`
+    : `Row ${rowIndex + 1}`;
+
   return (
     <Card className="px-4 py-3">
       <MessageCollapsibleSection
-        title={`Row ${rowIndex + 1}`}
+        title={rowLabel}
         size="lg"
         valiationPathPrefix={`components.${rowIndex}`}
         actions={
@@ -81,22 +87,29 @@ export default function MessageComponentRow({
         }
         className="space-y-3"
       >
-        {isButtonRow ? (
+        {isSelectMenuRow ? (
           <>
-            {components.map((id, i) =>
-              isButtonRow ? (
-                <MessageComponentButton
-                  key={id}
-                  rowIndex={rowIndex}
-                  rowId={rowId}
-                  compIndex={i}
-                  compId={id}
-                  disableFlowEditor={disableFlowEditor}
-                ></MessageComponentButton>
-              ) : (
-                <div key={id}></div>
-              )
-            )}
+            {components.map((id, i) => (
+              <MessageComponentSelectMenu
+                key={id}
+                rowIndex={rowIndex}
+                compIndex={i}
+                compCount={components.length}
+              />
+            ))}
+          </>
+        ) : (
+          <>
+            {components.map((id, i) => (
+              <MessageComponentButton
+                key={id}
+                rowIndex={rowIndex}
+                rowId={rowId}
+                compIndex={i}
+                compId={id}
+                disableFlowEditor={disableFlowEditor}
+              />
+            ))}
             <div className="space-x-3">
               <Button
                 onClick={() =>
@@ -105,7 +118,7 @@ export default function MessageComponentRow({
                     type: 2,
                     style: 2,
                     label: "",
-                    flow_source_id: getUniqueId().toString(), // TODO: refactor this for flow_source_id
+                    flow_source_id: getUniqueId().toString(),
                   })
                 }
                 size="sm"
@@ -122,10 +135,6 @@ export default function MessageComponentRow({
               </Button>
             </div>
           </>
-        ) : (
-          <div className="text-muted-foreground">
-            select menus aren&apos;t supported yet
-          </div>
         )}
       </MessageCollapsibleSection>
     </Card>

@@ -28,7 +28,7 @@ export default function MessageComponentsSection({
     });
   }, [components, addRow]);
 
-  /* const addSelectMenuRow = useCallback(() => {
+  const addSelectMenuRow = useCallback(() => {
     if (components.length >= 5) return;
     addRow({
       id: getUniqueId(),
@@ -38,10 +38,11 @@ export default function MessageComponentsSection({
           id: getUniqueId(),
           type: 3,
           options: [],
+          flow_source_id: getUniqueId().toString(),
         },
       ],
     });
-  }, [components, addRow]); */
+  }, [components, addRow]);
 
   return (
     <CollapsibleSection
@@ -58,7 +59,16 @@ export default function MessageComponentsSection({
         />
       ))}
       <div className="space-x-3">
-        <Button onClick={addButtonRow}>Add Button Row</Button>
+        <Button onClick={addButtonRow} disabled={components.length >= 5}>
+          Add Button Row
+        </Button>
+        <Button
+          onClick={addSelectMenuRow}
+          variant="outline"
+          disabled={components.length >= 5}
+        >
+          Add Select Menu Row
+        </Button>
         <Button onClick={clearComponents} variant="outline">
           Clear Components
         </Button>

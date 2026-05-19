@@ -1,6 +1,8 @@
 package message
 
 import (
+	"fmt"
+
 	"github.com/diamondburned/arikawa/v3/api"
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/utils/json/option"
@@ -122,10 +124,6 @@ func (f *EmbedFieldData) ToEmbedField() discord.EmbedField {
 		return discord.EmbedField{}
 	}
 
-	if f == nil {
-		return discord.EmbedField{}
-	}
-
 	return discord.EmbedField{
 		Name:   f.Name,
 		Value:  f.Value,
@@ -195,7 +193,7 @@ func (c *ComponentData) ToComponent(opts ConvertOptions) discord.InteractiveComp
 	}
 
 	switch c.Type {
-	case int(discord.ButtonComponentType):
+	case 2: // Button
 		var style discord.ButtonComponentStyle
 		switch c.Style {
 		case 2:
@@ -225,6 +223,37 @@ func (c *ComponentData) ToComponent(opts ConvertOptions) discord.InteractiveComp
 			Emoji:    c.Emoji.ToEmoji(),
 			Disabled: c.Disabled,
 			CustomID: customID,
+		}
+
+	case 3: // String Select Menu
+		var customID discord.ComponentID
+		if opts.ComponentIDFactory != nil {
+			customID = opts.ComponentIDFactory(c)
+		} else {
+			customID = discord.ComponentID(c.FlowSourceID)
+		}
+
+		options := make([]discord.SelectOption, len(c.Options))
+		for i, opt := range c.Options {
+			// Value = flow_source_id: works for both message template routing
+			// (direct map lookup) and command flow routing (handle by flow_source_id).
+			value := opt.FlowSourceID
+			if value == "" {
+				value = fmt.Sprintf("option_%d", i)
+			}
+			options[i] = discord.SelectOption{
+				Label:       opt.Label,
+				Value:       value,
+				Description: opt.Description,
+				Emoji:       opt.Emoji.ToEmoji(),
+				Default:     opt.Default,
+			}
+		}
+		return &discord.StringSelectComponent{
+			CustomID:    customID,
+			Placeholder: c.Placeholder,
+			Options:     options,
+			Disabled:    c.Disabled,
 		}
 	}
 
