@@ -131,7 +131,7 @@ export default function MessageComponentSection({
 
             {component.components.length === 0 && (
               <p className="text-sm text-gray-500 text-center py-2">
-                No text displays. Click "Add Text" to add one.
+                No text displays. Click &quot;Add Text&quot; to add one.
               </p>
             )}
           </div>

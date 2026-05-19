@@ -319,7 +319,7 @@ export default function MessageComponentContainer({
 
             {component.components.length === 0 && (
               <p className="text-sm text-gray-500 text-center py-6">
-                No components in container. Click "Add Component" to add one.
+                No components in container. Click &quot;Add Component&quot; to add one.
               </p>
             )}
           </div>

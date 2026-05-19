@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"net/url"
+	"strings"
 	"time"
 
 	"github.com/kitecloud/kite/kite-service/internal/api/handler"
@@ -98,15 +100,30 @@ func (h *AuthHandler) setOauthStateCookie(c *handler.Context) string {
 }
 
 func (h *AuthHandler) getOauthRedirectURL(c *handler.Context) string {
-	redirectURL := h.config.AppPublicBaseURL
-
+	base := strings.TrimSuffix(h.config.AppPublicBaseURL, "/")
 	path := c.Cookie("oauth_redirect")
-	if path != "" {
-		redirectURL += path
+	c.DeleteCookie("oauth_redirect")
+
+	if path == "" {
+		return base
 	}
 
-	c.DeleteCookie("oauth_redirect")
-	return redirectURL
+	finalURL := base + path
+	parsed, err := url.Parse(finalURL)
+	if err != nil {
+		return base
+	}
+	baseParsed, err := url.Parse(base)
+	if err != nil {
+		return base
+	}
+
+	// Ensure redirect stays on the same origin (scheme + host).
+	if parsed.Host != baseParsed.Host || parsed.Scheme != baseParsed.Scheme {
+		return base
+	}
+
+	return finalURL
 }
 
 func (h *AuthHandler) setOauthRedirectCookie(c *handler.Context) {

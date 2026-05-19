@@ -200,7 +200,7 @@ export default function MessageComponentMediaGallery({
 
             {component.items.length === 0 && (
               <p className="text-sm text-gray-500 text-center py-4">
-                No items in gallery. Click "Add Item" to add an image.
+                No items in gallery. Click &quot;Add Item&quot; to add an image.
               </p>
             )}
           </div>
