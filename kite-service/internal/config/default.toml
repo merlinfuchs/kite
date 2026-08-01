@@ -26,7 +26,7 @@ populate_overlap = "5s"
 populate_interval = "10s"
 remove_dangling_interval = "60s"
 populate_overlap = "5s"
-start_interval = "10ms"
+start_interval = "100ms"
 
 [http]
 max_idle_conns = 512
