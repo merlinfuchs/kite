@@ -135,6 +135,11 @@ type GatewayConfig struct {
 type HTTPConfig struct {
 	MaxIdleConns        int `toml:"max_idle_conns"`
 	MaxIdleConnsPerHost int `toml:"max_idle_conns_per_host"`
+	// MaxConnsPerHost bounds concurrent connections to a single host. Go
+	// leaves this unlimited, so a burst opens one socket per in-flight
+	// request; bounding it makes requests queue locally instead of arriving
+	// as a connection flood.
+	MaxConnsPerHost int `toml:"max_conns_per_host"`
 }
 
 // DebugConfig controls the debug server, which exposes pprof profiles and
