@@ -47,6 +47,7 @@ func StartServer(c context.Context, cfg *config.Config) error {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
+	configureHTTPTransport(cfg)
 	startDebugServer(ctx, cfg.Debug)
 
 	tokenCrypt, err := util.NewSymmetricCrypt(cfg.Encryption.TokenEncryptionKey)

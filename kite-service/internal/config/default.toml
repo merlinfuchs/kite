@@ -28,6 +28,10 @@ remove_dangling_interval = "60s"
 populate_overlap = "5s"
 start_interval = "10ms"
 
+[http]
+max_idle_conns = 512
+max_idle_conns_per_host = 128
+
 [debug]
 enabled = false
 host = "127.0.0.1"

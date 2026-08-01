@@ -61,6 +61,23 @@ func TestDefaultGatewayStartInterval(t *testing.T) {
 	}
 }
 
+// Go's DefaultTransport leaves MaxIdleConnsPerHost at 2, which forces a TLS
+// handshake for all but two concurrent requests to discord.com. Raising the
+// per-host limit only helps if the total moves with it, otherwise a single
+// host can still only keep its share of the default 100.
+func TestDefaultHTTPPoolLimits(t *testing.T) {
+	cfg := unmarshalDefaults(t)
+
+	if cfg.HTTP.MaxIdleConnsPerHost <= 2 {
+		t.Errorf("http.max_idle_conns_per_host = %d, want more than the Go default of 2",
+			cfg.HTTP.MaxIdleConnsPerHost)
+	}
+	if cfg.HTTP.MaxIdleConns < cfg.HTTP.MaxIdleConnsPerHost {
+		t.Errorf("http.max_idle_conns = %d is below max_idle_conns_per_host = %d, which caps the per-host limit",
+			cfg.HTTP.MaxIdleConns, cfg.HTTP.MaxIdleConnsPerHost)
+	}
+}
+
 // The debug server exposes uncontrolled pprof profiles, so it must stay off
 // unless explicitly enabled and must not default to a public bind address.
 func TestDebugServerDefaultsToDisabledAndLocal(t *testing.T) {

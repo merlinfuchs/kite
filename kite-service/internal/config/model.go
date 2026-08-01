@@ -18,6 +18,7 @@ type Config struct {
 	OpenAI     OpenAIConfig     `toml:"openai"`
 	Billing    BillingConfig    `toml:"billing"`
 	Encryption EncryptionConfig `toml:"encryption"`
+	HTTP       HTTPConfig       `toml:"http"`
 	Debug      DebugConfig      `toml:"debug"`
 
 	ClusterCount int `toml:"cluster_count"`
@@ -127,6 +128,13 @@ type GatewayConfig struct {
 	// this exists to keep a cold start from opening tens of thousands of TLS
 	// handshakes at once rather than to satisfy a Discord rate limit.
 	StartInterval time.Duration `toml:"start_interval"`
+}
+
+// HTTPConfig tunes the shared default HTTP transport, which every Discord API
+// client draws connections from.
+type HTTPConfig struct {
+	MaxIdleConns        int `toml:"max_idle_conns"`
+	MaxIdleConnsPerHost int `toml:"max_idle_conns_per_host"`
 }
 
 // DebugConfig controls the debug server, which exposes pprof profiles and
