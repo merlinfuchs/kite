@@ -4,6 +4,13 @@ SELECT * FROM entitlements WHERE app_id = $1 ORDER BY created_at DESC;
 -- name: GetActiveEntitlements :many
 SELECT * FROM entitlements WHERE app_id = $1 AND (ends_at IS NULL OR ends_at > $2) ORDER BY created_at DESC;
 
+-- Batch form of GetActiveEntitlements. The usage manager checks every app with
+-- usage this month, which was one round trip each.
+-- name: GetActiveEntitlementsForApps :many
+SELECT * FROM entitlements
+WHERE app_id = ANY(@app_ids::text[]) AND (ends_at IS NULL OR ends_at > @ends_at)
+ORDER BY created_at DESC;
+
 -- name: UpsertSubscriptionEntitlement :one
 INSERT INTO entitlements (
     id,

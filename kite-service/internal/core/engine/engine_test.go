@@ -3,11 +3,13 @@ package engine
 import (
 	"context"
 	"errors"
+	"strconv"
 	"testing"
 	"time"
 
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/internal/store"
+	"github.com/kitecloud/kite/kite-service/internal/util"
 )
 
 // The fakes embed their store interface so any method the engine does not call
@@ -127,5 +129,38 @@ func TestPopulatePartialFailureDoesNotAdvanceCursor(t *testing.T) {
 
 	if !e.lastUpdate.IsZero() {
 		t.Errorf("cursor advanced to %v despite one of three queries failing", e.lastUpdate)
+	}
+}
+
+// Reproduces a dangling sweep at production shape: many apps in the registry,
+// each tested against the system-wide set of enabled entities. Measures the
+// steady state where nothing is dangling, which is the common case.
+//
+// The set is built once per sweep. Building it per app -- the previous
+// behaviour -- made this O(apps x entities) and accounted for 74% of the
+// process's CPU in production.
+func BenchmarkDanglingSweep(b *testing.B) {
+	const (
+		apps           = 500
+		systemEntities = 5000
+	)
+
+	enabledIDs := make([]string, systemEntities)
+	for i := range enabledIDs {
+		enabledIDs[i] = "cmd-" + strconv.Itoa(i)
+	}
+
+	registry := make([]*App, apps)
+	for i := range registry {
+		app := NewApp("app", Env{})
+		app.AddCommand(testCommand(enabledIDs[i%len(enabledIDs)], "name"))
+		registry[i] = app
+	}
+
+	for b.Loop() {
+		set := util.IDSet(enabledIDs)
+		for _, app := range registry {
+			app.RemoveDanglingCommands(set)
+		}
 	}
 }

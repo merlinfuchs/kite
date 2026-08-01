@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/kitecloud/kite/kite-service/internal/model"
+	"github.com/kitecloud/kite/kite-service/internal/util"
 )
 
 // The command and listener lookup indexes replaced linear scans over every
@@ -61,7 +62,7 @@ func TestCommandIndexRebuiltOnRemoval(t *testing.T) {
 	app.AddCommand(testCommand("cmd-1", "keep"))
 	app.AddCommand(testCommand("cmd-2", "drop"))
 
-	app.RemoveDanglingCommands([]string{"cmd-1"})
+	app.RemoveDanglingCommands(util.IDSet([]string{"cmd-1"}))
 
 	if got := app.commandsByName["drop"]; got != nil {
 		t.Error("removed command still resolves by name")
@@ -120,7 +121,7 @@ func TestListenerIndexRebuiltOnRemoval(t *testing.T) {
 	app.AddEventListener(testListener("l-1", model.EventSourceDiscord, model.EventListenerTypeDiscordMessageCreate))
 	app.AddEventListener(testListener("l-2", model.EventSourceDiscord, model.EventListenerTypeDiscordMessageCreate))
 
-	app.RemoveDanglingEventListeners([]string{"l-1"})
+	app.RemoveDanglingEventListeners(util.IDSet([]string{"l-1"}))
 
 	if got := len(app.listenersByType[model.EventListenerTypeDiscordMessageCreate]); got != 1 {
 		t.Errorf("message_create listeners = %d, want 1 after removal", got)

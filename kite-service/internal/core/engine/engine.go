@@ -185,11 +185,13 @@ func (e *Engine) removeDanglingPlugins(ctx context.Context) error {
 		return fmt.Errorf("failed to get enabled plugin instance IDs: %w", err)
 	}
 
+	idSet := util.IDSet(pluginInstanceIDs)
+
 	e.RLock()
 	defer e.RUnlock()
 
 	for _, app := range e.apps {
-		app.RemoveDanglingPluginInstances(pluginInstanceIDs)
+		app.RemoveDanglingPluginInstances(idSet)
 	}
 
 	return nil
@@ -228,11 +230,13 @@ func (e *Engine) removeDanglingCommands(ctx context.Context) error {
 		return fmt.Errorf("failed to get enabled command IDs: %w", err)
 	}
 
+	idSet := util.IDSet(commandIDs)
+
 	e.RLock()
 	defer e.RUnlock()
 
 	for _, app := range e.apps {
-		app.RemoveDanglingCommands(commandIDs)
+		app.RemoveDanglingCommands(idSet)
 	}
 
 	return nil
@@ -269,11 +273,13 @@ func (e *Engine) removeDanglingEventListeners(ctx context.Context) error {
 		return fmt.Errorf("failed to get enabled event listener IDs: %w", err)
 	}
 
+	idSet := util.IDSet(listenerIDs)
+
 	e.RLock()
 	defer e.RUnlock()
 
 	for _, app := range e.apps {
-		app.RemoveDanglingEventListeners(listenerIDs)
+		app.RemoveDanglingEventListeners(idSet)
 	}
 
 	return nil

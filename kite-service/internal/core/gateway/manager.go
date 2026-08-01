@@ -307,10 +307,7 @@ func (m *GatewayManager) removeDanglingGateways(ctx context.Context, appIDs []st
 	m.Lock()
 	defer m.Unlock()
 
-	lookupMap := make(map[string]struct{}, len(appIDs))
-	for _, id := range appIDs {
-		lookupMap[id] = struct{}{}
-	}
+	lookupMap := util.IDSet(appIDs)
 
 	var removed int
 	for id := range m.gateways {

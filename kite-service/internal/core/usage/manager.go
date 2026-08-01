@@ -74,6 +74,11 @@ func (m *UsageManager) Run(ctx context.Context) {
 }
 
 func (m *UsageManager) disableAppsWithNoCredits(ctx context.Context) error {
+	// Run's context has no deadline, and this shares its goroutine with the
+	// cleanup tickers, so a stuck query would stall those too.
+	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+
 	start, end := startAndEndOfMonth(time.Now().UTC())
 
 	creditsUsed, err := m.usageStore.AllUsageCreditsUsedBetween(ctx, start, end)
@@ -81,29 +86,56 @@ func (m *UsageManager) disableAppsWithNoCredits(ctx context.Context) error {
 		return fmt.Errorf("failed to get all usage credits used: %w", err)
 	}
 
-	for appID, creditsUsed := range creditsUsed {
-		features := m.planManager.AppFeatures(ctx, appID)
+	// An app can only be over its limit if it is over the allowance every app
+	// gets for free, so the rest need no entitlement lookup at all. That is
+	// the large majority of them.
+	floor := m.planManager.DefaultFeatures().UsageCreditsPerMonth
 
-		if creditsUsed >= features.UsageCreditsPerMonth {
-			dCtx, cancel := context.WithTimeout(ctx, time.Second)
-			defer cancel()
-
-			err := m.appStore.DisableApp(dCtx, store.AppDisableOpts{
-				ID:             appID,
-				DisabledReason: null.StringFrom("No credits remaining"),
-				UpdatedAt:      time.Now().UTC(),
-			})
-			if err != nil {
-				slog.Error(
-					"Failed to disable app with no credits",
-					slog.String("app_id", appID),
-					slog.String("error", err.Error()),
-				)
-			}
+	var candidates []string
+	for appID, used := range creditsUsed {
+		if used >= floor {
+			candidates = append(candidates, appID)
 		}
 	}
 
+	if len(candidates) == 0 {
+		return nil
+	}
+
+	features, err := m.planManager.AppFeaturesForApps(ctx, candidates)
+	if err != nil {
+		return fmt.Errorf("failed to get features for apps: %w", err)
+	}
+
+	for _, appID := range candidates {
+		if creditsUsed[appID] < features[appID].UsageCreditsPerMonth {
+			continue
+		}
+
+		m.disableApp(ctx, appID)
+	}
+
 	return nil
+}
+
+// disableApp is a separate function so its context is released when the app is
+// done rather than accumulating until the whole sweep returns.
+func (m *UsageManager) disableApp(ctx context.Context, appID string) {
+	ctx, cancel := context.WithTimeout(ctx, time.Second)
+	defer cancel()
+
+	err := m.appStore.DisableApp(ctx, store.AppDisableOpts{
+		ID:             appID,
+		DisabledReason: null.StringFrom("No credits remaining"),
+		UpdatedAt:      time.Now().UTC(),
+	})
+	if err != nil {
+		slog.Error(
+			"Failed to disable app with no credits",
+			slog.String("app_id", appID),
+			slog.String("error", err.Error()),
+		)
+	}
 }
 
 func (m *UsageManager) cleanupUsageRecords(ctx context.Context) error {

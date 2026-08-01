@@ -49,6 +49,48 @@ func (q *Queries) GetActiveEntitlements(ctx context.Context, arg GetActiveEntitl
 	return items, nil
 }
 
+const getActiveEntitlementsForApps = `-- name: GetActiveEntitlementsForApps :many
+SELECT id, type, subscription_id, app_id, plan_id, created_at, updated_at, ends_at FROM entitlements
+WHERE app_id = ANY($1::text[]) AND (ends_at IS NULL OR ends_at > $2)
+ORDER BY created_at DESC
+`
+
+type GetActiveEntitlementsForAppsParams struct {
+	AppIds []string
+	EndsAt pgtype.Timestamp
+}
+
+// Batch form of GetActiveEntitlements. The usage manager checks every app with
+// usage this month, which was one round trip each.
+func (q *Queries) GetActiveEntitlementsForApps(ctx context.Context, arg GetActiveEntitlementsForAppsParams) ([]Entitlement, error) {
+	rows, err := q.db.Query(ctx, getActiveEntitlementsForApps, arg.AppIds, arg.EndsAt)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Entitlement
+	for rows.Next() {
+		var i Entitlement
+		if err := rows.Scan(
+			&i.ID,
+			&i.Type,
+			&i.SubscriptionID,
+			&i.AppID,
+			&i.PlanID,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.EndsAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getEntitlements = `-- name: GetEntitlements :many
 SELECT id, type, subscription_id, app_id, plan_id, created_at, updated_at, ends_at FROM entitlements WHERE app_id = $1 ORDER BY created_at DESC
 `
