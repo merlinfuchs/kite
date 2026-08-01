@@ -3,11 +3,13 @@ package engine
 import (
 	"context"
 	"errors"
+	"strconv"
 	"testing"
 	"time"
 
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/internal/store"
+	"github.com/kitecloud/kite/kite-service/internal/util"
 )
 
 // The fakes embed their store interface so any method the engine does not call
@@ -130,69 +132,35 @@ func TestPopulatePartialFailureDoesNotAdvanceCursor(t *testing.T) {
 	}
 }
 
-func TestIDLookupSet(t *testing.T) {
-	set := idLookupSet([]string{"a", "b", "a"})
-
-	if len(set) != 2 {
-		t.Errorf("idLookupSet produced %d entries, want 2 after dedup", len(set))
-	}
-	for _, want := range []string{"a", "b"} {
-		if _, ok := set[want]; !ok {
-			t.Errorf("idLookupSet is missing %q", want)
-		}
-	}
-	if _, ok := set["c"]; ok {
-		t.Error("idLookupSet contains an id that was not passed in")
-	}
-}
-
-func TestIDLookupSetEmpty(t *testing.T) {
-	// A sweep that finds no enabled entities must still produce a usable set,
-	// so the per-app calls remove everything rather than panicking.
-	set := idLookupSet(nil)
-	if set == nil {
-		t.Fatal("idLookupSet(nil) returned a nil map")
-	}
-	if len(set) != 0 {
-		t.Errorf("idLookupSet(nil) produced %d entries, want 0", len(set))
-	}
-}
-
-// Reproduces the production shape of a dangling sweep: many apps in the
-// registry, all tested against the system-wide set of enabled entities.
+// Reproduces a dangling sweep at production shape: many apps in the registry,
+// each tested against the system-wide set of enabled entities. Measures the
+// steady state where nothing is dangling, which is the common case.
 //
-// The set is now built once per sweep. Building it per app (the previous
-// behaviour) made the sweep O(apps x entities) and, at ~5k apps against a
-// system-wide set, accounted for 74% of the process's CPU.
-func benchmarkSweep(b *testing.B, apps, systemEntities int, perApp bool) {
-	ids := make([]string, systemEntities)
-	for i := range ids {
-		ids[i] = "cmd-" + string(rune('a'+i%26)) + string(rune('a'+(i/26)%26)) + string(rune('a'+(i/676)%26))
+// The set is built once per sweep. Building it per app -- the previous
+// behaviour -- made this O(apps x entities) and accounted for 74% of the
+// process's CPU in production.
+func BenchmarkDanglingSweep(b *testing.B) {
+	const (
+		apps           = 500
+		systemEntities = 5000
+	)
+
+	enabledIDs := make([]string, systemEntities)
+	for i := range enabledIDs {
+		enabledIDs[i] = "cmd-" + strconv.Itoa(i)
 	}
 
 	registry := make([]*App, apps)
 	for i := range registry {
 		app := NewApp("app", Env{})
-		app.AddCommand(testCommand(ids[i%len(ids)], "name"))
+		app.AddCommand(testCommand(enabledIDs[i%len(enabledIDs)], "name"))
 		registry[i] = app
 	}
 
-	b.ResetTimer()
 	for b.Loop() {
-		if perApp {
-			// Old shape: every app rebuilds the system-wide set.
-			for _, app := range registry {
-				app.RemoveDanglingCommands(idLookupSet(ids))
-			}
-		} else {
-			// Current shape: built once, shared by every app.
-			set := idLookupSet(ids)
-			for _, app := range registry {
-				app.RemoveDanglingCommands(set)
-			}
+		set := util.IDSet(enabledIDs)
+		for _, app := range registry {
+			app.RemoveDanglingCommands(set)
 		}
 	}
 }
-
-func BenchmarkSweepSetPerApp(b *testing.B) { benchmarkSweep(b, 500, 5000, true) }
-func BenchmarkSweepSetShared(b *testing.B) { benchmarkSweep(b, 500, 5000, false) }

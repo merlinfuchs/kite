@@ -115,16 +115,14 @@ func (a *App) AddPluginInstance(pluginInstance *model.PluginInstance) {
 	}
 }
 
-// RemoveDanglingPluginInstances drops instances whose row no longer exists.
-//
-// The caller owns the lookup set: it is identical for every app, so building
-// it here would rebuild the whole system's ID set once per app.
-func (a *App) RemoveDanglingPluginInstances(pluginInstanceIDMap map[string]struct{}) {
+// RemoveDanglingPluginInstances drops instances absent from enabledIDs, the
+// set of plugin instances that still exist and are enabled.
+func (a *App) RemoveDanglingPluginInstances(enabledIDs map[string]struct{}) {
 	a.Lock()
 	defer a.Unlock()
 
 	for pluginInstanceID, pluginInstance := range a.pluginInstances {
-		if _, ok := pluginInstanceIDMap[pluginInstanceID]; !ok {
+		if _, ok := enabledIDs[pluginInstanceID]; !ok {
 			err := pluginInstance.Close()
 			if err != nil {
 				slog.With("error", err).Error("failed to close plugin instance")
@@ -157,15 +155,15 @@ func (a *App) AddCommand(commandID string, command *Command) {
 	a.rebuildCommandIndex()
 }
 
-// RemoveDanglingCommands drops commands whose row no longer exists. See
-// RemoveDanglingPluginInstances on why the caller owns the lookup set.
-func (a *App) RemoveDanglingCommands(commandIDMap map[string]struct{}) {
+// RemoveDanglingCommands drops commands absent from enabledIDs, the set of
+// commands that still exist and are enabled.
+func (a *App) RemoveDanglingCommands(enabledIDs map[string]struct{}) {
 	a.Lock()
 	defer a.Unlock()
 
 	var removed bool
 	for cmdID := range a.commands {
-		if _, ok := commandIDMap[cmdID]; !ok {
+		if _, ok := enabledIDs[cmdID]; !ok {
 			delete(a.commands, cmdID)
 			removed = true
 		}
@@ -186,15 +184,15 @@ func (a *App) AddEventListener(listenerID string, listener *EventListener) {
 	a.rebuildListenerIndex()
 }
 
-// RemoveDanglingEventListeners drops listeners whose row no longer exists. See
-// RemoveDanglingPluginInstances on why the caller owns the lookup set.
-func (a *App) RemoveDanglingEventListeners(listenerIDMap map[string]struct{}) {
+// RemoveDanglingEventListeners drops listeners absent from enabledIDs, the set
+// of listeners that still exist and are enabled.
+func (a *App) RemoveDanglingEventListeners(enabledIDs map[string]struct{}) {
 	a.Lock()
 	defer a.Unlock()
 
 	var removed bool
 	for listenerID := range a.listeners {
-		if _, ok := listenerIDMap[listenerID]; !ok {
+		if _, ok := enabledIDs[listenerID]; !ok {
 			delete(a.listeners, listenerID)
 			removed = true
 		}

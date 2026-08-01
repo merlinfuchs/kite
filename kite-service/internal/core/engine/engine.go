@@ -105,20 +105,6 @@ func (e *Engine) populate(ctx context.Context) {
 	e.lastUpdate = tickStart.Add(-e.env.Config.PopulateOverlap)
 }
 
-// idLookupSet builds the membership set the dangling sweeps test against.
-//
-// It is built once per sweep rather than once per app. The set covers every
-// enabled entity in the system, so building it inside the per-app call made
-// the sweep cost O(apps x entities): with thousands of apps it dominated the
-// process's entire CPU usage and allocated a fresh system-wide map each time.
-func idLookupSet(ids []string) map[string]struct{} {
-	set := make(map[string]struct{}, len(ids))
-	for _, id := range ids {
-		set[id] = struct{}{}
-	}
-	return set
-}
-
 func (e *Engine) removeDangling(ctx context.Context) {
 	if err := e.removeDanglingPlugins(ctx); err != nil {
 		slog.Error(
@@ -199,7 +185,7 @@ func (e *Engine) removeDanglingPlugins(ctx context.Context) error {
 		return fmt.Errorf("failed to get enabled plugin instance IDs: %w", err)
 	}
 
-	idSet := idLookupSet(pluginInstanceIDs)
+	idSet := util.IDSet(pluginInstanceIDs)
 
 	e.RLock()
 	defer e.RUnlock()
@@ -244,7 +230,7 @@ func (e *Engine) removeDanglingCommands(ctx context.Context) error {
 		return fmt.Errorf("failed to get enabled command IDs: %w", err)
 	}
 
-	idSet := idLookupSet(commandIDs)
+	idSet := util.IDSet(commandIDs)
 
 	e.RLock()
 	defer e.RUnlock()
@@ -287,7 +273,7 @@ func (e *Engine) removeDanglingEventListeners(ctx context.Context) error {
 		return fmt.Errorf("failed to get enabled event listener IDs: %w", err)
 	}
 
-	idSet := idLookupSet(listenerIDs)
+	idSet := util.IDSet(listenerIDs)
 
 	e.RLock()
 	defer e.RUnlock()
