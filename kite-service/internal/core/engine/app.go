@@ -115,12 +115,11 @@ func (a *App) AddPluginInstance(pluginInstance *model.PluginInstance) {
 	}
 }
 
-func (a *App) RemoveDanglingPluginInstances(pluginInstanceIDs []string) {
-	pluginInstanceIDMap := make(map[string]struct{}, len(pluginInstanceIDs))
-	for _, pluginInstanceID := range pluginInstanceIDs {
-		pluginInstanceIDMap[pluginInstanceID] = struct{}{}
-	}
-
+// RemoveDanglingPluginInstances drops instances whose row no longer exists.
+//
+// The caller owns the lookup set: it is identical for every app, so building
+// it here would rebuild the whole system's ID set once per app.
+func (a *App) RemoveDanglingPluginInstances(pluginInstanceIDMap map[string]struct{}) {
 	a.Lock()
 	defer a.Unlock()
 
@@ -158,12 +157,9 @@ func (a *App) AddCommand(commandID string, command *Command) {
 	a.rebuildCommandIndex()
 }
 
-func (a *App) RemoveDanglingCommands(commandIDs []string) {
-	commandIDMap := make(map[string]struct{}, len(commandIDs))
-	for _, commandID := range commandIDs {
-		commandIDMap[commandID] = struct{}{}
-	}
-
+// RemoveDanglingCommands drops commands whose row no longer exists. See
+// RemoveDanglingPluginInstances on why the caller owns the lookup set.
+func (a *App) RemoveDanglingCommands(commandIDMap map[string]struct{}) {
 	a.Lock()
 	defer a.Unlock()
 
@@ -190,12 +186,9 @@ func (a *App) AddEventListener(listenerID string, listener *EventListener) {
 	a.rebuildListenerIndex()
 }
 
-func (a *App) RemoveDanglingEventListeners(listenerIDs []string) {
-	listenerIDMap := make(map[string]struct{}, len(listenerIDs))
-	for _, listenerID := range listenerIDs {
-		listenerIDMap[listenerID] = struct{}{}
-	}
-
+// RemoveDanglingEventListeners drops listeners whose row no longer exists. See
+// RemoveDanglingPluginInstances on why the caller owns the lookup set.
+func (a *App) RemoveDanglingEventListeners(listenerIDMap map[string]struct{}) {
 	a.Lock()
 	defer a.Unlock()
 
