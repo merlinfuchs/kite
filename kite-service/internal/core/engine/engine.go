@@ -141,8 +141,10 @@ func (e *Engine) appForID(appID string) *App {
 		return app
 	}
 
+	lockStart := time.Now()
 	e.Lock()
 	defer e.Unlock()
+	metrics.ObserveLockWait("engine_registry_write", time.Since(lockStart))
 
 	// Re-check: another goroutine may have created it while the lock was free.
 	if app, ok := e.apps[appID]; ok {
@@ -285,6 +287,8 @@ func (e *Engine) HandleEvent(appID string, session *state.State, event gateway.E
 	e.RUnlock()
 
 	lockDiff := time.Since(lockStart)
+	metrics.ObserveLockWait("engine_registry_read", lockDiff)
+
 	if lockDiff > 500*time.Millisecond {
 		slog.Warn(
 			"Locking engine for handling event took too long",
