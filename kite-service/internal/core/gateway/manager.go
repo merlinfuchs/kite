@@ -32,10 +32,17 @@ type GatewayManagerConfig struct {
 	StartInterval          time.Duration
 }
 
-// defaultStartInterval paces gateway starts when none is configured. The
-// previous hardcoded value was 100ms, which at tens of thousands of apps meant
-// a cold start took hours to finish connecting.
-const defaultStartInterval = 10 * time.Millisecond
+// defaultStartInterval paces gateway starts when none is configured.
+//
+// This bounds the rate of new TLS handshakes, not anything Discord enforces:
+// each app has its own bot token and so its own identify budget. Each cluster
+// paces through its own share of apps independently, so the fleet-wide rate is
+// this multiplied by the cluster count.
+//
+// Tune via gateway.start_interval. The trade is cold-start time against
+// outbound connection rate: at ~9k apps per cluster, 100ms means roughly 15
+// minutes to initiate them all, 10ms means about 90 seconds.
+const defaultStartInterval = 100 * time.Millisecond
 
 type GatewayManager struct {
 	sync.Mutex

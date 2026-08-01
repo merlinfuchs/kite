@@ -102,7 +102,19 @@ func (g *Gateway) startGateway() {
 	)
 
 	g.session.AddHandler(func(e gateway.Event) {
-		metrics.GatewayEvents.Add(string(e.EventType()), 1)
+		// Protocol frames -- heartbeat acks, hello, reconnect, invalid session
+		// -- report an empty event type. Nothing downstream can ever match
+		// them: no event listener type and no plugin event type is empty. At
+		// steady state they are the single largest source of events, roughly
+		// one heartbeat per connection every 41s, so dropping them here keeps
+		// them off the dispatch path entirely and stops them dominating both
+		// the event counter and the dropped-event counter.
+		eventType := e.EventType()
+		if eventType == "" {
+			return
+		}
+
+		metrics.GatewayEvents.Add(string(eventType), 1)
 		g.eventHandler.HandleEvent(g.app.ID, g.session, e)
 	})
 

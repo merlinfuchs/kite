@@ -68,10 +68,22 @@ func configureHTTPTransport(cfg *config.Config) {
 		transport.MaxIdleConnsPerHost = cfg.HTTP.MaxIdleConnsPerHost
 	}
 
+	// Go leaves MaxConnsPerHost unlimited, which means a burst of concurrent
+	// requests opens one socket each. On a cold start that produced thousands
+	// of simultaneous connections to a single host, which upstream served at a
+	// few requests per second -- almost certainly throttling what looks like a
+	// connection flood. Bounding it makes the requests queue locally and go
+	// out at a sane rate instead, which is both faster end to end and far less
+	// hostile to whatever is on the other side.
+	if cfg.HTTP.MaxConnsPerHost > 0 {
+		transport.MaxConnsPerHost = cfg.HTTP.MaxConnsPerHost
+	}
+
 	slog.Info(
 		"Configured HTTP connection pool",
 		slog.Int("max_idle_conns", transport.MaxIdleConns),
 		slog.Int("max_idle_conns_per_host", transport.MaxIdleConnsPerHost),
+		slog.Int("max_conns_per_host", transport.MaxConnsPerHost),
 	)
 }
 
