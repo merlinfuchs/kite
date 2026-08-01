@@ -34,13 +34,8 @@ type AppGatewayRequirements struct {
 	// EventListenerTypes are the types of the app's enabled Discord event
 	// listeners.
 	EventListenerTypes []EventListenerType
-	// PluginResources are the "plugin_id:resource_id" pairs enabled on the
-	// app's plugin instances, as stored. Resolving these to event types needs
-	// the plugin registry, which the store layer has no access to, so the
-	// caller fills PluginEventTypes from these.
-	PluginResources []string
 	// PluginEventTypes are the Discord event types the app's enabled plugin
-	// instances subscribe to, resolved from PluginResources.
+	// instances subscribe to.
 	PluginEventTypes []ws.EventType
 	// HasMessageInstances reports whether the app has sent messages that Kite
 	// still tracks. Those rows are cleaned up in response to MESSAGE_DELETE,

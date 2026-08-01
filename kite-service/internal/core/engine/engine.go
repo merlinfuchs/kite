@@ -31,18 +31,9 @@ func NewEngine(
 	}
 }
 
-// intervalOrDefault guards against a zero or negative configured interval,
-// which would panic time.NewTicker.
-func intervalOrDefault(configured, fallback time.Duration) time.Duration {
-	if configured <= 0 {
-		return fallback
-	}
-	return configured
-}
-
 func (e *Engine) Run(ctx context.Context) {
-	populateInterval := intervalOrDefault(e.env.Config.PopulateInterval, 5*time.Second)
-	removeDanglingInterval := intervalOrDefault(e.env.Config.RemoveDanglingInterval, 10*time.Minute)
+	populateInterval := util.IntervalOrDefault(e.env.Config.PopulateInterval, 5*time.Second)
+	removeDanglingInterval := util.IntervalOrDefault(e.env.Config.RemoveDanglingInterval, 10*time.Minute)
 
 	go func() {
 		updateTicker := time.NewTicker(populateInterval)
@@ -139,16 +130,27 @@ func (e *Engine) removeDangling(ctx context.Context) {
 // registry lock is held only for the map access, never across flow
 // compilation or plugin construction.
 func (e *Engine) appForID(appID string) *App {
-	lockStart := time.Now()
+	// The app almost always exists; a miss only happens on its first entity.
+	// Taking the write lock unconditionally would block every concurrent
+	// dispatch, since Go's RWMutex gives waiting writers priority over readers.
+	e.RLock()
+	app, ok := e.apps[appID]
+	e.RUnlock()
+
+	if ok {
+		return app
+	}
+
 	e.Lock()
 	defer e.Unlock()
-	metrics.ObserveLockWait(lockStart)
 
-	app, ok := e.apps[appID]
-	if !ok {
-		app = NewApp(appID, e.env)
-		e.apps[appID] = app
+	// Re-check: another goroutine may have created it while the lock was free.
+	if app, ok := e.apps[appID]; ok {
+		return app
 	}
+
+	app = NewApp(appID, e.env)
+	e.apps[appID] = app
 
 	return app
 }
@@ -277,14 +279,10 @@ func (e *Engine) removeDanglingEventListeners(ctx context.Context) error {
 
 // HandleEvent blocks until the event is handled by the corresponding app.
 func (e *Engine) HandleEvent(appID string, session *state.State, event gateway.Event) {
-	dispatchStart := time.Now()
-	defer metrics.ObserveDispatch(dispatchStart)
-
 	lockStart := time.Now()
 	e.RLock()
 	app := e.apps[appID]
 	e.RUnlock()
-	metrics.ObserveLockWait(lockStart)
 
 	lockDiff := time.Since(lockStart)
 	if lockDiff > 500*time.Millisecond {

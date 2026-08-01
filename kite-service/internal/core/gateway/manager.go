@@ -74,8 +74,8 @@ func NewGatewayManager(
 }
 
 func (m *GatewayManager) Run(ctx context.Context) {
-	populateInterval := intervalOrDefault(m.config.PopulateInterval, 10*time.Second)
-	removeDanglingInterval := intervalOrDefault(m.config.RemoveDanglingInterval, 60*time.Second)
+	populateInterval := util.IntervalOrDefault(m.config.PopulateInterval, 10*time.Second)
+	removeDanglingInterval := util.IntervalOrDefault(m.config.RemoveDanglingInterval, 60*time.Second)
 
 	go func() {
 		populateTicker := time.NewTicker(populateInterval)
@@ -107,15 +107,6 @@ func (m *GatewayManager) Run(ctx context.Context) {
 			}
 		}
 	}()
-}
-
-// intervalOrDefault guards against a zero or negative configured interval,
-// which would panic time.NewTicker.
-func intervalOrDefault(configured, fallback time.Duration) time.Duration {
-	if configured <= 0 {
-		return fallback
-	}
-	return configured
 }
 
 // populateGateways starts gateways for new or changed apps and stops gateways
@@ -194,12 +185,7 @@ func (m *GatewayManager) populateGateways(ctx context.Context) error {
 // Every app has its own bot token and therefore its own identify budget, so
 // this protects this process rather than satisfying a Discord rate limit.
 func (m *GatewayManager) startGateways(ctx context.Context, apps []*model.App) error {
-	interval := m.config.StartInterval
-	if interval <= 0 {
-		interval = defaultStartInterval
-	}
-
-	ticker := time.NewTicker(interval)
+	ticker := time.NewTicker(util.IntervalOrDefault(m.config.StartInterval, defaultStartInterval))
 	defer ticker.Stop()
 
 	for _, app := range apps {
@@ -227,10 +213,6 @@ func (m *GatewayManager) startGateways(ctx context.Context, apps []*model.App) e
 // Each refresh costs two round trips (requirements plus the app's flags) and
 // only runs for apps that actually changed, which in steady state is none.
 func (m *GatewayManager) refreshIntents(ctx context.Context, appIDs []string) {
-	if len(appIDs) == 0 {
-		return
-	}
-
 	for _, id := range appIDs {
 		m.Lock()
 		gateway, ok := m.gateways[id]
@@ -242,6 +224,31 @@ func (m *GatewayManager) refreshIntents(ctx context.Context, appIDs []string) {
 
 		gateway.RefreshIntents(ctx)
 	}
+}
+
+// closeGatewayLocked closes and deregisters the gateway for an app, reporting
+// whether one was actually registered. Callers must hold the manager lock; the
+// close itself runs in the background because it can block for seconds.
+func (m *GatewayManager) closeGatewayLocked(appID string) bool {
+	gateway, ok := m.gateways[appID]
+	if !ok {
+		return false
+	}
+
+	go func() {
+		if err := gateway.Close(); err != nil {
+			slog.Error(
+				"Failed to close gateway",
+				slog.String("app_id", appID),
+				slog.String("error", err.Error()),
+			)
+		}
+	}()
+
+	delete(m.gateways, appID)
+	metrics.GatewayConnections.Add(-1)
+
+	return true
 }
 
 // removeGateways stops the gateways for the given app IDs, if this process
@@ -256,24 +263,9 @@ func (m *GatewayManager) removeGateways(appIDs []string) {
 
 	var removed int
 	for _, id := range appIDs {
-		gateway, ok := m.gateways[id]
-		if !ok {
-			continue
+		if m.closeGatewayLocked(id) {
+			removed++
 		}
-
-		go func() {
-			if err := gateway.Close(); err != nil {
-				slog.Error(
-					"Failed to close gateway",
-					slog.String("app_id", id),
-					slog.String("error", err.Error()),
-				)
-			}
-		}()
-
-		delete(m.gateways, id)
-		metrics.GatewayConnections.Add(-1)
-		removed++
 	}
 
 	if removed != 0 {
@@ -305,21 +297,9 @@ func (m *GatewayManager) removeDanglingGateways(ctx context.Context, appIDs []st
 	}
 
 	var removed int
-	for id, gateway := range m.gateways {
+	for id := range m.gateways {
 		if _, ok := lookupMap[id]; !ok {
-			go func() {
-				// Close should timeout after 5 seconds
-				if err := gateway.Close(); err != nil {
-					slog.Error(
-						"Failed to close gateway",
-						slog.String("app_id", id),
-						slog.String("error", err.Error()),
-					)
-				}
-			}()
-
-			delete(m.gateways, id)
-			metrics.GatewayConnections.Add(-1)
+			m.closeGatewayLocked(id)
 			removed++
 		}
 	}

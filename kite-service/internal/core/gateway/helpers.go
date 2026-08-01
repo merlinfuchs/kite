@@ -3,7 +3,6 @@ package gateway
 import (
 	"fmt"
 
-	"github.com/diamondburned/arikawa/v3/api"
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/gateway"
 	"github.com/diamondburned/arikawa/v3/state"
@@ -18,13 +17,20 @@ const (
 	GATEWAY_MESSAGE_CONTENT_LIMITED = 1 << 19
 )
 
-func getAppIntents(client *api.Client, reqs model.AppGatewayRequirements) (gateway.Intents, error) {
-	app, err := client.CurrentApplication()
-	if err != nil {
-		return 0, fmt.Errorf("failed to get current application: %w", err)
+// allPermittedIntents returns every intent the app is approved for. Used when
+// requirements cannot be loaded, so a database blip degrades to the old
+// unconditional behaviour rather than to dropping events.
+func allPermittedIntents(flags discord.ApplicationFlags) gateway.Intents {
+	res := gateway.IntentGuilds | gateway.IntentGuildMessages | gateway.IntentGuildMessageReactions
+
+	if flags&GATEWAY_MESSAGE_CONTENT != 0 || flags&GATEWAY_MESSAGE_CONTENT_LIMITED != 0 {
+		res |= gateway.IntentMessageContent
+	}
+	if flags&GATEWAY_GUILD_MEMBERS != 0 || flags&GATEWAY_GUILD_MEMBERS_LIMITED != 0 {
+		res |= gateway.IntentGuildMembers
 	}
 
-	return intentsForRequirements(reqs, app.Flags), nil
+	return res
 }
 
 // intentsForRequirements derives the smallest intent set that still delivers

@@ -10,7 +10,6 @@ import (
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/gateway"
 	"github.com/diamondburned/arikawa/v3/state"
-	"github.com/kitecloud/kite/kite-service/internal/metrics"
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/internal/store"
 	"github.com/kitecloud/kite/kite-service/pkg/message"
@@ -142,7 +141,6 @@ func (a *App) AddCommand(commandID string, command *Command) {
 	lockStart := time.Now()
 	a.Lock()
 	defer a.Unlock()
-	metrics.ObserveLockWait(lockStart)
 
 	lockDiff := time.Since(lockStart)
 	if lockDiff > 500*time.Millisecond {
@@ -234,7 +232,6 @@ func (a *App) HandleEvent(appID string, session *state.State, event gateway.Even
 			a.RLock()
 			command := a.commandsByName[fullName]
 			a.RUnlock()
-			metrics.ObserveLockWait(lockStart)
 
 			lockDiff := time.Since(lockStart)
 			if lockDiff > 100*time.Millisecond {

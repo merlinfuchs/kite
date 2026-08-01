@@ -99,11 +99,6 @@ func (p *pluginInstance) HandleEvent(ctx context.Context, session *state.State, 
 			err = p.instance.HandleModal(p.pluginContext(ctx, session), e)
 		}
 	default:
-		wants := p.eventTypes[event.EventType()]
-		if !wants {
-			return
-		}
-
 		err = p.instance.HandleEvent(p.pluginContext(ctx, session), event)
 	}
 

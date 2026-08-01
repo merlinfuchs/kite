@@ -167,7 +167,7 @@ func (c *Client) AppIDsWithGatewayRequirementsChangedSince(ctx context.Context, 
 	})
 }
 
-func (c *Client) AppGatewayRequirements(ctx context.Context, appID string) (*model.AppGatewayRequirements, error) {
+func (c *Client) AppGatewayRequirements(ctx context.Context, appID string) (*store.AppGatewayRequirementsRow, error) {
 	row, err := c.Q.GetAppGatewayRequirements(ctx, appID)
 	if err != nil {
 		return nil, err
@@ -178,10 +178,8 @@ func (c *Client) AppGatewayRequirements(ctx context.Context, appID string) (*mod
 		listenerTypes[i] = model.EventListenerType(t)
 	}
 
-	return &model.AppGatewayRequirements{
-		EventListenerTypes: listenerTypes,
-		// Left as raw "plugin_id:resource_id" pairs for the caller to resolve
-		// through the plugin registry, which the store has no access to.
+	return &store.AppGatewayRequirementsRow{
+		EventListenerTypes:  listenerTypes,
 		PluginResources:     row.PluginResources,
 		HasMessageInstances: row.HasMessageInstances,
 	}, nil

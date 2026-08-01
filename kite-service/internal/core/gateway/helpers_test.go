@@ -147,16 +147,29 @@ func TestIntentsAlwaysIncludeGuilds(t *testing.T) {
 	}
 }
 
-// The fallback is used when requirements cannot be loaded. It must be at least
-// as broad as the old unconditional behaviour, so a database blip degrades to
+// The fallback used when requirements cannot be loaded must stay at least as
+// broad as the old unconditional behaviour, so a database blip degrades to
 // wasteful rather than to dropping events.
-func TestFallbackRequirementsAreBroad(t *testing.T) {
-	got := intentsForRequirements(fallbackRequirements(), allPrivilegedFlags)
+func TestAllPermittedIntentsIsBroad(t *testing.T) {
+	got := allPermittedIntents(allPrivilegedFlags)
 
 	want := gateway.IntentGuilds | gateway.IntentGuildMessages | gateway.IntentGuildMessageReactions |
 		gateway.IntentMessageContent | gateway.IntentGuildMembers
 
 	if got != want {
-		t.Errorf("fallback intents = %d, want %d (missing %d)", got, want, want&^got)
+		t.Errorf("allPermittedIntents = %d, want %d (missing %d)", got, want, want&^got)
+	}
+}
+
+// Privileged intents are still gated on the portal flags, or Discord rejects
+// the identify with close code 4014.
+func TestAllPermittedIntentsRespectsFlags(t *testing.T) {
+	got := allPermittedIntents(0)
+
+	if got&gateway.IntentMessageContent != 0 {
+		t.Error("message content granted without the portal flag")
+	}
+	if got&gateway.IntentGuildMembers != 0 {
+		t.Error("guild members granted without the portal flag")
 	}
 }

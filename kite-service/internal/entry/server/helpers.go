@@ -58,23 +58,20 @@ func configureHTTPTransport(cfg *config.Config) {
 		return
 	}
 
-	maxIdleConns := cfg.HTTP.MaxIdleConns
-	if maxIdleConns <= 0 {
-		maxIdleConns = 512
+	// Defaults live in default.toml, which is always the base config layer.
+	// Restating them here would just be a second source of truth, so a
+	// non-positive value means "leave Go's default alone" instead.
+	if cfg.HTTP.MaxIdleConns > 0 {
+		transport.MaxIdleConns = cfg.HTTP.MaxIdleConns
 	}
-
-	maxIdleConnsPerHost := cfg.HTTP.MaxIdleConnsPerHost
-	if maxIdleConnsPerHost <= 0 {
-		maxIdleConnsPerHost = 128
+	if cfg.HTTP.MaxIdleConnsPerHost > 0 {
+		transport.MaxIdleConnsPerHost = cfg.HTTP.MaxIdleConnsPerHost
 	}
-
-	transport.MaxIdleConns = maxIdleConns
-	transport.MaxIdleConnsPerHost = maxIdleConnsPerHost
 
 	slog.Info(
 		"Configured HTTP connection pool",
-		slog.Int("max_idle_conns", maxIdleConns),
-		slog.Int("max_idle_conns_per_host", maxIdleConnsPerHost),
+		slog.Int("max_idle_conns", transport.MaxIdleConns),
+		slog.Int("max_idle_conns_per_host", transport.MaxIdleConnsPerHost),
 	)
 }
 

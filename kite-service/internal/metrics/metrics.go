@@ -3,9 +3,11 @@
 // server (see internal/entry/server), which is disabled by default and should
 // only ever be bound to a private interface.
 //
-// The counters are deliberately cheap: they sit on the per-event hot path, so
-// they must not allocate or lock. expvar.Map.Add is a sync.Map read plus an
-// atomic add for keys that already exist, which is acceptable at event rates.
+// Only GatewayEvents sits on the per-event path, and it is deliberately the
+// only one: expvar counters are process-global 8-byte values, so every core
+// touching one invalidates the same cache line. A handful of them per event
+// measurably outweighs the work they were measuring. Lock contention is
+// reported by the existing threshold logging instead.
 package metrics
 
 import (
@@ -34,18 +36,6 @@ var (
 	// flip-flopping and reconnecting apps in a loop.
 	GatewayIntentReconnects = expvar.NewInt("gateway_intent_reconnects_total")
 
-	// EngineDispatchCount and EngineDispatchNanos together give the mean
-	// dispatch duration. expvar has no histogram; mean is enough to compare
-	// before and after a change.
-	EngineDispatchCount = expvar.NewInt("engine_dispatch_count")
-	EngineDispatchNanos = expvar.NewInt("engine_dispatch_nanos_total")
-
-	// EngineLockWaitCount and EngineLockWaitNanos measure contention on the
-	// engine's registry lock. These replace the ad-hoc slog.Warn blocks that
-	// only fired past a fixed threshold.
-	EngineLockWaitCount = expvar.NewInt("engine_lock_wait_count")
-	EngineLockWaitNanos = expvar.NewInt("engine_lock_wait_nanos_total")
-
 	// DBPollCount and DBPollNanos are keyed by poll name (for example
 	// "populate_commands") so the polling loops can be compared before and
 	// after their intervals change.
@@ -57,18 +47,6 @@ func init() {
 	expvar.Publish("go_goroutines", expvar.Func(func() any {
 		return runtime.NumGoroutine()
 	}))
-}
-
-// ObserveDispatch records the duration of a single engine event dispatch.
-func ObserveDispatch(start time.Time) {
-	EngineDispatchCount.Add(1)
-	EngineDispatchNanos.Add(int64(time.Since(start)))
-}
-
-// ObserveLockWait records how long a caller waited to acquire the engine lock.
-func ObserveLockWait(start time.Time) {
-	EngineLockWaitCount.Add(1)
-	EngineLockWaitNanos.Add(int64(time.Since(start)))
 }
 
 // ObservePoll records the duration of a database polling query.
