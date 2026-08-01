@@ -160,6 +160,40 @@ func (c *Client) EnabledAppIDs(ctx context.Context) ([]string, error) {
 	return c.Q.GetEnabledAppIDs(ctx)
 }
 
+func (c *Client) AppIDsWithGatewayRequirementsChangedSince(ctx context.Context, updatedSince time.Time) ([]string, error) {
+	return c.Q.GetAppIDsWithGatewayRequirementsChangedSince(ctx, pgtype.Timestamp{
+		Time:  updatedSince.UTC(),
+		Valid: true,
+	})
+}
+
+func (c *Client) AppGatewayRequirements(ctx context.Context, appID string) (*model.AppGatewayRequirements, error) {
+	row, err := c.Q.GetAppGatewayRequirements(ctx, appID)
+	if err != nil {
+		return nil, err
+	}
+
+	listenerTypes := make([]model.EventListenerType, len(row.EventListenerTypes))
+	for i, t := range row.EventListenerTypes {
+		listenerTypes[i] = model.EventListenerType(t)
+	}
+
+	return &model.AppGatewayRequirements{
+		EventListenerTypes: listenerTypes,
+		// Left as raw "plugin_id:resource_id" pairs for the caller to resolve
+		// through the plugin registry, which the store has no access to.
+		PluginResources:     row.PluginResources,
+		HasMessageInstances: row.HasMessageInstances,
+	}, nil
+}
+
+func (c *Client) DisabledAppIDsUpdatedSince(ctx context.Context, updatedSince time.Time) ([]string, error) {
+	return c.Q.GetDisabledAppIDsUpdatedSince(ctx, pgtype.Timestamp{
+		Time:  updatedSince.UTC(),
+		Valid: true,
+	})
+}
+
 func (c *Client) EnabledAppsUpdatedSince(ctx context.Context, updatedSince time.Time) ([]*model.App, error) {
 	rows, err := c.Q.GetEnabledAppsUpdatedSince(ctx, pgtype.Timestamp{
 		Time:  updatedSince.UTC(),

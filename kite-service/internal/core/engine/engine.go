@@ -9,6 +9,7 @@ import (
 
 	"github.com/diamondburned/arikawa/v3/gateway"
 	"github.com/diamondburned/arikawa/v3/state"
+	"github.com/kitecloud/kite/kite-service/internal/metrics"
 	"github.com/kitecloud/kite/kite-service/internal/util"
 )
 
@@ -30,79 +31,134 @@ func NewEngine(
 	}
 }
 
+// intervalOrDefault guards against a zero or negative configured interval,
+// which would panic time.NewTicker.
+func intervalOrDefault(configured, fallback time.Duration) time.Duration {
+	if configured <= 0 {
+		return fallback
+	}
+	return configured
+}
+
 func (e *Engine) Run(ctx context.Context) {
+	populateInterval := intervalOrDefault(e.env.Config.PopulateInterval, 5*time.Second)
+	removeDanglingInterval := intervalOrDefault(e.env.Config.RemoveDanglingInterval, 10*time.Minute)
+
 	go func() {
-		updateTicker := time.NewTicker(1 * time.Second)
+		updateTicker := time.NewTicker(populateInterval)
 		defer updateTicker.Stop()
 
-		removeTicker := time.NewTicker(60 * time.Second)
+		removeTicker := time.NewTicker(removeDanglingInterval)
 		defer removeTicker.Stop()
+
+		// Populate immediately rather than waiting out the first tick, so
+		// events arriving right after startup have somewhere to go. Anything
+		// dispatched before this completes is counted as unknown_app.
+		e.populate(ctx)
 
 		for {
 			select {
 			case <-ctx.Done():
 				return
 			case <-updateTicker.C:
-				lastUpdate := e.lastUpdate
-				e.lastUpdate = time.Now().UTC()
-
-				if err := e.populatePlugins(ctx, lastUpdate); err != nil {
-					slog.Error(
-						"Failed to populate plugins in engine",
-						slog.String("error", err.Error()),
-					)
-				}
-				if err := e.populateCommands(ctx, lastUpdate); err != nil {
-					slog.Error(
-						"Failed to populate commands in engine",
-						slog.String("error", err.Error()),
-					)
-				}
-				if err := e.populateEventListeners(ctx, lastUpdate); err != nil {
-					slog.Error(
-						"Failed to populate event listeners in engine",
-						slog.String("error", err.Error()),
-					)
-				}
+				e.populate(ctx)
 			case <-removeTicker.C:
-				if err := e.removeDanglingPlugins(ctx); err != nil {
-					slog.Error(
-						"Failed to remove dangling plugins in engine",
-						slog.String("error", err.Error()),
-					)
-				}
-				if err := e.removeDanglingCommands(ctx); err != nil {
-					slog.Error(
-						"Failed to remove dangling commands in engine",
-						slog.String("error", err.Error()),
-					)
-				}
-				if err := e.removeDanglingEventListeners(ctx); err != nil {
-					slog.Error(
-						"Failed to remove dangling event listeners in engine",
-						slog.String("error", err.Error()),
-					)
-				}
+				e.removeDangling(ctx)
 			}
 		}
 	}()
 }
 
-func (e *Engine) populatePlugins(ctx context.Context, lastUpdate time.Time) error {
-	pluginInstances, err := e.env.PluginInstanceStore.EnabledPluginInstancesUpdatedSince(ctx, lastUpdate)
-	if err != nil {
-		return fmt.Errorf("failed to get plugin instances: %w", err)
+// populate loads entities changed since the last successful poll.
+//
+// The cursor is captured before the queries run and only advanced once they
+// all succeed. Advancing it beforehand (or after a failure) silently drops
+// every entity written while the queries were in flight, because the next poll
+// would already consider that window covered.
+func (e *Engine) populate(ctx context.Context) {
+	tickStart := time.Now().UTC()
+	lastUpdate := e.lastUpdate
+
+	ok := true
+
+	if err := e.populatePlugins(ctx, lastUpdate); err != nil {
+		ok = false
+		slog.Error(
+			"Failed to populate plugins in engine",
+			slog.String("error", err.Error()),
+		)
+	}
+	if err := e.populateCommands(ctx, lastUpdate); err != nil {
+		ok = false
+		slog.Error(
+			"Failed to populate commands in engine",
+			slog.String("error", err.Error()),
+		)
+	}
+	if err := e.populateEventListeners(ctx, lastUpdate); err != nil {
+		ok = false
+		slog.Error(
+			"Failed to populate event listeners in engine",
+			slog.String("error", err.Error()),
+		)
 	}
 
+	if !ok {
+		// Leave the cursor where it is so the next poll retries this window.
+		return
+	}
+
+	// Rewind by the overlap so rows committed out of timestamp order, or
+	// during the query itself, are still picked up. Populating is idempotent,
+	// so re-reading a few rows costs nothing.
+	e.lastUpdate = tickStart.Add(-e.env.Config.PopulateOverlap)
+}
+
+func (e *Engine) removeDangling(ctx context.Context) {
+	if err := e.removeDanglingPlugins(ctx); err != nil {
+		slog.Error(
+			"Failed to remove dangling plugins in engine",
+			slog.String("error", err.Error()),
+		)
+	}
+	if err := e.removeDanglingCommands(ctx); err != nil {
+		slog.Error(
+			"Failed to remove dangling commands in engine",
+			slog.String("error", err.Error()),
+		)
+	}
+	if err := e.removeDanglingEventListeners(ctx); err != nil {
+		slog.Error(
+			"Failed to remove dangling event listeners in engine",
+			slog.String("error", err.Error()),
+		)
+	}
+}
+
+// appForID returns the app with the given ID, creating it if necessary. The
+// registry lock is held only for the map access, never across flow
+// compilation or plugin construction.
+func (e *Engine) appForID(appID string) *App {
 	lockStart := time.Now()
 	e.Lock()
 	defer e.Unlock()
-	lockDiff := time.Since(lockStart)
-	if lockDiff > 5*time.Second {
-		slog.Warn(
-			"Locking engine for plugins took too long",
-			slog.String("lock_duration", lockDiff.String()),
-		)
+	metrics.ObserveLockWait(lockStart)
+
+	app, ok := e.apps[appID]
+	if !ok {
+		app = NewApp(appID, e.env)
+		e.apps[appID] = app
+	}
+
+	return app
+}
+
+func (e *Engine) populatePlugins(ctx context.Context, lastUpdate time.Time) error {
+	queryStart := time.Now()
+	pluginInstances, err := e.env.PluginInstanceStore.EnabledPluginInstancesUpdatedSince(ctx, lastUpdate)
+	metrics.ObservePoll("populate_plugins", queryStart)
+	if err != nil {
+		return fmt.Errorf("failed to get plugin instances: %w", err)
 	}
 
 	for _, pluginInstance := range pluginInstances {
@@ -110,16 +166,10 @@ func (e *Engine) populatePlugins(ctx context.Context, lastUpdate time.Time) erro
 			continue
 		}
 
-		app, ok := e.apps[pluginInstance.AppID]
-		if !ok {
-			app = NewApp(
-				pluginInstance.AppID,
-				e.env,
-			)
-			e.apps[pluginInstance.AppID] = app
-		}
-
-		app.AddPluginInstance(pluginInstance)
+		// AddPluginInstance may construct a plugin instance, which the plugin
+		// interface permits to do I/O. It takes the app's own lock, never the
+		// registry lock.
+		e.appForID(pluginInstance.AppID).AddPluginInstance(pluginInstance)
 	}
 
 	return nil
@@ -142,20 +192,11 @@ func (e *Engine) removeDanglingPlugins(ctx context.Context) error {
 }
 
 func (e *Engine) populateCommands(ctx context.Context, lastUpdate time.Time) error {
+	queryStart := time.Now()
 	commands, err := e.env.CommandStore.EnabledCommandsUpdatedSince(ctx, lastUpdate)
+	metrics.ObservePoll("populate_commands", queryStart)
 	if err != nil {
 		return fmt.Errorf("failed to get commands: %w", err)
-	}
-
-	lockStart := time.Now()
-	e.Lock()
-	defer e.Unlock()
-	lockDiff := time.Since(lockStart)
-	if lockDiff > 5*time.Second {
-		slog.Warn(
-			"Locking engine for commands took too long",
-			slog.String("lock_duration", lockDiff.String()),
-		)
 	}
 
 	for _, command := range commands {
@@ -163,16 +204,15 @@ func (e *Engine) populateCommands(ctx context.Context, lastUpdate time.Time) err
 			continue
 		}
 
-		app, ok := e.apps[command.AppID]
-		if !ok {
-			app = NewApp(
-				command.AppID,
-				e.env,
-			)
-			e.apps[command.AppID] = app
+		// Compile before touching the registry. Flow compilation used to run
+		// under the engine's write lock, blocking every concurrent dispatch.
+		compiled, err := NewCommand(command, e.env)
+		if err != nil {
+			// NewCommand already logged the compilation failure.
+			continue
 		}
 
-		app.AddCommand(command)
+		e.appForID(command.AppID).AddCommand(command.ID, compiled)
 	}
 
 	return nil
@@ -195,29 +235,25 @@ func (e *Engine) removeDanglingCommands(ctx context.Context) error {
 }
 
 func (e *Engine) populateEventListeners(ctx context.Context, lastUpdate time.Time) error {
+	queryStart := time.Now()
 	listeners, err := e.env.EventListenerStore.EnabledEventListenersUpdatedSince(ctx, lastUpdate)
+	metrics.ObservePoll("populate_event_listeners", queryStart)
 	if err != nil {
 		return fmt.Errorf("failed to get event listeners: %w", err)
 	}
-
-	e.Lock()
-	defer e.Unlock()
 
 	for _, listener := range listeners {
 		if util.CluserForKey(listener.AppID, e.env.Config.ClusterCount) != e.env.Config.ClusterIndex {
 			continue
 		}
 
-		app, ok := e.apps[listener.AppID]
-		if !ok {
-			app = NewApp(
-				listener.AppID,
-				e.env,
-			)
-			e.apps[listener.AppID] = app
+		compiled, err := NewEventListener(listener, e.env)
+		if err != nil {
+			// NewEventListener already logged the compilation failure.
+			continue
 		}
 
-		app.AddEventListener(listener)
+		e.appForID(listener.AppID).AddEventListener(listener.ID, compiled)
 	}
 
 	return nil
@@ -241,10 +277,15 @@ func (e *Engine) removeDanglingEventListeners(ctx context.Context) error {
 
 // HandleEvent blocks until the event is handled by the corresponding app.
 func (e *Engine) HandleEvent(appID string, session *state.State, event gateway.Event) {
+	dispatchStart := time.Now()
+	defer metrics.ObserveDispatch(dispatchStart)
+
 	lockStart := time.Now()
 	e.RLock()
 	app := e.apps[appID]
 	e.RUnlock()
+	metrics.ObserveLockWait(lockStart)
+
 	lockDiff := time.Since(lockStart)
 	if lockDiff > 500*time.Millisecond {
 		slog.Warn(
@@ -254,9 +295,16 @@ func (e *Engine) HandleEvent(appID string, session *state.State, event gateway.E
 		)
 	}
 
-	if app != nil {
-		app.HandleEvent(appID, session, event)
+	if app == nil {
+		// The gateway connected before the engine finished loading this app's
+		// commands and listeners, or the app has no entities at all. Events
+		// dropped here are invisible otherwise, and the window widens with
+		// the engine's populate interval.
+		metrics.GatewayEventsDropped.Add("unknown_app", 1)
+		return
 	}
+
+	app.HandleEvent(appID, session, event)
 }
 
 type EngineConfig struct {
@@ -265,4 +313,8 @@ type EngineConfig struct {
 	MaxCredits    int
 	ClusterCount  int
 	ClusterIndex  int
+
+	PopulateInterval       time.Duration
+	RemoveDanglingInterval time.Duration
+	PopulateOverlap        time.Duration
 }

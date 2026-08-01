@@ -10,6 +10,7 @@ import (
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/gateway"
 	"github.com/diamondburned/arikawa/v3/state"
+	"github.com/kitecloud/kite/kite-service/internal/metrics"
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/internal/store"
 	"github.com/kitecloud/kite/kite-service/pkg/message"
@@ -26,6 +27,14 @@ type App struct {
 	pluginInstances map[string]*pluginInstance
 	commands        map[string]*Command
 	listeners       map[string]*EventListener
+
+	// Lookup indexes derived from commands and listeners. Dispatch used to
+	// linear-scan both on every event. Rebuilt wholesale on mutation rather
+	// than patched, so renames and type changes can't leave stale entries,
+	// and always replaced rather than mutated in place so readers can take a
+	// reference and drop the lock before dispatching.
+	commandsByName  map[string]*Command
+	listenersByType map[model.EventListenerType][]*EventListener
 	// TODO?: Cache messages (LRUCache<*MessageInstance>)
 }
 
@@ -39,7 +48,33 @@ func NewApp(
 		commands:        make(map[string]*Command),
 		listeners:       make(map[string]*EventListener),
 		pluginInstances: make(map[string]*pluginInstance),
+		commandsByName:  make(map[string]*Command),
+		listenersByType: make(map[model.EventListenerType][]*EventListener),
 	}
+}
+
+// rebuildCommandIndex regenerates the name lookup from a.commands. Callers
+// must hold the write lock.
+func (a *App) rebuildCommandIndex() {
+	index := make(map[string]*Command, len(a.commands))
+	for _, command := range a.commands {
+		index[command.cmd.Name] = command
+	}
+	a.commandsByName = index
+}
+
+// rebuildListenerIndex regenerates the event type lookup from a.listeners,
+// dropping any listener that isn't sourced from Discord. Callers must hold the
+// write lock.
+func (a *App) rebuildListenerIndex() {
+	index := make(map[model.EventListenerType][]*EventListener, len(a.listeners))
+	for _, listener := range a.listeners {
+		if listener.listener.Source != model.EventSourceDiscord {
+			continue
+		}
+		index[listener.listener.Type] = append(index[listener.listener.Type], listener)
+	}
+	a.listenersByType = index
 }
 
 func (a *App) AddPluginInstance(pluginInstance *model.PluginInstance) {
@@ -78,9 +113,6 @@ func (a *App) AddPluginInstance(pluginInstance *model.PluginInstance) {
 		)
 		a.Unlock()
 	}
-
-	a.Lock()
-	defer a.Unlock()
 }
 
 func (a *App) RemoveDanglingPluginInstances(pluginInstanceIDs []string) {
@@ -104,19 +136,14 @@ func (a *App) RemoveDanglingPluginInstances(pluginInstanceIDs []string) {
 	}
 }
 
-func (a *App) AddCommand(cmd *model.Command) {
-	command, err := NewCommand(
-		cmd,
-		a.env,
-	)
-	if err != nil {
-		slog.With("error", err).Error("failed to create command")
-		return
-	}
-
+// AddCommand registers an already-compiled command. Compilation happens in the
+// caller so it stays off the engine's registry lock.
+func (a *App) AddCommand(commandID string, command *Command) {
 	lockStart := time.Now()
 	a.Lock()
 	defer a.Unlock()
+	metrics.ObserveLockWait(lockStart)
+
 	lockDiff := time.Since(lockStart)
 	if lockDiff > 500*time.Millisecond {
 		slog.Warn(
@@ -126,7 +153,8 @@ func (a *App) AddCommand(cmd *model.Command) {
 		)
 	}
 
-	a.commands[cmd.ID] = command
+	a.commands[commandID] = command
+	a.rebuildCommandIndex()
 }
 
 func (a *App) RemoveDanglingCommands(commandIDs []string) {
@@ -138,27 +166,27 @@ func (a *App) RemoveDanglingCommands(commandIDs []string) {
 	a.Lock()
 	defer a.Unlock()
 
+	var removed bool
 	for cmdID := range a.commands {
 		if _, ok := commandIDMap[cmdID]; !ok {
 			delete(a.commands, cmdID)
+			removed = true
 		}
+	}
+
+	if removed {
+		a.rebuildCommandIndex()
 	}
 }
 
-func (a *App) AddEventListener(listener *model.EventListener) {
-	eventListener, err := NewEventListener(
-		listener,
-		a.env,
-	)
-	if err != nil {
-		slog.With("error", err).Error("failed to create event listener")
-		return
-	}
-
+// AddEventListener registers an already-compiled event listener. Compilation
+// happens in the caller so it stays off the engine's registry lock.
+func (a *App) AddEventListener(listenerID string, listener *EventListener) {
 	a.Lock()
 	defer a.Unlock()
 
-	a.listeners[listener.ID] = eventListener
+	a.listeners[listenerID] = listener
+	a.rebuildListenerIndex()
 }
 
 func (a *App) RemoveDanglingEventListeners(listenerIDs []string) {
@@ -170,10 +198,16 @@ func (a *App) RemoveDanglingEventListeners(listenerIDs []string) {
 	a.Lock()
 	defer a.Unlock()
 
+	var removed bool
 	for listenerID := range a.listeners {
 		if _, ok := listenerIDMap[listenerID]; !ok {
 			delete(a.listeners, listenerID)
+			removed = true
 		}
+	}
+
+	if removed {
+		a.rebuildListenerIndex()
 	}
 }
 
@@ -198,7 +232,10 @@ func (a *App) HandleEvent(appID string, session *state.State, event gateway.Even
 
 			lockStart := time.Now()
 			a.RLock()
-			defer a.RUnlock()
+			command := a.commandsByName[fullName]
+			a.RUnlock()
+			metrics.ObserveLockWait(lockStart)
+
 			lockDiff := time.Since(lockStart)
 			if lockDiff > 100*time.Millisecond {
 				slog.Warn(
@@ -208,11 +245,8 @@ func (a *App) HandleEvent(appID string, session *state.State, event gateway.Even
 				)
 			}
 
-			for _, command := range a.commands {
-				if command.cmd.Name == fullName {
-					go command.HandleEvent(appID, session, event)
-					break
-				}
+			if command != nil {
+				go command.HandleEvent(appID, session, event)
 			}
 		case *discord.ButtonInteraction:
 			customID := string(d.CustomID)
@@ -414,18 +448,13 @@ func (a *App) HandleEvent(appID string, session *state.State, event gateway.Even
 	default:
 		eventType := model.EventTypeFromDiscordEventType(e.EventType())
 
+		// The index is replaced rather than mutated on rebuild, so this slice
+		// stays valid after the lock is released.
 		a.RLock()
-		defer a.RUnlock()
+		listeners := a.listenersByType[eventType]
+		a.RUnlock()
 
-		for _, listener := range a.listeners {
-			if listener.listener.Source != model.EventSourceDiscord {
-				continue
-			}
-
-			if listener.listener.Type != eventType {
-				continue
-			}
-
+		for _, listener := range listeners {
 			go listener.HandleEvent(appID, session, event)
 		}
 	}

@@ -36,6 +36,18 @@ type AppStore interface {
 	DeleteApp(ctx context.Context, id string) error
 	EnabledAppIDs(ctx context.Context) ([]string, error)
 	EnabledAppsUpdatedSince(ctx context.Context, updatedSince time.Time) ([]*model.App, error)
+	// DisabledAppIDsUpdatedSince is a cheap alternative to scanning every
+	// enabled app ID: disabling an app bumps updated_at, so the gateway
+	// manager can shut those connections down without a full table scan.
+	DisabledAppIDsUpdatedSince(ctx context.Context, updatedSince time.Time) ([]string, error)
+	// AppGatewayRequirements reports what the app actually consumes from the
+	// gateway, so it can identify with a minimal intent set. PluginResources
+	// is returned unresolved; the caller maps it through the plugin registry.
+	AppGatewayRequirements(ctx context.Context, appID string) (*model.AppGatewayRequirements, error)
+	// AppIDsWithGatewayRequirementsChangedSince reports apps whose event
+	// listeners or plugin instances changed, and whose intents may therefore
+	// need recomputing. Deletions are not reported; see the query for why.
+	AppIDsWithGatewayRequirementsChangedSince(ctx context.Context, updatedSince time.Time) ([]string, error)
 
 	Collaborator(ctx context.Context, appID string, userID string) (*model.AppCollaborator, error)
 	CollaboratorsByApp(ctx context.Context, appID string) ([]*model.AppCollaborator, error)

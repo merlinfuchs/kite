@@ -11,9 +11,11 @@ import (
 	"github.com/diamondburned/arikawa/v3/gateway"
 	"github.com/diamondburned/arikawa/v3/state"
 	"github.com/kitecloud/kite/kite-service/internal/core/plan"
+	"github.com/kitecloud/kite/kite-service/internal/metrics"
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/internal/store"
 	"github.com/kitecloud/kite/kite-service/internal/util"
+	"github.com/kitecloud/kite/kite-service/pkg/plugin"
 )
 
 type EventHandler interface {
@@ -23,17 +25,28 @@ type EventHandler interface {
 type GatewayManagerConfig struct {
 	ClusterCount int
 	ClusterIndex int
+
+	PopulateInterval       time.Duration
+	RemoveDanglingInterval time.Duration
+	PopulateOverlap        time.Duration
+	StartInterval          time.Duration
 }
+
+// defaultStartInterval paces gateway starts when none is configured. The
+// previous hardcoded value was 100ms, which at tens of thousands of apps meant
+// a cold start took hours to finish connecting.
+const defaultStartInterval = 10 * time.Millisecond
 
 type GatewayManager struct {
 	sync.Mutex
 
-	config       GatewayManagerConfig
-	appStore     store.AppStore
-	logStore     store.LogStore
-	planManager  *plan.PlanManager
-	eventHandler EventHandler
-	tokenCrypt   *util.SymmetricCrypt
+	config         GatewayManagerConfig
+	appStore       store.AppStore
+	logStore       store.LogStore
+	planManager    *plan.PlanManager
+	eventHandler   EventHandler
+	tokenCrypt     *util.SymmetricCrypt
+	pluginRegistry *plugin.Registry
 
 	lastUpdate time.Time
 	gateways   map[string]*Gateway
@@ -45,23 +58,36 @@ func NewGatewayManager(
 	planManager *plan.PlanManager,
 	eventHandler EventHandler,
 	tokenCrypt *util.SymmetricCrypt,
+	pluginRegistry *plugin.Registry,
 	config GatewayManagerConfig,
 ) *GatewayManager {
 	return &GatewayManager{
-		config:       config,
-		appStore:     appStore,
-		logStore:     logStore,
-		planManager:  planManager,
-		eventHandler: eventHandler,
-		tokenCrypt:   tokenCrypt,
-		gateways:     make(map[string]*Gateway),
+		config:         config,
+		appStore:       appStore,
+		logStore:       logStore,
+		planManager:    planManager,
+		eventHandler:   eventHandler,
+		tokenCrypt:     tokenCrypt,
+		pluginRegistry: pluginRegistry,
+		gateways:       make(map[string]*Gateway),
 	}
 }
 
 func (m *GatewayManager) Run(ctx context.Context) {
-	ticker := time.NewTicker(10 * time.Second)
+	populateInterval := intervalOrDefault(m.config.PopulateInterval, 10*time.Second)
+	removeDanglingInterval := intervalOrDefault(m.config.RemoveDanglingInterval, 60*time.Second)
 
 	go func() {
+		populateTicker := time.NewTicker(populateInterval)
+		defer populateTicker.Stop()
+
+		// The full scan of enabled app IDs is by far the more expensive of the
+		// two jobs, so it runs on its own slower ticker. Apps that get
+		// disabled are still picked up promptly by the cheap query in
+		// populateGateways; this only exists to catch hard deletes.
+		removeDanglingTicker := time.NewTicker(removeDanglingInterval)
+		defer removeDanglingTicker.Stop()
+
 		if err := m.populateGateways(ctx); err != nil {
 			slog.With("error", err).Error("failed to populate gateways")
 		}
@@ -69,38 +95,63 @@ func (m *GatewayManager) Run(ctx context.Context) {
 		for {
 			select {
 			case <-ctx.Done():
-				ticker.Stop()
 				return
-			case <-ticker.C:
+			case <-populateTicker.C:
 				if err := m.populateGateways(ctx); err != nil {
 					slog.With("error", err).Error("failed to populate gateways")
+				}
+			case <-removeDanglingTicker.C:
+				if err := m.removeDeletedGateways(ctx); err != nil {
+					slog.With("error", err).Error("failed to remove deleted gateways")
 				}
 			}
 		}
 	}()
 }
 
-func (m *GatewayManager) populateGateways(ctx context.Context) error {
-	appIDs, err := m.appStore.EnabledAppIDs(ctx)
-	if err != nil {
-		return fmt.Errorf("failed to get enabled apps: %w", err)
+// intervalOrDefault guards against a zero or negative configured interval,
+// which would panic time.NewTicker.
+func intervalOrDefault(configured, fallback time.Duration) time.Duration {
+	if configured <= 0 {
+		return fallback
 	}
+	return configured
+}
 
+// populateGateways starts gateways for new or changed apps and stops gateways
+// for apps that were disabled.
+//
+// The poll cursor is captured before the queries run and only advanced once
+// they all succeed. Advancing it beforehand (or after a failure) silently
+// drops every app updated while the queries were in flight, because the next
+// poll would already consider that window covered.
+func (m *GatewayManager) populateGateways(ctx context.Context) error {
+	tickStart := time.Now().UTC()
 	lastUpdate := m.lastUpdate
-	m.lastUpdate = time.Now().UTC()
 
+	queryStart := time.Now()
 	apps, err := m.appStore.EnabledAppsUpdatedSince(ctx, lastUpdate)
+	metrics.ObservePoll("gateway_enabled_apps_updated", queryStart)
 	if err != nil {
 		return fmt.Errorf("failed to get apps updated since %s: %w", lastUpdate, err)
 	}
 
-	if err := m.removeDanglingGateways(ctx, appIDs); err != nil {
-		return fmt.Errorf("failed to remove dangling apps: %w", err)
+	queryStart = time.Now()
+	disabledAppIDs, err := m.appStore.DisabledAppIDsUpdatedSince(ctx, lastUpdate)
+	metrics.ObservePoll("gateway_disabled_apps_updated", queryStart)
+	if err != nil {
+		return fmt.Errorf("failed to get disabled apps updated since %s: %w", lastUpdate, err)
 	}
 
-	if len(apps) == 0 {
-		return nil
+	queryStart = time.Now()
+	changedReqAppIDs, err := m.appStore.AppIDsWithGatewayRequirementsChangedSince(ctx, lastUpdate)
+	metrics.ObservePoll("gateway_requirements_changed", queryStart)
+	if err != nil {
+		return fmt.Errorf("failed to get apps with changed gateway requirements since %s: %w", lastUpdate, err)
 	}
+
+	m.removeGateways(disabledAppIDs)
+	m.refreshIntents(ctx, changedReqAppIDs)
 
 	filteredApps := make([]*model.App, 0, len(apps))
 	for _, app := range apps {
@@ -110,33 +161,138 @@ func (m *GatewayManager) populateGateways(ctx context.Context) error {
 		filteredApps = append(filteredApps, app)
 	}
 
-	slog.Info(
-		"Populating gateways",
-		slog.Int("total_apps", len(apps)),
-		slog.Int("filtered_apps", len(filteredApps)),
-		slog.Int("cluster_count", m.config.ClusterCount),
-		slog.Int("cluster_index", m.config.ClusterIndex),
-	)
-
 	if len(filteredApps) != 0 {
-		for _, app := range filteredApps {
-			// Starting thousands of gateways at once can cause problems internally.
-			select {
-			case <-ctx.Done():
-				return ctx.Err()
-			case <-time.After(100 * time.Millisecond):
-				if err := m.addGateway(ctx, app); err != nil {
-					slog.Error(
-						"Failed to add gateway",
-						slog.String("app_id", app.ID),
-						slog.String("error", err.Error()),
-					)
-				}
-			}
+		slog.Info(
+			"Populating gateways",
+			slog.Int("total_apps", len(apps)),
+			slog.Int("filtered_apps", len(filteredApps)),
+			slog.Int("cluster_count", m.config.ClusterCount),
+			slog.Int("cluster_index", m.config.ClusterIndex),
+		)
+
+		if err := m.startGateways(ctx, filteredApps); err != nil {
+			return err
+		}
+	}
+
+	// Rewind by the overlap so apps updated during the queries, or committed
+	// out of timestamp order, are still picked up next time. Adding a gateway
+	// that already exists is a no-op update, so re-reading rows is harmless.
+	m.lastUpdate = tickStart.Add(-m.config.PopulateOverlap)
+
+	return nil
+}
+
+// startGateways brings up gateways for the given apps, pacing the starts.
+//
+// Pacing rather than bounding concurrency is deliberate: addGateway returns as
+// soon as the session is constructed and hands the actual connect off to a
+// goroutine, so a concurrency limit around addGateway would bound almost
+// nothing. Spacing the initiations is what actually keeps a cold start from
+// opening tens of thousands of TLS handshakes at once.
+//
+// Every app has its own bot token and therefore its own identify budget, so
+// this protects this process rather than satisfying a Discord rate limit.
+func (m *GatewayManager) startGateways(ctx context.Context, apps []*model.App) error {
+	interval := m.config.StartInterval
+	if interval <= 0 {
+		interval = defaultStartInterval
+	}
+
+	ticker := time.NewTicker(interval)
+	defer ticker.Stop()
+
+	for _, app := range apps {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-ticker.C:
+		}
+
+		if err := m.addGateway(ctx, app); err != nil {
+			slog.Error(
+				"Failed to add gateway",
+				slog.String("app_id", app.ID),
+				slog.String("error", err.Error()),
+			)
 		}
 	}
 
 	return nil
+}
+
+// refreshIntents recomputes intents for apps whose event listeners or plugin
+// instances changed, reconnecting those whose required intent set moved.
+//
+// Each refresh costs two round trips (requirements plus the app's flags) and
+// only runs for apps that actually changed, which in steady state is none.
+func (m *GatewayManager) refreshIntents(ctx context.Context, appIDs []string) {
+	if len(appIDs) == 0 {
+		return
+	}
+
+	for _, id := range appIDs {
+		m.Lock()
+		gateway, ok := m.gateways[id]
+		m.Unlock()
+
+		if !ok {
+			continue
+		}
+
+		gateway.RefreshIntents(ctx)
+	}
+}
+
+// removeGateways stops the gateways for the given app IDs, if this process
+// owns them.
+func (m *GatewayManager) removeGateways(appIDs []string) {
+	if len(appIDs) == 0 {
+		return
+	}
+
+	m.Lock()
+	defer m.Unlock()
+
+	var removed int
+	for _, id := range appIDs {
+		gateway, ok := m.gateways[id]
+		if !ok {
+			continue
+		}
+
+		go func() {
+			if err := gateway.Close(); err != nil {
+				slog.Error(
+					"Failed to close gateway",
+					slog.String("app_id", id),
+					slog.String("error", err.Error()),
+				)
+			}
+		}()
+
+		delete(m.gateways, id)
+		metrics.GatewayConnections.Add(-1)
+		removed++
+	}
+
+	if removed != 0 {
+		slog.Info("Removed gateways for disabled apps", slog.Int("count", removed))
+	}
+}
+
+// removeDeletedGateways scans every enabled app ID to find gateways whose app
+// no longer exists. This is the expensive path, so it runs on its own slower
+// ticker; disabled apps are handled by the cheaper query in populateGateways.
+func (m *GatewayManager) removeDeletedGateways(ctx context.Context) error {
+	queryStart := time.Now()
+	appIDs, err := m.appStore.EnabledAppIDs(ctx)
+	metrics.ObservePoll("gateway_enabled_app_ids", queryStart)
+	if err != nil {
+		return fmt.Errorf("failed to get enabled apps: %w", err)
+	}
+
+	return m.removeDanglingGateways(ctx, appIDs)
 }
 
 func (m *GatewayManager) removeDanglingGateways(ctx context.Context, appIDs []string) error {
@@ -163,6 +319,7 @@ func (m *GatewayManager) removeDanglingGateways(ctx context.Context, appIDs []st
 			}()
 
 			delete(m.gateways, id)
+			metrics.GatewayConnections.Add(-1)
 			removed++
 		}
 	}
@@ -192,14 +349,16 @@ func (m *GatewayManager) addGateway(ctx context.Context, app *model.App) error {
 			}
 		}()
 		delete(m.gateways, app.ID)
+		metrics.GatewayConnections.Add(-1)
 	}
 
-	g, err := NewGateway(app, m.logStore, m.appStore, m.planManager, m.eventHandler, m.tokenCrypt)
+	g, err := NewGateway(app, m.logStore, m.appStore, m.planManager, m.eventHandler, m.tokenCrypt, m.pluginRegistry)
 	if err != nil {
 		return fmt.Errorf("failed to create gateway: %w", err)
 	}
 
 	m.gateways[app.ID] = g
+	metrics.GatewayConnections.Add(1)
 
 	return nil
 }
