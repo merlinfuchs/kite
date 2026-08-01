@@ -10,8 +10,7 @@ import (
 type EntitlementStore interface {
 	Entitlements(ctx context.Context, appID string) ([]*model.Entitlement, error)
 	ActiveEntitlements(ctx context.Context, appID string, now time.Time) ([]*model.Entitlement, error)
-	// ActiveEntitlementsForApps is the batch form, keyed by app ID. Callers
-	// checking many apps should use it rather than a query per app.
+	// ActiveEntitlementsForApps is the batch form, keyed by app ID.
 	ActiveEntitlementsForApps(ctx context.Context, appIDs []string, now time.Time) (map[string][]*model.Entitlement, error)
 	UpsertSubscriptionEntitlement(ctx context.Context, entitlement model.Entitlement) (*model.Entitlement, error)
 	UpdateSubscriptionEntitlement(ctx context.Context, entitlement model.Entitlement) (*model.Entitlement, error)

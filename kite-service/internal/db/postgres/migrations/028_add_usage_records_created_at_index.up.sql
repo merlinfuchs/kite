@@ -7,14 +7,11 @@
 -- usage_records takes a row per flow execution and is retained for three
 -- months, so both were sequential scans of the whole table.
 --
--- The hourly delete benefits unconditionally: it becomes an index-only scan to
--- find the cutoff. The per-minute aggregate benefits early in the month and
--- then stops -- measured at 1M rows, the planner uses the index while the
--- month-to-date range is a small fraction of retention and correctly falls
--- back to a parallel sequential scan once it approaches a third. Recomputing a
--- whole month's sum every minute is expensive by construction; not repeating
--- that work is a larger change than an index.
+-- The hourly delete benefits unconditionally, becoming an index-only scan to
+-- find the cutoff. The per-minute aggregate benefits while the month-to-date
+-- range is a small fraction of retention, and the planner correctly falls back
+-- to a sequential scan as it approaches a third.
 --
--- Writes are cheap despite this being the highest-write table: created_at is
+-- Writes stay cheap despite this being the highest-write table: created_at is
 -- effectively monotonic, so inserts append to the rightmost leaf.
 CREATE INDEX IF NOT EXISTS usage_records_created_at ON usage_records (created_at);

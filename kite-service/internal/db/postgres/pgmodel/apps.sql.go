@@ -94,7 +94,7 @@ UPDATE apps SET
     enabled = FALSE,
     disabled_reason = $2,
     updated_at = $3
-WHERE id = $1
+WHERE id = $1 AND enabled
 `
 
 type DisableAppParams struct {
@@ -103,6 +103,8 @@ type DisableAppParams struct {
 	UpdatedAt      pgtype.Timestamp
 }
 
+// Idempotent: disabling an already-disabled app is a no-op rather than a write
+// that bumps updated_at, which several polls use as their cursor.
 func (q *Queries) DisableApp(ctx context.Context, arg DisableAppParams) error {
 	_, err := q.db.Exec(ctx, disableApp, arg.ID, arg.DisabledReason, arg.UpdatedAt)
 	return err

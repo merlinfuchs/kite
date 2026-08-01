@@ -74,6 +74,11 @@ func (m *UsageManager) Run(ctx context.Context) {
 }
 
 func (m *UsageManager) disableAppsWithNoCredits(ctx context.Context) error {
+	// Run's context has no deadline, and this shares its goroutine with the
+	// cleanup tickers, so a stuck query would stall those too.
+	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+
 	start, end := startAndEndOfMonth(time.Now().UTC())
 
 	creditsUsed, err := m.usageStore.AllUsageCreditsUsedBetween(ctx, start, end)
@@ -81,24 +86,29 @@ func (m *UsageManager) disableAppsWithNoCredits(ctx context.Context) error {
 		return fmt.Errorf("failed to get all usage credits used: %w", err)
 	}
 
-	if len(creditsUsed) == 0 {
+	// An app can only be over its limit if it is over the allowance every app
+	// gets for free, so the rest need no entitlement lookup at all. That is
+	// the large majority of them.
+	floor := m.planManager.DefaultFeatures().UsageCreditsPerMonth
+
+	var candidates []string
+	for appID, used := range creditsUsed {
+		if used >= floor {
+			candidates = append(candidates, appID)
+		}
+	}
+
+	if len(candidates) == 0 {
 		return nil
 	}
 
-	// Resolved in one round trip. Asking per app meant a query for every app
-	// with usage this month, every minute.
-	appIDs := make([]string, 0, len(creditsUsed))
-	for appID := range creditsUsed {
-		appIDs = append(appIDs, appID)
-	}
-
-	features, err := m.planManager.AppFeaturesForApps(ctx, appIDs)
+	features, err := m.planManager.AppFeaturesForApps(ctx, candidates)
 	if err != nil {
 		return fmt.Errorf("failed to get features for apps: %w", err)
 	}
 
-	for appID, creditsUsed := range creditsUsed {
-		if creditsUsed < features[appID].UsageCreditsPerMonth {
+	for _, appID := range candidates {
+		if creditsUsed[appID] < features[appID].UsageCreditsPerMonth {
 			continue
 		}
 

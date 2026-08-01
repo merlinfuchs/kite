@@ -69,12 +69,15 @@ func (m *PlanManager) AppFeatures(ctx context.Context, appID string) model.Featu
 	return m.featuresFromEntitlements(entitlements)
 }
 
+// DefaultFeatures returns the features every app gets without any
+// entitlement. Because Features.Merge takes the maximum of each field, no
+// app's resolved features can be below this, so callers looking for apps that
+// exceed a limit can rule out anything under it without a lookup.
+func (m *PlanManager) DefaultFeatures() model.Features {
+	return m.featuresFromEntitlements(nil)
+}
+
 // AppFeaturesForApps resolves features for many apps in one round trip.
-//
-// Callers that need features for a set of apps must use this rather than
-// AppFeatures in a loop: that issued a query per app, which for the usage
-// manager meant one round trip for every app with usage that month, every
-// minute.
 //
 // Apps with no active entitlements still get the default plan's features, so
 // the result has an entry for every requested app.

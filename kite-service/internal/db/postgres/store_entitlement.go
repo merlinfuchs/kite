@@ -33,7 +33,9 @@ func (c *Client) ActiveEntitlementsForApps(ctx context.Context, appIDs []string,
 		return nil, err
 	}
 
-	entitlements := make(map[string][]*model.Entitlement, len(appIDs))
+	// Sized to rows, not appIDs: only apps that actually hold an
+	// entitlement get an entry, which is a small fraction of those asked about.
+	entitlements := make(map[string][]*model.Entitlement, len(rows))
 	for _, row := range rows {
 		entitlements[row.AppID] = append(entitlements[row.AppID], rowToEntitlement(row))
 	}
