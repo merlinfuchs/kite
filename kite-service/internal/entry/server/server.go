@@ -47,6 +47,9 @@ func StartServer(c context.Context, cfg *config.Config) error {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
+	configureHTTPTransport(cfg)
+	startDebugServer(ctx, cfg.Debug)
+
 	tokenCrypt, err := util.NewSymmetricCrypt(cfg.Encryption.TokenEncryptionKey)
 	if err != nil {
 		slog.With("error", err).Error("Failed to create token crypt")
@@ -67,11 +70,14 @@ func StartServer(c context.Context, cfg *config.Config) error {
 	engine := engine.NewEngine(
 		engine.Env{
 			Config: engine.EngineConfig{
-				MaxStackDepth: cfg.Engine.MaxStackDepth,
-				MaxOperations: cfg.Engine.MaxOperations,
-				MaxCredits:    cfg.Engine.MaxCredits,
-				ClusterCount:  cfg.ClusterCount,
-				ClusterIndex:  cfg.ClusterIndex,
+				MaxStackDepth:          cfg.Engine.MaxStackDepth,
+				MaxOperations:          cfg.Engine.MaxOperations,
+				MaxCredits:             cfg.Engine.MaxCredits,
+				ClusterCount:           cfg.ClusterCount,
+				ClusterIndex:           cfg.ClusterIndex,
+				PopulateInterval:       cfg.Engine.PopulateInterval,
+				RemoveDanglingInterval: cfg.Engine.RemoveDanglingInterval,
+				PopulateOverlap:        cfg.Engine.PopulateOverlap,
 			},
 			AppStore:             pg,
 			LogStore:             pg,
@@ -106,9 +112,13 @@ func StartServer(c context.Context, cfg *config.Config) error {
 		DiscordGuildID:  cfg.Discord.GuildID,
 	})
 
-	gateway := gateway.NewGatewayManager(pg, pg, planManager, handler, tokenCrypt, gateway.GatewayManagerConfig{
-		ClusterCount: cfg.ClusterCount,
-		ClusterIndex: cfg.ClusterIndex,
+	gateway := gateway.NewGatewayManager(pg, pg, planManager, handler, tokenCrypt, pluginRegistry, gateway.GatewayManagerConfig{
+		ClusterCount:           cfg.ClusterCount,
+		ClusterIndex:           cfg.ClusterIndex,
+		PopulateInterval:       cfg.Gateway.PopulateInterval,
+		RemoveDanglingInterval: cfg.Gateway.RemoveDanglingInterval,
+		PopulateOverlap:        cfg.Gateway.PopulateOverlap,
+		StartInterval:          cfg.Gateway.StartInterval,
 	})
 	gateway.Run(ctx)
 

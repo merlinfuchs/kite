@@ -37,6 +37,44 @@ func patchDiscordProxyURL(cfg *config.Config) {
 	api.EndpointTOTP = api.EndpointAuth + "mfa/totp"
 }
 
+// configureHTTPTransport raises the idle connection limits on the default
+// transport.
+//
+// Every arikawa api.Client is built from a zero-value http.Client, so they all
+// share http.DefaultTransport and its connection pool. That part is fine, but
+// DefaultTransport leaves MaxIdleConnsPerHost at the package default of 2:
+// under any sustained parallel load to discord.com, all but two connections
+// are closed after each request and have to redo the TLS handshake next time.
+//
+// MaxIdleConns has to move with it. Leaving the total at its default of 100
+// while allowing more per host just means one host can starve the pool.
+//
+// Note this transport is shared with the engine's outbound HTTP client when no
+// proxy is configured, so flow HTTP requests draw from the same pool.
+func configureHTTPTransport(cfg *config.Config) {
+	transport, ok := http.DefaultTransport.(*http.Transport)
+	if !ok {
+		slog.Warn("Default HTTP transport is not *http.Transport, skipping connection pool tuning")
+		return
+	}
+
+	// Defaults live in default.toml, which is always the base config layer.
+	// Restating them here would just be a second source of truth, so a
+	// non-positive value means "leave Go's default alone" instead.
+	if cfg.HTTP.MaxIdleConns > 0 {
+		transport.MaxIdleConns = cfg.HTTP.MaxIdleConns
+	}
+	if cfg.HTTP.MaxIdleConnsPerHost > 0 {
+		transport.MaxIdleConnsPerHost = cfg.HTTP.MaxIdleConnsPerHost
+	}
+
+	slog.Info(
+		"Configured HTTP connection pool",
+		slog.Int("max_idle_conns", transport.MaxIdleConns),
+		slog.Int("max_idle_conns_per_host", transport.MaxIdleConnsPerHost),
+	)
+}
+
 func engineHTTPClient(cfg *config.Config) *http.Client {
 	if cfg.Engine.HTTPProxyURL != "" {
 		proxyURL, err := url.Parse(cfg.Engine.HTTPProxyURL)

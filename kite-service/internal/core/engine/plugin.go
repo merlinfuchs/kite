@@ -73,6 +73,17 @@ func (p *pluginInstance) Events() []plugin.Event {
 	return filtered
 }
 
+// WantsEvent reports whether HandleEvent would do any work for this event.
+// Interactions are always dispatched; they are routed by their own data type
+// rather than by the plugin's subscribed event types.
+func (p *pluginInstance) WantsEvent(event gateway.Event) bool {
+	if _, ok := event.(*gateway.InteractionCreateEvent); ok {
+		return true
+	}
+
+	return p.eventTypes[event.EventType()]
+}
+
 func (p *pluginInstance) HandleEvent(ctx context.Context, session *state.State, event gateway.Event) {
 	var err error
 
@@ -88,11 +99,6 @@ func (p *pluginInstance) HandleEvent(ctx context.Context, session *state.State, 
 			err = p.instance.HandleModal(p.pluginContext(ctx, session), e)
 		}
 	default:
-		wants := p.eventTypes[event.EventType()]
-		if !wants {
-			return
-		}
-
 		err = p.instance.HandleEvent(p.pluginContext(ctx, session), event)
 	}
 
@@ -129,6 +135,13 @@ func (a *App) dispatchEventToPlugins(session *state.State, event gateway.Event) 
 	defer a.RUnlock()
 
 	for _, plugin := range a.pluginInstances {
+		// Check before spawning. This filter used to run inside the goroutine,
+		// so every event spawned one goroutine per plugin instance only for
+		// most of them to return immediately.
+		if !plugin.WantsEvent(event) {
+			continue
+		}
+
 		go plugin.HandleEvent(context.TODO(), session, event)
 	}
 }

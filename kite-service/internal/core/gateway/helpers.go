@@ -3,7 +3,6 @@ package gateway
 import (
 	"fmt"
 
-	"github.com/diamondburned/arikawa/v3/api"
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/gateway"
 	"github.com/diamondburned/arikawa/v3/state"
@@ -18,21 +17,54 @@ const (
 	GATEWAY_MESSAGE_CONTENT_LIMITED = 1 << 19
 )
 
-func getAppIntents(client *api.Client) (gateway.Intents, error) {
-	app, err := client.CurrentApplication()
-	if err != nil {
-		return 0, fmt.Errorf("failed to get current application: %w", err)
-	}
-
+// allPermittedIntents returns every intent the app is approved for. Used when
+// requirements cannot be loaded, so a database blip degrades to the old
+// unconditional behaviour rather than to dropping events.
+func allPermittedIntents(flags discord.ApplicationFlags) gateway.Intents {
 	res := gateway.IntentGuilds | gateway.IntentGuildMessages | gateway.IntentGuildMessageReactions
-	if app.Flags&GATEWAY_MESSAGE_CONTENT != 0 || app.Flags&GATEWAY_MESSAGE_CONTENT_LIMITED != 0 {
+
+	if flags&GATEWAY_MESSAGE_CONTENT != 0 || flags&GATEWAY_MESSAGE_CONTENT_LIMITED != 0 {
 		res |= gateway.IntentMessageContent
 	}
-	if app.Flags&GATEWAY_GUILD_MEMBERS != 0 || app.Flags&GATEWAY_GUILD_MEMBERS_LIMITED != 0 {
+	if flags&GATEWAY_GUILD_MEMBERS != 0 || flags&GATEWAY_GUILD_MEMBERS_LIMITED != 0 {
 		res |= gateway.IntentGuildMembers
 	}
 
-	return res, nil
+	return res
+}
+
+// intentsForRequirements derives the smallest intent set that still delivers
+// everything the app consumes.
+//
+// Privileged intents are gated on the app's portal flags as well as on need:
+// identifying with a privileged intent the app was never approved for is
+// rejected by Discord with a 4014 close code.
+func intentsForRequirements(reqs model.AppGatewayRequirements, flags discord.ApplicationFlags) gateway.Intents {
+	// Interactions are delivered regardless of intents, so a command-only app
+	// needs nothing beyond IntentGuilds -- which is kept for everyone because
+	// the dashboard's guild and channel pickers read from the state cache it
+	// populates.
+	res := gateway.IntentGuilds
+
+	if reqs.NeedsGuildMessages() {
+		res |= gateway.IntentGuildMessages
+
+		if flags&GATEWAY_MESSAGE_CONTENT != 0 || flags&GATEWAY_MESSAGE_CONTENT_LIMITED != 0 {
+			res |= gateway.IntentMessageContent
+		}
+	}
+
+	if reqs.NeedsGuildMembers() {
+		if flags&GATEWAY_GUILD_MEMBERS != 0 || flags&GATEWAY_GUILD_MEMBERS_LIMITED != 0 {
+			res |= gateway.IntentGuildMembers
+		}
+	}
+
+	if reqs.NeedsGuildMessageReactions() {
+		res |= gateway.IntentGuildMessageReactions
+	}
+
+	return res
 }
 
 func createSession(tokenCrypt *util.SymmetricCrypt, app *model.App) (*state.State, error) {
