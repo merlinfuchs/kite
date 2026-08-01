@@ -142,6 +142,15 @@ func (m *GatewayManager) populateGateways(ctx context.Context) error {
 	}
 
 	m.removeGateways(disabledAppIDs)
+
+	// Must stay ahead of startGateways. On the first poll the cursor is zero,
+	// so changedReqAppIDs contains every app that has any listener or plugin
+	// instance -- tens of thousands. Running before any gateway exists makes
+	// those all cheap map misses; running after would instead mean one
+	// database query and one Discord round trip each, serially.
+	//
+	// Nothing is lost by refreshing first: gateways started below compute
+	// their intents from the same rows before they connect.
 	m.refreshIntents(ctx, changedReqAppIDs)
 
 	filteredApps := make([]*model.App, 0, len(apps))
