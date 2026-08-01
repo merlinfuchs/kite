@@ -81,29 +81,51 @@ func (m *UsageManager) disableAppsWithNoCredits(ctx context.Context) error {
 		return fmt.Errorf("failed to get all usage credits used: %w", err)
 	}
 
+	if len(creditsUsed) == 0 {
+		return nil
+	}
+
+	// Resolved in one round trip. Asking per app meant a query for every app
+	// with usage this month, every minute.
+	appIDs := make([]string, 0, len(creditsUsed))
+	for appID := range creditsUsed {
+		appIDs = append(appIDs, appID)
+	}
+
+	features, err := m.planManager.AppFeaturesForApps(ctx, appIDs)
+	if err != nil {
+		return fmt.Errorf("failed to get features for apps: %w", err)
+	}
+
 	for appID, creditsUsed := range creditsUsed {
-		features := m.planManager.AppFeatures(ctx, appID)
-
-		if creditsUsed >= features.UsageCreditsPerMonth {
-			dCtx, cancel := context.WithTimeout(ctx, time.Second)
-			defer cancel()
-
-			err := m.appStore.DisableApp(dCtx, store.AppDisableOpts{
-				ID:             appID,
-				DisabledReason: null.StringFrom("No credits remaining"),
-				UpdatedAt:      time.Now().UTC(),
-			})
-			if err != nil {
-				slog.Error(
-					"Failed to disable app with no credits",
-					slog.String("app_id", appID),
-					slog.String("error", err.Error()),
-				)
-			}
+		if creditsUsed < features[appID].UsageCreditsPerMonth {
+			continue
 		}
+
+		m.disableApp(ctx, appID)
 	}
 
 	return nil
+}
+
+// disableApp is a separate function so its context is released when the app is
+// done rather than accumulating until the whole sweep returns.
+func (m *UsageManager) disableApp(ctx context.Context, appID string) {
+	ctx, cancel := context.WithTimeout(ctx, time.Second)
+	defer cancel()
+
+	err := m.appStore.DisableApp(ctx, store.AppDisableOpts{
+		ID:             appID,
+		DisabledReason: null.StringFrom("No credits remaining"),
+		UpdatedAt:      time.Now().UTC(),
+	})
+	if err != nil {
+		slog.Error(
+			"Failed to disable app with no credits",
+			slog.String("app_id", appID),
+			slog.String("error", err.Error()),
+		)
+	}
 }
 
 func (m *UsageManager) cleanupUsageRecords(ctx context.Context) error {

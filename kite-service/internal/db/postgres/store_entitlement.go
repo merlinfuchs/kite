@@ -24,6 +24,23 @@ func (c *Client) Entitlements(ctx context.Context, appID string) ([]*model.Entit
 	return entitlements, nil
 }
 
+func (c *Client) ActiveEntitlementsForApps(ctx context.Context, appIDs []string, now time.Time) (map[string][]*model.Entitlement, error) {
+	rows, err := c.Q.GetActiveEntitlementsForApps(ctx, pgmodel.GetActiveEntitlementsForAppsParams{
+		AppIds: appIDs,
+		EndsAt: pgtype.Timestamp{Time: now, Valid: true},
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	entitlements := make(map[string][]*model.Entitlement, len(appIDs))
+	for _, row := range rows {
+		entitlements[row.AppID] = append(entitlements[row.AppID], rowToEntitlement(row))
+	}
+
+	return entitlements, nil
+}
+
 func (c *Client) ActiveEntitlements(ctx context.Context, appID string, now time.Time) ([]*model.Entitlement, error) {
 	rows, err := c.Q.GetActiveEntitlements(ctx, pgmodel.GetActiveEntitlementsParams{
 		AppID:  appID,
