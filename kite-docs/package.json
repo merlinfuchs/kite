@@ -24,8 +24,6 @@
     "@stoplight/mosaic-code-viewer": "^1.53.4",
     "clsx": "^2.1.1",
     "dotenv": "^17.2.1",
-    "i": "^0.3.7",
-    "npm": "^10.9.3",
     "prism-react-renderer": "^2.3.0",
     "react": "^18.0.0",
     "react-dom": "^18.0.0",
