@@ -33,7 +33,8 @@ LEFT JOIN (
     FROM usage_records 
     WHERE app_id = @app_id AND created_at BETWEEN @start_at AND @end_at 
     GROUP BY DATE(created_at)
-) u ON d.dt = u.date;
+) u ON d.dt = u.date
+ORDER BY d.dt;
 
 -- Only enabled apps. A disabled app's usage rows stay for the rest of the
 -- month, so without this filter the credit sweep re-disables it on every run:

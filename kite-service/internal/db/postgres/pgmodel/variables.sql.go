@@ -88,7 +88,7 @@ func (q *Queries) DeleteVariable(ctx context.Context, id string) error {
 }
 
 const deleteVariableValue = `-- name: DeleteVariableValue :exec
-DELETE FROM variable_values WHERE variable_id = $1 AND scope = $2
+DELETE FROM variable_values WHERE variable_id = $1 AND scope IS NOT DISTINCT FROM $2
 `
 
 type DeleteVariableValueParams struct {
@@ -96,6 +96,9 @@ type DeleteVariableValueParams struct {
 	Scope      pgtype.Text
 }
 
+// IS NOT DISTINCT FROM so that unscoped values (scope IS NULL) are matched,
+// same as the get queries above. Plain `= NULL` never matches and made
+// deleting an unscoped variable value a silent no-op.
 func (q *Queries) DeleteVariableValue(ctx context.Context, arg DeleteVariableValueParams) error {
 	_, err := q.db.Exec(ctx, deleteVariableValue, arg.VariableID, arg.Scope)
 	return err

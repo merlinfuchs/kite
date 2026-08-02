@@ -67,7 +67,10 @@ INSERT INTO variable_values (
 RETURNING *;
 
 -- name: DeleteVariableValue :exec
-DELETE FROM variable_values WHERE variable_id = $1 AND scope = $2;
+-- IS NOT DISTINCT FROM so that unscoped values (scope IS NULL) are matched,
+-- same as the get queries above. Plain `= NULL` never matches and made
+-- deleting an unscoped variable value a silent no-op.
+DELETE FROM variable_values WHERE variable_id = $1 AND scope IS NOT DISTINCT FROM $2;
 
 -- name: DeleteAllVariableValues :exec
 DELETE FROM variable_values WHERE variable_id = $1;

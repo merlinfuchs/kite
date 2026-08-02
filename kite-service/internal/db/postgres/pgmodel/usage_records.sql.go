@@ -129,6 +129,7 @@ LEFT JOIN (
     WHERE app_id = $3 AND created_at BETWEEN $1 AND $2 
     GROUP BY DATE(created_at)
 ) u ON d.dt = u.date
+ORDER BY d.dt
 `
 
 type GetUsageCreditsUsedByDayBetweenParams struct {

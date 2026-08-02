@@ -1,6 +1,6 @@
 import { useFlowContext } from "@/lib/flow/context";
 import { NodeValues, createNode, getNodeValues } from "@/lib/flow/nodes";
-import { useReactFlow } from "@xyflow/react";
+import { useReactFlow, useStore } from "@xyflow/react";
 import { SearchIcon } from "lucide-react";
 import { DragEvent, useMemo, useState } from "react";
 import DynamicIcon from "../icons/DynamicIcon";
@@ -249,7 +249,12 @@ export default function FlowNodeExplorer({
 }
 
 function AvailableNode({ type, values }: { type: string; values: NodeValues }) {
-  const { addNodes, addEdges } = useReactFlow();
+  const { addNodes, addEdges, getViewport } = useReactFlow();
+  // The canvas is not the window: it sits right of the w-96 block explorer,
+  // inside a dialog. Ask react-flow for its own pane size rather than reading
+  // window dimensions, so blocks don't spawn off-centre or under the menu.
+  const paneWidth = useStore((s) => s.width);
+  const paneHeight = useStore((s) => s.height);
 
   function onStartDrag(e: DragEvent) {
     e.dataTransfer.setData("application/reactflow", type);
@@ -257,9 +262,19 @@ function AvailableNode({ type, values }: { type: string; values: NodeValues }) {
   }
 
   function onClick() {
+    // Spawn in the middle of what the user is currently looking at, with a
+    // small jitter so repeated clicks don't stack blocks exactly on top of
+    // each other. Using flow coordinates directly would put the block next to
+    // the entry node, off-screen for anything but a freshly opened flow.
+    const { x, y, zoom } = getViewport();
+    const center = {
+      x: (-x + paneWidth / 2) / zoom,
+      y: (-y + paneHeight / 2) / zoom,
+    };
+
     const [nodes, edges] = createNode(type, {
-      x: 0 + 200 * Math.random() - 100,
-      y: 0 + 100 * Math.random() + 200,
+      x: center.x + 200 * Math.random() - 100,
+      y: center.y + 100 * Math.random() - 50,
     });
     addNodes(nodes);
     addEdges(edges);
