@@ -195,8 +195,9 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 				interaction.Token,
 				discord.MessageID(messageTarget.Snowflake()),
 				api.EditInteractionResponseData{
-					Content: responseData.Content,
-					Embeds:  responseData.Embeds,
+					Content:    responseData.Content,
+					Embeds:     responseData.Embeds,
+					Components: responseData.Components,
 				},
 			)
 			if err != nil {
@@ -428,6 +429,9 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			api.EditMessageData{
 				Content: option.NewNullableString(messageData.Content),
 				Embeds:  &messageData.Embeds,
+				// Without this the edit silently drops the buttons, even
+				// though a resume point is created for them right below.
+				Components: &messageData.Components,
 			},
 		)
 		if err != nil {
@@ -1734,10 +1738,16 @@ func (n *CompiledFlowNode) autoDeferInteraction(ctx *FlowContext) error {
 		}
 	}
 
-	// We check if the next response will be ephemeral and adjust the defer flags accordingly
+	// The defer has to declare up front whether the response is ephemeral, so
+	// we guess from the first response the flow can reach. The guess only
+	// binds a response that edits the original; a followup carries its own
+	// flags either way.
+	//
+	// This can't be right for every flow — branches may disagree, and only one
+	// of them runs. Users who need certainty should defer explicitly instead.
 	var responseFlags discord.MessageFlags
-	respondeNode := n.FindChildWithType(FlowNodeTypeActionResponseCreate, FlowNodeTypeActionResponseEdit, FlowNodeTypeActionResponseDefer)
-	if respondeNode != nil && respondeNode.Data.MessageEphemeral {
+	responseNode := n.FirstChildMatching(isResponseNode)
+	if responseNode != nil && responseNode.Data.MessageEphemeral {
 		responseFlags |= discord.EphemeralMessage
 	}
 
@@ -1887,5 +1897,18 @@ func createDefaultErrorResponse(fCtx *FlowContext, err error) {
 			Type: api.MessageInteractionWithSource,
 			Data: &respData,
 		})
+	}
+}
+
+// isResponseNode reports whether a node responds to the interaction, and so
+// determines whether the deferred response is ephemeral.
+func isResponseNode(n *CompiledFlowNode) bool {
+	switch n.Type {
+	case FlowNodeTypeActionResponseCreate,
+		FlowNodeTypeActionResponseEdit,
+		FlowNodeTypeActionResponseDefer:
+		return true
+	default:
+		return false
 	}
 }

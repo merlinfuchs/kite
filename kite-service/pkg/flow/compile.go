@@ -2,6 +2,7 @@ package flow
 
 import (
 	"fmt"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -628,4 +629,60 @@ func (n *CompiledFlowNode) findChildWithID(nodeID string, includeSubFlows bool, 
 	}
 
 	return nil
+}
+
+// FirstChildMatching returns the first node in the subtree satisfying match,
+// in the order the flow would reach them: direct children first, then deeper
+// ones. Handle keys are sorted so the result doesn't depend on Go's random
+// map iteration order.
+//
+// Unlike FindChildWithType this includes handle-based children, so nodes
+// behind condition branches and button handles are considered at all.
+func (n *CompiledFlowNode) FirstChildMatching(match func(*CompiledFlowNode) bool) *CompiledFlowNode {
+	return n.firstChildMatching(make(map[string]bool), match)
+}
+
+func (n *CompiledFlowNode) firstChildMatching(
+	visited map[string]bool,
+	match func(*CompiledFlowNode) bool,
+) *CompiledFlowNode {
+	if visited[n.ID] {
+		return nil
+	}
+	visited[n.ID] = true
+
+	children := n.orderedChildren()
+
+	for _, node := range children {
+		if match(node) {
+			return node
+		}
+	}
+
+	for _, node := range children {
+		if found := node.firstChildMatching(visited, match); found != nil {
+			return found
+		}
+	}
+
+	return nil
+}
+
+// orderedChildren lists default children followed by handle children, with
+// handle keys sorted for a stable order.
+func (n *CompiledFlowNode) orderedChildren() []*CompiledFlowNode {
+	children := make([]*CompiledFlowNode, 0, len(n.Children.Default))
+	children = append(children, n.Children.Default...)
+
+	handles := make([]string, 0, len(n.Children.Handles))
+	for handle := range n.Children.Handles {
+		handles = append(handles, handle)
+	}
+	sort.Strings(handles)
+
+	for _, handle := range handles {
+		children = append(children, n.Children.Handles[handle]...)
+	}
+
+	return children
 }
