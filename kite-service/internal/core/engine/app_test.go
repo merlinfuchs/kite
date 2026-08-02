@@ -5,6 +5,8 @@ import (
 
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/internal/util"
+	"github.com/kitecloud/kite/kite-service/pkg/flow"
+	"gopkg.in/guregu/null.v4"
 )
 
 // The command and listener lookup indexes replaced linear scans over every
@@ -144,5 +146,74 @@ func TestListenerIndexRebuildDoesNotMutateExistingSlice(t *testing.T) {
 	}
 	if snapshot[0].listener.ID != "l-1" {
 		t.Errorf("snapshot contents changed: got %q, want l-1", snapshot[0].listener.ID)
+	}
+}
+
+// Resume points are created by commands, event listeners and message
+// instances alike, but dispatch only ever handled the command case. A button
+// or modal inside an event listener flow resolved to nothing, so the
+// interaction got no response and Discord showed "This interaction failed".
+
+func testResumePoint(rp model.ResumePoint) *model.ResumePoint {
+	rp.ID = "resume-1"
+	return &rp
+}
+
+func TestResumeFlowTargetResolvesCommand(t *testing.T) {
+	app := NewApp("app-1", Env{})
+	id, command := testCommand("cmd-1", "ping")
+	command.flow = &flow.CompiledFlowNode{}
+	app.AddCommand(id, command)
+
+	targetFlow, links, ok := app.resumeFlowTarget(testResumePoint(model.ResumePoint{
+		CommandID: null.NewString("cmd-1", true),
+	}))
+	if !ok {
+		t.Fatal("command-owned resume point did not resolve")
+	}
+	if targetFlow != command.flow {
+		t.Error("resolved to the wrong flow")
+	}
+	if links.CommandID.String != "cmd-1" {
+		t.Errorf("links.CommandID = %q, want cmd-1", links.CommandID.String)
+	}
+}
+
+func TestResumeFlowTargetResolvesEventListener(t *testing.T) {
+	app := NewApp("app-1", Env{})
+	id, listener := testListener("lst-1", model.EventSourceDiscord, model.EventListenerTypeDiscordMessageCreate)
+	listener.flow = &flow.CompiledFlowNode{}
+	app.AddEventListener(id, listener)
+
+	targetFlow, links, ok := app.resumeFlowTarget(testResumePoint(model.ResumePoint{
+		EventListenerID: null.NewString("lst-1", true),
+	}))
+	if !ok {
+		t.Fatal("event listener resume point did not resolve; buttons in listener flows are dead")
+	}
+	if targetFlow != listener.flow {
+		t.Error("resolved to the wrong flow")
+	}
+	if links.EventListenerID.String != "lst-1" {
+		t.Errorf("links.EventListenerID = %q, want lst-1", links.EventListenerID.String)
+	}
+	if links.CommandID.Valid {
+		t.Error("listener execution must not be attributed to a command")
+	}
+}
+
+// A resume point whose owner is gone (deleted or disabled) must resolve to
+// nothing rather than panic.
+func TestResumeFlowTargetUnknownOwner(t *testing.T) {
+	app := NewApp("app-1", Env{})
+
+	for name, rp := range map[string]model.ResumePoint{
+		"missing command":  {CommandID: null.NewString("nope", true)},
+		"missing listener": {EventListenerID: null.NewString("nope", true)},
+		"no owner":         {},
+	} {
+		if _, _, ok := app.resumeFlowTarget(testResumePoint(rp)); ok {
+			t.Errorf("%s: resolved, want no target", name)
+		}
 	}
 }
