@@ -249,7 +249,7 @@ export default function FlowNodeExplorer({
 }
 
 function AvailableNode({ type, values }: { type: string; values: NodeValues }) {
-  const { addNodes, addEdges } = useReactFlow();
+  const { addNodes, addEdges, screenToFlowPosition } = useReactFlow();
 
   function onStartDrag(e: DragEvent) {
     e.dataTransfer.setData("application/reactflow", type);
@@ -257,9 +257,18 @@ function AvailableNode({ type, values }: { type: string; values: NodeValues }) {
   }
 
   function onClick() {
+    // Spawn in the middle of what the user is currently looking at, with a
+    // small jitter so repeated clicks don't stack blocks exactly on top of
+    // each other. Using flow coordinates directly would put the block next to
+    // the entry node, off-screen for anything but a freshly opened flow.
+    const center = screenToFlowPosition({
+      x: window.innerWidth / 2,
+      y: window.innerHeight / 2,
+    });
+
     const [nodes, edges] = createNode(type, {
-      x: 0 + 200 * Math.random() - 100,
-      y: 0 + 100 * Math.random() + 200,
+      x: center.x + 200 * Math.random() - 100,
+      y: center.y + 100 * Math.random() - 50,
     });
     addNodes(nodes);
     addEdges(edges);

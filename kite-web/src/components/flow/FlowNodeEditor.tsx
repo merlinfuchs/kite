@@ -984,10 +984,7 @@ function AiChatCompletionDataInput({ data, updateData, errors }: InputProps) {
             value: "gpt-4.1-nano",
             label: "Cheap & Fast (gpt-4.1-nano) (deprecated)",
           },
-          {
-            value: "gpt-5.4-nano",
-            label: "Cheap & Fast (gpt-5-nano)",
-          },
+          { value: "gpt-5-nano", label: "Cheap & Fast (gpt-5-nano)" },
           { value: "gpt-4o-mini", label: "Cheap & Fast (gpt-4o-mini)" },
         ]}
         value={data.ai_chat_completion_data?.model || "gpt-4o-mini"}
@@ -1593,6 +1590,21 @@ function ModalDataInput({ data, updateData, errors }: InputProps) {
   );
 }
 
+// Which of the optional channel fields Discord accepts for a given channel
+// type. An unset type means "Text", matching the select's default.
+function channelTypeSupportsNSFW(type: number | undefined) {
+  return (type ?? 0) === 0;
+}
+
+function channelTypeSupportsTopic(type: number | undefined) {
+  const t = type ?? 0;
+  return t === 0 || t === 5;
+}
+
+function channelTypeSupportsVoice(type: number | undefined) {
+  return type === 2 || type === 13;
+}
+
 function ChannelDataInput({ data, updateData, errors }: InputProps) {
   const addOverwrite = useCallback(() => {
     updateData({
@@ -1621,6 +1633,33 @@ function ChannelDataInput({ data, updateData, errors }: InputProps) {
 
       updateData({
         channel_data: data.channel_data,
+      });
+    },
+    [updateData, data]
+  );
+
+  // Changing the type only hides the inputs that don't apply to it. Without
+  // also dropping their values, a topic entered while the type was "Text"
+  // would still be sent for a voice channel, which Discord rejects.
+  const updateType = useCallback(
+    (type: number) => {
+      updateData({
+        channel_data: {
+          ...data.channel_data,
+          type,
+          nsfw: channelTypeSupportsNSFW(type)
+            ? data.channel_data?.nsfw
+            : undefined,
+          topic: channelTypeSupportsTopic(type)
+            ? data.channel_data?.topic
+            : undefined,
+          bitrate: channelTypeSupportsVoice(type)
+            ? data.channel_data?.bitrate
+            : undefined,
+          user_limit: channelTypeSupportsVoice(type)
+            ? data.channel_data?.user_limit
+            : undefined,
+        },
       });
     },
     [updateData, data]
@@ -1676,18 +1715,11 @@ function ChannelDataInput({ data, updateData, errors }: InputProps) {
                   value: "16",
                 },
               ]}
-              updateValue={(v) =>
-                updateData({
-                  channel_data: {
-                    ...data.channel_data,
-                    type: parseInt(v) || 0,
-                  },
-                })
-              }
+              updateValue={(v) => updateType(parseInt(v) || 0)}
               errors={errors}
             />
 
-            {(!data.channel_data?.type || data.channel_data.type === 0) && (
+            {channelTypeSupportsNSFW(data.channel_data?.type) && (
               <BaseCheckbox
                 field="channel_data.nsfw"
                 title="NSFW"
@@ -1720,9 +1752,7 @@ function ChannelDataInput({ data, updateData, errors }: InputProps) {
             placeholders
           />
 
-          {(!data.channel_data?.type ||
-            data.channel_data.type === 0 ||
-            data.channel_data.type === 5) && (
+          {channelTypeSupportsTopic(data.channel_data?.type) && (
             <BaseInput
               type="text"
               field="channel_data.topic"
@@ -1742,45 +1772,44 @@ function ChannelDataInput({ data, updateData, errors }: InputProps) {
             />
           )}
 
-          {data.channel_data?.type === 2 ||
-            (data.channel_data?.type === 13 && (
-              <>
-                <BaseInput
-                  type="text"
-                  field="channel_data.bitrate"
-                  title="Bitrate"
-                  description="The bitrate for the channel."
-                  value={data.channel_data?.bitrate || ""}
-                  updateValue={(v) =>
-                    updateData({
-                      channel_data: {
-                        ...data.channel_data,
-                        bitrate: v || undefined,
-                      },
-                    })
-                  }
-                  errors={errors}
-                  placeholders
-                />
-                <BaseInput
-                  type="text"
-                  field="channel_data.user_limit"
-                  title="User Limit"
-                  description="The user limit for the channel."
-                  value={data.channel_data?.user_limit?.toString() || ""}
-                  updateValue={(v) =>
-                    updateData({
-                      channel_data: {
-                        ...data.channel_data,
-                        user_limit: v || undefined,
-                      },
-                    })
-                  }
-                  errors={errors}
-                  placeholders
-                />
-              </>
-            ))}
+          {channelTypeSupportsVoice(data.channel_data?.type) && (
+            <>
+              <BaseInput
+                type="text"
+                field="channel_data.bitrate"
+                title="Bitrate"
+                description="The bitrate for the channel."
+                value={data.channel_data?.bitrate || ""}
+                updateValue={(v) =>
+                  updateData({
+                    channel_data: {
+                      ...data.channel_data,
+                      bitrate: v || undefined,
+                    },
+                  })
+                }
+                errors={errors}
+                placeholders
+              />
+              <BaseInput
+                type="text"
+                field="channel_data.user_limit"
+                title="User Limit"
+                description="The user limit for the channel."
+                value={data.channel_data?.user_limit?.toString() || ""}
+                updateValue={(v) =>
+                  updateData({
+                    channel_data: {
+                      ...data.channel_data,
+                      user_limit: v || undefined,
+                    },
+                  })
+                }
+                errors={errors}
+                placeholders
+              />
+            </>
+          )}
 
           {data.channel_data?.type !== 4 && (
             <BaseInput

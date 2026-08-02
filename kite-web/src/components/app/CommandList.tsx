@@ -17,12 +17,24 @@ export default function CommandList() {
     </CommandCreateDialog>
   );
 
-  const hasUndeployedCommands = commands?.some(
-    (command) =>
-      new Date(command!.updated_at) > new Date(command!.last_deployed_at || 0)
-  );
-
   const [deployDialogOpen, setDeployDialogOpen] = useState(false);
+
+  // The deploy button is never disabled: deleting a command doesn't change any
+  // remaining command's updated_at, and deleting the last one leaves no command
+  // to compare at all. Gating on "has undeployed changes" therefore made it
+  // impossible to remove deleted commands from Discord.
+  const deployRow = (
+    <div className="flex gap-5 justify-between flex-col md:flex-row">
+      {cmdCreateButton}
+
+      <CommandDeployDialog
+        open={deployDialogOpen}
+        onOpenChange={setDeployDialogOpen}
+      >
+        <Button variant="destructive">Deploy all commands</Button>
+      </CommandDeployDialog>
+    </div>
+  );
 
   return (
     <AutoAnimate className="flex flex-col md:flex-1 space-y-5">
@@ -33,29 +45,21 @@ export default function CommandList() {
           <Skeleton className="h-28" />
         </>
       ) : commands.length === 0 ? (
-        <AppEmptyPlaceholder
-          title="There are no commands"
-          description="You can start now by creating the first command!"
-          action={cmdCreateButton}
-        />
+        <>
+          <AppEmptyPlaceholder
+            title="There are no commands"
+            description="You can start now by creating the first command! If you deleted commands that still show up in Discord, deploy to remove them."
+          />
+
+          {deployRow}
+        </>
       ) : (
         <>
           {commands.map((command, i) => (
             <CommandListEntry command={command!} key={i} />
           ))}
 
-          <div className="flex gap-5 justify-between flex-col md:flex-row">
-            {cmdCreateButton}
-
-            <CommandDeployDialog
-              open={deployDialogOpen}
-              onOpenChange={setDeployDialogOpen}
-            >
-              <Button disabled={!hasUndeployedCommands} variant="destructive">
-                Deploy all commands
-              </Button>
-            </CommandDeployDialog>
-          </div>
+          {deployRow}
         </>
       )}
     </AutoAnimate>
