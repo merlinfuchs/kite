@@ -1,6 +1,7 @@
 package asset
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -96,7 +97,7 @@ func (h *AssetHandler) HandleAssetDownload(c *handler.Context) error {
 
 	asset, err := h.assetStore.AssetWithContent(c.Context(), c.Param("assetID"))
 	if err != nil {
-		if err == store.ErrNotFound {
+		if errors.Is(err, store.ErrNotFound) {
 			return handler.ErrNotFound("asset_not_found", "asset not found")
 		}
 		return fmt.Errorf("failed to get asset: %w", err)
