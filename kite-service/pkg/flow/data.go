@@ -277,6 +277,13 @@ func (d FlowNodeData) Validate(nodeType FlowNodeType) error {
 		validation.Field(&d.AIChatCompletionData, validation.When(nodeType == FlowNodeTypeActionAIChatCompletion,
 			validation.Required,
 		)),
+
+		// Expression Evaluate
+		// Bounded for every node type rather than just entry nodes: an oversized
+		// expression is a resource-exhaustion risk at execution time, not just a
+		// correctness problem. eval enforces the same limit as a backstop for
+		// flows stored before this check existed.
+		validation.Field(&d.Expression, validation.Length(0, eval.MaxExpressionLength)),
 	)
 }
 
