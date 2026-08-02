@@ -86,7 +86,9 @@ export default function AppSidebarAppSwitcher() {
                 <div className="flex size-6 items-center justify-center rounded-md border bg-background">
                   <CogIcon className="size-4" />
                 </div>
-                <div className="font-medium text-muted-foreground">Manage apps</div>
+                <div className="font-medium text-muted-foreground">
+                  Manage apps
+                </div>
               </Link>
             </DropdownMenuItem>
           </DropdownMenuContent>
