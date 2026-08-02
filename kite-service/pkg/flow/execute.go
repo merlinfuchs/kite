@@ -895,11 +895,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 				Init: true,
 			},
 		}
-		// Only send fields that the configured channel type actually supports.
-		// The editor hides them when the type changes, but a value entered
-		// before the switch stays in the stored data, and Discord rejects the
-		// whole request for e.g. a topic on a voice channel.
-		if createData.Topic != "" && channelTypeSupportsTopic(createData.Type) {
+		if createData.Topic != "" {
 			editData.Topic = option.NewNullableString(createData.Topic)
 		}
 		if createData.CategoryID != discord.NullChannelID && createData.CategoryID != 0 {
@@ -910,10 +906,10 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 
 			editData.CategoryID = discord.ChannelID(parentTarget.Snowflake())
 		}
-		if createData.VoiceBitrate != 0 && channelTypeSupportsVoice(createData.Type) {
+		if createData.VoiceBitrate != 0 {
 			editData.VoiceBitrate = option.NewNullableUint(createData.VoiceBitrate)
 		}
-		if createData.VoiceUserLimit != 0 && channelTypeSupportsVoice(createData.Type) {
+		if createData.VoiceUserLimit != 0 {
 			editData.VoiceUserLimit = option.NewNullableUint(createData.VoiceUserLimit)
 		}
 		if createData.Position != nil {
@@ -1892,25 +1888,4 @@ func createDefaultErrorResponse(fCtx *FlowContext, err error) {
 			Data: &respData,
 		})
 	}
-}
-
-// guildMediaChannel is Discord's media channel type, which arikawa doesn't
-// define yet.
-const guildMediaChannel discord.ChannelType = 16
-
-// channelTypeSupportsTopic reports whether Discord accepts a topic for the
-// given channel type. Voice, stage and category channels have no topic.
-func channelTypeSupportsTopic(t discord.ChannelType) bool {
-	switch t {
-	case discord.GuildText, discord.GuildAnnouncement, discord.GuildForum, guildMediaChannel:
-		return true
-	default:
-		return false
-	}
-}
-
-// channelTypeSupportsVoice reports whether Discord accepts bitrate and user
-// limit for the given channel type.
-func channelTypeSupportsVoice(t discord.ChannelType) bool {
-	return t == discord.GuildVoice || t == discord.GuildStageVoice
 }

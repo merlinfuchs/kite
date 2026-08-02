@@ -1592,16 +1592,20 @@ function ModalDataInput({ data, updateData, errors }: InputProps) {
 
 // Which of the optional channel fields Discord accepts for a given channel
 // type. An unset type means "Text", matching the select's default.
-function channelTypeSupportsNSFW(type: number | undefined) {
-  return (type ?? 0) === 0;
+//
+// These must stay in sync with channelTypeSupportsTopic/Voice in
+// kite-service/pkg/flow/data.go, which drops the same fields before sending
+// them to Discord. Hidden here but sent there just means a confusing error.
+function channelTypeSupportsNSFW(type = 0) {
+  return type === 0;
 }
 
-function channelTypeSupportsTopic(type: number | undefined) {
-  const t = type ?? 0;
-  return t === 0 || t === 5;
+function channelTypeSupportsTopic(type = 0) {
+  // Forum (15) and media (16) use the topic as their post guidelines.
+  return type === 0 || type === 5 || type === 15 || type === 16;
 }
 
-function channelTypeSupportsVoice(type: number | undefined) {
+function channelTypeSupportsVoice(type = 0) {
   return type === 2 || type === 13;
 }
 
@@ -1643,24 +1647,16 @@ function ChannelDataInput({ data, updateData, errors }: InputProps) {
   // would still be sent for a voice channel, which Discord rejects.
   const updateType = useCallback(
     (type: number) => {
-      updateData({
-        channel_data: {
-          ...data.channel_data,
-          type,
-          nsfw: channelTypeSupportsNSFW(type)
-            ? data.channel_data?.nsfw
-            : undefined,
-          topic: channelTypeSupportsTopic(type)
-            ? data.channel_data?.topic
-            : undefined,
-          bitrate: channelTypeSupportsVoice(type)
-            ? data.channel_data?.bitrate
-            : undefined,
-          user_limit: channelTypeSupportsVoice(type)
-            ? data.channel_data?.user_limit
-            : undefined,
-        },
-      });
+      const channelData = { ...data.channel_data, type };
+
+      if (!channelTypeSupportsNSFW(type)) channelData.nsfw = undefined;
+      if (!channelTypeSupportsTopic(type)) channelData.topic = undefined;
+      if (!channelTypeSupportsVoice(type)) {
+        channelData.bitrate = undefined;
+        channelData.user_limit = undefined;
+      }
+
+      updateData({ channel_data: channelData });
     },
     [updateData, data]
   );

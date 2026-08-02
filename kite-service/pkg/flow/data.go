@@ -378,11 +378,17 @@ func (d *ChannelData) ToCreateChannelData(ctx context.Context, evalCtx eval.Cont
 	}
 	res.Name = name.String()
 
+	// Fields the selected channel type doesn't support are dropped rather than
+	// sent. The editor only hides their inputs when the type changes, so a
+	// value entered beforehand survives in the stored data, and Discord
+	// rejects the whole request for e.g. a topic on a voice channel.
 	topic, err := eval.EvalTemplate(ctx, d.Topic, evalCtx)
 	if err != nil {
 		return res, err
 	}
-	res.Topic = topic.String()
+	if channelTypeSupportsTopic(res.Type) {
+		res.Topic = topic.String()
+	}
 
 	parentID, err := eval.EvalTemplate(ctx, d.ParentID, evalCtx)
 	if err != nil {
@@ -394,13 +400,14 @@ func (d *ChannelData) ToCreateChannelData(ctx context.Context, evalCtx eval.Cont
 	if err != nil {
 		return res, err
 	}
-	res.VoiceBitrate = uint(bitrate.Int())
-
 	userLimit, err := eval.EvalTemplate(ctx, d.UserLimit, evalCtx)
 	if err != nil {
 		return res, err
 	}
-	res.VoiceUserLimit = uint(userLimit.Int())
+	if channelTypeSupportsVoice(res.Type) {
+		res.VoiceBitrate = uint(bitrate.Int())
+		res.VoiceUserLimit = uint(userLimit.Int())
+	}
 
 	position, err := eval.EvalTemplate(ctx, d.Position, evalCtx)
 	if err != nil {
@@ -524,4 +531,25 @@ func (e FlowEdge) Validate() error {
 		validation.Field(&e.Source, validation.Required),
 		validation.Field(&e.Target, validation.Required),
 	)
+}
+
+// guildMediaChannel is Discord's media channel type, which arikawa doesn't
+// define yet.
+const guildMediaChannel discord.ChannelType = 16
+
+// channelTypeSupportsTopic reports whether Discord accepts a topic for the
+// given channel type. Voice, stage and category channels have no topic.
+func channelTypeSupportsTopic(t discord.ChannelType) bool {
+	switch t {
+	case discord.GuildText, discord.GuildAnnouncement, discord.GuildForum, guildMediaChannel:
+		return true
+	default:
+		return false
+	}
+}
+
+// channelTypeSupportsVoice reports whether Discord accepts bitrate and user
+// limit for the given channel type.
+func channelTypeSupportsVoice(t discord.ChannelType) bool {
+	return t == discord.GuildVoice || t == discord.GuildStageVoice
 }

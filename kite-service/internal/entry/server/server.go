@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"time"
 
 	"github.com/kitecloud/kite/kite-service/internal/api"
 	"github.com/kitecloud/kite/kite-service/internal/config"
@@ -45,7 +46,12 @@ func StartServer(c context.Context, cfg *config.Config) error {
 		objectStore = s3Client
 	}
 
-	assetStore, err := postgres.NewAssetStore(context.Background(), pg, objectStore)
+	// Bounded: this is the first call that actually reaches S3, and it blocks
+	// startup. Without a deadline a configured but unreachable endpoint stalls
+	// the whole server for minutes on minio's dial timeout and retries.
+	assetCtx, cancelAssetCtx := context.WithTimeout(context.Background(), 10*time.Second)
+	assetStore, err := postgres.NewAssetStore(assetCtx, pg, objectStore)
+	cancelAssetCtx()
 	if err != nil && !errors.Is(err, store.ErrObjectStoreDisabled) {
 		slog.With("error", err).Warn("Failed to create asset store, continuing without support for assets")
 	}
