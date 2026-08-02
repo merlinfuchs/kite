@@ -2,7 +2,8 @@ package flow
 
 import (
 	"fmt"
-	"sort"
+	"maps"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -538,37 +539,6 @@ func (n *CompiledFlowNode) FindDirectChildWithType(types ...FlowNodeType) *Compi
 	return nil
 }
 
-func (n *CompiledFlowNode) FindChildWithType(types ...FlowNodeType) *CompiledFlowNode {
-	return n.findChildWithType(make(map[string]bool), types...)
-}
-
-func (n *CompiledFlowNode) findChildWithType(visited map[string]bool, types ...FlowNodeType) *CompiledFlowNode {
-	// Mark this node as visited to prevent cycles
-	visited[n.ID] = true
-
-	// We first want to check all direct children
-	for _, node := range n.Children.Default {
-		for _, t := range types {
-			if node.Type == t {
-				return node
-			}
-		}
-	}
-
-	// If no direct children are found, we want to check all children recursively
-	for _, node := range n.Children.Default {
-		// Only recurse if we haven't visited this node before
-		if !visited[node.ID] {
-			child := node.findChildWithType(visited, types...)
-			if child != nil {
-				return child
-			}
-		}
-	}
-
-	return nil
-}
-
 func (n *CompiledFlowNode) FindParentWithID(id string) *CompiledFlowNode {
 	return n.findParentWithID(id, make(map[string]bool))
 }
@@ -636,8 +606,8 @@ func (n *CompiledFlowNode) findChildWithID(nodeID string, includeSubFlows bool, 
 // ones. Handle keys are sorted so the result doesn't depend on Go's random
 // map iteration order.
 //
-// Unlike FindChildWithType this includes handle-based children, so nodes
-// behind condition branches and button handles are considered at all.
+// Handle-based children are included, so nodes behind condition branches and
+// button handles are considered too.
 func (n *CompiledFlowNode) FirstChildMatching(match func(*CompiledFlowNode) bool) *CompiledFlowNode {
 	return n.firstChildMatching(make(map[string]bool), match)
 }
@@ -671,16 +641,10 @@ func (n *CompiledFlowNode) firstChildMatching(
 // orderedChildren lists default children followed by handle children, with
 // handle keys sorted for a stable order.
 func (n *CompiledFlowNode) orderedChildren() []*CompiledFlowNode {
-	children := make([]*CompiledFlowNode, 0, len(n.Children.Default))
+	children := make([]*CompiledFlowNode, 0, len(n.Children.Default)+len(n.Children.Handles))
 	children = append(children, n.Children.Default...)
 
-	handles := make([]string, 0, len(n.Children.Handles))
-	for handle := range n.Children.Handles {
-		handles = append(handles, handle)
-	}
-	sort.Strings(handles)
-
-	for _, handle := range handles {
+	for _, handle := range slices.Sorted(maps.Keys(n.Children.Handles)) {
 		children = append(children, n.Children.Handles[handle]...)
 	}
 

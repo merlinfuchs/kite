@@ -13,7 +13,7 @@ import "testing"
 // original, so promoting every flow with an ephemeral branch would force
 // intended-public first responses ephemeral.
 
-func responseNode(id string, ephemeral bool) *CompiledFlowNode {
+func newResponseNode(id string, ephemeral bool) *CompiledFlowNode {
 	return &CompiledFlowNode{
 		ID:   id,
 		Type: FlowNodeTypeActionResponseCreate,
@@ -22,9 +22,6 @@ func responseNode(id string, ephemeral bool) *CompiledFlowNode {
 }
 
 func entryWith(defaults []*CompiledFlowNode, handles map[string][]*CompiledFlowNode) *CompiledFlowNode {
-	if handles == nil {
-		handles = map[string][]*CompiledFlowNode{}
-	}
 	return &CompiledFlowNode{
 		ID:       "entry",
 		Type:     FlowNodeTypeEntryCommand,
@@ -32,8 +29,7 @@ func entryWith(defaults []*CompiledFlowNode, handles map[string][]*CompiledFlowN
 	}
 }
 
-func firstResponse(t *testing.T, entry *CompiledFlowNode) *CompiledFlowNode {
-	t.Helper()
+func firstResponse(entry *CompiledFlowNode) *CompiledFlowNode {
 	return entry.FirstChildMatching(isResponseNode)
 }
 
@@ -41,10 +37,10 @@ func firstResponse(t *testing.T, entry *CompiledFlowNode) *CompiledFlowNode {
 // old walker found nothing and deferred public.
 func TestResponseBehindHandleIsFound(t *testing.T) {
 	entry := entryWith(nil, map[string][]*CompiledFlowNode{
-		"condition_1": {responseNode("ephemeral", true)},
+		"condition_1": {newResponseNode("ephemeral", true)},
 	})
 
-	found := firstResponse(t, entry)
+	found := firstResponse(entry)
 	if found == nil {
 		t.Fatal("response behind a handle was not found")
 	}
@@ -57,13 +53,13 @@ func TestResponseBehindHandleIsFound(t *testing.T) {
 // ephemerally, otherwise the defer forces the public reply ephemeral.
 func TestPublicFirstResponseWinsOverEphemeralBranch(t *testing.T) {
 	entry := entryWith(
-		[]*CompiledFlowNode{responseNode("public", false)},
+		[]*CompiledFlowNode{newResponseNode("public", false)},
 		map[string][]*CompiledFlowNode{
-			"condition_1": {responseNode("ephemeral", true)},
+			"condition_1": {newResponseNode("ephemeral", true)},
 		},
 	)
 
-	found := firstResponse(t, entry)
+	found := firstResponse(entry)
 	if found == nil {
 		t.Fatal("no response found")
 	}
@@ -74,13 +70,15 @@ func TestPublicFirstResponseWinsOverEphemeralBranch(t *testing.T) {
 
 // Direct children are reached before deeper ones.
 func TestDirectChildPreferredOverNested(t *testing.T) {
-	nested := entryWith([]*CompiledFlowNode{responseNode("deep", true)}, nil)
-	nested.ID = "nested"
-	nested.Type = FlowNodeTypeControlConditionCompare
+	nested := &CompiledFlowNode{
+		ID:       "nested",
+		Type:     FlowNodeTypeControlConditionCompare,
+		Children: ConnectedFlowNodes{Default: []*CompiledFlowNode{newResponseNode("deep", true)}},
+	}
 
-	entry := entryWith([]*CompiledFlowNode{nested, responseNode("shallow", false)}, nil)
+	entry := entryWith([]*CompiledFlowNode{nested, newResponseNode("shallow", false)}, nil)
 
-	found := firstResponse(t, entry)
+	found := firstResponse(entry)
 	if found == nil || found.ID != "shallow" {
 		t.Errorf("found %v, want the direct child", found)
 	}
@@ -91,15 +89,15 @@ func TestDirectChildPreferredOverNested(t *testing.T) {
 func TestHandleOrderIsStable(t *testing.T) {
 	build := func() *CompiledFlowNode {
 		return entryWith(nil, map[string][]*CompiledFlowNode{
-			"a_branch": {responseNode("a", false)},
-			"b_branch": {responseNode("b", true)},
-			"c_branch": {responseNode("c", true)},
+			"a_branch": {newResponseNode("a", false)},
+			"b_branch": {newResponseNode("b", true)},
+			"c_branch": {newResponseNode("c", true)},
 		})
 	}
 
-	want := firstResponse(t, build())
+	want := firstResponse(build())
 	for i := 0; i < 50; i++ {
-		if got := firstResponse(t, build()); got.ID != want.ID {
+		if got := firstResponse(build()); got.ID != want.ID {
 			t.Fatalf("iteration %d picked %q, want %q", i, got.ID, want.ID)
 		}
 	}
@@ -114,21 +112,21 @@ func TestNonResponseNodeIgnored(t *testing.T) {
 		Data: FlowNodeData{MessageEphemeral: true},
 	}}, nil)
 
-	if found := firstResponse(t, entry); found != nil {
+	if found := firstResponse(entry); found != nil {
 		t.Errorf("non-response node %q counted as a response", found.ID)
 	}
 }
 
 // Flows can loop back on themselves; the walk must terminate.
 func TestCycleTerminates(t *testing.T) {
-	a := &CompiledFlowNode{ID: "a", Children: ConnectedFlowNodes{Handles: map[string][]*CompiledFlowNode{}}}
-	b := &CompiledFlowNode{ID: "b", Children: ConnectedFlowNodes{Handles: map[string][]*CompiledFlowNode{}}}
+	a := &CompiledFlowNode{ID: "a"}
+	b := &CompiledFlowNode{ID: "b"}
 	a.Children.Default = []*CompiledFlowNode{b}
 	b.Children.Default = []*CompiledFlowNode{a}
 
 	entry := entryWith([]*CompiledFlowNode{a}, nil)
 
-	if found := firstResponse(t, entry); found != nil {
+	if found := firstResponse(entry); found != nil {
 		t.Errorf("unexpected match %q in a cyclic flow", found.ID)
 	}
 }

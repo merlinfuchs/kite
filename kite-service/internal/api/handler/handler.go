@@ -9,6 +9,7 @@ import (
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/kitecloud/kite/kite-service/internal/api/wire"
+	"github.com/kitecloud/kite/kite-service/internal/store"
 )
 
 type HandlerFunc = func(c *Context) error
@@ -32,6 +33,14 @@ func APIHandler(f HandlerFunc) http.Handler {
 						Message: err.Error(),
 						Data:    err,
 					}
+				} else if errors.Is(err, store.ErrObjectStoreDisabled) {
+					// Object storage is optional and process-wide, so the
+					// answer is the same for every resource that needs it.
+					// Handled here so no caller can leak it as a 500.
+					aerr = ErrServiceUnavailable(
+						"assets_disabled",
+						"this instance is not configured for file storage, so assets are unavailable",
+					)
 				} else {
 					aerr = ErrInternal(err.Error())
 					slog.Error(

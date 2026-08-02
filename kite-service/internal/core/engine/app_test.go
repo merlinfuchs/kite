@@ -154,28 +154,17 @@ func TestListenerIndexRebuildDoesNotMutateExistingSlice(t *testing.T) {
 // or modal inside an event listener flow resolved to nothing, so the
 // interaction got no response and Discord showed "This interaction failed".
 
-func testResumePoint(rp model.ResumePoint) *model.ResumePoint {
-	rp.ID = "resume-1"
-	return &rp
-}
-
 func TestResumeFlowTargetResolvesCommand(t *testing.T) {
 	app := NewApp("app-1", Env{})
 	id, command := testCommand("cmd-1", "ping")
 	command.flow = &flow.CompiledFlowNode{}
 	app.AddCommand(id, command)
 
-	targetFlow, links, ok := app.resumeFlowTarget(testResumePoint(model.ResumePoint{
+	targetFlow := app.resumeFlowTarget(&model.ResumePoint{
 		CommandID: null.NewString("cmd-1", true),
-	}))
-	if !ok {
-		t.Fatal("command-owned resume point did not resolve")
-	}
+	})
 	if targetFlow != command.flow {
-		t.Error("resolved to the wrong flow")
-	}
-	if links.CommandID.String != "cmd-1" {
-		t.Errorf("links.CommandID = %q, want cmd-1", links.CommandID.String)
+		t.Error("command-owned resume point did not resolve to its flow")
 	}
 }
 
@@ -185,20 +174,11 @@ func TestResumeFlowTargetResolvesEventListener(t *testing.T) {
 	listener.flow = &flow.CompiledFlowNode{}
 	app.AddEventListener(id, listener)
 
-	targetFlow, links, ok := app.resumeFlowTarget(testResumePoint(model.ResumePoint{
+	targetFlow := app.resumeFlowTarget(&model.ResumePoint{
 		EventListenerID: null.NewString("lst-1", true),
-	}))
-	if !ok {
-		t.Fatal("event listener resume point did not resolve; buttons in listener flows are dead")
-	}
+	})
 	if targetFlow != listener.flow {
-		t.Error("resolved to the wrong flow")
-	}
-	if links.EventListenerID.String != "lst-1" {
-		t.Errorf("links.EventListenerID = %q, want lst-1", links.EventListenerID.String)
-	}
-	if links.CommandID.Valid {
-		t.Error("listener execution must not be attributed to a command")
+		t.Error("event listener resume point did not resolve; buttons in listener flows are dead")
 	}
 }
 
@@ -207,13 +187,29 @@ func TestResumeFlowTargetResolvesEventListener(t *testing.T) {
 func TestResumeFlowTargetUnknownOwner(t *testing.T) {
 	app := NewApp("app-1", Env{})
 
-	for name, rp := range map[string]model.ResumePoint{
+	for name, resumePoint := range map[string]model.ResumePoint{
 		"missing command":  {CommandID: null.NewString("nope", true)},
 		"missing listener": {EventListenerID: null.NewString("nope", true)},
 		"no owner":         {},
 	} {
-		if _, _, ok := app.resumeFlowTarget(testResumePoint(rp)); ok {
-			t.Errorf("%s: resolved, want no target", name)
+		if got := app.resumeFlowTarget(&resumePoint); got != nil {
+			t.Errorf("%s: resolved to a flow, want nil", name)
 		}
+	}
+}
+
+// Links are stored on the resume point when the flow suspends, so attribution
+// of logs and usage has to survive the round trip rather than be rebuilt.
+func TestEntityLinksFromResumePoint(t *testing.T) {
+	links := entityLinksFromResumePoint(&model.ResumePoint{
+		MessageID:         null.NewString("msg-1", true),
+		MessageInstanceID: null.NewInt(7, true),
+		FlowSourceID:      null.NewString("src-1", true),
+	})
+
+	if links.MessageID.String != "msg-1" ||
+		links.MessageInstanceID.Int64 != 7 ||
+		links.FlowSourceID.String != "src-1" {
+		t.Errorf("message instance attribution lost: %+v", links)
 	}
 }

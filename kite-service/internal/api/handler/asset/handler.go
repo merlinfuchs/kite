@@ -65,22 +65,10 @@ func (h *AssetHandler) HandleAssetCreate(c *handler.Context) (*wire.AssetCreateR
 		UpdatedAt:     time.Now().UTC(),
 	})
 	if err != nil {
-		if errors.Is(err, store.ErrObjectStoreDisabled) {
-			return nil, errAssetsDisabled()
-		}
 		return nil, fmt.Errorf("failed to create asset: %w", err)
 	}
 
 	return wire.AssetToWire(asset, h.config.APIPublicBaseURL), nil
-}
-
-// Assets need object storage, which is optional. Without it, say so plainly
-// rather than surfacing a generic 500.
-func errAssetsDisabled() *handler.Error {
-	return handler.ErrServiceUnavailable(
-		"assets_disabled",
-		"this instance is not configured for file storage, so assets are unavailable",
-	)
 }
 
 func (h *AssetHandler) HandleAssetGet(c *handler.Context) (*wire.AssetGetResponse, error) {
@@ -111,9 +99,6 @@ func (h *AssetHandler) HandleAssetDownload(c *handler.Context) error {
 	if err != nil {
 		if errors.Is(err, store.ErrNotFound) {
 			return handler.ErrNotFound("asset_not_found", "asset not found")
-		}
-		if errors.Is(err, store.ErrObjectStoreDisabled) {
-			return errAssetsDisabled()
 		}
 		return fmt.Errorf("failed to get asset: %w", err)
 	}
