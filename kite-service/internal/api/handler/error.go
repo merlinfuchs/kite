@@ -57,6 +57,14 @@ func ErrInternal(message string) *Error {
 	}
 }
 
+func ErrServiceUnavailable(code, message string) *Error {
+	return &Error{
+		Status:  http.StatusServiceUnavailable,
+		Code:    code,
+		Message: message,
+	}
+}
+
 func ErrRateLimit(message string) *Error {
 	return &Error{
 		Status:  http.StatusTooManyRequests,
