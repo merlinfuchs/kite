@@ -4,6 +4,7 @@ import AppEmptyPlaceholder from "./AppEmptyPlaceholder";
 import { Skeleton } from "../ui/skeleton";
 import AutoAnimate from "../common/AutoAnimate";
 import CommandCreateDialog from "./CommandCreateDialog";
+import { CommandImportDialog } from "./CommandImportDialog";
 import { useCommands } from "@/lib/hooks/api";
 import { CommandDeployDialog } from "./CommandDeployDialog";
 import { useState } from "react";
@@ -42,6 +43,9 @@ export default function CommandList() {
             <CommandCreateDialog>
               <Button>Create command</Button>
             </CommandCreateDialog>
+            <CommandImportDialog>
+              <Button>Import command</Button>
+            </CommandImportDialog>
 
             <CommandDeployDialog
               open={deployDialogOpen}
