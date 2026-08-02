@@ -93,6 +93,16 @@ export interface MessageStore extends Message {
     j: number,
     disabled: boolean | undefined
   ) => void;
+  setSelectMenuMinValues: (
+    i: number,
+    j: number,
+    minValues: number | undefined
+  ) => void;
+  setSelectMenuMaxValues: (
+    i: number,
+    j: number,
+    maxValues: number | undefined
+  ) => void;
   addSelectMenuOption: (
     i: number,
     j: number,
@@ -120,6 +130,12 @@ export interface MessageStore extends Message {
     j: number,
     k: number,
     emoji: Emoji | undefined
+  ) => void;
+  setSelectMenuOptionDefault: (
+    i: number,
+    j: number,
+    k: number,
+    isDefault: boolean | undefined
   ) => void;
 
   getSelectMenu: (i: number, j: number) => MessageComponentSelectMenu | null;
@@ -738,6 +754,38 @@ export const createMessageStore = (initial?: Message) => {
               }
               selectMenu.disabled = disabled;
             }),
+          setSelectMenuMinValues: (
+            i: number,
+            j: number,
+            minValues: number | undefined
+          ) =>
+            set((state) => {
+              const row = state.components && state.components[i];
+              if (!row) {
+                return;
+              }
+              const selectMenu = row.components && row.components[j];
+              if (!selectMenu || selectMenu.type !== 3) {
+                return;
+              }
+              selectMenu.min_values = minValues;
+            }),
+          setSelectMenuMaxValues: (
+            i: number,
+            j: number,
+            maxValues: number | undefined
+          ) =>
+            set((state) => {
+              const row = state.components && state.components[i];
+              if (!row) {
+                return;
+              }
+              const selectMenu = row.components && row.components[j];
+              if (!selectMenu || selectMenu.type !== 3) {
+                return;
+              }
+              selectMenu.max_values = maxValues;
+            }),
           addSelectMenuOption: (
             i: number,
             j: number,
@@ -824,6 +872,7 @@ export const createMessageStore = (initial?: Message) => {
               selectMenu.options.splice(k + 1, 0, {
                 ...option,
                 id: getUniqueId(),
+                flow_source_id: getUniqueId().toString(),
               });
             }),
           deleteSelectMenuOption: (i: number, j: number, k: number) =>
@@ -901,6 +950,27 @@ export const createMessageStore = (initial?: Message) => {
                 return;
               }
               option.emoji = emoji;
+            }),
+          setSelectMenuOptionDefault: (
+            i: number,
+            j: number,
+            k: number,
+            isDefault: boolean | undefined
+          ) =>
+            set((state) => {
+              const row = state.components && state.components[i];
+              if (!row) {
+                return;
+              }
+              const selectMenu = row.components && row.components[j];
+              if (!selectMenu || selectMenu.type !== 3) {
+                return;
+              }
+              const option = selectMenu.options && selectMenu.options[k];
+              if (!option) {
+                return;
+              }
+              option.default = isDefault;
             }),
 
           getSelectMenu: (i: number, j: number) => {

@@ -16,6 +16,8 @@ import {
   DiscordImageAttachment,
   DiscordMessage,
   DiscordMessages,
+  DiscordStringSelectMenu,
+  DiscordStringSelectMenuOption,
   DiscordVideoAttachment,
 } from "@skyra/discord-components-react";
 import MessageMarkdown from "./MessageMarkdown";
@@ -35,6 +37,10 @@ const buttonStyles = {
   4: "destructive",
   5: "secondary",
 } as const;
+
+const previewSelectPlaceholderMaxChars = 18;
+const previewSelectOptionLabelMaxChars = 24;
+const previewSelectOptionDescriptionMaxChars = 32;
 
 export default function MessagePreview({
   msg,
@@ -141,6 +147,33 @@ export default function MessagePreview({
                     >
                       {comp.label}
                     </DiscordButton>
+                  ) : comp.type === 3 ? (
+                    <DiscordStringSelectMenu
+                      key={comp.id}
+                      placeholder={formatPreviewSelectPlaceholder(
+                        comp.placeholder
+                      )}
+                      disabled={comp.disabled}
+                    >
+                      {comp.options.map((opt) => (
+                        <DiscordStringSelectMenuOption
+                          key={opt.id}
+                          label={truncatePreviewText(
+                            opt.label,
+                            previewSelectOptionLabelMaxChars
+                          )}
+                          description={truncatePreviewText(
+                            opt.description,
+                            previewSelectOptionDescriptionMaxChars
+                          )}
+                          emoji={
+                            opt.emoji?.name
+                              ? getTwemojiUrl(opt.emoji.name)
+                              : undefined
+                          }
+                        />
+                      ))}
+                    </DiscordStringSelectMenu>
                   ) : null
                 )}
               </DiscordActionRow>
@@ -207,4 +240,19 @@ function getTwemojiUrl(emoji: string) {
   const codePoints = emoji.codePointAt(0)?.toString(16);
   if (!codePoints) return "";
   return `${baseUrl}${codePoints}.png`;
+}
+
+function truncatePreviewText(
+  value: string | undefined,
+  maxChars: number
+): string | undefined {
+  if (!value) return undefined;
+
+  const normalized = value.replace(/\s+/g, " ").trim();
+  if (normalized.length <= maxChars) return normalized;
+  return `${normalized.slice(0, maxChars - 1).trimEnd()}…`;
+}
+
+function formatPreviewSelectPlaceholder(value: string | undefined): string {
+  return truncatePreviewText(value, previewSelectPlaceholderMaxChars) || "Select an option";
 }
