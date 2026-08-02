@@ -2,6 +2,7 @@ package eval
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"strings"
@@ -14,9 +15,36 @@ import (
 const (
 	templateStartTag = "{{"
 	templateEndTag   = "}}"
+
+	// MaxExpressionLength bounds a single expression handed to expr.Compile.
+	// The compiler allocates AST nodes proportional to the input, so an
+	// unbounded expression lets a flow author exhaust memory at execution time.
+	//
+	// The value is deliberately loose. Closing the parser blowup only requires
+	// keeping input out of the megabytes, so anything in the low thousands would
+	// do; the limit is set well above realistic usage (Discord caps message
+	// content at 2000 and a whole embed at 6000) so that no flow already stored
+	// in the database starts failing at runtime.
+	MaxExpressionLength = 10_000
+
+	// MaxTemplateLength bounds a whole template before its placeholders are
+	// evaluated. Each placeholder is bounded by MaxExpressionLength, but a
+	// template may contain arbitrarily many of them.
+	MaxTemplateLength = 100_000
 )
 
+// ErrExpressionTooLong is returned when an expression or template exceeds its
+// length limit. Flows are user-authored, so this is reachable from user input.
+var ErrExpressionTooLong = errors.New("expression too long")
+
 func Eval(ctx context.Context, expression string, c Context) (thing.Thing, error) {
+	if len(expression) > MaxExpressionLength {
+		return thing.Null, fmt.Errorf(
+			"eval error: %w: %d characters, limit is %d",
+			ErrExpressionTooLong, len(expression), MaxExpressionLength,
+		)
+	}
+
 	c.Env["ctx"] = proxyContext{ctx: ctx}
 
 	opts := []expr.Option{
@@ -44,6 +72,13 @@ func Eval(ctx context.Context, expression string, c Context) (thing.Thing, error
 }
 
 func EvalTemplate(ctx context.Context, template string, c Context) (thing.Thing, error) {
+	if len(template) > MaxTemplateLength {
+		return thing.Null, fmt.Errorf(
+			"eval error: %w: %d characters, limit is %d",
+			ErrExpressionTooLong, len(template), MaxTemplateLength,
+		)
+	}
+
 	template = strings.TrimSpace(template)
 	if template == "" {
 		return thing.Null, nil
