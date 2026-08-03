@@ -274,7 +274,11 @@ func (d FlowNodeData) Validate(nodeType FlowNodeType) error {
 		)),
 
 		// AI Chat Completion
-		validation.Field(&d.AIChatCompletionData, validation.When(nodeType == FlowNodeTypeActionAIChatCompletion,
+		// Both AI node types read AIChatCompletionData, so both have to require
+		// it -- the web search node is the more expensive of the two.
+		validation.Field(&d.AIChatCompletionData, validation.When(
+			nodeType == FlowNodeTypeActionAIChatCompletion ||
+				nodeType == FlowNodeTypeActionAISearchWeb,
 			validation.Required,
 		)),
 
@@ -511,9 +515,71 @@ type AIChatCompletionData struct {
 	MaxCompletionTokens string `json:"max_completion_tokens,omitempty"`
 }
 
+// aiModelCosts is the set of models a flow may run, and what each costs in
+// credits for a plain completion versus one with web search.
+//
+// Single source of truth for both the save-time allowlist and metering. Pricing
+// used to be a switch with a cheap default arm, which meant any model not named
+// in it -- a newer, more expensive SKU, say -- billed the tenant at the floor
+// while the operator paid the real rate on their own API key. Keeping the
+// allowlist and the prices in one table means a model that has no price also
+// cannot be selected.
+//
+// The empty string is the provider default (gpt-4o-mini), so it is priced.
+var aiModelCosts = map[string]struct {
+	Chat   int
+	Search int
+}{
+	"":                  {Chat: 5, Search: 25},
+	openai.GPT4Dot1:     {Chat: 100, Search: 500},
+	openai.GPT4Dot1Mini: {Chat: 20, Search: 100},
+	openai.GPT4Dot1Nano: {Chat: 5, Search: 25},
+	openai.GPT4oMini:    {Chat: 5, Search: 25},
+}
+
+// aiModelsAllowed is aiModelCosts' keys as validation.In wants them. The empty
+// string is left out because In treats an empty value as valid regardless.
+var aiModelsAllowed = func() []any {
+	models := make([]any, 0, len(aiModelCosts))
+	for model := range aiModelCosts {
+		if model != "" {
+			models = append(models, model)
+		}
+	}
+	return models
+}()
+
+// AIModelAllowed reports whether a flow may run the given model.
+func AIModelAllowed(model string) bool {
+	_, ok := aiModelCosts[model]
+	return ok
+}
+
+// AICreditsCost prices one AI node.
+//
+// Unknown models are charged the most expensive entry rather than the least, so
+// anything that reaches execution without passing the allowlist -- a flow saved
+// before this existed, or one embedded in a message, which the API does not
+// validate -- is over-charged rather than run for free.
+func AICreditsCost(model string, webSearch bool) int {
+	cost, ok := aiModelCosts[model]
+	if !ok {
+		for _, c := range aiModelCosts {
+			if c.Chat > cost.Chat {
+				cost = c
+			}
+		}
+	}
+
+	if webSearch {
+		return cost.Search
+	}
+	return cost.Chat
+}
+
 func (d AIChatCompletionData) Validate() error {
 	return validation.ValidateStruct(&d,
-		validation.Field(&d.Model, validation.In(openai.GPT4Dot1, openai.GPT4Dot1Mini, openai.GPT4oMini, openai.GPT4Dot1Nano)),
+		validation.Field(&d.Model, validation.In(aiModelsAllowed...)),
 		validation.Field(&d.Prompt, validation.Required, validation.Length(1, 2000)),
 	)
 }

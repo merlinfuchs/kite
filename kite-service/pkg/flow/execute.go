@@ -11,8 +11,6 @@ import (
 	"slices"
 	"time"
 
-	"github.com/openai/openai-go"
-
 	"github.com/diamondburned/arikawa/v3/api"
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/utils/json/option"
@@ -216,7 +214,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			}
 		}
 
-		if n.Data.MessageTemplateID != "" {
+		if n.Data.MessageTemplateID != "" && msg != nil {
 			err := ctx.MessageTemplate.LinkMessageTemplateInstance(ctx, provider.MessageTemplateInstance{
 				MessageTemplateID: n.Data.MessageTemplateID,
 				MessageID:         msg.ID,
@@ -566,6 +564,13 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 		messageTarget, err := ctx.EvalTemplate(n.Data.MessageTarget)
 		if err != nil {
 			return traceError(n, err)
+		}
+
+		if n.Data.EmojiData == nil {
+			return &FlowError{
+				Code:    FlowNodeErrorUnknown,
+				Message: "emoji_data is nil",
+			}
 		}
 
 		emoji := discord.APIEmoji(n.Data.EmojiData.Name)
@@ -1232,7 +1237,11 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			return traceError(n, err)
 		}
 
-		req, err := http.NewRequest(method, url.String(), nil)
+		// Bound to the flow context so the execution deadline and an explicit
+		// Cancel both abort the request. With a background request a slow or
+		// non-responding host pins the goroutine and its connection past the
+		// end of the flow, in a pool shared with the Discord API client.
+		req, err := http.NewRequestWithContext(ctx, method, url.String(), nil)
 		if err != nil {
 			return traceError(n, err)
 		}
@@ -1274,7 +1283,13 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			return traceError(n, err)
 		}
 
+		// Closed here rather than deferred: the body is fully consumed by
+		// NewFromHTTPResponse, and a defer would hold the connection for the
+		// whole child subtree. NewFromHTTPResponse also returns early without
+		// reading when Content-Length is over its cap, so this has to run on
+		// the error path too.
 		result, err := thing.NewFromHTTPResponse(resp)
+		resp.Body.Close()
 		if err != nil {
 			return traceError(n, err)
 		}
@@ -1287,6 +1302,16 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			return &FlowError{
 				Code:    FlowNodeErrorUnknown,
 				Message: "ai_chat_completion_data is nil",
+			}
+		}
+
+		// Checked here as well as at save time: message flows are not validated
+		// by the API at all, and flows stored before the allowlist existed have
+		// never been through it.
+		if !AIModelAllowed(data.Model) {
+			return &FlowError{
+				Code:    FlowNodeErrorUnknown,
+				Message: fmt.Sprintf("unsupported ai model: %s", data.Model),
 			}
 		}
 
@@ -1323,6 +1348,13 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			return &FlowError{
 				Code:    FlowNodeErrorUnknown,
 				Message: "ai_search_web_data is nil",
+			}
+		}
+
+		if !AIModelAllowed(data.Model) {
+			return &FlowError{
+				Code:    FlowNodeErrorUnknown,
+				Message: fmt.Sprintf("unsupported ai model: %s", data.Model),
 			}
 		}
 
@@ -1668,28 +1700,14 @@ func (n *CompiledFlowNode) CreditsCost() int {
 			return 0
 		}
 
-		switch data.Model {
-		case openai.ChatModelGPT4_1:
-			return 100
-		case openai.ChatModelGPT4_1Mini:
-			return 20
-		default:
-			return 5
-		}
+		return AICreditsCost(data.Model, false)
 	case FlowNodeTypeActionAISearchWeb:
 		data := n.Data.AIChatCompletionData
 		if data == nil {
 			return 0
 		}
 
-		switch data.Model {
-		case openai.ChatModelGPT4_1:
-			return 500
-		case openai.ChatModelGPT4_1Mini:
-			return 100
-		default:
-			return 25
-		}
+		return AICreditsCost(data.Model, true)
 	case FlowNodeTypeActionHTTPRequest:
 		return 3
 	}
