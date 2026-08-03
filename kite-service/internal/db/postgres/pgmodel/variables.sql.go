@@ -70,11 +70,20 @@ func (q *Queries) CreateVariable(ctx context.Context, arg CreateVariableParams) 
 }
 
 const deleteAllVariableValues = `-- name: DeleteAllVariableValues :exec
-DELETE FROM variable_values WHERE variable_id = $1
+DELETE FROM variable_values
+USING variables
+WHERE variables.id = variable_values.variable_id
+  AND variable_values.variable_id = $1
+  AND variables.app_id = $2
 `
 
-func (q *Queries) DeleteAllVariableValues(ctx context.Context, variableID string) error {
-	_, err := q.db.Exec(ctx, deleteAllVariableValues, variableID)
+type DeleteAllVariableValuesParams struct {
+	VariableID string
+	AppID      string
+}
+
+func (q *Queries) DeleteAllVariableValues(ctx context.Context, arg DeleteAllVariableValuesParams) error {
+	_, err := q.db.Exec(ctx, deleteAllVariableValues, arg.VariableID, arg.AppID)
 	return err
 }
 
@@ -88,19 +97,25 @@ func (q *Queries) DeleteVariable(ctx context.Context, id string) error {
 }
 
 const deleteVariableValue = `-- name: DeleteVariableValue :exec
-DELETE FROM variable_values WHERE variable_id = $1 AND scope IS NOT DISTINCT FROM $2
+DELETE FROM variable_values
+USING variables
+WHERE variables.id = variable_values.variable_id
+  AND variable_values.variable_id = $1
+  AND variable_values.scope IS NOT DISTINCT FROM $2
+  AND variables.app_id = $3
 `
 
 type DeleteVariableValueParams struct {
 	VariableID string
 	Scope      pgtype.Text
+	AppID      string
 }
 
 // IS NOT DISTINCT FROM so that unscoped values (scope IS NULL) are matched,
 // same as the get queries above. Plain `= NULL` never matches and made
 // deleting an unscoped variable value a silent no-op.
 func (q *Queries) DeleteVariableValue(ctx context.Context, arg DeleteVariableValueParams) error {
-	_, err := q.db.Exec(ctx, deleteVariableValue, arg.VariableID, arg.Scope)
+	_, err := q.db.Exec(ctx, deleteVariableValue, arg.VariableID, arg.Scope, arg.AppID)
 	return err
 }
 
@@ -166,16 +181,26 @@ func (q *Queries) GetVariableByName(ctx context.Context, arg GetVariableByNamePa
 }
 
 const getVariableValue = `-- name: GetVariableValue :one
-SELECT id, variable_id, scope, value, created_at, updated_at FROM variable_values WHERE variable_id = $1 AND scope IS NOT DISTINCT FROM $2
+
+SELECT variable_values.id, variable_values.variable_id, variable_values.scope, variable_values.value, variable_values.created_at, variable_values.updated_at FROM variable_values
+JOIN variables ON variables.id = variable_values.variable_id
+WHERE variable_values.variable_id = $1
+  AND variable_values.scope IS NOT DISTINCT FROM $2
+  AND variables.app_id = $3
 `
 
 type GetVariableValueParams struct {
 	VariableID string
 	Scope      pgtype.Text
+	AppID      string
 }
 
+// variable_values has no app_id of its own, so every query below joins through
+// variables to scope by app. Without that a variable_id alone is enough to read
+// or write the row, and variable_ids reach the engine straight out of
+// user-authored flow JSON -- which is portable between apps via flow import.
 func (q *Queries) GetVariableValue(ctx context.Context, arg GetVariableValueParams) (VariableValue, error) {
-	row := q.db.QueryRow(ctx, getVariableValue, arg.VariableID, arg.Scope)
+	row := q.db.QueryRow(ctx, getVariableValue, arg.VariableID, arg.Scope, arg.AppID)
 	var i VariableValue
 	err := row.Scan(
 		&i.ID,
@@ -189,16 +214,24 @@ func (q *Queries) GetVariableValue(ctx context.Context, arg GetVariableValuePara
 }
 
 const getVariableValueForUpdate = `-- name: GetVariableValueForUpdate :one
-SELECT id, variable_id, scope, value, created_at, updated_at FROM variable_values WHERE variable_id = $1 AND scope IS NOT DISTINCT FROM $2 FOR UPDATE
+SELECT variable_values.id, variable_values.variable_id, variable_values.scope, variable_values.value, variable_values.created_at, variable_values.updated_at FROM variable_values
+JOIN variables ON variables.id = variable_values.variable_id
+WHERE variable_values.variable_id = $1
+  AND variable_values.scope IS NOT DISTINCT FROM $2
+  AND variables.app_id = $3
+FOR UPDATE OF variable_values
 `
 
 type GetVariableValueForUpdateParams struct {
 	VariableID string
 	Scope      pgtype.Text
+	AppID      string
 }
 
+// FOR UPDATE OF, not a bare FOR UPDATE: the latter would also lock the joined
+// variables row for the duration of the transaction.
 func (q *Queries) GetVariableValueForUpdate(ctx context.Context, arg GetVariableValueForUpdateParams) (VariableValue, error) {
-	row := q.db.QueryRow(ctx, getVariableValueForUpdate, arg.VariableID, arg.Scope)
+	row := q.db.QueryRow(ctx, getVariableValueForUpdate, arg.VariableID, arg.Scope, arg.AppID)
 	var i VariableValue
 	err := row.Scan(
 		&i.ID,
@@ -212,11 +245,18 @@ func (q *Queries) GetVariableValueForUpdate(ctx context.Context, arg GetVariable
 }
 
 const getVariableValues = `-- name: GetVariableValues :many
-SELECT id, variable_id, scope, value, created_at, updated_at FROM variable_values WHERE variable_id = $1
+SELECT variable_values.id, variable_values.variable_id, variable_values.scope, variable_values.value, variable_values.created_at, variable_values.updated_at FROM variable_values
+JOIN variables ON variables.id = variable_values.variable_id
+WHERE variable_values.variable_id = $1 AND variables.app_id = $2
 `
 
-func (q *Queries) GetVariableValues(ctx context.Context, variableID string) ([]VariableValue, error) {
-	rows, err := q.db.Query(ctx, getVariableValues, variableID)
+type GetVariableValuesParams struct {
+	VariableID string
+	AppID      string
+}
+
+func (q *Queries) GetVariableValues(ctx context.Context, arg GetVariableValuesParams) ([]VariableValue, error) {
+	rows, err := q.db.Query(ctx, getVariableValues, arg.VariableID, arg.AppID)
 	if err != nil {
 		return nil, err
 	}
@@ -291,29 +331,41 @@ INSERT INTO variable_values (
     value,
     created_at,
     updated_at
-) VALUES (
-    $1, $2, $3, $4, $5
-) ON CONFLICT (variable_id, scope) DO UPDATE SET
+)
+SELECT
+    variables.id,
+    $1::text,
+    $2::jsonb,
+    $3::timestamp,
+    $4::timestamp
+FROM variables
+WHERE variables.id = $5 AND variables.app_id = $6
+ON CONFLICT (variable_id, scope) DO UPDATE SET
     value = EXCLUDED.value,
     updated_at = EXCLUDED.updated_at
 RETURNING id, variable_id, scope, value, created_at, updated_at
 `
 
 type SetVariableValueParams struct {
-	VariableID string
 	Scope      pgtype.Text
 	Value      []byte
 	CreatedAt  pgtype.Timestamp
 	UpdatedAt  pgtype.Timestamp
+	VariableID string
+	AppID      string
 }
 
+// INSERT ... SELECT rather than VALUES so the app check is part of the write:
+// if the variable does not belong to the app the select is empty, nothing is
+// inserted, and :one surfaces it as ErrNoRows.
 func (q *Queries) SetVariableValue(ctx context.Context, arg SetVariableValueParams) (VariableValue, error) {
 	row := q.db.QueryRow(ctx, setVariableValue,
-		arg.VariableID,
 		arg.Scope,
 		arg.Value,
 		arg.CreatedAt,
 		arg.UpdatedAt,
+		arg.VariableID,
+		arg.AppID,
 	)
 	var i VariableValue
 	err := row.Scan(

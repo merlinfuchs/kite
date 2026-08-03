@@ -107,7 +107,7 @@ func (h *VariableHandler) HandleVariablesImport(c *handler.Context, req wire.Var
 func (h *VariableHandler) HandleVariableUpdate(c *handler.Context, req wire.VariableUpdateRequest) (*wire.VariableUpdateResponse, error) {
 	if req.Scoped != c.Variable.Scoped {
 		// If the scoped flag changes, delete all variable values.
-		err := h.variableValueStore.DeleteAllVariableValues(c.Context(), c.Variable.ID)
+		err := h.variableValueStore.DeleteAllVariableValues(c.Context(), c.App.ID, c.Variable.ID)
 		if err != nil {
 			return nil, fmt.Errorf("failed to delete variable values: %w", err)
 		}

@@ -1,5 +1,7 @@
 -- name: GetMessage :one
-SELECT * FROM messages WHERE id = $1;
+-- Scoped by app: the message ID reaches the engine from flow node config that
+-- the tenant authored, so an ID on its own is not proof of ownership.
+SELECT * FROM messages WHERE id = $1 AND app_id = $2;
 
 -- name: GetMessagesByApp :many
 SELECT * FROM messages WHERE app_id = $1 ORDER BY created_at DESC;
@@ -50,26 +52,56 @@ INSERT INTO message_instances (
     $1, $2, $3, $4, $5, $6, $7, $8, $9
 ) RETURNING *;
 
+-- message_instances has no app_id of its own, so the queries below join through
+-- messages to scope by app. The engine reaches these from Discord interactions,
+-- where the message and instance IDs are supplied by whoever clicked.
+
 -- name: GetMessageInstance :one
-SELECT * FROM message_instances WHERE id = $1 AND message_id = $2;
+SELECT message_instances.* FROM message_instances
+JOIN messages ON messages.id = message_instances.message_id
+WHERE message_instances.id = $1
+  AND message_instances.message_id = $2
+  AND messages.app_id = $3;
 
 -- name: GetMessageInstancesByMessage :many
-SELECT * FROM message_instances WHERE message_id = $1 AND NOT hidden ORDER BY created_at DESC;
+SELECT message_instances.* FROM message_instances
+JOIN messages ON messages.id = message_instances.message_id
+WHERE message_instances.message_id = $1 AND messages.app_id = $2 AND NOT message_instances.hidden
+ORDER BY message_instances.created_at DESC;
 
 -- name: GetMessageInstancesByMessageWithHidden :many
-SELECT * FROM message_instances WHERE message_id = $1 ORDER BY created_at DESC;
+SELECT message_instances.* FROM message_instances
+JOIN messages ON messages.id = message_instances.message_id
+WHERE message_instances.message_id = $1 AND messages.app_id = $2
+ORDER BY message_instances.created_at DESC;
 
 -- name: GetMessageInstanceByDiscordMessageId :one
-SELECT * FROM message_instances WHERE discord_message_id = $1;
+SELECT message_instances.* FROM message_instances
+JOIN messages ON messages.id = message_instances.message_id
+WHERE message_instances.discord_message_id = $1 AND messages.app_id = $2;
 
 -- name: UpdateMessageInstance :one
 UPDATE message_instances SET
-    flow_sources = $3,
-    updated_at = $4
-WHERE id = $1 AND message_id = $2 RETURNING *;
+    flow_sources = $4,
+    updated_at = $5
+FROM messages
+WHERE messages.id = message_instances.message_id
+  AND message_instances.id = $1
+  AND message_instances.message_id = $2
+  AND messages.app_id = $3
+RETURNING message_instances.*;
 
 -- name: DeleteMessageInstance :exec
-DELETE FROM message_instances WHERE id = $1 AND message_id = $2;
+DELETE FROM message_instances
+USING messages
+WHERE messages.id = message_instances.message_id
+  AND message_instances.id = $1
+  AND message_instances.message_id = $2
+  AND messages.app_id = $3;
 
 -- name: DeleteMessageInstanceByDiscordMessageId :exec
-DELETE FROM message_instances WHERE discord_message_id = $1;
+DELETE FROM message_instances
+USING messages
+WHERE messages.id = message_instances.message_id
+  AND message_instances.discord_message_id = $1
+  AND messages.app_id = $2;

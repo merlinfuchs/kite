@@ -542,12 +542,20 @@ func (p *AIProvider) CreateResponse(ctx context.Context, opts provider.CreateRes
 	return resp.OutputText(), nil
 }
 
+// VariableProvider resolves the variable IDs a flow node names.
+//
+// Those IDs come from flow JSON the tenant authored, so the provider carries
+// the executing app's ID and passes it to every store call. Without it a flow
+// could name any variable ID in the database -- and flow JSON moves between
+// apps through import/export, so the IDs are not private.
 type VariableProvider struct {
+	appID              string
 	variableValueStore store.VariableValueStore
 }
 
-func NewVariableProvider(variableValueStore store.VariableValueStore) *VariableProvider {
+func NewVariableProvider(appID string, variableValueStore store.VariableValueStore) *VariableProvider {
 	return &VariableProvider{
+		appID:              appID,
 		variableValueStore: variableValueStore,
 	}
 }
@@ -561,7 +569,7 @@ func (p *VariableProvider) UpdateVariable(ctx context.Context, id string, scope 
 		UpdatedAt:  time.Now().UTC(),
 	}
 
-	newValue, err := p.variableValueStore.UpdateVariableValue(ctx, operation, v)
+	newValue, err := p.variableValueStore.UpdateVariableValue(ctx, p.appID, operation, v)
 	if err != nil {
 		return thing.Null, fmt.Errorf("failed to %s variable value: %w", operation, err)
 	}
@@ -570,7 +578,7 @@ func (p *VariableProvider) UpdateVariable(ctx context.Context, id string, scope 
 }
 
 func (p *VariableProvider) Variable(ctx context.Context, id string, scope null.String) (thing.Thing, error) {
-	row, err := p.variableValueStore.VariableValue(ctx, id, scope)
+	row, err := p.variableValueStore.VariableValue(ctx, p.appID, id, scope)
 	if err != nil {
 		if errors.Is(err, store.ErrNotFound) {
 			return thing.Null, provider.ErrNotFound
@@ -582,7 +590,7 @@ func (p *VariableProvider) Variable(ctx context.Context, id string, scope null.S
 }
 
 func (p *VariableProvider) DeleteVariable(ctx context.Context, id string, scope null.String) error {
-	err := p.variableValueStore.DeleteVariableValue(ctx, id, scope)
+	err := p.variableValueStore.DeleteVariableValue(ctx, p.appID, id, scope)
 	if err != nil {
 		return fmt.Errorf("failed to delete variable value: %w", err)
 	}
@@ -590,20 +598,28 @@ func (p *VariableProvider) DeleteVariable(ctx context.Context, id string, scope 
 	return nil
 }
 
+// MessageTemplateProvider resolves the message template a flow node names.
+//
+// Like VariableProvider, the ID comes from tenant-authored flow JSON, so the
+// provider carries the executing app's ID. Without it a flow could render
+// another tenant's template, and LinkMessageTemplateInstance would go on to
+// write an instance row against their message carrying their flow sources.
 type MessageTemplateProvider struct {
+	appID                string
 	messageStore         store.MessageStore
 	messageInstanceStore store.MessageInstanceStore
 }
 
-func NewMessageTemplateProvider(messageStore store.MessageStore, messageInstanceStore store.MessageInstanceStore) *MessageTemplateProvider {
+func NewMessageTemplateProvider(appID string, messageStore store.MessageStore, messageInstanceStore store.MessageInstanceStore) *MessageTemplateProvider {
 	return &MessageTemplateProvider{
+		appID:                appID,
 		messageStore:         messageStore,
 		messageInstanceStore: messageInstanceStore,
 	}
 }
 
 func (p *MessageTemplateProvider) MessageTemplate(ctx context.Context, id string) (*message.MessageData, error) {
-	message, err := p.messageStore.Message(ctx, id)
+	message, err := p.messageStore.Message(ctx, p.appID, id)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get message: %w", err)
 	}
@@ -612,7 +628,7 @@ func (p *MessageTemplateProvider) MessageTemplate(ctx context.Context, id string
 }
 
 func (p *MessageTemplateProvider) LinkMessageTemplateInstance(ctx context.Context, instance provider.MessageTemplateInstance) error {
-	message, err := p.messageStore.Message(ctx, instance.MessageTemplateID)
+	message, err := p.messageStore.Message(ctx, p.appID, instance.MessageTemplateID)
 	if err != nil {
 		return fmt.Errorf("failed to get message: %w", err)
 	}
