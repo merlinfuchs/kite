@@ -82,6 +82,7 @@ func (q *Queries) CreateMessage(ctx context.Context, arg CreateMessageParams) (M
 }
 
 const createMessageInstance = `-- name: CreateMessageInstance :one
+
 INSERT INTO message_instances (
     message_id,
     discord_guild_id,
@@ -92,9 +93,10 @@ INSERT INTO message_instances (
     flow_sources,
     created_at,
     updated_at
-) VALUES (
-    $1, $2, $3, $4, $5, $6, $7, $8, $9
-) RETURNING id, message_id, hidden, ephemeral, discord_guild_id, discord_channel_id, discord_message_id, flow_sources, created_at, updated_at
+)
+SELECT $1, $2, $3, $4, $5, $6, $7, $8, $9
+FROM messages WHERE messages.id = $1 AND messages.app_id = $10
+RETURNING id, message_id, hidden, ephemeral, discord_guild_id, discord_channel_id, discord_message_id, flow_sources, created_at, updated_at
 `
 
 type CreateMessageInstanceParams struct {
@@ -107,8 +109,15 @@ type CreateMessageInstanceParams struct {
 	FlowSources      []byte
 	CreatedAt        pgtype.Timestamp
 	UpdatedAt        pgtype.Timestamp
+	AppID            string
 }
 
+// message_instances has no app_id of its own, so the queries below reach the app
+// through messages. The engine reaches these from Discord interactions, where
+// the message and instance IDs are supplied by whoever clicked.
+// INSERT ... SELECT rather than VALUES so the app check is part of the write:
+// if the message does not belong to the app the select is empty, nothing is
+// inserted, and :one surfaces it as ErrNoRows.
 func (q *Queries) CreateMessageInstance(ctx context.Context, arg CreateMessageInstanceParams) (MessageInstance, error) {
 	row := q.db.QueryRow(ctx, createMessageInstance,
 		arg.MessageID,
@@ -120,6 +129,7 @@ func (q *Queries) CreateMessageInstance(ctx context.Context, arg CreateMessageIn
 		arg.FlowSources,
 		arg.CreatedAt,
 		arg.UpdatedAt,
+		arg.AppID,
 	)
 	var i MessageInstance
 	err := row.Scan(
@@ -214,7 +224,6 @@ func (q *Queries) GetMessage(ctx context.Context, arg GetMessageParams) (Message
 }
 
 const getMessageInstance = `-- name: GetMessageInstance :one
-
 SELECT message_instances.id, message_instances.message_id, message_instances.hidden, message_instances.ephemeral, message_instances.discord_guild_id, message_instances.discord_channel_id, message_instances.discord_message_id, message_instances.flow_sources, message_instances.created_at, message_instances.updated_at FROM message_instances
 JOIN messages ON messages.id = message_instances.message_id
 WHERE message_instances.id = $1
@@ -228,9 +237,6 @@ type GetMessageInstanceParams struct {
 	AppID     string
 }
 
-// message_instances has no app_id of its own, so the queries below join through
-// messages to scope by app. The engine reaches these from Discord interactions,
-// where the message and instance IDs are supplied by whoever clicked.
 func (q *Queries) GetMessageInstance(ctx context.Context, arg GetMessageInstanceParams) (MessageInstance, error) {
 	row := q.db.QueryRow(ctx, getMessageInstance, arg.ID, arg.MessageID, arg.AppID)
 	var i MessageInstance

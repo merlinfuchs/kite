@@ -633,7 +633,7 @@ func (p *MessageTemplateProvider) LinkMessageTemplateInstance(ctx context.Contex
 		return fmt.Errorf("failed to get message: %w", err)
 	}
 
-	_, err = p.messageInstanceStore.CreateMessageInstance(ctx, &model.MessageInstance{
+	_, err = p.messageInstanceStore.CreateMessageInstance(ctx, p.appID, &model.MessageInstance{
 		MessageID:        message.ID,
 		DiscordMessageID: instance.MessageID.String(),
 		DiscordChannelID: instance.ChannelID.String(),

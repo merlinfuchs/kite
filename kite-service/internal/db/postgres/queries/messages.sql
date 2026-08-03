@@ -37,7 +37,14 @@ WHERE id = $1 RETURNING *;
 -- name: DeleteMessage :exec
 DELETE FROM messages WHERE id = $1;
 
+-- message_instances has no app_id of its own, so the queries below reach the app
+-- through messages. The engine reaches these from Discord interactions, where
+-- the message and instance IDs are supplied by whoever clicked.
+
 -- name: CreateMessageInstance :one
+-- INSERT ... SELECT rather than VALUES so the app check is part of the write:
+-- if the message does not belong to the app the select is empty, nothing is
+-- inserted, and :one surfaces it as ErrNoRows.
 INSERT INTO message_instances (
     message_id,
     discord_guild_id,
@@ -48,13 +55,10 @@ INSERT INTO message_instances (
     flow_sources,
     created_at,
     updated_at
-) VALUES (
-    $1, $2, $3, $4, $5, $6, $7, $8, $9
-) RETURNING *;
-
--- message_instances has no app_id of its own, so the queries below join through
--- messages to scope by app. The engine reaches these from Discord interactions,
--- where the message and instance IDs are supplied by whoever clicked.
+)
+SELECT $1, $2, $3, $4, $5, $6, $7, $8, $9
+FROM messages WHERE messages.id = $1 AND messages.app_id = $10
+RETURNING *;
 
 -- name: GetMessageInstance :one
 SELECT message_instances.* FROM message_instances

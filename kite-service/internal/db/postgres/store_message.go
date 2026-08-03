@@ -222,13 +222,14 @@ func (c *Client) MessageInstanceByDiscordMessageID(ctx context.Context, appID st
 	return rowToMessageInstance(row)
 }
 
-func (c *Client) CreateMessageInstance(ctx context.Context, instance *model.MessageInstance) (*model.MessageInstance, error) {
+func (c *Client) CreateMessageInstance(ctx context.Context, appID string, instance *model.MessageInstance) (*model.MessageInstance, error) {
 	flowSources, err := json.Marshal(instance.FlowSources)
 	if err != nil {
 		return nil, err
 	}
 
 	res, err := c.Q.CreateMessageInstance(ctx, pgmodel.CreateMessageInstanceParams{
+		AppID:            appID,
 		MessageID:        instance.MessageID,
 		DiscordGuildID:   instance.DiscordGuildID,
 		DiscordChannelID: instance.DiscordChannelID,
@@ -240,6 +241,9 @@ func (c *Client) CreateMessageInstance(ctx context.Context, instance *model.Mess
 		UpdatedAt:        pgtype.Timestamp{Time: instance.UpdatedAt.UTC(), Valid: true},
 	})
 	if err != nil {
+		if err == pgx.ErrNoRows {
+			return nil, store.ErrNotFound
+		}
 		return nil, err
 	}
 

@@ -46,7 +46,7 @@ func (h *MessageHandler) HandleMessageInstanceCreate(c *handler.Context, req wir
 		return nil, fmt.Errorf("failed to send message: %w", err)
 	}
 
-	instance, err := h.messageInstanceStore.CreateMessageInstance(c.Context(), &model.MessageInstance{
+	instance, err := h.messageInstanceStore.CreateMessageInstance(c.Context(), c.App.ID, &model.MessageInstance{
 		MessageID:        c.Message.ID,
 		DiscordGuildID:   req.DiscordGuildID,
 		DiscordChannelID: req.DiscordChannelID,

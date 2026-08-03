@@ -3,7 +3,6 @@ package engine
 import (
 	"context"
 	"testing"
-	"time"
 
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/internal/store"
@@ -12,27 +11,26 @@ import (
 
 // A resume point ID arrives in an interaction's custom_id, which is chosen by
 // whoever built the message rather than by us. The message instance branch of
-// resumeFlowTarget reads from the database, so without an ownership check an
-// app can resume another app's flow -- including its stored FlowState.
+// resumeFlowTarget reads from the database, so without app scoping on the
+// lookup an app can resume another app's flow -- including its stored
+// FlowState.
 
+// The embedded interface is left nil so that any method resumeFlow does not
+// call panics rather than silently returning a zero value, the same trick
+// engine_test.go uses.
 type stubResumePointStore struct {
+	store.ResumePointStore
+
 	point *model.ResumePoint
 }
 
-func (s stubResumePointStore) ResumePoint(ctx context.Context, id string) (*model.ResumePoint, error) {
+// Stands in for the query's `AND app_id = $2`: a point owned by another app is
+// indistinguishable from one that does not exist.
+func (s stubResumePointStore) ResumePoint(ctx context.Context, appID string, id string) (*model.ResumePoint, error) {
+	if s.point.AppID != appID {
+		return nil, store.ErrNotFound
+	}
 	return s.point, nil
-}
-
-func (s stubResumePointStore) CreateResumePoint(ctx context.Context, resumePoint *model.ResumePoint) error {
-	return nil
-}
-
-func (s stubResumePointStore) DeleteResumePoint(ctx context.Context, id string) error {
-	return nil
-}
-
-func (s stubResumePointStore) DeleteExpiredResumePoints(ctx context.Context, timestamp time.Time) error {
-	return nil
 }
 
 func messageInstanceResumePoint(appID string) *model.ResumePoint {
@@ -84,5 +82,3 @@ func TestResumeFlowResolvesOwnResumePoint(t *testing.T) {
 
 	app.resumeFlow("rp-1", nil, nil)
 }
-
-var _ store.ResumePointStore = stubResumePointStore{}

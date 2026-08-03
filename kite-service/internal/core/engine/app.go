@@ -307,7 +307,13 @@ func (a *App) resumeFlow(
 	session *state.State,
 	event gateway.Event,
 ) {
-	resumePoint, err := a.env.ResumePointStore.ResumePoint(context.TODO(), resumePointID)
+	// The ID arrives in an interaction's custom_id, which is chosen by whoever
+	// built the message rather than by us, so it is not proof that the resume
+	// point belongs to this app -- hence the scoped lookup. Without it the
+	// message instance branch below would read another app's resume point out
+	// of the database and run its flow, with its stored FlowState, which holds
+	// the results of everything that flow did before it suspended.
+	resumePoint, err := a.env.ResumePointStore.ResumePoint(context.TODO(), a.id, resumePointID)
 	if err != nil {
 		if !errors.Is(err, store.ErrNotFound) {
 			slog.Error(
@@ -316,22 +322,6 @@ func (a *App) resumeFlow(
 				slog.String("error", err.Error()),
 			)
 		}
-		return
-	}
-
-	// The ID arrives in an interaction's custom_id, which is chosen by whoever
-	// built the message rather than by us, so it is not proof that the resume
-	// point belongs to this app. The command and event listener branches below
-	// fail closed anyway because they resolve against this app's own in-memory
-	// maps, but the message instance branch reads from the database and would
-	// otherwise run another app's flow -- with its stored FlowState, which
-	// holds the results of everything the flow did before it suspended.
-	if resumePoint.AppID != a.id {
-		slog.Warn(
-			"Resume point does not belong to this app",
-			slog.String("app_id", a.id),
-			slog.String("resume_point_id", resumePointID),
-		)
 		return
 	}
 
