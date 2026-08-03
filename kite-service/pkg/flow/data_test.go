@@ -3,16 +3,16 @@ package flow
 import (
 	"testing"
 
-	"github.com/sashabaranov/go-openai"
+	"github.com/openai/openai-go"
 )
 
 func TestAIModelAllowed(t *testing.T) {
 	allowed := []string{
 		"", // provider default
-		openai.GPT4Dot1,
-		openai.GPT4Dot1Mini,
-		openai.GPT4Dot1Nano,
-		openai.GPT4oMini,
+		openai.ChatModelGPT4_1,
+		openai.ChatModelGPT4_1Mini,
+		openai.ChatModelGPT4_1Nano,
+		openai.ChatModelGPT4oMini,
 	}
 	for _, model := range allowed {
 		if !AIModelAllowed(model) {
@@ -34,12 +34,12 @@ func TestAICreditsCostKnownModels(t *testing.T) {
 		webSearch bool
 		want      int
 	}{
-		{openai.GPT4Dot1, false, 100},
-		{openai.GPT4Dot1, true, 500},
-		{openai.GPT4Dot1Mini, false, 20},
-		{openai.GPT4Dot1Mini, true, 100},
-		{openai.GPT4oMini, false, 5},
-		{openai.GPT4oMini, true, 25},
+		{openai.ChatModelGPT4_1, false, 100},
+		{openai.ChatModelGPT4_1, true, 500},
+		{openai.ChatModelGPT4_1Mini, false, 20},
+		{openai.ChatModelGPT4_1Mini, true, 100},
+		{openai.ChatModelGPT4oMini, false, 5},
+		{openai.ChatModelGPT4oMini, true, 25},
 		{"", false, 5},
 		{"", true, 25},
 	}
@@ -63,12 +63,12 @@ func TestAICreditsCostUnknownModelPricesAtCeiling(t *testing.T) {
 	}
 
 	chat := AICreditsCost(unknown, false)
-	if want := AICreditsCost(openai.GPT4Dot1, false); chat != want {
+	if want := AICreditsCost(openai.ChatModelGPT4_1, false); chat != want {
 		t.Errorf("unknown chat cost = %d, want the most expensive model's %d", chat, want)
 	}
 
 	search := AICreditsCost(unknown, true)
-	if want := AICreditsCost(openai.GPT4Dot1, true); search != want {
+	if want := AICreditsCost(openai.ChatModelGPT4_1, true); search != want {
 		t.Errorf("unknown search cost = %d, want the most expensive model's %d", search, want)
 	}
 }
@@ -79,7 +79,7 @@ func TestAIChatCompletionDataRejectsUnknownModel(t *testing.T) {
 		t.Fatal("expected validation error for unknown model, got nil")
 	}
 
-	if err := (AIChatCompletionData{Model: openai.GPT4Dot1, Prompt: "hi"}).Validate(); err != nil {
+	if err := (AIChatCompletionData{Model: openai.ChatModelGPT4_1, Prompt: "hi"}).Validate(); err != nil {
 		t.Fatalf("expected allowed model to validate, got %v", err)
 	}
 }

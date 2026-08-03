@@ -7,7 +7,8 @@ import (
 	"strings"
 )
 
-const maxBodySize = 4 * 1024 * 1024 // 4MB
+// MaxBodySize is how much of an HTTP response body a flow can capture.
+const MaxBodySize = 4 * 1024 * 1024 // 4MB
 
 type HTTPResponseValue struct {
 	Status     string            `json:"status"`
@@ -22,11 +23,11 @@ func NewHTTPResponseValue(v *http.Response) (HTTPResponseValue, error) {
 		headers[k] = strings.Join(v, ",")
 	}
 
-	if v.ContentLength > maxBodySize {
-		return HTTPResponseValue{}, fmt.Errorf("body size exceeds max body size of %d bytes", maxBodySize)
+	if v.ContentLength > MaxBodySize {
+		return HTTPResponseValue{}, fmt.Errorf("body size exceeds max body size of %d bytes", MaxBodySize)
 	}
 
-	limitedBody := io.LimitReader(v.Body, maxBodySize)
+	limitedBody := io.LimitReader(v.Body, MaxBodySize)
 	body, err := io.ReadAll(limitedBody)
 	if err != nil {
 		return HTTPResponseValue{}, err

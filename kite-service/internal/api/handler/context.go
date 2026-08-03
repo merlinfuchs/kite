@@ -77,7 +77,7 @@ func (c *Context) Redirect(url string, code int) {
 // parse before any access check, so without a bound an anonymous caller can
 // make the server buffer an arbitrary amount of memory. Set well above the
 // largest legitimate payload, which is a bulk import of flows.
-const MaxJSONBodySize = 4 * 1024 * 1024
+const MaxJSONBodySize = 8 * 1024 * 1024
 
 // LimitBody caps how much of the request body can be read, failing the read
 // once the limit is passed rather than truncating it silently.
@@ -97,9 +97,7 @@ func (c *Context) ParseBody(v interface{}) error {
 	if err := decoder.Decode(v); err != nil {
 		var maxErr *http.MaxBytesError
 		if errors.As(err, &maxErr) {
-			return ErrBadRequest("body_too_large", fmt.Sprintf(
-				"request body exceeds the maximum of %d bytes", MaxJSONBodySize,
-			))
+			return ErrBodyTooLarge(MaxJSONBodySize)
 		}
 		return fmt.Errorf("failed to decode request body: %w", err)
 	}

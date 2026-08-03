@@ -118,34 +118,36 @@ func warnUnverifiedBillingWebhook(cfg *config.Config) {
 const engineHTTPTimeout = 30 * time.Second
 
 func engineHTTPClient(cfg *config.Config) *http.Client {
-	if cfg.Engine.HTTPProxyURL != "" {
-		proxyURL, err := url.Parse(cfg.Engine.HTTPProxyURL)
-		if err != nil {
-			slog.With("error", err).Error("Failed to parse proxy URL")
-			return nil
-		}
+	client := &http.Client{Timeout: engineHTTPTimeout}
 
-		slog.Info("Using HTTP proxy for Engine", "url", cfg.Engine.HTTPProxyURL)
-
-		return &http.Client{
-			Timeout: engineHTTPTimeout,
-			Transport: &http.Transport{
-				Proxy: http.ProxyURL(proxyURL),
-			},
-		}
+	if cfg.Engine.HTTPProxyURL == "" {
+		warnNoEgressProxy()
+		return client
 	}
 
-	// The URL of an action_http_request node is authored by the tenant and is
-	// not validated anywhere, so without an egress proxy the engine will
-	// resolve and fetch whatever it is given -- including loopback, RFC1918,
-	// and cloud metadata endpoints -- and hand the response body back into the
-	// flow where it can be printed into a Discord channel.
+	proxyURL, err := url.Parse(cfg.Engine.HTTPProxyURL)
+	if err != nil {
+		slog.With("error", err).Error("Failed to parse proxy URL")
+		return nil
+	}
+
+	slog.Info("Using HTTP proxy for Engine", "url", cfg.Engine.HTTPProxyURL)
+	client.Transport = &http.Transport{Proxy: http.ProxyURL(proxyURL)}
+	return client
+}
+
+// warnNoEgressProxy reports that flow requests leave the host unfiltered.
+//
+// The URL of an action_http_request node is authored by the tenant and is not
+// validated anywhere, so without an egress proxy the engine will resolve and
+// fetch whatever it is given -- including loopback, RFC1918, and cloud metadata
+// endpoints -- and hand the response body back into the flow where it can be
+// printed into a Discord channel.
+func warnNoEgressProxy() {
 	slog.Warn(
 		"No HTTP proxy configured for the engine: outbound flow requests go " +
 			"direct, so tenant-authored URLs can reach the host's internal " +
 			"network. Set engine.http_proxy_url to an egress proxy that " +
 			"rejects internal address ranges.",
 	)
-
-	return &http.Client{Timeout: engineHTTPTimeout}
 }

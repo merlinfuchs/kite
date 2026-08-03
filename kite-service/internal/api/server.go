@@ -118,7 +118,6 @@ func (s *APIServer) Serve(ctx context.Context, address string) error {
 		ReadTimeout:       60 * time.Second,
 		WriteTimeout:      120 * time.Second,
 		IdleTimeout:       120 * time.Second,
-		MaxHeaderBytes:    1 << 20,
 	}
 
 	slog.With("address", address).Info("Starting API server")

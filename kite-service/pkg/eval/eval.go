@@ -40,16 +40,19 @@ const (
 	// for the cost of a single flow operation, which template evaluation is
 	// not metered as.
 	//
-	// Set to match the HTTP response body cap, since the case this has to keep
+	// Tied to the HTTP response body cap, since the case this has to keep
 	// working is interpolating a fetched body into a larger string. A template
 	// that is nothing but one placeholder returns before it gets here, so
 	// passing a body straight through is unaffected either way.
-	MaxTemplateOutputLength = 4 * 1024 * 1024
+	MaxTemplateOutputLength = thing.MaxBodySize
 )
 
-// ErrExpressionTooLong is returned when an expression or template exceeds its
-// length limit. Flows are user-authored, so this is reachable from user input.
+// ErrExpressionTooLong is returned when an expression exceeds its length limit.
+// Flows are user-authored, so this is reachable from user input.
 var ErrExpressionTooLong = errors.New("expression too long")
+
+// ErrTemplateTooLong is returned when a template exceeds MaxTemplateLength.
+var ErrTemplateTooLong = errors.New("template too long")
 
 // ErrTemplateOutputTooLong is returned when a template's placeholders expand
 // past MaxTemplateOutputLength. Like ErrExpressionTooLong this is reachable
@@ -99,7 +102,7 @@ func EvalTemplate(ctx context.Context, template string, c Context) (thing.Thing,
 	if len(template) > MaxTemplateLength {
 		return thing.Null, fmt.Errorf(
 			"eval error: %w: %d characters, limit is %d",
-			ErrExpressionTooLong, len(template), MaxTemplateLength,
+			ErrTemplateTooLong, len(template), MaxTemplateLength,
 		)
 	}
 

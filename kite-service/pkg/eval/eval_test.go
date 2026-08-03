@@ -8,7 +8,9 @@ import (
 )
 
 func testContext() Context {
-	return Context{Env: map[string]any{}}
+	// Env, not map[string]any: the named type is what expr's OpLoadFast used to
+	// panic on, so every case has to exercise it.
+	return Context{Env: Env{}}
 }
 
 func TestEvalRejectsOverlongExpression(t *testing.T) {
@@ -49,8 +51,8 @@ func TestEvalTemplateRejectsOverlongTemplate(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error for overlong template, got nil")
 	}
-	if !errors.Is(err, ErrExpressionTooLong) {
-		t.Fatalf("expected ErrExpressionTooLong, got %v", err)
+	if !errors.Is(err, ErrTemplateTooLong) {
+		t.Fatalf("expected ErrTemplateTooLong, got %v", err)
 	}
 }
 

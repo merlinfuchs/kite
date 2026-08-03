@@ -12,7 +12,7 @@ import (
 	"github.com/kitecloud/kite/kite-service/pkg/eval"
 	"github.com/kitecloud/kite/kite-service/pkg/message"
 	"github.com/kitecloud/kite/kite-service/pkg/provider"
-	"github.com/sashabaranov/go-openai"
+	"github.com/openai/openai-go"
 	"gopkg.in/guregu/null.v4"
 )
 
@@ -526,16 +526,29 @@ type AIChatCompletionData struct {
 // cannot be selected.
 //
 // The empty string is the provider default (gpt-4o-mini), so it is priced.
-var aiModelCosts = map[string]struct {
+var aiModelCosts = map[string]aiModelCost{
+	"":                  {Chat: 5, Search: 25},
+	openai.ChatModelGPT4_1:     {Chat: 100, Search: 500},
+	openai.ChatModelGPT4_1Mini: {Chat: 20, Search: 100},
+	openai.ChatModelGPT4_1Nano: {Chat: 5, Search: 25},
+	openai.ChatModelGPT4oMini:  {Chat: 5, Search: 25},
+}
+
+type aiModelCost struct {
 	Chat   int
 	Search int
-}{
-	"":                  {Chat: 5, Search: 25},
-	openai.GPT4Dot1:     {Chat: 100, Search: 500},
-	openai.GPT4Dot1Mini: {Chat: 20, Search: 100},
-	openai.GPT4Dot1Nano: {Chat: 5, Search: 25},
-	openai.GPT4oMini:    {Chat: 5, Search: 25},
 }
+
+// maxAIModelCost is the ceiling of aiModelCosts, taken per field so it does not
+// depend on one model being the most expensive for both.
+var maxAIModelCost = func() aiModelCost {
+	var ceiling aiModelCost
+	for _, c := range aiModelCosts {
+		ceiling.Chat = max(ceiling.Chat, c.Chat)
+		ceiling.Search = max(ceiling.Search, c.Search)
+	}
+	return ceiling
+}()
 
 // aiModelsAllowed is aiModelCosts' keys as validation.In wants them. The empty
 // string is left out because In treats an empty value as valid regardless.
@@ -564,11 +577,7 @@ func AIModelAllowed(model string) bool {
 func AICreditsCost(model string, webSearch bool) int {
 	cost, ok := aiModelCosts[model]
 	if !ok {
-		for _, c := range aiModelCosts {
-			if c.Chat > cost.Chat {
-				cost = c
-			}
-		}
+		cost = maxAIModelCost
 	}
 
 	if webSearch {

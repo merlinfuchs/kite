@@ -1296,12 +1296,19 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 
 		ctx.StoreNodeResult(n, result)
 		return n.ExecuteChildren(ctx)
-	case FlowNodeTypeActionAIChatCompletion:
+	case FlowNodeTypeActionAIChatCompletion, FlowNodeTypeActionAISearchWeb:
+		webSearch := n.Type == FlowNodeTypeActionAISearchWeb
+
 		data := n.Data.AIChatCompletionData
 		if data == nil || data.Prompt == "" {
+			name := "ai_chat_completion_data"
+			if webSearch {
+				name = "ai_search_web_data"
+			}
+
 			return &FlowError{
 				Code:    FlowNodeErrorUnknown,
-				Message: "ai_chat_completion_data is nil",
+				Message: fmt.Sprintf("%s is nil", name),
 			}
 		}
 
@@ -1330,56 +1337,17 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			return traceError(n, err)
 		}
 
-		response, err := ctx.AI.CreateResponse(ctx, provider.CreateResponseOpts{
+		opts := provider.CreateResponseOpts{
 			Model:           data.Model,
 			Prompt:          prompt.String(),
 			SystemPrompt:    systemPrompt.String(),
 			MaxOutputTokens: int(maxCompletionTokens.Int()),
-		})
-		if err != nil {
-			return traceError(n, err)
+		}
+		if webSearch {
+			opts.Tools = []provider.AIToolType{provider.AIToolTypeWebSearchPreview}
 		}
 
-		ctx.StoreNodeResult(n, thing.NewString(response))
-		return n.ExecuteChildren(ctx)
-	case FlowNodeTypeActionAISearchWeb:
-		data := n.Data.AIChatCompletionData
-		if data == nil || data.Prompt == "" {
-			return &FlowError{
-				Code:    FlowNodeErrorUnknown,
-				Message: "ai_search_web_data is nil",
-			}
-		}
-
-		if !AIModelAllowed(data.Model) {
-			return &FlowError{
-				Code:    FlowNodeErrorUnknown,
-				Message: fmt.Sprintf("unsupported ai model: %s", data.Model),
-			}
-		}
-
-		systemPrompt, err := ctx.EvalTemplate(data.SystemPrompt)
-		if err != nil {
-			return traceError(n, err)
-		}
-
-		prompt, err := ctx.EvalTemplate(data.Prompt)
-		if err != nil {
-			return traceError(n, err)
-		}
-
-		maxCompletionTokens, err := ctx.EvalTemplate(data.MaxCompletionTokens)
-		if err != nil {
-			return traceError(n, err)
-		}
-
-		response, err := ctx.AI.CreateResponse(ctx, provider.CreateResponseOpts{
-			Model:           data.Model,
-			Prompt:          prompt.String(),
-			SystemPrompt:    systemPrompt.String(),
-			MaxOutputTokens: int(maxCompletionTokens.Int()),
-			Tools:           []provider.AIToolType{provider.AIToolTypeWebSearchPreview},
-		})
+		response, err := ctx.AI.CreateResponse(ctx, opts)
 		if err != nil {
 			return traceError(n, err)
 		}
@@ -1694,20 +1662,13 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 
 func (n *CompiledFlowNode) CreditsCost() int {
 	switch n.Type {
-	case FlowNodeTypeActionAIChatCompletion:
+	case FlowNodeTypeActionAIChatCompletion, FlowNodeTypeActionAISearchWeb:
 		data := n.Data.AIChatCompletionData
 		if data == nil {
 			return 0
 		}
 
-		return AICreditsCost(data.Model, false)
-	case FlowNodeTypeActionAISearchWeb:
-		data := n.Data.AIChatCompletionData
-		if data == nil {
-			return 0
-		}
-
-		return AICreditsCost(data.Model, true)
+		return AICreditsCost(data.Model, n.Type == FlowNodeTypeActionAISearchWeb)
 	case FlowNodeTypeActionHTTPRequest:
 		return 3
 	}
