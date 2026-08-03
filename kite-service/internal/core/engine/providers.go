@@ -757,6 +757,7 @@ func (p *RobloxProvider) UserByID(ctx context.Context, id int64) (*thing.RobloxU
 	if err != nil {
 		return nil, fmt.Errorf("failed to get roblox user: %w", err)
 	}
+	defer resp.Body.Close()
 
 	if resp.StatusCode == http.StatusNotFound {
 		return nil, provider.ErrNotFound
@@ -794,6 +795,7 @@ func (p *RobloxProvider) UsersByUsername(ctx context.Context, username string) (
 	if err != nil {
 		return nil, fmt.Errorf("failed to get roblox users: %w", err)
 	}
+	defer resp.Body.Close()
 
 	var v struct {
 		Data []thing.RobloxUserValue `json:"data"`

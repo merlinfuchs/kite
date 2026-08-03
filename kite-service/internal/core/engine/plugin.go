@@ -73,6 +73,19 @@ func (p *pluginInstance) Events() []plugin.Event {
 	return filtered
 }
 
+// handlesCommand reports whether the given Discord command name belongs to one
+// of this instance's enabled commands. Commands() is already filtered by
+// EnabledResourceIDs, so a command the app disabled is not matched.
+func (p *pluginInstance) handlesCommand(name string) bool {
+	for _, command := range p.Commands() {
+		if command.Data.Name == name {
+			return true
+		}
+	}
+
+	return false
+}
+
 // WantsEvent reports whether HandleEvent would do any work for this event.
 // Interactions are always dispatched; they are routed by their own data type
 // rather than by the plugin's subscribed event types.
@@ -89,9 +102,16 @@ func (p *pluginInstance) HandleEvent(ctx context.Context, session *state.State, 
 
 	switch e := event.(type) {
 	case *gateway.InteractionCreateEvent:
-		switch e.Data.(type) {
+		switch d := e.Data.(type) {
 		case *discord.CommandInteraction:
-			// TODO: Check if the command belongs to this plugin
+			// Interactions are dispatched to every plugin instance on the app,
+			// so without this each plugin sees every command and matches on the
+			// name itself -- which meant an app could reach a plugin command it
+			// had left disabled just by defining its own command of that name.
+			if !p.handlesCommand(d.Name) {
+				return
+			}
+
 			err = p.instance.HandleCommand(p.pluginContext(ctx, session), e)
 		case discord.ComponentInteraction:
 			err = p.instance.HandleComponent(p.pluginContext(ctx, session), e)
