@@ -4,6 +4,7 @@ import (
 	"log/slog"
 	"net/http"
 	"net/url"
+	"time"
 
 	"github.com/diamondburned/arikawa/v3/api"
 	"github.com/diamondburned/arikawa/v3/utils/httputil"
@@ -87,6 +88,35 @@ func configureHTTPTransport(cfg *config.Config) {
 	)
 }
 
+// warnUnverifiedBillingWebhook reports that /v1/billing/webhook is accepting
+// unauthenticated writes.
+//
+// The signature check HMACs the body under billing.lemonsqueezy_signing_secret
+// and compares hex strings. Neither the LemonSqueezy client nor the handler
+// rejects an empty secret, so with the secret unset the key is public knowledge
+// and anyone can produce a valid signature for a payload of their choosing. The
+// endpoint grants entitlements, so a forged subscription_created is a free
+// upgrade on any app ID the caller names.
+func warnUnverifiedBillingWebhook(cfg *config.Config) {
+	if cfg.Billing.LemonSqueezySigningSecret != "" {
+		return
+	}
+
+	slog.Warn(
+		"No billing.lemonsqueezy_signing_secret configured: the webhook " +
+			"signature is an HMAC under an empty key, so /v1/billing/webhook " +
+			"accepts forged events from anyone and will grant entitlements " +
+			"from them. Set the secret, or keep the webhook unreachable.",
+	)
+}
+
+// engineHTTPTimeout bounds an outbound flow request end to end.
+//
+// The request is already tied to the flow context, whose deadline is shorter
+// than this, so in normal operation the context wins. This is the backstop for
+// any caller that reaches the client without a deadline.
+const engineHTTPTimeout = 30 * time.Second
+
 func engineHTTPClient(cfg *config.Config) *http.Client {
 	if cfg.Engine.HTTPProxyURL != "" {
 		proxyURL, err := url.Parse(cfg.Engine.HTTPProxyURL)
@@ -98,11 +128,24 @@ func engineHTTPClient(cfg *config.Config) *http.Client {
 		slog.Info("Using HTTP proxy for Engine", "url", cfg.Engine.HTTPProxyURL)
 
 		return &http.Client{
+			Timeout: engineHTTPTimeout,
 			Transport: &http.Transport{
 				Proxy: http.ProxyURL(proxyURL),
 			},
 		}
 	}
 
-	return &http.Client{}
+	// The URL of an action_http_request node is authored by the tenant and is
+	// not validated anywhere, so without an egress proxy the engine will
+	// resolve and fetch whatever it is given -- including loopback, RFC1918,
+	// and cloud metadata endpoints -- and hand the response body back into the
+	// flow where it can be printed into a Discord channel.
+	slog.Warn(
+		"No HTTP proxy configured for the engine: outbound flow requests go " +
+			"direct, so tenant-authored URLs can reach the host's internal " +
+			"network. Set engine.http_proxy_url to an egress proxy that " +
+			"rejects internal address ranges.",
+	)
+
+	return &http.Client{Timeout: engineHTTPTimeout}
 }
