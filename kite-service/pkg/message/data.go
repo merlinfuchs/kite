@@ -1,6 +1,7 @@
 package message
 
 import (
+	"fmt"
 	"time"
 )
 
@@ -11,6 +12,36 @@ type MessageData struct {
 	Embeds          []EmbedData          `json:"embeds,omitempty"`
 	Components      []ComponentRowData   `json:"components,omitempty"`
 	AllowedMentions *AllowedMentionsData `json:"allowed_mentions,omitempty"`
+}
+
+// Validate rejects message data that cannot be sent safely.
+//
+// Deliberately narrow. Message data has always been stored unvalidated, so a
+// broader check here would start rejecting messages that already exist. The
+// only rule is that a component's flow source ID must not claim the custom ID
+// namespace reserved for resume points: a component's Discord custom ID is its
+// flow source ID verbatim, so without this a tenant can author a button whose
+// custom ID addresses a resume point by ID.
+func (m MessageData) Validate() error {
+	for _, row := range m.Components {
+		for _, component := range row.Components {
+			if IsReservedCustomID(component.FlowSourceID) {
+				return fmt.Errorf(
+					"component flow source id must not start with %q", ResumeCustomIDPrefix,
+				)
+			}
+
+			for _, option := range component.Options {
+				if IsReservedCustomID(option.FlowSourceID) {
+					return fmt.Errorf(
+						"select option flow source id must not start with %q", ResumeCustomIDPrefix,
+					)
+				}
+			}
+		}
+	}
+
+	return nil
 }
 
 func (m *MessageData) EachString(replace func(s *string) error) error {
