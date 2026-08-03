@@ -60,6 +60,7 @@ func StartServer(c context.Context, cfg *config.Config) error {
 	defer cancel()
 
 	configureHTTPTransport(cfg)
+	warnUnverifiedBillingWebhook(cfg)
 	startDebugServer(ctx, cfg.Debug)
 
 	tokenCrypt, err := util.NewSymmetricCrypt(cfg.Encryption.TokenEncryptionKey)

@@ -28,6 +28,7 @@ func (h *AuthHandler) authenticateWithCode(c *handler.Context, code string) (str
 	if err != nil {
 		return "", nil, fmt.Errorf("Failed to get user info: %w", err)
 	}
+	defer resp.Body.Close()
 
 	discordUser := struct {
 		ID            string      `json:"id"`
@@ -42,7 +43,6 @@ func (h *AuthHandler) authenticateWithCode(c *handler.Context, code string) (str
 	if err != nil {
 		return "", nil, fmt.Errorf("Failed to decode user info: %w", err)
 	}
-	resp.Body.Close()
 
 	if discordUser.Email == "" {
 		return "", nil, fmt.Errorf("User has no email")

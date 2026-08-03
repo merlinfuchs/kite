@@ -31,16 +31,37 @@ func NewAssetHandler(assetStore store.AssetStore, config AssetHandlerConfig) *As
 	}
 }
 
+// maxUploadOverhead is the slack allowed on top of MaxAssetSize for multipart
+// framing (boundaries, part headers, other fields).
+const maxUploadOverhead = 1 * 1024 * 1024
+
+// unconfiguredMaxUploadSize bounds an upload when MaxAssetSize is unset (which
+// used to mean "no limit"). The body has to be bounded either way: FormFile
+// parses the whole request before any size check runs, spilling past its
+// in-memory budget to disk, so an unset limit would otherwise mean an unbounded
+// write to the host's filesystem.
+const unconfiguredMaxUploadSize = 64 * 1024 * 1024
+
 func (h *AssetHandler) HandleAssetCreate(c *handler.Context) (*wire.AssetCreateResponse, error) {
+	maxSize := int64(unconfiguredMaxUploadSize)
+	if h.config.MaxAssetSize != 0 {
+		maxSize = h.config.MaxAssetSize
+	}
+	c.LimitBody(maxSize + maxUploadOverhead)
+
 	file, header, err := c.FormFile("file")
 	if err != nil {
+		var maxErr *http.MaxBytesError
+		if errors.As(err, &maxErr) {
+			return nil, handler.ErrBodyTooLarge(maxSize)
+		}
 		return nil, handler.ErrBadRequest("invalid_form", "failed to get file from form")
 	}
 
-	if h.config.MaxAssetSize != 0 && header.Size > h.config.MaxAssetSize {
+	if header.Size > maxSize {
 		return nil, handler.ErrBadRequest(
 			"resource_limit",
-			fmt.Sprintf("file size exceeds maximum allowed size (%d)", h.config.MaxAssetSize),
+			fmt.Sprintf("file size exceeds maximum allowed size (%d)", maxSize),
 		)
 	}
 

@@ -31,11 +31,33 @@ const (
 	// evaluated. Each placeholder is bounded by MaxExpressionLength, but a
 	// template may contain arbitrarily many of them.
 	MaxTemplateLength = 100_000
+
+	// MaxTemplateOutputLength bounds what a template expands to, which the
+	// input bounds above do not imply. Every placeholder is evaluated by its
+	// own expr VM with its own memory budget, so the budgets never see each
+	// other and the results all accumulate into one buffer. A legal 100k
+	// template of ~4700 placeholders each emitting ~1MB expands to several GB
+	// for the cost of a single flow operation, which template evaluation is
+	// not metered as.
+	//
+	// Tied to the HTTP response body cap, since the case this has to keep
+	// working is interpolating a fetched body into a larger string. A template
+	// that is nothing but one placeholder returns before it gets here, so
+	// passing a body straight through is unaffected either way.
+	MaxTemplateOutputLength = thing.MaxBodySize
 )
 
-// ErrExpressionTooLong is returned when an expression or template exceeds its
-// length limit. Flows are user-authored, so this is reachable from user input.
+// ErrExpressionTooLong is returned when an expression exceeds its length limit.
+// Flows are user-authored, so this is reachable from user input.
 var ErrExpressionTooLong = errors.New("expression too long")
+
+// ErrTemplateTooLong is returned when a template exceeds MaxTemplateLength.
+var ErrTemplateTooLong = errors.New("template too long")
+
+// ErrTemplateOutputTooLong is returned when a template's placeholders expand
+// past MaxTemplateOutputLength. Like ErrExpressionTooLong this is reachable
+// from user input, so it is an ordinary flow error rather than a panic.
+var ErrTemplateOutputTooLong = errors.New("template output too long")
 
 func Eval(ctx context.Context, expression string, c Context) (thing.Thing, error) {
 	if len(expression) > MaxExpressionLength {
@@ -62,7 +84,12 @@ func Eval(ctx context.Context, expression string, c Context) (thing.Thing, error
 		return thing.Null, fmt.Errorf("eval error: %w", err)
 	}
 
-	result, err := expr.Run(program, c.Env)
+	// The env has to be handed to Run as a plain map[string]any, not as Env.
+	// expr's OpLoadFast opcode type-asserts the env to map[string]any without
+	// a comma-ok, so a named map type panics on every identifier lookup and
+	// surfaces as "interface conversion: interface {} is eval.Env". The
+	// conversion is free -- Env's underlying type is already map[string]any.
+	result, err := expr.Run(program, map[string]any(c.Env))
 	if err != nil {
 		return thing.Null, fmt.Errorf("eval error: %w", err)
 	}
@@ -75,7 +102,7 @@ func EvalTemplate(ctx context.Context, template string, c Context) (thing.Thing,
 	if len(template) > MaxTemplateLength {
 		return thing.Null, fmt.Errorf(
 			"eval error: %w: %d characters, limit is %d",
-			ErrExpressionTooLong, len(template), MaxTemplateLength,
+			ErrTemplateTooLong, len(template), MaxTemplateLength,
 		)
 	}
 
@@ -99,6 +126,10 @@ func EvalTemplate(ctx context.Context, template string, c Context) (thing.Thing,
 		return res, nil
 	}
 
+	// Literal spans between placeholders are already covered by the input
+	// bound, so only what the placeholders expand to has to be tracked.
+	var emitted int
+
 	res, err := fasttemplate.ExecuteFuncStringWithErr(
 		template,
 		templateStartTag,
@@ -115,6 +146,15 @@ func EvalTemplate(ctx context.Context, template string, c Context) (thing.Thing,
 
 			// This will call the String() method if it exists
 			val := fmt.Sprintf("%v", res)
+
+			emitted += len(val)
+			if emitted > MaxTemplateOutputLength {
+				return 0, fmt.Errorf(
+					"eval error: %w: expanded to at least %d bytes, limit is %d",
+					ErrTemplateOutputTooLong, emitted, MaxTemplateOutputLength,
+				)
+			}
+
 			return w.Write([]byte(val))
 		},
 	)
