@@ -122,3 +122,87 @@ func TestEvalTemplateAcceptsNormalTemplates(t *testing.T) {
 		t.Errorf("got %q, want %q", res.String(), "hello world")
 	}
 }
+
+// Every existing case above evaluates a self-contained expression, none of
+// which reads an identifier out of the env. That is exactly the gap that let
+// expr 1.17 land green: its OpLoadFast opcode type-asserts the env to
+// map[string]any without a comma-ok, which panics for the named Env type and
+// broke every template in the product that referenced a variable. Anything
+// that pins the env-lookup path shut keeps that from recurring silently.
+func TestEvalReadsFromEnv(t *testing.T) {
+	c := Context{Env: Env{
+		"name":  "world",
+		"count": 3,
+		"nested": map[string]any{
+			"key": "value",
+		},
+	}}
+
+	cases := []struct {
+		expression string
+		want       string
+	}{
+		{`name`, "world"},
+		{`upper(name)`, "WORLD"},
+		{`count + 1`, "4"},
+		{`nested.key`, "value"},
+		{`name == "world" ? "yes" : "no"`, "yes"},
+	}
+
+	for _, tc := range cases {
+		res, err := Eval(context.Background(), tc.expression, c)
+		if err != nil {
+			t.Errorf("%s: unexpected error %v", tc.expression, err)
+			continue
+		}
+		if res.String() != tc.want {
+			t.Errorf("%s: got %q, want %q", tc.expression, res.String(), tc.want)
+		}
+	}
+}
+
+// Same guard for the template path, which is what user-authored flows actually
+// go through.
+func TestEvalTemplateReadsFromEnv(t *testing.T) {
+	c := Context{Env: Env{"name": "world"}}
+
+	res, err := EvalTemplate(context.Background(), `hello {{ name }}, bye {{ name }}`, c)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.String() != "hello world, bye world" {
+		t.Errorf("got %q, want %q", res.String(), "hello world, bye world")
+	}
+}
+
+func TestEvalTemplateRejectsOverlongOutput(t *testing.T) {
+	// Each placeholder is small enough to pass the expression bound and cheap
+	// enough to stay inside expr's per-VM memory budget. The budgets are
+	// per-placeholder, so only the output bound stops the total.
+	const perPlaceholder = 20_000
+	one := `{{repeat("x",20000)}}`
+	template := strings.Repeat(one, (MaxTemplateOutputLength/perPlaceholder)+2)
+
+	if len(template) > MaxTemplateLength {
+		t.Fatalf("setup: template is %d bytes, over the input bound of %d",
+			len(template), MaxTemplateLength)
+	}
+
+	_, err := EvalTemplate(context.Background(), template, testContext())
+	if err == nil {
+		t.Fatal("expected error for overlong template output, got nil")
+	}
+	if !errors.Is(err, ErrTemplateOutputTooLong) {
+		t.Fatalf("expected ErrTemplateOutputTooLong, got %v", err)
+	}
+}
+
+func TestEvalTemplateAllowsOutputUnderLimit(t *testing.T) {
+	res, err := EvalTemplate(context.Background(), `a{{repeat("x",1000)}}b{{repeat("y",1000)}}`, testContext())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(res.String()) != 2002 {
+		t.Errorf("got %d bytes, want 2002", len(res.String()))
+	}
+}
