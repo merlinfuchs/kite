@@ -40,12 +40,14 @@ export default function CommandList() {
               one leaves no command to compare at all. Gating on "has
               undeployed changes" made deleted commands unremovable. */}
           <div className="flex gap-5 justify-between flex-col md:flex-row">
-            <CommandCreateDialog>
-              <Button>Create command</Button>
-            </CommandCreateDialog>
-            <CommandImportDialog>
-              <Button>Import command</Button>
-            </CommandImportDialog>
+            <div className="flex gap-5 flex-col md:flex-row">
+              <CommandCreateDialog>
+                <Button>Create command</Button>
+              </CommandCreateDialog>
+              <CommandImportDialog>
+                <Button>Import command</Button>
+              </CommandImportDialog>
+            </div>
 
             <CommandDeployDialog
               open={deployDialogOpen}

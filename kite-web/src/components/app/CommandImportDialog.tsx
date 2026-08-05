@@ -1,4 +1,5 @@
 import { ReactNode, useCallback, useState } from "react";
+import { useRouter } from "next/router";
 import { Button } from "../ui/button";
 import {
   Dialog,
@@ -20,6 +21,7 @@ export function CommandImportDialog({ children }: { children: ReactNode }) {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [shareCode, setShareCode] = useState("");
 
+  const router = useRouter();
   const appId = useAppId();
   const commandsImportMutation = useCommandsImportMutation(appId);
 
@@ -27,7 +29,7 @@ export function CommandImportDialog({ children }: { children: ReactNode }) {
     const trimmed = shareCode.trim();
 
     if (!trimmed) {
-      toast.error("Please paste a share code before importing");
+      toast.error("Paste code before importing");
       return;
     }
 
@@ -36,7 +38,7 @@ export function CommandImportDialog({ children }: { children: ReactNode }) {
       parsed = JSON.parse(trimmed);
     } catch {
       toast.error(
-        "Invalid share code... please check you copied it correctly"
+        "Error importing command: invalid share code"
       );
       return;
     }
@@ -48,7 +50,7 @@ export function CommandImportDialog({ children }: { children: ReactNode }) {
       !("enabled" in parsed)
     ) {
       toast.error(
-        "This doesn't look like a valid command share code, please check you copied it correctly"
+        "Error importing command: invalid share code"
       );
       return;
     }
@@ -60,9 +62,29 @@ export function CommandImportDialog({ children }: { children: ReactNode }) {
       {
         onSuccess: (res) => {
           if (res.success) {
-            toast.success("Command imported successfully");
+            const imported = res.data[0];
+
+            if (!imported) {
+              toast.error(
+                `Error importing command: command not found`
+              );
+              setShareCode("");
+              setDialogOpen(false);
+              return;
+            }
+
+            toast.success("Command imported!");
             setShareCode("");
             setDialogOpen(false);
+
+            setTimeout(
+              () =>
+                router.push({
+                  pathname: "/apps/[appId]/commands/[cmdId]",
+                  query: { appId, cmdId: imported.id },
+                }),
+              500
+            );
           } else {
             toast.error(
               `Failed to import command: ${res.error.message} (${res.error.code})`
@@ -91,14 +113,13 @@ export function CommandImportDialog({ children }: { children: ReactNode }) {
         <DialogHeader>
           <DialogTitle className="mb-1">Import Command</DialogTitle>
           <DialogDescription>
-            Import a command using a generated share code.
+            Import a command using a share code.
           </DialogDescription>
         </DialogHeader>
         <div className="mb-3 mt-2 space-y-3">
           <div>
             <div className="font-medium mb-0.5">Share Code</div>
-            <div className="text-sm text-muted-foreground mb-3">
-            </div>
+            <div className="text-sm text-muted-foreground mb-3"></div>
             <Input
               value={shareCode}
               onChange={(e) => setShareCode(e.target.value)}
