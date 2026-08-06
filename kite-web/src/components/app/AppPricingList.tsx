@@ -90,7 +90,7 @@ export default function AppPricingList() {
                 title={`Switch to ${pricing.title}?`}
                 description={
                   "Your subscription changes to this plan straight away. " +
-                  "LemonSqueezy charges or credits you the prorated difference for the rest of the current billing period."
+                  "Our payment provider charges or credits you the prorated difference for the rest of the current billing period."
                 }
                 onConfirm={() => switchPlan(pricing.lemonsqueezy_variant_id)}
               >

@@ -2,6 +2,7 @@ package billing
 
 import (
 	"fmt"
+	"log/slog"
 	"strconv"
 
 	"github.com/NdoleStudio/lemonsqueezy-go"
@@ -93,7 +94,15 @@ func (h *BillingHandler) HandleSubscriptionPlanUpdate(c *handler.Context, req wi
 		},
 	})
 	if err != nil {
-		return nil, fmt.Errorf("failed to update subscription in LemonSqueezy: %w", err)
+		// Unexpected errors are returned to the client verbatim, so keep the
+		// provider's name out of a message the user will read.
+		slog.Error(
+			"Failed to update subscription with the billing provider",
+			slog.String("subscription_id", subscription.ID),
+			slog.String("ls_subscription_id", subscription.LemonsqueezySubscriptionID.String),
+			slog.String("error", err.Error()),
+		)
+		return nil, handler.ErrInternal("Failed to switch plan with our payment provider, please try again")
 	}
 
 	// LemonSqueezy also sends a subscription_updated webhook, but we cannot rely
@@ -128,7 +137,13 @@ func (h *BillingHandler) HandleSubscriptionManage(c *handler.Context) (*wire.Sub
 
 	sub, _, err := h.client.Subscriptions.Get(c.Context(), subscription.LemonsqueezySubscriptionID.String)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get subscription from LemonSqueezy: %w", err)
+		slog.Error(
+			"Failed to get subscription from the billing provider",
+			slog.String("subscription_id", subscription.ID),
+			slog.String("ls_subscription_id", subscription.LemonsqueezySubscriptionID.String),
+			slog.String("error", err.Error()),
+		)
+		return nil, handler.ErrInternal("Failed to reach our payment provider, please try again")
 	}
 
 	return &wire.SubscriptionManageResponse{
