@@ -13,5 +13,7 @@ type EntitlementStore interface {
 	// ActiveEntitlementsForApps is the batch form, keyed by app ID.
 	ActiveEntitlementsForApps(ctx context.Context, appIDs []string, now time.Time) (map[string][]*model.Entitlement, error)
 	UpsertSubscriptionEntitlement(ctx context.Context, entitlement model.Entitlement) (*model.Entitlement, error)
-	UpdateSubscriptionEntitlement(ctx context.Context, entitlement model.Entitlement) (*model.Entitlement, error)
+	// UpdateSubscriptionEntitlement updates every entitlement the subscription
+	// holds. A subscription with no entitlements is not an error.
+	UpdateSubscriptionEntitlement(ctx context.Context, entitlement model.Entitlement) error
 }

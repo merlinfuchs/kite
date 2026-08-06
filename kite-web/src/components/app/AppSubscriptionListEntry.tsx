@@ -12,6 +12,7 @@ import {
   useLemonSqueezyCustomerPortal,
   useLemonSqueezyUpdatePaymentMethod,
 } from "@/lib/hooks/lemonsqueezy";
+import { isSubscriptionActive } from "@/lib/subscriptions";
 
 export default function AppSubscriptionListEntry({
   subscription,
@@ -41,7 +42,9 @@ export default function AppSubscriptionListEntry({
           </div>
           <div>
             <Badge
-              variant={subscription.status !== "ended" ? "default" : "outline"}
+              variant={
+                isSubscriptionActive(subscription) ? "default" : "outline"
+              }
             >
               {subscription.status_formatted}
             </Badge>

@@ -124,12 +124,12 @@ func (q *Queries) GetEntitlements(ctx context.Context, appID string) ([]Entitlem
 	return items, nil
 }
 
-const updateSubscriptionEntitlement = `-- name: UpdateSubscriptionEntitlement :one
+const updateSubscriptionEntitlement = `-- name: UpdateSubscriptionEntitlement :exec
 UPDATE entitlements SET
     plan_id = $2,
     updated_at = $3,
     ends_at = $4
-WHERE subscription_id = $1 RETURNING id, type, subscription_id, app_id, plan_id, created_at, updated_at, ends_at
+WHERE subscription_id = $1
 `
 
 type UpdateSubscriptionEntitlementParams struct {
@@ -139,25 +139,17 @@ type UpdateSubscriptionEntitlementParams struct {
 	EndsAt         pgtype.Timestamp
 }
 
-func (q *Queries) UpdateSubscriptionEntitlement(ctx context.Context, arg UpdateSubscriptionEntitlementParams) (Entitlement, error) {
-	row := q.db.QueryRow(ctx, updateSubscriptionEntitlement,
+// Updates every entitlement held by the subscription. :exec, not :one, because
+// a webhook can arrive for a subscription that has no entitlement yet (no
+// app_id in the checkout metadata), and no rows to update is not an error.
+func (q *Queries) UpdateSubscriptionEntitlement(ctx context.Context, arg UpdateSubscriptionEntitlementParams) error {
+	_, err := q.db.Exec(ctx, updateSubscriptionEntitlement,
 		arg.SubscriptionID,
 		arg.PlanID,
 		arg.UpdatedAt,
 		arg.EndsAt,
 	)
-	var i Entitlement
-	err := row.Scan(
-		&i.ID,
-		&i.Type,
-		&i.SubscriptionID,
-		&i.AppID,
-		&i.PlanID,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-		&i.EndsAt,
-	)
-	return i, err
+	return err
 }
 
 const upsertSubscriptionEntitlement = `-- name: UpsertSubscriptionEntitlement :one

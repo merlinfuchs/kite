@@ -13,12 +13,13 @@ import { useAppSubscriptions, useBillingPlans } from "@/lib/hooks/api";
 import { ReactNode, useMemo } from "react";
 import { useLemonSqueezyCheckout } from "@/lib/hooks/lemonsqueezy";
 import { formatNumber } from "@/lib/utils";
+import { isSubscriptionActive } from "@/lib/subscriptions";
 
 export default function AppPricingList() {
   const subscriptions = useAppSubscriptions();
 
-  const activeSubscriptions = subscriptions?.filter(
-    (subscription) => subscription!.status !== "expired"
+  const activeSubscriptions = subscriptions?.filter((subscription) =>
+    isSubscriptionActive(subscription!)
   );
 
   const plans = useBillingPlans();
