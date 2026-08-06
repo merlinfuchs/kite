@@ -155,6 +155,10 @@ export interface BillingCheckoutRequest {
 export interface BillingCheckoutResponse {
   url: string;
 }
+export interface SubscriptionPlanUpdateRequest {
+  lemonsqueezy_variant_id: string;
+}
+export type SubscriptionPlanUpdateResponse = Subscription;
 export interface SubscriptionManageResponse {
   update_payment_method_url: string;
   customer_portal_url: string;

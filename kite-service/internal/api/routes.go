@@ -165,6 +165,7 @@ func (s *APIServer) RegisterRoutes(
 	appBillingGroup := appGroup.Group("/billing")
 	appBillingGroup.Get("/subscriptions", handler.Typed(billingHandler.HandleAppSubscriptionList))
 	appBillingGroup.Post("/checkout", handler.TypedWithBody(billingHandler.HandleAppCheckout))
+	appBillingGroup.Put("/subscriptions/{subscriptionID}/plan", handler.TypedWithBody(billingHandler.HandleSubscriptionPlanUpdate))
 	appBillingGroup.Get("/features", handler.Typed(billingHandler.HandleFeaturesGet))
 
 	// Log routes

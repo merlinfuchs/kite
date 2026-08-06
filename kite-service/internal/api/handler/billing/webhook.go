@@ -4,14 +4,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
-	"time"
+	"strconv"
 
 	"github.com/NdoleStudio/lemonsqueezy-go"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler"
 	"github.com/kitecloud/kite/kite-service/internal/api/wire"
-	"github.com/kitecloud/kite/kite-service/internal/model"
-	"github.com/kitecloud/kite/kite-service/internal/util"
-	"gopkg.in/guregu/null.v4"
 )
 
 // subscriptionEventNames are the events whose data object is a subscription,
@@ -73,90 +70,31 @@ func (h *BillingHandler) HandleBillingWebhook(c *handler.Context, body json.RawM
 
 	sub := req.Data.Attributes
 
-	subscription, err := h.subscriptionStore.UpsertLemonSqueezySubscription(c.Context(), model.Subscription{
-		ID:                         util.UniqueID(),
-		DisplayName:                sub.ProductName,
-		Source:                     model.SubscriptionSourceLemonSqueezy,
+	_, err := h.syncSubscription(c.Context(), subscriptionSync{
+		LemonSqueezySubscriptionID: req.Data.ID,
+		UserID:                     userID,
+		AppID:                      appID,
+		ProductName:                sub.ProductName,
 		Status:                     sub.Status,
 		StatusFormatted:            sub.StatusFormatted,
+		LemonSqueezyCustomerID:     strconv.Itoa(sub.CustomerID),
+		LemonSqueezyOrderID:        strconv.Itoa(sub.OrderID),
+		LemonSqueezyProductID:      strconv.Itoa(sub.ProductID),
+		LemonSqueezyVariantID:      strconv.Itoa(sub.VariantID),
 		RenewsAt:                   sub.RenewsAt,
 		TrialEndsAt:                sub.TrialEndsAt,
 		EndsAt:                     sub.EndsAt,
 		CreatedAt:                  sub.CreatedAt,
 		UpdatedAt:                  sub.UpdatedAt,
-		UserID:                     userID,
-		LemonsqueezySubscriptionID: null.StringFrom(req.Data.ID),
-		LemonsqueezyCustomerID:     null.StringFrom(fmt.Sprintf("%d", sub.CustomerID)),
-		LemonsqueezyOrderID:        null.StringFrom(fmt.Sprintf("%d", sub.OrderID)),
-		LemonsqueezyProductID:      null.StringFrom(fmt.Sprintf("%d", sub.ProductID)),
-		LemonsqueezyVariantID:      null.StringFrom(fmt.Sprintf("%d", sub.VariantID)),
 	})
 	if err != nil {
 		slog.Error(
-			"Failed to upsert subscription",
+			"Failed to sync subscription from webhook",
+			slog.String("event_name", eventName),
 			slog.String("ls_subscription_id", req.Data.ID),
 			slog.String("error", err.Error()),
 		)
-		return nil, fmt.Errorf("failed to upsert subscription: %w", err)
-	}
-
-	// We use the renews_at date as the default entitlement end date.
-	// If the subscription ends at a date that is before the renews_at date, we use the subscription ends_at date.
-	entitlementEndsAt := sub.RenewsAt
-	if sub.EndsAt.Valid && (!entitlementEndsAt.Valid || sub.EndsAt.Time.Before(entitlementEndsAt.Time)) {
-		entitlementEndsAt = sub.EndsAt
-	}
-	if !entitlementEndsAt.Valid {
-		// Neither date is set, which means the subscription will not renew and
-		// has no remaining paid period - a paused one, for example. Ending the
-		// entitlement now keeps it out of ActiveEntitlements.
-		entitlementEndsAt = null.TimeFrom(time.Now().UTC())
-	}
-
-	plan := h.planManager.PlanByLemonSqueezyProductID(fmt.Sprintf("%d", sub.ProductID))
-	if plan == nil {
-		slog.Error(
-			"Failed to find plan ID for subscription",
-			slog.String("ls_subscription_id", req.Data.ID),
-			slog.String("ls_product_id", fmt.Sprintf("%d", sub.ProductID)),
-		)
-		return nil, fmt.Errorf("failed to find plan ID for subscription")
-	}
-
-	entitlement := model.Entitlement{
-		ID:             util.UniqueID(),
-		Type:           "subscription",
-		SubscriptionID: null.StringFrom(subscription.ID),
-		AppID:          appID,
-		PlanID:         plan.ID,
-		CreatedAt:      time.Now().UTC(),
-		UpdatedAt:      time.Now().UTC(),
-		EndsAt:         entitlementEndsAt,
-	}
-
-	if appID != "" {
-		// Create a new entitlement or update the existing one
-		_, err := h.entitlementStore.UpsertSubscriptionEntitlement(c.Context(), entitlement)
-		if err != nil {
-			slog.Error(
-				"Failed to upsert subscription entitlement",
-				slog.String("subscription_id", subscription.ID),
-				slog.String("ls_subscription_id", req.Data.ID),
-				slog.String("error", err.Error()),
-			)
-			return nil, fmt.Errorf("failed to upsert subscription entitlement: %w", err)
-		}
-	} else {
-		// We don't have the app ID, but there might be an entitlement anyway, so we update that
-		err := h.entitlementStore.UpdateSubscriptionEntitlement(c.Context(), entitlement)
-		if err != nil {
-			slog.Error(
-				"Failed to update subscription entitlement",
-				slog.String("subscription_id", subscription.ID),
-				slog.String("error", err.Error()),
-			)
-			return nil, fmt.Errorf("failed to update subscription entitlement: %w", err)
-		}
+		return nil, err
 	}
 
 	return &wire.BillingWebhookResponse{}, nil

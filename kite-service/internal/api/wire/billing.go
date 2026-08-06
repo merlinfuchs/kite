@@ -51,6 +51,12 @@ type BillingCheckoutResponse struct {
 	URL string `json:"url"`
 }
 
+type SubscriptionPlanUpdateRequest struct {
+	LemonSqueezyVariantID string `json:"lemonsqueezy_variant_id"`
+}
+
+type SubscriptionPlanUpdateResponse = Subscription
+
 type SubscriptionManageResponse struct {
 	UpdatePaymentMethodURL string `json:"update_payment_method_url"`
 	CustomerPortalURL      string `json:"customer_portal_url"`

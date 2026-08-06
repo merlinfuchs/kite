@@ -53,6 +53,15 @@ func (m *PlanManager) PlanByLemonSqueezyProductID(productID string) *model.Plan 
 	return nil
 }
 
+func (m *PlanManager) PlanByLemonSqueezyVariantID(variantID string) *model.Plan {
+	for _, plan := range m.plans {
+		if plan.LemonSqueezyVariantID == variantID {
+			return &plan
+		}
+	}
+	return nil
+}
+
 func (m *PlanManager) AppFeatures(ctx context.Context, appID string) model.Features {
 	ctx, cancel := context.WithTimeout(ctx, 3*time.Second)
 	defer cancel()
