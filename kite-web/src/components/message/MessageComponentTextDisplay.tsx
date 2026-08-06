@@ -1,5 +1,5 @@
 import { MessageComponentTextDisplay } from "@/lib/message/schema";
-import { useMessageStore } from "@/lib/message/useMessageStore";
+import { useCurrentMessage } from "@/lib/message/state";
 
 interface Props {
   component: MessageComponentTextDisplay;
@@ -12,7 +12,13 @@ export default function MessageComponentTextDisplay({
   containerIndex,
   componentIndex,
 }: Props) {
-  const store = useMessageStore();
+  const [
+    deleteComponentFromContainer,
+    setStandaloneTextDisplayContent,
+  ] = useCurrentMessage((state) => [
+    state.deleteComponentFromContainer,
+    state.setStandaloneTextDisplayContent,
+  ]);
 
   return (
     <div className="space-y-2">
@@ -22,7 +28,7 @@ export default function MessageComponentTextDisplay({
         </label>
         <button
           onClick={() =>
-            store.deleteComponentFromContainer(containerIndex, componentIndex)
+            deleteComponentFromContainer(containerIndex, componentIndex)
           }
           className="text-red-500 hover:text-red-400 text-sm"
         >
@@ -33,7 +39,7 @@ export default function MessageComponentTextDisplay({
       <textarea
         value={component.content}
         onChange={(e) =>
-          store.setStandaloneTextDisplayContent(
+          setStandaloneTextDisplayContent(
             containerIndex,
             componentIndex,
             e.target.value

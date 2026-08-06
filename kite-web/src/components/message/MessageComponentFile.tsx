@@ -1,5 +1,5 @@
 import { MessageComponentFile } from "@/lib/message/schema";
-import { useMessageStore } from "@/lib/message/useMessageStore";
+import { useCurrentMessage } from "@/lib/message/state";
 
 interface Props {
   component: MessageComponentFile;
@@ -12,7 +12,12 @@ export default function MessageComponentFile({
   containerIndex,
   componentIndex,
 }: Props) {
-  const store = useMessageStore();
+  const [deleteComponentFromContainer, setFileUrl, setFileSpoiler] =
+  useCurrentMessage((state) => [
+    state.deleteComponentFromContainer,
+    state.setFileUrl,
+    state.setFileSpoiler,
+  ]);
 
   return (
     <div className="space-y-3 p-3 bg-dark-3 rounded border border-dark-6">
@@ -20,7 +25,7 @@ export default function MessageComponentFile({
         <label className="text-sm font-medium text-gray-300">File</label>
         <button
           onClick={() =>
-            store.deleteComponentFromContainer(containerIndex, componentIndex)
+            deleteComponentFromContainer(containerIndex, componentIndex)
           }
           className="text-red-500 hover:text-red-400 text-sm"
         >
@@ -36,7 +41,7 @@ export default function MessageComponentFile({
           type="text"
           value={component.file.url}
           onChange={(e) =>
-            store.setFileUrl(containerIndex, componentIndex, e.target.value)
+            setFileUrl(containerIndex, componentIndex, e.target.value)
           }
           placeholder="https://example.com/file.pdf"
           className="w-full bg-dark-2 rounded p-2 text-sm border border-dark-6 focus:border-blurple focus:outline-none"
@@ -52,7 +57,7 @@ export default function MessageComponentFile({
             type="checkbox"
             checked={component.spoiler ?? false}
             onChange={(e) =>
-              store.setFileSpoiler(
+              setFileSpoiler(
                 containerIndex,
                 componentIndex,
                 e.target.checked

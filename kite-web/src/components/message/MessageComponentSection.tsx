@@ -1,5 +1,5 @@
 import { MessageComponentSection } from "@/lib/message/schema";
-import { useMessageStore } from "@/lib/message/useMessageStore";
+import { useCurrentMessage } from "@/lib/message/state";
 import { getUniqueId } from "@/lib/utils";
 import { ChevronDown, ChevronUp, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
@@ -15,11 +15,23 @@ export default function MessageComponentSection({
   containerIndex,
   componentIndex,
 }: Props) {
-  const store = useMessageStore();
+  const [
+    deleteComponentFromContainer,
+    addTextDisplayToSection,
+    deleteTextDisplayFromSection,
+    setTextDisplayContent,
+    setSectionAccessory,
+  ] = useCurrentMessage((state) => [
+      state.deleteComponentFromContainer,
+      state.addTextDisplayToSection,
+      state.deleteTextDisplayFromSection,
+      state.setTextDisplayContent,
+      state.setSectionAccessory,
+  ]);
   const [collapsed, setCollapsed] = useState(false);
 
   const addTextDisplay = () => {
-    store.addTextDisplayToSection(containerIndex, componentIndex, {
+    addTextDisplayToSection(containerIndex, componentIndex, {
       id: getUniqueId(),
       type: 10,
       content: "",
@@ -28,15 +40,15 @@ export default function MessageComponentSection({
 
   const setAccessoryType = (type: "thumbnail" | "button" | null) => {
     if (type === null) {
-      store.setSectionAccessory(containerIndex, componentIndex, undefined);
+      setSectionAccessory(containerIndex, componentIndex, undefined);
     } else if (type === "thumbnail") {
-      store.setSectionAccessory(containerIndex, componentIndex, {
+        setSectionAccessory(containerIndex, componentIndex, {
         id: getUniqueId(),
         type: 11,
         media: { url: "" },
       });
     } else if (type === "button") {
-      store.setSectionAccessory(containerIndex, componentIndex, {
+      setSectionAccessory(containerIndex, componentIndex, {
         id: getUniqueId(),
         type: 2,
         style: 1,
@@ -63,7 +75,7 @@ export default function MessageComponentSection({
         </button>
         <button
           onClick={() =>
-            store.deleteComponentFromContainer(containerIndex, componentIndex)
+            deleteComponentFromContainer(containerIndex, componentIndex)
           }
           className="text-red-500 hover:text-red-400"
         >
@@ -97,7 +109,7 @@ export default function MessageComponentSection({
                   </label>
                   <button
                     onClick={() =>
-                      store.deleteTextDisplayFromSection(
+                      deleteTextDisplayFromSection(
                         containerIndex,
                         componentIndex,
                         index
@@ -111,7 +123,7 @@ export default function MessageComponentSection({
                 <textarea
                   value={textDisplay.content}
                   onChange={(e) =>
-                    store.setTextDisplayContent(
+                    setTextDisplayContent(
                       containerIndex,
                       componentIndex,
                       index,
@@ -182,7 +194,7 @@ export default function MessageComponentSection({
                   type="text"
                   value={component.accessory.media.url}
                   onChange={(e) =>
-                    store.setSectionAccessory(containerIndex, componentIndex, {
+                    setSectionAccessory(containerIndex, componentIndex, {
                       ...component.accessory!,
                       media: { url: e.target.value },
                     })
@@ -197,7 +209,7 @@ export default function MessageComponentSection({
                   type="text"
                   value={component.accessory.description || ""}
                   onChange={(e) =>
-                    store.setSectionAccessory(containerIndex, componentIndex, {
+                    setSectionAccessory(containerIndex, componentIndex, {
                       ...component.accessory!,
                       description: e.target.value,
                     })
@@ -211,7 +223,7 @@ export default function MessageComponentSection({
                     type="checkbox"
                     checked={component.accessory.spoiler ?? false}
                     onChange={(e) =>
-                      store.setSectionAccessory(containerIndex, componentIndex, {
+                      setSectionAccessory(containerIndex, componentIndex, {
                         ...component.accessory!,
                         spoiler: e.target.checked,
                       })
@@ -233,7 +245,7 @@ export default function MessageComponentSection({
                   type="text"
                   value={component.accessory.label}
                   onChange={(e) =>
-                    store.setSectionAccessory(containerIndex, componentIndex, {
+                    setSectionAccessory(containerIndex, componentIndex, {
                       ...component.accessory!,
                       label: e.target.value,
                     })
@@ -248,7 +260,7 @@ export default function MessageComponentSection({
                 <select
                   value={component.accessory.style}
                   onChange={(e) =>
-                    store.setSectionAccessory(containerIndex, componentIndex, {
+                    setSectionAccessory(containerIndex, componentIndex, {
                       ...component.accessory!,
                       style: parseInt(e.target.value) as 1 | 2 | 3 | 4 | 5,
                     })

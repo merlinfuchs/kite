@@ -2,7 +2,7 @@ import {
   MessageComponentMediaGallery,
   MessageComponentMediaGalleryItem,
 } from "@/lib/message/schema";
-import { useMessageStore } from "@/lib/message/useMessageStore";
+import { useCurrentMessage } from "@/lib/message/state";
 import { getUniqueId } from "@/lib/utils";
 import {
   ChevronDown,
@@ -25,7 +25,25 @@ export default function MessageComponentMediaGallery({
   containerIndex,
   componentIndex,
 }: Props) {
-  const store = useMessageStore();
+  const [
+    deleteComponentFromContainer,
+    addMediaGalleryItem,
+    deleteMediaGalleryItem,
+    moveMediaGalleryItemUp,
+    moveMediaGalleryItemDown,
+    setMediaGalleryItemUrl,
+    setMediaGalleryItemDescription,
+    setMediaGalleryItemSpoiler,
+  ] = useCurrentMessage((state) => [
+    state.deleteComponentFromContainer,
+    state.addMediaGalleryItem,
+    state.deleteMediaGalleryItem,
+    state.moveMediaGalleryItemUp,
+    state.moveMediaGalleryItemDown,
+    state.setMediaGalleryItemUrl,
+    state.setMediaGalleryItemDescription,
+    state.setMediaGalleryItemSpoiler,
+  ]);
   const [collapsed, setCollapsed] = useState(false);
 
   const addItem = () => {
@@ -33,7 +51,7 @@ export default function MessageComponentMediaGallery({
       id: getUniqueId(),
       media: { url: "" },
     };
-    store.addMediaGalleryItem(containerIndex, componentIndex, newItem);
+    addMediaGalleryItem(containerIndex, componentIndex, newItem);
   };
 
   return (
@@ -56,7 +74,7 @@ export default function MessageComponentMediaGallery({
         </button>
         <button
           onClick={() =>
-            store.deleteComponentFromContainer(containerIndex, componentIndex)
+            deleteComponentFromContainer(containerIndex, componentIndex)
           }
           className="text-red-500 hover:text-red-400"
         >
@@ -94,7 +112,7 @@ export default function MessageComponentMediaGallery({
                   <div className="flex items-center gap-1">
                     <button
                       onClick={() =>
-                        store.moveMediaGalleryItemUp(
+                        moveMediaGalleryItemUp(
                           containerIndex,
                           componentIndex,
                           itemIndex
@@ -108,7 +126,7 @@ export default function MessageComponentMediaGallery({
                     </button>
                     <button
                       onClick={() =>
-                        store.moveMediaGalleryItemDown(
+                        moveMediaGalleryItemDown(
                           containerIndex,
                           componentIndex,
                           itemIndex
@@ -122,7 +140,7 @@ export default function MessageComponentMediaGallery({
                     </button>
                     <button
                       onClick={() =>
-                        store.deleteMediaGalleryItem(
+                        deleteMediaGalleryItem(
                           containerIndex,
                           componentIndex,
                           itemIndex
@@ -144,7 +162,7 @@ export default function MessageComponentMediaGallery({
                     type="text"
                     value={item.media.url}
                     onChange={(e) =>
-                      store.setMediaGalleryItemUrl(
+                      setMediaGalleryItemUrl(
                         containerIndex,
                         componentIndex,
                         itemIndex,
@@ -164,7 +182,7 @@ export default function MessageComponentMediaGallery({
                     type="text"
                     value={item.description || ""}
                     onChange={(e) =>
-                      store.setMediaGalleryItemDescription(
+                      setMediaGalleryItemDescription(
                         containerIndex,
                         componentIndex,
                         itemIndex,
@@ -182,7 +200,7 @@ export default function MessageComponentMediaGallery({
                     type="checkbox"
                     checked={item.spoiler ?? false}
                     onChange={(e) =>
-                      store.setMediaGalleryItemSpoiler(
+                      setMediaGalleryItemSpoiler(
                         containerIndex,
                         componentIndex,
                         itemIndex,

@@ -1,5 +1,5 @@
 import { MessageComponentContainer } from "@/lib/message/schema";
-import { useMessageStore } from "@/lib/message/useMessageStore";
+import { useCurrentMessage } from "@/lib/message/state";
 import { getUniqueId } from "@/lib/utils";
 import {
   ChevronDown,
@@ -25,49 +25,65 @@ export default function MessageComponentContainer({
   component,
   containerIndex,
 }: Props) {
-  const store = useMessageStore();
+  const [
+    addComponentToContainer,
+    deleteComponentRow,
+    deleteComponentFromContainer,
+    moveContainerComponentUp,
+    moveContainerComponentDown,
+    setContainerAccentColor,
+    setContainerSpoiler,
+] = useCurrentMessage((state) => [
+    state.addComponentToContainer,
+    state.deleteComponentRow,
+    state.deleteComponentFromContainer,
+    state.moveContainerComponentUp,
+    state.moveContainerComponentDown,
+    state.setContainerAccentColor,
+    state.setContainerSpoiler,
+  ]);
   const [collapsed, setCollapsed] = useState(false);
   const [showAddMenu, setShowAddMenu] = useState(false);
 
   const addComponent = (type: number) => {
     switch (type) {
       case 1: // Action Row
-        store.addComponentToContainer(containerIndex, {
+        addComponentToContainer(containerIndex, {
           id: getUniqueId(),
           type: 1,
           components: [],
         });
         break;
       case 9: // Section
-        store.addComponentToContainer(containerIndex, {
+        addComponentToContainer(containerIndex, {
           id: getUniqueId(),
           type: 9,
           components: [],
         });
         break;
       case 10: // Text Display
-        store.addComponentToContainer(containerIndex, {
+        addComponentToContainer(containerIndex, {
           id: getUniqueId(),
           type: 10,
           content: "",
         });
         break;
       case 12: // Media Gallery
-        store.addComponentToContainer(containerIndex, {
+        addComponentToContainer(containerIndex, {
           id: getUniqueId(),
           type: 12,
           items: [],
         });
         break;
       case 13: // File
-        store.addComponentToContainer(containerIndex, {
+        addComponentToContainer(containerIndex, {
           id: getUniqueId(),
           type: 13,
           file: { url: "" },
         });
         break;
       case 14: // Separator
-        store.addComponentToContainer(containerIndex, {
+        addComponentToContainer(containerIndex, {
           id: getUniqueId(),
           type: 14,
           divider: true,
@@ -97,7 +113,7 @@ export default function MessageComponentContainer({
           </span>
         </button>
         <button
-          onClick={() => store.deleteComponentRow(containerIndex)}
+          onClick={() => deleteComponentRow(containerIndex)}
           className="text-red-500 hover:text-red-400"
         >
           <Trash2 className="w-4 h-4" />
@@ -123,7 +139,7 @@ export default function MessageComponentContainer({
                   onChange={(e) => {
                     const hex = e.target.value.replace("#", "");
                     const decimal = parseInt(hex, 16);
-                    store.setContainerAccentColor(containerIndex, decimal);
+                    setContainerAccentColor(containerIndex, decimal);
                   }}
                   className="w-12 h-8 rounded cursor-pointer"
                 />
@@ -139,10 +155,10 @@ export default function MessageComponentContainer({
                     if (hex.length === 6) {
                       const decimal = parseInt(hex, 16);
                       if (!isNaN(decimal)) {
-                        store.setContainerAccentColor(containerIndex, decimal);
+                        setContainerAccentColor(containerIndex, decimal);
                       }
                     } else if (hex.length === 0) {
-                      store.setContainerAccentColor(containerIndex, undefined);
+                      setContainerAccentColor(containerIndex, undefined);
                     }
                   }}
                   placeholder="#5865F2"
@@ -161,7 +177,7 @@ export default function MessageComponentContainer({
                   type="checkbox"
                   checked={component.spoiler ?? false}
                   onChange={(e) =>
-                    store.setContainerSpoiler(containerIndex, e.target.checked)
+                    setContainerSpoiler(containerIndex, e.target.checked)
                   }
                   className="rounded bg-dark-2 border-dark-6 text-blurple focus:ring-blurple"
                 />
@@ -230,7 +246,7 @@ export default function MessageComponentContainer({
                 <div className="absolute -left-2 top-0 bottom-0 flex flex-col gap-1">
                   <button
                     onClick={() =>
-                      store.moveContainerComponentUp(containerIndex, compIndex)
+                      moveContainerComponentUp(containerIndex, compIndex)
                     }
                     disabled={compIndex === 0}
                     className="p-1 text-gray-400 hover:text-white bg-dark-3 rounded disabled:opacity-30 disabled:cursor-not-allowed"
@@ -240,7 +256,7 @@ export default function MessageComponentContainer({
                   </button>
                   <button
                     onClick={() =>
-                      store.moveContainerComponentDown(
+                      moveContainerComponentDown(
                         containerIndex,
                         compIndex
                       )
@@ -262,7 +278,7 @@ export default function MessageComponentContainer({
                         </span>
                         <button
                           onClick={() =>
-                            store.deleteComponentFromContainer(
+                            deleteComponentFromContainer(
                               containerIndex,
                               compIndex
                             )

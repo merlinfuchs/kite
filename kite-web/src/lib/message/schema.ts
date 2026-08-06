@@ -110,7 +110,17 @@ export const embedAuthorSchema = z.optional(
 
 export type EmbedAuthor = z.infer<typeof embedAuthorSchema>;
 
-export const embedProviderNameSchema = z.optional(
+export const embedProviderNameSchema = z.string().min(1).max(256);
+
+export type EmbedProviderName = z.infer<typeof embedProviderNameSchema>;
+
+export const embedProviderUrlSchema = z.optional(
+  z.string().refine(...urlRefinement)
+);
+
+export type EmbedProviderUrl = z.infer<typeof embedProviderUrlSchema>;
+
+export const embedProviderSchema = z.optional(
   z.object({
     name: embedProviderNameSchema,
     url: embedProviderUrlSchema,
@@ -127,15 +137,15 @@ export const embedFieldValueSchema = z.string().min(1).max(1024);
 
 export type EmbedFieldValue = z.infer<typeof embedFieldValueSchema>;
 
-export const embedFieldInlineSchma = z.optional(z.boolean());
+export const embedFieldInlineSchema = z.optional(z.boolean());
 
-export type EmbedFieldInline = z.infer<typeof embedFieldInlineSchma>;
+export type EmbedFieldInline = z.infer<typeof embedFieldInlineSchema>;
 
 export const embedFieldSchema = z.object({
   id: uniqueIdSchema.default(() => getUniqueId()),
   name: embedFieldNameSchema,
   value: embedFieldValueSchema,
-  inline: embedFieldInlineSchma,
+  inline: embedFieldInlineSchema,
 });
 
 export type EmbedField = z.infer<typeof embedFieldSchema>;

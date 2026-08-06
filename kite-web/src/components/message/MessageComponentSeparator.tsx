@@ -1,5 +1,5 @@
 import { MessageComponentSeparator } from "@/lib/message/schema";
-import { useMessageStore } from "@/lib/message/useMessageStore";
+import { useCurrentMessage } from "@/lib/message/state";
 
 interface Props {
   component: MessageComponentSeparator;
@@ -12,7 +12,15 @@ export default function MessageComponentSeparator({
   containerIndex,
   componentIndex,
 }: Props) {
-  const store = useMessageStore();
+  const [
+    deleteComponentFromContainer, 
+    setSeparatorDivider, 
+    setSeparatorSpacing,
+  ] = useCurrentMessage((state) => [
+    state.deleteComponentFromContainer,
+    state.setSeparatorDivider,
+    state.setSeparatorSpacing,
+  ]);
 
   return (
     <div className="space-y-3 p-3 bg-dark-3 rounded border border-dark-6">
@@ -20,7 +28,7 @@ export default function MessageComponentSeparator({
         <label className="text-sm font-medium text-gray-300">Separator</label>
         <button
           onClick={() =>
-            store.deleteComponentFromContainer(containerIndex, componentIndex)
+            deleteComponentFromContainer(containerIndex, componentIndex)
           }
           className="text-red-500 hover:text-red-400 text-sm"
         >
@@ -34,7 +42,7 @@ export default function MessageComponentSeparator({
             type="checkbox"
             checked={component.divider ?? true}
             onChange={(e) =>
-              store.setSeparatorDivider(
+              setSeparatorDivider(
                 containerIndex,
                 componentIndex,
                 e.target.checked
@@ -53,7 +61,7 @@ export default function MessageComponentSeparator({
         <div className="flex gap-2">
           <button
             onClick={() =>
-              store.setSeparatorSpacing(containerIndex, componentIndex, 1)
+              setSeparatorSpacing(containerIndex, componentIndex, 1)
             }
             className={`flex-1 px-3 py-2 rounded text-sm transition-colors ${
               (component.spacing ?? 1) === 1
@@ -65,7 +73,7 @@ export default function MessageComponentSeparator({
           </button>
           <button
             onClick={() =>
-              store.setSeparatorSpacing(containerIndex, componentIndex, 2)
+              setSeparatorSpacing(containerIndex, componentIndex, 2)
             }
             className={`flex-1 px-3 py-2 rounded text-sm transition-colors ${
               component.spacing === 2
