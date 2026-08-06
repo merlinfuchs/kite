@@ -9,6 +9,8 @@ import (
 	"github.com/NdoleStudio/lemonsqueezy-go"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler"
 	"github.com/kitecloud/kite/kite-service/internal/api/wire"
+	"github.com/kitecloud/kite/kite-service/internal/model"
+	"gopkg.in/guregu/null.v4"
 )
 
 // subscriptionEventNames are the events whose data object is a subscription,
@@ -70,23 +72,22 @@ func (h *BillingHandler) HandleBillingWebhook(c *handler.Context, body json.RawM
 
 	sub := req.Data.Attributes
 
-	_, err := h.syncSubscription(c.Context(), subscriptionSync{
-		LemonSqueezySubscriptionID: req.Data.ID,
-		UserID:                     userID,
-		AppID:                      appID,
-		ProductName:                sub.ProductName,
+	_, err := h.subscriptionManager.Sync(c.Context(), model.Subscription{
+		DisplayName:                sub.ProductName,
 		Status:                     sub.Status,
 		StatusFormatted:            sub.StatusFormatted,
-		LemonSqueezyCustomerID:     strconv.Itoa(sub.CustomerID),
-		LemonSqueezyOrderID:        strconv.Itoa(sub.OrderID),
-		LemonSqueezyProductID:      strconv.Itoa(sub.ProductID),
-		LemonSqueezyVariantID:      strconv.Itoa(sub.VariantID),
 		RenewsAt:                   sub.RenewsAt,
 		TrialEndsAt:                sub.TrialEndsAt,
 		EndsAt:                     sub.EndsAt,
 		CreatedAt:                  sub.CreatedAt,
 		UpdatedAt:                  sub.UpdatedAt,
-	})
+		UserID:                     userID,
+		LemonsqueezySubscriptionID: null.StringFrom(req.Data.ID),
+		LemonsqueezyCustomerID:     null.StringFrom(strconv.Itoa(sub.CustomerID)),
+		LemonsqueezyOrderID:        null.StringFrom(strconv.Itoa(sub.OrderID)),
+		LemonsqueezyProductID:      null.StringFrom(strconv.Itoa(sub.ProductID)),
+		LemonsqueezyVariantID:      null.StringFrom(strconv.Itoa(sub.VariantID)),
+	}, appID)
 	if err != nil {
 		slog.Error(
 			"Failed to sync subscription from webhook",

@@ -17,7 +17,6 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/core/usage"
 	"github.com/kitecloud/kite/kite-service/internal/db/postgres"
 	"github.com/kitecloud/kite/kite-service/internal/db/s3"
-	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/internal/store"
 	"github.com/kitecloud/kite/kite-service/internal/util"
 	"github.com/kitecloud/kite/kite-service/pkg/plugin"
@@ -115,12 +114,7 @@ func StartServer(c context.Context, cfg *config.Config) error {
 
 	handler := event.NewEventHandlerWrapper(engine, pg)
 
-	billingPlans := make([]model.Plan, len(cfg.Billing.Plans))
-	for i, plan := range cfg.Billing.Plans {
-		billingPlans[i] = model.Plan(plan)
-	}
-
-	planManager := plan.NewPlanManager(pg, pg, pg, billingPlans, plan.PlanManagerConfig{
+	planManager := plan.NewPlanManager(pg, pg, pg, plan.PlansFromConfig(cfg.Billing.Plans), plan.PlanManagerConfig{
 		DiscordBotToken: cfg.Discord.BotToken,
 		DiscordGuildID:  cfg.Discord.GuildID,
 	})

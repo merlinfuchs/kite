@@ -180,6 +180,11 @@ export interface Subscription {
   lemonsqueezy_order_id: null | string;
   lemonsqueezy_product_id: null | string;
   lemonsqueezy_variant_id: null | string;
+  /**
+   * Active mirrors model.Subscription.IsActive so the client does not have to
+   * keep its own copy of the LemonSqueezy status vocabulary.
+   */
+  active: boolean;
   manageable: boolean;
 }
 export type SubscriptionListResponse = (Subscription | undefined)[];

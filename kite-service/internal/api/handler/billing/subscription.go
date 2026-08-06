@@ -5,7 +5,6 @@ import (
 	"log/slog"
 	"strconv"
 
-	"github.com/NdoleStudio/lemonsqueezy-go"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler"
 	"github.com/kitecloud/kite/kite-service/internal/api/wire"
 	"github.com/kitecloud/kite/kite-service/internal/model"
@@ -23,16 +22,6 @@ func (h *BillingHandler) HandleAppSubscriptionList(c *handler.Context) (*wire.Su
 	}
 
 	return &res, nil
-}
-
-// activeStatuses are the LemonSqueezy statuses a subscription can be switched
-// from. Cancelled, expired, unpaid and paused subscriptions are not billed on a
-// schedule anymore, so a plan change would not take effect; those go back
-// through checkout or the customer portal instead.
-var activeStatuses = map[string]bool{
-	"on_trial": true,
-	"active":   true,
-	"past_due": true,
 }
 
 func (h *BillingHandler) HandleSubscriptionPlanUpdate(c *handler.Context, req wire.SubscriptionPlanUpdateRequest) (*wire.SubscriptionPlanUpdateResponse, error) {
@@ -63,7 +52,10 @@ func (h *BillingHandler) HandleSubscriptionPlanUpdate(c *handler.Context, req wi
 		return nil, handler.ErrNotFound("unmanageable_subscription", "Subscription can not be managed")
 	}
 
-	if !activeStatuses[subscription.Status] {
+	// Cancelled, expired, unpaid and paused subscriptions are not billed on a
+	// schedule anymore, so a plan change would not take effect; those go back
+	// through checkout or the customer portal instead.
+	if !subscription.IsActive() {
 		return nil, handler.ErrBadRequest(
 			"inactive_subscription",
 			"Only an active subscription can be switched to a different plan",
@@ -84,37 +76,17 @@ func (h *BillingHandler) HandleSubscriptionPlanUpdate(c *handler.Context, req wi
 		return nil, fmt.Errorf("failed to convert variant ID to int: %w", err)
 	}
 
-	// Prorated and invoiced right away, so the new plan's features apply from
-	// this moment rather than from the next renewal.
-	res, _, err := h.client.Subscriptions.Update(c.Context(), &lemonsqueezy.SubscriptionUpdateParams{
-		ID: subscription.LemonsqueezySubscriptionID.String,
-		Attributes: lemonsqueezy.SubscriptionUpdateParamsAttributes{
-			VariantID:          variantID,
-			InvoiceImmediately: true,
-		},
-	})
+	updated, err := h.subscriptionManager.ChangePlan(c.Context(), subscription, variantID, c.App.ID)
 	if err != nil {
 		// Unexpected errors are returned to the client verbatim, so keep the
 		// provider's name out of a message the user will read.
 		slog.Error(
-			"Failed to update subscription with the billing provider",
+			"Failed to switch the subscription's plan",
 			slog.String("subscription_id", subscription.ID),
 			slog.String("ls_subscription_id", subscription.LemonsqueezySubscriptionID.String),
 			slog.String("error", err.Error()),
 		)
 		return nil, handler.ErrInternal("Failed to switch plan with our payment provider, please try again")
-	}
-
-	// LemonSqueezy also sends a subscription_updated webhook, but we cannot rely
-	// on it having arrived by the time the client refetches.
-	updated, err := h.syncSubscription(c.Context(), subscriptionSyncFromLemonSqueezy(
-		res.Data.ID,
-		subscription.UserID,
-		c.App.ID,
-		res.Data.Attributes,
-	))
-	if err != nil {
-		return nil, err
 	}
 
 	return wire.SubscriptionToWire(updated, c.Session.UserID), nil

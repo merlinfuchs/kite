@@ -12,7 +12,7 @@ import {
   useLemonSqueezyCustomerPortal,
   useLemonSqueezyUpdatePaymentMethod,
 } from "@/lib/hooks/lemonsqueezy";
-import { isSubscriptionActive } from "@/lib/subscriptions";
+import { formatDate } from "@/lib/utils";
 
 export default function AppSubscriptionListEntry({
   subscription,
@@ -33,22 +33,16 @@ export default function AppSubscriptionListEntry({
               {subscription.display_name}
             </CardTitle>
             <CardDescription>
-              {new Date(subscription.created_at).toLocaleDateString()}
+              {formatDate(new Date(subscription.created_at))}
               {subscription.ends_at
-                ? ` - ${new Date(subscription.ends_at).toLocaleDateString()}`
+                ? ` - ${formatDate(new Date(subscription.ends_at))}`
                 : subscription.renews_at
-                ? ` - renews at ${new Date(
-                    subscription.renews_at
-                  ).toLocaleDateString()}`
+                ? ` - renews at ${formatDate(new Date(subscription.renews_at))}`
                 : null}
             </CardDescription>
           </div>
           <div>
-            <Badge
-              variant={
-                isSubscriptionActive(subscription) ? "default" : "outline"
-              }
-            >
+            <Badge variant={subscription.active ? "default" : "outline"}>
               {subscription.status_formatted}
             </Badge>
           </div>

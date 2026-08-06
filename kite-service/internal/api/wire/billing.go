@@ -79,7 +79,10 @@ type Subscription struct {
 	LemonsqueezyOrderID        null.String `json:"lemonsqueezy_order_id"`
 	LemonsqueezyProductID      null.String `json:"lemonsqueezy_product_id"`
 	LemonsqueezyVariantID      null.String `json:"lemonsqueezy_variant_id"`
-	Manageable                 bool        `json:"manageable"`
+	// Active mirrors model.Subscription.IsActive so the client does not have to
+	// keep its own copy of the LemonSqueezy status vocabulary.
+	Active     bool `json:"active"`
+	Manageable bool `json:"manageable"`
 }
 
 type SubscriptionListResponse = []*Subscription
@@ -106,6 +109,7 @@ func SubscriptionToWire(subscription *model.Subscription, userID string) *Subscr
 		LemonsqueezyOrderID:        subscription.LemonsqueezyOrderID,
 		LemonsqueezyProductID:      subscription.LemonsqueezyProductID,
 		LemonsqueezyVariantID:      subscription.LemonsqueezyVariantID,
+		Active:                     subscription.IsActive(),
 		Manageable:                 subscription.UserID == userID && subscription.LemonsqueezySubscriptionID.Valid,
 	}
 }

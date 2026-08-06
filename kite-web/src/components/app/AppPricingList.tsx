@@ -16,14 +16,14 @@ import {
   useSubscriptionPlanSwitch,
 } from "@/lib/hooks/lemonsqueezy";
 import { formatNumber } from "@/lib/utils";
-import { isSubscriptionActive } from "@/lib/subscriptions";
 import ConfirmDialog from "../common/ConfirmDialog";
 
 export default function AppPricingList() {
   const subscriptions = useAppSubscriptions();
 
-  const activeSubscriptions = subscriptions?.filter((subscription) =>
-    isSubscriptionActive(subscription!)
+  const activeSubscriptions = useMemo(
+    () => subscriptions?.filter((subscription) => subscription!.active),
+    [subscriptions]
   );
 
   const plans = useBillingPlans();
@@ -85,39 +85,13 @@ export default function AppPricingList() {
           </CardHeader>
 
           <CardContent>
-            {switchableSubscription && !pricing.current ? (
-              <ConfirmDialog
-                title={`Switch to ${pricing.title}?`}
-                description={
-                  "Your subscription changes to this plan straight away. " +
-                  "Our payment provider charges or credits you the prorated difference for the rest of the current billing period."
-                }
-                onConfirm={() => switchPlan(pricing.lemonsqueezy_variant_id)}
-              >
-                <Button
-                  className="w-full"
-                  disabled={pricing.price === 0}
-                  variant={pricing.popular ? "default" : "outline"}
-                >
-                  Switch Plan
-                </Button>
-              </ConfirmDialog>
-            ) : (
-              <Button
-                className="w-full"
-                disabled={
-                  pricing.current || pricing.price === 0 || blockedByOtherOwner
-                }
-                variant={pricing.popular ? "default" : "outline"}
-                onClick={() => checkout(pricing.lemonsqueezy_variant_id)}
-              >
-                {pricing.current
-                  ? "Current Plan"
-                  : blockedByOtherOwner
-                  ? "Managed by another user"
-                  : "Get Started"}
-              </Button>
-            )}
+            <PricingButton
+              pricing={pricing}
+              blockedByOtherOwner={blockedByOtherOwner}
+              canSwitch={!!switchableSubscription && !pricing.current}
+              onCheckout={() => checkout(pricing.lemonsqueezy_variant_id)}
+              onSwitch={() => switchPlan(pricing.lemonsqueezy_variant_id)}
+            />
           </CardContent>
 
           <hr className="w-4/5 m-auto mb-4" />
@@ -167,5 +141,61 @@ export default function AppPricingList() {
         </Card>
       ))}
     </div>
+  );
+}
+
+// PricingButton renders the same button either way; switching a plan only wraps
+// it in a confirmation, because it charges the customer straight away.
+function PricingButton({
+  pricing,
+  canSwitch,
+  blockedByOtherOwner,
+  onCheckout,
+  onSwitch,
+}: {
+  pricing: {
+    title: string;
+    price: number;
+    popular: boolean;
+    current?: boolean;
+  };
+  canSwitch: boolean;
+  blockedByOtherOwner: boolean;
+  onCheckout: () => void;
+  onSwitch: () => void;
+}) {
+  const button = (
+    <Button
+      className="w-full"
+      disabled={
+        pricing.price === 0 ||
+        (!canSwitch && (pricing.current || blockedByOtherOwner))
+      }
+      variant={pricing.popular ? "default" : "outline"}
+      onClick={canSwitch ? undefined : onCheckout}
+    >
+      {canSwitch
+        ? "Switch Plan"
+        : pricing.current
+        ? "Current Plan"
+        : blockedByOtherOwner
+        ? "Managed by another user"
+        : "Get Started"}
+    </Button>
+  );
+
+  if (!canSwitch) return button;
+
+  return (
+    <ConfirmDialog
+      title={`Switch to ${pricing.title}?`}
+      description={
+        "Your subscription changes to this plan straight away. " +
+        "Our payment provider charges or credits you the prorated difference for the rest of the current billing period."
+      }
+      onConfirm={onSwitch}
+    >
+      {button}
+    </ConfirmDialog>
   );
 }
