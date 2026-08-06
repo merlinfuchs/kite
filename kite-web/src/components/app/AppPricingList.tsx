@@ -11,9 +11,13 @@ import {
 import { Badge } from "../ui/badge";
 import { useAppSubscriptions, useBillingPlans } from "@/lib/hooks/api";
 import { ReactNode, useMemo } from "react";
-import { useLemonSqueezyCheckout } from "@/lib/hooks/lemonsqueezy";
+import {
+  useLemonSqueezyCheckout,
+  useSubscriptionPlanSwitch,
+} from "@/lib/hooks/lemonsqueezy";
 import { formatNumber } from "@/lib/utils";
 import { isSubscriptionActive } from "@/lib/subscriptions";
+import ConfirmDialog from "../common/ConfirmDialog";
 
 export default function AppPricingList() {
   const subscriptions = useAppSubscriptions();
@@ -41,7 +45,16 @@ export default function AppPricingList() {
     );
   }, [activeSubscriptions, plans]);
 
+  // Switching plans updates the existing subscription instead of buying a
+  // second one. We can only do that for a subscription the current user owns.
+  const switchableSubscription = activeSubscriptions?.find(
+    (subscription) => subscription!.manageable
+  );
+  const blockedByOtherOwner =
+    !switchableSubscription && !!activeSubscriptions?.length;
+
   const checkout = useLemonSqueezyCheckout();
+  const switchPlan = useSubscriptionPlanSwitch(switchableSubscription?.id);
 
   return (
     <div className="grid lg:grid-cols-2 xl:grid-cols-3 gap-8 xl:mx-16">
@@ -72,14 +85,39 @@ export default function AppPricingList() {
           </CardHeader>
 
           <CardContent>
-            <Button
-              className="w-full"
-              disabled={pricing.current || pricing.price === 0}
-              variant={pricing.popular ? "default" : "outline"}
-              onClick={() => checkout(pricing.lemonsqueezy_variant_id)}
-            >
-              {pricing.current ? "Current Plan" : "Get Started"}
-            </Button>
+            {switchableSubscription && !pricing.current ? (
+              <ConfirmDialog
+                title={`Switch to ${pricing.title}?`}
+                description={
+                  "Your subscription changes to this plan straight away. " +
+                  "LemonSqueezy charges or credits you the prorated difference for the rest of the current billing period."
+                }
+                onConfirm={() => switchPlan(pricing.lemonsqueezy_variant_id)}
+              >
+                <Button
+                  className="w-full"
+                  disabled={pricing.price === 0}
+                  variant={pricing.popular ? "default" : "outline"}
+                >
+                  Switch Plan
+                </Button>
+              </ConfirmDialog>
+            ) : (
+              <Button
+                className="w-full"
+                disabled={
+                  pricing.current || pricing.price === 0 || blockedByOtherOwner
+                }
+                variant={pricing.popular ? "default" : "outline"}
+                onClick={() => checkout(pricing.lemonsqueezy_variant_id)}
+              >
+                {pricing.current
+                  ? "Current Plan"
+                  : blockedByOtherOwner
+                  ? "Managed by another user"
+                  : "Get Started"}
+              </Button>
+            )}
           </CardContent>
 
           <hr className="w-4/5 m-auto mb-4" />
