@@ -4,9 +4,18 @@ import (
 	"testing"
 	"time"
 
+	"github.com/NdoleStudio/lemonsqueezy-go"
 	"github.com/stretchr/testify/assert"
 	"gopkg.in/guregu/null.v4"
 )
+
+func lemonSqueezySubscription(renewsAt time.Time) lemonsqueezy.Subscription {
+	return lemonsqueezy.Subscription{
+		ProductName: "Pro",
+		Status:      "active",
+		RenewsAt:    renewsAt,
+	}
+}
 
 func TestEntitlementEndsAt(t *testing.T) {
 	renews := time.Date(2026, 9, 1, 0, 0, 0, 0, time.UTC)
@@ -42,5 +51,20 @@ func TestEntitlementEndsAt(t *testing.T) {
 		assert.True(t, got.Valid)
 		assert.False(t, got.Time.Before(before))
 		assert.False(t, got.Time.After(time.Now().UTC()))
+	})
+}
+
+func TestSubscriptionFromLemonSqueezy(t *testing.T) {
+	t.Run("a zero renews_at is treated as absent", func(t *testing.T) {
+		// The API client decodes a null renews_at into the zero time, which must
+		// not reach the database as a real date.
+		got := SubscriptionFromLemonSqueezy("123", lemonSqueezySubscription(time.Time{}))
+		assert.False(t, got.RenewsAt.Valid)
+	})
+
+	t.Run("a real renews_at is kept", func(t *testing.T) {
+		renews := time.Date(2026, 9, 1, 0, 0, 0, 0, time.UTC)
+		got := SubscriptionFromLemonSqueezy("123", lemonSqueezySubscription(renews))
+		assert.Equal(t, null.TimeFrom(renews), got.RenewsAt)
 	})
 }

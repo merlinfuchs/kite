@@ -6,12 +6,11 @@ import (
 	"log/slog"
 	"time"
 
-	"github.com/kitecloud/kite/kite-service/internal/api/handler/billing"
 	"github.com/kitecloud/kite/kite-service/internal/config"
+	"github.com/kitecloud/kite/kite-service/internal/core/billing"
 	"github.com/kitecloud/kite/kite-service/internal/core/plan"
 	"github.com/kitecloud/kite/kite-service/internal/db/postgres"
 	"github.com/kitecloud/kite/kite-service/internal/logging"
-	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/urfave/cli/v2"
 )
 
@@ -52,27 +51,19 @@ func billingReconcileCMD(c *cli.Context) error {
 		return fmt.Errorf("failed to create postgres client: %w", err)
 	}
 
-	billingPlans := make([]model.Plan, len(cfg.Billing.Plans))
-	for i, p := range cfg.Billing.Plans {
-		billingPlans[i] = model.Plan(p)
-	}
+	planManager := plan.NewPlanManager(pg, pg, pg, plan.PlansFromConfig(cfg.Billing.Plans), plan.PlanManagerConfig{})
 
-	planManager := plan.NewPlanManager(pg, pg, pg, billingPlans, plan.PlanManagerConfig{})
-
-	handler := billing.NewBillingHandler(billing.BillingHandlerConfig{
-		LemonSqueezyAPIKey:        cfg.Billing.LemonSqueezyAPIKey,
-		LemonSqueezySigningSecret: cfg.Billing.LemonSqueezySigningSecret,
-		LemonSqueezyStoreID:       cfg.Billing.LemonSqueezyStoreID,
-		TestMode:                  cfg.Billing.TestMode,
-		AppPublicBaseURL:          cfg.App.PublicBaseURL,
-	}, pg, pg, pg, planManager)
+	subscriptionManager := billing.NewSubscriptionManager(pg, pg, planManager, billing.NewLemonSqueezyClient(
+		cfg.Billing.LemonSqueezyAPIKey,
+		cfg.Billing.LemonSqueezySigningSecret,
+	))
 
 	dryRun := c.Bool("dry_run")
 	if dryRun {
 		slog.Info("Running in dry run mode, nothing will be written")
 	}
 
-	res, err := handler.ReconcileSubscriptions(context.Background(), dryRun, c.Duration("delay"))
+	res, err := subscriptionManager.Reconcile(context.Background(), dryRun, c.Duration("delay"))
 
 	// The result is worth printing even on failure, because it says how far the
 	// run got before it stopped.
