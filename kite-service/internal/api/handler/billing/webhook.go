@@ -100,12 +100,17 @@ func (h *BillingHandler) HandleBillingWebhook(c *handler.Context, body json.RawM
 		return nil, fmt.Errorf("failed to upsert subscription: %w", err)
 	}
 
-	// We use the renews_at date as the default entitlement end date
-	// This ensures that the entitlement is invalidated for paused subscriptions
-	// If the subscription ends at a date that is before the renews_at date, we use the subscription ends_at date
+	// We use the renews_at date as the default entitlement end date.
+	// If the subscription ends at a date that is before the renews_at date, we use the subscription ends_at date.
 	entitlementEndsAt := sub.RenewsAt
-	if sub.EndsAt.Valid && sub.EndsAt.Time.Before(entitlementEndsAt) {
-		entitlementEndsAt = sub.EndsAt.Time
+	if sub.EndsAt.Valid && (!entitlementEndsAt.Valid || sub.EndsAt.Time.Before(entitlementEndsAt.Time)) {
+		entitlementEndsAt = sub.EndsAt
+	}
+	if !entitlementEndsAt.Valid {
+		// Neither date is set, which means the subscription will not renew and
+		// has no remaining paid period - a paused one, for example. Ending the
+		// entitlement now keeps it out of ActiveEntitlements.
+		entitlementEndsAt = null.TimeFrom(time.Now().UTC())
 	}
 
 	plan := h.planManager.PlanByLemonSqueezyProductID(fmt.Sprintf("%d", sub.ProductID))
@@ -126,7 +131,7 @@ func (h *BillingHandler) HandleBillingWebhook(c *handler.Context, body json.RawM
 		PlanID:         plan.ID,
 		CreatedAt:      time.Now().UTC(),
 		UpdatedAt:      time.Now().UTC(),
-		EndsAt:         null.TimeFrom(entitlementEndsAt),
+		EndsAt:         entitlementEndsAt,
 	}
 
 	if appID != "" {

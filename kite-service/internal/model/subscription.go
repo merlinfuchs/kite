@@ -14,7 +14,9 @@ type Subscription struct {
 	StatusFormatted            string
 	CreatedAt                  time.Time
 	UpdatedAt                  time.Time
-	RenewsAt                   time.Time
+	// RenewsAt is unset for subscriptions that will not renew, such as paused
+	// or expired ones.
+	RenewsAt                   null.Time
 	TrialEndsAt                null.Time
 	EndsAt                     null.Time
 	UserID                     string

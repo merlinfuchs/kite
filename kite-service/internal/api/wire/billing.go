@@ -32,7 +32,7 @@ type BillingWebhookRequest struct {
 			Cancelled       bool      `json:"cancelled"`
 			TrialEndsAt     null.Time `json:"trial_ends_at"`
 			BillingAnchor   int       `json:"billing_anchor"`
-			RenewsAt        time.Time `json:"renews_at"`
+			RenewsAt        null.Time `json:"renews_at"`
 			EndsAt          null.Time `json:"ends_at"`
 			CreatedAt       time.Time `json:"created_at"`
 			UpdatedAt       time.Time `json:"updated_at"`
@@ -64,7 +64,7 @@ type Subscription struct {
 	StatusFormatted            string      `json:"status_formatted"`
 	CreatedAt                  time.Time   `json:"created_at"`
 	UpdatedAt                  time.Time   `json:"updated_at"`
-	RenewsAt                   time.Time   `json:"renews_at"`
+	RenewsAt                   null.Time   `json:"renews_at"`
 	TrialEndsAt                null.Time   `json:"trial_ends_at"`
 	EndsAt                     null.Time   `json:"ends_at"`
 	UserID                     string      `json:"user_id"`
