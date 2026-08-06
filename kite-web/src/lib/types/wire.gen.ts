@@ -139,7 +139,7 @@ export interface BillingWebhookRequest {
       cancelled: boolean;
       trial_ends_at: null | string /* RFC3339 */;
       billing_anchor: number /* int */;
-      renews_at: string /* RFC3339 */;
+      renews_at: null | string /* RFC3339 */;
       ends_at: null | string /* RFC3339 */;
       created_at: string /* RFC3339 */;
       updated_at: string /* RFC3339 */;
@@ -167,7 +167,7 @@ export interface Subscription {
   status_formatted: string;
   created_at: string /* RFC3339 */;
   updated_at: string /* RFC3339 */;
-  renews_at: string /* RFC3339 */;
+  renews_at: null | string /* RFC3339 */;
   trial_ends_at: null | string /* RFC3339 */;
   ends_at: null | string /* RFC3339 */;
   user_id: string;

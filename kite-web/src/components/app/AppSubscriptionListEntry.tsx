@@ -36,8 +36,11 @@ export default function AppSubscriptionListEntry({
               {new Date(subscription.created_at).toLocaleDateString()}
               {subscription.ends_at
                 ? ` - ${new Date(subscription.ends_at).toLocaleDateString()}`
-                : " - renews at " +
-                  new Date(subscription.renews_at).toLocaleDateString()}
+                : subscription.renews_at
+                ? ` - renews at ${new Date(
+                    subscription.renews_at
+                  ).toLocaleDateString()}`
+                : null}
             </CardDescription>
           </div>
           <div>
