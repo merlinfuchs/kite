@@ -14,6 +14,21 @@ import (
 	"gopkg.in/guregu/null.v4"
 )
 
+// subscriptionEventNames are the events whose data object is a subscription,
+// and which therefore carry a status transition we need to persist. The
+// subscription_payment_* events are deliberately absent: their data object is a
+// subscription invoice, so its ID and status belong to the invoice, not the
+// subscription.
+var subscriptionEventNames = map[string]bool{
+	lemonsqueezy.WebhookEventSubscriptionCreated:   true,
+	lemonsqueezy.WebhookEventSubscriptionUpdated:   true,
+	lemonsqueezy.WebhookEventSubscriptionCancelled: true,
+	lemonsqueezy.WebhookEventSubscriptionResumed:   true,
+	lemonsqueezy.WebhookEventSubscriptionExpired:   true,
+	lemonsqueezy.WebhookEventSubscriptionPaused:    true,
+	lemonsqueezy.WebhookEventSubscriptionUnpaused:  true,
+}
+
 func (h *BillingHandler) HandleBillingWebhook(c *handler.Context, body json.RawMessage) (*wire.BillingWebhookResponse, error) {
 	eventName := c.Header("X-Event-Name")
 	signature := c.Header("X-Signature")
@@ -22,8 +37,12 @@ func (h *BillingHandler) HandleBillingWebhook(c *handler.Context, body json.RawM
 		return nil, fmt.Errorf("failed to verify webhook signature")
 	}
 
-	if eventName != lemonsqueezy.WebhookEventSubscriptionCreated && eventName != lemonsqueezy.WebhookEventSubscriptionUpdated {
-		return nil, fmt.Errorf("unsupported event name: %s", eventName)
+	if !subscriptionEventNames[eventName] {
+		// Everything else (orders, license keys, and the subscription_payment_*
+		// events, which carry an invoice rather than a subscription) is
+		// acknowledged and ignored. Returning an error here would make
+		// LemonSqueezy retry and eventually mark the endpoint as failing.
+		return &wire.BillingWebhookResponse{}, nil
 	}
 
 	var req wire.BillingWebhookRequest
@@ -34,11 +53,22 @@ func (h *BillingHandler) HandleBillingWebhook(c *handler.Context, body json.RawM
 	appID, _ := req.Meta.CustomData["app_id"].(string)
 	userID, _ := req.Meta.CustomData["user_id"].(string)
 	if userID == "" {
-		slog.Error(
-			"Subscription created webhook received without user_id in metadata",
-			slog.String("ls_subscription_id", req.Data.ID),
-		)
-		return nil, fmt.Errorf("user_id is required in metadata")
+		// Lifecycle events raised outside of checkout (a cancellation from the
+		// customer portal, for example) can arrive without the custom data we
+		// set at checkout. As long as we have seen the subscription before we
+		// can recover the owner from it rather than dropping the event.
+		existing, err := h.subscriptionStore.SubscriptionByLemonSqueezyID(c.Context(), req.Data.ID)
+		if err != nil {
+			slog.Error(
+				"Subscription webhook received without user_id in metadata for an unknown subscription",
+				slog.String("event_name", eventName),
+				slog.String("ls_subscription_id", req.Data.ID),
+				slog.String("error", err.Error()),
+			)
+			return nil, fmt.Errorf("user_id is required in metadata: %w", err)
+		}
+
+		userID = existing.UserID
 	}
 
 	sub := req.Data.Attributes
@@ -113,7 +143,7 @@ func (h *BillingHandler) HandleBillingWebhook(c *handler.Context, body json.RawM
 		}
 	} else {
 		// We don't have the app ID, but there might be an entitlement anyway, so we update that
-		_, err := h.entitlementStore.UpdateSubscriptionEntitlement(c.Context(), entitlement)
+		err := h.entitlementStore.UpdateSubscriptionEntitlement(c.Context(), entitlement)
 		if err != nil {
 			slog.Error(
 				"Failed to update subscription entitlement",

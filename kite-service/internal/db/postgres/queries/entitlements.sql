@@ -29,9 +29,12 @@ ON CONFLICT (subscription_id, app_id) DO UPDATE SET
     ends_at = EXCLUDED.ends_at
 RETURNING *;
 
--- name: UpdateSubscriptionEntitlement :one
+-- Updates every entitlement held by the subscription. :exec, not :one, because
+-- a webhook can arrive for a subscription that has no entitlement yet (no
+-- app_id in the checkout metadata), and no rows to update is not an error.
+-- name: UpdateSubscriptionEntitlement :exec
 UPDATE entitlements SET
     plan_id = $2,
     updated_at = $3,
     ends_at = $4
-WHERE subscription_id = $1 RETURNING *;
+WHERE subscription_id = $1;

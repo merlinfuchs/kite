@@ -80,6 +80,34 @@ func (q *Queries) GetSubscription(ctx context.Context, id string) (Subscription,
 	return i, err
 }
 
+const getSubscriptionByLemonSqueezyID = `-- name: GetSubscriptionByLemonSqueezyID :one
+SELECT id, display_name, source, status, status_formatted, created_at, updated_at, renews_at, trial_ends_at, ends_at, user_id, lemonsqueezy_subscription_id, lemonsqueezy_customer_id, lemonsqueezy_order_id, lemonsqueezy_product_id, lemonsqueezy_variant_id FROM subscriptions WHERE lemonsqueezy_subscription_id = $1
+`
+
+func (q *Queries) GetSubscriptionByLemonSqueezyID(ctx context.Context, lemonsqueezySubscriptionID pgtype.Text) (Subscription, error) {
+	row := q.db.QueryRow(ctx, getSubscriptionByLemonSqueezyID, lemonsqueezySubscriptionID)
+	var i Subscription
+	err := row.Scan(
+		&i.ID,
+		&i.DisplayName,
+		&i.Source,
+		&i.Status,
+		&i.StatusFormatted,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.RenewsAt,
+		&i.TrialEndsAt,
+		&i.EndsAt,
+		&i.UserID,
+		&i.LemonsqueezySubscriptionID,
+		&i.LemonsqueezyCustomerID,
+		&i.LemonsqueezyOrderID,
+		&i.LemonsqueezyProductID,
+		&i.LemonsqueezyVariantID,
+	)
+	return i, err
+}
+
 const getSubscriptions = `-- name: GetSubscriptions :many
 SELECT id, display_name, source, status, status_formatted, created_at, updated_at, renews_at, trial_ends_at, ends_at, user_id, lemonsqueezy_subscription_id, lemonsqueezy_customer_id, lemonsqueezy_order_id, lemonsqueezy_product_id, lemonsqueezy_variant_id FROM subscriptions WHERE user_id = $1 ORDER BY created_at DESC
 `

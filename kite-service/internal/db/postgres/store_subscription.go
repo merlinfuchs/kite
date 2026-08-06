@@ -2,10 +2,13 @@ package postgres
 
 import (
 	"context"
+	"errors"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/kitecloud/kite/kite-service/internal/db/postgres/pgmodel"
 	"github.com/kitecloud/kite/kite-service/internal/model"
+	"github.com/kitecloud/kite/kite-service/internal/store"
 	"gopkg.in/guregu/null.v4"
 )
 
@@ -54,6 +57,18 @@ func (c *Client) AllSubscriptions(ctx context.Context) ([]*model.Subscription, e
 func (c *Client) Subscription(ctx context.Context, subscriptionID string) (*model.Subscription, error) {
 	row, err := c.Q.GetSubscription(ctx, subscriptionID)
 	if err != nil {
+		return nil, err
+	}
+
+	return rowToSubscription(row), nil
+}
+
+func (c *Client) SubscriptionByLemonSqueezyID(ctx context.Context, lemonSqueezyID string) (*model.Subscription, error) {
+	row, err := c.Q.GetSubscriptionByLemonSqueezyID(ctx, pgtype.Text{String: lemonSqueezyID, Valid: true})
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, store.ErrNotFound
+		}
 		return nil, err
 	}
 
