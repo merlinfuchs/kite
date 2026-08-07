@@ -44,16 +44,20 @@ export function CommandImportDialog({ children }: { children: ReactNode }) {
     }
 
     if (
-      typeof parsed !== "object" ||
-      parsed === null ||
-      !("flow_source" in parsed) ||
-      !("enabled" in parsed)
-    ) {
-      toast.error(
-        "Error importing command: invalid share code"
-      );
-      return;
-    }
+  typeof parsed !== "object" ||
+  parsed === null ||
+  !("flow_source" in parsed) ||
+  !("enabled" in parsed) ||
+  !Array.isArray((parsed as any).flow_source?.nodes) ||
+  !(parsed as any).flow_source.nodes.some(
+    (node: any) => node?.type === "entry_command"
+  )
+) {
+  toast.error(
+    "Error importing command: invalid share code"
+  );
+  return;
+}
 
     const command = parsed as CommandCreateRequest;
 
