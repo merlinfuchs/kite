@@ -22,4 +22,7 @@ DELETE FROM resume_points WHERE id = $1;
 DELETE FROM resume_points WHERE expires_at < $1;
 
 -- name: ResumePoint :one
-SELECT * FROM resume_points WHERE id = $1;
+-- The ID arrives in an interaction's custom_id, chosen by whoever built the
+-- message, so it is not proof of ownership: scope by app or an app can resume
+-- another app's flow, including its stored FlowState.
+SELECT * FROM resume_points WHERE id = $1 AND app_id = $2;

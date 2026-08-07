@@ -51,8 +51,11 @@ func (c *Client) DeleteExpiredResumePoints(ctx context.Context, now time.Time) e
 	return c.Q.DeleteExpiredResumePoints(ctx, pgtype.Timestamp{Time: now, Valid: true})
 }
 
-func (c *Client) ResumePoint(ctx context.Context, id string) (*model.ResumePoint, error) {
-	row, err := c.Q.ResumePoint(ctx, id)
+func (c *Client) ResumePoint(ctx context.Context, appID string, id string) (*model.ResumePoint, error) {
+	row, err := c.Q.ResumePoint(ctx, pgmodel.ResumePointParams{
+		ID:    id,
+		AppID: appID,
+	})
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, store.ErrNotFound

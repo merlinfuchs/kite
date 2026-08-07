@@ -141,8 +141,11 @@ func rowToVariable(row pgmodel.Variable) *model.Variable {
 	}
 }
 
-func (c *Client) VariableValues(ctx context.Context, variableID string) ([]*model.VariableValue, error) {
-	rows, err := c.Q.GetVariableValues(ctx, variableID)
+func (c *Client) VariableValues(ctx context.Context, appID string, variableID string) ([]*model.VariableValue, error) {
+	rows, err := c.Q.GetVariableValues(ctx, pgmodel.GetVariableValuesParams{
+		VariableID: variableID,
+		AppID:      appID,
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -159,10 +162,11 @@ func (c *Client) VariableValues(ctx context.Context, variableID string) ([]*mode
 	return values, nil
 }
 
-func (c *Client) VariableValue(ctx context.Context, variableID string, scope null.String) (*model.VariableValue, error) {
+func (c *Client) VariableValue(ctx context.Context, appID string, variableID string, scope null.String) (*model.VariableValue, error) {
 	row, err := c.Q.GetVariableValue(ctx, pgmodel.GetVariableValueParams{
 		VariableID: variableID,
 		Scope:      pgtype.Text{String: scope.String, Valid: scope.Valid},
+		AppID:      appID,
 	})
 
 	if err != nil {
@@ -180,14 +184,14 @@ func (c *Client) VariableValue(ctx context.Context, variableID string, scope nul
 	return &v, nil
 }
 
-func (c *Client) SetVariableValue(ctx context.Context, value model.VariableValue) error {
-	_, err := c.setVariableValueWithTx(ctx, nil, value)
+func (c *Client) SetVariableValue(ctx context.Context, appID string, value model.VariableValue) error {
+	_, err := c.setVariableValueWithTx(ctx, nil, appID, value)
 	return err
 }
 
-func (c *Client) UpdateVariableValue(ctx context.Context, operation model.VariableValueOperation, value model.VariableValue) (*model.VariableValue, error) {
+func (c *Client) UpdateVariableValue(ctx context.Context, appID string, operation model.VariableValueOperation, value model.VariableValue) (*model.VariableValue, error) {
 	if operation == provider.VariableOperationOverwrite {
-		return c.setVariableValueWithTx(ctx, nil, value)
+		return c.setVariableValueWithTx(ctx, nil, appID, value)
 	}
 
 	tx, err := c.DB.Begin(ctx)
@@ -196,11 +200,11 @@ func (c *Client) UpdateVariableValue(ctx context.Context, operation model.Variab
 	}
 	defer tx.Rollback(ctx)
 
-	currentValue, err := c.variableValueWithTx(ctx, tx, value.VariableID, value.Scope)
+	currentValue, err := c.variableValueWithTx(ctx, tx, appID, value.VariableID, value.Scope)
 	if err != nil {
 		if errors.Is(err, store.ErrNotFound) {
 			// Current trasaction is rolled back, we set the value outside of the transaction
-			return c.setVariableValueWithTx(ctx, nil, value)
+			return c.setVariableValueWithTx(ctx, nil, appID, value)
 		}
 		return nil, fmt.Errorf("failed to get current variable value: %w", err)
 	}
@@ -216,7 +220,7 @@ func (c *Client) UpdateVariableValue(ctx context.Context, operation model.Variab
 		value.Data = currentValue.Data.Sub(value.Data)
 	}
 
-	newValue, err := c.setVariableValueWithTx(ctx, tx, value)
+	newValue, err := c.setVariableValueWithTx(ctx, tx, appID, value)
 	if err != nil {
 		return nil, fmt.Errorf("failed to set variable value: %w", err)
 	}
@@ -229,10 +233,11 @@ func (c *Client) UpdateVariableValue(ctx context.Context, operation model.Variab
 	return newValue, nil
 }
 
-func (c *Client) DeleteVariableValue(ctx context.Context, variableID string, scope null.String) error {
+func (c *Client) DeleteVariableValue(ctx context.Context, appID string, variableID string, scope null.String) error {
 	err := c.Q.DeleteVariableValue(ctx, pgmodel.DeleteVariableValueParams{
 		VariableID: variableID,
 		Scope:      pgtype.Text{String: scope.String, Valid: scope.Valid},
+		AppID:      appID,
 	})
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -244,8 +249,11 @@ func (c *Client) DeleteVariableValue(ctx context.Context, variableID string, sco
 	return nil
 }
 
-func (c *Client) DeleteAllVariableValues(ctx context.Context, variableID string) error {
-	err := c.Q.DeleteAllVariableValues(ctx, variableID)
+func (c *Client) DeleteAllVariableValues(ctx context.Context, appID string, variableID string) error {
+	err := c.Q.DeleteAllVariableValues(ctx, pgmodel.DeleteAllVariableValuesParams{
+		VariableID: variableID,
+		AppID:      appID,
+	})
 	if err != nil {
 		return err
 	}
@@ -253,7 +261,7 @@ func (c *Client) DeleteAllVariableValues(ctx context.Context, variableID string)
 	return nil
 }
 
-func (c *Client) variableValueWithTx(ctx context.Context, tx pgx.Tx, variableID string, scope null.String) (*model.VariableValue, error) {
+func (c *Client) variableValueWithTx(ctx context.Context, tx pgx.Tx, appID string, variableID string, scope null.String) (*model.VariableValue, error) {
 	q := c.Q
 	if tx != nil {
 		q = c.Q.WithTx(tx)
@@ -262,6 +270,7 @@ func (c *Client) variableValueWithTx(ctx context.Context, tx pgx.Tx, variableID 
 	row, err := q.GetVariableValueForUpdate(ctx, pgmodel.GetVariableValueForUpdateParams{
 		VariableID: variableID,
 		Scope:      pgtype.Text{String: scope.String, Valid: scope.Valid},
+		AppID:      appID,
 	})
 
 	if err != nil {
@@ -279,7 +288,7 @@ func (c *Client) variableValueWithTx(ctx context.Context, tx pgx.Tx, variableID 
 	return &v, nil
 }
 
-func (c *Client) setVariableValueWithTx(ctx context.Context, tx pgx.Tx, value model.VariableValue) (*model.VariableValue, error) {
+func (c *Client) setVariableValueWithTx(ctx context.Context, tx pgx.Tx, appID string, value model.VariableValue) (*model.VariableValue, error) {
 	q := c.Q
 	if tx != nil {
 		q = c.Q.WithTx(tx)
@@ -292,12 +301,18 @@ func (c *Client) setVariableValueWithTx(ctx context.Context, tx pgx.Tx, value mo
 
 	row, err := q.SetVariableValue(ctx, pgmodel.SetVariableValueParams{
 		VariableID: value.VariableID,
+		AppID:      appID,
 		Scope:      pgtype.Text{String: value.Scope.String, Valid: value.Scope.Valid},
 		Value:      data,
 		CreatedAt:  pgtype.Timestamp{Time: value.CreatedAt, Valid: true},
 		UpdatedAt:  pgtype.Timestamp{Time: value.UpdatedAt, Valid: true},
 	})
 	if err != nil {
+		// No row means the variable does not exist under this app, which is a
+		// not-found rather than a database failure.
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, store.ErrNotFound
+		}
 		return nil, err
 	}
 

@@ -43,25 +43,53 @@ WHERE id = $1 RETURNING *;
 -- name: DeleteVariable :exec
 DELETE FROM variables WHERE id = $1;
 
+-- variable_values has no app_id of its own, so every query below joins through
+-- variables to scope by app. Without that a variable_id alone is enough to read
+-- or write the row, and variable_ids reach the engine straight out of
+-- user-authored flow JSON -- which is portable between apps via flow import.
+
 -- name: GetVariableValue :one
-SELECT * FROM variable_values WHERE variable_id = $1 AND scope IS NOT DISTINCT FROM $2;
+SELECT variable_values.* FROM variable_values
+JOIN variables ON variables.id = variable_values.variable_id
+WHERE variable_values.variable_id = $1
+  AND variable_values.scope IS NOT DISTINCT FROM $2
+  AND variables.app_id = $3;
 
 -- name: GetVariableValueForUpdate :one
-SELECT * FROM variable_values WHERE variable_id = $1 AND scope IS NOT DISTINCT FROM $2 FOR UPDATE;
+-- FOR UPDATE OF, not a bare FOR UPDATE: the latter would also lock the joined
+-- variables row for the duration of the transaction.
+SELECT variable_values.* FROM variable_values
+JOIN variables ON variables.id = variable_values.variable_id
+WHERE variable_values.variable_id = $1
+  AND variable_values.scope IS NOT DISTINCT FROM $2
+  AND variables.app_id = $3
+FOR UPDATE OF variable_values;
 
 -- name: GetVariableValues :many
-SELECT * FROM variable_values WHERE variable_id = $1;
+SELECT variable_values.* FROM variable_values
+JOIN variables ON variables.id = variable_values.variable_id
+WHERE variable_values.variable_id = $1 AND variables.app_id = $2;
 
 -- name: SetVariableValue :one
+-- INSERT ... SELECT rather than VALUES so the app check is part of the write:
+-- if the variable does not belong to the app the select is empty, nothing is
+-- inserted, and :one surfaces it as ErrNoRows.
 INSERT INTO variable_values (
     variable_id,
     scope,
     value,
     created_at,
     updated_at
-) VALUES (
-    $1, $2, $3, $4, $5
-) ON CONFLICT (variable_id, scope) DO UPDATE SET
+)
+SELECT
+    variables.id,
+    sqlc.narg(scope)::text,
+    @value::jsonb,
+    @created_at::timestamp,
+    @updated_at::timestamp
+FROM variables
+WHERE variables.id = @variable_id AND variables.app_id = @app_id
+ON CONFLICT (variable_id, scope) DO UPDATE SET
     value = EXCLUDED.value,
     updated_at = EXCLUDED.updated_at
 RETURNING *;
@@ -70,7 +98,16 @@ RETURNING *;
 -- IS NOT DISTINCT FROM so that unscoped values (scope IS NULL) are matched,
 -- same as the get queries above. Plain `= NULL` never matches and made
 -- deleting an unscoped variable value a silent no-op.
-DELETE FROM variable_values WHERE variable_id = $1 AND scope IS NOT DISTINCT FROM $2;
+DELETE FROM variable_values
+USING variables
+WHERE variables.id = variable_values.variable_id
+  AND variable_values.variable_id = $1
+  AND variable_values.scope IS NOT DISTINCT FROM $2
+  AND variables.app_id = $3;
 
 -- name: DeleteAllVariableValues :exec
-DELETE FROM variable_values WHERE variable_id = $1;
+DELETE FROM variable_values
+USING variables
+WHERE variables.id = variable_values.variable_id
+  AND variable_values.variable_id = $1
+  AND variables.app_id = $2;

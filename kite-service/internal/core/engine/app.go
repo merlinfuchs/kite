@@ -250,7 +250,7 @@ func (a *App) HandleEvent(appID string, session *state.State, event gateway.Even
 			}
 
 			messageID := e.Message.ID.String()
-			messageInstnace, err := a.env.MessageInstanceStore.MessageInstanceByDiscordMessageID(context.TODO(), messageID)
+			messageInstnace, err := a.env.MessageInstanceStore.MessageInstanceByDiscordMessageID(context.TODO(), a.id, messageID)
 			if err != nil {
 				if errors.Is(err, store.ErrNotFound) {
 					return
@@ -307,7 +307,13 @@ func (a *App) resumeFlow(
 	session *state.State,
 	event gateway.Event,
 ) {
-	resumePoint, err := a.env.ResumePointStore.ResumePoint(context.TODO(), resumePointID)
+	// The ID arrives in an interaction's custom_id, which is chosen by whoever
+	// built the message rather than by us, so it is not proof that the resume
+	// point belongs to this app -- hence the scoped lookup. Without it the
+	// message instance branch below would read another app's resume point out
+	// of the database and run its flow, with its stored FlowState, which holds
+	// the results of everything that flow did before it suspended.
+	resumePoint, err := a.env.ResumePointStore.ResumePoint(context.TODO(), a.id, resumePointID)
 	if err != nil {
 		if !errors.Is(err, store.ErrNotFound) {
 			slog.Error(
@@ -383,6 +389,7 @@ func (a *App) resumeFlowTarget(resumePoint *model.ResumePoint) *flow.CompiledFlo
 	case resumePoint.MessageInstanceID.Valid:
 		messageInstance, err := a.env.MessageInstanceStore.MessageInstance(
 			context.TODO(),
+			a.id,
 			resumePoint.MessageID.String,
 			uint64(resumePoint.MessageInstanceID.Int64),
 		)

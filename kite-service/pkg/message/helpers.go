@@ -6,28 +6,37 @@ import (
 	"strings"
 )
 
+// ResumeCustomIDPrefix marks a component custom ID as addressing a resume
+// point. The engine routes any interaction whose custom ID starts with it
+// straight to a resume point lookup, so the prefix is reserved: a component's
+// own custom ID comes from its flow source ID, which is authored by the tenant,
+// and must never be able to land in this namespace.
+const ResumeCustomIDPrefix = "resume:"
+
+// IsReservedCustomID reports whether a custom ID would be read as addressing a
+// resume point rather than the component it is attached to.
+func IsReservedCustomID(customID string) bool {
+	_, ok := strings.CutPrefix(customID, ResumeCustomIDPrefix)
+	return ok
+}
+
 func CustomIDModalResumePoint(resumePointID string) string {
-	return fmt.Sprintf("resume:%s", resumePointID)
+	return ResumeCustomIDPrefix + resumePointID
 }
 
 func DecodeCustomIDModalResumePoint(customID string) (string, bool) {
-	if !strings.HasPrefix(customID, "resume:") {
-		return "", false
-	}
-
-	return customID[len("resume:"):], true
+	return strings.CutPrefix(customID, ResumeCustomIDPrefix)
 }
 
 func CustomIDMessageComponentResumePoint(resumePointID string, componentID int) string {
-	return fmt.Sprintf("resume:%s_%d", resumePointID, componentID)
+	return fmt.Sprintf("%s%s_%d", ResumeCustomIDPrefix, resumePointID, componentID)
 }
 
 func DecodeCustomIDMessageComponentResumePoint(customID string) (string, int, bool) {
-	if !strings.HasPrefix(customID, "resume:") {
+	value, ok := strings.CutPrefix(customID, ResumeCustomIDPrefix)
+	if !ok {
 		return "", 0, false
 	}
-
-	value := customID[len("resume:"):]
 
 	parts := strings.Split(value, "_")
 	if len(parts) != 2 {
