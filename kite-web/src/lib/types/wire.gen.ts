@@ -139,7 +139,7 @@ export interface BillingWebhookRequest {
       cancelled: boolean;
       trial_ends_at: null | string /* RFC3339 */;
       billing_anchor: number /* int */;
-      renews_at: string /* RFC3339 */;
+      renews_at: null | string /* RFC3339 */;
       ends_at: null | string /* RFC3339 */;
       created_at: string /* RFC3339 */;
       updated_at: string /* RFC3339 */;
@@ -155,6 +155,10 @@ export interface BillingCheckoutRequest {
 export interface BillingCheckoutResponse {
   url: string;
 }
+export interface SubscriptionPlanUpdateRequest {
+  lemonsqueezy_variant_id: string;
+}
+export type SubscriptionPlanUpdateResponse = Subscription;
 export interface SubscriptionManageResponse {
   update_payment_method_url: string;
   customer_portal_url: string;
@@ -167,7 +171,7 @@ export interface Subscription {
   status_formatted: string;
   created_at: string /* RFC3339 */;
   updated_at: string /* RFC3339 */;
-  renews_at: string /* RFC3339 */;
+  renews_at: null | string /* RFC3339 */;
   trial_ends_at: null | string /* RFC3339 */;
   ends_at: null | string /* RFC3339 */;
   user_id: string;
@@ -176,6 +180,11 @@ export interface Subscription {
   lemonsqueezy_order_id: null | string;
   lemonsqueezy_product_id: null | string;
   lemonsqueezy_variant_id: null | string;
+  /**
+   * Active mirrors model.Subscription.IsActive so the client does not have to
+   * keep its own copy of the LemonSqueezy status vocabulary.
+   */
+  active: boolean;
   manageable: boolean;
 }
 export type SubscriptionListResponse = (Subscription | undefined)[];

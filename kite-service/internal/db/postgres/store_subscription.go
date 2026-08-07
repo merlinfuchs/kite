@@ -2,10 +2,13 @@ package postgres
 
 import (
 	"context"
+	"errors"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/kitecloud/kite/kite-service/internal/db/postgres/pgmodel"
 	"github.com/kitecloud/kite/kite-service/internal/model"
+	"github.com/kitecloud/kite/kite-service/internal/store"
 	"gopkg.in/guregu/null.v4"
 )
 
@@ -60,6 +63,18 @@ func (c *Client) Subscription(ctx context.Context, subscriptionID string) (*mode
 	return rowToSubscription(row), nil
 }
 
+func (c *Client) SubscriptionByLemonSqueezyID(ctx context.Context, lemonSqueezyID string) (*model.Subscription, error) {
+	row, err := c.Q.GetSubscriptionByLemonSqueezyID(ctx, pgtype.Text{String: lemonSqueezyID, Valid: true})
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, store.ErrNotFound
+		}
+		return nil, err
+	}
+
+	return rowToSubscription(row), nil
+}
+
 func (c *Client) UpsertLemonSqueezySubscription(ctx context.Context, sub model.Subscription) (*model.Subscription, error) {
 	row, err := c.Q.UpsertLemonSqueezySubscription(ctx, pgmodel.UpsertLemonSqueezySubscriptionParams{
 		ID:                         sub.ID,
@@ -67,7 +82,7 @@ func (c *Client) UpsertLemonSqueezySubscription(ctx context.Context, sub model.S
 		Source:                     string(sub.Source),
 		Status:                     sub.Status,
 		StatusFormatted:            sub.StatusFormatted,
-		RenewsAt:                   pgtype.Timestamp{Time: sub.RenewsAt, Valid: true},
+		RenewsAt:                   pgtype.Timestamp{Time: sub.RenewsAt.Time, Valid: sub.RenewsAt.Valid},
 		TrialEndsAt:                pgtype.Timestamp{Time: sub.TrialEndsAt.Time, Valid: sub.TrialEndsAt.Valid},
 		EndsAt:                     pgtype.Timestamp{Time: sub.EndsAt.Time, Valid: sub.EndsAt.Valid},
 		CreatedAt:                  pgtype.Timestamp{Time: sub.CreatedAt, Valid: true},
@@ -97,7 +112,7 @@ func rowToSubscription(row pgmodel.Subscription) *model.Subscription {
 		Source:                     model.SubscriptionSource(row.Source),
 		Status:                     row.Status,
 		StatusFormatted:            row.StatusFormatted,
-		RenewsAt:                   row.RenewsAt.Time,
+		RenewsAt:                   null.NewTime(row.RenewsAt.Time, row.RenewsAt.Valid),
 		TrialEndsAt:                null.NewTime(row.TrialEndsAt.Time, row.TrialEndsAt.Valid),
 		EndsAt:                     null.NewTime(row.EndsAt.Time, row.EndsAt.Valid),
 		CreatedAt:                  row.CreatedAt.Time,

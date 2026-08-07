@@ -20,7 +20,8 @@ type pluginInstance struct {
 	instance plugin.PluginInstance
 	env      Env
 
-	eventTypes map[ws.EventType]bool
+	eventTypes   map[ws.EventType]bool
+	commandNames map[string]bool
 }
 
 func newPluginInstance(
@@ -35,13 +36,15 @@ func newPluginInstance(
 		instance: instance,
 		env:      env,
 
-		eventTypes: computeEventTypes(plugin, model.EnabledResourceIDs),
+		eventTypes:   computeEventTypes(plugin, model.EnabledResourceIDs),
+		commandNames: computeCommandNames(plugin, model.EnabledResourceIDs),
 	}
 }
 
 func (p *pluginInstance) Update(ctx context.Context, model *model.PluginInstance) error {
 	p.model = model
 	p.eventTypes = computeEventTypes(p.plugin, model.EnabledResourceIDs)
+	p.commandNames = computeCommandNames(p.plugin, model.EnabledResourceIDs)
 	return p.instance.Update(ctx, model.Config)
 }
 
@@ -74,10 +77,20 @@ func (p *pluginInstance) Events() []plugin.Event {
 }
 
 // WantsEvent reports whether HandleEvent would do any work for this event.
-// Interactions are always dispatched; they are routed by their own data type
-// rather than by the plugin's subscribed event types.
+// Component and modal interactions are always dispatched; they are routed by
+// their own data type rather than by the plugin's subscribed event types.
+//
+// A command interaction is only dispatched to the instance whose enabled
+// commands own the name. Interactions otherwise reach every plugin instance on
+// the app and each plugin matches on the name itself -- which meant an app
+// could reach a plugin command it had left disabled just by defining its own
+// command of that name.
 func (p *pluginInstance) WantsEvent(event gateway.Event) bool {
-	if _, ok := event.(*gateway.InteractionCreateEvent); ok {
+	if e, ok := event.(*gateway.InteractionCreateEvent); ok {
+		if d, ok := e.Data.(*discord.CommandInteraction); ok {
+			return p.commandNames[d.Name]
+		}
+
 		return true
 	}
 
@@ -91,7 +104,6 @@ func (p *pluginInstance) HandleEvent(ctx context.Context, session *state.State, 
 	case *gateway.InteractionCreateEvent:
 		switch e.Data.(type) {
 		case *discord.CommandInteraction:
-			// TODO: Check if the command belongs to this plugin
 			err = p.instance.HandleCommand(p.pluginContext(ctx, session), e)
 		case discord.ComponentInteraction:
 			err = p.instance.HandleComponent(p.pluginContext(ctx, session), e)
@@ -128,6 +140,19 @@ func computeEventTypes(pl plugin.Plugin, enabledResourceIDs []string) map[ws.Eve
 		types[event.Type.DiscordEventType()] = slices.Contains(enabledResourceIDs, event.ID)
 	}
 	return types
+}
+
+// computeCommandNames indexes the Discord command names owned by the enabled
+// commands. Computed alongside eventTypes so that dispatch is a map lookup
+// rather than a rebuild of the plugin's whole command tree per interaction.
+func computeCommandNames(pl plugin.Plugin, enabledResourceIDs []string) map[string]bool {
+	names := make(map[string]bool)
+	for _, command := range pl.Commands() {
+		if slices.Contains(enabledResourceIDs, command.ID) {
+			names[command.Data.Name] = true
+		}
+	}
+	return names
 }
 
 func (a *App) dispatchEventToPlugins(session *state.State, event gateway.Event) {

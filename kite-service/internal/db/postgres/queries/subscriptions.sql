@@ -10,6 +10,9 @@ SELECT * FROM subscriptions ORDER BY created_at DESC;
 -- name: GetSubscription :one
 SELECT * FROM subscriptions WHERE id = $1;
 
+-- name: GetSubscriptionByLemonSqueezyID :one
+SELECT * FROM subscriptions WHERE lemonsqueezy_subscription_id = $1;
+
 -- name: UpsertLemonSqueezySubscription :one
 INSERT INTO subscriptions (
     id,

@@ -32,7 +32,7 @@ type BillingWebhookRequest struct {
 			Cancelled       bool      `json:"cancelled"`
 			TrialEndsAt     null.Time `json:"trial_ends_at"`
 			BillingAnchor   int       `json:"billing_anchor"`
-			RenewsAt        time.Time `json:"renews_at"`
+			RenewsAt        null.Time `json:"renews_at"`
 			EndsAt          null.Time `json:"ends_at"`
 			CreatedAt       time.Time `json:"created_at"`
 			UpdatedAt       time.Time `json:"updated_at"`
@@ -51,6 +51,12 @@ type BillingCheckoutResponse struct {
 	URL string `json:"url"`
 }
 
+type SubscriptionPlanUpdateRequest struct {
+	LemonSqueezyVariantID string `json:"lemonsqueezy_variant_id"`
+}
+
+type SubscriptionPlanUpdateResponse = Subscription
+
 type SubscriptionManageResponse struct {
 	UpdatePaymentMethodURL string `json:"update_payment_method_url"`
 	CustomerPortalURL      string `json:"customer_portal_url"`
@@ -64,7 +70,7 @@ type Subscription struct {
 	StatusFormatted            string      `json:"status_formatted"`
 	CreatedAt                  time.Time   `json:"created_at"`
 	UpdatedAt                  time.Time   `json:"updated_at"`
-	RenewsAt                   time.Time   `json:"renews_at"`
+	RenewsAt                   null.Time   `json:"renews_at"`
 	TrialEndsAt                null.Time   `json:"trial_ends_at"`
 	EndsAt                     null.Time   `json:"ends_at"`
 	UserID                     string      `json:"user_id"`
@@ -73,7 +79,10 @@ type Subscription struct {
 	LemonsqueezyOrderID        null.String `json:"lemonsqueezy_order_id"`
 	LemonsqueezyProductID      null.String `json:"lemonsqueezy_product_id"`
 	LemonsqueezyVariantID      null.String `json:"lemonsqueezy_variant_id"`
-	Manageable                 bool        `json:"manageable"`
+	// Active mirrors model.Subscription.IsActive so the client does not have to
+	// keep its own copy of the LemonSqueezy status vocabulary.
+	Active     bool `json:"active"`
+	Manageable bool `json:"manageable"`
 }
 
 type SubscriptionListResponse = []*Subscription
@@ -100,6 +109,7 @@ func SubscriptionToWire(subscription *model.Subscription, userID string) *Subscr
 		LemonsqueezyOrderID:        subscription.LemonsqueezyOrderID,
 		LemonsqueezyProductID:      subscription.LemonsqueezyProductID,
 		LemonsqueezyVariantID:      subscription.LemonsqueezyVariantID,
+		Active:                     subscription.IsActive(),
 		Manageable:                 subscription.UserID == userID && subscription.LemonsqueezySubscriptionID.Valid,
 	}
 }

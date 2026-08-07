@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"log/slog"
 	"net/http"
 	"sync"
@@ -757,8 +758,13 @@ func (p *RobloxProvider) UserByID(ctx context.Context, id int64) (*thing.RobloxU
 	if err != nil {
 		return nil, fmt.Errorf("failed to get roblox user: %w", err)
 	}
+	defer resp.Body.Close()
 
 	if resp.StatusCode == http.StatusNotFound {
+		// User-not-found is a normal outcome here. Drain first: closing an
+		// unread body makes net/http drop the connection instead of pooling it,
+		// so every miss would otherwise cost a fresh TCP + TLS handshake.
+		io.Copy(io.Discard, io.LimitReader(resp.Body, 4*1024))
 		return nil, provider.ErrNotFound
 	}
 
@@ -794,6 +800,7 @@ func (p *RobloxProvider) UsersByUsername(ctx context.Context, username string) (
 	if err != nil {
 		return nil, fmt.Errorf("failed to get roblox users: %w", err)
 	}
+	defer resp.Body.Close()
 
 	var v struct {
 		Data []thing.RobloxUserValue `json:"data"`

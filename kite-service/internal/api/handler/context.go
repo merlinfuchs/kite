@@ -3,6 +3,7 @@ package handler
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"mime/multipart"
 	"net/http"
@@ -70,14 +71,34 @@ func (c *Context) Redirect(url string, code int) {
 	http.Redirect(c.w, c.r, url, code)
 }
 
+// MaxJSONBodySize bounds a JSON request body.
+//
+// TypedWithBody parses the body before the handler runs, and several routes
+// parse before any access check, so without a bound an anonymous caller can
+// make the server buffer an arbitrary amount of memory. Set well above the
+// largest legitimate payload, which is a bulk import of flows.
+const MaxJSONBodySize = 8 * 1024 * 1024
+
+// LimitBody caps how much of the request body can be read, failing the read
+// once the limit is passed rather than truncating it silently.
+func (c *Context) LimitBody(n int64) {
+	c.r.Body = http.MaxBytesReader(c.w, c.r.Body, n)
+}
+
 func (c *Context) ParseBody(v interface{}) error {
 	contentType := c.r.Header.Get("Content-Type")
 	if contentType != "application/json" {
 		return fmt.Errorf("invalid content type: %s", contentType)
 	}
 
+	c.LimitBody(MaxJSONBodySize)
+
 	decoder := json.NewDecoder(c.r.Body)
 	if err := decoder.Decode(v); err != nil {
+		var maxErr *http.MaxBytesError
+		if errors.As(err, &maxErr) {
+			return ErrBodyTooLarge(MaxJSONBodySize)
+		}
 		return fmt.Errorf("failed to decode request body: %w", err)
 	}
 

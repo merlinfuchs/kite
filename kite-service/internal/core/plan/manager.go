@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"time"
 
+	"github.com/kitecloud/kite/kite-service/internal/config"
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/internal/store"
 )
@@ -44,10 +45,29 @@ func (m *PlanManager) Plans() []model.Plan {
 	return m.plans
 }
 
+// PlansFromConfig converts the configured plans into models. It is shared so
+// that every entry point builds the same plan set from the same config.
+func PlansFromConfig(configured []config.BillingPlanConfig) []model.Plan {
+	plans := make([]model.Plan, len(configured))
+	for i, p := range configured {
+		plans[i] = model.Plan(p)
+	}
+
+	return plans
+}
+
 func (m *PlanManager) PlanByLemonSqueezyProductID(productID string) *model.Plan {
-	for _, plan := range m.plans {
-		if plan.LemonSqueezyProductID == productID {
-			return &plan
+	return m.planBy(func(p model.Plan) string { return p.LemonSqueezyProductID }, productID)
+}
+
+func (m *PlanManager) PlanByLemonSqueezyVariantID(variantID string) *model.Plan {
+	return m.planBy(func(p model.Plan) string { return p.LemonSqueezyVariantID }, variantID)
+}
+
+func (m *PlanManager) planBy(field func(model.Plan) string, value string) *model.Plan {
+	for i, plan := range m.plans {
+		if field(plan) == value {
+			return &m.plans[i]
 		}
 	}
 	return nil

@@ -21,6 +21,7 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/user"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/variable"
 	"github.com/kitecloud/kite/kite-service/internal/api/session"
+	corebilling "github.com/kitecloud/kite/kite-service/internal/core/billing"
 	"github.com/kitecloud/kite/kite-service/internal/core/command"
 	"github.com/kitecloud/kite/kite-service/internal/core/plan"
 	"github.com/kitecloud/kite/kite-service/internal/store"
@@ -148,13 +149,19 @@ func (s *APIServer) RegisterRoutes(
 	appGroup.Delete("/collaborators/{userID}", handler.Typed(appHandler.HandleAppCollaboratorDelete))
 
 	// Billing routes
+	lemonSqueezyClient := corebilling.NewLemonSqueezyClient(
+		s.config.Billing.LemonSqueezyAPIKey,
+		s.config.Billing.LemonSqueezySigningSecret,
+	)
+	subscriptionManager := corebilling.NewSubscriptionManager(
+		subscriptionStore, entitlementStore, planManager, lemonSqueezyClient,
+	)
+
 	billingHandler := billing.NewBillingHandler(billing.BillingHandlerConfig{
-		LemonSqueezyAPIKey:        s.config.Billing.LemonSqueezyAPIKey,
-		LemonSqueezySigningSecret: s.config.Billing.LemonSqueezySigningSecret,
-		LemonSqueezyStoreID:       s.config.Billing.LemonSqueezyStoreID,
-		TestMode:                  s.config.Billing.TestMode,
-		AppPublicBaseURL:          s.config.AppPublicBaseURL,
-	}, userStore, subscriptionStore, entitlementStore, planManager)
+		LemonSqueezyStoreID: s.config.Billing.LemonSqueezyStoreID,
+		TestMode:            s.config.Billing.TestMode,
+		AppPublicBaseURL:    s.config.AppPublicBaseURL,
+	}, userStore, subscriptionStore, planManager, subscriptionManager, lemonSqueezyClient)
 
 	v1Group.Post("/billing/webhook", handler.TypedWithBody(billingHandler.HandleBillingWebhook))
 	v1Group.Get("/billing/plans", handler.Typed(billingHandler.HandleBillingPlanList))
@@ -165,6 +172,7 @@ func (s *APIServer) RegisterRoutes(
 	appBillingGroup := appGroup.Group("/billing")
 	appBillingGroup.Get("/subscriptions", handler.Typed(billingHandler.HandleAppSubscriptionList))
 	appBillingGroup.Post("/checkout", handler.TypedWithBody(billingHandler.HandleAppCheckout))
+	appBillingGroup.Put("/subscriptions/{subscriptionID}/plan", handler.TypedWithBody(billingHandler.HandleSubscriptionPlanUpdate))
 	appBillingGroup.Get("/features", handler.Typed(billingHandler.HandleFeaturesGet))
 
 	// Log routes
