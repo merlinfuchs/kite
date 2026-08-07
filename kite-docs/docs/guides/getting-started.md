@@ -51,6 +51,7 @@ Just click on `Invite app` at top-right of the dashboard's overview page and sel
 4. Connect it to the command block by dragging your mouse from the blue dot of one block to the other
 5. Click on the `Create response message` block and type in some text for the response
 6. Save the command by clicking on `Save Changes` at the top
+7. Click the `Deploy` button at the top to update your bot and apply your changes.
 
 ![Example Flow](./img/example-flow.png)
 
