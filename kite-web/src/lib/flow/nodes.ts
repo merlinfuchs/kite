@@ -272,6 +272,18 @@ export const nodeTypes: Record<string, NodeValues> = {
     ],
     creditsCost: 1,
   },
+  action_message_pin: {
+    color: actionColor,
+    icon: "pin",
+    defaultTitle: "Pin channel message",
+    defaultDescription: "Bot pins a message in a channel",
+    dataFields: [
+      "message_target",
+      "audit_log_reason",
+      "custom_label",
+    ],
+    creditsCost: 1,
+  },
   action_member_ban: {
     color: actionColor,
     icon: "user-round-x",

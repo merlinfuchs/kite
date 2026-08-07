@@ -589,6 +589,28 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 		}
 
 		return n.ExecuteChildren(ctx)
+	case FlowNodeTypeActionMessagePin:
+		messageTarget, err := ctx.EvalTemplate(n.Data.MessageTarget)
+		if err != nil {
+			return traceError(n, err)
+		}
+		messageID := discord.MessageID(messageTarget.Snowflake())
+		channelID := ctx.Data.ChannelID()
+		msg, err := ctx.Discord.Message(ctx, channelID, messageID)
+		if err != nil {
+			return traceError(n, err)
+		}
+		auditLogReason, err := ctx.EvalTemplate(n.Data.AuditLogReason)
+		if err != nil {
+			return traceError(n, err)
+		}
+		err = ctx.Discord.PinMessage(ctx, msg.ChannelID, messageID, api.AuditLogReason(auditLogReason.String()))
+		if err != nil {
+			return traceError(n, err)
+		}
+	
+		return n.ExecuteChildren(ctx)
+
 	case FlowNodeTypeActionMemberBan:
 		userID, err := ctx.EvalTemplate(n.Data.UserTarget)
 		if err != nil {

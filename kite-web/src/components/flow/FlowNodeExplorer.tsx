@@ -50,6 +50,7 @@ const nodeCategories = {
         "action_private_message_create",
         "action_message_reaction_create",
         "action_message_reaction_delete",
+        "action_message_pin",
       ],
       contextTypes: null,
     },
