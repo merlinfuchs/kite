@@ -271,6 +271,83 @@ func (a *App) HandleEvent(appID string, session *state.State, event gateway.Even
 			}
 
 			go instance.HandleEvent(appID, session, event)
+		case *discord.StringSelectInteraction:
+			// Select menus use the same resume-point system as buttons.
+			// The CustomID on the select menu encodes the resume point;
+			// the selected option's Value encodes the option's numeric ID.
+			customID := string(d.CustomID)
+			resumePointID, _, isResume := message.DecodeCustomIDMessageComponentResumePoint(customID)
+			if isResume {
+				resumePoint, err := a.env.ResumePointStore.ResumePoint(context.TODO(), resumePointID)
+				if err != nil {
+					if errors.Is(err, store.ErrNotFound) {
+						return
+					}
+
+					slog.Error(
+						"Failed to get resume point",
+						slog.String("resume_point_id", resumePointID),
+						slog.String("error", err.Error()),
+					)
+					return
+				}
+
+				if resumePoint.CommandID.Valid {
+					a.RLock()
+					defer a.RUnlock()
+
+					command, ok := a.commands[resumePoint.CommandID.String]
+					if !ok {
+						return
+					}
+
+					node := command.flow.FindChildWithID(resumePoint.FlowNodeID, true)
+					if node == nil {
+						slog.Error(
+							"Failed to find node in flow",
+							slog.String("resume_point_id", resumePointID),
+							slog.String("command_id", resumePoint.CommandID.String),
+						)
+						return
+					}
+
+					go a.env.executeFlowEvent(
+						context.Background(),
+						a.id,
+						node,
+						session,
+						event,
+						entityLinks{
+							CommandID: null.NewString(command.cmd.ID, true),
+						},
+						&resumePoint.FlowState,
+					)
+				}
+				return
+			}
+
+			// Not a resume point — route via MessageInstance (message template)
+			messageID := e.Message.ID.String()
+			messageInstance, err := a.env.MessageInstanceStore.MessageInstanceByDiscordMessageID(context.TODO(), messageID)
+			if err != nil {
+				if errors.Is(err, store.ErrNotFound) {
+					return
+				}
+				slog.With("error", err).Error("failed to get message instance for select menu")
+				return
+			}
+
+			instance, err := NewMessageInstance(
+				a.id,
+				messageInstance,
+				a.env,
+			)
+			if err != nil {
+				slog.With("error", err).Error("failed to create message instance for select menu")
+				return
+			}
+
+			go instance.HandleEvent(appID, session, event)
 		case *discord.ModalInteraction:
 			customID := string(d.CustomID)
 			resumePointID, ok := message.DecodeCustomIDModalResumePoint(customID)

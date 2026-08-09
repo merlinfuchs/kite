@@ -43,6 +43,15 @@ func (req *MessageCreateRequest) Sanitize() {
 			if ok {
 				newFlowSources[comp.FlowSourceID] = flow
 			}
+			// Also preserve per-option flow sources for select menus
+			for _, opt := range comp.Options {
+				if opt.FlowSourceID != "" {
+					flow, ok := req.FlowSources[opt.FlowSourceID]
+					if ok {
+						newFlowSources[opt.FlowSourceID] = flow
+					}
+				}
+			}
 		}
 	}
 
@@ -91,6 +100,15 @@ func (req *MessageUpdateRequest) Sanitize() {
 			flow, ok := req.FlowSources[comp.FlowSourceID]
 			if ok {
 				newFlowSources[comp.FlowSourceID] = flow
+			}
+			// Also preserve per-option flow sources for select menus
+			for _, opt := range comp.Options {
+				if opt.FlowSourceID != "" {
+					flow, ok := req.FlowSources[opt.FlowSourceID]
+					if ok {
+						newFlowSources[opt.FlowSourceID] = flow
+					}
+				}
 			}
 		}
 	}
