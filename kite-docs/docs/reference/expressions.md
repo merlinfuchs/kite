@@ -86,6 +86,14 @@ This will return true if the user has the role with the ID `123`.
 {{ "123" in user.role_ids }}
 ```
 
+### Check User Creation Date
+
+This will return the user’s account creation timestamp.
+
+```python
+<t:{{ floor(((int(user.id) / 4194304) + 1420070400000) / 1000) }}:f>
+```
+
 ### Do Some Math
 
 This will return the result of the expression.
@@ -100,4 +108,18 @@ This will return the value of the `somefield` field in the JSON response of a HT
 
 ```python
 {{ result('owlspush').data().somefield }}
+```
+
+### Timestamps
+
+This allows you to display dates and times in multiple formats, including relative timers, short or long dates, and full datetime with seconds.
+
+```python
+Examples:
+<t:{{ now().Unix() }}:R> # Timer - Counts up from the time it was sent.
+<t:{{ now().Unix() }}:R> # Short Time -  Displays time like 5:36 PM.
+<t:{{ now().Unix() }}:d> # Short Date - Displays date like 01/02/2026.
+
+Timezone Formatting: You can alos display a timestamp in a specific timezone.
+{{ now().In(timezone("America/Chicago")).Format("02/01/2006 03:04 PM") }} # Displays as 2/01/2026 05:43 PM for the America/Chicago timzone.
 ```
