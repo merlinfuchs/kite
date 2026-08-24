@@ -5,6 +5,7 @@ import { useEventListeners } from "@/lib/hooks/api";
 import EventListenerListEntry from "./EventListenerListEntry";
 import AppEmptyPlaceholder from "./AppEmptyPlaceholder";
 import EventListenerCreateDialog from "./EventListenerCreateDialog";
+import { EventListenerImportDialog } from "./EventListenerImportDialog";
 
 export default function EventListenerList() {
   const listeners = useEventListeners();
@@ -13,6 +14,12 @@ export default function EventListenerList() {
     <EventListenerCreateDialog>
       <Button>Create event listener</Button>
     </EventListenerCreateDialog>
+  );
+
+  const listenerImportButton = (
+    <EventListenerImportDialog>
+      <Button>Import event listener</Button>
+    </EventListenerImportDialog>
   );
 
   return (
@@ -27,14 +34,22 @@ export default function EventListenerList() {
         <AppEmptyPlaceholder
           title="There are no event listeners"
           description="You can start now by creating the first event listener!"
-          action={listenerCreateButton}
+          action={
+            <div className="flex gap-5 flex-col md:flex-row">
+              {listenerCreateButton}
+              {listenerImportButton}
+            </div>
+          }
         />
       ) : (
         <>
           {listeners.map((listener, i) => (
             <EventListenerListEntry listener={listener!} key={i} />
           ))}
-          <div className="flex">{listenerCreateButton}</div>
+          <div className="flex gap-5 flex-col md:flex-row">
+            {listenerCreateButton}
+            {listenerImportButton}
+          </div>
         </>
       )}
     </AutoAnimate>

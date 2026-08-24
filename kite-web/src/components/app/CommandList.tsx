@@ -4,6 +4,7 @@ import AppEmptyPlaceholder from "./AppEmptyPlaceholder";
 import { Skeleton } from "../ui/skeleton";
 import AutoAnimate from "../common/AutoAnimate";
 import CommandCreateDialog from "./CommandCreateDialog";
+import { CommandImportDialog } from "./CommandImportDialog";
 import { useCommands } from "@/lib/hooks/api";
 import { CommandDeployDialog } from "./CommandDeployDialog";
 import { useState } from "react";
@@ -39,9 +40,14 @@ export default function CommandList() {
               one leaves no command to compare at all. Gating on "has
               undeployed changes" made deleted commands unremovable. */}
           <div className="flex gap-5 justify-between flex-col md:flex-row">
-            <CommandCreateDialog>
-              <Button>Create command</Button>
-            </CommandCreateDialog>
+            <div className="flex gap-5 flex-col md:flex-row">
+              <CommandCreateDialog>
+                <Button>Create command</Button>
+              </CommandCreateDialog>
+              <CommandImportDialog>
+                <Button>Import command</Button>
+              </CommandImportDialog>
+            </div>
 
             <CommandDeployDialog
               open={deployDialogOpen}
