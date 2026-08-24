@@ -11,7 +11,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "../ui/dialog";
-import { Input } from "../ui/input";
+import { Textarea } from "../ui/textarea";
 import { useEventListenersImportMutation } from "@/lib/api/mutations";
 import { useAppId } from "@/lib/hooks/params";
 import { toast } from "sonner";
@@ -29,7 +29,7 @@ export function EventListenerImportDialog({ children }: { children: ReactNode })
     const trimmed = shareCode.trim();
 
     if (!trimmed) {
-      toast.error("Paste code before importing");
+      toast.error("Failed to import event listener: paste code before importing");
       return;
     }
 
@@ -38,7 +38,7 @@ export function EventListenerImportDialog({ children }: { children: ReactNode })
       parsed = JSON.parse(trimmed);
     } catch {
       toast.error(
-        "Error importing event listener: invalid share code"
+        "Failed to import event listener: invalid share code"
       );
       return;
     }
@@ -55,7 +55,7 @@ export function EventListenerImportDialog({ children }: { children: ReactNode })
       )
     ) {
       toast.error(
-        "Error importing event listener: invalid share code"
+        "Failed to import event listener: invalid share code"
       );
       return;
     }
@@ -71,7 +71,7 @@ export function EventListenerImportDialog({ children }: { children: ReactNode })
 
             if (!imported) {
               toast.error(
-                `Error importing event listener: event listener not found`
+                `Failed to import event listener: event listener not found`
               );
               setShareCode("");
               setDialogOpen(false);
@@ -98,7 +98,7 @@ export function EventListenerImportDialog({ children }: { children: ReactNode })
         },
         onError: () => {
           toast.error(
-            "Failed to import event listener, please check the share code and try again"
+            "Failed to import event listener: check code and try again"
           );
         },
       }
@@ -125,8 +125,9 @@ export function EventListenerImportDialog({ children }: { children: ReactNode })
           <div>
             <div className="font-medium mb-0.5">Share Code</div>
             <div className="text-sm text-muted-foreground mb-3"></div>
-            <Input
+            <Textarea
               value={shareCode}
+              className="min-h-[38px] max-h-[218px] overflow-y-auto resize-y"
               onChange={(e) => setShareCode(e.target.value)}
               placeholder=""
             />

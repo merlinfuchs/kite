@@ -35,12 +35,12 @@ export function CommandExportDialog({
 
   const handleCopy = () => {
     if (!shareCode) {
-      toast.error("Failed to generate a share code for this command");
+      toast.error("Failed to export command: error generating share code");
       return;
     }
 
     if (!navigator.clipboard || !navigator.clipboard.writeText) {
-      toast.error("Copy failed: use ctrl + c to copy");
+      toast.error("Failed to copy command: use ctrl + c to copy");
       return;
     }
 
@@ -51,7 +51,7 @@ export function CommandExportDialog({
         setDialogOpen(false);
       })
       .catch(() => {
-        toast.error("Copy failed: use ctrl + c to copy");
+        toast.error("Failed to copy command: use ctrl + c to copy");
       });
   };
 

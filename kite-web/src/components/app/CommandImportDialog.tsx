@@ -11,7 +11,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "../ui/dialog";
-import { Input } from "../ui/input";
+import { Textarea } from "../ui/textarea";
 import { useCommandsImportMutation } from "@/lib/api/mutations";
 import { useAppId } from "@/lib/hooks/params";
 import { toast } from "sonner";
@@ -29,7 +29,7 @@ export function CommandImportDialog({ children }: { children: ReactNode }) {
     const trimmed = shareCode.trim();
 
     if (!trimmed) {
-      toast.error("Paste code before importing");
+      toast.error("Failed to import command: paste code before importing");
       return;
     }
 
@@ -38,7 +38,7 @@ export function CommandImportDialog({ children }: { children: ReactNode }) {
       parsed = JSON.parse(trimmed);
     } catch {
       toast.error(
-        "Error importing command: invalid share code"
+        "Failed to import command: invalid share code"
       );
       return;
     }
@@ -54,7 +54,7 @@ export function CommandImportDialog({ children }: { children: ReactNode }) {
   )
 ) {
   toast.error(
-    "Error importing command: invalid share code"
+    "Failed to import command: invalid share code"
   );
   return;
 }
@@ -70,7 +70,7 @@ export function CommandImportDialog({ children }: { children: ReactNode }) {
 
             if (!imported) {
               toast.error(
-                `Error importing command: command not found`
+                `Failed to import command: command not found`
               );
               setShareCode("");
               setDialogOpen(false);
@@ -97,7 +97,7 @@ export function CommandImportDialog({ children }: { children: ReactNode }) {
         },
         onError: () => {
           toast.error(
-            "Failed to import command, please check the share code and try again"
+            "Failed to import command: check code and try again"
           );
         },
       }
@@ -124,8 +124,9 @@ export function CommandImportDialog({ children }: { children: ReactNode }) {
           <div>
             <div className="font-medium mb-0.5">Share Code</div>
             <div className="text-sm text-muted-foreground mb-3"></div>
-            <Input
+            <Textarea
               value={shareCode}
+              className="min-h-[38px] max-h-[218px] overflow-y-auto resize-y"
               onChange={(e) => setShareCode(e.target.value)}
               placeholder=""
             />

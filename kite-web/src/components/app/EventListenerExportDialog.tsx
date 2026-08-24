@@ -38,12 +38,12 @@ export function EventListenerExportDialog({
 
   const handleCopy = () => {
     if (!shareCode) {
-      toast.error("Failed to generate a share code for this event listener");
+      toast.error("Failed to export event listener: error generating share code");
       return;
     }
 
     if (!navigator.clipboard || !navigator.clipboard.writeText) {
-      toast.error("Copy failed: use ctrl + c to copy");
+      toast.error("Failed to copy event listener: use ctrl + c to copy");
       return;
     }
 
@@ -54,7 +54,7 @@ export function EventListenerExportDialog({
         setDialogOpen(false);
       })
       .catch(() => {
-        toast.error("Copy failed: use ctrl + c to copy");
+        toast.error("Failed to copy event listener: use ctrl + c to copy");
       });
   };
 
