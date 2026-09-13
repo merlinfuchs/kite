@@ -47,6 +47,8 @@ type DiscordProvider interface {
 	EditRole(ctx context.Context, guildID discord.GuildID, roleID discord.RoleID, data api.ModifyRoleData) (*discord.Role, error)
 	DeleteRole(ctx context.Context, guildID discord.GuildID, roleID discord.RoleID) error
 
+	UpdateVoiceState(ctx context.Context, guildID discord.GuildID, channelID discord.ChannelID, selfMute bool, selfDeaf bool) error
+
 	HasCreatedInteractionResponse(ctx context.Context, interactionID discord.InteractionID) (bool, error)
 	AutoDeferInteraction(ctx context.Context, interactionID discord.InteractionID, interactionToken string, flags discord.MessageFlags)
 }
@@ -205,6 +207,10 @@ func (p *MockDiscordProvider) EditRole(ctx context.Context, guildID discord.Guil
 }
 
 func (p *MockDiscordProvider) DeleteRole(ctx context.Context, guildID discord.GuildID, roleID discord.RoleID) error {
+	return nil
+}
+
+func (p *MockDiscordProvider) UpdateVoiceState(ctx context.Context, guildID discord.GuildID, channelID discord.ChannelID, selfMute bool, selfDeaf bool) error {
 	return nil
 }
 

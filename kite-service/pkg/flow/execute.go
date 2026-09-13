@@ -1219,6 +1219,37 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 
 		ctx.StoreNodeResult(n, val)
 		return n.ExecuteChildren(ctx)
+	case FlowNodeTypeActionVoiceChannelJoin:
+		channelTarget, err := ctx.EvalTemplate(n.Data.VoiceChannelTarget)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		err = ctx.Discord.UpdateVoiceState(
+			ctx,
+			ctx.Data.GuildID(),
+			discord.ChannelID(channelTarget.Snowflake()),
+			n.Data.VoiceSelfMute,
+			n.Data.VoiceSelfDeaf,
+		)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		return n.ExecuteChildren(ctx)
+	case FlowNodeTypeActionVoiceChannelLeave:
+		err := ctx.Discord.UpdateVoiceState(
+			ctx,
+			ctx.Data.GuildID(),
+			discord.ChannelID(0),
+			false,
+			false,
+		)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		return n.ExecuteChildren(ctx)
 	case FlowNodeTypeActionHTTPRequest:
 		if n.Data.HTTPRequestData == nil {
 			return &FlowError{

@@ -57,6 +57,8 @@ export const FlowNodeTypeActionLog: FlowNodeType = "action_log";
 export const FlowNodeTypeActionVariableSet: FlowNodeType = "action_variable_set";
 export const FlowNodeTypeActionVariableDelete: FlowNodeType = "action_variable_delete";
 export const FlowNodeTypeActionVariableGet: FlowNodeType = "action_variable_get";
+export const FlowNodeTypeActionVoiceChannelJoin: FlowNodeType = "action_voice_channel_join";
+export const FlowNodeTypeActionVoiceChannelLeave: FlowNodeType = "action_voice_channel_leave";
 export const FlowNodeTypeControlConditionCompare: FlowNodeType = "control_condition_compare";
 export const FlowNodeTypeControlConditionItemCompare: FlowNodeType = "control_condition_item_compare";
 export const FlowNodeTypeControlConditionUser: FlowNodeType = "control_condition_user";
@@ -143,6 +145,12 @@ export interface FlowNodeData {
    */
   channel_target?: string;
   channel_data?: ChannelData;
+  /**
+   * Voice Channel Join
+   */
+  voice_channel_target?: string;
+  voice_self_mute?: boolean;
+  voice_self_deaf?: boolean;
   /**
    * Role Create, Edit, Delete, Get
    */

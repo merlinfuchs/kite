@@ -14,6 +14,7 @@ import (
 
 	"github.com/diamondburned/arikawa/v3/api"
 	"github.com/diamondburned/arikawa/v3/discord"
+	"github.com/diamondburned/arikawa/v3/gateway"
 	"github.com/diamondburned/arikawa/v3/state"
 	disstore "github.com/diamondburned/arikawa/v3/state/store"
 	"github.com/diamondburned/arikawa/v3/utils/sendpart"
@@ -377,6 +378,20 @@ func (p *DiscordProvider) RemoveThreadMember(ctx context.Context, channelID disc
 	err := p.session.RemoveThreadMember(channelID, userID)
 	if err != nil {
 		return fmt.Errorf("failed to remove thread member: %w", err)
+	}
+
+	return nil
+}
+
+func (p *DiscordProvider) UpdateVoiceState(ctx context.Context, guildID discord.GuildID, channelID discord.ChannelID, selfMute bool, selfDeaf bool) error {
+	err := p.session.SendGateway(ctx, &gateway.UpdateVoiceStateCommand{
+		GuildID:   guildID,
+		ChannelID: channelID,
+		SelfMute:  selfMute,
+		SelfDeaf:  selfDeaf,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to update voice state: %w", err)
 	}
 
 	return nil

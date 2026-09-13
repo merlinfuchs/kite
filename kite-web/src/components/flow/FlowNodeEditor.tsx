@@ -108,6 +108,9 @@ const intputs: Record<string, any> = {
   channel_data: ChannelDataInput,
   thread_data: ThreadDataInput,
   channel_target: ChannelTargetInput,
+  voice_channel_target: VoiceChannelTargetInput,
+  voice_self_mute: VoiceSelfMuteInput,
+  voice_self_deaf: VoiceSelfDeafInput,
   role_data: RoleDataInput,
   role_target: RoleTargetInput,
   variable_id: VariableIdInput,
@@ -2059,6 +2062,49 @@ function ChannelTargetInput({ data, updateData, errors }: InputProps) {
       updateValue={(v) => updateData({ channel_target: v || undefined })}
       errors={errors}
       placeholders
+    />
+  );
+}
+
+function VoiceChannelTargetInput({ data, updateData, errors }: InputProps) {
+  return (
+    <BaseInput
+      type="text"
+      field="voice_channel_target"
+      title="Voice Channel"
+      description="The voice channel the bot should join. Enter a channel ID or use a placeholder."
+      value={data.voice_channel_target || ""}
+      updateValue={(v) =>
+        updateData({ voice_channel_target: v || undefined })
+      }
+      errors={errors}
+      placeholders
+    />
+  );
+}
+
+function VoiceSelfMuteInput({ data, updateData, errors }: InputProps) {
+  return (
+    <BaseCheckbox
+      field="voice_self_mute"
+      title="Mute Self"
+      description="If enabled, the bot joins the voice channel muted."
+      value={!!data.voice_self_mute}
+      updateValue={(v) => updateData({ voice_self_mute: v || undefined })}
+      errors={errors}
+    />
+  );
+}
+
+function VoiceSelfDeafInput({ data, updateData, errors }: InputProps) {
+  return (
+    <BaseCheckbox
+      field="voice_self_deaf"
+      title="Deafen Self"
+      description="If enabled, the bot joins the voice channel deafened."
+      value={!!data.voice_self_deaf}
+      updateValue={(v) => updateData({ voice_self_deaf: v || undefined })}
+      errors={errors}
     />
   );
 }

@@ -89,6 +89,8 @@ const (
 	FlowNodeTypeActionVariableSet           FlowNodeType = "action_variable_set"
 	FlowNodeTypeActionVariableDelete        FlowNodeType = "action_variable_delete"
 	FlowNodeTypeActionVariableGet           FlowNodeType = "action_variable_get"
+	FlowNodeTypeActionVoiceChannelJoin      FlowNodeType = "action_voice_channel_join"
+	FlowNodeTypeActionVoiceChannelLeave     FlowNodeType = "action_voice_channel_leave"
 
 	FlowNodeTypeControlConditionCompare     FlowNodeType = "control_condition_compare"
 	FlowNodeTypeControlConditionItemCompare FlowNodeType = "control_condition_item_compare"
@@ -179,6 +181,11 @@ type FlowNodeData struct {
 	// Channel Create, Edit, Delete, Get
 	ChannelTarget string       `json:"channel_target,omitempty"`
 	ChannelData   *ChannelData `json:"channel_data,omitempty"`
+
+	// Voice Channel Join
+	VoiceChannelTarget string `json:"voice_channel_target,omitempty"`
+	VoiceSelfMute      bool   `json:"voice_self_mute,omitempty"`
+	VoiceSelfDeaf      bool   `json:"voice_self_deaf,omitempty"`
 
 	// Role Create, Edit, Delete, Get
 	RoleTarget string    `json:"role_target,omitempty"`
