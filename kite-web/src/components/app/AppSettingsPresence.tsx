@@ -10,8 +10,8 @@ import {
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Switch } from "@/components/ui/switch";
 import { useAppStatusUpdateMutation } from "@/lib/api/mutations";
+import { useAppQuery } from "@/lib/api/queries";
 import { setValidationErrors } from "@/lib/form";
-import { useApp } from "@/lib/hooks/api";
 import { useAppId } from "@/lib/hooks/params";
 import { ExternalLinkIcon, PlusIcon, RefreshCwIcon, Trash2Icon } from "lucide-react";
 import Link from "next/link";
@@ -70,7 +70,18 @@ function emptyStatus(): StatusFieldValues {
 }
 
 export default function AppSettingsPresence() {
-  const app = useApp();
+  const appId = useAppId();
+  const appQuery = useAppQuery(appId);
+  const app = appQuery.data?.success ? appQuery.data.data : undefined;
+
+  // isLoading (unlike isFetching) is only true while there's no data to show
+  // yet -- it covers both the very first load AND a remount after React
+  // Query has evicted its cached copy of the app (e.g. after a few minutes
+  // away on another page). Without this, the form's empty-by-default state
+  // was indistinguishable from "this app genuinely has no statuses", so the
+  // page briefly looked like your statuses had disappeared every time you
+  // navigated back to it.
+  const isAppLoading = appQuery.isLoading;
 
   const form = useForm<FormFields>({
     defaultValues: {
@@ -109,7 +120,7 @@ export default function AppSettingsPresence() {
   const activeId = form.watch("active_id");
   const rotateEnabled = form.watch("rotate_enabled");
 
-  const updateMutation = useAppStatusUpdateMutation(useAppId());
+  const updateMutation = useAppStatusUpdateMutation(appId);
 
   const onSubmit = useCallback(
     (data: FormFields) => {
@@ -194,39 +205,46 @@ export default function AppSettingsPresence() {
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4">
           <CardContent className="space-y-5">
-            <div className="flex items-center justify-between gap-3 rounded-lg border p-3">
-              <div className="space-y-0.5">
-                <div className="flex items-center gap-2 text-sm font-medium">
-                  <RefreshCwIcon className="h-4 w-4" />
-                  Rotate status every minute
-                </div>
-                <p className="text-sm text-muted-foreground">
-                  When enabled, your app cycles through every status below,
-                  switching to the next one once a minute. When disabled, the
-                  status selected below is shown at all times.
-                </p>
-              </div>
-              <FormField
-                control={form.control}
-                name="rotate_enabled"
-                render={({ field }) => (
-                  <Switch
-                    checked={field.value}
-                    onCheckedChange={field.onChange}
-                    disabled={fields.length < 2}
+            {isAppLoading ? (
+              <p className="text-sm text-muted-foreground">
+                Loading your status settings...
+              </p>
+            ) : (
+              <>
+                <div className="flex items-center justify-between gap-3 rounded-lg border p-3">
+                  <div className="space-y-0.5">
+                    <div className="flex items-center gap-2 text-sm font-medium">
+                      <RefreshCwIcon className="h-4 w-4" />
+                      Rotate status every minute
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      When enabled, your app cycles through every status
+                      below, switching to the next one once a minute. When
+                      disabled, the status selected below is shown at all
+                      times.
+                    </p>
+                  </div>
+                  <FormField
+                    control={form.control}
+                    name="rotate_enabled"
+                    render={({ field }) => (
+                      <Switch
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                        disabled={fields.length < 2}
+                      />
+                    )}
                   />
-                )}
-              />
-            </div>
+                </div>
 
-            <RadioGroup
-              value={activeId}
-              onValueChange={(value) => form.setValue("active_id", value)}
-              className="space-y-4"
-            >
-              {fields.map((field, index) => (
-                <div
-                  key={field.fieldKey}
+                <RadioGroup
+                  value={activeId}
+                  onValueChange={(value) => form.setValue("active_id", value)}
+                  className="space-y-4"
+                >
+                  {fields.map((field, index) => (
+                    <div
+                      key={field.fieldKey}
                   className="rounded-lg border p-4 space-y-4"
                 >
                   <div className="flex items-center justify-between gap-3">
@@ -361,23 +379,25 @@ export default function AppSettingsPresence() {
                   />
                 </div>
               ))}
-            </RadioGroup>
+                </RadioGroup>
 
-            <Button
-              variant="outline"
-              type="button"
-              onClick={handleAddStatus}
-              className="w-full"
-            >
-              <PlusIcon className="h-4 w-4 mr-2" />
-              Add status
-            </Button>
+                <Button
+                  variant="outline"
+                  type="button"
+                  onClick={handleAddStatus}
+                  className="w-full"
+                >
+                  <PlusIcon className="h-4 w-4 mr-2" />
+                  Add status
+                </Button>
 
-            {fields.length === 0 && (
-              <p className="text-sm text-muted-foreground">
-                No custom statuses configured. Your app will show Kite&apos;s
-                default status until you add one.
-              </p>
+                {fields.length === 0 && (
+                  <p className="text-sm text-muted-foreground">
+                    No custom statuses configured. Your app will show
+                    Kite&apos;s default status until you add one.
+                  </p>
+                )}
+              </>
             )}
           </CardContent>
 
