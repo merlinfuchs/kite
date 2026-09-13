@@ -1,6 +1,7 @@
 package model
 
 import (
+	"reflect"
 	"time"
 
 	"github.com/diamondburned/arikawa/v3/utils/ws"
@@ -106,7 +107,21 @@ func (r AppGatewayRequirements) NeedsGuildMessageReactions() bool {
 	return false
 }
 
+// AppDiscordStatus configures the set of Discord statuses an app can show.
+// Statuses holds every status the user has created; ActiveID picks which one
+// is shown when RotateEnabled is false, and the gateway cycles through all of
+// them once per minute when it is true.
 type AppDiscordStatus struct {
+	Statuses      []AppDiscordStatusEntry `json:"statuses,omitempty"`
+	ActiveID      string                  `json:"active_id,omitempty"`
+	RotateEnabled bool                    `json:"rotate_enabled,omitempty"`
+}
+
+// AppDiscordStatusEntry is a single status/activity combination that can be
+// shown on the app's Discord presence.
+type AppDiscordStatusEntry struct {
+	ID            string `json:"id"`
+	Label         string `json:"label,omitempty"`
 	Status        string `json:"status,omitempty"`
 	ActivityType  int    `json:"activity_type,omitempty"`
 	ActivityName  string `json:"activity_name,omitempty"`
@@ -123,11 +138,26 @@ func (s *AppDiscordStatus) Equals(other *AppDiscordStatus) bool {
 		return false
 	}
 
-	return s.Status == other.Status &&
-		s.ActivityType == other.ActivityType &&
-		s.ActivityName == other.ActivityName &&
-		s.ActivityState == other.ActivityState &&
-		s.ActivityURL == other.ActivityURL
+	return s.ActiveID == other.ActiveID &&
+		s.RotateEnabled == other.RotateEnabled &&
+		reflect.DeepEqual(s.Statuses, other.Statuses)
+}
+
+// ActiveEntry returns the status that should be displayed when rotation is
+// off: the one matching ActiveID, or the first entry if ActiveID doesn't
+// match anything (e.g. it was deleted). Returns nil if there are no statuses.
+func (s *AppDiscordStatus) ActiveEntry() *AppDiscordStatusEntry {
+	if s == nil || len(s.Statuses) == 0 {
+		return nil
+	}
+
+	for i := range s.Statuses {
+		if s.Statuses[i].ID == s.ActiveID {
+			return &s.Statuses[i]
+		}
+	}
+
+	return &s.Statuses[0]
 }
 
 type AppCollaboratorRole string

@@ -21,6 +21,13 @@ export interface App {
   updated_at: string /* RFC3339 */;
 }
 export interface AppDiscordStatus {
+  statuses?: AppDiscordStatusEntry[];
+  active_id?: string;
+  rotate_enabled?: boolean;
+}
+export interface AppDiscordStatusEntry {
+  id: string;
+  label?: string;
   status?: string;
   activity_type?: number /* int */;
   activity_name?: string;
