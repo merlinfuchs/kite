@@ -15,7 +15,7 @@ import { setValidationErrors } from "@/lib/form";
 import { useAppId } from "@/lib/hooks/params";
 import { ExternalLinkIcon, PlusIcon, RefreshCwIcon, Trash2Icon } from "lucide-react";
 import Link from "next/link";
-import { useCallback, useEffect } from "react";
+import { useCallback, useMemo } from "react";
 import { useFieldArray, useForm } from "react-hook-form";
 import { toast } from "sonner";
 import {
@@ -83,33 +83,38 @@ export default function AppSettingsPresence() {
   // navigated back to it.
   const isAppLoading = appQuery.isLoading;
 
+  // Derive the form's values from the fetched app. Using RHF's `values`
+  // option (rather than `defaultValues` + a manual `reset()` in a
+  // useEffect) is the pattern React Hook Form recommends for syncing a form
+  // to async data: `reset()` reliably updates plain fields but does NOT
+  // reliably sync `useFieldArray`'s own internal field list, so the
+  // rotate-enabled toggle would end up correct while the status list stayed
+  // stuck empty. `values` keeps both in sync together.
+  const formValues = useMemo<FormFields>(() => {
+    const statuses =
+      app?.discord_status?.statuses?.map((s) => ({
+        id: s.id,
+        label: s.label || "",
+        status: s.status || "online",
+        activity_type: s.activity_type?.toString() || "0",
+        activity_name: s.activity_name || "",
+        activity_url: s.activity_url || "",
+      })) || [];
+
+    return {
+      statuses,
+      active_id: app?.discord_status?.active_id || statuses[0]?.id || "",
+      rotate_enabled: app?.discord_status?.rotate_enabled || false,
+    };
+  }, [app]);
+
   const form = useForm<FormFields>({
-    defaultValues: {
-      statuses: [],
-      active_id: "",
-      rotate_enabled: false,
-    },
+    values: formValues,
+    // Don't clobber an in-progress edit if a background refetch resolves
+    // while the user is mid-change (e.g. the always-refetch-on-mount fetch
+    // landing right as they start editing).
+    resetOptions: { keepDirtyValues: true },
   });
-
-  useEffect(() => {
-    if (app) {
-      const statuses =
-        app.discord_status?.statuses?.map((s) => ({
-          id: s.id,
-          label: s.label || "",
-          status: s.status || "online",
-          activity_type: s.activity_type?.toString() || "0",
-          activity_name: s.activity_name || "",
-          activity_url: s.activity_url || "",
-        })) || [];
-
-      form.reset({
-        statuses,
-        active_id: app.discord_status?.active_id || statuses[0]?.id || "",
-        rotate_enabled: app.discord_status?.rotate_enabled || false,
-      });
-    }
-  }, [app, form]);
 
   const { fields, append, remove } = useFieldArray({
     control: form.control,
