@@ -1,6 +1,6 @@
 import { ChevronDownIcon } from "lucide-react";
-import { NewNode, NodeId } from "@/lib/message/document";
-import { useDocumentStoreApi } from "@/lib/message/state";
+import { MessageNode, NewNode, NodeId } from "@/lib/message/document";
+import { useDocument, useDocumentStoreApi } from "@/lib/message/state";
 import { Button } from "../ui/button";
 import {
   DropdownMenu,
@@ -13,6 +13,7 @@ const componentTypes: {
   label: string;
   node: NewNode;
   rootOnly?: boolean;
+  needsAttachment?: boolean;
   /** A component to put inside the new one, like the select menu of its row. */
   child?: NewNode;
 }[] = [
@@ -25,7 +26,11 @@ const componentTypes: {
   { label: "Section", node: { type: "section" } },
   { label: "Text Display", node: { type: "textDisplay", content: "" } },
   { label: "Media Gallery", node: { type: "mediaGallery" } },
-  { label: "File", node: { type: "file", file: { url: "" } } },
+  {
+    label: "File",
+    node: { type: "file", file: { url: "" } },
+    needsAttachment: true,
+  },
   {
     label: "Separator",
     node: { type: "separator", divider: true, spacing: 1 },
@@ -45,6 +50,10 @@ export default function MessageComponentAddDropdown({
   size?: "sm";
 }) {
   const { insert } = useDocumentStoreApi().getState();
+  // A file component can only show a file attached to the message.
+  const hasAttachments = useDocument(
+    (state) => (state.nodes[state.rootId] as MessageNode).attachments.length > 0
+  );
 
   const add = (node: NewNode, child?: NewNode) => {
     const id = insert(parentId, "components", "end", node);
@@ -61,7 +70,11 @@ export default function MessageComponentAddDropdown({
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start">
         {componentTypes
-          .filter((c) => !c.rootOnly || context === "root")
+          .filter(
+            (c) =>
+              (!c.rootOnly || context === "root") &&
+              (!c.needsAttachment || hasAttachments)
+          )
           .map((c) => (
             <DropdownMenuItem
               key={c.label}

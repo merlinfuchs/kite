@@ -75,10 +75,11 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			}
 		}
 
-		responseData, resumePointID, err := n.prepareMessageResponseData(ctx)
+		data, opts, resumePointID, err := n.prepareMessage(ctx)
 		if err != nil {
 			return traceError(n, err)
 		}
+		responseData := data.ToInteractionResponseData(opts)
 
 		hasCreatedResponse, err := ctx.Discord.HasCreatedInteractionResponse(ctx, interaction.ID)
 		if err != nil {
@@ -145,10 +146,11 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			}
 		}
 
-		responseData, resumePointID, err := n.prepareMessageResponseData(ctx)
+		data, opts, resumePointID, err := n.prepareMessage(ctx)
 		if err != nil {
 			return traceError(n, err)
 		}
+		responseData := data.ToInteractionResponseData(opts)
 
 		var msg *discord.Message
 		if n.Data.MessageTarget == "" || n.Data.MessageTarget == "@original" {
@@ -358,10 +360,11 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			return n.resumeFromComponent(ctx)
 		}
 
-		messageData, resumePointID, err := n.prepareMessageSendData(ctx)
+		data, opts, resumePointID, err := n.prepareMessage(ctx)
 		if err != nil {
 			return traceError(n, err)
 		}
+		messageData := data.ToSendMessageData(opts)
 
 		channelTarget, err := ctx.EvalTemplate(n.Data.ChannelTarget)
 		if err != nil {
@@ -415,22 +418,17 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			return traceError(n, err)
 		}
 
-		messageData, resumePointID, err := n.prepareMessageSendData(ctx)
+		data, opts, resumePointID, err := n.prepareMessage(ctx)
 		if err != nil {
 			return traceError(n, err)
 		}
+		editData := data.ToEditMessageData(opts)
 
 		msg, err := ctx.Discord.EditMessage(
 			ctx,
 			discord.ChannelID(channelTarget.Snowflake()),
 			discord.MessageID(messageTarget.Snowflake()),
-			api.EditMessageData{
-				Content: option.NewNullableString(messageData.Content),
-				Embeds:  &messageData.Embeds,
-				// Without this the edit silently drops the buttons, even
-				// though a resume point is created for them right below.
-				Components: &messageData.Components,
-			},
+			editData,
 		)
 		if err != nil {
 			return traceError(n, err)
@@ -491,10 +489,11 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			return n.resumeFromComponent(ctx)
 		}
 
-		messageData, resumePointID, err := n.prepareMessageSendData(ctx)
+		data, opts, resumePointID, err := n.prepareMessage(ctx)
 		if err != nil {
 			return traceError(n, err)
 		}
+		messageData := data.ToSendMessageData(opts)
 
 		userTarget, err := ctx.EvalTemplate(n.Data.UserTarget)
 		if err != nil {
@@ -1809,33 +1808,12 @@ func (n *CompiledFlowNode) prepareMessageData(ctx *FlowContext) (message.Message
 	return data, nil
 }
 
-func (n *CompiledFlowNode) prepareMessageResponseData(ctx *FlowContext) (api.InteractionResponseData, string, error) {
+// prepareMessage evaluates the node's message and returns it with the options to
+// convert it, pointing interactive components at a new resume point if needed.
+func (n *CompiledFlowNode) prepareMessage(ctx *FlowContext) (message.MessageData, message.ConvertOptions, string, error) {
 	data, err := n.prepareMessageData(ctx)
 	if err != nil {
-		return api.InteractionResponseData{}, "", err
-	}
-
-	var resumePointID string
-	if n.Data.MessageTemplateID == "" && data.HasInteractiveComponents() {
-		resumePointID = util.UniqueID()
-	}
-
-	responseData := data.ToInteractionResponseData(message.ConvertOptions{
-		ComponentIDFactory: func(component *message.ComponentData) discord.ComponentID {
-			if resumePointID != "" {
-				return discord.ComponentID(message.CustomIDMessageComponentResumePoint(resumePointID, component.ID))
-			}
-			return discord.ComponentID(component.FlowSourceID)
-		},
-	})
-
-	return responseData, resumePointID, nil
-}
-
-func (n *CompiledFlowNode) prepareMessageSendData(ctx *FlowContext) (api.SendMessageData, string, error) {
-	data, err := n.prepareMessageData(ctx)
-	if err != nil {
-		return api.SendMessageData{}, "", err
+		return message.MessageData{}, message.ConvertOptions{}, "", err
 	}
 
 	var resumePointID string
@@ -1844,16 +1822,16 @@ func (n *CompiledFlowNode) prepareMessageSendData(ctx *FlowContext) (api.SendMes
 		resumePointID = util.UniqueID()
 	}
 
-	sendData := data.ToSendMessageData(message.ConvertOptions{
+	opts := message.ConvertOptions{
 		ComponentIDFactory: func(component *message.ComponentData) discord.ComponentID {
 			if resumePointID != "" {
 				return discord.ComponentID(message.CustomIDMessageComponentResumePoint(resumePointID, component.ID))
 			}
 			return discord.ComponentID(component.FlowSourceID)
 		},
-	})
+	}
 
-	return sendData, resumePointID, nil
+	return data, opts, resumePointID, nil
 }
 
 func createDefaultErrorResponse(fCtx *FlowContext, err error) {
