@@ -98,7 +98,7 @@ export const useComponentsV2Enabled = () => useDocument(isComponentsV2);
  * handlers, left undefined at the ends of its slot and once the slot is full.
  */
 export function useNodeActions(id: NodeId) {
-  const { index, count, max } = useDocument(
+  const { index, count, max, accessory } = useDocument(
     useShallow((state) => {
       const node = state.nodes[id];
       const parent = node?.parentId ? state.nodes[node.parentId] : undefined;
@@ -108,6 +108,7 @@ export function useNodeActions(id: NodeId) {
       return {
         index: ids.indexOf(id),
         count: ids.length,
+        accessory: slot === "accessory",
         max:
           parent && slot
             ? slotLimit(parent.type, slot, isComponentsV2(state))
@@ -122,7 +123,8 @@ export function useNodeActions(id: NodeId) {
     moveUp: index > 0 ? () => move(id, -1) : undefined,
     moveDown: index < count - 1 ? () => move(id, 1) : undefined,
     duplicate: count < max ? () => duplicate(id) : undefined,
-    remove: () => remove(id),
+    // A section always needs an accessory, so it can only be swapped for another type.
+    remove: accessory ? undefined : () => remove(id),
   };
 }
 

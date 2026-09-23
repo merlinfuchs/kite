@@ -36,7 +36,9 @@ export default function MessageNodeActions({
       {actions.duplicate && (
         <CopyIcon className={icon} onClick={actions.duplicate} role="button" />
       )}
-      <TrashIcon className={icon} onClick={actions.remove} role="button" />
+      {actions.remove && (
+        <TrashIcon className={icon} onClick={actions.remove} role="button" />
+      )}
     </>
   );
 }
