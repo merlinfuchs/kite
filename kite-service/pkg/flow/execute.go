@@ -150,7 +150,6 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 		if err != nil {
 			return traceError(n, err)
 		}
-		responseData := data.ToInteractionResponseData(opts)
 
 		var msg *discord.Message
 		if n.Data.MessageTarget == "" || n.Data.MessageTarget == "@original" {
@@ -160,15 +159,12 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			}
 
 			if hasCreatedResponse {
-				msg, err = ctx.Discord.EditInteractionResponse(ctx, interaction.AppID, interaction.Token, api.EditInteractionResponseData{
-					Content:    responseData.Content,
-					Embeds:     responseData.Embeds,
-					Components: responseData.Components,
-				})
+				msg, err = ctx.Discord.EditInteractionResponse(ctx, interaction.AppID, interaction.Token, data.ToEditInteractionResponseData(opts))
 				if err != nil {
 					return traceError(n, err)
 				}
 			} else {
+				responseData := data.ToInteractionResponseData(opts)
 				resp := api.InteractionResponse{
 					Type: api.UpdateMessage,
 					Data: &responseData,
@@ -194,11 +190,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 				interaction.AppID,
 				interaction.Token,
 				discord.MessageID(messageTarget.Snowflake()),
-				api.EditInteractionResponseData{
-					Content:    responseData.Content,
-					Embeds:     responseData.Embeds,
-					Components: responseData.Components,
-				},
+				data.ToEditInteractionResponseData(opts),
 			)
 			if err != nil {
 				return traceError(n, err)

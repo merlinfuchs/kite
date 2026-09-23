@@ -61,6 +61,19 @@ func (m *MessageData) ToEditMessageData(opts ConvertOptions) api.EditMessageData
 	return data
 }
 
+func (m *MessageData) ToEditInteractionResponseData(opts ConvertOptions) api.EditInteractionResponseData {
+	edit := m.ToEditMessageData(opts)
+
+	return api.EditInteractionResponseData{
+		Content:         edit.Content,
+		Embeds:          edit.Embeds,
+		Components:      edit.Components,
+		AllowedMentions: edit.AllowedMentions,
+		// A deferred response isn't components v2 yet, so the edit has to set the flag.
+		Flags: edit.Flags,
+	}
+}
+
 func (m *MessageData) ToInteractionResponseData(opts ConvertOptions) api.InteractionResponseData {
 	if m == nil {
 		return api.InteractionResponseData{}
@@ -256,9 +269,10 @@ func (c *ComponentData) ToComponent(opts ConvertOptions) discord.Component {
 			Spacing: discord.SeparatorComponentSpacing(c.Spacing),
 		}
 	case ComponentTypeContainer:
-		var accentColor discord.Color
+		var accentColor *discord.Color
 		if c.AccentColor != nil {
-			accentColor = discord.Color(*c.AccentColor)
+			color := discord.Color(*c.AccentColor)
+			accentColor = &color
 		}
 		return &discord.ContainerComponent{
 			Components:  c.childComponents(opts),
