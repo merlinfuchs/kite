@@ -198,22 +198,28 @@ func (q *Queries) DeleteMessageInstanceByDiscordMessageId(ctx context.Context, a
 	return err
 }
 
-const deleteUnusedMessageInstances = `-- name: DeleteUnusedMessageInstances :exec
-DELETE FROM message_instances
-WHERE last_used_at < $1
-  AND (hidden OR last_used_at < $2)
+const deleteUnusedMessageInstances = `-- name: DeleteUnusedMessageInstances :execrows
+DELETE FROM message_instances WHERE id IN (
+    SELECT unused.id FROM message_instances unused
+    WHERE (unused.hidden AND unused.last_used_at < $1)
+       OR unused.last_used_at < $2
+    LIMIT $3
+)
 `
 
 type DeleteUnusedMessageInstancesParams struct {
 	FlowUsedBefore      pgtype.Timestamp
 	DashboardUsedBefore pgtype.Timestamp
+	BatchSize           int32
 }
 
-// Dashboard sent instances are kept longer than hidden ones sent by flows.
-// dashboard_used_before is always the earlier cutoff.
-func (q *Queries) DeleteUnusedMessageInstances(ctx context.Context, arg DeleteUnusedMessageInstancesParams) error {
-	_, err := q.db.Exec(ctx, deleteUnusedMessageInstances, arg.FlowUsedBefore, arg.DashboardUsedBefore)
-	return err
+// Batched so a large backlog doesn't hold one long transaction.
+func (q *Queries) DeleteUnusedMessageInstances(ctx context.Context, arg DeleteUnusedMessageInstancesParams) (int64, error) {
+	result, err := q.db.Exec(ctx, deleteUnusedMessageInstances, arg.FlowUsedBefore, arg.DashboardUsedBefore, arg.BatchSize)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
 }
 
 const getFlowMessageInstancesByMessage = `-- name: GetFlowMessageInstancesByMessage :many
@@ -437,7 +443,6 @@ FROM messages
 WHERE messages.id = message_instances.message_id
   AND message_instances.id = $2
   AND messages.app_id = $3
-  AND message_instances.last_used_at < $1::timestamp - INTERVAL '1 day'
 `
 
 type TouchMessageInstanceParams struct {
@@ -446,7 +451,6 @@ type TouchMessageInstanceParams struct {
 	AppID  string
 }
 
-// Only writes once a day per instance so busy buttons don't write on every click.
 func (q *Queries) TouchMessageInstance(ctx context.Context, arg TouchMessageInstanceParams) error {
 	_, err := q.db.Exec(ctx, touchMessageInstance, arg.UsedAt, arg.ID, arg.AppID)
 	return err

@@ -47,12 +47,12 @@ func (c *Client) DeleteResumePoint(ctx context.Context, id string) error {
 	return c.Q.DeleteResumePoint(ctx, id)
 }
 
-func (c *Client) DeleteExpiredResumePoints(ctx context.Context, now time.Time) error {
-	return c.Q.DeleteExpiredResumePoints(ctx, pgtype.Timestamp{Time: now, Valid: true})
-}
-
-func (c *Client) DeleteUnusedResumePoints(ctx context.Context, usedBefore time.Time) error {
-	return c.Q.DeleteUnusedResumePoints(ctx, pgtype.Timestamp{Time: usedBefore, Valid: true})
+func (c *Client) DeleteStaleResumePoints(ctx context.Context, now time.Time, usedBefore time.Time, batchSize int) (int64, error) {
+	return c.Q.DeleteStaleResumePoints(ctx, pgmodel.DeleteStaleResumePointsParams{
+		Now:        pgtype.Timestamp{Time: now, Valid: true},
+		UsedBefore: pgtype.Timestamp{Time: usedBefore, Valid: true},
+		BatchSize:  int32(batchSize),
+	})
 }
 
 func (c *Client) TouchResumePoint(ctx context.Context, appID string, id string, usedAt time.Time) error {
@@ -98,5 +98,6 @@ func rowToResumePoint(row pgmodel.ResumePoint) (*model.ResumePoint, error) {
 		FlowState:         flowState,
 		CreatedAt:         row.CreatedAt.Time,
 		ExpiresAt:         null.NewTime(row.ExpiresAt.Time, row.ExpiresAt.Valid),
+		LastUsedAt:        row.LastUsedAt.Time,
 	}, nil
 }

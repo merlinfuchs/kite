@@ -62,15 +62,6 @@ func (q *Queries) CreateResumePoint(ctx context.Context, arg CreateResumePointPa
 	return err
 }
 
-const deleteExpiredResumePoints = `-- name: DeleteExpiredResumePoints :exec
-DELETE FROM resume_points WHERE expires_at < $1
-`
-
-func (q *Queries) DeleteExpiredResumePoints(ctx context.Context, expiresAt pgtype.Timestamp) error {
-	_, err := q.db.Exec(ctx, deleteExpiredResumePoints, expiresAt)
-	return err
-}
-
 const deleteResumePoint = `-- name: DeleteResumePoint :exec
 DELETE FROM resume_points WHERE id = $1
 `
@@ -80,13 +71,27 @@ func (q *Queries) DeleteResumePoint(ctx context.Context, id string) error {
 	return err
 }
 
-const deleteUnusedResumePoints = `-- name: DeleteUnusedResumePoints :exec
-DELETE FROM resume_points WHERE last_used_at < $1
+const deleteStaleResumePoints = `-- name: DeleteStaleResumePoints :execrows
+DELETE FROM resume_points WHERE id IN (
+    SELECT stale.id FROM resume_points stale
+    WHERE stale.expires_at < $1 OR stale.last_used_at < $2
+    LIMIT $3
+)
 `
 
-func (q *Queries) DeleteUnusedResumePoints(ctx context.Context, usedBefore pgtype.Timestamp) error {
-	_, err := q.db.Exec(ctx, deleteUnusedResumePoints, usedBefore)
-	return err
+type DeleteStaleResumePointsParams struct {
+	Now        pgtype.Timestamp
+	UsedBefore pgtype.Timestamp
+	BatchSize  int32
+}
+
+// Batched so a large backlog doesn't hold one long transaction.
+func (q *Queries) DeleteStaleResumePoints(ctx context.Context, arg DeleteStaleResumePointsParams) (int64, error) {
+	result, err := q.db.Exec(ctx, deleteStaleResumePoints, arg.Now, arg.UsedBefore, arg.BatchSize)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
 }
 
 const resumePoint = `-- name: ResumePoint :one
@@ -121,8 +126,7 @@ func (q *Queries) ResumePoint(ctx context.Context, arg ResumePointParams) (Resum
 }
 
 const touchResumePoint = `-- name: TouchResumePoint :exec
-UPDATE resume_points SET last_used_at = $1
-WHERE id = $2 AND app_id = $3 AND last_used_at < $1::timestamp - INTERVAL '1 day'
+UPDATE resume_points SET last_used_at = $1 WHERE id = $2 AND app_id = $3
 `
 
 type TouchResumePointParams struct {
@@ -131,7 +135,6 @@ type TouchResumePointParams struct {
 	AppID  string
 }
 
-// Only writes once a day per resume point so busy buttons don't write on every click.
 func (q *Queries) TouchResumePoint(ctx context.Context, arg TouchResumePointParams) error {
 	_, err := q.db.Exec(ctx, touchResumePoint, arg.UsedAt, arg.ID, arg.AppID)
 	return err

@@ -16,8 +16,7 @@ var scopedTables = []string{"variable_values", "message_instances"}
 // exemptQueries must not be able to leak across apps.
 var exemptQueries = map[string]string{
 	// Only counts the variable's own values, the variable itself is checked by VariableAccess.
-	"GetVariable": "aggregates the parent's own children, never keyed by child id",
-	// Retention sweep across all apps, takes no ids.
+	"GetVariable":                  "aggregates the parent's own children, never keyed by child id",
 	"DeleteUnusedMessageInstances": "global cleanup by age, never keyed by user input",
 }
 

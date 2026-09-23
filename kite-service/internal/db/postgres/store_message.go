@@ -307,10 +307,11 @@ func (c *Client) TouchMessageInstance(ctx context.Context, appID string, instanc
 	})
 }
 
-func (c *Client) DeleteUnusedMessageInstances(ctx context.Context, flowUsedBefore time.Time, dashboardUsedBefore time.Time) error {
+func (c *Client) DeleteUnusedMessageInstances(ctx context.Context, flowUsedBefore time.Time, dashboardUsedBefore time.Time, batchSize int) (int64, error) {
 	return c.Q.DeleteUnusedMessageInstances(ctx, pgmodel.DeleteUnusedMessageInstancesParams{
 		FlowUsedBefore:      pgtype.Timestamp{Time: flowUsedBefore, Valid: true},
 		DashboardUsedBefore: pgtype.Timestamp{Time: dashboardUsedBefore, Valid: true},
+		BatchSize:           int32(batchSize),
 	})
 }
 
@@ -344,5 +345,6 @@ func rowToMessageInstance(row pgmodel.MessageInstance) (*model.MessageInstance, 
 		FlowSources:      flowSources,
 		CreatedAt:        row.CreatedAt.Time,
 		UpdatedAt:        row.UpdatedAt.Time,
+		LastUsedAt:       row.LastUsedAt.Time,
 	}, nil
 }

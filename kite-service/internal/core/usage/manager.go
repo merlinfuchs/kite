@@ -19,6 +19,11 @@ const (
 	ResumePointExpiry              = 90 * 24 * time.Hour
 	FlowMessageInstanceExpiry      = 90 * 24 * time.Hour
 	DashboardMessageInstanceExpiry = 360 * 24 * time.Hour
+
+	cleanupBatchSize = 5000
+	// Caps a single tick so a large backlog can't stall the credit sweep, the
+	// rest is picked up by the next tick.
+	cleanupMaxBatches = 100
 )
 
 type UsageManager struct {
@@ -188,29 +193,36 @@ func (m *UsageManager) cleanupLogEntries(ctx context.Context) error {
 func (m *UsageManager) cleanupResumePoints(ctx context.Context) error {
 	now := time.Now().UTC()
 
-	if err := m.resumePointStore.DeleteExpiredResumePoints(ctx, now); err != nil {
-		return fmt.Errorf("failed to delete expired resume points: %w", err)
-	}
-
-	if err := m.resumePointStore.DeleteUnusedResumePoints(ctx, now.Add(-ResumePointExpiry)); err != nil {
-		return fmt.Errorf("failed to delete unused resume points: %w", err)
-	}
-
-	return nil
+	return deleteInBatches(ctx, func(ctx context.Context) (int64, error) {
+		return m.resumePointStore.DeleteStaleResumePoints(ctx, now, now.Add(-ResumePointExpiry), cleanupBatchSize)
+	})
 }
 
 func (m *UsageManager) cleanupMessageInstances(ctx context.Context) error {
 	now := time.Now().UTC()
 
-	err := m.messageInstanceStore.DeleteUnusedMessageInstances(
-		ctx,
-		now.Add(-FlowMessageInstanceExpiry),
-		now.Add(-DashboardMessageInstanceExpiry),
-	)
-	if err != nil {
-		return fmt.Errorf("failed to delete unused message instances: %w", err)
-	}
+	return deleteInBatches(ctx, func(ctx context.Context) (int64, error) {
+		return m.messageInstanceStore.DeleteUnusedMessageInstances(
+			ctx,
+			now.Add(-FlowMessageInstanceExpiry),
+			now.Add(-DashboardMessageInstanceExpiry),
+			cleanupBatchSize,
+		)
+	})
+}
 
+func deleteInBatches(ctx context.Context, deleteBatch func(ctx context.Context) (int64, error)) error {
+	for range cleanupMaxBatches {
+		batchCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
+		deleted, err := deleteBatch(batchCtx)
+		cancel()
+		if err != nil {
+			return err
+		}
+		if deleted < cleanupBatchSize {
+			return nil
+		}
+	}
 	return nil
 }
 

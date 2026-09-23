@@ -247,9 +247,7 @@ func (a *App) HandleEvent(appID string, session *state.State, event gateway.Even
 			customID := string(d.ID())
 			resumePointID, _, isResume := message.DecodeCustomIDMessageComponentResumePoint(customID)
 			if isResume {
-				if !a.resumeFlow(resumePointID, session, event) {
-					a.respondResumePointExpired(session, e)
-				}
+				a.resumeFlowOrRespondExpired(resumePointID, session, e)
 				return
 			}
 
@@ -274,7 +272,7 @@ func (a *App) HandleEvent(appID string, session *state.State, event gateway.Even
 				return
 			}
 
-			a.touchMessageInstance(messageInstnace.ID)
+			a.touchMessageInstance(messageInstnace)
 			go instance.HandleEvent(appID, session, event)
 		case *discord.ModalInteraction:
 			customID := string(d.CustomID)
@@ -283,9 +281,7 @@ func (a *App) HandleEvent(appID string, session *state.State, event gateway.Even
 				return
 			}
 
-			if !a.resumeFlow(resumePointID, session, event) {
-				a.respondResumePointExpired(session, e)
-			}
+			a.resumeFlowOrRespondExpired(resumePointID, session, e)
 		}
 	default:
 		eventType := model.EventTypeFromDiscordEventType(e.EventType())
@@ -345,7 +341,7 @@ func (a *App) resumeFlow(
 		return true
 	}
 
-	a.touchResumePoint(resumePoint.ID)
+	a.touchResumePoint(resumePoint)
 
 	go a.env.executeFlowEvent(
 		context.Background(),
@@ -359,11 +355,17 @@ func (a *App) resumeFlow(
 	return true
 }
 
-// respondResumePointExpired tells the user why nothing happened instead of
-// leaving them with Discord's generic "This interaction failed".
-func (a *App) respondResumePointExpired(session *state.State, e *gateway.InteractionCreateEvent) {
+// resumeFlowOrRespondExpired tells the user why nothing happened when the resume
+// point is gone, instead of leaving them with Discord's generic "This
+// interaction failed".
+func (a *App) resumeFlowOrRespondExpired(resumePointID string, session *state.State, e *gateway.InteractionCreateEvent) {
+	if a.resumeFlow(resumePointID, session, e) {
+		return
+	}
+
+	id, token := e.ID, e.Token
 	go func() {
-		err := session.RespondInteraction(e.ID, e.Token, api.InteractionResponse{
+		err := session.RespondInteraction(id, token, api.InteractionResponse{
 			Type: api.MessageInteractionWithSource,
 			Data: &api.InteractionResponseData{
 				Content: option.NewNullableString("This has expired. Run the command again or ask an admin to send the message again."),
@@ -448,7 +450,7 @@ func (a *App) resumeFlowTarget(resumePoint *model.ResumePoint) *flow.CompiledFlo
 		}
 
 		// Otherwise the instance could expire while its resume points are still in use.
-		a.touchMessageInstance(messageInstance.ID)
+		a.touchMessageInstance(messageInstance)
 
 		return instance.flows[resumePoint.FlowSourceID.String]
 	default:
@@ -460,35 +462,40 @@ func (a *App) resumeFlowTarget(resumePoint *model.ResumePoint) *flow.CompiledFlo
 	}
 }
 
-// Unused resume points and message instances are deleted eventually, see
-// usage.ResumePointExpiry. Touches run in the background so they don't delay
-// the interaction response.
-func (a *App) touchResumePoint(id string) {
-	go func() {
-		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-		defer cancel()
+// touchInterval limits last_used_at writes so busy buttons don't write on every
+// click. Unused resume points and message instances are deleted by the usage
+// manager.
+const touchInterval = 24 * time.Hour
 
-		err := a.env.ResumePointStore.TouchResumePoint(ctx, a.id, id, time.Now().UTC())
-		if err != nil {
-			slog.Error(
-				"Failed to touch resume point",
-				slog.String("resume_point_id", id),
-				slog.String("error", err.Error()),
-			)
-		}
-	}()
+func (a *App) touchResumePoint(resumePoint *model.ResumePoint) {
+	id := resumePoint.ID
+	a.touch(resumePoint.LastUsedAt, func(ctx context.Context, now time.Time) error {
+		return a.env.ResumePointStore.TouchResumePoint(ctx, a.id, id, now)
+	})
 }
 
-func (a *App) touchMessageInstance(id uint64) {
+func (a *App) touchMessageInstance(instance *model.MessageInstance) {
+	id := instance.ID
+	a.touch(instance.LastUsedAt, func(ctx context.Context, now time.Time) error {
+		return a.env.MessageInstanceStore.TouchMessageInstance(ctx, a.id, id, now)
+	})
+}
+
+// touch runs in the background so it doesn't delay the interaction response.
+func (a *App) touch(lastUsedAt time.Time, update func(ctx context.Context, now time.Time) error) {
+	now := time.Now().UTC()
+	if now.Sub(lastUsedAt) < touchInterval {
+		return
+	}
+
 	go func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
 
-		err := a.env.MessageInstanceStore.TouchMessageInstance(ctx, a.id, id, time.Now().UTC())
-		if err != nil {
+		if err := update(ctx, now); err != nil {
 			slog.Error(
-				"Failed to touch message instance",
-				slog.Uint64("message_instance_id", id),
+				"Failed to update last used time",
+				slog.String("app_id", a.id),
 				slog.String("error", err.Error()),
 			)
 		}
