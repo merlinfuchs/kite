@@ -22,4 +22,5 @@ DELETE FROM resume_points WHERE id = $1;
 DELETE FROM resume_points WHERE expires_at < $1;
 
 -- name: ResumePoint :one
-SELECT * FROM resume_points WHERE id = $1;
+-- Scoped by app since the ID comes from a user-controlled custom_id
+SELECT * FROM resume_points WHERE id = $1 AND app_id = $2;

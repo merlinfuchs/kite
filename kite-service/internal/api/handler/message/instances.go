@@ -21,9 +21,9 @@ func (h *MessageHandler) HandleMessageInstanceList(c *handler.Context) (*wire.Me
 	var instances []*model.MessageInstance
 	var err error
 	if c.Query("sent_by") == "flow" {
-		instances, err = h.messageInstanceStore.FlowMessageInstancesByMessage(c.Context(), c.Message.ID, maxFlowInstances)
+		instances, err = h.messageInstanceStore.FlowMessageInstancesByMessage(c.Context(), c.App.ID, c.Message.ID, maxFlowInstances)
 	} else {
-		instances, err = h.messageInstanceStore.MessageInstancesByMessage(c.Context(), c.Message.ID)
+		instances, err = h.messageInstanceStore.MessageInstancesByMessage(c.Context(), c.App.ID, c.Message.ID)
 	}
 	if err != nil {
 		return nil, fmt.Errorf("failed to get message instances: %w", err)
@@ -56,7 +56,7 @@ func (h *MessageHandler) HandleMessageInstanceCreate(c *handler.Context, req wir
 		return nil, fmt.Errorf("failed to send message: %w", err)
 	}
 
-	instance, err := h.messageInstanceStore.CreateMessageInstance(c.Context(), &model.MessageInstance{
+	instance, err := h.messageInstanceStore.CreateMessageInstance(c.Context(), c.App.ID, &model.MessageInstance{
 		MessageID:        c.Message.ID,
 		DiscordGuildID:   req.DiscordGuildID,
 		DiscordChannelID: req.DiscordChannelID,
@@ -75,7 +75,7 @@ func (h *MessageHandler) HandleMessageInstanceCreate(c *handler.Context, req wir
 func (h *MessageHandler) HandleMessageInstanceUpdate(c *handler.Context) (*wire.MessageInstanceUpdateResponse, error) {
 	instanceID, _ := strconv.ParseUint(c.Param("instanceID"), 10, 64)
 
-	instance, err := h.messageInstanceStore.MessageInstance(c.Context(), c.Message.ID, instanceID)
+	instance, err := h.messageInstanceStore.MessageInstance(c.Context(), c.App.ID, c.Message.ID, instanceID)
 	if err != nil {
 		if err == store.ErrNotFound {
 			return nil, handler.ErrNotFound("message_instance_not_found", "message instance not found")
@@ -107,7 +107,7 @@ func (h *MessageHandler) HandleMessageInstanceUpdate(c *handler.Context) (*wire.
 		return nil, fmt.Errorf("failed to edit message: %w", err)
 	}
 
-	instance, err = h.messageInstanceStore.UpdateMessageInstance(c.Context(), &model.MessageInstance{
+	instance, err = h.messageInstanceStore.UpdateMessageInstance(c.Context(), c.App.ID, &model.MessageInstance{
 		ID:          instance.ID,
 		MessageID:   instance.MessageID,
 		FlowSources: c.Message.FlowSources,
@@ -123,7 +123,7 @@ func (h *MessageHandler) HandleMessageInstanceUpdate(c *handler.Context) (*wire.
 func (h *MessageHandler) HandleMessageInstanceDelete(c *handler.Context) (*wire.MessageInstanceDeleteResponse, error) {
 	instanceID, _ := strconv.ParseUint(c.Param("instanceID"), 10, 64)
 
-	err := h.messageInstanceStore.DeleteMessageInstance(c.Context(), c.Message.ID, instanceID)
+	err := h.messageInstanceStore.DeleteMessageInstance(c.Context(), c.App.ID, c.Message.ID, instanceID)
 	if err != nil {
 		if err == store.ErrNotFound {
 			return nil, handler.ErrNotFound("message_instance_not_found", "message instance not found")

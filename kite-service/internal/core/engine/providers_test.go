@@ -14,7 +14,7 @@ type fakeMessageStore struct {
 	messages map[string]*model.Message
 }
 
-func (f *fakeMessageStore) AppMessage(ctx context.Context, appID string, id string) (*model.Message, error) {
+func (f *fakeMessageStore) Message(ctx context.Context, appID string, id string) (*model.Message, error) {
 	msg, ok := f.messages[id]
 	if !ok || msg.AppID != appID {
 		return nil, store.ErrNotFound
@@ -29,7 +29,7 @@ func TestMessageTemplateProviderScopedToApp(t *testing.T) {
 		"own":   {ID: "own", AppID: "app"},
 		"other": {ID: "other", AppID: "other_app"},
 	}}
-	p := NewMessageTemplateProvider(messages, nil, "app")
+	p := NewMessageTemplateProvider("app", messages, nil)
 
 	if _, err := p.MessageTemplate(context.Background(), "own"); err != nil {
 		t.Errorf("own template: %v", err)

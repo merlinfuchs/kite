@@ -538,12 +538,15 @@ func (p *AIProvider) CreateResponse(ctx context.Context, opts provider.CreateRes
 	return resp.OutputText(), nil
 }
 
+// Variable IDs come from user-authored flow data, so lookups are scoped to the app.
 type VariableProvider struct {
+	appID              string
 	variableValueStore store.VariableValueStore
 }
 
-func NewVariableProvider(variableValueStore store.VariableValueStore) *VariableProvider {
+func NewVariableProvider(appID string, variableValueStore store.VariableValueStore) *VariableProvider {
 	return &VariableProvider{
+		appID:              appID,
 		variableValueStore: variableValueStore,
 	}
 }
@@ -557,7 +560,7 @@ func (p *VariableProvider) UpdateVariable(ctx context.Context, id string, scope 
 		UpdatedAt:  time.Now().UTC(),
 	}
 
-	newValue, err := p.variableValueStore.UpdateVariableValue(ctx, operation, v)
+	newValue, err := p.variableValueStore.UpdateVariableValue(ctx, p.appID, operation, v)
 	if err != nil {
 		return thing.Null, fmt.Errorf("failed to %s variable value: %w", operation, err)
 	}
@@ -566,7 +569,7 @@ func (p *VariableProvider) UpdateVariable(ctx context.Context, id string, scope 
 }
 
 func (p *VariableProvider) Variable(ctx context.Context, id string, scope null.String) (thing.Thing, error) {
-	row, err := p.variableValueStore.VariableValue(ctx, id, scope)
+	row, err := p.variableValueStore.VariableValue(ctx, p.appID, id, scope)
 	if err != nil {
 		if errors.Is(err, store.ErrNotFound) {
 			return thing.Null, provider.ErrNotFound
@@ -578,7 +581,7 @@ func (p *VariableProvider) Variable(ctx context.Context, id string, scope null.S
 }
 
 func (p *VariableProvider) DeleteVariable(ctx context.Context, id string, scope null.String) error {
-	err := p.variableValueStore.DeleteVariableValue(ctx, id, scope)
+	err := p.variableValueStore.DeleteVariableValue(ctx, p.appID, id, scope)
 	if err != nil {
 		return fmt.Errorf("failed to delete variable value: %w", err)
 	}
@@ -587,24 +590,23 @@ func (p *VariableProvider) DeleteVariable(ctx context.Context, id string, scope 
 }
 
 type MessageTemplateProvider struct {
-	messageStore         store.MessageStore
-	messageInstanceStore store.MessageInstanceStore
-
 	// Template IDs come from user-authored flow data, so lookups are scoped to
 	// the app to keep a flow from using another app's templates.
-	appID string
+	appID                string
+	messageStore         store.MessageStore
+	messageInstanceStore store.MessageInstanceStore
 }
 
-func NewMessageTemplateProvider(messageStore store.MessageStore, messageInstanceStore store.MessageInstanceStore, appID string) *MessageTemplateProvider {
+func NewMessageTemplateProvider(appID string, messageStore store.MessageStore, messageInstanceStore store.MessageInstanceStore) *MessageTemplateProvider {
 	return &MessageTemplateProvider{
+		appID:                appID,
 		messageStore:         messageStore,
 		messageInstanceStore: messageInstanceStore,
-		appID:                appID,
 	}
 }
 
 func (p *MessageTemplateProvider) MessageTemplate(ctx context.Context, id string) (*message.MessageData, error) {
-	message, err := p.messageStore.AppMessage(ctx, p.appID, id)
+	message, err := p.messageStore.Message(ctx, p.appID, id)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get message: %w", err)
 	}
@@ -613,12 +615,12 @@ func (p *MessageTemplateProvider) MessageTemplate(ctx context.Context, id string
 }
 
 func (p *MessageTemplateProvider) LinkMessageTemplateInstance(ctx context.Context, instance provider.MessageTemplateInstance) error {
-	message, err := p.messageStore.AppMessage(ctx, p.appID, instance.MessageTemplateID)
+	message, err := p.messageStore.Message(ctx, p.appID, instance.MessageTemplateID)
 	if err != nil {
 		return fmt.Errorf("failed to get message: %w", err)
 	}
 
-	_, err = p.messageInstanceStore.CreateMessageInstance(ctx, &model.MessageInstance{
+	_, err = p.messageInstanceStore.CreateMessageInstance(ctx, p.appID, &model.MessageInstance{
 		MessageID:        message.ID,
 		DiscordMessageID: instance.MessageID.String(),
 		DiscordChannelID: instance.ChannelID.String(),
