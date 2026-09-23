@@ -17,10 +17,21 @@ export default function FlowPlaceholderExplorer({
   const nodePlaceholders = useNodePlaceholders();
   const commandPlaceholders = useCommandPlaceholders();
   const globalPlaceholders = useGlobalPlaceholders();
+  const resumePlaceholders = useResumePlaceholders();
 
   const placeholders = useMemo(
-    () => [...commandPlaceholders, ...globalPlaceholders, ...nodePlaceholders],
-    [commandPlaceholders, globalPlaceholders, nodePlaceholders]
+    () => [
+      ...commandPlaceholders,
+      ...globalPlaceholders,
+      ...resumePlaceholders,
+      ...nodePlaceholders,
+    ],
+    [
+      commandPlaceholders,
+      globalPlaceholders,
+      resumePlaceholders,
+      nodePlaceholders,
+    ]
   );
 
   return (
@@ -159,6 +170,90 @@ function useCommandPlaceholders() {
       })),
     },
   ];
+}
+
+// Sub-flows run with the interaction that resumed them, so placeholders of the
+// interaction or event before a resume point are only reachable via origin and
+// previous.
+function useResumePlaceholders() {
+  const nodes = useNodes();
+  const edges = useEdges();
+  const contextType = useFlowContext((c) => c.type);
+
+  return useMemo(() => {
+    const selected = nodes.find((n) => n.selected);
+    if (!selected) {
+      return [];
+    }
+
+    const depth = getResumeDepth(selected.id, nodes, edges);
+    if (depth === 0) {
+      return [];
+    }
+
+    const res = [
+      {
+        label: "Original Interaction",
+        placeholders: triggerPlaceholders("origin", contextType),
+      },
+    ];
+
+    if (depth > 1) {
+      res.push({
+        label: "Previous Interaction",
+        placeholders: triggerPlaceholders("previous", "component_button"),
+      });
+    }
+
+    return res;
+  }, [nodes, edges, contextType]);
+}
+
+function triggerPlaceholders(prefix: string, contextType: string) {
+  const res = [
+    { label: "User", value: `${prefix}.user` },
+    { label: "User ID", value: `${prefix}.user.id` },
+    { label: "User Mention", value: `${prefix}.user.mention` },
+    { label: "Channel ID", value: `${prefix}.channel.id` },
+  ];
+
+  if (contextType === "event_discord") {
+    res.push(
+      { label: "Message ID", value: `${prefix}.message.id` },
+      { label: "Message Content", value: `${prefix}.message.content` }
+    );
+  }
+
+  return res;
+}
+
+// getResumeDepth counts the resume points between the root and a node: edges
+// from a button or select menu handle and edges out of a modal.
+function getResumeDepth(nodeId: string, nodes: Node[], edges: Edge[]) {
+  const nodeTypes = new Map(nodes.map((n) => [n.id, n.type]));
+  const visited = new Set<string>();
+
+  function traverse(id: string): number {
+    if (visited.has(id)) {
+      return 0;
+    }
+    visited.add(id);
+
+    let depth = 0;
+    for (const edge of edges) {
+      if (edge.target !== id) {
+        continue;
+      }
+
+      const isResume =
+        edge.sourceHandle?.startsWith("component_") ||
+        nodeTypes.get(edge.source) === "suspend_response_modal";
+      depth = Math.max(depth, traverse(edge.source) + (isResume ? 1 : 0));
+    }
+    return depth;
+  }
+
+  return traverse(nodeId);
 }
 
 function useNodePlaceholders() {

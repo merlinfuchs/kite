@@ -238,3 +238,62 @@ func TestEvalTemplateKeepSpaceSinglePlaceholder(t *testing.T) {
 		t.Errorf("got %q, want the placeholder's value", res.String())
 	}
 }
+
+func TestResumeContextFallsBackToEarlierInteractions(t *testing.T) {
+	origin := Context{Env: Env{
+		"user": "origin-user",
+		"arg":  func(name string) any { return "origin-" + name },
+	}}
+	previous := Context{Env: Env{"user": "previous-user"}}
+
+	c := Context{Env: Env{
+		"user":  "clicker",
+		"arg":   func(name string) any { return nil },
+		"input": func(customID string) any { return nil },
+	}}
+	c.SetResumeContext(origin, previous, []map[string]string{
+		{"name": "newest"},
+		{"name": "oldest", "age": "30"},
+	})
+
+	cases := map[string]string{
+		`user`:              "clicker",
+		`origin.user`:       "origin-user",
+		`previous.user`:     "previous-user",
+		`arg("reason")`:     "origin-reason",
+		`input("name")`:     "newest",
+		`input("age")`:      "30",
+		`origin.arg("why")`: "origin-why",
+	}
+	for expression, want := range cases {
+		res, err := Eval(context.Background(), expression, c)
+		if err != nil {
+			t.Fatalf("%s: %v", expression, err)
+		}
+		if res.String() != want {
+			t.Errorf("%s = %q, want %q", expression, res.String(), want)
+		}
+	}
+}
+
+func TestResumeContextPrefersCurrentInteraction(t *testing.T) {
+	c := Context{Env: Env{
+		"arg":   func(name string) any { return "current" },
+		"input": func(customID string) any { return "current" },
+	}}
+	c.SetResumeContext(
+		Context{Env: Env{"arg": func(name string) any { return "origin" }}},
+		Context{Env: Env{}},
+		[]map[string]string{{"name": "earlier"}},
+	)
+
+	for _, expression := range []string{`arg("x")`, `input("name")`} {
+		res, err := Eval(context.Background(), expression, c)
+		if err != nil {
+			t.Fatalf("%s: %v", expression, err)
+		}
+		if res.String() != "current" {
+			t.Errorf("%s = %q, want %q", expression, res.String(), "current")
+		}
+	}
+}

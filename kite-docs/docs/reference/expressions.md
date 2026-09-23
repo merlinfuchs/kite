@@ -55,6 +55,8 @@ input('identifier') # Access value of a modal input
 result('id') # Access the result of a previous block
 ```
 
+In [sub-flows](/reference/sub-flows), `origin` and `previous` give access to the interaction or event from before the sub-flow, e.g. `origin.user.id`.
+
 ## Examples
 
 When using the `Evaluate Expression` block, you must omit the `{{` and `}}` from the expression.

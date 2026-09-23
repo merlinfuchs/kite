@@ -9,6 +9,13 @@ import (
 type FlowContextState struct {
 	NodeStates  map[string]*FlowContextNodeState `json:"node_states"`
 	Temporaries map[string]thing.Thing           `json:"temporaries"`
+
+	// Origin and Previous are only set in resumed executions. Origin started
+	// the flow, Previous started the execution that created the resume point.
+	Origin   *FlowTrigger `json:"origin,omitempty"`
+	Previous *FlowTrigger `json:"previous,omitempty"`
+	// ModalInputs holds the inputs of earlier modal submissions, newest first.
+	ModalInputs []map[string]string `json:"modal_inputs,omitempty"`
 }
 
 func NewFlowContextState() *FlowContextState {
@@ -22,9 +29,15 @@ func (s FlowContextState) MarshalJSON() ([]byte, error) {
 	aux := struct {
 		NodeStates  map[string]*FlowContextNodeState `json:"node_states"`
 		Temporaries map[string]thing.Thing           `json:"temporaries"`
+		Origin      *FlowTrigger                     `json:"origin,omitempty"`
+		Previous    *FlowTrigger                     `json:"previous,omitempty"`
+		ModalInputs []map[string]string              `json:"modal_inputs,omitempty"`
 	}{
 		NodeStates:  make(map[string]*FlowContextNodeState, len(s.NodeStates)),
 		Temporaries: make(map[string]thing.Thing, len(s.Temporaries)),
+		Origin:      s.Origin,
+		Previous:    s.Previous,
+		ModalInputs: s.ModalInputs,
 	}
 	// We don't want to serialize empty node states
 	for k, v := range s.NodeStates {
@@ -90,6 +103,10 @@ func (s *FlowContextState) Copy() FlowContextState {
 	copy := FlowContextState{
 		NodeStates:  make(map[string]*FlowContextNodeState, len(s.NodeStates)),
 		Temporaries: make(map[string]thing.Thing, len(s.Temporaries)),
+		// Triggers and inputs are never mutated, only replaced.
+		Origin:      s.Origin,
+		Previous:    s.Previous,
+		ModalInputs: s.ModalInputs,
 	}
 
 	for k, v := range s.NodeStates {
@@ -105,6 +122,25 @@ func (s *FlowContextState) Copy() FlowContextState {
 	}
 
 	return copy
+}
+
+// recordTrigger stores the trigger of the current execution before the state is
+// saved in a resume point.
+func (s *FlowContextState) recordTrigger(data FlowContextData) {
+	trigger := newFlowTrigger(data)
+	if trigger == nil {
+		return
+	}
+
+	if s.Origin == nil {
+		s.Origin = trigger
+	}
+	s.Previous = trigger
+
+	if inputs := trigger.modalInputs(); inputs != nil {
+		modalInputs := append([]map[string]string{inputs}, s.ModalInputs...)
+		s.ModalInputs = modalInputs[:min(len(modalInputs), maxStoredModalInputs)]
+	}
 }
 
 func (s *FlowContextState) Serialize() ([]byte, error) {

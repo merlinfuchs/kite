@@ -6,18 +6,16 @@ sidebar_position: 6
 
 Some flow blocks can be used to create sub-flows. These blocks act as a boundary between the main flow and the sub-flow and are highlighted in pink in the flow editor.
 
-:::warning
-Contextual placeholders like the `interaction` placeholders of the main flow aren't available in the sub-flow and are replaced with the `interaction` placeholder of the sub-flow. Node results and temporary variables on the other hand remain available.
+## Placeholders in Sub-Flows
 
-To work around this, you can use a `Calculate Value` block to create a temporary variable with the value of contextual placeholder before entering the sub-flow. This way you can still access the value in the sub-flow.
+A sub-flow runs with the interaction that resumed it. Inside the sub-flow of a button, `user` and `interaction` refer to whoever clicked the button, which on a public message isn't necessarily the user who ran the command. Node results and temporary variables from before the sub-flow remain available.
 
-<details>
-<summary>Show Example</summary>
+To access the interaction or event from before the sub-flow, use `origin` and `previous`:
 
-![Calculate Contextual Variable](./img/example-calculate-var.png)
+- `origin` is the interaction or event that started the flow, e.g. `{{origin.user.mention}}` is the user who ran the command.
+- `previous` is the interaction that led to the current sub-flow. It's only different from `origin` when sub-flows are nested, e.g. a button inside the sub-flow of a modal.
 
-</details>
-:::
+`arg()` and `input()` keep working in sub-flows. `arg()` returns the argument of the command that started the flow, and `input()` returns the value from the modal it was submitted in, up to three modals back.
 
 ## Modals
 
