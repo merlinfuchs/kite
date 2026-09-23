@@ -3,6 +3,7 @@ import {
   useDocument,
   useDocumentStoreApi,
   useNodeActions,
+  useNodeIndex,
 } from "@/lib/message/state";
 import { NodeId } from "@/lib/message/document";
 import { nodeScope } from "@/lib/message/validationStore";
@@ -14,13 +15,12 @@ import MessageNodeActions from "./MessageNodeActions";
 
 export default function MessageComponentRow({
   rowId,
-  rowIndex,
   disableFlowEditor,
 }: {
   rowId: NodeId;
-  rowIndex: number;
   disableFlowEditor?: boolean;
 }) {
+  const { index } = useNodeIndex(rowId);
   const childIds = useChildIds(rowId, "components");
   const isButtonRow = useDocument((state) =>
     childIds.every((id) => state.nodes[id]?.type === "button")
@@ -31,7 +31,7 @@ export default function MessageComponentRow({
   return (
     <Card className="px-4 py-3">
       <MessageCollapsibleSection
-        title={`Row ${rowIndex + 1}`}
+        title={`Row ${index + 1}`}
         size="lg"
         validation={nodeScope(rowId)}
         actions={<MessageNodeActions actions={actions} size="lg" />}
@@ -39,11 +39,10 @@ export default function MessageComponentRow({
       >
         {isButtonRow ? (
           <>
-            {childIds.map((id, i) => (
+            {childIds.map((id) => (
               <MessageComponentButton
                 key={id}
                 buttonId={id}
-                buttonIndex={i}
                 disableFlowEditor={disableFlowEditor}
               />
             ))}

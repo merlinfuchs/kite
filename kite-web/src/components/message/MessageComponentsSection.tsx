@@ -1,12 +1,16 @@
 import {
   useChildIds,
+  useComponentsV2Enabled,
   useDocumentStoreApi,
   useRootId,
 } from "@/lib/message/state";
+import { slotLimit } from "@/lib/message/document";
 import { slotScope } from "@/lib/message/validationStore";
 import CollapsibleSection from "./MessageCollapsibleSection";
 import { Button } from "../ui/button";
 import MessageComponentRow from "./MessageComponentRow";
+import MessageComponentEntry from "./MessageComponentEntry";
+import MessageComponentAddDropdown from "./MessageComponentAddDropdown";
 
 export default function MessageComponentsSection({
   disableFlowEditor,
@@ -14,8 +18,11 @@ export default function MessageComponentsSection({
   disableFlowEditor?: boolean;
 }) {
   const rootId = useRootId();
-  const rowIds = useChildIds(rootId, "components");
+  const componentIds = useChildIds(rootId, "components");
+  const componentsV2 = useComponentsV2Enabled();
   const { insert, removeChildren } = useDocumentStoreApi().getState();
+
+  const limit = slotLimit("message", "components", componentsV2);
 
   return (
     <CollapsibleSection
@@ -23,23 +30,38 @@ export default function MessageComponentsSection({
       validation={slotScope(rootId, "components")}
       className="space-y-4"
     >
-      {rowIds.map((id, i) => (
-        <MessageComponentRow
-          key={id}
-          rowId={id}
-          rowIndex={i}
-          disableFlowEditor={disableFlowEditor}
-        />
-      ))}
-      <div className="space-x-3">
-        <Button
-          onClick={() =>
-            insert(rootId, "components", "end", { type: "actionRow" })
-          }
-          disabled={rowIds.length >= 5}
-        >
-          Add Button Row
-        </Button>
+      {componentIds.map((id) =>
+        componentsV2 ? (
+          <MessageComponentEntry
+            key={id}
+            id={id}
+            disableFlowEditor={disableFlowEditor}
+          />
+        ) : (
+          <MessageComponentRow
+            key={id}
+            rowId={id}
+            disableFlowEditor={disableFlowEditor}
+          />
+        )
+      )}
+      <div className="flex space-x-3">
+        {componentsV2 ? (
+          <MessageComponentAddDropdown
+            parentId={rootId}
+            context="root"
+            disabled={componentIds.length >= limit}
+          />
+        ) : (
+          <Button
+            onClick={() =>
+              insert(rootId, "components", "end", { type: "actionRow" })
+            }
+            disabled={componentIds.length >= limit}
+          >
+            Add Button Row
+          </Button>
+        )}
         <Button
           onClick={() => removeChildren(rootId, "components")}
           variant="outline"

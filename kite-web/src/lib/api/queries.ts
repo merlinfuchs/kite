@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQueries, useQuery } from "@tanstack/react-query";
 import { apiRequest } from "./client";
 import {
   AppCollaboratorListResponse,
@@ -239,6 +239,17 @@ export function useAssetQuery(appId: string, assetId: string) {
     queryFn: () =>
       apiRequest<AssetGetResponse>(`/v1/apps/${appId}/assets/${assetId}`),
     enabled: !!appId && !!assetId,
+  });
+}
+
+export function useAssetQueries(appId: string, assetIds: string[]) {
+  return useQueries({
+    queries: assetIds.map((assetId) => ({
+      queryKey: ["apps", appId, "assets", assetId],
+      queryFn: () =>
+        apiRequest<AssetGetResponse>(`/v1/apps/${appId}/assets/${assetId}`),
+      enabled: !!appId && !!assetId,
+    })),
   });
 }
 

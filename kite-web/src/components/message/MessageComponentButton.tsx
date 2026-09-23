@@ -3,6 +3,7 @@ import {
   useDocumentStoreApi,
   useNode,
   useNodeActions,
+  useNodeIndex,
 } from "@/lib/message/state";
 import { ButtonNode, NodeId } from "@/lib/message/document";
 import { MessageComponentButtonStyle } from "@/lib/message/schema";
@@ -41,13 +42,14 @@ const initialFlow = {
 
 export default function MessageComponentButton({
   buttonId,
-  buttonIndex,
+  title,
   disableFlowEditor,
 }: {
   buttonId: NodeId;
-  buttonIndex: number;
+  title?: string;
   disableFlowEditor?: boolean;
 }) {
+  const { index } = useNodeIndex(buttonId);
   const button = useNode<ButtonNode>(buttonId);
   const actions = useNodeActions(buttonId);
   const { update } = useDocumentStoreApi().getState();
@@ -86,7 +88,7 @@ export default function MessageComponentButton({
       }}
     >
       <MessageCollapsibleSection
-        title={`Button ${buttonIndex + 1}`}
+        title={title ?? `Button ${index + 1}`}
         size="md"
         validation={nodeScope(buttonId)}
         className="space-y-3"
