@@ -108,41 +108,41 @@ Kite should now be accessible in your browser at [localhost:8080](http://localho
 
 #### Building the website
 
-You can download NodeJS and NPM from [nodejs.org](https://nodejs.org/en/download/).
+You can download NodeJS from [nodejs.org](https://nodejs.org/en/download/) and enable pnpm with `corepack enable`.
 
 ```shell
 # Switch to the kite-web directory
 cd kite-web
 
 # Install dependencies
-npm install
+pnpm install
 
 # Start the development server (optional)
-npm run dev
+pnpm run dev
 
 # Build for embedded use in kite-service (recommended)
-OUTPUT=export npm run build
+OUTPUT=export pnpm run build
 
 # Build for standalone use
-npm run build
+pnpm run build
 ```
 
 #### Building the docs
 
-You can download NodeJS and NPM from [nodejs.org](https://nodejs.org/en/download/).
+You can download NodeJS from [nodejs.org](https://nodejs.org/en/download/) and enable pnpm with `corepack enable`.
 
 ```shell
 # Switch to the kite-docs directory
 cd kite-docs
 
 # Install dependencies
-npm install
+pnpm install
 
 # Start the development server (optional)
-npm run start
+pnpm run start
 
 # Build for production use
-npm run build
+pnpm run build
 ```
 
 #### Building the server (kite-service)
