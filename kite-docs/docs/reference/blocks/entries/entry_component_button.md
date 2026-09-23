@@ -15,4 +15,8 @@ When a user picks an option in a select menu, the value of the option is availab
 
 This is typically used in conjunction with interactive components in your messages.
 
+:::tip
+Here `user` is whoever clicked. If the message was sent by a command, `origin.user` is the person who ran it. See [Who is `user` in a sub-flow?](/reference/sub-flows#who-is-user-in-a-sub-flow).
+:::
+
 <NodeInfoExplorer type="entry_component_button" />

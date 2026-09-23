@@ -297,6 +297,40 @@ func NewEventEnv(event ws.Event) *EventEnv {
 	return env
 }
 
+// SetResumeContext makes the interactions or events from before a resume point
+// available to the resumed flow, oldest first. Command args and modal inputs
+// only exist on one kind of interaction, so arg() and input() fall back to
+// earlier ones, newest first.
+func (c Context) SetResumeContext(earlier []Context) {
+	if len(earlier) == 0 {
+		return
+	}
+
+	c.Env["origin"] = map[string]any(earlier[0].Env)
+	c.Env["previous"] = map[string]any(earlier[len(earlier)-1].Env)
+
+	for _, name := range []string{"arg", "input"} {
+		var lookups []func(string) any
+		if fn, ok := c.Env[name].(func(string) any); ok {
+			lookups = append(lookups, fn)
+		}
+		for i := len(earlier) - 1; i >= 0; i-- {
+			if fn, ok := earlier[i].Env[name].(func(string) any); ok {
+				lookups = append(lookups, fn)
+			}
+		}
+
+		c.Env[name] = func(key string) any {
+			for _, lookup := range lookups {
+				if v := lookup(key); v != nil {
+					return v
+				}
+			}
+			return nil
+		}
+	}
+}
+
 func NewContext(env Env) Context {
 	return Context{
 		Env: env,

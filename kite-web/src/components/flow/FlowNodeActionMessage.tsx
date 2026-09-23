@@ -1,5 +1,6 @@
 import { NodeProps } from "@/lib/flow/dataSchema";
 import { suspendColor } from "@/lib/flow/nodes";
+import { componentHandleId } from "@/lib/flow/resume";
 import {
   ButtonStyleLink,
   ComponentData,
@@ -24,7 +25,10 @@ export default function FlowNodeActionMessage(props: NodeProps) {
   // React Flow only re-measures handles when the node resizes, so swapping a
   // component for another of the same size would leave the new handle unknown.
   const updateNodeInternals = useUpdateNodeInternals();
-  const handleIds = componentGroups.flat().map(buttonHandleId).join(",");
+  const handleIds = componentGroups
+    .flat()
+    .map((comp) => componentHandleId(comp.id))
+    .join(",");
   useEffect(() => {
     updateNodeInternals(props.id);
   }, [handleIds, props.id, updateNodeInternals]);
@@ -110,14 +114,9 @@ function ComponentHandle({ comp }: { comp: ComponentData }) {
       <FlowNodeHandle
         type="source"
         position={Position.Bottom}
-        id={buttonHandleId(comp)}
+        id={componentHandleId(comp.id)}
         size="small"
       />
     </div>
   );
-}
-
-function buttonHandleId(comp: ComponentData) {
-  // NOTE: The format has to match with the backend for the resume point to work
-  return `component_${comp.id}`;
 }
