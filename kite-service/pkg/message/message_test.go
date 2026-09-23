@@ -218,3 +218,44 @@ func TestToSendMessageDataStringSelect(t *testing.T) {
 	assert.Equal(t, "red", options[0].(map[string]any)["value"])
 	assert.Equal(t, "blue", options[1].(map[string]any)["value"])
 }
+
+func TestToEditInteractionResponseDataComponentsV2(t *testing.T) {
+	data := componentsV2Message.Copy()
+	data.Content = "old"
+
+	edit := data.ToEditInteractionResponseData(ConvertOptions{
+		ComponentIDFactory: func(c *ComponentData) discord.ComponentID {
+			return discord.ComponentID(c.FlowSourceID)
+		},
+	})
+
+	raw, err := json.Marshal(edit)
+	require.NoError(t, err)
+
+	var got map[string]any
+	require.NoError(t, json.Unmarshal(raw, &got))
+
+	assert.Contains(t, got, "content")
+	assert.Nil(t, got["content"])
+	assert.Equal(t, []any{}, got["embeds"])
+	assert.EqualValues(t, discord.IsComponentsV2, got["flags"])
+}
+
+func TestContainerBlackAccentColor(t *testing.T) {
+	data := MessageData{
+		Flags: int(discord.IsComponentsV2),
+		Components: []ComponentData{{
+			Type:        ComponentTypeContainer,
+			AccentColor: intPtr(0),
+			Components:  []ComponentData{{Type: ComponentTypeTextDisplay, Content: "hi"}},
+		}},
+	}
+
+	raw, err := json.Marshal(data.ToSendMessageData(ConvertOptions{}).Components)
+	require.NoError(t, err)
+
+	var got []map[string]any
+	require.NoError(t, json.Unmarshal(raw, &got))
+	assert.Contains(t, got[0], "accent_color")
+	assert.EqualValues(t, 0, got[0]["accent_color"])
+}
