@@ -61,7 +61,7 @@ const actionRowMessage = parse({
           flow_source_id: "flow-select",
           options: [
             { label: "Red", value: "red", description: "warm" },
-            { label: "Blue" },
+            { label: "Blue", value: "blue" },
           ],
         },
       ],
@@ -263,7 +263,10 @@ describe("select menu validation", () => {
                 components: [
                   {
                     type: 3,
-                    options: [{ label: "A" }, { label: "B" }],
+                    options: [
+                      { label: "A", value: "a" },
+                      { label: "B", value: "b" },
+                    ],
                     ...menu,
                   },
                   ...extra,
@@ -291,10 +294,21 @@ describe("select menu validation", () => {
     );
   });
 
-  test("option values have to be unique, falling back to the label", () => {
+  test("option values are required and unique", () => {
     expect(
-      paths(withMenu({ options: [{ label: "A" }, { label: "B", value: "A" }] }))
+      paths(
+        withMenu({
+          options: [
+            { label: "A", value: "a" },
+            { label: "B", value: "a" },
+          ],
+        })
+      )
     ).toContain("components.0.components.0.options.1.value");
+
+    expect(
+      paths(withMenu({ options: [{ label: "A" }, { label: "B", value: "b" }] }))
+    ).toContain("components.0.components.0.options.0.value");
   });
 
   test("a select menu has to be alone in its row", () => {

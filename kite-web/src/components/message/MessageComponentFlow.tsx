@@ -46,7 +46,11 @@ export default memo(function MessageComponentFlow({
       context={context}
       onClose={onClose}
     >
-      <FlowPreview className="h-64 p-16 w-full" onClick={() => {}} />
+      <FlowPreview
+        className="h-64 p-16 w-full"
+        onClick={() => {}}
+        context={context}
+      />
     </FlowDialog>
   );
 });

@@ -191,7 +191,7 @@ func TestToSendMessageDataStringSelect(t *testing.T) {
 					FlowSourceID: "flow-select",
 					Options: []ComponentSelectOptionData{
 						{Label: "Red", Value: "red"},
-						{Label: "Blue"},
+						{Label: "Blue", Value: "blue"},
 					},
 				},
 			}},
@@ -216,6 +216,5 @@ func TestToSendMessageDataStringSelect(t *testing.T) {
 
 	options := sel["options"].([]any)
 	assert.Equal(t, "red", options[0].(map[string]any)["value"])
-	// Without an explicit value the label is sent back to the flow.
-	assert.Equal(t, "Blue", options[1].(map[string]any)["value"])
+	assert.Equal(t, "blue", options[1].(map[string]any)["value"])
 }

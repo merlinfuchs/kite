@@ -466,7 +466,9 @@ export const createDocumentStore = (
 const REQUIRED_CHILDREN: Partial<
   Record<NodeType, { slot: ChildSlot; node: NewNode }[]>
 > = {
-  selectMenu: [{ slot: "options", node: { type: "selectOption", label: "" } }],
+  selectMenu: [
+    { slot: "options", node: { type: "selectOption", label: "", value: "" } },
+  ],
   section: [
     { slot: "components", node: { type: "textDisplay", content: "" } },
     { slot: "accessory", node: { type: "thumbnail", media: { url: "" } } },
