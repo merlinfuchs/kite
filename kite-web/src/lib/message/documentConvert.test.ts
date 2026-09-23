@@ -363,3 +363,16 @@ describe("media validation", () => {
     expect(withFile("attachment://").success).toBe(false);
   });
 });
+
+describe("parseMessageData", () => {
+  test("sets the components v2 flag when v2 components are present", () => {
+    const message = parse({
+      components: [{ type: 17, components: [{ type: 10, content: "Hi" }] }],
+    });
+    expect(message.flags).toBe(1 << 15);
+  });
+
+  test("leaves classic messages without the flag", () => {
+    expect(actionRowMessage.flags).toBeUndefined();
+  });
+});
