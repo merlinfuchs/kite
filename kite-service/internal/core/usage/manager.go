@@ -12,7 +12,8 @@ import (
 )
 
 const (
-	UsageRecordExpiry = 3 * 30 * 24 * time.Hour
+	// Only the current month is ever read, the rest is slack for support.
+	UsageRecordExpiry = 40 * 24 * time.Hour
 	LogEntryExpiry    = 30 * 24 * time.Hour
 
 	// Buttons stop working once these expire, so they count from last use, not creation.
@@ -172,7 +173,9 @@ func (m *UsageManager) disableApp(ctx context.Context, appID string) {
 func (m *UsageManager) cleanupUsageRecords(ctx context.Context) error {
 	expiry := time.Now().UTC().Add(-UsageRecordExpiry)
 
-	err := m.usageStore.DeleteUsageRecordsBefore(ctx, expiry)
+	err := deleteInBatches(ctx, func(ctx context.Context) (int64, error) {
+		return m.usageStore.DeleteUsageRecordsBefore(ctx, expiry, cleanupBatchSize)
+	})
 	if err != nil {
 		return fmt.Errorf("failed to delete usage records: %w", err)
 	}
