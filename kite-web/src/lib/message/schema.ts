@@ -266,6 +266,7 @@ export type MessageComponentButton = z.infer<typeof buttonSchema>;
 export const selectMenuOptionSchema = z.object({
   id: uniqueIdSchema.default(() => getUniqueId()),
   label: z.string().min(1).max(100),
+  value: z.optional(z.string().min(1).max(100)),
   description: z.optional(z.string().min(1).max(100)),
   emoji: z.optional(emojiSchema),
 });
@@ -274,21 +275,64 @@ export type MessageComponentSelectMenuOption = z.infer<
   typeof selectMenuOptionSchema
 >;
 
-export const selectMenuSchema = z.object({
-  id: uniqueIdSchema.default(() => getUniqueId()),
-  type: z.literal(3),
-  placeholder: z.optional(z.string().max(150)),
-  disabled: z.optional(z.boolean()),
-  options: z.array(selectMenuOptionSchema).min(1).max(25),
-  flow_source_id: z.string().default(() => getUniqueId().toString()),
-});
+export const selectMenuSchema = z
+  .object({
+    id: uniqueIdSchema.default(() => getUniqueId()),
+    type: z.literal(3),
+    placeholder: z.optional(z.string().max(150)),
+    min_values: z.optional(z.number().int().min(0).max(25)),
+    max_values: z.optional(z.number().int().min(1).max(25)),
+    disabled: z.optional(z.boolean()),
+    options: z.array(selectMenuOptionSchema).min(1).max(25),
+    flow_source_id: z.string().default(() => getUniqueId().toString()),
+  })
+  .superRefine((data, ctx) => {
+    const min = data.min_values ?? 1;
+    const max = data.max_values ?? 1;
+    if (max < min) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["max_values"],
+        message: "Maximum can't be lower than the minimum",
+      });
+    }
+    if (max > data.options.length) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["max_values"],
+        message: "Maximum can't be higher than the number of options",
+      });
+    }
+
+    // The value falls back to the label, and Discord needs them to be unique.
+    const seen = new Set<string>();
+    data.options.forEach((option, i) => {
+      const value = option.value || option.label;
+      if (seen.has(value)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["options", i, option.value ? "value" : "label"],
+          message: "Every option needs a unique value",
+        });
+      }
+      seen.add(value);
+    });
+  });
 
 export type MessageComponentSelectMenu = z.infer<typeof selectMenuSchema>;
 
 export const actionRowSchema = z.object({
   id: uniqueIdSchema.default(() => getUniqueId()),
   type: z.literal(1),
-  components: z.array(buttonSchema.or(selectMenuSchema)).min(1).max(5),
+  components: z
+    .array(buttonSchema.or(selectMenuSchema))
+    .min(1)
+    .max(5)
+    .refine(
+      (components) =>
+        components.length === 1 || components.every((c) => c.type !== 3),
+      "A select menu has to be alone in its row"
+    ),
 });
 
 export type MessageComponentActionRow = z.infer<typeof actionRowSchema>;

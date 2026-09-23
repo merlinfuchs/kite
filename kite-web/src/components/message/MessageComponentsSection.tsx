@@ -44,14 +44,27 @@ export default function MessageComponentsSection({
             disabled={componentIds.length >= limit}
           />
         ) : (
-          <Button
-            onClick={() =>
-              insert(rootId, "components", "end", { type: "actionRow" })
-            }
-            disabled={componentIds.length >= limit}
-          >
-            Add Button Row
-          </Button>
+          <>
+            <Button
+              onClick={() =>
+                insert(rootId, "components", "end", { type: "actionRow" })
+              }
+              disabled={componentIds.length >= limit}
+            >
+              Add Button Row
+            </Button>
+            <Button
+              onClick={() => {
+                const rowId = insert(rootId, "components", "end", {
+                  type: "actionRow",
+                });
+                insert(rowId, "components", "end", { type: "selectMenu" });
+              }}
+              disabled={componentIds.length >= limit}
+            >
+              Add Select Menu
+            </Button>
+          </>
         )}
         <Button
           onClick={() => removeChildren(rootId, "components")}

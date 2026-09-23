@@ -13,8 +13,15 @@ const componentTypes: {
   label: string;
   node: NewNode;
   rootOnly?: boolean;
+  /** A component to put inside the new one, like the select menu of its row. */
+  child?: NewNode;
 }[] = [
   { label: "Button Row", node: { type: "actionRow" } },
+  {
+    label: "Select Menu",
+    node: { type: "actionRow" },
+    child: { type: "selectMenu" },
+  },
   { label: "Section", node: { type: "section" } },
   { label: "Text Display", node: { type: "textDisplay", content: "" } },
   { label: "Media Gallery", node: { type: "mediaGallery" } },
@@ -39,17 +46,9 @@ export default function MessageComponentAddDropdown({
 }) {
   const { insert } = useDocumentStoreApi().getState();
 
-  const add = (node: NewNode) => {
+  const add = (node: NewNode, child?: NewNode) => {
     const id = insert(parentId, "components", "end", node);
-
-    // Sections need at least one text and an accessory, so start with both.
-    if (node.type === "section") {
-      insert(id, "components", "end", { type: "textDisplay", content: "" });
-      insert(id, "accessory", "end", {
-        type: "thumbnail",
-        media: { url: "" },
-      });
-    }
+    if (child) insert(id, "components", "end", child);
   };
 
   return (
@@ -64,7 +63,10 @@ export default function MessageComponentAddDropdown({
         {componentTypes
           .filter((c) => !c.rootOnly || context === "root")
           .map((c) => (
-            <DropdownMenuItem key={c.label} onClick={() => add(c.node)}>
+            <DropdownMenuItem
+              key={c.label}
+              onClick={() => add(c.node, c.child)}
+            >
               {c.label}
             </DropdownMenuItem>
           ))}

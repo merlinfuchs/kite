@@ -1748,8 +1748,15 @@ func (n *CompiledFlowNode) resumeFromComponent(ctx *FlowContext) error {
 		return traceError(n, err)
 	}
 
-	data := interaction.Data.(*discord.ButtonInteraction)
-	_, compID, ok := message.DecodeCustomIDMessageComponentResumePoint(string(data.CustomID))
+	data, ok := interaction.Data.(discord.ComponentInteraction)
+	if !ok {
+		return &FlowError{
+			Code:    FlowNodeErrorUnknown,
+			Message: "interaction is not a component interaction",
+		}
+	}
+
+	_, compID, ok := message.DecodeCustomIDMessageComponentResumePoint(string(data.ID()))
 	if !ok {
 		return &FlowError{
 			Code:    FlowNodeErrorUnknown,

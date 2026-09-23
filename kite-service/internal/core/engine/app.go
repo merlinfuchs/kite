@@ -241,8 +241,8 @@ func (a *App) HandleEvent(appID string, session *state.State, event gateway.Even
 			if command != nil {
 				go command.HandleEvent(appID, session, event)
 			}
-		case *discord.ButtonInteraction:
-			customID := string(d.CustomID)
+		case discord.ComponentInteraction:
+			customID := string(d.ID())
 			resumePointID, _, isResume := message.DecodeCustomIDMessageComponentResumePoint(customID)
 			if isResume {
 				a.resumeFlow(resumePointID, session, event)

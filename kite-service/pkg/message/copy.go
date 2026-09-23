@@ -171,6 +171,7 @@ func (c ComponentSelectOptionData) Copy() ComponentSelectOptionData {
 	return ComponentSelectOptionData{
 		ID:           c.ID,
 		Label:        c.Label,
+		Value:        c.Value,
 		Description:  c.Description,
 		Emoji:        c.Emoji.Copy(),
 		Default:      c.Default,

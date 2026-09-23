@@ -268,6 +268,7 @@ export type MessageComponentButton = z.infer<typeof buttonSchema>;
 export const selectMenuOptionSchema = z.object({
   id: uniqueIdSchema,
   label: z.preprocess((d) => d ?? undefined, z.string().default("")),
+  value: z.preprocess((d) => d || undefined, z.optional(z.string())),
   description: z.preprocess((d) => d || undefined, z.optional(z.string())),
   emoji: z.preprocess((d) => d ?? undefined, z.optional(emojiSchema)),
 });
@@ -280,6 +281,8 @@ export const selectMenuSchema = z.object({
   id: uniqueIdSchema,
   type: z.literal(3),
   placeholder: z.preprocess((d) => d ?? undefined, z.optional(z.string())),
+  min_values: z.preprocess((d) => d ?? undefined, z.optional(z.number())),
+  max_values: z.preprocess((d) => d ?? undefined, z.optional(z.number())),
   disabled: z.preprocess((d) => d ?? undefined, z.optional(z.boolean())),
   options: z.preprocess(
     (d) => d ?? undefined,

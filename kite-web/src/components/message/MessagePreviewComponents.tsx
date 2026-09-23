@@ -8,6 +8,7 @@ import {
   MessageComponentFile,
   MessageComponentMediaGallery,
   MessageComponentSection,
+  MessageComponentSelectMenu,
   MessageComponentSeparator,
   MessageComponentThumbnail,
 } from "@/lib/message/schema";
@@ -104,13 +105,47 @@ function PreviewButton({ button }: { button: MessageComponentButton }) {
   return <div className={className}>{content}</div>;
 }
 
+function PreviewSelectMenu({
+  selectMenu,
+}: {
+  selectMenu: MessageComponentSelectMenu;
+}) {
+  return (
+    <div
+      className={cn(
+        "discord-select-menu discord-select-menu-hoverable",
+        selectMenu.disabled && "discord-select-menu-disabled"
+      )}
+    >
+      <span className="discord-select-menu-placeholder">
+        {selectMenu.placeholder || "Make a selection"}
+      </span>
+      <svg
+        className="discord-select-menu-icon"
+        aria-hidden="true"
+        role="img"
+        width="24"
+        height="24"
+        viewBox="0 0 24 24"
+      >
+        <path
+          fill="currentColor"
+          d="M16.59 8.59003L12 13.17L7.41 8.59003L6 10L12 16L18 10L16.59 8.59003Z"
+        ></path>
+      </svg>
+    </div>
+  );
+}
+
 function PreviewActionRow({ row }: { row: MessageComponentActionRow }) {
   return (
     <div className="discord-action-row">
       {row.components.map((component) =>
         component.type === 2 ? (
           <PreviewButton key={component.id} button={component} />
-        ) : null
+        ) : (
+          <PreviewSelectMenu key={component.id} selectMenu={component} />
+        )
       )}
     </div>
   );

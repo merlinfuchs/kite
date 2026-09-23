@@ -50,6 +50,22 @@ const actionRowMessage = parse({
         { type: 2, style: 5, label: "Link", url: "https://kite.onl" },
       ],
     },
+    {
+      type: 1,
+      components: [
+        {
+          type: 3,
+          placeholder: "Pick a color",
+          min_values: 1,
+          max_values: 2,
+          flow_source_id: "flow-select",
+          options: [
+            { label: "Red", value: "red", description: "warm" },
+            { label: "Blue" },
+          ],
+        },
+      ],
+    },
   ],
 });
 
@@ -232,4 +248,58 @@ test("a section without an accessory is reported instead of faked", () => {
   expect(res.error?.issues.map((i) => i.path.join("."))).toContain(
     "components.0.accessory"
   );
+});
+
+describe("select menu validation", () => {
+  const withMenu = (menu: Record<string, unknown>, extra: unknown[] = []) =>
+    messageSchema.safeParse(
+      toMessage(
+        fromMessage(
+          parse({
+            content: "",
+            components: [
+              {
+                type: 1,
+                components: [
+                  {
+                    type: 3,
+                    options: [{ label: "A" }, { label: "B" }],
+                    ...menu,
+                  },
+                  ...extra,
+                ],
+              },
+            ],
+          })
+        )
+      ).message
+    );
+
+  const paths = (res: ReturnType<typeof withMenu>) =>
+    res.error?.issues.map((i) => i.path.join(".")) ?? [];
+
+  test("a valid menu passes", () => {
+    expect(paths(withMenu({ min_values: 1, max_values: 2 }))).toEqual([]);
+  });
+
+  test("max can't be below min or above the option count", () => {
+    expect(paths(withMenu({ min_values: 2, max_values: 1 }))).toContain(
+      "components.0.components.0.max_values"
+    );
+    expect(paths(withMenu({ max_values: 3 }))).toContain(
+      "components.0.components.0.max_values"
+    );
+  });
+
+  test("option values have to be unique, falling back to the label", () => {
+    expect(
+      paths(withMenu({ options: [{ label: "A" }, { label: "B", value: "A" }] }))
+    ).toContain("components.0.components.0.options.1.value");
+  });
+
+  test("a select menu has to be alone in its row", () => {
+    expect(
+      paths(withMenu({}, [{ type: 2, style: 1, label: "Click" }]))
+    ).toContain("components.0.components");
+  });
 });

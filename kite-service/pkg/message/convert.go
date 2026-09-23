@@ -216,6 +216,8 @@ func (c *ComponentData) ToComponent(opts ConvertOptions) discord.Component {
 		return &row
 	case ComponentTypeButton:
 		return c.toButton(opts)
+	case ComponentTypeStringSelect:
+		return c.toStringSelect(opts)
 	case ComponentTypeSection:
 		return &discord.SectionComponent{
 			Components: c.childComponents(opts),
@@ -295,11 +297,7 @@ func (c *ComponentData) toButton(opts ConvertOptions) *discord.ButtonComponent {
 
 	var customID discord.ComponentID
 	if c.Style != ButtonStyleLink {
-		if opts.ComponentIDFactory != nil {
-			customID = opts.ComponentIDFactory(c)
-		} else {
-			customID = discord.ComponentID(c.FlowSourceID)
-		}
+		customID = c.customID(opts)
 	}
 
 	return &discord.ButtonComponent{
@@ -309,6 +307,39 @@ func (c *ComponentData) toButton(opts ConvertOptions) *discord.ButtonComponent {
 		Disabled: c.Disabled,
 		CustomID: customID,
 	}
+}
+
+func (c *ComponentData) toStringSelect(opts ConvertOptions) *discord.StringSelectComponent {
+	options := make([]discord.SelectOption, len(c.Options))
+	for i, option := range c.Options {
+		value := option.Value
+		if value == "" {
+			value = option.Label
+		}
+
+		options[i] = discord.SelectOption{
+			Label:       option.Label,
+			Value:       value,
+			Description: option.Description,
+			Emoji:       option.Emoji.ToEmoji(),
+			Default:     option.Default,
+		}
+	}
+
+	return &discord.StringSelectComponent{
+		CustomID:    c.customID(opts),
+		Options:     options,
+		Placeholder: c.Placeholder,
+		ValueLimits: [2]int{c.MinValues, c.MaxValues},
+		Disabled:    c.Disabled,
+	}
+}
+
+func (c *ComponentData) customID(opts ConvertOptions) discord.ComponentID {
+	if opts.ComponentIDFactory != nil {
+		return opts.ComponentIDFactory(c)
+	}
+	return discord.ComponentID(c.FlowSourceID)
 }
 
 func (m *UnfurledMediaItemData) toUnfurledMediaItem() discord.UnfurledMediaitem {
