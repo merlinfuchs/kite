@@ -1,5 +1,5 @@
 import { ChevronDownIcon } from "lucide-react";
-import { DocumentStore, NewNode, NodeId } from "@/lib/message/document";
+import { NewNode, NodeId } from "@/lib/message/document";
 import { useDocumentStoreApi } from "@/lib/message/state";
 import { Button } from "../ui/button";
 import {
@@ -13,11 +13,15 @@ const componentTypes: {
   label: string;
   node: NewNode;
   rootOnly?: boolean;
-  /** Fills the new row with a select menu instead of leaving it for buttons. */
-  selectMenu?: boolean;
+  /** A component to put inside the new one, like the select menu of its row. */
+  child?: NewNode;
 }[] = [
   { label: "Button Row", node: { type: "actionRow" } },
-  { label: "Select Menu", node: { type: "actionRow" }, selectMenu: true },
+  {
+    label: "Select Menu",
+    node: { type: "actionRow" },
+    child: { type: "selectMenu" },
+  },
   { label: "Section", node: { type: "section" } },
   { label: "Text Display", node: { type: "textDisplay", content: "" } },
   { label: "Media Gallery", node: { type: "mediaGallery" } },
@@ -28,15 +32,6 @@ const componentTypes: {
   },
   { label: "Container", node: { type: "container" }, rootOnly: true },
 ];
-
-/** Puts a select menu with one option into an empty row. */
-export function insertSelectMenu(
-  insert: DocumentStore["insert"],
-  rowId: NodeId
-) {
-  const menuId = insert(rowId, "components", "end", { type: "selectMenu" });
-  insert(menuId, "options", "end", { type: "selectOption", label: "" });
-}
 
 export default function MessageComponentAddDropdown({
   parentId,
@@ -51,21 +46,9 @@ export default function MessageComponentAddDropdown({
 }) {
   const { insert } = useDocumentStoreApi().getState();
 
-  const add = (node: NewNode, selectMenu?: boolean) => {
+  const add = (node: NewNode, child?: NewNode) => {
     const id = insert(parentId, "components", "end", node);
-
-    if (selectMenu) {
-      insertSelectMenu(insert, id);
-    }
-
-    // Sections need at least one text and an accessory, so start with both.
-    if (node.type === "section") {
-      insert(id, "components", "end", { type: "textDisplay", content: "" });
-      insert(id, "accessory", "end", {
-        type: "thumbnail",
-        media: { url: "" },
-      });
-    }
+    if (child) insert(id, "components", "end", child);
   };
 
   return (
@@ -82,7 +65,7 @@ export default function MessageComponentAddDropdown({
           .map((c) => (
             <DropdownMenuItem
               key={c.label}
-              onClick={() => add(c.node, c.selectMenu)}
+              onClick={() => add(c.node, c.child)}
             >
               {c.label}
             </DropdownMenuItem>

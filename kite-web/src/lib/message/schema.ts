@@ -324,7 +324,15 @@ export type MessageComponentSelectMenu = z.infer<typeof selectMenuSchema>;
 export const actionRowSchema = z.object({
   id: uniqueIdSchema.default(() => getUniqueId()),
   type: z.literal(1),
-  components: z.array(buttonSchema.or(selectMenuSchema)).min(1).max(5),
+  components: z
+    .array(buttonSchema.or(selectMenuSchema))
+    .min(1)
+    .max(5)
+    .refine(
+      (components) =>
+        components.length === 1 || components.every((c) => c.type !== 3),
+      "A select menu has to be alone in its row"
+    ),
 });
 
 export type MessageComponentActionRow = z.infer<typeof actionRowSchema>;
@@ -523,18 +531,6 @@ function countComponents(components: unknown[]): {
   return { count, text };
 }
 
-/** Paths of every action row in the message, including the ones in containers. */
-function actionRowPaths(components: unknown[], path: (string | number)[]) {
-  const rows: { row: any; path: (string | number)[] }[] = [];
-  components.forEach((c: any, i) => {
-    const p = [...path, i];
-    if (c?.type === 1) rows.push({ row: c, path: p });
-    if (c?.type === 17)
-      rows.push(...actionRowPaths(c.components ?? [], [...p, "components"]));
-  });
-  return rows;
-}
-
 export const messageSchema = z
   .object({
     content: messageContentSchema.default(""),
@@ -549,19 +545,6 @@ export const messageSchema = z
     thread_name: messageThreadNameSchema,
   })
   .superRefine((data, ctx) => {
-    for (const { row, path } of actionRowPaths(data.components, [
-      "components",
-    ])) {
-      const hasSelect = row.components.some((c: any) => c.type === 3);
-      if (hasSelect && row.components.length > 1) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          path,
-          message: "A select menu has to be alone in its row",
-        });
-      }
-    }
-
     if (hasComponentsV2Flag(data.flags)) {
       if (!data.components.length) {
         ctx.addIssue({

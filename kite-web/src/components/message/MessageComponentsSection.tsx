@@ -9,9 +9,7 @@ import { slotScope } from "@/lib/message/validationStore";
 import CollapsibleSection from "./MessageCollapsibleSection";
 import { Button } from "../ui/button";
 import MessageComponentEntry from "./MessageComponentEntry";
-import MessageComponentAddDropdown, {
-  insertSelectMenu,
-} from "./MessageComponentAddDropdown";
+import MessageComponentAddDropdown from "./MessageComponentAddDropdown";
 
 export default function MessageComponentsSection({
   disableFlowEditor,
@@ -56,12 +54,12 @@ export default function MessageComponentsSection({
               Add Button Row
             </Button>
             <Button
-              onClick={() =>
-                insertSelectMenu(
-                  insert,
-                  insert(rootId, "components", "end", { type: "actionRow" })
-                )
-              }
+              onClick={() => {
+                const rowId = insert(rootId, "components", "end", {
+                  type: "actionRow",
+                });
+                insert(rowId, "components", "end", { type: "selectMenu" });
+              }}
               disabled={componentIds.length >= limit}
             >
               Add Select Menu

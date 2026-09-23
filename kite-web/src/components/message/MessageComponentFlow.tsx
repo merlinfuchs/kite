@@ -1,4 +1,4 @@
-import { useCallback } from "react";
+import { memo, useCallback } from "react";
 import { useShallow } from "zustand/react/shallow";
 import { FlowData } from "@/lib/flow/dataSchema";
 import { FlowContextType } from "@/lib/flow/context";
@@ -19,8 +19,12 @@ const initialFlow = {
   edges: [],
 };
 
-/** The flow a button or select menu triggers, edited in a dialog. */
-export default function MessageComponentFlow({
+/**
+ * The flow a button or select menu triggers, edited in a dialog. Memoized
+ * because the preview is a full ReactFlow instance that editing the component
+ * would otherwise re-render on every keystroke.
+ */
+export default memo(function MessageComponentFlow({
   flowSourceId,
   context,
 }: {
@@ -45,4 +49,4 @@ export default function MessageComponentFlow({
       <FlowPreview className="h-64 p-16 w-full" onClick={() => {}} />
     </FlowDialog>
   );
-}
+});

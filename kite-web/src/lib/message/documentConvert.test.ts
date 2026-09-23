@@ -300,6 +300,6 @@ describe("select menu validation", () => {
   test("a select menu has to be alone in its row", () => {
     expect(
       paths(withMenu({}, [{ type: 2, style: 1, label: "Click" }]))
-    ).toContain("components.0");
+    ).toContain("components.0.components");
   });
 });

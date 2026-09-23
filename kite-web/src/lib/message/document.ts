@@ -276,8 +276,13 @@ const SLOT_LIMITS: Record<string, number> = {
 export function slotLimit(
   parentType: NodeType,
   slot: ChildSlot,
-  componentsV2 = false
+  componentsV2 = false,
+  childType?: NodeType
 ): number {
+  // A select menu fills its row on its own.
+  if (parentType === "actionRow" && childType === "selectMenu") {
+    return 1;
+  }
   if (componentsV2 && parentType === "message" && slot === "components") {
     // Components v2 only caps the total component count, which the schema checks.
     return MAX_COMPONENTS_V2;
@@ -361,39 +366,10 @@ export const createDocumentStore = (
             }),
 
           insert: (parentId, slot, index, node) => {
-            const id = freshId(get().nodes);
-
+            let id = "";
             set((state) => {
-              const parent = state.nodes[parentId];
-              if (!parent) return;
-
-              // An accessory slot holds a single node, so inserting replaces.
-              if (slot === "accessory") {
-                for (const existing of childIds(parent, slot)) {
-                  removeSubtree(state, existing);
-                }
-              }
-
-              const created = {
-                ...node,
-                ...emptyChildren(node.type),
-                id,
-                parentId,
-                discordId: getUniqueId(),
-              } as Node;
-
-              if (usesFlowSource(created)) {
-                (created as ButtonNode | SelectMenuNode).flow_source_id =
-                  getUniqueId().toString();
-              }
-
-              state.nodes[id] = created;
-
-              const ids = [...childIds(parent, slot)];
-              ids.splice(index === "end" ? ids.length : index, 0, id);
-              setChildIds(parent, slot, ids);
+              id = insertNode(state, parentId, slot, index, node);
             });
-
             return id;
           },
 
@@ -482,6 +458,65 @@ export const createDocumentStore = (
       )
     )
   );
+
+/**
+ * Children a node can't be valid without, created along with it so every way
+ * of adding one (and its undo step) gets them.
+ */
+const REQUIRED_CHILDREN: Partial<
+  Record<NodeType, { slot: ChildSlot; node: NewNode }[]>
+> = {
+  selectMenu: [{ slot: "options", node: { type: "selectOption", label: "" } }],
+  section: [
+    { slot: "components", node: { type: "textDisplay", content: "" } },
+    { slot: "accessory", node: { type: "thumbnail", media: { url: "" } } },
+  ],
+};
+
+/** Creates `node` under `parentId` inside a draft, returning its id. */
+function insertNode(
+  state: DocumentData,
+  parentId: NodeId,
+  slot: ChildSlot,
+  index: number | "end",
+  node: NewNode
+): NodeId {
+  const parent = state.nodes[parentId];
+  if (!parent) return "";
+
+  // An accessory slot holds a single node, so inserting replaces.
+  if (slot === "accessory") {
+    for (const existing of childIds(parent, slot)) {
+      removeSubtree(state, existing);
+    }
+  }
+
+  const id = freshId(state.nodes);
+  const created = {
+    ...node,
+    ...emptyChildren(node.type),
+    id,
+    parentId,
+    discordId: getUniqueId(),
+  } as Node;
+
+  if (usesFlowSource(created)) {
+    (created as ButtonNode | SelectMenuNode).flow_source_id =
+      getUniqueId().toString();
+  }
+
+  state.nodes[id] = created;
+
+  const ids = [...childIds(parent, slot)];
+  ids.splice(index === "end" ? ids.length : index, 0, id);
+  setChildIds(parent, slot, ids);
+
+  for (const child of REQUIRED_CHILDREN[node.type] ?? []) {
+    insertNode(state, id, child.slot, "end", child.node);
+  }
+
+  return id;
+}
 
 /** Detaches `id` from its parent and drops it and everything below it. */
 function removeSubtree(state: DocumentData, id: NodeId) {

@@ -15,29 +15,29 @@ import FlowNodeHandle from "./FlowNodeHandle";
 import { useMemo } from "react";
 
 export default function FlowNodeActionMessage(props: NodeProps) {
-  const buttonGroups = useMemo(
-    () => collectButtonGroups(props.data.message_data?.components || []),
+  const componentGroups = useMemo(
+    () => collectComponentGroups(props.data.message_data?.components || []),
     [props.data.message_data]
   );
-  const hasButtons = buttonGroups.length > 0;
+  const hasComponents = componentGroups.length > 0;
 
   return (
     <div className="relative">
       <FlowNodeBase
         {...props}
-        highlight={hasButtons}
-        color={hasButtons ? suspendColor : undefined}
+        highlight={hasComponents}
+        color={hasComponents ? suspendColor : undefined}
         showId
       >
         <FlowNodeHandle type="target" position={Position.Top} />
         <FlowNodeHandle
           type="source"
-          position={hasButtons ? Position.Right : Position.Bottom}
+          position={hasComponents ? Position.Right : Position.Bottom}
         />
       </FlowNodeBase>
 
       <div className="flex flex-col mt-2 gap-5">
-        {buttonGroups.map((group) => (
+        {componentGroups.map((group) => (
           <div
             key={group[0].id}
             className="flex items-center justify-left gap-2"
@@ -53,22 +53,24 @@ export default function FlowNodeActionMessage(props: NodeProps) {
 }
 
 // Groups interactive components the way Discord lays them out: one group per action row and one per section accessory.
-function collectButtonGroups(components: ComponentData[]): ComponentData[][] {
+function collectComponentGroups(
+  components: ComponentData[]
+): ComponentData[][] {
   const groups: ComponentData[][] = [];
 
-  const isClickable = (c: ComponentData) =>
+  const isInteractive = (c: ComponentData) =>
     c.type === ComponentTypeStringSelect ||
     (c.type === ComponentTypeButton && c.style !== ButtonStyleLink);
 
   const walk = (c: ComponentData) => {
     if (c.type === ComponentTypeActionRow) {
-      const buttons = (c.components || []).filter(isClickable);
-      if (buttons.length > 0) groups.push(buttons);
+      const interactive = (c.components || []).filter(isInteractive);
+      if (interactive.length > 0) groups.push(interactive);
       return;
     }
 
     c.components?.forEach(walk);
-    if (c.accessory && isClickable(c.accessory)) groups.push([c.accessory]);
+    if (c.accessory && isInteractive(c.accessory)) groups.push([c.accessory]);
   };
 
   components.forEach(walk);

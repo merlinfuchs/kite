@@ -110,7 +110,7 @@ export function useNodeActions(id: NodeId) {
         count: ids.length,
         max:
           parent && slot
-            ? slotLimit(parent.type, slot, isComponentsV2(state))
+            ? slotLimit(parent.type, slot, isComponentsV2(state), node.type)
             : 1,
       };
     })

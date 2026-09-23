@@ -1,3 +1,4 @@
+import { memo } from "react";
 import {
   NodeId,
   SelectMenuNode,
@@ -21,10 +22,13 @@ import MessageInput from "./MessageInput";
 import MessageNodeActions from "./MessageNodeActions";
 
 const valueCountOptions = (from: number) =>
-  Array.from({ length: 26 - from }, (_, i) => ({
-    label: (i + from).toString(),
-    value: (i + from).toString(),
-  }));
+  Array.from(
+    { length: slotLimit("selectMenu", "options") + 1 - from },
+    (_, i) => ({ label: (i + from).toString(), value: (i + from).toString() })
+  );
+
+const minValueOptions = valueCountOptions(0);
+const maxValueOptions = valueCountOptions(1);
 
 export default function MessageComponentSelectMenu({
   id,
@@ -78,7 +82,7 @@ export default function MessageComponentSelectMenu({
             type="select"
             label="Min Selections"
             value={(data.min_values ?? 1).toString()}
-            options={valueCountOptions(0)}
+            options={minValueOptions}
             placeholder="1"
             onChange={(v) =>
               update<SelectMenuNode>(id, { min_values: parseInt(v, 10) })
@@ -89,7 +93,7 @@ export default function MessageComponentSelectMenu({
             type="select"
             label="Max Selections"
             value={(data.max_values ?? 1).toString()}
-            options={valueCountOptions(1)}
+            options={maxValueOptions}
             placeholder="1"
             onChange={(v) =>
               update<SelectMenuNode>(id, { max_values: parseInt(v, 10) })
@@ -141,52 +145,55 @@ export default function MessageComponentSelectMenu({
   );
 }
 
-function MessageComponentSelectOption({ id }: { id: NodeId }) {
-  const data = useNode<SelectOptionNode>(id);
-  const { update } = useDocumentStoreApi().getState();
+// Memoized so editing the menu doesn't re-render every option.
+const MessageComponentSelectOption = memo(
+  function MessageComponentSelectOption({ id }: { id: NodeId }) {
+    const data = useNode<SelectOptionNode>(id);
+    const { update } = useDocumentStoreApi().getState();
 
-  if (!data) return null;
+    if (!data) return null;
 
-  return (
-    <MessageComponentCard id={id} label="Option">
-      <div className="flex space-x-3">
-        <MessageEmojiPicker
-          emoji={data.emoji}
-          onChange={(emoji) => update<SelectOptionNode>(id, { emoji })}
+    return (
+      <MessageComponentCard id={id} label="Option">
+        <div className="flex space-x-3">
+          <MessageEmojiPicker
+            emoji={data.emoji}
+            onChange={(emoji) => update<SelectOptionNode>(id, { emoji })}
+          />
+          <MessageInput
+            type="text"
+            label="Label"
+            maxLength={100}
+            value={data.label}
+            onChange={(label) => update<SelectOptionNode>(id, { label })}
+            validation={nodeField<SelectOptionNode>(id, "label")}
+            placeholders
+          />
+        </div>
+        <MessageInput
+          type="text"
+          label="Value"
+          placeholder="Defaults to the label"
+          maxLength={100}
+          value={data.value ?? ""}
+          onChange={(v) =>
+            update<SelectOptionNode>(id, { value: v || undefined })
+          }
+          validation={nodeField<SelectOptionNode>(id, "value")}
+          placeholders
         />
         <MessageInput
           type="text"
-          label="Label"
+          label="Description"
           maxLength={100}
-          value={data.label}
-          onChange={(label) => update<SelectOptionNode>(id, { label })}
-          validation={nodeField<SelectOptionNode>(id, "label")}
+          value={data.description ?? ""}
+          onChange={(v) =>
+            update<SelectOptionNode>(id, { description: v || undefined })
+          }
+          validation={nodeField<SelectOptionNode>(id, "description")}
           placeholders
         />
-      </div>
-      <MessageInput
-        type="text"
-        label="Value"
-        placeholder="Defaults to the label"
-        maxLength={100}
-        value={data.value ?? ""}
-        onChange={(v) =>
-          update<SelectOptionNode>(id, { value: v || undefined })
-        }
-        validation={nodeField<SelectOptionNode>(id, "value")}
-        placeholders
-      />
-      <MessageInput
-        type="text"
-        label="Description"
-        maxLength={100}
-        value={data.description ?? ""}
-        onChange={(v) =>
-          update<SelectOptionNode>(id, { description: v || undefined })
-        }
-        validation={nodeField<SelectOptionNode>(id, "description")}
-        placeholders
-      />
-    </MessageComponentCard>
-  );
-}
+      </MessageComponentCard>
+    );
+  }
+);

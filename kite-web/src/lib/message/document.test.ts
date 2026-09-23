@@ -14,6 +14,7 @@ import {
   type MessageNode,
   type NodeId,
   type SectionNode,
+  type SelectMenuNode,
   type TextDisplayNode,
 } from "./document";
 import { toMessage } from "./documentConvert";
@@ -229,4 +230,22 @@ test("replaceAll swaps the whole document", () => {
 
   expect(Object.keys(state().nodes)).toEqual([state().rootId]);
   expect(toMessage(state()).message.content).toBe("Replaced");
+});
+
+test("inserting a node creates the children it can't be valid without", () => {
+  const rowId = state().insert(state().rootId, "components", "end", {
+    type: "actionRow",
+  });
+  const menuId = state().insert(rowId, "components", "end", {
+    type: "selectMenu",
+  });
+  const sectionId = state().insert(state().rootId, "components", "end", {
+    type: "section",
+  });
+
+  const menu = state().nodes[menuId] as SelectMenuNode;
+  const section = state().nodes[sectionId] as SectionNode;
+  expect(menu.optionIds).toHaveLength(1);
+  expect(section.childIds).toHaveLength(1);
+  expect(state().nodes[section.accessoryId as NodeId].type).toBe("thumbnail");
 });
