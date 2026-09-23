@@ -7,7 +7,7 @@
 [![MIT License](https://img.shields.io/github/license/merlinfuchs/kite)](LICENSE)
 [![Discord Server](https://img.shields.io/discord/845800518458540083)](https://discord.gg/rNd9jWHnXh)
 
-Make your own Discord Bot with Kite for free without a single line of code. With support for slash commands, buttons, events,and more.
+Make your own Discord Bot with Kite for free without a single line of code. With support for slash commands, buttons, select menus, events, and more.
 
 ![Flow Example](./example-flow.png)
 
@@ -180,6 +180,8 @@ go build
   - [x] Embeds
   - [x] Attachments
   - [x] Interactive Components
+  - [x] Select Menus
+  - [x] Components V2
   - [x] Basic placeholders
   - [x] Advanced Placeholders
 - [x] Event Listeners
