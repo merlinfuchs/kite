@@ -304,12 +304,20 @@ func (e *Engine) HandleEvent(appID string, session *state.State, event gateway.E
 	}
 
 	if app == nil {
-		// The gateway connected before the engine finished loading this app's
-		// commands and listeners, or the app has no entities at all. Events
-		// dropped here are invisible otherwise, and the window widens with
-		// the engine's populate interval.
-		metrics.GatewayEventsDropped.Add("unknown_app", 1)
-		return
+		// Apps are only registered once the engine loads a command, listener or
+		// plugin for them, but interactions can target things that live in the
+		// database instead: message template buttons and resume points. An app
+		// with nothing but message templates would otherwise never see them.
+		if _, ok := event.(*gateway.InteractionCreateEvent); ok {
+			app = e.appForID(appID)
+		} else {
+			// The gateway connected before the engine finished loading this
+			// app's commands and listeners, or the app has no entities at all.
+			// Events dropped here are invisible otherwise, and the window
+			// widens with the engine's populate interval.
+			metrics.GatewayEventsDropped.Add("unknown_app", 1)
+			return
+		}
 	}
 
 	app.HandleEvent(appID, session, event)
