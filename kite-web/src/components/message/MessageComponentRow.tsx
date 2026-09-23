@@ -10,6 +10,7 @@ import { Card } from "../ui/card";
 import MessageCollapsibleSection from "./MessageCollapsibleSection";
 import { Button } from "../ui/button";
 import MessageComponentButton from "./MessageComponentButton";
+import MessageComponentSelectMenu from "./MessageComponentSelectMenu";
 import MessageNodeActions from "./MessageNodeActions";
 
 export default function MessageComponentRow({
@@ -69,9 +70,14 @@ export default function MessageComponentRow({
             </div>
           </>
         ) : (
-          <div className="text-muted-foreground">
-            select menus aren&apos;t supported yet
-          </div>
+          // A row with a select menu holds nothing else.
+          childIds.map((id) => (
+            <MessageComponentSelectMenu
+              key={id}
+              id={id}
+              disableFlowEditor={disableFlowEditor}
+            />
+          ))
         )}
       </MessageCollapsibleSection>
     </Card>

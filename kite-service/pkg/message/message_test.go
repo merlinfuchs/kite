@@ -177,3 +177,45 @@ func TestToSendMessageDataClassic(t *testing.T) {
 	assert.Equal(t, "hi", send.Content)
 	require.Len(t, send.Components, 1)
 }
+
+func TestToSendMessageDataStringSelect(t *testing.T) {
+	data := MessageData{
+		Components: []ComponentData{
+			{Type: ComponentTypeActionRow, Components: []ComponentData{
+				{
+					ID:           7,
+					Type:         ComponentTypeStringSelect,
+					Placeholder:  "Pick one",
+					MinValues:    1,
+					MaxValues:    2,
+					FlowSourceID: "flow-select",
+					Options: []ComponentSelectOptionData{
+						{Label: "Red", Value: "red"},
+						{Label: "Blue"},
+					},
+				},
+			}},
+		},
+	}
+
+	assert.True(t, data.HasInteractiveComponents())
+
+	send := data.ToSendMessageData(ConvertOptions{})
+	raw, err := json.Marshal(send.Components)
+	require.NoError(t, err)
+
+	var got []map[string]any
+	require.NoError(t, json.Unmarshal(raw, &got))
+
+	sel := got[0]["components"].([]any)[0].(map[string]any)
+	assert.EqualValues(t, 3, sel["type"])
+	assert.Equal(t, "flow-select", sel["custom_id"])
+	assert.Equal(t, "Pick one", sel["placeholder"])
+	assert.EqualValues(t, 1, sel["min_values"])
+	assert.EqualValues(t, 2, sel["max_values"])
+
+	options := sel["options"].([]any)
+	assert.Equal(t, "red", options[0].(map[string]any)["value"])
+	// Without an explicit value the label is sent back to the flow.
+	assert.Equal(t, "Blue", options[1].(map[string]any)["value"])
+}

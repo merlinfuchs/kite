@@ -1,5 +1,4 @@
 import {
-  useCurrentFlow,
   useDocumentStoreApi,
   useNode,
   useNodeActions,
@@ -8,16 +7,12 @@ import { ButtonNode, NodeId } from "@/lib/message/document";
 import { MessageComponentButtonStyle } from "@/lib/message/schema";
 import { nodeField, nodeScope } from "@/lib/message/validationStore";
 import MessageNodeActions from "./MessageNodeActions";
-import { useShallow } from "zustand/react/shallow";
 import { Card } from "../ui/card";
 import MessageCollapsibleSection from "./MessageCollapsibleSection";
 import MessageInput from "./MessageInput";
-import { useCallback, useMemo } from "react";
+import { useMemo } from "react";
 import MessageEmojiPicker from "./MessageEmojiPicker";
-import FlowPreview from "../flow/FlowPreview";
-import FlowDialog from "../flow/FlowDialog";
-import { FlowData } from "@/lib/flow/dataSchema";
-import { getUniqueId } from "@/lib/utils";
+import MessageComponentFlow from "./MessageComponentFlow";
 
 export const buttonColors = {
   1: "#5865F2",
@@ -25,18 +20,6 @@ export const buttonColors = {
   3: "#57F287",
   4: "#ED4245",
   5: "#4E5058",
-};
-
-const initialFlow = {
-  nodes: [
-    {
-      id: getUniqueId().toString(),
-      position: { x: 0, y: 0 },
-      data: {},
-      type: "entry_component_button",
-    },
-  ],
-  edges: [],
 };
 
 export default function MessageComponentButton({
@@ -54,24 +37,10 @@ export default function MessageComponentButton({
   const { update } = useDocumentStoreApi().getState();
 
   const style = button?.style;
-  const flowSourceId = button?.flow_source_id;
 
   const color = useMemo(
     () => (style ? buttonColors[style] : buttonColors[1]),
     [style]
-  );
-
-  const [flowData, replaceFlow] = useCurrentFlow(
-    useShallow((s) => [s.getFlow(flowSourceId || ""), s.replaceFlow])
-  );
-
-  const onFlowDialogClose = useCallback(
-    (d: FlowData) => {
-      if (flowSourceId) {
-        replaceFlow(flowSourceId, d);
-      }
-    },
-    [replaceFlow, flowSourceId]
   );
 
   if (!button || !style) {
@@ -154,17 +123,12 @@ export default function MessageComponentButton({
             placeholders
           />
         ) : (
-          <>
-            {!disableFlowEditor && (
-              <FlowDialog
-                flowData={flowData || initialFlow}
-                context="component_button"
-                onClose={onFlowDialogClose}
-              >
-                <FlowPreview className="h-64 p-16 w-full" onClick={() => {}} />
-              </FlowDialog>
-            )}
-          </>
+          !disableFlowEditor && (
+            <MessageComponentFlow
+              flowSourceId={button.flow_source_id}
+              context="component_button"
+            />
+          )
         )}
       </MessageCollapsibleSection>
     </Card>

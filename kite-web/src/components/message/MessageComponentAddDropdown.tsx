@@ -1,5 +1,5 @@
 import { ChevronDownIcon } from "lucide-react";
-import { NewNode, NodeId } from "@/lib/message/document";
+import { DocumentStore, NewNode, NodeId } from "@/lib/message/document";
 import { useDocumentStoreApi } from "@/lib/message/state";
 import { Button } from "../ui/button";
 import {
@@ -13,8 +13,11 @@ const componentTypes: {
   label: string;
   node: NewNode;
   rootOnly?: boolean;
+  /** Fills the new row with a select menu instead of leaving it for buttons. */
+  selectMenu?: boolean;
 }[] = [
   { label: "Button Row", node: { type: "actionRow" } },
+  { label: "Select Menu", node: { type: "actionRow" }, selectMenu: true },
   { label: "Section", node: { type: "section" } },
   { label: "Text Display", node: { type: "textDisplay", content: "" } },
   { label: "Media Gallery", node: { type: "mediaGallery" } },
@@ -25,6 +28,15 @@ const componentTypes: {
   },
   { label: "Container", node: { type: "container" }, rootOnly: true },
 ];
+
+/** Puts a select menu with one option into an empty row. */
+export function insertSelectMenu(
+  insert: DocumentStore["insert"],
+  rowId: NodeId
+) {
+  const menuId = insert(rowId, "components", "end", { type: "selectMenu" });
+  insert(menuId, "options", "end", { type: "selectOption", label: "" });
+}
 
 export default function MessageComponentAddDropdown({
   parentId,
@@ -39,8 +51,12 @@ export default function MessageComponentAddDropdown({
 }) {
   const { insert } = useDocumentStoreApi().getState();
 
-  const add = (node: NewNode) => {
+  const add = (node: NewNode, selectMenu?: boolean) => {
     const id = insert(parentId, "components", "end", node);
+
+    if (selectMenu) {
+      insertSelectMenu(insert, id);
+    }
 
     // Sections need at least one text and an accessory, so start with both.
     if (node.type === "section") {
@@ -64,7 +80,10 @@ export default function MessageComponentAddDropdown({
         {componentTypes
           .filter((c) => !c.rootOnly || context === "root")
           .map((c) => (
-            <DropdownMenuItem key={c.label} onClick={() => add(c.node)}>
+            <DropdownMenuItem
+              key={c.label}
+              onClick={() => add(c.node, c.selectMenu)}
+            >
               {c.label}
             </DropdownMenuItem>
           ))}

@@ -95,6 +95,8 @@ export type ButtonNode = BaseNode & {
 export type SelectMenuNode = BaseNode & {
   type: "selectMenu";
   placeholder?: string;
+  min_values?: number;
+  max_values?: number;
   disabled?: boolean;
   optionIds: NodeId[];
   flow_source_id: string;
@@ -103,6 +105,7 @@ export type SelectMenuNode = BaseNode & {
 export type SelectOptionNode = BaseNode & {
   type: "selectOption";
   label: string;
+  value?: string;
   description?: string;
   emoji?: Emoji;
 };

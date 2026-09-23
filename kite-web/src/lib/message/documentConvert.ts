@@ -182,6 +182,7 @@ export function fromMessage(message: RestoredMessage): DocumentData {
       parentId,
       discordId: option.id,
       label: option.label,
+      value: option.value,
       description: option.description,
       emoji: option.emoji,
     };
@@ -249,6 +250,8 @@ export function fromMessage(message: RestoredMessage): DocumentData {
           parentId,
           discordId: component.id,
           placeholder: component.placeholder,
+          min_values: component.min_values,
+          max_values: component.max_values,
           disabled: component.disabled,
           optionIds,
           flow_source_id: component.flow_source_id,
@@ -452,6 +455,7 @@ export function toMessage(state: DocumentData): ConvertedMessage {
     return {
       id: option.discordId,
       label: option.label,
+      value: option.value,
       description: option.description,
       emoji: option.emoji,
     };
@@ -525,6 +529,8 @@ export function toMessage(state: DocumentData): ConvertedMessage {
           id: componentNode.discordId,
           type: 3,
           placeholder: componentNode.placeholder,
+          min_values: componentNode.min_values,
+          max_values: componentNode.max_values,
           disabled: componentNode.disabled,
           options: componentNode.optionIds.map((optionId, i) =>
             selectOption(optionId, `${path}.options.${i}`)

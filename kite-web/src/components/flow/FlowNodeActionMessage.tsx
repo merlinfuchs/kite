@@ -5,9 +5,10 @@ import {
   ComponentData,
   ComponentTypeActionRow,
   ComponentTypeButton,
+  ComponentTypeStringSelect,
 } from "@/lib/types/message.gen";
 import { Position } from "@xyflow/react";
-import { MousePointerClickIcon } from "lucide-react";
+import { ListIcon, MousePointerClickIcon } from "lucide-react";
 import { buttonColors } from "../message/MessageComponentButton";
 import FlowNodeBase from "./FlowNodeBase";
 import FlowNodeHandle from "./FlowNodeHandle";
@@ -42,7 +43,7 @@ export default function FlowNodeActionMessage(props: NodeProps) {
             className="flex items-center justify-left gap-2"
           >
             {group.map((comp) => (
-              <ButtonHandle comp={comp} key={comp.id} />
+              <ComponentHandle comp={comp} key={comp.id} />
             ))}
           </div>
         ))}
@@ -51,12 +52,13 @@ export default function FlowNodeActionMessage(props: NodeProps) {
   );
 }
 
-// Groups clickable buttons the way Discord lays them out: one group per action row and one per section accessory.
+// Groups interactive components the way Discord lays them out: one group per action row and one per section accessory.
 function collectButtonGroups(components: ComponentData[]): ComponentData[][] {
   const groups: ComponentData[][] = [];
 
   const isClickable = (c: ComponentData) =>
-    c.type === ComponentTypeButton && c.style !== ButtonStyleLink;
+    c.type === ComponentTypeStringSelect ||
+    (c.type === ComponentTypeButton && c.style !== ButtonStyleLink);
 
   const walk = (c: ComponentData) => {
     if (c.type === ComponentTypeActionRow) {
@@ -73,8 +75,12 @@ function collectButtonGroups(components: ComponentData[]): ComponentData[][] {
   return groups;
 }
 
-function ButtonHandle({ comp }: { comp: ComponentData }) {
-  const color = buttonColors[(comp.style ?? 1) as keyof typeof buttonColors];
+function ComponentHandle({ comp }: { comp: ComponentData }) {
+  const isSelect = comp.type === ComponentTypeStringSelect;
+  const color = isSelect
+    ? buttonColors[2]
+    : buttonColors[(comp.style ?? 1) as keyof typeof buttonColors];
+  const Icon = isSelect ? ListIcon : MousePointerClickIcon;
 
   return (
     <div className="relative">
@@ -85,8 +91,10 @@ function ButtonHandle({ comp }: { comp: ComponentData }) {
         }}
         key={comp.id}
       >
-        <MousePointerClickIcon className="w-4 h-4" />
-        <div className="text-sm truncate">{comp.label}</div>
+        <Icon className="w-4 h-4" />
+        <div className="text-sm truncate">
+          {isSelect ? comp.placeholder || "Select Menu" : comp.label}
+        </div>
       </div>
 
       <FlowNodeHandle
