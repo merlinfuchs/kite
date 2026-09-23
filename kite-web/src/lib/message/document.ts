@@ -108,6 +108,7 @@ export type SelectOptionNode = BaseNode & {
   value?: string;
   description?: string;
   emoji?: Emoji;
+  default?: boolean;
 };
 
 export type ContainerNode = BaseNode & {

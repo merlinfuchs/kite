@@ -61,7 +61,7 @@ const actionRowMessage = parse({
           flow_source_id: "flow-select",
           options: [
             { label: "Red", value: "red", description: "warm" },
-            { label: "Blue", value: "blue" },
+            { label: "Blue", value: "blue", default: true },
           ],
         },
       ],
@@ -315,5 +315,29 @@ describe("select menu validation", () => {
     expect(
       paths(withMenu({}, [{ type: 2, style: 1, label: "Click" }]))
     ).toContain("components.0.components");
+  });
+});
+
+describe("media validation", () => {
+  const withFile = (url: string) =>
+    messageSchema.safeParse(
+      toMessage(
+        fromMessage(
+          parse({
+            flags: 1 << 15,
+            components: [{ type: 13, file: { url } }],
+          })
+        )
+      ).message
+    );
+
+  test("attachment names can contain spaces", () => {
+    expect(withFile("attachment://Screenshot 2026 at 10.00.png").success).toBe(
+      true
+    );
+  });
+
+  test("an attachment needs a name", () => {
+    expect(withFile("attachment://").success).toBe(false);
   });
 });

@@ -37,6 +37,7 @@ import JsonEditor from "../common/JsonEditor";
 import PlaceholderInput from "../common/PlaceholderInput";
 import Twemoji from "../common/Twemoji";
 import MessageEditorDialog from "../message/MessageEditorDialog";
+import { hasComponentsV2Flag } from "@/lib/message/schema";
 import { Button } from "../ui/button";
 import { Card } from "../ui/card";
 import {
@@ -1304,25 +1305,30 @@ function MessageDataInput({ data, updateData, errors }: InputProps) {
     return null;
   }
 
+  // Components v2 messages have no content, their text lives in the components.
+  const componentsV2 = hasComponentsV2Flag(data.message_data?.flags);
+
   return (
     <>
-      <BaseInput
-        type="textarea"
-        field="message_data"
-        title="Text"
-        description="Edit the message content here or click below to have a full message editor with support for embeds and components."
-        value={data.message_data?.content || ""}
-        updateValue={(v) =>
-          updateData({
-            message_data: {
-              ...data.message_data,
-              content: v || undefined,
-            },
-          })
-        }
-        errors={errors}
-        placeholders
-      />
+      {!componentsV2 && (
+        <BaseInput
+          type="textarea"
+          field="message_data"
+          title="Text"
+          description="Edit the message content here or click below to have a full message editor with support for embeds and components."
+          value={data.message_data?.content || ""}
+          updateValue={(v) =>
+            updateData({
+              message_data: {
+                ...data.message_data,
+                content: v || undefined,
+              },
+            })
+          }
+          errors={errors}
+          placeholders
+        />
+      )}
 
       <MessageEditorDialog
         onClose={(v) => updateData({ message_data: v })}

@@ -185,6 +185,7 @@ export function fromMessage(message: RestoredMessage): DocumentData {
       value: option.value,
       description: option.description,
       emoji: option.emoji,
+      default: option.default,
     };
     return id;
   }
@@ -459,6 +460,7 @@ export function toMessage(state: DocumentData): ConvertedMessage {
       value: option.value ?? "",
       description: option.description,
       emoji: option.emoji,
+      default: option.default,
     };
   }
 

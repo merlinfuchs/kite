@@ -234,7 +234,7 @@ export const buttonSchema = z
     id: uniqueIdSchema.default(() => getUniqueId()),
     type: z.literal(2),
     style: z.literal(1).or(z.literal(2)).or(z.literal(3)).or(z.literal(4)),
-    label: z.string(),
+    label: z.string().max(80),
     emoji: z.optional(emojiSchema),
     disabled: z.optional(z.boolean()),
     flow_source_id: z.string().default(() => getUniqueId().toString()),
@@ -244,9 +244,12 @@ export const buttonSchema = z
       id: uniqueIdSchema.default(() => getUniqueId()),
       type: z.literal(2),
       style: z.literal(5),
-      label: z.string(),
+      label: z.string().max(80),
       emoji: z.optional(emojiSchema),
-      url: z.string().refine(...urlRefinement),
+      url: z
+        .string()
+        .max(512)
+        .refine(...urlRefinement),
       disabled: z.optional(z.boolean()),
       flow_source_id: z.string().default(() => getUniqueId().toString()),
     })
@@ -269,6 +272,7 @@ export const selectMenuOptionSchema = z.object({
   value: z.string().min(1).max(100),
   description: z.optional(z.string().min(1).max(100)),
   emoji: z.optional(emojiSchema),
+  default: z.optional(z.boolean()),
 });
 
 export type MessageComponentSelectMenuOption = z.infer<
@@ -341,8 +345,18 @@ export function hasComponentsV2Flag(flags: number | undefined): boolean {
   return ((flags ?? 0) & COMPONENTS_V2_FLAG) !== 0;
 }
 
+// Files sent with the message are referenced by name, which can contain
+// anything, spaces included, so only other URLs need to be real URLs.
+const mediaUrlRefinement: [(v: string) => boolean, string] = [
+  (v) =>
+    v.startsWith("attachment://")
+      ? v.length > "attachment://".length
+      : urlRefinement[0](v),
+  "Invalid URL",
+];
+
 export const unfurledMediaItemSchema = z.object({
-  url: z.string().refine(...urlRefinement),
+  url: z.string().refine(...mediaUrlRefinement),
 });
 
 export type UnfurledMediaItem = z.infer<typeof unfurledMediaItemSchema>;
@@ -433,7 +447,7 @@ export const containerSchema = z.object({
   id: uniqueIdSchema.default(() => getUniqueId()),
   type: z.literal(17),
   components: z.array(containerChildSchema).min(1).max(10),
-  accent_color: z.optional(z.number()),
+  accent_color: z.optional(z.number().int().min(0).max(0xffffff)),
   spoiler: z.optional(z.boolean()),
 });
 

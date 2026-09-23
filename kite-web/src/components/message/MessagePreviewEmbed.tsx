@@ -4,6 +4,7 @@ import { MessageEmbed } from "@/lib/message/schema";
 import { toHTML } from "@/tools/common/utils/discordMarkdown";
 import { colorIntToHex } from "@/tools/common/utils/color";
 import MessagePreviewMarkup from "./MessagePreviewMarkup";
+import { safeHref } from "@/lib/utils";
 
 export default function MessagePreviewEmbed({
   embed,
@@ -38,7 +39,13 @@ export default function MessagePreviewEmbed({
             {!!embed.provider?.name && (
               <div className="discord-embed-provider overflow-hidden break-all">
                 {embed.provider.url ? (
-                  <a href={embed.provider.url}>{embed.provider.name}</a>
+                  <a
+                    href={safeHref(embed.provider.url)}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    {embed.provider.name}
+                  </a>
                 ) : (
                   embed.provider.name
                 )}
@@ -54,7 +61,13 @@ export default function MessagePreviewEmbed({
                   />
                 )}
                 {embed.author.url ? (
-                  <a href={embed.author.url}>{embed.author.name}</a>
+                  <a
+                    href={safeHref(embed.author.url)}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    {embed.author.name}
+                  </a>
                 ) : (
                   embed.author.name
                 )}
@@ -63,7 +76,12 @@ export default function MessagePreviewEmbed({
             {!!embed.title && (
               <div className="discord-embed-title overflow-hidden break-all">
                 {embed.url ? (
-                  <a href={embed.url} dangerouslySetInnerHTML={title}></a>
+                  <a
+                    href={safeHref(embed.url)}
+                    target="_blank"
+                    rel="noreferrer"
+                    dangerouslySetInnerHTML={title}
+                  ></a>
                 ) : (
                   <span dangerouslySetInnerHTML={title} />
                 )}

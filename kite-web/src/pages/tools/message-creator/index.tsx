@@ -35,7 +35,8 @@ export default function MessageCreatorPage() {
               </Dialog>
             </div>
 
-            <MessageEditor />
+            {/* Webhooks can't send interactive components, so there are no flows to edit. */}
+            <MessageEditor disableFlowEditor />
           </div>
           <div className="hidden xl:block py-5 w-5/12 h-full overflow-y-auto pr-5 no-scrollbar">
             <MessageEditorPreview className="rounded-lg" />

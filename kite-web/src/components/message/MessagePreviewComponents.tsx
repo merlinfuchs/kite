@@ -13,7 +13,7 @@ import {
   MessageComponentThumbnail,
 } from "@/lib/message/schema";
 import { colorIntToHex } from "@/tools/common/utils/color";
-import { cn } from "@/lib/utils";
+import { cn, safeHref } from "@/lib/utils";
 import Twemoji from "../common/Twemoji";
 import MessagePreviewMarkup from "./MessagePreviewMarkup";
 
@@ -78,7 +78,7 @@ function PreviewButton({ button }: { button: MessageComponentButton }) {
       <a
         className={className}
         target="_blank"
-        href={button.url}
+        href={safeHref(button.url)}
         rel="noreferrer"
       >
         {content}
