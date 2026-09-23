@@ -20,25 +20,27 @@ import {
 import { useAppId } from "@/lib/hooks/params";
 import { useMessages, useVariables } from "@/lib/hooks/api";
 import { FlowData } from "@/lib/types/flow.gen";
+import {
+  CommandsImportResponse,
+  EventListenersImportResponse,
+} from "@/lib/types/wire.gen";
 import { APIResponse } from "@/lib/api/response";
 import { toast } from "sonner";
-
-type Kind = "command" | "event_listener";
 
 const kinds = {
   command: {
     label: "command",
     entryNodeType: "entry_command",
-    pathname: "/apps/[appId]/commands/[cmdId]",
-    idParam: "cmdId",
+    href: (appId: string, id: string) => `/apps/${appId}/commands/${id}`,
   },
   event_listener: {
     label: "event listener",
     entryNodeType: "entry_event",
-    pathname: "/apps/[appId]/events/[eventId]",
-    idParam: "eventId",
+    href: (appId: string, id: string) => `/apps/${appId}/events/${id}`,
   },
 };
+
+type Kind = keyof typeof kinds;
 
 export default function FlowImportDialog({
   kind,
@@ -48,6 +50,25 @@ export default function FlowImportDialog({
   children: ReactNode;
 }) {
   const [open, setOpen] = useState(false);
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>{children}</DialogTrigger>
+      <DialogContent className="max-w-2xl">
+        <ImportForm kind={kind} onImported={() => setOpen(false)} />
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// Separate from the dialog so the variable and message queries only run while it's open.
+function ImportForm({
+  kind,
+  onImported,
+}: {
+  kind: Kind;
+  onImported: () => void;
+}) {
   const [shareCode, setShareCode] = useState("");
 
   const router = useRouter();
@@ -57,18 +78,15 @@ export default function FlowImportDialog({
 
   const commandsImportMutation = useCommandsImportMutation(appId);
   const eventListenersImportMutation = useEventListenersImportMutation(appId);
-  const mutation =
-    kind === "command" ? commandsImportMutation : eventListenersImportMutation;
 
-  const { label, entryNodeType, pathname, idParam } = kinds[kind];
+  const { label, entryNodeType, href } = kinds[kind];
 
   function onImport() {
-    let parsed: any;
+    let flow: FlowData | undefined;
     try {
-      parsed = JSON.parse(shareCode);
+      flow = JSON.parse(shareCode).flow_source;
     } catch {}
 
-    const flow: FlowData | undefined = parsed?.flow_source;
     if (
       !Array.isArray(flow?.nodes) ||
       !Array.isArray(flow?.edges) ||
@@ -80,11 +98,13 @@ export default function FlowImportDialog({
 
     const { flow: sanitized, removed } = removeForeignReferences(
       flow,
-      new Set(variables?.map((v) => v?.id)),
-      new Set(messages?.map((m) => m?.id))
+      new Set(variables?.flatMap((v) => (v ? [v.id] : []))),
+      new Set(messages?.flatMap((m) => (m ? [m.id] : [])))
     );
 
-    const onSuccess = (res: APIResponse<({ id: string } | undefined)[]>) => {
+    const onSuccess = (
+      res: APIResponse<CommandsImportResponse | EventListenersImportResponse>
+    ) => {
       if (!res.success) {
         toast.error(
           `Failed to import ${label}: ${res.error.message} (${res.error.code})`
@@ -98,18 +118,11 @@ export default function FlowImportDialog({
           `${removed} block(s) referenced variables or message templates from another app, reselect them in the editor.`
         );
       }
-      setOpen(false);
+      onImported();
 
       const imported = res.data[0];
       if (imported) {
-        setTimeout(
-          () =>
-            router.push({
-              pathname,
-              query: { appId, [idParam]: imported.id },
-            }),
-          500
-        );
+        setTimeout(() => router.push(href(appId, imported.id)), 500);
       }
     };
 
@@ -131,39 +144,35 @@ export default function FlowImportDialog({
   }
 
   return (
-    <Dialog
-      open={open}
-      onOpenChange={(open) => {
-        setOpen(open);
-        if (!open) setShareCode("");
-      }}
-    >
-      <DialogTrigger asChild>{children}</DialogTrigger>
-      <DialogContent className="max-w-2xl">
-        <DialogHeader>
-          <DialogTitle>Import {label}</DialogTitle>
-          <DialogDescription>
-            Paste a share code that was exported from another app.
-          </DialogDescription>
-        </DialogHeader>
-        <Textarea
-          value={shareCode}
-          onChange={(e) => setShareCode(e.target.value)}
-          className="min-h-[78px] max-h-[218px]"
-        />
-        <DialogFooter>
-          <DialogClose asChild>
-            <Button variant="outline">Cancel</Button>
-          </DialogClose>
-          <LoadingButton
-            onClick={onImport}
-            loading={mutation.isPending || !variables || !messages}
-          >
-            Import
-          </LoadingButton>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+    <>
+      <DialogHeader>
+        <DialogTitle>Import {label}</DialogTitle>
+        <DialogDescription>
+          Paste a share code that was exported from another app.
+        </DialogDescription>
+      </DialogHeader>
+      <Textarea
+        value={shareCode}
+        onChange={(e) => setShareCode(e.target.value)}
+        className="min-h-[78px] max-h-[218px]"
+      />
+      <DialogFooter>
+        <DialogClose asChild>
+          <Button variant="outline">Cancel</Button>
+        </DialogClose>
+        <LoadingButton
+          onClick={onImport}
+          loading={
+            commandsImportMutation.isPending ||
+            eventListenersImportMutation.isPending ||
+            !variables ||
+            !messages
+          }
+        >
+          Import
+        </LoadingButton>
+      </DialogFooter>
+    </>
   );
 }
 
@@ -171,8 +180,8 @@ export default function FlowImportDialog({
 // from, so they are cleared when they don't exist in the current app.
 function removeForeignReferences(
   flow: FlowData,
-  variableIds: Set<string | undefined>,
-  messageIds: Set<string | undefined>
+  variableIds: Set<string>,
+  messageIds: Set<string>
 ) {
   let removed = 0;
 

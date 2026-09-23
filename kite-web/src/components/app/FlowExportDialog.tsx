@@ -1,4 +1,4 @@
-import { ReactNode, useState } from "react";
+import { ReactNode, useMemo, useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -11,17 +11,23 @@ import {
 import { Button } from "../ui/button";
 import { Textarea } from "../ui/textarea";
 import { toast } from "sonner";
+import { FlowData } from "@/lib/types/flow.gen";
 
 export default function FlowExportDialog({
   title,
-  shareCode,
+  flowSource,
   children,
 }: {
   title: string;
-  shareCode: string;
+  flowSource: FlowData;
   children: ReactNode;
 }) {
   const [open, setOpen] = useState(false);
+
+  const shareCode = useMemo(
+    () => (open ? JSON.stringify({ flow_source: flowSource }) : ""),
+    [open, flowSource]
+  );
 
   function copy() {
     navigator.clipboard

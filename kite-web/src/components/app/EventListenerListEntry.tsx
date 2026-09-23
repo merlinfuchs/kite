@@ -143,9 +143,7 @@ export default function EventListenerListEntry({
               </EventListenerDuplicateDialog>
               <FlowExportDialog
                 title="Export Event Listener"
-                shareCode={JSON.stringify({
-                  flow_source: listener.flow_source,
-                })}
+                flowSource={listener.flow_source}
               >
                 <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
                   <Share2Icon className="h-4 w-4 mr-2 text-muted-foreground" />
