@@ -11,9 +11,9 @@ import { useAppId, useMessageId } from "@/lib/hooks/params";
 import { messageSchema, parseMessageData } from "@/lib/message/schemaRestore";
 import {
   CurrentMessageStoreProvider,
+  getMessage,
   useCurrentFlowStore,
-  useCurrentMessage,
-  useCurrentMessageStore,
+  useDocumentStoreApi,
 } from "@/lib/message/state";
 import { ViewIcon } from "lucide-react";
 import Head from "next/head";
@@ -40,7 +40,7 @@ function AppMessagePageInner() {
     }
   });
 
-  const messageStore = useCurrentMessageStore();
+  const messageStore = useDocumentStoreApi();
   const flowStore = useCurrentFlowStore();
 
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
@@ -72,7 +72,7 @@ function AppMessagePageInner() {
       const data = parseMessageData(message.data);
 
       ignoreChange.current = true;
-      messageStore.getState().replace(data);
+      messageStore.getState().replaceAll(data);
       messageStore.temporal.getState().clear();
       flowStore.getState().replaceAll(message.flow_sources);
       ignoreChange.current = false;
@@ -88,7 +88,7 @@ function AppMessagePageInner() {
 
     setIsSaving(true);
 
-    const data = messageStore.getState();
+    const data = getMessage(messageStore);
     const flowSources = flowStore.getState().flowSources;
 
     updateMutation.mutate(

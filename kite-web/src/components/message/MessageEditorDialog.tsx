@@ -10,8 +10,9 @@ import { useAppId } from "@/lib/hooks/params";
 import { parseMessageData } from "@/lib/message/schemaRestore";
 import {
   CurrentMessageStoreProvider,
+  getMessage,
   useCurrentFlowStore,
-  useCurrentMessageStore,
+  useDocumentStoreApi,
 } from "@/lib/message/state";
 import { ViewIcon } from "lucide-react";
 import {
@@ -42,7 +43,7 @@ function MessageEditorDialogInner({
 }) {
   const ignoreChange = useRef(false);
 
-  const messageStore = useCurrentMessageStore();
+  const messageStore = useDocumentStoreApi();
   const flowStore = useCurrentFlowStore();
 
   useEffect(() => {
@@ -50,7 +51,7 @@ function MessageEditorDialogInner({
       const data = parseMessageData(message);
 
       ignoreChange.current = true;
-      messageStore.getState().replace(data);
+      messageStore.getState().replaceAll(data);
       messageStore.temporal.getState().clear();
       ignoreChange.current = false;
     } catch (e) {
@@ -62,8 +63,7 @@ function MessageEditorDialogInner({
     (open: boolean) => {
       if (open || !message) return;
 
-      const data = messageStore.getState();
-      onClose(data);
+      onClose(getMessage(messageStore));
     },
     [message, onClose, messageStore]
   );

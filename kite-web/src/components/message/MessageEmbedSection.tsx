@@ -1,40 +1,43 @@
-import { useCurrentMessage } from "@/lib/message/state";
+import {
+  useChildIds,
+  useDocumentStoreApi,
+  useRootId,
+} from "@/lib/message/state";
+import { slotScope } from "@/lib/message/validationStore";
 import CollapsibleSection from "./MessageCollapsibleSection";
 import MessageEmbed from "./MessageEmbed";
-import { useShallow } from "zustand/react/shallow";
-import { getUniqueId } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 
 export default function MessageEmbedSection() {
-  const embeds = useCurrentMessage(
-    useShallow((state) => state.embeds.map((e) => e.id))
-  );
-  const addEmbed = useCurrentMessage((state) => state.addEmbed);
-  const clearEmbeds = useCurrentMessage((state) => state.clearEmbeds);
+  const rootId = useRootId();
+  const embedIds = useChildIds(rootId, "embeds");
+  const { insert, removeChildren } = useDocumentStoreApi().getState();
 
   return (
     <CollapsibleSection
       title="Embeds"
-      valiationPathPrefix="embeds"
+      validation={slotScope(rootId, "embeds")}
       className="space-y-4"
     >
-      {embeds.map((id, i) => (
-        <MessageEmbed key={id} embedIndex={i} embedId={id} />
+      {embedIds.map((id) => (
+        <MessageEmbed key={id} embedId={id} />
       ))}
       <div className="space-x-3">
         <Button
           onClick={() =>
-            addEmbed({
-              id: getUniqueId(),
+            insert(rootId, "embeds", "end", {
+              type: "embed",
               description: "",
-              fields: [],
             })
           }
-          disabled={embeds.length >= 10}
+          disabled={embedIds.length >= 10}
         >
           Add Embed
         </Button>
-        <Button onClick={clearEmbeds} variant="outline">
+        <Button
+          onClick={() => removeChildren(rootId, "embeds")}
+          variant="outline"
+        >
           Clear Embeds
         </Button>
       </div>
