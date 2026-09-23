@@ -7,12 +7,12 @@ import {
   ComponentTypeButton,
   ComponentTypeStringSelect,
 } from "@/lib/types/message.gen";
-import { Position } from "@xyflow/react";
+import { Position, useUpdateNodeInternals } from "@xyflow/react";
 import { ListIcon, MousePointerClickIcon } from "lucide-react";
 import { buttonColors } from "../message/MessageComponentButton";
 import FlowNodeBase from "./FlowNodeBase";
 import FlowNodeHandle from "./FlowNodeHandle";
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 
 export default function FlowNodeActionMessage(props: NodeProps) {
   const componentGroups = useMemo(
@@ -20,6 +20,14 @@ export default function FlowNodeActionMessage(props: NodeProps) {
     [props.data.message_data]
   );
   const hasComponents = componentGroups.length > 0;
+
+  // React Flow only re-measures handles when the node resizes, so swapping a
+  // component for another of the same size would leave the new handle unknown.
+  const updateNodeInternals = useUpdateNodeInternals();
+  const handleIds = componentGroups.flat().map(buttonHandleId).join(",");
+  useEffect(() => {
+    updateNodeInternals(props.id);
+  }, [handleIds, props.id, updateNodeInternals]);
 
   return (
     <div className="relative">
