@@ -1159,7 +1159,8 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			return traceError(n, err)
 		}
 
-		value, err := ctx.EvalTemplate(n.Data.VariableValue)
+		// Spaces matter when appending or prepending to a text variable.
+		value, err := ctx.EvalTemplateKeepSpace(n.Data.VariableValue)
 		if err != nil {
 			return traceError(n, err)
 		}

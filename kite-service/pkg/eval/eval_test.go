@@ -208,3 +208,52 @@ func TestEvalTemplateAllowsOutputUnderLimit(t *testing.T) {
 		t.Errorf("got %d bytes, want 2002", len(res.String()))
 	}
 }
+
+// Variable values are appended to text, so their spaces are part of the value
+// (#339). Everywhere else templates are still trimmed.
+func TestEvalTemplateKeepSpace(t *testing.T) {
+	c := Context{Env: Env{"name": "world"}}
+
+	cases := []struct {
+		template  string
+		keepSpace string
+		trimmed   string
+	}{
+		{" world", " world", "world"},
+		{"hello {{name}} ", "hello world ", "hello world"},
+		{" ", " ", ""},
+	}
+
+	for _, tc := range cases {
+		res, err := EvalTemplateKeepSpace(context.Background(), tc.template, c)
+		if err != nil {
+			t.Fatalf("%q: %v", tc.template, err)
+		}
+		if got := res.String(); got != tc.keepSpace {
+			t.Errorf("EvalTemplateKeepSpace(%q) = %q, want %q", tc.template, got, tc.keepSpace)
+		}
+
+		res, err = EvalTemplate(context.Background(), tc.template, c)
+		if err != nil {
+			t.Fatalf("%q: %v", tc.template, err)
+		}
+		if tc.trimmed == "" {
+			if !res.IsNil() {
+				t.Errorf("EvalTemplate(%q) = %q, want null", tc.template, res.String())
+			}
+		} else if got := res.String(); got != tc.trimmed {
+			t.Errorf("EvalTemplate(%q) = %q, want %q", tc.template, got, tc.trimmed)
+		}
+	}
+}
+
+// A lone placeholder keeps its value's type even when surrounded by spaces.
+func TestEvalTemplateKeepSpaceSinglePlaceholder(t *testing.T) {
+	res, err := EvalTemplateKeepSpace(context.Background(), " {{1 + 1}} ", testContext())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.Int() != 2 || res.String() != "2" {
+		t.Errorf("got %q, want the placeholder's value", res.String())
+	}
+}

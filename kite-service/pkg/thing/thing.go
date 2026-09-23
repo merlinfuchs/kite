@@ -389,7 +389,7 @@ func (w Thing) String() string {
 func (w Thing) Snowflake() discord.Snowflake {
 	switch w.Type {
 	case TypeString:
-		id, _ := strconv.ParseInt(w.Value.(string), 10, 64)
+		id, _ := strconv.ParseInt(strings.TrimSpace(w.Value.(string)), 10, 64)
 		return discord.Snowflake(id)
 	case TypeInt:
 		return discord.Snowflake(w.Value.(int64))
@@ -440,7 +440,7 @@ func (w Thing) Int() int64 {
 	case TypeFloat:
 		return int64(w.Float())
 	case TypeString:
-		i, _ := strconv.ParseInt(w.Value.(string), 10, 64)
+		i, _ := strconv.ParseInt(strings.TrimSpace(w.Value.(string)), 10, 64)
 		return i
 	case TypeBool:
 		if w.Value.(bool) {
@@ -484,7 +484,7 @@ func (w Thing) Float() float64 {
 	case TypeFloat:
 		return w.Value.(float64)
 	case TypeString:
-		f, _ := strconv.ParseFloat(w.Value.(string), 64)
+		f, _ := strconv.ParseFloat(strings.TrimSpace(w.Value.(string)), 64)
 		return f
 	case TypeBool:
 		if w.Value.(bool) {

@@ -99,6 +99,17 @@ func Eval(ctx context.Context, expression string, c Context) (thing.Thing, error
 }
 
 func EvalTemplate(ctx context.Context, template string, c Context) (thing.Thing, error) {
+	return evalTemplate(ctx, template, c, false)
+}
+
+// EvalTemplateKeepSpace is like EvalTemplate, but keeps leading and trailing
+// whitespace, e.g. so " world" can be appended to a variable. A template that
+// is only a placeholder still returns the placeholder's value.
+func EvalTemplateKeepSpace(ctx context.Context, template string, c Context) (thing.Thing, error) {
+	return evalTemplate(ctx, template, c, true)
+}
+
+func evalTemplate(ctx context.Context, template string, c Context, keepSpace bool) (thing.Thing, error) {
 	if len(template) > MaxTemplateLength {
 		return thing.Null, fmt.Errorf(
 			"eval error: %w: %d characters, limit is %d",
@@ -106,24 +117,28 @@ func EvalTemplate(ctx context.Context, template string, c Context) (thing.Thing,
 		)
 	}
 
-	template = strings.TrimSpace(template)
-	if template == "" {
+	trimmed := strings.TrimSpace(template)
+	if template == "" || (trimmed == "" && !keepSpace) {
 		return thing.Null, nil
 	}
 
 	// Special case when template only contains one placeholder
 	// We can just evaluate the expression directly and return the result with the original type
-	if strings.HasPrefix(template, templateStartTag) &&
-		strings.HasSuffix(template, templateEndTag) &&
-		strings.Count(template, templateStartTag) == 1 &&
-		strings.Count(template, templateEndTag) == 1 {
-		template = template[len(templateStartTag) : len(template)-len(templateEndTag)]
-		res, err := Eval(ctx, template, c)
+	if strings.HasPrefix(trimmed, templateStartTag) &&
+		strings.HasSuffix(trimmed, templateEndTag) &&
+		strings.Count(trimmed, templateStartTag) == 1 &&
+		strings.Count(trimmed, templateEndTag) == 1 {
+		expression := trimmed[len(templateStartTag) : len(trimmed)-len(templateEndTag)]
+		res, err := Eval(ctx, expression, c)
 		if err != nil {
 			return thing.Null, err
 		}
 
 		return res, nil
+	}
+
+	if !keepSpace {
+		template = trimmed
 	}
 
 	// Literal spans between placeholders are already covered by the input
