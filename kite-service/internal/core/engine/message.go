@@ -2,12 +2,14 @@ package engine
 
 import (
 	"context"
+	"errors"
 	"log/slog"
 
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/gateway"
 	"github.com/diamondburned/arikawa/v3/state"
 	"github.com/kitecloud/kite/kite-service/internal/model"
+	"github.com/kitecloud/kite/kite-service/internal/store"
 	"github.com/kitecloud/kite/kite-service/pkg/flow"
 	"gopkg.in/guregu/null.v4"
 )
@@ -24,9 +26,10 @@ func NewMessageInstance(
 	msg *model.MessageInstance,
 	env Env,
 ) (*MessageInstance, error) {
-	flows := make(map[string]*flow.CompiledFlowNode, len(msg.FlowSources))
+	flowSources := liveFlowSources(env.MessageStore, msg)
+	flows := make(map[string]*flow.CompiledFlowNode, len(flowSources))
 
-	for id, flowSource := range msg.FlowSources {
+	for id, flowSource := range flowSources {
 		flow, err := flow.CompileComponentButton(flowSource)
 		if err != nil {
 			slog.Error(
@@ -47,6 +50,33 @@ func NewMessageInstance(
 		flows: flows,
 		env:   env,
 	}, nil
+}
+
+// liveFlowSources returns the instance's flows as they are in the template now,
+// so edits to a template apply to messages that were already sent. The
+// snapshot taken at send time is only used for components that were removed
+// from the template since, or if the template can't be loaded.
+func liveFlowSources(messageStore store.MessageStore, msg *model.MessageInstance) map[string]flow.FlowData {
+	template, err := messageStore.Message(context.TODO(), msg.MessageID)
+	if err != nil {
+		if !errors.Is(err, store.ErrNotFound) {
+			slog.Error(
+				"Failed to get message template for instance",
+				slog.String("message_id", msg.MessageID),
+				slog.String("error", err.Error()),
+			)
+		}
+		return msg.FlowSources
+	}
+
+	flowSources := make(map[string]flow.FlowData, len(msg.FlowSources))
+	for id, flowSource := range msg.FlowSources {
+		if live, ok := template.FlowSources[id]; ok {
+			flowSource = live
+		}
+		flowSources[id] = flowSource
+	}
+	return flowSources
 }
 
 func (m *MessageInstance) HandleEvent(appID string, session *state.State, event gateway.Event) {
