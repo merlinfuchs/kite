@@ -1,4 +1,5 @@
 import markdown from "simple-markdown";
+import { discordEmojiUrl } from "./discordCdn";
 import highlight from "highlight.js/lib/common";
 import { formatDistanceToNow } from "date-fns";
 
@@ -111,9 +112,7 @@ const titleRules = {
           "",
           {
             class: "discord-custom-emoji-image",
-            src: `https://cdn.discordapp.com/emojis/${node.id}.${
-              node.animated ? "gif" : "png"
-            }`,
+            src: discordEmojiUrl(node.id, node.animated),
             title: `:${node.name}:`,
             alt: `:${node.name}:`,
           },

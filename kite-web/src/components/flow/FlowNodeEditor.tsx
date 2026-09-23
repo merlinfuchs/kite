@@ -1,3 +1,4 @@
+import { discordEmojiUrl } from "@/tools/common/utils/discordCdn";
 import {
   decodePermissionsBitset,
   encodePermissionsBitset,
@@ -2836,11 +2837,7 @@ function BaseEmojiPicker({
         <EmojiPicker onEmojiSelect={onChange}>
           <Button size="icon" variant="outline">
             {emoji?.id ? (
-              <img
-                src={`https://cdn.discordapp.com/emojis/${emoji.id}.webp`}
-                alt=""
-                className="h-6 w-6"
-              />
+              <img src={discordEmojiUrl(emoji.id)} alt="" className="h-6 w-6" />
             ) : emoji ? (
               <Twemoji
                 options={{

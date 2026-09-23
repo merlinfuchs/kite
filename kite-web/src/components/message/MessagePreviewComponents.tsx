@@ -1,3 +1,4 @@
+import { discordEmojiUrl } from "@/tools/common/utils/discordCdn";
 import { createContext, ReactNode, useContext, useState } from "react";
 import {
   MessageComponent,
@@ -47,9 +48,7 @@ function ComponentEmoji({
   if (emoji.id) {
     return (
       <img
-        src={`https://cdn.discordapp.com/emojis/${emoji.id}.${
-          emoji.animated ? "gif" : "webp"
-        }`}
+        src={discordEmojiUrl(emoji.id, emoji.animated)}
         alt=""
         className="discord-button-emoji"
       />
