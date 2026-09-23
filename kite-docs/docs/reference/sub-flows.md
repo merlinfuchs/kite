@@ -6,16 +6,35 @@ sidebar_position: 6
 
 Some flow blocks can be used to create sub-flows. These blocks act as a boundary between the main flow and the sub-flow and are highlighted in pink in the flow editor.
 
-## Placeholders in Sub-Flows
+## Who Is `user` in a Sub-Flow?
 
-A sub-flow runs with the interaction that resumed it. Inside the sub-flow of a button, `user` and `interaction` refer to whoever clicked the button, which on a public message isn't necessarily the user who ran the command. Node results and temporary variables from before the sub-flow remain available.
+The blocks attached to a button run when someone clicks that button, which can be minutes or days after the command was used. By then, `user` means the person who clicked, not the person who ran the command. On a public message those can be different people.
 
-To access the interaction or event from before the sub-flow, use `origin` and `previous`:
+To get the person who ran the command, put `origin.` in front of the placeholder.
 
-- `origin` is the interaction or event that started the flow, e.g. `{{origin.user.mention}}` is the user who ran the command.
-- `previous` is the interaction that led to the current sub-flow. It's only different from `origin` when sub-flows are nested, e.g. a button inside the sub-flow of a modal.
+For example, a `/report` command posts a message with an "Approve" button for moderators. In the blocks attached to the button:
 
-`arg()` and `input()` keep working in sub-flows. `arg()` returns the argument of the command that started the flow, and `input()` returns the value from the modal it was submitted in, up to three modals back.
+| Placeholder                    | Who it is                             |
+| ------------------------------ | ------------------------------------- |
+| `{{user.mention}}`             | The moderator who clicked "Approve"   |
+| `{{origin.user.mention}}`      | The member who used `/report`         |
+| `{{origin.channel.id}}`        | The channel `/report` was used in     |
+
+So the button could reply with `{{origin.user.mention}}, your report was approved by {{user.mention}}.`
+
+The same works for modals and select menus, and for event listeners, where `origin` is the event, e.g. `{{origin.message.content}}`.
+
+You don't have to type these yourself. When you select a block below a button, select menu or modal, the placeholder picker shows an "Original User" group and more with the right placeholders.
+
+Some things work the same everywhere:
+
+- `{{arg('name')}}` always returns the command's argument, even below a button.
+- `{{input('name')}}` returns the answer from a modal, even after more buttons or modals.
+- Temporary variables and results of blocks that ran before the button stay available.
+
+:::note Advanced: previous
+If a sub-flow sits inside another sub-flow, for example a button in the message you send after a modal, `previous` is whoever used the step before, here the person who submitted the modal. Without nesting, `previous` is the same as `origin`.
+:::
 
 ## Modals
 
