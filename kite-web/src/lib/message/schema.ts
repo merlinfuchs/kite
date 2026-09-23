@@ -1,6 +1,5 @@
 import { z } from "zod";
 import { getUniqueId } from "@/lib/utils";
-import { FlagIsComponentsV2 } from "@/lib/types/message.gen";
 
 const VARIABLE_RE = new RegExp("\\{\\{[^}]+\\}\\}");
 
@@ -293,11 +292,7 @@ export const actionRowSchema = z.object({
 
 export type MessageComponentActionRow = z.infer<typeof actionRowSchema>;
 
-export const COMPONENTS_V2_FLAG = FlagIsComponentsV2;
-
-export function hasComponentsV2Flag(flags: number | undefined): boolean {
-  return ((flags ?? 0) & COMPONENTS_V2_FLAG) !== 0;
-}
+export const COMPONENTS_V2_FLAG = 1 << 15;
 
 export const unfurledMediaItemSchema = z.object({
   url: z.string().refine(...urlRefinement),
@@ -463,7 +458,7 @@ export const attachmentSchema = z.object({
 export type MessageAttachment = z.infer<typeof attachmentSchema>;
 
 // Discord's limits for components v2 messages.
-export const MAX_COMPONENTS_V2 = 40;
+const MAX_COMPONENTS_V2 = 40;
 const MAX_COMPONENTS_V2_TEXT = 4000;
 
 function countComponents(components: unknown[]): {
@@ -501,7 +496,7 @@ export const messageSchema = z
     thread_name: messageThreadNameSchema,
   })
   .superRefine((data, ctx) => {
-    if (hasComponentsV2Flag(data.flags)) {
+    if (((data.flags ?? 0) & COMPONENTS_V2_FLAG) !== 0) {
       if (!data.components.length) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,

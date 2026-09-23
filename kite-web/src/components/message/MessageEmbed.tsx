@@ -1,6 +1,6 @@
 import { Card } from "@/components/ui/card";
 import MessageCollapsibleSection from "./MessageCollapsibleSection";
-import { useDocument, useNodeActions } from "@/lib/message/state";
+import { useNode, useNodeActions } from "@/lib/message/state";
 import { EmbedNode, NodeId } from "@/lib/message/document";
 import { nodeScope } from "@/lib/message/validationStore";
 import { useMemo } from "react";
@@ -12,11 +12,14 @@ import MessageEmbedFooter from "./MessageEmbedFooter";
 import MessageEmbedImages from "./MessageEmbedImages";
 import MessageEmbedFields from "./MessageEmbedFields";
 
-export default function MessageEmbed({ embedId }: { embedId: NodeId }) {
-  // Only the color, so typing in the embed doesn't re-render every field below.
-  const color = useDocument(
-    (state) => (state.nodes[embedId] as EmbedNode | undefined)?.color
-  );
+export default function MessageEmbed({
+  embedId,
+  embedIndex,
+}: {
+  embedId: NodeId;
+  embedIndex: number;
+}) {
+  const color = useNode<EmbedNode>(embedId)?.color;
   const actions = useNodeActions(embedId);
 
   const colorHex = useMemo(
@@ -32,7 +35,7 @@ export default function MessageEmbed({ embedId }: { embedId: NodeId }) {
       }}
     >
       <MessageCollapsibleSection
-        title={`Embed ${actions.index + 1}`}
+        title={`Embed ${embedIndex + 1}`}
         size="lg"
         validation={nodeScope(embedId)}
         defaultOpen={false}

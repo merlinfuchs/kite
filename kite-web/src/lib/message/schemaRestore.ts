@@ -301,6 +301,8 @@ export const actionRowSchema = z.object({
 
 export type MessageComponentActionRow = z.infer<typeof actionRowSchema>;
 
+export const COMPONENTS_V2_FLAG = 1 << 15;
+
 const optionalString = z.preprocess(
   (d) => d || undefined,
   z.optional(z.string())

@@ -1,17 +1,11 @@
 import CollapsibleSection from "./MessageCollapsibleSection";
-import { useDocument, useDocumentStoreApi } from "@/lib/message/state";
-import { useShallow } from "zustand/react/shallow";
+import { useDocumentStoreApi, useNode } from "@/lib/message/state";
 import { EmbedNode, NodeId } from "@/lib/message/document";
 import { nodeField, nodeScope } from "@/lib/message/validationStore";
 import MessageInput from "./MessageInput";
 
 export default function MessageEmbedImages({ embedId }: { embedId: NodeId }) {
-  const embed = useDocument(
-    useShallow((state) => {
-      const node = state.nodes[embedId] as EmbedNode | undefined;
-      return { image: node?.image, thumbnail: node?.thumbnail };
-    })
-  );
+  const embed = useNode<EmbedNode>(embedId);
   const { update } = useDocumentStoreApi().getState();
 
   return (
@@ -24,7 +18,7 @@ export default function MessageEmbedImages({ embedId }: { embedId: NodeId }) {
       <MessageInput
         type="url"
         label="Image URL"
-        value={embed.image?.url || ""}
+        value={embed?.image?.url || ""}
         onChange={(url) =>
           update<EmbedNode>(embedId, { image: url ? { url } : undefined })
         }
@@ -34,7 +28,7 @@ export default function MessageEmbedImages({ embedId }: { embedId: NodeId }) {
       <MessageInput
         type="url"
         label="Thumbnail URL"
-        value={embed.thumbnail?.url || ""}
+        value={embed?.thumbnail?.url || ""}
         onChange={(url) =>
           update<EmbedNode>(embedId, { thumbnail: url ? { url } : undefined })
         }

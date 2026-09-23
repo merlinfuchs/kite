@@ -1,13 +1,11 @@
 import CollapsibleSection from "./MessageCollapsibleSection";
-import { useDocument, useDocumentStoreApi } from "@/lib/message/state";
+import { useDocumentStoreApi, useNode } from "@/lib/message/state";
 import { EmbedNode, NodeId } from "@/lib/message/document";
 import { nodeField, nodeScope } from "@/lib/message/validationStore";
 import MessageInput from "./MessageInput";
 
 export default function MessageEmbedAuthor({ embedId }: { embedId: NodeId }) {
-  const author = useDocument(
-    (state) => (state.nodes[embedId] as EmbedNode | undefined)?.author
-  );
+  const author = useNode<EmbedNode>(embedId)?.author;
   const { update } = useDocumentStoreApi().getState();
 
   const setAuthor = (patch: Partial<NonNullable<EmbedNode["author"]>>) => {

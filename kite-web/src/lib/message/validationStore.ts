@@ -79,6 +79,7 @@ export interface ValidationErrorStore {
   setError(error: ZodError | null, idToPath: Map<NodeId, string>): void;
   getIssue(target: ValidationTarget): ZodIssue | null;
   hasIssue(scope: ValidationScope): boolean;
+  hasAnyIssue(): boolean;
 }
 
 export const createValidationErrorStore = () =>
@@ -90,8 +91,11 @@ export const createValidationErrorStore = () =>
 
       // A message that stays valid is the common case, and republishing the
       // index there would wake every subscriber for the same empty result.
-      // Without issues nothing is looked up by path, so a stale map is fine.
-      if (!error && state.index.issues.size === 0) {
+      if (
+        !error &&
+        state.index.issues.size === 0 &&
+        state.idToPath === idToPath
+      ) {
         return;
       }
 
@@ -126,4 +130,5 @@ export const createValidationErrorStore = () =>
           )
         : state.index.prefixes.has(path);
     },
+    hasAnyIssue: () => get().index.issues.size > 0,
   }));
