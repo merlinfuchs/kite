@@ -187,29 +187,25 @@ func (c *Client) MessageInstance(ctx context.Context, messageID string, instance
 	return rowToMessageInstance(row)
 }
 
-func (c *Client) MessageInstancesByMessage(ctx context.Context, messageID string, includeHidden bool) ([]*model.MessageInstance, error) {
-	var rows []pgmodel.MessageInstance
-	var err error
-
-	if includeHidden {
-		rows, err = c.Q.GetMessageInstancesByMessageWithHidden(ctx, messageID)
-	} else {
-		rows, err = c.Q.GetMessageInstancesByMessage(ctx, messageID)
-	}
+func (c *Client) MessageInstancesByMessage(ctx context.Context, messageID string) ([]*model.MessageInstance, error) {
+	rows, err := c.Q.GetMessageInstancesByMessage(ctx, messageID)
 	if err != nil {
 		return nil, err
 	}
 
-	instances := make([]*model.MessageInstance, len(rows))
-	for i, row := range rows {
-		msg, err := rowToMessageInstance(row)
-		if err != nil {
-			return nil, err
-		}
-		instances[i] = msg
+	return rowsToMessageInstances(rows)
+}
+
+func (c *Client) FlowMessageInstancesByMessage(ctx context.Context, messageID string, limit int) ([]*model.MessageInstance, error) {
+	rows, err := c.Q.GetFlowMessageInstancesByMessage(ctx, pgmodel.GetFlowMessageInstancesByMessageParams{
+		MessageID: messageID,
+		Limit:     int32(limit),
+	})
+	if err != nil {
+		return nil, err
 	}
 
-	return instances, nil
+	return rowsToMessageInstances(rows)
 }
 
 func (c *Client) MessageInstanceByDiscordMessageID(ctx context.Context, discordMessageID string) (*model.MessageInstance, error) {
@@ -295,6 +291,19 @@ func (c *Client) DeleteMessageInstanceByDiscordMessageID(ctx context.Context, di
 	}
 
 	return nil
+}
+
+func rowsToMessageInstances(rows []pgmodel.MessageInstance) ([]*model.MessageInstance, error) {
+	instances := make([]*model.MessageInstance, len(rows))
+	for i, row := range rows {
+		instance, err := rowToMessageInstance(row)
+		if err != nil {
+			return nil, err
+		}
+		instances[i] = instance
+	}
+
+	return instances, nil
 }
 
 func rowToMessageInstance(row pgmodel.MessageInstance) (*model.MessageInstance, error) {

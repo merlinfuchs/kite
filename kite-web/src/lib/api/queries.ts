@@ -222,14 +222,27 @@ export function useMessageQuery(appId: string, messageId: string) {
   });
 }
 
-export function useMessageInstancesQuery(appId: string, messageId: string) {
+export function useMessageInstancesQuery(
+  appId: string,
+  messageId: string,
+  sentBy?: "flow",
+  enabled = true
+) {
   return useQuery({
-    queryKey: ["apps", appId, "messages", messageId, "instances"],
+    queryKey: [
+      "apps",
+      appId,
+      "messages",
+      messageId,
+      "instances",
+      ...(sentBy ? [sentBy] : []),
+    ],
     queryFn: () =>
       apiRequest<MessageInstanceListResponse>(
-        `/v1/apps/${appId}/messages/${messageId}/instances`
+        `/v1/apps/${appId}/messages/${messageId}/instances` +
+          (sentBy ? `?sent_by=${sentBy}` : "")
       ),
-    enabled: !!appId && !!messageId,
+    enabled: enabled && !!appId && !!messageId,
   });
 }
 
