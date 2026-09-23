@@ -10,9 +10,9 @@ import (
 	"github.com/kitecloud/kite/kite-service/pkg/eval"
 )
 
-// maxStoredModalInputs bounds how many modal submissions a resume point keeps
-// for input(). Each can hold up to 20 KB of text.
-const maxStoredModalInputs = 3
+// maxStoredTriggers bounds how many triggers a resume point keeps: the origin
+// and the most recent ones. A modal submission can hold up to 20 KB of text.
+const maxStoredTriggers = 4
 
 // FlowTrigger is the interaction or event that started an execution. Resume
 // points store it so sub-flows can still reach it after the flow resumes with

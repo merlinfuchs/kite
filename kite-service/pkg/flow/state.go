@@ -2,6 +2,7 @@ package flow
 
 import (
 	"encoding/json"
+	"slices"
 
 	"github.com/kitecloud/kite/kite-service/pkg/thing"
 )
@@ -10,13 +11,9 @@ type FlowContextState struct {
 	NodeStates  map[string]*FlowContextNodeState `json:"node_states"`
 	Temporaries map[string]thing.Thing           `json:"temporaries"`
 
-	// Origin and Previous are only set in resumed executions. Origin started
-	// the flow, Previous started the execution that created the resume point
-	// and is nil while that's still Origin.
-	Origin   *FlowTrigger `json:"origin,omitempty"`
-	Previous *FlowTrigger `json:"previous,omitempty"`
-	// ModalInputs holds the inputs of earlier modal submissions, newest first.
-	ModalInputs []map[string]string `json:"modal_inputs,omitempty"`
+	// Triggers holds the interactions or events of earlier executions, oldest
+	// first. It's only set in resumed executions.
+	Triggers []FlowTrigger `json:"triggers,omitempty"`
 }
 
 func NewFlowContextState() *FlowContextState {
@@ -94,7 +91,7 @@ func (s *FlowContextState) SetTemporary(name string, value thing.Thing) {
 }
 
 func (s *FlowContextState) Copy() FlowContextState {
-	// Triggers and inputs are never mutated, only replaced, so they can be shared.
+	// Triggers are never mutated, only replaced, so they can be shared.
 	copy := *s
 	copy.NodeStates = make(map[string]*FlowContextNodeState, len(s.NodeStates))
 	copy.Temporaries = make(map[string]thing.Thing, len(s.Temporaries))
@@ -122,16 +119,41 @@ func (s *FlowContextState) recordTrigger(data FlowContextData) {
 		return
 	}
 
-	if s.Origin == nil {
-		s.Origin = trigger
-	} else {
-		s.Previous = trigger
+	// Copies share the slice, so it's rebuilt instead of appended to. The first
+	// trigger is always kept since it started the flow.
+	triggers := append(slices.Clone(s.Triggers), *trigger)
+	if len(triggers) > maxStoredTriggers {
+		triggers = slices.Delete(triggers, 1, len(triggers)-maxStoredTriggers+1)
 	}
+	s.Triggers = triggers
+}
 
-	if inputs := trigger.modalInputs(); inputs != nil {
-		modalInputs := append([]map[string]string{inputs}, s.ModalInputs...)
-		s.ModalInputs = modalInputs[:min(len(modalInputs), maxStoredModalInputs)]
+// Origin returns the trigger that started the flow, or nil if the execution
+// wasn't resumed.
+func (s *FlowContextState) Origin() *FlowTrigger {
+	if len(s.Triggers) == 0 {
+		return nil
 	}
+	return &s.Triggers[0]
+}
+
+// Previous returns the trigger of the execution that created the resume point.
+func (s *FlowContextState) Previous() *FlowTrigger {
+	if len(s.Triggers) == 0 {
+		return nil
+	}
+	return &s.Triggers[len(s.Triggers)-1]
+}
+
+// ModalInputs returns the inputs of earlier modal submissions, newest first.
+func (s *FlowContextState) ModalInputs() []map[string]string {
+	var res []map[string]string
+	for i := len(s.Triggers) - 1; i >= 0; i-- {
+		if inputs := s.Triggers[i].modalInputs(); inputs != nil {
+			res = append(res, inputs)
+		}
+	}
+	return res
 }
 
 func (s *FlowContextState) Serialize() ([]byte, error) {

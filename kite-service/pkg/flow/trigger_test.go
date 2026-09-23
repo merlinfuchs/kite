@@ -73,10 +73,10 @@ func TestRecordTriggerStripsInteraction(t *testing.T) {
 	state.recordTrigger(&triggerTestData{TestContextData: TestContextData{interaction: commandInteraction()}})
 
 	res := roundTrip(t, *state)
-	require.NotNil(t, res.Origin)
-	require.NotNil(t, res.Origin.Interaction)
+	require.NotNil(t, res.Origin())
+	require.NotNil(t, res.Origin().Interaction)
 
-	i := res.Origin.Interaction
+	i := res.Origin().Interaction
 	assert.Empty(t, i.Token)
 	assert.Nil(t, i.Message)
 	assert.Equal(t, discord.UserID(3), i.Member.User.ID)
@@ -93,33 +93,39 @@ func TestRecordTriggerRoundTripsEvent(t *testing.T) {
 	}})
 
 	res := roundTrip(t, *state)
-	require.NotNil(t, res.Origin)
+	require.NotNil(t, res.Origin())
 
-	event, ok := res.Origin.Event.(*gateway.MessageCreateEvent)
+	event, ok := res.Origin().Event.(*gateway.MessageCreateEvent)
 	require.True(t, ok)
 	assert.Equal(t, "hello", event.Content)
 }
 
-func TestRecordTriggerKeepsOriginAndReplacesPrevious(t *testing.T) {
+func TestRecordTriggerKeepsOriginAndAppendsPrevious(t *testing.T) {
 	state := NewFlowContextState()
 	state.recordTrigger(&triggerTestData{TestContextData: TestContextData{interaction: commandInteraction()}})
+	assert.Same(t, state.Origin(), state.Previous())
 
 	resumed := state.Copy()
 	resumed.recordTrigger(&triggerTestData{TestContextData: TestContextData{interaction: modalInteraction("name", "bob")}})
 
-	assert.Equal(t, discord.InteractionID(1), resumed.Origin.Interaction.ID)
-	assert.Equal(t, discord.InteractionID(6), resumed.Previous.Interaction.ID)
-	// Previous isn't stored while it's still the origin.
-	assert.Nil(t, state.Previous)
+	assert.Equal(t, discord.InteractionID(1), resumed.Origin().Interaction.ID)
+	assert.Equal(t, discord.InteractionID(6), resumed.Previous().Interaction.ID)
+	// The state the first resume point was created from is untouched.
+	assert.Len(t, state.Triggers, 1)
 }
 
-func TestRecordTriggerKeepsNewestModalInputs(t *testing.T) {
+func TestRecordTriggerKeepsOriginAndNewestTriggers(t *testing.T) {
 	state := NewFlowContextState()
-	for _, value := range []string{"1", "2", "3", "4"} {
+	for _, value := range []string{"1", "2", "3", "4", "5", "6"} {
 		state.recordTrigger(&triggerTestData{TestContextData: TestContextData{interaction: modalInteraction("field", value)}})
 	}
 
-	require.Len(t, state.ModalInputs, maxStoredModalInputs)
-	assert.Equal(t, "4", state.ModalInputs[0]["field"])
-	assert.Equal(t, "2", state.ModalInputs[2]["field"])
+	res := roundTrip(t, *state)
+	require.Len(t, res.Triggers, maxStoredTriggers)
+
+	var values []string
+	for _, inputs := range res.ModalInputs() {
+		values = append(values, inputs["field"])
+	}
+	assert.Equal(t, []string{"6", "5", "4", "1"}, values)
 }
