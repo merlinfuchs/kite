@@ -39,8 +39,10 @@ func (m *MessageData) ToEditMessageData(opts ConvertOptions) api.EditMessageData
 	embeds := m.toEmbeds()
 	components := m.toComponents(opts)
 
+	// Discord only lets edits set these flags. Others, like ephemeral or
+	// suppress notifications, only apply when the message is sent.
 	var flags *discord.MessageFlags
-	if f := m.messageFlags(); f != 0 {
+	if f := m.messageFlags() & (discord.SuppressEmbeds | discord.IsComponentsV2); f != 0 {
 		flags = &f
 	}
 
