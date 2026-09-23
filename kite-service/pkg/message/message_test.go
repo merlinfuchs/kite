@@ -177,3 +177,102 @@ func TestToSendMessageDataClassic(t *testing.T) {
 	assert.Equal(t, "hi", send.Content)
 	require.Len(t, send.Components, 1)
 }
+
+func TestToSendMessageDataStringSelect(t *testing.T) {
+	data := MessageData{
+		Components: []ComponentData{
+			{Type: ComponentTypeActionRow, Components: []ComponentData{
+				{
+					ID:           7,
+					Type:         ComponentTypeStringSelect,
+					Placeholder:  "Pick one",
+					MinValues:    1,
+					MaxValues:    2,
+					FlowSourceID: "flow-select",
+					Options: []ComponentSelectOptionData{
+						{Label: "Red", Value: "red"},
+						{Label: "Blue", Value: "blue"},
+					},
+				},
+			}},
+		},
+	}
+
+	assert.True(t, data.HasInteractiveComponents())
+
+	send := data.ToSendMessageData(ConvertOptions{})
+	raw, err := json.Marshal(send.Components)
+	require.NoError(t, err)
+
+	var got []map[string]any
+	require.NoError(t, json.Unmarshal(raw, &got))
+
+	sel := got[0]["components"].([]any)[0].(map[string]any)
+	assert.EqualValues(t, 3, sel["type"])
+	assert.Equal(t, "flow-select", sel["custom_id"])
+	assert.Equal(t, "Pick one", sel["placeholder"])
+	assert.EqualValues(t, 1, sel["min_values"])
+	assert.EqualValues(t, 2, sel["max_values"])
+
+	options := sel["options"].([]any)
+	assert.Equal(t, "red", options[0].(map[string]any)["value"])
+	assert.Equal(t, "blue", options[1].(map[string]any)["value"])
+}
+
+func TestToEditInteractionResponseDataComponentsV2(t *testing.T) {
+	data := componentsV2Message.Copy()
+	data.Content = "old"
+
+	edit := data.ToEditInteractionResponseData(ConvertOptions{
+		ComponentIDFactory: func(c *ComponentData) discord.ComponentID {
+			return discord.ComponentID(c.FlowSourceID)
+		},
+	})
+
+	raw, err := json.Marshal(edit)
+	require.NoError(t, err)
+
+	var got map[string]any
+	require.NoError(t, json.Unmarshal(raw, &got))
+
+	assert.Contains(t, got, "content")
+	assert.Nil(t, got["content"])
+	assert.Equal(t, []any{}, got["embeds"])
+	assert.EqualValues(t, discord.IsComponentsV2, got["flags"])
+}
+
+func TestContainerBlackAccentColor(t *testing.T) {
+	data := MessageData{
+		Flags: int(discord.IsComponentsV2),
+		Components: []ComponentData{{
+			Type:        ComponentTypeContainer,
+			AccentColor: intPtr(0),
+			Components:  []ComponentData{{Type: ComponentTypeTextDisplay, Content: "hi"}},
+		}},
+	}
+
+	raw, err := json.Marshal(data.ToSendMessageData(ConvertOptions{}).Components)
+	require.NoError(t, err)
+
+	var got []map[string]any
+	require.NoError(t, json.Unmarshal(raw, &got))
+	assert.Contains(t, got[0], "accent_color")
+	assert.EqualValues(t, 0, got[0]["accent_color"])
+}
+
+// Edits can only set suppress embeds and components v2, so send-only flags
+// like ephemeral must not end up in the request.
+func TestEditDataOnlyKeepsEditableFlags(t *testing.T) {
+	data := MessageData{
+		Flags: int(discord.EphemeralMessage | discord.SuppressNotifications | discord.SuppressEmbeds),
+	}
+
+	edit := data.ToEditMessageData(ConvertOptions{})
+	if assert.NotNil(t, edit.Flags) {
+		assert.Equal(t, discord.SuppressEmbeds, *edit.Flags)
+	}
+
+	data.Flags = int(discord.EphemeralMessage)
+	assert.Nil(t, data.ToEditMessageData(ConvertOptions{}).Flags)
+	assert.Nil(t, data.ToEditInteractionResponseData(ConvertOptions{}).Flags)
+}

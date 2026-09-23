@@ -1,16 +1,13 @@
 import { useValidationErrors } from "@/lib/message/state";
+import { ValidationScope } from "@/lib/message/validationStore";
 import { CircleAlertIcon } from "lucide-react";
 
 interface Props {
-  pathPrefix: string | string[];
+  scope: ValidationScope;
 }
 
-export default function MessageValidationErrorIndicator({ pathPrefix }: Props) {
-  const error = useValidationErrors((state) =>
-    typeof pathPrefix === "string"
-      ? state.checkIssueByPathPrefix(pathPrefix)
-      : pathPrefix.some((prefix) => state.checkIssueByPathPrefix(prefix))
-  );
+export default function MessageValidationErrorIndicator({ scope }: Props) {
+  const error = useValidationErrors((state) => state.hasIssue(scope));
 
   if (error) {
     return (

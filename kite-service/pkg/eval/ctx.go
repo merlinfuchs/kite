@@ -30,6 +30,9 @@ type InteractionEnv struct {
 	Member     any                      `expr:"member" json:"member"`
 	Command    *CommandEnv              `expr:"command" json:"command"`
 	Components map[string]*ComponentEnv `expr:"components" json:"components"`
+	// Values are the options picked in a select menu, Value is the first of them.
+	Values []string `expr:"values" json:"values"`
+	Value  string   `expr:"value" json:"value"`
 }
 
 func NewInteractionEnv(i *discord.InteractionEvent) *InteractionEnv {
@@ -55,6 +58,13 @@ func NewInteractionEnv(i *discord.InteractionEvent) *InteractionEnv {
 
 	if i.Data.InteractionType() == discord.CommandInteractionType {
 		e.Command = NewCommandEnv(i)
+	}
+
+	if data, ok := i.Data.(*discord.StringSelectInteraction); ok {
+		e.Values = data.Values
+		if len(data.Values) > 0 {
+			e.Value = data.Values[0]
+		}
 	}
 
 	return e

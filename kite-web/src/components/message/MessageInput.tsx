@@ -1,18 +1,19 @@
 import { useValidationErrors } from "@/lib/message/state";
+import { ValidationTarget } from "@/lib/message/validationStore";
 import BaseInput, { BaseInputProps } from "@/tools/common/components/BaseInput";
 import { useCallback } from "react";
 import MessagePlaceholderExplorer from "./MessagePlaceholderExplorer";
 
 type Props = BaseInputProps & {
-  validationPath?: string;
+  validation?: ValidationTarget;
   placeholders?: boolean;
 };
 
 export default function MessageInput(props: Props) {
+  const { validation, placeholders, ...inputProps } = props;
+
   const issue = useValidationErrors(
-    (state) =>
-      props.validationPath &&
-      state.getIssueByPath(props.validationPath)?.message
+    (state) => validation && state.getIssue(validation)?.message
   );
 
   const onPlaceholderSelect = useCallback(
@@ -27,8 +28,8 @@ export default function MessageInput(props: Props) {
 
   return (
     <div className="relative w-full">
-      <BaseInput {...props} error={issue} />
-      {props.placeholders && (
+      <BaseInput {...(inputProps as BaseInputProps)} error={issue} />
+      {placeholders && (
         <MessagePlaceholderExplorer onSelect={onPlaceholderSelect} />
       )}
     </div>

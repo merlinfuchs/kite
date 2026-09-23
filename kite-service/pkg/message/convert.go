@@ -39,8 +39,10 @@ func (m *MessageData) ToEditMessageData(opts ConvertOptions) api.EditMessageData
 	embeds := m.toEmbeds()
 	components := m.toComponents(opts)
 
+	// Discord only lets edits set these flags. Others, like ephemeral or
+	// suppress notifications, only apply when the message is sent.
 	var flags *discord.MessageFlags
-	if f := m.messageFlags(); f != 0 {
+	if f := m.messageFlags() & (discord.SuppressEmbeds | discord.IsComponentsV2); f != 0 {
 		flags = &f
 	}
 
@@ -59,6 +61,19 @@ func (m *MessageData) ToEditMessageData(opts ConvertOptions) api.EditMessageData
 	}
 
 	return data
+}
+
+func (m *MessageData) ToEditInteractionResponseData(opts ConvertOptions) api.EditInteractionResponseData {
+	edit := m.ToEditMessageData(opts)
+
+	return api.EditInteractionResponseData{
+		Content:         edit.Content,
+		Embeds:          edit.Embeds,
+		Components:      edit.Components,
+		AllowedMentions: edit.AllowedMentions,
+		// A deferred response isn't components v2 yet, so the edit has to set the flag.
+		Flags: edit.Flags,
+	}
 }
 
 func (m *MessageData) ToInteractionResponseData(opts ConvertOptions) api.InteractionResponseData {
@@ -216,6 +231,8 @@ func (c *ComponentData) ToComponent(opts ConvertOptions) discord.Component {
 		return &row
 	case ComponentTypeButton:
 		return c.toButton(opts)
+	case ComponentTypeStringSelect:
+		return c.toStringSelect(opts)
 	case ComponentTypeSection:
 		return &discord.SectionComponent{
 			Components: c.childComponents(opts),
@@ -254,9 +271,10 @@ func (c *ComponentData) ToComponent(opts ConvertOptions) discord.Component {
 			Spacing: discord.SeparatorComponentSpacing(c.Spacing),
 		}
 	case ComponentTypeContainer:
-		var accentColor discord.Color
+		var accentColor *discord.Color
 		if c.AccentColor != nil {
-			accentColor = discord.Color(*c.AccentColor)
+			color := discord.Color(*c.AccentColor)
+			accentColor = &color
 		}
 		return &discord.ContainerComponent{
 			Components:  c.childComponents(opts),
@@ -295,11 +313,7 @@ func (c *ComponentData) toButton(opts ConvertOptions) *discord.ButtonComponent {
 
 	var customID discord.ComponentID
 	if c.Style != ButtonStyleLink {
-		if opts.ComponentIDFactory != nil {
-			customID = opts.ComponentIDFactory(c)
-		} else {
-			customID = discord.ComponentID(c.FlowSourceID)
-		}
+		customID = c.customID(opts)
 	}
 
 	return &discord.ButtonComponent{
@@ -309,6 +323,34 @@ func (c *ComponentData) toButton(opts ConvertOptions) *discord.ButtonComponent {
 		Disabled: c.Disabled,
 		CustomID: customID,
 	}
+}
+
+func (c *ComponentData) toStringSelect(opts ConvertOptions) *discord.StringSelectComponent {
+	options := make([]discord.SelectOption, len(c.Options))
+	for i, option := range c.Options {
+		options[i] = discord.SelectOption{
+			Label:       option.Label,
+			Value:       option.Value,
+			Description: option.Description,
+			Emoji:       option.Emoji.ToEmoji(),
+			Default:     option.Default,
+		}
+	}
+
+	return &discord.StringSelectComponent{
+		CustomID:    c.customID(opts),
+		Options:     options,
+		Placeholder: c.Placeholder,
+		ValueLimits: [2]int{c.MinValues, c.MaxValues},
+		Disabled:    c.Disabled,
+	}
+}
+
+func (c *ComponentData) customID(opts ConvertOptions) discord.ComponentID {
+	if opts.ComponentIDFactory != nil {
+		return opts.ComponentIDFactory(c)
+	}
+	return discord.ComponentID(c.FlowSourceID)
 }
 
 func (m *UnfurledMediaItemData) toUnfurledMediaItem() discord.UnfurledMediaitem {

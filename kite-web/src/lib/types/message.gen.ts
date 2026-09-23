@@ -129,6 +129,10 @@ export interface MediaGalleryItemData {
 export interface ComponentSelectOptionData {
   id?: number /* int */;
   label?: string;
+  /**
+   * Value is what the flow receives when the option is selected. Falls back to the label.
+   */
+  value?: string;
   description?: string;
   emoji?: ComponentEmojiData;
   default?: boolean;

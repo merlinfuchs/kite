@@ -394,7 +394,7 @@ func (p *DiscordProvider) AutoDeferInteraction(
 	ctx context.Context,
 	interactionID discord.InteractionID,
 	interactionToken string,
-	flags discord.MessageFlags,
+	response api.InteractionResponse,
 ) {
 	select {
 	case <-ctx.Done():
@@ -406,12 +406,7 @@ func (p *DiscordProvider) AutoDeferInteraction(
 		}
 
 		if !hasCreatedResponse {
-			_, err := p.CreateInteractionResponse(ctx, interactionID, interactionToken, api.InteractionResponse{
-				Type: api.DeferredMessageInteractionWithSource,
-				Data: &api.InteractionResponseData{
-					Flags: flags,
-				},
-			})
+			_, err := p.CreateInteractionResponse(ctx, interactionID, interactionToken, response)
 			if err != nil {
 				slog.Error(
 					"Failed to auto-defer interaction",
@@ -594,17 +589,22 @@ func (p *VariableProvider) DeleteVariable(ctx context.Context, id string, scope 
 type MessageTemplateProvider struct {
 	messageStore         store.MessageStore
 	messageInstanceStore store.MessageInstanceStore
+
+	// Template IDs come from user-authored flow data, so lookups are scoped to
+	// the app to keep a flow from using another app's templates.
+	appID string
 }
 
-func NewMessageTemplateProvider(messageStore store.MessageStore, messageInstanceStore store.MessageInstanceStore) *MessageTemplateProvider {
+func NewMessageTemplateProvider(messageStore store.MessageStore, messageInstanceStore store.MessageInstanceStore, appID string) *MessageTemplateProvider {
 	return &MessageTemplateProvider{
 		messageStore:         messageStore,
 		messageInstanceStore: messageInstanceStore,
+		appID:                appID,
 	}
 }
 
 func (p *MessageTemplateProvider) MessageTemplate(ctx context.Context, id string) (*message.MessageData, error) {
-	message, err := p.messageStore.Message(ctx, id)
+	message, err := p.messageStore.AppMessage(ctx, p.appID, id)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get message: %w", err)
 	}
@@ -613,7 +613,7 @@ func (p *MessageTemplateProvider) MessageTemplate(ctx context.Context, id string
 }
 
 func (p *MessageTemplateProvider) LinkMessageTemplateInstance(ctx context.Context, instance provider.MessageTemplateInstance) error {
-	message, err := p.messageStore.Message(ctx, instance.MessageTemplateID)
+	message, err := p.messageStore.AppMessage(ctx, p.appID, instance.MessageTemplateID)
 	if err != nil {
 		return fmt.Errorf("failed to get message: %w", err)
 	}

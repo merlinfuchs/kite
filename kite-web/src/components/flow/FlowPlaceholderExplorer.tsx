@@ -113,6 +113,16 @@ function useGlobalPlaceholders() {
     },
   ];
 
+  if (contextType === "component_select_menu") {
+    res.push({
+      label: "Select Menu",
+      placeholders: [
+        { label: "Selected Value", value: `interaction.value` },
+        { label: "Selected Values", value: `interaction.values` },
+      ],
+    });
+  }
+
   if (contextType === "event_discord") {
     res.push({
       label: "Message",

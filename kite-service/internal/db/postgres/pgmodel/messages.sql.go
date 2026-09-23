@@ -94,7 +94,13 @@ INSERT INTO message_instances (
     updated_at
 ) VALUES (
     $1, $2, $3, $4, $5, $6, $7, $8, $9
-) RETURNING id, message_id, hidden, ephemeral, discord_guild_id, discord_channel_id, discord_message_id, flow_sources, created_at, updated_at
+)
+ON CONFLICT (discord_message_id) DO UPDATE SET
+    message_id = EXCLUDED.message_id,
+    hidden = message_instances.hidden AND EXCLUDED.hidden,
+    flow_sources = EXCLUDED.flow_sources,
+    updated_at = EXCLUDED.updated_at
+RETURNING id, message_id, hidden, ephemeral, discord_guild_id, discord_channel_id, discord_message_id, flow_sources, created_at, updated_at
 `
 
 type CreateMessageInstanceParams struct {
@@ -109,6 +115,7 @@ type CreateMessageInstanceParams struct {
 	UpdatedAt        pgtype.Timestamp
 }
 
+// Editing a message to a different template re-links it, so its new buttons resolve
 func (q *Queries) CreateMessageInstance(ctx context.Context, arg CreateMessageInstanceParams) (MessageInstance, error) {
 	row := q.db.QueryRow(ctx, createMessageInstance,
 		arg.MessageID,
@@ -169,12 +176,79 @@ func (q *Queries) DeleteMessageInstanceByDiscordMessageId(ctx context.Context, d
 	return err
 }
 
+const getFlowMessageInstancesByMessage = `-- name: GetFlowMessageInstancesByMessage :many
+SELECT id, message_id, hidden, ephemeral, discord_guild_id, discord_channel_id, discord_message_id, flow_sources, created_at, updated_at FROM message_instances WHERE message_id = $1 AND hidden AND NOT ephemeral ORDER BY created_at DESC LIMIT $2
+`
+
+type GetFlowMessageInstancesByMessageParams struct {
+	MessageID string
+	Limit     int32
+}
+
+func (q *Queries) GetFlowMessageInstancesByMessage(ctx context.Context, arg GetFlowMessageInstancesByMessageParams) ([]MessageInstance, error) {
+	rows, err := q.db.Query(ctx, getFlowMessageInstancesByMessage, arg.MessageID, arg.Limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []MessageInstance
+	for rows.Next() {
+		var i MessageInstance
+		if err := rows.Scan(
+			&i.ID,
+			&i.MessageID,
+			&i.Hidden,
+			&i.Ephemeral,
+			&i.DiscordGuildID,
+			&i.DiscordChannelID,
+			&i.DiscordMessageID,
+			&i.FlowSources,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getMessage = `-- name: GetMessage :one
 SELECT id, name, description, data, flow_sources, app_id, module_id, creator_user_id, created_at, updated_at FROM messages WHERE id = $1
 `
 
 func (q *Queries) GetMessage(ctx context.Context, id string) (Message, error) {
 	row := q.db.QueryRow(ctx, getMessage, id)
+	var i Message
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Description,
+		&i.Data,
+		&i.FlowSources,
+		&i.AppID,
+		&i.ModuleID,
+		&i.CreatorUserID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const getMessageByApp = `-- name: GetMessageByApp :one
+SELECT id, name, description, data, flow_sources, app_id, module_id, creator_user_id, created_at, updated_at FROM messages WHERE id = $1 AND app_id = $2
+`
+
+type GetMessageByAppParams struct {
+	ID    string
+	AppID string
+}
+
+func (q *Queries) GetMessageByApp(ctx context.Context, arg GetMessageByAppParams) (Message, error) {
+	row := q.db.QueryRow(ctx, getMessageByApp, arg.ID, arg.AppID)
 	var i Message
 	err := row.Scan(
 		&i.ID,
@@ -246,41 +320,6 @@ SELECT id, message_id, hidden, ephemeral, discord_guild_id, discord_channel_id, 
 
 func (q *Queries) GetMessageInstancesByMessage(ctx context.Context, messageID string) ([]MessageInstance, error) {
 	rows, err := q.db.Query(ctx, getMessageInstancesByMessage, messageID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []MessageInstance
-	for rows.Next() {
-		var i MessageInstance
-		if err := rows.Scan(
-			&i.ID,
-			&i.MessageID,
-			&i.Hidden,
-			&i.Ephemeral,
-			&i.DiscordGuildID,
-			&i.DiscordChannelID,
-			&i.DiscordMessageID,
-			&i.FlowSources,
-			&i.CreatedAt,
-			&i.UpdatedAt,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const getMessageInstancesByMessageWithHidden = `-- name: GetMessageInstancesByMessageWithHidden :many
-SELECT id, message_id, hidden, ephemeral, discord_guild_id, discord_channel_id, discord_message_id, flow_sources, created_at, updated_at FROM message_instances WHERE message_id = $1 ORDER BY created_at DESC
-`
-
-func (q *Queries) GetMessageInstancesByMessageWithHidden(ctx context.Context, messageID string) ([]MessageInstance, error) {
-	rows, err := q.db.Query(ctx, getMessageInstancesByMessageWithHidden, messageID)
 	if err != nil {
 		return nil, err
 	}

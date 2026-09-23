@@ -25,6 +25,8 @@ var (
 	// GatewayEventsDropped counts events that were received but not
 	// dispatched, keyed by reason. A non-trivial "unknown_app" count means
 	// the gateway connected before the engine loaded that app's entities.
+	// Interactions are never dropped for this reason; the app is registered
+	// on demand instead.
 	GatewayEventsDropped = expvar.NewMap("gateway_events_dropped_total")
 
 	// GatewayConnections tracks the number of live gateway connections owned

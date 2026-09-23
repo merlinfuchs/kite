@@ -145,6 +145,9 @@ func (m *MessageData) EachString(replace func(s *string) error) error {
 			if err := replace(&option.Label); err != nil {
 				return err
 			}
+			if err := replace(&option.Value); err != nil {
+				return err
+			}
 			if err := replace(&option.Description); err != nil {
 				return err
 			}
@@ -347,7 +350,9 @@ type MediaGalleryItemData struct {
 type ComponentSelectOptionData struct {
 	ID int `json:"id,omitempty"`
 
-	Label       string              `json:"label,omitempty"`
+	Label string `json:"label,omitempty"`
+	// Value is what the flow receives as interaction.value when the option is selected.
+	Value       string              `json:"value,omitempty"`
 	Description string              `json:"description,omitempty"`
 	Emoji       *ComponentEmojiData `json:"emoji,omitempty"`
 	Default     bool                `json:"default,omitempty"`

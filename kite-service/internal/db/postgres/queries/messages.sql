@@ -1,6 +1,9 @@
 -- name: GetMessage :one
 SELECT * FROM messages WHERE id = $1;
 
+-- name: GetMessageByApp :one
+SELECT * FROM messages WHERE id = $1 AND app_id = $2;
+
 -- name: GetMessagesByApp :many
 SELECT * FROM messages WHERE app_id = $1 ORDER BY created_at DESC;
 
@@ -48,7 +51,14 @@ INSERT INTO message_instances (
     updated_at
 ) VALUES (
     $1, $2, $3, $4, $5, $6, $7, $8, $9
-) RETURNING *;
+)
+-- Editing a message to a different template re-links it, so its new buttons resolve
+ON CONFLICT (discord_message_id) DO UPDATE SET
+    message_id = EXCLUDED.message_id,
+    hidden = message_instances.hidden AND EXCLUDED.hidden,
+    flow_sources = EXCLUDED.flow_sources,
+    updated_at = EXCLUDED.updated_at
+RETURNING *;
 
 -- name: GetMessageInstance :one
 SELECT * FROM message_instances WHERE id = $1 AND message_id = $2;
@@ -56,8 +66,8 @@ SELECT * FROM message_instances WHERE id = $1 AND message_id = $2;
 -- name: GetMessageInstancesByMessage :many
 SELECT * FROM message_instances WHERE message_id = $1 AND NOT hidden ORDER BY created_at DESC;
 
--- name: GetMessageInstancesByMessageWithHidden :many
-SELECT * FROM message_instances WHERE message_id = $1 ORDER BY created_at DESC;
+-- name: GetFlowMessageInstancesByMessage :many
+SELECT * FROM message_instances WHERE message_id = $1 AND hidden AND NOT ephemeral ORDER BY created_at DESC LIMIT $2;
 
 -- name: GetMessageInstanceByDiscordMessageId :one
 SELECT * FROM message_instances WHERE discord_message_id = $1;

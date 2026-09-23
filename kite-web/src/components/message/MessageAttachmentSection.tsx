@@ -1,4 +1,10 @@
-import { useCurrentMessage } from "@/lib/message/state";
+import {
+  useDocument,
+  useDocumentStoreApi,
+  useRootId,
+} from "@/lib/message/state";
+import { MessageNode } from "@/lib/message/document";
+import { nodeScope } from "@/lib/message/validationStore";
 import CollapsibleSection from "./MessageCollapsibleSection";
 import { useShallow } from "zustand/react/shallow";
 import { Button } from "../ui/button";
@@ -9,11 +15,30 @@ import { useAppId } from "@/lib/hooks/params";
 import { toast } from "sonner";
 
 export default function MessageAttachmentSection() {
-  const attachments = useCurrentMessage(
-    useShallow((state) => state.attachments.map((e) => e.asset_id))
+  const rootId = useRootId();
+  const attachments = useDocument(
+    useShallow((state) =>
+      ((state.nodes[rootId] as MessageNode | undefined)?.attachments ?? []).map(
+        (a) => a.asset_id
+      )
+    )
   );
-  const addAttachment = useCurrentMessage((state) => state.addAttachment);
-  const clearAttachments = useCurrentMessage((state) => state.clearAttachments);
+  const store = useDocumentStoreApi();
+
+  const addAttachment = useCallback(
+    (assetId: string) => {
+      const root = store.getState().nodes[rootId] as MessageNode;
+      store.getState().update<MessageNode>(rootId, {
+        attachments: [...root.attachments, { asset_id: assetId }],
+      });
+    },
+    [store, rootId]
+  );
+
+  const clearAttachments = useCallback(
+    () => store.getState().update<MessageNode>(rootId, { attachments: [] }),
+    [store, rootId]
+  );
 
   const createMutation = useAssetCreateMutation(useAppId());
   const inputRef = useRef<HTMLInputElement>(null);
@@ -28,9 +53,7 @@ export default function MessageAttachmentSection() {
       createMutation.mutateAsync(file, {
         onSuccess: (res) => {
           if (res.success) {
-            addAttachment({
-              asset_id: res.data.id,
-            });
+            addAttachment(res.data.id);
           } else {
             toast.error(
               `Failed to upload asset: ${res.error.message} (${res.error.code})`
@@ -49,7 +72,7 @@ export default function MessageAttachmentSection() {
   return (
     <CollapsibleSection
       title="Attachments"
-      valiationPathPrefix="attachments"
+      validation={nodeScope<MessageNode>(rootId, ["attachments"])}
       className="space-y-4"
     >
       <div className="flex flex-wrap gap-4">

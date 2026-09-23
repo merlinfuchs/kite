@@ -12,3 +12,7 @@ export default function userAvatar({
     (BigInt(id) >> BigInt(22)) % BigInt(6)
   }.png`;
 }
+
+export function discordEmojiUrl(id: string, animated?: boolean) {
+  return `https://cdn.discordapp.com/emojis/${id}.${animated ? "gif" : "webp"}`;
+}

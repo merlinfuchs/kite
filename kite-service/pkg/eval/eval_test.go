@@ -208,3 +208,33 @@ func TestEvalTemplateAllowsOutputUnderLimit(t *testing.T) {
 		t.Errorf("got %d bytes, want 2002", len(res.String()))
 	}
 }
+
+// Appended variable values keep their spaces (#339).
+func TestEvalTemplateKeepSpace(t *testing.T) {
+	c := Context{Env: Env{"name": "world"}}
+
+	for template, want := range map[string]string{
+		" world":          " world",
+		"hello {{name}} ": "hello world ",
+		" ":               " ",
+	} {
+		res, err := EvalTemplateKeepSpace(context.Background(), template, c)
+		if err != nil {
+			t.Fatalf("%q: %v", template, err)
+		}
+		if got := res.String(); got != want {
+			t.Errorf("EvalTemplateKeepSpace(%q) = %q, want %q", template, got, want)
+		}
+	}
+}
+
+// A lone placeholder keeps its value's type even when surrounded by spaces.
+func TestEvalTemplateKeepSpaceSinglePlaceholder(t *testing.T) {
+	res, err := EvalTemplateKeepSpace(context.Background(), " {{1 + 1}} ", testContext())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.Int() != 2 || res.String() != "2" {
+		t.Errorf("got %q, want the placeholder's value", res.String())
+	}
+}

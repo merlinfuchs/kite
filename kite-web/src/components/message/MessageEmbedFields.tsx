@@ -1,56 +1,40 @@
-import { useCurrentMessage } from "@/lib/message/state";
+import { useChildIds, useDocumentStoreApi } from "@/lib/message/state";
+import { NodeId } from "@/lib/message/document";
+import { slotScope } from "@/lib/message/validationStore";
 import CollapsibleSection from "./MessageCollapsibleSection";
-import { useShallow } from "zustand/react/shallow";
 import { Button } from "@/components/ui/button";
-import { getUniqueId } from "@/lib/utils";
 import MessageEmbedField from "./MessageEmbedField";
 
-export default function MessageEmbedFields({
-  embedId,
-  embedIndex,
-}: {
-  embedId: number;
-  embedIndex: number;
-}) {
-  const fields = useCurrentMessage(
-    useShallow((state) => state.embeds[embedIndex].fields.map((e) => e.id))
-  );
-
-  const [addField, clearFields] = useCurrentMessage(
-    useShallow((state) => [state.addEmbedField, state.clearEmbedFields])
-  );
+export default function MessageEmbedFields({ embedId }: { embedId: NodeId }) {
+  const fieldIds = useChildIds(embedId, "fields");
+  const { insert, removeChildren } = useDocumentStoreApi().getState();
 
   return (
     <CollapsibleSection
       title="Fields"
       size="md"
-      valiationPathPrefix={`embeds.${embedIndex}.fields`}
+      validation={slotScope(embedId, "fields")}
       className="space-y-3"
     >
-      {fields.map((id, i) => (
-        <MessageEmbedField
-          key={id}
-          embedIndex={embedIndex}
-          embedId={embedId}
-          fieldIndex={i}
-          fieldId={id}
-        />
+      {fieldIds.map((id) => (
+        <MessageEmbedField key={id} fieldId={id} />
       ))}
       <div className="space-x-3">
         <Button
           onClick={() =>
-            addField(embedIndex, {
-              id: getUniqueId(),
+            insert(embedId, "fields", "end", {
+              type: "embedField",
               name: "",
               value: "",
             })
           }
           size="sm"
+          disabled={fieldIds.length >= 25}
         >
           Add Field
         </Button>
         <Button
-          onClick={() => clearFields(embedIndex)}
+          onClick={() => removeChildren(embedId, "fields")}
           variant="destructive"
           size="sm"
         >
