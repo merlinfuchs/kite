@@ -82,11 +82,12 @@ function ImportForm({
   const { label, entryNodeType, href } = kinds[kind];
 
   function onImport() {
-    let flow: FlowData | undefined;
+    let parsed: { flow_source?: FlowData; source?: string } | undefined;
     try {
-      flow = JSON.parse(shareCode).flow_source;
+      parsed = JSON.parse(shareCode);
     } catch {}
 
+    const flow = parsed?.flow_source;
     if (
       !Array.isArray(flow?.nodes) ||
       !Array.isArray(flow?.edges) ||
@@ -135,7 +136,11 @@ function ImportForm({
       eventListenersImportMutation.mutate(
         {
           event_listeners: [
-            { source: "discord", flow_source: sanitized, enabled: true },
+            {
+              source: parsed?.source ?? "discord",
+              flow_source: sanitized,
+              enabled: true,
+            },
           ],
         },
         { onSuccess }
