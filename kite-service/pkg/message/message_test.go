@@ -259,3 +259,20 @@ func TestContainerBlackAccentColor(t *testing.T) {
 	assert.Contains(t, got[0], "accent_color")
 	assert.EqualValues(t, 0, got[0]["accent_color"])
 }
+
+// Edits can only set suppress embeds and components v2, so send-only flags
+// like ephemeral must not end up in the request.
+func TestEditDataOnlyKeepsEditableFlags(t *testing.T) {
+	data := MessageData{
+		Flags: int(discord.EphemeralMessage | discord.SuppressNotifications | discord.SuppressEmbeds),
+	}
+
+	edit := data.ToEditMessageData(ConvertOptions{})
+	if assert.NotNil(t, edit.Flags) {
+		assert.Equal(t, discord.SuppressEmbeds, *edit.Flags)
+	}
+
+	data.Flags = int(discord.EphemeralMessage)
+	assert.Nil(t, data.ToEditMessageData(ConvertOptions{}).Flags)
+	assert.Nil(t, data.ToEditInteractionResponseData(ConvertOptions{}).Flags)
+}
