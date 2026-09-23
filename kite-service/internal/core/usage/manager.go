@@ -39,7 +39,10 @@ func NewUsageManager(
 }
 
 func (m *UsageManager) Run(ctx context.Context) {
-	ticker := time.NewTicker(1 * time.Minute)
+	// Each sweep sums the whole month so far, millions of rows by the end of
+	// it. Apps may overrun their credits by up to one interval before being
+	// disabled.
+	ticker := time.NewTicker(5 * time.Minute)
 	cleanupTicker := time.NewTicker(1 * time.Hour)
 
 	go func() {
