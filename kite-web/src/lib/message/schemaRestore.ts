@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { getUniqueId } from "@/lib/utils";
+import { FlagIsComponentsV2 } from "@/lib/types/message.gen";
 
 export const uniqueIdSchema = z.preprocess(
   (d) => {
@@ -546,5 +547,12 @@ export type Message = z.infer<typeof messageSchema>;
 
 export function parseMessageData(raw: any) {
   const parsedData = messageSchema.parse(raw);
+
+  // Pasted v2 payloads often leave out the flag, which would leave the editor
+  // in classic mode with components it can't hold.
+  if (parsedData.components.some((c) => c.type !== 1)) {
+    parsedData.flags = (parsedData.flags ?? 0) | FlagIsComponentsV2;
+  }
+
   return parsedData;
 }
