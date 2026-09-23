@@ -49,8 +49,3 @@ export function formatNumber(x: number | undefined | null) {
   if (!x) return "0";
   return x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 }
-
-/** The URL if it's safe to link to, so user input can't run javascript: links. */
-export function safeHref(url: string | undefined): string | undefined {
-  return url && /^(https?|discord):\/\//i.test(url) ? url : undefined;
-}

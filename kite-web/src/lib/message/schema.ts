@@ -5,13 +5,17 @@ import { FlagIsComponentsV2 } from "@/lib/types/message.gen";
 const VARIABLE_RE = new RegExp("\\{\\{[^}]+\\}\\}");
 
 const HOSTNAME_RE = new RegExp("localhost|\\.[a-zA-Z]{2,}$");
+const URL_PROTOCOLS = ["http:", "https:", "discord:", "attachment:"];
 const urlRefinement: [(v: string) => boolean, string] = [
   (v) => {
     if (v.match(VARIABLE_RE)) return true;
 
     try {
       const url = new URL(v);
-      return !!url.hostname.match(HOSTNAME_RE);
+      return (
+        URL_PROTOCOLS.includes(url.protocol) &&
+        !!url.hostname.match(HOSTNAME_RE)
+      );
     } catch {
       return false;
     }
@@ -347,10 +351,11 @@ export function hasComponentsV2Flag(flags: number | undefined): boolean {
 
 // Files sent with the message are referenced by name, which can contain
 // anything, spaces included, so only other URLs need to be real URLs.
+export const ATTACHMENT_PREFIX = "attachment://";
 const mediaUrlRefinement: [(v: string) => boolean, string] = [
   (v) =>
-    v.startsWith("attachment://")
-      ? v.length > "attachment://".length
+    v.startsWith(ATTACHMENT_PREFIX)
+      ? v.length > ATTACHMENT_PREFIX.length
       : urlRefinement[0](v),
   "Invalid URL",
 ];
@@ -446,7 +451,7 @@ export type MessageComponentContainerChild = z.infer<
 export const containerSchema = z.object({
   id: uniqueIdSchema.default(() => getUniqueId()),
   type: z.literal(17),
-  components: z.array(containerChildSchema).min(1).max(10),
+  components: z.array(containerChildSchema).min(1),
   accent_color: z.optional(z.number().int().min(0).max(0xffffff)),
   spoiler: z.optional(z.boolean()),
 });
