@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Drawer, DrawerContent, DrawerTrigger } from "@/components/ui/drawer";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useMessageUpdateMutation } from "@/lib/api/mutations";
-import { useMessage } from "@/lib/hooks/api";
+import { useMessage, useMessageInstances } from "@/lib/hooks/api";
 import { useBeforePageExit } from "@/lib/hooks/exit";
 import { useAppId, useMessageId } from "@/lib/hooks/params";
 import { messageSchema, parseMessageData } from "@/lib/message/schemaRestore";
@@ -81,6 +81,9 @@ function AppMessagePageInner() {
     }
   }, [message, messageStore, flowStore]);
 
+  const instances = useMessageInstances();
+  const hasInstances = !!instances?.length;
+
   const updateMutation = useMessageUpdateMutation(useAppId(), useMessageId());
 
   const save = useCallback(() => {
@@ -101,7 +104,11 @@ function AppMessagePageInner() {
       {
         onSuccess(res) {
           if (res.success) {
-            toast.success("Message saved!");
+            toast.success("Message saved!", {
+              description: hasInstances
+                ? "Messages you already sent keep the old version until you update them in the Send Message dialog."
+                : undefined,
+            });
           } else {
             toast.error(
               `Failed to update message: ${res.error.message} (${res.error.code})`
@@ -116,6 +123,7 @@ function AppMessagePageInner() {
     );
   }, [
     message,
+    hasInstances,
     updateMutation,
     setIsSaving,
     setHasUnsavedChanges,

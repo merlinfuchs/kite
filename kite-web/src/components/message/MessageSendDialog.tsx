@@ -69,6 +69,11 @@ export default function MessageSendDialog({
             Send the message to the selected channel. The bot must be in the
             server and have the &quot;Manage Webhooks&quot; permission.
           </DialogDescription>
+          <DialogDescription>
+            Messages you already sent don&apos;t change when you save the
+            template. Click Update to apply your saved changes, including button
+            flows, to them.
+          </DialogDescription>
         </DialogHeader>
 
         <div className="flex flex-col sm:flex-row gap-2 overflow-x-hidden">
