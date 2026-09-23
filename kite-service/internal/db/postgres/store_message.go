@@ -52,6 +52,21 @@ func (c *Client) Message(ctx context.Context, id string) (*model.Message, error)
 	return rowToMessage(row)
 }
 
+func (c *Client) AppMessage(ctx context.Context, appID string, id string) (*model.Message, error) {
+	row, err := c.Q.GetMessageByApp(ctx, pgmodel.GetMessageByAppParams{
+		ID:    id,
+		AppID: appID,
+	})
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return nil, store.ErrNotFound
+		}
+		return nil, err
+	}
+
+	return rowToMessage(row)
+}
+
 func (c *Client) CreateMessage(ctx context.Context, variable *model.Message) (*model.Message, error) {
 	flowSources, err := json.Marshal(variable.FlowSources)
 	if err != nil {
