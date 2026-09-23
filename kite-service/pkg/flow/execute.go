@@ -1700,6 +1700,16 @@ func (n *CompiledFlowNode) ExecuteChildren(ctx *FlowContext) error {
 }
 
 func (n *CompiledFlowNode) autoDeferInteraction(ctx *FlowContext) error {
+	return autoDeferInteraction(ctx, n.FirstChildMatching(isResponseNode))
+}
+
+// autoDeferInteraction defers the interaction if the flow doesn't respond in
+// time, guessing the kind of defer from responseNode, the first response the
+// flow can reach.
+//
+// This can't be right for every flow — branches may disagree, and only one of
+// them runs. Users who need certainty should defer explicitly instead.
+func autoDeferInteraction(ctx *FlowContext, responseNode *CompiledFlowNode) error {
 	interaction := ctx.Data.Interaction()
 	if interaction == nil {
 		return &FlowError{
@@ -1708,21 +1718,31 @@ func (n *CompiledFlowNode) autoDeferInteraction(ctx *FlowContext) error {
 		}
 	}
 
-	// The defer has to declare up front whether the response is ephemeral, so
-	// we guess from the first response the flow can reach. The guess only
-	// binds a response that edits the original; a followup carries its own
-	// flags either way.
-	//
-	// This can't be right for every flow — branches may disagree, and only one
-	// of them runs. Users who need certainty should defer explicitly instead.
-	var responseFlags discord.MessageFlags
-	responseNode := n.FirstChildMatching(isResponseNode)
-	if responseNode != nil && responseNode.Data.MessageEphemeral {
-		responseFlags |= discord.EphemeralMessage
+	go ctx.Discord.AutoDeferInteraction(ctx, interaction.ID, interaction.Token, autoDeferResponse(interaction, responseNode))
+	return nil
+}
+
+func autoDeferResponse(interaction *discord.InteractionEvent, responseNode *CompiledFlowNode) api.InteractionResponse {
+	// A component interaction that doesn't create a new response either edits
+	// the message the component is on or doesn't respond at all. Both only
+	// need an acknowledgement, and a "thinking…" message would be edited
+	// instead of the component's message.
+	if _, ok := interaction.Data.(discord.ComponentInteraction); ok {
+		if responseNode == nil || (responseNode.Type != FlowNodeTypeActionResponseCreate && responseNode.Type != FlowNodeTypeActionResponseDefer) {
+			return api.InteractionResponse{Type: api.DeferredMessageUpdate}
+		}
 	}
 
-	go ctx.Discord.AutoDeferInteraction(ctx, interaction.ID, interaction.Token, responseFlags)
-	return nil
+	// The first response after this defer replaces the "thinking…" message and
+	// keeps the defer's flags, so ephemeral-ness has to be decided now.
+	resp := api.InteractionResponse{
+		Type: api.DeferredMessageInteractionWithSource,
+		Data: &api.InteractionResponseData{},
+	}
+	if responseNode != nil && responseNode.Data.MessageEphemeral {
+		resp.Data.Flags |= discord.EphemeralMessage
+	}
+	return resp
 }
 
 func (n *CompiledFlowNode) resumeFromComponent(ctx *FlowContext) error {
@@ -1732,11 +1752,6 @@ func (n *CompiledFlowNode) resumeFromComponent(ctx *FlowContext) error {
 			Code:    FlowNodeErrorUnknown,
 			Message: "interaction is nil",
 		}
-	}
-
-	err := n.autoDeferInteraction(ctx)
-	if err != nil {
-		return traceError(n, err)
 	}
 
 	data, ok := interaction.Data.(discord.ComponentInteraction)
@@ -1755,7 +1770,15 @@ func (n *CompiledFlowNode) resumeFromComponent(ctx *FlowContext) error {
 		}
 	}
 
-	err = n.ExecuteChildrenByHandle(ctx, fmt.Sprintf("component_%d", compID))
+	// Only the clicked component's branch runs, so guess the defer from it
+	// rather than from the node's other children.
+	handle := fmt.Sprintf("component_%d", compID)
+	err := autoDeferInteraction(ctx, FirstMatching(n.Children.Handles[handle], isResponseNode))
+	if err != nil {
+		return traceError(n, err)
+	}
+
+	err = n.ExecuteChildrenByHandle(ctx, handle)
 	if err != nil {
 		createDefaultErrorResponse(ctx, err)
 		return traceError(n, err)
