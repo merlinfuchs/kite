@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"maps"
 	"time"
 
 	"github.com/kitecloud/kite/kite-service/internal/core/plan"
@@ -14,6 +15,11 @@ import (
 const (
 	UsageRecordExpiry = 3 * 30 * 24 * time.Hour
 	LogEntryExpiry    = 30 * 24 * time.Hour
+
+	// Usage rows get created_at before their insert runs, and the insert has a
+	// 30s timeout, so a row stamped longer ago than this is either committed
+	// or never will be.
+	usageSettleDelay = 5 * time.Minute
 )
 
 type UsageManager struct {
@@ -22,6 +28,13 @@ type UsageManager struct {
 	logStore   store.LogStore
 
 	planManager *plan.PlanManager
+
+	// Credits per app used from settledMonth up to settledUntil, so the sweep
+	// only has to read rows added since instead of the whole month. Only
+	// touched from the Run goroutine.
+	settledMonth time.Time
+	settledUntil time.Time
+	settled      map[string]int
 }
 
 func NewUsageManager(
@@ -79,16 +92,15 @@ func (m *UsageManager) disableAppsWithNoCredits(ctx context.Context) error {
 	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
 
-	start, end := startAndEndOfMonth(time.Now().UTC())
-
-	creditsUsed, err := m.usageStore.AllUsageCreditsUsedBetween(ctx, start, end)
+	creditsUsed, err := m.creditsUsedThisMonth(ctx, time.Now().UTC())
 	if err != nil {
 		return fmt.Errorf("failed to get all usage credits used: %w", err)
 	}
 
 	// An app can only be over its limit if it is over the allowance every app
 	// gets for free, so the rest need no entitlement lookup at all. That is
-	// the large majority of them.
+	// the large majority of them. Apps that are already disabled stay in, as
+	// DisableApp is a no-op for them.
 	floor := m.planManager.DefaultFeatures().UsageCreditsPerMonth
 
 	var candidates []string
@@ -116,6 +128,45 @@ func (m *UsageManager) disableAppsWithNoCredits(ctx context.Context) error {
 	}
 
 	return nil
+}
+
+// creditsUsedThisMonth returns the credits every app has used in the month of
+// now. Summing the whole month took a scan of millions of rows every minute,
+// so rows older than usageSettleDelay are added to m.settled once and only the
+// recent tail is read each time.
+func (m *UsageManager) creditsUsedThisMonth(ctx context.Context, now time.Time) (map[string]int, error) {
+	start, end := startAndEndOfMonth(now)
+
+	if !start.Equal(m.settledMonth) {
+		m.settledMonth = start
+		m.settledUntil = start
+		m.settled = make(map[string]int)
+	}
+
+	settleUntil := now.Add(-usageSettleDelay)
+	if settleUntil.After(m.settledUntil) {
+		newlySettled, err := m.usageStore.AllUsageCreditsUsedBetween(ctx, m.settledUntil, settleUntil)
+		if err != nil {
+			return nil, err
+		}
+
+		for appID, used := range newlySettled {
+			m.settled[appID] += used
+		}
+		m.settledUntil = settleUntil
+	}
+
+	recent, err := m.usageStore.AllUsageCreditsUsedBetween(ctx, m.settledUntil, end)
+	if err != nil {
+		return nil, err
+	}
+
+	res := maps.Clone(m.settled)
+	for appID, used := range recent {
+		res[appID] += used
+	}
+
+	return res, nil
 }
 
 // disableApp is a separate function so its context is released when the app is
@@ -159,9 +210,9 @@ func (m *UsageManager) cleanupLogEntries(ctx context.Context) error {
 	return nil
 }
 
+// startAndEndOfMonth returns the start of t's month and the start of the next.
 func startAndEndOfMonth(t time.Time) (time.Time, time.Time) {
 	year, month, _ := t.Date()
 	start := time.Date(year, month, 1, 0, 0, 0, 0, t.Location())
-	end := start.AddDate(0, 1, 0).Add(-time.Nanosecond)
-	return start, end
+	return start, start.AddDate(0, 1, 0)
 }

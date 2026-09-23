@@ -58,10 +58,9 @@ func (q *Queries) DeleteUsageRecordsBefore(ctx context.Context, beforeAt pgtype.
 }
 
 const getAllUsageCreditsUsedBetween = `-- name: GetAllUsageCreditsUsedBetween :many
-SELECT u.app_id, SUM(u.credits_used) FROM usage_records u
-JOIN apps a ON a.id = u.app_id AND a.enabled
-WHERE u.created_at BETWEEN $1 AND $2
-GROUP BY u.app_id
+SELECT app_id, SUM(credits_used) FROM usage_records
+WHERE created_at >= $1 AND created_at < $2
+GROUP BY app_id
 `
 
 type GetAllUsageCreditsUsedBetweenParams struct {
@@ -74,10 +73,8 @@ type GetAllUsageCreditsUsedBetweenRow struct {
 	Sum   int64
 }
 
-// Only enabled apps. A disabled app's usage rows stay for the rest of the
-// month, so without this filter the credit sweep re-disables it on every run:
-// an UPDATE per app per minute, each bumping apps.updated_at, which is the
-// cursor GetDisabledAppIDsUpdatedSince feeds to the gateway manager's poll.
+// Half-open so the credit sweep can add up consecutive ranges without counting
+// a row on the boundary twice.
 func (q *Queries) GetAllUsageCreditsUsedBetween(ctx context.Context, arg GetAllUsageCreditsUsedBetweenParams) ([]GetAllUsageCreditsUsedBetweenRow, error) {
 	rows, err := q.db.Query(ctx, getAllUsageCreditsUsedBetween, arg.StartAt, arg.EndAt)
 	if err != nil {
