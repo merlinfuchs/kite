@@ -4,19 +4,19 @@ import {
   useChildIds,
   useDocumentStoreApi,
   useNodeActions,
-  useNodeIndex,
 } from "@/lib/message/state";
 import { nodeScope } from "@/lib/message/validationStore";
 import { Button } from "../ui/button";
 import { Card } from "../ui/card";
 import MessageCollapsibleSection from "./MessageCollapsibleSection";
+import MessageComponentCard from "./MessageComponentCard";
 import MessageComponentMediaFields from "./MessageComponentMediaFields";
 import MessageNodeActions from "./MessageNodeActions";
 
 export default function MessageComponentMediaGallery({ id }: { id: NodeId }) {
   const itemIds = useChildIds(id, "items");
-  const { index } = useNodeIndex(id);
   const actions = useNodeActions(id);
+  const { index } = actions;
   const { insert, removeChildren } = useDocumentStoreApi().getState();
 
   return (
@@ -58,20 +58,9 @@ export default function MessageComponentMediaGallery({ id }: { id: NodeId }) {
 }
 
 function MessageComponentMediaGalleryItem({ id }: { id: NodeId }) {
-  const { index } = useNodeIndex(id);
-  const actions = useNodeActions(id);
-
   return (
-    <Card className="p-3">
-      <MessageCollapsibleSection
-        title={`Item ${index + 1}`}
-        size="md"
-        validation={nodeScope(id)}
-        className="space-y-3"
-        actions={<MessageNodeActions actions={actions} />}
-      >
-        <MessageComponentMediaFields id={id} />
-      </MessageCollapsibleSection>
-    </Card>
+    <MessageComponentCard id={id} label="Item">
+      <MessageComponentMediaFields id={id} />
+    </MessageComponentCard>
   );
 }

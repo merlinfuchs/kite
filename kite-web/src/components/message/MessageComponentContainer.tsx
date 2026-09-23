@@ -5,7 +5,6 @@ import {
   useDocumentStoreApi,
   useNode,
   useNodeActions,
-  useNodeIndex,
 } from "@/lib/message/state";
 import { nodeField, nodeScope, slotScope } from "@/lib/message/validationStore";
 import { colorIntToHex } from "@/tools/common/utils/color";
@@ -26,8 +25,8 @@ export default function MessageComponentContainer({
 }) {
   const data = useNode<ContainerNode>(id);
   const childIds = useChildIds(id, "components");
-  const { index } = useNodeIndex(id);
   const actions = useNodeActions(id);
+  const { index } = actions;
   const { update, removeChildren } = useDocumentStoreApi().getState();
 
   const colorHex = useMemo(

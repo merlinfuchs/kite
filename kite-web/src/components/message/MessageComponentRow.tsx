@@ -3,7 +3,6 @@ import {
   useDocument,
   useDocumentStoreApi,
   useNodeActions,
-  useNodeIndex,
 } from "@/lib/message/state";
 import { NodeId } from "@/lib/message/document";
 import { nodeScope } from "@/lib/message/validationStore";
@@ -20,12 +19,12 @@ export default function MessageComponentRow({
   rowId: NodeId;
   disableFlowEditor?: boolean;
 }) {
-  const { index } = useNodeIndex(rowId);
   const childIds = useChildIds(rowId, "components");
   const isButtonRow = useDocument((state) =>
     childIds.every((id) => state.nodes[id]?.type === "button")
   );
   const actions = useNodeActions(rowId);
+  const { index } = actions;
   const { insert, removeChildren } = useDocumentStoreApi().getState();
 
   return (

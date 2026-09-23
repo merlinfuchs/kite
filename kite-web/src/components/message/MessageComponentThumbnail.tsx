@@ -1,31 +1,12 @@
 import { NodeId } from "@/lib/message/document";
-import { useNodeActions } from "@/lib/message/state";
-import { nodeScope } from "@/lib/message/validationStore";
-import { Card } from "../ui/card";
-import MessageCollapsibleSection from "./MessageCollapsibleSection";
+import MessageComponentCard from "./MessageComponentCard";
 import MessageComponentMediaFields from "./MessageComponentMediaFields";
-import MessageNodeActions from "./MessageNodeActions";
 
-export default function MessageComponentThumbnail({
-  id,
-  title = "Thumbnail",
-}: {
-  id: NodeId;
-  title?: string;
-}) {
-  const actions = useNodeActions(id);
-
+/** Only ever a section accessory, which holds a single node. */
+export default function MessageComponentThumbnail({ id }: { id: NodeId }) {
   return (
-    <Card className="p-3">
-      <MessageCollapsibleSection
-        title={title}
-        size="md"
-        validation={nodeScope(id)}
-        className="space-y-3"
-        actions={<MessageNodeActions actions={actions} />}
-      >
-        <MessageComponentMediaFields id={id} />
-      </MessageCollapsibleSection>
-    </Card>
+    <MessageComponentCard id={id} label="Thumbnail" numbered={false}>
+      <MessageComponentMediaFields id={id} />
+    </MessageComponentCard>
   );
 }

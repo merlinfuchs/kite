@@ -3,7 +3,6 @@ import {
   useDocumentStoreApi,
   useNode,
   useNodeActions,
-  useNodeIndex,
 } from "@/lib/message/state";
 import { ButtonNode, NodeId } from "@/lib/message/document";
 import { MessageComponentButtonStyle } from "@/lib/message/schema";
@@ -49,9 +48,9 @@ export default function MessageComponentButton({
   title?: string;
   disableFlowEditor?: boolean;
 }) {
-  const { index } = useNodeIndex(buttonId);
   const button = useNode<ButtonNode>(buttonId);
   const actions = useNodeActions(buttonId);
+  const { index } = actions;
   const { update } = useDocumentStoreApi().getState();
 
   const style = button?.style;

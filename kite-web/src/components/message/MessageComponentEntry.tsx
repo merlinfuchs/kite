@@ -1,5 +1,5 @@
 import { NodeId } from "@/lib/message/document";
-import { useNode } from "@/lib/message/state";
+import { useDocument } from "@/lib/message/state";
 import MessageComponentButton from "./MessageComponentButton";
 import MessageComponentContainer from "./MessageComponentContainer";
 import MessageComponentFile from "./MessageComponentFile";
@@ -20,7 +20,7 @@ export default function MessageComponentEntry({
   title?: string;
   disableFlowEditor?: boolean;
 }) {
-  const type = useNode(id)?.type;
+  const type = useDocument((state) => state.nodes[id]?.type);
 
   switch (type) {
     case "actionRow":
@@ -52,7 +52,7 @@ export default function MessageComponentEntry({
     case "textDisplay":
       return <MessageComponentTextDisplay id={id} />;
     case "thumbnail":
-      return <MessageComponentThumbnail id={id} title={title} />;
+      return <MessageComponentThumbnail id={id} />;
     case "mediaGallery":
       return <MessageComponentMediaGallery id={id} />;
     case "file":

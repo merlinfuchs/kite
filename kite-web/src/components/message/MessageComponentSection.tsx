@@ -5,7 +5,6 @@ import {
   useDocumentStoreApi,
   useNode,
   useNodeActions,
-  useNodeIndex,
 } from "@/lib/message/state";
 import { nodeScope, slotScope } from "@/lib/message/validationStore";
 import { Button } from "../ui/button";
@@ -25,8 +24,8 @@ export default function MessageComponentSection({
 }) {
   const data = useNode<SectionNode>(id);
   const childIds = useChildIds(id, "components");
-  const { index } = useNodeIndex(id);
   const actions = useNodeActions(id);
+  const { index } = actions;
   const { insert, removeChildren } = useDocumentStoreApi().getState();
 
   const accessoryType = useDocument(
@@ -102,7 +101,7 @@ export default function MessageComponentSection({
           {data.accessoryId && (
             <MessageComponentEntry
               id={data.accessoryId}
-              title={accessoryType === "button" ? "Button" : "Thumbnail"}
+              title="Button"
               disableFlowEditor={disableFlowEditor}
             />
           )}
