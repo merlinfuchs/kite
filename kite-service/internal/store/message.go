@@ -20,6 +20,9 @@ type MessageStore interface {
 type MessageInstanceStore interface {
 	MessageInstance(ctx context.Context, messageID string, instanceID uint64) (*model.MessageInstance, error)
 	MessageInstancesByMessage(ctx context.Context, messageID string, includeHidden bool) ([]*model.MessageInstance, error)
+	// FlowMessageInstancesByMessage returns the newest instances sent by flows,
+	// leaving out ephemeral ones since those can't be edited later.
+	FlowMessageInstancesByMessage(ctx context.Context, messageID string, limit int) ([]*model.MessageInstance, error)
 	MessageInstanceByDiscordMessageID(ctx context.Context, discordMessageID string) (*model.MessageInstance, error)
 	CreateMessageInstance(ctx context.Context, instance *model.MessageInstance) (*model.MessageInstance, error)
 	UpdateMessageInstance(ctx context.Context, instance *model.MessageInstance) (*model.MessageInstance, error)

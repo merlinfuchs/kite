@@ -66,6 +66,9 @@ SELECT * FROM message_instances WHERE id = $1 AND message_id = $2;
 -- name: GetMessageInstancesByMessage :many
 SELECT * FROM message_instances WHERE message_id = $1 AND NOT hidden ORDER BY created_at DESC;
 
+-- name: GetFlowMessageInstancesByMessage :many
+SELECT * FROM message_instances WHERE message_id = $1 AND hidden AND NOT ephemeral ORDER BY created_at DESC LIMIT $2;
+
 -- name: GetMessageInstancesByMessageWithHidden :many
 SELECT * FROM message_instances WHERE message_id = $1 ORDER BY created_at DESC;
 

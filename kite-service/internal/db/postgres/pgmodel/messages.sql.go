@@ -176,6 +176,46 @@ func (q *Queries) DeleteMessageInstanceByDiscordMessageId(ctx context.Context, d
 	return err
 }
 
+const getFlowMessageInstancesByMessage = `-- name: GetFlowMessageInstancesByMessage :many
+SELECT id, message_id, hidden, ephemeral, discord_guild_id, discord_channel_id, discord_message_id, flow_sources, created_at, updated_at FROM message_instances WHERE message_id = $1 AND hidden AND NOT ephemeral ORDER BY created_at DESC LIMIT $2
+`
+
+type GetFlowMessageInstancesByMessageParams struct {
+	MessageID string
+	Limit     int32
+}
+
+func (q *Queries) GetFlowMessageInstancesByMessage(ctx context.Context, arg GetFlowMessageInstancesByMessageParams) ([]MessageInstance, error) {
+	rows, err := q.db.Query(ctx, getFlowMessageInstancesByMessage, arg.MessageID, arg.Limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []MessageInstance
+	for rows.Next() {
+		var i MessageInstance
+		if err := rows.Scan(
+			&i.ID,
+			&i.MessageID,
+			&i.Hidden,
+			&i.Ephemeral,
+			&i.DiscordGuildID,
+			&i.DiscordChannelID,
+			&i.DiscordMessageID,
+			&i.FlowSources,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getMessage = `-- name: GetMessage :one
 SELECT id, name, description, data, flow_sources, app_id, module_id, creator_user_id, created_at, updated_at FROM messages WHERE id = $1
 `

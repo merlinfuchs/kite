@@ -17,6 +17,7 @@ import {
   useAppFeaturesQuery,
   useLogSummaryQuery,
   useMessageInstancesQuery,
+  useMessageFlowInstancesQuery,
   useMessageQuery,
   useMessagesQuery,
   useUsageCreditsByDayQuery,
@@ -209,6 +210,20 @@ export function useMessageInstances(
   const query = useMessageInstancesQuery(
     router.query.appId as string,
     router.query.messageId as string
+  );
+  return useResponseData(query, callback);
+}
+
+export function useMessageFlowInstances(
+  enabled: boolean,
+  callback?: (res: APIResponse<MessageInstanceListResponse>) => void
+) {
+  const router = useRouter();
+
+  const query = useMessageFlowInstancesQuery(
+    router.query.appId as string,
+    router.query.messageId as string,
+    enabled
   );
   return useResponseData(query, callback);
 }

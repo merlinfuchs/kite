@@ -233,6 +233,21 @@ export function useMessageInstancesQuery(appId: string, messageId: string) {
   });
 }
 
+export function useMessageFlowInstancesQuery(
+  appId: string,
+  messageId: string,
+  enabled: boolean
+) {
+  return useQuery({
+    queryKey: ["apps", appId, "messages", messageId, "instances", "flow"],
+    queryFn: () =>
+      apiRequest<MessageInstanceListResponse>(
+        `/v1/apps/${appId}/messages/${messageId}/instances?sent_by=flow`
+      ),
+    enabled: enabled && !!appId && !!messageId,
+  });
+}
+
 function assetQueryOptions(appId: string, assetId: string) {
   return {
     queryKey: ["apps", appId, "assets", assetId],

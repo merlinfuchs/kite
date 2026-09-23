@@ -123,7 +123,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			err := ctx.MessageTemplate.LinkMessageTemplateInstance(ctx, provider.MessageTemplateInstance{
 				MessageTemplateID: n.Data.MessageTemplateID,
 				MessageID:         msg.ID,
-				ChannelID:         ctx.Data.ChannelID(),
+				ChannelID:         msg.ChannelID,
 				GuildID:           ctx.Data.GuildID(),
 				Ephemeral:         n.Data.MessageEphemeral,
 			})
@@ -212,7 +212,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			err := ctx.MessageTemplate.LinkMessageTemplateInstance(ctx, provider.MessageTemplateInstance{
 				MessageTemplateID: n.Data.MessageTemplateID,
 				MessageID:         msg.ID,
-				ChannelID:         ctx.Data.ChannelID(),
+				ChannelID:         msg.ChannelID,
 				GuildID:           ctx.Data.GuildID(),
 				Ephemeral:         n.Data.MessageEphemeral,
 			})
@@ -385,7 +385,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			err := ctx.MessageTemplate.LinkMessageTemplateInstance(ctx, provider.MessageTemplateInstance{
 				MessageTemplateID: n.Data.MessageTemplateID,
 				MessageID:         msg.ID,
-				ChannelID:         ctx.Data.ChannelID(),
+				ChannelID:         msg.ChannelID,
 				GuildID:           ctx.Data.GuildID(),
 				Ephemeral:         n.Data.MessageEphemeral,
 			})
@@ -439,7 +439,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			err := ctx.MessageTemplate.LinkMessageTemplateInstance(ctx, provider.MessageTemplateInstance{
 				MessageTemplateID: n.Data.MessageTemplateID,
 				MessageID:         msg.ID,
-				ChannelID:         ctx.Data.ChannelID(),
+				ChannelID:         msg.ChannelID,
 				GuildID:           ctx.Data.GuildID(),
 				Ephemeral:         n.Data.MessageEphemeral,
 			})

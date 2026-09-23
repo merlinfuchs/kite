@@ -212,6 +212,27 @@ func (c *Client) MessageInstancesByMessage(ctx context.Context, messageID string
 	return instances, nil
 }
 
+func (c *Client) FlowMessageInstancesByMessage(ctx context.Context, messageID string, limit int) ([]*model.MessageInstance, error) {
+	rows, err := c.Q.GetFlowMessageInstancesByMessage(ctx, pgmodel.GetFlowMessageInstancesByMessageParams{
+		MessageID: messageID,
+		Limit:     int32(limit),
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	instances := make([]*model.MessageInstance, len(rows))
+	for i, row := range rows {
+		msg, err := rowToMessageInstance(row)
+		if err != nil {
+			return nil, err
+		}
+		instances[i] = msg
+	}
+
+	return instances, nil
+}
+
 func (c *Client) MessageInstanceByDiscordMessageID(ctx context.Context, discordMessageID string) (*model.MessageInstance, error) {
 	row, err := c.Q.GetMessageInstanceByDiscordMessageId(ctx, discordMessageID)
 	if err != nil {

@@ -14,7 +14,13 @@ import (
 )
 
 func (h *MessageHandler) HandleMessageInstanceList(c *handler.Context) (*wire.MessageInstanceListResponse, error) {
-	instances, err := h.messageInstanceStore.MessageInstancesByMessage(c.Context(), c.Message.ID, false)
+	var instances []*model.MessageInstance
+	var err error
+	if c.Query("sent_by") == "flow" {
+		instances, err = h.messageInstanceStore.FlowMessageInstancesByMessage(c.Context(), c.Message.ID, 100)
+	} else {
+		instances, err = h.messageInstanceStore.MessageInstancesByMessage(c.Context(), c.Message.ID, false)
+	}
 	if err != nil {
 		return nil, fmt.Errorf("failed to get message instances: %w", err)
 	}
@@ -71,6 +77,10 @@ func (h *MessageHandler) HandleMessageInstanceUpdate(c *handler.Context) (*wire.
 			return nil, handler.ErrNotFound("message_instance_not_found", "message instance not found")
 		}
 		return nil, fmt.Errorf("failed to get message instance: %w", err)
+	}
+
+	if instance.Ephemeral {
+		return nil, handler.ErrBadRequest("message_instance_ephemeral", "ephemeral messages can't be updated")
 	}
 
 	client, err := h.appStateManager.AppClient(c.Context(), c.App.ID)
