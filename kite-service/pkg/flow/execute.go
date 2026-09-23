@@ -1849,6 +1849,33 @@ func (n *CompiledFlowNode) prepareMessage(ctx *FlowContext) (message.MessageData
 	return data, opts, resumePointID, nil
 }
 
+// AcknowledgeUnansweredComponent acknowledges a component interaction the flow
+// finished without responding to, e.g. a button that only sends a channel
+// message. Discord shows "This interaction failed" otherwise, and the
+// auto-defer doesn't fire for flows that finish quickly.
+func AcknowledgeUnansweredComponent(fCtx *FlowContext) {
+	interaction := fCtx.Data.Interaction()
+	if interaction == nil {
+		return
+	}
+	if _, ok := interaction.Data.(discord.ComponentInteraction); !ok {
+		return
+	}
+
+	// The flow's own context may already have timed out.
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
+	defer cancel()
+
+	hasCreatedResponse, err := fCtx.Discord.HasCreatedInteractionResponse(ctx, interaction.ID)
+	if err != nil || hasCreatedResponse {
+		return
+	}
+
+	_, _ = fCtx.Discord.CreateInteractionResponse(ctx, interaction.ID, interaction.Token, api.InteractionResponse{
+		Type: api.DeferredMessageUpdate,
+	})
+}
+
 func createDefaultErrorResponse(fCtx *FlowContext, err error) {
 	interaction := fCtx.Data.Interaction()
 	if interaction == nil {

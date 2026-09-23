@@ -166,6 +166,8 @@ func (s Env) executeFlowEvent(
 		)
 	}
 
+	flow.AcknowledgeUnansweredComponent(fCtx)
+
 	s.createUsageRecord(
 		appID,
 		fCtx.CreditsUsed(),
