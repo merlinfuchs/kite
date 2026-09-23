@@ -30,7 +30,8 @@ export default function WebhookExecuteDialog() {
     try {
       let method = "POST";
       let url = new URL(webhookUrl);
-      url.search = "?wait=true";
+      // with_components lets webhooks that aren't owned by an app send components.
+      url.search = "?wait=true&with_components=true";
 
       if (edit) {
         url.pathname += `/messages/${messageId}`;

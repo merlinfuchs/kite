@@ -41,15 +41,16 @@ const initialFlow = {
 
 export default function MessageComponentButton({
   buttonId,
-  buttonIndex,
+  title,
   disableFlowEditor,
 }: {
   buttonId: NodeId;
-  buttonIndex: number;
+  title?: string;
   disableFlowEditor?: boolean;
 }) {
   const button = useNode<ButtonNode>(buttonId);
   const actions = useNodeActions(buttonId);
+  const { index } = actions;
   const { update } = useDocumentStoreApi().getState();
 
   const style = button?.style;
@@ -86,7 +87,7 @@ export default function MessageComponentButton({
       }}
     >
       <MessageCollapsibleSection
-        title={`Button ${buttonIndex + 1}`}
+        title={title ?? `Button ${index + 1}`}
         size="md"
         validation={nodeScope(buttonId)}
         className="space-y-3"

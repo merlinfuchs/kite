@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQueries, useQuery } from "@tanstack/react-query";
 import { apiRequest } from "./client";
 import {
   AppCollaboratorListResponse,
@@ -233,12 +233,31 @@ export function useMessageInstancesQuery(appId: string, messageId: string) {
   });
 }
 
-export function useAssetQuery(appId: string, assetId: string) {
-  return useQuery({
+function assetQueryOptions(appId: string, assetId: string) {
+  return {
     queryKey: ["apps", appId, "assets", assetId],
     queryFn: () =>
       apiRequest<AssetGetResponse>(`/v1/apps/${appId}/assets/${assetId}`),
     enabled: !!appId && !!assetId,
+  };
+}
+
+export function useAssetQuery(appId: string, assetId: string) {
+  return useQuery(assetQueryOptions(appId, assetId));
+}
+
+// Module level so react-query can keep the combined result stable between renders.
+function loadedAssets(
+  results: { data?: Awaited<ReturnType<typeof apiRequest<AssetGetResponse>>> }[]
+) {
+  return results.flatMap((q) => (q.data?.success ? [q.data.data] : []));
+}
+
+/** The assets that have loaded so far, in the order of `assetIds`. */
+export function useAssetQueries(appId: string, assetIds: string[]) {
+  return useQueries({
+    queries: assetIds.map((assetId) => assetQueryOptions(appId, assetId)),
+    combine: loadedAssets,
   });
 }
 

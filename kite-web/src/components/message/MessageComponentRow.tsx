@@ -14,11 +14,9 @@ import MessageNodeActions from "./MessageNodeActions";
 
 export default function MessageComponentRow({
   rowId,
-  rowIndex,
   disableFlowEditor,
 }: {
   rowId: NodeId;
-  rowIndex: number;
   disableFlowEditor?: boolean;
 }) {
   const childIds = useChildIds(rowId, "components");
@@ -26,12 +24,13 @@ export default function MessageComponentRow({
     childIds.every((id) => state.nodes[id]?.type === "button")
   );
   const actions = useNodeActions(rowId);
+  const { index } = actions;
   const { insert, removeChildren } = useDocumentStoreApi().getState();
 
   return (
     <Card className="px-4 py-3">
       <MessageCollapsibleSection
-        title={`Row ${rowIndex + 1}`}
+        title={`Row ${index + 1}`}
         size="lg"
         validation={nodeScope(rowId)}
         actions={<MessageNodeActions actions={actions} size="lg" />}
@@ -39,11 +38,10 @@ export default function MessageComponentRow({
       >
         {isButtonRow ? (
           <>
-            {childIds.map((id, i) => (
+            {childIds.map((id) => (
               <MessageComponentButton
                 key={id}
                 buttonId={id}
-                buttonIndex={i}
                 disableFlowEditor={disableFlowEditor}
               />
             ))}
