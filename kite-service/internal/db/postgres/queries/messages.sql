@@ -1,6 +1,9 @@
 -- name: GetMessage :one
 SELECT * FROM messages WHERE id = $1;
 
+-- name: GetMessageByApp :one
+SELECT * FROM messages WHERE id = $1 AND app_id = $2;
+
 -- name: GetMessagesByApp :many
 SELECT * FROM messages WHERE app_id = $1 ORDER BY created_at DESC;
 

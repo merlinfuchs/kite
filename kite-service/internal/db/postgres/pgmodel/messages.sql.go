@@ -198,6 +198,33 @@ func (q *Queries) GetMessage(ctx context.Context, id string) (Message, error) {
 	return i, err
 }
 
+const getMessageByApp = `-- name: GetMessageByApp :one
+SELECT id, name, description, data, flow_sources, app_id, module_id, creator_user_id, created_at, updated_at FROM messages WHERE id = $1 AND app_id = $2
+`
+
+type GetMessageByAppParams struct {
+	ID    string
+	AppID string
+}
+
+func (q *Queries) GetMessageByApp(ctx context.Context, arg GetMessageByAppParams) (Message, error) {
+	row := q.db.QueryRow(ctx, getMessageByApp, arg.ID, arg.AppID)
+	var i Message
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Description,
+		&i.Data,
+		&i.FlowSources,
+		&i.AppID,
+		&i.ModuleID,
+		&i.CreatorUserID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
 const getMessageInstance = `-- name: GetMessageInstance :one
 SELECT id, message_id, hidden, ephemeral, discord_guild_id, discord_channel_id, discord_message_id, flow_sources, created_at, updated_at FROM message_instances WHERE id = $1 AND message_id = $2
 `
