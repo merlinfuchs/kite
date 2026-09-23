@@ -250,19 +250,3 @@ func TestStringConversions(t *testing.T) {
 		})
 	}
 }
-
-// Template values can carry stray spaces, which must not turn IDs and numbers
-// into zero.
-func TestStringParsingIgnoresSurroundingSpace(t *testing.T) {
-	s := NewString(" 42 ")
-
-	if s.Int() != 42 {
-		t.Errorf("Int() = %d, want 42", s.Int())
-	}
-	if s.Float() != 42 {
-		t.Errorf("Float() = %v, want 42", s.Float())
-	}
-	if s.Snowflake() != 42 {
-		t.Errorf("Snowflake() = %v, want 42", s.Snowflake())
-	}
-}

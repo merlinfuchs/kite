@@ -118,7 +118,10 @@ func evalTemplate(ctx context.Context, template string, c Context, keepSpace boo
 	}
 
 	trimmed := strings.TrimSpace(template)
-	if template == "" || (trimmed == "" && !keepSpace) {
+	if !keepSpace {
+		template = trimmed
+	}
+	if template == "" {
 		return thing.Null, nil
 	}
 
@@ -135,10 +138,6 @@ func evalTemplate(ctx context.Context, template string, c Context, keepSpace boo
 		}
 
 		return res, nil
-	}
-
-	if !keepSpace {
-		template = trimmed
 	}
 
 	// Literal spans between placeholders are already covered by the input

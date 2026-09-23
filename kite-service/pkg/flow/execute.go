@@ -1159,8 +1159,14 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			return traceError(n, err)
 		}
 
-		// Spaces matter when appending or prepending to a text variable.
-		value, err := ctx.EvalTemplateKeepSpace(n.Data.VariableValue)
+		evalValue := ctx.EvalTemplate
+		switch n.Data.VariableOperation {
+		case provider.VariableOperationAppend, provider.VariableOperationPrepend:
+			// Spaces between the joined texts are part of the value.
+			evalValue = ctx.EvalTemplateKeepSpace
+		}
+
+		value, err := evalValue(n.Data.VariableValue)
 		if err != nil {
 			return traceError(n, err)
 		}

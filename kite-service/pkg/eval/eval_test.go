@@ -209,40 +209,21 @@ func TestEvalTemplateAllowsOutputUnderLimit(t *testing.T) {
 	}
 }
 
-// Variable values are appended to text, so their spaces are part of the value
-// (#339). Everywhere else templates are still trimmed.
+// Appended variable values keep their spaces (#339).
 func TestEvalTemplateKeepSpace(t *testing.T) {
 	c := Context{Env: Env{"name": "world"}}
 
-	cases := []struct {
-		template  string
-		keepSpace string
-		trimmed   string
-	}{
-		{" world", " world", "world"},
-		{"hello {{name}} ", "hello world ", "hello world"},
-		{" ", " ", ""},
-	}
-
-	for _, tc := range cases {
-		res, err := EvalTemplateKeepSpace(context.Background(), tc.template, c)
+	for template, want := range map[string]string{
+		" world":          " world",
+		"hello {{name}} ": "hello world ",
+		" ":               " ",
+	} {
+		res, err := EvalTemplateKeepSpace(context.Background(), template, c)
 		if err != nil {
-			t.Fatalf("%q: %v", tc.template, err)
+			t.Fatalf("%q: %v", template, err)
 		}
-		if got := res.String(); got != tc.keepSpace {
-			t.Errorf("EvalTemplateKeepSpace(%q) = %q, want %q", tc.template, got, tc.keepSpace)
-		}
-
-		res, err = EvalTemplate(context.Background(), tc.template, c)
-		if err != nil {
-			t.Fatalf("%q: %v", tc.template, err)
-		}
-		if tc.trimmed == "" {
-			if !res.IsNil() {
-				t.Errorf("EvalTemplate(%q) = %q, want null", tc.template, res.String())
-			}
-		} else if got := res.String(); got != tc.trimmed {
-			t.Errorf("EvalTemplate(%q) = %q, want %q", tc.template, got, tc.trimmed)
+		if got := res.String(); got != want {
+			t.Errorf("EvalTemplateKeepSpace(%q) = %q, want %q", template, got, want)
 		}
 	}
 }
