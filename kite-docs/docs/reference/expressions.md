@@ -99,6 +99,12 @@ This will return the value of the option that the user picked in a select menu.
 {{ interaction.value }}
 ```
 
+If the select menu allows picking more than one option, this will return true if the user picked the option with the value `option-a`.
+
+```python
+{{ "option-a" in interaction.values }}
+```
+
 ### Do Some Math
 
 This will return the result of the expression.

@@ -20,6 +20,8 @@ You can add interactive components like buttons and select menus to your message
 
 Each button has its own flow which gets triggered when a user clicks the button. Link buttons open a URL instead and don't have a flow.
 
+![Example Button](./img/example-button.png)
+
 ### Select Menus
 
 A select menu lets users pick one or more options from a list. Each select menu has one flow which gets triggered when a user picks an option.
