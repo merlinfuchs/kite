@@ -109,8 +109,8 @@ func TestRecordTriggerKeepsOriginAndReplacesPrevious(t *testing.T) {
 
 	assert.Equal(t, discord.InteractionID(1), resumed.Origin.Interaction.ID)
 	assert.Equal(t, discord.InteractionID(6), resumed.Previous.Interaction.ID)
-	// The copy the first resume point was created from is untouched.
-	assert.Equal(t, discord.InteractionID(1), state.Previous.Interaction.ID)
+	// Previous isn't stored while it's still the origin.
+	assert.Nil(t, state.Previous)
 }
 
 func TestRecordTriggerKeepsNewestModalInputs(t *testing.T) {

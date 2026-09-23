@@ -11,7 +11,8 @@ type FlowContextState struct {
 	Temporaries map[string]thing.Thing           `json:"temporaries"`
 
 	// Origin and Previous are only set in resumed executions. Origin started
-	// the flow, Previous started the execution that created the resume point.
+	// the flow, Previous started the execution that created the resume point
+	// and is nil while that's still Origin.
 	Origin   *FlowTrigger `json:"origin,omitempty"`
 	Previous *FlowTrigger `json:"previous,omitempty"`
 	// ModalInputs holds the inputs of earlier modal submissions, newest first.
@@ -26,19 +27,12 @@ func NewFlowContextState() *FlowContextState {
 }
 
 func (s FlowContextState) MarshalJSON() ([]byte, error) {
-	aux := struct {
-		NodeStates  map[string]*FlowContextNodeState `json:"node_states"`
-		Temporaries map[string]thing.Thing           `json:"temporaries"`
-		Origin      *FlowTrigger                     `json:"origin,omitempty"`
-		Previous    *FlowTrigger                     `json:"previous,omitempty"`
-		ModalInputs []map[string]string              `json:"modal_inputs,omitempty"`
-	}{
-		NodeStates:  make(map[string]*FlowContextNodeState, len(s.NodeStates)),
-		Temporaries: make(map[string]thing.Thing, len(s.Temporaries)),
-		Origin:      s.Origin,
-		Previous:    s.Previous,
-		ModalInputs: s.ModalInputs,
-	}
+	// The alias drops this method so json.Marshal doesn't recurse.
+	type state FlowContextState
+	aux := state(s)
+	aux.NodeStates = make(map[string]*FlowContextNodeState, len(s.NodeStates))
+	aux.Temporaries = make(map[string]thing.Thing, len(s.Temporaries))
+
 	// We don't want to serialize empty node states
 	for k, v := range s.NodeStates {
 		if !v.IsEmpty() {
@@ -100,14 +94,10 @@ func (s *FlowContextState) SetTemporary(name string, value thing.Thing) {
 }
 
 func (s *FlowContextState) Copy() FlowContextState {
-	copy := FlowContextState{
-		NodeStates:  make(map[string]*FlowContextNodeState, len(s.NodeStates)),
-		Temporaries: make(map[string]thing.Thing, len(s.Temporaries)),
-		// Triggers and inputs are never mutated, only replaced.
-		Origin:      s.Origin,
-		Previous:    s.Previous,
-		ModalInputs: s.ModalInputs,
-	}
+	// Triggers and inputs are never mutated, only replaced, so they can be shared.
+	copy := *s
+	copy.NodeStates = make(map[string]*FlowContextNodeState, len(s.NodeStates))
+	copy.Temporaries = make(map[string]thing.Thing, len(s.Temporaries))
 
 	for k, v := range s.NodeStates {
 		if !v.IsEmpty() {
@@ -134,8 +124,9 @@ func (s *FlowContextState) recordTrigger(data FlowContextData) {
 
 	if s.Origin == nil {
 		s.Origin = trigger
+	} else {
+		s.Previous = trigger
 	}
-	s.Previous = trigger
 
 	if inputs := trigger.modalInputs(); inputs != nil {
 		modalInputs := append([]map[string]string{inputs}, s.ModalInputs...)

@@ -276,24 +276,17 @@ func TestResumeContextFallsBackToEarlierInteractions(t *testing.T) {
 	}
 }
 
-func TestResumeContextPrefersCurrentInteraction(t *testing.T) {
+func TestResumeContextPrefersCurrentModalInput(t *testing.T) {
 	c := Context{Env: Env{
-		"arg":   func(name string) any { return "current" },
 		"input": func(customID string) any { return "current" },
 	}}
-	c.SetResumeContext(
-		Context{Env: Env{"arg": func(name string) any { return "origin" }}},
-		Context{Env: Env{}},
-		[]map[string]string{{"name": "earlier"}},
-	)
+	c.SetResumeContext(Context{Env: Env{}}, Context{Env: Env{}}, []map[string]string{{"name": "earlier"}})
 
-	for _, expression := range []string{`arg("x")`, `input("name")`} {
-		res, err := Eval(context.Background(), expression, c)
-		if err != nil {
-			t.Fatalf("%s: %v", expression, err)
-		}
-		if res.String() != "current" {
-			t.Errorf("%s = %q, want %q", expression, res.String(), "current")
-		}
+	res, err := Eval(context.Background(), `input("name")`, c)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.String() != "current" {
+		t.Errorf("input(\"name\") = %q, want %q", res.String(), "current")
 	}
 }

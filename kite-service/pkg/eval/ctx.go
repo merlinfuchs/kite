@@ -298,24 +298,15 @@ func NewEventEnv(event ws.Event) *EventEnv {
 }
 
 // SetResumeContext makes the interactions or events from before a resume point
-// available to the resumed flow. Command args and modal inputs only exist on
-// one kind of interaction, so arg() and input() fall back to earlier ones.
+// available to the resumed flow. Flows only resume from components and modals,
+// so arg() always refers to the command that started the flow and input()
+// falls back to earlier modals.
 func (c Context) SetResumeContext(origin Context, previous Context, modalInputs []map[string]string) {
 	c.Env["origin"] = map[string]any(origin.Env)
 	c.Env["previous"] = map[string]any(previous.Env)
 
-	currentArg, _ := c.Env["arg"].(func(string) any)
-	originArg, _ := origin.Env["arg"].(func(string) any)
-	c.Env["arg"] = func(name string) any {
-		if currentArg != nil {
-			if v := currentArg(name); v != nil {
-				return v
-			}
-		}
-		if originArg != nil {
-			return originArg(name)
-		}
-		return nil
+	if arg, ok := origin.Env["arg"]; ok {
+		c.Env["arg"] = arg
 	}
 
 	currentInput, _ := c.Env["input"].(func(string) any)

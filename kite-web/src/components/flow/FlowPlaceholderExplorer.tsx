@@ -1,6 +1,7 @@
-import { useFlowContext } from "@/lib/flow/context";
+import { FlowContextType, useFlowContext } from "@/lib/flow/context";
 import { NodeData } from "@/lib/flow/dataSchema";
 import { getNodeValues } from "@/lib/flow/nodes";
+import { isResumeEdge } from "@/lib/flow/resume";
 import { Edge, getIncomers, Node, useEdges, useNodes } from "@xyflow/react";
 import { VariableIcon } from "lucide-react";
 import { useMemo } from "react";
@@ -53,62 +54,8 @@ export default function FlowPlaceholderExplorer({
 function useGlobalPlaceholders() {
   const contextType = useFlowContext((c) => c.type);
 
-  const res = [
-    {
-      label: "User",
-      placeholders: [
-        {
-          label: "User",
-          value: `user`,
-        },
-        {
-          label: "User ID",
-          value: `user.id`,
-        },
-        {
-          label: "User Mention",
-          value: `user.mention`,
-        },
-        {
-          label: "User Username",
-          value: `user.username`,
-        },
-        {
-          label: "User Display Name",
-          value: `user.display_name`,
-        },
-        {
-          label: "User Nickname",
-          value: `user.nick`,
-        },
-        {
-          label: "User Avatar URL",
-          value: `user.avatar_url`,
-        },
-        {
-          label: "User Banner URL",
-          value: `user.banner_url`,
-        },
-      ],
-    },
-    {
-      label: "Server",
-      placeholders: [
-        {
-          label: "Server ID",
-          value: `guild.id`,
-        },
-      ],
-    },
-    {
-      label: "Channel",
-      placeholders: [
-        {
-          label: "Channel ID",
-          value: `channel.id`,
-        },
-      ],
-    },
+  return [
+    ...interactionPlaceholders(contextType),
     {
       label: "App",
       placeholders: [
@@ -123,23 +70,89 @@ function useGlobalPlaceholders() {
       ],
     },
   ];
+}
+
+// interactionPlaceholders lists the placeholders of the interaction or event
+// the flow runs with. Resumed sub-flows reach earlier ones through a prefix.
+function interactionPlaceholders(
+  contextType?: FlowContextType,
+  prefix = "",
+  labelPrefix = ""
+) {
+  const res = [
+    {
+      label: `${labelPrefix}User`,
+      placeholders: [
+        {
+          label: "User",
+          value: `${prefix}user`,
+        },
+        {
+          label: "User ID",
+          value: `${prefix}user.id`,
+        },
+        {
+          label: "User Mention",
+          value: `${prefix}user.mention`,
+        },
+        {
+          label: "User Username",
+          value: `${prefix}user.username`,
+        },
+        {
+          label: "User Display Name",
+          value: `${prefix}user.display_name`,
+        },
+        {
+          label: "User Nickname",
+          value: `${prefix}user.nick`,
+        },
+        {
+          label: "User Avatar URL",
+          value: `${prefix}user.avatar_url`,
+        },
+        {
+          label: "User Banner URL",
+          value: `${prefix}user.banner_url`,
+        },
+      ],
+    },
+    {
+      label: `${labelPrefix}Server`,
+      placeholders: [
+        {
+          label: "Server ID",
+          value: `${prefix}guild.id`,
+        },
+      ],
+    },
+    {
+      label: `${labelPrefix}Channel`,
+      placeholders: [
+        {
+          label: "Channel ID",
+          value: `${prefix}channel.id`,
+        },
+      ],
+    },
+  ];
 
   if (contextType === "component_select_menu") {
     res.push({
-      label: "Select Menu",
+      label: `${labelPrefix}Select Menu`,
       placeholders: [
-        { label: "Selected Value", value: `interaction.value` },
-        { label: "Selected Values", value: `interaction.values` },
+        { label: "Selected Value", value: `${prefix}interaction.value` },
+        { label: "Selected Values", value: `${prefix}interaction.values` },
       ],
     });
   }
 
   if (contextType === "event_discord") {
     res.push({
-      label: "Message",
+      label: `${labelPrefix}Message`,
       placeholders: [
-        { label: "Message ID", value: `message.id` },
-        { label: "Message Content", value: `message.content` },
+        { label: "Message ID", value: `${prefix}message.id` },
+        { label: "Message Content", value: `${prefix}message.content` },
       ],
     });
   }
@@ -191,46 +204,26 @@ function useResumePlaceholders() {
       return [];
     }
 
-    const res = [
-      {
-        label: "Original Interaction",
-        placeholders: triggerPlaceholders("origin", contextType),
-      },
-    ];
-
+    const res = interactionPlaceholders(contextType, "origin.", "Original ");
     if (depth > 1) {
-      res.push({
-        label: "Previous Interaction",
-        placeholders: triggerPlaceholders("previous", "component_button"),
-      });
+      // Whether previous was a button, select menu or modal isn't tracked here.
+      res.push(...interactionPlaceholders(undefined, "previous.", "Previous "));
     }
 
     return res;
   }, [nodes, edges, contextType]);
 }
 
-function triggerPlaceholders(prefix: string, contextType: string) {
-  const res = [
-    { label: "User", value: `${prefix}.user` },
-    { label: "User ID", value: `${prefix}.user.id` },
-    { label: "User Mention", value: `${prefix}.user.mention` },
-    { label: "Channel ID", value: `${prefix}.channel.id` },
-  ];
-
-  if (contextType === "event_discord") {
-    res.push(
-      { label: "Message ID", value: `${prefix}.message.id` },
-      { label: "Message Content", value: `${prefix}.message.content` }
-    );
-  }
-
-  return res;
-}
-
-// getResumeDepth counts the resume points between the root and a node: edges
-// from a button or select menu handle and edges out of a modal.
+// getResumeDepth counts the resume points between the root and a node.
 function getResumeDepth(nodeId: string, nodes: Node[], edges: Edge[]) {
   const nodeTypes = new Map(nodes.map((n) => [n.id, n.type]));
+  const incoming = new Map<string, Edge[]>();
+  for (const edge of edges) {
+    const targetEdges = incoming.get(edge.target) ?? [];
+    targetEdges.push(edge);
+    incoming.set(edge.target, targetEdges);
+  }
+
   const visited = new Set<string>();
 
   function traverse(id: string): number {
@@ -240,14 +233,8 @@ function getResumeDepth(nodeId: string, nodes: Node[], edges: Edge[]) {
     visited.add(id);
 
     let depth = 0;
-    for (const edge of edges) {
-      if (edge.target !== id) {
-        continue;
-      }
-
-      const isResume =
-        edge.sourceHandle?.startsWith("component_") ||
-        nodeTypes.get(edge.source) === "suspend_response_modal";
+    for (const edge of incoming.get(id) ?? []) {
+      const isResume = isResumeEdge(edge, nodeTypes.get(edge.source));
       depth = Math.max(depth, traverse(edge.source) + (isResume ? 1 : 0));
     }
     return depth;

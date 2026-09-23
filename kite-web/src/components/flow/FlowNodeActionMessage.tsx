@@ -1,5 +1,6 @@
 import { NodeProps } from "@/lib/flow/dataSchema";
 import { suspendColor } from "@/lib/flow/nodes";
+import { componentHandleId } from "@/lib/flow/resume";
 import {
   ButtonStyleLink,
   ComponentData,
@@ -118,6 +119,5 @@ function ComponentHandle({ comp }: { comp: ComponentData }) {
 }
 
 function buttonHandleId(comp: ComponentData) {
-  // NOTE: The format has to match with the backend for the resume point to work
-  return `component_${comp.id}`;
+  return componentHandleId(comp.id);
 }
