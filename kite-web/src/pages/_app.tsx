@@ -1,5 +1,6 @@
 import "@/styles/globals.css";
 import "@/styles/shadow.css";
+import "@/styles/message-preview.css";
 import type { AppProps } from "next/app";
 import { Inter as FontSans } from "next/font/google";
 import { Toaster } from "@/components/ui/sonner";
