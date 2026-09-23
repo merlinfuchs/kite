@@ -17,6 +17,8 @@ var scopedTables = []string{"variable_values", "message_instances"}
 var exemptQueries = map[string]string{
 	// Only counts the variable's own values, the variable itself is checked by VariableAccess.
 	"GetVariable": "aggregates the parent's own children, never keyed by child id",
+	// Retention sweep across all apps, takes no ids.
+	"DeleteUnusedMessageInstances": "global cleanup by age, never keyed by user input",
 }
 
 // splitQueries returns each query by name with comments stripped, so a comment

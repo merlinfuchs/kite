@@ -2,6 +2,7 @@ package store
 
 import (
 	"context"
+	"time"
 
 	"github.com/kitecloud/kite/kite-service/internal/model"
 )
@@ -26,4 +27,9 @@ type MessageInstanceStore interface {
 	UpdateMessageInstance(ctx context.Context, appID string, instance *model.MessageInstance) (*model.MessageInstance, error)
 	DeleteMessageInstance(ctx context.Context, appID string, messageID string, instanceID uint64) error
 	DeleteMessageInstanceByDiscordMessageID(ctx context.Context, appID string, discordMessageID string) error
+	TouchMessageInstance(ctx context.Context, appID string, instanceID uint64, usedAt time.Time) error
+	// DeleteUnusedMessageInstances deletes instances sent by flows that were last
+	// used before flowUsedBefore and ones sent from the dashboard that were last
+	// used before dashboardUsedBefore.
+	DeleteUnusedMessageInstances(ctx context.Context, flowUsedBefore time.Time, dashboardUsedBefore time.Time) error
 }

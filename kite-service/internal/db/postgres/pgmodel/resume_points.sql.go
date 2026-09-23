@@ -80,8 +80,17 @@ func (q *Queries) DeleteResumePoint(ctx context.Context, id string) error {
 	return err
 }
 
+const deleteUnusedResumePoints = `-- name: DeleteUnusedResumePoints :exec
+DELETE FROM resume_points WHERE last_used_at < $1
+`
+
+func (q *Queries) DeleteUnusedResumePoints(ctx context.Context, usedBefore pgtype.Timestamp) error {
+	_, err := q.db.Exec(ctx, deleteUnusedResumePoints, usedBefore)
+	return err
+}
+
 const resumePoint = `-- name: ResumePoint :one
-SELECT id, type, app_id, command_id, event_listener_id, message_id, message_instance_id, flow_source_id, flow_node_id, flow_state, created_at, expires_at FROM resume_points WHERE id = $1 AND app_id = $2
+SELECT id, type, app_id, command_id, event_listener_id, message_id, message_instance_id, flow_source_id, flow_node_id, flow_state, created_at, expires_at, last_used_at FROM resume_points WHERE id = $1 AND app_id = $2
 `
 
 type ResumePointParams struct {
@@ -106,6 +115,24 @@ func (q *Queries) ResumePoint(ctx context.Context, arg ResumePointParams) (Resum
 		&i.FlowState,
 		&i.CreatedAt,
 		&i.ExpiresAt,
+		&i.LastUsedAt,
 	)
 	return i, err
+}
+
+const touchResumePoint = `-- name: TouchResumePoint :exec
+UPDATE resume_points SET last_used_at = $1
+WHERE id = $2 AND app_id = $3 AND last_used_at < $1::timestamp - INTERVAL '1 day'
+`
+
+type TouchResumePointParams struct {
+	UsedAt pgtype.Timestamp
+	ID     string
+	AppID  string
+}
+
+// Only writes once a day per resume point so busy buttons don't write on every click.
+func (q *Queries) TouchResumePoint(ctx context.Context, arg TouchResumePointParams) error {
+	_, err := q.db.Exec(ctx, touchResumePoint, arg.UsedAt, arg.ID, arg.AppID)
+	return err
 }

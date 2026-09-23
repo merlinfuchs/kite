@@ -14,12 +14,19 @@ import (
 const (
 	UsageRecordExpiry = 3 * 30 * 24 * time.Hour
 	LogEntryExpiry    = 30 * 24 * time.Hour
+
+	// Buttons stop working once these expire, so they count from last use, not creation.
+	ResumePointExpiry              = 90 * 24 * time.Hour
+	FlowMessageInstanceExpiry      = 90 * 24 * time.Hour
+	DashboardMessageInstanceExpiry = 360 * 24 * time.Hour
 )
 
 type UsageManager struct {
-	appStore   store.AppStore
-	usageStore store.UsageStore
-	logStore   store.LogStore
+	appStore             store.AppStore
+	usageStore           store.UsageStore
+	logStore             store.LogStore
+	resumePointStore     store.ResumePointStore
+	messageInstanceStore store.MessageInstanceStore
 
 	planManager *plan.PlanManager
 }
@@ -28,13 +35,17 @@ func NewUsageManager(
 	appStore store.AppStore,
 	usageStore store.UsageStore,
 	logStore store.LogStore,
+	resumePointStore store.ResumePointStore,
+	messageInstanceStore store.MessageInstanceStore,
 	planManager *plan.PlanManager,
 ) *UsageManager {
 	return &UsageManager{
-		appStore:    appStore,
-		usageStore:  usageStore,
-		logStore:    logStore,
-		planManager: planManager,
+		appStore:             appStore,
+		usageStore:           usageStore,
+		logStore:             logStore,
+		resumePointStore:     resumePointStore,
+		messageInstanceStore: messageInstanceStore,
+		planManager:          planManager,
 	}
 }
 
@@ -68,6 +79,18 @@ func (m *UsageManager) Run(ctx context.Context) {
 				if err := m.cleanupLogEntries(ctx); err != nil {
 					slog.Error(
 						"Failed to cleanup log entries",
+						slog.String("error", err.Error()),
+					)
+				}
+				if err := m.cleanupResumePoints(ctx); err != nil {
+					slog.Error(
+						"Failed to cleanup resume points",
+						slog.String("error", err.Error()),
+					)
+				}
+				if err := m.cleanupMessageInstances(ctx); err != nil {
+					slog.Error(
+						"Failed to cleanup message instances",
 						slog.String("error", err.Error()),
 					)
 				}
@@ -159,6 +182,35 @@ func (m *UsageManager) cleanupLogEntries(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("failed to delete log entries: %w", err)
 	}
+	return nil
+}
+
+func (m *UsageManager) cleanupResumePoints(ctx context.Context) error {
+	now := time.Now().UTC()
+
+	if err := m.resumePointStore.DeleteExpiredResumePoints(ctx, now); err != nil {
+		return fmt.Errorf("failed to delete expired resume points: %w", err)
+	}
+
+	if err := m.resumePointStore.DeleteUnusedResumePoints(ctx, now.Add(-ResumePointExpiry)); err != nil {
+		return fmt.Errorf("failed to delete unused resume points: %w", err)
+	}
+
+	return nil
+}
+
+func (m *UsageManager) cleanupMessageInstances(ctx context.Context) error {
+	now := time.Now().UTC()
+
+	err := m.messageInstanceStore.DeleteUnusedMessageInstances(
+		ctx,
+		now.Add(-FlowMessageInstanceExpiry),
+		now.Add(-DashboardMessageInstanceExpiry),
+	)
+	if err != nil {
+		return fmt.Errorf("failed to delete unused message instances: %w", err)
+	}
+
 	return nil
 }
 

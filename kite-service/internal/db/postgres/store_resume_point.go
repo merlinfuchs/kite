@@ -51,6 +51,18 @@ func (c *Client) DeleteExpiredResumePoints(ctx context.Context, now time.Time) e
 	return c.Q.DeleteExpiredResumePoints(ctx, pgtype.Timestamp{Time: now, Valid: true})
 }
 
+func (c *Client) DeleteUnusedResumePoints(ctx context.Context, usedBefore time.Time) error {
+	return c.Q.DeleteUnusedResumePoints(ctx, pgtype.Timestamp{Time: usedBefore, Valid: true})
+}
+
+func (c *Client) TouchResumePoint(ctx context.Context, appID string, id string, usedAt time.Time) error {
+	return c.Q.TouchResumePoint(ctx, pgmodel.TouchResumePointParams{
+		UsedAt: pgtype.Timestamp{Time: usedAt, Valid: true},
+		ID:     id,
+		AppID:  appID,
+	})
+}
+
 func (c *Client) ResumePoint(ctx context.Context, appID string, id string) (*model.ResumePoint, error) {
 	row, err := c.Q.ResumePoint(ctx, pgmodel.ResumePointParams{
 		ID:    id,

@@ -55,7 +55,9 @@ func TestResumeFlowIgnoresResumePointFromAnotherApp(t *testing.T) {
 		}
 	}()
 
-	app.resumeFlow("rp-1", nil, nil)
+	if app.resumeFlow("rp-1", nil, nil) {
+		t.Fatal("expected a foreign resume point to be treated as missing")
+	}
 }
 
 func TestResumeFlowResolvesOwnResumePoint(t *testing.T) {
