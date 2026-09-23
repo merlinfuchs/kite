@@ -48,7 +48,14 @@ INSERT INTO message_instances (
     updated_at
 ) VALUES (
     $1, $2, $3, $4, $5, $6, $7, $8, $9
-) RETURNING *;
+)
+-- Editing a message to a different template re-links it, so its new buttons resolve
+ON CONFLICT (discord_message_id) DO UPDATE SET
+    message_id = EXCLUDED.message_id,
+    hidden = message_instances.hidden AND EXCLUDED.hidden,
+    flow_sources = EXCLUDED.flow_sources,
+    updated_at = EXCLUDED.updated_at
+RETURNING *;
 
 -- name: GetMessageInstance :one
 SELECT * FROM message_instances WHERE id = $1 AND message_id = $2;
