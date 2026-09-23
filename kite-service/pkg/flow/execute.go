@@ -150,7 +150,6 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 		if err != nil {
 			return traceError(n, err)
 		}
-		responseData := data.ToInteractionResponseData(opts)
 
 		var msg *discord.Message
 		if n.Data.MessageTarget == "" || n.Data.MessageTarget == "@original" {
