@@ -1809,7 +1809,7 @@ func (n *CompiledFlowNode) prepareMessageResponseData(ctx *FlowContext) (api.Int
 	}
 
 	var resumePointID string
-	if n.Data.MessageTemplateID == "" && len(data.Components) > 0 {
+	if n.Data.MessageTemplateID == "" && data.HasInteractiveComponents() {
 		resumePointID = util.UniqueID()
 	}
 
@@ -1832,7 +1832,7 @@ func (n *CompiledFlowNode) prepareMessageSendData(ctx *FlowContext) (api.SendMes
 	}
 
 	var resumePointID string
-	if n.Data.MessageTemplateID == "" && len(data.Components) > 0 {
+	if n.Data.MessageTemplateID == "" && data.HasInteractiveComponents() {
 		// The resume point will be created after the message has been sent, we just need the ID here already
 		resumePointID = util.UniqueID()
 	}

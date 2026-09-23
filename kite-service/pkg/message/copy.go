@@ -10,10 +10,7 @@ func (m *MessageData) Copy() MessageData {
 		embeds[i] = embed.Copy()
 	}
 
-	components := make([]ComponentRowData, len(m.Components))
-	for i, component := range m.Components {
-		components[i] = component.Copy()
-	}
+	components := copyComponents(m.Components)
 
 	attachments := make([]MessageAttachment, len(m.Attachments))
 	for i, attachment := range m.Attachments {
@@ -101,38 +98,61 @@ func (a *EmbedAuthorData) Copy() *EmbedAuthorData {
 	}
 }
 
-func (c ComponentRowData) Copy() ComponentRowData {
-	components := make([]ComponentData, len(c.Components))
-	for i, component := range c.Components {
-		components[i] = component.Copy()
+func copyComponents(components []ComponentData) []ComponentData {
+	if components == nil {
+		return nil
 	}
 
-	return ComponentRowData{
-		ID:         c.ID,
-		Components: components,
+	res := make([]ComponentData, len(components))
+	for i, component := range components {
+		res[i] = component.Copy()
 	}
+	return res
 }
 
 func (c ComponentData) Copy() ComponentData {
-	options := make([]ComponentSelectOptionData, len(c.Options))
-	for i, option := range c.Options {
-		options[i] = option.Copy()
+	res := c
+	res.Emoji = c.Emoji.Copy()
+	res.Components = copyComponents(c.Components)
+
+	if c.Options != nil {
+		res.Options = make([]ComponentSelectOptionData, len(c.Options))
+		for i, option := range c.Options {
+			res.Options[i] = option.Copy()
+		}
 	}
 
-	return ComponentData{
-		ID:           c.ID,
-		Type:         c.Type,
-		Disabled:     c.Disabled,
-		Style:        c.Style,
-		Label:        c.Label,
-		Emoji:        c.Emoji.Copy(),
-		URL:          c.URL,
-		Placeholder:  c.Placeholder,
-		MinValues:    c.MinValues,
-		MaxValues:    c.MaxValues,
-		Options:      options,
-		FlowSourceID: c.FlowSourceID,
+	if c.Accessory != nil {
+		accessory := c.Accessory.Copy()
+		res.Accessory = &accessory
 	}
+
+	if c.Media != nil {
+		media := *c.Media
+		res.Media = &media
+	}
+
+	if c.File != nil {
+		file := *c.File
+		res.File = &file
+	}
+
+	if c.Items != nil {
+		res.Items = make([]MediaGalleryItemData, len(c.Items))
+		copy(res.Items, c.Items)
+	}
+
+	if c.Divider != nil {
+		divider := *c.Divider
+		res.Divider = &divider
+	}
+
+	if c.AccentColor != nil {
+		accentColor := *c.AccentColor
+		res.AccentColor = &accentColor
+	}
+
+	return res
 }
 
 func (c *ComponentEmojiData) Copy() *ComponentEmojiData {
