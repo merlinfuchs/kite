@@ -5,6 +5,8 @@ import { immer } from "zustand/middleware/immer";
 import { getUniqueId } from "@/lib/utils";
 import {
   COMPONENTS_V2_FLAG,
+  MAX_COMPONENTS_V2,
+  hasComponentsV2Flag,
   type EmbedAuthor,
   type EmbedFooter,
   type EmbedImage,
@@ -239,8 +241,6 @@ export interface DocumentStore extends DocumentData {
   setComponentsV2(enabled: boolean): void;
 }
 
-export { COMPONENTS_V2_FLAG };
-
 export const emptyMessage: RestoredMessage = {
   content: "",
   tts: false,
@@ -250,7 +250,7 @@ export const emptyMessage: RestoredMessage = {
 };
 
 /** What enabling components v2 replaces the message with. */
-export const emptyComponentsV2Message: RestoredMessage = {
+const emptyComponentsV2Message: RestoredMessage = {
   ...emptyMessage,
   flags: COMPONENTS_V2_FLAG,
 };
@@ -270,25 +270,21 @@ const SLOT_LIMITS: Record<string, number> = {
   "mediaGallery.items": 10,
 };
 
-/** Components v2 only caps the total component count, which the schema checks. */
-const COMPONENTS_V2_TOP_LEVEL_LIMIT = 40;
-
 export function slotLimit(
   parentType: NodeType,
   slot: ChildSlot,
   componentsV2 = false
 ): number {
   if (componentsV2 && parentType === "message" && slot === "components") {
-    return COMPONENTS_V2_TOP_LEVEL_LIMIT;
+    // Components v2 only caps the total component count, which the schema checks.
+    return MAX_COMPONENTS_V2;
   }
   return SLOT_LIMITS[`${parentType}.${slot}`] ?? 1;
 }
 
 export function isComponentsV2(state: DocumentData): boolean {
   const root = state.nodes[state.rootId];
-  return root?.type === "message"
-    ? ((root.flags ?? 0) & COMPONENTS_V2_FLAG) !== 0
-    : false;
+  return root?.type === "message" && hasComponentsV2Flag(root.flags);
 }
 
 function freshId(nodes: Record<NodeId, Node>): NodeId {
@@ -483,8 +479,6 @@ export const createDocumentStore = (
       )
     )
   );
-
-export type DocumentStoreApi = ReturnType<typeof createDocumentStore>;
 
 /** Detaches `id` from its parent and drops it and everything below it. */
 function removeSubtree(state: DocumentData, id: NodeId) {

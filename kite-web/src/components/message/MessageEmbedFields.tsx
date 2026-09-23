@@ -16,8 +16,8 @@ export default function MessageEmbedFields({ embedId }: { embedId: NodeId }) {
       validation={slotScope(embedId, "fields")}
       className="space-y-3"
     >
-      {fieldIds.map((id, i) => (
-        <MessageEmbedField key={id} fieldId={id} fieldIndex={i} />
+      {fieldIds.map((id) => (
+        <MessageEmbedField key={id} fieldId={id} />
       ))}
       <div className="space-x-3">
         <Button
