@@ -123,28 +123,30 @@ export default function MessagePreview({
 
         {msg.components.length != 0 && (
           <DiscordAttachments slot="components">
-            {msg.components.map((row) => (
-              <DiscordActionRow key={row.id}>
-                {row.components.map((comp) =>
-                  comp.type === 2 ? (
-                    <DiscordButton
-                      key={comp.id}
-                      type={buttonStyles[comp.style]}
-                      url={comp.style === 5 ? comp.url : undefined}
-                      emoji={
-                        comp.emoji?.name
-                          ? getTwemojiUrl(comp.emoji.name)
-                          : undefined
-                      }
-                      emojiName={comp.emoji?.name}
-                      disabled={comp.disabled}
-                    >
-                      {comp.label}
-                    </DiscordButton>
-                  ) : null
-                )}
-              </DiscordActionRow>
-            ))}
+            {msg.components.map((row) =>
+              row.type !== 1 ? null : (
+                <DiscordActionRow key={row.id}>
+                  {row.components.map((comp) =>
+                    comp.type === 2 ? (
+                      <DiscordButton
+                        key={comp.id}
+                        type={buttonStyles[comp.style]}
+                        url={comp.style === 5 ? comp.url : undefined}
+                        emoji={
+                          comp.emoji?.name
+                            ? getTwemojiUrl(comp.emoji.name)
+                            : undefined
+                        }
+                        emojiName={comp.emoji?.name}
+                        disabled={comp.disabled}
+                      >
+                        {comp.label}
+                      </DiscordButton>
+                    ) : null
+                  )}
+                </DiscordActionRow>
+              )
+            )}
           </DiscordAttachments>
         )}
       </DiscordMessage>

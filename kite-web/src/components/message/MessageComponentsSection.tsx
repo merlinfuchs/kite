@@ -1,9 +1,11 @@
-import { useCurrentMessage } from "@/lib/message/state";
+import {
+  useChildIds,
+  useDocumentStoreApi,
+  useRootId,
+} from "@/lib/message/state";
+import { slotScope } from "@/lib/message/validationStore";
 import CollapsibleSection from "./MessageCollapsibleSection";
-import { useShallow } from "zustand/react/shallow";
 import { Button } from "../ui/button";
-import { getUniqueId } from "@/lib/utils";
-import { useCallback } from "react";
 import MessageComponentRow from "./MessageComponentRow";
 
 export default function MessageComponentsSection({
@@ -11,55 +13,37 @@ export default function MessageComponentsSection({
 }: {
   disableFlowEditor?: boolean;
 }) {
-  const components = useCurrentMessage(
-    useShallow((state) => state.components.map((e) => e.id))
-  );
-  const addRow = useCurrentMessage((state) => state.addComponentRow);
-  const clearComponents = useCurrentMessage(
-    (state) => state.clearComponentRows
-  );
-
-  const addButtonRow = useCallback(() => {
-    if (components.length >= 5) return;
-    addRow({
-      id: getUniqueId(),
-      type: 1,
-      components: [],
-    });
-  }, [components, addRow]);
-
-  /* const addSelectMenuRow = useCallback(() => {
-    if (components.length >= 5) return;
-    addRow({
-      id: getUniqueId(),
-      type: 1,
-      components: [
-        {
-          id: getUniqueId(),
-          type: 3,
-          options: [],
-        },
-      ],
-    });
-  }, [components, addRow]); */
+  const rootId = useRootId();
+  const rowIds = useChildIds(rootId, "components");
+  const { insert, removeChildren } = useDocumentStoreApi().getState();
 
   return (
     <CollapsibleSection
       title="Components"
-      valiationPathPrefix="components"
+      validation={slotScope(rootId, "components")}
       className="space-y-4"
     >
-      {components.map((id, i) => (
+      {rowIds.map((id, i) => (
         <MessageComponentRow
           key={id}
-          rowIndex={i}
           rowId={id}
+          rowIndex={i}
           disableFlowEditor={disableFlowEditor}
         />
       ))}
       <div className="space-x-3">
-        <Button onClick={addButtonRow}>Add Button Row</Button>
-        <Button onClick={clearComponents} variant="outline">
+        <Button
+          onClick={() =>
+            insert(rootId, "components", "end", { type: "actionRow" })
+          }
+          disabled={rowIds.length >= 5}
+        >
+          Add Button Row
+        </Button>
+        <Button
+          onClick={() => removeChildren(rootId, "components")}
+          variant="outline"
+        >
           Clear Components
         </Button>
       </div>
