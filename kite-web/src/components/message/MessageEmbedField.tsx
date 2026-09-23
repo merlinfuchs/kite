@@ -10,13 +10,7 @@ import MessageInput from "./MessageInput";
 import MessageCollapsibleSection from "./MessageCollapsibleSection";
 import MessageNodeActions from "./MessageNodeActions";
 
-export default function MessageEmbedField({
-  fieldId,
-  fieldIndex,
-}: {
-  fieldId: NodeId;
-  fieldIndex: number;
-}) {
+export default function MessageEmbedField({ fieldId }: { fieldId: NodeId }) {
   const field = useNode<EmbedFieldNode>(fieldId);
   const actions = useNodeActions(fieldId);
   const { update } = useDocumentStoreApi().getState();
@@ -24,7 +18,7 @@ export default function MessageEmbedField({
   return (
     <Card className="p-3">
       <MessageCollapsibleSection
-        title={`Field ${fieldIndex + 1}`}
+        title={`Field ${actions.index + 1}`}
         size="md"
         validation={nodeScope(fieldId)}
         className="space-y-3"

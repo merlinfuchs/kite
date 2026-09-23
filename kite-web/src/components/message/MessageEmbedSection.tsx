@@ -19,8 +19,8 @@ export default function MessageEmbedSection() {
       validation={slotScope(rootId, "embeds")}
       className="space-y-4"
     >
-      {embedIds.map((id, i) => (
-        <MessageEmbed key={id} embedId={id} embedIndex={i} />
+      {embedIds.map((id) => (
+        <MessageEmbed key={id} embedId={id} />
       ))}
       <div className="space-x-3">
         <Button

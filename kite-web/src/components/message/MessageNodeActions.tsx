@@ -5,7 +5,6 @@ import {
   TrashIcon,
 } from "lucide-react";
 import { useNodeActions } from "@/lib/message/state";
-import { cn } from "@/lib/utils";
 
 /** The move, duplicate and remove buttons in the header of a node's section. */
 export default function MessageNodeActions({
@@ -35,11 +34,7 @@ export default function MessageNodeActions({
         />
       )}
       {actions.duplicate && (
-        <CopyIcon
-          className={cn(icon)}
-          onClick={actions.duplicate}
-          role="button"
-        />
+        <CopyIcon className={icon} onClick={actions.duplicate} role="button" />
       )}
       <TrashIcon className={icon} onClick={actions.remove} role="button" />
     </>

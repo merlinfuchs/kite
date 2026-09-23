@@ -1,11 +1,11 @@
 import { beforeEach, expect, test } from "vitest";
-import type {
-  MessageComponentContainer,
-  MessageComponentSection,
+import {
+  COMPONENTS_V2_FLAG,
+  type MessageComponentContainer,
+  type MessageComponentSection,
 } from "./schema";
 import { parseMessageData } from "./schemaRestore";
 import {
-  COMPONENTS_V2_FLAG,
   type ActionRowNode,
   type ButtonNode,
   type ContainerNode,

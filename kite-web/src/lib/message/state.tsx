@@ -93,41 +93,32 @@ export const useChildIds = (id: NodeId, slot: ChildSlot) =>
 
 export const useComponentsV2Enabled = () => useDocument(isComponentsV2);
 
-/** Position of a node among its siblings, for move and duplicate buttons. */
-export const useNodeIndex = (id: NodeId) =>
-  useDocument(
+/**
+ * Where a node sits among its siblings and its move, duplicate and remove
+ * handlers, left undefined at the ends of its slot and once the slot is full.
+ */
+export function useNodeActions(id: NodeId) {
+  const { index, count, max } = useDocument(
     useShallow((state) => {
       const node = state.nodes[id];
       const parent = node?.parentId ? state.nodes[node.parentId] : undefined;
       const slot = parent && slotOfChild(parent, id);
       const ids = slot ? childIds(parent, slot) : [];
 
-      return { index: ids.indexOf(id), count: ids.length };
+      return {
+        index: ids.indexOf(id),
+        count: ids.length,
+        max:
+          parent && slot
+            ? slotLimit(parent.type, slot, isComponentsV2(state))
+            : 1,
+      };
     })
   );
-
-/** How many children the slot a node sits in can hold. */
-export const useSlotLimit = (id: NodeId) =>
-  useDocument((state) => {
-    const node = state.nodes[id];
-    const parent = node?.parentId ? state.nodes[node.parentId] : undefined;
-    const slot = parent && slotOfChild(parent, id);
-
-    return parent && slot
-      ? slotLimit(parent.type, slot, isComponentsV2(state))
-      : 1;
-  });
-
-/**
- * The move, duplicate and remove handlers of a node, left undefined at the ends
- * of its slot and once the slot is full.
- */
-export function useNodeActions(id: NodeId) {
-  const { index, count } = useNodeIndex(id);
-  const max = useSlotLimit(id);
   const { move, duplicate, remove } = useDocumentStoreApi().getState();
 
   return {
+    index,
     moveUp: index > 0 ? () => move(id, -1) : undefined,
     moveDown: index < count - 1 ? () => move(id, 1) : undefined,
     duplicate: count < max ? () => duplicate(id) : undefined,
