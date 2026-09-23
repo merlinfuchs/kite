@@ -1,39 +1,49 @@
 import { NodeProps } from "@/lib/flow/dataSchema";
 import { suspendColor } from "@/lib/flow/nodes";
-import { ComponentData } from "@/lib/types/message.gen";
+import {
+  ButtonStyleLink,
+  ComponentData,
+  ComponentTypeActionRow,
+  ComponentTypeButton,
+  ComponentTypeStringSelect,
+} from "@/lib/types/message.gen";
 import { Position } from "@xyflow/react";
-import { MousePointerClickIcon } from "lucide-react";
+import { ListIcon, MousePointerClickIcon } from "lucide-react";
 import { buttonColors } from "../message/MessageComponentButton";
 import FlowNodeBase from "./FlowNodeBase";
 import FlowNodeHandle from "./FlowNodeHandle";
 import { useMemo } from "react";
 
 export default function FlowNodeActionMessage(props: NodeProps) {
-  const components = useMemo(() => {
-    const messageData = props.data.message_data;
-    return messageData?.components || [];
-  }, [props.data.message_data]);
+  const componentGroups = useMemo(
+    () => collectComponentGroups(props.data.message_data?.components || []),
+    [props.data.message_data]
+  );
+  const hasComponents = componentGroups.length > 0;
 
   return (
     <div className="relative">
       <FlowNodeBase
         {...props}
-        highlight={components?.length > 0}
-        color={components?.length > 0 ? suspendColor : undefined}
+        highlight={hasComponents}
+        color={hasComponents ? suspendColor : undefined}
         showId
       >
         <FlowNodeHandle type="target" position={Position.Top} />
         <FlowNodeHandle
           type="source"
-          position={components?.length > 0 ? Position.Right : Position.Bottom}
+          position={hasComponents ? Position.Right : Position.Bottom}
         />
       </FlowNodeBase>
 
       <div className="flex flex-col mt-2 gap-5">
-        {components?.map((row) => (
-          <div key={row.id} className="flex items-center justify-left gap-2">
-            {row.components?.map((comp) => (
-              <ButtonHandle comp={comp} key={comp.id} />
+        {componentGroups.map((group) => (
+          <div
+            key={group[0].id}
+            className="flex items-center justify-left gap-2"
+          >
+            {group.map((comp) => (
+              <ComponentHandle comp={comp} key={comp.id} />
             ))}
           </div>
         ))}
@@ -42,12 +52,37 @@ export default function FlowNodeActionMessage(props: NodeProps) {
   );
 }
 
-function ButtonHandle({ comp }: { comp: ComponentData }) {
-  if (comp.style === 5) {
-    return null;
-  }
+// Groups interactive components the way Discord lays them out: one group per action row and one per section accessory.
+function collectComponentGroups(
+  components: ComponentData[]
+): ComponentData[][] {
+  const groups: ComponentData[][] = [];
 
-  const color = buttonColors[(comp.style ?? 1) as keyof typeof buttonColors];
+  const isInteractive = (c: ComponentData) =>
+    c.type === ComponentTypeStringSelect ||
+    (c.type === ComponentTypeButton && c.style !== ButtonStyleLink);
+
+  const walk = (c: ComponentData) => {
+    if (c.type === ComponentTypeActionRow) {
+      const interactive = (c.components || []).filter(isInteractive);
+      if (interactive.length > 0) groups.push(interactive);
+      return;
+    }
+
+    c.components?.forEach(walk);
+    if (c.accessory && isInteractive(c.accessory)) groups.push([c.accessory]);
+  };
+
+  components.forEach(walk);
+  return groups;
+}
+
+function ComponentHandle({ comp }: { comp: ComponentData }) {
+  const isSelect = comp.type === ComponentTypeStringSelect;
+  const color = isSelect
+    ? buttonColors[2]
+    : buttonColors[(comp.style ?? 1) as keyof typeof buttonColors];
+  const Icon = isSelect ? ListIcon : MousePointerClickIcon;
 
   return (
     <div className="relative">
@@ -58,8 +93,10 @@ function ButtonHandle({ comp }: { comp: ComponentData }) {
         }}
         key={comp.id}
       >
-        <MousePointerClickIcon className="w-4 h-4" />
-        <div className="text-sm truncate">{comp.label}</div>
+        <Icon className="w-4 h-4" />
+        <div className="text-sm truncate">
+          {isSelect ? comp.placeholder || "Select Menu" : comp.label}
+        </div>
       </div>
 
       <FlowNodeHandle

@@ -36,6 +36,11 @@ channel:
 guild?: # For events and interactions inside a server
   id: string # The id of the server
 
+interaction?: # For commands and interactive components
+  id: string
+  value?: string # The value of the picked option in a select menu
+  values?: []string # All picked values if the select menu allows picking more than one option
+
 app:
   user: # Access the underlying user of the app
     id: string
@@ -84,6 +89,20 @@ This will return true if the user has the role with the ID `123`.
 
 ```python
 {{ "123" in user.role_ids }}
+```
+
+### Get Selected Option
+
+This will return the value of the option that the user picked in a select menu.
+
+```python
+{{ interaction.value }}
+```
+
+If the select menu allows picking more than one option, this will return true if the user picked the option with the value `option-a`.
+
+```python
+{{ "option-a" in interaction.values }}
 ```
 
 ### Do Some Math

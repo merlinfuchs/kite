@@ -48,7 +48,7 @@ type DiscordProvider interface {
 	DeleteRole(ctx context.Context, guildID discord.GuildID, roleID discord.RoleID) error
 
 	HasCreatedInteractionResponse(ctx context.Context, interactionID discord.InteractionID) (bool, error)
-	AutoDeferInteraction(ctx context.Context, interactionID discord.InteractionID, interactionToken string, flags discord.MessageFlags)
+	AutoDeferInteraction(ctx context.Context, interactionID discord.InteractionID, interactionToken string, response api.InteractionResponse)
 }
 
 type InteractionResponseResource struct {
@@ -212,5 +212,5 @@ func (p *MockDiscordProvider) HasCreatedInteractionResponse(ctx context.Context,
 	return false, nil
 }
 
-func (p *MockDiscordProvider) AutoDeferInteraction(ctx context.Context, interactionID discord.InteractionID, interactionToken string, flags discord.MessageFlags) {
+func (p *MockDiscordProvider) AutoDeferInteraction(ctx context.Context, interactionID discord.InteractionID, interactionToken string, response api.InteractionResponse) {
 }

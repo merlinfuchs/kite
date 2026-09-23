@@ -4,6 +4,7 @@ import { ReactFlow } from "@xyflow/react";
 import { useHookedTheme } from "@/lib/hooks/theme";
 import "@xyflow/react/dist/base.css";
 import { forwardRef } from "react";
+import { FlowContextStoreProvider, FlowContextType } from "@/lib/flow/context";
 
 const initialNodes = [
   {
@@ -19,8 +20,10 @@ const FlowPreview = forwardRef<
   {
     className?: string;
     onClick: () => void;
+    // Nodes read the context to label themselves, like the shared entry node.
+    context?: FlowContextType;
   }
->(({ className, onClick }, ref) => {
+>(({ className, onClick, context = "component_button" }, ref) => {
   const { theme } = useHookedTheme();
 
   return (
@@ -30,25 +33,27 @@ const FlowPreview = forwardRef<
       role="button"
       ref={ref}
     >
-      <ReactFlow
-        nodes={initialNodes}
-        nodeTypes={nodeTypes}
-        edgeTypes={edgeTypes}
-        elementsSelectable={false}
-        nodesConnectable={false}
-        nodesDraggable={false}
-        connectOnClick={false}
-        draggable={false}
-        panOnDrag={false}
-        zoomOnScroll={false}
-        zoomOnPinch={false}
-        colorMode={theme === "dark" ? "dark" : "light"}
-        className="!bg-transparent hover:animate-shake"
-        proOptions={{
-          hideAttribution: true,
-        }}
-        fitView
-      />
+      <FlowContextStoreProvider type={context}>
+        <ReactFlow
+          nodes={initialNodes}
+          nodeTypes={nodeTypes}
+          edgeTypes={edgeTypes}
+          elementsSelectable={false}
+          nodesConnectable={false}
+          nodesDraggable={false}
+          connectOnClick={false}
+          draggable={false}
+          panOnDrag={false}
+          zoomOnScroll={false}
+          zoomOnPinch={false}
+          colorMode={theme === "dark" ? "dark" : "light"}
+          className="!bg-transparent hover:animate-shake"
+          proOptions={{
+            hideAttribution: true,
+          }}
+          fitView
+        />
+      </FlowContextStoreProvider>
     </div>
   );
 });

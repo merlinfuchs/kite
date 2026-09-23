@@ -7,6 +7,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/diamondburned/arikawa/v3/discord"
+	"github.com/diamondburned/arikawa/v3/gateway"
+
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/internal/store"
 	"github.com/kitecloud/kite/kite-service/internal/util"
@@ -162,5 +165,30 @@ func BenchmarkDanglingSweep(b *testing.B) {
 		for _, app := range registry {
 			app.RemoveDanglingCommands(set)
 		}
+	}
+}
+
+// Interactions for message template buttons and resume points are resolved from
+// the database, so an app without commands, listeners or plugins still needs
+// to receive them.
+func TestHandleEventRegistersAppForInteraction(t *testing.T) {
+	e := newTestEngine(&fakeCommandStore{}, &fakeEventListenerStore{}, &fakePluginInstanceStore{})
+
+	e.HandleEvent("app", nil, &gateway.InteractionCreateEvent{
+		InteractionEvent: discord.InteractionEvent{ID: discord.InteractionID(discord.NewSnowflake(time.Now()))},
+	})
+
+	if _, ok := e.apps["app"]; !ok {
+		t.Fatal("expected the app to be registered for an interaction")
+	}
+}
+
+func TestHandleEventDropsOtherEventsForUnknownApp(t *testing.T) {
+	e := newTestEngine(&fakeCommandStore{}, &fakeEventListenerStore{}, &fakePluginInstanceStore{})
+
+	e.HandleEvent("app", nil, &gateway.MessageCreateEvent{})
+
+	if _, ok := e.apps["app"]; ok {
+		t.Fatal("expected no app to be registered for a non-interaction event")
 	}
 }

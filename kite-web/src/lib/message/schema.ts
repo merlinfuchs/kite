@@ -1,16 +1,21 @@
 import { z } from "zod";
 import { getUniqueId } from "@/lib/utils";
+import { FlagIsComponentsV2 } from "@/lib/types/message.gen";
 
 const VARIABLE_RE = new RegExp("\\{\\{[^}]+\\}\\}");
 
 const HOSTNAME_RE = new RegExp("localhost|\\.[a-zA-Z]{2,}$");
+const URL_PROTOCOLS = ["http:", "https:", "discord:", "attachment:"];
 const urlRefinement: [(v: string) => boolean, string] = [
   (v) => {
     if (v.match(VARIABLE_RE)) return true;
 
     try {
       const url = new URL(v);
-      return !!url.hostname.match(HOSTNAME_RE);
+      return (
+        URL_PROTOCOLS.includes(url.protocol) &&
+        !!url.hostname.match(HOSTNAME_RE)
+      );
     } catch {
       return false;
     }
@@ -233,7 +238,7 @@ export const buttonSchema = z
     id: uniqueIdSchema.default(() => getUniqueId()),
     type: z.literal(2),
     style: z.literal(1).or(z.literal(2)).or(z.literal(3)).or(z.literal(4)),
-    label: z.string(),
+    label: z.string().max(80),
     emoji: z.optional(emojiSchema),
     disabled: z.optional(z.boolean()),
     flow_source_id: z.string().default(() => getUniqueId().toString()),
@@ -243,9 +248,12 @@ export const buttonSchema = z
       id: uniqueIdSchema.default(() => getUniqueId()),
       type: z.literal(2),
       style: z.literal(5),
-      label: z.string(),
+      label: z.string().max(80),
       emoji: z.optional(emojiSchema),
-      url: z.string().refine(...urlRefinement),
+      url: z
+        .string()
+        .max(512)
+        .refine(...urlRefinement),
       disabled: z.optional(z.boolean()),
       flow_source_id: z.string().default(() => getUniqueId().toString()),
     })
@@ -265,32 +273,202 @@ export type MessageComponentButton = z.infer<typeof buttonSchema>;
 export const selectMenuOptionSchema = z.object({
   id: uniqueIdSchema.default(() => getUniqueId()),
   label: z.string().min(1).max(100),
+  value: z.string().min(1).max(100),
   description: z.optional(z.string().min(1).max(100)),
   emoji: z.optional(emojiSchema),
+  default: z.optional(z.boolean()),
 });
 
 export type MessageComponentSelectMenuOption = z.infer<
   typeof selectMenuOptionSchema
 >;
 
-export const selectMenuSchema = z.object({
-  id: uniqueIdSchema.default(() => getUniqueId()),
-  type: z.literal(3),
-  placeholder: z.optional(z.string().max(150)),
-  disabled: z.optional(z.boolean()),
-  options: z.array(selectMenuOptionSchema).min(1).max(25),
-  flow_source_id: z.string().default(() => getUniqueId().toString()),
-});
+export const selectMenuSchema = z
+  .object({
+    id: uniqueIdSchema.default(() => getUniqueId()),
+    type: z.literal(3),
+    placeholder: z.optional(z.string().max(150)),
+    min_values: z.optional(z.number().int().min(0).max(25)),
+    max_values: z.optional(z.number().int().min(1).max(25)),
+    disabled: z.optional(z.boolean()),
+    options: z.array(selectMenuOptionSchema).min(1).max(25),
+    flow_source_id: z.string().default(() => getUniqueId().toString()),
+  })
+  .superRefine((data, ctx) => {
+    const min = data.min_values ?? 1;
+    const max = data.max_values ?? 1;
+    if (max < min) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["max_values"],
+        message: "Maximum can't be lower than the minimum",
+      });
+    }
+    if (max > data.options.length) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["max_values"],
+        message: "Maximum can't be higher than the number of options",
+      });
+    }
+
+    const seen = new Set<string>();
+    data.options.forEach((option, i) => {
+      if (seen.has(option.value)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["options", i, "value"],
+          message: "Every option needs a unique value",
+        });
+      }
+      seen.add(option.value);
+    });
+  });
 
 export type MessageComponentSelectMenu = z.infer<typeof selectMenuSchema>;
 
 export const actionRowSchema = z.object({
   id: uniqueIdSchema.default(() => getUniqueId()),
   type: z.literal(1),
-  components: z.array(buttonSchema.or(selectMenuSchema)).min(1).max(5),
+  components: z
+    .array(buttonSchema.or(selectMenuSchema))
+    .min(1)
+    .max(5)
+    .refine(
+      (components) =>
+        components.length === 1 || components.every((c) => c.type !== 3),
+      "A select menu has to be alone in its row"
+    ),
 });
 
 export type MessageComponentActionRow = z.infer<typeof actionRowSchema>;
+
+export const COMPONENTS_V2_FLAG = FlagIsComponentsV2;
+
+export function hasComponentsV2Flag(flags: number | undefined): boolean {
+  return ((flags ?? 0) & COMPONENTS_V2_FLAG) !== 0;
+}
+
+// Files sent with the message are referenced by name, which can contain
+// anything, spaces included, so only other URLs need to be real URLs.
+export const ATTACHMENT_PREFIX = "attachment://";
+const mediaUrlRefinement: [(v: string) => boolean, string] = [
+  (v) =>
+    v.startsWith(ATTACHMENT_PREFIX)
+      ? v.length > ATTACHMENT_PREFIX.length
+      : urlRefinement[0](v),
+  "Invalid URL",
+];
+
+export const unfurledMediaItemSchema = z.object({
+  url: z.string().refine(...mediaUrlRefinement),
+});
+
+export type UnfurledMediaItem = z.infer<typeof unfurledMediaItemSchema>;
+
+export const textDisplaySchema = z.object({
+  id: uniqueIdSchema.default(() => getUniqueId()),
+  type: z.literal(10),
+  content: z.string().min(1),
+});
+
+export type MessageComponentTextDisplay = z.infer<typeof textDisplaySchema>;
+
+export const thumbnailSchema = z.object({
+  id: uniqueIdSchema.default(() => getUniqueId()),
+  type: z.literal(11),
+  media: unfurledMediaItemSchema,
+  description: z.optional(z.string().max(1024)),
+  spoiler: z.optional(z.boolean()),
+});
+
+export type MessageComponentThumbnail = z.infer<typeof thumbnailSchema>;
+
+export const accessorySchema = z.union([thumbnailSchema, buttonSchema]);
+
+export type MessageComponentAccessory = z.infer<typeof accessorySchema>;
+
+export const sectionSchema = z.object({
+  id: uniqueIdSchema.default(() => getUniqueId()),
+  type: z.literal(9),
+  components: z.array(textDisplaySchema).min(1).max(3),
+  accessory: accessorySchema,
+});
+
+export type MessageComponentSection = z.infer<typeof sectionSchema>;
+
+export const mediaGalleryItemSchema = z.object({
+  id: uniqueIdSchema.default(() => getUniqueId()),
+  media: unfurledMediaItemSchema,
+  description: z.optional(z.string().max(1024)),
+  spoiler: z.optional(z.boolean()),
+});
+
+export type MessageComponentMediaGalleryItem = z.infer<
+  typeof mediaGalleryItemSchema
+>;
+
+export const mediaGallerySchema = z.object({
+  id: uniqueIdSchema.default(() => getUniqueId()),
+  type: z.literal(12),
+  items: z.array(mediaGalleryItemSchema).min(1).max(10),
+});
+
+export type MessageComponentMediaGallery = z.infer<typeof mediaGallerySchema>;
+
+export const fileSchema = z.object({
+  id: uniqueIdSchema.default(() => getUniqueId()),
+  type: z.literal(13),
+  file: unfurledMediaItemSchema,
+  spoiler: z.optional(z.boolean()),
+});
+
+export type MessageComponentFile = z.infer<typeof fileSchema>;
+
+export const separatorSchema = z.object({
+  id: uniqueIdSchema.default(() => getUniqueId()),
+  type: z.literal(14),
+  divider: z.boolean().default(true),
+  spacing: z.union([z.literal(1), z.literal(2)]).default(1),
+});
+
+export type MessageComponentSeparator = z.infer<typeof separatorSchema>;
+
+// Discriminated so that issues point into the component instead of at the union.
+export const containerChildSchema = z.discriminatedUnion("type", [
+  actionRowSchema,
+  textDisplaySchema,
+  sectionSchema,
+  mediaGallerySchema,
+  separatorSchema,
+  fileSchema,
+]);
+
+export type MessageComponentContainerChild = z.infer<
+  typeof containerChildSchema
+>;
+
+export const containerSchema = z.object({
+  id: uniqueIdSchema.default(() => getUniqueId()),
+  type: z.literal(17),
+  components: z.array(containerChildSchema).min(1),
+  accent_color: z.optional(z.number().int().min(0).max(0xffffff)),
+  spoiler: z.optional(z.boolean()),
+});
+
+export type MessageComponentContainer = z.infer<typeof containerSchema>;
+
+export const componentSchema = z.discriminatedUnion("type", [
+  actionRowSchema,
+  sectionSchema,
+  textDisplaySchema,
+  mediaGallerySchema,
+  fileSchema,
+  separatorSchema,
+  containerSchema,
+]);
+
+export type MessageComponent = z.infer<typeof componentSchema>;
 
 export const messageContentSchema = z.string().max(2000);
 
@@ -345,19 +523,90 @@ export const attachmentSchema = z.object({
 
 export type MessageAttachment = z.infer<typeof attachmentSchema>;
 
+// Discord's limits for components v2 messages.
+export const MAX_COMPONENTS_V2 = 40;
+const MAX_COMPONENTS_V2_TEXT = 4000;
+
+function countComponents(components: unknown[]): {
+  count: number;
+  text: number;
+} {
+  let count = 0;
+  let text = 0;
+
+  const walk = (c: any) => {
+    if (!c) return;
+    count++;
+    if (c.type === 10 && typeof c.content === "string") {
+      text += c.content.length;
+    }
+    c.components?.forEach(walk);
+    walk(c.accessory);
+  };
+
+  components.forEach(walk);
+  return { count, text };
+}
+
 export const messageSchema = z
   .object({
     content: messageContentSchema.default(""),
     username: webhookUsernameSchema,
     avatar_url: webhookAvatarUrlSchema,
     tts: messageTtsSchema.default(false),
+    flags: z.optional(z.number()),
     attachments: z.array(attachmentSchema).max(10).default([]),
     embeds: z.array(embedSchema).max(10).default([]),
     allowed_mentions: messageAllowedMentionsSchema,
-    components: z.array(actionRowSchema).max(5).default([]),
+    components: z.array(componentSchema).default([]),
     thread_name: messageThreadNameSchema,
   })
   .superRefine((data, ctx) => {
+    if (hasComponentsV2Flag(data.flags)) {
+      if (!data.components.length) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["components"],
+          message: "At least one component is required",
+        });
+      }
+
+      const { count, text } = countComponents(data.components);
+      if (count > MAX_COMPONENTS_V2) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["components"],
+          message: `A message can have at most ${MAX_COMPONENTS_V2} components`,
+        });
+      }
+      if (text > MAX_COMPONENTS_V2_TEXT) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["components"],
+          message: `Text across all text displays can be at most ${MAX_COMPONENTS_V2_TEXT} characters`,
+        });
+      }
+      return;
+    }
+
+    if (data.components.length > 5) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["components"],
+        message: "A message can have at most 5 rows",
+      });
+    }
+
+    data.components.forEach((component, i) => {
+      if (component.type !== 1) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["components", i],
+          message: "Only rows are allowed without components v2",
+        });
+      }
+    });
+
     // this currently doesn't take attachments into account
     if (!data.content && !data.embeds.length && !data.components.length) {
       ctx.addIssue({

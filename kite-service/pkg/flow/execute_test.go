@@ -100,7 +100,12 @@ func TestFlowExecuteCommand(t *testing.T) {
 type TestDiscordProvider struct {
 	provider.MockDiscordProvider
 
-	response api.InteractionResponse
+	responded bool
+	response  api.InteractionResponse
+}
+
+func (p *TestDiscordProvider) HasCreatedInteractionResponse(ctx context.Context, interactionID discord.InteractionID) (bool, error) {
+	return p.responded, nil
 }
 
 func (p *TestDiscordProvider) CreateInteractionResponse(ctx context.Context, interactionID discord.InteractionID, interactionToken string, response api.InteractionResponse) (*provider.InteractionResponseResource, error) {
@@ -108,9 +113,14 @@ func (p *TestDiscordProvider) CreateInteractionResponse(ctx context.Context, int
 	return nil, nil
 }
 
-type TestContextData struct{}
+type TestContextData struct {
+	interaction *discord.InteractionEvent
+}
 
 func (d *TestContextData) Interaction() *discord.InteractionEvent {
+	if d.interaction != nil {
+		return d.interaction
+	}
 	return &discord.InteractionEvent{}
 }
 

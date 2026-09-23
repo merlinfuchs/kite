@@ -64,8 +64,8 @@ func (s Env) flowProviders(appID string, session *state.State, links entityLinks
 		),
 		HTTP:            NewHTTPProvider(s.HttpClient),
 		AI:              aiProvider,
-		MessageTemplate: NewMessageTemplateProvider(s.MessageStore, s.MessageInstanceStore),
-		Variable:        NewVariableProvider(s.VariableValueStore),
+		MessageTemplate: NewMessageTemplateProvider(appID, s.MessageStore, s.MessageInstanceStore),
+		Variable:        NewVariableProvider(appID, s.VariableValueStore),
 		ResumePoint: NewResumePointProvider(
 			s.ResumePointStore,
 			appID,

@@ -13,12 +13,18 @@ jobs:
         uses: actions/checkout@v3
         with:
           fetch-depth: 0
-      - name: Set up Node
-        uses: actions/setup-node@v2
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
         with:
-          node-version: "18"
+          package_json_file: kite-web/package.json
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: pnpm
+          cache-dependency-path: kite-web/pnpm-lock.yaml
       - name: Build Website
-        run: npm install && OUTPUT=export NEXT_PUBLIC_API_PUBLIC_BASE_URL="" npm run build
+        run: pnpm install --frozen-lockfile && OUTPUT=export NEXT_PUBLIC_API_PUBLIC_BASE_URL="" pnpm run build
         working-directory: ./kite-web
       - name: Set up Go
         uses: actions/setup-go@v4

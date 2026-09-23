@@ -241,8 +241,8 @@ func (a *App) HandleEvent(appID string, session *state.State, event gateway.Even
 			if command != nil {
 				go command.HandleEvent(appID, session, event)
 			}
-		case *discord.ButtonInteraction:
-			customID := string(d.CustomID)
+		case discord.ComponentInteraction:
+			customID := string(d.ID())
 			resumePointID, _, isResume := message.DecodeCustomIDMessageComponentResumePoint(customID)
 			if isResume {
 				a.resumeFlow(resumePointID, session, event)
@@ -250,7 +250,7 @@ func (a *App) HandleEvent(appID string, session *state.State, event gateway.Even
 			}
 
 			messageID := e.Message.ID.String()
-			messageInstnace, err := a.env.MessageInstanceStore.MessageInstanceByDiscordMessageID(context.TODO(), messageID)
+			messageInstnace, err := a.env.MessageInstanceStore.MessageInstanceByDiscordMessageID(context.TODO(), a.id, messageID)
 			if err != nil {
 				if errors.Is(err, store.ErrNotFound) {
 					return
@@ -307,7 +307,8 @@ func (a *App) resumeFlow(
 	session *state.State,
 	event gateway.Event,
 ) {
-	resumePoint, err := a.env.ResumePointStore.ResumePoint(context.TODO(), resumePointID)
+	// The ID comes from a user-controlled custom_id, so the lookup must be scoped to the app.
+	resumePoint, err := a.env.ResumePointStore.ResumePoint(context.TODO(), a.id, resumePointID)
 	if err != nil {
 		if !errors.Is(err, store.ErrNotFound) {
 			slog.Error(
@@ -383,6 +384,7 @@ func (a *App) resumeFlowTarget(resumePoint *model.ResumePoint) *flow.CompiledFlo
 	case resumePoint.MessageInstanceID.Valid:
 		messageInstance, err := a.env.MessageInstanceStore.MessageInstance(
 			context.TODO(),
+			a.id,
 			resumePoint.MessageID.String,
 			uint64(resumePoint.MessageInstanceID.Int64),
 		)

@@ -527,7 +527,7 @@ type AIChatCompletionData struct {
 //
 // The empty string is the provider default (gpt-4o-mini), so it is priced.
 var aiModelCosts = map[string]aiModelCost{
-	"":                  {Chat: 5, Search: 25},
+	"":                         {Chat: 5, Search: 25},
 	openai.ChatModelGPT4_1:     {Chat: 100, Search: 500},
 	openai.ChatModelGPT4_1Mini: {Chat: 20, Search: 100},
 	openai.ChatModelGPT4_1Nano: {Chat: 5, Search: 25},

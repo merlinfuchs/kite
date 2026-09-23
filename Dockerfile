@@ -11,7 +11,7 @@ RUN apt-get -y install nodejs
 # Build website
 ENV OUTPUT=export
 ENV NEXT_PUBLIC_API_PUBLIC_BASE_URL=""
-RUN cd kite-web && npm install && npm run build && cd ..
+RUN corepack enable && cd kite-web && pnpm install --frozen-lockfile && pnpm run build && cd ..
 
 # Build backend
 RUN cd kite-service && go build --tags "embedweb" && cd ..

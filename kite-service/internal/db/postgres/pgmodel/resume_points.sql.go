@@ -81,11 +81,17 @@ func (q *Queries) DeleteResumePoint(ctx context.Context, id string) error {
 }
 
 const resumePoint = `-- name: ResumePoint :one
-SELECT id, type, app_id, command_id, event_listener_id, message_id, message_instance_id, flow_source_id, flow_node_id, flow_state, created_at, expires_at FROM resume_points WHERE id = $1
+SELECT id, type, app_id, command_id, event_listener_id, message_id, message_instance_id, flow_source_id, flow_node_id, flow_state, created_at, expires_at FROM resume_points WHERE id = $1 AND app_id = $2
 `
 
-func (q *Queries) ResumePoint(ctx context.Context, id string) (ResumePoint, error) {
-	row := q.db.QueryRow(ctx, resumePoint, id)
+type ResumePointParams struct {
+	ID    string
+	AppID string
+}
+
+// Scoped by app since the ID comes from a user-controlled custom_id
+func (q *Queries) ResumePoint(ctx context.Context, arg ResumePointParams) (ResumePoint, error) {
+	row := q.db.QueryRow(ctx, resumePoint, arg.ID, arg.AppID)
 	var i ResumePoint
 	err := row.Scan(
 		&i.ID,
