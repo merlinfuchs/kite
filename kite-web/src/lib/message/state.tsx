@@ -95,10 +95,11 @@ export const useComponentsV2Enabled = () => useDocument(isComponentsV2);
 
 /**
  * Where a node sits among its siblings and its move, duplicate and remove
- * handlers, left undefined at the ends of its slot and once the slot is full.
+ * handlers, left undefined at the ends of its slot, once the slot is full and
+ * for nodes their parent can't do without.
  */
 export function useNodeActions(id: NodeId) {
-  const { index, count, max } = useDocument(
+  const { index, count, max, required } = useDocument(
     useShallow((state) => {
       const node = state.nodes[id];
       const parent = node?.parentId ? state.nodes[node.parentId] : undefined;
@@ -108,6 +109,11 @@ export function useNodeActions(id: NodeId) {
       return {
         index: ids.indexOf(id),
         count: ids.length,
+        // A section always needs its accessory, and a select menu is what makes
+        // its row a select row, so both can only be replaced, not removed.
+        required:
+          slot === "accessory" ||
+          (parent?.type === "actionRow" && node.type === "selectMenu"),
         max:
           parent && slot
             ? slotLimit(parent.type, slot, isComponentsV2(state), node.type)
@@ -122,7 +128,7 @@ export function useNodeActions(id: NodeId) {
     moveUp: index > 0 ? () => move(id, -1) : undefined,
     moveDown: index < count - 1 ? () => move(id, 1) : undefined,
     duplicate: count < max ? () => duplicate(id) : undefined,
-    remove: () => remove(id),
+    remove: required ? undefined : () => remove(id),
   };
 }
 
