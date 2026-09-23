@@ -62,15 +62,6 @@ func (q *Queries) CreateResumePoint(ctx context.Context, arg CreateResumePointPa
 	return err
 }
 
-const deleteExpiredResumePoints = `-- name: DeleteExpiredResumePoints :exec
-DELETE FROM resume_points WHERE expires_at < $1
-`
-
-func (q *Queries) DeleteExpiredResumePoints(ctx context.Context, expiresAt pgtype.Timestamp) error {
-	_, err := q.db.Exec(ctx, deleteExpiredResumePoints, expiresAt)
-	return err
-}
-
 const deleteResumePoint = `-- name: DeleteResumePoint :exec
 DELETE FROM resume_points WHERE id = $1
 `
@@ -80,8 +71,31 @@ func (q *Queries) DeleteResumePoint(ctx context.Context, id string) error {
 	return err
 }
 
+const deleteStaleResumePoints = `-- name: DeleteStaleResumePoints :execrows
+DELETE FROM resume_points WHERE id IN (
+    SELECT stale.id FROM resume_points stale
+    WHERE stale.expires_at < $1 OR stale.last_used_at < $2
+    LIMIT $3
+)
+`
+
+type DeleteStaleResumePointsParams struct {
+	Now        pgtype.Timestamp
+	UsedBefore pgtype.Timestamp
+	BatchSize  int32
+}
+
+// Batched so a large backlog doesn't hold one long transaction.
+func (q *Queries) DeleteStaleResumePoints(ctx context.Context, arg DeleteStaleResumePointsParams) (int64, error) {
+	result, err := q.db.Exec(ctx, deleteStaleResumePoints, arg.Now, arg.UsedBefore, arg.BatchSize)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
 const resumePoint = `-- name: ResumePoint :one
-SELECT id, type, app_id, command_id, event_listener_id, message_id, message_instance_id, flow_source_id, flow_node_id, flow_state, created_at, expires_at FROM resume_points WHERE id = $1 AND app_id = $2
+SELECT id, type, app_id, command_id, event_listener_id, message_id, message_instance_id, flow_source_id, flow_node_id, flow_state, created_at, expires_at, last_used_at FROM resume_points WHERE id = $1 AND app_id = $2
 `
 
 type ResumePointParams struct {
@@ -106,6 +120,22 @@ func (q *Queries) ResumePoint(ctx context.Context, arg ResumePointParams) (Resum
 		&i.FlowState,
 		&i.CreatedAt,
 		&i.ExpiresAt,
+		&i.LastUsedAt,
 	)
 	return i, err
+}
+
+const touchResumePoint = `-- name: TouchResumePoint :exec
+UPDATE resume_points SET last_used_at = $1 WHERE id = $2 AND app_id = $3
+`
+
+type TouchResumePointParams struct {
+	UsedAt pgtype.Timestamp
+	ID     string
+	AppID  string
+}
+
+func (q *Queries) TouchResumePoint(ctx context.Context, arg TouchResumePointParams) error {
+	_, err := q.db.Exec(ctx, touchResumePoint, arg.UsedAt, arg.ID, arg.AppID)
+	return err
 }

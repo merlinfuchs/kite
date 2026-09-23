@@ -3,6 +3,7 @@ package postgres
 import (
 	"context"
 	"encoding/json"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
@@ -298,6 +299,22 @@ func (c *Client) DeleteMessageInstanceByDiscordMessageID(ctx context.Context, ap
 	return nil
 }
 
+func (c *Client) TouchMessageInstance(ctx context.Context, appID string, instanceID uint64, usedAt time.Time) error {
+	return c.Q.TouchMessageInstance(ctx, pgmodel.TouchMessageInstanceParams{
+		UsedAt: pgtype.Timestamp{Time: usedAt, Valid: true},
+		ID:     int64(instanceID),
+		AppID:  appID,
+	})
+}
+
+func (c *Client) DeleteUnusedMessageInstances(ctx context.Context, flowUsedBefore time.Time, dashboardUsedBefore time.Time, batchSize int) (int64, error) {
+	return c.Q.DeleteUnusedMessageInstances(ctx, pgmodel.DeleteUnusedMessageInstancesParams{
+		FlowUsedBefore:      pgtype.Timestamp{Time: flowUsedBefore, Valid: true},
+		DashboardUsedBefore: pgtype.Timestamp{Time: dashboardUsedBefore, Valid: true},
+		BatchSize:           int32(batchSize),
+	})
+}
+
 func rowsToMessageInstances(rows []pgmodel.MessageInstance) ([]*model.MessageInstance, error) {
 	instances := make([]*model.MessageInstance, len(rows))
 	for i, row := range rows {
@@ -328,5 +345,6 @@ func rowToMessageInstance(row pgmodel.MessageInstance) (*model.MessageInstance, 
 		FlowSources:      flowSources,
 		CreatedAt:        row.CreatedAt.Time,
 		UpdatedAt:        row.UpdatedAt.Time,
+		LastUsedAt:       row.LastUsedAt.Time,
 	}, nil
 }

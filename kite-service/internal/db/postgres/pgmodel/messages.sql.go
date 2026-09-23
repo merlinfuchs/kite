@@ -102,7 +102,7 @@ ON CONFLICT (discord_message_id) DO UPDATE SET
     flow_sources = EXCLUDED.flow_sources,
     updated_at = EXCLUDED.updated_at
 WHERE message_instances.message_id IN (SELECT id FROM messages WHERE app_id = $10)
-RETURNING id, message_id, hidden, ephemeral, discord_guild_id, discord_channel_id, discord_message_id, flow_sources, created_at, updated_at
+RETURNING id, message_id, hidden, ephemeral, discord_guild_id, discord_channel_id, discord_message_id, flow_sources, created_at, updated_at, last_used_at
 `
 
 type CreateMessageInstanceParams struct {
@@ -146,6 +146,7 @@ func (q *Queries) CreateMessageInstance(ctx context.Context, arg CreateMessageIn
 		&i.FlowSources,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.LastUsedAt,
 	)
 	return i, err
 }
@@ -197,8 +198,32 @@ func (q *Queries) DeleteMessageInstanceByDiscordMessageId(ctx context.Context, a
 	return err
 }
 
+const deleteUnusedMessageInstances = `-- name: DeleteUnusedMessageInstances :execrows
+DELETE FROM message_instances WHERE id IN (
+    SELECT unused.id FROM message_instances unused
+    WHERE (unused.hidden AND unused.last_used_at < $1)
+       OR unused.last_used_at < $2
+    LIMIT $3
+)
+`
+
+type DeleteUnusedMessageInstancesParams struct {
+	FlowUsedBefore      pgtype.Timestamp
+	DashboardUsedBefore pgtype.Timestamp
+	BatchSize           int32
+}
+
+// Batched so a large backlog doesn't hold one long transaction.
+func (q *Queries) DeleteUnusedMessageInstances(ctx context.Context, arg DeleteUnusedMessageInstancesParams) (int64, error) {
+	result, err := q.db.Exec(ctx, deleteUnusedMessageInstances, arg.FlowUsedBefore, arg.DashboardUsedBefore, arg.BatchSize)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
 const getFlowMessageInstancesByMessage = `-- name: GetFlowMessageInstancesByMessage :many
-SELECT message_instances.id, message_instances.message_id, message_instances.hidden, message_instances.ephemeral, message_instances.discord_guild_id, message_instances.discord_channel_id, message_instances.discord_message_id, message_instances.flow_sources, message_instances.created_at, message_instances.updated_at FROM message_instances
+SELECT message_instances.id, message_instances.message_id, message_instances.hidden, message_instances.ephemeral, message_instances.discord_guild_id, message_instances.discord_channel_id, message_instances.discord_message_id, message_instances.flow_sources, message_instances.created_at, message_instances.updated_at, message_instances.last_used_at FROM message_instances
 JOIN messages ON messages.id = message_instances.message_id
 WHERE message_instances.message_id = $1 AND messages.app_id = $2
   AND message_instances.hidden AND NOT message_instances.ephemeral
@@ -231,6 +256,7 @@ func (q *Queries) GetFlowMessageInstancesByMessage(ctx context.Context, arg GetF
 			&i.FlowSources,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.LastUsedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -270,7 +296,7 @@ func (q *Queries) GetMessage(ctx context.Context, arg GetMessageParams) (Message
 }
 
 const getMessageInstance = `-- name: GetMessageInstance :one
-SELECT message_instances.id, message_instances.message_id, message_instances.hidden, message_instances.ephemeral, message_instances.discord_guild_id, message_instances.discord_channel_id, message_instances.discord_message_id, message_instances.flow_sources, message_instances.created_at, message_instances.updated_at FROM message_instances
+SELECT message_instances.id, message_instances.message_id, message_instances.hidden, message_instances.ephemeral, message_instances.discord_guild_id, message_instances.discord_channel_id, message_instances.discord_message_id, message_instances.flow_sources, message_instances.created_at, message_instances.updated_at, message_instances.last_used_at FROM message_instances
 JOIN messages ON messages.id = message_instances.message_id
 WHERE message_instances.id = $1
   AND message_instances.message_id = $2
@@ -297,12 +323,13 @@ func (q *Queries) GetMessageInstance(ctx context.Context, arg GetMessageInstance
 		&i.FlowSources,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.LastUsedAt,
 	)
 	return i, err
 }
 
 const getMessageInstanceByDiscordMessageId = `-- name: GetMessageInstanceByDiscordMessageId :one
-SELECT message_instances.id, message_instances.message_id, message_instances.hidden, message_instances.ephemeral, message_instances.discord_guild_id, message_instances.discord_channel_id, message_instances.discord_message_id, message_instances.flow_sources, message_instances.created_at, message_instances.updated_at FROM message_instances
+SELECT message_instances.id, message_instances.message_id, message_instances.hidden, message_instances.ephemeral, message_instances.discord_guild_id, message_instances.discord_channel_id, message_instances.discord_message_id, message_instances.flow_sources, message_instances.created_at, message_instances.updated_at, message_instances.last_used_at FROM message_instances
 JOIN messages ON messages.id = message_instances.message_id
 WHERE message_instances.discord_message_id = $1 AND messages.app_id = $2
 `
@@ -326,12 +353,13 @@ func (q *Queries) GetMessageInstanceByDiscordMessageId(ctx context.Context, arg 
 		&i.FlowSources,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.LastUsedAt,
 	)
 	return i, err
 }
 
 const getMessageInstancesByMessage = `-- name: GetMessageInstancesByMessage :many
-SELECT message_instances.id, message_instances.message_id, message_instances.hidden, message_instances.ephemeral, message_instances.discord_guild_id, message_instances.discord_channel_id, message_instances.discord_message_id, message_instances.flow_sources, message_instances.created_at, message_instances.updated_at FROM message_instances
+SELECT message_instances.id, message_instances.message_id, message_instances.hidden, message_instances.ephemeral, message_instances.discord_guild_id, message_instances.discord_channel_id, message_instances.discord_message_id, message_instances.flow_sources, message_instances.created_at, message_instances.updated_at, message_instances.last_used_at FROM message_instances
 JOIN messages ON messages.id = message_instances.message_id
 WHERE message_instances.message_id = $1 AND messages.app_id = $2 AND NOT message_instances.hidden
 ORDER BY message_instances.created_at DESC
@@ -362,6 +390,7 @@ func (q *Queries) GetMessageInstancesByMessage(ctx context.Context, arg GetMessa
 			&i.FlowSources,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.LastUsedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -406,6 +435,25 @@ func (q *Queries) GetMessagesByApp(ctx context.Context, appID string) ([]Message
 		return nil, err
 	}
 	return items, nil
+}
+
+const touchMessageInstance = `-- name: TouchMessageInstance :exec
+UPDATE message_instances SET last_used_at = $1
+FROM messages
+WHERE messages.id = message_instances.message_id
+  AND message_instances.id = $2
+  AND messages.app_id = $3
+`
+
+type TouchMessageInstanceParams struct {
+	UsedAt pgtype.Timestamp
+	ID     int64
+	AppID  string
+}
+
+func (q *Queries) TouchMessageInstance(ctx context.Context, arg TouchMessageInstanceParams) error {
+	_, err := q.db.Exec(ctx, touchMessageInstance, arg.UsedAt, arg.ID, arg.AppID)
+	return err
 }
 
 const updateMessage = `-- name: UpdateMessage :one
@@ -461,7 +509,7 @@ WHERE messages.id = message_instances.message_id
   AND message_instances.id = $1
   AND message_instances.message_id = $2
   AND messages.app_id = $3
-RETURNING message_instances.id, message_instances.message_id, message_instances.hidden, message_instances.ephemeral, message_instances.discord_guild_id, message_instances.discord_channel_id, message_instances.discord_message_id, message_instances.flow_sources, message_instances.created_at, message_instances.updated_at
+RETURNING message_instances.id, message_instances.message_id, message_instances.hidden, message_instances.ephemeral, message_instances.discord_guild_id, message_instances.discord_channel_id, message_instances.discord_message_id, message_instances.flow_sources, message_instances.created_at, message_instances.updated_at, message_instances.last_used_at
 `
 
 type UpdateMessageInstanceParams struct {
@@ -492,6 +540,7 @@ func (q *Queries) UpdateMessageInstance(ctx context.Context, arg UpdateMessageIn
 		&i.FlowSources,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.LastUsedAt,
 	)
 	return i, err
 }

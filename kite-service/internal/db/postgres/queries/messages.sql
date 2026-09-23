@@ -111,3 +111,19 @@ USING messages
 WHERE messages.id = message_instances.message_id
   AND message_instances.discord_message_id = $1
   AND messages.app_id = $2;
+
+-- name: TouchMessageInstance :exec
+UPDATE message_instances SET last_used_at = @used_at
+FROM messages
+WHERE messages.id = message_instances.message_id
+  AND message_instances.id = @id
+  AND messages.app_id = @app_id;
+
+-- name: DeleteUnusedMessageInstances :execrows
+-- Batched so a large backlog doesn't hold one long transaction.
+DELETE FROM message_instances WHERE id IN (
+    SELECT unused.id FROM message_instances unused
+    WHERE (unused.hidden AND unused.last_used_at < @flow_used_before)
+       OR unused.last_used_at < @dashboard_used_before
+    LIMIT @batch_size
+);
