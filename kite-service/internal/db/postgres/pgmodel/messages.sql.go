@@ -94,7 +94,13 @@ INSERT INTO message_instances (
     updated_at
 ) VALUES (
     $1, $2, $3, $4, $5, $6, $7, $8, $9
-) RETURNING id, message_id, hidden, ephemeral, discord_guild_id, discord_channel_id, discord_message_id, flow_sources, created_at, updated_at
+)
+ON CONFLICT (discord_message_id) DO UPDATE SET
+    message_id = EXCLUDED.message_id,
+    hidden = message_instances.hidden AND EXCLUDED.hidden,
+    flow_sources = EXCLUDED.flow_sources,
+    updated_at = EXCLUDED.updated_at
+RETURNING id, message_id, hidden, ephemeral, discord_guild_id, discord_channel_id, discord_message_id, flow_sources, created_at, updated_at
 `
 
 type CreateMessageInstanceParams struct {
@@ -109,6 +115,7 @@ type CreateMessageInstanceParams struct {
 	UpdatedAt        pgtype.Timestamp
 }
 
+// Editing a message to a different template re-links it, so its new buttons resolve
 func (q *Queries) CreateMessageInstance(ctx context.Context, arg CreateMessageInstanceParams) (MessageInstance, error) {
 	row := q.db.QueryRow(ctx, createMessageInstance,
 		arg.MessageID,
