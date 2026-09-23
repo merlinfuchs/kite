@@ -274,7 +274,7 @@ func getStarboardMessageData(message *discord.Message, emoji discord.Emoji, reac
 				Timestamp:   message.Timestamp,
 			},
 		},
-		Components: discord.ContainerComponents{
+		Components: discord.TopLevelComponents{
 			&discord.ActionRowComponent{
 				&discord.ButtonComponent{
 					Label: "Go to Message",

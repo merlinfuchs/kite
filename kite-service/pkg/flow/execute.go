@@ -320,7 +320,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			return traceError(n, fmt.Errorf("failed to suspend: %w", err))
 		}
 
-		componentRows := make(discord.ContainerComponents, len(n.Data.ModalData.Components))
+		componentRows := make(discord.TopLevelComponents, len(n.Data.ModalData.Components))
 		for i, row := range n.Data.ModalData.Components {
 			r := make(discord.ActionRowComponent, len(row.Components))
 			for j, component := range row.Components {
@@ -335,7 +335,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 				}
 			}
 
-			componentRows[i] = discord.ContainerComponent(&r)
+			componentRows[i] = discord.TopLevelComponent(&r)
 		}
 
 		resp := api.InteractionResponse{

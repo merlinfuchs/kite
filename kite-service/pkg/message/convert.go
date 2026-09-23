@@ -20,7 +20,7 @@ func (m *MessageData) ToSendMessageData(opts ConvertOptions) api.SendMessageData
 		embeds[i] = embed.ToEmbed()
 	}
 
-	components := make(discord.ContainerComponents, len(m.Components))
+	components := make(discord.TopLevelComponents, len(m.Components))
 	for i, component := range m.Components {
 		components[i] = component.ToComponent(opts)
 	}
@@ -44,7 +44,7 @@ func (m *MessageData) ToEditMessageData(opts ConvertOptions) api.EditMessageData
 		embeds[i] = embed.ToEmbed()
 	}
 
-	components := make(discord.ContainerComponents, len(m.Components))
+	components := make(discord.TopLevelComponents, len(m.Components))
 	for i, component := range m.Components {
 		components[i] = component.ToComponent(opts)
 	}
@@ -74,7 +74,7 @@ func (m *MessageData) ToInteractionResponseData(opts ConvertOptions) api.Interac
 		embeds[i] = embed.ToEmbed()
 	}
 
-	components := make(discord.ContainerComponents, len(m.Components))
+	components := make(discord.TopLevelComponents, len(m.Components))
 	for i, component := range m.Components {
 		components[i] = component.ToComponent(opts)
 	}
@@ -176,7 +176,7 @@ func (a *EmbedAuthorData) ToEmbedAuthor() *discord.EmbedAuthor {
 	}
 }
 
-func (r *ComponentRowData) ToComponent(opts ConvertOptions) discord.ContainerComponent {
+func (r *ComponentRowData) ToComponent(opts ConvertOptions) discord.TopLevelComponent {
 	if r == nil {
 		return nil
 	}
