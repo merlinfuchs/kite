@@ -11,7 +11,7 @@ import {
   EllipsisIcon,
   SatelliteDishIcon,
   Trash2Icon,
-  UploadIcon,
+  Share2Icon,
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/router";
@@ -36,7 +36,7 @@ import {
 import { Switch } from "../ui/switch";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
 import EventListenerDuplicateDialog from "./EventListenerDuplicateDialog";
-import { EventListenerExportDialog } from "./EventListenerExportDialog";
+import FlowExportDialog from "./FlowExportDialog";
 
 export default function EventListenerListEntry({
   listener,
@@ -141,12 +141,18 @@ export default function EventListenerListEntry({
                   Duplicate Event Listener
                 </DropdownMenuItem>
               </EventListenerDuplicateDialog>
-              <EventListenerExportDialog listener={listener}>
+              <FlowExportDialog
+                title="Export Event Listener"
+                shareCode={JSON.stringify({
+                  flow_source: listener.flow_source,
+                  enabled: listener.enabled,
+                })}
+              >
                 <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
-                  <UploadIcon className="h-4 w-4 mr-2 text-muted-foreground" />
+                  <Share2Icon className="h-4 w-4 mr-2 text-muted-foreground" />
                   Export Event Listener
                 </DropdownMenuItem>
-              </EventListenerExportDialog>
+              </FlowExportDialog>
             </DropdownMenuGroup>
           </DropdownMenuContent>
         </DropdownMenu>

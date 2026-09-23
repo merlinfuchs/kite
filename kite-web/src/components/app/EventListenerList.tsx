@@ -5,7 +5,7 @@ import { useEventListeners } from "@/lib/hooks/api";
 import EventListenerListEntry from "./EventListenerListEntry";
 import AppEmptyPlaceholder from "./AppEmptyPlaceholder";
 import EventListenerCreateDialog from "./EventListenerCreateDialog";
-import { EventListenerImportDialog } from "./EventListenerImportDialog";
+import FlowImportDialog from "./FlowImportDialog";
 
 export default function EventListenerList() {
   const listeners = useEventListeners();
@@ -17,9 +17,9 @@ export default function EventListenerList() {
   );
 
   const listenerImportButton = (
-    <EventListenerImportDialog>
-      <Button>Import event listener</Button>
-    </EventListenerImportDialog>
+    <FlowImportDialog kind="event_listener">
+      <Button variant="outline">Import event listener</Button>
+    </FlowImportDialog>
   );
 
   return (
