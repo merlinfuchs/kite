@@ -7,11 +7,11 @@ import (
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/gateway"
 	"github.com/diamondburned/arikawa/v3/utils/ws"
-	"github.com/kitecloud/kite/kite-service/pkg/eval"
 )
 
-// maxStoredTriggers bounds how many triggers a resume point keeps: the origin
-// and the most recent ones. A modal submission can hold up to 20 KB of text.
+// maxStoredTriggers bounds how many triggers a resume point keeps: the one that
+// started the flow and the most recent ones. A modal submission can hold up to
+// 20 KB of text.
 const maxStoredTriggers = 4
 
 // FlowTrigger is the interaction or event that started an execution. Resume
@@ -86,21 +86,4 @@ func (t *FlowTrigger) UnmarshalJSON(data []byte) error {
 	}
 
 	return nil
-}
-
-func (t *FlowTrigger) modalInputs() map[string]string {
-	if t.Interaction == nil {
-		return nil
-	}
-
-	components := eval.NewComponentsEnv(t.Interaction)
-	if len(components) == 0 {
-		return nil
-	}
-
-	inputs := make(map[string]string, len(components))
-	for customID, component := range components {
-		inputs[customID] = component.Value
-	}
-	return inputs
 }

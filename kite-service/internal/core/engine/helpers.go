@@ -100,13 +100,12 @@ func (s Env) flowContext(
 		evalCtx = eval.NewContextFromEvent(event, session)
 	}
 
-	if state != nil && len(state.Triggers) > 0 {
-		origin := triggerEvalContext(state.Origin(), session)
-		previous := origin
-		if len(state.Triggers) > 1 {
-			previous = triggerEvalContext(state.Previous(), session)
+	if state != nil {
+		earlier := make([]eval.Context, len(state.Triggers))
+		for i := range state.Triggers {
+			earlier[i] = triggerEvalContext(&state.Triggers[i], session)
 		}
-		evalCtx.SetResumeContext(origin, previous, state.ModalInputs())
+		evalCtx.SetResumeContext(earlier)
 	}
 
 	return flow.NewContext(

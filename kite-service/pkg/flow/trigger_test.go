@@ -12,16 +12,17 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-type triggerTestData struct {
+// eventData is a trigger without an interaction, which TestContextData can't be.
+type eventData struct {
 	TestContextData
 	event ws.Event
 }
 
-func (d *triggerTestData) Interaction() *discord.InteractionEvent {
-	return d.interaction
+func (d *eventData) Interaction() *discord.InteractionEvent {
+	return nil
 }
 
-func (d *triggerTestData) Event() ws.Event {
+func (d *eventData) Event() ws.Event {
 	return d.event
 }
 
@@ -70,13 +71,13 @@ func roundTrip(t *testing.T, state FlowContextState) FlowContextState {
 
 func TestRecordTriggerStripsInteraction(t *testing.T) {
 	state := NewFlowContextState()
-	state.recordTrigger(&triggerTestData{TestContextData: TestContextData{interaction: commandInteraction()}})
+	state.recordTrigger(&TestContextData{interaction: commandInteraction()})
 
 	res := roundTrip(t, *state)
-	require.NotNil(t, res.Origin())
-	require.NotNil(t, res.Origin().Interaction)
+	require.Len(t, res.Triggers, 1)
+	require.NotNil(t, res.Triggers[0].Interaction)
 
-	i := res.Origin().Interaction
+	i := res.Triggers[0].Interaction
 	assert.Empty(t, i.Token)
 	assert.Nil(t, i.Message)
 	assert.Equal(t, discord.UserID(3), i.Member.User.ID)
@@ -88,44 +89,46 @@ func TestRecordTriggerStripsInteraction(t *testing.T) {
 
 func TestRecordTriggerRoundTripsEvent(t *testing.T) {
 	state := NewFlowContextState()
-	state.recordTrigger(&triggerTestData{event: &gateway.MessageCreateEvent{
+	state.recordTrigger(&eventData{event: &gateway.MessageCreateEvent{
 		Message: discord.Message{ID: 1, Content: "hello"},
 	}})
 
 	res := roundTrip(t, *state)
-	require.NotNil(t, res.Origin())
+	require.Len(t, res.Triggers, 1)
 
-	event, ok := res.Origin().Event.(*gateway.MessageCreateEvent)
+	event, ok := res.Triggers[0].Event.(*gateway.MessageCreateEvent)
 	require.True(t, ok)
 	assert.Equal(t, "hello", event.Content)
 }
 
-func TestRecordTriggerKeepsOriginAndAppendsPrevious(t *testing.T) {
+func TestRecordTriggerAppendsWithoutTouchingCopies(t *testing.T) {
 	state := NewFlowContextState()
-	state.recordTrigger(&triggerTestData{TestContextData: TestContextData{interaction: commandInteraction()}})
-	assert.Same(t, state.Origin(), state.Previous())
+	state.recordTrigger(&TestContextData{interaction: commandInteraction()})
 
 	resumed := state.Copy()
-	resumed.recordTrigger(&triggerTestData{TestContextData: TestContextData{interaction: modalInteraction("name", "bob")}})
+	resumed.recordTrigger(&TestContextData{interaction: modalInteraction("name", "bob")})
 
-	assert.Equal(t, discord.InteractionID(1), resumed.Origin().Interaction.ID)
-	assert.Equal(t, discord.InteractionID(6), resumed.Previous().Interaction.ID)
+	require.Len(t, resumed.Triggers, 2)
+	assert.Equal(t, discord.InteractionID(1), resumed.Triggers[0].Interaction.ID)
+	assert.Equal(t, discord.InteractionID(6), resumed.Triggers[1].Interaction.ID)
 	// The state the first resume point was created from is untouched.
 	assert.Len(t, state.Triggers, 1)
 }
 
-func TestRecordTriggerKeepsOriginAndNewestTriggers(t *testing.T) {
+func TestRecordTriggerKeepsFirstAndNewestTriggers(t *testing.T) {
 	state := NewFlowContextState()
 	for _, value := range []string{"1", "2", "3", "4", "5", "6"} {
-		state.recordTrigger(&triggerTestData{TestContextData: TestContextData{interaction: modalInteraction("field", value)}})
+		state.recordTrigger(&TestContextData{interaction: modalInteraction("field", value)})
 	}
 
 	res := roundTrip(t, *state)
-	require.Len(t, res.Triggers, maxStoredTriggers)
 
 	var values []string
-	for _, inputs := range res.ModalInputs() {
-		values = append(values, inputs["field"])
+	for _, trigger := range res.Triggers {
+		modal, ok := trigger.Interaction.Data.(*discord.ModalInteraction)
+		require.True(t, ok)
+		row := modal.Components[0].(*discord.ActionRowComponent)
+		values = append(values, (*row)[0].(*discord.TextInputComponent).Value)
 	}
-	assert.Equal(t, []string{"6", "5", "4", "1"}, values)
+	assert.Equal(t, []string{"1", "4", "5", "6"}, values)
 }

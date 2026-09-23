@@ -128,34 +128,6 @@ func (s *FlowContextState) recordTrigger(data FlowContextData) {
 	s.Triggers = triggers
 }
 
-// Origin returns the trigger that started the flow, or nil if the execution
-// wasn't resumed.
-func (s *FlowContextState) Origin() *FlowTrigger {
-	if len(s.Triggers) == 0 {
-		return nil
-	}
-	return &s.Triggers[0]
-}
-
-// Previous returns the trigger of the execution that created the resume point.
-func (s *FlowContextState) Previous() *FlowTrigger {
-	if len(s.Triggers) == 0 {
-		return nil
-	}
-	return &s.Triggers[len(s.Triggers)-1]
-}
-
-// ModalInputs returns the inputs of earlier modal submissions, newest first.
-func (s *FlowContextState) ModalInputs() []map[string]string {
-	var res []map[string]string
-	for i := len(s.Triggers) - 1; i >= 0; i-- {
-		if inputs := s.Triggers[i].modalInputs(); inputs != nil {
-			res = append(res, inputs)
-		}
-	}
-	return res
-}
-
 func (s *FlowContextState) Serialize() ([]byte, error) {
 	return json.Marshal(s)
 }

@@ -243,26 +243,32 @@ func TestResumeContextFallsBackToEarlierInteractions(t *testing.T) {
 	origin := Context{Env: Env{
 		"user": "origin-user",
 		"arg":  func(name string) any { return "origin-" + name },
+		"input": func(customID string) any {
+			if customID == "age" {
+				return "30"
+			}
+			return nil
+		},
 	}}
-	previous := Context{Env: Env{"user": "previous-user"}}
+	previous := Context{Env: Env{
+		"user":  "previous-user",
+		"arg":   func(name string) any { return nil },
+		"input": func(customID string) any { return "previous-" + customID },
+	}}
 
 	c := Context{Env: Env{
 		"user":  "clicker",
 		"arg":   func(name string) any { return nil },
 		"input": func(customID string) any { return nil },
 	}}
-	c.SetResumeContext(origin, previous, []map[string]string{
-		{"name": "newest"},
-		{"name": "oldest", "age": "30"},
-	})
+	c.SetResumeContext([]Context{origin, previous})
 
 	cases := map[string]string{
 		`user`:              "clicker",
 		`origin.user`:       "origin-user",
 		`previous.user`:     "previous-user",
 		`arg("reason")`:     "origin-reason",
-		`input("name")`:     "newest",
-		`input("age")`:      "30",
+		`input("name")`:     "previous-name",
 		`origin.arg("why")`: "origin-why",
 	}
 	for expression, want := range cases {
@@ -276,11 +282,13 @@ func TestResumeContextFallsBackToEarlierInteractions(t *testing.T) {
 	}
 }
 
-func TestResumeContextPrefersCurrentModalInput(t *testing.T) {
+func TestResumeContextPrefersCurrentInteraction(t *testing.T) {
 	c := Context{Env: Env{
 		"input": func(customID string) any { return "current" },
 	}}
-	c.SetResumeContext(Context{Env: Env{}}, Context{Env: Env{}}, []map[string]string{{"name": "earlier"}})
+	c.SetResumeContext([]Context{{Env: Env{
+		"input": func(customID string) any { return "earlier" },
+	}}})
 
 	res, err := Eval(context.Background(), `input("name")`, c)
 	if err != nil {

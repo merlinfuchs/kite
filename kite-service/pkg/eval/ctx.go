@@ -298,30 +298,36 @@ func NewEventEnv(event ws.Event) *EventEnv {
 }
 
 // SetResumeContext makes the interactions or events from before a resume point
-// available to the resumed flow. Flows only resume from components and modals,
-// so arg() always refers to the command that started the flow and input()
-// falls back to earlier modals.
-func (c Context) SetResumeContext(origin Context, previous Context, modalInputs []map[string]string) {
-	c.Env["origin"] = map[string]any(origin.Env)
-	c.Env["previous"] = map[string]any(previous.Env)
-
-	if arg, ok := origin.Env["arg"]; ok {
-		c.Env["arg"] = arg
+// available to the resumed flow, oldest first. Command args and modal inputs
+// only exist on one kind of interaction, so arg() and input() fall back to
+// earlier ones, newest first.
+func (c Context) SetResumeContext(earlier []Context) {
+	if len(earlier) == 0 {
+		return
 	}
 
-	currentInput, _ := c.Env["input"].(func(string) any)
-	c.Env["input"] = func(customID string) any {
-		if currentInput != nil {
-			if v := currentInput(customID); v != nil {
-				return v
+	c.Env["origin"] = map[string]any(earlier[0].Env)
+	c.Env["previous"] = map[string]any(earlier[len(earlier)-1].Env)
+
+	for _, name := range []string{"arg", "input"} {
+		var lookups []func(string) any
+		if fn, ok := c.Env[name].(func(string) any); ok {
+			lookups = append(lookups, fn)
+		}
+		for i := len(earlier) - 1; i >= 0; i-- {
+			if fn, ok := earlier[i].Env[name].(func(string) any); ok {
+				lookups = append(lookups, fn)
 			}
 		}
-		for _, inputs := range modalInputs {
-			if v, ok := inputs[customID]; ok {
-				return v
+
+		c.Env[name] = func(key string) any {
+			for _, lookup := range lookups {
+				if v := lookup(key); v != nil {
+					return v
+				}
 			}
+			return nil
 		}
-		return nil
 	}
 }
 
