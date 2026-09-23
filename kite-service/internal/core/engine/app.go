@@ -465,7 +465,7 @@ func (a *App) resumeFlowTarget(resumePoint *model.ResumePoint) *flow.CompiledFlo
 // touchInterval limits last_used_at writes so busy buttons don't write on every
 // click. Unused resume points and message instances are deleted by the usage
 // manager.
-const touchInterval = 24 * time.Hour
+const touchInterval = time.Hour
 
 func (a *App) touchResumePoint(resumePoint *model.ResumePoint) {
 	id := resumePoint.ID
