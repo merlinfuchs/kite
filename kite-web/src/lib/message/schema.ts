@@ -266,7 +266,7 @@ export type MessageComponentButton = z.infer<typeof buttonSchema>;
 export const selectMenuOptionSchema = z.object({
   id: uniqueIdSchema.default(() => getUniqueId()),
   label: z.string().min(1).max(100),
-  value: z.optional(z.string().min(1).max(100)),
+  value: z.string().min(1).max(100),
   description: z.optional(z.string().min(1).max(100)),
   emoji: z.optional(emojiSchema),
 });
@@ -304,18 +304,16 @@ export const selectMenuSchema = z
       });
     }
 
-    // The value falls back to the label, and Discord needs them to be unique.
     const seen = new Set<string>();
     data.options.forEach((option, i) => {
-      const value = option.value || option.label;
-      if (seen.has(value)) {
+      if (seen.has(option.value)) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
-          path: ["options", i, option.value ? "value" : "label"],
+          path: ["options", i, "value"],
           message: "Every option needs a unique value",
         });
       }
-      seen.add(value);
+      seen.add(option.value);
     });
   });
 

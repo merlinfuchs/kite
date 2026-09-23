@@ -351,7 +351,7 @@ type ComponentSelectOptionData struct {
 	ID int `json:"id,omitempty"`
 
 	Label string `json:"label,omitempty"`
-	// Value is what the flow receives when the option is selected. Falls back to the label.
+	// Value is what the flow receives as interaction.value when the option is selected.
 	Value       string              `json:"value,omitempty"`
 	Description string              `json:"description,omitempty"`
 	Emoji       *ComponentEmojiData `json:"emoji,omitempty"`

@@ -312,14 +312,9 @@ func (c *ComponentData) toButton(opts ConvertOptions) *discord.ButtonComponent {
 func (c *ComponentData) toStringSelect(opts ConvertOptions) *discord.StringSelectComponent {
 	options := make([]discord.SelectOption, len(c.Options))
 	for i, option := range c.Options {
-		value := option.Value
-		if value == "" {
-			value = option.Label
-		}
-
 		options[i] = discord.SelectOption{
 			Label:       option.Label,
-			Value:       value,
+			Value:       option.Value,
 			Description: option.Description,
 			Emoji:       option.Emoji.ToEmoji(),
 			Default:     option.Default,

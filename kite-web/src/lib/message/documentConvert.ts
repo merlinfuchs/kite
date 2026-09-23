@@ -455,7 +455,8 @@ export function toMessage(state: DocumentData): ConvertedMessage {
     return {
       id: option.discordId,
       label: option.label,
-      value: option.value,
+      // Left empty rather than undefined so validation points at the input.
+      value: option.value ?? "",
       description: option.description,
       emoji: option.emoji,
     };
