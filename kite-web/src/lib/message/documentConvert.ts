@@ -530,8 +530,10 @@ export function toMessage(state: DocumentData): ConvertedMessage {
           id: componentNode.discordId,
           type: 3,
           placeholder: componentNode.placeholder,
-          min_values: componentNode.min_values,
-          max_values: componentNode.max_values,
+          // Discord treats a missing limit as 1, but the backend can only
+          // leave both out, so a lone limit would otherwise be sent as 0.
+          min_values: componentNode.min_values ?? 1,
+          max_values: componentNode.max_values ?? 1,
           disabled: componentNode.disabled,
           options: componentNode.optionIds.map((optionId, i) =>
             selectOption(optionId, `${path}.options.${i}`)

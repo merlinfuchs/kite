@@ -250,6 +250,28 @@ test("a section without an accessory is reported instead of faked", () => {
   );
 });
 
+test("select menu limits default to 1 when left unset", () => {
+  const { message } = toMessage(
+    fromMessage(
+      parse({
+        content: "",
+        components: [
+          {
+            type: 1,
+            components: [
+              { type: 3, max_values: 2, options: [{ label: "A", value: "a" }] },
+            ],
+          },
+        ],
+      })
+    )
+  );
+
+  expect(message.components?.[0]).toMatchObject({
+    components: [{ min_values: 1, max_values: 2 }],
+  });
+});
+
 describe("select menu validation", () => {
   const withMenu = (menu: Record<string, unknown>, extra: unknown[] = []) =>
     messageSchema.safeParse(

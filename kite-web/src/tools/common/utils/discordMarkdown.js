@@ -286,10 +286,11 @@ const bodyRules = {
       state.prevCapture[state.prevCapture.length - 1] === "\n"
         ? /^ *-# +((?!(-#)+)[^\n]+?) *(\n|$)/.exec(source)
         : null,
-    parse: (capture) => ({
-      content: capture[1].trim(),
+    parse: (capture, parse, state) => ({
+      content: parse(capture[1].trim(), state),
     }),
-    html: (node) => htmlTag("small", node.content),
+    html: (node, output, state) =>
+      htmlTag("small", output(node.content, state), null, state),
   },
   list: Object.assign({}, markdown.defaultRules.list, {
     match: (source, state, prevCapture) => {
