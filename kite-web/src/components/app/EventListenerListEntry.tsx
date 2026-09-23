@@ -145,7 +145,6 @@ export default function EventListenerListEntry({
                 title="Export Event Listener"
                 shareCode={JSON.stringify({
                   flow_source: listener.flow_source,
-                  enabled: listener.enabled,
                 })}
               >
                 <DropdownMenuItem onSelect={(e) => e.preventDefault()}>

@@ -160,10 +160,7 @@ export default function CommandListEntry({ command }: { command: Command }) {
               </CommandDuplicateDialog>
               <FlowExportDialog
                 title="Export Command"
-                shareCode={JSON.stringify({
-                  flow_source: command.flow_source,
-                  enabled: command.enabled,
-                })}
+                shareCode={JSON.stringify({ flow_source: command.flow_source })}
               >
                 <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
                   <Share2Icon className="h-4 w-4 mr-2 text-muted-foreground" />

@@ -113,17 +113,16 @@ export default function FlowImportDialog({
       }
     };
 
-    const enabled = parsed.enabled !== false;
     if (kind === "command") {
       commandsImportMutation.mutate(
-        { commands: [{ flow_source: sanitized, enabled }] },
+        { commands: [{ flow_source: sanitized, enabled: true }] },
         { onSuccess }
       );
     } else {
       eventListenersImportMutation.mutate(
         {
           event_listeners: [
-            { source: "discord", flow_source: sanitized, enabled },
+            { source: "discord", flow_source: sanitized, enabled: true },
           ],
         },
         { onSuccess }
