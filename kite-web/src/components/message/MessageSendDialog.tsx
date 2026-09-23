@@ -12,7 +12,7 @@ import {
 import { Button } from "../ui/button";
 import LoadingButton from "../common/LoadingButton";
 import { Separator } from "../ui/separator";
-import { useMessageFlowInstances, useMessageInstances } from "@/lib/hooks/api";
+import { useMessageInstances } from "@/lib/hooks/api";
 import GuildSelect from "../common/GuildSelect";
 import ChannelSelect from "../common/ChannelSelect";
 import MessageSendInstanceEntry from "./MessageSendInstanceEntry";
@@ -21,6 +21,11 @@ import { useAppId, useMessageId } from "@/lib/hooks/params";
 import { toast } from "sonner";
 import { ScrollArea } from "../ui/scroll-area";
 import { Tabs, TabsList, TabsTrigger } from "../ui/tabs";
+
+// Mirrors maxFlowInstances in the API.
+const maxFlowInstances = 100;
+
+type Tab = "manual" | "flow";
 
 export default function MessageSendDialog({
   children,
@@ -31,10 +36,13 @@ export default function MessageSendDialog({
   const [guildId, setGuildId] = useState<string | null>(null);
   const [channelId, setChannelId] = useState<string | null>(null);
 
-  const [tab, setTab] = useState<"manual" | "flow">("manual");
+  const [tab, setTab] = useState<Tab>("manual");
 
   const manualInstances = useMessageInstances();
-  const flowInstances = useMessageFlowInstances(open && tab === "flow");
+  const flowInstances = useMessageInstances({
+    sentBy: "flow",
+    enabled: open && tab === "flow",
+  });
   const instances = tab === "flow" ? flowInstances : manualInstances;
   const createMutation = useMessageInstanceCreateMutation(
     useAppId(),
@@ -97,7 +105,7 @@ export default function MessageSendDialog({
         </div>
 
         <Separator />
-        <Tabs value={tab} onValueChange={(v) => setTab(v as "manual" | "flow")}>
+        <Tabs value={tab} onValueChange={(v) => setTab(v as Tab)}>
           <TabsList className="w-full">
             <TabsTrigger value="manual" className="flex-1">
               Sent from here
@@ -115,9 +123,9 @@ export default function MessageSendDialog({
                 instance={instance!}
               />
             ))}
-            {tab === "flow" && instances?.length === 100 && (
+            {tab === "flow" && instances?.length === maxFlowInstances && (
               <div className="text-muted-foreground text-center text-sm font-light">
-                Only the 100 newest messages are shown.
+                Only the {maxFlowInstances} newest messages are shown.
               </div>
             )}
             {instances?.length === 0 && (

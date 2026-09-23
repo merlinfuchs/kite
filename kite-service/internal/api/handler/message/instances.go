@@ -13,13 +13,17 @@ import (
 	"github.com/kitecloud/kite/kite-service/pkg/message"
 )
 
+// maxFlowInstances caps how many flow-sent instances are listed, since flows
+// can send a template many times. The web dashboard mirrors it.
+const maxFlowInstances = 100
+
 func (h *MessageHandler) HandleMessageInstanceList(c *handler.Context) (*wire.MessageInstanceListResponse, error) {
 	var instances []*model.MessageInstance
 	var err error
 	if c.Query("sent_by") == "flow" {
-		instances, err = h.messageInstanceStore.FlowMessageInstancesByMessage(c.Context(), c.Message.ID, 100)
+		instances, err = h.messageInstanceStore.FlowMessageInstancesByMessage(c.Context(), c.Message.ID, maxFlowInstances)
 	} else {
-		instances, err = h.messageInstanceStore.MessageInstancesByMessage(c.Context(), c.Message.ID, false)
+		instances, err = h.messageInstanceStore.MessageInstancesByMessage(c.Context(), c.Message.ID)
 	}
 	if err != nil {
 		return nil, fmt.Errorf("failed to get message instances: %w", err)

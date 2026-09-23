@@ -349,41 +349,6 @@ func (q *Queries) GetMessageInstancesByMessage(ctx context.Context, messageID st
 	return items, nil
 }
 
-const getMessageInstancesByMessageWithHidden = `-- name: GetMessageInstancesByMessageWithHidden :many
-SELECT id, message_id, hidden, ephemeral, discord_guild_id, discord_channel_id, discord_message_id, flow_sources, created_at, updated_at FROM message_instances WHERE message_id = $1 ORDER BY created_at DESC
-`
-
-func (q *Queries) GetMessageInstancesByMessageWithHidden(ctx context.Context, messageID string) ([]MessageInstance, error) {
-	rows, err := q.db.Query(ctx, getMessageInstancesByMessageWithHidden, messageID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []MessageInstance
-	for rows.Next() {
-		var i MessageInstance
-		if err := rows.Scan(
-			&i.ID,
-			&i.MessageID,
-			&i.Hidden,
-			&i.Ephemeral,
-			&i.DiscordGuildID,
-			&i.DiscordChannelID,
-			&i.DiscordMessageID,
-			&i.FlowSources,
-			&i.CreatedAt,
-			&i.UpdatedAt,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
 const getMessagesByApp = `-- name: GetMessagesByApp :many
 SELECT id, name, description, data, flow_sources, app_id, module_id, creator_user_id, created_at, updated_at FROM messages WHERE app_id = $1 ORDER BY created_at DESC
 `
