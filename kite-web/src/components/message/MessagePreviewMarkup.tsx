@@ -1,6 +1,8 @@
+import { memo } from "react";
 import { toHTML } from "@/tools/common/utils/discordMarkdown";
 
-export default function MessagePreviewMarkup({
+// Memoized on the strings, so a preview update only re-parses the text that changed.
+export default memo(function MessagePreviewMarkup({
   content,
   isTitle,
   className = "discord-message-markup",
@@ -15,4 +17,4 @@ export default function MessagePreviewMarkup({
       dangerouslySetInnerHTML={{ __html: toHTML(content, { isTitle }) }}
     />
   );
-}
+});

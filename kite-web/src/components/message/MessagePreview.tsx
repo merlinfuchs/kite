@@ -1,6 +1,6 @@
 import { format } from "date-fns";
 import { useMemo } from "react";
-import { COMPONENTS_V2_FLAG, Message } from "@/lib/message/schema";
+import { hasComponentsV2Flag, Message } from "@/lib/message/schema";
 import { cn } from "@/lib/utils";
 import { useAssetQueries } from "@/lib/api/queries";
 import { useAppId } from "@/lib/hooks/params";
@@ -24,21 +24,17 @@ export default function MessagePreview({
 }) {
   const currentTime = format(new Date(), "hh:mm aa");
   // A components v2 message carries its content in the components instead.
-  const componentsV2 = ((msg.flags ?? 0) & COMPONENTS_V2_FLAG) !== 0;
+  const componentsV2 = hasComponentsV2Flag(msg.flags);
 
-  const assets = useAssetQueries(
+  const loadedAssets = useAssetQueries(
     useAppId(),
     msg.attachments.map((a) => a.asset_id)
   );
-  const loadedAssets = assets
-    .map((q) => (q.data?.success ? q.data.data : undefined))
-    .filter((a) => !!a);
 
   // Attachments are uploaded under their asset name, which is what attachment:// refers to.
   const attachmentUrls = useMemo(
     () => new Map(loadedAssets.map((a) => [a.name, a.url])),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [loadedAssets.map((a) => a.id).join(",")]
+    [loadedAssets]
   );
 
   return (
@@ -48,12 +44,6 @@ export default function MessagePreview({
           "discord-messages min-h-full flex-auto",
           lightTheme ? "discord-light-theme theme-light" : "theme-dark"
         )}
-        style={{
-          // Inline so it wins over the preview stylesheet, which resets the background.
-          backgroundColor: lightTheme ? "#ffffff" : "#313338",
-          whiteSpace: "pre-wrap",
-          wordWrap: "break-word",
-        }}
       >
         <div
           className={cn("discord-message m-0 py-3", reducePadding && "pr-5")}
@@ -98,11 +88,7 @@ export default function MessagePreview({
                     )}
 
                     <div className="discord-attachments">
-                      <MessagePreviewComponents
-                        components={msg.components.filter(
-                          (component) => component.type === 1
-                        )}
-                      />
+                      <MessagePreviewComponents components={msg.components} />
                     </div>
                   </div>
                 </>

@@ -1,4 +1,5 @@
 import { format, parseISO } from "date-fns";
+import { useMemo } from "react";
 import { MessageEmbed } from "@/lib/message/schema";
 import { toHTML } from "@/tools/common/utils/discordMarkdown";
 import { colorIntToHex } from "@/tools/common/utils/color";
@@ -20,7 +21,10 @@ export default function MessagePreviewEmbed({
     }
   }
 
-  const title = { __html: toHTML(embed.title || "", { isTitle: true }) };
+  const title = useMemo(
+    () => ({ __html: toHTML(embed.title || "", { isTitle: true }) }),
+    [embed.title]
+  );
 
   return (
     <div className="discord-embed overflow-hidden">

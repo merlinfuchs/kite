@@ -59,7 +59,7 @@ function ComponentEmoji({
   return <Twemoji options={buttonEmojiOptions}>{emoji.name}</Twemoji>;
 }
 
-export function PreviewButton({ button }: { button: MessageComponentButton }) {
+function PreviewButton({ button }: { button: MessageComponentButton }) {
   const content = (
     <>
       {button.emoji && <ComponentEmoji emoji={button.emoji} />}

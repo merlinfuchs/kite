@@ -834,7 +834,9 @@ I don't think this is used anywhere, but I'm keeping it here just in case.
 /* New Whitney fonts to match rebrading */
 .discord-messages {
   color: #fff;
-  background-color: transparent;
+  background-color: #313338;
+  white-space: pre-wrap;
+  word-wrap: break-word;
   display: block;
   font-size: 16px;
   font-family: Whitney, Roboto, "Helvetica Neue", Helvetica, Arial, sans-serif;
@@ -1287,6 +1289,10 @@ I don't think this is used anywhere, but I'm keeping it here just in case.
 }
 
 /* Light theme, overriding the dark defaults above with Discord's light palette. */
+
+.discord-light-theme.discord-messages {
+  background-color: #ffffff;
+}
 
 .discord-light-theme.discord-messages,
 .discord-light-theme .discord-message,
