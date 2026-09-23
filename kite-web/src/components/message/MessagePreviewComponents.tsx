@@ -1,6 +1,7 @@
 import { discordEmojiUrl } from "@/tools/common/utils/discordCdn";
 import { createContext, ReactNode, useContext, useState } from "react";
 import {
+  ATTACHMENT_PREFIX,
   MessageComponent,
   MessageComponentActionRow,
   MessageComponentButton,
@@ -14,6 +15,7 @@ import {
 } from "@/lib/message/schema";
 import { colorIntToHex } from "@/tools/common/utils/color";
 import { cn } from "@/lib/utils";
+import MessagePreviewLink from "./MessagePreviewLink";
 import Twemoji from "../common/Twemoji";
 import MessagePreviewMarkup from "./MessagePreviewMarkup";
 
@@ -21,8 +23,6 @@ import MessagePreviewMarkup from "./MessagePreviewMarkup";
 export const AttachmentUrlContext = createContext<Map<string, string>>(
   new Map()
 );
-
-const ATTACHMENT_PREFIX = "attachment://";
 
 function useMediaUrl(url: string): string {
   const attachments = useContext(AttachmentUrlContext);
@@ -75,12 +75,7 @@ function PreviewButton({ button }: { button: MessageComponentButton }) {
 
   if (button.style === 5) {
     return (
-      <a
-        className={className}
-        target="_blank"
-        href={button.url}
-        rel="noreferrer"
-      >
+      <MessagePreviewLink className={className} href={button.url}>
         {content}
         <svg
           className="discord-button-launch"
@@ -98,7 +93,7 @@ function PreviewButton({ button }: { button: MessageComponentButton }) {
             d="M21 2.99902H14V4.99902H17.586L9.29297 13.292L10.707 14.706L19 6.41302V9.99902H21V2.99902Z"
           ></path>
         </svg>
-      </a>
+      </MessagePreviewLink>
     );
   }
 

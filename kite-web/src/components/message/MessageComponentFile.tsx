@@ -1,6 +1,7 @@
 import { FileNode, MessageNode, NodeId } from "@/lib/message/document";
 import { useDocument, useDocumentStoreApi, useNode } from "@/lib/message/state";
 import { nodeField } from "@/lib/message/validationStore";
+import { ATTACHMENT_PREFIX } from "@/lib/message/schema";
 import { useAssetQueries } from "@/lib/api/queries";
 import { useAppId } from "@/lib/hooks/params";
 import { useShallow } from "zustand/react/shallow";
@@ -22,7 +23,7 @@ export default function MessageComponentFile({ id }: { id: NodeId }) {
   );
   const options = useAssetQueries(useAppId(), assetIds).map((asset) => ({
     label: asset.name,
-    value: `attachment://${asset.name}`,
+    value: `${ATTACHMENT_PREFIX}${asset.name}`,
   }));
 
   if (!data) return null;

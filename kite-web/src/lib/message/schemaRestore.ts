@@ -271,6 +271,7 @@ export const selectMenuOptionSchema = z.object({
   value: z.preprocess((d) => d || undefined, z.optional(z.string())),
   description: z.preprocess((d) => d || undefined, z.optional(z.string())),
   emoji: z.preprocess((d) => d ?? undefined, z.optional(emojiSchema)),
+  default: z.preprocess((d) => d || undefined, z.optional(z.boolean())),
 });
 
 export type MessageComponentSelectMenuOption = z.infer<

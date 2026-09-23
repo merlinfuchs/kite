@@ -108,6 +108,7 @@ export type SelectOptionNode = BaseNode & {
   value?: string;
   description?: string;
   emoji?: Emoji;
+  default?: boolean;
 };
 
 export type ContainerNode = BaseNode & {
@@ -268,7 +269,8 @@ const SLOT_LIMITS: Record<string, number> = {
   "embed.fields": 25,
   "actionRow.components": 5,
   "section.components": 3,
-  "container.components": 10,
+  // Discord only caps the total component count, which the schema checks.
+  "container.components": MAX_COMPONENTS_V2,
   "selectMenu.options": 25,
   "mediaGallery.items": 10,
 };

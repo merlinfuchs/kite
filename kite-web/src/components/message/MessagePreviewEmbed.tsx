@@ -4,6 +4,7 @@ import { MessageEmbed } from "@/lib/message/schema";
 import { toHTML } from "@/tools/common/utils/discordMarkdown";
 import { colorIntToHex } from "@/tools/common/utils/color";
 import MessagePreviewMarkup from "./MessagePreviewMarkup";
+import MessagePreviewLink from "./MessagePreviewLink";
 
 export default function MessagePreviewEmbed({
   embed,
@@ -38,7 +39,9 @@ export default function MessagePreviewEmbed({
             {!!embed.provider?.name && (
               <div className="discord-embed-provider overflow-hidden break-all">
                 {embed.provider.url ? (
-                  <a href={embed.provider.url}>{embed.provider.name}</a>
+                  <MessagePreviewLink href={embed.provider.url}>
+                    {embed.provider.name}
+                  </MessagePreviewLink>
                 ) : (
                   embed.provider.name
                 )}
@@ -54,7 +57,9 @@ export default function MessagePreviewEmbed({
                   />
                 )}
                 {embed.author.url ? (
-                  <a href={embed.author.url}>{embed.author.name}</a>
+                  <MessagePreviewLink href={embed.author.url}>
+                    {embed.author.name}
+                  </MessagePreviewLink>
                 ) : (
                   embed.author.name
                 )}
@@ -63,7 +68,10 @@ export default function MessagePreviewEmbed({
             {!!embed.title && (
               <div className="discord-embed-title overflow-hidden break-all">
                 {embed.url ? (
-                  <a href={embed.url} dangerouslySetInnerHTML={title}></a>
+                  <MessagePreviewLink
+                    href={embed.url}
+                    dangerouslySetInnerHTML={title}
+                  />
                 ) : (
                   <span dangerouslySetInnerHTML={title} />
                 )}
