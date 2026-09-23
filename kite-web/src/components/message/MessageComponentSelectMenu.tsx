@@ -118,6 +118,7 @@ export default function MessageComponentSelectMenu({
                 insert(id, "options", "end", {
                   type: "selectOption",
                   label: "",
+                  value: "",
                 })
               }
               disabled={optionIds.length >= slotLimit("selectMenu", "options")}
@@ -173,12 +174,10 @@ const MessageComponentSelectOption = memo(
         <MessageInput
           type="text"
           label="Value"
-          placeholder="Defaults to the label"
+          placeholder="What the flow receives as interaction.value"
           maxLength={100}
           value={data.value ?? ""}
-          onChange={(v) =>
-            update<SelectOptionNode>(id, { value: v || undefined })
-          }
+          onChange={(value) => update<SelectOptionNode>(id, { value })}
           validation={nodeField<SelectOptionNode>(id, "value")}
           placeholders
         />
