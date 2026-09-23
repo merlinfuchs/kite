@@ -70,8 +70,11 @@ export default function MessageComponentAddDropdown({
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start">
         {componentTypes
-          .filter((c) => !c.rootOnly || context === "root")
-          .filter((c) => !c.needsAttachment || hasAttachments)
+          .filter(
+            (c) =>
+              (!c.rootOnly || context === "root") &&
+              (!c.needsAttachment || hasAttachments)
+          )
           .map((c) => (
             <DropdownMenuItem
               key={c.label}

@@ -75,10 +75,11 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			}
 		}
 
-		responseData, resumePointID, err := n.prepareMessageResponseData(ctx)
+		data, opts, resumePointID, err := n.prepareMessage(ctx)
 		if err != nil {
 			return traceError(n, err)
 		}
+		responseData := data.ToInteractionResponseData(opts)
 
 		hasCreatedResponse, err := ctx.Discord.HasCreatedInteractionResponse(ctx, interaction.ID)
 		if err != nil {
@@ -145,10 +146,11 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			}
 		}
 
-		responseData, resumePointID, err := n.prepareMessageResponseData(ctx)
+		data, opts, resumePointID, err := n.prepareMessage(ctx)
 		if err != nil {
 			return traceError(n, err)
 		}
+		responseData := data.ToInteractionResponseData(opts)
 
 		var msg *discord.Message
 		if n.Data.MessageTarget == "" || n.Data.MessageTarget == "@original" {
@@ -358,10 +360,11 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			return n.resumeFromComponent(ctx)
 		}
 
-		messageData, resumePointID, err := n.prepareMessageSendData(ctx)
+		data, opts, resumePointID, err := n.prepareMessage(ctx)
 		if err != nil {
 			return traceError(n, err)
 		}
+		messageData := data.ToSendMessageData(opts)
 
 		channelTarget, err := ctx.EvalTemplate(n.Data.ChannelTarget)
 		if err != nil {
@@ -415,10 +418,11 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			return traceError(n, err)
 		}
 
-		editData, resumePointID, err := n.prepareMessageEditData(ctx)
+		data, opts, resumePointID, err := n.prepareMessage(ctx)
 		if err != nil {
 			return traceError(n, err)
 		}
+		editData := data.ToEditMessageData(opts)
 
 		msg, err := ctx.Discord.EditMessage(
 			ctx,
@@ -485,10 +489,11 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			return n.resumeFromComponent(ctx)
 		}
 
-		messageData, resumePointID, err := n.prepareMessageSendData(ctx)
+		data, opts, resumePointID, err := n.prepareMessage(ctx)
 		if err != nil {
 			return traceError(n, err)
 		}
+		messageData := data.ToSendMessageData(opts)
 
 		userTarget, err := ctx.EvalTemplate(n.Data.UserTarget)
 		if err != nil {
@@ -1827,30 +1832,6 @@ func (n *CompiledFlowNode) prepareMessage(ctx *FlowContext) (message.MessageData
 	}
 
 	return data, opts, resumePointID, nil
-}
-
-func (n *CompiledFlowNode) prepareMessageResponseData(ctx *FlowContext) (api.InteractionResponseData, string, error) {
-	data, opts, resumePointID, err := n.prepareMessage(ctx)
-	if err != nil {
-		return api.InteractionResponseData{}, "", err
-	}
-	return data.ToInteractionResponseData(opts), resumePointID, nil
-}
-
-func (n *CompiledFlowNode) prepareMessageSendData(ctx *FlowContext) (api.SendMessageData, string, error) {
-	data, opts, resumePointID, err := n.prepareMessage(ctx)
-	if err != nil {
-		return api.SendMessageData{}, "", err
-	}
-	return data.ToSendMessageData(opts), resumePointID, nil
-}
-
-func (n *CompiledFlowNode) prepareMessageEditData(ctx *FlowContext) (api.EditMessageData, string, error) {
-	data, opts, resumePointID, err := n.prepareMessage(ctx)
-	if err != nil {
-		return api.EditMessageData{}, "", err
-	}
-	return data.ToEditMessageData(opts), resumePointID, nil
 }
 
 func createDefaultErrorResponse(fCtx *FlowContext, err error) {
