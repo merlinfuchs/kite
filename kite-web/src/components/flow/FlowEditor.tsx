@@ -15,15 +15,23 @@ import {
   useNodesState,
   useReactFlow,
 } from "@xyflow/react";
-import { DragEvent, useCallback } from "react";
+import { DragEvent, MouseEvent, useCallback, useEffect, useRef } from "react";
 
+import {
+  copyFlowNodes,
+  parseFlowClipboard,
+  pasteFlowNodes,
+} from "@/lib/flow/clipboard";
 import { edgeTypes, nodeTypes } from "@/lib/flow/components";
+import { useFlowContext } from "@/lib/flow/context";
 import { FlowData } from "@/lib/flow/dataSchema";
 import { getLayoutedElements } from "@/lib/flow/layout";
 import { createNode, getNodeValues } from "@/lib/flow/nodes";
 import { useHookedTheme } from "@/lib/hooks/theme";
 import "@xyflow/react/dist/base.css";
 import { ListTreeIcon } from "lucide-react";
+import { toast } from "sonner";
+import { isNodeTypeAvailable } from "./FlowNodeExplorer";
 
 interface Props {
   initialData?: FlowData;
@@ -149,6 +157,87 @@ export default function FlowEditor({
     [screenToFlowPosition, setNodes, setEdges]
   );
 
+  const contextType = useFlowContext((c) => c.type);
+  const mousePosition = useRef<{ x: number; y: number } | null>(null);
+
+  const onMouseMove = useCallback((e: MouseEvent) => {
+    mousePosition.current = { x: e.clientX, y: e.clientY };
+  }, []);
+
+  // Uses the native copy and paste events so the blocks go through the system
+  // clipboard and can be pasted into other commands and event listeners.
+  useEffect(() => {
+    const shouldIgnore = (e: ClipboardEvent) => {
+      const target = e.target as HTMLElement | null;
+      return (
+        !!target?.closest(
+          "input, textarea, [contenteditable], [role=dialog]"
+        ) || !!window.getSelection()?.toString()
+      );
+    };
+
+    const onCopy = (e: ClipboardEvent) => {
+      if (shouldIgnore(e)) return;
+
+      const clipboard = copyFlowNodes(nodes, edges);
+      if (!clipboard) return;
+
+      e.preventDefault();
+      e.clipboardData?.setData("text/plain", JSON.stringify(clipboard));
+    };
+
+    const onPaste = (e: ClipboardEvent) => {
+      if (shouldIgnore(e)) return;
+
+      const clipboard = parseFlowClipboard(
+        e.clipboardData?.getData("text/plain") || ""
+      );
+      if (!clipboard) return;
+
+      e.preventDefault();
+
+      const position = mousePosition.current
+        ? screenToFlowPosition(mousePosition.current)
+        : {
+            x: Math.min(...clipboard.nodes.map((n) => n.position.x)) + 50,
+            y: Math.min(...clipboard.nodes.map((n) => n.position.y)) + 50,
+          };
+
+      const [newNodes, newEdges] = pasteFlowNodes(clipboard, position, (type) =>
+        isNodeTypeAvailable(type, contextType)
+      );
+      if (newNodes.length < clipboard.nodes.length) {
+        toast.warning("Some blocks aren't available here and weren't pasted.");
+      }
+      if (newNodes.length === 0) return;
+
+      setNodes((nds) => [
+        ...nds.map((n) => ({ ...n, selected: false })),
+        ...newNodes,
+      ]);
+      setEdges((eds) => [
+        ...eds.map((e) => ({ ...e, selected: false })),
+        ...newEdges,
+      ]);
+      onChange();
+    };
+
+    document.addEventListener("copy", onCopy);
+    document.addEventListener("paste", onPaste);
+    return () => {
+      document.removeEventListener("copy", onCopy);
+      document.removeEventListener("paste", onPaste);
+    };
+  }, [
+    nodes,
+    edges,
+    contextType,
+    screenToFlowPosition,
+    setNodes,
+    setEdges,
+    onChange,
+  ]);
+
   const isValidConnection = useCallback(
     (con: Connection | Edge) => {
       if (!con.source || !con.target) return false;
@@ -199,6 +288,7 @@ export default function FlowEditor({
       edgeTypes={edgeTypes}
       onDrop={onDrop}
       onDragOver={onDragOver}
+      onMouseMove={onMouseMove}
       onConnect={onConnect}
       isValidConnection={isValidConnection}
       onSelectionChange={onSelectionChange}

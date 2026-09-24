@@ -1,4 +1,4 @@
-import { useFlowContext } from "@/lib/flow/context";
+import { FlowContextType, useFlowContext } from "@/lib/flow/context";
 import { NodeValues, createNode, getNodeValues } from "@/lib/flow/nodes";
 import { useReactFlow, useStore } from "@xyflow/react";
 import { SearchIcon } from "lucide-react";
@@ -155,6 +155,20 @@ const nodeCategories = {
 };
 
 type NodeCategory = keyof typeof nodeCategories;
+
+// Node types that aren't listed in any section (e.g. condition items) are
+// always available, as they only exist as children of other blocks.
+export function isNodeTypeAvailable(type: string, context: FlowContextType) {
+  const sections = Object.values(nodeCategories)
+    .flat()
+    .filter((s) => s.nodeTypes.includes(type));
+  return (
+    sections.length === 0 ||
+    sections.some(
+      (s) => !s.contextTypes || (s.contextTypes as string[]).includes(context)
+    )
+  );
+}
 
 export default function FlowNodeExplorer({
   category,
