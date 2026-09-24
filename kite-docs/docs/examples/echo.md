@@ -41,7 +41,7 @@ If you want to add a space in argument's name use the underscore ( \_ ).
 
 ## ✏️ Acknowledging your command 
 :::info
-Discord requires interactions (slash commands, modals & buttons) to compulsorily have a "response" otherwise it shows a red alert on your screend saying "This interaction failed." even if your command works as expected. To prevent this, we use the **Create Response** block.
+Discord requires interactions (slash commands, modals & buttons) to compulsorily have a "response" otherwise it shows a red alert on your screen saying "This interaction failed." even if your command works as expected. To prevent this, we use the **Create Response** block.
 :::
 
 - Add the **Create Response Message** block after the previous block.  
@@ -51,10 +51,10 @@ Discord requires interactions (slash commands, modals & buttons) to compulsorily
 
 ![Echo Command Flow](./img/echo-flow.png)
 
-## 💌 Save your command
+## 💌 Save and deploy your command
 - Click **Save Changes** at the top of your page.
+- Click **Deploy Changes** to push the command to Discord.
 - Voilà! You've created your first command.
->  It can take up to a minute for the changes to be deployed. This is indicated by the orange circle in the command list. It's advisable to wait until the orange circle changes to a green checkmark.
 - Refresh your Discord client and run the command in your server.
 
 :::tip 
