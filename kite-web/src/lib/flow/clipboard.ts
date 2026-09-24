@@ -17,22 +17,11 @@ export function copyFlowNodes(
   nodes: Node<NodeData>[],
   edges: Edge[]
 ): FlowClipboard | null {
-  const nodesById = new Map(nodes.map((n) => [n.id, n]));
-  const copiedIds = new Set<string>();
-
-  const add = (id: string) => {
-    const node = nodesById.get(id);
-    if (!node || copiedIds.has(id)) return;
-    copiedIds.add(id);
-
-    if (getNodeValues(node.type!).ownsChildren) {
-      edges.filter((e) => e.source === id).forEach((e) => add(e.target));
-    }
-  };
-
-  nodes
-    .filter((n) => n.selected && !getNodeValues(n.type!).fixed)
-    .forEach((n) => add(n.id));
+  const copiedIds = withOwnedChildren(
+    nodes.filter((n) => n.selected && !getNodeValues(n.type!).fixed),
+    nodes,
+    edges
+  );
 
   if (copiedIds.size === 0) return null;
 
@@ -69,26 +58,19 @@ export function parseFlowClipboard(text: string): FlowClipboard | null {
 }
 
 // Creates fresh copies of the clipboard nodes with new IDs, moved so that
-// their top left corner is at the given position. Nodes rejected by
+// their top left corner is at the given position (or slightly offset from the
+// originals if none is given). Nodes rejected by
 // isAllowed are dropped together with their edges and owned children.
 export function pasteFlowNodes(
   clipboard: FlowClipboard,
-  position: XYPosition,
+  position: XYPosition | null,
   isAllowed: (type: string) => boolean = () => true
 ): [Node<NodeData>[], Edge[]] {
-  const droppedIds = new Set<string>();
-  const drop = (id: string) => {
-    if (droppedIds.has(id)) return;
-    droppedIds.add(id);
-
-    const node = clipboard.nodes.find((n) => n.id === id);
-    if (node && getNodeValues(node.type!).ownsChildren) {
-      clipboard.edges
-        .filter((e) => e.source === id)
-        .forEach((e) => drop(e.target));
-    }
-  };
-  clipboard.nodes.filter((n) => !isAllowed(n.type!)).forEach((n) => drop(n.id));
+  const droppedIds = withOwnedChildren(
+    clipboard.nodes.filter((n) => !isAllowed(n.type!)),
+    clipboard.nodes,
+    clipboard.edges
+  );
 
   const sourceNodes = clipboard.nodes.filter((n) => !droppedIds.has(n.id));
   if (sourceNodes.length === 0) return [[], []];
@@ -96,14 +78,16 @@ export function pasteFlowNodes(
   const minX = Math.min(...sourceNodes.map((n) => n.position.x));
   const minY = Math.min(...sourceNodes.map((n) => n.position.y));
 
+  const target = position ?? { x: minX + 50, y: minY + 50 };
+
   const newIds = new Map(sourceNodes.map((n) => [n.id, getNodeId()]));
 
   const nodes = sourceNodes.map((n) => ({
     id: newIds.get(n.id)!,
     type: n.type,
     position: {
-      x: n.position.x - minX + position.x,
-      y: n.position.y - minY + position.y,
+      x: n.position.x - minX + target.x,
+      y: n.position.y - minY + target.y,
     },
     data: structuredClone(n.data),
     selected: true,
@@ -119,4 +103,28 @@ export function pasteFlowNodes(
     }));
 
   return [nodes, edges];
+}
+
+// Returns the IDs of the given nodes plus all children owned by them, e.g. the
+// condition items of a condition.
+function withOwnedChildren(
+  roots: Node<NodeData>[],
+  nodes: Node<NodeData>[],
+  edges: Edge[]
+): Set<string> {
+  const nodesById = new Map(nodes.map((n) => [n.id, n]));
+  const ids = new Set<string>();
+
+  const add = (id: string) => {
+    const node = nodesById.get(id);
+    if (!node || ids.has(id)) return;
+    ids.add(id);
+
+    if (getNodeValues(node.type!).ownsChildren) {
+      edges.filter((e) => e.source === id).forEach((e) => add(e.target));
+    }
+  };
+  roots.forEach((n) => add(n.id));
+
+  return ids;
 }

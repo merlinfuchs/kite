@@ -1,19 +1,16 @@
 import { Edge, Node } from "@xyflow/react";
 import { describe, expect, it } from "vitest";
-import {
-  copyFlowNodes,
-  parseFlowClipboard,
-  pasteFlowNodes,
-} from "./clipboard";
+import { copyFlowNodes, parseFlowClipboard, pasteFlowNodes } from "./clipboard";
 import { NodeData } from "./dataSchema";
 
 function node(
   id: string,
   type: string,
   selected = false,
-  data: NodeData = {}
+  data: NodeData = {},
+  position = { x: 0, y: 0 }
 ): Node<NodeData> {
-  return { id, type, position: { x: 0, y: 0 }, data, selected };
+  return { id, type, position, data, selected };
 }
 
 function edge(source: string, target: string, type?: string): Edge {
@@ -58,10 +55,9 @@ describe("copyFlowNodes", () => {
 describe("pasteFlowNodes", () => {
   it("assigns new ids, moves nodes and deep copies data", () => {
     const nodes = [
-      { ...node("a", "action_log", true, { log_message: "hi" }) },
-      { ...node("b", "action_log", true), position: { x: 100, y: 50 } },
+      node("a", "action_log", true, { log_message: "hi" }, { x: 20, y: 10 }),
+      node("b", "action_log", true, {}, { x: 100, y: 50 }),
     ];
-    nodes[0].position = { x: 20, y: 10 };
     const clipboard = copyFlowNodes(nodes, [edge("a", "b")])!;
 
     const [newNodes, newEdges] = pasteFlowNodes(clipboard, { x: 500, y: 500 });
@@ -95,6 +91,15 @@ describe("pasteFlowNodes", () => {
 
     expect(newNodes.map((n) => n.type)).toEqual(["action_log"]);
     expect(newEdges).toHaveLength(0);
+  });
+
+  it("offsets from the originals without a position", () => {
+    const clipboard = copyFlowNodes(
+      [node("a", "action_log", true, {}, { x: 20, y: 10 })],
+      []
+    )!;
+    const [newNodes] = pasteFlowNodes(clipboard, null);
+    expect(newNodes[0].position).toEqual({ x: 70, y: 60 });
   });
 });
 
