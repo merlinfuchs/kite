@@ -169,13 +169,14 @@ func (h *AppHandler) HandleAppUpdate(c *handler.Context, req wire.AppUpdateReque
 func (h *AppHandler) HandleAppStatusUpdate(c *handler.Context, req wire.AppStatusUpdateRequest) (*wire.AppStatusUpdateResponse, error) {
 	var status *model.AppDiscordStatus
 	if req.DiscordStatus != nil {
+		if req.DiscordStatus.RotateEnabled && !c.Features.RotatingStatus {
+			return nil, handler.ErrForbidden("feature_not_available", "rotating statuses require a premium plan")
+		}
+
 		entries := make([]model.AppDiscordStatusEntry, len(req.DiscordStatus.Statuses))
 		for i, e := range req.DiscordStatus.Statuses {
 			id := e.ID
 			if id == "" {
-				// New entries are created without an ID on the client; give
-				// them a stable one so they can be selected as active or
-				// referenced across future updates.
 				id = util.UniqueID()
 			}
 

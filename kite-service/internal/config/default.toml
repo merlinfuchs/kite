@@ -63,3 +63,4 @@ feature_max_variables = 25
 feature_max_messages = 25
 feature_max_event_listeners = 5
 feature_priority_support = false
+feature_rotating_status = false

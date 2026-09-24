@@ -54,14 +54,6 @@ export function useAppQuery(appId: string) {
     queryKey: ["apps", appId],
     queryFn: () => apiRequest<AppGetResponse>(`/v1/apps/${appId}`),
     enabled: !!appId,
-    // The global default (staleTime: 3 minutes, see client.ts) means a plain
-    // remount within that window would otherwise just redisplay whatever was
-    // last cached, even if it's since gone stale (e.g. after saving changes
-    // on this app from a different tab/session, or after any other update
-    // this query wasn't around to observe). Always re-checking on mount
-    // trades a bit of extra network traffic for never showing outdated app
-    // data -- important because this query backs the app settings page.
-    refetchOnMount: "always",
   });
 }
 

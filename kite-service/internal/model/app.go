@@ -1,7 +1,8 @@
 package model
 
 import (
-	"reflect"
+	"encoding/json"
+	"slices"
 	"time"
 
 	"github.com/diamondburned/arikawa/v3/utils/ws"
@@ -107,18 +108,14 @@ func (r AppGatewayRequirements) NeedsGuildMessageReactions() bool {
 	return false
 }
 
-// AppDiscordStatus configures the set of Discord statuses an app can show.
-// Statuses holds every status the user has created; ActiveID picks which one
-// is shown when RotateEnabled is false, and the gateway cycles through all of
-// them once per minute when it is true.
+// AppDiscordStatus holds the statuses an app can show. ActiveID picks the one
+// shown when rotation is off, otherwise the gateway cycles through all of them.
 type AppDiscordStatus struct {
 	Statuses      []AppDiscordStatusEntry `json:"statuses,omitempty"`
 	ActiveID      string                  `json:"active_id,omitempty"`
 	RotateEnabled bool                    `json:"rotate_enabled,omitempty"`
 }
 
-// AppDiscordStatusEntry is a single status/activity combination that can be
-// shown on the app's Discord presence.
 type AppDiscordStatusEntry struct {
 	ID            string `json:"id"`
 	Label         string `json:"label,omitempty"`
@@ -127,6 +124,29 @@ type AppDiscordStatusEntry struct {
 	ActivityName  string `json:"activity_name,omitempty"`
 	ActivityState string `json:"activity_state,omitempty"`
 	ActivityURL   string `json:"activity_url,omitempty"`
+}
+
+// UnmarshalJSON also accepts the old format, which stored a single status
+// directly on the object, and turns it into a status list with one entry.
+func (s *AppDiscordStatus) UnmarshalJSON(data []byte) error {
+	type current AppDiscordStatus
+	var v struct {
+		current
+		AppDiscordStatusEntry
+	}
+	if err := json.Unmarshal(data, &v); err != nil {
+		return err
+	}
+
+	*s = AppDiscordStatus(v.current)
+
+	legacy := v.AppDiscordStatusEntry
+	if len(s.Statuses) == 0 && legacy != (AppDiscordStatusEntry{}) {
+		legacy.ID = "default"
+		s.Statuses = []AppDiscordStatusEntry{legacy}
+		s.ActiveID = legacy.ID
+	}
+	return nil
 }
 
 func (s *AppDiscordStatus) Equals(other *AppDiscordStatus) bool {
@@ -140,12 +160,11 @@ func (s *AppDiscordStatus) Equals(other *AppDiscordStatus) bool {
 
 	return s.ActiveID == other.ActiveID &&
 		s.RotateEnabled == other.RotateEnabled &&
-		reflect.DeepEqual(s.Statuses, other.Statuses)
+		slices.Equal(s.Statuses, other.Statuses)
 }
 
-// ActiveEntry returns the status that should be displayed when rotation is
-// off: the one matching ActiveID, or the first entry if ActiveID doesn't
-// match anything (e.g. it was deleted). Returns nil if there are no statuses.
+// ActiveEntry returns the entry matching ActiveID, falling back to the first
+// one if it doesn't match any.
 func (s *AppDiscordStatus) ActiveEntry() *AppDiscordStatusEntry {
 	if s == nil || len(s.Statuses) == 0 {
 		return nil
@@ -158,6 +177,18 @@ func (s *AppDiscordStatus) ActiveEntry() *AppDiscordStatusEntry {
 	}
 
 	return &s.Statuses[0]
+}
+
+// Rotates reports whether the app cycles through more than one status.
+func (s *AppDiscordStatus) Rotates() bool {
+	return s != nil && s.RotateEnabled && len(s.Statuses) > 1
+}
+
+// RotationEntry returns the entry to show at the given time when rotating.
+// It advances once per minute, so every gateway agrees on the current entry
+// without keeping any state.
+func (s *AppDiscordStatus) RotationEntry(t time.Time) *AppDiscordStatusEntry {
+	return &s.Statuses[int(t.Unix()/60)%len(s.Statuses)]
 }
 
 type AppCollaboratorRole string

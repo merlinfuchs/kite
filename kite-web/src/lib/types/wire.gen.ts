@@ -214,6 +214,7 @@ export interface BillingPlan {
   feature_max_messages: number /* int */;
   feature_max_event_listeners: number /* int */;
   feature_priority_support: boolean;
+  feature_rotating_status: boolean;
 }
 export type BillingPlanListResponse = (BillingPlan | undefined)[];
 
@@ -330,6 +331,7 @@ export interface Features {
   max_messages: number /* int */;
   max_event_listeners: number /* int */;
   priority_support: boolean;
+  rotating_status: boolean;
 }
 export type FeaturesGetResponse = Features;
 

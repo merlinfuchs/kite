@@ -12,8 +12,14 @@ import { Switch } from "@/components/ui/switch";
 import { useAppStatusUpdateMutation } from "@/lib/api/mutations";
 import { useAppQuery } from "@/lib/api/queries";
 import { setValidationErrors } from "@/lib/form";
+import { useAppFeature } from "@/lib/hooks/api";
 import { useAppId } from "@/lib/hooks/params";
-import { ExternalLinkIcon, PlusIcon, RefreshCwIcon, Trash2Icon } from "lucide-react";
+import {
+  ExternalLinkIcon,
+  PlusIcon,
+  RefreshCwIcon,
+  Trash2Icon,
+} from "lucide-react";
 import Link from "next/link";
 import { useCallback, useMemo } from "react";
 import { useFieldArray, useForm } from "react-hook-form";
@@ -50,10 +56,8 @@ interface FormFields {
   rotate_enabled: boolean;
 }
 
-// generateLocalId gives a new status a stable identifier as soon as it's
-// added, so it can be selected as the active status (or referenced in the
-// rotation) before the form is ever saved. The backend accepts client-chosen
-// IDs as-is and only generates its own when one is missing.
+// New statuses need an ID right away so they can be picked as the active one
+// before saving.
 function generateLocalId(): string {
   return `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
 }
@@ -74,22 +78,11 @@ export default function AppSettingsPresence() {
   const appQuery = useAppQuery(appId);
   const app = appQuery.data?.success ? appQuery.data.data : undefined;
 
-  // isLoading (unlike isFetching) is only true while there's no data to show
-  // yet -- it covers both the very first load AND a remount after React
-  // Query has evicted its cached copy of the app (e.g. after a few minutes
-  // away on another page). Without this, the form's empty-by-default state
-  // was indistinguishable from "this app genuinely has no statuses", so the
-  // page briefly looked like your statuses had disappeared every time you
-  // navigated back to it.
   const isAppLoading = appQuery.isLoading;
+  const rotatingStatusAvailable = !!useAppFeature((f) => f.rotating_status);
 
-  // Derive the form's values from the fetched app. Using RHF's `values`
-  // option (rather than `defaultValues` + a manual `reset()` in a
-  // useEffect) is the pattern React Hook Form recommends for syncing a form
-  // to async data: `reset()` reliably updates plain fields but does NOT
-  // reliably sync `useFieldArray`'s own internal field list, so the
-  // rotate-enabled toggle would end up correct while the status list stayed
-  // stuck empty. `values` keeps both in sync together.
+  // Passed as `values` instead of calling reset(), which doesn't reliably
+  // update the useFieldArray list.
   const formValues = useMemo<FormFields>(() => {
     const statuses =
       app?.discord_status?.statuses?.map((s) => ({
@@ -110,9 +103,6 @@ export default function AppSettingsPresence() {
 
   const form = useForm<FormFields>({
     values: formValues,
-    // Don't clobber an in-progress edit if a background refetch resolves
-    // while the user is mid-change (e.g. the always-refetch-on-mount fetch
-    // landing right as they start editing).
     resetOptions: { keepDirtyValues: true },
   });
 
@@ -123,7 +113,7 @@ export default function AppSettingsPresence() {
   });
 
   const activeId = form.watch("active_id");
-  const rotateEnabled = form.watch("rotate_enabled");
+  const rotateEnabled = rotatingStatusAvailable && form.watch("rotate_enabled");
 
   const updateMutation = useAppStatusUpdateMutation(appId);
 
@@ -144,7 +134,8 @@ export default function AppSettingsPresence() {
                     activity_url: s.activity_url || undefined,
                   })),
                   active_id: data.active_id || undefined,
-                  rotate_enabled: data.rotate_enabled,
+                  rotate_enabled:
+                    rotatingStatusAvailable && data.rotate_enabled,
                 }
               : undefined,
         },
@@ -167,7 +158,7 @@ export default function AppSettingsPresence() {
         }
       );
     },
-    [form, updateMutation]
+    [form, updateMutation, rotatingStatusAvailable]
   );
 
   const handleAddStatus = useCallback(() => {
@@ -202,9 +193,9 @@ export default function AppSettingsPresence() {
       <CardHeader>
         <CardTitle>Custom Status</CardTitle>
         <CardDescription>
-          Configure the status and activity of your app in Discord. Add
-          multiple statuses, pick which one is active, or have your app
-          rotate through all of them automatically.
+          Configure the status and activity of your app in Discord. Add multiple
+          statuses, pick which one is active, or have your app rotate through
+          all of them automatically.
         </CardDescription>
       </CardHeader>
       <Form {...form}>
@@ -221,12 +212,19 @@ export default function AppSettingsPresence() {
                     <div className="flex items-center gap-2 text-sm font-medium">
                       <RefreshCwIcon className="h-4 w-4" />
                       Rotate status every minute
+                      {!rotatingStatusAvailable && (
+                        <Link
+                          href={`/apps/${appId}/premium`}
+                          className="text-xs text-primary hover:underline"
+                        >
+                          Premium
+                        </Link>
+                      )}
                     </div>
                     <p className="text-sm text-muted-foreground">
-                      When enabled, your app cycles through every status
-                      below, switching to the next one once a minute. When
-                      disabled, the status selected below is shown at all
-                      times.
+                      When enabled, your app cycles through every status below,
+                      switching to the next one once a minute. When disabled,
+                      the status selected below is shown at all times.
                     </p>
                   </div>
                   <FormField
@@ -234,9 +232,9 @@ export default function AppSettingsPresence() {
                     name="rotate_enabled"
                     render={({ field }) => (
                       <Switch
-                        checked={field.value}
+                        checked={rotatingStatusAvailable && field.value}
                         onCheckedChange={field.onChange}
-                        disabled={fields.length < 2}
+                        disabled={!rotatingStatusAvailable || fields.length < 2}
                       />
                     )}
                   />
@@ -250,140 +248,146 @@ export default function AppSettingsPresence() {
                   {fields.map((field, index) => (
                     <div
                       key={field.fieldKey}
-                  className="rounded-lg border p-4 space-y-4"
-                >
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="flex items-center gap-2">
-                      <RadioGroupItem
-                        value={field.id}
-                        id={`active-${field.fieldKey}`}
-                        disabled={rotateEnabled}
-                      />
-                      <label
-                        htmlFor={`active-${field.fieldKey}`}
-                        className="text-sm text-muted-foreground"
-                      >
-                        {rotateEnabled
-                          ? "Included in rotation"
-                          : "Active status"}
-                      </label>
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      type="button"
-                      onClick={() => handleRemoveStatus(index, field.id)}
+                      className="rounded-lg border p-4 space-y-4"
                     >
-                      <Trash2Icon className="h-4 w-4 text-muted-foreground" />
-                    </Button>
-                  </div>
-
-                  <FormField
-                    control={form.control}
-                    name={`statuses.${index}.label`}
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Label</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="text"
-                            placeholder="e.g. Working, Watching for commands"
-                            {...field}
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-2">
+                          <RadioGroupItem
+                            value={field.id}
+                            id={`active-${field.fieldKey}`}
+                            disabled={rotateEnabled}
                           />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <div className="flex gap-3">
-                    <FormField
-                      control={form.control}
-                      name={`statuses.${index}.status`}
-                      render={({ field }) => (
-                        <FormItem className="min-w-48">
-                          <FormLabel>Status</FormLabel>
-                          <Select
-                            onValueChange={field.onChange}
-                            value={field.value}
+                          <label
+                            htmlFor={`active-${field.fieldKey}`}
+                            className="text-sm text-muted-foreground"
                           >
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select custom status" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              <SelectItem value="online">Online</SelectItem>
-                              <SelectItem value="dnd">Do Not Disturb</SelectItem>
-                              <SelectItem value="idle">AFK</SelectItem>
-                              <SelectItem value="invisible">
-                                Invisible
-                              </SelectItem>
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name={`statuses.${index}.activity_type`}
-                      render={({ field }) => (
-                        <FormItem className="min-w-48">
-                          <FormLabel>Activity Type</FormLabel>
-                          <Select
-                            onValueChange={field.onChange}
-                            value={field.value}
-                          >
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select a custom status inside Discord for your app" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              <SelectItem value="0">Playing</SelectItem>
-                              <SelectItem value="1">Streaming</SelectItem>
-                              <SelectItem value="2">Listening</SelectItem>
-                              <SelectItem value="3">Watching</SelectItem>
-                              <SelectItem value="5">Competing</SelectItem>
-                              <SelectItem value="4">Custom</SelectItem>
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
+                            {rotateEnabled
+                              ? "Included in rotation"
+                              : "Active status"}
+                          </label>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          type="button"
+                          onClick={() => handleRemoveStatus(index, field.id)}
+                        >
+                          <Trash2Icon className="h-4 w-4 text-muted-foreground" />
+                        </Button>
+                      </div>
 
-                  <FormField
-                    control={form.control}
-                    name={`statuses.${index}.activity_name`}
-                    render={({ field }) => (
-                      <FormItem className="w-full">
-                        <FormLabel>Activity Name</FormLabel>
-                        <FormControl>
-                          <Input type="text" className="w-full" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                      <FormField
+                        control={form.control}
+                        name={`statuses.${index}.label`}
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Label</FormLabel>
+                            <FormControl>
+                              <Input
+                                type="text"
+                                placeholder="e.g. Working, Watching for commands"
+                                {...field}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
 
-                  <FormField
-                    control={form.control}
-                    name={`statuses.${index}.activity_url`}
-                    render={({ field }) => (
-                      <FormItem className="w-full">
-                        <FormLabel>Activity URL</FormLabel>
-                        <FormControl>
-                          <Input type="url" className="w-full" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-              ))}
+                      <div className="flex gap-3">
+                        <FormField
+                          control={form.control}
+                          name={`statuses.${index}.status`}
+                          render={({ field }) => (
+                            <FormItem className="min-w-48">
+                              <FormLabel>Status</FormLabel>
+                              <Select
+                                onValueChange={field.onChange}
+                                value={field.value}
+                              >
+                                <FormControl>
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Select custom status" />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  <SelectItem value="online">Online</SelectItem>
+                                  <SelectItem value="dnd">
+                                    Do Not Disturb
+                                  </SelectItem>
+                                  <SelectItem value="idle">AFK</SelectItem>
+                                  <SelectItem value="invisible">
+                                    Invisible
+                                  </SelectItem>
+                                </SelectContent>
+                              </Select>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={form.control}
+                          name={`statuses.${index}.activity_type`}
+                          render={({ field }) => (
+                            <FormItem className="min-w-48">
+                              <FormLabel>Activity Type</FormLabel>
+                              <Select
+                                onValueChange={field.onChange}
+                                value={field.value}
+                              >
+                                <FormControl>
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Select a custom status inside Discord for your app" />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  <SelectItem value="0">Playing</SelectItem>
+                                  <SelectItem value="1">Streaming</SelectItem>
+                                  <SelectItem value="2">Listening</SelectItem>
+                                  <SelectItem value="3">Watching</SelectItem>
+                                  <SelectItem value="5">Competing</SelectItem>
+                                  <SelectItem value="4">Custom</SelectItem>
+                                </SelectContent>
+                              </Select>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+
+                      <FormField
+                        control={form.control}
+                        name={`statuses.${index}.activity_name`}
+                        render={({ field }) => (
+                          <FormItem className="w-full">
+                            <FormLabel>Activity Name</FormLabel>
+                            <FormControl>
+                              <Input
+                                type="text"
+                                className="w-full"
+                                {...field}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name={`statuses.${index}.activity_url`}
+                        render={({ field }) => (
+                          <FormItem className="w-full">
+                            <FormLabel>Activity URL</FormLabel>
+                            <FormControl>
+                              <Input type="url" className="w-full" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                  ))}
                 </RadioGroup>
 
                 <Button

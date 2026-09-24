@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
-	"sync"
 	"time"
 
 	"github.com/diamondburned/arikawa/v3/gateway"
@@ -22,10 +21,6 @@ import (
 	"gopkg.in/guregu/null.v4"
 )
 
-// statusRotationInterval is how often a gateway with status rotation enabled
-// cycles to the next configured Discord status.
-const statusRotationInterval = time.Minute
-
 type Gateway struct {
 	logStore       store.LogStore
 	appStore       store.AppStore
@@ -36,12 +31,6 @@ type Gateway struct {
 
 	app     *model.App
 	session *state.State
-
-	// statusRotateMu guards statusRotateCancel, which stops the currently
-	// running status-rotation goroutine (if any) started by
-	// applyStatusRotation.
-	statusRotateMu     sync.Mutex
-	statusRotateCancel context.CancelFunc
 
 	// intents is what this connection identified with, or zero before it has
 	// been computed. A computed set always includes IntentGuilds, so zero is
@@ -81,7 +70,6 @@ func NewGateway(
 	g.ctx, g.cancel = context.WithCancel(context.Background())
 
 	go g.startGateway()
-	g.applyStatusRotation(app)
 	return g, nil
 }
 
@@ -150,6 +138,8 @@ func (g *Gateway) startGateway() {
 			return
 		}
 	})
+
+	go g.rotateStatus(g.ctx)
 
 	if err := g.session.Connect(g.ctx); err != nil {
 		// Fatal error, we can't recover
@@ -226,8 +216,6 @@ func (g *Gateway) Update(ctx context.Context, app *model.App) {
 				slog.String("error", err.Error()),
 			)
 		}
-
-		g.applyStatusRotation(app)
 	}
 
 	if app.DiscordToken != g.app.DiscordToken {
@@ -244,56 +232,47 @@ func (g *Gateway) Update(ctx context.Context, app *model.App) {
 	g.app = app
 }
 
-// applyStatusRotation (re)starts the background goroutine that cycles the
-// app's presence through every configured status once a minute, replacing
-// whatever rotation was previously running. If rotation is disabled, or
-// there are fewer than two statuses to rotate between, any existing rotation
-// is stopped and nothing new is started -- presenceForApp already shows the
-// single active status in that case.
-func (g *Gateway) applyStatusRotation(app *model.App) {
-	g.statusRotateMu.Lock()
-	defer g.statusRotateMu.Unlock()
+// rotateStatus cycles the app's presence through its statuses at the start of
+// every minute, as long as rotation is enabled and the app's plan includes it.
+func (g *Gateway) rotateStatus(ctx context.Context) {
+	rotating := false
 
-	if g.statusRotateCancel != nil {
-		g.statusRotateCancel()
-		g.statusRotateCancel = nil
-	}
+	for {
+		now := time.Now()
+		next := now.Truncate(time.Minute).Add(time.Minute)
 
-	if app.DiscordStatus == nil || !app.DiscordStatus.RotateEnabled || len(app.DiscordStatus.Statuses) < 2 {
-		return
-	}
-
-	// Copy the slice so later config changes (which call applyStatusRotation
-	// again with a fresh app) can't race with this goroutine reading it.
-	statuses := make([]model.AppDiscordStatusEntry, len(app.DiscordStatus.Statuses))
-	copy(statuses, app.DiscordStatus.Statuses)
-
-	ctx, cancel := context.WithCancel(g.ctx)
-	g.statusRotateCancel = cancel
-
-	go func() {
-		ticker := time.NewTicker(statusRotationInterval)
-		defer ticker.Stop()
-
-		index := 0
-		for {
-			select {
-			case <-ctx.Done():
-				return
-			case <-ticker.C:
-				index = (index + 1) % len(statuses)
-				entry := statuses[index]
-
-				if err := g.session.Gateway().Send(ctx, presenceForStatusEntry(&entry)); err != nil {
-					slog.Error(
-						"Failed to send rotating presence update",
-						slog.String("app_id", g.app.ID),
-						slog.String("error", err.Error()),
-					)
-				}
-			}
+		select {
+		case <-ctx.Done():
+			return
+		case <-time.After(next.Sub(now)):
 		}
-	}()
+
+		app := g.app
+		if !app.DiscordStatus.Rotates() {
+			rotating = false
+			continue
+		}
+
+		var presence *gateway.UpdatePresenceCommand
+		if g.planManager.AppFeatures(ctx, app.ID).RotatingStatus {
+			rotating = true
+			presence = presenceForStatusEntry(app.DiscordStatus.RotationEntry(next))
+		} else if rotating {
+			// The plan no longer includes rotation, go back to the active status.
+			rotating = false
+			presence = presenceForApp(app)
+		} else {
+			continue
+		}
+
+		if err := g.session.Gateway().Send(ctx, presence); err != nil {
+			slog.Error(
+				"Failed to send rotating presence update",
+				slog.String("app_id", app.ID),
+				slog.String("error", err.Error()),
+			)
+		}
+	}
 }
 
 // RefreshIntents recomputes the app's required intents and reconnects if they
@@ -358,7 +337,6 @@ func (g *Gateway) restart() {
 	g.session = session
 	g.intents = 0
 	go g.startGateway()
-	g.applyStatusRotation(g.app)
 }
 
 func (g *Gateway) createLogEntry(level model.LogLevel, message string) {

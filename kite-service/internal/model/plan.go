@@ -22,6 +22,7 @@ type Plan struct {
 	FeatureMaxMessages          int
 	FeatureMaxEventListeners    int
 	FeaturePrioritySupport      bool
+	FeatureRotatingStatus       bool
 }
 
 func (p Plan) Features() Features {
@@ -34,6 +35,7 @@ func (p Plan) Features() Features {
 		MaxMessages:          p.FeatureMaxMessages,
 		MaxEventListeners:    p.FeatureMaxEventListeners,
 		PrioritySupport:      p.FeaturePrioritySupport,
+		RotatingStatus:       p.FeatureRotatingStatus,
 	}
 }
 
@@ -46,6 +48,7 @@ type Features struct {
 	MaxMessages          int
 	MaxEventListeners    int
 	PrioritySupport      bool
+	RotatingStatus       bool
 }
 
 func (f Features) Merge(other Features) Features {
@@ -58,6 +61,7 @@ func (f Features) Merge(other Features) Features {
 		MaxMessages:          max(f.MaxMessages, other.MaxMessages),
 		MaxEventListeners:    max(f.MaxEventListeners, other.MaxEventListeners),
 		PrioritySupport:      f.PrioritySupport || other.PrioritySupport,
+		RotatingStatus:       f.RotatingStatus || other.RotatingStatus,
 	}
 }
 

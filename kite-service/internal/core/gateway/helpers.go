@@ -83,10 +83,6 @@ func createSession(tokenCrypt *util.SymmetricCrypt, app *model.App) (*state.Stat
 	return state.NewWithIdentifier(identifier), nil
 }
 
-// presenceForApp returns the presence for an app's currently active status --
-// i.e. what should be shown while status rotation is off, and what a
-// newly-connecting gateway should identify with before its rotation ticker
-// (if any) takes over.
 func presenceForApp(app *model.App) *gateway.UpdatePresenceCommand {
 	var entry *model.AppDiscordStatusEntry
 	if app.DiscordStatus != nil {
@@ -96,8 +92,7 @@ func presenceForApp(app *model.App) *gateway.UpdatePresenceCommand {
 	return presenceForStatusEntry(entry)
 }
 
-// presenceForStatusEntry builds a presence update for a single status entry,
-// falling back to Kite's default presence when entry is nil.
+// presenceForStatusEntry falls back to Kite's default presence when entry is nil.
 func presenceForStatusEntry(entry *model.AppDiscordStatusEntry) *gateway.UpdatePresenceCommand {
 	status := discord.OnlineStatus
 	activity := discord.Activity{

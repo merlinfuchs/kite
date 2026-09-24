@@ -128,6 +128,12 @@ export default function AppPricingList() {
                   {pricing.feature_max_event_listeners} Event Listeners
                 </h3>
               </span>
+              {pricing.feature_rotating_status && (
+                <span className="flex">
+                  <CheckIcon className="text-green-500" />{" "}
+                  <h3 className="ml-2">Rotating status</h3>
+                </span>
+              )}
               <span className="flex">
                 <CheckIcon className="text-green-500" />{" "}
                 <h3 className="ml-2">
