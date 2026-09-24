@@ -42,6 +42,8 @@ import {
   SelectValue,
 } from "../ui/select";
 
+const maxStatuses = 10;
+
 interface StatusFieldValues {
   id: string;
   label: string;
@@ -237,21 +239,25 @@ export default function AppSettingsPresence() {
                       className="rounded-lg border p-4 space-y-4"
                     >
                       <div className="flex items-center justify-between gap-3">
-                        <div className="flex items-center gap-2">
-                          <RadioGroupItem
-                            value={field.id}
-                            id={`active-${field.fieldKey}`}
-                            disabled={rotateEnabled}
-                          />
-                          <label
-                            htmlFor={`active-${field.fieldKey}`}
-                            className="text-sm text-muted-foreground"
-                          >
-                            {rotateEnabled
-                              ? "Included in rotation"
-                              : "Active status"}
-                          </label>
-                        </div>
+                        {rotateEnabled ? (
+                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                            <RefreshCwIcon className="h-4 w-4" />
+                            Included in rotation
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-2">
+                            <RadioGroupItem
+                              value={field.id}
+                              id={`active-${field.fieldKey}`}
+                            />
+                            <label
+                              htmlFor={`active-${field.fieldKey}`}
+                              className="text-sm text-muted-foreground"
+                            >
+                              Active status
+                            </label>
+                          </div>
+                        )}
                         <Button
                           variant="ghost"
                           size="icon"
@@ -381,9 +387,10 @@ export default function AppSettingsPresence() {
                   type="button"
                   onClick={handleAddStatus}
                   className="w-full"
+                  disabled={fields.length >= maxStatuses}
                 >
                   <PlusIcon className="h-4 w-4 mr-2" />
-                  Add status
+                  Add status ({fields.length}/{maxStatuses})
                 </Button>
 
                 {fields.length === 0 && (

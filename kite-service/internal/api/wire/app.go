@@ -76,7 +76,7 @@ func (req AppStatusUpdateRequest) Validate() error {
 	}
 
 	return validation.ValidateStruct(req.DiscordStatus,
-		validation.Field(&req.DiscordStatus.Statuses, validation.Length(0, 20)),
+		validation.Field(&req.DiscordStatus.Statuses, validation.Length(0, 10)),
 	)
 }
 
