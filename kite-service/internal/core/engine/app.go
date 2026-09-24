@@ -7,9 +7,11 @@ import (
 	"sync"
 	"time"
 
+	"github.com/diamondburned/arikawa/v3/api"
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/gateway"
 	"github.com/diamondburned/arikawa/v3/state"
+	"github.com/diamondburned/arikawa/v3/utils/json/option"
 	"github.com/kitecloud/kite/kite-service/internal/metrics"
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/internal/store"
@@ -241,16 +243,16 @@ func (a *App) HandleEvent(appID string, session *state.State, event gateway.Even
 			if command != nil {
 				go command.HandleEvent(appID, session, event)
 			}
-		case *discord.ButtonInteraction:
-			customID := string(d.CustomID)
+		case discord.ComponentInteraction:
+			customID := string(d.ID())
 			resumePointID, _, isResume := message.DecodeCustomIDMessageComponentResumePoint(customID)
 			if isResume {
-				a.resumeFlow(resumePointID, session, event)
+				a.resumeFlowOrRespondExpired(resumePointID, session, e)
 				return
 			}
 
 			messageID := e.Message.ID.String()
-			messageInstnace, err := a.env.MessageInstanceStore.MessageInstanceByDiscordMessageID(context.TODO(), messageID)
+			messageInstnace, err := a.env.MessageInstanceStore.MessageInstanceByDiscordMessageID(context.TODO(), a.id, messageID)
 			if err != nil {
 				if errors.Is(err, store.ErrNotFound) {
 					return
@@ -270,6 +272,7 @@ func (a *App) HandleEvent(appID string, session *state.State, event gateway.Even
 				return
 			}
 
+			a.touchMessageInstance(messageInstnace)
 			go instance.HandleEvent(appID, session, event)
 		case *discord.ModalInteraction:
 			customID := string(d.CustomID)
@@ -278,7 +281,7 @@ func (a *App) HandleEvent(appID string, session *state.State, event gateway.Even
 				return
 			}
 
-			a.resumeFlow(resumePointID, session, event)
+			a.resumeFlowOrRespondExpired(resumePointID, session, e)
 		}
 	default:
 		eventType := model.EventTypeFromDiscordEventType(e.EventType())
@@ -296,7 +299,8 @@ func (a *App) HandleEvent(appID string, session *state.State, event gateway.Even
 }
 
 // resumeFlow loads a resume point and dispatches it back into the flow that
-// created it.
+// created it. It returns false if the resume point doesn't exist, usually
+// because it expired.
 //
 // A resume point is owned by whatever ran the flow: a command, an event
 // listener, or a message instance. Every owner has to be handled here — an
@@ -306,22 +310,25 @@ func (a *App) resumeFlow(
 	resumePointID string,
 	session *state.State,
 	event gateway.Event,
-) {
-	resumePoint, err := a.env.ResumePointStore.ResumePoint(context.TODO(), resumePointID)
+) bool {
+	// The ID comes from a user-controlled custom_id, so the lookup must be scoped to the app.
+	resumePoint, err := a.env.ResumePointStore.ResumePoint(context.TODO(), a.id, resumePointID)
 	if err != nil {
-		if !errors.Is(err, store.ErrNotFound) {
-			slog.Error(
-				"Failed to get resume point",
-				slog.String("resume_point_id", resumePointID),
-				slog.String("error", err.Error()),
-			)
+		if errors.Is(err, store.ErrNotFound) {
+			return false
 		}
-		return
+
+		slog.Error(
+			"Failed to get resume point",
+			slog.String("resume_point_id", resumePointID),
+			slog.String("error", err.Error()),
+		)
+		return true
 	}
 
 	targetFlow := a.resumeFlowTarget(resumePoint)
 	if targetFlow == nil {
-		return
+		return true
 	}
 
 	node := targetFlow.FindChildWithID(resumePoint.FlowNodeID, true)
@@ -331,8 +338,10 @@ func (a *App) resumeFlow(
 			slog.String("resume_point_id", resumePoint.ID),
 			slog.String("flow_node_id", resumePoint.FlowNodeID),
 		)
-		return
+		return true
 	}
+
+	a.touchResumePoint(resumePoint)
 
 	go a.env.executeFlowEvent(
 		context.Background(),
@@ -343,6 +352,34 @@ func (a *App) resumeFlow(
 		entityLinksFromResumePoint(resumePoint),
 		&resumePoint.FlowState,
 	)
+	return true
+}
+
+// resumeFlowOrRespondExpired tells the user why nothing happened when the resume
+// point is gone, instead of leaving them with Discord's generic "This
+// interaction failed".
+func (a *App) resumeFlowOrRespondExpired(resumePointID string, session *state.State, e *gateway.InteractionCreateEvent) {
+	if a.resumeFlow(resumePointID, session, e) {
+		return
+	}
+
+	id, token := e.ID, e.Token
+	go func() {
+		err := session.RespondInteraction(id, token, api.InteractionResponse{
+			Type: api.MessageInteractionWithSource,
+			Data: &api.InteractionResponseData{
+				Content: option.NewNullableString("This has expired. Run the command again or ask an admin to send the message again."),
+				Flags:   discord.EphemeralMessage,
+			},
+		})
+		if err != nil {
+			slog.Error(
+				"Failed to respond to expired resume point",
+				slog.String("app_id", a.id),
+				slog.String("error", err.Error()),
+			)
+		}
+	}()
 }
 
 // entityLinksFromResumePoint recovers the links the flow was running with when
@@ -383,6 +420,7 @@ func (a *App) resumeFlowTarget(resumePoint *model.ResumePoint) *flow.CompiledFlo
 	case resumePoint.MessageInstanceID.Valid:
 		messageInstance, err := a.env.MessageInstanceStore.MessageInstance(
 			context.TODO(),
+			a.id,
 			resumePoint.MessageID.String,
 			uint64(resumePoint.MessageInstanceID.Int64),
 		)
@@ -411,6 +449,9 @@ func (a *App) resumeFlowTarget(resumePoint *model.ResumePoint) *flow.CompiledFlo
 			return nil
 		}
 
+		// Otherwise the instance could expire while its resume points are still in use.
+		a.touchMessageInstance(messageInstance)
+
 		return instance.flows[resumePoint.FlowSourceID.String]
 	default:
 		slog.Error(
@@ -419,6 +460,46 @@ func (a *App) resumeFlowTarget(resumePoint *model.ResumePoint) *flow.CompiledFlo
 		)
 		return nil
 	}
+}
+
+// touchInterval limits last_used_at writes so busy buttons don't write on every
+// click. Unused resume points and message instances are deleted by the usage
+// manager.
+const touchInterval = time.Hour
+
+func (a *App) touchResumePoint(resumePoint *model.ResumePoint) {
+	id := resumePoint.ID
+	a.touch(resumePoint.LastUsedAt, func(ctx context.Context, now time.Time) error {
+		return a.env.ResumePointStore.TouchResumePoint(ctx, a.id, id, now)
+	})
+}
+
+func (a *App) touchMessageInstance(instance *model.MessageInstance) {
+	id := instance.ID
+	a.touch(instance.LastUsedAt, func(ctx context.Context, now time.Time) error {
+		return a.env.MessageInstanceStore.TouchMessageInstance(ctx, a.id, id, now)
+	})
+}
+
+// touch runs in the background so it doesn't delay the interaction response.
+func (a *App) touch(lastUsedAt time.Time, update func(ctx context.Context, now time.Time) error) {
+	now := time.Now().UTC()
+	if now.Sub(lastUsedAt) < touchInterval {
+		return
+	}
+
+	go func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+
+		if err := update(ctx, now); err != nil {
+			slog.Error(
+				"Failed to update last used time",
+				slog.String("app_id", a.id),
+				slog.String("error", err.Error()),
+			)
+		}
+	}()
 }
 
 func getFullCommandName(d *discord.CommandInteraction) string {

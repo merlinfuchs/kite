@@ -59,6 +59,8 @@ const (
 	FlowNodeTypeActionPrivateMessageCreate  FlowNodeType = "action_private_message_create"
 	FlowNodeTypeActionMessageReactionCreate FlowNodeType = "action_message_reaction_create"
 	FlowNodeTypeActionMessageReactionDelete FlowNodeType = "action_message_reaction_delete"
+	FlowNodeTypeActionMessagePin            FlowNodeType = "action_message_pin"
+	FlowNodeTypeActionMessageUnpin          FlowNodeType = "action_message_unpin"
 	FlowNodeTypeActionMemberBan             FlowNodeType = "action_member_ban"
 	FlowNodeTypeActionMemberUnban           FlowNodeType = "action_member_unban"
 	FlowNodeTypeActionMemberKick            FlowNodeType = "action_member_kick"
@@ -527,7 +529,7 @@ type AIChatCompletionData struct {
 //
 // The empty string is the provider default (gpt-4o-mini), so it is priced.
 var aiModelCosts = map[string]aiModelCost{
-	"":                  {Chat: 5, Search: 25},
+	"":                         {Chat: 5, Search: 25},
 	openai.ChatModelGPT4_1:     {Chat: 100, Search: 500},
 	openai.ChatModelGPT4_1Mini: {Chat: 20, Search: 100},
 	openai.ChatModelGPT4_1Nano: {Chat: 5, Search: 25},

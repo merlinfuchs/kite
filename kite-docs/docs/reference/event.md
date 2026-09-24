@@ -14,7 +14,7 @@ With Event Listeners you can listen for events inside the Discord servers that y
 
 ## Restrictions
 
-- You can only have 5 event listeners per app.
+- By default, your app is limited to 5 event listeners.
 - Kite will ignore messages that are sent by a bot.
 - Member events are only available when you enable the "Server Members Intent" in the [Discord Developer Portal](https://discord.dev).
 
