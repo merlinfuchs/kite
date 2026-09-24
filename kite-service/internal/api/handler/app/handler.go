@@ -169,32 +169,18 @@ func (h *AppHandler) HandleAppUpdate(c *handler.Context, req wire.AppUpdateReque
 func (h *AppHandler) HandleAppStatusUpdate(c *handler.Context, req wire.AppStatusUpdateRequest) (*wire.AppStatusUpdateResponse, error) {
 	var status *model.AppDiscordStatus
 	if req.DiscordStatus != nil {
-		if req.DiscordStatus.RotateEnabled && !c.Features.RotatingStatus {
-			return nil, handler.ErrForbidden("feature_not_available", "rotating statuses require a premium plan")
-		}
-
 		entries := make([]model.AppDiscordStatusEntry, len(req.DiscordStatus.Statuses))
 		for i, e := range req.DiscordStatus.Statuses {
-			id := e.ID
-			if id == "" {
-				id = util.UniqueID()
-			}
-
-			entries[i] = model.AppDiscordStatusEntry{
-				ID:            id,
-				Label:         e.Label,
-				Status:        e.Status,
-				ActivityType:  e.ActivityType,
-				ActivityName:  e.ActivityName,
-				ActivityState: e.ActivityState,
-				ActivityURL:   e.ActivityURL,
+			entries[i] = model.AppDiscordStatusEntry(e)
+			if entries[i].ID == "" {
+				entries[i].ID = util.UniqueID()
 			}
 		}
 
 		status = &model.AppDiscordStatus{
 			Statuses:      entries,
 			ActiveID:      req.DiscordStatus.ActiveID,
-			RotateEnabled: req.DiscordStatus.RotateEnabled,
+			RotateEnabled: req.DiscordStatus.RotateEnabled && c.Features.RotatingStatus,
 		}
 	}
 

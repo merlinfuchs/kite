@@ -1,41 +1,9 @@
 package model
 
 import (
-	"encoding/json"
 	"testing"
 	"time"
 )
-
-func TestAppDiscordStatusUnmarshalLegacy(t *testing.T) {
-	var s AppDiscordStatus
-	err := json.Unmarshal([]byte(`{"status":"dnd","activity_type":3,"activity_name":"you"}`), &s)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if len(s.Statuses) != 1 || s.ActiveID != "default" {
-		t.Fatalf("expected one default status, got %+v", s)
-	}
-	entry := s.Statuses[0]
-	if entry.ID != "default" || entry.Status != "dnd" || entry.ActivityType != 3 || entry.ActivityName != "you" {
-		t.Fatalf("legacy fields not carried over: %+v", entry)
-	}
-}
-
-func TestAppDiscordStatusUnmarshalCurrent(t *testing.T) {
-	var s AppDiscordStatus
-	err := json.Unmarshal([]byte(`{"statuses":[{"id":"a","activity_name":"one"},{"id":"b"}],"active_id":"b","rotate_enabled":true}`), &s)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if len(s.Statuses) != 2 || s.ActiveID != "b" || !s.RotateEnabled || s.Statuses[0].ActivityName != "one" {
-		t.Fatalf("unexpected result: %+v", s)
-	}
-	if s.ActiveEntry().ID != "b" {
-		t.Fatalf("expected active entry b, got %s", s.ActiveEntry().ID)
-	}
-}
 
 func TestAppDiscordStatusRotationEntry(t *testing.T) {
 	s := AppDiscordStatus{

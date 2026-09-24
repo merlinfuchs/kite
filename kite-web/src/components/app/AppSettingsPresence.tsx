@@ -14,6 +14,7 @@ import { useAppQuery } from "@/lib/api/queries";
 import { setValidationErrors } from "@/lib/form";
 import { useAppFeature } from "@/lib/hooks/api";
 import { useAppId } from "@/lib/hooks/params";
+import { getUniqueId } from "@/lib/utils";
 import {
   ExternalLinkIcon,
   PlusIcon,
@@ -56,15 +57,10 @@ interface FormFields {
   rotate_enabled: boolean;
 }
 
-// New statuses need an ID right away so they can be picked as the active one
-// before saving.
-function generateLocalId(): string {
-  return `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
-}
-
 function emptyStatus(): StatusFieldValues {
   return {
-    id: generateLocalId(),
+    // Needed right away so the status can be picked as the active one
+    id: getUniqueId().toString(),
     label: "",
     status: "online",
     activity_type: "0",
@@ -134,8 +130,7 @@ export default function AppSettingsPresence() {
                     activity_url: s.activity_url || undefined,
                   })),
                   active_id: data.active_id || undefined,
-                  rotate_enabled:
-                    rotatingStatusAvailable && data.rotate_enabled,
+                  rotate_enabled: data.rotate_enabled,
                 }
               : undefined,
         },
@@ -158,7 +153,7 @@ export default function AppSettingsPresence() {
         }
       );
     },
-    [form, updateMutation, rotatingStatusAvailable]
+    [form, updateMutation]
   );
 
   const handleAddStatus = useCallback(() => {
@@ -170,22 +165,13 @@ export default function AppSettingsPresence() {
   }, [append, activeId, form]);
 
   const handleRemoveStatus = useCallback(
-    (index: number, id: string) => {
-      const remaining = form
-        .getValues("statuses")
-        .filter((_, i) => i !== index);
-
+    (index: number) => {
+      if (fields[index].id === activeId) {
+        form.setValue("active_id", fields[index === 0 ? 1 : 0]?.id || "");
+      }
       remove(index);
-
-      if (activeId === id) {
-        form.setValue("active_id", remaining[0]?.id || "");
-      }
-
-      if (remaining.length < 2) {
-        form.setValue("rotate_enabled", false);
-      }
     },
-    [remove, activeId, form]
+    [fields, remove, activeId, form]
   );
 
   return (
@@ -270,7 +256,7 @@ export default function AppSettingsPresence() {
                           variant="ghost"
                           size="icon"
                           type="button"
-                          onClick={() => handleRemoveStatus(index, field.id)}
+                          onClick={() => handleRemoveStatus(index)}
                         >
                           <Trash2Icon className="h-4 w-4 text-muted-foreground" />
                         </Button>

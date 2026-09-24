@@ -38,6 +38,10 @@ type Gateway struct {
 	// change requires a reconnect, since intents are fixed at IDENTIFY.
 	intents gateway.Intents
 
+	// rotationEntryID is the status entry last shown by rotatePresence, or
+	// empty if the app isn't rotating. Only accessed by the manager's loop.
+	rotationEntryID string
+
 	ctx    context.Context
 	cancel context.CancelFunc
 }
@@ -139,8 +143,6 @@ func (g *Gateway) startGateway() {
 		}
 	})
 
-	go g.rotateStatus(g.ctx)
-
 	if err := g.session.Connect(g.ctx); err != nil {
 		// Fatal error, we can't recover
 		g.createLogEntry(model.LogLevelError, fmt.Sprintf("Failed to connect to gateway: %v", err))
@@ -232,46 +234,32 @@ func (g *Gateway) Update(ctx context.Context, app *model.App) {
 	g.app = app
 }
 
-// rotateStatus cycles the app's presence through its statuses at the start of
-// every minute, as long as rotation is enabled and the app's plan includes it.
-func (g *Gateway) rotateStatus(ctx context.Context) {
-	rotating := false
+// rotatePresence shows the rotation entry for the given time. When rotation is
+// off or not allowed, it goes back to the active status if it was rotating.
+func (g *Gateway) rotatePresence(ctx context.Context, now time.Time, allowed bool) {
+	status := g.app.DiscordStatus
 
-	for {
-		now := time.Now()
-		next := now.Truncate(time.Minute).Add(time.Minute)
-
-		select {
-		case <-ctx.Done():
+	var presence *gateway.UpdatePresenceCommand
+	if allowed && status.Rotates() {
+		entry := status.RotationEntry(now)
+		if entry.ID == g.rotationEntryID {
 			return
-		case <-time.After(next.Sub(now)):
 		}
+		g.rotationEntryID = entry.ID
+		presence = presenceForStatusEntry(entry)
+	} else if g.rotationEntryID != "" {
+		g.rotationEntryID = ""
+		presence = presenceForApp(g.app)
+	} else {
+		return
+	}
 
-		app := g.app
-		if !app.DiscordStatus.Rotates() {
-			rotating = false
-			continue
-		}
-
-		var presence *gateway.UpdatePresenceCommand
-		if g.planManager.AppFeatures(ctx, app.ID).RotatingStatus {
-			rotating = true
-			presence = presenceForStatusEntry(app.DiscordStatus.RotationEntry(next))
-		} else if rotating {
-			// The plan no longer includes rotation, go back to the active status.
-			rotating = false
-			presence = presenceForApp(app)
-		} else {
-			continue
-		}
-
-		if err := g.session.Gateway().Send(ctx, presence); err != nil {
-			slog.Error(
-				"Failed to send rotating presence update",
-				slog.String("app_id", app.ID),
-				slog.String("error", err.Error()),
-			)
-		}
+	if err := g.session.Gateway().Send(ctx, presence); err != nil {
+		slog.Error(
+			"Failed to send rotating presence update",
+			slog.String("app_id", g.app.ID),
+			slog.String("error", err.Error()),
+		)
 	}
 }
 

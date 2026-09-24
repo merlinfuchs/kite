@@ -1,7 +1,6 @@
 package model
 
 import (
-	"encoding/json"
 	"slices"
 	"time"
 
@@ -126,29 +125,6 @@ type AppDiscordStatusEntry struct {
 	ActivityURL   string `json:"activity_url,omitempty"`
 }
 
-// UnmarshalJSON also accepts the old format, which stored a single status
-// directly on the object, and turns it into a status list with one entry.
-func (s *AppDiscordStatus) UnmarshalJSON(data []byte) error {
-	type current AppDiscordStatus
-	var v struct {
-		current
-		AppDiscordStatusEntry
-	}
-	if err := json.Unmarshal(data, &v); err != nil {
-		return err
-	}
-
-	*s = AppDiscordStatus(v.current)
-
-	legacy := v.AppDiscordStatusEntry
-	if len(s.Statuses) == 0 && legacy != (AppDiscordStatusEntry{}) {
-		legacy.ID = "default"
-		s.Statuses = []AppDiscordStatusEntry{legacy}
-		s.ActiveID = legacy.ID
-	}
-	return nil
-}
-
 func (s *AppDiscordStatus) Equals(other *AppDiscordStatus) bool {
 	if s == nil && other == nil {
 		return true
@@ -184,9 +160,8 @@ func (s *AppDiscordStatus) Rotates() bool {
 	return s != nil && s.RotateEnabled && len(s.Statuses) > 1
 }
 
-// RotationEntry returns the entry to show at the given time when rotating.
-// It advances once per minute, so every gateway agrees on the current entry
-// without keeping any state.
+// RotationEntry returns the entry to show at the given time when rotating. It
+// advances once per minute without keeping any state.
 func (s *AppDiscordStatus) RotationEntry(t time.Time) *AppDiscordStatusEntry {
 	return &s.Statuses[int(t.Unix()/60)%len(s.Statuses)]
 }

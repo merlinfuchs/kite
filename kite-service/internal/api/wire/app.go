@@ -107,15 +107,7 @@ func AppToWire(app *model.App) *App {
 	if app.DiscordStatus != nil {
 		entries := make([]AppDiscordStatusEntry, len(app.DiscordStatus.Statuses))
 		for i, e := range app.DiscordStatus.Statuses {
-			entries[i] = AppDiscordStatusEntry{
-				ID:            e.ID,
-				Label:         e.Label,
-				Status:        e.Status,
-				ActivityType:  e.ActivityType,
-				ActivityName:  e.ActivityName,
-				ActivityState: e.ActivityState,
-				ActivityURL:   e.ActivityURL,
-			}
+			entries[i] = AppDiscordStatusEntry(e)
 		}
 
 		status = &AppDiscordStatus{

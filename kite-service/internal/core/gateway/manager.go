@@ -95,6 +95,9 @@ func (m *GatewayManager) Run(ctx context.Context) {
 		removeDanglingTicker := time.NewTicker(removeDanglingInterval)
 		defer removeDanglingTicker.Stop()
 
+		rotateStatusTicker := time.NewTicker(time.Minute)
+		defer rotateStatusTicker.Stop()
+
 		if err := m.populateGateways(ctx); err != nil {
 			slog.With("error", err).Error("failed to populate gateways")
 		}
@@ -110,6 +113,10 @@ func (m *GatewayManager) Run(ctx context.Context) {
 			case <-removeDanglingTicker.C:
 				if err := m.removeDeletedGateways(ctx); err != nil {
 					slog.With("error", err).Error("failed to remove deleted gateways")
+				}
+			case now := <-rotateStatusTicker.C:
+				if err := m.rotateStatuses(ctx, now); err != nil {
+					slog.With("error", err).Error("failed to rotate statuses")
 				}
 			}
 		}
@@ -220,6 +227,35 @@ func (m *GatewayManager) startGateways(ctx context.Context, apps []*model.App) e
 		}
 	}
 
+	return nil
+}
+
+// rotateStatuses updates the presence of every app that rotates its status, or
+// did until now. Features are only looked up for those apps, in one batch.
+func (m *GatewayManager) rotateStatuses(ctx context.Context, now time.Time) error {
+	m.Lock()
+	var gateways []*Gateway
+	var appIDs []string
+	for _, g := range m.gateways {
+		if g.app.DiscordStatus.Rotates() || g.rotationEntryID != "" {
+			gateways = append(gateways, g)
+			appIDs = append(appIDs, g.app.ID)
+		}
+	}
+	m.Unlock()
+
+	if len(gateways) == 0 {
+		return nil
+	}
+
+	features, err := m.planManager.AppFeaturesForApps(ctx, appIDs)
+	if err != nil {
+		return fmt.Errorf("failed to get app features: %w", err)
+	}
+
+	for _, g := range gateways {
+		g.rotatePresence(ctx, now, features[g.app.ID].RotatingStatus)
+	}
 	return nil
 }
 
