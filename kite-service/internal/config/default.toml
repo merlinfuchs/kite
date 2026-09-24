@@ -18,6 +18,25 @@ max_asset_size = 8_000_000
 max_stack_depth = 100
 max_operations = 100
 max_credits = 250
+populate_interval = "5s"
+remove_dangling_interval = "10m"
+populate_overlap = "5s"
+
+[gateway]
+populate_interval = "10s"
+remove_dangling_interval = "60s"
+populate_overlap = "5s"
+start_interval = "100ms"
+
+[http]
+max_idle_conns = 512
+max_idle_conns_per_host = 128
+max_conns_per_host = 256
+
+[debug]
+enabled = false
+host = "127.0.0.1"
+port = 6060
 
 [database.postgres]
 host = "127.0.0.1"

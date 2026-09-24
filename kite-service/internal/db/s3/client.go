@@ -1,10 +1,8 @@
 package s3
 
 import (
-	"context"
 	"encoding/hex"
 	"fmt"
-	"time"
 
 	"github.com/kitecloud/kite/kite-service/internal/config"
 	"github.com/minio/minio-go/v7"
@@ -12,15 +10,14 @@ import (
 	"github.com/minio/minio-go/v7/pkg/encrypt"
 )
 
-var buckets = []string{
-	dbBackupBucket,
-}
-
 type Client struct {
 	client     *minio.Client
 	encryption encrypt.ServerSide
 }
 
+// New builds an S3 client without talking to the server. Buckets are created
+// on demand by the code that uses them, so that a Kite instance which doesn't
+// need S3 (or has it misconfigured) can still start up.
 func New(cfg config.S3Config) (*Client, error) {
 	client, err := minio.New(cfg.Endpoint, &minio.Options{
 		Creds:  credentials.NewStaticV4(cfg.AccessKeyID, cfg.SecretAccessKey, ""),
@@ -28,23 +25,6 @@ func New(cfg config.S3Config) (*Client, error) {
 	})
 	if err != nil {
 		return nil, err
-	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
-	defer cancel()
-
-	for _, bucket := range buckets {
-		exists, err := client.BucketExists(ctx, bucket)
-		if err != nil {
-			return nil, fmt.Errorf("failed to check if bucket %s exists: %w", bucket, err)
-		}
-
-		if !exists {
-			err = client.MakeBucket(ctx, bucket, minio.MakeBucketOptions{})
-			if err != nil {
-				return nil, fmt.Errorf("failed to create bucket %s: %w", bucket, err)
-			}
-		}
 	}
 
 	var encryption encrypt.ServerSide

@@ -12,6 +12,7 @@ import {
   EllipsisIcon,
   SlashSquareIcon,
   Trash2Icon,
+  Share2Icon,
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/router";
@@ -36,6 +37,7 @@ import {
 import { Switch } from "../ui/switch";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
 import CommandDuplicateDialog from "./CommandDuplicateDialog";
+import FlowExportDialog from "./FlowExportDialog";
 
 export default function CommandListEntry({ command }: { command: Command }) {
   const router = useRouter();
@@ -156,6 +158,15 @@ export default function CommandListEntry({ command }: { command: Command }) {
                   Duplicate Command
                 </DropdownMenuItem>
               </CommandDuplicateDialog>
+              <FlowExportDialog
+                title="Export Command"
+                shareData={{ flow_source: command.flow_source }}
+              >
+                <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                  <Share2Icon className="h-4 w-4 mr-2 text-muted-foreground" />
+                  Export Command
+                </DropdownMenuItem>
+              </FlowExportDialog>
             </DropdownMenuGroup>
           </DropdownMenuContent>
         </DropdownMenu>

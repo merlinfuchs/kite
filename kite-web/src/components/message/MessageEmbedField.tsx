@@ -1,121 +1,56 @@
-import { useCurrentMessage } from "@/lib/message/state";
+import {
+  useDocumentStoreApi,
+  useNode,
+  useNodeActions,
+} from "@/lib/message/state";
+import { EmbedFieldNode, NodeId } from "@/lib/message/document";
+import { nodeField, nodeScope } from "@/lib/message/validationStore";
 import { Card } from "@/components/ui/card";
 import MessageInput from "./MessageInput";
-import { useShallow } from "zustand/react/shallow";
-import {
-  ChevronDownIcon,
-  ChevronUpIcon,
-  CopyIcon,
-  TrashIcon,
-} from "lucide-react";
 import MessageCollapsibleSection from "./MessageCollapsibleSection";
+import MessageNodeActions from "./MessageNodeActions";
 
-export default function MessageEmbedField({
-  embedIndex,
-  embedId,
-  fieldIndex,
-  fieldId,
-}: {
-  embedIndex: number;
-  embedId: number;
-  fieldIndex: number;
-  fieldId: number;
-}) {
-  const [name, setName] = useCurrentMessage(
-    useShallow((state) => [
-      state.embeds[embedIndex]?.fields[fieldIndex]?.name,
-      state.setEmbedFieldName,
-    ])
-  );
-  const [value, setValue] = useCurrentMessage(
-    useShallow((state) => [
-      state.embeds[embedIndex]?.fields[fieldIndex]?.value,
-      state.setEmbedFieldValue,
-    ])
-  );
-  const [inline, setInline] = useCurrentMessage(
-    useShallow((state) => [
-      state.embeds[embedIndex]?.fields[fieldIndex]?.inline,
-      state.setEmbedFieldInline,
-    ])
-  );
-
-  const fieldCount = useCurrentMessage(
-    (state) => state.embeds[embedIndex].fields.length
-  );
-
-  const [moveUp, moveDown, duplicate, remove] = useCurrentMessage(
-    useShallow((state) => [
-      state.moveEmbedFieldUp,
-      state.moveEmbedFieldDown,
-      state.duplicateEmbedField,
-      state.deleteEmbedField,
-    ])
-  );
+export default function MessageEmbedField({ fieldId }: { fieldId: NodeId }) {
+  const field = useNode<EmbedFieldNode>(fieldId);
+  const actions = useNodeActions(fieldId);
+  const { update } = useDocumentStoreApi().getState();
 
   return (
     <Card className="p-3">
       <MessageCollapsibleSection
-        title={`Field ${fieldIndex + 1}`}
+        title={`Field ${actions.index + 1}`}
         size="md"
-        valiationPathPrefix={`embeds.${embedIndex}.fields.${fieldIndex}`}
+        validation={nodeScope(fieldId)}
         className="space-y-3"
-        actions={
-          <>
-            {fieldIndex > 0 && (
-              <ChevronUpIcon
-                className="h-5 w-5"
-                onClick={() => moveUp(embedIndex, fieldIndex)}
-                role="button"
-              />
-            )}
-            {fieldIndex < fieldCount - 1 && (
-              <ChevronDownIcon
-                className="h-5 w-5"
-                onClick={() => moveDown(embedIndex, fieldIndex)}
-                role="button"
-              />
-            )}
-            {fieldCount < 10 && (
-              <CopyIcon
-                className="h-4 w-4"
-                onClick={() => duplicate(embedIndex, fieldIndex)}
-                role="button"
-              />
-            )}
-            <TrashIcon
-              className="h-4 w-4"
-              onClick={() => remove(embedIndex, fieldIndex)}
-              role="button"
-            />
-          </>
-        }
+        actions={<MessageNodeActions actions={actions} />}
       >
         <div className="flex space-x-3">
           <MessageInput
             type="text"
             label="Name"
             maxLength={256}
-            value={name}
-            onChange={(v) => setName(embedIndex, fieldIndex, v)}
-            validationPath={`embeds.${embedIndex}.fields.${fieldIndex}.name`}
+            value={field?.name ?? ""}
+            onChange={(name) => update<EmbedFieldNode>(fieldId, { name })}
+            validation={nodeField<EmbedFieldNode>(fieldId, "name")}
             placeholders
           />
           <MessageInput
             type="toggle"
             label="Inline"
-            value={inline || false}
-            onChange={(v) => setInline(embedIndex, fieldIndex, v || undefined)}
-            validationPath={`embeds.${embedIndex}.fields.${fieldIndex}.inline`}
+            value={field?.inline || false}
+            onChange={(v) =>
+              update<EmbedFieldNode>(fieldId, { inline: v || undefined })
+            }
+            validation={nodeField<EmbedFieldNode>(fieldId, "inline")}
           />
         </div>
         <MessageInput
           type="textarea"
           label="Value"
           maxLength={1024}
-          value={value}
-          onChange={(v) => setValue(embedIndex, fieldIndex, v)}
-          validationPath={`embeds.${embedIndex}.fields.${fieldIndex}.value`}
+          value={field?.value ?? ""}
+          onChange={(value) => update<EmbedFieldNode>(fieldId, { value })}
+          validation={nodeField<EmbedFieldNode>(fieldId, "value")}
           placeholders
         />
       </MessageCollapsibleSection>

@@ -11,8 +11,6 @@ import (
 	"slices"
 	"time"
 
-	"github.com/openai/openai-go"
-
 	"github.com/diamondburned/arikawa/v3/api"
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/utils/json/option"
@@ -52,6 +50,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			return traceError(n, err)
 		}
 
+		acknowledgeUnansweredComponent(ctx)
 		return nil
 	case FlowNodeTypeEntryEvent:
 		if !ctx.IsEntry() {
@@ -77,10 +76,11 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			}
 		}
 
-		responseData, resumePointID, err := n.prepareMessageResponseData(ctx)
+		data, opts, resumePointID, err := n.prepareMessage(ctx)
 		if err != nil {
 			return traceError(n, err)
 		}
+		responseData := data.ToInteractionResponseData(opts)
 
 		hasCreatedResponse, err := ctx.Discord.HasCreatedInteractionResponse(ctx, interaction.ID)
 		if err != nil {
@@ -124,7 +124,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			err := ctx.MessageTemplate.LinkMessageTemplateInstance(ctx, provider.MessageTemplateInstance{
 				MessageTemplateID: n.Data.MessageTemplateID,
 				MessageID:         msg.ID,
-				ChannelID:         ctx.Data.ChannelID(),
+				ChannelID:         msg.ChannelID,
 				GuildID:           ctx.Data.GuildID(),
 				Ephemeral:         n.Data.MessageEphemeral,
 			})
@@ -147,7 +147,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			}
 		}
 
-		responseData, resumePointID, err := n.prepareMessageResponseData(ctx)
+		data, opts, resumePointID, err := n.prepareMessage(ctx)
 		if err != nil {
 			return traceError(n, err)
 		}
@@ -160,15 +160,12 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			}
 
 			if hasCreatedResponse {
-				msg, err = ctx.Discord.EditInteractionResponse(ctx, interaction.AppID, interaction.Token, api.EditInteractionResponseData{
-					Content:    responseData.Content,
-					Embeds:     responseData.Embeds,
-					Components: responseData.Components,
-				})
+				msg, err = ctx.Discord.EditInteractionResponse(ctx, interaction.AppID, interaction.Token, data.ToEditInteractionResponseData(opts))
 				if err != nil {
 					return traceError(n, err)
 				}
 			} else {
+				responseData := data.ToInteractionResponseData(opts)
 				resp := api.InteractionResponse{
 					Type: api.UpdateMessage,
 					Data: &responseData,
@@ -194,10 +191,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 				interaction.AppID,
 				interaction.Token,
 				discord.MessageID(messageTarget.Snowflake()),
-				api.EditInteractionResponseData{
-					Content: responseData.Content,
-					Embeds:  responseData.Embeds,
-				},
+				data.ToEditInteractionResponseData(opts),
 			)
 			if err != nil {
 				return traceError(n, err)
@@ -215,11 +209,11 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			}
 		}
 
-		if n.Data.MessageTemplateID != "" {
+		if n.Data.MessageTemplateID != "" && msg != nil {
 			err := ctx.MessageTemplate.LinkMessageTemplateInstance(ctx, provider.MessageTemplateInstance{
 				MessageTemplateID: n.Data.MessageTemplateID,
 				MessageID:         msg.ID,
-				ChannelID:         ctx.Data.ChannelID(),
+				ChannelID:         msg.ChannelID,
 				GuildID:           ctx.Data.GuildID(),
 				Ephemeral:         n.Data.MessageEphemeral,
 			})
@@ -321,7 +315,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			return traceError(n, fmt.Errorf("failed to suspend: %w", err))
 		}
 
-		componentRows := make(discord.ContainerComponents, len(n.Data.ModalData.Components))
+		componentRows := make(discord.TopLevelComponents, len(n.Data.ModalData.Components))
 		for i, row := range n.Data.ModalData.Components {
 			r := make(discord.ActionRowComponent, len(row.Components))
 			for j, component := range row.Components {
@@ -336,7 +330,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 				}
 			}
 
-			componentRows[i] = discord.ContainerComponent(&r)
+			componentRows[i] = discord.TopLevelComponent(&r)
 		}
 
 		resp := api.InteractionResponse{
@@ -359,10 +353,11 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			return n.resumeFromComponent(ctx)
 		}
 
-		messageData, resumePointID, err := n.prepareMessageSendData(ctx)
+		data, opts, resumePointID, err := n.prepareMessage(ctx)
 		if err != nil {
 			return traceError(n, err)
 		}
+		messageData := data.ToSendMessageData(opts)
 
 		channelTarget, err := ctx.EvalTemplate(n.Data.ChannelTarget)
 		if err != nil {
@@ -391,7 +386,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			err := ctx.MessageTemplate.LinkMessageTemplateInstance(ctx, provider.MessageTemplateInstance{
 				MessageTemplateID: n.Data.MessageTemplateID,
 				MessageID:         msg.ID,
-				ChannelID:         ctx.Data.ChannelID(),
+				ChannelID:         msg.ChannelID,
 				GuildID:           ctx.Data.GuildID(),
 				Ephemeral:         n.Data.MessageEphemeral,
 			})
@@ -416,19 +411,17 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			return traceError(n, err)
 		}
 
-		messageData, resumePointID, err := n.prepareMessageSendData(ctx)
+		data, opts, resumePointID, err := n.prepareMessage(ctx)
 		if err != nil {
 			return traceError(n, err)
 		}
+		editData := data.ToEditMessageData(opts)
 
 		msg, err := ctx.Discord.EditMessage(
 			ctx,
 			discord.ChannelID(channelTarget.Snowflake()),
 			discord.MessageID(messageTarget.Snowflake()),
-			api.EditMessageData{
-				Content: option.NewNullableString(messageData.Content),
-				Embeds:  &messageData.Embeds,
-			},
+			editData,
 		)
 		if err != nil {
 			return traceError(n, err)
@@ -447,7 +440,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			err := ctx.MessageTemplate.LinkMessageTemplateInstance(ctx, provider.MessageTemplateInstance{
 				MessageTemplateID: n.Data.MessageTemplateID,
 				MessageID:         msg.ID,
-				ChannelID:         ctx.Data.ChannelID(),
+				ChannelID:         msg.ChannelID,
 				GuildID:           ctx.Data.GuildID(),
 				Ephemeral:         n.Data.MessageEphemeral,
 			})
@@ -489,10 +482,11 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			return n.resumeFromComponent(ctx)
 		}
 
-		messageData, resumePointID, err := n.prepareMessageSendData(ctx)
+		data, opts, resumePointID, err := n.prepareMessage(ctx)
 		if err != nil {
 			return traceError(n, err)
 		}
+		messageData := data.ToSendMessageData(opts)
 
 		userTarget, err := ctx.EvalTemplate(n.Data.UserTarget)
 		if err != nil {
@@ -562,6 +556,13 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 		messageTarget, err := ctx.EvalTemplate(n.Data.MessageTarget)
 		if err != nil {
 			return traceError(n, err)
+		}
+
+		if n.Data.EmojiData == nil {
+			return &FlowError{
+				Code:    FlowNodeErrorUnknown,
+				Message: "emoji_data is nil",
+			}
 		}
 
 		emoji := discord.APIEmoji(n.Data.EmojiData.Name)
@@ -1181,7 +1182,14 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			return traceError(n, err)
 		}
 
-		value, err := ctx.EvalTemplate(n.Data.VariableValue)
+		evalValue := ctx.EvalTemplate
+		switch n.Data.VariableOperation {
+		case provider.VariableOperationAppend, provider.VariableOperationPrepend:
+			// Spaces between the joined texts are part of the value.
+			evalValue = ctx.EvalTemplateKeepSpace
+		}
+
+		value, err := evalValue(n.Data.VariableValue)
 		if err != nil {
 			return traceError(n, err)
 		}
@@ -1250,7 +1258,11 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			return traceError(n, err)
 		}
 
-		req, err := http.NewRequest(method, url.String(), nil)
+		// Bound to the flow context so the execution deadline and an explicit
+		// Cancel both abort the request. With a background request a slow or
+		// non-responding host pins the goroutine and its connection past the
+		// end of the flow, in a pool shared with the Discord API client.
+		req, err := http.NewRequestWithContext(ctx, method, url.String(), nil)
 		if err != nil {
 			return traceError(n, err)
 		}
@@ -1292,19 +1304,42 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			return traceError(n, err)
 		}
 
+		// Closed here rather than deferred: the body is fully consumed by
+		// NewFromHTTPResponse, and a defer would hold the connection for the
+		// whole child subtree. NewFromHTTPResponse also returns early without
+		// reading when Content-Length is over its cap, so this has to run on
+		// the error path too.
 		result, err := thing.NewFromHTTPResponse(resp)
+		resp.Body.Close()
 		if err != nil {
 			return traceError(n, err)
 		}
 
 		ctx.StoreNodeResult(n, result)
 		return n.ExecuteChildren(ctx)
-	case FlowNodeTypeActionAIChatCompletion:
+	case FlowNodeTypeActionAIChatCompletion, FlowNodeTypeActionAISearchWeb:
+		webSearch := n.Type == FlowNodeTypeActionAISearchWeb
+
 		data := n.Data.AIChatCompletionData
 		if data == nil || data.Prompt == "" {
+			name := "ai_chat_completion_data"
+			if webSearch {
+				name = "ai_search_web_data"
+			}
+
 			return &FlowError{
 				Code:    FlowNodeErrorUnknown,
-				Message: "ai_chat_completion_data is nil",
+				Message: fmt.Sprintf("%s is nil", name),
+			}
+		}
+
+		// Checked here as well as at save time: message flows are not validated
+		// by the API at all, and flows stored before the allowlist existed have
+		// never been through it.
+		if !AIModelAllowed(data.Model) {
+			return &FlowError{
+				Code:    FlowNodeErrorUnknown,
+				Message: fmt.Sprintf("unsupported ai model: %s", data.Model),
 			}
 		}
 
@@ -1323,49 +1358,17 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			return traceError(n, err)
 		}
 
-		response, err := ctx.AI.CreateResponse(ctx, provider.CreateResponseOpts{
+		opts := provider.CreateResponseOpts{
 			Model:           data.Model,
 			Prompt:          prompt.String(),
 			SystemPrompt:    systemPrompt.String(),
 			MaxOutputTokens: int(maxCompletionTokens.Int()),
-		})
-		if err != nil {
-			return traceError(n, err)
+		}
+		if webSearch {
+			opts.Tools = []provider.AIToolType{provider.AIToolTypeWebSearchPreview}
 		}
 
-		ctx.StoreNodeResult(n, thing.NewString(response))
-		return n.ExecuteChildren(ctx)
-	case FlowNodeTypeActionAISearchWeb:
-		data := n.Data.AIChatCompletionData
-		if data == nil || data.Prompt == "" {
-			return &FlowError{
-				Code:    FlowNodeErrorUnknown,
-				Message: "ai_search_web_data is nil",
-			}
-		}
-
-		systemPrompt, err := ctx.EvalTemplate(data.SystemPrompt)
-		if err != nil {
-			return traceError(n, err)
-		}
-
-		prompt, err := ctx.EvalTemplate(data.Prompt)
-		if err != nil {
-			return traceError(n, err)
-		}
-
-		maxCompletionTokens, err := ctx.EvalTemplate(data.MaxCompletionTokens)
-		if err != nil {
-			return traceError(n, err)
-		}
-
-		response, err := ctx.AI.CreateResponse(ctx, provider.CreateResponseOpts{
-			Model:           data.Model,
-			Prompt:          prompt.String(),
-			SystemPrompt:    systemPrompt.String(),
-			MaxOutputTokens: int(maxCompletionTokens.Int()),
-			Tools:           []provider.AIToolType{provider.AIToolTypeWebSearchPreview},
-		})
+		response, err := ctx.AI.CreateResponse(ctx, opts)
 		if err != nil {
 			return traceError(n, err)
 		}
@@ -1680,34 +1683,13 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 
 func (n *CompiledFlowNode) CreditsCost() int {
 	switch n.Type {
-	case FlowNodeTypeActionAIChatCompletion:
+	case FlowNodeTypeActionAIChatCompletion, FlowNodeTypeActionAISearchWeb:
 		data := n.Data.AIChatCompletionData
 		if data == nil {
 			return 0
 		}
 
-		switch data.Model {
-		case openai.ChatModelGPT4_1:
-			return 100
-		case openai.ChatModelGPT4_1Mini:
-			return 20
-		default:
-			return 5
-		}
-	case FlowNodeTypeActionAISearchWeb:
-		data := n.Data.AIChatCompletionData
-		if data == nil {
-			return 0
-		}
-
-		switch data.Model {
-		case openai.ChatModelGPT4_1:
-			return 500
-		case openai.ChatModelGPT4_1Mini:
-			return 100
-		default:
-			return 25
-		}
+		return AICreditsCost(data.Model, n.Type == FlowNodeTypeActionAISearchWeb)
 	case FlowNodeTypeActionHTTPRequest:
 		return 3
 	}
@@ -1748,6 +1730,16 @@ func (n *CompiledFlowNode) ExecuteChildren(ctx *FlowContext) error {
 }
 
 func (n *CompiledFlowNode) autoDeferInteraction(ctx *FlowContext) error {
+	return autoDeferInteraction(ctx, n.FirstChildMatching(isResponseNode))
+}
+
+// autoDeferInteraction defers the interaction if the flow doesn't respond in
+// time, guessing the kind of defer from responseNode, the first response the
+// flow can reach.
+//
+// This can't be right for every flow — branches may disagree, and only one of
+// them runs. Users who need certainty should defer explicitly instead.
+func autoDeferInteraction(ctx *FlowContext, responseNode *CompiledFlowNode) error {
 	interaction := ctx.Data.Interaction()
 	if interaction == nil {
 		return &FlowError{
@@ -1756,15 +1748,31 @@ func (n *CompiledFlowNode) autoDeferInteraction(ctx *FlowContext) error {
 		}
 	}
 
-	// We check if the next response will be ephemeral and adjust the defer flags accordingly
-	var responseFlags discord.MessageFlags
-	respondeNode := n.FindChildWithType(FlowNodeTypeActionResponseCreate, FlowNodeTypeActionResponseEdit, FlowNodeTypeActionResponseDefer)
-	if respondeNode != nil && respondeNode.Data.MessageEphemeral {
-		responseFlags |= discord.EphemeralMessage
+	go ctx.Discord.AutoDeferInteraction(ctx, interaction.ID, interaction.Token, autoDeferResponse(interaction, responseNode))
+	return nil
+}
+
+func autoDeferResponse(interaction *discord.InteractionEvent, responseNode *CompiledFlowNode) api.InteractionResponse {
+	// A component interaction that doesn't create a new response either edits
+	// the message the component is on or doesn't respond at all. Both only
+	// need an acknowledgement, and a "thinking…" message would be edited
+	// instead of the component's message.
+	if _, ok := interaction.Data.(discord.ComponentInteraction); ok {
+		if responseNode == nil || (responseNode.Type != FlowNodeTypeActionResponseCreate && responseNode.Type != FlowNodeTypeActionResponseDefer) {
+			return api.InteractionResponse{Type: api.DeferredMessageUpdate}
+		}
 	}
 
-	go ctx.Discord.AutoDeferInteraction(ctx, interaction.ID, interaction.Token, responseFlags)
-	return nil
+	// The first response after this defer replaces the "thinking…" message and
+	// keeps the defer's flags, so ephemeral-ness has to be decided now.
+	resp := api.InteractionResponse{
+		Type: api.DeferredMessageInteractionWithSource,
+		Data: &api.InteractionResponseData{},
+	}
+	if responseNode != nil && responseNode.Data.MessageEphemeral {
+		resp.Data.Flags |= discord.EphemeralMessage
+	}
+	return resp
 }
 
 func (n *CompiledFlowNode) resumeFromComponent(ctx *FlowContext) error {
@@ -1776,13 +1784,15 @@ func (n *CompiledFlowNode) resumeFromComponent(ctx *FlowContext) error {
 		}
 	}
 
-	err := n.autoDeferInteraction(ctx)
-	if err != nil {
-		return traceError(n, err)
+	data, ok := interaction.Data.(discord.ComponentInteraction)
+	if !ok {
+		return &FlowError{
+			Code:    FlowNodeErrorUnknown,
+			Message: "interaction is not a component interaction",
+		}
 	}
 
-	data := interaction.Data.(*discord.ButtonInteraction)
-	_, compID, ok := message.DecodeCustomIDMessageComponentResumePoint(string(data.CustomID))
+	_, compID, ok := message.DecodeCustomIDMessageComponentResumePoint(string(data.ID()))
 	if !ok {
 		return &FlowError{
 			Code:    FlowNodeErrorUnknown,
@@ -1790,12 +1800,21 @@ func (n *CompiledFlowNode) resumeFromComponent(ctx *FlowContext) error {
 		}
 	}
 
-	err = n.ExecuteChildrenByHandle(ctx, fmt.Sprintf("component_%d", compID))
+	// Only the clicked component's branch runs, so guess the defer from it
+	// rather than from the node's other children.
+	handle := fmt.Sprintf("component_%d", compID)
+	err := autoDeferInteraction(ctx, FirstMatching(n.Children.Handles[handle], isResponseNode))
+	if err != nil {
+		return traceError(n, err)
+	}
+
+	err = n.ExecuteChildrenByHandle(ctx, handle)
 	if err != nil {
 		createDefaultErrorResponse(ctx, err)
 		return traceError(n, err)
 	}
 
+	acknowledgeUnansweredComponent(ctx)
 	return nil
 }
 
@@ -1835,51 +1854,53 @@ func (n *CompiledFlowNode) prepareMessageData(ctx *FlowContext) (message.Message
 	return data, nil
 }
 
-func (n *CompiledFlowNode) prepareMessageResponseData(ctx *FlowContext) (api.InteractionResponseData, string, error) {
+// prepareMessage evaluates the node's message and returns it with the options to
+// convert it, pointing interactive components at a new resume point if needed.
+func (n *CompiledFlowNode) prepareMessage(ctx *FlowContext) (message.MessageData, message.ConvertOptions, string, error) {
 	data, err := n.prepareMessageData(ctx)
 	if err != nil {
-		return api.InteractionResponseData{}, "", err
+		return message.MessageData{}, message.ConvertOptions{}, "", err
 	}
 
 	var resumePointID string
-	if n.Data.MessageTemplateID == "" && len(data.Components) > 0 {
-		resumePointID = util.UniqueID()
-	}
-
-	responseData := data.ToInteractionResponseData(message.ConvertOptions{
-		ComponentIDFactory: func(component *message.ComponentData) discord.ComponentID {
-			if resumePointID != "" {
-				return discord.ComponentID(message.CustomIDMessageComponentResumePoint(resumePointID, component.ID))
-			}
-			return discord.ComponentID(component.FlowSourceID)
-		},
-	})
-
-	return responseData, resumePointID, nil
-}
-
-func (n *CompiledFlowNode) prepareMessageSendData(ctx *FlowContext) (api.SendMessageData, string, error) {
-	data, err := n.prepareMessageData(ctx)
-	if err != nil {
-		return api.SendMessageData{}, "", err
-	}
-
-	var resumePointID string
-	if n.Data.MessageTemplateID == "" && len(data.Components) > 0 {
+	if n.Data.MessageTemplateID == "" && data.HasInteractiveComponents() {
 		// The resume point will be created after the message has been sent, we just need the ID here already
 		resumePointID = util.UniqueID()
 	}
 
-	sendData := data.ToSendMessageData(message.ConvertOptions{
+	opts := message.ConvertOptions{
 		ComponentIDFactory: func(component *message.ComponentData) discord.ComponentID {
 			if resumePointID != "" {
 				return discord.ComponentID(message.CustomIDMessageComponentResumePoint(resumePointID, component.ID))
 			}
 			return discord.ComponentID(component.FlowSourceID)
 		},
-	})
+	}
 
-	return sendData, resumePointID, nil
+	return data, opts, resumePointID, nil
+}
+
+// acknowledgeUnansweredComponent acknowledges a component interaction the flow
+// finished without responding to, e.g. a button that only sends a channel
+// message. Discord shows "This interaction failed" otherwise, and the
+// auto-defer doesn't fire for flows that finish quickly.
+func acknowledgeUnansweredComponent(ctx *FlowContext) {
+	interaction := ctx.Data.Interaction()
+	if interaction == nil {
+		return
+	}
+	if _, ok := interaction.Data.(discord.ComponentInteraction); !ok {
+		return
+	}
+
+	hasCreatedResponse, err := ctx.Discord.HasCreatedInteractionResponse(ctx, interaction.ID)
+	if err != nil || hasCreatedResponse {
+		return
+	}
+
+	_, _ = ctx.Discord.CreateInteractionResponse(ctx, interaction.ID, interaction.Token, api.InteractionResponse{
+		Type: api.DeferredMessageUpdate,
+	})
 }
 
 func createDefaultErrorResponse(fCtx *FlowContext, err error) {
@@ -1909,5 +1930,18 @@ func createDefaultErrorResponse(fCtx *FlowContext, err error) {
 			Type: api.MessageInteractionWithSource,
 			Data: &respData,
 		})
+	}
+}
+
+// isResponseNode reports whether a node responds to the interaction, and so
+// determines whether the deferred response is ephemeral.
+func isResponseNode(n *CompiledFlowNode) bool {
+	switch n.Type {
+	case FlowNodeTypeActionResponseCreate,
+		FlowNodeTypeActionResponseEdit,
+		FlowNodeTypeActionResponseDefer:
+		return true
+	default:
+		return false
 	}
 }

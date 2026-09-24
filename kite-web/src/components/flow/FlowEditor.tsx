@@ -21,6 +21,7 @@ import { edgeTypes, nodeTypes } from "@/lib/flow/components";
 import { FlowData } from "@/lib/flow/dataSchema";
 import { getLayoutedElements } from "@/lib/flow/layout";
 import { createNode, getNodeValues } from "@/lib/flow/nodes";
+import { useFlowClipboard } from "@/lib/hooks/flowClipboard";
 import { useHookedTheme } from "@/lib/hooks/theme";
 import "@xyflow/react/dist/base.css";
 import { ListTreeIcon } from "lucide-react";
@@ -149,6 +150,8 @@ export default function FlowEditor({
     [screenToFlowPosition, setNodes, setEdges]
   );
 
+  const onMouseMove = useFlowClipboard({ setNodes, setEdges, onChange });
+
   const isValidConnection = useCallback(
     (con: Connection | Edge) => {
       if (!con.source || !con.target) return false;
@@ -199,6 +202,7 @@ export default function FlowEditor({
       edgeTypes={edgeTypes}
       onDrop={onDrop}
       onDragOver={onDragOver}
+      onMouseMove={onMouseMove}
       onConnect={onConnect}
       isValidConnection={isValidConnection}
       onSelectionChange={onSelectionChange}

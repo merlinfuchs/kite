@@ -34,6 +34,19 @@ func NewAssetStore(ctx context.Context, pg *Client, objectStore store.ObjectStor
 }
 
 func (s *AssetStore) CreateAsset(ctx context.Context, asset *model.Asset) (*model.Asset, error) {
+	// Upload before inserting the row. The other order leaves a row pointing
+	// at content that was never stored whenever the upload fails, which breaks
+	// every later read of that asset. Objects are content-addressed, so an
+	// upload with no row is harmless and reusable.
+	err := s.objectStore.UploadObject(ctx, assetBucketName, &model.Object{
+		Name:        asset.ContentHash,
+		Content:     asset.Content,
+		ContentType: asset.ContentType,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to upload asset object: %w", err)
+	}
+
 	row, err := s.pg.Q.CreateAsset(ctx, pgmodel.CreateAssetParams{
 		ID:          asset.ID,
 		Name:        asset.Name,
@@ -61,15 +74,6 @@ func (s *AssetStore) CreateAsset(ctx context.Context, asset *model.Asset) (*mode
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create asset: %w", err)
-	}
-
-	err = s.objectStore.UploadObject(ctx, assetBucketName, &model.Object{
-		Name:        asset.ContentHash,
-		Content:     asset.Content,
-		ContentType: asset.ContentType,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("failed to upload asset object: %w", err)
 	}
 
 	return rowToAsset(row)

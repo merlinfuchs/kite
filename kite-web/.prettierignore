@@ -1,0 +1,10 @@
+# Build output
+.next
+out
+
+# Generated from Go types by tygo, formatted by the generator
+src/lib/types/*.gen.ts
+
+# Vendored shadcn/ui components. They're re-added by the shadcn CLI in its own
+# style, so formatting them here just creates diff noise on every update.
+src/components/ui

@@ -8,7 +8,7 @@ export interface MessageData {
   flags?: number /* int */;
   attachments?: MessageAttachment[];
   embeds?: EmbedData[];
-  components?: ComponentRowData[];
+  components?: ComponentData[];
   allowed_mentions?: AllowedMentionsData;
 }
 export interface MessageAttachment {
@@ -48,10 +48,18 @@ export interface EmbedFieldData {
   value?: string;
   inline?: boolean;
 }
-export interface ComponentRowData {
-  id?: number /* int */;
-  components?: ComponentData[];
-}
+export const FlagIsComponentsV2 = 1 << 15;
+export const ComponentTypeActionRow = 1;
+export const ComponentTypeButton = 2;
+export const ComponentTypeStringSelect = 3;
+export const ComponentTypeSection = 9;
+export const ComponentTypeTextDisplay = 10;
+export const ComponentTypeThumbnail = 11;
+export const ComponentTypeMediaGallery = 12;
+export const ComponentTypeFile = 13;
+export const ComponentTypeSeparator = 14;
+export const ComponentTypeContainer = 17;
+export const ButtonStyleLink = 5;
 export interface ComponentData {
   id?: number /* int */;
   type?: number /* int */;
@@ -70,11 +78,61 @@ export interface ComponentData {
   min_values?: number /* int */;
   max_values?: number /* int */;
   options?: ComponentSelectOptionData[];
+  /**
+   * Action Row, Section, Container
+   */
+  components?: ComponentData[];
+  /**
+   * Section
+   */
+  accessory?: ComponentData;
+  /**
+   * Text Display
+   */
+  content?: string;
+  /**
+   * Thumbnail
+   */
+  media?: UnfurledMediaItemData;
+  description?: string;
+  /**
+   * Thumbnail, File, Container
+   */
+  spoiler?: boolean;
+  /**
+   * Media Gallery
+   */
+  items?: MediaGalleryItemData[];
+  /**
+   * File
+   */
+  file?: UnfurledMediaItemData;
+  /**
+   * Separator
+   */
+  divider?: boolean;
+  spacing?: number /* int */;
+  /**
+   * Container
+   */
+  accent_color?: number /* int */;
   flow_source_id?: string;
+}
+export interface UnfurledMediaItemData {
+  url: string;
+}
+export interface MediaGalleryItemData {
+  media: UnfurledMediaItemData;
+  description?: string;
+  spoiler?: boolean;
 }
 export interface ComponentSelectOptionData {
   id?: number /* int */;
   label?: string;
+  /**
+   * Value is what the flow receives when the option is selected. Falls back to the label.
+   */
+  value?: string;
   description?: string;
   emoji?: ComponentEmojiData;
   default?: boolean;

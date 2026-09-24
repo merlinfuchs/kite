@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { getUniqueId } from "@/lib/utils";
+import { FlagIsComponentsV2 } from "@/lib/types/message.gen";
 
 export const uniqueIdSchema = z.preprocess(
   (d) => {
@@ -268,8 +269,10 @@ export type MessageComponentButton = z.infer<typeof buttonSchema>;
 export const selectMenuOptionSchema = z.object({
   id: uniqueIdSchema,
   label: z.preprocess((d) => d ?? undefined, z.string().default("")),
+  value: z.preprocess((d) => d || undefined, z.optional(z.string())),
   description: z.preprocess((d) => d || undefined, z.optional(z.string())),
   emoji: z.preprocess((d) => d ?? undefined, z.optional(emojiSchema)),
+  default: z.preprocess((d) => d || undefined, z.optional(z.boolean())),
 });
 
 export type MessageComponentSelectMenuOption = z.infer<
@@ -280,6 +283,8 @@ export const selectMenuSchema = z.object({
   id: uniqueIdSchema,
   type: z.literal(3),
   placeholder: z.preprocess((d) => d ?? undefined, z.optional(z.string())),
+  min_values: z.preprocess((d) => d ?? undefined, z.optional(z.number())),
+  max_values: z.preprocess((d) => d ?? undefined, z.optional(z.number())),
   disabled: z.preprocess((d) => d ?? undefined, z.optional(z.boolean())),
   options: z.preprocess(
     (d) => d ?? undefined,
@@ -300,6 +305,117 @@ export const actionRowSchema = z.object({
 });
 
 export type MessageComponentActionRow = z.infer<typeof actionRowSchema>;
+
+const optionalString = z.preprocess(
+  (d) => d || undefined,
+  z.optional(z.string())
+);
+const optionalBoolean = z.preprocess(
+  (d) => d ?? undefined,
+  z.optional(z.boolean())
+);
+
+export const unfurledMediaItemSchema = z.preprocess(
+  (d) => d ?? undefined,
+  z
+    .object({
+      url: z.preprocess((d) => d ?? undefined, z.string().default("")),
+    })
+    .default({ url: "" })
+);
+
+export const textDisplaySchema = z.object({
+  id: uniqueIdSchema,
+  type: z.literal(10),
+  content: z.preprocess((d) => d ?? undefined, z.string().default("")),
+});
+
+export const thumbnailSchema = z.object({
+  id: uniqueIdSchema,
+  type: z.literal(11),
+  media: unfurledMediaItemSchema,
+  description: optionalString,
+  spoiler: optionalBoolean,
+});
+
+export const sectionSchema = z.object({
+  id: uniqueIdSchema,
+  type: z.literal(9),
+  components: z.preprocess(
+    (d) => d ?? undefined,
+    z.array(textDisplaySchema).default([])
+  ),
+  // Left undefined when missing, so validation reports it instead of the editor faking one.
+  accessory: z.preprocess(
+    (d) => d ?? undefined,
+    z.optional(z.union([thumbnailSchema, buttonSchema]))
+  ),
+});
+
+export const mediaGalleryItemSchema = z.object({
+  id: uniqueIdSchema,
+  media: unfurledMediaItemSchema,
+  description: optionalString,
+  spoiler: optionalBoolean,
+});
+
+export const mediaGallerySchema = z.object({
+  id: uniqueIdSchema,
+  type: z.literal(12),
+  items: z.preprocess(
+    (d) => d ?? undefined,
+    z.array(mediaGalleryItemSchema).default([])
+  ),
+});
+
+export const fileSchema = z.object({
+  id: uniqueIdSchema,
+  type: z.literal(13),
+  file: unfurledMediaItemSchema,
+  spoiler: optionalBoolean,
+});
+
+export const separatorSchema = z.object({
+  id: uniqueIdSchema,
+  type: z.literal(14),
+  divider: z.preprocess((d) => d ?? undefined, z.boolean().default(true)),
+  spacing: z.preprocess(
+    (d) => d ?? undefined,
+    z.union([z.literal(1), z.literal(2)]).default(1)
+  ),
+});
+
+export const containerSchema = z.object({
+  id: uniqueIdSchema,
+  type: z.literal(17),
+  components: z.preprocess(
+    (d) => d ?? undefined,
+    z
+      .array(
+        z.union([
+          actionRowSchema,
+          textDisplaySchema,
+          sectionSchema,
+          mediaGallerySchema,
+          separatorSchema,
+          fileSchema,
+        ])
+      )
+      .default([])
+  ),
+  accent_color: z.preprocess((d) => d ?? undefined, z.optional(z.number())),
+  spoiler: optionalBoolean,
+});
+
+export const componentSchema = z.union([
+  actionRowSchema,
+  sectionSchema,
+  textDisplaySchema,
+  mediaGallerySchema,
+  fileSchema,
+  separatorSchema,
+  containerSchema,
+]);
 
 export const messageActionSchema = z
   .object({
@@ -421,14 +537,22 @@ export const messageSchema = z.object({
   allowed_mentions: messageAllowedMentionsSchema,
   components: z.preprocess(
     (d) => d ?? undefined,
-    z.array(actionRowSchema).default([])
+    z.array(componentSchema).default([])
   ),
   thread_name: messageThreadNameSchema,
+  flags: z.preprocess((d) => d || undefined, z.optional(z.number())),
 });
 
 export type Message = z.infer<typeof messageSchema>;
 
 export function parseMessageData(raw: any) {
   const parsedData = messageSchema.parse(raw);
+
+  // Pasted v2 payloads often leave out the flag, which would leave the editor
+  // in classic mode with components it can't hold.
+  if (parsedData.components.some((c) => c.type !== 1)) {
+    parsedData.flags = (parsedData.flags ?? 0) | FlagIsComponentsV2;
+  }
+
   return parsedData;
 }

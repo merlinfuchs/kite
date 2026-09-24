@@ -14,7 +14,7 @@ import { json, jsonParseLinter } from "@codemirror/lang-json";
 import { githubDark, githubLight } from "@uiw/codemirror-theme-github";
 import { linter, lintGutter } from "@codemirror/lint";
 import { Button } from "../ui/button";
-import { useCurrentMessage } from "@/lib/message/state";
+import { getMessage, useDocumentStoreApi } from "@/lib/message/state";
 import { parseMessageData } from "@/lib/message/schemaRestore";
 import { toast } from "sonner";
 import { useHookedTheme } from "@/lib/hooks/theme";
@@ -29,22 +29,24 @@ export default function MessageJSONDialog({
   const [open, setOpen] = useState(false);
   const [raw, setRaw] = useState("{}");
 
-  const msg = useCurrentMessage((s) => s);
+  const store = useDocumentStoreApi();
 
   useEffect(() => {
-    setRaw(JSON.stringify(msg, null, 2));
-  }, [msg]);
+    if (open) {
+      setRaw(JSON.stringify(getMessage(store), null, 2));
+    }
+  }, [open, store]);
 
   const save = useCallback(() => {
     try {
       const data = parseMessageData(JSON.parse(raw));
 
-      msg.replace(data);
+      store.getState().replaceAll(data);
       setOpen(false);
     } catch (e) {
       toast.error(`Failed to parse message data: ${e}`);
     }
-  }, [msg, raw]);
+  }, [store, raw]);
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>

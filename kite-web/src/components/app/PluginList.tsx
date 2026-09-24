@@ -19,13 +19,6 @@ export function PluginList() {
     });
   }, [plugins, pluginInstances]);
 
-  const hasUndeployedPlugins = pluginsWithInstances.some(
-    (plugin) =>
-      plugin!.instance &&
-      new Date(plugin!.instance.updated_at) >
-        new Date(plugin!.instance.last_deployed_at || 0)
-  );
-
   const [deployDialogOpen, setDeployDialogOpen] = useState(false);
 
   return (
@@ -39,9 +32,10 @@ export function PluginList() {
         open={deployDialogOpen}
         onOpenChange={setDeployDialogOpen}
       >
-        <Button disabled={!hasUndeployedPlugins} variant="destructive">
-          Deploy all commands
-        </Button>
+        {/* Never disabled: removing a plugin instance deletes the row that
+            "has undeployed changes" was derived from, so gating on it made it
+            impossible to remove a disabled plugin's commands from Discord. */}
+        <Button variant="destructive">Deploy all commands</Button>
       </CommandDeployDialog>
     </div>
   );

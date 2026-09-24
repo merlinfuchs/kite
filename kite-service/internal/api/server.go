@@ -4,6 +4,7 @@ import (
 	"context"
 	"log/slog"
 	"net/http"
+	"time"
 
 	"github.com/kitecloud/kite/kite-service/internal/config"
 	"github.com/kitecloud/kite/kite-service/internal/core/command"
@@ -105,9 +106,18 @@ func (s *APIServer) Serve(ctx context.Context, address string) error {
 		AllowedMethods:   []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
 	}).Handler(s.mux)
 
+	// Without these a connection that sends headers slowly, or never finishes
+	// its body, occupies a goroutine indefinitely. Nothing served here streams
+	// or long-polls, so every request is expected to complete promptly; the
+	// values are set well above the slowest real one (an asset upload or
+	// download, and command deploys that wait on the Discord API).
 	s.server = &http.Server{
-		Addr:    address,
-		Handler: handler,
+		Addr:              address,
+		Handler:           handler,
+		ReadHeaderTimeout: 10 * time.Second,
+		ReadTimeout:       60 * time.Second,
+		WriteTimeout:      120 * time.Second,
+		IdleTimeout:       120 * time.Second,
 	}
 
 	slog.With("address", address).Info("Starting API server")

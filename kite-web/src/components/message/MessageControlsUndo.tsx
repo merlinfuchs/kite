@@ -1,18 +1,16 @@
 import { useEffect } from "react";
-import { useCurrentMessageUndo } from "@/lib/message/state";
+import { useDocumentUndo } from "@/lib/message/state";
 import MessageControlsButton from "./MessageControlsButton";
 import { RedoIcon, UndoIcon } from "lucide-react";
 import { useShallow } from "zustand/react/shallow";
 
 export default function MessageControlsUndo() {
-  const [isTracking, undo, redo, pause, resume] = useCurrentMessageUndo(
+  const [isTracking, undo, redo, pause, resume] = useDocumentUndo(
     useShallow((s) => [s.isTracking, s.undo, s.redo, s.pause, s.resume])
   );
 
-  const hasPastStates = useCurrentMessageUndo((s) => s.pastStates.length != 0);
-  const hasFutureStates = useCurrentMessageUndo(
-    (s) => s.futureStates.length != 0
-  );
+  const hasPastStates = useDocumentUndo((s) => s.pastStates.length != 0);
+  const hasFutureStates = useDocumentUndo((s) => s.futureStates.length != 0);
 
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {

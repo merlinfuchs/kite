@@ -2,6 +2,8 @@ package flow
 
 import (
 	"fmt"
+	"maps"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -537,37 +539,6 @@ func (n *CompiledFlowNode) FindDirectChildWithType(types ...FlowNodeType) *Compi
 	return nil
 }
 
-func (n *CompiledFlowNode) FindChildWithType(types ...FlowNodeType) *CompiledFlowNode {
-	return n.findChildWithType(make(map[string]bool), types...)
-}
-
-func (n *CompiledFlowNode) findChildWithType(visited map[string]bool, types ...FlowNodeType) *CompiledFlowNode {
-	// Mark this node as visited to prevent cycles
-	visited[n.ID] = true
-
-	// We first want to check all direct children
-	for _, node := range n.Children.Default {
-		for _, t := range types {
-			if node.Type == t {
-				return node
-			}
-		}
-	}
-
-	// If no direct children are found, we want to check all children recursively
-	for _, node := range n.Children.Default {
-		// Only recurse if we haven't visited this node before
-		if !visited[node.ID] {
-			child := node.findChildWithType(visited, types...)
-			if child != nil {
-				return child
-			}
-		}
-	}
-
-	return nil
-}
-
 func (n *CompiledFlowNode) FindParentWithID(id string) *CompiledFlowNode {
 	return n.findParentWithID(id, make(map[string]bool))
 }
@@ -628,4 +599,59 @@ func (n *CompiledFlowNode) findChildWithID(nodeID string, includeSubFlows bool, 
 	}
 
 	return nil
+}
+
+// FirstChildMatching returns the first node in the subtree satisfying match,
+// in the order the flow would reach them: direct children first, then deeper
+// ones. Handle keys are sorted so the result doesn't depend on Go's random
+// map iteration order.
+//
+// Handle-based children are included, so nodes behind condition branches and
+// button handles are considered too.
+func (n *CompiledFlowNode) FirstChildMatching(match func(*CompiledFlowNode) bool) *CompiledFlowNode {
+	return firstMatching(n.orderedChildren(), map[string]bool{n.ID: true}, match)
+}
+
+// FirstMatching is like FirstChildMatching, but starts from the given nodes
+// instead of all children of a node.
+func FirstMatching(nodes []*CompiledFlowNode, match func(*CompiledFlowNode) bool) *CompiledFlowNode {
+	return firstMatching(nodes, make(map[string]bool), match)
+}
+
+func firstMatching(
+	nodes []*CompiledFlowNode,
+	visited map[string]bool,
+	match func(*CompiledFlowNode) bool,
+) *CompiledFlowNode {
+	for _, node := range nodes {
+		if match(node) {
+			return node
+		}
+	}
+
+	for _, node := range nodes {
+		if visited[node.ID] {
+			continue
+		}
+		visited[node.ID] = true
+
+		if found := firstMatching(node.orderedChildren(), visited, match); found != nil {
+			return found
+		}
+	}
+
+	return nil
+}
+
+// orderedChildren lists default children followed by handle children, with
+// handle keys sorted for a stable order.
+func (n *CompiledFlowNode) orderedChildren() []*CompiledFlowNode {
+	children := make([]*CompiledFlowNode, 0, len(n.Children.Default)+len(n.Children.Handles))
+	children = append(children, n.Children.Default...)
+
+	for _, handle := range slices.Sorted(maps.Keys(n.Children.Handles)) {
+		children = append(children, n.Children.Handles[handle]...)
+	}
+
+	return children
 }
