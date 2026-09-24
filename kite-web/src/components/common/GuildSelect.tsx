@@ -51,6 +51,7 @@ export default function GuildSelect({
                 <CommandItem
                   key={guild!.id}
                   value={guild!.id}
+                  keywords={[guild!.name]}
                   onSelect={(currentValue) => {
                     onChange(currentValue);
                     setOpen(false);
