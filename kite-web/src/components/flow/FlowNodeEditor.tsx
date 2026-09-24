@@ -1635,6 +1635,19 @@ function ChannelDataInput({ data, updateData, errors }: InputProps) {
     });
   }, [updateData, data]);
 
+  const removeOverwrite = useCallback(
+    (i: number) => {
+      updateData({
+        channel_data: {
+          ...data.channel_data,
+          permission_overwrites:
+            data.channel_data?.permission_overwrites?.filter((_, j) => j !== i),
+        },
+      });
+    },
+    [updateData, data]
+  );
+
   const updateOverwrite = useCallback(
     (i: number, newData: Partial<PermissionOverwriteData>) => {
       const overwrite = data.channel_data?.permission_overwrites?.[i];
@@ -1917,17 +1930,21 @@ function ChannelDataInput({ data, updateData, errors }: InputProps) {
                   }
                   errors={errors}
                 />
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="flex gap-2"
+                  onClick={() => removeOverwrite(i)}
+                >
+                  <TrashIcon className="h-4 w-4" />
+                  <div>Remove Overwrite</div>
+                </Button>
               </Card>
             ))}
           </div>
 
           <div className="flex space-x-3">
-            <Button
-              onClick={addOverwrite}
-              disabled={(data.modal_data?.components?.length || 0) >= 5}
-            >
-              Add Overwrite
-            </Button>
+            <Button onClick={addOverwrite}>Add Overwrite</Button>
             <Button variant="outline" onClick={clearOverwrites}>
               Clear Overwrites
             </Button>
