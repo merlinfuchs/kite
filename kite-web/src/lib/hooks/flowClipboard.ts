@@ -74,8 +74,7 @@ export function useFlowClipboard({
       const [newNodes, newEdges] = pasteFlowNodes(
         clipboard,
         mousePosition.current && screenToFlowPosition(mousePosition.current),
-        (type) => isNodeTypeAvailable(type, contextType),
-        getNodes().map((n) => n.id)
+        (type) => isNodeTypeAvailable(type, contextType)
       );
       if (newNodes.length < clipboard.nodes.length) {
         toast.warning("Some blocks aren't available here and weren't pasted.");
