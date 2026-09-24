@@ -60,6 +60,7 @@ const (
 	FlowNodeTypeActionMessageReactionCreate FlowNodeType = "action_message_reaction_create"
 	FlowNodeTypeActionMessageReactionDelete FlowNodeType = "action_message_reaction_delete"
 	FlowNodeTypeActionMessagePin            FlowNodeType = "action_message_pin"
+	FlowNodeTypeActionMessageUnpin          FlowNodeType = "action_message_unpin"
 	FlowNodeTypeActionMemberBan             FlowNodeType = "action_member_ban"
 	FlowNodeTypeActionMemberUnban           FlowNodeType = "action_member_unban"
 	FlowNodeTypeActionMemberKick            FlowNodeType = "action_member_kick"

@@ -28,6 +28,7 @@ export const FlowNodeTypeActionPrivateMessageCreate: FlowNodeType = "action_priv
 export const FlowNodeTypeActionMessageReactionCreate: FlowNodeType = "action_message_reaction_create";
 export const FlowNodeTypeActionMessageReactionDelete: FlowNodeType = "action_message_reaction_delete";
 export const FlowNodeTypeActionMessagePin: FlowNodeType = "action_message_pin";
+export const FlowNodeTypeActionMessageUnpin: FlowNodeType = "action_message_unpin";
 export const FlowNodeTypeActionMemberBan: FlowNodeType = "action_member_ban";
 export const FlowNodeTypeActionMemberUnban: FlowNodeType = "action_member_unban";
 export const FlowNodeTypeActionMemberKick: FlowNodeType = "action_member_kick";

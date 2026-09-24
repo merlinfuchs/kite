@@ -263,6 +263,15 @@ func (p *DiscordProvider) PinMessage(ctx context.Context, channelID discord.Chan
 	return nil
 }
 
+func (p *DiscordProvider) UnpinMessage(ctx context.Context, channelID discord.ChannelID, messageID discord.MessageID, reason api.AuditLogReason) error {
+	err := p.session.UnpinMessage(channelID, messageID, reason)
+	if err != nil {
+		return fmt.Errorf("failed to unpin message: %w", err)
+	}
+
+	return nil
+}
+
 func (p *DiscordProvider) BanMember(ctx context.Context, guildID discord.GuildID, userID discord.UserID, data api.BanData) error {
 	err := p.session.Ban(guildID, userID, data)
 	if err != nil {
