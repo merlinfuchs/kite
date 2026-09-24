@@ -16,22 +16,13 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { useUser } from "@/lib/hooks/api";
-import { useAuthLogoutMutation } from "@/lib/api/mutations";
-import { useRouter } from "next/router";
-import { useCallback } from "react";
+import { useLogout } from "@/lib/hooks/auth";
 
 export default function AppSidebarUserNav() {
   const { isMobile } = useSidebar();
 
-  const router = useRouter();
   const user = useUser();
-
-  const logoutMutation = useAuthLogoutMutation();
-
-  const logout = useCallback(() => {
-    router.push("/");
-    setTimeout(() => logoutMutation.mutate(), 500);
-  }, [logoutMutation, router]);
+  const logout = useLogout();
 
   return (
     <SidebarMenu>
