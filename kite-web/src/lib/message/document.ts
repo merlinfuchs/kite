@@ -24,8 +24,11 @@ import {
   childIds,
   childSlots,
   fromMessage,
+  interactiveRows,
   setChildIds,
+  toMessage,
 } from "./documentConvert";
+import { parseMessageData } from "./schemaRestore";
 
 export type NodeId = string;
 
@@ -445,9 +448,18 @@ export const createDocumentStore = (
           clear: () => set(fromMessage(emptyMessage)),
 
           // The two modes cannot hold each other's content, so the toggle
-          // replaces the message rather than editing it.
-          setComponentsV2: (enabled) =>
-            set(fromMessage(enabled ? emptyComponentsV2Message : emptyMessage)),
+          // replaces the message and only carries over what flows are wired to.
+          setComponentsV2: (enabled) => {
+            const rows = interactiveRows(
+              parseMessageData(toMessage(get()).message)
+            );
+            set(
+              fromMessage({
+                ...(enabled ? emptyComponentsV2Message : emptyMessage),
+                components: rows,
+              })
+            );
+          },
         }),
         {
           limit: 10,
