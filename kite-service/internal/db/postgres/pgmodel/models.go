@@ -120,6 +120,7 @@ type MessageInstance struct {
 	FlowSources      []byte
 	CreatedAt        pgtype.Timestamp
 	UpdatedAt        pgtype.Timestamp
+	LastUsedAt       pgtype.Timestamp
 }
 
 type Module struct {
@@ -169,6 +170,7 @@ type ResumePoint struct {
 	FlowState         []byte
 	CreatedAt         pgtype.Timestamp
 	ExpiresAt         pgtype.Timestamp
+	LastUsedAt        pgtype.Timestamp
 }
 
 type Session struct {

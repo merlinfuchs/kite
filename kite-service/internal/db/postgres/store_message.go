@@ -3,6 +3,7 @@ package postgres
 import (
 	"context"
 	"encoding/json"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
@@ -40,8 +41,11 @@ func (c *Client) CountMessagesByApp(ctx context.Context, appID string) (int, err
 	return int(res), nil
 }
 
-func (c *Client) Message(ctx context.Context, id string) (*model.Message, error) {
-	row, err := c.Q.GetMessage(ctx, id)
+func (c *Client) Message(ctx context.Context, appID string, id string) (*model.Message, error) {
+	row, err := c.Q.GetMessage(ctx, pgmodel.GetMessageParams{
+		ID:    id,
+		AppID: appID,
+	})
 	if err != nil {
 		if err == pgx.ErrNoRows {
 			return nil, store.ErrNotFound
@@ -157,10 +161,11 @@ func rowToMessage(row pgmodel.Message) (*model.Message, error) {
 	}, nil
 }
 
-func (c *Client) MessageInstance(ctx context.Context, messageID string, instanceID uint64) (*model.MessageInstance, error) {
+func (c *Client) MessageInstance(ctx context.Context, appID string, messageID string, instanceID uint64) (*model.MessageInstance, error) {
 	row, err := c.Q.GetMessageInstance(ctx, pgmodel.GetMessageInstanceParams{
 		MessageID: messageID,
 		ID:        int64(instanceID),
+		AppID:     appID,
 	})
 	if err != nil {
 		if err == pgx.ErrNoRows {
@@ -172,33 +177,36 @@ func (c *Client) MessageInstance(ctx context.Context, messageID string, instance
 	return rowToMessageInstance(row)
 }
 
-func (c *Client) MessageInstancesByMessage(ctx context.Context, messageID string, includeHidden bool) ([]*model.MessageInstance, error) {
-	var rows []pgmodel.MessageInstance
-	var err error
-
-	if includeHidden {
-		rows, err = c.Q.GetMessageInstancesByMessageWithHidden(ctx, messageID)
-	} else {
-		rows, err = c.Q.GetMessageInstancesByMessage(ctx, messageID)
-	}
+func (c *Client) MessageInstancesByMessage(ctx context.Context, appID string, messageID string) ([]*model.MessageInstance, error) {
+	rows, err := c.Q.GetMessageInstancesByMessage(ctx, pgmodel.GetMessageInstancesByMessageParams{
+		MessageID: messageID,
+		AppID:     appID,
+	})
 	if err != nil {
 		return nil, err
 	}
 
-	instances := make([]*model.MessageInstance, len(rows))
-	for i, row := range rows {
-		msg, err := rowToMessageInstance(row)
-		if err != nil {
-			return nil, err
-		}
-		instances[i] = msg
-	}
-
-	return instances, nil
+	return rowsToMessageInstances(rows)
 }
 
-func (c *Client) MessageInstanceByDiscordMessageID(ctx context.Context, discordMessageID string) (*model.MessageInstance, error) {
-	row, err := c.Q.GetMessageInstanceByDiscordMessageId(ctx, discordMessageID)
+func (c *Client) FlowMessageInstancesByMessage(ctx context.Context, appID string, messageID string, limit int) ([]*model.MessageInstance, error) {
+	rows, err := c.Q.GetFlowMessageInstancesByMessage(ctx, pgmodel.GetFlowMessageInstancesByMessageParams{
+		MessageID: messageID,
+		AppID:     appID,
+		Limit:     int32(limit),
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return rowsToMessageInstances(rows)
+}
+
+func (c *Client) MessageInstanceByDiscordMessageID(ctx context.Context, appID string, discordMessageID string) (*model.MessageInstance, error) {
+	row, err := c.Q.GetMessageInstanceByDiscordMessageId(ctx, pgmodel.GetMessageInstanceByDiscordMessageIdParams{
+		DiscordMessageID: discordMessageID,
+		AppID:            appID,
+	})
 	if err != nil {
 		if err == pgx.ErrNoRows {
 			return nil, store.ErrNotFound
@@ -209,13 +217,14 @@ func (c *Client) MessageInstanceByDiscordMessageID(ctx context.Context, discordM
 	return rowToMessageInstance(row)
 }
 
-func (c *Client) CreateMessageInstance(ctx context.Context, instance *model.MessageInstance) (*model.MessageInstance, error) {
+func (c *Client) CreateMessageInstance(ctx context.Context, appID string, instance *model.MessageInstance) (*model.MessageInstance, error) {
 	flowSources, err := json.Marshal(instance.FlowSources)
 	if err != nil {
 		return nil, err
 	}
 
 	res, err := c.Q.CreateMessageInstance(ctx, pgmodel.CreateMessageInstanceParams{
+		AppID:            appID,
 		MessageID:        instance.MessageID,
 		DiscordGuildID:   instance.DiscordGuildID,
 		DiscordChannelID: instance.DiscordChannelID,
@@ -227,13 +236,16 @@ func (c *Client) CreateMessageInstance(ctx context.Context, instance *model.Mess
 		UpdatedAt:        pgtype.Timestamp{Time: instance.UpdatedAt.UTC(), Valid: true},
 	})
 	if err != nil {
+		if err == pgx.ErrNoRows {
+			return nil, store.ErrNotFound
+		}
 		return nil, err
 	}
 
 	return rowToMessageInstance(res)
 }
 
-func (c *Client) UpdateMessageInstance(ctx context.Context, instance *model.MessageInstance) (*model.MessageInstance, error) {
+func (c *Client) UpdateMessageInstance(ctx context.Context, appID string, instance *model.MessageInstance) (*model.MessageInstance, error) {
 	flowSources, err := json.Marshal(instance.FlowSources)
 	if err != nil {
 		return nil, err
@@ -242,6 +254,7 @@ func (c *Client) UpdateMessageInstance(ctx context.Context, instance *model.Mess
 	res, err := c.Q.UpdateMessageInstance(ctx, pgmodel.UpdateMessageInstanceParams{
 		ID:          int64(instance.ID),
 		MessageID:   instance.MessageID,
+		AppID:       appID,
 		FlowSources: flowSources,
 		UpdatedAt:   pgtype.Timestamp{Time: instance.UpdatedAt.UTC(), Valid: true},
 	})
@@ -255,10 +268,11 @@ func (c *Client) UpdateMessageInstance(ctx context.Context, instance *model.Mess
 	return rowToMessageInstance(res)
 }
 
-func (c *Client) DeleteMessageInstance(ctx context.Context, messageID string, instanceID uint64) error {
+func (c *Client) DeleteMessageInstance(ctx context.Context, appID string, messageID string, instanceID uint64) error {
 	err := c.Q.DeleteMessageInstance(ctx, pgmodel.DeleteMessageInstanceParams{
 		MessageID: messageID,
 		ID:        int64(instanceID),
+		AppID:     appID,
 	})
 	if err != nil {
 		if err == pgx.ErrNoRows {
@@ -270,8 +284,11 @@ func (c *Client) DeleteMessageInstance(ctx context.Context, messageID string, in
 	return nil
 }
 
-func (c *Client) DeleteMessageInstanceByDiscordMessageID(ctx context.Context, discordMessageID string) error {
-	err := c.Q.DeleteMessageInstanceByDiscordMessageId(ctx, discordMessageID)
+func (c *Client) DeleteMessageInstanceByDiscordMessageID(ctx context.Context, appID string, discordMessageID string) error {
+	err := c.Q.DeleteMessageInstanceByDiscordMessageId(ctx, pgmodel.DeleteMessageInstanceByDiscordMessageIdParams{
+		DiscordMessageID: discordMessageID,
+		AppID:            appID,
+	})
 	if err != nil {
 		if err == pgx.ErrNoRows {
 			return store.ErrNotFound
@@ -280,6 +297,35 @@ func (c *Client) DeleteMessageInstanceByDiscordMessageID(ctx context.Context, di
 	}
 
 	return nil
+}
+
+func (c *Client) TouchMessageInstance(ctx context.Context, appID string, instanceID uint64, usedAt time.Time) error {
+	return c.Q.TouchMessageInstance(ctx, pgmodel.TouchMessageInstanceParams{
+		UsedAt: pgtype.Timestamp{Time: usedAt, Valid: true},
+		ID:     int64(instanceID),
+		AppID:  appID,
+	})
+}
+
+func (c *Client) DeleteUnusedMessageInstances(ctx context.Context, flowUsedBefore time.Time, dashboardUsedBefore time.Time, batchSize int) (int64, error) {
+	return c.Q.DeleteUnusedMessageInstances(ctx, pgmodel.DeleteUnusedMessageInstancesParams{
+		FlowUsedBefore:      pgtype.Timestamp{Time: flowUsedBefore, Valid: true},
+		DashboardUsedBefore: pgtype.Timestamp{Time: dashboardUsedBefore, Valid: true},
+		BatchSize:           int32(batchSize),
+	})
+}
+
+func rowsToMessageInstances(rows []pgmodel.MessageInstance) ([]*model.MessageInstance, error) {
+	instances := make([]*model.MessageInstance, len(rows))
+	for i, row := range rows {
+		instance, err := rowToMessageInstance(row)
+		if err != nil {
+			return nil, err
+		}
+		instances[i] = instance
+	}
+
+	return instances, nil
 }
 
 func rowToMessageInstance(row pgmodel.MessageInstance) (*model.MessageInstance, error) {
@@ -299,5 +345,6 @@ func rowToMessageInstance(row pgmodel.MessageInstance) (*model.MessageInstance, 
 		FlowSources:      flowSources,
 		CreatedAt:        row.CreatedAt.Time,
 		UpdatedAt:        row.UpdatedAt.Time,
+		LastUsedAt:       row.LastUsedAt.Time,
 	}, nil
 }

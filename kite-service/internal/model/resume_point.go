@@ -20,6 +20,7 @@ type ResumePoint struct {
 	FlowState         flow.FlowContextState
 	CreatedAt         time.Time
 	ExpiresAt         null.Time
+	LastUsedAt        time.Time
 }
 
 type ResumePointType string

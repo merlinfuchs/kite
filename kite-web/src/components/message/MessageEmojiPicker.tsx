@@ -1,3 +1,4 @@
+import { discordEmojiUrl } from "@/tools/common/utils/discordCdn";
 import EmojiPicker, { PickerEmoji } from "@/components/common/EmojiPicker";
 import { Emoji } from "@/lib/message/schema";
 import Twemoji from "../common/Twemoji";
@@ -30,9 +31,7 @@ export default function MessageEmojiPicker({ emoji, onChange }: Props) {
           <Button size="icon" variant="outline">
             {emoji?.id ? (
               <img
-                src={`https://cdn.discordapp.com/emojis/${emoji.id}.${
-                  emoji.animated ? "gif" : "webp"
-                }`}
+                src={discordEmojiUrl(emoji.id, emoji.animated)}
                 alt=""
                 className="h-6 w-6"
               />

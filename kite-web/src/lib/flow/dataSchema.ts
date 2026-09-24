@@ -262,6 +262,8 @@ export const nodeActionMessageDeleteDataSchema = nodeBaseDataSchema.extend({
   audit_log_reason: auditLogReasonSchema,
 });
 
+export const nodeActionMessagePinDataSchema = nodeActionMessageDeleteDataSchema;
+
 export const emojiDataSchema = z.object({
   id: z.string().optional(),
   name: z.string().min(1),

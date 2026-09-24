@@ -202,13 +202,16 @@ export function useMessage(
 }
 
 export function useMessageInstances(
+  { sentBy, enabled }: { sentBy?: "flow"; enabled?: boolean } = {},
   callback?: (res: APIResponse<MessageInstanceListResponse>) => void
 ) {
   const router = useRouter();
 
   const query = useMessageInstancesQuery(
     router.query.appId as string,
-    router.query.messageId as string
+    router.query.messageId as string,
+    sentBy,
+    enabled
   );
   return useResponseData(query, callback);
 }

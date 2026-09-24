@@ -1,3 +1,4 @@
+import { discordEmojiUrl } from "@/tools/common/utils/discordCdn";
 import Picker from "@emoji-mart/react";
 import { ReactNode, useMemo, useState } from "react";
 import {
@@ -42,9 +43,7 @@ export default function EmojiPicker({ onEmojiSelect, children }: Props) {
           keywords: ["discord", "custom"],
           skins: [
             {
-              src: `https://cdn.discordapp.com/emojis/${emoji!.id}.${
-                emoji!.animated ? "gif" : "webp"
-              }`,
+              src: discordEmojiUrl(emoji!.id, emoji!.animated),
             },
           ],
         })),

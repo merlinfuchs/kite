@@ -1,6 +1,11 @@
 package flow
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/diamondburned/arikawa/v3/api"
+	"github.com/diamondburned/arikawa/v3/discord"
+)
 
 // The auto-defer has to declare ephemeral-ness before the flow picks a branch,
 // so it guesses from the first response node it can reach. The guess used to
@@ -128,5 +133,59 @@ func TestCycleTerminates(t *testing.T) {
 
 	if found := firstResponse(entry); found != nil {
 		t.Errorf("unexpected match %q in a cyclic flow", found.ID)
+	}
+}
+
+// On a button click only the clicked component's branch runs. The guess used
+// to come from all of the message node's children, so the original flow's
+// public follow-up decided the defer for an ephemeral button reply (#245).
+func TestClickedBranchDecidesDefer(t *testing.T) {
+	msgNode := &CompiledFlowNode{
+		ID:   "message",
+		Type: FlowNodeTypeActionMessageCreate,
+		Children: ConnectedFlowNodes{
+			Default: []*CompiledFlowNode{newResponseNode("posted", false)},
+			Handles: map[string][]*CompiledFlowNode{
+				"component_1": {newResponseNode("other_button", false)},
+				"component_2": {newResponseNode("clicked", true)},
+			},
+		},
+	}
+
+	found := FirstMatching(msgNode.Children.Handles["component_2"], isResponseNode)
+	if found == nil || found.ID != "clicked" {
+		t.Fatalf("found %v, want the clicked branch's response", found)
+	}
+
+	resp := autoDeferResponse(buttonInteraction(), found)
+	if resp.Type != api.DeferredMessageInteractionWithSource || resp.Data.Flags&discord.EphemeralMessage == 0 {
+		t.Errorf("got %+v, want an ephemeral deferred response", resp)
+	}
+}
+
+func buttonInteraction() *discord.InteractionEvent {
+	return &discord.InteractionEvent{Data: &discord.ButtonInteraction{CustomID: "x"}}
+}
+
+// A component whose branch edits the original message, or doesn't respond at
+// all, must only be acknowledged. A "thinking…" message would otherwise be
+// edited instead of the component's message.
+func TestComponentWithoutNewResponseDefersUpdate(t *testing.T) {
+	edit := &CompiledFlowNode{ID: "edit", Type: FlowNodeTypeActionResponseEdit}
+
+	for _, node := range []*CompiledFlowNode{nil, edit} {
+		if resp := autoDeferResponse(buttonInteraction(), node); resp.Type != api.DeferredMessageUpdate {
+			t.Errorf("response node %v: got type %d, want DeferredMessageUpdate", node, resp.Type)
+		}
+	}
+}
+
+// Commands can't be acknowledged without a response, so they keep deferring
+// with a "thinking…" message.
+func TestCommandAlwaysDefersWithSource(t *testing.T) {
+	command := &discord.InteractionEvent{Data: &discord.CommandInteraction{}}
+
+	if resp := autoDeferResponse(command, nil); resp.Type != api.DeferredMessageInteractionWithSource {
+		t.Errorf("got type %d, want DeferredMessageInteractionWithSource", resp.Type)
 	}
 }

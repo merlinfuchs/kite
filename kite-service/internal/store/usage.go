@@ -14,5 +14,7 @@ type UsageStore interface {
 	UsageCreditsUsedByTypeBetween(ctx context.Context, appID string, start time.Time, end time.Time) ([]model.UsageCreditsUsedByType, error)
 	UsageCreditsUsedByDayBetween(ctx context.Context, appID string, start time.Time, end time.Time) ([]model.UsageCreditsUsedByDay, error)
 	AllUsageCreditsUsedBetween(ctx context.Context, start time.Time, end time.Time) (map[string]int, error)
-	DeleteUsageRecordsBefore(ctx context.Context, before time.Time) error
+	// DeleteUsageRecordsBefore deletes up to batchSize usage records created
+	// before the given time and returns how many were deleted.
+	DeleteUsageRecordsBefore(ctx context.Context, before time.Time, batchSize int) (int64, error)
 }

@@ -1,0 +1,11 @@
+-- The gateway manager polls apps by updated_at every few seconds on every
+-- cluster:
+--   SELECT * FROM apps WHERE enabled = TRUE AND updated_at > $1
+--   SELECT id FROM apps WHERE enabled = FALSE AND updated_at > $1
+-- Migration 026 and 027 indexed the other polled tables but not apps, so each
+-- poll was a sequential scan. Not partial because the polls cover both values
+-- of enabled.
+--
+-- CONCURRENTLY can't run in a transaction, so this file must stay a single
+-- statement.
+CREATE INDEX CONCURRENTLY IF NOT EXISTS apps_updated_at ON apps (updated_at);

@@ -609,28 +609,33 @@ func (n *CompiledFlowNode) findChildWithID(nodeID string, includeSubFlows bool, 
 // Handle-based children are included, so nodes behind condition branches and
 // button handles are considered too.
 func (n *CompiledFlowNode) FirstChildMatching(match func(*CompiledFlowNode) bool) *CompiledFlowNode {
-	return n.firstChildMatching(make(map[string]bool), match)
+	return firstMatching(n.orderedChildren(), map[string]bool{n.ID: true}, match)
 }
 
-func (n *CompiledFlowNode) firstChildMatching(
+// FirstMatching is like FirstChildMatching, but starts from the given nodes
+// instead of all children of a node.
+func FirstMatching(nodes []*CompiledFlowNode, match func(*CompiledFlowNode) bool) *CompiledFlowNode {
+	return firstMatching(nodes, make(map[string]bool), match)
+}
+
+func firstMatching(
+	nodes []*CompiledFlowNode,
 	visited map[string]bool,
 	match func(*CompiledFlowNode) bool,
 ) *CompiledFlowNode {
-	if visited[n.ID] {
-		return nil
-	}
-	visited[n.ID] = true
-
-	children := n.orderedChildren()
-
-	for _, node := range children {
+	for _, node := range nodes {
 		if match(node) {
 			return node
 		}
 	}
 
-	for _, node := range children {
-		if found := node.firstChildMatching(visited, match); found != nil {
+	for _, node := range nodes {
+		if visited[node.ID] {
+			continue
+		}
+		visited[node.ID] = true
+
+		if found := firstMatching(node.orderedChildren(), visited, match); found != nil {
 			return found
 		}
 	}

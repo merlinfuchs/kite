@@ -1,11 +1,10 @@
 import debounce from "just-debounce-it";
 import MessagePreview from "./MessagePreview";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Message } from "@/lib/message/schema";
-import { useCurrentMessage } from "@/lib/message/state";
+import { getMessage, useDocumentStoreApi } from "@/lib/message/state";
 import { useHookedTheme } from "@/lib/hooks/theme";
 import { cn } from "@/lib/utils";
-import { ScrollArea } from "../ui/scroll-area";
 
 export default function MessageEditorPreview({
   className,
@@ -14,12 +13,16 @@ export default function MessageEditorPreview({
   className?: string;
   reducePadding?: boolean;
 }) {
+  const store = useDocumentStoreApi();
   const [msg, setMsg] = useState<Message>();
 
-  const debouncedSetMessage = debounce(setMsg, 250);
-
   // We debounce the message preview to prevent it from updating too often.
-  useCurrentMessage((state) => debouncedSetMessage(state));
+  useEffect(() => {
+    const update = debounce(() => setMsg(getMessage(store)), 250);
+
+    update();
+    return store.subscribe(update);
+  }, [store]);
 
   const { theme } = useHookedTheme();
 
