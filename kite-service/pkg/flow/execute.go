@@ -1249,15 +1249,25 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 		ctx.StoreNodeResult(n, val)
 		return n.ExecuteChildren(ctx)
 	case FlowNodeTypeActionVoiceChannelJoin:
-		channelTarget, err := ctx.EvalTemplate(n.Data.VoiceChannelTarget)
+		channelTarget, err := ctx.EvalTemplate(n.Data.ChannelTarget)
 		if err != nil {
 			return traceError(n, err)
 		}
 
+		// The guild comes from the channel, so the block also works with voice
+		// channels of servers other than the one the flow runs in.
+		channel, err := ctx.Discord.Channel(ctx, discord.ChannelID(channelTarget.Snowflake()))
+		if err != nil {
+			return traceError(n, err)
+		}
+		if channel.Type != discord.GuildVoice && channel.Type != discord.GuildStageVoice {
+			return traceError(n, fmt.Errorf("channel %s is not a voice channel", channel.ID))
+		}
+
 		err = ctx.Discord.UpdateVoiceState(
 			ctx,
-			ctx.Data.GuildID(),
-			discord.ChannelID(channelTarget.Snowflake()),
+			channel.GuildID,
+			channel.ID,
 			n.Data.VoiceSelfMute,
 			n.Data.VoiceSelfDeaf,
 		)
@@ -1267,13 +1277,12 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 
 		return n.ExecuteChildren(ctx)
 	case FlowNodeTypeActionVoiceChannelLeave:
-		err := ctx.Discord.UpdateVoiceState(
-			ctx,
-			ctx.Data.GuildID(),
-			discord.ChannelID(0),
-			false,
-			false,
-		)
+		guildID := ctx.Data.GuildID()
+		if guildID == 0 {
+			return traceError(n, fmt.Errorf("leaving a voice channel only works in servers"))
+		}
+
+		err := ctx.Discord.UpdateVoiceState(ctx, guildID, 0, false, false)
 		if err != nil {
 			return traceError(n, err)
 		}

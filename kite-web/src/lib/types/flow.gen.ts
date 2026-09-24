@@ -150,7 +150,6 @@ export interface FlowNodeData {
   /**
    * Voice Channel Join
    */
-  voice_channel_target?: string;
   voice_self_mute?: boolean;
   voice_self_deaf?: boolean;
   /**

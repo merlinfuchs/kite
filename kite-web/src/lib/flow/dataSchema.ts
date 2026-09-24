@@ -578,7 +578,7 @@ export const nodeActionVariableGetSchema = nodeBaseDataSchema.extend({
 });
 
 export const nodeActionVoiceChannelJoinDataSchema = nodeBaseDataSchema.extend({
-  voice_channel_target: z
+  channel_target: z
     .string()
     .regex(numericRegex)
     .or(z.string().regex(placeholderRegex)),
@@ -586,8 +586,9 @@ export const nodeActionVoiceChannelJoinDataSchema = nodeBaseDataSchema.extend({
   voice_self_deaf: z.boolean().optional(),
 });
 
-export const nodeActionVoiceChannelLeaveDataSchema =
-  nodeBaseDataSchema.extend({});
+export const nodeActionVoiceChannelLeaveDataSchema = nodeBaseDataSchema.extend(
+  {}
+);
 
 export const nodeActionHttpRequestDataSchema = nodeBaseDataSchema.extend({
   http_request_data: z.object({

@@ -103,6 +103,11 @@ export const nodeCategories: Record<
       contextTypes: null,
     },
     {
+      title: "Voice",
+      nodeTypes: ["action_voice_channel_join", "action_voice_channel_leave"],
+      contextTypes: null,
+    },
+    {
       title: "Stored Variables",
       nodeTypes: [
         "action_variable_set",

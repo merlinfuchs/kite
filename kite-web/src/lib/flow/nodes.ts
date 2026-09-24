@@ -622,7 +622,7 @@ export const nodeTypes: Record<string, NodeValues> = {
     defaultDescription: "Bot joins a voice channel",
     dataSchema: nodeActionVoiceChannelJoinDataSchema,
     dataFields: [
-      "voice_channel_target",
+      "channel_target",
       "voice_self_mute",
       "voice_self_deaf",
       "custom_label",
@@ -633,7 +633,7 @@ export const nodeTypes: Record<string, NodeValues> = {
     color: actionColor,
     icon: "phone-off",
     defaultTitle: "Leave voice channel",
-    defaultDescription: "Bot leaves the voice channel it is currently in",
+    defaultDescription: "Bot leaves its voice channel in the current server",
     dataSchema: nodeActionVoiceChannelLeaveDataSchema,
     dataFields: ["custom_label"],
     creditsCost: 1,

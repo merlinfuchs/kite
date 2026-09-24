@@ -185,9 +185,8 @@ type FlowNodeData struct {
 	ChannelData   *ChannelData `json:"channel_data,omitempty"`
 
 	// Voice Channel Join
-	VoiceChannelTarget string `json:"voice_channel_target,omitempty"`
-	VoiceSelfMute      bool   `json:"voice_self_mute,omitempty"`
-	VoiceSelfDeaf      bool   `json:"voice_self_deaf,omitempty"`
+	VoiceSelfMute bool `json:"voice_self_mute,omitempty"`
+	VoiceSelfDeaf bool `json:"voice_self_deaf,omitempty"`
 
 	// Role Create, Edit, Delete, Get
 	RoleTarget string    `json:"role_target,omitempty"`

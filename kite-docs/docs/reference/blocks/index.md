@@ -52,6 +52,11 @@ The output of previously executed blocks is available in all subsequent blocks a
 - [Get server](./actions/action_guild_get.md) - Get server information
 - [Get channel](./actions/action_channel_get.md) - Retrieve channel information
 
+## Voice Blocks
+
+- [Join voice channel](./actions/action_voice_channel_join.md) - Make the app join a voice channel
+- [Leave voice channel](./actions/action_voice_channel_leave.md) - Make the app leave its voice channel
+
 ## Variable Blocks
 
 - [Set stored variable](./actions/action_variable_set.md) - Set persistent variables
