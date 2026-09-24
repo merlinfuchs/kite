@@ -577,6 +577,19 @@ export const nodeActionVariableGetSchema = nodeBaseDataSchema.extend({
   variable_scope: z.string().optional(),
 });
 
+export const nodeActionVoiceChannelJoinDataSchema = nodeBaseDataSchema.extend({
+  channel_target: z
+    .string()
+    .regex(numericRegex)
+    .or(z.string().regex(placeholderRegex)),
+  voice_self_mute: z.boolean().optional(),
+  voice_self_deaf: z.boolean().optional(),
+});
+
+export const nodeActionVoiceChannelLeaveDataSchema = nodeBaseDataSchema.extend(
+  {}
+);
+
 export const nodeActionHttpRequestDataSchema = nodeBaseDataSchema.extend({
   http_request_data: z.object({
     url: z.string().url(),

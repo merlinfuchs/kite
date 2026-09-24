@@ -110,6 +110,8 @@ const intputs: Record<string, any> = {
   channel_data: ChannelDataInput,
   thread_data: ThreadDataInput,
   channel_target: ChannelTargetInput,
+  voice_self_mute: VoiceSelfMuteInput,
+  voice_self_deaf: VoiceSelfDeafInput,
   role_data: RoleDataInput,
   role_target: RoleTargetInput,
   variable_id: VariableIdInput,
@@ -2083,6 +2085,32 @@ function ChannelTargetInput({ data, updateData, errors }: InputProps) {
       updateValue={(v) => updateData({ channel_target: v || undefined })}
       errors={errors}
       placeholders
+    />
+  );
+}
+
+function VoiceSelfMuteInput({ data, updateData, errors }: InputProps) {
+  return (
+    <BaseCheckbox
+      field="voice_self_mute"
+      title="Mute Self"
+      description="If enabled, the bot joins the voice channel muted."
+      value={!!data.voice_self_mute}
+      updateValue={(v) => updateData({ voice_self_mute: v || undefined })}
+      errors={errors}
+    />
+  );
+}
+
+function VoiceSelfDeafInput({ data, updateData, errors }: InputProps) {
+  return (
+    <BaseCheckbox
+      field="voice_self_deaf"
+      title="Deafen Self"
+      description="If enabled, the bot joins the voice channel deafened."
+      value={!!data.voice_self_deaf}
+      updateValue={(v) => updateData({ voice_self_deaf: v || undefined })}
+      errors={errors}
     />
   );
 }
