@@ -4,8 +4,8 @@ import {
   EdgeProps,
   getBezierPath,
   Position,
-  useInternalNode,
   useReactFlow,
+  useStore,
 } from "@xyflow/react";
 import { XIcon } from "lucide-react";
 
@@ -26,30 +26,30 @@ export default function FlowEdgeDeleteButton({
   selected,
 }: EdgeProps) {
   const { setEdges } = useReactFlow();
-  const sourceNode = useInternalNode(source);
+  // Only self-loops need the node bounds. Other edges select null, which never
+  // changes, so they don't re-render when the source node does.
+  const nodeRight = useStore((s) => {
+    if (source !== target) return null;
+    const node = s.nodeLookup.get(source);
+    return node
+      ? node.internals.positionAbsolute.x + (node.measured.width ?? 0)
+      : null;
+  });
 
   // A bezier from a node back to itself runs through the node, which hides the
   // delete button behind it. Route it around the right side instead.
+  const pathArgs = {
+    sourceX,
+    sourceY,
+    sourcePosition,
+    targetX,
+    targetY,
+    targetPosition,
+  };
   const [edgePath, labelX, labelY] =
-    source === target && sourceNode
-      ? getSelfLoopPath({
-          sourceX,
-          sourceY,
-          sourcePosition,
-          targetX,
-          targetY,
-          nodeRight:
-            sourceNode.internals.positionAbsolute.x +
-            (sourceNode.measured.width ?? 0),
-        })
-      : getBezierPath({
-          sourceX,
-          sourceY,
-          sourcePosition,
-          targetX,
-          targetY,
-          targetPosition,
-        });
+    nodeRight !== null
+      ? getSelfLoopPath({ ...pathArgs, nodeRight })
+      : getBezierPath(pathArgs);
 
   const onEdgeClick = () => {
     if (selected) {
@@ -93,14 +93,10 @@ function getSelfLoopPath({
   targetX,
   targetY,
   nodeRight,
-}: {
-  sourceX: number;
-  sourceY: number;
-  sourcePosition: Position;
-  targetX: number;
-  targetY: number;
-  nodeRight: number;
-}): [string, number, number] {
+}: Pick<
+  EdgeProps,
+  "sourceX" | "sourceY" | "sourcePosition" | "targetX" | "targetY"
+> & { nodeRight: number }): [string, number, number] {
   const sideX = Math.max(nodeRight, sourceX, targetX) + selfLoopOffset;
   const topY = targetY - selfLoopOffset / 2;
   const bottomY =
