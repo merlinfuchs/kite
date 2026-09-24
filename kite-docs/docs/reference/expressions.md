@@ -36,6 +36,11 @@ channel:
 guild?: # For events and interactions inside a server
   id: string # The id of the server
 
+interaction?: # For commands and interactive components
+  id: string
+  value?: string # The value of the picked option in a select menu
+  values?: []string # All picked values if the select menu allows picking more than one option
+
 app:
   user: # Access the underlying user of the app
     id: string
@@ -49,6 +54,8 @@ arg('name') # Access value of a command argument
 input('identifier') # Access value of a modal input
 result('id') # Access the result of a previous block
 ```
+
+In [sub-flows](/reference/sub-flows), `origin` and `previous` give access to the interaction or event from before the sub-flow, e.g. `origin.user.id`.
 
 ## Examples
 
@@ -86,9 +93,23 @@ This will return true if the user has the role with the ID `123`.
 {{ "123" in user.role_ids }}
 ```
 
+### Get Selected Option
+
+This will return the value of the option that the user picked in a select menu.
+
+```python
+{{ interaction.value }}
+```
+
+If the select menu allows picking more than one option, this will return true if the user picked the option with the value `option-a`.
+
+```python
+{{ "option-a" in interaction.values }}
+```
+
 ### Check User Creation Date
 
-This will return the user’s account creation timestamp.
+This will show when the user's account was created, as a Discord timestamp.
 
 ```python
 <t:{{ floor(((int(user.id) / 4194304) + 1420070400000) / 1000) }}:f>
@@ -112,14 +133,20 @@ This will return the value of the `somefield` field in the JSON response of a HT
 
 ### Timestamps
 
-This allows you to display dates and times in multiple formats, including relative timers, short or long dates, and full datetime with seconds.
+Discord timestamps are shown in the local timezone of whoever reads the message. Wrap a Unix timestamp in `<t:...:style>` and pick one of the styles below.
 
 ```python
-Examples:
-<t:{{ now().Unix() }}:R> # Timer - Counts up from the time it was sent.
-<t:{{ now().Unix() }}:R> # Short Time -  Displays time like 5:36 PM.
-<t:{{ now().Unix() }}:d> # Short Date - Displays date like 01/02/2026.
+<t:{{ now().Unix() }}:t> # Short time, like 5:36 PM
+<t:{{ now().Unix() }}:T> # Long time, like 5:36:12 PM
+<t:{{ now().Unix() }}:d> # Short date, like 01/02/2026
+<t:{{ now().Unix() }}:D> # Long date, like January 2, 2026
+<t:{{ now().Unix() }}:f> # Short date and time, like January 2, 2026 5:36 PM
+<t:{{ now().Unix() }}:F> # Long date and time, like Friday, January 2, 2026 5:36 PM
+<t:{{ now().Unix() }}:R> # Relative time, like 2 minutes ago
+```
 
-Timezone Formatting: You can alos display a timestamp in a specific timezone.
-{{ now().In(timezone("America/Chicago")).Format("02/01/2006 03:04 PM") }} # Displays as 2/01/2026 05:43 PM for the America/Chicago timzone.
+This will show a countdown that ends one hour from now.
+
+```python
+<t:{{ now().Add(duration("1h")).Unix() }}:R>
 ```

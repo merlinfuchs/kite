@@ -1,14 +1,13 @@
 import { useValidationErrors } from "@/lib/message/state";
+import { ValidationTarget } from "@/lib/message/validationStore";
 import { CircleAlertIcon } from "lucide-react";
 
 interface Props {
-  path: string;
+  target: ValidationTarget;
 }
 
-export default function MessageValidationError({ path }: Props) {
-  const issue = useValidationErrors(
-    (state) => state.getIssueByPath(path)?.message
-  );
+export default function MessageValidationError({ target }: Props) {
+  const issue = useValidationErrors((state) => state.getIssue(target)?.message);
 
   if (issue) {
     return (

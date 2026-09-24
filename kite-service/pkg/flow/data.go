@@ -12,7 +12,7 @@ import (
 	"github.com/kitecloud/kite/kite-service/pkg/eval"
 	"github.com/kitecloud/kite/kite-service/pkg/message"
 	"github.com/kitecloud/kite/kite-service/pkg/provider"
-	"github.com/sashabaranov/go-openai"
+	"github.com/openai/openai-go"
 	"gopkg.in/guregu/null.v4"
 )
 
@@ -274,9 +274,20 @@ func (d FlowNodeData) Validate(nodeType FlowNodeType) error {
 		)),
 
 		// AI Chat Completion
-		validation.Field(&d.AIChatCompletionData, validation.When(nodeType == FlowNodeTypeActionAIChatCompletion,
+		// Both AI node types read AIChatCompletionData, so both have to require
+		// it -- the web search node is the more expensive of the two.
+		validation.Field(&d.AIChatCompletionData, validation.When(
+			nodeType == FlowNodeTypeActionAIChatCompletion ||
+				nodeType == FlowNodeTypeActionAISearchWeb,
 			validation.Required,
 		)),
+
+		// Expression Evaluate
+		// Bounded for every node type rather than just entry nodes: an oversized
+		// expression is a resource-exhaustion risk at execution time, not just a
+		// correctness problem. eval enforces the same limit as a backstop for
+		// flows stored before this check existed.
+		validation.Field(&d.Expression, validation.Length(0, eval.MaxExpressionLength)),
 	)
 }
 
@@ -378,11 +389,17 @@ func (d *ChannelData) ToCreateChannelData(ctx context.Context, evalCtx eval.Cont
 	}
 	res.Name = name.String()
 
+	// Fields the selected channel type doesn't support are dropped rather than
+	// sent. The editor only hides their inputs when the type changes, so a
+	// value entered beforehand survives in the stored data, and Discord
+	// rejects the whole request for e.g. a topic on a voice channel.
 	topic, err := eval.EvalTemplate(ctx, d.Topic, evalCtx)
 	if err != nil {
 		return res, err
 	}
-	res.Topic = topic.String()
+	if channelTypeSupportsTopic(res.Type) {
+		res.Topic = topic.String()
+	}
 
 	parentID, err := eval.EvalTemplate(ctx, d.ParentID, evalCtx)
 	if err != nil {
@@ -394,13 +411,14 @@ func (d *ChannelData) ToCreateChannelData(ctx context.Context, evalCtx eval.Cont
 	if err != nil {
 		return res, err
 	}
-	res.VoiceBitrate = uint(bitrate.Int())
-
 	userLimit, err := eval.EvalTemplate(ctx, d.UserLimit, evalCtx)
 	if err != nil {
 		return res, err
 	}
-	res.VoiceUserLimit = uint(userLimit.Int())
+	if channelTypeSupportsVoice(res.Type) {
+		res.VoiceBitrate = uint(bitrate.Int())
+		res.VoiceUserLimit = uint(userLimit.Int())
+	}
 
 	position, err := eval.EvalTemplate(ctx, d.Position, evalCtx)
 	if err != nil {
@@ -497,9 +515,80 @@ type AIChatCompletionData struct {
 	MaxCompletionTokens string `json:"max_completion_tokens,omitempty"`
 }
 
+// aiModelCosts is the set of models a flow may run, and what each costs in
+// credits for a plain completion versus one with web search.
+//
+// Single source of truth for both the save-time allowlist and metering. Pricing
+// used to be a switch with a cheap default arm, which meant any model not named
+// in it -- a newer, more expensive SKU, say -- billed the tenant at the floor
+// while the operator paid the real rate on their own API key. Keeping the
+// allowlist and the prices in one table means a model that has no price also
+// cannot be selected.
+//
+// The empty string is the provider default (gpt-4o-mini), so it is priced.
+var aiModelCosts = map[string]aiModelCost{
+	"":                         {Chat: 5, Search: 25},
+	openai.ChatModelGPT4_1:     {Chat: 100, Search: 500},
+	openai.ChatModelGPT4_1Mini: {Chat: 20, Search: 100},
+	openai.ChatModelGPT4_1Nano: {Chat: 5, Search: 25},
+	openai.ChatModelGPT4oMini:  {Chat: 5, Search: 25},
+}
+
+type aiModelCost struct {
+	Chat   int
+	Search int
+}
+
+// maxAIModelCost is the ceiling of aiModelCosts, taken per field so it does not
+// depend on one model being the most expensive for both.
+var maxAIModelCost = func() aiModelCost {
+	var ceiling aiModelCost
+	for _, c := range aiModelCosts {
+		ceiling.Chat = max(ceiling.Chat, c.Chat)
+		ceiling.Search = max(ceiling.Search, c.Search)
+	}
+	return ceiling
+}()
+
+// aiModelsAllowed is aiModelCosts' keys as validation.In wants them. The empty
+// string is left out because In treats an empty value as valid regardless.
+var aiModelsAllowed = func() []any {
+	models := make([]any, 0, len(aiModelCosts))
+	for model := range aiModelCosts {
+		if model != "" {
+			models = append(models, model)
+		}
+	}
+	return models
+}()
+
+// AIModelAllowed reports whether a flow may run the given model.
+func AIModelAllowed(model string) bool {
+	_, ok := aiModelCosts[model]
+	return ok
+}
+
+// AICreditsCost prices one AI node.
+//
+// Unknown models are charged the most expensive entry rather than the least, so
+// anything that reaches execution without passing the allowlist -- a flow saved
+// before this existed, or one embedded in a message, which the API does not
+// validate -- is over-charged rather than run for free.
+func AICreditsCost(model string, webSearch bool) int {
+	cost, ok := aiModelCosts[model]
+	if !ok {
+		cost = maxAIModelCost
+	}
+
+	if webSearch {
+		return cost.Search
+	}
+	return cost.Chat
+}
+
 func (d AIChatCompletionData) Validate() error {
 	return validation.ValidateStruct(&d,
-		validation.Field(&d.Model, validation.In(openai.GPT4Dot1, openai.GPT4Dot1Mini, openai.GPT4oMini, openai.GPT4Dot1Nano)),
+		validation.Field(&d.Model, validation.In(aiModelsAllowed...)),
 		validation.Field(&d.Prompt, validation.Required, validation.Length(1, 2000)),
 	)
 }
@@ -524,4 +613,25 @@ func (e FlowEdge) Validate() error {
 		validation.Field(&e.Source, validation.Required),
 		validation.Field(&e.Target, validation.Required),
 	)
+}
+
+// guildMediaChannel is Discord's media channel type, which arikawa doesn't
+// define yet.
+const guildMediaChannel discord.ChannelType = 16
+
+// channelTypeSupportsTopic reports whether Discord accepts a topic for the
+// given channel type. Voice, stage and category channels have no topic.
+func channelTypeSupportsTopic(t discord.ChannelType) bool {
+	switch t {
+	case discord.GuildText, discord.GuildAnnouncement, discord.GuildForum, guildMediaChannel:
+		return true
+	default:
+		return false
+	}
+}
+
+// channelTypeSupportsVoice reports whether Discord accepts bitrate and user
+// limit for the given channel type.
+func channelTypeSupportsVoice(t discord.ChannelType) bool {
+	return t == discord.GuildVoice || t == discord.GuildStageVoice
 }

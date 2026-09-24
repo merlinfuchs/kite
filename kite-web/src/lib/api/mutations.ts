@@ -53,6 +53,8 @@ import {
   PluginInstanceUpdateResponse,
   StateGuildLeaveResponse,
   SubscriptionManageResponse,
+  SubscriptionPlanUpdateRequest,
+  SubscriptionPlanUpdateResponse,
   VariableCreateRequest,
   VariableCreateResponse,
   VariableDeleteResponse,
@@ -726,6 +728,33 @@ export function useCheckoutCreateMutation(appId: string) {
           },
         }
       );
+    },
+  });
+}
+
+export function useAppSubscriptionPlanUpdateMutation(
+  appId: string,
+  subscriptionId: string
+) {
+  return useMutation({
+    mutationFn: (req: SubscriptionPlanUpdateRequest) =>
+      apiRequest<SubscriptionPlanUpdateResponse>(
+        `/v1/apps/${appId}/billing/subscriptions/${subscriptionId}/plan`,
+        {
+          method: "PUT",
+          body: JSON.stringify(req),
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      ),
+    onSuccess: () => {
+      client.invalidateQueries({
+        queryKey: ["apps", appId, "subscriptions"],
+      });
+      client.invalidateQueries({
+        queryKey: ["apps", appId, "billing", "features"],
+      });
     },
   });
 }

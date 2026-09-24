@@ -1,6 +1,7 @@
 import { useCallback } from "react";
 import {
   useAppSubscriptionManageMutation,
+  useAppSubscriptionPlanUpdateMutation,
   useCheckoutCreateMutation,
 } from "../api/mutations";
 import { useAppId } from "./params";
@@ -30,6 +31,41 @@ export function useLemonSqueezyCheckout() {
       );
     },
     [checkoutMutation]
+  );
+}
+
+// useSubscriptionPlanSwitch moves an existing subscription onto another plan.
+// The returned callback is a no-op without a subscription to switch, so callers
+// can hold the hook unconditionally.
+export function useSubscriptionPlanSwitch(subscriptionId: string | undefined) {
+  const appId = useAppId();
+  const planUpdateMutation = useAppSubscriptionPlanUpdateMutation(
+    appId,
+    subscriptionId ?? ""
+  );
+
+  return useCallback(
+    (variantId: string) => {
+      if (!subscriptionId) return;
+
+      planUpdateMutation.mutate(
+        {
+          lemonsqueezy_variant_id: variantId,
+        },
+        {
+          onSuccess(res) {
+            if (res.success) {
+              toast.success("Your plan has been updated.");
+            } else {
+              toast.error(
+                `Failed to switch plan: ${res.error.message} ${res.error.code}`
+              );
+            }
+          },
+        }
+      );
+    },
+    [planUpdateMutation, subscriptionId]
   );
 }
 

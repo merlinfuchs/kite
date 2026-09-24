@@ -153,11 +153,14 @@ func (c *FlowContext) IsEntry() bool {
 }
 
 func (c *FlowContext) suspend(t ResumePointType, resumePointID string, nodeID string) (*ResumePoint, error) {
+	state := c.FlowContextState.Copy()
+	state.recordTrigger(c.Data)
+
 	s, err := c.ResumePoint.CreateResumePoint(c.Context, ResumePoint{
 		ID:     resumePointID,
 		Type:   t,
 		NodeID: nodeID,
-		State:  c.FlowContextState.Copy(),
+		State:  state,
 	})
 	if err != nil {
 		return nil, err

@@ -30,6 +30,9 @@ type InteractionEnv struct {
 	Member     any                      `expr:"member" json:"member"`
 	Command    *CommandEnv              `expr:"command" json:"command"`
 	Components map[string]*ComponentEnv `expr:"components" json:"components"`
+	// Values are the options picked in a select menu, Value is the first of them.
+	Values []string `expr:"values" json:"values"`
+	Value  string   `expr:"value" json:"value"`
 }
 
 func NewInteractionEnv(i *discord.InteractionEvent) *InteractionEnv {
@@ -55,6 +58,13 @@ func NewInteractionEnv(i *discord.InteractionEvent) *InteractionEnv {
 
 	if i.Data.InteractionType() == discord.CommandInteractionType {
 		e.Command = NewCommandEnv(i)
+	}
+
+	if data, ok := i.Data.(*discord.StringSelectInteraction); ok {
+		e.Values = data.Values
+		if len(data.Values) > 0 {
+			e.Value = data.Values[0]
+		}
 	}
 
 	return e
@@ -285,6 +295,40 @@ func NewEventEnv(event ws.Event) *EventEnv {
 	}
 
 	return env
+}
+
+// SetResumeContext makes the interactions or events from before a resume point
+// available to the resumed flow, oldest first. Command args and modal inputs
+// only exist on one kind of interaction, so arg() and input() fall back to
+// earlier ones, newest first.
+func (c Context) SetResumeContext(earlier []Context) {
+	if len(earlier) == 0 {
+		return
+	}
+
+	c.Env["origin"] = map[string]any(earlier[0].Env)
+	c.Env["previous"] = map[string]any(earlier[len(earlier)-1].Env)
+
+	for _, name := range []string{"arg", "input"} {
+		var lookups []func(string) any
+		if fn, ok := c.Env[name].(func(string) any); ok {
+			lookups = append(lookups, fn)
+		}
+		for i := len(earlier) - 1; i >= 0; i-- {
+			if fn, ok := earlier[i].Env[name].(func(string) any); ok {
+				lookups = append(lookups, fn)
+			}
+		}
+
+		c.Env[name] = func(key string) any {
+			for _, lookup := range lookups {
+				if v := lookup(key); v != nil {
+					return v
+				}
+			}
+			return nil
+		}
+	}
 }
 
 func NewContext(env Env) Context {

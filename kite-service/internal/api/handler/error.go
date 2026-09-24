@@ -32,6 +32,14 @@ func ErrBadRequest(code, message string) *Error {
 	}
 }
 
+// ErrBodyTooLarge translates a MaxBytesReader rejection into the same
+// resource_limit response every other size check in the API returns.
+func ErrBodyTooLarge(limit int64) *Error {
+	return ErrBadRequest("resource_limit", fmt.Sprintf(
+		"request body exceeds the maximum allowed size (%d)", limit,
+	))
+}
+
 func ErrForbidden(code, message string) *Error {
 	return &Error{
 		Status:  http.StatusForbidden,
@@ -53,6 +61,14 @@ func ErrInternal(message string) *Error {
 	return &Error{
 		Status:  http.StatusInternalServerError,
 		Code:    "internal_error",
+		Message: message,
+	}
+}
+
+func ErrServiceUnavailable(code, message string) *Error {
+	return &Error{
+		Status:  http.StatusServiceUnavailable,
+		Code:    code,
 		Message: message,
 	}
 }

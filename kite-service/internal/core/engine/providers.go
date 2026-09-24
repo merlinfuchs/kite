@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"log/slog"
 	"net/http"
 	"sync"
@@ -393,7 +394,7 @@ func (p *DiscordProvider) AutoDeferInteraction(
 	ctx context.Context,
 	interactionID discord.InteractionID,
 	interactionToken string,
-	flags discord.MessageFlags,
+	response api.InteractionResponse,
 ) {
 	select {
 	case <-ctx.Done():
@@ -405,12 +406,7 @@ func (p *DiscordProvider) AutoDeferInteraction(
 		}
 
 		if !hasCreatedResponse {
-			_, err := p.CreateInteractionResponse(ctx, interactionID, interactionToken, api.InteractionResponse{
-				Type: api.DeferredMessageInteractionWithSource,
-				Data: &api.InteractionResponseData{
-					Flags: flags,
-				},
-			})
+			_, err := p.CreateInteractionResponse(ctx, interactionID, interactionToken, response)
 			if err != nil {
 				slog.Error(
 					"Failed to auto-defer interaction",
@@ -542,12 +538,15 @@ func (p *AIProvider) CreateResponse(ctx context.Context, opts provider.CreateRes
 	return resp.OutputText(), nil
 }
 
+// Variable IDs come from user-authored flow data, so lookups are scoped to the app.
 type VariableProvider struct {
+	appID              string
 	variableValueStore store.VariableValueStore
 }
 
-func NewVariableProvider(variableValueStore store.VariableValueStore) *VariableProvider {
+func NewVariableProvider(appID string, variableValueStore store.VariableValueStore) *VariableProvider {
 	return &VariableProvider{
+		appID:              appID,
 		variableValueStore: variableValueStore,
 	}
 }
@@ -561,7 +560,7 @@ func (p *VariableProvider) UpdateVariable(ctx context.Context, id string, scope 
 		UpdatedAt:  time.Now().UTC(),
 	}
 
-	newValue, err := p.variableValueStore.UpdateVariableValue(ctx, operation, v)
+	newValue, err := p.variableValueStore.UpdateVariableValue(ctx, p.appID, operation, v)
 	if err != nil {
 		return thing.Null, fmt.Errorf("failed to %s variable value: %w", operation, err)
 	}
@@ -570,7 +569,7 @@ func (p *VariableProvider) UpdateVariable(ctx context.Context, id string, scope 
 }
 
 func (p *VariableProvider) Variable(ctx context.Context, id string, scope null.String) (thing.Thing, error) {
-	row, err := p.variableValueStore.VariableValue(ctx, id, scope)
+	row, err := p.variableValueStore.VariableValue(ctx, p.appID, id, scope)
 	if err != nil {
 		if errors.Is(err, store.ErrNotFound) {
 			return thing.Null, provider.ErrNotFound
@@ -582,7 +581,7 @@ func (p *VariableProvider) Variable(ctx context.Context, id string, scope null.S
 }
 
 func (p *VariableProvider) DeleteVariable(ctx context.Context, id string, scope null.String) error {
-	err := p.variableValueStore.DeleteVariableValue(ctx, id, scope)
+	err := p.variableValueStore.DeleteVariableValue(ctx, p.appID, id, scope)
 	if err != nil {
 		return fmt.Errorf("failed to delete variable value: %w", err)
 	}
@@ -591,19 +590,23 @@ func (p *VariableProvider) DeleteVariable(ctx context.Context, id string, scope 
 }
 
 type MessageTemplateProvider struct {
+	// Template IDs come from user-authored flow data, so lookups are scoped to
+	// the app to keep a flow from using another app's templates.
+	appID                string
 	messageStore         store.MessageStore
 	messageInstanceStore store.MessageInstanceStore
 }
 
-func NewMessageTemplateProvider(messageStore store.MessageStore, messageInstanceStore store.MessageInstanceStore) *MessageTemplateProvider {
+func NewMessageTemplateProvider(appID string, messageStore store.MessageStore, messageInstanceStore store.MessageInstanceStore) *MessageTemplateProvider {
 	return &MessageTemplateProvider{
+		appID:                appID,
 		messageStore:         messageStore,
 		messageInstanceStore: messageInstanceStore,
 	}
 }
 
 func (p *MessageTemplateProvider) MessageTemplate(ctx context.Context, id string) (*message.MessageData, error) {
-	message, err := p.messageStore.Message(ctx, id)
+	message, err := p.messageStore.Message(ctx, p.appID, id)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get message: %w", err)
 	}
@@ -612,12 +615,12 @@ func (p *MessageTemplateProvider) MessageTemplate(ctx context.Context, id string
 }
 
 func (p *MessageTemplateProvider) LinkMessageTemplateInstance(ctx context.Context, instance provider.MessageTemplateInstance) error {
-	message, err := p.messageStore.Message(ctx, instance.MessageTemplateID)
+	message, err := p.messageStore.Message(ctx, p.appID, instance.MessageTemplateID)
 	if err != nil {
 		return fmt.Errorf("failed to get message: %w", err)
 	}
 
-	_, err = p.messageInstanceStore.CreateMessageInstance(ctx, &model.MessageInstance{
+	_, err = p.messageInstanceStore.CreateMessageInstance(ctx, p.appID, &model.MessageInstance{
 		MessageID:        message.ID,
 		DiscordMessageID: instance.MessageID.String(),
 		DiscordChannelID: instance.ChannelID.String(),
@@ -757,8 +760,13 @@ func (p *RobloxProvider) UserByID(ctx context.Context, id int64) (*thing.RobloxU
 	if err != nil {
 		return nil, fmt.Errorf("failed to get roblox user: %w", err)
 	}
+	defer resp.Body.Close()
 
 	if resp.StatusCode == http.StatusNotFound {
+		// User-not-found is a normal outcome here. Drain first: closing an
+		// unread body makes net/http drop the connection instead of pooling it,
+		// so every miss would otherwise cost a fresh TCP + TLS handshake.
+		io.Copy(io.Discard, io.LimitReader(resp.Body, 4*1024))
 		return nil, provider.ErrNotFound
 	}
 
@@ -794,6 +802,7 @@ func (p *RobloxProvider) UsersByUsername(ctx context.Context, username string) (
 	if err != nil {
 		return nil, fmt.Errorf("failed to get roblox users: %w", err)
 	}
+	defer resp.Body.Close()
 
 	var v struct {
 		Data []thing.RobloxUserValue `json:"data"`

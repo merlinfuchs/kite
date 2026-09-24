@@ -1,3 +1,4 @@
+import { discordEmojiUrl } from "@/tools/common/utils/discordCdn";
 import {
   decodePermissionsBitset,
   encodePermissionsBitset,
@@ -36,6 +37,7 @@ import JsonEditor from "../common/JsonEditor";
 import PlaceholderInput from "../common/PlaceholderInput";
 import Twemoji from "../common/Twemoji";
 import MessageEditorDialog from "../message/MessageEditorDialog";
+import { hasComponentsV2Flag } from "@/lib/message/schema";
 import { Button } from "../ui/button";
 import { Card } from "../ui/card";
 import {
@@ -980,7 +982,11 @@ function AiChatCompletionDataInput({ data, updateData, errors }: InputProps) {
         options={[
           { value: "gpt-4.1", label: "Smartest (gpt-4.1)" },
           { value: "gpt-4.1-mini", label: "Balanced (gpt-4.1-mini)" },
-          { value: "gpt-4.1-nano", label: "Cheap & Fast (gpt-4.1-nano)" },
+          {
+            value: "gpt-4.1-nano",
+            label: "Cheap & Fast (gpt-4.1-nano) (deprecated)",
+          },
+          { value: "gpt-5-nano", label: "Cheap & Fast (gpt-5-nano)" },
           { value: "gpt-4o-mini", label: "Cheap & Fast (gpt-4o-mini)" },
         ]}
         value={data.ai_chat_completion_data?.model || "gpt-4o-mini"}
@@ -1045,7 +1051,11 @@ function AiWebSearchDataInput({ data, updateData, errors }: InputProps) {
         options={[
           { value: "gpt-4.1", label: "Smartest (gpt-4.1)" },
           { value: "gpt-4.1-mini", label: "Balanced (gpt-4.1-mini)" },
-          { value: "gpt-4.1-nano", label: "Cheap & Fast (gpt-4.1-nano)" },
+          {
+            value: "gpt-4.1-nano",
+            label: "Cheap & Fast (gpt-4.1-nano) (deprecated)",
+          },
+          { value: "gpt-5-nano", label: "Cheap & Fast (gpt-5-nano)" },
           { value: "gpt-4o-mini", label: "Cheap & Fast (gpt-4o-mini)" },
         ]}
         value={data.ai_chat_completion_data?.model || "gpt-4o-mini"}
@@ -1295,25 +1305,30 @@ function MessageDataInput({ data, updateData, errors }: InputProps) {
     return null;
   }
 
+  // Components v2 messages have no content, their text lives in the components.
+  const componentsV2 = hasComponentsV2Flag(data.message_data?.flags);
+
   return (
     <>
-      <BaseInput
-        type="textarea"
-        field="message_data"
-        title="Text"
-        description="Edit the message content here or click below to have a full message editor with support for embeds and components."
-        value={data.message_data?.content || ""}
-        updateValue={(v) =>
-          updateData({
-            message_data: {
-              ...data.message_data,
-              content: v || undefined,
-            },
-          })
-        }
-        errors={errors}
-        placeholders
-      />
+      {!componentsV2 && (
+        <BaseInput
+          type="textarea"
+          field="message_data"
+          title="Text"
+          description="Edit the message content here or click below to have a full message editor with support for embeds and components."
+          value={data.message_data?.content || ""}
+          updateValue={(v) =>
+            updateData({
+              message_data: {
+                ...data.message_data,
+                content: v || undefined,
+              },
+            })
+          }
+          errors={errors}
+          placeholders
+        />
+      )}
 
       <MessageEditorDialog
         onClose={(v) => updateData({ message_data: v })}
@@ -1582,6 +1597,25 @@ function ModalDataInput({ data, updateData, errors }: InputProps) {
   );
 }
 
+// Which of the optional channel fields Discord accepts for a given channel
+// type. An unset type means "Text", matching the select's default.
+//
+// These must stay in sync with channelTypeSupportsTopic/Voice in
+// kite-service/pkg/flow/data.go, which drops the same fields before sending
+// them to Discord. Hidden here but sent there just means a confusing error.
+function channelTypeSupportsNSFW(type = 0) {
+  return type === 0;
+}
+
+function channelTypeSupportsTopic(type = 0) {
+  // Forum (15) and media (16) use the topic as their post guidelines.
+  return type === 0 || type === 5 || type === 15 || type === 16;
+}
+
+function channelTypeSupportsVoice(type = 0) {
+  return type === 2 || type === 13;
+}
+
 function ChannelDataInput({ data, updateData, errors }: InputProps) {
   const addOverwrite = useCallback(() => {
     updateData({
@@ -1601,6 +1635,19 @@ function ChannelDataInput({ data, updateData, errors }: InputProps) {
     });
   }, [updateData, data]);
 
+  const removeOverwrite = useCallback(
+    (i: number) => {
+      updateData({
+        channel_data: {
+          ...data.channel_data,
+          permission_overwrites:
+            data.channel_data?.permission_overwrites?.filter((_, j) => j !== i),
+        },
+      });
+    },
+    [updateData, data]
+  );
+
   const updateOverwrite = useCallback(
     (i: number, newData: Partial<PermissionOverwriteData>) => {
       const overwrite = data.channel_data?.permission_overwrites?.[i];
@@ -1611,6 +1658,25 @@ function ChannelDataInput({ data, updateData, errors }: InputProps) {
       updateData({
         channel_data: data.channel_data,
       });
+    },
+    [updateData, data]
+  );
+
+  // Changing the type only hides the inputs that don't apply to it. Without
+  // also dropping their values, a topic entered while the type was "Text"
+  // would still be sent for a voice channel, which Discord rejects.
+  const updateType = useCallback(
+    (type: number) => {
+      const channelData = { ...data.channel_data, type };
+
+      if (!channelTypeSupportsNSFW(type)) channelData.nsfw = undefined;
+      if (!channelTypeSupportsTopic(type)) channelData.topic = undefined;
+      if (!channelTypeSupportsVoice(type)) {
+        channelData.bitrate = undefined;
+        channelData.user_limit = undefined;
+      }
+
+      updateData({ channel_data: channelData });
     },
     [updateData, data]
   );
@@ -1665,18 +1731,11 @@ function ChannelDataInput({ data, updateData, errors }: InputProps) {
                   value: "16",
                 },
               ]}
-              updateValue={(v) =>
-                updateData({
-                  channel_data: {
-                    ...data.channel_data,
-                    type: parseInt(v) || 0,
-                  },
-                })
-              }
+              updateValue={(v) => updateType(parseInt(v) || 0)}
               errors={errors}
             />
 
-            {(!data.channel_data?.type || data.channel_data.type === 0) && (
+            {channelTypeSupportsNSFW(data.channel_data?.type) && (
               <BaseCheckbox
                 field="channel_data.nsfw"
                 title="NSFW"
@@ -1709,9 +1768,7 @@ function ChannelDataInput({ data, updateData, errors }: InputProps) {
             placeholders
           />
 
-          {(!data.channel_data?.type ||
-            data.channel_data.type === 0 ||
-            data.channel_data.type === 5) && (
+          {channelTypeSupportsTopic(data.channel_data?.type) && (
             <BaseInput
               type="text"
               field="channel_data.topic"
@@ -1731,45 +1788,44 @@ function ChannelDataInput({ data, updateData, errors }: InputProps) {
             />
           )}
 
-          {data.channel_data?.type === 2 ||
-            (data.channel_data?.type === 13 && (
-              <>
-                <BaseInput
-                  type="text"
-                  field="channel_data.bitrate"
-                  title="Bitrate"
-                  description="The bitrate for the channel."
-                  value={data.channel_data?.bitrate || ""}
-                  updateValue={(v) =>
-                    updateData({
-                      channel_data: {
-                        ...data.channel_data,
-                        bitrate: v || undefined,
-                      },
-                    })
-                  }
-                  errors={errors}
-                  placeholders
-                />
-                <BaseInput
-                  type="text"
-                  field="channel_data.user_limit"
-                  title="User Limit"
-                  description="The user limit for the channel."
-                  value={data.channel_data?.user_limit?.toString() || ""}
-                  updateValue={(v) =>
-                    updateData({
-                      channel_data: {
-                        ...data.channel_data,
-                        user_limit: v || undefined,
-                      },
-                    })
-                  }
-                  errors={errors}
-                  placeholders
-                />
-              </>
-            ))}
+          {channelTypeSupportsVoice(data.channel_data?.type) && (
+            <>
+              <BaseInput
+                type="text"
+                field="channel_data.bitrate"
+                title="Bitrate"
+                description="The bitrate for the channel."
+                value={data.channel_data?.bitrate || ""}
+                updateValue={(v) =>
+                  updateData({
+                    channel_data: {
+                      ...data.channel_data,
+                      bitrate: v || undefined,
+                    },
+                  })
+                }
+                errors={errors}
+                placeholders
+              />
+              <BaseInput
+                type="text"
+                field="channel_data.user_limit"
+                title="User Limit"
+                description="The user limit for the channel."
+                value={data.channel_data?.user_limit?.toString() || ""}
+                updateValue={(v) =>
+                  updateData({
+                    channel_data: {
+                      ...data.channel_data,
+                      user_limit: v || undefined,
+                    },
+                  })
+                }
+                errors={errors}
+                placeholders
+              />
+            </>
+          )}
 
           {data.channel_data?.type !== 4 && (
             <BaseInput
@@ -1874,17 +1930,21 @@ function ChannelDataInput({ data, updateData, errors }: InputProps) {
                   }
                   errors={errors}
                 />
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="flex gap-2"
+                  onClick={() => removeOverwrite(i)}
+                >
+                  <TrashIcon className="h-4 w-4" />
+                  <div>Remove Overwrite</div>
+                </Button>
               </Card>
             ))}
           </div>
 
           <div className="flex space-x-3">
-            <Button
-              onClick={addOverwrite}
-              disabled={(data.modal_data?.components?.length || 0) >= 5}
-            >
-              Add Overwrite
-            </Button>
+            <Button onClick={addOverwrite}>Add Overwrite</Button>
             <Button variant="outline" onClick={clearOverwrites}>
               Clear Overwrites
             </Button>
@@ -2800,11 +2860,7 @@ function BaseEmojiPicker({
         <EmojiPicker onEmojiSelect={onChange}>
           <Button size="icon" variant="outline">
             {emoji?.id ? (
-              <img
-                src={`https://cdn.discordapp.com/emojis/${emoji.id}.webp`}
-                alt=""
-                className="h-6 w-6"
-              />
+              <img src={discordEmojiUrl(emoji.id)} alt="" className="h-6 w-6" />
             ) : emoji ? (
               <Twemoji
                 options={{

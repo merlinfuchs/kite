@@ -1,0 +1,17 @@
+-- The usage manager reads this table on two schedules and neither had an index
+-- on created_at:
+--
+--   hourly:       DELETE ... WHERE created_at < $1
+--   every minute: SELECT app_id, SUM(credits_used) ... WHERE created_at BETWEEN
+--
+-- usage_records takes a row per flow execution and is retained for three
+-- months, so both were sequential scans of the whole table.
+--
+-- The hourly delete benefits unconditionally, becoming an index-only scan to
+-- find the cutoff. The per-minute aggregate benefits while the month-to-date
+-- range is a small fraction of retention, and the planner correctly falls back
+-- to a sequential scan as it approaches a third.
+--
+-- Writes stay cheap despite this being the highest-write table: created_at is
+-- effectively monotonic, so inserts append to the rightmost leaf.
+CREATE INDEX IF NOT EXISTS usage_records_created_at ON usage_records (created_at);

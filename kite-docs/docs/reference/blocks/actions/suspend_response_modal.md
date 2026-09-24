@@ -13,4 +13,8 @@ Instead of creating a message response you can also show a modal to the user to 
 
 Responding with a modal starts a sub-flow which is suspended until the user submits the modal. See [Sub-Flows](/reference/sub-flows) for more information on how modals work.
 
+:::tip
+The answers stay available as `input(...)` even after later buttons or modals. Command arguments keep working with `arg(...)` below the modal too.
+:::
+
 <NodeInfoExplorer type="suspend_response_modal" />

@@ -14,6 +14,7 @@ var app = cli.App{
 		&serverCMD,
 		&databaseCMD,
 		&adminCMD,
+		&billingCMD,
 	},
 }
 

@@ -1,160 +1,16 @@
+import {
+  isSectionAvailable,
+  NodeCategory,
+  nodeCategories,
+} from "@/lib/flow/categories";
 import { useFlowContext } from "@/lib/flow/context";
 import { NodeValues, createNode, getNodeValues } from "@/lib/flow/nodes";
-import { useReactFlow } from "@xyflow/react";
+import { useReactFlow, useStore } from "@xyflow/react";
 import { SearchIcon } from "lucide-react";
 import { DragEvent, useMemo, useState } from "react";
 import DynamicIcon from "../icons/DynamicIcon";
 import { Input } from "../ui/input";
 import { ScrollArea } from "../ui/scroll-area";
-
-const nodeCategories = {
-  option: [
-    {
-      title: "Commands",
-      nodeTypes: [
-        "option_command_argument",
-        "option_command_permissions",
-        "option_command_contexts",
-      ],
-      contextTypes: ["command"],
-    },
-    {
-      title: "Events",
-      nodeTypes: ["option_event_filter"],
-      contextTypes: ["event_discord"],
-    },
-    /* {
-      title: "Events",
-      nodeTypes: ["option_event_filter"],
-    }, */
-  ],
-  action: [
-    {
-      title: "Responses",
-      nodeTypes: [
-        "action_response_create",
-        "action_response_edit",
-        "action_response_delete",
-        "action_response_defer",
-        "suspend_response_modal",
-      ],
-      contextTypes: ["command", "component_button"],
-    },
-    {
-      title: "Messages",
-      nodeTypes: [
-        "action_message_create",
-        "action_message_edit",
-        "action_message_delete",
-        "action_message_get",
-        "action_private_message_create",
-        "action_message_reaction_create",
-        "action_message_reaction_delete",
-      ],
-      contextTypes: null,
-    },
-    {
-      title: "Members",
-      nodeTypes: [
-        "action_member_ban",
-        "action_member_unban",
-        "action_member_kick",
-        "action_member_timeout",
-        "action_member_edit",
-        "action_member_get",
-      ],
-      contextTypes: null,
-    },
-    {
-      title: "Users",
-      nodeTypes: ["action_user_get"],
-      contextTypes: null,
-    },
-    {
-      title: "Roles",
-      nodeTypes: [
-        "action_member_role_add",
-        "action_member_role_remove",
-        "action_role_get",
-      ],
-      contextTypes: null,
-    },
-
-    {
-      title: "Servers",
-      nodeTypes: ["action_guild_get"],
-      contextTypes: null,
-    },
-    {
-      title: "Channels",
-      nodeTypes: [
-        "action_channel_create",
-        "action_channel_edit",
-        "action_channel_delete",
-        "action_channel_get",
-        "action_thread_create",
-        "action_thread_member_add",
-        "action_thread_member_remove",
-      ],
-      contextTypes: null,
-    },
-    {
-      title: "Stored Variables",
-      nodeTypes: [
-        "action_variable_set",
-        "action_variable_delete",
-        "action_variable_get",
-      ],
-      contextTypes: null,
-    },
-    {
-      title: "Roblox",
-      nodeTypes: ["action_roblox_user_get"],
-      contextTypes: null,
-    },
-    {
-      title: "Other Actions",
-      nodeTypes: [
-        "action_expression_evaluate",
-        "action_ai_chat_completion",
-        "action_ai_web_search",
-        "action_http_request",
-        "action_random_generate",
-        "action_log",
-      ],
-      contextTypes: null,
-    },
-  ],
-  control_flow: [
-    {
-      title: "Conditions",
-      nodeTypes: [
-        "control_condition_compare",
-        "control_condition_user",
-        "control_condition_channel",
-        "control_condition_role",
-      ],
-      contextTypes: null,
-    },
-    {
-      title: "Loops",
-      nodeTypes: ["control_loop", "control_loop_exit"],
-      contextTypes: null,
-    },
-    {
-      title: "Errors",
-      nodeTypes: ["control_error_handler"],
-      contextTypes: null,
-    },
-    {
-      title: "Others",
-      nodeTypes: ["control_sleep"],
-      contextTypes: null,
-    },
-  ],
-};
-
-type NodeCategory = keyof typeof nodeCategories;
 
 export default function FlowNodeExplorer({
   category,
@@ -189,11 +45,7 @@ export default function FlowNodeExplorer({
             n.values.defaultDescription.toLowerCase().includes(normalizedSearch)
         ),
       }))
-      .filter(
-        (s) =>
-          s.nodes.length > 0 &&
-          (!s.contextTypes || s.contextTypes.includes(contextType))
-      );
+      .filter((s) => s.nodes.length > 0 && isSectionAvailable(s, contextType));
   }, [sections, contextType, search]);
 
   return (
@@ -249,7 +101,12 @@ export default function FlowNodeExplorer({
 }
 
 function AvailableNode({ type, values }: { type: string; values: NodeValues }) {
-  const { addNodes, addEdges } = useReactFlow();
+  const { addNodes, addEdges, getViewport } = useReactFlow();
+  // The canvas is not the window: it sits right of the w-96 block explorer,
+  // inside a dialog. Ask react-flow for its own pane size rather than reading
+  // window dimensions, so blocks don't spawn off-centre or under the menu.
+  const paneWidth = useStore((s) => s.width);
+  const paneHeight = useStore((s) => s.height);
 
   function onStartDrag(e: DragEvent) {
     e.dataTransfer.setData("application/reactflow", type);
@@ -257,9 +114,19 @@ function AvailableNode({ type, values }: { type: string; values: NodeValues }) {
   }
 
   function onClick() {
+    // Spawn in the middle of what the user is currently looking at, with a
+    // small jitter so repeated clicks don't stack blocks exactly on top of
+    // each other. Using flow coordinates directly would put the block next to
+    // the entry node, off-screen for anything but a freshly opened flow.
+    const { x, y, zoom } = getViewport();
+    const center = {
+      x: (-x + paneWidth / 2) / zoom,
+      y: (-y + paneHeight / 2) / zoom,
+    };
+
     const [nodes, edges] = createNode(type, {
-      x: 0 + 200 * Math.random() - 100,
-      y: 0 + 100 * Math.random() + 200,
+      x: center.x + 200 * Math.random() - 100,
+      y: center.y + 100 * Math.random() - 50,
     });
     addNodes(nodes);
     addEdges(edges);

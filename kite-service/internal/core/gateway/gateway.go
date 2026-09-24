@@ -13,21 +13,30 @@ import (
 	"github.com/diamondburned/arikawa/v3/state"
 	"github.com/diamondburned/arikawa/v3/utils/httputil"
 	"github.com/kitecloud/kite/kite-service/internal/core/plan"
+	"github.com/kitecloud/kite/kite-service/internal/metrics"
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/internal/store"
 	"github.com/kitecloud/kite/kite-service/internal/util"
+	"github.com/kitecloud/kite/kite-service/pkg/plugin"
 	"gopkg.in/guregu/null.v4"
 )
 
 type Gateway struct {
-	logStore     store.LogStore
-	appStore     store.AppStore
-	planManager  *plan.PlanManager
-	eventHandler EventHandler
-	tokenCrypt   *util.SymmetricCrypt
+	logStore       store.LogStore
+	appStore       store.AppStore
+	planManager    *plan.PlanManager
+	eventHandler   EventHandler
+	tokenCrypt     *util.SymmetricCrypt
+	pluginRegistry *plugin.Registry
 
 	app     *model.App
 	session *state.State
+
+	// intents is what this connection identified with, or zero before it has
+	// been computed. A computed set always includes IntentGuilds, so zero is
+	// unambiguous. Compared against a freshly computed set on refresh; a
+	// change requires a reconnect, since intents are fixed at IDENTIFY.
+	intents gateway.Intents
 
 	ctx    context.Context
 	cancel context.CancelFunc
@@ -40,6 +49,7 @@ func NewGateway(
 	planManager *plan.PlanManager,
 	eventHandler EventHandler,
 	tokenCrypt *util.SymmetricCrypt,
+	pluginRegistry *plugin.Registry,
 ) (*Gateway, error) {
 	session, err := createSession(tokenCrypt, app)
 	if err != nil {
@@ -47,13 +57,14 @@ func NewGateway(
 	}
 
 	g := &Gateway{
-		logStore:     logStore,
-		appStore:     appStore,
-		planManager:  planManager,
-		eventHandler: eventHandler,
-		tokenCrypt:   tokenCrypt,
-		app:          app,
-		session:      session,
+		logStore:       logStore,
+		appStore:       appStore,
+		planManager:    planManager,
+		eventHandler:   eventHandler,
+		tokenCrypt:     tokenCrypt,
+		pluginRegistry: pluginRegistry,
+		app:            app,
+		session:        session,
 	}
 
 	g.ctx, g.cancel = context.WithCancel(context.Background())
@@ -63,7 +74,7 @@ func NewGateway(
 }
 
 func (g *Gateway) startGateway() {
-	intents, err := getAppIntents(g.session.Client)
+	intents, err := g.computeIntents(g.ctx)
 	if err != nil {
 		var httpErr *httputil.HTTPError
 		if errors.As(err, &httpErr) && httpErr.Status == http.StatusUnauthorized {
@@ -81,9 +92,29 @@ func (g *Gateway) startGateway() {
 		return
 	}
 
+	g.intents = intents
 	g.session.AddIntents(intents)
 
+	slog.Debug(
+		"Computed gateway intents",
+		slog.String("app_id", g.app.ID),
+		slog.Uint64("intents", uint64(intents)),
+	)
+
 	g.session.AddHandler(func(e gateway.Event) {
+		// Protocol frames -- heartbeat acks, hello, reconnect, invalid session
+		// -- report an empty event type. Nothing downstream can ever match
+		// them: no event listener type and no plugin event type is empty. At
+		// steady state they are the single largest source of events, roughly
+		// one heartbeat per connection every 41s, so dropping them here keeps
+		// them off the dispatch path entirely and stops them dominating both
+		// the event counter and the dropped-event counter.
+		eventType := e.EventType()
+		if eventType == "" {
+			return
+		}
+
+		metrics.GatewayEvents.Add(string(eventType), 1)
 		g.eventHandler.HandleEvent(g.app.ID, g.session, e)
 	})
 
@@ -116,6 +147,49 @@ func (g *Gateway) startGateway() {
 	}
 }
 
+// computeIntents derives the intent set this app should identify with.
+//
+// The returned error is always from fetching the application, so callers can
+// still inspect it for a 401. A failure to load requirements is not fatal: it
+// falls back to every intent the app is permitted, because failing closed
+// would silently stop delivering events.
+func (g *Gateway) computeIntents(ctx context.Context) (gateway.Intents, error) {
+	app, err := g.session.Client.CurrentApplication()
+	if err != nil {
+		return 0, fmt.Errorf("failed to get current application: %w", err)
+	}
+
+	reqs, err := g.appRequirements(ctx)
+	if err != nil {
+		slog.Error(
+			"Failed to load gateway requirements, falling back to all permitted intents",
+			slog.String("app_id", g.app.ID),
+			slog.String("error", err.Error()),
+		)
+		return allPermittedIntents(app.Flags), nil
+	}
+
+	return intentsForRequirements(reqs, app.Flags), nil
+}
+
+// appRequirements loads what this app consumes from the gateway and resolves
+// its plugin resources to concrete event types.
+func (g *Gateway) appRequirements(ctx context.Context) (model.AppGatewayRequirements, error) {
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+
+	row, err := g.appStore.AppGatewayRequirements(ctx, g.app.ID)
+	if err != nil {
+		return model.AppGatewayRequirements{}, fmt.Errorf("failed to get gateway requirements: %w", err)
+	}
+
+	return model.AppGatewayRequirements{
+		EventListenerTypes:  row.EventListenerTypes,
+		PluginEventTypes:    g.pluginRegistry.EventTypesForResources(row.PluginResources),
+		HasMessageInstances: row.HasMessageInstances,
+	}, nil
+}
+
 func (g *Gateway) Close() error {
 	g.cancel()
 	err := g.session.Close()
@@ -146,28 +220,78 @@ func (g *Gateway) Update(ctx context.Context, app *model.App) {
 		g.app = app
 
 		slog.Info(
-			"Discord token or status changed, closing gateway",
+			"Discord token changed, reconnecting gateway",
 			slog.String("app_id", app.ID),
 		)
-		if err := g.Close(); err != nil {
-			slog.Error(
-				"Failed to close gateway",
-				slog.String("error", err.Error()),
-				slog.String("app_id", app.ID),
-			)
-		}
-
-		session, err := createSession(g.tokenCrypt, app)
-		if err != nil {
-			g.createLogEntry(model.LogLevelError, fmt.Sprintf("Failed to create session: %v", err))
-			return
-		}
-
-		g.session = session
-		go g.startGateway()
-	} else {
-		g.app = app
+		g.restart()
+		return
 	}
+
+	g.app = app
+}
+
+// RefreshIntents recomputes the app's required intents and reconnects if they
+// changed. Intents are fixed at IDENTIFY, so a reconnect is the only way to
+// apply a change.
+//
+// Called when an app's event listeners or plugin instances change. Any error
+// leaves the connection alone: the current intent set was correct as of the
+// last computation, so keeping it beats a reconnect loop.
+func (g *Gateway) RefreshIntents(ctx context.Context) {
+	if g.intents == 0 {
+		// Still starting up; startGateway will compute the current set.
+		return
+	}
+
+	intents, err := g.computeIntents(ctx)
+	if err != nil {
+		slog.Error(
+			"Failed to compute intents while refreshing",
+			slog.String("app_id", g.app.ID),
+			slog.String("error", err.Error()),
+		)
+		return
+	}
+
+	if intents == g.intents {
+		return
+	}
+
+	slog.Info(
+		"Gateway intents changed, reconnecting",
+		slog.String("app_id", g.app.ID),
+		slog.Uint64("old_intents", uint64(g.intents)),
+		slog.Uint64("new_intents", uint64(intents)),
+	)
+	metrics.GatewayIntentReconnects.Add(1)
+
+	g.restart()
+}
+
+// restart tears the connection down and brings it back up with freshly
+// computed intents.
+func (g *Gateway) restart() {
+	if err := g.Close(); err != nil {
+		slog.Error(
+			"Failed to close gateway",
+			slog.String("error", err.Error()),
+			slog.String("app_id", g.app.ID),
+		)
+	}
+
+	session, err := createSession(g.tokenCrypt, g.app)
+	if err != nil {
+		g.createLogEntry(model.LogLevelError, fmt.Sprintf("Failed to create session: %v", err))
+		return
+	}
+
+	// Close cancelled the context. Without a fresh one, Connect returns
+	// immediately with a context error and startGateway treats that as fatal
+	// and disables the app.
+	g.ctx, g.cancel = context.WithCancel(context.Background())
+	g.session = session
+	g.intents = 0
+	go g.startGateway()
 }
 
 func (g *Gateway) createLogEntry(level model.LogLevel, message string) {

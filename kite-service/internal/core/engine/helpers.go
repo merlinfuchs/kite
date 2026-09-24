@@ -64,8 +64,8 @@ func (s Env) flowProviders(appID string, session *state.State, links entityLinks
 		),
 		HTTP:            NewHTTPProvider(s.HttpClient),
 		AI:              aiProvider,
-		MessageTemplate: NewMessageTemplateProvider(s.MessageStore, s.MessageInstanceStore),
-		Variable:        NewVariableProvider(s.VariableValueStore),
+		MessageTemplate: NewMessageTemplateProvider(appID, s.MessageStore, s.MessageInstanceStore),
+		Variable:        NewVariableProvider(appID, s.VariableValueStore),
 		ResumePoint: NewResumePointProvider(
 			s.ResumePointStore,
 			appID,
@@ -84,44 +84,50 @@ func (s Env) flowContext(
 ) *flow.FlowContext {
 	providers := s.flowProviders(appID, session, links)
 
-	var fCtx *flow.FlowContext
+	var data flow.FlowContextData
+	var evalCtx eval.Context
 
 	switch e := event.(type) {
 	case *gateway.InteractionCreateEvent:
-		fCtx = flow.NewContext(
-			ctx,
-			30*time.Second,
-			&InteractionData{
-				interaction: &e.InteractionEvent,
-			},
-			providers,
-			flow.FlowContextLimits{
-				MaxStackDepth: s.Config.MaxStackDepth,
-				MaxOperations: s.Config.MaxOperations,
-				MaxCredits:    s.Config.MaxCredits,
-			},
-			eval.NewContextFromInteraction(&e.InteractionEvent, session),
-			state,
-		)
+		data = &InteractionData{
+			interaction: &e.InteractionEvent,
+		}
+		evalCtx = eval.NewContextFromInteraction(&e.InteractionEvent, session)
 	default:
-		fCtx = flow.NewContext(
-			ctx,
-			30*time.Second,
-			&EventData{
-				event: event,
-			},
-			providers,
-			flow.FlowContextLimits{
-				MaxStackDepth: s.Config.MaxStackDepth,
-				MaxOperations: s.Config.MaxOperations,
-				MaxCredits:    s.Config.MaxCredits,
-			},
-			eval.NewContextFromEvent(event, session),
-			state,
-		)
+		data = &EventData{
+			event: event,
+		}
+		evalCtx = eval.NewContextFromEvent(event, session)
 	}
 
-	return fCtx
+	if state != nil {
+		earlier := make([]eval.Context, len(state.Triggers))
+		for i := range state.Triggers {
+			earlier[i] = triggerEvalContext(&state.Triggers[i], session)
+		}
+		evalCtx.SetResumeContext(earlier)
+	}
+
+	return flow.NewContext(
+		ctx,
+		30*time.Second,
+		data,
+		providers,
+		flow.FlowContextLimits{
+			MaxStackDepth: s.Config.MaxStackDepth,
+			MaxOperations: s.Config.MaxOperations,
+			MaxCredits:    s.Config.MaxCredits,
+		},
+		evalCtx,
+		state,
+	)
+}
+
+func triggerEvalContext(trigger *flow.FlowTrigger, session *state.State) eval.Context {
+	if trigger.Interaction != nil {
+		return eval.NewContextFromInteraction(trigger.Interaction, session)
+	}
+	return eval.NewContextFromEvent(trigger.Event, session)
 }
 
 func (s Env) executeFlowEvent(

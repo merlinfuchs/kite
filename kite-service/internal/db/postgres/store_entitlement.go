@@ -24,6 +24,25 @@ func (c *Client) Entitlements(ctx context.Context, appID string) ([]*model.Entit
 	return entitlements, nil
 }
 
+func (c *Client) ActiveEntitlementsForApps(ctx context.Context, appIDs []string, now time.Time) (map[string][]*model.Entitlement, error) {
+	rows, err := c.Q.GetActiveEntitlementsForApps(ctx, pgmodel.GetActiveEntitlementsForAppsParams{
+		AppIds: appIDs,
+		EndsAt: pgtype.Timestamp{Time: now, Valid: true},
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	// Sized to rows, not appIDs: only apps that actually hold an
+	// entitlement get an entry, which is a small fraction of those asked about.
+	entitlements := make(map[string][]*model.Entitlement, len(rows))
+	for _, row := range rows {
+		entitlements[row.AppID] = append(entitlements[row.AppID], rowToEntitlement(row))
+	}
+
+	return entitlements, nil
+}
+
 func (c *Client) ActiveEntitlements(ctx context.Context, appID string, now time.Time) ([]*model.Entitlement, error) {
 	rows, err := c.Q.GetActiveEntitlements(ctx, pgmodel.GetActiveEntitlementsParams{
 		AppID:  appID,
@@ -59,18 +78,13 @@ func (c *Client) UpsertSubscriptionEntitlement(ctx context.Context, entitlement 
 	return rowToEntitlement(row), nil
 }
 
-func (c *Client) UpdateSubscriptionEntitlement(ctx context.Context, entitlement model.Entitlement) (*model.Entitlement, error) {
-	row, err := c.Q.UpdateSubscriptionEntitlement(ctx, pgmodel.UpdateSubscriptionEntitlementParams{
+func (c *Client) UpdateSubscriptionEntitlement(ctx context.Context, entitlement model.Entitlement) error {
+	return c.Q.UpdateSubscriptionEntitlement(ctx, pgmodel.UpdateSubscriptionEntitlementParams{
 		SubscriptionID: pgtype.Text{String: entitlement.SubscriptionID.String, Valid: entitlement.SubscriptionID.Valid},
 		PlanID:         entitlement.PlanID,
 		UpdatedAt:      pgtype.Timestamp{Time: entitlement.UpdatedAt, Valid: true},
 		EndsAt:         pgtype.Timestamp{Time: entitlement.EndsAt.Time, Valid: entitlement.EndsAt.Valid},
 	})
-	if err != nil {
-		return nil, err
-	}
-
-	return rowToEntitlement(row), nil
 }
 
 func rowToEntitlement(row pgmodel.Entitlement) *model.Entitlement {

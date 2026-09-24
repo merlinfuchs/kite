@@ -2,8 +2,10 @@ package server
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
+	"time"
 
 	"github.com/kitecloud/kite/kite-service/internal/api"
 	"github.com/kitecloud/kite/kite-service/internal/config"
@@ -15,7 +17,7 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/core/usage"
 	"github.com/kitecloud/kite/kite-service/internal/db/postgres"
 	"github.com/kitecloud/kite/kite-service/internal/db/s3"
-	"github.com/kitecloud/kite/kite-service/internal/model"
+	"github.com/kitecloud/kite/kite-service/internal/store"
 	"github.com/kitecloud/kite/kite-service/internal/util"
 	"github.com/kitecloud/kite/kite-service/pkg/plugin"
 	"github.com/kitecloud/kite/kite-service/pkg/plugin/counting"
@@ -33,19 +35,32 @@ func StartServer(c context.Context, cfg *config.Config) error {
 		return fmt.Errorf("failed to create postgres client: %w", err)
 	}
 
+	// S3 is optional. Without it Kite runs fine, just without support for
+	// assets, so a failure here must not stop the server from starting.
+	var objectStore store.ObjectStore = store.DisabledObjectStore{}
 	s3Client, err := s3.New(cfg.Database.S3)
 	if err != nil {
-		slog.With("error", err).Error("Failed to create S3 client")
-		return fmt.Errorf("failed to create S3 client: %w", err)
+		slog.With("error", err).Warn("Failed to create S3 client, continuing without support for assets")
+	} else {
+		objectStore = s3Client
 	}
 
-	assetStore, err := postgres.NewAssetStore(context.Background(), pg, s3Client)
-	if err != nil {
+	// Bounded: this is the first call that actually reaches S3, and it blocks
+	// startup. Without a deadline a configured but unreachable endpoint stalls
+	// the whole server for minutes on minio's dial timeout and retries.
+	assetCtx, cancelAssetCtx := context.WithTimeout(context.Background(), 10*time.Second)
+	assetStore, err := postgres.NewAssetStore(assetCtx, pg, objectStore)
+	cancelAssetCtx()
+	if err != nil && !errors.Is(err, store.ErrObjectStoreDisabled) {
 		slog.With("error", err).Warn("Failed to create asset store, continuing without support for assets")
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
+
+	configureHTTPTransport(cfg)
+	warnUnverifiedBillingWebhook(cfg)
+	startDebugServer(ctx, cfg.Debug)
 
 	tokenCrypt, err := util.NewSymmetricCrypt(cfg.Encryption.TokenEncryptionKey)
 	if err != nil {
@@ -67,11 +82,14 @@ func StartServer(c context.Context, cfg *config.Config) error {
 	engine := engine.NewEngine(
 		engine.Env{
 			Config: engine.EngineConfig{
-				MaxStackDepth: cfg.Engine.MaxStackDepth,
-				MaxOperations: cfg.Engine.MaxOperations,
-				MaxCredits:    cfg.Engine.MaxCredits,
-				ClusterCount:  cfg.ClusterCount,
-				ClusterIndex:  cfg.ClusterIndex,
+				MaxStackDepth:          cfg.Engine.MaxStackDepth,
+				MaxOperations:          cfg.Engine.MaxOperations,
+				MaxCredits:             cfg.Engine.MaxCredits,
+				ClusterCount:           cfg.ClusterCount,
+				ClusterIndex:           cfg.ClusterIndex,
+				PopulateInterval:       cfg.Engine.PopulateInterval,
+				RemoveDanglingInterval: cfg.Engine.RemoveDanglingInterval,
+				PopulateOverlap:        cfg.Engine.PopulateOverlap,
 			},
 			AppStore:             pg,
 			LogStore:             pg,
@@ -96,23 +114,22 @@ func StartServer(c context.Context, cfg *config.Config) error {
 
 	handler := event.NewEventHandlerWrapper(engine, pg)
 
-	billingPlans := make([]model.Plan, len(cfg.Billing.Plans))
-	for i, plan := range cfg.Billing.Plans {
-		billingPlans[i] = model.Plan(plan)
-	}
-
-	planManager := plan.NewPlanManager(pg, pg, pg, billingPlans, plan.PlanManagerConfig{
+	planManager := plan.NewPlanManager(pg, pg, pg, plan.PlansFromConfig(cfg.Billing.Plans), plan.PlanManagerConfig{
 		DiscordBotToken: cfg.Discord.BotToken,
 		DiscordGuildID:  cfg.Discord.GuildID,
 	})
 
-	gateway := gateway.NewGatewayManager(pg, pg, planManager, handler, tokenCrypt, gateway.GatewayManagerConfig{
-		ClusterCount: cfg.ClusterCount,
-		ClusterIndex: cfg.ClusterIndex,
+	gateway := gateway.NewGatewayManager(pg, pg, planManager, handler, tokenCrypt, pluginRegistry, gateway.GatewayManagerConfig{
+		ClusterCount:           cfg.ClusterCount,
+		ClusterIndex:           cfg.ClusterIndex,
+		PopulateInterval:       cfg.Gateway.PopulateInterval,
+		RemoveDanglingInterval: cfg.Gateway.RemoveDanglingInterval,
+		PopulateOverlap:        cfg.Gateway.PopulateOverlap,
+		StartInterval:          cfg.Gateway.StartInterval,
 	})
 	gateway.Run(ctx)
 
-	usage := usage.NewUsageManager(pg, pg, pg, planManager)
+	usage := usage.NewUsageManager(pg, pg, pg, pg, pg, planManager)
 
 	if cfg.IsPrimaryCluster() {
 		planManager.Run(ctx)

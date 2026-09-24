@@ -33,10 +33,23 @@ LEFT JOIN (
     FROM usage_records 
     WHERE app_id = @app_id AND created_at BETWEEN @start_at AND @end_at 
     GROUP BY DATE(created_at)
-) u ON d.dt = u.date;
+) u ON d.dt = u.date
+ORDER BY d.dt;
 
+-- Only enabled apps. A disabled app's usage rows stay for the rest of the
+-- month, so without this filter the credit sweep re-disables it on every run:
+-- an UPDATE per app per minute, each bumping apps.updated_at, which is the
+-- cursor GetDisabledAppIDsUpdatedSince feeds to the gateway manager's poll.
 -- name: GetAllUsageCreditsUsedBetween :many
-SELECT app_id, SUM(credits_used) FROM usage_records WHERE created_at BETWEEN @start_at AND @end_at GROUP BY app_id;
+SELECT u.app_id, SUM(u.credits_used) FROM usage_records u
+JOIN apps a ON a.id = u.app_id AND a.enabled
+WHERE u.created_at BETWEEN @start_at AND @end_at
+GROUP BY u.app_id;
 
--- name: DeleteUsageRecordsBefore :exec
-DELETE FROM usage_records WHERE created_at < @before_at;
+-- name: DeleteUsageRecordsBefore :execrows
+-- Batched so a large backlog doesn't hold one long transaction.
+DELETE FROM usage_records WHERE id IN (
+    SELECT expired.id FROM usage_records expired
+    WHERE expired.created_at < @before_at
+    LIMIT @batch_size
+);

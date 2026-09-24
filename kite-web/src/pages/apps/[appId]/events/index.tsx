@@ -1,5 +1,5 @@
 import AppLayout from "@/components/app/AppLayout";
-import EventListenerList from "@/components/app/EventListerList";
+import EventListenerList from "@/components/app/EventListenerList";
 import { Separator } from "@/components/ui/separator";
 import env from "@/lib/env/client";
 
