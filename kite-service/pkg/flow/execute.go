@@ -1248,6 +1248,46 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 
 		ctx.StoreNodeResult(n, val)
 		return n.ExecuteChildren(ctx)
+	case FlowNodeTypeActionVoiceChannelJoin:
+		channelTarget, err := ctx.EvalTemplate(n.Data.ChannelTarget)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		// The guild comes from the channel, so the block also works with voice
+		// channels of servers other than the one the flow runs in.
+		channel, err := ctx.Discord.Channel(ctx, discord.ChannelID(channelTarget.Snowflake()))
+		if err != nil {
+			return traceError(n, err)
+		}
+		if channel.Type != discord.GuildVoice && channel.Type != discord.GuildStageVoice {
+			return traceError(n, fmt.Errorf("channel %s is not a voice channel", channel.ID))
+		}
+
+		err = ctx.Discord.UpdateVoiceState(
+			ctx,
+			channel.GuildID,
+			channel.ID,
+			n.Data.VoiceSelfMute,
+			n.Data.VoiceSelfDeaf,
+		)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		return n.ExecuteChildren(ctx)
+	case FlowNodeTypeActionVoiceChannelLeave:
+		guildID := ctx.Data.GuildID()
+		if guildID == 0 {
+			return traceError(n, fmt.Errorf("leaving a voice channel only works in servers"))
+		}
+
+		err := ctx.Discord.UpdateVoiceState(ctx, guildID, 0, false, false)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		return n.ExecuteChildren(ctx)
 	case FlowNodeTypeActionHTTPRequest:
 		if n.Data.HTTPRequestData == nil {
 			return &FlowError{
