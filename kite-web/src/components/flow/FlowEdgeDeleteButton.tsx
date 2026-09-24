@@ -3,12 +3,18 @@ import {
   EdgeLabelRenderer,
   EdgeProps,
   getBezierPath,
+  Position,
+  useInternalNode,
   useReactFlow,
 } from "@xyflow/react";
 import { XIcon } from "lucide-react";
 
+const selfLoopOffset = 40;
+
 export default function FlowEdgeDeleteButton({
   id,
+  source,
+  target,
   sourceX,
   sourceY,
   targetX,
@@ -20,14 +26,30 @@ export default function FlowEdgeDeleteButton({
   selected,
 }: EdgeProps) {
   const { setEdges } = useReactFlow();
-  const [edgePath, labelX, labelY] = getBezierPath({
-    sourceX,
-    sourceY,
-    sourcePosition,
-    targetX,
-    targetY,
-    targetPosition,
-  });
+  const sourceNode = useInternalNode(source);
+
+  // A bezier from a node back to itself runs through the node, which hides the
+  // delete button behind it. Route it around the right side instead.
+  const [edgePath, labelX, labelY] =
+    source === target && sourceNode
+      ? getSelfLoopPath({
+          sourceX,
+          sourceY,
+          sourcePosition,
+          targetX,
+          targetY,
+          nodeRight:
+            sourceNode.internals.positionAbsolute.x +
+            (sourceNode.measured.width ?? 0),
+        })
+      : getBezierPath({
+          sourceX,
+          sourceY,
+          sourcePosition,
+          targetX,
+          targetY,
+          targetPosition,
+        });
 
   const onEdgeClick = () => {
     if (selected) {
@@ -62,4 +84,36 @@ export default function FlowEdgeDeleteButton({
       </EdgeLabelRenderer>
     </>
   );
+}
+
+function getSelfLoopPath({
+  sourceX,
+  sourceY,
+  sourcePosition,
+  targetX,
+  targetY,
+  nodeRight,
+}: {
+  sourceX: number;
+  sourceY: number;
+  sourcePosition: Position;
+  targetX: number;
+  targetY: number;
+  nodeRight: number;
+}): [string, number, number] {
+  const sideX = Math.max(nodeRight, sourceX, targetX) + selfLoopOffset;
+  const topY = targetY - selfLoopOffset / 2;
+  const bottomY =
+    sourcePosition === Position.Right ? sourceY : sourceY + selfLoopOffset / 2;
+
+  const path = [
+    `M ${sourceX},${sourceY}`,
+    `L ${sourceX},${bottomY}`,
+    `L ${sideX},${bottomY}`,
+    `L ${sideX},${topY}`,
+    `L ${targetX},${topY}`,
+    `L ${targetX},${targetY}`,
+  ].join(" ");
+
+  return [path, sideX, (topY + bottomY) / 2];
 }
