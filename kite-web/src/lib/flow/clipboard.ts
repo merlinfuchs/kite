@@ -57,14 +57,16 @@ export function parseFlowClipboard(text: string): FlowClipboard | null {
   return null;
 }
 
-// Creates fresh copies of the clipboard nodes with new IDs, moved so that
-// their top left corner is at the given position (or slightly offset from the
-// originals if none is given). Nodes rejected by
-// isAllowed are dropped together with their edges and owned children.
+// Creates fresh copies of the clipboard nodes with new IDs that don't collide
+// with takenIds (the IDs already in the flow). They are moved so that their top
+// left corner is at the given position, or slightly offset from the originals
+// if none is given. Nodes rejected by isAllowed are dropped together with
+// their edges and owned children.
 export function pasteFlowNodes(
   clipboard: FlowClipboard,
   position: XYPosition | null,
-  isAllowed: (type: string) => boolean = () => true
+  isAllowed: (type: string) => boolean = () => true,
+  takenIds: Iterable<string> = []
 ): [Node<NodeData>[], Edge[]] {
   const droppedIds = withOwnedChildren(
     clipboard.nodes.filter((n) => !isAllowed(n.type!)),
@@ -80,7 +82,17 @@ export function pasteFlowNodes(
 
   const target = position ?? { x: minX + 50, y: minY + 50 };
 
-  const newIds = new Map(sourceNodes.map((n) => [n.id, getNodeId()]));
+  // getNodeId picks from a small pool, so collisions with existing nodes are
+  // likely enough to matter when pasting into the same flow repeatedly.
+  const taken = new Set(takenIds);
+  const newIds = new Map(
+    sourceNodes.map((n) => {
+      let id = getNodeId();
+      while (taken.has(id)) id = getNodeId();
+      taken.add(id);
+      return [n.id, id];
+    })
+  );
 
   const nodes = sourceNodes.map((n) => ({
     id: newIds.get(n.id)!,

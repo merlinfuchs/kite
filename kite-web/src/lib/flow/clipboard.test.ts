@@ -1,7 +1,8 @@
 import { Edge, Node } from "@xyflow/react";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { copyFlowNodes, parseFlowClipboard, pasteFlowNodes } from "./clipboard";
 import { NodeData } from "./dataSchema";
+import * as nodesModule from "./nodes";
 
 function node(
   id: string,
@@ -91,6 +92,22 @@ describe("pasteFlowNodes", () => {
 
     expect(newNodes.map((n) => n.type)).toEqual(["action_log"]);
     expect(newEdges).toHaveLength(0);
+  });
+
+  it("never reuses taken or already assigned ids", () => {
+    const ids = ["taken", "fresh", "fresh", "other"];
+    const spy = vi
+      .spyOn(nodesModule, "getNodeId")
+      .mockImplementation(() => ids.shift()!);
+
+    const clipboard = copyFlowNodes(
+      [node("a", "action_log", true), node("b", "action_log", true)],
+      []
+    )!;
+    const [newNodes] = pasteFlowNodes(clipboard, null, undefined, ["taken"]);
+    spy.mockRestore();
+
+    expect(newNodes.map((n) => n.id)).toEqual(["fresh", "other"]);
   });
 
   it("offsets from the originals without a position", () => {
