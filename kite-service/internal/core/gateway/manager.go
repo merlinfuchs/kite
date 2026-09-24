@@ -42,7 +42,7 @@ type GatewayManagerConfig struct {
 // Tune via gateway.start_interval. The trade is cold-start time against
 // outbound connection rate: at ~9k apps per cluster, 100ms means roughly 15
 // minutes to initiate them all, 10ms means about 90 seconds.
-const defaultStartInterval = 100 * time.Millisecond
+const defaultStartInterval = 10 * time.Millisecond
 
 type GatewayManager struct {
 	sync.Mutex
