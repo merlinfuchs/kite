@@ -2,22 +2,13 @@ import AppList from "@/components/app/AppList";
 import BaseLayout from "@/components/common/BaseLayout";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { useAuthLogoutMutation } from "@/lib/api/mutations";
 import { useUser } from "@/lib/hooks/api";
+import { useLogout } from "@/lib/hooks/auth";
 import { LogOutIcon } from "lucide-react";
-import { useRouter } from "next/router";
-import { useCallback } from "react";
 
 export default function AppListPage() {
-  const router = useRouter();
   const user = useUser();
-
-  const logoutMutation = useAuthLogoutMutation();
-
-  const logout = useCallback(() => {
-    router.push("/");
-    setTimeout(() => logoutMutation.mutate(), 500);
-  }, [logoutMutation, router]);
+  const logout = useLogout();
 
   return (
     <BaseLayout title="Apps">
