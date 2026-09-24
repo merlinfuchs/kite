@@ -15,6 +15,9 @@ import {
   type Emoji,
   type Message,
   type MessageAttachment,
+  type MessageComponent,
+  type MessageComponentActionRow,
+  type MessageComponentButton,
   type MessageComponentButtonStyle,
   type UnfurledMediaItem,
 } from "./schema";
@@ -25,7 +28,9 @@ import {
   childSlots,
   fromMessage,
   setChildIds,
+  toMessage,
 } from "./documentConvert";
+import { parseMessageData } from "./schemaRestore";
 
 export type NodeId = string;
 
@@ -445,9 +450,18 @@ export const createDocumentStore = (
           clear: () => set(fromMessage(emptyMessage)),
 
           // The two modes cannot hold each other's content, so the toggle
-          // replaces the message rather than editing it.
-          setComponentsV2: (enabled) =>
-            set(fromMessage(enabled ? emptyComponentsV2Message : emptyMessage)),
+          // replaces the message and only carries over what flows are wired to.
+          setComponentsV2: (enabled) => {
+            const rows = interactiveRows(toMessage(get()).message.components);
+            set(
+              fromMessage(
+                parseMessageData({
+                  ...(enabled ? emptyComponentsV2Message : emptyMessage),
+                  components: rows,
+                })
+              )
+            );
+          },
         }),
         {
           limit: 10,
@@ -460,6 +474,49 @@ export const createDocumentStore = (
       )
     )
   );
+
+/**
+ * The buttons and select menus of a message as top-level action rows, which
+ * both modes can hold. Rows are kept as they are and section accessories are
+ * packed into new rows. Ids and flow source ids are untouched, so flows stay
+ * wired to them when the message is switched between modes.
+ */
+function interactiveRows(
+  components: MessageComponent[]
+): MessageComponentActionRow[] {
+  const rows: MessageComponentActionRow[] = [];
+  let loose: MessageComponentButton[] = [];
+
+  function flushLoose() {
+    for (let i = 0; i < loose.length; i += 5) {
+      rows.push({
+        id: getUniqueId(),
+        type: 1,
+        components: loose.slice(i, i + 5),
+      });
+    }
+    loose = [];
+  }
+
+  function walk(component: MessageComponent) {
+    switch (component.type) {
+      case 1:
+        flushLoose();
+        rows.push(component);
+        break;
+      case 9:
+        if (component.accessory?.type === 2) loose.push(component.accessory);
+        break;
+      case 17:
+        component.components.forEach(walk);
+        break;
+    }
+  }
+
+  components.forEach(walk);
+  flushLoose();
+  return rows;
+}
 
 /**
  * Children a node can't be valid without, created along with it so every way

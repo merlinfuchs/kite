@@ -13,7 +13,7 @@ export default function MessageComponentsV2Toggle() {
           ? "Switch back to content and embeds?"
           : "Switch to components v2?"
       }
-      description="The two formats can't share content, so this will clear the message."
+      description="The two formats can't share content, so this will clear the message. Buttons and select menus are kept along with their flows."
       onConfirm={() => setComponentsV2(!enabled)}
     >
       <button className="flex bg-muted p-1 rounded-lg text-sm font-medium text-muted-foreground">

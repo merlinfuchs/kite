@@ -225,6 +225,58 @@ test("setComponentsV2 toggles the flag", () => {
   expect((root().flags ?? 0) & COMPONENTS_V2_FLAG).toBe(COMPONENTS_V2_FLAG);
 });
 
+test("setComponentsV2 keeps buttons and their flows", () => {
+  const buttons = () =>
+    nodeIdsOfType("button")
+      .map((id) => {
+        const button = state().nodes[id] as ButtonNode;
+        return `${button.discordId}:${button.flow_source_id}`;
+      })
+      .sort();
+  const before = buttons();
+
+  state().setComponentsV2(false);
+
+  const { message } = toMessage(state());
+  expect(message.components.map((c) => c.type)).toEqual([1, 1]);
+  expect(nodeIdsOfType("textDisplay")).toEqual([]);
+  expect(buttons()).toEqual(before);
+
+  state().setComponentsV2(true);
+
+  expect(root().flags).toBe(COMPONENTS_V2_FLAG);
+  expect(buttons()).toEqual(before);
+});
+
+test("setComponentsV2 keeps select menus with their options", () => {
+  state().replaceAll(
+    parseMessageData({
+      content: "Pick",
+      embeds: [{ description: "Embed" }],
+      components: [
+        {
+          type: 1,
+          components: [
+            {
+              type: 3,
+              flow_source_id: "menu-flow",
+              options: [{ label: "A" }, { label: "B" }],
+            },
+          ],
+        },
+      ],
+    })
+  );
+
+  state().setComponentsV2(true);
+
+  const menu = state().nodes[nodeIdsOfType("selectMenu")[0]] as SelectMenuNode;
+  expect(menu.flow_source_id).toBe("menu-flow");
+  expect(menu.optionIds).toHaveLength(2);
+  expect(root().content).toBe("");
+  expect(root().embedIds).toEqual([]);
+});
+
 test("replaceAll swaps the whole document", () => {
   state().replaceAll(parseMessageData({ content: "Replaced" }));
 
