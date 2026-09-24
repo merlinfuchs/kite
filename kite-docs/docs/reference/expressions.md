@@ -107,6 +107,14 @@ If the select menu allows picking more than one option, this will return true if
 {{ "option-a" in interaction.values }}
 ```
 
+### Check User Creation Date
+
+This will show when the user's account was created, as a Discord timestamp.
+
+```python
+<t:{{ floor(((int(user.id) / 4194304) + 1420070400000) / 1000) }}:f>
+```
+
 ### Do Some Math
 
 This will return the result of the expression.
@@ -121,4 +129,24 @@ This will return the value of the `somefield` field in the JSON response of a HT
 
 ```python
 {{ result('owlspush').data().somefield }}
+```
+
+### Timestamps
+
+Discord timestamps are shown in the local timezone of whoever reads the message. Wrap a Unix timestamp in `<t:...:style>` and pick one of the styles below.
+
+```python
+<t:{{ now().Unix() }}:t> # Short time, like 5:36 PM
+<t:{{ now().Unix() }}:T> # Long time, like 5:36:12 PM
+<t:{{ now().Unix() }}:d> # Short date, like 01/02/2026
+<t:{{ now().Unix() }}:D> # Long date, like January 2, 2026
+<t:{{ now().Unix() }}:f> # Short date and time, like January 2, 2026 5:36 PM
+<t:{{ now().Unix() }}:F> # Long date and time, like Friday, January 2, 2026 5:36 PM
+<t:{{ now().Unix() }}:R> # Relative time, like 2 minutes ago
+```
+
+This will show a countdown that ends one hour from now.
+
+```python
+<t:{{ now().Add(duration("1h")).Unix() }}:R>
 ```
