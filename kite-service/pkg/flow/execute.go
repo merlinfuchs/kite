@@ -1598,7 +1598,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 		case ComparsionModeEqual:
 			conditionMet = baseValue.Equals(&itemValue)
 		case ComparsionModeNotEqual:
-			conditionMet = baseValue.Equals(&itemValue)
+			conditionMet = !baseValue.Equals(&itemValue)
 		case ComparsionModeGreaterThan:
 			conditionMet = baseValue.GreaterThan(&itemValue)
 		case ComparsionModeGreaterThanOrEqual:
@@ -1650,7 +1650,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 		case ComparsionModeEqual:
 			conditionMet = baseValue.Equals(&itemValue)
 		case ComparsionModeNotEqual:
-			conditionMet = baseValue.Equals(&itemValue)
+			conditionMet = !baseValue.Equals(&itemValue)
 		case ComparsionModeHasRole:
 			member := baseValue.DiscordMember()
 			if !member.User.ID.IsValid() {

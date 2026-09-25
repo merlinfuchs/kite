@@ -211,3 +211,78 @@ func TestFlowExecuteModalEvaluatesTemplates(t *testing.T) {
 	assert.Equal(t, "Placeholder 4", input.Placeholder)
 	assert.Equal(t, "Value 5", input.Value)
 }
+
+func TestFlowExecuteConditionCompareEquality(t *testing.T) {
+	tests := []struct {
+		name      string
+		mode      ComparsionMode
+		itemValue string
+		expected  bool
+	}{
+		{name: "equal match", mode: ComparsionModeEqual, itemValue: "a", expected: true},
+		{name: "equal mismatch", mode: ComparsionModeEqual, itemValue: "b", expected: false},
+		{name: "not equal match", mode: ComparsionModeNotEqual, itemValue: "a", expected: false},
+		{name: "not equal mismatch", mode: ComparsionModeNotEqual, itemValue: "b", expected: true},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			defer cancel()
+
+			discordProvider := &TestDiscordProvider{}
+
+			c := NewContext(
+				ctx,
+				5*time.Second,
+				&TestContextData{},
+				FlowProviders{
+					Discord: discordProvider,
+					Log:     &provider.MockLogProvider{},
+				}, FlowContextLimits{
+					MaxStackDepth: 10,
+					MaxOperations: 1000,
+					MaxCredits:    1000,
+				},
+				eval.NewContext(eval.Env{}),
+				nil,
+			)
+			defer c.Cancel()
+
+			condition := &CompiledFlowNode{
+				ID:   "1",
+				Type: FlowNodeTypeControlConditionCompare,
+				Data: FlowNodeData{ConditionBaseValue: "a"},
+			}
+			item := &CompiledFlowNode{
+				ID:   "2",
+				Type: FlowNodeTypeControlConditionItemCompare,
+				Data: FlowNodeData{
+					ConditionItemMode:  test.mode,
+					ConditionItemValue: test.itemValue,
+				},
+				Parents: ConnectedFlowNodes{Default: []*CompiledFlowNode{condition}},
+				Children: ConnectedFlowNodes{
+					Default: []*CompiledFlowNode{{
+						ID:   "3",
+						Type: FlowNodeTypeActionResponseCreate,
+						Data: FlowNodeData{
+							MessageData: &message.MessageData{Content: "met"},
+						},
+					}},
+				},
+			}
+			condition.Children.Default = []*CompiledFlowNode{item}
+
+			node := CompiledFlowNode{
+				ID:       "0",
+				Type:     FlowNodeTypeEntryCommand,
+				Children: ConnectedFlowNodes{Default: []*CompiledFlowNode{condition}},
+			}
+
+			err := node.Execute(c)
+			require.NoError(t, err)
+			assert.Equal(t, test.expected, discordProvider.response.Data != nil)
+		})
+	}
+}
