@@ -189,9 +189,8 @@ export default memo(function FlowAIChat({
             </p>
             <p>
               Each message that changes the flow uses one prompt. Answers
-              without changes, like questions the AI asks back, and fixes of
-              its own changes are free. Start a new chat for unrelated
-              changes.
+              without changes, like questions the AI asks back, and fixes of its
+              own changes are free. Start a new chat for unrelated changes.
             </p>
           </div>
         )}
