@@ -1,0 +1,1 @@
+DROP INDEX CONCURRENTLY IF EXISTS commands_enabled_id;

@@ -1,1 +1,0 @@
-DROP INDEX CONCURRENTLY IF EXISTS event_listeners_enabled_scheduled;

@@ -1,0 +1,1 @@
+DROP INDEX CONCURRENTLY IF EXISTS event_listeners_enabled_source_id;
