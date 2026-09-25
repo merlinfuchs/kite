@@ -614,7 +614,13 @@ func (p *AIProvider) CreateResponse(ctx context.Context, opts provider.CreateRes
 		return "", fmt.Errorf("failed to create response: %w", err)
 	}
 
-	return resp.OutputText(), nil
+	// Reasoning can use up the whole token budget and leave no answer, which
+	// would otherwise pass as an empty but successful one.
+	text := resp.OutputText()
+	if text == "" && resp.Status == responses.ResponseStatusIncomplete {
+		return "", fmt.Errorf("response incomplete: %s", resp.IncompleteDetails.Reason)
+	}
+	return text, nil
 }
 
 // Variable IDs come from user-authored flow data, so lookups are scoped to the app.

@@ -1485,8 +1485,8 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 		}
 
 		maxAnswerTokens := aiMaxAnswerTokens
-		if n := int(maxCompletionTokens.Int()); n > 0 && n < maxAnswerTokens {
-			maxAnswerTokens = n
+		if limit := int(maxCompletionTokens.Int()); limit > 0 && limit < maxAnswerTokens {
+			maxAnswerTokens = limit
 		}
 
 		opts := provider.CreateResponseOpts{

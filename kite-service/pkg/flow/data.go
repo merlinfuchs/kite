@@ -657,8 +657,8 @@ func AICreditsCost(model string, webSearch bool) int {
 
 func (d AIChatCompletionData) Validate() error {
 	return validation.ValidateStruct(&d,
-		validation.Field(&d.Model, validation.By(func(any) error {
-			if _, ok := resolveAIModel(d.Model); !ok {
+		validation.Field(&d.Model, validation.By(func(value any) error {
+			if _, ok := resolveAIModel(value.(string)); !ok {
 				return errors.New("unsupported model")
 			}
 			return nil
