@@ -22,6 +22,11 @@ export interface EvalCase {
   types?: string[];
   // Whether a block's output for a button or select menu must be used.
   componentBranch?: boolean;
+  // The app's stored variables.
+  variables?: { id: string; name: string; scoped: boolean }[];
+  // For questions: whether the answer should suggest a change, which is then
+  // sent as the next prompt and has to build.
+  thenBuild?: boolean;
 }
 
 const channelId = "123456789012345678";
@@ -142,9 +147,10 @@ export const evalCases: EvalCase[] = [
     name: "usage counter",
     context: "command",
     flow: command("count"),
-    // Counting needs a stored variable, which is created outside the flow.
     prompt: "count how many times this command was used and show the number",
-    route: ["clarify", "answer"],
+    variables: [{ id: "8f3kd02", name: "command uses", scoped: false }],
+    route: ["build"],
+    types: ["action_variable_set", "action_response_create"],
   },
   {
     name: "german random number",
@@ -183,7 +189,10 @@ export const evalCases: EvalCase[] = [
     prompt:
       "Send a random cat picture from the api https://api.thecatapi.com/v1/images/search",
     route: ["build"],
-    types: ["action_http_request", "action_response_create"],
+    types: [
+      "action_http_request",
+      "action_response_create|action_response_edit",
+    ],
   },
   {
     name: "ask ai",
@@ -212,6 +221,14 @@ export const evalCases: EvalCase[] = [
     route: ["answer"],
   },
   {
+    name: "question cooldown",
+    context: "command",
+    flow: command("daily"),
+    prompt: "How could I stop people from spamming this command?",
+    route: ["answer"],
+    thenBuild: true,
+  },
+  {
     name: "question placeholders",
     context: "command",
     flow: command("hello"),
@@ -226,6 +243,15 @@ export const evalCases: EvalCase[] = [
     flow: banFlow,
     prompt: "What does this command do?",
     route: ["answer"],
+  },
+  {
+    name: "ban question dm",
+    context: "command",
+    flow: banFlow,
+    prompt: "Is there a way to tell the banned person why they got banned?",
+    route: ["answer"],
+    thenBuild: true,
+    types: ["action_private_message_create"],
   },
   {
     name: "ban log reason",
@@ -351,8 +377,9 @@ export const evalCases: EvalCase[] = [
     name: "welcome question",
     context: "event_discord",
     flow: welcomeFlow,
+    // Fixing what's wrong is fine too.
     prompt: "why isnt my welcome message showing up??",
-    route: ["answer"],
+    route: ["answer", "build"],
   },
   {
     name: "ai one channel",
@@ -411,8 +438,10 @@ export const evalCases: EvalCase[] = [
     name: "button counter",
     context: "component_button",
     flow: button,
+    // Without a stored variable, the AI leaves picking one to the user.
     prompt: "reply with how many times the button was clicked",
-    route: ["clarify", "answer"],
+    route: ["build"],
+    types: ["action_variable_set", "action_response_create"],
   },
   {
     name: "button feedback modal",

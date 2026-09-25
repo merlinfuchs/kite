@@ -17,6 +17,9 @@ WHERE variables.app_id = $1
 GROUP BY variables.id
 ORDER BY variables.created_at DESC;
 
+-- name: GetVariablesByAppWithoutTotals :many
+SELECT * FROM variables WHERE app_id = $1 ORDER BY created_at DESC;
+
 -- name: CountVariablesByApp :one
 SELECT COUNT(*) FROM variables WHERE app_id = $1;
 

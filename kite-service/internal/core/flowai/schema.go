@@ -5,11 +5,15 @@ package flowai
 var outputSchema = map[string]any{
 	"type":                 "object",
 	"additionalProperties": false,
-	"required":             []string{"message", "edits"},
+	"required":             []string{"message", "edits", "build_prompt"},
 	"properties": map[string]any{
 		"message": map[string]any{
 			"type":        "string",
-			"description": "Short answer to the user.",
+			"description": "Answer to the user, in Markdown.",
+		},
+		"build_prompt": map[string]any{
+			"type":        []string{"string", "null"},
+			"description": "When answering without edits and suggesting a change: the request to make it, in the user's words.",
 		},
 		"edits": map[string]any{
 			"type": "array",

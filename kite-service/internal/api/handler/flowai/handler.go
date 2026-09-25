@@ -31,17 +31,24 @@ const repairWindow = time.Hour
 // so the AI can't be used as a free chatbot.
 const answerLimitFactor = 3
 
+// VariableStore is what the handler needs of store.VariableStore.
+type VariableStore interface {
+	VariablesByAppWithoutTotals(ctx context.Context, appID string) ([]*model.Variable, error)
+}
+
 type FlowAIHandler struct {
-	promptStore store.FlowAIPromptStore
+	promptStore   store.FlowAIPromptStore
+	variableStore VariableStore
 	// assistant is nil if no OpenAI API key is configured.
 	assistant  Assistant
 	maxRepairs int
 }
 
-func NewFlowAIHandler(promptStore store.FlowAIPromptStore, assistant *flowai.Assistant, maxRepairs int) *FlowAIHandler {
+func NewFlowAIHandler(promptStore store.FlowAIPromptStore, variableStore VariableStore, assistant *flowai.Assistant, maxRepairs int) *FlowAIHandler {
 	h := &FlowAIHandler{
-		promptStore: promptStore,
-		maxRepairs:  maxRepairs,
+		promptStore:   promptStore,
+		variableStore: variableStore,
+		maxRepairs:    maxRepairs,
 	}
 	// A nil pointer in the interface wouldn't compare equal to nil.
 	if assistant != nil {
@@ -73,6 +80,12 @@ func (h *FlowAIHandler) HandleFlowAIChat(c *handler.Context, req wire.FlowAIChat
 	// The prompt is recorded, and counted as edited, before the model is
 	// called, so concurrent requests can't all pass the limits.
 	now := time.Now().UTC()
+	// Loaded before the prompt is recorded, so failing doesn't use it up.
+	variables, err := h.variableStore.VariablesByAppWithoutTotals(c.Context(), c.App.ID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get variables: %w", err)
+	}
+
 	isRepair := req.RepairPromptID != ""
 	var prompt *model.FlowAIPrompt
 	if isRepair {
@@ -127,11 +140,12 @@ func (h *FlowAIHandler) HandleFlowAIChat(c *handler.Context, req wire.FlowAIChat
 	}
 
 	res, err := h.assistant.Respond(c.Context(), flowai.Request{
-		Flow:     req.Flow,
-		Messages: messages,
-		Issues:   req.Issues,
-		AppID:    c.App.ID,
-		UserID:   c.Session.UserID,
+		Flow:      req.Flow,
+		Messages:  messages,
+		Issues:    req.Issues,
+		Variables: variables,
+		AppID:     c.App.ID,
+		UserID:    c.Session.UserID,
 	})
 	// Answers without edits don't count. Ones that can't be used do, as they
 	// cost as much, and so do ones whose edits were all invalid, as they are
@@ -164,11 +178,12 @@ func (h *FlowAIHandler) HandleFlowAIChat(c *handler.Context, req wire.FlowAIChat
 	}
 
 	return &wire.FlowAIChatResponse{
-		PromptID: prompt.ID,
-		Message:  res.Message,
-		Edits:    res.Edits,
-		Issues:   res.Issues,
-		Usage:    wire.FlowAIUsage{PromptsUsed: used, PromptsLimit: limit},
+		PromptID:    prompt.ID,
+		Message:     res.Message,
+		BuildPrompt: res.BuildPrompt,
+		Edits:       res.Edits,
+		Issues:      res.Issues,
+		Usage:       wire.FlowAIUsage{PromptsUsed: used, PromptsLimit: limit},
 	}, nil
 }
 

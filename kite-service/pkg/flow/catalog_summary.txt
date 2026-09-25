@@ -38,9 +38,9 @@
 - Add member to thread: Add a member to a thread. Needs channel_target (ID of the thread), user_target (ID of the user)
 - Remove member from thread: Remove a member from a thread. Needs channel_target (ID of the thread), user_target (ID of the user)
 - Get user: Get a user by ID. Needs user_target (ID of the user)
-- Delete stored variable: Delete the value of a stored variable. Needs variable_id (ID of an existing stored variable)
-- Get stored variable: Get the value of a stored variable. Needs variable_id (ID of an existing stored variable)
-- Set stored variable: Set the value of a stored variable. Needs variable_id (ID of an existing stored variable), variable_value (Value to store), variable_operation (How the value is combined with the stored one. increment and decrement add or subtract a number)
+- Delete stored variable: Delete the value of a stored variable
+- Get stored variable: Get the value of a stored variable
+- Set stored variable: Set the value of a stored variable. Needs variable_value (Value to store), variable_operation (How the value is combined with the stored one. increment and decrement add or subtract a number)
 - Join voice channel: Bot joins a voice channel. Needs channel_target (ID of the voice channel to join)
 - Leave voice channel: Bot leaves its voice channel in a server
 - Channel Condition: Run actions based on a channel.. Needs condition_base_value (ID of the channel that each branch checks)

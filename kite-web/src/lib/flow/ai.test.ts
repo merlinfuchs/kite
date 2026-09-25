@@ -30,6 +30,7 @@ function fakeAPI(
       data: {
         prompt_id: "p1",
         message: requests.length === 1 ? "Added a log." : "",
+        build_prompt: "",
         edits: typeof round === "function" ? round(req) : round,
         issues: [],
         usage,
@@ -204,6 +205,26 @@ describe("runFlowAIPrompt", () => {
       })
     ).rejects.toThrow();
     expect(api.requests).toHaveLength(1);
+  });
+
+  it("leaves settings the user picks, like stored variables", async () => {
+    const api = fakeAPI([
+      [
+        {
+          op: "add_node",
+          ref: "$set",
+          type: "action_variable_set",
+          after: "entry",
+          data: { variable_operation: "increment", variable_value: "1" },
+        },
+      ],
+    ]);
+
+    const res = await run(api);
+
+    // The missing variable_id isn't sent back to be repaired.
+    expect(api.requests).toHaveLength(1);
+    expect(res.issues).toEqual([]);
   });
 
   it("throws if the prompt fails", async () => {
