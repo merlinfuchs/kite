@@ -214,7 +214,12 @@ func parseOutput(text string) (*Response, error) {
 		return nil, errors.Join(&ErrResponse{Message: "The AI's answer couldn't be read. Please try again."}, err)
 	}
 
-	res := &Response{Message: out.Message, Edits: make([]map[string]any, 0, len(out.Edits))}
+	// Empty rather than nil, so they are sent as [] rather than null.
+	res := &Response{
+		Message: out.Message,
+		Edits:   make([]map[string]any, 0, len(out.Edits)),
+		Issues:  []string{},
+	}
 	for i, e := range out.Edits {
 		edit, err := e.toEdit()
 		if err != nil {

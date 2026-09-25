@@ -80,7 +80,8 @@ func TestRespond(t *testing.T) {
 		"after": "entry",
 		"data":  map[string]any{"log_level": "info", "log_message": "hi"},
 	}}, res.Edits)
-	assert.Empty(t, res.Issues)
+	// Sent as [] rather than null, which the editor can't iterate.
+	assert.Equal(t, []string{}, res.Issues)
 	assert.Equal(t, model.FlowAIUsage{InputTokens: 1000, CachedInputTokens: 800, OutputTokens: 200}, res.Usage)
 
 	req := *body
