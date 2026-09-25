@@ -17,6 +17,7 @@ import (
 type catalogSchema struct {
 	Properties map[string]*catalogSchema `json:"properties"`
 	Items      *catalogSchema            `json:"items"`
+	Enum       []any                     `json:"enum"`
 }
 
 func loadCatalog(t *testing.T) map[string]*catalogSchema {

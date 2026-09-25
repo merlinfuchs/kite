@@ -12,12 +12,11 @@ type AIProvider interface {
 type CreateResponseOpts struct {
 	Model           string
 	ReasoningEffort string
-	// ReasoningTokens is added to MaxOutputTokens, which only caps the answer.
-	ReasoningTokens int
 	SystemPrompt    string
 	Prompt          string
 	Tools           []AIToolType
 	MaxToolCalls    int
+	// MaxOutputTokens includes reasoning tokens.
 	MaxOutputTokens int
 }
 

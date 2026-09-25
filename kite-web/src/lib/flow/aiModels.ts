@@ -1,28 +1,30 @@
+import { AIModelLarge, AIModelMedium, AIModelSmall } from "../types/flow.gen";
+
 // AI blocks store a tier, not a model, so the service can point a tier at a
 // different model without touching stored flows. Mirrors aiModelTiers in
 // kite-service/pkg/flow/data.go; update the model names here when it changes.
 export const aiModelTiers = [
   {
-    value: "small",
+    value: AIModelSmall,
     label: "Fast",
     model: "gpt-6-luna",
     credits: { chat: 5, search: 25 },
   },
   {
-    value: "medium",
+    value: AIModelMedium,
     label: "Balanced",
     model: "gpt-6-luna with reasoning",
     credits: { chat: 20, search: 100 },
   },
   {
-    value: "large",
+    value: AIModelLarge,
     label: "Smartest",
     model: "gpt-6-sol",
     credits: { chat: 100, search: 500 },
   },
 ] as const;
 
-export type AiModelTier = (typeof aiModelTiers)[number]["value"];
+type AiModelTier = (typeof aiModelTiers)[number]["value"];
 
 export const aiModelTierValues = aiModelTiers.map((t) => t.value) as [
   AiModelTier,
@@ -32,11 +34,11 @@ export const aiModelTierValues = aiModelTiers.map((t) => t.value) as [
 // What flows stored before tiers existed. A block keeps its old value until
 // someone edits it.
 const legacyAiModels = new Map<unknown, AiModelTier>([
-  ["gpt-4o-mini", "small"],
-  ["gpt-4.1-nano", "small"],
-  ["gpt-5-nano", "small"],
-  ["gpt-4.1-mini", "medium"],
-  ["gpt-4.1", "large"],
+  ["gpt-4o-mini", AIModelSmall],
+  ["gpt-4.1-nano", AIModelSmall],
+  ["gpt-5-nano", AIModelSmall],
+  ["gpt-4.1-mini", AIModelMedium],
+  ["gpt-4.1", AIModelLarge],
 ]);
 
 export function resolveAiModel(model: unknown): unknown {
@@ -44,11 +46,17 @@ export function resolveAiModel(model: unknown): unknown {
   return legacyAiModels.get(model) ?? model;
 }
 
-// Unknown models are priced like the most expensive tier, as the service does.
 export function getAiModelTier(model: unknown) {
-  const value = resolveAiModel(model) ?? "small";
-  return (
-    aiModelTiers.find((t) => t.value === value) ??
-    aiModelTiers[aiModelTiers.length - 1]
-  );
+  const value = resolveAiModel(model) ?? AIModelSmall;
+  return aiModelTiers.find((t) => t.value === value);
+}
+
+// Unknown models are priced at the ceiling of each field, as the service does.
+const maxAiModelCredits = {
+  chat: Math.max(...aiModelTiers.map((t) => t.credits.chat)),
+  search: Math.max(...aiModelTiers.map((t) => t.credits.search)),
+};
+
+export function getAiModelCredits(model: unknown, kind: "chat" | "search") {
+  return (getAiModelTier(model)?.credits ?? maxAiModelCredits)[kind];
 }

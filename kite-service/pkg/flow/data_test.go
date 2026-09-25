@@ -1,14 +1,12 @@
 package flow
 
 import (
-	"encoding/json"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
-func TestAIModelAllowed(t *testing.T) {
+func TestResolveAIModel(t *testing.T) {
 	allowed := []string{
 		"", // unset
 		AIModelSmall,
@@ -22,14 +20,14 @@ func TestAIModelAllowed(t *testing.T) {
 		"gpt-5-nano",
 	}
 	for _, model := range allowed {
-		if !AIModelAllowed(model) {
+		if _, ok := resolveAIModel(model); !ok {
 			t.Errorf("model %q should be allowed", model)
 		}
 	}
 
 	denied := []string{"o3", "gpt-4.5-preview", "gpt-5", "gpt-6-luna", "../etc/passwd"}
 	for _, model := range denied {
-		if AIModelAllowed(model) {
+		if _, ok := resolveAIModel(model); ok {
 			t.Errorf("model %q should not be allowed", model)
 		}
 	}
@@ -76,7 +74,7 @@ func TestAICreditsCostKnownModels(t *testing.T) {
 func TestAICreditsCostUnknownModelPricesAtCeiling(t *testing.T) {
 	const unknown = "some-future-expensive-model"
 
-	if AIModelAllowed(unknown) {
+	if _, ok := resolveAIModel(unknown); ok {
 		t.Fatal("setup: model is supposed to be unknown")
 	}
 
@@ -100,24 +98,9 @@ func TestAIModelAliasesPointAtTiers(t *testing.T) {
 
 // The editor only offers what the catalog lists, so it has to match the tiers.
 func TestCatalogAIModelsMatchTiers(t *testing.T) {
-	var catalog struct {
-		Nodes map[string]struct {
-			DataSchema struct {
-				Properties struct {
-					AIChatCompletionData struct {
-						Properties struct {
-							Model struct {
-								Enum []string `json:"enum"`
-							} `json:"model"`
-						} `json:"properties"`
-					} `json:"ai_chat_completion_data"`
-				} `json:"properties"`
-			} `json:"data_schema"`
-		} `json:"nodes"`
-	}
-	require.NoError(t, json.Unmarshal(CatalogJSON, &catalog))
+	catalog := loadCatalog(t)
 
-	tiers := make([]string, 0, len(aiModelTiers))
+	tiers := make([]any, 0, len(aiModelTiers))
 	for tier := range aiModelTiers {
 		tiers = append(tiers, tier)
 	}
@@ -126,9 +109,8 @@ func TestCatalogAIModelsMatchTiers(t *testing.T) {
 		FlowNodeTypeActionAIChatCompletion,
 		FlowNodeTypeActionAISearchWeb,
 	} {
-		node, ok := catalog.Nodes[string(nodeType)]
-		require.True(t, ok, nodeType)
-		assert.ElementsMatch(t, tiers, node.DataSchema.Properties.AIChatCompletionData.Properties.Model.Enum, nodeType)
+		model := catalog[string(nodeType)].Properties["ai_chat_completion_data"].Properties["model"]
+		assert.ElementsMatch(t, tiers, model.Enum, nodeType)
 	}
 }
 

@@ -3,6 +3,7 @@ package flow
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"regexp"
 
 	"github.com/diamondburned/arikawa/v3/api"
@@ -548,49 +549,58 @@ type AIChatCompletionData struct {
 	MaxCompletionTokens string `json:"max_completion_tokens,omitempty"`
 }
 
-// AI blocks store a tier rather than a model, so the model behind a tier can
-// be swapped for a newer or cheaper one without touching stored flows.
 const (
 	AIModelSmall  = "small"
 	AIModelMedium = "medium"
 	AIModelLarge  = "large"
 )
 
-type AIModelTier struct {
+type aiModelTier struct {
 	Model           string
 	ReasoningEffort string
 	// ReasoningTokens is allowed on top of the answer's token cap, since
 	// reasoning counts towards it and would otherwise crowd out the answer.
 	ReasoningTokens int
-	// Credits for a plain completion versus one with web search.
+	aiModelCost
+}
+
+// Credits for a plain completion versus one with web search.
+type aiModelCost struct {
 	Chat   int
 	Search int
 }
 
+// aiMaxWebSearches bounds what one web search block costs, since every search
+// is billed per call. The tiers' Search credits assume it.
+const aiMaxWebSearches = 2
+
+// aiMaxAnswerTokens caps the answer, not counting a tier's ReasoningTokens.
+const aiMaxAnswerTokens = 500
+
+// AI blocks store a tier rather than a model, so the model behind a tier can
+// be swapped for a newer or cheaper one without touching stored flows.
+//
 // aiModelTiers is the single source of truth for both the save-time allowlist
 // and metering. Pricing used to be a switch with a cheap default arm, which
 // meant any model not named in it billed the tenant at the floor while the
 // operator paid the real rate on their own API key. A model swapped in here has
 // to fit its tier's credits; change the credits deliberately if it doesn't.
-var aiModelTiers = map[string]AIModelTier{
+var aiModelTiers = map[string]aiModelTier{
 	AIModelSmall: {
 		Model:           "gpt-6-luna",
 		ReasoningEffort: "none",
-		Chat:            5,
-		Search:          25,
+		aiModelCost:     aiModelCost{Chat: 5, Search: 25},
 	},
 	AIModelMedium: {
 		Model:           "gpt-6-luna",
 		ReasoningEffort: "low",
 		ReasoningTokens: 2000,
-		Chat:            20,
-		Search:          100,
+		aiModelCost:     aiModelCost{Chat: 20, Search: 100},
 	},
 	AIModelLarge: {
 		Model:           "gpt-6-sol",
 		ReasoningEffort: "none",
-		Chat:            100,
-		Search:          500,
+		aiModelCost:     aiModelCost{Chat: 100, Search: 500},
 	},
 }
 
@@ -607,8 +617,8 @@ var aiModelAliases = map[string]string{
 	"gpt-4.1":      AIModelLarge,
 }
 
-// ResolveAIModel returns the tier a stored model value runs as.
-func ResolveAIModel(model string) (AIModelTier, bool) {
+// resolveAIModel returns the tier a stored model value runs as.
+func resolveAIModel(model string) (aiModelTier, bool) {
 	if tier, ok := aiModelAliases[model]; ok {
 		model = tier
 	}
@@ -618,35 +628,14 @@ func ResolveAIModel(model string) (AIModelTier, bool) {
 
 // maxAIModelCost is the ceiling of aiModelTiers, taken per field so it does not
 // depend on one tier being the most expensive for both.
-var maxAIModelCost = func() AIModelTier {
-	var ceiling AIModelTier
+var maxAIModelCost = func() aiModelCost {
+	var ceiling aiModelCost
 	for _, t := range aiModelTiers {
 		ceiling.Chat = max(ceiling.Chat, t.Chat)
 		ceiling.Search = max(ceiling.Search, t.Search)
 	}
 	return ceiling
 }()
-
-// aiModelsAllowed is every tier and alias as validation.In wants them. The
-// empty string is left out because In treats an empty value as valid regardless.
-var aiModelsAllowed = func() []any {
-	models := make([]any, 0, len(aiModelTiers)+len(aiModelAliases))
-	for model := range aiModelTiers {
-		models = append(models, model)
-	}
-	for model := range aiModelAliases {
-		if model != "" {
-			models = append(models, model)
-		}
-	}
-	return models
-}()
-
-// AIModelAllowed reports whether a flow may run the given model.
-func AIModelAllowed(model string) bool {
-	_, ok := ResolveAIModel(model)
-	return ok
-}
 
 // AICreditsCost prices one AI node.
 //
@@ -655,20 +644,25 @@ func AIModelAllowed(model string) bool {
 // before it existed, or one embedded in a message, which the API does not
 // validate -- is over-charged rather than run for free.
 func AICreditsCost(model string, webSearch bool) int {
-	tier, ok := ResolveAIModel(model)
-	if !ok {
-		tier = maxAIModelCost
+	cost := maxAIModelCost
+	if tier, ok := resolveAIModel(model); ok {
+		cost = tier.aiModelCost
 	}
 
 	if webSearch {
-		return tier.Search
+		return cost.Search
 	}
-	return tier.Chat
+	return cost.Chat
 }
 
 func (d AIChatCompletionData) Validate() error {
 	return validation.ValidateStruct(&d,
-		validation.Field(&d.Model, validation.In(aiModelsAllowed...)),
+		validation.Field(&d.Model, validation.By(func(any) error {
+			if _, ok := resolveAIModel(d.Model); !ok {
+				return errors.New("unsupported model")
+			}
+			return nil
+		})),
 		validation.Field(&d.Prompt, validation.Required, validation.Length(1, 2000)),
 	)
 }
