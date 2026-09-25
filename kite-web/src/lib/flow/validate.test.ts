@@ -6,6 +6,7 @@ import { testEdge, testNode } from "./testUtils";
 import { createNode } from "./nodes";
 import { prepareTemplateFlow, getTemplates } from "./templates";
 import { validateFlow } from "./validate";
+import { ComponentData } from "../types/message.gen";
 
 const node = testNode;
 const edge = testEdge;
@@ -115,6 +116,25 @@ describe("validateFlow", () => {
         [edge("entry", "msg"), edge("msg", "a", "component_8")]
       )
     ).toEqual(["'Create response message' has no output 'component_8'."]);
+  });
+
+  it("checks the IDs of message components", () => {
+    const message = (components: ComponentData[]) =>
+      node("msg", "action_response_create", {
+        message_data: { components: [{ type: 1, components }] },
+      });
+    const button = (id?: number) => ({ id, type: 2, style: 1, label: "a" });
+    const link = { type: 2, style: 5, label: "a", url: "https://a.b" };
+
+    expect(errors([entry, message([button(1), button(2), link])], [])).toEqual(
+      []
+    );
+    expect(errors([entry, message([button(1), button(1)])], [])).toEqual([
+      "'Create response message' setting 'message_data.components': Two buttons or select menus have the id 1",
+    ]);
+    expect(errors([entry, message([button()])], [])).toEqual([
+      "'Create response message' setting 'message_data.components': Every button and select menu needs a number from 1 as id",
+    ]);
   });
 
   it("checks the blocks owned by conditions and loops", () => {

@@ -1,6 +1,8 @@
 import { Edge, Node, NodeProps as XYNodeProps } from "@xyflow/react";
 import z from "zod";
 import { FlowNodeData } from "../types/flow.gen";
+import { ComponentData } from "../types/message.gen";
+import { collectComponentGroups } from "./resume";
 
 const numericRegex = /^[0-9]+$/;
 const decimalRegex = /^[0-9]+(\.[0-9]+)?$/;
@@ -258,9 +260,38 @@ export const nodeMessageDataSchema = z
       .describe(
         "Which mentions ping. If unset, only mentioned users are pinged."
       ),
+    // Validated by the message editor like embeds, only the IDs the outputs
+    // are named after are checked here.
+    components: z
+      .array(z.record(z.unknown()))
+      .optional()
+      .describe(
+        "Buttons and select menus in action rows, see the instructions for their format."
+      ),
   })
-  // Components, flags and attachments are set through the message editor.
+  // Flags and attachments are set through the message editor.
   .passthrough()
+  .superRefine((data, ctx) => {
+    const seen = new Set<unknown>();
+    for (const component of collectComponentGroups(
+      (data.components ?? []) as ComponentData[]
+    ).flat()) {
+      if (!Number.isInteger(component.id) || component.id! < 1) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["components"],
+          message: "Every button and select menu needs a number from 1 as id",
+        });
+      } else if (seen.has(component.id)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["components"],
+          message: `Two buttons or select menus have the id ${component.id}`,
+        });
+      }
+      seen.add(component.id);
+    }
+  })
   .describe("The message to send.");
 
 // Message blocks send either an inline message or a saved template.
