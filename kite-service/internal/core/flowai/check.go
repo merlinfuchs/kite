@@ -142,7 +142,7 @@ Reply with verdict "send" if the flow AI can build something useful from the req
 
 Reply with verdict "clarify" only if the request is too vague to build anything useful, or needs something only the user knows, like a specific channel, role or user that isn't the one of the interaction. Then:
 - message: one or two short, friendly sentences about what's missing, in the user's language and in simple words.
-- suggested_prompt: the request rewritten to be clear and specific, in the user's language. Keep everything they asked for and add nothing they didn't. Refer to the fields instead of making up values, like "in the channel I picked below".
+- suggested_prompt: the request rewritten to be clear and specific, in the user's language. Keep everything they asked for and add nothing they didn't. Describe what the user wants in plain words, not how to build it: no block names, placeholders, IDs or settings, as the flow AI knows those better. Refer to the fields instead of making up values, like "in the channel I picked below".
 - fields: at most 4 inputs for the missing information. label is short, description helps to fill it in. Use type channel for a channel of the server, choice with options when there are a few sensible answers, and number or text otherwise. For a role or user, use text and explain in the description how to get its ID: turn on Developer Mode in Discord's settings, then right-click it and pick Copy ID. default is a suggested value, or empty.
 
 What the flow AI can build with, as blocks with the settings they need:`
