@@ -51,8 +51,13 @@ export default memo(function FlowAIChat({
   const [busy, setBusy] = useState(false);
 
   // Stops a running prompt when the editor is closed.
-  const abort = useRef(new AbortController());
-  useEffect(() => () => abort.current.abort(), []);
+  // Created in the effect, as React may unmount and mount it again.
+  const abort = useRef<AbortController>();
+  useEffect(() => {
+    const controller = new AbortController();
+    abort.current = controller;
+    return () => controller.abort();
+  }, []);
 
   const bottomRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -94,7 +99,7 @@ export default memo(function FlowAIChat({
           );
         },
         send: chat.mutateAsync,
-        signal: abort.current.signal,
+        signal: abort.current?.signal,
       });
       if (res.changedNodeIds.length > 0) {
         // Once the new blocks have been measured.
