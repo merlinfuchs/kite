@@ -1005,10 +1005,48 @@ export function getNodeTitle(node: { type?: string; data: NodeData }) {
 
 // The blocks an owner is created with and connected to, e.g. the items and
 // else branch of a condition.
+const ownedChildTypes = new Map<string, string[]>();
+
 export function getOwnedChildTypes(type: string) {
-  return createNode(type, { x: 0, y: 0 })[0]
-    .slice(1)
-    .map((n) => n.type!);
+  if (!ownedChildTypes.has(type)) {
+    ownedChildTypes.set(
+      type,
+      createNode(type, { x: 0, y: 0 })[0]
+        .slice(1)
+        .map((n) => n.type!)
+    );
+  }
+  return ownedChildTypes.get(type)!;
+}
+
+// The type of the branches of a condition, e.g. "control_condition_item_user".
+export function getConditionItemType(type: string): string | undefined {
+  return conditionChildType[type];
+}
+
+// No handle and "default" both mean a block's default output.
+export function normalizeHandle(handle?: string | null) {
+  return handle && handle !== "default" ? handle : null;
+}
+
+// Edges to the blocks a block owns are fixed, the rest can be deleted in the
+// editor like hand-drawn ones. Blocks that name their outputs, like the error
+// handler, render their default output with the ID "default", so edges have
+// to name it too.
+export function createEdge(
+  source: Node<NodeData>,
+  target: Node<NodeData>,
+  handle?: string | null
+): Edge {
+  const owned = getOwnedChildTypes(source.type!).includes(target.type!);
+  const namesDefault = getNodeValues(source.type!).outputs?.includes("default");
+  return {
+    id: getEdgeId(),
+    source: source.id,
+    target: target.id,
+    sourceHandle: normalizeHandle(handle) ?? (namesDefault ? "default" : null),
+    type: owned ? "fixed" : "delete_button",
+  };
 }
 
 // Options connect into the entry of commands and event listeners, nothing else

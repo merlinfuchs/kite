@@ -9,6 +9,7 @@ import {
   getNodeValues,
   getOwnedChildTypes,
   isKnownNodeType,
+  normalizeHandle,
   nodeTypes,
 } from "./nodes";
 import {
@@ -94,7 +95,7 @@ export function validateFlow(
 
   const connections = new Set<string>();
   for (const edge of edges) {
-    const connection = `${edge.source}:${edge.sourceHandle || "default"}:${
+    const connection = `${edge.source}:${normalizeHandle(edge.sourceHandle)}:${
       edge.target
     }`;
     if (connections.has(connection)) {
@@ -127,7 +128,7 @@ export function validateFlow(
     const target = knownById.get(edge.target);
     if (!source || !target) continue;
 
-    const handle = edge.sourceHandle || "default";
+    const handle = normalizeHandle(edge.sourceHandle) ?? "default";
 
     if (!canConnect(source.type!, target.type!)) {
       report(
