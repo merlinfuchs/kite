@@ -65,7 +65,9 @@ export function applyFlowEdits(
   const issues: FlowIssue[] = [];
   const added = new Set<string>();
 
-  const getNode = (id: string) => {
+  // Generated edits can leave out fields they need.
+  const getNode = (id: string | undefined, field: string) => {
+    if (!id) throw new Error(`${field} is missing.`);
     const resolved = id.startsWith("$") ? refs[id] : id;
     const node = nodes.find((n) => n.id === resolved);
     if (!node) throw new Error(`There is no block '${id}'.`);
@@ -160,8 +162,15 @@ export function applyFlowEdits(
             );
           }
 
-          const after = edit.after ? getNode(edit.after) : undefined;
-          const before = edit.before ? getNode(edit.before) : undefined;
+          let after = edit.after ? getNode(edit.after, "after") : undefined;
+          // Options aren't part of the chain of blocks, so a block added
+          // after one runs after the entry.
+          if (after?.type!.startsWith("option_")) {
+            after = nodes.find((n) => n.type!.startsWith("entry_"));
+          }
+          const before = edit.before
+            ? getNode(edit.before, "before")
+            : undefined;
           if (before && getOwnerTypes(before.type!).length > 0) {
             throw new Error(
               `'${edit.before}' belongs to another block, so nothing can be put in front of it. Add the block after it instead.`
@@ -216,14 +225,15 @@ export function applyFlowEdits(
           break;
         }
         case "update_node": {
-          const id = getNode(edit.id).id;
+          const id = getNode(edit.id, "id").id;
+          if (!isPlainObject(edit.data)) throw new Error("data is missing.");
           nodes = nodes.map((n) =>
             n.id === id ? { ...n, data: mergeData(n.data, edit.data) } : n
           );
           break;
         }
         case "remove_node": {
-          const node = getNode(edit.id);
+          const node = getNode(edit.id, "id");
           if (getNodeValues(node.type!).fixed) {
             throw new Error(
               `'${edit.id}' can't be removed on its own. Remove the block it belongs to instead.`
@@ -272,12 +282,27 @@ export function applyFlowEdits(
           break;
         }
         case "connect": {
-          connect(getNode(edit.source), getNode(edit.target), edit.handle);
+          const source = getNode(edit.source, "source");
+          const target = getNode(edit.target, "target");
+          if (!canConnect(source.type!, target.type!)) {
+            throw new Error(
+              source.type!.startsWith("option_") ||
+              target.type!.startsWith("option_")
+                ? "Options are connected to the entry block automatically."
+                : `Nothing can run before '${edit.target}'.`
+            );
+          }
+          connect(source, target, edit.handle);
           break;
         }
         case "disconnect": {
-          const source = getNode(edit.source);
-          const target = getNode(edit.target);
+          const source = getNode(edit.source, "source");
+          const target = getNode(edit.target, "target");
+          if (source.type!.startsWith("option_")) {
+            throw new Error(
+              "Options are always connected to the entry block. Remove the option instead."
+            );
+          }
           if (getOwnedChildTypes(source.type!).includes(target.type!)) {
             throw new Error(
               `'${edit.target}' belongs to '${edit.source}' and can't be disconnected. Remove it instead.`

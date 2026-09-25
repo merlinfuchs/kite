@@ -217,6 +217,7 @@ export interface BillingPlan {
   feature_rotating_status: boolean;
   feature_max_scheduled_event_listeners: number /* int */;
   feature_min_schedule_interval_seconds: number /* int */;
+  feature_max_ai_prompts_per_month: number /* int */;
 }
 export type BillingPlanListResponse = (BillingPlan | undefined)[];
 
@@ -337,8 +338,85 @@ export interface Features {
   rotating_status: boolean;
   max_scheduled_event_listeners: number /* int */;
   min_schedule_interval_seconds: number /* int */;
+  max_ai_prompts_per_month: number /* int */;
 }
 export type FeaturesGetResponse = Features;
+
+//////////
+// source: flow_ai.go
+
+export interface FlowAIChatMessage {
+  role: string;
+  content: string;
+}
+export interface FlowAIChatRequest {
+  /**
+   * Flow is the flow as serialized by the editor.
+   */
+  flow: string;
+  messages: FlowAIChatMessage[];
+  /**
+   * RepairPromptID asks to fix the issues the editor found with the edits
+   * of an earlier prompt. Repairs don't count as new prompts.
+   */
+  repair_prompt_id: string;
+  issues: string[];
+}
+export interface FlowAIChatResponse {
+  prompt_id: string;
+  /**
+   * Message is Markdown.
+   */
+  message: string;
+  /**
+   * BuildPrompt is a request the user can send to make the change the
+   * message suggests, if any.
+   */
+  build_prompt: string;
+  /**
+   * Edits are applied with the editor's applyFlowEdits.
+   */
+  edits: { [key: string]: any}[];
+  /**
+   * Issues are problems with edits that had to be skipped. They are fixed
+   * with a repair, like the problems the editor finds.
+   */
+  issues: string[];
+  usage: FlowAIUsage;
+}
+export interface FlowAIUsage {
+  prompts_used: number /* int */;
+  prompts_limit: number /* int */;
+}
+export type FlowAIUsageGetResponse = FlowAIUsage;
+export interface FlowAICheckRequest {
+  /**
+   * Flow is the start of the flow as serialized by the editor, which is
+   * enough to check a prompt.
+   */
+  flow: string;
+  prompt: string;
+}
+/**
+ * FlowAICheckResponse says whether a prompt is ready to be sent. If Verdict
+ * is "clarify", it suggests a clearer prompt and fields for what's missing.
+ */
+export interface FlowAICheckResponse {
+  verdict: string;
+  message: string;
+  suggested_prompt: string;
+  fields: FlowAICheckField[];
+}
+export interface FlowAICheckField {
+  label: string;
+  description: string;
+  /**
+   * Type is "text", "number", "channel" or "choice".
+   */
+  type: string;
+  options: string[];
+  default: string;
+}
 
 //////////
 // source: log.go

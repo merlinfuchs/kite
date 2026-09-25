@@ -33,6 +33,17 @@ max_idle_conns = 512
 max_idle_conns_per_host = 128
 max_conns_per_host = 256
 
+[flow_ai]
+model = "gpt-5-mini"
+reasoning_effort = "low"
+max_output_tokens = 16000
+max_repairs = 2
+
+[flow_ai.check]
+model = "gpt-5-nano"
+reasoning_effort = "low"
+max_output_tokens = 2000
+
 [debug]
 enabled = false
 host = "127.0.0.1"
@@ -66,3 +77,4 @@ feature_priority_support = false
 feature_rotating_status = false
 feature_max_scheduled_event_listeners = 10
 feature_min_schedule_interval_seconds = 300
+feature_max_ai_prompts_per_month = 30

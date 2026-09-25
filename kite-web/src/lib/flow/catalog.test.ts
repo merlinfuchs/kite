@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildFlowCatalog } from "./catalog";
+import { buildFlowCatalog, buildFlowCatalogSummary } from "./catalog";
 import { getNodeValues, nodeTypes } from "./nodes";
 import { getTemplates } from "./templates";
 
@@ -29,6 +29,17 @@ describe("flow catalog", () => {
   it("matches the file embedded in the service", async () => {
     await expect(JSON.stringify(catalog, null, 2) + "\n").toMatchFileSnapshot(
       "../../../../kite-service/pkg/flow/catalog.json"
+    );
+  });
+
+  it("matches the summary embedded in the service", async () => {
+    const summary = buildFlowCatalogSummary();
+    expect(summary).not.toContain("entry_");
+    expect(summary).toContain(
+      "- Create response message: Bot replies to the interaction with a message (only in command, component_button, component_select_menu flows)"
+    );
+    await expect(summary).toMatchFileSnapshot(
+      "../../../../kite-service/pkg/flow/catalog_summary.txt"
     );
   });
 

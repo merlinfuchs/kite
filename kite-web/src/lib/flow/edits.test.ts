@@ -299,6 +299,45 @@ describe("applyFlowEdits edge cases", () => {
     expect(res.connections).toEqual(["entry->next"]);
   });
 
+  it("adds blocks after the buttons of a message added in the same reply", () => {
+    const res = apply(
+      [entry],
+      [],
+      [
+        {
+          op: "add_node",
+          ref: "$msg",
+          type: "action_response_create",
+          after: "entry",
+          data: {
+            message_data: {
+              content: "Sure?",
+              components: [
+                {
+                  type: 1,
+                  components: [{ type: 2, id: 1, style: 3, label: "Yes" }],
+                },
+              ],
+            },
+          },
+        },
+        {
+          op: "add_node",
+          ref: "$yes",
+          type: "action_log",
+          data: logData,
+          after: "$msg",
+          handle: "component_1",
+        },
+      ]
+    );
+    expect(res.issues).toEqual([]);
+    expect(res.connections).toEqual([
+      `entry->${res.refs.$msg}`,
+      `${res.refs.$msg}[component_1]->${res.refs.$yes}`,
+    ]);
+  });
+
   it("removes blocks with connections to missing blocks", () => {
     const res = apply(
       [entry, log("a")],
@@ -307,6 +346,55 @@ describe("applyFlowEdits edge cases", () => {
     );
     expect(res.issues.filter((i) => i.message.startsWith("Edit"))).toEqual([]);
     expect(res.nodes.map((n) => n.id)).toEqual(["entry"]);
+  });
+
+  it("keeps options out of the chain of blocks", () => {
+    const res = apply(
+      [entry],
+      [],
+      [
+        {
+          op: "add_node",
+          ref: "$arg",
+          type: "option_command_argument",
+          data: {
+            name: "user",
+            description: "User",
+            command_argument_type: "user",
+          },
+        },
+        { ...addLog("$log", "$arg") },
+        { op: "connect", source: "entry", target: "$arg" },
+        { op: "disconnect", source: "$arg", target: "entry" },
+      ]
+    );
+    const arg = res.refs.$arg;
+    expect(res.connections).toEqual([
+      `${arg}->entry`,
+      `entry->${res.refs.$log}`,
+    ]);
+    expect(res.issues.map((i) => i.message)).toEqual([
+      "Edit 3 (connect): Options are connected to the entry block automatically.",
+      "Edit 4 (disconnect): Options are always connected to the entry block. Remove the option instead.",
+    ]);
+  });
+
+  it("reports fields generated edits left out", () => {
+    const res = apply(
+      [entry, log("a")],
+      [],
+      [{ op: "connect", target: "a" } as unknown as FlowEdit]
+    );
+    expect(res.issues[0].message).toBe("Edit 1 (connect): source is missing.");
+
+    const update = apply(
+      [entry, log("a")],
+      [],
+      [{ op: "update_node", id: "a" } as unknown as FlowEdit]
+    );
+    expect(update.issues[0].message).toBe(
+      "Edit 1 (update_node): data is missing."
+    );
   });
 
   it("rejects edits the editor doesn't allow", () => {

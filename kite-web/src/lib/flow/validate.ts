@@ -1,7 +1,10 @@
 import { Edge, Node } from "@xyflow/react";
+import { ZodIssue } from "zod";
+import { messageSchema } from "../message/schema";
+import { ComponentData } from "../types/message.gen";
 import { isNodeTypeAvailable } from "./categories";
 import { FlowContextType } from "./context";
-import { NodeData } from "./dataSchema";
+import { isUserPickedSetting, NodeData } from "./dataSchema";
 import {
   canConnect,
   getNodeOutputs,
@@ -18,12 +21,16 @@ import {
   walkDownstream,
   walkUpstream,
 } from "./placeholders";
+import { collectComponentGroups } from "./resume";
 
 export interface FlowIssue {
   severity: "error" | "warning";
   message: string;
   nodeId?: string;
   edgeId?: string;
+  // Whether the issue is about a setting the user picks, like a stored
+  // variable, rather than one the AI can fill in.
+  userPicked?: boolean;
 }
 
 // Checks what the editor and the service expect of a flow, beyond what each
@@ -40,7 +47,7 @@ export function validateFlow(
   const report = (
     severity: FlowIssue["severity"],
     message: string,
-    ref: { nodeId?: string; edgeId?: string } = {}
+    ref: Pick<FlowIssue, "nodeId" | "edgeId" | "userPicked"> = {}
   ) => issues.push({ severity, message, ...ref });
 
   const nodeIds = new Set(nodes.map((n) => n.id));
@@ -68,7 +75,8 @@ export function validateFlow(
       );
     }
 
-    const res = getNodeValues(node.type!).dataSchema?.safeParse(node.data);
+    const schema = getNodeValues(node.type!).dataSchema;
+    const res = schema?.safeParse(node.data);
     for (const issue of res?.error?.issues ?? []) {
       const path = issue.path.join(".");
       report(
@@ -76,8 +84,24 @@ export function validateFlow(
         path
           ? `'${getNodeTitle(node)}' setting '${path}': ${issue.message}`
           : `'${getNodeTitle(node)}': ${issue.message}`,
-        { nodeId: node.id }
+        {
+          nodeId: node.id,
+          // Only missing ones, as the AI has to fix wrong ones.
+          userPicked:
+            issue.code === "invalid_type" &&
+            issue.received === "undefined" &&
+            isUserPickedSetting(schema!, issue.path),
+        }
       );
+    }
+
+    // Blocks that send a saved template ignore message_data.
+    if (node.data.message_data && !node.data.message_template_id) {
+      for (const message of getMessageIssues(node.data.message_data)) {
+        report("error", `'${getNodeTitle(node)}' message ${message}`, {
+          nodeId: node.id,
+        });
+      }
     }
   }
 
@@ -169,9 +193,17 @@ export function validateFlow(
         { edgeId: edge.id }
       );
     } else if (!outputs.includes(handle)) {
-      report("error", `'${getNodeTitle(source)}' has no output '${handle}'.`, {
-        edgeId: edge.id,
-      });
+      report(
+        "error",
+        `'${getNodeTitle(source)}' has no output '${handle}', only ${outputs
+          .map((o) => `'${o}'`)
+          .join(", ")}.${
+          handle === "error"
+            ? " To handle errors, put the block after the default output of an error handler block."
+            : ""
+        }`,
+        { edgeId: edge.id }
+      );
     }
   }
 
@@ -343,4 +375,51 @@ function findReferences(node: Node<NodeData>) {
     }
   }
   return res;
+}
+
+// Checks a message like the message editor does, which the block's settings
+// schema leaves out, and that the IDs its outputs are named after are unique.
+function getMessageIssues(message: NodeData["message_data"]) {
+  // The block's settings schema already checks the rest.
+  const issues = unwrapUnionIssues(
+    messageSchema.safeParse(message).error?.issues ?? []
+  )
+    .filter((i) => i.path[0] === "components" || i.path[0] === "embeds")
+    .map((i) => `${i.path.join(".")}: ${i.message}`);
+
+  const seen = new Set<unknown>();
+  for (const component of collectComponentGroups(
+    (message?.components ?? []) as ComponentData[]
+  ).flat()) {
+    // IDs that aren't numbers are reported by the message schema.
+    const id = component.id as unknown;
+    if (
+      id === undefined ||
+      (typeof id === "number" && (!Number.isInteger(id) || id < 1))
+    ) {
+      issues.push(
+        "components: every button and select menu needs a number from 1 as id"
+      );
+    } else if (seen.has(component.id)) {
+      issues.push(
+        `components: two buttons or select menus have the id ${component.id}`
+      );
+    }
+    seen.add(component.id);
+  }
+  return issues;
+}
+
+// Replaces "Invalid input" of a union, e.g. of the kinds of buttons, with the
+// issues of the variant that was meant: the one whose literal fields, like
+// type and style, matched, with the fewest issues.
+function unwrapUnionIssues(issues: ZodIssue[]): ZodIssue[] {
+  return issues.flatMap((issue) => {
+    if (issue.code !== "invalid_union") return [issue];
+
+    const variants = issue.unionErrors.map((e) => unwrapUnionIssues(e.issues));
+    const score = (v: ZodIssue[]) =>
+      v.filter((i) => i.code === "invalid_literal").length * 1000 + v.length;
+    return variants.reduce((best, v) => (score(v) < score(best) ? v : best));
+  });
 }
