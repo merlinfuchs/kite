@@ -7,6 +7,7 @@ import (
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/gateway"
 	"github.com/diamondburned/arikawa/v3/utils/ws"
+	"github.com/kitecloud/kite/kite-service/pkg/schedule"
 )
 
 // maxStoredTriggers bounds how many triggers a resume point keeps: the one that
@@ -73,12 +74,18 @@ func (t *FlowTrigger) UnmarshalJSON(data []byte) error {
 	t.Interaction = aux.Interaction
 
 	if aux.EventType != "" {
-		newEvent := gateway.OpUnmarshalers.Lookup(aux.EventOp, aux.EventType)
-		if newEvent == nil {
-			return fmt.Errorf("unknown event type: %s", aux.EventType)
+		var event ws.Event
+		if aux.EventType == schedule.EventType {
+			// Kite's own event, which arikawa doesn't know about.
+			event = new(schedule.Event)
+		} else {
+			newEvent := gateway.OpUnmarshalers.Lookup(aux.EventOp, aux.EventType)
+			if newEvent == nil {
+				return fmt.Errorf("unknown event type: %s", aux.EventType)
+			}
+			event = newEvent()
 		}
 
-		event := newEvent()
 		if err := json.Unmarshal(aux.Event, event); err != nil {
 			return fmt.Errorf("failed to unmarshal event: %w", err)
 		}

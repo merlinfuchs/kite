@@ -215,6 +215,8 @@ export interface BillingPlan {
   feature_max_event_listeners: number /* int */;
   feature_priority_support: boolean;
   feature_rotating_status: boolean;
+  feature_max_scheduled_event_listeners: number /* int */;
+  feature_min_schedule_interval_seconds: number /* int */;
 }
 export type BillingPlanListResponse = (BillingPlan | undefined)[];
 
@@ -293,6 +295,7 @@ export interface EventListener {
   flow_source: FlowData;
   created_at: string /* RFC3339 */;
   updated_at: string /* RFC3339 */;
+  last_run_at: null | string /* RFC3339 */;
 }
 export interface EventListenerFilter {
 }
@@ -332,6 +335,8 @@ export interface Features {
   max_event_listeners: number /* int */;
   priority_support: boolean;
   rotating_status: boolean;
+  max_scheduled_event_listeners: number /* int */;
+  min_schedule_interval_seconds: number /* int */;
 }
 export type FeaturesGetResponse = Features;
 

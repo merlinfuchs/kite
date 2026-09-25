@@ -11,12 +11,17 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
-const countEventListenersByApp = `-- name: CountEventListenersByApp :one
-SELECT COUNT(*) FROM event_listeners WHERE app_id = $1
+const countEventListenersByAppAndSource = `-- name: CountEventListenersByAppAndSource :one
+SELECT COUNT(*) FROM event_listeners WHERE app_id = $1 AND source = $2
 `
 
-func (q *Queries) CountEventListenersByApp(ctx context.Context, appID string) (int64, error) {
-	row := q.db.QueryRow(ctx, countEventListenersByApp, appID)
+type CountEventListenersByAppAndSourceParams struct {
+	AppID  string
+	Source string
+}
+
+func (q *Queries) CountEventListenersByAppAndSource(ctx context.Context, arg CountEventListenersByAppAndSourceParams) (int64, error) {
+	row := q.db.QueryRow(ctx, countEventListenersByAppAndSource, arg.AppID, arg.Source)
 	var count int64
 	err := row.Scan(&count)
 	return count, err
@@ -38,7 +43,7 @@ INSERT INTO event_listeners (
     updated_at
 ) VALUES (
     $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12
-) RETURNING id, source, type, description, enabled, app_id, module_id, creator_user_id, filter, flow_source, created_at, updated_at
+) RETURNING id, source, type, description, enabled, app_id, module_id, creator_user_id, filter, flow_source, created_at, updated_at, last_run_at
 `
 
 type CreateEventListenerParams struct {
@@ -85,6 +90,7 @@ func (q *Queries) CreateEventListener(ctx context.Context, arg CreateEventListen
 		&i.FlowSource,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.LastRunAt,
 	)
 	return i, err
 }
@@ -122,36 +128,23 @@ func (q *Queries) GetEnabledEventListenerIDs(ctx context.Context) ([]string, err
 	return items, nil
 }
 
-const getEnabledEventListenersUpdatesSince = `-- name: GetEnabledEventListenersUpdatesSince :many
-SELECT id, source, type, description, enabled, app_id, module_id, creator_user_id, filter, flow_source, created_at, updated_at FROM event_listeners WHERE enabled = TRUE AND updated_at > $1
+const getEnabledScheduledEventListenerIDs = `-- name: GetEnabledScheduledEventListenerIDs :many
+SELECT id FROM event_listeners WHERE enabled = TRUE AND source = 'schedule'
 `
 
-func (q *Queries) GetEnabledEventListenersUpdatesSince(ctx context.Context, updatedAt pgtype.Timestamp) ([]EventListener, error) {
-	rows, err := q.db.Query(ctx, getEnabledEventListenersUpdatesSince, updatedAt)
+func (q *Queries) GetEnabledScheduledEventListenerIDs(ctx context.Context) ([]string, error) {
+	rows, err := q.db.Query(ctx, getEnabledScheduledEventListenerIDs)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []EventListener
+	var items []string
 	for rows.Next() {
-		var i EventListener
-		if err := rows.Scan(
-			&i.ID,
-			&i.Source,
-			&i.Type,
-			&i.Description,
-			&i.Enabled,
-			&i.AppID,
-			&i.ModuleID,
-			&i.CreatorUserID,
-			&i.Filter,
-			&i.FlowSource,
-			&i.CreatedAt,
-			&i.UpdatedAt,
-		); err != nil {
+		var id string
+		if err := rows.Scan(&id); err != nil {
 			return nil, err
 		}
-		items = append(items, i)
+		items = append(items, id)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
@@ -160,7 +153,7 @@ func (q *Queries) GetEnabledEventListenersUpdatesSince(ctx context.Context, upda
 }
 
 const getEventListener = `-- name: GetEventListener :one
-SELECT id, source, type, description, enabled, app_id, module_id, creator_user_id, filter, flow_source, created_at, updated_at FROM event_listeners WHERE id = $1
+SELECT id, source, type, description, enabled, app_id, module_id, creator_user_id, filter, flow_source, created_at, updated_at, last_run_at FROM event_listeners WHERE id = $1
 `
 
 func (q *Queries) GetEventListener(ctx context.Context, id string) (EventListener, error) {
@@ -179,12 +172,13 @@ func (q *Queries) GetEventListener(ctx context.Context, id string) (EventListene
 		&i.FlowSource,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.LastRunAt,
 	)
 	return i, err
 }
 
 const getEventListenersByApp = `-- name: GetEventListenersByApp :many
-SELECT id, source, type, description, enabled, app_id, module_id, creator_user_id, filter, flow_source, created_at, updated_at FROM event_listeners WHERE app_id = $1 ORDER BY created_at DESC
+SELECT id, source, type, description, enabled, app_id, module_id, creator_user_id, filter, flow_source, created_at, updated_at, last_run_at FROM event_listeners WHERE app_id = $1 ORDER BY created_at DESC
 `
 
 func (q *Queries) GetEventListenersByApp(ctx context.Context, appID string) ([]EventListener, error) {
@@ -209,6 +203,52 @@ func (q *Queries) GetEventListenersByApp(ctx context.Context, appID string) ([]E
 			&i.FlowSource,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.LastRunAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getEventListenersUpdatedSince = `-- name: GetEventListenersUpdatedSince :many
+SELECT id, source, type, description, enabled, app_id, module_id, creator_user_id, filter, flow_source, created_at, updated_at, last_run_at FROM event_listeners WHERE updated_at > $1 AND (enabled = TRUE OR $2::BOOLEAN)
+`
+
+type GetEventListenersUpdatedSinceParams struct {
+	UpdatedSince    pgtype.Timestamp
+	IncludeDisabled bool
+}
+
+// Includes disabled listeners so the engine can drop them right away. The
+// first load has nothing to drop, so it skips them.
+func (q *Queries) GetEventListenersUpdatedSince(ctx context.Context, arg GetEventListenersUpdatedSinceParams) ([]EventListener, error) {
+	rows, err := q.db.Query(ctx, getEventListenersUpdatedSince, arg.UpdatedSince, arg.IncludeDisabled)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []EventListener
+	for rows.Next() {
+		var i EventListener
+		if err := rows.Scan(
+			&i.ID,
+			&i.Source,
+			&i.Type,
+			&i.Description,
+			&i.Enabled,
+			&i.AppID,
+			&i.ModuleID,
+			&i.CreatorUserID,
+			&i.Filter,
+			&i.FlowSource,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.LastRunAt,
 		); err != nil {
 			return nil, err
 		}
@@ -228,7 +268,7 @@ UPDATE event_listeners SET
     description = $5,
     flow_source = $6,
     updated_at = $7
-WHERE id = $1 RETURNING id, source, type, description, enabled, app_id, module_id, creator_user_id, filter, flow_source, created_at, updated_at
+WHERE id = $1 RETURNING id, source, type, description, enabled, app_id, module_id, creator_user_id, filter, flow_source, created_at, updated_at, last_run_at
 `
 
 type UpdateEventListenerParams struct {
@@ -265,6 +305,26 @@ func (q *Queries) UpdateEventListener(ctx context.Context, arg UpdateEventListen
 		&i.FlowSource,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.LastRunAt,
 	)
 	return i, err
+}
+
+const updateEventListenersLastRunAt = `-- name: UpdateEventListenersLastRunAt :exec
+UPDATE event_listeners SET last_run_at = runs.last_run_at
+FROM (
+    SELECT UNNEST($1::TEXT[]) AS id, UNNEST($2::TIMESTAMP[]) AS last_run_at
+) AS runs
+WHERE event_listeners.id = runs.id
+`
+
+type UpdateEventListenersLastRunAtParams struct {
+	Ids        []string
+	LastRunAts []pgtype.Timestamp
+}
+
+// Doesn't touch updated_at, otherwise every run would make the engine reload the listener.
+func (q *Queries) UpdateEventListenersLastRunAt(ctx context.Context, arg UpdateEventListenersLastRunAtParams) error {
+	_, err := q.db.Exec(ctx, updateEventListenersLastRunAt, arg.Ids, arg.LastRunAts)
+	return err
 }

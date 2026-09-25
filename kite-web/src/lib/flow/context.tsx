@@ -14,6 +14,7 @@ export const flowContextTypes = [
   "component_button",
   "component_select_menu",
   "event_discord",
+  "event_schedule",
 ] as const;
 
 export type FlowContextType = (typeof flowContextTypes)[number];

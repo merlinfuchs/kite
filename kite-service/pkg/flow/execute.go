@@ -635,6 +635,11 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 
 		return n.ExecuteChildren(ctx)
 	case FlowNodeTypeActionMemberBan:
+		guildID, err := n.targetGuildID(ctx)
+		if err != nil {
+			return traceError(n, err)
+		}
+
 		userID, err := ctx.EvalTemplate(n.Data.UserTarget)
 		if err != nil {
 			return traceError(n, err)
@@ -652,7 +657,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 
 		err = ctx.Discord.BanMember(
 			ctx,
-			ctx.Data.GuildID(),
+			guildID,
 			discord.UserID(userID.Snowflake()),
 			api.BanData{
 				DeleteDays:     option.NewUint(uint(messageDeleteSeconds.Float() / 86400)),
@@ -665,6 +670,11 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 
 		return n.ExecuteChildren(ctx)
 	case FlowNodeTypeActionMemberUnban:
+		guildID, err := n.targetGuildID(ctx)
+		if err != nil {
+			return traceError(n, err)
+		}
+
 		userID, err := ctx.EvalTemplate(n.Data.UserTarget)
 		if err != nil {
 			return traceError(n, err)
@@ -677,7 +687,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 
 		err = ctx.Discord.UnbanMember(
 			ctx,
-			ctx.Data.GuildID(),
+			guildID,
 			discord.UserID(userID.Snowflake()),
 			api.AuditLogReason(auditLogReason.String()),
 		)
@@ -687,6 +697,11 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 
 		return n.ExecuteChildren(ctx)
 	case FlowNodeTypeActionMemberKick:
+		guildID, err := n.targetGuildID(ctx)
+		if err != nil {
+			return traceError(n, err)
+		}
+
 		userID, err := ctx.EvalTemplate(n.Data.UserTarget)
 		if err != nil {
 			return traceError(n, err)
@@ -699,7 +714,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 
 		err = ctx.Discord.KickMember(
 			ctx,
-			ctx.Data.GuildID(),
+			guildID,
 			discord.UserID(userID.Snowflake()),
 			api.AuditLogReason(auditLogReason.String()),
 		)
@@ -709,6 +724,11 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 
 		return n.ExecuteChildren(ctx)
 	case FlowNodeTypeActionMemberTimeout:
+		guildID, err := n.targetGuildID(ctx)
+		if err != nil {
+			return traceError(n, err)
+		}
+
 		memberID, err := ctx.EvalTemplate(n.Data.UserTarget)
 		if err != nil {
 			return traceError(n, err)
@@ -730,7 +750,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 
 		err = ctx.Discord.EditMember(
 			ctx,
-			ctx.Data.GuildID(),
+			guildID,
 			discord.UserID(memberID.Snowflake()),
 			api.ModifyMemberData{
 				CommunicationDisabledUntil: &communicationDisabledUntil,
@@ -743,6 +763,11 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 
 		return n.ExecuteChildren(ctx)
 	case FlowNodeTypeActionMemberEdit:
+		guildID, err := n.targetGuildID(ctx)
+		if err != nil {
+			return traceError(n, err)
+		}
+
 		userID, err := ctx.EvalTemplate(n.Data.UserTarget)
 		if err != nil {
 			return traceError(n, err)
@@ -770,7 +795,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 
 		err = ctx.Discord.EditMember(
 			ctx,
-			ctx.Data.GuildID(),
+			guildID,
 			discord.UserID(userID.Snowflake()),
 			data,
 		)
@@ -780,6 +805,11 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 
 		return n.ExecuteChildren(ctx)
 	case FlowNodeTypeActionMemberRoleAdd:
+		guildID, err := n.targetGuildID(ctx)
+		if err != nil {
+			return traceError(n, err)
+		}
+
 		userID, err := ctx.EvalTemplate(n.Data.UserTarget)
 		if err != nil {
 			return traceError(n, err)
@@ -797,7 +827,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 
 		err = ctx.Discord.AddMemberRole(
 			ctx,
-			ctx.Data.GuildID(),
+			guildID,
 			discord.UserID(userID.Snowflake()),
 			discord.RoleID(roleID.Snowflake()),
 			api.AuditLogReason(auditLogReason.String()),
@@ -808,6 +838,11 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 
 		return n.ExecuteChildren(ctx)
 	case FlowNodeTypeActionMemberRoleRemove:
+		guildID, err := n.targetGuildID(ctx)
+		if err != nil {
+			return traceError(n, err)
+		}
+
 		userID, err := ctx.EvalTemplate(n.Data.UserTarget)
 		if err != nil {
 			return traceError(n, err)
@@ -825,7 +860,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 
 		err = ctx.Discord.RemoveMemberRole(
 			ctx,
-			ctx.Data.GuildID(),
+			guildID,
 			discord.UserID(userID.Snowflake()),
 			discord.RoleID(roleID.Snowflake()),
 			api.AuditLogReason(auditLogReason.String()),
@@ -836,15 +871,9 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 
 		return n.ExecuteChildren(ctx)
 	case FlowNodeTypeActionMemberGet:
-		guildID := ctx.Data.GuildID()
-
-		if n.Data.GuildTarget != "" {
-			guildTarget, err := ctx.EvalTemplate(n.Data.GuildTarget)
-			if err != nil {
-				return traceError(n, err)
-			}
-
-			guildID = discord.GuildID(guildTarget.Snowflake())
+		guildID, err := n.targetGuildID(ctx)
+		if err != nil {
+			return traceError(n, err)
 		}
 
 		memberID, err := ctx.EvalTemplate(n.Data.UserTarget)
@@ -905,14 +934,9 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			return traceError(n, fmt.Errorf("channel data is required"))
 		}
 
-		guildID := ctx.Data.GuildID()
-		if n.Data.GuildTarget != "" {
-			guildTarget, err := ctx.EvalTemplate(n.Data.GuildTarget)
-			if err != nil {
-				return traceError(n, err)
-			}
-
-			guildID = discord.GuildID(guildTarget.Snowflake())
+		guildID, err := n.targetGuildID(ctx)
+		if err != nil {
+			return traceError(n, err)
 		}
 
 		channelData, err := n.Data.ChannelData.ToCreateChannelData(ctx, ctx.EvalCtx)
@@ -1099,15 +1123,9 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 	case FlowNodeTypeActionForumPostCreate:
 		return n.ExecuteChildren(ctx)
 	case FlowNodeTypeActionRoleGet:
-		guildID := ctx.Data.GuildID()
-
-		if n.Data.GuildTarget != "" {
-			guildTarget, err := ctx.EvalTemplate(n.Data.GuildTarget)
-			if err != nil {
-				return traceError(n, err)
-			}
-
-			guildID = discord.GuildID(guildTarget.Snowflake())
+		guildID, err := n.targetGuildID(ctx)
+		if err != nil {
+			return traceError(n, err)
 		}
 
 		roleID, err := ctx.EvalTemplate(n.Data.RoleTarget)
@@ -1300,12 +1318,15 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 
 		return n.ExecuteChildren(ctx)
 	case FlowNodeTypeActionVoiceChannelLeave:
-		guildID := ctx.Data.GuildID()
+		guildID, err := n.targetGuildID(ctx)
+		if err != nil {
+			return traceError(n, err)
+		}
 		if guildID == 0 {
 			return traceError(n, fmt.Errorf("leaving a voice channel only works in servers"))
 		}
 
-		err := ctx.Discord.UpdateVoiceState(ctx, guildID, 0, false, false)
+		err = ctx.Discord.UpdateVoiceState(ctx, guildID, 0, false, false)
 		if err != nil {
 			return traceError(n, err)
 		}
@@ -1877,6 +1898,21 @@ func autoDeferResponse(interaction *discord.InteractionEvent, responseNode *Comp
 		resp.Data.Flags |= discord.EphemeralMessage
 	}
 	return resp
+}
+
+// targetGuildID returns the guild a block acts on: the guild target if one is
+// set, otherwise the guild of the interaction or event that triggered the flow.
+func (n *CompiledFlowNode) targetGuildID(ctx *FlowContext) (discord.GuildID, error) {
+	if n.Data.GuildTarget == "" {
+		return ctx.Data.GuildID(), nil
+	}
+
+	guildTarget, err := ctx.EvalTemplate(n.Data.GuildTarget)
+	if err != nil {
+		return 0, err
+	}
+
+	return discord.GuildID(guildTarget.Snowflake()), nil
 }
 
 func (n *CompiledFlowNode) resumeFromComponent(ctx *FlowContext) error {

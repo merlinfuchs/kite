@@ -4,9 +4,6 @@ SELECT * FROM event_listeners WHERE id = $1;
 -- name: GetEventListenersByApp :many
 SELECT * FROM event_listeners WHERE app_id = $1 ORDER BY created_at DESC;
 
--- name: CountEventListenersByApp :one
-SELECT COUNT(*) FROM event_listeners WHERE app_id = $1;
-
 -- name: CreateEventListener :one
 INSERT INTO event_listeners (
     id,
@@ -35,11 +32,27 @@ UPDATE event_listeners SET
     updated_at = $7
 WHERE id = $1 RETURNING *;
 
--- name: GetEnabledEventListenersUpdatesSince :many
-SELECT * FROM event_listeners WHERE enabled = TRUE AND updated_at > $1;
+-- name: GetEventListenersUpdatedSince :many
+-- Includes disabled listeners so the engine can drop them right away. The
+-- first load has nothing to drop, so it skips them.
+SELECT * FROM event_listeners WHERE updated_at > @updated_since AND (enabled = TRUE OR @include_disabled::BOOLEAN);
+
+-- name: GetEnabledScheduledEventListenerIDs :many
+SELECT id FROM event_listeners WHERE enabled = TRUE AND source = 'schedule';
 
 -- name: GetEnabledEventListenerIDs :many
 SELECT id FROM event_listeners WHERE enabled = TRUE;
 
 -- name: DeleteEventListener :exec
 DELETE FROM event_listeners WHERE id = $1;
+
+-- name: CountEventListenersByAppAndSource :one
+SELECT COUNT(*) FROM event_listeners WHERE app_id = $1 AND source = $2;
+
+-- name: UpdateEventListenersLastRunAt :exec
+-- Doesn't touch updated_at, otherwise every run would make the engine reload the listener.
+UPDATE event_listeners SET last_run_at = runs.last_run_at
+FROM (
+    SELECT UNNEST(@ids::TEXT[]) AS id, UNNEST(@last_run_ats::TIMESTAMP[]) AS last_run_at
+) AS runs
+WHERE event_listeners.id = runs.id;

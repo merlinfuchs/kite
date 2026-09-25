@@ -51,6 +51,10 @@ func PlansFromConfig(configured []config.BillingPlanConfig) []model.Plan {
 	plans := make([]model.Plan, len(configured))
 	for i, p := range configured {
 		plans[i] = model.Plan(p)
+		// Set here so the API reports the interval that's actually enforced.
+		if plans[i].FeatureMinScheduleIntervalSeconds <= 0 {
+			plans[i].FeatureMinScheduleIntervalSeconds = int(model.DefaultMinScheduleInterval.Seconds())
+		}
 	}
 
 	return plans
@@ -90,9 +94,10 @@ func (m *PlanManager) AppFeatures(ctx context.Context, appID string) model.Featu
 }
 
 // DefaultFeatures returns the features every app gets without any
-// entitlement. Because Features.Merge takes the maximum of each field, no
-// app's resolved features can be below this, so callers looking for apps that
-// exceed a limit can rule out anything under it without a lookup.
+// entitlement. Because Features.Merge takes the maximum of each limit, no
+// app's resolved limits can be below this, so callers looking for apps that
+// exceed a limit can rule out anything under it without a lookup. The minimum
+// schedule interval is the exception, Merge takes the smallest one.
 func (m *PlanManager) DefaultFeatures() model.Features {
 	return m.featuresFromEntitlements(nil)
 }

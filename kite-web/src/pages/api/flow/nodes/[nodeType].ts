@@ -1,4 +1,4 @@
-import { getNodeValues } from "@/lib/flow/nodes";
+import { getNodeCreditsCost, getNodeValues } from "@/lib/flow/nodes";
 import type { NextApiRequest, NextApiResponse } from "next";
 import { toJsonSchema } from "@/lib/flow/catalog";
 import { JsonSchema7Type } from "zod-to-json-schema";
@@ -68,9 +68,6 @@ export default function handler(
     dataSchema,
     resultSchema,
     dataFields: values.dataFields,
-    creditsCost:
-      typeof values.creditsCost === "function"
-        ? values.creditsCost({})
-        : values.creditsCost ?? null,
+    creditsCost: getNodeCreditsCost(values, {}) ?? null,
   });
 }

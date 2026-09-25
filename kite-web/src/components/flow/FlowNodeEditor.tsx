@@ -4,9 +4,12 @@ import {
   encodePermissionsBitset,
   permissionBits,
 } from "@/lib/discord/permissions";
-import { getNodeId, useNodeValues } from "@/lib/flow/nodes";
+import { getNodeCreditsCost, getNodeId, useNodeValues } from "@/lib/flow/nodes";
 import { activityTypeOptions, statusOptions } from "@/lib/discord/presence";
+import { formatInterval } from "@/lib/utils";
 import { useAppFeature, useMessages, useVariables } from "@/lib/hooks/api";
+import { getFlowCreditsCost, getSchedulePreview } from "@/lib/flow/schedule";
+import { EventTypeScheduleCron } from "@/lib/types/flow.gen";
 import { useAppId } from "@/lib/hooks/params";
 import {
   CommandArgumentChoiceData,
@@ -99,6 +102,7 @@ const intputs: Record<string, any> = {
   command_integrations: CommandIntegrationsInput,
   command_permissions: CommandPermissionsInput,
   event_type: EventTypeInput,
+  event_schedule_cron: EventScheduleCronInput,
   event_filter_target: EventFilterTargetInput,
   event_filter_mode: EventFilterModeInput,
   event_filter_value: EventFilterValueInput,
@@ -252,10 +256,7 @@ export default function FlowNodeEditor({ nodeId }: Props) {
 
   if (!node || !data) return null;
 
-  const creditsCost =
-    typeof values.creditsCost === "function"
-      ? values.creditsCost(data)
-      : values.creditsCost;
+  const creditsCost = getNodeCreditsCost(values, data);
 
   const docsPage = nodeTypeDocsPage(node.type!);
 
@@ -707,6 +708,9 @@ function CommandIntegrationsInput({ data, updateData, errors }: InputProps) {
 }
 
 function EventTypeInput({ data, updateData, errors }: InputProps) {
+  // Scheduled listeners can't become Discord listeners or the other way around.
+  if (data.event_type === EventTypeScheduleCron) return null;
+
   return (
     <BaseInput
       type="select"
@@ -723,6 +727,58 @@ function EventTypeInput({ data, updateData, errors }: InputProps) {
       updateValue={(v) => updateData({ event_type: v || undefined })}
       errors={errors}
     />
+  );
+}
+
+function EventScheduleCronInput(props: InputProps) {
+  if (props.data.event_type !== EventTypeScheduleCron) return null;
+  return <ScheduleCronInput {...props} />;
+}
+
+function ScheduleCronInput({ data, updateData, errors }: InputProps) {
+  const nodes = useNodes();
+  const minInterval = useAppFeature((f) => f.min_schedule_interval_seconds);
+
+  const cron = data.event_schedule_cron || "";
+  const preview = useMemo(() => getSchedulePreview(cron), [cron]);
+  const creditsPerRun = useMemo(() => getFlowCreditsCost(nodes), [nodes]);
+
+  return (
+    <div className="space-y-2">
+      <BaseInput
+        field="event_schedule_cron"
+        title="Schedule"
+        description="A cron expression in UTC, e.g. */5 * * * * for every five minutes. Add a leading seconds field for sub-minute schedules."
+        value={cron}
+        updateValue={(v) => updateData({ event_schedule_cron: v || undefined })}
+        errors={errors}
+        placeholder="*/5 * * * *"
+      />
+      {preview && (
+        <div className="text-sm text-muted-foreground space-y-1">
+          <div className="font-medium text-foreground">Next runs</div>
+          {preview.nextRuns.map((d) => (
+            <div key={d.getTime()}>
+              {d.toISOString().replace("T", " ").slice(0, 19)} UTC (
+              {d.toLocaleString()} local)
+            </div>
+          ))}
+          {minInterval && preview.minGapSeconds < minInterval ? (
+            <div className="text-destructive">
+              Your plan allows at most one run every{" "}
+              {formatInterval(minInterval)}.
+            </div>
+          ) : null}
+          {creditsPerRun > 0 && (
+            <div>
+              Uses about{" "}
+              {(preview.runsPerMonth * creditsPerRun).toLocaleString()} credits
+              per month.
+            </div>
+          )}
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -1172,12 +1228,17 @@ function UserTargetInput({ data, updateData, errors }: InputProps) {
   );
 }
 
-function GuildTargetInput({ data, updateData, errors }: InputProps) {
+function GuildTargetInput({ type, data, updateData, errors }: InputProps) {
   return (
     <BaseInput
       type="text"
       field="guild_target"
       title="Target Guild"
+      description={
+        type === "action_guild_get"
+          ? undefined
+          : "Leave empty to use the server the flow runs in. Required in scheduled event listeners."
+      }
       value={data.guild_target || ""}
       updateValue={(v) => updateData({ guild_target: v || undefined })}
       errors={errors}

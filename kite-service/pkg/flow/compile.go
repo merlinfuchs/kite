@@ -23,7 +23,59 @@ func CompileComponentButton(data FlowData) (*CompiledFlowNode, error) {
 }
 
 func CompileEventListener(data FlowData) (*CompiledFlowNode, error) {
-	return compile(data, FlowNodeTypeEntryEvent)
+	entry, err := compile(data, FlowNodeTypeEntryEvent)
+	if err != nil {
+		return nil, err
+	}
+
+	if entry.IsScheduleEntry() {
+		// Scheduled runs have no interaction to respond to, until a button
+		// sent by the flow is clicked.
+		if node := firstWithoutInteraction(entry, isInteractionOnly); node != nil {
+			return nil, fmt.Errorf("block %s can't be used in scheduled event listeners outside of button branches", node.Type)
+		}
+	}
+
+	return entry, nil
+}
+
+// firstWithoutInteraction returns the first node matching match that runs
+// before any component interaction, i.e. not in a component branch.
+func firstWithoutInteraction(entry *CompiledFlowNode, match func(FlowNodeType) bool) *CompiledFlowNode {
+	visited := make(map[string]bool)
+	queue := []*CompiledFlowNode{entry}
+	for len(queue) > 0 {
+		node := queue[0]
+		queue = queue[1:]
+		if visited[node.ID] {
+			continue
+		}
+		visited[node.ID] = true
+
+		if match(node.Type) {
+			return node
+		}
+
+		queue = append(queue, node.Children.Default...)
+		for handle, children := range node.Children.Handles {
+			if !strings.HasPrefix(handle, "component_") {
+				queue = append(queue, children...)
+			}
+		}
+	}
+	return nil
+}
+
+func isInteractionOnly(t FlowNodeType) bool {
+	switch t {
+	case FlowNodeTypeActionResponseCreate,
+		FlowNodeTypeActionResponseEdit,
+		FlowNodeTypeActionResponseDelete,
+		FlowNodeTypeActionResponseDefer,
+		FlowNodeTypeSuspendResponseModal:
+		return true
+	}
+	return false
 }
 
 func compile(data FlowData, entryType FlowNodeType) (*CompiledFlowNode, error) {
@@ -116,6 +168,10 @@ func (n *CompiledFlowNode) IsComponentButtonEntry() bool {
 
 func (n *CompiledFlowNode) IsEventListenerEntry() bool {
 	return n.Type == FlowNodeTypeEntryEvent
+}
+
+func (n *CompiledFlowNode) IsScheduleEntry() bool {
+	return n.Type == FlowNodeTypeEntryEvent && n.Data.EventType == EventTypeScheduleCron
 }
 
 func (n *CompiledFlowNode) IsCommandEntry() bool {
@@ -427,6 +483,13 @@ func (n *CompiledFlowNode) EventListenerType() string {
 		return ""
 	}
 	return n.Data.EventType
+}
+
+func (n *CompiledFlowNode) EventScheduleCron() string {
+	if !n.IsScheduleEntry() {
+		return ""
+	}
+	return n.Data.EventScheduleCron
 }
 
 func (n *CompiledFlowNode) FilterEvent(ctx *FlowContext) (bool, error) {

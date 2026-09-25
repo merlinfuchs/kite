@@ -34,7 +34,7 @@ type fakeEventListenerStore struct {
 	err error
 }
 
-func (f *fakeEventListenerStore) EnabledEventListenersUpdatedSince(ctx context.Context, since time.Time) ([]*model.EventListener, error) {
+func (f *fakeEventListenerStore) EventListenersUpdatedSince(ctx context.Context, since time.Time) ([]*model.EventListener, error) {
 	return nil, f.err
 }
 

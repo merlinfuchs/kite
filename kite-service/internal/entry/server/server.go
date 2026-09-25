@@ -129,6 +129,7 @@ func StartServer(c context.Context, cfg *config.Config) error {
 		StartInterval:          cfg.Gateway.StartInterval,
 	})
 	gateway.Run(ctx)
+	engine.RunScheduler(ctx, gateway)
 
 	usage := usage.NewUsageManager(pg, pg, pg, pg, pg, pg, planManager)
 

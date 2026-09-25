@@ -1,5 +1,5 @@
 import { type ClassValue, clsx } from "clsx";
-import { formatRelative } from "date-fns";
+import { formatDuration, formatRelative, intervalToDuration } from "date-fns";
 import { twMerge } from "tailwind-merge";
 
 export function cn(...inputs: ClassValue[]) {
@@ -48,4 +48,8 @@ export function formatDateTime(date: Date): string {
 export function formatNumber(x: number | undefined | null) {
   if (!x) return "0";
   return x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+}
+
+export function formatInterval(seconds: number) {
+  return formatDuration(intervalToDuration({ start: 0, end: seconds * 1000 }));
 }

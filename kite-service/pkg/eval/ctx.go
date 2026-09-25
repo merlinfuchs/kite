@@ -4,12 +4,14 @@ import (
 	"encoding/json"
 	"fmt"
 	"strconv"
+	"time"
 
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/gateway"
 	"github.com/diamondburned/arikawa/v3/state"
 	"github.com/diamondburned/arikawa/v3/utils/ws"
 	"github.com/expr-lang/expr/ast"
+	"github.com/kitecloud/kite/kite-service/pkg/schedule"
 	"github.com/kitecloud/kite/kite-service/pkg/thing"
 )
 
@@ -242,6 +244,25 @@ type EventEnv struct {
 	Channel *SnowflakeEnv `expr:"channel" json:"channel"`
 	Message *MessageEnv   `expr:"message" json:"message"`
 	Guild   *SnowflakeEnv `expr:"guild" json:"guild"`
+
+	Schedule *ScheduleEnv `expr:"schedule" json:"schedule"`
+}
+
+type ScheduleEnv struct {
+	Time string `expr:"time" json:"time"`
+	Unix int64  `expr:"unix" json:"unix"`
+}
+
+func NewScheduleEnv(e *schedule.Event) *ScheduleEnv {
+	t := e.Time.UTC()
+	return &ScheduleEnv{
+		Time: t.Format(time.RFC3339),
+		Unix: t.Unix(),
+	}
+}
+
+func (s ScheduleEnv) String() string {
+	return s.Time
 }
 
 func NewEventEnv(event ws.Event) *EventEnv {
@@ -292,6 +313,8 @@ func NewEventEnv(event ws.Event) *EventEnv {
 		env.User = NewUserEnv(e.User)
 		env.Member = env.User
 		env.Guild = NewSnowflakeEnv(e.GuildID)
+	case *schedule.Event:
+		env.Schedule = NewScheduleEnv(e)
 	}
 
 	return env
@@ -338,16 +361,18 @@ func NewContext(env Env) Context {
 }
 
 func NewContextFromEvent(event ws.Event, session *state.State) Context {
+	env := NewEventEnv(event)
 	return Context{
 		Env: Env{
-			"event":   NewEventEnv(event),
-			"user":    NewEventEnv(event).User,
-			"member":  NewEventEnv(event).Member,
-			"channel": NewEventEnv(event).Channel,
-			"guild":   NewEventEnv(event).Guild,
-			"server":  NewEventEnv(event).Guild,
-			"message": NewEventEnv(event).Message,
-			"app":     NewAppEnv(session),
+			"event":    env,
+			"user":     env.User,
+			"member":   env.Member,
+			"channel":  env.Channel,
+			"guild":    env.Guild,
+			"server":   env.Guild,
+			"message":  env.Message,
+			"schedule": env.Schedule,
+			"app":      NewAppEnv(session),
 		},
 	}
 }

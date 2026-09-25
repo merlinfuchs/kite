@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"maps"
+	"slices"
 	"sync"
 	"time"
 
@@ -20,6 +22,12 @@ type Engine struct {
 
 	lastUpdate time.Time
 	apps       map[string]*App
+
+	// scheduledApps are the apps that had a scheduled listener added, so the
+	// scheduler doesn't have to walk every app each second. Apps whose
+	// scheduled listeners are all gone are pruned by the scheduler.
+	scheduledAppsMu sync.Mutex
+	scheduledApps   map[string]*App
 }
 
 func NewEngine(
@@ -30,8 +38,9 @@ func NewEngine(
 	}
 
 	return &Engine{
-		env:  env,
-		apps: make(map[string]*App),
+		env:           env,
+		apps:          make(map[string]*App),
+		scheduledApps: make(map[string]*App),
 	}
 }
 
@@ -101,6 +110,13 @@ func (e *Engine) populate(ctx context.Context) {
 	if !ok {
 		// Leave the cursor where it is so the next poll retries this window.
 		return
+	}
+
+	if err := e.removeDeletedScheduledListeners(ctx); err != nil {
+		slog.Error(
+			"Failed to remove deleted scheduled event listeners in engine",
+			slog.String("error", err.Error()),
+		)
 	}
 
 	// Rewind by the overlap so rows committed out of timestamp order, or
@@ -250,7 +266,7 @@ func (e *Engine) removeDanglingCommands(ctx context.Context) error {
 
 func (e *Engine) populateEventListeners(ctx context.Context, lastUpdate time.Time) error {
 	queryStart := time.Now()
-	listeners, err := e.env.EventListenerStore.EnabledEventListenersUpdatedSince(ctx, lastUpdate)
+	listeners, err := e.env.EventListenerStore.EventListenersUpdatedSince(ctx, lastUpdate)
 	metrics.ObservePoll("populate_event_listeners", queryStart)
 	if err != nil {
 		return fmt.Errorf("failed to get event listeners: %w", err)
@@ -261,13 +277,34 @@ func (e *Engine) populateEventListeners(ctx context.Context, lastUpdate time.Tim
 			continue
 		}
 
-		compiled, err := NewEventListener(listener, e.env)
+		if !listener.Enabled {
+			// Dropped here instead of waiting for removeDangling, so disabling
+			// a scheduled listener stops it within one poll.
+			e.RLock()
+			app := e.apps[listener.AppID]
+			e.RUnlock()
+			if app != nil {
+				app.RemoveEventListener(listener.ID)
+			}
+			continue
+		}
+
+		// Only the first load after startup catches up on missed scheduled
+		// runs, later loads are edits or listeners being enabled.
+		compiled, err := NewEventListener(listener, e.env, lastUpdate.IsZero())
 		if err != nil {
 			// NewEventListener already logged the compilation failure.
 			continue
 		}
 
-		e.appForID(listener.AppID).AddEventListener(listener.ID, compiled)
+		app := e.appForID(listener.AppID)
+		app.AddEventListener(listener.ID, compiled)
+
+		if compiled.schedule != nil {
+			e.scheduledAppsMu.Lock()
+			e.scheduledApps[listener.AppID] = app
+			e.scheduledAppsMu.Unlock()
+		}
 	}
 
 	return nil
@@ -289,6 +326,45 @@ func (e *Engine) removeDanglingEventListeners(ctx context.Context) error {
 	}
 
 	return nil
+}
+
+// removeDeletedScheduledListeners stops deleted scheduled listeners on the
+// next poll. Deleted rows never show up as updated, and waiting for
+// removeDangling would keep a frequent schedule running for minutes.
+func (e *Engine) removeDeletedScheduledListeners(ctx context.Context) error {
+	e.scheduledAppsMu.Lock()
+	apps := slices.Collect(maps.Values(e.scheduledApps))
+	e.scheduledAppsMu.Unlock()
+	if len(apps) == 0 {
+		return nil
+	}
+
+	ids, err := e.env.EventListenerStore.EnabledScheduledEventListenerIDs(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to get enabled scheduled event listener IDs: %w", err)
+	}
+
+	idSet := util.IDSet(ids)
+	for _, app := range apps {
+		app.RemoveDeletedScheduledListeners(idSet)
+	}
+	return nil
+}
+
+func (e *Engine) scheduledEventListeners() []*EventListener {
+	e.scheduledAppsMu.Lock()
+	defer e.scheduledAppsMu.Unlock()
+
+	var res []*EventListener
+	for appID, app := range e.scheduledApps {
+		scheduled := app.scheduledEventListeners()
+		if len(scheduled) == 0 {
+			delete(e.scheduledApps, appID)
+			continue
+		}
+		res = append(res, scheduled...)
+	}
+	return res
 }
 
 // HandleEvent blocks until the event is handled by the corresponding app.

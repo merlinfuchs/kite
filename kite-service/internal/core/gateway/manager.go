@@ -404,6 +404,18 @@ func (m *GatewayManager) AppState(ctx context.Context, appID string) (store.AppS
 	return g, nil
 }
 
+func (m *GatewayManager) AppSession(ctx context.Context, appID string) (*state.State, error) {
+	m.Lock()
+	defer m.Unlock()
+
+	g, ok := m.gateways[appID]
+	if !ok {
+		return nil, store.ErrNotFound
+	}
+
+	return g.Session(), nil
+}
+
 func (m *GatewayManager) AppClient(ctx context.Context, appID string) (*api.Client, error) {
 	m.Lock()
 	defer m.Unlock()
