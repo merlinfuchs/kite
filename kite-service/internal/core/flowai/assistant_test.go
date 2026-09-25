@@ -159,3 +159,14 @@ func TestParseOutputSkipsEditsWithInvalidSettings(t *testing.T) {
 	assert.Equal(t, []map[string]any{{"condition_item_mode": "equal"}}, res.Edits[0]["items"])
 	assert.Equal(t, map[string]any{"op": "remove_node", "id": "b", "reconnect": false}, res.Edits[1])
 }
+
+func TestParseOutputWithBuildPrompt(t *testing.T) {
+	res, err := parseOutput(`{"message": "Use a **Cooldown**.", "edits": [], "build_prompt": "Add a cooldown of 10 seconds"}`)
+	require.NoError(t, err)
+	assert.Equal(t, "Add a cooldown of 10 seconds", res.BuildPrompt)
+	assert.Empty(t, res.Edits)
+
+	res, err = parseOutput(`{"message": "Done.", "edits": [], "build_prompt": null}`)
+	require.NoError(t, err)
+	assert.Empty(t, res.BuildPrompt)
+}

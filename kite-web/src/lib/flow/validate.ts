@@ -28,6 +28,8 @@ export interface FlowIssue {
   message: string;
   nodeId?: string;
   edgeId?: string;
+  // The setting of the block the issue is about.
+  setting?: string;
 }
 
 // Checks what the editor and the service expect of a flow, beyond what each
@@ -44,7 +46,7 @@ export function validateFlow(
   const report = (
     severity: FlowIssue["severity"],
     message: string,
-    ref: { nodeId?: string; edgeId?: string } = {}
+    ref: { nodeId?: string; edgeId?: string; setting?: string } = {}
   ) => issues.push({ severity, message, ...ref });
 
   const nodeIds = new Set(nodes.map((n) => n.id));
@@ -80,7 +82,7 @@ export function validateFlow(
         path
           ? `'${getNodeTitle(node)}' setting '${path}': ${issue.message}`
           : `'${getNodeTitle(node)}': ${issue.message}`,
-        { nodeId: node.id }
+        { nodeId: node.id, setting: path || undefined }
       );
     }
 

@@ -226,6 +226,7 @@ export function applyFlowEdits(
         }
         case "update_node": {
           const id = getNode(edit.id, "id").id;
+          if (!isPlainObject(edit.data)) throw new Error("data is missing.");
           nodes = nodes.map((n) =>
             n.id === id ? { ...n, data: mergeData(n.data, edit.data) } : n
           );

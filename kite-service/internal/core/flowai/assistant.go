@@ -71,6 +71,9 @@ type Request struct {
 
 type Response struct {
 	Message string
+	// BuildPrompt is a request the user can send to make the change the
+	// message suggests.
+	BuildPrompt string
 	// Edits are passed to the editor's applyFlowEdits as they are.
 	Edits []map[string]any
 	// Issues are problems with edits the model got wrong in a way the editor
@@ -229,8 +232,9 @@ func easyMessage(role responses.EasyInputMessageRole, content string) responses.
 // output is the model's answer. Strict structured outputs can't hold objects
 // of any shape, so settings come as JSON strings.
 type output struct {
-	Message string       `json:"message"`
-	Edits   []outputEdit `json:"edits"`
+	Message     string       `json:"message"`
+	Edits       []outputEdit `json:"edits"`
+	BuildPrompt *string      `json:"build_prompt"`
 }
 
 type outputEdit struct {
@@ -256,9 +260,10 @@ func parseOutput(text string) (*Response, error) {
 
 	// Empty rather than nil, so they are sent as [] rather than null.
 	res := &Response{
-		Message: out.Message,
-		Edits:   make([]map[string]any, 0, len(out.Edits)),
-		Issues:  []string{},
+		Message:     out.Message,
+		BuildPrompt: ptrValue(out.BuildPrompt),
+		Edits:       make([]map[string]any, 0, len(out.Edits)),
+		Issues:      []string{},
 	}
 	for i, e := range out.Edits {
 		edit, err := e.toEdit()
@@ -309,4 +314,12 @@ func (e outputEdit) toEdit() (map[string]any, error) {
 	}
 
 	return edit, nil
+}
+
+func ptrValue[T any](v *T) T {
+	var zero T
+	if v == nil {
+		return zero
+	}
+	return *v
 }

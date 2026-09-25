@@ -63,12 +63,13 @@ func main() {
 			return
 		}
 		respond(w, map[string]any{
-			"prompt_id": "eval",
-			"message":   res.Message,
-			"edits":     res.Edits,
-			"issues":    res.Issues,
-			"usage":     wire.FlowAIUsage{},
-			"eval":      map[string]any{"model": *model, "tokens": res.Usage, "ms": time.Since(start).Milliseconds()},
+			"prompt_id":    "eval",
+			"message":      res.Message,
+			"build_prompt": res.BuildPrompt,
+			"edits":        res.Edits,
+			"issues":       res.Issues,
+			"usage":        wire.FlowAIUsage{},
+			"eval":         map[string]any{"model": *model, "tokens": res.Usage, "ms": time.Since(start).Milliseconds()},
 		})
 	})
 

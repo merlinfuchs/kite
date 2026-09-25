@@ -30,6 +30,7 @@ function fakeAPI(
       data: {
         prompt_id: "p1",
         message: requests.length === 1 ? "Added a log." : "",
+        build_prompt: "",
         edits: typeof round === "function" ? round(req) : round,
         issues: [],
         usage,
@@ -204,6 +205,35 @@ describe("runFlowAIPrompt", () => {
       })
     ).rejects.toThrow();
     expect(api.requests).toHaveLength(1);
+  });
+
+  it("sends the stored variables and leaves picking them to the user", async () => {
+    const api = fakeAPI([
+      [
+        {
+          op: "add_node",
+          ref: "$set",
+          type: "action_variable_set",
+          after: "entry",
+          data: { variable_operation: "increment", variable_value: "1" },
+        },
+      ],
+    ]);
+    const editor = { flow: { nodes: [entry], edges: [] as Edge[] } };
+
+    const res = await runFlowAIPrompt({
+      context: "command",
+      messages: [{ role: "user", content: "Count uses" }],
+      variables: [{ id: "v1", name: "uses", scoped: false }],
+      getFlow: () => editor.flow,
+      applyFlow: (flow) => (editor.flow = flow),
+      send: api.send,
+    });
+
+    expect(api.requests[0].flow).toContain('Stored variables:\n- v1 "uses"');
+    // The missing variable_id isn't sent back to be repaired.
+    expect(api.requests).toHaveLength(1);
+    expect(res.issues).toEqual([]);
   });
 
   it("throws if the prompt fails", async () => {

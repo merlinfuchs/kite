@@ -56,7 +56,11 @@ func (req FlowAIChatRequest) Validate() error {
 
 type FlowAIChatResponse struct {
 	PromptID string `json:"prompt_id"`
-	Message  string `json:"message"`
+	// Message is Markdown.
+	Message string `json:"message"`
+	// BuildPrompt is a request the user can send to make the change the
+	// message suggests, if any.
+	BuildPrompt string `json:"build_prompt"`
 	// Edits are applied with the editor's applyFlowEdits.
 	Edits []map[string]any `json:"edits"`
 	// Issues are problems with edits that had to be skipped. They are fixed

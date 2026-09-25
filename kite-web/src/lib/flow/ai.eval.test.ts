@@ -1,11 +1,12 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import {
+  FlowAIChatMessage,
   FlowAIChatRequest,
   FlowAIChatResponse,
   FlowAICheckResponse,
 } from "../types/wire.gen";
-import { runFlowAIPrompt } from "./ai";
+import { checkFlowAIPrompt, runFlowAIPrompt } from "./ai";
 import { EvalCase, EvalRoute, evalCases } from "./ai.eval.cases";
 import { serializeFlow } from "./serialize";
 
@@ -15,7 +16,8 @@ import { serializeFlow } from "./serialize";
 //   OPENROUTER_API_KEY=... go run ./internal/core/flowai/evalserver
 //   FLOW_AI_EVAL_URL=http://localhost:4455 npx vitest run ai.eval
 //
-// FLOW_AI_EVAL_FILTER only runs the cases whose name contains it, and
+// FLOW_AI_EVAL_FILTER only runs the cases whose name contains one of its
+// comma separated parts, and
 // FLOW_AI_EVAL_CHECK_ONLY=1 only checks the prompts.
 const url = process.env.FLOW_AI_EVAL_URL;
 const filter = process.env.FLOW_AI_EVAL_FILTER ?? "";
@@ -46,6 +48,9 @@ interface CaseResult {
   check?: string;
   checkOk?: boolean;
   checkMessage?: string;
+  // For questions that are then built: the answer to the question.
+  answer?: string;
+  buildPrompt?: string;
   message?: string;
   edited: boolean;
   repairs: number;
@@ -98,18 +103,26 @@ async function runCase(c: EvalCase): Promise<CaseResult> {
     ms: 0,
   };
   let flow = c.flow();
-  const known = c.prompt + JSON.stringify(flow);
+  const variables = c.variables ?? [];
+  const known = c.prompt + JSON.stringify(flow) + JSON.stringify(variables);
 
-  const check = await post<FlowAICheckResponse>("/check", {
-    flow: serializeFlow(flow.nodes, flow.edges, c.context),
+  const check = await checkFlowAIPrompt({
+    context: c.context,
     prompt: c.prompt,
+    flow,
+    variables,
+    send: async (req) => {
+      const res = await post<FlowAICheckResponse>("/check", req);
+      if (res.success) result.cost += cost(res.data.eval);
+      return res;
+    },
   });
-  if (check.success) {
-    result.check = check.data.verdict;
+  if (check) {
+    result.check = check.verdict;
     result.checkMessage = [
-      check.data.message,
-      check.data.suggested_prompt,
-      ...check.data.fields.map((f) => `[${f.type}] ${f.label}`),
+      check.message,
+      check.suggested_prompt,
+      ...check.fields.map((f) => `[${f.type}] ${f.label}`),
     ]
       .filter(Boolean)
       .join(" | ");
@@ -117,18 +130,18 @@ async function runCase(c: EvalCase): Promise<CaseResult> {
     const expected: string[] = c.route.map((r) =>
       r === "clarify" ? "clarify" : "send"
     );
-    result.checkOk = expected.includes(check.data.verdict);
-    result.cost += cost(check.data.eval);
+    result.checkOk = expected.includes(check.verdict);
   }
 
   if (checkOnly) return result;
 
   const start = Date.now();
-  let rounds = 0;
-  try {
+  const prompt = async (messages: FlowAIChatMessage[]) => {
+    let rounds = 0;
     const res = await runFlowAIPrompt({
       context: c.context,
-      messages: [{ role: "user", content: c.prompt }],
+      messages,
+      variables,
       getFlow: () => flow,
       applyFlow: (applied) => {
         flow = { nodes: applied.nodes, edges: applied.edges };
@@ -150,8 +163,27 @@ async function runCase(c: EvalCase): Promise<CaseResult> {
       },
     });
     result.message = res.message;
-    result.repairs = res.repairs;
+    result.buildPrompt = res.buildPrompt;
+    result.repairs += res.repairs;
     result.issues = res.issues;
+    return res;
+  };
+
+  let answeredFirst = false;
+  try {
+    const messages: FlowAIChatMessage[] = [{ role: "user", content: c.prompt }];
+    const res = await prompt(messages);
+    answeredFirst = !result.edited;
+
+    // Like clicking "Build this".
+    if (c.thenBuild && answeredFirst && res.buildPrompt) {
+      result.answer = res.message;
+      await prompt([
+        ...messages,
+        { role: "assistant", content: res.message },
+        { role: "user", content: res.buildPrompt },
+      ]);
+    }
   } catch (err) {
     result.error = (err as Error).message;
   }
@@ -176,7 +208,7 @@ async function runCase(c: EvalCase): Promise<CaseResult> {
     e.sourceHandle?.startsWith("component_")
   );
 
-  const shouldEdit = c.route.includes("build");
+  const shouldEdit = c.route.includes("build") || !!c.thenBuild;
   const mayEdit = shouldEdit || c.route.includes("clarify");
   result.buildOk =
     !result.error &&
@@ -184,7 +216,9 @@ async function runCase(c: EvalCase): Promise<CaseResult> {
     result.missingTypes.length === 0 &&
     result.inventedIds.length === 0 &&
     (!c.componentBranch || usesComponent) &&
-    (result.edited ? mayEdit : !shouldEdit || c.route.length > 1);
+    (result.edited ? mayEdit : !shouldEdit || c.route.length > 1) &&
+    // Questions are answered before anything is built.
+    (!c.thenBuild || (answeredFirst && !!result.answer));
   result.flow = serializeFlow(flow.nodes, flow.edges, c.context);
   return result;
 }
@@ -219,6 +253,8 @@ function report(results: CaseResult[]) {
       `## ${r.name}`,
       "",
       r.checkMessage ? `Check: ${r.check}: ${r.checkMessage}` : "",
+      r.answer ? `> ${r.answer.replace(/\n/g, "\n> ")}` : "",
+      r.buildPrompt ? `Build this: ${r.buildPrompt}` : "",
       r.message ? `> ${r.message.replace(/\n/g, "\n> ")}` : "",
       r.error ? `Error: ${r.error}` : "",
       r.missingTypes.length ? `Missing: ${r.missingTypes.join(", ")}` : "",
@@ -248,7 +284,9 @@ describe.skipIf(!url)("flow AI eval", () => {
   it(
     "runs the cases",
     async () => {
-      const cases = evalCases.filter((c) => c.name.includes(filter));
+      const cases = evalCases.filter((c) =>
+        filter.split(",").some((f) => c.name.includes(f))
+      );
       const results: CaseResult[] = [];
       // A few at a time, to stay within rate limits.
       for (let i = 0; i < cases.length; i += 6) {

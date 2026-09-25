@@ -164,11 +164,12 @@ func (h *FlowAIHandler) HandleFlowAIChat(c *handler.Context, req wire.FlowAIChat
 	}
 
 	return &wire.FlowAIChatResponse{
-		PromptID: prompt.ID,
-		Message:  res.Message,
-		Edits:    res.Edits,
-		Issues:   res.Issues,
-		Usage:    wire.FlowAIUsage{PromptsUsed: used, PromptsLimit: limit},
+		PromptID:    prompt.ID,
+		Message:     res.Message,
+		BuildPrompt: res.BuildPrompt,
+		Edits:       res.Edits,
+		Issues:      res.Issues,
+		Usage:       wire.FlowAIUsage{PromptsUsed: used, PromptsLimit: limit},
 	}, nil
 }
 
