@@ -13,6 +13,7 @@ import {
   EventListenerGetResponse,
   EventListenerListResponse,
   FeaturesGetResponse,
+  FlowAIUsageGetResponse,
   LogEntry,
   LogEntryListResponse,
   LogSummaryGetResponse,
@@ -332,6 +333,15 @@ export function useBillingPlansQuery() {
   return useQuery({
     queryKey: ["billing", "plans"],
     queryFn: () => apiRequest<BillingPlanListResponse>(`/v1/billing/plans`),
+  });
+}
+
+export function useFlowAIUsageQuery(appId: string) {
+  return useQuery({
+    queryKey: ["apps", appId, "flow-ai", "usage"],
+    queryFn: () =>
+      apiRequest<FlowAIUsageGetResponse>(`/v1/apps/${appId}/flow-ai/usage`),
+    enabled: !!appId,
   });
 }
 

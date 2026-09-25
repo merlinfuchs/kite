@@ -15,6 +15,7 @@ import {
   useEventListenerQuery,
   useEventListenersQuery,
   useAppFeaturesQuery,
+  useFlowAIUsageQuery,
   useLogSummaryQuery,
   useMessageInstancesQuery,
   useMessageQuery,
@@ -42,6 +43,7 @@ import {
   EventListenerGetResponse,
   EventListenerListResponse,
   FeaturesGetResponse,
+  FlowAIUsageGetResponse,
   LogSummaryGetResponse,
   MessageGetResponse,
   MessageInstanceListResponse,
@@ -320,6 +322,13 @@ export function useBillingPlans(
   callback?: (res: APIResponse<BillingPlanListResponse>) => void
 ) {
   const query = useBillingPlansQuery();
+  return useResponseData(query, callback);
+}
+
+export function useFlowAIUsage(
+  callback?: (res: APIResponse<FlowAIUsageGetResponse>) => void
+) {
+  const query = useFlowAIUsageQuery(useAppId());
   return useResponseData(query, callback);
 }
 

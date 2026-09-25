@@ -66,7 +66,7 @@ func TestRespond(t *testing.T) {
 
 	res, err := assistant.Respond(context.Background(), Request{
 		FlowType: "command",
-		Flow:     "Blocks:\n- entry entry_command",
+		Flow:     "Flow type: command\n\nBlocks:\n- entry entry_command",
 		Messages: messages,
 		UserID:   "user",
 	})

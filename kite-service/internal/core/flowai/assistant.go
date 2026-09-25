@@ -149,7 +149,8 @@ func (a *Assistant) params(req Request) responses.ResponseNewParams {
 	}
 	input = append(input, easyMessage(
 		responses.EasyInputMessageRoleUser,
-		fmt.Sprintf("Flow type: %s\n\nCurrent flow:\n%s\n\n%s", req.FlowType, req.Flow, current),
+		// The flow starts with its type.
+		fmt.Sprintf("Current flow:\n%s\n\n%s", req.Flow, current),
 	))
 
 	return responses.ResponseNewParams{

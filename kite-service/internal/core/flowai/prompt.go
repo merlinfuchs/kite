@@ -78,6 +78,6 @@ Rules:
 - Check blocks that ban, kick, time out or delete things twice, and mention them in your message.
 - If the user sends problems the editor found with your edits, fix exactly those with further edits.
 
-The flow is given as a list of blocks with their ID, type and settings, then the connections between them, where "a[error] -> b" means b runs after the error output of a.
+The flow is given as its type, a list of blocks with their ID, type and settings, then the connections between them, where "a[error] -> b" means b runs after the error output of a. Blocks the user selected in the editor are marked "(selected)", and are what they mean by "this block".
 
 The catalog below describes each block type: title, description, contexts it can be used in, outputs, the blocks it owns (owned_children), data_schema (the JSON Schema of its settings) and result_schema.`
