@@ -22,6 +22,9 @@ const (
 	DashboardMessageInstanceExpiry = 360 * 24 * time.Hour
 	ShareCodeExpiry                = 90 * 24 * time.Hour
 
+	// Tombstones only need to outlive the engine and gateway polls.
+	DeletedEntityExpiry = 24 * time.Hour
+
 	cleanupBatchSize = 5000
 	// Caps a single tick so a large backlog can't stall the credit sweep, the
 	// rest is picked up by the next tick.
@@ -35,6 +38,7 @@ type UsageManager struct {
 	resumePointStore     store.ResumePointStore
 	messageInstanceStore store.MessageInstanceStore
 	shareCodeStore       store.ShareCodeStore
+	deletedEntityStore   store.DeletedEntityStore
 
 	planManager *plan.PlanManager
 }
@@ -46,6 +50,7 @@ func NewUsageManager(
 	resumePointStore store.ResumePointStore,
 	messageInstanceStore store.MessageInstanceStore,
 	shareCodeStore store.ShareCodeStore,
+	deletedEntityStore store.DeletedEntityStore,
 	planManager *plan.PlanManager,
 ) *UsageManager {
 	return &UsageManager{
@@ -55,6 +60,7 @@ func NewUsageManager(
 		resumePointStore:     resumePointStore,
 		messageInstanceStore: messageInstanceStore,
 		shareCodeStore:       shareCodeStore,
+		deletedEntityStore:   deletedEntityStore,
 		planManager:          planManager,
 	}
 }
@@ -107,6 +113,12 @@ func (m *UsageManager) Run(ctx context.Context) {
 				if err := m.cleanupShareCodes(ctx); err != nil {
 					slog.Error(
 						"Failed to cleanup share codes",
+						slog.String("error", err.Error()),
+					)
+				}
+				if err := m.cleanupDeletedEntities(ctx); err != nil {
+					slog.Error(
+						"Failed to cleanup deleted entities",
 						slog.String("error", err.Error()),
 					)
 				}
@@ -229,6 +241,14 @@ func (m *UsageManager) cleanupShareCodes(ctx context.Context) error {
 
 	return deleteInBatches(ctx, func(ctx context.Context) (int64, error) {
 		return m.shareCodeStore.DeleteUnusedShareCodes(ctx, usedBefore, cleanupBatchSize)
+	})
+}
+
+func (m *UsageManager) cleanupDeletedEntities(ctx context.Context) error {
+	expiry := time.Now().UTC().Add(-DeletedEntityExpiry)
+
+	return deleteInBatches(ctx, func(ctx context.Context) (int64, error) {
+		return m.deletedEntityStore.DeleteDeletedEntitiesBefore(ctx, expiry, cleanupBatchSize)
 	})
 }
 

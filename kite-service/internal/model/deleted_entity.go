@@ -1,7 +1,5 @@
 package model
 
-import "time"
-
 // DeletedEntityType is the table a deleted entity was deleted from.
 type DeletedEntityType string
 
@@ -14,8 +12,7 @@ const (
 // DeletedEntity is the tombstone of a deleted command, event listener or
 // plugin instance.
 type DeletedEntity struct {
-	ID        string
-	Type      DeletedEntityType
-	AppID     string
-	DeletedAt time.Time
+	ID    string
+	Type  DeletedEntityType
+	AppID string
 }

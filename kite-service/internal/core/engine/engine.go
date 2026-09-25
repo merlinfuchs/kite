@@ -14,10 +14,6 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/util"
 )
 
-// deletedEntityRetention is how long tombstones of deleted entities are kept.
-// Only needs to cover the polls, the dangling sweep catches anything older.
-const deletedEntityRetention = 24 * time.Hour
-
 type Engine struct {
 	sync.RWMutex
 
@@ -134,13 +130,6 @@ func (e *Engine) populate(ctx context.Context) {
 // polls missed.
 func (e *Engine) removeDangling(ctx context.Context) {
 	e.env.BlockRateLimiter.Sweep()
-
-	if err := e.env.DeletedEntityStore.DeleteDeletedEntitiesBefore(ctx, time.Now().Add(-deletedEntityRetention)); err != nil {
-		slog.Error(
-			"Failed to prune deleted entities in engine",
-			slog.String("error", err.Error()),
-		)
-	}
 
 	if err := e.removeDanglingPlugins(ctx); err != nil {
 		slog.Error(
@@ -375,19 +364,16 @@ func (e *Engine) removeDeletedEntities(ctx context.Context, lastUpdate time.Time
 		return fmt.Errorf("failed to get deleted entities: %w", err)
 	}
 
+	// Grouped so an app delete, which deletes all of its entities at once,
+	// locks the app and rebuilds its indexes only once.
+	byApp := make(map[string][]*model.DeletedEntity)
 	for _, entity := range deleted {
-		app := e.existingApp(entity.AppID)
-		if app == nil {
-			continue
-		}
+		byApp[entity.AppID] = append(byApp[entity.AppID], entity)
+	}
 
-		switch entity.Type {
-		case model.DeletedEntityTypeCommand:
-			app.RemoveCommand(entity.ID)
-		case model.DeletedEntityTypeEventListener:
-			app.RemoveEventListener(entity.ID)
-		case model.DeletedEntityTypePluginInstance:
-			app.RemovePluginInstance(entity.ID)
+	for appID, entities := range byApp {
+		if app := e.existingApp(appID); app != nil {
+			app.RemoveDeletedEntities(entities)
 		}
 	}
 

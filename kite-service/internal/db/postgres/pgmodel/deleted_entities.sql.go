@@ -11,13 +11,27 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
-const deleteDeletedEntitiesBefore = `-- name: DeleteDeletedEntitiesBefore :exec
-DELETE FROM deleted_entities WHERE deleted_at < $1
+const deleteDeletedEntitiesBefore = `-- name: DeleteDeletedEntitiesBefore :execrows
+DELETE FROM deleted_entities WHERE ctid IN (
+    SELECT expired.ctid FROM deleted_entities expired
+    WHERE expired.deleted_at < $1
+    LIMIT $2
+)
 `
 
-func (q *Queries) DeleteDeletedEntitiesBefore(ctx context.Context, deletedAt pgtype.Timestamp) error {
-	_, err := q.db.Exec(ctx, deleteDeletedEntitiesBefore, deletedAt)
-	return err
+type DeleteDeletedEntitiesBeforeParams struct {
+	BeforeAt  pgtype.Timestamp
+	BatchSize int32
+}
+
+// Batched so a large backlog doesn't hold one long transaction. The table has
+// no key, ctid identifies the rows within the statement.
+func (q *Queries) DeleteDeletedEntitiesBefore(ctx context.Context, arg DeleteDeletedEntitiesBeforeParams) (int64, error) {
+	result, err := q.db.Exec(ctx, deleteDeletedEntitiesBefore, arg.BeforeAt, arg.BatchSize)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
 }
 
 const getDeletedEntitiesSince = `-- name: GetDeletedEntitiesSince :many

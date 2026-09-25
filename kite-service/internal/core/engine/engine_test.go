@@ -59,15 +59,6 @@ func (f *fakeDeletedEntityStore) DeletedEntitiesSince(ctx context.Context, since
 }
 
 func newTestEngine(commands *fakeCommandStore, listeners *fakeEventListenerStore, plugins *fakePluginInstanceStore) *Engine {
-	return newTestEngineWithDeleted(commands, listeners, plugins, &fakeDeletedEntityStore{})
-}
-
-func newTestEngineWithDeleted(
-	commands *fakeCommandStore,
-	listeners *fakeEventListenerStore,
-	plugins *fakePluginInstanceStore,
-	deleted *fakeDeletedEntityStore,
-) *Engine {
 	return NewEngine(Env{
 		Config: EngineConfig{
 			ClusterCount:    1,
@@ -77,7 +68,7 @@ func newTestEngineWithDeleted(
 		CommandStore:        commands,
 		EventListenerStore:  listeners,
 		PluginInstanceStore: plugins,
-		DeletedEntityStore:  deleted,
+		DeletedEntityStore:  &fakeDeletedEntityStore{},
 	})
 }
 
@@ -159,12 +150,8 @@ func TestPopulatePartialFailureDoesNotAdvanceCursor(t *testing.T) {
 // The deleted entity query counts like the others: a failure leaves its window
 // unread.
 func TestPopulateDeletedEntitiesFailureDoesNotAdvanceCursor(t *testing.T) {
-	e := newTestEngineWithDeleted(
-		&fakeCommandStore{},
-		&fakeEventListenerStore{},
-		&fakePluginInstanceStore{},
-		&fakeDeletedEntityStore{err: errors.New("connection refused")},
-	)
+	e := newTestEngine(&fakeCommandStore{}, &fakeEventListenerStore{}, &fakePluginInstanceStore{})
+	e.env.DeletedEntityStore = &fakeDeletedEntityStore{err: errors.New("connection refused")}
 	cursor := time.Now().UTC().Add(-time.Minute)
 	e.lastUpdate = cursor
 
@@ -176,18 +163,17 @@ func TestPopulateDeletedEntitiesFailureDoesNotAdvanceCursor(t *testing.T) {
 }
 
 func TestPopulateDropsDeletedEntities(t *testing.T) {
-	deleted := &fakeDeletedEntityStore{}
-	e := newTestEngineWithDeleted(&fakeCommandStore{}, &fakeEventListenerStore{}, &fakePluginInstanceStore{}, deleted)
+	e := newTestEngine(&fakeCommandStore{}, &fakeEventListenerStore{}, &fakePluginInstanceStore{})
 
 	app := e.appForID("app")
 	app.AddCommand(testCommand("cmd", "ping"))
 	app.AddEventListener(testListener("listener", model.EventSourceDiscord, model.EventListenerTypeDiscordMessageCreate))
 	e.lastUpdate = time.Now().UTC().Add(-time.Minute)
 
-	deleted.deleted = []*model.DeletedEntity{
+	e.env.DeletedEntityStore = &fakeDeletedEntityStore{deleted: []*model.DeletedEntity{
 		{ID: "cmd", Type: model.DeletedEntityTypeCommand, AppID: "app"},
 		{ID: "listener", Type: model.DeletedEntityTypeEventListener, AppID: "app"},
-	}
+	}}
 	e.populate(context.Background())
 
 	if got := app.commandsByName["ping"]; got != nil {
