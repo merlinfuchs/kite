@@ -17,7 +17,7 @@ import (
 	"github.com/kitecloud/kite/kite-service/pkg/flow"
 	"github.com/kitecloud/kite/kite-service/pkg/plugin"
 	"github.com/kitecloud/kite/kite-service/pkg/provider"
-	"github.com/openai/openai-go"
+	"github.com/openai/openai-go/v2"
 	"gopkg.in/guregu/null.v4"
 )
 

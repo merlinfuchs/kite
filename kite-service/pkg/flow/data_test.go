@@ -3,7 +3,7 @@ package flow
 import (
 	"testing"
 
-	"github.com/openai/openai-go"
+	"github.com/openai/openai-go/v2"
 )
 
 func TestAIModelAllowed(t *testing.T) {
@@ -13,7 +13,7 @@ func TestAIModelAllowed(t *testing.T) {
 		openai.ChatModelGPT4_1Mini,
 		openai.ChatModelGPT4_1Nano,
 		openai.ChatModelGPT4oMini,
-		"gpt-5-nano",
+		openai.ChatModelGPT5Nano,
 	}
 	for _, model := range allowed {
 		if !AIModelAllowed(model) {

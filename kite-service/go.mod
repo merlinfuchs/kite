@@ -25,7 +25,7 @@ require (
 	github.com/matoous/go-nanoid/v2 v2.1.0
 	github.com/merlinfuchs/kite/kite-web v0.0.0
 	github.com/minio/minio-go/v7 v7.0.76
-	github.com/openai/openai-go v1.10.3
+	github.com/openai/openai-go/v2 v2.7.1
 	github.com/pelletier/go-toml/v2 v2.2.2
 	github.com/ravener/discord-oauth2 v0.0.0-20230514095040-ae65713199b3
 	github.com/rs/cors v1.11.0

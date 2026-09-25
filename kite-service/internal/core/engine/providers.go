@@ -26,9 +26,9 @@ import (
 	"github.com/kitecloud/kite/kite-service/pkg/message"
 	"github.com/kitecloud/kite/kite-service/pkg/provider"
 	"github.com/kitecloud/kite/kite-service/pkg/thing"
-	"github.com/openai/openai-go"
-	"github.com/openai/openai-go/responses"
-	"github.com/openai/openai-go/shared"
+	"github.com/openai/openai-go/v2"
+	"github.com/openai/openai-go/v2/responses"
+	"github.com/openai/openai-go/v2/shared"
 	"gopkg.in/guregu/null.v4"
 )
 
@@ -520,8 +520,8 @@ func (p *AIProvider) CreateResponse(ctx context.Context, opts provider.CreateRes
 		switch tool {
 		case provider.AIToolTypeWebSearchPreview:
 			tools = append(tools, responses.ToolUnionParam{
-				OfWebSearchPreview: &responses.WebSearchToolParam{
-					Type: responses.WebSearchToolTypeWebSearchPreview,
+				OfWebSearchPreview: &responses.WebSearchPreviewToolParam{
+					Type: responses.WebSearchPreviewToolTypeWebSearchPreview,
 				},
 			})
 		}
