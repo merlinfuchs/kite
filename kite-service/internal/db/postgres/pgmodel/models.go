@@ -86,6 +86,19 @@ type EventListener struct {
 	LastRunAt     pgtype.Timestamp
 }
 
+type FlowAiPrompt struct {
+	ID                string
+	AppID             string
+	UserID            string
+	Model             string
+	Rounds            int32
+	InputTokens       int32
+	CachedInputTokens int32
+	OutputTokens      int32
+	CreatedAt         pgtype.Timestamp
+	UpdatedAt         pgtype.Timestamp
+}
+
 type Log struct {
 	ID              int64
 	AppID           string

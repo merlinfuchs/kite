@@ -217,6 +217,7 @@ export interface BillingPlan {
   feature_rotating_status: boolean;
   feature_max_scheduled_event_listeners: number /* int */;
   feature_min_schedule_interval_seconds: number /* int */;
+  feature_max_ai_prompts_per_month: number /* int */;
 }
 export type BillingPlanListResponse = (BillingPlan | undefined)[];
 
@@ -337,8 +338,50 @@ export interface Features {
   rotating_status: boolean;
   max_scheduled_event_listeners: number /* int */;
   min_schedule_interval_seconds: number /* int */;
+  max_ai_prompts_per_month: number /* int */;
 }
 export type FeaturesGetResponse = Features;
+
+//////////
+// source: flow_ai.go
+
+export interface FlowAIChatMessage {
+  role: string;
+  content: string;
+}
+export interface FlowAIChatRequest {
+  flow_type: string;
+  /**
+   * Flow is the flow as serialized by the editor.
+   */
+  flow: string;
+  messages: FlowAIChatMessage[];
+  /**
+   * RepairPromptID asks to fix the issues the editor found with the edits
+   * of an earlier prompt. Repairs don't count as new prompts.
+   */
+  repair_prompt_id: string;
+  issues: string[];
+}
+export interface FlowAIChatResponse {
+  prompt_id: string;
+  message: string;
+  /**
+   * Edits are applied with the editor's applyFlowEdits.
+   */
+  edits: { [key: string]: any}[];
+  /**
+   * Issues are problems with edits that had to be skipped. They are fixed
+   * with a repair, like the problems the editor finds.
+   */
+  issues: string[];
+  usage: FlowAIUsage;
+}
+export interface FlowAIUsage {
+  prompts_used: number /* int */;
+  prompts_limit: number /* int */;
+}
+export type FlowAIUsageGetResponse = FlowAIUsage;
 
 //////////
 // source: log.go
