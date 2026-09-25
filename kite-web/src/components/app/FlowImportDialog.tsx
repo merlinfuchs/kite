@@ -25,7 +25,18 @@ import {
   EventListenersImportResponse,
 } from "@/lib/types/wire.gen";
 import { APIResponse } from "@/lib/api/response";
+import { apiRequest } from "@/lib/api/client";
 import { toast } from "sonner";
+
+async function resolveShareCode(code: string): Promise<string> {
+  const res = await apiRequest<{ data: string }>(
+    `/v1/share/${encodeURIComponent(code)}`
+  );
+  if (!res.success) {
+    throw new Error(res.error.message || "Code not found");
+  }
+  return res.data.data;
+}
 
 const kinds = {
   command: {
@@ -69,7 +80,10 @@ function ImportForm({
   kind: Kind;
   onImported: () => void;
 }) {
+  const [useCode, setUseCode] = useState(true);
   const [shareCode, setShareCode] = useState("");
+  const [codeInput, setCodeInput] = useState("");
+  const [resolving, setResolving] = useState(false);
 
   const router = useRouter();
   const appId = useAppId();
@@ -81,10 +95,12 @@ function ImportForm({
 
   const { label, entryNodeType, href } = kinds[kind];
 
-  function onImport() {
+  // Same parsing/sanitization path regardless of whether the JSON came from
+  // the textarea or was resolved from a share code.
+  function importFlowData(raw: string) {
     let parsed: { flow_source?: FlowData; source?: string } | undefined;
     try {
-      parsed = JSON.parse(shareCode);
+      parsed = JSON.parse(raw);
     } catch {}
 
     const flow = parsed?.flow_source;
@@ -148,19 +164,73 @@ function ImportForm({
     }
   }
 
+  async function onImport() {
+    if (!useCode) {
+      importFlowData(shareCode);
+      return;
+    }
+
+    const normalized = codeInput.trim().toUpperCase();
+    if (normalized.length !== 6) {
+      toast.error("Enter a 6-character code");
+      return;
+    }
+    setResolving(true);
+    try {
+      const data = await resolveShareCode(normalized);
+      importFlowData(data);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to import");
+    } finally {
+      setResolving(false);
+    }
+  }
+
   return (
     <>
       <DialogHeader>
         <DialogTitle>Import {label}</DialogTitle>
         <DialogDescription>
-          Paste a share code that was exported from another app.
+          {useCode
+            ? "Enter a share code that was exported from another app."
+            : "Paste a share code (JSON) that was exported from another app."}
         </DialogDescription>
       </DialogHeader>
-      <Textarea
-        value={shareCode}
-        onChange={(e) => setShareCode(e.target.value)}
-        className="min-h-[78px] max-h-[218px]"
-      />
+
+      {useCode ? (
+        <div className="flex flex-col items-center gap-3 py-6">
+          <input
+            value={codeInput}
+            onChange={(e) => setCodeInput(e.target.value.toUpperCase())}
+            maxLength={6}
+            placeholder="ABC123"
+            className="w-40 rounded-md border border-input bg-background px-3 py-2 text-center text-2xl font-mono tracking-widest"
+          />
+          <button
+            type="button"
+            onClick={() => setUseCode(false)}
+            className="text-sm text-muted-foreground underline underline-offset-2"
+          >
+            Paste JSON instead
+          </button>
+        </div>
+      ) : (
+        <>
+          <Textarea
+            value={shareCode}
+            onChange={(e) => setShareCode(e.target.value)}
+            className="min-h-[78px] max-h-[218px]"
+          />
+          <button
+            type="button"
+            onClick={() => setUseCode(true)}
+            className="text-sm text-muted-foreground underline underline-offset-2 self-start"
+          >
+            Use a code instead
+          </button>
+        </>
+      )}
+
       <DialogFooter>
         <DialogClose asChild>
           <Button variant="outline">Cancel</Button>
@@ -170,6 +240,7 @@ function ImportForm({
           loading={
             commandsImportMutation.isPending ||
             eventListenersImportMutation.isPending ||
+            resolving ||
             !variables ||
             !messages
           }

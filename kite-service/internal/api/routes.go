@@ -17,6 +17,7 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/logs"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/message"
 	pluginhandler "github.com/kitecloud/kite/kite-service/internal/api/handler/plugin"
+	sharehandler "github.com/kitecloud/kite/kite-service/internal/api/handler/share"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/usage"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/user"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/variable"
@@ -33,6 +34,7 @@ import (
 func (s *APIServer) RegisterRoutes(
 	userStore store.UserStore,
 	sessionStore store.SessionStore,
+	shareCodeStore store.ShareCodeStore,
 	appStore store.AppStore,
 	logStore store.LogStore,
 	usageStore store.UsageStore,
@@ -111,6 +113,13 @@ func (s *APIServer) RegisterRoutes(
 
 	usersGroup := v1Group.Group("/users", sessionManager.RequireSession)
 	usersGroup.Get("/{userID}", handler.Typed(userHandler.HandlerUserGet))
+
+	// Share routes
+	shareHandler := sharehandler.NewShareHandler(shareCodeStore)
+
+	shareGroup := v1Group.Group("/share", sessionManager.RequireSession)
+	shareGroup.Post("/", handler.TypedWithBody(shareHandler.HandleShareCodeCreate))
+	shareGroup.Get("/{code}", handler.Typed(shareHandler.HandleShareCodeGet))
 
 	// App routes
 	appHandler := app.NewAppHandler(

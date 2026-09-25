@@ -156,7 +156,7 @@ func StartServer(c context.Context, cfg *config.Config) error {
 			Plans:                     cfg.Billing.Plans,
 		},
 	},
-		pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg,
+		pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg,
 		assetStore, gateway, planManager, pluginRegistry, tokenCrypt, commandManager,
 	)
 	address := fmt.Sprintf("%s:%d", cfg.API.Host, cfg.API.Port)

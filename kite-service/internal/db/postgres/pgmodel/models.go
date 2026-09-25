@@ -180,6 +180,12 @@ type Session struct {
 	ExpiresAt pgtype.Timestamp
 }
 
+type ShareCode struct {
+	Code      string
+	Data      string
+	CreatedAt pgtype.Timestamp
+}
+
 type Subscription struct {
 	ID                         string
 	DisplayName                string
