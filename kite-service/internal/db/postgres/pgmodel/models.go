@@ -181,9 +181,13 @@ type Session struct {
 }
 
 type ShareCode struct {
-	Code      string
-	Data      string
-	CreatedAt pgtype.Timestamp
+	Code          string
+	Type          string
+	Data          []byte
+	CreatorUserID string
+	AppID         pgtype.Text
+	CreatedAt     pgtype.Timestamp
+	LastUsedAt    pgtype.Timestamp
 }
 
 type Subscription struct {

@@ -2,12 +2,6 @@
 // versions:
 //   sqlc v1.31.1
 // source: share_codes.sql
-//
-// NOTE: this file is hand-written to match sqlc's output style as a
-// fallback. Prefer running `sqlc generate` (from kite-service, using the
-// existing sqlc.yaml) after adding queries/share_codes.sql and the
-// migration — it will regenerate this file (and add the ShareCode struct
-// to models.go) for you, and is more reliable than this by-hand version.
 
 package pgmodel
 
@@ -17,37 +11,92 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
-// Add this struct to models.go if you're not running sqlc generate.
-// type ShareCode struct {
-// 	Code      string
-// 	Data      string
-// 	CreatedAt pgtype.Timestamp
-// }
-
-const createShareCode = `-- name: CreateShareCode :one
-INSERT INTO share_codes (code, data, created_at) VALUES ($1, $2, $3) RETURNING code, data, created_at
+const createShareCode = `-- name: CreateShareCode :exec
+INSERT INTO share_codes (
+    code,
+    type,
+    data,
+    creator_user_id,
+    app_id,
+    created_at,
+    last_used_at
+) VALUES ($1, $2, $3, $4, $5, $6, $7)
 `
 
 type CreateShareCodeParams struct {
-	Code      string
-	Data      string
-	CreatedAt pgtype.Timestamp
+	Code          string
+	Type          string
+	Data          []byte
+	CreatorUserID string
+	AppID         pgtype.Text
+	CreatedAt     pgtype.Timestamp
+	LastUsedAt    pgtype.Timestamp
 }
 
-func (q *Queries) CreateShareCode(ctx context.Context, arg CreateShareCodeParams) (ShareCode, error) {
-	row := q.db.QueryRow(ctx, createShareCode, arg.Code, arg.Data, arg.CreatedAt)
-	var i ShareCode
-	err := row.Scan(&i.Code, &i.Data, &i.CreatedAt)
-	return i, err
+func (q *Queries) CreateShareCode(ctx context.Context, arg CreateShareCodeParams) error {
+	_, err := q.db.Exec(ctx, createShareCode,
+		arg.Code,
+		arg.Type,
+		arg.Data,
+		arg.CreatorUserID,
+		arg.AppID,
+		arg.CreatedAt,
+		arg.LastUsedAt,
+	)
+	return err
 }
 
-const getShareCode = `-- name: GetShareCode :one
-SELECT code, data, created_at FROM share_codes WHERE code = $1
+const deleteUnusedShareCodes = `-- name: DeleteUnusedShareCodes :execrows
+DELETE FROM share_codes WHERE code IN (
+    SELECT stale.code FROM share_codes stale
+    WHERE stale.last_used_at < $1
+    LIMIT $2
+)
 `
 
-func (q *Queries) GetShareCode(ctx context.Context, code string) (ShareCode, error) {
-	row := q.db.QueryRow(ctx, getShareCode, code)
+type DeleteUnusedShareCodesParams struct {
+	UsedBefore pgtype.Timestamp
+	BatchSize  int32
+}
+
+// Batched so a large backlog doesn't hold one long transaction.
+func (q *Queries) DeleteUnusedShareCodes(ctx context.Context, arg DeleteUnusedShareCodesParams) (int64, error) {
+	result, err := q.db.Exec(ctx, deleteUnusedShareCodes, arg.UsedBefore, arg.BatchSize)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
+const shareCode = `-- name: ShareCode :one
+SELECT code, type, data, creator_user_id, app_id, created_at, last_used_at FROM share_codes WHERE code = $1
+`
+
+func (q *Queries) ShareCode(ctx context.Context, code string) (ShareCode, error) {
+	row := q.db.QueryRow(ctx, shareCode, code)
 	var i ShareCode
-	err := row.Scan(&i.Code, &i.Data, &i.CreatedAt)
+	err := row.Scan(
+		&i.Code,
+		&i.Type,
+		&i.Data,
+		&i.CreatorUserID,
+		&i.AppID,
+		&i.CreatedAt,
+		&i.LastUsedAt,
+	)
 	return i, err
+}
+
+const touchShareCode = `-- name: TouchShareCode :exec
+UPDATE share_codes SET last_used_at = $1 WHERE code = $2
+`
+
+type TouchShareCodeParams struct {
+	UsedAt pgtype.Timestamp
+	Code   string
+}
+
+func (q *Queries) TouchShareCode(ctx context.Context, arg TouchShareCodeParams) error {
+	_, err := q.db.Exec(ctx, touchShareCode, arg.UsedAt, arg.Code)
+	return err
 }

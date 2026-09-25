@@ -20,6 +20,7 @@ const (
 	ResumePointExpiry              = 90 * 24 * time.Hour
 	FlowMessageInstanceExpiry      = 90 * 24 * time.Hour
 	DashboardMessageInstanceExpiry = 360 * 24 * time.Hour
+	ShareCodeExpiry                = 90 * 24 * time.Hour
 
 	cleanupBatchSize = 5000
 	// Caps a single tick so a large backlog can't stall the credit sweep, the
@@ -33,6 +34,7 @@ type UsageManager struct {
 	logStore             store.LogStore
 	resumePointStore     store.ResumePointStore
 	messageInstanceStore store.MessageInstanceStore
+	shareCodeStore       store.ShareCodeStore
 
 	planManager *plan.PlanManager
 }
@@ -43,6 +45,7 @@ func NewUsageManager(
 	logStore store.LogStore,
 	resumePointStore store.ResumePointStore,
 	messageInstanceStore store.MessageInstanceStore,
+	shareCodeStore store.ShareCodeStore,
 	planManager *plan.PlanManager,
 ) *UsageManager {
 	return &UsageManager{
@@ -51,6 +54,7 @@ func NewUsageManager(
 		logStore:             logStore,
 		resumePointStore:     resumePointStore,
 		messageInstanceStore: messageInstanceStore,
+		shareCodeStore:       shareCodeStore,
 		planManager:          planManager,
 	}
 }
@@ -97,6 +101,12 @@ func (m *UsageManager) Run(ctx context.Context) {
 				if err := m.cleanupMessageInstances(ctx); err != nil {
 					slog.Error(
 						"Failed to cleanup message instances",
+						slog.String("error", err.Error()),
+					)
+				}
+				if err := m.cleanupShareCodes(ctx); err != nil {
+					slog.Error(
+						"Failed to cleanup share codes",
 						slog.String("error", err.Error()),
 					)
 				}
@@ -211,6 +221,14 @@ func (m *UsageManager) cleanupMessageInstances(ctx context.Context) error {
 			now.Add(-DashboardMessageInstanceExpiry),
 			cleanupBatchSize,
 		)
+	})
+}
+
+func (m *UsageManager) cleanupShareCodes(ctx context.Context) error {
+	usedBefore := time.Now().UTC().Add(-ShareCodeExpiry)
+
+	return deleteInBatches(ctx, func(ctx context.Context) (int64, error) {
+		return m.shareCodeStore.DeleteUnusedShareCodes(ctx, usedBefore, cleanupBatchSize)
 	})
 }
 

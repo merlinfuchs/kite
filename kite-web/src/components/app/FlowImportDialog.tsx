@@ -16,6 +16,7 @@ import LoadingButton from "../common/LoadingButton";
 import {
   useCommandsImportMutation,
   useEventListenersImportMutation,
+  useShareCodeResolveMutation,
 } from "@/lib/api/mutations";
 import { useAppId } from "@/lib/hooks/params";
 import { useMessages, useVariables } from "@/lib/hooks/api";
@@ -25,18 +26,8 @@ import {
   EventListenersImportResponse,
 } from "@/lib/types/wire.gen";
 import { APIResponse } from "@/lib/api/response";
-import { apiRequest } from "@/lib/api/client";
 import { toast } from "sonner";
-
-async function resolveShareCode(code: string): Promise<string> {
-  const res = await apiRequest<{ data: string }>(
-    `/v1/share/${encodeURIComponent(code)}`
-  );
-  if (!res.success) {
-    throw new Error(res.error.message || "Code not found");
-  }
-  return res.data.data;
-}
+import { Input } from "../ui/input";
 
 const kinds = {
   command: {
@@ -80,10 +71,9 @@ function ImportForm({
   kind: Kind;
   onImported: () => void;
 }) {
-  const [useCode, setUseCode] = useState(true);
-  const [shareCode, setShareCode] = useState("");
-  const [codeInput, setCodeInput] = useState("");
-  const [resolving, setResolving] = useState(false);
+  const [useJson, setUseJson] = useState(false);
+  const [json, setJson] = useState("");
+  const [code, setCode] = useState("");
 
   const router = useRouter();
   const appId = useAppId();
@@ -92,17 +82,13 @@ function ImportForm({
 
   const commandsImportMutation = useCommandsImportMutation(appId);
   const eventListenersImportMutation = useEventListenersImportMutation(appId);
+  const shareCodeResolveMutation = useShareCodeResolveMutation();
 
   const { label, entryNodeType, href } = kinds[kind];
 
-  // Same parsing/sanitization path regardless of whether the JSON came from
-  // the textarea or was resolved from a share code.
-  function importFlowData(raw: string) {
-    let parsed: { flow_source?: FlowData; source?: string } | undefined;
-    try {
-      parsed = JSON.parse(raw);
-    } catch {}
-
+  function importShareData(
+    parsed: { flow_source?: FlowData; source?: string } | null | undefined
+  ) {
     const flow = parsed?.flow_source;
     if (
       !Array.isArray(flow?.nodes) ||
@@ -164,26 +150,39 @@ function ImportForm({
     }
   }
 
-  async function onImport() {
-    if (!useCode) {
-      importFlowData(shareCode);
+  function onImport() {
+    if (useJson) {
+      let parsed;
+      try {
+        parsed = JSON.parse(json);
+      } catch {}
+      importShareData(parsed);
       return;
     }
 
-    const normalized = codeInput.trim().toUpperCase();
-    if (normalized.length !== 6) {
-      toast.error("Enter a 6-character code");
+    const trimmed = code.replace(/\s/g, "");
+    if (!trimmed) {
+      toast.error("Enter a share code");
       return;
     }
-    setResolving(true);
-    try {
-      const data = await resolveShareCode(normalized);
-      importFlowData(data);
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to import");
-    } finally {
-      setResolving(false);
-    }
+
+    shareCodeResolveMutation.mutate(trimmed, {
+      onSuccess: (res) => {
+        if (!res.success) {
+          toast.error(
+            res.error.code === "unknown_share_code"
+              ? "Unknown share code"
+              : `Failed to resolve share code: ${res.error.message} (${res.error.code})`
+          );
+          return;
+        }
+        if (res.data.type !== kind) {
+          toast.error(`This share code is not for a ${label}`);
+          return;
+        }
+        importShareData(res.data.data);
+      },
+    });
   }
 
   return (
@@ -191,44 +190,40 @@ function ImportForm({
       <DialogHeader>
         <DialogTitle>Import {label}</DialogTitle>
         <DialogDescription>
-          {useCode
-            ? "Enter a share code that was exported from another app."
-            : "Paste a share code (JSON) that was exported from another app."}
+          {useJson
+            ? "Paste the JSON that was exported from another app."
+            : "Enter a share code that was exported from another app."}
         </DialogDescription>
       </DialogHeader>
 
-      {useCode ? (
-        <div className="flex flex-col items-center gap-3 py-6">
-          <input
-            value={codeInput}
-            onChange={(e) => setCodeInput(e.target.value.toUpperCase())}
-            maxLength={6}
-            placeholder="ABC123"
-            className="w-40 rounded-md border border-input bg-background px-3 py-2 text-center text-2xl font-mono tracking-widest"
-          />
-          <button
-            type="button"
-            onClick={() => setUseCode(false)}
-            className="text-sm text-muted-foreground underline underline-offset-2"
-          >
-            Paste JSON instead
-          </button>
-        </div>
-      ) : (
+      {useJson ? (
         <>
           <Textarea
-            value={shareCode}
-            onChange={(e) => setShareCode(e.target.value)}
+            value={json}
+            onChange={(e) => setJson(e.target.value)}
             className="min-h-[78px] max-h-[218px]"
           />
-          <button
-            type="button"
-            onClick={() => setUseCode(true)}
-            className="text-sm text-muted-foreground underline underline-offset-2 self-start"
+          <Button
+            variant="link"
+            className="justify-self-start px-0"
+            onClick={() => setUseJson(false)}
           >
-            Use a code instead
-          </button>
+            Use a share code instead
+          </Button>
         </>
+      ) : (
+        <div className="flex flex-col items-center gap-3 py-6">
+          <Input
+            value={code}
+            onChange={(e) => setCode(e.target.value.toUpperCase())}
+            maxLength={8}
+            placeholder="ABCD2345"
+            className="w-56 h-12 text-center text-2xl md:text-2xl font-mono tracking-widest"
+          />
+          <Button variant="link" onClick={() => setUseJson(true)}>
+            Paste JSON instead
+          </Button>
+        </div>
       )}
 
       <DialogFooter>
@@ -240,7 +235,7 @@ function ImportForm({
           loading={
             commandsImportMutation.isPending ||
             eventListenersImportMutation.isPending ||
-            resolving ||
+            shareCodeResolveMutation.isPending ||
             !variables ||
             !messages
           }

@@ -17,7 +17,7 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/logs"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/message"
 	pluginhandler "github.com/kitecloud/kite/kite-service/internal/api/handler/plugin"
-	sharehandler "github.com/kitecloud/kite/kite-service/internal/api/handler/share"
+	"github.com/kitecloud/kite/kite-service/internal/api/handler/sharecode"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/usage"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/user"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/variable"
@@ -114,12 +114,16 @@ func (s *APIServer) RegisterRoutes(
 	usersGroup := v1Group.Group("/users", sessionManager.RequireSession)
 	usersGroup.Get("/{userID}", handler.Typed(userHandler.HandlerUserGet))
 
-	// Share routes
-	shareHandler := sharehandler.NewShareHandler(shareCodeStore)
+	// Share code routes
+	shareCodeHandler := sharecode.NewShareCodeHandler(shareCodeStore)
 
-	shareGroup := v1Group.Group("/share", sessionManager.RequireSession)
-	shareGroup.Post("/", handler.TypedWithBody(shareHandler.HandleShareCodeCreate))
-	shareGroup.Get("/{code}", handler.Typed(shareHandler.HandleShareCodeGet))
+	// Not under an app because codes are usually imported into a different app.
+	shareCodesGroup := v1Group.Group("/share-codes", sessionManager.RequireSession)
+	// Low so codes can't be enumerated, importing is a rare manual action.
+	shareCodesGroup.Get("/{code}",
+		handler.Typed(shareCodeHandler.HandleShareCodeGet),
+		handler.RateLimitByUser(10, time.Minute),
+	)
 
 	// App routes
 	appHandler := app.NewAppHandler(
@@ -156,6 +160,10 @@ func (s *APIServer) RegisterRoutes(
 	appGroup.Get("/collaborators", handler.Typed(appHandler.HandleAppCollaboratorsList))
 	appGroup.Post("/collaborators", handler.TypedWithBody(appHandler.HandleAppCollaboratorCreate))
 	appGroup.Delete("/collaborators/{userID}", handler.Typed(appHandler.HandleAppCollaboratorDelete))
+	appGroup.Post("/share-codes",
+		handler.TypedWithBody(shareCodeHandler.HandleShareCodeCreate),
+		handler.RateLimitByUser(10, time.Minute),
+	)
 
 	// Billing routes
 	lemonSqueezyClient := corebilling.NewLemonSqueezyClient(
