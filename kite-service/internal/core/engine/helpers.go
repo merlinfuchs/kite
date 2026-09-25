@@ -33,7 +33,6 @@ type Env struct {
 	CommandStore         store.CommandStore
 	EventListenerStore   store.EventListenerStore
 	PluginInstanceStore  store.PluginInstanceStore
-	DeletedEntityStore   store.DeletedEntityStore
 	PluginValueStore     store.PluginValueStore
 	PluginRegistry       *plugin.Registry
 	VariableValueStore   store.VariableValueStore

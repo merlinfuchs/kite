@@ -105,7 +105,6 @@ func StartServer(c context.Context, cfg *config.Config) error {
 			CommandStore:         pg,
 			EventListenerStore:   pg,
 			PluginInstanceStore:  pg,
-			DeletedEntityStore:   pg,
 			PluginValueStore:     pg,
 			PluginRegistry:       pluginRegistry,
 			VariableValueStore:   pg,

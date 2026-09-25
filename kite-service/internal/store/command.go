@@ -14,9 +14,7 @@ type CommandStore interface {
 	CreateCommand(ctx context.Context, command *model.Command) (*model.Command, error)
 	UpdateCommand(ctx context.Context, command *model.Command) (*model.Command, error)
 	UpdateCommandsLastDeployedAt(ctx context.Context, appID string, lastDeployedAt time.Time) error
-	// CommandsUpdatedSince includes disabled commands, except for the zero
-	// time.
-	CommandsUpdatedSince(ctx context.Context, updatedSince time.Time) ([]*model.Command, error)
+	EnabledCommandsUpdatedSince(ctx context.Context, updatedSince time.Time) ([]*model.Command, error)
 	EnabledCommandIDs(ctx context.Context) ([]string, error)
 	DeleteCommand(ctx context.Context, id string) error
 	DinstinctAppIDsWithUndeployedCommands(ctx context.Context) ([]string, error)

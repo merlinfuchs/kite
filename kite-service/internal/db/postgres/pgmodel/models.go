@@ -59,13 +59,6 @@ type Command struct {
 	LastDeployedAt pgtype.Timestamp
 }
 
-type DeletedEntity struct {
-	ID         string
-	EntityType string
-	AppID      string
-	DeletedAt  pgtype.Timestamp
-}
-
 type Entitlement struct {
 	ID             string
 	Type           string

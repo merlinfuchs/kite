@@ -143,6 +143,16 @@ func (f *fakeScheduleListenerStore) EventListenersUpdatedSince(ctx context.Conte
 	return f.listeners, nil
 }
 
+func (f *fakeScheduleListenerStore) EnabledScheduledEventListenerIDs(ctx context.Context) ([]string, error) {
+	var ids []string
+	for _, l := range f.listeners {
+		if l.Enabled {
+			ids = append(ids, l.ID)
+		}
+	}
+	return ids, nil
+}
+
 func (f *fakeScheduleListenerStore) UpdateEventListenersLastRunAt(ctx context.Context, lastRuns map[string]time.Time) error {
 	f.mu.Lock()
 	defer f.mu.Unlock()
@@ -236,7 +246,6 @@ func newScheduleTestEngine(listeners *fakeScheduleListenerStore, logs *fakeLogSt
 		UsageStore:          &fakeUsageStore{},
 		CommandStore:        &fakeCommandStore{},
 		PluginInstanceStore: &fakePluginInstanceStore{},
-		DeletedEntityStore:  &fakeDeletedEntityStore{},
 	})
 }
 
@@ -385,11 +394,8 @@ func TestPopulateDropsDeletedScheduledListener(t *testing.T) {
 	e := newScheduleTestEngine(listeners, &fakeLogStore{})
 	e.populate(context.Background())
 
-	// Deleted rows never show up as updated again, only their tombstone does.
+	// Deleted rows never show up as updated again.
 	listeners.listeners = nil
-	e.env.DeletedEntityStore = &fakeDeletedEntityStore{deleted: []*model.DeletedEntity{
-		{ID: "listener", Type: model.DeletedEntityTypeEventListener, AppID: "app"},
-	}}
 	e.populate(context.Background())
 
 	if got := len(e.scheduledEventListeners()); got != 0 {

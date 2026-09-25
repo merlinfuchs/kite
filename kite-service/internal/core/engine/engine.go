@@ -4,19 +4,16 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"maps"
+	"slices"
 	"sync"
 	"time"
 
 	"github.com/diamondburned/arikawa/v3/gateway"
 	"github.com/diamondburned/arikawa/v3/state"
 	"github.com/kitecloud/kite/kite-service/internal/metrics"
-	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/internal/util"
 )
-
-// deletedEntityRetention is how long tombstones of deleted entities are kept.
-// Only needs to cover the polls, the dangling sweep catches anything older.
-const deletedEntityRetention = 24 * time.Hour
 
 type Engine struct {
 	sync.RWMutex
@@ -109,19 +106,17 @@ func (e *Engine) populate(ctx context.Context) {
 			slog.String("error", err.Error()),
 		)
 	}
-	// Must run after the queries above, so an entity that was changed and then
-	// deleted within the window ends up removed.
-	if err := e.removeDeletedEntities(ctx, lastUpdate); err != nil {
-		ok = false
-		slog.Error(
-			"Failed to remove deleted entities in engine",
-			slog.String("error", err.Error()),
-		)
-	}
 
 	if !ok {
 		// Leave the cursor where it is so the next poll retries this window.
 		return
+	}
+
+	if err := e.removeDeletedScheduledListeners(ctx); err != nil {
+		slog.Error(
+			"Failed to remove deleted scheduled event listeners in engine",
+			slog.String("error", err.Error()),
+		)
 	}
 
 	// Rewind by the overlap so rows committed out of timestamp order, or
@@ -130,17 +125,8 @@ func (e *Engine) populate(ctx context.Context) {
 	e.lastUpdate = tickStart.Add(-e.env.Config.PopulateOverlap)
 }
 
-// removeDangling is a backstop for entities whose disable or delete the
-// polls missed.
 func (e *Engine) removeDangling(ctx context.Context) {
 	e.env.BlockRateLimiter.Sweep()
-
-	if err := e.env.DeletedEntityStore.DeleteDeletedEntitiesBefore(ctx, time.Now().Add(-deletedEntityRetention)); err != nil {
-		slog.Error(
-			"Failed to prune deleted entities in engine",
-			slog.String("error", err.Error()),
-		)
-	}
 
 	if err := e.removeDanglingPlugins(ctx); err != nil {
 		slog.Error(
@@ -160,14 +146,6 @@ func (e *Engine) removeDangling(ctx context.Context) {
 			slog.String("error", err.Error()),
 		)
 	}
-}
-
-// existingApp returns the app with the given ID, or nil if the engine has
-// nothing loaded for it.
-func (e *Engine) existingApp(appID string) *App {
-	e.RLock()
-	defer e.RUnlock()
-	return e.apps[appID]
 }
 
 // appForID returns the app with the given ID, creating it if necessary. The
@@ -203,7 +181,7 @@ func (e *Engine) appForID(appID string) *App {
 
 func (e *Engine) populatePlugins(ctx context.Context, lastUpdate time.Time) error {
 	queryStart := time.Now()
-	pluginInstances, err := e.env.PluginInstanceStore.PluginInstancesUpdatedSince(ctx, lastUpdate)
+	pluginInstances, err := e.env.PluginInstanceStore.EnabledPluginInstancesUpdatedSince(ctx, lastUpdate)
 	metrics.ObservePoll("populate_plugins", queryStart)
 	if err != nil {
 		return fmt.Errorf("failed to get plugin instances: %w", err)
@@ -211,13 +189,6 @@ func (e *Engine) populatePlugins(ctx context.Context, lastUpdate time.Time) erro
 
 	for _, pluginInstance := range pluginInstances {
 		if util.CluserForKey(pluginInstance.AppID, e.env.Config.ClusterCount) != e.env.Config.ClusterIndex {
-			continue
-		}
-
-		if !pluginInstance.Enabled {
-			if app := e.existingApp(pluginInstance.AppID); app != nil {
-				app.RemovePluginInstance(pluginInstance.ID)
-			}
 			continue
 		}
 
@@ -250,7 +221,7 @@ func (e *Engine) removeDanglingPlugins(ctx context.Context) error {
 
 func (e *Engine) populateCommands(ctx context.Context, lastUpdate time.Time) error {
 	queryStart := time.Now()
-	commands, err := e.env.CommandStore.CommandsUpdatedSince(ctx, lastUpdate)
+	commands, err := e.env.CommandStore.EnabledCommandsUpdatedSince(ctx, lastUpdate)
 	metrics.ObservePoll("populate_commands", queryStart)
 	if err != nil {
 		return fmt.Errorf("failed to get commands: %w", err)
@@ -258,13 +229,6 @@ func (e *Engine) populateCommands(ctx context.Context, lastUpdate time.Time) err
 
 	for _, command := range commands {
 		if util.CluserForKey(command.AppID, e.env.Config.ClusterCount) != e.env.Config.ClusterIndex {
-			continue
-		}
-
-		if !command.Enabled {
-			if app := e.existingApp(command.AppID); app != nil {
-				app.RemoveCommand(command.ID)
-			}
 			continue
 		}
 
@@ -314,7 +278,12 @@ func (e *Engine) populateEventListeners(ctx context.Context, lastUpdate time.Tim
 		}
 
 		if !listener.Enabled {
-			if app := e.existingApp(listener.AppID); app != nil {
+			// Dropped here instead of waiting for removeDangling, so disabling
+			// a scheduled listener stops it within one poll.
+			e.RLock()
+			app := e.apps[listener.AppID]
+			e.RUnlock()
+			if app != nil {
 				app.RemoveEventListener(listener.ID)
 			}
 			continue
@@ -359,38 +328,26 @@ func (e *Engine) removeDanglingEventListeners(ctx context.Context) error {
 	return nil
 }
 
-// removeDeletedEntities drops the entities deleted since the last poll.
-// Deleted rows leave nothing for the updated_at polls to find, so the database
-// records a tombstone for each.
-func (e *Engine) removeDeletedEntities(ctx context.Context, lastUpdate time.Time) error {
-	if lastUpdate.IsZero() {
-		// The first load doesn't load deleted entities in the first place.
+// removeDeletedScheduledListeners stops deleted scheduled listeners on the
+// next poll. Deleted rows never show up as updated, and waiting for
+// removeDangling would keep a frequent schedule running for minutes.
+func (e *Engine) removeDeletedScheduledListeners(ctx context.Context) error {
+	e.scheduledAppsMu.Lock()
+	apps := slices.Collect(maps.Values(e.scheduledApps))
+	e.scheduledAppsMu.Unlock()
+	if len(apps) == 0 {
 		return nil
 	}
 
-	queryStart := time.Now()
-	deleted, err := e.env.DeletedEntityStore.DeletedEntitiesSince(ctx, lastUpdate)
-	metrics.ObservePoll("populate_deleted_entities", queryStart)
+	ids, err := e.env.EventListenerStore.EnabledScheduledEventListenerIDs(ctx)
 	if err != nil {
-		return fmt.Errorf("failed to get deleted entities: %w", err)
+		return fmt.Errorf("failed to get enabled scheduled event listener IDs: %w", err)
 	}
 
-	for _, entity := range deleted {
-		app := e.existingApp(entity.AppID)
-		if app == nil {
-			continue
-		}
-
-		switch entity.Type {
-		case model.DeletedEntityTypeCommand:
-			app.RemoveCommand(entity.ID)
-		case model.DeletedEntityTypeEventListener:
-			app.RemoveEventListener(entity.ID)
-		case model.DeletedEntityTypePluginInstance:
-			app.RemovePluginInstance(entity.ID)
-		}
+	idSet := util.IDSet(ids)
+	for _, app := range apps {
+		app.RemoveDeletedScheduledListeners(idSet)
 	}
-
 	return nil
 }
 

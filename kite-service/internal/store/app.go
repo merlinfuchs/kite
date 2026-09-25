@@ -54,8 +54,8 @@ type AppStore interface {
 	// gateway, so it can identify with a minimal intent set.
 	AppGatewayRequirements(ctx context.Context, appID string) (*AppGatewayRequirementsRow, error)
 	// AppIDsWithGatewayRequirementsChangedSince reports apps whose event
-	// Discord event listeners or plugin instances changed or were deleted, and
-	// whose intents may therefore need recomputing.
+	// listeners or plugin instances changed, and whose intents may therefore
+	// need recomputing. Deletions are not reported; see the query for why.
 	AppIDsWithGatewayRequirementsChangedSince(ctx context.Context, updatedSince time.Time) ([]string, error)
 
 	Collaborator(ctx context.Context, appID string, userID string) (*model.AppCollaborator, error)

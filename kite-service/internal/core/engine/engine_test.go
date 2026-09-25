@@ -20,14 +20,13 @@ import (
 
 type fakeCommandStore struct {
 	store.CommandStore
-	commands   []*model.Command
 	err        error
 	calledWith []time.Time
 }
 
-func (f *fakeCommandStore) CommandsUpdatedSince(ctx context.Context, since time.Time) ([]*model.Command, error) {
+func (f *fakeCommandStore) EnabledCommandsUpdatedSince(ctx context.Context, since time.Time) ([]*model.Command, error) {
 	f.calledWith = append(f.calledWith, since)
-	return f.commands, f.err
+	return nil, f.err
 }
 
 type fakeEventListenerStore struct {
@@ -44,30 +43,11 @@ type fakePluginInstanceStore struct {
 	err error
 }
 
-func (f *fakePluginInstanceStore) PluginInstancesUpdatedSince(ctx context.Context, since time.Time) ([]*model.PluginInstance, error) {
+func (f *fakePluginInstanceStore) EnabledPluginInstancesUpdatedSince(ctx context.Context, since time.Time) ([]*model.PluginInstance, error) {
 	return nil, f.err
 }
 
-type fakeDeletedEntityStore struct {
-	store.DeletedEntityStore
-	deleted []*model.DeletedEntity
-	err     error
-}
-
-func (f *fakeDeletedEntityStore) DeletedEntitiesSince(ctx context.Context, since time.Time) ([]*model.DeletedEntity, error) {
-	return f.deleted, f.err
-}
-
 func newTestEngine(commands *fakeCommandStore, listeners *fakeEventListenerStore, plugins *fakePluginInstanceStore) *Engine {
-	return newTestEngineWithDeleted(commands, listeners, plugins, &fakeDeletedEntityStore{})
-}
-
-func newTestEngineWithDeleted(
-	commands *fakeCommandStore,
-	listeners *fakeEventListenerStore,
-	plugins *fakePluginInstanceStore,
-	deleted *fakeDeletedEntityStore,
-) *Engine {
 	return NewEngine(Env{
 		Config: EngineConfig{
 			ClusterCount:    1,
@@ -77,7 +57,6 @@ func newTestEngineWithDeleted(
 		CommandStore:        commands,
 		EventListenerStore:  listeners,
 		PluginInstanceStore: plugins,
-		DeletedEntityStore:  deleted,
 	})
 }
 
@@ -153,63 +132,6 @@ func TestPopulatePartialFailureDoesNotAdvanceCursor(t *testing.T) {
 
 	if !e.lastUpdate.IsZero() {
 		t.Errorf("cursor advanced to %v despite one of three queries failing", e.lastUpdate)
-	}
-}
-
-// The deleted entity query counts like the others: a failure leaves its window
-// unread.
-func TestPopulateDeletedEntitiesFailureDoesNotAdvanceCursor(t *testing.T) {
-	e := newTestEngineWithDeleted(
-		&fakeCommandStore{},
-		&fakeEventListenerStore{},
-		&fakePluginInstanceStore{},
-		&fakeDeletedEntityStore{err: errors.New("connection refused")},
-	)
-	cursor := time.Now().UTC().Add(-time.Minute)
-	e.lastUpdate = cursor
-
-	e.populate(context.Background())
-
-	if !e.lastUpdate.Equal(cursor) {
-		t.Errorf("cursor moved to %v despite the deleted entity query failing", e.lastUpdate)
-	}
-}
-
-func TestPopulateDropsDeletedEntities(t *testing.T) {
-	deleted := &fakeDeletedEntityStore{}
-	e := newTestEngineWithDeleted(&fakeCommandStore{}, &fakeEventListenerStore{}, &fakePluginInstanceStore{}, deleted)
-
-	app := e.appForID("app")
-	app.AddCommand(testCommand("cmd", "ping"))
-	app.AddEventListener(testListener("listener", model.EventSourceDiscord, model.EventListenerTypeDiscordMessageCreate))
-	e.lastUpdate = time.Now().UTC().Add(-time.Minute)
-
-	deleted.deleted = []*model.DeletedEntity{
-		{ID: "cmd", Type: model.DeletedEntityTypeCommand, AppID: "app"},
-		{ID: "listener", Type: model.DeletedEntityTypeEventListener, AppID: "app"},
-	}
-	e.populate(context.Background())
-
-	if got := app.commandsByName["ping"]; got != nil {
-		t.Error("deleted command is still loaded")
-	}
-	if got := app.listenersByType[model.EventListenerTypeDiscordMessageCreate]; len(got) != 0 {
-		t.Error("deleted event listener is still loaded")
-	}
-}
-
-func TestPopulateDropsDisabledCommand(t *testing.T) {
-	commands := &fakeCommandStore{}
-	e := newTestEngine(commands, &fakeEventListenerStore{}, &fakePluginInstanceStore{})
-
-	app := e.appForID("app")
-	app.AddCommand(testCommand("cmd", "ping"))
-
-	commands.commands = []*model.Command{{ID: "cmd", AppID: "app", Name: "ping", Enabled: false}}
-	e.populate(context.Background())
-
-	if got := app.commandsByName["ping"]; got != nil {
-		t.Error("disabled command is still loaded")
 	}
 }
 

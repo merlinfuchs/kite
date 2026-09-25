@@ -112,10 +112,10 @@ func (c *Client) UpdatePluginInstancesLastDeployedAt(ctx context.Context, appID 
 	})
 }
 
-func (c *Client) PluginInstancesUpdatedSince(ctx context.Context, updatedSince time.Time) ([]*model.PluginInstance, error) {
-	rows, err := c.Q.GetPluginInstancesUpdatedSince(ctx, pgmodel.GetPluginInstancesUpdatedSinceParams{
-		UpdatedSince:    pgtype.Timestamp{Time: updatedSince.UTC(), Valid: true},
-		IncludeDisabled: !updatedSince.IsZero(),
+func (c *Client) EnabledPluginInstancesUpdatedSince(ctx context.Context, updatedSince time.Time) ([]*model.PluginInstance, error) {
+	rows, err := c.Q.GetEnabledPluginInstancesUpdatesSince(ctx, pgtype.Timestamp{
+		Time:  updatedSince.UTC(),
+		Valid: true,
 	})
 	if err != nil {
 		return nil, err
