@@ -381,6 +381,33 @@ export interface FlowAIUsage {
   prompts_limit: number /* int */;
 }
 export type FlowAIUsageGetResponse = FlowAIUsage;
+export interface FlowAICheckRequest {
+  /**
+   * Flow is the flow as serialized by the editor.
+   */
+  flow: string;
+  prompt: string;
+}
+/**
+ * FlowAICheckResponse says whether a prompt is ready to be sent. If Verdict
+ * is "clarify", it suggests a clearer prompt and fields for what's missing.
+ */
+export interface FlowAICheckResponse {
+  verdict: string;
+  message: string;
+  suggested_prompt: string;
+  fields: FlowAICheckField[];
+}
+export interface FlowAICheckField {
+  label: string;
+  description: string;
+  /**
+   * Type is "text", "number", "channel" or "choice".
+   */
+  type: string;
+  options: string[];
+  default: string;
+}
 
 //////////
 // source: log.go

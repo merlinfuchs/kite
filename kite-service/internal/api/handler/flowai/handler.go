@@ -19,6 +19,7 @@ import (
 type Assistant interface {
 	Model() string
 	Respond(ctx context.Context, req flowai.Request) (*flowai.Response, error)
+	Check(ctx context.Context, req flowai.CheckRequest) (*flowai.CheckResponse, error)
 }
 
 // repairWindow is how long after a prompt its edits can be repaired.
@@ -175,6 +176,39 @@ func (h *FlowAIHandler) HandleFlowAIChat(c *handler.Context, req wire.FlowAIChat
 		Edits:    res.Edits,
 		Issues:   res.Issues,
 		Usage:    wire.FlowAIUsage{PromptsUsed: used, PromptsLimit: limit},
+	}, nil
+}
+
+// HandleFlowAICheck checks the first prompt of a chat with a cheaper model.
+// It doesn't count as a prompt.
+func (h *FlowAIHandler) HandleFlowAICheck(c *handler.Context, req wire.FlowAICheckRequest) (*wire.FlowAICheckResponse, error) {
+	if h.assistant == nil {
+		return nil, handler.ErrServiceUnavailable("flow_ai_unavailable", "The flow AI isn't set up on this server.")
+	}
+	if c.Features.MaxAIPromptsPerMonth == 0 {
+		return nil, handler.ErrForbidden("feature_unavailable", "Your plan doesn't include the flow AI.")
+	}
+
+	res, err := h.assistant.Check(c.Context(), flowai.CheckRequest{
+		Flow:   req.Flow,
+		Prompt: req.Prompt,
+		AppID:  c.App.ID,
+		UserID: c.Session.UserID,
+	})
+	if err != nil {
+		slog.Error("Failed to check flow AI prompt", slog.String("app_id", c.App.ID), slog.Any("error", err))
+		return nil, handler.ErrServiceUnavailable("flow_ai_unavailable", "The prompt couldn't be checked.")
+	}
+
+	fields := make([]wire.FlowAICheckField, len(res.Fields))
+	for i, f := range res.Fields {
+		fields[i] = wire.FlowAICheckField(f)
+	}
+	return &wire.FlowAICheckResponse{
+		Verdict:         res.Verdict,
+		Message:         res.Message,
+		SuggestedPrompt: res.SuggestedPrompt,
+		Fields:          fields,
 	}, nil
 }
 

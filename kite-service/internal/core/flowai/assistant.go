@@ -27,6 +27,11 @@ type Config struct {
 	Model           string
 	ReasoningEffort string
 	MaxOutputTokens int
+
+	// The cheaper model that checks prompts before they are sent.
+	CheckModel           string
+	CheckReasoningEffort string
+	CheckMaxOutputTokens int
 }
 
 // Assistant asks the model for edits to a flow.
@@ -174,8 +179,12 @@ func (a *Assistant) params(req Request) responses.ResponseNewParams {
 		},
 		PromptCacheKey: openai.String("kite-flow-ai"),
 		// Lets OpenAI tell users apart for abuse detection.
-		SafetyIdentifier: openai.String(util.HashBytes([]byte(req.UserID))),
+		SafetyIdentifier: openai.String(safetyIdentifier(req.UserID)),
 	}
+}
+
+func safetyIdentifier(userID string) string {
+	return util.HashBytes([]byte(userID))
 }
 
 func easyMessage(role responses.EasyInputMessageRole, content string) responses.ResponseInputItemUnionParam {

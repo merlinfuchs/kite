@@ -170,6 +170,12 @@ type FlowAIConfig struct {
 	MaxOutputTokens int `toml:"max_output_tokens"`
 	// Repairs of a prompt's edits that don't count as new prompts.
 	MaxRepairs int `toml:"max_repairs"`
+
+	// The cheaper model that checks the first prompt of a chat and suggests a
+	// clearer one if something is missing.
+	CheckModel           string `toml:"check_model"`
+	CheckReasoningEffort string `toml:"check_reasoning_effort"`
+	CheckMaxOutputTokens int    `toml:"check_max_output_tokens"`
 }
 
 type BillingConfig struct {

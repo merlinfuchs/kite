@@ -77,6 +77,10 @@ func StartServer(c context.Context, cfg *config.Config) error {
 			Model:           cfg.FlowAI.Model,
 			ReasoningEffort: cfg.FlowAI.ReasoningEffort,
 			MaxOutputTokens: cfg.FlowAI.MaxOutputTokens,
+
+			CheckModel:           cfg.FlowAI.CheckModel,
+			CheckReasoningEffort: cfg.FlowAI.CheckReasoningEffort,
+			CheckMaxOutputTokens: cfg.FlowAI.CheckMaxOutputTokens,
 		})
 	}
 

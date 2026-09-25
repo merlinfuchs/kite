@@ -4,6 +4,9 @@ import {
   FlowAIChatMessage,
   FlowAIChatRequest,
   FlowAIChatResponse,
+  FlowAICheckField,
+  FlowAICheckRequest,
+  FlowAICheckResponse,
 } from "../types/wire.gen";
 import { FlowContextType } from "./context";
 import { NodeData } from "./dataSchema";
@@ -151,6 +154,45 @@ function wasReverted(applied: Flow, current: Flow, changedNodeIds: string[]) {
   const data = new Map(current.nodes.map((n) => [n.id, n.data]));
   const appliedData = new Map(applied.nodes.map((n) => [n.id, n.data]));
   return changedNodeIds.some((id) => data.get(id) !== appliedData.get(id));
+}
+
+// Asks a cheaper model whether the first prompt of a chat has what the AI
+// needs. Returns null if the check fails, so the prompt is sent as it is.
+export async function checkFlowAIPrompt({
+  context,
+  prompt,
+  flow,
+  send,
+}: {
+  context: FlowContextType;
+  prompt: string;
+  flow: Flow;
+  send: (req: FlowAICheckRequest) => Promise<APIResponse<FlowAICheckResponse>>;
+}): Promise<FlowAICheckResponse | null> {
+  const selectedIds = flow.nodes.filter((n) => n.selected).map((n) => n.id);
+  try {
+    const res = await send({
+      flow: serializeFlow(flow.nodes, flow.edges, context, selectedIds),
+      prompt,
+    });
+    return res.success ? res.data : null;
+  } catch {
+    return null;
+  }
+}
+
+// Adds the values the user filled in for a checked prompt, leaving out empty
+// ones.
+export function composeCheckedPrompt(
+  prompt: string,
+  fields: FlowAICheckField[],
+  values: string[]
+) {
+  const details = fields
+    .map((f, i) => [f.label, values[i]?.trim()])
+    .filter(([, value]) => value)
+    .map(([label, value]) => `- ${label}: ${value}`);
+  return details.length > 0 ? `${prompt}\n\n${details.join("\n")}` : prompt;
 }
 
 function toRequestMessages(messages: FlowAIChatMessage[]) {

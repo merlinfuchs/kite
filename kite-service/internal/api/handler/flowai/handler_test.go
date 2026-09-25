@@ -101,6 +101,17 @@ func (a *fakeAssistant) Respond(ctx context.Context, req flowai.Request) (*flowa
 	}, nil
 }
 
+func (a *fakeAssistant) Check(ctx context.Context, req flowai.CheckRequest) (*flowai.CheckResponse, error) {
+	a.calls++
+	if a.err != nil {
+		return nil, a.err
+	}
+	return &flowai.CheckResponse{
+		Verdict: "clarify",
+		Fields:  []flowai.CheckField{{Label: "Channel", Type: "channel", Options: []string{}}},
+	}, nil
+}
+
 type testSetup struct {
 	store     *fakePromptStore
 	assistant *fakeAssistant
@@ -294,4 +305,37 @@ func TestPromptsWithoutEditsCantBeRepaired(t *testing.T) {
 	code, res := s.chat(t, 1, repair(promptID))
 	assert.Equal(t, http.StatusBadRequest, code)
 	assert.Equal(t, "nothing_to_repair", errCode(res))
+}
+
+func TestCheck(t *testing.T) {
+	s := setup(&fakeAssistant{})
+	check := func(limit int, body string) (int, map[string]any) {
+		h := handler.APIHandler(func(c *handler.Context) error {
+			c.Session = &model.Session{UserID: "user"}
+			c.App = &model.App{ID: "app"}
+			c.Features = model.Features{MaxAIPromptsPerMonth: limit}
+			return handler.TypedWithBody(s.handler.HandleFlowAICheck)(c)
+		})
+		req := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(body))
+		req.Header.Set("Content-Type", "application/json")
+		rec := httptest.NewRecorder()
+		h.ServeHTTP(rec, req)
+		var res map[string]any
+		require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &res))
+		return rec.Code, res
+	}
+	body := `{"flow": "Blocks:", "prompt": "Log bans"}`
+
+	code, res := check(1, body)
+	require.Equal(t, http.StatusOK, code, res)
+	data := res["data"].(map[string]any)
+	assert.Equal(t, "clarify", data["verdict"])
+	assert.Equal(t, "channel", data["fields"].([]any)[0].(map[string]any)["type"])
+	// Checks don't count as prompts.
+	assert.Empty(t, s.store.prompts)
+
+	code, _ = check(0, body)
+	assert.Equal(t, http.StatusForbidden, code)
+	code, _ = check(1, `{"flow": "Blocks:", "prompt": ""}`)
+	assert.Equal(t, http.StatusBadRequest, code)
 }

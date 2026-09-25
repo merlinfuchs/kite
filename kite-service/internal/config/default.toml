@@ -38,6 +38,9 @@ model = "gpt-5-mini"
 reasoning_effort = "low"
 max_output_tokens = 16000
 max_repairs = 2
+check_model = "gpt-5-nano"
+check_reasoning_effort = "minimal"
+check_max_output_tokens = 2000
 
 [debug]
 enabled = false

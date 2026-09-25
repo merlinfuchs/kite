@@ -1,10 +1,13 @@
-import { useFlowAIChatMutation } from "@/lib/api/mutations";
-import { runFlowAIPrompt } from "@/lib/flow/ai";
+import {
+  useFlowAIChatMutation,
+  useFlowAICheckMutation,
+} from "@/lib/api/mutations";
+import { checkFlowAIPrompt, runFlowAIPrompt } from "@/lib/flow/ai";
 import { useFlowContext } from "@/lib/flow/context";
 import { NodeType } from "@/lib/flow/dataSchema";
 import { useFlowAIUsage } from "@/lib/hooks/api";
 import { useAppId } from "@/lib/hooks/params";
-import { FlowAIChatMessage } from "@/lib/types/wire.gen";
+import { FlowAIChatMessage, FlowAICheckResponse } from "@/lib/types/wire.gen";
 import { cn } from "@/lib/utils";
 import { useReactFlow } from "@xyflow/react";
 import {
@@ -24,6 +27,7 @@ import {
 } from "react";
 import { Button } from "../ui/button";
 import { Textarea } from "../ui/textarea";
+import FlowAICheckCard from "./FlowAICheckCard";
 import { FlowEditorApi } from "./FlowEditor";
 
 interface ChatEntry extends FlowAIChatMessage {
@@ -43,12 +47,21 @@ export default memo(function FlowAIChat({
 }) {
   const context = useFlowContext((c) => c.type);
   const { getNodes, getEdges, fitView } = useReactFlow<NodeType>();
-  const chat = useFlowAIChatMutation(useAppId());
+  const appId = useAppId();
+  const chat = useFlowAIChatMutation(appId);
+  const check = useFlowAICheckMutation(appId);
   const usage = useFlowAIUsage();
 
   const [entries, setEntries] = useState<ChatEntry[]>([]);
   const [input, setInput] = useState("");
-  const [busy, setBusy] = useState(false);
+  // What the AI is doing, or null if it's idle.
+  const [status, setStatus] = useState<string | null>(null);
+  const busy = status !== null;
+  // A clearer version of the first prompt to confirm before it's sent.
+  const [checked, setChecked] = useState<{
+    prompt: string;
+    check: FlowAICheckResponse;
+  } | null>(null);
 
   // Stops a running prompt when the editor is closed.
   // Created in the effect, as React may unmount and mount it again.
@@ -62,82 +75,105 @@ export default memo(function FlowAIChat({
   const bottomRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [entries, busy]);
+  }, [entries, status, checked]);
+
+  const send = useCallback(
+    async (content: string) => {
+      const messages: FlowAIChatMessage[] = [
+        ...entries
+          .filter((e) => !e.failed)
+          .map(({ role, content }) => ({ role, content })),
+        { role: "user", content },
+      ];
+      setEntries((e) => [...e, { role: "user", content }]);
+      setChecked(null);
+      setStatus("Working on it...");
+
+      // The rounds of the prompt are undone together.
+      const mergeKey = `ai:${Date.now()}`;
+      try {
+        const res = await runFlowAIPrompt({
+          context,
+          messages,
+          getFlow: () => ({ nodes: getNodes(), edges: getEdges() }),
+          applyFlow: ({ nodes, edges }, changedNodeIds) => {
+            // Selects the changed blocks, so they stand out.
+            const changed = new Set(changedNodeIds);
+            editorRef.current?.replaceFlow(
+              nodes.map((n) =>
+                !!n.selected === changed.has(n.id)
+                  ? n
+                  : { ...n, selected: changed.has(n.id) }
+              ),
+              edges,
+              mergeKey
+            );
+          },
+          send: chat.mutateAsync,
+          signal: abort.current?.signal,
+        });
+        if (res.changedNodeIds.length > 0) {
+          // Once the new blocks have been measured.
+          setTimeout(() => {
+            fitView({
+              nodes: res.changedNodeIds.map((id) => ({ id })),
+              duration: 300,
+              maxZoom: 1,
+            });
+          }, 50);
+        }
+        setEntries((e) => [
+          ...e,
+          {
+            role: "assistant",
+            content: res.message,
+            issues: res.issues,
+            repaired: res.repairs > 0 && res.issues.length === 0,
+          },
+        ]);
+      } catch (err) {
+        setEntries((e) => [
+          ...e,
+          { role: "assistant", content: (err as Error).message, failed: true },
+        ]);
+      } finally {
+        setStatus(null);
+      }
+    },
+    [entries, context, getNodes, getEdges, fitView, editorRef, chat.mutateAsync]
+  );
 
   const submit = useCallback(async () => {
     const content = input.trim();
     if (!content || busy) return;
-
-    const messages: FlowAIChatMessage[] = [
-      ...entries
-        .filter((e) => !e.failed)
-        .map(({ role, content }) => ({ role, content })),
-      { role: "user", content },
-    ];
-    setEntries((e) => [...e, { role: "user", content }]);
     setInput("");
-    setBusy(true);
 
-    // The rounds of the prompt are undone together.
-    const mergeKey = `ai:${Date.now()}`;
-    try {
-      const res = await runFlowAIPrompt({
+    // Only the first prompt is checked, later ones build on the chat.
+    if (entries.length === 0) {
+      setChecked(null);
+      setStatus("Checking your request...");
+      const res = await checkFlowAIPrompt({
         context,
-        messages,
-        getFlow: () => ({ nodes: getNodes(), edges: getEdges() }),
-        applyFlow: ({ nodes, edges }, changedNodeIds) => {
-          // Selects the changed blocks, so they stand out.
-          const changed = new Set(changedNodeIds);
-          editorRef.current?.replaceFlow(
-            nodes.map((n) =>
-              !!n.selected === changed.has(n.id)
-                ? n
-                : { ...n, selected: changed.has(n.id) }
-            ),
-            edges,
-            mergeKey
-          );
-        },
-        send: chat.mutateAsync,
-        signal: abort.current?.signal,
+        prompt: content,
+        flow: { nodes: getNodes(), edges: getEdges() },
+        send: check.mutateAsync,
       });
-      if (res.changedNodeIds.length > 0) {
-        // Once the new blocks have been measured.
-        setTimeout(() => {
-          fitView({
-            nodes: res.changedNodeIds.map((id) => ({ id })),
-            duration: 300,
-            maxZoom: 1,
-          });
-        }, 50);
+      setStatus(null);
+      if (res?.verdict === "clarify") {
+        setChecked({ prompt: content, check: res });
+        return;
       }
-      setEntries((e) => [
-        ...e,
-        {
-          role: "assistant",
-          content: res.message,
-          issues: res.issues,
-          repaired: res.repairs > 0 && res.issues.length === 0,
-        },
-      ]);
-    } catch (err) {
-      setEntries((e) => [
-        ...e,
-        { role: "assistant", content: (err as Error).message, failed: true },
-      ]);
-    } finally {
-      setBusy(false);
     }
+    send(content);
   }, [
     input,
     busy,
-    entries,
+    entries.length,
     context,
     getNodes,
     getEdges,
-    fitView,
-    editorRef,
-    chat.mutateAsync,
+    check.mutateAsync,
+    send,
   ]);
 
   const limit = usage?.prompts_limit;
@@ -159,8 +195,11 @@ export default memo(function FlowAIChat({
             size="icon"
             className="size-8"
             title="New chat"
-            disabled={busy || entries.length === 0}
-            onClick={() => setEntries([])}
+            disabled={busy || (entries.length === 0 && !checked)}
+            onClick={() => {
+              setEntries([]);
+              setChecked(null);
+            }}
           >
             <SquarePenIcon className="size-4" />
           </Button>
@@ -177,7 +216,7 @@ export default memo(function FlowAIChat({
       </div>
 
       <div className="flex-auto overflow-y-auto px-4 py-2 space-y-3 text-sm">
-        {entries.length === 0 && (
+        {entries.length === 0 && !checked && (
           <div className="text-muted-foreground space-y-2">
             <p>
               Describe what the flow should do, like &quot;Ban the user from the
@@ -197,10 +236,17 @@ export default memo(function FlowAIChat({
         {entries.map((entry, i) => (
           <ChatBubble key={i} entry={entry} />
         ))}
+        {checked && !busy && (
+          <FlowAICheckCard
+            prompt={checked.prompt}
+            check={checked.check}
+            onSend={send}
+          />
+        )}
         {busy && (
           <div className="flex items-center gap-2 text-muted-foreground">
             <LoaderCircleIcon className="size-4 animate-spin" />
-            Working on it...
+            {status}
           </div>
         )}
         <div ref={bottomRef} />
