@@ -83,6 +83,8 @@ type fakeAssistant struct {
 
 func (a *fakeAssistant) Model() string { return "gpt-5-mini" }
 
+func (a *fakeAssistant) CheckModel() string { return "gpt-5-nano" }
+
 func (a *fakeAssistant) Respond(ctx context.Context, req flowai.Request) (*flowai.Response, error) {
 	a.calls++
 	if a.err != nil {
@@ -98,6 +100,18 @@ func (a *fakeAssistant) Respond(ctx context.Context, req flowai.Request) (*flowa
 		Message: "Done.",
 		Edits:   []map[string]any{{"op": "remove_node", "id": "a"}},
 		Usage:   model.FlowAIUsage{InputTokens: 100},
+	}, nil
+}
+
+func (a *fakeAssistant) Check(ctx context.Context, req flowai.CheckRequest) (*flowai.CheckResponse, error) {
+	a.calls++
+	if a.err != nil {
+		return nil, a.err
+	}
+	return &flowai.CheckResponse{
+		Verdict: "clarify",
+		Usage:   model.FlowAIUsage{InputTokens: 10},
+		Fields:  []flowai.CheckField{{Label: "Channel", Type: "channel", Options: []string{}}},
 	}, nil
 }
 
@@ -119,16 +133,16 @@ func setup(assistant *fakeAssistant) *testSetup {
 	return s
 }
 
-// chat sends a chat request for app "app" with the given prompt limit and
+// serve calls the handler for app "app" with the given prompt limit and
 // returns the status code and response body.
-func (s *testSetup) chat(t *testing.T, limit int, body string) (int, map[string]any) {
+func serve[Req, Res any](t *testing.T, fn func(*handler.Context, Req) (*Res, error), limit int, body string) (int, map[string]any) {
 	t.Helper()
 
 	h := handler.APIHandler(func(c *handler.Context) error {
 		c.Session = &model.Session{UserID: "user"}
 		c.App = &model.App{ID: "app"}
 		c.Features = model.Features{MaxAIPromptsPerMonth: limit}
-		return handler.TypedWithBody(s.handler.HandleFlowAIChat)(c)
+		return handler.TypedWithBody(fn)(c)
 	})
 
 	req := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(body))
@@ -139,6 +153,11 @@ func (s *testSetup) chat(t *testing.T, limit int, body string) (int, map[string]
 	var res map[string]any
 	require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &res))
 	return rec.Code, res
+}
+
+func (s *testSetup) chat(t *testing.T, limit int, body string) (int, map[string]any) {
+	t.Helper()
+	return serve(t, s.handler.HandleFlowAIChat, limit, body)
 }
 
 func errCode(res map[string]any) any {
@@ -294,4 +313,39 @@ func TestPromptsWithoutEditsCantBeRepaired(t *testing.T) {
 	code, res := s.chat(t, 1, repair(promptID))
 	assert.Equal(t, http.StatusBadRequest, code)
 	assert.Equal(t, "nothing_to_repair", errCode(res))
+}
+
+func TestCheck(t *testing.T) {
+	s := setup(&fakeAssistant{})
+	check := func(limit int, body string) (int, map[string]any) {
+		return serve(t, s.handler.HandleFlowAICheck, limit, body)
+	}
+	body := `{"flow": "Blocks:", "prompt": "Log bans"}`
+
+	code, res := check(1, body)
+	require.Equal(t, http.StatusOK, code, res)
+	data := res["data"].(map[string]any)
+	assert.Equal(t, "clarify", data["verdict"])
+	assert.Equal(t, "channel", data["fields"].([]any)[0].(map[string]any)["type"])
+	// Checks are recorded as answers without edits.
+	require.Len(t, s.store.prompts, 1)
+	for _, p := range s.store.prompts {
+		assert.False(t, p.Edited)
+		assert.Equal(t, "gpt-5-nano", p.Model)
+		assert.Equal(t, 10, p.Usage.InputTokens)
+	}
+
+	// They are refused once the app can't send more prompts.
+	code, res = check(1, `{"flow": "Blocks:", "prompt": "Log bans"}`)
+	require.Equal(t, http.StatusOK, code, res)
+	code, res = check(1, `{"flow": "Blocks:", "prompt": "Log bans"}`)
+	require.Equal(t, http.StatusOK, code, res)
+	code, res = check(1, `{"flow": "Blocks:", "prompt": "Log bans"}`)
+	assert.Equal(t, http.StatusBadRequest, code)
+	assert.Equal(t, "resource_limit", errCode(res))
+
+	code, _ = check(0, body)
+	assert.Equal(t, http.StatusForbidden, code)
+	code, _ = check(1, `{"flow": "Blocks:", "prompt": ""}`)
+	assert.Equal(t, http.StatusBadRequest, code)
 }

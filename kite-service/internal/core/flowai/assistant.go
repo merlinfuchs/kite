@@ -23,10 +23,17 @@ const (
 	historyStep = 5
 )
 
-type Config struct {
+// ModelConfig configures a model the assistant calls.
+type ModelConfig struct {
 	Model           string
 	ReasoningEffort string
 	MaxOutputTokens int
+}
+
+type Config struct {
+	ModelConfig
+	// Check is the cheaper model that checks prompts before they are sent.
+	Check ModelConfig
 }
 
 // Assistant asks the model for edits to a flow.
@@ -86,26 +93,20 @@ func (e *ErrResponse) Error() string {
 // can't be used, it returns an error along with a response that only has the
 // usage.
 func (a *Assistant) Respond(ctx context.Context, req Request) (*Response, error) {
-	resp, err := a.client.Responses.New(ctx, a.params(req))
+	resp, usage, err := a.call(ctx, call{
+		model:        a.config.ModelConfig,
+		instructions: instructions,
+		input:        responses.ResponseNewParamsInputUnion{OfInputItemList: chatInput(req)},
+		schemaName:   "flow_edits",
+		schema:       outputSchema,
+		cacheKey:     "kite-flow-ai",
+		userID:       req.UserID,
+		logMessage:   "Flow AI response",
+		logAttrs:     []any{slog.String("app_id", req.AppID), slog.Bool("repair", len(req.Issues) > 0)},
+	})
 	if err != nil {
-		return nil, fmt.Errorf("failed to create response: %w", err)
+		return nil, err
 	}
-
-	usage := model.FlowAIUsage{
-		InputTokens:       int(resp.Usage.InputTokens),
-		CachedInputTokens: int(resp.Usage.InputTokensDetails.CachedTokens),
-		OutputTokens:      int(resp.Usage.OutputTokens),
-	}
-	slog.Info(
-		"Flow AI response",
-		slog.String("app_id", req.AppID),
-		slog.Bool("repair", len(req.Issues) > 0),
-		slog.String("status", string(resp.Status)),
-		slog.String("incomplete_reason", resp.IncompleteDetails.Reason),
-		slog.Int("input_tokens", usage.InputTokens),
-		slog.Int("cached_input_tokens", usage.CachedInputTokens),
-		slog.Int("output_tokens", usage.OutputTokens),
-	)
 
 	if resp.Status != responses.ResponseStatusCompleted {
 		message := "The AI couldn't answer. Please try again."
@@ -123,7 +124,63 @@ func (a *Assistant) Respond(ctx context.Context, req Request) (*Response, error)
 	return res, nil
 }
 
-func (a *Assistant) params(req Request) responses.ResponseNewParams {
+type call struct {
+	model        ModelConfig
+	instructions string
+	input        responses.ResponseNewParamsInputUnion
+	// The answer is JSON in the shape of schema.
+	schemaName string
+	schema     map[string]any
+	// Requests with the same key and start are cached together.
+	cacheKey   string
+	userID     string
+	logMessage string
+	logAttrs   []any
+}
+
+// call asks a model for a structured answer and logs its usage.
+func (a *Assistant) call(ctx context.Context, c call) (*responses.Response, model.FlowAIUsage, error) {
+	resp, err := a.client.Responses.New(ctx, responses.ResponseNewParams{
+		Model:           c.model.Model,
+		Instructions:    openai.String(c.instructions),
+		Input:           c.input,
+		MaxOutputTokens: openai.Int(int64(c.model.MaxOutputTokens)),
+		Reasoning: shared.ReasoningParam{
+			Effort: shared.ReasoningEffort(c.model.ReasoningEffort),
+		},
+		Text: responses.ResponseTextConfigParam{
+			Format: responses.ResponseFormatTextConfigUnionParam{
+				OfJSONSchema: &responses.ResponseFormatTextJSONSchemaConfigParam{
+					Name:   c.schemaName,
+					Schema: c.schema,
+					Strict: openai.Bool(true),
+				},
+			},
+		},
+		PromptCacheKey: openai.String(c.cacheKey),
+		// Lets OpenAI tell users apart for abuse detection.
+		SafetyIdentifier: openai.String(util.HashBytes([]byte(c.userID))),
+	})
+	if err != nil {
+		return nil, model.FlowAIUsage{}, fmt.Errorf("failed to create response: %w", err)
+	}
+
+	usage := model.FlowAIUsage{
+		InputTokens:       int(resp.Usage.InputTokens),
+		CachedInputTokens: int(resp.Usage.InputTokensDetails.CachedTokens),
+		OutputTokens:      int(resp.Usage.OutputTokens),
+	}
+	slog.Info(c.logMessage, append(c.logAttrs,
+		slog.String("status", string(resp.Status)),
+		slog.String("incomplete_reason", resp.IncompleteDetails.Reason),
+		slog.Int("input_tokens", usage.InputTokens),
+		slog.Int("cached_input_tokens", usage.CachedInputTokens),
+		slog.Int("output_tokens", usage.OutputTokens),
+	)...)
+	return resp, usage, nil
+}
+
+func chatInput(req Request) responses.ResponseInputParam {
 	messages := req.Messages
 	var current string
 	if len(req.Issues) > 0 {
@@ -155,27 +212,7 @@ func (a *Assistant) params(req Request) responses.ResponseNewParams {
 		fmt.Sprintf("Current flow:\n%s\n\n%s", req.Flow, current),
 	))
 
-	return responses.ResponseNewParams{
-		Model:           a.config.Model,
-		Instructions:    openai.String(instructions),
-		Input:           responses.ResponseNewParamsInputUnion{OfInputItemList: input},
-		MaxOutputTokens: openai.Int(int64(a.config.MaxOutputTokens)),
-		Reasoning: shared.ReasoningParam{
-			Effort: shared.ReasoningEffort(a.config.ReasoningEffort),
-		},
-		Text: responses.ResponseTextConfigParam{
-			Format: responses.ResponseFormatTextConfigUnionParam{
-				OfJSONSchema: &responses.ResponseFormatTextJSONSchemaConfigParam{
-					Name:   "flow_edits",
-					Schema: outputSchema,
-					Strict: openai.Bool(true),
-				},
-			},
-		},
-		PromptCacheKey: openai.String("kite-flow-ai"),
-		// Lets OpenAI tell users apart for abuse detection.
-		SafetyIdentifier: openai.String(util.HashBytes([]byte(req.UserID))),
-	}
+	return input
 }
 
 func easyMessage(role responses.EasyInputMessageRole, content string) responses.ResponseInputItemUnionParam {
