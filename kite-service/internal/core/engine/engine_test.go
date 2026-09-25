@@ -13,6 +13,7 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/internal/store"
 	"github.com/kitecloud/kite/kite-service/internal/util"
+	"github.com/kitecloud/kite/kite-service/pkg/plugin"
 )
 
 // The fakes embed their store interface so any method the engine does not call
@@ -162,17 +163,30 @@ func TestPopulateDeletedEntitiesFailureDoesNotAdvanceCursor(t *testing.T) {
 	}
 }
 
+type fakePlugin struct {
+	plugin.PluginInstance
+	closed bool
+}
+
+func (f *fakePlugin) Close() error {
+	f.closed = true
+	return nil
+}
+
 func TestPopulateDropsDeletedEntities(t *testing.T) {
 	e := newTestEngine(&fakeCommandStore{}, &fakeEventListenerStore{}, &fakePluginInstanceStore{})
 
 	app := e.appForID("app")
 	app.AddCommand(testCommand("cmd", "ping"))
 	app.AddEventListener(testListener("listener", model.EventSourceDiscord, model.EventListenerTypeDiscordMessageCreate))
+	plugin := &fakePlugin{}
+	app.pluginInstances["plugin"] = &pluginInstance{instance: plugin}
 	e.lastUpdate = time.Now().UTC().Add(-time.Minute)
 
 	e.env.DeletedEntityStore = &fakeDeletedEntityStore{deleted: []*model.DeletedEntity{
 		{ID: "cmd", Type: model.DeletedEntityTypeCommand, AppID: "app"},
 		{ID: "listener", Type: model.DeletedEntityTypeEventListener, AppID: "app"},
+		{ID: "plugin", Type: model.DeletedEntityTypePluginInstance, AppID: "app"},
 	}}
 	e.populate(context.Background())
 
@@ -182,6 +196,12 @@ func TestPopulateDropsDeletedEntities(t *testing.T) {
 	if got := app.listenersByType[model.EventListenerTypeDiscordMessageCreate]; len(got) != 0 {
 		t.Error("deleted event listener is still loaded")
 	}
+	if _, ok := app.pluginInstances["plugin"]; ok {
+		t.Error("deleted plugin instance is still loaded")
+	}
+	if !plugin.closed {
+		t.Error("deleted plugin instance wasn't closed")
+	}
 }
 
 func TestPopulateDropsDisabledCommand(t *testing.T) {
@@ -190,6 +210,8 @@ func TestPopulateDropsDisabledCommand(t *testing.T) {
 
 	app := e.appForID("app")
 	app.AddCommand(testCommand("cmd", "ping"))
+	// Disabled rows are only returned after the first load.
+	e.lastUpdate = time.Now().UTC().Add(-time.Minute)
 
 	commands.commands = []*model.Command{{ID: "cmd", AppID: "app", Name: "ping", Enabled: false}}
 	e.populate(context.Background())

@@ -129,17 +129,6 @@ func (a *App) AddPluginInstance(pluginInstance *model.PluginInstance) {
 	}
 }
 
-func (a *App) RemovePluginInstance(pluginInstanceID string) {
-	a.Lock()
-	instance, ok := a.pluginInstances[pluginInstanceID]
-	delete(a.pluginInstances, pluginInstanceID)
-	a.Unlock()
-
-	if ok {
-		closePluginInstances([]*pluginInstance{instance})
-	}
-}
-
 // RemoveDanglingPluginInstances drops instances absent from enabledIDs, the
 // set of plugin instances that still exist and are enabled.
 func (a *App) RemoveDanglingPluginInstances(enabledIDs map[string]struct{}) {
@@ -157,9 +146,9 @@ func (a *App) RemoveDanglingPluginInstances(enabledIDs map[string]struct{}) {
 	closePluginInstances(removed)
 }
 
-// RemoveDeletedEntities drops the given deleted entities of this app,
+// RemoveEntities drops the given deleted or disabled entities of this app,
 // rebuilding each index at most once.
-func (a *App) RemoveDeletedEntities(entities []*model.DeletedEntity) {
+func (a *App) RemoveEntities(entities []*model.DeletedEntity) {
 	var removedPlugins []*pluginInstance
 	var removedCommand, removedListener bool
 
@@ -226,16 +215,6 @@ func (a *App) AddCommand(commandID string, command *Command) {
 	a.rebuildCommandIndex()
 }
 
-func (a *App) RemoveCommand(commandID string) {
-	a.Lock()
-	defer a.Unlock()
-
-	if _, ok := a.commands[commandID]; ok {
-		delete(a.commands, commandID)
-		a.rebuildCommandIndex()
-	}
-}
-
 // RemoveDanglingCommands drops commands absent from enabledIDs, the set of
 // commands that still exist and are enabled.
 func (a *App) RemoveDanglingCommands(enabledIDs map[string]struct{}) {
@@ -267,16 +246,6 @@ func (a *App) AddEventListener(listenerID string, listener *EventListener) {
 
 	a.listeners[listenerID] = listener
 	a.rebuildListenerIndex()
-}
-
-func (a *App) RemoveEventListener(listenerID string) {
-	a.Lock()
-	defer a.Unlock()
-
-	if _, ok := a.listeners[listenerID]; ok {
-		delete(a.listeners, listenerID)
-		a.rebuildListenerIndex()
-	}
 }
 
 // RemoveDanglingEventListeners drops listeners absent from enabledIDs, the set

@@ -8,15 +8,18 @@ CREATE TABLE IF NOT EXISTS deleted_entities (
     entity_type TEXT NOT NULL,
     app_id TEXT NOT NULL,
     -- UTC like the updated_at columns, which are written by the service.
-    deleted_at TIMESTAMP NOT NULL DEFAULT (now() AT TIME ZONE 'UTC')
+    deleted_at TIMESTAMP NOT NULL
 );
 
 CREATE INDEX IF NOT EXISTS deleted_entities_deleted_at ON deleted_entities (deleted_at);
 
 CREATE OR REPLACE FUNCTION record_deleted_entities() RETURNS TRIGGER AS $$
 BEGIN
-    INSERT INTO deleted_entities (id, entity_type, app_id)
-    SELECT id, TG_TABLE_NAME, app_id FROM deleted_rows;
+    -- clock_timestamp() instead of now(), which is the transaction start. Pollers
+    -- would skip a tombstone stamped at the start of a transaction that took
+    -- longer than their overlap to commit.
+    INSERT INTO deleted_entities (id, entity_type, app_id, deleted_at)
+    SELECT id, TG_TABLE_NAME, app_id, clock_timestamp() AT TIME ZONE 'UTC' FROM deleted_rows;
     RETURN NULL;
 END;
 $$ LANGUAGE plpgsql;

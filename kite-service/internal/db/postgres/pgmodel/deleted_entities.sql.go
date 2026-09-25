@@ -12,11 +12,11 @@ import (
 )
 
 const deleteDeletedEntitiesBefore = `-- name: DeleteDeletedEntitiesBefore :execrows
-DELETE FROM deleted_entities WHERE ctid IN (
+DELETE FROM deleted_entities WHERE ctid = ANY(ARRAY(
     SELECT expired.ctid FROM deleted_entities expired
     WHERE expired.deleted_at < $1
     LIMIT $2
-)
+))
 `
 
 type DeleteDeletedEntitiesBeforeParams struct {
@@ -25,7 +25,8 @@ type DeleteDeletedEntitiesBeforeParams struct {
 }
 
 // Batched so a large backlog doesn't hold one long transaction. The table has
-// no key, ctid identifies the rows within the statement.
+// no key, ctid identifies the rows within the statement. = ANY(ARRAY(...))
+// plans as a TID scan, IN (...) would join against a full scan.
 func (q *Queries) DeleteDeletedEntitiesBefore(ctx context.Context, arg DeleteDeletedEntitiesBeforeParams) (int64, error) {
 	result, err := q.db.Exec(ctx, deleteDeletedEntitiesBefore, arg.BeforeAt, arg.BatchSize)
 	if err != nil {

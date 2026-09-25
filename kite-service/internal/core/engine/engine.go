@@ -198,15 +198,18 @@ func (e *Engine) populatePlugins(ctx context.Context, lastUpdate time.Time) erro
 		return fmt.Errorf("failed to get plugin instances: %w", err)
 	}
 
+	var disabled []*model.DeletedEntity
 	for _, pluginInstance := range pluginInstances {
 		if util.CluserForKey(pluginInstance.AppID, e.env.Config.ClusterCount) != e.env.Config.ClusterIndex {
 			continue
 		}
 
 		if !pluginInstance.Enabled {
-			if app := e.existingApp(pluginInstance.AppID); app != nil {
-				app.RemovePluginInstance(pluginInstance.ID)
-			}
+			disabled = append(disabled, &model.DeletedEntity{
+				ID:    pluginInstance.ID,
+				Type:  model.DeletedEntityTypePluginInstance,
+				AppID: pluginInstance.AppID,
+			})
 			continue
 		}
 
@@ -216,6 +219,7 @@ func (e *Engine) populatePlugins(ctx context.Context, lastUpdate time.Time) erro
 		e.appForID(pluginInstance.AppID).AddPluginInstance(pluginInstance)
 	}
 
+	e.removeEntities(disabled)
 	return nil
 }
 
@@ -245,15 +249,18 @@ func (e *Engine) populateCommands(ctx context.Context, lastUpdate time.Time) err
 		return fmt.Errorf("failed to get commands: %w", err)
 	}
 
+	var disabled []*model.DeletedEntity
 	for _, command := range commands {
 		if util.CluserForKey(command.AppID, e.env.Config.ClusterCount) != e.env.Config.ClusterIndex {
 			continue
 		}
 
 		if !command.Enabled {
-			if app := e.existingApp(command.AppID); app != nil {
-				app.RemoveCommand(command.ID)
-			}
+			disabled = append(disabled, &model.DeletedEntity{
+				ID:    command.ID,
+				Type:  model.DeletedEntityTypeCommand,
+				AppID: command.AppID,
+			})
 			continue
 		}
 
@@ -268,6 +275,7 @@ func (e *Engine) populateCommands(ctx context.Context, lastUpdate time.Time) err
 		e.appForID(command.AppID).AddCommand(command.ID, compiled)
 	}
 
+	e.removeEntities(disabled)
 	return nil
 }
 
@@ -297,15 +305,18 @@ func (e *Engine) populateEventListeners(ctx context.Context, lastUpdate time.Tim
 		return fmt.Errorf("failed to get event listeners: %w", err)
 	}
 
+	var disabled []*model.DeletedEntity
 	for _, listener := range listeners {
 		if util.CluserForKey(listener.AppID, e.env.Config.ClusterCount) != e.env.Config.ClusterIndex {
 			continue
 		}
 
 		if !listener.Enabled {
-			if app := e.existingApp(listener.AppID); app != nil {
-				app.RemoveEventListener(listener.ID)
-			}
+			disabled = append(disabled, &model.DeletedEntity{
+				ID:    listener.ID,
+				Type:  model.DeletedEntityTypeEventListener,
+				AppID: listener.AppID,
+			})
 			continue
 		}
 
@@ -327,6 +338,7 @@ func (e *Engine) populateEventListeners(ctx context.Context, lastUpdate time.Tim
 		}
 	}
 
+	e.removeEntities(disabled)
 	return nil
 }
 
@@ -352,11 +364,6 @@ func (e *Engine) removeDanglingEventListeners(ctx context.Context) error {
 // Deleted rows leave nothing for the updated_at polls to find, so the database
 // records a tombstone for each.
 func (e *Engine) removeDeletedEntities(ctx context.Context, lastUpdate time.Time) error {
-	if lastUpdate.IsZero() {
-		// The first load doesn't load deleted entities in the first place.
-		return nil
-	}
-
 	queryStart := time.Now()
 	deleted, err := e.env.DeletedEntityStore.DeletedEntitiesSince(ctx, lastUpdate)
 	metrics.ObservePoll("populate_deleted_entities", queryStart)
@@ -364,20 +371,24 @@ func (e *Engine) removeDeletedEntities(ctx context.Context, lastUpdate time.Time
 		return fmt.Errorf("failed to get deleted entities: %w", err)
 	}
 
-	// Grouped so an app delete, which deletes all of its entities at once,
-	// locks the app and rebuilds its indexes only once.
+	e.removeEntities(deleted)
+	return nil
+}
+
+// removeEntities drops deleted or disabled entities from their apps. Grouped
+// by app, so an app delete or a bulk disable locks each app and rebuilds its
+// indexes only once.
+func (e *Engine) removeEntities(entities []*model.DeletedEntity) {
 	byApp := make(map[string][]*model.DeletedEntity)
-	for _, entity := range deleted {
+	for _, entity := range entities {
 		byApp[entity.AppID] = append(byApp[entity.AppID], entity)
 	}
 
 	for appID, entities := range byApp {
 		if app := e.existingApp(appID); app != nil {
-			app.RemoveDeletedEntities(entities)
+			app.RemoveEntities(entities)
 		}
 	}
-
-	return nil
 }
 
 func (e *Engine) scheduledEventListeners() []*EventListener {
