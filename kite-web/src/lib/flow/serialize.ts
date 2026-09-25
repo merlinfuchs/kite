@@ -22,10 +22,7 @@ export function serializeFlow(
     ...walkDownstream(entryIds, edges),
     ...nodes.map((n) => n.id),
   ];
-  const rank = new Map<string, number>();
-  order.forEach((id) => {
-    if (!rank.has(id)) rank.set(id, rank.size);
-  });
+  const rank = new Map([...new Set(order)].map((id, i) => [id, i]));
 
   // Connections to blocks that don't exist sort last.
   const byRank = (a: string, b: string) =>
@@ -38,13 +35,13 @@ export function serializeFlow(
   const selected = new Set(selectedIds);
   const lines = [`Flow type: ${context}`, "", "Blocks:"];
   for (const node of sortedNodes) {
-    const mark = selected.has(node.id) ? " (selected)" : "";
     const data = compact(node.data);
-    lines.push(
-      `- ${node.id} ${node.type}${mark}${
-        data === undefined ? "" : ` ${JSON.stringify(data)}`
-      }`
-    );
+    const parts = [
+      `- ${node.id} ${node.type}`,
+      selected.has(node.id) && "(selected)",
+      data !== undefined && JSON.stringify(data),
+    ];
+    lines.push(parts.filter(Boolean).join(" "));
   }
 
   lines.push("", "Connections:");

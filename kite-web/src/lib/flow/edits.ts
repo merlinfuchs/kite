@@ -6,9 +6,9 @@ import {
   createEdge,
   createNode,
   getConditionItemType,
-  getNodeOutputs,
   getNodeValues,
   getOwnedChildTypes,
+  getOwnerTypes,
   isKnownNodeType,
   normalizeHandle,
 } from "./nodes";
@@ -123,10 +123,7 @@ export function applyFlowEdits(
               `'${edit.after}' isn't connected to '${edit.before}'.`
             );
           }
-          if (
-            before &&
-            getNodeOutputs({ type: edit.type, data: {} }).length === 0
-          ) {
+          if (before && getNodeValues(edit.type).outputs?.length === 0) {
             throw new Error(
               `'${edit.type}' has no outputs, so nothing can come after it. Connect '${edit.before}' to one of its branches instead.`
             );
@@ -143,24 +140,20 @@ export function applyFlowEdits(
           newNodes.forEach((n) => added.add(n.id));
           refs[edit.ref] = owner.id;
 
-          // A new condition comes with one branch. Branches are added or
-          // removed to match the given items.
+          // A new condition comes with one empty branch, which is replaced
+          // by the given items.
           const itemType = getConditionItemType(edit.type);
           let items = owned.filter((n) => n.type === itemType);
           if (itemType && edit.items) {
-            const extra = items.slice(edit.items.length);
-            nodes = nodes.filter((n) => !extra.includes(n));
-            edges = edges.filter((e) => !extra.some((n) => n.id === e.target));
-            items = items.slice(0, edit.items.length);
-
-            while (items.length < edit.items.length) {
-              const [[item]] = createNode(itemType, { x: 0, y: 0 });
+            nodes = nodes.filter((n) => !items.includes(n));
+            edges = edges.filter((e) => !items.some((n) => n.id === e.target));
+            items = edit.items.map((data) => {
+              const [[item]] = createNode(itemType, { x: 0, y: 0 }, { data });
               nodes.push(item);
               added.add(item.id);
               connect(owner, item);
-              items.push(item);
-            }
-            items.forEach((item, j) => (item.data = { ...edit.items![j] }));
+              return item;
+            });
           }
           items.forEach((item, j) => (refs[`${edit.ref}.item${j}`] = item.id));
 
@@ -218,35 +211,35 @@ export function applyFlowEdits(
           // the block before it, unless it was part of a condition or loop.
           // Blocks after its other outputs, e.g. an error branch or a button,
           // only ran in a different situation, so they are left unconnected.
-          const isOwned = nodes.some((n) =>
-            getOwnedChildTypes(n.type!).includes(node.type!)
-          );
           const reconnect =
-            (edit.reconnect ?? true) && ownedTypes.length === 0 && !isOwned;
-          const pairs = reconnect
-            ? edges
-                .filter((e) => e.target === node.id)
-                .flatMap((parent) =>
-                  edges
-                    .filter(
-                      (e) =>
-                        e.source === node.id && !normalizeHandle(e.sourceHandle)
-                    )
-                    .map((child) => ({
-                      parent: nodes.find((n) => n.id === parent.source),
-                      child: nodes.find((n) => n.id === child.target),
-                      handle: parent.sourceHandle,
-                    }))
-                )
-            : [];
+            (edit.reconnect ?? true) &&
+            ownedTypes.length === 0 &&
+            getOwnerTypes(node.type!).length === 0;
+          const parentEdges = edges.filter(
+            (e) => e.target === node.id && e.source !== node.id
+          );
+          const childIds = edges
+            .filter(
+              (e) =>
+                e.source === node.id &&
+                e.target !== node.id &&
+                !normalizeHandle(e.sourceHandle)
+            )
+            .map((e) => e.target);
 
           nodes = nodes.filter((n) => !removed.has(n.id));
           edges = edges.filter(
             (e) => !removed.has(e.source) && !removed.has(e.target)
           );
-          for (const { parent, child, handle } of pairs) {
-            if (parent && child && !removed.has(parent.id)) {
-              connect(parent, child, handle);
+          if (reconnect) {
+            for (const parentEdge of parentEdges) {
+              const parent = nodes.find((n) => n.id === parentEdge.source);
+              for (const childId of childIds) {
+                const child = nodes.find((n) => n.id === childId);
+                if (parent && child) {
+                  connect(parent, child, parentEdge.sourceHandle);
+                }
+              }
             }
           }
           break;

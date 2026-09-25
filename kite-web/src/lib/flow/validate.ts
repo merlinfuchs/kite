@@ -8,9 +8,9 @@ import {
   getNodeTitle,
   getNodeValues,
   getOwnedChildTypes,
+  getOwnerTypes,
   isKnownNodeType,
   normalizeHandle,
-  nodeTypes,
 } from "./nodes";
 import {
   getAvailablePlaceholders,
@@ -24,18 +24,6 @@ export interface FlowIssue {
   message: string;
   nodeId?: string;
   edgeId?: string;
-}
-
-// Owned blocks, e.g. the items and else branch of a condition, are connected
-// to their owner and to nothing else.
-const ownedTypes = new Map(
-  Object.keys(nodeTypes).map((type) => [type, getOwnedChildTypes(type)])
-);
-const ownerTypes = new Map<string, string[]>();
-for (const [owner, owned] of ownedTypes) {
-  for (const type of owned) {
-    ownerTypes.set(type, [...(ownerTypes.get(type) ?? []), owner]);
-  }
 }
 
 // Checks what the editor and the service expect of a flow, beyond what each
@@ -145,7 +133,7 @@ export function validateFlow(
       continue;
     }
     if (source.type!.startsWith("option_")) continue;
-    if (ownedTypes.get(source.type!)!.includes(target.type!)) {
+    if (getOwnedChildTypes(source.type!).includes(target.type!)) {
       if (handle !== "default") {
         report(
           "error",
@@ -160,7 +148,7 @@ export function validateFlow(
       continue;
     }
 
-    if (ownerTypes.has(target.type!)) {
+    if (getOwnerTypes(target.type!).length > 0) {
       report(
         "error",
         `'${getNodeTitle(
@@ -194,7 +182,7 @@ export function validateFlow(
 
     // Items can be added and removed, the else branch and the loop's
     // each and end blocks can't.
-    for (const type of ownedTypes.get(node.type!)!) {
+    for (const type of getOwnedChildTypes(node.type!)) {
       if (!getNodeValues(type).fixed) continue;
 
       const count = children.filter((c) => c?.type === type).length;
@@ -212,8 +200,8 @@ export function validateFlow(
       }
     }
 
-    const owners = ownerTypes.get(node.type!);
-    if (owners) {
+    const owners = getOwnerTypes(node.type!);
+    if (owners.length > 0) {
       const count = edges.filter(
         (e) =>
           e.target === node.id &&

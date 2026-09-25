@@ -1019,6 +1019,22 @@ export function getOwnedChildTypes(type: string) {
   return ownedChildTypes.get(type)!;
 }
 
+let ownerTypes: Map<string, string[]> | undefined;
+
+// The types of the blocks that own blocks of the given type, e.g. the four
+// condition types for the else branch.
+export function getOwnerTypes(type: string) {
+  if (!ownerTypes) {
+    ownerTypes = new Map();
+    for (const owner of Object.keys(nodeTypes)) {
+      for (const owned of getOwnedChildTypes(owner)) {
+        ownerTypes.set(owned, [...(ownerTypes.get(owned) ?? []), owner]);
+      }
+    }
+  }
+  return ownerTypes.get(type) ?? [];
+}
+
 // The type of the branches of a condition, e.g. "control_condition_item_user".
 export function getConditionItemType(type: string): string | undefined {
   return conditionChildType[type];

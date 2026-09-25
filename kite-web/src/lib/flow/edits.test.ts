@@ -179,6 +179,15 @@ describe("applyFlowEdits", () => {
     expect(res.connections).toEqual(["entry->b"]);
   });
 
+  it("leaves the blocks after a removed one unconnected if asked to", () => {
+    const res = apply(
+      [entry, log("a"), log("b")],
+      [edge("entry", "a"), edge("a", "b")],
+      [{ op: "remove_node", id: "a", reconnect: false }]
+    );
+    expect(res.connections).toEqual([]);
+  });
+
   it("removes the blocks a condition owns with it", () => {
     const added = apply(
       [entry],
