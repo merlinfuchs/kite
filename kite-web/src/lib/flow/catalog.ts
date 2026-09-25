@@ -3,7 +3,7 @@ import { zodToJsonSchema } from "zod-to-json-schema";
 import { isNodeTypeAvailable } from "./categories";
 import { flowContextTypes } from "./context";
 import { isTemplated } from "./dataSchema";
-import { getOwnedChildTypes, nodeTypes } from "./nodes";
+import { getNodeOutputs, getOwnedChildTypes, nodeTypes } from "./nodes";
 
 // A machine readable description of every block, generated from the schemas
 // the editor uses. The service embeds it as kite-service/pkg/flow/catalog.json,
@@ -19,7 +19,7 @@ export function buildFlowCatalog() {
           contexts: flowContextTypes.filter((c) =>
             isNodeTypeAvailable(type, c)
           ),
-          outputs: values.outputs ?? ["default"],
+          outputs: getNodeOutputs({ type, data: {} }),
           // Blocks like conditions and loops are created together with the
           // blocks they own and are connected to them with fixed edges.
           owned_children: getOwnedChildTypes(type),

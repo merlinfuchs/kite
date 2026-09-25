@@ -144,12 +144,7 @@ function resumePlaceholders(
 // getResumeDepth counts the resume points between the root and a node.
 function getResumeDepth(nodeId: string, nodes: Node[], edges: Edge[]) {
   const nodeTypes = new Map(nodes.map((n) => [n.id, n.type]));
-  const incoming = new Map<string, Edge[]>();
-  for (const edge of edges) {
-    const targetEdges = incoming.get(edge.target) ?? [];
-    targetEdges.push(edge);
-    incoming.set(edge.target, targetEdges);
-  }
+  const { incoming } = indexEdges(edges);
 
   const visited = new Set<string>();
 
@@ -236,16 +231,13 @@ function upstreamPlaceholders(
 // Returns all blocks that run before the given one, nearest first. Besides
 // the blocks leading up to it, a loop's iterations run before what comes after
 // the loop, and an error handler's blocks run before its error branch.
-export function getUpstreamNodes(
+function getUpstreamNodes(
   nodeId: string,
   nodes: Node<NodeData>[],
   edges: Edge[]
 ) {
   const nodesById = new Map(nodes.map((n) => [n.id, n]));
-  const incoming = new Map<string, Edge[]>();
-  for (const edge of edges) {
-    incoming.set(edge.target, [...(incoming.get(edge.target) ?? []), edge]);
-  }
+  const { incoming, outgoing } = indexEdges(edges);
 
   const res: Node<NodeData>[] = [];
   const visited = new Set([nodeId]);
@@ -263,18 +255,22 @@ export function getUpstreamNodes(
     for (const edge of incoming.get(queue[i]) ?? []) {
       add(edge.source);
 
-      const source = nodesById.get(edge.source);
-      const earlierBranch = edges.filter(
-        (e) =>
-          e.source === edge.source &&
-          ((source?.type === "control_error_handler" &&
-            edge.sourceHandle === "error" &&
-            (e.sourceHandle || "default") === "default") ||
-            (current?.type === "control_loop_end" &&
-              nodesById.get(e.target)?.type === "control_loop_each"))
-      );
+      let earlierBranch: Edge[] = [];
+      if (
+        nodesById.get(edge.source)?.type === "control_error_handler" &&
+        edge.sourceHandle === "error"
+      ) {
+        earlierBranch = (outgoing.get(edge.source) ?? []).filter(
+          (e) => (e.sourceHandle || "default") === "default"
+        );
+      } else if (current?.type === "control_loop_end") {
+        earlierBranch = (outgoing.get(edge.source) ?? []).filter(
+          (e) => nodesById.get(e.target)?.type === "control_loop_each"
+        );
+      }
+
       const starts = earlierBranch.map((e) => e.target);
-      [...starts, ...walkDownstream(starts, edges)].forEach(add);
+      [...starts, ...walk(starts, outgoing, "target")].forEach(add);
     }
   }
 
@@ -284,19 +280,37 @@ export function getUpstreamNodes(
 // Returns the IDs of the blocks reached from the given ones by following
 // edges forward, nearest first.
 export function walkDownstream(startIds: string[], edges: Edge[]) {
-  const outgoing = new Map<string, string[]>();
-  for (const edge of edges) {
-    outgoing.set(edge.source, [
-      ...(outgoing.get(edge.source) ?? []),
-      edge.target,
-    ]);
-  }
+  return walk(startIds, indexEdges(edges).outgoing, "target");
+}
 
+// Returns the IDs of the blocks leading up to the given ones, nearest first.
+export function walkUpstream(startIds: string[], edges: Edge[]) {
+  return walk(startIds, indexEdges(edges).incoming, "source");
+}
+
+function indexEdges(edges: Edge[]) {
+  const incoming = new Map<string, Edge[]>();
+  const outgoing = new Map<string, Edge[]>();
+  for (const edge of edges) {
+    if (!incoming.has(edge.target)) incoming.set(edge.target, []);
+    if (!outgoing.has(edge.source)) outgoing.set(edge.source, []);
+    incoming.get(edge.target)!.push(edge);
+    outgoing.get(edge.source)!.push(edge);
+  }
+  return { incoming, outgoing };
+}
+
+function walk(
+  startIds: string[],
+  next: Map<string, Edge[]>,
+  follow: "source" | "target"
+) {
   const visited = new Set(startIds);
   const res: string[] = [];
   const queue = [...startIds];
   for (let i = 0; i < queue.length; i++) {
-    for (const id of outgoing.get(queue[i]) ?? []) {
+    for (const edge of next.get(queue[i]) ?? []) {
+      const id = edge[follow];
       if (visited.has(id)) continue;
       visited.add(id);
       res.push(id);

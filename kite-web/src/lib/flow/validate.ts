@@ -4,6 +4,7 @@ import { FlowContextType } from "./context";
 import { NodeData } from "./dataSchema";
 import {
   canConnect,
+  getNodeOutputs,
   getNodeTitle,
   getNodeValues,
   getOwnedChildTypes,
@@ -12,10 +13,9 @@ import {
 } from "./nodes";
 import {
   getAvailablePlaceholders,
-  getUpstreamNodes,
   walkDownstream,
+  walkUpstream,
 } from "./placeholders";
-import { getComponentHandleIds } from "./resume";
 
 export interface FlowIssue {
   severity: "error" | "warning";
@@ -152,7 +152,7 @@ export function validateFlow(
       continue;
     }
 
-    const outputs = getNodeValues(source.type!).outputs ?? ["default"];
+    const outputs = getNodeOutputs(source);
     if (outputs.length === 0) {
       report(
         "error",
@@ -161,12 +161,7 @@ export function validateFlow(
         )}' has no outputs. Connect blocks to its branches instead.`,
         { edgeId: edge.id }
       );
-    } else if (
-      !outputs.includes(handle) &&
-      !getComponentHandleIds(
-        source.data.message_data?.components ?? []
-      ).includes(handle)
-    ) {
+    } else if (!outputs.includes(handle)) {
       report("error", `'${getNodeTitle(source)}' has no output '${handle}'.`, {
         edgeId: edge.id,
       });
@@ -215,10 +210,12 @@ export function validateFlow(
       }
     }
 
+    // Checked on the blocks leading up to it, like the service does, as
+    // blocks after the loop run later but aren't inside it.
     if (
       node.type === "control_loop_exit" &&
-      !getUpstreamNodes(node.id, nodes, edges).some(
-        (n) => n.type === "control_loop_each"
+      !walkUpstream([node.id], edges).some(
+        (id) => knownById.get(id)?.type === "control_loop_each"
       )
     ) {
       report("error", `'${getNodeTitle(node)}' only works inside a loop.`, {

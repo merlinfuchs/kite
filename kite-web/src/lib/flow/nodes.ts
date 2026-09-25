@@ -4,6 +4,7 @@ import { useMemo } from "react";
 import { ZodSchema } from "zod";
 import { getUniqueId } from "../utils";
 import { FlowContextType } from "./context";
+import { getComponentHandleIds } from "./resume";
 import {
   nodeActionAiChatCompletionDataSchema,
   nodeActionAiWebSearchCompletionDataSchema,
@@ -959,6 +960,15 @@ export function isKnownNodeType(nodeType: string) {
 
 export function getNodeValues(nodeType: string): NodeValues {
   return isKnownNodeType(nodeType) ? nodeTypes[nodeType] : unknownNodeType;
+}
+
+// The IDs of the outputs edges can start from. Message blocks also get one per
+// button or select menu in their message.
+export function getNodeOutputs(node: { type?: string; data: NodeData }) {
+  return [
+    ...(getNodeValues(node.type!).outputs ?? ["default"]),
+    ...getComponentHandleIds(node.data.message_data?.components ?? []),
+  ];
 }
 
 export function getNodeTitle(node: { type?: string; data: NodeData }) {

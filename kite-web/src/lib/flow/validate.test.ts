@@ -2,17 +2,13 @@ import { Edge, Node } from "@xyflow/react";
 import { describe, expect, it } from "vitest";
 import { FlowContextType } from "./context";
 import { NodeData } from "./dataSchema";
+import { testEdge, testNode } from "./testUtils";
 import { createNode } from "./nodes";
 import { prepareTemplateFlow, getTemplates } from "./templates";
 import { validateFlow } from "./validate";
 
-function node(id: string, type: string, data: NodeData = {}): Node<NodeData> {
-  return { id, type, data, position: { x: 0, y: 0 } };
-}
-
-function edge(source: string, target: string, sourceHandle?: string): Edge {
-  return { id: `${source}-${target}`, source, target, sourceHandle };
-}
+const node = testNode;
+const edge = testEdge;
 
 const entry = node("entry", "entry_command", {
   name: "test",
@@ -160,6 +156,23 @@ describe("validateFlow", () => {
   });
 
   it("only allows exiting a loop inside one", () => {
+    const [loop, loopEdges] = createNode("control_loop", { x: 0, y: 0 });
+    loop[0].data = { loop_count: "3" };
+    const [loopId, endId, eachId] = loop.map((n) => n.id);
+    const exit = node("exit", "control_loop_exit");
+    expect(
+      errors(
+        [entry, ...loop, exit],
+        [edge("entry", loopId), ...loopEdges, edge(eachId, "exit")]
+      )
+    ).toEqual([]);
+    expect(
+      errors(
+        [entry, ...loop, exit],
+        [edge("entry", loopId), ...loopEdges, edge(endId, "exit")]
+      )
+    ).toEqual(["'Exit loop' only works inside a loop."]);
+
     expect(
       errors(
         [entry, node("exit", "control_loop_exit")],

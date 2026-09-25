@@ -1,15 +1,9 @@
-import { Edge, Node } from "@xyflow/react";
 import { describe, expect, it } from "vitest";
-import { NodeData } from "./dataSchema";
+import { testEdge, testNode } from "./testUtils";
 import { getAvailablePlaceholders } from "./placeholders";
 
-function node(id: string, type: string, data: NodeData = {}): Node<NodeData> {
-  return { id, type, data, position: { x: 0, y: 0 } };
-}
-
-function edge(source: string, target: string, sourceHandle?: string): Edge {
-  return { id: `${source}-${target}`, source, target, sourceHandle };
-}
+const node = testNode;
+const edge = testEdge;
 
 const nodes = [
   node("entry", "entry_command"),
