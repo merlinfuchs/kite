@@ -13,6 +13,7 @@ func TestAIModelAllowed(t *testing.T) {
 		openai.ChatModelGPT4_1Mini,
 		openai.ChatModelGPT4_1Nano,
 		openai.ChatModelGPT4oMini,
+		"gpt-5-nano",
 	}
 	for _, model := range allowed {
 		if !AIModelAllowed(model) {

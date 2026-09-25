@@ -540,6 +540,7 @@ var aiModelCosts = map[string]aiModelCost{
 	openai.ChatModelGPT4_1Mini: {Chat: 20, Search: 100},
 	openai.ChatModelGPT4_1Nano: {Chat: 5, Search: 25},
 	openai.ChatModelGPT4oMini:  {Chat: 5, Search: 25},
+	"gpt-5-nano":               {Chat: 5, Search: 25},
 }
 
 type aiModelCost struct {
