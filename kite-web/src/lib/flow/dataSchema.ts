@@ -258,8 +258,15 @@ export const nodeMessageDataSchema = z
       .describe(
         "Which mentions ping. If unset, only mentioned users are pinged."
       ),
+    // Validated by the message editor like embeds.
+    components: z
+      .array(z.record(z.unknown()))
+      .optional()
+      .describe(
+        "Buttons and select menus, as Discord action rows. Each one that isn't a link button adds the output component_<id> to the block."
+      ),
   })
-  // Components, flags and attachments are set through the message editor.
+  // Flags and attachments are set through the message editor.
   .passthrough()
   .describe("The message to send.");
 

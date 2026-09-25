@@ -1,4 +1,7 @@
 import { Edge, Node } from "@xyflow/react";
+import { ZodIssue } from "zod";
+import { messageSchema } from "../message/schema";
+import { ComponentData } from "../types/message.gen";
 import { isNodeTypeAvailable } from "./categories";
 import { FlowContextType } from "./context";
 import { NodeData } from "./dataSchema";
@@ -18,6 +21,7 @@ import {
   walkDownstream,
   walkUpstream,
 } from "./placeholders";
+import { collectComponentGroups } from "./resume";
 
 export interface FlowIssue {
   severity: "error" | "warning";
@@ -78,6 +82,15 @@ export function validateFlow(
           : `'${getNodeTitle(node)}': ${issue.message}`,
         { nodeId: node.id }
       );
+    }
+
+    // Blocks that send a saved template ignore message_data.
+    if (node.data.message_data && !node.data.message_template_id) {
+      for (const message of getMessageIssues(node.data.message_data)) {
+        report("error", `'${getNodeTitle(node)}' message ${message}`, {
+          nodeId: node.id,
+        });
+      }
     }
   }
 
@@ -343,4 +356,51 @@ function findReferences(node: Node<NodeData>) {
     }
   }
   return res;
+}
+
+// Checks a message like the message editor does, which the block's settings
+// schema leaves out, and that the IDs its outputs are named after are unique.
+function getMessageIssues(message: NodeData["message_data"]) {
+  // The block's settings schema already checks the rest.
+  const issues = unwrapUnionIssues(
+    messageSchema.safeParse(message).error?.issues ?? []
+  )
+    .filter((i) => i.path[0] === "components" || i.path[0] === "embeds")
+    .map((i) => `${i.path.join(".")}: ${i.message}`);
+
+  const seen = new Set<unknown>();
+  for (const component of collectComponentGroups(
+    (message?.components ?? []) as ComponentData[]
+  ).flat()) {
+    // IDs that aren't numbers are reported by the message schema.
+    const id = component.id as unknown;
+    if (
+      id === undefined ||
+      (typeof id === "number" && (!Number.isInteger(id) || id < 1))
+    ) {
+      issues.push(
+        "components: every button and select menu needs a number from 1 as id"
+      );
+    } else if (seen.has(component.id)) {
+      issues.push(
+        `components: two buttons or select menus have the id ${component.id}`
+      );
+    }
+    seen.add(component.id);
+  }
+  return issues;
+}
+
+// Replaces "Invalid input" of a union, e.g. of the kinds of buttons, with the
+// issues of the variant that was meant: the one whose literal fields, like
+// type and style, matched, with the fewest issues.
+function unwrapUnionIssues(issues: ZodIssue[]): ZodIssue[] {
+  return issues.flatMap((issue) => {
+    if (issue.code !== "invalid_union") return [issue];
+
+    const variants = issue.unionErrors.map((e) => unwrapUnionIssues(e.issues));
+    const score = (v: ZodIssue[]) =>
+      v.filter((i) => i.code === "invalid_literal").length * 1000 + v.length;
+    return variants.reduce((best, v) => (score(v) < score(best) ? v : best));
+  });
 }

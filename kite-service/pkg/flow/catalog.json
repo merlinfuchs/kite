@@ -170,6 +170,14 @@
                 },
                 "additionalProperties": false,
                 "description": "Which mentions ping. If unset, only mentioned users are pinged."
+              },
+              "components": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": {}
+                },
+                "description": "Buttons and select menus, as Discord action rows. Each one that isn't a link button adds the output component_<id> to the block."
               }
             },
             "additionalProperties": true,
@@ -363,6 +371,14 @@
                 },
                 "additionalProperties": false,
                 "description": "Which mentions ping. If unset, only mentioned users are pinged."
+              },
+              "components": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": {}
+                },
+                "description": "Buttons and select menus, as Discord action rows. Each one that isn't a link button adds the output component_<id> to the block."
               }
             },
             "additionalProperties": true,
@@ -637,6 +653,14 @@
                 },
                 "additionalProperties": false,
                 "description": "Which mentions ping. If unset, only mentioned users are pinged."
+              },
+              "components": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": {}
+                },
+                "description": "Buttons and select menus, as Discord action rows. Each one that isn't a link button adds the output component_<id> to the block."
               }
             },
             "additionalProperties": true,
@@ -840,6 +864,14 @@
                 },
                 "additionalProperties": false,
                 "description": "Which mentions ping. If unset, only mentioned users are pinged."
+              },
+              "components": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": {}
+                },
+                "description": "Buttons and select menus, as Discord action rows. Each one that isn't a link button adds the output component_<id> to the block."
               }
             },
             "additionalProperties": true,
@@ -1031,6 +1063,14 @@
                 },
                 "additionalProperties": false,
                 "description": "Which mentions ping. If unset, only mentioned users are pinged."
+              },
+              "components": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": {}
+                },
+                "description": "Buttons and select menus, as Discord action rows. Each one that isn't a link button adds the output component_<id> to the block."
               }
             },
             "additionalProperties": true,
