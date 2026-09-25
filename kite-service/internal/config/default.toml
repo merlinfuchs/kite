@@ -41,7 +41,7 @@ max_repairs = 2
 
 [flow_ai.check]
 model = "gpt-5-nano"
-reasoning_effort = "minimal"
+reasoning_effort = "low"
 max_output_tokens = 2000
 
 [debug]
