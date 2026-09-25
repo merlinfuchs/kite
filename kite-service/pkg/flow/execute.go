@@ -310,34 +310,57 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			}
 		}
 
-		resumePoint, err := ctx.suspend(ResumePointTypeModal, util.UniqueID(), n.ID)
+		// The custom IDs aren't evaluated, as input() looks values up by them.
+		title, err := ctx.EvalTemplate(n.Data.ModalData.Title)
 		if err != nil {
-			return traceError(n, fmt.Errorf("failed to suspend: %w", err))
+			return traceError(n, err)
 		}
 
 		componentRows := make(discord.TopLevelComponents, len(n.Data.ModalData.Components))
 		for i, row := range n.Data.ModalData.Components {
 			r := make(discord.ActionRowComponent, len(row.Components))
 			for j, component := range row.Components {
+				label, err := ctx.EvalTemplate(component.Label)
+				if err != nil {
+					return traceError(n, err)
+				}
+
+				placeholder, err := ctx.EvalTemplate(component.Placeholder)
+				if err != nil {
+					return traceError(n, err)
+				}
+
+				value, err := ctx.EvalTemplateKeepSpace(component.Value)
+				if err != nil {
+					return traceError(n, err)
+				}
+
 				r[j] = &discord.TextInputComponent{
 					CustomID:     discord.ComponentID(component.CustomID),
-					Label:        component.Label,
+					Label:        label.String(),
 					Style:        discord.TextInputStyle(component.Style),
 					Required:     component.Required,
 					LengthLimits: [2]int{component.MinLength, component.MaxLength},
-					Value:        component.Value,
-					Placeholder:  component.Placeholder,
+					Value:        value.String(),
+					Placeholder:  placeholder.String(),
 				}
 			}
 
 			componentRows[i] = discord.TopLevelComponent(&r)
 		}
 
+		// Suspend only once the modal is ready, so a failed template doesn't
+		// leave a resume point behind.
+		resumePoint, err := ctx.suspend(ResumePointTypeModal, util.UniqueID(), n.ID)
+		if err != nil {
+			return traceError(n, fmt.Errorf("failed to suspend: %w", err))
+		}
+
 		resp := api.InteractionResponse{
 			Type: api.ModalResponse,
 			Data: &api.InteractionResponseData{
 				CustomID:   option.NewNullableString(message.CustomIDModalResumePoint(resumePoint.ID)),
-				Title:      option.NewNullableString(n.Data.ModalData.Title),
+				Title:      option.NewNullableString(title.String()),
 				Components: &componentRows,
 			},
 		}
