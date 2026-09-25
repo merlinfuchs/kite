@@ -9,12 +9,12 @@ import (
 
 func (g *Gateway) AppStatus(ctx context.Context) (store.AppStateStatus, error) {
 	return store.AppStateStatus{
-		Online: g.session != nil && g.session.GatewayIsAlive(),
+		Online: g.Session().GatewayIsAlive(),
 	}, nil
 }
 
 func (g *Gateway) AppGuilds(ctx context.Context) ([]discord.Guild, error) {
-	guilds, err := g.session.GuildStore.Guilds()
+	guilds, err := g.Session().GuildStore.Guilds()
 	if err != nil {
 		return nil, err
 	}
@@ -25,7 +25,7 @@ func (g *Gateway) AppGuilds(ctx context.Context) ([]discord.Guild, error) {
 func (g *Gateway) AppGuildChannels(ctx context.Context, guildID string) ([]discord.Channel, error) {
 	gid, _ := discord.ParseSnowflake(guildID)
 
-	channels, err := g.session.ChannelStore.Channels(discord.GuildID(gid))
+	channels, err := g.Session().ChannelStore.Channels(discord.GuildID(gid))
 	if err != nil {
 		return nil, err
 	}

@@ -365,7 +365,7 @@ func (m *GatewayManager) addGateway(ctx context.Context, app *model.App) error {
 	defer m.Unlock()
 
 	if g, ok := m.gateways[app.ID]; ok {
-		if g.session.GatewayIsAlive() {
+		if g.Session().GatewayIsAlive() {
 			go g.Update(ctx, app)
 			return nil
 		}
@@ -413,5 +413,5 @@ func (m *GatewayManager) AppClient(ctx context.Context, appID string) (*api.Clie
 		return nil, store.ErrNotFound
 	}
 
-	return g.session.Client, nil
+	return g.Session().Client, nil
 }

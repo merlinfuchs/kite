@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"sync"
 	"time"
 
 	"github.com/diamondburned/arikawa/v3/gateway"
@@ -29,21 +30,23 @@ type Gateway struct {
 	tokenCrypt     *util.SymmetricCrypt
 	pluginRegistry *plugin.Registry
 
-	app     *model.App
-	session *state.State
+	app *model.App
 
+	// connMu guards the connection, which restart replaces while the manager,
+	// the API and the engine's scheduler read it.
+	connMu  sync.Mutex
+	session *state.State
 	// intents is what this connection identified with, or zero before it has
 	// been computed. A computed set always includes IntentGuilds, so zero is
 	// unambiguous. Compared against a freshly computed set on refresh; a
 	// change requires a reconnect, since intents are fixed at IDENTIFY.
 	intents gateway.Intents
+	ctx     context.Context
+	cancel  context.CancelFunc
 
 	// rotationEntryID is the status entry last shown by rotatePresence, or
 	// empty if the app isn't rotating. Only accessed by the manager's loop.
 	rotationEntryID string
-
-	ctx    context.Context
-	cancel context.CancelFunc
 }
 
 func NewGateway(
@@ -73,12 +76,21 @@ func NewGateway(
 
 	g.ctx, g.cancel = context.WithCancel(context.Background())
 
-	go g.startGateway()
+	go g.startGateway(session, g.ctx)
 	return g, nil
 }
 
-func (g *Gateway) startGateway() {
-	intents, err := g.computeIntents(g.ctx)
+// Session returns the current connection's session.
+func (g *Gateway) Session() *state.State {
+	g.connMu.Lock()
+	defer g.connMu.Unlock()
+	return g.session
+}
+
+// startGateway connects session. It's passed in rather than read from g, so a
+// connection that restart already replaced never touches the new one.
+func (g *Gateway) startGateway(session *state.State, ctx context.Context) {
+	intents, err := g.computeIntents(ctx, session)
 	if err != nil {
 		var httpErr *httputil.HTTPError
 		if errors.As(err, &httpErr) && httpErr.Status == http.StatusUnauthorized {
@@ -96,8 +108,12 @@ func (g *Gateway) startGateway() {
 		return
 	}
 
-	g.intents = intents
-	g.session.AddIntents(intents)
+	g.connMu.Lock()
+	if g.session == session {
+		g.intents = intents
+	}
+	g.connMu.Unlock()
+	session.AddIntents(intents)
 
 	slog.Debug(
 		"Computed gateway intents",
@@ -105,7 +121,7 @@ func (g *Gateway) startGateway() {
 		slog.Uint64("intents", uint64(intents)),
 	)
 
-	g.session.AddHandler(func(e gateway.Event) {
+	session.AddHandler(func(e gateway.Event) {
 		// Protocol frames -- heartbeat acks, hello, reconnect, invalid session
 		// -- report an empty event type. Nothing downstream can ever match
 		// them: no event listener type and no plugin event type is empty. At
@@ -119,10 +135,10 @@ func (g *Gateway) startGateway() {
 		}
 
 		metrics.GatewayEvents.Add(string(eventType), 1)
-		g.eventHandler.HandleEvent(g.app.ID, g.session, e)
+		g.eventHandler.HandleEvent(g.app.ID, session, e)
 	})
 
-	g.session.AddHandler(func(e *gateway.ReadyEvent) {
+	session.AddHandler(func(e *gateway.ReadyEvent) {
 		slog.Info(
 			"Received ready event",
 			slog.String("app_id", g.app.ID),
@@ -135,7 +151,7 @@ func (g *Gateway) startGateway() {
 			e.User.Username, e.User.Discriminator, e.User.ID,
 		))
 
-		features := g.planManager.AppFeatures(g.ctx, g.app.ID)
+		features := g.planManager.AppFeatures(ctx, g.app.ID)
 		if len(e.Guilds) > features.MaxGuilds {
 			g.createLogEntry(model.LogLevelError, "Bots that are in more than 100 servers are currently not supported.")
 			g.disableApp("Bots that are in more than 100 servers are currently not supported.")
@@ -143,7 +159,7 @@ func (g *Gateway) startGateway() {
 		}
 	})
 
-	if err := g.session.Connect(g.ctx); err != nil {
+	if err := session.Connect(ctx); err != nil {
 		// Fatal error, we can't recover
 		g.createLogEntry(model.LogLevelError, fmt.Sprintf("Failed to connect to gateway: %v", err))
 		g.disableApp(fmt.Sprintf("Failed to connect to gateway: %v", err))
@@ -157,8 +173,8 @@ func (g *Gateway) startGateway() {
 // still inspect it for a 401. A failure to load requirements is not fatal: it
 // falls back to every intent the app is permitted, because failing closed
 // would silently stop delivering events.
-func (g *Gateway) computeIntents(ctx context.Context) (gateway.Intents, error) {
-	app, err := g.session.Client.CurrentApplication()
+func (g *Gateway) computeIntents(ctx context.Context, session *state.State) (gateway.Intents, error) {
+	app, err := session.Client.CurrentApplication()
 	if err != nil {
 		return 0, fmt.Errorf("failed to get current application: %w", err)
 	}
@@ -195,6 +211,12 @@ func (g *Gateway) appRequirements(ctx context.Context) (model.AppGatewayRequirem
 }
 
 func (g *Gateway) Close() error {
+	g.connMu.Lock()
+	defer g.connMu.Unlock()
+	return g.closeLocked()
+}
+
+func (g *Gateway) closeLocked() error {
 	g.cancel()
 	err := g.session.Close()
 
@@ -209,7 +231,7 @@ func (g *Gateway) Update(ctx context.Context, app *model.App) {
 	if !app.DiscordStatus.Equals(g.app.DiscordStatus) {
 		presence := presenceForApp(app)
 
-		err := g.session.Gateway().Send(ctx, presence)
+		err := g.Session().Gateway().Send(ctx, presence)
 		if err != nil {
 			go g.createLogEntry(model.LogLevelError, fmt.Sprintf("Failed to update bot status: %v", err))
 			slog.Error(
@@ -254,7 +276,7 @@ func (g *Gateway) rotatePresence(ctx context.Context, now time.Time, allowed boo
 		return
 	}
 
-	if err := g.session.Gateway().Send(ctx, presence); err != nil {
+	if err := g.Session().Gateway().Send(ctx, presence); err != nil {
 		slog.Error(
 			"Failed to send rotating presence update",
 			slog.String("app_id", g.app.ID),
@@ -271,12 +293,16 @@ func (g *Gateway) rotatePresence(ctx context.Context, now time.Time, allowed boo
 // leaves the connection alone: the current intent set was correct as of the
 // last computation, so keeping it beats a reconnect loop.
 func (g *Gateway) RefreshIntents(ctx context.Context) {
-	if g.intents == 0 {
+	g.connMu.Lock()
+	session, current := g.session, g.intents
+	g.connMu.Unlock()
+
+	if current == 0 {
 		// Still starting up; startGateway will compute the current set.
 		return
 	}
 
-	intents, err := g.computeIntents(ctx)
+	intents, err := g.computeIntents(ctx, session)
 	if err != nil {
 		slog.Error(
 			"Failed to compute intents while refreshing",
@@ -286,14 +312,14 @@ func (g *Gateway) RefreshIntents(ctx context.Context) {
 		return
 	}
 
-	if intents == g.intents {
+	if intents == current {
 		return
 	}
 
 	slog.Info(
 		"Gateway intents changed, reconnecting",
 		slog.String("app_id", g.app.ID),
-		slog.Uint64("old_intents", uint64(g.intents)),
+		slog.Uint64("old_intents", uint64(current)),
 		slog.Uint64("new_intents", uint64(intents)),
 	)
 	metrics.GatewayIntentReconnects.Add(1)
@@ -304,7 +330,23 @@ func (g *Gateway) RefreshIntents(ctx context.Context) {
 // restart tears the connection down and brings it back up with freshly
 // computed intents.
 func (g *Gateway) restart() {
-	if err := g.Close(); err != nil {
+	session, ctx, err := g.replaceSession()
+	if err != nil {
+		g.createLogEntry(model.LogLevelError, fmt.Sprintf("Failed to create session: %v", err))
+		return
+	}
+
+	go g.startGateway(session, ctx)
+}
+
+// replaceSession closes the current connection and swaps in a new, not yet
+// connected session. Holding the lock throughout keeps concurrent restarts,
+// e.g. a token change and an intent refresh, from interleaving.
+func (g *Gateway) replaceSession() (*state.State, context.Context, error) {
+	g.connMu.Lock()
+	defer g.connMu.Unlock()
+
+	if err := g.closeLocked(); err != nil {
 		slog.Error(
 			"Failed to close gateway",
 			slog.String("error", err.Error()),
@@ -314,8 +356,7 @@ func (g *Gateway) restart() {
 
 	session, err := createSession(g.tokenCrypt, g.app)
 	if err != nil {
-		g.createLogEntry(model.LogLevelError, fmt.Sprintf("Failed to create session: %v", err))
-		return
+		return nil, nil, err
 	}
 
 	// Close cancelled the context. Without a fresh one, Connect returns
@@ -324,7 +365,7 @@ func (g *Gateway) restart() {
 	g.ctx, g.cancel = context.WithCancel(context.Background())
 	g.session = session
 	g.intents = 0
-	go g.startGateway()
+	return session, g.ctx, nil
 }
 
 func (g *Gateway) createLogEntry(level model.LogLevel, message string) {
