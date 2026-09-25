@@ -27,7 +27,8 @@ import {
 } from "@/lib/types/wire.gen";
 import { APIResponse } from "@/lib/api/response";
 import { toast } from "sonner";
-import { Input } from "../ui/input";
+import { ShareCodeInput, ShareCodePanel } from "./ShareCode";
+import { BracesIcon, KeyRoundIcon } from "lucide-react";
 
 const kinds = {
   command: {
@@ -56,7 +57,7 @@ export default function FlowImportDialog({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>{children}</DialogTrigger>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="max-w-lg">
         <ImportForm kind={kind} onImported={() => setOpen(false)} />
       </DialogContent>
     </Dialog>
@@ -160,13 +161,12 @@ function ImportForm({
       return;
     }
 
-    const trimmed = code.replace(/\s/g, "");
-    if (!trimmed) {
+    if (!code) {
       toast.error("Enter a share code");
       return;
     }
 
-    shareCodeResolveMutation.mutate(trimmed, {
+    shareCodeResolveMutation.mutate(code, {
       onSuccess: (res) => {
         if (!res.success) {
           toast.error(
@@ -192,56 +192,50 @@ function ImportForm({
         <DialogDescription>
           {useJson
             ? "Paste the JSON that was exported from another app."
-            : "Enter a share code that was exported from another app."}
+            : "Enter the share code that was exported from another app."}
         </DialogDescription>
       </DialogHeader>
 
       {useJson ? (
-        <>
-          <Textarea
-            value={json}
-            onChange={(e) => setJson(e.target.value)}
-            className="min-h-[78px] max-h-[218px]"
-          />
-          <Button
-            variant="link"
-            className="justify-self-start px-0"
-            onClick={() => setUseJson(false)}
-          >
-            Use a share code instead
-          </Button>
-        </>
+        <Textarea
+          value={json}
+          onChange={(e) => setJson(e.target.value)}
+          placeholder='{"flow_source": ...}'
+          className="h-36 resize-none break-all font-mono text-xs"
+          autoFocus
+        />
       ) : (
-        <div className="flex flex-col items-center gap-3 py-6">
-          <Input
-            value={code}
-            onChange={(e) => setCode(e.target.value.toUpperCase())}
-            maxLength={8}
-            placeholder="ABCD2345"
-            className="w-56 h-12 text-center text-2xl md:text-2xl font-mono tracking-widest"
-          />
-          <Button variant="link" onClick={() => setUseJson(true)}>
-            Paste JSON instead
-          </Button>
-        </div>
+        <ShareCodePanel>
+          <ShareCodeInput value={code} onChange={setCode} />
+        </ShareCodePanel>
       )}
 
-      <DialogFooter>
-        <DialogClose asChild>
-          <Button variant="outline">Cancel</Button>
-        </DialogClose>
-        <LoadingButton
-          onClick={onImport}
-          loading={
-            commandsImportMutation.isPending ||
-            eventListenersImportMutation.isPending ||
-            shareCodeResolveMutation.isPending ||
-            !variables ||
-            !messages
-          }
-        >
-          Import
-        </LoadingButton>
+      <DialogFooter className="gap-2 sm:justify-between sm:space-x-0">
+        <Button variant="ghost" onClick={() => setUseJson(!useJson)}>
+          {useJson ? (
+            <KeyRoundIcon className="mr-2 h-4 w-4" />
+          ) : (
+            <BracesIcon className="mr-2 h-4 w-4" />
+          )}
+          {useJson ? "Use share code" : "Use JSON"}
+        </Button>
+        <div className="flex flex-col-reverse gap-2 sm:flex-row">
+          <DialogClose asChild>
+            <Button variant="outline">Cancel</Button>
+          </DialogClose>
+          <LoadingButton
+            onClick={onImport}
+            loading={
+              commandsImportMutation.isPending ||
+              eventListenersImportMutation.isPending ||
+              shareCodeResolveMutation.isPending ||
+              !variables ||
+              !messages
+            }
+          >
+            Import
+          </LoadingButton>
+        </div>
       </DialogFooter>
     </>
   );

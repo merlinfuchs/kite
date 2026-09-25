@@ -11,8 +11,10 @@ import {
 import { Button } from "../ui/button";
 import { Textarea } from "../ui/textarea";
 import LoadingButton from "../common/LoadingButton";
+import { ShareCodeDisplay, ShareCodePanel } from "./ShareCode";
 import { useShareCodeCreateMutation } from "@/lib/api/mutations";
 import { useAppId } from "@/lib/hooks/params";
+import { BracesIcon, CopyIcon, KeyRoundIcon } from "lucide-react";
 import { toast } from "sonner";
 
 type ExportProps = {
@@ -28,7 +30,7 @@ export default function FlowExportDialog({
   return (
     <Dialog>
       <DialogTrigger asChild>{children}</DialogTrigger>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="max-w-lg">
         <ExportForm {...props} />
       </DialogContent>
     </Dialog>
@@ -81,14 +83,18 @@ function ExportForm({ title, type, shareData }: ExportProps) {
         <Textarea
           readOnly
           value={json}
-          className="min-h-[78px] max-h-[218px]"
+          className="h-36 resize-none break-all font-mono text-xs"
           onFocus={(e) => e.target.select()}
         />
-        <DialogFooter className="sm:justify-between">
-          <Button variant="link" onClick={() => setShowJson(false)}>
-            Use a share code instead
+        <DialogFooter className="gap-2 sm:justify-between sm:space-x-0">
+          <Button variant="ghost" onClick={() => setShowJson(false)}>
+            <KeyRoundIcon className="mr-2 h-4 w-4" />
+            Use share code
           </Button>
-          <Button onClick={() => copy(json)}>Copy to clipboard</Button>
+          <Button onClick={() => copy(json)}>
+            <CopyIcon className="mr-2 h-4 w-4" />
+            Copy JSON
+          </Button>
         </DialogFooter>
       </>
     );
@@ -99,29 +105,32 @@ function ExportForm({ title, type, shareData }: ExportProps) {
       <DialogHeader>
         <DialogTitle>{title}</DialogTitle>
         <DialogDescription>
-          Generate a share code and import it into another app.
+          Anyone with the code can import this into their app. Codes expire
+          after 90 days without use.
         </DialogDescription>
       </DialogHeader>
-      <div className="flex flex-col items-center gap-3 py-6">
+      <ShareCodePanel>
+        <ShareCodeDisplay code={code} />
+      </ShareCodePanel>
+      <DialogFooter className="gap-2 sm:justify-between sm:space-x-0">
+        <Button variant="ghost" onClick={() => setShowJson(true)}>
+          <BracesIcon className="mr-2 h-4 w-4" />
+          Use JSON
+        </Button>
         {code ? (
-          <>
-            <span className="text-3xl font-mono tracking-widest">{code}</span>
-            <Button variant="outline" onClick={() => copy(code)}>
-              Copy code
-            </Button>
-          </>
+          <Button onClick={() => copy(code)}>
+            <CopyIcon className="mr-2 h-4 w-4" />
+            Copy code
+          </Button>
         ) : (
           <LoadingButton
             onClick={generateCode}
             loading={createMutation.isPending}
           >
-            Generate share code
+            Generate code
           </LoadingButton>
         )}
-        <Button variant="link" onClick={() => setShowJson(true)}>
-          Use JSON instead
-        </Button>
-      </div>
+      </DialogFooter>
     </>
   );
 }
