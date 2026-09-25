@@ -84,7 +84,8 @@ export function validateFlow(
       );
     }
 
-    if (node.data.message_data) {
+    // Blocks that send a saved template ignore message_data.
+    if (node.data.message_data && !node.data.message_template_id) {
       for (const message of getMessageIssues(node.data.message_data)) {
         report("error", `'${getNodeTitle(node)}' message ${message}`, {
           nodeId: node.id,
@@ -360,15 +361,23 @@ function findReferences(node: Node<NodeData>) {
 // Checks a message like the message editor does, which the block's settings
 // schema leaves out, and that the IDs its outputs are named after are unique.
 function getMessageIssues(message: NodeData["message_data"]) {
+  // The block's settings schema already checks the rest.
   const issues = unwrapUnionIssues(
     messageSchema.safeParse(message).error?.issues ?? []
-  ).map((i) => `${i.path.join(".")}: ${i.message}`);
+  )
+    .filter((i) => i.path[0] === "components" || i.path[0] === "embeds")
+    .map((i) => `${i.path.join(".")}: ${i.message}`);
 
   const seen = new Set<unknown>();
   for (const component of collectComponentGroups(
     (message?.components ?? []) as ComponentData[]
   ).flat()) {
-    if (!Number.isInteger(component.id) || component.id! < 1) {
+    // IDs that aren't numbers are reported by the message schema.
+    const id = component.id as unknown;
+    if (
+      id === undefined ||
+      (typeof id === "number" && (!Number.isInteger(id) || id < 1))
+    ) {
       issues.push(
         "components: every button and select menu needs a number from 1 as id"
       );

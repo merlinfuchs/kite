@@ -144,6 +144,14 @@ describe("validateFlow", () => {
     ]);
   });
 
+  it("doesn't check the message of blocks sending a template", () => {
+    const message = node("msg", "action_response_create", {
+      message_template_id: "t1",
+      message_data: { components: [{ type: 1, components: [{ id: 1 }] }] },
+    });
+    expect(errors([entry, message], [])).toEqual([]);
+  });
+
   it("checks the blocks owned by conditions and loops", () => {
     const [condition, conditionEdges] = createNode(
       "control_condition_compare",
