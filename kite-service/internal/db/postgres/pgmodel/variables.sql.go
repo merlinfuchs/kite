@@ -320,6 +320,38 @@ func (q *Queries) GetVariablesByApp(ctx context.Context, appID string) ([]GetVar
 	return items, nil
 }
 
+const getVariablesByAppWithoutTotals = `-- name: GetVariablesByAppWithoutTotals :many
+SELECT id, name, scoped, app_id, module_id, created_at, updated_at FROM variables WHERE app_id = $1 ORDER BY created_at DESC
+`
+
+func (q *Queries) GetVariablesByAppWithoutTotals(ctx context.Context, appID string) ([]Variable, error) {
+	rows, err := q.db.Query(ctx, getVariablesByAppWithoutTotals, appID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Variable
+	for rows.Next() {
+		var i Variable
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.Scoped,
+			&i.AppID,
+			&i.ModuleID,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const setVariableValue = `-- name: SetVariableValue :one
 INSERT INTO variable_values (
     variable_id,

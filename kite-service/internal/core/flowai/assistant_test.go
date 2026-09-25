@@ -183,8 +183,8 @@ func TestCheckVariables(t *testing.T) {
 
 	assert.Equal(t, "v1", res.Edits[0]["data"].(map[string]any)["variable_id"])
 	assert.NotContains(t, res.Edits[1]["data"], "variable_id")
-	require.Len(t, res.Issues, 1)
-	assert.Contains(t, res.Issues[0], "'made_up' isn't one of the app's stored variables")
+	// Leaving it for the user to pick doesn't need a repair.
+	assert.Empty(t, res.Issues)
 }
 
 func TestParseOutputDropsBuildPromptWithEdits(t *testing.T) {

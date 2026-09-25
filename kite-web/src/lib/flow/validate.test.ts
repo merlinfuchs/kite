@@ -156,6 +156,24 @@ describe("validateFlow", () => {
     expect(errors([entry, message], [])).toEqual([]);
   });
 
+  it("marks missing settings the user picks", () => {
+    const issues = (data: NodeData) =>
+      validateFlow(
+        [entry, node("set", "action_variable_set", data)],
+        [edge("entry", "set")],
+        "command"
+      ).filter((i) => i.message.includes("variable_id"));
+    const data = { variable_operation: "overwrite", variable_value: "1" };
+
+    expect(issues(data).map((i) => i.userPicked)).toEqual([true]);
+    // Wrong values are for the AI to fix.
+    expect(
+      issues({ ...data, variable_id: 123 } as unknown as NodeData).map(
+        (i) => i.userPicked
+      )
+    ).toEqual([false]);
+  });
+
   it("checks the blocks owned by conditions and loops", () => {
     const [condition, conditionEdges] = createNode(
       "control_condition_compare",

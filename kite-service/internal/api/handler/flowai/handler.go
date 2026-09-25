@@ -33,7 +33,7 @@ const answerLimitFactor = 3
 
 // VariableStore is what the handler needs of store.VariableStore.
 type VariableStore interface {
-	VariablesByApp(ctx context.Context, appID string) ([]*model.Variable, error)
+	VariablesByAppWithoutTotals(ctx context.Context, appID string) ([]*model.Variable, error)
 }
 
 type FlowAIHandler struct {
@@ -80,6 +80,12 @@ func (h *FlowAIHandler) HandleFlowAIChat(c *handler.Context, req wire.FlowAIChat
 	// The prompt is recorded, and counted as edited, before the model is
 	// called, so concurrent requests can't all pass the limits.
 	now := time.Now().UTC()
+	// Loaded before the prompt is recorded, so failing doesn't use it up.
+	variables, err := h.variableStore.VariablesByAppWithoutTotals(c.Context(), c.App.ID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get variables: %w", err)
+	}
+
 	isRepair := req.RepairPromptID != ""
 	var prompt *model.FlowAIPrompt
 	if isRepair {
@@ -131,11 +137,6 @@ func (h *FlowAIHandler) HandleFlowAIChat(c *handler.Context, req wire.FlowAIChat
 	messages := make([]flowai.Message, len(req.Messages))
 	for i, m := range req.Messages {
 		messages[i] = flowai.Message{Role: m.Role, Content: m.Content}
-	}
-
-	variables, err := h.variableStore.VariablesByApp(c.Context(), c.App.ID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get variables: %w", err)
 	}
 
 	res, err := h.assistant.Respond(c.Context(), flowai.Request{

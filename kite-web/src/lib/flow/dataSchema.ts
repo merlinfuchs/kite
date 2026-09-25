@@ -61,7 +61,12 @@ export function isUserPickedSetting(
   let current: z.ZodTypeAny | undefined = schema;
   for (const key of path) {
     current = unwrap(current);
-    current = current instanceof z.ZodObject ? current.shape[key] : undefined;
+    current =
+      current instanceof z.ZodObject
+        ? current.shape[key]
+        : current instanceof z.ZodArray
+        ? current.element
+        : undefined;
     if (!current) return false;
   }
   for (let s: z.ZodTypeAny | undefined = current; s; s = inner(s)) {
@@ -327,12 +332,10 @@ function withMessage<T extends z.ZodRawShape>(shape: T) {
     .extend({
       ...shape,
       message_data: nodeMessageDataSchema.optional(),
-      message_template_id: z
-        .string()
-        .optional()
-        .describe(
-          "ID of a saved message template to send instead of message_data."
-        ),
+      message_template_id: userPicked(
+        z.string(),
+        "ID of a saved message template to send instead of message_data."
+      ).optional(),
       temporary_name: temporaryNameSchema,
     })
     .refine(

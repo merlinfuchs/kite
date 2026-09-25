@@ -86,7 +86,11 @@ export function validateFlow(
           : `'${getNodeTitle(node)}': ${issue.message}`,
         {
           nodeId: node.id,
-          userPicked: isUserPickedSetting(schema!, issue.path),
+          // Only missing ones, as the AI has to fix wrong ones.
+          userPicked:
+            issue.code === "invalid_type" &&
+            issue.received === "undefined" &&
+            isUserPickedSetting(schema!, issue.path),
         }
       );
     }

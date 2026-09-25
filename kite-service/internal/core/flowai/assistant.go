@@ -146,7 +146,8 @@ func describeVariables(variables []*model.Variable) string {
 }
 
 // checkVariables removes stored variable IDs the app doesn't have from the
-// edits, so the user picks the variable instead, and asks to fix them.
+// edits, so the user picks the variable instead, like when the AI leaves one
+// out.
 func (r *Response) checkVariables(variables []*model.Variable) {
 	ids := make(map[string]bool, len(variables))
 	for _, v := range variables {
@@ -159,9 +160,6 @@ func (r *Response) checkVariables(variables []*model.Variable) {
 			continue
 		}
 		delete(data, "variable_id")
-		r.Issues = append(r.Issues, fmt.Sprintf(
-			"'%s' isn't one of the app's stored variables. Use one of the listed ones, or leave variable_id out for the user to pick.", id,
-		))
 	}
 }
 
@@ -311,8 +309,9 @@ func parseOutput(text string) (*Response, error) {
 		}
 		res.Edits = append(res.Edits, edit)
 	}
-	// The suggested change was already made.
-	if len(res.Edits) > 0 {
+	// The suggested change was already made, or will be once invalid edits
+	// are repaired.
+	if len(out.Edits) > 0 {
 		res.BuildPrompt = ""
 	}
 	return res, nil

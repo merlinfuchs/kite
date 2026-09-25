@@ -74,7 +74,7 @@ func (s *fakePromptStore) CountFlowAIPromptsBetween(ctx context.Context, appID s
 
 type fakeVariableStore struct{}
 
-func (fakeVariableStore) VariablesByApp(ctx context.Context, appID string) ([]*model.Variable, error) {
+func (fakeVariableStore) VariablesByAppWithoutTotals(ctx context.Context, appID string) ([]*model.Variable, error) {
 	return []*model.Variable{{ID: "v1", Name: "uses"}}, nil
 }
 

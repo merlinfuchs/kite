@@ -325,7 +325,7 @@ const ChatBubble = memo(function ChatBubble({
   return (
     <div className={cn("mr-8 space-y-2", entry.failed && "text-destructive")}>
       {entry.failed ? (
-        <p>{entry.content}</p>
+        <p className="whitespace-pre-wrap">{entry.content}</p>
       ) : (
         entry.content && <FlowAIMarkdown text={entry.content} />
       )}
