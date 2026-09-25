@@ -299,6 +299,45 @@ describe("applyFlowEdits edge cases", () => {
     expect(res.connections).toEqual(["entry->next"]);
   });
 
+  it("adds blocks after the buttons of a message added in the same reply", () => {
+    const res = apply(
+      [entry],
+      [],
+      [
+        {
+          op: "add_node",
+          ref: "$msg",
+          type: "action_response_create",
+          after: "entry",
+          data: {
+            message_data: {
+              content: "Sure?",
+              components: [
+                {
+                  type: 1,
+                  components: [{ type: 2, id: 1, style: 3, label: "Yes" }],
+                },
+              ],
+            },
+          },
+        },
+        {
+          op: "add_node",
+          ref: "$yes",
+          type: "action_log",
+          data: logData,
+          after: "$msg",
+          handle: "component_1",
+        },
+      ]
+    );
+    expect(res.issues).toEqual([]);
+    expect(res.connections).toEqual([
+      `entry->${res.refs.$msg}`,
+      `${res.refs.$msg}[component_1]->${res.refs.$yes}`,
+    ]);
+  });
+
   it("removes blocks with connections to missing blocks", () => {
     const res = apply(
       [entry, log("a")],
