@@ -1311,6 +1311,39 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 		}
 
 		return n.ExecuteChildren(ctx)
+	case FlowNodeTypeActionStatusSet:
+		if n.Data.StatusData == nil {
+			return n.ExecuteChildren(ctx)
+		}
+
+		activityName, err := ctx.EvalTemplate(n.Data.StatusData.ActivityName)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		activityURL, err := ctx.EvalTemplate(n.Data.StatusData.ActivityURL)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		status := discord.Status(n.Data.StatusData.Status)
+		if status == "" {
+			status = discord.OnlineStatus
+		}
+
+		// Same shape as the statuses from the app settings, which also put the
+		// name into State so it shows up for custom statuses.
+		err = ctx.Discord.UpdatePresence(ctx, status, discord.Activity{
+			Type:  discord.ActivityType(n.Data.StatusData.ActivityType),
+			Name:  activityName.String(),
+			State: activityName.String(),
+			URL:   activityURL.String(),
+		})
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		return n.ExecuteChildren(ctx)
 	case FlowNodeTypeActionHTTPRequest:
 		if n.Data.HTTPRequestData == nil {
 			return &FlowError{

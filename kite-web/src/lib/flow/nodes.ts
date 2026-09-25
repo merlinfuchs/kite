@@ -48,6 +48,7 @@ import {
   nodeActionVariableSetSchema,
   nodeActionVoiceChannelJoinDataSchema,
   nodeActionVoiceChannelLeaveDataSchema,
+  nodeActionStatusSetDataSchema,
   nodeConditionChannelDataSchema,
   nodeConditionCompareDataSchema,
   nodeConditionItemCompareDataSchema,
@@ -654,6 +655,15 @@ export const nodeTypes: Record<string, NodeValues> = {
     defaultDescription: "Bot leaves its voice channel in the current server",
     dataSchema: nodeActionVoiceChannelLeaveDataSchema,
     dataFields: ["custom_label"],
+    creditsCost: 1,
+  },
+  action_status_set: {
+    color: actionColor,
+    icon: "activity",
+    defaultTitle: "Set status",
+    defaultDescription: "Change the status and activity of the bot",
+    dataSchema: nodeActionStatusSetDataSchema,
+    dataFields: ["status_data", "custom_label"],
     creditsCost: 1,
   },
   action_http_request: {

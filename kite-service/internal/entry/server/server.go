@@ -79,6 +79,11 @@ func StartServer(c context.Context, cfg *config.Config) error {
 		starboard.NewStarboardPlugin(),
 	)
 
+	planManager := plan.NewPlanManager(pg, pg, pg, plan.PlansFromConfig(cfg.Billing.Plans), plan.PlanManagerConfig{
+		DiscordBotToken: cfg.Discord.BotToken,
+		DiscordGuildID:  cfg.Discord.GuildID,
+	})
+
 	engine := engine.NewEngine(
 		engine.Env{
 			Config: engine.EngineConfig{
@@ -92,6 +97,7 @@ func StartServer(c context.Context, cfg *config.Config) error {
 				PopulateOverlap:        cfg.Engine.PopulateOverlap,
 			},
 			AppStore:             pg,
+			FeatureProvider:      planManager,
 			LogStore:             pg,
 			UsageStore:           pg,
 			MessageStore:         pg,
@@ -113,11 +119,6 @@ func StartServer(c context.Context, cfg *config.Config) error {
 	commandManager := command.NewCommandManager(pg, pg, pg, pluginRegistry, tokenCrypt)
 
 	handler := event.NewEventHandlerWrapper(engine, pg)
-
-	planManager := plan.NewPlanManager(pg, pg, pg, plan.PlansFromConfig(cfg.Billing.Plans), plan.PlanManagerConfig{
-		DiscordBotToken: cfg.Discord.BotToken,
-		DiscordGuildID:  cfg.Discord.GuildID,
-	})
 
 	gateway := gateway.NewGatewayManager(pg, pg, planManager, handler, tokenCrypt, pluginRegistry, gateway.GatewayManagerConfig{
 		ClusterCount:           cfg.ClusterCount,

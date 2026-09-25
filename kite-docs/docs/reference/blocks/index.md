@@ -57,6 +57,10 @@ The output of previously executed blocks is available in all subsequent blocks a
 - [Join voice channel](./actions/action_voice_channel_join.md) - Make the app join a voice channel
 - [Leave voice channel](./actions/action_voice_channel_leave.md) - Make the app leave its voice channel
 
+## Bot Blocks
+
+- [Set status](./actions/action_status_set.md) - Change the app's status and activity
+
 ## Variable Blocks
 
 - [Set stored variable](./actions/action_variable_set.md) - Set persistent variables

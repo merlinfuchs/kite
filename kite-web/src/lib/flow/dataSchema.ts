@@ -651,6 +651,18 @@ export const nodeActionVoiceChannelLeaveDataSchema = nodeBaseDataSchema.extend(
   {}
 );
 
+export const nodeActionStatusSetDataSchema = nodeBaseDataSchema.extend({
+  status_data: z
+    .object({
+      status: z.enum(["online", "idle", "dnd", "invisible"]).optional(),
+      activity_type: z.number().optional(),
+      activity_name: z.string().min(1).max(128),
+      activity_url: z.string().optional(),
+    })
+    // Validates the fields even before any was set, so their errors show up
+    .default({ activity_name: "" }),
+});
+
 export const nodeActionHttpRequestDataSchema = nodeBaseDataSchema.extend({
   http_request_data: z
     .object({

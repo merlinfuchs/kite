@@ -93,6 +93,7 @@ const (
 	FlowNodeTypeActionVariableGet           FlowNodeType = "action_variable_get"
 	FlowNodeTypeActionVoiceChannelJoin      FlowNodeType = "action_voice_channel_join"
 	FlowNodeTypeActionVoiceChannelLeave     FlowNodeType = "action_voice_channel_leave"
+	FlowNodeTypeActionStatusSet             FlowNodeType = "action_status_set"
 
 	FlowNodeTypeControlConditionCompare     FlowNodeType = "control_condition_compare"
 	FlowNodeTypeControlConditionItemCompare FlowNodeType = "control_condition_item_compare"
@@ -187,6 +188,9 @@ type FlowNodeData struct {
 	// Voice Channel Join
 	VoiceSelfMute bool `json:"voice_self_mute,omitempty"`
 	VoiceSelfDeaf bool `json:"voice_self_deaf,omitempty"`
+
+	// Status Set
+	StatusData *StatusData `json:"status_data,omitempty"`
 
 	// Role Create, Edit, Delete, Get
 	RoleTarget string    `json:"role_target,omitempty"`
@@ -367,6 +371,13 @@ const (
 type CommandArgumentChoiceData struct {
 	Name  string `json:"name,omitempty"`
 	Value string `json:"value,omitempty"`
+}
+
+type StatusData struct {
+	Status       string `json:"status,omitempty"`
+	ActivityType int    `json:"activity_type,omitempty"`
+	ActivityName string `json:"activity_name,omitempty"`
+	ActivityURL  string `json:"activity_url,omitempty"`
 }
 
 type ChannelData struct {
