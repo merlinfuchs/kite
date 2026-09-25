@@ -11,5 +11,5 @@ import (
 // commands, event listeners and plugin instances.
 type DeletedEntityStore interface {
 	DeletedEntitiesSince(ctx context.Context, deletedSince time.Time) ([]*model.DeletedEntity, error)
-	DeleteDeletedEntitiesBefore(ctx context.Context, deletedBefore time.Time, batchSize int) (int64, error)
+	DeleteDeletedEntitiesBefore(ctx context.Context, deletedBefore time.Time) error
 }

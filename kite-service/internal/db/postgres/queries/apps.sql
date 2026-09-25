@@ -68,15 +68,13 @@ SELECT id FROM apps WHERE enabled = FALSE AND updated_at > $1;
 
 -- Apps whose gateway intent requirements may have changed. Deleted scheduled
 -- listeners can't be told apart from Discord ones, those only cause a refresh
--- that finds the intents unchanged. Tombstones of deleted apps are skipped, their
--- gateway is closed anyway and refreshing would reconnect it first.
+-- that finds the intents unchanged.
 -- name: GetAppIDsWithGatewayRequirementsChangedSince :many
 SELECT el.app_id FROM event_listeners el WHERE el.updated_at > $1 AND el.source = 'discord'
 UNION
 SELECT pi.app_id FROM plugin_instances pi WHERE pi.updated_at > $1
 UNION
 SELECT de.app_id FROM deleted_entities de
-JOIN apps a ON a.id = de.app_id
 WHERE de.deleted_at > $1 AND de.entity_type IN ('event_listeners', 'plugin_instances');
 
 -- Everything the gateway needs to decide which intents to identify with.

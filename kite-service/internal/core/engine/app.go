@@ -131,75 +131,33 @@ func (a *App) AddPluginInstance(pluginInstance *model.PluginInstance) {
 
 func (a *App) RemovePluginInstance(pluginInstanceID string) {
 	a.Lock()
-	instance, ok := a.pluginInstances[pluginInstanceID]
-	delete(a.pluginInstances, pluginInstanceID)
-	a.Unlock()
+	defer a.Unlock()
 
-	if ok {
-		closePluginInstances([]*pluginInstance{instance})
+	pluginInstance, ok := a.pluginInstances[pluginInstanceID]
+	if !ok {
+		return
 	}
+
+	if err := pluginInstance.Close(); err != nil {
+		slog.With("error", err).Error("failed to close plugin instance")
+	}
+	delete(a.pluginInstances, pluginInstanceID)
 }
 
 // RemoveDanglingPluginInstances drops instances absent from enabledIDs, the
 // set of plugin instances that still exist and are enabled.
 func (a *App) RemoveDanglingPluginInstances(enabledIDs map[string]struct{}) {
-	var removed []*pluginInstance
-
 	a.Lock()
+	defer a.Unlock()
+
 	for pluginInstanceID, pluginInstance := range a.pluginInstances {
 		if _, ok := enabledIDs[pluginInstanceID]; !ok {
-			removed = append(removed, pluginInstance)
+			err := pluginInstance.Close()
+			if err != nil {
+				slog.With("error", err).Error("failed to close plugin instance")
+			}
+
 			delete(a.pluginInstances, pluginInstanceID)
-		}
-	}
-	a.Unlock()
-
-	closePluginInstances(removed)
-}
-
-// RemoveDeletedEntities drops the given deleted entities of this app,
-// rebuilding each index at most once.
-func (a *App) RemoveDeletedEntities(entities []*model.DeletedEntity) {
-	var removedPlugins []*pluginInstance
-	var removedCommand, removedListener bool
-
-	a.Lock()
-	for _, entity := range entities {
-		switch entity.Type {
-		case model.DeletedEntityTypeCommand:
-			if _, ok := a.commands[entity.ID]; ok {
-				delete(a.commands, entity.ID)
-				removedCommand = true
-			}
-		case model.DeletedEntityTypeEventListener:
-			if _, ok := a.listeners[entity.ID]; ok {
-				delete(a.listeners, entity.ID)
-				removedListener = true
-			}
-		case model.DeletedEntityTypePluginInstance:
-			if pluginInstance, ok := a.pluginInstances[entity.ID]; ok {
-				removedPlugins = append(removedPlugins, pluginInstance)
-				delete(a.pluginInstances, entity.ID)
-			}
-		}
-	}
-	if removedCommand {
-		a.rebuildCommandIndex()
-	}
-	if removedListener {
-		a.rebuildListenerIndex()
-	}
-	a.Unlock()
-
-	closePluginInstances(removedPlugins)
-}
-
-// closePluginInstances closes removed plugin instances. Closing may do I/O, so
-// it must happen outside the app lock like constructing them does.
-func closePluginInstances(pluginInstances []*pluginInstance) {
-	for _, pluginInstance := range pluginInstances {
-		if err := pluginInstance.Close(); err != nil {
-			slog.With("error", err).Error("failed to close plugin instance")
 		}
 	}
 }

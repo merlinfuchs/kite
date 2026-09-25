@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5/pgtype"
-	"github.com/kitecloud/kite/kite-service/internal/db/postgres/pgmodel"
 	"github.com/kitecloud/kite/kite-service/internal/model"
 )
 
@@ -21,18 +20,19 @@ func (c *Client) DeletedEntitiesSince(ctx context.Context, deletedSince time.Tim
 	entities := make([]*model.DeletedEntity, len(rows))
 	for i, row := range rows {
 		entities[i] = &model.DeletedEntity{
-			ID:    row.ID,
-			Type:  model.DeletedEntityType(row.EntityType),
-			AppID: row.AppID,
+			ID:        row.ID,
+			Type:      model.DeletedEntityType(row.EntityType),
+			AppID:     row.AppID,
+			DeletedAt: row.DeletedAt.Time,
 		}
 	}
 
 	return entities, nil
 }
 
-func (c *Client) DeleteDeletedEntitiesBefore(ctx context.Context, deletedBefore time.Time, batchSize int) (int64, error) {
-	return c.Q.DeleteDeletedEntitiesBefore(ctx, pgmodel.DeleteDeletedEntitiesBeforeParams{
-		BeforeAt:  pgtype.Timestamp{Time: deletedBefore.UTC(), Valid: true},
-		BatchSize: int32(batchSize),
+func (c *Client) DeleteDeletedEntitiesBefore(ctx context.Context, deletedBefore time.Time) error {
+	return c.Q.DeleteDeletedEntitiesBefore(ctx, pgtype.Timestamp{
+		Time:  deletedBefore.UTC(),
+		Valid: true,
 	})
 }
