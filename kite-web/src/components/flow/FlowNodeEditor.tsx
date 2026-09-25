@@ -1054,7 +1054,7 @@ function AiModelInput({
         value: t.value,
         label: `${t.label} (${t.model})`,
       }))}
-      value={getAiModelTier(data.ai_chat_completion_data?.model).value}
+      value={getAiModelTier(data.ai_chat_completion_data?.model)?.value ?? ""}
       updateValue={(v) =>
         updateData({
           ai_chat_completion_data: {

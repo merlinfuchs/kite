@@ -6,7 +6,7 @@ import { Features } from "../types/wire.gen";
 import { getUniqueId } from "../utils";
 import { FlowContextType } from "./context";
 import { getComponentHandleIds } from "./resume";
-import { getAiModelTier } from "./aiModels";
+import { getAiModelCredits } from "./aiModels";
 import {
   nodeActionAiChatCompletionDataSchema,
   nodeActionAiWebSearchCompletionDataSchema,
@@ -704,7 +704,7 @@ export const nodeTypes: Record<string, NodeValues> = {
     dataSchema: nodeActionAiChatCompletionDataSchema,
     dataFields: ["ai_chat_completion_data", "temporary_name", "custom_label"],
     creditsCost: (data) =>
-      getAiModelTier(data.ai_chat_completion_data?.model).credits.chat,
+      getAiModelCredits(data.ai_chat_completion_data?.model, "chat"),
   },
   action_ai_web_search: {
     color: actionColor,
@@ -714,7 +714,7 @@ export const nodeTypes: Record<string, NodeValues> = {
     dataSchema: nodeActionAiWebSearchCompletionDataSchema,
     dataFields: ["ai_web_search_data", "temporary_name", "custom_label"],
     creditsCost: (data) =>
-      getAiModelTier(data.ai_chat_completion_data?.model).credits.search,
+      getAiModelCredits(data.ai_chat_completion_data?.model, "search"),
   },
   action_expression_evaluate: {
     color: actionColor,

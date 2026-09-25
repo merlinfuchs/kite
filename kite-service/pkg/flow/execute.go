@@ -1461,7 +1461,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 		// Checked here as well as at save time: message flows are not validated
 		// by the API at all, and flows stored before the allowlist existed have
 		// never been through it.
-		tier, ok := ResolveAIModel(data.Model)
+		tier, ok := resolveAIModel(data.Model)
 		if !ok {
 			return &FlowError{
 				Code:    FlowNodeErrorUnknown,
@@ -1484,18 +1484,21 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			return traceError(n, err)
 		}
 
+		maxAnswerTokens := aiMaxAnswerTokens
+		if n := int(maxCompletionTokens.Int()); n > 0 && n < maxAnswerTokens {
+			maxAnswerTokens = n
+		}
+
 		opts := provider.CreateResponseOpts{
 			Model:           tier.Model,
 			ReasoningEffort: tier.ReasoningEffort,
-			ReasoningTokens: tier.ReasoningTokens,
 			Prompt:          prompt.String(),
 			SystemPrompt:    systemPrompt.String(),
-			MaxOutputTokens: int(maxCompletionTokens.Int()),
+			MaxOutputTokens: maxAnswerTokens + tier.ReasoningTokens,
 		}
 		if webSearch {
 			opts.Tools = []provider.AIToolType{provider.AIToolTypeWebSearch}
-			// Each search is billed per call, so this bounds what one block costs.
-			opts.MaxToolCalls = 2
+			opts.MaxToolCalls = aiMaxWebSearches
 		}
 
 		response, err := ctx.AI.CreateResponse(ctx, opts)

@@ -592,19 +592,15 @@ func (p *AIProvider) CreateResponse(ctx context.Context, opts provider.CreateRes
 		})
 	}
 
-	maxOutputTokens := 500
-	if opts.MaxOutputTokens > 0 && opts.MaxOutputTokens < maxOutputTokens {
-		maxOutputTokens = opts.MaxOutputTokens
-	}
-	maxOutputTokens += opts.ReasoningTokens
-
 	params := responses.ResponseNewParams{
 		Model: opts.Model,
 		Input: responses.ResponseNewParamsInputUnion{
 			OfInputItemList: inputs,
 		},
-		MaxOutputTokens: openai.Int(int64(maxOutputTokens)),
-		Tools:           tools,
+		Tools: tools,
+	}
+	if opts.MaxOutputTokens > 0 {
+		params.MaxOutputTokens = openai.Int(int64(opts.MaxOutputTokens))
 	}
 	if opts.ReasoningEffort != "" {
 		params.Reasoning = shared.ReasoningParam{Effort: shared.ReasoningEffort(opts.ReasoningEffort)}
