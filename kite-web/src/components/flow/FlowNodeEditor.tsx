@@ -5,7 +5,8 @@ import {
   permissionBits,
 } from "@/lib/discord/permissions";
 import { getNodeId, useNodeValues } from "@/lib/flow/nodes";
-import { useMessages, useVariables } from "@/lib/hooks/api";
+import { activityTypeOptions, statusOptions } from "@/lib/discord/presence";
+import { useAppFeature, useMessages, useVariables } from "@/lib/hooks/api";
 import { useAppId } from "@/lib/hooks/params";
 import {
   CommandArgumentChoiceData,
@@ -13,6 +14,7 @@ import {
   HTTPRequestData,
   ModalComponentData,
   PermissionOverwriteData,
+  StatusData,
 } from "@/lib/types/flow.gen";
 import { Node, useNodes, useReactFlow, useStoreApi } from "@xyflow/react";
 import {
@@ -112,6 +114,7 @@ const intputs: Record<string, any> = {
   channel_target: ChannelTargetInput,
   voice_self_mute: VoiceSelfMuteInput,
   voice_self_deaf: VoiceSelfDeafInput,
+  status_data: StatusDataInput,
   role_data: RoleDataInput,
   role_target: RoleTargetInput,
   variable_id: VariableIdInput,
@@ -228,6 +231,12 @@ export default function FlowNodeEditor({ nodeId }: Props) {
 
   const values = useNodeValues(node?.type!);
 
+  const appId = useAppId();
+  const premiumFeature = values.premiumFeature;
+  const hasPremiumFeature = useAppFeature((f) =>
+    premiumFeature ? !!f[premiumFeature] : true
+  );
+
   const errors: Record<string, string> = useMemo(() => {
     if (!values.dataSchema) return {};
 
@@ -292,6 +301,19 @@ export default function FlowNodeEditor({ nodeId }: Props) {
             </div>
           </div>
           <div className="space-y-3 flex-auto">
+            {hasPremiumFeature === false && (
+              <div className="text-sm text-muted-foreground bg-muted rounded p-3">
+                This block requires{" "}
+                <Link
+                  href={`/apps/${appId}/premium`}
+                  target="_blank"
+                  className="text-primary hover:underline"
+                >
+                  Premium
+                </Link>{" "}
+                and fails without it.
+              </div>
+            )}
             {values.dataFields.map((field) => {
               const Input = intputs[field];
               if (!Input) return null;
@@ -2111,6 +2133,60 @@ function VoiceSelfDeafInput({ data, updateData, errors }: InputProps) {
       updateValue={(v) => updateData({ voice_self_deaf: v || undefined })}
       errors={errors}
     />
+  );
+}
+
+function StatusDataInput({ data, updateData, errors }: InputProps) {
+  const updateField = (newData: Partial<StatusData>) =>
+    updateData({ status_data: { ...data.status_data, ...newData } });
+
+  return (
+    <>
+      <BaseInput
+        type="select"
+        field="status_data.status"
+        title="Status"
+        options={statusOptions}
+        value={data.status_data?.status || "online"}
+        updateValue={(v) => updateField({ status: v || undefined })}
+        errors={errors}
+      />
+      <BaseInput
+        type="select"
+        field="status_data.activity_type"
+        title="Activity Type"
+        options={activityTypeOptions}
+        value={(data.status_data?.activity_type || 0).toString()}
+        updateValue={(v) =>
+          updateField({
+            activity_type: parseInt(v) || undefined,
+            // Only streaming activities have a URL
+            activity_url:
+              v === "1" ? data.status_data?.activity_url : undefined,
+          })
+        }
+        errors={errors}
+      />
+      <BaseInput
+        field="status_data.activity_name"
+        title="Activity Name"
+        value={data.status_data?.activity_name || ""}
+        updateValue={(v) => updateField({ activity_name: v || undefined })}
+        errors={errors}
+        placeholders
+      />
+      {data.status_data?.activity_type === 1 && (
+        <BaseInput
+          field="status_data.activity_url"
+          title="Stream URL"
+          description="Twitch or YouTube URL shown for the streaming activity."
+          value={data.status_data?.activity_url || ""}
+          updateValue={(v) => updateField({ activity_url: v || undefined })}
+          errors={errors}
+          placeholders
+        />
+      )}
+    </>
   );
 }
 

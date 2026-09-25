@@ -32,12 +32,19 @@ import (
 	"gopkg.in/guregu/null.v4"
 )
 
+// FeatureProvider resolves the premium features an app has access to.
+type FeatureProvider interface {
+	AppFeatures(ctx context.Context, appID string) model.Features
+}
+
 type DiscordProvider struct {
 	provider.MockDiscordProvider // TODO: remove this
 
-	appID    string
-	appStore store.AppStore
-	session  *state.State
+	appID           string
+	appStore        store.AppStore
+	featureProvider FeatureProvider
+	rateLimiter     *BlockRateLimiter
+	session         *state.State
 
 	interactionResponseMutex sync.Mutex
 	interactionsWithResponse map[discord.InteractionID]struct{}
@@ -46,12 +53,16 @@ type DiscordProvider struct {
 func NewDiscordProvider(
 	appID string,
 	appStore store.AppStore,
+	featureProvider FeatureProvider,
+	rateLimiter *BlockRateLimiter,
 	session *state.State,
 ) *DiscordProvider {
 	return &DiscordProvider{
-		appID:    appID,
-		appStore: appStore,
-		session:  session,
+		appID:           appID,
+		appStore:        appStore,
+		featureProvider: featureProvider,
+		rateLimiter:     rateLimiter,
+		session:         session,
 
 		interactionsWithResponse: make(map[discord.InteractionID]struct{}),
 	}
@@ -404,6 +415,10 @@ func (p *DiscordProvider) RemoveThreadMember(ctx context.Context, channelID disc
 }
 
 func (p *DiscordProvider) UpdateVoiceState(ctx context.Context, guildID discord.GuildID, channelID discord.ChannelID, selfMute bool, selfDeaf bool) error {
+	if err := p.allowGatewayCommand(); err != nil {
+		return err
+	}
+
 	err := p.session.SendGateway(ctx, &gateway.UpdateVoiceStateCommand{
 		GuildID:   guildID,
 		ChannelID: channelID,
@@ -414,6 +429,33 @@ func (p *DiscordProvider) UpdateVoiceState(ctx context.Context, guildID discord.
 		return fmt.Errorf("failed to update voice state: %w", err)
 	}
 
+	return nil
+}
+
+func (p *DiscordProvider) UpdatePresence(ctx context.Context, status discord.Status, activity discord.Activity) error {
+	// Part of the same premium feature as rotating statuses in the app settings
+	if !p.featureProvider.AppFeatures(ctx, p.appID).RotatingStatus {
+		return fmt.Errorf("setting the status from a flow requires premium")
+	}
+	if err := p.allowGatewayCommand(); err != nil {
+		return err
+	}
+
+	err := p.session.SendGateway(ctx, &gateway.UpdatePresenceCommand{
+		Status:     status,
+		Activities: []discord.Activity{activity},
+	})
+	if err != nil {
+		return fmt.Errorf("failed to update presence: %w", err)
+	}
+
+	return nil
+}
+
+func (p *DiscordProvider) allowGatewayCommand() error {
+	if !p.rateLimiter.Allow(p.appID, gatewayCommandRateLimit) {
+		return fmt.Errorf("blocks that change the status or voice state are rate limited, try again in a few seconds")
+	}
 	return nil
 }
 

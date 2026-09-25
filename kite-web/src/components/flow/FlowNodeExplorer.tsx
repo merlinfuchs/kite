@@ -153,8 +153,15 @@ function AvailableNode({ type, values }: { type: string; values: NodeValues }) {
           />
         </div>
         <div className="overflow-hidden">
-          <div className="font-medium text-foreground leading-5 mb-1 truncate">
-            {values.defaultTitle}
+          <div className="flex items-center gap-2 mb-1">
+            <div className="font-medium text-foreground leading-5 truncate">
+              {values.defaultTitle}
+            </div>
+            {values.premiumFeature && (
+              <div className="bg-primary/15 text-primary rounded px-1.5 text-xs font-medium flex-none">
+                Premium
+              </div>
+            )}
           </div>
           <div className="text-sm text-muted-foreground">
             {values.defaultDescription}

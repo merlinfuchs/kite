@@ -109,6 +109,11 @@ export const nodeCategories: Record<
       contextTypes: null,
     },
     {
+      title: "Bot",
+      nodeTypes: ["action_status_set"],
+      contextTypes: null,
+    },
+    {
       title: "Stored Variables",
       nodeTypes: [
         "action_variable_set",

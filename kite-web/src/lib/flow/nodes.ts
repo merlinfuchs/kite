@@ -2,6 +2,7 @@ import { Edge, Node, XYPosition } from "@xyflow/react";
 import { humanId } from "human-id";
 import { useMemo } from "react";
 import { ZodSchema } from "zod";
+import { Features } from "../types/wire.gen";
 import { getUniqueId } from "../utils";
 import { FlowContextType } from "./context";
 import {
@@ -48,6 +49,7 @@ import {
   nodeActionVariableSetSchema,
   nodeActionVoiceChannelJoinDataSchema,
   nodeActionVoiceChannelLeaveDataSchema,
+  nodeActionStatusSetDataSchema,
   nodeConditionChannelDataSchema,
   nodeConditionCompareDataSchema,
   nodeConditionItemCompareDataSchema,
@@ -114,6 +116,8 @@ export interface NodeValues {
   ownsChildren?: boolean;
   fixed?: boolean;
   creditsCost?: number | ((data: NodeData) => number);
+  // The block fails when the app doesn't have this feature
+  premiumFeature?: keyof Features;
 }
 
 export const nodeTypes: Record<string, NodeValues> = {
@@ -655,6 +659,16 @@ export const nodeTypes: Record<string, NodeValues> = {
     dataSchema: nodeActionVoiceChannelLeaveDataSchema,
     dataFields: ["custom_label"],
     creditsCost: 1,
+  },
+  action_status_set: {
+    color: actionColor,
+    icon: "activity",
+    defaultTitle: "Set status",
+    defaultDescription: "Change the status and activity of the bot",
+    dataSchema: nodeActionStatusSetDataSchema,
+    dataFields: ["status_data", "custom_label"],
+    creditsCost: 1,
+    premiumFeature: "rotating_status",
   },
   action_http_request: {
     color: actionColor,

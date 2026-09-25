@@ -61,6 +61,7 @@ export const FlowNodeTypeActionVariableDelete: FlowNodeType = "action_variable_d
 export const FlowNodeTypeActionVariableGet: FlowNodeType = "action_variable_get";
 export const FlowNodeTypeActionVoiceChannelJoin: FlowNodeType = "action_voice_channel_join";
 export const FlowNodeTypeActionVoiceChannelLeave: FlowNodeType = "action_voice_channel_leave";
+export const FlowNodeTypeActionStatusSet: FlowNodeType = "action_status_set";
 export const FlowNodeTypeControlConditionCompare: FlowNodeType = "control_condition_compare";
 export const FlowNodeTypeControlConditionItemCompare: FlowNodeType = "control_condition_item_compare";
 export const FlowNodeTypeControlConditionUser: FlowNodeType = "control_condition_user";
@@ -152,6 +153,10 @@ export interface FlowNodeData {
    */
   voice_self_mute?: boolean;
   voice_self_deaf?: boolean;
+  /**
+   * Status Set
+   */
+  status_data?: StatusData;
   /**
    * Role Create, Edit, Delete, Get
    */
@@ -262,6 +267,12 @@ export const RobloxLookupTypeName: RobloxLookupType = "username";
 export interface CommandArgumentChoiceData {
   name?: string;
   value?: string;
+}
+export interface StatusData {
+  status?: string;
+  activity_type?: number /* int */;
+  activity_name?: string;
+  activity_url?: string;
 }
 export interface ChannelData {
   name?: string;

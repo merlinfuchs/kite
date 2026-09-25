@@ -24,6 +24,8 @@ import (
 type Env struct {
 	Config               EngineConfig
 	AppStore             store.AppStore
+	FeatureProvider      FeatureProvider
+	BlockRateLimiter     *BlockRateLimiter
 	LogStore             store.LogStore
 	UsageStore           store.UsageStore
 	MessageStore         store.MessageStore
@@ -55,7 +57,7 @@ func (s Env) flowProviders(appID string, session *state.State, links entityLinks
 	}
 
 	return flow.FlowProviders{
-		Discord: NewDiscordProvider(appID, s.AppStore, session),
+		Discord: NewDiscordProvider(appID, s.AppStore, s.FeatureProvider, s.BlockRateLimiter, session),
 		Roblox:  NewRobloxProvider(s.HttpClient),
 		Log: NewLogProvider(
 			appID,
