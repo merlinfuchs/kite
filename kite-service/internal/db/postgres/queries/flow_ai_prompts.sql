@@ -25,15 +25,14 @@ UPDATE flow_ai_prompts SET
 WHERE id = @id AND app_id = @app_id AND rounds < @max_rounds;
 
 -- name: AddFlowAIPromptUsage :exec
+-- A prompt can only become unedited, when its first answer has no edits.
 UPDATE flow_ai_prompts SET
+    edited = edited AND @edited,
     input_tokens = input_tokens + @input_tokens,
     cached_input_tokens = cached_input_tokens + @cached_input_tokens,
     output_tokens = output_tokens + @output_tokens,
     updated_at = @updated_at
 WHERE id = @id AND app_id = @app_id;
-
--- name: MarkFlowAIPromptUnedited :exec
-UPDATE flow_ai_prompts SET edited = FALSE WHERE id = @id AND app_id = @app_id;
 
 -- name: DeleteFlowAIPrompt :exec
 DELETE FROM flow_ai_prompts WHERE id = @id AND app_id = @app_id;

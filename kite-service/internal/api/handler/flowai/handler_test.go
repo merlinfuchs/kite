@@ -49,21 +49,13 @@ func (s *fakePromptStore) StartFlowAIPromptRound(ctx context.Context, appID stri
 	return true, nil
 }
 
-func (s *fakePromptStore) AddFlowAIPromptUsage(ctx context.Context, appID string, id string, usage model.FlowAIUsage, updatedAt time.Time) error {
+func (s *fakePromptStore) AddFlowAIPromptUsage(ctx context.Context, appID string, id string, usage model.FlowAIUsage, edited bool, updatedAt time.Time) error {
 	prompt, err := s.FlowAIPrompt(ctx, appID, id)
 	if err != nil {
 		return err
 	}
 	prompt.Usage.InputTokens += usage.InputTokens
-	return nil
-}
-
-func (s *fakePromptStore) MarkFlowAIPromptUnedited(ctx context.Context, appID string, id string) error {
-	prompt, err := s.FlowAIPrompt(ctx, appID, id)
-	if err != nil {
-		return err
-	}
-	prompt.Edited = false
+	prompt.Edited = prompt.Edited && edited
 	return nil
 }
 

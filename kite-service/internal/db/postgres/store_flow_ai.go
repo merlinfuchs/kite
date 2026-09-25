@@ -43,13 +43,6 @@ func (c *Client) FlowAIPrompt(ctx context.Context, appID string, id string) (*mo
 	return rowToFlowAIPrompt(row), nil
 }
 
-func (c *Client) MarkFlowAIPromptUnedited(ctx context.Context, appID string, id string) error {
-	return c.Q.MarkFlowAIPromptUnedited(ctx, pgmodel.MarkFlowAIPromptUneditedParams{
-		ID:    id,
-		AppID: appID,
-	})
-}
-
 func (c *Client) DeleteFlowAIPrompt(ctx context.Context, appID string, id string) error {
 	return c.Q.DeleteFlowAIPrompt(ctx, pgmodel.DeleteFlowAIPromptParams{
 		ID:    id,
@@ -67,8 +60,9 @@ func (c *Client) StartFlowAIPromptRound(ctx context.Context, appID string, id st
 	return rows > 0, err
 }
 
-func (c *Client) AddFlowAIPromptUsage(ctx context.Context, appID string, id string, usage model.FlowAIUsage, updatedAt time.Time) error {
+func (c *Client) AddFlowAIPromptUsage(ctx context.Context, appID string, id string, usage model.FlowAIUsage, edited bool, updatedAt time.Time) error {
 	return c.Q.AddFlowAIPromptUsage(ctx, pgmodel.AddFlowAIPromptUsageParams{
+		Edited:            edited,
 		ID:                id,
 		AppID:             appID,
 		InputTokens:       int32(usage.InputTokens),

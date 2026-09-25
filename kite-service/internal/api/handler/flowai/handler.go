@@ -73,8 +73,8 @@ func (h *FlowAIHandler) HandleFlowAIChat(c *handler.Context, req wire.FlowAIChat
 	}
 	used := count.Edited
 
-	// The prompt is recorded before the model is called, so concurrent
-	// requests can't all pass the limits.
+	// The prompt is recorded, and counted as edited, before the model is
+	// called, so concurrent requests can't all pass the limits.
 	now := time.Now().UTC()
 	isRepair := req.RepairPromptID != ""
 	var prompt *model.FlowAIPrompt
@@ -105,7 +105,6 @@ func (h *FlowAIHandler) HandleFlowAIChat(c *handler.Context, req wire.FlowAIChat
 			return nil, handler.ErrBadRequest("resource_limit", "You've asked the AI too many questions this month.")
 		}
 
-		// Prompts start out counted, so concurrent ones can't pass the limit.
 		prompt = &model.FlowAIPrompt{
 			ID:        util.UniqueID(),
 			AppID:     c.App.ID,
@@ -135,15 +134,17 @@ func (h *FlowAIHandler) HandleFlowAIChat(c *handler.Context, req wire.FlowAIChat
 		AppID:    c.App.ID,
 		UserID:   c.Session.UserID,
 	})
+	// Answers without edits don't count. Ones that can't be used do, as they
+	// cost as much.
+	edited := isRepair || err != nil || len(res.Edits) > 0
 	if res != nil {
 		// Failing to record the usage shouldn't lose the answer.
-		if err := h.promptStore.AddFlowAIPromptUsage(c.Context(), c.App.ID, prompt.ID, res.Usage, time.Now().UTC()); err != nil {
+		if err := h.promptStore.AddFlowAIPromptUsage(c.Context(), c.App.ID, prompt.ID, res.Usage, edited, time.Now().UTC()); err != nil {
 			slog.Error("Failed to add flow AI prompt usage", slog.String("app_id", c.App.ID), slog.Any("error", err))
 		}
 	}
 	if err != nil {
-		// Prompts the model didn't answer at all don't count. Ones it answered
-		// do, even if the answer can't be used, as they cost as much.
+		// Prompts the model didn't answer at all don't count.
 		if res == nil && !isRepair {
 			if err := h.promptStore.DeleteFlowAIPrompt(c.Context(), c.App.ID, prompt.ID); err != nil {
 				slog.Error("Failed to delete flow AI prompt", slog.String("app_id", c.App.ID), slog.Any("error", err))
@@ -158,12 +159,8 @@ func (h *FlowAIHandler) HandleFlowAIChat(c *handler.Context, req wire.FlowAIChat
 		return nil, handler.ErrServiceUnavailable("flow_ai_unavailable", "The flow AI isn't available right now. Please try again later.")
 	}
 
-	if !isRepair && len(res.Edits) == 0 {
-		if err := h.promptStore.MarkFlowAIPromptUnedited(c.Context(), c.App.ID, prompt.ID); err != nil {
-			slog.Error("Failed to mark flow AI prompt as unedited", slog.String("app_id", c.App.ID), slog.Any("error", err))
-		} else {
-			used--
-		}
+	if !edited {
+		used--
 	}
 
 	return &wire.FlowAIChatResponse{

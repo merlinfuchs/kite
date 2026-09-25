@@ -13,14 +13,16 @@ import (
 
 const addFlowAIPromptUsage = `-- name: AddFlowAIPromptUsage :exec
 UPDATE flow_ai_prompts SET
-    input_tokens = input_tokens + $1,
-    cached_input_tokens = cached_input_tokens + $2,
-    output_tokens = output_tokens + $3,
-    updated_at = $4
-WHERE id = $5 AND app_id = $6
+    edited = edited AND $1,
+    input_tokens = input_tokens + $2,
+    cached_input_tokens = cached_input_tokens + $3,
+    output_tokens = output_tokens + $4,
+    updated_at = $5
+WHERE id = $6 AND app_id = $7
 `
 
 type AddFlowAIPromptUsageParams struct {
+	Edited            bool
 	InputTokens       int32
 	CachedInputTokens int32
 	OutputTokens      int32
@@ -29,8 +31,10 @@ type AddFlowAIPromptUsageParams struct {
 	AppID             string
 }
 
+// A prompt can only become unedited, when its first answer has no edits.
 func (q *Queries) AddFlowAIPromptUsage(ctx context.Context, arg AddFlowAIPromptUsageParams) error {
 	_, err := q.db.Exec(ctx, addFlowAIPromptUsage,
+		arg.Edited,
 		arg.InputTokens,
 		arg.CachedInputTokens,
 		arg.OutputTokens,
@@ -156,20 +160,6 @@ func (q *Queries) GetFlowAIPrompt(ctx context.Context, arg GetFlowAIPromptParams
 		&i.Edited,
 	)
 	return i, err
-}
-
-const markFlowAIPromptUnedited = `-- name: MarkFlowAIPromptUnedited :exec
-UPDATE flow_ai_prompts SET edited = FALSE WHERE id = $1 AND app_id = $2
-`
-
-type MarkFlowAIPromptUneditedParams struct {
-	ID    string
-	AppID string
-}
-
-func (q *Queries) MarkFlowAIPromptUnedited(ctx context.Context, arg MarkFlowAIPromptUneditedParams) error {
-	_, err := q.db.Exec(ctx, markFlowAIPromptUnedited, arg.ID, arg.AppID)
-	return err
 }
 
 const startFlowAIPromptRound = `-- name: StartFlowAIPromptRound :execrows
