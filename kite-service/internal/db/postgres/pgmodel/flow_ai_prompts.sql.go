@@ -13,14 +13,16 @@ import (
 
 const addFlowAIPromptUsage = `-- name: AddFlowAIPromptUsage :exec
 UPDATE flow_ai_prompts SET
-    input_tokens = input_tokens + $1,
-    cached_input_tokens = cached_input_tokens + $2,
-    output_tokens = output_tokens + $3,
-    updated_at = $4
-WHERE id = $5 AND app_id = $6
+    edited = edited AND $1,
+    input_tokens = input_tokens + $2,
+    cached_input_tokens = cached_input_tokens + $3,
+    output_tokens = output_tokens + $4,
+    updated_at = $5
+WHERE id = $6 AND app_id = $7
 `
 
 type AddFlowAIPromptUsageParams struct {
+	Edited            bool
 	InputTokens       int32
 	CachedInputTokens int32
 	OutputTokens      int32
@@ -29,8 +31,10 @@ type AddFlowAIPromptUsageParams struct {
 	AppID             string
 }
 
+// A prompt can only become unedited, when its first answer has no edits.
 func (q *Queries) AddFlowAIPromptUsage(ctx context.Context, arg AddFlowAIPromptUsageParams) error {
 	_, err := q.db.Exec(ctx, addFlowAIPromptUsage,
+		arg.Edited,
 		arg.InputTokens,
 		arg.CachedInputTokens,
 		arg.OutputTokens,
@@ -42,7 +46,10 @@ func (q *Queries) AddFlowAIPromptUsage(ctx context.Context, arg AddFlowAIPromptU
 }
 
 const countFlowAIPromptsByAppBetween = `-- name: CountFlowAIPromptsByAppBetween :one
-SELECT COUNT(*)::int FROM flow_ai_prompts WHERE app_id = $1 AND created_at BETWEEN $2 AND $3
+SELECT
+    COUNT(*) FILTER (WHERE edited)::int AS edited,
+    COUNT(*)::int AS total
+FROM flow_ai_prompts WHERE app_id = $1 AND created_at BETWEEN $2 AND $3
 `
 
 type CountFlowAIPromptsByAppBetweenParams struct {
@@ -51,11 +58,16 @@ type CountFlowAIPromptsByAppBetweenParams struct {
 	EndAt   pgtype.Timestamp
 }
 
-func (q *Queries) CountFlowAIPromptsByAppBetween(ctx context.Context, arg CountFlowAIPromptsByAppBetweenParams) (int32, error) {
+type CountFlowAIPromptsByAppBetweenRow struct {
+	Edited int32
+	Total  int32
+}
+
+func (q *Queries) CountFlowAIPromptsByAppBetween(ctx context.Context, arg CountFlowAIPromptsByAppBetweenParams) (CountFlowAIPromptsByAppBetweenRow, error) {
 	row := q.db.QueryRow(ctx, countFlowAIPromptsByAppBetween, arg.AppID, arg.StartAt, arg.EndAt)
-	var column_1 int32
-	err := row.Scan(&column_1)
-	return column_1, err
+	var i CountFlowAIPromptsByAppBetweenRow
+	err := row.Scan(&i.Edited, &i.Total)
+	return i, err
 }
 
 const createFlowAIPrompt = `-- name: CreateFlowAIPrompt :exec
@@ -68,10 +80,12 @@ INSERT INTO flow_ai_prompts (
     input_tokens,
     cached_input_tokens,
     output_tokens,
+    prompt,
+    edited,
     created_at,
     updated_at
 ) VALUES (
-    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10
+    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12
 )
 `
 
@@ -84,6 +98,8 @@ type CreateFlowAIPromptParams struct {
 	InputTokens       int32
 	CachedInputTokens int32
 	OutputTokens      int32
+	Prompt            string
+	Edited            bool
 	CreatedAt         pgtype.Timestamp
 	UpdatedAt         pgtype.Timestamp
 }
@@ -98,6 +114,8 @@ func (q *Queries) CreateFlowAIPrompt(ctx context.Context, arg CreateFlowAIPrompt
 		arg.InputTokens,
 		arg.CachedInputTokens,
 		arg.OutputTokens,
+		arg.Prompt,
+		arg.Edited,
 		arg.CreatedAt,
 		arg.UpdatedAt,
 	)
@@ -119,7 +137,7 @@ func (q *Queries) DeleteFlowAIPrompt(ctx context.Context, arg DeleteFlowAIPrompt
 }
 
 const getFlowAIPrompt = `-- name: GetFlowAIPrompt :one
-SELECT id, app_id, user_id, model, rounds, input_tokens, cached_input_tokens, output_tokens, created_at, updated_at FROM flow_ai_prompts WHERE id = $1 AND app_id = $2
+SELECT id, app_id, user_id, model, rounds, input_tokens, cached_input_tokens, output_tokens, created_at, updated_at, prompt, edited FROM flow_ai_prompts WHERE id = $1 AND app_id = $2
 `
 
 type GetFlowAIPromptParams struct {
@@ -141,6 +159,8 @@ func (q *Queries) GetFlowAIPrompt(ctx context.Context, arg GetFlowAIPromptParams
 		&i.OutputTokens,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.Prompt,
+		&i.Edited,
 	)
 	return i, err
 }
