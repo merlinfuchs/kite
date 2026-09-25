@@ -277,13 +277,13 @@ export default function FlowEditor({
         className="scale-110"
       >
         <ControlButton onClick={undo} disabled={!canUndo} title="Undo">
-          <Undo2Icon className="size-5" />
+          <Undo2Icon className="size-5 !fill-none" />
         </ControlButton>
         <ControlButton onClick={redo} disabled={!canRedo} title="Redo">
-          <Redo2Icon className="size-5" />
+          <Redo2Icon className="size-5 !fill-none" />
         </ControlButton>
         <ControlButton onClick={format}>
-          <ListTreeIcon className="size-5" />
+          <ListTreeIcon className="size-5 !fill-none" />
         </ControlButton>
       </Controls>
       <Background
