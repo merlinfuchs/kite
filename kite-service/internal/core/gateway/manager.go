@@ -237,9 +237,9 @@ func (m *GatewayManager) rotateStatuses(ctx context.Context, now time.Time) erro
 	var gateways []*Gateway
 	var appIDs []string
 	for _, g := range m.gateways {
-		if g.app.DiscordStatus.Rotates() || g.rotationEntryID != "" {
+		if g.currentApp().DiscordStatus.Rotates() || g.rotationEntryID != "" {
 			gateways = append(gateways, g)
-			appIDs = append(appIDs, g.app.ID)
+			appIDs = append(appIDs, g.appID)
 		}
 	}
 	m.Unlock()
@@ -254,7 +254,7 @@ func (m *GatewayManager) rotateStatuses(ctx context.Context, now time.Time) erro
 	}
 
 	for _, g := range gateways {
-		g.rotatePresence(ctx, now, features[g.app.ID].RotatingStatus)
+		g.rotatePresence(ctx, now, features[g.appID].RotatingStatus)
 	}
 	return nil
 }
