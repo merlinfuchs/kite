@@ -9,10 +9,11 @@ INSERT INTO flow_ai_prompts (
     cached_input_tokens,
     output_tokens,
     prompt,
+    edited,
     created_at,
     updated_at
 ) VALUES (
-    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11
+    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12
 );
 
 -- name: GetFlowAIPrompt :one

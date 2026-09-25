@@ -284,3 +284,14 @@ func TestAnswersWithoutEditsDontCount(t *testing.T) {
 	assert.Equal(t, http.StatusBadRequest, code)
 	assert.Equal(t, "resource_limit", errCode(res))
 }
+
+func TestPromptsWithoutEditsCantBeRepaired(t *testing.T) {
+	s := setup(&fakeAssistant{noEdits: true})
+
+	_, res := s.chat(t, 1, prompt)
+	promptID := res["data"].(map[string]any)["prompt_id"].(string)
+
+	code, res := s.chat(t, 1, repair(promptID))
+	assert.Equal(t, http.StatusBadRequest, code)
+	assert.Equal(t, "nothing_to_repair", errCode(res))
+}

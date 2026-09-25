@@ -86,6 +86,11 @@ func (h *FlowAIHandler) HandleFlowAIChat(c *handler.Context, req wire.FlowAIChat
 			}
 			return nil, fmt.Errorf("failed to get flow AI prompt: %w", err)
 		}
+		// Prompts whose answer made no edits don't count, so their repairs
+		// can't be used to get edits for free.
+		if !prompt.Edited {
+			return nil, handler.ErrBadRequest("nothing_to_repair", "The prompt made no changes to repair.")
+		}
 		if now.Sub(prompt.CreatedAt) > repairWindow {
 			return nil, handler.ErrBadRequest("repair_expired", "The prompt is too old to be repaired.")
 		}
@@ -135,8 +140,9 @@ func (h *FlowAIHandler) HandleFlowAIChat(c *handler.Context, req wire.FlowAIChat
 		UserID:   c.Session.UserID,
 	})
 	// Answers without edits don't count. Ones that can't be used do, as they
-	// cost as much.
-	edited := isRepair || err != nil || len(res.Edits) > 0
+	// cost as much, and so do ones whose edits were all invalid, as they are
+	// repaired.
+	edited := isRepair || err != nil || len(res.Edits) > 0 || len(res.Issues) > 0
 	if res != nil {
 		// Failing to record the usage shouldn't lose the answer.
 		if err := h.promptStore.AddFlowAIPromptUsage(c.Context(), c.App.ID, prompt.ID, res.Usage, edited, time.Now().UTC()); err != nil {

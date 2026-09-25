@@ -23,6 +23,7 @@ func (c *Client) CreateFlowAIPrompt(ctx context.Context, prompt *model.FlowAIPro
 		CachedInputTokens: int32(prompt.Usage.CachedInputTokens),
 		OutputTokens:      int32(prompt.Usage.OutputTokens),
 		Prompt:            prompt.Prompt,
+		Edited:            prompt.Edited,
 		CreatedAt:         pgtype.Timestamp{Time: prompt.CreatedAt, Valid: true},
 		UpdatedAt:         pgtype.Timestamp{Time: prompt.UpdatedAt, Valid: true},
 	})

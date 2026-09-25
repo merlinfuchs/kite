@@ -81,10 +81,11 @@ INSERT INTO flow_ai_prompts (
     cached_input_tokens,
     output_tokens,
     prompt,
+    edited,
     created_at,
     updated_at
 ) VALUES (
-    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11
+    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12
 )
 `
 
@@ -98,6 +99,7 @@ type CreateFlowAIPromptParams struct {
 	CachedInputTokens int32
 	OutputTokens      int32
 	Prompt            string
+	Edited            bool
 	CreatedAt         pgtype.Timestamp
 	UpdatedAt         pgtype.Timestamp
 }
@@ -113,6 +115,7 @@ func (q *Queries) CreateFlowAIPrompt(ctx context.Context, arg CreateFlowAIPrompt
 		arg.CachedInputTokens,
 		arg.OutputTokens,
 		arg.Prompt,
+		arg.Edited,
 		arg.CreatedAt,
 		arg.UpdatedAt,
 	)
