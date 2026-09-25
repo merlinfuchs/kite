@@ -350,7 +350,6 @@ export interface FlowAIChatMessage {
   content: string;
 }
 export interface FlowAIChatRequest {
-  flow_type: string;
   /**
    * Flow is the flow as serialized by the editor.
    */

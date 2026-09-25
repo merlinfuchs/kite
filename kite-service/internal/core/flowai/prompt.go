@@ -3,30 +3,9 @@ package flowai
 import (
 	"bytes"
 	"encoding/json"
-	"slices"
 
 	"github.com/kitecloud/kite/kite-service/pkg/flow"
 )
-
-// FlowTypes are the kinds of flow the editor can be working on, i.e. every
-// context a block in the catalog can be used in.
-var FlowTypes = func() []string {
-	var catalog struct {
-		Nodes map[string]struct {
-			Contexts []string `json:"contexts"`
-		} `json:"nodes"`
-	}
-	if err := json.Unmarshal(flow.CatalogJSON, &catalog); err != nil {
-		panic(err)
-	}
-
-	var types []string
-	for _, node := range catalog.Nodes {
-		types = append(types, node.Contexts...)
-	}
-	slices.Sort(types)
-	return slices.Compact(types)
-}()
 
 // instructions come first in every request and don't change, so the model
 // provider can cache them, catalog included.
@@ -78,6 +57,6 @@ Rules:
 - Check blocks that ban, kick, time out or delete things twice, and mention them in your message.
 - If the user sends problems the editor found with your edits, fix exactly those with further edits.
 
-The flow is given as a list of blocks with their ID, type and settings, then the connections between them, where "a[error] -> b" means b runs after the error output of a.
+The flow is given as its type, a list of blocks with their ID, type and settings, then the connections between them, where "a[error] -> b" means b runs after the error output of a. Blocks the user selected in the editor are marked "(selected)", and are what they mean by "this block".
 
 The catalog below describes each block type: title, description, contexts it can be used in, outputs, the blocks it owns (owned_children), data_schema (the JSON Schema of its settings) and result_schema.`
