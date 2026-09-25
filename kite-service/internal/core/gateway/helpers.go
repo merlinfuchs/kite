@@ -84,6 +84,16 @@ func createSession(tokenCrypt *util.SymmetricCrypt, app *model.App) (*state.Stat
 }
 
 func presenceForApp(app *model.App) *gateway.UpdatePresenceCommand {
+	var entry *model.AppDiscordStatusEntry
+	if app.DiscordStatus != nil {
+		entry = app.DiscordStatus.ActiveEntry()
+	}
+
+	return presenceForStatusEntry(entry)
+}
+
+// presenceForStatusEntry falls back to Kite's default presence when entry is nil.
+func presenceForStatusEntry(entry *model.AppDiscordStatusEntry) *gateway.UpdatePresenceCommand {
 	status := discord.OnlineStatus
 	activity := discord.Activity{
 		Type:  discord.CustomActivity,
@@ -91,16 +101,16 @@ func presenceForApp(app *model.App) *gateway.UpdatePresenceCommand {
 		State: "🪁 Powered by Kite.onl",
 	}
 
-	if app.DiscordStatus != nil {
-		if app.DiscordStatus.Status != "" {
-			status = discord.Status(app.DiscordStatus.Status)
+	if entry != nil {
+		if entry.Status != "" {
+			status = discord.Status(entry.Status)
 		}
 
 		activity = discord.Activity{
-			Type:  discord.ActivityType(app.DiscordStatus.ActivityType),
-			Name:  app.DiscordStatus.ActivityName,
-			State: app.DiscordStatus.ActivityState,
-			URL:   app.DiscordStatus.ActivityURL,
+			Type:  discord.ActivityType(entry.ActivityType),
+			Name:  entry.ActivityName,
+			State: entry.ActivityState,
+			URL:   entry.ActivityURL,
 		}
 	}
 

@@ -9,6 +9,7 @@ type Features struct {
 	MaxMessages          int  `json:"max_messages"`
 	MaxEventListeners    int  `json:"max_event_listeners"`
 	PrioritySupport      bool `json:"priority_support"`
+	RotatingStatus       bool `json:"rotating_status"`
 }
 
 type FeaturesGetResponse = Features

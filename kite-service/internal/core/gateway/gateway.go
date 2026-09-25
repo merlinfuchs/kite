@@ -38,6 +38,10 @@ type Gateway struct {
 	// change requires a reconnect, since intents are fixed at IDENTIFY.
 	intents gateway.Intents
 
+	// rotationEntryID is the status entry last shown by rotatePresence, or
+	// empty if the app isn't rotating. Only accessed by the manager's loop.
+	rotationEntryID string
+
 	ctx    context.Context
 	cancel context.CancelFunc
 }
@@ -228,6 +232,35 @@ func (g *Gateway) Update(ctx context.Context, app *model.App) {
 	}
 
 	g.app = app
+}
+
+// rotatePresence shows the rotation entry for the given time. When rotation is
+// off or not allowed, it goes back to the active status if it was rotating.
+func (g *Gateway) rotatePresence(ctx context.Context, now time.Time, allowed bool) {
+	status := g.app.DiscordStatus
+
+	var presence *gateway.UpdatePresenceCommand
+	if allowed && status.Rotates() {
+		entry := status.RotationEntry(now)
+		if entry.ID == g.rotationEntryID {
+			return
+		}
+		g.rotationEntryID = entry.ID
+		presence = presenceForStatusEntry(entry)
+	} else if g.rotationEntryID != "" {
+		g.rotationEntryID = ""
+		presence = presenceForApp(g.app)
+	} else {
+		return
+	}
+
+	if err := g.session.Gateway().Send(ctx, presence); err != nil {
+		slog.Error(
+			"Failed to send rotating presence update",
+			slog.String("app_id", g.app.ID),
+			slog.String("error", err.Error()),
+		)
+	}
 }
 
 // RefreshIntents recomputes the app's required intents and reconnects if they

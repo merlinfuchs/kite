@@ -136,6 +136,7 @@ type BillingPlan struct {
 	FeatureMaxMessages          int  `json:"feature_max_messages"`
 	FeatureMaxEventListeners    int  `json:"feature_max_event_listeners"`
 	FeaturePrioritySupport      bool `json:"feature_priority_support"`
+	FeatureRotatingStatus       bool `json:"feature_rotating_status"`
 }
 
 type BillingPlanListResponse = []*BillingPlan

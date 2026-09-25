@@ -21,6 +21,13 @@ export interface App {
   updated_at: string /* RFC3339 */;
 }
 export interface AppDiscordStatus {
+  statuses?: AppDiscordStatusEntry[];
+  active_id?: string;
+  rotate_enabled?: boolean;
+}
+export interface AppDiscordStatusEntry {
+  id: string;
+  label?: string;
   status?: string;
   activity_type?: number /* int */;
   activity_name?: string;
@@ -207,6 +214,7 @@ export interface BillingPlan {
   feature_max_messages: number /* int */;
   feature_max_event_listeners: number /* int */;
   feature_priority_support: boolean;
+  feature_rotating_status: boolean;
 }
 export type BillingPlanListResponse = (BillingPlan | undefined)[];
 
@@ -323,6 +331,7 @@ export interface Features {
   max_messages: number /* int */;
   max_event_listeners: number /* int */;
   priority_support: boolean;
+  rotating_status: boolean;
 }
 export type FeaturesGetResponse = Features;
 
