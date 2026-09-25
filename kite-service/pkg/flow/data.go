@@ -558,9 +558,6 @@ const (
 type aiModelTier struct {
 	Model           string
 	ReasoningEffort string
-	// ReasoningTokens is allowed on top of the answer's token cap, since
-	// reasoning counts towards it and would otherwise crowd out the answer.
-	ReasoningTokens int
 	aiModelCost
 }
 
@@ -574,8 +571,10 @@ type aiModelCost struct {
 // is billed per call. The tiers' Search credits assume it.
 const aiMaxWebSearches = 2
 
-// aiMaxAnswerTokens caps the answer, not counting a tier's ReasoningTokens.
-const aiMaxAnswerTokens = 500
+// aiMaxOutputTokens caps reasoning and answer together. Reasoning isn't given
+// extra room on top: the model spends whatever is left on the answer, so any
+// allowance would let answers run past the block's max_completion_tokens.
+const aiMaxOutputTokens = 500
 
 // AI blocks store a tier rather than a model, so the model behind a tier can
 // be swapped for a newer or cheaper one without touching stored flows.
@@ -594,7 +593,6 @@ var aiModelTiers = map[string]aiModelTier{
 	AIModelMedium: {
 		Model:           "gpt-6-luna",
 		ReasoningEffort: "low",
-		ReasoningTokens: 2000,
 		aiModelCost:     aiModelCost{Chat: 20, Search: 100},
 	},
 	AIModelLarge: {

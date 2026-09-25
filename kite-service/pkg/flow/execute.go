@@ -1484,9 +1484,9 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			return traceError(n, err)
 		}
 
-		maxAnswerTokens := aiMaxAnswerTokens
-		if limit := int(maxCompletionTokens.Int()); limit > 0 && limit < maxAnswerTokens {
-			maxAnswerTokens = limit
+		maxOutputTokens := aiMaxOutputTokens
+		if limit := int(maxCompletionTokens.Int()); limit > 0 && limit < maxOutputTokens {
+			maxOutputTokens = limit
 		}
 
 		opts := provider.CreateResponseOpts{
@@ -1494,7 +1494,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			ReasoningEffort: tier.ReasoningEffort,
 			Prompt:          prompt.String(),
 			SystemPrompt:    systemPrompt.String(),
-			MaxOutputTokens: maxAnswerTokens + tier.ReasoningTokens,
+			MaxOutputTokens: maxOutputTokens,
 		}
 		if webSearch {
 			opts.Tools = []provider.AIToolType{provider.AIToolTypeWebSearch}

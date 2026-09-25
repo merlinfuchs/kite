@@ -52,9 +52,9 @@ func TestAINodeRunsResolvedTier(t *testing.T) {
 		want      aiModelTier
 		wantMax   int
 	}{
-		{"", "", aiModelTiers[AIModelSmall], aiMaxAnswerTokens},
+		{"", "", aiModelTiers[AIModelSmall], aiMaxOutputTokens},
 		{"gpt-4.1", "100", aiModelTiers[AIModelLarge], 100},
-		{AIModelMedium, "5000", aiModelTiers[AIModelMedium], aiMaxAnswerTokens + aiModelTiers[AIModelMedium].ReasoningTokens},
+		{AIModelMedium, "5000", aiModelTiers[AIModelMedium], aiMaxOutputTokens},
 	}
 
 	for _, tc := range cases {
