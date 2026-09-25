@@ -42,8 +42,17 @@ func CompileEventListener(data FlowData) (*CompiledFlowNode, error) {
 // firstWithoutInteraction returns the first node matching match that runs
 // before any component interaction, i.e. not in a component branch.
 func firstWithoutInteraction(entry *CompiledFlowNode, match func(FlowNodeType) bool) *CompiledFlowNode {
+	return firstInExecution([]*CompiledFlowNode{entry}, func(n *CompiledFlowNode) bool {
+		return match(n.Type)
+	})
+}
+
+// firstInExecution is like FirstMatching, but only visits nodes that run in
+// the same execution as nodes. Component branches and what follows a modal
+// only run later, when the user clicks or submits.
+func firstInExecution(nodes []*CompiledFlowNode, match func(*CompiledFlowNode) bool) *CompiledFlowNode {
 	visited := make(map[string]bool)
-	queue := []*CompiledFlowNode{entry}
+	queue := slices.Clone(nodes)
 	for len(queue) > 0 {
 		node := queue[0]
 		queue = queue[1:]
@@ -52,18 +61,33 @@ func firstWithoutInteraction(entry *CompiledFlowNode, match func(FlowNodeType) b
 		}
 		visited[node.ID] = true
 
-		if match(node.Type) {
+		if match(node) {
 			return node
 		}
-
-		queue = append(queue, node.Children.Default...)
-		for handle, children := range node.Children.Handles {
-			if !strings.HasPrefix(handle, "component_") {
-				queue = append(queue, children...)
-			}
-		}
+		queue = append(queue, node.sameExecutionChildren()...)
 	}
 	return nil
+}
+
+func (n *CompiledFlowNode) sameExecutionChildren() []*CompiledFlowNode {
+	if n.Type == FlowNodeTypeSuspendResponseModal {
+		return nil
+	}
+
+	res := slices.Clone(n.Children.Default)
+	for handle, children := range n.Children.Handles {
+		if !strings.HasPrefix(handle, "component_") {
+			res = append(res, children...)
+		}
+	}
+	return res
+}
+
+// runsUnder reports whether n runs in the same execution as the children of
+// ancestor, e.g. inside a loop or error handler rather than in a button
+// branch of a block inside it.
+func (n *CompiledFlowNode) runsUnder(children []*CompiledFlowNode) bool {
+	return firstInExecution(children, func(c *CompiledFlowNode) bool { return c == n }) != nil
 }
 
 func isInteractionOnly(t FlowNodeType) bool {

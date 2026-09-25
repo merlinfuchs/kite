@@ -2708,7 +2708,7 @@ function ControlSleepDurationInput({ data, updateData, errors }: InputProps) {
     <BaseInput
       field="sleep_duration_seconds"
       title="Wait Duration"
-      description="The number of seconds to wait before continuing."
+      description="The number of seconds to wait before continuing, up to 30 days. Waits over 5 seconds end the current run and continue later, so responses only work if the flow continues within 15 minutes."
       value={data.sleep_duration_seconds || ""}
       updateValue={(v) =>
         updateData({

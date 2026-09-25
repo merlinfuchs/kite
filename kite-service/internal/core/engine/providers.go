@@ -460,6 +460,12 @@ func (p *DiscordProvider) allowGatewayCommand() error {
 	return nil
 }
 
+func (p *DiscordProvider) MarkInteractionResponded(interactionID discord.InteractionID) {
+	p.interactionResponseMutex.Lock()
+	defer p.interactionResponseMutex.Unlock()
+	p.interactionsWithResponse[interactionID] = struct{}{}
+}
+
 func (p *DiscordProvider) HasCreatedInteractionResponse(ctx context.Context, interactionID discord.InteractionID) (bool, error) {
 	p.interactionResponseMutex.Lock()
 	defer p.interactionResponseMutex.Unlock()
@@ -723,8 +729,17 @@ func (p *MessageTemplateProvider) LinkMessageTemplateInstance(ctx context.Contex
 	return nil
 }
 
+// maxPendingTimers bounds the durable sleeps an app can have waiting, a busy
+// listener could otherwise create one for every message.
+const maxPendingTimers = 1000
+
+// timerExpiry is how long after resume_at a timer that couldn't resume, e.g.
+// because the app's gateway was down, is kept before it's deleted.
+const timerExpiry = time.Hour
+
 type ResumePointProvider struct {
 	resumePointStore store.ResumePointStore
+	tokenCrypt       *util.SymmetricCrypt
 
 	appID string
 	links entityLinks
@@ -732,14 +747,38 @@ type ResumePointProvider struct {
 
 func NewResumePointProvider(
 	resumePointStore store.ResumePointStore,
+	tokenCrypt *util.SymmetricCrypt,
 	appID string,
 	links entityLinks,
 ) *ResumePointProvider {
 	return &ResumePointProvider{
 		resumePointStore: resumePointStore,
+		tokenCrypt:       tokenCrypt,
 		appID:            appID,
 		links:            links,
 	}
+}
+
+// timerFields checks the app's limit of pending timers and prepares the
+// columns only timers have.
+func (p *ResumePointProvider) timerFields(ctx context.Context, s flow.ResumePoint) (resumeAt, expiresAt null.Time, interactionToken null.String, err error) {
+	pending, err := p.resumePointStore.CountPendingTimerResumePoints(ctx, p.appID)
+	if err != nil {
+		return resumeAt, expiresAt, interactionToken, fmt.Errorf("failed to count pending timers: %w", err)
+	}
+	if pending >= maxPendingTimers {
+		return resumeAt, expiresAt, interactionToken, fmt.Errorf("too many sleeping flows, at most %d can wait at the same time", maxPendingTimers)
+	}
+
+	if s.InteractionToken != "" {
+		token, err := p.tokenCrypt.EncryptString(s.InteractionToken)
+		if err != nil {
+			return resumeAt, expiresAt, interactionToken, fmt.Errorf("failed to encrypt interaction token: %w", err)
+		}
+		interactionToken = null.StringFrom(token)
+	}
+
+	return null.TimeFrom(s.ResumeAt), null.TimeFrom(s.ResumeAt.Add(timerExpiry)), interactionToken, nil
 }
 
 func (p *ResumePointProvider) CreateResumePoint(ctx context.Context, s flow.ResumePoint) (flow.ResumePoint, error) {
@@ -747,9 +786,17 @@ func (p *ResumePointProvider) CreateResumePoint(ctx context.Context, s flow.Resu
 		s.ID = util.UniqueID()
 	}
 
-	var expiresAt null.Time
-	if s.Type == flow.ResumePointTypeModal {
+	var expiresAt, resumeAt null.Time
+	var interactionToken null.String
+	switch s.Type {
+	case flow.ResumePointTypeModal:
 		expiresAt = null.NewTime(time.Now().UTC().Add(time.Hour*1), true)
+	case flow.ResumePointTypeTimer:
+		var err error
+		resumeAt, expiresAt, interactionToken, err = p.timerFields(ctx, s)
+		if err != nil {
+			return s, err
+		}
 	}
 
 	// TODO: Implement some kind of expiration for other resume point types
@@ -768,6 +815,8 @@ func (p *ResumePointProvider) CreateResumePoint(ctx context.Context, s flow.Resu
 		FlowState:         s.State,
 		CreatedAt:         time.Now().UTC(),
 		ExpiresAt:         expiresAt,
+		ResumeAt:          resumeAt,
+		InteractionToken:  interactionToken,
 	})
 
 	return s, err
