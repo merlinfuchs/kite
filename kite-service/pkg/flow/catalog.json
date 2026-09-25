@@ -3799,7 +3799,8 @@
           },
           "variable_id": {
             "type": "string",
-            "description": "ID of an existing stored variable."
+            "description": "ID of an existing stored variable.",
+            "x-user-picked": true
           },
           "variable_scope": {
             "type": "string",
@@ -3861,7 +3862,8 @@
           },
           "variable_id": {
             "type": "string",
-            "description": "ID of an existing stored variable."
+            "description": "ID of an existing stored variable.",
+            "x-user-picked": true
           },
           "variable_scope": {
             "type": "string",
@@ -3900,7 +3902,8 @@
           },
           "variable_id": {
             "type": "string",
-            "description": "ID of an existing stored variable."
+            "description": "ID of an existing stored variable.",
+            "x-user-picked": true
           },
           "variable_scope": {
             "type": "string",

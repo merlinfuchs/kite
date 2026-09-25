@@ -7,7 +7,6 @@ import {
   FlowAICheckField,
   FlowAICheckRequest,
   FlowAICheckResponse,
-  Variable,
 } from "../types/wire.gen";
 import { FlowContextType } from "./context";
 import { NodeData } from "./dataSchema";
@@ -25,8 +24,6 @@ interface Flow {
   nodes: Node<NodeData>[];
   edges: Edge[];
 }
-
-export type StoredVariable = Pick<Variable, "id" | "name" | "scoped">;
 
 export class FlowAIError extends Error {
   constructor(message: string, public code: string) {
@@ -52,14 +49,12 @@ export interface FlowAIResult {
 export async function runFlowAIPrompt({
   context,
   messages,
-  variables = [],
   getFlow,
   applyFlow,
   send,
   signal,
 }: {
   context: FlowContextType;
-  variables?: StoredVariable[];
   // The chat so far, ending with the user's new message.
   messages: FlowAIChatMessage[];
   getFlow: () => Flow;
@@ -76,7 +71,7 @@ export async function runFlowAIPrompt({
   const request = async (flow: Flow, req: Partial<FlowAIChatRequest>) => {
     signal?.throwIfAborted();
     const res = await send({
-      flow: describeFlow(flow, context, selectedIds, variables),
+      flow: serializeFlow(flow.nodes, flow.edges, context, selectedIds),
       messages: toRequestMessages(messages),
       repair_prompt_id: "",
       issues: [],
@@ -90,12 +85,9 @@ export async function runFlowAIPrompt({
   };
   // Warnings are sent too, as the ones the AI causes are mistakes, like a
   // block it didn't connect.
-  // Stored variables are created by the user, who picks them afterwards if
-  // the AI couldn't.
+  // Settings like stored variables are left for the user to pick.
   const getIssues = (issues: FlowIssue[]) =>
-    new Set(
-      issues.filter((i) => i.setting !== "variable_id").map(describeIssue)
-    );
+    new Set(issues.filter((i) => !i.userPicked).map(describeIssue));
 
   let res = await request(original, {});
   const { prompt_id: promptId, message, build_prompt: buildPrompt } = res;
@@ -134,8 +126,7 @@ export async function runFlowAIPrompt({
     // Blocks added and removed again by a repair are left out.
     const ids = new Set(flow.nodes.map((n) => n.id));
     result = {
-      message,
-      buildPrompt,
+      ...result,
       repairs,
       issues: [...res.issues, ...caused],
       changedNodeIds: [...changed].filter((id) => ids.has(id)),
@@ -178,20 +169,18 @@ export async function checkFlowAIPrompt({
   context,
   prompt,
   flow,
-  variables = [],
   send,
 }: {
   context: FlowContextType;
   prompt: string;
   flow: Flow;
-  variables?: StoredVariable[];
   send: (req: FlowAICheckRequest) => Promise<APIResponse<FlowAICheckResponse>>;
 }): Promise<FlowAICheckResponse | null> {
   const selectedIds = flow.nodes.filter((n) => n.selected).map((n) => n.id);
   try {
     const res = await send({
       // The start of the flow is enough to check a prompt, and keeps it fast.
-      flow: describeFlow(flow, context, selectedIds, variables).slice(
+      flow: serializeFlow(flow.nodes, flow.edges, context, selectedIds).slice(
         0,
         maxCheckFlowLength
       ),
@@ -218,25 +207,6 @@ export function composeCheckedPrompt(
   if (!details) return prompt;
   const room = maxMessageLength - details.length - 2;
   return `${prompt.slice(0, Math.max(room, 0))}\n\n${details}`;
-}
-
-// The flow as the AI gets it, with the app's stored variables, which the
-// flow's blocks refer to by ID.
-function describeFlow(
-  flow: Flow,
-  context: FlowContextType,
-  selectedIds: string[],
-  variables: StoredVariable[]
-) {
-  const list = variables.map(
-    (v) => `- ${v.id} ${JSON.stringify(v.name)}${v.scoped ? " (scoped)" : ""}`
-  );
-  return [
-    serializeFlow(flow.nodes, flow.edges, context, selectedIds),
-    "",
-    "Stored variables:",
-    ...(list.length > 0 ? list : ["None"]),
-  ].join("\n");
 }
 
 function toRequestMessages(messages: FlowAIChatMessage[]) {

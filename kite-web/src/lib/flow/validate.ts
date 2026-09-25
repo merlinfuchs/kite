@@ -4,7 +4,7 @@ import { messageSchema } from "../message/schema";
 import { ComponentData } from "../types/message.gen";
 import { isNodeTypeAvailable } from "./categories";
 import { FlowContextType } from "./context";
-import { NodeData } from "./dataSchema";
+import { isUserPickedSetting, NodeData } from "./dataSchema";
 import {
   canConnect,
   getNodeOutputs,
@@ -28,8 +28,9 @@ export interface FlowIssue {
   message: string;
   nodeId?: string;
   edgeId?: string;
-  // The setting of the block the issue is about.
-  setting?: string;
+  // Whether the issue is about a setting the user picks, like a stored
+  // variable, rather than one the AI can fill in.
+  userPicked?: boolean;
 }
 
 // Checks what the editor and the service expect of a flow, beyond what each
@@ -46,7 +47,7 @@ export function validateFlow(
   const report = (
     severity: FlowIssue["severity"],
     message: string,
-    ref: { nodeId?: string; edgeId?: string; setting?: string } = {}
+    ref: Pick<FlowIssue, "nodeId" | "edgeId" | "userPicked"> = {}
   ) => issues.push({ severity, message, ...ref });
 
   const nodeIds = new Set(nodes.map((n) => n.id));
@@ -74,7 +75,8 @@ export function validateFlow(
       );
     }
 
-    const res = getNodeValues(node.type!).dataSchema?.safeParse(node.data);
+    const schema = getNodeValues(node.type!).dataSchema;
+    const res = schema?.safeParse(node.data);
     for (const issue of res?.error?.issues ?? []) {
       const path = issue.path.join(".");
       report(
@@ -82,7 +84,10 @@ export function validateFlow(
         path
           ? `'${getNodeTitle(node)}' setting '${path}': ${issue.message}`
           : `'${getNodeTitle(node)}': ${issue.message}`,
-        { nodeId: node.id, setting: path || undefined }
+        {
+          nodeId: node.id,
+          userPicked: isUserPickedSetting(schema!, issue.path),
+        }
       );
     }
 
@@ -184,9 +189,17 @@ export function validateFlow(
         { edgeId: edge.id }
       );
     } else if (!outputs.includes(handle)) {
-      report("error", `'${getNodeTitle(source)}' has no output '${handle}'.`, {
-        edgeId: edge.id,
-      });
+      report(
+        "error",
+        `'${getNodeTitle(source)}' has no output '${handle}', only ${outputs
+          .map((o) => `'${o}'`)
+          .join(", ")}.${
+          handle === "error"
+            ? " To handle errors, put the block after the default output of an error handler block."
+            : ""
+        }`,
+        { edgeId: edge.id }
+      );
     }
   }
 

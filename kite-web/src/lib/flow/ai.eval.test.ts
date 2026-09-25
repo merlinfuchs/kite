@@ -17,8 +17,7 @@ import { serializeFlow } from "./serialize";
 //   FLOW_AI_EVAL_URL=http://localhost:4455 npx vitest run ai.eval
 //
 // FLOW_AI_EVAL_FILTER only runs the cases whose name contains one of its
-// comma separated parts, and
-// FLOW_AI_EVAL_CHECK_ONLY=1 only checks the prompts.
+// comma separated parts, and FLOW_AI_EVAL_CHECK_ONLY=1 only checks prompts.
 const url = process.env.FLOW_AI_EVAL_URL;
 const filter = process.env.FLOW_AI_EVAL_FILTER ?? "";
 const outDir = process.env.FLOW_AI_EVAL_OUT ?? "eval-results";
@@ -110,7 +109,6 @@ async function runCase(c: EvalCase): Promise<CaseResult> {
     context: c.context,
     prompt: c.prompt,
     flow,
-    variables,
     send: async (req) => {
       const res = await post<FlowAICheckResponse>("/check", req);
       if (res.success) result.cost += cost(res.data.eval);
@@ -141,7 +139,6 @@ async function runCase(c: EvalCase): Promise<CaseResult> {
     const res = await runFlowAIPrompt({
       context: c.context,
       messages,
-      variables,
       getFlow: () => flow,
       applyFlow: (applied) => {
         flow = { nodes: applied.nodes, edges: applied.edges };
@@ -154,7 +151,11 @@ async function runCase(c: EvalCase): Promise<CaseResult> {
             error: { code: "repair_limit", message: "", data: {} },
           };
         }
-        const res = await post<FlowAIChatResponse>("/chat", req);
+        // The service loads them from the app, the eval server takes them.
+        const res = await post<FlowAIChatResponse>("/chat", {
+          ...req,
+          variables,
+        });
         if (res.success) {
           result.cost += cost(res.data.eval);
           result.edits.push(res.data.edits);
@@ -162,28 +163,26 @@ async function runCase(c: EvalCase): Promise<CaseResult> {
         return res;
       },
     });
-    result.message = res.message;
-    result.buildPrompt = res.buildPrompt;
     result.repairs += res.repairs;
-    result.issues = res.issues;
     return res;
   };
 
-  let answeredFirst = false;
   try {
     const messages: FlowAIChatMessage[] = [{ role: "user", content: c.prompt }];
-    const res = await prompt(messages);
-    answeredFirst = !result.edited;
+    let res = await prompt(messages);
+    result.buildPrompt = res.buildPrompt;
 
-    // Like clicking "Build this".
-    if (c.thenBuild && answeredFirst && res.buildPrompt) {
+    // Like clicking "Build this", if the question was answered first.
+    if (c.thenBuild && !result.edited && res.buildPrompt) {
       result.answer = res.message;
-      await prompt([
+      res = await prompt([
         ...messages,
         { role: "assistant", content: res.message },
         { role: "user", content: res.buildPrompt },
       ]);
     }
+    result.message = res.message;
+    result.issues = res.issues;
   } catch (err) {
     result.error = (err as Error).message;
   }
@@ -193,7 +192,7 @@ async function runCase(c: EvalCase): Promise<CaseResult> {
   result.missingTypes = (c.types ?? []).filter(
     (t) => !t.split("|").some((alt) => types.has(alt))
   );
-  // Discord IDs, and stored variables, as the eval's app has none.
+  // Discord IDs and stored variables that weren't given.
   for (const node of flow.nodes) {
     const data = JSON.stringify(node.data);
     const ids = [
@@ -218,7 +217,7 @@ async function runCase(c: EvalCase): Promise<CaseResult> {
     (!c.componentBranch || usesComponent) &&
     (result.edited ? mayEdit : !shouldEdit || c.route.length > 1) &&
     // Questions are answered before anything is built.
-    (!c.thenBuild || (answeredFirst && !!result.answer));
+    (!c.thenBuild || !!result.answer);
   result.flow = serializeFlow(flow.nodes, flow.edges, c.context);
   return result;
 }

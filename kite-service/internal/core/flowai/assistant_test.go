@@ -68,9 +68,10 @@ func TestRespond(t *testing.T) {
 	messages = append(messages, Message{Role: "user", Content: "Add a log"})
 
 	res, err := assistant.Respond(context.Background(), Request{
-		Flow:     "Flow type: command\n\nBlocks:\n- entry entry_command",
-		Messages: messages,
-		UserID:   "user",
+		Flow:      "Flow type: command\n\nBlocks:\n- entry entry_command",
+		Messages:  messages,
+		Variables: []*model.Variable{{ID: "v1", Name: "uses", Scoped: true}},
+		UserID:    "user",
 	})
 	require.NoError(t, err)
 
@@ -102,6 +103,7 @@ func TestRespond(t *testing.T) {
 	last := input[7].(map[string]any)["content"].(string)
 	assert.Contains(t, last, "Flow type: command")
 	assert.Contains(t, last, "- entry entry_command")
+	assert.Contains(t, last, "Stored variables:\n- v1 \"uses\" (scoped)")
 	assert.True(t, strings.HasSuffix(last, "Add a log"))
 }
 
@@ -167,6 +169,29 @@ func TestParseOutputWithBuildPrompt(t *testing.T) {
 	assert.Empty(t, res.Edits)
 
 	res, err = parseOutput(`{"message": "Done.", "edits": [], "build_prompt": null}`)
+	require.NoError(t, err)
+	assert.Empty(t, res.BuildPrompt)
+}
+
+func TestCheckVariables(t *testing.T) {
+	res := &Response{Edits: []map[string]any{
+		{"op": "add_node", "data": map[string]any{"variable_id": "v1"}},
+		{"op": "add_node", "data": map[string]any{"variable_id": "made_up"}},
+		{"op": "remove_node", "id": "a"},
+	}}
+	res.checkVariables([]*model.Variable{{ID: "v1"}})
+
+	assert.Equal(t, "v1", res.Edits[0]["data"].(map[string]any)["variable_id"])
+	assert.NotContains(t, res.Edits[1]["data"], "variable_id")
+	require.Len(t, res.Issues, 1)
+	assert.Contains(t, res.Issues[0], "'made_up' isn't one of the app's stored variables")
+}
+
+func TestParseOutputDropsBuildPromptWithEdits(t *testing.T) {
+	res, err := parseOutput(`{"message": "Done.", "edits": [
+		{"op": "remove_node", "ref": null, "type": null, "id": "a", "after": null, "before": null, "handle": null,
+		 "source": null, "target": null, "data_json": null, "items_json": null, "reconnect": null}
+	], "build_prompt": "Remove a"}`)
 	require.NoError(t, err)
 	assert.Empty(t, res.BuildPrompt)
 }

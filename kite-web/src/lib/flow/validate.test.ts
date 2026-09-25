@@ -95,7 +95,9 @@ describe("validateFlow", () => {
         [entry, log("a"), log("b")],
         [edge("entry", "a"), edge("a", "b", "error")]
       )
-    ).toEqual(["'Log Message' has no output 'error'."]);
+    ).toEqual([
+      "'Log Message' has no output 'error', only 'default'. To handle errors, put the block after the default output of an error handler block.",
+    ]);
   });
 
   it("accepts outputs of message components", () => {
@@ -117,7 +119,9 @@ describe("validateFlow", () => {
         [entry, message, log("a")],
         [edge("entry", "msg"), edge("msg", "a", "component_8")]
       )
-    ).toEqual(["'Create response message' has no output 'component_8'."]);
+    ).toEqual([
+      "'Create response message' has no output 'component_8', only 'default', 'component_7'.",
+    ]);
   });
 
   it("checks messages like the message editor", () => {

@@ -65,8 +65,10 @@ type Request struct {
 	// Issues are the problems the editor found with the edits of the last
 	// response, which this response should fix.
 	Issues []string
-	AppID  string
-	UserID string
+	// Variables are the app's stored variables, which blocks refer to by ID.
+	Variables []*model.Variable
+	AppID     string
+	UserID    string
 }
 
 type Response struct {
@@ -123,8 +125,44 @@ func (a *Assistant) Respond(ctx context.Context, req Request) (*Response, error)
 	if err != nil {
 		return &Response{Usage: usage}, err
 	}
+	res.checkVariables(req.Variables)
 	res.Usage = usage
 	return res, nil
+}
+
+func describeVariables(variables []*model.Variable) string {
+	var b strings.Builder
+	b.WriteString("Stored variables:")
+	if len(variables) == 0 {
+		b.WriteString("\nNone")
+	}
+	for _, v := range variables {
+		fmt.Fprintf(&b, "\n- %s %q", v.ID, v.Name)
+		if v.Scoped {
+			b.WriteString(" (scoped)")
+		}
+	}
+	return b.String()
+}
+
+// checkVariables removes stored variable IDs the app doesn't have from the
+// edits, so the user picks the variable instead, and asks to fix them.
+func (r *Response) checkVariables(variables []*model.Variable) {
+	ids := make(map[string]bool, len(variables))
+	for _, v := range variables {
+		ids[v.ID] = true
+	}
+	for _, edit := range r.Edits {
+		data, _ := edit["data"].(map[string]any)
+		id, ok := data["variable_id"].(string)
+		if !ok || ids[id] {
+			continue
+		}
+		delete(data, "variable_id")
+		r.Issues = append(r.Issues, fmt.Sprintf(
+			"'%s' isn't one of the app's stored variables. Use one of the listed ones, or leave variable_id out for the user to pick.", id,
+		))
+	}
 }
 
 type call struct {
@@ -212,7 +250,7 @@ func chatInput(req Request) responses.ResponseInputParam {
 	}
 	input = append(input, easyMessage(
 		responses.EasyInputMessageRoleUser,
-		fmt.Sprintf("Current flow:\n%s\n\n%s", req.Flow, current),
+		fmt.Sprintf("Current flow:\n%s\n\n%s\n\n%s", req.Flow, describeVariables(req.Variables), current),
 	))
 
 	return input
@@ -234,7 +272,7 @@ func easyMessage(role responses.EasyInputMessageRole, content string) responses.
 type output struct {
 	Message     string       `json:"message"`
 	Edits       []outputEdit `json:"edits"`
-	BuildPrompt *string      `json:"build_prompt"`
+	BuildPrompt string       `json:"build_prompt"`
 }
 
 type outputEdit struct {
@@ -261,7 +299,7 @@ func parseOutput(text string) (*Response, error) {
 	// Empty rather than nil, so they are sent as [] rather than null.
 	res := &Response{
 		Message:     out.Message,
-		BuildPrompt: ptrValue(out.BuildPrompt),
+		BuildPrompt: out.BuildPrompt,
 		Edits:       make([]map[string]any, 0, len(out.Edits)),
 		Issues:      []string{},
 	}
@@ -272,6 +310,10 @@ func parseOutput(text string) (*Response, error) {
 			continue
 		}
 		res.Edits = append(res.Edits, edit)
+	}
+	// The suggested change was already made.
+	if len(res.Edits) > 0 {
+		res.BuildPrompt = ""
 	}
 	return res, nil
 }
@@ -314,12 +356,4 @@ func (e outputEdit) toEdit() (map[string]any, error) {
 	}
 
 	return edit, nil
-}
-
-func ptrValue[T any](v *T) T {
-	var zero T
-	if v == nil {
-		return zero
-	}
-	return *v
 }

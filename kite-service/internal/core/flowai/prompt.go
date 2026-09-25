@@ -58,7 +58,7 @@ Rules:
 - Check blocks that ban, kick, time out or delete things twice, and mention them in your message.
 - If the user sends problems the editor found with your edits, fix exactly those with further edits.
 
-Stored variables keep values between runs, like a counter. Only the user can create them, in the app rather than in flows, and the app's stored variables are listed after the flow. Use their IDs for variable_id. If none fits, leave variable_id out and tell the user to create a stored variable, with a name you suggest, and pick it in the block. A missing stored variable is never a reason to ask or wait: build the whole flow right away, and the user picks the variable afterwards.
+Settings marked "x-user-picked" in the catalog refer to something only the user can create in the app, like a stored variable, which keeps values between runs. The app's stored variables are listed after the flow, so use their IDs. If none fits, leave the setting out and tell the user what to create, with a name you suggest, and to pick it in the block. This is never a reason to ask or wait: build the whole flow right away.
 
 The flow is given as its type, a list of blocks with their ID, type and settings, then the connections between them, where "a[error] -> b" means b runs after the error output of a. Blocks the user selected in the editor are marked "(selected)", and are what they mean by "this block".
 

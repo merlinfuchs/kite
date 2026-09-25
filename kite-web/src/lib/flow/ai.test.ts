@@ -207,7 +207,7 @@ describe("runFlowAIPrompt", () => {
     expect(api.requests).toHaveLength(1);
   });
 
-  it("sends the stored variables and leaves picking them to the user", async () => {
+  it("leaves settings the user picks, like stored variables", async () => {
     const api = fakeAPI([
       [
         {
@@ -219,18 +219,9 @@ describe("runFlowAIPrompt", () => {
         },
       ],
     ]);
-    const editor = { flow: { nodes: [entry], edges: [] as Edge[] } };
 
-    const res = await runFlowAIPrompt({
-      context: "command",
-      messages: [{ role: "user", content: "Count uses" }],
-      variables: [{ id: "v1", name: "uses", scoped: false }],
-      getFlow: () => editor.flow,
-      applyFlow: (flow) => (editor.flow = flow),
-      send: api.send,
-    });
+    const res = await run(api);
 
-    expect(api.requests[0].flow).toContain('Stored variables:\n- v1 "uses"');
     // The missing variable_id isn't sent back to be repaired.
     expect(api.requests).toHaveLength(1);
     expect(res.issues).toEqual([]);

@@ -5,7 +5,7 @@ import {
 import { checkFlowAIPrompt, runFlowAIPrompt } from "@/lib/flow/ai";
 import { useFlowContext } from "@/lib/flow/context";
 import { NodeType } from "@/lib/flow/dataSchema";
-import { useFlowAIUsage, useVariables } from "@/lib/hooks/api";
+import { useFlowAIUsage } from "@/lib/hooks/api";
 import { useAppId } from "@/lib/hooks/params";
 import { FlowAIChatMessage, FlowAICheckResponse } from "@/lib/types/wire.gen";
 import { cn } from "@/lib/utils";
@@ -20,7 +20,6 @@ import {
 import {
   memo,
   RefObject,
-  useMemo,
   useCallback,
   useEffect,
   useRef,
@@ -55,11 +54,6 @@ export default memo(function FlowAIChat({
   const chat = useFlowAIChatMutation(appId);
   const check = useFlowAICheckMutation(appId);
   const usage = useFlowAIUsage();
-  const allVariables = useVariables();
-  const variables = useMemo(
-    () => allVariables?.filter((v) => !!v).map((v) => v!),
-    [allVariables]
-  );
 
   const [entries, setEntries] = useState<ChatEntry[]>([]);
   const [input, setInput] = useState("");
@@ -112,7 +106,6 @@ export default memo(function FlowAIChat({
         const res = await runFlowAIPrompt({
           context,
           messages,
-          variables,
           getFlow: () => ({ nodes: getNodes(), edges: getEdges() }),
           applyFlow: ({ nodes, edges }, changedNodeIds) => {
             // Selects the changed blocks, so they stand out.
@@ -159,16 +152,7 @@ export default memo(function FlowAIChat({
         setStatus(null);
       }
     },
-    [
-      entries,
-      context,
-      variables,
-      getNodes,
-      getEdges,
-      fitView,
-      editorRef,
-      chat.mutateAsync,
-    ]
+    [entries, context, getNodes, getEdges, fitView, editorRef, chat.mutateAsync]
   );
 
   const submit = useCallback(async () => {
@@ -183,7 +167,6 @@ export default memo(function FlowAIChat({
         context,
         prompt: content,
         flow: { nodes: getNodes(), edges: getEdges() },
-        variables,
         send: check.mutateAsync,
       });
       setStatus(null);
@@ -198,7 +181,6 @@ export default memo(function FlowAIChat({
     busy,
     entries.length,
     context,
-    variables,
     getNodes,
     getEdges,
     check.mutateAsync,
@@ -324,7 +306,8 @@ export default memo(function FlowAIChat({
   );
 });
 
-function ChatBubble({
+// Memoized, as the chat re-renders on every keystroke in the input.
+const ChatBubble = memo(function ChatBubble({
   entry,
   onBuild,
 }: {
@@ -375,4 +358,4 @@ function ChatBubble({
       )}
     </div>
   );
-}
+});

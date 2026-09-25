@@ -31,17 +31,24 @@ const repairWindow = time.Hour
 // so the AI can't be used as a free chatbot.
 const answerLimitFactor = 3
 
+// VariableStore is what the handler needs of store.VariableStore.
+type VariableStore interface {
+	VariablesByApp(ctx context.Context, appID string) ([]*model.Variable, error)
+}
+
 type FlowAIHandler struct {
-	promptStore store.FlowAIPromptStore
+	promptStore   store.FlowAIPromptStore
+	variableStore VariableStore
 	// assistant is nil if no OpenAI API key is configured.
 	assistant  Assistant
 	maxRepairs int
 }
 
-func NewFlowAIHandler(promptStore store.FlowAIPromptStore, assistant *flowai.Assistant, maxRepairs int) *FlowAIHandler {
+func NewFlowAIHandler(promptStore store.FlowAIPromptStore, variableStore VariableStore, assistant *flowai.Assistant, maxRepairs int) *FlowAIHandler {
 	h := &FlowAIHandler{
-		promptStore: promptStore,
-		maxRepairs:  maxRepairs,
+		promptStore:   promptStore,
+		variableStore: variableStore,
+		maxRepairs:    maxRepairs,
 	}
 	// A nil pointer in the interface wouldn't compare equal to nil.
 	if assistant != nil {
@@ -126,12 +133,18 @@ func (h *FlowAIHandler) HandleFlowAIChat(c *handler.Context, req wire.FlowAIChat
 		messages[i] = flowai.Message{Role: m.Role, Content: m.Content}
 	}
 
+	variables, err := h.variableStore.VariablesByApp(c.Context(), c.App.ID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get variables: %w", err)
+	}
+
 	res, err := h.assistant.Respond(c.Context(), flowai.Request{
-		Flow:     req.Flow,
-		Messages: messages,
-		Issues:   req.Issues,
-		AppID:    c.App.ID,
-		UserID:   c.Session.UserID,
+		Flow:      req.Flow,
+		Messages:  messages,
+		Issues:    req.Issues,
+		Variables: variables,
+		AppID:     c.App.ID,
+		UserID:    c.Session.UserID,
 	})
 	// Answers without edits don't count. Ones that can't be used do, as they
 	// cost as much, and so do ones whose edits were all invalid, as they are

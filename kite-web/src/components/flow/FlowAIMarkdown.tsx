@@ -1,75 +1,23 @@
-import { Fragment } from "react";
+import SimpleMarkdown from "simple-markdown";
+import { memo, useMemo } from "react";
 
-const bullet = /^\s*[-*]\s+/;
-const numbered = /^\s*\d+[.)]\s+/;
+// The AI's answers only use paragraphs, lists, bold and inline code.
+const { newline, paragraph, list, strong, inlineCode, escape, text } =
+  SimpleMarkdown.defaultRules;
+const rules = { newline, paragraph, list, strong, inlineCode, escape, text };
+const parse = SimpleMarkdown.parserFor(rules);
+const output = SimpleMarkdown.outputFor(rules, "react");
 
-// Renders the AI's answers, which only use paragraphs, lists, bold and inline
-// code.
-export default function FlowAIMarkdown({ text }: { text: string }) {
-  const groups: { kind: "text" | "ul" | "ol"; lines: string[] }[] = [];
-  for (const line of text.trim().split("\n")) {
-    const kind = bullet.test(line) ? "ul" : numbered.test(line) ? "ol" : "text";
-    const last = groups.at(-1);
-    // Blank lines end a paragraph.
-    if (!line.trim()) {
-      if (last) groups.push({ kind: "text", lines: [] });
-    } else if (last?.kind === kind) {
-      last.lines.push(line);
-    } else {
-      groups.push({ kind, lines: [line] });
-    }
-  }
+export default memo(function FlowAIMarkdown({ text }: { text: string }) {
+  // Block elements are only parsed at the end of a block.
+  const content = useMemo(
+    () => output(parse(text.trim() + "\n\n", { inline: false })),
+    [text]
+  );
 
   return (
-    <div className="space-y-2">
-      {groups
-        .filter((g) => g.lines.length > 0)
-        .map((group, i) => {
-          if (group.kind === "text") {
-            return (
-              <p key={i} className="whitespace-pre-wrap">
-                <Inline text={group.lines.join("\n")} />
-              </p>
-            );
-          }
-          const List = group.kind;
-          return (
-            <List
-              key={i}
-              className={
-                List === "ul"
-                  ? "list-disc pl-5 space-y-1"
-                  : "list-decimal pl-5 space-y-1"
-              }
-            >
-              {group.lines.map((line, j) => (
-                <li key={j}>
-                  <Inline
-                    text={line.replace(bullet, "").replace(numbered, "")}
-                  />
-                </li>
-              ))}
-            </List>
-          );
-        })}
+    <div className="space-y-2 [&_ol]:list-decimal [&_ol]:pl-5 [&_ul]:list-disc [&_ul]:pl-5 [&_code]:rounded [&_code]:bg-muted [&_code]:px-1 [&_code]:py-0.5 [&_code]:text-xs">
+      {content}
     </div>
   );
-}
-
-function Inline({ text }: { text: string }) {
-  return (
-    <>
-      {text.split(/(`[^`]+`|\*\*[^*]+\*\*)/).map((part, i) =>
-        part.startsWith("`") && part.endsWith("`") && part.length > 1 ? (
-          <code key={i} className="rounded bg-muted px-1 py-0.5 text-xs">
-            {part.slice(1, -1)}
-          </code>
-        ) : part.startsWith("**") && part.endsWith("**") && part.length > 3 ? (
-          <strong key={i}>{part.slice(2, -2)}</strong>
-        ) : (
-          <Fragment key={i}>{part}</Fragment>
-        )
-      )}
-    </>
-  );
-}
+});

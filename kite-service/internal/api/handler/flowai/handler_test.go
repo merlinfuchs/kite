@@ -72,6 +72,12 @@ func (s *fakePromptStore) CountFlowAIPromptsBetween(ctx context.Context, appID s
 	return count, nil
 }
 
+type fakeVariableStore struct{}
+
+func (fakeVariableStore) VariablesByApp(ctx context.Context, appID string) ([]*model.Variable, error) {
+	return []*model.Variable{{ID: "v1", Name: "uses"}}, nil
+}
+
 type fakeAssistant struct {
 	err error
 	// answered makes the error come with usage, like when the model answered.
@@ -126,7 +132,7 @@ func setup(assistant *fakeAssistant) *testSetup {
 		store:     &fakePromptStore{prompts: map[string]*model.FlowAIPrompt{}},
 		assistant: assistant,
 	}
-	s.handler = &FlowAIHandler{promptStore: s.store, maxRepairs: 2}
+	s.handler = &FlowAIHandler{promptStore: s.store, variableStore: fakeVariableStore{}, maxRepairs: 2}
 	if assistant != nil {
 		s.handler.assistant = assistant
 	}

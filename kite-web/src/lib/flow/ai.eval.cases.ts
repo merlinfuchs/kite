@@ -1,4 +1,3 @@
-import { StoredVariable } from "./ai";
 import { FlowContextType } from "./context";
 import { FlowData, NodeData } from "./dataSchema";
 import {
@@ -24,7 +23,7 @@ export interface EvalCase {
   // Whether a block's output for a button or select menu must be used.
   componentBranch?: boolean;
   // The app's stored variables.
-  variables?: StoredVariable[];
+  variables?: { id: string; name: string; scoped: boolean }[];
   // For questions: whether the answer should suggest a change, which is then
   // sent as the next prompt and has to build.
   thenBuild?: boolean;

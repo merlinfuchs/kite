@@ -2,7 +2,7 @@ import { ZodSchema } from "zod";
 import { zodToJsonSchema } from "zod-to-json-schema";
 import { isNodeTypeAvailable } from "./categories";
 import { flowContextTypes } from "./context";
-import { isTemplated } from "./dataSchema";
+import { isTemplated, isUserPicked } from "./dataSchema";
 import { getNodeOutputs, getOwnedChildTypes, nodeTypes } from "./nodes";
 
 // A machine readable description of every block, generated from the schemas
@@ -44,7 +44,11 @@ export function toJsonSchema(schema: ZodSchema) {
 
       // Some defaults are generated IDs, which would make the output random.
       const { default: _, ...rest } = json as Record<string, unknown>;
-      return isTemplated(def) ? { ...rest, "x-templated": true } : rest;
+      return {
+        ...rest,
+        ...(isTemplated(def) && { "x-templated": true }),
+        ...(isUserPicked(def) && { "x-user-picked": true }),
+      } as typeof json;
     },
   });
   return res;
@@ -67,12 +71,18 @@ export function buildFlowCatalogSummary() {
 
       const schema = node.data_schema as {
         required?: string[];
-        properties?: Record<string, { description?: string }>;
+        properties?: Record<
+          string,
+          { description?: string; "x-user-picked"?: boolean }
+        >;
       } | null;
-      const required = (schema?.required ?? []).map((name) => {
-        const description = schema?.properties?.[name]?.description ?? "";
-        return `${name} (${description.replace(/\.$/, "")})`;
-      });
+      // The user picks those, so the check doesn't need to ask for them.
+      const required = (schema?.required ?? [])
+        .filter((name) => !schema?.properties?.[name]?.["x-user-picked"])
+        .map((name) => {
+          const description = schema?.properties?.[name]?.description ?? "";
+          return `${name} (${description.replace(/\.$/, "")})`;
+        });
       if (required.length > 0) line += `. Needs ${required.join(", ")}`;
       return line;
     });
