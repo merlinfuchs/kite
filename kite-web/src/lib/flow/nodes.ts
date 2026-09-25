@@ -5,6 +5,7 @@ import { ZodSchema } from "zod";
 import { Features } from "../types/wire.gen";
 import { getUniqueId } from "../utils";
 import { FlowContextType } from "./context";
+import { getComponentHandleIds } from "./resume";
 import {
   nodeActionAiChatCompletionDataSchema,
   nodeActionAiWebSearchCompletionDataSchema,
@@ -967,12 +968,42 @@ const unknownNodeType: NodeValues = {
   dataFields: [],
 };
 
+export function isKnownNodeType(nodeType: string) {
+  return Object.hasOwn(nodeTypes, nodeType);
+}
+
 export function getNodeValues(nodeType: string): NodeValues {
-  const values = nodeTypes[nodeType];
-  if (!values) {
-    return unknownNodeType;
+  return isKnownNodeType(nodeType) ? nodeTypes[nodeType] : unknownNodeType;
+}
+
+// The IDs of the outputs edges can start from. Message blocks also get one per
+// button or select menu in their message.
+export function getNodeOutputs(node: { type?: string; data: NodeData }) {
+  return [
+    ...(getNodeValues(node.type!).outputs ?? ["default"]),
+    ...getComponentHandleIds(node.data.message_data?.components ?? []),
+  ];
+}
+
+export function getNodeTitle(node: { type?: string; data: NodeData }) {
+  return node.data.custom_label || getNodeValues(node.type!).defaultTitle;
+}
+
+// The blocks an owner is created with and connected to, e.g. the items and
+// else branch of a condition.
+export function getOwnedChildTypes(type: string) {
+  return createNode(type, { x: 0, y: 0 })[0]
+    .slice(1)
+    .map((n) => n.type!);
+}
+
+// Options connect into the entry of commands and event listeners, nothing else
+// connects into an entry, and nothing connects into an option.
+export function canConnect(sourceType: string, targetType: string) {
+  if (sourceType.startsWith("option_")) {
+    return targetType === "entry_command" || targetType === "entry_event";
   }
-  return values;
+  return !targetType.startsWith("entry_") && !targetType.startsWith("option_");
 }
 
 export function useNodeValues(nodeType: string): NodeValues {

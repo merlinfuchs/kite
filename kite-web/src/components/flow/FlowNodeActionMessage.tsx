@@ -1,11 +1,12 @@
 import { NodeProps } from "@/lib/flow/dataSchema";
 import { suspendColor } from "@/lib/flow/nodes";
-import { componentHandleId } from "@/lib/flow/resume";
 import {
-  ButtonStyleLink,
+  collectComponentGroups,
+  componentHandleId,
+  getComponentHandleIds,
+} from "@/lib/flow/resume";
+import {
   ComponentData,
-  ComponentTypeActionRow,
-  ComponentTypeButton,
   ComponentTypeStringSelect,
 } from "@/lib/types/message.gen";
 import { Position, useUpdateNodeInternals } from "@xyflow/react";
@@ -25,10 +26,13 @@ export default function FlowNodeActionMessage(props: NodeProps) {
   // React Flow only re-measures handles when the node resizes, so swapping a
   // component for another of the same size would leave the new handle unknown.
   const updateNodeInternals = useUpdateNodeInternals();
-  const handleIds = componentGroups
-    .flat()
-    .map((comp) => componentHandleId(comp.id))
-    .join(",");
+  const handleIds = useMemo(
+    () =>
+      getComponentHandleIds(props.data.message_data?.components || []).join(
+        ","
+      ),
+    [props.data.message_data]
+  );
   useEffect(() => {
     updateNodeInternals(props.id);
   }, [handleIds, props.id, updateNodeInternals]);
@@ -62,31 +66,6 @@ export default function FlowNodeActionMessage(props: NodeProps) {
       </div>
     </div>
   );
-}
-
-// Groups interactive components the way Discord lays them out: one group per action row and one per section accessory.
-function collectComponentGroups(
-  components: ComponentData[]
-): ComponentData[][] {
-  const groups: ComponentData[][] = [];
-
-  const isInteractive = (c: ComponentData) =>
-    c.type === ComponentTypeStringSelect ||
-    (c.type === ComponentTypeButton && c.style !== ButtonStyleLink);
-
-  const walk = (c: ComponentData) => {
-    if (c.type === ComponentTypeActionRow) {
-      const interactive = (c.components || []).filter(isInteractive);
-      if (interactive.length > 0) groups.push(interactive);
-      return;
-    }
-
-    c.components?.forEach(walk);
-    if (c.accessory && isInteractive(c.accessory)) groups.push([c.accessory]);
-  };
-
-  components.forEach(walk);
-  return groups;
 }
 
 function ComponentHandle({ comp }: { comp: ComponentData }) {

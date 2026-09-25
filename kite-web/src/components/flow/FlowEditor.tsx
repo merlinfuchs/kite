@@ -21,7 +21,7 @@ import { edgeTypes, nodeTypes } from "@/lib/flow/components";
 import { FlowData, NodeData } from "@/lib/flow/dataSchema";
 import { getFlowChangeKind, getFlowMergeKey } from "@/lib/flow/history";
 import { getLayoutedElements } from "@/lib/flow/layout";
-import { createNode, getNodeValues } from "@/lib/flow/nodes";
+import { canConnect, createNode, getNodeValues } from "@/lib/flow/nodes";
 import { useFlowClipboard } from "@/lib/hooks/flowClipboard";
 import { useFlowHistory } from "@/lib/hooks/flowHistory";
 import { useHookedTheme } from "@/lib/hooks/theme";
@@ -213,19 +213,7 @@ export default function FlowEditor({
 
       const source = getNode(con.source)!;
       const target = getNode(con.target)!;
-
-      // This is a bit of a mess, but it works for now
-      if (
-        (target.type === "entry_command" || target.type === "entry_event") &&
-        !source.type?.startsWith("option")
-      )
-        return false;
-      if (
-        source.type?.startsWith("option") &&
-        target.type !== "entry_command" &&
-        target.type !== "entry_event"
-      )
-        return false;
+      if (!canConnect(source.type!, target.type!)) return false;
 
       // Prevent cycles
       /*const hasCycle = (node: Node, visited = new Set()) => {
