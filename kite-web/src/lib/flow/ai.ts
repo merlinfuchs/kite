@@ -81,8 +81,9 @@ export async function runFlowAIPrompt({
     }
     return res.data;
   };
-  const getErrors = (issues: FlowIssue[]) =>
-    new Set(issues.filter((i) => i.severity === "error").map(describeIssue));
+  // Warnings are sent too, as the ones the AI causes are mistakes, like a
+  // block it didn't connect.
+  const getIssues = (issues: FlowIssue[]) => new Set(issues.map(describeIssue));
 
   let res = await request(original, {});
   const { prompt_id: promptId, message } = res;
@@ -105,7 +106,7 @@ export async function runFlowAIPrompt({
       return { ...result, issues: [] };
     }
 
-    const before = getErrors(validateFlow(flow.nodes, flow.edges, context));
+    const before = getIssues(validateFlow(flow.nodes, flow.edges, context));
     let after = before;
     if (res.edits.length > 0) {
       const edited = applyFlowEdits(flow, res.edits as FlowEdit[], context);
@@ -113,7 +114,7 @@ export async function runFlowAIPrompt({
         changed.add(id);
       }
       flow = applied = { nodes: edited.nodes, edges: edited.edges };
-      after = getErrors(edited.issues);
+      after = getIssues(edited.issues);
     }
     caused = new Set([...after].filter((i) => !before.has(i) || caused.has(i)));
 

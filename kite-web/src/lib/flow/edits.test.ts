@@ -348,6 +348,46 @@ describe("applyFlowEdits edge cases", () => {
     expect(res.nodes.map((n) => n.id)).toEqual(["entry"]);
   });
 
+  it("keeps options out of the chain of blocks", () => {
+    const res = apply(
+      [entry],
+      [],
+      [
+        {
+          op: "add_node",
+          ref: "$arg",
+          type: "option_command_argument",
+          data: {
+            name: "user",
+            description: "User",
+            command_argument_type: "user",
+          },
+        },
+        { ...addLog("$log", "$arg") },
+        { op: "connect", source: "entry", target: "$arg" },
+        { op: "disconnect", source: "$arg", target: "entry" },
+      ]
+    );
+    const arg = res.refs.$arg;
+    expect(res.connections).toEqual([
+      `${arg}->entry`,
+      `entry->${res.refs.$log}`,
+    ]);
+    expect(res.issues.map((i) => i.message)).toEqual([
+      "Edit 3 (connect): Options are connected to the entry block automatically.",
+      "Edit 4 (disconnect): Options are always connected to the entry block. Remove the option instead.",
+    ]);
+  });
+
+  it("reports fields generated edits left out", () => {
+    const res = apply(
+      [entry, log("a")],
+      [],
+      [{ op: "connect", target: "a" } as unknown as FlowEdit]
+    );
+    expect(res.issues[0].message).toBe("Edit 1 (connect): source is missing.");
+  });
+
   it("rejects edits the editor doesn't allow", () => {
     const added = apply(
       [entry],
