@@ -48,12 +48,8 @@ func fakeOpenAIIncomplete(t *testing.T, status string, reason string, text strin
 
 	client := openai.NewClient(option.WithAPIKey("test"), option.WithBaseURL(server.URL))
 	assistant := NewAssistant(&client, Config{
-		Model:                "gpt-5-mini",
-		ReasoningEffort:      "low",
-		MaxOutputTokens:      1000,
-		CheckModel:           "gpt-5-nano",
-		CheckReasoningEffort: "minimal",
-		CheckMaxOutputTokens: 500,
+		ModelConfig: ModelConfig{Model: "gpt-5-mini", ReasoningEffort: "low", MaxOutputTokens: 1000},
+		Check:       ModelConfig{Model: "gpt-5-nano", ReasoningEffort: "minimal", MaxOutputTokens: 500},
 	})
 	return assistant, &body
 }

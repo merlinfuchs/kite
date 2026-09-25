@@ -18,6 +18,7 @@ import { FlowIssue, validateFlow } from "./validate";
 const maxMessages = 20;
 const maxMessageLength = 4000;
 const maxIssues = 50;
+const maxCheckFlowLength = 10_000;
 
 interface Flow {
   nodes: Node<NodeData>[];
@@ -172,7 +173,11 @@ export async function checkFlowAIPrompt({
   const selectedIds = flow.nodes.filter((n) => n.selected).map((n) => n.id);
   try {
     const res = await send({
-      flow: serializeFlow(flow.nodes, flow.edges, context, selectedIds),
+      // The start of the flow is enough to check a prompt, and keeps it fast.
+      flow: serializeFlow(flow.nodes, flow.edges, context, selectedIds).slice(
+        0,
+        maxCheckFlowLength
+      ),
       prompt,
     });
     return res.success ? res.data : null;

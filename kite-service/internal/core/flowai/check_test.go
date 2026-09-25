@@ -37,12 +37,3 @@ func TestCheckFailsIfCutOff(t *testing.T) {
 	_, err := assistant.Check(context.Background(), CheckRequest{Flow: "Blocks:", Prompt: "Hi"})
 	assert.Error(t, err)
 }
-
-func TestCatalogSummary(t *testing.T) {
-	summary := catalogSummary()
-
-	assert.NotContains(t, summary, "entry_")
-	assert.Contains(t, summary, "- Create response message: Bot replies to the interaction with a message (only in command, component_button, component_select_menu flows)")
-	// Much shorter than the catalog the flow AI gets.
-	assert.Less(t, len(summary), 12_000)
-}

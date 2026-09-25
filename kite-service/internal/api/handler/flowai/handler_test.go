@@ -130,16 +130,16 @@ func setup(assistant *fakeAssistant) *testSetup {
 	return s
 }
 
-// chat sends a chat request for app "app" with the given prompt limit and
+// serve calls the handler for app "app" with the given prompt limit and
 // returns the status code and response body.
-func (s *testSetup) chat(t *testing.T, limit int, body string) (int, map[string]any) {
+func serve[Req, Res any](t *testing.T, fn func(*handler.Context, Req) (*Res, error), limit int, body string) (int, map[string]any) {
 	t.Helper()
 
 	h := handler.APIHandler(func(c *handler.Context) error {
 		c.Session = &model.Session{UserID: "user"}
 		c.App = &model.App{ID: "app"}
 		c.Features = model.Features{MaxAIPromptsPerMonth: limit}
-		return handler.TypedWithBody(s.handler.HandleFlowAIChat)(c)
+		return handler.TypedWithBody(fn)(c)
 	})
 
 	req := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(body))
@@ -150,6 +150,11 @@ func (s *testSetup) chat(t *testing.T, limit int, body string) (int, map[string]
 	var res map[string]any
 	require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &res))
 	return rec.Code, res
+}
+
+func (s *testSetup) chat(t *testing.T, limit int, body string) (int, map[string]any) {
+	t.Helper()
+	return serve(t, s.handler.HandleFlowAIChat, limit, body)
 }
 
 func errCode(res map[string]any) any {
@@ -310,19 +315,7 @@ func TestPromptsWithoutEditsCantBeRepaired(t *testing.T) {
 func TestCheck(t *testing.T) {
 	s := setup(&fakeAssistant{})
 	check := func(limit int, body string) (int, map[string]any) {
-		h := handler.APIHandler(func(c *handler.Context) error {
-			c.Session = &model.Session{UserID: "user"}
-			c.App = &model.App{ID: "app"}
-			c.Features = model.Features{MaxAIPromptsPerMonth: limit}
-			return handler.TypedWithBody(s.handler.HandleFlowAICheck)(c)
-		})
-		req := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(body))
-		req.Header.Set("Content-Type", "application/json")
-		rec := httptest.NewRecorder()
-		h.ServeHTTP(rec, req)
-		var res map[string]any
-		require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &res))
-		return rec.Code, res
+		return serve(t, s.handler.HandleFlowAICheck, limit, body)
 	}
 	body := `{"flow": "Blocks:", "prompt": "Log bans"}`
 

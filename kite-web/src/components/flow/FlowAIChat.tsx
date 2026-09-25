@@ -150,7 +150,6 @@ export default memo(function FlowAIChat({
 
     // Only the first prompt is checked, later ones build on the chat.
     if (entries.length === 0) {
-      setChecked(null);
       setStatus("Checking your request...");
       const res = await checkFlowAIPrompt({
         context,

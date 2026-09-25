@@ -73,14 +73,15 @@ type FlowAIUsage struct {
 type FlowAIUsageGetResponse = FlowAIUsage
 
 type FlowAICheckRequest struct {
-	// Flow is the flow as serialized by the editor.
+	// Flow is the start of the flow as serialized by the editor, which is
+	// enough to check a prompt.
 	Flow   string `json:"flow"`
 	Prompt string `json:"prompt"`
 }
 
 func (req FlowAICheckRequest) Validate() error {
 	return validation.ValidateStruct(&req,
-		validation.Field(&req.Flow, validation.Required, validation.Length(1, 100_000)),
+		validation.Field(&req.Flow, validation.Required, validation.Length(1, 10_000)),
 		validation.Field(&req.Prompt, validation.Required, validation.Length(1, 4000)),
 	)
 }

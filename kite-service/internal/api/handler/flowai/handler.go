@@ -59,15 +59,10 @@ func (h *FlowAIHandler) HandleFlowAIUsageGet(c *handler.Context) (*wire.FlowAIUs
 }
 
 func (h *FlowAIHandler) HandleFlowAIChat(c *handler.Context, req wire.FlowAIChatRequest) (*wire.FlowAIChatResponse, error) {
-	if h.assistant == nil {
-		return nil, handler.ErrServiceUnavailable("flow_ai_unavailable", "The flow AI isn't set up on this server.")
+	if err := h.checkAvailable(c); err != nil {
+		return nil, err
 	}
-
-	// Unlike other limits, 0 means none, so plans need to opt in.
 	limit := c.Features.MaxAIPromptsPerMonth
-	if limit == 0 {
-		return nil, handler.ErrForbidden("feature_unavailable", "Your plan doesn't include the flow AI.")
-	}
 	count, err := h.promptCount(c)
 	if err != nil {
 		return nil, err
@@ -182,11 +177,8 @@ func (h *FlowAIHandler) HandleFlowAIChat(c *handler.Context, req wire.FlowAIChat
 // HandleFlowAICheck checks the first prompt of a chat with a cheaper model.
 // It doesn't count as a prompt.
 func (h *FlowAIHandler) HandleFlowAICheck(c *handler.Context, req wire.FlowAICheckRequest) (*wire.FlowAICheckResponse, error) {
-	if h.assistant == nil {
-		return nil, handler.ErrServiceUnavailable("flow_ai_unavailable", "The flow AI isn't set up on this server.")
-	}
-	if c.Features.MaxAIPromptsPerMonth == 0 {
-		return nil, handler.ErrForbidden("feature_unavailable", "Your plan doesn't include the flow AI.")
+	if err := h.checkAvailable(c); err != nil {
+		return nil, err
 	}
 
 	res, err := h.assistant.Check(c.Context(), flowai.CheckRequest{
@@ -210,6 +202,17 @@ func (h *FlowAIHandler) HandleFlowAICheck(c *handler.Context, req wire.FlowAIChe
 		SuggestedPrompt: res.SuggestedPrompt,
 		Fields:          fields,
 	}, nil
+}
+
+func (h *FlowAIHandler) checkAvailable(c *handler.Context) error {
+	if h.assistant == nil {
+		return handler.ErrServiceUnavailable("flow_ai_unavailable", "The flow AI isn't set up on this server.")
+	}
+	// Unlike other limits, 0 means none, so plans need to opt in.
+	if c.Features.MaxAIPromptsPerMonth == 0 {
+		return handler.ErrForbidden("feature_unavailable", "Your plan doesn't include the flow AI.")
+	}
+	return nil
 }
 
 func (h *FlowAIHandler) promptCount(c *handler.Context) (model.FlowAIPromptCount, error) {

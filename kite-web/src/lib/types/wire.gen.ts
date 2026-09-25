@@ -383,7 +383,8 @@ export interface FlowAIUsage {
 export type FlowAIUsageGetResponse = FlowAIUsage;
 export interface FlowAICheckRequest {
   /**
-   * Flow is the flow as serialized by the editor.
+   * Flow is the start of the flow as serialized by the editor, which is
+   * enough to check a prompt.
    */
   flow: string;
   prompt: string;
