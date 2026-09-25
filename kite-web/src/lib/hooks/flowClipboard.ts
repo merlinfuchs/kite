@@ -7,33 +7,16 @@ import {
 import { useFlowContext } from "@/lib/flow/context";
 import { NodeData } from "@/lib/flow/dataSchema";
 import { Edge, Node, useReactFlow } from "@xyflow/react";
-import {
-  Dispatch,
-  MouseEvent,
-  SetStateAction,
-  useCallback,
-  useEffect,
-  useRef,
-} from "react";
+import { MouseEvent, useCallback, useEffect, useRef } from "react";
 import { toast } from "sonner";
 
 // Copy and paste for flow blocks. Uses the native copy and paste events so the
 // blocks go through the system clipboard and can be pasted into other commands
 // and event listeners. Returns a mouse move handler for the flow so pasted
 // blocks land at the cursor.
-export function useFlowClipboard({
-  setNodes,
-  setEdges,
-  onChange,
-}: {
-  setNodes: Dispatch<SetStateAction<Node<NodeData>[]>>;
-  setEdges: Dispatch<SetStateAction<Edge[]>>;
-  onChange: () => void;
-}) {
-  const { getNodes, getEdges, screenToFlowPosition } = useReactFlow<
-    Node<NodeData>,
-    Edge
-  >();
+export function useFlowClipboard() {
+  const { getNodes, getEdges, setNodes, setEdges, screenToFlowPosition } =
+    useReactFlow<Node<NodeData>, Edge>();
   const contextType = useFlowContext((c) => c.type);
   const mousePosition = useRef<{ x: number; y: number } | null>(null);
 
@@ -89,7 +72,6 @@ export function useFlowClipboard({
         ...eds.map((e) => ({ ...e, selected: false })),
         ...newEdges,
       ]);
-      onChange();
     };
 
     document.addEventListener("copy", onCopy);
@@ -105,7 +87,6 @@ export function useFlowClipboard({
     contextType,
     setNodes,
     setEdges,
-    onChange,
   ]);
 
   return onMouseMove;

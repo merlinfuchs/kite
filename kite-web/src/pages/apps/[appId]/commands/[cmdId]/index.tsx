@@ -11,12 +11,10 @@ import { useBeforePageExit } from "@/lib/hooks/exit";
 import { useAppId, useCommandId } from "@/lib/hooks/params";
 import Head from "next/head";
 import { useRouter } from "next/router";
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { toast } from "sonner";
 
 export default function AppCommandPage() {
-  const ignoreChange = useRef(false);
-
   const router = useRouter();
   const cmd = useCommand((res) => {
     if (!res.success) {
@@ -29,12 +27,6 @@ export default function AppCommandPage() {
           query: { appId: router.query.appId },
         });
       }
-    } else {
-      // This is a workaround to ignore the initial change event
-      ignoreChange.current = true;
-      setTimeout(() => {
-        ignoreChange.current = false;
-      }, 100);
     }
   });
 
@@ -44,10 +36,8 @@ export default function AppCommandPage() {
   const [deployDialogOpen, setDeployDialogOpen] = useState(false);
 
   const onChange = useCallback(() => {
-    if (!ignoreChange.current) {
-      setHasUnsavedChanges(true);
-    }
-  }, [setHasUnsavedChanges, ignoreChange]);
+    setHasUnsavedChanges(true);
+  }, [setHasUnsavedChanges]);
 
   const save = useCallback(
     (data: FlowData) => {
