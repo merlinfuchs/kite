@@ -22,6 +22,7 @@ func (c *Client) CreateFlowAIPrompt(ctx context.Context, prompt *model.FlowAIPro
 		InputTokens:       int32(prompt.Usage.InputTokens),
 		CachedInputTokens: int32(prompt.Usage.CachedInputTokens),
 		OutputTokens:      int32(prompt.Usage.OutputTokens),
+		Prompt:            prompt.Prompt,
 		CreatedAt:         pgtype.Timestamp{Time: prompt.CreatedAt, Valid: true},
 		UpdatedAt:         pgtype.Timestamp{Time: prompt.UpdatedAt, Valid: true},
 	})
@@ -40,6 +41,13 @@ func (c *Client) FlowAIPrompt(ctx context.Context, appID string, id string) (*mo
 	}
 
 	return rowToFlowAIPrompt(row), nil
+}
+
+func (c *Client) MarkFlowAIPromptUnedited(ctx context.Context, appID string, id string) error {
+	return c.Q.MarkFlowAIPromptUnedited(ctx, pgmodel.MarkFlowAIPromptUneditedParams{
+		ID:    id,
+		AppID: appID,
+	})
 }
 
 func (c *Client) DeleteFlowAIPrompt(ctx context.Context, appID string, id string) error {
@@ -70,13 +78,13 @@ func (c *Client) AddFlowAIPromptUsage(ctx context.Context, appID string, id stri
 	})
 }
 
-func (c *Client) CountFlowAIPromptsBetween(ctx context.Context, appID string, start time.Time, end time.Time) (int, error) {
-	count, err := c.Q.CountFlowAIPromptsByAppBetween(ctx, pgmodel.CountFlowAIPromptsByAppBetweenParams{
+func (c *Client) CountFlowAIPromptsBetween(ctx context.Context, appID string, start time.Time, end time.Time) (model.FlowAIPromptCount, error) {
+	row, err := c.Q.CountFlowAIPromptsByAppBetween(ctx, pgmodel.CountFlowAIPromptsByAppBetweenParams{
 		AppID:   appID,
 		StartAt: pgtype.Timestamp{Time: start, Valid: true},
 		EndAt:   pgtype.Timestamp{Time: end, Valid: true},
 	})
-	return int(count), err
+	return model.FlowAIPromptCount{Edited: int(row.Edited), Total: int(row.Total)}, err
 }
 
 func rowToFlowAIPrompt(row pgmodel.FlowAiPrompt) *model.FlowAIPrompt {
@@ -85,7 +93,9 @@ func rowToFlowAIPrompt(row pgmodel.FlowAiPrompt) *model.FlowAIPrompt {
 		AppID:  row.AppID,
 		UserID: row.UserID,
 		Model:  row.Model,
+		Prompt: row.Prompt,
 		Rounds: int(row.Rounds),
+		Edited: row.Edited,
 		Usage: model.FlowAIUsage{
 			InputTokens:       int(row.InputTokens),
 			CachedInputTokens: int(row.CachedInputTokens),

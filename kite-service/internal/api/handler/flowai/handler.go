@@ -24,6 +24,11 @@ type Assistant interface {
 // repairWindow is how long after a prompt its edits can be repaired.
 const repairWindow = time.Hour
 
+// Answers without edits don't count as prompts, so the AI can ask what's
+// missing for free. They are limited to this many times the plan's prompts,
+// so the AI can't be used as a free chatbot.
+const answerLimitFactor = 3
+
 type FlowAIHandler struct {
 	promptStore store.FlowAIPromptStore
 	// assistant is nil if no OpenAI API key is configured.
@@ -44,12 +49,12 @@ func NewFlowAIHandler(promptStore store.FlowAIPromptStore, assistant *flowai.Ass
 }
 
 func (h *FlowAIHandler) HandleFlowAIUsageGet(c *handler.Context) (*wire.FlowAIUsageGetResponse, error) {
-	used, err := h.promptsUsed(c)
+	count, err := h.promptCount(c)
 	if err != nil {
 		return nil, err
 	}
 
-	return &wire.FlowAIUsage{PromptsUsed: used, PromptsLimit: c.Features.MaxAIPromptsPerMonth}, nil
+	return &wire.FlowAIUsage{PromptsUsed: count.Edited, PromptsLimit: c.Features.MaxAIPromptsPerMonth}, nil
 }
 
 func (h *FlowAIHandler) HandleFlowAIChat(c *handler.Context, req wire.FlowAIChatRequest) (*wire.FlowAIChatResponse, error) {
@@ -62,10 +67,11 @@ func (h *FlowAIHandler) HandleFlowAIChat(c *handler.Context, req wire.FlowAIChat
 	if limit == 0 {
 		return nil, handler.ErrForbidden("feature_unavailable", "Your plan doesn't include the flow AI.")
 	}
-	used, err := h.promptsUsed(c)
+	count, err := h.promptCount(c)
 	if err != nil {
 		return nil, err
 	}
+	used := count.Edited
 
 	// The prompt is recorded before the model is called, so concurrent
 	// requests can't all pass the limits.
@@ -95,13 +101,19 @@ func (h *FlowAIHandler) HandleFlowAIChat(c *handler.Context, req wire.FlowAIChat
 		if used >= limit {
 			return nil, handler.ErrBadRequest("resource_limit", fmt.Sprintf("You've used all %d AI prompts for this month.", limit))
 		}
+		if count.Total >= answerLimitFactor*limit {
+			return nil, handler.ErrBadRequest("resource_limit", "You've asked the AI too many questions this month.")
+		}
 
+		// Prompts start out counted, so concurrent ones can't pass the limit.
 		prompt = &model.FlowAIPrompt{
 			ID:        util.UniqueID(),
 			AppID:     c.App.ID,
 			UserID:    c.Session.UserID,
 			Model:     h.assistant.Model(),
+			Prompt:    req.Messages[len(req.Messages)-1].Content,
 			Rounds:    1,
+			Edited:    true,
 			CreatedAt: now,
 			UpdatedAt: now,
 		}
@@ -146,6 +158,14 @@ func (h *FlowAIHandler) HandleFlowAIChat(c *handler.Context, req wire.FlowAIChat
 		return nil, handler.ErrServiceUnavailable("flow_ai_unavailable", "The flow AI isn't available right now. Please try again later.")
 	}
 
+	if !isRepair && len(res.Edits) == 0 {
+		if err := h.promptStore.MarkFlowAIPromptUnedited(c.Context(), c.App.ID, prompt.ID); err != nil {
+			slog.Error("Failed to mark flow AI prompt as unedited", slog.String("app_id", c.App.ID), slog.Any("error", err))
+		} else {
+			used--
+		}
+	}
+
 	return &wire.FlowAIChatResponse{
 		PromptID: prompt.ID,
 		Message:  res.Message,
@@ -155,11 +175,11 @@ func (h *FlowAIHandler) HandleFlowAIChat(c *handler.Context, req wire.FlowAIChat
 	}, nil
 }
 
-func (h *FlowAIHandler) promptsUsed(c *handler.Context) (int, error) {
+func (h *FlowAIHandler) promptCount(c *handler.Context) (model.FlowAIPromptCount, error) {
 	start, end := util.StartAndEndOfMonth(time.Now().UTC())
-	used, err := h.promptStore.CountFlowAIPromptsBetween(c.Context(), c.App.ID, start, end)
+	count, err := h.promptStore.CountFlowAIPromptsBetween(c.Context(), c.App.ID, start, end)
 	if err != nil {
-		return 0, fmt.Errorf("failed to count flow AI prompts: %w", err)
+		return count, fmt.Errorf("failed to count flow AI prompts: %w", err)
 	}
-	return used, nil
+	return count, nil
 }

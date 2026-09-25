@@ -58,11 +58,23 @@ func (s *fakePromptStore) AddFlowAIPromptUsage(ctx context.Context, appID string
 	return nil
 }
 
-func (s *fakePromptStore) CountFlowAIPromptsBetween(ctx context.Context, appID string, start time.Time, end time.Time) (int, error) {
-	count := 0
+func (s *fakePromptStore) MarkFlowAIPromptUnedited(ctx context.Context, appID string, id string) error {
+	prompt, err := s.FlowAIPrompt(ctx, appID, id)
+	if err != nil {
+		return err
+	}
+	prompt.Edited = false
+	return nil
+}
+
+func (s *fakePromptStore) CountFlowAIPromptsBetween(ctx context.Context, appID string, start time.Time, end time.Time) (model.FlowAIPromptCount, error) {
+	var count model.FlowAIPromptCount
 	for _, prompt := range s.prompts {
 		if prompt.AppID == appID && !prompt.CreatedAt.Before(start) && !prompt.CreatedAt.After(end) {
-			count++
+			count.Total++
+			if prompt.Edited {
+				count.Edited++
+			}
 		}
 	}
 	return count, nil
@@ -72,7 +84,9 @@ type fakeAssistant struct {
 	err error
 	// answered makes the error come with usage, like when the model answered.
 	answered bool
-	calls    int
+	// noEdits makes the answer a question without edits.
+	noEdits bool
+	calls   int
 }
 
 func (a *fakeAssistant) Model() string { return "gpt-5-mini" }
@@ -84,6 +98,9 @@ func (a *fakeAssistant) Respond(ctx context.Context, req flowai.Request) (*flowa
 			return &flowai.Response{Usage: model.FlowAIUsage{InputTokens: 100}}, a.err
 		}
 		return nil, a.err
+	}
+	if a.noEdits {
+		return &flowai.Response{Message: "Which channel?"}, nil
 	}
 	return &flowai.Response{
 		Message: "Done.",
@@ -253,4 +270,25 @@ func TestChatValidatesTheRequest(t *testing.T) {
 		assert.Equal(t, http.StatusBadRequest, code, body)
 	}
 	assert.Zero(t, s.assistant.calls)
+}
+
+func TestAnswersWithoutEditsDontCount(t *testing.T) {
+	s := setup(&fakeAssistant{noEdits: true})
+
+	code, res := s.chat(t, 1, prompt)
+	require.Equal(t, http.StatusOK, code, res)
+	assert.Equal(t, float64(0), res["data"].(map[string]any)["usage"].(map[string]any)["prompts_used"])
+	for _, p := range s.store.prompts {
+		assert.False(t, p.Edited)
+		assert.Equal(t, "Remove a", p.Prompt)
+	}
+
+	// They are limited to 3 times the plan's prompts.
+	for range 2 {
+		code, _ = s.chat(t, 1, prompt)
+		require.Equal(t, http.StatusOK, code)
+	}
+	code, res = s.chat(t, 1, prompt)
+	assert.Equal(t, http.StatusBadRequest, code)
+	assert.Equal(t, "resource_limit", errCode(res))
 }

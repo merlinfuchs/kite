@@ -97,6 +97,8 @@ type FlowAiPrompt struct {
 	OutputTokens      int32
 	CreatedAt         pgtype.Timestamp
 	UpdatedAt         pgtype.Timestamp
+	Prompt            string
+	Edited            bool
 }
 
 type Log struct {
