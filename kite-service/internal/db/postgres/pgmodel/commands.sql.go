@@ -174,36 +174,19 @@ func (q *Queries) GetCommandsByApp(ctx context.Context, appID string) ([]Command
 	return items, nil
 }
 
-const getEnabledCommandIDs = `-- name: GetEnabledCommandIDs :many
-SELECT id FROM commands WHERE enabled = TRUE
+const getCommandsUpdatedSince = `-- name: GetCommandsUpdatedSince :many
+SELECT id, name, description, enabled, app_id, module_id, creator_user_id, flow_source, created_at, updated_at, last_deployed_at FROM commands WHERE updated_at > $1 AND (enabled = TRUE OR $2::BOOLEAN)
 `
 
-func (q *Queries) GetEnabledCommandIDs(ctx context.Context) ([]string, error) {
-	rows, err := q.db.Query(ctx, getEnabledCommandIDs)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []string
-	for rows.Next() {
-		var id string
-		if err := rows.Scan(&id); err != nil {
-			return nil, err
-		}
-		items = append(items, id)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
+type GetCommandsUpdatedSinceParams struct {
+	UpdatedSince    pgtype.Timestamp
+	IncludeDisabled bool
 }
 
-const getEnabledCommandsUpdatesSince = `-- name: GetEnabledCommandsUpdatesSince :many
-SELECT id, name, description, enabled, app_id, module_id, creator_user_id, flow_source, created_at, updated_at, last_deployed_at FROM commands WHERE enabled = TRUE AND updated_at > $1
-`
-
-func (q *Queries) GetEnabledCommandsUpdatesSince(ctx context.Context, updatedAt pgtype.Timestamp) ([]Command, error) {
-	rows, err := q.db.Query(ctx, getEnabledCommandsUpdatesSince, updatedAt)
+// Includes disabled commands so the engine can drop them right away. The
+// first load has nothing to drop, so it skips them.
+func (q *Queries) GetCommandsUpdatedSince(ctx context.Context, arg GetCommandsUpdatedSinceParams) ([]Command, error) {
+	rows, err := q.db.Query(ctx, getCommandsUpdatedSince, arg.UpdatedSince, arg.IncludeDisabled)
 	if err != nil {
 		return nil, err
 	}
@@ -227,6 +210,30 @@ func (q *Queries) GetEnabledCommandsUpdatesSince(ctx context.Context, updatedAt 
 			return nil, err
 		}
 		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getEnabledCommandIDs = `-- name: GetEnabledCommandIDs :many
+SELECT id FROM commands WHERE enabled = TRUE
+`
+
+func (q *Queries) GetEnabledCommandIDs(ctx context.Context) ([]string, error) {
+	rows, err := q.db.Query(ctx, getEnabledCommandIDs)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []string
+	for rows.Next() {
+		var id string
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		items = append(items, id)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err

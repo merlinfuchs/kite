@@ -140,41 +140,6 @@ func (q *Queries) GetEnabledPluginInstanceIDs(ctx context.Context) ([]string, er
 	return items, nil
 }
 
-const getEnabledPluginInstancesUpdatesSince = `-- name: GetEnabledPluginInstancesUpdatesSince :many
-SELECT id, plugin_id, enabled, app_id, creator_user_id, config, enabled_resource_ids, created_at, updated_at, last_deployed_at FROM plugin_instances WHERE enabled = TRUE AND updated_at > $1
-`
-
-func (q *Queries) GetEnabledPluginInstancesUpdatesSince(ctx context.Context, updatedAt pgtype.Timestamp) ([]PluginInstance, error) {
-	rows, err := q.db.Query(ctx, getEnabledPluginInstancesUpdatesSince, updatedAt)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []PluginInstance
-	for rows.Next() {
-		var i PluginInstance
-		if err := rows.Scan(
-			&i.ID,
-			&i.PluginID,
-			&i.Enabled,
-			&i.AppID,
-			&i.CreatorUserID,
-			&i.Config,
-			&i.EnabledResourceIds,
-			&i.CreatedAt,
-			&i.UpdatedAt,
-			&i.LastDeployedAt,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
 const getPluginInstance = `-- name: GetPluginInstance :one
 SELECT id, plugin_id, enabled, app_id, creator_user_id, config, enabled_resource_ids, created_at, updated_at, last_deployed_at FROM plugin_instances WHERE app_id = $1 AND plugin_id = $2
 `
@@ -208,6 +173,48 @@ SELECT id, plugin_id, enabled, app_id, creator_user_id, config, enabled_resource
 
 func (q *Queries) GetPluginInstancesByApp(ctx context.Context, appID string) ([]PluginInstance, error) {
 	rows, err := q.db.Query(ctx, getPluginInstancesByApp, appID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []PluginInstance
+	for rows.Next() {
+		var i PluginInstance
+		if err := rows.Scan(
+			&i.ID,
+			&i.PluginID,
+			&i.Enabled,
+			&i.AppID,
+			&i.CreatorUserID,
+			&i.Config,
+			&i.EnabledResourceIds,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.LastDeployedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getPluginInstancesUpdatedSince = `-- name: GetPluginInstancesUpdatedSince :many
+SELECT id, plugin_id, enabled, app_id, creator_user_id, config, enabled_resource_ids, created_at, updated_at, last_deployed_at FROM plugin_instances WHERE updated_at > $1 AND (enabled = TRUE OR $2::BOOLEAN)
+`
+
+type GetPluginInstancesUpdatedSinceParams struct {
+	UpdatedSince    pgtype.Timestamp
+	IncludeDisabled bool
+}
+
+// Includes disabled plugin instances so the engine can drop them right away.
+// The first load has nothing to drop, so it skips them.
+func (q *Queries) GetPluginInstancesUpdatedSince(ctx context.Context, arg GetPluginInstancesUpdatedSinceParams) ([]PluginInstance, error) {
+	rows, err := q.db.Query(ctx, getPluginInstancesUpdatedSince, arg.UpdatedSince, arg.IncludeDisabled)
 	if err != nil {
 		return nil, err
 	}

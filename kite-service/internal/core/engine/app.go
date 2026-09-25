@@ -129,6 +129,21 @@ func (a *App) AddPluginInstance(pluginInstance *model.PluginInstance) {
 	}
 }
 
+func (a *App) RemovePluginInstance(pluginInstanceID string) {
+	a.Lock()
+	defer a.Unlock()
+
+	pluginInstance, ok := a.pluginInstances[pluginInstanceID]
+	if !ok {
+		return
+	}
+
+	if err := pluginInstance.Close(); err != nil {
+		slog.With("error", err).Error("failed to close plugin instance")
+	}
+	delete(a.pluginInstances, pluginInstanceID)
+}
+
 // RemoveDanglingPluginInstances drops instances absent from enabledIDs, the
 // set of plugin instances that still exist and are enabled.
 func (a *App) RemoveDanglingPluginInstances(enabledIDs map[string]struct{}) {
@@ -169,6 +184,16 @@ func (a *App) AddCommand(commandID string, command *Command) {
 	a.rebuildCommandIndex()
 }
 
+func (a *App) RemoveCommand(commandID string) {
+	a.Lock()
+	defer a.Unlock()
+
+	if _, ok := a.commands[commandID]; ok {
+		delete(a.commands, commandID)
+		a.rebuildCommandIndex()
+	}
+}
+
 // RemoveDanglingCommands drops commands absent from enabledIDs, the set of
 // commands that still exist and are enabled.
 func (a *App) RemoveDanglingCommands(enabledIDs map[string]struct{}) {
@@ -200,25 +225,6 @@ func (a *App) AddEventListener(listenerID string, listener *EventListener) {
 
 	a.listeners[listenerID] = listener
 	a.rebuildListenerIndex()
-}
-
-// RemoveDeletedScheduledListeners drops scheduled listeners absent from
-// enabledIDs, the enabled scheduled listeners that still exist.
-func (a *App) RemoveDeletedScheduledListeners(enabledIDs map[string]struct{}) {
-	a.Lock()
-	defer a.Unlock()
-
-	var removed bool
-	for _, listener := range a.scheduled {
-		if _, ok := enabledIDs[listener.listener.ID]; !ok {
-			delete(a.listeners, listener.listener.ID)
-			removed = true
-		}
-	}
-
-	if removed {
-		a.rebuildListenerIndex()
-	}
 }
 
 func (a *App) RemoveEventListener(listenerID string) {

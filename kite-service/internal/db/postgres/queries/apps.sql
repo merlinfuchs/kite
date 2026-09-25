@@ -66,17 +66,16 @@ SELECT * FROM apps WHERE enabled = TRUE AND updated_at > $1;
 -- name: GetDisabledAppIDsUpdatedSince :many
 SELECT id FROM apps WHERE enabled = FALSE AND updated_at > $1;
 
--- Apps whose gateway intent requirements may have changed.
---
--- Deletes are deliberately not covered: a deleted listener or plugin instance
--- leaves no row for updated_at to match. That only ever narrows the required
--- intents, so missing it means running with more intents than necessary until
--- the next reconnect -- wasteful, but never dropping events. Additions and
--- updates, which widen the requirements, are caught reliably.
+-- Apps whose gateway intent requirements may have changed. Deleted scheduled
+-- listeners can't be told apart from Discord ones, those only cause a refresh
+-- that finds the intents unchanged.
 -- name: GetAppIDsWithGatewayRequirementsChangedSince :many
-SELECT el.app_id FROM event_listeners el WHERE el.updated_at > $1
+SELECT el.app_id FROM event_listeners el WHERE el.updated_at > $1 AND el.source = 'discord'
 UNION
-SELECT pi.app_id FROM plugin_instances pi WHERE pi.updated_at > $1;
+SELECT pi.app_id FROM plugin_instances pi WHERE pi.updated_at > $1
+UNION
+SELECT de.app_id FROM deleted_entities de
+WHERE de.deleted_at > $1 AND de.entity_type IN ('event_listeners', 'plugin_instances');
 
 -- Everything the gateway needs to decide which intents to identify with.
 -- Plugin resources come back as "plugin_id:resource_id" so this stays a single

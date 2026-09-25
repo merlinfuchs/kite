@@ -37,8 +37,10 @@ UPDATE commands SET
     last_deployed_at = $2
 WHERE app_id = $1;
 
--- name: GetEnabledCommandsUpdatesSince :many
-SELECT * FROM commands WHERE enabled = TRUE AND updated_at > $1;
+-- name: GetCommandsUpdatedSince :many
+-- Includes disabled commands so the engine can drop them right away. The
+-- first load has nothing to drop, so it skips them.
+SELECT * FROM commands WHERE updated_at > @updated_since AND (enabled = TRUE OR @include_disabled::BOOLEAN);
 
 -- name: GetEnabledCommandIDs :many
 SELECT id FROM commands WHERE enabled = TRUE;

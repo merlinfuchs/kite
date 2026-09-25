@@ -18,6 +18,5 @@ type EventListenerStore interface {
 	// zero time.
 	EventListenersUpdatedSince(ctx context.Context, updatedSince time.Time) ([]*model.EventListener, error)
 	EnabledEventListenerIDs(ctx context.Context) ([]string, error)
-	EnabledScheduledEventListenerIDs(ctx context.Context) ([]string, error)
 	DeleteEventListener(ctx context.Context, id string) error
 }

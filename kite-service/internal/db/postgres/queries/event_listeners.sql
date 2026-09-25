@@ -37,9 +37,6 @@ WHERE id = $1 RETURNING *;
 -- first load has nothing to drop, so it skips them.
 SELECT * FROM event_listeners WHERE updated_at > @updated_since AND (enabled = TRUE OR @include_disabled::BOOLEAN);
 
--- name: GetEnabledScheduledEventListenerIDs :many
-SELECT id FROM event_listeners WHERE enabled = TRUE AND source = 'schedule';
-
 -- name: GetEnabledEventListenerIDs :many
 SELECT id FROM event_listeners WHERE enabled = TRUE;
 

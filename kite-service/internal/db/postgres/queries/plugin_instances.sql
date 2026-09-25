@@ -35,8 +35,10 @@ UPDATE plugin_instances SET
     last_deployed_at = $2
 WHERE app_id = $1;
 
--- name: GetEnabledPluginInstancesUpdatesSince :many
-SELECT * FROM plugin_instances WHERE enabled = TRUE AND updated_at > $1;
+-- name: GetPluginInstancesUpdatedSince :many
+-- Includes disabled plugin instances so the engine can drop them right away.
+-- The first load has nothing to drop, so it skips them.
+SELECT * FROM plugin_instances WHERE updated_at > @updated_since AND (enabled = TRUE OR @include_disabled::BOOLEAN);
 
 -- name: GetEnabledPluginInstanceIDs :many
 SELECT id FROM plugin_instances WHERE enabled = TRUE;

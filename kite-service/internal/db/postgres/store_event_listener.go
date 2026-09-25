@@ -165,10 +165,6 @@ func (c *Client) EventListenersUpdatedSince(ctx context.Context, updatedSince ti
 	return listeners, nil
 }
 
-func (c *Client) EnabledScheduledEventListenerIDs(ctx context.Context) ([]string, error) {
-	return c.Q.GetEnabledScheduledEventListenerIDs(ctx)
-}
-
 func (c *Client) EnabledEventListenerIDs(ctx context.Context) ([]string, error) {
 	return c.Q.GetEnabledEventListenerIDs(ctx)
 }

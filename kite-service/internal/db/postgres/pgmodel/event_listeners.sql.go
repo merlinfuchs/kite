@@ -128,30 +128,6 @@ func (q *Queries) GetEnabledEventListenerIDs(ctx context.Context) ([]string, err
 	return items, nil
 }
 
-const getEnabledScheduledEventListenerIDs = `-- name: GetEnabledScheduledEventListenerIDs :many
-SELECT id FROM event_listeners WHERE enabled = TRUE AND source = 'schedule'
-`
-
-func (q *Queries) GetEnabledScheduledEventListenerIDs(ctx context.Context) ([]string, error) {
-	rows, err := q.db.Query(ctx, getEnabledScheduledEventListenerIDs)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []string
-	for rows.Next() {
-		var id string
-		if err := rows.Scan(&id); err != nil {
-			return nil, err
-		}
-		items = append(items, id)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
 const getEventListener = `-- name: GetEventListener :one
 SELECT id, source, type, description, enabled, app_id, module_id, creator_user_id, filter, flow_source, created_at, updated_at, last_run_at FROM event_listeners WHERE id = $1
 `
