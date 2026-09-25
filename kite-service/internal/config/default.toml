@@ -19,7 +19,7 @@ max_stack_depth = 100
 max_operations = 100
 max_credits = 250
 populate_interval = "5s"
-remove_dangling_interval = "10m"
+remove_dangling_interval = "5m"
 populate_overlap = "5s"
 
 [gateway]
