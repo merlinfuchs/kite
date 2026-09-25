@@ -147,3 +147,67 @@ func (d *TestContextData) MessageComponentData() discord.ComponentInteraction {
 func (d *TestContextData) Event() ws.Event {
 	return &gateway.InteractionCreateEvent{}
 }
+
+func TestFlowExecuteModalEvaluatesTemplates(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	discordProvider := &TestDiscordProvider{}
+
+	c := NewContext(
+		ctx,
+		5*time.Second,
+		&TestContextData{},
+		FlowProviders{
+			Discord:     discordProvider,
+			Log:         &provider.MockLogProvider{},
+			ResumePoint: &MockResumePointProvider{},
+		}, FlowContextLimits{
+			MaxStackDepth: 10,
+			MaxOperations: 1000,
+			MaxCredits:    1000,
+		},
+		eval.NewContext(eval.Env{}),
+		nil,
+	)
+	defer c.Cancel()
+
+	node := CompiledFlowNode{
+		ID:   "0",
+		Type: FlowNodeTypeEntryCommand,
+		Children: ConnectedFlowNodes{
+			Default: []*CompiledFlowNode{
+				{
+					ID:   "1",
+					Type: FlowNodeTypeSuspendResponseModal,
+					Data: FlowNodeData{
+						ModalData: &ModalData{
+							Title: "Form {{ 1 + 1 }}",
+							Components: []ModalComponentData{{
+								Components: []ModalComponentData{{
+									CustomID:    "name_{{ 1 }}",
+									Style:       1,
+									Label:       "Label {{ 2 + 1 }}",
+									Placeholder: "Placeholder {{ 4 }}",
+									Value:       "Value {{ 5 }}",
+								}},
+							}},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	err := node.Execute(c)
+	require.NoError(t, err)
+	require.NotNil(t, discordProvider.response.Data)
+	assert.Equal(t, "Form 2", discordProvider.response.Data.Title.Val)
+
+	row := (*discordProvider.response.Data.Components)[0].(*discord.ActionRowComponent)
+	input := (*row)[0].(*discord.TextInputComponent)
+	assert.Equal(t, discord.ComponentID("name_{{ 1 }}"), input.CustomID)
+	assert.Equal(t, "Label 3", input.Label)
+	assert.Equal(t, "Placeholder 4", input.Placeholder)
+	assert.Equal(t, "Value 5", input.Value)
+}

@@ -1549,7 +1549,6 @@ function ModalDataInput({ data, updateData, errors }: InputProps) {
                       })
                     }
                     errors={errors}
-                    placeholders
                   />
                   <BaseInput
                     type="text"
