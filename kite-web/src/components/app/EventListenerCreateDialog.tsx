@@ -34,6 +34,9 @@ import {
 } from "../ui/select";
 import { getNodeId } from "@/lib/flow/nodes";
 import { EventTypeScheduleCron } from "@/lib/types/flow.gen";
+import ScheduleCronPreview, {
+  ScheduleCronHelp,
+} from "../common/ScheduleCronPreview";
 
 interface FormFields {
   source: string;
@@ -158,13 +161,13 @@ export default function EventListenerCreateDialog({
                   <FormItem>
                     <FormLabel>Schedule</FormLabel>
                     <FormDescription>
-                      A cron expression in UTC, e.g. */5 * * * * for every five
-                      minutes.
+                      <ScheduleCronHelp />
                     </FormDescription>
                     <FormControl>
                       <Input type="text" placeholder="*/5 * * * *" {...field} />
                     </FormControl>
                     <FormMessage />
+                    <ScheduleCronPreview cron={field.value} />
                   </FormItem>
                 )}
               />

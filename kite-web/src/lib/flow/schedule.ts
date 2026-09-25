@@ -1,4 +1,5 @@
 import { CronExpressionParser } from "cron-parser";
+import cronstrue from "cronstrue";
 import { Node } from "@xyflow/react";
 import { getNodeCreditsCost, getNodeValues } from "./nodes";
 import { NodeData } from "./dataSchema";
@@ -47,6 +48,19 @@ export function getSchedulePreview(
     minGapSeconds: minGap / 1000,
     runsPerMonth: Math.round(((runs.length - 1) / spanMs) * monthMs),
   };
+}
+
+// describeSchedule returns undefined for expressions cronstrue can't describe,
+// like @every.
+export function describeSchedule(cron: string): string | undefined {
+  try {
+    return cronstrue.toString(cron, {
+      use24HourTimeFormat: true,
+      throwExceptionOnParseError: true,
+    });
+  } catch {
+    return undefined;
+  }
 }
 
 // getFlowCreditsCost is the cost of one run if every block runs once.
