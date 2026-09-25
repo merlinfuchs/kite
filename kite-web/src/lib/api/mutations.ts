@@ -35,6 +35,8 @@ import {
   EventListenerUpdateEnabledResponse,
   EventListenerUpdateRequest,
   EventListenerUpdateResponse,
+  FlowAIChatRequest,
+  FlowAIChatResponse,
   MessageCreateRequest,
   MessageCreateResponse,
   MessageDeleteResponse,
@@ -67,6 +69,7 @@ import {
   VariableUpdateResponse,
 } from "../types/wire.gen";
 import client, { apiRequest } from "./client";
+import { flowAIUsageQueryKey } from "./queries";
 
 export function useAuthLogoutMutation() {
   const client = useQueryClient();
@@ -850,5 +853,31 @@ export function useShareCodeResolveMutation() {
       apiRequest<ShareCodeGetResponse>(
         `/v1/share-codes/${encodeURIComponent(code)}`
       ),
+  });
+}
+
+export function useFlowAIChatMutation(appId: string) {
+  const client = useQueryClient();
+
+  return useMutation({
+    mutationFn: (req: FlowAIChatRequest) =>
+      apiRequest<FlowAIChatResponse>(`/v1/apps/${appId}/flow-ai/chat`, {
+        method: "POST",
+        body: JSON.stringify(req),
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }),
+    onSuccess: (res) => {
+      if (res.success) {
+        client.setQueryData(flowAIUsageQueryKey(appId), {
+          success: true,
+          data: res.data.usage,
+        });
+      } else {
+        // Answers that couldn't be used count too.
+        client.invalidateQueries({ queryKey: flowAIUsageQueryKey(appId) });
+      }
+    },
   });
 }

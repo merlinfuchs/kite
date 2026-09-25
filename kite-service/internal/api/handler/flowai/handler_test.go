@@ -136,10 +136,10 @@ func errCode(res map[string]any) any {
 	return res["error"].(map[string]any)["code"]
 }
 
-const prompt = `{"flow_type": "command", "flow": "Blocks:", "messages": [{"role": "user", "content": "Remove a"}]}`
+const prompt = `{"flow": "Blocks:", "messages": [{"role": "user", "content": "Remove a"}]}`
 
 func repair(promptID string) string {
-	return `{"flow_type": "command", "flow": "Blocks:", "repair_prompt_id": "` + promptID + `",
+	return `{"flow": "Blocks:", "repair_prompt_id": "` + promptID + `",
 		"messages": [{"role": "user", "content": "Remove a"}, {"role": "assistant", "content": "Done."}],
 		"issues": ["'Log Message' never runs"]}`
 }
@@ -243,11 +243,11 @@ func TestChatValidatesTheRequest(t *testing.T) {
 	s := setup(&fakeAssistant{})
 
 	for _, body := range []string{
-		`{"flow_type": "other", "flow": "Blocks:", "messages": [{"role": "user", "content": "Hi"}]}`,
-		`{"flow_type": "command", "flow": "Blocks:", "messages": [{"role": "assistant", "content": "Hi"}]}`,
-		`{"flow_type": "command", "flow": "Blocks:", "messages": [{"role": "user", "content": "Hi"}], "repair_prompt_id": "x"}`,
-		`{"flow_type": "command", "flow": "Blocks:", "messages": [{"role": "user", "content": "Hi"}], "issues": ["x"]}`,
-		`{"flow_type": "command", "flow": "Blocks:", "messages": [{"role": "user", "content": "Hi"}], "repair_prompt_id": "x", "issues": ["x"]}`,
+		`{"flow": "Blocks:", "messages": [{"role": "user", "content": ""}]}`,
+		`{"flow": "Blocks:", "messages": [{"role": "assistant", "content": "Hi"}]}`,
+		`{"flow": "Blocks:", "messages": [{"role": "user", "content": "Hi"}], "repair_prompt_id": "x"}`,
+		`{"flow": "Blocks:", "messages": [{"role": "user", "content": "Hi"}], "issues": ["x"]}`,
+		`{"flow": "Blocks:", "messages": [{"role": "user", "content": "Hi"}], "repair_prompt_id": "x", "issues": ["x"]}`,
 	} {
 		code, _ := s.chat(t, 1, body)
 		assert.Equal(t, http.StatusBadRequest, code, body)

@@ -50,7 +50,6 @@ type Message struct {
 }
 
 type Request struct {
-	FlowType string
 	// Flow is the flow as serialized by the editor.
 	Flow string
 	// Messages is the chat so far, oldest first. The last one is the user's
@@ -141,6 +140,10 @@ func (a *Assistant) params(req Request) responses.ResponseNewParams {
 
 	input := make(responses.ResponseInputParam, 0, len(messages)+1)
 	for _, m := range messages {
+		// Answers with edits alone have no text.
+		if m.Content == "" {
+			continue
+		}
 		role := responses.EasyInputMessageRoleUser
 		if m.Role == "assistant" {
 			role = responses.EasyInputMessageRoleAssistant
@@ -149,7 +152,7 @@ func (a *Assistant) params(req Request) responses.ResponseNewParams {
 	}
 	input = append(input, easyMessage(
 		responses.EasyInputMessageRoleUser,
-		fmt.Sprintf("Flow type: %s\n\nCurrent flow:\n%s\n\n%s", req.FlowType, req.Flow, current),
+		fmt.Sprintf("Current flow:\n%s\n\n%s", req.Flow, current),
 	))
 
 	return responses.ResponseNewParams{

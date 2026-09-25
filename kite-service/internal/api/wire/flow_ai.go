@@ -4,7 +4,6 @@ import (
 	"errors"
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
-	"github.com/kitecloud/kite/kite-service/internal/core/flowai"
 )
 
 type FlowAIChatMessage struct {
@@ -15,12 +14,12 @@ type FlowAIChatMessage struct {
 func (m FlowAIChatMessage) Validate() error {
 	return validation.ValidateStruct(&m,
 		validation.Field(&m.Role, validation.Required, validation.In("user", "assistant")),
-		validation.Field(&m.Content, validation.Required, validation.Length(1, 4000)),
+		// The AI can answer with edits alone.
+		validation.Field(&m.Content, validation.When(m.Role == "user", validation.Required), validation.Length(0, 4000)),
 	)
 }
 
 type FlowAIChatRequest struct {
-	FlowType string `json:"flow_type"`
 	// Flow is the flow as serialized by the editor.
 	Flow     string              `json:"flow"`
 	Messages []FlowAIChatMessage `json:"messages"`
@@ -30,17 +29,8 @@ type FlowAIChatRequest struct {
 	Issues         []string `json:"issues"`
 }
 
-var flowAIFlowTypes = func() []any {
-	types := make([]any, len(flowai.FlowTypes))
-	for i, t := range flowai.FlowTypes {
-		types[i] = t
-	}
-	return types
-}()
-
 func (req FlowAIChatRequest) Validate() error {
 	err := validation.ValidateStruct(&req,
-		validation.Field(&req.FlowType, validation.Required, validation.In(flowAIFlowTypes...)),
 		validation.Field(&req.Flow, validation.Required, validation.Length(1, 100_000)),
 		validation.Field(&req.Messages, validation.Required, validation.Length(1, 20)),
 		validation.Field(&req.Issues,
