@@ -13,7 +13,7 @@ import (
 )
 
 func (c *Client) CreateFlowAIPrompt(ctx context.Context, prompt *model.FlowAIPrompt) error {
-	_, err := c.Q.CreateFlowAIPrompt(ctx, pgmodel.CreateFlowAIPromptParams{
+	return c.Q.CreateFlowAIPrompt(ctx, pgmodel.CreateFlowAIPromptParams{
 		ID:                prompt.ID,
 		AppID:             prompt.AppID,
 		UserID:            prompt.UserID,
@@ -25,7 +25,6 @@ func (c *Client) CreateFlowAIPrompt(ctx context.Context, prompt *model.FlowAIPro
 		CreatedAt:         pgtype.Timestamp{Time: prompt.CreatedAt, Valid: true},
 		UpdatedAt:         pgtype.Timestamp{Time: prompt.UpdatedAt, Valid: true},
 	})
-	return err
 }
 
 func (c *Client) FlowAIPrompt(ctx context.Context, appID string, id string) (*model.FlowAIPrompt, error) {
@@ -43,8 +42,8 @@ func (c *Client) FlowAIPrompt(ctx context.Context, appID string, id string) (*mo
 	return rowToFlowAIPrompt(row), nil
 }
 
-func (c *Client) AddFlowAIPromptRound(ctx context.Context, appID string, id string, usage model.FlowAIUsage, updatedAt time.Time) (*model.FlowAIPrompt, error) {
-	row, err := c.Q.AddFlowAIPromptRound(ctx, pgmodel.AddFlowAIPromptRoundParams{
+func (c *Client) AddFlowAIPromptRound(ctx context.Context, appID string, id string, usage model.FlowAIUsage, updatedAt time.Time) error {
+	return c.Q.AddFlowAIPromptRound(ctx, pgmodel.AddFlowAIPromptRoundParams{
 		ID:                id,
 		AppID:             appID,
 		InputTokens:       int32(usage.InputTokens),
@@ -52,14 +51,6 @@ func (c *Client) AddFlowAIPromptRound(ctx context.Context, appID string, id stri
 		OutputTokens:      int32(usage.OutputTokens),
 		UpdatedAt:         pgtype.Timestamp{Time: updatedAt, Valid: true},
 	})
-	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return nil, store.ErrNotFound
-		}
-		return nil, err
-	}
-
-	return rowToFlowAIPrompt(row), nil
 }
 
 func (c *Client) CountFlowAIPromptsBetween(ctx context.Context, appID string, start time.Time, end time.Time) (int, error) {

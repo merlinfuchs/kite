@@ -11,14 +11,14 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
-const addFlowAIPromptRound = `-- name: AddFlowAIPromptRound :one
+const addFlowAIPromptRound = `-- name: AddFlowAIPromptRound :exec
 UPDATE flow_ai_prompts SET
     rounds = rounds + 1,
     input_tokens = input_tokens + $1,
     cached_input_tokens = cached_input_tokens + $2,
     output_tokens = output_tokens + $3,
     updated_at = $4
-WHERE id = $5 AND app_id = $6 RETURNING id, app_id, user_id, model, rounds, input_tokens, cached_input_tokens, output_tokens, created_at, updated_at
+WHERE id = $5 AND app_id = $6
 `
 
 type AddFlowAIPromptRoundParams struct {
@@ -30,8 +30,8 @@ type AddFlowAIPromptRoundParams struct {
 	AppID             string
 }
 
-func (q *Queries) AddFlowAIPromptRound(ctx context.Context, arg AddFlowAIPromptRoundParams) (FlowAiPrompt, error) {
-	row := q.db.QueryRow(ctx, addFlowAIPromptRound,
+func (q *Queries) AddFlowAIPromptRound(ctx context.Context, arg AddFlowAIPromptRoundParams) error {
+	_, err := q.db.Exec(ctx, addFlowAIPromptRound,
 		arg.InputTokens,
 		arg.CachedInputTokens,
 		arg.OutputTokens,
@@ -39,20 +39,7 @@ func (q *Queries) AddFlowAIPromptRound(ctx context.Context, arg AddFlowAIPromptR
 		arg.ID,
 		arg.AppID,
 	)
-	var i FlowAiPrompt
-	err := row.Scan(
-		&i.ID,
-		&i.AppID,
-		&i.UserID,
-		&i.Model,
-		&i.Rounds,
-		&i.InputTokens,
-		&i.CachedInputTokens,
-		&i.OutputTokens,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-	)
-	return i, err
+	return err
 }
 
 const countFlowAIPromptsByAppBetween = `-- name: CountFlowAIPromptsByAppBetween :one
@@ -72,7 +59,7 @@ func (q *Queries) CountFlowAIPromptsByAppBetween(ctx context.Context, arg CountF
 	return column_1, err
 }
 
-const createFlowAIPrompt = `-- name: CreateFlowAIPrompt :one
+const createFlowAIPrompt = `-- name: CreateFlowAIPrompt :exec
 INSERT INTO flow_ai_prompts (
     id,
     app_id,
@@ -86,7 +73,7 @@ INSERT INTO flow_ai_prompts (
     updated_at
 ) VALUES (
     $1, $2, $3, $4, $5, $6, $7, $8, $9, $10
-) RETURNING id, app_id, user_id, model, rounds, input_tokens, cached_input_tokens, output_tokens, created_at, updated_at
+)
 `
 
 type CreateFlowAIPromptParams struct {
@@ -102,8 +89,8 @@ type CreateFlowAIPromptParams struct {
 	UpdatedAt         pgtype.Timestamp
 }
 
-func (q *Queries) CreateFlowAIPrompt(ctx context.Context, arg CreateFlowAIPromptParams) (FlowAiPrompt, error) {
-	row := q.db.QueryRow(ctx, createFlowAIPrompt,
+func (q *Queries) CreateFlowAIPrompt(ctx context.Context, arg CreateFlowAIPromptParams) error {
+	_, err := q.db.Exec(ctx, createFlowAIPrompt,
 		arg.ID,
 		arg.AppID,
 		arg.UserID,
@@ -115,20 +102,7 @@ func (q *Queries) CreateFlowAIPrompt(ctx context.Context, arg CreateFlowAIPrompt
 		arg.CreatedAt,
 		arg.UpdatedAt,
 	)
-	var i FlowAiPrompt
-	err := row.Scan(
-		&i.ID,
-		&i.AppID,
-		&i.UserID,
-		&i.Model,
-		&i.Rounds,
-		&i.InputTokens,
-		&i.CachedInputTokens,
-		&i.OutputTokens,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-	)
-	return i, err
+	return err
 }
 
 const getFlowAIPrompt = `-- name: GetFlowAIPrompt :one

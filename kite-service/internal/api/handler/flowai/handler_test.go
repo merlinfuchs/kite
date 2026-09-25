@@ -34,13 +34,13 @@ func (s *fakePromptStore) FlowAIPrompt(ctx context.Context, appID string, id str
 	return prompt, nil
 }
 
-func (s *fakePromptStore) AddFlowAIPromptRound(ctx context.Context, appID string, id string, usage model.FlowAIUsage, updatedAt time.Time) (*model.FlowAIPrompt, error) {
+func (s *fakePromptStore) AddFlowAIPromptRound(ctx context.Context, appID string, id string, usage model.FlowAIUsage, updatedAt time.Time) error {
 	prompt, err := s.FlowAIPrompt(ctx, appID, id)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	prompt.Rounds++
-	return prompt, nil
+	return nil
 }
 
 func (s *fakePromptStore) CountFlowAIPromptsBetween(ctx context.Context, appID string, start time.Time, end time.Time) (int, error) {
@@ -63,7 +63,7 @@ func (a *fakeAssistant) Model() string { return "gpt-5-mini" }
 func (a *fakeAssistant) Respond(ctx context.Context, req flowai.Request) (*flowai.Response, error) {
 	a.calls++
 	if a.err != nil {
-		return &flowai.Response{}, a.err
+		return nil, a.err
 	}
 	return &flowai.Response{
 		Message: "Done.",
@@ -112,6 +112,10 @@ func (s *testSetup) chat(t *testing.T, limit int, body string) (int, map[string]
 	return rec.Code, res
 }
 
+func errCode(res map[string]any) any {
+	return res["error"].(map[string]any)["code"]
+}
+
 const prompt = `{"flow_type": "command", "flow": "Blocks:", "messages": [{"role": "user", "content": "Remove a"}]}`
 
 func repair(promptID string) string {
@@ -136,7 +140,7 @@ func TestChatCountsPromptsAgainstTheLimit(t *testing.T) {
 
 	code, res = s.chat(t, 2, prompt)
 	assert.Equal(t, http.StatusBadRequest, code)
-	assert.Equal(t, "resource_limit", res["error"].(map[string]any)["code"])
+	assert.Equal(t, "resource_limit", errCode(res))
 	assert.Equal(t, 2, s.assistant.calls)
 }
 
@@ -145,7 +149,7 @@ func TestChatNeedsThePlanToIncludeIt(t *testing.T) {
 
 	code, res := s.chat(t, 0, prompt)
 	assert.Equal(t, http.StatusForbidden, code)
-	assert.Equal(t, "feature_unavailable", res["error"].(map[string]any)["code"])
+	assert.Equal(t, "feature_unavailable", errCode(res))
 }
 
 func TestRepairsDontCountAndAreLimited(t *testing.T) {
@@ -163,7 +167,7 @@ func TestRepairsDontCountAndAreLimited(t *testing.T) {
 
 	code, res := s.chat(t, 1, repair(promptID))
 	assert.Equal(t, http.StatusBadRequest, code)
-	assert.Equal(t, "repair_limit", res["error"].(map[string]any)["code"])
+	assert.Equal(t, "repair_limit", errCode(res))
 	assert.Equal(t, 3, s.store.prompts[promptID].Rounds)
 }
 
@@ -188,7 +192,7 @@ func TestChatWithoutOpenAI(t *testing.T) {
 
 	code, res := s.chat(t, 1, prompt)
 	assert.Equal(t, http.StatusServiceUnavailable, code)
-	assert.Equal(t, "flow_ai_unavailable", res["error"].(map[string]any)["code"])
+	assert.Equal(t, "flow_ai_unavailable", errCode(res))
 }
 
 func TestChatValidatesTheRequest(t *testing.T) {

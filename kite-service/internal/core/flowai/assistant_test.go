@@ -86,11 +86,12 @@ func TestRespond(t *testing.T) {
 	assert.Equal(t, "json_schema", format["type"])
 	assert.Equal(t, true, format["strict"])
 
-	// The last 10 earlier messages are sent, then the current one with the flow.
+	// Of the 12 earlier messages, the oldest 5 are dropped, then the current
+	// one is sent with the flow.
 	input := req["input"].([]any)
-	require.Len(t, input, 11)
-	assert.Equal(t, "old 2", input[0].(map[string]any)["content"])
-	last := input[10].(map[string]any)["content"].(string)
+	require.Len(t, input, 8)
+	assert.Equal(t, "old 5", input[0].(map[string]any)["content"])
+	last := input[7].(map[string]any)["content"].(string)
 	assert.Contains(t, last, "Flow type: command")
 	assert.Contains(t, last, "- entry entry_command")
 	assert.True(t, strings.HasSuffix(last, "Add a log"))
@@ -119,15 +120,14 @@ func TestRespondRepair(t *testing.T) {
 func TestRespondCutOff(t *testing.T) {
 	assistant, _ := fakeOpenAI(t, "incomplete", `{"message": "Added`)
 
-	res, err := assistant.Respond(context.Background(), Request{
+	_, err := assistant.Respond(context.Background(), Request{
 		FlowType: "command",
 		Flow:     "Blocks:",
 		Messages: []Message{{Role: "user", Content: "Add a log"}},
 	})
 
 	var resErr *ErrResponse
-	require.True(t, errors.As(err, &resErr))
-	assert.Equal(t, 1000, res.Usage.InputTokens)
+	assert.True(t, errors.As(err, &resErr))
 }
 
 func TestParseOutputSkipsEditsWithInvalidSettings(t *testing.T) {

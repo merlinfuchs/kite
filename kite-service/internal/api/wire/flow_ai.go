@@ -30,14 +30,17 @@ type FlowAIChatRequest struct {
 	Issues         []string `json:"issues"`
 }
 
-func (req FlowAIChatRequest) Validate() error {
-	flowTypes := make([]any, len(flowai.FlowTypes))
+var flowAIFlowTypes = func() []any {
+	types := make([]any, len(flowai.FlowTypes))
 	for i, t := range flowai.FlowTypes {
-		flowTypes[i] = t
+		types[i] = t
 	}
+	return types
+}()
 
+func (req FlowAIChatRequest) Validate() error {
 	err := validation.ValidateStruct(&req,
-		validation.Field(&req.FlowType, validation.Required, validation.In(flowTypes...)),
+		validation.Field(&req.FlowType, validation.Required, validation.In(flowAIFlowTypes...)),
 		validation.Field(&req.Flow, validation.Required, validation.Length(1, 100_000)),
 		validation.Field(&req.Messages, validation.Required, validation.Length(1, 20)),
 		validation.Field(&req.Issues,

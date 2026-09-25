@@ -2,22 +2,26 @@ package flowai
 
 import (
 	"context"
-	"crypto/sha256"
-	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log/slog"
 	"strings"
 
 	"github.com/kitecloud/kite/kite-service/internal/model"
+	"github.com/kitecloud/kite/kite-service/internal/util"
 	"github.com/openai/openai-go/v2"
 	"github.com/openai/openai-go/v2/responses"
 	"github.com/openai/openai-go/v2/shared"
 )
 
 // maxHistory is how many earlier chat messages are sent along, so long chats
-// don't grow the cost of every prompt.
-const maxHistory = 10
+// don't grow the cost of every prompt. Older ones are dropped historyStep at a
+// time, so the start of the input stays the same and cached for a few turns.
+const (
+	maxHistory  = 10
+	historyStep = 5
+)
 
 type Config struct {
 	Model           string
@@ -55,6 +59,7 @@ type Request struct {
 	// Issues are the problems the editor found with the edits of the last
 	// response, which this response should fix.
 	Issues []string
+	AppID  string
 	UserID string
 }
 
@@ -89,15 +94,23 @@ func (a *Assistant) Respond(ctx context.Context, req Request) (*Response, error)
 		CachedInputTokens: int(resp.Usage.InputTokensDetails.CachedTokens),
 		OutputTokens:      int(resp.Usage.OutputTokens),
 	}
+	slog.Info(
+		"Flow AI response",
+		slog.String("app_id", req.AppID),
+		slog.Bool("repair", len(req.Issues) > 0),
+		slog.String("status", string(resp.Status)),
+		slog.Int("input_tokens", usage.InputTokens),
+		slog.Int("cached_input_tokens", usage.CachedInputTokens),
+		slog.Int("output_tokens", usage.OutputTokens),
+	)
+
 	if resp.Status != responses.ResponseStatusCompleted {
-		return &Response{Usage: usage}, &ErrResponse{
-			Message: "The AI's answer was cut off. Try asking for a smaller change.",
-		}
+		return nil, &ErrResponse{Message: "The AI's answer was cut off. Try asking for a smaller change."}
 	}
 
 	res, err := parseOutput(resp.OutputText())
 	if err != nil {
-		return &Response{Usage: usage}, err
+		return nil, err
 	}
 	res.Usage = usage
 	return res, nil
@@ -114,8 +127,8 @@ func (a *Assistant) params(req Request) responses.ResponseNewParams {
 		current = messages[len(messages)-1].Content
 		messages = messages[:len(messages)-1]
 	}
-	if len(messages) > maxHistory {
-		messages = messages[len(messages)-maxHistory:]
+	if over := len(messages) - maxHistory; over > 0 {
+		messages = messages[(over+historyStep-1)/historyStep*historyStep:]
 	}
 
 	input := make(responses.ResponseInputParam, 0, len(messages)+1)
@@ -130,9 +143,6 @@ func (a *Assistant) params(req Request) responses.ResponseNewParams {
 		responses.EasyInputMessageRoleUser,
 		fmt.Sprintf("Flow type: %s\n\nCurrent flow:\n%s\n\n%s", req.FlowType, req.Flow, current),
 	))
-
-	// Identifies users to OpenAI for abuse detection without revealing them.
-	userHash := sha256.Sum256([]byte(req.UserID))
 
 	return responses.ResponseNewParams{
 		Model:           a.config.Model,
@@ -151,8 +161,9 @@ func (a *Assistant) params(req Request) responses.ResponseNewParams {
 				},
 			},
 		},
-		PromptCacheKey:   openai.String("kite-flow-ai"),
-		SafetyIdentifier: openai.String(hex.EncodeToString(userHash[:])),
+		PromptCacheKey: openai.String("kite-flow-ai"),
+		// Identifies users to OpenAI for abuse detection without revealing them.
+		SafetyIdentifier: openai.String(util.HashBytes([]byte(req.UserID))),
 	}
 }
 

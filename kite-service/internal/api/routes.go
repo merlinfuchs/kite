@@ -208,7 +208,10 @@ func (s *APIServer) RegisterRoutes(
 
 	flowAIGroup := appGroup.Group("/flow-ai")
 	flowAIGroup.Get("/usage", handler.Typed(flowAIHandler.HandleFlowAIUsageGet))
-	flowAIGroup.Post("/chat", handler.TypedWithBody(flowAIHandler.HandleFlowAIChat))
+	flowAIGroup.Post("/chat",
+		handler.TypedWithBody(flowAIHandler.HandleFlowAIChat),
+		handler.RateLimitByUser(10, time.Minute),
+	)
 
 	// Usage routes
 	usageHandler := usage.NewUsageHandler(usageStore)

@@ -60,8 +60,9 @@ func (h *FlowAIHandler) HandleFlowAIChat(c *handler.Context, req wire.FlowAIChat
 		return nil, err
 	}
 
+	isRepair := req.RepairPromptID != ""
 	var prompt *model.FlowAIPrompt
-	if req.RepairPromptID != "" {
+	if isRepair {
 		prompt, err = h.promptStore.FlowAIPrompt(c.Context(), c.App.ID, req.RepairPromptID)
 		if err != nil {
 			if errors.Is(err, store.ErrNotFound) {
@@ -72,10 +73,14 @@ func (h *FlowAIHandler) HandleFlowAIChat(c *handler.Context, req wire.FlowAIChat
 		if prompt.Rounds > h.maxRepairs {
 			return nil, handler.ErrBadRequest("repair_limit", "The AI couldn't fix its changes. Try describing the change differently.")
 		}
-	} else if limit == 0 {
-		return nil, handler.ErrForbidden("feature_unavailable", "Your plan doesn't include the flow AI.")
-	} else if used >= limit {
-		return nil, handler.ErrBadRequest("resource_limit", fmt.Sprintf("You've used all %d AI prompts for this month.", limit))
+	} else {
+		// Unlike other limits, 0 means none, so plans need to opt in.
+		if limit == 0 {
+			return nil, handler.ErrForbidden("feature_unavailable", "Your plan doesn't include the flow AI.")
+		}
+		if used >= limit {
+			return nil, handler.ErrBadRequest("resource_limit", fmt.Sprintf("You've used all %d AI prompts for this month.", limit))
+		}
 	}
 
 	messages := make([]flowai.Message, len(req.Messages))
@@ -88,18 +93,9 @@ func (h *FlowAIHandler) HandleFlowAIChat(c *handler.Context, req wire.FlowAIChat
 		Flow:     req.Flow,
 		Messages: messages,
 		Issues:   req.Issues,
+		AppID:    c.App.ID,
 		UserID:   c.Session.UserID,
 	})
-	if res != nil {
-		slog.Info(
-			"Flow AI response",
-			slog.String("app_id", c.App.ID),
-			slog.Bool("repair", prompt != nil),
-			slog.Int("input_tokens", res.Usage.InputTokens),
-			slog.Int("cached_input_tokens", res.Usage.CachedInputTokens),
-			slog.Int("output_tokens", res.Usage.OutputTokens),
-		)
-	}
 	if err != nil {
 		var resErr *flowai.ErrResponse
 		if errors.As(err, &resErr) {
@@ -111,7 +107,11 @@ func (h *FlowAIHandler) HandleFlowAIChat(c *handler.Context, req wire.FlowAIChat
 
 	// Only answered prompts count, so failed ones don't use up the limit.
 	now := time.Now().UTC()
-	if prompt == nil {
+	if isRepair {
+		if err := h.promptStore.AddFlowAIPromptRound(c.Context(), c.App.ID, prompt.ID, res.Usage, now); err != nil {
+			return nil, fmt.Errorf("failed to add flow AI prompt round: %w", err)
+		}
+	} else {
 		prompt = &model.FlowAIPrompt{
 			ID:        util.UniqueID(),
 			AppID:     c.App.ID,
@@ -126,8 +126,6 @@ func (h *FlowAIHandler) HandleFlowAIChat(c *handler.Context, req wire.FlowAIChat
 			return nil, fmt.Errorf("failed to create flow AI prompt: %w", err)
 		}
 		used++
-	} else if _, err := h.promptStore.AddFlowAIPromptRound(c.Context(), c.App.ID, prompt.ID, res.Usage, now); err != nil {
-		return nil, fmt.Errorf("failed to add flow AI prompt round: %w", err)
 	}
 
 	return &wire.FlowAIChatResponse{
