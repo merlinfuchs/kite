@@ -6,7 +6,12 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { useAppStateStatusQuery, useUserQuery } from "@/lib/api/queries";
-import { useApp, useResponseData, useUsageCredits } from "@/lib/hooks/api";
+import {
+  useApp,
+  useAppPlan,
+  useResponseData,
+  useUsageCredits,
+} from "@/lib/hooks/api";
 import { formatDate } from "@/lib/utils";
 import { CopyIcon } from "lucide-react";
 import { useCallback } from "react";
@@ -17,6 +22,7 @@ import AppInviteButton from "./AppInviteButton";
 
 export default function AppInfoCard() {
   const app = useApp();
+  const plan = useAppPlan();
 
   const ownerUser = useResponseData(useUserQuery(app?.owner_user_id));
 
@@ -89,7 +95,7 @@ export default function AppInfoCard() {
         <div className="grid gap-3">
           <div className="font-semibold">Subscription Plan</div>
           <div>
-            <Badge className="px-3 py-1">Open Beta</Badge>
+            <Badge className="px-3 py-1">{plan?.title ?? "-"}</Badge>
           </div>
         </div>
       </CardContent>
