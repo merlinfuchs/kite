@@ -101,7 +101,9 @@ describe("validateFlow", () => {
   it("accepts outputs of message components", () => {
     const message = node("msg", "action_response_create", {
       message_data: {
-        components: [{ type: 1, components: [{ id: 7, type: 2, style: 1 }] }],
+        components: [
+          { type: 1, components: [{ id: 7, type: 2, style: 1, label: "a" }] },
+        ],
       },
     });
     expect(
@@ -118,22 +120,27 @@ describe("validateFlow", () => {
     ).toEqual(["'Create response message' has no output 'component_8'."]);
   });
 
-  it("checks the IDs of message components", () => {
+  it("checks messages like the message editor", () => {
     const message = (components: ComponentData[]) =>
       node("msg", "action_response_create", {
         message_data: { components: [{ type: 1, components }] },
       });
     const button = (id?: number) => ({ id, type: 2, style: 1, label: "a" });
-    const link = { type: 2, style: 5, label: "a", url: "https://a.b" };
+    const link = { type: 2, style: 5, label: "a", url: "https://example.com" };
 
     expect(errors([entry, message([button(1), button(2), link])], [])).toEqual(
       []
     );
     expect(errors([entry, message([button(1), button(1)])], [])).toEqual([
-      "'Create response message' setting 'message_data.components': Two buttons or select menus have the id 1",
+      "'Create response message' message components: two buttons or select menus have the id 1",
+    ]);
+    expect(
+      errors([entry, message([{ id: 1, type: 2, style: 5, label: "a" }])], [])
+    ).toEqual([
+      "'Create response message' message components.0.components.0.url: Required",
     ]);
     expect(errors([entry, message([button()])], [])).toEqual([
-      "'Create response message' setting 'message_data.components': Every button and select menu needs a number from 1 as id",
+      "'Create response message' message components: every button and select menu needs a number from 1 as id",
     ]);
   });
 
