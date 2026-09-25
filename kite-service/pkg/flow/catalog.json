@@ -1,0 +1,5107 @@
+{
+  "nodes": {
+    "entry_command": {
+      "title": "Command",
+      "description": "Command entry. Drop different actions and options here!",
+      "contexts": [
+        "command"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": true,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "type": "string",
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 32,
+            "minLength": 1,
+            "pattern": "^[-_a-z0-9]{1,32}( [-_a-z0-9]{1,32}){0,2}$",
+            "description": "Name of the slash command. Up to three space separated words create subcommands, e.g. 'ticket open'."
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 1,
+            "description": "Description of the command shown in Discord."
+          }
+        },
+        "required": [
+          "name",
+          "description"
+        ],
+        "additionalProperties": false
+      },
+      "result_schema": null
+    },
+    "entry_event": {
+      "title": "Listen for Event",
+      "description": "Listens for an event to trigger the flow. Drop different actions here!",
+      "contexts": [
+        "event_discord"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": true,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "type": "string",
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+          },
+          "event_type": {
+            "type": "string",
+            "enum": [
+              "message_create",
+              "message_update",
+              "message_delete",
+              "guild_member_add",
+              "guild_member_remove"
+            ],
+            "description": "Discord event that triggers the flow."
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 1,
+            "description": "Description of what the event listener does."
+          }
+        },
+        "required": [
+          "event_type",
+          "description"
+        ],
+        "additionalProperties": false
+      },
+      "result_schema": null
+    },
+    "entry_component_button": {
+      "title": "Button",
+      "description": "This gets triggered when a user clicks the button. Drop different actions here!",
+      "contexts": [
+        "component_button",
+        "component_select_menu"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": true,
+      "data_schema": {
+        "type": "object",
+        "properties": {},
+        "additionalProperties": false
+      },
+      "result_schema": null
+    },
+    "action_response_create": {
+      "title": "Create response message",
+      "description": "Bot replies to the interaction with a message",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "type": "string",
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+          },
+          "message_ephemeral": {
+            "type": "boolean",
+            "description": "Whether only the user who triggered the flow can see the response."
+          },
+          "message_data": {
+            "type": "object",
+            "properties": {
+              "content": {
+                "type": "string",
+                "maxLength": 2000,
+                "description": "Text content of the message.",
+                "x-templated": true
+              },
+              "embeds": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": {}
+                },
+                "maxItems": 10,
+                "description": "Embeds shown below the content, as Discord embed objects (title, description, url, color, fields, author, footer, image, thumbnail). Their text supports placeholders."
+              },
+              "allowed_mentions": {
+                "type": "object",
+                "properties": {
+                  "parse": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "enum": [
+                        "users",
+                        "roles",
+                        "everyone"
+                      ]
+                    },
+                    "description": "Kinds of mentions that ping."
+                  }
+                },
+                "additionalProperties": false,
+                "description": "Which mentions ping. If unset, only mentioned users are pinged."
+              }
+            },
+            "additionalProperties": true,
+            "description": "The message to send."
+          },
+          "message_template_id": {
+            "type": "string",
+            "description": "ID of a saved message template to send instead of message_data."
+          },
+          "temporary_name": {
+            "type": "string",
+            "maxLength": 32,
+            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only."
+          }
+        },
+        "additionalProperties": false,
+        "description": "Set either message_data or message_template_id."
+      },
+      "result_schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The ID of the message"
+          },
+          "channel_id": {
+            "type": "string",
+            "description": "The ID of the channel the message was sent in"
+          },
+          "content": {
+            "type": "string",
+            "description": "The content of the message"
+          },
+          "author": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "description": "The ID of the user"
+              },
+              "username": {
+                "type": "string",
+                "description": "The username of the user"
+              },
+              "discriminator": {
+                "type": "string",
+                "description": "The discriminator of the user"
+              },
+              "display_name": {
+                "type": "string",
+                "description": "The display name of the user"
+              },
+              "avatar_url": {
+                "type": "string",
+                "description": "The avatar URL of the user"
+              }
+            },
+            "required": [
+              "id",
+              "username",
+              "discriminator",
+              "display_name",
+              "avatar_url"
+            ],
+            "additionalProperties": false,
+            "description": "The author of the message if it's a DM"
+          },
+          "member": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "description": "The ID of the user"
+              },
+              "username": {
+                "type": "string",
+                "description": "The username of the user"
+              },
+              "discriminator": {
+                "type": "string",
+                "description": "The discriminator of the user"
+              },
+              "display_name": {
+                "type": "string",
+                "description": "The display name of the user"
+              },
+              "avatar_url": {
+                "type": "string",
+                "description": "The avatar URL of the member"
+              },
+              "nick": {
+                "type": "string",
+                "description": "The nickname of the member"
+              }
+            },
+            "required": [
+              "id",
+              "username",
+              "discriminator",
+              "display_name",
+              "avatar_url",
+              "nick"
+            ],
+            "additionalProperties": false,
+            "description": "The author of the message if it's in a server"
+          }
+        },
+        "required": [
+          "id",
+          "channel_id",
+          "content",
+          "author"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "action_response_edit": {
+      "title": "Edit response message",
+      "description": "Bot edits an existing interaction response message",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "type": "string",
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+          },
+          "message_target": {
+            "anyOf": [
+              {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "pattern": "^[0-9]+$"
+                  },
+                  {
+                    "type": "string",
+                    "pattern": "^\\{\\{[a-z0-9_'().]+\\}\\}$"
+                  }
+                ]
+              },
+              {
+                "type": "string",
+                "const": "@original"
+              }
+            ],
+            "description": "ID of the response message, or '@original' for the first response to the interaction."
+          },
+          "message_data": {
+            "type": "object",
+            "properties": {
+              "content": {
+                "type": "string",
+                "maxLength": 2000,
+                "description": "Text content of the message.",
+                "x-templated": true
+              },
+              "embeds": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": {}
+                },
+                "maxItems": 10,
+                "description": "Embeds shown below the content, as Discord embed objects (title, description, url, color, fields, author, footer, image, thumbnail). Their text supports placeholders."
+              },
+              "allowed_mentions": {
+                "type": "object",
+                "properties": {
+                  "parse": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "enum": [
+                        "users",
+                        "roles",
+                        "everyone"
+                      ]
+                    },
+                    "description": "Kinds of mentions that ping."
+                  }
+                },
+                "additionalProperties": false,
+                "description": "Which mentions ping. If unset, only mentioned users are pinged."
+              }
+            },
+            "additionalProperties": true,
+            "description": "The message to send."
+          },
+          "message_template_id": {
+            "type": "string",
+            "description": "ID of a saved message template to send instead of message_data."
+          },
+          "temporary_name": {
+            "type": "string",
+            "maxLength": 32,
+            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only."
+          }
+        },
+        "required": [
+          "message_target"
+        ],
+        "additionalProperties": false,
+        "description": "Set either message_data or message_template_id."
+      },
+      "result_schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The ID of the message"
+          },
+          "channel_id": {
+            "type": "string",
+            "description": "The ID of the channel the message was sent in"
+          },
+          "content": {
+            "type": "string",
+            "description": "The content of the message"
+          },
+          "author": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "description": "The ID of the user"
+              },
+              "username": {
+                "type": "string",
+                "description": "The username of the user"
+              },
+              "discriminator": {
+                "type": "string",
+                "description": "The discriminator of the user"
+              },
+              "display_name": {
+                "type": "string",
+                "description": "The display name of the user"
+              },
+              "avatar_url": {
+                "type": "string",
+                "description": "The avatar URL of the user"
+              }
+            },
+            "required": [
+              "id",
+              "username",
+              "discriminator",
+              "display_name",
+              "avatar_url"
+            ],
+            "additionalProperties": false,
+            "description": "The author of the message if it's a DM"
+          },
+          "member": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "description": "The ID of the user"
+              },
+              "username": {
+                "type": "string",
+                "description": "The username of the user"
+              },
+              "discriminator": {
+                "type": "string",
+                "description": "The discriminator of the user"
+              },
+              "display_name": {
+                "type": "string",
+                "description": "The display name of the user"
+              },
+              "avatar_url": {
+                "type": "string",
+                "description": "The avatar URL of the member"
+              },
+              "nick": {
+                "type": "string",
+                "description": "The nickname of the member"
+              }
+            },
+            "required": [
+              "id",
+              "username",
+              "discriminator",
+              "display_name",
+              "avatar_url",
+              "nick"
+            ],
+            "additionalProperties": false,
+            "description": "The author of the message if it's in a server"
+          }
+        },
+        "required": [
+          "id",
+          "channel_id",
+          "content",
+          "author"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "action_response_delete": {
+      "title": "Delete response message",
+      "description": "Bot deletes an existing interaction response message",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "type": "string",
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+          },
+          "message_target": {
+            "anyOf": [
+              {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "pattern": "^[0-9]+$"
+                  },
+                  {
+                    "type": "string",
+                    "pattern": "^\\{\\{[a-z0-9_'().]+\\}\\}$"
+                  }
+                ]
+              },
+              {
+                "type": "string",
+                "const": "@original"
+              }
+            ],
+            "description": "ID of the response message, or '@original' for the first response to the interaction."
+          },
+          "audit_log_reason": {
+            "type": "string",
+            "maxLength": 512,
+            "description": "Reason shown in the server's audit log.",
+            "x-templated": true
+          }
+        },
+        "required": [
+          "message_target"
+        ],
+        "additionalProperties": false
+      },
+      "result_schema": null
+    },
+    "action_response_defer": {
+      "title": "Defer response",
+      "description": "Bot defers the response to the interaction to give time for further processing",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "type": "string",
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+          },
+          "message_ephemeral": {
+            "type": "boolean",
+            "description": "Whether only the user who triggered the flow can see the response that follows."
+          }
+        },
+        "additionalProperties": false
+      },
+      "result_schema": null
+    },
+    "action_message_create": {
+      "title": "Create channel message",
+      "description": "Bot sends a message to a channel",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "type": "string",
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+          },
+          "channel_target": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9]+$"
+              },
+              {
+                "type": "string",
+                "pattern": "^\\{\\{[a-z0-9_'().]+\\}\\}$"
+              }
+            ],
+            "description": "ID of the channel to send the message to."
+          },
+          "message_data": {
+            "type": "object",
+            "properties": {
+              "content": {
+                "type": "string",
+                "maxLength": 2000,
+                "description": "Text content of the message.",
+                "x-templated": true
+              },
+              "embeds": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": {}
+                },
+                "maxItems": 10,
+                "description": "Embeds shown below the content, as Discord embed objects (title, description, url, color, fields, author, footer, image, thumbnail). Their text supports placeholders."
+              },
+              "allowed_mentions": {
+                "type": "object",
+                "properties": {
+                  "parse": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "enum": [
+                        "users",
+                        "roles",
+                        "everyone"
+                      ]
+                    },
+                    "description": "Kinds of mentions that ping."
+                  }
+                },
+                "additionalProperties": false,
+                "description": "Which mentions ping. If unset, only mentioned users are pinged."
+              }
+            },
+            "additionalProperties": true,
+            "description": "The message to send."
+          },
+          "message_template_id": {
+            "type": "string",
+            "description": "ID of a saved message template to send instead of message_data."
+          },
+          "temporary_name": {
+            "type": "string",
+            "maxLength": 32,
+            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only."
+          }
+        },
+        "required": [
+          "channel_target"
+        ],
+        "additionalProperties": false,
+        "description": "Set either message_data or message_template_id."
+      },
+      "result_schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The ID of the message"
+          },
+          "channel_id": {
+            "type": "string",
+            "description": "The ID of the channel the message was sent in"
+          },
+          "content": {
+            "type": "string",
+            "description": "The content of the message"
+          },
+          "author": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "description": "The ID of the user"
+              },
+              "username": {
+                "type": "string",
+                "description": "The username of the user"
+              },
+              "discriminator": {
+                "type": "string",
+                "description": "The discriminator of the user"
+              },
+              "display_name": {
+                "type": "string",
+                "description": "The display name of the user"
+              },
+              "avatar_url": {
+                "type": "string",
+                "description": "The avatar URL of the user"
+              }
+            },
+            "required": [
+              "id",
+              "username",
+              "discriminator",
+              "display_name",
+              "avatar_url"
+            ],
+            "additionalProperties": false,
+            "description": "The author of the message if it's a DM"
+          },
+          "member": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "description": "The ID of the user"
+              },
+              "username": {
+                "type": "string",
+                "description": "The username of the user"
+              },
+              "discriminator": {
+                "type": "string",
+                "description": "The discriminator of the user"
+              },
+              "display_name": {
+                "type": "string",
+                "description": "The display name of the user"
+              },
+              "avatar_url": {
+                "type": "string",
+                "description": "The avatar URL of the member"
+              },
+              "nick": {
+                "type": "string",
+                "description": "The nickname of the member"
+              }
+            },
+            "required": [
+              "id",
+              "username",
+              "discriminator",
+              "display_name",
+              "avatar_url",
+              "nick"
+            ],
+            "additionalProperties": false,
+            "description": "The author of the message if it's in a server"
+          }
+        },
+        "required": [
+          "id",
+          "channel_id",
+          "content",
+          "author"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "action_message_edit": {
+      "title": "Edit channel message",
+      "description": "Bot edits an existing message in a channel",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "type": "string",
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+          },
+          "channel_target": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9]+$"
+              },
+              {
+                "type": "string",
+                "pattern": "^\\{\\{[a-z0-9_'().]+\\}\\}$"
+              }
+            ],
+            "description": "ID of the channel."
+          },
+          "message_target": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9]+$"
+              },
+              {
+                "type": "string",
+                "pattern": "^\\{\\{[a-z0-9_'().]+\\}\\}$"
+              }
+            ],
+            "description": "ID of the message."
+          },
+          "message_data": {
+            "type": "object",
+            "properties": {
+              "content": {
+                "type": "string",
+                "maxLength": 2000,
+                "description": "Text content of the message.",
+                "x-templated": true
+              },
+              "embeds": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": {}
+                },
+                "maxItems": 10,
+                "description": "Embeds shown below the content, as Discord embed objects (title, description, url, color, fields, author, footer, image, thumbnail). Their text supports placeholders."
+              },
+              "allowed_mentions": {
+                "type": "object",
+                "properties": {
+                  "parse": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "enum": [
+                        "users",
+                        "roles",
+                        "everyone"
+                      ]
+                    },
+                    "description": "Kinds of mentions that ping."
+                  }
+                },
+                "additionalProperties": false,
+                "description": "Which mentions ping. If unset, only mentioned users are pinged."
+              }
+            },
+            "additionalProperties": true,
+            "description": "The message to send."
+          },
+          "message_template_id": {
+            "type": "string",
+            "description": "ID of a saved message template to send instead of message_data."
+          },
+          "temporary_name": {
+            "type": "string",
+            "maxLength": 32,
+            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only."
+          }
+        },
+        "required": [
+          "channel_target",
+          "message_target"
+        ],
+        "additionalProperties": false,
+        "description": "Set either message_data or message_template_id."
+      },
+      "result_schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The ID of the message"
+          },
+          "channel_id": {
+            "type": "string",
+            "description": "The ID of the channel the message was sent in"
+          },
+          "content": {
+            "type": "string",
+            "description": "The content of the message"
+          },
+          "author": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "description": "The ID of the user"
+              },
+              "username": {
+                "type": "string",
+                "description": "The username of the user"
+              },
+              "discriminator": {
+                "type": "string",
+                "description": "The discriminator of the user"
+              },
+              "display_name": {
+                "type": "string",
+                "description": "The display name of the user"
+              },
+              "avatar_url": {
+                "type": "string",
+                "description": "The avatar URL of the user"
+              }
+            },
+            "required": [
+              "id",
+              "username",
+              "discriminator",
+              "display_name",
+              "avatar_url"
+            ],
+            "additionalProperties": false,
+            "description": "The author of the message if it's a DM"
+          },
+          "member": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "description": "The ID of the user"
+              },
+              "username": {
+                "type": "string",
+                "description": "The username of the user"
+              },
+              "discriminator": {
+                "type": "string",
+                "description": "The discriminator of the user"
+              },
+              "display_name": {
+                "type": "string",
+                "description": "The display name of the user"
+              },
+              "avatar_url": {
+                "type": "string",
+                "description": "The avatar URL of the member"
+              },
+              "nick": {
+                "type": "string",
+                "description": "The nickname of the member"
+              }
+            },
+            "required": [
+              "id",
+              "username",
+              "discriminator",
+              "display_name",
+              "avatar_url",
+              "nick"
+            ],
+            "additionalProperties": false,
+            "description": "The author of the message if it's in a server"
+          }
+        },
+        "required": [
+          "id",
+          "channel_id",
+          "content",
+          "author"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "action_private_message_create": {
+      "title": "Send direct message",
+      "description": "Bot sends a private message to a user if the user allows it",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "type": "string",
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+          },
+          "user_target": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9]+$"
+              },
+              {
+                "type": "string",
+                "pattern": "^\\{\\{[a-z0-9_'().]+\\}\\}$"
+              }
+            ],
+            "description": "ID of the user to send the message to."
+          },
+          "message_data": {
+            "type": "object",
+            "properties": {
+              "content": {
+                "type": "string",
+                "maxLength": 2000,
+                "description": "Text content of the message.",
+                "x-templated": true
+              },
+              "embeds": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": {}
+                },
+                "maxItems": 10,
+                "description": "Embeds shown below the content, as Discord embed objects (title, description, url, color, fields, author, footer, image, thumbnail). Their text supports placeholders."
+              },
+              "allowed_mentions": {
+                "type": "object",
+                "properties": {
+                  "parse": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "enum": [
+                        "users",
+                        "roles",
+                        "everyone"
+                      ]
+                    },
+                    "description": "Kinds of mentions that ping."
+                  }
+                },
+                "additionalProperties": false,
+                "description": "Which mentions ping. If unset, only mentioned users are pinged."
+              }
+            },
+            "additionalProperties": true,
+            "description": "The message to send."
+          },
+          "message_template_id": {
+            "type": "string",
+            "description": "ID of a saved message template to send instead of message_data."
+          },
+          "temporary_name": {
+            "type": "string",
+            "maxLength": 32,
+            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only."
+          }
+        },
+        "required": [
+          "user_target"
+        ],
+        "additionalProperties": false,
+        "description": "Set either message_data or message_template_id."
+      },
+      "result_schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The ID of the message"
+          },
+          "channel_id": {
+            "type": "string",
+            "description": "The ID of the channel the message was sent in"
+          },
+          "content": {
+            "type": "string",
+            "description": "The content of the message"
+          },
+          "author": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "description": "The ID of the user"
+              },
+              "username": {
+                "type": "string",
+                "description": "The username of the user"
+              },
+              "discriminator": {
+                "type": "string",
+                "description": "The discriminator of the user"
+              },
+              "display_name": {
+                "type": "string",
+                "description": "The display name of the user"
+              },
+              "avatar_url": {
+                "type": "string",
+                "description": "The avatar URL of the user"
+              }
+            },
+            "required": [
+              "id",
+              "username",
+              "discriminator",
+              "display_name",
+              "avatar_url"
+            ],
+            "additionalProperties": false,
+            "description": "The author of the message if it's a DM"
+          },
+          "member": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "description": "The ID of the user"
+              },
+              "username": {
+                "type": "string",
+                "description": "The username of the user"
+              },
+              "discriminator": {
+                "type": "string",
+                "description": "The discriminator of the user"
+              },
+              "display_name": {
+                "type": "string",
+                "description": "The display name of the user"
+              },
+              "avatar_url": {
+                "type": "string",
+                "description": "The avatar URL of the member"
+              },
+              "nick": {
+                "type": "string",
+                "description": "The nickname of the member"
+              }
+            },
+            "required": [
+              "id",
+              "username",
+              "discriminator",
+              "display_name",
+              "avatar_url",
+              "nick"
+            ],
+            "additionalProperties": false,
+            "description": "The author of the message if it's in a server"
+          }
+        },
+        "required": [
+          "id",
+          "channel_id",
+          "content",
+          "author"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "action_message_delete": {
+      "title": "Delete channel message",
+      "description": "Bot deletes an existing message in a channel",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "type": "string",
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+          },
+          "channel_target": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9]+$"
+              },
+              {
+                "type": "string",
+                "pattern": "^\\{\\{[a-z0-9_'().]+\\}\\}$"
+              }
+            ],
+            "description": "ID of the channel."
+          },
+          "message_target": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9]+$"
+              },
+              {
+                "type": "string",
+                "pattern": "^\\{\\{[a-z0-9_'().]+\\}\\}$"
+              }
+            ],
+            "description": "ID of the message."
+          },
+          "audit_log_reason": {
+            "type": "string",
+            "maxLength": 512,
+            "description": "Reason shown in the server's audit log.",
+            "x-templated": true
+          }
+        },
+        "required": [
+          "channel_target",
+          "message_target"
+        ],
+        "additionalProperties": false
+      },
+      "result_schema": null
+    },
+    "action_message_reaction_create": {
+      "title": "Create message reaction",
+      "description": "Bot adds a reaction to a message",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "type": "string",
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+          },
+          "channel_target": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9]+$"
+              },
+              {
+                "type": "string",
+                "pattern": "^\\{\\{[a-z0-9_'().]+\\}\\}$"
+              }
+            ],
+            "description": "ID of the channel."
+          },
+          "message_target": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9]+$"
+              },
+              {
+                "type": "string",
+                "pattern": "^\\{\\{[a-z0-9_'().]+\\}\\}$"
+              }
+            ],
+            "description": "ID of the message."
+          },
+          "emoji_data": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "description": "ID of a custom emoji."
+              },
+              "name": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Name of a custom emoji, or the unicode of a standard emoji."
+              }
+            },
+            "required": [
+              "name"
+            ],
+            "additionalProperties": false,
+            "description": "The emoji to react with."
+          }
+        },
+        "required": [
+          "channel_target",
+          "message_target",
+          "emoji_data"
+        ],
+        "additionalProperties": false
+      },
+      "result_schema": null
+    },
+    "action_message_reaction_delete": {
+      "title": "Delete message reaction",
+      "description": "Bot deletes a reaction from a message",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "type": "string",
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+          },
+          "channel_target": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9]+$"
+              },
+              {
+                "type": "string",
+                "pattern": "^\\{\\{[a-z0-9_'().]+\\}\\}$"
+              }
+            ],
+            "description": "ID of the channel."
+          },
+          "message_target": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9]+$"
+              },
+              {
+                "type": "string",
+                "pattern": "^\\{\\{[a-z0-9_'().]+\\}\\}$"
+              }
+            ],
+            "description": "ID of the message."
+          },
+          "emoji_data": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "description": "ID of a custom emoji."
+              },
+              "name": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Name of a custom emoji, or the unicode of a standard emoji."
+              }
+            },
+            "required": [
+              "name"
+            ],
+            "additionalProperties": false,
+            "description": "The emoji to remove the reaction of."
+          }
+        },
+        "required": [
+          "channel_target",
+          "message_target",
+          "emoji_data"
+        ],
+        "additionalProperties": false
+      },
+      "result_schema": null
+    },
+    "action_message_pin": {
+      "title": "Pin channel message",
+      "description": "Bot pins a message in a channel",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "type": "string",
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+          },
+          "channel_target": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9]+$"
+              },
+              {
+                "type": "string",
+                "pattern": "^\\{\\{[a-z0-9_'().]+\\}\\}$"
+              }
+            ],
+            "description": "ID of the channel."
+          },
+          "message_target": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9]+$"
+              },
+              {
+                "type": "string",
+                "pattern": "^\\{\\{[a-z0-9_'().]+\\}\\}$"
+              }
+            ],
+            "description": "ID of the message."
+          },
+          "audit_log_reason": {
+            "type": "string",
+            "maxLength": 512,
+            "description": "Reason shown in the server's audit log.",
+            "x-templated": true
+          }
+        },
+        "required": [
+          "channel_target",
+          "message_target"
+        ],
+        "additionalProperties": false
+      },
+      "result_schema": null
+    },
+    "action_message_unpin": {
+      "title": "Unpin channel message",
+      "description": "Bot unpins a message in a channel",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "type": "string",
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+          },
+          "channel_target": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9]+$"
+              },
+              {
+                "type": "string",
+                "pattern": "^\\{\\{[a-z0-9_'().]+\\}\\}$"
+              }
+            ],
+            "description": "ID of the channel."
+          },
+          "message_target": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9]+$"
+              },
+              {
+                "type": "string",
+                "pattern": "^\\{\\{[a-z0-9_'().]+\\}\\}$"
+              }
+            ],
+            "description": "ID of the message."
+          },
+          "audit_log_reason": {
+            "type": "string",
+            "maxLength": 512,
+            "description": "Reason shown in the server's audit log.",
+            "x-templated": true
+          }
+        },
+        "required": [
+          "channel_target",
+          "message_target"
+        ],
+        "additionalProperties": false
+      },
+      "result_schema": null
+    },
+    "action_member_ban": {
+      "title": "Ban member",
+      "description": "Ban a member from the server",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "type": "string",
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+          },
+          "user_target": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9]+$"
+              },
+              {
+                "type": "string",
+                "pattern": "^\\{\\{[a-z0-9_'().]+\\}\\}$"
+              }
+            ],
+            "description": "ID of the user."
+          },
+          "member_ban_delete_message_duration_seconds": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9]+$"
+              },
+              {
+                "type": "string",
+                "pattern": "^\\{\\{[a-z0-9_'().]+\\}\\}$"
+              }
+            ],
+            "description": "Delete the member's messages from this many seconds before the ban."
+          },
+          "audit_log_reason": {
+            "type": "string",
+            "maxLength": 512,
+            "description": "Reason shown in the server's audit log.",
+            "x-templated": true
+          }
+        },
+        "required": [
+          "user_target"
+        ],
+        "additionalProperties": false
+      },
+      "result_schema": null
+    },
+    "action_member_unban": {
+      "title": "Unban member",
+      "description": "Unban a member from the server",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "type": "string",
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+          },
+          "user_target": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9]+$"
+              },
+              {
+                "type": "string",
+                "pattern": "^\\{\\{[a-z0-9_'().]+\\}\\}$"
+              }
+            ],
+            "description": "ID of the user."
+          },
+          "audit_log_reason": {
+            "type": "string",
+            "maxLength": 512,
+            "description": "Reason shown in the server's audit log.",
+            "x-templated": true
+          }
+        },
+        "required": [
+          "user_target"
+        ],
+        "additionalProperties": false
+      },
+      "result_schema": null
+    },
+    "action_member_kick": {
+      "title": "Kick member",
+      "description": "Kick a member from the server",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "type": "string",
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+          },
+          "user_target": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9]+$"
+              },
+              {
+                "type": "string",
+                "pattern": "^\\{\\{[a-z0-9_'().]+\\}\\}$"
+              }
+            ],
+            "description": "ID of the user."
+          },
+          "audit_log_reason": {
+            "type": "string",
+            "maxLength": 512,
+            "description": "Reason shown in the server's audit log.",
+            "x-templated": true
+          }
+        },
+        "required": [
+          "user_target"
+        ],
+        "additionalProperties": false
+      },
+      "result_schema": null
+    },
+    "action_member_timeout": {
+      "title": "Timeout member",
+      "description": "Timeout a member in the server",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "type": "string",
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+          },
+          "user_target": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9]+$"
+              },
+              {
+                "type": "string",
+                "pattern": "^\\{\\{[a-z0-9_'().]+\\}\\}$"
+              }
+            ],
+            "description": "ID of the user."
+          },
+          "member_timeout_duration_seconds": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9]+$"
+              },
+              {
+                "type": "string",
+                "pattern": "^\\{\\{[a-z0-9_'().]+\\}\\}$"
+              }
+            ],
+            "description": "How many seconds the member is timed out for."
+          },
+          "audit_log_reason": {
+            "type": "string",
+            "maxLength": 512,
+            "description": "Reason shown in the server's audit log.",
+            "x-templated": true
+          }
+        },
+        "required": [
+          "user_target",
+          "member_timeout_duration_seconds"
+        ],
+        "additionalProperties": false
+      },
+      "result_schema": null
+    },
+    "action_member_edit": {
+      "title": "Edit member nickname",
+      "description": "Edit a member in the server",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "type": "string",
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+          },
+          "user_target": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9]+$"
+              },
+              {
+                "type": "string",
+                "pattern": "^\\{\\{[a-z0-9_'().]+\\}\\}$"
+              }
+            ],
+            "description": "ID of the user."
+          },
+          "member_data": {
+            "type": "object",
+            "properties": {
+              "nick": {
+                "type": "string",
+                "description": "New nickname of the member.",
+                "x-templated": true
+              }
+            },
+            "required": [
+              "nick"
+            ],
+            "additionalProperties": false,
+            "description": "The changes to make to the member."
+          },
+          "audit_log_reason": {
+            "type": "string",
+            "maxLength": 512,
+            "description": "Reason shown in the server's audit log.",
+            "x-templated": true
+          }
+        },
+        "required": [
+          "user_target",
+          "member_data"
+        ],
+        "additionalProperties": false
+      },
+      "result_schema": null
+    },
+    "action_member_role_add": {
+      "title": "Add role to member",
+      "description": "Add a role to a member",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "type": "string",
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+          },
+          "user_target": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9]+$"
+              },
+              {
+                "type": "string",
+                "pattern": "^\\{\\{[a-z0-9_'().]+\\}\\}$"
+              }
+            ],
+            "description": "ID of the user."
+          },
+          "role_target": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9]+$"
+              },
+              {
+                "type": "string",
+                "pattern": "^\\{\\{[a-z0-9_'().]+\\}\\}$"
+              }
+            ],
+            "description": "ID of the role."
+          },
+          "audit_log_reason": {
+            "type": "string",
+            "maxLength": 512,
+            "description": "Reason shown in the server's audit log.",
+            "x-templated": true
+          }
+        },
+        "required": [
+          "user_target",
+          "role_target"
+        ],
+        "additionalProperties": false
+      },
+      "result_schema": null
+    },
+    "action_member_role_remove": {
+      "title": "Remove role from member",
+      "description": "Remove a role from a member",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "type": "string",
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+          },
+          "user_target": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9]+$"
+              },
+              {
+                "type": "string",
+                "pattern": "^\\{\\{[a-z0-9_'().]+\\}\\}$"
+              }
+            ],
+            "description": "ID of the user."
+          },
+          "role_target": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9]+$"
+              },
+              {
+                "type": "string",
+                "pattern": "^\\{\\{[a-z0-9_'().]+\\}\\}$"
+              }
+            ],
+            "description": "ID of the role."
+          },
+          "audit_log_reason": {
+            "type": "string",
+            "maxLength": 512,
+            "description": "Reason shown in the server's audit log.",
+            "x-templated": true
+          }
+        },
+        "required": [
+          "user_target",
+          "role_target"
+        ],
+        "additionalProperties": false
+      },
+      "result_schema": null
+    },
+    "action_member_get": {
+      "title": "Get member",
+      "description": "Get a member by ID",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "type": "string",
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+          },
+          "guild_target": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9]+$"
+              },
+              {
+                "type": "string",
+                "pattern": "^\\{\\{[a-z0-9_'().]+\\}\\}$"
+              }
+            ],
+            "description": "ID of the server. Defaults to the server the flow runs in."
+          },
+          "user_target": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9]+$"
+              },
+              {
+                "type": "string",
+                "pattern": "^\\{\\{[a-z0-9_'().]+\\}\\}$"
+              }
+            ],
+            "description": "ID of the user."
+          },
+          "temporary_name": {
+            "type": "string",
+            "maxLength": 32,
+            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only."
+          }
+        },
+        "required": [
+          "user_target"
+        ],
+        "additionalProperties": false
+      },
+      "result_schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The ID of the user"
+          },
+          "username": {
+            "type": "string",
+            "description": "The username of the user"
+          },
+          "discriminator": {
+            "type": "string",
+            "description": "The discriminator of the user"
+          },
+          "display_name": {
+            "type": "string",
+            "description": "The display name of the user"
+          },
+          "avatar_url": {
+            "type": "string",
+            "description": "The avatar URL of the member"
+          },
+          "nick": {
+            "type": "string",
+            "description": "The nickname of the member"
+          }
+        },
+        "required": [
+          "id",
+          "username",
+          "discriminator",
+          "display_name",
+          "avatar_url",
+          "nick"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "action_user_get": {
+      "title": "Get user",
+      "description": "Get a user by ID",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "type": "string",
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+          },
+          "user_target": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9]+$"
+              },
+              {
+                "type": "string",
+                "pattern": "^\\{\\{[a-z0-9_'().]+\\}\\}$"
+              }
+            ],
+            "description": "ID of the user."
+          },
+          "temporary_name": {
+            "type": "string",
+            "maxLength": 32,
+            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only."
+          }
+        },
+        "required": [
+          "user_target"
+        ],
+        "additionalProperties": false
+      },
+      "result_schema": null
+    },
+    "action_channel_get": {
+      "title": "Get channel",
+      "description": "Get a channel by ID",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "type": "string",
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+          },
+          "channel_target": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9]+$"
+              },
+              {
+                "type": "string",
+                "pattern": "^\\{\\{[a-z0-9_'().]+\\}\\}$"
+              }
+            ],
+            "description": "ID of the channel."
+          },
+          "temporary_name": {
+            "type": "string",
+            "maxLength": 32,
+            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only."
+          }
+        },
+        "required": [
+          "channel_target"
+        ],
+        "additionalProperties": false
+      },
+      "result_schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The ID of the channel"
+          },
+          "name": {
+            "type": "string",
+            "description": "The name of the channel"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "text",
+              "voice",
+              "category",
+              "news",
+              "store",
+              "stage"
+            ],
+            "description": "The type of the channel"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "type"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "action_channel_create": {
+      "title": "Create channel",
+      "description": "Create a channel",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "type": "string",
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+          },
+          "guild_target": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9]+$"
+              },
+              {
+                "type": "string",
+                "pattern": "^\\{\\{[a-z0-9_'().]+\\}\\}$"
+              }
+            ],
+            "description": "ID of the server. Defaults to the server the flow runs in."
+          },
+          "channel_data": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "maxLength": 100,
+                "minLength": 1,
+                "description": "Name of the channel.",
+                "x-templated": true
+              },
+              "type": {
+                "type": "number",
+                "description": "Discord channel type: 0 text, 2 voice, 4 category, 5 announcement, 13 stage, 15 forum, 16 media. For threads: 10 announcement, 11 public, 12 private."
+              },
+              "topic": {
+                "type": "string",
+                "maxLength": 1000,
+                "minLength": 1,
+                "description": "Topic of the channel.",
+                "x-templated": true
+              },
+              "nsfw": {
+                "type": "boolean",
+                "description": "Whether the channel is age-restricted."
+              },
+              "bitrate": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "pattern": "^[0-9]+$"
+                  },
+                  {
+                    "type": "string",
+                    "pattern": "^\\{\\{[a-z0-9_'().]+\\}\\}$"
+                  }
+                ],
+                "description": "Bitrate of a voice channel."
+              },
+              "user_limit": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "pattern": "^[0-9]+$"
+                  },
+                  {
+                    "type": "string",
+                    "pattern": "^\\{\\{[a-z0-9_'().]+\\}\\}$"
+                  }
+                ],
+                "description": "Maximum number of users in a voice channel."
+              },
+              "position": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "pattern": "^[0-9]+$"
+                  },
+                  {
+                    "type": "string",
+                    "pattern": "^\\{\\{[a-z0-9_'().]+\\}\\}$"
+                  }
+                ],
+                "description": "Position of the channel in the channel list."
+              },
+              "parent": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "pattern": "^[0-9]+$"
+                  },
+                  {
+                    "type": "string",
+                    "pattern": "^\\{\\{[a-z0-9_'().]+\\}\\}$"
+                  }
+                ],
+                "description": "ID of the category the channel is in, or of the channel a thread is created in."
+              },
+              "permission_overwrites": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "pattern": "^[0-9]+$"
+                        },
+                        {
+                          "type": "string",
+                          "pattern": "^\\{\\{[a-z0-9_'().]+\\}\\}$"
+                        }
+                      ],
+                      "description": "ID of the role or user."
+                    },
+                    "type": {
+                      "type": "number",
+                      "enum": [
+                        0,
+                        1
+                      ],
+                      "description": "0 if id is a role, 1 if it's a user."
+                    },
+                    "allow": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "pattern": "^[0-9]+$"
+                        },
+                        {
+                          "type": "string",
+                          "pattern": "^\\{\\{[a-z0-9_'().]+\\}\\}$"
+                        }
+                      ],
+                      "description": "Permission bitfield to allow."
+                    },
+                    "deny": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "pattern": "^[0-9]+$"
+                        },
+                        {
+                          "type": "string",
+                          "pattern": "^\\{\\{[a-z0-9_'().]+\\}\\}$"
+                        }
+                      ],
+                      "description": "Permission bitfield to deny."
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "allow",
+                    "deny"
+                  ],
+                  "additionalProperties": false
+                },
+                "description": "Permission overrides for roles and users."
+              },
+              "invitable": {
+                "type": "boolean",
+                "description": "Whether non-moderators can add members to a private thread."
+              }
+            },
+            "required": [
+              "name"
+            ],
+            "additionalProperties": false,
+            "description": "Settings of the channel, thread or forum post."
+          },
+          "audit_log_reason": {
+            "type": "string",
+            "maxLength": 512,
+            "description": "Reason shown in the server's audit log.",
+            "x-templated": true
+          },
+          "temporary_name": {
+            "type": "string",
+            "maxLength": 32,
+            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only."
+          }
+        },
+        "required": [
+          "channel_data"
+        ],
+        "additionalProperties": false
+      },
+      "result_schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The ID of the channel"
+          },
+          "name": {
+            "type": "string",
+            "description": "The name of the channel"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "text",
+              "voice",
+              "category",
+              "news",
+              "store",
+              "stage"
+            ],
+            "description": "The type of the channel"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "type"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "action_channel_edit": {
+      "title": "Edit channel",
+      "description": "Edit a channel or thread",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "type": "string",
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+          },
+          "channel_target": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9]+$"
+              },
+              {
+                "type": "string",
+                "pattern": "^\\{\\{[a-z0-9_'().]+\\}\\}$"
+              }
+            ],
+            "description": "ID of the channel."
+          },
+          "channel_data": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "maxLength": 100,
+                "minLength": 1,
+                "description": "Name of the channel.",
+                "x-templated": true
+              },
+              "type": {
+                "type": "number",
+                "description": "Discord channel type: 0 text, 2 voice, 4 category, 5 announcement, 13 stage, 15 forum, 16 media. For threads: 10 announcement, 11 public, 12 private."
+              },
+              "topic": {
+                "type": "string",
+                "maxLength": 1000,
+                "minLength": 1,
+                "description": "Topic of the channel.",
+                "x-templated": true
+              },
+              "nsfw": {
+                "type": "boolean",
+                "description": "Whether the channel is age-restricted."
+              },
+              "bitrate": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "pattern": "^[0-9]+$"
+                  },
+                  {
+                    "type": "string",
+                    "pattern": "^\\{\\{[a-z0-9_'().]+\\}\\}$"
+                  }
+                ],
+                "description": "Bitrate of a voice channel."
+              },
+              "user_limit": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "pattern": "^[0-9]+$"
+                  },
+                  {
+                    "type": "string",
+                    "pattern": "^\\{\\{[a-z0-9_'().]+\\}\\}$"
+                  }
+                ],
+                "description": "Maximum number of users in a voice channel."
+              },
+              "position": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "pattern": "^[0-9]+$"
+                  },
+                  {
+                    "type": "string",
+                    "pattern": "^\\{\\{[a-z0-9_'().]+\\}\\}$"
+                  }
+                ],
+                "description": "Position of the channel in the channel list."
+              },
+              "parent": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "pattern": "^[0-9]+$"
+                  },
+                  {
+                    "type": "string",
+                    "pattern": "^\\{\\{[a-z0-9_'().]+\\}\\}$"
+                  }
+                ],
+                "description": "ID of the category the channel is in, or of the channel a thread is created in."
+              },
+              "permission_overwrites": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "pattern": "^[0-9]+$"
+                        },
+                        {
+                          "type": "string",
+                          "pattern": "^\\{\\{[a-z0-9_'().]+\\}\\}$"
+                        }
+                      ],
+                      "description": "ID of the role or user."
+                    },
+                    "type": {
+                      "type": "number",
+                      "enum": [
+                        0,
+                        1
+                      ],
+                      "description": "0 if id is a role, 1 if it's a user."
+                    },
+                    "allow": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "pattern": "^[0-9]+$"
+                        },
+                        {
+                          "type": "string",
+                          "pattern": "^\\{\\{[a-z0-9_'().]+\\}\\}$"
+                        }
+                      ],
+                      "description": "Permission bitfield to allow."
+                    },
+                    "deny": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "pattern": "^[0-9]+$"
+                        },
+                        {
+                          "type": "string",
+                          "pattern": "^\\{\\{[a-z0-9_'().]+\\}\\}$"
+                        }
+                      ],
+                      "description": "Permission bitfield to deny."
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "allow",
+                    "deny"
+                  ],
+                  "additionalProperties": false
+                },
+                "description": "Permission overrides for roles and users."
+              },
+              "invitable": {
+                "type": "boolean",
+                "description": "Whether non-moderators can add members to a private thread."
+              }
+            },
+            "required": [
+              "name"
+            ],
+            "additionalProperties": false,
+            "description": "Settings of the channel, thread or forum post."
+          },
+          "audit_log_reason": {
+            "type": "string",
+            "maxLength": 512,
+            "description": "Reason shown in the server's audit log.",
+            "x-templated": true
+          },
+          "temporary_name": {
+            "type": "string",
+            "maxLength": 32,
+            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only."
+          }
+        },
+        "required": [
+          "channel_target",
+          "channel_data"
+        ],
+        "additionalProperties": false
+      },
+      "result_schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The ID of the channel"
+          },
+          "name": {
+            "type": "string",
+            "description": "The name of the channel"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "text",
+              "voice",
+              "category",
+              "news",
+              "store",
+              "stage"
+            ],
+            "description": "The type of the channel"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "type"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "action_channel_delete": {
+      "title": "Delete channel",
+      "description": "Delete a channel or thread ",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "type": "string",
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+          },
+          "channel_target": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9]+$"
+              },
+              {
+                "type": "string",
+                "pattern": "^\\{\\{[a-z0-9_'().]+\\}\\}$"
+              }
+            ],
+            "description": "ID of the channel."
+          },
+          "audit_log_reason": {
+            "type": "string",
+            "maxLength": 512,
+            "description": "Reason shown in the server's audit log.",
+            "x-templated": true
+          }
+        },
+        "required": [
+          "channel_target"
+        ],
+        "additionalProperties": false
+      },
+      "result_schema": null
+    },
+    "action_thread_create": {
+      "title": "Create thread",
+      "description": "Create a thread",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "type": "string",
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+          },
+          "message_target": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9]+$"
+              },
+              {
+                "type": "string",
+                "pattern": "^\\{\\{[a-z0-9_'().]+\\}\\}$"
+              }
+            ],
+            "description": "ID of the message to start the thread from. Leave unset for a thread without a starter message."
+          },
+          "channel_data": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "maxLength": 100,
+                "minLength": 1,
+                "description": "Name of the channel.",
+                "x-templated": true
+              },
+              "type": {
+                "type": "number",
+                "description": "Discord channel type: 0 text, 2 voice, 4 category, 5 announcement, 13 stage, 15 forum, 16 media. For threads: 10 announcement, 11 public, 12 private."
+              },
+              "topic": {
+                "type": "string",
+                "maxLength": 1000,
+                "minLength": 1,
+                "description": "Topic of the channel.",
+                "x-templated": true
+              },
+              "nsfw": {
+                "type": "boolean",
+                "description": "Whether the channel is age-restricted."
+              },
+              "bitrate": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "pattern": "^[0-9]+$"
+                  },
+                  {
+                    "type": "string",
+                    "pattern": "^\\{\\{[a-z0-9_'().]+\\}\\}$"
+                  }
+                ],
+                "description": "Bitrate of a voice channel."
+              },
+              "user_limit": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "pattern": "^[0-9]+$"
+                  },
+                  {
+                    "type": "string",
+                    "pattern": "^\\{\\{[a-z0-9_'().]+\\}\\}$"
+                  }
+                ],
+                "description": "Maximum number of users in a voice channel."
+              },
+              "position": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "pattern": "^[0-9]+$"
+                  },
+                  {
+                    "type": "string",
+                    "pattern": "^\\{\\{[a-z0-9_'().]+\\}\\}$"
+                  }
+                ],
+                "description": "Position of the channel in the channel list."
+              },
+              "parent": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "pattern": "^[0-9]+$"
+                  },
+                  {
+                    "type": "string",
+                    "pattern": "^\\{\\{[a-z0-9_'().]+\\}\\}$"
+                  }
+                ],
+                "description": "ID of the category the channel is in, or of the channel a thread is created in."
+              },
+              "permission_overwrites": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "pattern": "^[0-9]+$"
+                        },
+                        {
+                          "type": "string",
+                          "pattern": "^\\{\\{[a-z0-9_'().]+\\}\\}$"
+                        }
+                      ],
+                      "description": "ID of the role or user."
+                    },
+                    "type": {
+                      "type": "number",
+                      "enum": [
+                        0,
+                        1
+                      ],
+                      "description": "0 if id is a role, 1 if it's a user."
+                    },
+                    "allow": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "pattern": "^[0-9]+$"
+                        },
+                        {
+                          "type": "string",
+                          "pattern": "^\\{\\{[a-z0-9_'().]+\\}\\}$"
+                        }
+                      ],
+                      "description": "Permission bitfield to allow."
+                    },
+                    "deny": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "pattern": "^[0-9]+$"
+                        },
+                        {
+                          "type": "string",
+                          "pattern": "^\\{\\{[a-z0-9_'().]+\\}\\}$"
+                        }
+                      ],
+                      "description": "Permission bitfield to deny."
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "allow",
+                    "deny"
+                  ],
+                  "additionalProperties": false
+                },
+                "description": "Permission overrides for roles and users."
+              },
+              "invitable": {
+                "type": "boolean",
+                "description": "Whether non-moderators can add members to a private thread."
+              }
+            },
+            "required": [
+              "name"
+            ],
+            "additionalProperties": false,
+            "description": "Settings of the channel, thread or forum post."
+          },
+          "audit_log_reason": {
+            "type": "string",
+            "maxLength": 512,
+            "description": "Reason shown in the server's audit log.",
+            "x-templated": true
+          },
+          "temporary_name": {
+            "type": "string",
+            "maxLength": 32,
+            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only."
+          }
+        },
+        "required": [
+          "channel_data"
+        ],
+        "additionalProperties": false
+      },
+      "result_schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The ID of the channel"
+          },
+          "name": {
+            "type": "string",
+            "description": "The name of the channel"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "text",
+              "voice",
+              "category",
+              "news",
+              "store",
+              "stage"
+            ],
+            "description": "The type of the channel"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "type"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "action_forum_post_create": {
+      "title": "Create forum post",
+      "description": "Create a forum post",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "type": "string",
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+          },
+          "channel_target": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9]+$"
+              },
+              {
+                "type": "string",
+                "pattern": "^\\{\\{[a-z0-9_'().]+\\}\\}$"
+              }
+            ],
+            "description": "ID of the forum channel."
+          },
+          "channel_data": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "maxLength": 100,
+                "minLength": 1,
+                "description": "Name of the channel.",
+                "x-templated": true
+              },
+              "type": {
+                "type": "number",
+                "description": "Discord channel type: 0 text, 2 voice, 4 category, 5 announcement, 13 stage, 15 forum, 16 media. For threads: 10 announcement, 11 public, 12 private."
+              },
+              "topic": {
+                "type": "string",
+                "maxLength": 1000,
+                "minLength": 1,
+                "description": "Topic of the channel.",
+                "x-templated": true
+              },
+              "nsfw": {
+                "type": "boolean",
+                "description": "Whether the channel is age-restricted."
+              },
+              "bitrate": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "pattern": "^[0-9]+$"
+                  },
+                  {
+                    "type": "string",
+                    "pattern": "^\\{\\{[a-z0-9_'().]+\\}\\}$"
+                  }
+                ],
+                "description": "Bitrate of a voice channel."
+              },
+              "user_limit": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "pattern": "^[0-9]+$"
+                  },
+                  {
+                    "type": "string",
+                    "pattern": "^\\{\\{[a-z0-9_'().]+\\}\\}$"
+                  }
+                ],
+                "description": "Maximum number of users in a voice channel."
+              },
+              "position": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "pattern": "^[0-9]+$"
+                  },
+                  {
+                    "type": "string",
+                    "pattern": "^\\{\\{[a-z0-9_'().]+\\}\\}$"
+                  }
+                ],
+                "description": "Position of the channel in the channel list."
+              },
+              "parent": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "pattern": "^[0-9]+$"
+                  },
+                  {
+                    "type": "string",
+                    "pattern": "^\\{\\{[a-z0-9_'().]+\\}\\}$"
+                  }
+                ],
+                "description": "ID of the category the channel is in, or of the channel a thread is created in."
+              },
+              "permission_overwrites": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "pattern": "^[0-9]+$"
+                        },
+                        {
+                          "type": "string",
+                          "pattern": "^\\{\\{[a-z0-9_'().]+\\}\\}$"
+                        }
+                      ],
+                      "description": "ID of the role or user."
+                    },
+                    "type": {
+                      "type": "number",
+                      "enum": [
+                        0,
+                        1
+                      ],
+                      "description": "0 if id is a role, 1 if it's a user."
+                    },
+                    "allow": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "pattern": "^[0-9]+$"
+                        },
+                        {
+                          "type": "string",
+                          "pattern": "^\\{\\{[a-z0-9_'().]+\\}\\}$"
+                        }
+                      ],
+                      "description": "Permission bitfield to allow."
+                    },
+                    "deny": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "pattern": "^[0-9]+$"
+                        },
+                        {
+                          "type": "string",
+                          "pattern": "^\\{\\{[a-z0-9_'().]+\\}\\}$"
+                        }
+                      ],
+                      "description": "Permission bitfield to deny."
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "allow",
+                    "deny"
+                  ],
+                  "additionalProperties": false
+                },
+                "description": "Permission overrides for roles and users."
+              },
+              "invitable": {
+                "type": "boolean",
+                "description": "Whether non-moderators can add members to a private thread."
+              }
+            },
+            "required": [
+              "name"
+            ],
+            "additionalProperties": false,
+            "description": "Settings of the channel, thread or forum post."
+          },
+          "audit_log_reason": {
+            "type": "string",
+            "maxLength": 512,
+            "description": "Reason shown in the server's audit log.",
+            "x-templated": true
+          },
+          "temporary_name": {
+            "type": "string",
+            "maxLength": 32,
+            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only."
+          }
+        },
+        "required": [
+          "channel_target",
+          "channel_data"
+        ],
+        "additionalProperties": false
+      },
+      "result_schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The ID of the channel"
+          },
+          "name": {
+            "type": "string",
+            "description": "The name of the channel"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "text",
+              "voice",
+              "category",
+              "news",
+              "store",
+              "stage"
+            ],
+            "description": "The type of the channel"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "type"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "action_thread_member_add": {
+      "title": "Add member to thread",
+      "description": "Add a member to a thread",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "type": "string",
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+          },
+          "channel_target": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9]+$"
+              },
+              {
+                "type": "string",
+                "pattern": "^\\{\\{[a-z0-9_'().]+\\}\\}$"
+              }
+            ],
+            "description": "ID of the thread."
+          },
+          "user_target": {
+            "type": "string",
+            "description": "ID of the user.",
+            "x-templated": true
+          },
+          "audit_log_reason": {
+            "type": "string",
+            "maxLength": 512,
+            "description": "Reason shown in the server's audit log.",
+            "x-templated": true
+          }
+        },
+        "required": [
+          "channel_target",
+          "user_target"
+        ],
+        "additionalProperties": false
+      },
+      "result_schema": null
+    },
+    "action_thread_member_remove": {
+      "title": "Remove member from thread",
+      "description": "Remove a member from a thread",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "type": "string",
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+          },
+          "channel_target": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9]+$"
+              },
+              {
+                "type": "string",
+                "pattern": "^\\{\\{[a-z0-9_'().]+\\}\\}$"
+              }
+            ],
+            "description": "ID of the thread."
+          },
+          "user_target": {
+            "type": "string",
+            "description": "ID of the user.",
+            "x-templated": true
+          },
+          "audit_log_reason": {
+            "type": "string",
+            "maxLength": 512,
+            "description": "Reason shown in the server's audit log.",
+            "x-templated": true
+          }
+        },
+        "required": [
+          "channel_target",
+          "user_target"
+        ],
+        "additionalProperties": false
+      },
+      "result_schema": null
+    },
+    "action_role_get": {
+      "title": "Get role",
+      "description": "Get a role by ID",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "type": "string",
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+          },
+          "guild_target": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9]+$"
+              },
+              {
+                "type": "string",
+                "pattern": "^\\{\\{[a-z0-9_'().]+\\}\\}$"
+              }
+            ],
+            "description": "ID of the server. Defaults to the server the flow runs in."
+          },
+          "role_target": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9]+$"
+              },
+              {
+                "type": "string",
+                "pattern": "^\\{\\{[a-z0-9_'().]+\\}\\}$"
+              }
+            ],
+            "description": "ID of the role."
+          },
+          "temporary_name": {
+            "type": "string",
+            "maxLength": 32,
+            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only."
+          }
+        },
+        "required": [
+          "role_target"
+        ],
+        "additionalProperties": false
+      },
+      "result_schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The ID of the role"
+          },
+          "name": {
+            "type": "string",
+            "description": "The name of the role"
+          },
+          "color": {
+            "type": "string",
+            "description": "The color of the role"
+          },
+          "hoist": {
+            "type": "boolean",
+            "description": "Whether the role is hoisted"
+          },
+          "mentionable": {
+            "type": "boolean",
+            "description": "Whether the role is mentionable"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "color",
+          "hoist",
+          "mentionable"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "action_guild_get": {
+      "title": "Get server",
+      "description": "Get a server / guild by ID",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "type": "string",
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+          },
+          "guild_target": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9]+$"
+              },
+              {
+                "type": "string",
+                "pattern": "^\\{\\{[a-z0-9_'().]+\\}\\}$"
+              }
+            ],
+            "description": "ID of the server."
+          },
+          "temporary_name": {
+            "type": "string",
+            "maxLength": 32,
+            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only."
+          }
+        },
+        "required": [
+          "guild_target"
+        ],
+        "additionalProperties": false
+      },
+      "result_schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The ID of the guild"
+          },
+          "name": {
+            "type": "string",
+            "description": "The name of the guild"
+          },
+          "icon_url": {
+            "type": "string",
+            "description": "The icon URL of the guild"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "icon_url"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "action_message_get": {
+      "title": "Get channel message",
+      "description": "Get a message from a channel",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "type": "string",
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+          },
+          "channel_target": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9]+$"
+              },
+              {
+                "type": "string",
+                "pattern": "^\\{\\{[a-z0-9_'().]+\\}\\}$"
+              }
+            ],
+            "description": "ID of the channel the message is in. Defaults to the channel the flow runs in."
+          },
+          "message_target": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9]+$"
+              },
+              {
+                "type": "string",
+                "pattern": "^\\{\\{[a-z0-9_'().]+\\}\\}$"
+              }
+            ],
+            "description": "ID of the message."
+          },
+          "temporary_name": {
+            "type": "string",
+            "maxLength": 32,
+            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only."
+          }
+        },
+        "required": [
+          "message_target"
+        ],
+        "additionalProperties": false
+      },
+      "result_schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The ID of the message"
+          },
+          "channel_id": {
+            "type": "string",
+            "description": "The ID of the channel the message was sent in"
+          },
+          "content": {
+            "type": "string",
+            "description": "The content of the message"
+          },
+          "author": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "description": "The ID of the user"
+              },
+              "username": {
+                "type": "string",
+                "description": "The username of the user"
+              },
+              "discriminator": {
+                "type": "string",
+                "description": "The discriminator of the user"
+              },
+              "display_name": {
+                "type": "string",
+                "description": "The display name of the user"
+              },
+              "avatar_url": {
+                "type": "string",
+                "description": "The avatar URL of the user"
+              }
+            },
+            "required": [
+              "id",
+              "username",
+              "discriminator",
+              "display_name",
+              "avatar_url"
+            ],
+            "additionalProperties": false,
+            "description": "The author of the message if it's a DM"
+          },
+          "member": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "description": "The ID of the user"
+              },
+              "username": {
+                "type": "string",
+                "description": "The username of the user"
+              },
+              "discriminator": {
+                "type": "string",
+                "description": "The discriminator of the user"
+              },
+              "display_name": {
+                "type": "string",
+                "description": "The display name of the user"
+              },
+              "avatar_url": {
+                "type": "string",
+                "description": "The avatar URL of the member"
+              },
+              "nick": {
+                "type": "string",
+                "description": "The nickname of the member"
+              }
+            },
+            "required": [
+              "id",
+              "username",
+              "discriminator",
+              "display_name",
+              "avatar_url",
+              "nick"
+            ],
+            "additionalProperties": false,
+            "description": "The author of the message if it's in a server"
+          }
+        },
+        "required": [
+          "id",
+          "channel_id",
+          "content",
+          "author"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "action_roblox_user_get": {
+      "title": "Get Roblox User",
+      "description": "Get a Roblox user by ID or username",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "type": "string",
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+          },
+          "roblox_user_target": {
+            "type": "string",
+            "description": "ID or username of the Roblox user, depending on roblox_lookup_mode.",
+            "x-templated": true
+          },
+          "roblox_lookup_mode": {
+            "type": "string",
+            "enum": [
+              "id",
+              "username"
+            ],
+            "description": "Whether roblox_user_target is an ID or a username."
+          },
+          "temporary_name": {
+            "type": "string",
+            "maxLength": 32,
+            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only."
+          }
+        },
+        "required": [
+          "roblox_user_target",
+          "roblox_lookup_mode"
+        ],
+        "additionalProperties": false
+      },
+      "result_schema": {
+        "type": "object",
+        "properties": {
+          "description": {
+            "type": "string",
+            "description": "The description of the Roblox user"
+          },
+          "created": {
+            "type": "string",
+            "description": "The datetime when the Roblox account was created"
+          },
+          "is_banned": {
+            "type": "boolean",
+            "description": "Whether the Roblox user is banned"
+          },
+          "external_app_display_Name": {
+            "type": "string",
+            "description": "The display name shown in external applications"
+          },
+          "has_verified_badge": {
+            "type": "boolean",
+            "description": "Whether the Roblox user has a verified badge"
+          },
+          "id": {
+            "type": "number",
+            "description": "The ID of the Roblox user"
+          },
+          "name": {
+            "type": "string",
+            "description": "The username of the Roblox user"
+          },
+          "display_name": {
+            "type": "string",
+            "description": "The display name of the Roblox user"
+          }
+        },
+        "required": [
+          "description",
+          "created",
+          "is_banned",
+          "external_app_display_Name",
+          "has_verified_badge",
+          "id",
+          "name",
+          "display_name"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "action_variable_set": {
+      "title": "Set stored variable",
+      "description": "Set the value of a stored variable",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "type": "string",
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+          },
+          "variable_id": {
+            "type": "string",
+            "description": "ID of an existing stored variable."
+          },
+          "variable_scope": {
+            "type": "string",
+            "description": "Scope of the value, e.g. a user ID to store one value per user. Only for scoped variables.",
+            "x-templated": true
+          },
+          "variable_value": {
+            "type": "string",
+            "description": "Value to store.",
+            "x-templated": true
+          },
+          "variable_operation": {
+            "type": "string",
+            "enum": [
+              "overwrite",
+              "append",
+              "prepend",
+              "increment",
+              "decrement"
+            ],
+            "description": "How the value is combined with the stored one. increment and decrement add or subtract a number."
+          },
+          "temporary_name": {
+            "type": "string",
+            "maxLength": 32,
+            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only."
+          }
+        },
+        "required": [
+          "variable_id",
+          "variable_value",
+          "variable_operation"
+        ],
+        "additionalProperties": false
+      },
+      "result_schema": null
+    },
+    "action_variable_delete": {
+      "title": "Delete stored variable",
+      "description": "Delete the value of a stored variable",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "type": "string",
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+          },
+          "variable_id": {
+            "type": "string",
+            "description": "ID of an existing stored variable."
+          },
+          "variable_scope": {
+            "type": "string",
+            "description": "Scope of the value, e.g. a user ID to store one value per user. Only for scoped variables.",
+            "x-templated": true
+          }
+        },
+        "required": [
+          "variable_id"
+        ],
+        "additionalProperties": false
+      },
+      "result_schema": null
+    },
+    "action_variable_get": {
+      "title": "Get stored variable",
+      "description": "Get the value of a stored variable",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "type": "string",
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+          },
+          "variable_id": {
+            "type": "string",
+            "description": "ID of an existing stored variable."
+          },
+          "variable_scope": {
+            "type": "string",
+            "description": "Scope of the value, e.g. a user ID to store one value per user. Only for scoped variables.",
+            "x-templated": true
+          },
+          "temporary_name": {
+            "type": "string",
+            "maxLength": 32,
+            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only."
+          }
+        },
+        "required": [
+          "variable_id"
+        ],
+        "additionalProperties": false
+      },
+      "result_schema": null
+    },
+    "action_voice_channel_join": {
+      "title": "Join voice channel",
+      "description": "Bot joins a voice channel",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "type": "string",
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+          },
+          "channel_target": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9]+$"
+              },
+              {
+                "type": "string",
+                "pattern": "^\\{\\{[a-z0-9_'().]+\\}\\}$"
+              }
+            ],
+            "description": "ID of the voice channel to join."
+          },
+          "voice_self_mute": {
+            "type": "boolean",
+            "description": "Whether the bot joins muted."
+          },
+          "voice_self_deaf": {
+            "type": "boolean",
+            "description": "Whether the bot joins deafened."
+          }
+        },
+        "required": [
+          "channel_target"
+        ],
+        "additionalProperties": false
+      },
+      "result_schema": null
+    },
+    "action_voice_channel_leave": {
+      "title": "Leave voice channel",
+      "description": "Bot leaves its voice channel in the current server",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "type": "string",
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+          }
+        },
+        "additionalProperties": false
+      },
+      "result_schema": null
+    },
+    "action_http_request": {
+      "title": "Send API Request",
+      "description": "Send an API request to an external server",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "type": "string",
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+          },
+          "http_request_data": {
+            "type": "object",
+            "properties": {
+              "url": {
+                "type": "string",
+                "format": "uri",
+                "description": "URL to send the request to.",
+                "x-templated": true
+              },
+              "method": {
+                "type": "string",
+                "enum": [
+                  "GET",
+                  "POST",
+                  "PUT",
+                  "PATCH",
+                  "DELETE"
+                ],
+                "description": "HTTP method of the request."
+              },
+              "headers": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "key": {
+                      "type": "string",
+                      "description": "Name of the header."
+                    },
+                    "value": {
+                      "type": "string",
+                      "description": "Value of the header.",
+                      "x-templated": true
+                    }
+                  },
+                  "required": [
+                    "key",
+                    "value"
+                  ],
+                  "additionalProperties": false
+                },
+                "description": "Headers to send with the request."
+              },
+              "body_json": {
+                "type": "object",
+                "additionalProperties": {},
+                "description": "JSON body of the request. Placeholders in its string values are evaluated."
+              }
+            },
+            "required": [
+              "url",
+              "method"
+            ],
+            "additionalProperties": false,
+            "description": "The request to send."
+          },
+          "temporary_name": {
+            "type": "string",
+            "maxLength": 32,
+            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only."
+          }
+        },
+        "required": [
+          "http_request_data"
+        ],
+        "additionalProperties": false
+      },
+      "result_schema": null
+    },
+    "action_ai_chat_completion": {
+      "title": "Ask AI",
+      "description": "Ask artificial intelligence a question or let it respond to a prompt",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "type": "string",
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+          },
+          "ai_chat_completion_data": {
+            "type": "object",
+            "properties": {
+              "model": {
+                "type": "string",
+                "enum": [
+                  "gpt-4.1",
+                  "gpt-4.1-mini",
+                  "gpt-4.1-nano",
+                  "gpt-5-nano",
+                  "gpt-4o-mini"
+                ],
+                "description": "Model to use. Larger models cost more credits. Defaults to gpt-4o-mini."
+              },
+              "system_prompt": {
+                "type": "string",
+                "maxLength": 2000,
+                "description": "Instructions for how the AI should behave.",
+                "x-templated": true
+              },
+              "prompt": {
+                "type": "string",
+                "maxLength": 2000,
+                "minLength": 1,
+                "description": "Message the AI responds to.",
+                "x-templated": true
+              },
+              "max_completion_tokens": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "pattern": "^[0-9]+$"
+                  },
+                  {
+                    "type": "string",
+                    "pattern": "^\\{\\{[a-z0-9_'().]+\\}\\}$"
+                  }
+                ],
+                "description": "Maximum number of tokens in the answer."
+              }
+            },
+            "required": [
+              "prompt"
+            ],
+            "additionalProperties": false,
+            "description": "The prompt and model settings."
+          },
+          "temporary_name": {
+            "type": "string",
+            "maxLength": 32,
+            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only."
+          }
+        },
+        "required": [
+          "ai_chat_completion_data"
+        ],
+        "additionalProperties": false
+      },
+      "result_schema": null
+    },
+    "action_ai_web_search": {
+      "title": "Search the Web",
+      "description": "Search the web for the latest information using AI",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "type": "string",
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+          },
+          "ai_chat_completion_data": {
+            "type": "object",
+            "properties": {
+              "model": {
+                "type": "string",
+                "enum": [
+                  "gpt-4.1",
+                  "gpt-4.1-mini",
+                  "gpt-4.1-nano",
+                  "gpt-5-nano",
+                  "gpt-4o-mini"
+                ],
+                "description": "Model to use. Larger models cost more credits. Defaults to gpt-4o-mini."
+              },
+              "prompt": {
+                "type": "string",
+                "maxLength": 2000,
+                "minLength": 1,
+                "description": "What to search the web for.",
+                "x-templated": true
+              },
+              "max_completion_tokens": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "pattern": "^[0-9]+$"
+                  },
+                  {
+                    "type": "string",
+                    "pattern": "^\\{\\{[a-z0-9_'().]+\\}\\}$"
+                  }
+                ],
+                "description": "Maximum number of tokens in the answer."
+              }
+            },
+            "required": [
+              "prompt"
+            ],
+            "additionalProperties": false,
+            "description": "The search query and model settings."
+          },
+          "temporary_name": {
+            "type": "string",
+            "maxLength": 32,
+            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only."
+          }
+        },
+        "required": [
+          "ai_chat_completion_data"
+        ],
+        "additionalProperties": false
+      },
+      "result_schema": null
+    },
+    "action_expression_evaluate": {
+      "title": "Calculate Value",
+      "description": "Evaluate math or other logical expressions and use the result later",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "type": "string",
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+          },
+          "expression": {
+            "type": "string",
+            "maxLength": 2000,
+            "description": "Expr language expression to evaluate, written without surrounding {{ }}, e.g. arg('a') + arg('b').",
+            "x-templated": true
+          },
+          "temporary_name": {
+            "type": "string",
+            "maxLength": 32,
+            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only."
+          }
+        },
+        "required": [
+          "expression"
+        ],
+        "additionalProperties": false
+      },
+      "result_schema": null
+    },
+    "action_random_generate": {
+      "title": "Generate Random Number",
+      "description": "Generate a random number in a range",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "type": "string",
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+          },
+          "random_min": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9]+$"
+              },
+              {
+                "type": "string",
+                "pattern": "^\\{\\{[a-z0-9_'().]+\\}\\}$"
+              }
+            ],
+            "description": "Smallest number that can be generated."
+          },
+          "random_max": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9]+$"
+              },
+              {
+                "type": "string",
+                "pattern": "^\\{\\{[a-z0-9_'().]+\\}\\}$"
+              }
+            ],
+            "description": "Upper bound of the generated number. The number is always below it."
+          },
+          "temporary_name": {
+            "type": "string",
+            "maxLength": 32,
+            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only."
+          }
+        },
+        "required": [
+          "random_min",
+          "random_max"
+        ],
+        "additionalProperties": false
+      },
+      "result_schema": null
+    },
+    "action_log": {
+      "title": "Log Message",
+      "description": "Log some text which is only visible in the application logs",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "type": "string",
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+          },
+          "log_level": {
+            "type": "string",
+            "enum": [
+              "debug",
+              "info",
+              "warn",
+              "error"
+            ],
+            "description": "Severity of the log entry."
+          },
+          "log_message": {
+            "type": "string",
+            "maxLength": 2000,
+            "minLength": 1,
+            "description": "Text to write to the app's logs.",
+            "x-templated": true
+          }
+        },
+        "required": [
+          "log_level",
+          "log_message"
+        ],
+        "additionalProperties": false
+      },
+      "result_schema": null
+    },
+    "control_condition_compare": {
+      "title": "Comparison Condition",
+      "description": "Run actions based on the difference between two values.",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord"
+      ],
+      "outputs": [],
+      "owned_children": [
+        "control_condition_item_else",
+        "control_condition_item_compare"
+      ],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "type": "string",
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+          },
+          "condition_base_value": {
+            "type": "string",
+            "description": "Value that each branch compares against.",
+            "x-templated": true
+          },
+          "condition_allow_multiple": {
+            "type": "boolean",
+            "description": "Whether every matching branch runs. If unset, only the first matching branch runs."
+          }
+        },
+        "required": [
+          "condition_base_value"
+        ],
+        "additionalProperties": false
+      },
+      "result_schema": null
+    },
+    "control_condition_item_compare": {
+      "title": "Match Condition",
+      "description": "Run actions if the two values are equal.",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "type": "string",
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+          },
+          "condition_item_mode": {
+            "type": "string",
+            "enum": [
+              "equal",
+              "not_equal",
+              "greater_than",
+              "less_than",
+              "greater_than_or_equal",
+              "less_than_or_equal",
+              "contains",
+              "starts_with",
+              "ends_with"
+            ],
+            "description": "How the condition's base value is compared to this branch's value."
+          },
+          "condition_item_value": {
+            "type": "string",
+            "description": "Value to compare the base value with.",
+            "x-templated": true
+          }
+        },
+        "required": [
+          "condition_item_mode"
+        ],
+        "additionalProperties": false
+      },
+      "result_schema": null
+    },
+    "control_condition_user": {
+      "title": "User Condition",
+      "description": "Run actions based on a user.",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord"
+      ],
+      "outputs": [],
+      "owned_children": [
+        "control_condition_item_else",
+        "control_condition_item_user"
+      ],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "type": "string",
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+          },
+          "condition_base_value": {
+            "type": "string",
+            "description": "ID of the user that each branch checks.",
+            "x-templated": true
+          },
+          "condition_allow_multiple": {
+            "type": "boolean",
+            "description": "Whether every matching branch runs. If unset, only the first matching branch runs."
+          }
+        },
+        "required": [
+          "condition_base_value"
+        ],
+        "additionalProperties": false
+      },
+      "result_schema": null
+    },
+    "control_condition_item_user": {
+      "title": "Match User",
+      "description": "Run actions if the user meets the criteria.",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "type": "string",
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+          },
+          "condition_item_mode": {
+            "type": "string",
+            "enum": [
+              "equal",
+              "not_equal",
+              "has_role",
+              "not_has_role",
+              "has_permission",
+              "not_has_permission"
+            ],
+            "description": "What to check about the user."
+          },
+          "condition_item_value": {
+            "type": "string",
+            "description": "User ID for equal and not_equal, role ID for has_role and not_has_role, or permission bitfield for has_permission and not_has_permission.",
+            "x-templated": true
+          }
+        },
+        "required": [
+          "condition_item_mode"
+        ],
+        "additionalProperties": false
+      },
+      "result_schema": null
+    },
+    "control_condition_channel": {
+      "title": "Channel Condition",
+      "description": "Run actions based on a channel.",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord"
+      ],
+      "outputs": [],
+      "owned_children": [
+        "control_condition_item_else",
+        "control_condition_item_channel"
+      ],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "type": "string",
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+          },
+          "condition_base_value": {
+            "type": "string",
+            "description": "ID of the channel that each branch checks.",
+            "x-templated": true
+          },
+          "condition_allow_multiple": {
+            "type": "boolean",
+            "description": "Whether every matching branch runs. If unset, only the first matching branch runs."
+          }
+        },
+        "required": [
+          "condition_base_value"
+        ],
+        "additionalProperties": false
+      },
+      "result_schema": null
+    },
+    "control_condition_item_channel": {
+      "title": "Match Channel",
+      "description": "Run actions if the channel meets the criteria.",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "type": "string",
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+          },
+          "condition_item_mode": {
+            "type": "string",
+            "enum": [
+              "equal",
+              "not_equal"
+            ],
+            "description": "Whether the base value has to match this branch's value."
+          },
+          "condition_item_value": {
+            "type": "string",
+            "description": "ID to compare the base value with.",
+            "x-templated": true
+          }
+        },
+        "required": [
+          "condition_item_mode"
+        ],
+        "additionalProperties": false
+      },
+      "result_schema": null
+    },
+    "control_condition_role": {
+      "title": "Role Condition",
+      "description": "Run actions based on a role.",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord"
+      ],
+      "outputs": [],
+      "owned_children": [
+        "control_condition_item_else",
+        "control_condition_item_role"
+      ],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "type": "string",
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+          },
+          "condition_base_value": {
+            "type": "string",
+            "description": "ID of the role that each branch checks.",
+            "x-templated": true
+          },
+          "condition_allow_multiple": {
+            "type": "boolean",
+            "description": "Whether every matching branch runs. If unset, only the first matching branch runs."
+          }
+        },
+        "required": [
+          "condition_base_value"
+        ],
+        "additionalProperties": false
+      },
+      "result_schema": null
+    },
+    "control_condition_item_role": {
+      "title": "Match Role",
+      "description": "Run actions if the role meets the criteria.",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "type": "string",
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+          },
+          "condition_item_mode": {
+            "type": "string",
+            "enum": [
+              "equal",
+              "not_equal"
+            ],
+            "description": "Whether the base value has to match this branch's value."
+          },
+          "condition_item_value": {
+            "type": "string",
+            "description": "ID to compare the base value with.",
+            "x-templated": true
+          }
+        },
+        "required": [
+          "condition_item_mode"
+        ],
+        "additionalProperties": false
+      },
+      "result_schema": null
+    },
+    "control_condition_item_else": {
+      "title": "Else",
+      "description": "Run actions if no other conditions are met.",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": true,
+      "data_schema": {
+        "type": "object",
+        "properties": {},
+        "additionalProperties": false
+      },
+      "result_schema": null
+    },
+    "control_error_handler": {
+      "title": "Handle Errors",
+      "description": "Handle errors that occur in the flow after this block.",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord"
+      ],
+      "outputs": [
+        "error",
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "type": "string",
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+          },
+          "temporary_name": {
+            "type": "string",
+            "maxLength": 32,
+            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only."
+          }
+        },
+        "additionalProperties": false
+      },
+      "result_schema": null
+    },
+    "control_loop": {
+      "title": "Run a loop",
+      "description": "Run a set of actions multiple times.",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord"
+      ],
+      "outputs": [],
+      "owned_children": [
+        "control_loop_end",
+        "control_loop_each"
+      ],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "type": "string",
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+          },
+          "loop_count": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9]+$"
+              },
+              {
+                "type": "string",
+                "pattern": "^\\{\\{[a-z0-9_'().]+\\}\\}$"
+              }
+            ],
+            "description": "How many times the loop runs."
+          }
+        },
+        "required": [
+          "loop_count"
+        ],
+        "additionalProperties": false
+      },
+      "result_schema": null
+    },
+    "control_loop_each": {
+      "title": "Each loop iteration",
+      "description": "Run actions for each iteration of the loop.",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": true,
+      "data_schema": {
+        "type": "object",
+        "properties": {},
+        "additionalProperties": false
+      },
+      "result_schema": null
+    },
+    "control_loop_end": {
+      "title": "After loop",
+      "description": "Run actions after the loop has finished.",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": true,
+      "data_schema": {
+        "type": "object",
+        "properties": {},
+        "additionalProperties": false
+      },
+      "result_schema": null
+    },
+    "control_loop_exit": {
+      "title": "Exit loop",
+      "description": "Exit out of the loop.",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord"
+      ],
+      "outputs": [],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {},
+        "additionalProperties": false
+      },
+      "result_schema": null
+    },
+    "control_sleep": {
+      "title": "Wait",
+      "description": "Pause the flow for a set amount of time.",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "type": "string",
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+          },
+          "sleep_duration_seconds": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9]+(\\.[0-9]+)?$"
+              },
+              {
+                "type": "string",
+                "pattern": "^\\{\\{[a-z0-9_'().]+\\}\\}$"
+              }
+            ],
+            "description": "How many seconds to wait before continuing."
+          }
+        },
+        "required": [
+          "sleep_duration_seconds"
+        ],
+        "additionalProperties": false
+      },
+      "result_schema": null
+    },
+    "option_command_argument": {
+      "title": "Command Argument",
+      "description": "Argument for a command.",
+      "contexts": [
+        "command"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "type": "string",
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 32,
+            "minLength": 1,
+            "pattern": "^[a-z0-9_]+$",
+            "description": "Name of the argument. Its value can be read with {{arg('name')}}."
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 1,
+            "description": "Description of the argument shown in Discord."
+          },
+          "command_argument_type": {
+            "type": "string",
+            "enum": [
+              "string",
+              "integer",
+              "boolean",
+              "user",
+              "channel",
+              "role",
+              "mentionable",
+              "number",
+              "attachment"
+            ],
+            "description": "Type of value the user has to enter."
+          },
+          "command_argument_required": {
+            "type": "boolean",
+            "description": "Whether the user has to fill in the argument."
+          },
+          "command_argument_min_value": {
+            "type": "number",
+            "description": "Smallest allowed value for integer and number arguments."
+          },
+          "command_argument_max_value": {
+            "type": "number",
+            "description": "Largest allowed value for integer and number arguments."
+          },
+          "command_argument_max_length": {
+            "type": "number",
+            "description": "Maximum length for string arguments."
+          },
+          "command_argument_choices": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "maxLength": 100,
+                  "description": "Name shown to the user."
+                },
+                "value": {
+                  "type": "string",
+                  "maxLength": 100,
+                  "description": "Value the flow receives when the choice is picked."
+                }
+              },
+              "required": [
+                "name",
+                "value"
+              ],
+              "additionalProperties": false
+            },
+            "description": "Fixed choices the user picks from, for string and integer arguments. Choices with an empty name or value are ignored."
+          }
+        },
+        "required": [
+          "name",
+          "description",
+          "command_argument_type"
+        ],
+        "additionalProperties": false
+      },
+      "result_schema": null
+    },
+    "option_command_permissions": {
+      "title": "Command Permissions",
+      "description": "Make the command only available to users with the specified permissions.",
+      "contexts": [
+        "command"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "type": "string",
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+          },
+          "command_permissions": {
+            "type": "string",
+            "pattern": "^[0-9]+$",
+            "description": "Discord permission bitfield. Only members with all of these permissions can see and use the command."
+          }
+        },
+        "required": [
+          "command_permissions"
+        ],
+        "additionalProperties": false
+      },
+      "result_schema": null
+    },
+    "option_command_contexts": {
+      "title": "Command Contexts",
+      "description": "Define where your command should be available. By default, it will be available everywhere.",
+      "contexts": [
+        "command"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "type": "string",
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+          },
+          "command_disabled_contexts": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "guild",
+                "bot_dm",
+                "private_channel"
+              ]
+            },
+            "description": "Places where the command can't be used: servers, DMs with the bot, or other DMs and group DMs."
+          },
+          "command_disabled_integrations": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "guild_install",
+                "user_install"
+              ]
+            },
+            "description": "Install types the command isn't available for: installed to a server, or installed to a user."
+          }
+        },
+        "additionalProperties": false
+      },
+      "result_schema": null
+    },
+    "option_event_filter": {
+      "title": "Event Filter",
+      "description": "Filter events based on their properties.",
+      "contexts": [
+        "event_discord"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "type": "string",
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+          },
+          "event_filter_target": {
+            "type": "string",
+            "enum": [
+              "message_content",
+              "user_id",
+              "guild_id",
+              "channel_id"
+            ],
+            "description": "Property of the event to filter on."
+          },
+          "event_filter_mode": {
+            "type": "string",
+            "enum": [
+              "equal",
+              "not_equal",
+              "contains",
+              "starts_with",
+              "ends_with"
+            ],
+            "description": "How the property is compared to the filter value."
+          },
+          "event_filter_value": {
+            "type": "string",
+            "maxLength": 1000,
+            "minLength": 1,
+            "description": "Value to compare against. This is fixed text, placeholders aren't supported."
+          }
+        },
+        "required": [
+          "event_filter_target",
+          "event_filter_mode",
+          "event_filter_value"
+        ],
+        "additionalProperties": false
+      },
+      "result_schema": null
+    },
+    "suspend_response_modal": {
+      "title": "Show Modal",
+      "description": "Show a modal to the user and suspend the flow until the user submits the modal.",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "type": "string",
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+          },
+          "modal_data": {
+            "type": "object",
+            "properties": {
+              "title": {
+                "type": "string",
+                "maxLength": 45,
+                "minLength": 1,
+                "description": "Title of the modal."
+              },
+              "components": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "components": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "custom_id": {
+                            "type": "string",
+                            "maxLength": 100,
+                            "minLength": 1,
+                            "description": "Identifier of the input. The submitted value can be read with {{input('custom_id')}}."
+                          },
+                          "label": {
+                            "type": "string",
+                            "maxLength": 45,
+                            "minLength": 1,
+                            "description": "Label shown above the input."
+                          },
+                          "style": {
+                            "type": "number",
+                            "enum": [
+                              1,
+                              2
+                            ],
+                            "description": "1 for a single line input, 2 for a paragraph."
+                          },
+                          "required": {
+                            "type": "boolean",
+                            "description": "Whether the input has to be filled in."
+                          },
+                          "min_length": {
+                            "type": "number",
+                            "description": "Minimum length of the entered text."
+                          },
+                          "max_length": {
+                            "type": "number",
+                            "description": "Maximum length of the entered text."
+                          },
+                          "value": {
+                            "type": "string",
+                            "maxLength": 4000,
+                            "minLength": 1,
+                            "description": "Value the input is pre-filled with."
+                          },
+                          "placeholder": {
+                            "type": "string",
+                            "maxLength": 4000,
+                            "minLength": 1,
+                            "description": "Text shown while the input is empty."
+                          }
+                        },
+                        "required": [
+                          "custom_id",
+                          "label",
+                          "style"
+                        ],
+                        "additionalProperties": false
+                      },
+                      "minItems": 1,
+                      "maxItems": 1,
+                      "description": "The text input of the row."
+                    }
+                  },
+                  "required": [
+                    "components"
+                  ],
+                  "additionalProperties": false
+                },
+                "minItems": 1,
+                "maxItems": 5,
+                "description": "Rows of the modal, each holding one text input."
+              }
+            },
+            "required": [
+              "title",
+              "components"
+            ],
+            "additionalProperties": false,
+            "description": "The modal to show."
+          }
+        },
+        "required": [
+          "modal_data"
+        ],
+        "additionalProperties": false
+      },
+      "result_schema": null
+    }
+  }
+}

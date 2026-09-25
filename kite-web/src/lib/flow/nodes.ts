@@ -3,6 +3,7 @@ import { humanId } from "human-id";
 import { useMemo } from "react";
 import { ZodSchema } from "zod";
 import { getUniqueId } from "../utils";
+import { FlowContextType } from "./context";
 import {
   nodeActionAiChatCompletionDataSchema,
   nodeActionAiWebSearchCompletionDataSchema,
@@ -47,11 +48,18 @@ import {
   nodeActionVariableSetSchema,
   nodeActionVoiceChannelJoinDataSchema,
   nodeActionVoiceChannelLeaveDataSchema,
+  nodeConditionChannelDataSchema,
   nodeConditionCompareDataSchema,
   nodeConditionItemCompareDataSchema,
+  nodeConditionItemIdDataSchema,
+  nodeConditionItemUserDataSchema,
+  nodeConditionRoleDataSchema,
+  nodeConditionUserDataSchema,
+  nodeControlErrorHandlerDataSchema,
   nodeControlLoopDataSchema,
   nodeControlSleepDataSchema,
   NodeData,
+  nodeEmptyDataSchema,
   nodeEntryCommandDataSchema,
   nodeEntryComponentButtonDataSchema,
   nodeEntryEventDataSchema,
@@ -96,6 +104,13 @@ export interface NodeValues {
   dataSchema?: ZodSchema;
   dataFields: string[];
   resultSchema?: ZodSchema;
+  // IDs of the source handles edges can be drawn from. Defaults to
+  // ["default"]. Owned children are connected with fixed edges instead.
+  // Message blocks also get one per button or select menu in their message.
+  outputs?: string[];
+  // Flow types the block can be used in. Blocks listed in the block explorer
+  // otherwise take them from their section.
+  contexts?: FlowContextType[];
   ownsChildren?: boolean;
   fixed?: boolean;
   creditsCost?: number | ((data: NodeData) => number);
@@ -110,6 +125,7 @@ export const nodeTypes: Record<string, NodeValues> = {
       "Command entry. Drop different actions and options here!",
     dataSchema: nodeEntryCommandDataSchema,
     dataFields: ["name", "description"],
+    contexts: ["command"],
     fixed: true,
   },
   entry_event: {
@@ -120,6 +136,7 @@ export const nodeTypes: Record<string, NodeValues> = {
       "Listens for an event to trigger the flow. Drop different actions here!",
     dataSchema: nodeEntryEventDataSchema,
     dataFields: ["event_type", "description"],
+    contexts: ["event_discord"],
     fixed: true,
   },
   entry_component_button: {
@@ -130,6 +147,7 @@ export const nodeTypes: Record<string, NodeValues> = {
       "This gets triggered when a user clicks the button. Drop different actions here!",
     dataSchema: nodeEntryComponentButtonDataSchema,
     dataFields: [],
+    contexts: ["component_button", "component_select_menu"],
     fixed: true,
   },
   action_response_create: {
@@ -727,6 +745,7 @@ export const nodeTypes: Record<string, NodeValues> = {
       "condition_allow_multiple",
       "custom_label",
     ],
+    outputs: [],
     ownsChildren: true,
   },
   control_condition_item_compare: {
@@ -742,19 +761,20 @@ export const nodeTypes: Record<string, NodeValues> = {
     icon: "user-search",
     defaultTitle: "User Condition",
     defaultDescription: "Run actions based on a user.",
-    dataSchema: nodeConditionCompareDataSchema,
+    dataSchema: nodeConditionUserDataSchema,
     dataFields: [
       "condition_user_base_value",
       "condition_allow_multiple",
       "custom_label",
     ],
+    outputs: [],
     ownsChildren: true,
   },
   control_condition_item_user: {
     color: controlColor,
     icon: "circle-help",
     defaultTitle: "Match User",
-    dataSchema: nodeConditionItemCompareDataSchema,
+    dataSchema: nodeConditionItemUserDataSchema,
     defaultDescription: "Run actions if the user meets the criteria.",
     dataFields: ["condition_item_user_mode", "condition_item_user_value"],
   },
@@ -763,19 +783,20 @@ export const nodeTypes: Record<string, NodeValues> = {
     icon: "folder-search",
     defaultTitle: "Channel Condition",
     defaultDescription: "Run actions based on a channel.",
-    dataSchema: nodeConditionCompareDataSchema,
+    dataSchema: nodeConditionChannelDataSchema,
     dataFields: [
       "condition_channel_base_value",
       "condition_allow_multiple",
       "custom_label",
     ],
+    outputs: [],
     ownsChildren: true,
   },
   control_condition_item_channel: {
     color: controlColor,
     icon: "circle-help",
     defaultTitle: "Match Channel",
-    dataSchema: nodeConditionItemCompareDataSchema,
+    dataSchema: nodeConditionItemIdDataSchema,
     defaultDescription: "Run actions if the channel meets the criteria.",
     dataFields: ["condition_item_channel_mode", "condition_item_channel_value"],
   },
@@ -784,19 +805,20 @@ export const nodeTypes: Record<string, NodeValues> = {
     icon: "bookmark",
     defaultTitle: "Role Condition",
     defaultDescription: "Run actions based on a role.",
-    dataSchema: nodeConditionCompareDataSchema,
+    dataSchema: nodeConditionRoleDataSchema,
     dataFields: [
       "condition_role_base_value",
       "condition_allow_multiple",
       "custom_label",
     ],
+    outputs: [],
     ownsChildren: true,
   },
   control_condition_item_role: {
     color: controlColor,
     icon: "circle-help",
     defaultTitle: "Match Role",
-    dataSchema: nodeConditionItemCompareDataSchema,
+    dataSchema: nodeConditionItemIdDataSchema,
     defaultDescription: "Run actions if the role meets the criteria.",
     dataFields: ["condition_item_role_mode", "condition_item_role_value"],
   },
@@ -805,6 +827,7 @@ export const nodeTypes: Record<string, NodeValues> = {
     icon: "circle-x",
     defaultTitle: "Else",
     defaultDescription: "Run actions if no other conditions are met.",
+    dataSchema: nodeEmptyDataSchema,
     dataFields: [],
     fixed: true,
   },
@@ -814,7 +837,9 @@ export const nodeTypes: Record<string, NodeValues> = {
     defaultTitle: "Handle Errors",
     defaultDescription:
       "Handle errors that occur in the flow after this block.",
+    dataSchema: nodeControlErrorHandlerDataSchema,
     dataFields: ["temporary_name", "custom_label"],
+    outputs: ["error", "default"],
     ownsChildren: true,
   },
   control_loop: {
@@ -824,6 +849,7 @@ export const nodeTypes: Record<string, NodeValues> = {
     dataSchema: nodeControlLoopDataSchema,
     defaultDescription: "Run a set of actions multiple times.",
     dataFields: ["loop_count", "custom_label"],
+    outputs: [],
     ownsChildren: true,
   },
   control_loop_each: {
@@ -831,6 +857,7 @@ export const nodeTypes: Record<string, NodeValues> = {
     icon: "repeat-2",
     defaultTitle: "Each loop iteration",
     defaultDescription: "Run actions for each iteration of the loop.",
+    dataSchema: nodeEmptyDataSchema,
     dataFields: [],
     fixed: true,
   },
@@ -839,6 +866,7 @@ export const nodeTypes: Record<string, NodeValues> = {
     icon: "corner-down-right",
     defaultTitle: "After loop",
     defaultDescription: "Run actions after the loop has finished.",
+    dataSchema: nodeEmptyDataSchema,
     dataFields: [],
     fixed: true,
   },
@@ -847,7 +875,9 @@ export const nodeTypes: Record<string, NodeValues> = {
     icon: "log-out",
     defaultTitle: "Exit loop",
     defaultDescription: "Exit out of the loop.",
+    dataSchema: nodeEmptyDataSchema,
     dataFields: [],
+    outputs: [],
   },
   control_sleep: {
     color: controlColor,
