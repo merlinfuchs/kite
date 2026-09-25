@@ -4,7 +4,8 @@ import { FlowNodeData } from "../types/flow.gen";
 
 const numericRegex = /^[0-9]+$/;
 const decimalRegex = /^[0-9]+(\.[0-9]+)?$/;
-const placeholderRegex = /^\{\{[a-z0-9_'().]+\}\}$/;
+// A single placeholder, like {{arg('user').id}}.
+const placeholderRegex = /^\{\{[^{}]+\}\}$/;
 
 export interface FlowData {
   nodes: Node<NodeData>[];
@@ -37,10 +38,11 @@ export function isTemplated(def: z.ZodTypeDef) {
 
 // A number or Discord ID, or a single placeholder that resolves to one.
 function numericOrPlaceholder(description: string, regex = numericRegex) {
+  const message = "Must be a number or ID, or a single {{ }} placeholder";
   return z
     .string()
-    .regex(regex)
-    .or(z.string().regex(placeholderRegex))
+    .regex(regex, message)
+    .or(z.string().regex(placeholderRegex, message))
     .describe(description);
 }
 
@@ -280,10 +282,12 @@ const guildTargetSchema = numericOrPlaceholder(
   "ID of the server. Defaults to the server the flow runs in."
 );
 
+const responseTargetMessage =
+  "Must be an ID, '@original', or a single {{ }} placeholder";
 const responseTargetSchema = z
   .string()
-  .regex(numericRegex)
-  .or(z.string().regex(placeholderRegex))
+  .regex(numericRegex, responseTargetMessage)
+  .or(z.string().regex(placeholderRegex, responseTargetMessage))
   .or(z.literal("@original"))
   .describe(
     "ID of the response message, or '@original' for the first response to the interaction."

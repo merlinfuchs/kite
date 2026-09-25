@@ -13,6 +13,7 @@ import {
 } from "./nodes";
 import {
   getAvailablePlaceholders,
+  getProvidedPlaceholders,
   walkDownstream,
   walkUpstream,
 } from "./placeholders";
@@ -40,10 +41,12 @@ for (const [owner, owned] of ownedTypes) {
 // block's settings schema covers: one entry, valid connections, complete
 // conditions and loops, and placeholders that point at something that exists.
 export function validateFlow(
-  nodes: Node<NodeData>[],
+  flowNodes: Node<NodeData>[],
   edges: Edge[],
   context: FlowContextType
 ): FlowIssue[] {
+  // Generated flows can leave out the data of blocks without settings.
+  const nodes = flowNodes.map((n) => (n.data ? n : { ...n, data: {} }));
   const issues: FlowIssue[] = [];
   const report = (
     severity: FlowIssue["severity"],
@@ -89,7 +92,20 @@ export function validateFlow(
     }
   }
 
+  const connections = new Set<string>();
   for (const edge of edges) {
+    const connection = `${edge.source}:${edge.sourceHandle || "default"}:${
+      edge.target
+    }`;
+    if (connections.has(connection)) {
+      report(
+        "warning",
+        "Two connections join the same blocks, so the second block runs twice.",
+        { edgeId: edge.id }
+      );
+    }
+    connections.add(connection);
+
     if (!nodeIds.has(edge.source) || !nodeIds.has(edge.target)) {
       report("error", "Connection to a block that doesn't exist.", {
         edgeId: edge.id,
@@ -120,6 +136,8 @@ export function validateFlow(
           ? `'${getNodeTitle(
               source
             )}' can only be connected to the entry block.`
+          : target.type!.startsWith("option_")
+          ? `Nothing can be connected into '${getNodeTitle(target)}'.`
           : `Only options can be connected into '${getNodeTitle(target)}'.`,
         { edgeId: edge.id }
       );
@@ -181,7 +199,10 @@ export function validateFlow(
       const count = children.filter((c) => c?.type === type).length;
       if (count !== 1) {
         report(
-          "error",
+          // The service runs a condition without an else branch fine.
+          type === "control_condition_item_else" && count === 0
+            ? "warning"
+            : "error",
           `'${getNodeTitle(node)}' needs exactly one '${
             getNodeValues(type).defaultTitle
           }' block, but has ${count}.`,
@@ -248,6 +269,9 @@ export function validateFlow(
     }
   }
 
+  const providedAnywhere = new Set(
+    knownNodes.flatMap((n) => getProvidedPlaceholders(n).map((p) => p.value))
+  );
   for (const node of knownNodes) {
     const refs = findReferences(node);
     if (refs.length === 0) continue;
@@ -259,7 +283,19 @@ export function validateFlow(
     );
     for (const { fn, name } of refs) {
       const placeholder = `${fn}('${name}')`;
-      if (!available.has(placeholder)) {
+      if (available.has(placeholder)) continue;
+
+      // Blocks with the same parent run one after another, in an order the
+      // editor doesn't show, so a block beside this one may have set it.
+      if (providedAnywhere.has(placeholder)) {
+        report(
+          "warning",
+          `'${getNodeTitle(
+            node
+          )}' uses ${placeholder}, which is set by a block that doesn't always run before it, so it may be empty.`,
+          { nodeId: node.id }
+        );
+      } else {
         report(
           "error",
           `'${getNodeTitle(node)}' uses ${placeholder}, but ${referenceHints[

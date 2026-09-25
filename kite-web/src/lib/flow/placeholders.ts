@@ -170,59 +170,64 @@ function upstreamPlaceholders(
   nodes: Node<NodeData>[],
   edges: Edge[]
 ): PlaceholderGroup[] {
-  const nodeItems: { label: string; value: string }[] = [];
-  const resultKeyItems: { label: string; value: string }[] = [];
-  const componentItems: { label: string; value: string }[] = [];
-
-  const seenResultKeys = new Set<string>();
+  const groups: PlaceholderGroup[] = [
+    { label: "Modal Inputs", placeholders: [] },
+    { label: "Temporary Variables", placeholders: [] },
+    { label: "Node Results", placeholders: [] },
+  ];
+  const seen = new Set<string>();
 
   for (const parent of getUpstreamNodes(nodeId, nodes, edges)) {
-    if (
-      parent.type?.startsWith("action_") ||
-      parent.type === "control_error_handler"
-    ) {
-      nodeItems.push({
-        label: getNodeTitle(parent),
-        value: `result('${parent.id}')`,
-      });
+    for (const { group, label, value } of getProvidedPlaceholders(parent)) {
+      // The nearest block wins if several store the same variable.
+      if (seen.has(value)) continue;
+      seen.add(value);
+      groups
+        .find((g) => g.label === group)!
+        .placeholders.push({
+          label,
+          value,
+        });
     }
+  }
 
-    if (
-      parent.data.temporary_name &&
-      !seenResultKeys.has(parent.data.temporary_name)
-    ) {
-      seenResultKeys.add(parent.data.temporary_name);
+  return groups.filter((g) => g.placeholders.length > 0);
+}
 
-      resultKeyItems.push({
-        label: `Temporary Variable '${parent.data.temporary_name}'`,
-        value: `var('${parent.data.temporary_name}')`,
-      });
-    }
+// Returns the placeholders a block makes available to the blocks after it:
+// its result, its temporary variable and the inputs of its modal.
+export function getProvidedPlaceholders(node: Node<NodeData>) {
+  const res: { group: string; label: string; value: string }[] = [];
 
-    if (parent.type === "suspend_response_modal") {
-      for (const row of parent.data.modal_data?.components ?? []) {
-        for (const component of row?.components ?? []) {
-          componentItems.push({
-            label: component.label ?? "Unknown Input",
-            value: `input('${component.custom_id}')`,
-          });
-        }
+  if (
+    node.type?.startsWith("action_") ||
+    node.type === "control_error_handler"
+  ) {
+    res.push({
+      group: "Node Results",
+      label: getNodeTitle(node),
+      value: `result('${node.id}')`,
+    });
+  }
+
+  if (node.data.temporary_name) {
+    res.push({
+      group: "Temporary Variables",
+      label: `Temporary Variable '${node.data.temporary_name}'`,
+      value: `var('${node.data.temporary_name}')`,
+    });
+  }
+
+  if (node.type === "suspend_response_modal") {
+    for (const row of node.data.modal_data?.components ?? []) {
+      for (const component of row?.components ?? []) {
+        res.push({
+          group: "Modal Inputs",
+          label: component.label ?? "Unknown Input",
+          value: `input('${component.custom_id}')`,
+        });
       }
     }
-  }
-
-  const res = [];
-
-  if (componentItems.length > 0) {
-    res.push({ label: "Modal Inputs", placeholders: componentItems });
-  }
-
-  if (resultKeyItems.length > 0) {
-    res.push({ label: "Temporary Variables", placeholders: resultKeyItems });
-  }
-
-  if (nodeItems.length > 0) {
-    res.push({ label: "Node Results", placeholders: nodeItems });
   }
 
   return res;

@@ -26,9 +26,13 @@ export default function FlowNodeActionMessage(props: NodeProps) {
   // React Flow only re-measures handles when the node resizes, so swapping a
   // component for another of the same size would leave the new handle unknown.
   const updateNodeInternals = useUpdateNodeInternals();
-  const handleIds = getComponentHandleIds(
-    props.data.message_data?.components || []
-  ).join(",");
+  const handleIds = useMemo(
+    () =>
+      getComponentHandleIds(props.data.message_data?.components || []).join(
+        ","
+      ),
+    [props.data.message_data]
+  );
   useEffect(() => {
     updateNodeInternals(props.id);
   }, [handleIds, props.id, updateNodeInternals]);

@@ -984,12 +984,12 @@ export function getOwnedChildTypes(type: string) {
 }
 
 // Options connect into the entry of commands and event listeners, nothing else
-// connects into an entry.
+// connects into an entry, and nothing connects into an option.
 export function canConnect(sourceType: string, targetType: string) {
   if (sourceType.startsWith("option_")) {
     return targetType === "entry_command" || targetType === "entry_event";
   }
-  return !targetType.startsWith("entry_");
+  return !targetType.startsWith("entry_") && !targetType.startsWith("option_");
 }
 
 export function useNodeValues(nodeType: string): NodeValues {

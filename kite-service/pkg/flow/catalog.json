@@ -309,7 +309,7 @@
                   },
                   {
                     "type": "string",
-                    "pattern": "^\\{\\{[a-z0-9_'().]+\\}\\}$"
+                    "pattern": "^\\{\\{[^{}]+\\}\\}$"
                   }
                 ]
               },
@@ -505,7 +505,7 @@
                   },
                   {
                     "type": "string",
-                    "pattern": "^\\{\\{[a-z0-9_'().]+\\}\\}$"
+                    "pattern": "^\\{\\{[^{}]+\\}\\}$"
                   }
                 ]
               },
@@ -588,7 +588,7 @@
               },
               {
                 "type": "string",
-                "pattern": "^\\{\\{[a-z0-9_'().]+\\}\\}$"
+                "pattern": "^\\{\\{[^{}]+\\}\\}$"
               }
             ],
             "description": "ID of the channel to send the message to."
@@ -777,7 +777,7 @@
               },
               {
                 "type": "string",
-                "pattern": "^\\{\\{[a-z0-9_'().]+\\}\\}$"
+                "pattern": "^\\{\\{[^{}]+\\}\\}$"
               }
             ],
             "description": "ID of the channel."
@@ -790,7 +790,7 @@
               },
               {
                 "type": "string",
-                "pattern": "^\\{\\{[a-z0-9_'().]+\\}\\}$"
+                "pattern": "^\\{\\{[^{}]+\\}\\}$"
               }
             ],
             "description": "ID of the message."
@@ -980,7 +980,7 @@
               },
               {
                 "type": "string",
-                "pattern": "^\\{\\{[a-z0-9_'().]+\\}\\}$"
+                "pattern": "^\\{\\{[^{}]+\\}\\}$"
               }
             ],
             "description": "ID of the user to send the message to."
@@ -1169,7 +1169,7 @@
               },
               {
                 "type": "string",
-                "pattern": "^\\{\\{[a-z0-9_'().]+\\}\\}$"
+                "pattern": "^\\{\\{[^{}]+\\}\\}$"
               }
             ],
             "description": "ID of the channel."
@@ -1182,7 +1182,7 @@
               },
               {
                 "type": "string",
-                "pattern": "^\\{\\{[a-z0-9_'().]+\\}\\}$"
+                "pattern": "^\\{\\{[^{}]+\\}\\}$"
               }
             ],
             "description": "ID of the message."
@@ -1231,7 +1231,7 @@
               },
               {
                 "type": "string",
-                "pattern": "^\\{\\{[a-z0-9_'().]+\\}\\}$"
+                "pattern": "^\\{\\{[^{}]+\\}\\}$"
               }
             ],
             "description": "ID of the channel."
@@ -1244,7 +1244,7 @@
               },
               {
                 "type": "string",
-                "pattern": "^\\{\\{[a-z0-9_'().]+\\}\\}$"
+                "pattern": "^\\{\\{[^{}]+\\}\\}$"
               }
             ],
             "description": "ID of the message."
@@ -1307,7 +1307,7 @@
               },
               {
                 "type": "string",
-                "pattern": "^\\{\\{[a-z0-9_'().]+\\}\\}$"
+                "pattern": "^\\{\\{[^{}]+\\}\\}$"
               }
             ],
             "description": "ID of the channel."
@@ -1320,7 +1320,7 @@
               },
               {
                 "type": "string",
-                "pattern": "^\\{\\{[a-z0-9_'().]+\\}\\}$"
+                "pattern": "^\\{\\{[^{}]+\\}\\}$"
               }
             ],
             "description": "ID of the message."
@@ -1383,7 +1383,7 @@
               },
               {
                 "type": "string",
-                "pattern": "^\\{\\{[a-z0-9_'().]+\\}\\}$"
+                "pattern": "^\\{\\{[^{}]+\\}\\}$"
               }
             ],
             "description": "ID of the channel."
@@ -1396,7 +1396,7 @@
               },
               {
                 "type": "string",
-                "pattern": "^\\{\\{[a-z0-9_'().]+\\}\\}$"
+                "pattern": "^\\{\\{[^{}]+\\}\\}$"
               }
             ],
             "description": "ID of the message."
@@ -1445,7 +1445,7 @@
               },
               {
                 "type": "string",
-                "pattern": "^\\{\\{[a-z0-9_'().]+\\}\\}$"
+                "pattern": "^\\{\\{[^{}]+\\}\\}$"
               }
             ],
             "description": "ID of the channel."
@@ -1458,7 +1458,7 @@
               },
               {
                 "type": "string",
-                "pattern": "^\\{\\{[a-z0-9_'().]+\\}\\}$"
+                "pattern": "^\\{\\{[^{}]+\\}\\}$"
               }
             ],
             "description": "ID of the message."
@@ -1507,7 +1507,7 @@
               },
               {
                 "type": "string",
-                "pattern": "^\\{\\{[a-z0-9_'().]+\\}\\}$"
+                "pattern": "^\\{\\{[^{}]+\\}\\}$"
               }
             ],
             "description": "ID of the user."
@@ -1520,7 +1520,7 @@
               },
               {
                 "type": "string",
-                "pattern": "^\\{\\{[a-z0-9_'().]+\\}\\}$"
+                "pattern": "^\\{\\{[^{}]+\\}\\}$"
               }
             ],
             "description": "Delete the member's messages from this many seconds before the ban."
@@ -1568,7 +1568,7 @@
               },
               {
                 "type": "string",
-                "pattern": "^\\{\\{[a-z0-9_'().]+\\}\\}$"
+                "pattern": "^\\{\\{[^{}]+\\}\\}$"
               }
             ],
             "description": "ID of the user."
@@ -1616,7 +1616,7 @@
               },
               {
                 "type": "string",
-                "pattern": "^\\{\\{[a-z0-9_'().]+\\}\\}$"
+                "pattern": "^\\{\\{[^{}]+\\}\\}$"
               }
             ],
             "description": "ID of the user."
@@ -1664,7 +1664,7 @@
               },
               {
                 "type": "string",
-                "pattern": "^\\{\\{[a-z0-9_'().]+\\}\\}$"
+                "pattern": "^\\{\\{[^{}]+\\}\\}$"
               }
             ],
             "description": "ID of the user."
@@ -1677,7 +1677,7 @@
               },
               {
                 "type": "string",
-                "pattern": "^\\{\\{[a-z0-9_'().]+\\}\\}$"
+                "pattern": "^\\{\\{[^{}]+\\}\\}$"
               }
             ],
             "description": "How many seconds the member is timed out for."
@@ -1726,7 +1726,7 @@
               },
               {
                 "type": "string",
-                "pattern": "^\\{\\{[a-z0-9_'().]+\\}\\}$"
+                "pattern": "^\\{\\{[^{}]+\\}\\}$"
               }
             ],
             "description": "ID of the user."
@@ -1790,7 +1790,7 @@
               },
               {
                 "type": "string",
-                "pattern": "^\\{\\{[a-z0-9_'().]+\\}\\}$"
+                "pattern": "^\\{\\{[^{}]+\\}\\}$"
               }
             ],
             "description": "ID of the user."
@@ -1803,7 +1803,7 @@
               },
               {
                 "type": "string",
-                "pattern": "^\\{\\{[a-z0-9_'().]+\\}\\}$"
+                "pattern": "^\\{\\{[^{}]+\\}\\}$"
               }
             ],
             "description": "ID of the role."
@@ -1852,7 +1852,7 @@
               },
               {
                 "type": "string",
-                "pattern": "^\\{\\{[a-z0-9_'().]+\\}\\}$"
+                "pattern": "^\\{\\{[^{}]+\\}\\}$"
               }
             ],
             "description": "ID of the user."
@@ -1865,7 +1865,7 @@
               },
               {
                 "type": "string",
-                "pattern": "^\\{\\{[a-z0-9_'().]+\\}\\}$"
+                "pattern": "^\\{\\{[^{}]+\\}\\}$"
               }
             ],
             "description": "ID of the role."
@@ -1914,7 +1914,7 @@
               },
               {
                 "type": "string",
-                "pattern": "^\\{\\{[a-z0-9_'().]+\\}\\}$"
+                "pattern": "^\\{\\{[^{}]+\\}\\}$"
               }
             ],
             "description": "ID of the server. Defaults to the server the flow runs in."
@@ -1927,7 +1927,7 @@
               },
               {
                 "type": "string",
-                "pattern": "^\\{\\{[a-z0-9_'().]+\\}\\}$"
+                "pattern": "^\\{\\{[^{}]+\\}\\}$"
               }
             ],
             "description": "ID of the user."
@@ -2011,7 +2011,7 @@
               },
               {
                 "type": "string",
-                "pattern": "^\\{\\{[a-z0-9_'().]+\\}\\}$"
+                "pattern": "^\\{\\{[^{}]+\\}\\}$"
               }
             ],
             "description": "ID of the user."
@@ -2058,7 +2058,7 @@
               },
               {
                 "type": "string",
-                "pattern": "^\\{\\{[a-z0-9_'().]+\\}\\}$"
+                "pattern": "^\\{\\{[^{}]+\\}\\}$"
               }
             ],
             "description": "ID of the channel."
@@ -2135,7 +2135,7 @@
               },
               {
                 "type": "string",
-                "pattern": "^\\{\\{[a-z0-9_'().]+\\}\\}$"
+                "pattern": "^\\{\\{[^{}]+\\}\\}$"
               }
             ],
             "description": "ID of the server. Defaults to the server the flow runs in."
@@ -2173,7 +2173,7 @@
                   },
                   {
                     "type": "string",
-                    "pattern": "^\\{\\{[a-z0-9_'().]+\\}\\}$"
+                    "pattern": "^\\{\\{[^{}]+\\}\\}$"
                   }
                 ],
                 "description": "Bitrate of a voice channel."
@@ -2186,7 +2186,7 @@
                   },
                   {
                     "type": "string",
-                    "pattern": "^\\{\\{[a-z0-9_'().]+\\}\\}$"
+                    "pattern": "^\\{\\{[^{}]+\\}\\}$"
                   }
                 ],
                 "description": "Maximum number of users in a voice channel."
@@ -2199,7 +2199,7 @@
                   },
                   {
                     "type": "string",
-                    "pattern": "^\\{\\{[a-z0-9_'().]+\\}\\}$"
+                    "pattern": "^\\{\\{[^{}]+\\}\\}$"
                   }
                 ],
                 "description": "Position of the channel in the channel list."
@@ -2212,7 +2212,7 @@
                   },
                   {
                     "type": "string",
-                    "pattern": "^\\{\\{[a-z0-9_'().]+\\}\\}$"
+                    "pattern": "^\\{\\{[^{}]+\\}\\}$"
                   }
                 ],
                 "description": "ID of the category the channel is in, or of the channel a thread is created in."
@@ -2230,7 +2230,7 @@
                         },
                         {
                           "type": "string",
-                          "pattern": "^\\{\\{[a-z0-9_'().]+\\}\\}$"
+                          "pattern": "^\\{\\{[^{}]+\\}\\}$"
                         }
                       ],
                       "description": "ID of the role or user."
@@ -2251,7 +2251,7 @@
                         },
                         {
                           "type": "string",
-                          "pattern": "^\\{\\{[a-z0-9_'().]+\\}\\}$"
+                          "pattern": "^\\{\\{[^{}]+\\}\\}$"
                         }
                       ],
                       "description": "Permission bitfield to allow."
@@ -2264,7 +2264,7 @@
                         },
                         {
                           "type": "string",
-                          "pattern": "^\\{\\{[a-z0-9_'().]+\\}\\}$"
+                          "pattern": "^\\{\\{[^{}]+\\}\\}$"
                         }
                       ],
                       "description": "Permission bitfield to deny."
@@ -2368,7 +2368,7 @@
               },
               {
                 "type": "string",
-                "pattern": "^\\{\\{[a-z0-9_'().]+\\}\\}$"
+                "pattern": "^\\{\\{[^{}]+\\}\\}$"
               }
             ],
             "description": "ID of the channel."
@@ -2406,7 +2406,7 @@
                   },
                   {
                     "type": "string",
-                    "pattern": "^\\{\\{[a-z0-9_'().]+\\}\\}$"
+                    "pattern": "^\\{\\{[^{}]+\\}\\}$"
                   }
                 ],
                 "description": "Bitrate of a voice channel."
@@ -2419,7 +2419,7 @@
                   },
                   {
                     "type": "string",
-                    "pattern": "^\\{\\{[a-z0-9_'().]+\\}\\}$"
+                    "pattern": "^\\{\\{[^{}]+\\}\\}$"
                   }
                 ],
                 "description": "Maximum number of users in a voice channel."
@@ -2432,7 +2432,7 @@
                   },
                   {
                     "type": "string",
-                    "pattern": "^\\{\\{[a-z0-9_'().]+\\}\\}$"
+                    "pattern": "^\\{\\{[^{}]+\\}\\}$"
                   }
                 ],
                 "description": "Position of the channel in the channel list."
@@ -2445,7 +2445,7 @@
                   },
                   {
                     "type": "string",
-                    "pattern": "^\\{\\{[a-z0-9_'().]+\\}\\}$"
+                    "pattern": "^\\{\\{[^{}]+\\}\\}$"
                   }
                 ],
                 "description": "ID of the category the channel is in, or of the channel a thread is created in."
@@ -2463,7 +2463,7 @@
                         },
                         {
                           "type": "string",
-                          "pattern": "^\\{\\{[a-z0-9_'().]+\\}\\}$"
+                          "pattern": "^\\{\\{[^{}]+\\}\\}$"
                         }
                       ],
                       "description": "ID of the role or user."
@@ -2484,7 +2484,7 @@
                         },
                         {
                           "type": "string",
-                          "pattern": "^\\{\\{[a-z0-9_'().]+\\}\\}$"
+                          "pattern": "^\\{\\{[^{}]+\\}\\}$"
                         }
                       ],
                       "description": "Permission bitfield to allow."
@@ -2497,7 +2497,7 @@
                         },
                         {
                           "type": "string",
-                          "pattern": "^\\{\\{[a-z0-9_'().]+\\}\\}$"
+                          "pattern": "^\\{\\{[^{}]+\\}\\}$"
                         }
                       ],
                       "description": "Permission bitfield to deny."
@@ -2602,7 +2602,7 @@
               },
               {
                 "type": "string",
-                "pattern": "^\\{\\{[a-z0-9_'().]+\\}\\}$"
+                "pattern": "^\\{\\{[^{}]+\\}\\}$"
               }
             ],
             "description": "ID of the channel."
@@ -2650,7 +2650,7 @@
               },
               {
                 "type": "string",
-                "pattern": "^\\{\\{[a-z0-9_'().]+\\}\\}$"
+                "pattern": "^\\{\\{[^{}]+\\}\\}$"
               }
             ],
             "description": "ID of the message to start the thread from. Leave unset for a thread without a starter message."
@@ -2688,7 +2688,7 @@
                   },
                   {
                     "type": "string",
-                    "pattern": "^\\{\\{[a-z0-9_'().]+\\}\\}$"
+                    "pattern": "^\\{\\{[^{}]+\\}\\}$"
                   }
                 ],
                 "description": "Bitrate of a voice channel."
@@ -2701,7 +2701,7 @@
                   },
                   {
                     "type": "string",
-                    "pattern": "^\\{\\{[a-z0-9_'().]+\\}\\}$"
+                    "pattern": "^\\{\\{[^{}]+\\}\\}$"
                   }
                 ],
                 "description": "Maximum number of users in a voice channel."
@@ -2714,7 +2714,7 @@
                   },
                   {
                     "type": "string",
-                    "pattern": "^\\{\\{[a-z0-9_'().]+\\}\\}$"
+                    "pattern": "^\\{\\{[^{}]+\\}\\}$"
                   }
                 ],
                 "description": "Position of the channel in the channel list."
@@ -2727,7 +2727,7 @@
                   },
                   {
                     "type": "string",
-                    "pattern": "^\\{\\{[a-z0-9_'().]+\\}\\}$"
+                    "pattern": "^\\{\\{[^{}]+\\}\\}$"
                   }
                 ],
                 "description": "ID of the category the channel is in, or of the channel a thread is created in."
@@ -2745,7 +2745,7 @@
                         },
                         {
                           "type": "string",
-                          "pattern": "^\\{\\{[a-z0-9_'().]+\\}\\}$"
+                          "pattern": "^\\{\\{[^{}]+\\}\\}$"
                         }
                       ],
                       "description": "ID of the role or user."
@@ -2766,7 +2766,7 @@
                         },
                         {
                           "type": "string",
-                          "pattern": "^\\{\\{[a-z0-9_'().]+\\}\\}$"
+                          "pattern": "^\\{\\{[^{}]+\\}\\}$"
                         }
                       ],
                       "description": "Permission bitfield to allow."
@@ -2779,7 +2779,7 @@
                         },
                         {
                           "type": "string",
-                          "pattern": "^\\{\\{[a-z0-9_'().]+\\}\\}$"
+                          "pattern": "^\\{\\{[^{}]+\\}\\}$"
                         }
                       ],
                       "description": "Permission bitfield to deny."
@@ -2883,7 +2883,7 @@
               },
               {
                 "type": "string",
-                "pattern": "^\\{\\{[a-z0-9_'().]+\\}\\}$"
+                "pattern": "^\\{\\{[^{}]+\\}\\}$"
               }
             ],
             "description": "ID of the forum channel."
@@ -2921,7 +2921,7 @@
                   },
                   {
                     "type": "string",
-                    "pattern": "^\\{\\{[a-z0-9_'().]+\\}\\}$"
+                    "pattern": "^\\{\\{[^{}]+\\}\\}$"
                   }
                 ],
                 "description": "Bitrate of a voice channel."
@@ -2934,7 +2934,7 @@
                   },
                   {
                     "type": "string",
-                    "pattern": "^\\{\\{[a-z0-9_'().]+\\}\\}$"
+                    "pattern": "^\\{\\{[^{}]+\\}\\}$"
                   }
                 ],
                 "description": "Maximum number of users in a voice channel."
@@ -2947,7 +2947,7 @@
                   },
                   {
                     "type": "string",
-                    "pattern": "^\\{\\{[a-z0-9_'().]+\\}\\}$"
+                    "pattern": "^\\{\\{[^{}]+\\}\\}$"
                   }
                 ],
                 "description": "Position of the channel in the channel list."
@@ -2960,7 +2960,7 @@
                   },
                   {
                     "type": "string",
-                    "pattern": "^\\{\\{[a-z0-9_'().]+\\}\\}$"
+                    "pattern": "^\\{\\{[^{}]+\\}\\}$"
                   }
                 ],
                 "description": "ID of the category the channel is in, or of the channel a thread is created in."
@@ -2978,7 +2978,7 @@
                         },
                         {
                           "type": "string",
-                          "pattern": "^\\{\\{[a-z0-9_'().]+\\}\\}$"
+                          "pattern": "^\\{\\{[^{}]+\\}\\}$"
                         }
                       ],
                       "description": "ID of the role or user."
@@ -2999,7 +2999,7 @@
                         },
                         {
                           "type": "string",
-                          "pattern": "^\\{\\{[a-z0-9_'().]+\\}\\}$"
+                          "pattern": "^\\{\\{[^{}]+\\}\\}$"
                         }
                       ],
                       "description": "Permission bitfield to allow."
@@ -3012,7 +3012,7 @@
                         },
                         {
                           "type": "string",
-                          "pattern": "^\\{\\{[a-z0-9_'().]+\\}\\}$"
+                          "pattern": "^\\{\\{[^{}]+\\}\\}$"
                         }
                       ],
                       "description": "Permission bitfield to deny."
@@ -3117,7 +3117,7 @@
               },
               {
                 "type": "string",
-                "pattern": "^\\{\\{[a-z0-9_'().]+\\}\\}$"
+                "pattern": "^\\{\\{[^{}]+\\}\\}$"
               }
             ],
             "description": "ID of the thread."
@@ -3171,7 +3171,7 @@
               },
               {
                 "type": "string",
-                "pattern": "^\\{\\{[a-z0-9_'().]+\\}\\}$"
+                "pattern": "^\\{\\{[^{}]+\\}\\}$"
               }
             ],
             "description": "ID of the thread."
@@ -3225,7 +3225,7 @@
               },
               {
                 "type": "string",
-                "pattern": "^\\{\\{[a-z0-9_'().]+\\}\\}$"
+                "pattern": "^\\{\\{[^{}]+\\}\\}$"
               }
             ],
             "description": "ID of the server. Defaults to the server the flow runs in."
@@ -3238,7 +3238,7 @@
               },
               {
                 "type": "string",
-                "pattern": "^\\{\\{[a-z0-9_'().]+\\}\\}$"
+                "pattern": "^\\{\\{[^{}]+\\}\\}$"
               }
             ],
             "description": "ID of the role."
@@ -3317,7 +3317,7 @@
               },
               {
                 "type": "string",
-                "pattern": "^\\{\\{[a-z0-9_'().]+\\}\\}$"
+                "pattern": "^\\{\\{[^{}]+\\}\\}$"
               }
             ],
             "description": "ID of the server."
@@ -3386,7 +3386,7 @@
               },
               {
                 "type": "string",
-                "pattern": "^\\{\\{[a-z0-9_'().]+\\}\\}$"
+                "pattern": "^\\{\\{[^{}]+\\}\\}$"
               }
             ],
             "description": "ID of the channel the message is in. Defaults to the channel the flow runs in."
@@ -3399,7 +3399,7 @@
               },
               {
                 "type": "string",
-                "pattern": "^\\{\\{[a-z0-9_'().]+\\}\\}$"
+                "pattern": "^\\{\\{[^{}]+\\}\\}$"
               }
             ],
             "description": "ID of the message."
@@ -3779,7 +3779,7 @@
               },
               {
                 "type": "string",
-                "pattern": "^\\{\\{[a-z0-9_'().]+\\}\\}$"
+                "pattern": "^\\{\\{[^{}]+\\}\\}$"
               }
             ],
             "description": "ID of the voice channel to join."
@@ -3972,7 +3972,7 @@
                   },
                   {
                     "type": "string",
-                    "pattern": "^\\{\\{[a-z0-9_'().]+\\}\\}$"
+                    "pattern": "^\\{\\{[^{}]+\\}\\}$"
                   }
                 ],
                 "description": "Maximum number of tokens in the answer."
@@ -4047,7 +4047,7 @@
                   },
                   {
                     "type": "string",
-                    "pattern": "^\\{\\{[a-z0-9_'().]+\\}\\}$"
+                    "pattern": "^\\{\\{[^{}]+\\}\\}$"
                   }
                 ],
                 "description": "Maximum number of tokens in the answer."
@@ -4141,7 +4141,7 @@
               },
               {
                 "type": "string",
-                "pattern": "^\\{\\{[a-z0-9_'().]+\\}\\}$"
+                "pattern": "^\\{\\{[^{}]+\\}\\}$"
               }
             ],
             "description": "Smallest number that can be generated."
@@ -4154,7 +4154,7 @@
               },
               {
                 "type": "string",
-                "pattern": "^\\{\\{[a-z0-9_'().]+\\}\\}$"
+                "pattern": "^\\{\\{[^{}]+\\}\\}$"
               }
             ],
             "description": "Upper bound of the generated number. The number is always below it."
@@ -4638,7 +4638,7 @@
               },
               {
                 "type": "string",
-                "pattern": "^\\{\\{[a-z0-9_'().]+\\}\\}$"
+                "pattern": "^\\{\\{[^{}]+\\}\\}$"
               }
             ],
             "description": "How many times the loop runs."
@@ -4741,7 +4741,7 @@
               },
               {
                 "type": "string",
-                "pattern": "^\\{\\{[a-z0-9_'().]+\\}\\}$"
+                "pattern": "^\\{\\{[^{}]+\\}\\}$"
               }
             ],
             "description": "How many seconds to wait before continuing."

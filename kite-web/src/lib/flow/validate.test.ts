@@ -141,9 +141,7 @@ describe("validateFlow", () => {
           ...conditionEdges.filter((e) => e.target !== elseId),
         ]
       )
-    ).toEqual([
-      "'Comparison Condition' needs exactly one 'Else' block, but has 0.",
-    ]);
+    ).toEqual([]);
 
     expect(
       errors(
@@ -236,8 +234,75 @@ describe("validateFlow", () => {
       )
     ).toEqual([
       "'Get user' uses arg('user'), but the command has no argument named 'user'.",
-      "'Log Message' uses var('target'), but no block before it stores a temporary variable named 'target'.",
       "'Calculate Value' uses arg('missing'), but the command has no argument named 'missing'.",
+    ]);
+  });
+
+  it("warns about placeholders set by blocks that may run later", () => {
+    const stored = node("get", "action_user_get", {
+      user_target: "1",
+      temporary_name: "target",
+    });
+    expect(
+      validateFlow(
+        [entry, stored, log("a", "{{var('target')}}")],
+        [edge("entry", "get"), edge("entry", "a")],
+        "command"
+      )
+    ).toEqual([
+      {
+        severity: "warning",
+        message:
+          "'Log Message' uses var('target'), which is set by a block that doesn't always run before it, so it may be empty.",
+        nodeId: "a",
+      },
+    ]);
+  });
+
+  it("accepts any single placeholder in ID fields", () => {
+    expect(
+      errors(
+        [
+          entry,
+          node("get", "action_user_get", {
+            user_target: '{{ arg("user").id }}',
+          }),
+        ],
+        [edge("entry", "get")]
+      )
+    ).toEqual([
+      "'Get user' uses arg('user'), but the command has no argument named 'user'.",
+    ]);
+    expect(
+      errors(
+        [entry, node("get", "action_user_get", { user_target: "me" })],
+        [edge("entry", "get")]
+      )
+    ).toEqual([
+      "'Get user' setting 'user_target': Must be a number or ID, or a single {{ }} placeholder",
+    ]);
+  });
+
+  it("doesn't allow connections into options", () => {
+    expect(
+      errors([entry, arg], [edge("arg", "entry"), edge("entry", "arg")])
+    ).toEqual(["Nothing can be connected into 'Command Argument'."]);
+  });
+
+  it("handles blocks without data and duplicate connections", () => {
+    expect(
+      validateFlow(
+        [entry, { id: "v", type: "action_voice_channel_leave" } as never],
+        [edge("entry", "v"), { ...edge("entry", "v"), id: "dup" }],
+        "command"
+      )
+    ).toEqual([
+      {
+        severity: "warning",
+        message:
+          "Two connections join the same blocks, so the second block runs twice.",
+        edgeId: "dup",
+      },
     ]);
   });
 
