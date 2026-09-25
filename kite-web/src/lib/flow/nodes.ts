@@ -346,7 +346,12 @@ export const nodeTypes: Record<string, NodeValues> = {
     defaultTitle: "Unban member",
     defaultDescription: "Unban a member from the server",
     dataSchema: nodeActionMemberUnbanDataSchema,
-    dataFields: ["guild_target", "user_target", "audit_log_reason", "custom_label"],
+    dataFields: [
+      "guild_target",
+      "user_target",
+      "audit_log_reason",
+      "custom_label",
+    ],
     creditsCost: 1,
   },
   action_member_kick: {
@@ -355,7 +360,12 @@ export const nodeTypes: Record<string, NodeValues> = {
     defaultTitle: "Kick member",
     defaultDescription: "Kick a member from the server",
     dataSchema: nodeActionMemberKickDataSchema,
-    dataFields: ["guild_target", "user_target", "audit_log_reason", "custom_label"],
+    dataFields: [
+      "guild_target",
+      "user_target",
+      "audit_log_reason",
+      "custom_label",
+    ],
     creditsCost: 1,
   },
   action_member_timeout: {
