@@ -16,17 +16,13 @@ You can track your credit usage on the dashboard in the Monthly Usage section.
 Most actions in flows will consume **1 credit per execution** with a few exceptions:
 
 - **`Ask AI` block**:
-  - `gpt-4.1`: 100 credits per execution
-  - `gpt-4.1-mini`: 20 credits per execution
-  - `gpt-4.1-nano`: 5 credits per execution (deprecated)
-  - `gpt-5-nano`: 5 credits per execution
-  - `gpt-4o-mini` (default): 5 credits per execution
+  - Fast (default): 5 credits per execution
+  - Balanced: 20 credits per execution
+  - Smartest: 100 credits per execution
 - **`Search The Web` block**:
-  - `gpt-4.1`: 500 credits per execution
-  - `gpt-4.1-mini`: 100 credits per execution
-  - `gpt-4.1-nano`: 25 credits per execution (deprecated)
-  - `gpt-5-nano`: 25 credits per execution
-  - `gpt-4o-mini` (default): 25 credits per execution
+  - Fast (default): 25 credits per execution
+  - Balanced: 100 credits per execution
+  - Smartest: 500 credits per execution
 - **`Send API request` block**: 3 credits per execution
 
 Control flow blocks, like conditions and loops, will not consume any credits.

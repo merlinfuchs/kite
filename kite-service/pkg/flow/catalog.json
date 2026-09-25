@@ -4156,13 +4156,11 @@
               "model": {
                 "type": "string",
                 "enum": [
-                  "gpt-4.1",
-                  "gpt-4.1-mini",
-                  "gpt-4.1-nano",
-                  "gpt-5-nano",
-                  "gpt-4o-mini"
+                  "small",
+                  "medium",
+                  "large"
                 ],
-                "description": "Model to use. Larger models cost more credits. Defaults to gpt-4o-mini."
+                "description": "Model tier to use. Larger tiers are more capable and cost more credits. Defaults to small."
               },
               "system_prompt": {
                 "type": "string",
@@ -4238,13 +4236,11 @@
               "model": {
                 "type": "string",
                 "enum": [
-                  "gpt-4.1",
-                  "gpt-4.1-mini",
-                  "gpt-4.1-nano",
-                  "gpt-5-nano",
-                  "gpt-4o-mini"
+                  "small",
+                  "medium",
+                  "large"
                 ],
-                "description": "Model to use. Larger models cost more credits. Defaults to gpt-4o-mini."
+                "description": "Model tier to use. Larger tiers are more capable and cost more credits. Defaults to small."
               },
               "prompt": {
                 "type": "string",

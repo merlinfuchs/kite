@@ -13,6 +13,7 @@ import {
 import { activityTypeOptions, statusOptions } from "@/lib/discord/presence";
 import { useAppFeature, useMessages, useVariables } from "@/lib/hooks/api";
 import { getFlowCreditsCost } from "@/lib/flow/schedule";
+import { aiModelTiers, getAiModelTier } from "@/lib/flow/aiModels";
 import { EventTypeScheduleCron } from "@/lib/types/flow.gen";
 import { useAppId } from "@/lib/hooks/params";
 import {
@@ -1038,37 +1039,41 @@ function HttpRequestDataInput({ data, updateData, errors }: InputProps) {
   );
 }
 
+function AiModelInput({
+  data,
+  updateData,
+  errors,
+}: Pick<InputProps, "data" | "updateData" | "errors">) {
+  return (
+    <BaseInput
+      type="select"
+      field="ai_chat_completion_data.model"
+      title="Model"
+      description="How capable the AI is. More capable models cost more credits."
+      options={aiModelTiers.map((t) => ({
+        value: t.value,
+        label: `${t.label} (${t.model})`,
+      }))}
+      value={getAiModelTier(data.ai_chat_completion_data?.model).value}
+      updateValue={(v) =>
+        updateData({
+          ai_chat_completion_data: {
+            ...data.ai_chat_completion_data,
+            model: v || undefined,
+          },
+        })
+      }
+      errors={errors}
+    />
+  );
+}
+
 function AiChatCompletionDataInput({ data, updateData, errors }: InputProps) {
   // TODO: top level errors aren't displayed ...
 
   return (
     <>
-      <BaseInput
-        type="select"
-        field="ai_chat_completion_data.model"
-        title="Model"
-        description="The AI model to use. More powerful models cost more credits."
-        options={[
-          { value: "gpt-4.1", label: "Smartest (gpt-4.1)" },
-          { value: "gpt-4.1-mini", label: "Balanced (gpt-4.1-mini)" },
-          {
-            value: "gpt-4.1-nano",
-            label: "Cheap & Fast (gpt-4.1-nano) (deprecated)",
-          },
-          { value: "gpt-5-nano", label: "Cheap & Fast (gpt-5-nano)" },
-          { value: "gpt-4o-mini", label: "Cheap & Fast (gpt-4o-mini)" },
-        ]}
-        value={data.ai_chat_completion_data?.model || "gpt-4o-mini"}
-        updateValue={(v) =>
-          updateData({
-            ai_chat_completion_data: {
-              ...data.ai_chat_completion_data,
-              model: v || undefined,
-            },
-          })
-        }
-        errors={errors}
-      />
+      <AiModelInput data={data} updateData={updateData} errors={errors} />
       <BaseInput
         type="textarea"
         field="ai_chat_completion_data.system_prompt"
@@ -1112,32 +1117,7 @@ function AiWebSearchDataInput({ data, updateData, errors }: InputProps) {
 
   return (
     <>
-      <BaseInput
-        type="select"
-        field="ai_chat_completion_data.model"
-        title="Model"
-        description="The AI model to use. More powerful models cost more credits."
-        options={[
-          { value: "gpt-4.1", label: "Smartest (gpt-4.1)" },
-          { value: "gpt-4.1-mini", label: "Balanced (gpt-4.1-mini)" },
-          {
-            value: "gpt-4.1-nano",
-            label: "Cheap & Fast (gpt-4.1-nano) (deprecated)",
-          },
-          { value: "gpt-5-nano", label: "Cheap & Fast (gpt-5-nano)" },
-          { value: "gpt-4o-mini", label: "Cheap & Fast (gpt-4o-mini)" },
-        ]}
-        value={data.ai_chat_completion_data?.model || "gpt-4o-mini"}
-        updateValue={(v) =>
-          updateData({
-            ai_chat_completion_data: {
-              ...data.ai_chat_completion_data,
-              model: v || undefined,
-            },
-          })
-        }
-        errors={errors}
-      />
+      <AiModelInput data={data} updateData={updateData} errors={errors} />
       <BaseInput
         type="textarea"
         field="ai_chat_completion_data.prompt"

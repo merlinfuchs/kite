@@ -6,6 +6,7 @@ import { Features } from "../types/wire.gen";
 import { getUniqueId } from "../utils";
 import { FlowContextType } from "./context";
 import { getComponentHandleIds } from "./resume";
+import { getAiModelTier } from "./aiModels";
 import {
   nodeActionAiChatCompletionDataSchema,
   nodeActionAiWebSearchCompletionDataSchema,
@@ -702,17 +703,8 @@ export const nodeTypes: Record<string, NodeValues> = {
       "Ask artificial intelligence a question or let it respond to a prompt",
     dataSchema: nodeActionAiChatCompletionDataSchema,
     dataFields: ["ai_chat_completion_data", "temporary_name", "custom_label"],
-    creditsCost: (data) => {
-      const model = data.ai_chat_completion_data?.model;
-      switch (model) {
-        case "gpt-4.1":
-          return 100;
-        case "gpt-4.1-mini":
-          return 20;
-        default:
-          return 5;
-      }
-    },
+    creditsCost: (data) =>
+      getAiModelTier(data.ai_chat_completion_data?.model).credits.chat,
   },
   action_ai_web_search: {
     color: actionColor,
@@ -721,17 +713,8 @@ export const nodeTypes: Record<string, NodeValues> = {
     defaultDescription: "Search the web for the latest information using AI",
     dataSchema: nodeActionAiWebSearchCompletionDataSchema,
     dataFields: ["ai_web_search_data", "temporary_name", "custom_label"],
-    creditsCost: (data) => {
-      const model = data.ai_chat_completion_data?.model;
-      switch (model) {
-        case "gpt-4.1":
-          return 500;
-        case "gpt-4.1-mini":
-          return 100;
-        default:
-          return 25;
-      }
-    },
+    creditsCost: (data) =>
+      getAiModelTier(data.ai_chat_completion_data?.model).credits.search,
   },
   action_expression_evaluate: {
     color: actionColor,

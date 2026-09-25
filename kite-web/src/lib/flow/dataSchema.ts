@@ -1,6 +1,7 @@
 import { Edge, Node, NodeProps as XYNodeProps } from "@xyflow/react";
 import z from "zod";
 import { FlowNodeData } from "../types/flow.gen";
+import { aiModelTierValues, resolveAiModel } from "./aiModels";
 
 const numericRegex = /^[0-9]+$/;
 const decimalRegex = /^[0-9]+(\.[0-9]+)?$/;
@@ -725,16 +726,9 @@ export const nodeActionHttpRequestDataSchema = nodeBaseDataSchema.extend({
 });
 
 const aiModelSchema = z
-  .enum([
-    "gpt-4.1",
-    "gpt-4.1-mini",
-    "gpt-4.1-nano",
-    "gpt-5-nano",
-    "gpt-4o-mini",
-  ])
-  .optional()
+  .preprocess(resolveAiModel, z.enum(aiModelTierValues).optional())
   .describe(
-    "Model to use. Larger models cost more credits. Defaults to gpt-4o-mini."
+    "Model tier to use. Larger tiers are more capable and cost more credits. Defaults to small."
   );
 
 const aiMaxCompletionTokensSchema = numericOrPlaceholder(
