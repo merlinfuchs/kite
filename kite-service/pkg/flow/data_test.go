@@ -18,6 +18,7 @@ func TestResolveAIModel(t *testing.T) {
 		"gpt-4.1-nano",
 		"gpt-4o-mini",
 		"gpt-5-nano",
+		"gpt-5.4-nano",
 	}
 	for _, model := range allowed {
 		if _, ok := resolveAIModel(model); !ok {
@@ -56,6 +57,8 @@ func TestAICreditsCostKnownModels(t *testing.T) {
 		{"gpt-4o-mini", true, 25},
 		{"gpt-5-nano", false, 5},
 		{"gpt-5-nano", true, 25},
+		{"gpt-5.4-nano", false, 5},
+		{"gpt-5.4-nano", true, 25},
 		{"", false, 5},
 		{"", true, 25},
 	}

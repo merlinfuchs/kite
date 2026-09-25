@@ -22,6 +22,7 @@ describe("AI model tiers", () => {
       "gpt-4.1-mini",
       "gpt-4.1-nano",
       "gpt-5-nano",
+      "gpt-5.4-nano",
       "gpt-4o-mini",
     ]) {
       expect(
@@ -46,6 +47,7 @@ describe("AI model tiers", () => {
       ["small", 5, 25],
       ["gpt-4o-mini", 5, 25],
       ["gpt-5-nano", 5, 25],
+      ["gpt-5.4-nano", 5, 25],
       ["medium", 20, 100],
       ["gpt-4.1-mini", 20, 100],
       ["large", 100, 500],

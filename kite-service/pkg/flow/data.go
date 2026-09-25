@@ -605,12 +605,14 @@ var aiModelTiers = map[string]aiModelTier{
 // aiModelAliases maps what flows stored before tiers existed. Those flows are
 // still in the database and in message components, and a block keeps its old
 // value until someone edits it, so these can't be dropped. The empty string is
-// an unset model.
+// an unset model. The editor saved gpt-5.4-nano for its "gpt-5-nano" option
+// from May to August 2026.
 var aiModelAliases = map[string]string{
 	"":             AIModelSmall,
 	"gpt-4o-mini":  AIModelSmall,
 	"gpt-4.1-nano": AIModelSmall,
 	"gpt-5-nano":   AIModelSmall,
+	"gpt-5.4-nano": AIModelSmall,
 	"gpt-4.1-mini": AIModelMedium,
 	"gpt-4.1":      AIModelLarge,
 }
