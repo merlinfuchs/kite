@@ -350,6 +350,9 @@ export interface AIChatCompletionData {
   prompt?: string;
   max_completion_tokens?: string;
 }
+export const AIModelSmall = "small";
+export const AIModelMedium = "medium";
+export const AIModelLarge = "large";
 export interface FlowNodePosition {
   x: number /* float64 */;
   y: number /* float64 */;

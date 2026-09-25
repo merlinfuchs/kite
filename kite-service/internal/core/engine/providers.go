@@ -9,7 +9,6 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
-	"strings"
 	"sync"
 	"time"
 
@@ -567,12 +566,8 @@ func (p *AIProvider) CreateResponse(ctx context.Context, opts provider.CreateRes
 	tools := []responses.ToolUnionParam{}
 	for _, tool := range opts.Tools {
 		switch tool {
-		case provider.AIToolTypeWebSearchPreview:
-			tools = append(tools, responses.ToolUnionParam{
-				OfWebSearchPreview: &responses.WebSearchPreviewToolParam{
-					Type: responses.WebSearchPreviewToolTypeWebSearchPreview,
-				},
-			})
+		case provider.AIToolTypeWebSearch:
+			tools = append(tools, responses.ToolParamOfWebSearch(responses.WebSearchToolTypeWebSearch))
 		}
 	}
 
@@ -597,28 +592,21 @@ func (p *AIProvider) CreateResponse(ctx context.Context, opts provider.CreateRes
 		})
 	}
 
-	model := opts.Model
-	if model == "" {
-		model = openai.ChatModelGPT4oMini
-	}
-
-	maxOutputTokens := 500
-	if opts.MaxOutputTokens > 0 && opts.MaxOutputTokens < maxOutputTokens {
-		maxOutputTokens = opts.MaxOutputTokens
-	}
-
 	params := responses.ResponseNewParams{
-		Model: model,
+		Model: opts.Model,
 		Input: responses.ResponseNewParamsInputUnion{
 			OfInputItemList: inputs,
 		},
-		MaxOutputTokens: openai.Int(int64(maxOutputTokens)),
-		Tools:           tools,
+		Tools: tools,
 	}
-	// GPT-5 models reason before answering, and the reasoning counts towards
-	// the output tokens, so less of it leaves more room for the answer.
-	if strings.HasPrefix(model, "gpt-5") {
-		params.Reasoning = shared.ReasoningParam{Effort: shared.ReasoningEffortLow}
+	if opts.MaxOutputTokens > 0 {
+		params.MaxOutputTokens = openai.Int(int64(opts.MaxOutputTokens))
+	}
+	if opts.ReasoningEffort != "" {
+		params.Reasoning = shared.ReasoningParam{Effort: shared.ReasoningEffort(opts.ReasoningEffort)}
+	}
+	if opts.MaxToolCalls > 0 {
+		params.MaxToolCalls = openai.Int(int64(opts.MaxToolCalls))
 	}
 
 	resp, err := p.client.Responses.New(ctx, params)
@@ -626,7 +614,13 @@ func (p *AIProvider) CreateResponse(ctx context.Context, opts provider.CreateRes
 		return "", fmt.Errorf("failed to create response: %w", err)
 	}
 
-	return resp.OutputText(), nil
+	// Reasoning can use up the whole token budget and leave no answer, which
+	// would otherwise pass as an empty but successful one.
+	text := resp.OutputText()
+	if text == "" && resp.Status == responses.ResponseStatusIncomplete {
+		return "", fmt.Errorf("response incomplete: %s", resp.IncompleteDetails.Reason)
+	}
+	return text, nil
 }
 
 // Variable IDs come from user-authored flow data, so lookups are scoped to the app.

@@ -1461,7 +1461,8 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 		// Checked here as well as at save time: message flows are not validated
 		// by the API at all, and flows stored before the allowlist existed have
 		// never been through it.
-		if !AIModelAllowed(data.Model) {
+		tier, ok := resolveAIModel(data.Model)
+		if !ok {
 			return &FlowError{
 				Code:    FlowNodeErrorUnknown,
 				Message: fmt.Sprintf("unsupported ai model: %s", data.Model),
@@ -1483,14 +1484,21 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			return traceError(n, err)
 		}
 
+		maxOutputTokens := aiMaxOutputTokens
+		if limit := int(maxCompletionTokens.Int()); limit > 0 && limit < maxOutputTokens {
+			maxOutputTokens = limit
+		}
+
 		opts := provider.CreateResponseOpts{
-			Model:           data.Model,
+			Model:           tier.Model,
+			ReasoningEffort: tier.ReasoningEffort,
 			Prompt:          prompt.String(),
 			SystemPrompt:    systemPrompt.String(),
-			MaxOutputTokens: int(maxCompletionTokens.Int()),
+			MaxOutputTokens: maxOutputTokens,
 		}
 		if webSearch {
-			opts.Tools = []provider.AIToolType{provider.AIToolTypeWebSearchPreview}
+			opts.Tools = []provider.AIToolType{provider.AIToolTypeWebSearch}
+			opts.MaxToolCalls = aiMaxWebSearches
 		}
 
 		response, err := ctx.AI.CreateResponse(ctx, opts)
