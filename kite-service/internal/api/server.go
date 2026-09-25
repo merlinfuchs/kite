@@ -51,6 +51,7 @@ func NewAPIServer(
 	config APIServerConfig,
 	userStore store.UserStore,
 	sessionStore store.SessionStore,
+	shareCodeStore store.ShareCodeStore,
 	appStore store.AppStore,
 	logStore store.LogStore,
 	usageStore store.UsageStore,
@@ -77,6 +78,7 @@ func NewAPIServer(
 	s.RegisterRoutes(
 		userStore,
 		sessionStore,
+		shareCodeStore,
 		appStore,
 		logStore,
 		usageStore,

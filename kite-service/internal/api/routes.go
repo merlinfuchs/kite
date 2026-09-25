@@ -17,6 +17,7 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/logs"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/message"
 	pluginhandler "github.com/kitecloud/kite/kite-service/internal/api/handler/plugin"
+	"github.com/kitecloud/kite/kite-service/internal/api/handler/sharecode"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/usage"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/user"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/variable"
@@ -33,6 +34,7 @@ import (
 func (s *APIServer) RegisterRoutes(
 	userStore store.UserStore,
 	sessionStore store.SessionStore,
+	shareCodeStore store.ShareCodeStore,
 	appStore store.AppStore,
 	logStore store.LogStore,
 	usageStore store.UsageStore,
@@ -112,6 +114,17 @@ func (s *APIServer) RegisterRoutes(
 	usersGroup := v1Group.Group("/users", sessionManager.RequireSession)
 	usersGroup.Get("/{userID}", handler.Typed(userHandler.HandlerUserGet))
 
+	// Share code routes
+	shareCodeHandler := sharecode.NewShareCodeHandler(shareCodeStore)
+
+	// Not under an app because codes are usually imported into a different app.
+	shareCodesGroup := v1Group.Group("/share-codes", sessionManager.RequireSession)
+	// Low so codes can't be enumerated, importing is a rare manual action.
+	shareCodesGroup.Get("/{code}",
+		handler.Typed(shareCodeHandler.HandleShareCodeGet),
+		handler.RateLimitByUser(10, time.Minute),
+	)
+
 	// App routes
 	appHandler := app.NewAppHandler(
 		appStore,
@@ -147,6 +160,10 @@ func (s *APIServer) RegisterRoutes(
 	appGroup.Get("/collaborators", handler.Typed(appHandler.HandleAppCollaboratorsList))
 	appGroup.Post("/collaborators", handler.TypedWithBody(appHandler.HandleAppCollaboratorCreate))
 	appGroup.Delete("/collaborators/{userID}", handler.Typed(appHandler.HandleAppCollaboratorDelete))
+	appGroup.Post("/share-codes",
+		handler.TypedWithBody(shareCodeHandler.HandleShareCodeCreate),
+		handler.RateLimitByUser(10, time.Minute),
+	)
 
 	// Billing routes
 	lemonSqueezyClient := corebilling.NewLemonSqueezyClient(

@@ -143,6 +143,7 @@ export default function EventListenerListEntry({
               </EventListenerDuplicateDialog>
               <FlowExportDialog
                 title="Export Event Listener"
+                type="event_listener"
                 shareData={{
                   source: listener.source,
                   flow_source: listener.flow_source,

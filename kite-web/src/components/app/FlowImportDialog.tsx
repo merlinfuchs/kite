@@ -16,6 +16,7 @@ import LoadingButton from "../common/LoadingButton";
 import {
   useCommandsImportMutation,
   useEventListenersImportMutation,
+  useShareCodeResolveMutation,
 } from "@/lib/api/mutations";
 import { useAppId } from "@/lib/hooks/params";
 import { useMessages, useVariables } from "@/lib/hooks/api";
@@ -26,6 +27,8 @@ import {
 } from "@/lib/types/wire.gen";
 import { APIResponse } from "@/lib/api/response";
 import { toast } from "sonner";
+import { ShareCodeInput, ShareCodePanel } from "./ShareCode";
+import { BracesIcon, KeyRoundIcon } from "lucide-react";
 
 const kinds = {
   command: {
@@ -54,7 +57,7 @@ export default function FlowImportDialog({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>{children}</DialogTrigger>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="max-w-lg">
         <ImportForm kind={kind} onImported={() => setOpen(false)} />
       </DialogContent>
     </Dialog>
@@ -69,7 +72,9 @@ function ImportForm({
   kind: Kind;
   onImported: () => void;
 }) {
-  const [shareCode, setShareCode] = useState("");
+  const [useJson, setUseJson] = useState(false);
+  const [json, setJson] = useState("");
+  const [code, setCode] = useState("");
 
   const router = useRouter();
   const appId = useAppId();
@@ -78,15 +83,20 @@ function ImportForm({
 
   const commandsImportMutation = useCommandsImportMutation(appId);
   const eventListenersImportMutation = useEventListenersImportMutation(appId);
+  const shareCodeResolveMutation = useShareCodeResolveMutation();
 
   const { label, entryNodeType, href } = kinds[kind];
 
-  function onImport() {
-    let parsed: { flow_source?: FlowData; source?: string } | undefined;
-    try {
-      parsed = JSON.parse(shareCode);
-    } catch {}
+  const loading =
+    commandsImportMutation.isPending ||
+    eventListenersImportMutation.isPending ||
+    shareCodeResolveMutation.isPending ||
+    !variables ||
+    !messages;
 
+  function importShareData(
+    parsed: { flow_source?: FlowData; source?: string } | null | undefined
+  ) {
     const flow = parsed?.flow_source;
     if (
       !Array.isArray(flow?.nodes) ||
@@ -148,34 +158,86 @@ function ImportForm({
     }
   }
 
+  function onImport() {
+    if (useJson) {
+      let parsed;
+      try {
+        parsed = JSON.parse(json);
+      } catch {}
+      importShareData(parsed);
+      return;
+    }
+
+    if (!code) {
+      toast.error("Enter a share code");
+      return;
+    }
+
+    shareCodeResolveMutation.mutate(code, {
+      onSuccess: (res) => {
+        if (!res.success) {
+          toast.error(
+            res.error.code === "unknown_share_code"
+              ? "Unknown share code"
+              : `Failed to resolve share code: ${res.error.message} (${res.error.code})`
+          );
+          return;
+        }
+        if (res.data.type !== kind) {
+          toast.error(`This share code is not for a ${label}`);
+          return;
+        }
+        importShareData(res.data.data);
+      },
+    });
+  }
+
   return (
     <>
       <DialogHeader>
         <DialogTitle>Import {label}</DialogTitle>
         <DialogDescription>
-          Paste a share code that was exported from another app.
+          {useJson
+            ? "Paste the JSON that was exported from another app."
+            : "Enter the share code that was exported from another app."}
         </DialogDescription>
       </DialogHeader>
-      <Textarea
-        value={shareCode}
-        onChange={(e) => setShareCode(e.target.value)}
-        className="min-h-[78px] max-h-[218px]"
-      />
-      <DialogFooter>
-        <DialogClose asChild>
-          <Button variant="outline">Cancel</Button>
-        </DialogClose>
-        <LoadingButton
-          onClick={onImport}
-          loading={
-            commandsImportMutation.isPending ||
-            eventListenersImportMutation.isPending ||
-            !variables ||
-            !messages
-          }
-        >
-          Import
-        </LoadingButton>
+
+      {useJson ? (
+        <Textarea
+          value={json}
+          onChange={(e) => setJson(e.target.value)}
+          placeholder='{"flow_source": ...}'
+          className="h-36 resize-none break-all font-mono text-xs"
+          autoFocus
+        />
+      ) : (
+        <ShareCodePanel>
+          <ShareCodeInput
+            value={code}
+            onChange={setCode}
+            onSubmit={() => !loading && onImport()}
+          />
+        </ShareCodePanel>
+      )}
+
+      <DialogFooter className="gap-2 sm:justify-between sm:space-x-0">
+        <Button variant="ghost" onClick={() => setUseJson(!useJson)}>
+          {useJson ? (
+            <KeyRoundIcon className="mr-2 h-4 w-4" />
+          ) : (
+            <BracesIcon className="mr-2 h-4 w-4" />
+          )}
+          {useJson ? "Use share code" : "Use JSON"}
+        </Button>
+        <div className="flex flex-col-reverse gap-2 sm:flex-row">
+          <DialogClose asChild>
+            <Button variant="outline">Cancel</Button>
+          </DialogClose>
+          <LoadingButton onClick={onImport} loading={loading}>
+            Import
+          </LoadingButton>
+        </div>
       </DialogFooter>
     </>
   );

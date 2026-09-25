@@ -450,6 +450,23 @@ export type PluginInstanceUpdateEnabledResponse = PluginInstance;
 export type PluginInstanceDeleteResponse = Empty;
 
 //////////
+// source: share_code.go
+
+export interface ShareCode {
+  code: string;
+  type: string;
+  data: Record<string, any> | null;
+}
+export interface ShareCodeCreateRequest {
+  type: string;
+  data: Record<string, any> | null;
+}
+export interface ShareCodeCreateResponse {
+  code: string;
+}
+export type ShareCodeGetResponse = ShareCode;
+
+//////////
 // source: usage.go
 
 export interface UsageCreditsGetResponse {

@@ -129,7 +129,7 @@ func StartServer(c context.Context, cfg *config.Config) error {
 	})
 	gateway.Run(ctx)
 
-	usage := usage.NewUsageManager(pg, pg, pg, pg, pg, planManager)
+	usage := usage.NewUsageManager(pg, pg, pg, pg, pg, pg, planManager)
 
 	if cfg.IsPrimaryCluster() {
 		planManager.Run(ctx)
@@ -156,7 +156,7 @@ func StartServer(c context.Context, cfg *config.Config) error {
 			Plans:                     cfg.Billing.Plans,
 		},
 	},
-		pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg,
+		pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg,
 		assetStore, gateway, planManager, pluginRegistry, tokenCrypt, commandManager,
 	)
 	address := fmt.Sprintf("%s:%d", cfg.API.Host, cfg.API.Port)

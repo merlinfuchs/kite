@@ -160,6 +160,7 @@ export default function CommandListEntry({ command }: { command: Command }) {
               </CommandDuplicateDialog>
               <FlowExportDialog
                 title="Export Command"
+                type="command"
                 shareData={{ flow_source: command.flow_source }}
               >
                 <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
