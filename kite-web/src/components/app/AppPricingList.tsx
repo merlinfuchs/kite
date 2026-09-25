@@ -131,7 +131,7 @@ export default function AppPricingList() {
               {pricing.feature_rotating_status && (
                 <span className="flex">
                   <CheckIcon className="text-green-500" />{" "}
-                  <h3 className="ml-2">Rotating status</h3>
+                  <h3 className="ml-2">Rotating & flow-controlled status</h3>
                 </span>
               )}
               <span className="flex">

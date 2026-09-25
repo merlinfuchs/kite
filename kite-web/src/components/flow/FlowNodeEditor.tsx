@@ -231,6 +231,12 @@ export default function FlowNodeEditor({ nodeId }: Props) {
 
   const values = useNodeValues(node?.type!);
 
+  const appId = useAppId();
+  const premiumFeature = values.premiumFeature;
+  const hasPremiumFeature = useAppFeature((f) =>
+    premiumFeature ? !!f[premiumFeature] : true
+  );
+
   const errors: Record<string, string> = useMemo(() => {
     if (!values.dataSchema) return {};
 
@@ -295,6 +301,19 @@ export default function FlowNodeEditor({ nodeId }: Props) {
             </div>
           </div>
           <div className="space-y-3 flex-auto">
+            {hasPremiumFeature === false && (
+              <div className="text-sm text-muted-foreground bg-muted rounded p-3">
+                This block requires{" "}
+                <Link
+                  href={`/apps/${appId}/premium`}
+                  target="_blank"
+                  className="text-primary hover:underline"
+                >
+                  Premium
+                </Link>{" "}
+                and fails without it.
+              </div>
+            )}
             {values.dataFields.map((field) => {
               const Input = intputs[field];
               if (!Input) return null;
@@ -2118,27 +2137,11 @@ function VoiceSelfDeafInput({ data, updateData, errors }: InputProps) {
 }
 
 function StatusDataInput({ data, updateData, errors }: InputProps) {
-  const appId = useAppId();
-  const available = useAppFeature((f) => f.rotating_status);
-
   const updateField = (newData: Partial<StatusData>) =>
     updateData({ status_data: { ...data.status_data, ...newData } });
 
   return (
     <>
-      {available === false && (
-        <div className="text-sm text-muted-foreground bg-muted rounded p-3">
-          This block requires{" "}
-          <Link
-            href={`/apps/${appId}/premium`}
-            target="_blank"
-            className="text-primary hover:underline"
-          >
-            Premium
-          </Link>{" "}
-          and fails without it.
-        </div>
-      )}
       <BaseInput
         type="select"
         field="status_data.status"
