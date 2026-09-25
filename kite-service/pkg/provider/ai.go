@@ -11,16 +11,20 @@ type AIProvider interface {
 
 type CreateResponseOpts struct {
 	Model           string
+	ReasoningEffort string
+	// ReasoningTokens is added to MaxOutputTokens, which only caps the answer.
+	ReasoningTokens int
 	SystemPrompt    string
 	Prompt          string
 	Tools           []AIToolType
+	MaxToolCalls    int
 	MaxOutputTokens int
 }
 
 type AIToolType string
 
 const (
-	AIToolTypeWebSearchPreview AIToolType = "web_search_preview"
+	AIToolTypeWebSearch AIToolType = "web_search"
 )
 
 type MockAIProvider struct{}
