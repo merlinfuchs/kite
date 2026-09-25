@@ -70,6 +70,7 @@ func (s Env) flowProviders(appID string, session *state.State, links entityLinks
 		Variable:        NewVariableProvider(appID, s.VariableValueStore),
 		ResumePoint: NewResumePointProvider(
 			s.ResumePointStore,
+			s.TokenCrypt,
 			appID,
 			links,
 		),
@@ -164,12 +165,44 @@ func (s Env) executeFlowEvent(
 		return
 	}
 
-	err = node.Execute(fCtx)
+	s.finishFlowRun(appID, links, fCtx, node.Execute(fCtx), "Failed to execute flow event")
+}
+
+// executeFlowAfterSleep continues a flow after the durable sleep in node. event
+// is the interaction or event the flow ran with before it suspended.
+func (s Env) executeFlowAfterSleep(
+	ctx context.Context,
+	appID string,
+	node *flow.CompiledFlowNode,
+	session *state.State,
+	event gateway.Event,
+	links entityLinks,
+	state *flow.FlowContextState,
+) {
+	defer s.recoverPanic(appID, links)
+
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	fCtx := s.flowContext(ctx, appID, session, event, links, state)
+	defer fCtx.Cancel()
+
+	// The sleep acknowledged the interaction before suspending, so responses
+	// have to be follow-ups.
+	if interaction := fCtx.Data.Interaction(); interaction != nil {
+		fCtx.Discord.MarkInteractionResponded(interaction.ID)
+	}
+
+	s.finishFlowRun(appID, links, fCtx, node.ResumeAfterSleep(fCtx), "Failed to execute flow after sleep")
+}
+
+// finishFlowRun records the error and usage of a flow execution.
+func (s Env) finishFlowRun(appID string, links entityLinks, fCtx *flow.FlowContext, err error, errMessage string) {
 	if err != nil {
 		s.createLogEntry(
 			appID,
 			model.LogLevelError,
-			fmt.Sprintf("Failed to execute flow event: %v", err),
+			fmt.Sprintf("%s: %v", errMessage, err),
 			links,
 		)
 	}

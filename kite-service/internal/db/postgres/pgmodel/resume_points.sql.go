@@ -11,6 +11,17 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const countPendingTimerResumePoints = `-- name: CountPendingTimerResumePoints :one
+SELECT COUNT(*) FROM resume_points WHERE app_id = $1 AND resume_at IS NOT NULL
+`
+
+func (q *Queries) CountPendingTimerResumePoints(ctx context.Context, appID string) (int64, error) {
+	row := q.db.QueryRow(ctx, countPendingTimerResumePoints, appID)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const createResumePoint = `-- name: CreateResumePoint :exec
 INSERT INTO resume_points (
     id, 
@@ -24,9 +35,11 @@ INSERT INTO resume_points (
     flow_node_id, 
     flow_state, 
     created_at, 
-    expires_at
+    expires_at,
+    resume_at,
+    interaction_token
 )
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
 `
 
 type CreateResumePointParams struct {
@@ -42,6 +55,8 @@ type CreateResumePointParams struct {
 	FlowState         []byte
 	CreatedAt         pgtype.Timestamp
 	ExpiresAt         pgtype.Timestamp
+	ResumeAt          pgtype.Timestamp
+	InteractionToken  pgtype.Text
 }
 
 func (q *Queries) CreateResumePoint(ctx context.Context, arg CreateResumePointParams) error {
@@ -58,6 +73,8 @@ func (q *Queries) CreateResumePoint(ctx context.Context, arg CreateResumePointPa
 		arg.FlowState,
 		arg.CreatedAt,
 		arg.ExpiresAt,
+		arg.ResumeAt,
+		arg.InteractionToken,
 	)
 	return err
 }
@@ -74,7 +91,8 @@ func (q *Queries) DeleteResumePoint(ctx context.Context, id string) error {
 const deleteStaleResumePoints = `-- name: DeleteStaleResumePoints :execrows
 DELETE FROM resume_points WHERE id IN (
     SELECT stale.id FROM resume_points stale
-    WHERE stale.expires_at < $1 OR stale.last_used_at < $2
+    -- Pending timers are never used before they resume, their expiry covers them.
+    WHERE stale.expires_at < $1 OR (stale.last_used_at < $2 AND stale.resume_at IS NULL)
     LIMIT $3
 )
 `
@@ -94,8 +112,98 @@ func (q *Queries) DeleteStaleResumePoints(ctx context.Context, arg DeleteStaleRe
 	return result.RowsAffected(), nil
 }
 
+const deleteTimerResumePoint = `-- name: DeleteTimerResumePoint :execrows
+DELETE FROM resume_points WHERE id = $1 AND app_id = $2 AND resume_at IS NOT NULL
+`
+
+type DeleteTimerResumePointParams struct {
+	ID    string
+	AppID string
+}
+
+// Deleting is the commit point: a timer only resumes if this deleted it.
+func (q *Queries) DeleteTimerResumePoint(ctx context.Context, arg DeleteTimerResumePointParams) (int64, error) {
+	result, err := q.db.Exec(ctx, deleteTimerResumePoint, arg.ID, arg.AppID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
+const hasDueTimerResumePoints = `-- name: HasDueTimerResumePoints :one
+SELECT EXISTS(SELECT 1 FROM resume_points WHERE resume_at <= $1)
+`
+
+func (q *Queries) HasDueTimerResumePoints(ctx context.Context, now pgtype.Timestamp) (bool, error) {
+	row := q.db.QueryRow(ctx, hasDueTimerResumePoints, now)
+	var exists bool
+	err := row.Scan(&exists)
+	return exists, err
+}
+
+const leaseDueTimerResumePoints = `-- name: LeaseDueTimerResumePoints :many
+UPDATE resume_points SET resume_at = $1 WHERE id IN (
+    SELECT due.id FROM resume_points due
+    WHERE due.resume_at <= $2 AND due.app_id = ANY($3::TEXT[])
+    ORDER BY due.resume_at
+    LIMIT $4
+    FOR UPDATE SKIP LOCKED
+)
+RETURNING id, type, app_id, command_id, event_listener_id, message_id, message_instance_id, flow_source_id, flow_node_id, flow_state, created_at, expires_at, last_used_at, resume_at, interaction_token
+`
+
+type LeaseDueTimerResumePointsParams struct {
+	LeaseUntil pgtype.Timestamp
+	Now        pgtype.Timestamp
+	AppIds     []string
+	BatchSize  int32
+}
+
+// Moves resume_at to the end of the lease instead of deleting, so a timer that
+// fails to resume is retried once the lease is over.
+func (q *Queries) LeaseDueTimerResumePoints(ctx context.Context, arg LeaseDueTimerResumePointsParams) ([]ResumePoint, error) {
+	rows, err := q.db.Query(ctx, leaseDueTimerResumePoints,
+		arg.LeaseUntil,
+		arg.Now,
+		arg.AppIds,
+		arg.BatchSize,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ResumePoint
+	for rows.Next() {
+		var i ResumePoint
+		if err := rows.Scan(
+			&i.ID,
+			&i.Type,
+			&i.AppID,
+			&i.CommandID,
+			&i.EventListenerID,
+			&i.MessageID,
+			&i.MessageInstanceID,
+			&i.FlowSourceID,
+			&i.FlowNodeID,
+			&i.FlowState,
+			&i.CreatedAt,
+			&i.ExpiresAt,
+			&i.LastUsedAt,
+			&i.ResumeAt,
+			&i.InteractionToken,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const resumePoint = `-- name: ResumePoint :one
-SELECT id, type, app_id, command_id, event_listener_id, message_id, message_instance_id, flow_source_id, flow_node_id, flow_state, created_at, expires_at, last_used_at FROM resume_points WHERE id = $1 AND app_id = $2
+SELECT id, type, app_id, command_id, event_listener_id, message_id, message_instance_id, flow_source_id, flow_node_id, flow_state, created_at, expires_at, last_used_at, resume_at, interaction_token FROM resume_points WHERE id = $1 AND app_id = $2
 `
 
 type ResumePointParams struct {
@@ -121,6 +229,8 @@ func (q *Queries) ResumePoint(ctx context.Context, arg ResumePointParams) (Resum
 		&i.CreatedAt,
 		&i.ExpiresAt,
 		&i.LastUsedAt,
+		&i.ResumeAt,
+		&i.InteractionToken,
 	)
 	return i, err
 }

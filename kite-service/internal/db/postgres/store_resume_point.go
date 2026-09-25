@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log/slog"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -35,12 +36,69 @@ func (c *Client) CreateResumePoint(ctx context.Context, resumePoint *model.Resum
 		FlowState:         flowState,
 		CreatedAt:         pgtype.Timestamp{Time: resumePoint.CreatedAt, Valid: true},
 		ExpiresAt:         pgtype.Timestamp{Time: resumePoint.ExpiresAt.Time, Valid: resumePoint.ExpiresAt.Valid},
+		ResumeAt:          pgtype.Timestamp{Time: resumePoint.ResumeAt.Time, Valid: resumePoint.ResumeAt.Valid},
+		InteractionToken:  pgtype.Text{String: resumePoint.InteractionToken.String, Valid: resumePoint.InteractionToken.Valid},
 	})
 	if err != nil {
 		return fmt.Errorf("failed to create resume point: %w", err)
 	}
 
 	return nil
+}
+
+func (c *Client) CountPendingTimerResumePoints(ctx context.Context, appID string) (int, error) {
+	res, err := c.Q.CountPendingTimerResumePoints(ctx, appID)
+	if err != nil {
+		return 0, err
+	}
+	return int(res), nil
+}
+
+func (c *Client) HasDueTimerResumePoints(ctx context.Context, now time.Time) (bool, error) {
+	return c.Q.HasDueTimerResumePoints(ctx, pgtype.Timestamp{Time: now.UTC(), Valid: true})
+}
+
+func (c *Client) LeaseDueTimerResumePoints(ctx context.Context, appIDs []string, now time.Time, leaseUntil time.Time, batchSize int) ([]*model.ResumePoint, error) {
+	rows, err := c.Q.LeaseDueTimerResumePoints(ctx, pgmodel.LeaseDueTimerResumePointsParams{
+		LeaseUntil: pgtype.Timestamp{Time: leaseUntil.UTC(), Valid: true},
+		Now:        pgtype.Timestamp{Time: now.UTC(), Valid: true},
+		AppIds:     appIDs,
+		BatchSize:  int32(batchSize),
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	res := make([]*model.ResumePoint, 0, len(rows))
+	for _, row := range rows {
+		resumePoint, err := rowToResumePoint(row)
+		if err != nil {
+			// It can't be decoded on a retry either.
+			slog.Error(
+				"Dropping timer resume point that can't be decoded",
+				slog.String("resume_point_id", row.ID),
+				slog.String("error", err.Error()),
+			)
+			if _, err := c.Q.DeleteTimerResumePoint(ctx, pgmodel.DeleteTimerResumePointParams{ID: row.ID, AppID: row.AppID}); err != nil {
+				slog.Error(
+					"Failed to delete timer resume point",
+					slog.String("resume_point_id", row.ID),
+					slog.String("error", err.Error()),
+				)
+			}
+			continue
+		}
+		res = append(res, resumePoint)
+	}
+	return res, nil
+}
+
+func (c *Client) DeleteTimerResumePoint(ctx context.Context, appID string, id string) (bool, error) {
+	n, err := c.Q.DeleteTimerResumePoint(ctx, pgmodel.DeleteTimerResumePointParams{
+		ID:    id,
+		AppID: appID,
+	})
+	return n == 1, err
 }
 
 func (c *Client) DeleteResumePoint(ctx context.Context, id string) error {
@@ -99,5 +157,7 @@ func rowToResumePoint(row pgmodel.ResumePoint) (*model.ResumePoint, error) {
 		CreatedAt:         row.CreatedAt.Time,
 		ExpiresAt:         null.NewTime(row.ExpiresAt.Time, row.ExpiresAt.Valid),
 		LastUsedAt:        row.LastUsedAt.Time,
+		ResumeAt:          null.NewTime(row.ResumeAt.Time, row.ResumeAt.Valid),
+		InteractionToken:  null.NewString(row.InteractionToken.String, row.InteractionToken.Valid),
 	}, nil
 }

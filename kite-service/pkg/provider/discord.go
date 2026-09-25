@@ -53,6 +53,9 @@ type DiscordProvider interface {
 	UpdatePresence(ctx context.Context, status discord.Status, activity discord.Activity) error
 
 	HasCreatedInteractionResponse(ctx context.Context, interactionID discord.InteractionID) (bool, error)
+	// MarkInteractionResponded is for interactions a previous execution
+	// already responded to, e.g. before a durable sleep.
+	MarkInteractionResponded(interactionID discord.InteractionID)
 	AutoDeferInteraction(ctx context.Context, interactionID discord.InteractionID, interactionToken string, response api.InteractionResponse)
 }
 
@@ -228,6 +231,8 @@ func (p *MockDiscordProvider) UpdateVoiceState(ctx context.Context, guildID disc
 func (p *MockDiscordProvider) UpdatePresence(ctx context.Context, status discord.Status, activity discord.Activity) error {
 	return nil
 }
+
+func (p *MockDiscordProvider) MarkInteractionResponded(interactionID discord.InteractionID) {}
 
 func (p *MockDiscordProvider) HasCreatedInteractionResponse(ctx context.Context, interactionID discord.InteractionID) (bool, error) {
 	return false, nil

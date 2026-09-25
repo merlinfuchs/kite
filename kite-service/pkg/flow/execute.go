@@ -1733,12 +1733,9 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 
 		return n.ExecuteChildren(ctx)
 	case FlowNodeTypeControlErrorHandler:
-		err := n.ExecuteChildren(ctx)
-		if err != nil {
-			ctx.StoreNodeResult(n, thing.NewString(err.Error()))
-			return n.ExecuteChildrenByHandle(ctx, "error")
+		if err := n.ExecuteChildren(ctx); err != nil {
+			return n.handleError(ctx, err)
 		}
-
 		return nil
 	case FlowNodeTypeControlLoop:
 		loopCount, err := ctx.EvalTemplate(n.Data.LoopCount)
@@ -1780,7 +1777,19 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			return traceError(n, err)
 		}
 
-		duration := time.Duration(sleepSeconds.Float()) * time.Second
+		// Checked before converting, huge values overflow time.Duration.
+		// Negative values would overflow into a huge duration too.
+		seconds := max(sleepSeconds.Float(), 0)
+		if seconds > maxSleepDuration.Seconds() {
+			return traceError(n, fmt.Errorf("sleep can't be longer than %d days", int(maxSleepDuration.Hours()/24)))
+		}
+		duration := time.Duration(seconds) * time.Second
+
+		// A resumed flow only runs what comes after the sleep block, so a loop
+		// couldn't continue with its next iteration.
+		if duration > durableSleepThreshold && !n.inLoop() {
+			return n.sleepDurable(ctx, duration)
+		}
 
 		deadline, ok := ctx.Deadline()
 		if ok && time.Now().Add(duration).After(deadline) {
@@ -1898,6 +1907,111 @@ func autoDeferResponse(interaction *discord.InteractionEvent, responseNode *Comp
 		resp.Data.Flags |= discord.EphemeralMessage
 	}
 	return resp
+}
+
+const (
+	// durableSleepThreshold is the longest sleep that keeps the flow running.
+	// Longer sleeps end the execution and resume the flow from the database.
+	durableSleepThreshold = 5 * time.Second
+	maxSleepDuration      = 30 * 24 * time.Hour
+	// maxDurableSleeps bounds how often one flow can resume from a durable
+	// sleep. Each resume starts with fresh execution limits.
+	maxDurableSleeps = 10
+)
+
+func (n *CompiledFlowNode) sleepDurable(ctx *FlowContext, duration time.Duration) error {
+	if ctx.DurableSleeps >= maxDurableSleeps {
+		return traceError(n, fmt.Errorf("a flow can wait at most %d times for longer than %s", maxDurableSleeps, durableSleepThreshold))
+	}
+
+	// The execution ends here, so the auto defer would never fire. Discord
+	// shows "This interaction failed" for interactions without a response.
+	if err := n.deferUnanswered(ctx); err != nil {
+		return traceError(n, err)
+	}
+
+	if err := ctx.suspendTimer(n.ID, time.Now().UTC().Add(duration)); err != nil {
+		return traceError(n, err)
+	}
+	return nil
+}
+
+// ResumeAfterSleep continues a flow that suspended in the sleep block n. The
+// blocks that led to the sleep don't run again, so errors are handled here
+// like they would have been by them.
+func (n *CompiledFlowNode) ResumeAfterSleep(ctx *FlowContext) error {
+	if err := ctx.startOperation(0); err != nil {
+		return err
+	}
+	defer ctx.endOperation()
+
+	err := n.ExecuteChildren(ctx)
+
+	// Like normal execution, an error goes to the nearest Error Handler, and
+	// an error in its error branch to the next one.
+	for _, handler := range n.enclosingErrorHandlers() {
+		if err == nil {
+			break
+		}
+		err = handler.handleError(ctx, err)
+	}
+
+	if err != nil {
+		createDefaultErrorResponse(ctx, err)
+	}
+	return err
+}
+
+// handleError runs the error branch of the Error Handler n.
+func (n *CompiledFlowNode) handleError(ctx *FlowContext, err error) error {
+	ctx.StoreNodeResult(n, thing.NewString(err.Error()))
+	return n.ExecuteChildrenByHandle(ctx, "error")
+}
+
+// enclosingErrorHandlers returns the Error Handlers that n runs under, nearest
+// first. Those are the ones that reach n through their default branch rather
+// than their error branch.
+func (n *CompiledFlowNode) enclosingErrorHandlers() []*CompiledFlowNode {
+	var res []*CompiledFlowNode
+	for _, handler := range n.FindAllParentsWithType(FlowNodeTypeControlErrorHandler) {
+		if n.runsUnder(handler.Children.Default) {
+			res = append(res, handler)
+		}
+	}
+	return res
+}
+
+// inLoop reports whether n runs as part of a loop iteration in its execution.
+func (n *CompiledFlowNode) inLoop() bool {
+	for _, each := range n.FindAllParentsWithType(FlowNodeTypeControlLoopEach) {
+		if n.runsUnder(each.Children.Default) {
+			return true
+		}
+	}
+	return false
+}
+
+// deferUnanswered defers the interaction the flow runs with, unless something
+// already responded to it.
+func (n *CompiledFlowNode) deferUnanswered(ctx *FlowContext) error {
+	interaction := ctx.Data.Interaction()
+	if interaction == nil {
+		return nil
+	}
+
+	if responded, err := ctx.Discord.HasCreatedInteractionResponse(ctx, interaction.ID); err != nil || responded {
+		return err
+	}
+
+	resp := autoDeferResponse(interaction, FirstMatching(n.Children.Default, isResponseNode))
+	_, err := ctx.Discord.CreateInteractionResponse(ctx, interaction.ID, interaction.Token, resp)
+	if err != nil {
+		// The entry's auto defer can respond at the same time.
+		if responded, _ := ctx.Discord.HasCreatedInteractionResponse(ctx, interaction.ID); responded {
+			return nil
+		}
+	}
+	return err
 }
 
 // targetGuildID returns the guild a block acts on: the guild target if one is

@@ -182,6 +182,8 @@ func (f *fakeUsageStore) CreateUsageRecord(ctx context.Context, record model.Usa
 
 type fakeSessions struct{}
 
+func (fakeSessions) AppIDs() []string { return []string{"app"} }
+
 func (fakeSessions) AppSession(ctx context.Context, appID string) (*state.State, error) {
 	// Never connects, the flow in the test doesn't call Discord.
 	return state.New("Bot test"), nil
@@ -227,6 +229,15 @@ func scheduledListener(cron string) *model.EventListener {
 	}
 }
 
+func newTestScheduler(e *Engine, sessions SessionProvider) *scheduler {
+	return &scheduler{
+		engine:   e,
+		sessions: sessions,
+		features: fakeFeatures{minIntervalSeconds: 60},
+		lastRuns: make(map[string]time.Time),
+	}
+}
+
 func newScheduleTestEngine(listeners *fakeScheduleListenerStore, logs *fakeLogStore) *Engine {
 	return NewEngine(Env{
 		Config:              EngineConfig{ClusterCount: 1},
@@ -248,12 +259,7 @@ func TestSchedulerRunsScheduledFlow(t *testing.T) {
 	e := newScheduleTestEngine(listeners, logs)
 	e.populate(context.Background())
 
-	s := &scheduler{
-		engine:   e,
-		sessions: fakeSessions{},
-		features: fakeFeatures{minIntervalSeconds: 60},
-		lastRuns: make(map[string]time.Time),
-	}
+	s := newTestScheduler(e, fakeSessions{})
 
 	ctx := context.Background()
 	s.tick(ctx, at(12, 0, 30))
@@ -318,6 +324,8 @@ func TestScheduleTakeOverResetsPendingOccurrenceWhenCronChanged(t *testing.T) {
 
 type flakySessions struct{ up bool }
 
+func (f *flakySessions) AppIDs() []string { return nil }
+
 func (f *flakySessions) AppSession(ctx context.Context, appID string) (*state.State, error) {
 	if !f.up {
 		return nil, store.ErrNotFound
@@ -335,12 +343,7 @@ func TestSchedulerWaitsForSession(t *testing.T) {
 	e.populate(context.Background())
 
 	sessions := &flakySessions{}
-	s := &scheduler{
-		engine:   e,
-		sessions: sessions,
-		features: fakeFeatures{minIntervalSeconds: 60},
-		lastRuns: make(map[string]time.Time),
-	}
+	s := newTestScheduler(e, sessions)
 
 	ctx := context.Background()
 	s.tick(ctx, at(12, 0, 30))

@@ -3,6 +3,7 @@ package engine
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log/slog"
 	"sync"
 	"time"
@@ -370,22 +371,17 @@ func (a *App) resumeFlow(
 		return true
 	}
 
-	targetFlow := a.resumeFlowTarget(resumePoint)
-	if targetFlow == nil {
-		return true
-	}
-
-	node := targetFlow.FindChildWithID(resumePoint.FlowNodeID, true)
+	node := a.resumeNode(resumePoint)
 	if node == nil {
-		slog.Error(
-			"Failed to find node in flow",
-			slog.String("resume_point_id", resumePoint.ID),
-			slog.String("flow_node_id", resumePoint.FlowNodeID),
-		)
 		return true
 	}
 
 	a.touchResumePoint(resumePoint)
+
+	// A click or submit starts a new execution, so its durable sleeps count
+	// from zero. Menus whose buttons wait before sending the next menu would
+	// otherwise run into the limit after a few clicks.
+	resumePoint.FlowState.DurableSleeps = 0
 
 	go a.env.executeFlowEvent(
 		context.Background(),
@@ -397,6 +393,129 @@ func (a *App) resumeFlow(
 		&resumePoint.FlowState,
 	)
 	return true
+}
+
+// resumeNode finds the node a resume point continues from, or nil if its flow
+// or the node itself is gone.
+func (a *App) resumeNode(resumePoint *model.ResumePoint) *flow.CompiledFlowNode {
+	targetFlow := a.resumeFlowTarget(resumePoint)
+	if targetFlow == nil {
+		return nil
+	}
+
+	node := targetFlow.FindChildWithID(resumePoint.FlowNodeID, true)
+	if node == nil {
+		slog.Error(
+			"Failed to find node in flow",
+			slog.String("resume_point_id", resumePoint.ID),
+			slog.String("flow_node_id", resumePoint.FlowNodeID),
+		)
+	}
+	return node
+}
+
+// resumeFlowAfterSleep continues a flow whose durable sleep is over. The timer
+// is leased, and only deleted once everything needed to resume was found, so
+// a timer that can't resume yet, e.g. because the engine is still loading,
+// is retried when the lease is over.
+func (a *App) resumeFlowAfterSleep(resumePoint *model.ResumePoint, session *state.State) {
+	// Deleting the owner clears its link, so the timer can never resume.
+	if !resumePoint.CommandID.Valid && !resumePoint.EventListenerID.Valid && !resumePoint.MessageInstanceID.Valid {
+		a.dropTimer(resumePoint, "its command, event listener or message was deleted")
+		return
+	}
+
+	// Not loaded yet or disabled, retried after the lease.
+	targetFlow := a.resumeFlowTarget(resumePoint)
+	if targetFlow == nil {
+		return
+	}
+
+	node := targetFlow.FindChildWithID(resumePoint.FlowNodeID, true)
+	if node == nil {
+		a.dropTimer(resumePoint, "its Wait block was deleted")
+		return
+	}
+
+	event, state, err := a.timerResumeEvent(resumePoint)
+	if err != nil {
+		a.dropTimer(resumePoint, err.Error())
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	deleted, err := a.env.ResumePointStore.DeleteTimerResumePoint(ctx, a.id, resumePoint.ID)
+	if err != nil {
+		slog.Error(
+			"Failed to delete timer resume point",
+			slog.String("resume_point_id", resumePoint.ID),
+			slog.String("error", err.Error()),
+		)
+		return
+	}
+	if !deleted {
+		// Resumed by someone else after the lease ran out.
+		return
+	}
+
+	a.env.executeFlowAfterSleep(
+		context.Background(),
+		a.id,
+		node,
+		session,
+		event,
+		entityLinksFromResumePoint(resumePoint),
+		&state,
+	)
+}
+
+// dropTimer deletes a timer that can never resume, so it doesn't count
+// against the app's limit until it expires.
+func (a *App) dropTimer(resumePoint *model.ResumePoint, reason string) {
+	slog.Warn(
+		"Dropping timer resume point that can't resume",
+		slog.String("app_id", a.id),
+		slog.String("resume_point_id", resumePoint.ID),
+		slog.String("reason", reason),
+	)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	if _, err := a.env.ResumePointStore.DeleteTimerResumePoint(ctx, a.id, resumePoint.ID); err != nil {
+		slog.Error(
+			"Failed to delete timer resume point",
+			slog.String("resume_point_id", resumePoint.ID),
+			slog.String("error", err.Error()),
+		)
+	}
+}
+
+// timerResumeEvent restores the interaction or event a flow suspended with in
+// a durable sleep.
+func (a *App) timerResumeEvent(resumePoint *model.ResumePoint) (gateway.Event, flow.FlowContextState, error) {
+	state := resumePoint.FlowState
+	trigger := state.ResumeTrigger
+	if trigger == nil {
+		return nil, state, errors.New("resume point has no trigger")
+	}
+	state.ResumeTrigger = nil
+
+	if trigger.Interaction == nil {
+		return trigger.Event, state, nil
+	}
+
+	interaction := *trigger.Interaction
+	if resumePoint.InteractionToken.Valid {
+		token, err := a.env.TokenCrypt.DecryptString(resumePoint.InteractionToken.String)
+		if err != nil {
+			return nil, state, fmt.Errorf("failed to decrypt interaction token: %w", err)
+		}
+		interaction.Token = token
+	}
+	return &gateway.InteractionCreateEvent{InteractionEvent: interaction}, state, nil
 }
 
 // resumeFlowOrRespondExpired tells the user why nothing happened when the resume

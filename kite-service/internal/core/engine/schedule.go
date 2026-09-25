@@ -23,9 +23,16 @@ const (
 	scheduleTickInterval     = time.Second
 	scheduleFlushInterval    = 5 * time.Second
 	scheduleFeaturesCacheTTL = time.Minute
+
+	// timerLease is how long a timer that failed to resume waits for a retry.
+	timerLease = time.Minute
+	// timerBatchSize bounds the durable sleeps resumed per tick, the rest are
+	// resumed on the next ticks.
+	timerBatchSize = 100
 )
 
 type SessionProvider interface {
+	AppIDs() []string
 	AppSession(ctx context.Context, appID string) (*state.State, error)
 }
 
@@ -159,8 +166,9 @@ func (s *listenerSchedule) due(now time.Time, minInterval time.Duration) (time.T
 	return occurrence, true
 }
 
-// RunScheduler runs scheduled event listeners until ctx is done. Sessions come
-// from the gateway manager, which is created after the engine.
+// RunScheduler runs scheduled event listeners and resumes flows after durable
+// sleeps until ctx is done. Sessions come from the gateway manager, which is
+// created after the engine.
 func (e *Engine) RunScheduler(ctx context.Context, sessions SessionProvider) {
 	s := &scheduler{
 		engine:   e,
@@ -169,8 +177,9 @@ func (e *Engine) RunScheduler(ctx context.Context, sessions SessionProvider) {
 		lastRuns: make(map[string]time.Time),
 	}
 	go s.run(ctx)
-	// Database writes run separately, so a slow database doesn't delay runs.
+	// Database work runs separately, so a slow database doesn't delay runs.
 	go s.runFlush(ctx)
+	go s.runTimers(ctx)
 }
 
 type scheduler struct {
@@ -333,6 +342,58 @@ func (s *scheduler) refreshFeatures(ctx context.Context, appIDs []string, now ti
 	}
 
 	s.cachedFeatures = fetched
+}
+
+func (s *scheduler) runTimers(ctx context.Context) {
+	ticker := time.NewTicker(scheduleTickInterval)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case now := <-ticker.C:
+			s.resumeTimers(ctx, now.UTC())
+		}
+	}
+}
+
+// resumeTimers resumes flows whose durable sleep is over, for the apps that
+// have a gateway on this cluster.
+func (s *scheduler) resumeTimers(ctx context.Context, now time.Time) {
+	ctx, cancel := context.WithTimeout(ctx, 3*time.Second)
+	defer cancel()
+
+	// Most ticks have nothing due. This checks the resume_at index instead
+	// of sending every app ID of the cluster.
+	due, err := s.engine.env.ResumePointStore.HasDueTimerResumePoints(ctx, now)
+	if err != nil || !due {
+		return
+	}
+
+	appIDs := s.sessions.AppIDs()
+	if len(appIDs) == 0 {
+		return
+	}
+
+	resumePoints, err := s.engine.env.ResumePointStore.LeaseDueTimerResumePoints(ctx, appIDs, now, now.Add(timerLease), timerBatchSize)
+	if err != nil {
+		slog.Error(
+			"Failed to lease due timer resume points",
+			slog.String("error", err.Error()),
+		)
+		return
+	}
+
+	for _, resumePoint := range resumePoints {
+		// A timer without a gateway is retried after the lease.
+		session, err := s.sessions.AppSession(ctx, resumePoint.AppID)
+		if err != nil {
+			continue
+		}
+
+		go s.engine.appForID(resumePoint.AppID).resumeFlowAfterSleep(resumePoint, session)
+	}
 }
 
 func (s *scheduler) flush(ctx context.Context) {

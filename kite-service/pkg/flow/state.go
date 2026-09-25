@@ -14,6 +14,15 @@ type FlowContextState struct {
 	// Triggers holds the interactions or events of earlier executions, oldest
 	// first. It's only set in resumed executions.
 	Triggers []FlowTrigger `json:"triggers,omitempty"`
+
+	// ResumeTrigger is the interaction or event a durable sleep continues
+	// with. It's kept apart from Triggers, which are only earlier executions.
+	ResumeTrigger *FlowTrigger `json:"resume_trigger,omitempty"`
+
+	// DurableSleeps counts the durable sleeps of this execution, including the
+	// ones it resumed from, so a cycle through a Wait block can't keep the flow
+	// alive forever. Clicks and submits start a new execution from zero.
+	DurableSleeps int `json:"durable_sleeps,omitempty"`
 }
 
 func NewFlowContextState() *FlowContextState {

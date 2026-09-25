@@ -172,6 +172,8 @@ type ResumePoint struct {
 	CreatedAt         pgtype.Timestamp
 	ExpiresAt         pgtype.Timestamp
 	LastUsedAt        pgtype.Timestamp
+	ResumeAt          pgtype.Timestamp
+	InteractionToken  pgtype.Text
 }
 
 type Session struct {

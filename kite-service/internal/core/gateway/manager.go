@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"maps"
+	"slices"
 	"sync"
 	"time"
 
@@ -402,6 +404,14 @@ func (m *GatewayManager) AppState(ctx context.Context, appID string) (store.AppS
 	}
 
 	return g, nil
+}
+
+// AppIDs returns the apps with a gateway on this cluster.
+func (m *GatewayManager) AppIDs() []string {
+	m.Lock()
+	defer m.Unlock()
+
+	return slices.Collect(maps.Keys(m.gateways))
 }
 
 func (m *GatewayManager) AppSession(ctx context.Context, appID string) (*state.State, error) {
