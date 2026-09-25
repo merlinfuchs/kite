@@ -5009,7 +5009,8 @@
                 "type": "string",
                 "maxLength": 45,
                 "minLength": 1,
-                "description": "Title of the modal."
+                "description": "Title of the modal.",
+                "x-templated": true
               },
               "components": {
                 "type": "array",
@@ -5025,13 +5026,14 @@
                             "type": "string",
                             "maxLength": 100,
                             "minLength": 1,
-                            "description": "Identifier of the input. The submitted value can be read with {{input('custom_id')}}."
+                            "description": "Identifier of the input. The submitted value can be read with {{input('custom_id')}}. This is fixed text, placeholders aren't supported."
                           },
                           "label": {
                             "type": "string",
                             "maxLength": 45,
                             "minLength": 1,
-                            "description": "Label shown above the input."
+                            "description": "Label shown above the input.",
+                            "x-templated": true
                           },
                           "style": {
                             "type": "number",
@@ -5057,13 +5059,15 @@
                             "type": "string",
                             "maxLength": 4000,
                             "minLength": 1,
-                            "description": "Value the input is pre-filled with."
+                            "description": "Value the input is pre-filled with.",
+                            "x-templated": true
                           },
                           "placeholder": {
                             "type": "string",
                             "maxLength": 4000,
                             "minLength": 1,
-                            "description": "Text shown while the input is empty."
+                            "description": "Text shown while the input is empty.",
+                            "x-templated": true
                           }
                         },
                         "required": [

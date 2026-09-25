@@ -316,12 +316,10 @@ export const nodeActionResponseDeferDataSchema = nodeBaseDataSchema.extend({
     ),
 });
 
-// Modal texts are sent to Discord as they are, so they don't support
-// placeholders.
 export const nodeSuspendResponseModalDataSchema = nodeBaseDataSchema.extend({
   modal_data: z
     .object({
-      title: z.string().max(45).min(1).describe("Title of the modal."),
+      title: templated(z.string().max(45).min(1), "Title of the modal."),
       components: z
         .array(
           z.object({
@@ -333,13 +331,12 @@ export const nodeSuspendResponseModalDataSchema = nodeBaseDataSchema.extend({
                     .max(100)
                     .min(1)
                     .describe(
-                      "Identifier of the input. The submitted value can be read with {{input('custom_id')}}."
+                      "Identifier of the input. The submitted value can be read with {{input('custom_id')}}. This is fixed text, placeholders aren't supported."
                     ),
-                  label: z
-                    .string()
-                    .max(45)
-                    .min(1)
-                    .describe("Label shown above the input."),
+                  label: templated(
+                    z.string().max(45).min(1),
+                    "Label shown above the input."
+                  ),
                   style: z
                     .literal(1)
                     .or(z.literal(2))
@@ -356,18 +353,14 @@ export const nodeSuspendResponseModalDataSchema = nodeBaseDataSchema.extend({
                     .number()
                     .optional()
                     .describe("Maximum length of the entered text."),
-                  value: z
-                    .string()
-                    .max(4000)
-                    .min(1)
-                    .optional()
-                    .describe("Value the input is pre-filled with."),
-                  placeholder: z
-                    .string()
-                    .max(4000)
-                    .min(1)
-                    .optional()
-                    .describe("Text shown while the input is empty."),
+                  value: templated(
+                    z.string().max(4000).min(1),
+                    "Value the input is pre-filled with."
+                  ).optional(),
+                  placeholder: templated(
+                    z.string().max(4000).min(1),
+                    "Text shown while the input is empty."
+                  ).optional(),
                 })
               )
               .min(1)
