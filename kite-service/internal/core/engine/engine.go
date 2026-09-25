@@ -25,6 +25,10 @@ type Engine struct {
 func NewEngine(
 	env Env,
 ) *Engine {
+	if env.BlockRateLimiter == nil {
+		env.BlockRateLimiter = NewBlockRateLimiter()
+	}
+
 	return &Engine{
 		env:  env,
 		apps: make(map[string]*App),
@@ -106,6 +110,8 @@ func (e *Engine) populate(ctx context.Context) {
 }
 
 func (e *Engine) removeDangling(ctx context.Context) {
+	e.env.BlockRateLimiter.Sweep()
+
 	if err := e.removeDanglingPlugins(ctx); err != nil {
 		slog.Error(
 			"Failed to remove dangling plugins in engine",
