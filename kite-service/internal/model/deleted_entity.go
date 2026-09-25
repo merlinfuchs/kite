@@ -10,7 +10,7 @@ const (
 )
 
 // DeletedEntity is the tombstone of a deleted command, event listener or
-// plugin instance. The engine also uses it to refer to disabled ones.
+// plugin instance.
 type DeletedEntity struct {
 	ID    string
 	Type  DeletedEntityType
