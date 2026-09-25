@@ -51,26 +51,6 @@ func (q *Queries) GetUserByDiscordID(ctx context.Context, discordID string) (Use
 	return i, err
 }
 
-const getUserByEmail = `-- name: GetUserByEmail :one
-SELECT id, email, display_name, discord_id, discord_username, discord_avatar, created_at, updated_at FROM users WHERE email = $1
-`
-
-func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error) {
-	row := q.db.QueryRow(ctx, getUserByEmail, email)
-	var i User
-	err := row.Scan(
-		&i.ID,
-		&i.Email,
-		&i.DisplayName,
-		&i.DiscordID,
-		&i.DiscordUsername,
-		&i.DiscordAvatar,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-	)
-	return i, err
-}
-
 const upsertUser = `-- name: UpsertUser :one
 INSERT INTO users (
     id,

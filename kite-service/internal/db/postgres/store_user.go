@@ -24,18 +24,6 @@ func (c *Client) User(ctx context.Context, id string) (*model.User, error) {
 	return rowToUser(row), nil
 }
 
-func (c *Client) UserByEmail(ctx context.Context, email string) (*model.User, error) {
-	row, err := c.Q.GetUserByEmail(ctx, email)
-	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return nil, store.ErrNotFound
-		}
-		return nil, err
-	}
-
-	return rowToUser(row), nil
-}
-
 func (c *Client) UserByDiscordID(ctx context.Context, discordID string) (*model.User, error) {
 	row, err := c.Q.GetUserByDiscordID(ctx, discordID)
 	if err != nil {
