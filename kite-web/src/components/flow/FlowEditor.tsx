@@ -25,7 +25,7 @@ import {
   canConnect,
   createNode,
   getNodeValues,
-  withOwnedNodes,
+  getDeletedNodeIds,
 } from "@/lib/flow/nodes";
 import { useFlowClipboard } from "@/lib/hooks/flowClipboard";
 import { useFlowHistory } from "@/lib/hooks/flowHistory";
@@ -59,7 +59,9 @@ export default function FlowEditor({
   // reach the change handlers below, which record them for undo.
   const {
     getEdge,
+    getEdges,
     getNode,
+    getNodes,
     screenToFlowPosition,
     fitView,
     setNodes: editNodes,
@@ -151,13 +153,19 @@ export default function FlowEditor({
   );
 
   const onNodesDelete = useCallback(
-    (deletedNodes: Node[]) => {
-      // Delete the blocks the deleted ones own, e.g. the branches of a
-      // condition. This bypasses the change handlers, which don't let fixed
-      // nodes be removed.
-      const deletedIds = deletedNodes.map((n) => n.id);
-      const removed = withOwnedNodes(deletedIds, nodes, edges);
-      if (removed.size === deletedIds.length) return;
+    (deletedNodes: Node<NodeData>[]) => {
+      // The change handlers keep fixed blocks, so the blocks owned by the
+      // deleted ones, e.g. the else branch of a condition, are removed here.
+      const nodes = [...deletedNodes, ...getNodes()];
+      const types = new Map(nodes.map((n) => [n.id, n.type!]));
+      const deletedIds = new Set(deletedNodes.map((n) => n.id));
+      const removed = getDeletedNodeIds([...deletedIds], nodes, getEdges());
+
+      // Nothing to do if the change handlers already removed everything.
+      const handled = [...removed].every(
+        (id) => deletedIds.has(id) && !getNodeValues(types.get(id)!).fixed
+      );
+      if (handled) return;
 
       commit();
       setEdges((edges) =>
@@ -165,7 +173,7 @@ export default function FlowEditor({
       );
       setNodes((nodes) => nodes.filter((n) => !removed.has(n.id)));
     },
-    [nodes, edges, commit, setEdges, setNodes]
+    [getNodes, getEdges, commit, setEdges, setNodes]
   );
 
   const format = useCallback(() => {

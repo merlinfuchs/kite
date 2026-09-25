@@ -1020,6 +1020,11 @@ export function withOwnedNodes(
   edges: Edge[]
 ): Set<string> {
   const types = new Map(nodes.map((n) => [n.id, n.type!]));
+  const targets = new Map<string, string[]>();
+  for (const edge of edges) {
+    if (!targets.has(edge.source)) targets.set(edge.source, []);
+    targets.get(edge.source)!.push(edge.target);
+  }
   const res = new Set<string>();
 
   const add = (id: string) => {
@@ -1027,13 +1032,29 @@ export function withOwnedNodes(
     res.add(id);
 
     const owned = getOwnedChildTypes(types.get(id)!);
-    edges
-      .filter((e) => e.source === id && owned.includes(types.get(e.target)!))
-      .forEach((e) => add(e.target));
+    (targets.get(id) ?? [])
+      .filter((target) => owned.includes(types.get(target)!))
+      .forEach(add);
   };
   ids.forEach(add);
 
   return res;
+}
+
+// Returns the blocks the editor deletes when the given ones are deleted: the
+// blocks they own go with them, while fixed blocks, e.g. the else branch of a
+// condition, are only deleted together with the block they belong to.
+export function getDeletedNodeIds(
+  ids: string[],
+  nodes: Node<NodeData>[],
+  edges: Edge[]
+) {
+  const types = new Map(nodes.map((n) => [n.id, n.type!]));
+  return withOwnedNodes(
+    ids.filter((id) => !getNodeValues(types.get(id) ?? "").fixed),
+    nodes,
+    edges
+  );
 }
 
 let ownerTypes: Map<string, string[]> | undefined;
