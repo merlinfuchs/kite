@@ -953,12 +953,33 @@ const unknownNodeType: NodeValues = {
   dataFields: [],
 };
 
+export function isKnownNodeType(nodeType: string) {
+  return Object.hasOwn(nodeTypes, nodeType);
+}
+
 export function getNodeValues(nodeType: string): NodeValues {
-  const values = nodeTypes[nodeType];
-  if (!values) {
-    return unknownNodeType;
+  return isKnownNodeType(nodeType) ? nodeTypes[nodeType] : unknownNodeType;
+}
+
+export function getNodeTitle(node: { type?: string; data: NodeData }) {
+  return node.data.custom_label || getNodeValues(node.type!).defaultTitle;
+}
+
+// The blocks an owner is created with and connected to, e.g. the items and
+// else branch of a condition.
+export function getOwnedChildTypes(type: string) {
+  return createNode(type, { x: 0, y: 0 })[0]
+    .slice(1)
+    .map((n) => n.type!);
+}
+
+// Options connect into the entry of commands and event listeners, nothing else
+// connects into an entry.
+export function canConnect(sourceType: string, targetType: string) {
+  if (sourceType.startsWith("option_")) {
+    return targetType === "entry_command" || targetType === "entry_event";
   }
-  return values;
+  return !targetType.startsWith("entry_");
 }
 
 export function useNodeValues(nodeType: string): NodeValues {
