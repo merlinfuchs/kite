@@ -386,6 +386,15 @@ describe("applyFlowEdits edge cases", () => {
       [{ op: "connect", target: "a" } as unknown as FlowEdit]
     );
     expect(res.issues[0].message).toBe("Edit 1 (connect): source is missing.");
+
+    const update = apply(
+      [entry, log("a")],
+      [],
+      [{ op: "update_node", id: "a" } as unknown as FlowEdit]
+    );
+    expect(update.issues[0].message).toBe(
+      "Edit 1 (update_node): data is missing."
+    );
   });
 
   it("rejects edits the editor doesn't allow", () => {

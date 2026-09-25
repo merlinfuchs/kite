@@ -33,6 +33,8 @@ export class FlowAIError extends Error {
 
 export interface FlowAIResult {
   message: string;
+  // A request the user can send to make the change the message suggests.
+  buildPrompt: string;
   // How many rounds of problems the AI fixed in its own changes.
   repairs: number;
   // Problems the AI couldn't fix, or why it couldn't.
@@ -83,13 +85,16 @@ export async function runFlowAIPrompt({
   };
   // Warnings are sent too, as the ones the AI causes are mistakes, like a
   // block it didn't connect.
-  const getIssues = (issues: FlowIssue[]) => new Set(issues.map(describeIssue));
+  // Settings like stored variables are left for the user to pick.
+  const getIssues = (issues: FlowIssue[]) =>
+    new Set(issues.filter((i) => !i.userPicked).map(describeIssue));
 
   let res = await request(original, {});
-  const { prompt_id: promptId, message } = res;
+  const { prompt_id: promptId, message, build_prompt: buildPrompt } = res;
   const changed = new Set<string>();
   let result: FlowAIResult = {
     message,
+    buildPrompt,
     repairs: 0,
     issues: [],
     changedNodeIds: [],
@@ -121,7 +126,7 @@ export async function runFlowAIPrompt({
     // Blocks added and removed again by a repair are left out.
     const ids = new Set(flow.nodes.map((n) => n.id));
     result = {
-      message,
+      ...result,
       repairs,
       issues: [...res.issues, ...caused],
       changedNodeIds: [...changed].filter((id) => ids.has(id)),

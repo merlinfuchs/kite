@@ -187,7 +187,8 @@
           },
           "message_template_id": {
             "type": "string",
-            "description": "ID of a saved message template to send instead of message_data."
+            "description": "ID of a saved message template to send instead of message_data.",
+            "x-user-picked": true
           },
           "temporary_name": {
             "type": "string",
@@ -388,7 +389,8 @@
           },
           "message_template_id": {
             "type": "string",
-            "description": "ID of a saved message template to send instead of message_data."
+            "description": "ID of a saved message template to send instead of message_data.",
+            "x-user-picked": true
           },
           "temporary_name": {
             "type": "string",
@@ -670,7 +672,8 @@
           },
           "message_template_id": {
             "type": "string",
-            "description": "ID of a saved message template to send instead of message_data."
+            "description": "ID of a saved message template to send instead of message_data.",
+            "x-user-picked": true
           },
           "temporary_name": {
             "type": "string",
@@ -881,7 +884,8 @@
           },
           "message_template_id": {
             "type": "string",
-            "description": "ID of a saved message template to send instead of message_data."
+            "description": "ID of a saved message template to send instead of message_data.",
+            "x-user-picked": true
           },
           "temporary_name": {
             "type": "string",
@@ -1080,7 +1084,8 @@
           },
           "message_template_id": {
             "type": "string",
-            "description": "ID of a saved message template to send instead of message_data."
+            "description": "ID of a saved message template to send instead of message_data.",
+            "x-user-picked": true
           },
           "temporary_name": {
             "type": "string",
@@ -3801,7 +3806,8 @@
           },
           "variable_id": {
             "type": "string",
-            "description": "ID of an existing stored variable."
+            "description": "ID of an existing stored variable.",
+            "x-user-picked": true
           },
           "variable_scope": {
             "type": "string",
@@ -3863,7 +3869,8 @@
           },
           "variable_id": {
             "type": "string",
-            "description": "ID of an existing stored variable."
+            "description": "ID of an existing stored variable.",
+            "x-user-picked": true
           },
           "variable_scope": {
             "type": "string",
@@ -3902,7 +3909,8 @@
           },
           "variable_id": {
             "type": "string",
-            "description": "ID of an existing stored variable."
+            "description": "ID of an existing stored variable.",
+            "x-user-picked": true
           },
           "variable_scope": {
             "type": "string",

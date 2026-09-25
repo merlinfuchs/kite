@@ -10,18 +10,18 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"strings"
 	"time"
 
 	"github.com/kitecloud/kite/kite-service/internal/api/wire"
 	"github.com/kitecloud/kite/kite-service/internal/core/flowai"
+	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/openai/openai-go/v2"
 	"github.com/openai/openai-go/v2/option"
 )
 
 func main() {
 	addr := flag.String("addr", "localhost:4455", "address to listen on")
-	model := flag.String("model", "gpt-5-mini", "model for building")
+	modelName := flag.String("model", "gpt-5-mini", "model for building")
 	effort := flag.String("effort", "low", "reasoning effort for building")
 	checkModel := flag.String("check-model", "gpt-5-nano", "model for checking prompts")
 	checkEffort := flag.String("check-effort", "low", "reasoning effort for checking prompts")
@@ -36,13 +36,21 @@ func main() {
 	client := openai.NewClient(opts...)
 
 	assistant := flowai.NewAssistant(&client, flowai.Config{
-		ModelConfig: flowai.ModelConfig{Model: prefix + *model, ReasoningEffort: *effort, MaxOutputTokens: 16000},
+		ModelConfig: flowai.ModelConfig{Model: prefix + *modelName, ReasoningEffort: *effort, MaxOutputTokens: 16000},
 		Check:       flowai.ModelConfig{Model: prefix + *checkModel, ReasoningEffort: *checkEffort, MaxOutputTokens: 2000},
 	})
 
 	// The editor's wire types, plus the tokens used and how long it took.
 	http.HandleFunc("POST /chat", func(w http.ResponseWriter, r *http.Request) {
-		var req wire.FlowAIChatRequest
+		var req struct {
+			wire.FlowAIChatRequest
+			// The service loads them from the app, which the eval doesn't have.
+			Variables []struct {
+				ID     string `json:"id"`
+				Name   string `json:"name"`
+				Scoped bool   `json:"scoped"`
+			} `json:"variables"`
+		}
 		if !decode(w, r, &req) {
 			return
 		}
@@ -51,24 +59,34 @@ func main() {
 		for i, m := range req.Messages {
 			messages[i] = flowai.Message{Role: m.Role, Content: m.Content}
 		}
+		variables := make([]*model.Variable, len(req.Variables))
+		for i, v := range req.Variables {
+			variables[i] = &model.Variable{ID: v.ID, Name: v.Name, Scoped: v.Scoped}
+		}
 		start := time.Now()
 		res, err := assistant.Respond(r.Context(), flowai.Request{
-			Flow:     req.Flow,
-			Messages: messages,
-			Issues:   req.Issues,
-			UserID:   "eval",
+			Flow:      req.Flow,
+			Messages:  messages,
+			Issues:    req.Issues,
+			Variables: variables,
+			UserID:    "eval",
 		})
 		if err != nil {
 			fail(w, err)
 			return
 		}
-		respond(w, map[string]any{
-			"prompt_id": "eval",
-			"message":   res.Message,
-			"edits":     res.Edits,
-			"issues":    res.Issues,
-			"usage":     wire.FlowAIUsage{},
-			"eval":      map[string]any{"model": *model, "tokens": res.Usage, "ms": time.Since(start).Milliseconds()},
+		respond(w, struct {
+			wire.FlowAIChatResponse
+			Eval evalInfo `json:"eval"`
+		}{
+			FlowAIChatResponse: wire.FlowAIChatResponse{
+				PromptID:    "eval",
+				Message:     res.Message,
+				BuildPrompt: res.BuildPrompt,
+				Edits:       res.Edits,
+				Issues:      res.Issues,
+			},
+			Eval: evalInfo{Model: *modelName, Tokens: res.Usage, MS: time.Since(start).Milliseconds()},
 		})
 	})
 
@@ -84,17 +102,21 @@ func main() {
 			fail(w, err)
 			return
 		}
-		respond(w, map[string]any{
-			"verdict":          res.Verdict,
-			"message":          res.Message,
-			"suggested_prompt": res.SuggestedPrompt,
-			"fields":           res.Fields,
-			"eval":             map[string]any{"model": *checkModel, "tokens": res.Usage, "ms": time.Since(start).Milliseconds()},
-		})
+		respond(w, struct {
+			*flowai.CheckResponse
+			Eval evalInfo `json:"eval"`
+		}{res, evalInfo{Model: *checkModel, Tokens: res.Usage, MS: time.Since(start).Milliseconds()}})
 	})
 
-	log.Printf("Serving the flow AI with %s and %s on %s", strings.TrimPrefix(*model, prefix), *checkModel, *addr)
+	log.Printf("Serving the flow AI with %s and %s on %s", *modelName, *checkModel, *addr)
 	log.Fatal(http.ListenAndServe(*addr, nil))
+}
+
+// evalInfo is added to responses for the eval's report.
+type evalInfo struct {
+	Model  string            `json:"model"`
+	Tokens model.FlowAIUsage `json:"tokens"`
+	MS     int64             `json:"ms"`
 }
 
 func decode(w http.ResponseWriter, r *http.Request, v any) bool {

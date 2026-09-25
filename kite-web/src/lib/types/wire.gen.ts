@@ -364,7 +364,15 @@ export interface FlowAIChatRequest {
 }
 export interface FlowAIChatResponse {
   prompt_id: string;
+  /**
+   * Message is Markdown.
+   */
   message: string;
+  /**
+   * BuildPrompt is a request the user can send to make the change the
+   * message suggests, if any.
+   */
+  build_prompt: string;
   /**
    * Edits are applied with the editor's applyFlowEdits.
    */

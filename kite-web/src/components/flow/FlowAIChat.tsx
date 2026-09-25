@@ -28,9 +28,12 @@ import {
 import { Button } from "../ui/button";
 import { Textarea } from "../ui/textarea";
 import FlowAICheckCard from "./FlowAICheckCard";
+import FlowAIMarkdown from "./FlowAIMarkdown";
 import { FlowEditorApi } from "./FlowEditor";
 
 interface ChatEntry extends FlowAIChatMessage {
+  // A request the user can send to make the change the answer suggests.
+  buildPrompt?: string;
   // Problems left with the AI's changes.
   issues?: string[];
   repaired?: boolean;
@@ -70,6 +73,14 @@ export default memo(function FlowAIChat({
     const controller = new AbortController();
     abort.current = controller;
     return () => controller.abort();
+  }, []);
+
+  // "Build this" puts the suggested request into the input, so the user can
+  // fill in what only they know before it uses a prompt.
+  const inputRef = useRef<HTMLTextAreaElement>(null);
+  const fillInput = useCallback((prompt: string) => {
+    setInput(prompt);
+    inputRef.current?.focus();
   }, []);
 
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -127,6 +138,7 @@ export default memo(function FlowAIChat({
           {
             role: "assistant",
             content: res.message,
+            buildPrompt: res.buildPrompt,
             issues: res.issues,
             repaired: res.repairs > 0 && res.issues.length === 0,
           },
@@ -233,7 +245,7 @@ export default memo(function FlowAIChat({
           </div>
         )}
         {entries.map((entry, i) => (
-          <ChatBubble key={i} entry={entry} />
+          <ChatBubble key={i} entry={entry} onBuild={fillInput} />
         ))}
         {checked && !busy && (
           <FlowAICheckCard
@@ -254,6 +266,7 @@ export default memo(function FlowAIChat({
       <div className="flex-none p-4 space-y-2">
         <div className="relative">
           <Textarea
+            ref={inputRef}
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => {
@@ -265,7 +278,7 @@ export default memo(function FlowAIChat({
             placeholder={
               limit === 0
                 ? "Your plan doesn't include the flow AI."
-                : "Ask for a change..."
+                : "Ask a question or for a change..."
             }
             maxLength={4000}
             minRows={2}
@@ -293,7 +306,14 @@ export default memo(function FlowAIChat({
   );
 });
 
-function ChatBubble({ entry }: { entry: ChatEntry }) {
+// Memoized, as the chat re-renders on every keystroke in the input.
+const ChatBubble = memo(function ChatBubble({
+  entry,
+  onBuild,
+}: {
+  entry: ChatEntry;
+  onBuild: (prompt: string) => void;
+}) {
   if (entry.role === "user") {
     return (
       <div className="ml-8 rounded-lg bg-primary/15 px-3 py-2 whitespace-pre-wrap">
@@ -303,13 +323,24 @@ function ChatBubble({ entry }: { entry: ChatEntry }) {
   }
 
   return (
-    <div
-      className={cn(
-        "mr-8 space-y-2 whitespace-pre-wrap",
-        entry.failed && "text-destructive"
+    <div className={cn("mr-8 space-y-2", entry.failed && "text-destructive")}>
+      {entry.failed ? (
+        <p className="whitespace-pre-wrap">{entry.content}</p>
+      ) : (
+        entry.content && <FlowAIMarkdown text={entry.content} />
       )}
-    >
-      {entry.content && <p>{entry.content}</p>}
+      {entry.buildPrompt && (
+        <Button
+          size="sm"
+          variant="outline"
+          className="gap-2"
+          title={entry.buildPrompt}
+          onClick={() => onBuild(entry.buildPrompt!)}
+        >
+          <SparklesIcon className="size-4" />
+          Build this
+        </Button>
+      )}
       {entry.repaired && (
         <p className="text-xs text-muted-foreground">
           Fixed problems with its changes.
@@ -327,4 +358,4 @@ function ChatBubble({ entry }: { entry: ChatEntry }) {
       )}
     </div>
   );
-}
+});
