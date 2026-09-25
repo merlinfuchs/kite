@@ -49,3 +49,32 @@ export function toJsonSchema(schema: ZodSchema) {
   });
   return res;
 }
+
+// A short list of the blocks that can be added, with the settings they need,
+// for the model that checks prompts before they go to the flow AI. The service
+// embeds it as kite-service/pkg/flow/catalog_summary.txt.
+export function buildFlowCatalogSummary() {
+  const { nodes } = buildFlowCatalog();
+  const lines = Object.entries(nodes)
+    // Entries come with the flow, and fixed blocks with their owner.
+    .filter(([type, node]) => !type.startsWith("entry_") && !node.fixed)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([, node]) => {
+      let line = `- ${node.title}: ${node.description}`;
+      if (node.contexts.length < flowContextTypes.length) {
+        line += ` (only in ${node.contexts.join(", ")} flows)`;
+      }
+
+      const schema = node.data_schema as {
+        required?: string[];
+        properties?: Record<string, { description?: string }>;
+      } | null;
+      const required = (schema?.required ?? []).map((name) => {
+        const description = schema?.properties?.[name]?.description ?? "";
+        return `${name} (${description.replace(/\.$/, "")})`;
+      });
+      if (required.length > 0) line += `. Needs ${required.join(", ")}`;
+      return line;
+    });
+  return lines.join("\n") + "\n";
+}

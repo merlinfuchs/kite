@@ -39,6 +39,11 @@ reasoning_effort = "low"
 max_output_tokens = 16000
 max_repairs = 2
 
+[flow_ai.check]
+model = "gpt-5-nano"
+reasoning_effort = "minimal"
+max_output_tokens = 2000
+
 [debug]
 enabled = false
 host = "127.0.0.1"

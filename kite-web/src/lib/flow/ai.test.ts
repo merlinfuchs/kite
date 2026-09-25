@@ -1,7 +1,7 @@
 import { Edge } from "@xyflow/react";
 import { describe, expect, it } from "vitest";
 import { FlowAIChatRequest, FlowAIChatResponse } from "../types/wire.gen";
-import { runFlowAIPrompt } from "./ai";
+import { checkFlowAIPrompt, composeCheckedPrompt, runFlowAIPrompt } from "./ai";
 import { testNode } from "./testUtils";
 
 const entry = testNode("entry", "entry_command", {
@@ -240,5 +240,86 @@ describe("runFlowAIPrompt", () => {
     expect(api.requests[0].flow).toContain("- entry entry_command (selected)");
     // The added block is selected to highlight it, but not sent as selected.
     expect(api.requests[1].flow.match(/\(selected\)/g)).toHaveLength(1);
+  });
+});
+
+describe("checkFlowAIPrompt", () => {
+  const flow = { nodes: [entry], edges: [] };
+
+  it("sends the prompt with the flow", async () => {
+    const requests: unknown[] = [];
+    const res = await checkFlowAIPrompt({
+      context: "command",
+      prompt: "Log bans",
+      flow,
+      send: async (req) => {
+        requests.push(req);
+        return {
+          success: true,
+          data: {
+            verdict: "send",
+            message: "",
+            suggested_prompt: "",
+            fields: [],
+          },
+        };
+      },
+    });
+    expect(res?.verdict).toBe("send");
+    expect(requests[0]).toMatchObject({
+      prompt: "Log bans",
+      flow: expect.stringContaining("- entry entry_command"),
+    });
+  });
+
+  it("returns null if the check fails, so the prompt is sent anyway", async () => {
+    const failed = async () => ({
+      success: false as const,
+      error: { code: "flow_ai_unavailable", message: "", data: {} },
+    });
+    const thrown = async () => {
+      throw new Error("Rate limit exceeded");
+    };
+    for (const send of [failed, thrown]) {
+      expect(
+        await checkFlowAIPrompt({
+          context: "command",
+          prompt: "Hi",
+          flow,
+          send,
+        })
+      ).toBeNull();
+    }
+  });
+});
+
+describe("composeCheckedPrompt", () => {
+  it("adds the filled in fields", () => {
+    const field = (label: string) => ({
+      label,
+      description: "",
+      type: "text",
+      options: [],
+      default: "",
+    });
+    expect(
+      composeCheckedPrompt(
+        "Log bans in the channel below",
+        [field("Channel"), field("Reason"), field("Role")],
+        ["#logs (channel ID 1)", " ", "Mod"]
+      )
+    ).toBe(
+      "Log bans in the channel below\n\n- Channel: #logs (channel ID 1)\n- Role: Mod"
+    );
+    expect(composeCheckedPrompt("Hi", [field("Channel")], [""])).toBe("Hi");
+
+    // A long prompt is shortened, so the values reach the AI.
+    const composed = composeCheckedPrompt(
+      "a".repeat(4000),
+      [field("Channel")],
+      ["#logs (channel ID 1)"]
+    );
+    expect(composed).toHaveLength(4000);
+    expect(composed.endsWith("- Channel: #logs (channel ID 1)")).toBe(true);
   });
 });

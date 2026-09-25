@@ -37,6 +37,8 @@ import {
   EventListenerUpdateResponse,
   FlowAIChatRequest,
   FlowAIChatResponse,
+  FlowAICheckRequest,
+  FlowAICheckResponse,
   MessageCreateRequest,
   MessageCreateResponse,
   MessageDeleteResponse,
@@ -879,5 +881,18 @@ export function useFlowAIChatMutation(appId: string) {
         client.invalidateQueries({ queryKey: flowAIUsageQueryKey(appId) });
       }
     },
+  });
+}
+
+export function useFlowAICheckMutation(appId: string) {
+  return useMutation({
+    mutationFn: (req: FlowAICheckRequest) =>
+      apiRequest<FlowAICheckResponse>(`/v1/apps/${appId}/flow-ai/check`, {
+        method: "POST",
+        body: JSON.stringify(req),
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }),
   });
 }

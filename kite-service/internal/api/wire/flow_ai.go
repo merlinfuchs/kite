@@ -71,3 +71,35 @@ type FlowAIUsage struct {
 }
 
 type FlowAIUsageGetResponse = FlowAIUsage
+
+type FlowAICheckRequest struct {
+	// Flow is the start of the flow as serialized by the editor, which is
+	// enough to check a prompt.
+	Flow   string `json:"flow"`
+	Prompt string `json:"prompt"`
+}
+
+func (req FlowAICheckRequest) Validate() error {
+	return validation.ValidateStruct(&req,
+		validation.Field(&req.Flow, validation.Required, validation.Length(1, 10_000)),
+		validation.Field(&req.Prompt, validation.Required, validation.Length(1, 4000)),
+	)
+}
+
+// FlowAICheckResponse says whether a prompt is ready to be sent. If Verdict
+// is "clarify", it suggests a clearer prompt and fields for what's missing.
+type FlowAICheckResponse struct {
+	Verdict         string             `json:"verdict"`
+	Message         string             `json:"message"`
+	SuggestedPrompt string             `json:"suggested_prompt"`
+	Fields          []FlowAICheckField `json:"fields"`
+}
+
+type FlowAICheckField struct {
+	Label       string `json:"label"`
+	Description string `json:"description"`
+	// Type is "text", "number", "channel" or "choice".
+	Type    string   `json:"type"`
+	Options []string `json:"options"`
+	Default string   `json:"default"`
+}

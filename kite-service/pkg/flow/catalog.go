@@ -8,3 +8,10 @@ import _ "embed"
 //
 //go:embed catalog.json
 var CatalogJSON []byte
+
+// CatalogSummary lists the blocks that can be added with the settings they
+// need, for the cheaper model that checks prompts. It's generated with the
+// catalog.
+//
+//go:embed catalog_summary.txt
+var CatalogSummary string
