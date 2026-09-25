@@ -74,7 +74,7 @@ SELECT id FROM apps WHERE enabled = FALSE AND updated_at > $1;
 -- the next reconnect -- wasteful, but never dropping events. Additions and
 -- updates, which widen the requirements, are caught reliably.
 -- name: GetAppIDsWithGatewayRequirementsChangedSince :many
-SELECT el.app_id FROM event_listeners el WHERE el.updated_at > $1
+SELECT el.app_id FROM event_listeners el WHERE el.updated_at > $1 AND el.source = 'discord'
 UNION
 SELECT pi.app_id FROM plugin_instances pi WHERE pi.updated_at > $1;
 

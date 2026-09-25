@@ -285,7 +285,7 @@ func (q *Queries) GetAppGatewayRequirements(ctx context.Context, appID string) (
 }
 
 const getAppIDsWithGatewayRequirementsChangedSince = `-- name: GetAppIDsWithGatewayRequirementsChangedSince :many
-SELECT el.app_id FROM event_listeners el WHERE el.updated_at > $1
+SELECT el.app_id FROM event_listeners el WHERE el.updated_at > $1 AND el.source = 'discord'
 UNION
 SELECT pi.app_id FROM plugin_instances pi WHERE pi.updated_at > $1
 `

@@ -46,7 +46,7 @@ func NewEngine(
 
 func (e *Engine) Run(ctx context.Context) {
 	populateInterval := util.IntervalOrDefault(e.env.Config.PopulateInterval, 5*time.Second)
-	removeDanglingInterval := util.IntervalOrDefault(e.env.Config.RemoveDanglingInterval, 10*time.Minute)
+	removeDanglingInterval := util.IntervalOrDefault(e.env.Config.RemoveDanglingInterval, 5*time.Minute)
 
 	go func() {
 		updateTicker := time.NewTicker(populateInterval)

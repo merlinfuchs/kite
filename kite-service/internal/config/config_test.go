@@ -39,7 +39,7 @@ func TestDefaultDurationsParse(t *testing.T) {
 		want time.Duration
 	}{
 		{"engine.populate_interval", cfg.Engine.PopulateInterval, 5 * time.Second},
-		{"engine.remove_dangling_interval", cfg.Engine.RemoveDanglingInterval, 10 * time.Minute},
+		{"engine.remove_dangling_interval", cfg.Engine.RemoveDanglingInterval, 5 * time.Minute},
 		{"engine.populate_overlap", cfg.Engine.PopulateOverlap, 5 * time.Second},
 		{"gateway.populate_interval", cfg.Gateway.PopulateInterval, 10 * time.Second},
 		{"gateway.remove_dangling_interval", cfg.Gateway.RemoveDanglingInterval, 60 * time.Second},
