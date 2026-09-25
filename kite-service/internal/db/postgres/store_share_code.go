@@ -13,7 +13,7 @@ import (
 	"gopkg.in/guregu/null.v4"
 )
 
-func (c *Client) CreateShareCode(ctx context.Context, shareCode *model.ShareCode) error {
+func (c *Client) CreateShareCode(ctx context.Context, shareCode *model.ShareCode) (string, error) {
 	return c.Q.CreateShareCode(ctx, pgmodel.CreateShareCodeParams{
 		Code:          shareCode.Code,
 		Type:          string(shareCode.Type),

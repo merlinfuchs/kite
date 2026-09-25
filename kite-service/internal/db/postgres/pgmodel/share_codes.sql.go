@@ -11,7 +11,7 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
-const createShareCode = `-- name: CreateShareCode :exec
+const createShareCode = `-- name: CreateShareCode :one
 INSERT INTO share_codes (
     code,
     type,
@@ -21,6 +21,8 @@ INSERT INTO share_codes (
     created_at,
     last_used_at
 ) VALUES ($1, $2, $3, $4, $5, $6, $7)
+ON CONFLICT (app_id, type, data_hash) DO UPDATE SET last_used_at = EXCLUDED.last_used_at
+RETURNING code
 `
 
 type CreateShareCodeParams struct {
@@ -33,8 +35,8 @@ type CreateShareCodeParams struct {
 	LastUsedAt    pgtype.Timestamp
 }
 
-func (q *Queries) CreateShareCode(ctx context.Context, arg CreateShareCodeParams) error {
-	_, err := q.db.Exec(ctx, createShareCode,
+func (q *Queries) CreateShareCode(ctx context.Context, arg CreateShareCodeParams) (string, error) {
+	row := q.db.QueryRow(ctx, createShareCode,
 		arg.Code,
 		arg.Type,
 		arg.Data,
@@ -43,7 +45,9 @@ func (q *Queries) CreateShareCode(ctx context.Context, arg CreateShareCodeParams
 		arg.CreatedAt,
 		arg.LastUsedAt,
 	)
-	return err
+	var code string
+	err := row.Scan(&code)
+	return code, err
 }
 
 const deleteUnusedShareCodes = `-- name: DeleteUnusedShareCodes :execrows
@@ -69,7 +73,7 @@ func (q *Queries) DeleteUnusedShareCodes(ctx context.Context, arg DeleteUnusedSh
 }
 
 const shareCode = `-- name: ShareCode :one
-SELECT code, type, data, creator_user_id, app_id, created_at, last_used_at FROM share_codes WHERE code = $1
+SELECT code, type, data, data_hash, creator_user_id, app_id, created_at, last_used_at FROM share_codes WHERE code = $1
 `
 
 func (q *Queries) ShareCode(ctx context.Context, code string) (ShareCode, error) {
@@ -79,6 +83,7 @@ func (q *Queries) ShareCode(ctx context.Context, code string) (ShareCode, error)
 		&i.Code,
 		&i.Type,
 		&i.Data,
+		&i.DataHash,
 		&i.CreatorUserID,
 		&i.AppID,
 		&i.CreatedAt,

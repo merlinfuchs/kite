@@ -1,4 +1,4 @@
--- name: CreateShareCode :exec
+-- name: CreateShareCode :one
 INSERT INTO share_codes (
     code,
     type,
@@ -7,7 +7,9 @@ INSERT INTO share_codes (
     app_id,
     created_at,
     last_used_at
-) VALUES ($1, $2, $3, $4, $5, $6, $7);
+) VALUES ($1, $2, $3, $4, $5, $6, $7)
+ON CONFLICT (app_id, type, data_hash) DO UPDATE SET last_used_at = EXCLUDED.last_used_at
+RETURNING code;
 
 -- name: ShareCode :one
 SELECT * FROM share_codes WHERE code = $1;

@@ -184,6 +184,7 @@ type ShareCode struct {
 	Code          string
 	Type          string
 	Data          []byte
+	DataHash      pgtype.Text
 	CreatorUserID string
 	AppID         pgtype.Text
 	CreatedAt     pgtype.Timestamp

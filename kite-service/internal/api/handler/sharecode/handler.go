@@ -40,7 +40,7 @@ func (h *ShareCodeHandler) HandleShareCodeCreate(c *handler.Context, req wire.Sh
 	}
 
 	now := time.Now().UTC()
-	err = h.shareCodeStore.CreateShareCode(c.Context(), &model.ShareCode{
+	code, err = h.shareCodeStore.CreateShareCode(c.Context(), &model.ShareCode{
 		Code:          code,
 		Type:          model.ShareCodeType(req.Type),
 		Data:          req.Data,
