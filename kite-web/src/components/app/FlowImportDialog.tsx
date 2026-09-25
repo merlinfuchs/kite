@@ -87,6 +87,13 @@ function ImportForm({
 
   const { label, entryNodeType, href } = kinds[kind];
 
+  const loading =
+    commandsImportMutation.isPending ||
+    eventListenersImportMutation.isPending ||
+    shareCodeResolveMutation.isPending ||
+    !variables ||
+    !messages;
+
   function importShareData(
     parsed: { flow_source?: FlowData; source?: string } | null | undefined
   ) {
@@ -206,7 +213,11 @@ function ImportForm({
         />
       ) : (
         <ShareCodePanel>
-          <ShareCodeInput value={code} onChange={setCode} />
+          <ShareCodeInput
+            value={code}
+            onChange={setCode}
+            onSubmit={() => !loading && onImport()}
+          />
         </ShareCodePanel>
       )}
 
@@ -223,16 +234,7 @@ function ImportForm({
           <DialogClose asChild>
             <Button variant="outline">Cancel</Button>
           </DialogClose>
-          <LoadingButton
-            onClick={onImport}
-            loading={
-              commandsImportMutation.isPending ||
-              eventListenersImportMutation.isPending ||
-              shareCodeResolveMutation.isPending ||
-              !variables ||
-              !messages
-            }
-          >
+          <LoadingButton onClick={onImport} loading={loading}>
             Import
           </LoadingButton>
         </div>

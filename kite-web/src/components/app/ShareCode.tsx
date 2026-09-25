@@ -23,9 +23,11 @@ export function ShareCodePanel({ children }: { children: ReactNode }) {
 export function ShareCodeInput({
   value,
   onChange,
+  onSubmit,
 }: {
   value: string;
   onChange: (value: string) => void;
+  onSubmit: () => void;
 }) {
   return (
     <InputOTP
@@ -33,6 +35,7 @@ export function ShareCodeInput({
       pattern="^[a-zA-Z0-9]+$"
       value={value}
       onChange={(value) => onChange(value.toUpperCase())}
+      onKeyDown={(e) => e.key === "Enter" && onSubmit()}
       autoFocus
     >
       <InputOTPGroup>
