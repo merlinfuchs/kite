@@ -32,11 +32,13 @@ export const aiModelTierValues = aiModelTiers.map((t) => t.value) as [
 ];
 
 // What flows stored before tiers existed. A block keeps its old value until
-// someone edits it.
+// someone edits it. The editor saved gpt-5.4-nano for its "gpt-5-nano" option
+// from May to August 2026.
 const legacyAiModels = new Map<unknown, AiModelTier>([
   ["gpt-4o-mini", AIModelSmall],
   ["gpt-4.1-nano", AIModelSmall],
   ["gpt-5-nano", AIModelSmall],
+  ["gpt-5.4-nano", AIModelSmall],
   ["gpt-4.1-mini", AIModelMedium],
   ["gpt-4.1", AIModelLarge],
 ]);
