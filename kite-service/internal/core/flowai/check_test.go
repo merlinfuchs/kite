@@ -37,3 +37,16 @@ func TestCheckFailsIfCutOff(t *testing.T) {
 	_, err := assistant.Check(context.Background(), CheckRequest{Flow: "Blocks:", Prompt: "Hi"})
 	assert.Error(t, err)
 }
+
+func TestCheckLimitsFields(t *testing.T) {
+	field := `{"label": "A", "description": "", "type": "choice", "options": [], "default": ""}`
+	assistant, _ := fakeOpenAI(t, "completed", `{"verdict": "clarify", "message": "", "suggested_prompt": "",
+		"fields": [`+field+`, `+field+`, `+field+`, `+field+`, `+field+`]}`)
+
+	res, err := assistant.Check(context.Background(), CheckRequest{Flow: "Blocks:", Prompt: "Hi"})
+	require.NoError(t, err)
+
+	assert.Len(t, res.Fields, 4)
+	assert.Equal(t, "text", res.Fields[0].Type)
+	assert.Equal(t, 1000, res.Usage.InputTokens)
+}

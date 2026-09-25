@@ -83,6 +83,8 @@ type fakeAssistant struct {
 
 func (a *fakeAssistant) Model() string { return "gpt-5-mini" }
 
+func (a *fakeAssistant) CheckModel() string { return "gpt-5-nano" }
+
 func (a *fakeAssistant) Respond(ctx context.Context, req flowai.Request) (*flowai.Response, error) {
 	a.calls++
 	if a.err != nil {
@@ -108,6 +110,7 @@ func (a *fakeAssistant) Check(ctx context.Context, req flowai.CheckRequest) (*fl
 	}
 	return &flowai.CheckResponse{
 		Verdict: "clarify",
+		Usage:   model.FlowAIUsage{InputTokens: 10},
 		Fields:  []flowai.CheckField{{Label: "Channel", Type: "channel", Options: []string{}}},
 	}, nil
 }
@@ -324,8 +327,22 @@ func TestCheck(t *testing.T) {
 	data := res["data"].(map[string]any)
 	assert.Equal(t, "clarify", data["verdict"])
 	assert.Equal(t, "channel", data["fields"].([]any)[0].(map[string]any)["type"])
-	// Checks don't count as prompts.
-	assert.Empty(t, s.store.prompts)
+	// Checks are recorded as answers without edits.
+	require.Len(t, s.store.prompts, 1)
+	for _, p := range s.store.prompts {
+		assert.False(t, p.Edited)
+		assert.Equal(t, "gpt-5-nano", p.Model)
+		assert.Equal(t, 10, p.Usage.InputTokens)
+	}
+
+	// They are refused once the app can't send more prompts.
+	code, res = check(1, `{"flow": "Blocks:", "prompt": "Log bans"}`)
+	require.Equal(t, http.StatusOK, code, res)
+	code, res = check(1, `{"flow": "Blocks:", "prompt": "Log bans"}`)
+	require.Equal(t, http.StatusOK, code, res)
+	code, res = check(1, `{"flow": "Blocks:", "prompt": "Log bans"}`)
+	assert.Equal(t, http.StatusBadRequest, code)
+	assert.Equal(t, "resource_limit", errCode(res))
 
 	code, _ = check(0, body)
 	assert.Equal(t, http.StatusForbidden, code)

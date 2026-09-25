@@ -312,5 +312,14 @@ describe("composeCheckedPrompt", () => {
       "Log bans in the channel below\n\n- Channel: #logs (channel ID 1)\n- Role: Mod"
     );
     expect(composeCheckedPrompt("Hi", [field("Channel")], [""])).toBe("Hi");
+
+    // A long prompt is shortened, so the values reach the AI.
+    const composed = composeCheckedPrompt(
+      "a".repeat(4000),
+      [field("Channel")],
+      ["#logs (channel ID 1)"]
+    );
+    expect(composed).toHaveLength(4000);
+    expect(composed.endsWith("- Channel: #logs (channel ID 1)")).toBe(true);
   });
 });

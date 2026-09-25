@@ -187,7 +187,7 @@ export async function checkFlowAIPrompt({
 }
 
 // Adds the values the user filled in for a checked prompt, leaving out empty
-// ones.
+// ones. The prompt is shortened if needed, so the values aren't cut off.
 export function composeCheckedPrompt(
   prompt: string,
   fields: FlowAICheckField[],
@@ -196,8 +196,11 @@ export function composeCheckedPrompt(
   const details = fields
     .map((f, i) => [f.label, values[i]?.trim()])
     .filter(([, value]) => value)
-    .map(([label, value]) => `- ${label}: ${value}`);
-  return details.length > 0 ? `${prompt}\n\n${details.join("\n")}` : prompt;
+    .map(([label, value]) => `- ${label}: ${value}`)
+    .join("\n");
+  if (!details) return prompt;
+  const room = maxMessageLength - details.length - 2;
+  return `${prompt.slice(0, Math.max(room, 0))}\n\n${details}`;
 }
 
 function toRequestMessages(messages: FlowAIChatMessage[]) {

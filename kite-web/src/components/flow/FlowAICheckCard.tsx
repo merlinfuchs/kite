@@ -27,9 +27,7 @@ export default function FlowAICheckCard({
   onSend: (content: string) => void;
 }) {
   const [suggested, setSuggested] = useState(check.suggested_prompt || prompt);
-  const [values, setValues] = useState(() =>
-    check.fields.map((f) => f.default)
-  );
+  const [values, setValues] = useState(() => check.fields.map(getDefault));
 
   return (
     <div className="rounded-lg border bg-background p-3 space-y-3">
@@ -81,6 +79,20 @@ export default function FlowAICheckCard({
       </div>
     </div>
   );
+}
+
+// Only defaults the input can show are used, so nothing hidden is sent.
+function getDefault(field: FlowAICheckField) {
+  switch (field.type) {
+    case "channel":
+      return "";
+    case "choice":
+      return field.options.includes(field.default) ? field.default : "";
+    case "number":
+      return isNaN(Number(field.default)) ? "" : field.default;
+    default:
+      return field.default;
+  }
 }
 
 function CheckFieldInput({
@@ -142,7 +154,14 @@ function ChannelFieldInput({
   return (
     <div className="space-y-2">
       {guilds && guilds.length > 1 && (
-        <GuildSelect value={guildId} onChange={setGuildId} />
+        <GuildSelect
+          value={guildId}
+          onChange={(id) => {
+            setGuildId(id);
+            setChannelId(null);
+            onChange("");
+          }}
+        />
       )}
       <ChannelSelect
         guildId={guildId}

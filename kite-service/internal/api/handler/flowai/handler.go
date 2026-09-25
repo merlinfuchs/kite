@@ -19,6 +19,7 @@ import (
 type Assistant interface {
 	Model() string
 	Respond(ctx context.Context, req flowai.Request) (*flowai.Response, error)
+	CheckModel() string
 	Check(ctx context.Context, req flowai.CheckRequest) (*flowai.CheckResponse, error)
 }
 
@@ -99,11 +100,8 @@ func (h *FlowAIHandler) HandleFlowAIChat(c *handler.Context, req wire.FlowAIChat
 			return nil, handler.ErrBadRequest("repair_limit", "The AI couldn't fix its changes. Try describing the change differently.")
 		}
 	} else {
-		if used >= limit {
-			return nil, handler.ErrBadRequest("resource_limit", fmt.Sprintf("You've used all %d AI prompts for this month.", limit))
-		}
-		if count.Total >= answerLimitFactor*limit {
-			return nil, handler.ErrBadRequest("resource_limit", "You've asked the AI too many questions this month.")
+		if err := checkLimits(limit, count); err != nil {
+			return nil, err
 		}
 
 		prompt = &model.FlowAIPrompt{
@@ -180,6 +178,14 @@ func (h *FlowAIHandler) HandleFlowAICheck(c *handler.Context, req wire.FlowAIChe
 	if err := h.checkAvailable(c); err != nil {
 		return nil, err
 	}
+	// Checking is pointless if the prompt can't be sent.
+	count, err := h.promptCount(c)
+	if err != nil {
+		return nil, err
+	}
+	if err := checkLimits(c.Features.MaxAIPromptsPerMonth, count); err != nil {
+		return nil, err
+	}
 
 	res, err := h.assistant.Check(c.Context(), flowai.CheckRequest{
 		Flow:   req.Flow,
@@ -190,6 +196,24 @@ func (h *FlowAIHandler) HandleFlowAICheck(c *handler.Context, req wire.FlowAIChe
 	if err != nil {
 		slog.Error("Failed to check flow AI prompt", slog.String("app_id", c.App.ID), slog.Any("error", err))
 		return nil, handler.ErrServiceUnavailable("flow_ai_unavailable", "The prompt couldn't be checked.")
+	}
+
+	// Checks are recorded as answers without edits, so they are limited like
+	// them and their usage is known.
+	now := time.Now().UTC()
+	err = h.promptStore.CreateFlowAIPrompt(c.Context(), &model.FlowAIPrompt{
+		ID:        util.UniqueID(),
+		AppID:     c.App.ID,
+		UserID:    c.Session.UserID,
+		Model:     h.assistant.CheckModel(),
+		Prompt:    req.Prompt,
+		Rounds:    1,
+		Usage:     res.Usage,
+		CreatedAt: now,
+		UpdatedAt: now,
+	})
+	if err != nil {
+		slog.Error("Failed to record flow AI check", slog.String("app_id", c.App.ID), slog.Any("error", err))
 	}
 
 	fields := make([]wire.FlowAICheckField, len(res.Fields))
@@ -211,6 +235,18 @@ func (h *FlowAIHandler) checkAvailable(c *handler.Context) error {
 	// Unlike other limits, 0 means none, so plans need to opt in.
 	if c.Features.MaxAIPromptsPerMonth == 0 {
 		return handler.ErrForbidden("feature_unavailable", "Your plan doesn't include the flow AI.")
+	}
+	return nil
+}
+
+// checkLimits returns an error if the app can't send another prompt this
+// month.
+func checkLimits(limit int, count model.FlowAIPromptCount) error {
+	if count.Edited >= limit {
+		return handler.ErrBadRequest("resource_limit", fmt.Sprintf("You've used all %d AI prompts for this month.", limit))
+	}
+	if count.Total >= answerLimitFactor*limit {
+		return handler.ErrBadRequest("resource_limit", "You've asked the AI too many questions this month.")
 	}
 	return nil
 }

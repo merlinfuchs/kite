@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 
+	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/pkg/flow"
 	"github.com/openai/openai-go/v2"
 	"github.com/openai/openai-go/v2/responses"
@@ -23,11 +24,15 @@ type CheckRequest struct {
 // CheckResponse says whether a prompt is ready for the flow AI, or suggests a
 // clearer one with fields for what's missing.
 type CheckResponse struct {
-	Verdict         string       `json:"verdict"`
-	Message         string       `json:"message"`
-	SuggestedPrompt string       `json:"suggested_prompt"`
-	Fields          []CheckField `json:"fields"`
+	Verdict         string            `json:"verdict"`
+	Message         string            `json:"message"`
+	SuggestedPrompt string            `json:"suggested_prompt"`
+	Fields          []CheckField      `json:"fields"`
+	Usage           model.FlowAIUsage `json:"-"`
 }
+
+// maxCheckFields is how many fields the check may ask the user to fill in.
+const maxCheckFields = 4
 
 type CheckField struct {
 	Label       string   `json:"label"`
@@ -40,7 +45,7 @@ type CheckField struct {
 // Check asks a cheaper model whether the user's first prompt has what the
 // flow AI needs, before it uses up one of the user's prompts.
 func (a *Assistant) Check(ctx context.Context, req CheckRequest) (*CheckResponse, error) {
-	resp, _, err := a.call(ctx, call{
+	resp, usage, err := a.call(ctx, call{
 		model:        a.config.Check,
 		instructions: checkInstructions,
 		input: responses.ResponseNewParamsInputUnion{
@@ -64,7 +69,23 @@ func (a *Assistant) Check(ctx context.Context, req CheckRequest) (*CheckResponse
 	if err := json.Unmarshal([]byte(resp.OutputText()), &res); err != nil {
 		return nil, fmt.Errorf("failed to parse response: %w", err)
 	}
+	res.Usage = usage
+
+	// The schema can't enforce these, and the editor can't show more fields or
+	// choices without options.
+	if len(res.Fields) > maxCheckFields {
+		res.Fields = res.Fields[:maxCheckFields]
+	}
+	for i, f := range res.Fields {
+		if f.Type == "choice" && len(f.Options) == 0 {
+			res.Fields[i].Type = "text"
+		}
+	}
 	return &res, nil
+}
+
+func (a *Assistant) CheckModel() string {
+	return a.config.Check.Model
 }
 
 var checkSchema = map[string]any{
