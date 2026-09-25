@@ -11,6 +11,7 @@ import {
   getOwnerTypes,
   isKnownNodeType,
   normalizeHandle,
+  withOwnedNodes,
 } from "./nodes";
 import { walkDownstream } from "./placeholders";
 import { FlowIssue, validateFlow } from "./validate";
@@ -230,19 +231,8 @@ export function applyFlowEdits(
           }
 
           // The blocks a condition or loop owns go with it.
+          const removed = withOwnedNodes([node.id], nodes, edges);
           const ownedTypes = getOwnedChildTypes(node.type!);
-          const removed = new Set([
-            node.id,
-            ...edges
-              .filter(
-                (e) =>
-                  e.source === node.id &&
-                  ownedTypes.includes(
-                    nodes.find((n) => n.id === e.target)?.type ?? ""
-                  )
-              )
-              .map((e) => e.target),
-          ]);
 
           // Blocks after the removed one's default output are connected to
           // the block before it, unless it was part of a condition or loop.

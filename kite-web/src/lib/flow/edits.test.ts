@@ -2,6 +2,7 @@ import { Edge, Node } from "@xyflow/react";
 import { describe, expect, it } from "vitest";
 import { NodeData } from "./dataSchema";
 import { applyFlowEdits, FlowEdit } from "./edits";
+import { withOwnedNodes } from "./nodes";
 import { serializeFlow } from "./serialize";
 import { testEdge as edge, testNode } from "./testUtils";
 
@@ -518,5 +519,30 @@ describe("serializeFlow", () => {
     expect(serializeFlow([arg], [], "command")).toContain(
       '"command_argument_choices":[{"name":"","value":""},{"name":"a","value":"a"}]'
     );
+  });
+});
+
+describe("withOwnedNodes", () => {
+  it("includes the blocks conditions and loops own, and nothing else", () => {
+    const nodes = [
+      testNode("cond", "control_condition_compare"),
+      testNode("item", "control_condition_item_compare"),
+      testNode("else", "control_condition_item_else"),
+      testNode("after", "action_log"),
+      testNode("handler", "control_error_handler"),
+      testNode("try", "action_log"),
+    ];
+    const edges = [
+      edge("cond", "item"),
+      edge("cond", "else"),
+      edge("item", "after"),
+      edge("handler", "try", "default"),
+    ];
+    expect([...withOwnedNodes(["cond", "handler"], nodes, edges)]).toEqual([
+      "cond",
+      "item",
+      "else",
+      "handler",
+    ]);
   });
 });

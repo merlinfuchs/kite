@@ -21,7 +21,12 @@ import { edgeTypes, nodeTypes } from "@/lib/flow/components";
 import { FlowData, NodeData } from "@/lib/flow/dataSchema";
 import { getFlowChangeKind, getFlowMergeKey } from "@/lib/flow/history";
 import { getLayoutedElements } from "@/lib/flow/layout";
-import { canConnect, createNode, getNodeValues } from "@/lib/flow/nodes";
+import {
+  canConnect,
+  createNode,
+  getNodeValues,
+  withOwnedNodes,
+} from "@/lib/flow/nodes";
 import { useFlowClipboard } from "@/lib/hooks/flowClipboard";
 import { useFlowHistory } from "@/lib/hooks/flowHistory";
 import { useHookedTheme } from "@/lib/hooks/theme";
@@ -147,25 +152,20 @@ export default function FlowEditor({
 
   const onNodesDelete = useCallback(
     (deletedNodes: Node[]) => {
-      for (const node of deletedNodes) {
-        const nodeValues = getNodeValues(node.type!);
+      // Delete the blocks the deleted ones own, e.g. the branches of a
+      // condition. This bypasses the change handlers, which don't let fixed
+      // nodes be removed.
+      const deletedIds = deletedNodes.map((n) => n.id);
+      const removed = withOwnedNodes(deletedIds, nodes, edges);
+      if (removed.size === deletedIds.length) return;
 
-        // Delete children if this node owns them. This bypasses the change
-        // handlers, which don't let fixed nodes be removed.
-        if (nodeValues.ownsChildren) {
-          commit();
-          const childIds = edges
-            .filter((edge) => edge.source === node.id)
-            .map((edge) => edge.target);
-
-          setEdges((edges) => edges.filter((edge) => edge.source !== node.id));
-          setNodes((nodes) =>
-            nodes.filter((n) => n.id !== node.id && !childIds.includes(n.id))
-          );
-        }
-      }
+      commit();
+      setEdges((edges) =>
+        edges.filter((e) => !removed.has(e.source) && !removed.has(e.target))
+      );
+      setNodes((nodes) => nodes.filter((n) => !removed.has(n.id)));
     },
-    [edges, commit, setEdges, setNodes]
+    [nodes, edges, commit, setEdges, setNodes]
   );
 
   const format = useCallback(() => {

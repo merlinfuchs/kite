@@ -18,6 +18,18 @@ function edge(source: string, target: string, type?: string): Edge {
 }
 
 describe("copyFlowNodes", () => {
+  it("copies an error handler without the blocks in its branches", () => {
+    const nodes = [
+      node("handler", "control_error_handler", true),
+      node("try", "action_log"),
+      node("catch", "action_log"),
+    ];
+    const edges = [edge("handler", "try"), edge("handler", "catch")];
+    expect(copyFlowNodes(nodes, edges)?.nodes.map((n) => n.id)).toEqual([
+      "handler",
+    ]);
+  });
+
   it("skips fixed nodes and returns null when nothing is copyable", () => {
     const nodes = [node("entry", "entry_command", true)];
     expect(copyFlowNodes(nodes, [])).toBeNull();

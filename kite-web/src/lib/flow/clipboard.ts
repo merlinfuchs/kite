@@ -1,6 +1,6 @@
 import { Edge, Node, XYPosition } from "@xyflow/react";
 import { NodeData } from "./dataSchema";
-import { getEdgeId, getNodeId, getNodeValues } from "./nodes";
+import { getEdgeId, getNodeId, getNodeValues, withOwnedNodes } from "./nodes";
 
 const clipboardType = "kite-flow-clipboard";
 
@@ -17,8 +17,10 @@ export function copyFlowNodes(
   nodes: Node<NodeData>[],
   edges: Edge[]
 ): FlowClipboard | null {
-  const copiedIds = withOwnedChildren(
-    nodes.filter((n) => n.selected && !getNodeValues(n.type!).fixed),
+  const copiedIds = withOwnedNodes(
+    nodes
+      .filter((n) => n.selected && !getNodeValues(n.type!).fixed)
+      .map((n) => n.id),
     nodes,
     edges
   );
@@ -66,8 +68,8 @@ export function pasteFlowNodes(
   position: XYPosition | null,
   isAllowed: (type: string) => boolean = () => true
 ): [Node<NodeData>[], Edge[]] {
-  const droppedIds = withOwnedChildren(
-    clipboard.nodes.filter((n) => !isAllowed(n.type!)),
+  const droppedIds = withOwnedNodes(
+    clipboard.nodes.filter((n) => !isAllowed(n.type!)).map((n) => n.id),
     clipboard.nodes,
     clipboard.edges
   );
@@ -103,28 +105,4 @@ export function pasteFlowNodes(
     }));
 
   return [nodes, edges];
-}
-
-// Returns the IDs of the given nodes plus all children owned by them, e.g. the
-// condition items of a condition.
-function withOwnedChildren(
-  roots: Node<NodeData>[],
-  nodes: Node<NodeData>[],
-  edges: Edge[]
-): Set<string> {
-  const nodesById = new Map(nodes.map((n) => [n.id, n]));
-  const ids = new Set<string>();
-
-  const add = (id: string) => {
-    const node = nodesById.get(id);
-    if (!node || ids.has(id)) return;
-    ids.add(id);
-
-    if (getNodeValues(node.type!).ownsChildren) {
-      edges.filter((e) => e.source === id).forEach((e) => add(e.target));
-    }
-  };
-  roots.forEach((n) => add(n.id));
-
-  return ids;
 }

@@ -114,7 +114,6 @@ export interface NodeValues {
   // Flow types the block can be used in. Blocks listed in the block explorer
   // otherwise take them from their section.
   contexts?: FlowContextType[];
-  ownsChildren?: boolean;
   fixed?: boolean;
   creditsCost?: number | ((data: NodeData) => number);
   // The block fails when the app doesn't have this feature
@@ -766,7 +765,6 @@ export const nodeTypes: Record<string, NodeValues> = {
       "custom_label",
     ],
     outputs: [],
-    ownsChildren: true,
   },
   control_condition_item_compare: {
     color: controlColor,
@@ -788,7 +786,6 @@ export const nodeTypes: Record<string, NodeValues> = {
       "custom_label",
     ],
     outputs: [],
-    ownsChildren: true,
   },
   control_condition_item_user: {
     color: controlColor,
@@ -810,7 +807,6 @@ export const nodeTypes: Record<string, NodeValues> = {
       "custom_label",
     ],
     outputs: [],
-    ownsChildren: true,
   },
   control_condition_item_channel: {
     color: controlColor,
@@ -832,7 +828,6 @@ export const nodeTypes: Record<string, NodeValues> = {
       "custom_label",
     ],
     outputs: [],
-    ownsChildren: true,
   },
   control_condition_item_role: {
     color: controlColor,
@@ -860,7 +855,6 @@ export const nodeTypes: Record<string, NodeValues> = {
     dataSchema: nodeControlErrorHandlerDataSchema,
     dataFields: ["temporary_name", "custom_label"],
     outputs: ["error", "default"],
-    ownsChildren: true,
   },
   control_loop: {
     color: controlColor,
@@ -870,7 +864,6 @@ export const nodeTypes: Record<string, NodeValues> = {
     defaultDescription: "Run a set of actions multiple times.",
     dataFields: ["loop_count", "custom_label"],
     outputs: [],
-    ownsChildren: true,
   },
   control_loop_each: {
     color: controlColor,
@@ -1017,6 +1010,30 @@ export function getOwnedChildTypes(type: string) {
     );
   }
   return ownedChildTypes.get(type)!;
+}
+
+// Returns the IDs of the given blocks plus the blocks they own, e.g. the
+// branches of a condition, which are deleted, copied and removed with them.
+export function withOwnedNodes(
+  ids: string[],
+  nodes: Node<NodeData>[],
+  edges: Edge[]
+): Set<string> {
+  const types = new Map(nodes.map((n) => [n.id, n.type!]));
+  const res = new Set<string>();
+
+  const add = (id: string) => {
+    if (!types.has(id) || res.has(id)) return;
+    res.add(id);
+
+    const owned = getOwnedChildTypes(types.get(id)!);
+    edges
+      .filter((e) => e.source === id && owned.includes(types.get(e.target)!))
+      .forEach((e) => add(e.target));
+  };
+  ids.forEach(add);
+
+  return res;
 }
 
 let ownerTypes: Map<string, string[]> | undefined;
