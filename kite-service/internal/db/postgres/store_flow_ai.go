@@ -42,8 +42,25 @@ func (c *Client) FlowAIPrompt(ctx context.Context, appID string, id string) (*mo
 	return rowToFlowAIPrompt(row), nil
 }
 
-func (c *Client) AddFlowAIPromptRound(ctx context.Context, appID string, id string, usage model.FlowAIUsage, updatedAt time.Time) error {
-	return c.Q.AddFlowAIPromptRound(ctx, pgmodel.AddFlowAIPromptRoundParams{
+func (c *Client) DeleteFlowAIPrompt(ctx context.Context, appID string, id string) error {
+	return c.Q.DeleteFlowAIPrompt(ctx, pgmodel.DeleteFlowAIPromptParams{
+		ID:    id,
+		AppID: appID,
+	})
+}
+
+func (c *Client) StartFlowAIPromptRound(ctx context.Context, appID string, id string, maxRounds int, updatedAt time.Time) (bool, error) {
+	rows, err := c.Q.StartFlowAIPromptRound(ctx, pgmodel.StartFlowAIPromptRoundParams{
+		ID:        id,
+		AppID:     appID,
+		MaxRounds: int32(maxRounds),
+		UpdatedAt: pgtype.Timestamp{Time: updatedAt, Valid: true},
+	})
+	return rows > 0, err
+}
+
+func (c *Client) AddFlowAIPromptUsage(ctx context.Context, appID string, id string, usage model.FlowAIUsage, updatedAt time.Time) error {
+	return c.Q.AddFlowAIPromptUsage(ctx, pgmodel.AddFlowAIPromptUsageParams{
 		ID:                id,
 		AppID:             appID,
 		InputTokens:       int32(usage.InputTokens),

@@ -83,6 +83,9 @@ func (e *ErrResponse) Error() string {
 	return e.Message
 }
 
+// Respond asks the model for a response. If the model answered but the answer
+// can't be used, it returns an error along with a response that only has the
+// usage.
 func (a *Assistant) Respond(ctx context.Context, req Request) (*Response, error) {
 	resp, err := a.client.Responses.New(ctx, a.params(req))
 	if err != nil {
@@ -99,18 +102,23 @@ func (a *Assistant) Respond(ctx context.Context, req Request) (*Response, error)
 		slog.String("app_id", req.AppID),
 		slog.Bool("repair", len(req.Issues) > 0),
 		slog.String("status", string(resp.Status)),
+		slog.String("incomplete_reason", resp.IncompleteDetails.Reason),
 		slog.Int("input_tokens", usage.InputTokens),
 		slog.Int("cached_input_tokens", usage.CachedInputTokens),
 		slog.Int("output_tokens", usage.OutputTokens),
 	)
 
 	if resp.Status != responses.ResponseStatusCompleted {
-		return nil, &ErrResponse{Message: "The AI's answer was cut off. Try asking for a smaller change."}
+		message := "The AI couldn't answer. Please try again."
+		if resp.IncompleteDetails.Reason == "max_output_tokens" {
+			message = "The AI's answer was cut off. Try asking for a smaller change."
+		}
+		return &Response{Usage: usage}, &ErrResponse{Message: message}
 	}
 
 	res, err := parseOutput(resp.OutputText())
 	if err != nil {
-		return nil, err
+		return &Response{Usage: usage}, err
 	}
 	res.Usage = usage
 	return res, nil
@@ -162,7 +170,7 @@ func (a *Assistant) params(req Request) responses.ResponseNewParams {
 			},
 		},
 		PromptCacheKey: openai.String("kite-flow-ai"),
-		// Identifies users to OpenAI for abuse detection without revealing them.
+		// Lets OpenAI tell users apart for abuse detection.
 		SafetyIdentifier: openai.String(util.HashBytes([]byte(req.UserID))),
 	}
 }
@@ -249,7 +257,7 @@ func (e outputEdit) toEdit() (map[string]any, error) {
 	}
 	if e.ItemsJSON != nil {
 		var items []map[string]any
-		if err := json.Unmarshal([]byte(*e.ItemsJSON), &items); err != nil {
+		if err := json.Unmarshal([]byte(*e.ItemsJSON), &items); err != nil || items == nil {
 			return nil, fmt.Errorf("items_json isn't a JSON array of objects")
 		}
 		edit["items"] = items

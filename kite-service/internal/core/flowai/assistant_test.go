@@ -21,6 +21,10 @@ import (
 // fakeOpenAI answers every request with a response of the given status and
 // output text, and records the request body.
 func fakeOpenAI(t *testing.T, status string, text string) (*Assistant, *map[string]any) {
+	return fakeOpenAIIncomplete(t, status, "", text)
+}
+
+func fakeOpenAIIncomplete(t *testing.T, status string, reason string, text string) (*Assistant, *map[string]any) {
 	t.Helper()
 
 	var body map[string]any
@@ -33,11 +37,12 @@ func fakeOpenAI(t *testing.T, status string, text string) (*Assistant, *map[stri
 		w.Header().Set("Content-Type", "application/json")
 		fmt.Fprintf(w, `{
 			"id": "resp_1", "object": "response", "created_at": 0, "status": %q, "model": "gpt-5-mini",
+			"incomplete_details": {"reason": %q},
 			"output": [{"type": "message", "id": "msg_1", "status": "completed", "role": "assistant",
 				"content": [{"type": "output_text", "text": %s, "annotations": []}]}],
 			"usage": {"input_tokens": 1000, "input_tokens_details": {"cached_tokens": 800},
 				"output_tokens": 200, "output_tokens_details": {"reasoning_tokens": 100}, "total_tokens": 1200}
-		}`, status, output)
+		}`, status, reason, output)
 	}))
 	t.Cleanup(server.Close)
 
@@ -118,16 +123,18 @@ func TestRespondRepair(t *testing.T) {
 }
 
 func TestRespondCutOff(t *testing.T) {
-	assistant, _ := fakeOpenAI(t, "incomplete", `{"message": "Added`)
+	assistant, _ := fakeOpenAIIncomplete(t, "incomplete", "max_output_tokens", `{"message": "Added`)
 
-	_, err := assistant.Respond(context.Background(), Request{
+	res, err := assistant.Respond(context.Background(), Request{
 		FlowType: "command",
 		Flow:     "Blocks:",
 		Messages: []Message{{Role: "user", Content: "Add a log"}},
 	})
 
 	var resErr *ErrResponse
-	assert.True(t, errors.As(err, &resErr))
+	require.True(t, errors.As(err, &resErr))
+	assert.Contains(t, resErr.Message, "cut off")
+	assert.Equal(t, 1000, res.Usage.InputTokens)
 }
 
 func TestParseOutputSkipsEditsWithInvalidSettings(t *testing.T) {

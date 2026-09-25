@@ -11,9 +11,8 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
-const addFlowAIPromptRound = `-- name: AddFlowAIPromptRound :exec
+const addFlowAIPromptUsage = `-- name: AddFlowAIPromptUsage :exec
 UPDATE flow_ai_prompts SET
-    rounds = rounds + 1,
     input_tokens = input_tokens + $1,
     cached_input_tokens = cached_input_tokens + $2,
     output_tokens = output_tokens + $3,
@@ -21,7 +20,7 @@ UPDATE flow_ai_prompts SET
 WHERE id = $5 AND app_id = $6
 `
 
-type AddFlowAIPromptRoundParams struct {
+type AddFlowAIPromptUsageParams struct {
 	InputTokens       int32
 	CachedInputTokens int32
 	OutputTokens      int32
@@ -30,8 +29,8 @@ type AddFlowAIPromptRoundParams struct {
 	AppID             string
 }
 
-func (q *Queries) AddFlowAIPromptRound(ctx context.Context, arg AddFlowAIPromptRoundParams) error {
-	_, err := q.db.Exec(ctx, addFlowAIPromptRound,
+func (q *Queries) AddFlowAIPromptUsage(ctx context.Context, arg AddFlowAIPromptUsageParams) error {
+	_, err := q.db.Exec(ctx, addFlowAIPromptUsage,
 		arg.InputTokens,
 		arg.CachedInputTokens,
 		arg.OutputTokens,
@@ -105,6 +104,20 @@ func (q *Queries) CreateFlowAIPrompt(ctx context.Context, arg CreateFlowAIPrompt
 	return err
 }
 
+const deleteFlowAIPrompt = `-- name: DeleteFlowAIPrompt :exec
+DELETE FROM flow_ai_prompts WHERE id = $1 AND app_id = $2
+`
+
+type DeleteFlowAIPromptParams struct {
+	ID    string
+	AppID string
+}
+
+func (q *Queries) DeleteFlowAIPrompt(ctx context.Context, arg DeleteFlowAIPromptParams) error {
+	_, err := q.db.Exec(ctx, deleteFlowAIPrompt, arg.ID, arg.AppID)
+	return err
+}
+
 const getFlowAIPrompt = `-- name: GetFlowAIPrompt :one
 SELECT id, app_id, user_id, model, rounds, input_tokens, cached_input_tokens, output_tokens, created_at, updated_at FROM flow_ai_prompts WHERE id = $1 AND app_id = $2
 `
@@ -130,4 +143,31 @@ func (q *Queries) GetFlowAIPrompt(ctx context.Context, arg GetFlowAIPromptParams
 		&i.UpdatedAt,
 	)
 	return i, err
+}
+
+const startFlowAIPromptRound = `-- name: StartFlowAIPromptRound :execrows
+UPDATE flow_ai_prompts SET
+    rounds = rounds + 1,
+    updated_at = $1
+WHERE id = $2 AND app_id = $3 AND rounds < $4
+`
+
+type StartFlowAIPromptRoundParams struct {
+	UpdatedAt pgtype.Timestamp
+	ID        string
+	AppID     string
+	MaxRounds int32
+}
+
+func (q *Queries) StartFlowAIPromptRound(ctx context.Context, arg StartFlowAIPromptRoundParams) (int64, error) {
+	result, err := q.db.Exec(ctx, startFlowAIPromptRound,
+		arg.UpdatedAt,
+		arg.ID,
+		arg.AppID,
+		arg.MaxRounds,
+	)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
 }

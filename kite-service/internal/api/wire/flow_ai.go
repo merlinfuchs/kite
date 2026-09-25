@@ -44,7 +44,7 @@ func (req FlowAIChatRequest) Validate() error {
 		validation.Field(&req.Flow, validation.Required, validation.Length(1, 100_000)),
 		validation.Field(&req.Messages, validation.Required, validation.Length(1, 20)),
 		validation.Field(&req.Issues,
-			validation.When(req.RepairPromptID != "", validation.Required),
+			validation.When(req.RepairPromptID != "", validation.Required).Else(validation.Empty),
 			validation.Length(0, 50),
 			validation.Each(validation.Length(1, 2000)),
 		),
@@ -53,8 +53,13 @@ func (req FlowAIChatRequest) Validate() error {
 		return err
 	}
 
-	if req.RepairPromptID == "" && req.Messages[len(req.Messages)-1].Role != "user" {
+	// A repair follows the answer it fixes, anything else asks something new.
+	lastRole := req.Messages[len(req.Messages)-1].Role
+	if req.RepairPromptID == "" && lastRole != "user" {
 		return validation.Errors{"messages": errors.New("the last message must be from the user")}
+	}
+	if req.RepairPromptID != "" && lastRole != "assistant" {
+		return validation.Errors{"messages": errors.New("the last message of a repair must be from the assistant")}
 	}
 	return nil
 }
