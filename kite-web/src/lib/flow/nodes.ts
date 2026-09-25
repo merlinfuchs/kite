@@ -114,7 +114,6 @@ export interface NodeValues {
   // Flow types the block can be used in. Blocks listed in the block explorer
   // otherwise take them from their section.
   contexts?: FlowContextType[];
-  ownsChildren?: boolean;
   fixed?: boolean;
   creditsCost?: number | ((data: NodeData) => number);
   // The block fails when the app doesn't have this feature
@@ -347,7 +346,12 @@ export const nodeTypes: Record<string, NodeValues> = {
     defaultTitle: "Unban member",
     defaultDescription: "Unban a member from the server",
     dataSchema: nodeActionMemberUnbanDataSchema,
-    dataFields: ["guild_target", "user_target", "audit_log_reason", "custom_label"],
+    dataFields: [
+      "guild_target",
+      "user_target",
+      "audit_log_reason",
+      "custom_label",
+    ],
     creditsCost: 1,
   },
   action_member_kick: {
@@ -356,7 +360,12 @@ export const nodeTypes: Record<string, NodeValues> = {
     defaultTitle: "Kick member",
     defaultDescription: "Kick a member from the server",
     dataSchema: nodeActionMemberKickDataSchema,
-    dataFields: ["guild_target", "user_target", "audit_log_reason", "custom_label"],
+    dataFields: [
+      "guild_target",
+      "user_target",
+      "audit_log_reason",
+      "custom_label",
+    ],
     creditsCost: 1,
   },
   action_member_timeout: {
@@ -766,7 +775,6 @@ export const nodeTypes: Record<string, NodeValues> = {
       "custom_label",
     ],
     outputs: [],
-    ownsChildren: true,
   },
   control_condition_item_compare: {
     color: controlColor,
@@ -788,7 +796,6 @@ export const nodeTypes: Record<string, NodeValues> = {
       "custom_label",
     ],
     outputs: [],
-    ownsChildren: true,
   },
   control_condition_item_user: {
     color: controlColor,
@@ -810,7 +817,6 @@ export const nodeTypes: Record<string, NodeValues> = {
       "custom_label",
     ],
     outputs: [],
-    ownsChildren: true,
   },
   control_condition_item_channel: {
     color: controlColor,
@@ -832,7 +838,6 @@ export const nodeTypes: Record<string, NodeValues> = {
       "custom_label",
     ],
     outputs: [],
-    ownsChildren: true,
   },
   control_condition_item_role: {
     color: controlColor,
@@ -860,7 +865,6 @@ export const nodeTypes: Record<string, NodeValues> = {
     dataSchema: nodeControlErrorHandlerDataSchema,
     dataFields: ["temporary_name", "custom_label"],
     outputs: ["error", "default"],
-    ownsChildren: true,
   },
   control_loop: {
     color: controlColor,
@@ -870,7 +874,6 @@ export const nodeTypes: Record<string, NodeValues> = {
     defaultDescription: "Run a set of actions multiple times.",
     dataFields: ["loop_count", "custom_label"],
     outputs: [],
-    ownsChildren: true,
   },
   control_loop_each: {
     color: controlColor,
@@ -1005,10 +1008,104 @@ export function getNodeTitle(node: { type?: string; data: NodeData }) {
 
 // The blocks an owner is created with and connected to, e.g. the items and
 // else branch of a condition.
+const ownedChildTypes = new Map<string, string[]>();
+
 export function getOwnedChildTypes(type: string) {
-  return createNode(type, { x: 0, y: 0 })[0]
-    .slice(1)
-    .map((n) => n.type!);
+  if (!ownedChildTypes.has(type)) {
+    ownedChildTypes.set(
+      type,
+      createNode(type, { x: 0, y: 0 })[0]
+        .slice(1)
+        .map((n) => n.type!)
+    );
+  }
+  return ownedChildTypes.get(type)!;
+}
+
+// Returns the IDs of the given blocks plus the blocks they own, e.g. the
+// branches of a condition, which are deleted, copied and removed with them.
+export function withOwnedNodes(
+  ids: string[],
+  nodes: Node<NodeData>[],
+  edges: Edge[]
+): Set<string> {
+  const types = new Map(nodes.map((n) => [n.id, n.type!]));
+  const targets = new Map<string, string[]>();
+  for (const edge of edges) {
+    if (!targets.has(edge.source)) targets.set(edge.source, []);
+    targets.get(edge.source)!.push(edge.target);
+  }
+  const res = new Set<string>();
+
+  const add = (id: string) => {
+    if (!types.has(id) || res.has(id)) return;
+    res.add(id);
+
+    const owned = getOwnedChildTypes(types.get(id)!);
+    (targets.get(id) ?? [])
+      .filter((target) => owned.includes(types.get(target)!))
+      .forEach(add);
+  };
+  ids.forEach(add);
+
+  return res;
+}
+
+// Returns the blocks the editor deletes when the given ones are deleted: the
+// blocks they own go with them, while fixed blocks, e.g. the else branch of a
+// condition, are only deleted together with the block they belong to.
+export function getDeletedNodeIds(
+  ids: string[],
+  nodes: Node<NodeData>[],
+  edges: Edge[]
+) {
+  const types = new Map(nodes.map((n) => [n.id, n.type!]));
+  return withOwnedNodes(
+    ids.filter((id) => !getNodeValues(types.get(id) ?? "").fixed),
+    nodes,
+    edges
+  );
+}
+
+let ownerTypes: Map<string, string[]> | undefined;
+
+// The types of the blocks that own blocks of the given type, e.g. the four
+// condition types for the else branch.
+export function getOwnerTypes(type: string) {
+  if (!ownerTypes) {
+    ownerTypes = new Map();
+    for (const owner of Object.keys(nodeTypes)) {
+      for (const owned of getOwnedChildTypes(owner)) {
+        ownerTypes.set(owned, [...(ownerTypes.get(owned) ?? []), owner]);
+      }
+    }
+  }
+  return ownerTypes.get(type) ?? [];
+}
+
+// No handle and "default" both mean a block's default output.
+export function normalizeHandle(handle?: string | null) {
+  return handle && handle !== "default" ? handle : null;
+}
+
+// Edges to the blocks a block owns are fixed, the rest can be deleted in the
+// editor like hand-drawn ones. Blocks that name their outputs, like the error
+// handler, render their default output with the ID "default", so edges have
+// to name it too.
+export function createEdge(
+  source: Node<NodeData>,
+  target: Node<NodeData>,
+  handle?: string | null
+): Edge {
+  const owned = getOwnedChildTypes(source.type!).includes(target.type!);
+  const namesDefault = getNodeValues(source.type!).outputs?.includes("default");
+  return {
+    id: getEdgeId(),
+    source: source.id,
+    target: target.id,
+    sourceHandle: normalizeHandle(handle) ?? (namesDefault ? "default" : null),
+    type: owned ? "fixed" : "delete_button",
+  };
 }
 
 // Options connect into the entry of commands and event listeners, nothing else

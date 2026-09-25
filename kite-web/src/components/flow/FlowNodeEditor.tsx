@@ -4,7 +4,12 @@ import {
   encodePermissionsBitset,
   permissionBits,
 } from "@/lib/discord/permissions";
-import { getNodeCreditsCost, getNodeId, useNodeValues } from "@/lib/flow/nodes";
+import {
+  getNodeCreditsCost,
+  getNodeId,
+  getOwnedChildTypes,
+  useNodeValues,
+} from "@/lib/flow/nodes";
 import { activityTypeOptions, statusOptions } from "@/lib/discord/presence";
 import { useAppFeature, useMessages, useVariables } from "@/lib/hooks/api";
 import { getFlowCreditsCost } from "@/lib/flow/schedule";
@@ -193,7 +198,9 @@ export default function FlowNodeEditor({ nodeId }: Props) {
   const nodes = useNodes<Node<NodeData>>();
 
   const node = nodes.find((n) => n.id === nodeId);
-  const nodeValues = useNodeValues(node?.type ?? "");
+  // Duplicating a block doesn't copy the blocks it owns, e.g. the branches of
+  // a condition.
+  const ownsBlocks = getOwnedChildTypes(node?.type ?? "").length > 0;
 
   const data = node?.data;
 
@@ -221,7 +228,7 @@ export default function FlowNodeEditor({ nodeId }: Props) {
   }
 
   function duplicateNode() {
-    if (!node || nodeValues.ownsChildren) return;
+    if (!node || ownsBlocks) return;
 
     const newNode = {
       ...node,
@@ -344,7 +351,7 @@ export default function FlowNodeEditor({ nodeId }: Props) {
                   <TrashIcon className="h-5 w-5" />
                   <div>Delete Block</div>
                 </Button>
-                {!nodeValues.ownsChildren && (
+                {!ownsBlocks && (
                   <Button
                     variant="secondary"
                     onClick={duplicateNode}

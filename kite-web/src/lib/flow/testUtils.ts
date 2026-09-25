@@ -4,9 +4,10 @@ import { NodeData } from "./dataSchema";
 export function testNode(
   id: string,
   type: string,
-  data: NodeData = {}
+  data: NodeData = {},
+  position = { x: 0, y: 0 }
 ): Node<NodeData> {
-  return { id, type, data, position: { x: 0, y: 0 } };
+  return { id, type, data, position };
 }
 
 export function testEdge(
