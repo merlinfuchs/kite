@@ -6,9 +6,8 @@ import {
 } from "@/lib/discord/permissions";
 import { getNodeCreditsCost, getNodeId, useNodeValues } from "@/lib/flow/nodes";
 import { activityTypeOptions, statusOptions } from "@/lib/discord/presence";
-import { formatInterval } from "@/lib/utils";
 import { useAppFeature, useMessages, useVariables } from "@/lib/hooks/api";
-import { getFlowCreditsCost, getSchedulePreview } from "@/lib/flow/schedule";
+import { getFlowCreditsCost } from "@/lib/flow/schedule";
 import { EventTypeScheduleCron } from "@/lib/types/flow.gen";
 import { useAppId } from "@/lib/hooks/params";
 import {
@@ -33,13 +32,16 @@ import {
   XIcon,
 } from "lucide-react";
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { ReactNode, useCallback, useEffect, useMemo, useRef } from "react";
 import { NodeData, NodeProps } from "../../lib/flow/dataSchema";
 import MessageCreateDialog from "../app/MessageCreateDialog";
 import VariableCreateDialog from "../app/VariableCreateDialog";
 import EmojiPicker from "../common/EmojiPicker";
 import JsonEditor from "../common/JsonEditor";
 import PlaceholderInput from "../common/PlaceholderInput";
+import ScheduleCronPreview, {
+  ScheduleCronHelp,
+} from "../common/ScheduleCronPreview";
 import Twemoji from "../common/Twemoji";
 import MessageEditorDialog from "../message/MessageEditorDialog";
 import { hasComponentsV2Flag } from "@/lib/message/schema";
@@ -737,10 +739,8 @@ function EventScheduleCronInput(props: InputProps) {
 
 function ScheduleCronInput({ data, updateData, errors }: InputProps) {
   const nodes = useNodes();
-  const minInterval = useAppFeature((f) => f.min_schedule_interval_seconds);
 
   const cron = data.event_schedule_cron || "";
-  const preview = useMemo(() => getSchedulePreview(cron), [cron]);
   const creditsPerRun = useMemo(() => getFlowCreditsCost(nodes), [nodes]);
 
   return (
@@ -748,36 +748,18 @@ function ScheduleCronInput({ data, updateData, errors }: InputProps) {
       <BaseInput
         field="event_schedule_cron"
         title="Schedule"
-        description="A cron expression in UTC, e.g. */5 * * * * for every five minutes. Add a leading seconds field for sub-minute schedules."
+        description={
+          <>
+            <ScheduleCronHelp /> Add a leading seconds field for sub-minute
+            schedules.
+          </>
+        }
         value={cron}
         updateValue={(v) => updateData({ event_schedule_cron: v || undefined })}
         errors={errors}
         placeholder="*/5 * * * *"
       />
-      {preview && (
-        <div className="text-sm text-muted-foreground space-y-1">
-          <div className="font-medium text-foreground">Next runs</div>
-          {preview.nextRuns.map((d) => (
-            <div key={d.getTime()}>
-              {d.toISOString().replace("T", " ").slice(0, 19)} UTC (
-              {d.toLocaleString()} local)
-            </div>
-          ))}
-          {minInterval && preview.minGapSeconds < minInterval ? (
-            <div className="text-destructive">
-              Your plan allows at most one run every{" "}
-              {formatInterval(minInterval)}.
-            </div>
-          ) : null}
-          {creditsPerRun > 0 && (
-            <div>
-              Uses about{" "}
-              {(preview.runsPerMonth * creditsPerRun).toLocaleString()} credits
-              per month.
-            </div>
-          )}
-        </div>
-      )}
+      <ScheduleCronPreview cron={cron} creditsPerRun={creditsPerRun} />
     </div>
   );
 }
@@ -2739,7 +2721,7 @@ function BaseInput({
   field: string;
   options?: { value: string; label: string }[];
   title: string;
-  description?: string;
+  description?: ReactNode;
   errors: Record<string, string>;
   value: string;
   placeholder?: string;
