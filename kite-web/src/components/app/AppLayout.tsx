@@ -21,7 +21,6 @@ import { useRouter } from "next/router";
 import ThemeSwitch from "../common/ThemeSwitch";
 import { toast } from "sonner";
 import AppDisabledPopup from "./AppDisabledPopup";
-import OpenBetaPopup from "./OpenBetaPopup";
 import UpsellPopup from "./UpsellPopup";
 
 interface Props {
@@ -122,7 +121,6 @@ export default function AppLayout({ children, ...props }: Props) {
           <main className="p-4 pt-8 sm:pb-20 sm:px-6 w-full">{children}</main>
 
           <AppDisabledPopup />
-          <OpenBetaPopup />
           <UpsellPopup />
         </SidebarInset>
       </SidebarProvider>

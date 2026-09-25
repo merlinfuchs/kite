@@ -332,6 +332,23 @@ export function useAppFeatures(
   return useResponseData(query, callback);
 }
 
+// useAppPlan returns the plan of the app's active subscription, falling back
+// to the default plan when there is none.
+export function useAppPlan() {
+  const subscriptions = useAppSubscriptions();
+  const plans = useBillingPlans();
+  if (!subscriptions || !plans) return undefined;
+
+  const activeProductIds = subscriptions
+    .filter((s) => s!.active)
+    .map((s) => s!.lemonsqueezy_product_id);
+
+  return (
+    plans.find((p) => activeProductIds.includes(p!.lemonsqueezy_product_id)) ??
+    plans.find((p) => p!.default)
+  );
+}
+
 export function useAppFeature<T>(
   accessor: (features: FeaturesGetResponse) => T
 ): T | undefined {
