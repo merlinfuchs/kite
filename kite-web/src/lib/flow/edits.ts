@@ -5,7 +5,7 @@ import {
   canConnect,
   createEdge,
   createNode,
-  getConditionItemType,
+  getNodeId,
   getNodeValues,
   getOwnedChildTypes,
   getOwnerTypes,
@@ -87,6 +87,31 @@ export function applyFlowEdits(
     }
   };
 
+  // Adds a block with the blocks it owns. Generated IDs can collide with
+  // existing ones, so those are generated again.
+  const addNodes = (type: string, data: NodeData) => {
+    const [newNodes, newEdges] = createNode(type, { x: 0, y: 0 }, { data });
+    const taken = new Set(nodes.map((n) => n.id));
+    const ids = new Map<string, string>();
+    for (const node of newNodes) {
+      let id = node.id;
+      while (taken.has(id)) id = getNodeId();
+      taken.add(id);
+      ids.set(node.id, id);
+      added.add(id);
+    }
+    const res = newNodes.map((n) => ({ ...n, id: ids.get(n.id)! }));
+    nodes.push(...res);
+    edges.push(
+      ...newEdges.map((e) => ({
+        ...e,
+        source: ids.get(e.source)!,
+        target: ids.get(e.target)!,
+      }))
+    );
+    return res;
+  };
+
   edits.forEach((edit, i) => {
     try {
       switch (edit.op) {
@@ -94,9 +119,9 @@ export function applyFlowEdits(
           if (!isKnownNodeType(edit.type)) {
             throw new Error(`Unknown block type '${edit.type}'.`);
           }
-          if (!edit.ref.startsWith("$") || refs[edit.ref]) {
+          if (!/^\$[A-Za-z0-9_]+$/.test(edit.ref) || refs[edit.ref]) {
             throw new Error(
-              `The ref '${edit.ref}' must start with '$' and be unique.`
+              `The ref '${edit.ref}' must be unique and look like '$name', with only letters, numbers and underscores.`
             );
           }
           if (getNodeValues(edit.type).fixed) {
@@ -107,8 +132,20 @@ export function applyFlowEdits(
 
           // Checked before anything is added, so a failed edit changes
           // nothing.
-          const after = edit.after ? getNode(edit.after) : undefined;
-          const before = edit.before ? getNode(edit.before) : undefined;
+          const itemType = getOwnedChildTypes(edit.type).find(
+            (t) => !getNodeValues(t).fixed
+          );
+          if (
+            edit.items !== undefined &&
+            (!itemType ||
+              !Array.isArray(edit.items) ||
+              !edit.items.every(isPlainObject))
+          ) {
+            throw new Error(
+              "items must be a list of branch settings, and only conditions have branches."
+            );
+          }
+
           const isOption = edit.type.startsWith("option_");
           const entry = nodes.find((n) => canConnect(edit.type, n.type!));
           if (isOption && !entry) {
@@ -116,11 +153,17 @@ export function applyFlowEdits(
               "The flow has no entry block options can connect to."
             );
           }
-          const split =
-            after && before ? findEdges(after.id, before.id, edit.handle) : [];
-          if (!isOption && after && before && split.length === 0) {
+          if (isOption && (edit.after || edit.before || edit.handle)) {
             throw new Error(
-              `'${edit.after}' isn't connected to '${edit.before}'.`
+              "Options are always connected to the entry block, so leave out after, before and handle."
+            );
+          }
+
+          const after = edit.after ? getNode(edit.after) : undefined;
+          const before = edit.before ? getNode(edit.before) : undefined;
+          if (before && getOwnerTypes(before.type!).length > 0) {
+            throw new Error(
+              `'${edit.before}' belongs to another block, so nothing can be put in front of it. Add the block after it instead.`
             );
           }
           if (before && getNodeValues(edit.type).outputs?.length === 0) {
@@ -128,29 +171,25 @@ export function applyFlowEdits(
               `'${edit.type}' has no outputs, so nothing can come after it. Connect '${edit.before}' to one of its branches instead.`
             );
           }
+          const split =
+            after && before ? findEdges(after.id, before.id, edit.handle) : [];
+          if (after && before && split.length === 0) {
+            throw new Error(
+              `'${edit.after}' isn't connected to '${edit.before}'.`
+            );
+          }
 
-          const [newNodes, newEdges] = createNode(
-            edit.type,
-            { x: 0, y: 0 },
-            { data: { ...edit.data } }
-          );
-          const [owner, ...owned] = newNodes;
-          nodes.push(...newNodes);
-          edges.push(...newEdges);
-          newNodes.forEach((n) => added.add(n.id));
+          const [owner, ...owned] = addNodes(edit.type, { ...edit.data });
           refs[edit.ref] = owner.id;
 
           // A new condition comes with one empty branch, which is replaced
           // by the given items.
-          const itemType = getConditionItemType(edit.type);
           let items = owned.filter((n) => n.type === itemType);
           if (itemType && edit.items) {
             nodes = nodes.filter((n) => !items.includes(n));
             edges = edges.filter((e) => !items.some((n) => n.id === e.target));
             items = edit.items.map((data) => {
-              const [[item]] = createNode(itemType, { x: 0, y: 0 }, { data });
-              nodes.push(item);
-              added.add(item.id);
+              const [item] = addNodes(itemType, { ...data });
               connect(owner, item);
               return item;
             });
@@ -165,7 +204,6 @@ export function applyFlowEdits(
             }
           }
 
-          // Options are connected into the entry, not after another block.
           if (isOption) {
             connect(owner, entry!);
             break;
@@ -191,8 +229,7 @@ export function applyFlowEdits(
             );
           }
 
-          // The blocks a condition or loop owns go with it, like in the
-          // editor.
+          // The blocks a condition or loop owns go with it.
           const ownedTypes = getOwnedChildTypes(node.type!);
           const removed = new Set([
             node.id,
@@ -330,13 +367,13 @@ function layoutAddedNodes(
   // again against the moved ones.
   let positions = placeAddedNodes(nodes, edges, added, existing);
   let shift = 0;
-  const pushed: string[] = [];
+  const pushed = new Set<string>();
   for (const edge of edges) {
     if (added.has(edge.source) && existing.has(edge.target)) {
       const source = nodes.find((n) => n.id === edge.source)!;
       if (source.type!.startsWith("option_")) continue;
 
-      pushed.push(edge.target);
+      pushed.add(edge.target);
       shift = Math.max(
         shift,
         positions.get(edge.source)!.y +
@@ -346,7 +383,7 @@ function layoutAddedNodes(
     }
   }
   if (shift > 0) {
-    const moved = [...pushed, ...walkDownstream(pushed, edges)];
+    const moved = new Set([...pushed, ...walkDownstream([...pushed], edges)]);
     for (const id of moved) {
       const position = existing.get(id);
       if (position) existing.set(id, { x: position.x, y: position.y + shift });
@@ -372,7 +409,21 @@ function placeAddedNodes(
   const positions = new Map(existing);
   const siblings = new Map<string, number>();
 
-  let pending = nodes.filter((n) => added.has(n.id));
+  // New blocks go right of the existing blocks around the same anchor. The
+  // branch that runs last goes rightmost, like in the editor.
+  const siblingStart = (anchor: string, below: boolean) =>
+    edges.filter((e) =>
+      below
+        ? e.source === anchor && !added.has(e.target)
+        : e.target === anchor && !added.has(e.source)
+    ).length;
+  const runsLast = (n: Node<NodeData>) =>
+    n.type === "control_condition_item_else" || n.type === "control_loop_end"
+      ? 1
+      : 0;
+  let pending = nodes
+    .filter((n) => added.has(n.id))
+    .sort((a, b) => runsLast(a) - runsLast(b));
   while (pending.length > 0) {
     const next: Node<NodeData>[] = [];
     for (const node of pending) {
@@ -384,14 +435,16 @@ function placeAddedNodes(
         continue;
       }
 
-      const key = `${anchor}:${!!parent}`;
-      const index = siblings.get(key) ?? 0;
+      const below = !!parent || !anchor;
+      const key = `${anchor}:${below}`;
+      const index =
+        siblings.get(key) ?? (anchor ? siblingStart(anchor, below) : 0);
       siblings.set(key, index + 1);
 
       const base = anchorPosition ?? { x: 0, y: 0 };
       positions.set(node.id, {
         x: base.x + index * horizontalSpacing,
-        y: base.y + (parent || !anchor ? verticalSpacing : -verticalSpacing),
+        y: base.y + (below ? verticalSpacing : -verticalSpacing),
       });
     }
 

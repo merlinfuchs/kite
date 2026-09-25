@@ -388,6 +388,88 @@ describe("applyFlowEdits edge cases", () => {
   });
 });
 
+describe("applyFlowEdits checks", () => {
+  const condition = (): FlowEdit => ({
+    op: "add_node",
+    ref: "$check",
+    type: "control_condition_compare",
+    data: { condition_base_value: "a" },
+    items: [{ condition_item_mode: "equal" }, { condition_item_mode: "equal" }],
+    after: "entry",
+  });
+
+  it("rejects invalid refs, items and placements without changing the flow", () => {
+    const added = apply([entry], [], [condition()]);
+    const res = applyFlowEdits(
+      added,
+      [
+        { op: "add_node", ref: "$a.else", type: "action_log" },
+        { ...(condition() as object), ref: "$bad", items: {} } as FlowEdit,
+        {
+          op: "add_node",
+          ref: "$log",
+          type: "action_log",
+          after: added.refs.$check,
+          before: added.refs["$check.else"],
+        },
+        {
+          op: "add_node",
+          ref: "$arg",
+          type: "option_command_argument",
+          after: "entry",
+        },
+      ],
+      "command"
+    );
+    expect(res.issues.map((i) => i.message)).toEqual([
+      "Edit 1 (add_node): The ref '$a.else' must be unique and look like '$name', with only letters, numbers and underscores.",
+      "Edit 2 (add_node): items must be a list of branch settings, and only conditions have branches.",
+      `Edit 3 (add_node): '${added.refs["$check.else"]}' belongs to another block, so nothing can be put in front of it. Add the block after it instead.`,
+      "Edit 4 (add_node): Options are always connected to the entry block, so leave out after, before and handle.",
+    ]);
+    expect(res.nodes).toHaveLength(added.nodes.length);
+    expect(res.edges).toHaveLength(added.edges.length);
+  });
+
+  it("orders branches like the editor, with the else branch on the right", () => {
+    const res = apply([entry], [], [condition()]);
+    const x = (ref: string) => res.byId(res.refs[ref])!.position.x;
+    expect(x("$check.item0")).toBeLessThan(x("$check.item1"));
+    expect(x("$check.item1")).toBeLessThan(x("$check.else"));
+  });
+
+  it("places new blocks beside the existing ones after the same block", () => {
+    const res = apply(
+      [entry, log("a", "hi", 250)],
+      [edge("entry", "a")],
+      [addLog("$b", "entry")]
+    );
+    expect(res.byId(res.refs.$b)?.position).toEqual({ x: 450, y: 250 });
+  });
+
+  it("moves a block with two insertions in front of it only once", () => {
+    const res = apply(
+      [
+        entry,
+        log("p1", "hi", 250),
+        log("p2", "hi", 250),
+        log("x", "hi", 500),
+        log("y", "hi", 750),
+      ],
+      [
+        edge("entry", "p1"),
+        edge("entry", "p2"),
+        edge("p1", "x"),
+        edge("p2", "x"),
+        edge("x", "y"),
+      ],
+      [addLog("$a", "p1", "x"), addLog("$b", "p2", "x")]
+    );
+    expect(res.byId("x")?.position.y).toBe(750);
+    expect(res.byId("y")?.position.y).toBe(1000);
+  });
+});
+
 describe("serializeFlow", () => {
   it("lists blocks in the order they run, without empty settings", () => {
     const arg = node("arg", "option_command_argument", {

@@ -1035,11 +1035,6 @@ export function getOwnerTypes(type: string) {
   return ownerTypes.get(type) ?? [];
 }
 
-// The type of the branches of a condition, e.g. "control_condition_item_user".
-export function getConditionItemType(type: string): string | undefined {
-  return conditionChildType[type];
-}
-
 // No handle and "default" both mean a block's default output.
 export function normalizeHandle(handle?: string | null) {
   return handle && handle !== "default" ? handle : null;
