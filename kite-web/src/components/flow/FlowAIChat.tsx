@@ -50,6 +50,10 @@ export default memo(function FlowAIChat({
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
 
+  // Stops a running prompt when the editor is closed.
+  const abort = useRef(new AbortController());
+  useEffect(() => () => abort.current.abort(), []);
+
   const bottomRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -90,6 +94,7 @@ export default memo(function FlowAIChat({
           );
         },
         send: chat.mutateAsync,
+        signal: abort.current.signal,
       });
       if (res.changedNodeIds.length > 0) {
         // Once the new blocks have been measured.
@@ -136,12 +141,14 @@ export default memo(function FlowAIChat({
 
   return (
     <div className="flex-none w-96 flex flex-col bg-muted/30 border-l">
-      <div className="flex-none flex items-center justify-between px-4 h-12">
+      {/* Everything is on the left, where it doesn't cover the close button of
+          dialogs the editor is shown in. */}
+      <div className="flex-none flex items-center gap-2 px-4 h-12">
         <div className="flex items-center gap-2 font-medium">
           <SparklesIcon className="size-4" />
           Flow AI
         </div>
-        <div className="flex items-center gap-1">
+        <div className="flex items-center">
           <Button
             variant="ghost"
             size="icon"

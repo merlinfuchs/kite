@@ -140,6 +140,10 @@ func (a *Assistant) params(req Request) responses.ResponseNewParams {
 
 	input := make(responses.ResponseInputParam, 0, len(messages)+1)
 	for _, m := range messages {
+		// Answers with edits alone have no text.
+		if m.Content == "" {
+			continue
+		}
 		role := responses.EasyInputMessageRoleUser
 		if m.Role == "assistant" {
 			role = responses.EasyInputMessageRoleAssistant

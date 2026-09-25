@@ -874,6 +874,9 @@ export function useFlowAIChatMutation(appId: string) {
           success: true,
           data: res.data.usage,
         });
+      } else {
+        // Answers that couldn't be used count too.
+        client.invalidateQueries({ queryKey: flowAIUsageQueryKey(appId) });
       }
     },
   });

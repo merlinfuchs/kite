@@ -57,7 +57,7 @@ export default function Flow({ flowData, logs, context, onChange }: Props) {
             <Button
               variant="secondary"
               size="sm"
-              className="absolute top-3 right-3 z-10 gap-2"
+              className="absolute top-3 left-3 z-10 gap-2"
               onClick={() => {
                 setChatOpen(true);
                 setChatMounted(true);

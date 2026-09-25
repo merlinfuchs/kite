@@ -38,15 +38,15 @@ export interface FlowAIResult {
 }
 
 // Asks the AI to change the flow and applies its edits to the flow as it is
-// when they arrive. Problems the editor finds with them, that the flow didn't
-// have before, are sent back to be fixed in repairs, which don't count as
-// prompts, until the API allows no more.
+// when they arrive. Problems its edits caused are sent back to be fixed in
+// repairs, which don't count as prompts, until the API allows no more.
 export async function runFlowAIPrompt({
   context,
   messages,
   getFlow,
   applyFlow,
   send,
+  signal,
 }: {
   context: FlowContextType;
   // The chat so far, ending with the user's new message.
@@ -54,9 +54,16 @@ export async function runFlowAIPrompt({
   getFlow: () => Flow;
   applyFlow: (flow: Flow, changedNodeIds: string[]) => void;
   send: (req: FlowAIChatRequest) => Promise<APIResponse<FlowAIChatResponse>>;
+  // Stops the prompt, e.g. when the editor is closed.
+  signal?: AbortSignal;
 }): Promise<FlowAIResult> {
+  // The changed blocks are selected to highlight them, so only the blocks the
+  // user selected before are sent as selected.
+  const original = getFlow();
+  const selectedIds = original.nodes.filter((n) => n.selected).map((n) => n.id);
+
   const request = async (flow: Flow, req: Partial<FlowAIChatRequest>) => {
-    const selectedIds = flow.nodes.filter((n) => n.selected).map((n) => n.id);
+    signal?.throwIfAborted();
     const res = await send({
       flow: serializeFlow(flow.nodes, flow.edges, context, selectedIds),
       messages: toRequestMessages(messages),
@@ -64,49 +71,58 @@ export async function runFlowAIPrompt({
       issues: [],
       ...req,
     });
+    signal?.throwIfAborted();
     if (!res.success) {
       throw new FlowAIError(res.error.message, res.error.code);
     }
     return res.data;
   };
+  const getErrors = (issues: FlowIssue[]) =>
+    new Set(issues.filter((i) => i.severity === "error").map(describeIssue));
 
-  const original = getFlow();
-  let known: Set<string> | undefined;
   let res = await request(original, {});
   const { prompt_id: promptId, message } = res;
   const changed = new Set<string>();
-  let changedNodeIds: string[] = [];
+  let result: FlowAIResult = {
+    message,
+    repairs: 0,
+    issues: [],
+    changedNodeIds: [],
+  };
+  let applied: Flow | undefined;
+  // The errors the AI's edits caused, rather than the user.
+  let caused = new Set<string>();
 
   for (let repairs = 0; ; repairs++) {
     // The flow may have been edited while the AI was working.
     let flow = getFlow();
-    let issues = res.issues;
-    if (res.edits.length > 0) {
-      const applied = applyFlowEdits(flow, res.edits as FlowEdit[], context);
-      for (const id of getChangedNodeIds(flow.nodes, applied.nodes)) {
-        changed.add(id);
-      }
-      flow = { nodes: applied.nodes, edges: applied.edges };
-      // Blocks added and removed again by a repair are left out.
-      const ids = new Set(flow.nodes.map((n) => n.id));
-      changedNodeIds = [...changed].filter((id) => ids.has(id));
-      applyFlow(flow, changedNodeIds);
-
-      const errors = applied.issues
-        .filter((i) => i.severity === "error")
-        .map(describeIssue);
-      if (errors.length > 0) {
-        known ??= new Set(
-          validateFlow(original.nodes, original.edges, context).map(
-            describeIssue
-          )
-        );
-        issues = [...issues, ...errors.filter((i) => !known!.has(i))];
-      }
+    if (applied && wasReverted(applied, flow, result.changedNodeIds)) {
+      // The user undid or changed the edits, so they aren't fixed anymore.
+      return { ...result, issues: [] };
     }
 
-    const result = { message, repairs, issues, changedNodeIds };
-    if (issues.length === 0) return result;
+    const before = getErrors(validateFlow(flow.nodes, flow.edges, context));
+    let after = before;
+    if (res.edits.length > 0) {
+      const edited = applyFlowEdits(flow, res.edits as FlowEdit[], context);
+      for (const id of getChangedNodeIds(flow.nodes, edited.nodes)) {
+        changed.add(id);
+      }
+      flow = applied = { nodes: edited.nodes, edges: edited.edges };
+      after = getErrors(edited.issues);
+    }
+    caused = new Set([...after].filter((i) => !before.has(i) || caused.has(i)));
+
+    // Blocks added and removed again by a repair are left out.
+    const ids = new Set(flow.nodes.map((n) => n.id));
+    result = {
+      message,
+      repairs,
+      issues: [...res.issues, ...caused],
+      changedNodeIds: [...changed].filter((id) => ids.has(id)),
+    };
+    if (res.edits.length > 0) applyFlow(flow, result.changedNodeIds);
+    if (result.issues.length === 0) return result;
 
     try {
       // The editor may not have rendered the applied flow yet, so it's sent
@@ -117,15 +133,24 @@ export async function runFlowAIPrompt({
           { role: "assistant", content: message },
         ]),
         repair_prompt_id: promptId,
-        issues: issues.slice(0, maxIssues),
+        issues: result.issues.slice(0, maxIssues),
       });
     } catch (err) {
       if (err instanceof FlowAIError && err.code === "repair_limit") {
         return result;
       }
-      return { ...result, issues: [...issues, (err as Error).message] };
+      signal?.throwIfAborted();
+      return { ...result, issues: [...result.issues, (err as Error).message] };
     }
   }
+}
+
+// wasReverted reports whether blocks the AI changed are gone or have other
+// settings than it gave them.
+function wasReverted(applied: Flow, current: Flow, changedNodeIds: string[]) {
+  const data = new Map(current.nodes.map((n) => [n.id, n.data]));
+  const appliedData = new Map(applied.nodes.map((n) => [n.id, n.data]));
+  return changedNodeIds.some((id) => data.get(id) !== appliedData.get(id));
 }
 
 function toRequestMessages(messages: FlowAIChatMessage[]) {

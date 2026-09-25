@@ -127,6 +127,85 @@ describe("runFlowAIPrompt", () => {
     expect(res.issues.at(-1)).toBe("Unavailable");
   });
 
+  it("keeps problems a repair without edits didn't fix", async () => {
+    const api = fakeAPI([addLog, []]);
+
+    const res = await run(api);
+
+    expect(api.requests).toHaveLength(3);
+    expect(res.repairs).toBe(1);
+    expect(res.issues.length).toBeGreaterThan(0);
+  });
+
+  it("doesn't send problems the user caused while waiting", async () => {
+    const api = fakeAPI([[]]);
+    const editor = { flow: { nodes: [entry], edges: [] as Edge[] } };
+    const send = api.send;
+    api.send = async (req: FlowAIChatRequest) => {
+      editor.flow = {
+        nodes: [entry, testNode("new", "action_log")],
+        edges: [],
+      };
+      return send(req);
+    };
+
+    const res = await runFlowAIPrompt({
+      context: "command",
+      messages: [{ role: "user", content: "Hi" }],
+      getFlow: () => editor.flow,
+      applyFlow: (flow) => (editor.flow = flow),
+      send: api.send,
+    });
+
+    expect(api.requests).toHaveLength(1);
+    expect(res.issues).toEqual([]);
+  });
+
+  it("stops repairing edits the user undid", async () => {
+    const api = fakeAPI([addLog, []]);
+    const editor = { flow: { nodes: [entry], edges: [] as Edge[] } };
+    const send = api.send;
+    api.send = async (req: FlowAIChatRequest) => {
+      // Undo of the first round.
+      if (req.repair_prompt_id) editor.flow = { nodes: [entry], edges: [] };
+      return send(req);
+    };
+
+    const res = await runFlowAIPrompt({
+      context: "command",
+      messages: [{ role: "user", content: "Add a log" }],
+      getFlow: () => editor.flow,
+      applyFlow: (flow) => (editor.flow = flow),
+      send: api.send,
+    });
+
+    expect(api.requests).toHaveLength(2);
+    expect(res.issues).toEqual([]);
+    expect(editor.flow.nodes).toHaveLength(1);
+  });
+
+  it("stops when aborted", async () => {
+    const controller = new AbortController();
+    const api = fakeAPI([addLog]);
+    const send = api.send;
+    api.send = async (req: FlowAIChatRequest) => {
+      controller.abort();
+      return send(req);
+    };
+
+    await expect(
+      runFlowAIPrompt({
+        context: "command",
+        messages: [{ role: "user", content: "Add a log" }],
+        getFlow: () => ({ nodes: [entry], edges: [] }),
+        applyFlow: () => {},
+        send: api.send,
+        signal: controller.signal,
+      })
+    ).rejects.toThrow();
+    expect(api.requests).toHaveLength(1);
+  });
+
   it("throws if the prompt fails", async () => {
     await expect(run(fakeAPI([]))).rejects.toThrow("Too many repairs");
   });
@@ -155,9 +234,11 @@ describe("runFlowAIPrompt", () => {
     expect(editor.flow.nodes).toHaveLength(3);
   });
 
-  it("serializes the flow with the selected blocks", async () => {
-    const api = fakeAPI([[]]);
+  it("sends only the blocks the user selected as selected", async () => {
+    const api = fakeAPI([addLog]);
     await run(api, [{ ...entry, selected: true }]);
     expect(api.requests[0].flow).toContain("- entry entry_command (selected)");
+    // The added block is selected to highlight it, but not sent as selected.
+    expect(api.requests[1].flow.match(/\(selected\)/g)).toHaveLength(1);
   });
 });

@@ -110,15 +110,19 @@ func TestRespondRepair(t *testing.T) {
 		Messages: []Message{
 			{Role: "user", Content: "Add a log"},
 			{Role: "assistant", Content: "Added a log."},
+			{Role: "user", Content: "Make it a warning"},
+			{Role: "assistant", Content: ""},
 		},
 		Issues: []string{"'Log Message' setting 'log_level': Required"},
 	})
 	require.NoError(t, err)
 
+	// The answer without text is left out.
 	input := (*body)["input"].([]any)
-	require.Len(t, input, 3)
+	require.Len(t, input, 4)
 	assert.Equal(t, "assistant", input[1].(map[string]any)["role"])
-	assert.Contains(t, input[2].(map[string]any)["content"], "- 'Log Message' setting 'log_level': Required")
+	assert.Equal(t, "user", input[2].(map[string]any)["role"])
+	assert.Contains(t, input[3].(map[string]any)["content"], "- 'Log Message' setting 'log_level': Required")
 }
 
 func TestRespondCutOff(t *testing.T) {
