@@ -1,6 +1,6 @@
 import { useFlowAIChatMutation } from "@/lib/api/mutations";
-import { FlowAIResult, runFlowAIPrompt } from "@/lib/flow/ai";
-import { FlowContextType } from "@/lib/flow/context";
+import { runFlowAIPrompt } from "@/lib/flow/ai";
+import { useFlowContext } from "@/lib/flow/context";
 import { NodeType } from "@/lib/flow/dataSchema";
 import { useFlowAIUsage } from "@/lib/hooks/api";
 import { useAppId } from "@/lib/hooks/params";
@@ -14,29 +14,34 @@ import {
   SquarePenIcon,
   XIcon,
 } from "lucide-react";
-import { RefObject, useCallback, useEffect, useRef, useState } from "react";
+import {
+  memo,
+  RefObject,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import { Button } from "../ui/button";
 import { Textarea } from "../ui/textarea";
 import { FlowEditorApi } from "./FlowEditor";
 
 interface ChatEntry extends FlowAIChatMessage {
-  // Problems left with the AI's changes, or the error if the prompt failed.
+  // Problems left with the AI's changes.
   issues?: string[];
   repaired?: boolean;
+  // The prompt failed, and content is the error.
   failed?: boolean;
 }
 
-export default function FlowAIChat({
-  context,
+export default memo(function FlowAIChat({
   editorRef,
-  onBusyChange,
   onClose,
 }: {
-  context: FlowContextType;
   editorRef: RefObject<FlowEditorApi>;
-  onBusyChange: (busy: boolean) => void;
   onClose: () => void;
 }) {
+  const context = useFlowContext((c) => c.type);
   const { getNodes, getEdges, fitView } = useReactFlow<NodeType>();
   const chat = useFlowAIChatMutation(useAppId());
   const usage = useFlowAIUsage();
@@ -49,27 +54,6 @@ export default function FlowAIChat({
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [entries, busy]);
-
-  const apply = useCallback(
-    (res: FlowAIResult) => {
-      const changed = new Set(res.changedNodeIds);
-      editorRef.current?.replaceFlow(
-        res.nodes.map((n) => ({ ...n, selected: changed.has(n.id) })),
-        res.edges
-      );
-      if (changed.size > 0) {
-        // Once the new blocks have been measured.
-        setTimeout(() => {
-          fitView({
-            nodes: [...changed].map((id) => ({ id })),
-            duration: 300,
-            maxZoom: 1,
-          });
-        }, 50);
-      }
-    },
-    [editorRef, fitView]
-  );
 
   const submit = useCallback(async () => {
     const content = input.trim();
@@ -84,18 +68,39 @@ export default function FlowAIChat({
     setEntries((e) => [...e, { role: "user", content }]);
     setInput("");
     setBusy(true);
-    onBusyChange(true);
 
+    // The rounds of the prompt are undone together.
+    const mergeKey = `ai:${Date.now()}`;
     try {
-      const nodes = getNodes();
       const res = await runFlowAIPrompt({
-        flow: { nodes, edges: getEdges() },
         context,
-        selectedIds: nodes.filter((n) => n.selected).map((n) => n.id),
         messages,
+        getFlow: () => ({ nodes: getNodes(), edges: getEdges() }),
+        applyFlow: ({ nodes, edges }, changedNodeIds) => {
+          // Selects the changed blocks, so they stand out.
+          const changed = new Set(changedNodeIds);
+          editorRef.current?.replaceFlow(
+            nodes.map((n) =>
+              !!n.selected === changed.has(n.id)
+                ? n
+                : { ...n, selected: changed.has(n.id) }
+            ),
+            edges,
+            mergeKey
+          );
+        },
         send: chat.mutateAsync,
       });
-      if (res.edited) apply(res);
+      if (res.changedNodeIds.length > 0) {
+        // Once the new blocks have been measured.
+        setTimeout(() => {
+          fitView({
+            nodes: res.changedNodeIds.map((id) => ({ id })),
+            duration: 300,
+            maxZoom: 1,
+          });
+        }, 50);
+      }
       setEntries((e) => [
         ...e,
         {
@@ -112,7 +117,6 @@ export default function FlowAIChat({
       ]);
     } finally {
       setBusy(false);
-      onBusyChange(false);
     }
   }, [
     input,
@@ -121,9 +125,9 @@ export default function FlowAIChat({
     context,
     getNodes,
     getEdges,
+    fitView,
+    editorRef,
     chat.mutateAsync,
-    apply,
-    onBusyChange,
   ]);
 
   const limit = usage?.prompts_limit;
@@ -229,7 +233,7 @@ export default function FlowAIChat({
       </div>
     </div>
   );
-}
+});
 
 function ChatBubble({ entry }: { entry: ChatEntry }) {
   if (entry.role === "user") {

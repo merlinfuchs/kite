@@ -336,9 +336,16 @@ export function useBillingPlansQuery() {
   });
 }
 
+export const flowAIUsageQueryKey = (appId: string) => [
+  "apps",
+  appId,
+  "flow-ai",
+  "usage",
+];
+
 export function useFlowAIUsageQuery(appId: string) {
   return useQuery({
-    queryKey: ["apps", appId, "flow-ai", "usage"],
+    queryKey: flowAIUsageQueryKey(appId),
     queryFn: () =>
       apiRequest<FlowAIUsageGetResponse>(`/v1/apps/${appId}/flow-ai/usage`),
     enabled: !!appId,

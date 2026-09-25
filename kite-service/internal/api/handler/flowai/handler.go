@@ -117,7 +117,6 @@ func (h *FlowAIHandler) HandleFlowAIChat(c *handler.Context, req wire.FlowAIChat
 	}
 
 	res, err := h.assistant.Respond(c.Context(), flowai.Request{
-		FlowType: req.FlowType,
 		Flow:     req.Flow,
 		Messages: messages,
 		Issues:   req.Issues,

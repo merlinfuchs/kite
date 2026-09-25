@@ -41,8 +41,13 @@ import "@xyflow/react/dist/base.css";
 import { ListTreeIcon, Redo2Icon, Undo2Icon } from "lucide-react";
 
 export interface FlowEditorApi {
-  // Replaces the flow in one undo step.
-  replaceFlow: (nodes: Node<NodeData>[], edges: Edge[]) => void;
+  // Replaces the flow in one undo step, or in the undo step of the previous
+  // replacement with the same merge key.
+  replaceFlow: (
+    nodes: Node<NodeData>[],
+    edges: Edge[],
+    mergeKey?: string
+  ) => void;
 }
 
 interface Props {
@@ -108,8 +113,8 @@ export default function FlowEditor({
   useImperativeHandle(
     apiRef,
     () => ({
-      replaceFlow: (nodes, edges) => {
-        commit();
+      replaceFlow: (nodes, edges, mergeKey) => {
+        commit(mergeKey, Infinity);
         setNodes(nodes);
         setEdges(edges);
       },

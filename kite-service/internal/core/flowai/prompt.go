@@ -3,30 +3,9 @@ package flowai
 import (
 	"bytes"
 	"encoding/json"
-	"slices"
 
 	"github.com/kitecloud/kite/kite-service/pkg/flow"
 )
-
-// FlowTypes are the kinds of flow the editor can be working on, i.e. every
-// context a block in the catalog can be used in.
-var FlowTypes = func() []string {
-	var catalog struct {
-		Nodes map[string]struct {
-			Contexts []string `json:"contexts"`
-		} `json:"nodes"`
-	}
-	if err := json.Unmarshal(flow.CatalogJSON, &catalog); err != nil {
-		panic(err)
-	}
-
-	var types []string
-	for _, node := range catalog.Nodes {
-		types = append(types, node.Contexts...)
-	}
-	slices.Sort(types)
-	return slices.Compact(types)
-}()
 
 // instructions come first in every request and don't change, so the model
 // provider can cache them, catalog included.

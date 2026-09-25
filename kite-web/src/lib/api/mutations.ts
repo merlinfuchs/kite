@@ -69,6 +69,7 @@ import {
   VariableUpdateResponse,
 } from "../types/wire.gen";
 import client, { apiRequest } from "./client";
+import { flowAIUsageQueryKey } from "./queries";
 
 export function useAuthLogoutMutation() {
   const client = useQueryClient();
@@ -869,7 +870,7 @@ export function useFlowAIChatMutation(appId: string) {
       }),
     onSuccess: (res) => {
       if (res.success) {
-        client.setQueryData(["apps", appId, "flow-ai", "usage"], {
+        client.setQueryData(flowAIUsageQueryKey(appId), {
           success: true,
           data: res.data.usage,
         });

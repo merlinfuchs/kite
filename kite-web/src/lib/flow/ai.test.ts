@@ -1,7 +1,8 @@
+import { Edge } from "@xyflow/react";
 import { describe, expect, it } from "vitest";
 import { FlowAIChatRequest, FlowAIChatResponse } from "../types/wire.gen";
 import { runFlowAIPrompt } from "./ai";
-import { testEdge, testNode } from "./testUtils";
+import { testNode } from "./testUtils";
 
 const entry = testNode("entry", "entry_command", {
   name: "test",
@@ -9,22 +10,21 @@ const entry = testNode("entry", "entry_command", {
 });
 
 const usage = { prompts_used: 1, prompts_limit: 30 };
+const logData = { log_level: "info", log_message: "hi" };
 
 type Edits = FlowAIChatResponse["edits"];
 
-// fakeAPI answers each request with the next of the given edits, or fails if
-// there are none left, and records the requests.
-function fakeAPI(...rounds: (Edits | ((req: FlowAIChatRequest) => Edits))[]) {
+// fakeAPI answers each request with the next of the given edits, or fails
+// with the given error if there are none left, and records the requests.
+function fakeAPI(
+  rounds: (Edits | ((req: FlowAIChatRequest) => Edits))[],
+  error = { code: "repair_limit", message: "Too many repairs", data: {} }
+) {
   const requests: FlowAIChatRequest[] = [];
   const send = async (req: FlowAIChatRequest) => {
     requests.push(req);
     const round = rounds[requests.length - 1];
-    if (!round) {
-      return {
-        success: false as const,
-        error: { code: "repair_limit", message: "Too many repairs", data: {} },
-      };
-    }
+    if (!round) return { success: false as const, error };
     return {
       success: true as const,
       data: {
@@ -39,19 +39,33 @@ function fakeAPI(...rounds: (Edits | ((req: FlowAIChatRequest) => Edits))[]) {
   return { requests, send };
 }
 
-const run = (send: ReturnType<typeof fakeAPI>["send"], nodes = [entry]) =>
-  runFlowAIPrompt({
-    flow: { nodes, edges: [] },
+// run runs a prompt against an editor holding the given blocks.
+async function run(api: ReturnType<typeof fakeAPI>, nodes = [entry]) {
+  const editor = {
+    flow: { nodes, edges: [] as Edge[] },
+    changedNodeIds: [] as string[],
+  };
+  const res = await runFlowAIPrompt({
     context: "command",
-    selectedIds: [],
     messages: [{ role: "user", content: "Add a log" }],
-    send,
+    getFlow: () => editor.flow,
+    applyFlow: (flow, changedNodeIds) => {
+      editor.flow = flow;
+      editor.changedNodeIds = changedNodeIds;
+    },
+    send: api.send,
   });
+  return { ...res, editor };
+}
+
+const addLog: Edits = [
+  { op: "add_node", ref: "$log", type: "action_log", after: "entry" },
+];
 
 describe("runFlowAIPrompt", () => {
   it("sends the problems with the edits back to be fixed", async () => {
-    const api = fakeAPI(
-      [{ op: "add_node", ref: "$log", type: "action_log", after: "entry" }],
+    const api = fakeAPI([
+      addLog,
       // The repair refers to the block by the ID it was sent with.
       (req) => [
         {
@@ -59,10 +73,10 @@ describe("runFlowAIPrompt", () => {
           id: req.flow.match(/- (\S+) action_log/)![1],
           data: { log_level: "info", log_message: "hi" },
         },
-      ]
-    );
+      ],
+    ]);
 
-    const res = await run(api.send);
+    const res = await run(api);
 
     expect(api.requests).toHaveLength(2);
     expect(api.requests[1].repair_prompt_id).toBe("p1");
@@ -74,49 +88,76 @@ describe("runFlowAIPrompt", () => {
     expect(res.message).toBe("Added a log.");
     expect(res.repairs).toBe(1);
     expect(res.issues).toEqual([]);
-    const log = res.nodes.find((n) => n.type === "action_log")!;
+    const log = res.editor.flow.nodes.find((n) => n.type === "action_log")!;
     expect(log.data).toEqual({ log_level: "info", log_message: "hi" });
     expect(res.changedNodeIds).toEqual([log.id]);
+    expect(res.editor.changedNodeIds).toEqual([log.id]);
   });
 
   it("doesn't send problems the flow had before", async () => {
-    const broken = testNode("broken", "action_log", {});
-    const api = fakeAPI([]);
+    const api = fakeAPI([addLog]);
 
-    const res = await run(api.send, [entry, broken]);
-
-    expect(api.requests).toHaveLength(1);
-    expect(res.issues).toEqual([]);
-    expect(res.changedNodeIds).toEqual([]);
-  });
-
-  it("keeps the edits if a repair fails", async () => {
-    const api = fakeAPI([
-      { op: "add_node", ref: "$log", type: "action_log", after: "entry" },
-    ]);
-
-    const res = await run(api.send);
+    const res = await run(api, [entry, testNode("broken", "action_log")]);
 
     expect(api.requests).toHaveLength(2);
-    expect(res.nodes).toHaveLength(2);
-    expect(res.issues.at(-1)).toBe("Too many repairs");
+    expect(api.requests[1].issues.length).toBeGreaterThan(0);
+    expect(api.requests[1].issues.join()).not.toContain("broken");
+  });
+
+  it("stops quietly when no more repairs are allowed", async () => {
+    const api = fakeAPI([addLog]);
+
+    const res = await run(api);
+
+    expect(api.requests).toHaveLength(2);
+    expect(res.editor.flow.nodes).toHaveLength(2);
+    expect(res.issues).not.toContain("Too many repairs");
+    expect(res.issues.length).toBeGreaterThan(0);
+  });
+
+  it("reports why a repair failed", async () => {
+    const api = fakeAPI([addLog], {
+      code: "flow_ai_unavailable",
+      message: "Unavailable",
+      data: {},
+    });
+
+    const res = await run(api);
+
+    expect(res.issues.at(-1)).toBe("Unavailable");
   });
 
   it("throws if the prompt fails", async () => {
-    const api = fakeAPI();
-    await expect(run(api.send)).rejects.toThrow("Too many repairs");
+    await expect(run(fakeAPI([]))).rejects.toThrow("Too many repairs");
   });
 
-  it("serializes the current flow", async () => {
+  it("applies the edits to the flow as it is when they arrive", async () => {
+    const other = testNode("other", "action_log", logData);
     const api = fakeAPI([]);
+    const editor = { flow: { nodes: [entry], edges: [] as Edge[] } };
+    // The user adds a block while the AI works on the prompt.
+    const send = fakeAPI([[...addLog]]).send;
+    api.send = async (req: FlowAIChatRequest) => {
+      if (!req.repair_prompt_id)
+        editor.flow = { nodes: [entry, other], edges: [] };
+      return send(req);
+    };
+
     await runFlowAIPrompt({
-      flow: { nodes: [entry], edges: [testEdge("entry", "missing")] },
       context: "command",
-      selectedIds: ["entry"],
-      messages: [{ role: "user", content: "Hi" }],
+      messages: [{ role: "user", content: "Add a log" }],
+      getFlow: () => editor.flow,
+      applyFlow: (flow) => (editor.flow = flow),
       send: api.send,
     });
+
+    expect(editor.flow.nodes.map((n) => n.id)).toContain("other");
+    expect(editor.flow.nodes).toHaveLength(3);
+  });
+
+  it("serializes the flow with the selected blocks", async () => {
+    const api = fakeAPI([[]]);
+    await run(api, [{ ...entry, selected: true }]);
     expect(api.requests[0].flow).toContain("- entry entry_command (selected)");
-    expect(api.requests[0].flow_type).toBe("command");
   });
 });

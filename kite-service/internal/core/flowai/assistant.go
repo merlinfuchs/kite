@@ -50,7 +50,6 @@ type Message struct {
 }
 
 type Request struct {
-	FlowType string
 	// Flow is the flow as serialized by the editor.
 	Flow string
 	// Messages is the chat so far, oldest first. The last one is the user's
@@ -149,7 +148,6 @@ func (a *Assistant) params(req Request) responses.ResponseNewParams {
 	}
 	input = append(input, easyMessage(
 		responses.EasyInputMessageRoleUser,
-		// The flow starts with its type.
 		fmt.Sprintf("Current flow:\n%s\n\n%s", req.Flow, current),
 	))
 

@@ -22,7 +22,9 @@ export default function Flow({ flowData, logs, context, onChange }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const editorRef = useRef<FlowEditorApi>(null);
   const [chatOpen, setChatOpen] = useState(false);
-  const [aiBusy, setAIBusy] = useState(false);
+  // The chat is mounted when first opened and then kept when closed.
+  const [chatMounted, setChatMounted] = useState(false);
+  const closeChat = useCallback(() => setChatOpen(false), []);
 
   const onSelectionChange = useCallback(
     ({ nodes }: OnSelectionChangeParams) => {
@@ -51,14 +53,15 @@ export default function Flow({ flowData, logs, context, onChange }: Props) {
             containerRef={containerRef}
             apiRef={editorRef}
           />
-          {/* The AI's edits apply to the flow as it was when it was asked. */}
-          {aiBusy && <div className="absolute inset-0 z-10 cursor-wait" />}
           {!chatOpen && (
             <Button
               variant="secondary"
               size="sm"
               className="absolute top-3 right-3 z-10 gap-2"
-              onClick={() => setChatOpen(true)}
+              onClick={() => {
+                setChatOpen(true);
+                setChatMounted(true);
+              }}
             >
               <SparklesIcon className="size-4" />
               Ask AI
@@ -66,15 +69,11 @@ export default function Flow({ flowData, logs, context, onChange }: Props) {
           )}
         </div>
 
-        {/* Hidden rather than unmounted, so the chat is kept when closed. */}
-        <div className={cn("flex", !chatOpen && "hidden")}>
-          <FlowAIChat
-            context={context}
-            editorRef={editorRef}
-            onBusyChange={setAIBusy}
-            onClose={() => setChatOpen(false)}
-          />
-        </div>
+        {chatMounted && (
+          <div className={cn("flex", !chatOpen && "hidden")}>
+            <FlowAIChat editorRef={editorRef} onClose={closeChat} />
+          </div>
+        )}
       </div>
     </FlowContextStoreProvider>
   );

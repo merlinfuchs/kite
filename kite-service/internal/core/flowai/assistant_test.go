@@ -65,7 +65,6 @@ func TestRespond(t *testing.T) {
 	messages = append(messages, Message{Role: "user", Content: "Add a log"})
 
 	res, err := assistant.Respond(context.Background(), Request{
-		FlowType: "command",
 		Flow:     "Flow type: command\n\nBlocks:\n- entry entry_command",
 		Messages: messages,
 		UserID:   "user",
@@ -107,8 +106,7 @@ func TestRespondRepair(t *testing.T) {
 	assistant, body := fakeOpenAI(t, "completed", `{"message": "Fixed.", "edits": []}`)
 
 	_, err := assistant.Respond(context.Background(), Request{
-		FlowType: "command",
-		Flow:     "Blocks:",
+		Flow: "Blocks:",
 		Messages: []Message{
 			{Role: "user", Content: "Add a log"},
 			{Role: "assistant", Content: "Added a log."},
@@ -127,7 +125,6 @@ func TestRespondCutOff(t *testing.T) {
 	assistant, _ := fakeOpenAIIncomplete(t, "incomplete", "max_output_tokens", `{"message": "Added`)
 
 	res, err := assistant.Respond(context.Background(), Request{
-		FlowType: "command",
 		Flow:     "Blocks:",
 		Messages: []Message{{Role: "user", Content: "Add a log"}},
 	})
