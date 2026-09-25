@@ -25,7 +25,7 @@ Most actions in flows will consume **1 credit per execution** with a few excepti
   - `gpt-4.1`: 500 credits per execution
   - `gpt-4.1-mini`: 100 credits per execution
   - `gpt-4.1-nano`: 25 credits per execution (deprecated)
-  - `gpt-5.4-nano`: 25 credits per execution
+  - `gpt-5-nano`: 25 credits per execution
   - `gpt-4o-mini` (default): 25 credits per execution
 - **`Send API request` block**: 3 credits per execution
 

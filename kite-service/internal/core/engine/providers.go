@@ -9,6 +9,7 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 
@@ -25,8 +26,9 @@ import (
 	"github.com/kitecloud/kite/kite-service/pkg/message"
 	"github.com/kitecloud/kite/kite-service/pkg/provider"
 	"github.com/kitecloud/kite/kite-service/pkg/thing"
-	"github.com/openai/openai-go"
-	"github.com/openai/openai-go/responses"
+	"github.com/openai/openai-go/v2"
+	"github.com/openai/openai-go/v2/responses"
+	"github.com/openai/openai-go/v2/shared"
 	"gopkg.in/guregu/null.v4"
 )
 
@@ -518,8 +520,8 @@ func (p *AIProvider) CreateResponse(ctx context.Context, opts provider.CreateRes
 		switch tool {
 		case provider.AIToolTypeWebSearchPreview:
 			tools = append(tools, responses.ToolUnionParam{
-				OfWebSearchPreview: &responses.WebSearchToolParam{
-					Type: responses.WebSearchToolTypeWebSearchPreview,
+				OfWebSearchPreview: &responses.WebSearchPreviewToolParam{
+					Type: responses.WebSearchPreviewToolTypeWebSearchPreview,
 				},
 			})
 		}
@@ -556,14 +558,21 @@ func (p *AIProvider) CreateResponse(ctx context.Context, opts provider.CreateRes
 		maxOutputTokens = opts.MaxOutputTokens
 	}
 
-	resp, err := p.client.Responses.New(ctx, responses.ResponseNewParams{
+	params := responses.ResponseNewParams{
 		Model: model,
 		Input: responses.ResponseNewParamsInputUnion{
 			OfInputItemList: inputs,
 		},
 		MaxOutputTokens: openai.Int(int64(maxOutputTokens)),
 		Tools:           tools,
-	})
+	}
+	// GPT-5 models reason before answering, and the reasoning counts towards
+	// the output tokens, so less of it leaves more room for the answer.
+	if strings.HasPrefix(model, "gpt-5") {
+		params.Reasoning = shared.ReasoningParam{Effort: shared.ReasoningEffortLow}
+	}
+
+	resp, err := p.client.Responses.New(ctx, params)
 	if err != nil {
 		return "", fmt.Errorf("failed to create response: %w", err)
 	}
