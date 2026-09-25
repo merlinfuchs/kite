@@ -1,5 +1,5 @@
 import {
-  isSectionAvailable,
+  isNodeTypeAvailable,
   NodeCategory,
   nodeCategories,
 } from "@/lib/flow/categories";
@@ -41,11 +41,14 @@ export default function FlowNodeExplorer({
         ...s,
         nodes: s.nodes.filter(
           (n) =>
-            n.values.defaultTitle.toLowerCase().includes(normalizedSearch) ||
-            n.values.defaultDescription.toLowerCase().includes(normalizedSearch)
+            isNodeTypeAvailable(n.type, contextType) &&
+            (n.values.defaultTitle.toLowerCase().includes(normalizedSearch) ||
+              n.values.defaultDescription
+                .toLowerCase()
+                .includes(normalizedSearch))
         ),
       }))
-      .filter((s) => s.nodes.length > 0 && isSectionAvailable(s, contextType));
+      .filter((s) => s.nodes.length > 0);
   }, [sections, contextType, search]);
 
   return (

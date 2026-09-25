@@ -1,4 +1,5 @@
 import { FlowContextType } from "./context";
+import { getNodeValues } from "./nodes";
 
 export interface NodeCategorySection {
   title: string;
@@ -165,16 +166,20 @@ export const nodeCategories: Record<
 
 export type NodeCategory = keyof typeof nodeCategories;
 
-export function isSectionAvailable(
+function isSectionAvailable(
   section: NodeCategorySection,
   context: FlowContextType
 ) {
   return !section.contextTypes || section.contextTypes.includes(context);
 }
 
-// Node types that aren't listed in any section (e.g. condition items) are
-// always available, as they only exist as children of other blocks.
+// A block's own contexts take precedence over the sections it's listed in.
+// Blocks in neither (e.g. condition items) are always available, as they only
+// exist as children of other blocks.
 export function isNodeTypeAvailable(type: string, context: FlowContextType) {
+  const contexts = getNodeValues(type).contexts;
+  if (contexts) return contexts.includes(context);
+
   const sections = Object.values(nodeCategories)
     .flat()
     .filter((s) => s.nodeTypes.includes(type));
