@@ -352,6 +352,11 @@ func NewObject(v map[string]Thing) Thing {
 }
 
 func (w Thing) String() string {
+	// Empty templates evaluate to Null, which would otherwise print as "<nil>".
+	if w.Value == nil {
+		return ""
+	}
+
 	switch w.Type {
 	case TypeString:
 		return w.Value.(string)

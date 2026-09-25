@@ -190,6 +190,10 @@ func TestFlowExecuteModalEvaluatesTemplates(t *testing.T) {
 									Label:       "Label {{ 2 + 1 }}",
 									Placeholder: "Placeholder {{ 4 }}",
 									Value:       "Value {{ 5 }}",
+								}, {
+									CustomID: "empty",
+									Style:    1,
+									Label:    "Empty",
 								}},
 							}},
 						},
@@ -210,6 +214,10 @@ func TestFlowExecuteModalEvaluatesTemplates(t *testing.T) {
 	assert.Equal(t, "Label 3", input.Label)
 	assert.Equal(t, "Placeholder 4", input.Placeholder)
 	assert.Equal(t, "Value 5", input.Value)
+
+	empty := (*row)[1].(*discord.TextInputComponent)
+	assert.Equal(t, "", empty.Placeholder)
+	assert.Equal(t, "", empty.Value)
 }
 
 func TestFlowExecuteConditionCompareEquality(t *testing.T) {
