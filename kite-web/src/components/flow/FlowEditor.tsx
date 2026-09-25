@@ -15,27 +15,31 @@ import {
   useNodesState,
   useReactFlow,
 } from "@xyflow/react";
-import { DragEvent, useCallback } from "react";
+import { DragEvent, RefObject, useCallback, useEffect, useRef } from "react";
 
 import { edgeTypes, nodeTypes } from "@/lib/flow/components";
-import { FlowData } from "@/lib/flow/dataSchema";
+import { FlowData, NodeData } from "@/lib/flow/dataSchema";
+import { getFlowChangeKind, getFlowMergeKey } from "@/lib/flow/history";
 import { getLayoutedElements } from "@/lib/flow/layout";
 import { createNode, getNodeValues } from "@/lib/flow/nodes";
 import { useFlowClipboard } from "@/lib/hooks/flowClipboard";
+import { useFlowHistory } from "@/lib/hooks/flowHistory";
 import { useHookedTheme } from "@/lib/hooks/theme";
 import "@xyflow/react/dist/base.css";
-import { ListTreeIcon } from "lucide-react";
+import { ListTreeIcon, Redo2Icon, Undo2Icon } from "lucide-react";
 
 interface Props {
   initialData?: FlowData;
   onChange: () => void;
   onSelectionChange?: OnSelectionChangeFunc;
+  containerRef: RefObject<HTMLElement>;
 }
 
 export default function FlowEditor({
   initialData,
   onChange,
   onSelectionChange,
+  containerRef,
 }: Props) {
   const { theme } = useHookedTheme();
 
@@ -46,15 +50,49 @@ export default function FlowEditor({
   const [edges, setEdges, onEdgesChange] = useEdgesState(
     initialData?.edges || []
   );
-  const { getEdge, getNode, screenToFlowPosition, fitView } = useReactFlow();
+  // Edits go through react-flow rather than the state setters above, so they
+  // reach the change handlers below, which record them for undo.
+  const {
+    getEdge,
+    getNode,
+    screenToFlowPosition,
+    fitView,
+    setNodes: editNodes,
+    setEdges: editEdges,
+    addNodes,
+    addEdges,
+  } = useReactFlow<Node<NodeData>>();
+
+  // onChange is called once the edit has been applied, so the nodes and edges
+  // it reads through react-flow are up to date.
+  const changed = useRef(false);
+  const markChanged = useCallback(() => {
+    changed.current = true;
+  }, []);
+  useEffect(() => {
+    if (!changed.current) return;
+    changed.current = false;
+    onChange();
+  }, [nodes, edges, onChange]);
+
+  const { record, commit, undo, redo, canUndo, canRedo } = useFlowHistory({
+    nodes,
+    edges,
+    setNodes,
+    setEdges,
+    onChange: markChanged,
+    containerRef,
+  });
 
   const onConnect = useCallback(
-    (con: Connection) => setEdges((eds) => addEdge(con, eds)),
-    [setEdges]
+    (con: Connection) => editEdges((eds) => addEdge(con, eds)),
+    [editEdges]
   );
 
+  const isDragging = useRef(false);
+
   const wrappedOnNodesChange = useCallback(
-    (changes: NodeChange[]) => {
+    (changes: NodeChange<Node<NodeData>>[]) => {
       const filteredChanges = changes.filter((change) => {
         if (change.type === "remove") {
           const node = getNode(change.id);
@@ -65,12 +103,25 @@ export default function FlowEditor({
         return true;
       });
 
-      if (filteredChanges.length > 0) {
-        onNodesChange(filteredChanges);
-        onChange();
+      if (filteredChanges.length === 0) return;
+
+      if (filteredChanges.some((c) => getFlowChangeKind(c) === "drag")) {
+        // The state from before the drag is recorded once, when it starts.
+        if (!isDragging.current) record();
+        isDragging.current = true;
+      } else if (filteredChanges.some((c) => getFlowChangeKind(c) === "edit")) {
+        if (isDragging.current) {
+          // The drag has ended, which makes it an edit.
+          isDragging.current = false;
+          markChanged();
+        } else {
+          commit(getFlowMergeKey(filteredChanges));
+        }
       }
+
+      onNodesChange(filteredChanges);
     },
-    [onNodesChange, onChange, getNode]
+    [onNodesChange, getNode, record, commit, markChanged]
   );
 
   const wrappedOnEdgesChange = useCallback(
@@ -84,12 +135,14 @@ export default function FlowEditor({
         return true;
       });
 
-      if (filteredChanges.length > 0) {
-        onEdgesChange(filteredChanges);
-        onChange();
+      if (filteredChanges.length === 0) return;
+
+      if (filteredChanges.some((c) => getFlowChangeKind(c) === "edit")) {
+        commit();
       }
+      onEdgesChange(filteredChanges);
     },
-    [getEdge, onEdgesChange, onChange]
+    [getEdge, onEdgesChange, commit]
   );
 
   const onNodesDelete = useCallback(
@@ -97,8 +150,10 @@ export default function FlowEditor({
       for (const node of deletedNodes) {
         const nodeValues = getNodeValues(node.type!);
 
-        // delete children if this node owns them
+        // Delete children if this node owns them. This bypasses the change
+        // handlers, which don't let fixed nodes be removed.
         if (nodeValues.ownsChildren) {
+          commit();
           const childIds = edges
             .filter((edge) => edge.source === node.id)
             .map((edge) => edge.target);
@@ -110,7 +165,7 @@ export default function FlowEditor({
         }
       }
     },
-    [edges, setEdges, setNodes]
+    [edges, commit, setEdges, setNodes]
   );
 
   const format = useCallback(() => {
@@ -118,11 +173,11 @@ export default function FlowEditor({
       direction: "TB",
     });
 
-    setNodes(formattedNodes.nodes);
+    editNodes(formattedNodes.nodes);
     setTimeout(() => {
       fitView();
     }, 50);
-  }, [nodes, edges, setNodes, fitView]);
+  }, [nodes, edges, editNodes, fitView]);
 
   const onDragOver = useCallback((e: DragEvent) => {
     e.preventDefault();
@@ -144,13 +199,13 @@ export default function FlowEditor({
       });
       const [newNodes, newEdges] = createNode(type, position);
 
-      setNodes((nds) => nds.concat(newNodes));
-      setEdges((eds) => eds.concat(newEdges));
+      addNodes(newNodes);
+      addEdges(newEdges);
     },
-    [screenToFlowPosition, setNodes, setEdges]
+    [screenToFlowPosition, addNodes, addEdges]
   );
 
-  const onMouseMove = useFlowClipboard({ setNodes, setEdges, onChange });
+  const onMouseMove = useFlowClipboard();
 
   const isValidConnection = useCallback(
     (con: Connection | Edge) => {
@@ -221,6 +276,12 @@ export default function FlowEditor({
         position="bottom-right"
         className="scale-110"
       >
+        <ControlButton onClick={undo} disabled={!canUndo} title="Undo">
+          <Undo2Icon className="size-5" />
+        </ControlButton>
+        <ControlButton onClick={redo} disabled={!canRedo} title="Redo">
+          <Redo2Icon className="size-5" />
+        </ControlButton>
         <ControlButton onClick={format}>
           <ListTreeIcon className="size-5" />
         </ControlButton>
