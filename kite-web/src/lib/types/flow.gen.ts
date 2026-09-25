@@ -78,6 +78,11 @@ export const FlowNodeTypeControlLoopEnd: FlowNodeType = "control_loop_end";
 export const FlowNodeTypeControlLoopExit: FlowNodeType = "control_loop_exit";
 export const FlowNodeTypeControlSleep: FlowNodeType = "control_sleep";
 export const FlowNodeTypeSuspendResponseModal: FlowNodeType = "suspend_response_modal";
+/**
+ * EventTypeScheduleCron is the event type of listeners that run on a cron
+ * schedule instead of reacting to Discord events.
+ */
+export const EventTypeScheduleCron = "cron";
 export interface FlowNode {
   id: string;
   type?: FlowNodeType;
@@ -118,7 +123,7 @@ export interface FlowNodeData {
    */
   command_disabled_integrations?: CommandDisabledIntegrationType[];
   /**
-   * Guild Get
+   * Guild Get, and the guild of member, channel, role and voice blocks
    */
   guild_target?: string;
   /**
@@ -191,6 +196,7 @@ export interface FlowNodeData {
    * Event Entry
    */
   event_type?: string;
+  event_schedule_cron?: string;
   /**
    * Event Filter
    */
@@ -363,10 +369,28 @@ export interface FlowEdge {
 export interface FlowContextState {
   node_states: { [key: string]: FlowContextNodeState | undefined};
   temporaries: { [key: string]: any /* thing.Thing */};
+  /**
+   * Triggers holds the interactions or events of earlier executions, oldest
+   * first. It's only set in resumed executions.
+   */
+  triggers?: FlowTrigger[];
 }
 export interface FlowContextNodeState {
   condition_base_value?: any /* thing.Thing */;
   condition_item_met?: boolean;
   result?: any /* thing.Thing */;
   loop_exited?: boolean;
+}
+
+//////////
+// source: trigger.go
+
+/**
+ * FlowTrigger is the interaction or event that started an execution. Resume
+ * points store it so sub-flows can still reach it after the flow resumes with
+ * a different interaction.
+ */
+export interface FlowTrigger {
+  Interaction?: any /* discord.InteractionEvent */;
+  Event: any /* ws.Event */;
 }

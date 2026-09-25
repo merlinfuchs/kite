@@ -12,7 +12,8 @@ import (
 type EventSource string
 
 const (
-	EventSourceDiscord EventSource = "discord"
+	EventSourceDiscord  EventSource = "discord"
+	EventSourceSchedule EventSource = "schedule"
 )
 
 type EventListenerType string
@@ -23,7 +24,18 @@ const (
 	EventListenerTypeDiscordMessageDelete     EventListenerType = "message_delete"
 	EventListenerTypeDiscordGuildMemberAdd    EventListenerType = "guild_member_add"
 	EventListenerTypeDiscordGuildMemberRemove EventListenerType = "guild_member_remove"
+
+	EventListenerTypeScheduleCron EventListenerType = EventListenerType(flow.EventTypeScheduleCron)
 )
+
+// EventSourceForType derives the source from the type, since the type lives in
+// the flow and can change with every save while the source is stored separately.
+func EventSourceForType(t EventListenerType) EventSource {
+	if t == EventListenerTypeScheduleCron {
+		return EventSourceSchedule
+	}
+	return EventSourceDiscord
+}
 
 func EventTypeFromDiscordEventType(eventType ws.EventType) EventListenerType {
 	return EventListenerType(strings.ToLower(string(eventType)))
@@ -42,6 +54,7 @@ type EventListener struct {
 	FlowSource    flow.FlowData
 	CreatedAt     time.Time
 	UpdatedAt     time.Time
+	LastRunAt     null.Time
 }
 
 type EventListenerFilter struct{}

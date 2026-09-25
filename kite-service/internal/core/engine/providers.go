@@ -35,6 +35,7 @@ import (
 // FeatureProvider resolves the premium features an app has access to.
 type FeatureProvider interface {
 	AppFeatures(ctx context.Context, appID string) model.Features
+	AppFeaturesForApps(ctx context.Context, appIDs []string) (map[string]model.Features, error)
 }
 
 type DiscordProvider struct {

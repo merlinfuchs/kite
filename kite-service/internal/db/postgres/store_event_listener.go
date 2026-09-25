@@ -35,12 +35,29 @@ func (c *Client) EventListenersByApp(ctx context.Context, appID string) ([]*mode
 	return listeners, nil
 }
 
-func (c *Client) CountEventListenersByApp(ctx context.Context, appID string) (int, error) {
-	res, err := c.Q.CountEventListenersByApp(ctx, appID)
+func (c *Client) CountEventListenersByAppAndSource(ctx context.Context, appID string, source model.EventSource) (int, error) {
+	res, err := c.Q.CountEventListenersByAppAndSource(ctx, pgmodel.CountEventListenersByAppAndSourceParams{
+		AppID:  appID,
+		Source: string(source),
+	})
 	if err != nil {
 		return 0, err
 	}
 	return int(res), nil
+}
+
+func (c *Client) UpdateEventListenersLastRunAt(ctx context.Context, lastRunAts map[string]time.Time) error {
+	ids := make([]string, 0, len(lastRunAts))
+	times := make([]pgtype.Timestamp, 0, len(lastRunAts))
+	for id, t := range lastRunAts {
+		ids = append(ids, id)
+		times = append(times, pgtype.Timestamp{Time: t.UTC(), Valid: true})
+	}
+
+	return c.Q.UpdateEventListenersLastRunAt(ctx, pgmodel.UpdateEventListenersLastRunAtParams{
+		Ids:        ids,
+		LastRunAts: times,
+	})
 }
 
 func (c *Client) EventListener(ctx context.Context, id string) (*model.EventListener, error) {
@@ -126,10 +143,10 @@ func (c *Client) UpdateEventListener(ctx context.Context, listener *model.EventL
 	return rowToEventListener(row)
 }
 
-func (c *Client) EnabledEventListenersUpdatedSince(ctx context.Context, updatedSince time.Time) ([]*model.EventListener, error) {
-	rows, err := c.Q.GetEnabledEventListenersUpdatesSince(ctx, pgtype.Timestamp{
-		Time:  updatedSince.UTC(),
-		Valid: true,
+func (c *Client) EventListenersUpdatedSince(ctx context.Context, updatedSince time.Time) ([]*model.EventListener, error) {
+	rows, err := c.Q.GetEventListenersUpdatedSince(ctx, pgmodel.GetEventListenersUpdatedSinceParams{
+		UpdatedSince:    pgtype.Timestamp{Time: updatedSince.UTC(), Valid: true},
+		IncludeDisabled: !updatedSince.IsZero(),
 	})
 	if err != nil {
 		return nil, err
@@ -146,6 +163,10 @@ func (c *Client) EnabledEventListenersUpdatedSince(ctx context.Context, updatedS
 	}
 
 	return listeners, nil
+}
+
+func (c *Client) EnabledScheduledEventListenerIDs(ctx context.Context) ([]string, error) {
+	return c.Q.GetEnabledScheduledEventListenerIDs(ctx)
 }
 
 func (c *Client) EnabledEventListenerIDs(ctx context.Context) ([]string, error) {
@@ -191,5 +212,6 @@ func rowToEventListener(row pgmodel.EventListener) (*model.EventListener, error)
 		FlowSource:    flowSource,
 		CreatedAt:     row.CreatedAt.Time,
 		UpdatedAt:     row.UpdatedAt.Time,
+		LastRunAt:     null.NewTime(row.LastRunAt.Time, row.LastRunAt.Valid),
 	}, nil
 }

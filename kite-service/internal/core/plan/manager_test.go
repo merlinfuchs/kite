@@ -3,6 +3,7 @@ package plan
 import (
 	"testing"
 
+	"github.com/kitecloud/kite/kite-service/internal/config"
 	"github.com/kitecloud/kite/kite-service/internal/model"
 )
 
@@ -54,5 +55,19 @@ func TestDefaultFeaturesWithNoDefaultPlan(t *testing.T) {
 
 	if got := m.DefaultFeatures().UsageCreditsPerMonth; got != 0 {
 		t.Errorf("floor with no default plan = %d, want 0", got)
+	}
+}
+
+func TestPlansFromConfigDefaultsMinScheduleInterval(t *testing.T) {
+	plans := PlansFromConfig([]config.BillingPlanConfig{
+		{ID: "unset"},
+		{ID: "premium", FeatureMinScheduleIntervalSeconds: 1},
+	})
+
+	if got, want := plans[0].FeatureMinScheduleIntervalSeconds, int(model.DefaultMinScheduleInterval.Seconds()); got != want {
+		t.Errorf("unset interval = %d, want %d", got, want)
+	}
+	if got := plans[1].FeatureMinScheduleIntervalSeconds; got != 1 {
+		t.Errorf("configured interval = %d, want 1", got)
 	}
 }

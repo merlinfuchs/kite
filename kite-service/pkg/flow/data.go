@@ -12,6 +12,7 @@ import (
 	"github.com/kitecloud/kite/kite-service/pkg/eval"
 	"github.com/kitecloud/kite/kite-service/pkg/message"
 	"github.com/kitecloud/kite/kite-service/pkg/provider"
+	"github.com/kitecloud/kite/kite-service/pkg/schedule"
 	"github.com/openai/openai-go/v2"
 	"gopkg.in/guregu/null.v4"
 )
@@ -114,6 +115,10 @@ const (
 	FlowNodeTypeSuspendResponseModal FlowNodeType = "suspend_response_modal"
 )
 
+// EventTypeScheduleCron is the event type of listeners that run on a cron
+// schedule instead of reacting to Discord events.
+const EventTypeScheduleCron = "cron"
+
 type FlowNode struct {
 	ID       string           `json:"id"`
 	Type     FlowNodeType     `json:"type,omitempty"`
@@ -160,7 +165,7 @@ type FlowNodeData struct {
 	// Command Installations
 	CommandDisabledIntegrations []CommandDisabledIntegrationType `json:"command_disabled_integrations,omitempty"`
 
-	// Guild Get
+	// Guild Get, and the guild of member, channel, role and voice blocks
 	GuildTarget string `json:"guild_target,omitempty"`
 
 	// Message & Response Create, Edit, Delete
@@ -217,7 +222,8 @@ type FlowNodeData struct {
 	RandomMax string `json:"random_max,omitempty"`
 
 	// Event Entry
-	EventType string `json:"event_type,omitempty"`
+	EventType         string `json:"event_type,omitempty"`
+	EventScheduleCron string `json:"event_schedule_cron,omitempty"`
 
 	// Event Filter
 	EventFilterTarget EventFilterTarget `json:"event_filter_target,omitempty"`
@@ -283,6 +289,15 @@ func (d FlowNodeData) Validate(nodeType FlowNodeType) error {
 		validation.Field(&d.Description, validation.When(nodeType == FlowNodeTypeEntryEvent,
 			validation.Required,
 			validation.Length(1, 100),
+		)),
+		validation.Field(&d.EventScheduleCron, validation.When(
+			nodeType == FlowNodeTypeEntryEvent && d.EventType == EventTypeScheduleCron,
+			validation.Required,
+			validation.Length(1, 100),
+			validation.By(func(value any) error {
+				_, err := schedule.Parse(value.(string))
+				return err
+			}),
 		)),
 
 		// AI Chat Completion

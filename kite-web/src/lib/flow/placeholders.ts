@@ -45,6 +45,18 @@ function interactionPlaceholders(
   prefix = "",
   labelPrefix = ""
 ): PlaceholderGroup[] {
+  if (contextType === "event_schedule") {
+    return [
+      {
+        label: `${labelPrefix}Schedule`,
+        placeholders: [
+          { label: "Scheduled Time (UTC)", value: `${prefix}schedule.time` },
+          { label: "Scheduled Time (Unix)", value: `${prefix}schedule.unix` },
+        ],
+      },
+    ];
+  }
+
   const res = [
     {
       label: `${labelPrefix}User`,

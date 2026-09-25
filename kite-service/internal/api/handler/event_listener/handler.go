@@ -11,6 +11,7 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/store"
 	"github.com/kitecloud/kite/kite-service/internal/util"
 	"github.com/kitecloud/kite/kite-service/pkg/flow"
+	"github.com/kitecloud/kite/kite-service/pkg/schedule"
 )
 
 type EventListenerHandler struct {
@@ -42,27 +43,21 @@ func (h *EventListenerHandler) HandleEventListenerGet(c *handler.Context) (*wire
 }
 
 func (h *EventListenerHandler) HandleEventListenerCreate(c *handler.Context, req wire.EventListenerCreateRequest) (*wire.EventListenerCreateResponse, error) {
-	if c.Features.MaxEventListeners != 0 {
-		eventListenerCount, err := h.eventListenerStore.CountEventListenersByApp(c.Context(), c.App.ID)
-		if err != nil {
-			return nil, fmt.Errorf("failed to count event listeners: %w", err)
-		}
-
-		if eventListenerCount >= c.Features.MaxEventListeners {
-			return nil, handler.ErrBadRequest("resource_limit", fmt.Sprintf("maximum number of event listeners (%d) reached", c.Features.MaxEventListeners))
-		}
+	source := model.EventSource(req.Source)
+	eventFlow, err := compileEventListener(c, source, req.FlowSource)
+	if err != nil {
+		return nil, err
 	}
 
-	eventFlow, err := flow.CompileEventListener(req.FlowSource)
-	if err != nil {
-		return nil, fmt.Errorf("failed to compile event listener: %w", err)
+	if err := h.checkEventListenerLimit(c, map[model.EventSource]int{source: 1}); err != nil {
+		return nil, err
 	}
 
 	eventListener, err := h.eventListenerStore.CreateEventListener(c.Context(), &model.EventListener{
 		ID:            util.UniqueID(),
 		AppID:         c.App.ID,
 		CreatorUserID: c.Session.UserID,
-		Source:        model.EventSource(req.Source),
+		Source:        source,
 		Type:          model.EventListenerType(eventFlow.EventListenerType()),
 		Description:   eventFlow.EventDescription(),
 		// TODO: Filter:        eventFlow.EventListenerFilter(),
@@ -79,34 +74,34 @@ func (h *EventListenerHandler) HandleEventListenerCreate(c *handler.Context, req
 }
 
 func (h *EventListenerHandler) HandleEventListenersImport(c *handler.Context, req wire.EventListenersImportRequest) (*wire.EventListenersImportResponse, error) {
-	if c.Features.MaxEventListeners != 0 {
-		eventListenerCount, err := h.eventListenerStore.CountEventListenersByApp(c.Context(), c.App.ID)
+	eventFlows := make([]*flow.CompiledFlowNode, len(req.EventListeners))
+	added := make(map[model.EventSource]int)
+
+	for i, listener := range req.EventListeners {
+		source := model.EventSource(listener.Source)
+		eventFlow, err := compileEventListener(c, source, listener.FlowSource)
 		if err != nil {
-			return nil, fmt.Errorf("failed to count event listeners: %w", err)
+			return nil, err
 		}
 
-		newEventListenerCount := eventListenerCount + len(req.EventListeners)
+		eventFlows[i] = eventFlow
+		added[source]++
+	}
 
-		if newEventListenerCount > c.Features.MaxEventListeners {
-			return nil, handler.ErrBadRequest("resource_limit", fmt.Sprintf("maximum number of event listeners (%d) reached", c.Features.MaxEventListeners))
-		}
+	if err := h.checkEventListenerLimit(c, added); err != nil {
+		return nil, err
 	}
 
 	res := make([]*wire.EventListener, len(req.EventListeners))
 
 	for i, listener := range req.EventListeners {
-		eventFlow, err := flow.CompileEventListener(listener.FlowSource)
-		if err != nil {
-			return nil, fmt.Errorf("failed to compile event listener: %w", err)
-		}
-
 		eventListener, err := h.eventListenerStore.CreateEventListener(c.Context(), &model.EventListener{
 			ID:            util.UniqueID(),
 			AppID:         c.App.ID,
 			CreatorUserID: c.Session.UserID,
 			Source:        model.EventSource(listener.Source),
-			Type:          model.EventListenerType(eventFlow.EventListenerType()),
-			Description:   eventFlow.EventDescription(),
+			Type:          model.EventListenerType(eventFlows[i].EventListenerType()),
+			Description:   eventFlows[i].EventDescription(),
 			// TODO: Filter:        eventFlow.EventListenerFilter(),
 			FlowSource: listener.FlowSource,
 			Enabled:    listener.Enabled,
@@ -124,9 +119,11 @@ func (h *EventListenerHandler) HandleEventListenersImport(c *handler.Context, re
 }
 
 func (h *EventListenerHandler) HandleEventListenerUpdate(c *handler.Context, req wire.EventListenerUpdateRequest) (*wire.EventListenerUpdateResponse, error) {
-	eventFlow, err := flow.CompileEventListener(req.FlowSource)
+	// The source is fixed at creation because it decides which limit the
+	// listener counts against.
+	eventFlow, err := compileEventListener(c, c.EventListener.Source, req.FlowSource)
 	if err != nil {
-		return nil, fmt.Errorf("failed to compile event listener: %w", err)
+		return nil, err
 	}
 
 	eventListener, err := h.eventListenerStore.UpdateEventListener(c.Context(), &model.EventListener{
@@ -177,4 +174,67 @@ func (h *EventListenerHandler) HandleEventListenerDelete(c *handler.Context) (*w
 	}
 
 	return &wire.EventListenerDeleteResponse{}, nil
+}
+
+// compileEventListener compiles the flow and checks that it matches the
+// requested source. Scheduled listeners are also checked against the app's
+// minimum schedule interval.
+func compileEventListener(c *handler.Context, source model.EventSource, flowSource flow.FlowData) (*flow.CompiledFlowNode, error) {
+	eventFlow, err := flow.CompileEventListener(flowSource)
+	if err != nil {
+		return nil, handler.ErrBadRequest("invalid_flow", err.Error())
+	}
+
+	if typeSource := model.EventSourceForType(model.EventListenerType(eventFlow.EventListenerType())); typeSource != source {
+		return nil, handler.ErrBadRequest(
+			"invalid_source",
+			fmt.Sprintf("event type %s belongs to source %s, not %s", eventFlow.EventListenerType(), typeSource, source),
+		)
+	}
+
+	if source == model.EventSourceSchedule {
+		sched, err := schedule.Parse(eventFlow.EventScheduleCron())
+		if err != nil {
+			return nil, handler.ErrBadRequest("invalid_schedule", err.Error())
+		}
+
+		minInterval := c.Features.MinScheduleInterval()
+		gap := sched.MinGap(time.Now().UTC())
+		if gap == 0 {
+			return nil, handler.ErrBadRequest("invalid_schedule", "schedule never runs")
+		}
+		if gap < minInterval {
+			return nil, handler.ErrBadRequest(
+				"schedule_too_frequent",
+				fmt.Sprintf("schedule runs every %s, but your plan allows at most one run every %s", gap, minInterval),
+			)
+		}
+	}
+
+	return eventFlow, nil
+}
+
+// checkEventListenerLimit checks that the app can have added more listeners
+// of each source. Scheduled listeners have their own, separate limit.
+func (h *EventListenerHandler) checkEventListenerLimit(c *handler.Context, added map[model.EventSource]int) error {
+	for source, count := range added {
+		limit, name := c.Features.MaxEventListeners, "event listeners"
+		if source == model.EventSourceSchedule {
+			limit, name = c.Features.MaxScheduledEventListeners, "scheduled event listeners"
+		}
+		if limit == 0 {
+			continue
+		}
+
+		existing, err := h.eventListenerStore.CountEventListenersByAppAndSource(c.Context(), c.App.ID, source)
+		if err != nil {
+			return fmt.Errorf("failed to count event listeners: %w", err)
+		}
+
+		if existing+count > limit {
+			return handler.ErrBadRequest("resource_limit", fmt.Sprintf("maximum number of %s (%d) reached", name, limit))
+		}
+	}
+
+	return nil
 }

@@ -140,8 +140,8 @@ export const nodeTypes: Record<string, NodeValues> = {
     defaultDescription:
       "Listens for an event to trigger the flow. Drop different actions here!",
     dataSchema: nodeEntryEventDataSchema,
-    dataFields: ["event_type", "description"],
-    contexts: ["event_discord"],
+    dataFields: ["event_type", "event_schedule_cron", "description"],
+    contexts: ["event_discord", "event_schedule"],
     fixed: true,
   },
   entry_component_button: {
@@ -333,6 +333,7 @@ export const nodeTypes: Record<string, NodeValues> = {
     defaultDescription: "Ban a member from the server",
     dataSchema: nodeActionMemberBanDataSchema,
     dataFields: [
+      "guild_target",
       "user_target",
       "member_ban_delete_message_duration_seconds",
       "audit_log_reason",
@@ -346,7 +347,7 @@ export const nodeTypes: Record<string, NodeValues> = {
     defaultTitle: "Unban member",
     defaultDescription: "Unban a member from the server",
     dataSchema: nodeActionMemberUnbanDataSchema,
-    dataFields: ["user_target", "audit_log_reason", "custom_label"],
+    dataFields: ["guild_target", "user_target", "audit_log_reason", "custom_label"],
     creditsCost: 1,
   },
   action_member_kick: {
@@ -355,7 +356,7 @@ export const nodeTypes: Record<string, NodeValues> = {
     defaultTitle: "Kick member",
     defaultDescription: "Kick a member from the server",
     dataSchema: nodeActionMemberKickDataSchema,
-    dataFields: ["user_target", "audit_log_reason", "custom_label"],
+    dataFields: ["guild_target", "user_target", "audit_log_reason", "custom_label"],
     creditsCost: 1,
   },
   action_member_timeout: {
@@ -365,6 +366,7 @@ export const nodeTypes: Record<string, NodeValues> = {
     defaultDescription: "Timeout a member in the server",
     dataSchema: nodeActionMemberTimeoutDataSchema,
     dataFields: [
+      "guild_target",
       "user_target",
       "member_timeout_duration_seconds",
       "audit_log_reason",
@@ -379,6 +381,7 @@ export const nodeTypes: Record<string, NodeValues> = {
     defaultDescription: "Edit a member in the server",
     dataSchema: nodeActionMemberEditDataSchema,
     dataFields: [
+      "guild_target",
       "user_target",
       "member_nick",
       "audit_log_reason",
@@ -393,6 +396,7 @@ export const nodeTypes: Record<string, NodeValues> = {
     defaultDescription: "Add a role to a member",
     dataSchema: nodeActionMemberRoleAddDataSchema,
     dataFields: [
+      "guild_target",
       "user_target",
       "role_target",
       "audit_log_reason",
@@ -407,6 +411,7 @@ export const nodeTypes: Record<string, NodeValues> = {
     defaultDescription: "Remove a role from a member",
     dataSchema: nodeActionMemberRoleRemoveDataSchema,
     dataFields: [
+      "guild_target",
       "user_target",
       "role_target",
       "audit_log_reason",
@@ -656,9 +661,9 @@ export const nodeTypes: Record<string, NodeValues> = {
     color: actionColor,
     icon: "phone-off",
     defaultTitle: "Leave voice channel",
-    defaultDescription: "Bot leaves its voice channel in the current server",
+    defaultDescription: "Bot leaves its voice channel in a server",
     dataSchema: nodeActionVoiceChannelLeaveDataSchema,
-    dataFields: ["custom_label"],
+    dataFields: ["guild_target", "custom_label"],
     creditsCost: 1,
   },
   action_status_set: {
@@ -974,6 +979,15 @@ export function isKnownNodeType(nodeType: string) {
 
 export function getNodeValues(nodeType: string): NodeValues {
   return isKnownNodeType(nodeType) ? nodeTypes[nodeType] : unknownNodeType;
+}
+
+export function getNodeCreditsCost(
+  values: NodeValues,
+  data: NodeData
+): number | undefined {
+  return typeof values.creditsCost === "function"
+    ? values.creditsCost(data)
+    : values.creditsCost;
 }
 
 // The IDs of the outputs edges can start from. Message blocks also get one per

@@ -37,6 +37,7 @@ type App struct {
 	// reference and drop the lock before dispatching.
 	commandsByName  map[string]*Command
 	listenersByType map[model.EventListenerType][]*EventListener
+	scheduled       []*EventListener
 	// TODO?: Cache messages (LRUCache<*MessageInstance>)
 }
 
@@ -65,18 +66,28 @@ func (a *App) rebuildCommandIndex() {
 	a.commandsByName = index
 }
 
-// rebuildListenerIndex regenerates the event type lookup from a.listeners,
-// dropping any listener that isn't sourced from Discord. Callers must hold the
+// rebuildListenerIndex regenerates the event type lookup of Discord listeners
+// and the list of scheduled listeners from a.listeners. Callers must hold the
 // write lock.
 func (a *App) rebuildListenerIndex() {
 	index := make(map[model.EventListenerType][]*EventListener, len(a.listeners))
+	var scheduled []*EventListener
 	for _, listener := range a.listeners {
-		if listener.listener.Source != model.EventSourceDiscord {
-			continue
+		switch listener.listener.Source {
+		case model.EventSourceDiscord:
+			index[listener.listener.Type] = append(index[listener.listener.Type], listener)
+		case model.EventSourceSchedule:
+			scheduled = append(scheduled, listener)
 		}
-		index[listener.listener.Type] = append(index[listener.listener.Type], listener)
 	}
 	a.listenersByType = index
+	a.scheduled = scheduled
+}
+
+func (a *App) scheduledEventListeners() []*EventListener {
+	a.RLock()
+	defer a.RUnlock()
+	return a.scheduled
 }
 
 func (a *App) AddPluginInstance(pluginInstance *model.PluginInstance) {
@@ -182,8 +193,41 @@ func (a *App) AddEventListener(listenerID string, listener *EventListener) {
 	a.Lock()
 	defer a.Unlock()
 
+	if old, ok := a.listeners[listenerID]; ok && old.schedule != nil && listener.schedule != nil {
+		listener.schedule.takeOver(old.schedule)
+	}
+
 	a.listeners[listenerID] = listener
 	a.rebuildListenerIndex()
+}
+
+// RemoveDeletedScheduledListeners drops scheduled listeners absent from
+// enabledIDs, the enabled scheduled listeners that still exist.
+func (a *App) RemoveDeletedScheduledListeners(enabledIDs map[string]struct{}) {
+	a.Lock()
+	defer a.Unlock()
+
+	var removed bool
+	for _, listener := range a.scheduled {
+		if _, ok := enabledIDs[listener.listener.ID]; !ok {
+			delete(a.listeners, listener.listener.ID)
+			removed = true
+		}
+	}
+
+	if removed {
+		a.rebuildListenerIndex()
+	}
+}
+
+func (a *App) RemoveEventListener(listenerID string) {
+	a.Lock()
+	defer a.Unlock()
+
+	if _, ok := a.listeners[listenerID]; ok {
+		delete(a.listeners, listenerID)
+		a.rebuildListenerIndex()
+	}
 }
 
 // RemoveDanglingEventListeners drops listeners absent from enabledIDs, the set

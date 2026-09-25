@@ -211,8 +211,18 @@ export const nodeEntryEventDataSchema = nodeBaseDataSchema.extend({
       "message_delete",
       "guild_member_add",
       "guild_member_remove",
+      "cron",
     ])
-    .describe("Discord event that triggers the flow."),
+    .describe(
+      "Discord event that triggers the flow, or cron for a scheduled flow."
+    ),
+  event_schedule_cron: z
+    .string()
+    .max(100)
+    .optional()
+    .describe(
+      "Cron expression in UTC for scheduled flows, e.g. */5 * * * * for every five minutes."
+    ),
   description: z
     .string()
     .max(100)
@@ -427,6 +437,7 @@ export const nodeActionMessageReactionDeleteDataSchema =
   });
 
 export const nodeActionMemberBanDataSchema = nodeBaseDataSchema.extend({
+  guild_target: guildTargetSchema.optional(),
   user_target: userTargetSchema,
   member_ban_delete_message_duration_seconds: numericOrPlaceholder(
     "Delete the member's messages from this many seconds before the ban."
@@ -435,6 +446,7 @@ export const nodeActionMemberBanDataSchema = nodeBaseDataSchema.extend({
 });
 
 export const nodeActionMemberUnbanDataSchema = nodeBaseDataSchema.extend({
+  guild_target: guildTargetSchema.optional(),
   user_target: userTargetSchema,
   audit_log_reason: auditLogReasonSchema,
 });
@@ -442,6 +454,7 @@ export const nodeActionMemberUnbanDataSchema = nodeBaseDataSchema.extend({
 export const nodeActionMemberKickDataSchema = nodeActionMemberUnbanDataSchema;
 
 export const nodeActionMemberTimeoutDataSchema = nodeBaseDataSchema.extend({
+  guild_target: guildTargetSchema.optional(),
   user_target: userTargetSchema,
   member_timeout_duration_seconds: numericOrPlaceholder(
     "How many seconds the member is timed out for."
@@ -450,6 +463,7 @@ export const nodeActionMemberTimeoutDataSchema = nodeBaseDataSchema.extend({
 });
 
 export const nodeActionMemberEditDataSchema = nodeBaseDataSchema.extend({
+  guild_target: guildTargetSchema.optional(),
   user_target: userTargetSchema,
   member_data: z
     .object({
@@ -460,6 +474,7 @@ export const nodeActionMemberEditDataSchema = nodeBaseDataSchema.extend({
 });
 
 export const nodeActionMemberRoleAddDataSchema = nodeBaseDataSchema.extend({
+  guild_target: guildTargetSchema.optional(),
   user_target: userTargetSchema,
   role_target: roleTargetSchema,
   audit_log_reason: auditLogReasonSchema,
@@ -651,20 +666,35 @@ export const nodeActionVoiceChannelJoinDataSchema = nodeBaseDataSchema.extend({
     .describe("Whether the bot joins deafened."),
 });
 
-export const nodeActionVoiceChannelLeaveDataSchema = nodeBaseDataSchema.extend(
-  {}
-);
+export const nodeActionVoiceChannelLeaveDataSchema = nodeBaseDataSchema.extend({
+  guild_target: guildTargetSchema.optional(),
+});
 
 export const nodeActionStatusSetDataSchema = nodeBaseDataSchema.extend({
   status_data: z
     .object({
-      status: z.enum(["online", "idle", "dnd", "invisible"]).optional(),
-      activity_type: z.number().optional(),
-      activity_name: z.string().min(1).max(128),
-      activity_url: z.string().optional(),
+      status: z
+        .enum(["online", "idle", "dnd", "invisible"])
+        .optional()
+        .describe("Online status of the bot. Defaults to online."),
+      activity_type: z
+        .number()
+        .optional()
+        .describe(
+          "Activity type: 0 Playing, 1 Streaming, 2 Listening, 3 Watching, 4 Custom, 5 Competing."
+        ),
+      activity_name: templated(
+        z.string().min(1).max(128),
+        "Text of the activity shown on the bot's profile."
+      ),
+      activity_url: templated(
+        z.string(),
+        "Stream URL, only used by the Streaming activity type."
+      ).optional(),
     })
     // Validates the fields even before any was set, so their errors show up
-    .default({ activity_name: "" }),
+    .default({ activity_name: "" })
+    .describe("The status to set."),
 });
 
 export const nodeActionHttpRequestDataSchema = nodeBaseDataSchema.extend({

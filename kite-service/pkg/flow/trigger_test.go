@@ -3,11 +3,13 @@ package flow
 import (
 	"encoding/json"
 	"testing"
+	"time"
 
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/gateway"
 	arikawajson "github.com/diamondburned/arikawa/v3/utils/json"
 	"github.com/diamondburned/arikawa/v3/utils/ws"
+	"github.com/kitecloud/kite/kite-service/pkg/schedule"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -131,4 +133,22 @@ func TestRecordTriggerKeepsFirstAndNewestTriggers(t *testing.T) {
 		values = append(values, (*row)[0].(*discord.TextInputComponent).Value)
 	}
 	assert.Equal(t, []string{"1", "4", "5", "6"}, values)
+}
+
+func TestFlowTriggerScheduleEventRoundTrip(t *testing.T) {
+	// A button sent by a scheduled flow resumes with the schedule event as the
+	// trigger that started it.
+	occurrence := time.Date(2026, 9, 25, 12, 0, 0, 0, time.UTC)
+	trigger := newFlowTrigger(&eventData{event: &schedule.Event{Time: occurrence}})
+	require.NotNil(t, trigger)
+
+	data, err := json.Marshal(trigger)
+	require.NoError(t, err)
+
+	var decoded FlowTrigger
+	require.NoError(t, json.Unmarshal(data, &decoded))
+
+	event, ok := decoded.Event.(*schedule.Event)
+	require.True(t, ok, "decoded event is %T", decoded.Event)
+	assert.True(t, event.Time.Equal(occurrence))
 }

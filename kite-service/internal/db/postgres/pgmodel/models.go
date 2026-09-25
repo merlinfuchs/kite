@@ -83,6 +83,7 @@ type EventListener struct {
 	FlowSource    []byte
 	CreatedAt     pgtype.Timestamp
 	UpdatedAt     pgtype.Timestamp
+	LastRunAt     pgtype.Timestamp
 }
 
 type Log struct {

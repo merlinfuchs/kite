@@ -22,6 +22,7 @@ type EventListener struct {
 	FlowSource    flow.FlowData        `json:"flow_source"`
 	CreatedAt     time.Time            `json:"created_at"`
 	UpdatedAt     time.Time            `json:"updated_at"`
+	LastRunAt     null.Time            `json:"last_run_at"`
 }
 
 type EventListenerFilter struct{}
@@ -38,7 +39,7 @@ type EventListenerCreateRequest struct {
 
 func (req EventListenerCreateRequest) Validate() error {
 	return validation.ValidateStruct(&req,
-		validation.Field(&req.Source, validation.Required, validation.In(string(model.EventSourceDiscord))),
+		validation.Field(&req.Source, validation.Required, validation.In(string(model.EventSourceDiscord), string(model.EventSourceSchedule))),
 		validation.Field(&req.FlowSource, validation.Required),
 	)
 }
@@ -100,5 +101,6 @@ func EventListenerToWire(eventListener *model.EventListener) *EventListener {
 		FlowSource:    eventListener.FlowSource,
 		CreatedAt:     eventListener.CreatedAt,
 		UpdatedAt:     eventListener.UpdatedAt,
+		LastRunAt:     eventListener.LastRunAt,
 	}
 }
