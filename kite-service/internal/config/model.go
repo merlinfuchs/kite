@@ -16,6 +16,7 @@ type Config struct {
 	Engine     EngineConfig     `toml:"engine"`
 	Gateway    GatewayConfig    `toml:"gateway"`
 	OpenAI     OpenAIConfig     `toml:"openai"`
+	FlowAI     FlowAIConfig     `toml:"flow_ai"`
 	Billing    BillingConfig    `toml:"billing"`
 	Encryption EncryptionConfig `toml:"encryption"`
 	HTTP       HTTPConfig       `toml:"http"`
@@ -160,6 +161,17 @@ type OpenAIConfig struct {
 	APIKey string `toml:"api_key"`
 }
 
+// FlowAIConfig configures the AI that edits flows in the editor. It uses the
+// OpenAI API key.
+type FlowAIConfig struct {
+	Model           string `toml:"model"`
+	ReasoningEffort string `toml:"reasoning_effort"`
+	// Caps each model call, reasoning included, so a prompt's cost is bounded.
+	MaxOutputTokens int `toml:"max_output_tokens"`
+	// Repairs of a prompt's edits that don't count as new prompts.
+	MaxRepairs int `toml:"max_repairs"`
+}
+
 type BillingConfig struct {
 	LemonSqueezyAPIKey        string              `toml:"lemonsqueezy_api_key"`
 	LemonSqueezySigningSecret string              `toml:"lemonsqueezy_signing_secret"`
@@ -194,4 +206,7 @@ type BillingPlanConfig struct {
 
 	FeatureMaxScheduledEventListeners int `toml:"feature_max_scheduled_event_listeners"`
 	FeatureMinScheduleIntervalSeconds int `toml:"feature_min_schedule_interval_seconds"`
+
+	// Prompts to the flow AI per month. Unlike other limits, 0 means none.
+	FeatureMaxAIPromptsPerMonth int `toml:"feature_max_ai_prompts_per_month"`
 }

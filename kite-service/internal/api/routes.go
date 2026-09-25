@@ -14,6 +14,7 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/billing"
 	commandhandler "github.com/kitecloud/kite/kite-service/internal/api/handler/command"
 	eventlistener "github.com/kitecloud/kite/kite-service/internal/api/handler/event_listener"
+	flowaihandler "github.com/kitecloud/kite/kite-service/internal/api/handler/flowai"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/logs"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/message"
 	pluginhandler "github.com/kitecloud/kite/kite-service/internal/api/handler/plugin"
@@ -24,6 +25,7 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/api/session"
 	corebilling "github.com/kitecloud/kite/kite-service/internal/core/billing"
 	"github.com/kitecloud/kite/kite-service/internal/core/command"
+	"github.com/kitecloud/kite/kite-service/internal/core/flowai"
 	"github.com/kitecloud/kite/kite-service/internal/core/plan"
 	"github.com/kitecloud/kite/kite-service/internal/store"
 	"github.com/kitecloud/kite/kite-service/internal/util"
@@ -53,6 +55,8 @@ func (s *APIServer) RegisterRoutes(
 	pluginRegistry *plugin.Registry,
 	tokenCrypt *util.SymmetricCrypt,
 	commandManager *command.CommandManager,
+	flowAIPromptStore store.FlowAIPromptStore,
+	flowAssistant *flowai.Assistant,
 ) {
 	sessionManager := session.NewSessionManager(session.SessionManagerConfig{
 		StrictCookies: s.config.StrictCookies,
@@ -198,6 +202,13 @@ func (s *APIServer) RegisterRoutes(
 	logsGroup := appGroup.Group("/logs", accessManager.AppAccess)
 	logsGroup.Get("/", handler.Typed(logHandler.HandleLogEntryList))
 	logsGroup.Get("/summary", handler.Typed(logHandler.HandleLogSummaryGet))
+
+	// Flow AI routes
+	flowAIHandler := flowaihandler.NewFlowAIHandler(flowAIPromptStore, flowAssistant, s.config.FlowAIMaxRepairs)
+
+	flowAIGroup := appGroup.Group("/flow-ai")
+	flowAIGroup.Get("/usage", handler.Typed(flowAIHandler.HandleFlowAIUsageGet))
+	flowAIGroup.Post("/chat", handler.TypedWithBody(flowAIHandler.HandleFlowAIChat))
 
 	// Usage routes
 	usageHandler := usage.NewUsageHandler(usageStore)

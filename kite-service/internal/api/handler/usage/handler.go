@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/kitecloud/kite/kite-service/internal/util"
+
 	"github.com/kitecloud/kite/kite-service/internal/api/handler"
 	"github.com/kitecloud/kite/kite-service/internal/api/wire"
 	"github.com/kitecloud/kite/kite-service/internal/store"
@@ -20,7 +22,7 @@ func NewUsageHandler(usageStore store.UsageStore) *UsageHandler {
 }
 
 func (h *UsageHandler) HandleUsageCreditsGet(c *handler.Context) (*wire.UsageCreditsGetResponse, error) {
-	start, end := startAndEndOfMonth(time.Now().UTC())
+	start, end := util.StartAndEndOfMonth(time.Now().UTC())
 
 	creditsUsed, err := h.usageStore.UsageCreditsUsedBetween(c.Context(), c.App.ID, start, end)
 	if err != nil {
@@ -33,7 +35,7 @@ func (h *UsageHandler) HandleUsageCreditsGet(c *handler.Context) (*wire.UsageCre
 }
 
 func (h *UsageHandler) HandleUsageByDayList(c *handler.Context) (*wire.UsageByDayListResponse, error) {
-	start, end := startAndEndOfMonth(time.Now().UTC())
+	start, end := util.StartAndEndOfMonth(time.Now().UTC())
 
 	entries, err := h.usageStore.UsageCreditsUsedByDayBetween(c.Context(), c.App.ID, start, end)
 	if err != nil {
@@ -52,7 +54,7 @@ func (h *UsageHandler) HandleUsageByDayList(c *handler.Context) (*wire.UsageByDa
 }
 
 func (h *UsageHandler) HandleUsageByTypeList(c *handler.Context) (*wire.UsageByTypeListResponse, error) {
-	start, end := startAndEndOfMonth(time.Now().UTC())
+	start, end := util.StartAndEndOfMonth(time.Now().UTC())
 
 	entries, err := h.usageStore.UsageCreditsUsedByTypeBetween(c.Context(), c.App.ID, start, end)
 	if err != nil {
@@ -68,11 +70,4 @@ func (h *UsageHandler) HandleUsageByTypeList(c *handler.Context) (*wire.UsageByT
 	}
 
 	return &res, nil
-}
-
-func startAndEndOfMonth(t time.Time) (time.Time, time.Time) {
-	year, month, _ := t.Date()
-	start := time.Date(year, month, 1, 0, 0, 0, 0, t.Location())
-	end := start.AddDate(0, 1, 0).Add(-time.Nanosecond)
-	return start, end
 }

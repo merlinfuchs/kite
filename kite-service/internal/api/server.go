@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"github.com/kitecloud/kite/kite-service/internal/core/flowai"
 	"log/slog"
 	"net/http"
 	"time"
@@ -26,6 +27,7 @@ type APIServerConfig struct {
 	DiscordClientSecret string
 	UserLimits          APIUserLimitsConfig
 	Billing             BillingConfig
+	FlowAIMaxRepairs    int
 }
 
 type APIUserLimitsConfig struct {
@@ -70,6 +72,8 @@ func NewAPIServer(
 	pluginRegistry *plugin.Registry,
 	tokenCrypt *util.SymmetricCrypt,
 	commandManager *command.CommandManager,
+	flowAIPromptStore store.FlowAIPromptStore,
+	flowAssistant *flowai.Assistant,
 ) *APIServer {
 	s := &APIServer{
 		config: config,
@@ -97,6 +101,8 @@ func NewAPIServer(
 		pluginRegistry,
 		tokenCrypt,
 		commandManager,
+		flowAIPromptStore,
+		flowAssistant,
 	)
 	return s
 }
