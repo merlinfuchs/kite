@@ -97,6 +97,7 @@ export const nodeCategories: Record<
         "action_channel_edit",
         "action_channel_delete",
         "action_channel_get",
+        "action_invite_create",
         "action_thread_create",
         "action_thread_member_add",
         "action_thread_member_remove",

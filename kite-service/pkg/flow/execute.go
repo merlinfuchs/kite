@@ -1025,6 +1025,47 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 		}
 
 		return n.ExecuteChildren(ctx)
+	case FlowNodeTypeActionInviteCreate:
+		channelID := ctx.Data.ChannelID()
+
+		if n.Data.ChannelTarget != "" {
+			channelTarget, err := ctx.EvalTemplate(n.Data.ChannelTarget)
+			if err != nil {
+				return traceError(n, err)
+			}
+
+			channelID = discord.ChannelID(channelTarget.Snowflake())
+		}
+
+		inviteData := api.CreateInviteData{}
+		if n.Data.InviteData != nil {
+			var err error
+			inviteData, err = n.Data.InviteData.ToCreateInviteData(ctx, ctx.EvalCtx)
+			if err != nil {
+				return traceError(n, err)
+			}
+		}
+
+		auditLogReason, err := ctx.EvalTemplate(n.Data.AuditLogReason)
+		if err != nil {
+			return traceError(n, err)
+		}
+		inviteData.AuditLogReason = api.AuditLogReason(auditLogReason.String())
+
+		invite, err := ctx.Discord.CreateInvite(ctx, channelID, inviteData)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		ctx.StoreNodeResult(n, thing.NewDiscordInvite(thing.InviteValue{
+			Code:      invite.Code,
+			URL:       invite.URL(),
+			ChannelID: channelID.String(),
+			MaxAge:    int(invite.MaxAge),
+			MaxUses:   invite.MaxUses,
+			Temporary: invite.Temporary,
+		}))
+		return n.ExecuteChildren(ctx)
 	case FlowNodeTypeActionThreadCreate:
 		if n.Data.ChannelData == nil {
 			return traceError(n, fmt.Errorf("channel data is required"))

@@ -42,6 +42,7 @@ export const FlowNodeTypeActionChannelGet: FlowNodeType = "action_channel_get";
 export const FlowNodeTypeActionChannelCreate: FlowNodeType = "action_channel_create";
 export const FlowNodeTypeActionChannelEdit: FlowNodeType = "action_channel_edit";
 export const FlowNodeTypeActionChannelDelete: FlowNodeType = "action_channel_delete";
+export const FlowNodeTypeActionInviteCreate: FlowNodeType = "action_invite_create";
 export const FlowNodeTypeActionThreadCreate: FlowNodeType = "action_thread_create";
 export const FlowNodeTypeActionThreadMemberAdd: FlowNodeType = "action_thread_member_add";
 export const FlowNodeTypeActionThreadMemberRemove: FlowNodeType = "action_thread_member_remove";
@@ -149,10 +150,15 @@ export interface FlowNodeData {
   member_timeout_duration_seconds?: string;
   member_data?: MemberData;
   /**
-   * Channel Create, Edit, Delete, Get
+   * Channel Create, Edit, Delete, Get. Invite Create also uses ChannelTarget
+   * to optionally target a channel other than the one the flow is running in.
    */
   channel_target?: string;
   channel_data?: ChannelData;
+  /**
+   * Invite Create
+   */
+  invite_data?: InviteData;
   /**
    * Voice Channel Join
    */
@@ -300,6 +306,20 @@ export interface PermissionOverwriteData {
   type?: number /* int */;
   allow?: string;
   deny?: string;
+}
+export interface InviteData {
+  /**
+   * MaxAgeSeconds is how long the invite lasts before expiring, in seconds.
+   * 0 (or empty) means it never expires.
+   */
+  max_age_seconds?: string;
+  /**
+   * MaxUses is how many times the invite can be used before it stops
+   * working. 0 (or empty) means unlimited uses.
+   */
+  max_uses?: string;
+  temporary?: boolean;
+  unique?: boolean;
 }
 export interface RoleData {
   name?: string;

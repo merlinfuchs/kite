@@ -379,6 +379,15 @@ func (p *DiscordProvider) DeleteChannel(ctx context.Context, channelID discord.C
 	return nil
 }
 
+func (p *DiscordProvider) CreateInvite(ctx context.Context, channelID discord.ChannelID, data api.CreateInviteData) (*discord.Invite, error) {
+	invite, err := p.session.CreateInvite(channelID, data)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create invite: %w", err)
+	}
+
+	return invite, nil
+}
+
 func (p *DiscordProvider) StartThreadWithMessage(ctx context.Context, channelID discord.ChannelID, messageID discord.MessageID, data api.StartThreadData) (*discord.Channel, error) {
 	thread, err := p.session.StartThreadWithMessage(channelID, messageID, data)
 	if err != nil {
