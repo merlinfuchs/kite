@@ -1,6 +1,10 @@
 -- name: GetUser :one
 SELECT * FROM users WHERE id = $1;
 
+-- name: UpdateUserHideEmail :one
+UPDATE users SET hide_email = $2, updated_at = $3 WHERE id = $1
+RETURNING *;
+
 -- name: GetUserByDiscordID :one
 SELECT * FROM users WHERE discord_id = $1;
 

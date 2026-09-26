@@ -15,4 +15,5 @@ type User struct {
 	DiscordAvatar   null.String
 	CreatedAt       time.Time
 	UpdatedAt       time.Time
+	HideEmail       bool
 }

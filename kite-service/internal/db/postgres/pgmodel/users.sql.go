@@ -12,7 +12,7 @@ import (
 )
 
 const getUser = `-- name: GetUser :one
-SELECT id, email, display_name, discord_id, discord_username, discord_avatar, created_at, updated_at FROM users WHERE id = $1
+SELECT id, email, display_name, discord_id, discord_username, discord_avatar, created_at, updated_at, hide_email FROM users WHERE id = $1
 `
 
 func (q *Queries) GetUser(ctx context.Context, id string) (User, error) {
@@ -27,12 +27,13 @@ func (q *Queries) GetUser(ctx context.Context, id string) (User, error) {
 		&i.DiscordAvatar,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.HideEmail,
 	)
 	return i, err
 }
 
 const getUserByDiscordID = `-- name: GetUserByDiscordID :one
-SELECT id, email, display_name, discord_id, discord_username, discord_avatar, created_at, updated_at FROM users WHERE discord_id = $1
+SELECT id, email, display_name, discord_id, discord_username, discord_avatar, created_at, updated_at, hide_email FROM users WHERE discord_id = $1
 `
 
 func (q *Queries) GetUserByDiscordID(ctx context.Context, discordID string) (User, error) {
@@ -47,6 +48,7 @@ func (q *Queries) GetUserByDiscordID(ctx context.Context, discordID string) (Use
 		&i.DiscordAvatar,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.HideEmail,
 	)
 	return i, err
 }
@@ -71,7 +73,7 @@ DO UPDATE SET
     discord_username = EXCLUDED.discord_username,
     discord_avatar = EXCLUDED.discord_avatar,
     updated_at = EXCLUDED.updated_at
-RETURNING id, email, display_name, discord_id, discord_username, discord_avatar, created_at, updated_at
+RETURNING id, email, display_name, discord_id, discord_username, discord_avatar, created_at, updated_at, hide_email
 `
 
 type UpsertUserParams struct {
@@ -106,6 +108,35 @@ func (q *Queries) UpsertUser(ctx context.Context, arg UpsertUserParams) (User, e
 		&i.DiscordAvatar,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.HideEmail,
+	)
+	return i, err
+}
+
+const updateUserHideEmail = `-- name: UpdateUserHideEmail :one
+UPDATE users SET hide_email = $2, updated_at = $3 WHERE id = $1
+RETURNING id, email, display_name, discord_id, discord_username, discord_avatar, created_at, updated_at, hide_email
+`
+
+type UpdateUserHideEmailParams struct {
+	ID        string
+	HideEmail bool
+	UpdatedAt pgtype.Timestamp
+}
+
+func (q *Queries) UpdateUserHideEmail(ctx context.Context, arg UpdateUserHideEmailParams) (User, error) {
+	row := q.db.QueryRow(ctx, updateUserHideEmail, arg.ID, arg.HideEmail, arg.UpdatedAt)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.Email,
+		&i.DisplayName,
+		&i.DiscordID,
+		&i.DiscordUsername,
+		&i.DiscordAvatar,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.HideEmail,
 	)
 	return i, err
 }

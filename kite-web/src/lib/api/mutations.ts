@@ -63,10 +63,32 @@ import {
   VariableDeleteResponse,
   VariablesImportRequest,
   VariablesImportResponse,
+  UserUpdateRequest,
+  UserUpdateResponse,
   VariableUpdateRequest,
   VariableUpdateResponse,
 } from "../types/wire.gen";
 import client, { apiRequest } from "./client";
+
+export function useUserUpdateMutation() {
+  const client = useQueryClient();
+
+  return useMutation({
+    mutationFn: (req: UserUpdateRequest) =>
+      apiRequest<UserUpdateResponse>(`/v1/users/@me`, {
+        method: "PATCH",
+        body: JSON.stringify(req),
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }),
+    onSuccess: () => {
+      client.invalidateQueries({
+        queryKey: ["users"],
+      });
+    },
+  });
+}
 
 export function useAuthLogoutMutation() {
   const client = useQueryClient();

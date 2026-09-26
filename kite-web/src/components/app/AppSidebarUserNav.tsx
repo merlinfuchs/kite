@@ -3,6 +3,7 @@ import { ChevronsUpDown, LogOutIcon } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
+  DropdownMenuCheckboxItem,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
@@ -17,12 +18,22 @@ import {
 } from "@/components/ui/sidebar";
 import { useUser } from "@/lib/hooks/api";
 import { useLogout } from "@/lib/hooks/auth";
+import { useUserUpdateMutation } from "@/lib/api/mutations";
 
 export default function AppSidebarUserNav() {
   const { isMobile } = useSidebar();
 
   const user = useUser();
   const logout = useLogout();
+  const updateUser = useUserUpdateMutation();
+
+  const hideEmail = user?.hide_email ?? false;
+
+  function toggleHideEmail(value: boolean) {
+    updateUser.mutate({ hide_email: value });
+  }
+
+  const secondaryLabel = hideEmail ? user?.discord_username : user?.email;
 
   return (
     <SidebarMenu>
@@ -42,7 +53,7 @@ export default function AppSidebarUserNav() {
                 <span className="truncate font-semibold">
                   {user?.display_name}
                 </span>
-                <span className="truncate text-xs">{user?.email}</span>
+                <span className="truncate text-xs">{secondaryLabel}</span>
               </div>
               <ChevronsUpDown className="ml-auto size-4" />
             </SidebarMenuButton>
@@ -64,10 +75,19 @@ export default function AppSidebarUserNav() {
                   <span className="truncate font-semibold">
                     {user?.display_name}
                   </span>
-                  <span className="truncate text-xs">{user?.email}</span>
+                  <span className="truncate text-xs">{secondaryLabel}</span>
                 </div>
               </div>
             </DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuCheckboxItem
+              checked={hideEmail}
+              onCheckedChange={toggleHideEmail}
+              onSelect={(e) => e.preventDefault()}
+              className="cursor-pointer"
+            >
+              Hide email
+            </DropdownMenuCheckboxItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem className="gap-2 cursor-pointer" onClick={logout}>
               <LogOutIcon className="size-4" />

@@ -3,6 +3,7 @@ package postgres
 import (
 	"context"
 	"errors"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
@@ -63,6 +64,25 @@ func (c *Client) UpsertUser(ctx context.Context, user *model.User) (*model.User,
 	return rowToUser(row), nil
 }
 
+func (c *Client) UpdateUserHideEmail(ctx context.Context, id string, hideEmail bool) (*model.User, error) {
+	row, err := c.Q.UpdateUserHideEmail(ctx, pgmodel.UpdateUserHideEmailParams{
+		ID:        id,
+		HideEmail: hideEmail,
+		UpdatedAt: pgtype.Timestamp{
+			Time:  time.Now().UTC(),
+			Valid: true,
+		},
+	})
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, store.ErrNotFound
+		}
+		return nil, err
+	}
+
+	return rowToUser(row), nil
+}
+
 func rowToUser(row pgmodel.User) *model.User {
 	return &model.User{
 		ID:              row.ID,
@@ -73,5 +93,6 @@ func rowToUser(row pgmodel.User) *model.User {
 		DiscordAvatar:   null.NewString(row.DiscordAvatar.String, row.DiscordAvatar.Valid),
 		CreatedAt:       row.CreatedAt.Time,
 		UpdatedAt:       row.UpdatedAt.Time,
+		HideEmail:       row.HideEmail,
 	}
 }
