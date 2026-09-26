@@ -77,6 +77,29 @@ export const nodeActionThreadCreateResultSchema = channelResultSchema;
 
 export const nodeActionForumPostCreateResultSchema = channelResultSchema;
 
+export const inviteResultSchema = z.object({
+  code: z.string().describe("The invite code"),
+  url: z.string().describe("The full invite URL"),
+  channel_id: z.string().describe("The ID of the channel the invite is for"),
+  max_age: z
+    .number()
+    .describe(
+      "How many seconds the invite lasts before expiring, or 0 if it never expires"
+    ),
+  max_uses: z
+    .number()
+    .describe(
+      "The maximum number of times the invite can be used, or 0 if unlimited"
+    ),
+  temporary: z
+    .boolean()
+    .describe(
+      "Whether members who join through this invite are kicked once they go offline, unless they've been given a role"
+    ),
+});
+
+export const nodeActionInviteCreateResultSchema = inviteResultSchema;
+
 export const nodeActionRobloxUserGetResultSchema = z.object({
   description: z.string().describe("The description of the Roblox user"),
   created: z

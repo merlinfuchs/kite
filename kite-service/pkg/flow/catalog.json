@@ -2740,6 +2740,135 @@
       },
       "result_schema": null
     },
+    "action_invite_create": {
+      "title": "Create invite",
+      "description": "Create an invite for the channel this ran in",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord",
+        "event_schedule"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "type": "string",
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+          },
+          "channel_target": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9]+$"
+              },
+              {
+                "type": "string",
+                "pattern": "^\\{\\{[^{}]+\\}\\}$"
+              }
+            ],
+            "description": "ID of the channel to create the invite in. Defaults to the channel the flow runs in."
+          },
+          "invite_data": {
+            "type": "object",
+            "properties": {
+              "max_age_seconds": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "pattern": "^[0-9]+$"
+                  },
+                  {
+                    "type": "string",
+                    "pattern": "^\\{\\{[^{}]+\\}\\}$"
+                  }
+                ],
+                "description": "How many seconds the invite lasts before expiring. 0 means it never expires. Leave unset for Discord's default of 24 hours."
+              },
+              "max_uses": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "pattern": "^[0-9]+$"
+                  },
+                  {
+                    "type": "string",
+                    "pattern": "^\\{\\{[^{}]+\\}\\}$"
+                  }
+                ],
+                "description": "Maximum number of times the invite can be used before it stops working. Leave unset or 0 for unlimited uses."
+              },
+              "temporary": {
+                "type": "boolean",
+                "description": "Whether members who join through this invite are kicked once they go offline, unless they've been given a role."
+              },
+              "unique": {
+                "type": "boolean",
+                "description": "Whether to always create a new invite instead of possibly reusing a similar unused one."
+              }
+            },
+            "additionalProperties": false,
+            "description": "Settings for the invite."
+          },
+          "audit_log_reason": {
+            "type": "string",
+            "maxLength": 512,
+            "description": "Reason shown in the server's audit log.",
+            "x-templated": true
+          },
+          "temporary_name": {
+            "type": "string",
+            "maxLength": 32,
+            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only."
+          }
+        },
+        "additionalProperties": false
+      },
+      "result_schema": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "description": "The invite code"
+          },
+          "url": {
+            "type": "string",
+            "description": "The full invite URL"
+          },
+          "channel_id": {
+            "type": "string",
+            "description": "The ID of the channel the invite is for"
+          },
+          "max_age": {
+            "type": "number",
+            "description": "How many seconds the invite lasts before expiring, or 0 if it never expires"
+          },
+          "max_uses": {
+            "type": "number",
+            "description": "The maximum number of times the invite can be used, or 0 if unlimited"
+          },
+          "temporary": {
+            "type": "boolean",
+            "description": "Whether members who join through this invite are kicked once they go offline, unless they've been given a role"
+          }
+        },
+        "required": [
+          "code",
+          "url",
+          "channel_id",
+          "max_age",
+          "max_uses",
+          "temporary"
+        ],
+        "additionalProperties": false
+      }
+    },
     "action_thread_create": {
       "title": "Create thread",
       "description": "Create a thread",

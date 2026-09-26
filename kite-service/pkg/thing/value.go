@@ -41,6 +41,15 @@ func NewHTTPResponseValue(v *http.Response) (HTTPResponseValue, error) {
 	}, nil
 }
 
+type InviteValue struct {
+	Code      string `json:"code"`
+	URL       string `json:"url"`
+	ChannelID string `json:"channelId"`
+	MaxAge    int    `json:"maxAge"`
+	MaxUses   int    `json:"maxUses"`
+	Temporary bool   `json:"temporary"`
+}
+
 type RobloxUserValue struct {
 	ID                     int64  `json:"id"`
 	Name                   string `json:"name"`

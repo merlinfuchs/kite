@@ -75,6 +75,7 @@ const (
 	FlowNodeTypeActionChannelCreate         FlowNodeType = "action_channel_create"
 	FlowNodeTypeActionChannelEdit           FlowNodeType = "action_channel_edit"
 	FlowNodeTypeActionChannelDelete         FlowNodeType = "action_channel_delete"
+	FlowNodeTypeActionInviteCreate          FlowNodeType = "action_invite_create"
 	FlowNodeTypeActionThreadCreate          FlowNodeType = "action_thread_create"
 	FlowNodeTypeActionThreadMemberAdd       FlowNodeType = "action_thread_member_add"
 	FlowNodeTypeActionThreadMemberRemove    FlowNodeType = "action_thread_member_remove"
@@ -186,9 +187,13 @@ type FlowNodeData struct {
 	MemberTimeoutDurationSeconds          string      `json:"member_timeout_duration_seconds,omitempty"`
 	MemberData                            *MemberData `json:"member_data,omitempty"`
 
-	// Channel Create, Edit, Delete, Get
+	// Channel Create, Edit, Delete, Get. Invite Create also uses ChannelTarget
+	// to optionally target a channel other than the one the flow is running in.
 	ChannelTarget string       `json:"channel_target,omitempty"`
 	ChannelData   *ChannelData `json:"channel_data,omitempty"`
+
+	// Invite Create
+	InviteData *InviteData `json:"invite_data,omitempty"`
 
 	// Voice Channel Join
 	VoiceSelfMute bool `json:"voice_self_mute,omitempty"`
@@ -492,6 +497,45 @@ type PermissionOverwriteData struct {
 	Type  int    `json:"type,omitempty"`
 	Allow string `json:"allow,omitempty"`
 	Deny  string `json:"deny,omitempty"`
+}
+
+type InviteData struct {
+	// MaxAgeSeconds is how long the invite lasts before expiring, in seconds.
+	// 0 (or empty) means it never expires.
+	MaxAgeSeconds string `json:"max_age_seconds,omitempty"`
+	// MaxUses is how many times the invite can be used before it stops
+	// working. 0 (or empty) means unlimited uses.
+	MaxUses   string `json:"max_uses,omitempty"`
+	Temporary bool   `json:"temporary,omitempty"`
+	Unique    bool   `json:"unique,omitempty"`
+}
+
+func (d *InviteData) ToCreateInviteData(ctx context.Context, evalCtx eval.Context) (api.CreateInviteData, error) {
+	res := api.CreateInviteData{
+		Temporary: d.Temporary,
+		Unique:    d.Unique,
+	}
+
+	// MaxAge is an option.Uint (nullable): leaving it unset lets Discord fall
+	// back to its own default of 24 hours, while explicitly evaluating to 0
+	// means the invite never expires.
+	if d.MaxAgeSeconds != "" {
+		maxAge, err := eval.EvalTemplate(ctx, d.MaxAgeSeconds, evalCtx)
+		if err != nil {
+			return res, err
+		}
+		res.MaxAge = option.NewUint(uint(maxAge.Int()))
+	}
+
+	if d.MaxUses != "" {
+		maxUses, err := eval.EvalTemplate(ctx, d.MaxUses, evalCtx)
+		if err != nil {
+			return res, err
+		}
+		res.MaxUses = uint(maxUses.Int())
+	}
+
+	return res, nil
 }
 
 type RoleData struct {

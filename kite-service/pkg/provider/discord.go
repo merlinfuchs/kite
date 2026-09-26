@@ -40,6 +40,7 @@ type DiscordProvider interface {
 	CreateChannel(ctx context.Context, guildID discord.GuildID, data api.CreateChannelData) (*discord.Channel, error)
 	EditChannel(ctx context.Context, channelID discord.ChannelID, data api.ModifyChannelData) error
 	DeleteChannel(ctx context.Context, channelID discord.ChannelID, reason api.AuditLogReason) error
+	CreateInvite(ctx context.Context, channelID discord.ChannelID, data api.CreateInviteData) (*discord.Invite, error)
 	CreatePrivateChannel(ctx context.Context, userID discord.UserID) (*discord.Channel, error)
 	StartThreadWithMessage(ctx context.Context, channelID discord.ChannelID, messageID discord.MessageID, data api.StartThreadData) (*discord.Channel, error)
 	StartThreadWithoutMessage(ctx context.Context, channelID discord.ChannelID, data api.StartThreadData) (*discord.Channel, error)
@@ -190,6 +191,10 @@ func (p *MockDiscordProvider) EditChannel(ctx context.Context, channelID discord
 
 func (p *MockDiscordProvider) DeleteChannel(ctx context.Context, channelID discord.ChannelID, reason api.AuditLogReason) error {
 	return nil
+}
+
+func (p *MockDiscordProvider) CreateInvite(ctx context.Context, channelID discord.ChannelID, data api.CreateInviteData) (*discord.Invite, error) {
+	return &discord.Invite{Code: "mock-invite"}, nil
 }
 
 func (p *MockDiscordProvider) CreatePrivateChannel(ctx context.Context, userID discord.UserID) (*discord.Channel, error) {

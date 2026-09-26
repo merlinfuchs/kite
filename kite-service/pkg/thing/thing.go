@@ -27,6 +27,7 @@ const (
 	TypeDiscordChannel Type = "discord_channel"
 	TypeDiscordGuild   Type = "discord_guild"
 	TypeDiscordRole    Type = "discord_role"
+	TypeDiscordInvite  Type = "discord_invite"
 	TypeRobloxUser     Type = "roblox_user"
 	TypeHTTPResponse   Type = "http_response"
 	TypeArray          Type = "array"
@@ -100,6 +101,11 @@ func (w *Thing) UnmarshalJSON(data []byte) error {
 			}
 		case TypeDiscordRole:
 			w.Value, err = UnmarshalValue[discord.Role](aux.Value)
+			if err != nil {
+				return err
+			}
+		case TypeDiscordInvite:
+			w.Value, err = UnmarshalValue[InviteValue](aux.Value)
 			if err != nil {
 				return err
 			}
@@ -223,6 +229,8 @@ func NewGuessType(v any) (Thing, error) {
 		return NewDiscordGuild(v), nil
 	case discord.Role:
 		return NewDiscordRole(v), nil
+	case InviteValue:
+		return NewDiscordInvite(v), nil
 	case RobloxUserValue:
 		return NewRobloxUser(v), nil
 	case HTTPResponseValue:
@@ -314,6 +322,13 @@ func NewDiscordRole(v discord.Role) Thing {
 	}
 }
 
+func NewDiscordInvite(v InviteValue) Thing {
+	return Thing{
+		Type:  TypeDiscordInvite,
+		Value: v,
+	}
+}
+
 func NewRobloxUser(v RobloxUserValue) Thing {
 	return Thing{
 		Type:  TypeRobloxUser,
@@ -378,6 +393,8 @@ func (w Thing) String() string {
 		return w.Value.(discord.Guild).Name
 	case TypeDiscordRole:
 		return w.Value.(discord.Role).Mention()
+	case TypeDiscordInvite:
+		return w.Value.(InviteValue).URL
 	case TypeRobloxUser:
 		return w.Value.(RobloxUserValue).Name
 	case TypeHTTPResponse:
@@ -609,6 +626,13 @@ func (w Thing) DiscordRole() discord.Role {
 		return w.Value.(discord.Role)
 	}
 	return discord.Role{}
+}
+
+func (w Thing) DiscordInvite() InviteValue {
+	if w.Type == TypeDiscordInvite {
+		return w.Value.(InviteValue)
+	}
+	return InviteValue{}
 }
 
 func (w Thing) RobloxUser() RobloxUserValue {

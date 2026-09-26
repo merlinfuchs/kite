@@ -551,6 +551,38 @@ func (g GuildEnv) String() string {
 	return g.ID
 }
 
+type InviteEnv struct {
+	og thing.InviteValue
+
+	Code      string `expr:"code" json:"code"`
+	URL       string `expr:"url" json:"url"`
+	ChannelID string `expr:"channel_id" json:"channel_id"`
+	MaxAge    int    `expr:"max_age" json:"max_age"`
+	MaxUses   int    `expr:"max_uses" json:"max_uses"`
+	Temporary bool   `expr:"temporary" json:"temporary"`
+}
+
+func NewInviteEnv(v thing.InviteValue) *InviteEnv {
+	return &InviteEnv{
+		og: v,
+
+		Code:      v.Code,
+		URL:       v.URL,
+		ChannelID: v.ChannelID,
+		MaxAge:    v.MaxAge,
+		MaxUses:   v.MaxUses,
+		Temporary: v.Temporary,
+	}
+}
+
+func (i InviteEnv) Thing() thing.Thing {
+	return thing.NewDiscordInvite(i.og)
+}
+
+func (i InviteEnv) String() string {
+	return i.URL
+}
+
 type AttachmentEnv struct {
 	ID       string `expr:"id" json:"id"`
 	URL      string `expr:"url" json:"url"`
@@ -645,6 +677,8 @@ func NewThingEnv(t thing.Thing) any {
 		return NewGuildEnv(t.DiscordGuild())
 	case thing.TypeDiscordRole:
 		return NewRoleEnv(t.DiscordRole())
+	case thing.TypeDiscordInvite:
+		return NewInviteEnv(t.DiscordInvite())
 	case thing.TypeHTTPResponse:
 		return NewHTTPResponseEnv(t.HTTPResponse())
 	case thing.TypeRobloxUser:

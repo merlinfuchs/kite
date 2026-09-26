@@ -567,6 +567,40 @@ export const nodeActionChannelDeleteDataSchema = nodeBaseDataSchema.extend({
   audit_log_reason: auditLogReasonSchema,
 });
 
+const inviteChannelTargetSchema = numericOrPlaceholder(
+  "ID of the channel to create the invite in. Defaults to the channel the flow runs in."
+).optional();
+
+export const inviteDataSchema = z
+  .object({
+    max_age_seconds: numericOrPlaceholder(
+      "How many seconds the invite lasts before expiring. 0 means it never expires. Leave unset for Discord's default of 24 hours."
+    ).optional(),
+    max_uses: numericOrPlaceholder(
+      "Maximum number of times the invite can be used before it stops working. Leave unset or 0 for unlimited uses."
+    ).optional(),
+    temporary: z
+      .boolean()
+      .optional()
+      .describe(
+        "Whether members who join through this invite are kicked once they go offline, unless they've been given a role."
+      ),
+    unique: z
+      .boolean()
+      .optional()
+      .describe(
+        "Whether to always create a new invite instead of possibly reusing a similar unused one."
+      ),
+  })
+  .describe("Settings for the invite.");
+
+export const nodeActionInviteCreateDataSchema = nodeBaseDataSchema.extend({
+  channel_target: inviteChannelTargetSchema,
+  invite_data: inviteDataSchema.optional(),
+  audit_log_reason: auditLogReasonSchema,
+  temporary_name: temporaryNameSchema,
+});
+
 export const nodeActionThreadCreateDataSchema = nodeBaseDataSchema.extend({
   message_target: numericOrPlaceholder(
     "ID of the message to start the thread from. Leave unset for a thread without a starter message."

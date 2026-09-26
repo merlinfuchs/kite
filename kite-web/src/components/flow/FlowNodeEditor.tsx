@@ -121,6 +121,7 @@ const intputs: Record<string, any> = {
   message_ephemeral: MessageEphemeralInput,
   modal_data: ModalDataInput,
   channel_data: ChannelDataInput,
+  invite_data: InviteDataInput,
   thread_data: ThreadDataInput,
   channel_target: ChannelTargetInput,
   voice_self_mute: VoiceSelfMuteInput,
@@ -2237,6 +2238,77 @@ function StatusDataInput({ data, updateData, errors }: InputProps) {
         />
       )}
     </>
+  );
+}
+
+function InviteDataInput({ data, updateData, errors }: InputProps) {
+  return (
+    <div className="flex flex-col space-y-4">
+      <BaseInput
+        type="text"
+        field="invite_data.max_age_seconds"
+        title="Expires After"
+        description="How many seconds the invite lasts before expiring. 0 means it never expires. Leave empty for Discord's default of 24 hours."
+        value={data.invite_data?.max_age_seconds || ""}
+        updateValue={(v) =>
+          updateData({
+            invite_data: {
+              ...data.invite_data,
+              max_age_seconds: v || undefined,
+            },
+          })
+        }
+        errors={errors}
+        placeholders
+      />
+      <BaseInput
+        type="text"
+        field="invite_data.max_uses"
+        title="Max Uses"
+        description="Maximum number of times the invite can be used before it stops working. Leave empty or 0 for unlimited uses."
+        value={data.invite_data?.max_uses || ""}
+        updateValue={(v) =>
+          updateData({
+            invite_data: {
+              ...data.invite_data,
+              max_uses: v || undefined,
+            },
+          })
+        }
+        errors={errors}
+        placeholders
+      />
+      <BaseCheckbox
+        field="invite_data.temporary"
+        title="Temporary Membership"
+        description="Members who join through this invite are kicked once they go offline, unless they've been given a role."
+        value={data.invite_data?.temporary || false}
+        updateValue={(v) =>
+          updateData({
+            invite_data: {
+              ...data.invite_data,
+              temporary: v,
+            },
+          })
+        }
+        errors={errors}
+      />
+      <BaseCheckbox
+        field="invite_data.unique"
+        title="Unique"
+        description="Always create a new invite instead of possibly reusing a similar unused one."
+        value={data.invite_data?.unique || false}
+        updateValue={(v) =>
+          updateData({
+            invite_data: {
+              ...data.invite_data,
+              unique: v,
+            },
+          })
+        }
+        errors={errors}
+      />
+    </div>
   );
 }
 
