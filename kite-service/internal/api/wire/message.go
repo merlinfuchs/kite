@@ -21,6 +21,7 @@ type Message struct {
 	FlowSources   map[string]flow.FlowData `json:"flow_sources"`
 	CreatedAt     time.Time                `json:"created_at"`
 	UpdatedAt     time.Time                `json:"updated_at"`
+	Position      int                      `json:"position"`
 }
 
 type MessageGetResponse = Message
@@ -85,6 +86,18 @@ func (req MessageUpdateRequest) Validate() error {
 
 type MessageUpdateResponse = Message
 
+type MessageMoveRequest struct {
+	Direction string `json:"direction"`
+}
+
+func (req MessageMoveRequest) Validate() error {
+	return validation.ValidateStruct(&req,
+		validation.Field(&req.Direction, validation.Required, validation.In("up", "down")),
+	)
+}
+
+type MessageMoveResponse = []*Message
+
 type MessageDeleteResponse = Empty
 
 func MessageToWire(variable *model.Message) *Message {
@@ -103,6 +116,7 @@ func MessageToWire(variable *model.Message) *Message {
 		FlowSources:   variable.FlowSources,
 		CreatedAt:     variable.CreatedAt,
 		UpdatedAt:     variable.UpdatedAt,
+		Position:      variable.Position,
 	}
 }
 

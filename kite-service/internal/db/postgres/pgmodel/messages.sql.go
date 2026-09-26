@@ -32,11 +32,14 @@ INSERT INTO messages (
     creator_user_id,
     data,
     flow_sources,
+    position,
     created_at,
     updated_at
 ) VALUES (
-    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10
-) RETURNING id, name, description, data, flow_sources, app_id, module_id, creator_user_id, created_at, updated_at
+    $1, $2, $3, $4, $5, $6, $7, $8,
+    (SELECT COALESCE(MIN(position), 0) - 1 FROM messages WHERE app_id = $4),
+    $9, $10
+) RETURNING id, name, description, data, flow_sources, app_id, module_id, creator_user_id, created_at, updated_at, position
 `
 
 type CreateMessageParams struct {
@@ -77,6 +80,7 @@ func (q *Queries) CreateMessage(ctx context.Context, arg CreateMessageParams) (M
 		&i.CreatorUserID,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.Position,
 	)
 	return i, err
 }
@@ -269,7 +273,7 @@ func (q *Queries) GetFlowMessageInstancesByMessage(ctx context.Context, arg GetF
 }
 
 const getMessage = `-- name: GetMessage :one
-SELECT id, name, description, data, flow_sources, app_id, module_id, creator_user_id, created_at, updated_at FROM messages WHERE id = $1 AND app_id = $2
+SELECT id, name, description, data, flow_sources, app_id, module_id, creator_user_id, created_at, updated_at, position FROM messages WHERE id = $1 AND app_id = $2
 `
 
 type GetMessageParams struct {
@@ -291,6 +295,7 @@ func (q *Queries) GetMessage(ctx context.Context, arg GetMessageParams) (Message
 		&i.CreatorUserID,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.Position,
 	)
 	return i, err
 }
@@ -403,7 +408,7 @@ func (q *Queries) GetMessageInstancesByMessage(ctx context.Context, arg GetMessa
 }
 
 const getMessagesByApp = `-- name: GetMessagesByApp :many
-SELECT id, name, description, data, flow_sources, app_id, module_id, creator_user_id, created_at, updated_at FROM messages WHERE app_id = $1 ORDER BY created_at DESC
+SELECT id, name, description, data, flow_sources, app_id, module_id, creator_user_id, created_at, updated_at, position FROM messages WHERE app_id = $1 ORDER BY position ASC, created_at DESC
 `
 
 func (q *Queries) GetMessagesByApp(ctx context.Context, appID string) ([]Message, error) {
@@ -426,6 +431,7 @@ func (q *Queries) GetMessagesByApp(ctx context.Context, appID string) ([]Message
 			&i.CreatorUserID,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.Position,
 		); err != nil {
 			return nil, err
 		}
@@ -463,7 +469,7 @@ UPDATE messages SET
     data = $4,
     flow_sources = $5,
     updated_at = $6
-WHERE id = $1 RETURNING id, name, description, data, flow_sources, app_id, module_id, creator_user_id, created_at, updated_at
+WHERE id = $1 RETURNING id, name, description, data, flow_sources, app_id, module_id, creator_user_id, created_at, updated_at, position
 `
 
 type UpdateMessageParams struct {
@@ -496,6 +502,7 @@ func (q *Queries) UpdateMessage(ctx context.Context, arg UpdateMessageParams) (M
 		&i.CreatorUserID,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.Position,
 	)
 	return i, err
 }
@@ -543,4 +550,19 @@ func (q *Queries) UpdateMessageInstance(ctx context.Context, arg UpdateMessageIn
 		&i.LastUsedAt,
 	)
 	return i, err
+}
+
+const updateMessagePosition = `-- name: UpdateMessagePosition :exec
+UPDATE messages SET position = $2 WHERE id = $1
+`
+
+type UpdateMessagePositionParams struct {
+	ID       string
+	Position int32
+}
+
+// Doesn't touch updated_at, since reordering isn't a semantic change to the message.
+func (q *Queries) UpdateMessagePosition(ctx context.Context, arg UpdateMessagePositionParams) error {
+	_, err := q.db.Exec(ctx, updateMessagePosition, arg.ID, arg.Position)
+	return err
 }

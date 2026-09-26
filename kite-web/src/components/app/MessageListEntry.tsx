@@ -1,4 +1,6 @@
 import {
+  ArrowDownIcon,
+  ArrowUpIcon,
   CheckIcon,
   CopyPlusIcon,
   EllipsisIcon,
@@ -19,7 +21,10 @@ import { Message } from "@/lib/types/wire.gen";
 import ConfirmDialog from "../common/ConfirmDialog";
 import { useAppId } from "@/lib/hooks/params";
 import { toast } from "sonner";
-import { useMessageDeleteMutation } from "@/lib/api/mutations";
+import {
+  useMessageDeleteMutation,
+  useMessageMoveMutation,
+} from "@/lib/api/mutations";
 import { formatDateTime } from "@/lib/utils";
 import { DropdownMenuItem } from "../ui/dropdown-menu";
 import {
@@ -30,10 +35,21 @@ import {
 } from "../ui/dropdown-menu";
 import MessageDuplicateDialog from "./MessageDuplicateDialog";
 
-export default function MessageListEntry({ message }: { message: Message }) {
+export default function MessageListEntry({
+  message,
+  isFirst,
+  isLast,
+}: {
+  message: Message;
+  isFirst?: boolean;
+  isLast?: boolean;
+}) {
   const router = useRouter();
 
-  const deleteMutation = useMessageDeleteMutation(useAppId(), message.id);
+  const appId = useAppId();
+
+  const deleteMutation = useMessageDeleteMutation(appId, message.id);
+  const moveMutation = useMessageMoveMutation(appId, message.id);
 
   function remove() {
     deleteMutation.mutate(undefined, {
@@ -47,6 +63,14 @@ export default function MessageListEntry({ message }: { message: Message }) {
         }
       },
     });
+  }
+
+  function moveUp() {
+    moveMutation.mutate({ direction: "up" });
+  }
+
+  function moveDown() {
+    moveMutation.mutate({ direction: "down" });
   }
 
   return (
@@ -109,6 +133,22 @@ export default function MessageListEntry({ message }: { message: Message }) {
             </DropdownMenuGroup>
           </DropdownMenuContent>
         </DropdownMenu>
+        <Button
+          size="icon"
+          variant="ghost"
+          disabled={isFirst}
+          onClick={moveUp}
+        >
+          <ArrowUpIcon className="h-5 w-5 text-muted-foreground" />
+        </Button>
+        <Button
+          size="icon"
+          variant="ghost"
+          disabled={isLast}
+          onClick={moveDown}
+        >
+          <ArrowDownIcon className="h-5 w-5 text-muted-foreground" />
+        </Button>
       </CardFooter>
     </Card>
   );

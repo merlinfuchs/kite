@@ -2,7 +2,7 @@
 SELECT * FROM commands WHERE id = $1;
 
 -- name: GetCommandsByApp :many
-SELECT * FROM commands WHERE app_id = $1 ORDER BY created_at DESC;
+SELECT * FROM commands WHERE app_id = $1 ORDER BY position ASC, created_at DESC;
 
 -- name: CountCommandsByApp :one
 SELECT COUNT(*) FROM commands WHERE app_id = $1;
@@ -17,10 +17,14 @@ INSERT INTO commands (
     module_id,
     creator_user_id,
     flow_source,
+    position,
     created_at,
     updated_at
 ) VALUES (
-    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10
+    $1, $2, $3, $4, $5, $6, $7, $8,
+    -- New commands are shown first, matching the previous created_at DESC order.
+    (SELECT COALESCE(MIN(position), 0) - 1 FROM commands WHERE app_id = $5),
+    $9, $10
 ) RETURNING *;
 
 -- name: UpdateCommand :one
@@ -48,3 +52,7 @@ DELETE FROM commands WHERE id = $1;
 
 -- name: DinstinctAppIDsWithUndeployedCommands :many
 SELECT DISTINCT app_id FROM commands WHERE last_deployed_at IS NULL OR last_deployed_at < updated_at;
+
+-- name: UpdateCommandPosition :exec
+-- Doesn't touch updated_at, since reordering isn't a semantic change to the command.
+UPDATE commands SET position = $2 WHERE id = $1;

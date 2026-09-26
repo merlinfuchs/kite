@@ -18,4 +18,8 @@ type CommandStore interface {
 	EnabledCommandIDs(ctx context.Context) ([]string, error)
 	DeleteCommand(ctx context.Context, id string) error
 	DinstinctAppIDsWithUndeployedCommands(ctx context.Context) ([]string, error)
+	// MoveCommand swaps the position of the command with its neighbor in the
+	// given direction ("up" or "down") and returns the app's commands in
+	// their new order. It is a no-op if the command is already at that edge.
+	MoveCommand(ctx context.Context, appID string, id string, direction string) ([]*model.Command, error)
 }

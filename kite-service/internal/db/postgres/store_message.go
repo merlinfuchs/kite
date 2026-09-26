@@ -3,6 +3,7 @@ package postgres
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -158,7 +159,74 @@ func rowToMessage(row pgmodel.Message) (*model.Message, error) {
 		Data:          data,
 		CreatedAt:     row.CreatedAt.Time,
 		UpdatedAt:     row.UpdatedAt.Time,
+		Position:      int(row.Position),
 	}, nil
+}
+
+func (c *Client) MoveMessage(ctx context.Context, appID string, id string, direction string) ([]*model.Message, error) {
+	tx, err := c.DB.Begin(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to begin transaction: %w", err)
+	}
+	defer tx.Rollback(ctx)
+
+	q := c.Q.WithTx(tx)
+
+	rows, err := q.GetMessagesByApp(ctx, appID)
+	if err != nil {
+		return nil, err
+	}
+
+	idx := -1
+	for i, row := range rows {
+		if row.ID == id {
+			idx = i
+			break
+		}
+	}
+	if idx == -1 {
+		return nil, store.ErrNotFound
+	}
+
+	swapIdx := idx - 1
+	if direction == "down" {
+		swapIdx = idx + 1
+	}
+
+	if swapIdx >= 0 && swapIdx < len(rows) {
+		posA, posB := rows[idx].Position, rows[swapIdx].Position
+
+		if err := q.UpdateMessagePosition(ctx, pgmodel.UpdateMessagePositionParams{
+			ID:       rows[idx].ID,
+			Position: posB,
+		}); err != nil {
+			return nil, fmt.Errorf("failed to update message position: %w", err)
+		}
+		if err := q.UpdateMessagePosition(ctx, pgmodel.UpdateMessagePositionParams{
+			ID:       rows[swapIdx].ID,
+			Position: posA,
+		}); err != nil {
+			return nil, fmt.Errorf("failed to update message position: %w", err)
+		}
+
+		rows[idx].Position, rows[swapIdx].Position = posB, posA
+		rows[idx], rows[swapIdx] = rows[swapIdx], rows[idx]
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return nil, fmt.Errorf("failed to commit transaction: %w", err)
+	}
+
+	messages := make([]*model.Message, len(rows))
+	for i, row := range rows {
+		msg, err := rowToMessage(row)
+		if err != nil {
+			return nil, err
+		}
+		messages[i] = msg
+	}
+
+	return messages, nil
 }
 
 func (c *Client) MessageInstance(ctx context.Context, appID string, messageID string, instanceID uint64) (*model.MessageInstance, error) {

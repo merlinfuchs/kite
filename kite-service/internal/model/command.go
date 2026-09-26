@@ -19,4 +19,5 @@ type Command struct {
 	CreatedAt      time.Time
 	UpdatedAt      time.Time
 	LastDeployedAt null.Time
+	Position       int
 }

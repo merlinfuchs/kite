@@ -38,7 +38,12 @@ export default function EventListenerList() {
       ) : (
         <>
           {listeners.map((listener, i) => (
-            <EventListenerListEntry listener={listener!} key={i} />
+            <EventListenerListEntry
+              listener={listener!}
+              key={i}
+              isFirst={i === 0}
+              isLast={i === listeners.length - 1}
+            />
           ))}
           {listenerActions}
         </>

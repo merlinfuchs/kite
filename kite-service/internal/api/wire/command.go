@@ -22,6 +22,7 @@ type Command struct {
 	CreatedAt      time.Time     `json:"created_at"`
 	UpdatedAt      time.Time     `json:"updated_at"`
 	LastDeployedAt null.Time     `json:"last_deployed_at"`
+	Position       int           `json:"position"`
 }
 
 type CommandGetResponse = Command
@@ -76,6 +77,18 @@ func (req CommandUpdateEnabledRequest) Validate() error {
 
 type CommandUpdateEnabledResponse = Command
 
+type CommandMoveRequest struct {
+	Direction string `json:"direction"`
+}
+
+func (req CommandMoveRequest) Validate() error {
+	return validation.ValidateStruct(&req,
+		validation.Field(&req.Direction, validation.Required, validation.In("up", "down")),
+	)
+}
+
+type CommandMoveResponse = []*Command
+
 type CommandDeleteResponse = Empty
 
 type CommandsDeployResponse struct {
@@ -100,5 +113,6 @@ func CommandToWire(command *model.Command) *Command {
 		CreatedAt:      command.CreatedAt,
 		UpdatedAt:      command.UpdatedAt,
 		LastDeployedAt: command.LastDeployedAt,
+		Position:       command.Position,
 	}
 }

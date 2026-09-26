@@ -2,7 +2,7 @@
 SELECT * FROM event_listeners WHERE id = $1;
 
 -- name: GetEventListenersByApp :many
-SELECT * FROM event_listeners WHERE app_id = $1 ORDER BY created_at DESC;
+SELECT * FROM event_listeners WHERE app_id = $1 ORDER BY position ASC, created_at DESC;
 
 -- name: CreateEventListener :one
 INSERT INTO event_listeners (
@@ -16,10 +16,14 @@ INSERT INTO event_listeners (
     creator_user_id,
     filter,
     flow_source,
+    position,
     created_at,
     updated_at
 ) VALUES (
-    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12
+    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10,
+    -- New event listeners are shown first, matching the previous created_at DESC order.
+    (SELECT COALESCE(MIN(position), 0) - 1 FROM event_listeners WHERE app_id = $6),
+    $11, $12
 ) RETURNING *;
 
 -- name: UpdateEventListener :one
@@ -48,6 +52,10 @@ DELETE FROM event_listeners WHERE id = $1;
 
 -- name: CountEventListenersByAppAndSource :one
 SELECT COUNT(*) FROM event_listeners WHERE app_id = $1 AND source = $2;
+
+-- name: UpdateEventListenerPosition :exec
+-- Doesn't touch updated_at, since reordering isn't a semantic change to the listener.
+UPDATE event_listeners SET position = $2 WHERE id = $1;
 
 -- name: UpdateEventListenersLastRunAt :exec
 -- Doesn't touch updated_at, otherwise every run would make the engine reload the listener.

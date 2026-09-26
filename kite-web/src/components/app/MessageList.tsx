@@ -32,7 +32,12 @@ export default function MessageList() {
       ) : (
         <>
           {messages.map((message, i) => (
-            <MessageListEntry message={message!} key={i} />
+            <MessageListEntry
+              message={message!}
+              key={i}
+              isFirst={i === 0}
+              isLast={i === messages.length - 1}
+            />
           ))}
           <div className="flex">{messageCreateButton}</div>
         </>

@@ -55,6 +55,7 @@ type EventListener struct {
 	CreatedAt     time.Time
 	UpdatedAt     time.Time
 	LastRunAt     null.Time
+	Position      int
 }
 
 type EventListenerFilter struct{}

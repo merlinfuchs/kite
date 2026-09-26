@@ -220,6 +220,7 @@ func (s *APIServer) RegisterRoutes(
 	commandGroup.Patch("/", handler.TypedWithBody(commandsHandler.HandleCommandUpdate))
 	commandGroup.Delete("/", handler.Typed(commandsHandler.HandleCommandDelete))
 	commandGroup.Put("/enabled", handler.TypedWithBody(commandsHandler.HandleCommandUpdateEnabled))
+	commandGroup.Put("/position", handler.TypedWithBody(commandsHandler.HandleCommandMove))
 	commandsGroup.Post("/deploy",
 		handler.Typed(commandsHandler.HandleCommandsDeploy),
 		handler.RateLimitByUser(2, time.Minute),
@@ -238,6 +239,7 @@ func (s *APIServer) RegisterRoutes(
 	eventListenerGroup.Patch("/", handler.TypedWithBody(eventListenerHandler.HandleEventListenerUpdate))
 	eventListenerGroup.Delete("/", handler.Typed(eventListenerHandler.HandleEventListenerDelete))
 	eventListenerGroup.Put("/enabled", handler.TypedWithBody(eventListenerHandler.HandleEventListenerUpdateEnabled))
+	eventListenerGroup.Put("/position", handler.TypedWithBody(eventListenerHandler.HandleEventListenerMove))
 
 	// Plugin instance routes
 	pluginHandler := pluginhandler.NewPluginHandler(pluginRegistry, pluginInstanceStore)
@@ -285,6 +287,7 @@ func (s *APIServer) RegisterRoutes(
 	messageGroup.Get("/", handler.Typed(messageHandler.HandleMessageGet))
 	messageGroup.Patch("/", handler.TypedWithBody(messageHandler.HandleMessageUpdate))
 	messageGroup.Delete("/", handler.Typed(messageHandler.HandleMessageDelete))
+	messageGroup.Put("/position", handler.TypedWithBody(messageHandler.HandleMessageMove))
 	messageGroup.Get("/instances", handler.Typed(messageHandler.HandleMessageInstanceList))
 	messageGroup.Post("/instances", handler.TypedWithBody(messageHandler.HandleMessageInstanceCreate))
 	messageGroup.Put("/instances/{instanceID}", handler.Typed(messageHandler.HandleMessageInstanceUpdate))

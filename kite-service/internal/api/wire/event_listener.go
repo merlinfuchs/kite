@@ -23,6 +23,7 @@ type EventListener struct {
 	CreatedAt     time.Time            `json:"created_at"`
 	UpdatedAt     time.Time            `json:"updated_at"`
 	LastRunAt     null.Time            `json:"last_run_at"`
+	Position      int                  `json:"position"`
 }
 
 type EventListenerFilter struct{}
@@ -81,6 +82,18 @@ func (req EventListenerUpdateEnabledRequest) Validate() error {
 
 type EventListenerUpdateEnabledResponse = EventListener
 
+type EventListenerMoveRequest struct {
+	Direction string `json:"direction"`
+}
+
+func (req EventListenerMoveRequest) Validate() error {
+	return validation.ValidateStruct(&req,
+		validation.Field(&req.Direction, validation.Required, validation.In("up", "down")),
+	)
+}
+
+type EventListenerMoveResponse = []*EventListener
+
 type EventListenerDeleteResponse = Empty
 
 func EventListenerToWire(eventListener *model.EventListener) *EventListener {
@@ -102,5 +115,6 @@ func EventListenerToWire(eventListener *model.EventListener) *EventListener {
 		CreatedAt:     eventListener.CreatedAt,
 		UpdatedAt:     eventListener.UpdatedAt,
 		LastRunAt:     eventListener.LastRunAt,
+		Position:      eventListener.Position,
 	}
 }
