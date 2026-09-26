@@ -19,6 +19,7 @@ type Message struct {
 	FlowSources   map[string]flow.FlowData
 	CreatedAt     time.Time
 	UpdatedAt     time.Time
+	Position      int
 }
 
 type MessageInstance struct {

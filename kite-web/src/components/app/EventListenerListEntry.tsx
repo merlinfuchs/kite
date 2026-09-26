@@ -1,11 +1,14 @@
 import {
   useEventListenerDeleteMutation,
+  useEventListenerMoveMutation,
   useEventListenerUpdateEnabledMutation,
 } from "@/lib/api/mutations";
 import { useAppId } from "@/lib/hooks/params";
 import { EventListener } from "@/lib/types/wire.gen";
 import { formatDateTime } from "@/lib/utils";
 import {
+  ArrowDownIcon,
+  ArrowUpIcon,
   CheckIcon,
   ClockIcon,
   CopyPlusIcon,
@@ -41,8 +44,12 @@ import FlowExportDialog from "./FlowExportDialog";
 
 export default function EventListenerListEntry({
   listener,
+  isFirst,
+  isLast,
 }: {
   listener: EventListener;
+  isFirst?: boolean;
+  isLast?: boolean;
 }) {
   const router = useRouter();
 
@@ -77,6 +84,16 @@ export default function EventListenerListEntry({
   const toggleEnabled = useCallback(() => {
     updateEnabledMutation.mutate({ enabled: !listener.enabled });
   }, [updateEnabledMutation, listener.enabled]);
+
+  const moveMutation = useEventListenerMoveMutation(appId, listener.id);
+
+  const moveUp = useCallback(() => {
+    moveMutation.mutate({ direction: "up" });
+  }, [moveMutation]);
+
+  const moveDown = useCallback(() => {
+    moveMutation.mutate({ direction: "down" });
+  }, [moveMutation]);
 
   return (
     <Card className="relative">
@@ -174,6 +191,22 @@ export default function EventListenerListEntry({
             </DropdownMenuGroup>
           </DropdownMenuContent>
         </DropdownMenu>
+        <Button
+          size="icon"
+          variant="ghost"
+          disabled={isFirst}
+          onClick={moveUp}
+        >
+          <ArrowUpIcon className="h-5 w-5 text-muted-foreground" />
+        </Button>
+        <Button
+          size="icon"
+          variant="ghost"
+          disabled={isLast}
+          onClick={moveDown}
+        >
+          <ArrowDownIcon className="h-5 w-5 text-muted-foreground" />
+        </Button>
       </CardFooter>
     </Card>
   );

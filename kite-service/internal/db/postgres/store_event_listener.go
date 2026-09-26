@@ -186,6 +186,72 @@ func (c *Client) DeleteEventListener(ctx context.Context, id string) error {
 	return nil
 }
 
+func (c *Client) MoveEventListener(ctx context.Context, appID string, id string, direction string) ([]*model.EventListener, error) {
+	tx, err := c.DB.Begin(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to begin transaction: %w", err)
+	}
+	defer tx.Rollback(ctx)
+
+	q := c.Q.WithTx(tx)
+
+	rows, err := q.GetEventListenersByApp(ctx, appID)
+	if err != nil {
+		return nil, err
+	}
+
+	idx := -1
+	for i, row := range rows {
+		if row.ID == id {
+			idx = i
+			break
+		}
+	}
+	if idx == -1 {
+		return nil, store.ErrNotFound
+	}
+
+	swapIdx := idx - 1
+	if direction == "down" {
+		swapIdx = idx + 1
+	}
+
+	if swapIdx >= 0 && swapIdx < len(rows) {
+		posA, posB := rows[idx].Position, rows[swapIdx].Position
+
+		if err := q.UpdateEventListenerPosition(ctx, pgmodel.UpdateEventListenerPositionParams{
+			ID:       rows[idx].ID,
+			Position: posB,
+		}); err != nil {
+			return nil, fmt.Errorf("failed to update event listener position: %w", err)
+		}
+		if err := q.UpdateEventListenerPosition(ctx, pgmodel.UpdateEventListenerPositionParams{
+			ID:       rows[swapIdx].ID,
+			Position: posA,
+		}); err != nil {
+			return nil, fmt.Errorf("failed to update event listener position: %w", err)
+		}
+
+		rows[idx].Position, rows[swapIdx].Position = posB, posA
+		rows[idx], rows[swapIdx] = rows[swapIdx], rows[idx]
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return nil, fmt.Errorf("failed to commit transaction: %w", err)
+	}
+
+	listeners := make([]*model.EventListener, len(rows))
+	for i, row := range rows {
+		listener, err := rowToEventListener(row)
+		if err != nil {
+			return nil, err
+		}
+		listeners[i] = listener
+	}
+
+	return listeners, nil
+}
+
 func rowToEventListener(row pgmodel.EventListener) (*model.EventListener, error) {
 	var flowSource flow.FlowData
 	if err := json.Unmarshal(row.FlowSource, &flowSource); err != nil {
@@ -213,5 +279,6 @@ func rowToEventListener(row pgmodel.EventListener) (*model.EventListener, error)
 		CreatedAt:     row.CreatedAt.Time,
 		UpdatedAt:     row.UpdatedAt.Time,
 		LastRunAt:     null.NewTime(row.LastRunAt.Time, row.LastRunAt.Valid),
+		Position:      int(row.Position),
 	}, nil
 }

@@ -20,4 +20,9 @@ type EventListenerStore interface {
 	EnabledEventListenerIDs(ctx context.Context) ([]string, error)
 	EnabledScheduledEventListenerIDs(ctx context.Context) ([]string, error)
 	DeleteEventListener(ctx context.Context, id string) error
+	// MoveEventListener swaps the position of the event listener with its
+	// neighbor in the given direction ("up" or "down") and returns the app's
+	// event listeners in their new order. It is a no-op if the event
+	// listener is already at that edge.
+	MoveEventListener(ctx context.Context, appID string, id string, direction string) ([]*model.EventListener, error)
 }

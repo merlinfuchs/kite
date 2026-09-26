@@ -2,7 +2,7 @@
 SELECT * FROM messages WHERE id = $1 AND app_id = $2;
 
 -- name: GetMessagesByApp :many
-SELECT * FROM messages WHERE app_id = $1 ORDER BY created_at DESC;
+SELECT * FROM messages WHERE app_id = $1 ORDER BY position ASC, created_at DESC;
 
 -- name: CountMessagesByApp :one
 SELECT COUNT(*) FROM messages WHERE app_id = $1;
@@ -17,10 +17,14 @@ INSERT INTO messages (
     creator_user_id,
     data,
     flow_sources,
+    position,
     created_at,
     updated_at
 ) VALUES (
-    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10
+    $1, $2, $3, $4, $5, $6, $7, $8,
+    -- New messages are shown first, matching the previous created_at DESC order.
+    (SELECT COALESCE(MIN(position), 0) - 1 FROM messages WHERE app_id = $4),
+    $9, $10
 ) RETURNING *;
 
 -- name: UpdateMessage :one
@@ -34,6 +38,10 @@ WHERE id = $1 RETURNING *;
 
 -- name: DeleteMessage :exec
 DELETE FROM messages WHERE id = $1;
+
+-- name: UpdateMessagePosition :exec
+-- Doesn't touch updated_at, since reordering isn't a semantic change to the message.
+UPDATE messages SET position = $2 WHERE id = $1;
 
 -- message_instances has no app_id, so these reach the app through messages.
 

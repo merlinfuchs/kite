@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -156,6 +157,72 @@ func (c *Client) DinstinctAppIDsWithUndeployedCommands(ctx context.Context) ([]s
 	return c.Q.DinstinctAppIDsWithUndeployedCommands(ctx)
 }
 
+func (c *Client) MoveCommand(ctx context.Context, appID string, id string, direction string) ([]*model.Command, error) {
+	tx, err := c.DB.Begin(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to begin transaction: %w", err)
+	}
+	defer tx.Rollback(ctx)
+
+	q := c.Q.WithTx(tx)
+
+	rows, err := q.GetCommandsByApp(ctx, appID)
+	if err != nil {
+		return nil, err
+	}
+
+	idx := -1
+	for i, row := range rows {
+		if row.ID == id {
+			idx = i
+			break
+		}
+	}
+	if idx == -1 {
+		return nil, store.ErrNotFound
+	}
+
+	swapIdx := idx - 1
+	if direction == "down" {
+		swapIdx = idx + 1
+	}
+
+	if swapIdx >= 0 && swapIdx < len(rows) {
+		posA, posB := rows[idx].Position, rows[swapIdx].Position
+
+		if err := q.UpdateCommandPosition(ctx, pgmodel.UpdateCommandPositionParams{
+			ID:       rows[idx].ID,
+			Position: posB,
+		}); err != nil {
+			return nil, fmt.Errorf("failed to update command position: %w", err)
+		}
+		if err := q.UpdateCommandPosition(ctx, pgmodel.UpdateCommandPositionParams{
+			ID:       rows[swapIdx].ID,
+			Position: posA,
+		}); err != nil {
+			return nil, fmt.Errorf("failed to update command position: %w", err)
+		}
+
+		rows[idx].Position, rows[swapIdx].Position = posB, posA
+		rows[idx], rows[swapIdx] = rows[swapIdx], rows[idx]
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return nil, fmt.Errorf("failed to commit transaction: %w", err)
+	}
+
+	commands := make([]*model.Command, len(rows))
+	for i, row := range rows {
+		cmd, err := rowToCommand(row)
+		if err != nil {
+			return nil, err
+		}
+		commands[i] = cmd
+	}
+
+	return commands, nil
+}
+
 func rowToCommand(row pgmodel.Command) (*model.Command, error) {
 	var flowSource flow.FlowData
 	if err := json.Unmarshal(row.FlowSource, &flowSource); err != nil {
@@ -174,5 +241,6 @@ func rowToCommand(row pgmodel.Command) (*model.Command, error) {
 		CreatedAt:      row.CreatedAt.Time,
 		UpdatedAt:      row.UpdatedAt.Time,
 		LastDeployedAt: null.NewTime(row.LastDeployedAt.Time, row.LastDeployedAt.Valid),
+		Position:       int(row.Position),
 	}, nil
 }

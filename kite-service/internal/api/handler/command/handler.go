@@ -169,6 +169,23 @@ func (h *CommandHandler) HandleCommandUpdateEnabled(c *handler.Context, req wire
 	return wire.CommandToWire(command), nil
 }
 
+func (h *CommandHandler) HandleCommandMove(c *handler.Context, req wire.CommandMoveRequest) (*wire.CommandMoveResponse, error) {
+	commands, err := h.commandStore.MoveCommand(c.Context(), c.App.ID, c.Command.ID, req.Direction)
+	if err != nil {
+		if errors.Is(err, store.ErrNotFound) {
+			return nil, handler.ErrNotFound("unknown_command", "Command not found")
+		}
+		return nil, fmt.Errorf("failed to move command: %w", err)
+	}
+
+	res := make([]*wire.Command, len(commands))
+	for i, command := range commands {
+		res[i] = wire.CommandToWire(command)
+	}
+
+	return &res, nil
+}
+
 func (h *CommandHandler) HandleCommandDelete(c *handler.Context) (*wire.CommandDeleteResponse, error) {
 	err := h.commandStore.DeleteCommand(c.Context(), c.Command.ID)
 	if err != nil {

@@ -139,6 +139,23 @@ func (h *MessageHandler) HandleMessageUpdate(c *handler.Context, req wire.Messag
 	return wire.MessageToWire(message), nil
 }
 
+func (h *MessageHandler) HandleMessageMove(c *handler.Context, req wire.MessageMoveRequest) (*wire.MessageMoveResponse, error) {
+	messages, err := h.messageStore.MoveMessage(c.Context(), c.App.ID, c.Message.ID, req.Direction)
+	if err != nil {
+		if errors.Is(err, store.ErrNotFound) {
+			return nil, handler.ErrNotFound("unknown_message", "Message not found")
+		}
+		return nil, fmt.Errorf("failed to move message: %w", err)
+	}
+
+	res := make([]*wire.Message, len(messages))
+	for i, message := range messages {
+		res[i] = wire.MessageToWire(message)
+	}
+
+	return &res, nil
+}
+
 func (h *MessageHandler) HandleMessageDelete(c *handler.Context) (*wire.MessageDeleteResponse, error) {
 	err := h.messageStore.DeleteMessage(c.Context(), c.Message.ID)
 	if err != nil {

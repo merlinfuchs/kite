@@ -252,6 +252,7 @@ export interface Command {
   created_at: string /* RFC3339 */;
   updated_at: string /* RFC3339 */;
   last_deployed_at: null | string /* RFC3339 */;
+  position: number /* int */;
 }
 export type CommandGetResponse = Command;
 export type CommandListResponse = (Command | undefined)[];
@@ -273,6 +274,10 @@ export interface CommandUpdateEnabledRequest {
   enabled: boolean;
 }
 export type CommandUpdateEnabledResponse = Command;
+export interface CommandMoveRequest {
+  direction: string;
+}
+export type CommandMoveResponse = (Command | undefined)[];
 export type CommandDeleteResponse = Empty;
 export interface CommandsDeployResponse {
   deployed: boolean;
@@ -296,6 +301,7 @@ export interface EventListener {
   created_at: string /* RFC3339 */;
   updated_at: string /* RFC3339 */;
   last_run_at: null | string /* RFC3339 */;
+  position: number /* int */;
 }
 export interface EventListenerFilter {
 }
@@ -320,6 +326,10 @@ export interface EventListenerUpdateEnabledRequest {
   enabled: boolean;
 }
 export type EventListenerUpdateEnabledResponse = EventListener;
+export interface EventListenerMoveRequest {
+  direction: string;
+}
+export type EventListenerMoveResponse = (EventListener | undefined)[];
 export type EventListenerDeleteResponse = Empty;
 
 //////////
@@ -376,6 +386,7 @@ export interface Message {
   flow_sources: { [key: string]: FlowData};
   created_at: string /* RFC3339 */;
   updated_at: string /* RFC3339 */;
+  position: number /* int */;
 }
 export type MessageGetResponse = Message;
 export type MessageListResponse = (Message | undefined)[];
@@ -397,6 +408,10 @@ export interface MessageUpdateRequest {
   flow_sources: { [key: string]: FlowData};
 }
 export type MessageUpdateResponse = Message;
+export interface MessageMoveRequest {
+  direction: string;
+}
+export type MessageMoveResponse = (Message | undefined)[];
 export type MessageDeleteResponse = Empty;
 export interface MessageInstance {
   id: number /* uint64 */;

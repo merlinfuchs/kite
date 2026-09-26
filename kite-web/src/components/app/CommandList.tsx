@@ -31,7 +31,12 @@ export default function CommandList() {
             />
           ) : (
             commands.map((command, i) => (
-              <CommandListEntry command={command!} key={i} />
+              <CommandListEntry
+                command={command!}
+                key={i}
+                isFirst={i === 0}
+                isLast={i === commands.length - 1}
+              />
             ))
           )}
 

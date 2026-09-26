@@ -19,6 +19,8 @@ import {
   CommandCreateRequest,
   CommandCreateResponse,
   CommandDeleteResponse,
+  CommandMoveRequest,
+  CommandMoveResponse,
   CommandsDeployResponse,
   CommandsImportRequest,
   CommandsImportResponse,
@@ -29,6 +31,8 @@ import {
   EventListenerCreateRequest,
   EventListenerCreateResponse,
   EventListenerDeleteResponse,
+  EventListenerMoveRequest,
+  EventListenerMoveResponse,
   EventListenersImportRequest,
   EventListenersImportResponse,
   EventListenerUpdateEnabledRequest,
@@ -38,6 +42,8 @@ import {
   MessageCreateRequest,
   MessageCreateResponse,
   MessageDeleteResponse,
+  MessageMoveRequest,
+  MessageMoveResponse,
   MessageInstanceCreateRequest,
   MessageInstanceCreateResponse,
   MessageInstanceDeleteResponse,
@@ -263,6 +269,29 @@ export function useCommandUpdateEnabledMutation(appId: string, cmdId: string) {
   });
 }
 
+export function useCommandMoveMutation(appId: string, cmdId: string) {
+  const client = useQueryClient();
+
+  return useMutation({
+    mutationFn: (req: CommandMoveRequest) =>
+      apiRequest<CommandMoveResponse>(
+        `/v1/apps/${appId}/commands/${cmdId}/position`,
+        {
+          method: "PUT",
+          body: JSON.stringify(req),
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      ),
+    onSuccess: () => {
+      client.invalidateQueries({
+        queryKey: ["apps", appId, "commands"],
+      });
+    },
+  });
+}
+
 export function useCommandDeleteMutation(appId: string, cmdId: string) {
   const client = useQueryClient();
 
@@ -358,6 +387,29 @@ export function useEventListenerUpdateEnabledMutation(
     mutationFn: (req: EventListenerUpdateEnabledRequest) =>
       apiRequest<EventListenerUpdateEnabledResponse>(
         `/v1/apps/${appId}/event-listeners/${eventId}/enabled`,
+        {
+          method: "PUT",
+          body: JSON.stringify(req),
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      ),
+    onSuccess: () => {
+      client.invalidateQueries({
+        queryKey: ["apps", appId, "event-listeners"],
+      });
+    },
+  });
+}
+
+export function useEventListenerMoveMutation(appId: string, eventId: string) {
+  const client = useQueryClient();
+
+  return useMutation({
+    mutationFn: (req: EventListenerMoveRequest) =>
+      apiRequest<EventListenerMoveResponse>(
+        `/v1/apps/${appId}/event-listeners/${eventId}/position`,
         {
           method: "PUT",
           body: JSON.stringify(req),
@@ -527,6 +579,29 @@ export function useMessageUpdateMutation(appId: string, messageId: string) {
         `/v1/apps/${appId}/messages/${messageId}`,
         {
           method: "PATCH",
+          body: JSON.stringify(req),
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      ),
+    onSuccess: () => {
+      client.invalidateQueries({
+        queryKey: ["apps", appId, "messages"],
+      });
+    },
+  });
+}
+
+export function useMessageMoveMutation(appId: string, messageId: string) {
+  const client = useQueryClient();
+
+  return useMutation({
+    mutationFn: (req: MessageMoveRequest) =>
+      apiRequest<MessageMoveResponse>(
+        `/v1/apps/${appId}/messages/${messageId}/position`,
+        {
+          method: "PUT",
           body: JSON.stringify(req),
           headers: {
             "Content-Type": "application/json",

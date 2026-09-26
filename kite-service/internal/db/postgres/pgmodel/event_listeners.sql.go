@@ -39,11 +39,14 @@ INSERT INTO event_listeners (
     creator_user_id,
     filter,
     flow_source,
+    position,
     created_at,
     updated_at
 ) VALUES (
-    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12
-) RETURNING id, source, type, description, enabled, app_id, module_id, creator_user_id, filter, flow_source, created_at, updated_at, last_run_at
+    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10,
+    (SELECT COALESCE(MIN(position), 0) - 1 FROM event_listeners WHERE app_id = $6),
+    $11, $12
+) RETURNING id, source, type, description, enabled, app_id, module_id, creator_user_id, filter, flow_source, created_at, updated_at, last_run_at, position
 `
 
 type CreateEventListenerParams struct {
@@ -91,6 +94,7 @@ func (q *Queries) CreateEventListener(ctx context.Context, arg CreateEventListen
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.LastRunAt,
+		&i.Position,
 	)
 	return i, err
 }
@@ -153,7 +157,7 @@ func (q *Queries) GetEnabledScheduledEventListenerIDs(ctx context.Context) ([]st
 }
 
 const getEventListener = `-- name: GetEventListener :one
-SELECT id, source, type, description, enabled, app_id, module_id, creator_user_id, filter, flow_source, created_at, updated_at, last_run_at FROM event_listeners WHERE id = $1
+SELECT id, source, type, description, enabled, app_id, module_id, creator_user_id, filter, flow_source, created_at, updated_at, last_run_at, position FROM event_listeners WHERE id = $1
 `
 
 func (q *Queries) GetEventListener(ctx context.Context, id string) (EventListener, error) {
@@ -173,12 +177,13 @@ func (q *Queries) GetEventListener(ctx context.Context, id string) (EventListene
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.LastRunAt,
+		&i.Position,
 	)
 	return i, err
 }
 
 const getEventListenersByApp = `-- name: GetEventListenersByApp :many
-SELECT id, source, type, description, enabled, app_id, module_id, creator_user_id, filter, flow_source, created_at, updated_at, last_run_at FROM event_listeners WHERE app_id = $1 ORDER BY created_at DESC
+SELECT id, source, type, description, enabled, app_id, module_id, creator_user_id, filter, flow_source, created_at, updated_at, last_run_at, position FROM event_listeners WHERE app_id = $1 ORDER BY position ASC, created_at DESC
 `
 
 func (q *Queries) GetEventListenersByApp(ctx context.Context, appID string) ([]EventListener, error) {
@@ -204,6 +209,7 @@ func (q *Queries) GetEventListenersByApp(ctx context.Context, appID string) ([]E
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.LastRunAt,
+			&i.Position,
 		); err != nil {
 			return nil, err
 		}
@@ -216,7 +222,7 @@ func (q *Queries) GetEventListenersByApp(ctx context.Context, appID string) ([]E
 }
 
 const getEventListenersUpdatedSince = `-- name: GetEventListenersUpdatedSince :many
-SELECT id, source, type, description, enabled, app_id, module_id, creator_user_id, filter, flow_source, created_at, updated_at, last_run_at FROM event_listeners WHERE updated_at > $1 AND (enabled = TRUE OR $2::BOOLEAN)
+SELECT id, source, type, description, enabled, app_id, module_id, creator_user_id, filter, flow_source, created_at, updated_at, last_run_at, position FROM event_listeners WHERE updated_at > $1 AND (enabled = TRUE OR $2::BOOLEAN)
 `
 
 type GetEventListenersUpdatedSinceParams struct {
@@ -249,6 +255,7 @@ func (q *Queries) GetEventListenersUpdatedSince(ctx context.Context, arg GetEven
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.LastRunAt,
+			&i.Position,
 		); err != nil {
 			return nil, err
 		}
@@ -268,7 +275,7 @@ UPDATE event_listeners SET
     description = $5,
     flow_source = $6,
     updated_at = $7
-WHERE id = $1 RETURNING id, source, type, description, enabled, app_id, module_id, creator_user_id, filter, flow_source, created_at, updated_at, last_run_at
+WHERE id = $1 RETURNING id, source, type, description, enabled, app_id, module_id, creator_user_id, filter, flow_source, created_at, updated_at, last_run_at, position
 `
 
 type UpdateEventListenerParams struct {
@@ -306,8 +313,24 @@ func (q *Queries) UpdateEventListener(ctx context.Context, arg UpdateEventListen
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.LastRunAt,
+		&i.Position,
 	)
 	return i, err
+}
+
+const updateEventListenerPosition = `-- name: UpdateEventListenerPosition :exec
+UPDATE event_listeners SET position = $2 WHERE id = $1
+`
+
+type UpdateEventListenerPositionParams struct {
+	ID       string
+	Position int32
+}
+
+// Doesn't touch updated_at, since reordering isn't a semantic change to the listener.
+func (q *Queries) UpdateEventListenerPosition(ctx context.Context, arg UpdateEventListenerPositionParams) error {
+	_, err := q.db.Exec(ctx, updateEventListenerPosition, arg.ID, arg.Position)
+	return err
 }
 
 const updateEventListenersLastRunAt = `-- name: UpdateEventListenersLastRunAt :exec

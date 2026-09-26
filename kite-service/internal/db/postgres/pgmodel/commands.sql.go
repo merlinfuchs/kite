@@ -32,11 +32,14 @@ INSERT INTO commands (
     module_id,
     creator_user_id,
     flow_source,
+    position,
     created_at,
     updated_at
 ) VALUES (
-    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10
-) RETURNING id, name, description, enabled, app_id, module_id, creator_user_id, flow_source, created_at, updated_at, last_deployed_at
+    $1, $2, $3, $4, $5, $6, $7, $8,
+    (SELECT COALESCE(MIN(position), 0) - 1 FROM commands WHERE app_id = $5),
+    $9, $10
+) RETURNING id, name, description, enabled, app_id, module_id, creator_user_id, flow_source, created_at, updated_at, last_deployed_at, position
 `
 
 type CreateCommandParams struct {
@@ -78,6 +81,7 @@ func (q *Queries) CreateCommand(ctx context.Context, arg CreateCommandParams) (C
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.LastDeployedAt,
+		&i.Position,
 	)
 	return i, err
 }
@@ -116,7 +120,7 @@ func (q *Queries) DinstinctAppIDsWithUndeployedCommands(ctx context.Context) ([]
 }
 
 const getCommand = `-- name: GetCommand :one
-SELECT id, name, description, enabled, app_id, module_id, creator_user_id, flow_source, created_at, updated_at, last_deployed_at FROM commands WHERE id = $1
+SELECT id, name, description, enabled, app_id, module_id, creator_user_id, flow_source, created_at, updated_at, last_deployed_at, position FROM commands WHERE id = $1
 `
 
 func (q *Queries) GetCommand(ctx context.Context, id string) (Command, error) {
@@ -134,12 +138,13 @@ func (q *Queries) GetCommand(ctx context.Context, id string) (Command, error) {
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.LastDeployedAt,
+		&i.Position,
 	)
 	return i, err
 }
 
 const getCommandsByApp = `-- name: GetCommandsByApp :many
-SELECT id, name, description, enabled, app_id, module_id, creator_user_id, flow_source, created_at, updated_at, last_deployed_at FROM commands WHERE app_id = $1 ORDER BY created_at DESC
+SELECT id, name, description, enabled, app_id, module_id, creator_user_id, flow_source, created_at, updated_at, last_deployed_at, position FROM commands WHERE app_id = $1 ORDER BY position ASC, created_at DESC
 `
 
 func (q *Queries) GetCommandsByApp(ctx context.Context, appID string) ([]Command, error) {
@@ -163,6 +168,7 @@ func (q *Queries) GetCommandsByApp(ctx context.Context, appID string) ([]Command
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.LastDeployedAt,
+			&i.Position,
 		); err != nil {
 			return nil, err
 		}
@@ -199,7 +205,7 @@ func (q *Queries) GetEnabledCommandIDs(ctx context.Context) ([]string, error) {
 }
 
 const getEnabledCommandsUpdatesSince = `-- name: GetEnabledCommandsUpdatesSince :many
-SELECT id, name, description, enabled, app_id, module_id, creator_user_id, flow_source, created_at, updated_at, last_deployed_at FROM commands WHERE enabled = TRUE AND updated_at > $1
+SELECT id, name, description, enabled, app_id, module_id, creator_user_id, flow_source, created_at, updated_at, last_deployed_at, position FROM commands WHERE enabled = TRUE AND updated_at > $1
 `
 
 func (q *Queries) GetEnabledCommandsUpdatesSince(ctx context.Context, updatedAt pgtype.Timestamp) ([]Command, error) {
@@ -223,6 +229,7 @@ func (q *Queries) GetEnabledCommandsUpdatesSince(ctx context.Context, updatedAt 
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.LastDeployedAt,
+			&i.Position,
 		); err != nil {
 			return nil, err
 		}
@@ -241,7 +248,7 @@ UPDATE commands SET
     enabled = $4,
     flow_source = $5,
     updated_at = $6
-WHERE id = $1 RETURNING id, name, description, enabled, app_id, module_id, creator_user_id, flow_source, created_at, updated_at, last_deployed_at
+WHERE id = $1 RETURNING id, name, description, enabled, app_id, module_id, creator_user_id, flow_source, created_at, updated_at, last_deployed_at, position
 `
 
 type UpdateCommandParams struct {
@@ -275,8 +282,24 @@ func (q *Queries) UpdateCommand(ctx context.Context, arg UpdateCommandParams) (C
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.LastDeployedAt,
+		&i.Position,
 	)
 	return i, err
+}
+
+const updateCommandPosition = `-- name: UpdateCommandPosition :exec
+UPDATE commands SET position = $2 WHERE id = $1
+`
+
+type UpdateCommandPositionParams struct {
+	ID       string
+	Position int32
+}
+
+// Doesn't touch updated_at, since reordering isn't a semantic change to the command.
+func (q *Queries) UpdateCommandPosition(ctx context.Context, arg UpdateCommandPositionParams) error {
+	_, err := q.db.Exec(ctx, updateCommandPosition, arg.ID, arg.Position)
+	return err
 }
 
 const updateCommandsLastDeployedAt = `-- name: UpdateCommandsLastDeployedAt :exec

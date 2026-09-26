@@ -164,6 +164,23 @@ func (h *EventListenerHandler) HandleEventListenerUpdateEnabled(c *handler.Conte
 	return wire.EventListenerToWire(eventListener), nil
 }
 
+func (h *EventListenerHandler) HandleEventListenerMove(c *handler.Context, req wire.EventListenerMoveRequest) (*wire.EventListenerMoveResponse, error) {
+	eventListeners, err := h.eventListenerStore.MoveEventListener(c.Context(), c.App.ID, c.EventListener.ID, req.Direction)
+	if err != nil {
+		if errors.Is(err, store.ErrNotFound) {
+			return nil, handler.ErrNotFound("unknown_event_listener", "Event listener not found")
+		}
+		return nil, fmt.Errorf("failed to move event listener: %w", err)
+	}
+
+	res := make([]*wire.EventListener, len(eventListeners))
+	for i, eventListener := range eventListeners {
+		res[i] = wire.EventListenerToWire(eventListener)
+	}
+
+	return &res, nil
+}
+
 func (h *EventListenerHandler) HandleEventListenerDelete(c *handler.Context) (*wire.EventListenerDeleteResponse, error) {
 	err := h.eventListenerStore.DeleteEventListener(c.Context(), c.EventListener.ID)
 	if err != nil {

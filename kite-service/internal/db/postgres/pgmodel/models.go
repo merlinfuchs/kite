@@ -57,6 +57,7 @@ type Command struct {
 	CreatedAt      pgtype.Timestamp
 	UpdatedAt      pgtype.Timestamp
 	LastDeployedAt pgtype.Timestamp
+	Position       int32
 }
 
 type Entitlement struct {
@@ -84,6 +85,7 @@ type EventListener struct {
 	CreatedAt     pgtype.Timestamp
 	UpdatedAt     pgtype.Timestamp
 	LastRunAt     pgtype.Timestamp
+	Position      int32
 }
 
 type Log struct {
@@ -108,6 +110,7 @@ type Message struct {
 	CreatorUserID string
 	CreatedAt     pgtype.Timestamp
 	UpdatedAt     pgtype.Timestamp
+	Position      int32
 }
 
 type MessageInstance struct {

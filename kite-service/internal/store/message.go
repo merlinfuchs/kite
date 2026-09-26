@@ -14,6 +14,10 @@ type MessageStore interface {
 	CreateMessage(ctx context.Context, variable *model.Message) (*model.Message, error)
 	UpdateMessage(ctx context.Context, variable *model.Message) (*model.Message, error)
 	DeleteMessage(ctx context.Context, id string) error
+	// MoveMessage swaps the position of the message with its neighbor in the
+	// given direction ("up" or "down") and returns the app's messages in
+	// their new order. It is a no-op if the message is already at that edge.
+	MoveMessage(ctx context.Context, appID string, id string, direction string) ([]*model.Message, error)
 }
 
 type MessageInstanceStore interface {
