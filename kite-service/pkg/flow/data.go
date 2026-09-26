@@ -374,6 +374,7 @@ const (
 	EventFilterTypeUserID         EventFilterTarget = "user_id"
 	EventFilterTypeGuildID        EventFilterTarget = "guild_id"
 	EventFilterTypeChannelID      EventFilterTarget = "channel_id"
+	EventFilterTypeMessageID      EventFilterTarget = "message_id"
 )
 
 type RobloxLookupType string

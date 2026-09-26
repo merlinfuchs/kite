@@ -189,7 +189,13 @@ export const nodeOptionCommandContextsSchema = nodeBaseDataSchema.extend({
 
 export const nodeOptionEventFilterSchema = nodeBaseDataSchema.extend({
   event_filter_target: z
-    .enum(["message_content", "user_id", "guild_id", "channel_id"])
+    .enum([
+      "message_content",
+      "user_id",
+      "guild_id",
+      "channel_id",
+      "message_id",
+    ])
     .describe("Property of the event to filter on."),
   event_filter_mode: z
     .enum(["equal", "not_equal", "contains", "starts_with", "ends_with"])
@@ -211,6 +217,8 @@ export const nodeEntryEventDataSchema = nodeBaseDataSchema.extend({
       "message_delete",
       "guild_member_add",
       "guild_member_remove",
+      "message_reaction_add",
+      "message_reaction_remove",
       "cron",
     ])
     .describe(

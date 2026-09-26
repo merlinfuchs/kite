@@ -112,6 +112,13 @@ func (l *EventListener) shouldHandleEvent(e ws.Event) bool {
 		return true
 	case *gateway.GuildMemberRemoveEvent:
 		return true
+	case *gateway.MessageReactionAddEvent:
+		// Member is only populated for guild reactions; either way we don't
+		// know if the reactor is a bot without an extra API call, so unlike
+		// MessageCreate/Update we don't filter bots out here.
+		return true
+	case *gateway.MessageReactionRemoveEvent:
+		return true
 	}
 
 	return false
