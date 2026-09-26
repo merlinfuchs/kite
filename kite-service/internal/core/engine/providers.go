@@ -237,6 +237,29 @@ func (p *DiscordProvider) EditMessage(ctx context.Context, channelID discord.Cha
 	return msg, nil
 }
 
+func (p *DiscordProvider) Messages(ctx context.Context, channelID discord.ChannelID, limit uint) ([]discord.Message, error) {
+	messages, err := p.session.Messages(channelID, limit)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get messages: %w", err)
+	}
+
+	return messages, nil
+}
+
+func (p *DiscordProvider) DeleteMessages(
+	ctx context.Context,
+	channelID discord.ChannelID,
+	messageIDs []discord.MessageID,
+	reason api.AuditLogReason,
+) error {
+	err := p.session.DeleteMessages(channelID, messageIDs, reason)
+	if err != nil {
+		return fmt.Errorf("failed to delete messages: %w", err)
+	}
+
+	return nil
+}
+
 func (p *DiscordProvider) DeleteMessage(
 	ctx context.Context,
 	channelID discord.ChannelID,

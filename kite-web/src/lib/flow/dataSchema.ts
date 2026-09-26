@@ -410,6 +410,18 @@ export const nodeActionMessageDeleteDataSchema = nodeBaseDataSchema.extend({
   audit_log_reason: auditLogReasonSchema,
 });
 
+export const nodeActionMessageBulkDeleteDataSchema = nodeBaseDataSchema.extend({
+  channel_target: channelTargetSchema,
+  message_count: numericOrPlaceholder(
+    "Number of recent messages to delete (max 1000)."
+  ),
+  message_ignore_pinned: z
+    .boolean()
+    .optional()
+    .describe("Skip pinned messages when deleting."),
+  temporary_name: temporaryNameSchema,
+});
+
 export const nodeActionMessagePinDataSchema = nodeActionMessageDeleteDataSchema;
 
 export const emojiDataSchema = z.object({

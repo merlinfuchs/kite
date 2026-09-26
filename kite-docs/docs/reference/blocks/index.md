@@ -27,6 +27,7 @@ The output of previously executed blocks is available in all subsequent blocks a
 - [Create channel message](./actions/action_message_create.md) - Send messages to channels
 - [Edit channel message](./actions/action_message_edit.md) - Edit channel messages
 - [Delete channel message](./actions/action_message_delete.md) - Delete channel messages
+- [Bulk delete messages](./actions/action_message_bulk_delete.md) - Delete the most recent messages in a channel
 - [Get channel message](./actions/action_message_get.md) - Retrieve channel messages
 - [Send direct message](./actions/action_private_message_create.md) - Send private messages
 - [Create message reaction](./actions/action_message_reaction_create.md) - Add reactions to messages
