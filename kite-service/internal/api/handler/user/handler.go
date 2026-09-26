@@ -39,3 +39,20 @@ func (h *UserHandler) HandlerUserGet(c *handler.Context) (*wire.UserGetResponse,
 
 	return wire.UserToWire(user, withEmail), nil
 }
+
+func (h *UserHandler) HandlerUserUpdate(c *handler.Context, req wire.UserUpdateRequest) (*wire.UserUpdateResponse, error) {
+	userID := c.Param("userID")
+	if userID != "@me" && userID != c.Session.UserID {
+		return nil, handler.ErrForbidden("forbidden", "You can only update your own user")
+	}
+
+	user, err := h.userStore.UpdateUserHideEmail(c.Context(), c.Session.UserID, req.HideEmail)
+	if err != nil {
+		if errors.Is(err, store.ErrNotFound) {
+			return nil, handler.ErrNotFound("unknown_user", "User not found")
+		}
+		return nil, fmt.Errorf("failed to update user: %w", err)
+	}
+
+	return wire.UserToWire(user, true), nil
+}

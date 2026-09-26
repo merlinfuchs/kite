@@ -507,10 +507,15 @@ export interface User {
   discord_id: string;
   discord_username: string;
   discord_avatar: null | string;
+  hide_email: boolean;
   created_at: string /* RFC3339 */;
   updated_at: string /* RFC3339 */;
 }
 export type UserGetResponse = User;
+export interface UserUpdateRequest {
+  hide_email: boolean;
+}
+export type UserUpdateResponse = User;
 
 //////////
 // source: variable.go

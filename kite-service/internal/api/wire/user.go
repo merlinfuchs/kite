@@ -14,11 +14,22 @@ type User struct {
 	DiscordID       string      `json:"discord_id"`
 	DiscordUsername string      `json:"discord_username"`
 	DiscordAvatar   null.String `json:"discord_avatar"`
+	HideEmail       bool        `json:"hide_email"`
 	CreatedAt       time.Time   `json:"created_at"`
 	UpdatedAt       time.Time   `json:"updated_at"`
 }
 
 type UserGetResponse = User
+
+type UserUpdateRequest struct {
+	HideEmail bool `json:"hide_email"`
+}
+
+func (req UserUpdateRequest) Validate() error {
+	return nil
+}
+
+type UserUpdateResponse = User
 
 func UserToWire(user *model.User, withEmail bool) *User {
 	if user == nil {
@@ -32,6 +43,7 @@ func UserToWire(user *model.User, withEmail bool) *User {
 		DiscordID:       user.DiscordID,
 		DiscordUsername: user.DiscordUsername,
 		DiscordAvatar:   user.DiscordAvatar,
+		HideEmail:       user.HideEmail,
 		CreatedAt:       user.CreatedAt,
 		UpdatedAt:       user.UpdatedAt,
 	}

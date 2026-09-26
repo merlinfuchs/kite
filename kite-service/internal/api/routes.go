@@ -113,6 +113,7 @@ func (s *APIServer) RegisterRoutes(
 
 	usersGroup := v1Group.Group("/users", sessionManager.RequireSession)
 	usersGroup.Get("/{userID}", handler.Typed(userHandler.HandlerUserGet))
+	usersGroup.Patch("/{userID}", handler.TypedWithBody(userHandler.HandlerUserUpdate))
 
 	// Share code routes
 	shareCodeHandler := sharecode.NewShareCodeHandler(shareCodeStore)
