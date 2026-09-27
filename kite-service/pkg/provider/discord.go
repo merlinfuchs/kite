@@ -51,6 +51,7 @@ type DiscordProvider interface {
 
 	UpdateVoiceState(ctx context.Context, guildID discord.GuildID, channelID discord.ChannelID, selfMute bool, selfDeaf bool) error
 	UpdatePresence(ctx context.Context, status discord.Status, activity discord.Activity) error
+	LeaveGuild(ctx context.Context, guildID discord.GuildID) error
 
 	HasCreatedInteractionResponse(ctx context.Context, interactionID discord.InteractionID) (bool, error)
 	// MarkInteractionResponded is for interactions a previous execution
@@ -229,6 +230,10 @@ func (p *MockDiscordProvider) UpdateVoiceState(ctx context.Context, guildID disc
 }
 
 func (p *MockDiscordProvider) UpdatePresence(ctx context.Context, status discord.Status, activity discord.Activity) error {
+	return nil
+}
+
+func (p *MockDiscordProvider) LeaveGuild(ctx context.Context, guildID discord.GuildID) error {
 	return nil
 }
 

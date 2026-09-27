@@ -1163,6 +1163,18 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 		}
 
 		return n.ExecuteChildren(ctx)
+	case FlowNodeTypeActionServerLeave:
+		guildID, err := ctx.EvalTemplate(n.Data.GuildTarget)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		err = ctx.Discord.LeaveGuild(ctx, discord.GuildID(guildID.Snowflake()))
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		return n.ExecuteChildren(ctx)
 	case FlowNodeTypeActionMessageGet:
 		channelID := ctx.Data.ChannelID()
 

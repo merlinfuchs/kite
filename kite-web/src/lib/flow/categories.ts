@@ -110,7 +110,7 @@ export const nodeCategories: Record<
     },
     {
       title: "Bot",
-      nodeTypes: ["action_status_set"],
+      nodeTypes: ["action_status_set", "action_server_leave"],
       contextTypes: null,
     },
     {

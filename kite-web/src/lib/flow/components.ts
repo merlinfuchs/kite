@@ -70,6 +70,7 @@ export const nodeTypes = {
   action_voice_channel_join: FlowNodeActionBase,
   action_voice_channel_leave: FlowNodeActionBase,
   action_status_set: FlowNodeActionBase,
+  action_server_leave: FlowNodeActionBase,
   action_http_request: FlowNodeActionBase,
   action_ai_chat_completion: FlowNodeActionBase,
   action_ai_web_search: FlowNodeActionBase,

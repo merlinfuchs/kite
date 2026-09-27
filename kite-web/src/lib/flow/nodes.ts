@@ -41,6 +41,7 @@ import {
   nodeActionResponseEditDataSchema,
   nodeActionRobloxUserGetDataSchema,
   nodeActionRoleGetDataSchema,
+  nodeActionServerLeaveDataSchema,
   nodeActionThreadCreateDataSchema,
   nodeActionThreadMemberAddDataSchema,
   nodeActionThreadMemberRemoveDataSchema,
@@ -684,6 +685,15 @@ export const nodeTypes: Record<string, NodeValues> = {
     dataFields: ["status_data", "custom_label"],
     creditsCost: 1,
     premiumFeature: "rotating_status",
+  },
+  action_server_leave: {
+    color: actionColor,
+    icon: "log-out",
+    defaultTitle: "Leave Server",
+    defaultDescription: "Bot leaves the given server",
+    dataSchema: nodeActionServerLeaveDataSchema,
+    dataFields: ["guild_target", "custom_label"],
+    creditsCost: 1,
   },
   action_http_request: {
     color: actionColor,

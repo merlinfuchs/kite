@@ -603,6 +603,10 @@ export const nodeActionGuildGetDataSchema = nodeBaseDataSchema.extend({
   temporary_name: temporaryNameSchema,
 });
 
+export const nodeActionServerLeaveDataSchema = nodeBaseDataSchema.extend({
+  guild_target: numericOrPlaceholder("ID of the server to leave."),
+});
+
 export const nodeActionMessageGetDataSchema = nodeBaseDataSchema.extend({
   channel_target: numericOrPlaceholder(
     "ID of the channel the message is in. Defaults to the channel the flow runs in."

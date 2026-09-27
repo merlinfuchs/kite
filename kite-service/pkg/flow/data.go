@@ -95,6 +95,7 @@ const (
 	FlowNodeTypeActionVoiceChannelJoin      FlowNodeType = "action_voice_channel_join"
 	FlowNodeTypeActionVoiceChannelLeave     FlowNodeType = "action_voice_channel_leave"
 	FlowNodeTypeActionStatusSet             FlowNodeType = "action_status_set"
+	FlowNodeTypeActionServerLeave           FlowNodeType = "action_server_leave"
 
 	FlowNodeTypeControlConditionCompare     FlowNodeType = "control_condition_compare"
 	FlowNodeTypeControlConditionItemCompare FlowNodeType = "control_condition_item_compare"
@@ -165,7 +166,7 @@ type FlowNodeData struct {
 	// Command Installations
 	CommandDisabledIntegrations []CommandDisabledIntegrationType `json:"command_disabled_integrations,omitempty"`
 
-	// Guild Get, and the guild of member, channel, role and voice blocks
+	// Guild Get, Server Leave, and the guild of member, channel, role and voice blocks
 	GuildTarget string `json:"guild_target,omitempty"`
 
 	// Message & Response Create, Edit, Delete
