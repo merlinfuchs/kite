@@ -12,13 +12,17 @@ import Link from "next/link";
 import env from "@/lib/env/client";
 
 const items = [
+   {
+    name: "Support",
+    url: env.NEXT_PUBLIC_DISCORD_LINK,
+  },
   {
     name: "Documentation",
     url: env.NEXT_PUBLIC_DOCS_LINK,
   },
   {
-    name: "Support",
-    url: env.NEXT_PUBLIC_DISCORD_LINK,
+    name: "GitHub Repository",
+    url: "https://github.com/merlinfuchs/kite",
   },
 ];
 
