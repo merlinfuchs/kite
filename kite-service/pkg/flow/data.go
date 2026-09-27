@@ -80,6 +80,10 @@ const (
 	FlowNodeTypeActionThreadMemberRemove    FlowNodeType = "action_thread_member_remove"
 	FlowNodeTypeActionForumPostCreate       FlowNodeType = "action_forum_post_create"
 	FlowNodeTypeActionRoleGet               FlowNodeType = "action_role_get"
+	FlowNodeTypeActionRoleCreate            FlowNodeType = "action_role_create"
+	FlowNodeTypeActionRoleEdit              FlowNodeType = "action_role_edit"
+	FlowNodeTypeActionRoleDelete            FlowNodeType = "action_role_delete"
+	FlowNodeTypeActionRoleMove              FlowNodeType = "action_role_move"
 	FlowNodeTypeActionGuildGet              FlowNodeType = "action_guild_get"
 	FlowNodeTypeActionMessageGet            FlowNodeType = "action_message_get"
 	FlowNodeTypeActionRobloxUserGet         FlowNodeType = "action_roblox_user_get"
@@ -197,9 +201,10 @@ type FlowNodeData struct {
 	// Status Set
 	StatusData *StatusData `json:"status_data,omitempty"`
 
-	// Role Create, Edit, Delete, Get
-	RoleTarget string    `json:"role_target,omitempty"`
-	RoleData   *RoleData `json:"role_data,omitempty"`
+	// Role Create, Edit, Delete, Get, Move
+	RoleTarget   string    `json:"role_target,omitempty"`
+	RoleData     *RoleData `json:"role_data,omitempty"`
+	RolePosition string    `json:"role_position,omitempty"`
 
 	// Roblox User Get
 	RobloxUserTarget string           `json:"roblox_user_target,omitempty"`
@@ -496,10 +501,66 @@ type PermissionOverwriteData struct {
 
 type RoleData struct {
 	Name        string `json:"name,omitempty"`
-	Color       int    `json:"color,omitempty"`
-	Hoist       bool   `json:"hoist,omitempty"`
-	Permissions int    `json:"permissions,omitempty"`
+	Color       *int   `json:"color,omitempty"`
+	Hoist       *bool  `json:"hoist,omitempty"`
+	Mentionable *bool  `json:"mentionable,omitempty"`
+	Permissions string `json:"permissions,omitempty"`
 	Position    int    `json:"position,omitempty"`
+}
+
+func (d *RoleData) UnmarshalJSON(b []byte) error {
+	type roleDataAlias RoleData
+	aux := struct {
+		Permissions json.RawMessage `json:"permissions,omitempty"`
+		*roleDataAlias
+	}{roleDataAlias: (*roleDataAlias)(d)}
+
+	if err := json.Unmarshal(b, &aux); err != nil {
+		return err
+	}
+
+	raw := string(aux.Permissions)
+	if len(raw) > 0 && raw != "null" {
+		if raw[0] == '"' {
+			var s string
+			if err := json.Unmarshal(aux.Permissions, &s); err != nil {
+				return err
+			}
+			d.Permissions = s
+		} else {
+			d.Permissions = raw
+		}
+	}
+
+	return nil
+}
+
+func (d *RoleData) ToCreateRoleData(ctx context.Context, evalCtx eval.Context) (api.CreateRoleData, error) {
+	res := api.CreateRoleData{}
+
+	name, err := eval.EvalTemplate(ctx, d.Name, evalCtx)
+	if err != nil {
+		return res, err
+	}
+	res.Name = name.String()
+
+	permissions, err := eval.EvalTemplate(ctx, d.Permissions, evalCtx)
+	if err != nil {
+		return res, err
+	}
+	res.Permissions = discord.Permissions(permissions.Int())
+
+	if d.Color != nil {
+		res.Color = discord.Color(*d.Color)
+	}
+	if d.Hoist != nil {
+		res.Hoist = *d.Hoist
+	}
+	if d.Mentionable != nil {
+		res.Mentionable = *d.Mentionable
+	}
+
+	return res, nil
 }
 
 type MemberData struct {
