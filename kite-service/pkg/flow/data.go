@@ -76,6 +76,8 @@ const (
 	FlowNodeTypeActionChannelEdit           FlowNodeType = "action_channel_edit"
 	FlowNodeTypeActionChannelDelete         FlowNodeType = "action_channel_delete"
 	FlowNodeTypeActionThreadCreate          FlowNodeType = "action_thread_create"
+	FlowNodeTypeActionThreadEdit            FlowNodeType = "action_thread_edit"
+	FlowNodeTypeActionThreadDelete          FlowNodeType = "action_thread_delete"
 	FlowNodeTypeActionThreadMemberAdd       FlowNodeType = "action_thread_member_add"
 	FlowNodeTypeActionThreadMemberRemove    FlowNodeType = "action_thread_member_remove"
 	FlowNodeTypeActionForumPostCreate       FlowNodeType = "action_forum_post_create"
@@ -189,6 +191,12 @@ type FlowNodeData struct {
 	// Channel Create, Edit, Delete, Get
 	ChannelTarget string       `json:"channel_target,omitempty"`
 	ChannelData   *ChannelData `json:"channel_data,omitempty"`
+
+	ThreadArchived            *bool  `json:"thread_archived,omitempty"`
+	ThreadLocked              *bool  `json:"thread_locked,omitempty"`
+	ThreadInvitable           *bool  `json:"thread_invitable,omitempty"`
+	ThreadAutoArchiveDuration string `json:"thread_auto_archive_duration,omitempty"`
+	ThreadSlowmode            string `json:"thread_slowmode,omitempty"`
 
 	// Voice Channel Join
 	VoiceSelfMute bool `json:"voice_self_mute,omitempty"`

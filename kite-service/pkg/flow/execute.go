@@ -1078,6 +1078,64 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 
 		ctx.StoreNodeResult(n, thing.NewDiscordChannel(*thread))
 		return n.ExecuteChildren(ctx)
+	case FlowNodeTypeActionThreadEdit:
+		channelTarget, err := ctx.EvalTemplate(n.Data.ChannelTarget)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		editData := api.ModifyChannelData{}
+		if n.Data.ThreadArchived != nil {
+			v := *n.Data.ThreadArchived
+			editData.Archived = &v
+		}
+		if n.Data.ThreadLocked != nil {
+			v := *n.Data.ThreadLocked
+			editData.Locked = &v
+		}
+		if n.Data.ThreadInvitable != nil {
+			v := *n.Data.ThreadInvitable
+			editData.Invitable = &v
+		}
+
+		duration, err := ctx.EvalTemplate(n.Data.ThreadAutoArchiveDuration)
+		if err != nil {
+			return traceError(n, err)
+		}
+		if !duration.IsEmpty() {
+			editData.AutoArchiveDuration = discord.ArchiveDuration(duration.Int())
+		}
+
+		slowmode, err := ctx.EvalTemplate(n.Data.ThreadSlowmode)
+		if err != nil {
+			return traceError(n, err)
+		}
+		if !slowmode.IsEmpty() {
+			editData.UserRateLimit = option.NewNullableUint(uint(slowmode.Int()))
+		}
+
+		err = ctx.Discord.EditChannel(ctx, discord.ChannelID(channelTarget.Snowflake()), editData)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		return n.ExecuteChildren(ctx)
+	case FlowNodeTypeActionThreadDelete:
+		channelTarget, err := ctx.EvalTemplate(n.Data.ChannelTarget)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		err = ctx.Discord.DeleteChannel(
+			ctx,
+			discord.ChannelID(channelTarget.Snowflake()),
+			"",
+		)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		return n.ExecuteChildren(ctx)
 	case FlowNodeTypeActionThreadMemberAdd:
 		channelTarget, err := ctx.EvalTemplate(n.Data.ChannelTarget)
 		if err != nil {

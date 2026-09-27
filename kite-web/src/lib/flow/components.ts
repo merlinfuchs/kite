@@ -57,6 +57,8 @@ export const nodeTypes = {
   action_channel_edit: FlowNodeActionBase,
   action_channel_delete: FlowNodeActionBase,
   action_thread_create: FlowNodeActionBase,
+  action_thread_edit: FlowNodeActionBase,
+  action_thread_delete: FlowNodeActionBase,
   action_thread_member_add: FlowNodeActionBase,
   action_thread_member_remove: FlowNodeActionBase,
   action_forum_post_create: FlowNodeActionBase,

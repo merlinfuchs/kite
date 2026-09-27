@@ -2925,12 +2925,6 @@
             "additionalProperties": false,
             "description": "Settings of the channel, thread or forum post."
           },
-          "audit_log_reason": {
-            "type": "string",
-            "maxLength": 512,
-            "description": "Reason shown in the server's audit log.",
-            "x-templated": true
-          },
           "temporary_name": {
             "type": "string",
             "maxLength": 32,
@@ -2973,6 +2967,130 @@
         ],
         "additionalProperties": false
       }
+    },
+    "action_thread_edit": {
+      "title": "Edit thread",
+      "description": "Edit a thread's settings",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord",
+        "event_schedule"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "type": "string",
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+          },
+          "channel_target": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9]+$"
+              },
+              {
+                "type": "string",
+                "pattern": "^\\{\\{[^{}]+\\}\\}$"
+              }
+            ],
+            "description": "ID of the thread."
+          },
+          "thread_archived": {
+            "type": "boolean",
+            "description": "Whether the thread is archived (hidden)."
+          },
+          "thread_locked": {
+            "type": "boolean",
+            "description": "Whether the thread is locked."
+          },
+          "thread_invitable": {
+            "type": "boolean",
+            "description": "Whether non-moderators can add members to a private thread."
+          },
+          "thread_auto_archive_duration": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9]+$"
+              },
+              {
+                "type": "string",
+                "pattern": "^\\{\\{[^{}]+\\}\\}$"
+              }
+            ],
+            "description": "Minutes of inactivity before the thread is archived (60, 1440, 4320, or 10080)."
+          },
+          "thread_slowmode": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9]+$"
+              },
+              {
+                "type": "string",
+                "pattern": "^\\{\\{[^{}]+\\}\\}$"
+              }
+            ],
+            "description": "Slowmode in seconds."
+          }
+        },
+        "required": [
+          "channel_target"
+        ],
+        "additionalProperties": false
+      },
+      "result_schema": null
+    },
+    "action_thread_delete": {
+      "title": "Delete thread",
+      "description": "Delete a thread",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord",
+        "event_schedule"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "type": "string",
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+          },
+          "channel_target": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9]+$"
+              },
+              {
+                "type": "string",
+                "pattern": "^\\{\\{[^{}]+\\}\\}$"
+              }
+            ],
+            "description": "ID of the thread."
+          }
+        },
+        "required": [
+          "channel_target"
+        ],
+        "additionalProperties": false
+      },
+      "result_schema": null
     },
     "action_forum_post_create": {
       "title": "Create forum post",

@@ -119,6 +119,11 @@ const intputs: Record<string, any> = {
   emoji_data: EmojiDataInput,
   response_target: ResponseTargetInput,
   message_ephemeral: MessageEphemeralInput,
+  thread_archived: ThreadArchivedInput,
+  thread_locked: ThreadLockedInput,
+  thread_invitable: ThreadInvitableInput,
+  thread_auto_archive_duration: ThreadAutoArchiveDurationInput,
+  thread_slowmode: ThreadSlowmodeInput,
   modal_data: ModalDataInput,
   channel_data: ChannelDataInput,
   thread_data: ThreadDataInput,
@@ -1442,6 +1447,79 @@ function MessageTargetInput({ data, updateData, errors }: InputProps) {
       title="Target Message"
       value={data.message_target || ""}
       updateValue={(v) => updateData({ message_target: v || undefined })}
+      errors={errors}
+      placeholders
+    />
+  );
+}
+
+function ThreadArchivedInput({ data, updateData, errors }: InputProps) {
+  return (
+    <BaseCheckbox
+      field="thread_archived"
+      title="Archived (hidden)"
+      description="Archive the thread so it's hidden from the active list."
+      value={data.thread_archived || false}
+      updateValue={(v) => updateData({ thread_archived: v })}
+      errors={errors}
+    />
+  );
+}
+
+function ThreadLockedInput({ data, updateData, errors }: InputProps) {
+  return (
+    <BaseCheckbox
+      field="thread_locked"
+      title="Locked"
+      description="Only moderators can send messages in a locked thread."
+      value={data.thread_locked || false}
+      updateValue={(v) => updateData({ thread_locked: v })}
+      errors={errors}
+    />
+  );
+}
+
+function ThreadInvitableInput({ data, updateData, errors }: InputProps) {
+  return (
+    <BaseCheckbox
+      field="thread_invitable"
+      title="Invitable"
+      description="Allow non-moderators to add members to a private thread."
+      value={data.thread_invitable || false}
+      updateValue={(v) => updateData({ thread_invitable: v })}
+      errors={errors}
+    />
+  );
+}
+
+function ThreadAutoArchiveDurationInput({
+  data,
+  updateData,
+  errors,
+}: InputProps) {
+  return (
+    <BaseInput
+      type="text"
+      field="thread_auto_archive_duration"
+      title="Auto-archive duration (minutes)"
+      value={data.thread_auto_archive_duration || ""}
+      updateValue={(v) =>
+        updateData({ thread_auto_archive_duration: v || undefined })
+      }
+      errors={errors}
+      placeholders
+    />
+  );
+}
+
+function ThreadSlowmodeInput({ data, updateData, errors }: InputProps) {
+  return (
+    <BaseInput
+      type="text"
+      field="thread_slowmode"
+      title="Slowmode (seconds)"
+      value={data.thread_slowmode || ""}
+      updateValue={(v) => updateData({ thread_slowmode: v || undefined })}
       errors={errors}
       placeholders
     />

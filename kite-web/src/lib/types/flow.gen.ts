@@ -43,6 +43,8 @@ export const FlowNodeTypeActionChannelCreate: FlowNodeType = "action_channel_cre
 export const FlowNodeTypeActionChannelEdit: FlowNodeType = "action_channel_edit";
 export const FlowNodeTypeActionChannelDelete: FlowNodeType = "action_channel_delete";
 export const FlowNodeTypeActionThreadCreate: FlowNodeType = "action_thread_create";
+export const FlowNodeTypeActionThreadEdit: FlowNodeType = "action_thread_edit";
+export const FlowNodeTypeActionThreadDelete: FlowNodeType = "action_thread_delete";
 export const FlowNodeTypeActionThreadMemberAdd: FlowNodeType = "action_thread_member_add";
 export const FlowNodeTypeActionThreadMemberRemove: FlowNodeType = "action_thread_member_remove";
 export const FlowNodeTypeActionForumPostCreate: FlowNodeType = "action_forum_post_create";
@@ -153,6 +155,11 @@ export interface FlowNodeData {
    */
   channel_target?: string;
   channel_data?: ChannelData;
+  thread_archived?: boolean;
+  thread_locked?: boolean;
+  thread_invitable?: boolean;
+  thread_auto_archive_duration?: string;
+  thread_slowmode?: string;
   /**
    * Voice Channel Join
    */

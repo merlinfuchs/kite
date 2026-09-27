@@ -572,8 +572,31 @@ export const nodeActionThreadCreateDataSchema = nodeBaseDataSchema.extend({
     "ID of the message to start the thread from. Leave unset for a thread without a starter message."
   ).optional(),
   channel_data: channelDataSchema,
-  audit_log_reason: auditLogReasonSchema,
   temporary_name: temporaryNameSchema,
+});
+
+export const nodeActionThreadEditDataSchema = nodeBaseDataSchema.extend({
+  channel_target: numericOrPlaceholder("ID of the thread."),
+  thread_archived: z
+    .boolean()
+    .optional()
+    .describe("Whether the thread is archived (hidden)."),
+  thread_locked: z
+    .boolean()
+    .optional()
+    .describe("Whether the thread is locked."),
+  thread_invitable: z
+    .boolean()
+    .optional()
+    .describe("Whether non-moderators can add members to a private thread."),
+  thread_auto_archive_duration: numericOrPlaceholder(
+    "Minutes of inactivity before the thread is archived (60, 1440, 4320, or 10080)."
+  ).optional(),
+  thread_slowmode: numericOrPlaceholder("Slowmode in seconds.").optional(),
+});
+
+export const nodeActionThreadDeleteDataSchema = nodeBaseDataSchema.extend({
+  channel_target: numericOrPlaceholder("ID of the thread."),
 });
 
 export const nodeActionThreadMemberAddDataSchema = nodeBaseDataSchema.extend({
