@@ -1150,6 +1150,210 @@
         "additionalProperties": false
       }
     },
+    "action_private_message_edit": {
+      "title": "Edit direct message",
+      "description": "Bot edits a direct message it sent to a user",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord",
+        "event_schedule"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "type": "string",
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+          },
+          "user_target": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9]+$"
+              },
+              {
+                "type": "string",
+                "pattern": "^\\{\\{[^{}]+\\}\\}$"
+              }
+            ],
+            "description": "ID of the user the message was sent to."
+          },
+          "message_target": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9]+$"
+              },
+              {
+                "type": "string",
+                "pattern": "^\\{\\{[^{}]+\\}\\}$"
+              }
+            ],
+            "description": "ID of the message."
+          },
+          "message_data": {
+            "type": "object",
+            "properties": {
+              "content": {
+                "type": "string",
+                "maxLength": 2000,
+                "description": "Text content of the message.",
+                "x-templated": true
+              },
+              "embeds": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": {}
+                },
+                "maxItems": 10,
+                "description": "Embeds shown below the content, as Discord embed objects (title, description, url, color, fields, author, footer, image, thumbnail). Their text supports placeholders."
+              },
+              "allowed_mentions": {
+                "type": "object",
+                "properties": {
+                  "parse": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "enum": [
+                        "users",
+                        "roles",
+                        "everyone"
+                      ]
+                    },
+                    "description": "Kinds of mentions that ping."
+                  }
+                },
+                "additionalProperties": false,
+                "description": "Which mentions ping. If unset, only mentioned users are pinged."
+              }
+            },
+            "additionalProperties": true,
+            "description": "The message to send."
+          },
+          "message_template_id": {
+            "type": "string",
+            "description": "ID of a saved message template to send instead of message_data."
+          },
+          "temporary_name": {
+            "type": "string",
+            "maxLength": 32,
+            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only."
+          }
+        },
+        "required": [
+          "user_target",
+          "message_target"
+        ],
+        "additionalProperties": false,
+        "description": "Set either message_data or message_template_id."
+      },
+      "result_schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The ID of the message"
+          },
+          "channel_id": {
+            "type": "string",
+            "description": "The ID of the channel the message was sent in"
+          },
+          "content": {
+            "type": "string",
+            "description": "The content of the message"
+          },
+          "author": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "description": "The ID of the user"
+              },
+              "username": {
+                "type": "string",
+                "description": "The username of the user"
+              },
+              "discriminator": {
+                "type": "string",
+                "description": "The discriminator of the user"
+              },
+              "display_name": {
+                "type": "string",
+                "description": "The display name of the user"
+              },
+              "avatar_url": {
+                "type": "string",
+                "description": "The avatar URL of the user"
+              }
+            },
+            "required": [
+              "id",
+              "username",
+              "discriminator",
+              "display_name",
+              "avatar_url"
+            ],
+            "additionalProperties": false,
+            "description": "The author of the message if it's a DM"
+          },
+          "member": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "description": "The ID of the user"
+              },
+              "username": {
+                "type": "string",
+                "description": "The username of the user"
+              },
+              "discriminator": {
+                "type": "string",
+                "description": "The discriminator of the user"
+              },
+              "display_name": {
+                "type": "string",
+                "description": "The display name of the user"
+              },
+              "avatar_url": {
+                "type": "string",
+                "description": "The avatar URL of the member"
+              },
+              "nick": {
+                "type": "string",
+                "description": "The nickname of the member"
+              }
+            },
+            "required": [
+              "id",
+              "username",
+              "discriminator",
+              "display_name",
+              "avatar_url",
+              "nick"
+            ],
+            "additionalProperties": false,
+            "description": "The author of the message if it's in a server"
+          }
+        },
+        "required": [
+          "id",
+          "channel_id",
+          "content",
+          "author"
+        ],
+        "additionalProperties": false
+      }
+    },
     "action_message_delete": {
       "title": "Delete channel message",
       "description": "Bot deletes an existing message in a channel",
