@@ -65,11 +65,6 @@ export const nodeCategories: Record<
         "action_member_unban",
         "action_member_kick",
         "action_member_timeout",
-        "action_member_move",
-        "action_member_mute",
-        "action_member_unmute",
-        "action_member_deafen",
-        "action_member_undeafen",
         "action_member_edit",
         "action_member_get",
       ],
@@ -110,7 +105,15 @@ export const nodeCategories: Record<
     },
     {
       title: "Voice",
-      nodeTypes: ["action_voice_channel_join", "action_voice_channel_leave"],
+      nodeTypes: [
+       "action_voice_channel_join",
+       "action_voice_channel_leave",
+       "action_member_move",
+       "action_member_mute",
+       "action_member_unmute",
+       "action_member_deafen",
+       "action_member_undeafen",
+      ],
       contextTypes: null,
     },
     {
