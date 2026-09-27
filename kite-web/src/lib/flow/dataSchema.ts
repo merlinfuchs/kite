@@ -410,6 +410,14 @@ export const nodeActionMessageDeleteDataSchema = nodeBaseDataSchema.extend({
   audit_log_reason: auditLogReasonSchema,
 });
 
+export const nodeActionForumPostTagAddDataSchema = nodeBaseDataSchema.extend({
+  channel_target: numericOrPlaceholder("ID of the forum post."),
+  forum_tag_id: numericOrPlaceholder("ID of the tag."),
+});
+
+export const nodeActionForumPostTagRemoveDataSchema =
+  nodeActionForumPostTagAddDataSchema;
+
 export const nodeActionMessagePinDataSchema = nodeActionMessageDeleteDataSchema;
 
 export const emojiDataSchema = z.object({

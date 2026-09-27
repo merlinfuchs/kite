@@ -119,6 +119,7 @@ const intputs: Record<string, any> = {
   emoji_data: EmojiDataInput,
   response_target: ResponseTargetInput,
   message_ephemeral: MessageEphemeralInput,
+  forum_tag_id: ForumTagIdInput,
   modal_data: ModalDataInput,
   channel_data: ChannelDataInput,
   thread_data: ThreadDataInput,
@@ -1442,6 +1443,20 @@ function MessageTargetInput({ data, updateData, errors }: InputProps) {
       title="Target Message"
       value={data.message_target || ""}
       updateValue={(v) => updateData({ message_target: v || undefined })}
+      errors={errors}
+      placeholders
+    />
+  );
+}
+
+function ForumTagIdInput({ data, updateData, errors }: InputProps) {
+  return (
+    <BaseInput
+      type="text"
+      field="forum_tag_id"
+      title="Tag"
+      value={data.forum_tag_id || ""}
+      updateValue={(v) => updateData({ forum_tag_id: v || undefined })}
       errors={errors}
       placeholders
     />

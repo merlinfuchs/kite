@@ -100,6 +100,8 @@ export const nodeCategories: Record<
         "action_thread_create",
         "action_thread_member_add",
         "action_thread_member_remove",
+        "action_forum_post_tag_add",
+        "action_forum_post_tag_remove",
       ],
       contextTypes: null,
     },

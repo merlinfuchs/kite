@@ -57,6 +57,8 @@ const (
 	FlowNodeTypeActionMessageCreate         FlowNodeType = "action_message_create"
 	FlowNodeTypeActionMessageEdit           FlowNodeType = "action_message_edit"
 	FlowNodeTypeActionMessageDelete         FlowNodeType = "action_message_delete"
+	FlowNodeTypeActionForumPostTagAdd       FlowNodeType = "action_forum_post_tag_add"
+	FlowNodeTypeActionForumPostTagRemove    FlowNodeType = "action_forum_post_tag_remove"
 	FlowNodeTypeActionPrivateMessageCreate  FlowNodeType = "action_private_message_create"
 	FlowNodeTypeActionMessageReactionCreate FlowNodeType = "action_message_reaction_create"
 	FlowNodeTypeActionMessageReactionDelete FlowNodeType = "action_message_reaction_delete"
@@ -173,6 +175,8 @@ type FlowNodeData struct {
 	MessageData       *message.MessageData `json:"message_data,omitempty"`
 	MessageTemplateID string               `json:"message_template_id,omitempty"`
 	MessageEphemeral  bool                 `json:"message_ephemeral,omitempty"`
+
+	ForumTagID string `json:"forum_tag_id,omitempty"`
 
 	// Message Reaction Create, Delete
 	EmojiData *EmojiData `json:"emoji_data,omitempty"`

@@ -500,6 +500,77 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 		}
 
 		return n.ExecuteChildren(ctx)
+	case FlowNodeTypeActionForumPostTagAdd:
+		channelTarget, err := ctx.EvalTemplate(n.Data.ChannelTarget)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		tagTarget, err := ctx.EvalTemplate(n.Data.ForumTagID)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		channelID := discord.ChannelID(channelTarget.Snowflake())
+		channel, err := ctx.Discord.Channel(ctx, channelID)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		tagID := discord.TagID(tagTarget.Snowflake())
+		tags := channel.AppliedTags
+		exists := false
+		for _, t := range tags {
+			if t == tagID {
+				exists = true
+				break
+			}
+		}
+		if !exists {
+			tags = append(tags, tagID)
+		}
+
+		err = ctx.Discord.EditChannel(ctx, channelID, api.ModifyChannelData{
+			AppliedTags: &tags,
+		})
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		return n.ExecuteChildren(ctx)
+	case FlowNodeTypeActionForumPostTagRemove:
+		channelTarget, err := ctx.EvalTemplate(n.Data.ChannelTarget)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		tagTarget, err := ctx.EvalTemplate(n.Data.ForumTagID)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		channelID := discord.ChannelID(channelTarget.Snowflake())
+		channel, err := ctx.Discord.Channel(ctx, channelID)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		tagID := discord.TagID(tagTarget.Snowflake())
+		tags := make([]discord.TagID, 0, len(channel.AppliedTags))
+		for _, t := range channel.AppliedTags {
+			if t != tagID {
+				tags = append(tags, t)
+			}
+		}
+
+		err = ctx.Discord.EditChannel(ctx, channelID, api.ModifyChannelData{
+			AppliedTags: &tags,
+		})
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		return n.ExecuteChildren(ctx)
 	case FlowNodeTypeActionPrivateMessageCreate:
 		if ctx.IsEntry() {
 			return n.resumeFromComponent(ctx)

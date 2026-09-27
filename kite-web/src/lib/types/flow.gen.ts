@@ -24,6 +24,8 @@ export const FlowNodeTypeActionResponseDefer: FlowNodeType = "action_response_de
 export const FlowNodeTypeActionMessageCreate: FlowNodeType = "action_message_create";
 export const FlowNodeTypeActionMessageEdit: FlowNodeType = "action_message_edit";
 export const FlowNodeTypeActionMessageDelete: FlowNodeType = "action_message_delete";
+export const FlowNodeTypeActionForumPostTagAdd: FlowNodeType = "action_forum_post_tag_add";
+export const FlowNodeTypeActionForumPostTagRemove: FlowNodeType = "action_forum_post_tag_remove";
 export const FlowNodeTypeActionPrivateMessageCreate: FlowNodeType = "action_private_message_create";
 export const FlowNodeTypeActionMessageReactionCreate: FlowNodeType = "action_message_reaction_create";
 export const FlowNodeTypeActionMessageReactionDelete: FlowNodeType = "action_message_reaction_delete";
@@ -133,6 +135,7 @@ export interface FlowNodeData {
   message_data?: MessageData;
   message_template_id?: string;
   message_ephemeral?: boolean;
+  forum_tag_id?: string;
   /**
    * Message Reaction Create, Delete
    */
