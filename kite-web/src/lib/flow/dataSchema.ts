@@ -603,6 +603,16 @@ export const nodeActionGuildGetDataSchema = nodeBaseDataSchema.extend({
   temporary_name: temporaryNameSchema,
 });
 
+export const nodeActionInviteListDataSchema = nodeBaseDataSchema.extend({
+  guild_target: guildTargetSchema.optional(),
+  temporary_name: temporaryNameSchema,
+});
+
+export const nodeActionInviteDeleteDataSchema = nodeBaseDataSchema.extend({
+  invite_code: templated(z.string().min(1), "The invite code."),
+  audit_log_reason: auditLogReasonSchema,
+});
+
 export const nodeActionMessageGetDataSchema = nodeBaseDataSchema.extend({
   channel_target: numericOrPlaceholder(
     "ID of the channel the message is in. Defaults to the channel the flow runs in."

@@ -129,6 +129,24 @@ func (p *DiscordProvider) Guild(ctx context.Context, guildID discord.GuildID) (*
 	return guild, nil
 }
 
+func (p *DiscordProvider) GuildInvites(ctx context.Context, guildID discord.GuildID) ([]discord.Invite, error) {
+	invites, err := p.session.GuildInvites(guildID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get invites: %w", err)
+	}
+
+	return invites, nil
+}
+
+func (p *DiscordProvider) DeleteInvite(ctx context.Context, code string, reason api.AuditLogReason) error {
+	_, err := p.session.DeleteInvite(code, reason)
+	if err != nil {
+		return fmt.Errorf("failed to delete invite: %w", err)
+	}
+
+	return nil
+}
+
 func (p *DiscordProvider) Message(ctx context.Context, channelID discord.ChannelID, messageID discord.MessageID) (*discord.Message, error) {
 	msg, err := p.session.Message(channelID, messageID)
 	if err != nil {

@@ -119,6 +119,7 @@ const intputs: Record<string, any> = {
   emoji_data: EmojiDataInput,
   response_target: ResponseTargetInput,
   message_ephemeral: MessageEphemeralInput,
+  invite_code: InviteCodeInput,
   modal_data: ModalDataInput,
   channel_data: ChannelDataInput,
   thread_data: ThreadDataInput,
@@ -1442,6 +1443,20 @@ function MessageTargetInput({ data, updateData, errors }: InputProps) {
       title="Target Message"
       value={data.message_target || ""}
       updateValue={(v) => updateData({ message_target: v || undefined })}
+      errors={errors}
+      placeholders
+    />
+  );
+}
+
+function InviteCodeInput({ data, updateData, errors }: InputProps) {
+  return (
+    <BaseInput
+      type="text"
+      field="invite_code"
+      title="Invite Code"
+      value={data.invite_code || ""}
+      updateValue={(v) => updateData({ invite_code: v || undefined })}
       errors={errors}
       placeholders
     />

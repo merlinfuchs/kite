@@ -91,6 +91,11 @@ export const nodeCategories: Record<
       contextTypes: null,
     },
     {
+      title: "Invites",
+      nodeTypes: ["action_invite_list", "action_invite_delete"],
+      contextTypes: null,
+    },
+    {
       title: "Channels",
       nodeTypes: [
         "action_channel_create",

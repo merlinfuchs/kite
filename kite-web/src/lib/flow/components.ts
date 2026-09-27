@@ -62,6 +62,8 @@ export const nodeTypes = {
   action_forum_post_create: FlowNodeActionBase,
   action_role_get: FlowNodeActionBase,
   action_guild_get: FlowNodeActionBase,
+  action_invite_list: FlowNodeActionBase,
+  action_invite_delete: FlowNodeActionBase,
   action_message_get: FlowNodeActionBase,
   action_roblox_user_get: FlowNodeActionBase,
   action_variable_set: FlowNodeActionBase,

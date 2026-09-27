@@ -1163,6 +1163,57 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 		}
 
 		return n.ExecuteChildren(ctx)
+	case FlowNodeTypeActionInviteList:
+		guildID, err := n.targetGuildID(ctx)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		invites, err := ctx.Discord.GuildInvites(ctx, guildID)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		items := make([]thing.Thing, 0, len(invites))
+		for _, invite := range invites {
+			inviterID := ""
+			if invite.Inviter != nil {
+				inviterID = invite.Inviter.ID.String()
+			}
+
+			items = append(items, thing.NewObject(map[string]thing.Thing{
+				"code":       thing.NewString(invite.Code),
+				"url":        thing.NewString(invite.URL()),
+				"uses":       thing.NewInt(invite.Uses),
+				"max_uses":   thing.NewInt(invite.MaxUses),
+				"channel_id": thing.NewString(invite.Channel.ID.String()),
+				"inviter_id": thing.NewString(inviterID),
+			}))
+		}
+
+		ctx.StoreNodeResult(n, thing.NewArray(items))
+		return n.ExecuteChildren(ctx)
+	case FlowNodeTypeActionInviteDelete:
+		code, err := ctx.EvalTemplate(n.Data.InviteCode)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		auditLogReason, err := ctx.EvalTemplate(n.Data.AuditLogReason)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		err = ctx.Discord.DeleteInvite(
+			ctx,
+			code.String(),
+			api.AuditLogReason(auditLogReason.String()),
+		)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		return n.ExecuteChildren(ctx)
 	case FlowNodeTypeActionMessageGet:
 		channelID := ctx.Data.ChannelID()
 

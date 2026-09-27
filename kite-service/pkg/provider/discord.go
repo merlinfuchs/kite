@@ -10,6 +10,8 @@ import (
 // DiscordProvider provides access to the Discord API.
 type DiscordProvider interface {
 	Guild(ctx context.Context, guildID discord.GuildID) (*discord.Guild, error)
+	GuildInvites(ctx context.Context, guildID discord.GuildID) ([]discord.Invite, error)
+	DeleteInvite(ctx context.Context, code string, reason api.AuditLogReason) error
 	GuildChannels(ctx context.Context, guildID discord.GuildID) ([]discord.Channel, error)
 	GuildRoles(ctx context.Context, guildID discord.GuildID) ([]discord.Role, error)
 	Channel(ctx context.Context, channelID discord.ChannelID) (*discord.Channel, error)
@@ -68,6 +70,14 @@ type MockDiscordProvider struct{}
 
 func (p *MockDiscordProvider) Guild(ctx context.Context, guildID discord.GuildID) (*discord.Guild, error) {
 	return nil, nil
+}
+
+func (p *MockDiscordProvider) GuildInvites(ctx context.Context, guildID discord.GuildID) ([]discord.Invite, error) {
+	return nil, nil
+}
+
+func (p *MockDiscordProvider) DeleteInvite(ctx context.Context, code string, reason api.AuditLogReason) error {
+	return nil
 }
 
 func (p *MockDiscordProvider) GuildChannels(ctx context.Context, guildID discord.GuildID) ([]discord.Channel, error) {

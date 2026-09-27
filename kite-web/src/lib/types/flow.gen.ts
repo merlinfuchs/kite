@@ -48,6 +48,8 @@ export const FlowNodeTypeActionThreadMemberRemove: FlowNodeType = "action_thread
 export const FlowNodeTypeActionForumPostCreate: FlowNodeType = "action_forum_post_create";
 export const FlowNodeTypeActionRoleGet: FlowNodeType = "action_role_get";
 export const FlowNodeTypeActionGuildGet: FlowNodeType = "action_guild_get";
+export const FlowNodeTypeActionInviteList: FlowNodeType = "action_invite_list";
+export const FlowNodeTypeActionInviteDelete: FlowNodeType = "action_invite_delete";
 export const FlowNodeTypeActionMessageGet: FlowNodeType = "action_message_get";
 export const FlowNodeTypeActionRobloxUserGet: FlowNodeType = "action_roblox_user_get";
 export const FlowNodeTypeActionHTTPRequest: FlowNodeType = "action_http_request";
@@ -133,6 +135,7 @@ export interface FlowNodeData {
   message_data?: MessageData;
   message_template_id?: string;
   message_ephemeral?: boolean;
+  invite_code?: string;
   /**
    * Message Reaction Create, Delete
    */
