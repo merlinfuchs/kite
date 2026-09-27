@@ -57,6 +57,7 @@ const (
 	FlowNodeTypeActionMessageCreate         FlowNodeType = "action_message_create"
 	FlowNodeTypeActionMessageEdit           FlowNodeType = "action_message_edit"
 	FlowNodeTypeActionMessageDelete         FlowNodeType = "action_message_delete"
+	FlowNodeTypeActionMessageBulkDelete     FlowNodeType = "action_message_bulk_delete"
 	FlowNodeTypeActionPrivateMessageCreate  FlowNodeType = "action_private_message_create"
 	FlowNodeTypeActionMessageReactionCreate FlowNodeType = "action_message_reaction_create"
 	FlowNodeTypeActionMessageReactionDelete FlowNodeType = "action_message_reaction_delete"
@@ -169,10 +170,12 @@ type FlowNodeData struct {
 	GuildTarget string `json:"guild_target,omitempty"`
 
 	// Message & Response Create, Edit, Delete
-	MessageTarget     string               `json:"message_target,omitempty"`
-	MessageData       *message.MessageData `json:"message_data,omitempty"`
-	MessageTemplateID string               `json:"message_template_id,omitempty"`
-	MessageEphemeral  bool                 `json:"message_ephemeral,omitempty"`
+	MessageTarget       string               `json:"message_target,omitempty"`
+	MessageData         *message.MessageData `json:"message_data,omitempty"`
+	MessageTemplateID   string               `json:"message_template_id,omitempty"`
+	MessageEphemeral    bool                 `json:"message_ephemeral,omitempty"`
+	MessageCount        string               `json:"message_count,omitempty"`
+	MessageIgnorePinned bool                 `json:"message_ignore_pinned,omitempty"`
 
 	// Message Reaction Create, Delete
 	EmojiData *EmojiData `json:"emoji_data,omitempty"`

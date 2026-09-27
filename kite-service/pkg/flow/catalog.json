@@ -1213,6 +1213,89 @@
       },
       "result_schema": null
     },
+    "action_message_bulk_delete": {
+      "title": "Bulk delete messages",
+      "description": "Bot deletes the most recent messages in a channel",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord",
+        "event_schedule"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "type": "string",
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+          },
+          "channel_target": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9]+$"
+              },
+              {
+                "type": "string",
+                "pattern": "^\\{\\{[^{}]+\\}\\}$"
+              }
+            ],
+            "description": "ID of the channel."
+          },
+          "message_count": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9]+$"
+              },
+              {
+                "type": "string",
+                "pattern": "^\\{\\{[^{}]+\\}\\}$"
+              }
+            ],
+            "description": "Number of recent messages to delete (max 1000)."
+          },
+          "message_ignore_pinned": {
+            "type": "boolean",
+            "description": "Skip pinned messages when deleting."
+          },
+          "temporary_name": {
+            "type": "string",
+            "maxLength": 32,
+            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only."
+          }
+        },
+        "required": [
+          "channel_target",
+          "message_count"
+        ],
+        "additionalProperties": false
+      },
+      "result_schema": {
+        "type": "object",
+        "properties": {
+          "deleted": {
+            "type": "number",
+            "description": "Number of messages that were deleted."
+          },
+          "failed": {
+            "type": "number",
+            "description": "Number of messages that could not be deleted."
+          }
+        },
+        "required": [
+          "deleted",
+          "failed"
+        ],
+        "additionalProperties": false
+      }
+    },
     "action_message_reaction_create": {
       "title": "Create message reaction",
       "description": "Bot adds a reaction to a message",
