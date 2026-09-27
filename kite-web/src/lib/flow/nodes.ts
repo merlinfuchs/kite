@@ -28,6 +28,7 @@ import {
   nodeActionMemberUnbanDataSchema,
   nodeActionMessageCreateDataSchema,
   nodeActionMessageDeleteDataSchema,
+  nodeActionMessagePublishDataSchema,
   nodeActionMessageEditDataSchema,
   nodeActionMessageGetDataSchema,
   nodeActionMessageReactionCreateDataSchema,
@@ -267,6 +268,15 @@ export const nodeTypes: Record<string, NodeValues> = {
       "audit_log_reason",
       "custom_label",
     ],
+    creditsCost: 1,
+  },
+  action_message_publish: {
+    color: actionColor,
+    icon: "megaphone",
+    defaultTitle: "Publish message",
+    defaultDescription: "Publish a message in an announcement channel",
+    dataSchema: nodeActionMessagePublishDataSchema,
+    dataFields: ["channel_target", "message_target", "custom_label"],
     creditsCost: 1,
   },
   action_message_reaction_create: {
