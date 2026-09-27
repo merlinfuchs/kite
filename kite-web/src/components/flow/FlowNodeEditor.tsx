@@ -1,4 +1,5 @@
 import { discordEmojiUrl } from "@/tools/common/utils/discordCdn";
+import ColorPicker from "@/tools/common/components/ColorPicker";
 import {
   decodePermissionsBitset,
   encodePermissionsBitset,
@@ -130,6 +131,7 @@ const intputs: Record<string, any> = {
   status_data: StatusDataInput,
   role_data: RoleDataInput,
   role_target: RoleTargetInput,
+  role_position: RolePositionInput,
   variable_id: VariableIdInput,
   variable_scope: VariableScopeInput,
   variable_operation: VariableOperationInput,
@@ -2271,17 +2273,70 @@ function StatusDataInput({ data, updateData, errors }: InputProps) {
 
 function RoleDataInput({ data, updateData, errors }: InputProps) {
   return (
-    <BaseInput
-      type="text"
-      field="role_data"
-      title="Role Name"
-      value={data.role_data?.name || ""}
-      updateValue={(v) =>
-        updateData({ role_data: v ? { name: v } : undefined })
-      }
-      errors={errors}
-      placeholders
-    />
+    <>
+      <BaseInput
+        type="text"
+        field="role_data"
+        title="Role Name"
+        value={data.role_data?.name || ""}
+        updateValue={(v) =>
+          updateData({
+            role_data: { ...data.role_data, name: v || undefined },
+          })
+        }
+        errors={errors}
+        placeholders
+      />
+      <div>
+        <div className="font-medium text-foreground mb-2">Color</div>
+        <ColorPicker
+          value={data.role_data?.color}
+          onChange={(v) =>
+            updateData({
+              role_data: { ...data.role_data, color: v },
+            })
+          }
+        />
+      </div>
+      <BaseCheckbox
+        field="role_data.hoist"
+        title="Display separately"
+        description="Show members with this role separately in the member list."
+        value={data.role_data?.hoist || false}
+        updateValue={(v) =>
+          updateData({
+            role_data: { ...data.role_data, hoist: v },
+          })
+        }
+        errors={errors}
+      />
+      <BaseCheckbox
+        field="role_data.mentionable"
+        title="Mentionable"
+        description="Allow anyone to mention this role."
+        value={data.role_data?.mentionable || false}
+        updateValue={(v) =>
+          updateData({
+            role_data: { ...data.role_data, mentionable: v },
+          })
+        }
+        errors={errors}
+      />
+      <BasePermissionInput
+        field="role_data.permissions"
+        title="Permissions"
+        value={data.role_data?.permissions || "0"}
+        updateValue={(v) =>
+          updateData({
+            role_data: {
+              ...data.role_data,
+              permissions: v === "0" ? undefined : v,
+            },
+          })
+        }
+        errors={errors}
+      />
+    </>
   );
 }
 
@@ -2293,6 +2348,20 @@ function RoleTargetInput({ data, updateData, errors }: InputProps) {
       title="Target Role"
       value={data.role_target || ""}
       updateValue={(v) => updateData({ role_target: v || undefined })}
+      errors={errors}
+      placeholders
+    />
+  );
+}
+
+function RolePositionInput({ data, updateData, errors }: InputProps) {
+  return (
+    <BaseInput
+      type="text"
+      field="role_position"
+      title="Position"
+      value={data.role_position || ""}
+      updateValue={(v) => updateData({ role_position: v || undefined })}
       errors={errors}
       placeholders
     />

@@ -1214,6 +1214,134 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 		}
 
 		return n.ExecuteChildren(ctx)
+	case FlowNodeTypeActionRoleCreate:
+		if n.Data.RoleData == nil {
+			return traceError(n, fmt.Errorf("role data is required"))
+		}
+
+		guildID, err := n.targetGuildID(ctx)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		roleData, err := n.Data.RoleData.ToCreateRoleData(ctx, ctx.EvalCtx)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		role, err := ctx.Discord.CreateRole(ctx, guildID, roleData)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		ctx.StoreNodeResult(n, thing.NewDiscordRole(*role))
+		return n.ExecuteChildren(ctx)
+	case FlowNodeTypeActionRoleEdit:
+		guildID, err := n.targetGuildID(ctx)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		roleTarget, err := ctx.EvalTemplate(n.Data.RoleTarget)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		editData := api.ModifyRoleData{}
+		if n.Data.RoleData != nil {
+			createData, err := n.Data.RoleData.ToCreateRoleData(ctx, ctx.EvalCtx)
+			if err != nil {
+				return traceError(n, err)
+			}
+
+			if createData.Name != "" {
+				editData.Name = option.NewNullableString(createData.Name)
+			}
+			if createData.Permissions != 0 {
+				editData.Permissions = &createData.Permissions
+			}
+			if n.Data.RoleData.Color != nil {
+				editData.Color = discord.Color(*n.Data.RoleData.Color)
+			}
+			if n.Data.RoleData.Hoist != nil {
+				editData.Hoist = &option.NullableBoolData{
+					Val:  *n.Data.RoleData.Hoist,
+					Init: true,
+				}
+			}
+			if n.Data.RoleData.Mentionable != nil {
+				editData.Mentionable = &option.NullableBoolData{
+					Val:  *n.Data.RoleData.Mentionable,
+					Init: true,
+				}
+			}
+		}
+
+		role, err := ctx.Discord.EditRole(ctx, guildID, discord.RoleID(roleTarget.Snowflake()), editData)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		ctx.StoreNodeResult(n, thing.NewDiscordRole(*role))
+		return n.ExecuteChildren(ctx)
+	case FlowNodeTypeActionRoleDelete:
+		guildID, err := n.targetGuildID(ctx)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		roleTarget, err := ctx.EvalTemplate(n.Data.RoleTarget)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		auditLogReason, err := ctx.EvalTemplate(n.Data.AuditLogReason)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		roleID := discord.RoleID(roleTarget.Snowflake())
+		err = ctx.Discord.DeleteRole(
+			ctx,
+			guildID,
+			roleID,
+			api.AuditLogReason(auditLogReason.String()),
+		)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		ctx.StoreNodeResult(n, thing.NewDiscordRole(discord.Role{ID: roleID}))
+		return n.ExecuteChildren(ctx)
+	case FlowNodeTypeActionRoleMove:
+		guildID, err := n.targetGuildID(ctx)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		roleTarget, err := ctx.EvalTemplate(n.Data.RoleTarget)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		position, err := ctx.EvalTemplate(n.Data.RolePosition)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		roleID := discord.RoleID(roleTarget.Snowflake())
+		err = ctx.Discord.MoveRole(
+			ctx,
+			guildID,
+			roleID,
+			int(position.Int()),
+		)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		ctx.StoreNodeResult(n, thing.NewDiscordRole(discord.Role{ID: roleID}))
+		return n.ExecuteChildren(ctx)
 	case FlowNodeTypeActionGuildGet:
 		guildID, err := ctx.EvalTemplate(n.Data.GuildTarget)
 		if err != nil {

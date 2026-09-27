@@ -76,6 +76,14 @@ export const nodeActionGuildGetResultSchema = guildResultSchema;
 
 export const nodeActionRoleGetResultSchema = roleResultSchema;
 
+export const nodeActionRoleCreateResultSchema = roleResultSchema;
+
+export const nodeActionRoleEditResultSchema = roleResultSchema;
+
+export const nodeActionRoleDeleteResultSchema = roleResultSchema;
+
+export const nodeActionRoleMoveResultSchema = roleResultSchema;
+
 export const nodeActionChannelCreateResultSchema = channelResultSchema;
 
 export const nodeActionChannelEditResultSchema = channelResultSchema;

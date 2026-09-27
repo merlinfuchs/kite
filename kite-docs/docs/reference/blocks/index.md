@@ -50,6 +50,10 @@ The output of previously executed blocks is available in all subsequent blocks a
 ## Server & Channel Blocks
 
 - [Get role](./actions/action_role_get.md) - Retrieve role information
+- [Create role](./actions/action_role_create.md) - Create a role in a server
+- [Edit role](./actions/action_role_edit.md) - Edit an existing role
+- [Delete role](./actions/action_role_delete.md) - Delete a role
+- [Move role](./actions/action_role_move.md) - Move a role in the hierarchy
 - [Get server](./actions/action_guild_get.md) - Get server information
 - [Get channel](./actions/action_channel_get.md) - Retrieve channel information
 

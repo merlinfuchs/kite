@@ -49,7 +49,8 @@ type DiscordProvider interface {
 	RemoveThreadMember(ctx context.Context, channelID discord.ChannelID, userID discord.UserID) error
 	CreateRole(ctx context.Context, guildID discord.GuildID, data api.CreateRoleData) (*discord.Role, error)
 	EditRole(ctx context.Context, guildID discord.GuildID, roleID discord.RoleID, data api.ModifyRoleData) (*discord.Role, error)
-	DeleteRole(ctx context.Context, guildID discord.GuildID, roleID discord.RoleID) error
+	DeleteRole(ctx context.Context, guildID discord.GuildID, roleID discord.RoleID, reason api.AuditLogReason) error
+	MoveRole(ctx context.Context, guildID discord.GuildID, roleID discord.RoleID, position int) error
 
 	UpdateVoiceState(ctx context.Context, guildID discord.GuildID, channelID discord.ChannelID, selfMute bool, selfDeaf bool) error
 	UpdatePresence(ctx context.Context, status discord.Status, activity discord.Activity) error
@@ -235,7 +236,11 @@ func (p *MockDiscordProvider) EditRole(ctx context.Context, guildID discord.Guil
 	return nil, nil
 }
 
-func (p *MockDiscordProvider) DeleteRole(ctx context.Context, guildID discord.GuildID, roleID discord.RoleID) error {
+func (p *MockDiscordProvider) DeleteRole(ctx context.Context, guildID discord.GuildID, roleID discord.RoleID, reason api.AuditLogReason) error {
+	return nil
+}
+
+func (p *MockDiscordProvider) MoveRole(ctx context.Context, guildID discord.GuildID, roleID discord.RoleID, position int) error {
 	return nil
 }
 
