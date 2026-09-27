@@ -120,7 +120,7 @@ function commandPlaceholders(
   );
 
   // TODO: take arg type into account
-  return [
+  const res: PlaceholderGroup[] = [
     {
       label: "Command",
       placeholders: nodes
@@ -131,6 +131,34 @@ function commandPlaceholders(
         })),
     },
   ];
+
+  const entry = nodes.find((n) => n.type === "entry_command");
+  const commandType = entry?.data.command_type;
+  if (commandType === "user") {
+    res.push({
+      label: "Command Target",
+      placeholders: [
+        { label: "Target User", value: "command.target" },
+        { label: "Target User ID", value: "command.target.id" },
+        { label: "Target User Mention", value: "command.target.mention" },
+        { label: "Target User Username", value: "command.target.username" },
+        {
+          label: "Target User Display Name",
+          value: "command.target.display_name",
+        },
+      ],
+    });
+  } else if (commandType === "message") {
+    res.push({
+      label: "Command Target",
+      placeholders: [
+        { label: "Target Message ID", value: "command.target.id" },
+        { label: "Target Message Content", value: "command.target.content" },
+      ],
+    });
+  }
+
+  return res;
 }
 
 // Sub-flows run with the interaction that resumed them, so placeholders of the

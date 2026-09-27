@@ -99,6 +99,7 @@ const intputs: Record<string, any> = {
   temporary_name: TemporaryNameInput,
   name: NameInput,
   description: DescriptionInput,
+  command_type: CommandTypeInput,
   command_argument_type: CommandArgumentTypeInput,
   command_argument_required: CommandArgumentRequiredInput,
   command_argument_min_value: CommandArgumentMinValueInput,
@@ -409,12 +410,34 @@ function NameInput({ data, updateData, errors }: InputProps) {
 }
 
 function DescriptionInput({ data, updateData, errors }: InputProps) {
+  const commandType = data.command_type;
+  if (commandType && commandType !== "chat_input") {
+    return null;
+  }
   return (
     <BaseInput
       field="description"
       title="Description"
       value={data.description || ""}
       updateValue={(v) => updateData({ description: v || undefined })}
+      errors={errors}
+    />
+  );
+}
+
+function CommandTypeInput({ data, updateData, errors }: InputProps) {
+  return (
+    <BaseInput
+      field="command_type"
+      title="Command Type"
+      type="select"
+      options={[
+        { value: "chat_input", label: "Slash Command" },
+        { value: "user", label: "User Context Menu" },
+        { value: "message", label: "Message Context Menu" },
+      ]}
+      value={data.command_type || "chat_input"}
+      updateValue={(v) => updateData({ command_type: v || undefined })}
       errors={errors}
     />
   );

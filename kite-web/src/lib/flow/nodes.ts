@@ -128,7 +128,7 @@ export const nodeTypes: Record<string, NodeValues> = {
     defaultDescription:
       "Command entry. Drop different actions and options here!",
     dataSchema: nodeEntryCommandDataSchema,
-    dataFields: ["name", "description"],
+    dataFields: ["command_type", "name", "description"],
     contexts: ["command"],
     fixed: true,
   },

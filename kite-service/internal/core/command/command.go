@@ -87,6 +87,7 @@ func (m *CommandManager) appCommands(ctx context.Context, appID string) ([]api.C
 
 		data := node.CommandData()
 		res = append(res, api.CreateCommandData{
+			Type:                     data.Type,
 			Name:                     data.Name,
 			Description:              data.Description,
 			Options:                  data.Options,
@@ -94,7 +95,10 @@ func (m *CommandManager) appCommands(ctx context.Context, appID string) ([]api.C
 			Contexts:                 node.CommandContexts(),
 			IntegrationTypes:         node.CommandIntegrations(),
 		})
-		commandNames = append(commandNames, node.CommandName())
+
+		if data.Type == discord.ChatInputCommand {
+			commandNames = append(commandNames, node.CommandName())
+		}
 	}
 
 	for _, pluginInstance := range pluginInstances {
@@ -175,10 +179,11 @@ func mergeCommands(commands []api.CreateCommandData) ([]api.CreateCommandData, e
 	// Merge root commands
 	for _, command := range commands {
 		// TODO: think about how to handle different configs for root cmd
-		if c, ok := rootCMDs[command.Name]; ok {
+		key := fmt.Sprintf("%d:%s", command.Type, command.Name)
+		if c, ok := rootCMDs[key]; ok {
 			c.Options = append(c.Options, command.Options...)
 		} else {
-			rootCMDs[command.Name] = &command
+			rootCMDs[key] = &command
 		}
 	}
 

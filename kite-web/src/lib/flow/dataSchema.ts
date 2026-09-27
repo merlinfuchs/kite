@@ -86,22 +86,26 @@ export const nodeBaseDataSchema = z.object({
 export const nodeEmptyDataSchema = z.object({});
 
 export const nodeEntryCommandDataSchema = nodeBaseDataSchema.extend({
+  command_type: z
+    .enum(["chat_input", "user", "message"])
+    .optional()
+    .describe(
+      "Type of command: chat input (slash command), or a user or message context menu command."
+    ),
   name: z
     .string()
     .max(32)
     .min(1)
-    .regex(
-      /^[-_a-z0-9]{1,32}( [-_a-z0-9]{1,32}){0,2}$/,
-      "Must be only lowercase alphanumeric characters and underscores, and have at most 3 words"
-    )
     .describe(
-      "Name of the slash command. Up to three space separated words create subcommands, e.g. 'ticket open'."
+      "Name of the command. For slash commands, up to three space separated words create subcommands, e.g. 'ticket open', and only lowercase letters, numbers, dashes and underscores are allowed."
     ),
   description: z
     .string()
     .max(100)
-    .min(1)
-    .describe("Description of the command shown in Discord."),
+    .optional()
+    .describe(
+      "Description of the command shown in Discord. Only used for slash commands."
+    ),
 });
 
 export const nodeOptionCommandArgumentDataSchema = nodeBaseDataSchema.extend({

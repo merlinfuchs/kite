@@ -18,23 +18,29 @@
             "type": "string",
             "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
           },
+          "command_type": {
+            "type": "string",
+            "enum": [
+              "chat_input",
+              "user",
+              "message"
+            ],
+            "description": "Type of command: chat input (slash command), or a user or message context menu command."
+          },
           "name": {
             "type": "string",
             "maxLength": 32,
             "minLength": 1,
-            "pattern": "^[-_a-z0-9]{1,32}( [-_a-z0-9]{1,32}){0,2}$",
-            "description": "Name of the slash command. Up to three space separated words create subcommands, e.g. 'ticket open'."
+            "description": "Name of the command. For slash commands, up to three space separated words create subcommands, e.g. 'ticket open', and only lowercase letters, numbers, dashes and underscores are allowed."
           },
           "description": {
             "type": "string",
             "maxLength": 100,
-            "minLength": 1,
-            "description": "Description of the command shown in Discord."
+            "description": "Description of the command shown in Discord. Only used for slash commands."
           }
         },
         "required": [
-          "name",
-          "description"
+          "name"
         ],
         "additionalProperties": false
       },

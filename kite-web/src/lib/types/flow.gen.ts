@@ -95,6 +95,7 @@ export interface FlowNodeData {
    */
   name?: string;
   description?: string;
+  command_type?: CommandType;
   custom_label?: string;
   audit_log_reason?: string;
   /**
@@ -245,6 +246,10 @@ export const ComparsionModeHasRole: ComparsionMode = "has_role";
 export const ComparsionModeNotHasRole: ComparsionMode = "not_has_role";
 export const ComparsionModeHasPermission: ComparsionMode = "has_permission";
 export const ComparsionModeNotHasPermission: ComparsionMode = "not_has_permission";
+export type CommandType = string;
+export const CommandTypeChatInput: CommandType = "chat_input";
+export const CommandTypeUser: CommandType = "user";
+export const CommandTypeMessage: CommandType = "message";
 export type CommandArgumentType = string;
 export const CommandArgumentTypeString: CommandArgumentType = "string";
 export const CommandArgumentTypeInteger: CommandArgumentType = "integer";

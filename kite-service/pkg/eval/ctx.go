@@ -114,8 +114,9 @@ type CommandEnv struct {
 	interaction *discord.InteractionEvent
 	cmd         *discord.CommandInteraction
 
-	ID   string         `expr:"id" json:"id"`
-	Args map[string]any `expr:"args" json:"args"`
+	ID     string         `expr:"id" json:"id"`
+	Args   map[string]any `expr:"args" json:"args"`
+	Target any            `expr:"target" json:"target"`
 }
 
 func NewCommandEnv(i *discord.InteractionEvent) *CommandEnv {
@@ -181,9 +182,33 @@ func NewCommandEnv(i *discord.InteractionEvent) *CommandEnv {
 		interaction: i,
 		cmd:         data,
 
-		ID:   data.ID.String(),
-		Args: args,
+		ID:     data.ID.String(),
+		Args:   args,
+		Target: newCommandTargetEnv(data),
 	}
+}
+
+func newCommandTargetEnv(data *discord.CommandInteraction) any {
+	if data == nil || data.TargetID == 0 {
+		return nil
+	}
+
+	if msg, ok := data.Resolved.Messages[data.TargetMessageID()]; ok {
+		return NewMessageEnv(msg)
+	}
+
+	userID := data.TargetUserID()
+	user, ok := data.Resolved.Users[userID]
+	if !ok {
+		return nil
+	}
+
+	if member, ok := data.Resolved.Members[userID]; ok {
+		member.User = user
+		return NewMemberEnv(member)
+	}
+
+	return NewUserEnv(user)
 }
 
 func (c CommandEnv) String() string {
