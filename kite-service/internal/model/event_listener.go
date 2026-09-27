@@ -19,11 +19,19 @@ const (
 type EventListenerType string
 
 const (
-	EventListenerTypeDiscordMessageCreate     EventListenerType = "message_create"
-	EventListenerTypeDiscordMessageUpdate     EventListenerType = "message_update"
-	EventListenerTypeDiscordMessageDelete     EventListenerType = "message_delete"
-	EventListenerTypeDiscordGuildMemberAdd    EventListenerType = "guild_member_add"
-	EventListenerTypeDiscordGuildMemberRemove EventListenerType = "guild_member_remove"
+	EventListenerTypeDiscordMessageCreate       EventListenerType = "message_create"
+	EventListenerTypeDiscordMessageUpdate       EventListenerType = "message_update"
+	EventListenerTypeDiscordMessageDelete       EventListenerType = "message_delete"
+	EventListenerTypeDiscordGuildMemberAdd      EventListenerType = "guild_member_add"
+	EventListenerTypeDiscordGuildMemberRemove   EventListenerType = "guild_member_remove"
+	EventListenerTypeDiscordChannelCreate       EventListenerType = "channel_create"
+	EventListenerTypeDiscordChannelUpdate       EventListenerType = "channel_update"
+	EventListenerTypeDiscordChannelDelete       EventListenerType = "channel_delete"
+	EventListenerTypeDiscordChannelPinsUpdate   EventListenerType = "channel_pins_update"
+	EventListenerTypeDiscordThreadCreate        EventListenerType = "thread_create"
+	EventListenerTypeDiscordThreadUpdate        EventListenerType = "thread_update"
+	EventListenerTypeDiscordThreadDelete        EventListenerType = "thread_delete"
+	EventListenerTypeDiscordThreadMembersUpdate EventListenerType = "thread_members_update"
 
 	EventListenerTypeScheduleCron EventListenerType = EventListenerType(flow.EventTypeScheduleCron)
 )

@@ -239,11 +239,11 @@ func (c ComponentEnv) String() string {
 type EventEnv struct {
 	event ws.Event
 
-	User    any           `expr:"user" json:"user"`
-	Member  any           `expr:"member" json:"member"`
-	Channel *SnowflakeEnv `expr:"channel" json:"channel"`
-	Message *MessageEnv   `expr:"message" json:"message"`
-	Guild   *SnowflakeEnv `expr:"guild" json:"guild"`
+	User    any         `expr:"user" json:"user"`
+	Member  any         `expr:"member" json:"member"`
+	Channel any         `expr:"channel" json:"channel"`
+	Message *MessageEnv `expr:"message" json:"message"`
+	Guild   any         `expr:"guild" json:"guild"`
 
 	Schedule *ScheduleEnv `expr:"schedule" json:"schedule"`
 }
@@ -313,6 +313,46 @@ func NewEventEnv(event ws.Event) *EventEnv {
 		env.User = NewUserEnv(e.User)
 		env.Member = env.User
 		env.Guild = NewSnowflakeEnv(e.GuildID)
+	case *gateway.ChannelCreateEvent:
+		env.Channel = NewChannelEnv(e.Channel)
+		if e.GuildID != 0 {
+			env.Guild = NewSnowflakeEnv(e.GuildID)
+		}
+	case *gateway.ChannelUpdateEvent:
+		env.Channel = NewChannelEnv(e.Channel)
+		if e.GuildID != 0 {
+			env.Guild = NewSnowflakeEnv(e.GuildID)
+		}
+	case *gateway.ChannelDeleteEvent:
+		env.Channel = NewChannelEnv(e.Channel)
+		if e.GuildID != 0 {
+			env.Guild = NewSnowflakeEnv(e.GuildID)
+		}
+	case *gateway.ChannelPinsUpdateEvent:
+		env.Channel = NewSnowflakeEnv(e.ChannelID)
+		if e.GuildID != 0 {
+			env.Guild = NewSnowflakeEnv(e.GuildID)
+		}
+	case *gateway.ThreadCreateEvent:
+		env.Channel = NewChannelEnv(e.Channel)
+		if e.GuildID != 0 {
+			env.Guild = NewSnowflakeEnv(e.GuildID)
+		}
+	case *gateway.ThreadUpdateEvent:
+		env.Channel = NewChannelEnv(e.Channel)
+		if e.GuildID != 0 {
+			env.Guild = NewSnowflakeEnv(e.GuildID)
+		}
+	case *gateway.ThreadDeleteEvent:
+		env.Channel = NewSnowflakeEnv(e.ID)
+		if e.GuildID != 0 {
+			env.Guild = NewSnowflakeEnv(e.GuildID)
+		}
+	case *gateway.ThreadMembersUpdateEvent:
+		env.Channel = NewSnowflakeEnv(e.ID)
+		if e.GuildID != 0 {
+			env.Guild = NewSnowflakeEnv(e.GuildID)
+		}
 	case *schedule.Event:
 		env.Schedule = NewScheduleEnv(e)
 	}

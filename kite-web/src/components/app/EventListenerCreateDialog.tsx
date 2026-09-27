@@ -200,6 +200,30 @@ export default function EventListenerCreateDialog({
                         <SelectItem value="guild_member_remove">
                           Server Member Remove
                         </SelectItem>
+                        <SelectItem value="channel_create">
+                          Channel Create
+                        </SelectItem>
+                        <SelectItem value="channel_delete">
+                          Channel Delete
+                        </SelectItem>
+                        <SelectItem value="channel_update">
+                          Channel Update
+                        </SelectItem>
+                        <SelectItem value="channel_pins_update">
+                          Channel Pins Update
+                        </SelectItem>
+                        <SelectItem value="thread_create">
+                          Thread Create
+                        </SelectItem>
+                        <SelectItem value="thread_update">
+                          Thread Update
+                        </SelectItem>
+                        <SelectItem value="thread_delete">
+                          Thread Delete
+                        </SelectItem>
+                        <SelectItem value="thread_members_update">
+                          Thread Members Update
+                        </SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />

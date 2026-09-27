@@ -73,11 +73,17 @@ function interactionPlaceholders(
     },
     {
       label: `${labelPrefix}Server`,
-      placeholders: [{ label: "Server ID", value: `${prefix}guild.id` }],
+      placeholders: [
+        { label: "Server ID", value: `${prefix}guild.id` },
+        { label: "Server Name", value: `${prefix}guild.name` },
+      ],
     },
     {
       label: `${labelPrefix}Channel`,
-      placeholders: [{ label: "Channel ID", value: `${prefix}channel.id` }],
+      placeholders: [
+        { label: "Channel ID", value: `${prefix}channel.id` },
+        { label: "Channel Name", value: `${prefix}channel.name` },
+      ],
     },
   ];
 
@@ -213,7 +219,8 @@ export function getProvidedPlaceholders(node: Node<NodeData>) {
 
   if (
     node.type?.startsWith("action_") ||
-    node.type === "control_error_handler"
+    node.type === "control_error_handler" ||
+    node.type === "entry_event"
   ) {
     res.push({
       group: "Node Results",

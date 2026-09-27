@@ -13,7 +13,9 @@ import (
 
 	"github.com/diamondburned/arikawa/v3/api"
 	"github.com/diamondburned/arikawa/v3/discord"
+	"github.com/diamondburned/arikawa/v3/gateway"
 	"github.com/diamondburned/arikawa/v3/utils/json/option"
+	"github.com/diamondburned/arikawa/v3/utils/ws"
 	"github.com/kitecloud/kite/kite-service/internal/util"
 	"github.com/kitecloud/kite/kite-service/pkg/eval"
 	"github.com/kitecloud/kite/kite-service/pkg/message"
@@ -21,6 +23,29 @@ import (
 	"github.com/kitecloud/kite/kite-service/pkg/thing"
 	"gopkg.in/guregu/null.v4"
 )
+
+func eventTriggerResult(e ws.Event) (thing.Thing, bool) {
+	switch d := e.(type) {
+	case *gateway.ChannelCreateEvent:
+		return thing.NewString(d.ID.String()), true
+	case *gateway.ChannelUpdateEvent:
+		return thing.NewString(d.ID.String()), true
+	case *gateway.ChannelDeleteEvent:
+		return thing.NewString(d.ID.String()), true
+	case *gateway.ChannelPinsUpdateEvent:
+		return thing.NewString(d.ChannelID.String()), true
+	case *gateway.ThreadCreateEvent:
+		return thing.NewString(d.ID.String()), true
+	case *gateway.ThreadUpdateEvent:
+		return thing.NewString(d.ID.String()), true
+	case *gateway.ThreadDeleteEvent:
+		return thing.NewString(d.ID.String()), true
+	case *gateway.ThreadMembersUpdateEvent:
+		return thing.NewString(d.ID.String()), true
+	}
+
+	return thing.Thing{}, false
+}
 
 func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 	if n == nil {
@@ -55,6 +80,10 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 	case FlowNodeTypeEntryEvent:
 		if !ctx.IsEntry() {
 			return fmt.Errorf("event entry isn't the entry node")
+		}
+
+		if result, ok := eventTriggerResult(ctx.Data.Event()); ok {
+			ctx.StoreNodeResult(n, result)
 		}
 
 		err := n.ExecuteChildren(ctx)

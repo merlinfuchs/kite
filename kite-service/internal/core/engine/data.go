@@ -78,6 +78,22 @@ func (d *EventData) GuildID() discord.GuildID {
 		return data.GuildID
 	case *gateway.GuildMemberUpdateEvent:
 		return data.GuildID
+	case *gateway.ChannelCreateEvent:
+		return data.GuildID
+	case *gateway.ChannelUpdateEvent:
+		return data.GuildID
+	case *gateway.ChannelDeleteEvent:
+		return data.GuildID
+	case *gateway.ChannelPinsUpdateEvent:
+		return data.GuildID
+	case *gateway.ThreadCreateEvent:
+		return data.GuildID
+	case *gateway.ThreadUpdateEvent:
+		return data.GuildID
+	case *gateway.ThreadDeleteEvent:
+		return data.GuildID
+	case *gateway.ThreadMembersUpdateEvent:
+		return data.GuildID
 	}
 	return 0
 }
@@ -90,6 +106,22 @@ func (d *EventData) ChannelID() discord.ChannelID {
 		return data.ChannelID
 	case *gateway.MessageUpdateEvent:
 		return data.ChannelID
+	case *gateway.ChannelCreateEvent:
+		return data.ID
+	case *gateway.ChannelUpdateEvent:
+		return data.ID
+	case *gateway.ChannelDeleteEvent:
+		return data.ID
+	case *gateway.ChannelPinsUpdateEvent:
+		return data.ChannelID
+	case *gateway.ThreadCreateEvent:
+		return data.ID
+	case *gateway.ThreadUpdateEvent:
+		return data.ID
+	case *gateway.ThreadDeleteEvent:
+		return data.ID
+	case *gateway.ThreadMembersUpdateEvent:
+		return data.ID
 	}
 	return 0
 }
