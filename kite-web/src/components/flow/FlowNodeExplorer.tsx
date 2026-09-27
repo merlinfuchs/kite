@@ -6,7 +6,7 @@ import {
 import { useFlowContext } from "@/lib/flow/context";
 import { NodeValues, createNode, getNodeValues } from "@/lib/flow/nodes";
 import { useReactFlow, useStore } from "@xyflow/react";
-import { SearchIcon } from "lucide-react";
+import { ChevronDownIcon, ChevronRightIcon, SearchIcon } from "lucide-react";
 import { DragEvent, useMemo, useState } from "react";
 import DynamicIcon from "../icons/DynamicIcon";
 import { Input } from "../ui/input";
@@ -20,6 +20,10 @@ export default function FlowNodeExplorer({
   const contextType = useFlowContext((c) => c.type);
 
   const [search, setSearch] = useState("");
+  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
+
+  const toggleCollapsed = (title: string) =>
+    setCollapsed((c) => ({ ...c, [title]: !c[title] }));
 
   const sections = useMemo(() => {
     return nodeCategories[category].map((s) => ({
@@ -81,22 +85,39 @@ export default function FlowNodeExplorer({
       </div>
       <ScrollArea className="flex-auto mr-1">
         <div className="space-y-3 pl-3 pr-1 pb-5">
-          {filteredSections.map((section, i) => (
-            <div key={i}>
-              <div className="text-foreground font-medium mb-2 px-2">
-                {section.title}
+          {filteredSections.map((section, i) => {
+            const isCollapsed = collapsed[section.title];
+            return (
+              <div key={i}>
+                <button
+                  type="button"
+                  onClick={() => toggleCollapsed(section.title)}
+                  className="w-full flex items-center gap-1 text-foreground font-medium mb-2 px-2 hover:text-foreground/80"
+                >
+                  {isCollapsed ? (
+                    <ChevronRightIcon className="h-4 w-4 flex-none" />
+                  ) : (
+                    <ChevronDownIcon className="h-4 w-4 flex-none" />
+                  )}
+                  <span>{section.title}</span>
+                  <span className="ml-auto text-muted-foreground text-sm font-normal">
+                    {section.nodes.length}
+                  </span>
+                </button>
+                {!isCollapsed && (
+                  <div className="space-y-2">
+                    {section.nodes.map((node) => (
+                      <AvailableNode
+                        key={node.type}
+                        type={node.type}
+                        values={node.values}
+                      />
+                    ))}
+                  </div>
+                )}
               </div>
-              <div className="space-y-2">
-                {section.nodes.map((node) => (
-                  <AvailableNode
-                    key={node.type}
-                    type={node.type}
-                    values={node.values}
-                  />
-                ))}
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </ScrollArea>
     </div>
