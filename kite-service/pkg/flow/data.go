@@ -49,6 +49,7 @@ const (
 	FlowNodeTypeOptionCommandPermissions FlowNodeType = "option_command_permissions"
 	FlowNodeTypeOptionCommandContexts    FlowNodeType = "option_command_contexts"
 	FlowNodeTypeOptionEventFilter        FlowNodeType = "option_event_filter"
+	FlowNodeTypeOptionCommandCooldown    FlowNodeType = "option_command_cooldown"
 
 	FlowNodeTypeActionResponseCreate        FlowNodeType = "action_response_create"
 	FlowNodeTypeActionResponseEdit          FlowNodeType = "action_response_edit"
@@ -164,6 +165,11 @@ type FlowNodeData struct {
 	CommandDisabledContexts []CommandContextType `json:"command_disabled_contexts,omitempty"`
 	// Command Installations
 	CommandDisabledIntegrations []CommandDisabledIntegrationType `json:"command_disabled_integrations,omitempty"`
+
+	// Command Cooldown
+	CooldownScope           CooldownScope `json:"cooldown_scope,omitempty"`
+	CooldownDurationSeconds string        `json:"cooldown_duration_seconds,omitempty"`
+	CooldownMessage         string        `json:"cooldown_message,omitempty"`
 
 	// Guild Get, and the guild of member, channel, role and voice blocks
 	GuildTarget string `json:"guild_target,omitempty"`
@@ -315,8 +321,26 @@ func (d FlowNodeData) Validate(nodeType FlowNodeType) error {
 		// correctness problem. eval enforces the same limit as a backstop for
 		// flows stored before this check existed.
 		validation.Field(&d.Expression, validation.Length(0, eval.MaxExpressionLength)),
+
+		// Command Cooldown
+		validation.Field(&d.CooldownScope, validation.When(nodeType == FlowNodeTypeOptionCommandCooldown,
+			validation.Required,
+			validation.In(CooldownScopeUser, CooldownScopeServer, CooldownScopeGlobal),
+		)),
+		validation.Field(&d.CooldownDurationSeconds, validation.When(nodeType == FlowNodeTypeOptionCommandCooldown,
+			validation.Required,
+		)),
+		validation.Field(&d.CooldownMessage, validation.Length(0, 2000)),
 	)
 }
+
+type CooldownScope string
+
+const (
+	CooldownScopeUser   CooldownScope = "user"
+	CooldownScopeServer CooldownScope = "server"
+	CooldownScopeGlobal CooldownScope = "global"
+)
 
 type ComparsionMode string
 

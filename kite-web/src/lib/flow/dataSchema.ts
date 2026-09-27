@@ -187,6 +187,22 @@ export const nodeOptionCommandContextsSchema = nodeBaseDataSchema.extend({
     ),
 });
 
+export const nodeOptionCommandCooldownSchema = nodeBaseDataSchema.extend({
+  cooldown_scope: z
+    .enum(["user", "server", "global"])
+    .describe(
+      "Who the cooldown applies to: the user who ran the command, everyone in the server, or everyone everywhere."
+    ),
+  cooldown_duration_seconds: numericOrPlaceholder(
+    "How many seconds the cooldown lasts for.",
+    decimalRegex
+  ),
+  cooldown_message: templated(
+    z.string().max(2000).optional(),
+    "Message shown when someone uses the command while it's on cooldown. Use {{var('cooldown_remaining')}} to show how many seconds are left. Leave empty for a default message."
+  ),
+});
+
 export const nodeOptionEventFilterSchema = nodeBaseDataSchema.extend({
   event_filter_target: z
     .enum(["message_content", "user_id", "guild_id", "channel_id"])

@@ -22,6 +22,7 @@ import (
 	"github.com/kitecloud/kite/kite-service/pkg/plugin"
 	"github.com/kitecloud/kite/kite-service/pkg/plugin/counting"
 	"github.com/kitecloud/kite/kite-service/pkg/plugin/starboard"
+	"github.com/kitecloud/kite/kite-service/pkg/provider"
 	"github.com/openai/openai-go/v2"
 	"github.com/openai/openai-go/v2/option"
 )
@@ -73,6 +74,8 @@ func StartServer(c context.Context, cfg *config.Config) error {
 		openaiClient = openai.NewClient(option.WithAPIKey(cfg.OpenAI.APIKey))
 	}
 
+	cooldownProvider := provider.NewMemoryCooldownProvider()
+
 	pluginRegistry := plugin.NewRegistry()
 	pluginRegistry.Register(
 		counting.NewCountingPlugin(),
@@ -112,6 +115,7 @@ func StartServer(c context.Context, cfg *config.Config) error {
 			HttpClient:           engineHTTPClient(cfg),
 			OpenaiClient:         &openaiClient,
 			TokenCrypt:           tokenCrypt,
+			CooldownProvider:     cooldownProvider,
 		},
 	)
 	engine.Run(ctx)

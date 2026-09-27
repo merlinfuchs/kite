@@ -40,6 +40,7 @@ type Env struct {
 	HttpClient           *http.Client
 	OpenaiClient         *openai.Client
 	TokenCrypt           *util.SymmetricCrypt
+	CooldownProvider     provider.CooldownProvider
 }
 
 type entityLinks struct {
@@ -56,6 +57,11 @@ func (s Env) flowProviders(appID string, session *state.State, links entityLinks
 		aiProvider = NewAIProvider(s.OpenaiClient)
 	}
 
+	var cooldownProvider provider.CooldownProvider = &provider.MockCooldownProvider{}
+	if s.CooldownProvider != nil {
+		cooldownProvider = s.CooldownProvider
+	}
+
 	return flow.FlowProviders{
 		Discord: NewDiscordProvider(appID, s.AppStore, s.FeatureProvider, s.BlockRateLimiter, session),
 		Roblox:  NewRobloxProvider(s.HttpClient),
@@ -68,6 +74,7 @@ func (s Env) flowProviders(appID string, session *state.State, links entityLinks
 		AI:              aiProvider,
 		MessageTemplate: NewMessageTemplateProvider(appID, s.MessageStore, s.MessageInstanceStore),
 		Variable:        NewVariableProvider(appID, s.VariableValueStore),
+		Cooldown:        cooldownProvider,
 		ResumePoint: NewResumePointProvider(
 			s.ResumePointStore,
 			s.TokenCrypt,

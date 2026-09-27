@@ -68,6 +68,7 @@ import {
   nodeEntryEventDataSchema,
   nodeOptionCommandArgumentDataSchema,
   nodeOptionCommandContextsSchema,
+  nodeOptionCommandCooldownSchema,
   nodeOptionCommandPermissionsSchema,
   nodeOptionEventFilterSchema,
   nodeSuspendResponseModalDataSchema,
@@ -944,6 +945,19 @@ export const nodeTypes: Record<string, NodeValues> = {
       "Define where your command should be available. By default, it will be available everywhere.",
     dataSchema: nodeOptionCommandContextsSchema,
     dataFields: ["command_contexts", "command_integrations"],
+  },
+  option_command_cooldown: {
+    color: optionColor,
+    icon: "hourglass",
+    defaultTitle: "Command Cooldown",
+    defaultDescription:
+      "Limit how often the command can be used, per user, per server, or globally.",
+    dataSchema: nodeOptionCommandCooldownSchema,
+    dataFields: [
+      "cooldown_scope",
+      "cooldown_duration_seconds",
+      "cooldown_message",
+    ],
   },
   option_event_filter: {
     color: optionColor,

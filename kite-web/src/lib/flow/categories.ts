@@ -18,6 +18,7 @@ export const nodeCategories: Record<
         "option_command_argument",
         "option_command_permissions",
         "option_command_contexts",
+        "option_command_cooldown",
       ],
       contextTypes: ["command"],
     },

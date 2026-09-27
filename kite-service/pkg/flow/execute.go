@@ -39,7 +39,15 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			return fmt.Errorf("command entry isn't the entry node")
 		}
 
-		err := n.autoDeferInteraction(ctx)
+		onCooldown, err := n.checkCommandCooldown(ctx)
+		if err != nil {
+			return traceError(n, err)
+		}
+		if onCooldown {
+			return nil
+		}
+
+		err = n.autoDeferInteraction(ctx)
 		if err != nil {
 			return traceError(n, err)
 		}
@@ -1861,6 +1869,111 @@ func (n *CompiledFlowNode) ExecuteChildren(ctx *FlowContext) error {
 		}
 	}
 	return nil
+}
+
+// checkCommandCooldown checks the cooldown option attached to n, if any. It
+// reports whether the command is currently on cooldown -- if so, it has
+// already replied to the interaction with the cooldown message, and the flow
+// must stop without running its children or auto-deferring.
+func (n *CompiledFlowNode) checkCommandCooldown(ctx *FlowContext) (bool, error) {
+	cooldownNode := n.CommandCooldown()
+	if cooldownNode == nil {
+		return false, nil
+	}
+
+	interaction := ctx.Data.Interaction()
+	if interaction == nil {
+		return false, nil
+	}
+
+	durationValue, err := ctx.EvalTemplate(cooldownNode.Data.CooldownDurationSeconds)
+	if err != nil {
+		return false, err
+	}
+
+	seconds := durationValue.Int()
+	if seconds <= 0 {
+		return false, nil
+	}
+
+	key := cooldownKey(ctx, interaction.AppID.String(), cooldownNode)
+
+	remaining, err := ctx.Cooldown.CheckAndStart(ctx, key, time.Duration(seconds)*time.Second)
+	if err != nil {
+		return false, err
+	}
+
+	if remaining <= 0 {
+		return false, nil
+	}
+
+	if err := cooldownNode.respondCooldown(ctx, remaining); err != nil {
+		return false, err
+	}
+
+	return true, nil
+}
+
+// cooldownKey builds a key that's unique per app, per cooldown block, and per
+// scope target -- so the same cooldown block on different bots, or different
+// cooldown blocks on the same bot, never collide.
+func cooldownKey(ctx *FlowContext, appID string, cooldownNode *CompiledFlowNode) string {
+	switch cooldownNode.Data.CooldownScope {
+	case CooldownScopeUser:
+		return appID + ":" + cooldownNode.ID + ":user:" + ctx.Data.UserID().String()
+	case CooldownScopeServer:
+		if guildID := ctx.Data.GuildID(); guildID != 0 {
+			return appID + ":" + cooldownNode.ID + ":server:" + guildID.String()
+		}
+		// No server to key by in DMs, so fall back to a per-user cooldown.
+		return appID + ":" + cooldownNode.ID + ":user:" + ctx.Data.UserID().String()
+	default: // CooldownScopeGlobal
+		return appID + ":" + cooldownNode.ID + ":global"
+	}
+}
+
+// respondCooldown replies to the interaction with the cooldown message. The
+// remaining seconds are made available to the message as
+// {{var('cooldown_remaining')}}, the same way other computed values are
+// exposed to templates.
+func (n *CompiledFlowNode) respondCooldown(ctx *FlowContext, remaining time.Duration) error {
+	interaction := ctx.Data.Interaction()
+	if interaction == nil {
+		return nil
+	}
+
+	remainingSeconds := int64(remaining / time.Second)
+	if remaining%time.Second != 0 {
+		remainingSeconds++
+	}
+	ctx.SetTemporary("cooldown_remaining", thing.NewInt(remainingSeconds))
+
+	rawMessage := n.Data.CooldownMessage
+	if rawMessage == "" {
+		rawMessage = "You're on cooldown. Try again in {{var('cooldown_remaining')}} seconds."
+	}
+
+	content, err := ctx.EvalTemplate(rawMessage)
+	if err != nil {
+		return err
+	}
+
+	respData := api.InteractionResponseData{
+		Content: option.NewNullableString(content.String()),
+		Flags:   discord.EphemeralMessage,
+	}
+
+	hasCreatedResponse, _ := ctx.Discord.HasCreatedInteractionResponse(ctx, interaction.ID)
+	if hasCreatedResponse {
+		_, err = ctx.Discord.CreateInteractionFollowup(ctx, interaction.AppID, interaction.Token, respData)
+	} else {
+		_, err = ctx.Discord.CreateInteractionResponse(ctx, interaction.ID, interaction.Token, api.InteractionResponse{
+			Type: api.MessageInteractionWithSource,
+			Data: &respData,
+		})
+	}
+
+	return err
 }
 
 func (n *CompiledFlowNode) autoDeferInteraction(ctx *FlowContext) error {

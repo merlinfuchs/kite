@@ -29,6 +29,7 @@ export const nodeTypes = {
   option_command_argument: FlowNodeOptionCommandArgument,
   option_command_permissions: FlowNodeOptionBase,
   option_command_contexts: FlowNodeOptionBase,
+  option_command_cooldown: FlowNodeOptionBase,
   option_event_filter: FlowNodeOptionBase,
 
   action_response_create: FlowNodeActionMessage,
