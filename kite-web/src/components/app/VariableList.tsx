@@ -23,18 +23,24 @@ export default function VariableList() {
           <Skeleton className="h-28" />
           <Skeleton className="h-28" />
         </>
-      ) : variables.length === 0 ? (
-        <AppEmptyPlaceholder
-          title="There are no variables"
-          description="You can start now by creating the first variable!"
-          action={variableCreateButton}
-        />
       ) : (
         <>
-          {variables.map((variable, i) => (
-            <VariableListEntry variable={variable!} key={i} />
-          ))}
-          <div className="flex">{variableCreateButton}</div>
+          {/* Variable actions */}
+          <div className="flex">
+            {variableCreateButton}
+          </div>
+
+          {/* Variable list */}
+          {variables.length === 0 ? (
+            <AppEmptyPlaceholder
+              title="There are no variables"
+              description="You can start now by creating the first variable!"
+            />
+          ) : (
+            variables.map((variable, i) => (
+              <VariableListEntry variable={variable!} key={i} />
+            ))
+          )}
         </>
       )}
     </AutoAnimate>

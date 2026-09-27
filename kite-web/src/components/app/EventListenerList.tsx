@@ -15,6 +15,7 @@ export default function EventListenerList() {
       <EventListenerCreateDialog>
         <Button>Create event listener</Button>
       </EventListenerCreateDialog>
+
       <FlowImportDialog kind="event_listener">
         <Button variant="outline">Import event listener</Button>
       </FlowImportDialog>
@@ -29,18 +30,22 @@ export default function EventListenerList() {
           <Skeleton className="h-28" />
           <Skeleton className="h-28" />
         </>
-      ) : listeners.length === 0 ? (
-        <AppEmptyPlaceholder
-          title="There are no event listeners"
-          description="You can start now by creating the first event listener!"
-          action={listenerActions}
-        />
       ) : (
         <>
-          {listeners.map((listener, i) => (
-            <EventListenerListEntry listener={listener!} key={i} />
-          ))}
+          {/* Event listener actions */}
           {listenerActions}
+
+          {/* Event listener list */}
+          {listeners.length === 0 ? (
+            <AppEmptyPlaceholder
+              title="There are no event listeners"
+              description="You can start now by creating the first event listener!"
+            />
+          ) : (
+            listeners.map((listener, i) => (
+              <EventListenerListEntry listener={listener!} key={i} />
+            ))
+          )}
         </>
       )}
     </AutoAnimate>
