@@ -29,6 +29,7 @@ type DiscordProvider interface {
 	EditMessage(ctx context.Context, channelID discord.ChannelID, messageID discord.MessageID, message api.EditMessageData) (*discord.Message, error)
 	DeleteMessage(ctx context.Context, channelID discord.ChannelID, messageID discord.MessageID, reason api.AuditLogReason) error
 	DeleteMessages(ctx context.Context, channelID discord.ChannelID, messageIDs []discord.MessageID, reason api.AuditLogReason) error
+	CrosspostMessage(ctx context.Context, channelID discord.ChannelID, messageID discord.MessageID) error
 	CreateMessageReaction(ctx context.Context, channelID discord.ChannelID, messageID discord.MessageID, emoji discord.APIEmoji) error
 	DeleteMessageReaction(ctx context.Context, channelID discord.ChannelID, messageID discord.MessageID, emoji discord.APIEmoji) error
 	PinMessage(ctx context.Context, channelID discord.ChannelID, messageID discord.MessageID, reason api.AuditLogReason) error
@@ -143,6 +144,10 @@ func (p *MockDiscordProvider) DeleteMessage(
 	messageID discord.MessageID,
 	reason api.AuditLogReason,
 ) error {
+	return nil
+}
+
+func (p *MockDiscordProvider) CrosspostMessage(ctx context.Context, channelID discord.ChannelID, messageID discord.MessageID) error {
 	return nil
 }
 

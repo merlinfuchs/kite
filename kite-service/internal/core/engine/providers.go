@@ -275,6 +275,15 @@ func (p *DiscordProvider) DeleteMessage(
 	return nil
 }
 
+func (p *DiscordProvider) CrosspostMessage(ctx context.Context, channelID discord.ChannelID, messageID discord.MessageID) error {
+	_, err := p.session.CrosspostMessage(channelID, messageID)
+	if err != nil {
+		return fmt.Errorf("failed to publish message: %w", err)
+	}
+
+	return nil
+}
+
 func (p *DiscordProvider) CreateMessageReaction(ctx context.Context, channelID discord.ChannelID, messageID discord.MessageID, emoji discord.APIEmoji) error {
 	err := p.session.React(channelID, messageID, emoji)
 	if err != nil {

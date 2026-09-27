@@ -569,6 +569,27 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			"failed":  thing.NewInt(failed),
 		}))
 		return n.ExecuteChildren(ctx)
+	case FlowNodeTypeActionMessagePublish:
+		channelTarget, err := ctx.EvalTemplate(n.Data.ChannelTarget)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		messageTarget, err := ctx.EvalTemplate(n.Data.MessageTarget)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		err = ctx.Discord.CrosspostMessage(
+			ctx,
+			discord.ChannelID(channelTarget.Snowflake()),
+			discord.MessageID(messageTarget.Snowflake()),
+		)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		return n.ExecuteChildren(ctx)
 	case FlowNodeTypeActionPrivateMessageCreate:
 		if ctx.IsEntry() {
 			return n.resumeFromComponent(ctx)

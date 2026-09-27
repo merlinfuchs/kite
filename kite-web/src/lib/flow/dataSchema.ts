@@ -424,6 +424,11 @@ export const nodeActionMessageBulkDeleteDataSchema = nodeBaseDataSchema.extend({
   temporary_name: temporaryNameSchema,
 });
 
+export const nodeActionMessagePublishDataSchema = nodeBaseDataSchema.extend({
+  channel_target: channelTargetSchema,
+  message_target: messageTargetSchema,
+});
+
 export const nodeActionMessagePinDataSchema = nodeActionMessageDeleteDataSchema;
 
 export const emojiDataSchema = z.object({

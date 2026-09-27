@@ -1298,6 +1298,63 @@
         "additionalProperties": false
       }
     },
+    "action_message_publish": {
+      "title": "Publish message",
+      "description": "Publish a message in an announcement channel",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord",
+        "event_schedule"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "type": "string",
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+          },
+          "channel_target": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9]+$"
+              },
+              {
+                "type": "string",
+                "pattern": "^\\{\\{[^{}]+\\}\\}$"
+              }
+            ],
+            "description": "ID of the channel."
+          },
+          "message_target": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9]+$"
+              },
+              {
+                "type": "string",
+                "pattern": "^\\{\\{[^{}]+\\}\\}$"
+              }
+            ],
+            "description": "ID of the message."
+          }
+        },
+        "required": [
+          "channel_target",
+          "message_target"
+        ],
+        "additionalProperties": false
+      },
+      "result_schema": null
+    },
     "action_message_reaction_create": {
       "title": "Create message reaction",
       "description": "Bot adds a reaction to a message",

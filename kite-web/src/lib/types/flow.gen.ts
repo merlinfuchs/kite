@@ -25,6 +25,7 @@ export const FlowNodeTypeActionMessageCreate: FlowNodeType = "action_message_cre
 export const FlowNodeTypeActionMessageEdit: FlowNodeType = "action_message_edit";
 export const FlowNodeTypeActionMessageDelete: FlowNodeType = "action_message_delete";
 export const FlowNodeTypeActionMessageBulkDelete: FlowNodeType = "action_message_bulk_delete";
+export const FlowNodeTypeActionMessagePublish: FlowNodeType = "action_message_publish";
 export const FlowNodeTypeActionPrivateMessageCreate: FlowNodeType = "action_private_message_create";
 export const FlowNodeTypeActionMessageReactionCreate: FlowNodeType = "action_message_reaction_create";
 export const FlowNodeTypeActionMessageReactionDelete: FlowNodeType = "action_message_reaction_delete";
