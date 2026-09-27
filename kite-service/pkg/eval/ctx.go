@@ -313,6 +313,10 @@ func NewEventEnv(event ws.Event) *EventEnv {
 		env.User = NewUserEnv(e.User)
 		env.Member = env.User
 		env.Guild = NewSnowflakeEnv(e.GuildID)
+	case *gateway.GuildCreateEvent:
+		env.Guild = NewSnowflakeEnv(e.ID)
+	case *gateway.GuildDeleteEvent:
+		env.Guild = NewSnowflakeEnv(e.ID)
 	case *schedule.Event:
 		env.Schedule = NewScheduleEnv(e)
 	}
