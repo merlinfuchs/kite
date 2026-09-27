@@ -11,6 +11,8 @@ With Event Listeners you can listen for events inside the Discord servers that y
 - Message Delete
 - Member Join
 - Member Leave
+- Bot Joined Server
+- Bot Left Server
 
 ## Restrictions
 
