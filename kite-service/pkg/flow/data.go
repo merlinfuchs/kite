@@ -66,6 +66,11 @@ const (
 	FlowNodeTypeActionMemberUnban           FlowNodeType = "action_member_unban"
 	FlowNodeTypeActionMemberKick            FlowNodeType = "action_member_kick"
 	FlowNodeTypeActionMemberTimeout         FlowNodeType = "action_member_timeout"
+	FlowNodeTypeActionMemberMove            FlowNodeType = "action_member_move"
+	FlowNodeTypeActionMemberMute            FlowNodeType = "action_member_mute"
+	FlowNodeTypeActionMemberUnmute          FlowNodeType = "action_member_unmute"
+	FlowNodeTypeActionMemberDeafen          FlowNodeType = "action_member_deafen"
+	FlowNodeTypeActionMemberUndeafen        FlowNodeType = "action_member_undeafen"
 	FlowNodeTypeActionMemberEdit            FlowNodeType = "action_member_edit"
 	FlowNodeTypeActionMemberRoleAdd         FlowNodeType = "action_member_role_add"
 	FlowNodeTypeActionMemberRoleRemove      FlowNodeType = "action_member_role_remove"
@@ -180,13 +185,13 @@ type FlowNodeData struct {
 	// Modal
 	ModalData *ModalData `json:"modal_data,omitempty"`
 
-	// Member Ban, Kick, Timeout, Edit, Get
+	// Member Ban, Kick, Timeout, Move, Mute, Unmute, Deafen, Undeafen, Edit, Get
 	UserTarget                            string      `json:"user_target,omitempty"`
 	MemberBanDeleteMessageDurationSeconds string      `json:"member_ban_delete_message_duration_seconds,omitempty"`
 	MemberTimeoutDurationSeconds          string      `json:"member_timeout_duration_seconds,omitempty"`
 	MemberData                            *MemberData `json:"member_data,omitempty"`
 
-	// Channel Create, Edit, Delete, Get
+	// Channel Create, Edit, Delete, Get, and the destination voice channel for Member Move
 	ChannelTarget string       `json:"channel_target,omitempty"`
 	ChannelData   *ChannelData `json:"channel_data,omitempty"`
 

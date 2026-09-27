@@ -462,6 +462,26 @@ export const nodeActionMemberTimeoutDataSchema = nodeBaseDataSchema.extend({
   audit_log_reason: auditLogReasonSchema,
 });
 
+export const nodeActionMemberMoveDataSchema = nodeBaseDataSchema.extend({
+  guild_target: guildTargetSchema.optional(),
+  user_target: userTargetSchema,
+  channel_target: channelTargetSchema.describe(
+    "ID of the voice channel to move the member to."
+  ),
+  audit_log_reason: auditLogReasonSchema,
+});
+
+export const nodeActionMemberMuteDataSchema = nodeActionMemberUnbanDataSchema;
+
+export const nodeActionMemberUnmuteDataSchema =
+  nodeActionMemberUnbanDataSchema;
+
+export const nodeActionMemberDeafenDataSchema =
+  nodeActionMemberUnbanDataSchema;
+
+export const nodeActionMemberUndeafenDataSchema =
+  nodeActionMemberUnbanDataSchema;
+
 export const nodeActionMemberEditDataSchema = nodeBaseDataSchema.extend({
   guild_target: guildTargetSchema.optional(),
   user_target: userTargetSchema,

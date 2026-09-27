@@ -762,6 +762,111 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 		}
 
 		return n.ExecuteChildren(ctx)
+	case FlowNodeTypeActionMemberMove:
+		guildID, err := n.targetGuildID(ctx)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		userID, err := ctx.EvalTemplate(n.Data.UserTarget)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		channelID, err := ctx.EvalTemplate(n.Data.ChannelTarget)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		auditLogReason, err := ctx.EvalTemplate(n.Data.AuditLogReason)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		err = ctx.Discord.EditMember(
+			ctx,
+			guildID,
+			discord.UserID(userID.Snowflake()),
+			api.ModifyMemberData{
+				VoiceChannel:   discord.ChannelID(channelID.Snowflake()),
+				AuditLogReason: api.AuditLogReason(auditLogReason.String()),
+			},
+		)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		return n.ExecuteChildren(ctx)
+	case FlowNodeTypeActionMemberMute, FlowNodeTypeActionMemberUnmute:
+		guildID, err := n.targetGuildID(ctx)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		userID, err := ctx.EvalTemplate(n.Data.UserTarget)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		auditLogReason, err := ctx.EvalTemplate(n.Data.AuditLogReason)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		mute := option.True
+		if n.Type == FlowNodeTypeActionMemberUnmute {
+			mute = option.False
+		}
+
+		err = ctx.Discord.EditMember(
+			ctx,
+			guildID,
+			discord.UserID(userID.Snowflake()),
+			api.ModifyMemberData{
+				Mute:           mute,
+				AuditLogReason: api.AuditLogReason(auditLogReason.String()),
+			},
+		)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		return n.ExecuteChildren(ctx)
+	case FlowNodeTypeActionMemberDeafen, FlowNodeTypeActionMemberUndeafen:
+		guildID, err := n.targetGuildID(ctx)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		userID, err := ctx.EvalTemplate(n.Data.UserTarget)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		auditLogReason, err := ctx.EvalTemplate(n.Data.AuditLogReason)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		deaf := option.True
+		if n.Type == FlowNodeTypeActionMemberUndeafen {
+			deaf = option.False
+		}
+
+		err = ctx.Discord.EditMember(
+			ctx,
+			guildID,
+			discord.UserID(userID.Snowflake()),
+			api.ModifyMemberData{
+				Deaf:           deaf,
+				AuditLogReason: api.AuditLogReason(auditLogReason.String()),
+			},
+		)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		return n.ExecuteChildren(ctx)
 	case FlowNodeTypeActionMemberEdit:
 		guildID, err := n.targetGuildID(ctx)
 		if err != nil {
