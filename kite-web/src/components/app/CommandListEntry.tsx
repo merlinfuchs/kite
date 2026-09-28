@@ -11,6 +11,8 @@ import {
   CopyPlusIcon,
   EllipsisIcon,
   SlashSquareIcon,
+  MousePointerClickIcon,
+  MessageSquareIcon,
   Trash2Icon,
   Share2Icon,
 } from "lucide-react";
@@ -70,6 +72,19 @@ export default function CommandListEntry({ command }: { command: Command }) {
     });
   }, [updateEnabledMutation, command.enabled]);
 
+  const commandType = useMemo(() => {
+    const nodes = (command.flow_source as any)?.nodes ?? [];
+    const entry = nodes.find((n: any) => n.type === "entry_command");
+    return entry?.data?.command_type ?? "chat_input";
+  }, [command.flow_source]);
+
+  const TypeIcon =
+    commandType === "user"
+      ? MousePointerClickIcon
+      : commandType === "message"
+      ? MessageSquareIcon
+      : SlashSquareIcon;
+
   const changesDeployed = useMemo(
     () =>
       new Date(command.updated_at) <= new Date(command.last_deployed_at || 0),
@@ -113,7 +128,7 @@ export default function CommandListEntry({ command }: { command: Command }) {
       </div>
       <CardHeader>
         <CardTitle className="text-base flex items-center space-x-2">
-          <SlashSquareIcon className="h-5 w-5 text-muted-foreground" />
+          <TypeIcon className="h-5 w-5 text-muted-foreground" />
           <div>{command.name}</div>
         </CardTitle>
         <CardDescription className="text-sm">
