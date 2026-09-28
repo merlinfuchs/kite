@@ -11,11 +11,14 @@ With Event Listeners you can listen for events inside the Discord servers that y
 - Message Delete
 - Member Join
 - Member Leave
+- Reaction Add
+- Reaction Remove
 
 ## Restrictions
 
 - By default, your app is limited to 5 event listeners.
 - Kite will ignore messages that are sent by a bot.
+- Reaction events are not filtered by author, so they also fire for reactions added by bots, including your own app. Avoid adding a reaction in a Reaction Add flow without a filter, or it can trigger itself.
 - Member events are only available when you enable the "Server Members Intent" in the [Discord Developer Portal](https://discord.dev).
 
 ![Example Event Flow](./img/example-event-flow.png)

@@ -67,6 +67,8 @@
               "message_delete",
               "guild_member_add",
               "guild_member_remove",
+              "message_reaction_add",
+              "message_reaction_remove",
               "cron"
             ],
             "description": "Discord event that triggers the flow, or cron for a scheduled flow."
@@ -5183,7 +5185,8 @@
               "message_content",
               "user_id",
               "guild_id",
-              "channel_id"
+              "channel_id",
+              "message_id"
             ],
             "description": "Property of the event to filter on."
           },

@@ -267,6 +267,7 @@ export const EventFilterTypeMessageContent: EventFilterTarget = "message_content
 export const EventFilterTypeUserID: EventFilterTarget = "user_id";
 export const EventFilterTypeGuildID: EventFilterTarget = "guild_id";
 export const EventFilterTypeChannelID: EventFilterTarget = "channel_id";
+export const EventFilterTypeMessageID: EventFilterTarget = "message_id";
 export type RobloxLookupType = string;
 export const RobloxLookupTypeID: RobloxLookupType = "id";
 export const RobloxLookupTypeName: RobloxLookupType = "username";
