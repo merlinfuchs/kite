@@ -33,6 +33,7 @@ export const FlowNodeTypeActionMemberBan: FlowNodeType = "action_member_ban";
 export const FlowNodeTypeActionMemberUnban: FlowNodeType = "action_member_unban";
 export const FlowNodeTypeActionMemberKick: FlowNodeType = "action_member_kick";
 export const FlowNodeTypeActionMemberTimeout: FlowNodeType = "action_member_timeout";
+export const FlowNodeTypeActionMemberTimeoutRemove: FlowNodeType = "action_member_timeout_remove";
 export const FlowNodeTypeActionMemberEdit: FlowNodeType = "action_member_edit";
 export const FlowNodeTypeActionMemberRoleAdd: FlowNodeType = "action_member_role_add";
 export const FlowNodeTypeActionMemberRoleRemove: FlowNodeType = "action_member_role_remove";
@@ -48,6 +49,12 @@ export const FlowNodeTypeActionThreadMemberRemove: FlowNodeType = "action_thread
 export const FlowNodeTypeActionForumPostCreate: FlowNodeType = "action_forum_post_create";
 export const FlowNodeTypeActionRoleGet: FlowNodeType = "action_role_get";
 export const FlowNodeTypeActionGuildGet: FlowNodeType = "action_guild_get";
+export const FlowNodeTypeActionEmojiCreate: FlowNodeType = "action_emoji_create";
+export const FlowNodeTypeActionEmojiEdit: FlowNodeType = "action_emoji_edit";
+export const FlowNodeTypeActionEmojiDelete: FlowNodeType = "action_emoji_delete";
+export const FlowNodeTypeActionStickerCreate: FlowNodeType = "action_sticker_create";
+export const FlowNodeTypeActionStickerEdit: FlowNodeType = "action_sticker_edit";
+export const FlowNodeTypeActionStickerDelete: FlowNodeType = "action_sticker_delete";
 export const FlowNodeTypeActionMessageGet: FlowNodeType = "action_message_get";
 export const FlowNodeTypeActionRobloxUserGet: FlowNodeType = "action_roblox_user_get";
 export const FlowNodeTypeActionHTTPRequest: FlowNodeType = "action_http_request";
@@ -318,6 +325,13 @@ export interface RoleData {
 export interface MemberData {
   nick?: string;
 }
+export interface EmojiData {
+  id?: string;
+  /**
+   * Name is the name of a custom emoji or the unicode of a standard emoji.
+   */
+  name?: string;
+}
 /**
  * CustomEmojiData describes a server emoji to create or edit.
  */
@@ -347,13 +361,6 @@ export interface GuildStickerData {
    * editor. Only used when creating a sticker.
    */
   image?: string;
-}
-export interface EmojiData {
-  id?: string;
-  /**
-   * Name is the name of a custom emoji or the unicode of a standard emoji.
-   */
-  name?: string;
 }
 export interface ModalData {
   title?: string;
@@ -399,6 +406,20 @@ export interface FlowEdge {
   sourceHandle?: null | string;
   targetHandle?: null | string;
 }
+
+//////////
+// source: execute_emoji.go
+
+/**
+ * Discord's upload limits. arikawa checks emojis against 256*1000 rather than
+ * 256 KiB, so both limits use decimal kilobytes to stay on the safe side.
+ */
+export const MaxEmojiImageSize = 256 * 1000;
+/**
+ * Discord's upload limits. arikawa checks emojis against 256*1000 rather than
+ * 256 KiB, so both limits use decimal kilobytes to stay on the safe side.
+ */
+export const MaxStickerImageSize = 512 * 1000;
 
 //////////
 // source: state.go
