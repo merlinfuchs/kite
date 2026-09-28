@@ -4,7 +4,7 @@ Thanks for helping out! To keep reviews fast, please follow these rules. PRs tha
 
 ## Before you start
 
-- For new features, UI changes or anything bigger than a small fix, open an issue first and wait for a go-ahead. Nobody wants you to spend a weekend on something that won't be merged.
+- You don't need permission to start, but not every feature will be accepted. If you're unsure whether something is wanted, open an issue and ask first.
 - Keep each PR to one feature or fix. Seven new blocks are seven PRs, or at least one PR per closely related group.
 - Check that the feature doesn't already exist. Many things can be done with existing blocks.
 
