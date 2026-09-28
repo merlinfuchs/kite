@@ -32,3 +32,9 @@ func (g *Gateway) AppGuildChannels(ctx context.Context, guildID string) ([]disco
 
 	return channels, nil
 }
+
+func (g *Gateway) AppGuildRoles(ctx context.Context, guildID string) ([]discord.Role, error) {
+	gid, _ := discord.ParseSnowflake(guildID)
+
+	return g.Session().RoleStore.Roles(discord.GuildID(gid))
+}

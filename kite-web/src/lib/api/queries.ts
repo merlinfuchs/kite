@@ -24,6 +24,7 @@ import {
   PluginInstanceListResponse,
   PluginListResponse,
   StateGuildChannelListResponse,
+  StateGuildRoleListResponse,
   StateGuildListResponse,
   StateStatusGetResponse,
   SubscriptionListResponse,
@@ -290,6 +291,20 @@ export function useAppStateGuildsQuery(appId: string) {
     queryFn: () =>
       apiRequest<StateGuildListResponse>(`/v1/apps/${appId}/state/guilds`),
     enabled: !!appId,
+  });
+}
+
+export function useAppStateGuildRolesQuery(
+  appId: string,
+  guildId: string | null
+) {
+  return useQuery({
+    queryKey: ["apps", appId, "state", "guilds", guildId, "roles"],
+    queryFn: () =>
+      apiRequest<StateGuildRoleListResponse>(
+        `/v1/apps/${appId}/state/guilds/${guildId}/roles`
+      ),
+    enabled: !!appId && !!guildId,
   });
 }
 

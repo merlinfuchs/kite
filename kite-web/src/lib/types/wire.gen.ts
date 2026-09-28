@@ -92,6 +92,18 @@ export interface Channel {
 }
 export type StateGuildChannelListResponse = (Channel | undefined)[];
 export type StateGuildLeaveResponse = Empty;
+export interface Role {
+  id: string;
+  name: string;
+  color: number /* int */;
+  /**
+   * Managed roles belong to integrations, like other bots, and can't be
+   * given to members.
+   */
+  managed: boolean;
+  position: number /* int */;
+}
+export type StateGuildRoleListResponse = (Role | undefined)[];
 
 //////////
 // source: asset.go
@@ -400,7 +412,7 @@ export interface FlowAIField {
   label: string;
   description: string;
   /**
-   * Type is "text", "number", "channel" or "choice".
+   * Type is "text", "number", "channel", "category", "role" or "choice".
    */
   type: string;
   options: string[];

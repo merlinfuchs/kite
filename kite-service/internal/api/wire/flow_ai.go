@@ -82,7 +82,7 @@ type FlowAIUsageGetResponse = FlowAIUsage
 type FlowAIField struct {
 	Label       string `json:"label"`
 	Description string `json:"description"`
-	// Type is "text", "number", "channel" or "choice".
+	// Type is "text", "number", "channel", "category", "role" or "choice".
 	Type    string   `json:"type"`
 	Options []string `json:"options"`
 	Default string   `json:"default"`

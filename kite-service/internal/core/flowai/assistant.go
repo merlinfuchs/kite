@@ -243,7 +243,7 @@ type output struct {
 type Field struct {
 	Label       string `json:"label"`
 	Description string `json:"description"`
-	// Type is "text", "number", "channel" or "choice".
+	// Type is "text", "number", "channel", "category", "role" or "choice".
 	Type    string   `json:"type"`
 	Options []string `json:"options"`
 	Default string   `json:"default"`
@@ -301,8 +301,8 @@ func parseOutput(text string) (*Response, error) {
 	}
 
 	// The suggested change was already made, or will be once invalid edits
-	// are repaired.
-	if len(out.Edits) > 0 {
+	// are repaired, or needs the fields filled in first.
+	if len(out.Edits) > 0 || len(res.Fields) > 0 {
 		res.BuildPrompt = ""
 	}
 	return res, nil

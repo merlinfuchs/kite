@@ -27,7 +27,7 @@ var outputSchema = map[string]any{
 					"description": map[string]any{"type": "string"},
 					"type": map[string]any{
 						"type": "string",
-						"enum": []string{"text", "number", "channel", "choice"},
+						"enum": []string{"text", "number", "channel", "category", "role", "choice"},
 					},
 					"options": map[string]any{
 						"type":        "array",

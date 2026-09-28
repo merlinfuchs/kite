@@ -202,3 +202,11 @@ func TestParseOutputLimitsFields(t *testing.T) {
 	assert.Len(t, res.Fields, 4)
 	assert.Equal(t, "text", res.Fields[0].Type)
 }
+
+func TestParseOutputDropsBuildPromptWithFields(t *testing.T) {
+	res, err := parseOutput(`{"message": "Which role?", "edits": [], "build_prompt": "Build a ticket system",
+		"fields": [{"label": "Staff role", "description": "", "type": "role", "options": [], "default": ""}]}`)
+	require.NoError(t, err)
+	assert.Empty(t, res.BuildPrompt)
+	assert.Equal(t, "role", res.Fields[0].Type)
+}

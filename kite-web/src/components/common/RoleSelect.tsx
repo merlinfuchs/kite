@@ -1,4 +1,4 @@
-import { useAppStateGuildChannels } from "@/lib/hooks/api";
+import { useAppStateGuildRoles } from "@/lib/hooks/api";
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
 import { Button } from "../ui/button";
 import { CheckIcon, ChevronsUpDownIcon } from "lucide-react";
@@ -13,27 +13,23 @@ import {
 import { cn } from "@/lib/utils";
 import { useMemo, useState } from "react";
 
-// Text, voice, announcement, stage
-const sendableChannelTypes = [0, 2, 5, 13];
-
-export default function ChannelSelect({
+export default function RoleSelect({
   guildId,
   value,
   onChange,
-  types = sendableChannelTypes,
-  placeholder = "Select channel...",
 }: {
   guildId: string | null;
   value: string | null;
   onChange: (value: string | null) => void;
-  // The channel types to list, the ones messages can be sent to by default.
-  types?: number[];
-  placeholder?: string;
 }) {
-  const allChannels = useAppStateGuildChannels(guildId);
-  const channels = useMemo(
-    () => allChannels?.filter((c) => c && types.includes(c.type)),
-    [allChannels, types]
+  const allRoles = useAppStateGuildRoles(guildId);
+  // Everyone and roles of integrations can't be given to members.
+  const roles = useMemo(
+    () =>
+      allRoles
+        ?.filter((r) => r && r.id !== guildId && !r.managed)
+        .sort((a, b) => b!.position - a!.position),
+    [allRoles, guildId]
   );
 
   const [open, setOpen] = useState(false);
@@ -48,22 +44,24 @@ export default function ChannelSelect({
           className="w-full justify-between truncate flex"
         >
           <div className="truncate">
-            {value ? channels?.find((c) => c!.id === value)?.name : placeholder}
+            {value
+              ? roles?.find((r) => r!.id === value)?.name
+              : "Select role..."}
           </div>
           <ChevronsUpDownIcon className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-[200px] p-0">
         <Command>
-          <CommandInput placeholder="Search channel..." />
+          <CommandInput placeholder="Search role..." />
           <CommandList>
-            <CommandEmpty>No channel found.</CommandEmpty>
+            <CommandEmpty>No role found.</CommandEmpty>
             <CommandGroup>
-              {channels?.map((channel) => (
+              {roles?.map((role) => (
                 <CommandItem
-                  key={channel!.id}
-                  value={channel!.id}
-                  keywords={[channel!.name]}
+                  key={role!.id}
+                  value={role!.id}
+                  keywords={[role!.name]}
                   onSelect={(currentValue) => {
                     onChange(currentValue);
                     setOpen(false);
@@ -72,10 +70,10 @@ export default function ChannelSelect({
                   <CheckIcon
                     className={cn(
                       "mr-2 h-4 w-4",
-                      value === channel!.id ? "opacity-100" : "opacity-0"
+                      value === role!.id ? "opacity-100" : "opacity-0"
                     )}
                   />
-                  {channel!.name}
+                  {role!.name}
                 </CommandItem>
               ))}
             </CommandGroup>

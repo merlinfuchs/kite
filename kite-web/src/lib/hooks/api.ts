@@ -7,6 +7,7 @@ import {
   useAppQuery,
   useAppsQuery,
   useAppStateGuildChannelsQuery,
+  useAppStateGuildRolesQuery,
   useAppStateGuildsQuery,
   useAppSubscriptionsQuery,
   useBillingPlansQuery,
@@ -52,6 +53,7 @@ import {
   PluginInstanceListResponse,
   PluginListResponse,
   StateGuildChannelListResponse,
+  StateGuildRoleListResponse,
   StateGuildListResponse,
   SubscriptionListResponse,
   UsageByDayListResponse,
@@ -270,6 +272,19 @@ export function useAppStateGuild(guildId: string | null) {
   const data = useResponseData(query);
 
   return data?.find((g) => g!.id === guildId);
+}
+
+export function useAppStateGuildRoles(
+  guildId: string | null,
+  callback?: (res: APIResponse<StateGuildRoleListResponse>) => void
+) {
+  const router = useRouter();
+
+  const query = useAppStateGuildRolesQuery(
+    router.query.appId as string,
+    guildId
+  );
+  return useResponseData(query, callback);
 }
 
 export function useAppStateGuildChannels(
