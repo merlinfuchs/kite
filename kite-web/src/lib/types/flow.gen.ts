@@ -27,6 +27,7 @@ export const FlowNodeTypeActionMessageDelete: FlowNodeType = "action_message_del
 export const FlowNodeTypeActionPrivateMessageCreate: FlowNodeType = "action_private_message_create";
 export const FlowNodeTypeActionMessageReactionCreate: FlowNodeType = "action_message_reaction_create";
 export const FlowNodeTypeActionMessageReactionDelete: FlowNodeType = "action_message_reaction_delete";
+export const FlowNodeTypeActionMessageReactionClear: FlowNodeType = "action_message_reaction_clear";
 export const FlowNodeTypeActionMessagePin: FlowNodeType = "action_message_pin";
 export const FlowNodeTypeActionMessageUnpin: FlowNodeType = "action_message_unpin";
 export const FlowNodeTypeActionMemberBan: FlowNodeType = "action_member_ban";
@@ -134,9 +135,10 @@ export interface FlowNodeData {
   message_template_id?: string;
   message_ephemeral?: boolean;
   /**
-   * Message Reaction Create, Delete
+   * Message Reaction Create, Delete, Clear
    */
   emoji_data?: EmojiData;
+  reaction_clear_mode?: ReactionClearMode;
   /**
    * Modal
    */
@@ -270,6 +272,9 @@ export const EventFilterTypeChannelID: EventFilterTarget = "channel_id";
 export type RobloxLookupType = string;
 export const RobloxLookupTypeID: RobloxLookupType = "id";
 export const RobloxLookupTypeName: RobloxLookupType = "username";
+export type ReactionClearMode = string;
+export const ReactionClearModeAll: ReactionClearMode = "all";
+export const ReactionClearModeEmoji: ReactionClearMode = "emoji";
 export interface CommandArgumentChoiceData {
   name?: string;
   value?: string;
@@ -374,6 +379,17 @@ export interface FlowContextState {
    * first. It's only set in resumed executions.
    */
   triggers?: FlowTrigger[];
+  /**
+   * ResumeTrigger is the interaction or event a durable sleep continues
+   * with. It's kept apart from Triggers, which are only earlier executions.
+   */
+  resume_trigger?: FlowTrigger;
+  /**
+   * DurableSleeps counts the durable sleeps of this execution, including the
+   * ones it resumed from, so a cycle through a Wait block can't keep the flow
+   * alive forever. Clicks and submits start a new execution from zero.
+   */
+  durable_sleeps?: number /* int */;
 }
 export interface FlowContextNodeState {
   condition_base_value?: any /* thing.Thing */;

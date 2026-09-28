@@ -32,6 +32,7 @@ import {
   nodeActionMessageGetDataSchema,
   nodeActionMessageReactionCreateDataSchema,
   nodeActionMessageReactionDeleteDataSchema,
+  nodeActionMessageReactionClearDataSchema,
   nodeActionMessagePinDataSchema,
   nodeActionPrivateMessageCreateDataSchema,
   nodeActionRandomGenerateDataSchema,
@@ -292,6 +293,22 @@ export const nodeTypes: Record<string, NodeValues> = {
     dataFields: [
       "channel_target",
       "message_target",
+      "emoji_data",
+      "custom_label",
+    ],
+    creditsCost: 1,
+  },
+  action_message_reaction_clear: {
+    color: actionColor,
+    icon: "eraser",
+    defaultTitle: "Clear message reactions",
+    defaultDescription:
+      "Bot removes all reactions, or all reactions of one emoji, from a message",
+    dataSchema: nodeActionMessageReactionClearDataSchema,
+    dataFields: [
+      "channel_target",
+      "message_target",
+      "reaction_clear_mode",
       "emoji_data",
       "custom_label",
     ],

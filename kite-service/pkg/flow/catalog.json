@@ -67,6 +67,8 @@
               "message_delete",
               "guild_member_add",
               "guild_member_remove",
+              "guild_create",
+              "guild_delete",
               "cron"
             ],
             "description": "Discord event that triggers the flow, or cron for a scheduled flow."
@@ -1362,6 +1364,91 @@
           "channel_target",
           "message_target",
           "emoji_data"
+        ],
+        "additionalProperties": false
+      },
+      "result_schema": null
+    },
+    "action_message_reaction_clear": {
+      "title": "Clear message reactions",
+      "description": "Bot removes all reactions, or all reactions of one emoji, from a message",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord",
+        "event_schedule"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "type": "string",
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+          },
+          "channel_target": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9]+$"
+              },
+              {
+                "type": "string",
+                "pattern": "^\\{\\{[^{}]+\\}\\}$"
+              }
+            ],
+            "description": "ID of the channel."
+          },
+          "message_target": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9]+$"
+              },
+              {
+                "type": "string",
+                "pattern": "^\\{\\{[^{}]+\\}\\}$"
+              }
+            ],
+            "description": "ID of the message."
+          },
+          "reaction_clear_mode": {
+            "type": "string",
+            "enum": [
+              "all",
+              "emoji"
+            ],
+            "description": "Whether to remove every reaction on the message, or only the reactions of emoji_data."
+          },
+          "emoji_data": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "description": "ID of a custom emoji."
+              },
+              "name": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Name of a custom emoji, or the unicode of a standard emoji."
+              }
+            },
+            "required": [
+              "name"
+            ],
+            "additionalProperties": false,
+            "description": "The emoji to remove all reactions of. Only used when reaction_clear_mode is 'emoji'."
+          }
+        },
+        "required": [
+          "channel_target",
+          "message_target",
+          "reaction_clear_mode"
         ],
         "additionalProperties": false
       },

@@ -117,6 +117,7 @@ const intputs: Record<string, any> = {
   message_template_id: MessageTemplateInput,
   message_target: MessageTargetInput,
   emoji_data: EmojiDataInput,
+  reaction_clear_mode: ReactionClearModeInput,
   response_target: ResponseTargetInput,
   message_ephemeral: MessageEphemeralInput,
   modal_data: ModalDataInput,
@@ -731,6 +732,8 @@ function EventTypeInput({ data, updateData, errors }: InputProps) {
         { value: "message_delete", label: "Message Delete" },
         { value: "guild_member_add", label: "Server Member Add" },
         { value: "guild_member_remove", label: "Server Member Remove" },
+        { value: "guild_create", label: "Bot Joined Server" },
+        { value: "guild_delete", label: "Bot Left Server" },
       ]}
       value={data.event_type || ""}
       updateValue={(v) => updateData({ event_type: v || undefined })}
@@ -1323,6 +1326,24 @@ function RobloxLookupModeInput({ data, updateData, errors }: InputProps) {
   );
 }
 
+function ReactionClearModeInput({ data, updateData, errors }: InputProps) {
+  return (
+    <BaseInput
+      type="select"
+      field="reaction_clear_mode"
+      title="Reactions"
+      description="Remove every reaction on the message, or only the reactions of one emoji."
+      value={data.reaction_clear_mode || ""}
+      options={[
+        { label: "All reactions", value: "all" },
+        { label: "One emoji", value: "emoji" },
+      ]}
+      updateValue={(v) => updateData({ reaction_clear_mode: v || undefined })}
+      errors={errors}
+    />
+  );
+}
+
 function MessageTemplateInput({ data, updateData, errors }: InputProps) {
   const messages = useMessages();
 
@@ -1480,7 +1501,15 @@ function MessageEphemeralInput({ data, updateData, errors }: InputProps) {
   );
 }
 
-function EmojiDataInput({ data, updateData, errors }: InputProps) {
+function EmojiDataInput({ type, data, updateData, errors }: InputProps) {
+  // Clearing all reactions doesn't need an emoji.
+  if (
+    type === "action_message_reaction_clear" &&
+    data.reaction_clear_mode !== "emoji"
+  ) {
+    return null;
+  }
+
   return (
     <BaseEmojiPicker
       title="Emoji"

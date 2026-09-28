@@ -269,6 +269,23 @@ func (p *DiscordProvider) DeleteMessageReaction(ctx context.Context, channelID d
 	return nil
 }
 
+func (p *DiscordProvider) ClearMessageReactions(ctx context.Context, channelID discord.ChannelID, messageID discord.MessageID, emoji discord.APIEmoji) error {
+	if emoji == "" {
+		err := p.session.DeleteAllReactions(channelID, messageID)
+		if err != nil {
+			return fmt.Errorf("failed to clear message reactions: %w", err)
+		}
+		return nil
+	}
+
+	err := p.session.DeleteReactions(channelID, messageID, emoji)
+	if err != nil {
+		return fmt.Errorf("failed to clear message reactions: %w", err)
+	}
+
+	return nil
+}
+
 func (p *DiscordProvider) PinMessage(ctx context.Context, channelID discord.ChannelID, messageID discord.MessageID, reason api.AuditLogReason) error {
 	err := p.session.PinMessage(channelID, messageID, reason)
 	if err != nil {

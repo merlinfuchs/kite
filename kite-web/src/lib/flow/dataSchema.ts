@@ -211,6 +211,8 @@ export const nodeEntryEventDataSchema = nodeBaseDataSchema.extend({
       "message_delete",
       "guild_member_add",
       "guild_member_remove",
+      "guild_create",
+      "guild_delete",
       "cron",
     ])
     .describe(
@@ -434,6 +436,26 @@ export const nodeActionMessageReactionDeleteDataSchema =
     emoji_data: emojiDataSchema.describe(
       "The emoji to remove the reaction of."
     ),
+  });
+
+export const nodeActionMessageReactionClearDataSchema = nodeBaseDataSchema
+  .extend({
+    channel_target: channelTargetSchema,
+    message_target: messageTargetSchema,
+    reaction_clear_mode: z
+      .enum(["all", "emoji"])
+      .describe(
+        "Whether to remove every reaction on the message, or only the reactions of emoji_data."
+      ),
+    emoji_data: emojiDataSchema
+      .optional()
+      .describe(
+        "The emoji to remove all reactions of. Only used when reaction_clear_mode is 'emoji'."
+      ),
+  })
+  .refine((data) => data.reaction_clear_mode !== "emoji" || !!data.emoji_data, {
+    message: "Pick the emoji to remove",
+    path: ["emoji_data"],
   });
 
 export const nodeActionMemberBanDataSchema = nodeBaseDataSchema.extend({

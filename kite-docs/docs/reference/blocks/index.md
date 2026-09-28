@@ -31,6 +31,7 @@ The output of previously executed blocks is available in all subsequent blocks a
 - [Send direct message](./actions/action_private_message_create.md) - Send private messages
 - [Create message reaction](./actions/action_message_reaction_create.md) - Add reactions to messages
 - [Delete message reaction](./actions/action_message_reaction_delete.md) - Remove reactions from messages
+- [Clear message reactions](./actions/action_message_reaction_clear.md) - Remove all reactions, or all reactions of one emoji, from messages
 - [Pin channel message](./actions/action_message_pin.md) - Pin messages in channels
 - [Unpin channel message](./actions/action_message_unpin.md) - Unpin messages in channels
 

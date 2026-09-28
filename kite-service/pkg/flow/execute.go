@@ -604,6 +604,52 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 		}
 
 		return n.ExecuteChildren(ctx)
+	case FlowNodeTypeActionMessageReactionClear:
+		channelTarget, err := ctx.EvalTemplate(n.Data.ChannelTarget)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		messageTarget, err := ctx.EvalTemplate(n.Data.MessageTarget)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		// An empty emoji clears every reaction on the message, so only leave it
+		// empty when that mode was picked explicitly.
+		var emoji discord.APIEmoji
+		switch n.Data.ReactionClearMode {
+		case ReactionClearModeAll:
+		case ReactionClearModeEmoji:
+			if n.Data.EmojiData == nil || n.Data.EmojiData.Name == "" {
+				return &FlowError{
+					Code:    FlowNodeErrorUnknown,
+					Message: "emoji_data is nil",
+				}
+			}
+
+			emoji = discord.APIEmoji(n.Data.EmojiData.Name)
+			if n.Data.EmojiData.ID != "" {
+				emoji = discord.APIEmoji(fmt.Sprintf("%s:%s", n.Data.EmojiData.Name, n.Data.EmojiData.ID))
+			}
+		default:
+			return &FlowError{
+				Code:    FlowNodeErrorUnknown,
+				Message: fmt.Sprintf("invalid reaction clear mode: %q", n.Data.ReactionClearMode),
+			}
+		}
+
+		err = ctx.Discord.ClearMessageReactions(
+			ctx,
+			discord.ChannelID(channelTarget.Snowflake()),
+			discord.MessageID(messageTarget.Snowflake()),
+			emoji,
+		)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		return n.ExecuteChildren(ctx)
 	case FlowNodeTypeActionMessagePin, FlowNodeTypeActionMessageUnpin:
 		channelTarget, err := ctx.EvalTemplate(n.Data.ChannelTarget)
 		if err != nil {

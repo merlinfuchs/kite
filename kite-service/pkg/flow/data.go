@@ -60,6 +60,7 @@ const (
 	FlowNodeTypeActionPrivateMessageCreate  FlowNodeType = "action_private_message_create"
 	FlowNodeTypeActionMessageReactionCreate FlowNodeType = "action_message_reaction_create"
 	FlowNodeTypeActionMessageReactionDelete FlowNodeType = "action_message_reaction_delete"
+	FlowNodeTypeActionMessageReactionClear  FlowNodeType = "action_message_reaction_clear"
 	FlowNodeTypeActionMessagePin            FlowNodeType = "action_message_pin"
 	FlowNodeTypeActionMessageUnpin          FlowNodeType = "action_message_unpin"
 	FlowNodeTypeActionMemberBan             FlowNodeType = "action_member_ban"
@@ -174,8 +175,9 @@ type FlowNodeData struct {
 	MessageTemplateID string               `json:"message_template_id,omitempty"`
 	MessageEphemeral  bool                 `json:"message_ephemeral,omitempty"`
 
-	// Message Reaction Create, Delete
-	EmojiData *EmojiData `json:"emoji_data,omitempty"`
+	// Message Reaction Create, Delete, Clear
+	EmojiData         *EmojiData        `json:"emoji_data,omitempty"`
+	ReactionClearMode ReactionClearMode `json:"reaction_clear_mode,omitempty"`
 
 	// Modal
 	ModalData *ModalData `json:"modal_data,omitempty"`
@@ -309,6 +311,18 @@ func (d FlowNodeData) Validate(nodeType FlowNodeType) error {
 			validation.Required,
 		)),
 
+		// Message Reaction Clear
+		// The mode has to be picked explicitly so an unset field never silently
+		// clears every reaction on the message.
+		validation.Field(&d.ReactionClearMode, validation.When(nodeType == FlowNodeTypeActionMessageReactionClear,
+			validation.Required,
+			validation.In(ReactionClearModeAll, ReactionClearModeEmoji),
+		)),
+		validation.Field(&d.EmojiData, validation.When(
+			nodeType == FlowNodeTypeActionMessageReactionClear && d.ReactionClearMode == ReactionClearModeEmoji,
+			validation.Required,
+		)),
+
 		// Expression Evaluate
 		// Bounded for every node type rather than just entry nodes: an oversized
 		// expression is a resource-exhaustion risk at execution time, not just a
@@ -381,6 +395,13 @@ type RobloxLookupType string
 const (
 	RobloxLookupTypeID   RobloxLookupType = "id"
 	RobloxLookupTypeName RobloxLookupType = "username"
+)
+
+type ReactionClearMode string
+
+const (
+	ReactionClearModeAll   ReactionClearMode = "all"
+	ReactionClearModeEmoji ReactionClearMode = "emoji"
 )
 
 type CommandArgumentChoiceData struct {
