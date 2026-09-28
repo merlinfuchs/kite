@@ -1,0 +1,138 @@
+name: CI
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  service:
+    name: Service
+    if: github.event.pull_request.draft != true
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: kite-service
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: kite-service/go.mod
+          cache-dependency-path: kite-service/go.sum
+      - name: Check formatting
+        run: |
+          unformatted=$(gofmt -l .)
+          if [ -n "$unformatted" ]; then
+            echo "::error::Run gofmt -w on these files:"
+            echo "$unformatted"
+            exit 1
+          fi
+      - run: go vet ./...
+      - run: go test ./...
+      - name: Check migration numbers are unique
+        run: |
+          dupes=$(ls internal/db/postgres/migrations/*.up.sql | xargs -n1 basename | cut -d_ -f1 | sort | uniq -d)
+          if [ -n "$dupes" ]; then
+            echo "::error::Duplicate migration numbers: $dupes"
+            exit 1
+          fi
+
+  generated:
+    name: Generated files
+    if: github.event.pull_request.draft != true
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: kite-service/go.mod
+          cache-dependency-path: kite-service/go.sum
+      - uses: sqlc-dev/setup-sqlc@v4
+        with:
+          sqlc-version: "1.31.1"
+      - name: Generate TypeScript types
+        run: go run github.com/gzuidhof/tygo@v0.2.19 generate
+        working-directory: kite-service
+      - name: Generate database code
+        run: sqlc generate
+        working-directory: kite-service
+      - name: Check for changes
+        run: |
+          if ! git diff --exit-code; then
+            echo "::error::Generated files are out of date. Run tygo generate and sqlc generate in kite-service and commit the result. Don't edit generated files by hand."
+            exit 1
+          fi
+
+  web:
+    name: Web
+    if: github.event.pull_request.draft != true
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: kite-web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: kite-web/package.json
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: pnpm
+          cache-dependency-path: kite-web/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run format:check
+      - run: pnpm test
+      - name: Check catalog.json is up to date
+        run: |
+          if ! git diff --exit-code; then
+            echo "::error::kite-service/pkg/flow/catalog.json is out of date. Run pnpm test -u in kite-web and commit the result."
+            exit 1
+          fi
+      # Also typechecks and lints
+      - name: Build
+        run: pnpm run build
+        env:
+          OUTPUT: export
+          NEXT_PUBLIC_API_PUBLIC_BASE_URL: ""
+
+  docs:
+    name: Docs
+    if: github.event.pull_request.draft != true
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check every block has a docs page
+        run: |
+          missing=0
+          for type in $(jq -r '(.nodes | keys) - ([.nodes[].owned_children[]] | unique) | .[]' kite-service/pkg/flow/catalog.json); do
+            if [ -z "$(find kite-docs/docs/reference/blocks -name "$type.md")" ]; then
+              echo "::error::Missing docs page for block $type in kite-docs/docs/reference/blocks"
+              missing=1
+            fi
+          done
+          exit $missing
+      - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: kite-docs/package.json
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: pnpm
+          cache-dependency-path: kite-docs/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+        working-directory: kite-docs
+      - run: pnpm run build
+        working-directory: kite-docs
