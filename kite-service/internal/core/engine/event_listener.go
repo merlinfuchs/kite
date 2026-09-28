@@ -118,6 +118,11 @@ func (l *EventListener) shouldHandleEvent(e ws.Event) bool {
 		// MessageCreate/Update we don't filter bots out here.
 		return true
 	case *gateway.MessageReactionRemoveEvent:
+	// arikawa derives these from GUILD_CREATE and GUILD_DELETE, leaving out
+	// guilds that load on connect or recover from an outage.
+	case *state.GuildJoinEvent:
+		return true
+	case *state.GuildLeaveEvent:
 		return true
 	}
 

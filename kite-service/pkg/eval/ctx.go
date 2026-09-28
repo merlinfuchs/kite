@@ -245,6 +245,7 @@ type EventEnv struct {
 	Message *MessageEnv   `expr:"message" json:"message"`
 	Guild   *SnowflakeEnv `expr:"guild" json:"guild"`
 	Emoji   *EmojiEnv     `expr:"emoji" json:"emoji"`
+	Guild   any           `expr:"guild" json:"guild"`
 
 	Schedule *ScheduleEnv `expr:"schedule" json:"schedule"`
 }
@@ -338,6 +339,10 @@ func NewEventEnv(event ws.Event) *EventEnv {
 		}
 		env.Message = NewMessageEnv(discord.Message{ID: e.MessageID})
 		env.Emoji = NewEmojiEnv(e.Emoji)
+	case *state.GuildJoinEvent:
+		env.Guild = NewGuildEnv(e.Guild)
+	case *state.GuildLeaveEvent:
+		env.Guild = NewSnowflakeEnv(e.ID)
 	case *schedule.Event:
 		env.Schedule = NewScheduleEnv(e)
 	}
