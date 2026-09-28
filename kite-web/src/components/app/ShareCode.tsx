@@ -10,11 +10,11 @@ import { cn } from "@/lib/utils";
 const codeLength = 8;
 const groupSize = codeLength / 2;
 
-const slotClassName = "h-12 w-10 font-mono text-xl";
+const slotClassName = "h-12 w-8 font-mono text-xl sm:w-10";
 
 export function ShareCodePanel({ children }: { children: ReactNode }) {
   return (
-    <div className="flex min-h-36 flex-col items-center justify-center gap-3 rounded-lg border bg-muted/40 px-6 py-8">
+    <div className="flex min-h-36 flex-col items-center justify-center gap-3 rounded-lg border bg-muted/40 px-3 py-8 sm:px-6">
       {children}
     </div>
   );
@@ -33,6 +33,11 @@ export function ShareCodeInput({
     <InputOTP
       maxLength={codeLength}
       pattern="^[a-zA-Z0-9]+$"
+      // input-otp defaults to a numeric keypad on mobile
+      inputMode="text"
+      autoCapitalize="characters"
+      autoCorrect="off"
+      spellCheck={false}
       value={value}
       onChange={(value) => onChange(value.toUpperCase())}
       onKeyDown={(e) => e.key === "Enter" && onSubmit()}
