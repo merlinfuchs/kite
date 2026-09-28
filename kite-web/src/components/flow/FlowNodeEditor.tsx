@@ -29,6 +29,7 @@ import {
   CircleAlertIcon,
   CopyIcon,
   HelpCircleIcon,
+  ImageIcon,
   MinusIcon,
   PencilIcon,
   PlusIcon,
@@ -81,6 +82,8 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
 import FlowPlaceholderExplorer from "./FlowPlaceholderExplorer";
 import env from "@/lib/env/client";
 import { ScrollArea } from "../ui/scroll-area";
+import { toast } from "sonner";
+import { maxEmojiImageSize, maxStickerImageSize } from "@/lib/flow/dataSchema";
 
 interface Props {
   nodeId: string;
@@ -145,6 +148,14 @@ const intputs: Record<string, any> = {
     MemberBanDeleteMessageDurationInput,
   member_timeout_duration_seconds: MemberTimeoutDurationInput,
   member_nick: MemberNickInput,
+  emoji_target: EmojiTargetInput,
+  custom_emoji_name: CustomEmojiNameInput,
+  custom_emoji_image: CustomEmojiImageInput,
+  sticker_target: StickerTargetInput,
+  sticker_name: StickerNameInput,
+  sticker_tags: StickerTagsInput,
+  sticker_description: StickerDescriptionInput,
+  sticker_image: StickerImageInput,
   roblox_user_target: RobloxUserTargetInput,
   roblox_lookup_mode: RobloxLookupModeInput,
   log_level: LogLevelInput,
@@ -3036,6 +3047,370 @@ function BaseEmojiPicker({
           </div>
         )}
       </div>
+      {error && (
+        <div className="text-red-600 dark:text-red-400 text-sm flex items-center space-x-1 pt-2">
+          <CircleAlertIcon className="h-5 w-5 flex-none" />
+          <div>{error}</div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Errors of a nested field fall back to the error of the object holding it,
+// e.g. "Required" when the block has no custom_emoji_data yet.
+function nestedErrors(
+  errors: Record<string, string>,
+  parent: string,
+  field: string
+): Record<string, string> {
+  const key = `${parent}.${field}`;
+  return { ...errors, [key]: errors[key] ?? errors[parent] };
+}
+
+function EmojiTargetInput({ data, updateData, errors }: InputProps) {
+  return (
+    <BaseInput
+      type="text"
+      field="emoji_target"
+      title="Target Emoji"
+      description="The emoji's ID, the emoji itself like <:name:123>, or the result of a Create emoji block."
+      value={data.emoji_target || ""}
+      updateValue={(v) => updateData({ emoji_target: v || undefined })}
+      errors={errors}
+      placeholders
+    />
+  );
+}
+
+function CustomEmojiNameInput({ type, data, updateData, errors }: InputProps) {
+  return (
+    <BaseInput
+      type="text"
+      field="custom_emoji_data.name"
+      title={type === "action_emoji_edit" ? "New Name" : "Name"}
+      description="2 to 32 letters, numbers and underscores. Spaces and dashes become underscores."
+      value={data.custom_emoji_data?.name || ""}
+      updateValue={(v) =>
+        updateData({
+          custom_emoji_data: {
+            ...data.custom_emoji_data,
+            name: v || undefined,
+          },
+        })
+      }
+      errors={nestedErrors(errors, "custom_emoji_data", "name")}
+      placeholders
+    />
+  );
+}
+
+function CustomEmojiImageInput({ data, updateData, errors }: InputProps) {
+  return (
+    <BaseImageInput
+      field="custom_emoji_data.image"
+      title="Image"
+      description="PNG, JPEG, GIF or WebP, at most 256 KB. 128x128 works best."
+      maxSize={maxEmojiImageSize}
+      accept={["image/png", "image/jpeg", "image/gif", "image/webp"]}
+      value={data.custom_emoji_data?.image || ""}
+      updateValue={(v) =>
+        updateData({
+          custom_emoji_data: {
+            ...data.custom_emoji_data,
+            image: v || undefined,
+          },
+        })
+      }
+      errors={nestedErrors(errors, "custom_emoji_data", "image")}
+    />
+  );
+}
+
+function StickerTargetInput({ data, updateData, errors }: InputProps) {
+  return (
+    <BaseInput
+      type="text"
+      field="sticker_target"
+      title="Target Sticker"
+      description="The sticker's ID, or the result of a Create sticker block."
+      value={data.sticker_target || ""}
+      updateValue={(v) => updateData({ sticker_target: v || undefined })}
+      errors={errors}
+      placeholders
+    />
+  );
+}
+
+function StickerNameInput({ type, data, updateData, errors }: InputProps) {
+  const isEdit = type === "action_sticker_edit";
+
+  return (
+    <BaseInput
+      type="text"
+      field="guild_sticker_data.name"
+      title={isEdit ? "New Name" : "Name"}
+      description={
+        isEdit
+          ? "2 to 30 characters. Leave empty to keep the current name."
+          : "2 to 30 characters."
+      }
+      value={data.guild_sticker_data?.name || ""}
+      updateValue={(v) =>
+        updateData({
+          guild_sticker_data: {
+            ...data.guild_sticker_data,
+            name: v || undefined,
+          },
+        })
+      }
+      errors={nestedErrors(errors, "guild_sticker_data", "name")}
+      placeholders
+    />
+  );
+}
+
+function StickerTagsInput({ type, data, updateData, errors }: InputProps) {
+  const isEdit = type === "action_sticker_edit";
+  const value = data.guild_sticker_data?.tags || "";
+
+  const setValue = useCallback(
+    (v: string) =>
+      updateData({
+        guild_sticker_data: {
+          ...data.guild_sticker_data,
+          tags: v || undefined,
+        },
+      }),
+    [updateData, data.guild_sticker_data]
+  );
+
+  return (
+    <div className="flex space-x-2 items-start">
+      <BaseInput
+        type="text"
+        field="guild_sticker_data.tags"
+        title={isEdit ? "New Emoji" : "Emoji"}
+        description={
+          isEdit
+            ? "The emoji the sticker is suggested for. Leave empty to keep the current one."
+            : "The emoji the sticker is suggested for, e.g. 😄."
+        }
+        value={value}
+        updateValue={setValue}
+        errors={nestedErrors(errors, "guild_sticker_data", "tags")}
+        placeholders
+      />
+      <div className="flex-none pt-7">
+        <EmojiPicker
+          onEmojiSelect={(emoji) => {
+            if (!emoji.native) {
+              toast.error("Stickers need a standard emoji, not a custom one.");
+              return;
+            }
+            setValue(emoji.name);
+          }}
+        >
+          <Button size="icon" variant="outline" title="Pick an emoji">
+            {value && !value.includes("{{") ? (
+              <Twemoji options={{ className: "h-6 w-6" }}>{value}</Twemoji>
+            ) : (
+              <SmileIcon className="h-6 w-6 text-foreground/80" />
+            )}
+          </Button>
+        </EmojiPicker>
+      </div>
+    </div>
+  );
+}
+
+function StickerDescriptionInput({
+  type,
+  data,
+  updateData,
+  errors,
+}: InputProps) {
+  const isEdit = type === "action_sticker_edit";
+
+  return (
+    <BaseInput
+      type="text"
+      field="guild_sticker_data.description"
+      title={isEdit ? "New Description" : "Description"}
+      description={
+        isEdit
+          ? "Optional, 2 to 100 characters. Leave empty to keep the current one."
+          : "Optional, 2 to 100 characters."
+      }
+      value={data.guild_sticker_data?.description || ""}
+      updateValue={(v) =>
+        updateData({
+          guild_sticker_data: {
+            ...data.guild_sticker_data,
+            description: v || undefined,
+          },
+        })
+      }
+      errors={errors}
+      placeholders
+    />
+  );
+}
+
+function StickerImageInput({ data, updateData, errors }: InputProps) {
+  return (
+    <BaseImageInput
+      field="guild_sticker_data.image"
+      title="Image"
+      description="PNG, APNG or GIF, at most 512 KB. 320x320 works best."
+      maxSize={maxStickerImageSize}
+      accept={["image/png", "image/apng", "image/gif"]}
+      value={data.guild_sticker_data?.image || ""}
+      updateValue={(v) =>
+        updateData({
+          guild_sticker_data: {
+            ...data.guild_sticker_data,
+            image: v || undefined,
+          },
+        })
+      }
+      errors={nestedErrors(errors, "guild_sticker_data", "image")}
+    />
+  );
+}
+
+function formatKilobytes(bytes: number) {
+  return `${(bytes / 1000).toFixed(bytes < 10000 ? 1 : 0)} KB`;
+}
+
+// An image field that is either an upload, stored in the block as a data URI,
+// or a URL / placeholder the service downloads when the flow runs.
+function BaseImageInput({
+  field,
+  title,
+  description,
+  maxSize,
+  accept,
+  value,
+  updateValue,
+  errors,
+}: {
+  field: string;
+  title: string;
+  description?: string;
+  maxSize: number;
+  accept: string[];
+  value: string;
+  updateValue: (value: string) => void;
+  errors: Record<string, string>;
+}) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const isUpload = value.startsWith("data:");
+  const error = errors[field];
+
+  const uploadSize = useMemo(() => {
+    if (!isUpload) return 0;
+    const b64 = value.slice(value.indexOf(",") + 1);
+    return (
+      Math.floor((b64.length * 3) / 4) - (b64.match(/=+$/)?.[0].length ?? 0)
+    );
+  }, [value, isUpload]);
+
+  const onFile = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      e.target.value = "";
+      if (!file) return;
+
+      if (!accept.includes(file.type)) {
+        toast.error(
+          `Unsupported file type ${file.type || "unknown"}. Use ${accept
+            .map((t) => t.split("/")[1].toUpperCase())
+            .join(", ")}.`
+        );
+        return;
+      }
+      if (file.size > maxSize) {
+        toast.error(
+          `${file.name} is ${formatKilobytes(
+            file.size
+          )}, the limit is ${formatKilobytes(maxSize)}.`
+        );
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = () => {
+        if (typeof reader.result === "string") updateValue(reader.result);
+      };
+      reader.onerror = () => toast.error("Failed to read the file.");
+      reader.readAsDataURL(file);
+    },
+    [accept, maxSize, updateValue]
+  );
+
+  return (
+    <div className="flex-auto">
+      <div className="font-medium text-foreground">{title}</div>
+      {description ? (
+        <div className="text-muted-foreground text-sm mt-1">{description}</div>
+      ) : null}
+
+      {isUpload ? (
+        <div className="mt-2 flex items-center space-x-3 rounded-md border p-2">
+          <img
+            src={value}
+            alt=""
+            className="h-16 w-16 flex-none rounded object-contain bg-muted"
+          />
+          <div className="flex-auto min-w-0 text-sm">
+            <div className="text-foreground">Uploaded image</div>
+            <div className="text-muted-foreground">
+              {formatKilobytes(uploadSize)}
+            </div>
+          </div>
+          <Button
+            size="icon"
+            variant="ghost"
+            title="Remove image"
+            onClick={() => updateValue("")}
+          >
+            <XIcon className="h-5 w-5" />
+          </Button>
+        </div>
+      ) : (
+        <div className="mt-2 flex space-x-2 items-start">
+          <div className="flex-auto">
+            <BaseInput
+              type="text"
+              field={field}
+              title=""
+              placeholder="https://... or {{arg('image').url}}"
+              value={value}
+              updateValue={updateValue}
+              errors={{}}
+              placeholders
+            />
+          </div>
+          <Button
+            variant="outline"
+            className="flex-none mt-2"
+            onClick={() => inputRef.current?.click()}
+          >
+            <ImageIcon className="h-4 w-4 mr-2" />
+            Upload
+          </Button>
+        </div>
+      )}
+
+      <input
+        type="file"
+        className="hidden"
+        ref={inputRef}
+        accept={accept.join(",")}
+        onChange={onFile}
+      />
+
       {error && (
         <div className="text-red-600 dark:text-red-400 text-sm flex items-center space-x-1 pt-2">
           <CircleAlertIcon className="h-5 w-5 flex-none" />

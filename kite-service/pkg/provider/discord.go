@@ -48,6 +48,12 @@ type DiscordProvider interface {
 	CreateRole(ctx context.Context, guildID discord.GuildID, data api.CreateRoleData) (*discord.Role, error)
 	EditRole(ctx context.Context, guildID discord.GuildID, roleID discord.RoleID, data api.ModifyRoleData) (*discord.Role, error)
 	DeleteRole(ctx context.Context, guildID discord.GuildID, roleID discord.RoleID) error
+	CreateEmoji(ctx context.Context, guildID discord.GuildID, data CreateEmojiData) (*discord.Emoji, error)
+	EditEmoji(ctx context.Context, guildID discord.GuildID, emojiID discord.EmojiID, data EditEmojiData) (*discord.Emoji, error)
+	DeleteEmoji(ctx context.Context, guildID discord.GuildID, emojiID discord.EmojiID, reason api.AuditLogReason) error
+	CreateSticker(ctx context.Context, guildID discord.GuildID, data CreateStickerData) (*discord.Sticker, error)
+	EditSticker(ctx context.Context, guildID discord.GuildID, stickerID discord.StickerID, data EditStickerData) (*discord.Sticker, error)
+	DeleteSticker(ctx context.Context, guildID discord.GuildID, stickerID discord.StickerID, reason api.AuditLogReason) error
 
 	UpdateVoiceState(ctx context.Context, guildID discord.GuildID, channelID discord.ChannelID, selfMute bool, selfDeaf bool) error
 	UpdatePresence(ctx context.Context, status discord.Status, activity discord.Activity) error
@@ -57,6 +63,48 @@ type DiscordProvider interface {
 	// already responded to, e.g. before a durable sleep.
 	MarkInteractionResponded(interactionID discord.InteractionID)
 	AutoDeferInteraction(ctx context.Context, interactionID discord.InteractionID, interactionToken string, response api.InteractionResponse)
+}
+
+// CreateEmojiData is the body of Discord's create guild emoji endpoint.
+// arikawa's version only accepts PNG, JPEG and GIF images, so this sends the
+// image as a data URI string instead, which also allows WebP.
+type CreateEmojiData struct {
+	Name string `json:"name"`
+	// Image is a data URI, e.g. "data:image/png;base64,...".
+	Image string `json:"image"`
+
+	api.AuditLogReason `json:"-"`
+}
+
+// EditEmojiData is the body of Discord's modify guild emoji endpoint.
+type EditEmojiData struct {
+	Name string `json:"name,omitempty"`
+
+	api.AuditLogReason `json:"-"`
+}
+
+// CreateStickerData is sent as a multipart form, the only format Discord's
+// create guild sticker endpoint accepts.
+type CreateStickerData struct {
+	Name        string
+	Description string
+	Tags        string
+
+	FileName    string
+	ContentType string
+	File        []byte
+
+	api.AuditLogReason
+}
+
+// EditStickerData is the body of Discord's modify guild sticker endpoint.
+// Nil fields are left unchanged.
+type EditStickerData struct {
+	Name        *string `json:"name,omitempty"`
+	Description *string `json:"description,omitempty"`
+	Tags        *string `json:"tags,omitempty"`
+
+	api.AuditLogReason `json:"-"`
 }
 
 type InteractionResponseResource struct {
@@ -239,4 +287,28 @@ func (p *MockDiscordProvider) HasCreatedInteractionResponse(ctx context.Context,
 }
 
 func (p *MockDiscordProvider) AutoDeferInteraction(ctx context.Context, interactionID discord.InteractionID, interactionToken string, response api.InteractionResponse) {
+}
+
+func (p *MockDiscordProvider) CreateEmoji(ctx context.Context, guildID discord.GuildID, data CreateEmojiData) (*discord.Emoji, error) {
+	return nil, nil
+}
+
+func (p *MockDiscordProvider) EditEmoji(ctx context.Context, guildID discord.GuildID, emojiID discord.EmojiID, data EditEmojiData) (*discord.Emoji, error) {
+	return nil, nil
+}
+
+func (p *MockDiscordProvider) DeleteEmoji(ctx context.Context, guildID discord.GuildID, emojiID discord.EmojiID, reason api.AuditLogReason) error {
+	return nil
+}
+
+func (p *MockDiscordProvider) CreateSticker(ctx context.Context, guildID discord.GuildID, data CreateStickerData) (*discord.Sticker, error) {
+	return nil, nil
+}
+
+func (p *MockDiscordProvider) EditSticker(ctx context.Context, guildID discord.GuildID, stickerID discord.StickerID, data EditStickerData) (*discord.Sticker, error) {
+	return nil, nil
+}
+
+func (p *MockDiscordProvider) DeleteSticker(ctx context.Context, guildID discord.GuildID, stickerID discord.StickerID, reason api.AuditLogReason) error {
+	return nil
 }

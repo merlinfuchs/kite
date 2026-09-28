@@ -93,3 +93,31 @@ export const nodeActionRobloxUserGetResultSchema = z.object({
   name: z.string().describe("The username of the Roblox user"),
   display_name: z.string().describe("The display name of the Roblox user"),
 });
+
+export const emojiResultSchema = z.object({
+  id: z.string().describe("The ID of the emoji"),
+  name: z.string().describe("The name of the emoji"),
+  animated: z.boolean().describe("Whether the emoji is animated"),
+  mention: z
+    .string()
+    .describe("The emoji as text, e.g. <:name:123>, to use in messages"),
+  url: z.string().describe("The image URL of the emoji"),
+  guild_id: z.string().describe("The ID of the server the emoji is in"),
+});
+
+export const stickerResultSchema = z.object({
+  id: z.string().describe("The ID of the sticker"),
+  name: z.string().describe("The name of the sticker"),
+  description: z.string().describe("The description of the sticker"),
+  tags: z.string().describe("The related emoji of the sticker"),
+  url: z.string().describe("The image URL of the sticker"),
+  guild_id: z.string().describe("The ID of the server the sticker is in"),
+});
+
+export const nodeActionEmojiCreateResultSchema = emojiResultSchema;
+
+export const nodeActionEmojiEditResultSchema = emojiResultSchema;
+
+export const nodeActionStickerCreateResultSchema = stickerResultSchema;
+
+export const nodeActionStickerEditResultSchema = stickerResultSchema;

@@ -42,6 +42,7 @@ The output of previously executed blocks is available in all subsequent blocks a
 - [Unban member](./actions/action_member_unban.md) - Unban members from servers
 - [Kick member](./actions/action_member_kick.md) - Kick members from servers
 - [Timeout member](./actions/action_member_timeout.md) - Timeout members
+- [Remove member timeout](./actions/action_member_timeout_remove.md) - Lift member timeouts
 - [Edit member nickname](./actions/action_member_edit.md) - Edit member nicknames
 - [Add member role](./actions/action_member_role_add.md) - Add roles to members
 - [Remove member role](./actions/action_member_role_remove.md) - Remove roles from members
@@ -51,6 +52,15 @@ The output of previously executed blocks is available in all subsequent blocks a
 - [Get role](./actions/action_role_get.md) - Retrieve role information
 - [Get server](./actions/action_guild_get.md) - Get server information
 - [Get channel](./actions/action_channel_get.md) - Retrieve channel information
+
+## Emoji & Sticker Blocks
+
+- [Create emoji](./actions/action_emoji_create.md) - Upload custom emojis
+- [Edit emoji](./actions/action_emoji_edit.md) - Rename custom emojis
+- [Delete emoji](./actions/action_emoji_delete.md) - Remove custom emojis
+- [Create sticker](./actions/action_sticker_create.md) - Upload stickers
+- [Edit sticker](./actions/action_sticker_edit.md) - Edit sticker name, emoji and description
+- [Delete sticker](./actions/action_sticker_delete.md) - Remove stickers
 
 ## Voice Blocks
 

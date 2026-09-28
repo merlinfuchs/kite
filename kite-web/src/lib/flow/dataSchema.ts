@@ -462,6 +462,9 @@ export const nodeActionMemberTimeoutDataSchema = nodeBaseDataSchema.extend({
   audit_log_reason: auditLogReasonSchema,
 });
 
+export const nodeActionMemberTimeoutRemoveDataSchema =
+  nodeActionMemberUnbanDataSchema;
+
 export const nodeActionMemberEditDataSchema = nodeBaseDataSchema.extend({
   guild_target: guildTargetSchema.optional(),
   user_target: userTargetSchema,
@@ -887,4 +890,129 @@ export const nodeControlSleepDataSchema = nodeBaseDataSchema.extend({
     "How many seconds to wait before continuing.",
     decimalRegex
   ),
+});
+
+// Discord's upload limits, in decimal kilobytes like the service checks them.
+export const maxEmojiImageSize = 256 * 1000;
+export const maxStickerImageSize = 512 * 1000;
+
+const emojiTargetSchema = z
+  .string()
+  .min(1, "Required")
+  .describe(
+    "ID of the emoji, an emoji like <:name:123>, or the result of a Create emoji block."
+  );
+
+const stickerTargetSchema = z
+  .string()
+  .min(1, "Required")
+  .describe("ID of the sticker, or the result of a Create sticker block.");
+
+const imageSourceSchema = (maxSize: number, kind: string) =>
+  z
+    .string()
+    .min(1, "Upload an image or enter a URL")
+    .refine(
+      (v) =>
+        !v.startsWith("data:") ||
+        Math.floor(((v.length - v.indexOf(",") - 1) * 3) / 4) <= maxSize,
+      `The ${kind} image must be at most ${maxSize / 1000} KB`
+    )
+    .describe(
+      `The ${kind} image: an uploaded file, or a URL or placeholder that resolves to one (at most ${
+        maxSize / 1000
+      } KB).`
+    );
+
+const customEmojiNameSchema = templated(
+  z.string().min(1, "Required").max(64),
+  "Name of the emoji, 2 to 32 letters, numbers and underscores. Spaces and dashes become underscores."
+);
+
+export const nodeActionEmojiCreateDataSchema = nodeBaseDataSchema.extend({
+  guild_target: guildTargetSchema.optional(),
+  custom_emoji_data: z
+    .object({
+      name: customEmojiNameSchema,
+      image: imageSourceSchema(maxEmojiImageSize, "emoji"),
+    })
+    .describe("The emoji to create."),
+  audit_log_reason: auditLogReasonSchema,
+  temporary_name: temporaryNameSchema,
+});
+
+export const nodeActionEmojiEditDataSchema = nodeBaseDataSchema.extend({
+  guild_target: guildTargetSchema.optional(),
+  emoji_target: emojiTargetSchema,
+  custom_emoji_data: z
+    .object({
+      name: customEmojiNameSchema,
+    })
+    .describe("The changes to make to the emoji."),
+  audit_log_reason: auditLogReasonSchema,
+  temporary_name: temporaryNameSchema,
+});
+
+export const nodeActionEmojiDeleteDataSchema = nodeBaseDataSchema.extend({
+  guild_target: guildTargetSchema.optional(),
+  emoji_target: emojiTargetSchema,
+  audit_log_reason: auditLogReasonSchema,
+});
+
+const stickerNameDescription = "Name of the sticker, 2 to 30 characters.";
+const stickerNameSchema = templated(z.string().max(30), stickerNameDescription);
+const stickerNameRequiredSchema = templated(
+  z.string().min(1, "Required").max(30),
+  stickerNameDescription
+);
+const stickerDescriptionSchema = templated(
+  z.string().max(100),
+  "Description of the sticker, empty or 2 to 100 characters."
+);
+const stickerTagsDescription =
+  "The emoji Discord suggests the sticker for, e.g. 😄.";
+const stickerTagsSchema = templated(
+  z.string().max(200),
+  stickerTagsDescription
+);
+const stickerTagsRequiredSchema = templated(
+  z.string().min(1, "Required").max(200),
+  stickerTagsDescription
+);
+
+export const nodeActionStickerCreateDataSchema = nodeBaseDataSchema.extend({
+  guild_target: guildTargetSchema.optional(),
+  guild_sticker_data: z
+    .object({
+      name: stickerNameRequiredSchema,
+      description: stickerDescriptionSchema.optional(),
+      tags: stickerTagsRequiredSchema,
+      image: imageSourceSchema(maxStickerImageSize, "sticker"),
+    })
+    .describe("The sticker to create. PNG, APNG or GIF, 320x320 recommended."),
+  audit_log_reason: auditLogReasonSchema,
+  temporary_name: temporaryNameSchema,
+});
+
+export const nodeActionStickerEditDataSchema = nodeBaseDataSchema.extend({
+  guild_target: guildTargetSchema.optional(),
+  sticker_target: stickerTargetSchema,
+  guild_sticker_data: z
+    .object({
+      name: stickerNameSchema.optional(),
+      description: stickerDescriptionSchema.optional(),
+      tags: stickerTagsSchema.optional(),
+    })
+    .optional()
+    .describe(
+      "The changes to make to the sticker. Empty fields stay unchanged."
+    ),
+  audit_log_reason: auditLogReasonSchema,
+  temporary_name: temporaryNameSchema,
+});
+
+export const nodeActionStickerDeleteDataSchema = nodeBaseDataSchema.extend({
+  guild_target: guildTargetSchema.optional(),
+  sticker_target: stickerTargetSchema,
+  audit_log_reason: auditLogReasonSchema,
 });

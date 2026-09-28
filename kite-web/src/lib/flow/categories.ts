@@ -65,6 +65,7 @@ export const nodeCategories: Record<
         "action_member_unban",
         "action_member_kick",
         "action_member_timeout",
+        "action_member_timeout_remove",
         "action_member_edit",
         "action_member_get",
       ],
@@ -85,6 +86,18 @@ export const nodeCategories: Record<
       contextTypes: null,
     },
 
+    {
+      title: "Emojis & Stickers",
+      nodeTypes: [
+        "action_emoji_create",
+        "action_emoji_edit",
+        "action_emoji_delete",
+        "action_sticker_create",
+        "action_sticker_edit",
+        "action_sticker_delete",
+      ],
+      contextTypes: null,
+    },
     {
       title: "Servers",
       nodeTypes: ["action_guild_get"],

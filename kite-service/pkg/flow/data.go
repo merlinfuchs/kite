@@ -66,6 +66,7 @@ const (
 	FlowNodeTypeActionMemberUnban           FlowNodeType = "action_member_unban"
 	FlowNodeTypeActionMemberKick            FlowNodeType = "action_member_kick"
 	FlowNodeTypeActionMemberTimeout         FlowNodeType = "action_member_timeout"
+	FlowNodeTypeActionMemberTimeoutRemove   FlowNodeType = "action_member_timeout_remove"
 	FlowNodeTypeActionMemberEdit            FlowNodeType = "action_member_edit"
 	FlowNodeTypeActionMemberRoleAdd         FlowNodeType = "action_member_role_add"
 	FlowNodeTypeActionMemberRoleRemove      FlowNodeType = "action_member_role_remove"
@@ -81,6 +82,12 @@ const (
 	FlowNodeTypeActionForumPostCreate       FlowNodeType = "action_forum_post_create"
 	FlowNodeTypeActionRoleGet               FlowNodeType = "action_role_get"
 	FlowNodeTypeActionGuildGet              FlowNodeType = "action_guild_get"
+	FlowNodeTypeActionEmojiCreate           FlowNodeType = "action_emoji_create"
+	FlowNodeTypeActionEmojiEdit             FlowNodeType = "action_emoji_edit"
+	FlowNodeTypeActionEmojiDelete           FlowNodeType = "action_emoji_delete"
+	FlowNodeTypeActionStickerCreate         FlowNodeType = "action_sticker_create"
+	FlowNodeTypeActionStickerEdit           FlowNodeType = "action_sticker_edit"
+	FlowNodeTypeActionStickerDelete         FlowNodeType = "action_sticker_delete"
 	FlowNodeTypeActionMessageGet            FlowNodeType = "action_message_get"
 	FlowNodeTypeActionRobloxUserGet         FlowNodeType = "action_roblox_user_get"
 	FlowNodeTypeActionHTTPRequest           FlowNodeType = "action_http_request"
@@ -185,6 +192,12 @@ type FlowNodeData struct {
 	MemberBanDeleteMessageDurationSeconds string      `json:"member_ban_delete_message_duration_seconds,omitempty"`
 	MemberTimeoutDurationSeconds          string      `json:"member_timeout_duration_seconds,omitempty"`
 	MemberData                            *MemberData `json:"member_data,omitempty"`
+
+	// Emoji Create, Edit, Delete
+	EmojiTarget      string            `json:"emoji_target,omitempty"`
+	CustomEmojiData  *CustomEmojiData  `json:"custom_emoji_data,omitempty"`
+	StickerTarget    string            `json:"sticker_target,omitempty"`
+	GuildStickerData *GuildStickerData `json:"guild_sticker_data,omitempty"`
 
 	// Channel Create, Edit, Delete, Get
 	ChannelTarget string       `json:"channel_target,omitempty"`
@@ -510,6 +523,26 @@ type EmojiData struct {
 	ID string `json:"id,omitempty"`
 	// Name is the name of a custom emoji or the unicode of a standard emoji.
 	Name string `json:"name,omitempty"`
+}
+
+// CustomEmojiData describes a server emoji to create or edit.
+type CustomEmojiData struct {
+	// Name is 2 to 32 characters of letters, numbers and underscores.
+	Name string `json:"name,omitempty"`
+	// Image is a URL (http or https) or a data URI, e.g. from an upload in the
+	// editor. Only used when creating an emoji.
+	Image string `json:"image,omitempty"`
+}
+
+// GuildStickerData describes a server sticker to create or edit.
+type GuildStickerData struct {
+	Name        string `json:"name,omitempty"`
+	Description string `json:"description,omitempty"`
+	// Tags is the related emoji Discord suggests the sticker for.
+	Tags string `json:"tags,omitempty"`
+	// Image is a URL (http or https) or a data URI, e.g. from an upload in the
+	// editor. Only used when creating a sticker.
+	Image string `json:"image,omitempty"`
 }
 
 type ModalData struct {

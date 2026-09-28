@@ -149,6 +149,13 @@ export interface FlowNodeData {
   member_timeout_duration_seconds?: string;
   member_data?: MemberData;
   /**
+   * Emoji Create, Edit, Delete
+   */
+  emoji_target?: string;
+  custom_emoji_data?: CustomEmojiData;
+  sticker_target?: string;
+  guild_sticker_data?: GuildStickerData;
+  /**
    * Channel Create, Edit, Delete, Get
    */
   channel_target?: string;
@@ -310,6 +317,36 @@ export interface RoleData {
 }
 export interface MemberData {
   nick?: string;
+}
+/**
+ * CustomEmojiData describes a server emoji to create or edit.
+ */
+export interface CustomEmojiData {
+  /**
+   * Name is 2 to 32 characters of letters, numbers and underscores.
+   */
+  name?: string;
+  /**
+   * Image is a URL (http or https) or a data URI, e.g. from an upload in the
+   * editor. Only used when creating an emoji.
+   */
+  image?: string;
+}
+/**
+ * GuildStickerData describes a server sticker to create or edit.
+ */
+export interface GuildStickerData {
+  name?: string;
+  description?: string;
+  /**
+   * Tags is the related emoji Discord suggests the sticker for.
+   */
+  tags?: string;
+  /**
+   * Image is a URL (http or https) or a data URI, e.g. from an upload in the
+   * editor. Only used when creating a sticker.
+   */
+  image?: string;
 }
 export interface EmojiData {
   id?: string;

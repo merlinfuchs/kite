@@ -762,6 +762,20 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 		}
 
 		return n.ExecuteChildren(ctx)
+	case FlowNodeTypeActionMemberTimeoutRemove:
+		return n.executeMemberTimeoutRemove(ctx)
+	case FlowNodeTypeActionEmojiCreate:
+		return n.executeEmojiCreate(ctx)
+	case FlowNodeTypeActionEmojiEdit:
+		return n.executeEmojiEdit(ctx)
+	case FlowNodeTypeActionEmojiDelete:
+		return n.executeEmojiDelete(ctx)
+	case FlowNodeTypeActionStickerCreate:
+		return n.executeStickerCreate(ctx)
+	case FlowNodeTypeActionStickerEdit:
+		return n.executeStickerEdit(ctx)
+	case FlowNodeTypeActionStickerDelete:
+		return n.executeStickerDelete(ctx)
 	case FlowNodeTypeActionMemberEdit:
 		guildID, err := n.targetGuildID(ctx)
 		if err != nil {

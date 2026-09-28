@@ -8,7 +8,9 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"mime/multipart"
 	"net/http"
+	"net/textproto"
 	"strings"
 	"sync"
 	"time"
@@ -18,6 +20,7 @@ import (
 	"github.com/diamondburned/arikawa/v3/gateway"
 	"github.com/diamondburned/arikawa/v3/state"
 	disstore "github.com/diamondburned/arikawa/v3/state/store"
+	"github.com/diamondburned/arikawa/v3/utils/httputil"
 	"github.com/diamondburned/arikawa/v3/utils/sendpart"
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/internal/store"
@@ -338,6 +341,130 @@ func (p *DiscordProvider) RemoveMemberRole(ctx context.Context, guildID discord.
 	err := p.session.RemoveRole(guildID, userID, roleID, reason)
 	if err != nil {
 		return fmt.Errorf("failed to remove role: %w", err)
+	}
+
+	return nil
+}
+
+func (p *DiscordProvider) CreateEmoji(ctx context.Context, guildID discord.GuildID, data provider.CreateEmojiData) (*discord.Emoji, error) {
+	var emoji discord.Emoji
+	err := p.session.RequestJSON(
+		&emoji, "POST",
+		api.EndpointGuilds+guildID.String()+"/emojis",
+		httputil.WithJSONBody(data),
+		httputil.WithHeaders(data.Header()),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create emoji: %w", err)
+	}
+
+	return &emoji, nil
+}
+
+func (p *DiscordProvider) EditEmoji(ctx context.Context, guildID discord.GuildID, emojiID discord.EmojiID, data provider.EditEmojiData) (*discord.Emoji, error) {
+	// arikawa's ModifyEmoji discards the response, but the flow wants the
+	// updated emoji as the block's result.
+	var emoji discord.Emoji
+	err := p.session.RequestJSON(
+		&emoji, "PATCH",
+		api.EndpointGuilds+guildID.String()+"/emojis/"+emojiID.String(),
+		httputil.WithJSONBody(data),
+		httputil.WithHeaders(data.Header()),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to edit emoji: %w", err)
+	}
+
+	return &emoji, nil
+}
+
+func (p *DiscordProvider) DeleteEmoji(ctx context.Context, guildID discord.GuildID, emojiID discord.EmojiID, reason api.AuditLogReason) error {
+	err := p.session.DeleteEmoji(guildID, emojiID, reason)
+	if err != nil {
+		return fmt.Errorf("failed to delete emoji: %w", err)
+	}
+
+	return nil
+}
+
+func (p *DiscordProvider) CreateSticker(ctx context.Context, guildID discord.GuildID, data provider.CreateStickerData) (*discord.Sticker, error) {
+	// Discord only accepts stickers as a multipart form with plain fields, not
+	// the payload_json form arikawa's sendpart writes.
+	var body bytes.Buffer
+	w := multipart.NewWriter(&body)
+
+	for _, field := range [][2]string{
+		{"name", data.Name},
+		{"description", data.Description},
+		{"tags", data.Tags},
+	} {
+		if err := w.WriteField(field[0], field[1]); err != nil {
+			return nil, fmt.Errorf("failed to write sticker field: %w", err)
+		}
+	}
+
+	header := make(textproto.MIMEHeader)
+	header.Set("Content-Disposition", fmt.Sprintf(
+		`form-data; name="file"; filename="%s"`,
+		strings.NewReplacer(`"`, "", "\\", "", "\r", "", "\n", "").Replace(data.FileName),
+	))
+	header.Set("Content-Type", data.ContentType)
+	part, err := w.CreatePart(header)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create sticker file part: %w", err)
+	}
+	if _, err := part.Write(data.File); err != nil {
+		return nil, fmt.Errorf("failed to write sticker file: %w", err)
+	}
+	if err := w.Close(); err != nil {
+		return nil, fmt.Errorf("failed to close sticker form: %w", err)
+	}
+
+	headers := data.Header()
+	if headers == nil {
+		headers = http.Header{}
+	}
+	headers.Set("Content-Type", w.FormDataContentType())
+
+	var sticker discord.Sticker
+	// WithBodyBytes creates a fresh reader for every attempt, so the body
+	// survives retries after a rate limit.
+	err = p.session.RequestJSON(
+		&sticker, "POST",
+		api.EndpointGuilds+guildID.String()+"/stickers",
+		httputil.WithBodyBytes(body.Bytes()),
+		httputil.WithHeaders(headers),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create sticker: %w", err)
+	}
+
+	return &sticker, nil
+}
+
+func (p *DiscordProvider) EditSticker(ctx context.Context, guildID discord.GuildID, stickerID discord.StickerID, data provider.EditStickerData) (*discord.Sticker, error) {
+	var sticker discord.Sticker
+	err := p.session.RequestJSON(
+		&sticker, "PATCH",
+		api.EndpointGuilds+guildID.String()+"/stickers/"+stickerID.String(),
+		httputil.WithJSONBody(data),
+		httputil.WithHeaders(data.Header()),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to edit sticker: %w", err)
+	}
+
+	return &sticker, nil
+}
+
+func (p *DiscordProvider) DeleteSticker(ctx context.Context, guildID discord.GuildID, stickerID discord.StickerID, reason api.AuditLogReason) error {
+	err := p.session.FastRequest(
+		"DELETE",
+		api.EndpointGuilds+guildID.String()+"/stickers/"+stickerID.String(),
+		httputil.WithHeaders(reason.Header()),
+	)
+	if err != nil {
+		return fmt.Errorf("failed to delete sticker: %w", err)
 	}
 
 	return nil
