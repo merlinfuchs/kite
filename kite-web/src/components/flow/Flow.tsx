@@ -1,7 +1,7 @@
 import { FlowContextStoreProvider, FlowContextType } from "@/lib/flow/context";
 import { FlowData } from "@/lib/flow/dataSchema";
 import { OnSelectionChangeParams } from "@xyflow/react";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import FlowEditor, { FlowEditorApi } from "./FlowEditor";
 import FlowMenu from "./FlowMenu";
 import { LogEntry } from "@/lib/types/wire.gen";
@@ -15,16 +15,32 @@ interface Props {
   logs?: LogEntry[];
   context: FlowContextType;
   onChange: () => void;
+  // Whether the AI chat is open, if it's opened from outside, like the page's
+  // header. Otherwise the editor shows its own button for it.
+  chatOpen?: boolean;
+  onChatOpenChange?: (open: boolean) => void;
 }
 
-export default function Flow({ flowData, logs, context, onChange }: Props) {
+export default function Flow({
+  flowData,
+  logs,
+  context,
+  onChange,
+  chatOpen: controlledChatOpen,
+  onChatOpenChange,
+}: Props) {
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const editorRef = useRef<FlowEditorApi>(null);
-  const [chatOpen, setChatOpen] = useState(false);
+  const [ownChatOpen, setOwnChatOpen] = useState(false);
+  const chatOpen = controlledChatOpen ?? ownChatOpen;
+  const setChatOpen = onChatOpenChange ?? setOwnChatOpen;
   // The chat is mounted when first opened and then kept when closed.
   const [chatMounted, setChatMounted] = useState(false);
-  const closeChat = useCallback(() => setChatOpen(false), []);
+  useEffect(() => {
+    if (chatOpen) setChatMounted(true);
+  }, [chatOpen]);
+  const closeChat = useCallback(() => setChatOpen(false), [setChatOpen]);
 
   const onSelectionChange = useCallback(
     ({ nodes }: OnSelectionChangeParams) => {
@@ -53,15 +69,12 @@ export default function Flow({ flowData, logs, context, onChange }: Props) {
             containerRef={containerRef}
             apiRef={editorRef}
           />
-          {!chatOpen && (
+          {controlledChatOpen === undefined && !chatOpen && (
             <Button
               variant="secondary"
               size="sm"
               className="absolute top-3 left-3 z-10 gap-2"
-              onClick={() => {
-                setChatOpen(true);
-                setChatMounted(true);
-              }}
+              onClick={() => setChatOpen(true)}
             >
               <SparklesIcon className="size-4" />
               Ask AI

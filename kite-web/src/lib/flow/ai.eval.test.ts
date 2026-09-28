@@ -159,8 +159,9 @@ async function runCase(c: EvalCase): Promise<CaseResult> {
   }
   result.ms = Date.now() - start;
 
+  // Only what was built is checked, as asking first can be fine too.
   const types = new Set(flow.nodes.map((n) => n.type));
-  result.missingTypes = (c.types ?? []).filter(
+  result.missingTypes = (result.edited ? c.types ?? [] : []).filter(
     (t) => !t.split("|").some((alt) => types.has(alt))
   );
   // Discord IDs and stored variables that weren't given.
