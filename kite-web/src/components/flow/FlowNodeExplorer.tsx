@@ -86,7 +86,7 @@ export default function FlowNodeExplorer({
       <ScrollArea className="flex-auto mr-1">
         <div className="space-y-3 pl-3 pr-1 pb-5">
           {filteredSections.map((section, i) => {
-            const isCollapsed = collapsed[section.title];
+            const isCollapsed = !search.trim() && collapsed[section.title];
             return (
               <div key={i}>
                 <button
