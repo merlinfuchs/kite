@@ -26,9 +26,7 @@ export default function MessageList() {
       ) : (
         <>
           {/* Message template actions */}
-          <div className="flex">
-            {messageCreateButton}
-          </div>
+          <div className="flex">{messageCreateButton}</div>
 
           {/* Message template list */}
           {messages.length === 0 ? (

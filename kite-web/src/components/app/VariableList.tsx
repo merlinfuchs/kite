@@ -26,9 +26,7 @@ export default function VariableList() {
       ) : (
         <>
           {/* Variable actions */}
-          <div className="flex">
-            {variableCreateButton}
-          </div>
+          <div className="flex">{variableCreateButton}</div>
 
           {/* Variable list */}
           {variables.length === 0 ? (
