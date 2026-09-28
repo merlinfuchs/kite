@@ -51,6 +51,7 @@ The output of previously executed blocks is available in all subsequent blocks a
 - [Get role](./actions/action_role_get.md) - Retrieve role information
 - [Get server](./actions/action_guild_get.md) - Get server information
 - [Get channel](./actions/action_channel_get.md) - Retrieve channel information
+- [Create invite](./actions/action_invite_create.md) - Create invite links for channels
 
 ## Voice Blocks
 
