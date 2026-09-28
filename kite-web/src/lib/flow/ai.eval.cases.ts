@@ -33,6 +33,7 @@ export interface EvalCase {
 
 const channelId = "123456789012345678";
 const roleId = "987654321098765432";
+const logChannelId = "123456789012345679";
 
 function entry(type: string, data: NodeData): () => FlowData {
   return () => ({
@@ -328,6 +329,50 @@ export const evalCases: EvalCase[] = [
     prompt: "if the ban fails tell the user it didn't work",
     route: ["build"],
     types: ["control_error_handler"],
+  },
+
+  // Bigger builds, with what's needed already given
+  {
+    name: "complex ticket",
+    context: "command",
+    flow: command("ticket open"),
+    prompt: `Build a ticket system: create a private channel in the category ${channelId} that only the support role ${roleId} and the ticket creator can see, and post a message there with Claim and Close buttons. Only the support role can use the buttons. Claim edits the message to say who claimed it, Close deletes the channel and logs it to channel ${logChannelId}.`,
+    route: ["build"],
+    types: [
+      "action_channel_create",
+      "action_message_create",
+      "control_condition_role|control_condition_user",
+      "action_channel_delete",
+    ],
+    componentBranch: true,
+  },
+  {
+    name: "complex ban",
+    context: "command",
+    flow: command("ban"),
+    prompt: `Make a ban command with a user and a reason argument. Only people with the role ${roleId} can use it, others get an error only they see. DM the user the reason first, ban them, log it to channel ${logChannelId}, and tell the moderator if the ban failed.`,
+    route: ["build"],
+    types: [
+      "option_command_argument",
+      "control_condition_role|control_condition_user",
+      "action_private_message_create",
+      "action_member_ban",
+      "action_message_create",
+      "control_error_handler",
+    ],
+  },
+  {
+    name: "complex verify",
+    context: "command",
+    flow: command("verify"),
+    prompt: `Send a message with a Verify button. When someone clicks it and they don't have the role ${roleId} yet, give it to them and reply "You're verified!" only to them, otherwise reply that they're already verified.`,
+    route: ["build"],
+    types: [
+      "action_response_create",
+      "control_condition_role|control_condition_user",
+      "action_member_role_add",
+    ],
+    componentBranch: true,
   },
 
   // Discord events

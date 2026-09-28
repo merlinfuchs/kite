@@ -6,6 +6,8 @@ import {
   createEdge,
   createNode,
   getNodeId,
+  getNodeOutputs,
+  getNodeTitle,
   getNodeValues,
   getOwnedChildTypes,
   getOwnerTypes,
@@ -68,7 +70,12 @@ export function applyFlowEdits(
   // Generated edits can leave out fields they need.
   const getNode = (id: string | undefined, field: string) => {
     if (!id) throw new Error(`${field} is missing.`);
-    const resolved = id.startsWith("$") ? refs[id] : id;
+    // Refs are sometimes written without their $.
+    const resolved = id.startsWith("$")
+      ? refs[id]
+      : nodes.some((n) => n.id === id)
+      ? id
+      : refs[`$${id}`];
     const node = nodes.find((n) => n.id === resolved);
     if (!node) throw new Error(`There is no block '${id}'.`);
     return node;
@@ -80,6 +87,18 @@ export function applyFlowEdits(
         e.target === target &&
         normalizeHandle(e.sourceHandle) === normalizeHandle(handle)
     );
+  // Conditions and loops run blocks after their branches, not themselves.
+  const noOutputsError = (ref: string, node: Node<NodeData>) => {
+    const owned = getOwnedChildTypes(node.type!);
+    const branches = edges
+      .filter((e) => e.source === node.id)
+      .map((e) => nodes.find((n) => n.id === e.target))
+      .filter((n) => n && owned.includes(n.type!))
+      .map((n) => `${n!.id} (${getNodeTitle(n!)})`);
+    return `'${ref}' has no outputs of its own. Add blocks after one of its branches instead${
+      branches.length > 0 ? `: ${branches.join(", ")}` : ""
+    }.`;
+  };
   const connect = (
     source: Node<NodeData>,
     target: Node<NodeData>,
@@ -119,12 +138,19 @@ export function applyFlowEdits(
     try {
       switch (edit.op) {
         case "add_node": {
+          if (!edit.ref) throw new Error("ref is missing.");
+          const ref = edit.ref.startsWith("$") ? edit.ref : `$${edit.ref}`;
           if (!isKnownNodeType(edit.type)) {
             throw new Error(`Unknown block type '${edit.type}'.`);
           }
-          if (!/^\$[A-Za-z0-9_]+$/.test(edit.ref) || refs[edit.ref]) {
+          if (!/^\$[A-Za-z0-9_]+$/.test(ref) || refs[ref]) {
             throw new Error(
-              `The ref '${edit.ref}' must be unique and look like '$name', with only letters, numbers and underscores.`
+              `The ref '${ref}' must be unique and look like '$name', with only letters, numbers and underscores.`
+            );
+          }
+          if (edit.type.startsWith("entry_")) {
+            throw new Error(
+              "A flow has one entry block, and it can't be added. Blocks that run when a button or select menu of a message this flow sends is used go after the message block, with the handle component_<id>."
             );
           }
           if (getNodeValues(edit.type).fixed) {
@@ -181,6 +207,9 @@ export function applyFlowEdits(
               `'${edit.type}' has no outputs, so nothing can come after it. Connect '${edit.before}' to one of its branches instead.`
             );
           }
+          if (after && getNodeOutputs(after).length === 0) {
+            throw new Error(noOutputsError(edit.after!, after));
+          }
           const split =
             after && before ? findEdges(after.id, before.id, edit.handle) : [];
           if (after && before && split.length === 0) {
@@ -189,8 +218,11 @@ export function applyFlowEdits(
             );
           }
 
-          const [owner, ...owned] = addNodes(edit.type, { ...edit.data });
-          refs[edit.ref] = owner.id;
+          const [owner, ...owned] = addNodes(
+            edit.type,
+            withoutNulls(edit.data)
+          );
+          refs[ref] = owner.id;
 
           // A new condition comes with one empty branch, which is replaced
           // by the given items.
@@ -199,18 +231,18 @@ export function applyFlowEdits(
             nodes = nodes.filter((n) => !items.includes(n));
             edges = edges.filter((e) => !items.some((n) => n.id === e.target));
             items = edit.items.map((data) => {
-              const [item] = addNodes(itemType, { ...data });
+              const [item] = addNodes(itemType, withoutNulls(data));
               connect(owner, item);
               return item;
             });
           }
-          items.forEach((item, j) => (refs[`${edit.ref}.item${j}`] = item.id));
+          items.forEach((item, j) => (refs[`${ref}.item${j}`] = item.id));
 
           // The else branch and the each and end blocks of loops are named
           // after the last part of their type.
           for (const child of owned) {
             if (getNodeValues(child.type!).fixed) {
-              refs[`${edit.ref}.${child.type!.split("_").pop()}`] = child.id;
+              refs[`${ref}.${child.type!.split("_").pop()}`] = child.id;
             }
           }
 
@@ -284,6 +316,12 @@ export function applyFlowEdits(
         case "connect": {
           const source = getNode(edit.source, "source");
           const target = getNode(edit.target, "target");
+          if (
+            getNodeOutputs(source).length === 0 &&
+            !getOwnedChildTypes(source.type!).includes(target.type!)
+          ) {
+            throw new Error(noOutputsError(edit.source!, source));
+          }
           if (!canConnect(source.type!, target.type!)) {
             throw new Error(
               source.type!.startsWith("option_") ||
@@ -334,6 +372,14 @@ export function applyFlowEdits(
     refs,
     issues: [...issues, ...validateFlow(nodes, edges, context)],
   };
+}
+
+// Generated settings use null for ones they leave out, like updates use it to
+// remove settings.
+function withoutNulls(data: NodeData | undefined): NodeData {
+  return Object.fromEntries(
+    Object.entries(data ?? {}).filter(([, value]) => value !== null)
+  ) as NodeData;
 }
 
 // Merges partial settings into a block's settings. Objects are merged, other

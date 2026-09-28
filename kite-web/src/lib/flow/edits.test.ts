@@ -379,6 +379,62 @@ describe("applyFlowEdits edge cases", () => {
     ]);
   });
 
+  it("accepts refs without their $", () => {
+    const res = apply(
+      [entry],
+      [],
+      [{ ...addLog("log", "entry") }, { ...addLog("$other", "log") }]
+    );
+    expect(res.issues).toEqual([]);
+    expect(res.connections).toEqual([
+      `entry->${res.refs.$log}`,
+      `${res.refs.$log}->${res.refs.$other}`,
+    ]);
+  });
+
+  it("treats null settings of new blocks as left out", () => {
+    const res = apply(
+      [entry],
+      [],
+      [
+        {
+          op: "add_node",
+          ref: "$log",
+          type: "action_log",
+          after: "entry",
+          data: { ...logData, custom_label: null } as unknown as NodeData,
+        },
+      ]
+    );
+    expect(res.byId(res.refs.$log)?.data).toEqual(logData);
+    expect(res.issues).toEqual([]);
+  });
+
+  it("explains how to handle clicks and conditions", () => {
+    const res = apply(
+      [entry],
+      [],
+      [
+        { op: "add_node", ref: "$button", type: "entry_component_button" },
+        {
+          op: "add_node",
+          ref: "$check",
+          type: "control_condition_compare",
+          after: "entry",
+          data: { condition_base_value: "a" },
+          items: [{ condition_item_mode: "equal", condition_item_value: "a" }],
+        },
+        addLog("$log", "$check"),
+        { op: "connect", source: "$check", target: "entry" },
+      ]
+    );
+    const messages = res.issues.map((i) => i.message);
+    expect(messages[0]).toContain("A flow has one entry block");
+    expect(messages[1]).toMatch(
+      /^Edit 3 \(add_node\): '\$check' has no outputs of its own\. Add blocks after one of its branches instead: \S+ \(Else\), \S+ \(Match Condition\)\.$/
+    );
+  });
+
   it("reports fields generated edits left out", () => {
     const res = apply(
       [entry, log("a")],

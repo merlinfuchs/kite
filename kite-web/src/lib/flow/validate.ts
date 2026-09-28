@@ -77,7 +77,7 @@ export function validateFlow(
 
     const schema = getNodeValues(node.type!).dataSchema;
     const res = schema?.safeParse(node.data);
-    for (const issue of res?.error?.issues ?? []) {
+    for (const issue of unwrapUnionIssues(res?.error?.issues ?? [])) {
       const path = issue.path.join(".");
       report(
         "error",
