@@ -83,7 +83,9 @@ function ExportForm({ title, type, shareData }: ExportProps) {
         <Textarea
           readOnly
           value={json}
-          className="h-36 resize-none break-all font-mono text-xs"
+          minRows={8}
+          maxRows={8}
+          className="resize-none break-all font-mono text-xs"
           onFocus={(e) => e.target.select()}
         />
         <DialogFooter className="gap-2 sm:justify-between sm:space-x-0">
