@@ -4037,6 +4037,49 @@
       },
       "result_schema": null
     },
+    "action_server_leave": {
+      "title": "Leave Server",
+      "description": "Bot leaves the given server",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord",
+        "event_schedule"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "type": "string",
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+          },
+          "guild_target": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9]+$"
+              },
+              {
+                "type": "string",
+                "pattern": "^\\{\\{[^{}]+\\}\\}$"
+              }
+            ],
+            "description": "ID of the server to leave."
+          }
+        },
+        "required": [
+          "guild_target"
+        ],
+        "additionalProperties": false
+      },
+      "result_schema": null
+    },
     "action_http_request": {
       "title": "Send API Request",
       "description": "Send an API request to an external server",
