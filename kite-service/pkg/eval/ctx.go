@@ -83,6 +83,7 @@ func NewContextFromInteraction(i *discord.InteractionEvent, session *state.State
 			"server":      interactionEnv.Guild,
 			"user":        interactionEnv.User,
 			"member":      interactionEnv.Member,
+			"command":     interactionEnv.Command,
 			"app":         NewAppEnv(session),
 
 			"arg": func(name string) any {
