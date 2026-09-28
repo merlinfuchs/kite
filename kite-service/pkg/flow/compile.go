@@ -229,6 +229,10 @@ func (n *CompiledFlowNode) CommandType() discord.CommandType {
 	}
 }
 
+func (n *CompiledFlowNode) IsContextMenuCommand() bool {
+	return n.IsCommandEntry() && !n.Data.CommandType.IsChatInput()
+}
+
 func (n *CompiledFlowNode) CommandData() discord.Command {
 	res := discord.Command{
 		Type:                     n.CommandType(),

@@ -1,6 +1,7 @@
 package command
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"net/http"
@@ -49,6 +50,26 @@ func (h *CommandHandler) HandleCommandGet(c *handler.Context) (*wire.CommandGetR
 	return wire.CommandToWire(c.Command), nil
 }
 
+func (h *CommandHandler) countContextMenuCommands(ctx context.Context, appID string) (int, error) {
+	commands, err := h.commandStore.CommandsByApp(ctx, appID)
+	if err != nil {
+		return 0, fmt.Errorf("failed to get commands: %w", err)
+	}
+
+	count := 0
+	for _, cmd := range commands {
+		node, err := flow.CompileCommand(cmd.FlowSource)
+		if err != nil {
+			continue
+		}
+		if node.IsContextMenuCommand() {
+			count++
+		}
+	}
+
+	return count, nil
+}
+
 func (h *CommandHandler) HandleCommandCreate(c *handler.Context, req wire.CommandCreateRequest) (*wire.CommandCreateResponse, error) {
 	if c.Features.MaxCommands != 0 {
 		commandCount, err := h.commandStore.CountCommandsByApp(c.Context(), c.App.ID)
@@ -64,6 +85,17 @@ func (h *CommandHandler) HandleCommandCreate(c *handler.Context, req wire.Comman
 	cmdFlow, err := flow.CompileCommand(req.FlowSource)
 	if err != nil {
 		return nil, fmt.Errorf("failed to compile command: %w", err)
+	}
+
+	if cmdFlow.IsContextMenuCommand() && c.Features.MaxContextMenuCommands != 0 {
+		count, err := h.countContextMenuCommands(c.Context(), c.App.ID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to count context menu commands: %w", err)
+		}
+
+		if count >= c.Features.MaxContextMenuCommands {
+			return nil, handler.ErrBadRequest("resource_limit", fmt.Sprintf("maximum number of context menu commands (%d) reached", c.Features.MaxContextMenuCommands))
+		}
 	}
 
 	command, err := h.commandStore.CreateCommand(c.Context(), &model.Command{
@@ -95,6 +127,30 @@ func (h *CommandHandler) HandleCommandsImport(c *handler.Context, req wire.Comma
 
 		if newCommandCount > c.Features.MaxCommands {
 			return nil, handler.ErrBadRequest("resource_limit", fmt.Sprintf("maximum number of commands (%d) reached", c.Features.MaxCommands))
+		}
+	}
+
+	if c.Features.MaxContextMenuCommands != 0 {
+		importedContextMenus := 0
+		for _, cmd := range req.Commands {
+			node, err := flow.CompileCommand(cmd.FlowSource)
+			if err != nil {
+				continue
+			}
+			if node.IsContextMenuCommand() {
+				importedContextMenus++
+			}
+		}
+
+		if importedContextMenus > 0 {
+			count, err := h.countContextMenuCommands(c.Context(), c.App.ID)
+			if err != nil {
+				return nil, fmt.Errorf("failed to count context menu commands: %w", err)
+			}
+
+			if count+importedContextMenus > c.Features.MaxContextMenuCommands {
+				return nil, handler.ErrBadRequest("resource_limit", fmt.Sprintf("maximum number of context menu commands (%d) reached", c.Features.MaxContextMenuCommands))
+			}
 		}
 	}
 
