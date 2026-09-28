@@ -2,6 +2,7 @@ name: CI
 
 on:
   pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
   push:
     branches: [main]
 
@@ -15,7 +16,9 @@ concurrency:
 jobs:
   service:
     name: Service
+    if: github.event.pull_request.draft != true
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     defaults:
       run:
         working-directory: kite-service
@@ -45,7 +48,9 @@ jobs:
 
   generated:
     name: Generated files
+    if: github.event.pull_request.draft != true
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
@@ -70,7 +75,9 @@ jobs:
 
   web:
     name: Web
+    if: github.event.pull_request.draft != true
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     defaults:
       run:
         working-directory: kite-web
@@ -102,7 +109,9 @@ jobs:
 
   docs:
     name: Docs
+    if: github.event.pull_request.draft != true
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       - name: Check every block has a docs page
