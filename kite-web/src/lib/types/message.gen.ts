@@ -130,7 +130,7 @@ export interface ComponentSelectOptionData {
   id?: number /* int */;
   label?: string;
   /**
-   * Value is what the flow receives when the option is selected. Falls back to the label.
+   * Value is what the flow receives as interaction.value when the option is selected.
    */
   value?: string;
   description?: string;
