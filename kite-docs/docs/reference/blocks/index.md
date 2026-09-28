@@ -42,6 +42,11 @@ The output of previously executed blocks is available in all subsequent blocks a
 - [Unban member](./actions/action_member_unban.md) - Unban members from servers
 - [Kick member](./actions/action_member_kick.md) - Kick members from servers
 - [Timeout member](./actions/action_member_timeout.md) - Timeout members
+- [Move member](./actions/action_member_move.md) - Move members to another voice channel
+- [Mute member](./actions/action_member_mute.md) - Server-mute members in voice
+- [Unmute member](./actions/action_member_unmute.md) - Remove a member's server mute
+- [Deafen member](./actions/action_member_deafen.md) - Server-deafen members in voice
+- [Undeafen member](./actions/action_member_undeafen.md) - Remove a member's server deafen
 - [Edit member nickname](./actions/action_member_edit.md) - Edit member nicknames
 - [Add member role](./actions/action_member_role_add.md) - Add roles to members
 - [Remove member role](./actions/action_member_role_remove.md) - Remove roles from members

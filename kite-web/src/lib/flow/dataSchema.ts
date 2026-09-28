@@ -473,11 +473,9 @@ export const nodeActionMemberMoveDataSchema = nodeBaseDataSchema.extend({
 
 export const nodeActionMemberMuteDataSchema = nodeActionMemberUnbanDataSchema;
 
-export const nodeActionMemberUnmuteDataSchema =
-  nodeActionMemberUnbanDataSchema;
+export const nodeActionMemberUnmuteDataSchema = nodeActionMemberUnbanDataSchema;
 
-export const nodeActionMemberDeafenDataSchema =
-  nodeActionMemberUnbanDataSchema;
+export const nodeActionMemberDeafenDataSchema = nodeActionMemberUnbanDataSchema;
 
 export const nodeActionMemberUndeafenDataSchema =
   nodeActionMemberUnbanDataSchema;

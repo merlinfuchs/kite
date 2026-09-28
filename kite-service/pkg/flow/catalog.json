@@ -1768,6 +1768,330 @@
       },
       "result_schema": null
     },
+    "action_member_move": {
+      "title": "Move member",
+      "description": "Move a member to a different voice channel",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord",
+        "event_schedule"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "type": "string",
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+          },
+          "guild_target": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9]+$"
+              },
+              {
+                "type": "string",
+                "pattern": "^\\{\\{[^{}]+\\}\\}$"
+              }
+            ],
+            "description": "ID of the server. Defaults to the server the flow runs in."
+          },
+          "user_target": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9]+$"
+              },
+              {
+                "type": "string",
+                "pattern": "^\\{\\{[^{}]+\\}\\}$"
+              }
+            ],
+            "description": "ID of the user."
+          },
+          "channel_target": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9]+$"
+              },
+              {
+                "type": "string",
+                "pattern": "^\\{\\{[^{}]+\\}\\}$"
+              }
+            ],
+            "description": "ID of the voice channel to move the member to."
+          },
+          "audit_log_reason": {
+            "type": "string",
+            "maxLength": 512,
+            "description": "Reason shown in the server's audit log.",
+            "x-templated": true
+          }
+        },
+        "required": [
+          "user_target",
+          "channel_target"
+        ],
+        "additionalProperties": false
+      },
+      "result_schema": null
+    },
+    "action_member_mute": {
+      "title": "Mute member",
+      "description": "Server-mute a member in voice channels",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord",
+        "event_schedule"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "type": "string",
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+          },
+          "guild_target": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9]+$"
+              },
+              {
+                "type": "string",
+                "pattern": "^\\{\\{[^{}]+\\}\\}$"
+              }
+            ],
+            "description": "ID of the server. Defaults to the server the flow runs in."
+          },
+          "user_target": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9]+$"
+              },
+              {
+                "type": "string",
+                "pattern": "^\\{\\{[^{}]+\\}\\}$"
+              }
+            ],
+            "description": "ID of the user."
+          },
+          "audit_log_reason": {
+            "type": "string",
+            "maxLength": 512,
+            "description": "Reason shown in the server's audit log.",
+            "x-templated": true
+          }
+        },
+        "required": [
+          "user_target"
+        ],
+        "additionalProperties": false
+      },
+      "result_schema": null
+    },
+    "action_member_unmute": {
+      "title": "Unmute member",
+      "description": "Remove a member's server voice mute",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord",
+        "event_schedule"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "type": "string",
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+          },
+          "guild_target": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9]+$"
+              },
+              {
+                "type": "string",
+                "pattern": "^\\{\\{[^{}]+\\}\\}$"
+              }
+            ],
+            "description": "ID of the server. Defaults to the server the flow runs in."
+          },
+          "user_target": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9]+$"
+              },
+              {
+                "type": "string",
+                "pattern": "^\\{\\{[^{}]+\\}\\}$"
+              }
+            ],
+            "description": "ID of the user."
+          },
+          "audit_log_reason": {
+            "type": "string",
+            "maxLength": 512,
+            "description": "Reason shown in the server's audit log.",
+            "x-templated": true
+          }
+        },
+        "required": [
+          "user_target"
+        ],
+        "additionalProperties": false
+      },
+      "result_schema": null
+    },
+    "action_member_deafen": {
+      "title": "Deafen member",
+      "description": "Server-deafen a member in voice channels",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord",
+        "event_schedule"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "type": "string",
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+          },
+          "guild_target": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9]+$"
+              },
+              {
+                "type": "string",
+                "pattern": "^\\{\\{[^{}]+\\}\\}$"
+              }
+            ],
+            "description": "ID of the server. Defaults to the server the flow runs in."
+          },
+          "user_target": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9]+$"
+              },
+              {
+                "type": "string",
+                "pattern": "^\\{\\{[^{}]+\\}\\}$"
+              }
+            ],
+            "description": "ID of the user."
+          },
+          "audit_log_reason": {
+            "type": "string",
+            "maxLength": 512,
+            "description": "Reason shown in the server's audit log.",
+            "x-templated": true
+          }
+        },
+        "required": [
+          "user_target"
+        ],
+        "additionalProperties": false
+      },
+      "result_schema": null
+    },
+    "action_member_undeafen": {
+      "title": "Undeafen member",
+      "description": "Remove a member's server voice deafen",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord",
+        "event_schedule"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "type": "string",
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+          },
+          "guild_target": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9]+$"
+              },
+              {
+                "type": "string",
+                "pattern": "^\\{\\{[^{}]+\\}\\}$"
+              }
+            ],
+            "description": "ID of the server. Defaults to the server the flow runs in."
+          },
+          "user_target": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9]+$"
+              },
+              {
+                "type": "string",
+                "pattern": "^\\{\\{[^{}]+\\}\\}$"
+              }
+            ],
+            "description": "ID of the user."
+          },
+          "audit_log_reason": {
+            "type": "string",
+            "maxLength": 512,
+            "description": "Reason shown in the server's audit log.",
+            "x-templated": true
+          }
+        },
+        "required": [
+          "user_target"
+        ],
+        "additionalProperties": false
+      },
+      "result_schema": null
+    },
     "action_member_edit": {
       "title": "Edit member nickname",
       "description": "Edit a member in the server",

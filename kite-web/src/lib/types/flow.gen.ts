@@ -147,14 +147,14 @@ export interface FlowNodeData {
    */
   modal_data?: ModalData;
   /**
-   * Member Ban, Kick, Timeout, Edit, Get
+   * Member Ban, Kick, Timeout, Move, Mute, Unmute, Deafen, Undeafen, Edit, Get
    */
   user_target?: string;
   member_ban_delete_message_duration_seconds?: string;
   member_timeout_duration_seconds?: string;
   member_data?: MemberData;
   /**
-   * Channel Create, Edit, Delete, Get
+   * Channel Create, Edit, Delete, Get, and the destination voice channel for Member Move
    */
   channel_target?: string;
   channel_data?: ChannelData;
