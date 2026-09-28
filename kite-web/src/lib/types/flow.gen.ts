@@ -235,6 +235,10 @@ export interface FlowNodeData {
    */
   sleep_duration_seconds?: string;
 }
+export type CooldownScope = string;
+export const CooldownScopeUser: CooldownScope = "user";
+export const CooldownScopeServer: CooldownScope = "server";
+export const CooldownScopeGlobal: CooldownScope = "global";
 export type ComparsionMode = string;
 export const ComparsionModeEqual: ComparsionMode = "equal";
 export const ComparsionModeNotEqual: ComparsionMode = "not_equal";
@@ -269,10 +273,6 @@ export const CommandContextTypePrivateChannel: CommandContextType = "private_cha
 export type CommandDisabledIntegrationType = string;
 export const CommandDisabledIntegrationTypeGuildInstall: CommandDisabledIntegrationType = "guild_install";
 export const CommandDisabledIntegrationTypeUserInstall: CommandDisabledIntegrationType = "user_install";
-export type CooldownScope = string;
-export const CooldownScopeUser: CooldownScope = "user";
-export const CooldownScopeServer: CooldownScope = "server";
-export const CooldownScopeGlobal: CooldownScope = "global";
 export type EventFilterTarget = string;
 export const EventFilterTypeMessageContent: EventFilterTarget = "message_content";
 export const EventFilterTypeUserID: EventFilterTarget = "user_id";
