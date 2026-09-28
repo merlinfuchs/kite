@@ -26,7 +26,6 @@ They need `pnpm`, `go`, `rsync` and SSH access to the server.
    Wants=network-online.target
 
    [Service]
-   User=kite
    WorkingDirectory=/opt/kite
    ExecStartPre=/opt/kite/kite-service database migrate postgres up
    ExecStart=/opt/kite/kite-service server start
@@ -36,4 +35,4 @@ They need `pnpm`, `go`, `rsync` and SSH access to the server.
    WantedBy=multi-user.target
    ```
 
-4. The SSH user needs write access to `SERVICE_DIR` and permission to run `sudo systemctl restart <SERVICE_NAME>`.
+4. If the SSH user isn't root, it needs write access to `SERVICE_DIR` and permission to run `sudo systemctl restart <SERVICE_NAME>`.
