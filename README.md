@@ -62,7 +62,7 @@ services:
       retries: 3
 
   minio:
-    image: quay.io/minio/minio
+    image: cgr.dev/chainguard/minio:latest
     command: server --console-address ":9001" /data
     ports:
       - "9000:9000"
