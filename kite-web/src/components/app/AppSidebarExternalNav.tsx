@@ -12,7 +12,7 @@ import Link from "next/link";
 import env from "@/lib/env/client";
 
 const items = [
-   {
+  {
     name: "Support",
     url: env.NEXT_PUBLIC_DISCORD_LINK,
   },
