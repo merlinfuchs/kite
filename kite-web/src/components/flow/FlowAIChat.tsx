@@ -1,13 +1,10 @@
-import {
-  useFlowAIChatMutation,
-  useFlowAICheckMutation,
-} from "@/lib/api/mutations";
-import { checkFlowAIPrompt, runFlowAIPrompt } from "@/lib/flow/ai";
+import { useFlowAIChatMutation } from "@/lib/api/mutations";
+import { runFlowAIPrompt } from "@/lib/flow/ai";
 import { useFlowContext } from "@/lib/flow/context";
 import { NodeType } from "@/lib/flow/dataSchema";
 import { useFlowAIUsage } from "@/lib/hooks/api";
 import { useAppId } from "@/lib/hooks/params";
-import { FlowAIChatMessage, FlowAICheckResponse } from "@/lib/types/wire.gen";
+import { FlowAIChatMessage, FlowAIField } from "@/lib/types/wire.gen";
 import { cn } from "@/lib/utils";
 import { useReactFlow } from "@xyflow/react";
 import {
@@ -27,13 +24,15 @@ import {
 } from "react";
 import { Button } from "../ui/button";
 import { Textarea } from "../ui/textarea";
-import FlowAICheckCard from "./FlowAICheckCard";
+import FlowAIFieldsCard from "./FlowAIFieldsCard";
 import FlowAIMarkdown from "./FlowAIMarkdown";
 import { FlowEditorApi } from "./FlowEditor";
 
 interface ChatEntry extends FlowAIChatMessage {
   // A request the user can send to make the change the answer suggests.
   buildPrompt?: string;
+  // What the AI asks the user to fill in.
+  fields?: FlowAIField[];
   // Problems left with the AI's changes.
   issues?: string[];
   repaired?: boolean;
@@ -52,19 +51,11 @@ export default memo(function FlowAIChat({
   const { getNodes, getEdges, fitView } = useReactFlow<NodeType>();
   const appId = useAppId();
   const chat = useFlowAIChatMutation(appId);
-  const check = useFlowAICheckMutation(appId);
   const usage = useFlowAIUsage();
 
   const [entries, setEntries] = useState<ChatEntry[]>([]);
   const [input, setInput] = useState("");
-  // What the AI is doing, or null if it's idle.
-  const [status, setStatus] = useState<string | null>(null);
-  const busy = status !== null;
-  // A clearer version of the first prompt to confirm before it's sent.
-  const [checked, setChecked] = useState<{
-    prompt: string;
-    check: FlowAICheckResponse;
-  } | null>(null);
+  const [busy, setBusy] = useState(false);
 
   // Stops a running prompt when the editor is closed.
   // Created in the effect, as React may unmount and mount it again.
@@ -86,7 +77,7 @@ export default memo(function FlowAIChat({
   const bottomRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [entries, status, checked]);
+  }, [entries, busy]);
 
   const send = useCallback(
     async (content: string) => {
@@ -97,8 +88,7 @@ export default memo(function FlowAIChat({
         { role: "user", content },
       ];
       setEntries((e) => [...e, { role: "user", content }]);
-      setChecked(null);
-      setStatus("Working on it...");
+      setBusy(true);
 
       // The rounds of the prompt are undone together.
       const mergeKey = `ai:${Date.now()}`;
@@ -139,6 +129,7 @@ export default memo(function FlowAIChat({
             role: "assistant",
             content: res.message,
             buildPrompt: res.buildPrompt,
+            fields: res.fields,
             issues: res.issues,
             repaired: res.repairs > 0 && res.issues.length === 0,
           },
@@ -149,7 +140,7 @@ export default memo(function FlowAIChat({
           { role: "assistant", content: (err as Error).message, failed: true },
         ]);
       } finally {
-        setStatus(null);
+        setBusy(false);
       }
     },
     [entries, context, getNodes, getEdges, fitView, editorRef, chat.mutateAsync]
@@ -160,32 +151,8 @@ export default memo(function FlowAIChat({
     if (!content || busy) return;
     setInput("");
 
-    // Only the first prompt is checked, later ones build on the chat.
-    if (entries.length === 0) {
-      setStatus("Checking your request...");
-      const res = await checkFlowAIPrompt({
-        context,
-        prompt: content,
-        flow: { nodes: getNodes(), edges: getEdges() },
-        send: check.mutateAsync,
-      });
-      setStatus(null);
-      if (res?.verdict === "clarify") {
-        setChecked({ prompt: content, check: res });
-        return;
-      }
-    }
     send(content);
-  }, [
-    input,
-    busy,
-    entries.length,
-    context,
-    getNodes,
-    getEdges,
-    check.mutateAsync,
-    send,
-  ]);
+  }, [input, busy, send]);
 
   const limit = usage?.prompts_limit;
   const left = usage ? Math.max(limit! - usage.prompts_used, 0) : undefined;
@@ -206,11 +173,8 @@ export default memo(function FlowAIChat({
             size="icon"
             className="size-8"
             title="New chat"
-            disabled={busy || (entries.length === 0 && !checked)}
-            onClick={() => {
-              setEntries([]);
-              setChecked(null);
-            }}
+            disabled={busy || entries.length === 0}
+            onClick={() => setEntries([])}
           >
             <SquarePenIcon className="size-4" />
           </Button>
@@ -227,7 +191,7 @@ export default memo(function FlowAIChat({
       </div>
 
       <div className="flex-auto overflow-y-auto px-4 py-2 space-y-3 text-sm">
-        {entries.length === 0 && !checked && (
+        {entries.length === 0 && (
           <div className="text-muted-foreground space-y-2">
             <p>
               Describe what the flow should do, like &quot;Ban the user from the
@@ -247,17 +211,17 @@ export default memo(function FlowAIChat({
         {entries.map((entry, i) => (
           <ChatBubble key={i} entry={entry} onBuild={fillInput} />
         ))}
-        {checked && !busy && (
-          <FlowAICheckCard
-            prompt={checked.prompt}
-            check={checked.check}
+        {!busy && !!entries.at(-1)?.fields?.length && (
+          <FlowAIFieldsCard
+            key={entries.length}
+            fields={entries.at(-1)!.fields!}
             onSend={send}
           />
         )}
         {busy && (
           <div className="flex items-center gap-2 text-muted-foreground">
             <LoaderCircleIcon className="size-4 animate-spin" />
-            {status}
+            Working on it...
           </div>
         )}
         <div ref={bottomRef} />

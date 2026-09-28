@@ -23,8 +23,6 @@ func main() {
 	addr := flag.String("addr", "localhost:4455", "address to listen on")
 	modelName := flag.String("model", "gpt-5-mini", "model for building")
 	effort := flag.String("effort", "low", "reasoning effort for building")
-	checkModel := flag.String("check-model", "gpt-5-nano", "model for checking prompts")
-	checkEffort := flag.String("check-effort", "low", "reasoning effort for checking prompts")
 	flag.Parse()
 
 	opts := []option.RequestOption{option.WithAPIKey(os.Getenv("OPENAI_API_KEY"))}
@@ -36,8 +34,9 @@ func main() {
 	client := openai.NewClient(opts...)
 
 	assistant := flowai.NewAssistant(&client, flowai.Config{
-		ModelConfig: flowai.ModelConfig{Model: prefix + *modelName, ReasoningEffort: *effort, MaxOutputTokens: 16000},
-		Check:       flowai.ModelConfig{Model: prefix + *checkModel, ReasoningEffort: *checkEffort, MaxOutputTokens: 2000},
+		Model:           prefix + *modelName,
+		ReasoningEffort: *effort,
+		MaxOutputTokens: 16000,
 	})
 
 	// The editor's wire types, plus the tokens used and how long it took.
@@ -75,6 +74,10 @@ func main() {
 			fail(w, err)
 			return
 		}
+		fields := make([]wire.FlowAIField, len(res.Fields))
+		for i, f := range res.Fields {
+			fields[i] = wire.FlowAIField(f)
+		}
 		respond(w, struct {
 			wire.FlowAIChatResponse
 			Eval evalInfo `json:"eval"`
@@ -83,6 +86,7 @@ func main() {
 				PromptID:    "eval",
 				Message:     res.Message,
 				BuildPrompt: res.BuildPrompt,
+				Fields:      fields,
 				Edits:       res.Edits,
 				Issues:      res.Issues,
 			},
@@ -90,25 +94,7 @@ func main() {
 		})
 	})
 
-	http.HandleFunc("POST /check", func(w http.ResponseWriter, r *http.Request) {
-		var req wire.FlowAICheckRequest
-		if !decode(w, r, &req) {
-			return
-		}
-
-		start := time.Now()
-		res, err := assistant.Check(r.Context(), flowai.CheckRequest{Flow: req.Flow, Prompt: req.Prompt, UserID: "eval"})
-		if err != nil {
-			fail(w, err)
-			return
-		}
-		respond(w, struct {
-			*flowai.CheckResponse
-			Eval evalInfo `json:"eval"`
-		}{res, evalInfo{Model: *checkModel, Tokens: res.Usage, MS: time.Since(start).Milliseconds()}})
-	})
-
-	log.Printf("Serving the flow AI with %s and %s on %s", *modelName, *checkModel, *addr)
+	log.Printf("Serving the flow AI with %s on %s", *modelName, *addr)
 	log.Fatal(http.ListenAndServe(*addr, nil))
 }
 

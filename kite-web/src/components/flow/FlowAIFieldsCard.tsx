@@ -1,6 +1,6 @@
-import { composeCheckedPrompt } from "@/lib/flow/ai";
+import { composeFieldAnswers } from "@/lib/flow/ai";
 import { useAppStateGuildChannels, useAppStateGuilds } from "@/lib/hooks/api";
-import { FlowAICheckField, FlowAICheckResponse } from "@/lib/types/wire.gen";
+import { FlowAIField } from "@/lib/types/wire.gen";
 import { useEffect, useState } from "react";
 import ChannelSelect from "../common/ChannelSelect";
 import GuildSelect from "../common/GuildSelect";
@@ -13,42 +13,25 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../ui/select";
-import { Textarea } from "../ui/textarea";
 
-// Suggests a clearer version of the user's first prompt, with fields for
-// what's missing. The user can also send their prompt as it is.
-export default function FlowAICheckCard({
-  prompt,
-  check,
+// Lets the user fill in what the AI asked for, like a channel, instead of
+// writing it out.
+export default function FlowAIFieldsCard({
+  fields,
   onSend,
 }: {
-  prompt: string;
-  check: FlowAICheckResponse;
+  fields: FlowAIField[];
   onSend: (content: string) => void;
 }) {
-  const [suggested, setSuggested] = useState(check.suggested_prompt || prompt);
-  const [values, setValues] = useState(() => check.fields.map(getDefault));
+  const [values, setValues] = useState(() => fields.map(getDefault));
+  const answers = composeFieldAnswers(fields, values);
 
   return (
     <div className="rounded-lg border bg-background p-3 space-y-3">
-      <p>{check.message}</p>
-
-      <div className="space-y-1">
-        <div className="text-xs text-muted-foreground">Suggested request</div>
-        <Textarea
-          value={suggested}
-          onChange={(e) => setSuggested(e.target.value)}
-          maxLength={4000}
-          minRows={2}
-          maxRows={6}
-          className="resize-none"
-        />
-      </div>
-
-      {check.fields.map((field, i) => (
+      {fields.map((field, i) => (
         <div key={i} className="space-y-1">
           <div className="text-xs font-medium">{field.label}</div>
-          <CheckFieldInput
+          <FieldInput
             field={field}
             value={values[i]}
             onChange={(value) =>
@@ -63,26 +46,15 @@ export default function FlowAICheckCard({
         </div>
       ))}
 
-      <div className="flex flex-wrap gap-2">
-        <Button
-          size="sm"
-          disabled={!suggested.trim()}
-          onClick={() =>
-            onSend(composeCheckedPrompt(suggested.trim(), check.fields, values))
-          }
-        >
-          Send
-        </Button>
-        <Button size="sm" variant="ghost" onClick={() => onSend(prompt)}>
-          Send my original request
-        </Button>
-      </div>
+      <Button size="sm" disabled={!answers} onClick={() => onSend(answers)}>
+        Send
+      </Button>
     </div>
   );
 }
 
 // Only defaults the input can show are used, so nothing hidden is sent.
-function getDefault(field: FlowAICheckField) {
+function getDefault(field: FlowAIField) {
   switch (field.type) {
     case "channel":
       return "";
@@ -95,12 +67,12 @@ function getDefault(field: FlowAICheckField) {
   }
 }
 
-function CheckFieldInput({
+function FieldInput({
   field,
   value,
   onChange,
 }: {
-  field: FlowAICheckField;
+  field: FlowAIField;
   value: string;
   onChange: (value: string) => void;
 }) {
@@ -163,7 +135,9 @@ function ChannelFieldInput({
           }}
         />
       )}
+      {/* The AI can ask for categories too, like where tickets go. */}
       <ChannelSelect
+        sendableOnly={false}
         guildId={guildId}
         value={channelId}
         onChange={(id) => {

@@ -438,9 +438,10 @@ export const evalCases: EvalCase[] = [
     name: "button counter",
     context: "component_button",
     flow: button,
-    // Without a stored variable, the AI leaves picking one to the user.
+    // Without a stored variable, the AI leaves picking one to the user, or
+    // asks for it.
     prompt: "reply with how many times the button was clicked",
-    route: ["build"],
+    route: ["build", "clarify"],
     types: ["action_variable_set", "action_response_create"],
   },
   {

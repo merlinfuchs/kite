@@ -1,7 +1,7 @@
 import { Edge } from "@xyflow/react";
 import { describe, expect, it } from "vitest";
 import { FlowAIChatRequest, FlowAIChatResponse } from "../types/wire.gen";
-import { checkFlowAIPrompt, composeCheckedPrompt, runFlowAIPrompt } from "./ai";
+import { composeFieldAnswers, runFlowAIPrompt } from "./ai";
 import { testNode } from "./testUtils";
 
 const entry = testNode("entry", "entry_command", {
@@ -31,6 +31,7 @@ function fakeAPI(
         prompt_id: "p1",
         message: requests.length === 1 ? "Added a log." : "",
         build_prompt: "",
+        fields: [],
         edits: typeof round === "function" ? round(req) : round,
         issues: [],
         usage,
@@ -264,58 +265,8 @@ describe("runFlowAIPrompt", () => {
   });
 });
 
-describe("checkFlowAIPrompt", () => {
-  const flow = { nodes: [entry], edges: [] };
-
-  it("sends the prompt with the flow", async () => {
-    const requests: unknown[] = [];
-    const res = await checkFlowAIPrompt({
-      context: "command",
-      prompt: "Log bans",
-      flow,
-      send: async (req) => {
-        requests.push(req);
-        return {
-          success: true,
-          data: {
-            verdict: "send",
-            message: "",
-            suggested_prompt: "",
-            fields: [],
-          },
-        };
-      },
-    });
-    expect(res?.verdict).toBe("send");
-    expect(requests[0]).toMatchObject({
-      prompt: "Log bans",
-      flow: expect.stringContaining("- entry entry_command"),
-    });
-  });
-
-  it("returns null if the check fails, so the prompt is sent anyway", async () => {
-    const failed = async () => ({
-      success: false as const,
-      error: { code: "flow_ai_unavailable", message: "", data: {} },
-    });
-    const thrown = async () => {
-      throw new Error("Rate limit exceeded");
-    };
-    for (const send of [failed, thrown]) {
-      expect(
-        await checkFlowAIPrompt({
-          context: "command",
-          prompt: "Hi",
-          flow,
-          send,
-        })
-      ).toBeNull();
-    }
-  });
-});
-
-describe("composeCheckedPrompt", () => {
-  it("adds the filled in fields", () => {
+describe("composeFieldAnswers", () => {
+  it("writes the filled in fields", () => {
     const field = (label: string) => ({
       label,
       description: "",
@@ -324,23 +275,11 @@ describe("composeCheckedPrompt", () => {
       default: "",
     });
     expect(
-      composeCheckedPrompt(
-        "Log bans in the channel below",
+      composeFieldAnswers(
         [field("Channel"), field("Reason"), field("Role")],
         ["#logs (channel ID 1)", " ", "Mod"]
       )
-    ).toBe(
-      "Log bans in the channel below\n\n- Channel: #logs (channel ID 1)\n- Role: Mod"
-    );
-    expect(composeCheckedPrompt("Hi", [field("Channel")], [""])).toBe("Hi");
-
-    // A long prompt is shortened, so the values reach the AI.
-    const composed = composeCheckedPrompt(
-      "a".repeat(4000),
-      [field("Channel")],
-      ["#logs (channel ID 1)"]
-    );
-    expect(composed).toHaveLength(4000);
-    expect(composed.endsWith("- Channel: #logs (channel ID 1)")).toBe(true);
+    ).toBe("- Channel: #logs (channel ID 1)\n- Role: Mod");
+    expect(composeFieldAnswers([field("Channel")], [""])).toBe("");
   });
 });

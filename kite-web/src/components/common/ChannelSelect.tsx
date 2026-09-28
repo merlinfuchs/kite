@@ -20,15 +20,21 @@ export default function ChannelSelect({
   guildId,
   value,
   onChange,
+  sendableOnly = true,
 }: {
   guildId: string | null;
   value: string | null;
   onChange: (value: string | null) => void;
+  // Whether to only list channels messages can be sent to.
+  sendableOnly?: boolean;
 }) {
   const allChannels = useAppStateGuildChannels(guildId);
   const channels = useMemo(
-    () => allChannels?.filter((c) => c && sendableChannelTypes.has(c.type)),
-    [allChannels]
+    () =>
+      allChannels?.filter(
+        (c) => c && (!sendableOnly || sendableChannelTypes.has(c.type))
+      ),
+    [allChannels, sendableOnly]
   );
 
   const [open, setOpen] = useState(false);

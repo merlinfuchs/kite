@@ -4,9 +4,8 @@ import {
   FlowAIChatMessage,
   FlowAIChatRequest,
   FlowAIChatResponse,
-  FlowAICheckResponse,
 } from "../types/wire.gen";
-import { checkFlowAIPrompt, runFlowAIPrompt } from "./ai";
+import { runFlowAIPrompt } from "./ai";
 import { EvalCase, EvalRoute, evalCases } from "./ai.eval.cases";
 import { serializeFlow } from "./serialize";
 
@@ -17,11 +16,10 @@ import { serializeFlow } from "./serialize";
 //   FLOW_AI_EVAL_URL=http://localhost:4455 npx vitest run ai.eval
 //
 // FLOW_AI_EVAL_FILTER only runs the cases whose name contains one of its
-// comma separated parts, and FLOW_AI_EVAL_CHECK_ONLY=1 only checks prompts.
+// comma separated parts.
 const url = process.env.FLOW_AI_EVAL_URL;
 const filter = process.env.FLOW_AI_EVAL_FILTER ?? "";
 const outDir = process.env.FLOW_AI_EVAL_OUT ?? "eval-results";
-const checkOnly = process.env.FLOW_AI_EVAL_CHECK_ONLY === "1";
 // Like the service's default max_repairs, which the eval server doesn't know.
 const maxRepairs = 2;
 
@@ -44,9 +42,8 @@ interface EvalInfo {
 interface CaseResult {
   name: string;
   route: EvalRoute[];
-  check?: string;
-  checkOk?: boolean;
-  checkMessage?: string;
+  // The labels of the fields the AI asked the user to fill in.
+  fields: string[];
   // For questions that are then built: the answer to the question.
   answer?: string;
   buildPrompt?: string;
@@ -97,6 +94,7 @@ async function runCase(c: EvalCase): Promise<CaseResult> {
     missingTypes: [],
     inventedIds: [],
     edits: [],
+    fields: [],
     buildOk: false,
     cost: 0,
     ms: 0,
@@ -104,34 +102,6 @@ async function runCase(c: EvalCase): Promise<CaseResult> {
   let flow = c.flow();
   const variables = c.variables ?? [];
   const known = c.prompt + JSON.stringify(flow) + JSON.stringify(variables);
-
-  const check = await checkFlowAIPrompt({
-    context: c.context,
-    prompt: c.prompt,
-    flow,
-    send: async (req) => {
-      const res = await post<FlowAICheckResponse>("/check", req);
-      if (res.success) result.cost += cost(res.data.eval);
-      return res;
-    },
-  });
-  if (check) {
-    result.check = check.verdict;
-    result.checkMessage = [
-      check.message,
-      check.suggested_prompt,
-      ...check.fields.map((f) => `[${f.type}] ${f.label}`),
-    ]
-      .filter(Boolean)
-      .join(" | ");
-    // The check can only tell prompts to send from ones to clarify.
-    const expected: string[] = c.route.map((r) =>
-      r === "clarify" ? "clarify" : "send"
-    );
-    result.checkOk = expected.includes(check.verdict);
-  }
-
-  if (checkOnly) return result;
 
   const start = Date.now();
   const prompt = async (messages: FlowAIChatMessage[]) => {
@@ -171,6 +141,7 @@ async function runCase(c: EvalCase): Promise<CaseResult> {
     const messages: FlowAIChatMessage[] = [{ role: "user", content: c.prompt }];
     let res = await prompt(messages);
     result.buildPrompt = res.buildPrompt;
+    result.fields = res.fields.map((f) => `${f.label} (${f.type})`);
 
     // Like clicking "Build this", if the question was answered first.
     if (c.thenBuild && !result.edited && res.buildPrompt) {
@@ -209,6 +180,8 @@ async function runCase(c: EvalCase): Promise<CaseResult> {
 
   const shouldEdit = c.route.includes("build") || !!c.thenBuild;
   const mayEdit = shouldEdit || c.route.includes("clarify");
+  // When the AI can only ask, it should ask with fields the user fills in.
+  const mustAsk = c.route.length === 1 && c.route[0] === "clarify";
   result.buildOk =
     !result.error &&
     result.issues.length === 0 &&
@@ -216,6 +189,7 @@ async function runCase(c: EvalCase): Promise<CaseResult> {
     result.inventedIds.length === 0 &&
     (!c.componentBranch || usesComponent) &&
     (result.edited ? mayEdit : !shouldEdit || c.route.length > 1) &&
+    (!mustAsk || result.fields.length > 0) &&
     // Questions are answered before anything is built.
     (!c.thenBuild || !!result.answer);
   result.flow = serializeFlow(flow.nodes, flow.edges, c.context);
@@ -225,33 +199,32 @@ async function runCase(c: EvalCase): Promise<CaseResult> {
 function report(results: CaseResult[]) {
   const sum = (f: (r: CaseResult) => number) =>
     results.reduce((a, r) => a + f(r), 0);
-  const checked = results.filter((r) => r.checkOk !== undefined);
   const lines = [
     `# Flow AI eval, ${new Date().toISOString()}`,
     "",
     `Builds ok: ${sum((r) => +r.buildOk)}/${results.length}. ` +
-      `Checks ok: ${sum((r) => +!!r.checkOk)}/${checked.length}. ` +
+      `Asked with fields: ${sum((r) => +(r.fields.length > 0))}. ` +
       `Repairs: ${sum((r) => r.repairs)}. ` +
       `Cost: $${sum((r) => r.cost).toFixed(4)}, ` +
       `avg ${(sum((r) => r.ms) / results.length / 1000).toFixed(
         1
       )}s per build.`,
     "",
-    "| Case | Expected | Check | Build | Repairs | Cost | Time |",
+    "| Case | Expected | Fields | Build | Repairs | Cost | Time |",
     "| --- | --- | --- | --- | --- | --- | --- |",
     ...results.map(
       (r) =>
-        `| ${r.name} | ${r.route.join("/")} | ${r.check ?? "-"}${
-          r.checkOk === false ? " ✗" : ""
-        } | ${r.buildOk ? "ok" : "✗"}${r.edited ? " (edited)" : ""} | ${
-          r.repairs
-        } | $${r.cost.toFixed(4)} | ${(r.ms / 1000).toFixed(1)}s |`
+        `| ${r.name} | ${r.route.join("/")} | ${r.fields.length || "-"} | ${
+          r.buildOk ? "ok" : "✗"
+        }${r.edited ? " (edited)" : ""} | ${r.repairs} | $${r.cost.toFixed(
+          4
+        )} | ${(r.ms / 1000).toFixed(1)}s |`
     ),
     "",
     ...results.flatMap((r) => [
       `## ${r.name}`,
       "",
-      r.checkMessage ? `Check: ${r.check}: ${r.checkMessage}` : "",
+      r.fields.length ? `Fields: ${r.fields.join(", ")}` : "",
       r.answer ? `> ${r.answer.replace(/\n/g, "\n> ")}` : "",
       r.buildPrompt ? `Build this: ${r.buildPrompt}` : "",
       r.message ? `> ${r.message.replace(/\n/g, "\n> ")}` : "",

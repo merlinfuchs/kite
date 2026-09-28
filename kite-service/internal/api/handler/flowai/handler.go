@@ -19,8 +19,6 @@ import (
 type Assistant interface {
 	Model() string
 	Respond(ctx context.Context, req flowai.Request) (*flowai.Response, error)
-	CheckModel() string
-	Check(ctx context.Context, req flowai.CheckRequest) (*flowai.CheckResponse, error)
 }
 
 // repairWindow is how long after a prompt its edits can be repaired.
@@ -67,10 +65,14 @@ func (h *FlowAIHandler) HandleFlowAIUsageGet(c *handler.Context) (*wire.FlowAIUs
 }
 
 func (h *FlowAIHandler) HandleFlowAIChat(c *handler.Context, req wire.FlowAIChatRequest) (*wire.FlowAIChatResponse, error) {
-	if err := h.checkAvailable(c); err != nil {
-		return nil, err
+	if h.assistant == nil {
+		return nil, handler.ErrServiceUnavailable("flow_ai_unavailable", "The flow AI isn't set up on this server.")
 	}
+	// Unlike other limits, 0 means none, so plans need to opt in.
 	limit := c.Features.MaxAIPromptsPerMonth
+	if limit == 0 {
+		return nil, handler.ErrForbidden("feature_unavailable", "Your plan doesn't include the flow AI.")
+	}
 	count, err := h.promptCount(c)
 	if err != nil {
 		return nil, err
@@ -181,77 +183,11 @@ func (h *FlowAIHandler) HandleFlowAIChat(c *handler.Context, req wire.FlowAIChat
 		PromptID:    prompt.ID,
 		Message:     res.Message,
 		BuildPrompt: res.BuildPrompt,
+		Fields:      fields(res.Fields),
 		Edits:       res.Edits,
 		Issues:      res.Issues,
 		Usage:       wire.FlowAIUsage{PromptsUsed: used, PromptsLimit: limit},
 	}, nil
-}
-
-// HandleFlowAICheck checks the first prompt of a chat with a cheaper model.
-// It doesn't count as a prompt.
-func (h *FlowAIHandler) HandleFlowAICheck(c *handler.Context, req wire.FlowAICheckRequest) (*wire.FlowAICheckResponse, error) {
-	if err := h.checkAvailable(c); err != nil {
-		return nil, err
-	}
-	// Checking is pointless if the prompt can't be sent.
-	count, err := h.promptCount(c)
-	if err != nil {
-		return nil, err
-	}
-	if err := checkLimits(c.Features.MaxAIPromptsPerMonth, count); err != nil {
-		return nil, err
-	}
-
-	res, err := h.assistant.Check(c.Context(), flowai.CheckRequest{
-		Flow:   req.Flow,
-		Prompt: req.Prompt,
-		AppID:  c.App.ID,
-		UserID: c.Session.UserID,
-	})
-	if err != nil {
-		slog.Error("Failed to check flow AI prompt", slog.String("app_id", c.App.ID), slog.Any("error", err))
-		return nil, handler.ErrServiceUnavailable("flow_ai_unavailable", "The prompt couldn't be checked.")
-	}
-
-	// Checks are recorded as answers without edits, so they are limited like
-	// them and their usage is known.
-	now := time.Now().UTC()
-	err = h.promptStore.CreateFlowAIPrompt(c.Context(), &model.FlowAIPrompt{
-		ID:        util.UniqueID(),
-		AppID:     c.App.ID,
-		UserID:    c.Session.UserID,
-		Model:     h.assistant.CheckModel(),
-		Prompt:    req.Prompt,
-		Rounds:    1,
-		Usage:     res.Usage,
-		CreatedAt: now,
-		UpdatedAt: now,
-	})
-	if err != nil {
-		slog.Error("Failed to record flow AI check", slog.String("app_id", c.App.ID), slog.Any("error", err))
-	}
-
-	fields := make([]wire.FlowAICheckField, len(res.Fields))
-	for i, f := range res.Fields {
-		fields[i] = wire.FlowAICheckField(f)
-	}
-	return &wire.FlowAICheckResponse{
-		Verdict:         res.Verdict,
-		Message:         res.Message,
-		SuggestedPrompt: res.SuggestedPrompt,
-		Fields:          fields,
-	}, nil
-}
-
-func (h *FlowAIHandler) checkAvailable(c *handler.Context) error {
-	if h.assistant == nil {
-		return handler.ErrServiceUnavailable("flow_ai_unavailable", "The flow AI isn't set up on this server.")
-	}
-	// Unlike other limits, 0 means none, so plans need to opt in.
-	if c.Features.MaxAIPromptsPerMonth == 0 {
-		return handler.ErrForbidden("feature_unavailable", "Your plan doesn't include the flow AI.")
-	}
-	return nil
 }
 
 // checkLimits returns an error if the app can't send another prompt this
@@ -273,4 +209,12 @@ func (h *FlowAIHandler) promptCount(c *handler.Context) (model.FlowAIPromptCount
 		return count, fmt.Errorf("failed to count flow AI prompts: %w", err)
 	}
 	return count, nil
+}
+
+func fields(fields []flowai.Field) []wire.FlowAIField {
+	res := make([]wire.FlowAIField, len(fields))
+	for i, f := range fields {
+		res[i] = wire.FlowAIField(f)
+	}
+	return res
 }

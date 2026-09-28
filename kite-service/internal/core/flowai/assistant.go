@@ -23,17 +23,10 @@ const (
 	historyStep = 5
 )
 
-// ModelConfig configures a model the assistant calls.
-type ModelConfig struct {
+type Config struct {
 	Model           string
 	ReasoningEffort string
 	MaxOutputTokens int
-}
-
-type Config struct {
-	ModelConfig
-	// Check is the cheaper model that checks prompts before they are sent.
-	Check ModelConfig
 }
 
 // Assistant asks the model for edits to a flow.
@@ -76,6 +69,8 @@ type Response struct {
 	// BuildPrompt is a request the user can send to make the change the
 	// message suggests.
 	BuildPrompt string
+	// Fields ask the user for what the AI needs but only they know.
+	Fields []Field
 	// Edits are passed to the editor's applyFlowEdits as they are.
 	Edits []map[string]any
 	// Issues are problems with edits the model got wrong in a way the editor
@@ -98,20 +93,46 @@ func (e *ErrResponse) Error() string {
 // can't be used, it returns an error along with a response that only has the
 // usage.
 func (a *Assistant) Respond(ctx context.Context, req Request) (*Response, error) {
-	resp, usage, err := a.call(ctx, call{
-		model:        a.config.ModelConfig,
-		instructions: instructions,
-		input:        responses.ResponseNewParamsInputUnion{OfInputItemList: chatInput(req)},
-		schemaName:   "flow_edits",
-		schema:       outputSchema,
-		cacheKey:     "kite-flow-ai",
-		userID:       req.UserID,
-		logMessage:   "Flow AI response",
-		logAttrs:     []any{slog.String("app_id", req.AppID), slog.Bool("repair", len(req.Issues) > 0)},
+	resp, err := a.client.Responses.New(ctx, responses.ResponseNewParams{
+		Model:           a.config.Model,
+		Instructions:    openai.String(instructions),
+		Input:           responses.ResponseNewParamsInputUnion{OfInputItemList: chatInput(req)},
+		MaxOutputTokens: openai.Int(int64(a.config.MaxOutputTokens)),
+		Reasoning: shared.ReasoningParam{
+			Effort: shared.ReasoningEffort(a.config.ReasoningEffort),
+		},
+		Text: responses.ResponseTextConfigParam{
+			Format: responses.ResponseFormatTextConfigUnionParam{
+				OfJSONSchema: &responses.ResponseFormatTextJSONSchemaConfigParam{
+					Name:   "flow_edits",
+					Schema: outputSchema,
+					Strict: openai.Bool(true),
+				},
+			},
+		},
+		PromptCacheKey: openai.String("kite-flow-ai"),
+		// Lets OpenAI tell users apart for abuse detection.
+		SafetyIdentifier: openai.String(util.HashBytes([]byte(req.UserID))),
 	})
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to create response: %w", err)
 	}
+
+	usage := model.FlowAIUsage{
+		InputTokens:       int(resp.Usage.InputTokens),
+		CachedInputTokens: int(resp.Usage.InputTokensDetails.CachedTokens),
+		OutputTokens:      int(resp.Usage.OutputTokens),
+	}
+	slog.Info(
+		"Flow AI response",
+		slog.String("app_id", req.AppID),
+		slog.Bool("repair", len(req.Issues) > 0),
+		slog.String("status", string(resp.Status)),
+		slog.String("incomplete_reason", resp.IncompleteDetails.Reason),
+		slog.Int("input_tokens", usage.InputTokens),
+		slog.Int("cached_input_tokens", usage.CachedInputTokens),
+		slog.Int("output_tokens", usage.OutputTokens),
+	)
 
 	if resp.Status != responses.ResponseStatusCompleted {
 		message := "The AI couldn't answer. Please try again."
@@ -161,62 +182,6 @@ func (r *Response) checkVariables(variables []*model.Variable) {
 		}
 		delete(data, "variable_id")
 	}
-}
-
-type call struct {
-	model        ModelConfig
-	instructions string
-	input        responses.ResponseNewParamsInputUnion
-	// The answer is JSON in the shape of schema.
-	schemaName string
-	schema     map[string]any
-	// Requests with the same key and start are cached together.
-	cacheKey   string
-	userID     string
-	logMessage string
-	logAttrs   []any
-}
-
-// call asks a model for a structured answer and logs its usage.
-func (a *Assistant) call(ctx context.Context, c call) (*responses.Response, model.FlowAIUsage, error) {
-	resp, err := a.client.Responses.New(ctx, responses.ResponseNewParams{
-		Model:           c.model.Model,
-		Instructions:    openai.String(c.instructions),
-		Input:           c.input,
-		MaxOutputTokens: openai.Int(int64(c.model.MaxOutputTokens)),
-		Reasoning: shared.ReasoningParam{
-			Effort: shared.ReasoningEffort(c.model.ReasoningEffort),
-		},
-		Text: responses.ResponseTextConfigParam{
-			Format: responses.ResponseFormatTextConfigUnionParam{
-				OfJSONSchema: &responses.ResponseFormatTextJSONSchemaConfigParam{
-					Name:   c.schemaName,
-					Schema: c.schema,
-					Strict: openai.Bool(true),
-				},
-			},
-		},
-		PromptCacheKey: openai.String(c.cacheKey),
-		// Lets OpenAI tell users apart for abuse detection.
-		SafetyIdentifier: openai.String(util.HashBytes([]byte(c.userID))),
-	})
-	if err != nil {
-		return nil, model.FlowAIUsage{}, fmt.Errorf("failed to create response: %w", err)
-	}
-
-	usage := model.FlowAIUsage{
-		InputTokens:       int(resp.Usage.InputTokens),
-		CachedInputTokens: int(resp.Usage.InputTokensDetails.CachedTokens),
-		OutputTokens:      int(resp.Usage.OutputTokens),
-	}
-	slog.Info(c.logMessage, append(c.logAttrs,
-		slog.String("status", string(resp.Status)),
-		slog.String("incomplete_reason", resp.IncompleteDetails.Reason),
-		slog.Int("input_tokens", usage.InputTokens),
-		slog.Int("cached_input_tokens", usage.CachedInputTokens),
-		slog.Int("output_tokens", usage.OutputTokens),
-	)...)
-	return resp, usage, nil
 }
 
 func chatInput(req Request) responses.ResponseInputParam {
@@ -271,7 +236,21 @@ type output struct {
 	Message     string       `json:"message"`
 	Edits       []outputEdit `json:"edits"`
 	BuildPrompt string       `json:"build_prompt"`
+	Fields      []Field      `json:"fields"`
 }
+
+// Field asks the user for something only they know, like a channel.
+type Field struct {
+	Label       string `json:"label"`
+	Description string `json:"description"`
+	// Type is "text", "number", "channel" or "choice".
+	Type    string   `json:"type"`
+	Options []string `json:"options"`
+	Default string   `json:"default"`
+}
+
+// maxFields is how many fields the editor shows at once.
+const maxFields = 4
 
 type outputEdit struct {
 	Op        string  `json:"op"`
@@ -298,6 +277,7 @@ func parseOutput(text string) (*Response, error) {
 	res := &Response{
 		Message:     out.Message,
 		BuildPrompt: out.BuildPrompt,
+		Fields:      out.Fields,
 		Edits:       make([]map[string]any, 0, len(out.Edits)),
 		Issues:      []string{},
 	}
@@ -309,6 +289,17 @@ func parseOutput(text string) (*Response, error) {
 		}
 		res.Edits = append(res.Edits, edit)
 	}
+	// The schema can't enforce these, and the editor can't show more fields or
+	// choices without options.
+	if len(res.Fields) > maxFields {
+		res.Fields = res.Fields[:maxFields]
+	}
+	for i, f := range res.Fields {
+		if f.Type == "choice" && len(f.Options) == 0 {
+			res.Fields[i].Type = "text"
+		}
+	}
+
 	// The suggested change was already made, or will be once invalid edits
 	// are repaired.
 	if len(out.Edits) > 0 {

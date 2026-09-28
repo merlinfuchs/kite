@@ -47,10 +47,7 @@ func fakeOpenAIIncomplete(t *testing.T, status string, reason string, text strin
 	t.Cleanup(server.Close)
 
 	client := openai.NewClient(option.WithAPIKey("test"), option.WithBaseURL(server.URL))
-	assistant := NewAssistant(&client, Config{
-		ModelConfig: ModelConfig{Model: "gpt-5-mini", ReasoningEffort: "low", MaxOutputTokens: 1000},
-		Check:       ModelConfig{Model: "gpt-5-nano", ReasoningEffort: "minimal", MaxOutputTokens: 500},
-	})
+	assistant := NewAssistant(&client, Config{Model: "gpt-5-mini", ReasoningEffort: "low", MaxOutputTokens: 1000})
 	return assistant, &body
 }
 
@@ -194,4 +191,14 @@ func TestParseOutputDropsBuildPromptWithEdits(t *testing.T) {
 	], "build_prompt": "Remove a"}`)
 	require.NoError(t, err)
 	assert.Empty(t, res.BuildPrompt)
+}
+
+func TestParseOutputLimitsFields(t *testing.T) {
+	field := `{"label": "Staff role", "description": "", "type": "choice", "options": [], "default": ""}`
+	res, err := parseOutput(`{"message": "Which role?", "edits": [], "build_prompt": null,
+		"fields": [` + strings.Repeat(field+",", 4) + field + `]}`)
+	require.NoError(t, err)
+
+	assert.Len(t, res.Fields, 4)
+	assert.Equal(t, "text", res.Fields[0].Type)
 }

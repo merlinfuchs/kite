@@ -5,7 +5,7 @@ package flowai
 var outputSchema = map[string]any{
 	"type":                 "object",
 	"additionalProperties": false,
-	"required":             []string{"message", "edits", "build_prompt"},
+	"required":             []string{"message", "edits", "build_prompt", "fields"},
 	"properties": map[string]any{
 		"message": map[string]any{
 			"type":        "string",
@@ -14,6 +14,32 @@ var outputSchema = map[string]any{
 		"build_prompt": map[string]any{
 			"type":        []string{"string", "null"},
 			"description": "When answering without edits and suggesting a change: the request to make it, in the user's words.",
+		},
+		"fields": map[string]any{
+			"type":        "array",
+			"description": "When asking for something only the user knows: inputs for it, at most 4. Empty otherwise.",
+			"items": map[string]any{
+				"type":                 "object",
+				"additionalProperties": false,
+				"required":             []string{"label", "description", "type", "options", "default"},
+				"properties": map[string]any{
+					"label":       map[string]any{"type": "string"},
+					"description": map[string]any{"type": "string"},
+					"type": map[string]any{
+						"type": "string",
+						"enum": []string{"text", "number", "channel", "choice"},
+					},
+					"options": map[string]any{
+						"type":        "array",
+						"items":       map[string]any{"type": "string"},
+						"description": "choice: the answers to pick from. Empty otherwise.",
+					},
+					"default": map[string]any{
+						"type":        "string",
+						"description": "A suggested value, or empty.",
+					},
+				},
+			},
 		},
 		"edits": map[string]any{
 			"type": "array",

@@ -74,12 +74,9 @@ func StartServer(c context.Context, cfg *config.Config) error {
 	if cfg.OpenAI.APIKey != "" {
 		openaiClient = openai.NewClient(option.WithAPIKey(cfg.OpenAI.APIKey))
 		flowAssistant = flowai.NewAssistant(&openaiClient, flowai.Config{
-			ModelConfig: flowai.ModelConfig{
-				Model:           cfg.FlowAI.Model,
-				ReasoningEffort: cfg.FlowAI.ReasoningEffort,
-				MaxOutputTokens: cfg.FlowAI.MaxOutputTokens,
-			},
-			Check: flowai.ModelConfig(cfg.FlowAI.Check),
+			Model:           cfg.FlowAI.Model,
+			ReasoningEffort: cfg.FlowAI.ReasoningEffort,
+			MaxOutputTokens: cfg.FlowAI.MaxOutputTokens,
 		})
 	}
 
