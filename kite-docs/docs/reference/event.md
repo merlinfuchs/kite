@@ -19,7 +19,7 @@ With Event Listeners you can listen for events inside the Discord servers that y
 - By default, your app is limited to 5 event listeners.
 - Kite will ignore messages that are sent by a bot.
 - Member events are only available when you enable the "Server Members Intent" in the [Discord Developer Portal](https://discord.dev).
-- Bot Joined Server only fires when the app is newly added to a server, not when it reconnects. Bot Joined Server and Bot Left Server only provide the server ID as `{{guild.id}}`.
+- Bot Joined Server provides the server as `{{guild.id}}` and `{{guild.name}}`. Bot Left Server only provides `{{guild.id}}`.
 
 ![Example Event Flow](./img/example-event-flow.png)
 
