@@ -133,12 +133,7 @@ export default function MessageListEntry({
             </DropdownMenuGroup>
           </DropdownMenuContent>
         </DropdownMenu>
-        <Button
-          size="icon"
-          variant="ghost"
-          disabled={isFirst}
-          onClick={moveUp}
-        >
+        <Button size="icon" variant="ghost" disabled={isFirst} onClick={moveUp}>
           <ArrowUpIcon className="h-5 w-5 text-muted-foreground" />
         </Button>
         <Button

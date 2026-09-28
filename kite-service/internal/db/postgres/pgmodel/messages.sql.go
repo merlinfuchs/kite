@@ -37,6 +37,7 @@ INSERT INTO messages (
     updated_at
 ) VALUES (
     $1, $2, $3, $4, $5, $6, $7, $8,
+    -- New messages are shown first, matching the previous created_at DESC order.
     (SELECT COALESCE(MIN(position), 0) - 1 FROM messages WHERE app_id = $4),
     $9, $10
 ) RETURNING id, name, description, data, flow_sources, app_id, module_id, creator_user_id, created_at, updated_at, position

@@ -37,6 +37,7 @@ INSERT INTO commands (
     updated_at
 ) VALUES (
     $1, $2, $3, $4, $5, $6, $7, $8,
+    -- New commands are shown first, matching the previous created_at DESC order.
     (SELECT COALESCE(MIN(position), 0) - 1 FROM commands WHERE app_id = $5),
     $9, $10
 ) RETURNING id, name, description, enabled, app_id, module_id, creator_user_id, flow_source, created_at, updated_at, last_deployed_at, position

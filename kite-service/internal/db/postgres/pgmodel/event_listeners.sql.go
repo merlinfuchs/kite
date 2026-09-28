@@ -44,6 +44,7 @@ INSERT INTO event_listeners (
     updated_at
 ) VALUES (
     $1, $2, $3, $4, $5, $6, $7, $8, $9, $10,
+    -- New event listeners are shown first, matching the previous created_at DESC order.
     (SELECT COALESCE(MIN(position), 0) - 1 FROM event_listeners WHERE app_id = $6),
     $11, $12
 ) RETURNING id, source, type, description, enabled, app_id, module_id, creator_user_id, filter, flow_source, created_at, updated_at, last_run_at, position
