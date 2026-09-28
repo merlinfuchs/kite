@@ -374,6 +374,17 @@ export interface FlowContextState {
    * first. It's only set in resumed executions.
    */
   triggers?: FlowTrigger[];
+  /**
+   * ResumeTrigger is the interaction or event a durable sleep continues
+   * with. It's kept apart from Triggers, which are only earlier executions.
+   */
+  resume_trigger?: FlowTrigger;
+  /**
+   * DurableSleeps counts the durable sleeps of this execution, including the
+   * ones it resumed from, so a cycle through a Wait block can't keep the flow
+   * alive forever. Clicks and submits start a new execution from zero.
+   */
+  durable_sleeps?: number /* int */;
 }
 export interface FlowContextNodeState {
   condition_base_value?: any /* thing.Thing */;
