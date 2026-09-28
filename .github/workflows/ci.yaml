@@ -66,10 +66,12 @@ jobs:
       - name: Generate database code
         run: sqlc generate
         working-directory: kite-service
+      - name: Generate deploy config
+        run: deploy/generate.sh
       - name: Check for changes
         run: |
           if ! git diff --exit-code; then
-            echo "::error::Generated files are out of date. Run tygo generate and sqlc generate in kite-service and commit the result. Don't edit generated files by hand."
+            echo "::error::Generated files are out of date. Run tygo generate and sqlc generate in kite-service, and deploy/generate.sh, then commit the result. Don't edit generated files by hand."
             exit 1
           fi
 

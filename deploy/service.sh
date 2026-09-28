@@ -4,11 +4,12 @@
 # Pass --rollback to restart with the previous binary instead.
 source "$(dirname "$0")/common.sh"
 
-# Root doesn't need sudo, which may not even be installed. Stops at the first
-# cluster that doesn't come back up, the others keep running the old binary.
-restart="for unit in $SERVICE_UNITS; do
+# Stops at the first cluster that doesn't come back up, the others keep
+# running the old binary.
+restart="$REMOTE_SUDO
+  for unit in $SERVICE_UNITS; do
     echo \"Restarting \$unit\"
-    if [ \"\$(id -u)\" -eq 0 ]; then systemctl restart \"\$unit\"; else sudo systemctl restart \"\$unit\"; fi
+    \$S systemctl restart \"\$unit\"
     sleep $SERVICE_RESTART_DELAY
     if ! systemctl is-active --quiet \"\$unit\"; then
       systemctl status --no-pager \"\$unit\"
