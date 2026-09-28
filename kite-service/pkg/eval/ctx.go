@@ -313,9 +313,9 @@ func NewEventEnv(event ws.Event) *EventEnv {
 		env.User = NewUserEnv(e.User)
 		env.Member = env.User
 		env.Guild = NewSnowflakeEnv(e.GuildID)
-	case *gateway.GuildCreateEvent:
+	case *state.GuildJoinEvent:
 		env.Guild = NewSnowflakeEnv(e.ID)
-	case *gateway.GuildDeleteEvent:
+	case *state.GuildLeaveEvent:
 		env.Guild = NewSnowflakeEnv(e.ID)
 	case *schedule.Event:
 		env.Schedule = NewScheduleEnv(e)

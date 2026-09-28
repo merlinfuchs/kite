@@ -112,10 +112,12 @@ func (l *EventListener) shouldHandleEvent(e ws.Event) bool {
 		return true
 	case *gateway.GuildMemberRemoveEvent:
 		return true
-	case *gateway.GuildCreateEvent:
-		return !d.Unavailable && time.Since(d.Joined.Time()) < time.Minute
-	case *gateway.GuildDeleteEvent:
-		return !d.Unavailable
+	// arikawa derives these from GUILD_CREATE and GUILD_DELETE, leaving out
+	// guilds that load on connect or recover from an outage.
+	case *state.GuildJoinEvent:
+		return true
+	case *state.GuildLeaveEvent:
+		return true
 	}
 
 	return false

@@ -3,6 +3,7 @@ package engine
 import (
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/gateway"
+	"github.com/diamondburned/arikawa/v3/state"
 	"github.com/diamondburned/arikawa/v3/utils/ws"
 )
 
@@ -78,9 +79,9 @@ func (d *EventData) GuildID() discord.GuildID {
 		return data.GuildID
 	case *gateway.GuildMemberUpdateEvent:
 		return data.GuildID
-	case *gateway.GuildCreateEvent:
+	case *state.GuildJoinEvent:
 		return data.ID
-	case *gateway.GuildDeleteEvent:
+	case *state.GuildLeaveEvent:
 		return data.ID
 	}
 	return 0
