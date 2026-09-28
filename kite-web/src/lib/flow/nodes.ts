@@ -50,6 +50,7 @@ import {
   nodeActionVariableSetSchema,
   nodeActionVoiceChannelJoinDataSchema,
   nodeActionVoiceChannelLeaveDataSchema,
+  nodeActionVoiceChannelPlayAudioDataSchema,
   nodeActionStatusSetDataSchema,
   nodeConditionChannelDataSchema,
   nodeConditionCompareDataSchema,
@@ -674,6 +675,15 @@ export const nodeTypes: Record<string, NodeValues> = {
     dataSchema: nodeActionVoiceChannelLeaveDataSchema,
     dataFields: ["guild_target", "custom_label"],
     creditsCost: 1,
+  },
+  action_voice_channel_play_audio: {
+    color: actionColor,
+    icon: "volume-2",
+    defaultTitle: "Play audio",
+    defaultDescription: "Play an audio file in the connected voice channel",
+    dataSchema: nodeActionVoiceChannelPlayAudioDataSchema,
+    dataFields: ["voice_audio_url", "voice_volume", "custom_label"],
+    creditsCost: 2,
   },
   action_status_set: {
     color: actionColor,

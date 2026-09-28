@@ -670,6 +670,21 @@ export const nodeActionVoiceChannelLeaveDataSchema = nodeBaseDataSchema.extend({
   guild_target: guildTargetSchema.optional(),
 });
 
+export const nodeActionVoiceChannelPlayAudioDataSchema =
+  nodeBaseDataSchema.extend({
+    voice_audio_url: z
+      .string()
+      .optional()
+      .describe("URL of the uploaded audio file to play (max 8 MB)."),
+    voice_volume: z
+      .number()
+      .int()
+      .min(0)
+      .max(200)
+      .optional()
+      .describe("Playback volume from 0% to 200%. Defaults to 100%."),
+  });
+
 export const nodeActionStatusSetDataSchema = nodeBaseDataSchema.extend({
   status_data: z
     .object({

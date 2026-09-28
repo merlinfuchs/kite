@@ -81,6 +81,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
 import FlowPlaceholderExplorer from "./FlowPlaceholderExplorer";
 import env from "@/lib/env/client";
 import { ScrollArea } from "../ui/scroll-area";
+import AudioUploadButton from "@/tools/common/components/AudioUploadButton";
 
 interface Props {
   nodeId: string;
@@ -125,6 +126,8 @@ const intputs: Record<string, any> = {
   channel_target: ChannelTargetInput,
   voice_self_mute: VoiceSelfMuteInput,
   voice_self_deaf: VoiceSelfDeafInput,
+  voice_audio_url: VoiceAudioURLInput,
+  voice_volume: VoiceVolumeInput,
   status_data: StatusDataInput,
   role_data: RoleDataInput,
   role_target: RoleTargetInput,
@@ -2186,6 +2189,53 @@ function VoiceSelfDeafInput({ data, updateData, errors }: InputProps) {
   );
 }
 
+function VoiceAudioURLInput({ data, updateData, errors }: InputProps) {
+  return (
+    <BaseInput
+      type="text"
+      field="voice_audio_url"
+      title="Audio File"
+      description="Upload an audio file (max 8 MB) for the bot to play in the connected voice channel."
+      value={data.voice_audio_url || ""}
+      updateValue={(v) => updateData({ voice_audio_url: v || undefined })}
+      errors={errors}
+      placeholders
+      audioUpload
+    />
+  );
+}
+
+function VoiceVolumeInput({ data, updateData, errors }: InputProps) {
+  const value = typeof data.voice_volume === "number" ? data.voice_volume : 100;
+  const error = errors.voice_volume;
+
+  return (
+    <div className="flex-auto">
+      <div className="font-medium text-foreground">Volume</div>
+      <div className="text-muted-foreground text-sm mt-1">Playback volume from 0% to 200%. 100% is the normal level.</div>
+      <div className="flex items-center gap-3 mt-3">
+        <input
+          className="w-full accent-primary"
+          type="range"
+          min={0}
+          max={200}
+          step={5}
+          value={value}
+          onChange={(e) => updateData({ voice_volume: Number(e.target.value) })}
+          aria-label="Audio volume"
+        />
+        <span className="w-14 text-right text-sm tabular-nums">{value}%</span>
+      </div>
+      {error && (
+        <div className="text-red-600 dark:text-red-400 text-sm flex items-center space-x-1 pt-2">
+          <CircleAlertIcon className="h-5 w-5 flex-none" />
+          <div>{error}</div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function StatusDataInput({ data, updateData, errors }: InputProps) {
   const updateField = (newData: Partial<StatusData>) =>
     updateData({ status_data: { ...data.status_data, ...newData } });
@@ -2723,6 +2773,7 @@ function BaseInput({
   placeholders,
   disablePlaceholderBrackets,
   clearable,
+  audioUpload,
 }: {
   type?: "text" | "textarea" | "select";
   field: string;
@@ -2736,6 +2787,7 @@ function BaseInput({
   placeholders?: boolean;
   disablePlaceholderBrackets?: boolean;
   clearable?: boolean;
+  audioUpload?: boolean;
 }) {
   const error = errors[field];
 
@@ -2772,7 +2824,7 @@ function BaseInput({
       {description ? (
         <div className="text-muted-foreground text-sm mt-1">{description}</div>
       ) : null}
-      <div className="relative mt-2">
+      <div className={audioUpload ? "flex gap-2 mt-2" : "relative mt-2"}>
         {type === "textarea" ? (
           <Textarea
             value={value}
@@ -2808,27 +2860,34 @@ function BaseInput({
               )}
             </SelectContent>
           </Select>
-        ) : placeholders ? (
-          <PlaceholderInput
-            value={value}
-            onChange={(v) => updateValue(v)}
-            ref={inputRef}
-            placeholder={placeholder}
-          />
         ) : (
-          <Input
-            type="text"
-            value={value}
-            onChange={(e) => updateValue(e.target.value)}
-            ref={inputRef}
-            placeholder={placeholder}
-          />
+          <div className={audioUpload ? "relative flex-auto" : "contents"}>
+            {placeholders ? (
+              <PlaceholderInput
+                value={value}
+                onChange={(v) => updateValue(v)}
+                ref={inputRef}
+                placeholder={placeholder}
+              />
+            ) : (
+              <Input
+                type="text"
+                value={value}
+                onChange={(e) => updateValue(e.target.value)}
+                ref={inputRef}
+                placeholder={placeholder}
+              />
+            )}
+            {placeholders && (
+              <FlowPlaceholderExplorer
+                onSelect={onPlaceholderSelect}
+                hideBrackets={disablePlaceholderBrackets}
+              />
+            )}
+          </div>
         )}
-        {placeholders && (
-          <FlowPlaceholderExplorer
-            onSelect={onPlaceholderSelect}
-            hideBrackets={disablePlaceholderBrackets}
-          />
+        {audioUpload && (
+          <AudioUploadButton onAudioUploaded={(url) => updateValue(url)} />
         )}
       </div>
       {error && (
