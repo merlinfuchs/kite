@@ -175,6 +175,10 @@ async function runCase(c: EvalCase): Promise<CaseResult> {
     ];
     result.inventedIds.push(...ids.filter((id) => !known.includes(id)));
   }
+  const entry = flow.nodes.find((n) => n.type?.startsWith("entry_"));
+  for (const [key, value] of Object.entries(c.entry ?? {})) {
+    if (entry?.data[key] !== value) result.missingTypes.push(`entry ${key}`);
+  }
   const usesComponent = flow.edges.some((e) =>
     e.sourceHandle?.startsWith("component_")
   );

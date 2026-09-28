@@ -72,7 +72,7 @@ describe("runFlowAIPrompt", () => {
       (req) => [
         {
           op: "update_node",
-          id: req.flow.match(/- (\S+) action_log/)![1],
+          id: req.flow.match(/- (\S+): action_log/)![1],
           data: { log_level: "info", log_message: "hi" },
         },
       ],
@@ -259,7 +259,9 @@ describe("runFlowAIPrompt", () => {
   it("sends only the blocks the user selected as selected", async () => {
     const api = fakeAPI([addLog]);
     await run(api, [{ ...entry, selected: true }]);
-    expect(api.requests[0].flow).toContain("- entry entry_command (selected)");
+    expect(api.requests[0].flow).toContain(
+      '- entry: entry_command "Command" (selected)'
+    );
     // The added block is selected to highlight it, but not sent as selected.
     expect(api.requests[1].flow.match(/\(selected\)/g)).toHaveLength(1);
   });

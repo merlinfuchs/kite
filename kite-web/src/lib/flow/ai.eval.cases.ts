@@ -24,6 +24,8 @@ export interface EvalCase {
   componentBranch?: boolean;
   // The app's stored variables.
   variables?: { id: string; name: string; scoped: boolean }[];
+  // Settings the entry block must have after building.
+  entry?: Record<string, unknown>;
   // For questions: whether the answer should suggest a change, which is then
   // sent as the next prompt and has to build.
   thenBuild?: boolean;
@@ -258,6 +260,24 @@ export const evalCases: EvalCase[] = [
   },
 
   // Changing the ban command of the moderation template
+  {
+    name: "rename command",
+    context: "command",
+    flow: banFlow,
+    prompt: "rename the command to /banuser",
+    route: ["build"],
+    types: ["action_member_ban"],
+    // The entry's name setting after the edit.
+    entry: { name: "banuser" },
+  },
+  {
+    name: "change description",
+    context: "command",
+    flow: banFlow,
+    prompt: "change the command description to 'Bans someone from the server'",
+    route: ["build"],
+    entry: { description: "Bans someone from the server" },
+  },
   {
     name: "ban explain",
     context: "command",
