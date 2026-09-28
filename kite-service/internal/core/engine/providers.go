@@ -19,6 +19,7 @@ import (
 	"github.com/diamondburned/arikawa/v3/state"
 	disstore "github.com/diamondburned/arikawa/v3/state/store"
 	"github.com/diamondburned/arikawa/v3/utils/sendpart"
+	"github.com/diamondburned/arikawa/v3/voice"
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/internal/store"
 	"github.com/kitecloud/kite/kite-service/internal/util"
@@ -26,6 +27,7 @@ import (
 	"github.com/kitecloud/kite/kite-service/pkg/message"
 	"github.com/kitecloud/kite/kite-service/pkg/provider"
 	"github.com/kitecloud/kite/kite-service/pkg/thing"
+	"github.com/kitecloud/kite/kite-service/pkg/voiceaudio"
 	"github.com/openai/openai-go/v2"
 	"github.com/openai/openai-go/v2/responses"
 	"github.com/openai/openai-go/v2/shared"
@@ -49,6 +51,8 @@ type DiscordProvider struct {
 
 	interactionResponseMutex sync.Mutex
 	interactionsWithResponse map[discord.InteractionID]struct{}
+
+	voiceSessions *voiceSessionRegistry
 }
 
 func NewDiscordProvider(
@@ -57,6 +61,7 @@ func NewDiscordProvider(
 	featureProvider FeatureProvider,
 	rateLimiter *BlockRateLimiter,
 	session *state.State,
+	voiceSessions *voiceSessionRegistry,
 ) *DiscordProvider {
 	return &DiscordProvider{
 		appID:           appID,
@@ -64,6 +69,7 @@ func NewDiscordProvider(
 		featureProvider: featureProvider,
 		rateLimiter:     rateLimiter,
 		session:         session,
+		voiceSessions:   voiceSessions,
 
 		interactionsWithResponse: make(map[discord.InteractionID]struct{}),
 	}
@@ -415,21 +421,152 @@ func (p *DiscordProvider) RemoveThreadMember(ctx context.Context, channelID disc
 	return nil
 }
 
+type managedVoiceSession struct {
+	session   *voice.Session
+	channelID discord.ChannelID
+	playMu    sync.Mutex
+}
+
+type voiceSessionKey struct {
+	appID   string
+	guildID discord.GuildID
+}
+
+// voiceSessionRegistry is shared by all DiscordProvider instances for the
+// same Kite process. Flow executions create a fresh provider, so keeping the
+// voice session on DiscordProvider itself makes Join Voice and Play Audio use
+// different registries. The registry gives both blocks the same long-lived
+// voice session while Leave Voice can still own its lifetime.
+type voiceSessionRegistry struct {
+	mu       sync.Mutex
+	sessions map[voiceSessionKey]*managedVoiceSession
+}
+
+func newVoiceSessionRegistry() *voiceSessionRegistry {
+	return &voiceSessionRegistry{sessions: make(map[voiceSessionKey]*managedVoiceSession)}
+}
+
+func (r *voiceSessionRegistry) get(appID string, guildID discord.GuildID) *managedVoiceSession {
+	if r == nil {
+		return nil
+	}
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	return r.sessions[voiceSessionKey{appID: appID, guildID: guildID}]
+}
+
+func (r *voiceSessionRegistry) set(appID string, guildID discord.GuildID, session *managedVoiceSession) {
+	if r == nil {
+		return
+	}
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.sessions[voiceSessionKey{appID: appID, guildID: guildID}] = session
+}
+
+func (r *voiceSessionRegistry) delete(appID string, guildID discord.GuildID) *managedVoiceSession {
+	if r == nil {
+		return nil
+	}
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	key := voiceSessionKey{appID: appID, guildID: guildID}
+	session := r.sessions[key]
+	delete(r.sessions, key)
+	return session
+}
+
 func (p *DiscordProvider) UpdateVoiceState(ctx context.Context, guildID discord.GuildID, channelID discord.ChannelID, selfMute bool, selfDeaf bool) error {
 	if err := p.allowGatewayCommand(); err != nil {
 		return err
 	}
 
-	err := p.session.SendGateway(ctx, &gateway.UpdateVoiceStateCommand{
-		GuildID:   guildID,
-		ChannelID: channelID,
-		SelfMute:  selfMute,
-		SelfDeaf:  selfDeaf,
-	})
-	if err != nil {
-		return fmt.Errorf("failed to update voice state: %w", err)
+	// The Join/Leave blocks own the lifetime of the voice session. Play Audio
+	// deliberately does not join or leave; it only writes audio to the session
+	// established by Join Voice.
+	if !channelID.IsValid() {
+		vs := p.voiceSessions.delete(p.appID, guildID)
+
+		if vs != nil {
+			leaveCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+			defer cancel()
+			if err := vs.session.Leave(leaveCtx); err != nil {
+				return fmt.Errorf("failed to leave voice channel: %w", err)
+			}
+			return nil
+		}
+
+		// There may be no managed session if an older flow joined directly.
+		return p.session.SendGateway(ctx, &gateway.UpdateVoiceStateCommand{
+			GuildID: guildID, ChannelID: discord.NullChannelID, SelfMute: true, SelfDeaf: true,
+		})
 	}
 
+	existing := p.voiceSessions.get(p.appID, guildID)
+	if existing != nil && existing.channelID == channelID {
+		return nil
+	}
+
+	if existing != nil {
+		leaveCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+		_ = existing.session.Leave(leaveCtx)
+		cancel()
+		p.voiceSessions.delete(p.appID, guildID)
+	}
+
+	vs, err := voice.NewSession(p.session)
+	if err != nil {
+		return fmt.Errorf("failed to create voice session: %w", err)
+	}
+	vs.WSWaitDuration = 12 * time.Second
+	vs.WSMaxRetry = 2
+
+	joinCtx, cancelJoin := context.WithTimeout(ctx, 30*time.Second)
+	err = vs.JoinChannelAndSpeak(joinCtx, channelID, selfMute, selfDeaf)
+	cancelJoin()
+	if err != nil {
+		return fmt.Errorf("failed to join voice channel: %w", err)
+	}
+
+	p.voiceSessions.set(p.appID, guildID, &managedVoiceSession{session: vs, channelID: channelID})
+
+	// DAVE negotiation continues asynchronously after the voice connection is
+	// established. Do not fail/tear down Join while MLS is still converging.
+	// Play Audio gates transmission on the DAVE session becoming ready, so the
+	// Join Voice block remains responsible only for establishing the connection.
+	return nil
+}
+
+// PlayVoiceAudio writes audio to an already-connected voice session. The Join
+// Voice and Leave Voice blocks own the connection lifetime.
+func (p *DiscordProvider) PlayVoiceAudio(ctx context.Context, guildID discord.GuildID, audio []byte, volumePercent int) error {
+	managed := p.voiceSessions.get(p.appID, guildID)
+	if managed == nil {
+		return fmt.Errorf("bot is not connected to a voice channel; use the Join Voice Channel block before Play Audio")
+	}
+	// Arikawa's Write path is not safe for concurrent writers, so serialize
+	// multiple Play Audio blocks targeting the same voice connection.
+	managed.playMu.Lock()
+	defer managed.playMu.Unlock()
+
+	// Discord requires DAVE E2EE on current voice channels. The MLS handshake
+	// runs asynchronously after Join; hold this playback request until the
+	// active epoch exists instead of sending passthrough Opus frames that the
+	// desktop client will discard.
+	daveCtx, cancelDave := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancelDave()
+	if err := managed.session.WaitDaveReady(daveCtx); err != nil {
+		return fmt.Errorf("Discord voice is connected but DAVE encryption did not become ready: %w (DAVE diagnostics: %s)", err, managed.session.DaveDiagnostics())
+	}
+
+	frames, err := voiceaudio.DecodeToOpusFrames(ctx, audio, volumePercent)
+	if err != nil {
+		return fmt.Errorf("failed to decode audio: %w", err)
+	}
+
+	if err := voiceaudio.Stream(ctx, managed.session, frames); err != nil {
+		return fmt.Errorf("failed to stream audio: %w", err)
+	}
 	return nil
 }
 

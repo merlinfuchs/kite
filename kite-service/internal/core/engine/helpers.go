@@ -40,6 +40,7 @@ type Env struct {
 	HttpClient           *http.Client
 	OpenaiClient         *openai.Client
 	TokenCrypt           *util.SymmetricCrypt
+	VoiceSessions        *voiceSessionRegistry
 }
 
 type entityLinks struct {
@@ -57,7 +58,7 @@ func (s Env) flowProviders(appID string, session *state.State, links entityLinks
 	}
 
 	return flow.FlowProviders{
-		Discord: NewDiscordProvider(appID, s.AppStore, s.FeatureProvider, s.BlockRateLimiter, session),
+		Discord: NewDiscordProvider(appID, s.AppStore, s.FeatureProvider, s.BlockRateLimiter, session, s.VoiceSessions),
 		Roblox:  NewRobloxProvider(s.HttpClient),
 		Log: NewLogProvider(
 			appID,

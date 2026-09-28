@@ -36,6 +36,9 @@ func NewEngine(
 	if env.BlockRateLimiter == nil {
 		env.BlockRateLimiter = NewBlockRateLimiter()
 	}
+	if env.VoiceSessions == nil {
+		env.VoiceSessions = newVoiceSessionRegistry()
+	}
 
 	return &Engine{
 		env:           env,

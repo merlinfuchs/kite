@@ -9,6 +9,7 @@ import (
 	"math/rand"
 	"net/http"
 	"slices"
+	"strings"
 	"time"
 
 	"github.com/diamondburned/arikawa/v3/api"
@@ -21,6 +22,11 @@ import (
 	"github.com/kitecloud/kite/kite-service/pkg/thing"
 	"gopkg.in/guregu/null.v4"
 )
+
+// maxVoiceAudioDownloadSize bounds how large an audio file a Play Audio block
+// will download and stream into a voice channel. Kept well under a typical
+// asset size limit since the whole file is buffered and Opus-encoded in memory.
+const maxVoiceAudioDownloadSize = 8 * 1024 * 1024
 
 func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 	if n == nil {
@@ -1327,6 +1333,85 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 		}
 
 		err = ctx.Discord.UpdateVoiceState(ctx, guildID, 0, false, false)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		return n.ExecuteChildren(ctx)
+	case FlowNodeTypeActionVoiceChannelPlayAudio:
+		guildID, err := n.targetGuildID(ctx)
+		if err != nil {
+			return traceError(n, err)
+		}
+		if guildID == 0 {
+			return traceError(n, fmt.Errorf("playing audio only works in servers"))
+		}
+
+		audioURL, err := ctx.EvalTemplate(n.Data.VoiceAudioURL)
+		if err != nil {
+			return traceError(n, err)
+		}
+		if audioURL.String() == "" {
+			return traceError(n, fmt.Errorf("no audio file configured for this block"))
+		}
+
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, audioURL.String(), nil)
+		if err != nil {
+			return traceError(n, fmt.Errorf("invalid audio file url: %w", err))
+		}
+
+		// Asset downloads normally complete immediately, but object-storage-backed
+		// assets can briefly return a 5xx while the object becomes available.
+		// Retry only transient server failures; never retry client errors.
+		var resp *http.Response
+		for attempt := 0; attempt < 3; attempt++ {
+			resp, err = ctx.HTTP.HTTPRequest(ctx, req)
+			if err != nil {
+				return traceError(n, fmt.Errorf("failed to download audio file: %w", err))
+			}
+
+			if resp.StatusCode >= 200 && resp.StatusCode < 300 {
+				break
+			}
+
+			body, _ := io.ReadAll(io.LimitReader(resp.Body, 4096))
+			resp.Body.Close()
+			if resp.StatusCode < 500 || resp.StatusCode >= 600 || attempt == 2 {
+				message := strings.TrimSpace(string(body))
+				if len(message) > 1000 {
+					message = message[:1000]
+				}
+				if message == "" {
+					message = "no response body"
+				}
+				return traceError(n, fmt.Errorf("failed to download audio file: HTTP %d: %s", resp.StatusCode, message))
+			}
+
+			select {
+			case <-ctx.Done():
+				return traceError(n, fmt.Errorf("failed to download audio file: %w", ctx.Err()))
+			case <-time.After(time.Duration(attempt+1) * 250 * time.Millisecond):
+			}
+		}
+		defer resp.Body.Close()
+
+		audioData, err := io.ReadAll(io.LimitReader(resp.Body, maxVoiceAudioDownloadSize+1))
+		if err != nil {
+			return traceError(n, fmt.Errorf("failed to read audio file: %w", err))
+		}
+		if len(audioData) > maxVoiceAudioDownloadSize {
+			return traceError(n, fmt.Errorf("audio file is too large (max %d bytes)", maxVoiceAudioDownloadSize))
+		}
+
+		volume := n.Data.VoiceVolume
+		if volume == 0 {
+			volume = 100
+		}
+		if volume < 0 || volume > 200 {
+			return traceError(n, fmt.Errorf("audio volume must be between 0 and 200 percent"))
+		}
+
+		err = ctx.Discord.PlayVoiceAudio(ctx, guildID, audioData, volume)
 		if err != nil {
 			return traceError(n, err)
 		}

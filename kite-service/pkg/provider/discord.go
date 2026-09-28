@@ -50,6 +50,9 @@ type DiscordProvider interface {
 	DeleteRole(ctx context.Context, guildID discord.GuildID, roleID discord.RoleID) error
 
 	UpdateVoiceState(ctx context.Context, guildID discord.GuildID, channelID discord.ChannelID, selfMute bool, selfDeaf bool) error
+	// PlayVoiceAudio streams the given audio file into an already-connected voice
+	// channel. Join Voice and Leave Voice own the connection lifetime.
+	PlayVoiceAudio(ctx context.Context, guildID discord.GuildID, audio []byte, volumePercent int) error
 	UpdatePresence(ctx context.Context, status discord.Status, activity discord.Activity) error
 
 	HasCreatedInteractionResponse(ctx context.Context, interactionID discord.InteractionID) (bool, error)
@@ -221,6 +224,10 @@ func (p *MockDiscordProvider) EditRole(ctx context.Context, guildID discord.Guil
 }
 
 func (p *MockDiscordProvider) DeleteRole(ctx context.Context, guildID discord.GuildID, roleID discord.RoleID) error {
+	return nil
+}
+
+func (p *MockDiscordProvider) PlayVoiceAudio(ctx context.Context, guildID discord.GuildID, audio []byte, volumePercent int) error {
 	return nil
 }
 

@@ -94,6 +94,7 @@ const (
 	FlowNodeTypeActionVariableGet           FlowNodeType = "action_variable_get"
 	FlowNodeTypeActionVoiceChannelJoin      FlowNodeType = "action_voice_channel_join"
 	FlowNodeTypeActionVoiceChannelLeave     FlowNodeType = "action_voice_channel_leave"
+	FlowNodeTypeActionVoiceChannelPlayAudio FlowNodeType = "action_voice_channel_play_audio"
 	FlowNodeTypeActionStatusSet             FlowNodeType = "action_status_set"
 
 	FlowNodeTypeControlConditionCompare     FlowNodeType = "control_condition_compare"
@@ -193,6 +194,10 @@ type FlowNodeData struct {
 	// Voice Channel Join
 	VoiceSelfMute bool `json:"voice_self_mute,omitempty"`
 	VoiceSelfDeaf bool `json:"voice_self_deaf,omitempty"`
+
+	// Voice Channel Play Audio
+	VoiceAudioURL string `json:"voice_audio_url,omitempty"`
+	VoiceVolume   int    `json:"voice_volume,omitempty"`
 
 	// Status Set
 	StatusData *StatusData `json:"status_data,omitempty"`

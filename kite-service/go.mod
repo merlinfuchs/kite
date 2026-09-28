@@ -1,8 +1,10 @@
 module github.com/kitecloud/kite/kite-service
 
-go 1.25.0
+go 1.26.0
 
 require (
+	github.com/disgoorg/godave v0.2.0
+	github.com/thomas-vilte/dave-go v0.5.1
 	github.com/NdoleStudio/lemonsqueezy-go v1.2.4
 	github.com/cyrusaf/ctxlog v1.3.2
 	github.com/dgraph-io/ristretto v0.1.1
@@ -101,4 +103,8 @@ require (
 
 replace github.com/merlinfuchs/kite/kite-web v0.0.0 => ../kite-web
 
-replace github.com/diamondburned/arikawa/v3 v3.4.0 => github.com/merlinfuchs/arikawa/v3 v3.4.1-0.20260923185323-eff44a04d6a7
+// Patched locally to declare DAVE (E2EE) protocol version 1 in the voice
+// Identify payload -- see thirdparty/arikawa/voice/voicegateway/events.go
+// and gateway.go. Without this, Discord closes voice connections with
+// close code 4017 ("E2EE/DAVE protocol required") as of March 2026.
+replace github.com/diamondburned/arikawa/v3 v3.4.0 => ./thirdparty/arikawa

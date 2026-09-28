@@ -1,0 +1,83 @@
+package discord_test
+
+import (
+	"encoding/json"
+	"fmt"
+	"log"
+
+	"github.com/diamondburned/arikawa/v3/discord"
+)
+
+func ExampleTopLevelComponents_Unmarshal() {
+	components := &discord.TopLevelComponents{
+		&discord.ActionRowComponent{
+			&discord.TextInputComponent{
+				CustomID: "text1",
+				Value:    "hello",
+			},
+		},
+		&discord.ActionRowComponent{
+			&discord.TextInputComponent{
+				CustomID: "text2",
+				Value:    "hello 2",
+			},
+			&discord.TextInputComponent{
+				CustomID: "text3",
+				Value:    "hello 3",
+			},
+		},
+		&discord.ActionRowComponent{
+			&discord.StringSelectComponent{
+				CustomID: "select1",
+				Options: []discord.SelectOption{
+					{Value: "option 1"},
+					{Value: "option 2"},
+				},
+			},
+			&discord.ButtonComponent{
+				CustomID: "button1",
+			},
+		},
+		&discord.ActionRowComponent{
+			&discord.StringSelectComponent{
+				CustomID: "select2",
+				Options: []discord.SelectOption{
+					{Value: "option 1"},
+				},
+			},
+		},
+	}
+
+	var data struct {
+		Text1   string   `discord:"text1"`
+		Text2   string   `discord:"text2?"`
+		Text3   *string  `discord:"text3"`
+		Text4   string   `discord:"text4?"`
+		Text5   *string  `discord:"text5"`
+		Select1 []string `discord:"select1"`
+		Select2 string   `discord:"select2"`
+		Button1 bool     `discord:"button1"`
+	}
+
+	if err := components.Unmarshal(&data); err != nil {
+		log.Fatalln(err)
+	}
+
+	b, _ := json.MarshalIndent(data, "", "  ")
+	fmt.Println(string(b))
+
+	// Output:
+	// {
+	//   "Text1": "hello",
+	//   "Text2": "hello 2",
+	//   "Text3": "hello 3",
+	//   "Text4": "",
+	//   "Text5": null,
+	//   "Select1": [
+	//     "option 1",
+	//     "option 2"
+	//   ],
+	//   "Select2": "option 1",
+	//   "Button1": true
+	// }
+}

@@ -3971,6 +3971,43 @@
       },
       "result_schema": null
     },
+    "action_voice_channel_play_audio": {
+      "title": "Play audio",
+      "description": "Play an audio file in the connected voice channel",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord",
+        "event_schedule"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "type": "string",
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+          },
+          "voice_audio_url": {
+            "type": "string",
+            "description": "URL of the uploaded audio file to play (max 8 MB)."
+          },
+          "voice_volume": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 200,
+            "description": "Playback volume from 0% to 200%. Defaults to 100%."
+          }
+        },
+        "additionalProperties": false
+      },
+      "result_schema": null
+    },
     "action_status_set": {
       "title": "Set status",
       "description": "Change the status and activity of the bot",

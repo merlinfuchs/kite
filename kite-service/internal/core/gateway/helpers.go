@@ -21,7 +21,11 @@ const (
 // requirements cannot be loaded, so a database blip degrades to the old
 // unconditional behaviour rather than to dropping events.
 func allPermittedIntents(flags discord.ApplicationFlags) gateway.Intents {
-	res := gateway.IntentGuilds | gateway.IntentGuildMessages | gateway.IntentGuildMessageReactions
+	// IntentGuildVoiceStates is not privileged, so it's always requested: it's
+	// required to receive the voice server handshake events that let a bot
+	// actually stream audio into a voice channel (e.g. the Play Audio block),
+	// not just send the join gateway command.
+	res := gateway.IntentGuilds | gateway.IntentGuildMessages | gateway.IntentGuildMessageReactions | gateway.IntentGuildVoiceStates
 
 	if flags&GATEWAY_MESSAGE_CONTENT != 0 || flags&GATEWAY_MESSAGE_CONTENT_LIMITED != 0 {
 		res |= gateway.IntentMessageContent
@@ -44,7 +48,8 @@ func intentsForRequirements(reqs model.AppGatewayRequirements, flags discord.App
 	// needs nothing beyond IntentGuilds -- which is kept for everyone because
 	// the dashboard's guild and channel pickers read from the state cache it
 	// populates.
-	res := gateway.IntentGuilds
+	// See the comment on IntentGuildVoiceStates in allPermittedIntents.
+	res := gateway.IntentGuilds | gateway.IntentGuildVoiceStates
 
 	if reqs.NeedsGuildMessages() {
 		res |= gateway.IntentGuildMessages
