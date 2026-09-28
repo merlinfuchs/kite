@@ -6,6 +6,7 @@ import {
   MailPlusIcon,
   SatelliteDishIcon,
   BlocksIcon,
+  MousePointerClickIcon,
 } from "lucide-react";
 
 import {
@@ -42,6 +43,12 @@ export default function AppSidebarStudioNav() {
         url: "/apps/[appId]/commands",
         icon: SlashSquareIcon,
         active: isActive("/apps/[appId]/commands"),
+      },
+      {
+        name: "Context Menus",
+        url: "/apps/[appId]/context-menus",
+        icon: MousePointerClickIcon,
+        active: isActive("/apps/[appId]/context-menus"),
       },
       {
         name: "Event Listeners",

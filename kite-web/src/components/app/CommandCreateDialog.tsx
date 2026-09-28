@@ -42,8 +42,10 @@ interface FormFields {
 
 export default function CommandCreateDialog({
   children,
+  contextMenu = false,
 }: {
   children: ReactNode;
+  contextMenu?: boolean;
 }) {
   const [open, setOpen] = useState(false);
 
@@ -55,7 +57,7 @@ export default function CommandCreateDialog({
     defaultValues: {
       name: "",
       description: "",
-      command_type: "chat_input",
+      command_type: contextMenu ? "user" : "chat_input",
     },
   });
 
@@ -110,9 +112,13 @@ export default function CommandCreateDialog({
       <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Create Command</DialogTitle>
+          <DialogTitle>
+            {contextMenu ? "Create Context Menu" : "Create Command"}
+          </DialogTitle>
           <DialogDescription>
-            Create a new command with a name and description.
+            {contextMenu
+              ? "Create a user or message context menu command."
+              : "Create a new command with a name and description."}
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -134,7 +140,11 @@ export default function CommandCreateDialog({
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="chat_input">Slash Command</SelectItem>
+                      {!contextMenu && (
+                        <SelectItem value="chat_input">
+                          Slash Command
+                        </SelectItem>
+                      )}
                       <SelectItem value="user">User Context Menu</SelectItem>
                       <SelectItem value="message">
                         Message Context Menu

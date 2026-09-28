@@ -9,8 +9,25 @@ import { useCommands } from "@/lib/hooks/api";
 import { CommandDeployDialog } from "./CommandDeployDialog";
 import { useState } from "react";
 
-export default function CommandList() {
-  const commands = useCommands();
+function getCommandType(command: any): string {
+  const nodes = command?.flow_source?.nodes ?? [];
+  const entry = nodes.find((n: any) => n.type === "entry_command");
+  return entry?.data?.command_type ?? "chat_input";
+}
+
+export default function CommandList({
+  kind = "command",
+}: {
+  kind?: "command" | "context_menu";
+}) {
+  const allCommands = useCommands();
+
+  const commands = allCommands?.filter((c) => {
+    const type = getCommandType(c);
+    return kind === "context_menu"
+      ? type === "user" || type === "message"
+      : type === "chat_input";
+  });
 
   const [deployDialogOpen, setDeployDialogOpen] = useState(false);
 
@@ -26,7 +43,11 @@ export default function CommandList() {
         <>
           {commands.length === 0 ? (
             <AppEmptyPlaceholder
-              title="There are no commands"
+              title={
+                kind === "context_menu"
+                  ? "There are no context menu commands"
+                  : "There are no commands"
+              }
               description="You can start now by creating the first command! If you deleted commands that still show up in Discord, deploy to remove them."
             />
           ) : (
@@ -41,11 +62,19 @@ export default function CommandList() {
               undeployed changes" made deleted commands unremovable. */}
           <div className="flex gap-5 justify-between flex-col md:flex-row">
             <div className="flex gap-5 flex-col md:flex-row">
-              <CommandCreateDialog>
-                <Button>Create command</Button>
+              <CommandCreateDialog contextMenu={kind === "context_menu"}>
+                <Button>
+                  {kind === "context_menu"
+                    ? "Create context menu"
+                    : "Create command"}
+                </Button>
               </CommandCreateDialog>
               <FlowImportDialog kind="command">
-                <Button variant="outline">Import command</Button>
+                <Button variant="outline">
+                  {kind === "context_menu"
+                    ? "Import context menu"
+                    : "Import command"}
+                </Button>
               </FlowImportDialog>
             </div>
 
