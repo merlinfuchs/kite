@@ -45,16 +45,16 @@ export default function AppSidebarStudioNav() {
         active: isActive("/apps/[appId]/commands"),
       },
       {
-        name: "Context Menus",
-        url: "/apps/[appId]/context-menus",
-        icon: MousePointerClickIcon,
-        active: isActive("/apps/[appId]/context-menus"),
-      },
-      {
         name: "Event Listeners",
         url: "/apps/[appId]/events",
         icon: SatelliteDishIcon,
         active: isActive("/apps/[appId]/events"),
+      },
+      {
+        name: "Context Menus",
+        url: "/apps/[appId]/context-menus",
+        icon: MousePointerClickIcon,
+        active: isActive("/apps/[appId]/context-menus"),
       },
       {
         name: "Message Templates",
