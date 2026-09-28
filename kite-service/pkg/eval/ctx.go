@@ -243,9 +243,8 @@ type EventEnv struct {
 	Member  any           `expr:"member" json:"member"`
 	Channel *SnowflakeEnv `expr:"channel" json:"channel"`
 	Message *MessageEnv   `expr:"message" json:"message"`
-	Guild   *SnowflakeEnv `expr:"guild" json:"guild"`
-	Emoji   *EmojiEnv     `expr:"emoji" json:"emoji"`
 	Guild   any           `expr:"guild" json:"guild"`
+	Emoji   *EmojiEnv     `expr:"emoji" json:"emoji"`
 
 	Schedule *ScheduleEnv `expr:"schedule" json:"schedule"`
 }

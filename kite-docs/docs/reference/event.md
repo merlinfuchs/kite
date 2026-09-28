@@ -13,6 +13,8 @@ With Event Listeners you can listen for events inside the Discord servers that y
 - Member Leave
 - Reaction Add
 - Reaction Remove
+- Bot Joined Server
+- Bot Left Server
 
 ## Restrictions
 

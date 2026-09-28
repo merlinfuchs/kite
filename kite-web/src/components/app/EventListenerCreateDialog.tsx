@@ -205,6 +205,7 @@ export default function EventListenerCreateDialog({
                         </SelectItem>
                         <SelectItem value="message_reaction_remove">
                           Message Reaction Remove
+                        </SelectItem>
                         <SelectItem value="guild_create">
                           Bot Joined Server
                         </SelectItem>
