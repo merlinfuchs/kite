@@ -74,6 +74,52 @@ func (h *AppHandler) updateDiscordBotUser(ctx context.Context, app *model.App) e
 	return nil
 }
 
+func (h *AppHandler) getDiscordBotAvatarURL(ctx context.Context, app *model.App) (null.String, error) {
+	client, err := h.getAppClient(ctx, app)
+	if err != nil {
+		return null.String{}, fmt.Errorf("failed to get app client: %w", err)
+	}
+
+	user, err := client.Me()
+	if err != nil {
+		return null.String{}, err
+	}
+
+	return avatarURL(user), nil
+}
+
+// updateDiscordBotAvatar sends the request by hand because arikawa's
+// ModifyCurrentUserData tags the avatar as "image" instead of "avatar".
+// An empty image marshals to null, which removes the avatar.
+func (h *AppHandler) updateDiscordBotAvatar(ctx context.Context, app *model.App, img api.Image) (null.String, error) {
+	client, err := h.getAppClient(ctx, app)
+	if err != nil {
+		return null.String{}, fmt.Errorf("failed to get app client: %w", err)
+	}
+
+	req := struct {
+		Avatar api.Image `json:"avatar"`
+	}{
+		Avatar: img,
+	}
+
+	var user discord.User
+	err = client.RequestJSON(&user, "PATCH", api.EndpointMe, httputil.WithJSONBody(req))
+	if err != nil {
+		return null.String{}, err
+	}
+
+	return avatarURL(&user), nil
+}
+
+func avatarURL(user *discord.User) null.String {
+	if user.Avatar == "" {
+		return null.String{}
+	}
+
+	return null.StringFrom(user.AvatarURL())
+}
+
 func (h *AppHandler) getAppEmojis(ctx context.Context, app *model.App) ([]discord.Emoji, error) {
 	client, err := h.getAppClient(ctx, app)
 	if err != nil {

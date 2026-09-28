@@ -152,6 +152,16 @@ func (s *APIServer) RegisterRoutes(
 		handler.RateLimitByUser(2, time.Minute),
 	)
 	appGroup.Delete("/", handler.Typed(appHandler.HandleAppDelete))
+	appGroup.Get("/avatar", handler.Typed(appHandler.HandleAppAvatarGet))
+	// Discord only allows a couple of avatar changes per hour.
+	appGroup.Put("/avatar",
+		handler.TypedWithBody(appHandler.HandleAppAvatarUpdate),
+		handler.RateLimitByUser(2, time.Minute),
+	)
+	appGroup.Delete("/avatar",
+		handler.Typed(appHandler.HandleAppAvatarDelete),
+		handler.RateLimitByUser(2, time.Minute),
+	)
 	appGroup.Get("/emojis",
 		handler.Typed(appHandler.HandleAppEmojisList),
 		handler.CacheByUser(cacheManager, time.Minute),

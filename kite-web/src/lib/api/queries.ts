@@ -1,6 +1,7 @@
 import { useQueries, useQuery } from "@tanstack/react-query";
 import { apiRequest } from "./client";
 import {
+  AppAvatarGetResponse,
   AppCollaboratorListResponse,
   AppEmojiListResponse,
   AppEntityListResponse,
@@ -53,6 +54,14 @@ export function useAppQuery(appId: string) {
   return useQuery({
     queryKey: ["apps", appId],
     queryFn: () => apiRequest<AppGetResponse>(`/v1/apps/${appId}`),
+    enabled: !!appId,
+  });
+}
+
+export function useAppAvatarQuery(appId: string) {
+  return useQuery({
+    queryKey: ["apps", appId, "avatar"],
+    queryFn: () => apiRequest<AppAvatarGetResponse>(`/v1/apps/${appId}/avatar`),
     enabled: !!appId,
   });
 }

@@ -94,6 +94,27 @@ func (req AppTokenUpdateRequest) Validate() error {
 
 type AppTokenUpdateResponse = App
 
+type AppAvatar struct {
+	AvatarURL null.String `json:"avatar_url"`
+}
+
+type AppAvatarGetResponse = AppAvatar
+
+type AppAvatarUpdateRequest struct {
+	// Base64 encoded image data, without the data URI prefix.
+	Avatar string `json:"avatar"`
+}
+
+func (req AppAvatarUpdateRequest) Validate() error {
+	return validation.ValidateStruct(&req,
+		validation.Field(&req.Avatar, validation.Required),
+	)
+}
+
+type AppAvatarUpdateResponse = AppAvatar
+
+type AppAvatarDeleteResponse = AppAvatar
+
 type AppDeleteResponse = Empty
 
 type AppListResponse = []*App

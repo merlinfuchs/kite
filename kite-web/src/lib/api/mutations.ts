@@ -1,5 +1,8 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
+  AppAvatarDeleteResponse,
+  AppAvatarUpdateRequest,
+  AppAvatarUpdateResponse,
   AppCollaboratorCreateRequest,
   AppCollaboratorCreateResponse,
   AppCollaboratorDeleteResponse,
@@ -159,6 +162,42 @@ export function useAppTokenUpdateMutation(appId: string) {
     onSuccess: () => {
       client.invalidateQueries({
         queryKey: ["apps"],
+      });
+    },
+  });
+}
+
+export function useAppAvatarUpdateMutation(appId: string) {
+  const client = useQueryClient();
+
+  return useMutation({
+    mutationFn: (req: AppAvatarUpdateRequest) =>
+      apiRequest<AppAvatarUpdateResponse>(`/v1/apps/${appId}/avatar`, {
+        method: "PUT",
+        body: JSON.stringify(req),
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }),
+    onSuccess: () => {
+      client.invalidateQueries({
+        queryKey: ["apps", appId, "avatar"],
+      });
+    },
+  });
+}
+
+export function useAppAvatarDeleteMutation(appId: string) {
+  const client = useQueryClient();
+
+  return useMutation({
+    mutationFn: () =>
+      apiRequest<AppAvatarDeleteResponse>(`/v1/apps/${appId}/avatar`, {
+        method: "DELETE",
+      }),
+    onSuccess: () => {
+      client.invalidateQueries({
+        queryKey: ["apps", appId, "avatar"],
       });
     },
   });

@@ -53,6 +53,18 @@ export interface AppTokenUpdateRequest {
   discord_token: string;
 }
 export type AppTokenUpdateResponse = App;
+export interface AppAvatar {
+  avatar_url: null | string;
+}
+export type AppAvatarGetResponse = AppAvatar;
+export interface AppAvatarUpdateRequest {
+  /**
+   * Base64 encoded image data, without the data URI prefix.
+   */
+  avatar: string;
+}
+export type AppAvatarUpdateResponse = AppAvatar;
+export type AppAvatarDeleteResponse = AppAvatar;
 export type AppDeleteResponse = Empty;
 export type AppListResponse = (App | undefined)[];
 export type AppEmojiListResponse = (AppEmoji | undefined)[];

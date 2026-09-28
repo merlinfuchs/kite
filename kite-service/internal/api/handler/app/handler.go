@@ -1,11 +1,16 @@
 package app
 
 import (
+	"bytes"
+	"encoding/base64"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
 	"time"
 
+	"github.com/diamondburned/arikawa/v3/api"
+	"github.com/diamondburned/arikawa/v3/utils/httputil"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler"
 	"github.com/kitecloud/kite/kite-service/internal/api/wire"
 	"github.com/kitecloud/kite/kite-service/internal/model"
@@ -245,6 +250,95 @@ func (h *AppHandler) HandleAppTokenUpdate(c *handler.Context, req wire.AppTokenU
 	}
 
 	return wire.AppToWire(app), nil
+}
+
+// maxAvatarSize bounds the decoded avatar. Its base64 form has to fit in
+// handler.MaxJSONBodySize.
+const maxAvatarSize = 5 * 1024 * 1024
+
+func (h *AppHandler) HandleAppAvatarGet(c *handler.Context) (*wire.AppAvatarGetResponse, error) {
+	avatarURL, err := h.getDiscordBotAvatarURL(c.Context(), c.App)
+	if err != nil {
+		if util.IsDiscordRestStatusCode(err, http.StatusUnauthorized) {
+			return nil, handler.ErrBadRequest("invalid_discord_token", "Invalid Discord token")
+		}
+		return nil, fmt.Errorf("failed to get discord bot avatar: %w", err)
+	}
+
+	return &wire.AppAvatarGetResponse{AvatarURL: avatarURL}, nil
+}
+
+func (h *AppHandler) HandleAppAvatarUpdate(c *handler.Context, req wire.AppAvatarUpdateRequest) (*wire.AppAvatarUpdateResponse, error) {
+	content, err := base64.StdEncoding.DecodeString(req.Avatar)
+	if err != nil {
+		return nil, handler.ErrBadRequest("invalid_avatar", "Avatar is not valid base64")
+	}
+
+	if len(content) > maxAvatarSize {
+		return nil, handler.ErrBadRequest(
+			"resource_limit",
+			fmt.Sprintf("avatar size exceeds maximum allowed size (%d)", maxAvatarSize),
+		)
+	}
+
+	// Sniff the type instead of trusting the client.
+	contentType := http.DetectContentType(content)
+	switch contentType {
+	case "image/png", "image/jpeg", "image/gif":
+	default:
+		return nil, handler.ErrBadRequest("invalid_avatar", "Avatar must be a PNG, JPEG or GIF image")
+	}
+
+	avatarURL, err := h.updateDiscordBotAvatar(c.Context(), c.App, api.Image{
+		ContentType: contentType,
+		Content:     content,
+	})
+	if err != nil {
+		if util.IsDiscordRestStatusCode(err, http.StatusUnauthorized) {
+			return nil, handler.ErrBadRequest("invalid_discord_token", "Invalid Discord token")
+		}
+		var restErr *httputil.HTTPError
+		if errors.As(err, &restErr) && restErr.Status == http.StatusBadRequest {
+			// Discord reports avatar rate limits as a form error, not a 429.
+			if bytes.Contains(restErr.Errors, []byte("AVATAR_RATE_LIMIT")) {
+				return nil, handler.ErrBadRequest("avatar_rate_limited", "The avatar was changed too often, try again later")
+			}
+			return nil, handler.ErrBadRequest("invalid_avatar", "Discord rejected the avatar")
+		}
+
+		slog.Error(
+			"Failed to update discord bot avatar",
+			slog.String("app_id", c.App.ID),
+			slog.String("error", err.Error()),
+		)
+		return nil, fmt.Errorf("failed to update discord bot avatar: %w", err)
+	}
+
+	return &wire.AppAvatarUpdateResponse{AvatarURL: avatarURL}, nil
+}
+
+func (h *AppHandler) HandleAppAvatarDelete(c *handler.Context) (*wire.AppAvatarDeleteResponse, error) {
+	avatarURL, err := h.updateDiscordBotAvatar(c.Context(), c.App, api.Image{})
+	if err != nil {
+		if util.IsDiscordRestStatusCode(err, http.StatusUnauthorized) {
+			return nil, handler.ErrBadRequest("invalid_discord_token", "Invalid Discord token")
+		}
+
+		var restErr *httputil.HTTPError
+		if errors.As(err, &restErr) && restErr.Status == http.StatusBadRequest &&
+			bytes.Contains(restErr.Errors, []byte("AVATAR_RATE_LIMIT")) {
+			return nil, handler.ErrBadRequest("avatar_rate_limited", "The avatar was changed too often, try again later")
+		}
+
+		slog.Error(
+			"Failed to remove discord bot avatar",
+			slog.String("app_id", c.App.ID),
+			slog.String("error", err.Error()),
+		)
+		return nil, fmt.Errorf("failed to remove discord bot avatar: %w", err)
+	}
+
+	return &wire.AppAvatarDeleteResponse{AvatarURL: avatarURL}, nil
 }
 
 func (h *AppHandler) HandleAppDelete(c *handler.Context) (*wire.AppDeleteResponse, error) {
