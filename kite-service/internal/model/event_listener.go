@@ -24,6 +24,8 @@ const (
 	EventListenerTypeDiscordMessageDelete     EventListenerType = "message_delete"
 	EventListenerTypeDiscordGuildMemberAdd    EventListenerType = "guild_member_add"
 	EventListenerTypeDiscordGuildMemberRemove EventListenerType = "guild_member_remove"
+	EventListenerTypeDiscordGuildCreate       EventListenerType = "guild_create"
+	EventListenerTypeDiscordGuildDelete       EventListenerType = "guild_delete"
 
 	EventListenerTypeScheduleCron EventListenerType = EventListenerType(flow.EventTypeScheduleCron)
 )
