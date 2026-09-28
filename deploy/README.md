@@ -16,7 +16,7 @@ They need `pnpm`, `go`, `rsync` and SSH access to the server.
 ## Server setup
 
 1. Add the server blocks from `deploy/nginx.conf` next to the api.kite.onl config and run `nginx -t && systemctl reload nginx`.
-2. Route kite.onl and docs.kite.onl to nginx in Cloudflare the same way as api.kite.onl.
+2. Add kite.onl and docs.kite.onl as public hostnames on the Cloudflare tunnel, pointing at nginx like api.kite.onl. The existing DNS records for them (pointing at Vercel) have to be removed first.
 3. Create `WEB_DIR` and `DOCS_DIR` and make them writable by the SSH user.
 4. Put `kite.toml` with `cluster_count = 4` in `SERVICE_DIR` and run the clusters from a systemd template unit like this one, as `kite-service@0` to `kite-service@3`. Each cluster gets its index and API port from the instance name, and migrations run on every start.
 
