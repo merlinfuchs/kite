@@ -1,25 +1,13 @@
-import {
-  LayoutPanelLeftIcon,
-  LogInIcon,
-  MoonStarIcon,
-  PackageIcon,
-  SunIcon,
-} from "lucide-react";
+import { LayoutPanelLeftIcon, LogInIcon, PackageIcon } from "lucide-react";
 import HomeNavbarMenu from "./HomeNavbarMenu";
-import { useTheme } from "next-themes";
-import { useAfterMounted } from "@/lib/hooks/mounted";
 import { Button } from "../ui/button";
 import Link from "next/link";
 import { useResponseData } from "@/lib/hooks/api";
 import { useUserQuery } from "@/lib/api/queries";
 import { Skeleton } from "../ui/skeleton";
+import ThemeSwitch from "../common/ThemeSwitch";
 
 export default function HomeNavbar() {
-  const { theme, setTheme } = useAfterMounted(useTheme(), {
-    theme: "light",
-    setTheme: () => {},
-  });
-
   const userQuery = useUserQuery();
   const user = useResponseData(userQuery);
 
@@ -27,17 +15,7 @@ export default function HomeNavbar() {
     <div className="border-b py-2 px-5 flex justify-between items-center">
       <HomeNavbarMenu />
       <div className="flex items-center space-x-5">
-        {theme === "dark" ? (
-          <MoonStarIcon
-            className="w-6 h-6 cursor-pointer"
-            onClick={() => setTheme("light")}
-          />
-        ) : (
-          <SunIcon
-            className="w-6 h-6 cursor-pointer"
-            onClick={() => setTheme("dark")}
-          />
-        )}
+        <ThemeSwitch />
         {userQuery.isPending ? (
           <Skeleton className="h-10 w-28" />
         ) : user ? (
