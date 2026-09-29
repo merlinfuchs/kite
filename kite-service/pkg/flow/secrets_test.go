@@ -5,6 +5,7 @@ import (
 	"errors"
 	"io"
 	"net/http"
+	"net/url"
 	"strings"
 	"testing"
 	"time"
@@ -124,4 +125,28 @@ func TestSecretsOnlyInRequests(t *testing.T) {
 	err := executeWithSecrets(t, node, secrets, &httpTestProvider{})
 	require.Error(t, err)
 	assert.Empty(t, secrets.asked)
+}
+
+// Errors of the HTTP client contain the URL, where a secret can be encoded in
+// ways the value doesn't match.
+func TestHTTPRequestRedactsURLs(t *testing.T) {
+	secrets := &secretTestProvider{values: map[string]string{"API_KEY": "s3cr3t/value"}}
+	httpProvider := &httpTestProvider{err: &url.Error{
+		Op:  "Get",
+		URL: "https://example.com/s3cr3t%2Fvalue",
+		Err: errors.New("dial tcp: lookup failed"),
+	}}
+
+	err := executeWithSecrets(t, httpNode(HTTPRequestData{URL: "https://example.com/{{secrets.API_KEY}}"}), secrets, httpProvider)
+	require.Error(t, err)
+	assert.NotContains(t, err.Error(), "s3cr3t")
+	assert.Contains(t, err.Error(), `"https://example.com"`)
+}
+
+func TestSecretNames(t *testing.T) {
+	assert.Equal(t, []string{"A", "_B"}, secretNames([]string{
+		"https://example.com/secrets.txt?key={{secrets.A}}",
+		"{{ secrets._B + secrets.A }}",
+		"secrets.C",
+	}))
 }

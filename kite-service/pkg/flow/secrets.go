@@ -1,6 +1,7 @@
 package flow
 
 import (
+	"errors"
 	"fmt"
 	"maps"
 	"net/url"
@@ -12,7 +13,26 @@ import (
 	"github.com/kitecloud/kite/kite-service/pkg/thing"
 )
 
-var secretReferenceRe = regexp.MustCompile(`\bsecrets\.([A-Za-z0-9_]+)`)
+var (
+	placeholderRe     = regexp.MustCompile(`(?s)\{\{(.*?)\}\}`)
+	secretReferenceRe = regexp.MustCompile(`\bsecrets\.([A-Za-z_][A-Za-z0-9_]*)`)
+)
+
+// secretNames are the secrets the templates reference. Only placeholders are
+// searched, as text like secrets.txt in a URL doesn't reference a secret.
+func secretNames(templates []string) []string {
+	var names []string
+	for _, template := range templates {
+		for _, p := range placeholderRe.FindAllStringSubmatch(template, -1) {
+			for _, m := range secretReferenceRe.FindAllStringSubmatch(p[1], -1) {
+				if !slices.Contains(names, m[1]) {
+					names = append(names, m[1])
+				}
+			}
+		}
+	}
+	return names
+}
 
 // requestSecrets are the app's secrets a request block references, like
 // {{secrets.API_KEY}}. Only the settings of requests can use secrets, so they
@@ -25,15 +45,7 @@ type requestSecrets struct {
 // newRequestSecrets fetches the secrets the given templates reference. Secrets
 // are only decrypted when a flow uses them.
 func newRequestSecrets(ctx *FlowContext, templates ...string) (*requestSecrets, error) {
-	var names []string
-	for _, template := range templates {
-		for _, m := range secretReferenceRe.FindAllStringSubmatch(template, -1) {
-			if !slices.Contains(names, m[1]) {
-				names = append(names, m[1])
-			}
-		}
-	}
-
+	names := secretNames(templates)
 	res := &requestSecrets{evalCtx: ctx.EvalCtx}
 	if len(names) == 0 {
 		return res, nil
@@ -85,8 +97,18 @@ func (s *requestSecrets) Redact(err error) error {
 	}
 
 	msg := err.Error()
+	// A failed request's URL can contain a secret in any encoding, so only its
+	// host is kept.
+	var urlErr *url.Error
+	if errors.As(err, &urlErr) {
+		if u, parseErr := url.Parse(urlErr.URL); parseErr == nil {
+			msg = strings.ReplaceAll(msg, urlErr.URL, u.Scheme+"://"+u.Host)
+		}
+	}
 	for _, value := range s.values {
-		if value == "" {
+		// Replacing very short values would mangle the error and give away
+		// the value.
+		if len(value) < 4 {
 			continue
 		}
 		for _, form := range []string{value, url.QueryEscape(value), url.PathEscape(value)} {

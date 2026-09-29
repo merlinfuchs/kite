@@ -62,7 +62,7 @@ export default function AppSecretDialog({
         if (res.success) {
           toast.success(secret ? "Secret updated!" : "Secret created!");
           setOpen(false);
-          form.reset({ name: res.data.name, value: "" });
+          form.reset({ name: secret ? res.data.name : "", value: "" });
         } else if (res.error.code === "validation_failed") {
           setValidationErrors(form, res.error.data);
         } else {
@@ -84,7 +84,14 @@ export default function AppSecretDialog({
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog
+      open={open}
+      onOpenChange={(open) => {
+        setOpen(open);
+        // Entered values aren't kept around after closing.
+        if (!open) form.reset({ name: secret?.name ?? "", value: "" });
+      }}
+    >
       <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>

@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { getReferencedSecretNames } from "./secrets";
 
 describe("getReferencedSecretNames", () => {
-  it("finds secrets in any setting", () => {
+  it("finds secrets in placeholders of requests", () => {
     const flow = {
       nodes: [
         {
@@ -11,10 +11,16 @@ describe("getReferencedSecretNames", () => {
           position: { x: 0, y: 0 },
           data: {
             http_request_data: {
-              url: "https://example.com/?key={{secrets.API_KEY}}",
+              url: "https://example.com/secrets.txt?key={{secrets.API_KEY}}",
               headers: [{ key: "X", value: "{{ secrets.OTHER }}" }],
             },
           },
+        },
+        {
+          id: "2",
+          type: "action_log",
+          position: { x: 0, y: 0 },
+          data: { log_message: "{{secrets.LOGGED}}" },
         },
       ],
       edges: [],

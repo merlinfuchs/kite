@@ -1161,7 +1161,7 @@ func (n *CompiledFlowNode) executeActionHTTPRequest(ctx *FlowContext) error {
 	}
 
 	templates := []string{n.Data.HTTPRequestData.URL, string(n.Data.HTTPRequestData.BodyJSON)}
-	for _, kv := range append(n.Data.HTTPRequestData.Headers, n.Data.HTTPRequestData.Query...) {
+	for _, kv := range slices.Concat(n.Data.HTTPRequestData.Headers, n.Data.HTTPRequestData.Query) {
 		templates = append(templates, kv.Value)
 	}
 	secrets, err := newRequestSecrets(ctx, templates...)

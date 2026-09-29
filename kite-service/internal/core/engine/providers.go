@@ -887,6 +887,10 @@ type SecretProvider struct {
 	appID          string
 	appSecretStore store.AppSecretStore
 	tokenCrypt     *util.SymmetricCrypt
+
+	// Decrypted secrets, as a flow can send the same request many times.
+	mu     sync.Mutex
+	values map[string]string
 }
 
 func NewSecretProvider(appID string, appSecretStore store.AppSecretStore, tokenCrypt *util.SymmetricCrypt) *SecretProvider {
@@ -899,22 +903,39 @@ func NewSecretProvider(appID string, appSecretStore store.AppSecretStore, tokenC
 
 // Secrets only decrypts the secrets a flow uses.
 func (p *SecretProvider) Secrets(ctx context.Context, names []string) (map[string]string, error) {
-	if len(names) == 0 {
-		return map[string]string{}, nil
-	}
+	p.mu.Lock()
+	defer p.mu.Unlock()
 
-	secrets, err := p.appSecretStore.AppSecretsByNames(ctx, p.appID, names)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get secrets: %w", err)
-	}
-
-	res := make(map[string]string, len(secrets))
-	for _, secret := range secrets {
-		value, err := p.tokenCrypt.DecryptString(secret.ValueEncrypted)
-		if err != nil {
-			return nil, fmt.Errorf("failed to decrypt secret %s: %w", secret.Name, err)
+	var missing []string
+	for _, name := range names {
+		if _, ok := p.values[name]; !ok {
+			missing = append(missing, name)
 		}
-		res[secret.Name] = value
+	}
+
+	if len(missing) > 0 {
+		secrets, err := p.appSecretStore.AppSecretsByNames(ctx, p.appID, missing)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get secrets: %w", err)
+		}
+
+		if p.values == nil {
+			p.values = make(map[string]string, len(secrets))
+		}
+		for _, secret := range secrets {
+			value, err := p.tokenCrypt.DecryptString(secret.ValueEncrypted)
+			if err != nil {
+				return nil, fmt.Errorf("failed to decrypt secret %s: %w", secret.Name, err)
+			}
+			p.values[secret.Name] = value
+		}
+	}
+
+	res := make(map[string]string, len(names))
+	for _, name := range names {
+		if value, ok := p.values[name]; ok {
+			res[name] = value
+		}
 	}
 	return res, nil
 }

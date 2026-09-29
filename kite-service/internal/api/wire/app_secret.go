@@ -9,7 +9,9 @@ import (
 	"gopkg.in/guregu/null.v4"
 )
 
-var appSecretNameRegex = regexp.MustCompile(`^[a-zA-Z0-9_]+$`)
+// Names are used in placeholders like {{secrets.NAME}}, so they must be
+// identifiers.
+var appSecretNameRegex = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_]*$`)
 
 // MaxAppSecretValueLength is the maximum size of a secret's value in bytes.
 const MaxAppSecretValueLength = 4096
@@ -64,7 +66,7 @@ func appSecretNameRules() []validation.Rule {
 		validation.Required,
 		validation.Length(1, 100),
 		validation.Match(appSecretNameRegex).
-			Error("must only consist of letters, numbers, and underscores"),
+			Error("must only consist of letters, numbers, and underscores, and not start with a number"),
 	}
 }
 
