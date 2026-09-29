@@ -10,6 +10,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/openai/openai-go/v2"
@@ -209,4 +210,31 @@ func TestParseOutputDropsBuildPromptWithFields(t *testing.T) {
 	require.NoError(t, err)
 	assert.Empty(t, res.BuildPrompt)
 	assert.Equal(t, "role", res.Fields[0].Type)
+}
+
+func TestParseOutputCleansOptions(t *testing.T) {
+	res, err := parseOutput(`{"message": "", "edits": [], "build_prompt": null, "fields": [
+		{"label": "A", "description": "", "type": "choice", "options": ["", "Yes", "Yes", " ", "No"], "default": ""},
+		{"label": "B", "description": "", "type": "choice", "options": [""], "default": ""}
+	]}`)
+	require.NoError(t, err)
+	assert.Equal(t, []string{"Yes", "No"}, res.Fields[0].Options)
+	assert.Equal(t, "text", res.Fields[1].Type)
+}
+
+func TestRespondTimesOut(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		time.Sleep(200 * time.Millisecond)
+	}))
+	t.Cleanup(server.Close)
+	defer func(timeout time.Duration) { callTimeout = timeout }(callTimeout)
+	callTimeout = 50 * time.Millisecond
+
+	client := openai.NewClient(option.WithAPIKey("test"), option.WithBaseURL(server.URL))
+	assistant := NewAssistant(&client, Config{Model: "gpt-5-mini"})
+	_, err := assistant.Respond(context.Background(), Request{Flow: "Blocks:", Messages: []Message{{Role: "user", Content: "Hi"}}})
+
+	var resErr *ErrResponse
+	require.True(t, errors.As(err, &resErr))
+	assert.Contains(t, resErr.Message, "took too long")
 }

@@ -161,10 +161,15 @@ func (h *FlowAIHandler) HandleFlowAIChat(c *handler.Context, req wire.FlowAIChat
 		}
 	}
 	if err != nil {
-		// Prompts the model didn't answer at all don't count.
+		// Prompts and repairs the model didn't answer at all don't count.
 		if res == nil && !isRepair {
 			if err := h.promptStore.DeleteAssistantPrompt(c.Context(), c.App.ID, prompt.ID); err != nil {
 				slog.Error("Failed to delete flow AI prompt", slog.String("app_id", c.App.ID), slog.Any("error", err))
+			}
+		}
+		if res == nil && isRepair {
+			if err := h.promptStore.UndoAssistantPromptRound(c.Context(), c.App.ID, prompt.ID); err != nil {
+				slog.Error("Failed to undo flow AI prompt round", slog.String("app_id", c.App.ID), slog.Any("error", err))
 			}
 		}
 

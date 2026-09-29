@@ -210,7 +210,9 @@ func (s *APIServer) RegisterRoutes(
 	flowAIGroup.Get("/usage", handler.Typed(flowAIHandler.HandleFlowAIUsageGet))
 	flowAIGroup.Post("/chat",
 		handler.TypedWithBody(flowAIHandler.HandleFlowAIChat),
-		handler.RateLimitByUser(10, time.Minute),
+		// Repairs are sent right after a prompt, so a few prompts in a row
+		// take many requests. The monthly limits cap the cost.
+		handler.RateLimitByUser(30, time.Minute),
 	)
 
 	// Usage routes

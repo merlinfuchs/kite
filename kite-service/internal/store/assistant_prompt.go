@@ -14,6 +14,8 @@ type AssistantPromptStore interface {
 	// StartAssistantPromptRound records another model call for the prompt, unless
 	// it already had maxRounds. It returns whether it did.
 	StartAssistantPromptRound(ctx context.Context, appID string, id string, maxRounds int, updatedAt time.Time) (bool, error)
+	// UndoAssistantPromptRound takes back a round the model didn't answer.
+	UndoAssistantPromptRound(ctx context.Context, appID string, id string) error
 	// AddAssistantPromptUsage records the usage of a model call for the prompt,
 	// and marks it as unedited if edited is false.
 	AddAssistantPromptUsage(ctx context.Context, appID string, id string, usage model.AssistantUsage, edited bool, updatedAt time.Time) error

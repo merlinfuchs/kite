@@ -6,11 +6,14 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"slices"
 	"strings"
+	"time"
 
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/internal/util"
 	"github.com/openai/openai-go/v2"
+	"github.com/openai/openai-go/v2/option"
 	"github.com/openai/openai-go/v2/responses"
 	"github.com/openai/openai-go/v2/shared"
 )
@@ -22,6 +25,10 @@ const (
 	maxHistory  = 10
 	historyStep = 5
 )
+
+// callTimeout ends model calls before the API server's write timeout of two
+// minutes, so the user gets an error instead of losing the answer.
+var callTimeout = 100 * time.Second
 
 type Config struct {
 	Model           string
@@ -93,6 +100,9 @@ func (e *ErrResponse) Error() string {
 // can't be used, it returns an error along with a response that only has the
 // usage.
 func (a *Assistant) Respond(ctx context.Context, req Request) (*Response, error) {
+	ctx, cancel := context.WithTimeout(ctx, callTimeout)
+	defer cancel()
+
 	resp, err := a.client.Responses.New(ctx, responses.ResponseNewParams{
 		Model:           a.config.Model,
 		Instructions:    openai.String(instructions),
@@ -113,7 +123,13 @@ func (a *Assistant) Respond(ctx context.Context, req Request) (*Response, error)
 		PromptCacheKey: openai.String("kite-flow-ai"),
 		// Lets OpenAI tell users apart for abuse detection.
 		SafetyIdentifier: openai.String(util.HashBytes([]byte(req.UserID))),
-	})
+	},
+		// Retrying a call that took long would take too long again.
+		option.WithMaxRetries(0),
+	)
+	if errors.Is(err, context.DeadlineExceeded) {
+		return nil, &ErrResponse{Message: "The AI took too long to answer. Try asking for a smaller change."}
+	}
 	if err != nil {
 		return nil, fmt.Errorf("failed to create response: %w", err)
 	}
@@ -295,7 +311,8 @@ func parseOutput(text string) (*Response, error) {
 		res.Fields = res.Fields[:maxFields]
 	}
 	for i, f := range res.Fields {
-		if f.Type == "choice" && len(f.Options) == 0 {
+		res.Fields[i].Options = uniqueOptions(f.Options)
+		if f.Type == "choice" && len(res.Fields[i].Options) == 0 {
 			res.Fields[i].Type = "text"
 		}
 	}
@@ -346,4 +363,16 @@ func (e outputEdit) toEdit() (map[string]any, error) {
 	}
 
 	return edit, nil
+}
+
+// uniqueOptions drops empty and repeated options, which the editor's select
+// can't show.
+func uniqueOptions(options []string) []string {
+	res := make([]string, 0, len(options))
+	for _, o := range options {
+		if strings.TrimSpace(o) != "" && !slices.Contains(res, o) {
+			res = append(res, o)
+		}
+	}
+	return res
 }

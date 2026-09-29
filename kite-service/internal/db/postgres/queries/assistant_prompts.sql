@@ -25,6 +25,9 @@ UPDATE assistant_prompts SET
     updated_at = @updated_at
 WHERE id = @id AND app_id = @app_id AND rounds < @max_rounds;
 
+-- name: UndoAssistantPromptRound :exec
+UPDATE assistant_prompts SET rounds = rounds - 1 WHERE id = @id AND app_id = @app_id AND rounds > 1;
+
 -- name: AddAssistantPromptUsage :exec
 -- A prompt can only become unedited, when its first answer has no edits.
 UPDATE assistant_prompts SET

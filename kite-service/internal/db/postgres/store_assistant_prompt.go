@@ -61,6 +61,13 @@ func (c *Client) StartAssistantPromptRound(ctx context.Context, appID string, id
 	return rows > 0, err
 }
 
+func (c *Client) UndoAssistantPromptRound(ctx context.Context, appID string, id string) error {
+	return c.Q.UndoAssistantPromptRound(ctx, pgmodel.UndoAssistantPromptRoundParams{
+		ID:    id,
+		AppID: appID,
+	})
+}
+
 func (c *Client) AddAssistantPromptUsage(ctx context.Context, appID string, id string, usage model.AssistantUsage, edited bool, updatedAt time.Time) error {
 	return c.Q.AddAssistantPromptUsage(ctx, pgmodel.AddAssistantPromptUsageParams{
 		Edited:            edited,

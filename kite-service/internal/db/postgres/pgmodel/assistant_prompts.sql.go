@@ -191,3 +191,17 @@ func (q *Queries) StartAssistantPromptRound(ctx context.Context, arg StartAssist
 	}
 	return result.RowsAffected(), nil
 }
+
+const undoAssistantPromptRound = `-- name: UndoAssistantPromptRound :exec
+UPDATE assistant_prompts SET rounds = rounds - 1 WHERE id = $1 AND app_id = $2 AND rounds > 1
+`
+
+type UndoAssistantPromptRoundParams struct {
+	ID    string
+	AppID string
+}
+
+func (q *Queries) UndoAssistantPromptRound(ctx context.Context, arg UndoAssistantPromptRoundParams) error {
+	_, err := q.db.Exec(ctx, undoAssistantPromptRound, arg.ID, arg.AppID)
+	return err
+}

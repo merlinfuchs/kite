@@ -49,6 +49,17 @@ func (s *fakePromptStore) StartAssistantPromptRound(ctx context.Context, appID s
 	return true, nil
 }
 
+func (s *fakePromptStore) UndoAssistantPromptRound(ctx context.Context, appID string, id string) error {
+	prompt, err := s.AssistantPrompt(ctx, appID, id)
+	if err != nil {
+		return err
+	}
+	if prompt.Rounds > 1 {
+		prompt.Rounds--
+	}
+	return nil
+}
+
 func (s *fakePromptStore) AddAssistantPromptUsage(ctx context.Context, appID string, id string, usage model.AssistantUsage, edited bool, updatedAt time.Time) error {
 	prompt, err := s.AssistantPrompt(ctx, appID, id)
 	if err != nil {
@@ -307,4 +318,17 @@ func TestPromptsWithoutEditsCantBeRepaired(t *testing.T) {
 	code, res := s.chat(t, 1, repair(promptID))
 	assert.Equal(t, http.StatusBadRequest, code)
 	assert.Equal(t, "nothing_to_repair", errCode(res))
+}
+
+func TestUnansweredRepairsDontUseARound(t *testing.T) {
+	assistant := &fakeAssistant{}
+	s := setup(assistant)
+
+	_, res := s.chat(t, 1, prompt)
+	promptID := res["data"].(map[string]any)["prompt_id"].(string)
+
+	assistant.err = errors.New("connection refused")
+	code, _ := s.chat(t, 1, repair(promptID))
+	assert.Equal(t, http.StatusServiceUnavailable, code)
+	assert.Equal(t, 1, s.store.prompts[promptID].Rounds)
 }
