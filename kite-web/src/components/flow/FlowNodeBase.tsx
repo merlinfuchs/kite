@@ -3,6 +3,7 @@ import { ReactNode } from "react";
 import { primaryColor, useNodeValues } from "@/lib/flow/nodes";
 import FlowNodeMarkers from "./FlowNodeMarkers";
 import DynamicIcon from "../icons/DynamicIcon";
+import { useChangedByAI } from "@/lib/flow/context";
 
 interface Props extends NodeProps {
   title?: string;
@@ -23,6 +24,7 @@ export default function FlowNodeBase(props: Props) {
   } = useNodeValues(props.type);
 
   const color = props.color || defaultColor;
+  const changedByAI = useChangedByAI(props.id);
 
   return (
     <div
@@ -33,6 +35,7 @@ export default function FlowNodeBase(props: Props) {
           : props.highlight
           ? color
           : undefined,
+        boxShadow: changedByAI ? `0 0 0 4px ${primaryColor}66` : undefined,
       }}
     >
       {props.showId && (

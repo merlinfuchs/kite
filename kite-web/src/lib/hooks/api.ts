@@ -7,6 +7,7 @@ import {
   useAppQuery,
   useAppsQuery,
   useAppStateGuildChannelsQuery,
+  useAppStateGuildRolesQuery,
   useAppStateGuildsQuery,
   useAppSubscriptionsQuery,
   useBillingPlansQuery,
@@ -15,6 +16,7 @@ import {
   useEventListenerQuery,
   useEventListenersQuery,
   useAppFeaturesQuery,
+  useFlowAIUsageQuery,
   useLogSummaryQuery,
   useMessageInstancesQuery,
   useMessageQuery,
@@ -42,6 +44,7 @@ import {
   EventListenerGetResponse,
   EventListenerListResponse,
   FeaturesGetResponse,
+  FlowAIUsageGetResponse,
   LogSummaryGetResponse,
   MessageGetResponse,
   MessageInstanceListResponse,
@@ -50,6 +53,7 @@ import {
   PluginInstanceListResponse,
   PluginListResponse,
   StateGuildChannelListResponse,
+  StateGuildRoleListResponse,
   StateGuildListResponse,
   SubscriptionListResponse,
   UsageByDayListResponse,
@@ -270,6 +274,19 @@ export function useAppStateGuild(guildId: string | null) {
   return data?.find((g) => g!.id === guildId);
 }
 
+export function useAppStateGuildRoles(
+  guildId: string | null,
+  callback?: (res: APIResponse<StateGuildRoleListResponse>) => void
+) {
+  const router = useRouter();
+
+  const query = useAppStateGuildRolesQuery(
+    router.query.appId as string,
+    guildId
+  );
+  return useResponseData(query, callback);
+}
+
 export function useAppStateGuildChannels(
   guildId: string | null,
   callback?: (res: APIResponse<StateGuildChannelListResponse>) => void
@@ -320,6 +337,13 @@ export function useBillingPlans(
   callback?: (res: APIResponse<BillingPlanListResponse>) => void
 ) {
   const query = useBillingPlansQuery();
+  return useResponseData(query, callback);
+}
+
+export function useFlowAIUsage(
+  callback?: (res: APIResponse<FlowAIUsageGetResponse>) => void
+) {
+  const query = useFlowAIUsageQuery(useAppId());
   return useResponseData(query, callback);
 }
 

@@ -13,6 +13,7 @@ import {
 import { activityTypeOptions, statusOptions } from "@/lib/discord/presence";
 import { useAppFeature, useMessages, useVariables } from "@/lib/hooks/api";
 import { getFlowCreditsCost } from "@/lib/flow/schedule";
+import { aiModelTiers, getAiModelTier } from "@/lib/flow/aiModels";
 import { EventTypeScheduleCron } from "@/lib/types/flow.gen";
 import { useAppId } from "@/lib/hooks/params";
 import {
@@ -21,6 +22,8 @@ import {
   HTTPRequestData,
   ModalComponentData,
   PermissionOverwriteData,
+  PollAnswerData,
+  PollData,
   StatusData,
 } from "@/lib/types/flow.gen";
 import { Node, useNodes, useReactFlow, useStoreApi } from "@xyflow/react";
@@ -117,6 +120,7 @@ const intputs: Record<string, any> = {
   message_template_id: MessageTemplateInput,
   message_target: MessageTargetInput,
   emoji_data: EmojiDataInput,
+  poll_data: PollDataInput,
   response_target: ResponseTargetInput,
   message_ephemeral: MessageEphemeralInput,
   modal_data: ModalDataInput,
@@ -1041,37 +1045,41 @@ function HttpRequestDataInput({ data, updateData, errors }: InputProps) {
   );
 }
 
+function AiModelInput({
+  data,
+  updateData,
+  errors,
+}: Pick<InputProps, "data" | "updateData" | "errors">) {
+  return (
+    <BaseInput
+      type="select"
+      field="ai_chat_completion_data.model"
+      title="Model"
+      description="How capable the AI is. More capable models cost more credits."
+      options={aiModelTiers.map((t) => ({
+        value: t.value,
+        label: `${t.label} (${t.model})`,
+      }))}
+      value={getAiModelTier(data.ai_chat_completion_data?.model)?.value ?? ""}
+      updateValue={(v) =>
+        updateData({
+          ai_chat_completion_data: {
+            ...data.ai_chat_completion_data,
+            model: v || undefined,
+          },
+        })
+      }
+      errors={errors}
+    />
+  );
+}
+
 function AiChatCompletionDataInput({ data, updateData, errors }: InputProps) {
   // TODO: top level errors aren't displayed ...
 
   return (
     <>
-      <BaseInput
-        type="select"
-        field="ai_chat_completion_data.model"
-        title="Model"
-        description="The AI model to use. More powerful models cost more credits."
-        options={[
-          { value: "gpt-4.1", label: "Smartest (gpt-4.1)" },
-          { value: "gpt-4.1-mini", label: "Balanced (gpt-4.1-mini)" },
-          {
-            value: "gpt-4.1-nano",
-            label: "Cheap & Fast (gpt-4.1-nano) (deprecated)",
-          },
-          { value: "gpt-5-nano", label: "Cheap & Fast (gpt-5-nano)" },
-          { value: "gpt-4o-mini", label: "Cheap & Fast (gpt-4o-mini)" },
-        ]}
-        value={data.ai_chat_completion_data?.model || "gpt-4o-mini"}
-        updateValue={(v) =>
-          updateData({
-            ai_chat_completion_data: {
-              ...data.ai_chat_completion_data,
-              model: v || undefined,
-            },
-          })
-        }
-        errors={errors}
-      />
+      <AiModelInput data={data} updateData={updateData} errors={errors} />
       <BaseInput
         type="textarea"
         field="ai_chat_completion_data.system_prompt"
@@ -1115,32 +1123,7 @@ function AiWebSearchDataInput({ data, updateData, errors }: InputProps) {
 
   return (
     <>
-      <BaseInput
-        type="select"
-        field="ai_chat_completion_data.model"
-        title="Model"
-        description="The AI model to use. More powerful models cost more credits."
-        options={[
-          { value: "gpt-4.1", label: "Smartest (gpt-4.1)" },
-          { value: "gpt-4.1-mini", label: "Balanced (gpt-4.1-mini)" },
-          {
-            value: "gpt-4.1-nano",
-            label: "Cheap & Fast (gpt-4.1-nano) (deprecated)",
-          },
-          { value: "gpt-5-nano", label: "Cheap & Fast (gpt-5-nano)" },
-          { value: "gpt-4o-mini", label: "Cheap & Fast (gpt-4o-mini)" },
-        ]}
-        value={data.ai_chat_completion_data?.model || "gpt-4o-mini"}
-        updateValue={(v) =>
-          updateData({
-            ai_chat_completion_data: {
-              ...data.ai_chat_completion_data,
-              model: v || undefined,
-            },
-          })
-        }
-        errors={errors}
-      />
+      <AiModelInput data={data} updateData={updateData} errors={errors} />
       <BaseInput
         type="textarea"
         field="ai_chat_completion_data.prompt"
@@ -1496,6 +1479,170 @@ function EmojiDataInput({ data, updateData, errors }: InputProps) {
         })
       }
     />
+  );
+}
+
+const pollMaxAnswers = 10;
+
+function PollDataInput({ data, updateData, errors }: InputProps) {
+  const updateField = useCallback(
+    (newData: Partial<PollData>) => {
+      updateData({ poll_data: { ...data.poll_data, ...newData } });
+    },
+    [updateData, data]
+  );
+
+  const answers = useMemo(
+    () => data.poll_data?.answers || [],
+    [data.poll_data?.answers]
+  );
+
+  const addAnswer = useCallback(() => {
+    if (answers.length >= pollMaxAnswers) return;
+    updateField({ answers: [...answers, { text: "" }] });
+  }, [updateField, answers]);
+
+  const updateAnswer = useCallback(
+    (index: number, newData: Partial<PollAnswerData>) => {
+      updateField({
+        answers: answers.map((a, i) =>
+          i === index ? { ...a, ...newData } : a
+        ),
+      });
+    },
+    [updateField, answers]
+  );
+
+  const removeAnswer = useCallback(
+    (index: number) => {
+      updateField({ answers: answers.filter((_, i) => i !== index) });
+    },
+    [updateField, answers]
+  );
+
+  const answersError = errors["poll_data.answers"];
+
+  return (
+    <>
+      <BaseInput
+        type="textarea"
+        field="poll_data.question"
+        title="Question"
+        description="The question shown at the top of the poll. Up to 300 characters."
+        value={data.poll_data?.question || ""}
+        updateValue={(v) => updateField({ question: v || undefined })}
+        errors={errors}
+        placeholders
+      />
+      <div>
+        <div className="font-medium text-foreground mb-1">Answers</div>
+        <div className="text-muted-foreground text-sm mb-2">
+          Up to {pollMaxAnswers} answers of 55 characters each. Answers that are
+          empty after placeholders are filled in are skipped.
+        </div>
+        <div className="flex flex-col gap-3">
+          {answers.map((answer, i) => {
+            const error = errors[`poll_data.answers.${i}.text`];
+
+            return (
+              <div key={i}>
+                <div className="flex gap-2">
+                  <EmojiPicker
+                    onEmojiSelect={(emoji) =>
+                      updateAnswer(i, {
+                        emoji: emoji.native
+                          ? { name: emoji.name }
+                          : { id: emoji.id, name: emoji.name },
+                      })
+                    }
+                  >
+                    <Button size="icon" variant="outline" className="flex-none">
+                      {answer.emoji?.id ? (
+                        <img
+                          src={discordEmojiUrl(answer.emoji.id)}
+                          alt=""
+                          className="h-6 w-6"
+                        />
+                      ) : answer.emoji ? (
+                        <Twemoji options={{ className: "h-6 w-6" }}>
+                          {answer.emoji.name}
+                        </Twemoji>
+                      ) : (
+                        <SmileIcon className="h-6 w-6 text-foreground/80" />
+                      )}
+                    </Button>
+                  </EmojiPicker>
+                  {answer.emoji && (
+                    <div
+                      className="flex items-center cursor-pointer text-muted-foreground hover:text-foreground"
+                      onClick={() => updateAnswer(i, { emoji: undefined })}
+                    >
+                      <XIcon className="h-5 w-5" />
+                    </div>
+                  )}
+                  <div className="flex-auto">
+                    <PlaceholderInput
+                      value={answer.text || ""}
+                      onChange={(v) => updateAnswer(i, { text: v })}
+                      placeholder={`Answer ${i + 1}`}
+                    />
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="flex-none"
+                    onClick={() => removeAnswer(i)}
+                  >
+                    <MinusIcon className="h-5 w-5" />
+                  </Button>
+                </div>
+                {error && (
+                  <div className="text-red-600 dark:text-red-400 text-sm flex items-center space-x-1 pt-2">
+                    <CircleAlertIcon className="h-5 w-5 flex-none" />
+                    <div>{error}</div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+
+          <div className="flex">
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={addAnswer}
+              disabled={answers.length >= pollMaxAnswers}
+            >
+              <PlusIcon className="h-5 w-5" />
+            </Button>
+          </div>
+        </div>
+        {answersError && (
+          <div className="text-red-600 dark:text-red-400 text-sm flex items-center space-x-1 pt-2">
+            <CircleAlertIcon className="h-5 w-5 flex-none" />
+            <div>{answersError}</div>
+          </div>
+        )}
+      </div>
+      <BaseInput
+        type="text"
+        field="poll_data.duration_hours"
+        title="Duration"
+        description="Number of hours the poll is open for, between 1 and 768 (32 days). Leave empty for 24 hours."
+        value={data.poll_data?.duration_hours || ""}
+        updateValue={(v) => updateField({ duration_hours: v || undefined })}
+        errors={errors}
+        placeholders
+      />
+      <BaseCheckbox
+        field="poll_data.allow_multiselect"
+        title="Allow Multiple Answers"
+        description="If enabled, people can vote for more than one answer."
+        value={!!data.poll_data?.allow_multiselect}
+        updateValue={(v) => updateField({ allow_multiselect: v || undefined })}
+        errors={errors}
+      />
+    </>
   );
 }
 

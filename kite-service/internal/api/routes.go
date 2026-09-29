@@ -14,6 +14,7 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/billing"
 	commandhandler "github.com/kitecloud/kite/kite-service/internal/api/handler/command"
 	eventlistener "github.com/kitecloud/kite/kite-service/internal/api/handler/event_listener"
+	flowaihandler "github.com/kitecloud/kite/kite-service/internal/api/handler/flowai"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/logs"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/message"
 	pluginhandler "github.com/kitecloud/kite/kite-service/internal/api/handler/plugin"
@@ -24,6 +25,7 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/api/session"
 	corebilling "github.com/kitecloud/kite/kite-service/internal/core/billing"
 	"github.com/kitecloud/kite/kite-service/internal/core/command"
+	"github.com/kitecloud/kite/kite-service/internal/core/flowai"
 	"github.com/kitecloud/kite/kite-service/internal/core/plan"
 	"github.com/kitecloud/kite/kite-service/internal/store"
 	"github.com/kitecloud/kite/kite-service/internal/util"
@@ -53,6 +55,8 @@ func (s *APIServer) RegisterRoutes(
 	pluginRegistry *plugin.Registry,
 	tokenCrypt *util.SymmetricCrypt,
 	commandManager *command.CommandManager,
+	assistantPromptStore store.AssistantPromptStore,
+	flowAssistant *flowai.Assistant,
 ) {
 	sessionManager := session.NewSessionManager(session.SessionManagerConfig{
 		StrictCookies: s.config.StrictCookies,
@@ -199,6 +203,18 @@ func (s *APIServer) RegisterRoutes(
 	logsGroup.Get("/", handler.Typed(logHandler.HandleLogEntryList))
 	logsGroup.Get("/summary", handler.Typed(logHandler.HandleLogSummaryGet))
 
+	// Flow AI routes
+	flowAIHandler := flowaihandler.NewFlowAIHandler(assistantPromptStore, variableStore, flowAssistant, s.config.AssistantMaxRepairs)
+
+	flowAIGroup := appGroup.Group("/flow-ai")
+	flowAIGroup.Get("/usage", handler.Typed(flowAIHandler.HandleFlowAIUsageGet))
+	flowAIGroup.Post("/chat",
+		handler.TypedWithBody(flowAIHandler.HandleFlowAIChat),
+		// Repairs are sent right after a prompt, so a few prompts in a row
+		// take many requests. The monthly limits cap the cost.
+		handler.RateLimitByUser(30, time.Minute),
+	)
+
 	// Usage routes
 	usageHandler := usage.NewUsageHandler(usageStore)
 
@@ -313,4 +329,5 @@ func (s *APIServer) RegisterRoutes(
 	stateGroup.Get("/guilds", handler.Typed(stateHandler.HandleStateGuildList))
 	stateGroup.Delete("/guilds/{guildID}", handler.Typed(stateHandler.HandleStateGuildLeave))
 	stateGroup.Get("/guilds/{guildID}/channels", handler.Typed(stateHandler.HandleStateGuildChannelList))
+	stateGroup.Get("/guilds/{guildID}/roles", handler.Typed(stateHandler.HandleStateGuildRoleList))
 }

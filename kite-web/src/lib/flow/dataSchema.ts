@@ -1,6 +1,7 @@
 import { Edge, Node, NodeProps as XYNodeProps } from "@xyflow/react";
 import z from "zod";
 import { FlowNodeData } from "../types/flow.gen";
+import { aiModelTierValues, resolveAiModel } from "./aiModels";
 
 const numericRegex = /^[0-9]+$/;
 const decimalRegex = /^[0-9]+(\.[0-9]+)?$/;
@@ -34,6 +35,58 @@ export function templated<T extends z.ZodTypeAny>(
 
 export function isTemplated(def: z.ZodTypeDef) {
   return templatedDefs.has(def);
+}
+
+// Fields that refer to something only the user can create in the app, like a
+// stored variable, so the AI leaves them for the user to pick.
+const userPickedDefs = new WeakSet<z.ZodTypeDef>();
+
+export function userPicked<T extends z.ZodTypeAny>(
+  schema: T,
+  description: string
+): T {
+  const described = schema.describe(description);
+  userPickedDefs.add(described._def);
+  return described;
+}
+
+export function isUserPicked(def: z.ZodTypeDef) {
+  return userPickedDefs.has(def);
+}
+
+// Whether the setting at path of a block's settings is picked by the user.
+// They are all top-level settings.
+export function isUserPickedSetting(
+  schema: z.ZodTypeAny,
+  path: (string | number)[]
+) {
+  const object = unwrap(schema);
+  if (path.length !== 1 || !(object instanceof z.ZodObject)) return false;
+  for (
+    let s: z.ZodTypeAny | undefined = object.shape[path[0]];
+    s;
+    s = inner(s)
+  ) {
+    if (isUserPicked(s._def)) return true;
+  }
+  return false;
+}
+
+function unwrap(schema: z.ZodTypeAny) {
+  let s = schema;
+  for (let next = inner(s); next; next = inner(s)) s = next;
+  return s;
+}
+
+function inner(schema: z.ZodTypeAny): z.ZodTypeAny | undefined {
+  if (
+    schema instanceof z.ZodOptional ||
+    schema instanceof z.ZodNullable ||
+    schema instanceof z.ZodDefault
+  ) {
+    return schema._def.innerType;
+  }
+  if (schema instanceof z.ZodEffects) return schema._def.schema;
 }
 
 // A number or Discord ID, or a single placeholder that resolves to one.
@@ -260,8 +313,15 @@ export const nodeMessageDataSchema = z
       .describe(
         "Which mentions ping. If unset, only mentioned users are pinged."
       ),
+    // Validated by the message editor like embeds.
+    components: z
+      .array(z.record(z.unknown()))
+      .optional()
+      .describe(
+        "Buttons and select menus, as Discord action rows. Each one that isn't a link button adds the output component_<id> to the block."
+      ),
   })
-  // Components, flags and attachments are set through the message editor.
+  // Flags and attachments are set through the message editor.
   .passthrough()
   .describe("The message to send.");
 
@@ -271,12 +331,10 @@ function withMessage<T extends z.ZodRawShape>(shape: T) {
     .extend({
       ...shape,
       message_data: nodeMessageDataSchema.optional(),
-      message_template_id: z
-        .string()
-        .optional()
-        .describe(
-          "ID of a saved message template to send instead of message_data."
-        ),
+      message_template_id: userPicked(
+        z.string(),
+        "ID of a saved message template to send instead of message_data."
+      ).optional(),
       temporary_name: temporaryNameSchema,
     })
     .refine(
@@ -437,6 +495,43 @@ export const nodeActionMessageReactionDeleteDataSchema =
       "The emoji to remove the reaction of."
     ),
   });
+
+export const nodeActionPollCreateDataSchema = nodeBaseDataSchema.extend({
+  channel_target: numericOrPlaceholder(
+    "ID of the channel to send the poll to."
+  ),
+  poll_data: z
+    .object({
+      question: templated(
+        z.string().max(300).min(1),
+        "Question shown at the top of the poll."
+      ),
+      answers: z
+        .array(
+          z.object({
+            text: templated(
+              z.string().max(55),
+              "Text of the answer. Answers that are empty after placeholders are filled in are skipped."
+            ),
+            emoji: emojiDataSchema
+              .optional()
+              .describe("Emoji shown next to the answer."),
+          })
+        )
+        .min(1)
+        .max(10)
+        .describe("Answers people can vote for."),
+      duration_hours: numericOrPlaceholder(
+        "How many hours the poll is open for, between 1 and 768. Defaults to 24."
+      ).optional(),
+      allow_multiselect: z
+        .boolean()
+        .optional()
+        .describe("Whether people can vote for more than one answer."),
+    })
+    .describe("The poll to send."),
+  temporary_name: temporaryNameSchema,
+});
 
 export const nodeActionMemberBanDataSchema = nodeBaseDataSchema.extend({
   guild_target: guildTargetSchema.optional(),
@@ -658,9 +753,10 @@ export const nodeActionRobloxUserGetDataSchema = nodeBaseDataSchema.extend({
   temporary_name: temporaryNameSchema,
 });
 
-const variableIdSchema = z
-  .string()
-  .describe("ID of an existing stored variable.");
+const variableIdSchema = userPicked(
+  z.string(),
+  "ID of an existing stored variable."
+);
 
 const variableScopeSchema = templated(
   z.string(),
@@ -761,16 +857,9 @@ export const nodeActionHttpRequestDataSchema = nodeBaseDataSchema.extend({
 });
 
 const aiModelSchema = z
-  .enum([
-    "gpt-4.1",
-    "gpt-4.1-mini",
-    "gpt-4.1-nano",
-    "gpt-5-nano",
-    "gpt-4o-mini",
-  ])
-  .optional()
+  .preprocess(resolveAiModel, z.enum(aiModelTierValues).optional())
   .describe(
-    "Model to use. Larger models cost more credits. Defaults to gpt-4o-mini."
+    "Model tier to use. Larger tiers are more capable and cost more credits. Defaults to small."
   );
 
 const aiMaxCompletionTokensSchema = numericOrPlaceholder(

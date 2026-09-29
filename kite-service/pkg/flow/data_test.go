@@ -1,47 +1,72 @@
 package flow
 
 import (
+	"context"
+	"strings"
 	"testing"
 
 	"github.com/kitecloud/kite/kite-service/pkg/thing"
 	"github.com/openai/openai-go/v2"
+	"github.com/diamondburned/arikawa/v3/discord"
+	"github.com/kitecloud/kite/kite-service/pkg/eval"
+	"github.com/kitecloud/kite/kite-service/pkg/provider"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
-func TestAIModelAllowed(t *testing.T) {
+func TestResolveAIModel(t *testing.T) {
 	allowed := []string{
-		"", // provider default
-		openai.ChatModelGPT4_1,
-		openai.ChatModelGPT4_1Mini,
-		openai.ChatModelGPT4_1Nano,
-		openai.ChatModelGPT4oMini,
-		openai.ChatModelGPT5Nano,
+		"", // unset
+		AIModelSmall,
+		AIModelMedium,
+		AIModelLarge,
+		// Stored before tiers existed.
+		"gpt-4.1",
+		"gpt-4.1-mini",
+		"gpt-4.1-nano",
+		"gpt-4o-mini",
+		"gpt-5-nano",
+		"gpt-5.4-nano",
 	}
 	for _, model := range allowed {
-		if !AIModelAllowed(model) {
+		if _, ok := resolveAIModel(model); !ok {
 			t.Errorf("model %q should be allowed", model)
 		}
 	}
 
-	denied := []string{"o3", "gpt-4.5-preview", "gpt-5", "../etc/passwd"}
+	denied := []string{"o3", "gpt-4.5-preview", "gpt-5", "gpt-6-luna", "../etc/passwd"}
 	for _, model := range denied {
-		if AIModelAllowed(model) {
+		if _, ok := resolveAIModel(model); ok {
 			t.Errorf("model %q should not be allowed", model)
 		}
 	}
 }
 
+// Moving to tiers must not change what an existing block is billed.
 func TestAICreditsCostKnownModels(t *testing.T) {
 	cases := []struct {
 		model     string
 		webSearch bool
 		want      int
 	}{
-		{openai.ChatModelGPT4_1, false, 100},
-		{openai.ChatModelGPT4_1, true, 500},
-		{openai.ChatModelGPT4_1Mini, false, 20},
-		{openai.ChatModelGPT4_1Mini, true, 100},
-		{openai.ChatModelGPT4oMini, false, 5},
-		{openai.ChatModelGPT4oMini, true, 25},
+		{AIModelLarge, false, 100},
+		{AIModelLarge, true, 500},
+		{AIModelMedium, false, 20},
+		{AIModelMedium, true, 100},
+		{AIModelSmall, false, 5},
+		{AIModelSmall, true, 25},
+		{"gpt-4.1", false, 100},
+		{"gpt-4.1", true, 500},
+		{"gpt-4.1-mini", false, 20},
+		{"gpt-4.1-mini", true, 100},
+		{"gpt-4.1-nano", false, 5},
+		{"gpt-4.1-nano", true, 25},
+		{"gpt-4o-mini", false, 5},
+		{"gpt-4o-mini", true, 25},
+		{"gpt-5-nano", false, 5},
+		{"gpt-5-nano", true, 25},
+		{"gpt-5.4-nano", false, 5},
+		{"gpt-5.4-nano", true, 25},
 		{"", false, 5},
 		{"", true, 25},
 	}
@@ -60,18 +85,43 @@ func TestAICreditsCostKnownModels(t *testing.T) {
 func TestAICreditsCostUnknownModelPricesAtCeiling(t *testing.T) {
 	const unknown = "some-future-expensive-model"
 
-	if AIModelAllowed(unknown) {
+	if _, ok := resolveAIModel(unknown); ok {
 		t.Fatal("setup: model is supposed to be unknown")
 	}
 
 	chat := AICreditsCost(unknown, false)
-	if want := AICreditsCost(openai.ChatModelGPT4_1, false); chat != want {
-		t.Errorf("unknown chat cost = %d, want the most expensive model's %d", chat, want)
+	if want := AICreditsCost(AIModelLarge, false); chat != want {
+		t.Errorf("unknown chat cost = %d, want the most expensive tier's %d", chat, want)
 	}
 
 	search := AICreditsCost(unknown, true)
-	if want := AICreditsCost(openai.ChatModelGPT4_1, true); search != want {
-		t.Errorf("unknown search cost = %d, want the most expensive model's %d", search, want)
+	if want := AICreditsCost(AIModelLarge, true); search != want {
+		t.Errorf("unknown search cost = %d, want the most expensive tier's %d", search, want)
+	}
+}
+
+func TestAIModelAliasesPointAtTiers(t *testing.T) {
+	for alias, tier := range aiModelAliases {
+		assert.Contains(t, aiModelTiers, tier, "alias %q", alias)
+		assert.NotContains(t, aiModelTiers, alias, "alias %q shadows a tier", alias)
+	}
+}
+
+// The editor only offers what the catalog lists, so it has to match the tiers.
+func TestCatalogAIModelsMatchTiers(t *testing.T) {
+	catalog := loadCatalog(t)
+
+	tiers := make([]any, 0, len(aiModelTiers))
+	for tier := range aiModelTiers {
+		tiers = append(tiers, tier)
+	}
+
+	for _, nodeType := range []FlowNodeType{
+		FlowNodeTypeActionAIChatCompletion,
+		FlowNodeTypeActionAISearchWeb,
+	} {
+		model := catalog[string(nodeType)].Properties["ai_chat_completion_data"].Properties["model"]
+		assert.ElementsMatch(t, tiers, model.Enum, nodeType)
 	}
 }
 
@@ -81,8 +131,10 @@ func TestAIChatCompletionDataRejectsUnknownModel(t *testing.T) {
 		t.Fatal("expected validation error for unknown model, got nil")
 	}
 
-	if err := (AIChatCompletionData{Model: openai.ChatModelGPT4_1, Prompt: "hi"}).Validate(); err != nil {
-		t.Fatalf("expected allowed model to validate, got %v", err)
+	for _, model := range []string{AIModelLarge, "gpt-4.1"} {
+		if err := (AIChatCompletionData{Model: model, Prompt: "hi"}).Validate(); err != nil {
+			t.Fatalf("expected %q to validate, got %v", model, err)
+		}
 	}
 }
 
@@ -148,5 +200,72 @@ func TestParseInviteLimit(t *testing.T) {
 	}
 	if got, err := parseInviteLimit("max uses", thing.NewInt(100), InviteMaxUsesLimit); err != nil || got != 100 {
 		t.Errorf("max uses of 100 should be accepted, got %d, %v", got, err)
+func TestPollDataToCreatePollData(t *testing.T) {
+	data := PollData{
+		Question: "Best number? {{ 1 + 1 }}",
+		Answers: []PollAnswerData{
+			{Text: "One", Emoji: &EmojiData{Name: "1️⃣"}},
+			{Text: "", Emoji: &EmojiData{Name: "2️⃣"}},
+			{Text: "Custom", Emoji: &EmojiData{ID: "123456789012345678", Name: "custom"}},
+		},
+		DurationHours:    "{{ 24 * 2 }}",
+		AllowMultiselect: true,
+	}
+
+	res, err := data.ToCreatePollData(context.Background(), eval.NewContext(eval.Env{}))
+	require.NoError(t, err)
+
+	assert.Equal(t, "Best number? 2", res.Question.Text)
+	assert.Equal(t, 48, res.Duration)
+	assert.True(t, res.AllowMultiselect)
+	assert.Equal(t, provider.PollLayoutTypeDefault, res.LayoutType)
+
+	// The empty answer is skipped.
+	require.Len(t, res.Answers, 2)
+	assert.Equal(t, "One", res.Answers[0].PollMedia.Text)
+	assert.Equal(t, &provider.PollEmoji{Name: "1️⃣"}, res.Answers[0].PollMedia.Emoji)
+	assert.Equal(t, &provider.PollEmoji{ID: discord.EmojiID(123456789012345678)}, res.Answers[1].PollMedia.Emoji)
+}
+
+func TestPollDataToCreatePollDataDefaultDuration(t *testing.T) {
+	data := PollData{
+		Question: "Question",
+		Answers:  []PollAnswerData{{Text: "Answer"}},
+	}
+
+	res, err := data.ToCreatePollData(context.Background(), eval.NewContext(eval.Env{}))
+	require.NoError(t, err)
+	assert.Equal(t, pollDefaultDurationHours, res.Duration)
+}
+
+func TestPollDataToCreatePollDataRejectsInvalid(t *testing.T) {
+	answers := func(n int) []PollAnswerData {
+		res := make([]PollAnswerData, n)
+		for i := range res {
+			res[i] = PollAnswerData{Text: "Answer"}
+		}
+		return res
+	}
+
+	cases := map[string]PollData{
+		"empty question":           {Question: "", Answers: answers(2)},
+		"question too long":        {Question: strings.Repeat("a", pollQuestionMaxLength+1), Answers: answers(2)},
+		"no answers":               {Question: "Question"},
+		"only empty answers":       {Question: "Question", Answers: []PollAnswerData{{Text: " "}}},
+		"too many answers":         {Question: "Question", Answers: answers(pollMaxAnswers + 1)},
+		"answer too long":          {Question: "Question", Answers: []PollAnswerData{{Text: strings.Repeat("a", pollAnswerMaxLength+1)}}},
+		"invalid emoji id":         {Question: "Question", Answers: []PollAnswerData{{Text: "Answer", Emoji: &EmojiData{ID: "abc"}}}},
+		"duration not a number":    {Question: "Question", Answers: answers(2), DurationHours: "soon"},
+		"duration evaluates empty": {Question: "Question", Answers: answers(2), DurationHours: "{{ '' }}"},
+		"duration zero":            {Question: "Question", Answers: answers(2), DurationHours: "0"},
+		"duration too long":        {Question: "Question", Answers: answers(2), DurationHours: "769"},
+		"duration fractional":      {Question: "Question", Answers: answers(2), DurationHours: "1.5"},
+	}
+
+	for name, data := range cases {
+		t.Run(name, func(t *testing.T) {
+			_, err := data.ToCreatePollData(context.Background(), eval.NewContext(eval.Env{}))
+			assert.Error(t, err)
+		})
 	}
 }

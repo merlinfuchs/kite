@@ -37,6 +37,21 @@ type Asset struct {
 	ExpiresAt     pgtype.Timestamp
 }
 
+type AssistantPrompt struct {
+	ID                string
+	AppID             string
+	UserID            string
+	Model             string
+	Prompt            string
+	Rounds            int32
+	Edited            bool
+	InputTokens       int32
+	CachedInputTokens int32
+	OutputTokens      int32
+	CreatedAt         pgtype.Timestamp
+	UpdatedAt         pgtype.Timestamp
+}
+
 type Collaborator struct {
 	UserID    string
 	AppID     string
