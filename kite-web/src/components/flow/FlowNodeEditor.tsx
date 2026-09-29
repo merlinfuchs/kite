@@ -1137,7 +1137,23 @@ function DiscordApiRequestDataInput({ data, updateData, errors }: InputProps) {
           <DialogTitle>Configure Discord API Request</DialogTitle>
           <DialogDescription>
             Call an endpoint of the Discord API as your bot. Kite adds the
-            bot&apos;s token, so never paste it into a flow.
+            bot&apos;s token, so never paste it into a flow. See{" "}
+            <Link
+              href="https://discord.com/developers/docs/reference"
+              target="_blank"
+              className="text-primary hover:underline"
+            >
+              Discord&apos;s API docs
+            </Link>{" "}
+            for what each endpoint takes and returns, and{" "}
+            <Link
+              href={nodeTypeDocsPage("action_discord_api_request")!}
+              target="_blank"
+              className="text-primary hover:underline"
+            >
+              how to use this block
+            </Link>
+            .
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-3">
