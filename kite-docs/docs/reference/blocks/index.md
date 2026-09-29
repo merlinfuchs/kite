@@ -42,6 +42,7 @@ The output of previously executed blocks is available in all subsequent blocks a
 - [Ban member](./actions/action_member_ban.md) - Ban members from servers
 - [Unban member](./actions/action_member_unban.md) - Unban members from servers
 - [Kick member](./actions/action_member_kick.md) - Kick members from servers
+- [Prune members](./actions/action_member_prune.md) - Remove inactive members without roles
 - [Timeout member](./actions/action_member_timeout.md) - Timeout members
 - [Edit member nickname](./actions/action_member_edit.md) - Edit member nicknames
 - [Add member role](./actions/action_member_role_add.md) - Add roles to members

@@ -337,6 +337,15 @@ func (p *DiscordProvider) KickMember(ctx context.Context, guildID discord.GuildI
 	return nil
 }
 
+func (p *DiscordProvider) PruneMembers(ctx context.Context, guildID discord.GuildID, data api.PruneData) (uint, error) {
+	pruned, err := p.session.Prune(guildID, data)
+	if err != nil {
+		return 0, fmt.Errorf("failed to prune members: %w", err)
+	}
+
+	return pruned, nil
+}
+
 func (p *DiscordProvider) EditMember(ctx context.Context, guildID discord.GuildID, userID discord.UserID, data api.ModifyMemberData) error {
 	err := p.session.ModifyMember(guildID, userID, data)
 	if err != nil {

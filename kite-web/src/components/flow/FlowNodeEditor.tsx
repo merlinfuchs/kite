@@ -157,6 +157,7 @@ const intputs: Record<string, any> = {
   member_ban_delete_message_duration_seconds:
     MemberBanDeleteMessageDurationInput,
   member_timeout_duration_seconds: MemberTimeoutDurationInput,
+  member_prune_days: MemberPruneDaysInput,
   member_nick: MemberNickInput,
   roblox_user_target: RobloxUserTargetInput,
   roblox_lookup_mode: RobloxLookupModeInput,
@@ -1491,6 +1492,21 @@ function MemberTimeoutDurationInput({ data, updateData, errors }: InputProps) {
       updateValue={(v) =>
         updateData({ member_timeout_duration_seconds: v || undefined })
       }
+      errors={errors}
+      placeholders
+    />
+  );
+}
+
+function MemberPruneDaysInput({ data, updateData, errors }: InputProps) {
+  return (
+    <BaseInput
+      type="text"
+      field="member_prune_days"
+      title="Inactive Days"
+      description="Remove members that haven't been active for this many days, between 1 and 30. Members with any role are never removed."
+      value={data.member_prune_days || ""}
+      updateValue={(v) => updateData({ member_prune_days: v || undefined })}
       errors={errors}
       placeholders
     />

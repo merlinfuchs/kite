@@ -555,6 +555,15 @@ export const nodeActionMemberUnbanDataSchema = nodeBaseDataSchema.extend({
 
 export const nodeActionMemberKickDataSchema = nodeActionMemberUnbanDataSchema;
 
+export const nodeActionMemberPruneDataSchema = nodeBaseDataSchema.extend({
+  guild_target: guildTargetSchema.optional(),
+  member_prune_days: numericOrPlaceholder(
+    "Remove members that haven't been active for this many days, between 1 and 30. Members with any role are never removed."
+  ),
+  audit_log_reason: auditLogReasonSchema,
+  temporary_name: temporaryNameSchema,
+});
+
 export const nodeActionMemberTimeoutDataSchema = nodeBaseDataSchema.extend({
   guild_target: guildTargetSchema.optional(),
   user_target: userTargetSchema,

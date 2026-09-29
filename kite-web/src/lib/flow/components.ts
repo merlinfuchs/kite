@@ -47,6 +47,7 @@ export const nodeTypes = {
   action_member_ban: FlowNodeActionBase,
   action_member_unban: FlowNodeActionBase,
   action_member_kick: FlowNodeActionBase,
+  action_member_prune: FlowNodeActionBase,
   action_member_timeout: FlowNodeActionBase,
   action_member_edit: FlowNodeActionBase,
   action_member_role_add: FlowNodeActionBase,

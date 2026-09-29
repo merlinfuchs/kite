@@ -65,6 +65,7 @@ export const nodeCategories: Record<
         "action_member_ban",
         "action_member_unban",
         "action_member_kick",
+        "action_member_prune",
         "action_member_timeout",
         "action_member_edit",
         "action_member_get",

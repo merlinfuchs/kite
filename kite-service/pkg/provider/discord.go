@@ -35,6 +35,7 @@ type DiscordProvider interface {
 	BanMember(ctx context.Context, guildID discord.GuildID, userID discord.UserID, data api.BanData) error
 	UnbanMember(ctx context.Context, guildID discord.GuildID, userID discord.UserID, reason api.AuditLogReason) error
 	KickMember(ctx context.Context, guildID discord.GuildID, userID discord.UserID, reason api.AuditLogReason) error
+	PruneMembers(ctx context.Context, guildID discord.GuildID, data api.PruneData) (uint, error)
 	EditMember(ctx context.Context, guildID discord.GuildID, userID discord.UserID, data api.ModifyMemberData) error
 	AddMemberRole(ctx context.Context, guildID discord.GuildID, userID discord.UserID, roleID discord.RoleID, reason api.AuditLogReason) error
 	RemoveMemberRole(ctx context.Context, guildID discord.GuildID, userID discord.UserID, roleID discord.RoleID, reason api.AuditLogReason) error
@@ -213,6 +214,10 @@ func (p *MockDiscordProvider) UnbanMember(ctx context.Context, guildID discord.G
 func (p *MockDiscordProvider) KickMember(ctx context.Context, guildID discord.GuildID, userID discord.UserID, reason api.AuditLogReason) error {
 
 	return nil
+}
+
+func (p *MockDiscordProvider) PruneMembers(ctx context.Context, guildID discord.GuildID, data api.PruneData) (uint, error) {
+	return 0, nil
 }
 
 func (p *MockDiscordProvider) EditMember(ctx context.Context, guildID discord.GuildID, userID discord.UserID, data api.ModifyMemberData) error {

@@ -9,6 +9,8 @@ import (
 	"math/rand"
 	"net/http"
 	"slices"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/diamondburned/arikawa/v3/api"
@@ -751,6 +753,35 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			return traceError(n, err)
 		}
 
+		return n.ExecuteChildren(ctx)
+	case FlowNodeTypeActionMemberPrune:
+		guildID, err := n.targetGuildID(ctx)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		days, err := n.memberPruneDays(ctx)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		auditLogReason, err := ctx.EvalTemplate(n.Data.AuditLogReason)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		// Without included roles Discord only removes members that have no
+		// roles, which keeps the block from clearing out active members.
+		pruned, err := ctx.Discord.PruneMembers(ctx, guildID, api.PruneData{
+			Days:           days,
+			ReturnCount:    true,
+			AuditLogReason: api.AuditLogReason(auditLogReason.String()),
+		})
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		ctx.StoreNodeResult(n, thing.NewInt(pruned))
 		return n.ExecuteChildren(ctx)
 	case FlowNodeTypeActionMemberTimeout:
 		guildID, err := n.targetGuildID(ctx)
@@ -2111,6 +2142,29 @@ func (n *CompiledFlowNode) deferUnanswered(ctx *FlowContext) error {
 		}
 	}
 	return err
+}
+
+// memberPruneMaxDays is the most days of inactivity Discord accepts for a prune.
+const memberPruneMaxDays = 30
+
+// memberPruneDays evaluates how many days members must have been inactive to
+// be pruned. It has no default, so a prune never runs with a number the user
+// didn't set.
+func (n *CompiledFlowNode) memberPruneDays(ctx *FlowContext) (uint, error) {
+	value, err := ctx.EvalTemplate(n.Data.MemberPruneDays)
+	if err != nil {
+		return 0, err
+	}
+
+	days, err := strconv.Atoi(strings.TrimSpace(value.String()))
+	if err != nil {
+		return 0, fmt.Errorf("prune days %q is not a whole number of days", value.String())
+	}
+	if days < 1 || days > memberPruneMaxDays {
+		return 0, fmt.Errorf("prune days must be between 1 and %d, got %d", memberPruneMaxDays, days)
+	}
+
+	return uint(days), nil
 }
 
 // targetGuildID returns the guild a block acts on: the guild target if one is
