@@ -219,9 +219,69 @@ Saved flows reference block types and field names forever, so both are permanent
 
 When a service changes its API, a script fetches the new spec, writes the trimmed `openapi.json` and compares it with every definition by `operation`: removed operations, removed or renamed fields, changed types and new required fields. It reports what needs a decision. CI runs the same comparison against the committed `openapi.json`, so it never has to fetch anything.
 
+## One format for all blocks
+
+Some blocks will always need code: conditions, loops, sleep, variables, AI, responses, voice and status. Two ways of defining blocks side by side is the complexity to avoid, so the next step moves every block to the definition format, and only how a block runs differs.
+
+Today a hand-written block is spread over `nodes.ts`, `dataSchema.ts`, `resultSchema.ts`, `categories.ts`, `components.ts` and a `case` in `Execute`. After this step every block has one definition with its title, icon, category, credits, fields, result, structure and a `run`:
+
+```ts
+export const messagePin: BlockDefinition = {
+  type: "action_message_pin",
+  title: "Pin channel message",
+  // ...
+  run: { kind: "custom" },
+};
+
+export const roleCreate: BlockDefinition = {
+  type: "action_role_create",
+  // ...
+  run: { kind: "request", method: "POST", path: "/guilds/{guild_id}/roles" },
+};
+```
+
+A custom block runs the Go handler registered under its node type, so no separate ID is needed. The switch in `Execute` becomes a map from node type to handler, and a test checks both directions: every custom definition has a handler, and every handler has a definition.
+
+Definitions are grouped by where a block acts, not by how it runs. `integrations/discord/blocks` holds every Discord block, whether it's a request or custom, like pin, ban or message create. Blocks of Kite itself, like conditions, loops, sleep, variables, AI, calculate value and log, get their own group, as they aren't integrations.
+
+### Widgets
+
+Complex inputs are widget types a field refers to: `message` (the message builder, with templates), `permissions`, `emoji`, `channel`, `role`, `modal`. A field's value doesn't have to be text: a `message` field stores the whole `message_data` object, and the widget brings its own editor and validation, like `BaseInput` does for plain fields. Most of the editor inputs in `FlowNodeEditor.tsx` become widgets or plain fields.
+
+Outputs that depend on settings come from widgets too. A message field adds an output for every button and select menu in the message, which `getNodeOutputs` special-cases today.
+
+### Structure
+
+Conditions and loops own other blocks, have several outputs and their own canvas components. That structure is data already, only spread out: `outputs` and `fixed` in `nodes.ts`, owned children hard-coded in `createNode` and the `conditionChildType` map, components in `components.ts`. It moves into the definition:
+
+```ts
+export const conditionCompare: BlockDefinition = {
+  type: "control_condition_compare",
+  // ...
+  fields: [{ name: "condition_base_value", type: "string", label: "Base Value", description: "..." }],
+  owns: ["control_condition_item_compare", "control_condition_item_else"],
+  component: "condition",
+  run: { kind: "custom" },
+};
+
+export const loop: BlockDefinition = {
+  type: "control_loop",
+  // ...
+  owns: ["control_loop_each", "control_loop_end"],
+  component: "loop",
+  run: { kind: "custom" },
+};
+```
+
+Condition items and the loop's each and end blocks are definitions of their own. `getOwnedChildTypes` and `getOwnerTypes` read `owns` instead of calling `createNode`. What these blocks do stays in code: branching, looping and resuming in Go, adding condition items and the canvas components in the editor. The definition only names them.
+
+### Order
+
+It's a large but mechanical refactor, done group by group: simple Discord blocks, then blocks with widgets, then Kite's own blocks, conditions and loops last, as `createNode`, the flow AI's edit engine and validation all reason about owned children. The safety net is the catalog: it's generated from the same data, so a moved block whose catalog entry is unchanged looks exactly the same to the editor, the flow AI and the docs. The Go side, switch to handler map, is a separate change with no behavior change.
+
 ## Existing blocks
 
-About 18 of Kite's actions are a single Discord REST call: reactions, pin and unpin, message delete, ban, unban, kick, timeout, member edit, role add and remove, the channel blocks and the thread blocks. Once the format is stable they move to definitions one at a time, until hand-coded blocks are left only where there's real logic: responses, message blocks with the builder, voice and status (gateway), AI, variables and control flow.
+About 18 of Kite's actions are a single Discord REST call: reactions, pin and unpin, message delete, ban, unban, kick, timeout, member edit, role add and remove, the channel blocks and the thread blocks. After the step above they're definitions with a custom `run`, and converting one means replacing its Go handler with a request `run`, until custom handlers are left only where there's real logic: responses, message blocks with the builder, voice and status (gateway), AI, variables and control flow.
 
 A converted block keeps its node type, its field names (`channel_target`, `message_target`, `emoji_data`, ...) and its result type, so saved flows keep working unchanged. Definitions therefore map existing field names onto the request, and a few fields need a named conversion: `emoji_data` becomes `name:id` in the reaction path, and a timeout's duration in seconds becomes the `communication_disabled_until` timestamp. A block that needs more than a named conversion stays in code.
 
@@ -240,10 +300,11 @@ That's far off. The two rules above keep it open without extra work now: block t
 ## Phases
 
 1. Done: definition format, executor and editor rendering, with create invite (#212), bulk delete (#210), role create (#208) and the message list from #468.
-2. #419 with room for integration credentials, then the integrations settings page, connect prompts and error nodes. Cookie API as the first non-Discord integration, pending the partnership. For transcripts, ask cookie-api for a mode where Kite sends the messages instead of a bot token.
-3. Convert existing blocks, starting with reactions, pin and unpin, then the moderation and channel blocks. Get blocks last, once definitions support the cache.
-4. The LLM draft script and contributor docs.
-5. Triggers from other services (the webhook listener, #181), if Kite goes beyond Discord. Integrations only add actions.
+2. One format for all blocks: every block gets a definition with a custom or request `run`, widgets for complex inputs, structure for conditions and loops, and a handler map instead of the switch in `Execute`.
+3. Convert blocks that are a single request from custom to request `run`, starting with reactions, pin and unpin, then the moderation and channel blocks. Get blocks last, once definitions support the cache.
+4. #419 with room for integration credentials, then the integrations settings page, connect prompts and error nodes. Cookie API as the first non-Discord integration, pending the partnership. For transcripts, ask cookie-api for a mode where Kite sends the messages instead of a bot token.
+5. The LLM draft script and contributor docs.
+6. Triggers from other services (the webhook listener, #181), if Kite goes beyond Discord. Integrations only add actions.
 
 ## Open questions
 
