@@ -8,9 +8,8 @@ export const discordBulkDeleteMessages: BlockDefinition = {
   category: "Messages",
   credits: 1,
   audit_log_reason: true,
-  // Discord only deletes up to 100 messages that are less than 2 weeks old,
-  // and only the ones given by ID.
-  destructive: true,
+  // Destructive, but Discord only deletes up to 100 messages that are less
+  // than 2 weeks old, and only the ones given by ID.
   run: {
     kind: "request",
     integration: "discord",

@@ -857,7 +857,7 @@ const discordApiRequestDataSchema = z.object({
 });
 
 // Formats of typed Discord API parameters, which can also be a placeholder.
-const discordApiParamFormats: Record<string, [RegExp, string]> = {
+export const discordApiParamFormats: Record<string, [RegExp, string]> = {
   snowflake: [numericRegex, "Must be a number or ID"],
   integer: [/^-?[0-9]+$/, "Must be a whole number"],
   number: [/^-?[0-9]+(\.[0-9]+)?$/, "Must be a number"],

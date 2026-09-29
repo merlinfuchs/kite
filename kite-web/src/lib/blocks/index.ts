@@ -2,7 +2,7 @@ import { z } from "zod";
 import {
   auditLogReasonSchema,
   nodeBaseDataSchema,
-  numericRegex,
+  discordApiParamFormats,
   placeholderRegex,
   templated,
   temporaryNameSchema,
@@ -28,13 +28,13 @@ export function getBlockDefinition(type: string | undefined) {
 }
 
 const formats: Record<BlockField["type"], [RegExp, string] | null> = {
-  snowflake: [numericRegex, "Must be an ID"],
+  snowflake: discordApiParamFormats.snowflake,
   snowflake_list: [
     /^[0-9]+([,\s]+[0-9]+)*$/,
     "Must be IDs separated by commas",
   ],
-  integer: [/^-?[0-9]+$/, "Must be a whole number"],
-  boolean: [/^(true|false)$/, "Must be true or false"],
+  integer: discordApiParamFormats.integer,
+  boolean: discordApiParamFormats.boolean,
   string: null,
 };
 
@@ -98,9 +98,28 @@ function fieldSchema(field: BlockField) {
     }
   });
 
+  // Lists of IDs can also be stored as a list, whose items can be
+  // placeholders.
+  const listOrText =
+    field.type === "snowflake_list"
+      ? withChecks.or(
+          z
+            .array(
+              z
+                .string()
+                .regex(
+                  /^([0-9]+|\{\{[^{}]+\}\})$/,
+                  "Must be IDs or single {{ }} placeholders"
+                )
+            )
+            .min(field.min ?? 0)
+            .max(field.max ?? Infinity)
+        )
+      : withChecks;
+
   // Values are stored as text, so the flow AI needs to know the format.
   const described = templated(
-    withChecks,
+    listOrText,
     field.type === "boolean"
       ? `${field.description} Either "true" or "false".`
       : field.description

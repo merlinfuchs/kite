@@ -283,28 +283,63 @@ var flowNodeDataFields = func() map[string]int {
 	return res
 }()
 
+// flowNodeDataFieldsFolded is flowNodeDataFields by lowercase name, as
+// encoding/json matches keys to fields regardless of case.
+var flowNodeDataFieldsFolded = func() map[string]int {
+	res := make(map[string]int, len(flowNodeDataFields))
+	for name, i := range flowNodeDataFields {
+		res[strings.ToLower(name)] = i
+	}
+	return res
+}()
+
 func (d *FlowNodeData) UnmarshalJSON(b []byte) error {
-	type plain FlowNodeData
-	if err := json.Unmarshal(b, (*plain)(d)); err != nil {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(b, &raw); err != nil {
 		return err
 	}
 
-	var all map[string]any
-	dec := json.NewDecoder(bytes.NewReader(b))
-	// Keeps IDs written as numbers exact.
-	dec.UseNumber()
-	if err := dec.Decode(&all); err != nil {
-		return err
-	}
-	for name, value := range all {
-		if _, ok := flowNodeDataFields[name]; ok {
+	dataType := reflect.TypeOf(*d)
+	fixed := false
+	for name, value := range raw {
+		i, ok := flowNodeDataFieldsFolded[strings.ToLower(name)]
+		if !ok {
+			// Settings of blocks defined as data, kept as they are.
+			if d.Fields == nil {
+				d.Fields = make(map[string]any)
+			}
+			dec := json.NewDecoder(bytes.NewReader(value))
+			// Keeps IDs written as numbers exact.
+			dec.UseNumber()
+			var v any
+			if err := dec.Decode(&v); err != nil {
+				return err
+			}
+			d.Fields[name] = v
 			continue
 		}
-		if d.Fields == nil {
-			d.Fields = make(map[string]any)
+
+		// Text settings can come as a number or boolean, e.g. from the flow AI
+		// or a block defined as data, whose settings accept both.
+		if dataType.Field(i).Type.Kind() == reflect.String && len(value) > 0 && value[0] != '"' && string(value) != "null" {
+			raw[name], _ = json.Marshal(string(value))
+			fixed = true
 		}
-		d.Fields[name] = value
 	}
+
+	if fixed {
+		var err error
+		if b, err = json.Marshal(raw); err != nil {
+			return err
+		}
+	}
+
+	type plain FlowNodeData
+	fields := d.Fields
+	if err := json.Unmarshal(b, (*plain)(d)); err != nil {
+		return err
+	}
+	d.Fields = fields
 	return nil
 }
 

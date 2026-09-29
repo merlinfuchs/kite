@@ -111,9 +111,10 @@ func TestBlockDefinitionMessageList(t *testing.T) {
 
 func TestBlockDefinitionBulkDelete(t *testing.T) {
 	for name, ids := range map[string]string{
-		"separated":   `"11, 12 13"`,
-		"placeholder": `"{{['11', '12', '13']}}"`,
-		"list":        `["11", "12", "13"]`,
+		"separated":              `"11, 12 13"`,
+		"placeholder":            `"{{['11', '12', '13']}}"`,
+		"list":                   `["11", "12", "13"]`,
+		"list with placeholders": `["{{'11'}}", "12", "13"]`,
 	} {
 		t.Run(name, func(t *testing.T) {
 			p := &blockTestProvider{}
@@ -195,4 +196,13 @@ func TestBlockDefinitionFieldSettings(t *testing.T) {
 			}
 		}
 	}
+}
+
+// A placeholder that turns out empty doesn't fall back to the server the flow
+// runs in, which could ban someone on the wrong server.
+func TestBlockDefinitionNoFallbackForEmptyPlaceholder(t *testing.T) {
+	p := &blockTestProvider{response: `{"id":"7"}`}
+	_, err := executeBlock(t, p, "action_role_create", `{"guild_target": "{{''}}"}`)
+	assert.ErrorContains(t, err, "guild_target is required")
+	assert.Empty(t, p.req.Path)
 }

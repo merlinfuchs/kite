@@ -139,7 +139,7 @@ The generator copies what the spec knows into the definition: method, path, type
 
 Block types include the id of the integration they mainly act on, e.g. `action_cookie_api_transcript_create`, so blocks of different integrations can't collide. Folders can move, types can't. Discord's existing blocks, like `action_message_create`, keep their names. New Discord blocks may use the plain form, since Discord owns it. Nothing in the definition format is specific to Discord: Discord is just the integration whose auth type is `discord_bot` and that is always connected.
 
-Destructive operations set `"destructive": true` with their limits (a maximum count, a required confirmation field), which AGENTS.md asks for and review should check.
+Destructive operations need limits, like a maximum count, which AGENTS.md asks for and review should check.
 
 ## Flow data
 

@@ -247,3 +247,20 @@ func TestFlowNodeDataKeepsUnknownSettings(t *testing.T) {
 	require.NoError(t, err)
 	assert.JSONEq(t, `{"a":"b"}`, string(out))
 }
+
+func TestFlowNodeDataAcceptsNumbersForTextSettings(t *testing.T) {
+	var data FlowNodeData
+	require.NoError(t, json.Unmarshal([]byte(`{"channel_target":123,"name":true,"limit":5}`), &data))
+	assert.Equal(t, "123", data.ChannelTarget)
+	assert.Equal(t, "true", data.Name)
+	assert.Equal(t, map[string]any{"limit": json.Number("5")}, data.Fields)
+}
+
+// Keys differing only in case fill FlowNodeData's field like encoding/json
+// does, rather than also being kept as a setting and written twice.
+func TestFlowNodeDataKeyCase(t *testing.T) {
+	var data FlowNodeData
+	require.NoError(t, json.Unmarshal([]byte(`{"Channel_Target":"1"}`), &data))
+	assert.Equal(t, "1", data.ChannelTarget)
+	assert.Empty(t, data.Fields)
+}

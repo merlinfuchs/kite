@@ -54,7 +54,6 @@ export interface BlockDefinition {
   category: string;
   credits: number;
   audit_log_reason?: boolean;
-  destructive?: boolean;
   fields: BlockField[];
   run: BlockRequest;
   result?: {

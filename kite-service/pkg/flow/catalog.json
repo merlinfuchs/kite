@@ -2338,7 +2338,20 @@
             "x-templated": true
           },
           "message_ids": {
-            "type": "string",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "pattern": "^([0-9]+|\\{\\{[^{}]+\\}\\})$"
+                },
+                "minItems": 2,
+                "maxItems": 100
+              }
+            ],
             "description": "2 to 100 message IDs separated by commas, or a placeholder with a list of messages like the result of List channel messages. Messages older than 2 weeks can't be deleted.",
             "x-templated": true
           },

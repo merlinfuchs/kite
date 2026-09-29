@@ -92,11 +92,15 @@ func (n *CompiledFlowNode) executeBlockDefinition(ctx *FlowContext, block blockD
 	for _, field := range block.Fields {
 		hasBody = hasBody || field.In == "body"
 
-		value, err := ctx.evalFieldValue(n.Data.Setting(field.Name))
+		raw := n.Data.Setting(field.Name)
+		value, err := ctx.evalFieldValue(raw)
 		if err != nil {
 			return traceError(n, err)
 		}
-		if isEmptyFieldValue(value) {
+		// Only a setting that's left empty falls back, not a placeholder
+		// that turns out empty, which could point e.g. a ban at the wrong
+		// server.
+		if raw == nil || raw == "" {
 			value = field.fallbackValue(ctx)
 		}
 		if isEmptyFieldValue(value) {
@@ -177,8 +181,20 @@ func (n *CompiledFlowNode) executeBlockDefinition(ctx *FlowContext, block blockD
 }
 
 func (ctx *FlowContext) evalFieldValue(raw any) (thing.Thing, error) {
-	if template, ok := raw.(string); ok {
-		return ctx.EvalTemplate(template)
+	switch v := raw.(type) {
+	case string:
+		return ctx.EvalTemplate(v)
+	case []any:
+		// The items of lists can be templates too.
+		items := make([]thing.Thing, len(v))
+		for i, item := range v {
+			value, err := ctx.evalFieldValue(item)
+			if err != nil {
+				return thing.Null, err
+			}
+			items[i] = value
+		}
+		return thing.NewArray(items), nil
 	}
 	return thing.NewFromJSONValue(raw), nil
 }
