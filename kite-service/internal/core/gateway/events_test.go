@@ -64,6 +64,7 @@ func TestDispatchedEventsHaveNonEmptyEventType(t *testing.T) {
 func TestNoEventListenerTypeIsEmpty(t *testing.T) {
 	types := []model.EventListenerType{
 		model.EventListenerTypeDiscordMessageCreate,
+		model.EventListenerTypeDiscordDirectMessageCreate,
 		model.EventListenerTypeDiscordMessageUpdate,
 		model.EventListenerTypeDiscordMessageDelete,
 		model.EventListenerTypeDiscordGuildMemberAdd,

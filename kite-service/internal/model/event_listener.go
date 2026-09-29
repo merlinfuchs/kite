@@ -21,6 +21,7 @@ type EventListenerType string
 
 const (
 	EventListenerTypeDiscordMessageCreate         EventListenerType = "message_create"
+	EventListenerTypeDiscordDirectMessageCreate   EventListenerType = "direct_message_create"
 	EventListenerTypeDiscordMessageUpdate         EventListenerType = "message_update"
 	EventListenerTypeDiscordMessageDelete         EventListenerType = "message_delete"
 	EventListenerTypeDiscordGuildMemberAdd        EventListenerType = "guild_member_add"

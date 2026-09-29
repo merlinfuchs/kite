@@ -21,7 +21,7 @@ const (
 // requirements cannot be loaded, so a database blip degrades to the old
 // unconditional behaviour rather than to dropping events.
 func allPermittedIntents(flags discord.ApplicationFlags) gateway.Intents {
-	res := gateway.IntentGuilds | gateway.IntentGuildMessages | gateway.IntentGuildMessageReactions
+	res := gateway.IntentGuilds | gateway.IntentGuildMessages | gateway.IntentGuildMessageReactions | gateway.IntentDirectMessages
 
 	if flags&GATEWAY_MESSAGE_CONTENT != 0 || flags&GATEWAY_MESSAGE_CONTENT_LIMITED != 0 {
 		res |= gateway.IntentMessageContent
@@ -52,6 +52,10 @@ func intentsForRequirements(reqs model.AppGatewayRequirements, flags discord.App
 		if flags&GATEWAY_MESSAGE_CONTENT != 0 || flags&GATEWAY_MESSAGE_CONTENT_LIMITED != 0 {
 			res |= gateway.IntentMessageContent
 		}
+	}
+
+	if reqs.NeedsDirectMessages() {
+		res |= gateway.IntentDirectMessages
 	}
 
 	if reqs.NeedsGuildMembers() {

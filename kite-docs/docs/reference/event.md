@@ -4,11 +4,12 @@ sidebar_position: 3
 
 # Event Listener
 
-With Event Listeners you can listen for events inside the Discord servers that your bot is in. They can also run on a [schedule](#scheduled-event-listeners) or when a [webhook](#webhook-event-listeners) is called. Right now, Kite supports the following Discord events:
+With Event Listeners you can listen for events inside the Discord servers that your bot is in, or direct messages sent to the bot. They can also run on a [schedule](#scheduled-event-listeners) or when a [webhook](#webhook-event-listeners) is called. Right now, Kite supports the following Discord events:
 
 - Message Create
 - Message Update
 - Message Delete
+- Direct Message Received
 - Member Join
 - Member Leave
 - Reaction Add
@@ -24,6 +25,7 @@ With Event Listeners you can listen for events inside the Discord servers that y
 - Reaction events provide the emoji as `{{emoji}}`, with `{{emoji.id}}`, `{{emoji.name}}` and `{{emoji.mention}}`. `{{emoji.id}}` is empty for unicode emojis.
 - Reaction Remove only knows the user's ID, so only `{{user.id}}`, `{{user.mention}}` and `{{user.created_at}}` are available there. Fields like `{{user.username}}` are empty; use a Get User block if you need them.
 - Member events are only available when you enable the "Server Members Intent" in the [Discord Developer Portal](https://discord.dev).
+- Direct Message Received triggers when a user sends a direct message to the bot.
 - Bot Left Server only provides `{{guild.id}}`, as the bot no longer knows anything else about the server.
 
 ![Example Event Flow](./img/example-event-flow.png)
