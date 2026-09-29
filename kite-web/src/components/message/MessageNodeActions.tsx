@@ -5,6 +5,7 @@ import {
   TrashIcon,
 } from "lucide-react";
 import { useNodeActions } from "@/lib/message/state";
+import { cn } from "@/lib/utils";
 
 /** The move, duplicate and remove buttons in the header of a node's section. */
 export default function MessageNodeActions({
@@ -16,28 +17,52 @@ export default function MessageNodeActions({
 }) {
   const chevron = size === "lg" ? "h-6 w-6" : "h-5 w-5";
   const icon = size === "lg" ? "h-5 w-5" : "h-4 w-4";
+  const button = cn(
+    "inline-flex items-center justify-center rounded-md hover:bg-muted",
+    size === "lg" ? "h-9 w-9" : "h-8 w-8"
+  );
 
   return (
     <>
       {actions.moveUp && (
-        <ChevronUpIcon
-          className={chevron}
+        <button
+          type="button"
+          className={button}
           onClick={actions.moveUp}
-          role="button"
-        />
+          aria-label="Move up"
+        >
+          <ChevronUpIcon className={chevron} />
+        </button>
       )}
       {actions.moveDown && (
-        <ChevronDownIcon
-          className={chevron}
+        <button
+          type="button"
+          className={button}
           onClick={actions.moveDown}
-          role="button"
-        />
+          aria-label="Move down"
+        >
+          <ChevronDownIcon className={chevron} />
+        </button>
       )}
       {actions.duplicate && (
-        <CopyIcon className={icon} onClick={actions.duplicate} role="button" />
+        <button
+          type="button"
+          className={button}
+          onClick={actions.duplicate}
+          aria-label="Duplicate"
+        >
+          <CopyIcon className={icon} />
+        </button>
       )}
       {actions.remove && (
-        <TrashIcon className={icon} onClick={actions.remove} role="button" />
+        <button
+          type="button"
+          className={button}
+          onClick={actions.remove}
+          aria-label="Remove"
+        >
+          <TrashIcon className={icon} />
+        </button>
       )}
     </>
   );

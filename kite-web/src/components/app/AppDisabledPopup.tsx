@@ -8,7 +8,7 @@ export default function AppDisabledPopup() {
   if (app?.enabled || !app?.disabled_reason) return null;
 
   return (
-    <Card className="shadow-md max-w-96 fixed top-5 right-5 ml-5 z-50 border-red-500">
+    <Card className="shadow-md max-w-96 fixed inset-x-3 top-16 md:inset-x-auto md:top-5 md:right-5 md:ml-5 z-50 border-red-500">
       <CardHeader className="px-4 py-3">
         <CardTitle className="text-base flex items-center gap-2">
           <OctagonAlertIcon className="w-5 h-5 text-red-500" />

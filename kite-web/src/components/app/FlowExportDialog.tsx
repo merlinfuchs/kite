@@ -85,7 +85,7 @@ function ExportForm({ title, type, shareData }: ExportProps) {
           value={json}
           minRows={8}
           maxRows={8}
-          className="resize-none break-all font-mono text-xs"
+          className="resize-none break-all font-mono text-base md:text-xs"
           onFocus={(e) => e.target.select()}
         />
         <DialogFooter className="gap-2 sm:justify-between sm:space-x-0">

@@ -13,7 +13,7 @@ export default function MessageCreatorPage() {
     <HomeLayout title="Message Creator">
       <CurrentMessageStoreProvider>
         <div className="flex flex-col xl:flex-row h-full">
-          <div className="flex flex-col xl:w-7/12 py-8 space-y-8 h-full overflow-y-auto px-3 md:px-5 lg:px-10 no-scrollbar">
+          <div className="flex flex-col xl:w-7/12 pt-8 pb-24 xl:pb-8 space-y-8 h-full overflow-y-auto px-3 md:px-5 lg:px-10 no-scrollbar">
             <div className="flex flex-col space-y-5 md:flex-row md:space-y-0 justify-between">
               <div className="flex flex-col space-y-1.5">
                 <h1 className="text-2xl font-semibold leading-none tracking-tight">
@@ -44,12 +44,16 @@ export default function MessageCreatorPage() {
 
           <Drawer>
             <DrawerTrigger asChild>
-              <Button size="icon" className="fixed bottom-5 right-5 xl:hidden">
+              <Button
+                size="icon"
+                className="fixed bottom-5 right-5 xl:hidden"
+                aria-label="Preview message"
+              >
                 <ViewIcon />
               </Button>
             </DrawerTrigger>
             <DrawerContent>
-              <div className="max-h-[80dvh] overlfow-x-hidden overflow-y-auto mt-3">
+              <div className="max-h-[80dvh] overflow-x-hidden overflow-y-auto mt-3">
                 <MessageEditorPreview reducePadding />
               </div>
             </DrawerContent>

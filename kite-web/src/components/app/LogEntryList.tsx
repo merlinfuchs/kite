@@ -43,6 +43,7 @@ import { useAppId } from "@/lib/hooks/params";
 import { LogEntry } from "@/lib/types/wire.gen";
 import { useMemo, useState } from "react";
 import LogLevelBadge from "./LogLevelBadge";
+import { cn } from "@/lib/utils";
 
 const logLevels = ["debug", "info", "warn", "error"] as const;
 
@@ -242,7 +243,13 @@ export default function LogEntryList({
               <TableRow key={headerGroup.id}>
                 {headerGroup.headers.map((header) => {
                   return (
-                    <TableHead key={header.id}>
+                    <TableHead
+                      key={header.id}
+                      className={cn(
+                        header.column.id === "source_id" &&
+                          "hidden sm:table-cell"
+                      )}
+                    >
                       {header.isPlaceholder
                         ? null
                         : flexRender(
@@ -263,7 +270,12 @@ export default function LogEntryList({
                   data-state={row.getIsSelected() && "selected"}
                 >
                   {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id}>
+                    <TableCell
+                      key={cell.id}
+                      className={cn(
+                        cell.column.id === "source_id" && "hidden sm:table-cell"
+                      )}
+                    >
                       {flexRender(
                         cell.column.columnDef.cell,
                         cell.getContext()

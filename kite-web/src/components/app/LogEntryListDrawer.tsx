@@ -93,20 +93,20 @@ function LogList({
   }
 
   return (
-    <div className="px-3 pb-3">
+    <div className="min-h-0 overflow-y-auto px-3 pb-3">
       <div className="flex flex-col gap-2">
         {data?.map((entry) => (
           <div
             key={entry!.id}
-            className="flex gap-5 items-center bg-muted/50 rounded-md px-5 py-3"
+            className="flex flex-wrap sm:flex-nowrap gap-x-5 gap-y-2 items-center bg-muted/50 rounded-md px-3 sm:px-5 py-3"
           >
             <div className="w-16 flex-none">
               <LogLevelBadge level={entry!.level} />
             </div>
-            <div className="flex-auto break-words font-mono text-sm">
+            <div className="order-last basis-full min-w-0 sm:order-none sm:basis-auto flex-auto break-words font-mono text-sm">
               {entry!.message}
             </div>
-            <div className="w-40 flex-none text-left">
+            <div className="ml-auto sm:ml-0 sm:w-40 flex-none text-left">
               {formatRelative(new Date(entry!.created_at), new Date())}
             </div>
           </div>
