@@ -18,7 +18,12 @@ import { useAppId } from "@/lib/hooks/params";
 import {
   CommandArgumentChoiceData,
   EmojiData,
+  HTTPRequestBodyTypeForm,
+  HTTPRequestBodyTypeJSON,
+  HTTPRequestBodyTypeMultipart,
+  HTTPRequestBodyTypeText,
   HTTPRequestData,
+  HTTPRequestDataKeyValue,
   ModalComponentData,
   PermissionOverwriteData,
   StatusData,
@@ -29,7 +34,6 @@ import {
   CircleAlertIcon,
   CopyIcon,
   HelpCircleIcon,
-  MinusIcon,
   PencilIcon,
   PlusIcon,
   SmileIcon,
@@ -42,7 +46,9 @@ import { NodeData, NodeProps } from "../../lib/flow/dataSchema";
 import MessageCreateDialog from "../app/MessageCreateDialog";
 import VariableCreateDialog from "../app/VariableCreateDialog";
 import EmojiPicker from "../common/EmojiPicker";
-import JsonEditor from "../common/JsonEditor";
+import HttpJsonBodyEditor from "./HttpJsonBodyEditor";
+import HttpRequestTestPanel from "./HttpRequestTestPanel";
+import { legacyJsonBodyToTemplate } from "@/lib/flow/jsonTemplate";
 import PlaceholderInput from "../common/PlaceholderInput";
 import ScheduleCronPreview, {
   ScheduleCronHelp,
@@ -76,6 +82,12 @@ import {
   SelectValue,
 } from "../ui/select";
 import { Switch } from "../ui/switch";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "../ui/collapsible";
 import { Textarea } from "../ui/textarea";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
 import FlowPlaceholderExplorer from "./FlowPlaceholderExplorer";
@@ -731,8 +743,6 @@ function EventTypeInput({ data, updateData, errors }: InputProps) {
         { value: "message_delete", label: "Message Delete" },
         { value: "guild_member_add", label: "Server Member Add" },
         { value: "guild_member_remove", label: "Server Member Remove" },
-        { value: "guild_create", label: "Bot Joined Server" },
-        { value: "guild_delete", label: "Bot Left Server" },
       ]}
       value={data.event_type || ""}
       updateValue={(v) => updateData({ event_type: v || undefined })}
@@ -880,8 +890,19 @@ function AuditLogReasonInput({ data, updateData, errors }: InputProps) {
   );
 }
 
-function HttpRequestDataInput({ data, updateData, errors }: InputProps) {
-  // TODO: top level errors aren't displayed ...
+const httpMethods = ["GET", "POST", "PUT", "PATCH", "DELETE"];
+
+// The editor only offers no body or a JSON body. Text and form bodies still run
+// for blocks that already have one, until JSON body is turned on for them.
+const httpLegacyBodyTypeLabels: Record<string, string> = {
+  [HTTPRequestBodyTypeText]: "Text",
+  [HTTPRequestBodyTypeForm]: "Form",
+  [HTTPRequestBodyTypeMultipart]: "Multipart",
+};
+
+function HttpRequestDataInput({ id, data, updateData, errors }: InputProps) {
+  const request = data.http_request_data;
+  const urlRef = useRef<HTMLInputElement>(null);
 
   const updateField = useCallback(
     (newData: Partial<HTTPRequestData>) => {
@@ -895,45 +916,68 @@ function HttpRequestDataInput({ data, updateData, errors }: InputProps) {
     [updateData, data]
   );
 
-  const addHeader = useCallback(() => {
-    updateData({
-      http_request_data: {
-        ...data.http_request_data,
-        headers: [
-          ...(data.http_request_data?.headers || []),
-          { key: "", value: "" },
-        ],
-      },
-    });
-  }, [data, updateData]);
+  // Blocks created before body types existed only have body_json. They are
+  // shown as a JSON body and converted the first time the body is edited, so
+  // just opening the dialog doesn't change the flow.
+  const isLegacyBody = !request?.body_type && request?.body_json != null;
+  const bodyType =
+    request?.body_type || (isLegacyBody ? HTTPRequestBodyTypeJSON : "none");
+  const body =
+    request?.body ??
+    (isLegacyBody ? legacyJsonBodyToTemplate(request?.body_json) : "");
+  const legacyBodyLabel = httpLegacyBodyTypeLabels[bodyType];
 
-  const updateHeader = useCallback(
-    (index: number, key: string, value: string) => {
-      updateData({
-        http_request_data: {
-          ...data.http_request_data,
-          headers: data.http_request_data?.headers?.map((h, i) =>
-            i === index ? { key, value } : h
-          ),
-        },
+  const updateBody = useCallback(
+    (newData: Partial<HTTPRequestData>) => {
+      updateField({
+        body_type: bodyType,
+        body: body || undefined,
+        body_json: undefined,
+        ...newData,
       });
     },
-    [data, updateData]
+    [updateField, bodyType, body]
   );
 
-  const removeHeader = useCallback(
-    (index: number) => {
-      updateData({
-        http_request_data: {
-          ...data.http_request_data,
-          headers: data.http_request_data?.headers?.filter(
-            (_, i) => i !== index
-          ),
-        },
+  const setBodyType = useCallback(
+    (type: string) => {
+      if (!type || type === bodyType) return;
+      updateBody({
+        body_type: type,
+        // Leftovers of a text or form body don't mean anything as JSON.
+        ...(legacyBodyLabel
+          ? {
+              body: undefined,
+              body_form: undefined,
+              body_content_type: undefined,
+            }
+          : {}),
       });
     },
-    [data, updateData]
+    [bodyType, legacyBodyLabel, updateBody]
   );
+
+  const insertUrlPlaceholder = useCallback(
+    (placeholder: string) => {
+      const url = request?.url || "";
+      const el = urlRef.current;
+      const start = el?.selectionStart ?? url.length;
+      const end = el?.selectionEnd ?? url.length;
+      updateField({
+        url: url.slice(0, start) + `{{${placeholder}}}` + url.slice(end),
+      });
+    },
+    [request?.url, updateField]
+  );
+
+  const queryCount = request?.query?.length ?? 0;
+  const headerCount = request?.headers?.length ?? 0;
+  const hasResponseOptions =
+    !!request?.fail_on_error_status || !!request?.response_transform;
+  const requestError =
+    errors["http_request_data.method"] ||
+    errors["http_request_data.url"] ||
+    errors["http_request_data"];
 
   return (
     <Dialog>
@@ -944,99 +988,249 @@ function HttpRequestDataInput({ data, updateData, errors }: InputProps) {
       </DialogTrigger>
       <DialogContent className="overflow-y-auto max-h-[90dvh] max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Configure HTTP Request</DialogTitle>
+          <DialogTitle>HTTP Request</DialogTitle>
           <DialogDescription>
-            Configure your HTTP request here to make an API call to a 3rd party
-            service.
+            Call an external API. Placeholders work in every field.
           </DialogDescription>
         </DialogHeader>
-        <div className="space-y-3">
-          <BaseInput
-            type="select"
-            field="http_request_data.method"
-            title="Method"
-            description="The HTTP method to use for the request."
-            options={[
-              { value: "GET", label: "GET" },
-              { value: "POST", label: "POST" },
-              { value: "PUT", label: "PUT" },
-              { value: "PATCH", label: "PATCH" },
-              { value: "DELETE", label: "DELETE" },
-            ]}
-            value={data.http_request_data?.method || ""}
-            updateValue={(v) => updateField({ method: v })}
-            errors={errors}
-          />
-          <BaseInput
-            type="text"
-            field="http_request_data.url"
-            title="URL"
-            description="The URL to send the request to."
-            value={data.http_request_data?.url || ""}
-            updateValue={(v) => updateField({ url: v })}
-            errors={errors}
-            placeholders
-          />
-          <div>
-            <div className="font-medium text-foreground mb-1">Headers</div>
-            <div className="text-muted-foreground text-sm mb-2">
-              The headers to send with the request.
-            </div>
-            <div className="flex flex-col gap-3">
-              {data.http_request_data?.headers?.map((h, i) => (
-                <div className="flex gap-2" key={i}>
-                  <Input
-                    type="text"
-                    placeholder="Key"
-                    value={h.key || ""}
-                    onChange={(e) => updateHeader(i, e.target.value, h.value)}
-                  />
-                  <Input
-                    type="text"
-                    placeholder="Value"
-                    value={h.value || ""}
-                    onChange={(e) => updateHeader(i, h.key, e.target.value)}
-                  />
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className="flex-none"
-                    onClick={() => removeHeader(i)}
-                  >
-                    <MinusIcon className="h-5 w-5" />
-                  </Button>
-                </div>
-              ))}
 
-              <div className="flex">
-                <Button variant="outline" size="icon" onClick={addHeader}>
-                  <PlusIcon className="h-5 w-5" />
-                </Button>
+        <div className="space-y-5 min-w-0">
+          <div>
+            <div className="flex gap-2">
+              <Select
+                value={request?.method || "GET"}
+                onValueChange={(method) => updateField({ method })}
+              >
+                <SelectTrigger className="w-28 flex-none font-mono text-xs font-semibold">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {httpMethods.map((m) => (
+                    <SelectItem
+                      key={m}
+                      value={m}
+                      className="font-mono text-xs font-semibold"
+                    >
+                      {m}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <div className="relative flex-auto min-w-0">
+                <PlaceholderInput
+                  ref={urlRef}
+                  value={request?.url || ""}
+                  onChange={(url) => updateField({ url })}
+                  placeholder="https://api.example.com/endpoint"
+                />
+                <FlowPlaceholderExplorer onSelect={insertUrlPlaceholder} />
               </div>
             </div>
+            {requestError && <HttpFieldError message={requestError} />}
           </div>
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <div className="font-medium text-foreground">JSON Body</div>
-              <Switch
-                checked={!!data.http_request_data?.body_json}
-                onCheckedChange={(checked) =>
-                  updateField({
-                    body_json: checked ? {} : undefined,
-                  })
+
+          <Tabs defaultValue={bodyType !== "none" ? "body" : "params"}>
+            <TabsList className="w-full justify-start">
+              <TabsTrigger value="params">
+                Params
+                <HttpCount count={queryCount} />
+              </TabsTrigger>
+              <TabsTrigger value="headers">
+                Headers
+                <HttpCount count={headerCount} />
+              </TabsTrigger>
+              <TabsTrigger value="body">
+                Body
+                {bodyType !== "none" && <HttpCount label="1" />}
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="params" className="mt-3">
+              <HttpKeyValueListInput
+                addLabel="Add parameter"
+                emptyLabel="No query parameters. They're added to the URL and encoded for you."
+                items={request?.query}
+                updateItems={(query) => updateField({ query })}
+              />
+            </TabsContent>
+
+            <TabsContent value="headers" className="mt-3">
+              <HttpKeyValueListInput
+                addLabel="Add header"
+                emptyLabel="No headers. Content-Type is set for you based on the body."
+                items={request?.headers}
+                updateItems={(headers) => updateField({ headers })}
+              />
+            </TabsContent>
+
+            <TabsContent value="body" className="mt-3 space-y-3">
+              <div className="flex items-center justify-between gap-5">
+                <div className="text-sm font-medium text-foreground">
+                  JSON body
+                </div>
+                <Switch
+                  checked={bodyType === HTTPRequestBodyTypeJSON}
+                  onCheckedChange={(checked) =>
+                    setBodyType(checked ? HTTPRequestBodyTypeJSON : "none")
+                  }
+                />
+              </div>
+
+              {bodyType === HTTPRequestBodyTypeJSON ? (
+                <HttpJsonBodyEditor
+                  value={body}
+                  onChange={(v) => updateBody({ body: v || undefined })}
+                />
+              ) : legacyBodyLabel ? (
+                <div className="text-muted-foreground text-sm">
+                  This block still sends an old {legacyBodyLabel.toLowerCase()}{" "}
+                  body. Turn on JSON body to replace it.
+                </div>
+              ) : null}
+            </TabsContent>
+          </Tabs>
+
+          <Collapsible defaultOpen={hasResponseOptions}>
+            <CollapsibleTrigger className="group flex w-full items-center justify-between rounded-md border px-3 py-2 text-sm font-medium text-foreground hover:bg-muted/50">
+              <span>
+                Response options
+                {hasResponseOptions && (
+                  <span className="ml-2 text-xs font-normal text-muted-foreground">
+                    Customized
+                  </span>
+                )}
+              </span>
+              <ChevronDownIcon className="h-4 w-4 text-muted-foreground transition-transform group-data-[state=open]:rotate-180" />
+            </CollapsibleTrigger>
+            <CollapsibleContent className="space-y-4 pt-4 px-1">
+              <div className="flex items-center justify-between gap-5">
+                <div>
+                  <div className="text-sm font-medium text-foreground">
+                    Fail on error status
+                  </div>
+                  <div className="text-muted-foreground text-sm">
+                    Stop the flow on a 4xx or 5xx response.
+                  </div>
+                </div>
+                <Switch
+                  checked={!!request?.fail_on_error_status}
+                  onCheckedChange={(checked) =>
+                    updateField({ fail_on_error_status: checked || undefined })
+                  }
+                />
+              </div>
+              <BaseInput
+                type="text"
+                field="http_request_data.response_transform"
+                title="Transform response"
+                description={
+                  <>
+                    An expression whose result becomes this block&apos;s result.
+                    Use <code>response.data()</code> for the parsed JSON.
+                  </>
                 }
+                placeholder="response.data().items[0].name"
+                value={request?.response_transform || ""}
+                updateValue={(v) =>
+                  updateField({ response_transform: v || undefined })
+                }
+                errors={errors}
+                placeholders
+                disablePlaceholderBrackets
               />
-            </div>
-            {!!data.http_request_data?.body_json && (
-              <JsonEditor
-                src={data.http_request_data?.body_json || {}}
-                onChange={(v) => updateField({ body_json: v })}
-              />
-            )}
-          </div>
+            </CollapsibleContent>
+          </Collapsible>
+
+          <HttpRequestTestPanel nodeId={id} request={request} />
         </div>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function HttpCount({ count, label }: { count?: number; label?: string }) {
+  const text = label ?? (count ? String(count) : "");
+  if (!text) return null;
+
+  return (
+    <span className="ml-1.5 rounded-full bg-muted-foreground/20 px-1.5 text-[11px] leading-4 tabular-nums">
+      {text}
+    </span>
+  );
+}
+
+function HttpFieldError({ message }: { message: string }) {
+  return (
+    <div className="text-red-600 dark:text-red-400 text-sm flex items-center space-x-1 pt-2">
+      <CircleAlertIcon className="h-4 w-4 flex-none" />
+      <div>{message}</div>
+    </div>
+  );
+}
+
+function HttpKeyValueListInput({
+  addLabel,
+  emptyLabel,
+  items,
+  updateItems,
+}: {
+  addLabel: string;
+  emptyLabel: string;
+  items?: HTTPRequestDataKeyValue[];
+  updateItems: (items: HTTPRequestDataKeyValue[] | undefined) => void;
+}) {
+  const list = items || [];
+
+  const set = (newItems: HTTPRequestDataKeyValue[]) =>
+    updateItems(newItems.length ? newItems : undefined);
+
+  const update = (i: number, patch: Partial<HTTPRequestDataKeyValue>) =>
+    set(list.map((it, j) => (j === i ? { ...it, ...patch } : it)));
+
+  return (
+    <div className="space-y-2">
+      {list.length === 0 && (
+        <div className="text-muted-foreground text-sm">{emptyLabel}</div>
+      )}
+
+      {list.map((item, i) => (
+        <div className="flex gap-2 items-center" key={i}>
+          <Input
+            type="text"
+            placeholder="Key"
+            className="w-2/5 flex-none"
+            value={item.key || ""}
+            onChange={(e) => update(i, { key: e.target.value })}
+          />
+          <div className="flex-auto min-w-0">
+            <PlaceholderInput
+              placeholder="Value"
+              value={item.value || ""}
+              onChange={(value) => update(i, { value })}
+            />
+          </div>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="flex-none h-9 w-9 text-muted-foreground"
+            title="Remove"
+            onClick={() => set(list.filter((_, j) => j !== i))}
+          >
+            <XIcon className="h-4 w-4" />
+          </Button>
+        </div>
+      ))}
+
+      <Button
+        variant="ghost"
+        size="sm"
+        className="-ml-2 text-muted-foreground"
+        onClick={() => set([...list, { key: "", value: "" }])}
+      >
+        <PlusIcon className="h-4 w-4 mr-1.5" />
+        {addLabel}
+      </Button>
+    </div>
   );
 }
 

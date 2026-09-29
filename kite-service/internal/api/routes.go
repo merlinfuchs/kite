@@ -14,6 +14,7 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/billing"
 	commandhandler "github.com/kitecloud/kite/kite-service/internal/api/handler/command"
 	eventlistener "github.com/kitecloud/kite/kite-service/internal/api/handler/event_listener"
+	"github.com/kitecloud/kite/kite-service/internal/api/handler/flowtest"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/logs"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/message"
 	pluginhandler "github.com/kitecloud/kite/kite-service/internal/api/handler/plugin"
@@ -238,6 +239,17 @@ func (s *APIServer) RegisterRoutes(
 	eventListenerGroup.Patch("/", handler.TypedWithBody(eventListenerHandler.HandleEventListenerUpdate))
 	eventListenerGroup.Delete("/", handler.Typed(eventListenerHandler.HandleEventListenerDelete))
 	eventListenerGroup.Put("/enabled", handler.TypedWithBody(eventListenerHandler.HandleEventListenerUpdateEnabled))
+
+	// Flow routes
+	flowTestHandler := flowtest.NewFlowTestHandler(s.config.EngineHTTPClient)
+
+	flowGroup := appGroup.Group("/flow")
+	// Every test is a real outbound request, so this is kept well below the
+	// app group's general limit.
+	flowGroup.Post("/http-request/test",
+		handler.TypedWithBody(flowTestHandler.HandleHTTPRequestTest),
+		handler.RateLimitByUser(10, time.Minute),
+	)
 
 	// Plugin instance routes
 	pluginHandler := pluginhandler.NewPluginHandler(pluginRegistry, pluginInstanceStore)
