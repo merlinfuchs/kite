@@ -72,7 +72,7 @@ func NewAPIServer(
 	pluginRegistry *plugin.Registry,
 	tokenCrypt *util.SymmetricCrypt,
 	commandManager *command.CommandManager,
-	flowAIPromptStore store.FlowAIPromptStore,
+	assistantPromptStore store.AssistantPromptStore,
 	flowAssistant *flowai.Assistant,
 ) *APIServer {
 	s := &APIServer{
@@ -101,7 +101,7 @@ func NewAPIServer(
 		pluginRegistry,
 		tokenCrypt,
 		commandManager,
-		flowAIPromptStore,
+		assistantPromptStore,
 		flowAssistant,
 	)
 	return s

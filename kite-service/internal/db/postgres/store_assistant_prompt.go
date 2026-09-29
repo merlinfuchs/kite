@@ -12,8 +12,8 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/store"
 )
 
-func (c *Client) CreateFlowAIPrompt(ctx context.Context, prompt *model.FlowAIPrompt) error {
-	return c.Q.CreateFlowAIPrompt(ctx, pgmodel.CreateFlowAIPromptParams{
+func (c *Client) CreateAssistantPrompt(ctx context.Context, prompt *model.AssistantPrompt) error {
+	return c.Q.CreateAssistantPrompt(ctx, pgmodel.CreateAssistantPromptParams{
 		ID:                prompt.ID,
 		AppID:             prompt.AppID,
 		UserID:            prompt.UserID,
@@ -29,8 +29,8 @@ func (c *Client) CreateFlowAIPrompt(ctx context.Context, prompt *model.FlowAIPro
 	})
 }
 
-func (c *Client) FlowAIPrompt(ctx context.Context, appID string, id string) (*model.FlowAIPrompt, error) {
-	row, err := c.Q.GetFlowAIPrompt(ctx, pgmodel.GetFlowAIPromptParams{
+func (c *Client) AssistantPrompt(ctx context.Context, appID string, id string) (*model.AssistantPrompt, error) {
+	row, err := c.Q.GetAssistantPrompt(ctx, pgmodel.GetAssistantPromptParams{
 		ID:    id,
 		AppID: appID,
 	})
@@ -41,18 +41,18 @@ func (c *Client) FlowAIPrompt(ctx context.Context, appID string, id string) (*mo
 		return nil, err
 	}
 
-	return rowToFlowAIPrompt(row), nil
+	return rowToAssistantPrompt(row), nil
 }
 
-func (c *Client) DeleteFlowAIPrompt(ctx context.Context, appID string, id string) error {
-	return c.Q.DeleteFlowAIPrompt(ctx, pgmodel.DeleteFlowAIPromptParams{
+func (c *Client) DeleteAssistantPrompt(ctx context.Context, appID string, id string) error {
+	return c.Q.DeleteAssistantPrompt(ctx, pgmodel.DeleteAssistantPromptParams{
 		ID:    id,
 		AppID: appID,
 	})
 }
 
-func (c *Client) StartFlowAIPromptRound(ctx context.Context, appID string, id string, maxRounds int, updatedAt time.Time) (bool, error) {
-	rows, err := c.Q.StartFlowAIPromptRound(ctx, pgmodel.StartFlowAIPromptRoundParams{
+func (c *Client) StartAssistantPromptRound(ctx context.Context, appID string, id string, maxRounds int, updatedAt time.Time) (bool, error) {
+	rows, err := c.Q.StartAssistantPromptRound(ctx, pgmodel.StartAssistantPromptRoundParams{
 		ID:        id,
 		AppID:     appID,
 		MaxRounds: int32(maxRounds),
@@ -61,8 +61,8 @@ func (c *Client) StartFlowAIPromptRound(ctx context.Context, appID string, id st
 	return rows > 0, err
 }
 
-func (c *Client) AddFlowAIPromptUsage(ctx context.Context, appID string, id string, usage model.FlowAIUsage, edited bool, updatedAt time.Time) error {
-	return c.Q.AddFlowAIPromptUsage(ctx, pgmodel.AddFlowAIPromptUsageParams{
+func (c *Client) AddAssistantPromptUsage(ctx context.Context, appID string, id string, usage model.AssistantUsage, edited bool, updatedAt time.Time) error {
+	return c.Q.AddAssistantPromptUsage(ctx, pgmodel.AddAssistantPromptUsageParams{
 		Edited:            edited,
 		ID:                id,
 		AppID:             appID,
@@ -73,17 +73,17 @@ func (c *Client) AddFlowAIPromptUsage(ctx context.Context, appID string, id stri
 	})
 }
 
-func (c *Client) CountFlowAIPromptsBetween(ctx context.Context, appID string, start time.Time, end time.Time) (model.FlowAIPromptCount, error) {
-	row, err := c.Q.CountFlowAIPromptsByAppBetween(ctx, pgmodel.CountFlowAIPromptsByAppBetweenParams{
+func (c *Client) CountAssistantPromptsBetween(ctx context.Context, appID string, start time.Time, end time.Time) (model.AssistantPromptCount, error) {
+	row, err := c.Q.CountAssistantPromptsByAppBetween(ctx, pgmodel.CountAssistantPromptsByAppBetweenParams{
 		AppID:   appID,
 		StartAt: pgtype.Timestamp{Time: start, Valid: true},
 		EndAt:   pgtype.Timestamp{Time: end, Valid: true},
 	})
-	return model.FlowAIPromptCount{Edited: int(row.Edited), Total: int(row.Total)}, err
+	return model.AssistantPromptCount{Edited: int(row.Edited), Total: int(row.Total)}, err
 }
 
-func rowToFlowAIPrompt(row pgmodel.FlowAiPrompt) *model.FlowAIPrompt {
-	return &model.FlowAIPrompt{
+func rowToAssistantPrompt(row pgmodel.AssistantPrompt) *model.AssistantPrompt {
+	return &model.AssistantPrompt{
 		ID:     row.ID,
 		AppID:  row.AppID,
 		UserID: row.UserID,
@@ -91,7 +91,7 @@ func rowToFlowAIPrompt(row pgmodel.FlowAiPrompt) *model.FlowAIPrompt {
 		Prompt: row.Prompt,
 		Rounds: int(row.Rounds),
 		Edited: row.Edited,
-		Usage: model.FlowAIUsage{
+		Usage: model.AssistantUsage{
 			InputTokens:       int(row.InputTokens),
 			CachedInputTokens: int(row.CachedInputTokens),
 			OutputTokens:      int(row.OutputTokens),

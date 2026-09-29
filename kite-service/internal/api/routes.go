@@ -55,7 +55,7 @@ func (s *APIServer) RegisterRoutes(
 	pluginRegistry *plugin.Registry,
 	tokenCrypt *util.SymmetricCrypt,
 	commandManager *command.CommandManager,
-	flowAIPromptStore store.FlowAIPromptStore,
+	assistantPromptStore store.AssistantPromptStore,
 	flowAssistant *flowai.Assistant,
 ) {
 	sessionManager := session.NewSessionManager(session.SessionManagerConfig{
@@ -204,7 +204,7 @@ func (s *APIServer) RegisterRoutes(
 	logsGroup.Get("/summary", handler.Typed(logHandler.HandleLogSummaryGet))
 
 	// Flow AI routes
-	flowAIHandler := flowaihandler.NewFlowAIHandler(flowAIPromptStore, variableStore, flowAssistant, s.config.FlowAIMaxRepairs)
+	flowAIHandler := flowaihandler.NewFlowAIHandler(assistantPromptStore, variableStore, flowAssistant, s.config.FlowAIMaxRepairs)
 
 	flowAIGroup := appGroup.Group("/flow-ai")
 	flowAIGroup.Get("/usage", handler.Typed(flowAIHandler.HandleFlowAIUsageGet))

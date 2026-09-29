@@ -100,9 +100,9 @@ func main() {
 
 // evalInfo is added to responses for the eval's report.
 type evalInfo struct {
-	Model  string            `json:"model"`
-	Tokens model.FlowAIUsage `json:"tokens"`
-	MS     int64             `json:"ms"`
+	Model  string               `json:"model"`
+	Tokens model.AssistantUsage `json:"tokens"`
+	MS     int64                `json:"ms"`
 }
 
 func decode(w http.ResponseWriter, r *http.Request, v any) bool {

@@ -82,7 +82,7 @@ func TestRespond(t *testing.T) {
 	}}, res.Edits)
 	// Sent as [] rather than null, which the editor can't iterate.
 	assert.Equal(t, []string{}, res.Issues)
-	assert.Equal(t, model.FlowAIUsage{InputTokens: 1000, CachedInputTokens: 800, OutputTokens: 200}, res.Usage)
+	assert.Equal(t, model.AssistantUsage{InputTokens: 1000, CachedInputTokens: 800, OutputTokens: 200}, res.Usage)
 
 	req := *body
 	assert.Equal(t, "gpt-5-mini", req["model"])

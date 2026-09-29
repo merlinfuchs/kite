@@ -35,14 +35,14 @@ type VariableStore interface {
 }
 
 type FlowAIHandler struct {
-	promptStore   store.FlowAIPromptStore
+	promptStore   store.AssistantPromptStore
 	variableStore VariableStore
 	// assistant is nil if no OpenAI API key is configured.
 	assistant  Assistant
 	maxRepairs int
 }
 
-func NewFlowAIHandler(promptStore store.FlowAIPromptStore, variableStore VariableStore, assistant *flowai.Assistant, maxRepairs int) *FlowAIHandler {
+func NewFlowAIHandler(promptStore store.AssistantPromptStore, variableStore VariableStore, assistant *flowai.Assistant, maxRepairs int) *FlowAIHandler {
 	h := &FlowAIHandler{
 		promptStore:   promptStore,
 		variableStore: variableStore,
@@ -89,9 +89,9 @@ func (h *FlowAIHandler) HandleFlowAIChat(c *handler.Context, req wire.FlowAIChat
 	}
 
 	isRepair := req.RepairPromptID != ""
-	var prompt *model.FlowAIPrompt
+	var prompt *model.AssistantPrompt
 	if isRepair {
-		prompt, err = h.promptStore.FlowAIPrompt(c.Context(), c.App.ID, req.RepairPromptID)
+		prompt, err = h.promptStore.AssistantPrompt(c.Context(), c.App.ID, req.RepairPromptID)
 		if err != nil {
 			if errors.Is(err, store.ErrNotFound) {
 				return nil, handler.ErrNotFound("unknown_prompt", "Prompt not found")
@@ -107,7 +107,7 @@ func (h *FlowAIHandler) HandleFlowAIChat(c *handler.Context, req wire.FlowAIChat
 			return nil, handler.ErrBadRequest("repair_expired", "The prompt is too old to be repaired.")
 		}
 
-		started, err := h.promptStore.StartFlowAIPromptRound(c.Context(), c.App.ID, prompt.ID, 1+h.maxRepairs, now)
+		started, err := h.promptStore.StartAssistantPromptRound(c.Context(), c.App.ID, prompt.ID, 1+h.maxRepairs, now)
 		if err != nil {
 			return nil, fmt.Errorf("failed to start flow AI prompt round: %w", err)
 		}
@@ -119,7 +119,7 @@ func (h *FlowAIHandler) HandleFlowAIChat(c *handler.Context, req wire.FlowAIChat
 			return nil, err
 		}
 
-		prompt = &model.FlowAIPrompt{
+		prompt = &model.AssistantPrompt{
 			ID:        util.UniqueID(),
 			AppID:     c.App.ID,
 			UserID:    c.Session.UserID,
@@ -130,7 +130,7 @@ func (h *FlowAIHandler) HandleFlowAIChat(c *handler.Context, req wire.FlowAIChat
 			CreatedAt: now,
 			UpdatedAt: now,
 		}
-		if err := h.promptStore.CreateFlowAIPrompt(c.Context(), prompt); err != nil {
+		if err := h.promptStore.CreateAssistantPrompt(c.Context(), prompt); err != nil {
 			return nil, fmt.Errorf("failed to create flow AI prompt: %w", err)
 		}
 		count.Edited++
@@ -156,14 +156,14 @@ func (h *FlowAIHandler) HandleFlowAIChat(c *handler.Context, req wire.FlowAIChat
 	edited := isRepair || err != nil || len(res.Edits) > 0 || len(res.Issues) > 0
 	if res != nil {
 		// Failing to record the usage shouldn't lose the answer.
-		if err := h.promptStore.AddFlowAIPromptUsage(c.Context(), c.App.ID, prompt.ID, res.Usage, edited, time.Now().UTC()); err != nil {
+		if err := h.promptStore.AddAssistantPromptUsage(c.Context(), c.App.ID, prompt.ID, res.Usage, edited, time.Now().UTC()); err != nil {
 			slog.Error("Failed to add flow AI prompt usage", slog.String("app_id", c.App.ID), slog.Any("error", err))
 		}
 	}
 	if err != nil {
 		// Prompts the model didn't answer at all don't count.
 		if res == nil && !isRepair {
-			if err := h.promptStore.DeleteFlowAIPrompt(c.Context(), c.App.ID, prompt.ID); err != nil {
+			if err := h.promptStore.DeleteAssistantPrompt(c.Context(), c.App.ID, prompt.ID); err != nil {
 				slog.Error("Failed to delete flow AI prompt", slog.String("app_id", c.App.ID), slog.Any("error", err))
 			}
 		}
@@ -193,7 +193,7 @@ func (h *FlowAIHandler) HandleFlowAIChat(c *handler.Context, req wire.FlowAIChat
 
 // checkLimits returns an error if the app can't send another prompt this
 // month.
-func checkLimits(limit int, count model.FlowAIPromptCount) error {
+func checkLimits(limit int, count model.AssistantPromptCount) error {
 	if count.Edited >= limit {
 		return handler.ErrBadRequest("resource_limit", fmt.Sprintf("You've used all %d AI prompts for this month.", limit))
 	}
@@ -203,9 +203,9 @@ func checkLimits(limit int, count model.FlowAIPromptCount) error {
 	return nil
 }
 
-func (h *FlowAIHandler) promptCount(c *handler.Context) (model.FlowAIPromptCount, error) {
+func (h *FlowAIHandler) promptCount(c *handler.Context) (model.AssistantPromptCount, error) {
 	start, end := util.StartAndEndOfMonth(time.Now().UTC())
-	count, err := h.promptStore.CountFlowAIPromptsBetween(c.Context(), c.App.ID, start, end)
+	count, err := h.promptStore.CountAssistantPromptsBetween(c.Context(), c.App.ID, start, end)
 	if err != nil {
 		return count, fmt.Errorf("failed to count flow AI prompts: %w", err)
 	}
@@ -220,7 +220,7 @@ func fields(fields []flowai.Field) []wire.FlowAIField {
 	return res
 }
 
-func usage(count model.FlowAIPromptCount, limit int) wire.FlowAIUsage {
+func usage(count model.AssistantPromptCount, limit int) wire.FlowAIUsage {
 	return wire.FlowAIUsage{
 		PromptsUsed:  count.Edited,
 		PromptsLimit: limit,

@@ -77,7 +77,7 @@ type Response struct {
 	// can't see, e.g. settings that aren't JSON. They are fixed like the
 	// editor's own issues.
 	Issues []string
-	Usage  model.FlowAIUsage
+	Usage  model.AssistantUsage
 }
 
 // ErrResponse is an error with a message that can be shown to the user.
@@ -118,7 +118,7 @@ func (a *Assistant) Respond(ctx context.Context, req Request) (*Response, error)
 		return nil, fmt.Errorf("failed to create response: %w", err)
 	}
 
-	usage := model.FlowAIUsage{
+	usage := model.AssistantUsage{
 		InputTokens:       int(resp.Usage.InputTokens),
 		CachedInputTokens: int(resp.Usage.InputTokensDetails.CachedTokens),
 		OutputTokens:      int(resp.Usage.OutputTokens),

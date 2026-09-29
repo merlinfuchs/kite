@@ -19,15 +19,15 @@ import (
 )
 
 type fakePromptStore struct {
-	prompts map[string]*model.FlowAIPrompt
+	prompts map[string]*model.AssistantPrompt
 }
 
-func (s *fakePromptStore) CreateFlowAIPrompt(ctx context.Context, prompt *model.FlowAIPrompt) error {
+func (s *fakePromptStore) CreateAssistantPrompt(ctx context.Context, prompt *model.AssistantPrompt) error {
 	s.prompts[prompt.ID] = prompt
 	return nil
 }
 
-func (s *fakePromptStore) FlowAIPrompt(ctx context.Context, appID string, id string) (*model.FlowAIPrompt, error) {
+func (s *fakePromptStore) AssistantPrompt(ctx context.Context, appID string, id string) (*model.AssistantPrompt, error) {
 	prompt, ok := s.prompts[id]
 	if !ok || prompt.AppID != appID {
 		return nil, store.ErrNotFound
@@ -35,13 +35,13 @@ func (s *fakePromptStore) FlowAIPrompt(ctx context.Context, appID string, id str
 	return prompt, nil
 }
 
-func (s *fakePromptStore) DeleteFlowAIPrompt(ctx context.Context, appID string, id string) error {
+func (s *fakePromptStore) DeleteAssistantPrompt(ctx context.Context, appID string, id string) error {
 	delete(s.prompts, id)
 	return nil
 }
 
-func (s *fakePromptStore) StartFlowAIPromptRound(ctx context.Context, appID string, id string, maxRounds int, updatedAt time.Time) (bool, error) {
-	prompt, err := s.FlowAIPrompt(ctx, appID, id)
+func (s *fakePromptStore) StartAssistantPromptRound(ctx context.Context, appID string, id string, maxRounds int, updatedAt time.Time) (bool, error) {
+	prompt, err := s.AssistantPrompt(ctx, appID, id)
 	if err != nil || prompt.Rounds >= maxRounds {
 		return false, err
 	}
@@ -49,8 +49,8 @@ func (s *fakePromptStore) StartFlowAIPromptRound(ctx context.Context, appID stri
 	return true, nil
 }
 
-func (s *fakePromptStore) AddFlowAIPromptUsage(ctx context.Context, appID string, id string, usage model.FlowAIUsage, edited bool, updatedAt time.Time) error {
-	prompt, err := s.FlowAIPrompt(ctx, appID, id)
+func (s *fakePromptStore) AddAssistantPromptUsage(ctx context.Context, appID string, id string, usage model.AssistantUsage, edited bool, updatedAt time.Time) error {
+	prompt, err := s.AssistantPrompt(ctx, appID, id)
 	if err != nil {
 		return err
 	}
@@ -59,8 +59,8 @@ func (s *fakePromptStore) AddFlowAIPromptUsage(ctx context.Context, appID string
 	return nil
 }
 
-func (s *fakePromptStore) CountFlowAIPromptsBetween(ctx context.Context, appID string, start time.Time, end time.Time) (model.FlowAIPromptCount, error) {
-	var count model.FlowAIPromptCount
+func (s *fakePromptStore) CountAssistantPromptsBetween(ctx context.Context, appID string, start time.Time, end time.Time) (model.AssistantPromptCount, error) {
+	var count model.AssistantPromptCount
 	for _, prompt := range s.prompts {
 		if prompt.AppID == appID && !prompt.CreatedAt.Before(start) && !prompt.CreatedAt.After(end) {
 			count.Total++
@@ -93,7 +93,7 @@ func (a *fakeAssistant) Respond(ctx context.Context, req flowai.Request) (*flowa
 	a.calls++
 	if a.err != nil {
 		if a.answered {
-			return &flowai.Response{Usage: model.FlowAIUsage{InputTokens: 100}}, a.err
+			return &flowai.Response{Usage: model.AssistantUsage{InputTokens: 100}}, a.err
 		}
 		return nil, a.err
 	}
@@ -106,7 +106,7 @@ func (a *fakeAssistant) Respond(ctx context.Context, req flowai.Request) (*flowa
 	return &flowai.Response{
 		Message: "Done.",
 		Edits:   []map[string]any{{"op": "remove_node", "id": "a"}},
-		Usage:   model.FlowAIUsage{InputTokens: 100},
+		Usage:   model.AssistantUsage{InputTokens: 100},
 	}, nil
 }
 
@@ -118,7 +118,7 @@ type testSetup struct {
 
 func setup(assistant *fakeAssistant) *testSetup {
 	s := &testSetup{
-		store:     &fakePromptStore{prompts: map[string]*model.FlowAIPrompt{}},
+		store:     &fakePromptStore{prompts: map[string]*model.AssistantPrompt{}},
 		assistant: assistant,
 	}
 	s.handler = &FlowAIHandler{promptStore: s.store, variableStore: fakeVariableStore{}, maxRepairs: 2}
