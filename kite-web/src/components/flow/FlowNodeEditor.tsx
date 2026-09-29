@@ -21,6 +21,7 @@ import {
   HTTPRequestData,
   ModalComponentData,
   PermissionOverwriteData,
+  SoundboardSoundData,
   StatusData,
 } from "@/lib/types/flow.gen";
 import { Node, useNodes, useReactFlow, useStoreApi } from "@xyflow/react";
@@ -126,6 +127,8 @@ const intputs: Record<string, any> = {
   voice_self_mute: VoiceSelfMuteInput,
   voice_self_deaf: VoiceSelfDeafInput,
   status_data: StatusDataInput,
+  soundboard_sound_data: SoundboardSoundDataInput,
+  soundboard_sound_target: SoundboardSoundTargetInput,
   role_data: RoleDataInput,
   role_target: RoleTargetInput,
   variable_id: VariableIdInput,
@@ -1482,10 +1485,15 @@ function MessageEphemeralInput({ data, updateData, errors }: InputProps) {
   );
 }
 
-function EmojiDataInput({ data, updateData, errors }: InputProps) {
+function EmojiDataInput({ type, data, updateData, errors }: InputProps) {
   return (
     <BaseEmojiPicker
       title="Emoji"
+      description={
+        type === "action_soundboard_sound_create"
+          ? "Optional. Custom emojis must be from the server the sound is added to."
+          : undefined
+      }
       field="emoji_data"
       errors={errors}
       emoji={data.emoji_data}
@@ -2239,6 +2247,61 @@ function StatusDataInput({ data, updateData, errors }: InputProps) {
         />
       )}
     </>
+  );
+}
+
+function SoundboardSoundDataInput({ data, updateData, errors }: InputProps) {
+  const updateField = (newData: Partial<SoundboardSoundData>) =>
+    updateData({
+      soundboard_sound_data: { ...data.soundboard_sound_data, ...newData },
+    });
+
+  return (
+    <>
+      <BaseInput
+        field="soundboard_sound_data.name"
+        title="Sound Name"
+        value={data.soundboard_sound_data?.name || ""}
+        updateValue={(v) => updateField({ name: v || undefined })}
+        errors={errors}
+        placeholders
+      />
+      <BaseInput
+        field="soundboard_sound_data.sound"
+        title="Sound File"
+        description="URL of an MP3 or OGG file (max 512 KB, 5.2 seconds). Use an attachment argument like {{arg('sound')}} to let users upload one."
+        value={data.soundboard_sound_data?.sound || ""}
+        updateValue={(v) => updateField({ sound: v || undefined })}
+        errors={errors}
+        placeholders
+      />
+      <BaseInput
+        field="soundboard_sound_data.volume"
+        title="Volume"
+        description="From 0 to 1. Defaults to 1."
+        value={data.soundboard_sound_data?.volume || ""}
+        updateValue={(v) => updateField({ volume: v || undefined })}
+        errors={errors}
+        placeholders
+      />
+    </>
+  );
+}
+
+function SoundboardSoundTargetInput({ data, updateData, errors }: InputProps) {
+  return (
+    <BaseInput
+      type="text"
+      field="soundboard_sound_target"
+      title="Target Sound"
+      description="ID of the soundboard sound to delete."
+      value={data.soundboard_sound_target || ""}
+      updateValue={(v) =>
+        updateData({ soundboard_sound_target: v || undefined })
+      }
+      errors={errors}
+      placeholders
+    />
   );
 }
 

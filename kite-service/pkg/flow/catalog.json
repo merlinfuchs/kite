@@ -3973,6 +3973,215 @@
       },
       "result_schema": null
     },
+    "action_soundboard_sound_create": {
+      "title": "Create soundboard sound",
+      "description": "Add a sound to the server's soundboard",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord",
+        "event_schedule"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "type": "string",
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+          },
+          "guild_target": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9]+$"
+              },
+              {
+                "type": "string",
+                "pattern": "^\\{\\{[^{}]+\\}\\}$"
+              }
+            ],
+            "description": "ID of the server. Defaults to the server the flow runs in."
+          },
+          "soundboard_sound_data": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "minLength": 2,
+                "maxLength": 32,
+                "description": "Name of the sound, 2 to 32 characters.",
+                "x-templated": true
+              },
+              "sound": {
+                "type": "string",
+                "minLength": 1,
+                "description": "URL of an MP3 or OGG file of at most 512 KB, e.g. an attachment argument like {{arg('sound')}}.",
+                "x-templated": true
+              },
+              "volume": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "pattern": "^[0-9]+(\\.[0-9]+)?$"
+                  },
+                  {
+                    "type": "string",
+                    "pattern": "^\\{\\{[^{}]+\\}\\}$"
+                  }
+                ],
+                "description": "Volume of the sound from 0 to 1. Defaults to 1."
+              }
+            },
+            "required": [
+              "name",
+              "sound"
+            ],
+            "additionalProperties": false,
+            "description": "The sound to add to the server's soundboard."
+          },
+          "emoji_data": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "description": "ID of a custom emoji."
+              },
+              "name": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Name of a custom emoji, or the unicode of a standard emoji."
+              }
+            },
+            "required": [
+              "name"
+            ],
+            "additionalProperties": false,
+            "description": "Emoji shown next to the sound."
+          },
+          "audit_log_reason": {
+            "type": "string",
+            "maxLength": 512,
+            "description": "Reason shown in the server's audit log.",
+            "x-templated": true
+          },
+          "temporary_name": {
+            "type": "string",
+            "maxLength": 32,
+            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only."
+          }
+        },
+        "required": [
+          "soundboard_sound_data"
+        ],
+        "additionalProperties": false
+      },
+      "result_schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The ID of the sound"
+          },
+          "name": {
+            "type": "string",
+            "description": "The name of the sound"
+          },
+          "volume": {
+            "type": "number",
+            "description": "The volume of the sound from 0 to 1"
+          },
+          "emoji_id": {
+            "type": "string",
+            "description": "The ID of the sound's custom emoji, empty if it has none"
+          },
+          "emoji_name": {
+            "type": "string",
+            "description": "The unicode of the sound's standard emoji, empty if it has none"
+          },
+          "guild_id": {
+            "type": "string",
+            "description": "The ID of the server the sound is in"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "volume",
+          "emoji_id",
+          "emoji_name",
+          "guild_id"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "action_soundboard_sound_delete": {
+      "title": "Delete soundboard sound",
+      "description": "Remove a sound from the server's soundboard",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord",
+        "event_schedule"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "type": "string",
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+          },
+          "guild_target": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9]+$"
+              },
+              {
+                "type": "string",
+                "pattern": "^\\{\\{[^{}]+\\}\\}$"
+              }
+            ],
+            "description": "ID of the server. Defaults to the server the flow runs in."
+          },
+          "soundboard_sound_target": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9]+$"
+              },
+              {
+                "type": "string",
+                "pattern": "^\\{\\{[^{}]+\\}\\}$"
+              }
+            ],
+            "description": "ID of the soundboard sound to delete."
+          },
+          "audit_log_reason": {
+            "type": "string",
+            "maxLength": 512,
+            "description": "Reason shown in the server's audit log.",
+            "x-templated": true
+          }
+        },
+        "required": [
+          "soundboard_sound_target"
+        ],
+        "additionalProperties": false
+      },
+      "result_schema": null
+    },
     "action_status_set": {
       "title": "Set status",
       "description": "Change the status and activity of the bot",

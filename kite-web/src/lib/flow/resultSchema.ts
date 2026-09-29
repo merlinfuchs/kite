@@ -77,6 +77,21 @@ export const nodeActionThreadCreateResultSchema = channelResultSchema;
 
 export const nodeActionForumPostCreateResultSchema = channelResultSchema;
 
+export const nodeActionSoundboardSoundCreateResultSchema = z.object({
+  id: z.string().describe("The ID of the sound"),
+  name: z.string().describe("The name of the sound"),
+  volume: z.number().describe("The volume of the sound from 0 to 1"),
+  emoji_id: z
+    .string()
+    .describe("The ID of the sound's custom emoji, empty if it has none"),
+  emoji_name: z
+    .string()
+    .describe(
+      "The unicode of the sound's standard emoji, empty if it has none"
+    ),
+  guild_id: z.string().describe("The ID of the server the sound is in"),
+});
+
 export const nodeActionRobloxUserGetResultSchema = z.object({
   description: z.string().describe("The description of the Roblox user"),
   created: z

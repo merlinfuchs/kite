@@ -1332,6 +1332,66 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 		}
 
 		return n.ExecuteChildren(ctx)
+	case FlowNodeTypeActionSoundboardSoundCreate:
+		guildID, err := n.targetGuildID(ctx)
+		if err != nil {
+			return traceError(n, err)
+		}
+		if guildID == 0 {
+			return traceError(n, fmt.Errorf("creating a soundboard sound only works in servers"))
+		}
+
+		data, err := n.soundboardSoundCreateData(ctx)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		sound, err := ctx.Discord.CreateSoundboardSound(ctx, guildID, data)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		if sound != nil {
+			ctx.StoreNodeResult(n, newSoundboardSoundThing(*sound))
+		} else {
+			ctx.StoreNodeResult(n, thing.Null)
+		}
+		return n.ExecuteChildren(ctx)
+	case FlowNodeTypeActionSoundboardSoundDelete:
+		guildID, err := n.targetGuildID(ctx)
+		if err != nil {
+			return traceError(n, err)
+		}
+		if guildID == 0 {
+			return traceError(n, fmt.Errorf("deleting a soundboard sound only works in servers"))
+		}
+
+		soundTarget, err := ctx.EvalTemplate(n.Data.SoundboardSoundTarget)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		soundID := soundTarget.Snowflake()
+		if !soundID.IsValid() {
+			return traceError(n, fmt.Errorf("invalid soundboard sound ID %q", soundTarget.String()))
+		}
+
+		auditLogReason, err := ctx.EvalTemplate(n.Data.AuditLogReason)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		err = ctx.Discord.DeleteSoundboardSound(
+			ctx,
+			guildID,
+			soundID,
+			api.AuditLogReason(auditLogReason.String()),
+		)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		return n.ExecuteChildren(ctx)
 	case FlowNodeTypeActionStatusSet:
 		if n.Data.StatusData == nil {
 			return n.ExecuteChildren(ctx)
@@ -1825,6 +1885,9 @@ func (n *CompiledFlowNode) CreditsCost() int {
 
 		return AICreditsCost(data.Model, n.Type == FlowNodeTypeActionAISearchWeb)
 	case FlowNodeTypeActionHTTPRequest:
+		return 3
+	case FlowNodeTypeActionSoundboardSoundCreate:
+		// Downloads the sound from an external URL, like an API request.
 		return 3
 	}
 

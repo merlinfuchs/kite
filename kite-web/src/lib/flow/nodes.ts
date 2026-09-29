@@ -51,6 +51,8 @@ import {
   nodeActionVoiceChannelJoinDataSchema,
   nodeActionVoiceChannelLeaveDataSchema,
   nodeActionStatusSetDataSchema,
+  nodeActionSoundboardSoundCreateDataSchema,
+  nodeActionSoundboardSoundDeleteDataSchema,
   nodeConditionChannelDataSchema,
   nodeConditionCompareDataSchema,
   nodeConditionItemCompareDataSchema,
@@ -88,6 +90,7 @@ import {
   nodeActionResponseEditResultSchema,
   nodeActionRobloxUserGetResultSchema,
   nodeActionRoleGetResultSchema,
+  nodeActionSoundboardSoundCreateResultSchema,
 } from "./resultSchema";
 
 export const primaryColor = "#3B82F6";
@@ -673,6 +676,37 @@ export const nodeTypes: Record<string, NodeValues> = {
     defaultDescription: "Bot leaves its voice channel in a server",
     dataSchema: nodeActionVoiceChannelLeaveDataSchema,
     dataFields: ["guild_target", "custom_label"],
+    creditsCost: 1,
+  },
+  action_soundboard_sound_create: {
+    color: actionColor,
+    icon: "volume-2",
+    defaultTitle: "Create soundboard sound",
+    defaultDescription: "Add a sound to the server's soundboard",
+    dataSchema: nodeActionSoundboardSoundCreateDataSchema,
+    resultSchema: nodeActionSoundboardSoundCreateResultSchema,
+    dataFields: [
+      "guild_target",
+      "soundboard_sound_data",
+      "emoji_data",
+      "audit_log_reason",
+      "temporary_name",
+      "custom_label",
+    ],
+    creditsCost: 3,
+  },
+  action_soundboard_sound_delete: {
+    color: actionColor,
+    icon: "volume-x",
+    defaultTitle: "Delete soundboard sound",
+    defaultDescription: "Remove a sound from the server's soundboard",
+    dataSchema: nodeActionSoundboardSoundDeleteDataSchema,
+    dataFields: [
+      "guild_target",
+      "soundboard_sound_target",
+      "audit_log_reason",
+      "custom_label",
+    ],
     creditsCost: 1,
   },
   action_status_set: {

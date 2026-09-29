@@ -62,6 +62,8 @@ export const FlowNodeTypeActionVariableGet: FlowNodeType = "action_variable_get"
 export const FlowNodeTypeActionVoiceChannelJoin: FlowNodeType = "action_voice_channel_join";
 export const FlowNodeTypeActionVoiceChannelLeave: FlowNodeType = "action_voice_channel_leave";
 export const FlowNodeTypeActionStatusSet: FlowNodeType = "action_status_set";
+export const FlowNodeTypeActionSoundboardSoundCreate: FlowNodeType = "action_soundboard_sound_create";
+export const FlowNodeTypeActionSoundboardSoundDelete: FlowNodeType = "action_soundboard_sound_delete";
 export const FlowNodeTypeControlConditionCompare: FlowNodeType = "control_condition_compare";
 export const FlowNodeTypeControlConditionItemCompare: FlowNodeType = "control_condition_item_compare";
 export const FlowNodeTypeControlConditionUser: FlowNodeType = "control_condition_user";
@@ -162,6 +164,11 @@ export interface FlowNodeData {
    * Status Set
    */
   status_data?: StatusData;
+  /**
+   * Soundboard Sound Create, Delete
+   */
+  soundboard_sound_target?: string;
+  soundboard_sound_data?: SoundboardSoundData;
   /**
    * Role Create, Edit, Delete, Get
    */
@@ -280,6 +287,14 @@ export interface StatusData {
   activity_name?: string;
   activity_url?: string;
 }
+export interface SoundboardSoundData {
+  name?: string;
+  /**
+   * Sound is the URL of an MP3 or OGG file, e.g. an attachment argument.
+   */
+  sound?: string;
+  volume?: string;
+}
 export interface ChannelData {
   name?: string;
   type?: number /* int */;
@@ -362,6 +377,10 @@ export interface FlowEdge {
   sourceHandle?: null | string;
   targetHandle?: null | string;
 }
+
+//////////
+// source: soundboard.go
+
 
 //////////
 // source: state.go

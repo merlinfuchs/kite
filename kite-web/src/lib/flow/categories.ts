@@ -105,7 +105,12 @@ export const nodeCategories: Record<
     },
     {
       title: "Voice",
-      nodeTypes: ["action_voice_channel_join", "action_voice_channel_leave"],
+      nodeTypes: [
+        "action_voice_channel_join",
+        "action_voice_channel_leave",
+        "action_soundboard_sound_create",
+        "action_soundboard_sound_delete",
+      ],
       contextTypes: null,
     },
     {

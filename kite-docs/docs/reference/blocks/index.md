@@ -56,6 +56,8 @@ The output of previously executed blocks is available in all subsequent blocks a
 
 - [Join voice channel](./actions/action_voice_channel_join.md) - Make the app join a voice channel
 - [Leave voice channel](./actions/action_voice_channel_leave.md) - Make the app leave its voice channel
+- [Create soundboard sound](./actions/action_soundboard_sound_create.md) - Add a sound to a server's soundboard
+- [Delete soundboard sound](./actions/action_soundboard_sound_delete.md) - Remove a sound from a server's soundboard
 
 ## Bot Blocks
 

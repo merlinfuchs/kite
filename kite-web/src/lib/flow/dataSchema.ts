@@ -672,6 +672,41 @@ export const nodeActionVoiceChannelLeaveDataSchema = nodeBaseDataSchema.extend({
   guild_target: guildTargetSchema.optional(),
 });
 
+export const nodeActionSoundboardSoundCreateDataSchema =
+  nodeBaseDataSchema.extend({
+    guild_target: guildTargetSchema.optional(),
+    soundboard_sound_data: z
+      .object({
+        name: templated(
+          z.string().min(2).max(32),
+          "Name of the sound, 2 to 32 characters."
+        ),
+        sound: templated(
+          z.string().min(1),
+          "URL of an MP3 or OGG file of at most 512 KB, e.g. an attachment argument like {{arg('sound')}}."
+        ),
+        volume: numericOrPlaceholder(
+          "Volume of the sound from 0 to 1. Defaults to 1.",
+          decimalRegex
+        ).optional(),
+      })
+      .describe("The sound to add to the server's soundboard."),
+    emoji_data: emojiDataSchema
+      .optional()
+      .describe("Emoji shown next to the sound."),
+    audit_log_reason: auditLogReasonSchema,
+    temporary_name: temporaryNameSchema,
+  });
+
+export const nodeActionSoundboardSoundDeleteDataSchema =
+  nodeBaseDataSchema.extend({
+    guild_target: guildTargetSchema.optional(),
+    soundboard_sound_target: numericOrPlaceholder(
+      "ID of the soundboard sound to delete."
+    ),
+    audit_log_reason: auditLogReasonSchema,
+  });
+
 export const nodeActionStatusSetDataSchema = nodeBaseDataSchema.extend({
   status_data: z
     .object({

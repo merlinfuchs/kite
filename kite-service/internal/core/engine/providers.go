@@ -18,6 +18,7 @@ import (
 	"github.com/diamondburned/arikawa/v3/gateway"
 	"github.com/diamondburned/arikawa/v3/state"
 	disstore "github.com/diamondburned/arikawa/v3/state/store"
+	"github.com/diamondburned/arikawa/v3/utils/httputil"
 	"github.com/diamondburned/arikawa/v3/utils/sendpart"
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/internal/store"
@@ -374,6 +375,34 @@ func (p *DiscordProvider) DeleteChannel(ctx context.Context, channelID discord.C
 	err := p.session.DeleteChannel(channelID, reason)
 	if err != nil {
 		return fmt.Errorf("failed to delete channel: %w", err)
+	}
+
+	return nil
+}
+
+func (p *DiscordProvider) CreateSoundboardSound(ctx context.Context, guildID discord.GuildID, data provider.CreateSoundboardSoundData) (*provider.SoundboardSound, error) {
+	var sound provider.SoundboardSound
+	err := p.session.WithContext(ctx).RequestJSON(
+		&sound, "POST",
+		api.EndpointGuilds+guildID.String()+"/soundboard-sounds",
+		httputil.WithJSONBody(data),
+		httputil.WithHeaders(data.AuditLogReason.Header()),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create soundboard sound: %w", err)
+	}
+
+	return &sound, nil
+}
+
+func (p *DiscordProvider) DeleteSoundboardSound(ctx context.Context, guildID discord.GuildID, soundID discord.Snowflake, reason api.AuditLogReason) error {
+	err := p.session.WithContext(ctx).FastRequest(
+		"DELETE",
+		api.EndpointGuilds+guildID.String()+"/soundboard-sounds/"+soundID.String(),
+		httputil.WithHeaders(reason.Header()),
+	)
+	if err != nil {
+		return fmt.Errorf("failed to delete soundboard sound: %w", err)
 	}
 
 	return nil

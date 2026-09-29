@@ -49,6 +49,9 @@ type DiscordProvider interface {
 	EditRole(ctx context.Context, guildID discord.GuildID, roleID discord.RoleID, data api.ModifyRoleData) (*discord.Role, error)
 	DeleteRole(ctx context.Context, guildID discord.GuildID, roleID discord.RoleID) error
 
+	CreateSoundboardSound(ctx context.Context, guildID discord.GuildID, data CreateSoundboardSoundData) (*SoundboardSound, error)
+	DeleteSoundboardSound(ctx context.Context, guildID discord.GuildID, soundID discord.Snowflake, reason api.AuditLogReason) error
+
 	UpdateVoiceState(ctx context.Context, guildID discord.GuildID, channelID discord.ChannelID, selfMute bool, selfDeaf bool) error
 	UpdatePresence(ctx context.Context, status discord.Status, activity discord.Activity) error
 
@@ -62,6 +65,29 @@ type DiscordProvider interface {
 type InteractionResponseResource struct {
 	Type    api.InteractionResponseType
 	Message *discord.Message
+}
+
+// CreateSoundboardSoundData is the body of Discord's create guild soundboard
+// sound endpoint, which arikawa doesn't cover.
+type CreateSoundboardSoundData struct {
+	Name string `json:"name"`
+	// Sound is a data URI of an MP3 or OGG file.
+	Sound     string          `json:"sound"`
+	Volume    *float64        `json:"volume,omitempty"`
+	EmojiID   discord.EmojiID `json:"emoji_id,omitempty"`
+	EmojiName string          `json:"emoji_name,omitempty"`
+
+	AuditLogReason api.AuditLogReason `json:"-"`
+}
+
+type SoundboardSound struct {
+	SoundID   discord.Snowflake `json:"sound_id"`
+	Name      string            `json:"name"`
+	Volume    float64           `json:"volume"`
+	EmojiID   discord.EmojiID   `json:"emoji_id"`
+	EmojiName string            `json:"emoji_name"`
+	GuildID   discord.GuildID   `json:"guild_id"`
+	Available bool              `json:"available"`
 }
 
 type MockDiscordProvider struct{}
@@ -189,6 +215,14 @@ func (p *MockDiscordProvider) EditChannel(ctx context.Context, channelID discord
 }
 
 func (p *MockDiscordProvider) DeleteChannel(ctx context.Context, channelID discord.ChannelID, reason api.AuditLogReason) error {
+	return nil
+}
+
+func (p *MockDiscordProvider) CreateSoundboardSound(ctx context.Context, guildID discord.GuildID, data CreateSoundboardSoundData) (*SoundboardSound, error) {
+	return nil, nil
+}
+
+func (p *MockDiscordProvider) DeleteSoundboardSound(ctx context.Context, guildID discord.GuildID, soundID discord.Snowflake, reason api.AuditLogReason) error {
 	return nil
 }
 

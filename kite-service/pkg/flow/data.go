@@ -95,6 +95,8 @@ const (
 	FlowNodeTypeActionVoiceChannelJoin      FlowNodeType = "action_voice_channel_join"
 	FlowNodeTypeActionVoiceChannelLeave     FlowNodeType = "action_voice_channel_leave"
 	FlowNodeTypeActionStatusSet             FlowNodeType = "action_status_set"
+	FlowNodeTypeActionSoundboardSoundCreate FlowNodeType = "action_soundboard_sound_create"
+	FlowNodeTypeActionSoundboardSoundDelete FlowNodeType = "action_soundboard_sound_delete"
 
 	FlowNodeTypeControlConditionCompare     FlowNodeType = "control_condition_compare"
 	FlowNodeTypeControlConditionItemCompare FlowNodeType = "control_condition_item_compare"
@@ -196,6 +198,10 @@ type FlowNodeData struct {
 
 	// Status Set
 	StatusData *StatusData `json:"status_data,omitempty"`
+
+	// Soundboard Sound Create, Delete
+	SoundboardSoundTarget string               `json:"soundboard_sound_target,omitempty"`
+	SoundboardSoundData   *SoundboardSoundData `json:"soundboard_sound_data,omitempty"`
 
 	// Role Create, Edit, Delete, Get
 	RoleTarget string    `json:"role_target,omitempty"`
@@ -393,6 +399,13 @@ type StatusData struct {
 	ActivityType int    `json:"activity_type,omitempty"`
 	ActivityName string `json:"activity_name,omitempty"`
 	ActivityURL  string `json:"activity_url,omitempty"`
+}
+
+type SoundboardSoundData struct {
+	Name string `json:"name,omitempty"`
+	// Sound is the URL of an MP3 or OGG file, e.g. an attachment argument.
+	Sound  string `json:"sound,omitempty"`
+	Volume string `json:"volume,omitempty"`
 }
 
 type ChannelData struct {
