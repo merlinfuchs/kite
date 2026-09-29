@@ -24,6 +24,7 @@ export const FlowNodeTypeActionResponseDefer: FlowNodeType = "action_response_de
 export const FlowNodeTypeActionMessageCreate: FlowNodeType = "action_message_create";
 export const FlowNodeTypeActionMessageEdit: FlowNodeType = "action_message_edit";
 export const FlowNodeTypeActionMessageDelete: FlowNodeType = "action_message_delete";
+export const FlowNodeTypeActionMessageBulkDelete: FlowNodeType = "action_message_bulk_delete";
 export const FlowNodeTypeActionPrivateMessageCreate: FlowNodeType = "action_private_message_create";
 export const FlowNodeTypeActionMessageReactionCreate: FlowNodeType = "action_message_reaction_create";
 export const FlowNodeTypeActionMessageReactionDelete: FlowNodeType = "action_message_reaction_delete";
@@ -133,6 +134,8 @@ export interface FlowNodeData {
   message_data?: MessageData;
   message_template_id?: string;
   message_ephemeral?: boolean;
+  message_count?: string;
+  message_ignore_pinned?: boolean;
   /**
    * Message Reaction Create, Delete
    */

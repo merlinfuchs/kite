@@ -500,6 +500,75 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 		}
 
 		return n.ExecuteChildren(ctx)
+	case FlowNodeTypeActionMessageBulkDelete:
+		channelTarget, err := ctx.EvalTemplate(n.Data.ChannelTarget)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		count, err := ctx.EvalTemplate(n.Data.MessageCount)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		channelID := discord.ChannelID(channelTarget.Snowflake())
+
+		limit := count.Int()
+		if limit > 1000 {
+			return &FlowError{
+				Code:    FlowNodeErrorUnknown,
+				Message: "bulk delete can remove at most 1000 messages per run",
+			}
+		}
+		if limit < 0 {
+			limit = 0
+		}
+
+		messages, err := ctx.Discord.Messages(ctx, channelID, uint(limit))
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		twoWeeksAgo := time.Now().Add(-14 * 24 * time.Hour)
+
+		messageIDs := make([]discord.MessageID, 0, len(messages))
+		failed := 0
+		for _, message := range messages {
+			if n.Data.MessageIgnorePinned && message.Pinned {
+				continue
+			}
+			if message.Timestamp.Time().Before(twoWeeksAgo) {
+				failed++
+				continue
+			}
+
+			messageIDs = append(messageIDs, message.ID)
+		}
+
+		if len(messageIDs) > 0 {
+			err = ctx.Discord.DeleteMessages(
+				ctx,
+				channelID,
+				messageIDs,
+				"",
+			)
+			if err != nil {
+				return traceError(n, err)
+			}
+		}
+
+		if failed > 0 {
+			ctx.Log.CreateLogEntry(ctx, provider.LogLevelWarn, fmt.Sprintf(
+				"Bulk delete skipped %d message(s) that couldn't be deleted because they are older than 14 days",
+				failed,
+			))
+		}
+
+		ctx.StoreNodeResult(n, thing.NewObject(map[string]thing.Thing{
+			"deleted": thing.NewInt(len(messageIDs)),
+			"failed":  thing.NewInt(failed),
+		}))
+		return n.ExecuteChildren(ctx)
 	case FlowNodeTypeActionPrivateMessageCreate:
 		if ctx.IsEntry() {
 			return n.resumeFromComponent(ctx)

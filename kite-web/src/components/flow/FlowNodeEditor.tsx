@@ -116,6 +116,8 @@ const intputs: Record<string, any> = {
   message_data: MessageDataInput,
   message_template_id: MessageTemplateInput,
   message_target: MessageTargetInput,
+  message_count: MessageCountInput,
+  message_ignore_pinned: MessageIgnorePinnedInput,
   emoji_data: EmojiDataInput,
   response_target: ResponseTargetInput,
   message_ephemeral: MessageEphemeralInput,
@@ -1446,6 +1448,33 @@ function MessageTargetInput({ data, updateData, errors }: InputProps) {
       updateValue={(v) => updateData({ message_target: v || undefined })}
       errors={errors}
       placeholders
+    />
+  );
+}
+
+function MessageCountInput({ data, updateData, errors }: InputProps) {
+  return (
+    <BaseInput
+      type="text"
+      field="message_count"
+      title="Amount"
+      value={data.message_count || ""}
+      updateValue={(v) => updateData({ message_count: v || undefined })}
+      errors={errors}
+      placeholders
+    />
+  );
+}
+
+function MessageIgnorePinnedInput({ data, updateData, errors }: InputProps) {
+  return (
+    <BaseCheckbox
+      field="message_ignore_pinned"
+      title="Ignore pinned messages"
+      description="Skip pinned messages when deleting."
+      value={data.message_ignore_pinned || false}
+      updateValue={(v) => updateData({ message_ignore_pinned: v || undefined })}
+      errors={errors}
     />
   );
 }

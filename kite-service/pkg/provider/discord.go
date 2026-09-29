@@ -17,6 +17,7 @@ type DiscordProvider interface {
 	Role(ctx context.Context, guildID discord.GuildID, roleID discord.RoleID) (*discord.Role, error)
 	Member(ctx context.Context, guildID discord.GuildID, userID discord.UserID) (*discord.Member, error)
 	Message(ctx context.Context, channelID discord.ChannelID, messageID discord.MessageID) (*discord.Message, error)
+	Messages(ctx context.Context, channelID discord.ChannelID, limit uint) ([]discord.Message, error)
 
 	CreateInteractionResponse(ctx context.Context, interactionID discord.InteractionID, interactionToken string, response api.InteractionResponse) (*InteractionResponseResource, error)
 	EditInteractionResponse(ctx context.Context, applicationID discord.AppID, token string, response api.EditInteractionResponseData) (*discord.Message, error)
@@ -27,6 +28,7 @@ type DiscordProvider interface {
 	CreateMessage(ctx context.Context, channelID discord.ChannelID, message api.SendMessageData) (*discord.Message, error)
 	EditMessage(ctx context.Context, channelID discord.ChannelID, messageID discord.MessageID, message api.EditMessageData) (*discord.Message, error)
 	DeleteMessage(ctx context.Context, channelID discord.ChannelID, messageID discord.MessageID, reason api.AuditLogReason) error
+	DeleteMessages(ctx context.Context, channelID discord.ChannelID, messageIDs []discord.MessageID, reason api.AuditLogReason) error
 	CreateMessageReaction(ctx context.Context, channelID discord.ChannelID, messageID discord.MessageID, emoji discord.APIEmoji) error
 	DeleteMessageReaction(ctx context.Context, channelID discord.ChannelID, messageID discord.MessageID, emoji discord.APIEmoji) error
 	PinMessage(ctx context.Context, channelID discord.ChannelID, messageID discord.MessageID, reason api.AuditLogReason) error
@@ -98,6 +100,10 @@ func (p *MockDiscordProvider) Message(ctx context.Context, channelID discord.Cha
 	return nil, nil
 }
 
+func (p *MockDiscordProvider) Messages(ctx context.Context, channelID discord.ChannelID, limit uint) ([]discord.Message, error) {
+	return nil, nil
+}
+
 func (p *MockDiscordProvider) CreateInteractionResponse(ctx context.Context, interactionID discord.InteractionID, interactionToken string, response api.InteractionResponse) (*InteractionResponseResource, error) {
 	return nil, nil
 }
@@ -134,6 +140,15 @@ func (p *MockDiscordProvider) DeleteMessage(
 	ctx context.Context,
 	channelID discord.ChannelID,
 	messageID discord.MessageID,
+	reason api.AuditLogReason,
+) error {
+	return nil
+}
+
+func (p *MockDiscordProvider) DeleteMessages(
+	ctx context.Context,
+	channelID discord.ChannelID,
+	messageIDs []discord.MessageID,
 	reason api.AuditLogReason,
 ) error {
 	return nil

@@ -49,6 +49,7 @@ export const nodeCategories: Record<
         "action_message_create",
         "action_message_edit",
         "action_message_delete",
+        "action_message_bulk_delete",
         "action_message_get",
         "action_private_message_create",
         "action_message_reaction_create",
