@@ -403,6 +403,12 @@ export interface FlowAIChatResponse {
 export interface FlowAIUsage {
   prompts_used: number /* int */;
   prompts_limit: number /* int */;
+  /**
+   * Answers are all prompts, including ones without edits, which don't
+   * count as prompts but are limited too.
+   */
+  answers_used: number /* int */;
+  answers_limit: number /* int */;
 }
 export type FlowAIUsageGetResponse = FlowAIUsage;
 /**

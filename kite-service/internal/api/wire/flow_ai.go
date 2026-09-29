@@ -74,6 +74,10 @@ type FlowAIChatResponse struct {
 type FlowAIUsage struct {
 	PromptsUsed  int `json:"prompts_used"`
 	PromptsLimit int `json:"prompts_limit"`
+	// Answers are all prompts, including ones without edits, which don't
+	// count as prompts but are limited too.
+	AnswersUsed  int `json:"answers_used"`
+	AnswersLimit int `json:"answers_limit"`
 }
 
 type FlowAIUsageGetResponse = FlowAIUsage

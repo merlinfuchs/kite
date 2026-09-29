@@ -2,12 +2,17 @@ import { useFlowAIChatMutation } from "@/lib/api/mutations";
 import { runFlowAIPrompt } from "@/lib/flow/ai";
 import { useFlowContext } from "@/lib/flow/context";
 import { NodeType } from "@/lib/flow/dataSchema";
-import { useFlowAIUsage } from "@/lib/hooks/api";
+import { useBillingPlans, useFlowAIUsage } from "@/lib/hooks/api";
 import { useAppId } from "@/lib/hooks/params";
-import { FlowAIChatMessage, FlowAIField } from "@/lib/types/wire.gen";
+import {
+  FlowAIChatMessage,
+  FlowAIField,
+  FlowAIUsage,
+} from "@/lib/types/wire.gen";
 import { cn } from "@/lib/utils";
 import { useReactFlow } from "@xyflow/react";
 import {
+  CrownIcon,
   LoaderCircleIcon,
   SendHorizontalIcon,
   SparklesIcon,
@@ -22,6 +27,7 @@ import {
   useRef,
   useState,
 } from "react";
+import Link from "next/link";
 import { Button } from "../ui/button";
 import { Textarea } from "../ui/textarea";
 import FlowAIFieldsCard from "./FlowAIFieldsCard";
@@ -156,7 +162,11 @@ export default memo(function FlowAIChat({
 
   const limit = usage?.prompts_limit;
   const left = usage ? Math.max(limit! - usage.prompts_used, 0) : undefined;
-  const unavailable = limit === 0 || left === 0;
+  const exhausted =
+    !!usage &&
+    usage.prompts_limit > 0 &&
+    (left === 0 || usage.answers_used >= usage.answers_limit);
+  const unavailable = limit === 0 || exhausted;
 
   return (
     <div className="flex-none w-96 flex flex-col bg-muted/30 border-l">
@@ -209,12 +219,18 @@ export default memo(function FlowAIChat({
           </div>
         )}
         {entries.map((entry, i) => (
-          <ChatBubble key={i} entry={entry} onBuild={fillInput} />
+          <ChatBubble
+            key={i}
+            entry={entry}
+            canBuild={!unavailable}
+            onBuild={fillInput}
+          />
         ))}
         {!busy && !!entries.at(-1)?.fields?.length && (
           <FlowAIFieldsCard
             key={entries.length}
             fields={entries.at(-1)!.fields!}
+            disabled={unavailable}
             onSend={send}
           />
         )}
@@ -228,40 +244,49 @@ export default memo(function FlowAIChat({
       </div>
 
       <div className="flex-none p-4 space-y-2">
-        <div className="relative">
-          <Textarea
-            ref={inputRef}
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && !e.shiftKey) {
-                e.preventDefault();
-                submit();
+        {exhausted ? (
+          <LimitNotice usage={usage!} />
+        ) : (
+          <div className="relative">
+            <Textarea
+              ref={inputRef}
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  submit();
+                }
+              }}
+              placeholder={
+                limit === 0
+                  ? "Your plan doesn't include the flow AI."
+                  : "Ask a question or for a change..."
               }
-            }}
-            placeholder={
-              limit === 0
-                ? "Your plan doesn't include the flow AI."
-                : "Ask a question or for a change..."
-            }
-            maxLength={4000}
-            minRows={2}
-            maxRows={8}
-            disabled={unavailable}
-            className="pr-12 resize-none"
-          />
-          <Button
-            size="icon"
-            className="absolute bottom-2 right-2 size-8"
-            title="Send"
-            disabled={busy || unavailable || !input.trim()}
-            onClick={submit}
-          >
-            <SendHorizontalIcon className="size-4" />
-          </Button>
-        </div>
+              maxLength={4000}
+              minRows={2}
+              maxRows={8}
+              disabled={unavailable}
+              className="pr-12 resize-none"
+            />
+            <Button
+              size="icon"
+              className="absolute bottom-2 right-2 size-8"
+              title="Send"
+              disabled={busy || unavailable || !input.trim()}
+              onClick={submit}
+            >
+              <SendHorizontalIcon className="size-4" />
+            </Button>
+          </div>
+        )}
         {!!limit && (
-          <div className="text-xs text-muted-foreground">
+          <div
+            className={cn(
+              "text-xs text-muted-foreground",
+              left! <= 3 && "text-amber-600 dark:text-amber-500"
+            )}
+          >
             {left} of {limit} prompts left this month
           </div>
         )}
@@ -273,9 +298,11 @@ export default memo(function FlowAIChat({
 // Memoized, as the chat re-renders on every keystroke in the input.
 const ChatBubble = memo(function ChatBubble({
   entry,
+  canBuild,
   onBuild,
 }: {
   entry: ChatEntry;
+  canBuild: boolean;
   onBuild: (prompt: string) => void;
 }) {
   if (entry.role === "user") {
@@ -299,6 +326,7 @@ const ChatBubble = memo(function ChatBubble({
           variant="outline"
           className="gap-2"
           title={entry.buildPrompt}
+          disabled={!canBuild}
           onClick={() => onBuild(entry.buildPrompt!)}
         >
           <SparklesIcon className="size-4" />
@@ -323,3 +351,41 @@ const ChatBubble = memo(function ChatBubble({
     </div>
   );
 });
+
+// Shown instead of the input when the month's prompts or answers are used up.
+function LimitNotice({ usage }: { usage: FlowAIUsage }) {
+  const appId = useAppId();
+  const plans = useBillingPlans();
+  const canUpgrade = plans?.some(
+    (p) => p && p.feature_max_ai_prompts_per_month > usage.prompts_limit
+  );
+
+  // Usage is counted per calendar month in UTC.
+  const now = new Date();
+  const reset = new Date(
+    Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1)
+  ).toLocaleDateString("en-US", {
+    month: "long",
+    day: "numeric",
+    timeZone: "UTC",
+  });
+
+  return (
+    <div className="rounded-lg border bg-background p-3 space-y-3 text-sm">
+      <p>
+        {usage.prompts_used >= usage.prompts_limit
+          ? `You've used all ${usage.prompts_limit} AI prompts for this month.`
+          : "You've asked the AI too many questions for this month."}{" "}
+        They reset on {reset}.
+      </p>
+      {canUpgrade && (
+        <Button size="sm" className="gap-2" asChild>
+          <Link href={{ pathname: "/apps/[appId]/premium", query: { appId } }}>
+            <CrownIcon className="size-4" />
+            Get more prompts
+          </Link>
+        </Button>
+      )}
+    </div>
+  );
+}

@@ -23,9 +23,12 @@ import {
 // writing it out.
 export default function FlowAIFieldsCard({
   fields,
+  disabled,
   onSend,
 }: {
   fields: FlowAIField[];
+  // No prompts are left.
+  disabled?: boolean;
   onSend: (content: string) => void;
 }) {
   const [values, setValues] = useState(() => fields.map(getDefault));
@@ -79,7 +82,11 @@ export default function FlowAIFieldsCard({
         </div>
       ))}
 
-      <Button size="sm" disabled={!answers} onClick={() => onSend(answers)}>
+      <Button
+        size="sm"
+        disabled={disabled || !answers}
+        onClick={() => onSend(answers)}
+      >
         Send
       </Button>
     </div>

@@ -278,7 +278,10 @@ func TestAnswersWithoutEditsDontCount(t *testing.T) {
 
 	code, res := s.chat(t, 1, prompt)
 	require.Equal(t, http.StatusOK, code, res)
-	assert.Equal(t, float64(0), res["data"].(map[string]any)["usage"].(map[string]any)["prompts_used"])
+	usage := res["data"].(map[string]any)["usage"].(map[string]any)
+	assert.Equal(t, float64(0), usage["prompts_used"])
+	assert.Equal(t, float64(1), usage["answers_used"])
+	assert.Equal(t, float64(3), usage["answers_limit"])
 	assert.Equal(t, "channel", res["data"].(map[string]any)["fields"].([]any)[0].(map[string]any)["type"])
 	for _, p := range s.store.prompts {
 		assert.False(t, p.Edited)

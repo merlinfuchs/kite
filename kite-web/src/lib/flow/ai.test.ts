@@ -9,7 +9,12 @@ const entry = testNode("entry", "entry_command", {
   description: "Test",
 });
 
-const usage = { prompts_used: 1, prompts_limit: 30 };
+const usage = {
+  prompts_used: 1,
+  prompts_limit: 30,
+  answers_used: 1,
+  answers_limit: 90,
+};
 const logData = { log_level: "info", log_message: "hi" };
 
 type Edits = FlowAIChatResponse["edits"];

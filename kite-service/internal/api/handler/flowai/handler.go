@@ -61,7 +61,8 @@ func (h *FlowAIHandler) HandleFlowAIUsageGet(c *handler.Context) (*wire.FlowAIUs
 		return nil, err
 	}
 
-	return &wire.FlowAIUsage{PromptsUsed: count.Edited, PromptsLimit: c.Features.MaxAIPromptsPerMonth}, nil
+	res := usage(count, c.Features.MaxAIPromptsPerMonth)
+	return &res, nil
 }
 
 func (h *FlowAIHandler) HandleFlowAIChat(c *handler.Context, req wire.FlowAIChatRequest) (*wire.FlowAIChatResponse, error) {
@@ -77,7 +78,6 @@ func (h *FlowAIHandler) HandleFlowAIChat(c *handler.Context, req wire.FlowAIChat
 	if err != nil {
 		return nil, err
 	}
-	used := count.Edited
 
 	// The prompt is recorded, and counted as edited, before the model is
 	// called, so concurrent requests can't all pass the limits.
@@ -133,7 +133,8 @@ func (h *FlowAIHandler) HandleFlowAIChat(c *handler.Context, req wire.FlowAIChat
 		if err := h.promptStore.CreateFlowAIPrompt(c.Context(), prompt); err != nil {
 			return nil, fmt.Errorf("failed to create flow AI prompt: %w", err)
 		}
-		used++
+		count.Edited++
+		count.Total++
 	}
 
 	messages := make([]flowai.Message, len(req.Messages))
@@ -176,7 +177,7 @@ func (h *FlowAIHandler) HandleFlowAIChat(c *handler.Context, req wire.FlowAIChat
 	}
 
 	if !edited {
-		used--
+		count.Edited--
 	}
 
 	return &wire.FlowAIChatResponse{
@@ -186,7 +187,7 @@ func (h *FlowAIHandler) HandleFlowAIChat(c *handler.Context, req wire.FlowAIChat
 		Fields:      fields(res.Fields),
 		Edits:       res.Edits,
 		Issues:      res.Issues,
-		Usage:       wire.FlowAIUsage{PromptsUsed: used, PromptsLimit: limit},
+		Usage:       usage(count, limit),
 	}, nil
 }
 
@@ -217,4 +218,13 @@ func fields(fields []flowai.Field) []wire.FlowAIField {
 		res[i] = wire.FlowAIField(f)
 	}
 	return res
+}
+
+func usage(count model.FlowAIPromptCount, limit int) wire.FlowAIUsage {
+	return wire.FlowAIUsage{
+		PromptsUsed:  count.Edited,
+		PromptsLimit: limit,
+		AnswersUsed:  count.Total,
+		AnswersLimit: answerLimitFactor * limit,
+	}
 }
