@@ -3,6 +3,7 @@ package flow
 import (
 	"testing"
 
+	"github.com/kitecloud/kite/kite-service/pkg/thing"
 	"github.com/openai/openai-go/v2"
 )
 
@@ -94,5 +95,58 @@ func TestFlowNodeDataRequiresAIDataForBothAINodes(t *testing.T) {
 		if err := (FlowNodeData{}).Validate(nodeType); err == nil {
 			t.Errorf("%s: expected error for missing ai data, got nil", nodeType)
 		}
+	}
+}
+
+func TestParseInviteLimit(t *testing.T) {
+	valid := []struct {
+		in   thing.Thing
+		want uint
+	}{
+		{thing.NewInt(0), 0},
+		{thing.NewInt(3600), 3600},
+		{thing.NewInt(InviteMaxAgeLimit), InviteMaxAgeLimit},
+		{thing.NewFloat(86400.0), 86400},
+		{thing.NewString("0"), 0},
+		{thing.NewString(" 42 "), 42},
+		{thing.NewAny("100"), 100},
+	}
+	for _, c := range valid {
+		got, err := parseInviteLimit("max age", c.in, InviteMaxAgeLimit)
+		if err != nil {
+			t.Errorf("parseInviteLimit(%v) returned error: %v", c.in, err)
+			continue
+		}
+		if got != c.want {
+			t.Errorf("parseInviteLimit(%v) = %d, want %d", c.in, got, c.want)
+		}
+	}
+
+	invalid := []thing.Thing{
+		thing.Null,
+		thing.NewString(""),
+		thing.NewString("abc"),
+		thing.NewString("12abc"),
+		thing.NewString("1.5"),
+		thing.NewString("-1"),
+		thing.NewString("604801"),
+		thing.NewString("99999999999999999999"),
+		thing.NewInt(-1),
+		thing.NewInt(InviteMaxAgeLimit + 1),
+		thing.NewFloat(1.5),
+		thing.NewFloat(-3.0),
+		thing.NewBool(true),
+	}
+	for _, in := range invalid {
+		if got, err := parseInviteLimit("max age", in, InviteMaxAgeLimit); err == nil {
+			t.Errorf("parseInviteLimit(%v) = %d, want error", in, got)
+		}
+	}
+
+	if _, err := parseInviteLimit("max uses", thing.NewInt(101), InviteMaxUsesLimit); err == nil {
+		t.Error("max uses above 100 should be rejected")
+	}
+	if got, err := parseInviteLimit("max uses", thing.NewInt(100), InviteMaxUsesLimit); err != nil || got != 100 {
+		t.Errorf("max uses of 100 should be accepted, got %d, %v", got, err)
 	}
 }

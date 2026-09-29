@@ -17,9 +17,11 @@ The app needs the `Create Invite` permission in the target channel.
 
 > `Channel` The ID of the channel to create the invite for. Leave empty to use the channel the flow runs in.
 >
-> `Max Age` How many seconds the invite lasts before it expires. Set it to `0` for an invite that never expires, or leave it empty to use Discord's default of 24 hours.
+> `Max Age` How many seconds the invite lasts before it expires. Set it to `0` for an invite that never expires, or leave it empty to use Discord's default of 24 hours. Must be a whole number between `0` and `604800` (7 days).
 >
-> `Max Uses` How many times the invite can be used before it stops working. Leave it empty or set it to `0` for unlimited uses.
+> `Max Uses` How many times the invite can be used before it stops working. Leave it empty or set it to `0` for unlimited uses. Must be a whole number between `0` and `100`.
+>
+> If `Max Age` or `Max Uses` is set but doesn't evaluate to a valid number in range (for example a placeholder that resolves to nothing, text, a decimal or a negative number), the block fails with an error instead of creating the invite.
 >
 > `Temporary` Members who join through this invite are kicked once they go offline, unless they've been given a role.
 >

@@ -3,7 +3,11 @@ package flow
 import (
 	"context"
 	"encoding/json"
+	"fmt"
+	"math"
 	"regexp"
+	"strconv"
+	"strings"
 
 	"github.com/diamondburned/arikawa/v3/api"
 	"github.com/diamondburned/arikawa/v3/discord"
@@ -13,6 +17,7 @@ import (
 	"github.com/kitecloud/kite/kite-service/pkg/message"
 	"github.com/kitecloud/kite/kite-service/pkg/provider"
 	"github.com/kitecloud/kite/kite-service/pkg/schedule"
+	"github.com/kitecloud/kite/kite-service/pkg/thing"
 	"github.com/openai/openai-go/v2"
 	"gopkg.in/guregu/null.v4"
 )
@@ -499,12 +504,20 @@ type PermissionOverwriteData struct {
 	Deny  string `json:"deny,omitempty"`
 }
 
+// Discord's limits for invite creation.
+// https://discord.com/developers/docs/resources/channel#create-channel-invite
+const (
+	InviteMaxAgeLimit  = 604800 // 7 days, in seconds
+	InviteMaxUsesLimit = 100
+)
+
 type InviteData struct {
 	// MaxAgeSeconds is how long the invite lasts before expiring, in seconds.
-	// 0 (or empty) means it never expires.
+	// 0 means it never expires; leaving it empty uses Discord's default of
+	// 24 hours. Must be between 0 and 604800.
 	MaxAgeSeconds string `json:"max_age_seconds,omitempty"`
 	// MaxUses is how many times the invite can be used before it stops
-	// working. 0 (or empty) means unlimited uses.
+	// working. 0 (or empty) means unlimited uses. Must be between 0 and 100.
 	MaxUses   string `json:"max_uses,omitempty"`
 	Temporary bool   `json:"temporary,omitempty"`
 	Unique    bool   `json:"unique,omitempty"`
@@ -516,26 +529,75 @@ func (d *InviteData) ToCreateInviteData(ctx context.Context, evalCtx eval.Contex
 		Unique:    d.Unique,
 	}
 
-	// MaxAge is an option.Uint (nullable): leaving it unset lets Discord fall
-	// back to its own default of 24 hours, while explicitly evaluating to 0
-	// means the invite never expires.
-	if d.MaxAgeSeconds != "" {
+	// MaxAge is an option.Uint (nullable): leaving the field empty lets
+	// Discord fall back to its own default of 24 hours, while explicitly
+	// evaluating to 0 means the invite never expires. A template that is set
+	// but evaluates to nothing or garbage is an error, not a silent 0.
+	if strings.TrimSpace(d.MaxAgeSeconds) != "" {
 		maxAge, err := eval.EvalTemplate(ctx, d.MaxAgeSeconds, evalCtx)
 		if err != nil {
 			return res, err
 		}
-		res.MaxAge = option.NewUint(uint(maxAge.Int()))
+		n, err := parseInviteLimit("max age", maxAge, InviteMaxAgeLimit)
+		if err != nil {
+			return res, err
+		}
+		res.MaxAge = option.NewUint(n)
 	}
 
-	if d.MaxUses != "" {
+	if strings.TrimSpace(d.MaxUses) != "" {
 		maxUses, err := eval.EvalTemplate(ctx, d.MaxUses, evalCtx)
 		if err != nil {
 			return res, err
 		}
-		res.MaxUses = uint(maxUses.Int())
+		n, err := parseInviteLimit("max uses", maxUses, InviteMaxUsesLimit)
+		if err != nil {
+			return res, err
+		}
+		res.MaxUses = n
 	}
 
 	return res, nil
+}
+
+// parseInviteLimit strictly converts an evaluated template value into an
+// integer in [0, limit]. Unlike thing.Thing.Int(), it never turns empty or
+// unparseable input into 0, and it rejects fractions and negative numbers
+// instead of letting them wrap around when converted to uint.
+func parseInviteLimit(field string, v thing.Thing, limit int64) (uint, error) {
+	if v.IsNil() {
+		return 0, fmt.Errorf("invalid %s: value is empty, expected a whole number between 0 and %d", field, limit)
+	}
+
+	var n int64
+	switch v.Type {
+	case thing.TypeInt:
+		n = v.Int()
+	case thing.TypeFloat:
+		f := v.Float()
+		if math.IsNaN(f) || math.IsInf(f, 0) || f != math.Trunc(f) {
+			return 0, fmt.Errorf("invalid %s %q: expected a whole number between 0 and %d", field, v.String(), limit)
+		}
+		if f < 0 || f > float64(limit) {
+			return 0, fmt.Errorf("invalid %s %q: must be between 0 and %d", field, v.String(), limit)
+		}
+		n = int64(f)
+	case thing.TypeString, thing.TypeAny:
+		s := strings.TrimSpace(v.String())
+		parsed, err := strconv.ParseInt(s, 10, 64)
+		if err != nil {
+			return 0, fmt.Errorf("invalid %s %q: expected a whole number between 0 and %d", field, s, limit)
+		}
+		n = parsed
+	default:
+		return 0, fmt.Errorf("invalid %s: expected a whole number between 0 and %d, got %s", field, limit, v.Type)
+	}
+
+	if n < 0 || n > limit {
+		return 0, fmt.Errorf("invalid %s %d: must be between 0 and %d", field, n, limit)
+	}
+
+	return uint(n), nil
 }
 
 type RoleData struct {
