@@ -66,6 +66,23 @@ func (q *Queries) CreateAppSecret(ctx context.Context, arg CreateAppSecretParams
 	return i, err
 }
 
+const deleteAppIntegrationCredential = `-- name: DeleteAppIntegrationCredential :execrows
+DELETE FROM app_secrets WHERE app_id = $1 AND integration_id = $2
+`
+
+type DeleteAppIntegrationCredentialParams struct {
+	AppID         string
+	IntegrationID pgtype.Text
+}
+
+func (q *Queries) DeleteAppIntegrationCredential(ctx context.Context, arg DeleteAppIntegrationCredentialParams) (int64, error) {
+	result, err := q.db.Exec(ctx, deleteAppIntegrationCredential, arg.AppID, arg.IntegrationID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
 const deleteAppSecret = `-- name: DeleteAppSecret :execrows
 DELETE FROM app_secrets WHERE app_id = $1 AND id = $2 AND name IS NOT NULL
 `
@@ -81,6 +98,65 @@ func (q *Queries) DeleteAppSecret(ctx context.Context, arg DeleteAppSecretParams
 		return 0, err
 	}
 	return result.RowsAffected(), nil
+}
+
+const getAppIntegrationCredential = `-- name: GetAppIntegrationCredential :one
+SELECT id, app_id, name, integration_id, value_encrypted, created_at, updated_at FROM app_secrets WHERE app_id = $1 AND integration_id = $2
+`
+
+type GetAppIntegrationCredentialParams struct {
+	AppID         string
+	IntegrationID pgtype.Text
+}
+
+func (q *Queries) GetAppIntegrationCredential(ctx context.Context, arg GetAppIntegrationCredentialParams) (AppSecret, error) {
+	row := q.db.QueryRow(ctx, getAppIntegrationCredential, arg.AppID, arg.IntegrationID)
+	var i AppSecret
+	err := row.Scan(
+		&i.ID,
+		&i.AppID,
+		&i.Name,
+		&i.IntegrationID,
+		&i.ValueEncrypted,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const getAppIntegrationCredentials = `-- name: GetAppIntegrationCredentials :many
+
+SELECT id, app_id, name, integration_id, value_encrypted, created_at, updated_at FROM app_secrets WHERE app_id = $1 AND integration_id IS NOT NULL ORDER BY integration_id
+`
+
+// Integration credentials are the secrets with an integration_id instead of
+// a name.
+func (q *Queries) GetAppIntegrationCredentials(ctx context.Context, appID string) ([]AppSecret, error) {
+	rows, err := q.db.Query(ctx, getAppIntegrationCredentials, appID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []AppSecret
+	for rows.Next() {
+		var i AppSecret
+		if err := rows.Scan(
+			&i.ID,
+			&i.AppID,
+			&i.Name,
+			&i.IntegrationID,
+			&i.ValueEncrypted,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const getAppSecret = `-- name: GetAppSecret :one
@@ -174,6 +250,54 @@ func (q *Queries) GetAppSecretsByNames(ctx context.Context, arg GetAppSecretsByN
 		return nil, err
 	}
 	return items, nil
+}
+
+const setAppIntegrationCredential = `-- name: SetAppIntegrationCredential :one
+INSERT INTO app_secrets (
+    id,
+    app_id,
+    integration_id,
+    value_encrypted,
+    created_at,
+    updated_at
+) VALUES (
+    $1, $2, $3, $4, $5, $6
+)
+ON CONFLICT (app_id, integration_id) WHERE integration_id IS NOT NULL DO UPDATE SET
+    value_encrypted = EXCLUDED.value_encrypted,
+    updated_at = EXCLUDED.updated_at
+RETURNING id, app_id, name, integration_id, value_encrypted, created_at, updated_at
+`
+
+type SetAppIntegrationCredentialParams struct {
+	ID             string
+	AppID          string
+	IntegrationID  pgtype.Text
+	ValueEncrypted string
+	CreatedAt      pgtype.Timestamp
+	UpdatedAt      pgtype.Timestamp
+}
+
+func (q *Queries) SetAppIntegrationCredential(ctx context.Context, arg SetAppIntegrationCredentialParams) (AppSecret, error) {
+	row := q.db.QueryRow(ctx, setAppIntegrationCredential,
+		arg.ID,
+		arg.AppID,
+		arg.IntegrationID,
+		arg.ValueEncrypted,
+		arg.CreatedAt,
+		arg.UpdatedAt,
+	)
+	var i AppSecret
+	err := row.Scan(
+		&i.ID,
+		&i.AppID,
+		&i.Name,
+		&i.IntegrationID,
+		&i.ValueEncrypted,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
 }
 
 const updateAppSecret = `-- name: UpdateAppSecret :one

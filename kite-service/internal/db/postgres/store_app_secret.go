@@ -117,8 +117,65 @@ func rowToAppSecret(row pgmodel.AppSecret) *model.AppSecret {
 		ID:             row.ID,
 		AppID:          row.AppID,
 		Name:           row.Name.String,
+		IntegrationID:  row.IntegrationID.String,
 		ValueEncrypted: row.ValueEncrypted,
 		CreatedAt:      row.CreatedAt.Time,
 		UpdatedAt:      row.UpdatedAt.Time,
 	}
+}
+
+func (c *Client) AppIntegrationCredentials(ctx context.Context, appID string) ([]*model.AppSecret, error) {
+	rows, err := c.Q.GetAppIntegrationCredentials(ctx, appID)
+	if err != nil {
+		return nil, err
+	}
+
+	res := make([]*model.AppSecret, len(rows))
+	for i, row := range rows {
+		res[i] = rowToAppSecret(row)
+	}
+	return res, nil
+}
+
+func (c *Client) AppIntegrationCredential(ctx context.Context, appID string, integrationID string) (*model.AppSecret, error) {
+	row, err := c.Q.GetAppIntegrationCredential(ctx, pgmodel.GetAppIntegrationCredentialParams{
+		AppID:         appID,
+		IntegrationID: pgtype.Text{String: integrationID, Valid: true},
+	})
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, store.ErrNotFound
+		}
+		return nil, err
+	}
+	return rowToAppSecret(row), nil
+}
+
+func (c *Client) SetAppIntegrationCredential(ctx context.Context, secret *model.AppSecret) (*model.AppSecret, error) {
+	row, err := c.Q.SetAppIntegrationCredential(ctx, pgmodel.SetAppIntegrationCredentialParams{
+		ID:             secret.ID,
+		AppID:          secret.AppID,
+		IntegrationID:  pgtype.Text{String: secret.IntegrationID, Valid: true},
+		ValueEncrypted: secret.ValueEncrypted,
+		CreatedAt:      pgtype.Timestamp{Time: secret.CreatedAt.UTC(), Valid: true},
+		UpdatedAt:      pgtype.Timestamp{Time: secret.UpdatedAt.UTC(), Valid: true},
+	})
+	if err != nil {
+		return nil, err
+	}
+	return rowToAppSecret(row), nil
+}
+
+func (c *Client) DeleteAppIntegrationCredential(ctx context.Context, appID string, integrationID string) error {
+	n, err := c.Q.DeleteAppIntegrationCredential(ctx, pgmodel.DeleteAppIntegrationCredentialParams{
+		AppID:         appID,
+		IntegrationID: pgtype.Text{String: integrationID, Valid: true},
+	})
+	if err != nil {
+		return err
+	}
+	if n == 0 {
+		return store.ErrNotFound
+	}
+	return nil
 }

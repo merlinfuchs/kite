@@ -16,6 +16,7 @@ import (
 	commandhandler "github.com/kitecloud/kite/kite-service/internal/api/handler/command"
 	eventlistener "github.com/kitecloud/kite/kite-service/internal/api/handler/event_listener"
 	flowaihandler "github.com/kitecloud/kite/kite-service/internal/api/handler/flowai"
+	"github.com/kitecloud/kite/kite-service/internal/api/handler/integration"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/logs"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/message"
 	pluginhandler "github.com/kitecloud/kite/kite-service/internal/api/handler/plugin"
@@ -206,7 +207,7 @@ func (s *APIServer) RegisterRoutes(
 	logsGroup.Get("/summary", handler.Typed(logHandler.HandleLogSummaryGet))
 
 	// Flow AI routes
-	flowAIHandler := flowaihandler.NewFlowAIHandler(assistantPromptStore, variableStore, flowAssistant, s.config.AssistantMaxRepairs)
+	flowAIHandler := flowaihandler.NewFlowAIHandler(assistantPromptStore, variableStore, appSecretStore, flowAssistant, s.config.AssistantMaxRepairs)
 
 	flowAIGroup := appGroup.Group("/flow-ai")
 	flowAIGroup.Get("/usage", handler.Typed(flowAIHandler.HandleFlowAIUsageGet))
@@ -296,6 +297,16 @@ func (s *APIServer) RegisterRoutes(
 	secretGroup := secretsGroup.Group("/{secretID}")
 	secretGroup.Patch("/", handler.TypedWithBody(appSecretHandler.HandleAppSecretUpdate))
 	secretGroup.Delete("/", handler.Typed(appSecretHandler.HandleAppSecretDelete))
+
+	// Integration routes
+	integrationHandler := integration.NewIntegrationHandler(appSecretStore, tokenCrypt)
+
+	integrationsGroup := appGroup.Group("/integrations")
+	integrationsGroup.Get("/", handler.Typed(integrationHandler.HandleAppIntegrationList))
+
+	integrationGroup := integrationsGroup.Group("/{integrationID}")
+	integrationGroup.Put("/", handler.TypedWithBody(integrationHandler.HandleAppIntegrationConnect))
+	integrationGroup.Delete("/", handler.Typed(integrationHandler.HandleAppIntegrationDisconnect))
 
 	// Message routes
 	messageHandler := message.NewMessageHandler(

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { getDiscordApiOperation } from "../flow/discordApi";
-import { getIntegration } from "../integrations";
+import { getIntegration, integrations } from "../integrations";
 import { blockDefinitions, blockIntegrations, requestBlocks } from ".";
 
 // What the service needs: how each block runs, which integrations it needs
@@ -31,7 +31,7 @@ const serviceBlocks = blockDefinitions.map((block) => ({
 describe("block definitions", () => {
   it("match the file embedded in the service", async () => {
     await expect(
-      JSON.stringify({ blocks: serviceBlocks }, null, 2) + "\n"
+      JSON.stringify({ integrations, blocks: serviceBlocks }, null, 2) + "\n"
     ).toMatchFileSnapshot(
       "../../../../kite-service/pkg/flow/block_definitions.json"
     );

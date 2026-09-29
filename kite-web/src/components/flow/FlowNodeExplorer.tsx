@@ -9,6 +9,9 @@ import { useReactFlow, useStore } from "@xyflow/react";
 import { ChevronDownIcon, ChevronRightIcon, SearchIcon } from "lucide-react";
 import { DragEvent, useMemo, useState } from "react";
 import DynamicIcon from "../icons/DynamicIcon";
+import Link from "next/link";
+import { useAppId } from "@/lib/hooks/params";
+import { useMissingIntegrations } from "@/lib/integrations/hooks";
 import { Input } from "../ui/input";
 import { ScrollArea } from "../ui/scroll-area";
 
@@ -125,6 +128,8 @@ export default function FlowNodeExplorer({
 }
 
 function AvailableNode({ type, values }: { type: string; values: NodeValues }) {
+  const appId = useAppId();
+  const missingIntegrations = useMissingIntegrations(type);
   const { addNodes, addEdges, getViewport } = useReactFlow();
   // The canvas is not the window: it sits right of the w-96 block explorer,
   // inside a dialog. Ask react-flow for its own pane size rather than reading
@@ -183,6 +188,20 @@ function AvailableNode({ type, values }: { type: string; values: NodeValues }) {
                 Premium
               </div>
             )}
+            {missingIntegrations.map((integration) => (
+              <Link
+                key={integration.id}
+                href={{
+                  pathname: "/apps/[appId]/integrations",
+                  query: { appId },
+                }}
+                target="_blank"
+                onClick={(e) => e.stopPropagation()}
+                className="bg-amber-500/15 text-amber-600 dark:text-amber-400 rounded px-1.5 text-xs font-medium flex-none hover:underline"
+              >
+                Connect {integration.name}
+              </Link>
+            ))}
           </div>
           <div className="text-sm text-muted-foreground">
             {values.defaultDescription}

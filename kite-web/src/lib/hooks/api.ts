@@ -28,6 +28,7 @@ import {
   useVariableQuery,
   useVariablesQuery,
   useAppSecretsQuery,
+  useAppIntegrationsQuery,
   usePluginsQuery,
   usePluginInstanceQuery,
   usePluginInstancesQuery,
@@ -64,6 +65,7 @@ import {
   VariableGetResponse,
   VariableListResponse,
   AppSecretListResponse,
+  AppIntegrationListResponse,
 } from "../types/wire.gen";
 import { useAppId, usePluginId } from "./params";
 
@@ -171,6 +173,15 @@ export function useVariables(
   const router = useRouter();
 
   const query = useVariablesQuery(router.query.appId as string);
+  return useResponseData(query, callback);
+}
+
+export function useAppIntegrations(
+  callback?: (res: APIResponse<AppIntegrationListResponse>) => void
+) {
+  const router = useRouter();
+
+  const query = useAppIntegrationsQuery(router.query.appId as string);
   return useResponseData(query, callback);
 }
 

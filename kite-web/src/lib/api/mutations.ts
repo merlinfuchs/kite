@@ -60,6 +60,9 @@ import {
   SubscriptionManageResponse,
   SubscriptionPlanUpdateRequest,
   SubscriptionPlanUpdateResponse,
+  AppIntegrationConnectRequest,
+  AppIntegrationConnectResponse,
+  AppIntegrationDisconnectResponse,
   AppSecretCreateRequest,
   AppSecretCreateResponse,
   AppSecretDeleteResponse,
@@ -396,6 +399,54 @@ export function useEventListenerDeleteMutation(appId: string, eventId: string) {
     onSuccess: () => {
       client.invalidateQueries({
         queryKey: ["apps", appId, "event-listeners"],
+      });
+    },
+  });
+}
+
+export function useAppIntegrationConnectMutation(
+  appId: string,
+  integrationId: string
+) {
+  const client = useQueryClient();
+
+  return useMutation({
+    mutationFn: (req: AppIntegrationConnectRequest) =>
+      apiRequest<AppIntegrationConnectResponse>(
+        `/v1/apps/${appId}/integrations/${integrationId}`,
+        {
+          method: "PUT",
+          body: JSON.stringify(req),
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      ),
+    onSuccess: () => {
+      client.invalidateQueries({
+        queryKey: ["apps", appId, "integrations"],
+      });
+    },
+  });
+}
+
+export function useAppIntegrationDisconnectMutation(
+  appId: string,
+  integrationId: string
+) {
+  const client = useQueryClient();
+
+  return useMutation({
+    mutationFn: () =>
+      apiRequest<AppIntegrationDisconnectResponse>(
+        `/v1/apps/${appId}/integrations/${integrationId}`,
+        {
+          method: "DELETE",
+        }
+      ),
+    onSuccess: () => {
+      client.invalidateQueries({
+        queryKey: ["apps", appId, "integrations"],
       });
     },
   });

@@ -45,6 +45,10 @@ func (p *httpTestProvider) HTTPRequest(ctx context.Context, req *http.Request) (
 	return &http.Response{StatusCode: 200, Status: "200 OK", Body: io.NopCloser(strings.NewReader("{}"))}, nil
 }
 
+func (p *httpTestProvider) HTTPRequestWithoutRedirects(ctx context.Context, req *http.Request) (*http.Response, error) {
+	return p.HTTPRequest(ctx, req)
+}
+
 func executeWithSecrets(t *testing.T, node *CompiledFlowNode, secrets *secretTestProvider, httpProvider *httpTestProvider) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	t.Cleanup(cancel)

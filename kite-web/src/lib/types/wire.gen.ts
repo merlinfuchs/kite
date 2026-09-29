@@ -455,6 +455,24 @@ export interface FlowAIField {
 }
 
 //////////
+// source: integration.go
+
+/**
+ * AppIntegration is an integration the app connected with a credential. The
+ * credential can't be read back.
+ */
+export interface AppIntegration {
+  integration_id: string;
+  updated_at: string /* RFC3339 */;
+}
+export type AppIntegrationListResponse = (AppIntegration | undefined)[];
+export interface AppIntegrationConnectRequest {
+  credential: string;
+}
+export type AppIntegrationConnectResponse = AppIntegration;
+export type AppIntegrationDisconnectResponse = Empty;
+
+//////////
 // source: log.go
 
 export interface LogEntry {

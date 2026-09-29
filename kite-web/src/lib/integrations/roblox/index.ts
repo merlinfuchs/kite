@@ -4,4 +4,6 @@ import { Integration } from "../types";
 export const roblox: Integration = {
   id: "roblox",
   name: "Roblox",
+  description: "Look up Roblox users.",
+  auth: { type: "none" },
 };

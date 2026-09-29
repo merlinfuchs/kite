@@ -492,6 +492,14 @@ func (p *HTTPProvider) HTTPRequest(ctx context.Context, req *http.Request) (*htt
 	return p.client.Do(req)
 }
 
+func (p *HTTPProvider) HTTPRequestWithoutRedirects(ctx context.Context, req *http.Request) (*http.Response, error) {
+	client := *p.client
+	client.CheckRedirect = func(req *http.Request, via []*http.Request) error {
+		return http.ErrUseLastResponse
+	}
+	return client.Do(req)
+}
+
 type AIProvider struct {
 	client *openai.Client
 }
@@ -938,4 +946,34 @@ func (p *SecretProvider) Secrets(ctx context.Context, names []string) (map[strin
 		}
 	}
 	return res, nil
+}
+
+type IntegrationProvider struct {
+	appID          string
+	appSecretStore store.AppSecretStore
+	tokenCrypt     *util.SymmetricCrypt
+}
+
+func NewIntegrationProvider(appID string, appSecretStore store.AppSecretStore, tokenCrypt *util.SymmetricCrypt) *IntegrationProvider {
+	return &IntegrationProvider{
+		appID:          appID,
+		appSecretStore: appSecretStore,
+		tokenCrypt:     tokenCrypt,
+	}
+}
+
+func (p *IntegrationProvider) Credential(ctx context.Context, integrationID string) (string, error) {
+	secret, err := p.appSecretStore.AppIntegrationCredential(ctx, p.appID, integrationID)
+	if err != nil {
+		if errors.Is(err, store.ErrNotFound) {
+			return "", provider.ErrNotFound
+		}
+		return "", fmt.Errorf("failed to get credential: %w", err)
+	}
+
+	value, err := p.tokenCrypt.DecryptString(secret.ValueEncrypted)
+	if err != nil {
+		return "", fmt.Errorf("failed to decrypt credential: %w", err)
+	}
+	return value, nil
 }

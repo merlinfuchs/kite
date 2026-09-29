@@ -17,6 +17,7 @@ type FlowProviders struct {
 	MessageTemplate provider.MessageTemplateProvider
 	ResumePoint     ResumePointProvider
 	Secret          provider.SecretProvider
+	Integration     provider.IntegrationProvider
 }
 
 type ResumePointProvider interface {

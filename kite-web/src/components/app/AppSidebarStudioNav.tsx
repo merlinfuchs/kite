@@ -1,6 +1,7 @@
 import {
   VariableIcon,
   KeyRoundIcon,
+  PlugIcon,
   LibraryBigIcon,
   SlashSquareIcon,
   type LucideIcon,
@@ -67,6 +68,12 @@ export default function AppSidebarStudioNav() {
         url: "/apps/[appId]/secrets",
         icon: KeyRoundIcon,
         active: isActive("/apps/[appId]/secrets"),
+      },
+      {
+        name: "Integrations",
+        url: "/apps/[appId]/integrations",
+        icon: PlugIcon,
+        active: isActive("/apps/[appId]/integrations"),
       },
       {
         name: "Plugins",

@@ -3,19 +3,117 @@ package flowai
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
+	"slices"
+	"strings"
+	"sync"
 
 	"github.com/kitecloud/kite/kite-service/pkg/flow"
 )
 
-// instructions come first in every request and don't change, so the model
-// provider can cache them, catalog included.
-var instructions = func() string {
-	var catalog bytes.Buffer
-	if err := json.Compact(&catalog, flow.CatalogJSON); err != nil {
+var (
+	instructionsMu    sync.Mutex
+	instructionsCache = map[string]string{}
+)
+
+// instructionsFor returns the instructions, which come first in every request,
+// with the catalog of the blocks the app can use: those of integrations that
+// are always connected or that the app connected. Other integrations are only
+// named, so the model can tell the user to connect them. Apps with the same
+// integrations get the same instructions, so the model provider can cache them.
+func instructionsFor(connected []string) string {
+	connected = slices.Clone(connected)
+	slices.Sort(connected)
+	key := strings.Join(connected, ",")
+
+	instructionsMu.Lock()
+	defer instructionsMu.Unlock()
+	if res, ok := instructionsCache[key]; ok {
+		return res
+	}
+
+	res := buildInstructions(connected)
+	instructionsCache[key] = res
+	return res
+}
+
+func buildInstructions(connected []string) string {
+	var missing []flow.Integration
+	for _, integration := range flow.Integrations() {
+		if integration.NeedsCredential() && !slices.Contains(connected, integration.ID) {
+			missing = append(missing, integration)
+		}
+	}
+
+	catalog, err := filterCatalog(flow.CatalogJSON, func(nodeType string) bool {
+		for _, id := range flow.BlockIntegrations(flow.FlowNodeType(nodeType)) {
+			if slices.ContainsFunc(missing, func(i flow.Integration) bool { return i.ID == id }) {
+				return false
+			}
+		}
+		return true
+	})
+	if err != nil {
 		panic(err)
 	}
-	return instructionsText + "\n\nBlock catalog:\n" + catalog.String()
-}()
+
+	res := instructionsText
+	if len(missing) > 0 {
+		res += "\n\nThe app hasn't connected these integrations, so their blocks aren't in the catalog. If the user asks for something one of them does, tell them to connect it under Integrations in the app first:"
+		for _, integration := range missing {
+			res += fmt.Sprintf("\n- %s: %s", integration.Name, integration.Description)
+		}
+	}
+	return res + "\n\nBlock catalog:\n" + catalog
+}
+
+// filterCatalog compacts the catalog and keeps the nodes keep returns true
+// for, in their order.
+func filterCatalog(catalogJSON []byte, keep func(nodeType string) bool) (string, error) {
+	var catalog struct {
+		Nodes json.RawMessage `json:"nodes"`
+	}
+	if err := json.Unmarshal(catalogJSON, &catalog); err != nil {
+		return "", err
+	}
+
+	dec := json.NewDecoder(bytes.NewReader(catalog.Nodes))
+	if _, err := dec.Token(); err != nil {
+		return "", err
+	}
+
+	var buf bytes.Buffer
+	buf.WriteString(`{"nodes":{`)
+	first := true
+	for dec.More() {
+		t, err := dec.Token()
+		if err != nil {
+			return "", err
+		}
+		nodeType := t.(string)
+
+		var node json.RawMessage
+		if err := dec.Decode(&node); err != nil {
+			return "", err
+		}
+		if !keep(nodeType) {
+			continue
+		}
+
+		if !first {
+			buf.WriteByte(',')
+		}
+		first = false
+		key, _ := json.Marshal(nodeType)
+		buf.Write(key)
+		buf.WriteByte(':')
+		if err := json.Compact(&buf, node); err != nil {
+			return "", err
+		}
+	}
+	buf.WriteString("}}")
+	return buf.String(), nil
+}
 
 const instructionsText = `You edit flows in Kite, a no-code Discord bot builder. A flow is a graph of blocks. It has one entry block that starts it: a slash command, a Discord event, a schedule, or a click on a button or select menu. Options configure the entry, and actions and controls run after it along the connections. The user edits the flow in a visual editor and talks to you in a chat next to it. You change the flow by returning edits, which the editor applies right away. The user can undo them, and nothing is saved until they save.
 

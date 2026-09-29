@@ -73,6 +73,22 @@ func (s *memoryStore) DeleteAppSecret(ctx context.Context, appID string, id stri
 	return nil
 }
 
+func (s *memoryStore) AppIntegrationCredentials(ctx context.Context, appID string) ([]*model.AppSecret, error) {
+	return nil, nil
+}
+
+func (s *memoryStore) AppIntegrationCredential(ctx context.Context, appID string, integrationID string) (*model.AppSecret, error) {
+	return nil, store.ErrNotFound
+}
+
+func (s *memoryStore) SetAppIntegrationCredential(ctx context.Context, secret *model.AppSecret) (*model.AppSecret, error) {
+	return secret, nil
+}
+
+func (s *memoryStore) DeleteAppIntegrationCredential(ctx context.Context, appID string, integrationID string) error {
+	return nil
+}
+
 type testSetup struct {
 	store   *memoryStore
 	crypt   *util.SymmetricCrypt

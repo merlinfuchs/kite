@@ -35,6 +35,7 @@ import {
   VariableGetResponse,
   VariableListResponse,
   AppSecretListResponse,
+  AppIntegrationListResponse,
 } from "../types/wire.gen";
 
 export function useUserQuery(userId = "@me") {
@@ -192,6 +193,15 @@ export function useVariablesQuery(appId: string) {
     queryKey: ["apps", appId, "variables"],
     queryFn: () =>
       apiRequest<VariableListResponse>(`/v1/apps/${appId}/variables`),
+    enabled: !!appId,
+  });
+}
+
+export function useAppIntegrationsQuery(appId: string) {
+  return useQuery({
+    queryKey: ["apps", appId, "integrations"],
+    queryFn: () =>
+      apiRequest<AppIntegrationListResponse>(`/v1/apps/${appId}/integrations`),
     enabled: !!appId,
   });
 }

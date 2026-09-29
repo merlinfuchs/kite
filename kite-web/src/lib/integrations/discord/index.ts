@@ -4,4 +4,6 @@ import { Integration } from "../types";
 export const discord: Integration = {
   id: "discord",
   name: "Discord",
+  description: "Everything your bot does in Discord.",
+  auth: { type: "discord_bot" },
 };

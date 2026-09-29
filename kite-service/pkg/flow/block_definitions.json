@@ -1,4 +1,22 @@
 {
+  "integrations": [
+    {
+      "id": "discord",
+      "name": "Discord",
+      "description": "Everything your bot does in Discord.",
+      "auth": {
+        "type": "discord_bot"
+      }
+    },
+    {
+      "id": "roblox",
+      "name": "Roblox",
+      "description": "Look up Roblox users.",
+      "auth": {
+        "type": "none"
+      }
+    }
+  ],
   "blocks": [
     {
       "type": "option_command_argument",

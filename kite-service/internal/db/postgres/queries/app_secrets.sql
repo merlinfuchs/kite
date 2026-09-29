@@ -31,3 +31,31 @@ WHERE app_id = $1 AND id = $2 AND name IS NOT NULL RETURNING *;
 
 -- name: DeleteAppSecret :execrows
 DELETE FROM app_secrets WHERE app_id = $1 AND id = $2 AND name IS NOT NULL;
+
+-- Integration credentials are the secrets with an integration_id instead of
+-- a name.
+
+-- name: GetAppIntegrationCredentials :many
+SELECT * FROM app_secrets WHERE app_id = $1 AND integration_id IS NOT NULL ORDER BY integration_id;
+
+-- name: GetAppIntegrationCredential :one
+SELECT * FROM app_secrets WHERE app_id = $1 AND integration_id = $2;
+
+-- name: SetAppIntegrationCredential :one
+INSERT INTO app_secrets (
+    id,
+    app_id,
+    integration_id,
+    value_encrypted,
+    created_at,
+    updated_at
+) VALUES (
+    $1, $2, $3, $4, $5, $6
+)
+ON CONFLICT (app_id, integration_id) WHERE integration_id IS NOT NULL DO UPDATE SET
+    value_encrypted = EXCLUDED.value_encrypted,
+    updated_at = EXCLUDED.updated_at
+RETURNING *;
+
+-- name: DeleteAppIntegrationCredential :execrows
+DELETE FROM app_secrets WHERE app_id = $1 AND integration_id = $2;

@@ -1,13 +1,17 @@
 package flow
 
 import (
+	"bytes"
 	_ "embed"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"io"
 	"math"
 	"net/http"
 	"net/url"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -67,26 +71,79 @@ type blockDefinition struct {
 	} `json:"result"`
 }
 
-var blockDefinitions = func() map[FlowNodeType]blockDefinition {
+// Integration is a service blocks can talk to.
+type Integration struct {
+	ID          string          `json:"id"`
+	Name        string          `json:"name"`
+	Description string          `json:"description"`
+	BaseURL     string          `json:"base_url"`
+	Auth        IntegrationAuth `json:"auth"`
+	// A GET endpoint, relative to BaseURL, that checks a credential.
+	TestPath string `json:"test_path"`
+}
+
+// IntegrationAuth is how requests to an integration prove who they are:
+// "discord_bot", "none", or an app credential in a "header" or "query"
+// parameter.
+type IntegrationAuth struct {
+	Type   string `json:"type"`
+	Name   string `json:"name"`
+	Prefix string `json:"prefix"`
+	Label  string `json:"label"`
+}
+
+// NeedsCredential reports whether the app has to connect the integration with
+// a credential. The others are always connected.
+func (i Integration) NeedsCredential() bool {
+	return i.Auth.Type == "header" || i.Auth.Type == "query"
+}
+
+var blockDefinitions, integrations = func() (map[FlowNodeType]blockDefinition, map[string]Integration) {
 	var data struct {
-		Blocks []blockDefinition `json:"blocks"`
+		Integrations []Integration     `json:"integrations"`
+		Blocks       []blockDefinition `json:"blocks"`
 	}
 	if err := json.Unmarshal(blockDefinitionsJSON, &data); err != nil {
 		panic(fmt.Sprintf("failed to parse block_definitions.json: %v", err))
 	}
 
-	res := make(map[FlowNodeType]blockDefinition, len(data.Blocks))
+	blocks := make(map[FlowNodeType]blockDefinition, len(data.Blocks))
 	for _, block := range data.Blocks {
-		res[block.Type] = block
+		blocks[block.Type] = block
 	}
-	return res
+	integrations := make(map[string]Integration, len(data.Integrations))
+	for _, integration := range data.Integrations {
+		integrations[integration.ID] = integration
+	}
+	return blocks, integrations
 }()
+
+// GetIntegration returns the integration with the given ID.
+func GetIntegration(id string) (Integration, bool) {
+	integration, ok := integrations[id]
+	return integration, ok
+}
+
+// Integrations returns all integrations, sorted by ID.
+func Integrations() []Integration {
+	res := make([]Integration, 0, len(integrations))
+	for _, integration := range integrations {
+		res = append(res, integration)
+	}
+	slices.SortFunc(res, func(a, b Integration) int { return strings.Compare(a.ID, b.ID) })
+	return res
+}
+
+// BlockIntegrations returns the IDs of the integrations a block needs.
+func BlockIntegrations(nodeType FlowNodeType) []string {
+	return blockDefinitions[nodeType].Requires
+}
 
 var listSeparatorRe = regexp.MustCompile(`[,\s]+`)
 
 func (n *CompiledFlowNode) executeBlockDefinition(ctx *FlowContext, block blockDefinition) error {
-	// Other integrations need app credentials, which don't exist yet.
-	if block.Run.Kind != "request" || block.Run.Integration != "discord" {
+	integration, ok := integrations[block.Run.Integration]
+	if block.Run.Kind != "request" || !ok {
 		return traceError(n, fmt.Errorf("unsupported block run: %s %s", block.Run.Kind, block.Run.Integration))
 	}
 
@@ -165,12 +222,18 @@ func (n *CompiledFlowNode) executeBlockDefinition(ctx *FlowContext, block blockD
 		reason = api.AuditLogReason(auditLogReason.String())
 	}
 
-	resBody, err := ctx.Discord.APIRequest(ctx, provider.DiscordAPIRequest{
-		Method: block.Run.Method,
-		Path:   path,
-		Body:   reqBody,
-		Reason: reason,
-	})
+	var resBody []byte
+	var err error
+	if integration.Auth.Type == "discord_bot" {
+		resBody, err = ctx.Discord.APIRequest(ctx, provider.DiscordAPIRequest{
+			Method: block.Run.Method,
+			Path:   path,
+			Body:   reqBody,
+			Reason: reason,
+		})
+	} else {
+		resBody, err = integrationRequest(ctx, integration, block.Run.Method, path, reqBody)
+	}
 	if err != nil {
 		return traceError(n, err)
 	}
@@ -371,4 +434,96 @@ func decodeDiscordResult[T any](body []byte, list bool, wrap func(T) thing.Thing
 		res[i] = wrap(item)
 	}
 	return thing.NewArray(res), nil
+}
+
+// integrationRequest sends a request to an integration other than Discord,
+// with the app's credential if it needs one. The credential only goes to the
+// integration's own host: its base URL comes from its definition, and
+// redirects aren't followed.
+func integrationRequest(ctx *FlowContext, integration Integration, method string, path string, body []byte) ([]byte, error) {
+	u, err := url.Parse(strings.TrimSuffix(integration.BaseURL, "/") + path)
+	if err != nil {
+		return nil, err
+	}
+
+	var credential string
+	if integration.NeedsCredential() {
+		credential, err = integrationCredential(ctx, integration)
+		if err != nil {
+			return nil, err
+		}
+	}
+	secrets := &requestSecrets{values: map[string]string{"credential": credential}}
+
+	if integration.Auth.Type == "query" {
+		query := u.Query()
+		query.Set(integration.Auth.Name, credential)
+		u.RawQuery = query.Encode()
+	}
+
+	req, err := http.NewRequestWithContext(ctx, method, u.String(), nil)
+	if err != nil {
+		return nil, secrets.Redact(err)
+	}
+	if body != nil {
+		req.Header.Set("Content-Type", "application/json")
+		req.Body = io.NopCloser(bytes.NewReader(body))
+	}
+	if integration.Auth.Type == "header" {
+		req.Header.Set(integration.Auth.Name, integration.Auth.Prefix+credential)
+	}
+
+	resp, err := ctx.HTTP.HTTPRequestWithoutRedirects(ctx, req)
+	if err != nil {
+		return nil, secrets.Redact(err)
+	}
+	defer resp.Body.Close()
+
+	data, err := io.ReadAll(io.LimitReader(resp.Body, thing.MaxBodySize+1))
+	if err != nil {
+		return nil, secrets.Redact(err)
+	}
+	if len(data) > thing.MaxBodySize {
+		return nil, fmt.Errorf("body size exceeds max body size of %d bytes", thing.MaxBodySize)
+	}
+	if resp.StatusCode < 200 || resp.StatusCode > 299 {
+		msg := string(data)
+		if len(msg) > 300 {
+			msg = msg[:300]
+		}
+		return nil, secrets.Redact(fmt.Errorf("%s returned %s: %s", integration.Name, resp.Status, msg))
+	}
+	return data, nil
+}
+
+func integrationCredential(ctx *FlowContext, integration Integration) (string, error) {
+	notConnected := fmt.Errorf("%s isn't connected, connect it in the app's integrations", integration.Name)
+	if ctx.Integration == nil {
+		return "", notConnected
+	}
+
+	credential, err := ctx.Integration.Credential(ctx, integration.ID)
+	if err != nil {
+		if errors.Is(err, provider.ErrNotFound) {
+			return "", notConnected
+		}
+		return "", err
+	}
+	return credential, nil
+}
+
+// checkIntegrations fails if the app didn't connect an integration the block
+// needs. Requests check it when they get the credential, this is for blocks
+// written in Go.
+func (n *CompiledFlowNode) checkIntegrations(ctx *FlowContext) error {
+	for _, id := range blockDefinitions[n.Type].Requires {
+		integration, ok := integrations[id]
+		if !ok || !integration.NeedsCredential() {
+			continue
+		}
+		if _, err := integrationCredential(ctx, integration); err != nil {
+			return err
+		}
+	}
+	return nil
 }

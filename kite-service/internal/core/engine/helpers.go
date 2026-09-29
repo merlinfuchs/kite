@@ -75,7 +75,8 @@ func (s Env) flowProviders(appID string, session *state.State, links entityLinks
 			appID,
 			links,
 		),
-		Secret: NewSecretProvider(appID, s.AppSecretStore, s.TokenCrypt),
+		Secret:      NewSecretProvider(appID, s.AppSecretStore, s.TokenCrypt),
+		Integration: NewIntegrationProvider(appID, s.AppSecretStore, s.TokenCrypt),
 	}
 }
 
