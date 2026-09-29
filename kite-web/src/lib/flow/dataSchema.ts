@@ -464,6 +464,9 @@ export const nodeActionMemberTimeoutDataSchema = nodeBaseDataSchema.extend({
   audit_log_reason: auditLogReasonSchema,
 });
 
+export const nodeActionMemberTimeoutRemoveDataSchema =
+  nodeActionMemberUnbanDataSchema;
+
 export const nodeActionMemberEditDataSchema = nodeBaseDataSchema.extend({
   guild_target: guildTargetSchema.optional(),
   user_target: userTargetSchema,

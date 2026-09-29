@@ -762,6 +762,39 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 		}
 
 		return n.ExecuteChildren(ctx)
+	case FlowNodeTypeActionMemberTimeoutRemove:
+		guildID, err := n.targetGuildID(ctx)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		memberID, err := ctx.EvalTemplate(n.Data.UserTarget)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		auditLogReason, err := ctx.EvalTemplate(n.Data.AuditLogReason)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		// A zero timestamp marshals to null, which is how Discord lifts a timeout.
+		var communicationDisabledUntil discord.Timestamp
+
+		err = ctx.Discord.EditMember(
+			ctx,
+			guildID,
+			discord.UserID(memberID.Snowflake()),
+			api.ModifyMemberData{
+				CommunicationDisabledUntil: &communicationDisabledUntil,
+				AuditLogReason:             api.AuditLogReason(auditLogReason.String()),
+			},
+		)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		return n.ExecuteChildren(ctx)
 	case FlowNodeTypeActionMemberEdit:
 		guildID, err := n.targetGuildID(ctx)
 		if err != nil {
