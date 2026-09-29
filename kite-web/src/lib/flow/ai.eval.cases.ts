@@ -219,6 +219,30 @@ export const evalCases: EvalCase[] = [
     ],
   },
   {
+    name: "discord api list messages",
+    context: "command",
+    flow: command("recent"),
+    prompt:
+      "Make the command reply with the content of the last 5 messages in the channel it's used in",
+    route: ["build"],
+    types: [
+      "action_discord_api_request",
+      "action_response_create|action_response_edit",
+    ],
+  },
+  {
+    name: "discord api create invite",
+    context: "command",
+    flow: command("invite"),
+    prompt:
+      "Create an invite for this channel that expires after an hour and reply with the link",
+    route: ["build"],
+    types: [
+      "action_discord_api_request",
+      "action_response_create|action_response_edit",
+    ],
+  },
+  {
     name: "ask ai",
     context: "command",
     flow: command("ask"),

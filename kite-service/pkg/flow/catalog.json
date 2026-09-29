@@ -4398,6 +4398,122 @@
       },
       "result_schema": null
     },
+    "action_discord_api_request": {
+      "title": "Discord API Request",
+      "description": "Send a request to any endpoint of the Discord API",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord",
+        "event_schedule"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "type": "string",
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+          },
+          "discord_api_request_data": {
+            "type": "object",
+            "properties": {
+              "operation": {
+                "type": "string",
+                "description": "operationId of the endpoint in Discord's OpenAPI spec, e.g. create_message or list_messages. The spec's names can differ from Discord's docs, e.g. Modify Guild is update_guild."
+              },
+              "path_params": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "key": {
+                      "type": "string",
+                      "description": "Name of the parameter."
+                    },
+                    "value": {
+                      "type": "string",
+                      "description": "Value of the parameter.",
+                      "x-templated": true
+                    }
+                  },
+                  "required": [
+                    "key",
+                    "value"
+                  ],
+                  "additionalProperties": false
+                },
+                "description": "Values for the parameters in the endpoint's path, e.g. channel_id. IDs can also be a placeholder that resolves to a user, channel or other Discord object."
+              },
+              "query": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "key": {
+                      "type": "string",
+                      "description": "Name of the parameter."
+                    },
+                    "value": {
+                      "type": "string",
+                      "description": "Value of the parameter.",
+                      "x-templated": true
+                    }
+                  },
+                  "required": [
+                    "key",
+                    "value"
+                  ],
+                  "additionalProperties": false
+                },
+                "description": "Query parameters. Only the ones the endpoint has are allowed."
+              },
+              "body_json": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "additionalProperties": {}
+                  },
+                  {
+                    "type": "array",
+                    "items": {}
+                  }
+                ],
+                "description": "JSON body of the request, an object or for some endpoints a list. Placeholders in its string values are evaluated. A string that is a single placeholder keeps the type of its result, e.g. a number or list."
+              }
+            },
+            "required": [
+              "operation"
+            ],
+            "additionalProperties": false,
+            "description": "The Discord API request to send. The bot's token is added."
+          },
+          "audit_log_reason": {
+            "type": "string",
+            "maxLength": 512,
+            "description": "Reason shown in the server's audit log.",
+            "x-templated": true
+          },
+          "temporary_name": {
+            "type": "string",
+            "maxLength": 32,
+            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only."
+          }
+        },
+        "required": [
+          "discord_api_request_data"
+        ],
+        "additionalProperties": false
+      },
+      "result_schema": {
+        "description": "The JSON the endpoint returns, as in Discord's API docs, e.g. result('id').code for a created invite or result('id')[0].content for a list of messages. Empty for endpoints that return nothing."
+      }
+    },
     "action_ai_chat_completion": {
       "title": "Ask AI",
       "description": "Ask artificial intelligence a question or let it respond to a prompt",

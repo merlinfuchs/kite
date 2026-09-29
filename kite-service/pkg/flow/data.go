@@ -89,6 +89,7 @@ const (
 	FlowNodeTypeActionMessageGet            FlowNodeType = "action_message_get"
 	FlowNodeTypeActionRobloxUserGet         FlowNodeType = "action_roblox_user_get"
 	FlowNodeTypeActionHTTPRequest           FlowNodeType = "action_http_request"
+	FlowNodeTypeActionDiscordAPIRequest     FlowNodeType = "action_discord_api_request"
 	FlowNodeTypeActionAIChatCompletion      FlowNodeType = "action_ai_chat_completion"
 	FlowNodeTypeActionAISearchWeb           FlowNodeType = "action_ai_web_search"
 	FlowNodeTypeActionExpressionEvaluate    FlowNodeType = "action_expression_evaluate"
@@ -221,6 +222,9 @@ type FlowNodeData struct {
 
 	// HTTP Request
 	HTTPRequestData *HTTPRequestData `json:"http_request_data,omitempty"`
+
+	// Discord API Request
+	DiscordAPIRequestData *DiscordAPIRequestData `json:"discord_api_request_data,omitempty"`
 
 	// AI Chat Completion
 	AIChatCompletionData *AIChatCompletionData `json:"ai_chat_completion_data,omitempty"`
@@ -652,6 +656,14 @@ type HTTPRequestData struct {
 type HTTPRequestDataKeyValue struct {
 	Key   string `json:"key"`
 	Value string `json:"value"`
+}
+
+type DiscordAPIRequestData struct {
+	// Operation is the operationId of the endpoint in Discord's OpenAPI spec.
+	Operation  string                    `json:"operation,omitempty"`
+	PathParams []HTTPRequestDataKeyValue `json:"path_params,omitempty"`
+	Query      []HTTPRequestDataKeyValue `json:"query,omitempty"`
+	BodyJSON   json.RawMessage           `json:"body_json,omitempty"`
 }
 
 type AIChatCompletionData struct {
