@@ -27,6 +27,8 @@ import {
   CommandUpdateRequest,
   CommandUpdateResponse,
   EventListenerCreateRequest,
+  FlowHTTPRequestTestRequest,
+  FlowHTTPRequestTestResponse,
   EventListenerCreateResponse,
   EventListenerDeleteResponse,
   EventListenersImportRequest,
@@ -849,6 +851,22 @@ export function useShareCodeResolveMutation() {
     mutationFn: (code: string) =>
       apiRequest<ShareCodeGetResponse>(
         `/v1/share-codes/${encodeURIComponent(code)}`
+      ),
+  });
+}
+
+export function useFlowHTTPRequestTestMutation(appId: string) {
+  return useMutation({
+    mutationFn: (req: FlowHTTPRequestTestRequest) =>
+      apiRequest<FlowHTTPRequestTestResponse>(
+        `/v1/apps/${appId}/flow/http-request/test`,
+        {
+          method: "POST",
+          body: JSON.stringify(req),
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
       ),
   });
 }

@@ -26,6 +26,10 @@ type APIServerConfig struct {
 	DiscordClientSecret string
 	UserLimits          APIUserLimitsConfig
 	Billing             BillingConfig
+	// EngineHTTPClient is the client flows send HTTP requests with. Testing
+	// an HTTP request block from the editor uses it too, so tests go through
+	// the same egress proxy as deployed flows.
+	EngineHTTPClient *http.Client
 }
 
 type APIUserLimitsConfig struct {

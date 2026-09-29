@@ -84,6 +84,10 @@ func StartServer(c context.Context, cfg *config.Config) error {
 		DiscordGuildID:  cfg.Discord.GuildID,
 	})
 
+	// Shared by the engine and the API, which uses it to test HTTP request
+	// blocks, so both go through the same egress proxy.
+	flowHTTPClient := engineHTTPClient(cfg)
+
 	engine := engine.NewEngine(
 		engine.Env{
 			Config: engine.EngineConfig{
@@ -109,7 +113,7 @@ func StartServer(c context.Context, cfg *config.Config) error {
 			PluginRegistry:       pluginRegistry,
 			VariableValueStore:   pg,
 			ResumePointStore:     pg,
-			HttpClient:           engineHTTPClient(cfg),
+			HttpClient:           flowHTTPClient,
 			OpenaiClient:         &openaiClient,
 			TokenCrypt:           tokenCrypt,
 		},
@@ -157,6 +161,7 @@ func StartServer(c context.Context, cfg *config.Config) error {
 			TestMode:                  cfg.Billing.TestMode,
 			Plans:                     cfg.Billing.Plans,
 		},
+		EngineHTTPClient: flowHTTPClient,
 	},
 		pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg,
 		assetStore, gateway, planManager, pluginRegistry, tokenCrypt, commandManager,

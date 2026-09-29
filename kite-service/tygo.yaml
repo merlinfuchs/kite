@@ -14,6 +14,7 @@ packages:
       manifest.Manifest: "Manifest"
       Base64: "string"
       flow.FlowData: "FlowData"
+      flow.HTTPRequestData: "HTTPRequestData"
       message.MessageData: "MessageData"
       plugin.ConfigValues: "PluginConfigValues"
       plugin.Metadata: "PluginMetadata"
@@ -23,7 +24,7 @@ packages:
     exclude_files:
       - "base.go"
     frontmatter: |
-      import { FlowData } from './flow.gen';
+      import { FlowData, HTTPRequestData } from './flow.gen';
       import { MessageData } from './message.gen';
       import { ConfigValues as PluginConfigValues, Metadata as PluginMetadata, Config as PluginConfig, Command as PluginCommand, Event as PluginEvent } from './plugin.gen';
       interface Empty {}
@@ -48,6 +49,7 @@ packages:
       - "error.go"
       - "eval.go"
       - "execute.go"
+      - "http_tester.go"
       - "provider.go"
     frontmatter: |
       import { MessageData } from './message.gen';

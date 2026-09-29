@@ -333,12 +333,51 @@ export interface ModalComponentData {
   placeholder?: string;
   components?: ModalComponentData[];
 }
+export type HTTPRequestBodyType = string;
+export const HTTPRequestBodyTypeNone: HTTPRequestBodyType = "none";
+export const HTTPRequestBodyTypeJSON: HTTPRequestBodyType = "json";
+export const HTTPRequestBodyTypeText: HTTPRequestBodyType = "text";
+export const HTTPRequestBodyTypeForm: HTTPRequestBodyType = "form";
+export const HTTPRequestBodyTypeMultipart: HTTPRequestBodyType = "multipart";
 export interface HTTPRequestData {
   url?: string;
   method?: string;
   headers?: HTTPRequestDataKeyValue[];
   query?: HTTPRequestDataKeyValue[];
+  /**
+   * BodyType selects how the request body is built. When it's empty the
+   * node predates body types and BodyJSON, if set, is sent as JSON.
+   */
+  body_type?: HTTPRequestBodyType;
+  /**
+   * Body is the raw body for the json and text body types. For json,
+   * placeholders are JSON-aware, see eval.EvalJSONTemplate.
+   */
+  body?: string;
+  /**
+   * BodyContentType overrides the Content-Type of the text body type.
+   */
+  body_content_type?: string;
+  /**
+   * BodyForm holds the fields of the form and multipart body types.
+   */
+  body_form?: HTTPRequestDataKeyValue[];
+  /**
+   * BodyJSON is the JSON body of nodes created before body types existed.
+   * New nodes store the JSON as text in Body instead.
+   */
   body_json?: Record<string, any> | null;
+  /**
+   * FailOnErrorStatus makes the node fail when the response has a 4xx or
+   * 5xx status code instead of passing the response on.
+   */
+  fail_on_error_status?: boolean;
+  /**
+   * ResponseTransform is an optional expression that post-processes the
+   * response. It can access the response as `response` and its result
+   * becomes the result of the node.
+   */
+  response_transform?: string;
 }
 export interface HTTPRequestDataKeyValue {
   key: string;
@@ -362,6 +401,10 @@ export interface FlowEdge {
   sourceHandle?: null | string;
   targetHandle?: null | string;
 }
+
+//////////
+// source: http.go
+
 
 //////////
 // source: state.go

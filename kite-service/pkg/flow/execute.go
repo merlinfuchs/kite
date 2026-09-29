@@ -1,13 +1,10 @@
 package flow
 
 import (
-	"bytes"
 	"context"
 	"errors"
 	"fmt"
-	"io"
 	"math/rand"
-	"net/http"
 	"slices"
 	"time"
 
@@ -1373,69 +1370,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			}
 		}
 
-		method := n.Data.HTTPRequestData.Method
-		if method == "" {
-			method = "GET"
-		}
-
-		url, err := ctx.EvalTemplate(n.Data.HTTPRequestData.URL)
-		if err != nil {
-			return traceError(n, err)
-		}
-
-		// Bound to the flow context so the execution deadline and an explicit
-		// Cancel both abort the request. With a background request a slow or
-		// non-responding host pins the goroutine and its connection past the
-		// end of the flow, in a pool shared with the Discord API client.
-		req, err := http.NewRequestWithContext(ctx, method, url.String(), nil)
-		if err != nil {
-			return traceError(n, err)
-		}
-
-		for _, header := range n.Data.HTTPRequestData.Headers {
-			value, err := ctx.EvalTemplate(header.Value)
-			if err != nil {
-				return traceError(n, err)
-			}
-
-			req.Header.Add(header.Key, value.String())
-		}
-
-		query := req.URL.Query()
-		for _, queryParam := range n.Data.HTTPRequestData.Query {
-			value, err := ctx.EvalTemplate(queryParam.Value)
-			if err != nil {
-				return traceError(n, err)
-			}
-
-			query.Add(queryParam.Key, value.String())
-		}
-		req.URL.RawQuery = query.Encode()
-
-		if n.Data.HTTPRequestData.BodyJSON != nil {
-			// This can potentially break the JSON if an expression returns a string containing double quotes
-			// We should probably escape the expression results or only run the eval engine on the actual JSON values
-			body, err := ctx.EvalTemplate(string(n.Data.HTTPRequestData.BodyJSON))
-			if err != nil {
-				return traceError(n, err)
-			}
-
-			req.Header.Set("Content-Type", "application/json")
-			req.Body = io.NopCloser(bytes.NewReader([]byte(body.String())))
-		}
-
-		resp, err := ctx.HTTP.HTTPRequest(ctx, req)
-		if err != nil {
-			return traceError(n, err)
-		}
-
-		// Closed here rather than deferred: the body is fully consumed by
-		// NewFromHTTPResponse, and a defer would hold the connection for the
-		// whole child subtree. NewFromHTTPResponse also returns early without
-		// reading when Content-Length is over its cap, so this has to run on
-		// the error path too.
-		result, err := thing.NewFromHTTPResponse(resp)
-		resp.Body.Close()
+		result, err := ctx.executeHTTPRequest(n.Data.HTTPRequestData)
 		if err != nil {
 			return traceError(n, err)
 		}
