@@ -22,7 +22,7 @@ import {
   walkUpstream,
 } from "./placeholders";
 import { collectComponentGroups } from "./resume";
-import { blockDefinitions } from "../blocks";
+import { requestBlocks } from "../blocks";
 
 export interface FlowIssue {
   severity: "error" | "warning";
@@ -442,7 +442,7 @@ function getReplacingBlock(data: NodeData) {
   const request = data.discord_api_request_data;
   if (!request || Array.isArray(request.body_json)) return;
 
-  const block = blockDefinitions.find(
+  const block = requestBlocks().find(
     (b) =>
       b.run.integration === "discord" && b.run.operation === request.operation
   );

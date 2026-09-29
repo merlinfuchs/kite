@@ -49,14 +49,14 @@ kite-web/src/lib/
   blocks/
     types.ts
     index.ts             all blocks, and the editor schema for them
-    discordBulkDeleteMessages.ts
-    discordCreateInvite.ts
-    discordCreateRole.ts
-    discordListMessages.ts
-    conditionCompare.ts  later, a block of Kite itself
+    discordMessageBulkDelete.ts
+    discordInviteCreate.ts
+    discordRoleCreate.ts
+    discordMessageList.ts
+    controlConditionCompare.ts  a block of Kite itself
 ```
 
-The blocks folder is flat. File names start with the integration a block mainly acts on, if any, so sorting groups them, and blocks of Kite itself, like conditions and variables, have no prefix. Category folders would repeat the `category` field and drift from it when a block moves to another section of the block explorer. A block that needs several integrations, like a transcript that reads Discord messages and renders them with cookie-api, lists them all.
+The blocks folder is flat. File names are the integration a block mainly acts on, if any, followed by its type, like `discordInviteCreate.ts` for `action_invite_create`, so sorting groups them. Blocks of Kite itself, like conditions and variables, have no prefix. Category folders would repeat the `category` field and drift from it when a block moves to another section of the block explorer. A block that needs several integrations, like a transcript that reads Discord messages and renders them with cookie-api, lists them all.
 
 Discord's spec is trimmed to `src/lib/flow/discordApi.json` by `scripts/discord-api.mjs`, which the raw block uses already. Other integrations would keep theirs in their folder as `openapi.json`.
 
@@ -84,7 +84,7 @@ Proposed for later integrations, the integration's own settings in its `index.ts
 A block definition, as implemented:
 
 ```ts
-export const discordCreateRole: BlockDefinition = {
+export const discordRoleCreate: BlockDefinition = {
   type: "action_role_create",
   title: "Create role",
   description: "Create a new role in the server",
@@ -121,7 +121,7 @@ export const discordCreateRole: BlockDefinition = {
 `run.integration` is the integration the request goes to, which the block needs. Blocks that need more, or that run custom code, list integrations in `requires` (proposed, not implemented yet):
 
 ```ts
-export const cookieApiCreateTranscript: BlockDefinition = {
+export const cookieApiTranscriptCreate: BlockDefinition = {
   type: "action_cookie_api_transcript_create",
   // ...
   requires: ["discord", "cookie_api"],
@@ -245,64 +245,61 @@ When a service changes its API, a script fetches the new spec, writes the trimme
 
 ## One format for all blocks
 
-Some blocks will always need code: conditions, loops, sleep, variables, AI, responses, voice and status. Two ways of defining blocks side by side is the complexity to avoid, so the next step moves every block to the definition format, and only how a block runs differs.
+Some blocks will always need code: conditions, loops, sleep, variables, AI, responses, voice and status. Two ways of defining blocks side by side is the complexity to avoid, so every block has a definition, and only how a block runs differs.
 
-Today a hand-written block is spread over `nodes.ts`, `dataSchema.ts`, `resultSchema.ts`, `categories.ts`, `components.ts` and a `case` in `Execute`. After this step every block has one definition with its title, icon, category, credits, fields, result, structure and a `run`:
+Before, a hand-written block was spread over `nodes.ts`, `dataSchema.ts`, `resultSchema.ts`, `categories.ts`, `components.ts` and a `case` in `Execute`. Now every block has one definition with its title, icon, category, credits, settings, result, structure and a `run`, and `nodes.ts`, the block explorer's sections and the canvas components are built from them:
 
 ```ts
-export const discordPinMessage: BlockDefinition = {
+export const discordMessagePin: BlockDefinition = {
   type: "action_message_pin",
   title: "Pin channel message",
-  // ...
+  description: "Bot pins a message in a channel",
+  icon: "pin",
+  category: "Messages",
   requires: ["discord"],
+  credits: 1,
+  schema: nodeActionMessagePinDataSchema,
+  inputs: ["channel_target", "message_target", "audit_log_reason", "custom_label"],
   run: { kind: "custom" },
-};
-
-export const discordCreateRole: BlockDefinition = {
-  type: "action_role_create",
-  // ...
-  run: { kind: "request", integration: "discord", method: "POST", path: "/guilds/{guild_id}/roles" },
 };
 ```
 
-A custom block runs the Go handler registered under its node type, so no separate ID is needed. The switch in `Execute` becomes a map from node type to handler, and a test checks both directions: every custom definition has a handler, and every handler has a definition.
+A custom block runs the Go handler registered under its node type in `nodeHandlers`, so no separate ID is needed. `block_definitions.json` lists every block, and tests check that every custom block has a handler and every handler a definition, and that the credits of a definition match what `CreditsCost` charges.
 
-All definitions live in the flat `blocks` folder, whether they're requests or custom. Blocks of Kite itself, like conditions, loops, sleep, variables, AI, calculate value and log, need no integration. Custom blocks that call a service, like pin or ban, name it in `requires`, so connect prompts and error nodes work the same for every block.
+All definitions live in the flat `blocks` folder, whether they're requests or custom. Blocks of Kite itself, like conditions, loops, sleep, variables, AI, calculate value and log, need no integration. Custom blocks that call a service, like pin or ban, name it in `requires`, so connect prompts and error nodes work the same for every block. Roblox is an integration too, without a credential.
+
+The definitions are listed in `blocks/index.ts` in the order of the block explorer. The explorer's sections take their blocks from the definitions' `category`, and the flow AI's catalog follows the same order, which is how the move could be checked: the catalog came out unchanged.
 
 ### Widgets
 
-Complex inputs are widget types a field refers to: `message` (the message builder, with templates), `permissions`, `emoji`, `channel`, `role`, `modal`. A field's value doesn't have to be text: a `message` field stores the whole `message_data` object, and the widget brings its own editor and validation, like `BaseInput` does for plain fields. Most of the editor inputs in `FlowNodeEditor.tsx` become widgets or plain fields.
+Custom blocks name the editor inputs that edit their settings in `inputs`, which are the widgets: `message_data` (the message builder, with templates), `emoji_data`, `modal_data`, `channel_data`, `command_permissions` and the rest of the inputs registered in `FlowNodeEditor.tsx`. Their settings keep their zod schema. Blocks defined with `fields` get a generated schema and form instead, and a field can use a widget too, like `permissions`.
 
-Outputs that depend on settings come from widgets too. A message field adds an output for every button and select menu in the message, which `getNodeOutputs` special-cases today.
+Moving a custom block from `schema` and `inputs` to `fields` is optional and can happen block by block, whenever a block's settings fit plain fields. Outputs that depend on settings, like one per button of a message, still come from `getNodeOutputs`.
 
 ### Structure
 
-Conditions and loops own other blocks, have several outputs and their own canvas components. That structure is data already, only spread out: `outputs` and `fixed` in `nodes.ts`, owned children hard-coded in `createNode` and the `conditionChildType` map, components in `components.ts`. It moves into the definition:
+Conditions and loops own other blocks, have several outputs and their own canvas components. That structure is in the definition now:
 
 ```ts
-export const conditionCompare: BlockDefinition = {
+export const controlConditionCompare: BlockDefinition = {
   type: "control_condition_compare",
   // ...
-  fields: [{ name: "condition_base_value", type: "string", label: "Base Value", description: "..." }],
-  owns: ["control_condition_item_compare", "control_condition_item_else"],
-  component: "condition",
+  outputs: [],
+  owns: ["control_condition_item_else", "control_condition_item_compare"],
+  component: "condition_compare",
   run: { kind: "custom" },
 };
 
-export const loop: BlockDefinition = {
+export const controlLoop: BlockDefinition = {
   type: "control_loop",
   // ...
-  owns: ["control_loop_each", "control_loop_end"],
-  component: "loop",
+  owns: ["control_loop_end", "control_loop_each"],
+  component: "control_loop",
   run: { kind: "custom" },
 };
 ```
 
-Condition items and the loop's each and end blocks are definitions of their own. `getOwnedChildTypes` and `getOwnerTypes` read `owns` instead of calling `createNode`. What these blocks do stays in code: branching, looping and resuming in Go, adding condition items and the canvas components in the editor. The definition only names them.
-
-### Order
-
-It's a large but mechanical refactor, done group by group: simple Discord blocks, then blocks with widgets, then Kite's own blocks, conditions and loops last, as `createNode`, the flow AI's edit engine and validation all reason about owned children. The safety net is the catalog: it's generated from the same data, so a moved block whose catalog entry is unchanged looks exactly the same to the editor, the flow AI and the docs. The Go side, switch to handler map, is a separate change with no behavior change.
+Condition items and the loop's each and end blocks are definitions of their own, without a category. `createNode` creates the owned blocks, the first to the right and the second to the left, and `getOwnedChildTypes` reads `owns`. What these blocks do stays in code: branching, looping and resuming in Go, adding condition items and the canvas components in the editor. The definition only names them.
 
 ## Existing blocks
 
@@ -325,7 +322,7 @@ That's far off. The two rules above keep it open without extra work now: block t
 ## Phases
 
 1. Done: definition format, executor and editor rendering, with create invite (#212), bulk delete (#210), role create (#208) and the message list from #468.
-2. One format for all blocks: every block gets a definition with a custom or request `run`, widgets for complex inputs, structure for conditions and loops, and a handler map instead of the switch in `Execute`.
+2. Done: one format for all blocks. Every block has a definition with a custom or request `run`, custom blocks name their widgets, conditions and loops their structure, and Go runs custom blocks from a handler map instead of the switch in `Execute`.
 3. Convert blocks that are a single request from custom to request `run`, starting with reactions, pin and unpin, then the moderation and channel blocks. Get blocks last, once definitions support the cache.
 4. #419 with room for integration credentials, then the integrations settings page, connect prompts and error nodes. Cookie API as the first non-Discord integration, pending the partnership. For transcripts, ask cookie-api for a mode where Kite sends the messages instead of a bot token.
 5. The LLM draft script and contributor docs.

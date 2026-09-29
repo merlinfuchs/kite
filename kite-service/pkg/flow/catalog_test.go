@@ -65,7 +65,7 @@ func TestCatalogFieldsExist(t *testing.T) {
 	for nodeType, schema := range loadCatalog(t) {
 		// Their settings are defined in block_definitions.json and kept in
 		// FlowNodeData.Fields, see TestBlockDefinitionFieldSettings.
-		if _, ok := blockDefinitions[FlowNodeType(nodeType)]; ok {
+		if block, ok := blockDefinitions[FlowNodeType(nodeType)]; ok && block.Run.Kind == "request" {
 			continue
 		}
 		if schema != nil {

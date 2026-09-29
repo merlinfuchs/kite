@@ -7,24 +7,183 @@ import {
   templated,
   temporaryNameSchema,
 } from "../flow/dataSchema";
-import { discordBulkDeleteMessages } from "./discordBulkDeleteMessages";
-import { discordCreateInvite } from "./discordCreateInvite";
-import { discordCreateRole } from "./discordCreateRole";
-import { discordListMessages } from "./discordListMessages";
-import { BlockDefinition, BlockField } from "./types";
+import { BlockDefinition, BlockField, RequestBlockDefinition } from "./types";
+import { aiChatCompletion } from "./aiChatCompletion";
+import { aiWebSearch } from "./aiWebSearch";
+import { controlConditionChannel } from "./controlConditionChannel";
+import { controlConditionCompare } from "./controlConditionCompare";
+import { controlConditionItemChannel } from "./controlConditionItemChannel";
+import { controlConditionItemCompare } from "./controlConditionItemCompare";
+import { controlConditionItemElse } from "./controlConditionItemElse";
+import { controlConditionItemRole } from "./controlConditionItemRole";
+import { controlConditionItemUser } from "./controlConditionItemUser";
+import { controlConditionRole } from "./controlConditionRole";
+import { controlConditionUser } from "./controlConditionUser";
+import { controlErrorHandler } from "./controlErrorHandler";
+import { controlLoop } from "./controlLoop";
+import { controlLoopEach } from "./controlLoopEach";
+import { controlLoopEnd } from "./controlLoopEnd";
+import { controlLoopExit } from "./controlLoopExit";
+import { controlSleep } from "./controlSleep";
+import { discordApiRequest } from "./discordApiRequest";
+import { discordChannelCreate } from "./discordChannelCreate";
+import { discordChannelDelete } from "./discordChannelDelete";
+import { discordChannelEdit } from "./discordChannelEdit";
+import { discordChannelGet } from "./discordChannelGet";
+import { discordEntryCommand } from "./discordEntryCommand";
+import { discordEntryComponentButton } from "./discordEntryComponentButton";
+import { discordEntryEvent } from "./discordEntryEvent";
+import { discordForumPostCreate } from "./discordForumPostCreate";
+import { discordGuildGet } from "./discordGuildGet";
+import { discordInviteCreate } from "./discordInviteCreate";
+import { discordMemberBan } from "./discordMemberBan";
+import { discordMemberEdit } from "./discordMemberEdit";
+import { discordMemberGet } from "./discordMemberGet";
+import { discordMemberKick } from "./discordMemberKick";
+import { discordMemberRoleAdd } from "./discordMemberRoleAdd";
+import { discordMemberRoleRemove } from "./discordMemberRoleRemove";
+import { discordMemberTimeout } from "./discordMemberTimeout";
+import { discordMemberUnban } from "./discordMemberUnban";
+import { discordMessageBulkDelete } from "./discordMessageBulkDelete";
+import { discordMessageCreate } from "./discordMessageCreate";
+import { discordMessageDelete } from "./discordMessageDelete";
+import { discordMessageEdit } from "./discordMessageEdit";
+import { discordMessageGet } from "./discordMessageGet";
+import { discordMessageList } from "./discordMessageList";
+import { discordMessagePin } from "./discordMessagePin";
+import { discordMessageReactionCreate } from "./discordMessageReactionCreate";
+import { discordMessageReactionDelete } from "./discordMessageReactionDelete";
+import { discordMessageUnpin } from "./discordMessageUnpin";
+import { discordOptionCommandArgument } from "./discordOptionCommandArgument";
+import { discordOptionCommandContexts } from "./discordOptionCommandContexts";
+import { discordOptionCommandPermissions } from "./discordOptionCommandPermissions";
+import { discordOptionEventFilter } from "./discordOptionEventFilter";
+import { discordPollCreate } from "./discordPollCreate";
+import { discordPrivateMessageCreate } from "./discordPrivateMessageCreate";
+import { discordResponseCreate } from "./discordResponseCreate";
+import { discordResponseDefer } from "./discordResponseDefer";
+import { discordResponseDelete } from "./discordResponseDelete";
+import { discordResponseEdit } from "./discordResponseEdit";
+import { discordRoleCreate } from "./discordRoleCreate";
+import { discordRoleGet } from "./discordRoleGet";
+import { discordStatusSet } from "./discordStatusSet";
+import { discordSuspendResponseModal } from "./discordSuspendResponseModal";
+import { discordThreadCreate } from "./discordThreadCreate";
+import { discordThreadMemberAdd } from "./discordThreadMemberAdd";
+import { discordThreadMemberRemove } from "./discordThreadMemberRemove";
+import { discordUserGet } from "./discordUserGet";
+import { discordVoiceChannelJoin } from "./discordVoiceChannelJoin";
+import { discordVoiceChannelLeave } from "./discordVoiceChannelLeave";
+import { expressionEvaluate } from "./expressionEvaluate";
+import { httpRequest } from "./httpRequest";
+import { log } from "./log";
+import { randomGenerate } from "./randomGenerate";
+import { robloxUserGet } from "./robloxUserGet";
+import { variableDelete } from "./variableDelete";
+import { variableGet } from "./variableGet";
+import { variableSet } from "./variableSet";
 
-// File names start with the integration a block mainly acts on, if any.
+// Every block, in the order of the block explorer, then the blocks that are
+// only created with others. The flow AI's catalog follows this order. File
+// names start with the integration a block mainly acts on, if any.
 export const blockDefinitions: BlockDefinition[] = [
-  discordListMessages,
-  discordBulkDeleteMessages,
-  discordCreateInvite,
-  discordCreateRole,
+  discordOptionCommandArgument,
+  discordOptionCommandPermissions,
+  discordOptionCommandContexts,
+  discordOptionEventFilter,
+  discordResponseCreate,
+  discordResponseEdit,
+  discordResponseDelete,
+  discordResponseDefer,
+  discordSuspendResponseModal,
+  discordMessageCreate,
+  discordMessageEdit,
+  discordMessageDelete,
+  discordMessageGet,
+  discordPrivateMessageCreate,
+  discordMessageReactionCreate,
+  discordMessageReactionDelete,
+  discordMessagePin,
+  discordMessageUnpin,
+  discordPollCreate,
+  discordMessageList,
+  discordMessageBulkDelete,
+  discordMemberBan,
+  discordMemberUnban,
+  discordMemberKick,
+  discordMemberTimeout,
+  discordMemberEdit,
+  discordMemberGet,
+  discordUserGet,
+  discordMemberRoleAdd,
+  discordMemberRoleRemove,
+  discordRoleGet,
+  discordRoleCreate,
+  discordGuildGet,
+  discordChannelCreate,
+  discordChannelEdit,
+  discordChannelDelete,
+  discordChannelGet,
+  discordThreadCreate,
+  discordThreadMemberAdd,
+  discordThreadMemberRemove,
+  discordInviteCreate,
+  discordVoiceChannelJoin,
+  discordVoiceChannelLeave,
+  discordStatusSet,
+  variableSet,
+  variableDelete,
+  variableGet,
+  robloxUserGet,
+  aiChatCompletion,
+  aiWebSearch,
+  httpRequest,
+  discordApiRequest,
+  expressionEvaluate,
+  randomGenerate,
+  log,
+  controlConditionCompare,
+  controlConditionUser,
+  controlConditionChannel,
+  controlConditionRole,
+  controlLoop,
+  controlLoopExit,
+  controlErrorHandler,
+  controlSleep,
+  discordEntryCommand,
+  discordEntryEvent,
+  discordEntryComponentButton,
+  discordForumPostCreate,
+  controlConditionItemCompare,
+  controlConditionItemUser,
+  controlConditionItemChannel,
+  controlConditionItemRole,
+  controlConditionItemElse,
+  controlLoopEach,
+  controlLoopEnd,
 ];
 
 const definitionsByType = new Map(blockDefinitions.map((b) => [b.type, b]));
 
 export function getBlockDefinition(type: string | undefined) {
   return type ? definitionsByType.get(type) : undefined;
+}
+
+// The integrations a block needs: the one its request goes to and the ones
+// it requires.
+export function blockIntegrations(block: BlockDefinition) {
+  const ids = [...(block.requires ?? [])];
+  if (block.run.kind === "request" && !ids.includes(block.run.integration)) {
+    ids.unshift(block.run.integration);
+  }
+  return ids;
+}
+
+// The blocks that send a request to an integration.
+export function requestBlocks() {
+  return blockDefinitions.filter(
+    (b): b is RequestBlockDefinition => b.run.kind === "request" && !!b.fields
+  );
 }
 
 const formats: Record<BlockField["type"], [RegExp, string] | null> = {
@@ -132,7 +291,7 @@ function fieldSchema(field: BlockField) {
   return field.required ? schema : schema.optional();
 }
 
-export function blockDataSchema(block: BlockDefinition) {
+export function blockDataSchema(block: RequestBlockDefinition) {
   const names = block.fields.map((f) => f.name).join(", ");
 
   // Strict, as settings with a wrong name would otherwise be dropped silently.
@@ -145,7 +304,7 @@ export function blockDataSchema(block: BlockDefinition) {
     });
 }
 
-export function blockDataFields(block: BlockDefinition) {
+export function blockDataFields(block: RequestBlockDefinition) {
   return [
     "block_fields",
     ...(block.audit_log_reason ? ["audit_log_reason"] : []),

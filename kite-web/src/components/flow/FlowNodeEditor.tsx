@@ -1071,7 +1071,7 @@ const discordApiOperationItems = discordApiOperations.map((o) => ({
 
 function BlockFieldsInput({ type, data, updateData, errors }: InputProps) {
   const block = getBlockDefinition(type);
-  if (!block) return null;
+  if (!block?.fields) return null;
 
   function setField(field: BlockField, value: string) {
     updateData({ [field.name]: value || undefined });

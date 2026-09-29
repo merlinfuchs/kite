@@ -1,6 +1,6 @@
 import { BlockDefinition } from "./types";
 
-export const discordBulkDeleteMessages: BlockDefinition = {
+export const discordMessageBulkDelete: BlockDefinition = {
   type: "action_message_bulk_delete",
   title: "Bulk delete messages",
   description: "Delete 2 to 100 messages of a channel at once",

@@ -17,10 +17,10 @@ import (
 	"github.com/kitecloud/kite/kite-service/pkg/thing"
 )
 
-// blockDefinitionsJSON describes the blocks that are defined as data instead
-// of code: their fields, how they run and their result. It's generated from
-// kite-web/src/lib/blocks, run `pnpm test -u` in kite-web to update it. See
-// design/integrations.md.
+// blockDefinitionsJSON describes every block: how it runs, which integrations
+// it needs, and the fields and result of blocks that send a request. It's
+// generated from kite-web/src/lib/blocks, run `pnpm test -u` in kite-web to
+// update it. See design/integrations.md.
 //
 //go:embed block_definitions.json
 var blockDefinitionsJSON []byte
@@ -40,7 +40,8 @@ type blockField struct {
 	MaxLength *int   `json:"max_length"`
 }
 
-// blockRequest is a request to the API of an integration.
+// blockRequest is how a block runs: a request to the API of an integration
+// for kind "request", or the handler in nodeHandlers for kind "custom".
 type blockRequest struct {
 	Kind        string `json:"kind"`
 	Integration string `json:"integration"`
@@ -50,12 +51,15 @@ type blockRequest struct {
 }
 
 type blockDefinition struct {
-	Type           FlowNodeType `json:"type"`
-	Credits        int          `json:"credits"`
-	AuditLogReason bool         `json:"audit_log_reason"`
-	Run            blockRequest `json:"run"`
-	Fields         []blockField `json:"fields"`
-	Result         *struct {
+	Type FlowNodeType `json:"type"`
+	// Nil for blocks whose cost depends on their settings, see CreditsCost.
+	Credits        *int `json:"credits"`
+	AuditLogReason bool `json:"audit_log_reason"`
+	// Integrations the block needs, including the one of its request.
+	Requires []string     `json:"requires"`
+	Run      blockRequest `json:"run"`
+	Fields   []blockField `json:"fields"`
+	Result   *struct {
 		Thing string `json:"thing"`
 		List  bool   `json:"list"`
 	} `json:"result"`

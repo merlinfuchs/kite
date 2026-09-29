@@ -37,7 +37,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 		return handler(n, ctx)
 	}
 
-	if block, ok := blockDefinitions[n.Type]; ok {
+	if block, ok := blockDefinitions[n.Type]; ok && block.Run.Kind == "request" {
 		return n.executeBlockDefinition(ctx, block)
 	}
 
@@ -2116,8 +2116,8 @@ func (n *CompiledFlowNode) executeControlSleep(ctx *FlowContext) error {
 }
 
 func (n *CompiledFlowNode) CreditsCost() int {
-	if block, ok := blockDefinitions[n.Type]; ok {
-		return block.Credits
+	if block, ok := blockDefinitions[n.Type]; ok && block.Run.Kind == "request" {
+		return *block.Credits
 	}
 
 	switch n.Type {

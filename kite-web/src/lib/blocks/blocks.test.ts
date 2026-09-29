@@ -1,16 +1,18 @@
 import { describe, expect, it } from "vitest";
 import { getDiscordApiOperation } from "../flow/discordApi";
 import { getIntegration } from "../integrations";
-import { blockDefinitions } from ".";
+import { blockDefinitions, blockIntegrations, requestBlocks } from ".";
 
-// What the service needs to run the blocks. Result schemas are only for the
-// editor and the flow AI.
+// What the service needs: how each block runs, which integrations it needs
+// and the fields of request blocks. Schemas are only for the editor and the
+// flow AI, and credits that depend on the settings are computed in Go.
 const serviceBlocks = blockDefinitions.map((block) => ({
   type: block.type,
-  credits: block.credits,
+  credits: typeof block.credits === "number" ? block.credits : null,
   audit_log_reason: !!block.audit_log_reason,
+  requires: blockIntegrations(block),
   run: block.run,
-  fields: block.fields.map((f) => ({
+  fields: (block.fields ?? []).map((f) => ({
     name: f.name,
     in: f.in,
     target: f.target ?? f.name,
@@ -38,7 +40,7 @@ describe("block definitions", () => {
   it("have unique types and field names", () => {
     const types = blockDefinitions.map((b) => b.type);
     expect(new Set(types).size).toBe(types.length);
-    for (const block of blockDefinitions) {
+    for (const block of requestBlocks()) {
       const names = block.fields.map((f) => f.name);
       expect(new Set(names).size, block.type).toBe(names.length);
     }
@@ -46,12 +48,14 @@ describe("block definitions", () => {
 
   it("use integrations that exist", () => {
     for (const block of blockDefinitions) {
-      expect(getIntegration(block.run.integration), block.type).toBeDefined();
+      for (const id of blockIntegrations(block)) {
+        expect(getIntegration(id), `${block.type} ${id}`).toBeDefined();
+      }
     }
   });
 
   it("match Discord's spec", () => {
-    for (const block of blockDefinitions.filter(
+    for (const block of requestBlocks().filter(
       (b) => b.run.integration === "discord"
     )) {
       const op = getDiscordApiOperation(block.run.operation);

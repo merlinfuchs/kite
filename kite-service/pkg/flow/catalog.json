@@ -4983,7 +4983,7 @@
             "properties": {
               "operation": {
                 "type": "string",
-                "description": "operationId of the endpoint in Discord's OpenAPI spec, e.g. create_message or list_messages. The spec's names can differ from Discord's docs, e.g. Modify Guild is update_guild. These endpoints have their own block, use it instead: list_messages: action_message_list, bulk_delete_messages: action_message_bulk_delete, create_channel_invite: action_invite_create, create_guild_role: action_role_create."
+                "description": "operationId of the endpoint in Discord's OpenAPI spec, e.g. create_message or list_messages. The spec's names can differ from Discord's docs, e.g. Modify Guild is update_guild. These endpoints have their own block, use it instead: list_messages: action_message_list, bulk_delete_messages: action_message_bulk_delete, create_guild_role: action_role_create, create_channel_invite: action_invite_create."
               },
               "path_params": {
                 "type": "array",

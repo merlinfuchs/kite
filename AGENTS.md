@@ -42,33 +42,34 @@ Never edit these by hand. Change the source and regenerate.
 | --------------------------------------------- | -------------------------------------------------------- | ------------------------------------ |
 | `kite-web/src/lib/types/*.gen.ts`             | Go types in `kite-service` (see `tygo.yaml`)             | `tygo generate` in `kite-service`    |
 | `kite-service/internal/db/postgres/pgmodel/*` | `internal/db/postgres/queries` and `migrations`          | `sqlc generate` in `kite-service`    |
-| `kite-service/pkg/flow/catalog.json`          | zod schemas and `nodeTypes` in `kite-web/src/lib/flow`   | `pnpm test -u` in `kite-web`         |
+| `kite-service/pkg/flow/catalog.json`          | block definitions in `kite-web/src/lib/blocks`           | `pnpm test -u` in `kite-web`         |
+| `kite-service/pkg/flow/block_definitions.json` | block definitions in `kite-web/src/lib/blocks`         | `pnpm test -u` in `kite-web`         |
 
-`catalog.json` describes every block to the flow AI. `TestCatalogHasEveryNodeType` fails if a block is missing from it.
+`catalog.json` describes every block to the flow AI, and `block_definitions.json` tells the service how each block runs. `TestCatalogHasEveryNodeType` and `TestEveryBlockRuns` fail if a block is missing from them.
 
 ## Adding a block
 
-Look at an existing block that does something similar and copy its shape. `action_message_pin` is a good minimal example. Blocks for a service other than Discord include the service in their type, e.g. `action_roblox_user_get`, so they can't collide with Discord blocks or blocks of other services. Before adding a new block, check that no existing block already covers the use case, or could with one extra option.
+Look at an existing block that does something similar and copy its shape. Before adding a new block, check that no existing block already covers the use case, or could with one extra option. See `design/integrations.md` for the design.
 
-If the block is a single Discord API request, define it as data instead of following the steps below. Add a file to `kite-web/src/lib/blocks`, named after the integration and the block like `discordCreateInvite.ts`, which it follows, list it in `blocks/index.ts`, run `pnpm test -u` and add the docs page. The service runs it from the generated `kite-service/pkg/flow/block_definitions.json`, and a test checks it against Discord's spec. See `design/integrations.md`. Blocks that need more logic than one request are written by hand:
+Every block has a definition in `kite-web/src/lib/blocks`, named after the integration it mainly acts on and its type, like `discordInviteCreate.ts` for `action_invite_create`, and listed in `blocks/index.ts` in the order of the block explorer. Blocks for a service other than Discord include the service in their type, e.g. `action_roblox_user_get`, so they can't collide with Discord blocks or blocks of other services.
+
+If the block is a single API request, give it `fields` and a request `run`, following `discordInviteCreate.ts`. The service runs it from the generated `block_definitions.json`, a test checks it against Discord's spec, and it needs no Go. Otherwise give it a custom `run`, a zod `schema` and the editor `inputs` that edit it, following `discordMessagePin.ts`, and write it by hand:
 
 Service:
 
 1. `pkg/flow/data.go`: add the `FlowNodeType` constant and any new fields on `FlowNodeData`. Reuse existing fields (`ChannelTarget`, `MessageTarget`, `AuditLogReason`, ...) where they fit.
-2. `pkg/flow/execute.go`: add a `case` to the switch in `Execute`. Evaluate inputs with `ctx.EvalTemplate`, return errors with `traceError(n, err)`, and store a result if the block returns data.
+2. `pkg/flow/execute.go`: add a handler method and register it in `nodeHandlers`. Evaluate inputs with `ctx.EvalTemplate`, return errors with `traceError(n, err)`, and store a result if the block returns data.
 3. `pkg/provider/discord.go`: add the method to the `DiscordProvider` interface and to `MockDiscordProvider`.
 4. `internal/core/engine/providers.go`: implement the method. The engine's provider embeds the mock, so if you skip this it compiles and silently does nothing.
-5. `CreditsCost()` in `pkg/flow/execute.go`: `action_*` blocks cost 1 by default. Blocks that call external services or do a lot of work cost more.
+5. `CreditsCost()` in `pkg/flow/execute.go`: `action_*` blocks cost 1 by default. Blocks that call external services or do a lot of work cost more. A test checks it matches `credits` of the definition.
 
 Web:
 
 1. `src/lib/flow/dataSchema.ts`: zod schema for the block's data. Every field needs `.describe(...)`.
 2. `src/lib/flow/resultSchema.ts`: schema for the result, if the block returns data. Without it the placeholder picker and flow AI can't see the output.
-3. `src/lib/flow/nodes.ts`: entry in `nodeTypes` with title, description, icon, `dataFields`, schemas and `creditsCost`.
-4. `src/lib/flow/components.ts`: map the type to a component (usually `FlowNodeActionBase`).
-5. `src/lib/flow/categories.ts`: add the type to a category.
-6. `src/components/flow/FlowNodeEditor.tsx`: only if you added a new field name that needs an input.
-7. Run `pnpm test -u` to regenerate `catalog.json`, and `tygo generate` if you changed Go types.
+3. `src/lib/blocks`: the definition, with title, description, icon, category, schema, inputs, result and credits.
+4. `src/components/flow/FlowNodeEditor.tsx`: only if you added a new field name that needs an input.
+5. Run `pnpm test -u` to regenerate `catalog.json` and `block_definitions.json`, and `tygo generate` if you changed Go types.
 
 Docs:
 
