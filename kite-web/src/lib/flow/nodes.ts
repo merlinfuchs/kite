@@ -721,12 +721,7 @@ export const nodeTypes: Record<string, NodeValues> = {
     defaultDescription: "Send a request to any endpoint of the Discord API",
     dataSchema: nodeActionDiscordApiRequestDataSchema,
     resultSchema: nodeActionDiscordApiRequestResultSchema,
-    dataFields: [
-      "discord_api_request_data",
-      "audit_log_reason",
-      "temporary_name",
-      "custom_label",
-    ],
+    dataFields: ["discord_api_request_data", "temporary_name", "custom_label"],
     creditsCost: 1,
   },
   action_ai_chat_completion: {

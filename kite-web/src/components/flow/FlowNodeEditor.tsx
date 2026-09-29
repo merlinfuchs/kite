@@ -1075,7 +1075,8 @@ function isDiscordApiUrl(url: string) {
   );
 }
 
-function DiscordApiRequestDataInput({ data, updateData, errors }: InputProps) {
+function DiscordApiRequestDataInput(props: InputProps) {
+  const { data, updateData, errors } = props;
   const request = data.discord_api_request_data;
   const op = getDiscordApiOperation(request?.operation);
 
@@ -1274,6 +1275,8 @@ function DiscordApiRequestDataInput({ data, updateData, errors }: InputProps) {
               )}
             </div>
           )}
+          {/* Not in the block's dataFields, so it sits with the rest of the request. */}
+          <AuditLogReasonInput {...props} />
         </div>
       </DialogContent>
     </Dialog>
