@@ -21,6 +21,7 @@ export default function EntitySelect({
   searchPlaceholder,
   emptyText,
   wide,
+  modal,
 }: {
   items: { id: string; name: string; description?: string }[] | undefined;
   value: string | null;
@@ -29,13 +30,14 @@ export default function EntitySelect({
   searchPlaceholder: string;
   emptyText: string;
   // Makes the list as wide as the button, e.g. for longer descriptions.
-  // Also lets the list scroll when the select is inside a dialog.
   wide?: boolean;
+  // Needed for the list to scroll when the select is inside a dialog.
+  modal?: boolean;
 }) {
   const [open, setOpen] = useState(false);
 
   return (
-    <Popover open={open} onOpenChange={setOpen} modal={wide}>
+    <Popover open={open} onOpenChange={setOpen} modal={modal}>
       <PopoverTrigger asChild>
         <Button
           variant="outline"

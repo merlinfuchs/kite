@@ -4474,9 +4474,17 @@
                 "description": "Query parameters. Only the ones the endpoint has are allowed."
               },
               "body_json": {
-                "type": "object",
-                "additionalProperties": {},
-                "description": "JSON body of the request. Placeholders in its string values are evaluated. A string that is a single placeholder keeps the type of its result, e.g. a number or list."
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "additionalProperties": {}
+                  },
+                  {
+                    "type": "array",
+                    "items": {}
+                  }
+                ],
+                "description": "JSON body of the request, an object or for some endpoints a list. Placeholders in its string values are evaluated. A string that is a single placeholder keeps the type of its result, e.g. a number or list."
               }
             },
             "required": [

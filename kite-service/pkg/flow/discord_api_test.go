@@ -105,10 +105,26 @@ func TestDiscordAPIPath(t *testing.T) {
 			op:  "get_channel",
 			err: "missing path parameter channel_id",
 		},
-		"unknown path param": {
+		"unknown path param is ignored": {
 			op:   "get_channel",
 			path: map[string]thing.Thing{"channel_id": str("1"), "guild_id": str("2")},
-			err:  "unknown path parameter guild_id",
+			want: "/channels/1",
+		},
+		"placeholder env as ID": {
+			op:   "get_channel",
+			path: map[string]thing.Thing{"channel_id": thing.NewAny(eval.NewSnowflakeEnv(discord.ChannelID(4)))},
+			want: "/channels/4",
+		},
+		"object result as ID": {
+			op:   "get_channel",
+			path: map[string]thing.Thing{"channel_id": thing.NewObject(map[string]thing.Thing{"id": str("5")})},
+			want: "/channels/5",
+		},
+		"list query param": {
+			op:    "guild_search",
+			path:  map[string]thing.Thing{"guild_id": str("1")},
+			query: map[string]thing.Thing{"author_id": thing.NewAny([]any{"2", "3"})},
+			want:  "/guilds/1/messages/search?author_id=2&author_id=3",
 		},
 		"unknown query param": {
 			op:    "get_channel",

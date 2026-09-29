@@ -850,11 +850,20 @@ const discordApiRequestDataSchema = z.object({
     .describe("Query parameters. Only the ones the endpoint has are allowed."),
   body_json: z
     .record(z.unknown())
+    .or(z.array(z.unknown()))
     .optional()
     .describe(
-      "JSON body of the request. Placeholders in its string values are evaluated. A string that is a single placeholder keeps the type of its result, e.g. a number or list."
+      "JSON body of the request, an object or for some endpoints a list. Placeholders in its string values are evaluated. A string that is a single placeholder keeps the type of its result, e.g. a number or list."
     ),
 });
+
+// Formats of typed Discord API parameters, which can also be a placeholder.
+const discordApiParamFormats: Record<string, [RegExp, string]> = {
+  snowflake: [numericRegex, "Must be a number or ID"],
+  integer: [/^-?[0-9]+$/, "Must be a whole number"],
+  number: [/^-?[0-9]+(\.[0-9]+)?$/, "Must be a number"],
+  boolean: [/^(true|false)$/, "Must be true or false"],
+};
 
 export const nodeActionDiscordApiRequestDataSchema = nodeBaseDataSchema.extend({
   discord_api_request_data: discordApiRequestDataSchema
@@ -892,19 +901,25 @@ function refineDiscordApiRequest(
           path: [field, p.name],
           message: `${p.name} is required`,
         });
-      } else if (
+        continue;
+      }
+
+      const [format, message] = discordApiParamFormats[p.type] ?? [];
+      if (
         value &&
-        p.type === "snowflake" &&
-        !numericRegex.test(value) &&
+        format &&
+        !format.test(value) &&
         !placeholderRegex.test(value)
       ) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           path: [field, p.name],
-          message: "Must be a number or ID, or a single {{ }} placeholder",
+          message: `${message}, or a single {{ }} placeholder`,
         });
       }
     }
+    // The service ignores leftover path parameters, but not query parameters.
+    if (field === "path_params") return;
     for (const key of Array.from(values.keys())) {
       if (!declared.some((p) => p.name === key)) {
         ctx.addIssue({

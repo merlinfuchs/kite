@@ -1105,10 +1105,11 @@ function DiscordApiRequestDataInput({ data, updateData, errors }: InputProps) {
     key: string,
     value: string
   ) {
+    const params = request?.[field] ?? [];
     updateRequest({
-      [field]: request?.[field]?.map((p) =>
-        p.key === key ? { key, value } : p
-      ),
+      [field]: params.some((p) => p.key === key)
+        ? params.map((p) => (p.key === key ? { key, value } : p))
+        : [...params, { key, value }],
     });
   }
 
@@ -1146,6 +1147,7 @@ function DiscordApiRequestDataInput({ data, updateData, errors }: InputProps) {
               searchPlaceholder="Search endpoints..."
               emptyText="No endpoint found."
               wide
+              modal
             />
             {op && (
               <div className="text-muted-foreground text-sm font-mono mt-2 break-all">

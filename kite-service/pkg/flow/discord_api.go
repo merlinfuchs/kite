@@ -27,6 +27,7 @@ const (
 	discordAPIParamTypeInteger   discordAPIParamType = "integer"
 	discordAPIParamTypeNumber    discordAPIParamType = "number"
 	discordAPIParamTypeBoolean   discordAPIParamType = "boolean"
+	discordAPIParamTypeArray     discordAPIParamType = "array"
 )
 
 type discordAPIParam struct {
@@ -83,11 +84,6 @@ func discordAPIPath(op discordAPIOperation, pathParams map[string]thing.Thing, q
 		}
 		params[p.Name] = url.PathEscape(v)
 	}
-	for name := range pathParams {
-		if _, ok := params[name]; !ok {
-			return "", fmt.Errorf("unknown path parameter %s", name)
-		}
-	}
 
 	path := pathParamRe.ReplaceAllStringFunc(op.Path, func(m string) string {
 		return params[m[1:len(m)-1]]
@@ -103,11 +99,23 @@ func discordAPIPath(op discordAPIOperation, pathParams map[string]thing.Thing, q
 			continue
 		}
 
-		v, err := discordAPIParamValue(p, value)
-		if err != nil {
-			return "", err
+		// A list is sent as the parameter repeated for each item.
+		items := []thing.Thing{value}
+		if p.Type == discordAPIParamTypeArray {
+			if list, ok := value.JSONValue().([]any); ok {
+				items = make([]thing.Thing, len(list))
+				for i, item := range list {
+					items[i] = thing.NewGuessTypeWithFallback(item)
+				}
+			}
 		}
-		values.Set(p.Name, v)
+		for _, item := range items {
+			v, err := discordAPIParamValue(p, item)
+			if err != nil {
+				return "", err
+			}
+			values.Add(p.Name, v)
+		}
 	}
 	for name := range query {
 		if !values.Has(name) {
@@ -155,13 +163,15 @@ func discordAPIParamValue(p discordAPIParam, value thing.Thing) (string, error) 
 // discordAPISnowflake returns the ID of a Discord object, or a string that
 // already is an ID.
 func discordAPISnowflake(value thing.Thing) (string, error) {
-	if value.IsDiscordEntity() {
-		return value.Snowflake().String(), nil
-	}
-	if value.Type != thing.TypeString && value.Type != thing.TypeInt {
-		return "", fmt.Errorf("must be an ID")
+	if value.IsDiscordEntity() || value.Type == thing.TypeObject {
+		id := value.Snowflake()
+		if !id.IsValid() {
+			return "", fmt.Errorf("must be an ID")
+		}
+		return id.String(), nil
 	}
 
+	// Also covers placeholders like {{channel}}, whose text is the ID.
 	v := strings.TrimSpace(value.String())
 	if id, err := strconv.ParseUint(v, 10, 64); err != nil || id == 0 {
 		return "", fmt.Errorf("must be an ID")

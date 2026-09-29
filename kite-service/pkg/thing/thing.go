@@ -445,9 +445,26 @@ func (w Thing) JSONValue() any {
 			res[key] = item.JSONValue()
 		}
 		return res
-	// Lists and maps built in expressions, like {{[1, 2]}}, aren't wrapped.
-	case []any, map[string]any:
-		return NewFromJSONValue(v).JSONValue()
+	// Lists and maps built in expressions, like {{[1, 2]}}, and ones of the
+	// placeholder env, like []string, aren't wrapped.
+	case []byte:
+		return string(v)
+	}
+
+	rv := reflect.ValueOf(w.Value)
+	switch {
+	case rv.Kind() == reflect.Slice || rv.Kind() == reflect.Array:
+		res := make([]any, rv.Len())
+		for i := range res {
+			res[i] = NewGuessTypeWithFallback(rv.Index(i).Interface()).JSONValue()
+		}
+		return res
+	case rv.Kind() == reflect.Map && rv.Type().Key().Kind() == reflect.String:
+		res := make(map[string]any, rv.Len())
+		for iter := rv.MapRange(); iter.Next(); {
+			res[iter.Key().String()] = NewGuessTypeWithFallback(iter.Value().Interface()).JSONValue()
+		}
+		return res
 	default:
 		return w.String()
 	}
