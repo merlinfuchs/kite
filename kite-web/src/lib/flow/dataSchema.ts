@@ -207,6 +207,7 @@ export const nodeEntryEventDataSchema = nodeBaseDataSchema.extend({
   event_type: z
     .enum([
       "message_create",
+      "direct_message_create",
       "message_update",
       "message_delete",
       "guild_member_add",
