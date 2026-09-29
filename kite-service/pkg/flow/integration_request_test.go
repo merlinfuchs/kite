@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 	"time"
+	"unicode/utf8"
 
 	"github.com/kitecloud/kite/kite-service/pkg/eval"
 	"github.com/kitecloud/kite/kite-service/pkg/provider"
@@ -135,14 +136,18 @@ func TestIntegrationRequestNotConnected(t *testing.T) {
 
 func TestIntegrationRequestErrorRedactsCredential(t *testing.T) {
 	withTestIntegration(t, IntegrationAuth{Type: "query", Name: "api_key"})
-	httpProvider := &redirectCheckingHTTPProvider{status: 401, body: `{"error":"invalid key k3y"}`}
+	// The key ends where the error is cut, so it's only redacted if that
+	// happens first.
+	body := strings.Repeat("ü", 296) + "long-k3y"
+	httpProvider := &redirectCheckingHTTPProvider{status: 401, body: body}
 
 	_, err := executeIntegrationBlock(t, "action_test_api_thing_get",
 		FlowNodeData{Fields: map[string]any{"thing_id": "abc"}},
-		map[string]string{"test_api": "k3y"}, httpProvider)
+		map[string]string{"test_api": "long-k3y"}, httpProvider)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "Test API returned")
-	assert.NotContains(t, err.Error(), "k3y")
+	assert.NotContains(t, err.Error(), "long")
+	assert.True(t, utf8.ValidString(err.Error()))
 }
 
 // Blocks written in Go that need an integration fail before they run when

@@ -2,6 +2,7 @@ package flow
 
 import (
 	"bytes"
+	"context"
 	_ "embed"
 	"encoding/json"
 	"errors"
@@ -96,6 +97,36 @@ type IntegrationAuth struct {
 // a credential. The others are always connected.
 func (i Integration) NeedsCredential() bool {
 	return i.Auth.Type == "header" || i.Auth.Type == "query"
+}
+
+// NewRequest creates a request to the integration's API, with the app's
+// credential if the integration needs one.
+func (i Integration) NewRequest(ctx context.Context, method string, path string, credential string, body []byte) (*http.Request, error) {
+	u, err := url.Parse(strings.TrimSuffix(i.BaseURL, "/") + path)
+	if err != nil {
+		return nil, err
+	}
+	if i.Auth.Type == "query" {
+		query := u.Query()
+		query.Set(i.Auth.Name, credential)
+		u.RawQuery = query.Encode()
+	}
+
+	var reqBody io.Reader
+	if body != nil {
+		reqBody = bytes.NewReader(body)
+	}
+	req, err := http.NewRequestWithContext(ctx, method, u.String(), reqBody)
+	if err != nil {
+		return nil, err
+	}
+	if body != nil {
+		req.Header.Set("Content-Type", "application/json")
+	}
+	if i.Auth.Type == "header" {
+		req.Header.Set(i.Auth.Name, i.Auth.Prefix+credential)
+	}
+	return req, nil
 }
 
 var blockDefinitions, integrations = func() (map[FlowNodeType]blockDefinition, map[string]Integration) {
@@ -441,13 +472,9 @@ func decodeDiscordResult[T any](body []byte, list bool, wrap func(T) thing.Thing
 // integration's own host: its base URL comes from its definition, and
 // redirects aren't followed.
 func integrationRequest(ctx *FlowContext, integration Integration, method string, path string, body []byte) ([]byte, error) {
-	u, err := url.Parse(strings.TrimSuffix(integration.BaseURL, "/") + path)
-	if err != nil {
-		return nil, err
-	}
-
 	var credential string
 	if integration.NeedsCredential() {
+		var err error
 		credential, err = integrationCredential(ctx, integration)
 		if err != nil {
 			return nil, err
@@ -455,22 +482,9 @@ func integrationRequest(ctx *FlowContext, integration Integration, method string
 	}
 	secrets := &requestSecrets{values: map[string]string{"credential": credential}}
 
-	if integration.Auth.Type == "query" {
-		query := u.Query()
-		query.Set(integration.Auth.Name, credential)
-		u.RawQuery = query.Encode()
-	}
-
-	req, err := http.NewRequestWithContext(ctx, method, u.String(), nil)
+	req, err := integration.NewRequest(ctx, method, path, credential, body)
 	if err != nil {
 		return nil, secrets.Redact(err)
-	}
-	if body != nil {
-		req.Header.Set("Content-Type", "application/json")
-		req.Body = io.NopCloser(bytes.NewReader(body))
-	}
-	if integration.Auth.Type == "header" {
-		req.Header.Set(integration.Auth.Name, integration.Auth.Prefix+credential)
 	}
 
 	resp, err := ctx.HTTP.HTTPRequestWithoutRedirects(ctx, req)
@@ -487,11 +501,12 @@ func integrationRequest(ctx *FlowContext, integration Integration, method string
 		return nil, fmt.Errorf("body size exceeds max body size of %d bytes", thing.MaxBodySize)
 	}
 	if resp.StatusCode < 200 || resp.StatusCode > 299 {
-		msg := string(data)
+		// Redacted before it's cut, which could leave part of the credential.
+		msg := []rune(secrets.redactString(string(data)))
 		if len(msg) > 300 {
 			msg = msg[:300]
 		}
-		return nil, secrets.Redact(fmt.Errorf("%s returned %s: %s", integration.Name, resp.Status, msg))
+		return nil, fmt.Errorf("%s returned %s: %s", integration.Name, resp.Status, string(msg))
 	}
 	return data, nil
 }

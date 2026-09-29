@@ -105,6 +105,14 @@ func (s *requestSecrets) Redact(err error) error {
 			msg = strings.ReplaceAll(msg, urlErr.URL, u.Scheme+"://"+u.Host)
 		}
 	}
+	msg = s.redactString(msg)
+	if msg == err.Error() {
+		return err
+	}
+	return redactedError(msg)
+}
+
+func (s *requestSecrets) redactString(msg string) string {
 	for _, value := range s.values {
 		// Replacing very short values would mangle the error and give away
 		// the value.
@@ -115,10 +123,7 @@ func (s *requestSecrets) Redact(err error) error {
 			msg = strings.ReplaceAll(msg, form, "[secret]")
 		}
 	}
-	if msg == err.Error() {
-		return err
-	}
-	return redactedError(msg)
+	return msg
 }
 
 type redactedError string

@@ -19,12 +19,19 @@ var (
 // instructionsFor returns the instructions, which come first in every request,
 // with the catalog of the blocks the app can use: those of integrations that
 // are always connected or that the app connected. Other integrations are only
-// named, so the model can tell the user to connect them. Apps with the same
-// integrations get the same instructions, so the model provider can cache them.
+// named after the catalog, so the model can tell the user to connect them.
+// Apps missing the same integrations get the same instructions, so the model
+// provider can cache them.
 func instructionsFor(connected []string) string {
-	connected = slices.Clone(connected)
-	slices.Sort(connected)
-	key := strings.Join(connected, ",")
+	var missing []flow.Integration
+	var ids []string
+	for _, integration := range flow.Integrations() {
+		if integration.NeedsCredential() && !slices.Contains(connected, integration.ID) {
+			missing = append(missing, integration)
+			ids = append(ids, integration.ID)
+		}
+	}
+	key := strings.Join(ids, ",")
 
 	instructionsMu.Lock()
 	defer instructionsMu.Unlock()
@@ -32,22 +39,15 @@ func instructionsFor(connected []string) string {
 		return res
 	}
 
-	res := buildInstructions(connected)
+	res := buildInstructions(missing, ids)
 	instructionsCache[key] = res
 	return res
 }
 
-func buildInstructions(connected []string) string {
-	var missing []flow.Integration
-	for _, integration := range flow.Integrations() {
-		if integration.NeedsCredential() && !slices.Contains(connected, integration.ID) {
-			missing = append(missing, integration)
-		}
-	}
-
+func buildInstructions(missing []flow.Integration, missingIDs []string) string {
 	catalog, err := filterCatalog(flow.CatalogJSON, func(nodeType string) bool {
 		for _, id := range flow.BlockIntegrations(flow.FlowNodeType(nodeType)) {
-			if slices.ContainsFunc(missing, func(i flow.Integration) bool { return i.ID == id }) {
+			if slices.Contains(missingIDs, id) {
 				return false
 			}
 		}
@@ -57,27 +57,31 @@ func buildInstructions(connected []string) string {
 		panic(err)
 	}
 
-	res := instructionsText
+	res := instructionsText + "\n\nBlock catalog:\n" + catalog
 	if len(missing) > 0 {
 		res += "\n\nThe app hasn't connected these integrations, so their blocks aren't in the catalog. If the user asks for something one of them does, tell them to connect it under Integrations in the app first:"
 		for _, integration := range missing {
 			res += fmt.Sprintf("\n- %s: %s", integration.Name, integration.Description)
 		}
 	}
-	return res + "\n\nBlock catalog:\n" + catalog
+	return res
 }
 
 // filterCatalog compacts the catalog and keeps the nodes keep returns true
 // for, in their order.
 func filterCatalog(catalogJSON []byte, keep func(nodeType string) bool) (string, error) {
-	var catalog struct {
-		Nodes json.RawMessage `json:"nodes"`
-	}
+	// Only nodes are copied, so anything else in the catalog would be lost.
+	var catalog map[string]json.RawMessage
 	if err := json.Unmarshal(catalogJSON, &catalog); err != nil {
 		return "", err
 	}
+	for key := range catalog {
+		if key != "nodes" {
+			return "", fmt.Errorf("unexpected catalog key: %s", key)
+		}
+	}
 
-	dec := json.NewDecoder(bytes.NewReader(catalog.Nodes))
+	dec := json.NewDecoder(bytes.NewReader(catalog["nodes"]))
 	if _, err := dec.Token(); err != nil {
 		return "", err
 	}

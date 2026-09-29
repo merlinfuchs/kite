@@ -72,8 +72,8 @@ export default function FlowNodeBase(props: Props) {
 
       {missingIntegrations.length > 0 && (
         <div className="text-xs text-red-600 dark:text-red-400 mt-2">
-          {missingIntegrations.map((i) => i.name).join(", ")} isn&apos;t
-          connected.{" "}
+          {missingIntegrations.map((i) => i.name).join(", ")}{" "}
+          {missingIntegrations.length === 1 ? "isn't" : "aren't"} connected.{" "}
           <Link
             href={{
               pathname: "/apps/[appId]/integrations",
@@ -82,7 +82,7 @@ export default function FlowNodeBase(props: Props) {
             target="_blank"
             className="underline"
           >
-            Connect it
+            Connect {missingIntegrations.length === 1 ? "it" : "them"}
           </Link>
         </div>
       )}

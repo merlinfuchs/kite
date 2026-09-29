@@ -28,3 +28,8 @@ func TestInstructionsForIsCached(t *testing.T) {
 	assert.Contains(t, a, "Block catalog:")
 	assert.Contains(t, a, `"action_message_create"`)
 }
+
+func TestFilterCatalogUnknownKey(t *testing.T) {
+	_, err := filterCatalog([]byte(`{"nodes": {}, "types": {}}`), func(string) bool { return true })
+	assert.ErrorContains(t, err, "unexpected catalog key: types")
+}

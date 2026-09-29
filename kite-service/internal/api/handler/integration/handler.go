@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"net/url"
 	"strings"
 	"time"
 
@@ -119,22 +118,9 @@ func (h *IntegrationHandler) checkCredential(ctx context.Context, integration fl
 		return nil
 	}
 
-	u, err := url.Parse(strings.TrimSuffix(integration.BaseURL, "/") + integration.TestPath)
-	if err != nil {
-		return fmt.Errorf("failed to parse test URL: %w", err)
-	}
-	if integration.Auth.Type == "query" {
-		query := u.Query()
-		query.Set(integration.Auth.Name, credential)
-		u.RawQuery = query.Encode()
-	}
-
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
+	req, err := integration.NewRequest(ctx, http.MethodGet, integration.TestPath, credential, nil)
 	if err != nil {
 		return fmt.Errorf("failed to create test request: %w", err)
-	}
-	if integration.Auth.Type == "header" {
-		req.Header.Set(integration.Auth.Name, integration.Auth.Prefix+credential)
 	}
 
 	resp, err := h.client.Do(req)

@@ -2,7 +2,7 @@ import { ReactNode, useState } from "react";
 import { PlugIcon } from "lucide-react";
 import { toast } from "sonner";
 import { integrations, needsCredential } from "@/lib/integrations";
-import { Integration } from "@/lib/integrations/types";
+import { CredentialIntegration, Integration } from "@/lib/integrations/types";
 import { useAppIntegrations } from "@/lib/hooks/api";
 import {
   useAppIntegrationConnectMutation,
@@ -134,7 +134,7 @@ function AppIntegrationConnectDialog({
   integration,
   children,
 }: {
-  integration: Integration;
+  integration: CredentialIntegration;
   children: ReactNode;
 }) {
   const [open, setOpen] = useState(false);
@@ -143,10 +143,7 @@ function AppIntegrationConnectDialog({
     useAppId(),
     integration.id
   );
-  const auth =
-    integration.auth.type === "header" || integration.auth.type === "query"
-      ? integration.auth
-      : undefined;
+  const { auth } = integration;
 
   function connect() {
     if (!credential || connectMutation.isPending) return;
@@ -167,15 +164,21 @@ function AppIntegrationConnectDialog({
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog
+      open={open}
+      onOpenChange={(open) => {
+        setOpen(open);
+        if (!open) setCredential("");
+      }}
+    >
       <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Connect {integration.name}</DialogTitle>
           <DialogDescription>
-            Enter your {integration.name} {auth?.label ?? "key"}. Its blocks
-            send it with their requests, and it can&apos;t be read back.
-            {auth?.help_url && (
+            Enter your {integration.name} {auth.label}. Its blocks send it with
+            their requests, and it can&apos;t be read back.
+            {auth.help_url && (
               <>
                 {" "}
                 <a
@@ -192,7 +195,7 @@ function AppIntegrationConnectDialog({
         <Input
           type="password"
           autoComplete="off"
-          placeholder={auth?.label}
+          placeholder={auth.label}
           value={credential}
           onChange={(e) => setCredential(e.target.value)}
         />

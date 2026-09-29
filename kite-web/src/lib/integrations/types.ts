@@ -18,18 +18,24 @@ export interface Integration {
 export type IntegrationAuth =
   | { type: "discord_bot" }
   | { type: "none" }
-  | {
-      type: "header" | "query";
-      // Name of the header or query parameter.
-      name: string;
-      // Put before the credential in the header, e.g. "Bearer ".
-      prefix?: string;
-      // What the credential is called, like "API key", and where to get it.
-      label: string;
-      help_url?: string;
-    };
+  | CredentialAuth;
 
-export function needsCredential(integration: Integration) {
+export interface CredentialAuth {
+  type: "header" | "query";
+  // Name of the header or query parameter.
+  name: string;
+  // Put before the credential in the header, e.g. "Bearer ".
+  prefix?: string;
+  // What the credential is called, like "API key", and where to get it.
+  label: string;
+  help_url?: string;
+}
+
+export type CredentialIntegration = Integration & { auth: CredentialAuth };
+
+export function needsCredential(
+  integration: Integration
+): integration is CredentialIntegration {
   return (
     integration.auth.type === "header" || integration.auth.type === "query"
   );
