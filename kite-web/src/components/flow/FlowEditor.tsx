@@ -25,6 +25,7 @@ import {
 } from "react";
 
 import { edgeTypes, nodeTypes } from "@/lib/flow/components";
+import { useFlowContext } from "@/lib/flow/context";
 import { FlowData, NodeData } from "@/lib/flow/dataSchema";
 import { getFlowChangeKind, getFlowMergeKey } from "@/lib/flow/history";
 import { getLayoutedElements } from "@/lib/flow/layout";
@@ -66,6 +67,11 @@ export default function FlowEditor({
   apiRef,
 }: Props) {
   const { theme } = useHookedTheme();
+  const setAIChangedNodeIds = useFlowContext((c) => c.setAIChangedNodeIds);
+  const clearAIChanges = useCallback(
+    () => setAIChangedNodeIds([]),
+    [setAIChangedNodeIds]
+  );
 
   // TODO: refactor?
   const [nodes, setNodes, onNodesChange] = useNodesState(
@@ -288,6 +294,8 @@ export default function FlowEditor({
       onConnect={onConnect}
       isValidConnection={isValidConnection}
       onSelectionChange={onSelectionChange}
+      onNodeClick={clearAIChanges}
+      onPaneClick={clearAIChanges}
       colorMode={theme === "dark" ? "dark" : "light"}
       defaultEdgeOptions={{ type: "delete_button" }}
       multiSelectionKeyCode={null}

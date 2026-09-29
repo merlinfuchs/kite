@@ -54,6 +54,7 @@ export default memo(function FlowAIChat({
   onClose: () => void;
 }) {
   const context = useFlowContext((c) => c.type);
+  const setAIChangedNodeIds = useFlowContext((c) => c.setAIChangedNodeIds);
   const { getNodes, getEdges, fitView } = useReactFlow<NodeType>();
   const appId = useAppId();
   const { mutateAsync: sendChat } = useFlowAIChatMutation(appId);
@@ -95,6 +96,7 @@ export default memo(function FlowAIChat({
       ];
       setEntries((e) => [...e, { role: "user", content }]);
       setBusy(true);
+      setAIChangedNodeIds([]);
 
       // The rounds of the prompt are undone together.
       const mergeKey = `ai:${Date.now()}`;
@@ -104,17 +106,8 @@ export default memo(function FlowAIChat({
           messages,
           getFlow: () => ({ nodes: getNodes(), edges: getEdges() }),
           applyFlow: ({ nodes, edges }, changedNodeIds) => {
-            // Selects the changed blocks, so they stand out.
-            const changed = new Set(changedNodeIds);
-            editorRef.current?.replaceFlow(
-              nodes.map((n) =>
-                !!n.selected === changed.has(n.id)
-                  ? n
-                  : { ...n, selected: changed.has(n.id) }
-              ),
-              edges,
-              mergeKey
-            );
+            editorRef.current?.replaceFlow(nodes, edges, mergeKey);
+            setAIChangedNodeIds(changedNodeIds);
           },
           send: (req, signal) => sendChat({ req, signal }),
           signal: abort.current?.signal,
@@ -149,7 +142,16 @@ export default memo(function FlowAIChat({
         setBusy(false);
       }
     },
-    [entries, context, getNodes, getEdges, fitView, editorRef, sendChat]
+    [
+      entries,
+      context,
+      getNodes,
+      getEdges,
+      fitView,
+      editorRef,
+      sendChat,
+      setAIChangedNodeIds,
+    ]
   );
 
   const submit = useCallback(() => {
