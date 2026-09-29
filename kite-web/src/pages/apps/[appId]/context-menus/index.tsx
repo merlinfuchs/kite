@@ -13,7 +13,9 @@ export default function AppContextMenusPage() {
   return (
     <AppLayout title="Context Menus" breadcrumbs={breadcrumbs}>
       <div>
-        <h1 className="text-lg font-semibold md:text-2xl mb-1">Context Menus</h1>
+        <h1 className="text-lg font-semibold md:text-2xl mb-1">
+          Context Menus
+        </h1>
         <p className="text-muted-foreground text-sm">
           Create user and message context menu commands that appear when
           right-clicking a user or message.{" "}
