@@ -94,6 +94,11 @@ import {
   nodeActionRobloxUserGetResultSchema,
   nodeActionRoleGetResultSchema,
 } from "./resultSchema";
+import {
+  integrationBlockDataFields,
+  integrationBlockDataSchema,
+  integrationBlocks,
+} from "../integrations";
 
 export const primaryColor = "#3B82F6";
 
@@ -718,8 +723,14 @@ export const nodeTypes: Record<string, NodeValues> = {
     color: actionColor,
     icon: "braces",
     defaultTitle: "Discord API Request",
-    defaultDescription: "Send a request to any endpoint of the Discord API",
-    dataSchema: nodeActionDiscordApiRequestDataSchema,
+    defaultDescription:
+      "Send a request to any endpoint of the Discord API, for things no other block does",
+    dataSchema: nodeActionDiscordApiRequestDataSchema(
+      integrationBlocks
+        .filter((b) => b.integration === "discord")
+        .map((b) => `${b.operation}: ${b.type}`)
+        .join(", ")
+    ),
     resultSchema: nodeActionDiscordApiRequestResultSchema,
     dataFields: [
       "discord_api_request_data",
@@ -983,6 +994,21 @@ export const nodeTypes: Record<string, NodeValues> = {
     dataSchema: nodeSuspendResponseModalDataSchema,
     dataFields: ["modal_data", "custom_label"],
   },
+  ...Object.fromEntries(
+    integrationBlocks.map((block): [string, NodeValues] => [
+      block.type,
+      {
+        color: actionColor,
+        icon: block.icon,
+        defaultTitle: block.title,
+        defaultDescription: block.description,
+        dataSchema: integrationBlockDataSchema(block),
+        dataFields: integrationBlockDataFields(block),
+        resultSchema: block.result?.schema,
+        creditsCost: block.credits,
+      },
+    ])
+  ),
 };
 
 const unknownNodeType: NodeValues = {

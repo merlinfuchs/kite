@@ -1905,6 +1905,10 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			return n.ExecuteChildren(ctx)
 		}
 	default:
+		if block, ok := integrationBlocks[n.Type]; ok {
+			return n.executeIntegrationBlock(ctx, block)
+		}
+
 		return &FlowError{
 			Code:    FlowNodeErrorUnknownNodeType,
 			Message: fmt.Sprintf("unknown node type: %s", n.Type),
@@ -1915,6 +1919,10 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 }
 
 func (n *CompiledFlowNode) CreditsCost() int {
+	if block, ok := integrationBlocks[n.Type]; ok {
+		return block.Credits
+	}
+
 	switch n.Type {
 	case FlowNodeTypeActionAIChatCompletion, FlowNodeTypeActionAISearchWeb:
 		data := n.Data.AIChatCompletionData

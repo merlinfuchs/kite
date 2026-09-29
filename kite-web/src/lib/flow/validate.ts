@@ -22,6 +22,7 @@ import {
   walkUpstream,
 } from "./placeholders";
 import { collectComponentGroups } from "./resume";
+import { integrationBlocks } from "../integrations";
 
 export interface FlowIssue {
   severity: "error" | "warning";
@@ -31,6 +32,8 @@ export interface FlowIssue {
   // Whether the issue is about a setting the user picks, like a stored
   // variable, rather than one the AI can fill in.
   userPicked?: boolean;
+  // A suggestion for the user, not something the AI has to repair.
+  suggestion?: boolean;
 }
 
 // Checks what the editor and the service expect of a flow, beyond what each
@@ -47,7 +50,7 @@ export function validateFlow(
   const report = (
     severity: FlowIssue["severity"],
     message: string,
-    ref: Pick<FlowIssue, "nodeId" | "edgeId" | "userPicked"> = {}
+    ref: Pick<FlowIssue, "nodeId" | "edgeId" | "userPicked" | "suggestion"> = {}
   ) => issues.push({ severity, message, ...ref });
 
   const nodeIds = new Set(nodes.map((n) => n.id));
@@ -92,6 +95,17 @@ export function validateFlow(
             issue.received === "undefined" &&
             isUserPickedSetting(schema!, issue.path),
         }
+      );
+    }
+
+    const replacement = getReplacingIntegrationBlock(node.data);
+    if (replacement) {
+      report(
+        "warning",
+        `'${getNodeTitle(node)}' does what the '${replacement.title}' block (${
+          replacement.type
+        }) does, which is easier to edit. Use that block instead.`,
+        { nodeId: node.id, suggestion: true }
       );
     }
 
@@ -420,4 +434,24 @@ export function getConnectionIssue(
         : ""
     }`;
   }
+}
+
+// The dedicated block for a raw Discord API request that only uses settings the
+// block has too.
+function getReplacingIntegrationBlock(data: NodeData) {
+  const request = data.discord_api_request_data;
+  if (!request || Array.isArray(request.body_json)) return;
+
+  const block = integrationBlocks.find(
+    (b) => b.integration === "discord" && b.operation === request.operation
+  );
+  if (!block) return;
+
+  const covered = new Set(block.fields.map((f) => f.target ?? f.name));
+  const used = [
+    ...(request.path_params ?? []).map((p) => p.key),
+    ...(request.query ?? []).map((p) => p.key),
+    ...Object.keys(request.body_json ?? {}),
+  ];
+  return used.every((key) => covered.has(key)) ? block : undefined;
 }

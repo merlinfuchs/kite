@@ -48,7 +48,9 @@ Never edit these by hand. Change the source and regenerate.
 
 ## Adding a block
 
-Look at an existing block that does something similar and copy its shape. `action_message_pin` is a good minimal example. Before adding a new block, check that no existing block already covers the use case, or could with one extra option.
+Look at an existing block that does something similar and copy its shape. `action_message_pin` is a good minimal example. Blocks for a service other than Discord include the service in their type, e.g. `action_roblox_user_get`, so they can't collide with Discord blocks or blocks of other services. Before adding a new block, check that no existing block already covers the use case, or could with one extra option.
+
+If the block is a single Discord API request, define it as data instead of following the steps below. Add a file to `kite-web/src/lib/integrations/discord/blocks`, following `inviteCreate.ts`, list it in `discord/index.ts`, run `pnpm test -u` and add the docs page. The service runs it from the generated `kite-service/pkg/flow/integration_blocks.json`, and a test checks it against Discord's spec. See `design/integrations.md`. Blocks that need more logic than one request are written by hand:
 
 Service:
 

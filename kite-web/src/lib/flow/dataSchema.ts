@@ -8,10 +8,10 @@ import {
   similarDiscordApiOperations,
 } from "./discordApi";
 
-const numericRegex = /^[0-9]+$/;
+export const numericRegex = /^[0-9]+$/;
 const decimalRegex = /^[0-9]+(\.[0-9]+)?$/;
 // A single placeholder, like {{arg('user').id}}.
-const placeholderRegex = /^\{\{[^{}]+\}\}$/;
+export const placeholderRegex = /^\{\{[^{}]+\}\}$/;
 
 export interface FlowData {
   nodes: Node<NodeData>[];
@@ -106,7 +106,7 @@ function numericOrPlaceholder(description: string, regex = numericRegex) {
 
 // Not enforced here, as the service doesn't validate flows of message
 // components, so saved ones can hold other names.
-const temporaryNameSchema = z
+export const temporaryNameSchema = z
   .string()
   .max(32)
   .optional()
@@ -832,12 +832,11 @@ const discordApiParamSchema = z.object({
   value: templated(z.string(), "Value of the parameter."),
 });
 
+const operationDescription =
+  "operationId of the endpoint in Discord's OpenAPI spec, e.g. create_message or list_messages. The spec's names can differ from Discord's docs, e.g. Modify Guild is update_guild.";
+
 const discordApiRequestDataSchema = z.object({
-  operation: z
-    .string()
-    .describe(
-      "operationId of the endpoint in Discord's OpenAPI spec, e.g. create_message or list_messages. The spec's names can differ from Discord's docs, e.g. Modify Guild is update_guild."
-    ),
+  operation: z.string().describe(operationDescription),
   path_params: z
     .array(discordApiParamSchema)
     .optional()
@@ -865,13 +864,24 @@ const discordApiParamFormats: Record<string, [RegExp, string]> = {
   boolean: [/^(true|false)$/, "Must be true or false"],
 };
 
-export const nodeActionDiscordApiRequestDataSchema = nodeBaseDataSchema.extend({
-  discord_api_request_data: discordApiRequestDataSchema
-    .superRefine(refineDiscordApiRequest)
-    .describe("The Discord API request to send. The bot's token is added."),
-  audit_log_reason: auditLogReasonSchema,
-  temporary_name: temporaryNameSchema,
-});
+// dedicated lists the endpoints that have their own block, like
+// "list_messages: action_message_list", which the flow AI should use instead.
+export function nodeActionDiscordApiRequestDataSchema(dedicated: string) {
+  return nodeBaseDataSchema.extend({
+    discord_api_request_data: discordApiRequestDataSchema
+      .extend({
+        operation: z
+          .string()
+          .describe(
+            `${operationDescription} These endpoints have their own block, use it instead: ${dedicated}.`
+          ),
+      })
+      .superRefine(refineDiscordApiRequest)
+      .describe("The Discord API request to send. The bot's token is added."),
+    audit_log_reason: auditLogReasonSchema,
+    temporary_name: temporaryNameSchema,
+  });
+}
 
 function refineDiscordApiRequest(
   data: z.infer<typeof discordApiRequestDataSchema>,

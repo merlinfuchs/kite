@@ -1,0 +1,248 @@
+{
+  "blocks": [
+    {
+      "type": "action_message_list",
+      "integration": "discord",
+      "operation": "list_messages",
+      "method": "GET",
+      "path": "/channels/{channel_id}/messages",
+      "credits": 1,
+      "audit_log_reason": false,
+      "fields": [
+        {
+          "name": "channel_target",
+          "in": "path",
+          "target": "channel_id",
+          "type": "snowflake",
+          "required": false,
+          "fallback": "channel",
+          "min": null,
+          "max": null,
+          "max_length": null
+        },
+        {
+          "name": "limit",
+          "in": "query",
+          "target": "limit",
+          "type": "integer",
+          "required": false,
+          "fallback": "",
+          "min": 1,
+          "max": 100,
+          "max_length": null
+        },
+        {
+          "name": "before",
+          "in": "query",
+          "target": "before",
+          "type": "snowflake",
+          "required": false,
+          "fallback": "",
+          "min": null,
+          "max": null,
+          "max_length": null
+        },
+        {
+          "name": "after",
+          "in": "query",
+          "target": "after",
+          "type": "snowflake",
+          "required": false,
+          "fallback": "",
+          "min": null,
+          "max": null,
+          "max_length": null
+        }
+      ],
+      "result": {
+        "thing": "discord_message",
+        "list": true
+      }
+    },
+    {
+      "type": "action_message_bulk_delete",
+      "integration": "discord",
+      "operation": "bulk_delete_messages",
+      "method": "POST",
+      "path": "/channels/{channel_id}/messages/bulk-delete",
+      "credits": 1,
+      "audit_log_reason": true,
+      "fields": [
+        {
+          "name": "channel_target",
+          "in": "path",
+          "target": "channel_id",
+          "type": "snowflake",
+          "required": false,
+          "fallback": "channel",
+          "min": null,
+          "max": null,
+          "max_length": null
+        },
+        {
+          "name": "message_ids",
+          "in": "body",
+          "target": "messages",
+          "type": "snowflake_list",
+          "required": true,
+          "fallback": "",
+          "min": 2,
+          "max": 100,
+          "max_length": null
+        }
+      ],
+      "result": null
+    },
+    {
+      "type": "action_invite_create",
+      "integration": "discord",
+      "operation": "create_channel_invite",
+      "method": "POST",
+      "path": "/channels/{channel_id}/invites",
+      "credits": 1,
+      "audit_log_reason": true,
+      "fields": [
+        {
+          "name": "channel_target",
+          "in": "path",
+          "target": "channel_id",
+          "type": "snowflake",
+          "required": false,
+          "fallback": "channel",
+          "min": null,
+          "max": null,
+          "max_length": null
+        },
+        {
+          "name": "max_age",
+          "in": "body",
+          "target": "max_age",
+          "type": "integer",
+          "required": false,
+          "fallback": "",
+          "min": 0,
+          "max": 5184000,
+          "max_length": null
+        },
+        {
+          "name": "max_uses",
+          "in": "body",
+          "target": "max_uses",
+          "type": "integer",
+          "required": false,
+          "fallback": "",
+          "min": 0,
+          "max": 100,
+          "max_length": null
+        },
+        {
+          "name": "temporary",
+          "in": "body",
+          "target": "temporary",
+          "type": "boolean",
+          "required": false,
+          "fallback": "",
+          "min": null,
+          "max": null,
+          "max_length": null
+        },
+        {
+          "name": "unique",
+          "in": "body",
+          "target": "unique",
+          "type": "boolean",
+          "required": false,
+          "fallback": "",
+          "min": null,
+          "max": null,
+          "max_length": null
+        }
+      ],
+      "result": {
+        "thing": "",
+        "list": false
+      }
+    },
+    {
+      "type": "action_role_create",
+      "integration": "discord",
+      "operation": "create_guild_role",
+      "method": "POST",
+      "path": "/guilds/{guild_id}/roles",
+      "credits": 1,
+      "audit_log_reason": true,
+      "fields": [
+        {
+          "name": "guild_target",
+          "in": "path",
+          "target": "guild_id",
+          "type": "snowflake",
+          "required": false,
+          "fallback": "guild",
+          "min": null,
+          "max": null,
+          "max_length": null
+        },
+        {
+          "name": "name",
+          "in": "body",
+          "target": "name",
+          "type": "string",
+          "required": false,
+          "fallback": "",
+          "min": null,
+          "max": null,
+          "max_length": 100
+        },
+        {
+          "name": "permissions",
+          "in": "body",
+          "target": "permissions",
+          "type": "string",
+          "required": false,
+          "fallback": "",
+          "min": null,
+          "max": null,
+          "max_length": null
+        },
+        {
+          "name": "color",
+          "in": "body",
+          "target": "color",
+          "type": "integer",
+          "required": false,
+          "fallback": "",
+          "min": 0,
+          "max": 16777215,
+          "max_length": null
+        },
+        {
+          "name": "hoist",
+          "in": "body",
+          "target": "hoist",
+          "type": "boolean",
+          "required": false,
+          "fallback": "",
+          "min": null,
+          "max": null,
+          "max_length": null
+        },
+        {
+          "name": "mentionable",
+          "in": "body",
+          "target": "mentionable",
+          "type": "boolean",
+          "required": false,
+          "fallback": "",
+          "min": null,
+          "max": null,
+          "max_length": null
+        }
+      ],
+      "result": {
+        "thing": "discord_role",
+        "list": false
+      }
+    }
+  ]
+}

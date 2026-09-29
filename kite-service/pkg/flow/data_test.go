@@ -2,6 +2,7 @@ package flow
 
 import (
 	"context"
+	"encoding/json"
 	"strings"
 	"testing"
 
@@ -216,4 +217,33 @@ func TestPollDataToCreatePollDataRejectsInvalid(t *testing.T) {
 			assert.Error(t, err)
 		})
 	}
+}
+
+func TestFlowNodeDataKeepsUnknownSettings(t *testing.T) {
+	raw := `{"channel_target":"1","max_age":3600,"id":123456789012345678901,"unique":"true"}`
+
+	var data FlowNodeData
+	require.NoError(t, json.Unmarshal([]byte(raw), &data))
+	assert.Equal(t, "1", data.ChannelTarget)
+	assert.Equal(t, map[string]any{
+		"max_age": json.Number("3600"),
+		"id":      json.Number("123456789012345678901"),
+		"unique":  "true",
+	}, data.Fields)
+	assert.Equal(t, "1", data.Setting("channel_target"))
+	assert.Equal(t, "true", data.Setting("unique"))
+
+	out, err := json.Marshal(data)
+	require.NoError(t, err)
+	assert.JSONEq(t, raw, string(out))
+	assert.Contains(t, string(out), "123456789012345678901")
+
+	// Without unknown settings nothing changes.
+	out, err = json.Marshal(FlowNodeData{ChannelTarget: "1"})
+	require.NoError(t, err)
+	assert.JSONEq(t, `{"channel_target":"1"}`, string(out))
+
+	out, err = json.Marshal(FlowNodeData{Fields: map[string]any{"a": "b"}})
+	require.NoError(t, err)
+	assert.JSONEq(t, `{"a":"b"}`, string(out))
 }

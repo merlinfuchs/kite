@@ -1,11 +1,14 @@
 package flow
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"reflect"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 	"unicode/utf8"
@@ -226,6 +229,12 @@ type FlowNodeData struct {
 	// Discord API Request
 	DiscordAPIRequestData *DiscordAPIRequestData `json:"discord_api_request_data,omitempty"`
 
+	// Settings that no field above has, which integration blocks use (see
+	// integration_blocks.json). They are stored next to the others in the
+	// node's data. Values are usually templates, but numbers, booleans and
+	// lists are accepted too.
+	Fields map[string]any `json:"-"`
+
 	// AI Chat Completion
 	AIChatCompletionData *AIChatCompletionData `json:"ai_chat_completion_data,omitempty"`
 
@@ -258,6 +267,89 @@ type FlowNodeData struct {
 	LoopCount string `json:"loop_count,omitempty"`
 	// Sleep
 	SleepDurationSeconds string `json:"sleep_duration_seconds,omitempty"`
+}
+
+// flowNodeDataFields maps the JSON names of FlowNodeData's fields to their
+// index, to tell them apart from the settings kept in Fields.
+var flowNodeDataFields = func() map[string]int {
+	res := make(map[string]int)
+	t := reflect.TypeOf(FlowNodeData{})
+	for i := range t.NumField() {
+		name, _, _ := strings.Cut(t.Field(i).Tag.Get("json"), ",")
+		if name != "" && name != "-" {
+			res[name] = i
+		}
+	}
+	return res
+}()
+
+func (d *FlowNodeData) UnmarshalJSON(b []byte) error {
+	type plain FlowNodeData
+	if err := json.Unmarshal(b, (*plain)(d)); err != nil {
+		return err
+	}
+
+	var all map[string]any
+	dec := json.NewDecoder(bytes.NewReader(b))
+	// Keeps IDs written as numbers exact.
+	dec.UseNumber()
+	if err := dec.Decode(&all); err != nil {
+		return err
+	}
+	for name, value := range all {
+		if _, ok := flowNodeDataFields[name]; ok {
+			continue
+		}
+		if d.Fields == nil {
+			d.Fields = make(map[string]any)
+		}
+		d.Fields[name] = value
+	}
+	return nil
+}
+
+func (d FlowNodeData) MarshalJSON() ([]byte, error) {
+	type plain FlowNodeData
+	b, err := json.Marshal(plain(d))
+	if err != nil || len(d.Fields) == 0 {
+		return b, err
+	}
+
+	names := make([]string, 0, len(d.Fields))
+	for name := range d.Fields {
+		if _, ok := flowNodeDataFields[name]; !ok {
+			names = append(names, name)
+		}
+	}
+	slices.Sort(names)
+
+	// Appended to the other fields' JSON, which stays exactly as it was.
+	var buf bytes.Buffer
+	buf.Write(b[:len(b)-1])
+	for i, name := range names {
+		value, err := json.Marshal(d.Fields[name])
+		if err != nil {
+			return nil, err
+		}
+		if i > 0 || len(b) > 2 {
+			buf.WriteByte(',')
+		}
+		key, _ := json.Marshal(name)
+		buf.Write(key)
+		buf.WriteByte(':')
+		buf.Write(value)
+	}
+	buf.WriteByte('}')
+	return buf.Bytes(), nil
+}
+
+// Setting returns a setting by its JSON name, from a field of FlowNodeData if
+// one has that name, otherwise from Fields.
+func (d FlowNodeData) Setting(name string) any {
+	if i, ok := flowNodeDataFields[name]; ok {
+		return reflect.ValueOf(d).Field(i).Interface()
+	}
+	return d.Fields[name]
 }
 
 func (d FlowNodeData) Validate(nodeType FlowNodeType) error {

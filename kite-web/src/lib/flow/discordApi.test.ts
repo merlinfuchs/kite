@@ -1,12 +1,14 @@
 import { describe, expect, it } from "vitest";
 import spec from "./discordApi.json";
 import { similarDiscordApiOperations } from "./discordApi";
-import { nodeActionDiscordApiRequestDataSchema } from "./dataSchema";
+import { getNodeValues } from "./nodes";
 
 function issues(data: Record<string, unknown>) {
-  const res = nodeActionDiscordApiRequestDataSchema.safeParse({
-    discord_api_request_data: data,
-  });
+  const res = getNodeValues("action_discord_api_request").dataSchema!.safeParse(
+    {
+      discord_api_request_data: data,
+    }
+  );
   return res.error?.issues.map((i) => `${i.path.join(".")}: ${i.message}`);
 }
 

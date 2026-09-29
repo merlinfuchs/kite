@@ -14,6 +14,8 @@ import { activityTypeOptions, statusOptions } from "@/lib/discord/presence";
 import { useAppFeature, useMessages, useVariables } from "@/lib/hooks/api";
 import { getFlowCreditsCost } from "@/lib/flow/schedule";
 import { aiModelTiers, getAiModelTier } from "@/lib/flow/aiModels";
+import { getIntegrationBlock } from "@/lib/integrations";
+import { IntegrationBlockField } from "@/lib/integrations/types";
 import {
   discordApiOperationLabel,
   discordApiOperations,
@@ -146,6 +148,7 @@ const intputs: Record<string, any> = {
   variable_value: VariableValueInput,
   http_request_data: HttpRequestDataInput,
   discord_api_request_data: DiscordApiRequestDataInput,
+  integration_fields: IntegrationFieldsInput,
   ai_chat_completion_data: AiChatCompletionDataInput,
   ai_web_search_data: AiWebSearchDataInput,
   expression: ExpressionInput,
@@ -1065,6 +1068,75 @@ const discordApiOperationItems = discordApiOperations.map((o) => ({
   name: discordApiOperationLabel(o.id),
   description: `${o.method} ${o.path}`,
 }));
+
+function IntegrationFieldsInput({
+  type,
+  data,
+  updateData,
+  errors,
+}: InputProps) {
+  const block = getIntegrationBlock(type);
+  if (!block) return null;
+
+  function setField(field: IntegrationBlockField, value: string) {
+    updateData({ [field.name]: value || undefined });
+  }
+
+  return (
+    <>
+      {block.fields.map((field) => {
+        const key = field.name;
+        const value = String(data[field.name] ?? "");
+
+        if (field.widget === "permissions") {
+          return (
+            <BasePermissionInput
+              key={key}
+              field={key}
+              title={field.label}
+              description={field.description}
+              value={value || "0"}
+              updateValue={(v) => setField(field, v === "0" ? "" : v)}
+              errors={errors}
+            />
+          );
+        }
+        if (field.type === "boolean") {
+          return (
+            <BaseInput
+              key={key}
+              type="select"
+              field={key}
+              title={field.label}
+              description={field.description}
+              options={[
+                { value: "true", label: "Yes" },
+                { value: "false", label: "No" },
+              ]}
+              value={value}
+              updateValue={(v) => setField(field, v)}
+              errors={errors}
+              clearable
+            />
+          );
+        }
+        return (
+          <BaseInput
+            key={key}
+            type="text"
+            field={key}
+            title={field.label}
+            description={field.description}
+            value={value}
+            updateValue={(v) => setField(field, v)}
+            errors={errors}
+            placeholders
+          />
+        );
+      })}
+    </>
+  );
+}
 
 // Webhooks with a token in the URL don't need the bot's token, and the Discord
 // API Request block can't call them.

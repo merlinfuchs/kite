@@ -2,6 +2,7 @@ import FlowNodeEntryCommand from "@/components/flow/FlowNodeEntryCommand";
 import FlowEdgeDeleteButton from "@/components/flow/FlowEdgeDeleteButton";
 import FlowEdgeFixed from "@/components/flow/FlowEdgeFixed";
 import FlowNodeActionBase from "@/components/flow/FlowNodeActionBase";
+import { integrationBlocks } from "../integrations";
 import FlowNodeEntryEvent from "@/components/flow/FlowNodeEntryEvent";
 import FlowNodeConditionCompare from "@/components/flow/FlowNodeConditionCompare";
 import FlowNodeConditionItem from "@/components/flow/FlowNodeConditionItem";
@@ -96,6 +97,10 @@ export const nodeTypes = {
   control_sleep: FlowNodeControlSleep,
 
   suspend_response_modal: FlowNodeSuspendBase,
+
+  ...Object.fromEntries(
+    integrationBlocks.map((block) => [block.type, FlowNodeActionBase])
+  ),
 };
 
 export const edgeTypes = {
