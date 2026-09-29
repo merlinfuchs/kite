@@ -312,15 +312,26 @@ export interface PermissionOverwriteData {
   allow?: string;
   deny?: string;
 }
+/**
+ * Discord's limits for invite creation.
+ * https://discord.com/developers/docs/resources/channel#create-channel-invite
+ */
+export const InviteMaxAgeLimit = 604800; // 7 days, in seconds
+/**
+ * Discord's limits for invite creation.
+ * https://discord.com/developers/docs/resources/channel#create-channel-invite
+ */
+export const InviteMaxUsesLimit = 100;
 export interface InviteData {
   /**
    * MaxAgeSeconds is how long the invite lasts before expiring, in seconds.
-   * 0 (or empty) means it never expires.
+   * 0 means it never expires; leaving it empty uses Discord's default of
+   * 24 hours. Must be between 0 and 604800.
    */
   max_age_seconds?: string;
   /**
    * MaxUses is how many times the invite can be used before it stops
-   * working. 0 (or empty) means unlimited uses.
+   * working. 0 (or empty) means unlimited uses. Must be between 0 and 100.
    */
   max_uses?: string;
   temporary?: boolean;
