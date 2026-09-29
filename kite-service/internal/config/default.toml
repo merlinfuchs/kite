@@ -73,4 +73,4 @@ feature_priority_support = false
 feature_rotating_status = false
 feature_max_scheduled_event_listeners = 10
 feature_min_schedule_interval_seconds = 300
-feature_max_ai_prompts_per_month = 30
+feature_max_ai_prompts_per_month = 5
