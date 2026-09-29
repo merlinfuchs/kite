@@ -37,6 +37,58 @@ export function isTemplated(def: z.ZodTypeDef) {
   return templatedDefs.has(def);
 }
 
+// Fields that refer to something only the user can create in the app, like a
+// stored variable, so the AI leaves them for the user to pick.
+const userPickedDefs = new WeakSet<z.ZodTypeDef>();
+
+export function userPicked<T extends z.ZodTypeAny>(
+  schema: T,
+  description: string
+): T {
+  const described = schema.describe(description);
+  userPickedDefs.add(described._def);
+  return described;
+}
+
+export function isUserPicked(def: z.ZodTypeDef) {
+  return userPickedDefs.has(def);
+}
+
+// Whether the setting at path of a block's settings is picked by the user.
+// They are all top-level settings.
+export function isUserPickedSetting(
+  schema: z.ZodTypeAny,
+  path: (string | number)[]
+) {
+  const object = unwrap(schema);
+  if (path.length !== 1 || !(object instanceof z.ZodObject)) return false;
+  for (
+    let s: z.ZodTypeAny | undefined = object.shape[path[0]];
+    s;
+    s = inner(s)
+  ) {
+    if (isUserPicked(s._def)) return true;
+  }
+  return false;
+}
+
+function unwrap(schema: z.ZodTypeAny) {
+  let s = schema;
+  for (let next = inner(s); next; next = inner(s)) s = next;
+  return s;
+}
+
+function inner(schema: z.ZodTypeAny): z.ZodTypeAny | undefined {
+  if (
+    schema instanceof z.ZodOptional ||
+    schema instanceof z.ZodNullable ||
+    schema instanceof z.ZodDefault
+  ) {
+    return schema._def.innerType;
+  }
+  if (schema instanceof z.ZodEffects) return schema._def.schema;
+}
+
 // A number or Discord ID, or a single placeholder that resolves to one.
 function numericOrPlaceholder(description: string, regex = numericRegex) {
   const message = "Must be a number or ID, or a single {{ }} placeholder";
@@ -261,8 +313,15 @@ export const nodeMessageDataSchema = z
       .describe(
         "Which mentions ping. If unset, only mentioned users are pinged."
       ),
+    // Validated by the message editor like embeds.
+    components: z
+      .array(z.record(z.unknown()))
+      .optional()
+      .describe(
+        "Buttons and select menus, as Discord action rows. Each one that isn't a link button adds the output component_<id> to the block."
+      ),
   })
-  // Components, flags and attachments are set through the message editor.
+  // Flags and attachments are set through the message editor.
   .passthrough()
   .describe("The message to send.");
 
@@ -272,12 +331,10 @@ function withMessage<T extends z.ZodRawShape>(shape: T) {
     .extend({
       ...shape,
       message_data: nodeMessageDataSchema.optional(),
-      message_template_id: z
-        .string()
-        .optional()
-        .describe(
-          "ID of a saved message template to send instead of message_data."
-        ),
+      message_template_id: userPicked(
+        z.string(),
+        "ID of a saved message template to send instead of message_data."
+      ).optional(),
       temporary_name: temporaryNameSchema,
     })
     .refine(
@@ -662,9 +719,10 @@ export const nodeActionRobloxUserGetDataSchema = nodeBaseDataSchema.extend({
   temporary_name: temporaryNameSchema,
 });
 
-const variableIdSchema = z
-  .string()
-  .describe("ID of an existing stored variable.");
+const variableIdSchema = userPicked(
+  z.string(),
+  "ID of an existing stored variable."
+);
 
 const variableScopeSchema = templated(
   z.string(),

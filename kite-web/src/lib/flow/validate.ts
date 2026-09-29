@@ -1,7 +1,10 @@
 import { Edge, Node } from "@xyflow/react";
+import { ZodIssue } from "zod";
+import { messageSchema } from "../message/schema";
+import { ComponentData } from "../types/message.gen";
 import { isNodeTypeAvailable } from "./categories";
 import { FlowContextType } from "./context";
-import { NodeData } from "./dataSchema";
+import { isUserPickedSetting, NodeData } from "./dataSchema";
 import {
   canConnect,
   getNodeOutputs,
@@ -18,12 +21,16 @@ import {
   walkDownstream,
   walkUpstream,
 } from "./placeholders";
+import { collectComponentGroups } from "./resume";
 
 export interface FlowIssue {
   severity: "error" | "warning";
   message: string;
   nodeId?: string;
   edgeId?: string;
+  // Whether the issue is about a setting the user picks, like a stored
+  // variable, rather than one the AI can fill in.
+  userPicked?: boolean;
 }
 
 // Checks what the editor and the service expect of a flow, beyond what each
@@ -40,7 +47,7 @@ export function validateFlow(
   const report = (
     severity: FlowIssue["severity"],
     message: string,
-    ref: { nodeId?: string; edgeId?: string } = {}
+    ref: Pick<FlowIssue, "nodeId" | "edgeId" | "userPicked"> = {}
   ) => issues.push({ severity, message, ...ref });
 
   const nodeIds = new Set(nodes.map((n) => n.id));
@@ -68,16 +75,33 @@ export function validateFlow(
       );
     }
 
-    const res = getNodeValues(node.type!).dataSchema?.safeParse(node.data);
-    for (const issue of res?.error?.issues ?? []) {
+    const schema = getNodeValues(node.type!).dataSchema;
+    const res = schema?.safeParse(node.data);
+    for (const issue of unwrapUnionIssues(res?.error?.issues ?? [])) {
       const path = issue.path.join(".");
       report(
         "error",
         path
           ? `'${getNodeTitle(node)}' setting '${path}': ${issue.message}`
           : `'${getNodeTitle(node)}': ${issue.message}`,
-        { nodeId: node.id }
+        {
+          nodeId: node.id,
+          // Only missing ones, as the AI has to fix wrong ones.
+          userPicked:
+            issue.code === "invalid_type" &&
+            issue.received === "undefined" &&
+            isUserPickedSetting(schema!, issue.path),
+        }
       );
+    }
+
+    // Blocks that send a saved template ignore message_data.
+    if (node.data.message_data && !node.data.message_template_id) {
+      for (const message of getMessageIssues(node.data.message_data)) {
+        report("error", `'${getNodeTitle(node)}' message ${message}`, {
+          nodeId: node.id,
+        });
+      }
     }
   }
 
@@ -116,63 +140,14 @@ export function validateFlow(
     const target = knownById.get(edge.target);
     if (!source || !target) continue;
 
-    const handle = normalizeHandle(edge.sourceHandle) ?? "default";
-
-    if (!canConnect(source.type!, target.type!)) {
-      report(
-        "error",
-        source.type!.startsWith("option_")
-          ? `'${getNodeTitle(
-              source
-            )}' can only be connected to the entry block.`
-          : target.type!.startsWith("option_")
-          ? `Nothing can be connected into '${getNodeTitle(target)}'.`
-          : `Only options can be connected into '${getNodeTitle(target)}'.`,
-        { edgeId: edge.id }
-      );
-      continue;
-    }
-    if (source.type!.startsWith("option_")) continue;
-    if (getOwnedChildTypes(source.type!).includes(target.type!)) {
-      if (handle !== "default") {
-        report(
-          "error",
-          `'${getNodeTitle(
-            target
-          )}' must be connected to the default output of '${getNodeTitle(
-            source
-          )}'.`,
-          { edgeId: edge.id }
-        );
-      }
-      continue;
-    }
-
-    if (getOwnerTypes(target.type!).length > 0) {
-      report(
-        "error",
-        `'${getNodeTitle(
-          target
-        )}' can only be connected to the block it belongs to.`,
-        { edgeId: edge.id }
-      );
-      continue;
-    }
-
-    const outputs = getNodeOutputs(source);
-    if (outputs.length === 0) {
-      report(
-        "error",
-        `'${getNodeTitle(
-          source
-        )}' has no outputs. Connect blocks to its branches instead.`,
-        { edgeId: edge.id }
-      );
-    } else if (!outputs.includes(handle)) {
-      report("error", `'${getNodeTitle(source)}' has no output '${handle}'.`, {
-        edgeId: edge.id,
-      });
-    }
+    const issue = getConnectionIssue(
+      source,
+      target,
+      edge.sourceHandle,
+      nodes,
+      edges
+    );
+    if (issue) report("error", issue, { edgeId: edge.id });
   }
 
   for (const node of knownNodes) {
@@ -343,4 +318,106 @@ function findReferences(node: Node<NodeData>) {
     }
   }
   return res;
+}
+
+// Checks a message like the message editor does, which the block's settings
+// schema leaves out, and that the IDs its outputs are named after are unique.
+function getMessageIssues(message: NodeData["message_data"]) {
+  // The block's settings schema already checks the rest.
+  const issues = unwrapUnionIssues(
+    messageSchema.safeParse(message).error?.issues ?? []
+  )
+    .filter((i) => i.path[0] === "components" || i.path[0] === "embeds")
+    .map((i) => `${i.path.join(".")}: ${i.message}`);
+
+  const seen = new Set<unknown>();
+  for (const component of collectComponentGroups(
+    (message?.components ?? []) as ComponentData[]
+  ).flat()) {
+    // IDs that aren't numbers are reported by the message schema.
+    const id = component.id as unknown;
+    if (
+      id === undefined ||
+      (typeof id === "number" && (!Number.isInteger(id) || id < 1))
+    ) {
+      issues.push(
+        "components: every button and select menu needs a number from 1 as id"
+      );
+    } else if (seen.has(component.id)) {
+      issues.push(
+        `components: two buttons or select menus have the id ${component.id}`
+      );
+    }
+    seen.add(component.id);
+  }
+  return issues;
+}
+
+// Replaces "Invalid input" of a union, e.g. of the kinds of buttons, with the
+// issues of the variant that was meant: the one whose literal fields, like
+// type and style, matched, with the fewest issues.
+function unwrapUnionIssues(issues: ZodIssue[]): ZodIssue[] {
+  return issues.flatMap((issue) => {
+    if (issue.code !== "invalid_union") return [issue];
+
+    const variants = issue.unionErrors.map((e) => unwrapUnionIssues(e.issues));
+    const score = (v: ZodIssue[]) =>
+      v.filter((i) => i.code === "invalid_literal").length * 1000 + v.length;
+    return variants.reduce((best, v) => (score(v) < score(best) ? v : best));
+  });
+}
+
+// Why the target can't run after the output handle of the source, if it can't.
+export function getConnectionIssue(
+  source: Node<NodeData>,
+  target: Node<NodeData>,
+  sourceHandle: string | null | undefined,
+  nodes: Node<NodeData>[],
+  edges: Edge[]
+): string | undefined {
+  const handle = normalizeHandle(sourceHandle) ?? "default";
+  const sourceTitle = getNodeTitle(source);
+  const targetTitle = getNodeTitle(target);
+
+  if (!canConnect(source.type!, target.type!)) {
+    if (source.type!.startsWith("option_")) {
+      return `'${sourceTitle}' can only be connected to the entry block, which happens automatically.`;
+    }
+    return target.type!.startsWith("option_")
+      ? `Nothing can be connected into '${targetTitle}'. Options are connected to the entry block automatically.`
+      : `Only options can be connected into '${targetTitle}'.`;
+  }
+  if (source.type!.startsWith("option_")) return;
+
+  const owned = getOwnedChildTypes(source.type!);
+  if (owned.includes(target.type!)) {
+    return handle === "default"
+      ? undefined
+      : `'${targetTitle}' must be connected to the default output of '${sourceTitle}'.`;
+  }
+  if (getOwnerTypes(target.type!).length > 0) {
+    return `'${targetTitle}' can only be connected to the block it belongs to.`;
+  }
+
+  const outputs = getNodeOutputs(source);
+  if (outputs.length === 0) {
+    // Conditions and loops run blocks after their branches, not themselves.
+    const branches = edges
+      .filter((e) => e.source === source.id)
+      .map((e) => nodes.find((n) => n.id === e.target))
+      .filter((n) => n && owned.includes(n.type!))
+      .map((n) => `${n!.id} (${getNodeTitle(n!)})`);
+    return `'${sourceTitle}' has no outputs of its own. Connect blocks to its branches instead${
+      branches.length > 0 ? `: ${branches.join(", ")}` : ""
+    }.`;
+  }
+  if (!outputs.includes(handle)) {
+    return `'${sourceTitle}' has no output '${handle}', only ${outputs
+      .map((o) => `'${o}'`)
+      .join(", ")}.${
+      handle === "error"
+        ? " To handle errors, put the block after the default output of an error handler block."
+        : ""
+    }`;
+  }
 }

@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { applyFlowEdits } from "./edits";
-import { getOwnedChildTypes } from "./nodes";
+import { getOwnedChildTypes, getOwnerTypes } from "./nodes";
 import { testNode } from "./testUtils";
 
 let ids: string[] = [];
@@ -11,6 +11,7 @@ describe("applyFlowEdits", () => {
     // Looking up owned block types creates blocks once per type, which
     // would use up the IDs below.
     getOwnedChildTypes("action_log");
+    getOwnerTypes("action_log");
     ids = ["entry", "fresh"];
 
     const entry = testNode("entry", "entry_command", {
