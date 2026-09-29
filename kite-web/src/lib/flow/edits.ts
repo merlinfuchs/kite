@@ -23,7 +23,7 @@ import { FlowIssue, getConnectionIssue, validateFlow } from "./validate";
 // e.g. "$check". Conditions and loops also create the blocks they own, which
 // are referred to as "$check.item0", "$check.else", "$loop.each" and
 // "$loop.end".
-export type FlowEdit =
+export type FlowEdit = (
   | {
       op: "add_node";
       ref: string;
@@ -41,7 +41,12 @@ export type FlowEdit =
   | { op: "update_node"; id: string; data: Record<string, unknown> }
   | { op: "remove_node"; id: string; reconnect?: boolean }
   | { op: "connect"; source: string; target: string; handle?: string }
-  | { op: "disconnect"; source: string; target: string; handle?: string };
+  | { op: "disconnect"; source: string; target: string; handle?: string }
+) & {
+  // Set by the service for edits it couldn't read, e.g. with settings that
+  // aren't JSON, so they are reported with the same number as the rest.
+  error?: string;
+};
 
 export interface FlowEditResult {
   nodes: Node<NodeData>[];
@@ -123,6 +128,7 @@ export function applyFlowEdits(
 
   edits.forEach((edit, i) => {
     try {
+      if (edit.error) throw new Error(edit.error);
       switch (edit.op) {
         case "add_node": {
           if (!edit.ref) throw new Error("ref is missing.");
@@ -180,6 +186,7 @@ export function applyFlowEdits(
           // after one runs after the entry.
           if (after?.type!.startsWith("option_")) {
             after = nodes.find((n) => n.type!.startsWith("entry_"));
+            if (!after) throw new Error("The flow has no entry block.");
           }
           const before = edit.before
             ? getNode(edit.before, "before")

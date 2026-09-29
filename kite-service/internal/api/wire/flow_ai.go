@@ -74,10 +74,7 @@ type FlowAIChatResponse struct {
 	Fields []FlowAIField `json:"fields"`
 	// Edits are applied with the editor's applyFlowEdits.
 	Edits []map[string]any `json:"edits"`
-	// Issues are problems with edits that had to be skipped. They are fixed
-	// with a repair, like the problems the editor finds.
-	Issues []string    `json:"issues"`
-	Usage  FlowAIUsage `json:"usage"`
+	Usage FlowAIUsage      `json:"usage"`
 }
 
 type FlowAIUsage struct {

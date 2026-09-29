@@ -81,7 +81,6 @@ func main() {
 				BuildPrompt: res.BuildPrompt,
 				Fields:      wire.FlowAIFieldsToWire(res.Fields),
 				Edits:       res.Edits,
-				Issues:      res.Issues,
 			},
 			Eval: evalInfo{Model: *modelName, Tokens: res.Usage, MS: time.Since(start).Milliseconds()},
 		})

@@ -78,13 +78,12 @@ type Response struct {
 	BuildPrompt string
 	// Fields ask the user for what the AI needs but only they know.
 	Fields []Field
-	// Edits are passed to the editor's applyFlowEdits as they are.
+	// Edits are passed to the editor's applyFlowEdits as they are. Edits the
+	// model got wrong in a way the editor can't see, e.g. settings that aren't
+	// JSON, only have an error, which the editor reports like its own, so
+	// they are numbered the same.
 	Edits []map[string]any
-	// Issues are problems with edits the model got wrong in a way the editor
-	// can't see, e.g. settings that aren't JSON. They are fixed like the
-	// editor's own issues.
-	Issues []string
-	Usage  model.AssistantUsage
+	Usage model.AssistantUsage
 }
 
 // ErrResponse is an error with a message that can be shown to the user.
@@ -127,10 +126,12 @@ func (a *Assistant) Respond(ctx context.Context, req Request) (*Response, error)
 		// Retrying a call that took long would take too long again.
 		option.WithMaxRetries(0),
 	)
-	if errors.Is(err, context.DeadlineExceeded) {
-		return nil, &ErrResponse{Message: "The AI took too long to answer. Try asking for a smaller change."}
-	}
 	if err != nil {
+		// The model may have worked on it for long, so it counts like an
+		// answer, although the tokens it used are unknown.
+		if ctx.Err() != nil {
+			return &Response{}, &ErrResponse{Message: "The AI took too long to answer. Try asking for a smaller change."}
+		}
 		return nil, fmt.Errorf("failed to create response: %w", err)
 	}
 
@@ -295,13 +296,11 @@ func parseOutput(text string) (*Response, error) {
 		BuildPrompt: out.BuildPrompt,
 		Fields:      out.Fields,
 		Edits:       make([]map[string]any, 0, len(out.Edits)),
-		Issues:      []string{},
 	}
-	for i, e := range out.Edits {
+	for _, e := range out.Edits {
 		edit, err := e.toEdit()
 		if err != nil {
-			res.Issues = append(res.Issues, fmt.Sprintf("Edit %d (%s) was skipped: %s", i+1, e.Op, err))
-			continue
+			edit = map[string]any{"op": e.Op, "error": err.Error()}
 		}
 		res.Edits = append(res.Edits, edit)
 	}

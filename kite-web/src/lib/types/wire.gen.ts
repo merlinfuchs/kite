@@ -392,11 +392,6 @@ export interface FlowAIChatResponse {
    * Edits are applied with the editor's applyFlowEdits.
    */
   edits: { [key: string]: any}[];
-  /**
-   * Issues are problems with edits that had to be skipped. They are fixed
-   * with a repair, like the problems the editor finds.
-   */
-  issues: string[];
   usage: FlowAIUsage;
 }
 export interface FlowAIUsage {

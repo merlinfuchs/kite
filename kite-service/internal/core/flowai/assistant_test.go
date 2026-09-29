@@ -81,8 +81,6 @@ func TestRespond(t *testing.T) {
 		"after": "entry",
 		"data":  map[string]any{"log_level": "info", "log_message": "hi"},
 	}}, res.Edits)
-	// Sent as [] rather than null, which the editor can't iterate.
-	assert.Equal(t, []string{}, res.Issues)
 	assert.Equal(t, model.AssistantUsage{InputTokens: 1000, CachedInputTokens: 800, OutputTokens: 200}, res.Usage)
 
 	req := *body
@@ -154,10 +152,10 @@ func TestParseOutputSkipsEditsWithInvalidSettings(t *testing.T) {
 	]}`)
 	require.NoError(t, err)
 
-	assert.Equal(t, []string{"Edit 1 (update_node) was skipped: data_json isn't a JSON object"}, res.Issues)
-	require.Len(t, res.Edits, 2)
-	assert.Equal(t, []map[string]any{{"condition_item_mode": "equal"}}, res.Edits[0]["items"])
-	assert.Equal(t, map[string]any{"op": "remove_node", "id": "b", "reconnect": false}, res.Edits[1])
+	require.Len(t, res.Edits, 3)
+	assert.Equal(t, map[string]any{"op": "update_node", "error": "data_json isn't a JSON object"}, res.Edits[0])
+	assert.Equal(t, []map[string]any{{"condition_item_mode": "equal"}}, res.Edits[1]["items"])
+	assert.Equal(t, map[string]any{"op": "remove_node", "id": "b", "reconnect": false}, res.Edits[2])
 }
 
 func TestParseOutputWithBuildPrompt(t *testing.T) {
@@ -181,8 +179,6 @@ func TestCheckVariables(t *testing.T) {
 
 	assert.Equal(t, "v1", res.Edits[0]["data"].(map[string]any)["variable_id"])
 	assert.NotContains(t, res.Edits[1]["data"], "variable_id")
-	// Leaving it for the user to pick doesn't need a repair.
-	assert.Empty(t, res.Issues)
 }
 
 func TestParseOutputDropsBuildPromptWithEdits(t *testing.T) {
@@ -232,9 +228,11 @@ func TestRespondTimesOut(t *testing.T) {
 
 	client := openai.NewClient(option.WithAPIKey("test"), option.WithBaseURL(server.URL))
 	assistant := NewAssistant(&client, Config{Model: "gpt-5-mini"})
-	_, err := assistant.Respond(context.Background(), Request{Flow: "Blocks:", Messages: []Message{{Role: "user", Content: "Hi"}}})
+	res, err := assistant.Respond(context.Background(), Request{Flow: "Blocks:", Messages: []Message{{Role: "user", Content: "Hi"}}})
 
 	var resErr *ErrResponse
 	require.True(t, errors.As(err, &resErr))
 	assert.Contains(t, resErr.Message, "took too long")
+	// It counts, as the model may have worked on it.
+	assert.NotNil(t, res)
 }

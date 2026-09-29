@@ -38,7 +38,6 @@ function fakeAPI(
         build_prompt: "",
         fields: [],
         edits: typeof round === "function" ? round(req) : round,
-        issues: [],
         usage,
       },
     };

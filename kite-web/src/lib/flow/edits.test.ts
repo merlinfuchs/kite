@@ -221,6 +221,11 @@ describe("applyFlowEdits", () => {
         { op: "update_node", id: "$missing", data: {} },
         addLog("$b", "a", "entry"),
         { op: "disconnect", source: "a", target: "entry" },
+        // Like an edit the service couldn't read.
+        {
+          op: "update_node",
+          error: "data_json isn't a JSON object",
+        } as FlowEdit,
         addLog("$c", "a"),
       ]
     );
@@ -230,6 +235,7 @@ describe("applyFlowEdits", () => {
       "Edit 2 (update_node): There is no block '$missing'.",
       "Edit 3 (add_node): 'a' isn't connected to 'entry'.",
       "Edit 4 (disconnect): 'a' isn't connected to 'entry'.",
+      "Edit 5 (update_node): data_json isn't a JSON object",
     ]);
     expect(res.nodes).toHaveLength(3);
     expect(res.connections).toEqual(["entry->a", `a->${res.refs.$c}`]);

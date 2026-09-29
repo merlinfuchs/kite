@@ -860,13 +860,20 @@ export function useFlowAIChatMutation(appId: string) {
   const client = useQueryClient();
 
   return useMutation({
-    mutationFn: (req: FlowAIChatRequest) =>
+    mutationFn: ({
+      req,
+      signal,
+    }: {
+      req: FlowAIChatRequest;
+      signal?: AbortSignal;
+    }) =>
       apiRequest<FlowAIChatResponse>(`/v1/apps/${appId}/flow-ai/chat`, {
         method: "POST",
         body: JSON.stringify(req),
         headers: {
           "Content-Type": "application/json",
         },
+        signal,
       }),
     onSuccess: (res) => {
       if (res.success) {

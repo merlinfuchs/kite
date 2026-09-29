@@ -74,15 +74,12 @@ func (h *FlowAIHandler) HandleFlowAIChat(c *handler.Context, req wire.FlowAIChat
 	if limit == 0 {
 		return nil, handler.ErrForbidden("feature_unavailable", "Your plan doesn't include the flow AI.")
 	}
-	count, err := h.promptCount(c)
-	if err != nil {
-		return nil, err
-	}
 
 	now := time.Now().UTC()
 	isRepair := req.RepairPromptID != ""
 	var prompt *model.AssistantPrompt
 	if isRepair {
+		var err error
 		prompt, err = h.promptStore.AssistantPrompt(c.Context(), c.App.ID, req.RepairPromptID)
 		if err != nil {
 			if errors.Is(err, store.ErrNotFound) {
@@ -98,8 +95,6 @@ func (h *FlowAIHandler) HandleFlowAIChat(c *handler.Context, req wire.FlowAIChat
 		if now.Sub(prompt.CreatedAt) > repairWindow {
 			return nil, handler.ErrBadRequest("repair_expired", "The prompt is too old to be repaired.")
 		}
-	} else if err := checkLimits(limit, count); err != nil {
-		return nil, err
 	}
 
 	// Loaded before the prompt or round is recorded, so failing doesn't use
@@ -109,8 +104,24 @@ func (h *FlowAIHandler) HandleFlowAIChat(c *handler.Context, req wire.FlowAIChat
 		return nil, fmt.Errorf("failed to get variables: %w", err)
 	}
 
-	// The prompt is recorded, and counted as edited, before the model is
-	// called, so concurrent requests can't all pass the limits.
+	// Recorded even if the client disconnects, so it's counted or given back.
+	ctx := context.WithoutCancel(c.Context())
+	// Gives back a prompt or repair the model didn't answer.
+	giveBack := func() {
+		var err error
+		if isRepair {
+			err = h.promptStore.UndoAssistantPromptRound(ctx, c.App.ID, prompt.ID)
+		} else {
+			err = h.promptStore.DeleteAssistantPrompt(ctx, c.App.ID, prompt.ID)
+		}
+		if err != nil {
+			slog.Error("Failed to give back assistant prompt", slog.String("app_id", c.App.ID), slog.Any("error", err))
+		}
+	}
+
+	// The prompt is recorded, and counted as edited, before the limits are
+	// checked and the model is called, so concurrent requests can't all pass
+	// the limits.
 	if isRepair {
 		started, err := h.promptStore.StartAssistantPromptRound(c.Context(), c.App.ID, prompt.ID, 1+h.maxRepairs, now)
 		if err != nil {
@@ -134,8 +145,21 @@ func (h *FlowAIHandler) HandleFlowAIChat(c *handler.Context, req wire.FlowAIChat
 		if err := h.promptStore.CreateAssistantPrompt(c.Context(), prompt); err != nil {
 			return nil, fmt.Errorf("failed to create assistant prompt: %w", err)
 		}
-		count.Edited++
-		count.Total++
+	}
+
+	count, err := h.promptCount(c)
+	if err != nil {
+		giveBack()
+		return nil, err
+	}
+	if !isRepair {
+		// Concurrent prompts see each other, so near the limit they may all
+		// be refused rather than all pass.
+		before := model.AssistantPromptCount{Edited: count.Edited - 1, Total: count.Total - 1}
+		if err := checkLimits(limit, before); err != nil {
+			giveBack()
+			return nil, err
+		}
 	}
 
 	res, err := h.assistant.Respond(c.Context(), flowai.Request{
@@ -147,27 +171,17 @@ func (h *FlowAIHandler) HandleFlowAIChat(c *handler.Context, req wire.FlowAIChat
 		UserID:    c.Session.UserID,
 	})
 	// Answers without edits don't count. Ones that can't be used do, as they
-	// cost as much, and so do ones whose edits were all invalid, as they are
-	// repaired.
-	edited := isRepair || err != nil || len(res.Edits) > 0 || len(res.Issues) > 0
+	// cost as much.
+	edited := isRepair || err != nil || len(res.Edits) > 0
 	if res != nil {
 		// Failing to record the usage shouldn't lose the answer.
-		if err := h.promptStore.AddAssistantPromptUsage(c.Context(), c.App.ID, prompt.ID, res.Usage, edited, time.Now().UTC()); err != nil {
+		if err := h.promptStore.AddAssistantPromptUsage(ctx, c.App.ID, prompt.ID, res.Usage, edited, time.Now().UTC()); err != nil {
 			slog.Error("Failed to add assistant prompt usage", slog.String("app_id", c.App.ID), slog.Any("error", err))
 		}
 	}
 	if err != nil {
-		// Prompts and repairs the model didn't answer at all don't count.
 		if res == nil {
-			var err error
-			if isRepair {
-				err = h.promptStore.UndoAssistantPromptRound(c.Context(), c.App.ID, prompt.ID)
-			} else {
-				err = h.promptStore.DeleteAssistantPrompt(c.Context(), c.App.ID, prompt.ID)
-			}
-			if err != nil {
-				slog.Error("Failed to give back assistant prompt", slog.String("app_id", c.App.ID), slog.Any("error", err))
-			}
+			giveBack()
 		}
 
 		var resErr *flowai.ErrResponse
@@ -188,7 +202,6 @@ func (h *FlowAIHandler) HandleFlowAIChat(c *handler.Context, req wire.FlowAIChat
 		BuildPrompt: res.BuildPrompt,
 		Fields:      wire.FlowAIFieldsToWire(res.Fields),
 		Edits:       res.Edits,
-		Issues:      res.Issues,
 		Usage:       usage(count, limit),
 	}, nil
 }

@@ -16,6 +16,7 @@ import { FlowIssue, validateFlow } from "./validate";
 const maxMessages = 20;
 const maxMessageLength = 4000;
 const maxIssues = 50;
+const maxFlowLength = 100_000;
 
 interface Flow {
   nodes: Node<NodeData>[];
@@ -58,7 +59,10 @@ export async function runFlowAIPrompt({
   messages: FlowAIChatMessage[];
   getFlow: () => Flow;
   applyFlow: (flow: Flow, changedNodeIds: string[]) => void;
-  send: (req: FlowAIChatRequest) => Promise<APIResponse<FlowAIChatResponse>>;
+  send: (
+    req: FlowAIChatRequest,
+    signal?: AbortSignal
+  ) => Promise<APIResponse<FlowAIChatResponse>>;
   // Stops the prompt, e.g. when the editor is closed.
   signal?: AbortSignal;
 }): Promise<FlowAIResult> {
@@ -69,13 +73,28 @@ export async function runFlowAIPrompt({
 
   const request = async (flow: Flow, req: Partial<FlowAIChatRequest>) => {
     signal?.throwIfAborted();
-    const res = await send({
-      flow: serializeFlow(flow.nodes, flow.edges, context, selectedIds),
-      messages: toRequestMessages(messages),
-      repair_prompt_id: "",
-      issues: [],
-      ...req,
-    });
+    const serialized = serializeFlow(
+      flow.nodes,
+      flow.edges,
+      context,
+      selectedIds
+    );
+    if (serialized.length > maxFlowLength) {
+      throw new FlowAIError(
+        "This flow is too big for the AI. Try splitting it into smaller flows.",
+        "flow_too_big"
+      );
+    }
+    const res = await send(
+      {
+        flow: serialized,
+        messages: toRequestMessages(messages),
+        repair_prompt_id: "",
+        issues: [],
+        ...req,
+      },
+      signal
+    );
     signal?.throwIfAborted();
     if (!res.success) {
       throw new FlowAIError(res.error.message, res.error.code);
@@ -133,7 +152,7 @@ export async function runFlowAIPrompt({
     result = {
       ...result,
       repairs,
-      issues: [...res.issues, ...caused],
+      issues: [...caused],
       changedNodeIds: [...changed].filter((id) => ids.has(id)),
     };
     if (res.edits.length > 0) applyFlow(flow, result.changedNodeIds);

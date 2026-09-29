@@ -56,7 +56,7 @@ export default memo(function FlowAIChat({
   const context = useFlowContext((c) => c.type);
   const { getNodes, getEdges, fitView } = useReactFlow<NodeType>();
   const appId = useAppId();
-  const chat = useFlowAIChatMutation(appId);
+  const { mutateAsync: sendChat } = useFlowAIChatMutation(appId);
   const usage = useFlowAIUsage();
 
   const [entries, setEntries] = useState<ChatEntry[]>([]);
@@ -116,7 +116,7 @@ export default memo(function FlowAIChat({
               mergeKey
             );
           },
-          send: chat.mutateAsync,
+          send: (req, signal) => sendChat({ req, signal }),
           signal: abort.current?.signal,
         });
         if (res.changedNodeIds.length > 0) {
@@ -149,7 +149,7 @@ export default memo(function FlowAIChat({
         setBusy(false);
       }
     },
-    [entries, context, getNodes, getEdges, fitView, editorRef, chat.mutateAsync]
+    [entries, context, getNodes, getEdges, fitView, editorRef, sendChat]
   );
 
   const submit = useCallback(() => {

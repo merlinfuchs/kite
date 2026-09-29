@@ -191,6 +191,8 @@ func TestChatCountsPromptsAgainstTheLimit(t *testing.T) {
 	assert.Equal(t, http.StatusBadRequest, code)
 	assert.Equal(t, "resource_limit", errCode(res))
 	assert.Equal(t, 2, s.assistant.calls)
+	// The refused prompt isn't kept.
+	assert.Len(t, s.store.prompts, 2)
 }
 
 func TestChatNeedsThePlanToIncludeIt(t *testing.T) {
