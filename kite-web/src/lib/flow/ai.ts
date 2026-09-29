@@ -66,8 +66,8 @@ export async function runFlowAIPrompt({
   // Stops the prompt, e.g. when the editor is closed.
   signal?: AbortSignal;
 }): Promise<FlowAIResult> {
-  // The changed blocks are selected to highlight them, so only the blocks the
-  // user selected before are sent as selected.
+  // The blocks the user selected when sending, even if they click around
+  // while the AI works.
   const original = getFlow();
   const selectedIds = original.nodes.filter((n) => n.selected).map((n) => n.id);
 
