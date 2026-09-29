@@ -39,21 +39,25 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			return fmt.Errorf("command entry isn't the entry node")
 		}
 
-		onCooldown, err := n.checkCommandCooldown(ctx)
+		cooldown, err := n.checkCommandCooldown(ctx)
 		if err != nil {
+			createDefaultErrorResponse(ctx, err)
 			return traceError(n, err)
 		}
-		if onCooldown {
+		if cooldown.onCooldown {
 			return nil
 		}
 
 		err = n.autoDeferInteraction(ctx)
 		if err != nil {
+			cooldown.reset(ctx)
 			return traceError(n, err)
 		}
 
 		err = n.ExecuteChildren(ctx)
 		if err != nil {
+			// A failed run shouldn't use up the cooldown.
+			cooldown.reset(ctx)
 			createDefaultErrorResponse(ctx, err)
 			return traceError(n, err)
 		}
@@ -1871,47 +1875,69 @@ func (n *CompiledFlowNode) ExecuteChildren(ctx *FlowContext) error {
 	return nil
 }
 
-// checkCommandCooldown checks the cooldown option attached to n, if any. It
-// reports whether the command is currently on cooldown -- if so, it has
-// already replied to the interaction with the cooldown message, and the flow
-// must stop without running its children or auto-deferring.
-func (n *CompiledFlowNode) checkCommandCooldown(ctx *FlowContext) (bool, error) {
+// commandCooldown is the outcome of checkCommandCooldown.
+type commandCooldown struct {
+	// onCooldown reports whether the command was on cooldown. If so, the
+	// interaction has already been answered with the cooldown message.
+	onCooldown bool
+	// key and expiresAt identify the cooldown this run started, if any.
+	key       string
+	expiresAt time.Time
+}
+
+// reset ends the cooldown this run started, so a failed run doesn't use it up.
+func (c commandCooldown) reset(ctx *FlowContext) {
+	if c.key == "" {
+		return
+	}
+
+	// Best effort: the flow already failed, and the cooldown expires anyway.
+	// The flow may have failed because its context was cancelled, which
+	// mustn't stop the reset.
+	_ = ctx.Cooldown.Reset(context.WithoutCancel(ctx), c.key, c.expiresAt)
+}
+
+// checkCommandCooldown checks the cooldown option attached to n, if any. If
+// the command is currently on cooldown, it has already replied to the
+// interaction with the cooldown message, and the flow must stop without
+// running its children or auto-deferring. Otherwise it starts a new cooldown.
+func (n *CompiledFlowNode) checkCommandCooldown(ctx *FlowContext) (commandCooldown, error) {
 	cooldownNode := n.CommandCooldown()
 	if cooldownNode == nil {
-		return false, nil
+		return commandCooldown{}, nil
 	}
 
 	interaction := ctx.Data.Interaction()
 	if interaction == nil {
-		return false, nil
+		return commandCooldown{}, nil
 	}
 
 	durationValue, err := ctx.EvalTemplate(cooldownNode.Data.CooldownDurationSeconds)
 	if err != nil {
-		return false, err
+		return commandCooldown{}, traceError(cooldownNode, err)
 	}
 
-	seconds := durationValue.Int()
-	if seconds <= 0 {
-		return false, nil
+	duration, err := parseCooldownDuration(durationValue.String())
+	if err != nil {
+		return commandCooldown{}, traceError(cooldownNode, err)
 	}
 
 	key := cooldownKey(ctx, interaction.AppID.String(), cooldownNode)
 
-	remaining, err := ctx.Cooldown.CheckAndStart(ctx, key, time.Duration(seconds)*time.Second)
+	remaining, expiresAt, err := ctx.Cooldown.CheckAndStart(ctx, key, duration)
 	if err != nil {
-		return false, err
+		return commandCooldown{}, traceError(cooldownNode, err)
 	}
 
 	if remaining <= 0 {
-		return false, nil
+		return commandCooldown{key: key, expiresAt: expiresAt}, nil
 	}
 
 	if err := cooldownNode.respondCooldown(ctx, remaining); err != nil {
-		return false, err
+		return commandCooldown{}, traceError(cooldownNode, err)
 	}
 
-	return true, nil
+	return commandCooldown{onCooldown: true}, nil
 }
 
 // cooldownKey builds a key that's unique per app, per cooldown block, and per
@@ -1919,7 +1945,7 @@ func (n *CompiledFlowNode) checkCommandCooldown(ctx *FlowContext) (bool, error) 
 // cooldown blocks on the same bot, never collide.
 func cooldownKey(ctx *FlowContext, appID string, cooldownNode *CompiledFlowNode) string {
 	switch cooldownNode.Data.CooldownScope {
-	case CooldownScopeUser:
+	case CooldownScopeUser, "": // Empty is the default, per user.
 		return appID + ":" + cooldownNode.ID + ":user:" + ctx.Data.UserID().String()
 	case CooldownScopeServer:
 		if guildID := ctx.Data.GuildID(); guildID != 0 {

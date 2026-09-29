@@ -187,16 +187,38 @@ export const nodeOptionCommandContextsSchema = nodeBaseDataSchema.extend({
     ),
 });
 
+// Cooldowns are kept in memory and reset when Kite restarts, so they're kept
+// short. Matches maxCooldownDuration in kite-service/pkg/flow/data.go.
+export const maxCooldownDurationSeconds = 60 * 60;
+
 export const nodeOptionCommandCooldownSchema = nodeBaseDataSchema.extend({
   cooldown_scope: z
     .enum(["user", "server", "global"])
+    .optional()
     .describe(
-      "Who the cooldown applies to: the user who ran the command, everyone in the server, or everyone everywhere."
+      "Who the cooldown applies to: the user who ran the command, everyone in the server, or everyone everywhere. Defaults to user."
     ),
-  cooldown_duration_seconds: numericOrPlaceholder(
-    "How many seconds the cooldown lasts for.",
-    decimalRegex
-  ),
+  cooldown_duration_seconds: z
+    .string()
+    .regex(
+      numericRegex,
+      "Must be a whole number of seconds, or a single {{ }} placeholder"
+    )
+    .refine(
+      (v) => Number(v) >= 1 && Number(v) <= maxCooldownDurationSeconds,
+      `Must be between 1 and ${maxCooldownDurationSeconds} seconds`
+    )
+    .or(
+      z
+        .string()
+        .regex(
+          placeholderRegex,
+          "Must be a whole number of seconds, or a single {{ }} placeholder"
+        )
+    )
+    .describe(
+      `How many whole seconds the cooldown lasts for, from 1 to ${maxCooldownDurationSeconds} (1 hour). Cooldowns reset when Kite restarts.`
+    ),
   cooldown_message: templated(
     z.string().max(2000).optional(),
     "Message shown when someone uses the command while it's on cooldown. Use {{var('cooldown_remaining')}} to show how many seconds are left. Leave empty for a default message."

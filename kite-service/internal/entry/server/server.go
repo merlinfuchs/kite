@@ -75,6 +75,7 @@ func StartServer(c context.Context, cfg *config.Config) error {
 	}
 
 	cooldownProvider := provider.NewMemoryCooldownProvider()
+	go cooldownProvider.Run(ctx)
 
 	pluginRegistry := plugin.NewRegistry()
 	pluginRegistry.Register(

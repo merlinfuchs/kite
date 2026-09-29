@@ -951,7 +951,7 @@ export const nodeTypes: Record<string, NodeValues> = {
     icon: "hourglass",
     defaultTitle: "Command Cooldown",
     defaultDescription:
-      "Limit how often the command can be used, per user, per server, or globally.",
+      "Limit how often the command can be used, per user, per server, or globally, for up to 1 hour. Cooldowns reset when Kite restarts.",
     dataSchema: nodeOptionCommandCooldownSchema,
     dataFields: [
       "cooldown_scope",

@@ -5161,7 +5161,7 @@
     },
     "option_command_cooldown": {
       "title": "Command Cooldown",
-      "description": "Limit how often the command can be used, per user, per server, or globally.",
+      "description": "Limit how often the command can be used, per user, per server, or globally, for up to 1 hour. Cooldowns reset when Kite restarts.",
       "contexts": [
         "command"
       ],
@@ -5184,20 +5184,20 @@
               "server",
               "global"
             ],
-            "description": "Who the cooldown applies to: the user who ran the command, everyone in the server, or everyone everywhere."
+            "description": "Who the cooldown applies to: the user who ran the command, everyone in the server, or everyone everywhere. Defaults to user."
           },
           "cooldown_duration_seconds": {
             "anyOf": [
               {
                 "type": "string",
-                "pattern": "^[0-9]+(\\.[0-9]+)?$"
+                "pattern": "^[0-9]+$"
               },
               {
                 "type": "string",
                 "pattern": "^\\{\\{[^{}]+\\}\\}$"
               }
             ],
-            "description": "How many seconds the cooldown lasts for."
+            "description": "How many whole seconds the cooldown lasts for, from 1 to 3600 (1 hour). Cooldowns reset when Kite restarts."
           },
           "cooldown_message": {
             "type": "string",
@@ -5207,7 +5207,6 @@
           }
         },
         "required": [
-          "cooldown_scope",
           "cooldown_duration_seconds"
         ],
         "additionalProperties": false

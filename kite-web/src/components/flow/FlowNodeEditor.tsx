@@ -669,7 +669,7 @@ function CooldownDurationSecondsInput({
     <BaseInput
       field="cooldown_duration_seconds"
       title="Cooldown Duration"
-      description="How many seconds the command is on cooldown for after it's used."
+      description="How many seconds the command is on cooldown for after it's used, up to 3600 (1 hour). Cooldowns reset when Kite restarts, so use stored variables for longer ones."
       value={data.cooldown_duration_seconds || ""}
       updateValue={(v) =>
         updateData({
