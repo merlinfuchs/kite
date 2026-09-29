@@ -92,6 +92,17 @@ export interface Channel {
 }
 export type StateGuildChannelListResponse = (Channel | undefined)[];
 export type StateGuildLeaveResponse = Empty;
+export interface Role {
+  id: string;
+  name: string;
+  /**
+   * Managed roles belong to integrations, like other bots, and can't be
+   * given to members.
+   */
+  managed: boolean;
+  position: number /* int */;
+}
+export type StateGuildRoleListResponse = (Role | undefined)[];
 
 //////////
 // source: asset.go
@@ -217,6 +228,7 @@ export interface BillingPlan {
   feature_rotating_status: boolean;
   feature_max_scheduled_event_listeners: number /* int */;
   feature_min_schedule_interval_seconds: number /* int */;
+  feature_max_ai_prompts_per_month: number /* int */;
 }
 export type BillingPlanListResponse = (BillingPlan | undefined)[];
 
@@ -337,8 +349,75 @@ export interface Features {
   rotating_status: boolean;
   max_scheduled_event_listeners: number /* int */;
   min_schedule_interval_seconds: number /* int */;
+  max_ai_prompts_per_month: number /* int */;
 }
 export type FeaturesGetResponse = Features;
+
+//////////
+// source: flow_ai.go
+
+export interface FlowAIChatMessage {
+  role: string;
+  content: string;
+}
+export interface FlowAIChatRequest {
+  /**
+   * Flow is the flow as serialized by the editor.
+   */
+  flow: string;
+  messages: FlowAIChatMessage[];
+  /**
+   * RepairPromptID asks to fix the issues the editor found with the edits
+   * of an earlier prompt. Repairs don't count as new prompts.
+   */
+  repair_prompt_id: string;
+  issues: string[];
+}
+export interface FlowAIChatResponse {
+  prompt_id: string;
+  /**
+   * Message is Markdown.
+   */
+  message: string;
+  /**
+   * BuildPrompt is a request the user can send to make the change the
+   * message suggests, if any.
+   */
+  build_prompt: string;
+  /**
+   * Fields ask the user for what the AI needs but only they know.
+   */
+  fields: FlowAIField[];
+  /**
+   * Edits are applied with the editor's applyFlowEdits.
+   */
+  edits: { [key: string]: any}[];
+  usage: FlowAIUsage;
+}
+export interface FlowAIUsage {
+  prompts_used: number /* int */;
+  prompts_limit: number /* int */;
+  /**
+   * Answers are all prompts, including ones without edits, which don't
+   * count as prompts but are limited too.
+   */
+  answers_used: number /* int */;
+  answers_limit: number /* int */;
+}
+export type FlowAIUsageGetResponse = FlowAIUsage;
+/**
+ * FlowAIField asks the user for something only they know, like a channel.
+ */
+export interface FlowAIField {
+  label: string;
+  description: string;
+  /**
+   * Type is "text", "number", "channel", "category", "role" or "choice".
+   */
+  type: string;
+  options: string[];
+  default: string;
+}
 
 //////////
 // source: log.go
