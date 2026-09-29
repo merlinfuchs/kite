@@ -84,7 +84,7 @@ export default function MessageNav({
           </MessageSendDialog>
         )}
       </div>
-      <ThemeSwitch className="text-foreground" />
+      <ThemeSwitch />
     </div>
   );
 }

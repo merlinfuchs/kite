@@ -43,9 +43,12 @@ import { useAppId } from "@/lib/hooks/params";
 import { LogEntry } from "@/lib/types/wire.gen";
 import { useMemo, useState } from "react";
 import LogLevelBadge from "./LogLevelBadge";
-import { cn } from "@/lib/utils";
 
 const logLevels = ["debug", "info", "warn", "error"] as const;
+
+// Leaves more room for the message on phones.
+const hiddenOnMobile = (columnId: string) =>
+  columnId === "source_id" ? "hidden sm:table-cell" : undefined;
 
 export const columns: ColumnDef<{
   level: string;
@@ -245,10 +248,7 @@ export default function LogEntryList({
                   return (
                     <TableHead
                       key={header.id}
-                      className={cn(
-                        header.column.id === "source_id" &&
-                          "hidden sm:table-cell"
-                      )}
+                      className={hiddenOnMobile(header.column.id)}
                     >
                       {header.isPlaceholder
                         ? null
@@ -272,9 +272,7 @@ export default function LogEntryList({
                   {row.getVisibleCells().map((cell) => (
                     <TableCell
                       key={cell.id}
-                      className={cn(
-                        cell.column.id === "source_id" && "hidden sm:table-cell"
-                      )}
+                      className={hiddenOnMobile(cell.column.id)}
                     >
                       {flexRender(
                         cell.column.columnDef.cell,

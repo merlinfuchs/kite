@@ -210,7 +210,7 @@ function ImportForm({
           placeholder='{"flow_source": ...}'
           minRows={8}
           maxRows={8}
-          className="resize-none break-all font-mono text-base md:text-xs"
+          className="resize-none break-all font-mono md:text-xs"
           autoFocus
         />
       ) : (

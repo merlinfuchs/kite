@@ -1,11 +1,11 @@
 import MessageEditor from "@/components/message/MessageEditor";
 import { Button } from "@/components/ui/button";
-import { SendIcon, ViewIcon } from "lucide-react";
+import { SendIcon } from "lucide-react";
 import MessageEditorPreview from "@/components/message/MessageEditorPreview";
 import { Dialog, DialogTrigger } from "@/components/ui/dialog";
 import WebhookExecuteDialog from "@/tools/message-creator/components/WebhookExecuteDialog";
 import HomeLayout from "@/components/home/HomeLayout";
-import { Drawer, DrawerContent, DrawerTrigger } from "@/components/ui/drawer";
+import MessagePreviewDrawer from "@/components/message/MessagePreviewDrawer";
 import { CurrentMessageStoreProvider } from "@/lib/message/state";
 
 export default function MessageCreatorPage() {
@@ -42,22 +42,7 @@ export default function MessageCreatorPage() {
             <MessageEditorPreview className="rounded-lg" />
           </div>
 
-          <Drawer>
-            <DrawerTrigger asChild>
-              <Button
-                size="icon"
-                className="fixed bottom-5 right-5 xl:hidden"
-                aria-label="Preview message"
-              >
-                <ViewIcon />
-              </Button>
-            </DrawerTrigger>
-            <DrawerContent>
-              <div className="max-h-[80dvh] overflow-x-hidden overflow-y-auto mt-3">
-                <MessageEditorPreview reducePadding />
-              </div>
-            </DrawerContent>
-          </Drawer>
+          <MessagePreviewDrawer />
         </div>
       </CurrentMessageStoreProvider>
     </HomeLayout>

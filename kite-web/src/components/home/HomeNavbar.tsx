@@ -15,7 +15,7 @@ export default function HomeNavbar() {
     <div className="border-b py-2 px-5 flex justify-between items-center">
       <HomeNavbarMenu />
       <div className="flex items-center space-x-5">
-        <ThemeSwitch className="text-foreground" />
+        <ThemeSwitch />
         {userQuery.isPending ? (
           <Skeleton className="h-10 w-28" />
         ) : user ? (

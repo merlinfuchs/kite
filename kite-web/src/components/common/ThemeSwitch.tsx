@@ -10,10 +10,7 @@ export default function ThemeSwitch({ className }: { className?: string }) {
     <Button
       variant="ghost"
       size="icon"
-      className={cn(
-        "-m-2 text-muted-foreground hover:text-foreground",
-        className
-      )}
+      className={cn("-m-2", className)}
       aria-label="Toggle theme"
       onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
     >

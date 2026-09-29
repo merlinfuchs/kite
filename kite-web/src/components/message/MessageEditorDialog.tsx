@@ -1,7 +1,6 @@
 import MessageEditor from "@/components/message/MessageEditor";
 import MessageEditorPreview from "@/components/message/MessageEditorPreview";
-import { Button } from "@/components/ui/button";
-import { Drawer, DrawerContent, DrawerTrigger } from "@/components/ui/drawer";
+import MessagePreviewDrawer from "@/components/message/MessagePreviewDrawer";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useMessageUpdateMutation } from "@/lib/api/mutations";
 import { useMessageQuery } from "@/lib/api/queries";
@@ -14,7 +13,6 @@ import {
   useCurrentFlowStore,
   useDocumentStoreApi,
 } from "@/lib/message/state";
-import { ViewIcon } from "lucide-react";
 import {
   ComponentProps,
   ReactNode,
@@ -91,22 +89,7 @@ function MessageEditorDialogInner({
                   </div>
                 </div>
 
-                <Drawer>
-                  <DrawerTrigger asChild>
-                    <Button
-                      size="icon"
-                      className="fixed bottom-5 right-5 xl:hidden"
-                      aria-label="Preview message"
-                    >
-                      <ViewIcon />
-                    </Button>
-                  </DrawerTrigger>
-                  <DrawerContent>
-                    <div className="max-h-[80dvh] overflow-x-hidden overflow-y-auto mt-3">
-                      <MessageEditorPreview reducePadding />
-                    </div>
-                  </DrawerContent>
-                </Drawer>
+                <MessagePreviewDrawer />
               </>
             )}
           </div>
