@@ -185,6 +185,15 @@ func TestBlockDefinitionCredits(t *testing.T) {
 	assert.Equal(t, 1, node.CreditsCost())
 }
 
+// CreditsCost only reads the definition's credits for request blocks.
+func TestRequestBlocksHaveCredits(t *testing.T) {
+	for _, def := range blockDefinitions {
+		if def.Run.Kind == "request" {
+			assert.NotNil(t, def.Credits, def.Type)
+		}
+	}
+}
+
 // Fields named like a setting of FlowNodeData read it, which only works for
 // text settings like channel_target.
 func TestBlockDefinitionFieldSettings(t *testing.T) {

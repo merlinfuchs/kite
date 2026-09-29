@@ -9,6 +9,7 @@ import {
   blockDataSchema,
   blockDefinitions,
   getBlockDefinition,
+  isRequestBlock,
 } from "../blocks";
 import {
   actionColor,
@@ -17,77 +18,10 @@ import {
   optionColor,
   suspendColor,
 } from "../blocks/colors";
-import { BlockDefinition, RequestBlockDefinition } from "../blocks/types";
+import { BlockDefinition } from "../blocks/types";
 import { FlowContextType } from "./context";
 import { getComponentHandleIds } from "./resume";
-import {
-  nodeActionAiChatCompletionDataSchema,
-  nodeActionAiWebSearchCompletionDataSchema,
-  nodeActionChannelCreateDataSchema,
-  nodeActionChannelDeleteDataSchema,
-  nodeActionChannelEditDataSchema,
-  nodeActionChannelGetDataSchema,
-  nodeActionExpressionEvaluateDataSchema,
-  nodeActionForumPostCreateDataSchema,
-  nodeActionGuildGetDataSchema,
-  nodeActionHttpRequestDataSchema,
-  nodeActionDiscordApiRequestDataSchema,
-  nodeActionLogDataSchema,
-  nodeActionMemberBanDataSchema,
-  nodeActionMemberEditDataSchema,
-  nodeActionMemberGetDataSchema,
-  nodeActionMemberKickDataSchema,
-  nodeActionMemberRoleAddDataSchema,
-  nodeActionMemberRoleRemoveDataSchema,
-  nodeActionMemberTimeoutDataSchema,
-  nodeActionMemberUnbanDataSchema,
-  nodeActionMessageCreateDataSchema,
-  nodeActionMessageDeleteDataSchema,
-  nodeActionMessageEditDataSchema,
-  nodeActionMessageGetDataSchema,
-  nodeActionMessageReactionCreateDataSchema,
-  nodeActionMessageReactionDeleteDataSchema,
-  nodeActionMessagePinDataSchema,
-  nodeActionPollCreateDataSchema,
-  nodeActionPrivateMessageCreateDataSchema,
-  nodeActionRandomGenerateDataSchema,
-  nodeActionResponseCreateDataSchema,
-  nodeActionResponseDeferDataSchema,
-  nodeActionResponseDeleteDataSchema,
-  nodeActionResponseEditDataSchema,
-  nodeActionRobloxUserGetDataSchema,
-  nodeActionRoleGetDataSchema,
-  nodeActionThreadCreateDataSchema,
-  nodeActionThreadMemberAddDataSchema,
-  nodeActionThreadMemberRemoveDataSchema,
-  nodeActionUserGetDataSchema,
-  nodeActionVariableDeleteSchema,
-  nodeActionVariableGetSchema,
-  nodeActionVariableSetSchema,
-  nodeActionVoiceChannelJoinDataSchema,
-  nodeActionVoiceChannelLeaveDataSchema,
-  nodeActionStatusSetDataSchema,
-  nodeConditionChannelDataSchema,
-  nodeConditionCompareDataSchema,
-  nodeConditionItemCompareDataSchema,
-  nodeConditionItemIdDataSchema,
-  nodeConditionItemUserDataSchema,
-  nodeConditionRoleDataSchema,
-  nodeConditionUserDataSchema,
-  nodeControlErrorHandlerDataSchema,
-  nodeControlLoopDataSchema,
-  nodeControlSleepDataSchema,
-  NodeData,
-  nodeEmptyDataSchema,
-  nodeEntryCommandDataSchema,
-  nodeEntryComponentButtonDataSchema,
-  nodeEntryEventDataSchema,
-  nodeOptionCommandArgumentDataSchema,
-  nodeOptionCommandContextsSchema,
-  nodeOptionCommandPermissionsSchema,
-  nodeOptionEventFilterSchema,
-  nodeSuspendResponseModalDataSchema,
-} from "./dataSchema";
+import { NodeData } from "./dataSchema";
 
 export {
   actionColor,
@@ -133,10 +67,7 @@ export const nodeTypes: Record<string, NodeValues> = Object.fromEntries(
 );
 
 function toNodeValues(block: BlockDefinition): NodeValues {
-  const request =
-    block.run.kind === "request" && block.fields
-      ? (block as RequestBlockDefinition)
-      : undefined;
+  const request = isRequestBlock(block) ? block : undefined;
   const schema =
     typeof block.schema === "function" ? block.schema() : block.schema;
 

@@ -46,6 +46,15 @@ describe("block definitions", () => {
     }
   });
 
+  it("send requests with fields and a fixed cost", () => {
+    for (const block of blockDefinitions.filter(
+      (b) => b.run.kind === "request"
+    )) {
+      expect(block.fields, block.type).toBeDefined();
+      expect(typeof block.credits, block.type).toBe("number");
+    }
+  });
+
   it("use integrations that exist", () => {
     for (const block of blockDefinitions) {
       for (const id of blockIntegrations(block)) {

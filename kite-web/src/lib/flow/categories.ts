@@ -105,6 +105,17 @@ const sections: Record<
   ],
 };
 
+// A misspelled category would hide a block from the explorer, and make it
+// available in every kind of flow.
+const sectionTitles = new Set(
+  Object.values(sections).flatMap((list) => list.map((s) => s.title))
+);
+for (const block of blockDefinitions) {
+  if (block.category && !sectionTitles.has(block.category)) {
+    throw new Error(`Unknown category of ${block.type}: ${block.category}`);
+  }
+}
+
 // The blocks of each section are those whose definition names it, in the
 // order of the definitions.
 export const nodeCategories = Object.fromEntries(

@@ -83,8 +83,9 @@ import { variableDelete } from "./variableDelete";
 import { variableGet } from "./variableGet";
 import { variableSet } from "./variableSet";
 
-// Every block, in the order of the block explorer, then the blocks that are
-// only created with others. The flow AI's catalog follows this order. File
+// Every block, in the order of the block explorer, then the blocks that aren't
+// in it, like entries and the branches of conditions. The flow AI's catalog
+// follows this order. File
 // names start with the integration a block mainly acts on, if any.
 export const blockDefinitions: BlockDefinition[] = [
   discordOptionCommandArgument,
@@ -181,9 +182,14 @@ export function blockIntegrations(block: BlockDefinition) {
 
 // The blocks that send a request to an integration.
 export function requestBlocks() {
-  return blockDefinitions.filter(
-    (b): b is RequestBlockDefinition => b.run.kind === "request" && !!b.fields
-  );
+  return blockDefinitions.filter(isRequestBlock);
+}
+
+// A test checks that every block with a request run has fields and credits.
+export function isRequestBlock(
+  block: BlockDefinition
+): block is RequestBlockDefinition {
+  return block.run.kind === "request";
 }
 
 const formats: Record<BlockField["type"], [RegExp, string] | null> = {

@@ -118,7 +118,7 @@ export const discordRoleCreate: BlockDefinition = {
 };
 ```
 
-`run.integration` is the integration the request goes to, which the block needs. Blocks that need more, or that run custom code, list integrations in `requires` (proposed, not implemented yet):
+`run.integration` is the integration the request goes to, which the block needs. Blocks that need more, or that run custom code, list integrations in `requires`:
 
 ```ts
 export const cookieApiTranscriptCreate: BlockDefinition = {
@@ -268,7 +268,7 @@ A custom block runs the Go handler registered under its node type in `nodeHandle
 
 All definitions live in the flat `blocks` folder, whether they're requests or custom. Blocks of Kite itself, like conditions, loops, sleep, variables, AI, calculate value and log, need no integration. Custom blocks that call a service, like pin or ban, name it in `requires`, so connect prompts and error nodes work the same for every block. Roblox is an integration too, without a credential.
 
-The definitions are listed in `blocks/index.ts` in the order of the block explorer. The explorer's sections take their blocks from the definitions' `category`, and the flow AI's catalog follows the same order, which is how the move could be checked: the catalog came out unchanged.
+The definitions are listed in `blocks/index.ts` in the order of the block explorer. The explorer's sections take their blocks from the definitions' `category`, and the flow AI's catalog follows the same order, which is how the move could be checked: the only change in the catalog is the order of the raw block's list of dedicated endpoints.
 
 ### Widgets
 

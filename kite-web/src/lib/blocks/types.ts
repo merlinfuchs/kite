@@ -123,4 +123,6 @@ export interface BlockDefinition {
 export type RequestBlockDefinition = BlockDefinition & {
   run: BlockRequest;
   fields: BlockField[];
+  // The service reads it for requests, so it can't depend on the settings.
+  credits: number;
 };
