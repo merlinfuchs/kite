@@ -3,13 +3,9 @@ package flow
 import (
 	"context"
 	"encoding/json"
-	"fmt"
-	"math"
-	"regexp"
-	"strconv"
-	"strings"
 	"errors"
 	"fmt"
+	"math"
 	"regexp"
 	"strconv"
 	"strings"
@@ -24,7 +20,6 @@ import (
 	"github.com/kitecloud/kite/kite-service/pkg/provider"
 	"github.com/kitecloud/kite/kite-service/pkg/schedule"
 	"github.com/kitecloud/kite/kite-service/pkg/thing"
-	"github.com/openai/openai-go/v2"
 	"gopkg.in/guregu/null.v4"
 )
 

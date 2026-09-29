@@ -5,11 +5,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/kitecloud/kite/kite-service/pkg/thing"
-	"github.com/openai/openai-go/v2"
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/kitecloud/kite/kite-service/pkg/eval"
 	"github.com/kitecloud/kite/kite-service/pkg/provider"
+	"github.com/kitecloud/kite/kite-service/pkg/thing"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -200,6 +199,9 @@ func TestParseInviteLimit(t *testing.T) {
 	}
 	if got, err := parseInviteLimit("max uses", thing.NewInt(100), InviteMaxUsesLimit); err != nil || got != 100 {
 		t.Errorf("max uses of 100 should be accepted, got %d, %v", got, err)
+	}
+}
+
 func TestPollDataToCreatePollData(t *testing.T) {
 	data := PollData{
 		Question: "Best number? {{ 1 + 1 }}",
