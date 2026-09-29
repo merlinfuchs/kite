@@ -1,4 +1,5 @@
 import { roleResultSchema } from "../flow/resultSchema";
+import { guildField } from "./fields";
 import { BlockDefinition } from "./types";
 
 export const discordRoleCreate: BlockDefinition = {
@@ -17,16 +18,7 @@ export const discordRoleCreate: BlockDefinition = {
     path: "/guilds/{guild_id}/roles",
   },
   fields: [
-    {
-      name: "guild_target",
-      in: "path",
-      target: "guild_id",
-      type: "snowflake",
-      label: "Server",
-      description:
-        "ID of the server. Leave empty to use the server the flow runs in.",
-      fallback: "guild",
-    },
+    guildField,
     {
       name: "name",
       in: "body",

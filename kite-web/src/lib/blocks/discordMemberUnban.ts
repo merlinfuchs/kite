@@ -1,4 +1,5 @@
 import { nodeActionMemberUnbanDataSchema } from "../flow/dataSchema";
+import { guildField, userField } from "./fields";
 import { BlockDefinition } from "./types";
 
 export const discordMemberUnban: BlockDefinition = {
@@ -18,25 +19,5 @@ export const discordMemberUnban: BlockDefinition = {
     method: "DELETE",
     path: "/guilds/{guild_id}/bans/{user_id}",
   },
-  // Only describe the request. The settings keep their schema and inputs.
-  fields: [
-    {
-      name: "guild_target",
-      in: "path",
-      target: "guild_id",
-      type: "snowflake",
-      label: "Server",
-      description:
-        "ID of the server. Leave empty to use the server the flow runs in.",
-      fallback: "guild",
-    },
-    {
-      name: "user_target",
-      in: "path",
-      target: "user_id",
-      type: "snowflake",
-      label: "User",
-      description: "ID of the user.",
-    },
-  ],
+  fields: [guildField, userField],
 };

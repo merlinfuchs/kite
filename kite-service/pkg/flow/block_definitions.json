@@ -571,7 +571,7 @@
           "name": "member_ban_delete_message_duration_seconds",
           "in": "body",
           "target": "delete_message_seconds",
-          "type": "integer",
+          "type": "seconds",
           "required": false,
           "fallback": "",
           "min": 0,
@@ -673,7 +673,8 @@
         "integration": "discord",
         "operation": "update_guild_member",
         "method": "PATCH",
-        "path": "/guilds/{guild_id}/members/{user_id}"
+        "path": "/guilds/{guild_id}/members/{user_id}",
+        "partial": true
       },
       "fields": [
         {

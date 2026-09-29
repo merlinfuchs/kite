@@ -236,7 +236,7 @@ func TestBlockDefinitionConvertedBlocks(t *testing.T) {
 		{"action_message_reaction_delete", `{"channel_target":"1","message_target":"2","emoji_data":{"id":"3","name":"kite"}}`, "DELETE", "/channels/1/messages/2/reactions/kite:3/@me", ""},
 		{"action_message_pin", `{"channel_target":"1","message_target":"2"}`, "PUT", "/channels/1/pins/2", ""},
 		{"action_message_unpin", `{"channel_target":"1","message_target":"2"}`, "DELETE", "/channels/1/pins/2", ""},
-		{"action_member_ban", `{"user_target":"4","member_ban_delete_message_duration_seconds":"3600"}`, "PUT", "/guilds/5/bans/4", `{"delete_message_seconds":3600}`},
+		{"action_member_ban", `{"user_target":"4","member_ban_delete_message_duration_seconds":"3600.5"}`, "PUT", "/guilds/5/bans/4", `{"delete_message_seconds":3600}`},
 		{"action_member_unban", `{"guild_target":"9","user_target":"4"}`, "DELETE", "/guilds/9/bans/4", ""},
 		{"action_member_kick", `{"user_target":"4"}`, "DELETE", "/guilds/5/members/4", ""},
 		{"action_member_role_add", `{"user_target":"4","role_target":"7"}`, "PUT", "/guilds/5/members/4/roles/7", ""},
@@ -267,7 +267,7 @@ func TestBlockDefinitionTimeout(t *testing.T) {
 	p := &blockTestProvider{}
 	_, err := executeBlock(t, p, "action_member_timeout", `{
 		"user_target": "4",
-		"member_timeout_duration_seconds": "60",
+		"member_timeout_duration_seconds": "60.5",
 		"audit_log_reason": "spam"
 	}`)
 	require.NoError(t, err)

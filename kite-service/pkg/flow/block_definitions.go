@@ -4,6 +4,7 @@ import (
 	_ "embed"
 	"encoding/json"
 	"fmt"
+	"math"
 	"net/http"
 	"net/url"
 	"regexp"
@@ -280,10 +281,19 @@ func (f blockField) value(value thing.Thing) (any, error) {
 			return name + ":" + id, nil
 		}
 		return name, nil
-	case "seconds_until":
-		seconds, err := strconv.ParseInt(strings.TrimSpace(value.String()), 10, 64)
+	case "seconds":
+		seconds, err := parseSeconds(value)
 		if err != nil {
-			return nil, fmt.Errorf("must be a whole number of seconds")
+			return nil, err
+		}
+		if err := f.checkRange(seconds, ""); err != nil {
+			return nil, err
+		}
+		return seconds, nil
+	case "seconds_until":
+		seconds, err := parseSeconds(value)
+		if err != nil {
+			return nil, err
 		}
 		if err := f.checkRange(seconds, ""); err != nil {
 			return nil, err
@@ -304,6 +314,17 @@ func (f blockField) value(value thing.Thing) (any, error) {
 		}
 		return s, nil
 	}
+}
+
+// parseSeconds drops fractions, like the blocks did before they were
+// requests.
+func parseSeconds(value thing.Thing) (int64, error) {
+	seconds, err := strconv.ParseFloat(strings.TrimSpace(value.String()), 64)
+	// Also rejects NaN and values that don't fit into a duration.
+	if err != nil || !(math.Abs(seconds) < 1e12) {
+		return 0, fmt.Errorf("must be a number of seconds")
+	}
+	return int64(seconds), nil
 }
 
 func (f blockField) checkRange(n int64, unit string) error {

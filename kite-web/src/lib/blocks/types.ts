@@ -14,6 +14,9 @@ export type BlockFieldType =
   // A list placeholder, or IDs separated by commas or spaces.
   | "snowflake_list"
   | "integer"
+  // A number of seconds. Fractions are dropped, like before these blocks were
+  // requests.
+  | "seconds"
   | "boolean"
   | "string"
   // An emoji setting like emoji_data, sent as its name or "name:id".
@@ -29,12 +32,13 @@ export interface BlockField {
   // Name in the request, if it differs from name.
   target?: string;
   type: BlockFieldType;
-  label: string;
-  description: string;
+  // Only needed without a schema, which describes the settings otherwise.
+  label?: string;
+  description?: string;
   required?: boolean;
   // Used when the field is left empty.
   fallback?: "guild" | "channel";
-  // Range of an integer, or length of a list.
+  // Range of a number, or length of a list.
   min?: number;
   max?: number;
   max_length?: number;
@@ -51,6 +55,9 @@ export interface BlockRequest {
   operation: string;
   method: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
   path: string;
+  // The block does one of several things the endpoint does, like a timeout
+  // is one way of editing a member, so it doesn't replace the raw request.
+  partial?: boolean;
 }
 
 // Runs the Go handler registered under the block's type.

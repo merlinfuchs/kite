@@ -15,7 +15,7 @@ export const discordApiRequest: BlockDefinition = {
   schema: () =>
     nodeActionDiscordApiRequestDataSchema(
       requestBlocks()
-        .filter((b) => b.run.integration === "discord")
+        .filter((b) => b.run.integration === "discord" && !b.run.partial)
         .map((b) => `${b.run.operation}: ${b.type}`)
         .join(", ")
     ),

@@ -1,4 +1,5 @@
 import { nodeActionMessagePinDataSchema } from "../flow/dataSchema";
+import { channelField, messageField } from "./fields";
 import { BlockDefinition } from "./types";
 
 export const discordMessageUnpin: BlockDefinition = {
@@ -23,23 +24,5 @@ export const discordMessageUnpin: BlockDefinition = {
     method: "DELETE",
     path: "/channels/{channel_id}/pins/{message_id}",
   },
-  // Only describe the request. The settings keep their schema and inputs.
-  fields: [
-    {
-      name: "channel_target",
-      in: "path",
-      target: "channel_id",
-      type: "snowflake",
-      label: "Channel",
-      description: "ID of the channel.",
-    },
-    {
-      name: "message_target",
-      in: "path",
-      target: "message_id",
-      type: "snowflake",
-      label: "Message",
-      description: "ID of the message.",
-    },
-  ],
+  fields: [channelField, messageField],
 };

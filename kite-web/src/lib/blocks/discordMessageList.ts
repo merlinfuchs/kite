@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { messageResultSchema } from "../flow/resultSchema";
+import { flowChannelField } from "./fields";
 import { BlockDefinition } from "./types";
 
 export const discordMessageList: BlockDefinition = {
@@ -17,16 +18,7 @@ export const discordMessageList: BlockDefinition = {
     path: "/channels/{channel_id}/messages",
   },
   fields: [
-    {
-      name: "channel_target",
-      in: "path",
-      target: "channel_id",
-      type: "snowflake",
-      label: "Channel",
-      description:
-        "ID of the channel. Leave empty to use the channel the flow runs in.",
-      fallback: "channel",
-    },
+    flowChannelField,
     {
       name: "limit",
       in: "query",

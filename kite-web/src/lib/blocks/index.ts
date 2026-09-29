@@ -202,10 +202,22 @@ const formats: Record<BlockField["type"], [RegExp, string] | null> = {
   boolean: discordApiParamFormats.boolean,
   string: null,
   emoji: null,
-  seconds_until: [/^[0-9]+$/, "Must be a number of seconds"],
+  seconds: [/^[0-9]+(\.[0-9]+)?$/, "Must be a number of seconds"],
+  seconds_until: [/^[0-9]+(\.[0-9]+)?$/, "Must be a number of seconds"],
 };
 
+const numberTypes: BlockField["type"][] = [
+  "integer",
+  "seconds",
+  "seconds_until",
+];
+
 function fieldSchema(field: BlockField) {
+  // Emojis are objects, which only a block's own schema describes.
+  if (field.type === "emoji") {
+    throw new Error(`Emoji field ${field.name} needs a block schema`);
+  }
+
   let text = z.string();
   if (field.max_length) text = text.max(field.max_length);
 
@@ -233,7 +245,7 @@ function fieldSchema(field: BlockField) {
       return;
     }
 
-    if (field.type === "integer") {
+    if (numberTypes.includes(field.type)) {
       const n = Number(value);
       if (field.min !== undefined && n < field.min) {
         ctx.addIssue({
@@ -289,7 +301,7 @@ function fieldSchema(field: BlockField) {
     listOrText,
     field.type === "boolean"
       ? `${field.description} Either "true" or "false".`
-      : field.description
+      : field.description!
   );
   // Numbers and booleans work too, as long as they have the right format.
   const schema = z.preprocess(

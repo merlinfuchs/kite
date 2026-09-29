@@ -1,4 +1,5 @@
 import { nodeActionThreadMemberRemoveDataSchema } from "../flow/dataSchema";
+import { channelField, userField } from "./fields";
 import { BlockDefinition } from "./types";
 
 export const discordThreadMemberRemove: BlockDefinition = {
@@ -17,23 +18,5 @@ export const discordThreadMemberRemove: BlockDefinition = {
     method: "DELETE",
     path: "/channels/{channel_id}/thread-members/{user_id}",
   },
-  // Only describe the request. The settings keep their schema and inputs.
-  fields: [
-    {
-      name: "channel_target",
-      in: "path",
-      target: "channel_id",
-      type: "snowflake",
-      label: "Channel",
-      description: "ID of the channel.",
-    },
-    {
-      name: "user_target",
-      in: "path",
-      target: "user_id",
-      type: "snowflake",
-      label: "User",
-      description: "ID of the user.",
-    },
-  ],
+  fields: [channelField, userField],
 };

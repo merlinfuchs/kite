@@ -1082,14 +1082,17 @@ function BlockFieldsInput({ type, data, updateData, errors }: InputProps) {
       {block.fields.map((field) => {
         const key = field.name;
         const value = String(data[field.name] ?? "");
+        // Blocks with fields as their settings describe every field.
+        const title = field.label ?? field.name;
+        const description = field.description ?? "";
 
         if (field.widget === "permissions") {
           return (
             <BasePermissionInput
               key={key}
               field={key}
-              title={field.label}
-              description={field.description}
+              title={title}
+              description={description}
               value={value || "0"}
               updateValue={(v) => setField(field, v === "0" ? "" : v)}
               errors={errors}
@@ -1102,8 +1105,8 @@ function BlockFieldsInput({ type, data, updateData, errors }: InputProps) {
               key={key}
               type="select"
               field={key}
-              title={field.label}
-              description={field.description}
+              title={title}
+              description={description}
               options={[
                 { value: "true", label: "Yes" },
                 { value: "false", label: "No" },
@@ -1120,8 +1123,8 @@ function BlockFieldsInput({ type, data, updateData, errors }: InputProps) {
             key={key}
             type="text"
             field={key}
-            title={field.label}
-            description={field.description}
+            title={title}
+            description={description}
             value={value}
             updateValue={(v) => setField(field, v)}
             errors={errors}

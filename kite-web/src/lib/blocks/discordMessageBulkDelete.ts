@@ -1,3 +1,4 @@
+import { flowChannelField } from "./fields";
 import { BlockDefinition } from "./types";
 
 export const discordMessageBulkDelete: BlockDefinition = {
@@ -18,16 +19,7 @@ export const discordMessageBulkDelete: BlockDefinition = {
     path: "/channels/{channel_id}/messages/bulk-delete",
   },
   fields: [
-    {
-      name: "channel_target",
-      in: "path",
-      target: "channel_id",
-      type: "snowflake",
-      label: "Channel",
-      description:
-        "ID of the channel. Leave empty to use the channel the flow runs in.",
-      fallback: "channel",
-    },
+    flowChannelField,
     {
       name: "message_ids",
       in: "body",

@@ -444,7 +444,9 @@ function getReplacingBlock(data: NodeData) {
 
   const block = requestBlocks().find(
     (b) =>
-      b.run.integration === "discord" && b.run.operation === request.operation
+      b.run.integration === "discord" &&
+      b.run.operation === request.operation &&
+      !b.run.partial
   );
   if (!block) return;
 

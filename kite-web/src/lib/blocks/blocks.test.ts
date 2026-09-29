@@ -55,6 +55,15 @@ describe("block definitions", () => {
     }
   });
 
+  it("describe the fields of blocks without a schema", () => {
+    for (const block of requestBlocks().filter((b) => !b.schema)) {
+      for (const field of block.fields) {
+        expect(field.label, `${block.type}.${field.name}`).toBeTruthy();
+        expect(field.description, `${block.type}.${field.name}`).toBeTruthy();
+      }
+    }
+  });
+
   it("use integrations that exist", () => {
     for (const block of blockDefinitions) {
       for (const id of blockIntegrations(block)) {

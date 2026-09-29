@@ -1,4 +1,5 @@
 import { nodeActionMessageReactionCreateDataSchema } from "../flow/dataSchema";
+import { channelField, messageField } from "./fields";
 import { BlockDefinition } from "./types";
 
 export const discordMessageReactionCreate: BlockDefinition = {
@@ -17,31 +18,14 @@ export const discordMessageReactionCreate: BlockDefinition = {
     method: "PUT",
     path: "/channels/{channel_id}/messages/{message_id}/reactions/{emoji_name}/@me",
   },
-  // Only describe the request. The settings keep their schema and inputs.
   fields: [
-    {
-      name: "channel_target",
-      in: "path",
-      target: "channel_id",
-      type: "snowflake",
-      label: "Channel",
-      description: "ID of the channel.",
-    },
-    {
-      name: "message_target",
-      in: "path",
-      target: "message_id",
-      type: "snowflake",
-      label: "Message",
-      description: "ID of the message.",
-    },
+    channelField,
+    messageField,
     {
       name: "emoji_data",
       in: "path",
       target: "emoji_name",
       type: "emoji",
-      label: "Emoji",
-      description: "The emoji.",
     },
   ],
 };

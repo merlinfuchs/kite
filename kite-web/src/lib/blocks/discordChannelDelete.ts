@@ -1,4 +1,5 @@
 import { nodeActionChannelDeleteDataSchema } from "../flow/dataSchema";
+import { channelField } from "./fields";
 import { BlockDefinition } from "./types";
 
 export const discordChannelDelete: BlockDefinition = {
@@ -18,15 +19,5 @@ export const discordChannelDelete: BlockDefinition = {
     method: "DELETE",
     path: "/channels/{channel_id}",
   },
-  // Only describe the request. The settings keep their schema and inputs.
-  fields: [
-    {
-      name: "channel_target",
-      in: "path",
-      target: "channel_id",
-      type: "snowflake",
-      label: "Channel",
-      description: "ID of the channel.",
-    },
-  ],
+  fields: [channelField],
 };
