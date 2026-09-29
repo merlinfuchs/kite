@@ -166,7 +166,7 @@ type FlowNodeData struct {
 	// Command Installations
 	CommandDisabledIntegrations []CommandDisabledIntegrationType `json:"command_disabled_integrations,omitempty"`
 
-	// Guild Get, Server Leave, and the guild of member, channel, role and voice blocks
+	// Guild Get, and the guild of member, channel, role and voice blocks
 	GuildTarget string `json:"guild_target,omitempty"`
 
 	// Message & Response Create, Edit, Delete

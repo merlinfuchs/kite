@@ -1164,12 +1164,14 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 
 		return n.ExecuteChildren(ctx)
 	case FlowNodeTypeActionServerLeave:
-		guildID, err := ctx.EvalTemplate(n.Data.GuildTarget)
-		if err != nil {
-			return traceError(n, err)
+		// Always the server the flow runs in, never a configurable one, so a
+		// flow in one server can't make the app leave another server.
+		guildID := ctx.Data.GuildID()
+		if guildID == 0 {
+			return traceError(n, fmt.Errorf("leaving a server only works in flows that run in a server"))
 		}
 
-		err = ctx.Discord.LeaveGuild(ctx, discord.GuildID(guildID.Snowflake()))
+		err := ctx.Discord.LeaveGuild(ctx, guildID)
 		if err != nil {
 			return traceError(n, err)
 		}

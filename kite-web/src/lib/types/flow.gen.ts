@@ -124,7 +124,7 @@ export interface FlowNodeData {
    */
   command_disabled_integrations?: CommandDisabledIntegrationType[];
   /**
-   * Guild Get, Server Leave, and the guild of member, channel, role and voice blocks
+   * Guild Get, and the guild of member, channel, role and voice blocks
    */
   guild_target?: string;
   /**

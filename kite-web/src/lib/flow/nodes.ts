@@ -690,9 +690,9 @@ export const nodeTypes: Record<string, NodeValues> = {
     color: actionColor,
     icon: "log-out",
     defaultTitle: "Leave Server",
-    defaultDescription: "Bot leaves the given server",
+    defaultDescription: "Bot leaves the server the flow runs in",
     dataSchema: nodeActionServerLeaveDataSchema,
-    dataFields: ["guild_target", "custom_label"],
+    dataFields: ["custom_label"],
     creditsCost: 1,
   },
   action_http_request: {

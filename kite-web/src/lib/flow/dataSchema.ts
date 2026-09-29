@@ -603,9 +603,9 @@ export const nodeActionGuildGetDataSchema = nodeBaseDataSchema.extend({
   temporary_name: temporaryNameSchema,
 });
 
-export const nodeActionServerLeaveDataSchema = nodeBaseDataSchema.extend({
-  guild_target: numericOrPlaceholder("ID of the server to leave."),
-});
+// Always leaves the server the flow runs in. There is deliberately no server
+// field, so a flow can't make the app leave a server other than its own.
+export const nodeActionServerLeaveDataSchema = nodeBaseDataSchema;
 
 export const nodeActionMessageGetDataSchema = nodeBaseDataSchema.extend({
   channel_target: numericOrPlaceholder(
