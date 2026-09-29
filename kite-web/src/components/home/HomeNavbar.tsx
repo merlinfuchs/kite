@@ -10,7 +10,9 @@ import { useTheme } from "next-themes";
 import { useAfterMounted } from "@/lib/hooks/mounted";
 import { Button } from "../ui/button";
 import Link from "next/link";
-import { useUser } from "@/lib/hooks/api";
+import { useResponseData } from "@/lib/hooks/api";
+import { useUserQuery } from "@/lib/api/queries";
+import { Skeleton } from "../ui/skeleton";
 
 export default function HomeNavbar() {
   const { theme, setTheme } = useAfterMounted(useTheme(), {
@@ -18,7 +20,8 @@ export default function HomeNavbar() {
     setTheme: () => {},
   });
 
-  const user = useUser();
+  const userQuery = useUserQuery();
+  const user = useResponseData(userQuery);
 
   return (
     <div className="border-b py-2 px-5 flex justify-between items-center">
@@ -35,7 +38,9 @@ export default function HomeNavbar() {
             onClick={() => setTheme("dark")}
           />
         )}
-        {user ? (
+        {userQuery.isPending ? (
+          <Skeleton className="h-10 w-28" />
+        ) : user ? (
           <Button asChild>
             <Link href="/apps" className="flex items-center space-x-1.5">
               <PackageIcon className="h-5 w-5" />
