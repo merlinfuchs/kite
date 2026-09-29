@@ -15,6 +15,9 @@ This project is very much work in progress and doesn't have all the features yet
 
 ## Self Hosting
 
+> [!WARNING]
+> Self-hosting is not officially supported. These instructions are provided as-is for people who are comfortable running Docker, Postgres and their own Discord application. We don't answer self-hosting questions in issues or on Discord, and they may be closed without a reply. Bug reports that also affect the hosted version of Kite are welcome.
+
 This describes the easiest way to self host an instance of Kite by using a single binary that contains both the backend and frontend.
 
 You can find prebuilt binaries of the server with the frontend files included [here](https://github.com/merlinfuchs/kite/releases/latest).
