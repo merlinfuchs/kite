@@ -73,13 +73,16 @@ export default function MessageNav({
         {hasUnsavedChanges ? (
           <div className="flex space-x-2 text-foreground/60 items-center">
             <SendIcon className="h-5 w-5" />
-            <div>Send Message</div>
+            <div className="hidden sm:block">Send Message</div>
           </div>
         ) : (
           <MessageSendDialog>
-            <button className="flex space-x-2 text-foreground/80 hover:text-foreground items-center">
+            <button
+              className="flex space-x-2 text-foreground/80 hover:text-foreground items-center"
+              aria-label="Send Message"
+            >
               <SendIcon className="h-5 w-5" />
-              <div>Send Message</div>
+              <div className="hidden sm:block">Send Message</div>
             </button>
           </MessageSendDialog>
         )}

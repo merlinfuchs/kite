@@ -32,7 +32,7 @@ export function LogEntryListDrawer({
 }) {
   return (
     <Drawer open={open} onOpenChange={onOpenChange}>
-      <DrawerContent>
+      <DrawerContent className="max-h-[85dvh]">
         <DrawerHeader>
           <DrawerTitle className="sr-only">Logs</DrawerTitle>
           <DrawerDescription className="sr-only">

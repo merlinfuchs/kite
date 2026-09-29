@@ -41,7 +41,7 @@ export default function UpsellPopup() {
   }
 
   return (
-    <Card className="shadow-md max-w-96 fixed inset-x-3 bottom-3 md:inset-x-auto md:bottom-5 md:right-5 z-50">
+    <Card className="shadow-md max-w-96 fixed inset-x-3 ml-auto bottom-3 md:inset-x-auto md:bottom-5 md:right-5 z-50">
       <CardHeader className="px-5 py-4">
         <CardTitle className="text-lg">Kite ♥️</CardTitle>
         <CardDescription>
