@@ -211,6 +211,8 @@ export const nodeEntryEventDataSchema = nodeBaseDataSchema.extend({
       "message_delete",
       "guild_member_add",
       "guild_member_remove",
+      "guild_create",
+      "guild_delete",
       "cron",
     ])
     .describe(

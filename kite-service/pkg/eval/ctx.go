@@ -243,7 +243,7 @@ type EventEnv struct {
 	Member  any           `expr:"member" json:"member"`
 	Channel *SnowflakeEnv `expr:"channel" json:"channel"`
 	Message *MessageEnv   `expr:"message" json:"message"`
-	Guild   *SnowflakeEnv `expr:"guild" json:"guild"`
+	Guild   any           `expr:"guild" json:"guild"`
 
 	Schedule *ScheduleEnv `expr:"schedule" json:"schedule"`
 }
@@ -313,6 +313,10 @@ func NewEventEnv(event ws.Event) *EventEnv {
 		env.User = NewUserEnv(e.User)
 		env.Member = env.User
 		env.Guild = NewSnowflakeEnv(e.GuildID)
+	case *state.GuildJoinEvent:
+		env.Guild = NewGuildEnv(e.Guild)
+	case *state.GuildLeaveEvent:
+		env.Guild = NewSnowflakeEnv(e.ID)
 	case *schedule.Event:
 		env.Schedule = NewScheduleEnv(e)
 	}

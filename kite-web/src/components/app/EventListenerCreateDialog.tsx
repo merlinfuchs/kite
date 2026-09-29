@@ -200,6 +200,12 @@ export default function EventListenerCreateDialog({
                         <SelectItem value="guild_member_remove">
                           Server Member Remove
                         </SelectItem>
+                        <SelectItem value="guild_create">
+                          Bot Joined Server
+                        </SelectItem>
+                        <SelectItem value="guild_delete">
+                          Bot Left Server
+                        </SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />
