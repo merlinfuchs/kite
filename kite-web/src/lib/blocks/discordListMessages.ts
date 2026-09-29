@@ -1,8 +1,8 @@
 import { z } from "zod";
-import { messageResultSchema } from "../../flow/resultSchema";
-import { BlockDefinition } from "../types";
+import { messageResultSchema } from "../flow/resultSchema";
+import { BlockDefinition } from "./types";
 
-export const listMessages: BlockDefinition = {
+export const discordListMessages: BlockDefinition = {
   type: "action_message_list",
   title: "List channel messages",
   description: "Get the latest messages of a channel",

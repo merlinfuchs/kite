@@ -49,16 +49,14 @@ kite-web/src/lib/
   blocks/
     types.ts
     index.ts             all blocks, and the editor schema for them
-    messages/
-      listMessages.ts
-      bulkDeleteMessages.ts
-    channels/
-      createInvite.ts
-    roles/
-      createRole.ts
+    discordBulkDeleteMessages.ts
+    discordCreateInvite.ts
+    discordCreateRole.ts
+    discordListMessages.ts
+    conditionCompare.ts  later, a block of Kite itself
 ```
 
-Block folders follow the block explorer's categories, so related blocks stay together whichever integration they use, and blocks of Kite itself, like conditions and variables, need no integration to have a place. A block that needs several integrations, like a transcript that reads Discord messages and renders them with cookie-api, lists them all.
+The blocks folder is flat. File names start with the integration a block mainly acts on, if any, so sorting groups them, and blocks of Kite itself, like conditions and variables, have no prefix. Category folders would repeat the `category` field and drift from it when a block moves to another section of the block explorer. A block that needs several integrations, like a transcript that reads Discord messages and renders them with cookie-api, lists them all.
 
 Discord's spec is trimmed to `src/lib/flow/discordApi.json` by `scripts/discord-api.mjs`, which the raw block uses already. Other integrations would keep theirs in their folder as `openapi.json`.
 
@@ -86,7 +84,7 @@ Proposed for later integrations, the integration's own settings in its `index.ts
 A block definition, as implemented:
 
 ```ts
-export const createRole: BlockDefinition = {
+export const discordCreateRole: BlockDefinition = {
   type: "action_role_create",
   title: "Create role",
   description: "Create a new role in the server",
@@ -123,7 +121,7 @@ export const createRole: BlockDefinition = {
 `run.integration` is the integration the request goes to, which the block needs. Blocks that need more, or that run custom code, list integrations in `requires` (proposed, not implemented yet):
 
 ```ts
-export const createTranscript: BlockDefinition = {
+export const cookieApiCreateTranscript: BlockDefinition = {
   type: "action_cookie_api_transcript_create",
   // ...
   requires: ["discord", "cookie_api"],
@@ -252,7 +250,7 @@ Some blocks will always need code: conditions, loops, sleep, variables, AI, resp
 Today a hand-written block is spread over `nodes.ts`, `dataSchema.ts`, `resultSchema.ts`, `categories.ts`, `components.ts` and a `case` in `Execute`. After this step every block has one definition with its title, icon, category, credits, fields, result, structure and a `run`:
 
 ```ts
-export const messagePin: BlockDefinition = {
+export const discordPinMessage: BlockDefinition = {
   type: "action_message_pin",
   title: "Pin channel message",
   // ...
@@ -260,7 +258,7 @@ export const messagePin: BlockDefinition = {
   run: { kind: "custom" },
 };
 
-export const createRole: BlockDefinition = {
+export const discordCreateRole: BlockDefinition = {
   type: "action_role_create",
   // ...
   run: { kind: "request", integration: "discord", method: "POST", path: "/guilds/{guild_id}/roles" },
@@ -269,7 +267,7 @@ export const createRole: BlockDefinition = {
 
 A custom block runs the Go handler registered under its node type, so no separate ID is needed. The switch in `Execute` becomes a map from node type to handler, and a test checks both directions: every custom definition has a handler, and every handler has a definition.
 
-All definitions live in `blocks`, in the folders of their block explorer categories, whether they're requests or custom. Blocks of Kite itself, like conditions, loops, sleep, variables, AI, calculate value and log, need no integration. Custom blocks that call a service, like pin or ban, name it in `requires`, so connect prompts and error nodes work the same for every block.
+All definitions live in the flat `blocks` folder, whether they're requests or custom. Blocks of Kite itself, like conditions, loops, sleep, variables, AI, calculate value and log, need no integration. Custom blocks that call a service, like pin or ban, name it in `requires`, so connect prompts and error nodes work the same for every block.
 
 ### Widgets
 

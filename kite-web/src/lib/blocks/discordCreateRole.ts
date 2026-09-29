@@ -1,7 +1,7 @@
-import { roleResultSchema } from "../../flow/resultSchema";
-import { BlockDefinition } from "../types";
+import { roleResultSchema } from "../flow/resultSchema";
+import { BlockDefinition } from "./types";
 
-export const createRole: BlockDefinition = {
+export const discordCreateRole: BlockDefinition = {
   type: "action_role_create",
   title: "Create role",
   description: "Create a new role in the server",

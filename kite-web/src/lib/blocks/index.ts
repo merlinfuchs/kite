@@ -7,17 +7,18 @@ import {
   templated,
   temporaryNameSchema,
 } from "../flow/dataSchema";
-import { createInvite } from "./channels/createInvite";
-import { bulkDeleteMessages } from "./messages/bulkDeleteMessages";
-import { listMessages } from "./messages/listMessages";
-import { createRole } from "./roles/createRole";
+import { discordBulkDeleteMessages } from "./discordBulkDeleteMessages";
+import { discordCreateInvite } from "./discordCreateInvite";
+import { discordCreateRole } from "./discordCreateRole";
+import { discordListMessages } from "./discordListMessages";
 import { BlockDefinition, BlockField } from "./types";
 
+// File names start with the integration a block mainly acts on, if any.
 export const blockDefinitions: BlockDefinition[] = [
-  listMessages,
-  bulkDeleteMessages,
-  createInvite,
-  createRole,
+  discordListMessages,
+  discordBulkDeleteMessages,
+  discordCreateInvite,
+  discordCreateRole,
 ];
 
 const definitionsByType = new Map(blockDefinitions.map((b) => [b.type, b]));

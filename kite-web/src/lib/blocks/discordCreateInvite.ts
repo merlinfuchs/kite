@@ -1,7 +1,7 @@
 import { z } from "zod";
-import { BlockDefinition } from "../types";
+import { BlockDefinition } from "./types";
 
-export const createInvite: BlockDefinition = {
+export const discordCreateInvite: BlockDefinition = {
   type: "action_invite_create",
   title: "Create invite",
   description: "Create an invite link for a channel",
