@@ -74,9 +74,9 @@ func StartServer(c context.Context, cfg *config.Config) error {
 	if cfg.OpenAI.APIKey != "" {
 		openaiClient = openai.NewClient(option.WithAPIKey(cfg.OpenAI.APIKey))
 		flowAssistant = flowai.NewAssistant(&openaiClient, flowai.Config{
-			Model:           cfg.FlowAI.Model,
-			ReasoningEffort: cfg.FlowAI.ReasoningEffort,
-			MaxOutputTokens: cfg.FlowAI.MaxOutputTokens,
+			Model:           cfg.Assistant.Model,
+			ReasoningEffort: cfg.Assistant.ReasoningEffort,
+			MaxOutputTokens: cfg.Assistant.MaxOutputTokens,
 		})
 	}
 
@@ -157,7 +157,7 @@ func StartServer(c context.Context, cfg *config.Config) error {
 		UserLimits: api.APIUserLimitsConfig{
 			MaxAppsPerUser: cfg.UserLimits.MaxAppsPerUser,
 		},
-		FlowAIMaxRepairs: cfg.FlowAI.MaxRepairs,
+		FlowAIMaxRepairs: cfg.Assistant.MaxRepairs,
 		Billing: api.BillingConfig{
 			LemonSqueezyAPIKey:        cfg.Billing.LemonSqueezyAPIKey,
 			LemonSqueezySigningSecret: cfg.Billing.LemonSqueezySigningSecret,

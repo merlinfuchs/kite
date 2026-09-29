@@ -33,7 +33,7 @@ max_idle_conns = 512
 max_idle_conns_per_host = 128
 max_conns_per_host = 256
 
-[flow_ai]
+[assistant]
 model = "gpt-5-mini"
 reasoning_effort = "low"
 max_output_tokens = 16000

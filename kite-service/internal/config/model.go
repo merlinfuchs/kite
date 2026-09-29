@@ -16,7 +16,7 @@ type Config struct {
 	Engine     EngineConfig     `toml:"engine"`
 	Gateway    GatewayConfig    `toml:"gateway"`
 	OpenAI     OpenAIConfig     `toml:"openai"`
-	FlowAI     FlowAIConfig     `toml:"flow_ai"`
+	Assistant  AssistantConfig  `toml:"assistant"`
 	Billing    BillingConfig    `toml:"billing"`
 	Encryption EncryptionConfig `toml:"encryption"`
 	HTTP       HTTPConfig       `toml:"http"`
@@ -161,14 +161,14 @@ type OpenAIConfig struct {
 	APIKey string `toml:"api_key"`
 }
 
-// FlowAIConfig configures the AI that edits flows in the editor. It uses the
-// OpenAI API key.
-type FlowAIConfig struct {
+// AssistantConfig configures the AI that helps users in the dashboard, like
+// the one that edits flows. It uses the OpenAI API key.
+type AssistantConfig struct {
 	Model           string `toml:"model"`
 	ReasoningEffort string `toml:"reasoning_effort"`
 	// Caps each model call, reasoning included, so a prompt's cost is bounded.
 	MaxOutputTokens int `toml:"max_output_tokens"`
-	// Repairs of a prompt's edits that don't count as new prompts.
+	// Repairs of a flow prompt's edits that don't count as new prompts.
 	MaxRepairs int `toml:"max_repairs"`
 }
 
