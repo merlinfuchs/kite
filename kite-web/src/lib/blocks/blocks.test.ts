@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { getDiscordApiOperation } from "../flow/discordApi";
+import cookieApiSpec from "../integrations/cookie_api/openapi.json";
 import { getIntegration, integrations } from "../integrations";
 import { blockDefinitions, blockIntegrations, requestBlocks } from ".";
 
@@ -100,4 +101,58 @@ describe("block definitions", () => {
       }
     }
   });
+
+  // Integrations without an official spec keep a hand-written one.
+  it("match the specs of other integrations", () => {
+    const specs: Record<string, OpenAPISpec> = { cookie_api: cookieApiSpec };
+
+    for (const block of requestBlocks().filter(
+      (b) => b.run.integration !== "discord"
+    )) {
+      const spec = specs[block.run.integration];
+      expect(spec, block.type).toBeDefined();
+
+      const op = spec.paths[block.run.path]?.[block.run.method.toLowerCase()];
+      expect(op?.operationId, block.type).toBe(block.run.operation);
+
+      const schema =
+        op?.requestBody?.content?.["application/json"]?.schema ?? {};
+      const targets = block.fields
+        .filter((f) => f.in === "body")
+        .map((f) => f.target ?? f.name);
+      for (const target of targets) {
+        expect(
+          schema.properties?.[target],
+          `${block.type}.${target}`
+        ).toBeDefined();
+      }
+      for (const name of schema.required ?? []) {
+        const field = block.fields.find((f) => (f.target ?? f.name) === name);
+        expect(field?.required, `${block.type} requires ${name}`).toBe(true);
+      }
+    }
+  });
 });
+
+interface OpenAPISpec {
+  paths: Record<
+    string,
+    Record<
+      string,
+      {
+        operationId: string;
+        requestBody?: {
+          content?: Record<
+            string,
+            {
+              schema?: {
+                properties?: Record<string, unknown>;
+                required?: string[];
+              };
+            }
+          >;
+        };
+      }
+    >
+  >;
+}

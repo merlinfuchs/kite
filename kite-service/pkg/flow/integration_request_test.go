@@ -162,3 +162,19 @@ func TestCustomBlockNeedsIntegration(t *testing.T) {
 	assert.ErrorContains(t, err, "Test API isn't connected")
 	assert.False(t, errors.Is(err, provider.ErrNotFound))
 }
+
+func TestCookieAPIQRCode(t *testing.T) {
+	httpProvider := &redirectCheckingHTTPProvider{body: `{"success":true,"url":"https://images.cookie-api.com/qr-codes/1.png"}`}
+
+	c, err := executeIntegrationBlock(t, "action_cookie_api_qr_code_create",
+		FlowNodeData{Fields: map[string]any{"qr_code_data": "https://kite.onl", "qr_code_border": "2"}},
+		map[string]string{"cookie_api": "k3y"}, httpProvider)
+	require.NoError(t, err)
+
+	assert.Equal(t, "POST", httpProvider.req.Method)
+	assert.Equal(t, "https://api.cookie-api.com/api/images/qr-code", httpProvider.req.URL.String())
+	assert.Equal(t, "k3y", httpProvider.req.Header.Get("Authorization"))
+	body, _ := io.ReadAll(httpProvider.req.Body)
+	assert.JSONEq(t, `{"data":"https://kite.onl","border":2}`, string(body))
+	assert.Equal(t, "https://images.cookie-api.com/qr-codes/1.png", c.GetNodeResult("1").Object()["url"].String())
+}

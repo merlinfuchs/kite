@@ -4711,6 +4711,127 @@
         "additionalProperties": false
       }
     },
+    "action_cookie_api_qr_code_create": {
+      "title": "Generate QR code",
+      "description": "Generate an image of a QR code with Cookie API",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord",
+        "event_schedule"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "type": "string",
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+          },
+          "qr_code_data": {
+            "type": "string",
+            "description": "What the QR code contains, like a link.",
+            "x-templated": true
+          },
+          "qr_code_style": {
+            "type": "string",
+            "description": "Either \"dots\" or \"standart\". Defaults to \"standart\".",
+            "x-templated": true
+          },
+          "qr_code_border": {
+            "type": "string",
+            "description": "Size of the border around the QR code.",
+            "x-templated": true
+          },
+          "qr_code_center_image_url": {
+            "type": "string",
+            "description": "URL of an image to show in the middle of the QR code.",
+            "x-templated": true
+          },
+          "temporary_name": {
+            "type": "string",
+            "maxLength": 32,
+            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only."
+          }
+        },
+        "required": [
+          "qr_code_data"
+        ],
+        "additionalProperties": false
+      },
+      "result_schema": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "description": "URL of the QR code's image"
+          }
+        },
+        "required": [
+          "url"
+        ],
+        "additionalProperties": false,
+        "description": "The generated QR code"
+      }
+    },
+    "action_cookie_api_image_generate": {
+      "title": "Generate AI image",
+      "description": "Generate an image from a description with Cookie API",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord",
+        "event_schedule"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "type": "string",
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+          },
+          "image_prompt": {
+            "type": "string",
+            "description": "What the image should show.",
+            "x-templated": true
+          },
+          "temporary_name": {
+            "type": "string",
+            "maxLength": 32,
+            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only."
+          }
+        },
+        "required": [
+          "image_prompt"
+        ],
+        "additionalProperties": false
+      },
+      "result_schema": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "description": "URL of the image, which is kept for 7 days"
+          }
+        },
+        "required": [
+          "url"
+        ],
+        "additionalProperties": false,
+        "description": "The generated image"
+      }
+    },
     "action_ai_chat_completion": {
       "title": "Ask AI",
       "description": "Ask artificial intelligence a question or let it respond to a prompt",
