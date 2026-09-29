@@ -12,7 +12,8 @@ import (
 )
 
 const (
-	// Only the current month is ever read, the rest is slack for support.
+	// Credit checks only read the current month. Analytics read older days
+	// from the daily rollups, which are made before the records are deleted.
 	UsageRecordExpiry = 40 * 24 * time.Hour
 	LogEntryExpiry    = 30 * 24 * time.Hour
 
@@ -181,9 +182,20 @@ func (m *UsageManager) disableApp(ctx context.Context, appID string) {
 }
 
 func (m *UsageManager) cleanupUsageRecords(ctx context.Context) error {
-	expiry := time.Now().UTC().Add(-UsageRecordExpiry)
+	// Whole days only, so a day is never rolled up while part of it has
+	// already been deleted.
+	expiry := time.Now().UTC().Add(-UsageRecordExpiry).Truncate(24 * time.Hour)
 
-	err := deleteInBatches(ctx, func(ctx context.Context) (int64, error) {
+	// Records are only deleted once their days are rolled up, otherwise the
+	// long analytics ranges would lose them.
+	rollupCtx, cancel := context.WithTimeout(ctx, 2*time.Minute)
+	_, err := m.usageStore.RollupUsageRecordsBefore(rollupCtx, expiry)
+	cancel()
+	if err != nil {
+		return fmt.Errorf("failed to roll up usage records: %w", err)
+	}
+
+	err = deleteInBatches(ctx, func(ctx context.Context) (int64, error) {
 		return m.usageStore.DeleteUsageRecordsBefore(ctx, expiry, cleanupBatchSize)
 	})
 	if err != nil {

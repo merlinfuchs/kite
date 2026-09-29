@@ -1,4 +1,4 @@
-import { useQueries, useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQueries, useQuery } from "@tanstack/react-query";
 import { apiRequest } from "./client";
 import {
   AppCollaboratorListResponse,
@@ -26,6 +26,7 @@ import {
   StateGuildListResponse,
   StateStatusGetResponse,
   SubscriptionListResponse,
+  UsageAnalyticsGetResponse,
   UsageByDayListResponse,
   UsageByTypeListResponse,
   UsageCreditsGetResponse,
@@ -141,6 +142,19 @@ export function useUsageCreditsByTypeQuery(appId: string) {
     queryFn: () =>
       apiRequest<UsageByTypeListResponse>(`/v1/apps/${appId}/usage/by-type`),
     enabled: !!appId,
+  });
+}
+
+export function useUsageAnalyticsQuery(appId: string, range: string) {
+  return useQuery({
+    queryKey: ["apps", appId, "usage", "analytics", range],
+    queryFn: () =>
+      apiRequest<UsageAnalyticsGetResponse>(
+        `/v1/apps/${appId}/usage/analytics?range=${range}`
+      ),
+    enabled: !!appId,
+    // Keeps the last range on screen while the next one loads.
+    placeholderData: keepPreviousData,
   });
 }
 

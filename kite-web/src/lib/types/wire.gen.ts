@@ -496,6 +496,55 @@ export interface UsageByTypeEntry {
   type: string;
   credits_used: number /* int */;
 }
+export interface UsageAnalyticsTotals {
+  executions: number /* int64 */;
+  credits_used: number /* int64 */;
+  command_executions: number /* int64 */;
+  command_credits_used: number /* int64 */;
+  event_listener_executions: number /* int64 */;
+  event_listener_credits_used: number /* int64 */;
+  message_executions: number /* int64 */;
+  message_credits_used: number /* int64 */;
+}
+export interface UsageAnalyticsSeriesEntry {
+  time: string /* RFC3339 */;
+  credits_used: number /* int64 */;
+  command_executions: number /* int64 */;
+  event_listener_executions: number /* int64 */;
+  message_executions: number /* int64 */;
+}
+export interface UsageAnalyticsSourceEntry {
+  id: string;
+  executions: number /* int64 */;
+  credits_used: number /* int64 */;
+}
+export interface UsageAnalyticsLogs {
+  errors: number /* int64 */;
+  warnings: number /* int64 */;
+  /**
+   * Partial is true when the range reaches further back than logs are kept.
+   */
+  partial: boolean;
+}
+export interface UsageAnalyticsGetResponse {
+  range: string;
+  /**
+   * Bucket is the size of each series entry: hour, day or month.
+   */
+  bucket: string;
+  start_at: string /* RFC3339 */;
+  end_at: string /* RFC3339 */;
+  totals: UsageAnalyticsTotals;
+  /**
+   * PreviousTotals covers the period of the same length right before, null for all time.
+   */
+  previous_totals?: UsageAnalyticsTotals;
+  series: (UsageAnalyticsSeriesEntry | undefined)[];
+  top_commands: (UsageAnalyticsSourceEntry | undefined)[];
+  top_event_listeners: (UsageAnalyticsSourceEntry | undefined)[];
+  top_messages: (UsageAnalyticsSourceEntry | undefined)[];
+  logs: UsageAnalyticsLogs;
+}
 
 //////////
 // source: user.go

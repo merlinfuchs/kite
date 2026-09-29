@@ -19,6 +19,7 @@ import {
   useMessageInstancesQuery,
   useMessageQuery,
   useMessagesQuery,
+  useUsageAnalyticsQuery,
   useUsageCreditsByDayQuery,
   useUsageCreditsByTypeQuery,
   useUsageCreditsQuery,
@@ -52,6 +53,7 @@ import {
   StateGuildChannelListResponse,
   StateGuildListResponse,
   SubscriptionListResponse,
+  UsageAnalyticsGetResponse,
   UsageByDayListResponse,
   UsageByTypeListResponse,
   UsageCreditsGetResponse,
@@ -231,6 +233,16 @@ export function useUsageCredits(
   const router = useRouter();
 
   const query = useUsageCreditsQuery(router.query.appId as string);
+  return useResponseData(query, callback);
+}
+
+export function useUsageAnalytics(
+  range: string,
+  callback?: (res: APIResponse<UsageAnalyticsGetResponse>) => void
+) {
+  const router = useRouter();
+
+  const query = useUsageAnalyticsQuery(router.query.appId as string, range);
   return useResponseData(query, callback);
 }
 
