@@ -25,10 +25,8 @@ export default function VariableList() {
         </>
       ) : (
         <>
-          {/* Variable actions */}
           <div className="flex">{variableCreateButton}</div>
 
-          {/* Variable list */}
           {variables.length === 0 ? (
             <AppEmptyPlaceholder
               title="There are no variables"

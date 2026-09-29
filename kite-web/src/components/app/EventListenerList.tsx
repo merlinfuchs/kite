@@ -32,10 +32,8 @@ export default function EventListenerList() {
         </>
       ) : (
         <>
-          {/* Event listener actions */}
           {listenerActions}
 
-          {/* Event listener list */}
           {listeners.length === 0 ? (
             <AppEmptyPlaceholder
               title="There are no event listeners"

@@ -25,10 +25,8 @@ export default function MessageList() {
         </>
       ) : (
         <>
-          {/* Message template actions */}
           <div className="flex">{messageCreateButton}</div>
 
-          {/* Message template list */}
           {messages.length === 0 ? (
             <AppEmptyPlaceholder
               title="There are no message templates"
