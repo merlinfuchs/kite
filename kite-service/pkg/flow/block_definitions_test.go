@@ -195,11 +195,15 @@ func TestRequestBlocksHaveCredits(t *testing.T) {
 }
 
 // Fields named like a setting of FlowNodeData read it, which only works for
-// text settings like channel_target.
+// text settings like channel_target, and for emojis.
 func TestBlockDefinitionFieldSettings(t *testing.T) {
 	dataType := reflect.TypeOf(FlowNodeData{})
 	for _, block := range blockDefinitions {
 		for _, field := range block.Fields {
+			if field.Type == "emoji" {
+				assert.Equalf(t, "emoji_data", field.Name, "%s.%s", block.Type, field.Name)
+				continue
+			}
 			if i, ok := flowNodeDataFields[field.Name]; ok {
 				assert.Equalf(t, reflect.String, dataType.Field(i).Type.Kind(), "%s.%s", block.Type, field.Name)
 			}
@@ -214,4 +218,67 @@ func TestBlockDefinitionNoFallbackForEmptyPlaceholder(t *testing.T) {
 	_, err := executeBlock(t, p, "action_role_create", `{"guild_target": "{{''}}"}`)
 	assert.ErrorContains(t, err, "guild_target is required")
 	assert.Empty(t, p.req.Path)
+}
+
+// The blocks that used to be written in Go send the same requests as the
+// arikawa calls they replaced, except that bans send delete_message_seconds
+// rather than rounding down to whole days.
+func TestBlockDefinitionConvertedBlocks(t *testing.T) {
+	tests := []struct {
+		nodeType FlowNodeType
+		data     string
+		method   string
+		path     string
+		body     string
+	}{
+		{"action_message_delete", `{"channel_target":"1","message_target":"2"}`, "DELETE", "/channels/1/messages/2", ""},
+		{"action_message_reaction_create", `{"channel_target":"1","message_target":"2","emoji_data":{"name":"👍"}}`, "PUT", "/channels/1/messages/2/reactions/%F0%9F%91%8D/@me", ""},
+		{"action_message_reaction_delete", `{"channel_target":"1","message_target":"2","emoji_data":{"id":"3","name":"kite"}}`, "DELETE", "/channels/1/messages/2/reactions/kite:3/@me", ""},
+		{"action_message_pin", `{"channel_target":"1","message_target":"2"}`, "PUT", "/channels/1/pins/2", ""},
+		{"action_message_unpin", `{"channel_target":"1","message_target":"2"}`, "DELETE", "/channels/1/pins/2", ""},
+		{"action_member_ban", `{"user_target":"4","member_ban_delete_message_duration_seconds":"3600"}`, "PUT", "/guilds/5/bans/4", `{"delete_message_seconds":3600}`},
+		{"action_member_unban", `{"guild_target":"9","user_target":"4"}`, "DELETE", "/guilds/9/bans/4", ""},
+		{"action_member_kick", `{"user_target":"4"}`, "DELETE", "/guilds/5/members/4", ""},
+		{"action_member_role_add", `{"user_target":"4","role_target":"7"}`, "PUT", "/guilds/5/members/4/roles/7", ""},
+		{"action_member_role_remove", `{"user_target":"4","role_target":"7"}`, "DELETE", "/guilds/5/members/4/roles/7", ""},
+		{"action_channel_delete", `{"channel_target":"1"}`, "DELETE", "/channels/1", ""},
+		{"action_thread_member_add", `{"channel_target":"1","user_target":"4"}`, "PUT", "/channels/1/thread-members/4", ""},
+		{"action_thread_member_remove", `{"channel_target":"1","user_target":"4"}`, "DELETE", "/channels/1/thread-members/4", ""},
+	}
+
+	for _, tt := range tests {
+		t.Run(string(tt.nodeType), func(t *testing.T) {
+			p := &blockTestProvider{}
+			_, err := executeBlock(t, p, tt.nodeType, tt.data)
+			require.NoError(t, err)
+
+			assert.Equal(t, tt.method, p.req.Method)
+			assert.Equal(t, tt.path, p.req.Path)
+			if tt.body == "" {
+				assert.Nil(t, p.req.Body)
+			} else {
+				assert.JSONEq(t, tt.body, string(p.req.Body))
+			}
+		})
+	}
+}
+
+func TestBlockDefinitionTimeout(t *testing.T) {
+	p := &blockTestProvider{}
+	_, err := executeBlock(t, p, "action_member_timeout", `{
+		"user_target": "4",
+		"member_timeout_duration_seconds": "60",
+		"audit_log_reason": "spam"
+	}`)
+	require.NoError(t, err)
+
+	assert.Equal(t, "PATCH", p.req.Method)
+	assert.Equal(t, "/guilds/5/members/4", p.req.Path)
+	assert.Equal(t, api.AuditLogReason("spam"), p.req.Reason)
+
+	var body struct {
+		Until discord.Timestamp `json:"communication_disabled_until"`
+	}
+	require.NoError(t, json.Unmarshal(p.req.Body, &body))
+	assert.WithinDuration(t, time.Now().Add(time.Minute), body.Until.Time(), 5*time.Second)
 }

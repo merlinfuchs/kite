@@ -238,51 +238,10 @@ func (p *DiscordProvider) EditMessage(ctx context.Context, channelID discord.Cha
 	return msg, nil
 }
 
-func (p *DiscordProvider) DeleteMessage(
-	ctx context.Context,
-	channelID discord.ChannelID,
-	messageID discord.MessageID,
-	reason api.AuditLogReason,
-) error {
-	err := p.session.DeleteMessage(channelID, messageID, reason)
-	if err != nil {
-		return fmt.Errorf("failed to delete message: %w", err)
-	}
-
-	return nil
-}
-
 func (p *DiscordProvider) CreateMessageReaction(ctx context.Context, channelID discord.ChannelID, messageID discord.MessageID, emoji discord.APIEmoji) error {
 	err := p.session.React(channelID, messageID, emoji)
 	if err != nil {
 		return fmt.Errorf("failed to create message reaction: %w", err)
-	}
-
-	return nil
-}
-
-func (p *DiscordProvider) DeleteMessageReaction(ctx context.Context, channelID discord.ChannelID, messageID discord.MessageID, emoji discord.APIEmoji) error {
-	err := p.session.Unreact(channelID, messageID, emoji)
-	if err != nil {
-		return fmt.Errorf("failed to delete message reaction: %w", err)
-	}
-
-	return nil
-}
-
-func (p *DiscordProvider) PinMessage(ctx context.Context, channelID discord.ChannelID, messageID discord.MessageID, reason api.AuditLogReason) error {
-	err := p.session.PinMessage(channelID, messageID, reason)
-	if err != nil {
-		return fmt.Errorf("failed to pin message: %w", err)
-	}
-
-	return nil
-}
-
-func (p *DiscordProvider) UnpinMessage(ctx context.Context, channelID discord.ChannelID, messageID discord.MessageID, reason api.AuditLogReason) error {
-	err := p.session.UnpinMessage(channelID, messageID, reason)
-	if err != nil {
-		return fmt.Errorf("failed to unpin message: %w", err)
 	}
 
 	return nil
@@ -310,57 +269,10 @@ func (p *DiscordProvider) CreatePoll(ctx context.Context, channelID discord.Chan
 	return &msg, nil
 }
 
-func (p *DiscordProvider) BanMember(ctx context.Context, guildID discord.GuildID, userID discord.UserID, data api.BanData) error {
-	err := p.session.Ban(guildID, userID, data)
-	if err != nil {
-		return fmt.Errorf("failed to ban member: %w", err)
-	}
-
-	return nil
-}
-
-func (p *DiscordProvider) UnbanMember(ctx context.Context, guildID discord.GuildID, userID discord.UserID, reason api.AuditLogReason) error {
-	err := p.session.Unban(guildID, userID, reason)
-	if err != nil {
-		return fmt.Errorf("failed to unban member: %w", err)
-	}
-
-	return nil
-}
-
-func (p *DiscordProvider) KickMember(ctx context.Context, guildID discord.GuildID, userID discord.UserID, reason api.AuditLogReason) error {
-	err := p.session.Kick(guildID, userID, reason)
-	if err != nil {
-		return fmt.Errorf("failed to kick member: %w", err)
-	}
-
-	return nil
-}
-
 func (p *DiscordProvider) EditMember(ctx context.Context, guildID discord.GuildID, userID discord.UserID, data api.ModifyMemberData) error {
 	err := p.session.ModifyMember(guildID, userID, data)
 	if err != nil {
 		return fmt.Errorf("failed to edit member: %w", err)
-	}
-
-	return nil
-}
-
-func (p *DiscordProvider) AddMemberRole(ctx context.Context, guildID discord.GuildID, userID discord.UserID, roleID discord.RoleID, reason api.AuditLogReason) error {
-	err := p.session.AddRole(guildID, userID, roleID, api.AddRoleData{
-		AuditLogReason: reason,
-	})
-	if err != nil {
-		return fmt.Errorf("failed to add role: %w", err)
-	}
-
-	return nil
-}
-
-func (p *DiscordProvider) RemoveMemberRole(ctx context.Context, guildID discord.GuildID, userID discord.UserID, roleID discord.RoleID, reason api.AuditLogReason) error {
-	err := p.session.RemoveRole(guildID, userID, roleID, reason)
-	if err != nil {
-		return fmt.Errorf("failed to remove role: %w", err)
 	}
 
 	return nil
@@ -393,15 +305,6 @@ func (p *DiscordProvider) EditChannel(ctx context.Context, channelID discord.Cha
 	return nil
 }
 
-func (p *DiscordProvider) DeleteChannel(ctx context.Context, channelID discord.ChannelID, reason api.AuditLogReason) error {
-	err := p.session.DeleteChannel(channelID, reason)
-	if err != nil {
-		return fmt.Errorf("failed to delete channel: %w", err)
-	}
-
-	return nil
-}
-
 func (p *DiscordProvider) StartThreadWithMessage(ctx context.Context, channelID discord.ChannelID, messageID discord.MessageID, data api.StartThreadData) (*discord.Channel, error) {
 	thread, err := p.session.StartThreadWithMessage(channelID, messageID, data)
 	if err != nil {
@@ -418,24 +321,6 @@ func (p *DiscordProvider) StartThreadWithoutMessage(ctx context.Context, channel
 	}
 
 	return thread, nil
-}
-
-func (p *DiscordProvider) AddThreadMember(ctx context.Context, channelID discord.ChannelID, userID discord.UserID) error {
-	err := p.session.AddThreadMember(channelID, userID)
-	if err != nil {
-		return fmt.Errorf("failed to add thread member: %w", err)
-	}
-
-	return nil
-}
-
-func (p *DiscordProvider) RemoveThreadMember(ctx context.Context, channelID discord.ChannelID, userID discord.UserID) error {
-	err := p.session.RemoveThreadMember(channelID, userID)
-	if err != nil {
-		return fmt.Errorf("failed to remove thread member: %w", err)
-	}
-
-	return nil
 }
 
 func (p *DiscordProvider) APIRequest(ctx context.Context, req provider.DiscordAPIRequest) ([]byte, error) {

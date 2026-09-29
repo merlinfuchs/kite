@@ -7,9 +7,41 @@ export const discordMessageReactionCreate: BlockDefinition = {
   description: "Bot adds a reaction to a message",
   icon: "smile-plus",
   category: "Messages",
-  requires: ["discord"],
   credits: 1,
   schema: nodeActionMessageReactionCreateDataSchema,
   inputs: ["channel_target", "message_target", "emoji_data", "custom_label"],
-  run: { kind: "custom" },
+  run: {
+    kind: "request",
+    integration: "discord",
+    operation: "add_my_message_reaction",
+    method: "PUT",
+    path: "/channels/{channel_id}/messages/{message_id}/reactions/{emoji_name}/@me",
+  },
+  // Only describe the request. The settings keep their schema and inputs.
+  fields: [
+    {
+      name: "channel_target",
+      in: "path",
+      target: "channel_id",
+      type: "snowflake",
+      label: "Channel",
+      description: "ID of the channel.",
+    },
+    {
+      name: "message_target",
+      in: "path",
+      target: "message_id",
+      type: "snowflake",
+      label: "Message",
+      description: "ID of the message.",
+    },
+    {
+      name: "emoji_data",
+      in: "path",
+      target: "emoji_name",
+      type: "emoji",
+      label: "Emoji",
+      description: "The emoji.",
+    },
+  ],
 };

@@ -9,6 +9,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 	"unicode/utf8"
 
 	"github.com/diamondburned/arikawa/v3/api"
@@ -199,8 +200,21 @@ func (ctx *FlowContext) evalFieldValue(raw any) (thing.Thing, error) {
 			items[i] = value
 		}
 		return thing.NewArray(items), nil
+	case nil, bool, float64, json.Number, map[string]any:
+		return thing.NewFromJSONValue(v), nil
 	}
-	return thing.NewFromJSONValue(raw), nil
+
+	// Settings of FlowNodeData that are structs, like emoji_data, are read
+	// like their JSON.
+	b, err := json.Marshal(raw)
+	if err != nil {
+		return thing.Null, err
+	}
+	var v any
+	if err := json.Unmarshal(b, &v); err != nil {
+		return thing.Null, err
+	}
+	return thing.NewFromJSONValue(v), nil
 }
 
 func isEmptyFieldValue(value thing.Thing) bool {
@@ -255,6 +269,26 @@ func (f blockField) value(value thing.Thing) (any, error) {
 			return nil, err
 		}
 		return n, nil
+	case "emoji":
+		// A custom emoji is sent as "name:id", a standard one as itself.
+		emoji := value.Object()
+		name := strings.TrimSpace(emoji["name"].String())
+		if name == "" {
+			return nil, fmt.Errorf("must be an emoji")
+		}
+		if id := strings.TrimSpace(emoji["id"].String()); id != "" {
+			return name + ":" + id, nil
+		}
+		return name, nil
+	case "seconds_until":
+		seconds, err := strconv.ParseInt(strings.TrimSpace(value.String()), 10, 64)
+		if err != nil {
+			return nil, fmt.Errorf("must be a whole number of seconds")
+		}
+		if err := f.checkRange(seconds, ""); err != nil {
+			return nil, err
+		}
+		return discord.Timestamp(time.Now().UTC().Add(time.Duration(seconds) * time.Second)), nil
 	case "boolean":
 		switch strings.TrimSpace(value.String()) {
 		case "true":

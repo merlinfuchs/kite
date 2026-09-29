@@ -67,7 +67,8 @@ export const nodeTypes: Record<string, NodeValues> = Object.fromEntries(
 );
 
 function toNodeValues(block: BlockDefinition): NodeValues {
-  const request = isRequestBlock(block) ? block : undefined;
+  // Request blocks without a schema of their own get one from their fields.
+  const request = isRequestBlock(block) && !block.schema ? block : undefined;
   const schema =
     typeof block.schema === "function" ? block.schema() : block.schema;
 

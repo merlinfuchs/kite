@@ -66,29 +66,15 @@ func init() {
 		FlowNodeTypeSuspendResponseModal:        (*CompiledFlowNode).executeSuspendResponseModal,
 		FlowNodeTypeActionMessageCreate:         (*CompiledFlowNode).executeActionMessageCreate,
 		FlowNodeTypeActionMessageEdit:           (*CompiledFlowNode).executeActionMessageEdit,
-		FlowNodeTypeActionMessageDelete:         (*CompiledFlowNode).executeActionMessageDelete,
 		FlowNodeTypeActionPrivateMessageCreate:  (*CompiledFlowNode).executeActionPrivateMessageCreate,
-		FlowNodeTypeActionMessageReactionCreate: (*CompiledFlowNode).executeActionMessageReactionCreate,
-		FlowNodeTypeActionMessageReactionDelete: (*CompiledFlowNode).executeActionMessageReactionDelete,
-		FlowNodeTypeActionMessagePin:            (*CompiledFlowNode).executeActionMessagePin,
-		FlowNodeTypeActionMessageUnpin:          (*CompiledFlowNode).executeActionMessagePin,
 		FlowNodeTypeActionPollCreate:            (*CompiledFlowNode).executeActionPollCreate,
-		FlowNodeTypeActionMemberBan:             (*CompiledFlowNode).executeActionMemberBan,
-		FlowNodeTypeActionMemberUnban:           (*CompiledFlowNode).executeActionMemberUnban,
-		FlowNodeTypeActionMemberKick:            (*CompiledFlowNode).executeActionMemberKick,
-		FlowNodeTypeActionMemberTimeout:         (*CompiledFlowNode).executeActionMemberTimeout,
 		FlowNodeTypeActionMemberEdit:            (*CompiledFlowNode).executeActionMemberEdit,
-		FlowNodeTypeActionMemberRoleAdd:         (*CompiledFlowNode).executeActionMemberRoleAdd,
-		FlowNodeTypeActionMemberRoleRemove:      (*CompiledFlowNode).executeActionMemberRoleRemove,
 		FlowNodeTypeActionMemberGet:             (*CompiledFlowNode).executeActionMemberGet,
 		FlowNodeTypeActionUserGet:               (*CompiledFlowNode).executeActionUserGet,
 		FlowNodeTypeActionChannelGet:            (*CompiledFlowNode).executeActionChannelGet,
 		FlowNodeTypeActionChannelCreate:         (*CompiledFlowNode).executeActionChannelCreate,
 		FlowNodeTypeActionChannelEdit:           (*CompiledFlowNode).executeActionChannelEdit,
-		FlowNodeTypeActionChannelDelete:         (*CompiledFlowNode).executeActionChannelDelete,
 		FlowNodeTypeActionThreadCreate:          (*CompiledFlowNode).executeActionThreadCreate,
-		FlowNodeTypeActionThreadMemberAdd:       (*CompiledFlowNode).executeActionThreadMemberAdd,
-		FlowNodeTypeActionThreadMemberRemove:    (*CompiledFlowNode).executeActionThreadMemberRemove,
 		FlowNodeTypeActionForumPostCreate:       (*CompiledFlowNode).executeActionForumPostCreate,
 		FlowNodeTypeActionRoleGet:               (*CompiledFlowNode).executeActionRoleGet,
 		FlowNodeTypeActionGuildGet:              (*CompiledFlowNode).executeActionGuildGet,
@@ -582,35 +568,6 @@ func (n *CompiledFlowNode) executeActionMessageEdit(ctx *FlowContext) error {
 	return n.ExecuteChildren(ctx)
 }
 
-func (n *CompiledFlowNode) executeActionMessageDelete(ctx *FlowContext) error {
-	channelTarget, err := ctx.EvalTemplate(n.Data.ChannelTarget)
-	if err != nil {
-		return traceError(n, err)
-	}
-
-	messageTarget, err := ctx.EvalTemplate(n.Data.MessageTarget)
-	if err != nil {
-		return traceError(n, err)
-	}
-
-	auditLogReason, err := ctx.EvalTemplate(n.Data.AuditLogReason)
-	if err != nil {
-		return traceError(n, err)
-	}
-
-	err = ctx.Discord.DeleteMessage(
-		ctx,
-		discord.ChannelID(channelTarget.Snowflake()),
-		discord.MessageID(messageTarget.Snowflake()),
-		api.AuditLogReason(auditLogReason.String()),
-	)
-	if err != nil {
-		return traceError(n, err)
-	}
-
-	return n.ExecuteChildren(ctx)
-}
-
 func (n *CompiledFlowNode) executeActionPrivateMessageCreate(ctx *FlowContext) error {
 	if ctx.IsEntry() {
 		return n.resumeFromComponent(ctx)
@@ -649,110 +606,6 @@ func (n *CompiledFlowNode) executeActionPrivateMessageCreate(ctx *FlowContext) e
 	return n.ExecuteChildren(ctx)
 }
 
-func (n *CompiledFlowNode) executeActionMessageReactionCreate(ctx *FlowContext) error {
-	channelTarget, err := ctx.EvalTemplate(n.Data.ChannelTarget)
-	if err != nil {
-		return traceError(n, err)
-	}
-
-	messageTarget, err := ctx.EvalTemplate(n.Data.MessageTarget)
-	if err != nil {
-		return traceError(n, err)
-	}
-
-	if n.Data.EmojiData == nil {
-		return &FlowError{
-			Code:    FlowNodeErrorUnknown,
-			Message: "emoji_data is nil",
-		}
-	}
-
-	emoji := discord.APIEmoji(n.Data.EmojiData.Name)
-	if n.Data.EmojiData.ID != "" {
-		emoji = discord.APIEmoji(fmt.Sprintf("%s:%s", n.Data.EmojiData.Name, n.Data.EmojiData.ID))
-	}
-
-	err = ctx.Discord.CreateMessageReaction(
-		ctx,
-		discord.ChannelID(channelTarget.Snowflake()),
-		discord.MessageID(messageTarget.Snowflake()),
-		emoji,
-	)
-	if err != nil {
-		return traceError(n, err)
-	}
-
-	return n.ExecuteChildren(ctx)
-}
-
-func (n *CompiledFlowNode) executeActionMessageReactionDelete(ctx *FlowContext) error {
-	channelTarget, err := ctx.EvalTemplate(n.Data.ChannelTarget)
-	if err != nil {
-		return traceError(n, err)
-	}
-
-	messageTarget, err := ctx.EvalTemplate(n.Data.MessageTarget)
-	if err != nil {
-		return traceError(n, err)
-	}
-
-	if n.Data.EmojiData == nil {
-		return &FlowError{
-			Code:    FlowNodeErrorUnknown,
-			Message: "emoji_data is nil",
-		}
-	}
-
-	emoji := discord.APIEmoji(n.Data.EmojiData.Name)
-	if n.Data.EmojiData.ID != "" {
-		emoji = discord.APIEmoji(fmt.Sprintf("%s:%s", n.Data.EmojiData.Name, n.Data.EmojiData.ID))
-	}
-
-	err = ctx.Discord.DeleteMessageReaction(
-		ctx,
-		discord.ChannelID(channelTarget.Snowflake()),
-		discord.MessageID(messageTarget.Snowflake()),
-		emoji,
-	)
-	if err != nil {
-		return traceError(n, err)
-	}
-
-	return n.ExecuteChildren(ctx)
-}
-
-func (n *CompiledFlowNode) executeActionMessagePin(ctx *FlowContext) error {
-	channelTarget, err := ctx.EvalTemplate(n.Data.ChannelTarget)
-	if err != nil {
-		return traceError(n, err)
-	}
-
-	messageTarget, err := ctx.EvalTemplate(n.Data.MessageTarget)
-	if err != nil {
-		return traceError(n, err)
-	}
-
-	auditLogReason, err := ctx.EvalTemplate(n.Data.AuditLogReason)
-	if err != nil {
-		return traceError(n, err)
-	}
-
-	channelID := discord.ChannelID(channelTarget.Snowflake())
-	messageID := discord.MessageID(messageTarget.Snowflake())
-	reason := api.AuditLogReason(auditLogReason.String())
-
-	if n.Type == FlowNodeTypeActionMessagePin {
-		err = ctx.Discord.PinMessage(ctx, channelID, messageID, reason)
-	} else {
-		err = ctx.Discord.UnpinMessage(ctx, channelID, messageID, reason)
-	}
-	if err != nil {
-		return traceError(n, err)
-	}
-
-	return n.ExecuteChildren(ctx)
-}
-
 func (n *CompiledFlowNode) executeActionPollCreate(ctx *FlowContext) error {
 	if n.Data.PollData == nil {
 		return &FlowError{
@@ -781,142 +634,6 @@ func (n *CompiledFlowNode) executeActionPollCreate(ctx *FlowContext) error {
 	}
 
 	ctx.StoreNodeResult(n, thing.NewDiscordMessage(*msg))
-	return n.ExecuteChildren(ctx)
-}
-
-func (n *CompiledFlowNode) executeActionMemberBan(ctx *FlowContext) error {
-	guildID, err := n.targetGuildID(ctx)
-	if err != nil {
-		return traceError(n, err)
-	}
-
-	userID, err := ctx.EvalTemplate(n.Data.UserTarget)
-	if err != nil {
-		return traceError(n, err)
-	}
-
-	messageDeleteSeconds, err := ctx.EvalTemplate(n.Data.MemberBanDeleteMessageDurationSeconds)
-	if err != nil {
-		return traceError(n, err)
-	}
-
-	auditLogReason, err := ctx.EvalTemplate(n.Data.AuditLogReason)
-	if err != nil {
-		return traceError(n, err)
-	}
-
-	err = ctx.Discord.BanMember(
-		ctx,
-		guildID,
-		discord.UserID(userID.Snowflake()),
-		api.BanData{
-			DeleteDays:     option.NewUint(uint(messageDeleteSeconds.Float() / 86400)),
-			AuditLogReason: api.AuditLogReason(auditLogReason.String()),
-		},
-	)
-	if err != nil {
-		return traceError(n, err)
-	}
-
-	return n.ExecuteChildren(ctx)
-}
-
-func (n *CompiledFlowNode) executeActionMemberUnban(ctx *FlowContext) error {
-	guildID, err := n.targetGuildID(ctx)
-	if err != nil {
-		return traceError(n, err)
-	}
-
-	userID, err := ctx.EvalTemplate(n.Data.UserTarget)
-	if err != nil {
-		return traceError(n, err)
-	}
-
-	auditLogReason, err := ctx.EvalTemplate(n.Data.AuditLogReason)
-	if err != nil {
-		return traceError(n, err)
-	}
-
-	err = ctx.Discord.UnbanMember(
-		ctx,
-		guildID,
-		discord.UserID(userID.Snowflake()),
-		api.AuditLogReason(auditLogReason.String()),
-	)
-	if err != nil {
-		return traceError(n, err)
-	}
-
-	return n.ExecuteChildren(ctx)
-}
-
-func (n *CompiledFlowNode) executeActionMemberKick(ctx *FlowContext) error {
-	guildID, err := n.targetGuildID(ctx)
-	if err != nil {
-		return traceError(n, err)
-	}
-
-	userID, err := ctx.EvalTemplate(n.Data.UserTarget)
-	if err != nil {
-		return traceError(n, err)
-	}
-
-	auditLogReason, err := ctx.EvalTemplate(n.Data.AuditLogReason)
-	if err != nil {
-		return traceError(n, err)
-	}
-
-	err = ctx.Discord.KickMember(
-		ctx,
-		guildID,
-		discord.UserID(userID.Snowflake()),
-		api.AuditLogReason(auditLogReason.String()),
-	)
-	if err != nil {
-		return traceError(n, err)
-	}
-
-	return n.ExecuteChildren(ctx)
-}
-
-func (n *CompiledFlowNode) executeActionMemberTimeout(ctx *FlowContext) error {
-	guildID, err := n.targetGuildID(ctx)
-	if err != nil {
-		return traceError(n, err)
-	}
-
-	memberID, err := ctx.EvalTemplate(n.Data.UserTarget)
-	if err != nil {
-		return traceError(n, err)
-	}
-
-	timeoutSeconds, err := ctx.EvalTemplate(n.Data.MemberTimeoutDurationSeconds)
-	if err != nil {
-		return traceError(n, err)
-	}
-
-	auditLogReason, err := ctx.EvalTemplate(n.Data.AuditLogReason)
-	if err != nil {
-		return traceError(n, err)
-	}
-
-	communicationDisabledUntil := discord.Timestamp(time.Now().UTC().Add(
-		time.Duration(timeoutSeconds.Float()) * time.Second,
-	))
-
-	err = ctx.Discord.EditMember(
-		ctx,
-		guildID,
-		discord.UserID(memberID.Snowflake()),
-		api.ModifyMemberData{
-			CommunicationDisabledUntil: &communicationDisabledUntil,
-			AuditLogReason:             api.AuditLogReason(auditLogReason.String()),
-		},
-	)
-	if err != nil {
-		return traceError(n, err)
-	}
-
 	return n.ExecuteChildren(ctx)
 }
 
@@ -956,76 +673,6 @@ func (n *CompiledFlowNode) executeActionMemberEdit(ctx *FlowContext) error {
 		guildID,
 		discord.UserID(userID.Snowflake()),
 		data,
-	)
-	if err != nil {
-		return traceError(n, err)
-	}
-
-	return n.ExecuteChildren(ctx)
-}
-
-func (n *CompiledFlowNode) executeActionMemberRoleAdd(ctx *FlowContext) error {
-	guildID, err := n.targetGuildID(ctx)
-	if err != nil {
-		return traceError(n, err)
-	}
-
-	userID, err := ctx.EvalTemplate(n.Data.UserTarget)
-	if err != nil {
-		return traceError(n, err)
-	}
-
-	roleID, err := ctx.EvalTemplate(n.Data.RoleTarget)
-	if err != nil {
-		return traceError(n, err)
-	}
-
-	auditLogReason, err := ctx.EvalTemplate(n.Data.AuditLogReason)
-	if err != nil {
-		return traceError(n, err)
-	}
-
-	err = ctx.Discord.AddMemberRole(
-		ctx,
-		guildID,
-		discord.UserID(userID.Snowflake()),
-		discord.RoleID(roleID.Snowflake()),
-		api.AuditLogReason(auditLogReason.String()),
-	)
-	if err != nil {
-		return traceError(n, err)
-	}
-
-	return n.ExecuteChildren(ctx)
-}
-
-func (n *CompiledFlowNode) executeActionMemberRoleRemove(ctx *FlowContext) error {
-	guildID, err := n.targetGuildID(ctx)
-	if err != nil {
-		return traceError(n, err)
-	}
-
-	userID, err := ctx.EvalTemplate(n.Data.UserTarget)
-	if err != nil {
-		return traceError(n, err)
-	}
-
-	roleID, err := ctx.EvalTemplate(n.Data.RoleTarget)
-	if err != nil {
-		return traceError(n, err)
-	}
-
-	auditLogReason, err := ctx.EvalTemplate(n.Data.AuditLogReason)
-	if err != nil {
-		return traceError(n, err)
-	}
-
-	err = ctx.Discord.RemoveMemberRole(
-		ctx,
-		guildID,
-		discord.UserID(userID.Snowflake()),
-		discord.RoleID(roleID.Snowflake()),
-		api.AuditLogReason(auditLogReason.String()),
 	)
 	if err != nil {
 		return traceError(n, err)
@@ -1178,29 +825,6 @@ func (n *CompiledFlowNode) executeActionChannelEdit(ctx *FlowContext) error {
 	return n.ExecuteChildren(ctx)
 }
 
-func (n *CompiledFlowNode) executeActionChannelDelete(ctx *FlowContext) error {
-	channelTarget, err := ctx.EvalTemplate(n.Data.ChannelTarget)
-	if err != nil {
-		return traceError(n, err)
-	}
-
-	auditLogReason, err := ctx.EvalTemplate(n.Data.AuditLogReason)
-	if err != nil {
-		return traceError(n, err)
-	}
-
-	err = ctx.Discord.DeleteChannel(
-		ctx,
-		discord.ChannelID(channelTarget.Snowflake()),
-		api.AuditLogReason(auditLogReason.String()),
-	)
-	if err != nil {
-		return traceError(n, err)
-	}
-
-	return n.ExecuteChildren(ctx)
-}
-
 func (n *CompiledFlowNode) executeActionThreadCreate(ctx *FlowContext) error {
 	if n.Data.ChannelData == nil {
 		return traceError(n, fmt.Errorf("channel data is required"))
@@ -1253,52 +877,6 @@ func (n *CompiledFlowNode) executeActionThreadCreate(ctx *FlowContext) error {
 	}
 
 	ctx.StoreNodeResult(n, thing.NewDiscordChannel(*thread))
-	return n.ExecuteChildren(ctx)
-}
-
-func (n *CompiledFlowNode) executeActionThreadMemberAdd(ctx *FlowContext) error {
-	channelTarget, err := ctx.EvalTemplate(n.Data.ChannelTarget)
-	if err != nil {
-		return traceError(n, err)
-	}
-
-	userTarget, err := ctx.EvalTemplate(n.Data.UserTarget)
-	if err != nil {
-		return traceError(n, err)
-	}
-
-	err = ctx.Discord.AddThreadMember(
-		ctx,
-		discord.ChannelID(channelTarget.Snowflake()),
-		discord.UserID(userTarget.Snowflake()),
-	)
-	if err != nil {
-		return traceError(n, err)
-	}
-
-	return n.ExecuteChildren(ctx)
-}
-
-func (n *CompiledFlowNode) executeActionThreadMemberRemove(ctx *FlowContext) error {
-	channelTarget, err := ctx.EvalTemplate(n.Data.ChannelTarget)
-	if err != nil {
-		return traceError(n, err)
-	}
-
-	userTarget, err := ctx.EvalTemplate(n.Data.UserTarget)
-	if err != nil {
-		return traceError(n, err)
-	}
-
-	err = ctx.Discord.RemoveThreadMember(
-		ctx,
-		discord.ChannelID(channelTarget.Snowflake()),
-		discord.UserID(userTarget.Snowflake()),
-	)
-	if err != nil {
-		return traceError(n, err)
-	}
-
 	return n.ExecuteChildren(ctx)
 }
 

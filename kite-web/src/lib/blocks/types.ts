@@ -15,7 +15,11 @@ export type BlockFieldType =
   | "snowflake_list"
   | "integer"
   | "boolean"
-  | "string";
+  | "string"
+  // An emoji setting like emoji_data, sent as its name or "name:id".
+  | "emoji"
+  // A number of seconds, sent as the timestamp that many seconds from now.
+  | "seconds_until";
 
 export interface BlockField {
   // Setting in the node's data, like "channel_target" or "max_age". Settings
@@ -105,6 +109,7 @@ export interface BlockDefinition {
   // Settings either as fields, whose schema and inputs are generated, or as a
   // schema with the names of the editor inputs (widgets) that edit it. A
   // schema can be a function, for schemas that depend on other blocks.
+  // Request blocks with a schema use their fields only for the request.
   fields?: BlockField[];
   schema?: ZodSchema | (() => ZodSchema);
   inputs?: string[];

@@ -201,6 +201,8 @@ const formats: Record<BlockField["type"], [RegExp, string] | null> = {
   integer: discordApiParamFormats.integer,
   boolean: discordApiParamFormats.boolean,
   string: null,
+  emoji: null,
+  seconds_until: [/^[0-9]+$/, "Must be a number of seconds"],
 };
 
 function fieldSchema(field: BlockField) {

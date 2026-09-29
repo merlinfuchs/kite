@@ -7,9 +7,26 @@ export const discordChannelDelete: BlockDefinition = {
   description: "Delete a channel or thread ",
   icon: "folder-x",
   category: "Channels",
-  requires: ["discord"],
   credits: 1,
   schema: nodeActionChannelDeleteDataSchema,
   inputs: ["channel_target", "audit_log_reason", "custom_label"],
-  run: { kind: "custom" },
+  audit_log_reason: true,
+  run: {
+    kind: "request",
+    integration: "discord",
+    operation: "delete_channel",
+    method: "DELETE",
+    path: "/channels/{channel_id}",
+  },
+  // Only describe the request. The settings keep their schema and inputs.
+  fields: [
+    {
+      name: "channel_target",
+      in: "path",
+      target: "channel_id",
+      type: "snowflake",
+      label: "Channel",
+      description: "ID of the channel.",
+    },
+  ],
 };

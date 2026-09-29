@@ -7,7 +7,6 @@ export const discordMessageUnpin: BlockDefinition = {
   description: "Bot unpins a message in a channel",
   icon: "pin-off",
   category: "Messages",
-  requires: ["discord"],
   credits: 1,
   schema: nodeActionMessagePinDataSchema,
   inputs: [
@@ -16,5 +15,31 @@ export const discordMessageUnpin: BlockDefinition = {
     "audit_log_reason",
     "custom_label",
   ],
-  run: { kind: "custom" },
+  audit_log_reason: true,
+  run: {
+    kind: "request",
+    integration: "discord",
+    operation: "deprecated_delete_pin",
+    method: "DELETE",
+    path: "/channels/{channel_id}/pins/{message_id}",
+  },
+  // Only describe the request. The settings keep their schema and inputs.
+  fields: [
+    {
+      name: "channel_target",
+      in: "path",
+      target: "channel_id",
+      type: "snowflake",
+      label: "Channel",
+      description: "ID of the channel.",
+    },
+    {
+      name: "message_target",
+      in: "path",
+      target: "message_id",
+      type: "snowflake",
+      label: "Message",
+      description: "ID of the message.",
+    },
+  ],
 };

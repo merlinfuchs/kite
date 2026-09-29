@@ -7,7 +7,6 @@ export const discordMessageDelete: BlockDefinition = {
   description: "Bot deletes an existing message in a channel",
   icon: "message-circle-x",
   category: "Messages",
-  requires: ["discord"],
   credits: 1,
   schema: nodeActionMessageDeleteDataSchema,
   inputs: [
@@ -16,5 +15,31 @@ export const discordMessageDelete: BlockDefinition = {
     "audit_log_reason",
     "custom_label",
   ],
-  run: { kind: "custom" },
+  audit_log_reason: true,
+  run: {
+    kind: "request",
+    integration: "discord",
+    operation: "delete_message",
+    method: "DELETE",
+    path: "/channels/{channel_id}/messages/{message_id}",
+  },
+  // Only describe the request. The settings keep their schema and inputs.
+  fields: [
+    {
+      name: "channel_target",
+      in: "path",
+      target: "channel_id",
+      type: "snowflake",
+      label: "Channel",
+      description: "ID of the channel.",
+    },
+    {
+      name: "message_target",
+      in: "path",
+      target: "message_id",
+      type: "snowflake",
+      label: "Message",
+      description: "ID of the message.",
+    },
+  ],
 };

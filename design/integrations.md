@@ -305,11 +305,11 @@ Condition items and the loop's each and end blocks are definitions of their own,
 
 About 18 of Kite's actions are a single Discord REST call: reactions, pin and unpin, message delete, ban, unban, kick, timeout, member edit, role add and remove, the channel blocks and the thread blocks. After the step above they're definitions with a custom `run`, and converting one means replacing its Go handler with a request `run`, until custom handlers are left only where there's real logic: responses, message blocks with the builder, voice and status (gateway), AI, variables and control flow.
 
-A converted block keeps its node type, its field names (`channel_target`, `message_target`, `emoji_data`, ...) and its result type, so saved flows keep working unchanged. Definitions therefore map existing field names onto the request, and a few fields need a named conversion: `emoji_data` becomes `name:id` in the reaction path, and a timeout's duration in seconds becomes the `communication_disabled_until` timestamp. A block that needs more than a named conversion stays in code.
+A converted block keeps its node type, its field names (`channel_target`, `message_target`, `emoji_data`, ...) and its result type, so saved flows keep working unchanged. Definitions therefore map existing field names onto the request, and a few fields need a named conversion, done by the field types `emoji` (`emoji_data` becomes `name:id` in the reaction path) and `seconds_until` (a timeout's duration in seconds becomes the `communication_disabled_until` timestamp). A block that needs more than a named conversion stays in code. Converted blocks keep their zod schema and editor inputs, so the editor and the flow AI see no change, and their fields only describe the request.
 
 The get blocks (`action_message_get`, `action_channel_get` and the others) read the gateway cache before calling Discord. A converted get block would always call Discord and use more of the rate limit on busy event flows, so they convert last, once definitions can say "check the cache first".
 
-Each conversion runs the old and the new implementation against a fake Discord server, like the provider test in #469, and checks they send the same request and give the same result and errors. Then the Go code is deleted.
+Each converted block has a test for the exact request it sends, matching the arikawa call it replaced. Then the Go handler and the provider method are deleted.
 
 ## Future: platform integrations
 
@@ -323,7 +323,7 @@ That's far off. The two rules above keep it open without extra work now: block t
 
 1. Done: definition format, executor and editor rendering, with create invite (#212), bulk delete (#210), role create (#208) and the message list from #468.
 2. Done: one format for all blocks. Every block has a definition with a custom or request `run`, custom blocks name their widgets, conditions and loops their structure, and Go runs custom blocks from a handler map instead of the switch in `Execute`.
-3. Convert blocks that are a single request from custom to request `run`, starting with reactions, pin and unpin, then the moderation and channel blocks. Get blocks last, once definitions support the cache.
+3. Done: 14 blocks that are a single request run as requests: message delete, reactions, pin and unpin, ban, unban, kick, timeout, member roles, channel delete and thread members. They keep their schema and editor inputs, and their fields only describe the request, with the field types `emoji` and `seconds_until` for the two conversions they need. Still custom: member edit (nested settings), channel and thread create and edit and forum posts (settings that are whole objects), and the get blocks, which read Kite's cache.
 4. #419 with room for integration credentials, then the integrations settings page, connect prompts and error nodes. Cookie API as the first non-Discord integration, pending the partnership. For transcripts, ask cookie-api for a mode where Kite sends the messages instead of a bot token.
 5. The LLM draft script and contributor docs.
 6. Triggers from other services (the webhook listener, #181), if Kite goes beyond Discord. Integrations only add actions.
