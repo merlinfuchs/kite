@@ -2,12 +2,15 @@
   "blocks": [
     {
       "type": "action_message_list",
-      "integration": "discord",
-      "operation": "list_messages",
-      "method": "GET",
-      "path": "/channels/{channel_id}/messages",
       "credits": 1,
       "audit_log_reason": false,
+      "run": {
+        "kind": "request",
+        "integration": "discord",
+        "operation": "list_messages",
+        "method": "GET",
+        "path": "/channels/{channel_id}/messages"
+      },
       "fields": [
         {
           "name": "channel_target",
@@ -61,12 +64,15 @@
     },
     {
       "type": "action_message_bulk_delete",
-      "integration": "discord",
-      "operation": "bulk_delete_messages",
-      "method": "POST",
-      "path": "/channels/{channel_id}/messages/bulk-delete",
       "credits": 1,
       "audit_log_reason": true,
+      "run": {
+        "kind": "request",
+        "integration": "discord",
+        "operation": "bulk_delete_messages",
+        "method": "POST",
+        "path": "/channels/{channel_id}/messages/bulk-delete"
+      },
       "fields": [
         {
           "name": "channel_target",
@@ -95,12 +101,15 @@
     },
     {
       "type": "action_invite_create",
-      "integration": "discord",
-      "operation": "create_channel_invite",
-      "method": "POST",
-      "path": "/channels/{channel_id}/invites",
       "credits": 1,
       "audit_log_reason": true,
+      "run": {
+        "kind": "request",
+        "integration": "discord",
+        "operation": "create_channel_invite",
+        "method": "POST",
+        "path": "/channels/{channel_id}/invites"
+      },
       "fields": [
         {
           "name": "channel_target",
@@ -165,12 +174,15 @@
     },
     {
       "type": "action_role_create",
-      "integration": "discord",
-      "operation": "create_guild_role",
-      "method": "POST",
-      "path": "/guilds/{guild_id}/roles",
       "credits": 1,
       "audit_log_reason": true,
+      "run": {
+        "kind": "request",
+        "integration": "discord",
+        "operation": "create_guild_role",
+        "method": "POST",
+        "path": "/guilds/{guild_id}/roles"
+      },
       "fields": [
         {
           "name": "guild_target",

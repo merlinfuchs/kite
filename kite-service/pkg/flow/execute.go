@@ -1905,8 +1905,8 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			return n.ExecuteChildren(ctx)
 		}
 	default:
-		if block, ok := integrationBlocks[n.Type]; ok {
-			return n.executeIntegrationBlock(ctx, block)
+		if block, ok := blockDefinitions[n.Type]; ok {
+			return n.executeBlockDefinition(ctx, block)
 		}
 
 		return &FlowError{
@@ -1919,7 +1919,7 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 }
 
 func (n *CompiledFlowNode) CreditsCost() int {
-	if block, ok := integrationBlocks[n.Type]; ok {
+	if block, ok := blockDefinitions[n.Type]; ok {
 		return block.Credits
 	}
 

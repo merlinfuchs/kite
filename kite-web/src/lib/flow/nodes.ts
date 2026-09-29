@@ -94,11 +94,7 @@ import {
   nodeActionRobloxUserGetResultSchema,
   nodeActionRoleGetResultSchema,
 } from "./resultSchema";
-import {
-  integrationBlockDataFields,
-  integrationBlockDataSchema,
-  integrationBlocks,
-} from "../integrations";
+import { blockDataFields, blockDataSchema, blockDefinitions } from "../blocks";
 
 export const primaryColor = "#3B82F6";
 
@@ -726,9 +722,9 @@ export const nodeTypes: Record<string, NodeValues> = {
     defaultDescription:
       "Send a request to any endpoint of the Discord API, for things no other block does",
     dataSchema: nodeActionDiscordApiRequestDataSchema(
-      integrationBlocks
-        .filter((b) => b.integration === "discord")
-        .map((b) => `${b.operation}: ${b.type}`)
+      blockDefinitions
+        .filter((b) => b.run.integration === "discord")
+        .map((b) => `${b.run.operation}: ${b.type}`)
         .join(", ")
     ),
     resultSchema: nodeActionDiscordApiRequestResultSchema,
@@ -995,15 +991,15 @@ export const nodeTypes: Record<string, NodeValues> = {
     dataFields: ["modal_data", "custom_label"],
   },
   ...Object.fromEntries(
-    integrationBlocks.map((block): [string, NodeValues] => [
+    blockDefinitions.map((block): [string, NodeValues] => [
       block.type,
       {
         color: actionColor,
         icon: block.icon,
         defaultTitle: block.title,
         defaultDescription: block.description,
-        dataSchema: integrationBlockDataSchema(block),
-        dataFields: integrationBlockDataFields(block),
+        dataSchema: blockDataSchema(block),
+        dataFields: blockDataFields(block),
         resultSchema: block.result?.schema,
         creditsCost: block.credits,
       },

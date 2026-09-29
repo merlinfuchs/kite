@@ -1,18 +1,21 @@
-import { roleResultSchema } from "../../../flow/resultSchema";
-import { IntegrationBlock } from "../../types";
+import { roleResultSchema } from "../../flow/resultSchema";
+import { BlockDefinition } from "../types";
 
-export const roleCreate: IntegrationBlock = {
+export const createRole: BlockDefinition = {
   type: "action_role_create",
-  integration: "discord",
-  operation: "create_guild_role",
-  method: "POST",
-  path: "/guilds/{guild_id}/roles",
   title: "Create role",
   description: "Create a new role in the server",
   icon: "shield-plus",
   category: "Roles",
   credits: 1,
   audit_log_reason: true,
+  run: {
+    kind: "request",
+    integration: "discord",
+    operation: "create_guild_role",
+    method: "POST",
+    path: "/guilds/{guild_id}/roles",
+  },
   fields: [
     {
       name: "guild_target",

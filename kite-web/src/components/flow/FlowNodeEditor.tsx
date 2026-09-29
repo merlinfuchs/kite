@@ -14,8 +14,8 @@ import { activityTypeOptions, statusOptions } from "@/lib/discord/presence";
 import { useAppFeature, useMessages, useVariables } from "@/lib/hooks/api";
 import { getFlowCreditsCost } from "@/lib/flow/schedule";
 import { aiModelTiers, getAiModelTier } from "@/lib/flow/aiModels";
-import { getIntegrationBlock } from "@/lib/integrations";
-import { IntegrationBlockField } from "@/lib/integrations/types";
+import { getBlockDefinition } from "@/lib/blocks";
+import { BlockField } from "@/lib/blocks/types";
 import {
   discordApiOperationLabel,
   discordApiOperations,
@@ -148,7 +148,7 @@ const intputs: Record<string, any> = {
   variable_value: VariableValueInput,
   http_request_data: HttpRequestDataInput,
   discord_api_request_data: DiscordApiRequestDataInput,
-  integration_fields: IntegrationFieldsInput,
+  block_fields: BlockFieldsInput,
   ai_chat_completion_data: AiChatCompletionDataInput,
   ai_web_search_data: AiWebSearchDataInput,
   expression: ExpressionInput,
@@ -1069,16 +1069,11 @@ const discordApiOperationItems = discordApiOperations.map((o) => ({
   description: `${o.method} ${o.path}`,
 }));
 
-function IntegrationFieldsInput({
-  type,
-  data,
-  updateData,
-  errors,
-}: InputProps) {
-  const block = getIntegrationBlock(type);
+function BlockFieldsInput({ type, data, updateData, errors }: InputProps) {
+  const block = getBlockDefinition(type);
   if (!block) return null;
 
-  function setField(field: IntegrationBlockField, value: string) {
+  function setField(field: BlockField, value: string) {
     updateData({ [field.name]: value || undefined });
   }
 

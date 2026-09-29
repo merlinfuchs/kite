@@ -20,35 +20,45 @@ The Discord API Request block (#469) already has most of the machinery: endpoint
 
 ## Concepts
 
-**Integration.** Defined in the repo, one directory each. It has an id, name, icon, an OpenAPI spec, a base URL, an auth scheme and its blocks. Discord, cookie-api and Roblox would be the first ones.
+**Integration.** A service Kite can talk to, defined in the repo, one directory each. It has an id, name, icon, an OpenAPI spec, a base URL and an auth scheme. Discord, cookie-api and Roblox would be the first ones. Integrations don't list blocks: blocks reference the integrations they need.
 
 **Credential.** What an app enters to connect an integration, usually an API key. It's stored per app, encrypted, write-only, and bound to the integration's host. Discord's credential is the bot token the app already has.
 
-**Block definition.** One file per block, and self-contained: the request it sends, the fields the user fills in with their types and how they map onto the request, and what the block returns. Both the service and the editor read the same file, and nothing at runtime reads a spec.
+**Block definition.** One file per block, and self-contained: the fields the user fills in with their types, how the block runs, e.g. a request to an integration and how the fields map onto it, and what the block returns. Both the service and the editor read the same file, and nothing at runtime reads a spec. A block needs the integrations its requests go to, plus any it lists in `requires`, and only works when the app has them connected.
 
 **Spec.** Every integration has an `openapi.json`, the spec Kite builds from. For a service with an official spec it's a trimmed copy at a pinned commit, written by a script. For one without, like cookie-api, it's written by hand from their docs. Nothing at runtime reads it: it's the input for generating block definitions, for the raw request block's operation list, and for checking definitions when the service changes its API.
 
-**Raw request block.** An integration can offer a raw block like Discord API Request, where any operation of its spec can be picked, as the escape hatch for endpoints nobody has curated yet. Its operation list is a build output generated from `openapi.json`, like `discordApi.json` today, not a file in the integration's folder.
+**Raw request block.** An integration can turn on a raw block like Discord API Request, where any operation of its spec can be picked, as the escape hatch for endpoints nobody has curated yet. The block is generated for the integration, and its operation list is a build output generated from `openapi.json`, like `discordApi.json` today.
 
 ## Definition files
 
-Definitions are TypeScript objects in `kite-web/src/lib/integrations`, typed by `types.ts`, so the compiler checks them and result schemas can be zod schemas like those of other blocks. A test writes what the service needs to `kite-service/pkg/flow/integration_blocks.json`, which the service embeds, the same way `catalog.json` is generated. `pnpm test -u` updates it and CI fails when it's stale. JSON or YAML files read by both sides would need a JSON Schema and a validator on each side for the checks TypeScript gives for free.
+Definitions are TypeScript objects, so the compiler checks them and result schemas can be zod schemas like those of other blocks. A test writes what the service needs to `kite-service/pkg/flow/block_definitions.json`, which the service embeds, the same way `catalog.json` is generated. `pnpm test -u` updates it and CI fails when it's stale. JSON or YAML files read by both sides would need a JSON Schema and a validator on each side for the checks TypeScript gives for free.
 
-Every integration's folder has the same shape:
+Blocks and integrations live in separate folders and reference each other by ID:
 
 ```
-kite-web/src/lib/integrations/
-  types.ts
-  index.ts               all integrations, and the editor schema for their blocks
-  discord/
-    index.ts
-    blocks/
-      roleCreate.ts
-  cookie_api/            later
-    index.ts
-    openapi.json         hand-written from their docs, they publish none
-    blocks/
+kite-web/src/lib/
+  integrations/
+    types.ts
+    index.ts             all integrations
+    discord/
+      index.ts
+    cookie_api/          later
+      index.ts
+      openapi.json       hand-written from their docs, they publish none
+  blocks/
+    types.ts
+    index.ts             all blocks, and the editor schema for them
+    messages/
+      listMessages.ts
+      bulkDeleteMessages.ts
+    channels/
+      createInvite.ts
+    roles/
+      createRole.ts
 ```
+
+Block folders follow the block explorer's categories, so related blocks stay together whichever integration they use, and blocks of Kite itself, like conditions and variables, need no integration to have a place. A block that needs several integrations, like a transcript that reads Discord messages and renders them with cookie-api, lists them all.
 
 Discord's spec is trimmed to `src/lib/flow/discordApi.json` by `scripts/discord-api.mjs`, which the raw block uses already. Other integrations would keep theirs in their folder as `openapi.json`.
 
@@ -76,18 +86,21 @@ Proposed for later integrations, the integration's own settings in its `index.ts
 A block definition, as implemented:
 
 ```ts
-export const roleCreate: IntegrationBlock = {
+export const createRole: BlockDefinition = {
   type: "action_role_create",
-  integration: "discord",
-  operation: "create_guild_role",
-  method: "POST",
-  path: "/guilds/{guild_id}/roles",
   title: "Create role",
   description: "Create a new role in the server",
   icon: "shield-plus",
   category: "Roles",
   credits: 1,
   audit_log_reason: true,
+  run: {
+    kind: "request",
+    integration: "discord",
+    operation: "create_guild_role",
+    method: "POST",
+    path: "/guilds/{guild_id}/roles",
+  },
   fields: [
     {
       name: "guild_target",
@@ -107,13 +120,26 @@ export const roleCreate: IntegrationBlock = {
 };
 ```
 
+`run.integration` is the integration the request goes to, which the block needs. Blocks that need more, or that run custom code, list integrations in `requires` (proposed, not implemented yet):
+
+```ts
+export const createTranscript: BlockDefinition = {
+  type: "action_cookie_api_transcript_create",
+  // ...
+  requires: ["discord", "cookie_api"],
+  run: { kind: "custom" },
+};
+```
+
+A block's integrations are those of its requests and its `requires` together. Discord blocks name Discord too, although it's always connected, so they keep working if Discord ever becomes one platform among several.
+
 A field's `name` is the setting in the node's data, and `target` its name in the request if it differs. Field types are `snowflake`, `snowflake_list`, `integer`, `boolean` and `string`, checked in the editor and again when the flow runs. `fallback` fills an empty field with the server or channel the flow runs in, like `guild_target` of other blocks.
 
-The generator copies what the spec knows into the definition: method, path, types, required fields, allowed values, limits and the response schema. People then add what the spec lacks: which fields to show and in what order, labels and descriptions (Discord's spec describes about 10% of its properties), input widgets, fixed or hidden values, and how the result is exposed. `operation` stays as a reference back to the spec, for the drift check below.
+The generator copies what the spec knows into the definition: method, path, types, required fields, allowed values, limits and the response schema. People then add what the spec lacks: which fields to show and in what order, labels and descriptions (Discord's spec describes about 10% of its properties), input widgets, fixed or hidden values, and how the result is exposed. `run.operation` stays as a reference back to the spec, for the drift check below.
 
 `result.thing` wraps the response as an existing thing type, so a migrated block keeps `{{result('x').mention}}` working, and `result.list` a list of them. Without it the result is the plain JSON, like Discord API Request.
 
-Block types include the integration id, e.g. `action_cookie_api_transcript_create`, so blocks of different integrations can't collide. Discord's existing blocks, like `action_message_create`, keep their names. New Discord blocks may use the plain form, since Discord owns it. Nothing in the definition format is specific to Discord: Discord is just the integration whose auth type is `discord_bot` and that is always connected.
+Block types include the id of the integration they mainly act on, e.g. `action_cookie_api_transcript_create`, so blocks of different integrations can't collide. Folders can move, types can't. Discord's existing blocks, like `action_message_create`, keep their names. New Discord blocks may use the plain form, since Discord owns it. Nothing in the definition format is specific to Discord: Discord is just the integration whose auth type is `discord_bot` and that is always connected.
 
 Destructive operations set `"destructive": true` with their limits (a maximum count, a required confirmation field), which AGENTS.md asks for and review should check.
 
@@ -147,8 +173,8 @@ Node types are permanent. A breaking change gets a new type, e.g. `..._v2`, and 
 
 The service embeds all definitions and builds a table of node type to block definition at startup. A node of an integration block runs like this:
 
-1. Look up the definition by node type (`integrationBlocks` in `pkg/flow/integration_blocks.go`). The node's data holds only field values, never the operation or the host, so an imported flow can't point a block at another endpoint.
-2. Check the app has the integration connected, otherwise fail with "Cookie API isn't connected".
+1. Look up the definition by node type (`blockDefinitions` in `pkg/flow/block_definitions.go`). The node's data holds only field values, never the operation or the host, so an imported flow can't point a block at another endpoint.
+2. Check the app has the block's integrations connected, otherwise fail with "Cookie API isn't connected".
 3. Evaluate each field and place it: path parameters through the same validation as Discord API Request (IDs must be IDs, no `/`, `\`, `.` or `..`), query parameters encoded, body fields set at their JSON pointer with `EvalJSONTemplate` semantics. Fields not in the definition are ignored.
 4. Send the request. Discord goes through the session client, which adds the token and shares the rate limiter. Everything else goes through the HTTP provider and the egress proxy, with the credential added by the executor and redirects not followed.
 5. Parse the result and store it, typed if `result.type` is set.
@@ -230,19 +256,20 @@ export const messagePin: BlockDefinition = {
   type: "action_message_pin",
   title: "Pin channel message",
   // ...
+  requires: ["discord"],
   run: { kind: "custom" },
 };
 
-export const roleCreate: BlockDefinition = {
+export const createRole: BlockDefinition = {
   type: "action_role_create",
   // ...
-  run: { kind: "request", method: "POST", path: "/guilds/{guild_id}/roles" },
+  run: { kind: "request", integration: "discord", method: "POST", path: "/guilds/{guild_id}/roles" },
 };
 ```
 
 A custom block runs the Go handler registered under its node type, so no separate ID is needed. The switch in `Execute` becomes a map from node type to handler, and a test checks both directions: every custom definition has a handler, and every handler has a definition.
 
-Definitions are grouped by where a block acts, not by how it runs. `integrations/discord/blocks` holds every Discord block, whether it's a request or custom, like pin, ban or message create. Blocks of Kite itself, like conditions, loops, sleep, variables, AI, calculate value and log, get their own group, as they aren't integrations.
+All definitions live in `blocks`, in the folders of their block explorer categories, whether they're requests or custom. Blocks of Kite itself, like conditions, loops, sleep, variables, AI, calculate value and log, need no integration. Custom blocks that call a service, like pin or ban, name it in `requires`, so connect prompts and error nodes work the same for every block.
 
 ### Widgets
 

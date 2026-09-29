@@ -1,11 +1,7 @@
-import { IntegrationBlock } from "../../types";
+import { BlockDefinition } from "../types";
 
-export const messageBulkDelete: IntegrationBlock = {
+export const bulkDeleteMessages: BlockDefinition = {
   type: "action_message_bulk_delete",
-  integration: "discord",
-  operation: "bulk_delete_messages",
-  method: "POST",
-  path: "/channels/{channel_id}/messages/bulk-delete",
   title: "Bulk delete messages",
   description: "Delete 2 to 100 messages of a channel at once",
   icon: "trash-2",
@@ -15,6 +11,13 @@ export const messageBulkDelete: IntegrationBlock = {
   // Discord only deletes up to 100 messages that are less than 2 weeks old,
   // and only the ones given by ID.
   destructive: true,
+  run: {
+    kind: "request",
+    integration: "discord",
+    operation: "bulk_delete_messages",
+    method: "POST",
+    path: "/channels/{channel_id}/messages/bulk-delete",
+  },
   fields: [
     {
       name: "channel_target",

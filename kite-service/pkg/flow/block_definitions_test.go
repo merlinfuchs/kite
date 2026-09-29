@@ -17,31 +17,31 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-type integrationTestProvider struct {
+type blockTestProvider struct {
 	provider.MockDiscordProvider
 
 	req      provider.DiscordAPIRequest
 	response string
 }
 
-func (p *integrationTestProvider) APIRequest(ctx context.Context, req provider.DiscordAPIRequest) ([]byte, error) {
+func (p *blockTestProvider) APIRequest(ctx context.Context, req provider.DiscordAPIRequest) ([]byte, error) {
 	p.req = req
 	return []byte(p.response), nil
 }
 
-type integrationTestContextData struct {
+type blockTestContextData struct {
 	TestContextData
 }
 
-func (d *integrationTestContextData) GuildID() discord.GuildID {
+func (d *blockTestContextData) GuildID() discord.GuildID {
 	return 5
 }
 
-func (d *integrationTestContextData) ChannelID() discord.ChannelID {
+func (d *blockTestContextData) ChannelID() discord.ChannelID {
 	return 6
 }
 
-func executeIntegrationBlock(t *testing.T, p provider.DiscordProvider, nodeType FlowNodeType, dataJSON string) (*FlowContext, error) {
+func executeBlock(t *testing.T, p provider.DiscordProvider, nodeType FlowNodeType, dataJSON string) (*FlowContext, error) {
 	var data FlowNodeData
 	require.NoError(t, json.Unmarshal([]byte(dataJSON), &data))
 
@@ -51,7 +51,7 @@ func executeIntegrationBlock(t *testing.T, p provider.DiscordProvider, nodeType 
 	c := NewContext(
 		ctx,
 		5*time.Second,
-		&integrationTestContextData{},
+		&blockTestContextData{},
 		FlowProviders{
 			Discord: p,
 			Log:     &provider.MockLogProvider{},
@@ -69,9 +69,9 @@ func executeIntegrationBlock(t *testing.T, p provider.DiscordProvider, nodeType 
 	return c, node.Execute(c)
 }
 
-func TestIntegrationBlockRoleCreate(t *testing.T) {
-	p := &integrationTestProvider{response: `{"id":"7","name":"Mods","color":16711680}`}
-	c, err := executeIntegrationBlock(t, p, "action_role_create", `{
+func TestBlockDefinitionRoleCreate(t *testing.T) {
+	p := &blockTestProvider{response: `{"id":"7","name":"Mods","color":16711680}`}
+	c, err := executeBlock(t, p, "action_role_create", `{
 		"audit_log_reason": "because",
 		"name": "Mods",
 		"permissions": "8",
@@ -91,9 +91,9 @@ func TestIntegrationBlockRoleCreate(t *testing.T) {
 	assert.Equal(t, discord.RoleID(7), result.DiscordRole().ID)
 }
 
-func TestIntegrationBlockMessageList(t *testing.T) {
-	p := &integrationTestProvider{response: `[{"id":"8","content":"hi"},{"id":"9","content":"hello"}]`}
-	c, err := executeIntegrationBlock(t, p, "action_message_list", `{
+func TestBlockDefinitionMessageList(t *testing.T) {
+	p := &blockTestProvider{response: `[{"id":"8","content":"hi"},{"id":"9","content":"hello"}]`}
+	c, err := executeBlock(t, p, "action_message_list", `{
 		"channel_target": "3",
 		"limit": 5,
 		"before": "10"
@@ -109,15 +109,15 @@ func TestIntegrationBlockMessageList(t *testing.T) {
 	assert.Equal(t, "hi", result[0].DiscordMessage().Content)
 }
 
-func TestIntegrationBlockBulkDelete(t *testing.T) {
+func TestBlockDefinitionBulkDelete(t *testing.T) {
 	for name, ids := range map[string]string{
 		"separated":   `"11, 12 13"`,
 		"placeholder": `"{{['11', '12', '13']}}"`,
 		"list":        `["11", "12", "13"]`,
 	} {
 		t.Run(name, func(t *testing.T) {
-			p := &integrationTestProvider{}
-			_, err := executeIntegrationBlock(t, p, "action_message_bulk_delete", `{"message_ids": `+ids+`}`)
+			p := &blockTestProvider{}
+			_, err := executeBlock(t, p, "action_message_bulk_delete", `{"message_ids": `+ids+`}`)
 			require.NoError(t, err)
 
 			// The channel the flow runs in.
@@ -127,7 +127,7 @@ func TestIntegrationBlockBulkDelete(t *testing.T) {
 	}
 }
 
-func TestIntegrationBlockErrors(t *testing.T) {
+func TestBlockDefinitionErrors(t *testing.T) {
 	tests := map[string]struct {
 		nodeType FlowNodeType
 		data     string
@@ -172,23 +172,23 @@ func TestIntegrationBlockErrors(t *testing.T) {
 
 	for name, tt := range tests {
 		t.Run(name, func(t *testing.T) {
-			_, err := executeIntegrationBlock(t, &integrationTestProvider{}, tt.nodeType, tt.data)
+			_, err := executeBlock(t, &blockTestProvider{}, tt.nodeType, tt.data)
 			require.Error(t, err)
 			assert.ErrorContains(t, err, tt.err)
 		})
 	}
 }
 
-func TestIntegrationBlockCredits(t *testing.T) {
+func TestBlockDefinitionCredits(t *testing.T) {
 	node := &CompiledFlowNode{Type: "action_role_create"}
 	assert.Equal(t, 1, node.CreditsCost())
 }
 
 // Fields named like a setting of FlowNodeData read it, which only works for
 // text settings like channel_target.
-func TestIntegrationBlockFieldSettings(t *testing.T) {
+func TestBlockDefinitionFieldSettings(t *testing.T) {
 	dataType := reflect.TypeOf(FlowNodeData{})
-	for _, block := range integrationBlocks {
+	for _, block := range blockDefinitions {
 		for _, field := range block.Fields {
 			if i, ok := flowNodeDataFields[field.Name]; ok {
 				assert.Equalf(t, reflect.String, dataType.Field(i).Type.Kind(), "%s.%s", block.Type, field.Name)

@@ -229,8 +229,8 @@ type FlowNodeData struct {
 	// Discord API Request
 	DiscordAPIRequestData *DiscordAPIRequestData `json:"discord_api_request_data,omitempty"`
 
-	// Settings that no field above has, which integration blocks use (see
-	// integration_blocks.json). They are stored next to the others in the
+	// Settings that no field above has, which blocks defined as data use (see
+	// block_definitions.json). They are stored next to the others in the
 	// node's data. Values are usually templates, but numbers, booleans and
 	// lists are accepted too.
 	Fields map[string]any `json:"-"`

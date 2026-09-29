@@ -1,18 +1,21 @@
 import { z } from "zod";
-import { IntegrationBlock } from "../../types";
+import { BlockDefinition } from "../types";
 
-export const inviteCreate: IntegrationBlock = {
+export const createInvite: BlockDefinition = {
   type: "action_invite_create",
-  integration: "discord",
-  operation: "create_channel_invite",
-  method: "POST",
-  path: "/channels/{channel_id}/invites",
   title: "Create invite",
   description: "Create an invite link for a channel",
   icon: "link",
   category: "Channels",
   credits: 1,
   audit_log_reason: true,
+  run: {
+    kind: "request",
+    integration: "discord",
+    operation: "create_channel_invite",
+    method: "POST",
+    path: "/channels/{channel_id}/invites",
+  },
   fields: [
     {
       name: "channel_target",

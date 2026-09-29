@@ -1,5 +1,5 @@
 import { FlowContextType } from "./context";
-import { integrationBlocks } from "../integrations";
+import { blockDefinitions } from "../blocks";
 import { getNodeValues } from "./nodes";
 
 export interface NodeCategorySection {
@@ -178,8 +178,8 @@ export const nodeCategories: Record<
   ],
 };
 
-// Integration blocks go into the action section their definition names.
-for (const block of integrationBlocks) {
+// Blocks defined as data go into the action section their definition names.
+for (const block of blockDefinitions) {
   const section = nodeCategories.action.find((s) => s.title === block.category);
   if (!section) throw new Error(`Unknown category of ${block.type}`);
   section.nodeTypes.push(block.type);

@@ -1,18 +1,21 @@
 import { z } from "zod";
-import { messageResultSchema } from "../../../flow/resultSchema";
-import { IntegrationBlock } from "../../types";
+import { messageResultSchema } from "../../flow/resultSchema";
+import { BlockDefinition } from "../types";
 
-export const messageList: IntegrationBlock = {
+export const listMessages: BlockDefinition = {
   type: "action_message_list",
-  integration: "discord",
-  operation: "list_messages",
-  method: "GET",
-  path: "/channels/{channel_id}/messages",
   title: "List channel messages",
   description: "Get the latest messages of a channel",
   icon: "messages-square",
   category: "Messages",
   credits: 1,
+  run: {
+    kind: "request",
+    integration: "discord",
+    operation: "list_messages",
+    method: "GET",
+    path: "/channels/{channel_id}/messages",
+  },
   fields: [
     {
       name: "channel_target",

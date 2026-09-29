@@ -1,17 +1,15 @@
 import { describe, expect, it } from "vitest";
 import { getDiscordApiOperation } from "../flow/discordApi";
-import { integrationBlocks } from ".";
+import { getIntegration } from "../integrations";
+import { blockDefinitions } from ".";
 
 // What the service needs to run the blocks. Result schemas are only for the
 // editor and the flow AI.
-const serviceBlocks = integrationBlocks.map(({ result, ...block }) => ({
+const serviceBlocks = blockDefinitions.map((block) => ({
   type: block.type,
-  integration: block.integration,
-  operation: block.operation,
-  method: block.method,
-  path: block.path,
   credits: block.credits,
   audit_log_reason: !!block.audit_log_reason,
+  run: block.run,
   fields: block.fields.map((f) => ({
     name: f.name,
     in: f.in,
@@ -23,34 +21,42 @@ const serviceBlocks = integrationBlocks.map(({ result, ...block }) => ({
     max: f.max ?? null,
     max_length: f.max_length ?? null,
   })),
-  result: result ? { thing: result.thing ?? "", list: !!result.list } : null,
+  result: block.result
+    ? { thing: block.result.thing ?? "", list: !!block.result.list }
+    : null,
 }));
 
-describe("integration blocks", () => {
+describe("block definitions", () => {
   it("match the file embedded in the service", async () => {
     await expect(
       JSON.stringify({ blocks: serviceBlocks }, null, 2) + "\n"
     ).toMatchFileSnapshot(
-      "../../../../kite-service/pkg/flow/integration_blocks.json"
+      "../../../../kite-service/pkg/flow/block_definitions.json"
     );
   });
 
   it("have unique types and field names", () => {
-    const types = integrationBlocks.map((b) => b.type);
+    const types = blockDefinitions.map((b) => b.type);
     expect(new Set(types).size).toBe(types.length);
-    for (const block of integrationBlocks) {
+    for (const block of blockDefinitions) {
       const names = block.fields.map((f) => f.name);
       expect(new Set(names).size, block.type).toBe(names.length);
     }
   });
 
+  it("use integrations that exist", () => {
+    for (const block of blockDefinitions) {
+      expect(getIntegration(block.run.integration), block.type).toBeDefined();
+    }
+  });
+
   it("match Discord's spec", () => {
-    for (const block of integrationBlocks.filter(
-      (b) => b.integration === "discord"
+    for (const block of blockDefinitions.filter(
+      (b) => b.run.integration === "discord"
     )) {
-      const op = getDiscordApiOperation(block.operation);
+      const op = getDiscordApiOperation(block.run.operation);
       expect(op, block.type).toBeDefined();
-      expect([block.method, block.path], block.type).toEqual([
+      expect([block.run.method, block.run.path], block.type).toEqual([
         op!.method,
         op!.path,
       ]);

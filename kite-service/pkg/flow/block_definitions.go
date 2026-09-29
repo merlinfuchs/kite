@@ -17,15 +17,15 @@ import (
 	"github.com/kitecloud/kite/kite-service/pkg/thing"
 )
 
-// integrationBlocksJSON describes the blocks that are defined as data instead
-// of code: the request they send, their fields and their result. It's
-// generated from kite-web/src/lib/integrations, run `pnpm test -u` in kite-web
-// to update it. See design/integrations.md.
+// blockDefinitionsJSON describes the blocks that are defined as data instead
+// of code: their fields, how they run and their result. It's generated from
+// kite-web/src/lib/blocks, run `pnpm test -u` in kite-web to update it. See
+// design/integrations.md.
 //
-//go:embed integration_blocks.json
-var integrationBlocksJSON []byte
+//go:embed block_definitions.json
+var blockDefinitionsJSON []byte
 
-type integrationBlockField struct {
+type blockField struct {
 	// Name of the setting in the node's data, like "channel_target" or
 	// "max_age". Target is its name in the request.
 	Name     string `json:"name"`
@@ -40,30 +40,36 @@ type integrationBlockField struct {
 	MaxLength *int   `json:"max_length"`
 }
 
-type integrationBlock struct {
-	Type           FlowNodeType            `json:"type"`
-	Integration    string                  `json:"integration"`
-	Operation      string                  `json:"operation"`
-	Method         string                  `json:"method"`
-	Path           string                  `json:"path"`
-	Credits        int                     `json:"credits"`
-	AuditLogReason bool                    `json:"audit_log_reason"`
-	Fields         []integrationBlockField `json:"fields"`
+// blockRequest is a request to the API of an integration.
+type blockRequest struct {
+	Kind        string `json:"kind"`
+	Integration string `json:"integration"`
+	Operation   string `json:"operation"`
+	Method      string `json:"method"`
+	Path        string `json:"path"`
+}
+
+type blockDefinition struct {
+	Type           FlowNodeType `json:"type"`
+	Credits        int          `json:"credits"`
+	AuditLogReason bool         `json:"audit_log_reason"`
+	Run            blockRequest `json:"run"`
+	Fields         []blockField `json:"fields"`
 	Result         *struct {
 		Thing string `json:"thing"`
 		List  bool   `json:"list"`
 	} `json:"result"`
 }
 
-var integrationBlocks = func() map[FlowNodeType]integrationBlock {
+var blockDefinitions = func() map[FlowNodeType]blockDefinition {
 	var data struct {
-		Blocks []integrationBlock `json:"blocks"`
+		Blocks []blockDefinition `json:"blocks"`
 	}
-	if err := json.Unmarshal(integrationBlocksJSON, &data); err != nil {
-		panic(fmt.Sprintf("failed to parse integration_blocks.json: %v", err))
+	if err := json.Unmarshal(blockDefinitionsJSON, &data); err != nil {
+		panic(fmt.Sprintf("failed to parse block_definitions.json: %v", err))
 	}
 
-	res := make(map[FlowNodeType]integrationBlock, len(data.Blocks))
+	res := make(map[FlowNodeType]blockDefinition, len(data.Blocks))
 	for _, block := range data.Blocks {
 		res[block.Type] = block
 	}
@@ -72,10 +78,10 @@ var integrationBlocks = func() map[FlowNodeType]integrationBlock {
 
 var listSeparatorRe = regexp.MustCompile(`[,\s]+`)
 
-func (n *CompiledFlowNode) executeIntegrationBlock(ctx *FlowContext, block integrationBlock) error {
+func (n *CompiledFlowNode) executeBlockDefinition(ctx *FlowContext, block blockDefinition) error {
 	// Other integrations need app credentials, which don't exist yet.
-	if block.Integration != "discord" {
-		return traceError(n, fmt.Errorf("unsupported integration: %s", block.Integration))
+	if block.Run.Kind != "request" || block.Run.Integration != "discord" {
+		return traceError(n, fmt.Errorf("unsupported block run: %s %s", block.Run.Kind, block.Run.Integration))
 	}
 
 	pathParams := make(map[string]string)
@@ -124,7 +130,7 @@ func (n *CompiledFlowNode) executeIntegrationBlock(ctx *FlowContext, block integ
 		}
 	}
 
-	path := pathParamRe.ReplaceAllStringFunc(block.Path, func(m string) string {
+	path := pathParamRe.ReplaceAllStringFunc(block.Run.Path, func(m string) string {
 		return pathParams[m[1:len(m)-1]]
 	})
 	if len(query) > 0 {
@@ -132,7 +138,7 @@ func (n *CompiledFlowNode) executeIntegrationBlock(ctx *FlowContext, block integ
 	}
 
 	var reqBody []byte
-	if hasBody && block.Method != http.MethodGet {
+	if hasBody && block.Run.Method != http.MethodGet {
 		var err error
 		reqBody, err = json.Marshal(body)
 		if err != nil {
@@ -150,7 +156,7 @@ func (n *CompiledFlowNode) executeIntegrationBlock(ctx *FlowContext, block integ
 	}
 
 	resBody, err := ctx.Discord.APIRequest(ctx, provider.DiscordAPIRequest{
-		Method: block.Method,
+		Method: block.Run.Method,
 		Path:   path,
 		Body:   reqBody,
 		Reason: reason,
@@ -160,7 +166,7 @@ func (n *CompiledFlowNode) executeIntegrationBlock(ctx *FlowContext, block integ
 	}
 
 	if block.Result != nil {
-		result, err := integrationBlockResult(block, resBody)
+		result, err := blockResult(block, resBody)
 		if err != nil {
 			return traceError(n, err)
 		}
@@ -181,7 +187,7 @@ func isEmptyFieldValue(value thing.Thing) bool {
 	return !value.IsDiscordEntity() && strings.TrimSpace(value.String()) == ""
 }
 
-func (f integrationBlockField) fallbackValue(ctx *FlowContext) thing.Thing {
+func (f blockField) fallbackValue(ctx *FlowContext) thing.Thing {
 	var id discord.Snowflake
 	switch f.Fallback {
 	case "guild":
@@ -196,7 +202,7 @@ func (f integrationBlockField) fallbackValue(ctx *FlowContext) thing.Thing {
 }
 
 // value converts an evaluated field to the JSON value the request needs.
-func (f integrationBlockField) value(value thing.Thing) (any, error) {
+func (f blockField) value(value thing.Thing) (any, error) {
 	switch f.Type {
 	case "snowflake":
 		return discordAPISnowflake(value)
@@ -246,7 +252,7 @@ func (f integrationBlockField) value(value thing.Thing) (any, error) {
 	}
 }
 
-func (f integrationBlockField) checkRange(n int64, unit string) error {
+func (f blockField) checkRange(n int64, unit string) error {
 	if unit != "" {
 		unit = " " + unit
 	}
@@ -259,7 +265,7 @@ func (f integrationBlockField) checkRange(n int64, unit string) error {
 	return nil
 }
 
-func integrationBlockResult(block integrationBlock, body []byte) (thing.Thing, error) {
+func blockResult(block blockDefinition, body []byte) (thing.Thing, error) {
 	switch block.Result.Thing {
 	case "discord_message":
 		return decodeDiscordResult(body, block.Result.List, thing.NewDiscordMessage)

@@ -22,7 +22,7 @@ import {
   walkUpstream,
 } from "./placeholders";
 import { collectComponentGroups } from "./resume";
-import { integrationBlocks } from "../integrations";
+import { blockDefinitions } from "../blocks";
 
 export interface FlowIssue {
   severity: "error" | "warning";
@@ -98,7 +98,7 @@ export function validateFlow(
       );
     }
 
-    const replacement = getReplacingIntegrationBlock(node.data);
+    const replacement = getReplacingBlock(node.data);
     if (replacement) {
       report(
         "warning",
@@ -438,12 +438,13 @@ export function getConnectionIssue(
 
 // The dedicated block for a raw Discord API request that only uses settings the
 // block has too.
-function getReplacingIntegrationBlock(data: NodeData) {
+function getReplacingBlock(data: NodeData) {
   const request = data.discord_api_request_data;
   if (!request || Array.isArray(request.body_json)) return;
 
-  const block = integrationBlocks.find(
-    (b) => b.integration === "discord" && b.operation === request.operation
+  const block = blockDefinitions.find(
+    (b) =>
+      b.run.integration === "discord" && b.run.operation === request.operation
   );
   if (!block) return;
 
