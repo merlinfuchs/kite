@@ -18,6 +18,7 @@ type catalogSchema struct {
 	Properties map[string]*catalogSchema `json:"properties"`
 	Items      *catalogSchema            `json:"items"`
 	Enum       []any                     `json:"enum"`
+	UserPicked bool                      `json:"x-user-picked"`
 }
 
 func loadCatalog(t *testing.T) map[string]*catalogSchema {
@@ -45,6 +46,15 @@ func TestCatalogHasEveryNodeType(t *testing.T) {
 	for nodeType := range catalog {
 		assert.Contains(t, nodeTypes, nodeType)
 	}
+}
+
+// The flow AI leaves these for the user to pick, see flowai's checkVariables.
+func TestCatalogMarksUserPickedSettings(t *testing.T) {
+	catalog := loadCatalog(t)
+	for _, nodeType := range []string{"action_variable_set", "action_variable_get", "action_variable_delete"} {
+		assert.Truef(t, catalog[nodeType].Properties["variable_id"].UserPicked, "%s.variable_id", nodeType)
+	}
+	assert.True(t, catalog["action_message_create"].Properties["message_template_id"].UserPicked)
 }
 
 // The editor must not store settings the service doesn't read.

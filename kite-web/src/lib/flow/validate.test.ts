@@ -72,7 +72,7 @@ describe("validateFlow", () => {
     expect(
       errors([entry, arg, log("a")], [edge("arg", "a"), edge("a", "entry")])
     ).toEqual([
-      "'Command Argument' can only be connected to the entry block.",
+      "'Command Argument' can only be connected to the entry block, which happens automatically.",
       "Only options can be connected into 'Command'.",
     ]);
   });
@@ -206,7 +206,9 @@ describe("validateFlow", () => {
         [edge("entry", conditionId), ...conditionEdges, edge(conditionId, "a")]
       )
     ).toEqual([
-      "'Comparison Condition' has no outputs. Connect blocks to its branches instead.",
+      expect.stringMatching(
+        /^'Comparison Condition' has no outputs of its own\. Connect blocks to its branches instead: \S+ \(Else\), \S+ \(Match Condition\)\.$/
+      ),
     ]);
   });
 
@@ -343,7 +345,9 @@ describe("validateFlow", () => {
   it("doesn't allow connections into options", () => {
     expect(
       errors([entry, arg], [edge("arg", "entry"), edge("entry", "arg")])
-    ).toEqual(["Nothing can be connected into 'Command Argument'."]);
+    ).toEqual([
+      "Nothing can be connected into 'Command Argument'. Options are connected to the entry block automatically.",
+    ]);
   });
 
   it("handles blocks without data and duplicate connections", () => {

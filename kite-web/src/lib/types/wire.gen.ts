@@ -95,7 +95,6 @@ export type StateGuildLeaveResponse = Empty;
 export interface Role {
   id: string;
   name: string;
-  color: number /* int */;
   /**
    * Managed roles belong to integrations, like other bots, and can't be
    * given to members.

@@ -1,7 +1,7 @@
 import { FlowContextStoreProvider, FlowContextType } from "@/lib/flow/context";
 import { FlowData } from "@/lib/flow/dataSchema";
 import { OnSelectionChangeParams } from "@xyflow/react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import FlowEditor, { FlowEditorApi } from "./FlowEditor";
 import FlowMenu from "./FlowMenu";
 import { LogEntry } from "@/lib/types/wire.gen";
@@ -37,9 +37,7 @@ export default function Flow({
   const setChatOpen = onChatOpenChange ?? setOwnChatOpen;
   // The chat is mounted when first opened and then kept when closed.
   const [chatMounted, setChatMounted] = useState(false);
-  useEffect(() => {
-    if (chatOpen) setChatMounted(true);
-  }, [chatOpen]);
+  if (chatOpen && !chatMounted) setChatMounted(true);
   const closeChat = useCallback(() => setChatOpen(false), [setChatOpen]);
 
   const onSelectionChange = useCallback(

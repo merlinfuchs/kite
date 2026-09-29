@@ -27,7 +27,7 @@ type APIServerConfig struct {
 	DiscordClientSecret string
 	UserLimits          APIUserLimitsConfig
 	Billing             BillingConfig
-	FlowAIMaxRepairs    int
+	AssistantMaxRepairs int
 }
 
 type APIUserLimitsConfig struct {

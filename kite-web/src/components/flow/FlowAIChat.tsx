@@ -152,20 +152,17 @@ export default memo(function FlowAIChat({
     [entries, context, getNodes, getEdges, fitView, editorRef, chat.mutateAsync]
   );
 
-  const submit = useCallback(async () => {
+  const submit = useCallback(() => {
     const content = input.trim();
     if (!content || busy) return;
     setInput("");
-
     send(content);
   }, [input, busy, send]);
 
   const limit = usage?.prompts_limit;
   const left = usage ? Math.max(limit! - usage.prompts_used, 0) : undefined;
   const exhausted =
-    !!usage &&
-    usage.prompts_limit > 0 &&
-    (left === 0 || usage.answers_used >= usage.answers_limit);
+    !!limit && (left === 0 || usage!.answers_used >= usage!.answers_limit);
   const unavailable = limit === 0 || exhausted;
 
   return (

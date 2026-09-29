@@ -140,71 +140,14 @@ export function validateFlow(
     const target = knownById.get(edge.target);
     if (!source || !target) continue;
 
-    const handle = normalizeHandle(edge.sourceHandle) ?? "default";
-
-    if (!canConnect(source.type!, target.type!)) {
-      report(
-        "error",
-        source.type!.startsWith("option_")
-          ? `'${getNodeTitle(
-              source
-            )}' can only be connected to the entry block.`
-          : target.type!.startsWith("option_")
-          ? `Nothing can be connected into '${getNodeTitle(target)}'.`
-          : `Only options can be connected into '${getNodeTitle(target)}'.`,
-        { edgeId: edge.id }
-      );
-      continue;
-    }
-    if (source.type!.startsWith("option_")) continue;
-    if (getOwnedChildTypes(source.type!).includes(target.type!)) {
-      if (handle !== "default") {
-        report(
-          "error",
-          `'${getNodeTitle(
-            target
-          )}' must be connected to the default output of '${getNodeTitle(
-            source
-          )}'.`,
-          { edgeId: edge.id }
-        );
-      }
-      continue;
-    }
-
-    if (getOwnerTypes(target.type!).length > 0) {
-      report(
-        "error",
-        `'${getNodeTitle(
-          target
-        )}' can only be connected to the block it belongs to.`,
-        { edgeId: edge.id }
-      );
-      continue;
-    }
-
-    const outputs = getNodeOutputs(source);
-    if (outputs.length === 0) {
-      report(
-        "error",
-        `'${getNodeTitle(
-          source
-        )}' has no outputs. Connect blocks to its branches instead.`,
-        { edgeId: edge.id }
-      );
-    } else if (!outputs.includes(handle)) {
-      report(
-        "error",
-        `'${getNodeTitle(source)}' has no output '${handle}', only ${outputs
-          .map((o) => `'${o}'`)
-          .join(", ")}.${
-          handle === "error"
-            ? " To handle errors, put the block after the default output of an error handler block."
-            : ""
-        }`,
-        { edgeId: edge.id }
-      );
-    }
+    const issue = getConnectionIssue(
+      source,
+      target,
+      edge.sourceHandle,
+      nodes,
+      edges
+    );
+    if (issue) report("error", issue, { edgeId: edge.id });
   }
 
   for (const node of knownNodes) {
@@ -422,4 +365,59 @@ function unwrapUnionIssues(issues: ZodIssue[]): ZodIssue[] {
       v.filter((i) => i.code === "invalid_literal").length * 1000 + v.length;
     return variants.reduce((best, v) => (score(v) < score(best) ? v : best));
   });
+}
+
+// Why the target can't run after the output handle of the source, if it can't.
+export function getConnectionIssue(
+  source: Node<NodeData>,
+  target: Node<NodeData>,
+  sourceHandle: string | null | undefined,
+  nodes: Node<NodeData>[],
+  edges: Edge[]
+): string | undefined {
+  const handle = normalizeHandle(sourceHandle) ?? "default";
+  const sourceTitle = getNodeTitle(source);
+  const targetTitle = getNodeTitle(target);
+
+  if (!canConnect(source.type!, target.type!)) {
+    if (source.type!.startsWith("option_")) {
+      return `'${sourceTitle}' can only be connected to the entry block, which happens automatically.`;
+    }
+    return target.type!.startsWith("option_")
+      ? `Nothing can be connected into '${targetTitle}'. Options are connected to the entry block automatically.`
+      : `Only options can be connected into '${targetTitle}'.`;
+  }
+  if (source.type!.startsWith("option_")) return;
+
+  const owned = getOwnedChildTypes(source.type!);
+  if (owned.includes(target.type!)) {
+    return handle === "default"
+      ? undefined
+      : `'${targetTitle}' must be connected to the default output of '${sourceTitle}'.`;
+  }
+  if (getOwnerTypes(target.type!).length > 0) {
+    return `'${targetTitle}' can only be connected to the block it belongs to.`;
+  }
+
+  const outputs = getNodeOutputs(source);
+  if (outputs.length === 0) {
+    // Conditions and loops run blocks after their branches, not themselves.
+    const branches = edges
+      .filter((e) => e.source === source.id)
+      .map((e) => nodes.find((n) => n.id === e.target))
+      .filter((n) => n && owned.includes(n.type!))
+      .map((n) => `${n!.id} (${getNodeTitle(n!)})`);
+    return `'${sourceTitle}' has no outputs of its own. Connect blocks to its branches instead${
+      branches.length > 0 ? `: ${branches.join(", ")}` : ""
+    }.`;
+  }
+  if (!outputs.includes(handle)) {
+    return `'${sourceTitle}' has no output '${handle}', only ${outputs
+      .map((o) => `'${o}'`)
+      .join(", ")}.${
+      handle === "error"
+        ? " To handle errors, put the block after the default output of an error handler block."
+        : ""
+    }`;
+  }
 }

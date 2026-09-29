@@ -4,6 +4,7 @@ import (
 	"errors"
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
+	"github.com/kitecloud/kite/kite-service/internal/core/flowai"
 )
 
 type FlowAIChatMessage struct {
@@ -54,6 +55,14 @@ func (req FlowAIChatRequest) Validate() error {
 	return nil
 }
 
+func (req FlowAIChatRequest) AssistantMessages() []flowai.Message {
+	res := make([]flowai.Message, len(req.Messages))
+	for i, m := range req.Messages {
+		res[i] = flowai.Message{Role: m.Role, Content: m.Content}
+	}
+	return res
+}
+
 type FlowAIChatResponse struct {
 	PromptID string `json:"prompt_id"`
 	// Message is Markdown.
@@ -90,4 +99,12 @@ type FlowAIField struct {
 	Type    string   `json:"type"`
 	Options []string `json:"options"`
 	Default string   `json:"default"`
+}
+
+func FlowAIFieldsToWire(fields []flowai.Field) []FlowAIField {
+	res := make([]FlowAIField, len(fields))
+	for i, f := range fields {
+		res[i] = FlowAIField(f)
+	}
+	return res
 }

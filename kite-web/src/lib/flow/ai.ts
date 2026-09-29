@@ -22,13 +22,13 @@ interface Flow {
   edges: Edge[];
 }
 
-export class FlowAIError extends Error {
+class FlowAIError extends Error {
   constructor(message: string, public code: string) {
     super(message);
   }
 }
 
-export interface FlowAIResult {
+interface FlowAIResult {
   message: string;
   // A request the user can send to make the change the message suggests.
   buildPrompt: string;

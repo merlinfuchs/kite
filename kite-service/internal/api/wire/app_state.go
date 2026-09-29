@@ -64,9 +64,8 @@ func ChannelToWire(channel *discord.Channel) *Channel {
 }
 
 type Role struct {
-	ID    string `json:"id"`
-	Name  string `json:"name"`
-	Color int    `json:"color"`
+	ID   string `json:"id"`
+	Name string `json:"name"`
 	// Managed roles belong to integrations, like other bots, and can't be
 	// given to members.
 	Managed  bool `json:"managed"`
@@ -79,7 +78,6 @@ func RoleToWire(role *discord.Role) *Role {
 	return &Role{
 		ID:       role.ID.String(),
 		Name:     role.Name,
-		Color:    int(role.Color),
 		Managed:  role.Managed,
 		Position: role.Position,
 	}

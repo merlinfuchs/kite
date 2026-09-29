@@ -55,22 +55,18 @@ export function isUserPicked(def: z.ZodTypeDef) {
 }
 
 // Whether the setting at path of a block's settings is picked by the user.
+// They are all top-level settings.
 export function isUserPickedSetting(
   schema: z.ZodTypeAny,
   path: (string | number)[]
 ) {
-  let current: z.ZodTypeAny | undefined = schema;
-  for (const key of path) {
-    current = unwrap(current);
-    current =
-      current instanceof z.ZodObject
-        ? current.shape[key]
-        : current instanceof z.ZodArray
-        ? current.element
-        : undefined;
-    if (!current) return false;
-  }
-  for (let s: z.ZodTypeAny | undefined = current; s; s = inner(s)) {
+  const object = unwrap(schema);
+  if (path.length !== 1 || !(object instanceof z.ZodObject)) return false;
+  for (
+    let s: z.ZodTypeAny | undefined = object.shape[path[0]];
+    s;
+    s = inner(s)
+  ) {
     if (isUserPicked(s._def)) return true;
   }
   return false;

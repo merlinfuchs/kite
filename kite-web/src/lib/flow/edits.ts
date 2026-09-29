@@ -16,7 +16,7 @@ import {
   withOwnedNodes,
 } from "./nodes";
 import { walkDownstream } from "./placeholders";
-import { FlowIssue, validateFlow } from "./validate";
+import { FlowIssue, getConnectionIssue, validateFlow } from "./validate";
 
 // A change to a flow, as produced by the LLM flow editor. Blocks are referred
 // to by their ID, or by the ref of a block added earlier in the same batch,
@@ -70,12 +70,11 @@ export function applyFlowEdits(
   // Generated edits can leave out fields they need.
   const getNode = (id: string | undefined, field: string) => {
     if (!id) throw new Error(`${field} is missing.`);
-    // Refs are sometimes written without their $.
     const resolved = id.startsWith("$")
       ? refs[id]
       : nodes.some((n) => n.id === id)
       ? id
-      : refs[`$${id}`];
+      : refs[toRef(id)];
     const node = nodes.find((n) => n.id === resolved);
     if (!node) throw new Error(`There is no block '${id}'.`);
     return node;
@@ -87,18 +86,6 @@ export function applyFlowEdits(
         e.target === target &&
         normalizeHandle(e.sourceHandle) === normalizeHandle(handle)
     );
-  // Conditions and loops run blocks after their branches, not themselves.
-  const noOutputsError = (ref: string, node: Node<NodeData>) => {
-    const owned = getOwnedChildTypes(node.type!);
-    const branches = edges
-      .filter((e) => e.source === node.id)
-      .map((e) => nodes.find((n) => n.id === e.target))
-      .filter((n) => n && owned.includes(n.type!))
-      .map((n) => `${n!.id} (${getNodeTitle(n!)})`);
-    return `'${ref}' has no outputs of its own. Add blocks after one of its branches instead${
-      branches.length > 0 ? `: ${branches.join(", ")}` : ""
-    }.`;
-  };
   const connect = (
     source: Node<NodeData>,
     target: Node<NodeData>,
@@ -139,7 +126,7 @@ export function applyFlowEdits(
       switch (edit.op) {
         case "add_node": {
           if (!edit.ref) throw new Error("ref is missing.");
-          const ref = edit.ref.startsWith("$") ? edit.ref : `$${edit.ref}`;
+          const ref = toRef(edit.ref);
           if (!isKnownNodeType(edit.type)) {
             throw new Error(`Unknown block type '${edit.type}'.`);
           }
@@ -207,8 +194,21 @@ export function applyFlowEdits(
               `'${edit.type}' has no outputs, so nothing can come after it. Connect '${edit.before}' to one of its branches instead.`
             );
           }
-          if (after && getNodeOutputs(after).length === 0) {
-            throw new Error(noOutputsError(edit.after!, after));
+          if (after) {
+            // Checked against a stand-in, so a failed edit adds nothing.
+            const issue = getConnectionIssue(
+              after,
+              {
+                id: edit.ref,
+                type: edit.type,
+                position: { x: 0, y: 0 },
+                data: {},
+              },
+              edit.handle,
+              nodes,
+              edges
+            );
+            if (issue) throw new Error(issue);
           }
           const split =
             after && before ? findEdges(after.id, before.id, edit.handle) : [];
@@ -316,20 +316,14 @@ export function applyFlowEdits(
         case "connect": {
           const source = getNode(edit.source, "source");
           const target = getNode(edit.target, "target");
-          if (
-            getNodeOutputs(source).length === 0 &&
-            !getOwnedChildTypes(source.type!).includes(target.type!)
-          ) {
-            throw new Error(noOutputsError(edit.source!, source));
-          }
-          if (!canConnect(source.type!, target.type!)) {
-            throw new Error(
-              source.type!.startsWith("option_") ||
-              target.type!.startsWith("option_")
-                ? "Options are connected to the entry block automatically."
-                : `Nothing can run before '${edit.target}'.`
-            );
-          }
+          const issue = getConnectionIssue(
+            source,
+            target,
+            edit.handle,
+            nodes,
+            edges
+          );
+          if (issue) throw new Error(issue);
           connect(source, target, edit.handle);
           break;
         }
@@ -374,11 +368,21 @@ export function applyFlowEdits(
   };
 }
 
+// Refs are sometimes written without their $.
+function toRef(name: string) {
+  return name.startsWith("$") ? name : `$${name}`;
+}
+
 // Generated settings use null for ones they leave out, like updates use it to
 // remove settings.
 function withoutNulls(data: NodeData | undefined): NodeData {
   return Object.fromEntries(
-    Object.entries(data ?? {}).filter(([, value]) => value !== null)
+    Object.entries(data ?? {})
+      .filter(([, value]) => value !== null)
+      .map(([key, value]) => [
+        key,
+        isPlainObject(value) ? withoutNulls(value as NodeData) : value,
+      ])
   ) as NodeData;
 }
 

@@ -374,7 +374,7 @@ describe("applyFlowEdits edge cases", () => {
       `entry->${res.refs.$log}`,
     ]);
     expect(res.issues.map((i) => i.message)).toEqual([
-      "Edit 3 (connect): Options are connected to the entry block automatically.",
+      "Edit 3 (connect): Nothing can be connected into 'Command Argument'. Options are connected to the entry block automatically.",
       "Edit 4 (disconnect): Options are always connected to the entry block. Remove the option instead.",
     ]);
   });
@@ -431,7 +431,7 @@ describe("applyFlowEdits edge cases", () => {
     const messages = res.issues.map((i) => i.message);
     expect(messages[0]).toContain("A flow has one entry block");
     expect(messages[1]).toMatch(
-      /^Edit 3 \(add_node\): '\$check' has no outputs of its own\. Add blocks after one of its branches instead: \S+ \(Else\), \S+ \(Match Condition\)\.$/
+      /^Edit 3 \(add_node\): 'Comparison Condition' has no outputs of its own\. Connect blocks to its branches instead: \S+ \(Else\), \S+ \(Match Condition\)\.$/
     );
   });
 

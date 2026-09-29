@@ -26,7 +26,6 @@ const maxRepairs = 2;
 // USD per million input, cached input and output tokens.
 const prices: Record<string, [number, number, number]> = {
   "gpt-5-mini": [0.25, 0.025, 2],
-  "gpt-5-nano": [0.05, 0.005, 0.4],
 };
 
 interface EvalInfo {
@@ -74,13 +73,13 @@ function cost(info: EvalInfo) {
   );
 }
 
-async function post<T>(path: string, body: unknown) {
-  const res = await fetch(url + path, {
+async function postChat(body: unknown) {
+  const res = await fetch(url + "/chat", {
     method: "POST",
     body: JSON.stringify(body),
   });
   return (await res.json()) as
-    | { success: true; data: T & { eval: EvalInfo } }
+    | { success: true; data: FlowAIChatResponse & { eval: EvalInfo } }
     | { success: false; error: { code: string; message: string; data: {} } };
 }
 
@@ -122,10 +121,7 @@ async function runCase(c: EvalCase): Promise<CaseResult> {
           };
         }
         // The service loads them from the app, the eval server takes them.
-        const res = await post<FlowAIChatResponse>("/chat", {
-          ...req,
-          variables,
-        });
+        const res = await postChat({ ...req, variables });
         if (res.success) {
           result.cost += cost(res.data.eval);
           result.edits.push(res.data.edits);
@@ -274,8 +270,9 @@ describe.skipIf(!url)("flow AI eval", () => {
 
       mkdirSync(outDir, { recursive: true });
       const file = `${outDir}/flow-ai-${Date.now()}.md`;
-      writeFileSync(file, report(results));
-      console.log(report(results).split("\n").slice(0, 3).join("\n"));
+      const text = report(results);
+      writeFileSync(file, text);
+      console.log(text.split("\n").slice(0, 3).join("\n"));
       console.log(`Report: ${file}`);
       expect(results).toHaveLength(cases.length);
     },

@@ -31,8 +31,8 @@ export default function FlowAIFieldsCard({
   disabled?: boolean;
   onSend: (content: string) => void;
 }) {
+  // Picked channels and roles are stored by ID.
   const [values, setValues] = useState(() => fields.map(getDefault));
-  const answers = composeFieldAnswers(fields, values);
 
   // The server is picked once for all channels and roles.
   const guilds = useAppStateGuilds();
@@ -43,6 +43,26 @@ export default function FlowAIFieldsCard({
     if (!guildId && guilds?.length === 1) setGuildId(guilds[0]!.id);
   }, [guildId, guilds]);
 
+  // The AI gets the names and IDs of picked channels and roles.
+  const channels = useAppStateGuildChannels(needsGuild ? guildId : null);
+  const roles = useAppStateGuildRoles(needsGuild ? guildId : null);
+  const answers = composeFieldAnswers(
+    fields,
+    values.map((value, i) => {
+      const type = fields[i].type;
+      if (!value || !pickerTypes.includes(type)) return value;
+      const item = (type === "role" ? roles : channels)?.find(
+        (x) => x?.id === value
+      );
+      if (!item) return "";
+      if (type === "role") return `@${item.name} (role ID ${item.id})`;
+      if (type === "category") return `${item.name} (category ID ${item.id})`;
+      return `#${item.name} (channel ID ${item.id})`;
+    })
+  );
+  const setValue = (i: number, value: string) =>
+    setValues((v) => v.map((old, j) => (j === i ? value : old)));
+
   return (
     <div className="rounded-lg border bg-background p-3 space-y-3">
       {needsGuild && guilds && guilds.length > 1 && (
@@ -52,6 +72,7 @@ export default function FlowAIFieldsCard({
             value={guildId}
             onChange={(id) => {
               setGuildId(id);
+              // Picks of another server are reset.
               setValues((v) =>
                 v.map((old, j) =>
                   pickerTypes.includes(fields[j].type) ? "" : old
@@ -65,14 +86,10 @@ export default function FlowAIFieldsCard({
         <div key={i} className="space-y-1">
           <div className="text-xs font-medium">{field.label}</div>
           <FieldInput
-            // Picks of another server are reset.
-            key={pickerTypes.includes(field.type) ? guildId : undefined}
             field={field}
             guildId={guildId}
             value={values[i]}
-            onChange={(value) =>
-              setValues((v) => v.map((old, j) => (j === i ? value : old)))
-            }
+            onChange={(value) => setValue(i, value)}
           />
           {field.description && (
             <div className="text-xs text-muted-foreground">
@@ -95,6 +112,7 @@ export default function FlowAIFieldsCard({
 
 // Fields that are picked from the server.
 const pickerTypes = ["channel", "category", "role"];
+const categoryTypes = [4];
 
 // Only defaults the input can show are used, so nothing hidden is sent.
 function getDefault(field: FlowAIField) {
@@ -125,13 +143,26 @@ function FieldInput({
 }) {
   switch (field.type) {
     case "channel":
-      return <ChannelFieldInput guildId={guildId} onChange={onChange} />;
     case "category":
       return (
-        <ChannelFieldInput guildId={guildId} category onChange={onChange} />
+        <ChannelSelect
+          guildId={guildId}
+          types={field.type === "category" ? categoryTypes : undefined}
+          placeholder={
+            field.type === "category" ? "Select category..." : undefined
+          }
+          value={value || null}
+          onChange={(id) => onChange(id ?? "")}
+        />
       );
     case "role":
-      return <RoleFieldInput guildId={guildId} onChange={onChange} />;
+      return (
+        <RoleSelect
+          guildId={guildId}
+          value={value || null}
+          onChange={(id) => onChange(id ?? "")}
+        />
+      );
     case "choice":
       return (
         <Select value={value || undefined} onValueChange={onChange}>
@@ -158,63 +189,3 @@ function FieldInput({
       );
   }
 }
-
-// The values are the name and ID, so the AI can use the ID and the user sees
-// what they picked.
-function ChannelFieldInput({
-  guildId,
-  category,
-  onChange,
-}: {
-  guildId: string | null;
-  category?: boolean;
-  onChange: (value: string) => void;
-}) {
-  const [channelId, setChannelId] = useState<string | null>(null);
-  const channels = useAppStateGuildChannels(guildId);
-
-  return (
-    <ChannelSelect
-      guildId={guildId}
-      types={category ? categoryTypes : undefined}
-      placeholder={category ? "Select category..." : undefined}
-      value={channelId}
-      onChange={(id) => {
-        setChannelId(id);
-        const channel = channels?.find((c) => c!.id === id);
-        onChange(
-          !channel
-            ? ""
-            : category
-            ? `${channel.name} (category ID ${channel.id})`
-            : `#${channel.name} (channel ID ${channel.id})`
-        );
-      }}
-    />
-  );
-}
-
-function RoleFieldInput({
-  guildId,
-  onChange,
-}: {
-  guildId: string | null;
-  onChange: (value: string) => void;
-}) {
-  const [roleId, setRoleId] = useState<string | null>(null);
-  const roles = useAppStateGuildRoles(guildId);
-
-  return (
-    <RoleSelect
-      guildId={guildId}
-      value={roleId}
-      onChange={(id) => {
-        setRoleId(id);
-        const role = roles?.find((r) => r!.id === id);
-        onChange(role ? `@${role.name} (role ID ${role.id})` : "");
-      }}
-    />
-  );
-}
-
-const categoryTypes = [4];

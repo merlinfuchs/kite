@@ -21,8 +21,8 @@ import (
 
 func main() {
 	addr := flag.String("addr", "localhost:4455", "address to listen on")
-	modelName := flag.String("model", "gpt-5-mini", "model for building")
-	effort := flag.String("effort", "low", "reasoning effort for building")
+	modelName := flag.String("model", "gpt-5-mini", "model")
+	effort := flag.String("effort", "low", "reasoning effort")
 	flag.Parse()
 
 	opts := []option.RequestOption{option.WithAPIKey(os.Getenv("OPENAI_API_KEY"))}
@@ -50,14 +50,11 @@ func main() {
 				Scoped bool   `json:"scoped"`
 			} `json:"variables"`
 		}
-		if !decode(w, r, &req) {
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			fail(w, err)
 			return
 		}
 
-		messages := make([]flowai.Message, len(req.Messages))
-		for i, m := range req.Messages {
-			messages[i] = flowai.Message{Role: m.Role, Content: m.Content}
-		}
 		variables := make([]*model.Variable, len(req.Variables))
 		for i, v := range req.Variables {
 			variables[i] = &model.Variable{ID: v.ID, Name: v.Name, Scoped: v.Scoped}
@@ -65,7 +62,7 @@ func main() {
 		start := time.Now()
 		res, err := assistant.Respond(r.Context(), flowai.Request{
 			Flow:      req.Flow,
-			Messages:  messages,
+			Messages:  req.AssistantMessages(),
 			Issues:    req.Issues,
 			Variables: variables,
 			UserID:    "eval",
@@ -73,10 +70,6 @@ func main() {
 		if err != nil {
 			fail(w, err)
 			return
-		}
-		fields := make([]wire.FlowAIField, len(res.Fields))
-		for i, f := range res.Fields {
-			fields[i] = wire.FlowAIField(f)
 		}
 		respond(w, struct {
 			wire.FlowAIChatResponse
@@ -86,7 +79,7 @@ func main() {
 				PromptID:    "eval",
 				Message:     res.Message,
 				BuildPrompt: res.BuildPrompt,
-				Fields:      fields,
+				Fields:      wire.FlowAIFieldsToWire(res.Fields),
 				Edits:       res.Edits,
 				Issues:      res.Issues,
 			},
@@ -103,14 +96,6 @@ type evalInfo struct {
 	Model  string               `json:"model"`
 	Tokens model.AssistantUsage `json:"tokens"`
 	MS     int64                `json:"ms"`
-}
-
-func decode(w http.ResponseWriter, r *http.Request, v any) bool {
-	if err := json.NewDecoder(r.Body).Decode(v); err != nil {
-		fail(w, err)
-		return false
-	}
-	return true
 }
 
 func respond(w http.ResponseWriter, data any) {

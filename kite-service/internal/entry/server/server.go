@@ -157,7 +157,7 @@ func StartServer(c context.Context, cfg *config.Config) error {
 		UserLimits: api.APIUserLimitsConfig{
 			MaxAppsPerUser: cfg.UserLimits.MaxAppsPerUser,
 		},
-		FlowAIMaxRepairs: cfg.Assistant.MaxRepairs,
+		AssistantMaxRepairs: cfg.Assistant.MaxRepairs,
 		Billing: api.BillingConfig{
 			LemonSqueezyAPIKey:        cfg.Billing.LemonSqueezyAPIKey,
 			LemonSqueezySigningSecret: cfg.Billing.LemonSqueezySigningSecret,
