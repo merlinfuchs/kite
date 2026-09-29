@@ -3,7 +3,7 @@
   "info": {
     "title": "Cookie API",
     "version": "1",
-    "description": "Written by hand from https://docs.cookie-api.com, which has no spec. Only the endpoints Kite's blocks use."
+    "description": "Written by hand from https://docs.cookie-api.com, which has no spec. Only the endpoints Kite uses."
   },
   "servers": [{ "url": "https://api.cookie-api.com" }],
   "components": {
@@ -13,10 +13,10 @@
   },
   "security": [{ "ApiKey": [] }],
   "paths": {
-    "/api/api-key": {
+    "/api/time/current-time": {
       "get": {
-        "operationId": "get_api_key",
-        "summary": "Information about the API key",
+        "operationId": "get_current_time",
+        "summary": "The current time, which Kite requests to check an API key",
         "responses": { "200": { "description": "The key is valid" } }
       }
     },
@@ -44,42 +44,6 @@
         "responses": {
           "200": {
             "description": "The QR code",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": { "type": "boolean" },
-                    "url": { "type": "string" }
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/ai/generate-image": {
-      "post": {
-        "operationId": "generate_image",
-        "summary": "Generate an image with AI",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": ["prompt"],
-                "properties": {
-                  "prompt": { "type": "string" }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "The image, kept for 7 days",
             "content": {
               "application/json": {
                 "schema": {

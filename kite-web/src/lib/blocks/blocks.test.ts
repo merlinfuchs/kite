@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
 import { getDiscordApiOperation } from "../flow/discordApi";
-import cookieApiSpec from "../integrations/cookie_api/openapi.json";
 import { getIntegration, integrations } from "../integrations";
 import { blockDefinitions, blockIntegrations, requestBlocks } from ".";
 
@@ -29,10 +28,17 @@ const serviceBlocks = blockDefinitions.map((block) => ({
     : null,
 }));
 
+// The service doesn't read specs.
+const serviceIntegrations = integrations.map(({ spec: _, ...rest }) => rest);
+
 describe("block definitions", () => {
   it("match the file embedded in the service", async () => {
     await expect(
-      JSON.stringify({ integrations, blocks: serviceBlocks }, null, 2) + "\n"
+      JSON.stringify(
+        { integrations: serviceIntegrations, blocks: serviceBlocks },
+        null,
+        2
+      ) + "\n"
     ).toMatchFileSnapshot(
       "../../../../kite-service/pkg/flow/block_definitions.json"
     );
@@ -104,13 +110,12 @@ describe("block definitions", () => {
 
   // Integrations without an official spec keep a hand-written one.
   it("match the specs of other integrations", () => {
-    const specs: Record<string, OpenAPISpec> = { cookie_api: cookieApiSpec };
-
     for (const block of requestBlocks().filter(
       (b) => b.run.integration !== "discord"
     )) {
-      const spec = specs[block.run.integration];
+      const spec = getIntegration(block.run.integration)?.spec;
       expect(spec, block.type).toBeDefined();
+      if (!spec) continue;
 
       const op = spec.paths[block.run.path]?.[block.run.method.toLowerCase()];
       expect(op?.operationId, block.type).toBe(block.run.operation);
@@ -133,26 +138,3 @@ describe("block definitions", () => {
     }
   });
 });
-
-interface OpenAPISpec {
-  paths: Record<
-    string,
-    Record<
-      string,
-      {
-        operationId: string;
-        requestBody?: {
-          content?: Record<
-            string,
-            {
-              schema?: {
-                properties?: Record<string, unknown>;
-                required?: string[];
-              };
-            }
-          >;
-        };
-      }
-    >
-  >;
-}

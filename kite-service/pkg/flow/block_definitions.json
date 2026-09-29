@@ -19,7 +19,7 @@
     {
       "id": "cookie_api",
       "name": "Cookie API",
-      "description": "QR codes, AI images and other tools from cookie-api.com.",
+      "description": "QR codes and other tools from cookie-api.com.",
       "base_url": "https://api.cookie-api.com",
       "auth": {
         "type": "header",
@@ -27,7 +27,7 @@
         "label": "API key",
         "help_url": "https://docs.cookie-api.com/en/docs/getting-started/faq/api-key/"
       },
-      "test_path": "/api/api-key"
+      "test_path": "/api/time/current-time"
     }
   ],
   "blocks": [
@@ -1398,38 +1398,6 @@
           "target": "center_image_url",
           "type": "string",
           "required": false,
-          "fallback": "",
-          "min": null,
-          "max": null,
-          "max_length": null
-        }
-      ],
-      "result": {
-        "thing": "",
-        "list": false
-      }
-    },
-    {
-      "type": "action_cookie_api_image_generate",
-      "credits": 1,
-      "audit_log_reason": false,
-      "requires": [
-        "cookie_api"
-      ],
-      "run": {
-        "kind": "request",
-        "integration": "cookie_api",
-        "operation": "generate_image",
-        "method": "POST",
-        "path": "/api/ai/generate-image"
-      },
-      "fields": [
-        {
-          "name": "image_prompt",
-          "in": "body",
-          "target": "prompt",
-          "type": "string",
-          "required": true,
           "fallback": "",
           "min": null,
           "max": null,

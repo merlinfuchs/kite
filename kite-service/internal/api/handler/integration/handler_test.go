@@ -65,7 +65,7 @@ func connect(t *testing.T, integrationID string, status int) (int, map[string]an
 func TestConnectChecksCredential(t *testing.T) {
 	code, _, s, rt := connect(t, "cookie_api", http.StatusOK)
 	require.Equal(t, http.StatusOK, code)
-	assert.Equal(t, "https://api.cookie-api.com/api/api-key", rt.req.URL.String())
+	assert.Equal(t, "https://api.cookie-api.com/api/time/current-time", rt.req.URL.String())
 	assert.Equal(t, "k3y", rt.req.Header.Get("Authorization"))
 	require.NotNil(t, s.saved)
 	assert.Equal(t, "cookie_api", s.saved.IntegrationID)

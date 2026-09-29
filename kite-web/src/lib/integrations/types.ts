@@ -11,6 +11,33 @@ export interface Integration {
   // A cheap GET endpoint, relative to base_url, that checks the credential
   // when the app connects the integration.
   test_path?: string;
+  // OpenAPI spec that blocks.test.ts checks request blocks against. Discord's
+  // is checked through ../flow/discordApi.
+  spec?: OpenAPISpec;
+}
+
+// The parts of an OpenAPI spec the tests read.
+export interface OpenAPISpec {
+  paths: Record<
+    string,
+    Record<
+      string,
+      {
+        operationId: string;
+        requestBody?: {
+          content?: Record<
+            string,
+            {
+              schema?: {
+                properties?: Record<string, unknown>;
+                required?: string[];
+              };
+            }
+          >;
+        };
+      }
+    >
+  >;
 }
 
 // How requests prove who they are. Integrations with the "discord_bot" or

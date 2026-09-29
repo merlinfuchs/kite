@@ -10,7 +10,6 @@ import {
 import { BlockDefinition, BlockField, RequestBlockDefinition } from "./types";
 import { aiChatCompletion } from "./aiChatCompletion";
 import { aiWebSearch } from "./aiWebSearch";
-import { cookieApiImageGenerate } from "./cookieApiImageGenerate";
 import { cookieApiQrCodeCreate } from "./cookieApiQrCodeCreate";
 import { controlConditionChannel } from "./controlConditionChannel";
 import { controlConditionCompare } from "./controlConditionCompare";
@@ -139,7 +138,6 @@ export const blockDefinitions: BlockDefinition[] = [
   variableGet,
   robloxUserGet,
   cookieApiQrCodeCreate,
-  cookieApiImageGenerate,
   aiChatCompletion,
   aiWebSearch,
   httpRequest,

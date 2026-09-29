@@ -95,7 +95,6 @@ The output of previously executed blocks is available in all subsequent blocks a
 ## Cookie API Blocks
 
 - [Generate QR code](./actions/action_cookie_api_qr_code_create.md) - Create an image of a QR code
-- [Generate AI image](./actions/action_cookie_api_image_generate.md) - Create an image from a description
 
 ## Control Flow Blocks
 
