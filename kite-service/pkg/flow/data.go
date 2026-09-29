@@ -4,7 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"regexp"
+	"strconv"
+	"strings"
+	"unicode/utf8"
 
 	"github.com/diamondburned/arikawa/v3/api"
 	"github.com/diamondburned/arikawa/v3/discord"
@@ -62,6 +66,7 @@ const (
 	FlowNodeTypeActionMessageReactionDelete FlowNodeType = "action_message_reaction_delete"
 	FlowNodeTypeActionMessagePin            FlowNodeType = "action_message_pin"
 	FlowNodeTypeActionMessageUnpin          FlowNodeType = "action_message_unpin"
+	FlowNodeTypeActionPollCreate            FlowNodeType = "action_poll_create"
 	FlowNodeTypeActionMemberBan             FlowNodeType = "action_member_ban"
 	FlowNodeTypeActionMemberUnban           FlowNodeType = "action_member_unban"
 	FlowNodeTypeActionMemberKick            FlowNodeType = "action_member_kick"
@@ -176,6 +181,9 @@ type FlowNodeData struct {
 
 	// Message Reaction Create, Delete
 	EmojiData *EmojiData `json:"emoji_data,omitempty"`
+
+	// Poll Create
+	PollData *PollData `json:"poll_data,omitempty"`
 
 	// Modal
 	ModalData *ModalData `json:"modal_data,omitempty"`
@@ -510,6 +518,110 @@ type EmojiData struct {
 	ID string `json:"id,omitempty"`
 	// Name is the name of a custom emoji or the unicode of a standard emoji.
 	Name string `json:"name,omitempty"`
+}
+
+type PollData struct {
+	Question string           `json:"question,omitempty"`
+	Answers  []PollAnswerData `json:"answers,omitempty"`
+	// DurationHours is how long the poll is open for. Empty means 24 hours.
+	DurationHours    string `json:"duration_hours,omitempty"`
+	AllowMultiselect bool   `json:"allow_multiselect,omitempty"`
+}
+
+type PollAnswerData struct {
+	Text  string     `json:"text,omitempty"`
+	Emoji *EmojiData `json:"emoji,omitempty"`
+}
+
+// Discord's limits for polls.
+const (
+	pollQuestionMaxLength    = 300
+	pollAnswerMaxLength      = 55
+	pollMaxAnswers           = 10
+	pollDefaultDurationHours = 24
+	pollMaxDurationHours     = 768
+)
+
+// ToCreatePollData evaluates the templates of the poll and checks it against
+// Discord's limits, so a bad poll fails with a readable error instead of a
+// generic 400 from Discord.
+//
+// Answers that are empty after evaluation are skipped, so optional command
+// arguments can be used as answers.
+func (d *PollData) ToCreatePollData(ctx context.Context, evalCtx eval.Context) (provider.CreatePollData, error) {
+	res := provider.CreatePollData{
+		AllowMultiselect: d.AllowMultiselect,
+		LayoutType:       provider.PollLayoutTypeDefault,
+	}
+
+	question, err := eval.EvalTemplate(ctx, d.Question, evalCtx)
+	if err != nil {
+		return res, err
+	}
+	res.Question.Text = strings.TrimSpace(question.String())
+	if res.Question.Text == "" {
+		return res, fmt.Errorf("poll question must not be empty")
+	}
+	if n := utf8.RuneCountInString(res.Question.Text); n > pollQuestionMaxLength {
+		return res, fmt.Errorf("poll question is %d characters long, the maximum is %d", n, pollQuestionMaxLength)
+	}
+
+	for i, answer := range d.Answers {
+		text, err := eval.EvalTemplate(ctx, answer.Text, evalCtx)
+		if err != nil {
+			return res, err
+		}
+
+		media := provider.PollMedia{Text: strings.TrimSpace(text.String())}
+		if media.Text == "" {
+			continue
+		}
+		if n := utf8.RuneCountInString(media.Text); n > pollAnswerMaxLength {
+			return res, fmt.Errorf("poll answer %d is %d characters long, the maximum is %d", i+1, n, pollAnswerMaxLength)
+		}
+
+		if answer.Emoji != nil {
+			// Discord wants only the ID for custom emojis and only the name
+			// for standard ones.
+			if answer.Emoji.ID != "" {
+				id, err := discord.ParseSnowflake(answer.Emoji.ID)
+				if err != nil {
+					return res, fmt.Errorf("poll answer %d has an invalid emoji ID: %w", i+1, err)
+				}
+				media.Emoji = &provider.PollEmoji{ID: discord.EmojiID(id)}
+			} else if answer.Emoji.Name != "" {
+				media.Emoji = &provider.PollEmoji{Name: answer.Emoji.Name}
+			}
+		}
+
+		res.Answers = append(res.Answers, provider.PollAnswer{PollMedia: media})
+	}
+
+	if len(res.Answers) == 0 {
+		return res, fmt.Errorf("poll must have at least one answer")
+	}
+	if len(res.Answers) > pollMaxAnswers {
+		return res, fmt.Errorf("poll has %d answers, the maximum is %d", len(res.Answers), pollMaxAnswers)
+	}
+
+	res.Duration = pollDefaultDurationHours
+	if d.DurationHours != "" {
+		duration, err := eval.EvalTemplate(ctx, d.DurationHours, evalCtx)
+		if err != nil {
+			return res, err
+		}
+
+		hours, err := strconv.Atoi(strings.TrimSpace(duration.String()))
+		if err != nil {
+			return res, fmt.Errorf("poll duration %q is not a whole number of hours", duration.String())
+		}
+		if hours < 1 || hours > pollMaxDurationHours {
+			return res, fmt.Errorf("poll duration must be between 1 and %d hours, got %d", pollMaxDurationHours, hours)
+		}
+		res.Duration = hours
+	}
+
+	return res, nil
 }
 
 type ModalData struct {

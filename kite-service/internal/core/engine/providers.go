@@ -17,6 +17,7 @@ import (
 	"github.com/diamondburned/arikawa/v3/gateway"
 	"github.com/diamondburned/arikawa/v3/state"
 	disstore "github.com/diamondburned/arikawa/v3/state/store"
+	"github.com/diamondburned/arikawa/v3/utils/httputil"
 	"github.com/diamondburned/arikawa/v3/utils/sendpart"
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/internal/store"
@@ -284,6 +285,28 @@ func (p *DiscordProvider) UnpinMessage(ctx context.Context, channelID discord.Ch
 	}
 
 	return nil
+}
+
+func (p *DiscordProvider) CreatePoll(ctx context.Context, channelID discord.ChannelID, data provider.CreatePollData) (*discord.Message, error) {
+	// arikawa's SendMessageData has no poll field, so the request is built by hand.
+	body := struct {
+		Poll provider.CreatePollData `json:"poll"`
+	}{
+		Poll: data,
+	}
+
+	var msg discord.Message
+	err := p.session.RequestJSON(
+		&msg,
+		http.MethodPost,
+		api.EndpointChannels+channelID.String()+"/messages",
+		httputil.WithJSONBody(body),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create poll: %w", err)
+	}
+
+	return &msg, nil
 }
 
 func (p *DiscordProvider) BanMember(ctx context.Context, guildID discord.GuildID, userID discord.UserID, data api.BanData) error {

@@ -59,6 +59,8 @@ export const nodeActionPrivateMessageCreateResultSchema = messageResultSchema;
 
 export const nodeActionMessageGetResultSchema = messageResultSchema;
 
+export const nodeActionPollCreateResultSchema = messageResultSchema;
+
 export const nodeActionUserGetResultSchema = userResultSchema;
 
 export const nodeActionMemberGetResultSchema = memberResultSchema;
