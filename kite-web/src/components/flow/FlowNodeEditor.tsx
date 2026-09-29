@@ -88,6 +88,7 @@ import {
 import { Switch } from "../ui/switch";
 import { Textarea } from "../ui/textarea";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
+import FlowJsonInput from "./FlowJsonInput";
 import FlowPlaceholderExplorer from "./FlowPlaceholderExplorer";
 import env from "@/lib/env/client";
 import { ScrollArea } from "../ui/scroll-area";
@@ -1068,7 +1069,10 @@ const discordApiOperationItems = discordApiOperations.map((o) => ({
 // Webhooks with a token in the URL don't need the bot's token, and the Discord
 // API Request block can't call them.
 function isDiscordApiUrl(url: string) {
-  return /discord(app)?\.com\/api\//i.test(url) && !/\/webhooks\//i.test(url);
+  return (
+    /^\s*(https?:\/\/)?((ptb|canary)\.)?discord(app)?\.com(\/|$)/i.test(url) &&
+    !/\/webhooks\//i.test(url)
+  );
 }
 
 function DiscordApiRequestDataInput({ data, updateData, errors }: InputProps) {
@@ -1235,9 +1239,15 @@ function DiscordApiRequestDataInput({ data, updateData, errors }: InputProps) {
                 />
               </div>
               {!!request?.body_json && (
-                <JsonEditor
-                  src={request.body_json}
-                  onChange={(v) => updateRequest({ body_json: v })}
+                <FlowJsonInput
+                  value={request.body_json}
+                  // Some endpoints take a list, which the generated type
+                  // doesn't allow for.
+                  onChange={(v) =>
+                    updateRequest({
+                      body_json: v as DiscordAPIRequestData["body_json"],
+                    })
+                  }
                 />
               )}
               {bodyError && (

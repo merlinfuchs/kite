@@ -129,13 +129,19 @@ export const nodeCategories: Record<
       contextTypes: null,
     },
     {
-      title: "Other Actions",
+      title: "AI",
+      nodeTypes: ["action_ai_chat_completion", "action_ai_web_search"],
+      contextTypes: null,
+    },
+    {
+      title: "API Requests",
+      nodeTypes: ["action_http_request", "action_discord_api_request"],
+      contextTypes: null,
+    },
+    {
+      title: "Utilities",
       nodeTypes: [
         "action_expression_evaluate",
-        "action_ai_chat_completion",
-        "action_ai_web_search",
-        "action_http_request",
-        "action_discord_api_request",
         "action_random_generate",
         "action_log",
       ],
