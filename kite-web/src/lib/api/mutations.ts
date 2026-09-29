@@ -60,6 +60,11 @@ import {
   SubscriptionManageResponse,
   SubscriptionPlanUpdateRequest,
   SubscriptionPlanUpdateResponse,
+  AppSecretCreateRequest,
+  AppSecretCreateResponse,
+  AppSecretDeleteResponse,
+  AppSecretUpdateRequest,
+  AppSecretUpdateResponse,
   VariableCreateRequest,
   VariableCreateResponse,
   VariableDeleteResponse,
@@ -391,6 +396,68 @@ export function useEventListenerDeleteMutation(appId: string, eventId: string) {
     onSuccess: () => {
       client.invalidateQueries({
         queryKey: ["apps", appId, "event-listeners"],
+      });
+    },
+  });
+}
+
+export function useAppSecretCreateMutation(appId: string) {
+  const client = useQueryClient();
+
+  return useMutation({
+    mutationFn: (req: AppSecretCreateRequest) =>
+      apiRequest<AppSecretCreateResponse>(`/v1/apps/${appId}/secrets`, {
+        method: "POST",
+        body: JSON.stringify(req),
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }),
+    onSuccess: () => {
+      client.invalidateQueries({
+        queryKey: ["apps", appId, "secrets"],
+      });
+    },
+  });
+}
+
+export function useAppSecretUpdateMutation(appId: string, secretId: string) {
+  const client = useQueryClient();
+
+  return useMutation({
+    mutationFn: (req: AppSecretUpdateRequest) =>
+      apiRequest<AppSecretUpdateResponse>(
+        `/v1/apps/${appId}/secrets/${secretId}`,
+        {
+          method: "PATCH",
+          body: JSON.stringify(req),
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      ),
+    onSuccess: () => {
+      client.invalidateQueries({
+        queryKey: ["apps", appId, "secrets"],
+      });
+    },
+  });
+}
+
+export function useAppSecretDeleteMutation(appId: string, secretId: string) {
+  const client = useQueryClient();
+
+  return useMutation({
+    mutationFn: () =>
+      apiRequest<AppSecretDeleteResponse>(
+        `/v1/apps/${appId}/secrets/${secretId}`,
+        {
+          method: "DELETE",
+        }
+      ),
+    onSuccess: () => {
+      client.invalidateQueries({
+        queryKey: ["apps", appId, "secrets"],
       });
     },
   });

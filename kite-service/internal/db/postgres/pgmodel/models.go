@@ -23,6 +23,16 @@ type App struct {
 	DisabledReason pgtype.Text
 }
 
+type AppSecret struct {
+	ID             string
+	AppID          string
+	Name           pgtype.Text
+	IntegrationID  pgtype.Text
+	ValueEncrypted string
+	CreatedAt      pgtype.Timestamp
+	UpdatedAt      pgtype.Timestamp
+}
+
 type Asset struct {
 	ID            string
 	Name          string

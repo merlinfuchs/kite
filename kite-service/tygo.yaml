@@ -46,6 +46,7 @@ packages:
       - "compile.go"
       - "context.go"
       - "discord_api.go"
+      - "secrets.go"
       - "block_definitions.go"
       - "error.go"
       - "eval.go"

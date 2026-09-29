@@ -1160,7 +1160,16 @@ func (n *CompiledFlowNode) executeActionHTTPRequest(ctx *FlowContext) error {
 		method = "GET"
 	}
 
-	url, err := ctx.EvalTemplate(n.Data.HTTPRequestData.URL)
+	templates := []string{n.Data.HTTPRequestData.URL, string(n.Data.HTTPRequestData.BodyJSON)}
+	for _, kv := range append(n.Data.HTTPRequestData.Headers, n.Data.HTTPRequestData.Query...) {
+		templates = append(templates, kv.Value)
+	}
+	secrets, err := newRequestSecrets(ctx, templates...)
+	if err != nil {
+		return traceError(n, err)
+	}
+
+	url, err := secrets.EvalTemplate(ctx, n.Data.HTTPRequestData.URL)
 	if err != nil {
 		return traceError(n, err)
 	}
@@ -1171,11 +1180,11 @@ func (n *CompiledFlowNode) executeActionHTTPRequest(ctx *FlowContext) error {
 	// end of the flow, in a pool shared with the Discord API client.
 	req, err := http.NewRequestWithContext(ctx, method, url.String(), nil)
 	if err != nil {
-		return traceError(n, err)
+		return traceError(n, secrets.Redact(err))
 	}
 
 	for _, header := range n.Data.HTTPRequestData.Headers {
-		value, err := ctx.EvalTemplate(header.Value)
+		value, err := secrets.EvalTemplate(ctx, header.Value)
 		if err != nil {
 			return traceError(n, err)
 		}
@@ -1185,7 +1194,7 @@ func (n *CompiledFlowNode) executeActionHTTPRequest(ctx *FlowContext) error {
 
 	query := req.URL.Query()
 	for _, queryParam := range n.Data.HTTPRequestData.Query {
-		value, err := ctx.EvalTemplate(queryParam.Value)
+		value, err := secrets.EvalTemplate(ctx, queryParam.Value)
 		if err != nil {
 			return traceError(n, err)
 		}
@@ -1197,7 +1206,7 @@ func (n *CompiledFlowNode) executeActionHTTPRequest(ctx *FlowContext) error {
 	if n.Data.HTTPRequestData.BodyJSON != nil {
 		// This can potentially break the JSON if an expression returns a string containing double quotes
 		// We should probably escape the expression results or only run the eval engine on the actual JSON values
-		body, err := ctx.EvalTemplate(string(n.Data.HTTPRequestData.BodyJSON))
+		body, err := secrets.EvalTemplate(ctx, string(n.Data.HTTPRequestData.BodyJSON))
 		if err != nil {
 			return traceError(n, err)
 		}
@@ -1208,7 +1217,7 @@ func (n *CompiledFlowNode) executeActionHTTPRequest(ctx *FlowContext) error {
 
 	resp, err := ctx.HTTP.HTTPRequest(ctx, req)
 	if err != nil {
-		return traceError(n, err)
+		return traceError(n, secrets.Redact(err))
 	}
 
 	// Closed here rather than deferred: the body is fully consumed by

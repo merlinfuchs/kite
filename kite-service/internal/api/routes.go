@@ -9,6 +9,7 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/api/handler"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/app"
 	appstate "github.com/kitecloud/kite/kite-service/internal/api/handler/app_state"
+	"github.com/kitecloud/kite/kite-service/internal/api/handler/appsecret"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/asset"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/auth"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/billing"
@@ -57,6 +58,7 @@ func (s *APIServer) RegisterRoutes(
 	commandManager *command.CommandManager,
 	assistantPromptStore store.AssistantPromptStore,
 	flowAssistant *flowai.Assistant,
+	appSecretStore store.AppSecretStore,
 ) {
 	sessionManager := session.NewSessionManager(session.SessionManagerConfig{
 		StrictCookies: s.config.StrictCookies,
@@ -283,6 +285,17 @@ func (s *APIServer) RegisterRoutes(
 	variableGroup.Get("/", handler.Typed(variablesHandler.HandleVariableGet))
 	variableGroup.Patch("/", handler.TypedWithBody(variablesHandler.HandleVariableUpdate))
 	variableGroup.Delete("/", handler.Typed(variablesHandler.HandleVariableDelete))
+
+	// Secret routes
+	appSecretHandler := appsecret.NewAppSecretHandler(appSecretStore, tokenCrypt)
+
+	secretsGroup := appGroup.Group("/secrets")
+	secretsGroup.Get("/", handler.Typed(appSecretHandler.HandleAppSecretList))
+	secretsGroup.Post("/", handler.TypedWithBody(appSecretHandler.HandleAppSecretCreate))
+
+	secretGroup := secretsGroup.Group("/{secretID}")
+	secretGroup.Patch("/", handler.TypedWithBody(appSecretHandler.HandleAppSecretUpdate))
+	secretGroup.Delete("/", handler.Typed(appSecretHandler.HandleAppSecretDelete))
 
 	// Message routes
 	messageHandler := message.NewMessageHandler(

@@ -27,6 +27,7 @@ import {
   useUserQuery,
   useVariableQuery,
   useVariablesQuery,
+  useAppSecretsQuery,
   usePluginsQuery,
   usePluginInstanceQuery,
   usePluginInstancesQuery,
@@ -62,6 +63,7 @@ import {
   UserGetResponse,
   VariableGetResponse,
   VariableListResponse,
+  AppSecretListResponse,
 } from "../types/wire.gen";
 import { useAppId, usePluginId } from "./params";
 
@@ -169,6 +171,15 @@ export function useVariables(
   const router = useRouter();
 
   const query = useVariablesQuery(router.query.appId as string);
+  return useResponseData(query, callback);
+}
+
+export function useAppSecrets(
+  callback?: (res: APIResponse<AppSecretListResponse>) => void
+) {
+  const router = useRouter();
+
+  const query = useAppSecretsQuery(router.query.appId as string);
   return useResponseData(query, callback);
 }
 

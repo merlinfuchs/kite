@@ -882,3 +882,39 @@ func (p *RobloxProvider) UsersByUsername(ctx context.Context, username string) (
 
 	return v.Data, nil
 }
+
+type SecretProvider struct {
+	appID          string
+	appSecretStore store.AppSecretStore
+	tokenCrypt     *util.SymmetricCrypt
+}
+
+func NewSecretProvider(appID string, appSecretStore store.AppSecretStore, tokenCrypt *util.SymmetricCrypt) *SecretProvider {
+	return &SecretProvider{
+		appID:          appID,
+		appSecretStore: appSecretStore,
+		tokenCrypt:     tokenCrypt,
+	}
+}
+
+// Secrets only decrypts the secrets a flow uses.
+func (p *SecretProvider) Secrets(ctx context.Context, names []string) (map[string]string, error) {
+	if len(names) == 0 {
+		return map[string]string{}, nil
+	}
+
+	secrets, err := p.appSecretStore.AppSecretsByNames(ctx, p.appID, names)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get secrets: %w", err)
+	}
+
+	res := make(map[string]string, len(secrets))
+	for _, secret := range secrets {
+		value, err := p.tokenCrypt.DecryptString(secret.ValueEncrypted)
+		if err != nil {
+			return nil, fmt.Errorf("failed to decrypt secret %s: %w", secret.Name, err)
+		}
+		res[secret.Name] = value
+	}
+	return res, nil
+}

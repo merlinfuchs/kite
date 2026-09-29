@@ -214,7 +214,7 @@ Encrypted like `apps.discord_token`, write-only over the API, one credential per
 
 The two should share one implementation: the encrypted storage, the write-only API, the redaction of resolved values from logs and errors, and the import warning for missing names. An integration credential is then a secret with an `integration_id`, which the executor attaches to requests to that integration's host instead of a template resolving it. That's stricter than a named secret, which a flow can send to any URL.
 
-So #419 comes first. Its table should leave room for an `integration_id` column, which #419's "future consideration" of typed app config already hints at.
+So #419 comes first. Its `app_secrets` table has a nullable `integration_id` next to the nullable `name`, and exactly one of them is set: named secrets are what `{{secrets.NAME}}` resolves, integration credentials are what the executor attaches.
 
 Once integrations exist, most users won't need named secrets at all. The ones who still paste a Discord token into an HTTP block get a warning in the editor whenever a value looks like a bot token.
 
