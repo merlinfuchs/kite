@@ -1471,6 +1471,77 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 
 		ctx.StoreNodeResult(n, result)
 		return n.ExecuteChildren(ctx)
+	case FlowNodeTypeActionDiscordAPIRequest:
+		data := n.Data.DiscordAPIRequestData
+		if data == nil {
+			return &FlowError{
+				Code:    FlowNodeErrorUnknown,
+				Message: "discord_api_request_data is nil",
+			}
+		}
+
+		op, ok := discordAPIOperations[data.Operation]
+		if !ok {
+			return traceError(n, fmt.Errorf("unknown Discord API endpoint: %s", data.Operation))
+		}
+
+		pathParams := make(map[string]thing.Thing, len(data.PathParams))
+		for _, param := range data.PathParams {
+			value, err := ctx.EvalTemplate(param.Value)
+			if err != nil {
+				return traceError(n, err)
+			}
+			pathParams[param.Key] = value
+		}
+
+		query := make(map[string]thing.Thing, len(data.Query))
+		for _, param := range data.Query {
+			value, err := ctx.EvalTemplate(param.Value)
+			if err != nil {
+				return traceError(n, err)
+			}
+			query[param.Key] = value
+		}
+
+		path, err := discordAPIPath(op, pathParams, query)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		var body []byte
+		if len(data.BodyJSON) > 0 && string(data.BodyJSON) != "null" {
+			if op.Body == "" {
+				return traceError(n, fmt.Errorf("the %s endpoint doesn't take a body", op.ID))
+			}
+
+			body, err = evalDiscordAPIBody(ctx, data.BodyJSON)
+			if err != nil {
+				return traceError(n, err)
+			}
+		}
+
+		auditLogReason, err := ctx.EvalTemplate(n.Data.AuditLogReason)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		resBody, err := ctx.Discord.APIRequest(ctx, provider.DiscordAPIRequest{
+			Method: op.Method,
+			Path:   path,
+			Body:   body,
+			Reason: api.AuditLogReason(auditLogReason.String()),
+		})
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		result, err := discordAPIResult(resBody)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		ctx.StoreNodeResult(n, result)
+		return n.ExecuteChildren(ctx)
 	case FlowNodeTypeActionAIChatCompletion, FlowNodeTypeActionAISearchWeb:
 		webSearch := n.Type == FlowNodeTypeActionAISearchWeb
 

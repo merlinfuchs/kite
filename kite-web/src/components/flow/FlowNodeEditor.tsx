@@ -14,10 +14,16 @@ import { activityTypeOptions, statusOptions } from "@/lib/discord/presence";
 import { useAppFeature, useMessages, useVariables } from "@/lib/hooks/api";
 import { getFlowCreditsCost } from "@/lib/flow/schedule";
 import { aiModelTiers, getAiModelTier } from "@/lib/flow/aiModels";
+import {
+  discordApiOperationLabel,
+  discordApiOperations,
+  getDiscordApiOperation,
+} from "@/lib/flow/discordApi";
 import { EventTypeScheduleCron } from "@/lib/types/flow.gen";
 import { useAppId } from "@/lib/hooks/params";
 import {
   CommandArgumentChoiceData,
+  DiscordAPIRequestData,
   EmojiData,
   HTTPRequestData,
   ModalComponentData,
@@ -29,6 +35,7 @@ import {
 import { Node, useNodes, useReactFlow, useStoreApi } from "@xyflow/react";
 import {
   ChevronDownIcon,
+  ChevronsUpDownIcon,
   CircleAlertIcon,
   CopyIcon,
   HelpCircleIcon,
@@ -40,7 +47,14 @@ import {
   XIcon,
 } from "lucide-react";
 import Link from "next/link";
-import { ReactNode, useCallback, useEffect, useMemo, useRef } from "react";
+import {
+  ReactNode,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { NodeData, NodeProps } from "../../lib/flow/dataSchema";
 import MessageCreateDialog from "../app/MessageCreateDialog";
 import VariableCreateDialog from "../app/VariableCreateDialog";
@@ -56,6 +70,14 @@ import { hasComponentsV2Flag } from "@/lib/message/schema";
 import { Button } from "../ui/button";
 import { Card } from "../ui/card";
 import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "../ui/command";
+import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -70,6 +92,7 @@ import {
   DropdownMenuTrigger,
 } from "../ui/dropdown-menu";
 import { Input } from "../ui/input";
+import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
 import {
   Select,
   SelectContent,
@@ -137,6 +160,7 @@ const intputs: Record<string, any> = {
   variable_operation: VariableOperationInput,
   variable_value: VariableValueInput,
   http_request_data: HttpRequestDataInput,
+  discord_api_request_data: DiscordApiRequestDataInput,
   ai_chat_completion_data: AiChatCompletionDataInput,
   ai_web_search_data: AiWebSearchDataInput,
   expression: ExpressionInput,
@@ -981,6 +1005,13 @@ function HttpRequestDataInput({ data, updateData, errors }: InputProps) {
             errors={errors}
             placeholders
           />
+          {isDiscordApiUrl(data.http_request_data?.url || "") && (
+            <div className="text-sm text-muted-foreground bg-muted rounded p-3">
+              Use the Discord API Request block to call the Discord API. It
+              sends your bot&apos;s token for you, so you don&apos;t have to
+              paste it into a header.
+            </div>
+          )}
           <div>
             <div className="font-medium text-foreground mb-1">Headers</div>
             <div className="text-muted-foreground text-sm mb-2">
@@ -1041,6 +1072,255 @@ function HttpRequestDataInput({ data, updateData, errors }: InputProps) {
         </div>
       </DialogContent>
     </Dialog>
+  );
+}
+
+// Webhooks with a token in the URL don't need the bot's token, and the Discord
+// API Request block can't call them.
+function isDiscordApiUrl(url: string) {
+  return /discord(app)?\.com\/api\//i.test(url) && !/\/webhooks\//i.test(url);
+}
+
+function DiscordApiRequestDataInput({ data, updateData, errors }: InputProps) {
+  const request = data.discord_api_request_data;
+  const op = getDiscordApiOperation(request?.operation);
+
+  const updateRequest = useCallback(
+    (newData: Partial<DiscordAPIRequestData>) => {
+      updateData({
+        discord_api_request_data: {
+          ...data.discord_api_request_data,
+          ...newData,
+        },
+      });
+    },
+    [updateData, data]
+  );
+
+  function selectOperation(id: string) {
+    const newOp = getDiscordApiOperation(id);
+    if (!newOp) return;
+
+    // Keeps the values of parameters both endpoints have, like channel_id.
+    const pathValues = new Map(
+      request?.path_params?.map((p) => [p.key, p.value])
+    );
+    updateRequest({
+      operation: id,
+      path_params: newOp.path_params.map((p) => ({
+        key: p.name,
+        value: pathValues.get(p.name) ?? "",
+      })),
+      query: request?.query?.filter((q) =>
+        newOp.query_params.some((p) => p.name === q.key)
+      ),
+      body_json: newOp.body ? request?.body_json : undefined,
+    });
+  }
+
+  function setParam(
+    field: "path_params" | "query",
+    key: string,
+    value: string
+  ) {
+    updateRequest({
+      [field]: request?.[field]?.map((p) =>
+        p.key === key ? { key, value } : p
+      ),
+    });
+  }
+
+  const unusedQueryParams =
+    op?.query_params.filter(
+      (p) => !request?.query?.some((q) => q.key === p.name)
+    ) ?? [];
+
+  const operationError = errors["discord_api_request_data.operation"];
+  const bodyError = errors["discord_api_request_data.body_json"];
+
+  return (
+    <Dialog>
+      <DialogTrigger asChild>
+        <Button className="w-full" variant="secondary">
+          Configure Request
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="overflow-y-auto max-h-[90dvh] max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>Configure Discord API Request</DialogTitle>
+          <DialogDescription>
+            Call an endpoint of the Discord API as your bot. Kite adds the
+            bot&apos;s token, so never paste it into a flow.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-3">
+          <div>
+            <div className="font-medium text-foreground mb-2">Endpoint</div>
+            <DiscordApiOperationSelect
+              value={request?.operation}
+              onChange={selectOperation}
+            />
+            {op && (
+              <div className="text-muted-foreground text-sm font-mono mt-2 break-all">
+                {op.method} {op.path}
+              </div>
+            )}
+            {operationError && (
+              <div className="text-red-600 dark:text-red-400 text-sm flex items-center space-x-1 pt-2">
+                <CircleAlertIcon className="h-5 w-5 flex-none" />
+                <div>{operationError}</div>
+              </div>
+            )}
+          </div>
+          {op?.path_params.map((p) => (
+            <BaseInput
+              key={p.name}
+              type="text"
+              field={`discord_api_request_data.path_params.${p.name}`}
+              title={p.name}
+              description={p.type === "snowflake" ? "An ID" : undefined}
+              value={
+                request?.path_params?.find((v) => v.key === p.name)?.value || ""
+              }
+              updateValue={(v) => setParam("path_params", p.name, v)}
+              errors={errors}
+              placeholders
+            />
+          ))}
+          {request?.query?.map((q) => (
+            <div className="flex gap-2 items-end" key={q.key}>
+              <BaseInput
+                type="text"
+                field={`discord_api_request_data.query.${q.key}`}
+                title={q.key}
+                description="Query parameter"
+                value={q.value}
+                updateValue={(v) => setParam("query", q.key, v)}
+                errors={errors}
+                placeholders
+              />
+              <Button
+                variant="outline"
+                size="icon"
+                className="flex-none"
+                onClick={() =>
+                  updateRequest({
+                    query: request.query?.filter((v) => v.key !== q.key),
+                  })
+                }
+              >
+                <MinusIcon className="h-5 w-5" />
+              </Button>
+            </div>
+          ))}
+          {unusedQueryParams.length > 0 && (
+            <Select
+              value=""
+              onValueChange={(key) =>
+                updateRequest({
+                  query: [...(request?.query ?? []), { key, value: "" }],
+                })
+              }
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Add query parameter" />
+              </SelectTrigger>
+              <SelectContent>
+                {unusedQueryParams.map((p) => (
+                  <SelectItem key={p.name} value={p.name}>
+                    {p.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+          {op?.body && (
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <div className="font-medium text-foreground">JSON Body</div>
+                <Switch
+                  checked={!!request?.body_json}
+                  onCheckedChange={(checked) =>
+                    updateRequest({ body_json: checked ? {} : undefined })
+                  }
+                />
+              </div>
+              {!!request?.body_json && (
+                <JsonEditor
+                  src={request.body_json}
+                  onChange={(v) => updateRequest({ body_json: v })}
+                />
+              )}
+              {bodyError && (
+                <div className="text-red-600 dark:text-red-400 text-sm flex items-center space-x-1 pt-2">
+                  <CircleAlertIcon className="h-5 w-5 flex-none" />
+                  <div>{bodyError}</div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function DiscordApiOperationSelect({
+  value,
+  onChange,
+}: {
+  value: string | undefined;
+  onChange: (value: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <Popover open={open} onOpenChange={setOpen} modal>
+      <PopoverTrigger asChild>
+        <Button
+          variant="outline"
+          role="combobox"
+          aria-expanded={open}
+          className="w-full justify-between"
+        >
+          <div className="truncate">
+            {value ? discordApiOperationLabel(value) : "Select an endpoint"}
+          </div>
+          <ChevronsUpDownIcon className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent
+        className="w-[var(--radix-popover-trigger-width)] p-0"
+        align="start"
+      >
+        <Command>
+          <CommandInput placeholder="Search endpoints..." />
+          <CommandList>
+            <CommandEmpty>No endpoint found.</CommandEmpty>
+            <CommandGroup>
+              {discordApiOperations.map((o) => (
+                <CommandItem
+                  key={o.id}
+                  value={o.id}
+                  keywords={[discordApiOperationLabel(o.id), o.path]}
+                  onSelect={(v) => {
+                    onChange(v);
+                    setOpen(false);
+                  }}
+                >
+                  <div className="min-w-0">
+                    <div>{discordApiOperationLabel(o.id)}</div>
+                    <div className="text-xs text-muted-foreground font-mono truncate">
+                      {o.method} {o.path}
+                    </div>
+                  </div>
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
   );
 }
 

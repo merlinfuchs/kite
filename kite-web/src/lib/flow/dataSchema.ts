@@ -2,6 +2,11 @@ import { Edge, Node, NodeProps as XYNodeProps } from "@xyflow/react";
 import z from "zod";
 import { FlowNodeData } from "../types/flow.gen";
 import { aiModelTierValues, resolveAiModel } from "./aiModels";
+import {
+  DiscordApiParam,
+  getDiscordApiOperation,
+  similarDiscordApiOperations,
+} from "./discordApi";
 
 const numericRegex = /^[0-9]+$/;
 const decimalRegex = /^[0-9]+(\.[0-9]+)?$/;
@@ -821,6 +826,113 @@ export const nodeActionHttpRequestDataSchema = nodeBaseDataSchema.extend({
     .describe("The request to send."),
   temporary_name: temporaryNameSchema,
 });
+
+const discordApiParamSchema = z.object({
+  key: z.string().describe("Name of the parameter."),
+  value: templated(z.string(), "Value of the parameter."),
+});
+
+export const nodeActionDiscordApiRequestDataSchema = nodeBaseDataSchema.extend({
+  discord_api_request_data: z
+    .object({
+      operation: z
+        .string()
+        .describe(
+          "operationId of the endpoint in Discord's OpenAPI spec, e.g. create_message or list_messages. The spec's names can differ from Discord's docs, e.g. Modify Guild is update_guild."
+        ),
+      path_params: z
+        .array(discordApiParamSchema)
+        .optional()
+        .describe(
+          "Values for the parameters in the endpoint's path, e.g. channel_id. IDs can also be a placeholder that resolves to a user, channel or other Discord object."
+        ),
+      query: z
+        .array(discordApiParamSchema)
+        .optional()
+        .describe(
+          "Query parameters. Only the ones the endpoint has are allowed."
+        ),
+      body_json: z
+        .record(z.unknown())
+        .optional()
+        .describe(
+          "JSON body of the request. Placeholders in its string values are evaluated. A string that is a single placeholder keeps the type of its result, e.g. a number or list."
+        ),
+    })
+    .superRefine(refineDiscordApiRequest)
+    .describe("The Discord API request to send. The bot's token is added."),
+  audit_log_reason: auditLogReasonSchema,
+  temporary_name: temporaryNameSchema,
+});
+
+function refineDiscordApiRequest(
+  data: {
+    operation: string;
+    path_params?: { key: string; value: string }[];
+    query?: { key: string; value: string }[];
+    body_json?: Record<string, unknown>;
+  },
+  ctx: z.RefinementCtx
+) {
+  const op = getDiscordApiOperation(data.operation);
+  if (!op) {
+    const similar = similarDiscordApiOperations(data.operation);
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["operation"],
+      message: `Unknown endpoint. Similar ones: ${similar.join(", ")}`,
+    });
+    return;
+  }
+
+  const checkParams = (
+    field: "path_params" | "query",
+    declared: DiscordApiParam[],
+    required: (p: DiscordApiParam) => boolean
+  ) => {
+    const values = new Map(data[field]?.map((p) => [p.key, p.value]));
+    for (const p of declared) {
+      const value = values.get(p.name);
+      if (value === undefined ? required(p) : !value) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: [field, p.name],
+          message: `${p.name} is required`,
+        });
+      } else if (
+        value &&
+        p.type === "snowflake" &&
+        !numericRegex.test(value) &&
+        !value.includes("{{")
+      ) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: [field, p.name],
+          message: "Must be an ID or a placeholder",
+        });
+      }
+    }
+    for (const key of Array.from(values.keys())) {
+      if (!declared.some((p) => p.name === key)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: [field, key],
+          message: `The endpoint has no parameter ${key}`,
+        });
+      }
+    }
+  };
+  checkParams("path_params", op.path_params, () => true);
+  checkParams("query", op.query_params, (p) => !!p.required);
+
+  if (data.body_json && !op.body) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["body_json"],
+      message: "The endpoint doesn't take a body",
+    });
+  }
+}
 
 const aiModelSchema = z
   .preprocess(resolveAiModel, z.enum(aiModelTierValues).optional())

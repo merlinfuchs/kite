@@ -135,6 +135,7 @@ export const nodeCategories: Record<
         "action_ai_chat_completion",
         "action_ai_web_search",
         "action_http_request",
+        "action_discord_api_request",
         "action_random_generate",
         "action_log",
       ],
