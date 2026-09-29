@@ -3,6 +3,7 @@ package flow
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"regexp"
 
 	"github.com/diamondburned/arikawa/v3/api"
@@ -13,7 +14,6 @@ import (
 	"github.com/kitecloud/kite/kite-service/pkg/message"
 	"github.com/kitecloud/kite/kite-service/pkg/provider"
 	"github.com/kitecloud/kite/kite-service/pkg/schedule"
-	"github.com/openai/openai-go/v2"
 	"gopkg.in/guregu/null.v4"
 )
 
@@ -549,70 +549,104 @@ type AIChatCompletionData struct {
 	MaxCompletionTokens string `json:"max_completion_tokens,omitempty"`
 }
 
-// aiModelCosts is the set of models a flow may run, and what each costs in
-// credits for a plain completion versus one with web search.
-//
-// Single source of truth for both the save-time allowlist and metering. Pricing
-// used to be a switch with a cheap default arm, which meant any model not named
-// in it -- a newer, more expensive SKU, say -- billed the tenant at the floor
-// while the operator paid the real rate on their own API key. Keeping the
-// allowlist and the prices in one table means a model that has no price also
-// cannot be selected.
-//
-// The empty string is the provider default (gpt-4o-mini), so it is priced.
-var aiModelCosts = map[string]aiModelCost{
-	"":                         {Chat: 5, Search: 25},
-	openai.ChatModelGPT4_1:     {Chat: 100, Search: 500},
-	openai.ChatModelGPT4_1Mini: {Chat: 20, Search: 100},
-	openai.ChatModelGPT4_1Nano: {Chat: 5, Search: 25},
-	openai.ChatModelGPT4oMini:  {Chat: 5, Search: 25},
-	openai.ChatModelGPT5Nano:   {Chat: 5, Search: 25},
+const (
+	AIModelSmall  = "small"
+	AIModelMedium = "medium"
+	AIModelLarge  = "large"
+)
+
+type aiModelTier struct {
+	Model           string
+	ReasoningEffort string
+	aiModelCost
 }
 
+// Credits for a plain completion versus one with web search.
 type aiModelCost struct {
 	Chat   int
 	Search int
 }
 
-// maxAIModelCost is the ceiling of aiModelCosts, taken per field so it does not
-// depend on one model being the most expensive for both.
+// aiMaxWebSearches bounds what one web search block costs, since every search
+// is billed per call. The tiers' Search credits assume it.
+const aiMaxWebSearches = 2
+
+// aiMaxOutputTokens caps reasoning and answer together. Reasoning isn't given
+// extra room on top: the model spends whatever is left on the answer, so any
+// allowance would let answers run past the block's max_completion_tokens.
+const aiMaxOutputTokens = 500
+
+// AI blocks store a tier rather than a model, so the model behind a tier can
+// be swapped for a newer or cheaper one without touching stored flows.
+//
+// aiModelTiers is the single source of truth for both the save-time allowlist
+// and metering. Pricing used to be a switch with a cheap default arm, which
+// meant any model not named in it billed the tenant at the floor while the
+// operator paid the real rate on their own API key. A model swapped in here has
+// to fit its tier's credits; change the credits deliberately if it doesn't.
+var aiModelTiers = map[string]aiModelTier{
+	AIModelSmall: {
+		Model:           "gpt-6-luna",
+		ReasoningEffort: "none",
+		aiModelCost:     aiModelCost{Chat: 5, Search: 25},
+	},
+	AIModelMedium: {
+		Model:           "gpt-6-luna",
+		ReasoningEffort: "low",
+		aiModelCost:     aiModelCost{Chat: 20, Search: 100},
+	},
+	AIModelLarge: {
+		Model:           "gpt-6-sol",
+		ReasoningEffort: "none",
+		aiModelCost:     aiModelCost{Chat: 100, Search: 500},
+	},
+}
+
+// aiModelAliases maps what flows stored before tiers existed. Those flows are
+// still in the database and in message components, and a block keeps its old
+// value until someone edits it, so these can't be dropped. The empty string is
+// an unset model. The editor saved gpt-5.4-nano for its "gpt-5-nano" option
+// from May to August 2026.
+var aiModelAliases = map[string]string{
+	"":             AIModelSmall,
+	"gpt-4o-mini":  AIModelSmall,
+	"gpt-4.1-nano": AIModelSmall,
+	"gpt-5-nano":   AIModelSmall,
+	"gpt-5.4-nano": AIModelSmall,
+	"gpt-4.1-mini": AIModelMedium,
+	"gpt-4.1":      AIModelLarge,
+}
+
+// resolveAIModel returns the tier a stored model value runs as.
+func resolveAIModel(model string) (aiModelTier, bool) {
+	if tier, ok := aiModelAliases[model]; ok {
+		model = tier
+	}
+	tier, ok := aiModelTiers[model]
+	return tier, ok
+}
+
+// maxAIModelCost is the ceiling of aiModelTiers, taken per field so it does not
+// depend on one tier being the most expensive for both.
 var maxAIModelCost = func() aiModelCost {
 	var ceiling aiModelCost
-	for _, c := range aiModelCosts {
-		ceiling.Chat = max(ceiling.Chat, c.Chat)
-		ceiling.Search = max(ceiling.Search, c.Search)
+	for _, t := range aiModelTiers {
+		ceiling.Chat = max(ceiling.Chat, t.Chat)
+		ceiling.Search = max(ceiling.Search, t.Search)
 	}
 	return ceiling
 }()
 
-// aiModelsAllowed is aiModelCosts' keys as validation.In wants them. The empty
-// string is left out because In treats an empty value as valid regardless.
-var aiModelsAllowed = func() []any {
-	models := make([]any, 0, len(aiModelCosts))
-	for model := range aiModelCosts {
-		if model != "" {
-			models = append(models, model)
-		}
-	}
-	return models
-}()
-
-// AIModelAllowed reports whether a flow may run the given model.
-func AIModelAllowed(model string) bool {
-	_, ok := aiModelCosts[model]
-	return ok
-}
-
 // AICreditsCost prices one AI node.
 //
-// Unknown models are charged the most expensive entry rather than the least, so
+// Unknown models are charged the most expensive tier rather than the least, so
 // anything that reaches execution without passing the allowlist -- a flow saved
-// before this existed, or one embedded in a message, which the API does not
+// before it existed, or one embedded in a message, which the API does not
 // validate -- is over-charged rather than run for free.
 func AICreditsCost(model string, webSearch bool) int {
-	cost, ok := aiModelCosts[model]
-	if !ok {
-		cost = maxAIModelCost
+	cost := maxAIModelCost
+	if tier, ok := resolveAIModel(model); ok {
+		cost = tier.aiModelCost
 	}
 
 	if webSearch {
@@ -623,7 +657,12 @@ func AICreditsCost(model string, webSearch bool) int {
 
 func (d AIChatCompletionData) Validate() error {
 	return validation.ValidateStruct(&d,
-		validation.Field(&d.Model, validation.In(aiModelsAllowed...)),
+		validation.Field(&d.Model, validation.By(func(value any) error {
+			if _, ok := resolveAIModel(value.(string)); !ok {
+				return errors.New("unsupported model")
+			}
+			return nil
+		})),
 		validation.Field(&d.Prompt, validation.Required, validation.Length(1, 2000)),
 	)
 }
