@@ -44,6 +44,7 @@ export const nodeTypes = {
   action_message_reaction_delete: FlowNodeActionBase,
   action_message_pin: FlowNodeActionBase,
   action_message_unpin: FlowNodeActionBase,
+  action_poll_create: FlowNodeActionBase,
   action_member_ban: FlowNodeActionBase,
   action_member_unban: FlowNodeActionBase,
   action_member_kick: FlowNodeActionBase,

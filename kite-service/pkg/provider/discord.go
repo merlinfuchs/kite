@@ -31,6 +31,7 @@ type DiscordProvider interface {
 	DeleteMessageReaction(ctx context.Context, channelID discord.ChannelID, messageID discord.MessageID, emoji discord.APIEmoji) error
 	PinMessage(ctx context.Context, channelID discord.ChannelID, messageID discord.MessageID, reason api.AuditLogReason) error
 	UnpinMessage(ctx context.Context, channelID discord.ChannelID, messageID discord.MessageID, reason api.AuditLogReason) error
+	CreatePoll(ctx context.Context, channelID discord.ChannelID, data CreatePollData) (*discord.Message, error)
 	BanMember(ctx context.Context, guildID discord.GuildID, userID discord.UserID, data api.BanData) error
 	UnbanMember(ctx context.Context, guildID discord.GuildID, userID discord.UserID, reason api.AuditLogReason) error
 	KickMember(ctx context.Context, guildID discord.GuildID, userID discord.UserID, reason api.AuditLogReason) error
@@ -57,6 +58,37 @@ type DiscordProvider interface {
 	// already responded to, e.g. before a durable sleep.
 	MarkInteractionResponded(interactionID discord.InteractionID)
 	AutoDeferInteraction(ctx context.Context, interactionID discord.InteractionID, interactionToken string, response api.InteractionResponse)
+}
+
+// CreatePollData is the poll object of a create message request. arikawa
+// doesn't support polls yet, so these mirror Discord's API types.
+type CreatePollData struct {
+	Question PollMedia    `json:"question"`
+	Answers  []PollAnswer `json:"answers"`
+	// Duration is the number of hours the poll is open for.
+	Duration         int            `json:"duration"`
+	AllowMultiselect bool           `json:"allow_multiselect"`
+	LayoutType       PollLayoutType `json:"layout_type,omitempty"`
+}
+
+type PollLayoutType int
+
+const PollLayoutTypeDefault PollLayoutType = 1
+
+type PollAnswer struct {
+	PollMedia PollMedia `json:"poll_media"`
+}
+
+type PollMedia struct {
+	Text  string     `json:"text,omitempty"`
+	Emoji *PollEmoji `json:"emoji,omitempty"`
+}
+
+// PollEmoji holds either the ID of a custom emoji or the unicode of a standard
+// one, never both.
+type PollEmoji struct {
+	ID   discord.EmojiID `json:"id,omitempty"`
+	Name string          `json:"name,omitempty"`
 }
 
 type InteractionResponseResource struct {
@@ -153,6 +185,10 @@ func (p *MockDiscordProvider) PinMessage(ctx context.Context, channelID discord.
 
 func (p *MockDiscordProvider) UnpinMessage(ctx context.Context, channelID discord.ChannelID, messageID discord.MessageID, reason api.AuditLogReason) error {
 	return nil
+}
+
+func (p *MockDiscordProvider) CreatePoll(ctx context.Context, channelID discord.ChannelID, data CreatePollData) (*discord.Message, error) {
+	return nil, nil
 }
 
 func (p *MockDiscordProvider) BanMember(ctx context.Context, guildID discord.GuildID, userID discord.UserID, data api.BanData) error {

@@ -13,6 +13,7 @@ import {
   EventListenerGetResponse,
   EventListenerListResponse,
   FeaturesGetResponse,
+  FlowAIUsageGetResponse,
   LogEntry,
   LogEntryListResponse,
   LogSummaryGetResponse,
@@ -23,6 +24,7 @@ import {
   PluginInstanceListResponse,
   PluginListResponse,
   StateGuildChannelListResponse,
+  StateGuildRoleListResponse,
   StateGuildListResponse,
   StateStatusGetResponse,
   SubscriptionListResponse,
@@ -292,6 +294,20 @@ export function useAppStateGuildsQuery(appId: string) {
   });
 }
 
+export function useAppStateGuildRolesQuery(
+  appId: string,
+  guildId: string | null
+) {
+  return useQuery({
+    queryKey: ["apps", appId, "state", "guilds", guildId, "roles"],
+    queryFn: () =>
+      apiRequest<StateGuildRoleListResponse>(
+        `/v1/apps/${appId}/state/guilds/${guildId}/roles`
+      ),
+    enabled: !!appId && !!guildId,
+  });
+}
+
 export function useAppStateGuildChannelsQuery(
   appId: string,
   guildId: string | null
@@ -332,6 +348,22 @@ export function useBillingPlansQuery() {
   return useQuery({
     queryKey: ["billing", "plans"],
     queryFn: () => apiRequest<BillingPlanListResponse>(`/v1/billing/plans`),
+  });
+}
+
+export const flowAIUsageQueryKey = (appId: string) => [
+  "apps",
+  appId,
+  "flow-ai",
+  "usage",
+];
+
+export function useFlowAIUsageQuery(appId: string) {
+  return useQuery({
+    queryKey: flowAIUsageQueryKey(appId),
+    queryFn: () =>
+      apiRequest<FlowAIUsageGetResponse>(`/v1/apps/${appId}/flow-ai/usage`),
+    enabled: !!appId,
   });
 }
 

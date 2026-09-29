@@ -6,9 +6,16 @@ import { optionColor } from "@/lib/flow/nodes";
 import { EventTypeScheduleCron } from "@/lib/types/flow.gen";
 import { describeSchedule } from "@/lib/flow/schedule";
 
+const eventTitles: Record<string, string> = {
+  guild_create: "Bot joined a server",
+  guild_delete: "Bot left a server",
+};
+
 export default function FlowNodeEntryEvent(props: NodeProps) {
   const isSchedule = props.data.event_type === EventTypeScheduleCron;
   const eventName = props.data.event_type?.split("_").join(" ") || "";
+  const eventTitle =
+    eventTitles[props.data.event_type || ""] || `Listen for ${eventName}`;
 
   const cron = props.data.event_schedule_cron || "";
   const scheduleDescription = describeSchedule(cron);
@@ -16,7 +23,7 @@ export default function FlowNodeEntryEvent(props: NodeProps) {
   return (
     <FlowNodeBase
       {...props}
-      title={isSchedule ? "Run on schedule" : `Listen for ${eventName}`}
+      title={isSchedule ? "Run on schedule" : eventTitle}
       description={
         isSchedule
           ? `Runs the flow ${

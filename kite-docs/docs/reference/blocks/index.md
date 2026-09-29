@@ -33,6 +33,7 @@ The output of previously executed blocks is available in all subsequent blocks a
 - [Delete message reaction](./actions/action_message_reaction_delete.md) - Remove reactions from messages
 - [Pin channel message](./actions/action_message_pin.md) - Pin messages in channels
 - [Unpin channel message](./actions/action_message_unpin.md) - Unpin messages in channels
+- [Create poll](./actions/action_poll_create.md) - Send polls to channels
 
 ## User & Member Blocks
 

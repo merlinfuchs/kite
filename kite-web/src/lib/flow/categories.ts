@@ -56,6 +56,7 @@ export const nodeCategories: Record<
         "action_message_reaction_delete",
         "action_message_pin",
         "action_message_unpin",
+        "action_poll_create",
       ],
       contextTypes: null,
     },
