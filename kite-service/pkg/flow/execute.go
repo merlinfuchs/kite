@@ -1485,22 +1485,13 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			return traceError(n, fmt.Errorf("unknown Discord API endpoint: %s", data.Operation))
 		}
 
-		pathParams := make(map[string]thing.Thing, len(data.PathParams))
-		for _, param := range data.PathParams {
-			value, err := ctx.EvalTemplate(param.Value)
-			if err != nil {
-				return traceError(n, err)
-			}
-			pathParams[param.Key] = value
+		pathParams, err := ctx.evalKeyValues(data.PathParams)
+		if err != nil {
+			return traceError(n, err)
 		}
-
-		query := make(map[string]thing.Thing, len(data.Query))
-		for _, param := range data.Query {
-			value, err := ctx.EvalTemplate(param.Value)
-			if err != nil {
-				return traceError(n, err)
-			}
-			query[param.Key] = value
+		query, err := ctx.evalKeyValues(data.Query)
+		if err != nil {
+			return traceError(n, err)
 		}
 
 		path, err := discordAPIPath(op, pathParams, query)
@@ -1510,11 +1501,11 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 
 		var body []byte
 		if len(data.BodyJSON) > 0 && string(data.BodyJSON) != "null" {
-			if op.Body == "" {
+			if !op.HasBody {
 				return traceError(n, fmt.Errorf("the %s endpoint doesn't take a body", op.ID))
 			}
 
-			body, err = evalDiscordAPIBody(ctx, data.BodyJSON)
+			body, err = ctx.EvalJSONTemplate(data.BodyJSON)
 			if err != nil {
 				return traceError(n, err)
 			}

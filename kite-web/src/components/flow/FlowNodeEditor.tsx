@@ -35,7 +35,6 @@ import {
 import { Node, useNodes, useReactFlow, useStoreApi } from "@xyflow/react";
 import {
   ChevronDownIcon,
-  ChevronsUpDownIcon,
   CircleAlertIcon,
   CopyIcon,
   HelpCircleIcon,
@@ -47,18 +46,12 @@ import {
   XIcon,
 } from "lucide-react";
 import Link from "next/link";
-import {
-  ReactNode,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import { ReactNode, useCallback, useEffect, useMemo, useRef } from "react";
 import { NodeData, NodeProps } from "../../lib/flow/dataSchema";
 import MessageCreateDialog from "../app/MessageCreateDialog";
 import VariableCreateDialog from "../app/VariableCreateDialog";
 import EmojiPicker from "../common/EmojiPicker";
+import EntitySelect from "../common/EntitySelect";
 import JsonEditor from "../common/JsonEditor";
 import PlaceholderInput from "../common/PlaceholderInput";
 import ScheduleCronPreview, {
@@ -69,14 +62,6 @@ import MessageEditorDialog from "../message/MessageEditorDialog";
 import { hasComponentsV2Flag } from "@/lib/message/schema";
 import { Button } from "../ui/button";
 import { Card } from "../ui/card";
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from "../ui/command";
 import {
   Dialog,
   DialogContent,
@@ -92,7 +77,6 @@ import {
   DropdownMenuTrigger,
 } from "../ui/dropdown-menu";
 import { Input } from "../ui/input";
-import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
 import {
   Select,
   SelectContent,
@@ -1075,6 +1059,12 @@ function HttpRequestDataInput({ data, updateData, errors }: InputProps) {
   );
 }
 
+const discordApiOperationItems = discordApiOperations.map((o) => ({
+  id: o.id,
+  name: discordApiOperationLabel(o.id),
+  description: `${o.method} ${o.path}`,
+}));
+
 // Webhooks with a token in the URL don't need the bot's token, and the Discord
 // API Request block can't call them.
 function isDiscordApiUrl(url: string) {
@@ -1085,17 +1075,9 @@ function DiscordApiRequestDataInput({ data, updateData, errors }: InputProps) {
   const request = data.discord_api_request_data;
   const op = getDiscordApiOperation(request?.operation);
 
-  const updateRequest = useCallback(
-    (newData: Partial<DiscordAPIRequestData>) => {
-      updateData({
-        discord_api_request_data: {
-          ...data.discord_api_request_data,
-          ...newData,
-        },
-      });
-    },
-    [updateData, data]
-  );
+  function updateRequest(newData: Partial<DiscordAPIRequestData>) {
+    updateData({ discord_api_request_data: { ...request, ...newData } });
+  }
 
   function selectOperation(id: string) {
     const newOp = getDiscordApiOperation(id);
@@ -1114,7 +1096,7 @@ function DiscordApiRequestDataInput({ data, updateData, errors }: InputProps) {
       query: request?.query?.filter((q) =>
         newOp.query_params.some((p) => p.name === q.key)
       ),
-      body_json: newOp.body ? request?.body_json : undefined,
+      body_json: newOp.has_body ? request?.body_json : undefined,
     });
   }
 
@@ -1156,9 +1138,14 @@ function DiscordApiRequestDataInput({ data, updateData, errors }: InputProps) {
         <div className="space-y-3">
           <div>
             <div className="font-medium text-foreground mb-2">Endpoint</div>
-            <DiscordApiOperationSelect
-              value={request?.operation}
-              onChange={selectOperation}
+            <EntitySelect
+              items={discordApiOperationItems}
+              value={request?.operation ?? null}
+              onChange={(id) => id && selectOperation(id)}
+              placeholder="Select an endpoint"
+              searchPlaceholder="Search endpoints..."
+              emptyText="No endpoint found."
+              wide
             />
             {op && (
               <div className="text-muted-foreground text-sm font-mono mt-2 break-all">
@@ -1234,7 +1221,7 @@ function DiscordApiRequestDataInput({ data, updateData, errors }: InputProps) {
               </SelectContent>
             </Select>
           )}
-          {op?.body && (
+          {op?.has_body && (
             <div>
               <div className="flex items-center justify-between mb-2">
                 <div className="font-medium text-foreground">JSON Body</div>
@@ -1262,65 +1249,6 @@ function DiscordApiRequestDataInput({ data, updateData, errors }: InputProps) {
         </div>
       </DialogContent>
     </Dialog>
-  );
-}
-
-function DiscordApiOperationSelect({
-  value,
-  onChange,
-}: {
-  value: string | undefined;
-  onChange: (value: string) => void;
-}) {
-  const [open, setOpen] = useState(false);
-
-  return (
-    <Popover open={open} onOpenChange={setOpen} modal>
-      <PopoverTrigger asChild>
-        <Button
-          variant="outline"
-          role="combobox"
-          aria-expanded={open}
-          className="w-full justify-between"
-        >
-          <div className="truncate">
-            {value ? discordApiOperationLabel(value) : "Select an endpoint"}
-          </div>
-          <ChevronsUpDownIcon className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent
-        className="w-[var(--radix-popover-trigger-width)] p-0"
-        align="start"
-      >
-        <Command>
-          <CommandInput placeholder="Search endpoints..." />
-          <CommandList>
-            <CommandEmpty>No endpoint found.</CommandEmpty>
-            <CommandGroup>
-              {discordApiOperations.map((o) => (
-                <CommandItem
-                  key={o.id}
-                  value={o.id}
-                  keywords={[discordApiOperationLabel(o.id), o.path]}
-                  onSelect={(v) => {
-                    onChange(v);
-                    setOpen(false);
-                  }}
-                >
-                  <div className="min-w-0">
-                    <div>{discordApiOperationLabel(o.id)}</div>
-                    <div className="text-xs text-muted-foreground font-mono truncate">
-                      {o.method} {o.path}
-                    </div>
-                  </div>
-                </CommandItem>
-              ))}
-            </CommandGroup>
-          </CommandList>
-        </Command>
-      </PopoverContent>
-    </Popover>
   );
 }
 

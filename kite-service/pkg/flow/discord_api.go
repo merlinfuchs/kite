@@ -27,8 +27,6 @@ const (
 	discordAPIParamTypeInteger   discordAPIParamType = "integer"
 	discordAPIParamTypeNumber    discordAPIParamType = "number"
 	discordAPIParamTypeBoolean   discordAPIParamType = "boolean"
-	discordAPIParamTypeArray     discordAPIParamType = "array"
-	discordAPIParamTypeString    discordAPIParamType = "string"
 )
 
 type discordAPIParam struct {
@@ -43,8 +41,7 @@ type discordAPIOperation struct {
 	Path        string            `json:"path"`
 	PathParams  []discordAPIParam `json:"path_params"`
 	QueryParams []discordAPIParam `json:"query_params"`
-	// "required", "optional" or empty if the endpoint takes no body.
-	Body string `json:"body"`
+	HasBody     bool              `json:"has_body"`
 }
 
 var discordAPIOperations = func() map[string]discordAPIOperation {
@@ -62,10 +59,7 @@ var discordAPIOperations = func() map[string]discordAPIOperation {
 	return res
 }()
 
-var (
-	snowflakeRe = regexp.MustCompile(`^[0-9]+$`)
-	pathParamRe = regexp.MustCompile(`\{([a-z0-9_]+)\}`)
-)
+var pathParamRe = regexp.MustCompile(`\{([a-z0-9_]+)\}`)
 
 // discordAPIPath builds the path of a request to op, relative to the API base
 // URL, from the evaluated path and query parameters.
@@ -161,125 +155,18 @@ func discordAPIParamValue(p discordAPIParam, value thing.Thing) (string, error) 
 // discordAPISnowflake returns the ID of a Discord object, or a string that
 // already is an ID.
 func discordAPISnowflake(value thing.Thing) (string, error) {
-	switch value.Type {
-	case thing.TypeString:
-		v := strings.TrimSpace(value.String())
-		if !snowflakeRe.MatchString(v) {
-			return "", fmt.Errorf("must be an ID")
-		}
-		return v, nil
-	case thing.TypeInt:
-		if value.Int() <= 0 {
-			return "", fmt.Errorf("must be an ID")
-		}
-		return value.String(), nil
-	case thing.TypeDiscordMessage, thing.TypeDiscordUser, thing.TypeDiscordMember,
-		thing.TypeDiscordChannel, thing.TypeDiscordGuild, thing.TypeDiscordRole:
+	if value.IsDiscordEntity() {
 		return value.Snowflake().String(), nil
-	default:
+	}
+	if value.Type != thing.TypeString && value.Type != thing.TypeInt {
 		return "", fmt.Errorf("must be an ID")
 	}
-}
 
-// evalDiscordAPIBody evaluates the placeholders in the string values of a JSON
-// body. A value that is a single placeholder keeps the type of its result, so
-// numbers and lists can be filled in too.
-func evalDiscordAPIBody(ctx *FlowContext, body json.RawMessage) ([]byte, error) {
-	dec := json.NewDecoder(bytes.NewReader(body))
-	// Keeps IDs written as numbers exact.
-	dec.UseNumber()
-
-	var v any
-	if err := dec.Decode(&v); err != nil {
-		return nil, fmt.Errorf("failed to parse body: %w", err)
+	v := strings.TrimSpace(value.String())
+	if id, err := strconv.ParseUint(v, 10, 64); err != nil || id == 0 {
+		return "", fmt.Errorf("must be an ID")
 	}
-
-	v, err := evalDiscordAPIBodyValue(ctx, v)
-	if err != nil {
-		return nil, err
-	}
-	return json.Marshal(v)
-}
-
-func evalDiscordAPIBodyValue(ctx *FlowContext, v any) (any, error) {
-	switch v := v.(type) {
-	case map[string]any:
-		for key, value := range v {
-			res, err := evalDiscordAPIBodyValue(ctx, value)
-			if err != nil {
-				return nil, err
-			}
-			v[key] = res
-		}
-		return v, nil
-	case []any:
-		for i, value := range v {
-			res, err := evalDiscordAPIBodyValue(ctx, value)
-			if err != nil {
-				return nil, err
-			}
-			v[i] = res
-		}
-		return v, nil
-	case string:
-		// An empty template evaluates to null, which isn't what a plain string
-		// should become.
-		if !strings.Contains(v, "{{") {
-			return v, nil
-		}
-
-		res, err := ctx.EvalTemplateKeepSpace(v)
-		if err != nil {
-			return nil, err
-		}
-		return discordAPIBodyJSON(res), nil
-	default:
-		return v, nil
-	}
-}
-
-func discordAPIBodyJSON(t thing.Thing) any {
-	switch t.Type {
-	case thing.TypeString, thing.TypeInt, thing.TypeFloat, thing.TypeBool:
-		return t.Value
-	case thing.TypeArray:
-		arr := t.Array()
-		res := make([]any, len(arr))
-		for i, item := range arr {
-			res[i] = discordAPIBodyJSON(item)
-		}
-		return res
-	case thing.TypeObject:
-		obj := t.Object()
-		res := make(map[string]any, len(obj))
-		for key, item := range obj {
-			res[key] = discordAPIBodyJSON(item)
-		}
-		return res
-	case thing.TypeDiscordMessage, thing.TypeDiscordUser, thing.TypeDiscordMember,
-		thing.TypeDiscordChannel, thing.TypeDiscordGuild, thing.TypeDiscordRole:
-		return t.Snowflake().String()
-	}
-
-	// Lists and maps built in expressions, like {{[1, 2]}}, aren't wrapped.
-	switch v := t.Value.(type) {
-	case nil:
-		return nil
-	case []any:
-		res := make([]any, len(v))
-		for i, item := range v {
-			res[i] = discordAPIBodyJSON(thing.NewGuessTypeWithFallback(item))
-		}
-		return res
-	case map[string]any:
-		res := make(map[string]any, len(v))
-		for key, item := range v {
-			res[key] = discordAPIBodyJSON(thing.NewGuessTypeWithFallback(item))
-		}
-		return res
-	default:
-		return t.String()
-	}
+	return v, nil
 }
 
 // discordAPIResult turns the JSON of a response into a result that later
@@ -293,24 +180,5 @@ func discordAPIResult(body []byte) (thing.Thing, error) {
 	if err := json.Unmarshal(body, &v); err != nil {
 		return thing.Null, fmt.Errorf("failed to parse response: %w", err)
 	}
-	return discordAPIResultValue(v), nil
-}
-
-func discordAPIResultValue(v any) thing.Thing {
-	switch v := v.(type) {
-	case map[string]any:
-		res := make(map[string]thing.Thing, len(v))
-		for key, item := range v {
-			res[key] = discordAPIResultValue(item)
-		}
-		return thing.NewObject(res)
-	case []any:
-		res := make([]thing.Thing, len(v))
-		for i, item := range v {
-			res[i] = discordAPIResultValue(item)
-		}
-		return thing.NewArray(res)
-	default:
-		return thing.NewGuessTypeWithFallback(v)
-	}
+	return thing.NewFromJSONValue(v), nil
 }

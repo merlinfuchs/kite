@@ -8,15 +8,17 @@
       "path_params": [
         {
           "name": "guild_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         },
         {
           "name": "request_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         }
       ],
       "query_params": [],
-      "body": "required"
+      "has_body": true
     },
     {
       "id": "add_group_dm_user",
@@ -25,15 +27,17 @@
       "path_params": [
         {
           "name": "channel_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         },
         {
           "name": "user_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         }
       ],
       "query_params": [],
-      "body": "required"
+      "has_body": true
     },
     {
       "id": "add_guild_member",
@@ -42,15 +46,17 @@
       "path_params": [
         {
           "name": "guild_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         },
         {
           "name": "user_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         }
       ],
       "query_params": [],
-      "body": "required"
+      "has_body": true
     },
     {
       "id": "add_guild_member_role",
@@ -59,19 +65,22 @@
       "path_params": [
         {
           "name": "guild_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         },
         {
           "name": "user_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         },
         {
           "name": "role_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         }
       ],
       "query_params": [],
-      "body": null
+      "has_body": false
     },
     {
       "id": "add_invite_target_user",
@@ -80,15 +89,17 @@
       "path_params": [
         {
           "name": "code",
-          "type": "string"
+          "type": "string",
+          "required": true
         },
         {
           "name": "user_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         }
       ],
       "query_params": [],
-      "body": null
+      "has_body": false
     },
     {
       "id": "add_lobby_member",
@@ -97,15 +108,17 @@
       "path_params": [
         {
           "name": "lobby_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         },
         {
           "name": "user_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         }
       ],
       "query_params": [],
-      "body": "required"
+      "has_body": true
     },
     {
       "id": "add_my_message_reaction",
@@ -114,19 +127,22 @@
       "path_params": [
         {
           "name": "channel_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         },
         {
           "name": "message_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         },
         {
           "name": "emoji_name",
-          "type": "string"
+          "type": "string",
+          "required": true
         }
       ],
       "query_params": [],
-      "body": null
+      "has_body": false
     },
     {
       "id": "add_thread_member",
@@ -135,15 +151,17 @@
       "path_params": [
         {
           "name": "channel_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         },
         {
           "name": "user_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         }
       ],
       "query_params": [],
-      "body": null
+      "has_body": false
     },
     {
       "id": "applications_get_activity_instance",
@@ -152,15 +170,17 @@
       "path_params": [
         {
           "name": "application_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         },
         {
           "name": "instance_id",
-          "type": "string"
+          "type": "string",
+          "required": true
         }
       ],
       "query_params": [],
-      "body": null
+      "has_body": false
     },
     {
       "id": "ban_user_from_guild",
@@ -169,15 +189,17 @@
       "path_params": [
         {
           "name": "guild_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         },
         {
           "name": "user_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         }
       ],
       "query_params": [],
-      "body": "required"
+      "has_body": true
     },
     {
       "id": "bot_partner_sdk_token",
@@ -185,7 +207,7 @@
       "path": "/partner-sdk/token/bot",
       "path_params": [],
       "query_params": [],
-      "body": "required"
+      "has_body": true
     },
     {
       "id": "bot_partner_sdk_unmerge_provisional_account",
@@ -193,7 +215,7 @@
       "path": "/partner-sdk/provisional-accounts/unmerge/bot",
       "path_params": [],
       "query_params": [],
-      "body": "required"
+      "has_body": true
     },
     {
       "id": "bulk_add_invite_target_users",
@@ -202,11 +224,12 @@
       "path_params": [
         {
           "name": "code",
-          "type": "string"
+          "type": "string",
+          "required": true
         }
       ],
       "query_params": [],
-      "body": "required"
+      "has_body": true
     },
     {
       "id": "bulk_ban_users_from_guild",
@@ -215,11 +238,12 @@
       "path_params": [
         {
           "name": "guild_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         }
       ],
       "query_params": [],
-      "body": "required"
+      "has_body": true
     },
     {
       "id": "bulk_delete_messages",
@@ -228,11 +252,12 @@
       "path_params": [
         {
           "name": "channel_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         }
       ],
       "query_params": [],
-      "body": "required"
+      "has_body": true
     },
     {
       "id": "bulk_remove_invite_target_users",
@@ -241,11 +266,12 @@
       "path_params": [
         {
           "name": "code",
-          "type": "string"
+          "type": "string",
+          "required": true
         }
       ],
       "query_params": [],
-      "body": "required"
+      "has_body": true
     },
     {
       "id": "bulk_update_guild_channels",
@@ -254,11 +280,12 @@
       "path_params": [
         {
           "name": "guild_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         }
       ],
       "query_params": [],
-      "body": "required"
+      "has_body": true
     },
     {
       "id": "bulk_update_guild_roles",
@@ -267,11 +294,12 @@
       "path_params": [
         {
           "name": "guild_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         }
       ],
       "query_params": [],
-      "body": "required"
+      "has_body": true
     },
     {
       "id": "bulk_update_lobby_members",
@@ -280,11 +308,12 @@
       "path_params": [
         {
           "name": "lobby_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         }
       ],
       "query_params": [],
-      "body": "required"
+      "has_body": true
     },
     {
       "id": "count_guild_scheduled_event_users",
@@ -293,11 +322,13 @@
       "path_params": [
         {
           "name": "guild_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         },
         {
           "name": "guild_scheduled_event_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         }
       ],
       "query_params": [
@@ -307,7 +338,7 @@
           "required": false
         }
       ],
-      "body": null
+      "has_body": false
     },
     {
       "id": "create_auto_moderation_rule",
@@ -316,11 +347,12 @@
       "path_params": [
         {
           "name": "guild_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         }
       ],
       "query_params": [],
-      "body": "required"
+      "has_body": true
     },
     {
       "id": "create_channel_invite",
@@ -329,11 +361,12 @@
       "path_params": [
         {
           "name": "channel_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         }
       ],
       "query_params": [],
-      "body": "required"
+      "has_body": true
     },
     {
       "id": "create_dm",
@@ -341,7 +374,7 @@
       "path": "/users/@me/channels",
       "path_params": [],
       "query_params": [],
-      "body": "required"
+      "has_body": true
     },
     {
       "id": "create_guild_channel",
@@ -350,11 +383,12 @@
       "path_params": [
         {
           "name": "guild_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         }
       ],
       "query_params": [],
-      "body": "required"
+      "has_body": true
     },
     {
       "id": "create_guild_emoji",
@@ -363,11 +397,12 @@
       "path_params": [
         {
           "name": "guild_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         }
       ],
       "query_params": [],
-      "body": "required"
+      "has_body": true
     },
     {
       "id": "create_guild_role",
@@ -376,11 +411,12 @@
       "path_params": [
         {
           "name": "guild_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         }
       ],
       "query_params": [],
-      "body": "required"
+      "has_body": true
     },
     {
       "id": "create_guild_scheduled_event",
@@ -389,11 +425,12 @@
       "path_params": [
         {
           "name": "guild_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         }
       ],
       "query_params": [],
-      "body": "required"
+      "has_body": true
     },
     {
       "id": "create_guild_scheduled_event_exception",
@@ -402,15 +439,17 @@
       "path_params": [
         {
           "name": "guild_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         },
         {
           "name": "guild_scheduled_event_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         }
       ],
       "query_params": [],
-      "body": "required"
+      "has_body": true
     },
     {
       "id": "create_guild_soundboard_sound",
@@ -419,11 +458,12 @@
       "path_params": [
         {
           "name": "guild_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         }
       ],
       "query_params": [],
-      "body": "required"
+      "has_body": true
     },
     {
       "id": "create_guild_template",
@@ -432,11 +472,12 @@
       "path_params": [
         {
           "name": "guild_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         }
       ],
       "query_params": [],
-      "body": "required"
+      "has_body": true
     },
     {
       "id": "create_linked_lobby_guild_invite_for_self",
@@ -445,11 +486,12 @@
       "path_params": [
         {
           "name": "lobby_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         }
       ],
       "query_params": [],
-      "body": null
+      "has_body": false
     },
     {
       "id": "create_linked_lobby_guild_invite_for_user",
@@ -458,15 +500,17 @@
       "path_params": [
         {
           "name": "lobby_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         },
         {
           "name": "user_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         }
       ],
       "query_params": [],
-      "body": null
+      "has_body": false
     },
     {
       "id": "create_lobby",
@@ -474,7 +518,7 @@
       "path": "/lobbies",
       "path_params": [],
       "query_params": [],
-      "body": "required"
+      "has_body": true
     },
     {
       "id": "create_lobby_message",
@@ -483,11 +527,12 @@
       "path_params": [
         {
           "name": "lobby_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         }
       ],
       "query_params": [],
-      "body": "required"
+      "has_body": true
     },
     {
       "id": "create_message",
@@ -496,11 +541,12 @@
       "path_params": [
         {
           "name": "channel_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         }
       ],
       "query_params": [],
-      "body": "required"
+      "has_body": true
     },
     {
       "id": "create_or_join_lobby",
@@ -508,7 +554,7 @@
       "path": "/lobbies",
       "path_params": [],
       "query_params": [],
-      "body": "required"
+      "has_body": true
     },
     {
       "id": "create_pin",
@@ -517,15 +563,17 @@
       "path_params": [
         {
           "name": "channel_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         },
         {
           "name": "message_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         }
       ],
       "query_params": [],
-      "body": null
+      "has_body": false
     },
     {
       "id": "create_stage_instance",
@@ -533,7 +581,7 @@
       "path": "/stage-instances",
       "path_params": [],
       "query_params": [],
-      "body": "required"
+      "has_body": true
     },
     {
       "id": "create_thread",
@@ -542,11 +590,12 @@
       "path_params": [
         {
           "name": "channel_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         }
       ],
       "query_params": [],
-      "body": "required"
+      "has_body": true
     },
     {
       "id": "create_thread_from_message",
@@ -555,15 +604,17 @@
       "path_params": [
         {
           "name": "channel_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         },
         {
           "name": "message_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         }
       ],
       "query_params": [],
-      "body": "required"
+      "has_body": true
     },
     {
       "id": "create_webhook",
@@ -572,11 +623,12 @@
       "path_params": [
         {
           "name": "channel_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         }
       ],
       "query_params": [],
-      "body": "required"
+      "has_body": true
     },
     {
       "id": "crosspost_message",
@@ -585,15 +637,17 @@
       "path_params": [
         {
           "name": "channel_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         },
         {
           "name": "message_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         }
       ],
       "query_params": [],
-      "body": null
+      "has_body": false
     },
     {
       "id": "delete_all_message_reactions",
@@ -602,15 +656,17 @@
       "path_params": [
         {
           "name": "channel_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         },
         {
           "name": "message_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         }
       ],
       "query_params": [],
-      "body": null
+      "has_body": false
     },
     {
       "id": "delete_all_message_reactions_by_emoji",
@@ -619,19 +675,22 @@
       "path_params": [
         {
           "name": "channel_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         },
         {
           "name": "message_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         },
         {
           "name": "emoji_name",
-          "type": "string"
+          "type": "string",
+          "required": true
         }
       ],
       "query_params": [],
-      "body": null
+      "has_body": false
     },
     {
       "id": "delete_auto_moderation_rule",
@@ -640,15 +699,17 @@
       "path_params": [
         {
           "name": "guild_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         },
         {
           "name": "rule_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         }
       ],
       "query_params": [],
-      "body": null
+      "has_body": false
     },
     {
       "id": "delete_channel",
@@ -657,11 +718,12 @@
       "path_params": [
         {
           "name": "channel_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         }
       ],
       "query_params": [],
-      "body": null
+      "has_body": false
     },
     {
       "id": "delete_channel_permission_overwrite",
@@ -670,15 +732,17 @@
       "path_params": [
         {
           "name": "channel_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         },
         {
           "name": "overwrite_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         }
       ],
       "query_params": [],
-      "body": null
+      "has_body": false
     },
     {
       "id": "delete_group_dm_user",
@@ -687,15 +751,17 @@
       "path_params": [
         {
           "name": "channel_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         },
         {
           "name": "user_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         }
       ],
       "query_params": [],
-      "body": null
+      "has_body": false
     },
     {
       "id": "delete_guild_emoji",
@@ -704,15 +770,17 @@
       "path_params": [
         {
           "name": "guild_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         },
         {
           "name": "emoji_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         }
       ],
       "query_params": [],
-      "body": null
+      "has_body": false
     },
     {
       "id": "delete_guild_integration",
@@ -721,15 +789,17 @@
       "path_params": [
         {
           "name": "guild_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         },
         {
           "name": "integration_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         }
       ],
       "query_params": [],
-      "body": null
+      "has_body": false
     },
     {
       "id": "delete_guild_member",
@@ -738,15 +808,17 @@
       "path_params": [
         {
           "name": "guild_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         },
         {
           "name": "user_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         }
       ],
       "query_params": [],
-      "body": null
+      "has_body": false
     },
     {
       "id": "delete_guild_member_role",
@@ -755,19 +827,22 @@
       "path_params": [
         {
           "name": "guild_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         },
         {
           "name": "user_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         },
         {
           "name": "role_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         }
       ],
       "query_params": [],
-      "body": null
+      "has_body": false
     },
     {
       "id": "delete_guild_role",
@@ -776,15 +851,17 @@
       "path_params": [
         {
           "name": "guild_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         },
         {
           "name": "role_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         }
       ],
       "query_params": [],
-      "body": null
+      "has_body": false
     },
     {
       "id": "delete_guild_scheduled_event",
@@ -793,15 +870,17 @@
       "path_params": [
         {
           "name": "guild_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         },
         {
           "name": "guild_scheduled_event_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         }
       ],
       "query_params": [],
-      "body": null
+      "has_body": false
     },
     {
       "id": "delete_guild_scheduled_event_exception",
@@ -810,19 +889,22 @@
       "path_params": [
         {
           "name": "guild_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         },
         {
           "name": "guild_scheduled_event_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         },
         {
           "name": "exception_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         }
       ],
       "query_params": [],
-      "body": null
+      "has_body": false
     },
     {
       "id": "delete_guild_soundboard_sound",
@@ -831,15 +913,17 @@
       "path_params": [
         {
           "name": "guild_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         },
         {
           "name": "sound_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         }
       ],
       "query_params": [],
-      "body": null
+      "has_body": false
     },
     {
       "id": "delete_guild_sticker",
@@ -848,15 +932,17 @@
       "path_params": [
         {
           "name": "guild_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         },
         {
           "name": "sticker_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         }
       ],
       "query_params": [],
-      "body": null
+      "has_body": false
     },
     {
       "id": "delete_guild_template",
@@ -865,15 +951,17 @@
       "path_params": [
         {
           "name": "guild_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         },
         {
           "name": "code",
-          "type": "string"
+          "type": "string",
+          "required": true
         }
       ],
       "query_params": [],
-      "body": null
+      "has_body": false
     },
     {
       "id": "delete_lobby",
@@ -882,11 +970,12 @@
       "path_params": [
         {
           "name": "lobby_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         }
       ],
       "query_params": [],
-      "body": null
+      "has_body": false
     },
     {
       "id": "delete_lobby_member",
@@ -895,15 +984,17 @@
       "path_params": [
         {
           "name": "lobby_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         },
         {
           "name": "user_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         }
       ],
       "query_params": [],
-      "body": null
+      "has_body": false
     },
     {
       "id": "delete_message",
@@ -912,15 +1003,17 @@
       "path_params": [
         {
           "name": "channel_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         },
         {
           "name": "message_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         }
       ],
       "query_params": [],
-      "body": null
+      "has_body": false
     },
     {
       "id": "delete_my_message_reaction",
@@ -929,19 +1022,22 @@
       "path_params": [
         {
           "name": "channel_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         },
         {
           "name": "message_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         },
         {
           "name": "emoji_name",
-          "type": "string"
+          "type": "string",
+          "required": true
         }
       ],
       "query_params": [],
-      "body": null
+      "has_body": false
     },
     {
       "id": "delete_pin",
@@ -950,15 +1046,17 @@
       "path_params": [
         {
           "name": "channel_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         },
         {
           "name": "message_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         }
       ],
       "query_params": [],
-      "body": null
+      "has_body": false
     },
     {
       "id": "delete_stage_instance",
@@ -967,11 +1065,12 @@
       "path_params": [
         {
           "name": "channel_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         }
       ],
       "query_params": [],
-      "body": null
+      "has_body": false
     },
     {
       "id": "delete_thread_member",
@@ -980,15 +1079,17 @@
       "path_params": [
         {
           "name": "channel_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         },
         {
           "name": "user_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         }
       ],
       "query_params": [],
-      "body": null
+      "has_body": false
     },
     {
       "id": "delete_user_message_reaction",
@@ -997,23 +1098,27 @@
       "path_params": [
         {
           "name": "channel_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         },
         {
           "name": "message_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         },
         {
           "name": "emoji_name",
-          "type": "string"
+          "type": "string",
+          "required": true
         },
         {
           "name": "user_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         }
       ],
       "query_params": [],
-      "body": null
+      "has_body": false
     },
     {
       "id": "delete_webhook",
@@ -1022,11 +1127,12 @@
       "path_params": [
         {
           "name": "webhook_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         }
       ],
       "query_params": [],
-      "body": null
+      "has_body": false
     },
     {
       "id": "deprecated_create_pin",
@@ -1035,15 +1141,17 @@
       "path_params": [
         {
           "name": "channel_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         },
         {
           "name": "message_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         }
       ],
       "query_params": [],
-      "body": null
+      "has_body": false
     },
     {
       "id": "deprecated_delete_pin",
@@ -1052,15 +1160,17 @@
       "path_params": [
         {
           "name": "channel_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         },
         {
           "name": "message_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         }
       ],
       "query_params": [],
-      "body": null
+      "has_body": false
     },
     {
       "id": "deprecated_list_pins",
@@ -1069,11 +1179,12 @@
       "path_params": [
         {
           "name": "channel_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         }
       ],
       "query_params": [],
-      "body": null
+      "has_body": false
     },
     {
       "id": "edit_lobby",
@@ -1082,11 +1193,12 @@
       "path_params": [
         {
           "name": "lobby_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         }
       ],
       "query_params": [],
-      "body": "required"
+      "has_body": true
     },
     {
       "id": "edit_lobby_channel_link",
@@ -1095,11 +1207,12 @@
       "path_params": [
         {
           "name": "lobby_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         }
       ],
       "query_params": [],
-      "body": "required"
+      "has_body": true
     },
     {
       "id": "follow_channel",
@@ -1108,11 +1221,12 @@
       "path_params": [
         {
           "name": "channel_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         }
       ],
       "query_params": [],
-      "body": "required"
+      "has_body": true
     },
     {
       "id": "get_active_guild_threads",
@@ -1121,11 +1235,12 @@
       "path_params": [
         {
           "name": "guild_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         }
       ],
       "query_params": [],
-      "body": null
+      "has_body": false
     },
     {
       "id": "get_answer_voters",
@@ -1134,15 +1249,18 @@
       "path_params": [
         {
           "name": "channel_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         },
         {
           "name": "message_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         },
         {
           "name": "answer_id",
-          "type": "integer"
+          "type": "integer",
+          "required": true
         }
       ],
       "query_params": [
@@ -1157,7 +1275,7 @@
           "required": false
         }
       ],
-      "body": null
+      "has_body": false
     },
     {
       "id": "get_application",
@@ -1166,11 +1284,12 @@
       "path_params": [
         {
           "name": "application_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         }
       ],
       "query_params": [],
-      "body": null
+      "has_body": false
     },
     {
       "id": "get_application_command",
@@ -1179,15 +1298,17 @@
       "path_params": [
         {
           "name": "application_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         },
         {
           "name": "command_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         }
       ],
       "query_params": [],
-      "body": null
+      "has_body": false
     },
     {
       "id": "get_application_emoji",
@@ -1196,15 +1317,17 @@
       "path_params": [
         {
           "name": "application_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         },
         {
           "name": "emoji_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         }
       ],
       "query_params": [],
-      "body": null
+      "has_body": false
     },
     {
       "id": "get_application_role_connections_metadata",
@@ -1213,11 +1336,12 @@
       "path_params": [
         {
           "name": "application_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         }
       ],
       "query_params": [],
-      "body": null
+      "has_body": false
     },
     {
       "id": "get_auto_moderation_rule",
@@ -1226,15 +1350,17 @@
       "path_params": [
         {
           "name": "guild_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         },
         {
           "name": "rule_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         }
       ],
       "query_params": [],
-      "body": null
+      "has_body": false
     },
     {
       "id": "get_bot_gateway",
@@ -1242,7 +1368,7 @@
       "path": "/gateway/bot",
       "path_params": [],
       "query_params": [],
-      "body": null
+      "has_body": false
     },
     {
       "id": "get_channel",
@@ -1251,11 +1377,12 @@
       "path_params": [
         {
           "name": "channel_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         }
       ],
       "query_params": [],
-      "body": null
+      "has_body": false
     },
     {
       "id": "get_entitlement",
@@ -1264,15 +1391,17 @@
       "path_params": [
         {
           "name": "application_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         },
         {
           "name": "entitlement_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         }
       ],
       "query_params": [],
-      "body": null
+      "has_body": false
     },
     {
       "id": "get_entitlements",
@@ -1281,7 +1410,8 @@
       "path_params": [
         {
           "name": "application_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         }
       ],
       "query_params": [
@@ -1331,7 +1461,7 @@
           "required": false
         }
       ],
-      "body": null
+      "has_body": false
     },
     {
       "id": "get_gateway",
@@ -1339,7 +1469,7 @@
       "path": "/gateway",
       "path_params": [],
       "query_params": [],
-      "body": null
+      "has_body": false
     },
     {
       "id": "get_guild",
@@ -1348,7 +1478,8 @@
       "path_params": [
         {
           "name": "guild_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         }
       ],
       "query_params": [
@@ -1358,7 +1489,7 @@
           "required": false
         }
       ],
-      "body": null
+      "has_body": false
     },
     {
       "id": "get_guild_application_command",
@@ -1367,19 +1498,22 @@
       "path_params": [
         {
           "name": "application_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         },
         {
           "name": "guild_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         },
         {
           "name": "command_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         }
       ],
       "query_params": [],
-      "body": null
+      "has_body": false
     },
     {
       "id": "get_guild_application_command_permissions",
@@ -1388,19 +1522,22 @@
       "path_params": [
         {
           "name": "application_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         },
         {
           "name": "guild_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         },
         {
           "name": "command_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         }
       ],
       "query_params": [],
-      "body": null
+      "has_body": false
     },
     {
       "id": "get_guild_ban",
@@ -1409,15 +1546,17 @@
       "path_params": [
         {
           "name": "guild_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         },
         {
           "name": "user_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         }
       ],
       "query_params": [],
-      "body": null
+      "has_body": false
     },
     {
       "id": "get_guild_emoji",
@@ -1426,15 +1565,17 @@
       "path_params": [
         {
           "name": "guild_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         },
         {
           "name": "emoji_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         }
       ],
       "query_params": [],
-      "body": null
+      "has_body": false
     },
     {
       "id": "get_guild_join_requests",
@@ -1443,7 +1584,8 @@
       "path_params": [
         {
           "name": "guild_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         }
       ],
       "query_params": [
@@ -1468,7 +1610,7 @@
           "required": false
         }
       ],
-      "body": null
+      "has_body": false
     },
     {
       "id": "get_guild_member",
@@ -1477,15 +1619,17 @@
       "path_params": [
         {
           "name": "guild_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         },
         {
           "name": "user_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         }
       ],
       "query_params": [],
-      "body": null
+      "has_body": false
     },
     {
       "id": "get_guild_new_member_welcome",
@@ -1494,11 +1638,12 @@
       "path_params": [
         {
           "name": "guild_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         }
       ],
       "query_params": [],
-      "body": null
+      "has_body": false
     },
     {
       "id": "get_guild_preview",
@@ -1507,11 +1652,12 @@
       "path_params": [
         {
           "name": "guild_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         }
       ],
       "query_params": [],
-      "body": null
+      "has_body": false
     },
     {
       "id": "get_guild_role",
@@ -1520,15 +1666,17 @@
       "path_params": [
         {
           "name": "guild_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         },
         {
           "name": "role_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         }
       ],
       "query_params": [],
-      "body": null
+      "has_body": false
     },
     {
       "id": "get_guild_scheduled_event",
@@ -1537,11 +1685,13 @@
       "path_params": [
         {
           "name": "guild_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         },
         {
           "name": "guild_scheduled_event_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         }
       ],
       "query_params": [
@@ -1551,7 +1701,7 @@
           "required": false
         }
       ],
-      "body": null
+      "has_body": false
     },
     {
       "id": "get_guild_soundboard_sound",
@@ -1560,15 +1710,17 @@
       "path_params": [
         {
           "name": "guild_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         },
         {
           "name": "sound_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         }
       ],
       "query_params": [],
-      "body": null
+      "has_body": false
     },
     {
       "id": "get_guild_sticker",
@@ -1577,15 +1729,17 @@
       "path_params": [
         {
           "name": "guild_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         },
         {
           "name": "sticker_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         }
       ],
       "query_params": [],
-      "body": null
+      "has_body": false
     },
     {
       "id": "get_guild_template",
@@ -1594,11 +1748,12 @@
       "path_params": [
         {
           "name": "code",
-          "type": "string"
+          "type": "string",
+          "required": true
         }
       ],
       "query_params": [],
-      "body": null
+      "has_body": false
     },
     {
       "id": "get_guild_vanity_url",
@@ -1607,11 +1762,12 @@
       "path_params": [
         {
           "name": "guild_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         }
       ],
       "query_params": [],
-      "body": null
+      "has_body": false
     },
     {
       "id": "get_guild_webhooks",
@@ -1620,11 +1776,12 @@
       "path_params": [
         {
           "name": "guild_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         }
       ],
       "query_params": [],
-      "body": null
+      "has_body": false
     },
     {
       "id": "get_guild_welcome_screen",
@@ -1633,11 +1790,12 @@
       "path_params": [
         {
           "name": "guild_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         }
       ],
       "query_params": [],
-      "body": null
+      "has_body": false
     },
     {
       "id": "get_guild_widget",
@@ -1646,11 +1804,12 @@
       "path_params": [
         {
           "name": "guild_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         }
       ],
       "query_params": [],
-      "body": null
+      "has_body": false
     },
     {
       "id": "get_guild_widget_png",
@@ -1659,7 +1818,8 @@
       "path_params": [
         {
           "name": "guild_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         }
       ],
       "query_params": [
@@ -1669,7 +1829,7 @@
           "required": false
         }
       ],
-      "body": null
+      "has_body": false
     },
     {
       "id": "get_guild_widget_settings",
@@ -1678,11 +1838,12 @@
       "path_params": [
         {
           "name": "guild_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         }
       ],
       "query_params": [],
-      "body": null
+      "has_body": false
     },
     {
       "id": "get_guilds_onboarding",
@@ -1691,11 +1852,12 @@
       "path_params": [
         {
           "name": "guild_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         }
       ],
       "query_params": [],
-      "body": null
+      "has_body": false
     },
     {
       "id": "get_invite_target_users",
@@ -1704,11 +1866,12 @@
       "path_params": [
         {
           "name": "code",
-          "type": "string"
+          "type": "string",
+          "required": true
         }
       ],
       "query_params": [],
-      "body": null
+      "has_body": false
     },
     {
       "id": "get_invite_target_users_job_status",
@@ -1717,11 +1880,12 @@
       "path_params": [
         {
           "name": "code",
-          "type": "string"
+          "type": "string",
+          "required": true
         }
       ],
       "query_params": [],
-      "body": null
+      "has_body": false
     },
     {
       "id": "get_lobby",
@@ -1730,11 +1894,12 @@
       "path_params": [
         {
           "name": "lobby_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         }
       ],
       "query_params": [],
-      "body": null
+      "has_body": false
     },
     {
       "id": "get_lobby_messages",
@@ -1743,7 +1908,8 @@
       "path_params": [
         {
           "name": "lobby_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         }
       ],
       "query_params": [
@@ -1753,7 +1919,7 @@
           "required": false
         }
       ],
-      "body": null
+      "has_body": false
     },
     {
       "id": "get_message",
@@ -1762,15 +1928,17 @@
       "path_params": [
         {
           "name": "channel_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         },
         {
           "name": "message_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         }
       ],
       "query_params": [],
-      "body": null
+      "has_body": false
     },
     {
       "id": "get_my_application",
@@ -1778,7 +1946,7 @@
       "path": "/applications/@me",
       "path_params": [],
       "query_params": [],
-      "body": null
+      "has_body": false
     },
     {
       "id": "get_my_oauth2_application",
@@ -1786,7 +1954,7 @@
       "path": "/oauth2/applications/@me",
       "path_params": [],
       "query_params": [],
-      "body": null
+      "has_body": false
     },
     {
       "id": "get_my_oauth2_authorization",
@@ -1794,7 +1962,7 @@
       "path": "/oauth2/@me",
       "path_params": [],
       "query_params": [],
-      "body": null
+      "has_body": false
     },
     {
       "id": "get_my_user",
@@ -1802,7 +1970,7 @@
       "path": "/users/@me",
       "path_params": [],
       "query_params": [],
-      "body": null
+      "has_body": false
     },
     {
       "id": "get_openid_connect_userinfo",
@@ -1810,7 +1978,7 @@
       "path": "/oauth2/userinfo",
       "path_params": [],
       "query_params": [],
-      "body": null
+      "has_body": false
     },
     {
       "id": "get_public_keys",
@@ -1818,7 +1986,7 @@
       "path": "/oauth2/keys",
       "path_params": [],
       "query_params": [],
-      "body": null
+      "has_body": false
     },
     {
       "id": "get_self_voice_state",
@@ -1827,11 +1995,12 @@
       "path_params": [
         {
           "name": "guild_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         }
       ],
       "query_params": [],
-      "body": null
+      "has_body": false
     },
     {
       "id": "get_sku_subscription",
@@ -1840,11 +2009,13 @@
       "path_params": [
         {
           "name": "sku_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         },
         {
           "name": "subscription_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         }
       ],
       "query_params": [
@@ -1854,7 +2025,7 @@
           "required": false
         }
       ],
-      "body": null
+      "has_body": false
     },
     {
       "id": "get_sku_subscriptions",
@@ -1863,7 +2034,8 @@
       "path_params": [
         {
           "name": "sku_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         }
       ],
       "query_params": [
@@ -1888,7 +2060,7 @@
           "required": false
         }
       ],
-      "body": null
+      "has_body": false
     },
     {
       "id": "get_soundboard_default_sounds",
@@ -1896,7 +2068,7 @@
       "path": "/soundboard-default-sounds",
       "path_params": [],
       "query_params": [],
-      "body": null
+      "has_body": false
     },
     {
       "id": "get_stage_instance",
@@ -1905,11 +2077,12 @@
       "path_params": [
         {
           "name": "channel_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         }
       ],
       "query_params": [],
-      "body": null
+      "has_body": false
     },
     {
       "id": "get_sticker",
@@ -1918,11 +2091,12 @@
       "path_params": [
         {
           "name": "sticker_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         }
       ],
       "query_params": [],
-      "body": null
+      "has_body": false
     },
     {
       "id": "get_sticker_pack",
@@ -1931,11 +2105,12 @@
       "path_params": [
         {
           "name": "pack_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         }
       ],
       "query_params": [],
-      "body": null
+      "has_body": false
     },
     {
       "id": "get_thread_member",
@@ -1944,11 +2119,13 @@
       "path_params": [
         {
           "name": "channel_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         },
         {
           "name": "user_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         }
       ],
       "query_params": [
@@ -1958,7 +2135,7 @@
           "required": false
         }
       ],
-      "body": null
+      "has_body": false
     },
     {
       "id": "get_user",
@@ -1967,11 +2144,12 @@
       "path_params": [
         {
           "name": "user_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         }
       ],
       "query_params": [],
-      "body": null
+      "has_body": false
     },
     {
       "id": "get_voice_state",
@@ -1980,15 +2158,17 @@
       "path_params": [
         {
           "name": "guild_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         },
         {
           "name": "user_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         }
       ],
       "query_params": [],
-      "body": null
+      "has_body": false
     },
     {
       "id": "get_webhook",
@@ -1997,11 +2177,12 @@
       "path_params": [
         {
           "name": "webhook_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         }
       ],
       "query_params": [],
-      "body": null
+      "has_body": false
     },
     {
       "id": "guild_role_member_counts",
@@ -2010,11 +2191,12 @@
       "path_params": [
         {
           "name": "guild_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         }
       ],
       "query_params": [],
-      "body": null
+      "has_body": false
     },
     {
       "id": "guild_search",
@@ -2023,7 +2205,8 @@
       "path_params": [
         {
           "name": "guild_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         }
       ],
       "query_params": [
@@ -2148,7 +2331,7 @@
           "required": false
         }
       ],
-      "body": null
+      "has_body": false
     },
     {
       "id": "invite_resolve",
@@ -2157,7 +2340,8 @@
       "path_params": [
         {
           "name": "code",
-          "type": "string"
+          "type": "string",
+          "required": true
         }
       ],
       "query_params": [
@@ -2182,7 +2366,7 @@
           "required": false
         }
       ],
-      "body": null
+      "has_body": false
     },
     {
       "id": "invite_revoke",
@@ -2191,11 +2375,12 @@
       "path_params": [
         {
           "name": "code",
-          "type": "string"
+          "type": "string",
+          "required": true
         }
       ],
       "query_params": [],
-      "body": null
+      "has_body": false
     },
     {
       "id": "join_thread",
@@ -2204,11 +2389,12 @@
       "path_params": [
         {
           "name": "channel_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         }
       ],
       "query_params": [],
-      "body": null
+      "has_body": false
     },
     {
       "id": "leave_guild",
@@ -2217,11 +2403,12 @@
       "path_params": [
         {
           "name": "guild_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         }
       ],
       "query_params": [],
-      "body": null
+      "has_body": false
     },
     {
       "id": "leave_lobby",
@@ -2230,11 +2417,12 @@
       "path_params": [
         {
           "name": "lobby_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         }
       ],
       "query_params": [],
-      "body": null
+      "has_body": false
     },
     {
       "id": "leave_thread",
@@ -2243,11 +2431,12 @@
       "path_params": [
         {
           "name": "channel_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         }
       ],
       "query_params": [],
-      "body": null
+      "has_body": false
     },
     {
       "id": "list_application_commands",
@@ -2256,7 +2445,8 @@
       "path_params": [
         {
           "name": "application_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         }
       ],
       "query_params": [
@@ -2266,7 +2456,7 @@
           "required": false
         }
       ],
-      "body": null
+      "has_body": false
     },
     {
       "id": "list_application_emojis",
@@ -2275,11 +2465,12 @@
       "path_params": [
         {
           "name": "application_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         }
       ],
       "query_params": [],
-      "body": null
+      "has_body": false
     },
     {
       "id": "list_auto_moderation_rules",
@@ -2288,11 +2479,12 @@
       "path_params": [
         {
           "name": "guild_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         }
       ],
       "query_params": [],
-      "body": null
+      "has_body": false
     },
     {
       "id": "list_channel_invites",
@@ -2301,11 +2493,12 @@
       "path_params": [
         {
           "name": "channel_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         }
       ],
       "query_params": [],
-      "body": null
+      "has_body": false
     },
     {
       "id": "list_channel_webhooks",
@@ -2314,11 +2507,12 @@
       "path_params": [
         {
           "name": "channel_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         }
       ],
       "query_params": [],
-      "body": null
+      "has_body": false
     },
     {
       "id": "list_guild_application_command_permissions",
@@ -2327,15 +2521,17 @@
       "path_params": [
         {
           "name": "application_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         },
         {
           "name": "guild_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         }
       ],
       "query_params": [],
-      "body": null
+      "has_body": false
     },
     {
       "id": "list_guild_application_commands",
@@ -2344,11 +2540,13 @@
       "path_params": [
         {
           "name": "application_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         },
         {
           "name": "guild_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         }
       ],
       "query_params": [
@@ -2358,7 +2556,7 @@
           "required": false
         }
       ],
-      "body": null
+      "has_body": false
     },
     {
       "id": "list_guild_audit_log_entries",
@@ -2367,7 +2565,8 @@
       "path_params": [
         {
           "name": "guild_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         }
       ],
       "query_params": [
@@ -2402,7 +2601,7 @@
           "required": false
         }
       ],
-      "body": null
+      "has_body": false
     },
     {
       "id": "list_guild_bans",
@@ -2411,7 +2610,8 @@
       "path_params": [
         {
           "name": "guild_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         }
       ],
       "query_params": [
@@ -2431,7 +2631,7 @@
           "required": false
         }
       ],
-      "body": null
+      "has_body": false
     },
     {
       "id": "list_guild_channels",
@@ -2440,11 +2640,12 @@
       "path_params": [
         {
           "name": "guild_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         }
       ],
       "query_params": [],
-      "body": null
+      "has_body": false
     },
     {
       "id": "list_guild_emojis",
@@ -2453,11 +2654,12 @@
       "path_params": [
         {
           "name": "guild_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         }
       ],
       "query_params": [],
-      "body": null
+      "has_body": false
     },
     {
       "id": "list_guild_integrations",
@@ -2466,11 +2668,12 @@
       "path_params": [
         {
           "name": "guild_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         }
       ],
       "query_params": [],
-      "body": null
+      "has_body": false
     },
     {
       "id": "list_guild_invites",
@@ -2479,11 +2682,12 @@
       "path_params": [
         {
           "name": "guild_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         }
       ],
       "query_params": [],
-      "body": null
+      "has_body": false
     },
     {
       "id": "list_guild_members",
@@ -2492,7 +2696,8 @@
       "path_params": [
         {
           "name": "guild_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         }
       ],
       "query_params": [
@@ -2507,7 +2712,7 @@
           "required": false
         }
       ],
-      "body": null
+      "has_body": false
     },
     {
       "id": "list_guild_roles",
@@ -2516,11 +2721,12 @@
       "path_params": [
         {
           "name": "guild_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         }
       ],
       "query_params": [],
-      "body": null
+      "has_body": false
     },
     {
       "id": "list_guild_scheduled_event_exception_users",
@@ -2529,15 +2735,18 @@
       "path_params": [
         {
           "name": "guild_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         },
         {
           "name": "guild_scheduled_event_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         },
         {
           "name": "guild_scheduled_event_exception_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         }
       ],
       "query_params": [
@@ -2562,7 +2771,7 @@
           "required": false
         }
       ],
-      "body": null
+      "has_body": false
     },
     {
       "id": "list_guild_scheduled_event_users",
@@ -2571,11 +2780,13 @@
       "path_params": [
         {
           "name": "guild_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         },
         {
           "name": "guild_scheduled_event_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         }
       ],
       "query_params": [
@@ -2600,7 +2811,7 @@
           "required": false
         }
       ],
-      "body": null
+      "has_body": false
     },
     {
       "id": "list_guild_scheduled_events",
@@ -2609,7 +2820,8 @@
       "path_params": [
         {
           "name": "guild_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         }
       ],
       "query_params": [
@@ -2619,7 +2831,7 @@
           "required": false
         }
       ],
-      "body": null
+      "has_body": false
     },
     {
       "id": "list_guild_soundboard_sounds",
@@ -2628,11 +2840,12 @@
       "path_params": [
         {
           "name": "guild_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         }
       ],
       "query_params": [],
-      "body": null
+      "has_body": false
     },
     {
       "id": "list_guild_stickers",
@@ -2641,11 +2854,12 @@
       "path_params": [
         {
           "name": "guild_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         }
       ],
       "query_params": [],
-      "body": null
+      "has_body": false
     },
     {
       "id": "list_guild_templates",
@@ -2654,11 +2868,12 @@
       "path_params": [
         {
           "name": "guild_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         }
       ],
       "query_params": [],
-      "body": null
+      "has_body": false
     },
     {
       "id": "list_guild_voice_regions",
@@ -2667,11 +2882,12 @@
       "path_params": [
         {
           "name": "guild_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         }
       ],
       "query_params": [],
-      "body": null
+      "has_body": false
     },
     {
       "id": "list_message_reactions_by_emoji",
@@ -2680,15 +2896,18 @@
       "path_params": [
         {
           "name": "channel_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         },
         {
           "name": "message_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         },
         {
           "name": "emoji_name",
-          "type": "string"
+          "type": "string",
+          "required": true
         }
       ],
       "query_params": [
@@ -2708,7 +2927,7 @@
           "required": false
         }
       ],
-      "body": null
+      "has_body": false
     },
     {
       "id": "list_messages",
@@ -2717,7 +2936,8 @@
       "path_params": [
         {
           "name": "channel_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         }
       ],
       "query_params": [
@@ -2742,7 +2962,7 @@
           "required": false
         }
       ],
-      "body": null
+      "has_body": false
     },
     {
       "id": "list_my_connections",
@@ -2750,7 +2970,7 @@
       "path": "/users/@me/connections",
       "path_params": [],
       "query_params": [],
-      "body": null
+      "has_body": false
     },
     {
       "id": "list_my_guilds",
@@ -2784,7 +3004,7 @@
           "required": false
         }
       ],
-      "body": null
+      "has_body": false
     },
     {
       "id": "list_my_private_archived_threads",
@@ -2793,7 +3013,8 @@
       "path_params": [
         {
           "name": "channel_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         }
       ],
       "query_params": [
@@ -2808,7 +3029,7 @@
           "required": false
         }
       ],
-      "body": null
+      "has_body": false
     },
     {
       "id": "list_pins",
@@ -2817,7 +3038,8 @@
       "path_params": [
         {
           "name": "channel_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         }
       ],
       "query_params": [
@@ -2832,7 +3054,7 @@
           "required": false
         }
       ],
-      "body": null
+      "has_body": false
     },
     {
       "id": "list_private_archived_threads",
@@ -2841,7 +3063,8 @@
       "path_params": [
         {
           "name": "channel_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         }
       ],
       "query_params": [
@@ -2856,7 +3079,7 @@
           "required": false
         }
       ],
-      "body": null
+      "has_body": false
     },
     {
       "id": "list_public_archived_threads",
@@ -2865,7 +3088,8 @@
       "path_params": [
         {
           "name": "channel_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         }
       ],
       "query_params": [
@@ -2880,7 +3104,7 @@
           "required": false
         }
       ],
-      "body": null
+      "has_body": false
     },
     {
       "id": "list_sticker_packs",
@@ -2888,7 +3112,7 @@
       "path": "/sticker-packs",
       "path_params": [],
       "query_params": [],
-      "body": null
+      "has_body": false
     },
     {
       "id": "list_thread_members",
@@ -2897,7 +3121,8 @@
       "path_params": [
         {
           "name": "channel_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         }
       ],
       "query_params": [
@@ -2917,7 +3142,7 @@
           "required": false
         }
       ],
-      "body": null
+      "has_body": false
     },
     {
       "id": "list_voice_regions",
@@ -2925,7 +3150,7 @@
       "path": "/voice/regions",
       "path_params": [],
       "query_params": [],
-      "body": null
+      "has_body": false
     },
     {
       "id": "partner_sdk_token",
@@ -2933,7 +3158,7 @@
       "path": "/partner-sdk/token",
       "path_params": [],
       "query_params": [],
-      "body": "required"
+      "has_body": true
     },
     {
       "id": "partner_sdk_unmerge_provisional_account",
@@ -2941,7 +3166,7 @@
       "path": "/partner-sdk/provisional-accounts/unmerge",
       "path_params": [],
       "query_params": [],
-      "body": "required"
+      "has_body": true
     },
     {
       "id": "poll_expire",
@@ -2950,15 +3175,17 @@
       "path_params": [
         {
           "name": "channel_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         },
         {
           "name": "message_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         }
       ],
       "query_params": [],
-      "body": null
+      "has_body": false
     },
     {
       "id": "preview_prune_guild",
@@ -2967,7 +3194,8 @@
       "path_params": [
         {
           "name": "guild_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         }
       ],
       "query_params": [
@@ -2982,7 +3210,7 @@
           "required": false
         }
       ],
-      "body": null
+      "has_body": false
     },
     {
       "id": "prune_guild",
@@ -2991,11 +3219,12 @@
       "path_params": [
         {
           "name": "guild_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         }
       ],
       "query_params": [],
-      "body": "required"
+      "has_body": true
     },
     {
       "id": "put_guilds_onboarding",
@@ -3004,11 +3233,12 @@
       "path_params": [
         {
           "name": "guild_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         }
       ],
       "query_params": [],
-      "body": "required"
+      "has_body": true
     },
     {
       "id": "remove_invite_target_user",
@@ -3017,15 +3247,17 @@
       "path_params": [
         {
           "name": "code",
-          "type": "string"
+          "type": "string",
+          "required": true
         },
         {
           "name": "user_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         }
       ],
       "query_params": [],
-      "body": null
+      "has_body": false
     },
     {
       "id": "search_guild_members",
@@ -3034,7 +3266,8 @@
       "path_params": [
         {
           "name": "guild_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         }
       ],
       "query_params": [
@@ -3049,7 +3282,7 @@
           "required": true
         }
       ],
-      "body": null
+      "has_body": false
     },
     {
       "id": "send_soundboard_sound",
@@ -3058,11 +3291,12 @@
       "path_params": [
         {
           "name": "channel_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         }
       ],
       "query_params": [],
-      "body": "required"
+      "has_body": true
     },
     {
       "id": "set_channel_permission_overwrite",
@@ -3071,15 +3305,17 @@
       "path_params": [
         {
           "name": "channel_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         },
         {
           "name": "overwrite_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         }
       ],
       "query_params": [],
-      "body": "required"
+      "has_body": true
     },
     {
       "id": "sync_guild_template",
@@ -3088,15 +3324,17 @@
       "path_params": [
         {
           "name": "guild_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         },
         {
           "name": "code",
-          "type": "string"
+          "type": "string",
+          "required": true
         }
       ],
       "query_params": [],
-      "body": null
+      "has_body": false
     },
     {
       "id": "thread_search",
@@ -3105,7 +3343,8 @@
       "path_params": [
         {
           "name": "channel_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         }
       ],
       "query_params": [
@@ -3165,7 +3404,7 @@
           "required": false
         }
       ],
-      "body": null
+      "has_body": false
     },
     {
       "id": "trigger_typing_indicator",
@@ -3174,11 +3413,12 @@
       "path_params": [
         {
           "name": "channel_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         }
       ],
       "query_params": [],
-      "body": null
+      "has_body": false
     },
     {
       "id": "unban_user_from_guild",
@@ -3187,15 +3427,17 @@
       "path_params": [
         {
           "name": "guild_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         },
         {
           "name": "user_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         }
       ],
       "query_params": [],
-      "body": "required"
+      "has_body": true
     },
     {
       "id": "update_auto_moderation_rule",
@@ -3204,15 +3446,17 @@
       "path_params": [
         {
           "name": "guild_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         },
         {
           "name": "rule_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         }
       ],
       "query_params": [],
-      "body": "required"
+      "has_body": true
     },
     {
       "id": "update_channel",
@@ -3221,11 +3465,12 @@
       "path_params": [
         {
           "name": "channel_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         }
       ],
       "query_params": [],
-      "body": "required"
+      "has_body": true
     },
     {
       "id": "update_guild",
@@ -3234,11 +3479,12 @@
       "path_params": [
         {
           "name": "guild_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         }
       ],
       "query_params": [],
-      "body": "required"
+      "has_body": true
     },
     {
       "id": "update_guild_emoji",
@@ -3247,15 +3493,17 @@
       "path_params": [
         {
           "name": "guild_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         },
         {
           "name": "emoji_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         }
       ],
       "query_params": [],
-      "body": "required"
+      "has_body": true
     },
     {
       "id": "update_guild_incident_actions",
@@ -3264,11 +3512,12 @@
       "path_params": [
         {
           "name": "guild_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         }
       ],
       "query_params": [],
-      "body": "required"
+      "has_body": true
     },
     {
       "id": "update_guild_member",
@@ -3277,15 +3526,17 @@
       "path_params": [
         {
           "name": "guild_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         },
         {
           "name": "user_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         }
       ],
       "query_params": [],
-      "body": "required"
+      "has_body": true
     },
     {
       "id": "update_guild_role",
@@ -3294,15 +3545,17 @@
       "path_params": [
         {
           "name": "guild_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         },
         {
           "name": "role_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         }
       ],
       "query_params": [],
-      "body": "required"
+      "has_body": true
     },
     {
       "id": "update_guild_scheduled_event",
@@ -3311,15 +3564,17 @@
       "path_params": [
         {
           "name": "guild_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         },
         {
           "name": "guild_scheduled_event_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         }
       ],
       "query_params": [],
-      "body": "required"
+      "has_body": true
     },
     {
       "id": "update_guild_scheduled_event_exception",
@@ -3328,19 +3583,22 @@
       "path_params": [
         {
           "name": "guild_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         },
         {
           "name": "guild_scheduled_event_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         },
         {
           "name": "exception_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         }
       ],
       "query_params": [],
-      "body": "required"
+      "has_body": true
     },
     {
       "id": "update_guild_soundboard_sound",
@@ -3349,15 +3607,17 @@
       "path_params": [
         {
           "name": "guild_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         },
         {
           "name": "sound_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         }
       ],
       "query_params": [],
-      "body": "required"
+      "has_body": true
     },
     {
       "id": "update_guild_sticker",
@@ -3366,15 +3626,17 @@
       "path_params": [
         {
           "name": "guild_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         },
         {
           "name": "sticker_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         }
       ],
       "query_params": [],
-      "body": "required"
+      "has_body": true
     },
     {
       "id": "update_guild_template",
@@ -3383,15 +3645,17 @@
       "path_params": [
         {
           "name": "guild_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         },
         {
           "name": "code",
-          "type": "string"
+          "type": "string",
+          "required": true
         }
       ],
       "query_params": [],
-      "body": "required"
+      "has_body": true
     },
     {
       "id": "update_guild_welcome_screen",
@@ -3400,11 +3664,12 @@
       "path_params": [
         {
           "name": "guild_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         }
       ],
       "query_params": [],
-      "body": "required"
+      "has_body": true
     },
     {
       "id": "update_guild_widget_settings",
@@ -3413,11 +3678,12 @@
       "path_params": [
         {
           "name": "guild_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         }
       ],
       "query_params": [],
-      "body": "required"
+      "has_body": true
     },
     {
       "id": "update_lobby_message_external_moderation_metadata",
@@ -3426,15 +3692,17 @@
       "path_params": [
         {
           "name": "lobby_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         },
         {
           "name": "message_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         }
       ],
       "query_params": [],
-      "body": "required"
+      "has_body": true
     },
     {
       "id": "update_message",
@@ -3443,15 +3711,17 @@
       "path_params": [
         {
           "name": "channel_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         },
         {
           "name": "message_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         }
       ],
       "query_params": [],
-      "body": "required"
+      "has_body": true
     },
     {
       "id": "update_my_guild_member",
@@ -3460,11 +3730,12 @@
       "path_params": [
         {
           "name": "guild_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         }
       ],
       "query_params": [],
-      "body": "required"
+      "has_body": true
     },
     {
       "id": "update_self_voice_state",
@@ -3473,11 +3744,12 @@
       "path_params": [
         {
           "name": "guild_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         }
       ],
       "query_params": [],
-      "body": "required"
+      "has_body": true
     },
     {
       "id": "update_stage_instance",
@@ -3486,11 +3758,12 @@
       "path_params": [
         {
           "name": "channel_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         }
       ],
       "query_params": [],
-      "body": "required"
+      "has_body": true
     },
     {
       "id": "update_user_message_external_moderation_metadata",
@@ -3499,19 +3772,22 @@
       "path_params": [
         {
           "name": "user_id_1",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         },
         {
           "name": "user_id_2",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         },
         {
           "name": "message_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         }
       ],
       "query_params": [],
-      "body": "required"
+      "has_body": true
     },
     {
       "id": "update_voice_channel_status",
@@ -3520,11 +3796,12 @@
       "path_params": [
         {
           "name": "channel_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         }
       ],
       "query_params": [],
-      "body": "required"
+      "has_body": true
     },
     {
       "id": "update_voice_state",
@@ -3533,15 +3810,17 @@
       "path_params": [
         {
           "name": "guild_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         },
         {
           "name": "user_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         }
       ],
       "query_params": [],
-      "body": "required"
+      "has_body": true
     },
     {
       "id": "update_webhook",
@@ -3550,11 +3829,12 @@
       "path_params": [
         {
           "name": "webhook_id",
-          "type": "snowflake"
+          "type": "snowflake",
+          "required": true
         }
       ],
       "query_params": [],
-      "body": "required"
+      "has_body": true
     }
   ]
 }

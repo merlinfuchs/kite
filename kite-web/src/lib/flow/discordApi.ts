@@ -3,18 +3,11 @@ import spec from "./discordApi.json";
 // The Discord API endpoints the Discord API Request block can call, generated
 // from Discord's OpenAPI spec by scripts/discord-api.mjs.
 
-export type DiscordApiParamType =
-  | "snowflake"
-  | "integer"
-  | "number"
-  | "boolean"
-  | "array"
-  | "string";
-
 export interface DiscordApiParam {
   name: string;
-  type: DiscordApiParamType;
-  required?: boolean;
+  // snowflake, integer, number, boolean, array or string
+  type: string;
+  required: boolean;
 }
 
 export interface DiscordApiOperation {
@@ -23,10 +16,10 @@ export interface DiscordApiOperation {
   path: string;
   path_params: DiscordApiParam[];
   query_params: DiscordApiParam[];
-  body: "required" | "optional" | null;
+  has_body: boolean;
 }
 
-export const discordApiOperations = spec.operations as DiscordApiOperation[];
+export const discordApiOperations: DiscordApiOperation[] = spec.operations;
 
 const operationsById = new Map(discordApiOperations.map((o) => [o.id, o]));
 

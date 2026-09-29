@@ -12,7 +12,7 @@ import {
 import { cn } from "@/lib/utils";
 import { useState } from "react";
 
-// A searchable select of Discord servers, channels or roles.
+// A searchable select of Discord servers, channels, roles or similar items.
 export default function EntitySelect({
   items,
   value,
@@ -20,18 +20,22 @@ export default function EntitySelect({
   placeholder,
   searchPlaceholder,
   emptyText,
+  wide,
 }: {
-  items: { id: string; name: string }[] | undefined;
+  items: { id: string; name: string; description?: string }[] | undefined;
   value: string | null;
   onChange: (value: string | null) => void;
   placeholder: string;
   searchPlaceholder: string;
   emptyText: string;
+  // Makes the list as wide as the button, e.g. for longer descriptions.
+  // Also lets the list scroll when the select is inside a dialog.
+  wide?: boolean;
 }) {
   const [open, setOpen] = useState(false);
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover open={open} onOpenChange={setOpen} modal={wide}>
       <PopoverTrigger asChild>
         <Button
           variant="outline"
@@ -45,7 +49,12 @@ export default function EntitySelect({
           <ChevronsUpDownIcon className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-[200px] p-0">
+      <PopoverContent
+        className={cn(
+          "p-0",
+          wide ? "w-[var(--radix-popover-trigger-width)]" : "w-[200px]"
+        )}
+      >
         <Command>
           <CommandInput placeholder={searchPlaceholder} />
           <CommandList>
@@ -55,7 +64,7 @@ export default function EntitySelect({
                 <CommandItem
                   key={item.id}
                   value={item.id}
-                  keywords={[item.name]}
+                  keywords={[item.name, item.description ?? ""]}
                   onSelect={(currentValue) => {
                     onChange(currentValue);
                     setOpen(false);
@@ -67,7 +76,16 @@ export default function EntitySelect({
                       value === item.id ? "opacity-100" : "opacity-0"
                     )}
                   />
-                  {item.name}
+                  {item.description ? (
+                    <div className="min-w-0">
+                      <div>{item.name}</div>
+                      <div className="text-xs text-muted-foreground font-mono truncate">
+                        {item.description}
+                      </div>
+                    </div>
+                  ) : (
+                    item.name
+                  )}
                 </CommandItem>
               ))}
             </CommandGroup>

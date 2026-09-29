@@ -832,33 +832,32 @@ const discordApiParamSchema = z.object({
   value: templated(z.string(), "Value of the parameter."),
 });
 
+const discordApiRequestDataSchema = z.object({
+  operation: z
+    .string()
+    .describe(
+      "operationId of the endpoint in Discord's OpenAPI spec, e.g. create_message or list_messages. The spec's names can differ from Discord's docs, e.g. Modify Guild is update_guild."
+    ),
+  path_params: z
+    .array(discordApiParamSchema)
+    .optional()
+    .describe(
+      "Values for the parameters in the endpoint's path, e.g. channel_id. IDs can also be a placeholder that resolves to a user, channel or other Discord object."
+    ),
+  query: z
+    .array(discordApiParamSchema)
+    .optional()
+    .describe("Query parameters. Only the ones the endpoint has are allowed."),
+  body_json: z
+    .record(z.unknown())
+    .optional()
+    .describe(
+      "JSON body of the request. Placeholders in its string values are evaluated. A string that is a single placeholder keeps the type of its result, e.g. a number or list."
+    ),
+});
+
 export const nodeActionDiscordApiRequestDataSchema = nodeBaseDataSchema.extend({
-  discord_api_request_data: z
-    .object({
-      operation: z
-        .string()
-        .describe(
-          "operationId of the endpoint in Discord's OpenAPI spec, e.g. create_message or list_messages. The spec's names can differ from Discord's docs, e.g. Modify Guild is update_guild."
-        ),
-      path_params: z
-        .array(discordApiParamSchema)
-        .optional()
-        .describe(
-          "Values for the parameters in the endpoint's path, e.g. channel_id. IDs can also be a placeholder that resolves to a user, channel or other Discord object."
-        ),
-      query: z
-        .array(discordApiParamSchema)
-        .optional()
-        .describe(
-          "Query parameters. Only the ones the endpoint has are allowed."
-        ),
-      body_json: z
-        .record(z.unknown())
-        .optional()
-        .describe(
-          "JSON body of the request. Placeholders in its string values are evaluated. A string that is a single placeholder keeps the type of its result, e.g. a number or list."
-        ),
-    })
+  discord_api_request_data: discordApiRequestDataSchema
     .superRefine(refineDiscordApiRequest)
     .describe("The Discord API request to send. The bot's token is added."),
   audit_log_reason: auditLogReasonSchema,
@@ -866,12 +865,7 @@ export const nodeActionDiscordApiRequestDataSchema = nodeBaseDataSchema.extend({
 });
 
 function refineDiscordApiRequest(
-  data: {
-    operation: string;
-    path_params?: { key: string; value: string }[];
-    query?: { key: string; value: string }[];
-    body_json?: Record<string, unknown>;
-  },
+  data: z.infer<typeof discordApiRequestDataSchema>,
   ctx: z.RefinementCtx
 ) {
   const op = getDiscordApiOperation(data.operation);
@@ -887,13 +881,12 @@ function refineDiscordApiRequest(
 
   const checkParams = (
     field: "path_params" | "query",
-    declared: DiscordApiParam[],
-    required: (p: DiscordApiParam) => boolean
+    declared: DiscordApiParam[]
   ) => {
     const values = new Map(data[field]?.map((p) => [p.key, p.value]));
     for (const p of declared) {
       const value = values.get(p.name);
-      if (value === undefined ? required(p) : !value) {
+      if (value === undefined ? p.required : !value) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           path: [field, p.name],
@@ -903,12 +896,12 @@ function refineDiscordApiRequest(
         value &&
         p.type === "snowflake" &&
         !numericRegex.test(value) &&
-        !value.includes("{{")
+        !placeholderRegex.test(value)
       ) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           path: [field, p.name],
-          message: "Must be an ID or a placeholder",
+          message: "Must be a number or ID, or a single {{ }} placeholder",
         });
       }
     }
@@ -922,10 +915,10 @@ function refineDiscordApiRequest(
       }
     }
   };
-  checkParams("path_params", op.path_params, () => true);
-  checkParams("query", op.query_params, (p) => !!p.required);
+  checkParams("path_params", op.path_params);
+  checkParams("query", op.query_params);
 
-  if (data.body_json && !op.body) {
+  if (data.body_json && !op.has_body) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
       path: ["body_json"],

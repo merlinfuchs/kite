@@ -60,26 +60,22 @@ for (const [path, item] of Object.entries(spec.paths)) {
     if (content && !content["application/json"]) continue;
 
     const params = [...pathParams, ...(op.parameters ?? []).map(resolve)];
+    const paramsIn = (location) =>
+      params
+        .filter((p) => p.in === location)
+        .map((p) => ({
+          name: p.name,
+          type: paramType(p.schema),
+          required: !!p.required,
+        }));
 
     operations.push({
       id: op.operationId,
       method: method.toUpperCase(),
       path,
-      path_params: params
-        .filter((p) => p.in === "path")
-        .map((p) => ({ name: p.name, type: paramType(p.schema) })),
-      query_params: params
-        .filter((p) => p.in === "query")
-        .map((p) => ({
-          name: p.name,
-          type: paramType(p.schema),
-          required: !!p.required,
-        })),
-      body: content
-        ? op.requestBody.required
-          ? "required"
-          : "optional"
-        : null,
+      path_params: paramsIn("path"),
+      query_params: paramsIn("query"),
+      has_body: !!content,
     });
   }
 }

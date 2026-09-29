@@ -244,6 +244,27 @@ func NewGuessTypeWithFallback(v any) Thing {
 	return res
 }
 
+// NewFromJSONValue wraps a value decoded from JSON, turning its objects and
+// arrays into things too so they can be stored and read like other results.
+func NewFromJSONValue(v any) Thing {
+	switch v := v.(type) {
+	case map[string]any:
+		res := make(map[string]Thing, len(v))
+		for key, item := range v {
+			res[key] = NewFromJSONValue(item)
+		}
+		return NewObject(res)
+	case []any:
+		res := make([]Thing, len(v))
+		for i, item := range v {
+			res[i] = NewFromJSONValue(item)
+		}
+		return NewArray(res)
+	default:
+		return NewGuessTypeWithFallback(v)
+	}
+}
+
 func NewString(v string) Thing {
 	return Thing{
 		Type:  TypeString,
@@ -388,6 +409,47 @@ func (w Thing) String() string {
 		return fmt.Sprintf("%v", w.Value)
 	default:
 		return fmt.Sprintf("%v", w.Value)
+	}
+}
+
+// IsDiscordEntity reports whether the thing is a Discord object with an ID,
+// like a user or channel.
+func (w Thing) IsDiscordEntity() bool {
+	switch w.Type {
+	case TypeDiscordMessage, TypeDiscordUser, TypeDiscordMember,
+		TypeDiscordChannel, TypeDiscordGuild, TypeDiscordRole:
+		return true
+	}
+	return false
+}
+
+// JSONValue returns the thing as a value that can be encoded as JSON. Discord
+// objects become their ID and other types their string form.
+func (w Thing) JSONValue() any {
+	if w.IsDiscordEntity() {
+		return w.Snowflake().String()
+	}
+
+	switch v := w.Value.(type) {
+	case nil, string, int64, float64, bool:
+		return v
+	case []Thing:
+		res := make([]any, len(v))
+		for i, item := range v {
+			res[i] = item.JSONValue()
+		}
+		return res
+	case map[string]Thing:
+		res := make(map[string]any, len(v))
+		for key, item := range v {
+			res[key] = item.JSONValue()
+		}
+		return res
+	// Lists and maps built in expressions, like {{[1, 2]}}, aren't wrapped.
+	case []any, map[string]any:
+		return NewFromJSONValue(v).JSONValue()
+	default:
+		return w.String()
 	}
 }
 
