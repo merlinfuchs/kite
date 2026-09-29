@@ -2,6 +2,7 @@ package flow
 
 import (
 	"context"
+	"strings"
 	"testing"
 	"time"
 
@@ -292,5 +293,18 @@ func TestFlowExecuteConditionCompareEquality(t *testing.T) {
 			require.NoError(t, err)
 			assert.Equal(t, test.expected, discordProvider.response.Data != nil)
 		})
+	}
+}
+
+// Options configure the entry block and never run, every other block needs a
+// handler or a definition.
+func TestEveryNodeTypeRuns(t *testing.T) {
+	for _, nodeType := range flowNodeTypeConstants(t) {
+		if strings.HasPrefix(nodeType, "option_") {
+			continue
+		}
+		_, handled := nodeHandlers[FlowNodeType(nodeType)]
+		_, defined := blockDefinitions[FlowNodeType(nodeType)]
+		assert.Truef(t, handled || defined, "%s has no handler", nodeType)
 	}
 }
