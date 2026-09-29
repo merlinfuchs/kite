@@ -50,10 +50,12 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 // nodeHandlers runs the blocks written in Go. Blocks defined as data run from
 // blockDefinitions instead. It's filled in init, as the handlers refer back to
 // it through Execute.
-var nodeHandlers map[FlowNodeType]func(*CompiledFlowNode, *FlowContext) error
+var nodeHandlers map[FlowNodeType]nodeHandler
+
+type nodeHandler func(*CompiledFlowNode, *FlowContext) error
 
 func init() {
-	nodeHandlers = map[FlowNodeType]func(*CompiledFlowNode, *FlowContext) error{
+	nodeHandlers = map[FlowNodeType]nodeHandler{
 		FlowNodeTypeEntryCommand:                (*CompiledFlowNode).executeEntryCommand,
 		FlowNodeTypeEntryComponentButton:        (*CompiledFlowNode).executeEntryCommand,
 		FlowNodeTypeEntryEvent:                  (*CompiledFlowNode).executeEntryEvent,
