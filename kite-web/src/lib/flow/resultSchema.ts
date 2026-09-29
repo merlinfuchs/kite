@@ -61,9 +61,7 @@ export const nodeActionMessageGetResultSchema = messageResultSchema;
 
 export const nodeActionMessageBulkDeleteResultSchema = z.object({
   deleted: z.number().describe("Number of messages that were deleted."),
-  failed: z
-    .number()
-    .describe("Number of messages that could not be deleted."),
+  failed: z.number().describe("Number of messages that could not be deleted."),
 });
 
 export const nodeActionUserGetResultSchema = userResultSchema;
