@@ -1,9 +1,15 @@
 package flow
 
 import (
+	"context"
+	"strings"
 	"testing"
 
+	"github.com/diamondburned/arikawa/v3/discord"
+	"github.com/kitecloud/kite/kite-service/pkg/eval"
+	"github.com/kitecloud/kite/kite-service/pkg/provider"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestResolveAIModel(t *testing.T) {
@@ -139,5 +145,75 @@ func TestFlowNodeDataRequiresAIDataForBothAINodes(t *testing.T) {
 		if err := (FlowNodeData{}).Validate(nodeType); err == nil {
 			t.Errorf("%s: expected error for missing ai data, got nil", nodeType)
 		}
+	}
+}
+
+func TestPollDataToCreatePollData(t *testing.T) {
+	data := PollData{
+		Question: "Best number? {{ 1 + 1 }}",
+		Answers: []PollAnswerData{
+			{Text: "One", Emoji: &EmojiData{Name: "1️⃣"}},
+			{Text: "", Emoji: &EmojiData{Name: "2️⃣"}},
+			{Text: "Custom", Emoji: &EmojiData{ID: "123456789012345678", Name: "custom"}},
+		},
+		DurationHours:    "{{ 24 * 2 }}",
+		AllowMultiselect: true,
+	}
+
+	res, err := data.ToCreatePollData(context.Background(), eval.NewContext(eval.Env{}))
+	require.NoError(t, err)
+
+	assert.Equal(t, "Best number? 2", res.Question.Text)
+	assert.Equal(t, 48, res.Duration)
+	assert.True(t, res.AllowMultiselect)
+	assert.Equal(t, provider.PollLayoutTypeDefault, res.LayoutType)
+
+	// The empty answer is skipped.
+	require.Len(t, res.Answers, 2)
+	assert.Equal(t, "One", res.Answers[0].PollMedia.Text)
+	assert.Equal(t, &provider.PollEmoji{Name: "1️⃣"}, res.Answers[0].PollMedia.Emoji)
+	assert.Equal(t, &provider.PollEmoji{ID: discord.EmojiID(123456789012345678)}, res.Answers[1].PollMedia.Emoji)
+}
+
+func TestPollDataToCreatePollDataDefaultDuration(t *testing.T) {
+	data := PollData{
+		Question: "Question",
+		Answers:  []PollAnswerData{{Text: "Answer"}},
+	}
+
+	res, err := data.ToCreatePollData(context.Background(), eval.NewContext(eval.Env{}))
+	require.NoError(t, err)
+	assert.Equal(t, pollDefaultDurationHours, res.Duration)
+}
+
+func TestPollDataToCreatePollDataRejectsInvalid(t *testing.T) {
+	answers := func(n int) []PollAnswerData {
+		res := make([]PollAnswerData, n)
+		for i := range res {
+			res[i] = PollAnswerData{Text: "Answer"}
+		}
+		return res
+	}
+
+	cases := map[string]PollData{
+		"empty question":           {Question: "", Answers: answers(2)},
+		"question too long":        {Question: strings.Repeat("a", pollQuestionMaxLength+1), Answers: answers(2)},
+		"no answers":               {Question: "Question"},
+		"only empty answers":       {Question: "Question", Answers: []PollAnswerData{{Text: " "}}},
+		"too many answers":         {Question: "Question", Answers: answers(pollMaxAnswers + 1)},
+		"answer too long":          {Question: "Question", Answers: []PollAnswerData{{Text: strings.Repeat("a", pollAnswerMaxLength+1)}}},
+		"invalid emoji id":         {Question: "Question", Answers: []PollAnswerData{{Text: "Answer", Emoji: &EmojiData{ID: "abc"}}}},
+		"duration not a number":    {Question: "Question", Answers: answers(2), DurationHours: "soon"},
+		"duration evaluates empty": {Question: "Question", Answers: answers(2), DurationHours: "{{ '' }}"},
+		"duration zero":            {Question: "Question", Answers: answers(2), DurationHours: "0"},
+		"duration too long":        {Question: "Question", Answers: answers(2), DurationHours: "769"},
+		"duration fractional":      {Question: "Question", Answers: answers(2), DurationHours: "1.5"},
+	}
+
+	for name, data := range cases {
+		t.Run(name, func(t *testing.T) {
+			_, err := data.ToCreatePollData(context.Background(), eval.NewContext(eval.Env{}))
+			assert.Error(t, err)
+		})
 	}
 }

@@ -1495,6 +1495,226 @@
       },
       "result_schema": null
     },
+    "action_poll_create": {
+      "title": "Create poll",
+      "description": "Bot sends a poll to a channel",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord",
+        "event_schedule"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "type": "string",
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+          },
+          "channel_target": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9]+$"
+              },
+              {
+                "type": "string",
+                "pattern": "^\\{\\{[^{}]+\\}\\}$"
+              }
+            ],
+            "description": "ID of the channel to send the poll to."
+          },
+          "poll_data": {
+            "type": "object",
+            "properties": {
+              "question": {
+                "type": "string",
+                "maxLength": 300,
+                "minLength": 1,
+                "description": "Question shown at the top of the poll.",
+                "x-templated": true
+              },
+              "answers": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "text": {
+                      "type": "string",
+                      "maxLength": 55,
+                      "description": "Text of the answer. Answers that are empty after placeholders are filled in are skipped.",
+                      "x-templated": true
+                    },
+                    "emoji": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "description": "ID of a custom emoji."
+                        },
+                        "name": {
+                          "type": "string",
+                          "minLength": 1,
+                          "description": "Name of a custom emoji, or the unicode of a standard emoji."
+                        }
+                      },
+                      "required": [
+                        "name"
+                      ],
+                      "additionalProperties": false,
+                      "description": "Emoji shown next to the answer."
+                    }
+                  },
+                  "required": [
+                    "text"
+                  ],
+                  "additionalProperties": false
+                },
+                "minItems": 1,
+                "maxItems": 10,
+                "description": "Answers people can vote for."
+              },
+              "duration_hours": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "pattern": "^[0-9]+$"
+                  },
+                  {
+                    "type": "string",
+                    "pattern": "^\\{\\{[^{}]+\\}\\}$"
+                  }
+                ],
+                "description": "How many hours the poll is open for, between 1 and 768. Defaults to 24."
+              },
+              "allow_multiselect": {
+                "type": "boolean",
+                "description": "Whether people can vote for more than one answer."
+              }
+            },
+            "required": [
+              "question",
+              "answers"
+            ],
+            "additionalProperties": false,
+            "description": "The poll to send."
+          },
+          "temporary_name": {
+            "type": "string",
+            "maxLength": 32,
+            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only."
+          }
+        },
+        "required": [
+          "channel_target",
+          "poll_data"
+        ],
+        "additionalProperties": false
+      },
+      "result_schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The ID of the message"
+          },
+          "channel_id": {
+            "type": "string",
+            "description": "The ID of the channel the message was sent in"
+          },
+          "content": {
+            "type": "string",
+            "description": "The content of the message"
+          },
+          "author": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "description": "The ID of the user"
+              },
+              "username": {
+                "type": "string",
+                "description": "The username of the user"
+              },
+              "discriminator": {
+                "type": "string",
+                "description": "The discriminator of the user"
+              },
+              "display_name": {
+                "type": "string",
+                "description": "The display name of the user"
+              },
+              "avatar_url": {
+                "type": "string",
+                "description": "The avatar URL of the user"
+              }
+            },
+            "required": [
+              "id",
+              "username",
+              "discriminator",
+              "display_name",
+              "avatar_url"
+            ],
+            "additionalProperties": false,
+            "description": "The author of the message if it's a DM"
+          },
+          "member": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "description": "The ID of the user"
+              },
+              "username": {
+                "type": "string",
+                "description": "The username of the user"
+              },
+              "discriminator": {
+                "type": "string",
+                "description": "The discriminator of the user"
+              },
+              "display_name": {
+                "type": "string",
+                "description": "The display name of the user"
+              },
+              "avatar_url": {
+                "type": "string",
+                "description": "The avatar URL of the member"
+              },
+              "nick": {
+                "type": "string",
+                "description": "The nickname of the member"
+              }
+            },
+            "required": [
+              "id",
+              "username",
+              "discriminator",
+              "display_name",
+              "avatar_url",
+              "nick"
+            ],
+            "additionalProperties": false,
+            "description": "The author of the message if it's in a server"
+          }
+        },
+        "required": [
+          "id",
+          "channel_id",
+          "content",
+          "author"
+        ],
+        "additionalProperties": false
+      }
+    },
     "action_member_ban": {
       "title": "Ban member",
       "description": "Ban a member from the server",

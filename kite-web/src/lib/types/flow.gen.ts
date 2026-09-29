@@ -29,6 +29,7 @@ export const FlowNodeTypeActionMessageReactionCreate: FlowNodeType = "action_mes
 export const FlowNodeTypeActionMessageReactionDelete: FlowNodeType = "action_message_reaction_delete";
 export const FlowNodeTypeActionMessagePin: FlowNodeType = "action_message_pin";
 export const FlowNodeTypeActionMessageUnpin: FlowNodeType = "action_message_unpin";
+export const FlowNodeTypeActionPollCreate: FlowNodeType = "action_poll_create";
 export const FlowNodeTypeActionMemberBan: FlowNodeType = "action_member_ban";
 export const FlowNodeTypeActionMemberUnban: FlowNodeType = "action_member_unban";
 export const FlowNodeTypeActionMemberKick: FlowNodeType = "action_member_kick";
@@ -137,6 +138,10 @@ export interface FlowNodeData {
    * Message Reaction Create, Delete
    */
   emoji_data?: EmojiData;
+  /**
+   * Poll Create
+   */
+  poll_data?: PollData;
   /**
    * Modal
    */
@@ -317,6 +322,19 @@ export interface EmojiData {
    * Name is the name of a custom emoji or the unicode of a standard emoji.
    */
   name?: string;
+}
+export interface PollData {
+  question?: string;
+  answers?: PollAnswerData[];
+  /**
+   * DurationHours is how long the poll is open for. Empty means 24 hours.
+   */
+  duration_hours?: string;
+  allow_multiselect?: boolean;
+}
+export interface PollAnswerData {
+  text?: string;
+  emoji?: EmojiData;
 }
 export interface ModalData {
   title?: string;
