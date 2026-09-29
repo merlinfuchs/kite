@@ -47,6 +47,10 @@ export const FlowNodeTypeActionThreadMemberAdd: FlowNodeType = "action_thread_me
 export const FlowNodeTypeActionThreadMemberRemove: FlowNodeType = "action_thread_member_remove";
 export const FlowNodeTypeActionForumPostCreate: FlowNodeType = "action_forum_post_create";
 export const FlowNodeTypeActionRoleGet: FlowNodeType = "action_role_get";
+export const FlowNodeTypeActionRoleCreate: FlowNodeType = "action_role_create";
+export const FlowNodeTypeActionRoleEdit: FlowNodeType = "action_role_edit";
+export const FlowNodeTypeActionRoleDelete: FlowNodeType = "action_role_delete";
+export const FlowNodeTypeActionRoleMove: FlowNodeType = "action_role_move";
 export const FlowNodeTypeActionGuildGet: FlowNodeType = "action_guild_get";
 export const FlowNodeTypeActionMessageGet: FlowNodeType = "action_message_get";
 export const FlowNodeTypeActionRobloxUserGet: FlowNodeType = "action_roblox_user_get";
@@ -163,10 +167,11 @@ export interface FlowNodeData {
    */
   status_data?: StatusData;
   /**
-   * Role Create, Edit, Delete, Get
+   * Role Create, Edit, Delete, Get, Move
    */
   role_target?: string;
   role_data?: RoleData;
+  role_position?: string;
   /**
    * Roblox User Get
    */
@@ -305,7 +310,8 @@ export interface RoleData {
   name?: string;
   color?: number /* int */;
   hoist?: boolean;
-  permissions?: number /* int */;
+  mentionable?: boolean;
+  permissions?: string;
   position?: number /* int */;
 }
 export interface MemberData {

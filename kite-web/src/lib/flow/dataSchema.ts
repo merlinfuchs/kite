@@ -601,6 +601,71 @@ export const nodeActionRoleGetDataSchema = nodeBaseDataSchema.extend({
   temporary_name: temporaryNameSchema,
 });
 
+export const roleDataSchema = z
+  .object({
+    name: templated(z.string().max(100).min(1), "Name of the role."),
+    color: z.number().optional().describe("Color of the role."),
+    hoist: z
+      .boolean()
+      .optional()
+      .describe("Whether the role is shown separately in the member list."),
+    mentionable: z
+      .boolean()
+      .optional()
+      .describe("Whether the role can be mentioned by everyone."),
+    permissions: numericOrPlaceholder(
+      "Permissions bitfield for the role."
+    ).optional(),
+  })
+  .describe("Settings of the role.");
+
+export const roleEditDataSchema = z
+  .object({
+    name: templated(z.string().max(100).min(1), "Name of the role.").optional(),
+    color: z.number().optional().describe("Color of the role."),
+    hoist: z
+      .boolean()
+      .optional()
+      .describe("Whether the role is shown separately in the member list."),
+    mentionable: z
+      .boolean()
+      .optional()
+      .describe("Whether the role can be mentioned by everyone."),
+    permissions: numericOrPlaceholder(
+      "Permissions bitfield for the role."
+    ).optional(),
+  })
+  .describe("Settings of the role.");
+
+export const nodeActionRoleCreateDataSchema = nodeBaseDataSchema.extend({
+  guild_target: guildTargetSchema.optional(),
+  role_data: roleDataSchema,
+  audit_log_reason: auditLogReasonSchema,
+  temporary_name: temporaryNameSchema,
+});
+
+export const nodeActionRoleEditDataSchema = nodeBaseDataSchema.extend({
+  guild_target: guildTargetSchema.optional(),
+  role_target: roleTargetSchema,
+  role_data: roleEditDataSchema.optional(),
+  audit_log_reason: auditLogReasonSchema,
+  temporary_name: temporaryNameSchema,
+});
+
+export const nodeActionRoleDeleteDataSchema = nodeBaseDataSchema.extend({
+  guild_target: guildTargetSchema.optional(),
+  role_target: roleTargetSchema,
+  audit_log_reason: auditLogReasonSchema,
+  temporary_name: temporaryNameSchema,
+});
+
+export const nodeActionRoleMoveDataSchema = nodeBaseDataSchema.extend({
+  guild_target: guildTargetSchema.optional(),
+  role_target: roleTargetSchema,
+  role_position: numericOrPlaceholder("Position of the role in the hierarchy."),
+  temporary_name: temporaryNameSchema,
+});
+
 export const nodeActionGuildGetDataSchema = nodeBaseDataSchema.extend({
   guild_target: numericOrPlaceholder("ID of the server."),
   temporary_name: temporaryNameSchema,

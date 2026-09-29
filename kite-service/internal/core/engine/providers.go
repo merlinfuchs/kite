@@ -17,6 +17,7 @@ import (
 	"github.com/diamondburned/arikawa/v3/gateway"
 	"github.com/diamondburned/arikawa/v3/state"
 	disstore "github.com/diamondburned/arikawa/v3/state/store"
+	"github.com/diamondburned/arikawa/v3/utils/json/option"
 	"github.com/diamondburned/arikawa/v3/utils/sendpart"
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/internal/store"
@@ -373,6 +374,49 @@ func (p *DiscordProvider) DeleteChannel(ctx context.Context, channelID discord.C
 	err := p.session.DeleteChannel(channelID, reason)
 	if err != nil {
 		return fmt.Errorf("failed to delete channel: %w", err)
+	}
+
+	return nil
+}
+
+func (p *DiscordProvider) CreateRole(ctx context.Context, guildID discord.GuildID, data api.CreateRoleData) (*discord.Role, error) {
+	role, err := p.session.CreateRole(guildID, data)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create role: %w", err)
+	}
+
+	return role, nil
+}
+
+func (p *DiscordProvider) EditRole(ctx context.Context, guildID discord.GuildID, roleID discord.RoleID, data api.ModifyRoleData) (*discord.Role, error) {
+	role, err := p.session.ModifyRole(guildID, roleID, data)
+	if err != nil {
+		return nil, fmt.Errorf("failed to edit role: %w", err)
+	}
+
+	return role, nil
+}
+
+func (p *DiscordProvider) DeleteRole(ctx context.Context, guildID discord.GuildID, roleID discord.RoleID, reason api.AuditLogReason) error {
+	err := p.session.DeleteRole(guildID, roleID, reason)
+	if err != nil {
+		return fmt.Errorf("failed to delete role: %w", err)
+	}
+
+	return nil
+}
+
+func (p *DiscordProvider) MoveRole(ctx context.Context, guildID discord.GuildID, roleID discord.RoleID, position int) error {
+	_, err := p.session.MoveRoles(guildID, api.MoveRolesData{
+		Roles: []api.MoveRoleData{
+			{
+				ID:       roleID,
+				Position: option.NewNullableInt(position),
+			},
+		},
+	})
+	if err != nil {
+		return fmt.Errorf("failed to move role: %w", err)
 	}
 
 	return nil
