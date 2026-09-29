@@ -137,7 +137,7 @@ func (q *Queries) DeleteFlowAIPrompt(ctx context.Context, arg DeleteFlowAIPrompt
 }
 
 const getFlowAIPrompt = `-- name: GetFlowAIPrompt :one
-SELECT id, app_id, user_id, model, rounds, input_tokens, cached_input_tokens, output_tokens, created_at, updated_at, prompt, edited FROM flow_ai_prompts WHERE id = $1 AND app_id = $2
+SELECT id, app_id, user_id, model, prompt, rounds, edited, input_tokens, cached_input_tokens, output_tokens, created_at, updated_at FROM flow_ai_prompts WHERE id = $1 AND app_id = $2
 `
 
 type GetFlowAIPromptParams struct {
@@ -153,14 +153,14 @@ func (q *Queries) GetFlowAIPrompt(ctx context.Context, arg GetFlowAIPromptParams
 		&i.AppID,
 		&i.UserID,
 		&i.Model,
+		&i.Prompt,
 		&i.Rounds,
+		&i.Edited,
 		&i.InputTokens,
 		&i.CachedInputTokens,
 		&i.OutputTokens,
 		&i.CreatedAt,
 		&i.UpdatedAt,
-		&i.Prompt,
-		&i.Edited,
 	)
 	return i, err
 }

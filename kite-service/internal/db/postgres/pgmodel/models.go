@@ -91,14 +91,14 @@ type FlowAiPrompt struct {
 	AppID             string
 	UserID            string
 	Model             string
+	Prompt            string
 	Rounds            int32
+	Edited            bool
 	InputTokens       int32
 	CachedInputTokens int32
 	OutputTokens      int32
 	CreatedAt         pgtype.Timestamp
 	UpdatedAt         pgtype.Timestamp
-	Prompt            string
-	Edited            bool
 }
 
 type Log struct {
