@@ -26,9 +26,9 @@ The Discord API Request block (#469) already has most of the machinery: endpoint
 
 **Block definition.** One file per block, and self-contained: the fields the user fills in with their types, how the block runs, e.g. a request to an integration and how the fields map onto it, and what the block returns. Both the service and the editor read the same file, and nothing at runtime reads a spec. A block needs the integrations its requests go to, plus any it lists in `requires`, and only works when the app has them connected.
 
-**Spec.** Every integration has an `openapi.json`, the spec Kite builds from. For a service with an official spec it's a trimmed copy at a pinned commit, written by a script. For one without, like cookie-api, it's written by hand from their docs. Nothing at runtime reads it: it's the input for generating block definitions, for the raw request block's operation list, and for checking definitions when the service changes its API.
+**Spec.** Every integration with request blocks has an `api.json` in its folder: the operations Kite knows about, in one trimmed format (method, path, and path, query and body parameters). For a service with an official OpenAPI spec it's generated from it at a pinned commit by a script. For one without, like cookie-api, it's written by hand from their docs. Nothing at runtime reads it: it's the input for generating block definitions, for the raw request block's operation list, and for checking definitions when the service changes its API.
 
-**Raw request block.** An integration can turn on a raw block like Discord API Request, where any operation of its spec can be picked, as the escape hatch for endpoints nobody has curated yet. The block is generated for the integration, and its operation list is a build output generated from `openapi.json`, like `discordApi.json` today.
+**Raw request block.** An integration can turn on a raw block like Discord API Request, where any operation of its spec can be picked, as the escape hatch for endpoints nobody has curated yet. The block is generated for the integration, and its operation list is the integration's `api.json`, like Discord's today.
 
 ## Definition files
 
@@ -41,11 +41,13 @@ kite-web/src/lib/
   integrations/
     types.ts
     index.ts             all integrations
+    api.ts               the format of api.json
     discord/
       index.ts
-    cookie_api/          later
+      api.json           generated from Discord's OpenAPI spec
+    cookie_api/
       index.ts
-      openapi.json       hand-written from their docs, they publish none
+      api.json           hand-written from their docs, they publish none
   blocks/
     types.ts
     index.ts             all blocks, and the editor schema for them
@@ -58,7 +60,7 @@ kite-web/src/lib/
 
 The blocks folder is flat. File names are the integration a block mainly acts on, if any, followed by its type, like `discordInviteCreate.ts` for `action_invite_create`, so sorting groups them. Blocks of Kite itself, like conditions and variables, have no prefix. Category folders would repeat the `category` field and drift from it when a block moves to another section of the block explorer. A block that needs several integrations, like a transcript that reads Discord messages and renders them with cookie-api, lists them all.
 
-Discord's spec is trimmed to `src/lib/flow/discordApi.json` by `scripts/discord-api.mjs`, which the raw block uses already. Other integrations would keep theirs in their folder as `openapi.json`.
+Discord's spec is trimmed to `integrations/discord/api.json` by `scripts/discord-api.mjs`, which the raw block uses too. `api.json` records where it came from in `source`, the spec's URL at a commit or a note that it's hand-written. Top-level body properties are listed where the body is a plain object, so body fields of request blocks are checked as well.
 
 Proposed for later integrations, the integration's own settings in its `index.ts` (shown as JSON):
 
@@ -68,7 +70,6 @@ Proposed for later integrations, the integration's own settings in its `index.ts
   "name": "Cookie API",
   "icon": "cookie",
   "base_url": "https://api.cookie-api.com",
-  "spec_source": null,
   "auth": {
     "type": "header",
     "name": "Authorization",
@@ -79,7 +80,7 @@ Proposed for later integrations, the integration's own settings in its `index.ts
 }
 ```
 
-`spec_source` is the URL and commit an `openapi.json` was trimmed from, and `null` for a hand-written one. `auth.type` is `header`, `query` or, for Discord only, `discord_bot`. OAuth for a user's own login to another service is out of scope.
+`auth.type` is `header`, `query` or, for Discord only, `discord_bot`. OAuth for a user's own login to another service is out of scope.
 
 A block definition, as implemented:
 
@@ -230,9 +231,9 @@ What phase 1 showed with gpt-5-mini:
 
 ## Adding an integration
 
-1. Add `openapi.json`: trimmed from an official spec by the script, or written from the service's docs, as for cookie-api.
+1. Add `api.json`: generated from an official spec by a script, or written from the service's docs, as for cookie-api.
 2. A script drafts `integration.json` and block definitions from the spec with an LLM, and opens a PR.
-3. CI checks every definition against the definition JSON Schema and against `openapi.json`: the operation exists, every field exists at its location with the same type, required fields are covered or fixed, labels and descriptions are present.
+3. CI checks every definition against the definition JSON Schema and against `api.json`: the operation exists, every field exists at its location with the same type, required fields are covered or fixed, labels and descriptions are present.
 4. Review decides which endpoints deserve a block, the wording, and whether something is destructive.
 
 Adding a block no longer needs Go or TypeScript changes, so reviews are small and uniform.
@@ -241,7 +242,7 @@ Adding a block no longer needs Go or TypeScript changes, so reviews are small an
 
 Saved flows reference block types and field names forever, so both are permanent once released. Renaming means adding a new field and deprecating the old one.
 
-When a service changes its API, a script fetches the new spec, writes the trimmed `openapi.json` and compares it with every definition by `operation`: removed operations, removed or renamed fields, changed types and new required fields. It reports what needs a decision. CI runs the same comparison against the committed `openapi.json`, so it never has to fetch anything.
+When a service changes its API, a script fetches the new spec, writes the trimmed `api.json` and compares it with every definition by `operation`: removed operations, removed or renamed fields, changed types and new required fields. It reports what needs a decision. CI runs the same comparison against the committed `api.json`, so it never has to fetch anything.
 
 ## One format for all blocks
 
@@ -324,7 +325,7 @@ That's far off. The two rules above keep it open without extra work now: block t
 1. Done: definition format, executor and editor rendering, with create invite (#212), bulk delete (#210), role create (#208) and the message list from #468.
 2. Done: one format for all blocks. Every block has a definition with a custom or request `run`, custom blocks name their widgets, conditions and loops their structure, and Go runs custom blocks from a handler map instead of the switch in `Execute`.
 3. Done: 14 blocks that are a single request run as requests: message delete, reactions, pin and unpin, ban, unban, kick, timeout, member roles, channel delete and thread members. They keep their schema and editor inputs, and their fields only describe the request, with the field types `emoji` and `seconds_until` for the two conversions they need. Still custom: member edit (nested settings), channel and thread create and edit and forum posts (settings that are whole objects), and the get blocks, which read Kite's cache.
-4. Done: app secrets (#419) in an `app_secrets` table that also holds integration credentials, the Integrations page, connect badges in the block explorer, blocks marked red when their integration isn't connected, and the flow AI's catalog limited to connected integrations. Cookie API is the first non-Discord integration, with a hand-written `openapi.json` and a Generate QR code block. For transcripts, ask cookie-api for a mode where Kite sends the messages instead of a bot token.
+4. Done: app secrets (#419) in an `app_secrets` table that also holds integration credentials, the Integrations page, connect badges in the block explorer, blocks marked red when their integration isn't connected, and the flow AI's catalog limited to connected integrations. Cookie API is the first non-Discord integration, with a hand-written `api.json` and a Generate QR code block. For transcripts, ask cookie-api for a mode where Kite sends the messages instead of a bot token.
 5. The LLM draft script and contributor docs.
 6. Triggers from other services (the webhook listener, #181), if Kite goes beyond Discord. Integrations only add actions.
 
