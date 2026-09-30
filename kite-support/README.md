@@ -1,14 +1,11 @@
 # kite-support
 
-Discord support bot for [Kite](https://kite.onl). Indexes the Kite documentation and a build-time codebase summary, answers user questions in plain language via the `/ask` slash command.
-
-The whole knowledge base is baked into a vector index at build time, so the running service has no dependency on the source tree.
+Discord support bot for [Kite](https://kite.onl). It answers questions about Kite with the `/ask` slash command, using the Kite documentation, every block of the flow editor and the current plans.
 
 ## How it works
 
-1. `kite-support summarize` — one-shot, run when the codebase changes meaningfully. Asks GPT-4 to read the `kite-service` source and emit `concepts.md` (user-facing concepts, no code). Commit the result.
-2. `kite-support index` — walks `kite-docs/docs/` and `concepts.md`, chunks them, embeds with OpenAI `text-embedding-3-small`, writes `internal/embedded/assets/index.gob`. The file isn't committed, `deploy/support.sh` rebuilds it on every deploy so the bot always answers from the current docs.
-3. `kite-support bot` — connects to Discord, registers `/ask <question>`, retrieves the top matching chunks for each question and asks GPT-4o-mini to phrase a friendly, code-free answer.
+1. `kite-support index` reads `kite-docs/docs` and the block catalog (`kite-service/pkg/flow/catalog.json`) and writes them as one markdown file, `internal/embedded/assets/knowledge.md`. Block pages in the docs only embed a component that shows the block's settings, so the settings from the catalog take its place. The file isn't committed, `deploy/support.sh` rebuilds it on every deploy so the bot always answers from the current docs.
+2. `kite-support bot` connects to Discord and registers `/ask <question>`. Every question is sent to the model with all of the knowledge, about 30k tokens, which the provider caches. The plans are fetched from the Kite API every hour and added after it. Follow-ups asked from an answer include the questions and answers before them.
 
 ## Configuration
 
@@ -23,31 +20,21 @@ KITE_SUPPORT_OPENAI__API_KEY=...
 ## Local development
 
 ```
-# regenerate the concept summary (writes concepts.md)
-go run . summarize
-
-# build the vector index (writes internal/embedded/assets/index.gob)
+# build the knowledge (writes internal/embedded/assets/knowledge.md)
 go run . index
 
-# run the bot — `go run` recompiles, picking up the freshly written index
+# run the bot — `go run` recompiles, picking up the freshly written knowledge
 go run . bot
 ```
 
-The bot reads its index from a blob embedded in the binary at compile time
-(`internal/embedded/assets/index.gob`). After running `index`, the next
-`go build` (or `go run`) embeds the new data, so a single binary is all
-that ships. A binary built without running `index` first refuses to start. The `/ask` command is registered globally on first launch.
-Global slash commands can take up to an hour to propagate.
+The bot reads its knowledge from a file embedded in the binary at compile time. After running `index`, the next `go build` (or `go run`) embeds the new data, so a single binary is all that ships. A binary built without running `index` first refuses to start. The `/ask` command is registered globally on first launch. Global slash commands can take up to an hour to propagate.
 
 ## Docker
 
-The supplied `Dockerfile` builds an indexer binary, runs `index` against the in-tree docs, then rebuilds so the final binary embeds the populated index.
+The supplied `Dockerfile` runs `index` against the in-tree docs, then builds the binary with the knowledge embedded.
 
 ```
-docker build \
-  --build-arg OPENAI_API_KEY=sk-... \
-  -f kite-support/Dockerfile \
-  -t kite-support .
+docker build -f kite-support/Dockerfile -t kite-support .
 
 docker run -d \
   -e KITE_SUPPORT_DISCORD__TOKEN=... \
@@ -55,5 +42,3 @@ docker run -d \
   -e KITE_SUPPORT_OPENAI__API_KEY=... \
   kite-support
 ```
-
-The runtime container needs `KITE_SUPPORT_OPENAI__API_KEY` for query-time embedding and chat completion. No index file is shipped — it lives inside the binary.

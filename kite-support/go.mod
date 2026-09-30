@@ -10,7 +10,7 @@ require (
 	github.com/knadh/koanf/providers/file v0.1.0
 	github.com/knadh/koanf/providers/rawbytes v0.1.0
 	github.com/knadh/koanf/v2 v2.1.1
-	github.com/openai/openai-go v1.10.3
+	github.com/openai/openai-go/v2 v2.7.1
 	github.com/urfave/cli/v2 v2.27.2
 )
 
