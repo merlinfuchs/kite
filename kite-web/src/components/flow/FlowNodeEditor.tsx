@@ -14,10 +14,16 @@ import { activityTypeOptions, statusOptions } from "@/lib/discord/presence";
 import { useAppFeature, useMessages, useVariables } from "@/lib/hooks/api";
 import { getFlowCreditsCost } from "@/lib/flow/schedule";
 import { aiModelTiers, getAiModelTier } from "@/lib/flow/aiModels";
+import {
+  discordApiOperationLabel,
+  discordApiOperations,
+  getDiscordApiOperation,
+} from "@/lib/flow/discordApi";
 import { EventTypeScheduleCron } from "@/lib/types/flow.gen";
 import { useAppId } from "@/lib/hooks/params";
 import {
   CommandArgumentChoiceData,
+  DiscordAPIRequestData,
   EmojiData,
   HTTPRequestData,
   ModalComponentData,
@@ -45,6 +51,7 @@ import { NodeData, NodeProps } from "../../lib/flow/dataSchema";
 import MessageCreateDialog from "../app/MessageCreateDialog";
 import VariableCreateDialog from "../app/VariableCreateDialog";
 import EmojiPicker from "../common/EmojiPicker";
+import EntitySelect from "../common/EntitySelect";
 import JsonEditor from "../common/JsonEditor";
 import PlaceholderInput from "../common/PlaceholderInput";
 import ScheduleCronPreview, {
@@ -81,6 +88,7 @@ import {
 import { Switch } from "../ui/switch";
 import { Textarea } from "../ui/textarea";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
+import FlowJsonInput from "./FlowJsonInput";
 import FlowPlaceholderExplorer from "./FlowPlaceholderExplorer";
 import env from "@/lib/env/client";
 import { ScrollArea } from "../ui/scroll-area";
@@ -138,6 +146,7 @@ const intputs: Record<string, any> = {
   variable_operation: VariableOperationInput,
   variable_value: VariableValueInput,
   http_request_data: HttpRequestDataInput,
+  discord_api_request_data: DiscordApiRequestDataInput,
   ai_chat_completion_data: AiChatCompletionDataInput,
   ai_web_search_data: AiWebSearchDataInput,
   expression: ExpressionInput,
@@ -982,6 +991,13 @@ function HttpRequestDataInput({ data, updateData, errors }: InputProps) {
             errors={errors}
             placeholders
           />
+          {isDiscordApiUrl(data.http_request_data?.url || "") && (
+            <div className="text-sm text-muted-foreground bg-muted rounded p-3">
+              Use the Discord API Request block to call the Discord API. It
+              sends your bot&apos;s token for you, so you don&apos;t have to
+              paste it into a header.
+            </div>
+          )}
           <div>
             <div className="font-medium text-foreground mb-1">Headers</div>
             <div className="text-muted-foreground text-sm mb-2">
@@ -1039,6 +1055,226 @@ function HttpRequestDataInput({ data, updateData, errors }: InputProps) {
               />
             )}
           </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+const discordApiOperationItems = discordApiOperations.map((o) => ({
+  id: o.id,
+  name: discordApiOperationLabel(o.id),
+  description: `${o.method} ${o.path}`,
+}));
+
+// Webhooks with a token in the URL don't need the bot's token, and the Discord
+// API Request block can't call them.
+function isDiscordApiUrl(url: string) {
+  return (
+    /^\s*(https?:\/\/)?((ptb|canary)\.)?discord(app)?\.com(\/|$)/i.test(url) &&
+    !/\/webhooks\//i.test(url)
+  );
+}
+
+function DiscordApiRequestDataInput({ data, updateData, errors }: InputProps) {
+  const request = data.discord_api_request_data;
+  const op = getDiscordApiOperation(request?.operation);
+
+  function updateRequest(newData: Partial<DiscordAPIRequestData>) {
+    updateData({ discord_api_request_data: { ...request, ...newData } });
+  }
+
+  function selectOperation(id: string) {
+    const newOp = getDiscordApiOperation(id);
+    if (!newOp) return;
+
+    // Keeps the values of parameters both endpoints have, like channel_id.
+    const pathValues = new Map(
+      request?.path_params?.map((p) => [p.key, p.value])
+    );
+    updateRequest({
+      operation: id,
+      path_params: newOp.path_params.map((p) => ({
+        key: p.name,
+        value: pathValues.get(p.name) ?? "",
+      })),
+      query: request?.query?.filter((q) =>
+        newOp.query_params.some((p) => p.name === q.key)
+      ),
+      body_json: newOp.has_body ? request?.body_json : undefined,
+    });
+  }
+
+  function setParam(
+    field: "path_params" | "query",
+    key: string,
+    value: string
+  ) {
+    const params = request?.[field] ?? [];
+    updateRequest({
+      [field]: params.some((p) => p.key === key)
+        ? params.map((p) => (p.key === key ? { key, value } : p))
+        : [...params, { key, value }],
+    });
+  }
+
+  const unusedQueryParams =
+    op?.query_params.filter(
+      (p) => !request?.query?.some((q) => q.key === p.name)
+    ) ?? [];
+
+  const operationError = errors["discord_api_request_data.operation"];
+  const bodyError = errors["discord_api_request_data.body_json"];
+
+  return (
+    <Dialog>
+      <DialogTrigger asChild>
+        <Button className="w-full" variant="secondary">
+          Configure Request
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="overflow-y-auto max-h-[90dvh] max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>Configure Discord API Request</DialogTitle>
+          <DialogDescription>
+            Call an endpoint of the Discord API as your bot. Kite adds the
+            bot&apos;s token, so never paste it into a flow. See{" "}
+            <Link
+              href="https://discord.com/developers/docs/reference"
+              target="_blank"
+              className="text-primary hover:underline"
+            >
+              Discord&apos;s API docs
+            </Link>{" "}
+            for what each endpoint takes and returns, and{" "}
+            <Link
+              href={nodeTypeDocsPage("action_discord_api_request")!}
+              target="_blank"
+              className="text-primary hover:underline"
+            >
+              how to use this block
+            </Link>
+            .
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-3">
+          <div>
+            <div className="font-medium text-foreground mb-2">Endpoint</div>
+            <EntitySelect
+              items={discordApiOperationItems}
+              value={request?.operation ?? null}
+              onChange={(id) => id && selectOperation(id)}
+              placeholder="Select an endpoint"
+              searchPlaceholder="Search endpoints..."
+              emptyText="No endpoint found."
+              wide
+              modal
+            />
+            {op && (
+              <div className="text-muted-foreground text-sm font-mono mt-2 break-all">
+                {op.method} {op.path}
+              </div>
+            )}
+            {operationError && (
+              <div className="text-red-600 dark:text-red-400 text-sm flex items-center space-x-1 pt-2">
+                <CircleAlertIcon className="h-5 w-5 flex-none" />
+                <div>{operationError}</div>
+              </div>
+            )}
+          </div>
+          {op?.path_params.map((p) => (
+            <BaseInput
+              key={p.name}
+              type="text"
+              field={`discord_api_request_data.path_params.${p.name}`}
+              title={p.name}
+              description={p.type === "snowflake" ? "An ID" : undefined}
+              value={
+                request?.path_params?.find((v) => v.key === p.name)?.value || ""
+              }
+              updateValue={(v) => setParam("path_params", p.name, v)}
+              errors={errors}
+              placeholders
+            />
+          ))}
+          {request?.query?.map((q) => (
+            <div className="flex gap-2 items-end" key={q.key}>
+              <BaseInput
+                type="text"
+                field={`discord_api_request_data.query.${q.key}`}
+                title={q.key}
+                description="Query parameter"
+                value={q.value}
+                updateValue={(v) => setParam("query", q.key, v)}
+                errors={errors}
+                placeholders
+              />
+              <Button
+                variant="outline"
+                size="icon"
+                className="flex-none"
+                onClick={() =>
+                  updateRequest({
+                    query: request.query?.filter((v) => v.key !== q.key),
+                  })
+                }
+              >
+                <MinusIcon className="h-5 w-5" />
+              </Button>
+            </div>
+          ))}
+          {unusedQueryParams.length > 0 && (
+            <Select
+              value=""
+              onValueChange={(key) =>
+                updateRequest({
+                  query: [...(request?.query ?? []), { key, value: "" }],
+                })
+              }
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Add query parameter" />
+              </SelectTrigger>
+              <SelectContent>
+                {unusedQueryParams.map((p) => (
+                  <SelectItem key={p.name} value={p.name}>
+                    {p.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+          {op?.has_body && (
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <div className="font-medium text-foreground">JSON Body</div>
+                <Switch
+                  checked={!!request?.body_json}
+                  onCheckedChange={(checked) =>
+                    updateRequest({ body_json: checked ? {} : undefined })
+                  }
+                />
+              </div>
+              {!!request?.body_json && (
+                <FlowJsonInput
+                  value={request.body_json}
+                  // Some endpoints take a list, which the generated type
+                  // doesn't allow for.
+                  onChange={(v) =>
+                    updateRequest({
+                      body_json: v as DiscordAPIRequestData["body_json"],
+                    })
+                  }
+                />
+              )}
+              {bodyError && (
+                <div className="text-red-600 dark:text-red-400 text-sm flex items-center space-x-1 pt-2">
+                  <CircleAlertIcon className="h-5 w-5 flex-none" />
+                  <div>{bodyError}</div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </DialogContent>
     </Dialog>

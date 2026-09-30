@@ -73,6 +73,7 @@ export const nodeTypes = {
   action_voice_channel_leave: FlowNodeActionBase,
   action_status_set: FlowNodeActionBase,
   action_http_request: FlowNodeActionBase,
+  action_discord_api_request: FlowNodeActionBase,
   action_ai_chat_completion: FlowNodeActionBase,
   action_ai_web_search: FlowNodeActionBase,
   action_expression_evaluate: FlowNodeActionBase,

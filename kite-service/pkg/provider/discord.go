@@ -50,6 +50,7 @@ type DiscordProvider interface {
 	CreateRole(ctx context.Context, guildID discord.GuildID, data api.CreateRoleData) (*discord.Role, error)
 	EditRole(ctx context.Context, guildID discord.GuildID, roleID discord.RoleID, data api.ModifyRoleData) (*discord.Role, error)
 	DeleteRole(ctx context.Context, guildID discord.GuildID, roleID discord.RoleID) error
+	APIRequest(ctx context.Context, req DiscordAPIRequest) ([]byte, error)
 
 	UpdateVoiceState(ctx context.Context, guildID discord.GuildID, channelID discord.ChannelID, selfMute bool, selfDeaf bool) error
 	UpdatePresence(ctx context.Context, status discord.Status, activity discord.Activity) error
@@ -90,6 +91,16 @@ type PollMedia struct {
 type PollEmoji struct {
 	ID   discord.EmojiID `json:"id,omitempty"`
 	Name string          `json:"name,omitempty"`
+}
+
+// DiscordAPIRequest is a request to any endpoint of the Discord API, sent
+// with the bot's token. A response with an error status is returned as error.
+type DiscordAPIRequest struct {
+	Method string
+	// Path is relative to api.Endpoint and includes the query.
+	Path   string
+	Body   []byte
+	Reason api.AuditLogReason
 }
 
 type InteractionResponseResource struct {
@@ -263,6 +274,10 @@ func (p *MockDiscordProvider) EditRole(ctx context.Context, guildID discord.Guil
 
 func (p *MockDiscordProvider) DeleteRole(ctx context.Context, guildID discord.GuildID, roleID discord.RoleID) error {
 	return nil
+}
+
+func (p *MockDiscordProvider) APIRequest(ctx context.Context, req DiscordAPIRequest) ([]byte, error) {
+	return nil, nil
 }
 
 func (p *MockDiscordProvider) UpdateVoiceState(ctx context.Context, guildID discord.GuildID, channelID discord.ChannelID, selfMute bool, selfDeaf bool) error {

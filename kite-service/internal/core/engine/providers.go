@@ -9,6 +9,7 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 
@@ -444,6 +445,37 @@ func (p *DiscordProvider) RemoveThreadMember(ctx context.Context, channelID disc
 	}
 
 	return nil
+}
+
+func (p *DiscordProvider) APIRequest(ctx context.Context, req provider.DiscordAPIRequest) ([]byte, error) {
+	// Going through the session's client adds the token and shares its rate
+	// limiter with every other request of the app.
+	opts := []httputil.RequestOption{httputil.WithHeaders(req.Reason.Header())}
+	if req.Body != nil {
+		opts = append(opts, httputil.JSONRequest, httputil.WithBodyBytes(req.Body))
+	}
+
+	resp, err := p.session.Client.WithContext(ctx).Request(
+		req.Method,
+		api.Endpoint+strings.TrimPrefix(req.Path, "/"),
+		opts...,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to send Discord API request: %w", err)
+	}
+
+	body := resp.GetBody()
+	defer body.Close()
+
+	data, err := io.ReadAll(io.LimitReader(body, thing.MaxBodySize+1))
+	if err != nil {
+		return nil, fmt.Errorf("failed to read Discord API response: %w", err)
+	}
+	if len(data) > thing.MaxBodySize {
+		return nil, fmt.Errorf("body size exceeds max body size of %d bytes", thing.MaxBodySize)
+	}
+
+	return data, nil
 }
 
 func (p *DiscordProvider) UpdateVoiceState(ctx context.Context, guildID discord.GuildID, channelID discord.ChannelID, selfMute bool, selfDeaf bool) error {

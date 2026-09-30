@@ -77,11 +77,11 @@ export default function AppLayout({ children, ...props }: Props) {
     <BaseLayout title={props.title}>
       <SidebarProvider className="bg-muted/30">
         <AppSidebar />
-        <SidebarInset className="bg-transparent min-h-[100dvh] max-w-[1500px] mx-auto">
+        <SidebarInset className="bg-transparent min-h-[100dvh] min-w-0 max-w-[1500px] mx-auto">
           <header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear">
             <div className="flex items-center gap-2 justify-between px-4 w-full">
               <div className="flex items-center gap-2">
-                <SidebarTrigger className="-ml-1" />
+                <SidebarTrigger className="-ml-2 md:-ml-1" />
                 <Separator
                   orientation="vertical"
                   className="mr-2 h-4 hidden md:block"
@@ -114,7 +114,7 @@ export default function AppLayout({ children, ...props }: Props) {
                 </Breadcrumb>
               </div>
               <div className="pr-2">
-                <ThemeSwitch />
+                <ThemeSwitch className="text-muted-foreground hover:text-foreground" />
               </div>
             </div>
           </header>

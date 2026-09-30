@@ -68,7 +68,7 @@ export default function MessageCollapsibleSection({
           )}
         </CollapsibleTrigger>
         {actions && (
-          <div className="flex-none flex items-center space-x-3">{actions}</div>
+          <div className="flex-none flex items-center space-x-1">{actions}</div>
         )}
       </div>
       <CollapsibleContent
