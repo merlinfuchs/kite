@@ -294,3 +294,96 @@ func TestFlowExecuteConditionCompareEquality(t *testing.T) {
 		})
 	}
 }
+
+func TestFlowExecuteActionRandomID(t *testing.T) {
+	tests := []struct {
+		name     string
+		idType   RandomIDType
+		length   string
+		validate func(t *testing.T, val string)
+	}{
+		{
+			name:   "uuid_v4 default",
+			idType: RandomIDTypeUUIDv4,
+			validate: func(t *testing.T, val string) {
+				assert.Len(t, val, 36)
+			},
+		},
+		{
+			name:   "nanoid default length",
+			idType: RandomIDTypeNanoID,
+			validate: func(t *testing.T, val string) {
+				assert.Len(t, val, 21)
+			},
+		},
+		{
+			name:   "nanoid custom length",
+			idType: RandomIDTypeNanoID,
+			length: "10",
+			validate: func(t *testing.T, val string) {
+				assert.Len(t, val, 10)
+			},
+		},
+		{
+			name:   "alphanumeric custom length",
+			idType: RandomIDTypeAlphanumeric,
+			length: "12",
+			validate: func(t *testing.T, val string) {
+				assert.Len(t, val, 12)
+			},
+		},
+		{
+			name:   "numeric custom length",
+			idType: RandomIDTypeNumeric,
+			length: "6",
+			validate: func(t *testing.T, val string) {
+				assert.Len(t, val, 6)
+				for _, r := range val {
+					assert.True(t, r >= '0' && r <= '9')
+				}
+			},
+		},
+		{
+			name:   "hex custom length",
+			idType: RandomIDTypeHex,
+			length: "16",
+			validate: func(t *testing.T, val string) {
+				assert.Len(t, val, 16)
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			node := &CompiledFlowNode{
+				ID:   "0",
+				Type: FlowNodeTypeActionRandomID,
+				Data: FlowNodeData{
+					RandomIDType:   tt.idType,
+					RandomIDLength: tt.length,
+				},
+			}
+
+			c := NewContext(
+				context.Background(),
+				5*time.Second,
+				&TestContextData{},
+				FlowProviders{},
+				FlowContextLimits{
+					MaxStackDepth: 10,
+					MaxOperations: 100,
+					MaxCredits:    100,
+				},
+				eval.NewContext(eval.Env{}),
+				nil,
+			)
+
+			err := node.Execute(c)
+			require.NoError(t, err)
+
+			res := c.GetNodeResult("0")
+			require.NotNil(t, res)
+			tt.validate(t, res.String())
+		})
+	}
+}

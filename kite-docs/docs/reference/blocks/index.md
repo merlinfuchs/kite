@@ -76,6 +76,7 @@ The output of previously executed blocks is available in all subsequent blocks a
 ## Utility Blocks
 
 - [Calculate Value](./actions/action_expression_evaluate.md) - Evaluate expressions and calculations
+- [Generate Random ID](./actions/action_random_id.md) - Generate random strings and IDs
 - [Generate Random Number](./actions/action_random_generate.md) - Generate random numbers
 - [Log Message](./actions/action_log.md) - Log messages for debugging
 

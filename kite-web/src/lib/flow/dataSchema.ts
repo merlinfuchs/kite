@@ -1001,6 +1001,19 @@ export const nodeActionExpressionEvaluateDataSchema = nodeBaseDataSchema.extend(
   }
 );
 
+export const nodeActionRandomIDDataSchema = nodeBaseDataSchema.extend({
+  random_id_type: z
+    .enum(["uuid_v4", "nanoid", "alphanumeric", "numeric", "hex"])
+    .optional()
+    .describe(
+      "Format of the identifier to generate: uuid_v4, nanoid, alphanumeric, numeric, or hex."
+    ),
+  random_id_length: numericOrPlaceholder(
+    "Length of the generated ID for nanoid, alphanumeric, numeric, or hex."
+  ).optional(),
+  temporary_name: temporaryNameSchema,
+});
+
 export const nodeActionRandomGenerateDataSchema = nodeBaseDataSchema.extend({
   random_min: numericOrPlaceholder("Smallest number that can be generated."),
   random_max: numericOrPlaceholder(
