@@ -33,11 +33,12 @@ var botCMD = cli.Command{
 			return fmt.Errorf("openai.api_key is required")
 		}
 
-		if len(embedded.Index) == 0 {
+		embeddedIndex := embedded.Index()
+		if len(embeddedIndex) == 0 {
 			return fmt.Errorf("no index embedded in this binary — run `kite-support index` then rebuild")
 		}
 		store := index.NewStore()
-		if err := store.Decode(bytes.NewReader(embedded.Index)); err != nil {
+		if err := store.Decode(bytes.NewReader(embeddedIndex)); err != nil {
 			return fmt.Errorf("decode embedded index: %w", err)
 		}
 		if store.Count() == 0 {

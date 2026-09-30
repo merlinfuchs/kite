@@ -7,7 +7,7 @@ The whole knowledge base is baked into a vector index at build time, so the runn
 ## How it works
 
 1. `kite-support summarize` — one-shot, run when the codebase changes meaningfully. Asks GPT-4 to read the `kite-service` source and emit `concepts.md` (user-facing concepts, no code). Commit the result.
-2. `kite-support index` — walks `kite-docs/docs/` and `concepts.md`, chunks them, embeds with OpenAI `text-embedding-3-small`, writes `internal/embedded/assets/index.gob`. Commit the result.
+2. `kite-support index` — walks `kite-docs/docs/` and `concepts.md`, chunks them, embeds with OpenAI `text-embedding-3-small`, writes `internal/embedded/assets/index.gob`. The file isn't committed, `deploy/support.sh` rebuilds it on every deploy so the bot always answers from the current docs.
 3. `kite-support bot` — connects to Discord, registers `/ask <question>`, retrieves the top matching chunks for each question and asks GPT-4o-mini to phrase a friendly, code-free answer.
 
 ## Configuration
@@ -36,7 +36,7 @@ go run . bot
 The bot reads its index from a blob embedded in the binary at compile time
 (`internal/embedded/assets/index.gob`). After running `index`, the next
 `go build` (or `go run`) embeds the new data, so a single binary is all
-that ships. The `/ask` command is registered globally on first launch.
+that ships. A binary built without running `index` first refuses to start. The `/ask` command is registered globally on first launch.
 Global slash commands can take up to an hour to propagate.
 
 ## Docker
