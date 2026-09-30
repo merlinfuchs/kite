@@ -12,7 +12,6 @@ export const controlSleep: BlockDefinition = {
   fields: [
     {
       name: "sleep_duration_seconds",
-      type: "string",
       schema: numericOrPlaceholder(
         "How many seconds to wait before continuing.",
         decimalRegex

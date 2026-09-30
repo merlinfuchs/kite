@@ -13,17 +13,14 @@ export const discordVoiceChannelJoin: BlockDefinition = {
   fields: [
     {
       name: "channel_target",
-      type: "snowflake",
       schema: numericOrPlaceholder("ID of the voice channel to join."),
     },
     {
       name: "voice_self_mute",
-      type: "boolean",
       schema: z.boolean().optional().describe("Whether the bot joins muted."),
     },
     {
       name: "voice_self_deaf",
-      type: "boolean",
       schema: z
         .boolean()
         .optional()

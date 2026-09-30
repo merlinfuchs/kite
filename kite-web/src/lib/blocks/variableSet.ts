@@ -4,6 +4,7 @@ import {
   variableIdSchema,
   variableScopeSchema,
 } from "../flow/dataSchema";
+import { variableSettings } from "./fields";
 import { BlockDefinition } from "./types";
 
 export const variableSet: BlockDefinition = {
@@ -14,19 +15,9 @@ export const variableSet: BlockDefinition = {
   category: "Stored Variables",
   credits: 1,
   fields: [
-    {
-      name: "variable_id",
-      type: "string",
-      schema: variableIdSchema,
-    },
-    {
-      name: "variable_scope",
-      type: "string",
-      schema: variableScopeSchema,
-    },
+    ...variableSettings,
     {
       name: "variable_operation",
-      type: "string",
       schema: z
         .enum(["overwrite", "append", "prepend", "increment", "decrement"])
         .describe(
@@ -35,7 +26,6 @@ export const variableSet: BlockDefinition = {
     },
     {
       name: "variable_value",
-      type: "string",
       schema: templated(z.string(), "Value to store."),
     },
   ],

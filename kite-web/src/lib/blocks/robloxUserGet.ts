@@ -14,7 +14,6 @@ export const robloxUserGet: BlockDefinition = {
   fields: [
     {
       name: "roblox_user_target",
-      type: "string",
       schema: templated(
         z.string(),
         "ID or username of the Roblox user, depending on roblox_lookup_mode."
@@ -22,7 +21,6 @@ export const robloxUserGet: BlockDefinition = {
     },
     {
       name: "roblox_lookup_mode",
-      type: "string",
       schema: z
         .enum(["id", "username"])
         .describe("Whether roblox_user_target is an ID or a username."),

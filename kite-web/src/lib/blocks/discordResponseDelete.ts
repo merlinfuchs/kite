@@ -1,4 +1,5 @@
 import { responseTargetSchema } from "../flow/dataSchema";
+import { responseTargetSetting } from "./fields";
 import { BlockDefinition } from "./types";
 
 export const discordResponseDelete: BlockDefinition = {
@@ -9,13 +10,6 @@ export const discordResponseDelete: BlockDefinition = {
   category: "Responses",
   requires: ["discord"],
   credits: 1,
-  fields: [
-    {
-      name: "message_target",
-      type: "string",
-      input: "response_target",
-      schema: responseTargetSchema,
-    },
-  ],
+  fields: [responseTargetSetting],
   run: { kind: "custom" },
 };

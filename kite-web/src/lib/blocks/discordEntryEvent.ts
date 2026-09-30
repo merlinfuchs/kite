@@ -15,7 +15,6 @@ export const discordEntryEvent: BlockDefinition = {
   fields: [
     {
       name: "event_type",
-      type: "string",
       schema: z
         .enum([
           "message_create",
@@ -33,7 +32,6 @@ export const discordEntryEvent: BlockDefinition = {
     },
     {
       name: "event_schedule_cron",
-      type: "string",
       schema: z
         .string()
         .max(100)
@@ -44,7 +42,6 @@ export const discordEntryEvent: BlockDefinition = {
     },
     {
       name: "description",
-      type: "string",
       schema: z
         .string()
         .max(100)

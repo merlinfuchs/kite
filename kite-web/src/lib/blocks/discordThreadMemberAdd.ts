@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { numericOrPlaceholder, templated } from "../flow/dataSchema";
-import { channelField, userField } from "./fields";
+import { channelTargetField, userTargetField } from "./fields";
 import { BlockDefinition } from "./types";
 
 export const discordThreadMemberAdd: BlockDefinition = {
@@ -18,7 +18,10 @@ export const discordThreadMemberAdd: BlockDefinition = {
     path: "/channels/{channel_id}/thread-members/{user_id}",
   },
   fields: [
-    { ...channelField, schema: numericOrPlaceholder("ID of the thread.") },
-    { ...userField, schema: templated(z.string(), "ID of the user.") },
+    {
+      ...channelTargetField,
+      schema: numericOrPlaceholder("ID of the thread."),
+    },
+    { ...userTargetField, schema: templated(z.string(), "ID of the user.") },
   ],
 };

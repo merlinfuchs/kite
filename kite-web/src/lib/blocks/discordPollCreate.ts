@@ -18,12 +18,10 @@ export const discordPollCreate: BlockDefinition = {
   fields: [
     {
       name: "channel_target",
-      type: "snowflake",
       schema: numericOrPlaceholder("ID of the channel to send the poll to."),
     },
     {
       name: "poll_data",
-      type: "string",
       schema: z
         .object({
           question: templated(

@@ -2,6 +2,7 @@ import { messageTargetSchema } from "../flow/dataSchema";
 import {
   channelTargetSetting,
   messageDataField,
+  messageTargetSetting,
   messageTemplateField,
   requireMessage,
 } from "./fields";
@@ -19,7 +20,7 @@ export const discordMessageEdit: BlockDefinition = {
   credits: 1,
   fields: [
     channelTargetSetting,
-    { name: "message_target", type: "snowflake", schema: messageTargetSchema },
+    messageTargetSetting,
     messageTemplateField,
     messageDataField,
   ],

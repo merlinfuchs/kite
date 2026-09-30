@@ -1,5 +1,6 @@
 import { messageTargetSchema, numericOrPlaceholder } from "../flow/dataSchema";
 import { nodeActionMessageGetResultSchema } from "../flow/resultSchema";
+import { messageTargetSetting } from "./fields";
 import { BlockDefinition } from "./types";
 
 export const discordMessageGet: BlockDefinition = {
@@ -13,16 +14,11 @@ export const discordMessageGet: BlockDefinition = {
   fields: [
     {
       name: "channel_target",
-      type: "snowflake",
       schema: numericOrPlaceholder(
         "ID of the channel the message is in. Defaults to the channel the flow runs in."
       ).optional(),
     },
-    {
-      name: "message_target",
-      type: "snowflake",
-      schema: messageTargetSchema,
-    },
+    messageTargetSetting,
   ],
   result: { schema: nodeActionMessageGetResultSchema },
   run: { kind: "custom" },

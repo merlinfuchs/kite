@@ -4,6 +4,7 @@ import {
   templated,
   userTargetSchema,
 } from "../flow/dataSchema";
+import { guildTargetSetting, userTargetSetting } from "./fields";
 import { BlockDefinition } from "./types";
 
 export const discordMemberEdit: BlockDefinition = {
@@ -15,20 +16,10 @@ export const discordMemberEdit: BlockDefinition = {
   requires: ["discord"],
   credits: 1,
   fields: [
-    {
-      name: "guild_target",
-      type: "snowflake",
-      schema: guildTargetSchema.optional(),
-    },
-    {
-      name: "user_target",
-      type: "snowflake",
-      schema: userTargetSchema,
-    },
+    guildTargetSetting,
+    userTargetSetting,
     {
       name: "member_data",
-      type: "string",
-      input: "member_nick",
       schema: z
         .object({
           nick: templated(z.string(), "New nickname of the member."),

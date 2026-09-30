@@ -19,7 +19,6 @@ export const discordMessageCreate: BlockDefinition = {
   fields: [
     {
       name: "channel_target",
-      type: "snowflake",
       schema: numericOrPlaceholder("ID of the channel to send the message to."),
     },
     messageTemplateField,

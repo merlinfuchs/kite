@@ -14,7 +14,6 @@ export const discordSuspendResponseModal: BlockDefinition = {
   fields: [
     {
       name: "modal_data",
-      type: "string",
       schema: z
         .object({
           title: templated(z.string().max(45).min(1), "Title of the modal."),

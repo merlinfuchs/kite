@@ -108,7 +108,9 @@ interface InputProps {
   errors: Record<string, string>;
 }
 
-const intputs: Record<string, any> = {
+// The editor inputs of block settings, by the names blocks use in their
+// fields. A test checks every block's inputs exist.
+export const intputs: Record<string, any> = {
   custom_label: CustomLabelInput,
   temporary_name: TemporaryNameInput,
   name: NameInput,
@@ -119,8 +121,8 @@ const intputs: Record<string, any> = {
   command_argument_max_value: CommandArgumentMaxValueInput,
   command_argument_max_length: CommandArgumentMaxLengthInput,
   command_argument_choices: CommandArgumentChoicesInput,
-  command_contexts: CommandContextsInput,
-  command_integrations: CommandIntegrationsInput,
+  command_disabled_contexts: CommandContextsInput,
+  command_disabled_integrations: CommandIntegrationsInput,
   command_permissions: CommandPermissionsInput,
   event_type: EventTypeInput,
   event_schedule_cron: EventScheduleCronInput,
@@ -160,7 +162,7 @@ const intputs: Record<string, any> = {
   member_ban_delete_message_duration_seconds:
     MemberBanDeleteMessageDurationInput,
   member_timeout_duration_seconds: MemberTimeoutDurationInput,
-  member_nick: MemberNickInput,
+  member_data: MemberNickInput,
   roblox_user_target: RobloxUserTargetInput,
   roblox_lookup_mode: RobloxLookupModeInput,
   log_level: LogLevelInput,

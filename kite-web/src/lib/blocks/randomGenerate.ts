@@ -12,12 +12,10 @@ export const randomGenerate: BlockDefinition = {
   fields: [
     {
       name: "random_min",
-      type: "integer",
       schema: numericOrPlaceholder("Smallest number that can be generated."),
     },
     {
       name: "random_max",
-      type: "integer",
       schema: numericOrPlaceholder(
         "Upper bound of the generated number. The number is always below it."
       ),

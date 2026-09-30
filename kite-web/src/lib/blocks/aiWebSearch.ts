@@ -18,7 +18,6 @@ export const aiWebSearch: BlockDefinition = {
   fields: [
     {
       name: "ai_chat_completion_data",
-      type: "string",
       input: "ai_web_search_data",
       schema: z
         .object({

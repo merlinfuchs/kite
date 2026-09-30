@@ -13,7 +13,6 @@ export const controlLoop: BlockDefinition = {
   fields: [
     {
       name: "loop_count",
-      type: "integer",
       schema: numericOrPlaceholder("How many times the loop runs."),
     },
   ],

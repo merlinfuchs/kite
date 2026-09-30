@@ -13,7 +13,6 @@ export const discordGuildGet: BlockDefinition = {
   fields: [
     {
       name: "guild_target",
-      type: "snowflake",
       schema: numericOrPlaceholder("ID of the server."),
     },
   ],

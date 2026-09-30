@@ -19,7 +19,6 @@ export const aiChatCompletion: BlockDefinition = {
   fields: [
     {
       name: "ai_chat_completion_data",
-      type: "string",
       schema: z
         .object({
           model: aiModelSchema,

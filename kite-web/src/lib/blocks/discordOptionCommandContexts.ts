@@ -14,8 +14,6 @@ export const discordOptionCommandContexts: BlockDefinition = {
   fields: [
     {
       name: "command_disabled_contexts",
-      type: "string",
-      input: "command_contexts",
       schema: z
         .array(z.enum(["guild", "bot_dm", "private_channel"]))
         .optional()
@@ -25,8 +23,6 @@ export const discordOptionCommandContexts: BlockDefinition = {
     },
     {
       name: "command_disabled_integrations",
-      type: "string",
-      input: "command_integrations",
       schema: z
         .array(z.enum(["guild_install", "user_install"]))
         .optional()

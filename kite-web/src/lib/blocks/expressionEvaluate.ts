@@ -13,7 +13,6 @@ export const expressionEvaluate: BlockDefinition = {
   fields: [
     {
       name: "expression",
-      type: "string",
       schema: templated(
         z
           .string()

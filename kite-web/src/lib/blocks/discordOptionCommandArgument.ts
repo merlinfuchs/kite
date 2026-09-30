@@ -13,7 +13,6 @@ export const discordOptionCommandArgument: BlockDefinition = {
   fields: [
     {
       name: "name",
-      type: "string",
       schema: z
         .string()
         .max(32)
@@ -25,7 +24,6 @@ export const discordOptionCommandArgument: BlockDefinition = {
     },
     {
       name: "description",
-      type: "string",
       schema: z
         .string()
         .max(100)
@@ -34,7 +32,6 @@ export const discordOptionCommandArgument: BlockDefinition = {
     },
     {
       name: "command_argument_type",
-      type: "string",
       schema: z
         .enum([
           "string",
@@ -51,7 +48,6 @@ export const discordOptionCommandArgument: BlockDefinition = {
     },
     {
       name: "command_argument_required",
-      type: "boolean",
       schema: z
         .boolean()
         .optional()
@@ -59,7 +55,6 @@ export const discordOptionCommandArgument: BlockDefinition = {
     },
     {
       name: "command_argument_min_value",
-      type: "string",
       schema: z
         .number()
         .optional()
@@ -67,7 +62,6 @@ export const discordOptionCommandArgument: BlockDefinition = {
     },
     {
       name: "command_argument_max_value",
-      type: "string",
       schema: z
         .number()
         .optional()
@@ -75,7 +69,6 @@ export const discordOptionCommandArgument: BlockDefinition = {
     },
     {
       name: "command_argument_max_length",
-      type: "string",
       schema: z
         .number()
         .optional()
@@ -83,7 +76,6 @@ export const discordOptionCommandArgument: BlockDefinition = {
     },
     {
       name: "command_argument_choices",
-      type: "string",
       schema: z
         .array(
           z.object({

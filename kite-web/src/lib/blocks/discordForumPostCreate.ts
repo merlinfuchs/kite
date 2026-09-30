@@ -1,5 +1,6 @@
 import { channelDataSchema, numericOrPlaceholder } from "../flow/dataSchema";
 import { nodeActionForumPostCreateResultSchema } from "../flow/resultSchema";
+import { channelDataSetting } from "./fields";
 import { BlockDefinition } from "./types";
 
 export const discordForumPostCreate: BlockDefinition = {
@@ -12,14 +13,9 @@ export const discordForumPostCreate: BlockDefinition = {
   fields: [
     {
       name: "channel_target",
-      type: "snowflake",
       schema: numericOrPlaceholder("ID of the forum channel."),
     },
-    {
-      name: "channel_data",
-      type: "string",
-      schema: channelDataSchema,
-    },
+    channelDataSetting,
   ],
   audit_log_reason: true,
   result: { schema: nodeActionForumPostCreateResultSchema },

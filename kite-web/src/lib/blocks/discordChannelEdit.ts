@@ -1,5 +1,6 @@
 import { channelDataSchema, channelTargetSchema } from "../flow/dataSchema";
 import { nodeActionChannelEditResultSchema } from "../flow/resultSchema";
+import { channelDataSetting, channelTargetSetting } from "./fields";
 import { BlockDefinition } from "./types";
 
 export const discordChannelEdit: BlockDefinition = {
@@ -10,18 +11,7 @@ export const discordChannelEdit: BlockDefinition = {
   category: "Channels",
   requires: ["discord"],
   credits: 1,
-  fields: [
-    {
-      name: "channel_target",
-      type: "snowflake",
-      schema: channelTargetSchema,
-    },
-    {
-      name: "channel_data",
-      type: "string",
-      schema: channelDataSchema,
-    },
-  ],
+  fields: [channelTargetSetting, channelDataSetting],
   audit_log_reason: true,
   result: { schema: nodeActionChannelEditResultSchema },
   run: { kind: "custom" },

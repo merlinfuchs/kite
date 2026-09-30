@@ -13,21 +13,18 @@ export const discordOptionEventFilter: BlockDefinition = {
   fields: [
     {
       name: "event_filter_target",
-      type: "snowflake",
       schema: z
         .enum(["message_content", "user_id", "guild_id", "channel_id"])
         .describe("Property of the event to filter on."),
     },
     {
       name: "event_filter_mode",
-      type: "string",
       schema: z
         .enum(["equal", "not_equal", "contains", "starts_with", "ends_with"])
         .describe("How the property is compared to the filter value."),
     },
     {
       name: "event_filter_value",
-      type: "string",
       schema: z
         .string()
         .max(1000)

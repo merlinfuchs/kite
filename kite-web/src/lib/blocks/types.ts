@@ -33,16 +33,18 @@ export interface BlockField {
   in?: "path" | "query" | "body";
   // Name in the request, if it differs from name.
   target?: string;
-  type: BlockFieldType;
+  // How a request sends the setting, and the generated schema and input of a
+  // setting without a schema. Other settings don't need one.
+  type?: BlockFieldType;
   // The setting's zod schema, for settings that need more than their type
   // gives, like objects or IDs that can be placeholders. It's generated from
   // the type otherwise. A function for schemas that depend on other blocks.
   schema?: ZodTypeAny | (() => ZodTypeAny);
   // The editor input of a setting with a schema, one of those registered in
-  // FlowNodeEditor.tsx, if it isn't registered under the setting's name, or
-  // false if the input of another field edits it too. Settings without a
-  // schema get a generic input.
-  input?: string | false;
+  // FlowNodeEditor.tsx, if it isn't registered under the setting's name. An
+  // input several fields name, which edits all of them, is shown once.
+  // Settings without a schema get a generic input.
+  input?: string;
   // Only needed without a schema, which describes the setting otherwise.
   label?: string;
   description?: string;
@@ -147,7 +149,7 @@ export interface BlockDefinition {
   };
 }
 
-// A block that sends a request, like those defined with fields.
+// A block that sends a request.
 export type RequestBlockDefinition = BlockDefinition & {
   run: BlockRequest;
   fields: BlockField[];

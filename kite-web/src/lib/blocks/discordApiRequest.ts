@@ -15,7 +15,6 @@ export const discordApiRequest: BlockDefinition = {
   fields: [
     {
       name: "discord_api_request_data",
-      type: "string",
       schema: () =>
         discordApiRequestDataSchema(
           requestBlocks()

@@ -14,7 +14,6 @@ export const discordEntryCommand: BlockDefinition = {
   fields: [
     {
       name: "name",
-      type: "string",
       schema: z
         .string()
         .max(32)
@@ -29,7 +28,6 @@ export const discordEntryCommand: BlockDefinition = {
     },
     {
       name: "description",
-      type: "string",
       schema: z
         .string()
         .max(100)

@@ -12,14 +12,12 @@ export const log: BlockDefinition = {
   fields: [
     {
       name: "log_level",
-      type: "string",
       schema: z
         .enum(["debug", "info", "warn", "error"])
         .describe("Severity of the log entry."),
     },
     {
       name: "log_message",
-      type: "string",
       schema: templated(
         z.string().max(2000).min(1),
         "Text to write to the app's logs."

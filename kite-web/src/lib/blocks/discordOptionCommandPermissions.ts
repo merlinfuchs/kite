@@ -15,7 +15,6 @@ export const discordOptionCommandPermissions: BlockDefinition = {
   fields: [
     {
       name: "command_permissions",
-      type: "string",
       schema: z
         .string()
         .regex(numericRegex)

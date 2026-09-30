@@ -13,7 +13,6 @@ export const httpRequest: BlockDefinition = {
   fields: [
     {
       name: "http_request_data",
-      type: "string",
       schema: z
         .object({
           url: templated(z.string().url(), "URL to send the request to."),

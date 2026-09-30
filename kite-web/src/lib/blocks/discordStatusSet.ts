@@ -14,7 +14,6 @@ export const discordStatusSet: BlockDefinition = {
   fields: [
     {
       name: "status_data",
-      type: "string",
       schema: z
         .object({
           status: z

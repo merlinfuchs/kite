@@ -76,6 +76,16 @@ describe("block definitions", () => {
     }
   });
 
+  it("type the fields of requests and those without a schema", () => {
+    for (const block of blockDefinitions) {
+      for (const field of block.fields ?? []) {
+        if (block.run.kind === "request" || !field.schema) {
+          expect(field.type, `${block.type}.${field.name}`).toBeDefined();
+        }
+      }
+    }
+  });
+
   it("only send the fields of request blocks", () => {
     for (const block of blockDefinitions) {
       for (const field of block.fields ?? []) {

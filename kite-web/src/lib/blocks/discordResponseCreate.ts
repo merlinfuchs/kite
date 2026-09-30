@@ -21,7 +21,6 @@ export const discordResponseCreate: BlockDefinition = {
     messageDataField,
     {
       name: "message_ephemeral",
-      type: "boolean",
       schema: z
         .boolean()
         .optional()

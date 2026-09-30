@@ -19,7 +19,6 @@ export const discordPrivateMessageCreate: BlockDefinition = {
   fields: [
     {
       name: "user_target",
-      type: "snowflake",
       schema: numericOrPlaceholder("ID of the user to send the message to."),
     },
     messageDataField,

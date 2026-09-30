@@ -13,7 +13,6 @@ export const discordResponseDefer: BlockDefinition = {
   fields: [
     {
       name: "message_ephemeral",
-      type: "boolean",
       schema: z
         .boolean()
         .optional()

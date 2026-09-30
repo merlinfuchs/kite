@@ -1,5 +1,6 @@
 import { channelDataSchema, numericOrPlaceholder } from "../flow/dataSchema";
 import { nodeActionThreadCreateResultSchema } from "../flow/resultSchema";
+import { channelDataSetting } from "./fields";
 import { BlockDefinition } from "./types";
 
 export const discordThreadCreate: BlockDefinition = {
@@ -13,18 +14,12 @@ export const discordThreadCreate: BlockDefinition = {
   fields: [
     {
       name: "message_target",
-      type: "snowflake",
-      input: false,
+      input: "thread_data",
       schema: numericOrPlaceholder(
         "ID of the message to start the thread from. Leave unset for a thread without a starter message."
       ).optional(),
     },
-    {
-      name: "channel_data",
-      type: "string",
-      input: "thread_data",
-      schema: channelDataSchema,
-    },
+    { ...channelDataSetting, input: "thread_data" },
   ],
   audit_log_reason: true,
   result: { schema: nodeActionThreadCreateResultSchema },
