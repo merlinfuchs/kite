@@ -52,6 +52,7 @@ The output of previously executed blocks is available in all subsequent blocks a
 - [Get role](./actions/action_role_get.md) - Retrieve role information
 - [Get server](./actions/action_guild_get.md) - Get server information
 - [Get channel](./actions/action_channel_get.md) - Retrieve channel information
+- [Create channel transcript](./actions/action_channel_transcript_create.md) - Save channel messages as an HTML file
 
 ## Voice Blocks
 

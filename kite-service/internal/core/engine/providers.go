@@ -142,6 +142,20 @@ func (p *DiscordProvider) Message(ctx context.Context, channelID discord.Channel
 	return msg, nil
 }
 
+func (p *DiscordProvider) ChannelMessages(ctx context.Context, channelID discord.ChannelID, limit uint) ([]discord.Message, error) {
+	// This goes to the API instead of the state, which only knows the
+	// messages it has seen on the gateway.
+	msgs, err := p.session.Client.WithContext(ctx).Messages(channelID, limit)
+	if err != nil {
+		if util.IsDiscordRestStatusCode(err, http.StatusNotFound) {
+			return nil, provider.ErrNotFound
+		}
+		return nil, fmt.Errorf("failed to get channel messages: %w", err)
+	}
+
+	return msgs, nil
+}
+
 func (p *DiscordProvider) GuildRoles(ctx context.Context, guildID discord.GuildID) ([]discord.Role, error) {
 	roles, err := p.session.Roles(guildID)
 	if err != nil {

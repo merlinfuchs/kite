@@ -41,6 +41,14 @@ func NewHTTPResponseValue(v *http.Response) (HTTPResponseValue, error) {
 	}, nil
 }
 
+// FileValue is a file a block created, which message blocks attach when a
+// placeholder of it is in the message.
+type FileValue struct {
+	Name        string `json:"name"`
+	ContentType string `json:"content_type"`
+	Data        []byte `json:"data"`
+}
+
 type RobloxUserValue struct {
 	ID                     int64  `json:"id"`
 	Name                   string `json:"name"`

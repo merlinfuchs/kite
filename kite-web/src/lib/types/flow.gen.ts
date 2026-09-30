@@ -43,6 +43,7 @@ export const FlowNodeTypeActionChannelGet: FlowNodeType = "action_channel_get";
 export const FlowNodeTypeActionChannelCreate: FlowNodeType = "action_channel_create";
 export const FlowNodeTypeActionChannelEdit: FlowNodeType = "action_channel_edit";
 export const FlowNodeTypeActionChannelDelete: FlowNodeType = "action_channel_delete";
+export const FlowNodeTypeActionTranscriptCreate: FlowNodeType = "action_channel_transcript_create";
 export const FlowNodeTypeActionThreadCreate: FlowNodeType = "action_thread_create";
 export const FlowNodeTypeActionThreadMemberAdd: FlowNodeType = "action_thread_member_add";
 export const FlowNodeTypeActionThreadMemberRemove: FlowNodeType = "action_thread_member_remove";
@@ -159,6 +160,10 @@ export interface FlowNodeData {
    */
   channel_target?: string;
   channel_data?: ChannelData;
+  /**
+   * Channel Transcript Create
+   */
+  transcript_data?: TranscriptData;
   /**
    * Voice Channel Join
    */
@@ -341,6 +346,13 @@ export interface PollAnswerData {
   text?: string;
   emoji?: EmojiData;
 }
+export interface TranscriptData {
+  /**
+   * MessageLimit is how many of the most recent messages are included.
+   * Empty means 1000.
+   */
+  message_limit?: string;
+}
 export interface ModalData {
   title?: string;
   components?: ModalComponentData[];
@@ -399,6 +411,10 @@ export interface FlowEdge {
 }
 
 //////////
+// source: files.go
+
+
+//////////
 // source: state.go
 
 export interface FlowContextState {
@@ -427,6 +443,14 @@ export interface FlowContextNodeState {
   result?: any /* thing.Thing */;
   loop_exited?: boolean;
 }
+
+//////////
+// source: transcript.go
+
+
+//////////
+// source: transcript_html.go
+
 
 //////////
 // source: trigger.go

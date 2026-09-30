@@ -669,6 +669,21 @@ export const nodeActionChannelDeleteDataSchema = nodeBaseDataSchema.extend({
   audit_log_reason: auditLogReasonSchema,
 });
 
+export const nodeActionTranscriptCreateDataSchema = nodeBaseDataSchema.extend({
+  channel_target: numericOrPlaceholder(
+    "ID of the channel or thread to make the transcript of."
+  ),
+  transcript_data: z
+    .object({
+      message_limit: numericOrPlaceholder(
+        "How many of the most recent messages to include, between 1 and 1000. Defaults to 1000."
+      ).optional(),
+    })
+    .optional()
+    .describe("How many messages the transcript includes."),
+  temporary_name: temporaryNameSchema,
+});
+
 export const nodeActionThreadCreateDataSchema = nodeBaseDataSchema.extend({
   message_target: numericOrPlaceholder(
     "ID of the message to start the thread from. Leave unset for a thread without a starter message."

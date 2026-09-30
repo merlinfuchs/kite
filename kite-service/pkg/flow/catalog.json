@@ -3007,6 +3007,92 @@
       },
       "result_schema": null
     },
+    "action_channel_transcript_create": {
+      "title": "Create channel transcript",
+      "description": "Save a channel's messages as an HTML file",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord",
+        "event_schedule"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "type": "string",
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+          },
+          "channel_target": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9]+$"
+              },
+              {
+                "type": "string",
+                "pattern": "^\\{\\{[^{}]+\\}\\}$"
+              }
+            ],
+            "description": "ID of the channel or thread to make the transcript of."
+          },
+          "transcript_data": {
+            "type": "object",
+            "properties": {
+              "message_limit": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "pattern": "^[0-9]+$"
+                  },
+                  {
+                    "type": "string",
+                    "pattern": "^\\{\\{[^{}]+\\}\\}$"
+                  }
+                ],
+                "description": "How many of the most recent messages to include, between 1 and 1000. Defaults to 1000."
+              }
+            },
+            "additionalProperties": false,
+            "description": "How many messages the transcript includes."
+          },
+          "temporary_name": {
+            "type": "string",
+            "maxLength": 32,
+            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only."
+          }
+        },
+        "required": [
+          "channel_target"
+        ],
+        "additionalProperties": false
+      },
+      "result_schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "The file name of the transcript"
+          },
+          "size": {
+            "type": "number",
+            "description": "The size of the transcript in bytes"
+          }
+        },
+        "required": [
+          "name",
+          "size"
+        ],
+        "additionalProperties": false,
+        "description": "The transcript as an HTML file. Put the result on its own, e.g. {{result('id')}}, in the text of a block that sends a message to attach the file to it."
+      }
+    },
     "action_thread_create": {
       "title": "Create thread",
       "description": "Create a thread",

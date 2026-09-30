@@ -80,6 +80,7 @@ const (
 	FlowNodeTypeActionChannelCreate         FlowNodeType = "action_channel_create"
 	FlowNodeTypeActionChannelEdit           FlowNodeType = "action_channel_edit"
 	FlowNodeTypeActionChannelDelete         FlowNodeType = "action_channel_delete"
+	FlowNodeTypeActionTranscriptCreate      FlowNodeType = "action_channel_transcript_create"
 	FlowNodeTypeActionThreadCreate          FlowNodeType = "action_thread_create"
 	FlowNodeTypeActionThreadMemberAdd       FlowNodeType = "action_thread_member_add"
 	FlowNodeTypeActionThreadMemberRemove    FlowNodeType = "action_thread_member_remove"
@@ -198,6 +199,9 @@ type FlowNodeData struct {
 	// Channel Create, Edit, Delete, Get
 	ChannelTarget string       `json:"channel_target,omitempty"`
 	ChannelData   *ChannelData `json:"channel_data,omitempty"`
+
+	// Channel Transcript Create
+	TranscriptData *TranscriptData `json:"transcript_data,omitempty"`
 
 	// Voice Channel Join
 	VoiceSelfMute bool `json:"voice_self_mute,omitempty"`
@@ -626,6 +630,12 @@ func (d *PollData) ToCreatePollData(ctx context.Context, evalCtx eval.Context) (
 	}
 
 	return res, nil
+}
+
+type TranscriptData struct {
+	// MessageLimit is how many of the most recent messages are included.
+	// Empty means 1000.
+	MessageLimit string `json:"message_limit,omitempty"`
 }
 
 type ModalData struct {

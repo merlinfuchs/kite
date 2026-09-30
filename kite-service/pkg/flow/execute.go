@@ -14,6 +14,7 @@ import (
 	"github.com/diamondburned/arikawa/v3/api"
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/utils/json/option"
+	"github.com/diamondburned/arikawa/v3/utils/sendpart"
 	"github.com/kitecloud/kite/kite-service/internal/util"
 	"github.com/kitecloud/kite/kite-service/pkg/eval"
 	"github.com/kitecloud/kite/kite-service/pkg/message"
@@ -76,11 +77,12 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			}
 		}
 
-		data, opts, resumePointID, err := n.prepareMessage(ctx)
+		data, opts, resumePointID, files, err := n.prepareMessage(ctx)
 		if err != nil {
 			return traceError(n, err)
 		}
 		responseData := data.ToInteractionResponseData(opts)
+		responseData.Files = files
 
 		hasCreatedResponse, err := ctx.Discord.HasCreatedInteractionResponse(ctx, interaction.ID)
 		if err != nil {
@@ -147,9 +149,12 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			}
 		}
 
-		data, opts, resumePointID, err := n.prepareMessage(ctx)
+		data, opts, resumePointID, files, err := n.prepareMessage(ctx)
 		if err != nil {
 			return traceError(n, err)
+		}
+		if len(files) > 0 {
+			return traceError(n, errFilesOnEdit)
 		}
 
 		var msg *discord.Message
@@ -376,11 +381,12 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			return n.resumeFromComponent(ctx)
 		}
 
-		data, opts, resumePointID, err := n.prepareMessage(ctx)
+		data, opts, resumePointID, files, err := n.prepareMessage(ctx)
 		if err != nil {
 			return traceError(n, err)
 		}
 		messageData := data.ToSendMessageData(opts)
+		messageData.Files = files
 
 		channelTarget, err := ctx.EvalTemplate(n.Data.ChannelTarget)
 		if err != nil {
@@ -434,9 +440,12 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			return traceError(n, err)
 		}
 
-		data, opts, resumePointID, err := n.prepareMessage(ctx)
+		data, opts, resumePointID, files, err := n.prepareMessage(ctx)
 		if err != nil {
 			return traceError(n, err)
+		}
+		if len(files) > 0 {
+			return traceError(n, errFilesOnEdit)
 		}
 		editData := data.ToEditMessageData(opts)
 
@@ -505,11 +514,12 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			return n.resumeFromComponent(ctx)
 		}
 
-		data, opts, resumePointID, err := n.prepareMessage(ctx)
+		data, opts, resumePointID, files, err := n.prepareMessage(ctx)
 		if err != nil {
 			return traceError(n, err)
 		}
 		messageData := data.ToSendMessageData(opts)
+		messageData.Files = files
 
 		userTarget, err := ctx.EvalTemplate(n.Data.UserTarget)
 		if err != nil {
@@ -1053,6 +1063,28 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			return traceError(n, err)
 		}
 
+		return n.ExecuteChildren(ctx)
+	case FlowNodeTypeActionTranscriptCreate:
+		channelTarget, err := ctx.EvalTemplate(n.Data.ChannelTarget)
+		if err != nil {
+			return traceError(n, err)
+		}
+		channelID := discord.ChannelID(channelTarget.Snowflake())
+		if !channelID.IsValid() {
+			return traceError(n, fmt.Errorf("channel %q is not a valid channel ID", channelTarget.String()))
+		}
+
+		limit, err := n.Data.TranscriptData.evalMessageLimit(ctx, ctx.EvalCtx)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		file, err := createTranscript(ctx, ctx.Discord, channelID, limit)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		ctx.StoreNodeResult(n, thing.NewFile(file))
 		return n.ExecuteChildren(ctx)
 	case FlowNodeTypeActionThreadCreate:
 		if n.Data.ChannelData == nil {
@@ -1925,6 +1957,8 @@ func (n *CompiledFlowNode) CreditsCost() int {
 		return AICreditsCost(data.Model, n.Type == FlowNodeTypeActionAISearchWeb)
 	case FlowNodeTypeActionHTTPRequest:
 		return 3
+	case FlowNodeTypeActionTranscriptCreate:
+		return 5
 	}
 
 	if n.IsAction() {
@@ -2171,12 +2205,12 @@ func (n *CompiledFlowNode) resumeFromComponent(ctx *FlowContext) error {
 	return nil
 }
 
-func (n *CompiledFlowNode) prepareMessageData(ctx *FlowContext) (message.MessageData, error) {
+func (n *CompiledFlowNode) prepareMessageData(ctx *FlowContext) (message.MessageData, []thing.FileValue, error) {
 	var data message.MessageData
 	if n.Data.MessageTemplateID != "" {
 		template, err := ctx.MessageTemplate.MessageTemplate(ctx, n.Data.MessageTemplateID)
 		if err != nil {
-			return message.MessageData{}, err
+			return message.MessageData{}, nil, err
 		}
 		data = *template
 	} else {
@@ -2187,12 +2221,16 @@ func (n *CompiledFlowNode) prepareMessageData(ctx *FlowContext) (message.Message
 		data.Flags |= int(discord.EphemeralMessage)
 	}
 
+	var files []thing.FileValue
 	err := data.EachString(func(s *string) error {
 		if s == nil {
 			return nil
 		}
 
-		res, err := eval.EvalTemplateToString(ctx, *s, ctx.EvalCtx)
+		template, found := evalTemplateFiles(ctx, *s, ctx.EvalCtx)
+		files = append(files, found...)
+
+		res, err := eval.EvalTemplateToString(ctx, template, ctx.EvalCtx)
 		if err != nil {
 			return err
 		}
@@ -2201,18 +2239,28 @@ func (n *CompiledFlowNode) prepareMessageData(ctx *FlowContext) (message.Message
 		return nil
 	})
 	if err != nil {
-		return message.MessageData{}, err
+		return message.MessageData{}, nil, err
 	}
 
-	return data, nil
+	return data, files, nil
 }
+
+// errFilesOnEdit is returned when a file placeholder is used in a block that
+// edits a message, as files can only be attached to new messages.
+var errFilesOnEdit = errors.New("files can only be attached to new messages, not edited ones")
 
 // prepareMessage evaluates the node's message and returns it with the options to
 // convert it, pointing interactive components at a new resume point if needed.
-func (n *CompiledFlowNode) prepareMessage(ctx *FlowContext) (message.MessageData, message.ConvertOptions, string, error) {
-	data, err := n.prepareMessageData(ctx)
+// Files in placeholders of the message are returned to be attached to it.
+func (n *CompiledFlowNode) prepareMessage(ctx *FlowContext) (message.MessageData, message.ConvertOptions, string, []sendpart.File, error) {
+	data, fileValues, err := n.prepareMessageData(ctx)
 	if err != nil {
-		return message.MessageData{}, message.ConvertOptions{}, "", err
+		return message.MessageData{}, message.ConvertOptions{}, "", nil, err
+	}
+
+	files, err := toSendFiles(fileValues)
+	if err != nil {
+		return message.MessageData{}, message.ConvertOptions{}, "", nil, err
 	}
 
 	var resumePointID string
@@ -2230,7 +2278,7 @@ func (n *CompiledFlowNode) prepareMessage(ctx *FlowContext) (message.MessageData
 		},
 	}
 
-	return data, opts, resumePointID, nil
+	return data, opts, resumePointID, files, nil
 }
 
 // acknowledgeUnansweredComponent acknowledges a component interaction the flow
