@@ -45,6 +45,7 @@ packages:
     exclude_files:
       - "compile.go"
       - "context.go"
+      - "discord_api.go"
       - "error.go"
       - "eval.go"
       - "execute.go"

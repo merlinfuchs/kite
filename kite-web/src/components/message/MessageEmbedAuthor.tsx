@@ -33,7 +33,7 @@ export default function MessageEmbedAuthor({ embedId }: { embedId: NodeId }) {
         validation={nodeField<EmbedNode>(embedId, "author.name")}
         placeholders
       />
-      <div className="flex space-x-3">
+      <div className="flex flex-col gap-3 sm:flex-row">
         <MessageInput
           type="url"
           label="URL"
