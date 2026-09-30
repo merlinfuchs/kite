@@ -35,4 +35,4 @@ The bots are down between stopping the old units and starting the new ones, a fe
 ## Moving the docs and web app off Vercel
 
 1. Run `./deploy/docs.sh`, add docs.kite.onl as a public hostname on the Cloudflare tunnel pointing at nginx like api.kite.onl, and replace its DNS record (pointing at Vercel).
-2. Once that works, do the same for kite.onl with `./deploy/web.sh`.
+2. Once that works, do the same for kite.onl with `./deploy/web.sh`. Add www.kite.onl to the tunnel too, nginx redirects it to kite.onl.

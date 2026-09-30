@@ -121,6 +121,13 @@ server {
 
 server {
         listen 127.0.0.1:80;
+        server_name www.@WEB_DOMAIN@;
+
+        return 308 https://@WEB_DOMAIN@$request_uri;
+}
+
+server {
+        listen 127.0.0.1:80;
         server_name @WEB_DOMAIN@;
 
         root @WEB_DIR@;
