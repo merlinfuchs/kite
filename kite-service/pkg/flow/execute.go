@@ -536,6 +536,51 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 		}
 
 		return n.ExecuteChildren(ctx)
+	case FlowNodeTypeActionPrivateMessageEdit:
+		if ctx.IsEntry() {
+			return n.resumeFromComponent(ctx)
+		}
+
+		userTarget, err := ctx.EvalTemplate(n.Data.UserTarget)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		messageTarget, err := ctx.EvalTemplate(n.Data.MessageTarget)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		channel, err := ctx.Discord.CreatePrivateChannel(ctx, discord.UserID(userTarget.Snowflake()))
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		data, opts, resumePointID, err := n.prepareMessage(ctx)
+		if err != nil {
+			return traceError(n, err)
+		}
+		editData := data.ToEditMessageData(opts)
+
+		msg, err := ctx.Discord.EditMessage(
+			ctx,
+			channel.ID,
+			discord.MessageID(messageTarget.Snowflake()),
+			editData,
+		)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		ctx.StoreNodeResult(n, thing.NewDiscordMessage(*msg))
+		if resumePointID != "" {
+			_, err = ctx.suspend(ResumePointTypeMessageComponents, resumePointID, n.ID)
+			if err != nil {
+				return traceError(n, err)
+			}
+		}
+
+		return n.ExecuteChildren(ctx)
 	case FlowNodeTypeActionMessageReactionCreate:
 		channelTarget, err := ctx.EvalTemplate(n.Data.ChannelTarget)
 		if err != nil {

@@ -464,6 +464,11 @@ export const nodeActionPrivateMessageCreateDataSchema = withMessage({
   user_target: numericOrPlaceholder("ID of the user to send the message to."),
 });
 
+export const nodeActionPrivateMessageEditDataSchema = withMessage({
+  user_target: numericOrPlaceholder("ID of the user the message was sent to."),
+  message_target: messageTargetSchema,
+});
+
 export const nodeActionMessageEditDataSchema = withMessage({
   channel_target: channelTargetSchema,
   message_target: messageTargetSchema,
