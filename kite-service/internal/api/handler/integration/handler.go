@@ -75,19 +75,15 @@ func (h *IntegrationHandler) HandleAppIntegrationUpdate(c *handler.Context, req 
 		CreatedAt:     time.Now().UTC(),
 		UpdatedAt:     time.Now().UTC(),
 	}
-	// Integrations that need a credential have a row once they're connected.
+	// Integrations that need a credential have a row once it's entered.
+	set := h.appIntegrationStore.SetAppIntegrationEnabled
 	if integration.NeedsCredential() {
-		_, err := h.appIntegrationStore.UpdateAppIntegrationEnabled(c.Context(), choice)
-		if errors.Is(err, store.ErrNotFound) {
-			return nil, handler.ErrBadRequest("not_connected", "Connect the integration with its credential first")
-		}
-		if err != nil {
-			return nil, fmt.Errorf("failed to update integration: %w", err)
-		}
-		return &wire.AppIntegrationUpdateResponse{}, nil
+		set = h.appIntegrationStore.UpdateAppIntegrationEnabled
 	}
-
-	if _, err := h.appIntegrationStore.SetAppIntegrationEnabled(c.Context(), choice); err != nil {
+	if _, err := set(c.Context(), choice); err != nil {
+		if errors.Is(err, store.ErrNotFound) {
+			return nil, handler.ErrBadRequest("not_connected", "Enable the integration by entering its credential first")
+		}
 		return nil, fmt.Errorf("failed to update integration: %w", err)
 	}
 	return &wire.AppIntegrationUpdateResponse{}, nil

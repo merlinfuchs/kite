@@ -14,7 +14,7 @@ export default function AppIntegrationsPage() {
       <div>
         <h1 className="text-lg font-semibold md:text-2xl mb-1">Integrations</h1>
         <p className="text-muted-foreground text-sm">
-          Connect other services to use their blocks in your flows. Your key
+          Enable other services to use their blocks in your flows. Your key
           stays with Kite and only goes to the service it belongs to.
         </p>
       </div>

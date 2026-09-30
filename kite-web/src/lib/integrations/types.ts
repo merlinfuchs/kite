@@ -10,15 +10,15 @@ export interface Integration {
   auth: IntegrationAuth;
   // "always" for integrations every app can use, like Discord, "default" for
   // ones apps can turn off and "opt_in" for ones they turn on. Integrations
-  // that need a credential are opt-in, and turned on by connecting them.
+  // that need a credential are opt-in, and turned on by entering it.
   availability: "always" | "default" | "opt_in";
   // A cheap GET endpoint, relative to base_url, that checks the credential
-  // when the app connects the integration.
+  // when the app enters it.
   test_path?: string;
 }
 
-// How requests prove who they are. Integrations with the "discord_bot" or
-// "none" type are always connected, the others need a credential of the app.
+// How requests prove who they are. Integrations with the "header" or "query"
+// type need a credential of the app, the others don't.
 export type IntegrationAuth =
   | { type: "discord_bot" }
   | { type: "none" }

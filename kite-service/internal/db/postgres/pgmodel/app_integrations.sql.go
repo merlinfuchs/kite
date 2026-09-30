@@ -11,36 +11,6 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
-const createAppIntegrationIfMissing = `-- name: CreateAppIntegrationIfMissing :exec
-INSERT INTO app_integrations (
-    app_id,
-    integration_id,
-    enabled,
-    created_at,
-    updated_at
-) VALUES (
-    $1, $2, TRUE, $3, $4
-)
-ON CONFLICT (app_id, integration_id) DO NOTHING
-`
-
-type CreateAppIntegrationIfMissingParams struct {
-	AppID         string
-	IntegrationID string
-	CreatedAt     pgtype.Timestamp
-	UpdatedAt     pgtype.Timestamp
-}
-
-func (q *Queries) CreateAppIntegrationIfMissing(ctx context.Context, arg CreateAppIntegrationIfMissingParams) error {
-	_, err := q.db.Exec(ctx, createAppIntegrationIfMissing,
-		arg.AppID,
-		arg.IntegrationID,
-		arg.CreatedAt,
-		arg.UpdatedAt,
-	)
-	return err
-}
-
 const deleteAppIntegration = `-- name: DeleteAppIntegration :execrows
 DELETE FROM app_integrations WHERE app_id = $1 AND integration_id = $2
 `
@@ -56,6 +26,40 @@ func (q *Queries) DeleteAppIntegration(ctx context.Context, arg DeleteAppIntegra
 		return 0, err
 	}
 	return result.RowsAffected(), nil
+}
+
+const ensureAppIntegration = `-- name: EnsureAppIntegration :exec
+INSERT INTO app_integrations (
+    app_id,
+    integration_id,
+    enabled,
+    created_at,
+    updated_at
+) VALUES (
+    $1, $2, TRUE, $3, $4
+)
+ON CONFLICT (app_id, integration_id) DO UPDATE SET
+    updated_at = EXCLUDED.updated_at
+`
+
+type EnsureAppIntegrationParams struct {
+	AppID         string
+	IntegrationID string
+	CreatedAt     pgtype.Timestamp
+	UpdatedAt     pgtype.Timestamp
+}
+
+// Creates the row of an integration enabled, or keeps the app's choice. Either
+// way the row is locked, so it can't be removed before its credential is
+// written.
+func (q *Queries) EnsureAppIntegration(ctx context.Context, arg EnsureAppIntegrationParams) error {
+	_, err := q.db.Exec(ctx, ensureAppIntegration,
+		arg.AppID,
+		arg.IntegrationID,
+		arg.CreatedAt,
+		arg.UpdatedAt,
+	)
+	return err
 }
 
 const getAppIntegrations = `-- name: GetAppIntegrations :many

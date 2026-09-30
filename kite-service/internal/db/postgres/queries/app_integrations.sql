@@ -16,7 +16,10 @@ ON CONFLICT (app_id, integration_id) DO UPDATE SET
     updated_at = EXCLUDED.updated_at
 RETURNING *;
 
--- name: CreateAppIntegrationIfMissing :exec
+-- Creates the row of an integration enabled, or keeps the app's choice. Either
+-- way the row is locked, so it can't be removed before its credential is
+-- written.
+-- name: EnsureAppIntegration :exec
 INSERT INTO app_integrations (
     app_id,
     integration_id,
@@ -26,7 +29,8 @@ INSERT INTO app_integrations (
 ) VALUES (
     $1, $2, TRUE, $3, $4
 )
-ON CONFLICT (app_id, integration_id) DO NOTHING;
+ON CONFLICT (app_id, integration_id) DO UPDATE SET
+    updated_at = EXCLUDED.updated_at;
 
 -- name: UpdateAppIntegrationEnabled :one
 UPDATE app_integrations SET

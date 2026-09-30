@@ -29,14 +29,9 @@ func (p *integrationTestProvider) Credential(ctx context.Context, integrationID 
 	return "", provider.ErrNotFound
 }
 
-// Choice is enabled for connected integrations the test didn't choose for,
-// as connecting enables them.
 func (p *integrationTestProvider) Choice(ctx context.Context, integrationID string) (null.Bool, error) {
-	if enabled, ok := p.choices[integrationID]; ok {
-		return null.BoolFrom(enabled), nil
-	}
-	_, connected := p.credentials[integrationID]
-	return null.NewBool(true, connected), nil
+	enabled, ok := p.choices[integrationID]
+	return null.NewBool(enabled, ok), nil
 }
 
 type redirectCheckingHTTPProvider struct {
@@ -88,7 +83,12 @@ func withTestIntegration(t *testing.T, auth IntegrationAuth) {
 func intPtr(v int) *int { return &v }
 
 func executeIntegrationBlock(t *testing.T, nodeType FlowNodeType, data FlowNodeData, credentials map[string]string, httpProvider provider.HTTPProvider) (*FlowContext, error) {
-	return executeIntegrationBlockWith(t, nodeType, data, &integrationTestProvider{credentials: credentials}, httpProvider)
+	// Entering a credential enables the integration.
+	choices := map[string]bool{}
+	for id := range credentials {
+		choices[id] = true
+	}
+	return executeIntegrationBlockWith(t, nodeType, data, &integrationTestProvider{credentials: credentials, choices: choices}, httpProvider)
 }
 
 func executeIntegrationBlockWith(t *testing.T, nodeType FlowNodeType, data FlowNodeData, integrationProvider provider.IntegrationProvider, httpProvider provider.HTTPProvider) (*FlowContext, error) {

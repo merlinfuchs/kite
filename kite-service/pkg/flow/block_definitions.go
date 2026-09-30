@@ -101,12 +101,12 @@ const (
 	AvailabilityAlways = "always"
 	// Apps can use it until they turn it off.
 	AvailabilityDefault = "default"
-	// Apps turn it on, or connect it if it needs a credential.
+	// Apps turn it on, by entering the credential if it needs one.
 	AvailabilityOptIn = "opt_in"
 )
 
-// NeedsCredential reports whether the app has to connect the integration with
-// a credential to use it.
+// NeedsCredential reports whether the app has to enter a credential to use
+// the integration.
 func (i Integration) NeedsCredential() bool {
 	return i.Auth.Type == "header" || i.Auth.Type == "query"
 }

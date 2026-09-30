@@ -74,7 +74,7 @@ func (c *Client) ConnectAppIntegration(ctx context.Context, secret *model.AppSec
 	q := c.Q.WithTx(tx)
 
 	// The credential references the integration's row.
-	err = q.CreateAppIntegrationIfMissing(ctx, pgmodel.CreateAppIntegrationIfMissingParams{
+	err = q.EnsureAppIntegration(ctx, pgmodel.EnsureAppIntegrationParams{
 		AppID:         secret.AppID,
 		IntegrationID: secret.IntegrationID,
 		CreatedAt:     pgtype.Timestamp{Time: secret.CreatedAt.UTC(), Valid: true},
