@@ -1,5 +1,5 @@
-import { channelTargetSchema } from "../flow/dataSchema";
 import { nodeActionChannelGetResultSchema } from "../flow/resultSchema";
+import { channelTargetSetting } from "./fields";
 import { BlockDefinition } from "./types";
 
 export const discordChannelGet: BlockDefinition = {
@@ -11,9 +11,7 @@ export const discordChannelGet: BlockDefinition = {
   requires: ["discord"],
   credits: 1,
   allow_unknown_settings: true,
-  fields: [
-    { name: "channel_target", type: "snowflake", schema: channelTargetSchema },
-  ],
+  fields: [channelTargetSetting],
   result: { schema: nodeActionChannelGetResultSchema },
   run: { kind: "custom" },
 };

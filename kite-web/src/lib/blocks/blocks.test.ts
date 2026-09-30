@@ -40,8 +40,8 @@ describe("block definitions", () => {
   it("have unique types and field names", () => {
     const types = blockDefinitions.map((b) => b.type);
     expect(new Set(types).size).toBe(types.length);
-    for (const block of requestBlocks()) {
-      const names = block.fields.map((f) => f.name);
+    for (const block of blockDefinitions) {
+      const names = (block.fields ?? []).map((f) => f.name);
       expect(new Set(names).size, block.type).toBe(names.length);
     }
   });
@@ -60,6 +60,18 @@ describe("block definitions", () => {
       for (const field of (block.fields ?? []).filter((f) => !f.schema)) {
         expect(field.label, `${block.type}.${field.name}`).toBeTruthy();
         expect(field.description, `${block.type}.${field.name}`).toBeTruthy();
+      }
+    }
+  });
+
+  // Generated schemas store every value as text, which only requests convert.
+  // Go reads the settings of custom blocks into typed fields.
+  it("give the fields of custom blocks a schema", () => {
+    for (const block of blockDefinitions.filter(
+      (b) => b.run.kind === "custom"
+    )) {
+      for (const field of block.fields ?? []) {
+        expect(field.schema, `${block.type}.${field.name}`).toBeDefined();
       }
     }
   });

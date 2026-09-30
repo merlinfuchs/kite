@@ -65,17 +65,44 @@ export const roleField: BlockField = {
   description: "ID of the role.",
 };
 
-// The fields above with the schema and editor input the setting has in blocks
-// that aren't generated from their fields.
+// Settings of custom blocks, with the schema and editor input the setting
+// has in every block.
+
+export const guildTargetSetting: BlockField = {
+  name: "guild_target",
+  type: "snowflake",
+  schema: guildTargetSchema.optional(),
+};
+
+export const channelTargetSetting: BlockField = {
+  name: "channel_target",
+  type: "snowflake",
+  schema: channelTargetSchema,
+};
+
+export const userTargetSetting: BlockField = {
+  name: "user_target",
+  type: "snowflake",
+  schema: userTargetSchema,
+};
+
+export const roleTargetSetting: BlockField = {
+  name: "role_target",
+  type: "snowflake",
+  schema: roleTargetSchema,
+};
+
+// The fields of requests with the same schema and editor input, for blocks
+// that were written by hand before they were requests.
 
 export const guildTargetField: BlockField = {
   ...guildField,
-  schema: guildTargetSchema.optional(),
+  schema: guildTargetSetting.schema,
 };
 
 export const channelTargetField: BlockField = {
   ...channelField,
-  schema: channelTargetSchema,
+  schema: channelTargetSetting.schema,
 };
 
 export const messageTargetField: BlockField = {
@@ -85,12 +112,12 @@ export const messageTargetField: BlockField = {
 
 export const userTargetField: BlockField = {
   ...userField,
-  schema: userTargetSchema,
+  schema: userTargetSetting.schema,
 };
 
 export const roleTargetField: BlockField = {
   ...roleField,
-  schema: roleTargetSchema,
+  schema: roleTargetSetting.schema,
 };
 
 // The settings of a condition, edited by the inputs of its kind, like

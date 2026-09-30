@@ -122,7 +122,7 @@ export const auditLogReasonSchema = templated(
   "Reason shown in the server's audit log."
 ).optional();
 
-export const comparisonModeSchema = z.enum([
+const comparisonModeSchema = z.enum([
   "equal",
   "not_equal",
   "greater_than",

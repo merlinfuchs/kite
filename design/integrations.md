@@ -252,16 +252,16 @@ Some blocks will always need code: conditions, loops, sleep, variables, AI, resp
 Before, a hand-written block was spread over `nodes.ts`, `dataSchema.ts`, `resultSchema.ts`, `categories.ts`, `components.ts` and a `case` in `Execute`. Now every block has one definition with its title, icon, category, credits, settings, result, structure and a `run`, and `nodes.ts`, the block explorer's sections and the canvas components are built from them:
 
 ```ts
-export const discordMessagePin: BlockDefinition = {
-  type: "action_message_pin",
-  title: "Pin channel message",
-  description: "Bot pins a message in a channel",
-  icon: "pin",
-  category: "Messages",
+export const discordChannelGet: BlockDefinition = {
+  type: "action_channel_get",
+  title: "Get channel",
+  description: "Get a channel by ID",
+  icon: "folder-search",
+  category: "Channels",
   requires: ["discord"],
   credits: 1,
-  schema: nodeActionMessagePinDataSchema,
-  inputs: ["channel_target", "message_target", "audit_log_reason", "custom_label"],
+  fields: [channelTargetSetting],
+  result: { schema: nodeActionChannelGetResultSchema },
   run: { kind: "custom" },
 };
 ```

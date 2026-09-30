@@ -1,4 +1,4 @@
-import { guildTargetSchema } from "../flow/dataSchema";
+import { guildTargetSetting } from "./fields";
 import { BlockDefinition } from "./types";
 
 export const discordVoiceChannelLeave: BlockDefinition = {
@@ -10,12 +10,6 @@ export const discordVoiceChannelLeave: BlockDefinition = {
   requires: ["discord"],
   credits: 1,
   allow_unknown_settings: true,
-  fields: [
-    {
-      name: "guild_target",
-      type: "snowflake",
-      schema: guildTargetSchema.optional(),
-    },
-  ],
+  fields: [guildTargetSetting],
   run: { kind: "custom" },
 };

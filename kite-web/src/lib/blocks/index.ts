@@ -1,13 +1,19 @@
 import { z } from "zod";
 import {
   auditLogReasonSchema,
+  decimalRegex,
   nodeBaseDataSchema,
   discordApiParamFormats,
   placeholderRegex,
   templated,
   temporaryNameSchema,
 } from "../flow/dataSchema";
-import { BlockDefinition, BlockField, RequestBlockDefinition } from "./types";
+import {
+  BlockDefinition,
+  BlockField,
+  FieldsBlockDefinition,
+  RequestBlockDefinition,
+} from "./types";
 import { aiChatCompletion } from "./aiChatCompletion";
 import { aiWebSearch } from "./aiWebSearch";
 import { cookieApiQrCodeCreate } from "./cookieApiQrCodeCreate";
@@ -204,8 +210,8 @@ const formats: Record<BlockField["type"], [RegExp, string] | null> = {
   boolean: discordApiParamFormats.boolean,
   string: null,
   emoji: null,
-  seconds: [/^[0-9]+(\.[0-9]+)?$/, "Must be a number of seconds"],
-  seconds_until: [/^[0-9]+(\.[0-9]+)?$/, "Must be a number of seconds"],
+  seconds: [decimalRegex, "Must be a number of seconds"],
+  seconds_until: [decimalRegex, "Must be a number of seconds"],
 };
 
 const numberTypes: BlockField["type"][] = [
@@ -217,7 +223,7 @@ const numberTypes: BlockField["type"][] = [
 function fieldSchema(field: BlockField) {
   // Emojis are objects, which only a block's own schema describes.
   if (field.type === "emoji") {
-    throw new Error(`Emoji field ${field.name} needs a block schema`);
+    throw new Error(`Emoji field ${field.name} needs its own schema`);
   }
 
   let text = z.string();
@@ -313,10 +319,14 @@ function fieldSchema(field: BlockField) {
   return field.required ? schema : schema.optional();
 }
 
+export function hasFieldSettings(
+  block: BlockDefinition
+): block is FieldsBlockDefinition {
+  return !!block.fields && !block.schema;
+}
+
 // The schema of a block whose settings are its fields.
-export function blockDataSchema(
-  block: BlockDefinition & { fields: BlockField[] }
-) {
+export function blockDataSchema(block: FieldsBlockDefinition) {
   const names = block.fields.map((f) => f.name).join(", ");
   const base = block.allow_unknown_settings
     ? nodeBaseDataSchema
@@ -335,9 +345,7 @@ export function blockDataSchema(
 
 // The editor inputs of a block whose settings are its fields. Fields without a
 // schema are edited by a generic input, named "field:" and the field's name.
-export function blockDataFields(
-  block: BlockDefinition & { fields: BlockField[] }
-) {
+export function blockDataFields(block: FieldsBlockDefinition) {
   return [
     ...block.fields.map((f) =>
       f.schema ? f.input ?? f.name : `field:${f.name}`

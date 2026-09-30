@@ -9,6 +9,7 @@ import {
   blockDataSchema,
   blockDefinitions,
   getBlockDefinition,
+  hasFieldSettings,
 } from "../blocks";
 import {
   actionColor,
@@ -67,10 +68,7 @@ export const nodeTypes: Record<string, NodeValues> = Object.fromEntries(
 
 function toNodeValues(block: BlockDefinition): NodeValues {
   // Blocks without a schema of their own get one from their fields.
-  const withFields =
-    block.fields && !block.schema
-      ? { ...block, fields: block.fields }
-      : undefined;
+  const withFields = hasFieldSettings(block) ? block : undefined;
   const schema =
     typeof block.schema === "function" ? block.schema() : block.schema;
 

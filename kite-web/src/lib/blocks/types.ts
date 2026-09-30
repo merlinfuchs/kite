@@ -153,3 +153,6 @@ export type RequestBlockDefinition = BlockDefinition & {
   // The service reads it for requests, so it can't depend on the settings.
   credits: number;
 };
+
+// A block whose settings are its fields.
+export type FieldsBlockDefinition = BlockDefinition & { fields: BlockField[] };

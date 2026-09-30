@@ -1,5 +1,5 @@
-import { guildTargetSchema, userTargetSchema } from "../flow/dataSchema";
 import { nodeActionMemberGetResultSchema } from "../flow/resultSchema";
+import { guildTargetSetting, userTargetSetting } from "./fields";
 import { BlockDefinition } from "./types";
 
 export const discordMemberGet: BlockDefinition = {
@@ -11,14 +11,7 @@ export const discordMemberGet: BlockDefinition = {
   requires: ["discord"],
   credits: 1,
   allow_unknown_settings: true,
-  fields: [
-    {
-      name: "guild_target",
-      type: "snowflake",
-      schema: guildTargetSchema.optional(),
-    },
-    { name: "user_target", type: "snowflake", schema: userTargetSchema },
-  ],
+  fields: [guildTargetSetting, userTargetSetting],
   result: { schema: nodeActionMemberGetResultSchema },
   run: { kind: "custom" },
 };

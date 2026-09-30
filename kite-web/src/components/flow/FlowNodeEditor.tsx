@@ -101,6 +101,8 @@ interface Props {
 interface InputProps {
   id: string;
   type: string;
+  // The setting a generic input of a block's field edits.
+  name?: string;
   data: NodeData;
   updateData: (newData: Partial<NodeData>) => void;
   errors: Record<string, string>;
@@ -1072,29 +1074,24 @@ const discordApiOperationItems = discordApiOperations.map((o) => ({
   description: `${o.method} ${o.path}`,
 }));
 
-function BlockFieldInput({
-  type,
-  name,
-  data,
-  updateData,
-  errors,
-}: InputProps & { name: string }) {
+function BlockFieldInput({ type, name, data, updateData, errors }: InputProps) {
   const field = getBlockDefinition(type)?.fields?.find((f) => f.name === name);
   if (!field) return null;
 
-  const value = String(data[field.name] ?? "");
+  const key = field.name;
+  const value = String(data[key] ?? "");
   // Fields without a schema are described, a test checks it.
   const title = field.label ?? field.name;
   const description = field.description ?? "";
 
   function setValue(value: string) {
-    updateData({ [name]: value || undefined });
+    updateData({ [key]: value || undefined });
   }
 
   if (field.widget === "permissions") {
     return (
       <BasePermissionInput
-        field={name}
+        field={key}
         title={title}
         description={description}
         value={value || "0"}
@@ -1107,7 +1104,7 @@ function BlockFieldInput({
     return (
       <BaseInput
         type="select"
-        field={name}
+        field={key}
         title={title}
         description={description}
         options={[
@@ -1124,7 +1121,7 @@ function BlockFieldInput({
   return (
     <BaseInput
       type="text"
-      field={name}
+      field={key}
       title={title}
       description={description}
       value={value}
