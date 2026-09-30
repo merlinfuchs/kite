@@ -1,6 +1,6 @@
 import { ZodSchema } from "zod";
 import { zodToJsonSchema } from "zod-to-json-schema";
-import { isNodeTypeAvailable } from "./categories";
+import { isNodeTypeAvailable, nodeCategories } from "./categories";
 import { flowContextTypes } from "./context";
 import { isTemplated, isUserPicked } from "./dataSchema";
 import { getNodeOutputs, getOwnedChildTypes, nodeTypes } from "./nodes";
@@ -9,29 +9,40 @@ import { getNodeOutputs, getOwnedChildTypes, nodeTypes } from "./nodes";
 // the editor uses. The service embeds it as kite-service/pkg/flow/catalog.json,
 // which is regenerated with `pnpm test -u`.
 export function buildFlowCatalog() {
+  // Grouped like the block explorer, so e.g. all role blocks are together.
+  const explorerOrder = Object.values(nodeCategories)
+    .flat()
+    .flatMap((s) => s.nodeTypes);
+  const position = (type: string) => {
+    const i = explorerOrder.indexOf(type);
+    return i === -1 ? explorerOrder.length : i;
+  };
+
   return {
     nodes: Object.fromEntries(
-      Object.entries(nodeTypes).map(([type, values]) => [
-        type,
-        {
-          title: values.defaultTitle,
-          description: values.defaultDescription,
-          contexts: flowContextTypes.filter((c) =>
-            isNodeTypeAvailable(type, c)
-          ),
-          outputs: getNodeOutputs({ type, data: {} }),
-          // Blocks like conditions and loops are created together with the
-          // blocks they own and are connected to them with fixed edges.
-          owned_children: getOwnedChildTypes(type),
-          fixed: !!values.fixed,
-          data_schema: values.dataSchema
-            ? toJsonSchema(values.dataSchema)
-            : null,
-          result_schema: values.resultSchema
-            ? toJsonSchema(values.resultSchema)
-            : null,
-        },
-      ])
+      Object.entries(nodeTypes)
+        .sort(([a], [b]) => position(a) - position(b))
+        .map(([type, values]) => [
+          type,
+          {
+            title: values.defaultTitle,
+            description: values.defaultDescription,
+            contexts: flowContextTypes.filter((c) =>
+              isNodeTypeAvailable(type, c)
+            ),
+            outputs: getNodeOutputs({ type, data: {} }),
+            // Blocks like conditions and loops are created together with the
+            // blocks they own and are connected to them with fixed edges.
+            owned_children: getOwnedChildTypes(type),
+            fixed: !!values.fixed,
+            data_schema: values.dataSchema
+              ? toJsonSchema(values.dataSchema)
+              : null,
+            result_schema: values.resultSchema
+              ? toJsonSchema(values.resultSchema)
+              : null,
+          },
+        ])
     ),
   };
 }

@@ -37,6 +37,8 @@ type Env struct {
 	PluginRegistry       *plugin.Registry
 	VariableValueStore   store.VariableValueStore
 	ResumePointStore     store.ResumePointStore
+	AppSecretStore       store.AppSecretStore
+	AppIntegrationStore  store.AppIntegrationStore
 	HttpClient           *http.Client
 	OpenaiClient         *openai.Client
 	TokenCrypt           *util.SymmetricCrypt
@@ -85,6 +87,8 @@ func (s Env) flowProviders(appID string, session *state.State, links entityLinks
 			appID,
 			links,
 		),
+		Secret:      NewSecretProvider(appID, s.AppSecretStore, s.TokenCrypt),
+		Integration: NewIntegrationProvider(appID, s.AppSecretStore, s.AppIntegrationStore, s.TokenCrypt),
 	}
 }
 

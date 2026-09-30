@@ -9,6 +9,7 @@ import (
 
 	"github.com/kitecloud/kite/kite-service/internal/api/handler"
 	"github.com/kitecloud/kite/kite-service/internal/api/wire"
+	"github.com/kitecloud/kite/kite-service/internal/core/appintegration"
 	"github.com/kitecloud/kite/kite-service/internal/core/flowai"
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/internal/store"
@@ -35,18 +36,22 @@ type VariableStore interface {
 }
 
 type FlowAIHandler struct {
-	promptStore   store.AssistantPromptStore
-	variableStore VariableStore
+	promptStore      store.AssistantPromptStore
+	variableStore    VariableStore
+	integrationStore appintegration.CredentialStore
+	choiceStore      appintegration.ChoiceStore
 	// assistant is nil if no OpenAI API key is configured.
 	assistant  Assistant
 	maxRepairs int
 }
 
-func NewFlowAIHandler(promptStore store.AssistantPromptStore, variableStore VariableStore, assistant *flowai.Assistant, maxRepairs int) *FlowAIHandler {
+func NewFlowAIHandler(promptStore store.AssistantPromptStore, variableStore VariableStore, integrationStore appintegration.CredentialStore, choiceStore appintegration.ChoiceStore, assistant *flowai.Assistant, maxRepairs int) *FlowAIHandler {
 	h := &FlowAIHandler{
-		promptStore:   promptStore,
-		variableStore: variableStore,
-		maxRepairs:    maxRepairs,
+		promptStore:      promptStore,
+		variableStore:    variableStore,
+		integrationStore: integrationStore,
+		choiceStore:      choiceStore,
+		maxRepairs:       maxRepairs,
 	}
 	// A nil pointer in the interface wouldn't compare equal to nil.
 	if assistant != nil {
@@ -102,6 +107,10 @@ func (h *FlowAIHandler) HandleFlowAIChat(c *handler.Context, req wire.FlowAIChat
 	variables, err := h.variableStore.VariablesByAppWithoutTotals(c.Context(), c.App.ID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get variables: %w", err)
+	}
+	integrations, err := h.enabledIntegrations(c.Context(), c.App.ID)
+	if err != nil {
+		return nil, err
 	}
 
 	// Recorded even if the client disconnects, so it's counted or given back.
@@ -163,12 +172,13 @@ func (h *FlowAIHandler) HandleFlowAIChat(c *handler.Context, req wire.FlowAIChat
 	}
 
 	res, err := h.assistant.Respond(c.Context(), flowai.Request{
-		Flow:      req.Flow,
-		Messages:  req.AssistantMessages(),
-		Issues:    req.Issues,
-		Variables: variables,
-		AppID:     c.App.ID,
-		UserID:    c.Session.UserID,
+		Flow:         req.Flow,
+		Messages:     req.AssistantMessages(),
+		Issues:       req.Issues,
+		Variables:    variables,
+		Integrations: integrations,
+		AppID:        c.App.ID,
+		UserID:       c.Session.UserID,
 	})
 	// Answers without edits don't count. Ones that can't be used do, as they
 	// cost as much.
@@ -234,4 +244,19 @@ func usage(count model.AssistantPromptCount, limit int) wire.FlowAIUsage {
 		AnswersUsed:  count.Total,
 		AnswersLimit: answerLimitFactor * limit,
 	}
+}
+
+func (h *FlowAIHandler) enabledIntegrations(ctx context.Context, appID string) ([]string, error) {
+	states, err := appintegration.States(ctx, h.integrationStore, h.choiceStore, appID)
+	if err != nil {
+		return nil, err
+	}
+
+	var res []string
+	for _, state := range states {
+		if state.Enabled {
+			res = append(res, state.Integration.ID)
+		}
+	}
+	return res, nil
 }

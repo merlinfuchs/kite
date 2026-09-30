@@ -76,13 +76,10 @@ func discordAPIPath(op discordAPIOperation, pathParams map[string]thing.Thing, q
 		if err != nil {
 			return "", err
 		}
-		// Values like "../.." could point the request at another endpoint.
-		// Escaping alone doesn't cover "." and "..", and proxies may decode an
-		// escaped "/", so none of these are allowed at all.
-		if v == "." || v == ".." || strings.ContainsAny(v, `/\`) {
-			return "", fmt.Errorf("invalid value for path parameter %s", p.Name)
+		params[p.Name], err = apiPathSegment(p.Name, v)
+		if err != nil {
+			return "", err
 		}
-		params[p.Name] = url.PathEscape(v)
 	}
 
 	path := pathParamRe.ReplaceAllStringFunc(op.Path, func(m string) string {
@@ -102,11 +99,8 @@ func discordAPIPath(op discordAPIOperation, pathParams map[string]thing.Thing, q
 		// A list is sent as the parameter repeated for each item.
 		items := []thing.Thing{value}
 		if p.Type == discordAPIParamTypeArray {
-			if list, ok := value.JSONValue().([]any); ok {
-				items = make([]thing.Thing, len(list))
-				for i, item := range list {
-					items[i] = thing.NewGuessTypeWithFallback(item)
-				}
+			if list, ok := apiListItems(value); ok {
+				items = list
 			}
 		}
 		for _, item := range items {
@@ -127,6 +121,32 @@ func discordAPIPath(op discordAPIOperation, pathParams map[string]thing.Thing, q
 		path += "?" + values.Encode()
 	}
 	return path, nil
+}
+
+// apiPathSegment escapes a value for a path parameter.
+func apiPathSegment(name string, v string) (string, error) {
+	// Values like "../.." could point the request at another endpoint.
+	// Escaping alone doesn't cover "." and "..", and proxies may decode an
+	// escaped "/", so none of these are allowed at all.
+	if v == "." || v == ".." || strings.ContainsAny(v, `/\`) {
+		return "", fmt.Errorf("invalid value for path parameter %s", name)
+	}
+	return url.PathEscape(v), nil
+}
+
+// apiListItems returns the items of a list, like the result of a placeholder
+// such as {{[1, 2]}}.
+func apiListItems(value thing.Thing) ([]thing.Thing, bool) {
+	list, ok := value.JSONValue().([]any)
+	if !ok {
+		return nil, false
+	}
+
+	items := make([]thing.Thing, len(list))
+	for i, item := range list {
+		items[i] = thing.NewGuessTypeWithFallback(item)
+	}
+	return items, true
 }
 
 func discordAPIParamValue(p discordAPIParam, value thing.Thing) (string, error) {
