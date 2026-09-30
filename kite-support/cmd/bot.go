@@ -10,6 +10,7 @@ import (
 	"github.com/kitecloud/kite/kite-support/internal/bot"
 	"github.com/kitecloud/kite/kite-support/internal/config"
 	"github.com/kitecloud/kite/kite-support/internal/embedded"
+	"github.com/kitecloud/kite/kite-support/internal/knowledge"
 	"github.com/kitecloud/kite/kite-support/internal/llm"
 	"github.com/openai/openai-go/v2"
 	"github.com/openai/openai-go/v2/option"
@@ -41,7 +42,7 @@ var botCMD = cli.Command{
 			Model:           cfg.OpenAI.Model,
 			ReasoningEffort: cfg.OpenAI.ReasoningEffort,
 			MaxOutputTokens: cfg.OpenAI.MaxOutputTokens,
-		})
+		}, knowledge.PageURLs(k))
 
 		b, err := bot.New(cfg, k, llmClient)
 		if err != nil {

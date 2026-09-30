@@ -2,6 +2,7 @@ package knowledge
 
 import (
 	"os"
+	"slices"
 	"strings"
 	"testing"
 )
@@ -32,12 +33,13 @@ func TestBuild(t *testing.T) {
 		}
 	}
 
+	urls := PageURLs(k)
 	for _, url := range []string{"https://docs.kite.onl", "https://docs.kite.onl/reference/blocks", "https://docs.kite.onl/reference/blocks/actions/action_message_pin"} {
-		if !HasURL(k, url) {
+		if !slices.Contains(urls, url) {
 			t.Errorf("page %s is missing", url)
 		}
 	}
-	if HasURL(k, "https://docs.kite.onl/reference/blocks/actions/action_message_pin.md") {
-		t.Error("HasURL accepts a URL that isn't a page")
+	if strings.Contains(k, ".md)") {
+		t.Error("knowledge contains a link to a markdown file instead of a page")
 	}
 }

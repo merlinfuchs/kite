@@ -27,13 +27,20 @@ func (b *Bot) createForumPost(channelID discord.ChannelID, data forumThreadCreat
 }
 
 type feedbackContext struct {
-	Question string
-	Answer   string
-	Intent   string
+	// The reply as shown to the user, with links.
+	Answer string
+	Intent string
 	// The questions and answers so far, this one included, for follow-ups.
 	History   []llm.Turn
 	UserID    discord.UserID
 	ExpiresAt time.Time
+}
+
+func (c feedbackContext) question() string {
+	if len(c.History) == 0 {
+		return ""
+	}
+	return c.History[len(c.History)-1].Question
 }
 
 type feedbackCache struct {
@@ -57,17 +64,6 @@ func (c *feedbackCache) Get(id discord.MessageID) (feedbackContext, bool) {
 	defer c.mu.Unlock()
 	c.gcLocked()
 	ctx, ok := c.data[id]
-	return ctx, ok
-}
-
-func (c *feedbackCache) Take(id discord.MessageID) (feedbackContext, bool) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	c.gcLocked()
-	ctx, ok := c.data[id]
-	if ok {
-		delete(c.data, id)
-	}
 	return ctx, ok
 }
 

@@ -13,7 +13,6 @@ import (
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/gateway"
 	"github.com/diamondburned/arikawa/v3/utils/json/option"
-	"github.com/kitecloud/kite/kite-support/internal/knowledge"
 	"github.com/kitecloud/kite/kite-support/internal/llm"
 )
 
@@ -99,12 +98,12 @@ func extractText(modal *discord.ModalInteraction, customID discord.ComponentID) 
 }
 
 func (b *Bot) runAsk(e *gateway.InteractionCreateEvent, question string, history []llm.Turn) {
-	userID := "unknown"
+	var userID discord.UserID
 	if sender := e.Sender(); sender != nil {
-		userID = sender.ID.String()
+		userID = sender.ID
 	}
 
-	if !b.limiter.Allow(userID) {
+	if !b.limiter.Allow(userID.String()) {
 		_ = b.state.RespondInteraction(e.ID, e.Token, api.InteractionResponse{
 			Type: api.MessageInteractionWithSource,
 			Data: &api.InteractionResponseData{
@@ -136,25 +135,20 @@ func (b *Bot) runAsk(e *gateway.InteractionCreateEvent, question string, history
 		return
 	}
 
-	go b.replyAsk(e, question, history)
+	go b.replyAsk(e, question, history, userID)
 }
 
-func (b *Bot) replyAsk(e *gateway.InteractionCreateEvent, question string, history []llm.Turn) {
+func (b *Bot) replyAsk(e *gateway.InteractionCreateEvent, question string, history []llm.Turn, userID discord.UserID) {
 	ctx, cancel := context.WithTimeout(context.Background(), 45*time.Second)
 	defer cancel()
 
-	userID := "unknown"
-	if sender := e.Sender(); sender != nil {
-		userID = sender.ID.String()
-	}
-
 	var reply, intent string
-	answer, err := b.llm.Answer(ctx, b.fullKnowledge(), history, question, userID)
+	answer, err := b.llm.Answer(ctx, *b.instructions.Load(), history, question, userID.String())
 	if err != nil {
 		slog.With("err", err).Error("answer failed")
 		reply = "Something went wrong while answering. Please try again in a moment."
 	} else {
-		reply = b.formatAnswer(answer)
+		reply = formatAnswer(answer)
 		intent = answer.Intent
 	}
 
@@ -172,21 +166,16 @@ func (b *Bot) replyAsk(e *gateway.InteractionCreateEvent, question string, histo
 		return
 	}
 
-	var senderID discord.UserID
-	if sender := e.Sender(); sender != nil {
-		senderID = sender.ID
-	}
 	// Clipped so it doesn't write into the history of the previous answer.
 	turns := append(slices.Clip(history), llm.Turn{Question: question, Answer: answer.Text})
 	if len(turns) > maxHistory {
 		turns = turns[len(turns)-maxHistory:]
 	}
 	b.feedback.Put(msg.ID, feedbackContext{
-		Question:  question,
 		Answer:    reply,
 		Intent:    intent,
 		History:   turns,
-		UserID:    senderID,
+		UserID:    userID,
 		ExpiresAt: time.Now().Add(15 * time.Minute),
 	})
 }
@@ -195,17 +184,12 @@ func (b *Bot) replyAsk(e *gateway.InteractionCreateEvent, question string, histo
 // with.
 const maxHistory = 3
 
-// formatAnswer adds links to the docs pages the answer is based on. Links the
-// docs don't have are dropped, and every link is wrapped in <> so Discord
-// doesn't show a preview.
-func (b *Bot) formatAnswer(answer *llm.Answer) string {
+// formatAnswer adds links to the docs pages the answer is based on, wrapped
+// in <> so Discord doesn't show a preview.
+func formatAnswer(answer *llm.Answer) string {
 	var links []string
-	for _, l := range answer.Links {
-		// The model sometimes links the markdown file of a page.
-		l = strings.TrimSuffix(l, ".md")
-		if knowledge.HasURL(b.knowledge, l) && len(links) < 2 {
-			links = append(links, "<"+l+">")
-		}
+	for _, l := range answer.Links[:min(len(answer.Links), 2)] {
+		links = append(links, "<"+l+">")
 	}
 
 	text := strings.TrimSpace(answer.Text)
@@ -232,7 +216,7 @@ func (b *Bot) handleFeedbackSubmit(e *gateway.InteractionCreateEvent, details st
 	if e.Message != nil {
 		msgID = e.Message.ID
 	}
-	fctx, ok := b.feedback.Take(msgID)
+	fctx, ok := b.feedback.Get(msgID)
 	if !ok {
 		_ = b.state.RespondInteraction(e.ID, e.Token, api.InteractionResponse{
 			Type: api.MessageInteractionWithSource,
@@ -316,7 +300,7 @@ func buildThreadName(fctx feedbackContext) string {
 	case llm.IntentSuggestion:
 		prefix = "Suggestion"
 	}
-	q := strings.ReplaceAll(fctx.Question, "\n", " ")
+	q := strings.ReplaceAll(fctx.question(), "\n", " ")
 	q = strings.TrimSpace(q)
 	name := fmt.Sprintf("[%s] %s", prefix, q)
 	return truncate(name, 100)
@@ -348,7 +332,7 @@ func (b *Bot) handleHelpSubmit(e *gateway.InteractionCreateEvent, details string
 	if e.Message != nil {
 		msgID = e.Message.ID
 	}
-	fctx, _ := b.feedback.Take(msgID)
+	fctx, _ := b.feedback.Get(msgID)
 
 	userKey := "unknown"
 	var userID discord.UserID
@@ -415,7 +399,7 @@ func (b *Bot) handleHelpSubmit(e *gateway.InteractionCreateEvent, details string
 }
 
 func buildHelpThreadName(fctx feedbackContext, details string) string {
-	source := fctx.Question
+	source := fctx.question()
 	if source == "" {
 		source = details
 	}
@@ -433,8 +417,8 @@ func buildHelpEmbed(fctx feedbackContext, details string, userID discord.UserID)
 		{Name: "From", Value: reporter, Inline: true},
 		{Name: "Need help with", Value: truncate(details, 1024)},
 	}
-	if fctx.Question != "" {
-		fields = append(fields, discord.EmbedField{Name: "Original question to bot", Value: truncate(fctx.Question, 1024)})
+	if fctx.question() != "" {
+		fields = append(fields, discord.EmbedField{Name: "Original question to bot", Value: truncate(fctx.question(), 1024)})
 	}
 	if fctx.Answer != "" {
 		fields = append(fields, discord.EmbedField{Name: "Bot's answer", Value: truncate(fctx.Answer, 1024)})
@@ -477,7 +461,7 @@ func buildFeedbackEmbed(fctx feedbackContext, details string) discord.Embed {
 
 	fields := []discord.EmbedField{
 		{Name: "From", Value: reporter, Inline: true},
-		{Name: "Question", Value: truncate(fctx.Question, 1024)},
+		{Name: "Question", Value: truncate(fctx.question(), 1024)},
 		{Name: "Bot answer", Value: truncate(fctx.Answer, 1024)},
 	}
 	if details != "" {

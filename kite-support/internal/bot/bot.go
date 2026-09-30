@@ -20,7 +20,7 @@ type Bot struct {
 	state           *state.State
 	llm             *llm.Client
 	knowledge       string
-	plans           atomic.Pointer[string]
+	instructions    atomic.Pointer[string]
 	cfg             *config.Config
 	limiter         *rateLimiter
 	feedbackLimiter *rateLimiter
@@ -92,6 +92,9 @@ func New(cfg *config.Config, knowledge string, llmClient *llm.Client) (*Bot, err
 		helpRoleID:      parseRoleID(cfg.Help.RoleID),
 	}
 
+	instructions := llm.Instructions(knowledge)
+	b.instructions.Store(&instructions)
+
 	s.AddHandler(b.onInteraction)
 	return b, nil
 }
@@ -138,8 +141,8 @@ func (b *Bot) refreshPlans(ctx context.Context) {
 		if err != nil {
 			slog.With("err", err).Warn("fetch plans failed")
 		} else {
-			formatted := knowledge.FormatPlans(plans)
-			b.plans.Store(&formatted)
+			instructions := llm.Instructions(b.knowledge + "\n" + knowledge.FormatPlans(plans))
+			b.instructions.Store(&instructions)
 		}
 
 		select {
@@ -148,14 +151,6 @@ func (b *Bot) refreshPlans(ctx context.Context) {
 		case <-ticker.C:
 		}
 	}
-}
-
-// fullKnowledge is the docs, followed by the plans if they could be fetched.
-func (b *Bot) fullKnowledge() string {
-	if plans := b.plans.Load(); plans != nil {
-		return b.knowledge + "\n" + *plans
-	}
-	return b.knowledge
 }
 
 func (b *Bot) registerCommands() error {

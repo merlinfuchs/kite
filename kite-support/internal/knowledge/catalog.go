@@ -3,7 +3,8 @@ package knowledge
 import (
 	"encoding/json"
 	"fmt"
-	"sort"
+	"maps"
+	"slices"
 	"strings"
 )
 
@@ -23,13 +24,11 @@ type CatalogNode struct {
 }
 
 type Schema struct {
-	Type        any                `json:"type"`
 	Description string             `json:"description"`
 	Properties  map[string]*Schema `json:"properties"`
 	Required    []string           `json:"required"`
 	Enum        []any              `json:"enum"`
 	Items       *Schema            `json:"items"`
-	AnyOf       []*Schema          `json:"anyOf"`
 	Templated   bool               `json:"x-templated"`
 	UserPicked  bool               `json:"x-user-picked"`
 }
@@ -76,7 +75,7 @@ func (c *Catalog) Describe(nodeType string) (string, bool) {
 
 	if n.DataSchema != nil && len(n.DataSchema.Properties) > 0 {
 		var settings strings.Builder
-		for _, key := range sortedKeys(n.DataSchema.Properties) {
+		for _, key := range slices.Sorted(maps.Keys(n.DataSchema.Properties)) {
 			// Every block has it and it changes nothing.
 			if key == "custom_label" {
 				continue
@@ -89,7 +88,7 @@ func (c *Catalog) Describe(nodeType string) (string, bool) {
 				fmt.Fprintf(&settings, "- %s", key)
 			}
 			var notes []string
-			if contains(n.DataSchema.Required, key) {
+			if slices.Contains(n.DataSchema.Required, key) {
 				notes = append(notes, "required")
 			}
 			if s.Templated {
@@ -127,7 +126,7 @@ func writeResult(b *strings.Builder, prefix string, s *Schema, depth int) {
 	if s.Items != nil {
 		s = s.Items
 	}
-	for _, key := range sortedKeys(s.Properties) {
+	for _, key := range slices.Sorted(maps.Keys(s.Properties)) {
 		p := s.Properties[key]
 		path := prefix + key
 		fmt.Fprintf(b, "- %s", path)
@@ -139,24 +138,6 @@ func writeResult(b *strings.Builder, prefix string, s *Schema, depth int) {
 			writeResult(b, path+".", p, depth+1)
 		}
 	}
-}
-
-func sortedKeys(m map[string]*Schema) []string {
-	keys := make([]string, 0, len(m))
-	for k := range m {
-		keys = append(keys, k)
-	}
-	sort.Strings(keys)
-	return keys
-}
-
-func contains(list []string, s string) bool {
-	for _, v := range list {
-		if v == s {
-			return true
-		}
-	}
-	return false
 }
 
 func joinAny(values []any) string {

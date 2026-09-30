@@ -2,10 +2,7 @@ package llm
 
 const systemPrompt = `You answer questions about Kite in its Discord support server. Kite is a no-code Discord bot builder at kite.onl. Users add their own Discord bot to Kite as an app, and build its commands and event listeners as flows of blocks in a visual editor. All you know about Kite is the documentation below, which describes every block with its settings, and the current plans.
 
-Reply with:
-- answer: only the text of your answer, in the language of the question. Use Discord markdown with short paragraphs, lists, bold and inline code, but no headings or tables, and stay under 1500 characters. Many users are young and not technical, so answer simply and start with the answer itself. For steps, name buttons, pages and blocks exactly as the documentation does, in inline code. Placeholders like ` + "`{{user.mention}}`" + ` in inline code are fine, but don't write JSON or other code. Don't put links in the answer, they're added below it.
-- intent: "bug" when the user reports that Kite is broken or doesn't work as documented, "suggestion" when they ask for something Kite can't do, "question" otherwise.
-- links: the URLs of up to 2 pages your answer is based on, for the user to read more. Only use URLs listed as "URL:" in the documentation. Empty if none fits.
+Write your answer in the language of the question. Use Discord markdown with short paragraphs, lists, bold and inline code, but no headings or tables, and stay under 1500 characters. Many users are young and not technical, so answer simply and start with the answer itself. For steps, name buttons, pages and blocks exactly as the documentation does, in inline code. Placeholders like ` + "`{{user.mention}}`" + ` in inline code are fine, but don't write JSON or other code. Don't put links in the answer, the pages you pick are linked below it.
 
 Rules:
 - Only say what the documentation supports. Never make up features, settings, placeholders, buttons, limits, prices or steps. If the documentation doesn't answer the question, say so in one sentence and suggest the ` + "`Ask a human`" + ` button below your answer, rather than guessing. Don't mention that button otherwise.
@@ -19,19 +16,40 @@ Rules:
 
 Documentation:`
 
-var outputSchema = map[string]any{
-	"type":                 "object",
-	"additionalProperties": false,
-	"required":             []string{"answer", "intent", "links"},
-	"properties": map[string]any{
-		"answer": map[string]any{"type": "string"},
-		"intent": map[string]any{
-			"type": "string",
-			"enum": []string{IntentQuestion, IntentBug, IntentSuggestion},
+// Instructions are the same for every question until the plans change, so
+// the provider caches them.
+func Instructions(knowledge string) string {
+	return systemPrompt + "\n\n" + knowledge
+}
+
+// outputSchema is the shape of the model's answer. The properties are a
+// struct so they keep their order, and the model decides the intent before it
+// answers.
+func outputSchema(pageURLs []string) map[string]any {
+	links := map[string]any{
+		"type":        "array",
+		"description": "Up to 2 pages of the documentation the answer is based on, for the user to read more. Empty if none fits.",
+		"items":       map[string]any{"type": "string", "enum": pageURLs},
+	}
+	return map[string]any{
+		"type":                 "object",
+		"additionalProperties": false,
+		"required":             []string{"intent", "answer", "links"},
+		"properties": struct {
+			Intent any `json:"intent"`
+			Answer any `json:"answer"`
+			Links  any `json:"links"`
+		}{
+			Intent: map[string]any{
+				"type":        "string",
+				"enum":        []string{IntentQuestion, IntentBug, IntentSuggestion},
+				"description": "bug when the user reports that Kite is broken or doesn't work as documented, suggestion when they ask for something Kite can't do, question otherwise.",
+			},
+			Answer: map[string]any{
+				"type":        "string",
+				"description": "The answer to show the user.",
+			},
+			Links: links,
 		},
-		"links": map[string]any{
-			"type":  "array",
-			"items": map[string]any{"type": "string"},
-		},
-	},
+	}
 }

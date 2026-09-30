@@ -31,7 +31,7 @@ func Build(docsPath, catalogPath, docsBaseURL string) (string, error) {
 	var b strings.Builder
 	described := map[string]bool{}
 	for _, d := range docs {
-		fmt.Fprintf(&b, "=== Page: %s\nURL: %s\n\n%s\n\n", d.Title, d.URL, d.Body)
+		fmt.Fprintf(&b, "=== Page: %s\n%s%s\n\n%s\n\n", d.Title, urlPrefix, d.URL, d.Body)
 		for _, t := range d.Blocks {
 			described[t] = true
 		}
@@ -58,8 +58,17 @@ func Build(docsPath, catalogPath, docsBaseURL string) (string, error) {
 	return strings.TrimSpace(b.String()) + "\n", nil
 }
 
-// HasURL reports whether url is the URL of a page in the knowledge, so the
-// bot never links to a page that doesn't exist.
-func HasURL(knowledge, url string) bool {
-	return strings.Contains(knowledge, "\nURL: "+url+"\n")
+// urlPrefix starts the line with the URL of each page.
+const urlPrefix = "URL: "
+
+// PageURLs returns the URLs of the pages in the knowledge, the only ones the
+// bot links to.
+func PageURLs(knowledge string) []string {
+	var urls []string
+	for _, line := range strings.Split(knowledge, "\n") {
+		if url, ok := strings.CutPrefix(line, urlPrefix); ok {
+			urls = append(urls, url)
+		}
+	}
+	return urls
 }

@@ -5,6 +5,7 @@ import (
 	"io/fs"
 	"log/slog"
 	"os"
+	"path"
 	"path/filepath"
 	"regexp"
 	"sort"
@@ -25,6 +26,7 @@ var (
 	nodeInfo      = regexp.MustCompile(`<NodeInfoExplorer type="([a-z_]+)" />`)
 	image         = regexp.MustCompile(`!\[[^\]]*\]\([^)]*\)\n?`)
 	admonition    = regexp.MustCompile(`(?m)^:::.*$\n?`)
+	link          = regexp.MustCompile(`\]\(([^)\s]+)\)`)
 	blankLines    = regexp.MustCompile(`\n{3,}`)
 )
 
@@ -64,6 +66,9 @@ func LoadDocs(root, baseURL string, catalog *Catalog) ([]Doc, error) {
 		body = importLine.ReplaceAllString(body, "")
 		body = embedFlowNode.ReplaceAllString(body, "")
 		body = image.ReplaceAllString(body, "")
+		body = link.ReplaceAllStringFunc(body, func(m string) string {
+			return "](" + resolveLink(rel, link.FindStringSubmatch(m)[1], baseURL) + ")"
+		})
 		body = admonition.ReplaceAllString(body, "")
 		body = blankLines.ReplaceAllString(strings.TrimSpace(body), "\n\n")
 
@@ -88,6 +93,23 @@ func LoadDocs(root, baseURL string, catalog *Catalog) ([]Doc, error) {
 	}
 	sort.Slice(docs, func(i, j int) bool { return docs[i].URL < docs[j].URL })
 	return docs, nil
+}
+
+// resolveLink turns a link to another page of the docs into the page's URL,
+// so the model can link it.
+func resolveLink(rel, target, baseURL string) string {
+	if strings.Contains(target, "://") || strings.HasPrefix(target, "mailto:") || strings.HasPrefix(target, "#") {
+		return target
+	}
+	target, anchor, _ := strings.Cut(target, "#")
+	if !strings.HasPrefix(target, "/") {
+		target = path.Join(path.Dir(filepath.ToSlash(rel)), target)
+	}
+	url := joinURL(baseURL, slugFromPath(strings.TrimPrefix(target, "/"), ""))
+	if anchor != "" {
+		url += "#" + anchor
+	}
+	return url
 }
 
 func splitFrontmatter(s string) (string, map[string]string) {

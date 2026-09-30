@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
-	"regexp"
 
 	"github.com/openai/openai-go/v2"
 	"github.com/openai/openai-go/v2/responses"
@@ -20,8 +19,6 @@ const (
 	IntentSuggestion = "suggestion"
 )
 
-var leakedFields = regexp.MustCompile(`\n\s*"?(intent|links)"?\s*:`)
-
 type Config struct {
 	Model           string
 	ReasoningEffort string
@@ -31,10 +28,12 @@ type Config struct {
 type Client struct {
 	openai *openai.Client
 	config Config
+	schema map[string]any
 }
 
-func New(o *openai.Client, config Config) *Client {
-	return &Client{openai: o, config: config}
+// New creates a client whose answers only link to pageURLs.
+func New(o *openai.Client, config Config, pageURLs []string) *Client {
+	return &Client{openai: o, config: config, schema: outputSchema(pageURLs)}
 }
 
 // Turn is an earlier question and answer, so follow-ups can refer to them.
@@ -49,9 +48,8 @@ type Answer struct {
 	Links  []string `json:"links"`
 }
 
-// Answer answers the question from knowledge, which the model gets in full
-// every time. It comes first and rarely changes, so the provider caches it.
-func (c *Client) Answer(ctx context.Context, knowledge string, history []Turn, question, userID string) (*Answer, error) {
+// Answer answers the question with instructions from Instructions.
+func (c *Client) Answer(ctx context.Context, instructions string, history []Turn, question, userID string) (*Answer, error) {
 	input := make(responses.ResponseInputParam, 0, len(history)*2+1)
 	for _, t := range history {
 		input = append(input,
@@ -64,7 +62,7 @@ func (c *Client) Answer(ctx context.Context, knowledge string, history []Turn, q
 	userHash := sha256.Sum256([]byte(userID))
 	resp, err := c.openai.Responses.New(ctx, responses.ResponseNewParams{
 		Model:           c.config.Model,
-		Instructions:    openai.String(systemPrompt + "\n\n" + knowledge),
+		Instructions:    openai.String(instructions),
 		Input:           responses.ResponseNewParamsInputUnion{OfInputItemList: input},
 		MaxOutputTokens: openai.Int(int64(c.config.MaxOutputTokens)),
 		Reasoning: shared.ReasoningParam{
@@ -74,7 +72,7 @@ func (c *Client) Answer(ctx context.Context, knowledge string, history []Turn, q
 			Format: responses.ResponseFormatTextConfigUnionParam{
 				OfJSONSchema: &responses.ResponseFormatTextJSONSchemaConfigParam{
 					Name:   "support_answer",
-					Schema: outputSchema,
+					Schema: c.schema,
 					Strict: openai.Bool(true),
 				},
 			},
@@ -100,10 +98,6 @@ func (c *Client) Answer(ctx context.Context, knowledge string, history []Turn, q
 	var answer Answer
 	if err := json.Unmarshal([]byte(resp.OutputText()), &answer); err != nil {
 		return nil, fmt.Errorf("parse answer: %w", err)
-	}
-	// The model sometimes repeats the other fields at the end of the answer.
-	if loc := leakedFields.FindStringIndex(answer.Text); loc != nil {
-		answer.Text = answer.Text[:loc[0]]
 	}
 	return &answer, nil
 }
