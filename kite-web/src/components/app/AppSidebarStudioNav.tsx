@@ -4,7 +4,6 @@ import {
   PlugIcon,
   LibraryBigIcon,
   SlashSquareIcon,
-  type LucideIcon,
   MailPlusIcon,
   SatelliteDishIcon,
   BlocksIcon,
@@ -37,81 +36,88 @@ export default function AppSidebarStudioNav() {
     [router.pathname]
   );
 
-  const items = useMemo(() => {
+  // What the bot does, and what its flows use.
+  const sections = useMemo(() => {
     return [
       {
-        name: "Commands",
-        url: "/apps/[appId]/commands",
-        icon: SlashSquareIcon,
-        active: isActive("/apps/[appId]/commands"),
+        label: "Studio",
+        items: [
+          {
+            name: "Commands",
+            url: "/apps/[appId]/commands",
+            icon: SlashSquareIcon,
+          },
+          {
+            name: "Event Listeners",
+            url: "/apps/[appId]/events",
+            icon: SatelliteDishIcon,
+          },
+          {
+            name: "Message Templates",
+            url: "/apps/[appId]/messages",
+            icon: MailPlusIcon,
+          },
+          {
+            name: "Plugins",
+            url: "/apps/[appId]/plugins",
+            icon: BlocksIcon,
+          },
+          {
+            name: "Templates",
+            url: "/apps/[appId]/templates",
+            icon: LibraryBigIcon,
+          },
+        ],
       },
       {
-        name: "Event Listeners",
-        url: "/apps/[appId]/events",
-        icon: SatelliteDishIcon,
-        active: isActive("/apps/[appId]/events"),
-      },
-      {
-        name: "Message Templates",
-        url: "/apps/[appId]/messages",
-        icon: MailPlusIcon,
-        active: isActive("/apps/[appId]/messages"),
-      },
-      {
-        name: "Stored Variables",
-        url: "/apps/[appId]/variables",
-        icon: VariableIcon,
-        active: isActive("/apps/[appId]/variables"),
-      },
-      {
-        name: "Secrets",
-        url: "/apps/[appId]/secrets",
-        icon: KeyRoundIcon,
-        active: isActive("/apps/[appId]/secrets"),
-      },
-      {
-        name: "Integrations",
-        url: "/apps/[appId]/integrations",
-        icon: PlugIcon,
-        active: isActive("/apps/[appId]/integrations"),
-      },
-      {
-        name: "Plugins",
-        url: "/apps/[appId]/plugins",
-        icon: BlocksIcon,
-        active: isActive("/apps/[appId]/plugins"),
-      },
-      {
-        name: "Templates",
-        url: "/apps/[appId]/templates",
-        icon: LibraryBigIcon,
-        active: isActive("/apps/[appId]/templates"),
+        label: "Resources",
+        items: [
+          {
+            name: "Stored Variables",
+            url: "/apps/[appId]/variables",
+            icon: VariableIcon,
+          },
+          {
+            name: "Secrets",
+            url: "/apps/[appId]/secrets",
+            icon: KeyRoundIcon,
+          },
+          {
+            name: "Integrations",
+            url: "/apps/[appId]/integrations",
+            icon: PlugIcon,
+          },
+        ],
       },
     ];
-  }, [isActive]);
+  }, []);
 
   return (
-    <SidebarGroup className="">
-      <SidebarGroupLabel>Studio</SidebarGroupLabel>
-      <SidebarMenu>
-        {items.map((item) => (
-          <SidebarMenuItem key={item.name}>
-            <SidebarMenuButton asChild isActive={item.active}>
-              <Link
-                href={{
-                  pathname: item.url,
-                  query: {
-                    appId,
-                  },
-                }}
-              >
-                <item.icon />
-                <span>{item.name}</span>
-              </Link>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        ))}
-      </SidebarMenu>
-    </SidebarGroup>
+    <>
+      {sections.map((section) => (
+        <SidebarGroup key={section.label}>
+          <SidebarGroupLabel>{section.label}</SidebarGroupLabel>
+          <SidebarMenu>
+            {section.items.map((item) => (
+              <SidebarMenuItem key={item.name}>
+                <SidebarMenuButton asChild isActive={isActive(item.url)}>
+                  <Link
+                    href={{
+                      pathname: item.url,
+                      query: {
+                        appId,
+                      },
+                    }}
+                  >
+                    <item.icon />
+                    <span>{item.name}</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            ))}
+          </SidebarMenu>
+        </SidebarGroup>
+      ))}
+    </>
   );
 }
