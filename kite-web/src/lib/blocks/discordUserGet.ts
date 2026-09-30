@@ -1,4 +1,5 @@
-import { nodeActionUserGetDataSchema } from "../flow/dataSchema";
+import { userTargetSchema } from "../flow/dataSchema";
+import { nodeActionUserGetResultSchema } from "../flow/resultSchema";
 import { BlockDefinition } from "./types";
 
 export const discordUserGet: BlockDefinition = {
@@ -9,7 +10,10 @@ export const discordUserGet: BlockDefinition = {
   category: "Users",
   requires: ["discord"],
   credits: 1,
-  schema: nodeActionUserGetDataSchema,
-  inputs: ["user_target", "temporary_name", "custom_label"],
+  allow_unknown_settings: true,
+  fields: [
+    { name: "user_target", type: "snowflake", schema: userTargetSchema },
+  ],
+  result: { schema: nodeActionUserGetResultSchema },
   run: { kind: "custom" },
 };

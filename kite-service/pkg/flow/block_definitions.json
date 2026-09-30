@@ -784,7 +784,10 @@
         "kind": "custom"
       },
       "fields": [],
-      "result": null
+      "result": {
+        "thing": "",
+        "list": false
+      }
     },
     {
       "type": "action_member_role_add",
@@ -1467,7 +1470,10 @@
         "kind": "custom"
       },
       "fields": [],
-      "result": null
+      "result": {
+        "thing": "",
+        "list": false
+      }
     },
     {
       "type": "action_random_generate",
@@ -1478,7 +1484,10 @@
         "kind": "custom"
       },
       "fields": [],
-      "result": null
+      "result": {
+        "thing": "",
+        "list": false
+      }
     },
     {
       "type": "action_log",

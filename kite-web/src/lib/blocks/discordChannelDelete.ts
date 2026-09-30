@@ -1,5 +1,4 @@
-import { nodeActionChannelDeleteDataSchema } from "../flow/dataSchema";
-import { channelField } from "./fields";
+import { channelTargetField } from "./fields";
 import { BlockDefinition } from "./types";
 
 export const discordChannelDelete: BlockDefinition = {
@@ -9,9 +8,8 @@ export const discordChannelDelete: BlockDefinition = {
   icon: "folder-x",
   category: "Channels",
   credits: 1,
-  schema: nodeActionChannelDeleteDataSchema,
-  inputs: ["channel_target", "audit_log_reason", "custom_label"],
   audit_log_reason: true,
+  allow_unknown_settings: true,
   run: {
     kind: "request",
     integration: "discord",
@@ -19,5 +17,5 @@ export const discordChannelDelete: BlockDefinition = {
     method: "DELETE",
     path: "/channels/{channel_id}",
   },
-  fields: [channelField],
+  fields: [channelTargetField],
 };

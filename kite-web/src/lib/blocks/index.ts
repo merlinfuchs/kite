@@ -313,22 +313,35 @@ function fieldSchema(field: BlockField) {
   return field.required ? schema : schema.optional();
 }
 
-export function blockDataSchema(block: RequestBlockDefinition) {
+// The schema of a block whose settings are its fields.
+export function blockDataSchema(
+  block: BlockDefinition & { fields: BlockField[] }
+) {
   const names = block.fields.map((f) => f.name).join(", ");
+  const base = block.allow_unknown_settings
+    ? nodeBaseDataSchema
+    : nodeBaseDataSchema.strict(
+        `Unknown setting. This block's settings are: ${names}`
+      );
 
-  // Strict, as settings with a wrong name would otherwise be dropped silently.
-  return nodeBaseDataSchema
-    .strict(`Unknown setting. This block's settings are: ${names}`)
-    .extend({
-      ...Object.fromEntries(block.fields.map((f) => [f.name, fieldSchema(f)])),
-      ...(block.audit_log_reason && { audit_log_reason: auditLogReasonSchema }),
-      ...(block.result && { temporary_name: temporaryNameSchema }),
-    });
+  return base.extend({
+    ...Object.fromEntries(
+      block.fields.map((f) => [f.name, f.schema ?? fieldSchema(f)])
+    ),
+    ...(block.audit_log_reason && { audit_log_reason: auditLogReasonSchema }),
+    ...(block.result && { temporary_name: temporaryNameSchema }),
+  });
 }
 
-export function blockDataFields(block: RequestBlockDefinition) {
+// The editor inputs of a block whose settings are its fields. Fields without a
+// schema are edited by a generic input, named "field:" and the field's name.
+export function blockDataFields(
+  block: BlockDefinition & { fields: BlockField[] }
+) {
   return [
-    "block_fields",
+    ...block.fields.map((f) =>
+      f.schema ? f.input ?? f.name : `field:${f.name}`
+    ),
     ...(block.audit_log_reason ? ["audit_log_reason"] : []),
     ...(block.result ? ["temporary_name"] : []),
     "custom_label",

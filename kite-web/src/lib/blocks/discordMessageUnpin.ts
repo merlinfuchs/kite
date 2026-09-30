@@ -1,5 +1,4 @@
-import { nodeActionMessagePinDataSchema } from "../flow/dataSchema";
-import { channelField, messageField } from "./fields";
+import { channelTargetField, messageTargetField } from "./fields";
 import { BlockDefinition } from "./types";
 
 export const discordMessageUnpin: BlockDefinition = {
@@ -9,14 +8,8 @@ export const discordMessageUnpin: BlockDefinition = {
   icon: "pin-off",
   category: "Messages",
   credits: 1,
-  schema: nodeActionMessagePinDataSchema,
-  inputs: [
-    "channel_target",
-    "message_target",
-    "audit_log_reason",
-    "custom_label",
-  ],
   audit_log_reason: true,
+  allow_unknown_settings: true,
   run: {
     kind: "request",
     integration: "discord",
@@ -24,5 +17,5 @@ export const discordMessageUnpin: BlockDefinition = {
     method: "DELETE",
     path: "/channels/{channel_id}/pins/{message_id}",
   },
-  fields: [channelField, messageField],
+  fields: [channelTargetField, messageTargetField],
 };

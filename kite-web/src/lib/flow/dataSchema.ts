@@ -9,7 +9,7 @@ import {
 } from "./discordApi";
 
 export const numericRegex = /^[0-9]+$/;
-const decimalRegex = /^[0-9]+(\.[0-9]+)?$/;
+export const decimalRegex = /^[0-9]+(\.[0-9]+)?$/;
 // A single placeholder, like {{arg('user').id}}.
 export const placeholderRegex = /^\{\{[^{}]+\}\}$/;
 
@@ -95,7 +95,10 @@ function inner(schema: z.ZodTypeAny): z.ZodTypeAny | undefined {
 }
 
 // A number or Discord ID, or a single placeholder that resolves to one.
-function numericOrPlaceholder(description: string, regex = numericRegex) {
+export function numericOrPlaceholder(
+  description: string,
+  regex = numericRegex
+) {
   const message = "Must be a number or ID, or a single {{ }} placeholder";
   return z
     .string()
@@ -119,7 +122,7 @@ export const auditLogReasonSchema = templated(
   "Reason shown in the server's audit log."
 ).optional();
 
-const comparisonModeSchema = z.enum([
+export const comparisonModeSchema = z.enum([
   "equal",
   "not_equal",
   "greater_than",
@@ -349,17 +352,17 @@ function withMessage<T extends z.ZodRawShape>(shape: T) {
     .describe("Set either message_data or message_template_id.");
 }
 
-const channelTargetSchema = numericOrPlaceholder("ID of the channel.");
-const messageTargetSchema = numericOrPlaceholder("ID of the message.");
-const userTargetSchema = numericOrPlaceholder("ID of the user.");
-const roleTargetSchema = numericOrPlaceholder("ID of the role.");
-const guildTargetSchema = numericOrPlaceholder(
+export const channelTargetSchema = numericOrPlaceholder("ID of the channel.");
+export const messageTargetSchema = numericOrPlaceholder("ID of the message.");
+export const userTargetSchema = numericOrPlaceholder("ID of the user.");
+export const roleTargetSchema = numericOrPlaceholder("ID of the role.");
+export const guildTargetSchema = numericOrPlaceholder(
   "ID of the server. Defaults to the server the flow runs in."
 );
 
 const responseTargetMessage =
   "Must be an ID, '@original', or a single {{ }} placeholder";
-const responseTargetSchema = z
+export const responseTargetSchema = z
   .string()
   .regex(numericRegex, responseTargetMessage)
   .or(z.string().regex(placeholderRegex, responseTargetMessage))
@@ -379,20 +382,6 @@ export const nodeActionResponseCreateDataSchema = withMessage({
 
 export const nodeActionResponseEditDataSchema = withMessage({
   message_target: responseTargetSchema,
-});
-
-export const nodeActionResponseDeleteDataSchema = nodeBaseDataSchema.extend({
-  message_target: responseTargetSchema,
-  audit_log_reason: auditLogReasonSchema,
-});
-
-export const nodeActionResponseDeferDataSchema = nodeBaseDataSchema.extend({
-  message_ephemeral: z
-    .boolean()
-    .optional()
-    .describe(
-      "Whether only the user who triggered the flow can see the response that follows."
-    ),
 });
 
 export const nodeSuspendResponseModalDataSchema = nodeBaseDataSchema.extend({
@@ -469,14 +458,6 @@ export const nodeActionMessageEditDataSchema = withMessage({
   message_target: messageTargetSchema,
 });
 
-export const nodeActionMessageDeleteDataSchema = nodeBaseDataSchema.extend({
-  channel_target: channelTargetSchema,
-  message_target: messageTargetSchema,
-  audit_log_reason: auditLogReasonSchema,
-});
-
-export const nodeActionMessagePinDataSchema = nodeActionMessageDeleteDataSchema;
-
 export const emojiDataSchema = z.object({
   id: z.string().optional().describe("ID of a custom emoji."),
   name: z
@@ -484,22 +465,6 @@ export const emojiDataSchema = z.object({
     .min(1)
     .describe("Name of a custom emoji, or the unicode of a standard emoji."),
 });
-
-export const nodeActionMessageReactionCreateDataSchema =
-  nodeBaseDataSchema.extend({
-    channel_target: channelTargetSchema,
-    message_target: messageTargetSchema,
-    emoji_data: emojiDataSchema.describe("The emoji to react with."),
-  });
-
-export const nodeActionMessageReactionDeleteDataSchema =
-  nodeBaseDataSchema.extend({
-    channel_target: channelTargetSchema,
-    message_target: messageTargetSchema,
-    emoji_data: emojiDataSchema.describe(
-      "The emoji to remove the reaction of."
-    ),
-  });
 
 export const nodeActionPollCreateDataSchema = nodeBaseDataSchema.extend({
   channel_target: numericOrPlaceholder(
@@ -538,32 +503,6 @@ export const nodeActionPollCreateDataSchema = nodeBaseDataSchema.extend({
   temporary_name: temporaryNameSchema,
 });
 
-export const nodeActionMemberBanDataSchema = nodeBaseDataSchema.extend({
-  guild_target: guildTargetSchema.optional(),
-  user_target: userTargetSchema,
-  member_ban_delete_message_duration_seconds: numericOrPlaceholder(
-    "Delete the member's messages from this many seconds before the ban."
-  ).optional(),
-  audit_log_reason: auditLogReasonSchema,
-});
-
-export const nodeActionMemberUnbanDataSchema = nodeBaseDataSchema.extend({
-  guild_target: guildTargetSchema.optional(),
-  user_target: userTargetSchema,
-  audit_log_reason: auditLogReasonSchema,
-});
-
-export const nodeActionMemberKickDataSchema = nodeActionMemberUnbanDataSchema;
-
-export const nodeActionMemberTimeoutDataSchema = nodeBaseDataSchema.extend({
-  guild_target: guildTargetSchema.optional(),
-  user_target: userTargetSchema,
-  member_timeout_duration_seconds: numericOrPlaceholder(
-    "How many seconds the member is timed out for."
-  ),
-  audit_log_reason: auditLogReasonSchema,
-});
-
 export const nodeActionMemberEditDataSchema = nodeBaseDataSchema.extend({
   guild_target: guildTargetSchema.optional(),
   user_target: userTargetSchema,
@@ -573,32 +512,6 @@ export const nodeActionMemberEditDataSchema = nodeBaseDataSchema.extend({
     })
     .describe("The changes to make to the member."),
   audit_log_reason: auditLogReasonSchema,
-});
-
-export const nodeActionMemberRoleAddDataSchema = nodeBaseDataSchema.extend({
-  guild_target: guildTargetSchema.optional(),
-  user_target: userTargetSchema,
-  role_target: roleTargetSchema,
-  audit_log_reason: auditLogReasonSchema,
-});
-
-export const nodeActionMemberRoleRemoveDataSchema =
-  nodeActionMemberRoleAddDataSchema;
-
-export const nodeActionMemberGetDataSchema = nodeBaseDataSchema.extend({
-  guild_target: guildTargetSchema.optional(),
-  user_target: userTargetSchema,
-  temporary_name: temporaryNameSchema,
-});
-
-export const nodeActionUserGetDataSchema = nodeBaseDataSchema.extend({
-  user_target: userTargetSchema,
-  temporary_name: temporaryNameSchema,
-});
-
-export const nodeActionChannelGetDataSchema = nodeBaseDataSchema.extend({
-  channel_target: channelTargetSchema,
-  temporary_name: temporaryNameSchema,
 });
 
 export const channelDataSchema = z
@@ -664,11 +577,6 @@ export const nodeActionChannelEditDataSchema = nodeBaseDataSchema.extend({
   temporary_name: temporaryNameSchema,
 });
 
-export const nodeActionChannelDeleteDataSchema = nodeBaseDataSchema.extend({
-  channel_target: channelTargetSchema,
-  audit_log_reason: auditLogReasonSchema,
-});
-
 export const nodeActionThreadCreateDataSchema = nodeBaseDataSchema.extend({
   message_target: numericOrPlaceholder(
     "ID of the message to start the thread from. Leave unset for a thread without a starter message."
@@ -678,30 +586,10 @@ export const nodeActionThreadCreateDataSchema = nodeBaseDataSchema.extend({
   temporary_name: temporaryNameSchema,
 });
 
-export const nodeActionThreadMemberAddDataSchema = nodeBaseDataSchema.extend({
-  channel_target: numericOrPlaceholder("ID of the thread."),
-  user_target: templated(z.string(), "ID of the user."),
-  audit_log_reason: auditLogReasonSchema,
-});
-
-export const nodeActionThreadMemberRemoveDataSchema =
-  nodeActionThreadMemberAddDataSchema;
-
 export const nodeActionForumPostCreateDataSchema = nodeBaseDataSchema.extend({
   channel_target: numericOrPlaceholder("ID of the forum channel."),
   channel_data: channelDataSchema,
   audit_log_reason: auditLogReasonSchema,
-  temporary_name: temporaryNameSchema,
-});
-
-export const nodeActionRoleGetDataSchema = nodeBaseDataSchema.extend({
-  guild_target: guildTargetSchema.optional(),
-  role_target: roleTargetSchema,
-  temporary_name: temporaryNameSchema,
-});
-
-export const nodeActionGuildGetDataSchema = nodeBaseDataSchema.extend({
-  guild_target: numericOrPlaceholder("ID of the server."),
   temporary_name: temporaryNameSchema,
 });
 
@@ -710,17 +598,6 @@ export const nodeActionMessageGetDataSchema = nodeBaseDataSchema.extend({
     "ID of the channel the message is in. Defaults to the channel the flow runs in."
   ).optional(),
   message_target: messageTargetSchema,
-  temporary_name: temporaryNameSchema,
-});
-
-export const nodeActionRobloxUserGetDataSchema = nodeBaseDataSchema.extend({
-  roblox_user_target: templated(
-    z.string(),
-    "ID or username of the Roblox user, depending on roblox_lookup_mode."
-  ),
-  roblox_lookup_mode: z
-    .enum(["id", "username"])
-    .describe("Whether roblox_user_target is an ID or a username."),
   temporary_name: temporaryNameSchema,
 });
 
@@ -755,22 +632,6 @@ export const nodeActionVariableGetSchema = nodeBaseDataSchema.extend({
   variable_id: variableIdSchema,
   variable_scope: variableScopeSchema,
   temporary_name: temporaryNameSchema,
-});
-
-export const nodeActionVoiceChannelJoinDataSchema = nodeBaseDataSchema.extend({
-  channel_target: numericOrPlaceholder("ID of the voice channel to join."),
-  voice_self_mute: z
-    .boolean()
-    .optional()
-    .describe("Whether the bot joins muted."),
-  voice_self_deaf: z
-    .boolean()
-    .optional()
-    .describe("Whether the bot joins deafened."),
-});
-
-export const nodeActionVoiceChannelLeaveDataSchema = nodeBaseDataSchema.extend({
-  guild_target: guildTargetSchema.optional(),
 });
 
 export const nodeActionStatusSetDataSchema = nodeBaseDataSchema.extend({
@@ -995,56 +856,6 @@ export const nodeActionAiWebSearchCompletionDataSchema =
     temporary_name: temporaryNameSchema,
   });
 
-export const nodeActionExpressionEvaluateDataSchema = nodeBaseDataSchema.extend(
-  {
-    expression: templated(
-      z
-        .string()
-        .max(2000)
-        .refine((val) => !val.startsWith("{{"), {
-          message:
-            "In most cases, you don't need to use the double curly brackets around the expression here. Only use them if you want to include a placeholder in the expression.",
-        }),
-      "Expr language expression to evaluate, written without surrounding {{ }}, e.g. arg('a') + arg('b')."
-    ),
-    temporary_name: temporaryNameSchema,
-  }
-);
-
-export const nodeActionRandomGenerateDataSchema = nodeBaseDataSchema.extend({
-  random_min: numericOrPlaceholder("Smallest number that can be generated."),
-  random_max: numericOrPlaceholder(
-    "Upper bound of the generated number. The number is always below it."
-  ),
-  temporary_name: temporaryNameSchema,
-});
-
-export const nodeActionLogDataSchema = nodeBaseDataSchema.extend({
-  log_level: z
-    .enum(["debug", "info", "warn", "error"])
-    .describe("Severity of the log entry."),
-  log_message: templated(
-    z.string().max(2000).min(1),
-    "Text to write to the app's logs."
-  ),
-});
-
-function conditionSchema(baseValueDescription: string) {
-  return nodeBaseDataSchema.extend({
-    condition_base_value: templated(z.string(), baseValueDescription),
-    condition_allow_multiple: z
-      .boolean()
-      .optional()
-      .describe(
-        "Whether every matching branch runs. If unset, only the first matching branch runs."
-      ),
-  });
-}
-
-export const nodeConditionCompareDataSchema = conditionSchema(
-  "Value that each branch compares against."
-);
-
 export const nodeConditionItemCompareDataSchema = nodeBaseDataSchema.extend({
   condition_item_mode: comparisonModeSchema.describe(
     "How the condition's base value is compared to this branch's value."
@@ -1054,10 +865,6 @@ export const nodeConditionItemCompareDataSchema = nodeBaseDataSchema.extend({
     "Value to compare the base value with."
   ).optional(),
 });
-
-export const nodeConditionUserDataSchema = conditionSchema(
-  "ID of the user that each branch checks."
-);
 
 export const nodeConditionItemUserDataSchema = nodeBaseDataSchema.extend({
   condition_item_mode: z
@@ -1076,14 +883,6 @@ export const nodeConditionItemUserDataSchema = nodeBaseDataSchema.extend({
   ).optional(),
 });
 
-export const nodeConditionChannelDataSchema = conditionSchema(
-  "ID of the channel that each branch checks."
-);
-
-export const nodeConditionRoleDataSchema = conditionSchema(
-  "ID of the role that each branch checks."
-);
-
 // Channel and role conditions can only check for equality.
 export const nodeConditionItemIdDataSchema = nodeBaseDataSchema.extend({
   condition_item_mode: z
@@ -1097,10 +896,6 @@ export const nodeConditionItemIdDataSchema = nodeBaseDataSchema.extend({
 
 export const nodeControlErrorHandlerDataSchema = nodeBaseDataSchema.extend({
   temporary_name: temporaryNameSchema,
-});
-
-export const nodeControlLoopDataSchema = nodeBaseDataSchema.extend({
-  loop_count: numericOrPlaceholder("How many times the loop runs."),
 });
 
 export const nodeControlSleepDataSchema = nodeBaseDataSchema.extend({

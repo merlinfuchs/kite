@@ -1,4 +1,4 @@
-import { nodeConditionCompareDataSchema } from "../flow/dataSchema";
+import { conditionFields } from "./fields";
 import { BlockDefinition } from "./types";
 
 export const controlConditionCompare: BlockDefinition = {
@@ -10,11 +10,10 @@ export const controlConditionCompare: BlockDefinition = {
   outputs: [],
   owns: ["control_condition_item_else", "control_condition_item_compare"],
   component: "condition_compare",
-  schema: nodeConditionCompareDataSchema,
-  inputs: [
-    "condition_compare_base_value",
-    "condition_allow_multiple",
-    "custom_label",
-  ],
+  allow_unknown_settings: true,
+  fields: conditionFields(
+    "compare",
+    "Value that each branch compares against."
+  ),
   run: { kind: "custom" },
 };

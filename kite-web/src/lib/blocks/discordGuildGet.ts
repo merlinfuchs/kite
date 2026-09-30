@@ -1,4 +1,4 @@
-import { nodeActionGuildGetDataSchema } from "../flow/dataSchema";
+import { numericOrPlaceholder } from "../flow/dataSchema";
 import { nodeActionGuildGetResultSchema } from "../flow/resultSchema";
 import { BlockDefinition } from "./types";
 
@@ -10,8 +10,14 @@ export const discordGuildGet: BlockDefinition = {
   category: "Servers",
   requires: ["discord"],
   credits: 1,
-  schema: nodeActionGuildGetDataSchema,
-  inputs: ["guild_target", "temporary_name", "custom_label"],
+  allow_unknown_settings: true,
+  fields: [
+    {
+      name: "guild_target",
+      type: "snowflake",
+      schema: numericOrPlaceholder("ID of the server."),
+    },
+  ],
   result: { schema: nodeActionGuildGetResultSchema },
   run: { kind: "custom" },
 };

@@ -1,4 +1,4 @@
-import { nodeConditionChannelDataSchema } from "../flow/dataSchema";
+import { conditionFields } from "./fields";
 import { BlockDefinition } from "./types";
 
 export const controlConditionChannel: BlockDefinition = {
@@ -10,11 +10,10 @@ export const controlConditionChannel: BlockDefinition = {
   outputs: [],
   owns: ["control_condition_item_else", "control_condition_item_channel"],
   component: "condition_channel",
-  schema: nodeConditionChannelDataSchema,
-  inputs: [
-    "condition_channel_base_value",
-    "condition_allow_multiple",
-    "custom_label",
-  ],
+  allow_unknown_settings: true,
+  fields: conditionFields(
+    "channel",
+    "ID of the channel that each branch checks."
+  ),
   run: { kind: "custom" },
 };

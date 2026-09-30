@@ -1,4 +1,4 @@
-import { ZodSchema } from "zod";
+import { ZodSchema, ZodTypeAny } from "zod";
 import { FlowContextType } from "../flow/context";
 import { NodeData } from "../flow/dataSchema";
 import { Features } from "../types/wire.gen";
@@ -28,11 +28,21 @@ export interface BlockField {
   // Setting in the node's data, like "channel_target" or "max_age". Settings
   // other blocks have too keep their meaning, e.g. channel_target is a channel.
   name: string;
-  in: "path" | "query" | "body";
+  // Where a request block sends the setting. Settings of custom blocks have
+  // none.
+  in?: "path" | "query" | "body";
   // Name in the request, if it differs from name.
   target?: string;
   type: BlockFieldType;
-  // Only needed without a schema, which describes the settings otherwise.
+  // The setting's zod schema, for settings that need more than their type
+  // gives, like objects or IDs that can be placeholders. It's generated from
+  // the type otherwise.
+  schema?: ZodTypeAny;
+  // The editor input of a setting with a schema, one of those registered in
+  // FlowNodeEditor.tsx, if it isn't registered under the setting's name.
+  // Settings without a schema get a generic input.
+  input?: string;
+  // Only needed without a schema, which describes the setting otherwise.
   label?: string;
   description?: string;
   required?: boolean;
@@ -113,13 +123,18 @@ export interface BlockDefinition {
   // The block fails when the app doesn't have this feature.
   premium_feature?: keyof Features;
   credits?: number | ((data: NodeData) => number);
-  // Settings either as fields, whose schema and inputs are generated, or as a
-  // schema with the names of the editor inputs (widgets) that edit it. A
-  // schema can be a function, for schemas that depend on other blocks.
-  // Request blocks with a schema use their fields only for the request.
+  // Settings either as fields, from which the block's schema and editor are
+  // generated, or as a schema with the names of the editor inputs (widgets)
+  // that edit it. A schema can be a function, for schemas that depend on
+  // other blocks. Request blocks with a schema use their fields only for the
+  // request.
   fields?: BlockField[];
   schema?: ZodSchema | (() => ZodSchema);
   inputs?: string[];
+  // Saved flows of blocks that used to have a hand-written schema can have
+  // settings the block doesn't know, which it ignored and still ignores.
+  // Other blocks reject them, so a misnamed setting isn't lost.
+  allow_unknown_settings?: boolean;
   audit_log_reason?: boolean;
   run: BlockRequest | BlockCustomRun;
   result?: {

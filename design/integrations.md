@@ -274,9 +274,9 @@ The definitions are listed in `blocks/index.ts` in the order of the block explor
 
 ### Widgets
 
-Custom blocks name the editor inputs that edit their settings in `inputs`, which are the widgets: `message_data` (the message builder, with templates), `emoji_data`, `modal_data`, `channel_data`, `command_permissions` and the rest of the inputs registered in `FlowNodeEditor.tsx`. Their settings keep their zod schema. Blocks defined with `fields` get a generated schema and form instead, and a field can use a widget too, like `permissions`.
+Settings are `fields`, from which a block's schema and editor are generated. A field with only a type gets a generated schema and a generic input. A field can bring its own zod `schema` instead, for settings that need more than their type, like IDs that can be placeholders or an emoji object, and is then edited by the widget registered under its name in `FlowNodeEditor.tsx`, or the one it names in `input`, like the conditions whose `condition_base_value` is edited by `condition_user_base_value`. Converted blocks keep the schema text of each setting, so the catalog didn't change beyond fixes, and set `allow_unknown_settings`, as their hand-written schemas ignored settings they didn't know and saved flows can have them.
 
-Moving a custom block from `schema` and `inputs` to `fields` is optional and can happen block by block, whenever a block's settings fit plain fields. Outputs that depend on settings, like one per button of a message, still come from `getNodeOutputs`.
+Blocks built around one big widget, like `message_data` (the message builder, with templates), `modal_data`, `channel_data` or `http_request_data`, keep a block `schema` and name their widgets in `inputs`, as fields would add little there. Their move to `fields` can happen block by block. Outputs that depend on settings, like one per button of a message, still come from `getNodeOutputs`.
 
 ### Structure
 

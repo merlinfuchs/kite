@@ -1,4 +1,5 @@
-import { nodeActionRandomGenerateDataSchema } from "../flow/dataSchema";
+import { z } from "zod";
+import { numericOrPlaceholder } from "../flow/dataSchema";
 import { BlockDefinition } from "./types";
 
 export const randomGenerate: BlockDefinition = {
@@ -8,7 +9,21 @@ export const randomGenerate: BlockDefinition = {
   icon: "dices",
   category: "Utilities",
   credits: 1,
-  schema: nodeActionRandomGenerateDataSchema,
-  inputs: ["random_min", "random_max", "temporary_name", "custom_label"],
+  allow_unknown_settings: true,
+  fields: [
+    {
+      name: "random_min",
+      type: "integer",
+      schema: numericOrPlaceholder("Smallest number that can be generated."),
+    },
+    {
+      name: "random_max",
+      type: "integer",
+      schema: numericOrPlaceholder(
+        "Upper bound of the generated number. The number is always below it."
+      ),
+    },
+  ],
+  result: { schema: z.number().describe("The generated number.") },
   run: { kind: "custom" },
 };

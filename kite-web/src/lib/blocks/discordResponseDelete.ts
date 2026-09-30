@@ -1,4 +1,4 @@
-import { nodeActionResponseDeleteDataSchema } from "../flow/dataSchema";
+import { responseTargetSchema } from "../flow/dataSchema";
 import { BlockDefinition } from "./types";
 
 export const discordResponseDelete: BlockDefinition = {
@@ -9,7 +9,14 @@ export const discordResponseDelete: BlockDefinition = {
   category: "Responses",
   requires: ["discord"],
   credits: 1,
-  schema: nodeActionResponseDeleteDataSchema,
-  inputs: ["response_target", "custom_label"],
+  allow_unknown_settings: true,
+  fields: [
+    {
+      name: "message_target",
+      type: "string",
+      input: "response_target",
+      schema: responseTargetSchema,
+    },
+  ],
   run: { kind: "custom" },
 };

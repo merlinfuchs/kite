@@ -1,4 +1,4 @@
-import { nodeControlLoopDataSchema } from "../flow/dataSchema";
+import { numericOrPlaceholder } from "../flow/dataSchema";
 import { BlockDefinition } from "./types";
 
 export const controlLoop: BlockDefinition = {
@@ -10,7 +10,13 @@ export const controlLoop: BlockDefinition = {
   outputs: [],
   owns: ["control_loop_end", "control_loop_each"],
   component: "control_loop",
-  schema: nodeControlLoopDataSchema,
-  inputs: ["loop_count", "custom_label"],
+  allow_unknown_settings: true,
+  fields: [
+    {
+      name: "loop_count",
+      type: "integer",
+      schema: numericOrPlaceholder("How many times the loop runs."),
+    },
+  ],
   run: { kind: "custom" },
 };

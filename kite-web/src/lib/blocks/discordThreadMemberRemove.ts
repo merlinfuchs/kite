@@ -1,4 +1,5 @@
-import { nodeActionThreadMemberRemoveDataSchema } from "../flow/dataSchema";
+import { z } from "zod";
+import { numericOrPlaceholder, templated } from "../flow/dataSchema";
 import { channelField, userField } from "./fields";
 import { BlockDefinition } from "./types";
 
@@ -9,8 +10,7 @@ export const discordThreadMemberRemove: BlockDefinition = {
   icon: "user-minus",
   category: "Channels",
   credits: 1,
-  schema: nodeActionThreadMemberRemoveDataSchema,
-  inputs: ["channel_target", "user_target", "audit_log_reason", "custom_label"],
+  allow_unknown_settings: true,
   run: {
     kind: "request",
     integration: "discord",
@@ -18,5 +18,8 @@ export const discordThreadMemberRemove: BlockDefinition = {
     method: "DELETE",
     path: "/channels/{channel_id}/thread-members/{user_id}",
   },
-  fields: [channelField, userField],
+  fields: [
+    { ...channelField, schema: numericOrPlaceholder("ID of the thread.") },
+    { ...userField, schema: templated(z.string(), "ID of the user.") },
+  ],
 };

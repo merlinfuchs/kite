@@ -12,7 +12,7 @@ const serviceBlocks = blockDefinitions.map((block) => ({
   audit_log_reason: !!block.audit_log_reason,
   requires: blockIntegrations(block),
   run: block.run,
-  fields: (block.fields ?? []).map((f) => ({
+  fields: (block.run.kind === "request" ? block.fields ?? [] : []).map((f) => ({
     name: f.name,
     in: f.in,
     target: f.target ?? f.name,
@@ -55,11 +55,21 @@ describe("block definitions", () => {
     }
   });
 
-  it("describe the fields of blocks without a schema", () => {
-    for (const block of requestBlocks().filter((b) => !b.schema)) {
-      for (const field of block.fields) {
+  it("describe the fields without a schema", () => {
+    for (const block of blockDefinitions.filter((b) => !b.schema)) {
+      for (const field of (block.fields ?? []).filter((f) => !f.schema)) {
         expect(field.label, `${block.type}.${field.name}`).toBeTruthy();
         expect(field.description, `${block.type}.${field.name}`).toBeTruthy();
+      }
+    }
+  });
+
+  it("only send the fields of request blocks", () => {
+    for (const block of blockDefinitions) {
+      for (const field of block.fields ?? []) {
+        expect(!!field.in, `${block.type}.${field.name}`).toBe(
+          block.run.kind === "request"
+        );
       }
     }
   });

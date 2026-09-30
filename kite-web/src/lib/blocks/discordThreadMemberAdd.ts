@@ -1,4 +1,5 @@
-import { nodeActionThreadMemberAddDataSchema } from "../flow/dataSchema";
+import { z } from "zod";
+import { numericOrPlaceholder, templated } from "../flow/dataSchema";
 import { channelField, userField } from "./fields";
 import { BlockDefinition } from "./types";
 
@@ -9,8 +10,7 @@ export const discordThreadMemberAdd: BlockDefinition = {
   icon: "user-plus",
   category: "Channels",
   credits: 1,
-  schema: nodeActionThreadMemberAddDataSchema,
-  inputs: ["channel_target", "user_target", "audit_log_reason", "custom_label"],
+  allow_unknown_settings: true,
   run: {
     kind: "request",
     integration: "discord",
@@ -18,5 +18,8 @@ export const discordThreadMemberAdd: BlockDefinition = {
     method: "PUT",
     path: "/channels/{channel_id}/thread-members/{user_id}",
   },
-  fields: [channelField, userField],
+  fields: [
+    { ...channelField, schema: numericOrPlaceholder("ID of the thread.") },
+    { ...userField, schema: templated(z.string(), "ID of the user.") },
+  ],
 };

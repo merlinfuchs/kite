@@ -1,4 +1,4 @@
-import { nodeActionResponseDeferDataSchema } from "../flow/dataSchema";
+import { z } from "zod";
 import { BlockDefinition } from "./types";
 
 export const discordResponseDefer: BlockDefinition = {
@@ -10,7 +10,18 @@ export const discordResponseDefer: BlockDefinition = {
   category: "Responses",
   requires: ["discord"],
   credits: 1,
-  schema: nodeActionResponseDeferDataSchema,
-  inputs: ["message_ephemeral", "custom_label"],
+  allow_unknown_settings: true,
+  fields: [
+    {
+      name: "message_ephemeral",
+      type: "boolean",
+      schema: z
+        .boolean()
+        .optional()
+        .describe(
+          "Whether only the user who triggered the flow can see the response that follows."
+        ),
+    },
+  ],
   run: { kind: "custom" },
 };

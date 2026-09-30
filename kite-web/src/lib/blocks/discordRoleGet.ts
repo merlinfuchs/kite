@@ -1,4 +1,4 @@
-import { nodeActionRoleGetDataSchema } from "../flow/dataSchema";
+import { guildTargetSchema, roleTargetSchema } from "../flow/dataSchema";
 import { nodeActionRoleGetResultSchema } from "../flow/resultSchema";
 import { BlockDefinition } from "./types";
 
@@ -10,8 +10,15 @@ export const discordRoleGet: BlockDefinition = {
   category: "Roles",
   requires: ["discord"],
   credits: 1,
-  schema: nodeActionRoleGetDataSchema,
-  inputs: ["guild_target", "role_target", "temporary_name", "custom_label"],
+  allow_unknown_settings: true,
+  fields: [
+    {
+      name: "guild_target",
+      type: "snowflake",
+      schema: guildTargetSchema.optional(),
+    },
+    { name: "role_target", type: "snowflake", schema: roleTargetSchema },
+  ],
   result: { schema: nodeActionRoleGetResultSchema },
   run: { kind: "custom" },
 };

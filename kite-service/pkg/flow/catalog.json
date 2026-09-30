@@ -658,12 +658,6 @@
               }
             ],
             "description": "ID of the response message, or '@original' for the first response to the interaction."
-          },
-          "audit_log_reason": {
-            "type": "string",
-            "maxLength": 512,
-            "description": "Reason shown in the server's audit log.",
-            "x-templated": true
           }
         },
         "required": [
@@ -2866,7 +2860,39 @@
         ],
         "additionalProperties": false
       },
-      "result_schema": null
+      "result_schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The ID of the user"
+          },
+          "username": {
+            "type": "string",
+            "description": "The username of the user"
+          },
+          "discriminator": {
+            "type": "string",
+            "description": "The discriminator of the user"
+          },
+          "display_name": {
+            "type": "string",
+            "description": "The display name of the user"
+          },
+          "avatar_url": {
+            "type": "string",
+            "description": "The avatar URL of the user"
+          }
+        },
+        "required": [
+          "id",
+          "username",
+          "discriminator",
+          "display_name",
+          "avatar_url"
+        ],
+        "additionalProperties": false
+      }
     },
     "action_member_role_add": {
       "title": "Add role to member",
@@ -4153,12 +4179,6 @@
             "type": "string",
             "description": "ID of the user.",
             "x-templated": true
-          },
-          "audit_log_reason": {
-            "type": "string",
-            "maxLength": 512,
-            "description": "Reason shown in the server's audit log.",
-            "x-templated": true
           }
         },
         "required": [
@@ -4207,12 +4227,6 @@
           "user_target": {
             "type": "string",
             "description": "ID of the user.",
-            "x-templated": true
-          },
-          "audit_log_reason": {
-            "type": "string",
-            "maxLength": 512,
-            "description": "Reason shown in the server's audit log.",
             "x-templated": true
           }
         },
@@ -5179,7 +5193,9 @@
         ],
         "additionalProperties": false
       },
-      "result_schema": null
+      "result_schema": {
+        "description": "The value the expression evaluates to."
+      }
     },
     "action_random_generate": {
       "title": "Generate Random Number",
@@ -5241,7 +5257,10 @@
         ],
         "additionalProperties": false
       },
-      "result_schema": null
+      "result_schema": {
+        "type": "number",
+        "description": "The generated number."
+      }
     },
     "action_log": {
       "title": "Log Message",

@@ -1,5 +1,5 @@
-import { nodeActionMessageReactionDeleteDataSchema } from "../flow/dataSchema";
-import { channelField, messageField } from "./fields";
+import { emojiDataSchema } from "../flow/dataSchema";
+import { channelTargetField, messageTargetField } from "./fields";
 import { BlockDefinition } from "./types";
 
 export const discordMessageReactionDelete: BlockDefinition = {
@@ -9,8 +9,7 @@ export const discordMessageReactionDelete: BlockDefinition = {
   icon: "frown",
   category: "Messages",
   credits: 1,
-  schema: nodeActionMessageReactionDeleteDataSchema,
-  inputs: ["channel_target", "message_target", "emoji_data", "custom_label"],
+  allow_unknown_settings: true,
   run: {
     kind: "request",
     integration: "discord",
@@ -19,13 +18,14 @@ export const discordMessageReactionDelete: BlockDefinition = {
     path: "/channels/{channel_id}/messages/{message_id}/reactions/{emoji_name}/@me",
   },
   fields: [
-    channelField,
-    messageField,
+    channelTargetField,
+    messageTargetField,
     {
       name: "emoji_data",
       in: "path",
       target: "emoji_name",
       type: "emoji",
+      schema: emojiDataSchema.describe("The emoji to remove the reaction of."),
     },
   ],
 };

@@ -1,5 +1,4 @@
-import { nodeActionMemberUnbanDataSchema } from "../flow/dataSchema";
-import { guildField, userField } from "./fields";
+import { guildTargetField, userTargetField } from "./fields";
 import { BlockDefinition } from "./types";
 
 export const discordMemberUnban: BlockDefinition = {
@@ -9,9 +8,8 @@ export const discordMemberUnban: BlockDefinition = {
   icon: "user-round-check",
   category: "Members",
   credits: 1,
-  schema: nodeActionMemberUnbanDataSchema,
-  inputs: ["guild_target", "user_target", "audit_log_reason", "custom_label"],
   audit_log_reason: true,
+  allow_unknown_settings: true,
   run: {
     kind: "request",
     integration: "discord",
@@ -19,5 +17,5 @@ export const discordMemberUnban: BlockDefinition = {
     method: "DELETE",
     path: "/guilds/{guild_id}/bans/{user_id}",
   },
-  fields: [guildField, userField],
+  fields: [guildTargetField, userTargetField],
 };

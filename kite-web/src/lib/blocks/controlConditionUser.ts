@@ -1,4 +1,4 @@
-import { nodeConditionUserDataSchema } from "../flow/dataSchema";
+import { conditionFields } from "./fields";
 import { BlockDefinition } from "./types";
 
 export const controlConditionUser: BlockDefinition = {
@@ -10,11 +10,7 @@ export const controlConditionUser: BlockDefinition = {
   outputs: [],
   owns: ["control_condition_item_else", "control_condition_item_user"],
   component: "condition_user",
-  schema: nodeConditionUserDataSchema,
-  inputs: [
-    "condition_user_base_value",
-    "condition_allow_multiple",
-    "custom_label",
-  ],
+  allow_unknown_settings: true,
+  fields: conditionFields("user", "ID of the user that each branch checks."),
   run: { kind: "custom" },
 };

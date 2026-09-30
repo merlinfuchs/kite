@@ -15,7 +15,6 @@ import { useAppFeature, useMessages, useVariables } from "@/lib/hooks/api";
 import { getFlowCreditsCost } from "@/lib/flow/schedule";
 import { aiModelTiers, getAiModelTier } from "@/lib/flow/aiModels";
 import { getBlockDefinition } from "@/lib/blocks";
-import { BlockField } from "@/lib/blocks/types";
 import {
   discordApiOperationLabel,
   discordApiOperations,
@@ -148,7 +147,6 @@ const intputs: Record<string, any> = {
   variable_value: VariableValueInput,
   http_request_data: HttpRequestDataInput,
   discord_api_request_data: DiscordApiRequestDataInput,
-  block_fields: BlockFieldsInput,
   ai_chat_completion_data: AiChatCompletionDataInput,
   ai_web_search_data: AiWebSearchDataInput,
   expression: ExpressionInput,
@@ -341,7 +339,11 @@ export default function FlowNodeEditor({ nodeId }: Props) {
               </div>
             )}
             {values.dataFields.map((field) => {
-              const Input = intputs[field];
+              // Fields of a block's definition without an input of their own.
+              const name = field.startsWith("field:")
+                ? field.slice("field:".length)
+                : undefined;
+              const Input = name ? BlockFieldInput : intputs[field];
               if (!Input) return null;
 
               return (
@@ -349,6 +351,7 @@ export default function FlowNodeEditor({ nodeId }: Props) {
                   key={field}
                   id={nodeId}
                   type={node.type}
+                  name={name}
                   data={data}
                   updateData={updateData}
                   errors={errors}
@@ -1069,70 +1072,66 @@ const discordApiOperationItems = discordApiOperations.map((o) => ({
   description: `${o.method} ${o.path}`,
 }));
 
-function BlockFieldsInput({ type, data, updateData, errors }: InputProps) {
-  const block = getBlockDefinition(type);
-  if (!block?.fields) return null;
+function BlockFieldInput({
+  type,
+  name,
+  data,
+  updateData,
+  errors,
+}: InputProps & { name: string }) {
+  const field = getBlockDefinition(type)?.fields?.find((f) => f.name === name);
+  if (!field) return null;
 
-  function setField(field: BlockField, value: string) {
-    updateData({ [field.name]: value || undefined });
+  const value = String(data[field.name] ?? "");
+  // Fields without a schema are described, a test checks it.
+  const title = field.label ?? field.name;
+  const description = field.description ?? "";
+
+  function setValue(value: string) {
+    updateData({ [name]: value || undefined });
   }
 
+  if (field.widget === "permissions") {
+    return (
+      <BasePermissionInput
+        field={name}
+        title={title}
+        description={description}
+        value={value || "0"}
+        updateValue={(v) => setValue(v === "0" ? "" : v)}
+        errors={errors}
+      />
+    );
+  }
+  if (field.type === "boolean") {
+    return (
+      <BaseInput
+        type="select"
+        field={name}
+        title={title}
+        description={description}
+        options={[
+          { value: "true", label: "Yes" },
+          { value: "false", label: "No" },
+        ]}
+        value={value}
+        updateValue={setValue}
+        errors={errors}
+        clearable
+      />
+    );
+  }
   return (
-    <>
-      {block.fields.map((field) => {
-        const key = field.name;
-        const value = String(data[field.name] ?? "");
-        // Blocks with fields as their settings describe every field.
-        const title = field.label ?? field.name;
-        const description = field.description ?? "";
-
-        if (field.widget === "permissions") {
-          return (
-            <BasePermissionInput
-              key={key}
-              field={key}
-              title={title}
-              description={description}
-              value={value || "0"}
-              updateValue={(v) => setField(field, v === "0" ? "" : v)}
-              errors={errors}
-            />
-          );
-        }
-        if (field.type === "boolean") {
-          return (
-            <BaseInput
-              key={key}
-              type="select"
-              field={key}
-              title={title}
-              description={description}
-              options={[
-                { value: "true", label: "Yes" },
-                { value: "false", label: "No" },
-              ]}
-              value={value}
-              updateValue={(v) => setField(field, v)}
-              errors={errors}
-              clearable
-            />
-          );
-        }
-        return (
-          <BaseInput
-            key={key}
-            type="text"
-            field={key}
-            title={title}
-            description={description}
-            value={value}
-            updateValue={(v) => setField(field, v)}
-            errors={errors}
-            placeholders
-          />
-        );
-      })}
-    </>
+    <BaseInput
+      type="text"
+      field={name}
+      title={title}
+      description={description}
+      value={value}
+      updateValue={setValue}
+      errors={errors}
+      placeholders
+    />
   );
 }
 
