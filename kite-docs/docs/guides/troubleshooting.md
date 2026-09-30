@@ -16,7 +16,7 @@ Logs are kept for 30 days.
 
 Open the dashboard of your app. If the app was stopped, a popup tells you why.
 
-- **No credits remaining**: Your app used all of its [credits](../reference/credit-system.md) for this month. Kite starts it again within a few minutes once the new month has started or you have more credits.
+- **No credits remaining**: Your app used all of its [credits](../reference/credit-system.md) for this month. Click on `Start App` in the settings once the new month has started or you have more credits.
 - **Discord bot token is invalid**: The token was reset in the Discord Developer Portal. Copy the new one and save it under `Credentials` in the settings.
 - **Failed to connect to gateway**: Kite couldn't connect your bot to Discord. Click on `Start App` in the settings to try again.
 - **Too many servers**: Your app is in more servers than your plan allows. Remove your bot from some servers in Discord, or get [Premium](../reference/premium.md), then click on `Start App`.
