@@ -1,4 +1,4 @@
-import { ZodSchema } from "zod";
+import { AnyZodObject, ZodSchema, ZodTypeAny } from "zod";
 import { FlowContextType } from "../flow/context";
 import { NodeData } from "../flow/dataSchema";
 import { Features } from "../types/wire.gen";
@@ -28,17 +28,32 @@ export interface BlockField {
   // Setting in the node's data, like "channel_target" or "max_age". Settings
   // other blocks have too keep their meaning, e.g. channel_target is a channel.
   name: string;
-  in: "path" | "query" | "body";
+  // Where a request block sends the setting. Settings of custom blocks have
+  // none.
+  in?: "path" | "query" | "body";
   // Name in the request, if it differs from name.
   target?: string;
-  type: BlockFieldType;
-  // Only needed without a schema, which describes the settings otherwise.
+  // How a request sends the setting, and the generated schema and input of a
+  // setting without a schema. Other settings don't need one.
+  type?: BlockFieldType;
+  // The setting's zod schema, for settings that need more than their type
+  // gives, like objects or IDs that can be placeholders. It's generated from
+  // the type otherwise. A function for schemas that depend on other blocks.
+  schema?: ZodTypeAny | (() => ZodTypeAny);
+  // The editor input of a setting with a schema, one of those registered in
+  // FlowNodeEditor.tsx, if it isn't registered under the setting's name. An
+  // input several fields name, which edits all of them, is shown once.
+  // Settings without a schema get a generic input.
+  input?: string;
+  // Only needed without a schema, which describes the setting otherwise.
   label?: string;
   description?: string;
   required?: boolean;
   // Used when the field is left empty.
   fallback?: "guild" | "channel";
-  // Range of a number, or length of a list.
+  // Range of a number, or length of a list. With a schema of their own,
+  // fields are only checked against these and required when the request is
+  // sent, not in the editor.
   min?: number;
   max?: number;
   max_length?: number;
@@ -113,13 +128,18 @@ export interface BlockDefinition {
   // The block fails when the app doesn't have this feature.
   premium_feature?: keyof Features;
   credits?: number | ((data: NodeData) => number);
-  // Settings either as fields, whose schema and inputs are generated, or as a
-  // schema with the names of the editor inputs (widgets) that edit it. A
-  // schema can be a function, for schemas that depend on other blocks.
-  // Request blocks with a schema use their fields only for the request.
+  // The block's settings, from which its schema and editor are generated.
   fields?: BlockField[];
-  schema?: ZodSchema | (() => ZodSchema);
-  inputs?: string[];
+  // Adds rules over several settings to the generated schema, which the
+  // fields' own schemas can't express.
+  refine?: (schema: AnyZodObject) => ZodTypeAny;
+  // Rejects settings the block doesn't know, so a misnamed one isn't lost.
+  // Blocks that had a hand-written schema ignore them instead, as saved flows
+  // can have settings it ignored.
+  strict_settings?: boolean;
+  // Blocks whose title isn't shown, like the branches of a condition, have no
+  // custom label.
+  custom_label?: false;
   audit_log_reason?: boolean;
   run: BlockRequest | BlockCustomRun;
   result?: {
@@ -131,7 +151,7 @@ export interface BlockDefinition {
   };
 }
 
-// A block that sends a request, like those defined with fields.
+// A block that sends a request.
 export type RequestBlockDefinition = BlockDefinition & {
   run: BlockRequest;
   fields: BlockField[];

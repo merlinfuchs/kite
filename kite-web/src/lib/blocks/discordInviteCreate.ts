@@ -9,6 +9,7 @@ export const discordInviteCreate: BlockDefinition = {
   category: "Channels",
   credits: 1,
   audit_log_reason: true,
+  strict_settings: true,
   run: {
     kind: "request",
     integration: "discord",

@@ -1,4 +1,9 @@
-import { nodeActionResponseEditDataSchema } from "../flow/dataSchema";
+import {
+  messageDataField,
+  messageTemplateField,
+  requireMessage,
+  responseTargetSetting,
+} from "./fields";
 import { nodeActionResponseEditResultSchema } from "../flow/resultSchema";
 import { BlockDefinition } from "./types";
 
@@ -11,14 +16,8 @@ export const discordResponseEdit: BlockDefinition = {
   component: "action_message",
   requires: ["discord"],
   credits: 1,
-  schema: nodeActionResponseEditDataSchema,
-  inputs: [
-    "response_target",
-    "message_template_id",
-    "message_data",
-    "temporary_name",
-    "custom_label",
-  ],
+  fields: [responseTargetSetting, messageTemplateField, messageDataField],
+  refine: requireMessage,
   result: { schema: nodeActionResponseEditResultSchema },
   run: { kind: "custom" },
 };

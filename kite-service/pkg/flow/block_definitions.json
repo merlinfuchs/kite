@@ -750,7 +750,7 @@
     {
       "type": "action_member_edit",
       "credits": 1,
-      "audit_log_reason": false,
+      "audit_log_reason": true,
       "requires": [
         "discord"
       ],
@@ -787,7 +787,10 @@
         "kind": "custom"
       },
       "fields": [],
-      "result": null
+      "result": {
+        "thing": "",
+        "list": false
+      }
     },
     {
       "type": "action_member_role_add",
@@ -1013,7 +1016,7 @@
     {
       "type": "action_channel_create",
       "credits": 1,
-      "audit_log_reason": false,
+      "audit_log_reason": true,
       "requires": [
         "discord"
       ],
@@ -1029,7 +1032,7 @@
     {
       "type": "action_channel_edit",
       "credits": 1,
-      "audit_log_reason": false,
+      "audit_log_reason": true,
       "requires": [
         "discord"
       ],
@@ -1090,7 +1093,7 @@
     {
       "type": "action_thread_create",
       "credits": 1,
-      "audit_log_reason": false,
+      "audit_log_reason": true,
       "requires": [
         "discord"
       ],
@@ -1307,7 +1310,10 @@
         "kind": "custom"
       },
       "fields": [],
-      "result": null
+      "result": {
+        "thing": "",
+        "list": false
+      }
     },
     {
       "type": "action_variable_delete",
@@ -1329,7 +1335,10 @@
         "kind": "custom"
       },
       "fields": [],
-      "result": null
+      "result": {
+        "thing": "",
+        "list": false
+      }
     },
     {
       "type": "action_roblox_user_get",
@@ -1421,7 +1430,10 @@
         "kind": "custom"
       },
       "fields": [],
-      "result": null
+      "result": {
+        "thing": "",
+        "list": false
+      }
     },
     {
       "type": "action_ai_web_search",
@@ -1432,7 +1444,10 @@
         "kind": "custom"
       },
       "fields": [],
-      "result": null
+      "result": {
+        "thing": "",
+        "list": false
+      }
     },
     {
       "type": "action_http_request",
@@ -1443,12 +1458,15 @@
         "kind": "custom"
       },
       "fields": [],
-      "result": null
+      "result": {
+        "thing": "",
+        "list": false
+      }
     },
     {
       "type": "action_discord_api_request",
       "credits": 1,
-      "audit_log_reason": false,
+      "audit_log_reason": true,
       "requires": [
         "discord"
       ],
@@ -1470,7 +1488,10 @@
         "kind": "custom"
       },
       "fields": [],
-      "result": null
+      "result": {
+        "thing": "",
+        "list": false
+      }
     },
     {
       "type": "action_random_generate",
@@ -1481,7 +1502,10 @@
         "kind": "custom"
       },
       "fields": [],
-      "result": null
+      "result": {
+        "thing": "",
+        "list": false
+      }
     },
     {
       "type": "action_log",
@@ -1569,7 +1593,10 @@
         "kind": "custom"
       },
       "fields": [],
-      "result": null
+      "result": {
+        "thing": "",
+        "list": false
+      }
     },
     {
       "type": "control_sleep",
@@ -1624,7 +1651,7 @@
     {
       "type": "action_forum_post_create",
       "credits": 1,
-      "audit_log_reason": false,
+      "audit_log_reason": true,
       "requires": [
         "discord"
       ],

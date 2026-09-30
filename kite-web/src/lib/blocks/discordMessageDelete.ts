@@ -1,5 +1,4 @@
-import { nodeActionMessageDeleteDataSchema } from "../flow/dataSchema";
-import { channelField, messageField } from "./fields";
+import { channelTargetField, messageTargetField } from "./fields";
 import { BlockDefinition } from "./types";
 
 export const discordMessageDelete: BlockDefinition = {
@@ -9,13 +8,6 @@ export const discordMessageDelete: BlockDefinition = {
   icon: "message-circle-x",
   category: "Messages",
   credits: 1,
-  schema: nodeActionMessageDeleteDataSchema,
-  inputs: [
-    "channel_target",
-    "message_target",
-    "audit_log_reason",
-    "custom_label",
-  ],
   audit_log_reason: true,
   run: {
     kind: "request",
@@ -24,5 +16,5 @@ export const discordMessageDelete: BlockDefinition = {
     method: "DELETE",
     path: "/channels/{channel_id}/messages/{message_id}",
   },
-  fields: [channelField, messageField],
+  fields: [channelTargetField, messageTargetField],
 };

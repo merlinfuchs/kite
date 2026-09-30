@@ -1,5 +1,5 @@
-import { nodeActionMemberBanDataSchema } from "../flow/dataSchema";
-import { guildField, userField } from "./fields";
+import { numericOrPlaceholder } from "../flow/dataSchema";
+import { guildTargetField, userTargetField } from "./fields";
 import { BlockDefinition } from "./types";
 
 export const discordMemberBan: BlockDefinition = {
@@ -9,14 +9,6 @@ export const discordMemberBan: BlockDefinition = {
   icon: "user-round-x",
   category: "Members",
   credits: 1,
-  schema: nodeActionMemberBanDataSchema,
-  inputs: [
-    "guild_target",
-    "user_target",
-    "member_ban_delete_message_duration_seconds",
-    "audit_log_reason",
-    "custom_label",
-  ],
   audit_log_reason: true,
   run: {
     kind: "request",
@@ -26,8 +18,8 @@ export const discordMemberBan: BlockDefinition = {
     path: "/guilds/{guild_id}/bans/{user_id}",
   },
   fields: [
-    guildField,
-    userField,
+    guildTargetField,
+    userTargetField,
     {
       name: "member_ban_delete_message_duration_seconds",
       in: "body",
@@ -35,6 +27,9 @@ export const discordMemberBan: BlockDefinition = {
       type: "seconds",
       min: 0,
       max: 604800,
+      schema: numericOrPlaceholder(
+        "Delete the member's messages from this many seconds before the ban."
+      ).optional(),
     },
   ],
 };

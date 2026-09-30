@@ -1,4 +1,9 @@
-import { nodeActionResponseCreateDataSchema } from "../flow/dataSchema";
+import { z } from "zod";
+import {
+  messageDataField,
+  messageTemplateField,
+  requireMessage,
+} from "./fields";
 import { nodeActionResponseCreateResultSchema } from "../flow/resultSchema";
 import { BlockDefinition } from "./types";
 
@@ -11,14 +16,20 @@ export const discordResponseCreate: BlockDefinition = {
   component: "action_message",
   requires: ["discord"],
   credits: 1,
-  schema: nodeActionResponseCreateDataSchema,
-  inputs: [
-    "message_template_id",
-    "message_data",
-    "message_ephemeral",
-    "temporary_name",
-    "custom_label",
+  fields: [
+    messageTemplateField,
+    messageDataField,
+    {
+      name: "message_ephemeral",
+      schema: z
+        .boolean()
+        .optional()
+        .describe(
+          "Whether only the user who triggered the flow can see the response."
+        ),
+    },
   ],
+  refine: requireMessage,
   result: { schema: nodeActionResponseCreateResultSchema },
   run: { kind: "custom" },
 };

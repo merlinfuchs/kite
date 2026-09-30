@@ -10,6 +10,7 @@ export const discordRoleCreate: BlockDefinition = {
   category: "Roles",
   credits: 1,
   audit_log_reason: true,
+  strict_settings: true,
   run: {
     kind: "request",
     integration: "discord",

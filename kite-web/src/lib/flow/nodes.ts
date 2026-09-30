@@ -9,7 +9,6 @@ import {
   blockDataSchema,
   blockDefinitions,
   getBlockDefinition,
-  isRequestBlock,
 } from "../blocks";
 import {
   actionColor,
@@ -67,18 +66,13 @@ export const nodeTypes: Record<string, NodeValues> = Object.fromEntries(
 );
 
 function toNodeValues(block: BlockDefinition): NodeValues {
-  // Request blocks without a schema of their own get one from their fields.
-  const request = isRequestBlock(block) && !block.schema ? block : undefined;
-  const schema =
-    typeof block.schema === "function" ? block.schema() : block.schema;
-
   return {
     color: block.color ?? kindColors[block.type.split("_")[0]],
     icon: block.icon,
     defaultTitle: block.title,
     defaultDescription: block.description,
-    dataSchema: request ? blockDataSchema(request) : schema,
-    dataFields: request ? blockDataFields(request) : block.inputs ?? [],
+    dataSchema: blockDataSchema(block),
+    dataFields: blockDataFields(block),
     resultSchema: block.result?.schema,
     outputs: block.outputs,
     contexts: block.contexts,

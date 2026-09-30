@@ -8,6 +8,7 @@ export const cookieApiQrCodeCreate: BlockDefinition = {
   icon: "qr-code",
   category: "Cookie API",
   credits: 1,
+  strict_settings: true,
   run: {
     kind: "request",
     integration: "cookie_api",

@@ -1,5 +1,5 @@
-import { nodeActionRoleGetDataSchema } from "../flow/dataSchema";
 import { nodeActionRoleGetResultSchema } from "../flow/resultSchema";
+import { guildTargetSetting, roleTargetSetting } from "./fields";
 import { BlockDefinition } from "./types";
 
 export const discordRoleGet: BlockDefinition = {
@@ -10,8 +10,7 @@ export const discordRoleGet: BlockDefinition = {
   category: "Roles",
   requires: ["discord"],
   credits: 1,
-  schema: nodeActionRoleGetDataSchema,
-  inputs: ["guild_target", "role_target", "temporary_name", "custom_label"],
+  fields: [guildTargetSetting, roleTargetSetting],
   result: { schema: nodeActionRoleGetResultSchema },
   run: { kind: "custom" },
 };

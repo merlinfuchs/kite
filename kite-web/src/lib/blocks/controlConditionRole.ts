@@ -1,4 +1,4 @@
-import { nodeConditionRoleDataSchema } from "../flow/dataSchema";
+import { conditionFields } from "./fields";
 import { BlockDefinition } from "./types";
 
 export const controlConditionRole: BlockDefinition = {
@@ -10,11 +10,6 @@ export const controlConditionRole: BlockDefinition = {
   outputs: [],
   owns: ["control_condition_item_else", "control_condition_item_role"],
   component: "condition_role",
-  schema: nodeConditionRoleDataSchema,
-  inputs: [
-    "condition_role_base_value",
-    "condition_allow_multiple",
-    "custom_label",
-  ],
+  fields: conditionFields("role", "ID of the role that each branch checks."),
   run: { kind: "custom" },
 };

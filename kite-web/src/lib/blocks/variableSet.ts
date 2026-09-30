@@ -1,4 +1,6 @@
-import { nodeActionVariableSetSchema } from "../flow/dataSchema";
+import { z } from "zod";
+import { templated } from "../flow/dataSchema";
+import { variableSettings } from "./fields";
 import { BlockDefinition } from "./types";
 
 export const variableSet: BlockDefinition = {
@@ -8,14 +10,21 @@ export const variableSet: BlockDefinition = {
   icon: "variable",
   category: "Stored Variables",
   credits: 1,
-  schema: nodeActionVariableSetSchema,
-  inputs: [
-    "variable_id",
-    "variable_scope",
-    "variable_operation",
-    "variable_value",
-    "temporary_name",
-    "custom_label",
+  fields: [
+    ...variableSettings,
+    {
+      name: "variable_operation",
+      schema: z
+        .enum(["overwrite", "append", "prepend", "increment", "decrement"])
+        .describe(
+          "How the value is combined with the stored one. increment and decrement add or subtract a number."
+        ),
+    },
+    {
+      name: "variable_value",
+      schema: templated(z.string(), "Value to store."),
+    },
   ],
+  result: { schema: z.unknown().describe("The new value of the variable.") },
   run: { kind: "custom" },
 };

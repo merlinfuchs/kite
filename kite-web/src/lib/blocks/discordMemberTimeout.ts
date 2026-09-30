@@ -1,5 +1,5 @@
-import { nodeActionMemberTimeoutDataSchema } from "../flow/dataSchema";
-import { guildField, userField } from "./fields";
+import { numericOrPlaceholder } from "../flow/dataSchema";
+import { guildTargetField, userTargetField } from "./fields";
 import { BlockDefinition } from "./types";
 
 export const discordMemberTimeout: BlockDefinition = {
@@ -9,14 +9,6 @@ export const discordMemberTimeout: BlockDefinition = {
   icon: "message-circle-off",
   category: "Members",
   credits: 1,
-  schema: nodeActionMemberTimeoutDataSchema,
-  inputs: [
-    "guild_target",
-    "user_target",
-    "member_timeout_duration_seconds",
-    "audit_log_reason",
-    "custom_label",
-  ],
   audit_log_reason: true,
   run: {
     kind: "request",
@@ -27,8 +19,8 @@ export const discordMemberTimeout: BlockDefinition = {
     partial: true,
   },
   fields: [
-    guildField,
-    userField,
+    guildTargetField,
+    userTargetField,
     {
       name: "member_timeout_duration_seconds",
       in: "body",
@@ -37,6 +29,9 @@ export const discordMemberTimeout: BlockDefinition = {
       required: true,
       min: 0,
       max: 2419200,
+      schema: numericOrPlaceholder(
+        "How many seconds the member is timed out for."
+      ),
     },
   ],
 };

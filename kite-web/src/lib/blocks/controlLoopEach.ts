@@ -1,4 +1,3 @@
-import { nodeEmptyDataSchema } from "../flow/dataSchema";
 import { BlockDefinition } from "./types";
 
 export const controlLoopEach: BlockDefinition = {
@@ -8,7 +7,6 @@ export const controlLoopEach: BlockDefinition = {
   icon: "repeat-2",
   fixed: true,
   component: "control_loop_each",
-  schema: nodeEmptyDataSchema,
-  inputs: [],
+  custom_label: false,
   run: { kind: "custom" },
 };

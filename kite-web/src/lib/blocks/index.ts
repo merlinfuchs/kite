@@ -1,13 +1,19 @@
-import { z } from "zod";
+import { AnyZodObject, z } from "zod";
 import {
   auditLogReasonSchema,
+  decimalRegex,
   nodeBaseDataSchema,
   discordApiParamFormats,
   placeholderRegex,
   templated,
   temporaryNameSchema,
 } from "../flow/dataSchema";
-import { BlockDefinition, BlockField, RequestBlockDefinition } from "./types";
+import {
+  BlockDefinition,
+  BlockField,
+  BlockFieldType,
+  RequestBlockDefinition,
+} from "./types";
 import { aiChatCompletion } from "./aiChatCompletion";
 import { aiWebSearch } from "./aiWebSearch";
 import { cookieApiQrCodeCreate } from "./cookieApiQrCodeCreate";
@@ -194,7 +200,7 @@ export function isRequestBlock(
   return block.run.kind === "request";
 }
 
-const formats: Record<BlockField["type"], [RegExp, string] | null> = {
+const formats: Record<BlockFieldType, [RegExp, string] | null> = {
   snowflake: discordApiParamFormats.snowflake,
   snowflake_list: [
     /^[0-9]+([,\s]+[0-9]+)*$/,
@@ -204,21 +210,18 @@ const formats: Record<BlockField["type"], [RegExp, string] | null> = {
   boolean: discordApiParamFormats.boolean,
   string: null,
   emoji: null,
-  seconds: [/^[0-9]+(\.[0-9]+)?$/, "Must be a number of seconds"],
-  seconds_until: [/^[0-9]+(\.[0-9]+)?$/, "Must be a number of seconds"],
+  seconds: [decimalRegex, "Must be a number of seconds"],
+  seconds_until: [decimalRegex, "Must be a number of seconds"],
 };
 
-const numberTypes: BlockField["type"][] = [
-  "integer",
-  "seconds",
-  "seconds_until",
-];
+const numberTypes: BlockFieldType[] = ["integer", "seconds", "seconds_until"];
 
 function fieldSchema(field: BlockField) {
   // Emojis are objects, which only a block's own schema describes.
-  if (field.type === "emoji") {
-    throw new Error(`Emoji field ${field.name} needs a block schema`);
+  if (!field.type || field.type === "emoji") {
+    throw new Error(`Field ${field.name} needs its own schema`);
   }
+  const type = field.type;
 
   let text = z.string();
   if (field.max_length) text = text.max(field.max_length);
@@ -231,7 +234,7 @@ function fieldSchema(field: BlockField) {
       return;
     }
 
-    const [format, message] = formats[field.type] ?? [];
+    const [format, message] = formats[type] ?? [];
     // Placeholders are only checked when the flow runs.
     if (value.includes("{{")) {
       if (format && !placeholderRegex.test(value) && field.type !== "string") {
@@ -247,7 +250,7 @@ function fieldSchema(field: BlockField) {
       return;
     }
 
-    if (numberTypes.includes(field.type)) {
+    if (numberTypes.includes(type)) {
       const n = Number(value);
       if (field.min !== undefined && n < field.min) {
         ctx.addIssue({
@@ -313,24 +316,40 @@ function fieldSchema(field: BlockField) {
   return field.required ? schema : schema.optional();
 }
 
-export function blockDataSchema(block: RequestBlockDefinition) {
-  const names = block.fields.map((f) => f.name).join(", ");
+// The schema of a block, generated from its fields.
+export function blockDataSchema(block: BlockDefinition) {
+  const fields = block.fields ?? [];
+  const names = fields.map((f) => f.name).join(", ");
 
-  // Strict, as settings with a wrong name would otherwise be dropped silently.
-  return nodeBaseDataSchema
-    .strict(`Unknown setting. This block's settings are: ${names}`)
-    .extend({
-      ...Object.fromEntries(block.fields.map((f) => [f.name, fieldSchema(f)])),
-      ...(block.audit_log_reason && { audit_log_reason: auditLogReasonSchema }),
-      ...(block.result && { temporary_name: temporaryNameSchema }),
-    });
+  let base: AnyZodObject =
+    block.custom_label === false ? z.object({}) : nodeBaseDataSchema;
+  if (block.strict_settings) {
+    base = base.strict(`Unknown setting. This block's settings are: ${names}`);
+  }
+
+  const schema = base.extend({
+    ...Object.fromEntries(fields.map((f) => [f.name, settingSchema(f)])),
+    ...(block.audit_log_reason && { audit_log_reason: auditLogReasonSchema }),
+    ...(block.result && { temporary_name: temporaryNameSchema }),
+  });
+  return block.refine ? block.refine(schema) : schema;
 }
 
-export function blockDataFields(block: RequestBlockDefinition) {
+function settingSchema(field: BlockField) {
+  if (typeof field.schema === "function") return field.schema();
+  return field.schema ?? fieldSchema(field);
+}
+
+// The editor inputs of a block. Fields without a schema are edited by a
+// generic input, named "field:" and the field's name.
+export function blockDataFields(block: BlockDefinition) {
+  const inputs = (block.fields ?? []).map((f) =>
+    f.schema ? f.input ?? f.name : `field:${f.name}`
+  );
   return [
-    "block_fields",
+    ...new Set(inputs),
     ...(block.audit_log_reason ? ["audit_log_reason"] : []),
     ...(block.result ? ["temporary_name"] : []),
-    "custom_label",
+    ...(block.custom_label === false ? [] : ["custom_label"]),
   ];
 }

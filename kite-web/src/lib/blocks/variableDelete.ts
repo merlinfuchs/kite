@@ -1,4 +1,4 @@
-import { nodeActionVariableDeleteSchema } from "../flow/dataSchema";
+import { variableSettings } from "./fields";
 import { BlockDefinition } from "./types";
 
 export const variableDelete: BlockDefinition = {
@@ -8,7 +8,6 @@ export const variableDelete: BlockDefinition = {
   icon: "variable",
   category: "Stored Variables",
   credits: 1,
-  schema: nodeActionVariableDeleteSchema,
-  inputs: ["variable_id", "variable_scope", "custom_label"],
+  fields: variableSettings,
   run: { kind: "custom" },
 };

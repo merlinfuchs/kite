@@ -1,5 +1,4 @@
-import { nodeActionMemberKickDataSchema } from "../flow/dataSchema";
-import { guildField, userField } from "./fields";
+import { guildTargetField, userTargetField } from "./fields";
 import { BlockDefinition } from "./types";
 
 export const discordMemberKick: BlockDefinition = {
@@ -9,8 +8,6 @@ export const discordMemberKick: BlockDefinition = {
   icon: "user-round-minus",
   category: "Members",
   credits: 1,
-  schema: nodeActionMemberKickDataSchema,
-  inputs: ["guild_target", "user_target", "audit_log_reason", "custom_label"],
   audit_log_reason: true,
   run: {
     kind: "request",
@@ -19,5 +16,5 @@ export const discordMemberKick: BlockDefinition = {
     method: "DELETE",
     path: "/guilds/{guild_id}/members/{user_id}",
   },
-  fields: [guildField, userField],
+  fields: [guildTargetField, userTargetField],
 };

@@ -1,4 +1,5 @@
-import { nodeConditionItemCompareDataSchema } from "../flow/dataSchema";
+import { comparisonModeSchema } from "../flow/dataSchema";
+import { conditionItemFields } from "./fields";
 import { BlockDefinition } from "./types";
 
 export const controlConditionItemCompare: BlockDefinition = {
@@ -7,7 +8,13 @@ export const controlConditionItemCompare: BlockDefinition = {
   description: "Run actions if the two values are equal.",
   icon: "circle-help",
   component: "condition_item",
-  schema: nodeConditionItemCompareDataSchema,
-  inputs: ["condition_item_compare_mode", "condition_item_compare_value"],
+  custom_label: false,
+  fields: conditionItemFields(
+    "compare",
+    comparisonModeSchema.describe(
+      "How the condition's base value is compared to this branch's value."
+    ),
+    "Value to compare the base value with."
+  ),
   run: { kind: "custom" },
 };

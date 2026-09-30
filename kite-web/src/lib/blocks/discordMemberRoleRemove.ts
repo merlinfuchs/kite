@@ -1,5 +1,4 @@
-import { nodeActionMemberRoleRemoveDataSchema } from "../flow/dataSchema";
-import { guildField, userField, roleField } from "./fields";
+import { guildTargetField, userTargetField, roleTargetField } from "./fields";
 import { BlockDefinition } from "./types";
 
 export const discordMemberRoleRemove: BlockDefinition = {
@@ -9,14 +8,6 @@ export const discordMemberRoleRemove: BlockDefinition = {
   icon: "bookmark-minus",
   category: "Roles",
   credits: 1,
-  schema: nodeActionMemberRoleRemoveDataSchema,
-  inputs: [
-    "guild_target",
-    "user_target",
-    "role_target",
-    "audit_log_reason",
-    "custom_label",
-  ],
   audit_log_reason: true,
   run: {
     kind: "request",
@@ -25,5 +16,5 @@ export const discordMemberRoleRemove: BlockDefinition = {
     method: "DELETE",
     path: "/guilds/{guild_id}/members/{user_id}/roles/{role_id}",
   },
-  fields: [guildField, userField, roleField],
+  fields: [guildTargetField, userTargetField, roleTargetField],
 };

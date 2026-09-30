@@ -14,10 +14,6 @@
       "data_schema": {
         "type": "object",
         "properties": {
-          "custom_label": {
-            "type": "string",
-            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
-          },
           "name": {
             "type": "string",
             "maxLength": 32,
@@ -110,10 +106,6 @@
       "data_schema": {
         "type": "object",
         "properties": {
-          "custom_label": {
-            "type": "string",
-            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
-          },
           "command_permissions": {
             "type": "string",
             "pattern": "^[0-9]+$",
@@ -141,10 +133,6 @@
       "data_schema": {
         "type": "object",
         "properties": {
-          "custom_label": {
-            "type": "string",
-            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
-          },
           "command_disabled_contexts": {
             "type": "array",
             "items": {
@@ -187,10 +175,6 @@
       "data_schema": {
         "type": "object",
         "properties": {
-          "custom_label": {
-            "type": "string",
-            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
-          },
           "event_filter_target": {
             "type": "string",
             "enum": [
@@ -248,9 +232,10 @@
             "type": "string",
             "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
           },
-          "message_ephemeral": {
-            "type": "boolean",
-            "description": "Whether only the user who triggered the flow can see the response."
+          "message_template_id": {
+            "type": "string",
+            "description": "ID of a saved message template to send instead of message_data.",
+            "x-user-picked": true
           },
           "message_data": {
             "type": "object",
@@ -301,10 +286,9 @@
             "additionalProperties": true,
             "description": "The message to send."
           },
-          "message_template_id": {
-            "type": "string",
-            "description": "ID of a saved message template to send instead of message_data.",
-            "x-user-picked": true
+          "message_ephemeral": {
+            "type": "boolean",
+            "description": "Whether only the user who triggered the flow can see the response."
           },
           "temporary_name": {
             "type": "string",
@@ -454,6 +438,11 @@
             ],
             "description": "ID of the response message, or '@original' for the first response to the interaction."
           },
+          "message_template_id": {
+            "type": "string",
+            "description": "ID of a saved message template to send instead of message_data.",
+            "x-user-picked": true
+          },
           "message_data": {
             "type": "object",
             "properties": {
@@ -502,11 +491,6 @@
             },
             "additionalProperties": true,
             "description": "The message to send."
-          },
-          "message_template_id": {
-            "type": "string",
-            "description": "ID of a saved message template to send instead of message_data.",
-            "x-user-picked": true
           },
           "temporary_name": {
             "type": "string",
@@ -658,12 +642,6 @@
               }
             ],
             "description": "ID of the response message, or '@original' for the first response to the interaction."
-          },
-          "audit_log_reason": {
-            "type": "string",
-            "maxLength": 512,
-            "description": "Reason shown in the server's audit log.",
-            "x-templated": true
           }
         },
         "required": [
@@ -862,6 +840,11 @@
             ],
             "description": "ID of the channel to send the message to."
           },
+          "message_template_id": {
+            "type": "string",
+            "description": "ID of a saved message template to send instead of message_data.",
+            "x-user-picked": true
+          },
           "message_data": {
             "type": "object",
             "properties": {
@@ -910,11 +893,6 @@
             },
             "additionalProperties": true,
             "description": "The message to send."
-          },
-          "message_template_id": {
-            "type": "string",
-            "description": "ID of a saved message template to send instead of message_data.",
-            "x-user-picked": true
           },
           "temporary_name": {
             "type": "string",
@@ -1074,6 +1052,11 @@
             ],
             "description": "ID of the message."
           },
+          "message_template_id": {
+            "type": "string",
+            "description": "ID of a saved message template to send instead of message_data.",
+            "x-user-picked": true
+          },
           "message_data": {
             "type": "object",
             "properties": {
@@ -1122,11 +1105,6 @@
             },
             "additionalProperties": true,
             "description": "The message to send."
-          },
-          "message_template_id": {
-            "type": "string",
-            "description": "ID of a saved message template to send instead of message_data.",
-            "x-user-picked": true
           },
           "temporary_name": {
             "type": "string",
@@ -2866,7 +2844,39 @@
         ],
         "additionalProperties": false
       },
-      "result_schema": null
+      "result_schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The ID of the user"
+          },
+          "username": {
+            "type": "string",
+            "description": "The username of the user"
+          },
+          "discriminator": {
+            "type": "string",
+            "description": "The discriminator of the user"
+          },
+          "display_name": {
+            "type": "string",
+            "description": "The display name of the user"
+          },
+          "avatar_url": {
+            "type": "string",
+            "description": "The avatar URL of the user"
+          }
+        },
+        "required": [
+          "id",
+          "username",
+          "discriminator",
+          "display_name",
+          "avatar_url"
+        ],
+        "additionalProperties": false
+      }
     },
     "action_member_role_add": {
       "title": "Add role to member",
@@ -4153,12 +4163,6 @@
             "type": "string",
             "description": "ID of the user.",
             "x-templated": true
-          },
-          "audit_log_reason": {
-            "type": "string",
-            "maxLength": 512,
-            "description": "Reason shown in the server's audit log.",
-            "x-templated": true
           }
         },
         "required": [
@@ -4207,12 +4211,6 @@
           "user_target": {
             "type": "string",
             "description": "ID of the user.",
-            "x-templated": true
-          },
-          "audit_log_reason": {
-            "type": "string",
-            "maxLength": 512,
-            "description": "Reason shown in the server's audit log.",
             "x-templated": true
           }
         },
@@ -4499,11 +4497,6 @@
             "description": "Scope of the value, e.g. a user ID to store one value per user. Only for scoped variables.",
             "x-templated": true
           },
-          "variable_value": {
-            "type": "string",
-            "description": "Value to store.",
-            "x-templated": true
-          },
           "variable_operation": {
             "type": "string",
             "enum": [
@@ -4515,6 +4508,11 @@
             ],
             "description": "How the value is combined with the stored one. increment and decrement add or subtract a number."
           },
+          "variable_value": {
+            "type": "string",
+            "description": "Value to store.",
+            "x-templated": true
+          },
           "temporary_name": {
             "type": "string",
             "maxLength": 32,
@@ -4523,12 +4521,14 @@
         },
         "required": [
           "variable_id",
-          "variable_value",
-          "variable_operation"
+          "variable_operation",
+          "variable_value"
         ],
         "additionalProperties": false
       },
-      "result_schema": null
+      "result_schema": {
+        "description": "The new value of the variable."
+      }
     },
     "action_variable_delete": {
       "title": "Delete stored variable",
@@ -4613,7 +4613,9 @@
         ],
         "additionalProperties": false
       },
-      "result_schema": null
+      "result_schema": {
+        "description": "The value of the variable."
+      }
     },
     "action_roblox_user_get": {
       "title": "Get Roblox User",
@@ -4857,7 +4859,10 @@
         ],
         "additionalProperties": false
       },
-      "result_schema": null
+      "result_schema": {
+        "type": "string",
+        "description": "The answer of the AI."
+      }
     },
     "action_ai_web_search": {
       "title": "Search the Web",
@@ -4931,7 +4936,10 @@
         ],
         "additionalProperties": false
       },
-      "result_schema": null
+      "result_schema": {
+        "type": "string",
+        "description": "The answer of the AI, based on what it found."
+      }
     },
     "action_http_request": {
       "title": "Send API Request",
@@ -5022,7 +5030,33 @@
         ],
         "additionalProperties": false
       },
-      "result_schema": null
+      "result_schema": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "description": "Status line, e.g. 200 OK"
+          },
+          "status_code": {
+            "type": "number",
+            "description": "Status code, e.g. 200"
+          },
+          "body": {
+            "type": "string",
+            "description": "Body of the response as text"
+          },
+          "data": {
+            "description": "Body of the response parsed as JSON"
+          }
+        },
+        "required": [
+          "status",
+          "status_code",
+          "body"
+        ],
+        "additionalProperties": false,
+        "description": "The response to the request"
+      }
     },
     "action_discord_api_request": {
       "title": "Discord API Request",
@@ -5179,7 +5213,9 @@
         ],
         "additionalProperties": false
       },
-      "result_schema": null
+      "result_schema": {
+        "description": "The value the expression evaluates to."
+      }
     },
     "action_random_generate": {
       "title": "Generate Random Number",
@@ -5241,7 +5277,10 @@
         ],
         "additionalProperties": false
       },
-      "result_schema": null
+      "result_schema": {
+        "type": "number",
+        "description": "The generated number."
+      }
     },
     "action_log": {
       "title": "Log Message",
@@ -5546,7 +5585,10 @@
         },
         "additionalProperties": false
       },
-      "result_schema": null
+      "result_schema": {
+        "type": "string",
+        "description": "The error message."
+      }
     },
     "control_sleep": {
       "title": "Wait",
@@ -5566,10 +5608,6 @@
       "data_schema": {
         "type": "object",
         "properties": {
-          "custom_label": {
-            "type": "string",
-            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
-          },
           "sleep_duration_seconds": {
             "anyOf": [
               {
@@ -5605,10 +5643,6 @@
       "data_schema": {
         "type": "object",
         "properties": {
-          "custom_label": {
-            "type": "string",
-            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
-          },
           "name": {
             "type": "string",
             "maxLength": 32,
@@ -5646,10 +5680,6 @@
       "data_schema": {
         "type": "object",
         "properties": {
-          "custom_label": {
-            "type": "string",
-            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
-          },
           "event_type": {
             "type": "string",
             "enum": [
@@ -5956,10 +5986,6 @@
       "data_schema": {
         "type": "object",
         "properties": {
-          "custom_label": {
-            "type": "string",
-            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
-          },
           "condition_item_mode": {
             "type": "string",
             "enum": [
@@ -6006,10 +6032,6 @@
       "data_schema": {
         "type": "object",
         "properties": {
-          "custom_label": {
-            "type": "string",
-            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
-          },
           "condition_item_mode": {
             "type": "string",
             "enum": [
@@ -6053,10 +6075,6 @@
       "data_schema": {
         "type": "object",
         "properties": {
-          "custom_label": {
-            "type": "string",
-            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
-          },
           "condition_item_mode": {
             "type": "string",
             "enum": [
@@ -6096,10 +6114,6 @@
       "data_schema": {
         "type": "object",
         "properties": {
-          "custom_label": {
-            "type": "string",
-            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
-          },
           "condition_item_mode": {
             "type": "string",
             "enum": [

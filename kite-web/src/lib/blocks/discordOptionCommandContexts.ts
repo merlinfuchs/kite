@@ -1,4 +1,4 @@
-import { nodeOptionCommandContextsSchema } from "../flow/dataSchema";
+import { z } from "zod";
 import { BlockDefinition } from "./types";
 
 export const discordOptionCommandContexts: BlockDefinition = {
@@ -10,7 +10,26 @@ export const discordOptionCommandContexts: BlockDefinition = {
   category: "Commands",
   component: "option",
   requires: ["discord"],
-  schema: nodeOptionCommandContextsSchema,
-  inputs: ["command_contexts", "command_integrations"],
+  custom_label: false,
+  fields: [
+    {
+      name: "command_disabled_contexts",
+      schema: z
+        .array(z.enum(["guild", "bot_dm", "private_channel"]))
+        .optional()
+        .describe(
+          "Places where the command can't be used: servers, DMs with the bot, or other DMs and group DMs."
+        ),
+    },
+    {
+      name: "command_disabled_integrations",
+      schema: z
+        .array(z.enum(["guild_install", "user_install"]))
+        .optional()
+        .describe(
+          "Install types the command isn't available for: installed to a server, or installed to a user."
+        ),
+    },
+  ],
   run: { kind: "custom" },
 };

@@ -1,4 +1,3 @@
-import { nodeEntryComponentButtonDataSchema } from "../flow/dataSchema";
 import { BlockDefinition } from "./types";
 
 export const discordEntryComponentButton: BlockDefinition = {
@@ -11,7 +10,6 @@ export const discordEntryComponentButton: BlockDefinition = {
   fixed: true,
   component: "entry_component_button",
   requires: ["discord"],
-  schema: nodeEntryComponentButtonDataSchema,
-  inputs: [],
+  custom_label: false,
   run: { kind: "custom" },
 };

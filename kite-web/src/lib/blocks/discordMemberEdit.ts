@@ -1,4 +1,6 @@
-import { nodeActionMemberEditDataSchema } from "../flow/dataSchema";
+import { z } from "zod";
+import { templated } from "../flow/dataSchema";
+import { guildTargetSetting, userTargetSetting } from "./fields";
 import { BlockDefinition } from "./types";
 
 export const discordMemberEdit: BlockDefinition = {
@@ -9,13 +11,18 @@ export const discordMemberEdit: BlockDefinition = {
   category: "Members",
   requires: ["discord"],
   credits: 1,
-  schema: nodeActionMemberEditDataSchema,
-  inputs: [
-    "guild_target",
-    "user_target",
-    "member_nick",
-    "audit_log_reason",
-    "custom_label",
+  fields: [
+    guildTargetSetting,
+    userTargetSetting,
+    {
+      name: "member_data",
+      schema: z
+        .object({
+          nick: templated(z.string(), "New nickname of the member."),
+        })
+        .describe("The changes to make to the member."),
+    },
   ],
+  audit_log_reason: true,
   run: { kind: "custom" },
 };

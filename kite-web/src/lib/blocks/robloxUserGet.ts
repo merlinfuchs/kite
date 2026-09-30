@@ -1,4 +1,5 @@
-import { nodeActionRobloxUserGetDataSchema } from "../flow/dataSchema";
+import { z } from "zod";
+import { templated } from "../flow/dataSchema";
 import { nodeActionRobloxUserGetResultSchema } from "../flow/resultSchema";
 import { BlockDefinition } from "./types";
 
@@ -10,12 +11,20 @@ export const robloxUserGet: BlockDefinition = {
   category: "Roblox",
   requires: ["roblox"],
   credits: 1,
-  schema: nodeActionRobloxUserGetDataSchema,
-  inputs: [
-    "roblox_user_target",
-    "roblox_lookup_mode",
-    "temporary_name",
-    "custom_label",
+  fields: [
+    {
+      name: "roblox_user_target",
+      schema: templated(
+        z.string(),
+        "ID or username of the Roblox user, depending on roblox_lookup_mode."
+      ),
+    },
+    {
+      name: "roblox_lookup_mode",
+      schema: z
+        .enum(["id", "username"])
+        .describe("Whether roblox_user_target is an ID or a username."),
+    },
   ],
   result: { schema: nodeActionRobloxUserGetResultSchema },
   run: { kind: "custom" },

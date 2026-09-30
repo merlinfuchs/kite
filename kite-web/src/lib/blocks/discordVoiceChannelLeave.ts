@@ -1,4 +1,4 @@
-import { nodeActionVoiceChannelLeaveDataSchema } from "../flow/dataSchema";
+import { guildTargetSetting } from "./fields";
 import { BlockDefinition } from "./types";
 
 export const discordVoiceChannelLeave: BlockDefinition = {
@@ -9,7 +9,6 @@ export const discordVoiceChannelLeave: BlockDefinition = {
   category: "Voice",
   requires: ["discord"],
   credits: 1,
-  schema: nodeActionVoiceChannelLeaveDataSchema,
-  inputs: ["guild_target", "custom_label"],
+  fields: [guildTargetSetting],
   run: { kind: "custom" },
 };

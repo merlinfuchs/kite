@@ -1,4 +1,5 @@
-import { nodeActionVoiceChannelJoinDataSchema } from "../flow/dataSchema";
+import { z } from "zod";
+import { numericOrPlaceholder } from "../flow/dataSchema";
 import { BlockDefinition } from "./types";
 
 export const discordVoiceChannelJoin: BlockDefinition = {
@@ -9,12 +10,22 @@ export const discordVoiceChannelJoin: BlockDefinition = {
   category: "Voice",
   requires: ["discord"],
   credits: 1,
-  schema: nodeActionVoiceChannelJoinDataSchema,
-  inputs: [
-    "channel_target",
-    "voice_self_mute",
-    "voice_self_deaf",
-    "custom_label",
+  fields: [
+    {
+      name: "channel_target",
+      schema: numericOrPlaceholder("ID of the voice channel to join."),
+    },
+    {
+      name: "voice_self_mute",
+      schema: z.boolean().optional().describe("Whether the bot joins muted."),
+    },
+    {
+      name: "voice_self_deaf",
+      schema: z
+        .boolean()
+        .optional()
+        .describe("Whether the bot joins deafened."),
+    },
   ],
   run: { kind: "custom" },
 };
