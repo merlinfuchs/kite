@@ -23,8 +23,8 @@ export default function AnalyticsProvider() {
 
   return (
     <OpenPanelComponent
-      clientId="3d379370-3ce9-4a92-b7ea-2c663b7fa7dd"
-      apiUrl="https://analytics.vaven.io/api"
+      clientId="b14a6614-59bb-481e-8de0-ae685dd67de1"
+      apiUrl="https://analytics.xenon.bot/api"
       trackScreenViews={true}
       trackOutgoingLinks={true}
     />
