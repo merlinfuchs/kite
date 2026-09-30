@@ -60,6 +60,7 @@ func (s *APIServer) RegisterRoutes(
 	assistantPromptStore store.AssistantPromptStore,
 	flowAssistant *flowai.Assistant,
 	appSecretStore store.AppSecretStore,
+	appIntegrationStore store.AppIntegrationStore,
 ) {
 	sessionManager := session.NewSessionManager(session.SessionManagerConfig{
 		StrictCookies: s.config.StrictCookies,
@@ -207,7 +208,7 @@ func (s *APIServer) RegisterRoutes(
 	logsGroup.Get("/summary", handler.Typed(logHandler.HandleLogSummaryGet))
 
 	// Flow AI routes
-	flowAIHandler := flowaihandler.NewFlowAIHandler(assistantPromptStore, variableStore, appSecretStore, flowAssistant, s.config.AssistantMaxRepairs)
+	flowAIHandler := flowaihandler.NewFlowAIHandler(assistantPromptStore, variableStore, appSecretStore, appIntegrationStore, flowAssistant, s.config.AssistantMaxRepairs)
 
 	flowAIGroup := appGroup.Group("/flow-ai")
 	flowAIGroup.Get("/usage", handler.Typed(flowAIHandler.HandleFlowAIUsageGet))
@@ -299,12 +300,13 @@ func (s *APIServer) RegisterRoutes(
 	secretGroup.Delete("/", handler.Typed(appSecretHandler.HandleAppSecretDelete))
 
 	// Integration routes
-	integrationHandler := integration.NewIntegrationHandler(appSecretStore, tokenCrypt)
+	integrationHandler := integration.NewIntegrationHandler(appSecretStore, appIntegrationStore, tokenCrypt)
 
 	integrationsGroup := appGroup.Group("/integrations")
 	integrationsGroup.Get("/", handler.Typed(integrationHandler.HandleAppIntegrationList))
 
 	integrationGroup := integrationsGroup.Group("/{integrationID}")
+	integrationGroup.Patch("/", handler.TypedWithBody(integrationHandler.HandleAppIntegrationUpdate))
 	integrationGroup.Put("/", handler.TypedWithBody(integrationHandler.HandleAppIntegrationConnect))
 	integrationGroup.Delete("/", handler.Typed(integrationHandler.HandleAppIntegrationDisconnect))
 

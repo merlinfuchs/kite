@@ -8,6 +8,10 @@ export interface Integration {
   // the bot's session instead.
   base_url?: string;
   auth: IntegrationAuth;
+  // "always" for integrations every app can use, like Discord, "default" for
+  // ones apps can turn off and "opt_in" for ones they turn on. Integrations
+  // that need a credential are opt-in, and turned on by connecting them.
+  availability: "always" | "default" | "opt_in";
   // A cheap GET endpoint, relative to base_url, that checks the credential
   // when the app connects the integration.
   test_path?: string;

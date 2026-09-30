@@ -23,6 +23,14 @@ type App struct {
 	DisabledReason pgtype.Text
 }
 
+type AppIntegration struct {
+	AppID         string
+	IntegrationID string
+	Enabled       bool
+	CreatedAt     pgtype.Timestamp
+	UpdatedAt     pgtype.Timestamp
+}
+
 type AppSecret struct {
 	ID             string
 	AppID          string

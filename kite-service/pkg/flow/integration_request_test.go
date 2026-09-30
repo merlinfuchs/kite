@@ -14,10 +14,12 @@ import (
 	"github.com/kitecloud/kite/kite-service/pkg/provider"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"gopkg.in/guregu/null.v4"
 )
 
 type integrationTestProvider struct {
 	credentials map[string]string
+	choices     map[string]bool
 }
 
 func (p *integrationTestProvider) Credential(ctx context.Context, integrationID string) (string, error) {
@@ -25,6 +27,11 @@ func (p *integrationTestProvider) Credential(ctx context.Context, integrationID 
 		return c, nil
 	}
 	return "", provider.ErrNotFound
+}
+
+func (p *integrationTestProvider) Choice(ctx context.Context, integrationID string) (null.Bool, error) {
+	enabled, ok := p.choices[integrationID]
+	return null.NewBool(enabled, ok), nil
 }
 
 type redirectCheckingHTTPProvider struct {
@@ -51,7 +58,11 @@ func (p *redirectCheckingHTTPProvider) HTTPRequestWithoutRedirects(ctx context.C
 // withTestIntegration adds an integration with an API key and a block that
 // sends a request to it, for the duration of a test.
 func withTestIntegration(t *testing.T, auth IntegrationAuth) {
-	integrations["test_api"] = Integration{ID: "test_api", Name: "Test API", BaseURL: "https://api.example.com/", Auth: auth}
+	availability := "opt_in"
+	if auth.Type == "none" {
+		availability = "default"
+	}
+	integrations["test_api"] = Integration{ID: "test_api", Name: "Test API", BaseURL: "https://api.example.com/", Auth: auth, Availability: availability}
 	blockDefinitions["action_test_api_thing_get"] = blockDefinition{
 		Type:     "action_test_api_thing_get",
 		Credits:  intPtr(2),
@@ -72,6 +83,10 @@ func withTestIntegration(t *testing.T, auth IntegrationAuth) {
 func intPtr(v int) *int { return &v }
 
 func executeIntegrationBlock(t *testing.T, nodeType FlowNodeType, data FlowNodeData, credentials map[string]string, httpProvider provider.HTTPProvider) (*FlowContext, error) {
+	return executeIntegrationBlockWith(t, nodeType, data, &integrationTestProvider{credentials: credentials}, httpProvider)
+}
+
+func executeIntegrationBlockWith(t *testing.T, nodeType FlowNodeType, data FlowNodeData, integrationProvider provider.IntegrationProvider, httpProvider provider.HTTPProvider) (*FlowContext, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	t.Cleanup(cancel)
 
@@ -83,7 +98,7 @@ func executeIntegrationBlock(t *testing.T, nodeType FlowNodeType, data FlowNodeD
 			Discord:     &provider.MockDiscordProvider{},
 			HTTP:        httpProvider,
 			Log:         &provider.MockLogProvider{},
-			Integration: &integrationTestProvider{credentials: credentials},
+			Integration: integrationProvider,
 		}, FlowContextLimits{
 			MaxStackDepth: 10,
 			MaxOperations: 1000,
@@ -177,4 +192,47 @@ func TestCookieAPIQRCode(t *testing.T) {
 	body, _ := io.ReadAll(httpProvider.req.Body)
 	assert.JSONEq(t, `{"data":"https://kite.onl","border":2}`, string(body))
 	assert.Equal(t, "https://images.cookie-api.com/qr-codes/1.png", c.GetNodeResult("1").Object()["url"].String())
+}
+
+// Integrations without a credential are on by default, until the app turns
+// them off.
+func TestCustomBlockNeedsEnabledIntegration(t *testing.T) {
+	withTestIntegration(t, IntegrationAuth{Type: "none"})
+	block := blockDefinitions[FlowNodeTypeActionLog]
+	blockDefinitions[FlowNodeTypeActionLog] = blockDefinition{Type: block.Type, Requires: []string{"test_api"}, Run: block.Run}
+	t.Cleanup(func() { blockDefinitions[FlowNodeTypeActionLog] = block })
+
+	data := FlowNodeData{LogMessage: "hi"}
+	_, err := executeIntegrationBlockWith(t, FlowNodeTypeActionLog, data, &integrationTestProvider{}, &redirectCheckingHTTPProvider{})
+	require.NoError(t, err)
+
+	_, err = executeIntegrationBlockWith(t, FlowNodeTypeActionLog, data,
+		&integrationTestProvider{choices: map[string]bool{"test_api": false}}, &redirectCheckingHTTPProvider{})
+	assert.ErrorContains(t, err, "Test API isn't enabled")
+}
+
+func TestIntegrationEnabled(t *testing.T) {
+	always := Integration{Availability: "always", Auth: IntegrationAuth{Type: "discord_bot"}}
+	byDefault := Integration{Availability: "default", Auth: IntegrationAuth{Type: "none"}}
+	optIn := Integration{Availability: "opt_in", Auth: IntegrationAuth{Type: "none"}}
+	withKey := Integration{Availability: "opt_in", Auth: IntegrationAuth{Type: "header"}}
+
+	assert.True(t, always.Enabled(false, null.BoolFrom(false)))
+	assert.True(t, byDefault.Enabled(false, null.Bool{}))
+	assert.False(t, byDefault.Enabled(false, null.BoolFrom(false)))
+	assert.False(t, optIn.Enabled(false, null.Bool{}))
+	assert.True(t, optIn.Enabled(false, null.BoolFrom(true)))
+	assert.False(t, withKey.Enabled(false, null.BoolFrom(true)))
+	assert.True(t, withKey.Enabled(true, null.Bool{}))
+}
+
+// Integrations that need a credential can't be on before the app connected
+// them.
+func TestIntegrationAvailability(t *testing.T) {
+	for _, integration := range Integrations() {
+		assert.Contains(t, []string{"always", "default", "opt_in"}, integration.Availability, integration.ID)
+		if integration.NeedsCredential() {
+			assert.Equal(t, "opt_in", integration.Availability, integration.ID)
+		}
+	}
 }

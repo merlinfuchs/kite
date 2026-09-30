@@ -947,17 +947,43 @@ func (p *SecretProvider) Secrets(ctx context.Context, names []string) (map[strin
 }
 
 type IntegrationProvider struct {
-	appID          string
-	appSecretStore store.AppSecretStore
-	tokenCrypt     *util.SymmetricCrypt
+	appID               string
+	appSecretStore      store.AppSecretStore
+	appIntegrationStore store.AppIntegrationStore
+	tokenCrypt          *util.SymmetricCrypt
+
+	// The app's choices, loaded once per run as blocks in loops check them
+	// again and again.
+	choicesMu sync.Mutex
+	choices   map[string]bool
 }
 
-func NewIntegrationProvider(appID string, appSecretStore store.AppSecretStore, tokenCrypt *util.SymmetricCrypt) *IntegrationProvider {
+func NewIntegrationProvider(appID string, appSecretStore store.AppSecretStore, appIntegrationStore store.AppIntegrationStore, tokenCrypt *util.SymmetricCrypt) *IntegrationProvider {
 	return &IntegrationProvider{
-		appID:          appID,
-		appSecretStore: appSecretStore,
-		tokenCrypt:     tokenCrypt,
+		appID:               appID,
+		appSecretStore:      appSecretStore,
+		appIntegrationStore: appIntegrationStore,
+		tokenCrypt:          tokenCrypt,
 	}
+}
+
+func (p *IntegrationProvider) Choice(ctx context.Context, integrationID string) (null.Bool, error) {
+	p.choicesMu.Lock()
+	defer p.choicesMu.Unlock()
+
+	if p.choices == nil {
+		rows, err := p.appIntegrationStore.AppIntegrations(ctx, p.appID)
+		if err != nil {
+			return null.Bool{}, fmt.Errorf("failed to get integrations: %w", err)
+		}
+		p.choices = make(map[string]bool, len(rows))
+		for _, row := range rows {
+			p.choices[row.IntegrationID] = row.Enabled
+		}
+	}
+
+	enabled, ok := p.choices[integrationID]
+	return null.NewBool(enabled, ok), nil
 }
 
 func (p *IntegrationProvider) Credential(ctx context.Context, integrationID string) (string, error) {

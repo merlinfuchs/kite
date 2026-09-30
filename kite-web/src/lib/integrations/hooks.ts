@@ -1,32 +1,34 @@
 import { useMemo } from "react";
 import { getBlockDefinition, blockIntegrations } from "../blocks";
 import { useAppIntegrations } from "../hooks/api";
-import { getIntegration, integrations, needsCredential } from ".";
+import { getIntegration, integrations } from ".";
 import { Integration } from "./types";
 
-// The IDs of the integrations the app can use: those that are always
-// connected and those the app connected. Undefined while loading.
-export function useConnectedIntegrationIds() {
-  const connected = useAppIntegrations();
+// The IDs of the integrations the app can use. Undefined while loading.
+export function useEnabledIntegrationIds() {
+  const states = useAppIntegrations();
   return useMemo(() => {
-    if (!connected) return undefined;
-    const ids = new Set(connected.map((c) => c?.integration_id));
+    if (!states) return undefined;
     return new Set(
       integrations
-        .filter((i) => !needsCredential(i) || ids.has(i.id))
+        .filter(
+          (i) =>
+            i.availability === "always" ||
+            states.some((s) => s?.integration_id === i.id && s.enabled)
+        )
         .map((i) => i.id)
     );
-  }, [connected]);
+  }, [states]);
 }
 
-// The integrations a block needs that the app didn't connect.
+// The integrations a block needs that the app didn't enable.
 export function useMissingIntegrations(nodeType: string | undefined) {
-  const connected = useConnectedIntegrationIds();
+  const enabled = useEnabledIntegrationIds();
   return useMemo(() => {
     const block = getBlockDefinition(nodeType);
-    if (!block || !connected) return [];
+    if (!block || !enabled) return [];
     return blockIntegrations(block)
       .map((id) => getIntegration(id))
-      .filter((i): i is Integration => !!i && !connected.has(i.id));
-  }, [nodeType, connected]);
+      .filter((i): i is Integration => !!i && !enabled.has(i.id));
+  }, [nodeType, enabled]);
 }

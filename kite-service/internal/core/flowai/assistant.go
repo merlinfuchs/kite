@@ -67,8 +67,8 @@ type Request struct {
 	Issues []string
 	// Variables are the app's stored variables, which blocks refer to by ID.
 	Variables []*model.Variable
-	// Integrations are the IDs of the integrations the app connected with a
-	// credential. Blocks of other such integrations are left out.
+	// Integrations are the IDs of the integrations the app can use. Blocks of
+	// the others are left out.
 	Integrations []string
 	AppID        string
 	UserID       string

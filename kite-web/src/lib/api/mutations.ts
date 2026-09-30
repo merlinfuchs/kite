@@ -63,6 +63,8 @@ import {
   AppIntegrationConnectRequest,
   AppIntegrationConnectResponse,
   AppIntegrationDisconnectResponse,
+  AppIntegrationUpdateRequest,
+  AppIntegrationUpdateResponse,
   AppSecretCreateRequest,
   AppSecretCreateResponse,
   AppSecretDeleteResponse,
@@ -416,6 +418,32 @@ export function useAppIntegrationConnectMutation(
         `/v1/apps/${appId}/integrations/${integrationId}`,
         {
           method: "PUT",
+          body: JSON.stringify(req),
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      ),
+    onSuccess: () => {
+      client.invalidateQueries({
+        queryKey: ["apps", appId, "integrations"],
+      });
+    },
+  });
+}
+
+export function useAppIntegrationUpdateMutation(
+  appId: string,
+  integrationId: string
+) {
+  const client = useQueryClient();
+
+  return useMutation({
+    mutationFn: (req: AppIntegrationUpdateRequest) =>
+      apiRequest<AppIntegrationUpdateResponse>(
+        `/v1/apps/${appId}/integrations/${integrationId}`,
+        {
+          method: "PATCH",
           body: JSON.stringify(req),
           headers: {
             "Content-Type": "application/json",

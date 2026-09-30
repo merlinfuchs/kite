@@ -458,14 +458,29 @@ export interface FlowAIField {
 // source: integration.go
 
 /**
- * AppIntegration is an integration the app connected with a credential. The
- * credential can't be read back.
+ * AppIntegration is whether the app can use an integration. Credentials can't
+ * be read back.
  */
 export interface AppIntegration {
   integration_id: string;
-  updated_at: string /* RFC3339 */;
+  enabled: boolean;
+  /**
+   * When the app last set the credential, for integrations that need one.
+   */
+  credential_updated_at: null | string /* RFC3339 */;
 }
+/**
+ * AppIntegrationListResponse has an entry for every integration.
+ */
 export type AppIntegrationListResponse = (AppIntegration | undefined)[];
+/**
+ * AppIntegrationUpdateRequest turns an integration without a credential on or
+ * off.
+ */
+export interface AppIntegrationUpdateRequest {
+  enabled: boolean;
+}
+export type AppIntegrationUpdateResponse = AppIntegration;
 export interface AppIntegrationConnectRequest {
   credential: string;
 }

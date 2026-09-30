@@ -13,6 +13,7 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/internal/store"
 	"github.com/kitecloud/kite/kite-service/internal/util"
+	"github.com/kitecloud/kite/kite-service/pkg/flow"
 )
 
 // Assistant is what the handler needs of flowai.Assistant.
@@ -34,24 +35,32 @@ type VariableStore interface {
 	VariablesByAppWithoutTotals(ctx context.Context, appID string) ([]*model.Variable, error)
 }
 
+// IntegrationStore is what the handler needs to tell which integrations the
+// app enabled.
 type IntegrationStore interface {
 	AppIntegrationCredentials(ctx context.Context, appID string) ([]*model.AppSecret, error)
+}
+
+type IntegrationChoiceStore interface {
+	AppIntegrations(ctx context.Context, appID string) ([]*model.AppIntegration, error)
 }
 
 type FlowAIHandler struct {
 	promptStore      store.AssistantPromptStore
 	variableStore    VariableStore
 	integrationStore IntegrationStore
+	choiceStore      IntegrationChoiceStore
 	// assistant is nil if no OpenAI API key is configured.
 	assistant  Assistant
 	maxRepairs int
 }
 
-func NewFlowAIHandler(promptStore store.AssistantPromptStore, variableStore VariableStore, integrationStore IntegrationStore, assistant *flowai.Assistant, maxRepairs int) *FlowAIHandler {
+func NewFlowAIHandler(promptStore store.AssistantPromptStore, variableStore VariableStore, integrationStore IntegrationStore, choiceStore IntegrationChoiceStore, assistant *flowai.Assistant, maxRepairs int) *FlowAIHandler {
 	h := &FlowAIHandler{
 		promptStore:      promptStore,
 		variableStore:    variableStore,
 		integrationStore: integrationStore,
+		choiceStore:      choiceStore,
 		maxRepairs:       maxRepairs,
 	}
 	// A nil pointer in the interface wouldn't compare equal to nil.
@@ -109,13 +118,9 @@ func (h *FlowAIHandler) HandleFlowAIChat(c *handler.Context, req wire.FlowAIChat
 	if err != nil {
 		return nil, fmt.Errorf("failed to get variables: %w", err)
 	}
-	credentials, err := h.integrationStore.AppIntegrationCredentials(c.Context(), c.App.ID)
+	integrations, err := h.enabledIntegrations(c.Context(), c.App.ID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get integrations: %w", err)
-	}
-	integrations := make([]string, len(credentials))
-	for i, credential := range credentials {
-		integrations[i] = credential.IntegrationID
+		return nil, err
 	}
 
 	// Recorded even if the client disconnects, so it's counted or given back.
@@ -249,4 +254,26 @@ func usage(count model.AssistantPromptCount, limit int) wire.FlowAIUsage {
 		AnswersUsed:  count.Total,
 		AnswersLimit: answerLimitFactor * limit,
 	}
+}
+
+func (h *FlowAIHandler) enabledIntegrations(ctx context.Context, appID string) ([]string, error) {
+	credentials, err := h.integrationStore.AppIntegrationCredentials(ctx, appID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get integrations: %w", err)
+	}
+	connected := make([]string, len(credentials))
+	for i, credential := range credentials {
+		connected[i] = credential.IntegrationID
+	}
+
+	rows, err := h.choiceStore.AppIntegrations(ctx, appID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get integrations: %w", err)
+	}
+	choices := make(map[string]bool, len(rows))
+	for _, row := range rows {
+		choices[row.IntegrationID] = row.Enabled
+	}
+
+	return flow.EnabledIntegrations(connected, choices), nil
 }

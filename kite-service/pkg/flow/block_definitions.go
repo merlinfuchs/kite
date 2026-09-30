@@ -22,6 +22,7 @@ import (
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/kitecloud/kite/kite-service/pkg/provider"
 	"github.com/kitecloud/kite/kite-service/pkg/thing"
+	"gopkg.in/guregu/null.v4"
 )
 
 // blockDefinitionsJSON describes every block: how it runs, which integrations
@@ -79,6 +80,9 @@ type Integration struct {
 	Description string          `json:"description"`
 	BaseURL     string          `json:"base_url"`
 	Auth        IntegrationAuth `json:"auth"`
+	// "always" for integrations every app can use, "default" for ones apps
+	// can turn off and "opt_in" for ones they turn on.
+	Availability string `json:"availability"`
 	// A GET endpoint, relative to BaseURL, that checks a credential.
 	TestPath string `json:"test_path"`
 }
@@ -94,9 +98,38 @@ type IntegrationAuth struct {
 }
 
 // NeedsCredential reports whether the app has to connect the integration with
-// a credential. The others are always connected.
+// a credential to use it.
 func (i Integration) NeedsCredential() bool {
 	return i.Auth.Type == "header" || i.Auth.Type == "query"
+}
+
+// Enabled reports whether an app can use the integration: whether it
+// connected it with a credential, for integrations that need one, and
+// otherwise whether it turned it on or off, if it did.
+func (i Integration) Enabled(connected bool, choice null.Bool) bool {
+	switch {
+	case i.Availability == "always":
+		return true
+	case i.NeedsCredential():
+		return connected
+	case choice.Valid:
+		return choice.Bool
+	default:
+		return i.Availability == "default"
+	}
+}
+
+// EnabledIntegrations returns the IDs of the integrations an app can use,
+// given those it connected with a credential and its choices for the others.
+func EnabledIntegrations(connected []string, choices map[string]bool) []string {
+	var res []string
+	for _, integration := range Integrations() {
+		choice, ok := choices[integration.ID]
+		if integration.Enabled(slices.Contains(connected, integration.ID), null.NewBool(choice, ok)) {
+			res = append(res, integration.ID)
+		}
+	}
+	return res
 }
 
 // NewRequest creates a request to the integration's API, with the app's
@@ -527,17 +560,37 @@ func integrationCredential(ctx *FlowContext, integration Integration) (string, e
 	return credential, nil
 }
 
-// checkIntegrations fails if the app didn't connect an integration the block
-// needs. Requests check it when they get the credential, this is for blocks
-// written in Go.
+// checkIntegrations fails if the app didn't enable an integration the block
+// needs. Requests check the credential of their own integration when they
+// get it, so it isn't fetched twice.
 func (n *CompiledFlowNode) checkIntegrations(ctx *FlowContext) error {
-	for _, id := range blockDefinitions[n.Type].Requires {
+	block := blockDefinitions[n.Type]
+	for _, id := range block.Requires {
 		integration, ok := integrations[id]
-		if !ok || !integration.NeedsCredential() {
+		if !ok || integration.Availability == "always" {
 			continue
 		}
-		if _, err := integrationCredential(ctx, integration); err != nil {
-			return err
+
+		if integration.NeedsCredential() {
+			if block.Run.Kind == "request" && block.Run.Integration == id {
+				continue
+			}
+			if _, err := integrationCredential(ctx, integration); err != nil {
+				return err
+			}
+			continue
+		}
+
+		var choice null.Bool
+		if ctx.Integration != nil {
+			var err error
+			choice, err = ctx.Integration.Choice(ctx, id)
+			if err != nil {
+				return err
+			}
+		}
+		if !integration.Enabled(false, choice) {
+			return fmt.Errorf("%s isn't enabled, enable it in the app's integrations", integration.Name)
 		}
 	}
 	return nil
