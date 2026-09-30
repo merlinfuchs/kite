@@ -60,7 +60,7 @@ Service:
 1. `pkg/flow/data.go`: add the `FlowNodeType` constant and any new fields on `FlowNodeData`. Reuse existing fields (`ChannelTarget`, `MessageTarget`, `AuditLogReason`, ...) where they fit.
 2. `pkg/flow/execute.go`: add a handler method and register it in `nodeHandlers`. Evaluate inputs with `ctx.EvalTemplate`, return errors with `traceError(n, err)`, and store a result if the block returns data.
 3. `pkg/provider/discord.go`: add the method to the `DiscordProvider` interface and to `MockDiscordProvider`.
-4. `internal/core/engine/providers.go`: implement the method. The engine's provider embeds the mock, so if you skip this it compiles and silently does nothing.
+4. `internal/core/engine/providers.go`: implement the method.
 5. `CreditsCost()` in `pkg/flow/execute.go`: `action_*` blocks cost 1 by default. Blocks that call external services or do a lot of work cost more. A test checks it matches `credits` of the definition.
 
 Web:

@@ -40,8 +40,6 @@ type FeatureProvider interface {
 }
 
 type DiscordProvider struct {
-	provider.MockDiscordProvider // TODO: remove this
-
 	appID           string
 	appStore        store.AppStore
 	featureProvider FeatureProvider
