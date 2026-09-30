@@ -51,8 +51,10 @@ func States(ctx context.Context, credentials CredentialStore, choices ChoiceStor
 	res := make([]State, len(integrations))
 	for i, integration := range integrations {
 		res[i] = State{
-			Integration:         integration,
-			Enabled:             integration.Enabled(updatedAt[integration.ID].Valid, choice[integration.ID]),
+			Integration: integration,
+			// A row without its credential can't run, whatever it says.
+			Enabled: integration.Enabled(choice[integration.ID]) &&
+				(!integration.NeedsCredential() || updatedAt[integration.ID].Valid),
 			CredentialUpdatedAt: updatedAt[integration.ID],
 		}
 	}

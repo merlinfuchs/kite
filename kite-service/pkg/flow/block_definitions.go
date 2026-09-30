@@ -101,25 +101,24 @@ const (
 	AvailabilityAlways = "always"
 	// Apps can use it until they turn it off.
 	AvailabilityDefault = "default"
-	// Apps turn it on, or connect it if it needs a credential.
+	// Apps turn it on, by entering the credential if it needs one.
 	AvailabilityOptIn = "opt_in"
 )
 
-// NeedsCredential reports whether the app has to connect the integration with
-// a credential to use it.
+// NeedsCredential reports whether the app has to enter a credential to use
+// the integration.
 func (i Integration) NeedsCredential() bool {
 	return i.Auth.Type == "header" || i.Auth.Type == "query"
 }
 
-// Enabled reports whether an app can use the integration: whether it
-// connected it with a credential, for integrations that need one, and
-// otherwise whether it turned it on or off, if it did.
-func (i Integration) Enabled(connected bool, choice null.Bool) bool {
+// Enabled reports whether an app can use the integration, given whether it
+// enabled or disabled it. Without a choice, the integration's default applies.
+// Integrations that need a credential are opt-in, and have a choice exactly
+// when the app connected them, as the credential references it.
+func (i Integration) Enabled(choice null.Bool) bool {
 	switch {
 	case i.Availability == AvailabilityAlways:
 		return true
-	case i.NeedsCredential():
-		return connected
 	case choice.Valid:
 		return choice.Bool
 	default:
@@ -540,15 +539,14 @@ func integrationRequest(ctx *FlowContext, integration Integration, method string
 }
 
 func integrationCredential(ctx *FlowContext, integration Integration) (string, error) {
-	notConnected := fmt.Errorf("%s isn't connected, connect it in the app's integrations", integration.Name)
 	if ctx.Integration == nil {
-		return "", notConnected
+		return "", notEnabledError(integration)
 	}
 
 	credential, err := ctx.Integration.Credential(ctx, integration.ID)
 	if err != nil {
 		if errors.Is(err, provider.ErrNotFound) {
-			return "", notConnected
+			return "", notEnabledError(integration)
 		}
 		return "", err
 	}
@@ -556,23 +554,11 @@ func integrationCredential(ctx *FlowContext, integration Integration) (string, e
 }
 
 // checkIntegrations fails if the app didn't enable an integration the block
-// needs. Requests check the credential of their own integration when they
-// get it, so it isn't fetched twice.
+// needs.
 func (n *CompiledFlowNode) checkIntegrations(ctx *FlowContext) error {
-	block := blockDefinitions[n.Type]
-	for _, id := range block.Requires {
+	for _, id := range blockDefinitions[n.Type].Requires {
 		integration, ok := integrations[id]
 		if !ok || integration.Availability == AvailabilityAlways {
-			continue
-		}
-
-		if integration.NeedsCredential() {
-			if block.Run.Kind == "request" && block.Run.Integration == id {
-				continue
-			}
-			if _, err := integrationCredential(ctx, integration); err != nil {
-				return err
-			}
 			continue
 		}
 
@@ -584,9 +570,13 @@ func (n *CompiledFlowNode) checkIntegrations(ctx *FlowContext) error {
 				return err
 			}
 		}
-		if !integration.Enabled(false, choice) {
-			return fmt.Errorf("%s isn't enabled, enable it in the app's integrations", integration.Name)
+		if !integration.Enabled(choice) {
+			return notEnabledError(integration)
 		}
 	}
 	return nil
+}
+
+func notEnabledError(integration Integration) error {
+	return fmt.Errorf("%s isn't enabled, enable it in the app's integrations", integration.Name)
 }

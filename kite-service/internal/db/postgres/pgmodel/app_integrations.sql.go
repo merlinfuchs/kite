@@ -11,8 +11,72 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const deleteAppIntegration = `-- name: DeleteAppIntegration :execrows
+DELETE FROM app_integrations WHERE app_id = $1 AND integration_id = $2
+`
+
+type DeleteAppIntegrationParams struct {
+	AppID         string
+	IntegrationID string
+}
+
+func (q *Queries) DeleteAppIntegration(ctx context.Context, arg DeleteAppIntegrationParams) (int64, error) {
+	result, err := q.db.Exec(ctx, deleteAppIntegration, arg.AppID, arg.IntegrationID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
+const ensureAppIntegration = `-- name: EnsureAppIntegration :one
+INSERT INTO app_integrations (
+    id,
+    app_id,
+    integration_id,
+    enabled,
+    created_at,
+    updated_at
+) VALUES (
+    $1, $2, $3, TRUE, $4, $5
+)
+ON CONFLICT (app_id, integration_id) DO UPDATE SET
+    updated_at = EXCLUDED.updated_at
+RETURNING id, app_id, integration_id, enabled, created_at, updated_at
+`
+
+type EnsureAppIntegrationParams struct {
+	ID            string
+	AppID         string
+	IntegrationID string
+	CreatedAt     pgtype.Timestamp
+	UpdatedAt     pgtype.Timestamp
+}
+
+// Creates the row of an integration enabled, or keeps the app's choice. Either
+// way the row is locked, so it can't be removed before its credential is
+// written.
+func (q *Queries) EnsureAppIntegration(ctx context.Context, arg EnsureAppIntegrationParams) (AppIntegration, error) {
+	row := q.db.QueryRow(ctx, ensureAppIntegration,
+		arg.ID,
+		arg.AppID,
+		arg.IntegrationID,
+		arg.CreatedAt,
+		arg.UpdatedAt,
+	)
+	var i AppIntegration
+	err := row.Scan(
+		&i.ID,
+		&i.AppID,
+		&i.IntegrationID,
+		&i.Enabled,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
 const getAppIntegrations = `-- name: GetAppIntegrations :many
-SELECT app_id, integration_id, enabled, created_at, updated_at FROM app_integrations WHERE app_id = $1 ORDER BY integration_id
+SELECT id, app_id, integration_id, enabled, created_at, updated_at FROM app_integrations WHERE app_id = $1 ORDER BY integration_id
 `
 
 func (q *Queries) GetAppIntegrations(ctx context.Context, appID string) ([]AppIntegration, error) {
@@ -25,6 +89,7 @@ func (q *Queries) GetAppIntegrations(ctx context.Context, appID string) ([]AppIn
 	for rows.Next() {
 		var i AppIntegration
 		if err := rows.Scan(
+			&i.ID,
 			&i.AppID,
 			&i.IntegrationID,
 			&i.Enabled,
@@ -43,21 +108,23 @@ func (q *Queries) GetAppIntegrations(ctx context.Context, appID string) ([]AppIn
 
 const setAppIntegrationEnabled = `-- name: SetAppIntegrationEnabled :one
 INSERT INTO app_integrations (
+    id,
     app_id,
     integration_id,
     enabled,
     created_at,
     updated_at
 ) VALUES (
-    $1, $2, $3, $4, $5
+    $1, $2, $3, $4, $5, $6
 )
 ON CONFLICT (app_id, integration_id) DO UPDATE SET
     enabled = EXCLUDED.enabled,
     updated_at = EXCLUDED.updated_at
-RETURNING app_id, integration_id, enabled, created_at, updated_at
+RETURNING id, app_id, integration_id, enabled, created_at, updated_at
 `
 
 type SetAppIntegrationEnabledParams struct {
+	ID            string
 	AppID         string
 	IntegrationID string
 	Enabled       bool
@@ -67,6 +134,7 @@ type SetAppIntegrationEnabledParams struct {
 
 func (q *Queries) SetAppIntegrationEnabled(ctx context.Context, arg SetAppIntegrationEnabledParams) (AppIntegration, error) {
 	row := q.db.QueryRow(ctx, setAppIntegrationEnabled,
+		arg.ID,
 		arg.AppID,
 		arg.IntegrationID,
 		arg.Enabled,
@@ -75,6 +143,41 @@ func (q *Queries) SetAppIntegrationEnabled(ctx context.Context, arg SetAppIntegr
 	)
 	var i AppIntegration
 	err := row.Scan(
+		&i.ID,
+		&i.AppID,
+		&i.IntegrationID,
+		&i.Enabled,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const updateAppIntegrationEnabled = `-- name: UpdateAppIntegrationEnabled :one
+UPDATE app_integrations SET
+    enabled = $3,
+    updated_at = $4
+WHERE app_id = $1 AND integration_id = $2
+RETURNING id, app_id, integration_id, enabled, created_at, updated_at
+`
+
+type UpdateAppIntegrationEnabledParams struct {
+	AppID         string
+	IntegrationID string
+	Enabled       bool
+	UpdatedAt     pgtype.Timestamp
+}
+
+func (q *Queries) UpdateAppIntegrationEnabled(ctx context.Context, arg UpdateAppIntegrationEnabledParams) (AppIntegration, error) {
+	row := q.db.QueryRow(ctx, updateAppIntegrationEnabled,
+		arg.AppID,
+		arg.IntegrationID,
+		arg.Enabled,
+		arg.UpdatedAt,
+	)
+	var i AppIntegration
+	err := row.Scan(
+		&i.ID,
 		&i.AppID,
 		&i.IntegrationID,
 		&i.Enabled,

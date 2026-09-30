@@ -308,7 +308,7 @@ func (s *APIServer) RegisterRoutes(
 	integrationGroup := integrationsGroup.Group("/{integrationID}")
 	integrationGroup.Patch("/", handler.TypedWithBody(integrationHandler.HandleAppIntegrationUpdate))
 	integrationGroup.Put("/", handler.TypedWithBody(integrationHandler.HandleAppIntegrationConnect))
-	integrationGroup.Delete("/", handler.Typed(integrationHandler.HandleAppIntegrationDisconnect))
+	integrationGroup.Delete("/", handler.Typed(integrationHandler.HandleAppIntegrationRemove))
 
 	// Message routes
 	messageHandler := message.NewMessageHandler(

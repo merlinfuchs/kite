@@ -474,8 +474,7 @@ export interface AppIntegration {
  */
 export type AppIntegrationListResponse = (AppIntegration | undefined)[];
 /**
- * AppIntegrationUpdateRequest turns an integration without a credential on or
- * off.
+ * AppIntegrationUpdateRequest enables or disables an integration.
  */
 export interface AppIntegrationUpdateRequest {
   /**
@@ -483,12 +482,12 @@ export interface AppIntegrationUpdateRequest {
    */
   enabled?: boolean;
 }
-export type AppIntegrationUpdateResponse = AppIntegration;
+export type AppIntegrationUpdateResponse = Empty;
 export interface AppIntegrationConnectRequest {
   credential: string;
 }
-export type AppIntegrationConnectResponse = AppIntegration;
-export type AppIntegrationDisconnectResponse = Empty;
+export type AppIntegrationConnectResponse = Empty;
+export type AppIntegrationRemoveResponse = Empty;
 
 //////////
 // source: log.go

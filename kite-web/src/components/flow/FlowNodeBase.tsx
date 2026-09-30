@@ -2,7 +2,6 @@ import { NodeProps } from "@/lib/flow/dataSchema";
 import { ReactNode } from "react";
 import { errorColor, primaryColor, useNodeValues } from "@/lib/flow/nodes";
 import { useMissingIntegrations } from "@/lib/integrations/hooks";
-import { needsCredential } from "@/lib/integrations";
 import { useAppId } from "@/lib/hooks/params";
 import Link from "next/link";
 import FlowNodeMarkers from "./FlowNodeMarkers";
@@ -31,8 +30,6 @@ export default function FlowNodeBase(props: Props) {
   const changedByAI = useChangedByAI(props.id);
   const appId = useAppId();
   const missingIntegrations = useMissingIntegrations(props.type);
-  // Integrations with a credential are enabled by connecting them.
-  const missingConnection = missingIntegrations.every(needsCredential);
 
   return (
     <div
@@ -76,8 +73,7 @@ export default function FlowNodeBase(props: Props) {
       {missingIntegrations.length > 0 && (
         <div className="text-xs text-red-600 dark:text-red-400 mt-2">
           {missingIntegrations.map((i) => i.name).join(", ")}{" "}
-          {missingIntegrations.length === 1 ? "isn't" : "aren't"}{" "}
-          {missingConnection ? "connected" : "enabled"}.{" "}
+          {missingIntegrations.length === 1 ? "isn't" : "aren't"} enabled.{" "}
           <Link
             href={{
               pathname: "/apps/[appId]/integrations",
@@ -86,8 +82,7 @@ export default function FlowNodeBase(props: Props) {
             target="_blank"
             className="underline"
           >
-            {missingConnection ? "Connect" : "Enable"}{" "}
-            {missingIntegrations.length === 1 ? "it" : "them"}
+            Enable {missingIntegrations.length === 1 ? "it" : "them"}
           </Link>
         </div>
       )}

@@ -32,7 +32,7 @@ INSERT INTO app_secrets (
     updated_at
 ) VALUES (
     $1, $2, $3, $4, $5, $6
-) RETURNING id, app_id, name, integration_id, value_encrypted, created_at, updated_at
+) RETURNING id, app_id, name, app_integration_id, value_encrypted, created_at, updated_at
 `
 
 type CreateAppSecretParams struct {
@@ -58,29 +58,12 @@ func (q *Queries) CreateAppSecret(ctx context.Context, arg CreateAppSecretParams
 		&i.ID,
 		&i.AppID,
 		&i.Name,
-		&i.IntegrationID,
+		&i.AppIntegrationID,
 		&i.ValueEncrypted,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
 	return i, err
-}
-
-const deleteAppIntegrationCredential = `-- name: DeleteAppIntegrationCredential :execrows
-DELETE FROM app_secrets WHERE app_id = $1 AND integration_id = $2
-`
-
-type DeleteAppIntegrationCredentialParams struct {
-	AppID         string
-	IntegrationID pgtype.Text
-}
-
-func (q *Queries) DeleteAppIntegrationCredential(ctx context.Context, arg DeleteAppIntegrationCredentialParams) (int64, error) {
-	result, err := q.db.Exec(ctx, deleteAppIntegrationCredential, arg.AppID, arg.IntegrationID)
-	if err != nil {
-		return 0, err
-	}
-	return result.RowsAffected(), nil
 }
 
 const deleteAppSecret = `-- name: DeleteAppSecret :execrows
@@ -101,53 +84,72 @@ func (q *Queries) DeleteAppSecret(ctx context.Context, arg DeleteAppSecretParams
 }
 
 const getAppIntegrationCredential = `-- name: GetAppIntegrationCredential :one
-SELECT id, app_id, name, integration_id, value_encrypted, created_at, updated_at FROM app_secrets WHERE app_id = $1 AND integration_id = $2
+SELECT app_secrets.id, app_secrets.app_id, app_secrets.name, app_secrets.app_integration_id, app_secrets.value_encrypted, app_secrets.created_at, app_secrets.updated_at, app_integrations.integration_id
+FROM app_secrets
+JOIN app_integrations ON app_integrations.id = app_secrets.app_integration_id
+WHERE app_secrets.app_id = $1 AND app_integrations.integration_id = $2
 `
 
 type GetAppIntegrationCredentialParams struct {
 	AppID         string
-	IntegrationID pgtype.Text
+	IntegrationID string
 }
 
-func (q *Queries) GetAppIntegrationCredential(ctx context.Context, arg GetAppIntegrationCredentialParams) (AppSecret, error) {
+type GetAppIntegrationCredentialRow struct {
+	AppSecret     AppSecret
+	IntegrationID string
+}
+
+func (q *Queries) GetAppIntegrationCredential(ctx context.Context, arg GetAppIntegrationCredentialParams) (GetAppIntegrationCredentialRow, error) {
 	row := q.db.QueryRow(ctx, getAppIntegrationCredential, arg.AppID, arg.IntegrationID)
-	var i AppSecret
+	var i GetAppIntegrationCredentialRow
 	err := row.Scan(
-		&i.ID,
-		&i.AppID,
-		&i.Name,
+		&i.AppSecret.ID,
+		&i.AppSecret.AppID,
+		&i.AppSecret.Name,
+		&i.AppSecret.AppIntegrationID,
+		&i.AppSecret.ValueEncrypted,
+		&i.AppSecret.CreatedAt,
+		&i.AppSecret.UpdatedAt,
 		&i.IntegrationID,
-		&i.ValueEncrypted,
-		&i.CreatedAt,
-		&i.UpdatedAt,
 	)
 	return i, err
 }
 
 const getAppIntegrationCredentials = `-- name: GetAppIntegrationCredentials :many
 
-SELECT id, app_id, name, integration_id, value_encrypted, created_at, updated_at FROM app_secrets WHERE app_id = $1 AND integration_id IS NOT NULL ORDER BY integration_id
+SELECT app_secrets.id, app_secrets.app_id, app_secrets.name, app_secrets.app_integration_id, app_secrets.value_encrypted, app_secrets.created_at, app_secrets.updated_at, app_integrations.integration_id
+FROM app_secrets
+JOIN app_integrations ON app_integrations.id = app_secrets.app_integration_id
+WHERE app_secrets.app_id = $1
+ORDER BY app_integrations.integration_id
 `
 
-// Integration credentials are the secrets with an integration_id instead of
-// a name.
-func (q *Queries) GetAppIntegrationCredentials(ctx context.Context, appID string) ([]AppSecret, error) {
+type GetAppIntegrationCredentialsRow struct {
+	AppSecret     AppSecret
+	IntegrationID string
+}
+
+// Integration credentials are the secrets of an integration the app set up
+// instead of a name. They're removed with their row in app_integrations.
+func (q *Queries) GetAppIntegrationCredentials(ctx context.Context, appID string) ([]GetAppIntegrationCredentialsRow, error) {
 	rows, err := q.db.Query(ctx, getAppIntegrationCredentials, appID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []AppSecret
+	var items []GetAppIntegrationCredentialsRow
 	for rows.Next() {
-		var i AppSecret
+		var i GetAppIntegrationCredentialsRow
 		if err := rows.Scan(
-			&i.ID,
-			&i.AppID,
-			&i.Name,
+			&i.AppSecret.ID,
+			&i.AppSecret.AppID,
+			&i.AppSecret.Name,
+			&i.AppSecret.AppIntegrationID,
+			&i.AppSecret.ValueEncrypted,
+			&i.AppSecret.CreatedAt,
+			&i.AppSecret.UpdatedAt,
 			&i.IntegrationID,
-			&i.ValueEncrypted,
-			&i.CreatedAt,
-			&i.UpdatedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -160,7 +162,7 @@ func (q *Queries) GetAppIntegrationCredentials(ctx context.Context, appID string
 }
 
 const getAppSecret = `-- name: GetAppSecret :one
-SELECT id, app_id, name, integration_id, value_encrypted, created_at, updated_at FROM app_secrets WHERE app_id = $1 AND id = $2 AND name IS NOT NULL
+SELECT id, app_id, name, app_integration_id, value_encrypted, created_at, updated_at FROM app_secrets WHERE app_id = $1 AND id = $2 AND name IS NOT NULL
 `
 
 type GetAppSecretParams struct {
@@ -175,7 +177,7 @@ func (q *Queries) GetAppSecret(ctx context.Context, arg GetAppSecretParams) (App
 		&i.ID,
 		&i.AppID,
 		&i.Name,
-		&i.IntegrationID,
+		&i.AppIntegrationID,
 		&i.ValueEncrypted,
 		&i.CreatedAt,
 		&i.UpdatedAt,
@@ -184,7 +186,7 @@ func (q *Queries) GetAppSecret(ctx context.Context, arg GetAppSecretParams) (App
 }
 
 const getAppSecretsByApp = `-- name: GetAppSecretsByApp :many
-SELECT id, app_id, name, integration_id, value_encrypted, created_at, updated_at FROM app_secrets WHERE app_id = $1 AND name IS NOT NULL ORDER BY name
+SELECT id, app_id, name, app_integration_id, value_encrypted, created_at, updated_at FROM app_secrets WHERE app_id = $1 AND name IS NOT NULL ORDER BY name
 `
 
 func (q *Queries) GetAppSecretsByApp(ctx context.Context, appID string) ([]AppSecret, error) {
@@ -200,7 +202,7 @@ func (q *Queries) GetAppSecretsByApp(ctx context.Context, appID string) ([]AppSe
 			&i.ID,
 			&i.AppID,
 			&i.Name,
-			&i.IntegrationID,
+			&i.AppIntegrationID,
 			&i.ValueEncrypted,
 			&i.CreatedAt,
 			&i.UpdatedAt,
@@ -216,7 +218,7 @@ func (q *Queries) GetAppSecretsByApp(ctx context.Context, appID string) ([]AppSe
 }
 
 const getAppSecretsByNames = `-- name: GetAppSecretsByNames :many
-SELECT id, app_id, name, integration_id, value_encrypted, created_at, updated_at FROM app_secrets WHERE app_id = $1 AND name = ANY($2::TEXT[])
+SELECT id, app_id, name, app_integration_id, value_encrypted, created_at, updated_at FROM app_secrets WHERE app_id = $1 AND name = ANY($2::TEXT[])
 `
 
 type GetAppSecretsByNamesParams struct {
@@ -237,7 +239,7 @@ func (q *Queries) GetAppSecretsByNames(ctx context.Context, arg GetAppSecretsByN
 			&i.ID,
 			&i.AppID,
 			&i.Name,
-			&i.IntegrationID,
+			&i.AppIntegrationID,
 			&i.ValueEncrypted,
 			&i.CreatedAt,
 			&i.UpdatedAt,
@@ -256,33 +258,33 @@ const setAppIntegrationCredential = `-- name: SetAppIntegrationCredential :one
 INSERT INTO app_secrets (
     id,
     app_id,
-    integration_id,
+    app_integration_id,
     value_encrypted,
     created_at,
     updated_at
 ) VALUES (
     $1, $2, $3, $4, $5, $6
 )
-ON CONFLICT (app_id, integration_id) WHERE integration_id IS NOT NULL DO UPDATE SET
+ON CONFLICT (app_integration_id) WHERE app_integration_id IS NOT NULL DO UPDATE SET
     value_encrypted = EXCLUDED.value_encrypted,
     updated_at = EXCLUDED.updated_at
-RETURNING id, app_id, name, integration_id, value_encrypted, created_at, updated_at
+RETURNING id, app_id, name, app_integration_id, value_encrypted, created_at, updated_at
 `
 
 type SetAppIntegrationCredentialParams struct {
-	ID             string
-	AppID          string
-	IntegrationID  pgtype.Text
-	ValueEncrypted string
-	CreatedAt      pgtype.Timestamp
-	UpdatedAt      pgtype.Timestamp
+	ID               string
+	AppID            string
+	AppIntegrationID pgtype.Text
+	ValueEncrypted   string
+	CreatedAt        pgtype.Timestamp
+	UpdatedAt        pgtype.Timestamp
 }
 
 func (q *Queries) SetAppIntegrationCredential(ctx context.Context, arg SetAppIntegrationCredentialParams) (AppSecret, error) {
 	row := q.db.QueryRow(ctx, setAppIntegrationCredential,
 		arg.ID,
 		arg.AppID,
-		arg.IntegrationID,
+		arg.AppIntegrationID,
 		arg.ValueEncrypted,
 		arg.CreatedAt,
 		arg.UpdatedAt,
@@ -292,7 +294,7 @@ func (q *Queries) SetAppIntegrationCredential(ctx context.Context, arg SetAppInt
 		&i.ID,
 		&i.AppID,
 		&i.Name,
-		&i.IntegrationID,
+		&i.AppIntegrationID,
 		&i.ValueEncrypted,
 		&i.CreatedAt,
 		&i.UpdatedAt,
@@ -305,7 +307,7 @@ UPDATE app_secrets SET
     name = $3,
     value_encrypted = $4,
     updated_at = $5
-WHERE app_id = $1 AND id = $2 AND name IS NOT NULL RETURNING id, app_id, name, integration_id, value_encrypted, created_at, updated_at
+WHERE app_id = $1 AND id = $2 AND name IS NOT NULL RETURNING id, app_id, name, app_integration_id, value_encrypted, created_at, updated_at
 `
 
 type UpdateAppSecretParams struct {
@@ -329,7 +331,7 @@ func (q *Queries) UpdateAppSecret(ctx context.Context, arg UpdateAppSecretParams
 		&i.ID,
 		&i.AppID,
 		&i.Name,
-		&i.IntegrationID,
+		&i.AppIntegrationID,
 		&i.ValueEncrypted,
 		&i.CreatedAt,
 		&i.UpdatedAt,

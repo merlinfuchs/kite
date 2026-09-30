@@ -24,6 +24,7 @@ type App struct {
 }
 
 type AppIntegration struct {
+	ID            string
 	AppID         string
 	IntegrationID string
 	Enabled       bool
@@ -32,13 +33,13 @@ type AppIntegration struct {
 }
 
 type AppSecret struct {
-	ID             string
-	AppID          string
-	Name           pgtype.Text
-	IntegrationID  pgtype.Text
-	ValueEncrypted string
-	CreatedAt      pgtype.Timestamp
-	UpdatedAt      pgtype.Timestamp
+	ID               string
+	AppID            string
+	Name             pgtype.Text
+	AppIntegrationID pgtype.Text
+	ValueEncrypted   string
+	CreatedAt        pgtype.Timestamp
+	UpdatedAt        pgtype.Timestamp
 }
 
 type Asset struct {

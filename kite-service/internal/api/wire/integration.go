@@ -17,8 +17,7 @@ type AppIntegration struct {
 // AppIntegrationListResponse has an entry for every integration.
 type AppIntegrationListResponse = []*AppIntegration
 
-// AppIntegrationUpdateRequest turns an integration without a credential on or
-// off.
+// AppIntegrationUpdateRequest enables or disables an integration.
 type AppIntegrationUpdateRequest struct {
 	// A pointer, so a missing value isn't taken as turning it off.
 	Enabled *bool `json:"enabled"`
@@ -30,7 +29,7 @@ func (req AppIntegrationUpdateRequest) Validate() error {
 	)
 }
 
-type AppIntegrationUpdateResponse = AppIntegration
+type AppIntegrationUpdateResponse = Empty
 
 type AppIntegrationConnectRequest struct {
 	Credential string `json:"credential"`
@@ -42,6 +41,6 @@ func (req AppIntegrationConnectRequest) Validate() error {
 	)
 }
 
-type AppIntegrationConnectResponse = AppIntegration
+type AppIntegrationConnectResponse = Empty
 
-type AppIntegrationDisconnectResponse = Empty
+type AppIntegrationRemoveResponse = Empty

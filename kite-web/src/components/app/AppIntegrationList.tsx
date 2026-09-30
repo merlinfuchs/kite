@@ -6,7 +6,7 @@ import { CredentialIntegration, Integration } from "@/lib/integrations/types";
 import { useAppIntegrations } from "@/lib/hooks/api";
 import {
   useAppIntegrationConnectMutation,
-  useAppIntegrationDisconnectMutation,
+  useAppIntegrationRemoveMutation,
   useAppIntegrationUpdateMutation,
 } from "@/lib/api/mutations";
 import { useAppId } from "@/lib/hooks/params";
@@ -69,10 +69,7 @@ function AppIntegrationEntry({
 }) {
   const appId = useAppId();
   const updateMutation = useAppIntegrationUpdateMutation(appId, integration.id);
-  const disconnectMutation = useAppIntegrationDisconnectMutation(
-    appId,
-    integration.id
-  );
+  const removeMutation = useAppIntegrationRemoveMutation(appId, integration.id);
 
   function setEnabled(enabled: boolean) {
     updateMutation.mutate(
@@ -89,33 +86,34 @@ function AppIntegrationEntry({
     );
   }
 
-  function disconnect() {
-    disconnectMutation.mutate(undefined, {
+  function remove() {
+    removeMutation.mutate(undefined, {
       onSuccess(res) {
         if (res.success) {
-          toast.success(`${integration.name} disconnected`);
+          toast.success(`${integration.name} removed`);
         } else {
           toast.error(
-            `Failed to disconnect: ${res.error.message} (${res.error.code})`
+            `Failed to remove ${integration.name}: ${res.error.message} (${res.error.code})`
           );
         }
       },
     });
   }
 
+  // Integrations that need a key are enabled by entering it, and keep it
+  // while they're disabled.
   const connectedAt = state?.credential_updated_at;
+  const connectable = needsCredential(integration);
+  const toggleable =
+    integration.availability !== "always" && (!connectable || !!connectedAt);
   const status =
     integration.availability === "always"
       ? "Always enabled"
-      : needsCredential(integration)
-      ? connectedAt
-        ? `Connected, key updated ${formatDateTime(new Date(connectedAt))}`
-        : "Not connected"
-      : state?.enabled
-      ? "Enabled"
-      : "Disabled";
-  const toggleable =
-    integration.availability !== "always" && !needsCredential(integration);
+      : `${state?.enabled ? "Enabled" : "Disabled"}${
+          connectedAt
+            ? `, key updated ${formatDateTime(new Date(connectedAt))}`
+            : ""
+        }`;
 
   return (
     <Card>
@@ -143,19 +141,22 @@ function AppIntegrationEntry({
       </CardHeader>
       {needsCredential(integration) && (
         <CardFooter className="flex space-x-3">
-          <AppIntegrationConnectDialog integration={integration}>
+          <AppIntegrationConnectDialog
+            integration={integration}
+            replace={!!connectedAt}
+          >
             <Button size="sm" variant={connectedAt ? "outline" : "default"}>
-              {connectedAt ? "Replace key" : "Connect"}
+              {connectedAt ? "Replace key" : "Enable"}
             </Button>
           </AppIntegrationConnectDialog>
           {connectedAt && (
             <ConfirmDialog
-              title={`Disconnect ${integration.name}?`}
-              description="Its blocks will fail until you connect it again."
-              onConfirm={disconnect}
+              title={`Remove ${integration.name}?`}
+              description="Its key is deleted, and its blocks fail until you enable it again."
+              onConfirm={remove}
             >
               <Button size="sm" variant="ghost">
-                Disconnect
+                Remove
               </Button>
             </ConfirmDialog>
           )}
@@ -165,11 +166,14 @@ function AppIntegrationEntry({
   );
 }
 
+// Enables an integration by entering its key, or replaces the key.
 function AppIntegrationConnectDialog({
   integration,
+  replace,
   children,
 }: {
   integration: CredentialIntegration;
+  replace: boolean;
   children: ReactNode;
 }) {
   const [open, setOpen] = useState(false);
@@ -187,7 +191,11 @@ function AppIntegrationConnectDialog({
       {
         onSuccess(res) {
           if (res.success) {
-            toast.success(`${integration.name} connected`);
+            toast.success(
+              replace
+                ? `${integration.name} key replaced`
+                : `${integration.name} enabled`
+            );
             setOpen(false);
             setCredential("");
           } else {
@@ -209,7 +217,11 @@ function AppIntegrationConnectDialog({
       <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Connect {integration.name}</DialogTitle>
+          <DialogTitle>
+            {replace
+              ? `Replace ${integration.name} ${auth.label}`
+              : `Enable ${integration.name}`}
+          </DialogTitle>
           <DialogDescription>
             Enter your {integration.name} {auth.label}. Its blocks send it with
             their requests, and it can&apos;t be read back.
@@ -236,7 +248,7 @@ function AppIntegrationConnectDialog({
         />
         <DialogFooter>
           <LoadingButton onClick={connect} loading={connectMutation.isPending}>
-            Connect
+            {replace ? "Replace" : "Enable"}
           </LoadingButton>
         </DialogFooter>
       </DialogContent>

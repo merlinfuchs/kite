@@ -12,7 +12,6 @@ import DynamicIcon from "../icons/DynamicIcon";
 import Link from "next/link";
 import { useAppId } from "@/lib/hooks/params";
 import { useMissingIntegrations } from "@/lib/integrations/hooks";
-import { needsCredential } from "@/lib/integrations";
 import { Input } from "../ui/input";
 import { ScrollArea } from "../ui/scroll-area";
 
@@ -200,8 +199,7 @@ function AvailableNode({ type, values }: { type: string; values: NodeValues }) {
                 onClick={(e) => e.stopPropagation()}
                 className="bg-amber-500/15 text-amber-600 dark:text-amber-400 rounded px-1.5 text-xs font-medium flex-none hover:underline"
               >
-                {needsCredential(integration) ? "Connect" : "Enable"}{" "}
-                {integration.name}
+                Enable {integration.name}
               </Link>
             ))}
           </div>

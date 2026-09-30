@@ -83,7 +83,12 @@ func withTestIntegration(t *testing.T, auth IntegrationAuth) {
 func intPtr(v int) *int { return &v }
 
 func executeIntegrationBlock(t *testing.T, nodeType FlowNodeType, data FlowNodeData, credentials map[string]string, httpProvider provider.HTTPProvider) (*FlowContext, error) {
-	return executeIntegrationBlockWith(t, nodeType, data, &integrationTestProvider{credentials: credentials}, httpProvider)
+	// Entering a credential enables the integration.
+	choices := map[string]bool{}
+	for id := range credentials {
+		choices[id] = true
+	}
+	return executeIntegrationBlockWith(t, nodeType, data, &integrationTestProvider{credentials: credentials, choices: choices}, httpProvider)
 }
 
 func executeIntegrationBlockWith(t *testing.T, nodeType FlowNodeType, data FlowNodeData, integrationProvider provider.IntegrationProvider, httpProvider provider.HTTPProvider) (*FlowContext, error) {
@@ -145,7 +150,7 @@ func TestIntegrationRequestNotConnected(t *testing.T) {
 
 	_, err := executeIntegrationBlock(t, "action_test_api_thing_get",
 		FlowNodeData{Fields: map[string]any{"thing_id": "abc"}}, nil, httpProvider)
-	assert.ErrorContains(t, err, "Test API isn't connected")
+	assert.ErrorContains(t, err, "Test API isn't enabled")
 	assert.Nil(t, httpProvider.req)
 }
 
@@ -174,7 +179,7 @@ func TestCustomBlockNeedsIntegration(t *testing.T) {
 	t.Cleanup(func() { blockDefinitions[FlowNodeTypeActionLog] = block })
 
 	_, err := executeIntegrationBlock(t, FlowNodeTypeActionLog, FlowNodeData{LogMessage: "hi"}, nil, &redirectCheckingHTTPProvider{})
-	assert.ErrorContains(t, err, "Test API isn't connected")
+	assert.ErrorContains(t, err, "Test API isn't enabled")
 	assert.False(t, errors.Is(err, provider.ErrNotFound))
 }
 
@@ -214,16 +219,14 @@ func TestCustomBlockNeedsEnabledIntegration(t *testing.T) {
 func TestIntegrationEnabled(t *testing.T) {
 	always := Integration{Availability: "always", Auth: IntegrationAuth{Type: "discord_bot"}}
 	byDefault := Integration{Availability: "default", Auth: IntegrationAuth{Type: "none"}}
-	optIn := Integration{Availability: "opt_in", Auth: IntegrationAuth{Type: "none"}}
-	withKey := Integration{Availability: "opt_in", Auth: IntegrationAuth{Type: "header"}}
+	optIn := Integration{Availability: "opt_in", Auth: IntegrationAuth{Type: "header"}}
 
-	assert.True(t, always.Enabled(false, null.BoolFrom(false)))
-	assert.True(t, byDefault.Enabled(false, null.Bool{}))
-	assert.False(t, byDefault.Enabled(false, null.BoolFrom(false)))
-	assert.False(t, optIn.Enabled(false, null.Bool{}))
-	assert.True(t, optIn.Enabled(false, null.BoolFrom(true)))
-	assert.False(t, withKey.Enabled(false, null.BoolFrom(true)))
-	assert.True(t, withKey.Enabled(true, null.Bool{}))
+	assert.True(t, always.Enabled(null.BoolFrom(false)))
+	assert.True(t, byDefault.Enabled(null.Bool{}))
+	assert.False(t, byDefault.Enabled(null.BoolFrom(false)))
+	assert.False(t, optIn.Enabled(null.Bool{}))
+	assert.True(t, optIn.Enabled(null.BoolFrom(true)))
+	assert.False(t, optIn.Enabled(null.BoolFrom(false)))
 }
 
 // Integrations that need a credential can't be on before the app connected
@@ -235,4 +238,19 @@ func TestIntegrationAvailability(t *testing.T) {
 			assert.Equal(t, "opt_in", integration.Availability, integration.ID)
 		}
 	}
+}
+
+// A disabled integration keeps its credential, but its blocks don't run.
+func TestIntegrationRequestDisabled(t *testing.T) {
+	withTestIntegration(t, IntegrationAuth{Type: "header", Name: "Authorization"})
+	httpProvider := &redirectCheckingHTTPProvider{}
+
+	_, err := executeIntegrationBlockWith(t, "action_test_api_thing_get",
+		FlowNodeData{Fields: map[string]any{"thing_id": "abc"}},
+		&integrationTestProvider{
+			credentials: map[string]string{"test_api": "k3y"},
+			choices:     map[string]bool{"test_api": false},
+		}, httpProvider)
+	assert.ErrorContains(t, err, "Test API isn't enabled")
+	assert.Nil(t, httpProvider.req)
 }
