@@ -15,7 +15,7 @@ import (
 	"github.com/kitecloud/kite/kite-service/pkg/thing"
 )
 
-var customEmojiRegex = regexp.MustCompile(`<a?:(\w+):(\d+)>`)
+var customEmojiRegex = regexp.MustCompile(`<(a?):(\w+):(\d+)>`)
 
 type StarboardPluginInstance struct {
 	appID  string
@@ -135,13 +135,14 @@ func (p *StarboardPluginInstance) HandleCommand(c plugin.Context, event *gateway
 					_ = subOpt.Value.UnmarshalTo(&rawEmoji)
 					if customEmojiRegex.MatchString(rawEmoji) {
 						matches := customEmojiRegex.FindStringSubmatch(rawEmoji)
-						emojiID, err := discord.ParseSnowflake(matches[2])
+						emojiID, err := discord.ParseSnowflake(matches[3])
 						if err != nil {
 							return err
 						}
 						emoji = discord.Emoji{
-							Name: matches[1],
-							ID:   discord.EmojiID(emojiID),
+							Name:     matches[2],
+							ID:       discord.EmojiID(emojiID),
+							Animated: matches[1] == "a",
 						}
 					} else {
 						emoji = discord.Emoji{
@@ -255,13 +256,8 @@ func getMessageReactionCount(message *discord.Message, emoji discord.Emoji) (int
 }
 
 func getStarboardMessageData(message *discord.Message, emoji discord.Emoji, reactionCount int) (*discord.Message, error) {
-	emojiText := emoji.Name
-	if emoji.ID.IsValid() {
-		emojiText = fmt.Sprintf("<%s:%d>", emoji.Name, emoji.ID)
-	}
-
 	return &discord.Message{
-		Content: fmt.Sprintf("%s **%d**", emojiText, reactionCount),
+		Content: fmt.Sprintf("%s **%d**", emoji, reactionCount),
 		Embeds: []discord.Embed{
 			{
 				Author: &discord.EmbedAuthor{
