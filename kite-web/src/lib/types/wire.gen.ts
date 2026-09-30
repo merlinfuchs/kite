@@ -478,7 +478,10 @@ export type AppIntegrationListResponse = (AppIntegration | undefined)[];
  * off.
  */
 export interface AppIntegrationUpdateRequest {
-  enabled: boolean;
+  /**
+   * A pointer, so a missing value isn't taken as turning it off.
+   */
+  enabled?: boolean;
 }
 export type AppIntegrationUpdateResponse = AppIntegration;
 export interface AppIntegrationConnectRequest {

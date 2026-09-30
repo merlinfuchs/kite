@@ -25,7 +25,7 @@ func instructionsFor(enabled []string) string {
 	var missing []flow.Integration
 	var ids []string
 	for _, integration := range flow.Integrations() {
-		if integration.Availability != "always" && !slices.Contains(enabled, integration.ID) {
+		if integration.Availability != flow.AvailabilityAlways && !slices.Contains(enabled, integration.ID) {
 			missing = append(missing, integration)
 			ids = append(ids, integration.ID)
 		}

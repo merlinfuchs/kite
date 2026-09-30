@@ -9,11 +9,11 @@ import (
 
 	"github.com/kitecloud/kite/kite-service/internal/api/handler"
 	"github.com/kitecloud/kite/kite-service/internal/api/wire"
+	"github.com/kitecloud/kite/kite-service/internal/core/appintegration"
 	"github.com/kitecloud/kite/kite-service/internal/core/flowai"
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/internal/store"
 	"github.com/kitecloud/kite/kite-service/internal/util"
-	"github.com/kitecloud/kite/kite-service/pkg/flow"
 )
 
 // Assistant is what the handler needs of flowai.Assistant.
@@ -35,27 +35,17 @@ type VariableStore interface {
 	VariablesByAppWithoutTotals(ctx context.Context, appID string) ([]*model.Variable, error)
 }
 
-// IntegrationStore is what the handler needs to tell which integrations the
-// app enabled.
-type IntegrationStore interface {
-	AppIntegrationCredentials(ctx context.Context, appID string) ([]*model.AppSecret, error)
-}
-
-type IntegrationChoiceStore interface {
-	AppIntegrations(ctx context.Context, appID string) ([]*model.AppIntegration, error)
-}
-
 type FlowAIHandler struct {
 	promptStore      store.AssistantPromptStore
 	variableStore    VariableStore
-	integrationStore IntegrationStore
-	choiceStore      IntegrationChoiceStore
+	integrationStore appintegration.CredentialStore
+	choiceStore      appintegration.ChoiceStore
 	// assistant is nil if no OpenAI API key is configured.
 	assistant  Assistant
 	maxRepairs int
 }
 
-func NewFlowAIHandler(promptStore store.AssistantPromptStore, variableStore VariableStore, integrationStore IntegrationStore, choiceStore IntegrationChoiceStore, assistant *flowai.Assistant, maxRepairs int) *FlowAIHandler {
+func NewFlowAIHandler(promptStore store.AssistantPromptStore, variableStore VariableStore, integrationStore appintegration.CredentialStore, choiceStore appintegration.ChoiceStore, assistant *flowai.Assistant, maxRepairs int) *FlowAIHandler {
 	h := &FlowAIHandler{
 		promptStore:      promptStore,
 		variableStore:    variableStore,
@@ -257,23 +247,16 @@ func usage(count model.AssistantPromptCount, limit int) wire.FlowAIUsage {
 }
 
 func (h *FlowAIHandler) enabledIntegrations(ctx context.Context, appID string) ([]string, error) {
-	credentials, err := h.integrationStore.AppIntegrationCredentials(ctx, appID)
+	states, err := appintegration.States(ctx, h.integrationStore, h.choiceStore, appID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get integrations: %w", err)
-	}
-	connected := make([]string, len(credentials))
-	for i, credential := range credentials {
-		connected[i] = credential.IntegrationID
+		return nil, err
 	}
 
-	rows, err := h.choiceStore.AppIntegrations(ctx, appID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get integrations: %w", err)
+	var res []string
+	for _, state := range states {
+		if state.Enabled {
+			res = append(res, state.Integration.ID)
+		}
 	}
-	choices := make(map[string]bool, len(rows))
-	for _, row := range rows {
-		choices[row.IntegrationID] = row.Enabled
-	}
-
-	return flow.EnabledIntegrations(connected, choices), nil
+	return res, nil
 }

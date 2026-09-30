@@ -127,7 +127,11 @@ function AppIntegrationEntry({
           </div>
           {toggleable && (
             <Switch
-              checked={!!state?.enabled}
+              checked={
+                updateMutation.isPending
+                  ? !!updateMutation.variables?.enabled
+                  : !!state?.enabled
+              }
               onCheckedChange={setEnabled}
               disabled={updateMutation.isPending}
             />

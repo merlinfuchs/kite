@@ -20,11 +20,14 @@ type AppIntegrationListResponse = []*AppIntegration
 // AppIntegrationUpdateRequest turns an integration without a credential on or
 // off.
 type AppIntegrationUpdateRequest struct {
-	Enabled bool `json:"enabled"`
+	// A pointer, so a missing value isn't taken as turning it off.
+	Enabled *bool `json:"enabled"`
 }
 
 func (req AppIntegrationUpdateRequest) Validate() error {
-	return nil
+	return validation.ValidateStruct(&req,
+		validation.Field(&req.Enabled, validation.NotNil),
+	)
 }
 
 type AppIntegrationUpdateResponse = AppIntegration

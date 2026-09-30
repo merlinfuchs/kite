@@ -2,7 +2,7 @@
 
 Status: phase 1 implemented for Discord, 2026-09-29. Later phases are proposals.
 
-Integrations let Kite call other services through blocks that are defined as data instead of code. An integration is an API with a spec, a host, an auth scheme and a set of blocks. An app connects it once by entering a credential, and its blocks work in every flow of the app. Discord is an integration too, always connected with the app's bot token.
+Integrations let Kite call other services through blocks that are defined as data instead of code. An integration is an API with a spec, a host, an auth scheme and a set of blocks. An app enables it once, by entering a credential if it needs one, and its blocks work in every flow of the app. Discord is an integration too, always enabled and using the app's bot token.
 
 ## Why
 
@@ -24,7 +24,7 @@ The Discord API Request block (#469) already has most of the machinery: endpoint
 
 **Credential.** What an app enters to connect an integration, usually an API key. It's stored per app, encrypted, write-only, and bound to the integration's host. Discord's credential is the bot token the app already has.
 
-**Block definition.** One file per block, and self-contained: the fields the user fills in with their types, how the block runs, e.g. a request to an integration and how the fields map onto it, and what the block returns. Both the service and the editor read the same file, and nothing at runtime reads a spec. A block needs the integrations its requests go to, plus any it lists in `requires`, and only works when the app has them connected.
+**Block definition.** One file per block, and self-contained: the fields the user fills in with their types, how the block runs, e.g. a request to an integration and how the fields map onto it, and what the block returns. Both the service and the editor read the same file, and nothing at runtime reads a spec. A block needs the integrations its requests go to, plus any it lists in `requires`, and only works when the app has them enabled.
 
 **Spec.** Every integration with request blocks has an `api.json` in its folder: the operations Kite knows about, in one trimmed format (method, path, and path, query and body parameters). For a service with an official OpenAPI spec it's generated from it at a pinned commit by a script. For one without, like cookie-api, it's written by hand from their docs. Nothing at runtime reads it: it's the input for generating block definitions, for the raw request block's operation list, and for checking definitions when the service changes its API.
 
@@ -131,7 +131,7 @@ export const cookieApiTranscriptCreate: BlockDefinition = {
 };
 ```
 
-A block's integrations are those of its requests and its `requires` together. Discord blocks name Discord too, although it's always connected, so they keep working if Discord ever becomes one platform among several.
+A block's integrations are those of its requests and its `requires` together. Discord blocks name Discord too, although it's always enabled, so they keep working if Discord ever becomes one platform among several.
 
 A field's `name` is the setting in the node's data, and `target` its name in the request if it differs. Field types are `snowflake`, `snowflake_list`, `integer`, `boolean` and `string`, checked in the editor and again when the flow runs. `fallback` fills an empty field with the server or channel the flow runs in, like `guild_target` of other blocks.
 
@@ -139,7 +139,7 @@ The generator copies what the spec knows into the definition: method, path, type
 
 `result.thing` wraps the response as an existing thing type, so a migrated block keeps `{{result('x').mention}}` working, and `result.list` a list of them. Without it the result is the plain JSON, like Discord API Request.
 
-Block types include the id of the integration they mainly act on, e.g. `action_cookie_api_transcript_create`, so blocks of different integrations can't collide. Folders can move, types can't. Discord's existing blocks, like `action_message_create`, keep their names. New Discord blocks may use the plain form, since Discord owns it. Nothing in the definition format is specific to Discord: Discord is just the integration whose auth type is `discord_bot` and that is always connected.
+Block types include the id of the integration they mainly act on, e.g. `action_cookie_api_transcript_create`, so blocks of different integrations can't collide. Folders can move, types can't. Discord's existing blocks, like `action_message_create`, keep their names. New Discord blocks may use the plain form, since Discord owns it. Nothing in the definition format is specific to Discord: Discord is just the integration whose auth type is `discord_bot` and that is always enabled.
 
 Destructive operations need limits, like a maximum count, which AGENTS.md asks for and review should check.
 
@@ -167,14 +167,14 @@ One shared type with the block named in the data would need a second lookup in e
 
 An earlier version kept the values in a `fields` object. The flow AI kept writing them flat anyway, copying other blocks, so the layout now matches them. Converted built-in blocks keep their current data for the same reason.
 
-Node types are permanent. A breaking change gets a new type, e.g. `..._v2`, and the old one keeps working. A node whose type no longer exists, e.g. from a removed integration, renders as the same error node as a disconnected integration.
+Node types are permanent. A breaking change gets a new type, e.g. `..._v2`, and the old one keeps working. A node whose type no longer exists, e.g. from a removed integration, renders as the same error node as an integration the app didn't enable.
 
 ## Execution
 
 The service embeds all definitions and builds a table of node type to block definition at startup. A node of an integration block runs like this:
 
 1. Look up the definition by node type (`blockDefinitions` in `pkg/flow/block_definitions.go`). The node's data holds only field values, never the operation or the host, so an imported flow can't point a block at another endpoint.
-2. Check the app has the block's integrations connected, otherwise fail with "Cookie API isn't connected".
+2. Check the app has the block's integrations enabled, otherwise fail with "Cookie API isn't connected" or "Roblox isn't enabled".
 3. Evaluate each field and place it: path parameters through the same validation as Discord API Request (IDs must be IDs, no `/`, `\`, `.` or `..`), query parameters encoded, body fields set at their JSON pointer with `EvalJSONTemplate` semantics. Fields not in the definition are ignored.
 4. Send the request. Discord goes through the session client, which adds the token and shares the rate limiter. Everything else goes through the HTTP provider and the egress proxy, with the credential added by the executor and redirects not followed.
 5. Parse the result and store it, typed if `result.type` is set.
@@ -185,9 +185,9 @@ Credits come from the definition. Partner APIs that charge Kite can cost more.
 
 ## Editor
 
-The block explorer groups integration blocks by integration. Blocks of integrations the app hasn't connected still show, with a prompt to connect it, the same way premium blocks show that they need Premium.
+The block explorer groups integration blocks by integration. Blocks of integrations the app hasn't enabled still show, with a prompt to enable or connect it, the same way premium blocks show that they need Premium.
 
-Blocks of a disconnected integration that are already in a flow, or arrive through an import or the flow AI, render as an error node: the block keeps its settings, shows "Cookie API isn't connected" and links to the integration settings. Validation reports it as an issue so the flow AI sees it too, and at runtime the block fails with the same message instead of a 401 from the service. Importing a flow lists the integrations it needs.
+Blocks of an integration the app didn't enable that are already in a flow, or arrive through an import or the flow AI, render as an error node: the block keeps its settings, shows "Cookie API isn't connected" and links to the integration settings. Validation reports it as an issue so the flow AI sees it too, and at runtime the block fails with the same message instead of a 401 from the service. Importing a flow lists the integrations it needs.
 
 The settings form is rendered from the definition, reusing `BaseInput` so every field accepts placeholders. Nested or `oneOf` bodies that a definition doesn't cover fall back to the JSON editor from #469. The result schema goes into the catalog like the one of any other block.
 
@@ -222,7 +222,7 @@ Once integrations exist, most users won't need named secrets at all. The ones wh
 
 ## Flow AI
 
-The catalog is about 190 KB and sent with every request, so hundreds of integration blocks can't all go in it. The catalog would carry the blocks of integrations the app has connected. Everything else is found with a search tool the AI can call, which also fits running the flow AI through MCP.
+The catalog is about 190 KB and sent with every request, so hundreds of integration blocks can't all go in it. The catalog carries the blocks of integrations the app has enabled. Everything else is found with a search tool the AI can call, which also fits running the flow AI through MCP.
 
 What phase 1 showed with gpt-5-mini:
 

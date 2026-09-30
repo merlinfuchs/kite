@@ -10,6 +10,7 @@ import (
 
 	"github.com/kitecloud/kite/kite-service/internal/api/handler"
 	"github.com/kitecloud/kite/kite-service/internal/api/wire"
+	"github.com/kitecloud/kite/kite-service/internal/core/appintegration"
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/internal/store"
 	"github.com/kitecloud/kite/kite-service/internal/util"
@@ -41,35 +42,17 @@ func NewIntegrationHandler(appSecretStore store.AppSecretStore, appIntegrationSt
 }
 
 func (h *IntegrationHandler) HandleAppIntegrationList(c *handler.Context) (*wire.AppIntegrationListResponse, error) {
-	credentials, err := h.appSecretStore.AppIntegrationCredentials(c.Context(), c.App.ID)
+	states, err := appintegration.States(c.Context(), h.appSecretStore, h.appIntegrationStore, c.App.ID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get integrations: %w", err)
-	}
-	choices, err := h.appIntegrationStore.AppIntegrations(c.Context(), c.App.ID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get integrations: %w", err)
+		return nil, err
 	}
 
-	integrations := flow.Integrations()
-	res := make([]*wire.AppIntegration, len(integrations))
-	for i, integration := range integrations {
-		var credentialUpdatedAt null.Time
-		for _, credential := range credentials {
-			if credential.IntegrationID == integration.ID {
-				credentialUpdatedAt = null.TimeFrom(credential.UpdatedAt)
-			}
-		}
-		var choice null.Bool
-		for _, row := range choices {
-			if row.IntegrationID == integration.ID {
-				choice = null.BoolFrom(row.Enabled)
-			}
-		}
-
+	res := make([]*wire.AppIntegration, len(states))
+	for i, state := range states {
 		res[i] = &wire.AppIntegration{
-			IntegrationID:       integration.ID,
-			Enabled:             integration.Enabled(credentialUpdatedAt.Valid, choice),
-			CredentialUpdatedAt: credentialUpdatedAt,
+			IntegrationID:       state.Integration.ID,
+			Enabled:             state.Enabled,
+			CredentialUpdatedAt: state.CredentialUpdatedAt,
 		}
 	}
 	return &res, nil
@@ -82,7 +65,7 @@ func (h *IntegrationHandler) HandleAppIntegrationUpdate(c *handler.Context, req 
 	if !ok {
 		return nil, handler.ErrNotFound("unknown_integration", "Integration not found")
 	}
-	if integration.Availability == "always" {
+	if integration.Availability == flow.AvailabilityAlways {
 		return nil, handler.ErrBadRequest("always_enabled", "The integration is always enabled")
 	}
 	if integration.NeedsCredential() {
@@ -92,7 +75,7 @@ func (h *IntegrationHandler) HandleAppIntegrationUpdate(c *handler.Context, req 
 	_, err := h.appIntegrationStore.SetAppIntegrationEnabled(c.Context(), &model.AppIntegration{
 		AppID:         c.App.ID,
 		IntegrationID: integration.ID,
-		Enabled:       req.Enabled,
+		Enabled:       *req.Enabled,
 		CreatedAt:     time.Now().UTC(),
 		UpdatedAt:     time.Now().UTC(),
 	})
@@ -100,7 +83,7 @@ func (h *IntegrationHandler) HandleAppIntegrationUpdate(c *handler.Context, req 
 		return nil, fmt.Errorf("failed to update integration: %w", err)
 	}
 
-	return &wire.AppIntegration{IntegrationID: integration.ID, Enabled: req.Enabled}, nil
+	return &wire.AppIntegration{IntegrationID: integration.ID, Enabled: *req.Enabled}, nil
 }
 
 func (h *IntegrationHandler) HandleAppIntegrationConnect(c *handler.Context, req wire.AppIntegrationConnectRequest) (*wire.AppIntegrationConnectResponse, error) {

@@ -80,8 +80,7 @@ type Integration struct {
 	Description string          `json:"description"`
 	BaseURL     string          `json:"base_url"`
 	Auth        IntegrationAuth `json:"auth"`
-	// "always" for integrations every app can use, "default" for ones apps
-	// can turn off and "opt_in" for ones they turn on.
+	// One of the Availability constants.
 	Availability string `json:"availability"`
 	// A GET endpoint, relative to BaseURL, that checks a credential.
 	TestPath string `json:"test_path"`
@@ -97,6 +96,15 @@ type IntegrationAuth struct {
 	Label  string `json:"label"`
 }
 
+const (
+	// Every app can use the integration.
+	AvailabilityAlways = "always"
+	// Apps can use it until they turn it off.
+	AvailabilityDefault = "default"
+	// Apps turn it on, or connect it if it needs a credential.
+	AvailabilityOptIn = "opt_in"
+)
+
 // NeedsCredential reports whether the app has to connect the integration with
 // a credential to use it.
 func (i Integration) NeedsCredential() bool {
@@ -108,28 +116,15 @@ func (i Integration) NeedsCredential() bool {
 // otherwise whether it turned it on or off, if it did.
 func (i Integration) Enabled(connected bool, choice null.Bool) bool {
 	switch {
-	case i.Availability == "always":
+	case i.Availability == AvailabilityAlways:
 		return true
 	case i.NeedsCredential():
 		return connected
 	case choice.Valid:
 		return choice.Bool
 	default:
-		return i.Availability == "default"
+		return i.Availability == AvailabilityDefault
 	}
-}
-
-// EnabledIntegrations returns the IDs of the integrations an app can use,
-// given those it connected with a credential and its choices for the others.
-func EnabledIntegrations(connected []string, choices map[string]bool) []string {
-	var res []string
-	for _, integration := range Integrations() {
-		choice, ok := choices[integration.ID]
-		if integration.Enabled(slices.Contains(connected, integration.ID), null.NewBool(choice, ok)) {
-			res = append(res, integration.ID)
-		}
-	}
-	return res
 }
 
 // NewRequest creates a request to the integration's API, with the app's
@@ -567,7 +562,7 @@ func (n *CompiledFlowNode) checkIntegrations(ctx *FlowContext) error {
 	block := blockDefinitions[n.Type]
 	for _, id := range block.Requires {
 		integration, ok := integrations[id]
-		if !ok || integration.Availability == "always" {
+		if !ok || integration.Availability == AvailabilityAlways {
 			continue
 		}
 

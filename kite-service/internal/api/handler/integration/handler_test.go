@@ -144,6 +144,11 @@ func TestUpdateIntegration(t *testing.T) {
 	assert.Equal(t, "roblox", choices.saved[0].IntegrationID)
 	assert.False(t, choices.saved[0].Enabled)
 
+	// A body without the value doesn't turn the integration off.
+	code, _, _ = serve(t, h, http.MethodPatch, "/integrations/roblox", `{}`)
+	assert.Equal(t, http.StatusBadRequest, code)
+	require.Len(t, choices.saved, 1)
+
 	code, res, _ := serve(t, h, http.MethodPatch, "/integrations/discord", `{"enabled":false}`)
 	assert.Equal(t, http.StatusBadRequest, code)
 	assert.Equal(t, "always_enabled", res["code"])
