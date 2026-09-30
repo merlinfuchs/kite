@@ -321,7 +321,8 @@ func NewEventEnv(event ws.Event) *EventEnv {
 		} else {
 			// DM reactions (and, in principle, a guild reaction delivered
 			// without member data) only give us the user's ID.
-			env.User = NewSnowflakeEnv(e.UserID)
+			env.User = NewUserIDEnv(e.UserID)
+			env.Member = env.User
 		}
 		env.Channel = NewSnowflakeEnv(e.ChannelID)
 		if e.GuildID != 0 {
@@ -331,7 +332,8 @@ func NewEventEnv(event ws.Event) *EventEnv {
 		env.Emoji = NewEmojiEnv(e.Emoji)
 	case *gateway.MessageReactionRemoveEvent:
 		// MESSAGE_REACTION_REMOVE never includes member/user data, only the ID.
-		env.User = NewSnowflakeEnv(e.UserID)
+		env.User = NewUserIDEnv(e.UserID)
+		env.Member = env.User
 		env.Channel = NewSnowflakeEnv(e.ChannelID)
 		if e.GuildID != 0 {
 			env.Guild = NewSnowflakeEnv(e.GuildID)
@@ -445,6 +447,17 @@ func NewUserEnv(user discord.User) *UserEnv {
 		Mention:       fmt.Sprintf("<@%s>", user.ID.String()),
 		AvatarURL:     user.AvatarURL(),
 		BannerURL:     user.BannerURL(),
+	}
+}
+
+// NewUserIDEnv is a user of whom only the ID is known, like the user of a
+// reaction remove event. Everything but id and mention is empty.
+func NewUserIDEnv(id discord.UserID) *UserEnv {
+	return &UserEnv{
+		og: discord.User{ID: id},
+
+		ID:      id.String(),
+		Mention: fmt.Sprintf("<@%s>", id.String()),
 	}
 }
 
