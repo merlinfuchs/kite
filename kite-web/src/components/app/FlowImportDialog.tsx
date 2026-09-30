@@ -29,6 +29,7 @@ import { APIResponse } from "@/lib/api/response";
 import { toast } from "sonner";
 import { ShareCodeInput, ShareCodePanel } from "./ShareCode";
 import { BracesIcon, KeyRoundIcon } from "lucide-react";
+import { removeForeignReferences } from "@/lib/marketplace";
 
 const kinds = {
   command: {
@@ -243,33 +244,4 @@ function ImportForm({
       </DialogFooter>
     </>
   );
-}
-
-// Variable and message template IDs belong to the app the flow was exported
-// from, so they are cleared when they don't exist in the current app.
-function removeForeignReferences(
-  flow: FlowData,
-  variableIds: Set<string>,
-  messageIds: Set<string>
-) {
-  let removed = 0;
-
-  const nodes = flow.nodes.map((node) => {
-    const data = { ...node.data };
-    let changed = false;
-
-    if (data.variable_id && !variableIds.has(data.variable_id)) {
-      delete data.variable_id;
-      changed = true;
-    }
-    if (data.message_template_id && !messageIds.has(data.message_template_id)) {
-      delete data.message_template_id;
-      changed = true;
-    }
-
-    if (changed) removed++;
-    return { ...node, data };
-  });
-
-  return { flow: { ...flow, nodes }, removed };
 }

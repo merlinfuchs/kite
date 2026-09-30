@@ -1,6 +1,6 @@
 import {
   VariableIcon,
-  LibraryBigIcon,
+  StoreIcon,
   SlashSquareIcon,
   type LucideIcon,
   MailPlusIcon,
@@ -68,10 +68,10 @@ export default function AppSidebarStudioNav() {
         active: isActive("/apps/[appId]/plugins"),
       },
       {
-        name: "Templates",
-        url: "/apps/[appId]/templates",
-        icon: LibraryBigIcon,
-        active: isActive("/apps/[appId]/templates"),
+        name: "Marketplace",
+        url: "/apps/[appId]/marketplace",
+        icon: StoreIcon,
+        active: isActive("/apps/[appId]/marketplace"),
       },
     ];
   }, [isActive]);

@@ -1,26 +1,28 @@
 package config
 
 import (
+	"strings"
 	"time"
 
 	"github.com/go-playground/validator/v10"
 )
 
 type Config struct {
-	Logging    LoggingConfig    `toml:"logging"`
-	Database   DatabaseConfig   `toml:"database"`
-	API        APIConfig        `toml:"api"`
-	App        AppConfig        `toml:"app"`
-	UserLimits UserLimitsConfig `toml:"user_limits"`
-	Discord    DiscordConfig    `toml:"discord"`
-	Engine     EngineConfig     `toml:"engine"`
-	Gateway    GatewayConfig    `toml:"gateway"`
-	OpenAI     OpenAIConfig     `toml:"openai"`
-	Assistant  AssistantConfig  `toml:"assistant"`
-	Billing    BillingConfig    `toml:"billing"`
-	Encryption EncryptionConfig `toml:"encryption"`
-	HTTP       HTTPConfig       `toml:"http"`
-	Debug      DebugConfig      `toml:"debug"`
+	Logging     LoggingConfig     `toml:"logging"`
+	Database    DatabaseConfig    `toml:"database"`
+	API         APIConfig         `toml:"api"`
+	App         AppConfig         `toml:"app"`
+	UserLimits  UserLimitsConfig  `toml:"user_limits"`
+	Discord     DiscordConfig     `toml:"discord"`
+	Engine      EngineConfig      `toml:"engine"`
+	Gateway     GatewayConfig     `toml:"gateway"`
+	OpenAI      OpenAIConfig      `toml:"openai"`
+	Assistant   AssistantConfig   `toml:"assistant"`
+	Billing     BillingConfig     `toml:"billing"`
+	Encryption  EncryptionConfig  `toml:"encryption"`
+	HTTP        HTTPConfig        `toml:"http"`
+	Marketplace MarketplaceConfig `toml:"marketplace"`
+	Debug       DebugConfig       `toml:"debug"`
 
 	ClusterCount int `toml:"cluster_count"`
 	ClusterIndex int `toml:"cluster_index"`
@@ -150,6 +152,35 @@ type DebugConfig struct {
 	Enabled bool   `toml:"enabled"`
 	Host    string `toml:"host"`
 	Port    int    `toml:"port"`
+}
+
+// MarketplaceConfig controls the marketplace where users share commands and
+// event listeners.
+type MarketplaceConfig struct {
+	// AdminDiscordIDs are Discord user IDs that can moderate listings and add
+	// or remove other moderators.
+	AdminDiscordIDs []string `toml:"admin_discord_ids"`
+	// RequireReview hides new and changed listings until a moderator approves them.
+	RequireReview bool `toml:"require_review"`
+	// MaxListingsPerUser is how many listings one user can publish, 0 is unlimited.
+	MaxListingsPerUser int `toml:"max_listings_per_user"`
+	// AutoHideReports is how many open reports send an approved listing back
+	// to the moderation queue, 0 disables it.
+	AutoHideReports int `toml:"auto_hide_reports"`
+}
+
+// AdminIDs returns AdminDiscordIDs with comma separated entries split up. An
+// env var like KITE_MARKETPLACE__ADMIN_DISCORD_IDS="1,2" arrives as one entry.
+func (c MarketplaceConfig) AdminIDs() []string {
+	var res []string
+	for _, entry := range c.AdminDiscordIDs {
+		for _, id := range strings.Split(entry, ",") {
+			if id = strings.TrimSpace(id); id != "" {
+				res = append(res, id)
+			}
+		}
+	}
+	return res
 }
 
 type UserLimitsConfig struct {

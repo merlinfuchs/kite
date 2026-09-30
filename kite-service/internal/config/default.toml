@@ -40,6 +40,12 @@ max_output_tokens = 16000
 max_repairs = 2
 
 
+[marketplace]
+admin_discord_ids = []
+require_review = true
+max_listings_per_user = 25
+auto_hide_reports = 3
+
 [debug]
 enabled = false
 host = "127.0.0.1"

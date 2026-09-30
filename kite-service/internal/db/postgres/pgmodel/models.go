@@ -112,6 +112,41 @@ type Log struct {
 	MessageID       pgtype.Text
 }
 
+type MarketplaceListing struct {
+	ID                 string
+	Name               string
+	Description        string
+	AuthorUserID       string
+	SourceAppID        pgtype.Text
+	Status             string
+	Items              []byte
+	CommandCount       int32
+	EventListenerCount int32
+	BlockTypes         []string
+	ImportCount        int32
+	ReviewNote         pgtype.Text
+	ReviewedByUserID   pgtype.Text
+	ReviewedAt         pgtype.Timestamp
+	CreatedAt          pgtype.Timestamp
+	UpdatedAt          pgtype.Timestamp
+}
+
+type MarketplaceModerator struct {
+	DiscordUserID string
+	AddedByUserID pgtype.Text
+	CreatedAt     pgtype.Timestamp
+}
+
+type MarketplaceReport struct {
+	ID               string
+	ListingID        string
+	ReporterUserID   string
+	Reason           string
+	CreatedAt        pgtype.Timestamp
+	ResolvedAt       pgtype.Timestamp
+	ResolvedByUserID pgtype.Text
+}
+
 type Message struct {
 	ID            string
 	Name          string

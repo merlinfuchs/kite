@@ -28,6 +28,14 @@ type APIServerConfig struct {
 	UserLimits          APIUserLimitsConfig
 	Billing             BillingConfig
 	AssistantMaxRepairs int
+	Marketplace         MarketplaceConfig
+}
+
+type MarketplaceConfig struct {
+	AdminDiscordIDs    []string
+	RequireReview      bool
+	MaxListingsPerUser int
+	AutoHideReports    int
 }
 
 type APIUserLimitsConfig struct {
@@ -54,6 +62,7 @@ func NewAPIServer(
 	userStore store.UserStore,
 	sessionStore store.SessionStore,
 	shareCodeStore store.ShareCodeStore,
+	marketplaceStore store.MarketplaceStore,
 	appStore store.AppStore,
 	logStore store.LogStore,
 	usageStore store.UsageStore,
@@ -83,6 +92,7 @@ func NewAPIServer(
 		userStore,
 		sessionStore,
 		shareCodeStore,
+		marketplaceStore,
 		appStore,
 		logStore,
 		usageStore,
