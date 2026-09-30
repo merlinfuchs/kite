@@ -4,18 +4,16 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"regexp"
 
 	"github.com/diamondburned/arikawa/v3/api"
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/gateway"
+	"github.com/diamondburned/arikawa/v3/utils/bot/extras/arguments"
 	"github.com/diamondburned/arikawa/v3/utils/json/option"
 	"github.com/kitecloud/kite/kite-service/pkg/plugin"
 	"github.com/kitecloud/kite/kite-service/pkg/provider"
 	"github.com/kitecloud/kite/kite-service/pkg/thing"
 )
-
-var customEmojiRegex = regexp.MustCompile(`<(a?):(\w+):(\d+)>`)
 
 type StarboardPluginInstance struct {
 	appID  string
@@ -133,16 +131,12 @@ func (p *StarboardPluginInstance) HandleCommand(c plugin.Context, event *gateway
 				case "emoji":
 					var rawEmoji string
 					_ = subOpt.Value.UnmarshalTo(&rawEmoji)
-					if customEmojiRegex.MatchString(rawEmoji) {
-						matches := customEmojiRegex.FindStringSubmatch(rawEmoji)
-						emojiID, err := discord.ParseSnowflake(matches[3])
-						if err != nil {
-							return err
-						}
+					var parsed arguments.Emoji
+					if err := parsed.Parse(rawEmoji); err == nil {
 						emoji = discord.Emoji{
-							Name:     matches[2],
-							ID:       discord.EmojiID(emojiID),
-							Animated: matches[1] == "a",
+							Name:     parsed.Name,
+							ID:       parsed.ID,
+							Animated: parsed.Animated,
 						}
 					} else {
 						emoji = discord.Emoji{
