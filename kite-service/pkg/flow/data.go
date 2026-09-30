@@ -633,17 +633,56 @@ type ModalData struct {
 	Components []ModalComponentData `json:"components,omitempty"`
 }
 
+// ModalComponentData is one component of a modal. The modal's components are
+// labels and text displays, and a label holds the one input it describes in
+// Components.
+//
+// Modals saved before labels existed have no type at either level. Their
+// components are labels whose text input carries the label text itself.
 type ModalComponentData struct {
-	CustomID    string               `json:"custom_id,omitempty"`
-	Style       int                  `json:"style,omitempty"`
-	Label       string               `json:"label,omitempty"`
-	MinLength   int                  `json:"min_length,omitempty"`
-	MaxLength   int                  `json:"max_length,omitempty"`
-	Required    bool                 `json:"required,omitempty"`
-	Value       string               `json:"value,omitempty"`
-	Placeholder string               `json:"placeholder,omitempty"`
-	Components  []ModalComponentData `json:"components,omitempty"`
+	Type        string `json:"type,omitempty"`
+	CustomID    string `json:"custom_id,omitempty"`
+	Style       int    `json:"style,omitempty"`
+	Label       string `json:"label,omitempty"`
+	Description string `json:"description,omitempty"`
+	// Content is the markdown shown by a text display.
+	Content   string `json:"content,omitempty"`
+	MinLength int    `json:"min_length,omitempty"`
+	MaxLength int    `json:"max_length,omitempty"`
+	// MinValues and MaxValues limit how many options can be picked in a
+	// select menu or checkbox group.
+	MinValues    int                        `json:"min_values,omitempty"`
+	MaxValues    int                        `json:"max_values,omitempty"`
+	Required     bool                       `json:"required,omitempty"`
+	Value        string                     `json:"value,omitempty"`
+	Placeholder  string                     `json:"placeholder,omitempty"`
+	Options      []ModalComponentOptionData `json:"options,omitempty"`
+	ChannelTypes []int                      `json:"channel_types,omitempty"`
+	// Default is whether a checkbox starts checked.
+	Default    bool                 `json:"default,omitempty"`
+	Components []ModalComponentData `json:"components,omitempty"`
 }
+
+type ModalComponentOptionData struct {
+	Label       string `json:"label,omitempty"`
+	Value       string `json:"value,omitempty"`
+	Description string `json:"description,omitempty"`
+	Default     bool   `json:"default,omitempty"`
+}
+
+const (
+	ModalComponentTypeLabel             = "label"
+	ModalComponentTypeTextDisplay       = "text_display"
+	ModalComponentTypeTextInput         = "text_input"
+	ModalComponentTypeStringSelect      = "string_select"
+	ModalComponentTypeUserSelect        = "user_select"
+	ModalComponentTypeRoleSelect        = "role_select"
+	ModalComponentTypeMentionableSelect = "mentionable_select"
+	ModalComponentTypeChannelSelect     = "channel_select"
+	ModalComponentTypeRadioGroup        = "radio_group"
+	ModalComponentTypeCheckboxGroup     = "checkbox_group"
+	ModalComponentTypeCheckbox          = "checkbox"
+)
 
 type HTTPRequestData struct {
 	URL      string                    `json:"url,omitempty"`

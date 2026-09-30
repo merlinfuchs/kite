@@ -193,6 +193,9 @@ func (c CommandEnv) String() string {
 type ComponentEnv struct {
 	CustomID string `expr:"custom_id" json:"custom_id"`
 	Value    string `expr:"value" json:"value"`
+	// Values are the options picked in a select menu or checkbox group,
+	// Value is the first of them.
+	Values []string `expr:"values" json:"values"`
 }
 
 func NewComponentsEnv(i *discord.InteractionEvent) map[string]*ComponentEnv {
@@ -203,16 +206,22 @@ func NewComponentsEnv(i *discord.InteractionEvent) map[string]*ComponentEnv {
 		return components
 	}
 
-	for _, row := range data.Components {
-		actionRow, ok := row.(*discord.ActionRowComponent)
-		if !ok {
-			continue
+	add := func(component discord.Component) {
+		c := NewComponentEnv(component)
+		if c != nil {
+			components[c.CustomID] = c
 		}
+	}
 
-		for _, component := range *actionRow {
-			c := NewComponentEnv(component)
-			if c != nil {
-				components[c.CustomID] = c
+	for _, row := range data.Components {
+		switch row := row.(type) {
+		case *discord.ActionRowComponent:
+			for _, component := range *row {
+				add(component)
+			}
+		case *discord.LabelComponent:
+			if row.Component != nil {
+				add(row.Component)
 			}
 		}
 	}
@@ -220,16 +229,56 @@ func NewComponentsEnv(i *discord.InteractionEvent) map[string]*ComponentEnv {
 	return components
 }
 
-func NewComponentEnv(component discord.InteractiveComponent) *ComponentEnv {
+func NewComponentEnv(component discord.Component) *ComponentEnv {
 	switch c := component.(type) {
 	case *discord.TextInputComponent:
 		return &ComponentEnv{
 			CustomID: string(c.CustomID),
 			Value:    c.Value,
 		}
+	case *discord.StringSelectComponent:
+		return newComponentEnvValues(c.CustomID, c.Values)
+	case *discord.UserSelectComponent:
+		return newComponentEnvValues(c.CustomID, c.Values)
+	case *discord.RoleSelectComponent:
+		return newComponentEnvValues(c.CustomID, c.Values)
+	case *discord.MentionableSelectComponent:
+		return newComponentEnvValues(c.CustomID, c.Values)
+	case *discord.ChannelSelectComponent:
+		return newComponentEnvValues(c.CustomID, c.Values)
+	case *discord.CheckboxGroupComponent:
+		return newComponentEnvValues(c.CustomID, c.Values)
+	case *discord.RadioGroupComponent:
+		env := &ComponentEnv{
+			CustomID: string(c.CustomID),
+			Value:    c.Value,
+		}
+		if c.Value != "" {
+			env.Values = []string{c.Value}
+		}
+		return env
+	case *discord.CheckboxComponent:
+		return &ComponentEnv{
+			CustomID: string(c.CustomID),
+			Value:    strconv.FormatBool(c.Value),
+		}
 	}
 
 	return nil
+}
+
+func newComponentEnvValues[T any](customID discord.ComponentID, values []T) *ComponentEnv {
+	env := &ComponentEnv{
+		CustomID: string(customID),
+		Values:   make([]string, len(values)),
+	}
+	for i, v := range values {
+		env.Values[i] = fmt.Sprint(v)
+	}
+	if len(env.Values) > 0 {
+		env.Value = env.Values[0]
+	}
+	return env
 }
 
 func (c ComponentEnv) String() string {
