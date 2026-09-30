@@ -18,9 +18,11 @@ export function getAvailablePlaceholders(
   edges: Edge[],
   contextType: FlowContextType
 ): PlaceholderGroup[] {
+  const eventType = nodes.find((n) => n.type === "entry_event")?.data
+    .event_type;
   const res = [
     ...commandPlaceholders(nodes, edges, contextType),
-    ...interactionPlaceholders(contextType),
+    ...interactionPlaceholders(contextType, "", "", eventType),
     {
       label: "App",
       placeholders: [
@@ -43,7 +45,8 @@ export function getAvailablePlaceholders(
 function interactionPlaceholders(
   contextType?: FlowContextType,
   prefix = "",
-  labelPrefix = ""
+  labelPrefix = "",
+  eventType?: string
 ): PlaceholderGroup[] {
   if (contextType === "event_schedule") {
     return [
@@ -80,6 +83,18 @@ function interactionPlaceholders(
       placeholders: [{ label: "Channel ID", value: `${prefix}channel.id` }],
     },
   ];
+
+  // Bot Joined Server is the only event with the full server, and there's no
+  // channel to answer in, so the system channel is how it can post there.
+  if (contextType === "event_discord" && eventType === "guild_create") {
+    res[1].placeholders.push(
+      { label: "Server Name", value: `${prefix}guild.name` },
+      {
+        label: "Server System Channel ID",
+        value: `${prefix}guild.system_channel_id`,
+      }
+    );
+  }
 
   if (contextType === "component_select_menu") {
     res.push({
@@ -145,7 +160,14 @@ function resumePlaceholders(
   const depth = getResumeDepth(nodeId, nodes, edges);
   if (depth === 0) return [];
 
-  const res = interactionPlaceholders(contextType, "origin.", "Original ");
+  const eventType = nodes.find((n) => n.type === "entry_event")?.data
+    .event_type;
+  const res = interactionPlaceholders(
+    contextType,
+    "origin.",
+    "Original ",
+    eventType
+  );
   if (depth > 1) {
     // Whether previous was a button, select menu or modal isn't tracked here.
     res.push(...interactionPlaceholders(undefined, "previous.", "Previous "));

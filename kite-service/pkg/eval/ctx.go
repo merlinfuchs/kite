@@ -536,14 +536,18 @@ type GuildEnv struct {
 
 	ID   string `expr:"id" json:"id"`
 	Name string `expr:"name" json:"name"`
+	// SystemChannelID is where Discord posts join and boost messages. It's
+	// empty if the server has none.
+	SystemChannelID string `expr:"system_channel_id" json:"system_channel_id"`
 }
 
 func NewGuildEnv(guild discord.Guild) *GuildEnv {
 	return &GuildEnv{
 		og: guild,
 
-		ID:   guild.ID.String(),
-		Name: guild.Name,
+		ID:              guild.ID.String(),
+		Name:            guild.Name,
+		SystemChannelID: guild.SystemChannelID.String(),
 	}
 }
 

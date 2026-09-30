@@ -21,6 +21,12 @@ With Event Listeners you can listen for events inside the Discord servers that y
 - Member events are only available when you enable the "Server Members Intent" in the [Discord Developer Portal](https://discord.dev).
 - Bot Joined Server provides the server as `{{guild.id}}` and `{{guild.name}}`. Bot Left Server only provides `{{guild.id}}`.
 
+### Sending a message in a server the bot joined
+
+Bot Joined Server has no channel, so there's nothing to reply in. It provides the server's system channel, where Discord posts its join and boost messages, as `{{guild.system_channel_id}}`. Put it in the channel target of a Create Channel Message block to post there.
+
+Not every server has a system channel, and then `{{guild.system_channel_id}}` is empty and sending the message fails. Check it with a Comparison Condition block first if you want to handle that case. The bot also needs permission to send messages in the channel.
+
 ![Example Event Flow](./img/example-event-flow.png)
 
 ## Scheduled Event Listeners

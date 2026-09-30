@@ -3739,12 +3739,17 @@
           "icon_url": {
             "type": "string",
             "description": "The icon URL of the guild"
+          },
+          "system_channel_id": {
+            "type": "string",
+            "description": "The ID of the guild's system channel, where Discord posts join messages. Empty if it has none"
           }
         },
         "required": [
           "id",
           "name",
-          "icon_url"
+          "icon_url",
+          "system_channel_id"
         ],
         "additionalProperties": false
       }
