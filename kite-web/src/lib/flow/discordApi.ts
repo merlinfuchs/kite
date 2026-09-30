@@ -1,25 +1,10 @@
-import spec from "./discordApi.json";
+import { ApiOperation } from "../integrations/api";
+import api from "../integrations/discord/api.json";
 
 // The Discord API endpoints the Discord API Request block can call, generated
 // from Discord's OpenAPI spec by scripts/discord-api.mjs.
 
-export interface DiscordApiParam {
-  name: string;
-  // snowflake, integer, number, boolean, array or string
-  type: string;
-  required: boolean;
-}
-
-export interface DiscordApiOperation {
-  id: string;
-  method: string;
-  path: string;
-  path_params: DiscordApiParam[];
-  query_params: DiscordApiParam[];
-  has_body: boolean;
-}
-
-export const discordApiOperations: DiscordApiOperation[] = spec.operations;
+export const discordApiOperations: ApiOperation[] = api.operations;
 
 const operationsById = new Map(discordApiOperations.map((o) => [o.id, o]));
 

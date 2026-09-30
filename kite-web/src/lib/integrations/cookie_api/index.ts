@@ -1,8 +1,5 @@
 import { Integration } from "../types";
-import spec from "./openapi.json";
 
-// cookie-api.com publishes no spec, so openapi.json is written by hand from
-// its docs, for the endpoints Kite uses.
 export const cookieApi: Integration = {
   id: "cookie_api",
   name: "Cookie API",
@@ -16,5 +13,4 @@ export const cookieApi: Integration = {
       "https://docs.cookie-api.com/en/docs/getting-started/faq/api-key/",
   },
   test_path: "/api/time/current-time",
-  spec,
 };

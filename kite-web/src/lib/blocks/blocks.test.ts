@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { getDiscordApiOperation } from "../flow/discordApi";
 import { getIntegration, integrations } from "../integrations";
+import { integrationApis } from "../integrations/apis";
 import { blockDefinitions, blockIntegrations, requestBlocks } from ".";
 
 // What the service needs: how each block runs, which integrations it needs
@@ -28,17 +28,10 @@ const serviceBlocks = blockDefinitions.map((block) => ({
     : null,
 }));
 
-// The service doesn't read specs.
-const serviceIntegrations = integrations.map(({ spec: _, ...rest }) => rest);
-
 describe("block definitions", () => {
   it("match the file embedded in the service", async () => {
     await expect(
-      JSON.stringify(
-        { integrations: serviceIntegrations, blocks: serviceBlocks },
-        null,
-        2
-      ) + "\n"
+      JSON.stringify({ integrations, blocks: serviceBlocks }, null, 2) + "\n"
     ).toMatchFileSnapshot(
       "../../../../kite-service/pkg/flow/block_definitions.json"
     );
@@ -79,61 +72,51 @@ describe("block definitions", () => {
     }
   });
 
-  it("match Discord's spec", () => {
-    for (const block of requestBlocks().filter(
-      (b) => b.run.integration === "discord"
-    )) {
-      const op = getDiscordApiOperation(block.run.operation);
+  it("match their integration's API", () => {
+    for (const block of requestBlocks()) {
+      const op = integrationApis[block.run.integration]?.operations.find(
+        (o) => o.id === block.run.operation
+      );
       expect(op, block.type).toBeDefined();
+      if (!op) continue;
+
       expect([block.run.method, block.run.path], block.type).toEqual([
-        op!.method,
-        op!.path,
+        op.method,
+        op.path,
       ]);
 
-      const pathFields = block.fields.filter((f) => f.in === "path");
-      expect(
-        pathFields.map((f) => f.target ?? f.name).sort(),
-        block.type
-      ).toEqual(op!.path_params.map((p) => p.name).sort());
-
-      for (const field of block.fields.filter((f) => f.in === "query")) {
-        const param = op!.query_params.find(
-          (p) => p.name === (field.target ?? field.name)
-        );
-        expect(param, `${block.type}.${field.name}`).toBeDefined();
-      }
-      if (block.fields.some((f) => f.in === "body")) {
-        expect(op!.has_body, block.type).toBe(true);
-      }
-    }
-  });
-
-  // Integrations without an official spec keep a hand-written one.
-  it("match the specs of other integrations", () => {
-    for (const block of requestBlocks().filter(
-      (b) => b.run.integration !== "discord"
-    )) {
-      const spec = getIntegration(block.run.integration)?.spec;
-      expect(spec, block.type).toBeDefined();
-      if (!spec) continue;
-
-      const op = spec.paths[block.run.path]?.[block.run.method.toLowerCase()];
-      expect(op?.operationId, block.type).toBe(block.run.operation);
-
-      const schema =
-        op?.requestBody?.content?.["application/json"]?.schema ?? {};
-      const targets = block.fields
-        .filter((f) => f.in === "body")
-        .map((f) => f.target ?? f.name);
-      for (const target of targets) {
+      const targets = (location: string) =>
+        block.fields
+          .filter((f) => f.in === location)
+          .map((f) => f.target ?? f.name);
+      expect(targets("path").sort(), block.type).toEqual(
+        op.path_params.map((p) => p.name).sort()
+      );
+      for (const name of targets("query")) {
         expect(
-          schema.properties?.[target],
-          `${block.type}.${target}`
-        ).toBeDefined();
+          op.query_params.some((p) => p.name === name),
+          `${block.type}.${name}`
+        ).toBe(true);
       }
-      for (const name of schema.required ?? []) {
-        const field = block.fields.find((f) => (f.target ?? f.name) === name);
-        expect(field?.required, `${block.type} requires ${name}`).toBe(true);
+
+      if (targets("body").length > 0) {
+        expect(op.has_body, block.type).toBe(true);
+      }
+      if (op.body_params) {
+        for (const name of targets("body")) {
+          expect(
+            op.body_params.some((p) => p.name === name),
+            `${block.type}.${name}`
+          ).toBe(true);
+        }
+        for (const param of op.body_params.filter((p) => p.required)) {
+          const field = block.fields.find(
+            (f) => f.in === "body" && (f.target ?? f.name) === param.name
+          );
+          expect(field?.required, `${block.type} requires ${param.name}`).toBe(
+            true
+          );
+        }
       }
     }
   });

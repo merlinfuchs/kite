@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import spec from "./discordApi.json";
+import spec from "../integrations/discord/api.json";
 import { similarDiscordApiOperations } from "./discordApi";
 import { getNodeValues } from "./nodes";
 
