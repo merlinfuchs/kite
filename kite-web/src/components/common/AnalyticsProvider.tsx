@@ -3,19 +3,19 @@ import { OpenPanelComponent, useOpenPanel } from "@openpanel/nextjs";
 import { useEffect } from "react";
 
 export default function AnalyticsProvider() {
-  const op = useOpenPanel();
+  const { identify } = useOpenPanel();
   const user = useUser();
 
   useEffect(() => {
     if (user?.id) {
-      op.identify({
+      identify({
         profileId: user.id,
         firstName: user.discord_username,
         lastName: user.display_name,
         email: user.email,
       });
     }
-  }, [user?.id, op.identify]);
+  }, [identify, user]);
 
   if (process.env.NODE_ENV !== "production" || typeof window === "undefined") {
     return null;
