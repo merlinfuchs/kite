@@ -10,13 +10,16 @@ import {
 } from "../ui/dialog";
 import Flow from "./Flow";
 import { FlowContextType } from "@/lib/flow/context";
+import { LogEntry } from "@/lib/types/wire.gen";
 
 function InnerFlowDialog({
   flowData,
+  logs,
   context,
   onChange,
 }: {
   flowData: FlowData;
+  logs?: LogEntry[];
   context: FlowContextType;
   onChange: (d: FlowData) => void;
 }) {
@@ -29,16 +32,25 @@ function InnerFlowDialog({
     });
   }, [getNodes, getEdges, onChange]);
 
-  return <Flow flowData={flowData} context={context} onChange={handleChange} />;
+  return (
+    <Flow
+      flowData={flowData}
+      logs={logs}
+      context={context}
+      onChange={handleChange}
+    />
+  );
 }
 
 export default function FlowDialog({
   children,
   onClose,
   flowData,
+  logs,
   context,
 }: {
   flowData: FlowData;
+  logs?: LogEntry[];
   onClose: (data: FlowData) => void;
   context: FlowContextType;
   children: React.ReactNode;
@@ -70,6 +82,7 @@ export default function FlowDialog({
           </DialogDescription>
           <InnerFlowDialog
             flowData={flowData}
+            logs={logs}
             context={context}
             onChange={onChange}
           />
