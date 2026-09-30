@@ -17,14 +17,64 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-type credentialStore struct {
+// memoryStore keeps credentials and integrations like the database, where
+// removing an integration removes its credential.
+type memoryStore struct {
 	store.AppSecretStore
-	saved *model.AppSecret
+	credentials  map[string]*model.AppSecret
+	integrations map[string]*model.AppIntegration
 }
 
-func (s *credentialStore) SetAppIntegrationCredential(ctx context.Context, secret *model.AppSecret) (*model.AppSecret, error) {
-	s.saved = secret
+func newMemoryStore() *memoryStore {
+	return &memoryStore{
+		credentials:  map[string]*model.AppSecret{},
+		integrations: map[string]*model.AppIntegration{},
+	}
+}
+
+func (s *memoryStore) AppIntegrationCredentials(ctx context.Context, appID string) ([]*model.AppSecret, error) {
+	var res []*model.AppSecret
+	for _, secret := range s.credentials {
+		res = append(res, secret)
+	}
+	return res, nil
+}
+
+func (s *memoryStore) AppIntegrationCredential(ctx context.Context, appID string, integrationID string) (*model.AppSecret, error) {
+	if secret, ok := s.credentials[integrationID]; ok {
+		return secret, nil
+	}
+	return nil, store.ErrNotFound
+}
+
+func (s *memoryStore) AppIntegrations(ctx context.Context, appID string) ([]*model.AppIntegration, error) {
+	var res []*model.AppIntegration
+	for _, integration := range s.integrations {
+		res = append(res, integration)
+	}
+	return res, nil
+}
+
+func (s *memoryStore) SetAppIntegrationEnabled(ctx context.Context, integration *model.AppIntegration) (*model.AppIntegration, error) {
+	s.integrations[integration.IntegrationID] = integration
+	return integration, nil
+}
+
+func (s *memoryStore) ConnectAppIntegration(ctx context.Context, secret *model.AppSecret) (*model.AppSecret, error) {
+	if _, ok := s.integrations[secret.IntegrationID]; !ok {
+		s.integrations[secret.IntegrationID] = &model.AppIntegration{IntegrationID: secret.IntegrationID, Enabled: true}
+	}
+	s.credentials[secret.IntegrationID] = secret
 	return secret, nil
+}
+
+func (s *memoryStore) DeleteAppIntegration(ctx context.Context, appID string, integrationID string) error {
+	if _, ok := s.integrations[integrationID]; !ok {
+		return store.ErrNotFound
+	}
+	delete(s.integrations, integrationID)
+	delete(s.credentials, integrationID)
+	return nil
 }
 
 // roundTripper answers requests without a network.
@@ -38,87 +88,35 @@ func (rt *roundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
 	return &http.Response{StatusCode: rt.status, Body: io.NopCloser(strings.NewReader("{}"))}, nil
 }
 
-func connect(t *testing.T, integrationID string, status int) (int, map[string]any, *credentialStore, *roundTripper) {
+// newHandler returns a handler whose credential checks get the given status.
+func newHandler(t *testing.T, s *memoryStore, status int) (*IntegrationHandler, *roundTripper) {
 	crypt, err := util.NewSymmetricCrypt(strings.Repeat("ab", 32))
 	require.NoError(t, err)
-	s := &credentialStore{}
 	rt := &roundTripper{status: status}
-	h := NewIntegrationHandler(s, nil, crypt)
+	h := NewIntegrationHandler(s, s, crypt)
 	h.client.Transport = rt
+	return h, rt
+}
+
+type response struct {
+	code  int
+	data  any
+	error map[string]any
+}
+
+func serve(t *testing.T, h *IntegrationHandler, method string, path string, body string) response {
+	withApp := func(next func(c *handler.Context) error) http.Handler {
+		return handler.APIHandler(func(c *handler.Context) error {
+			c.App = &model.App{ID: "app"}
+			return next(c)
+		})
+	}
 
 	mux := http.NewServeMux()
-	mux.Handle("PUT /integrations/{integrationID}", handler.APIHandler(func(c *handler.Context) error {
-		c.App = &model.App{ID: "app"}
-		return handler.TypedWithBody(h.HandleAppIntegrationConnect)(c)
-	}))
-
-	req := httptest.NewRequest(http.MethodPut, "/integrations/"+integrationID, strings.NewReader(`{"credential":"k3y"}`))
-	req.Header.Set("Content-Type", "application/json")
-	rec := httptest.NewRecorder()
-	mux.ServeHTTP(rec, req)
-
-	var res map[string]any
-	require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &res))
-	return rec.Code, res, s, rt
-}
-
-func TestConnectChecksCredential(t *testing.T) {
-	code, _, s, rt := connect(t, "cookie_api", http.StatusOK)
-	require.Equal(t, http.StatusOK, code)
-	assert.Equal(t, "https://api.cookie-api.com/api/time/current-time", rt.req.URL.String())
-	assert.Equal(t, "k3y", rt.req.Header.Get("Authorization"))
-	require.NotNil(t, s.saved)
-	assert.Equal(t, "cookie_api", s.saved.IntegrationID)
-	assert.NotEqual(t, "k3y", s.saved.ValueEncrypted)
-}
-
-func TestConnectRejectsRefusedCredential(t *testing.T) {
-	code, res, s, _ := connect(t, "cookie_api", http.StatusUnauthorized)
-	assert.Equal(t, http.StatusBadRequest, code)
-	assert.Equal(t, "invalid_credential", res["error"].(map[string]any)["code"])
-	assert.Nil(t, s.saved)
-}
-
-func TestConnectIntegrationWithoutCredential(t *testing.T) {
-	code, res, _, _ := connect(t, "discord", http.StatusOK)
-	assert.Equal(t, http.StatusBadRequest, code)
-	assert.Equal(t, "no_credential", res["error"].(map[string]any)["code"])
-
-	code, _, _, _ = connect(t, "nope", http.StatusOK)
-	assert.Equal(t, http.StatusNotFound, code)
-}
-
-type choiceStore struct {
-	saved []*model.AppIntegration
-}
-
-func (s *choiceStore) AppIntegrations(ctx context.Context, appID string) ([]*model.AppIntegration, error) {
-	return s.saved, nil
-}
-
-func (s *choiceStore) SetAppIntegrationEnabled(ctx context.Context, integration *model.AppIntegration) (*model.AppIntegration, error) {
-	s.saved = append(s.saved, integration)
-	return integration, nil
-}
-
-type listCredentialStore struct {
-	store.AppSecretStore
-}
-
-func (s *listCredentialStore) AppIntegrationCredentials(ctx context.Context, appID string) ([]*model.AppSecret, error) {
-	return []*model.AppSecret{{IntegrationID: "cookie_api"}}, nil
-}
-
-func serve(t *testing.T, h *IntegrationHandler, method string, path string, body string) (int, map[string]any, []any) {
-	mux := http.NewServeMux()
-	mux.Handle("GET /integrations", handler.APIHandler(func(c *handler.Context) error {
-		c.App = &model.App{ID: "app"}
-		return handler.Typed(h.HandleAppIntegrationList)(c)
-	}))
-	mux.Handle("PATCH /integrations/{integrationID}", handler.APIHandler(func(c *handler.Context) error {
-		c.App = &model.App{ID: "app"}
-		return handler.TypedWithBody(h.HandleAppIntegrationUpdate)(c)
-	}))
+	mux.Handle("GET /integrations", withApp(handler.Typed(h.HandleAppIntegrationList)))
+	mux.Handle("PATCH /integrations/{integrationID}", withApp(handler.TypedWithBody(h.HandleAppIntegrationUpdate)))
+	mux.Handle("PUT /integrations/{integrationID}", withApp(handler.TypedWithBody(h.HandleAppIntegrationConnect)))
+	mux.Handle("DELETE /integrations/{integrationID}", withApp(handler.Typed(h.HandleAppIntegrationRemove)))
 
 	req := httptest.NewRequest(method, path, strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
@@ -130,43 +128,112 @@ func serve(t *testing.T, h *IntegrationHandler, method string, path string, body
 		Error map[string]any `json:"error"`
 	}
 	require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &res))
-	list, _ := res.Data.([]any)
-	return rec.Code, res.Error, list
+	return response{code: rec.Code, data: res.Data, error: res.Error}
+}
+
+func TestConnectChecksCredential(t *testing.T) {
+	s := newMemoryStore()
+	h, rt := newHandler(t, s, http.StatusOK)
+
+	res := serve(t, h, http.MethodPut, "/integrations/cookie_api", `{"credential":"k3y"}`)
+	require.Equal(t, http.StatusOK, res.code)
+	assert.Equal(t, "https://api.cookie-api.com/api/time/current-time", rt.req.URL.String())
+	assert.Equal(t, "k3y", rt.req.Header.Get("Authorization"))
+
+	// Connecting enables the integration.
+	require.Contains(t, s.credentials, "cookie_api")
+	assert.NotEqual(t, "k3y", s.credentials["cookie_api"].ValueEncrypted)
+	assert.True(t, s.integrations["cookie_api"].Enabled)
+	assert.Equal(t, true, res.data.(map[string]any)["enabled"])
+}
+
+func TestConnectRejectsRefusedCredential(t *testing.T) {
+	s := newMemoryStore()
+	h, _ := newHandler(t, s, http.StatusUnauthorized)
+
+	res := serve(t, h, http.MethodPut, "/integrations/cookie_api", `{"credential":"k3y"}`)
+	assert.Equal(t, http.StatusBadRequest, res.code)
+	assert.Equal(t, "invalid_credential", res.error["code"])
+	assert.Empty(t, s.credentials)
+	assert.Empty(t, s.integrations)
+}
+
+func TestConnectIntegrationWithoutCredential(t *testing.T) {
+	h, _ := newHandler(t, newMemoryStore(), http.StatusOK)
+
+	res := serve(t, h, http.MethodPut, "/integrations/discord", `{"credential":"k3y"}`)
+	assert.Equal(t, http.StatusBadRequest, res.code)
+	assert.Equal(t, "no_credential", res.error["code"])
+
+	res = serve(t, h, http.MethodPut, "/integrations/nope", `{"credential":"k3y"}`)
+	assert.Equal(t, http.StatusNotFound, res.code)
 }
 
 func TestUpdateIntegration(t *testing.T) {
-	choices := &choiceStore{}
-	h := NewIntegrationHandler(nil, choices, nil)
+	s := newMemoryStore()
+	h, _ := newHandler(t, s, http.StatusOK)
 
-	code, _, _ := serve(t, h, http.MethodPatch, "/integrations/roblox", `{"enabled":false}`)
-	require.Equal(t, http.StatusOK, code)
-	require.Len(t, choices.saved, 1)
-	assert.Equal(t, "roblox", choices.saved[0].IntegrationID)
-	assert.False(t, choices.saved[0].Enabled)
+	res := serve(t, h, http.MethodPatch, "/integrations/roblox", `{"enabled":false}`)
+	require.Equal(t, http.StatusOK, res.code)
+	assert.False(t, s.integrations["roblox"].Enabled)
 
-	// A body without the value doesn't turn the integration off.
-	code, _, _ = serve(t, h, http.MethodPatch, "/integrations/roblox", `{}`)
-	assert.Equal(t, http.StatusBadRequest, code)
-	require.Len(t, choices.saved, 1)
+	// A body without the value doesn't disable the integration.
+	res = serve(t, h, http.MethodPatch, "/integrations/roblox", `{}`)
+	assert.Equal(t, http.StatusBadRequest, res.code)
 
-	code, res, _ := serve(t, h, http.MethodPatch, "/integrations/discord", `{"enabled":false}`)
-	assert.Equal(t, http.StatusBadRequest, code)
-	assert.Equal(t, "always_enabled", res["code"])
+	res = serve(t, h, http.MethodPatch, "/integrations/discord", `{"enabled":false}`)
+	assert.Equal(t, http.StatusBadRequest, res.code)
+	assert.Equal(t, "always_enabled", res.error["code"])
 
-	code, res, _ = serve(t, h, http.MethodPatch, "/integrations/cookie_api", `{"enabled":true}`)
-	assert.Equal(t, http.StatusBadRequest, code)
-	assert.Equal(t, "needs_credential", res["code"])
+	// Integrations that need a credential are enabled by connecting them.
+	res = serve(t, h, http.MethodPatch, "/integrations/cookie_api", `{"enabled":true}`)
+	assert.Equal(t, http.StatusBadRequest, res.code)
+	assert.Equal(t, "not_connected", res.error["code"])
+}
+
+// Disabling an integration keeps its credential.
+func TestDisableConnectedIntegration(t *testing.T) {
+	s := newMemoryStore()
+	h, _ := newHandler(t, s, http.StatusOK)
+	require.Equal(t, http.StatusOK, serve(t, h, http.MethodPut, "/integrations/cookie_api", `{"credential":"k3y"}`).code)
+
+	res := serve(t, h, http.MethodPatch, "/integrations/cookie_api", `{"enabled":false}`)
+	require.Equal(t, http.StatusOK, res.code)
+	assert.Equal(t, false, res.data.(map[string]any)["enabled"])
+	assert.Contains(t, s.credentials, "cookie_api")
+
+	// Replacing the credential doesn't enable it again.
+	res = serve(t, h, http.MethodPut, "/integrations/cookie_api", `{"credential":"n3w"}`)
+	require.Equal(t, http.StatusOK, res.code)
+	assert.Equal(t, false, res.data.(map[string]any)["enabled"])
+}
+
+func TestRemoveIntegration(t *testing.T) {
+	s := newMemoryStore()
+	h, _ := newHandler(t, s, http.StatusOK)
+	require.Equal(t, http.StatusOK, serve(t, h, http.MethodPut, "/integrations/cookie_api", `{"credential":"k3y"}`).code)
+
+	res := serve(t, h, http.MethodDelete, "/integrations/cookie_api", "")
+	require.Equal(t, http.StatusOK, res.code)
+	assert.Empty(t, s.credentials)
+	assert.Empty(t, s.integrations)
+
+	res = serve(t, h, http.MethodDelete, "/integrations/cookie_api", "")
+	assert.Equal(t, http.StatusNotFound, res.code)
+	assert.Equal(t, "not_set_up", res.error["code"])
 }
 
 func TestListIntegrations(t *testing.T) {
-	choices := &choiceStore{saved: []*model.AppIntegration{{IntegrationID: "roblox", Enabled: false}}}
-	h := NewIntegrationHandler(&listCredentialStore{}, choices, nil)
+	s := newMemoryStore()
+	h, _ := newHandler(t, s, http.StatusOK)
+	require.Equal(t, http.StatusOK, serve(t, h, http.MethodPut, "/integrations/cookie_api", `{"credential":"k3y"}`).code)
+	require.Equal(t, http.StatusOK, serve(t, h, http.MethodPatch, "/integrations/roblox", `{"enabled":false}`).code)
 
-	code, _, list := serve(t, h, http.MethodGet, "/integrations", "")
-	require.Equal(t, http.StatusOK, code)
+	res := serve(t, h, http.MethodGet, "/integrations", "")
+	require.Equal(t, http.StatusOK, res.code)
 
 	enabled := map[string]bool{}
-	for _, item := range list {
+	for _, item := range res.data.([]any) {
 		entry := item.(map[string]any)
 		enabled[entry["integration_id"].(string)] = entry["enabled"].(bool)
 	}

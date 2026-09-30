@@ -19,8 +19,4 @@ type AppSecretStore interface {
 
 	AppIntegrationCredentials(ctx context.Context, appID string) ([]*model.AppSecret, error)
 	AppIntegrationCredential(ctx context.Context, appID string, integrationID string) (*model.AppSecret, error)
-	// SetAppIntegrationCredential creates or replaces the credential of an
-	// integration.
-	SetAppIntegrationCredential(ctx context.Context, secret *model.AppSecret) (*model.AppSecret, error)
-	DeleteAppIntegrationCredential(ctx context.Context, appID string, integrationID string) error
 }

@@ -11,6 +11,55 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const createAppIntegrationIfMissing = `-- name: CreateAppIntegrationIfMissing :exec
+INSERT INTO app_integrations (
+    app_id,
+    integration_id,
+    enabled,
+    created_at,
+    updated_at
+) VALUES (
+    $1, $2, $3, $4, $5
+)
+ON CONFLICT (app_id, integration_id) DO NOTHING
+`
+
+type CreateAppIntegrationIfMissingParams struct {
+	AppID         string
+	IntegrationID string
+	Enabled       bool
+	CreatedAt     pgtype.Timestamp
+	UpdatedAt     pgtype.Timestamp
+}
+
+func (q *Queries) CreateAppIntegrationIfMissing(ctx context.Context, arg CreateAppIntegrationIfMissingParams) error {
+	_, err := q.db.Exec(ctx, createAppIntegrationIfMissing,
+		arg.AppID,
+		arg.IntegrationID,
+		arg.Enabled,
+		arg.CreatedAt,
+		arg.UpdatedAt,
+	)
+	return err
+}
+
+const deleteAppIntegration = `-- name: DeleteAppIntegration :execrows
+DELETE FROM app_integrations WHERE app_id = $1 AND integration_id = $2
+`
+
+type DeleteAppIntegrationParams struct {
+	AppID         string
+	IntegrationID string
+}
+
+func (q *Queries) DeleteAppIntegration(ctx context.Context, arg DeleteAppIntegrationParams) (int64, error) {
+	result, err := q.db.Exec(ctx, deleteAppIntegration, arg.AppID, arg.IntegrationID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
 const getAppIntegrations = `-- name: GetAppIntegrations :many
 SELECT app_id, integration_id, enabled, created_at, updated_at FROM app_integrations WHERE app_id = $1 ORDER BY integration_id
 `

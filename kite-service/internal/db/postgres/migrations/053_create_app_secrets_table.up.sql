@@ -12,7 +12,9 @@ CREATE TABLE IF NOT EXISTS app_secrets (
     created_at TIMESTAMP NOT NULL,
     updated_at TIMESTAMP NOT NULL,
 
-    CHECK ((name IS NULL) <> (integration_id IS NULL))
+    CHECK ((name IS NULL) <> (integration_id IS NULL)),
+    -- Named secrets have no integration_id, so the key doesn't apply to them.
+    FOREIGN KEY (app_id, integration_id) REFERENCES app_integrations(app_id, integration_id) ON DELETE CASCADE
 );
 
 CREATE UNIQUE INDEX IF NOT EXISTS app_secrets_app_id_name ON app_secrets (app_id, name) WHERE name IS NOT NULL;

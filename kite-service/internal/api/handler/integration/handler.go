@@ -15,7 +15,6 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/store"
 	"github.com/kitecloud/kite/kite-service/internal/util"
 	"github.com/kitecloud/kite/kite-service/pkg/flow"
-	"gopkg.in/guregu/null.v4"
 )
 
 type IntegrationHandler struct {
@@ -49,17 +48,14 @@ func (h *IntegrationHandler) HandleAppIntegrationList(c *handler.Context) (*wire
 
 	res := make([]*wire.AppIntegration, len(states))
 	for i, state := range states {
-		res[i] = &wire.AppIntegration{
-			IntegrationID:       state.Integration.ID,
-			Enabled:             state.Enabled,
-			CredentialUpdatedAt: state.CredentialUpdatedAt,
-		}
+		res[i] = stateToWire(state)
 	}
 	return &res, nil
 }
 
-// HandleAppIntegrationUpdate turns an integration without a credential on or
-// off. The others are on while the app connected them.
+// HandleAppIntegrationUpdate enables or disables an integration. Integrations
+// that need a credential are enabled by connecting them, and keep it while
+// they're disabled.
 func (h *IntegrationHandler) HandleAppIntegrationUpdate(c *handler.Context, req wire.AppIntegrationUpdateRequest) (*wire.AppIntegrationUpdateResponse, error) {
 	integration, ok := flow.GetIntegration(c.Param("integrationID"))
 	if !ok {
@@ -69,7 +65,13 @@ func (h *IntegrationHandler) HandleAppIntegrationUpdate(c *handler.Context, req 
 		return nil, handler.ErrBadRequest("always_enabled", "The integration is always enabled")
 	}
 	if integration.NeedsCredential() {
-		return nil, handler.ErrBadRequest("needs_credential", "The integration is enabled by connecting it")
+		_, err := h.appSecretStore.AppIntegrationCredential(c.Context(), c.App.ID, integration.ID)
+		if errors.Is(err, store.ErrNotFound) {
+			return nil, handler.ErrBadRequest("not_connected", "Connect the integration with its credential first")
+		}
+		if err != nil {
+			return nil, fmt.Errorf("failed to get credential: %w", err)
+		}
 	}
 
 	_, err := h.appIntegrationStore.SetAppIntegrationEnabled(c.Context(), &model.AppIntegration{
@@ -83,9 +85,11 @@ func (h *IntegrationHandler) HandleAppIntegrationUpdate(c *handler.Context, req 
 		return nil, fmt.Errorf("failed to update integration: %w", err)
 	}
 
-	return &wire.AppIntegration{IntegrationID: integration.ID, Enabled: *req.Enabled}, nil
+	return h.state(c, integration.ID)
 }
 
+// HandleAppIntegrationConnect sets the credential of an integration, which
+// enables it unless the app disabled it before.
 func (h *IntegrationHandler) HandleAppIntegrationConnect(c *handler.Context, req wire.AppIntegrationConnectRequest) (*wire.AppIntegrationConnectResponse, error) {
 	integration, err := credentialIntegration(c.Param("integrationID"))
 	if err != nil {
@@ -101,7 +105,7 @@ func (h *IntegrationHandler) HandleAppIntegrationConnect(c *handler.Context, req
 		return nil, fmt.Errorf("failed to encrypt credential: %w", err)
 	}
 
-	secret, err := h.appSecretStore.SetAppIntegrationCredential(c.Context(), &model.AppSecret{
+	_, err = h.appIntegrationStore.ConnectAppIntegration(c.Context(), &model.AppSecret{
 		ID:             util.UniqueID(),
 		AppID:          c.App.ID,
 		IntegrationID:  integration.ID,
@@ -113,28 +117,47 @@ func (h *IntegrationHandler) HandleAppIntegrationConnect(c *handler.Context, req
 		return nil, fmt.Errorf("failed to save credential: %w", err)
 	}
 
-	return &wire.AppIntegration{
-		IntegrationID:       integration.ID,
-		Enabled:             true,
-		CredentialUpdatedAt: null.TimeFrom(secret.UpdatedAt),
-	}, nil
+	return h.state(c, integration.ID)
 }
 
-func (h *IntegrationHandler) HandleAppIntegrationDisconnect(c *handler.Context) (*wire.AppIntegrationDisconnectResponse, error) {
-	integration, err := credentialIntegration(c.Param("integrationID"))
+// HandleAppIntegrationRemove removes an integration the app set up, with its
+// credential, so it's back to its default.
+func (h *IntegrationHandler) HandleAppIntegrationRemove(c *handler.Context) (*wire.AppIntegrationRemoveResponse, error) {
+	integration, ok := flow.GetIntegration(c.Param("integrationID"))
+	if !ok {
+		return nil, handler.ErrNotFound("unknown_integration", "Integration not found")
+	}
+
+	err := h.appIntegrationStore.DeleteAppIntegration(c.Context(), c.App.ID, integration.ID)
+	if err != nil {
+		if errors.Is(err, store.ErrNotFound) {
+			return nil, handler.ErrNotFound("not_set_up", "The app didn't set up the integration")
+		}
+		return nil, fmt.Errorf("failed to remove integration: %w", err)
+	}
+
+	return &wire.AppIntegrationRemoveResponse{}, nil
+}
+
+func (h *IntegrationHandler) state(c *handler.Context, integrationID string) (*wire.AppIntegration, error) {
+	states, err := appintegration.States(c.Context(), h.appSecretStore, h.appIntegrationStore, c.App.ID)
 	if err != nil {
 		return nil, err
 	}
-
-	err = h.appSecretStore.DeleteAppIntegrationCredential(c.Context(), c.App.ID, integration.ID)
-	if err != nil {
-		if errors.Is(err, store.ErrNotFound) {
-			return nil, handler.ErrNotFound("not_connected", "The integration isn't connected")
+	for _, state := range states {
+		if state.Integration.ID == integrationID {
+			return stateToWire(state), nil
 		}
-		return nil, fmt.Errorf("failed to delete credential: %w", err)
 	}
+	return nil, fmt.Errorf("unknown integration: %s", integrationID)
+}
 
-	return &wire.AppIntegrationDisconnectResponse{}, nil
+func stateToWire(state appintegration.State) *wire.AppIntegration {
+	return &wire.AppIntegration{
+		IntegrationID:       state.Integration.ID,
+		Enabled:             state.Enabled,
+		CredentialUpdatedAt: state.CredentialUpdatedAt,
+	}
 }
 
 // credentialIntegration returns the integration with the given ID, if apps

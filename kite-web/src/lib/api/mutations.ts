@@ -62,7 +62,7 @@ import {
   SubscriptionPlanUpdateResponse,
   AppIntegrationConnectRequest,
   AppIntegrationConnectResponse,
-  AppIntegrationDisconnectResponse,
+  AppIntegrationRemoveResponse,
   AppIntegrationUpdateRequest,
   AppIntegrationUpdateResponse,
   AppSecretCreateRequest,
@@ -458,7 +458,7 @@ export function useAppIntegrationUpdateMutation(
   });
 }
 
-export function useAppIntegrationDisconnectMutation(
+export function useAppIntegrationRemoveMutation(
   appId: string,
   integrationId: string
 ) {
@@ -466,7 +466,7 @@ export function useAppIntegrationDisconnectMutation(
 
   return useMutation({
     mutationFn: () =>
-      apiRequest<AppIntegrationDisconnectResponse>(
+      apiRequest<AppIntegrationRemoveResponse>(
         `/v1/apps/${appId}/integrations/${integrationId}`,
         {
           method: "DELETE",

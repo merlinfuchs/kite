@@ -111,15 +111,16 @@ func (i Integration) NeedsCredential() bool {
 	return i.Auth.Type == "header" || i.Auth.Type == "query"
 }
 
-// Enabled reports whether an app can use the integration: whether it
-// connected it with a credential, for integrations that need one, and
-// otherwise whether it turned it on or off, if it did.
+// Enabled reports whether an app can use the integration, given whether it
+// connected it with a credential and whether it enabled or disabled it.
+// Without a choice, the integration's default applies. Integrations that need
+// a credential are opt-in, and enabled when they're connected.
 func (i Integration) Enabled(connected bool, choice null.Bool) bool {
 	switch {
 	case i.Availability == AvailabilityAlways:
 		return true
-	case i.NeedsCredential():
-		return connected
+	case i.NeedsCredential() && !connected:
+		return false
 	case choice.Valid:
 		return choice.Bool
 	default:
@@ -540,7 +541,7 @@ func integrationRequest(ctx *FlowContext, integration Integration, method string
 }
 
 func integrationCredential(ctx *FlowContext, integration Integration) (string, error) {
-	notConnected := fmt.Errorf("%s isn't connected, connect it in the app's integrations", integration.Name)
+	notConnected := notEnabledError(integration)
 	if ctx.Integration == nil {
 		return "", notConnected
 	}
@@ -566,14 +567,11 @@ func (n *CompiledFlowNode) checkIntegrations(ctx *FlowContext) error {
 			continue
 		}
 
-		if integration.NeedsCredential() {
-			if block.Run.Kind == "request" && block.Run.Integration == id {
-				continue
-			}
+		ownRequest := block.Run.Kind == "request" && block.Run.Integration == id
+		if integration.NeedsCredential() && !ownRequest {
 			if _, err := integrationCredential(ctx, integration); err != nil {
 				return err
 			}
-			continue
 		}
 
 		var choice null.Bool
@@ -584,9 +582,14 @@ func (n *CompiledFlowNode) checkIntegrations(ctx *FlowContext) error {
 				return err
 			}
 		}
-		if !integration.Enabled(false, choice) {
-			return fmt.Errorf("%s isn't enabled, enable it in the app's integrations", integration.Name)
+		// Connected, as the credential was checked above or is by the request.
+		if !integration.Enabled(true, choice) {
+			return notEnabledError(integration)
 		}
 	}
 	return nil
+}
+
+func notEnabledError(integration Integration) error {
+	return fmt.Errorf("%s isn't enabled, enable it in the app's integrations", integration.Name)
 }

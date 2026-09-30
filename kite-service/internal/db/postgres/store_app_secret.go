@@ -150,32 +150,3 @@ func (c *Client) AppIntegrationCredential(ctx context.Context, appID string, int
 	}
 	return rowToAppSecret(row), nil
 }
-
-func (c *Client) SetAppIntegrationCredential(ctx context.Context, secret *model.AppSecret) (*model.AppSecret, error) {
-	row, err := c.Q.SetAppIntegrationCredential(ctx, pgmodel.SetAppIntegrationCredentialParams{
-		ID:             secret.ID,
-		AppID:          secret.AppID,
-		IntegrationID:  pgtype.Text{String: secret.IntegrationID, Valid: true},
-		ValueEncrypted: secret.ValueEncrypted,
-		CreatedAt:      pgtype.Timestamp{Time: secret.CreatedAt.UTC(), Valid: true},
-		UpdatedAt:      pgtype.Timestamp{Time: secret.UpdatedAt.UTC(), Valid: true},
-	})
-	if err != nil {
-		return nil, err
-	}
-	return rowToAppSecret(row), nil
-}
-
-func (c *Client) DeleteAppIntegrationCredential(ctx context.Context, appID string, integrationID string) error {
-	n, err := c.Q.DeleteAppIntegrationCredential(ctx, pgmodel.DeleteAppIntegrationCredentialParams{
-		AppID:         appID,
-		IntegrationID: pgtype.Text{String: integrationID, Valid: true},
-	})
-	if err != nil {
-		return err
-	}
-	if n == 0 {
-		return store.ErrNotFound
-	}
-	return nil
-}

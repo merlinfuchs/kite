@@ -174,7 +174,7 @@ Node types are permanent. A breaking change gets a new type, e.g. `..._v2`, and 
 The service embeds all definitions and builds a table of node type to block definition at startup. A node of an integration block runs like this:
 
 1. Look up the definition by node type (`blockDefinitions` in `pkg/flow/block_definitions.go`). The node's data holds only field values, never the operation or the host, so an imported flow can't point a block at another endpoint.
-2. Check the app has the block's integrations enabled, otherwise fail with "Cookie API isn't connected" or "Roblox isn't enabled".
+2. Check the app has the block's integrations enabled, otherwise fail with "Cookie API isn't enabled".
 3. Evaluate each field and place it: path parameters through the same validation as Discord API Request (IDs must be IDs, no `/`, `\`, `.` or `..`), query parameters encoded, body fields set at their JSON pointer with `EvalJSONTemplate` semantics. Fields not in the definition are ignored.
 4. Send the request. Discord goes through the session client, which adds the token and shares the rate limiter. Everything else goes through the HTTP provider and the egress proxy, with the credential added by the executor and redirects not followed.
 5. Parse the result and store it, typed if `result.type` is set.
@@ -185,30 +185,19 @@ Credits come from the definition. Partner APIs that charge Kite can cost more.
 
 ## Editor
 
-The block explorer groups integration blocks by integration. Blocks of integrations the app hasn't enabled still show, with a prompt to enable or connect it, the same way premium blocks show that they need Premium.
+The block explorer groups integration blocks by integration. Blocks of integrations the app hasn't enabled still show, with a prompt to enable it, the same way premium blocks show that they need Premium.
 
-Blocks of an integration the app didn't enable that are already in a flow, or arrive through an import or the flow AI, render as an error node: the block keeps its settings, shows "Cookie API isn't connected" and links to the integration settings. Validation reports it as an issue so the flow AI sees it too, and at runtime the block fails with the same message instead of a 401 from the service. Importing a flow lists the integrations it needs.
+Blocks of an integration the app didn't enable that are already in a flow, or arrive through an import or the flow AI, render as an error node: the block keeps its settings, shows "Cookie API isn't enabled" and links to the integration settings. Validation reports it as an issue so the flow AI sees it too, and at runtime the block fails with the same message instead of a 401 from the service. Importing a flow lists the integrations it needs.
 
 The settings form is rendered from the definition, reusing `BaseInput` so every field accepts placeholders. Nested or `oneOf` bodies that a definition doesn't cover fall back to the JSON editor from #469. The result schema goes into the catalog like the one of any other block.
 
 ## Connecting an integration
 
-A new settings page lists the integrations. Connecting one asks for the credential described by `auth`, and optionally tests it.
+A settings page lists the integrations. Enabling one that needs a credential asks for the credential described by `auth`, and tests it if the integration has a test endpoint.
 
-Storage, if #419 doesn't provide it (see below):
+`app_integrations` has a row for every integration the app set up, with whether it's enabled. Without a row, the integration's `availability` applies. The credential is a row in `app_secrets` with the integration's ID, which references the integration's row with `ON DELETE CASCADE`: enabling creates both in one transaction, disabling keeps the credential, and removing the integration deletes it.
 
-```sql
-CREATE TABLE app_integrations (
-    app_id TEXT NOT NULL REFERENCES apps(id) ON DELETE CASCADE,
-    integration_id TEXT NOT NULL,
-    credential_encrypted TEXT NOT NULL,
-    created_at TIMESTAMP NOT NULL,
-    updated_at TIMESTAMP NOT NULL,
-    PRIMARY KEY (app_id, integration_id)
-);
-```
-
-Encrypted like `apps.discord_token`, write-only over the API, one credential per integration per app. As with #419, every collaborator of the app can use it, so this protects against leaks through exports and share codes, not against a malicious collaborator.
+Credentials are encrypted like `apps.discord_token`, write-only over the API, one per integration per app. As with #419, every collaborator of the app can use it, so this protects against leaks through exports and share codes, not against a malicious collaborator.
 
 ## Where #419 fits
 
@@ -326,7 +315,7 @@ That's far off. The two rules above keep it open without extra work now: block t
 1. Done: definition format, executor and editor rendering, with create invite (#212), bulk delete (#210), role create (#208) and the message list from #468.
 2. Done: one format for all blocks. Every block has a definition with a custom or request `run`, custom blocks name their widgets, conditions and loops their structure, and Go runs custom blocks from a handler map instead of the switch in `Execute`.
 3. Done: 14 blocks that are a single request run as requests: message delete, reactions, pin and unpin, ban, unban, kick, timeout, member roles, channel delete and thread members. They keep their schema and editor inputs, and their fields only describe the request, with the field types `emoji` and `seconds_until` for the two conversions they need. Still custom: member edit (nested settings), channel and thread create and edit and forum posts (settings that are whole objects), and the get blocks, which read Kite's cache.
-4. Done: app secrets (#419) in an `app_secrets` table that also holds integration credentials, the Integrations page, connect badges in the block explorer, blocks marked red when their integration isn't enabled, and the flow AI's catalog limited to enabled integrations. An integration's `availability` says whether apps can use it without doing anything: `always` (Discord), `default`, on until the app turns it off (Roblox), or `opt_in`, off until the app turns it on. Integrations that need a credential are `opt_in` and turned on by connecting them. The others are turned on and off in `app_integrations`, whose rows only record the app's choice, so a missing row means the default. Cookie API is the first non-Discord integration, with a hand-written `api.json` and a Generate QR code block. For transcripts, ask cookie-api for a mode where Kite sends the messages instead of a bot token.
+4. Done: app secrets (#419) in an `app_secrets` table that also holds integration credentials, the Integrations page, connect badges in the block explorer, blocks marked red when their integration isn't enabled, and the flow AI's catalog limited to enabled integrations. An integration's `availability` says whether apps can use it without doing anything: `always` (Discord), `default`, on until the app turns it off (Roblox), or `opt_in`, off until the app turns it on. Integrations that need a credential are `opt_in` and enabled by entering it. `app_integrations` records the integrations an app set up, a missing row means the default, and credentials in `app_secrets` reference their row, so removing an integration removes its credential while disabling keeps it. Cookie API is the first non-Discord integration, with a hand-written `api.json` and a Generate QR code block. For transcripts, ask cookie-api for a mode where Kite sends the messages instead of a bot token.
 5. The LLM draft script and contributor docs.
 6. Triggers from other services (the webhook listener, #181), if Kite goes beyond Discord. Integrations only add actions.
 

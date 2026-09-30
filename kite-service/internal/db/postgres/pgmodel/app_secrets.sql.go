@@ -66,23 +66,6 @@ func (q *Queries) CreateAppSecret(ctx context.Context, arg CreateAppSecretParams
 	return i, err
 }
 
-const deleteAppIntegrationCredential = `-- name: DeleteAppIntegrationCredential :execrows
-DELETE FROM app_secrets WHERE app_id = $1 AND integration_id = $2
-`
-
-type DeleteAppIntegrationCredentialParams struct {
-	AppID         string
-	IntegrationID pgtype.Text
-}
-
-func (q *Queries) DeleteAppIntegrationCredential(ctx context.Context, arg DeleteAppIntegrationCredentialParams) (int64, error) {
-	result, err := q.db.Exec(ctx, deleteAppIntegrationCredential, arg.AppID, arg.IntegrationID)
-	if err != nil {
-		return 0, err
-	}
-	return result.RowsAffected(), nil
-}
-
 const deleteAppSecret = `-- name: DeleteAppSecret :execrows
 DELETE FROM app_secrets WHERE app_id = $1 AND id = $2 AND name IS NOT NULL
 `
@@ -130,7 +113,7 @@ SELECT id, app_id, name, integration_id, value_encrypted, created_at, updated_at
 `
 
 // Integration credentials are the secrets with an integration_id instead of
-// a name.
+// a name. They're removed with their row in app_integrations.
 func (q *Queries) GetAppIntegrationCredentials(ctx context.Context, appID string) ([]AppSecret, error) {
 	rows, err := q.db.Query(ctx, getAppIntegrationCredentials, appID)
 	if err != nil {
