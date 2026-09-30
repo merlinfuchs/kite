@@ -1,4 +1,4 @@
-import { nodeActionForumPostCreateDataSchema } from "../flow/dataSchema";
+import { channelDataSchema, numericOrPlaceholder } from "../flow/dataSchema";
 import { nodeActionForumPostCreateResultSchema } from "../flow/resultSchema";
 import { BlockDefinition } from "./types";
 
@@ -9,14 +9,19 @@ export const discordForumPostCreate: BlockDefinition = {
   icon: "message-circle-plus",
   requires: ["discord"],
   credits: 1,
-  schema: nodeActionForumPostCreateDataSchema,
-  inputs: [
-    "channel_target",
-    "channel_data",
-    "audit_log_reason",
-    "temporary_name",
-    "custom_label",
+  fields: [
+    {
+      name: "channel_target",
+      type: "snowflake",
+      schema: numericOrPlaceholder("ID of the forum channel."),
+    },
+    {
+      name: "channel_data",
+      type: "string",
+      schema: channelDataSchema,
+    },
   ],
+  audit_log_reason: true,
   result: { schema: nodeActionForumPostCreateResultSchema },
   run: { kind: "custom" },
 };

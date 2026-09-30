@@ -9,7 +9,6 @@ export const discordResponseDelete: BlockDefinition = {
   category: "Responses",
   requires: ["discord"],
   credits: 1,
-  allow_unknown_settings: true,
   fields: [
     {
       name: "message_target",

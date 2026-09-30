@@ -10,7 +10,6 @@ export const discordUserGet: BlockDefinition = {
   category: "Users",
   requires: ["discord"],
   credits: 1,
-  allow_unknown_settings: true,
   fields: [userTargetSetting],
   result: { schema: nodeActionUserGetResultSchema },
   run: { kind: "custom" },

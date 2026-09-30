@@ -1,4 +1,4 @@
-import { nodeActionMessageGetDataSchema } from "../flow/dataSchema";
+import { messageTargetSchema, numericOrPlaceholder } from "../flow/dataSchema";
 import { nodeActionMessageGetResultSchema } from "../flow/resultSchema";
 import { BlockDefinition } from "./types";
 
@@ -10,8 +10,20 @@ export const discordMessageGet: BlockDefinition = {
   category: "Messages",
   requires: ["discord"],
   credits: 1,
-  schema: nodeActionMessageGetDataSchema,
-  inputs: ["message_target", "temporary_name", "custom_label"],
+  fields: [
+    {
+      name: "channel_target",
+      type: "snowflake",
+      schema: numericOrPlaceholder(
+        "ID of the channel the message is in. Defaults to the channel the flow runs in."
+      ).optional(),
+    },
+    {
+      name: "message_target",
+      type: "snowflake",
+      schema: messageTargetSchema,
+    },
+  ],
   result: { schema: nodeActionMessageGetResultSchema },
   run: { kind: "custom" },
 };

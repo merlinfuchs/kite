@@ -1,4 +1,3 @@
-import { nodeEmptyDataSchema } from "../flow/dataSchema";
 import { BlockDefinition } from "./types";
 
 export const controlLoopEnd: BlockDefinition = {
@@ -8,7 +7,6 @@ export const controlLoopEnd: BlockDefinition = {
   icon: "corner-down-right",
   fixed: true,
   component: "control_loop_end",
-  schema: nodeEmptyDataSchema,
-  inputs: [],
+  custom_label: false,
   run: { kind: "custom" },
 };

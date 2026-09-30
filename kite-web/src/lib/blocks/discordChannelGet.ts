@@ -10,7 +10,6 @@ export const discordChannelGet: BlockDefinition = {
   category: "Channels",
   requires: ["discord"],
   credits: 1,
-  allow_unknown_settings: true,
   fields: [channelTargetSetting],
   result: { schema: nodeActionChannelGetResultSchema },
   run: { kind: "custom" },

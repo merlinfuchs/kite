@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { nodeActionAiChatCompletionDataSchema } from "./dataSchema";
 import { getNodeCreditsCost, getNodeValues } from "./nodes";
+
+const aiChatCompletionSchema = getNodeValues("action_ai_chat_completion")
+  .dataSchema!;
 
 function aiData(model?: string) {
   return { ai_chat_completion_data: { model, prompt: "hi" } };
@@ -26,7 +28,7 @@ describe("AI model tiers", () => {
       "gpt-4o-mini",
     ]) {
       expect(
-        nodeActionAiChatCompletionDataSchema.safeParse(aiData(model)).success,
+        aiChatCompletionSchema.safeParse(aiData(model)).success,
         String(model)
       ).toBe(true);
     }
@@ -35,7 +37,7 @@ describe("AI model tiers", () => {
   it("rejects other models", () => {
     for (const model of ["gpt-6-luna", "o3", "toString"]) {
       expect(
-        nodeActionAiChatCompletionDataSchema.safeParse(aiData(model)).success,
+        aiChatCompletionSchema.safeParse(aiData(model)).success,
         model
       ).toBe(false);
     }

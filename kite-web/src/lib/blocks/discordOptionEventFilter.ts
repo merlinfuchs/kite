@@ -1,4 +1,4 @@
-import { nodeOptionEventFilterSchema } from "../flow/dataSchema";
+import { z } from "zod";
 import { BlockDefinition } from "./types";
 
 export const discordOptionEventFilter: BlockDefinition = {
@@ -9,7 +9,33 @@ export const discordOptionEventFilter: BlockDefinition = {
   category: "Events",
   component: "option",
   requires: ["discord"],
-  schema: nodeOptionEventFilterSchema,
-  inputs: ["event_filter_target", "event_filter_mode", "event_filter_value"],
+  custom_label: false,
+  fields: [
+    {
+      name: "event_filter_target",
+      type: "snowflake",
+      schema: z
+        .enum(["message_content", "user_id", "guild_id", "channel_id"])
+        .describe("Property of the event to filter on."),
+    },
+    {
+      name: "event_filter_mode",
+      type: "string",
+      schema: z
+        .enum(["equal", "not_equal", "contains", "starts_with", "ends_with"])
+        .describe("How the property is compared to the filter value."),
+    },
+    {
+      name: "event_filter_value",
+      type: "string",
+      schema: z
+        .string()
+        .max(1000)
+        .min(1)
+        .describe(
+          "Value to compare against. This is fixed text, placeholders aren't supported."
+        ),
+    },
+  ],
   run: { kind: "custom" },
 };

@@ -53,7 +53,7 @@ Look at an existing block that does something similar and copy its shape. Before
 
 Every block has a definition in `kite-web/src/lib/blocks`, named after the integration it mainly acts on and its type, like `discordInviteCreate.ts` for `action_invite_create`, and listed in `blocks/index.ts` in the order of the block explorer. Blocks for a service other than Discord include the service in their type, e.g. `action_roblox_user_get`, so they can't collide with Discord blocks or blocks of other services.
 
-If the block is a single API request, give it `fields` and a request `run`, following `discordInviteCreate.ts`. The service runs it from the generated `block_definitions.json`, a test checks it against its integration's `api.json`, and it needs no Go. Otherwise give it a custom `run` and `fields` whose `schema` describes each setting, following `discordChannelGet.ts`, and write it by hand. A field with a schema is edited by the input registered under its name in `FlowNodeEditor.tsx`, or the one it names in `input`, and shows nothing without one. Don't set `allow_unknown_settings`, it's only for blocks that had a hand-written schema before. Blocks built around a widget like the message builder keep a block `schema` and `inputs`, like `discordMessageCreate.ts`.
+If the block is a single API request, give it `fields` and a request `run`, following `discordInviteCreate.ts`. The service runs it from the generated `block_definitions.json`, a test checks it against its integration's `api.json`, and it needs no Go. Otherwise give it a custom `run` and `fields` whose `schema` describes each setting, following `discordChannelGet.ts`, and write it by hand. A field with a schema is edited by the input registered under its name in `FlowNodeEditor.tsx`, or the one it names in `input`, and shows nothing without one. Rules over several settings go in `refine`, like `requireMessage` in `discordMessageCreate.ts`. Set `strict_settings` on new blocks, so a misnamed setting is an error instead of ignored.
 
 Service:
 
@@ -66,7 +66,7 @@ Service:
 Web:
 
 1. `src/lib/flow/dataSchema.ts`: zod schemas for settings other blocks share, like `channelTargetSchema`. A setting's schema needs `.describe(...)`.
-2. `src/lib/flow/resultSchema.ts`: schema for the result, if the block returns data. Without it the placeholder picker and flow AI can't see the output.
+2. `src/lib/flow/resultSchema.ts`: schema for the result, if the block returns data. Without it the placeholder picker and flow AI can't see the output, and the block gets no `temporary_name` setting.
 3. `src/lib/blocks`: the definition, with title, description, icon, category, fields, result and credits.
 4. `src/components/flow/FlowNodeEditor.tsx`: only if you added a new field name that needs an input.
 5. Run `pnpm test -u` to regenerate `catalog.json` and `block_definitions.json`, and `tygo generate` if you changed Go types.

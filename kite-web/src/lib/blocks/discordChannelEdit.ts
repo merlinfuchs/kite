@@ -1,4 +1,4 @@
-import { nodeActionChannelEditDataSchema } from "../flow/dataSchema";
+import { channelDataSchema, channelTargetSchema } from "../flow/dataSchema";
 import { nodeActionChannelEditResultSchema } from "../flow/resultSchema";
 import { BlockDefinition } from "./types";
 
@@ -10,14 +10,19 @@ export const discordChannelEdit: BlockDefinition = {
   category: "Channels",
   requires: ["discord"],
   credits: 1,
-  schema: nodeActionChannelEditDataSchema,
-  inputs: [
-    "channel_target",
-    "channel_data",
-    "audit_log_reason",
-    "temporary_name",
-    "custom_label",
+  fields: [
+    {
+      name: "channel_target",
+      type: "snowflake",
+      schema: channelTargetSchema,
+    },
+    {
+      name: "channel_data",
+      type: "string",
+      schema: channelDataSchema,
+    },
   ],
+  audit_log_reason: true,
   result: { schema: nodeActionChannelEditResultSchema },
   run: { kind: "custom" },
 };

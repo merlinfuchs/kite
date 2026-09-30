@@ -1,4 +1,4 @@
-import { nodeActionChannelCreateDataSchema } from "../flow/dataSchema";
+import { channelDataSchema, guildTargetSchema } from "../flow/dataSchema";
 import { nodeActionChannelCreateResultSchema } from "../flow/resultSchema";
 import { BlockDefinition } from "./types";
 
@@ -10,14 +10,19 @@ export const discordChannelCreate: BlockDefinition = {
   category: "Channels",
   requires: ["discord"],
   credits: 1,
-  schema: nodeActionChannelCreateDataSchema,
-  inputs: [
-    "guild_target",
-    "channel_data",
-    "audit_log_reason",
-    "temporary_name",
-    "custom_label",
+  fields: [
+    {
+      name: "guild_target",
+      type: "snowflake",
+      schema: guildTargetSchema.optional(),
+    },
+    {
+      name: "channel_data",
+      type: "string",
+      schema: channelDataSchema,
+    },
   ],
+  audit_log_reason: true,
   result: { schema: nodeActionChannelCreateResultSchema },
   run: { kind: "custom" },
 };

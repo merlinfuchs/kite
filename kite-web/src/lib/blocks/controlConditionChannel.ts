@@ -10,7 +10,6 @@ export const controlConditionChannel: BlockDefinition = {
   outputs: [],
   owns: ["control_condition_item_else", "control_condition_item_channel"],
   component: "condition_channel",
-  allow_unknown_settings: true,
   fields: conditionFields(
     "channel",
     "ID of the channel that each branch checks."

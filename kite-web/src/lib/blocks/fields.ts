@@ -1,10 +1,12 @@
-import { z } from "zod";
+import { AnyZodObject, z } from "zod";
 import {
   channelTargetSchema,
   guildTargetSchema,
+  messageDataSchema,
   messageTargetSchema,
   roleTargetSchema,
   templated,
+  userPicked,
   userTargetSchema,
 } from "../flow/dataSchema";
 import { BlockField } from "./types";
@@ -144,4 +146,53 @@ export function conditionFields(
         ),
     },
   ];
+}
+
+// The settings of a condition's branch, edited by the inputs of its kind,
+// like condition_item_user_mode.
+export function conditionItemFields(
+  kind: string,
+  modeSchema: z.ZodTypeAny,
+  valueDescription: string
+): BlockField[] {
+  return [
+    {
+      name: "condition_item_mode",
+      type: "string",
+      input: `condition_item_${kind}_mode`,
+      schema: modeSchema,
+    },
+    {
+      name: "condition_item_value",
+      type: "string",
+      input: `condition_item_${kind}_value`,
+      schema: templated(z.string(), valueDescription).optional(),
+    },
+  ];
+}
+
+// Message blocks send either an inline message or a saved template, see
+// requireMessage.
+export const messageDataField: BlockField = {
+  name: "message_data",
+  type: "string",
+  schema: messageDataSchema.optional(),
+};
+
+export const messageTemplateField: BlockField = {
+  name: "message_template_id",
+  type: "string",
+  schema: userPicked(
+    z.string(),
+    "ID of a saved message template to send instead of message_data."
+  ).optional(),
+};
+
+export function requireMessage(schema: AnyZodObject) {
+  return schema
+    .refine(
+      (data) => !!data.message_data || !!data.message_template_id,
+      "Either message_data or message_template_id is required"
+    )
+    .describe("Set either message_data or message_template_id.");
 }

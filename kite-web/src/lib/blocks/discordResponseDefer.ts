@@ -10,7 +10,6 @@ export const discordResponseDefer: BlockDefinition = {
   category: "Responses",
   requires: ["discord"],
   credits: 1,
-  allow_unknown_settings: true,
   fields: [
     {
       name: "message_ephemeral",

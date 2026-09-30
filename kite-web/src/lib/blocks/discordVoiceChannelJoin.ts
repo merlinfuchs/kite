@@ -10,7 +10,6 @@ export const discordVoiceChannelJoin: BlockDefinition = {
   category: "Voice",
   requires: ["discord"],
   credits: 1,
-  allow_unknown_settings: true,
   fields: [
     {
       name: "channel_target",

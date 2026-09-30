@@ -10,7 +10,6 @@ export const expressionEvaluate: BlockDefinition = {
   icon: "calculator",
   category: "Utilities",
   credits: 1,
-  allow_unknown_settings: true,
   fields: [
     {
       name: "expression",

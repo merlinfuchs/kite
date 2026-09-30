@@ -10,7 +10,6 @@ export const discordMemberGet: BlockDefinition = {
   category: "Members",
   requires: ["discord"],
   credits: 1,
-  allow_unknown_settings: true,
   fields: [guildTargetSetting, userTargetSetting],
   result: { schema: nodeActionMemberGetResultSchema },
   run: { kind: "custom" },

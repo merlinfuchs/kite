@@ -9,7 +9,6 @@ export const discordVoiceChannelLeave: BlockDefinition = {
   category: "Voice",
   requires: ["discord"],
   credits: 1,
-  allow_unknown_settings: true,
   fields: [guildTargetSetting],
   run: { kind: "custom" },
 };

@@ -1,4 +1,5 @@
-import { nodeConditionItemIdDataSchema } from "../flow/dataSchema";
+import { idConditionModeSchema } from "../flow/dataSchema";
+import { conditionItemFields } from "./fields";
 import { BlockDefinition } from "./types";
 
 export const controlConditionItemRole: BlockDefinition = {
@@ -7,7 +8,11 @@ export const controlConditionItemRole: BlockDefinition = {
   description: "Run actions if the role meets the criteria.",
   icon: "circle-help",
   component: "condition_item",
-  schema: nodeConditionItemIdDataSchema,
-  inputs: ["condition_item_role_mode", "condition_item_role_value"],
+  custom_label: false,
+  fields: conditionItemFields(
+    "role",
+    idConditionModeSchema,
+    "ID to compare the base value with."
+  ),
   run: { kind: "custom" },
 };

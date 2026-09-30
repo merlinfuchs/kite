@@ -1,4 +1,4 @@
-import { ZodSchema, ZodTypeAny } from "zod";
+import { AnyZodObject, ZodSchema, ZodTypeAny } from "zod";
 import { FlowContextType } from "../flow/context";
 import { NodeData } from "../flow/dataSchema";
 import { Features } from "../types/wire.gen";
@@ -36,12 +36,13 @@ export interface BlockField {
   type: BlockFieldType;
   // The setting's zod schema, for settings that need more than their type
   // gives, like objects or IDs that can be placeholders. It's generated from
-  // the type otherwise.
-  schema?: ZodTypeAny;
+  // the type otherwise. A function for schemas that depend on other blocks.
+  schema?: ZodTypeAny | (() => ZodTypeAny);
   // The editor input of a setting with a schema, one of those registered in
-  // FlowNodeEditor.tsx, if it isn't registered under the setting's name.
-  // Settings without a schema get a generic input.
-  input?: string;
+  // FlowNodeEditor.tsx, if it isn't registered under the setting's name, or
+  // false if the input of another field edits it too. Settings without a
+  // schema get a generic input.
+  input?: string | false;
   // Only needed without a schema, which describes the setting otherwise.
   label?: string;
   description?: string;
@@ -123,18 +124,18 @@ export interface BlockDefinition {
   // The block fails when the app doesn't have this feature.
   premium_feature?: keyof Features;
   credits?: number | ((data: NodeData) => number);
-  // Settings either as fields, from which the block's schema and editor are
-  // generated, or as a schema with the names of the editor inputs (widgets)
-  // that edit it. A schema can be a function, for schemas that depend on
-  // other blocks. Request blocks with a schema use their fields only for the
-  // request.
+  // The block's settings, from which its schema and editor are generated.
   fields?: BlockField[];
-  schema?: ZodSchema | (() => ZodSchema);
-  inputs?: string[];
-  // Saved flows of blocks that used to have a hand-written schema can have
-  // settings the block doesn't know, which it ignored and still ignores.
-  // Other blocks reject them, so a misnamed setting isn't lost.
-  allow_unknown_settings?: boolean;
+  // Adds rules over several settings to the generated schema, which the
+  // fields' own schemas can't express.
+  refine?: (schema: AnyZodObject) => ZodTypeAny;
+  // Rejects settings the block doesn't know, so a misnamed one isn't lost.
+  // Blocks that had a hand-written schema ignore them instead, as saved flows
+  // can have settings it ignored.
+  strict_settings?: boolean;
+  // Blocks whose title isn't shown, like the branches of a condition, have no
+  // custom label.
+  custom_label?: false;
   audit_log_reason?: boolean;
   run: BlockRequest | BlockCustomRun;
   result?: {
@@ -153,6 +154,3 @@ export type RequestBlockDefinition = BlockDefinition & {
   // The service reads it for requests, so it can't depend on the settings.
   credits: number;
 };
-
-// A block whose settings are its fields.
-export type FieldsBlockDefinition = BlockDefinition & { fields: BlockField[] };

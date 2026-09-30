@@ -9,7 +9,6 @@ export const randomGenerate: BlockDefinition = {
   icon: "dices",
   category: "Utilities",
   credits: 1,
-  allow_unknown_settings: true,
   fields: [
     {
       name: "random_min",

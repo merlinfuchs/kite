@@ -1,4 +1,5 @@
-import { nodeActionVariableGetSchema } from "../flow/dataSchema";
+import { z } from "zod";
+import { variableIdSchema, variableScopeSchema } from "../flow/dataSchema";
 import { BlockDefinition } from "./types";
 
 export const variableGet: BlockDefinition = {
@@ -8,7 +9,18 @@ export const variableGet: BlockDefinition = {
   icon: "variable",
   category: "Stored Variables",
   credits: 1,
-  schema: nodeActionVariableGetSchema,
-  inputs: ["variable_id", "variable_scope", "temporary_name", "custom_label"],
+  fields: [
+    {
+      name: "variable_id",
+      type: "string",
+      schema: variableIdSchema,
+    },
+    {
+      name: "variable_scope",
+      type: "string",
+      schema: variableScopeSchema,
+    },
+  ],
+  result: { schema: z.unknown().describe("The value of the variable.") },
   run: { kind: "custom" },
 };

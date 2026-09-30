@@ -1,4 +1,3 @@
-import { nodeEmptyDataSchema } from "../flow/dataSchema";
 import { errorColor } from "./colors";
 import { BlockDefinition } from "./types";
 
@@ -10,7 +9,6 @@ export const controlConditionItemElse: BlockDefinition = {
   color: errorColor,
   fixed: true,
   component: "condition_item",
-  schema: nodeEmptyDataSchema,
-  inputs: [],
+  custom_label: false,
   run: { kind: "custom" },
 };

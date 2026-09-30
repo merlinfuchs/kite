@@ -10,7 +10,6 @@ export const controlLoop: BlockDefinition = {
   outputs: [],
   owns: ["control_loop_end", "control_loop_each"],
   component: "control_loop",
-  allow_unknown_settings: true,
   fields: [
     {
       name: "loop_count",

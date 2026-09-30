@@ -10,7 +10,6 @@ export const discordMemberTimeout: BlockDefinition = {
   category: "Members",
   credits: 1,
   audit_log_reason: true,
-  allow_unknown_settings: true,
   run: {
     kind: "request",
     integration: "discord",

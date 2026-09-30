@@ -9,7 +9,6 @@ export const log: BlockDefinition = {
   icon: "scroll-text",
   category: "Utilities",
   credits: 1,
-  allow_unknown_settings: true,
   fields: [
     {
       name: "log_level",

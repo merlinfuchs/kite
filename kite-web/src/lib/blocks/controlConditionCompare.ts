@@ -10,7 +10,6 @@ export const controlConditionCompare: BlockDefinition = {
   outputs: [],
   owns: ["control_condition_item_else", "control_condition_item_compare"],
   component: "condition_compare",
-  allow_unknown_settings: true,
   fields: conditionFields(
     "compare",
     "Value that each branch compares against."

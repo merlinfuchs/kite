@@ -56,7 +56,7 @@ describe("block definitions", () => {
   });
 
   it("describe the fields without a schema", () => {
-    for (const block of blockDefinitions.filter((b) => !b.schema)) {
+    for (const block of blockDefinitions) {
       for (const field of (block.fields ?? []).filter((f) => !f.schema)) {
         expect(field.label, `${block.type}.${field.name}`).toBeTruthy();
         expect(field.description, `${block.type}.${field.name}`).toBeTruthy();

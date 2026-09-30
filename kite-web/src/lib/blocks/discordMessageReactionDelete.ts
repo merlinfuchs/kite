@@ -9,7 +9,6 @@ export const discordMessageReactionDelete: BlockDefinition = {
   icon: "frown",
   category: "Messages",
   credits: 1,
-  allow_unknown_settings: true,
   run: {
     kind: "request",
     integration: "discord",

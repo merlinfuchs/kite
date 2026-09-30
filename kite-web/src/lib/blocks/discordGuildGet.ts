@@ -10,7 +10,6 @@ export const discordGuildGet: BlockDefinition = {
   category: "Servers",
   requires: ["discord"],
   credits: 1,
-  allow_unknown_settings: true,
   fields: [
     {
       name: "guild_target",

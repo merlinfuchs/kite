@@ -10,7 +10,6 @@ export const discordRoleGet: BlockDefinition = {
   category: "Roles",
   requires: ["discord"],
   credits: 1,
-  allow_unknown_settings: true,
   fields: [guildTargetSetting, roleTargetSetting],
   result: { schema: nodeActionRoleGetResultSchema },
   run: { kind: "custom" },

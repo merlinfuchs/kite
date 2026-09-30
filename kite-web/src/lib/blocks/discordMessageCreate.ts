@@ -1,4 +1,9 @@
-import { nodeActionMessageCreateDataSchema } from "../flow/dataSchema";
+import { numericOrPlaceholder } from "../flow/dataSchema";
+import {
+  messageDataField,
+  messageTemplateField,
+  requireMessage,
+} from "./fields";
 import { nodeActionMessageCreateResultSchema } from "../flow/resultSchema";
 import { BlockDefinition } from "./types";
 
@@ -11,14 +16,16 @@ export const discordMessageCreate: BlockDefinition = {
   component: "action_message",
   requires: ["discord"],
   credits: 1,
-  schema: nodeActionMessageCreateDataSchema,
-  inputs: [
-    "channel_target",
-    "message_template_id",
-    "message_data",
-    "temporary_name",
-    "custom_label",
+  fields: [
+    {
+      name: "channel_target",
+      type: "snowflake",
+      schema: numericOrPlaceholder("ID of the channel to send the message to."),
+    },
+    messageTemplateField,
+    messageDataField,
   ],
+  refine: requireMessage,
   result: { schema: nodeActionMessageCreateResultSchema },
   run: { kind: "custom" },
 };

@@ -1,4 +1,4 @@
-import { nodeActionDiscordApiRequestDataSchema } from "../flow/dataSchema";
+import { discordApiRequestDataSchema } from "../flow/dataSchema";
 import { nodeActionDiscordApiRequestResultSchema } from "../flow/resultSchema";
 import { requestBlocks } from ".";
 import { BlockDefinition } from "./types";
@@ -12,19 +12,20 @@ export const discordApiRequest: BlockDefinition = {
   category: "API Requests",
   requires: ["discord"],
   credits: 1,
-  schema: () =>
-    nodeActionDiscordApiRequestDataSchema(
-      requestBlocks()
-        .filter((b) => b.run.integration === "discord" && !b.run.partial)
-        .map((b) => `${b.run.operation}: ${b.type}`)
-        .join(", ")
-    ),
-  inputs: [
-    "discord_api_request_data",
-    "audit_log_reason",
-    "temporary_name",
-    "custom_label",
+  fields: [
+    {
+      name: "discord_api_request_data",
+      type: "string",
+      schema: () =>
+        discordApiRequestDataSchema(
+          requestBlocks()
+            .filter((b) => b.run.integration === "discord" && !b.run.partial)
+            .map((b) => `${b.run.operation}: ${b.type}`)
+            .join(", ")
+        ),
+    },
   ],
+  audit_log_reason: true,
   result: { schema: nodeActionDiscordApiRequestResultSchema },
   run: { kind: "custom" },
 };

@@ -1,4 +1,5 @@
-import { nodeOptionCommandPermissionsSchema } from "../flow/dataSchema";
+import { z } from "zod";
+import { numericRegex } from "../flow/dataSchema";
 import { BlockDefinition } from "./types";
 
 export const discordOptionCommandPermissions: BlockDefinition = {
@@ -10,7 +11,18 @@ export const discordOptionCommandPermissions: BlockDefinition = {
   category: "Commands",
   component: "option",
   requires: ["discord"],
-  schema: nodeOptionCommandPermissionsSchema,
-  inputs: ["command_permissions"],
+  custom_label: false,
+  fields: [
+    {
+      name: "command_permissions",
+      type: "string",
+      schema: z
+        .string()
+        .regex(numericRegex)
+        .describe(
+          "Discord permission bitfield. Only members with all of these permissions can see and use the command."
+        ),
+    },
+  ],
   run: { kind: "custom" },
 };

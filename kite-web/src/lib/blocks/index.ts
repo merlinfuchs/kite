@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { AnyZodObject, z } from "zod";
 import {
   auditLogReasonSchema,
   decimalRegex,
@@ -8,12 +8,7 @@ import {
   templated,
   temporaryNameSchema,
 } from "../flow/dataSchema";
-import {
-  BlockDefinition,
-  BlockField,
-  FieldsBlockDefinition,
-  RequestBlockDefinition,
-} from "./types";
+import { BlockDefinition, BlockField, RequestBlockDefinition } from "./types";
 import { aiChatCompletion } from "./aiChatCompletion";
 import { aiWebSearch } from "./aiWebSearch";
 import { cookieApiQrCodeCreate } from "./cookieApiQrCodeCreate";
@@ -319,39 +314,40 @@ function fieldSchema(field: BlockField) {
   return field.required ? schema : schema.optional();
 }
 
-export function hasFieldSettings(
-  block: BlockDefinition
-): block is FieldsBlockDefinition {
-  return !!block.fields && !block.schema;
-}
+// The schema of a block, generated from its fields.
+export function blockDataSchema(block: BlockDefinition) {
+  const fields = block.fields ?? [];
+  const names = fields.map((f) => f.name).join(", ");
 
-// The schema of a block whose settings are its fields.
-export function blockDataSchema(block: FieldsBlockDefinition) {
-  const names = block.fields.map((f) => f.name).join(", ");
-  const base = block.allow_unknown_settings
-    ? nodeBaseDataSchema
-    : nodeBaseDataSchema.strict(
-        `Unknown setting. This block's settings are: ${names}`
-      );
+  let base: AnyZodObject =
+    block.custom_label === false ? z.object({}) : nodeBaseDataSchema;
+  if (block.strict_settings) {
+    base = base.strict(`Unknown setting. This block's settings are: ${names}`);
+  }
 
-  return base.extend({
-    ...Object.fromEntries(
-      block.fields.map((f) => [f.name, f.schema ?? fieldSchema(f)])
-    ),
+  const schema = base.extend({
+    ...Object.fromEntries(fields.map((f) => [f.name, settingSchema(f)])),
     ...(block.audit_log_reason && { audit_log_reason: auditLogReasonSchema }),
     ...(block.result && { temporary_name: temporaryNameSchema }),
   });
+  return block.refine ? block.refine(schema) : schema;
 }
 
-// The editor inputs of a block whose settings are its fields. Fields without a
-// schema are edited by a generic input, named "field:" and the field's name.
-export function blockDataFields(block: FieldsBlockDefinition) {
+function settingSchema(field: BlockField) {
+  if (typeof field.schema === "function") return field.schema();
+  return field.schema ?? fieldSchema(field);
+}
+
+// The editor inputs of a block. Fields without a schema are edited by a
+// generic input, named "field:" and the field's name.
+export function blockDataFields(block: BlockDefinition) {
   return [
-    ...block.fields.map((f) =>
-      f.schema ? f.input ?? f.name : `field:${f.name}`
-    ),
+    ...(block.fields ?? []).flatMap((f) => {
+      if (!f.schema) return [`field:${f.name}`];
+      return f.input === false ? [] : [f.input ?? f.name];
+    }),
     ...(block.audit_log_reason ? ["audit_log_reason"] : []),
     ...(block.result ? ["temporary_name"] : []),
-    "custom_label",
+    ...(block.custom_label === false ? [] : ["custom_label"]),
   ];
 }

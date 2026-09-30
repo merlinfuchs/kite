@@ -10,7 +10,6 @@ export const controlConditionRole: BlockDefinition = {
   outputs: [],
   owns: ["control_condition_item_else", "control_condition_item_role"],
   component: "condition_role",
-  allow_unknown_settings: true,
   fields: conditionFields("role", "ID of the role that each branch checks."),
   run: { kind: "custom" },
 };

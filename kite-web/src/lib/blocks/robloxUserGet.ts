@@ -11,7 +11,6 @@ export const robloxUserGet: BlockDefinition = {
   category: "Roblox",
   requires: ["roblox"],
   credits: 1,
-  allow_unknown_settings: true,
   fields: [
     {
       name: "roblox_user_target",

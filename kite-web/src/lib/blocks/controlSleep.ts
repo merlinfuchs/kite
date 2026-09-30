@@ -1,4 +1,4 @@
-import { nodeControlSleepDataSchema } from "../flow/dataSchema";
+import { decimalRegex, numericOrPlaceholder } from "../flow/dataSchema";
 import { BlockDefinition } from "./types";
 
 export const controlSleep: BlockDefinition = {
@@ -8,7 +8,16 @@ export const controlSleep: BlockDefinition = {
   icon: "timer",
   category: "Others",
   component: "control_sleep",
-  schema: nodeControlSleepDataSchema,
-  inputs: ["sleep_duration_seconds"],
+  custom_label: false,
+  fields: [
+    {
+      name: "sleep_duration_seconds",
+      type: "string",
+      schema: numericOrPlaceholder(
+        "How many seconds to wait before continuing.",
+        decimalRegex
+      ),
+    },
+  ],
   run: { kind: "custom" },
 };
