@@ -9,6 +9,7 @@ cp deploy/.env.example deploy/.env   # once, then set DEPLOY_HOST
 ./deploy/docs.sh               # docs.kite.onl
 ./deploy/service.sh            # api.kite.onl and the bots
 ./deploy/service.sh --rollback # restart with the previous binary
+./deploy/support.sh            # support bot, also takes --rollback
 ./deploy/server.sh             # nginx config and systemd unit
 ```
 
