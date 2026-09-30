@@ -6,4 +6,4 @@ cd "$ROOT/kite-docs"
 pnpm install --frozen-lockfile
 pnpm run build
 
-rsync -az --delete build/ "$DEPLOY_HOST:$DOCS_DIR/"
+rsync -az --no-owner --no-group --delete build/ "$DEPLOY_HOST:$DOCS_DIR/"
