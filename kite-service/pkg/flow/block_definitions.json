@@ -6,7 +6,8 @@
       "description": "Everything your bot does in Discord.",
       "auth": {
         "type": "discord_bot"
-      }
+      },
+      "availability": "always"
     },
     {
       "id": "roblox",
@@ -14,7 +15,8 @@
       "description": "Look up Roblox users.",
       "auth": {
         "type": "none"
-      }
+      },
+      "availability": "default"
     },
     {
       "id": "cookie_api",
@@ -27,6 +29,7 @@
         "label": "API key",
         "help_url": "https://docs.cookie-api.com/en/docs/getting-started/faq/api-key/"
       },
+      "availability": "opt_in",
       "test_path": "/api/time/current-time"
     }
   ],

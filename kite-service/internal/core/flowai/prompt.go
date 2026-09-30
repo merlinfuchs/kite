@@ -17,16 +17,15 @@ var (
 )
 
 // instructionsFor returns the instructions, which come first in every request,
-// with the catalog of the blocks the app can use: those of integrations that
-// are always connected or that the app connected. Other integrations are only
-// named after the catalog, so the model can tell the user to connect them.
-// Apps missing the same integrations get the same instructions, so the model
-// provider can cache them.
-func instructionsFor(connected []string) string {
+// with the catalog of the blocks of the integrations the app enabled. Other
+// integrations are only named after the catalog, so the model can tell the
+// user to enable them. Apps missing the same integrations get the same
+// instructions, so the model provider can cache them.
+func instructionsFor(enabled []string) string {
 	var missing []flow.Integration
 	var ids []string
 	for _, integration := range flow.Integrations() {
-		if integration.NeedsCredential() && !slices.Contains(connected, integration.ID) {
+		if integration.Availability != flow.AvailabilityAlways && !slices.Contains(enabled, integration.ID) {
 			missing = append(missing, integration)
 			ids = append(ids, integration.ID)
 		}
@@ -59,7 +58,7 @@ func buildInstructions(missing []flow.Integration, missingIDs []string) string {
 
 	res := instructionsText + "\n\nBlock catalog:\n" + catalog
 	if len(missing) > 0 {
-		res += "\n\nThe app hasn't connected these integrations, so their blocks aren't in the catalog. If the user asks for something one of them does, tell them to connect it under Integrations in the app first:"
+		res += "\n\nThe app hasn't enabled these integrations, so their blocks aren't in the catalog. If the user asks for something one of them does, tell them to enable it under Integrations in the app first:"
 		for _, integration := range missing {
 			res += fmt.Sprintf("\n- %s: %s", integration.Name, integration.Description)
 		}

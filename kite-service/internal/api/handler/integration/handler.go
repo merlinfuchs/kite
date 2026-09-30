@@ -10,24 +10,28 @@ import (
 
 	"github.com/kitecloud/kite/kite-service/internal/api/handler"
 	"github.com/kitecloud/kite/kite-service/internal/api/wire"
+	"github.com/kitecloud/kite/kite-service/internal/core/appintegration"
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/internal/store"
 	"github.com/kitecloud/kite/kite-service/internal/util"
 	"github.com/kitecloud/kite/kite-service/pkg/flow"
+	"gopkg.in/guregu/null.v4"
 )
 
 type IntegrationHandler struct {
-	appSecretStore store.AppSecretStore
-	tokenCrypt     *util.SymmetricCrypt
+	appSecretStore      store.AppSecretStore
+	appIntegrationStore store.AppIntegrationStore
+	tokenCrypt          *util.SymmetricCrypt
 	// Checks credentials. Integrations' URLs come from their definitions,
 	// never from users.
 	client *http.Client
 }
 
-func NewIntegrationHandler(appSecretStore store.AppSecretStore, tokenCrypt *util.SymmetricCrypt) *IntegrationHandler {
+func NewIntegrationHandler(appSecretStore store.AppSecretStore, appIntegrationStore store.AppIntegrationStore, tokenCrypt *util.SymmetricCrypt) *IntegrationHandler {
 	return &IntegrationHandler{
-		appSecretStore: appSecretStore,
-		tokenCrypt:     tokenCrypt,
+		appSecretStore:      appSecretStore,
+		appIntegrationStore: appIntegrationStore,
+		tokenCrypt:          tokenCrypt,
 		client: &http.Client{
 			Timeout: 10 * time.Second,
 			CheckRedirect: func(req *http.Request, via []*http.Request) error {
@@ -38,16 +42,48 @@ func NewIntegrationHandler(appSecretStore store.AppSecretStore, tokenCrypt *util
 }
 
 func (h *IntegrationHandler) HandleAppIntegrationList(c *handler.Context) (*wire.AppIntegrationListResponse, error) {
-	credentials, err := h.appSecretStore.AppIntegrationCredentials(c.Context(), c.App.ID)
+	states, err := appintegration.States(c.Context(), h.appSecretStore, h.appIntegrationStore, c.App.ID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get integrations: %w", err)
+		return nil, err
 	}
 
-	res := make([]*wire.AppIntegration, len(credentials))
-	for i, credential := range credentials {
-		res[i] = wire.AppIntegrationToWire(credential)
+	res := make([]*wire.AppIntegration, len(states))
+	for i, state := range states {
+		res[i] = &wire.AppIntegration{
+			IntegrationID:       state.Integration.ID,
+			Enabled:             state.Enabled,
+			CredentialUpdatedAt: state.CredentialUpdatedAt,
+		}
 	}
 	return &res, nil
+}
+
+// HandleAppIntegrationUpdate turns an integration without a credential on or
+// off. The others are on while the app connected them.
+func (h *IntegrationHandler) HandleAppIntegrationUpdate(c *handler.Context, req wire.AppIntegrationUpdateRequest) (*wire.AppIntegrationUpdateResponse, error) {
+	integration, ok := flow.GetIntegration(c.Param("integrationID"))
+	if !ok {
+		return nil, handler.ErrNotFound("unknown_integration", "Integration not found")
+	}
+	if integration.Availability == flow.AvailabilityAlways {
+		return nil, handler.ErrBadRequest("always_enabled", "The integration is always enabled")
+	}
+	if integration.NeedsCredential() {
+		return nil, handler.ErrBadRequest("needs_credential", "The integration is enabled by connecting it")
+	}
+
+	_, err := h.appIntegrationStore.SetAppIntegrationEnabled(c.Context(), &model.AppIntegration{
+		AppID:         c.App.ID,
+		IntegrationID: integration.ID,
+		Enabled:       *req.Enabled,
+		CreatedAt:     time.Now().UTC(),
+		UpdatedAt:     time.Now().UTC(),
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to update integration: %w", err)
+	}
+
+	return &wire.AppIntegration{IntegrationID: integration.ID, Enabled: *req.Enabled}, nil
 }
 
 func (h *IntegrationHandler) HandleAppIntegrationConnect(c *handler.Context, req wire.AppIntegrationConnectRequest) (*wire.AppIntegrationConnectResponse, error) {
@@ -77,7 +113,11 @@ func (h *IntegrationHandler) HandleAppIntegrationConnect(c *handler.Context, req
 		return nil, fmt.Errorf("failed to save credential: %w", err)
 	}
 
-	return wire.AppIntegrationToWire(secret), nil
+	return &wire.AppIntegration{
+		IntegrationID:       integration.ID,
+		Enabled:             true,
+		CredentialUpdatedAt: null.TimeFrom(secret.UpdatedAt),
+	}, nil
 }
 
 func (h *IntegrationHandler) HandleAppIntegrationDisconnect(c *handler.Context) (*wire.AppIntegrationDisconnectResponse, error) {
@@ -98,14 +138,14 @@ func (h *IntegrationHandler) HandleAppIntegrationDisconnect(c *handler.Context) 
 }
 
 // credentialIntegration returns the integration with the given ID, if apps
-// connect it with a credential. The others are always connected.
+// connect it with a credential.
 func credentialIntegration(id string) (flow.Integration, error) {
 	integration, ok := flow.GetIntegration(id)
 	if !ok {
 		return flow.Integration{}, handler.ErrNotFound("unknown_integration", "Integration not found")
 	}
 	if !integration.NeedsCredential() {
-		return flow.Integration{}, handler.ErrBadRequest("always_connected", "The integration is always connected")
+		return flow.Integration{}, handler.ErrBadRequest("no_credential", "The integration doesn't need a credential")
 	}
 	return integration, nil
 }

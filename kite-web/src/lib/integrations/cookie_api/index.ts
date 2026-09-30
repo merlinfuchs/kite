@@ -12,5 +12,6 @@ export const cookieApi: Integration = {
     help_url:
       "https://docs.cookie-api.com/en/docs/getting-started/faq/api-key/",
   },
+  availability: "opt_in",
   test_path: "/api/time/current-time",
 };

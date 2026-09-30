@@ -22,10 +22,11 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 	}
 	defer ctx.endOperation()
 
+	if err := n.checkIntegrations(ctx); err != nil {
+		return traceError(n, err)
+	}
+
 	if handler, ok := nodeHandlers[n.Type]; ok {
-		if err := n.checkIntegrations(ctx); err != nil {
-			return traceError(n, err)
-		}
 		return handler(n, ctx)
 	}
 

@@ -7,6 +7,7 @@ import { useAppIntegrations } from "@/lib/hooks/api";
 import {
   useAppIntegrationConnectMutation,
   useAppIntegrationDisconnectMutation,
+  useAppIntegrationUpdateMutation,
 } from "@/lib/api/mutations";
 import { useAppId } from "@/lib/hooks/params";
 import { formatDateTime } from "@/lib/utils";
@@ -30,13 +31,14 @@ import {
 } from "../ui/dialog";
 import { Input } from "../ui/input";
 import { Skeleton } from "../ui/skeleton";
+import { Switch } from "../ui/switch";
 import ConfirmDialog from "../common/ConfirmDialog";
 import LoadingButton from "../common/LoadingButton";
 
 export default function AppIntegrationList() {
-  const connected = useAppIntegrations();
+  const states = useAppIntegrations();
 
-  if (!connected) {
+  if (!states) {
     return (
       <div className="flex flex-col space-y-5">
         <Skeleton className="h-28" />
@@ -51,9 +53,7 @@ export default function AppIntegrationList() {
         <AppIntegrationEntry
           key={integration.id}
           integration={integration}
-          connection={connected.find(
-            (c) => c?.integration_id === integration.id
-          )}
+          state={states.find((s) => s?.integration_id === integration.id)}
         />
       ))}
     </div>
@@ -62,16 +62,32 @@ export default function AppIntegrationList() {
 
 function AppIntegrationEntry({
   integration,
-  connection,
+  state,
 }: {
   integration: Integration;
-  connection?: AppIntegration;
+  state?: AppIntegration;
 }) {
   const appId = useAppId();
+  const updateMutation = useAppIntegrationUpdateMutation(appId, integration.id);
   const disconnectMutation = useAppIntegrationDisconnectMutation(
     appId,
     integration.id
   );
+
+  function setEnabled(enabled: boolean) {
+    updateMutation.mutate(
+      { enabled },
+      {
+        onSuccess(res) {
+          if (!res.success) {
+            toast.error(
+              `Failed to update ${integration.name}: ${res.error.message} (${res.error.code})`
+            );
+          }
+        },
+      }
+    );
+  }
 
   function disconnect() {
     disconnectMutation.mutate(undefined, {
@@ -87,20 +103,39 @@ function AppIntegrationEntry({
     });
   }
 
-  const status = !needsCredential(integration)
-    ? "Always connected"
-    : connection
-    ? `Connected, key updated ${formatDateTime(
-        new Date(connection.updated_at)
-      )}`
-    : "Not connected";
+  const connectedAt = state?.credential_updated_at;
+  const status =
+    integration.availability === "always"
+      ? "Always enabled"
+      : needsCredential(integration)
+      ? connectedAt
+        ? `Connected, key updated ${formatDateTime(new Date(connectedAt))}`
+        : "Not connected"
+      : state?.enabled
+      ? "Enabled"
+      : "Disabled";
+  const toggleable =
+    integration.availability !== "always" && !needsCredential(integration);
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base flex items-center space-x-2">
-          <PlugIcon className="h-5 w-5 text-muted-foreground" />
-          <div>{integration.name}</div>
+        <CardTitle className="text-base flex items-center justify-between space-x-2">
+          <div className="flex items-center space-x-2">
+            <PlugIcon className="h-5 w-5 text-muted-foreground" />
+            <div>{integration.name}</div>
+          </div>
+          {toggleable && (
+            <Switch
+              checked={
+                updateMutation.isPending
+                  ? !!updateMutation.variables?.enabled
+                  : !!state?.enabled
+              }
+              onCheckedChange={setEnabled}
+              disabled={updateMutation.isPending}
+            />
+          )}
         </CardTitle>
         <CardDescription className="text-sm">
           {integration.description} {status}.
@@ -109,11 +144,11 @@ function AppIntegrationEntry({
       {needsCredential(integration) && (
         <CardFooter className="flex space-x-3">
           <AppIntegrationConnectDialog integration={integration}>
-            <Button size="sm" variant={connection ? "outline" : "default"}>
-              {connection ? "Replace key" : "Connect"}
+            <Button size="sm" variant={connectedAt ? "outline" : "default"}>
+              {connectedAt ? "Replace key" : "Connect"}
             </Button>
           </AppIntegrationConnectDialog>
-          {connection && (
+          {connectedAt && (
             <ConfirmDialog
               title={`Disconnect ${integration.name}?`}
               description="Its blocks will fail until you connect it again."

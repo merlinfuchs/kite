@@ -1,20 +1,36 @@
 package wire
 
 import (
-	"time"
-
 	validation "github.com/go-ozzo/ozzo-validation/v4"
-	"github.com/kitecloud/kite/kite-service/internal/model"
+	"gopkg.in/guregu/null.v4"
 )
 
-// AppIntegration is an integration the app connected with a credential. The
-// credential can't be read back.
+// AppIntegration is whether the app can use an integration. Credentials can't
+// be read back.
 type AppIntegration struct {
-	IntegrationID string    `json:"integration_id"`
-	UpdatedAt     time.Time `json:"updated_at"`
+	IntegrationID string `json:"integration_id"`
+	Enabled       bool   `json:"enabled"`
+	// When the app last set the credential, for integrations that need one.
+	CredentialUpdatedAt null.Time `json:"credential_updated_at"`
 }
 
+// AppIntegrationListResponse has an entry for every integration.
 type AppIntegrationListResponse = []*AppIntegration
+
+// AppIntegrationUpdateRequest turns an integration without a credential on or
+// off.
+type AppIntegrationUpdateRequest struct {
+	// A pointer, so a missing value isn't taken as turning it off.
+	Enabled *bool `json:"enabled"`
+}
+
+func (req AppIntegrationUpdateRequest) Validate() error {
+	return validation.ValidateStruct(&req,
+		validation.Field(&req.Enabled, validation.NotNil),
+	)
+}
+
+type AppIntegrationUpdateResponse = AppIntegration
 
 type AppIntegrationConnectRequest struct {
 	Credential string `json:"credential"`
@@ -29,14 +45,3 @@ func (req AppIntegrationConnectRequest) Validate() error {
 type AppIntegrationConnectResponse = AppIntegration
 
 type AppIntegrationDisconnectResponse = Empty
-
-func AppIntegrationToWire(secret *model.AppSecret) *AppIntegration {
-	if secret == nil {
-		return nil
-	}
-
-	return &AppIntegration{
-		IntegrationID: secret.IntegrationID,
-		UpdatedAt:     secret.UpdatedAt,
-	}
-}
