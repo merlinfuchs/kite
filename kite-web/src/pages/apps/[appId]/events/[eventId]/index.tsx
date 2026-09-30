@@ -47,7 +47,6 @@ export default function AppEventListenerPage() {
       updateMutation.mutate(
         {
           flow_source: data,
-          enabled: listener?.enabled ?? true,
         },
         {
           onSuccess(res) {
@@ -68,7 +67,7 @@ export default function AppEventListenerPage() {
         }
       );
     },
-    [listener?.enabled, setIsSaving, setHasUnsavedChanges, updateMutation]
+    [setIsSaving, setHasUnsavedChanges, updateMutation]
   );
 
   const exit = useCallback(() => {

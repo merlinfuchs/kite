@@ -132,7 +132,7 @@ func (h *EventListenerHandler) HandleEventListenerUpdate(c *handler.Context, req
 		Description: eventFlow.EventDescription(),
 		// TODO: Filter:      eventFlow.EventListenerFilter(),
 		FlowSource: req.FlowSource,
-		Enabled:    req.Enabled,
+		Enabled:    c.EventListener.Enabled,
 		UpdatedAt:  time.Now().UTC(),
 	})
 	if err != nil {
