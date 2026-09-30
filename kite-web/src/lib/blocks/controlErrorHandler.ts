@@ -11,7 +11,6 @@ export const controlErrorHandler: BlockDefinition = {
   category: "Errors",
   outputs: ["error", "default"],
   component: "control_error_handler",
-
   result: { schema: z.string().describe("The error message.") },
   run: { kind: "custom" },
 };

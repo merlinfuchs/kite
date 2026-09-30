@@ -60,21 +60,28 @@ export const variableSettings: BlockField[] = [
   { name: "variable_scope", schema: variableScopeSchema },
 ];
 
-// The shared settings as path parameters of requests.
-
-export const guildTargetField: BlockField = {
-  ...guildTargetSetting,
+// Where requests send the shared settings.
+const guildPath = {
   in: "path",
   target: "guild_id",
   type: "snowflake",
   fallback: "guild",
+} as const;
+
+const channelPath = {
+  in: "path",
+  target: "channel_id",
+  type: "snowflake",
+} as const;
+
+export const guildTargetField: BlockField = {
+  ...guildTargetSetting,
+  ...guildPath,
 };
 
 export const channelTargetField: BlockField = {
   ...channelTargetSetting,
-  in: "path",
-  target: "channel_id",
-  type: "snowflake",
+  ...channelPath,
 };
 
 export const messageTargetField: BlockField = {
@@ -98,24 +105,20 @@ export const roleTargetField: BlockField = {
   type: "snowflake",
 };
 
-// Path parameters of requests whose schema and editor input are generated.
+// The same path parameters for blocks whose schema and editor input are
+// generated.
 
 export const guildField: BlockField = {
   name: "guild_target",
-  in: "path",
-  target: "guild_id",
-  type: "snowflake",
+  ...guildPath,
   label: "Server",
   description:
     "ID of the server. Leave empty to use the server the flow runs in.",
-  fallback: "guild",
 };
 
 export const flowChannelField: BlockField = {
   name: "channel_target",
-  in: "path",
-  target: "channel_id",
-  type: "snowflake",
+  ...channelPath,
   label: "Channel",
   description:
     "ID of the channel. Leave empty to use the channel the flow runs in.",

@@ -1,4 +1,3 @@
-import { messageTargetSchema } from "../flow/dataSchema";
 import {
   channelTargetSetting,
   messageDataField,

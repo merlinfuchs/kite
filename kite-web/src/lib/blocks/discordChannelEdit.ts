@@ -1,4 +1,3 @@
-import { channelDataSchema, channelTargetSchema } from "../flow/dataSchema";
 import { nodeActionChannelEditResultSchema } from "../flow/resultSchema";
 import { channelDataSetting, channelTargetSetting } from "./fields";
 import { BlockDefinition } from "./types";

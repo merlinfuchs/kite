@@ -1,4 +1,4 @@
-import { messageTargetSchema, numericOrPlaceholder } from "../flow/dataSchema";
+import { numericOrPlaceholder } from "../flow/dataSchema";
 import { nodeActionMessageGetResultSchema } from "../flow/resultSchema";
 import { messageTargetSetting } from "./fields";
 import { BlockDefinition } from "./types";

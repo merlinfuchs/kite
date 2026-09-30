@@ -1,4 +1,3 @@
-import { variableIdSchema, variableScopeSchema } from "../flow/dataSchema";
 import { variableSettings } from "./fields";
 import { BlockDefinition } from "./types";
 
@@ -9,6 +8,6 @@ export const variableDelete: BlockDefinition = {
   icon: "variable",
   category: "Stored Variables",
   credits: 1,
-  fields: [...variableSettings],
+  fields: variableSettings,
   run: { kind: "custom" },
 };

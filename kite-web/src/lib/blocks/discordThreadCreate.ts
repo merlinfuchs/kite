@@ -1,4 +1,4 @@
-import { channelDataSchema, numericOrPlaceholder } from "../flow/dataSchema";
+import { numericOrPlaceholder } from "../flow/dataSchema";
 import { nodeActionThreadCreateResultSchema } from "../flow/resultSchema";
 import { channelDataSetting } from "./fields";
 import { BlockDefinition } from "./types";

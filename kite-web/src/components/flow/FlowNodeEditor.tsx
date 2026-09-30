@@ -110,7 +110,7 @@ interface InputProps {
 
 // The editor inputs of block settings, by the names blocks use in their
 // fields. A test checks every block's inputs exist.
-export const intputs: Record<string, any> = {
+export const settingInputs: Record<string, any> = {
   custom_label: CustomLabelInput,
   temporary_name: TemporaryNameInput,
   name: NameInput,
@@ -347,7 +347,7 @@ export default function FlowNodeEditor({ nodeId }: Props) {
               const name = field.startsWith("field:")
                 ? field.slice("field:".length)
                 : undefined;
-              const Input = name ? BlockFieldInput : intputs[field];
+              const Input = name ? BlockFieldInput : settingInputs[field];
               if (!Input) return null;
 
               return (

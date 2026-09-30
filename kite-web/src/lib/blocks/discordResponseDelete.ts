@@ -1,4 +1,3 @@
-import { responseTargetSchema } from "../flow/dataSchema";
 import { responseTargetSetting } from "./fields";
 import { BlockDefinition } from "./types";
 

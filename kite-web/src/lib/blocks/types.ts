@@ -51,7 +51,9 @@ export interface BlockField {
   required?: boolean;
   // Used when the field is left empty.
   fallback?: "guild" | "channel";
-  // Range of a number, or length of a list.
+  // Range of a number, or length of a list. With a schema of their own,
+  // fields are only checked against these and required when the request is
+  // sent, not in the editor.
   min?: number;
   max?: number;
   max_length?: number;

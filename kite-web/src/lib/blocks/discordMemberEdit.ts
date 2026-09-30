@@ -1,9 +1,5 @@
 import { z } from "zod";
-import {
-  guildTargetSchema,
-  templated,
-  userTargetSchema,
-} from "../flow/dataSchema";
+import { templated } from "../flow/dataSchema";
 import { guildTargetSetting, userTargetSetting } from "./fields";
 import { BlockDefinition } from "./types";
 

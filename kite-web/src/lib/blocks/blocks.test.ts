@@ -153,3 +153,90 @@ describe("block definitions", () => {
     }
   });
 });
+
+// Blocks that had a hand-written schema, which ignored settings it didn't
+// know, so saved flows can have some. Every other block rejects them, so a
+// misnamed setting isn't lost. Remove blocks from here, never add them.
+const lenientBlocks = new Set([
+  "action_ai_chat_completion",
+  "action_ai_web_search",
+  "action_channel_create",
+  "action_channel_delete",
+  "action_channel_edit",
+  "action_channel_get",
+  "action_discord_api_request",
+  "action_expression_evaluate",
+  "action_forum_post_create",
+  "action_guild_get",
+  "action_http_request",
+  "action_log",
+  "action_member_ban",
+  "action_member_edit",
+  "action_member_get",
+  "action_member_kick",
+  "action_member_role_add",
+  "action_member_role_remove",
+  "action_member_timeout",
+  "action_member_unban",
+  "action_message_create",
+  "action_message_delete",
+  "action_message_edit",
+  "action_message_get",
+  "action_message_pin",
+  "action_message_reaction_create",
+  "action_message_reaction_delete",
+  "action_message_unpin",
+  "action_poll_create",
+  "action_private_message_create",
+  "action_random_generate",
+  "action_response_create",
+  "action_response_defer",
+  "action_response_delete",
+  "action_response_edit",
+  "action_roblox_user_get",
+  "action_role_get",
+  "action_status_set",
+  "action_thread_create",
+  "action_thread_member_add",
+  "action_thread_member_remove",
+  "action_user_get",
+  "action_variable_delete",
+  "action_variable_get",
+  "action_variable_set",
+  "action_voice_channel_join",
+  "action_voice_channel_leave",
+  "control_condition_channel",
+  "control_condition_compare",
+  "control_condition_item_channel",
+  "control_condition_item_compare",
+  "control_condition_item_else",
+  "control_condition_item_role",
+  "control_condition_item_user",
+  "control_condition_role",
+  "control_condition_user",
+  "control_error_handler",
+  "control_loop",
+  "control_loop_each",
+  "control_loop_end",
+  "control_loop_exit",
+  "control_sleep",
+  "entry_command",
+  "entry_component_button",
+  "entry_event",
+  "option_command_argument",
+  "option_command_contexts",
+  "option_command_permissions",
+  "option_event_filter",
+  "suspend_response_modal",
+]);
+
+describe("unknown settings", () => {
+  it("are rejected by new blocks", () => {
+    for (const block of blockDefinitions) {
+      expect(
+        !!block.strict_settings || lenientBlocks.has(block.type),
+        `${block.type} should set strict_settings`
+      ).toBe(true);
+    }
+  });
+});

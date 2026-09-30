@@ -1,5 +1,4 @@
 import { z } from "zod";
-import { variableIdSchema, variableScopeSchema } from "../flow/dataSchema";
 import { variableSettings } from "./fields";
 import { BlockDefinition } from "./types";
 
@@ -10,7 +9,7 @@ export const variableGet: BlockDefinition = {
   icon: "variable",
   category: "Stored Variables",
   credits: 1,
-  fields: [...variableSettings],
+  fields: variableSettings,
   result: { schema: z.unknown().describe("The value of the variable.") },
   run: { kind: "custom" },
 };

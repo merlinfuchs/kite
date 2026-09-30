@@ -1,9 +1,5 @@
 import { z } from "zod";
-import {
-  templated,
-  variableIdSchema,
-  variableScopeSchema,
-} from "../flow/dataSchema";
+import { templated } from "../flow/dataSchema";
 import { variableSettings } from "./fields";
 import { BlockDefinition } from "./types";
 
