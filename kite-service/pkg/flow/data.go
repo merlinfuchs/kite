@@ -61,6 +61,7 @@ const (
 	FlowNodeTypeActionMessageCreate         FlowNodeType = "action_message_create"
 	FlowNodeTypeActionMessageEdit           FlowNodeType = "action_message_edit"
 	FlowNodeTypeActionMessageDelete         FlowNodeType = "action_message_delete"
+	FlowNodeTypeActionMessagePublish        FlowNodeType = "action_message_publish"
 	FlowNodeTypeActionPrivateMessageCreate  FlowNodeType = "action_private_message_create"
 	FlowNodeTypeActionMessageReactionCreate FlowNodeType = "action_message_reaction_create"
 	FlowNodeTypeActionMessageReactionDelete FlowNodeType = "action_message_reaction_delete"

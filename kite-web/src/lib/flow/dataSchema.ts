@@ -475,6 +475,11 @@ export const nodeActionMessageDeleteDataSchema = nodeBaseDataSchema.extend({
   audit_log_reason: auditLogReasonSchema,
 });
 
+export const nodeActionMessagePublishDataSchema = nodeBaseDataSchema.extend({
+  channel_target: channelTargetSchema,
+  message_target: messageTargetSchema,
+});
+
 export const nodeActionMessagePinDataSchema = nodeActionMessageDeleteDataSchema;
 
 export const emojiDataSchema = z.object({
