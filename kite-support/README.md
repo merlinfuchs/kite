@@ -23,7 +23,7 @@ KITE_SUPPORT_OPENAI__API_KEY=...
 # build the knowledge (writes internal/embedded/assets/knowledge.md)
 go run . index
 
-# run the bot — `go run` recompiles, picking up the freshly written knowledge
+# run the bot, `go run` recompiles and picks up the freshly written knowledge
 go run . bot
 ```
 

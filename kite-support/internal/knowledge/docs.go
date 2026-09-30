@@ -21,7 +21,7 @@ type Doc struct {
 }
 
 var (
-	importLine    = regexp.MustCompile(`(?m)^import .*$\n?`)
+	importLine    = regexp.MustCompile(`(?m)^import \w+ from "[^"]+";?$\n?`)
 	embedFlowNode = regexp.MustCompile(`<EmbedFlowNode [^>]*/>\n?`)
 	nodeInfo      = regexp.MustCompile(`<NodeInfoExplorer type="([a-z_]+)" />`)
 	image         = regexp.MustCompile(`!\[[^\]]*\]\([^)]*\)\n?`)

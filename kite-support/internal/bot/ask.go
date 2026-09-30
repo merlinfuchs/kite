@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"regexp"
 	"slices"
 	"strings"
 	"time"
@@ -162,14 +163,20 @@ func (b *Bot) replyAsk(e *gateway.InteractionCreateEvent, question string, histo
 		slog.With("err", err).Error("edit interaction response failed")
 		return
 	}
-	if answer == nil || msg == nil {
+	if msg == nil {
 		return
 	}
 
-	// Clipped so it doesn't write into the history of the previous answer.
-	turns := append(slices.Clip(history), llm.Turn{Question: question, Answer: answer.Text})
-	if len(turns) > maxHistory {
-		turns = turns[len(turns)-maxHistory:]
+	// After an error, a follow-up continues the conversation before it.
+	turns := history
+	if answer != nil {
+		// Clipped so it doesn't write into the history of the previous answer.
+		turns = append(slices.Clip(history), llm.Turn{Question: question, Answer: answer.Text})
+		if len(turns) > maxHistory {
+			turns = turns[len(turns)-maxHistory:]
+		}
+	} else if len(history) == 0 {
+		return
 	}
 	b.feedback.Put(msg.ID, feedbackContext{
 		Answer:    reply,
@@ -184,15 +191,20 @@ func (b *Bot) replyAsk(e *gateway.InteractionCreateEvent, question string, histo
 // with.
 const maxHistory = 3
 
-// formatAnswer adds links to the docs pages the answer is based on, wrapped
-// in <> so Discord doesn't show a preview.
+var bareURL = regexp.MustCompile(`(?:^|[^<\w])(https?://[^\s<>)\]]+)`)
+
+// formatAnswer adds links to the docs pages the answer is based on. Every link
+// is wrapped in <> so Discord doesn't show a preview.
 func formatAnswer(answer *llm.Answer) string {
 	var links []string
 	for _, l := range answer.Links[:min(len(answer.Links), 2)] {
 		links = append(links, "<"+l+">")
 	}
 
-	text := strings.TrimSpace(answer.Text)
+	text := bareURL.ReplaceAllStringFunc(strings.TrimSpace(answer.Text), func(m string) string {
+		i := strings.Index(m, "http")
+		return m[:i] + "<" + m[i:] + ">"
+	})
 	suffix := ""
 	if len(links) > 0 {
 		suffix = "\n\nMore: " + strings.Join(links, " ")
@@ -216,13 +228,13 @@ func (b *Bot) handleFeedbackSubmit(e *gateway.InteractionCreateEvent, details st
 	if e.Message != nil {
 		msgID = e.Message.ID
 	}
-	fctx, ok := b.feedback.Get(msgID)
+	fctx, ok := b.feedback.ClaimFeedback(msgID)
 	if !ok {
 		_ = b.state.RespondInteraction(e.ID, e.Token, api.InteractionResponse{
 			Type: api.MessageInteractionWithSource,
 			Data: &api.InteractionResponseData{
 				Flags:   discord.EphemeralMessage,
-				Content: option.NewNullableString("This feedback session expired. Please ask the question again to send feedback."),
+				Content: option.NewNullableString("This answer was already sent as feedback or is too old. Ask the question again to send feedback."),
 			},
 		})
 		return

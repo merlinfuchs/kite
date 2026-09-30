@@ -69,7 +69,7 @@ func FetchPlans(ctx context.Context, url string) ([]Plan, error) {
 
 func FormatPlans(plans []Plan) string {
 	var b strings.Builder
-	b.WriteString("=== Plans\nThe current plans and their limits per app, as shown on the Premium page of each app. A limit of 0 means unlimited, except for AI prompts where it means none.\n")
+	b.WriteString("=== Plans\nThe current plans and their limits per app, as shown on the Premium page of each app.\n")
 	for _, p := range plans {
 		price := "free"
 		if p.Price > 0 {
@@ -77,15 +77,23 @@ func FormatPlans(plans []Plan) string {
 		}
 		fmt.Fprintf(&b, "\n%s (%s): %s\n", p.Title, price, p.Description)
 		fmt.Fprintf(&b, "- Credits per month: %d\n", p.UsageCreditsPerMonth)
-		fmt.Fprintf(&b, "- Commands: %d, stored variables: %d, message templates: %d, event listeners: %d\n", p.MaxCommands, p.MaxVariables, p.MaxMessages, p.MaxEventListeners)
-		fmt.Fprintf(&b, "- Scheduled event listeners: %d, running at most every %s\n", p.MaxScheduledEventListeners, formatInterval(p.MinScheduleIntervalSeconds))
+		fmt.Fprintf(&b, "- Commands: %s, stored variables: %s, message templates: %s, event listeners: %s\n", limit(p.MaxCommands), limit(p.MaxVariables), limit(p.MaxMessages), limit(p.MaxEventListeners))
+		fmt.Fprintf(&b, "- Scheduled event listeners: %s, running at most every %s\n", limit(p.MaxScheduledEventListeners), formatInterval(p.MinScheduleIntervalSeconds))
 		fmt.Fprintf(&b, "- Servers: %d\n", p.MaxGuilds)
-		fmt.Fprintf(&b, "- Collaborators, including the owner: %d\n", p.MaxCollaborators)
+		fmt.Fprintf(&b, "- Collaborators, including the owner: %s\n", limit(p.MaxCollaborators))
 		fmt.Fprintf(&b, "- Flow AI prompts per month: %d\n", p.MaxAIPromptsPerMonth)
 		fmt.Fprintf(&b, "- Rotating status and Set status block: %s\n", yesNo(p.RotatingStatus))
 		fmt.Fprintf(&b, "- Priority support: %s\n", yesNo(p.PrioritySupport))
 	}
 	return b.String()
+}
+
+// limit formats a limit that Kite doesn't enforce when it's 0.
+func limit(n int) string {
+	if n == 0 {
+		return "unlimited"
+	}
+	return fmt.Sprint(n)
 }
 
 func formatInterval(seconds int) string {

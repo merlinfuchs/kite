@@ -31,7 +31,7 @@ func Build(docsPath, catalogPath, docsBaseURL string) (string, error) {
 	var b strings.Builder
 	described := map[string]bool{}
 	for _, d := range docs {
-		fmt.Fprintf(&b, "=== Page: %s\n%s%s\n\n%s\n\n", d.Title, urlPrefix, d.URL, d.Body)
+		fmt.Fprintf(&b, "%s%s\n%s%s\n\n%s\n\n", pagePrefix, d.Title, urlPrefix, d.URL, d.Body)
 		for _, t := range d.Blocks {
 			described[t] = true
 		}
@@ -58,15 +58,20 @@ func Build(docsPath, catalogPath, docsBaseURL string) (string, error) {
 	return strings.TrimSpace(b.String()) + "\n", nil
 }
 
-// urlPrefix starts the line with the URL of each page.
-const urlPrefix = "URL: "
+// Each page starts with a line with its title and one with its URL.
+const (
+	pagePrefix = "=== Page: "
+	urlPrefix  = "URL: "
+)
 
 // PageURLs returns the URLs of the pages in the knowledge, the only ones the
 // bot links to.
 func PageURLs(knowledge string) []string {
 	var urls []string
-	for _, line := range strings.Split(knowledge, "\n") {
-		if url, ok := strings.CutPrefix(line, urlPrefix); ok {
+	lines := strings.Split(knowledge, "\n")
+	for i := 1; i < len(lines); i++ {
+		url, ok := strings.CutPrefix(lines[i], urlPrefix)
+		if ok && strings.HasPrefix(lines[i-1], pagePrefix) {
 			urls = append(urls, url)
 		}
 	}

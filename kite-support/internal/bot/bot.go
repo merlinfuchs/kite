@@ -92,7 +92,7 @@ func New(cfg *config.Config, knowledge string, llmClient *llm.Client) (*Bot, err
 		helpRoleID:      parseRoleID(cfg.Help.RoleID),
 	}
 
-	instructions := llm.Instructions(knowledge)
+	instructions := llm.Instructions(knowledge, b.helpC != 0, b.feedbackC != 0)
 	b.instructions.Store(&instructions)
 
 	s.AddHandler(b.onInteraction)
@@ -141,7 +141,7 @@ func (b *Bot) refreshPlans(ctx context.Context) {
 		if err != nil {
 			slog.With("err", err).Warn("fetch plans failed")
 		} else {
-			instructions := llm.Instructions(b.knowledge + "\n" + knowledge.FormatPlans(plans))
+			instructions := llm.Instructions(b.knowledge+"\n"+knowledge.FormatPlans(plans), b.helpC != 0, b.feedbackC != 0)
 			b.instructions.Store(&instructions)
 		}
 

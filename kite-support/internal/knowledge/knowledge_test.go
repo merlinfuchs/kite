@@ -43,3 +43,10 @@ func TestBuild(t *testing.T) {
 		t.Error("knowledge contains a link to a markdown file instead of a page")
 	}
 }
+
+func TestPageURLs(t *testing.T) {
+	k := "=== Page: A\nURL: https://a\n\nURL: https://not-a-page\n\n=== Page: B\nURL: https://b\n"
+	if got := PageURLs(k); !slices.Equal(got, []string{"https://a", "https://b"}) {
+		t.Errorf("PageURLs = %v", got)
+	}
+}

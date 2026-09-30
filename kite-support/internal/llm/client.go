@@ -95,8 +95,13 @@ func (c *Client) Answer(ctx context.Context, instructions string, history []Turn
 		return nil, fmt.Errorf("response %s: %s", resp.Status, resp.IncompleteDetails.Reason)
 	}
 
+	// A refusal has no output text.
+	text := resp.OutputText()
+	if text == "" {
+		return &Answer{Text: "Sorry, I can't help with that. I can only answer questions about Kite.", Intent: IntentQuestion}, nil
+	}
 	var answer Answer
-	if err := json.Unmarshal([]byte(resp.OutputText()), &answer); err != nil {
+	if err := json.Unmarshal([]byte(text), &answer); err != nil {
 		return nil, fmt.Errorf("parse answer: %w", err)
 	}
 	return &answer, nil
