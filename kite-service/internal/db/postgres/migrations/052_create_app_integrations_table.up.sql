@@ -6,7 +6,7 @@
 CREATE TABLE IF NOT EXISTS app_integrations (
     id TEXT PRIMARY KEY,
     app_id TEXT NOT NULL REFERENCES apps(id) ON DELETE CASCADE,
-    -- The integration defined in code, like cookie_api.
+    -- The integration defined in code, like roblox.
     integration_id TEXT NOT NULL,
     enabled BOOLEAN NOT NULL,
 

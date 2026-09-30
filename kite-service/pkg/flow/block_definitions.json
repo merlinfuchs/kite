@@ -17,20 +17,6 @@
         "type": "none"
       },
       "availability": "default"
-    },
-    {
-      "id": "cookie_api",
-      "name": "Cookie API",
-      "description": "QR codes and other tools from cookie-api.com.",
-      "base_url": "https://api.cookie-api.com",
-      "auth": {
-        "type": "header",
-        "name": "Authorization",
-        "label": "API key",
-        "help_url": "https://docs.cookie-api.com/en/docs/getting-started/faq/api-key/"
-      },
-      "availability": "opt_in",
-      "test_path": "/api/time/current-time"
     }
   ],
   "blocks": [
@@ -1351,71 +1337,6 @@
         "kind": "custom"
       },
       "fields": [],
-      "result": {
-        "thing": "",
-        "list": false
-      }
-    },
-    {
-      "type": "action_cookie_api_qr_code_create",
-      "credits": 1,
-      "audit_log_reason": false,
-      "requires": [
-        "cookie_api"
-      ],
-      "run": {
-        "kind": "request",
-        "integration": "cookie_api",
-        "operation": "create_qr_code",
-        "method": "POST",
-        "path": "/api/images/qr-code"
-      },
-      "fields": [
-        {
-          "name": "qr_code_data",
-          "in": "body",
-          "target": "data",
-          "type": "string",
-          "required": true,
-          "fallback": "",
-          "min": null,
-          "max": null,
-          "max_length": null
-        },
-        {
-          "name": "qr_code_style",
-          "in": "body",
-          "target": "style",
-          "type": "string",
-          "required": false,
-          "fallback": "",
-          "min": null,
-          "max": null,
-          "max_length": null
-        },
-        {
-          "name": "qr_code_border",
-          "in": "body",
-          "target": "border",
-          "type": "integer",
-          "required": false,
-          "fallback": "",
-          "min": 0,
-          "max": null,
-          "max_length": null
-        },
-        {
-          "name": "qr_code_center_image_url",
-          "in": "body",
-          "target": "center_image_url",
-          "type": "string",
-          "required": false,
-          "fallback": "",
-          "min": null,
-          "max": null,
-          "max_length": null
-        }
-      ],
       "result": {
         "thing": "",
         "list": false

@@ -92,10 +92,6 @@ The output of previously executed blocks is available in all subsequent blocks a
 
 - [Get Roblox User](./actions/action_roblox_user_get.md) - Retrieve Roblox user information
 
-## Cookie API Blocks
-
-- [Generate QR code](./actions/action_cookie_api_qr_code_create.md) - Create an image of a QR code
-
 ## Control Flow Blocks
 
 - [Comparison Condition](./controls/control_condition_compare.md) - Create conditional logic

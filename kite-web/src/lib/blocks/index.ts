@@ -16,7 +16,6 @@ import {
 } from "./types";
 import { aiChatCompletion } from "./aiChatCompletion";
 import { aiWebSearch } from "./aiWebSearch";
-import { cookieApiQrCodeCreate } from "./cookieApiQrCodeCreate";
 import { controlConditionChannel } from "./controlConditionChannel";
 import { controlConditionCompare } from "./controlConditionCompare";
 import { controlConditionItemChannel } from "./controlConditionItemChannel";
@@ -143,7 +142,6 @@ export const blockDefinitions: BlockDefinition[] = [
   variableDelete,
   variableGet,
   robloxUserGet,
-  cookieApiQrCodeCreate,
   aiChatCompletion,
   aiWebSearch,
   httpRequest,

@@ -176,6 +176,14 @@ var blockDefinitions, integrations = func() (map[FlowNodeType]blockDefinition, m
 	return blocks, integrations
 }()
 
+// AddIntegration adds an integration until the returned function is called.
+// It's for tests of other packages, which need an integration with a
+// credential while Kite has none.
+func AddIntegration(integration Integration) (remove func()) {
+	integrations[integration.ID] = integration
+	return func() { delete(integrations, integration.ID) }
+}
+
 // GetIntegration returns the integration with the given ID.
 func GetIntegration(id string) (Integration, bool) {
 	integration, ok := integrations[id]

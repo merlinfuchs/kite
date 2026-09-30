@@ -13,6 +13,7 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/internal/store"
 	"github.com/kitecloud/kite/kite-service/internal/util"
+	"github.com/kitecloud/kite/kite-service/pkg/flow"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -101,8 +102,18 @@ func (rt *roundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
 	return &http.Response{StatusCode: rt.status, Body: io.NopCloser(strings.NewReader("{}"))}, nil
 }
 
-// newHandler returns a handler whose credential checks get the given status.
+// newHandler returns a handler whose credential checks get the given status,
+// with test_api as an integration that needs a key.
 func newHandler(t *testing.T, s *memoryStore, status int) (*IntegrationHandler, *roundTripper) {
+	t.Cleanup(flow.AddIntegration(flow.Integration{
+		ID:           "test_api",
+		Name:         "Test API",
+		BaseURL:      "https://api.example.com",
+		Auth:         flow.IntegrationAuth{Type: "header", Name: "Authorization", Label: "API key"},
+		Availability: flow.AvailabilityOptIn,
+		TestPath:     "/check",
+	}))
+
 	crypt, err := util.NewSymmetricCrypt(strings.Repeat("ab", 32))
 	require.NoError(t, err)
 	rt := &roundTripper{status: status}
@@ -148,22 +159,22 @@ func TestConnectChecksCredential(t *testing.T) {
 	s := newMemoryStore()
 	h, rt := newHandler(t, s, http.StatusOK)
 
-	res := serve(t, h, http.MethodPut, "/integrations/cookie_api", `{"credential":"k3y"}`)
+	res := serve(t, h, http.MethodPut, "/integrations/test_api", `{"credential":"k3y"}`)
 	require.Equal(t, http.StatusOK, res.code)
-	assert.Equal(t, "https://api.cookie-api.com/api/time/current-time", rt.req.URL.String())
+	assert.Equal(t, "https://api.example.com/check", rt.req.URL.String())
 	assert.Equal(t, "k3y", rt.req.Header.Get("Authorization"))
 
 	// Connecting enables the integration.
-	require.Contains(t, s.credentials, "cookie_api")
-	assert.NotEqual(t, "k3y", s.credentials["cookie_api"].ValueEncrypted)
-	assert.True(t, s.integrations["cookie_api"].Enabled)
+	require.Contains(t, s.credentials, "test_api")
+	assert.NotEqual(t, "k3y", s.credentials["test_api"].ValueEncrypted)
+	assert.True(t, s.integrations["test_api"].Enabled)
 }
 
 func TestConnectRejectsRefusedCredential(t *testing.T) {
 	s := newMemoryStore()
 	h, _ := newHandler(t, s, http.StatusUnauthorized)
 
-	res := serve(t, h, http.MethodPut, "/integrations/cookie_api", `{"credential":"k3y"}`)
+	res := serve(t, h, http.MethodPut, "/integrations/test_api", `{"credential":"k3y"}`)
 	assert.Equal(t, http.StatusBadRequest, res.code)
 	assert.Equal(t, "invalid_credential", res.error["code"])
 	assert.Empty(t, s.credentials)
@@ -198,7 +209,7 @@ func TestUpdateIntegration(t *testing.T) {
 	assert.Equal(t, "always_enabled", res.error["code"])
 
 	// Integrations that need a credential are enabled by connecting them.
-	res = serve(t, h, http.MethodPatch, "/integrations/cookie_api", `{"enabled":true}`)
+	res = serve(t, h, http.MethodPatch, "/integrations/test_api", `{"enabled":true}`)
 	assert.Equal(t, http.StatusBadRequest, res.code)
 	assert.Equal(t, "not_connected", res.error["code"])
 }
@@ -207,33 +218,33 @@ func TestUpdateIntegration(t *testing.T) {
 func TestDisableConnectedIntegration(t *testing.T) {
 	s := newMemoryStore()
 	h, _ := newHandler(t, s, http.StatusOK)
-	require.Equal(t, http.StatusOK, serve(t, h, http.MethodPut, "/integrations/cookie_api", `{"credential":"k3y"}`).code)
+	require.Equal(t, http.StatusOK, serve(t, h, http.MethodPut, "/integrations/test_api", `{"credential":"k3y"}`).code)
 
-	res := serve(t, h, http.MethodPatch, "/integrations/cookie_api", `{"enabled":false}`)
+	res := serve(t, h, http.MethodPatch, "/integrations/test_api", `{"enabled":false}`)
 	require.Equal(t, http.StatusOK, res.code)
-	assert.False(t, s.integrations["cookie_api"].Enabled)
-	assert.Contains(t, s.credentials, "cookie_api")
+	assert.False(t, s.integrations["test_api"].Enabled)
+	assert.Contains(t, s.credentials, "test_api")
 
 	// Replacing the credential doesn't enable it again, and keeps the row.
-	id := s.integrations["cookie_api"].ID
-	res = serve(t, h, http.MethodPut, "/integrations/cookie_api", `{"credential":"n3w"}`)
+	id := s.integrations["test_api"].ID
+	res = serve(t, h, http.MethodPut, "/integrations/test_api", `{"credential":"n3w"}`)
 	require.Equal(t, http.StatusOK, res.code)
-	assert.False(t, s.integrations["cookie_api"].Enabled)
-	assert.Equal(t, id, s.integrations["cookie_api"].ID)
-	assert.Equal(t, id, s.credentials["cookie_api"].AppIntegrationID)
+	assert.False(t, s.integrations["test_api"].Enabled)
+	assert.Equal(t, id, s.integrations["test_api"].ID)
+	assert.Equal(t, id, s.credentials["test_api"].AppIntegrationID)
 }
 
 func TestRemoveIntegration(t *testing.T) {
 	s := newMemoryStore()
 	h, _ := newHandler(t, s, http.StatusOK)
-	require.Equal(t, http.StatusOK, serve(t, h, http.MethodPut, "/integrations/cookie_api", `{"credential":"k3y"}`).code)
+	require.Equal(t, http.StatusOK, serve(t, h, http.MethodPut, "/integrations/test_api", `{"credential":"k3y"}`).code)
 
-	res := serve(t, h, http.MethodDelete, "/integrations/cookie_api", "")
+	res := serve(t, h, http.MethodDelete, "/integrations/test_api", "")
 	require.Equal(t, http.StatusOK, res.code)
 	assert.Empty(t, s.credentials)
 	assert.Empty(t, s.integrations)
 
-	res = serve(t, h, http.MethodDelete, "/integrations/cookie_api", "")
+	res = serve(t, h, http.MethodDelete, "/integrations/test_api", "")
 	assert.Equal(t, http.StatusNotFound, res.code)
 	assert.Equal(t, "not_set_up", res.error["code"])
 }
@@ -241,7 +252,7 @@ func TestRemoveIntegration(t *testing.T) {
 func TestListIntegrations(t *testing.T) {
 	s := newMemoryStore()
 	h, _ := newHandler(t, s, http.StatusOK)
-	require.Equal(t, http.StatusOK, serve(t, h, http.MethodPut, "/integrations/cookie_api", `{"credential":"k3y"}`).code)
+	require.Equal(t, http.StatusOK, serve(t, h, http.MethodPut, "/integrations/test_api", `{"credential":"k3y"}`).code)
 	require.Equal(t, http.StatusOK, serve(t, h, http.MethodPatch, "/integrations/roblox", `{"enabled":false}`).code)
 
 	res := serve(t, h, http.MethodGet, "/integrations", "")
@@ -252,5 +263,5 @@ func TestListIntegrations(t *testing.T) {
 		entry := item.(map[string]any)
 		enabled[entry["integration_id"].(string)] = entry["enabled"].(bool)
 	}
-	assert.Equal(t, map[string]bool{"discord": true, "roblox": false, "cookie_api": true}, enabled)
+	assert.Equal(t, map[string]bool{"discord": true, "roblox": false, "test_api": true}, enabled)
 }
