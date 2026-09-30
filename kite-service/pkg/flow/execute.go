@@ -14,11 +14,13 @@ import (
 	"github.com/diamondburned/arikawa/v3/api"
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/utils/json/option"
+	"github.com/google/uuid"
 	"github.com/kitecloud/kite/kite-service/internal/util"
 	"github.com/kitecloud/kite/kite-service/pkg/eval"
 	"github.com/kitecloud/kite/kite-service/pkg/message"
 	"github.com/kitecloud/kite/kite-service/pkg/provider"
 	"github.com/kitecloud/kite/kite-service/pkg/thing"
+	gonanoid "github.com/matoous/go-nanoid/v2"
 	"gopkg.in/guregu/null.v4"
 )
 
@@ -1598,6 +1600,75 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 		}
 
 		ctx.StoreNodeResult(n, thing.NewString(response))
+		return n.ExecuteChildren(ctx)
+	case FlowNodeTypeActionRandomID:
+		idType := n.Data.RandomIDType
+		if idType == "" {
+			idType = RandomIDTypeUUIDv4
+		}
+
+		length := 0
+		if n.Data.RandomIDLength != "" {
+			lengthVal, err := ctx.EvalTemplate(n.Data.RandomIDLength)
+			if err != nil {
+				return traceError(n, err)
+			}
+			length = int(lengthVal.Int())
+		}
+
+		var id string
+		switch idType {
+		case RandomIDTypeUUIDv4:
+			id = uuid.NewString()
+		case RandomIDTypeNanoID:
+			if length <= 0 {
+				length = 21
+			} else if length > 256 {
+				length = 256
+			}
+			var err error
+			id, err = gonanoid.New(length)
+			if err != nil {
+				return traceError(n, err)
+			}
+		case RandomIDTypeAlphanumeric:
+			if length <= 0 {
+				length = 16
+			} else if length > 256 {
+				length = 256
+			}
+			var err error
+			id, err = gonanoid.Generate("0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz", length)
+			if err != nil {
+				return traceError(n, err)
+			}
+		case RandomIDTypeNumeric:
+			if length <= 0 {
+				length = 6
+			} else if length > 256 {
+				length = 256
+			}
+			var err error
+			id, err = gonanoid.Generate("0123456789", length)
+			if err != nil {
+				return traceError(n, err)
+			}
+		case RandomIDTypeHex:
+			if length <= 0 {
+				length = 32
+			} else if length > 256 {
+				length = 256
+			}
+			var err error
+			id, err = gonanoid.Generate("0123456789abcdef", length)
+			if err != nil {
+				return traceError(n, err)
+			}
+		default:
+			id = uuid.NewString()
+		}
+
+		ctx.StoreNodeResult(n, thing.NewString(id))
 		return n.ExecuteChildren(ctx)
 	case FlowNodeTypeActionRandomGenerate:
 		min, err := ctx.EvalTemplate(n.Data.RandomMin)

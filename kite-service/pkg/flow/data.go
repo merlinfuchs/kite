@@ -93,6 +93,7 @@ const (
 	FlowNodeTypeActionAIChatCompletion      FlowNodeType = "action_ai_chat_completion"
 	FlowNodeTypeActionAISearchWeb           FlowNodeType = "action_ai_web_search"
 	FlowNodeTypeActionExpressionEvaluate    FlowNodeType = "action_expression_evaluate"
+	FlowNodeTypeActionRandomID              FlowNodeType = "action_random_id"
 	FlowNodeTypeActionRandomGenerate        FlowNodeType = "action_random_generate"
 	FlowNodeTypeActionLog                   FlowNodeType = "action_log"
 	FlowNodeTypeActionVariableSet           FlowNodeType = "action_variable_set"
@@ -228,6 +229,10 @@ type FlowNodeData struct {
 
 	// AI Chat Completion
 	AIChatCompletionData *AIChatCompletionData `json:"ai_chat_completion_data,omitempty"`
+
+	// Random ID
+	RandomIDType   RandomIDType `json:"random_id_type,omitempty"`
+	RandomIDLength string       `json:"random_id_length,omitempty"`
 
 	// Random Generate
 	RandomMin string `json:"random_min,omitempty"`
@@ -393,6 +398,16 @@ type RobloxLookupType string
 const (
 	RobloxLookupTypeID   RobloxLookupType = "id"
 	RobloxLookupTypeName RobloxLookupType = "username"
+)
+
+type RandomIDType string
+
+const (
+	RandomIDTypeUUIDv4       RandomIDType = "uuid_v4"
+	RandomIDTypeNanoID       RandomIDType = "nanoid"
+	RandomIDTypeAlphanumeric RandomIDType = "alphanumeric"
+	RandomIDTypeNumeric      RandomIDType = "numeric"
+	RandomIDTypeHex          RandomIDType = "hex"
 )
 
 type CommandArgumentChoiceData struct {

@@ -76,6 +76,7 @@ export const nodeTypes = {
   action_ai_chat_completion: FlowNodeActionBase,
   action_ai_web_search: FlowNodeActionBase,
   action_expression_evaluate: FlowNodeActionBase,
+  action_random_id: FlowNodeActionBase,
   action_random_generate: FlowNodeActionBase,
   action_log: FlowNodeActionBase,
 

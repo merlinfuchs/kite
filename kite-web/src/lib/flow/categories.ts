@@ -142,6 +142,7 @@ export const nodeCategories: Record<
       title: "Utilities",
       nodeTypes: [
         "action_expression_evaluate",
+        "action_random_id",
         "action_random_generate",
         "action_log",
       ],

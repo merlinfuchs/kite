@@ -4709,6 +4709,65 @@
       },
       "result_schema": null
     },
+    "action_random_id": {
+      "title": "Generate Random ID",
+      "description": "Generate a unique random identifier",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord",
+        "event_schedule"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "type": "string",
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+          },
+          "random_id_type": {
+            "type": "string",
+            "enum": [
+              "uuid_v4",
+              "nanoid",
+              "alphanumeric",
+              "numeric",
+              "hex"
+            ],
+            "description": "Format of the identifier to generate: uuid_v4, nanoid, alphanumeric, numeric, or hex."
+          },
+          "random_id_length": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9]+$"
+              },
+              {
+                "type": "string",
+                "pattern": "^\\{\\{[^{}]+\\}\\}$"
+              }
+            ],
+            "description": "Length of the generated ID for nanoid, alphanumeric, numeric, or hex."
+          },
+          "temporary_name": {
+            "type": "string",
+            "maxLength": 32,
+            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only."
+          }
+        },
+        "additionalProperties": false
+      },
+      "result_schema": {
+        "type": "string",
+        "description": "The generated random identifier"
+      }
+    },
     "action_random_generate": {
       "title": "Generate Random Number",
       "description": "Generate a random number in a range",

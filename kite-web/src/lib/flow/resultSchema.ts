@@ -101,3 +101,7 @@ export const nodeActionRobloxUserGetResultSchema = z.object({
   name: z.string().describe("The username of the Roblox user"),
   display_name: z.string().describe("The display name of the Roblox user"),
 });
+
+export const nodeActionRandomIDResultSchema = z
+  .string()
+  .describe("The generated random identifier");

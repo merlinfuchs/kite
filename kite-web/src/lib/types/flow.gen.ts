@@ -56,6 +56,7 @@ export const FlowNodeTypeActionDiscordAPIRequest: FlowNodeType = "action_discord
 export const FlowNodeTypeActionAIChatCompletion: FlowNodeType = "action_ai_chat_completion";
 export const FlowNodeTypeActionAISearchWeb: FlowNodeType = "action_ai_web_search";
 export const FlowNodeTypeActionExpressionEvaluate: FlowNodeType = "action_expression_evaluate";
+export const FlowNodeTypeActionRandomID: FlowNodeType = "action_random_id";
 export const FlowNodeTypeActionRandomGenerate: FlowNodeType = "action_random_generate";
 export const FlowNodeTypeActionLog: FlowNodeType = "action_log";
 export const FlowNodeTypeActionVariableSet: FlowNodeType = "action_variable_set";
@@ -198,6 +199,11 @@ export interface FlowNodeData {
    */
   ai_chat_completion_data?: AIChatCompletionData;
   /**
+   * Random ID
+   */
+  random_id_type?: RandomIDType;
+  random_id_length?: string;
+  /**
    * Random Generate
    */
   random_min?: string;
@@ -280,6 +286,12 @@ export const EventFilterTypeChannelID: EventFilterTarget = "channel_id";
 export type RobloxLookupType = string;
 export const RobloxLookupTypeID: RobloxLookupType = "id";
 export const RobloxLookupTypeName: RobloxLookupType = "username";
+export type RandomIDType = string;
+export const RandomIDTypeUUIDv4: RandomIDType = "uuid_v4";
+export const RandomIDTypeNanoID: RandomIDType = "nanoid";
+export const RandomIDTypeAlphanumeric: RandomIDType = "alphanumeric";
+export const RandomIDTypeNumeric: RandomIDType = "numeric";
+export const RandomIDTypeHex: RandomIDType = "hex";
 export interface CommandArgumentChoiceData {
   name?: string;
   value?: string;
