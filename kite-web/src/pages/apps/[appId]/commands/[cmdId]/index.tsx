@@ -44,7 +44,7 @@ export default function AppCommandPage() {
       updateMutation.mutate(
         {
           flow_source: data,
-          enabled: true,
+          enabled: cmd?.enabled ?? true,
         },
         {
           onSuccess(res) {
@@ -64,7 +64,7 @@ export default function AppCommandPage() {
         }
       );
     },
-    [setHasUnsavedChanges, updateMutation]
+    [cmd?.enabled, setHasUnsavedChanges, updateMutation]
   );
 
   const hasUndeployedChanges = useMemo(() => {
