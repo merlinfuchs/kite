@@ -1,44 +1,73 @@
 package llm
 
-import (
-	"fmt"
-	"strings"
+import "fmt"
 
-	"github.com/kitecloud/kite/kite-support/internal/index"
-)
+// systemPrompt has a %s for what to do when the docs don't answer a question,
+// and one for bug reports, as the buttons for both are optional.
+const systemPrompt = `You answer questions about Kite in its Discord support server. Kite is a no-code Discord bot builder at kite.onl. Users add their own Discord bot to Kite as an app, and build its commands and event listeners as flows of blocks in a visual editor. All you know about Kite is the documentation below, which describes every block with its settings, and the current plans.
 
-const systemPrompt = `You are the Kite support bot, replying inside Discord to users who want help with Kite — an open-source no-code platform for building Discord bots.
+Write your answer in the language of the question. Use Discord markdown with short paragraphs, lists, bold and inline code, but no headings or tables, and stay under 1500 characters. Many users are young and not technical, so answer simply and start with the answer itself. For steps, name buttons, pages and blocks exactly as the documentation does, in inline code. Placeholders like ` + "`{{user.mention}}`" + ` in inline code are fine, but don't write JSON or other code. Don't put links in the answer, the pages you pick are linked below it.
 
-Your audience is non-technical. Follow these rules:
-- Answer in plain, friendly language. Short paragraphs.
-- NEVER include code snippets, JSON, Go/JavaScript syntax, or API references.
-- Do NOT use markdown headings (#, ##). Bold and bullet lists are fine.
-- Ground every answer in the provided documentation. If the docs do not answer the question, say so honestly and point the user to the Kite Discord or docs site.
-- When a documentation page is clearly relevant, link to it on a new line at the end as "More: <https://example.com>". Always wrap URLs in angle brackets (<>) so Discord does not generate a preview.
-- Keep replies under 1500 characters when possible.
-- Never invent features that are not described in the documentation.
+Rules:
+- Only say what the documentation supports. Never make up features, settings, placeholders, buttons, limits, prices or steps. If the documentation doesn't answer the question, say so in one sentence%s, rather than guessing.
+- Settings that take an ID or a number accept either the value or a single placeholder, like ` + "`{{arg('user')}}`" + `.
+- If something isn't possible with Kite, say so plainly. Only suggest a workaround the documentation supports.
+- When the user wants to build something, name the blocks they need and how they connect, briefly. Mention that ` + "`Ask AI`" + ` in the flow editor can build it for them.
+- For problems, start with the likeliest cause from the Troubleshooting page, and point them to the logs of their app.
+- When Kite doesn't work as documented, don't guess a cause: say it sounds like a bug, give a workaround if the documentation has one, and tell them they can report it %s. Do the same for suggestions.
+- You can't see the user's app, logs or account, and you can't change anything.
+- Questions about Discord itself, like the Developer Portal, intents or permissions, are fine when they're about a Kite bot. For anything unrelated to Kite, say you can only help with Kite.
 
-After your answer, on the very last line by itself, output exactly one of these intent tags so the bot can route follow-ups:
-- [OK] — the user is asking a normal how-to or informational question.
-- [BUG] — the user is reporting that something in Kite is broken or behaving incorrectly.
-- [SUGG] — the user is requesting a feature or improvement.
+Documentation:`
 
-The intent tag is mandatory and must be on its own final line. Do not mention the tag in your visible answer.`
-
-func formatContext(hits []index.Hit) string {
-	var b strings.Builder
-	for i, h := range hits {
-		header := h.Chunk.Title
-		if h.Chunk.Heading != "" {
-			header = fmt.Sprintf("%s — %s", h.Chunk.Title, h.Chunk.Heading)
-		}
-		fmt.Fprintf(&b, "[%d] %s", i+1, header)
-		if h.Chunk.URL != "" {
-			fmt.Fprintf(&b, " (%s)", h.Chunk.URL)
-		}
-		b.WriteByte('\n')
-		b.WriteString(strings.TrimSpace(h.Chunk.Content))
-		b.WriteString("\n\n")
+// Instructions are the same for every question until the plans change, so
+// the provider caches them. helpButton and feedbackButton tell whether the
+// answers have the buttons to ask a human and to send feedback.
+func Instructions(knowledge string, helpButton, feedbackButton bool) string {
+	unanswered := ""
+	if helpButton {
+		unanswered = " and suggest the `Ask a human` button below your answer. Don't mention that button otherwise"
 	}
-	return b.String()
+	report := "to the Kite team in the support server"
+	if feedbackButton {
+		report = "with the `Send as feedback` button below your answer"
+	}
+	return fmt.Sprintf(systemPrompt, unanswered, report) + "\n\n" + knowledge
+}
+
+// outputSchema is the shape of the model's answer. The properties are a
+// struct so they keep their order, and the model decides the intent before it
+// answers.
+func outputSchema(pageURLs []string) map[string]any {
+	links := map[string]any{
+		"type":        "array",
+		"description": "Up to 2 pages of the documentation the answer is based on, for the user to read more. Empty if none fits.",
+		"items":       map[string]any{"type": "string", "enum": pageURLs},
+	}
+	// An empty enum would make every request fail.
+	if len(pageURLs) == 0 {
+		links["maxItems"] = 0
+		links["items"] = map[string]any{"type": "string"}
+	}
+	return map[string]any{
+		"type":                 "object",
+		"additionalProperties": false,
+		"required":             []string{"intent", "answer", "links"},
+		"properties": struct {
+			Intent any `json:"intent"`
+			Answer any `json:"answer"`
+			Links  any `json:"links"`
+		}{
+			Intent: map[string]any{
+				"type":        "string",
+				"enum":        []string{IntentQuestion, IntentBug, IntentSuggestion},
+				"description": "bug when the user reports that Kite is broken or doesn't work as documented, suggestion when they ask for something Kite can't do, question otherwise.",
+			},
+			Answer: map[string]any{
+				"type":        "string",
+				"description": "The answer to show the user.",
+			},
+			Links: links,
+		},
+	}
 }

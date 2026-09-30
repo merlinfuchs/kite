@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"sync/atomic"
 	"time"
 
 	"github.com/diamondburned/arikawa/v3/api"
@@ -11,15 +12,15 @@ import (
 	"github.com/diamondburned/arikawa/v3/gateway"
 	"github.com/diamondburned/arikawa/v3/state"
 	"github.com/kitecloud/kite/kite-support/internal/config"
-	"github.com/kitecloud/kite/kite-support/internal/index"
+	"github.com/kitecloud/kite/kite-support/internal/knowledge"
 	"github.com/kitecloud/kite/kite-support/internal/llm"
 )
 
 type Bot struct {
 	state           *state.State
 	llm             *llm.Client
-	embed           *index.Embedder
-	store           *index.Store
+	knowledge       string
+	instructions    atomic.Pointer[string]
 	cfg             *config.Config
 	limiter         *rateLimiter
 	feedbackLimiter *rateLimiter
@@ -32,7 +33,7 @@ type Bot struct {
 	helpRoleID      discord.RoleID
 }
 
-func New(cfg *config.Config, store *index.Store, embedder *index.Embedder, llmClient *llm.Client) (*Bot, error) {
+func New(cfg *config.Config, knowledge string, llmClient *llm.Client) (*Bot, error) {
 	if cfg.Discord.Token == "" {
 		return nil, fmt.Errorf("discord token is empty")
 	}
@@ -78,8 +79,7 @@ func New(cfg *config.Config, store *index.Store, embedder *index.Embedder, llmCl
 	b := &Bot{
 		state:           s,
 		llm:             llmClient,
-		embed:           embedder,
-		store:           store,
+		knowledge:       knowledge,
 		cfg:             cfg,
 		limiter:         newRateLimiter(max, window),
 		feedbackLimiter: newRateLimiter(1, 10*time.Minute),
@@ -91,6 +91,9 @@ func New(cfg *config.Config, store *index.Store, embedder *index.Embedder, llmCl
 		feedbackRoleID:  parseRoleID(cfg.Feedback.RoleID),
 		helpRoleID:      parseRoleID(cfg.Help.RoleID),
 	}
+
+	instructions := llm.Instructions(knowledge, b.helpC != 0, b.feedbackC != 0)
+	b.instructions.Store(&instructions)
 
 	s.AddHandler(b.onInteraction)
 	return b, nil
@@ -117,6 +120,8 @@ func (b *Bot) Run(ctx context.Context) error {
 		return fmt.Errorf("register commands: %w", err)
 	}
 
+	go b.refreshPlans(ctx)
+
 	slog.Info("kite-support bot online",
 		"app_id", b.appID,
 		"feedback_channel", b.feedbackC,
@@ -124,6 +129,28 @@ func (b *Bot) Run(ctx context.Context) error {
 	)
 	<-ctx.Done()
 	return nil
+}
+
+// refreshPlans keeps the plans in the knowledge current, as prices and limits
+// change without a new release of the docs.
+func (b *Bot) refreshPlans(ctx context.Context) {
+	ticker := time.NewTicker(time.Hour)
+	defer ticker.Stop()
+	for {
+		plans, err := knowledge.FetchPlans(ctx, b.cfg.Knowledge.PlansURL)
+		if err != nil {
+			slog.With("err", err).Warn("fetch plans failed")
+		} else {
+			instructions := llm.Instructions(b.knowledge+"\n"+knowledge.FormatPlans(plans), b.helpC != 0, b.feedbackC != 0)
+			b.instructions.Store(&instructions)
+		}
+
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+		}
+	}
 }
 
 func (b *Bot) registerCommands() error {

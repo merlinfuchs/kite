@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"os"
@@ -11,10 +10,10 @@ import (
 	"github.com/kitecloud/kite/kite-support/internal/bot"
 	"github.com/kitecloud/kite/kite-support/internal/config"
 	"github.com/kitecloud/kite/kite-support/internal/embedded"
-	"github.com/kitecloud/kite/kite-support/internal/index"
+	"github.com/kitecloud/kite/kite-support/internal/knowledge"
 	"github.com/kitecloud/kite/kite-support/internal/llm"
-	"github.com/openai/openai-go"
-	"github.com/openai/openai-go/option"
+	"github.com/openai/openai-go/v2"
+	"github.com/openai/openai-go/v2/option"
 	"github.com/urfave/cli/v2"
 )
 
@@ -33,23 +32,19 @@ var botCMD = cli.Command{
 			return fmt.Errorf("openai.api_key is required")
 		}
 
-		embeddedIndex := embedded.Index()
-		if len(embeddedIndex) == 0 {
-			return fmt.Errorf("no index embedded in this binary — run `kite-support index` then rebuild")
-		}
-		store := index.NewStore()
-		if err := store.Decode(bytes.NewReader(embeddedIndex)); err != nil {
-			return fmt.Errorf("decode embedded index: %w", err)
-		}
-		if store.Count() == 0 {
-			return fmt.Errorf("embedded index is empty — run `kite-support index` then rebuild")
+		k := embedded.Knowledge()
+		if k == "" {
+			return fmt.Errorf("no knowledge embedded in this binary, run `kite-support index` then rebuild")
 		}
 
 		oa := openai.NewClient(option.WithAPIKey(cfg.OpenAI.APIKey))
-		embedder := index.NewEmbedder(&oa, cfg.OpenAI.EmbeddingModel)
-		llmClient := llm.New(&oa, cfg.OpenAI.ChatModel)
+		llmClient := llm.New(&oa, llm.Config{
+			Model:           cfg.OpenAI.Model,
+			ReasoningEffort: cfg.OpenAI.ReasoningEffort,
+			MaxOutputTokens: cfg.OpenAI.MaxOutputTokens,
+		}, knowledge.PageURLs(k))
 
-		b, err := bot.New(cfg, store, embedder, llmClient)
+		b, err := bot.New(cfg, k, llmClient)
 		if err != nil {
 			return err
 		}

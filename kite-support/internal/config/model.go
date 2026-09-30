@@ -7,7 +7,7 @@ import (
 type Config struct {
 	Discord   DiscordConfig   `toml:"discord"`
 	OpenAI    OpenAIConfig    `toml:"openai"`
-	Index     IndexConfig     `toml:"index"`
+	Knowledge KnowledgeConfig `toml:"knowledge"`
 	RateLimit RateLimitConfig `toml:"ratelimit"`
 	Feedback  FeedbackConfig  `toml:"feedback"`
 	Help      HelpConfig      `toml:"help"`
@@ -34,22 +34,20 @@ type DiscordConfig struct {
 }
 
 type OpenAIConfig struct {
-	APIKey         string `toml:"api_key"`
-	ChatModel      string `toml:"chat_model"`
-	EmbeddingModel string `toml:"embedding_model"`
-	SummaryModel   string `toml:"summary_model"`
+	APIKey          string `toml:"api_key"`
+	Model           string `toml:"model"`
+	ReasoningEffort string `toml:"reasoning_effort"`
+	// Caps each answer, reasoning included.
+	MaxOutputTokens int `toml:"max_output_tokens"`
 }
 
-type IndexConfig struct {
-	DBPath       string  `toml:"db_path"`
-	DocsPath     string  `toml:"docs_path"`
-	ConceptsPath string  `toml:"concepts_path"`
-	ServicePath  string  `toml:"service_path"`
-	TopK         int     `toml:"top_k"`
-	ChunkSize    int     `toml:"chunk_size"`
-	ChunkOverlap int     `toml:"chunk_overlap"`
-	ScoreFloor   float32 `toml:"score_floor"`
-	DocsBaseURL  string  `toml:"docs_base_url"`
+type KnowledgeConfig struct {
+	// Where `index` writes the knowledge, embedded into the binary.
+	Path        string `toml:"path"`
+	DocsPath    string `toml:"docs_path"`
+	CatalogPath string `toml:"catalog_path"`
+	DocsBaseURL string `toml:"docs_base_url"`
+	PlansURL    string `toml:"plans_url"`
 }
 
 type RateLimitConfig struct {

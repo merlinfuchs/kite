@@ -13,7 +13,6 @@ var app = cli.App{
 	Commands: []*cli.Command{
 		&botCMD,
 		&indexCMD,
-		&summarizeCMD,
 	},
 }
 

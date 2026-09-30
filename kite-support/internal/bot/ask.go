@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"regexp"
+	"slices"
 	"strings"
 	"time"
 	"unicode/utf8"
@@ -12,7 +14,6 @@ import (
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/gateway"
 	"github.com/diamondburned/arikawa/v3/utils/json/option"
-	"github.com/kitecloud/kite/kite-support/internal/index"
 	"github.com/kitecloud/kite/kite-support/internal/llm"
 )
 
@@ -36,7 +37,7 @@ func (b *Bot) handleCommand(e *gateway.InteractionCreateEvent, cmd *discord.Comm
 				question = opt.String()
 			}
 		}
-		b.runAsk(e, strings.TrimSpace(question))
+		b.runAsk(e, strings.TrimSpace(question), nil)
 	case "setup-menu":
 		b.handleSetupMenu(e)
 	}
@@ -62,7 +63,15 @@ func (b *Bot) handleButton(e *gateway.InteractionCreateEvent, btn *discord.Butto
 func (b *Bot) handleModal(e *gateway.InteractionCreateEvent, modal *discord.ModalInteraction) {
 	switch modal.CustomID {
 	case customIDAskModal:
-		b.runAsk(e, strings.TrimSpace(extractText(modal, customIDQuestion)))
+		// A follow-up is asked from the previous answer, so it continues that
+		// conversation.
+		var history []llm.Turn
+		if e.Message != nil {
+			if prev, ok := b.feedback.Get(e.Message.ID); ok {
+				history = prev.History
+			}
+		}
+		b.runAsk(e, strings.TrimSpace(extractText(modal, customIDQuestion)), history)
 	case customIDFeedbackModal:
 		b.handleFeedbackSubmit(e, strings.TrimSpace(extractText(modal, customIDFeedbackDetail)))
 	case customIDHelpModal:
@@ -89,13 +98,13 @@ func extractText(modal *discord.ModalInteraction, customID discord.ComponentID) 
 	return ""
 }
 
-func (b *Bot) runAsk(e *gateway.InteractionCreateEvent, question string) {
-	userID := "unknown"
+func (b *Bot) runAsk(e *gateway.InteractionCreateEvent, question string, history []llm.Turn) {
+	var userID discord.UserID
 	if sender := e.Sender(); sender != nil {
-		userID = sender.ID.String()
+		userID = sender.ID
 	}
 
-	if !b.limiter.Allow(userID) {
+	if !b.limiter.Allow(userID.String()) {
 		_ = b.state.RespondInteraction(e.ID, e.Token, api.InteractionResponse{
 			Type: api.MessageInteractionWithSource,
 			Data: &api.InteractionResponseData{
@@ -127,24 +136,24 @@ func (b *Bot) runAsk(e *gateway.InteractionCreateEvent, question string) {
 		return
 	}
 
-	go b.replyAsk(e, question)
+	go b.replyAsk(e, question, history, userID)
 }
 
-func (b *Bot) replyAsk(e *gateway.InteractionCreateEvent, question string) {
+func (b *Bot) replyAsk(e *gateway.InteractionCreateEvent, question string, history []llm.Turn, userID discord.UserID) {
 	ctx, cancel := context.WithTimeout(context.Background(), 45*time.Second)
 	defer cancel()
 
-	reply, intent, err := b.answer(ctx, question)
+	var reply, intent string
+	answer, err := b.llm.Answer(ctx, *b.instructions.Load(), history, question, userID.String())
 	if err != nil {
 		slog.With("err", err).Error("answer failed")
 		reply = "Something went wrong while answering. Please try again in a moment."
-		intent = ""
-	}
-	if len(reply) > 1900 {
-		reply = reply[:1900] + "…"
+	} else {
+		reply = formatAnswer(answer)
+		intent = answer.Intent
 	}
 
-	showFeedback := b.feedbackC != 0 && (intent == llm.IntentBug || intent == llm.IntentSugg)
+	showFeedback := b.feedbackC != 0 && (intent == llm.IntentBug || intent == llm.IntentSuggestion)
 	showHelp := b.helpC != 0
 	msg, err := b.state.EditInteractionResponse(b.appID, e.Token, api.EditInteractionResponseData{
 		Content:    option.NewNullableString(reply),
@@ -154,20 +163,53 @@ func (b *Bot) replyAsk(e *gateway.InteractionCreateEvent, question string) {
 		slog.With("err", err).Error("edit interaction response failed")
 		return
 	}
-
-	if (showFeedback || showHelp) && msg != nil {
-		var userID discord.UserID
-		if sender := e.Sender(); sender != nil {
-			userID = sender.ID
-		}
-		b.feedback.Put(msg.ID, feedbackContext{
-			Question:  question,
-			Answer:    reply,
-			Intent:    intent,
-			UserID:    userID,
-			ExpiresAt: time.Now().Add(15 * time.Minute),
-		})
+	if msg == nil {
+		return
 	}
+
+	// After an error, a follow-up continues the conversation before it.
+	turns := history
+	if answer != nil {
+		// Clipped so it doesn't write into the history of the previous answer.
+		turns = append(slices.Clip(history), llm.Turn{Question: question, Answer: answer.Text})
+		if len(turns) > maxHistory {
+			turns = turns[len(turns)-maxHistory:]
+		}
+	} else if len(history) == 0 {
+		return
+	}
+	b.feedback.Put(msg.ID, feedbackContext{
+		Answer:    reply,
+		Intent:    intent,
+		History:   turns,
+		UserID:    userID,
+		ExpiresAt: time.Now().Add(15 * time.Minute),
+	})
+}
+
+// maxHistory is how many earlier questions and answers a follow-up is sent
+// with.
+const maxHistory = 3
+
+var bareURL = regexp.MustCompile(`(?:^|[^<\w])(https?://[^\s<>)\]]+)`)
+
+// formatAnswer adds links to the docs pages the answer is based on. Every link
+// is wrapped in <> so Discord doesn't show a preview.
+func formatAnswer(answer *llm.Answer) string {
+	var links []string
+	for _, l := range answer.Links[:min(len(answer.Links), 2)] {
+		links = append(links, "<"+l+">")
+	}
+
+	text := bareURL.ReplaceAllStringFunc(strings.TrimSpace(answer.Text), func(m string) string {
+		i := strings.Index(m, "http")
+		return m[:i] + "<" + m[i:] + ">"
+	})
+	suffix := ""
+	if len(links) > 0 {
+		suffix = "\n\nMore: " + strings.Join(links, " ")
+	}
+	return truncate(text, 2000-len(suffix)) + suffix
 }
 
 func (b *Bot) handleFeedbackSubmit(e *gateway.InteractionCreateEvent, details string) {
@@ -186,13 +228,13 @@ func (b *Bot) handleFeedbackSubmit(e *gateway.InteractionCreateEvent, details st
 	if e.Message != nil {
 		msgID = e.Message.ID
 	}
-	fctx, ok := b.feedback.Take(msgID)
+	fctx, ok := b.feedback.ClaimFeedback(msgID)
 	if !ok {
 		_ = b.state.RespondInteraction(e.ID, e.Token, api.InteractionResponse{
 			Type: api.MessageInteractionWithSource,
 			Data: &api.InteractionResponseData{
 				Flags:   discord.EphemeralMessage,
-				Content: option.NewNullableString("This feedback session expired. Please ask the question again to send feedback."),
+				Content: option.NewNullableString("This answer was already sent as feedback or is too old. Ask the question again to send feedback."),
 			},
 		})
 		return
@@ -267,10 +309,10 @@ func buildThreadName(fctx feedbackContext) string {
 	switch fctx.Intent {
 	case llm.IntentBug:
 		prefix = "Bug"
-	case llm.IntentSugg:
+	case llm.IntentSuggestion:
 		prefix = "Suggestion"
 	}
-	q := strings.ReplaceAll(fctx.Question, "\n", " ")
+	q := strings.ReplaceAll(fctx.question(), "\n", " ")
 	q = strings.TrimSpace(q)
 	name := fmt.Sprintf("[%s] %s", prefix, q)
 	return truncate(name, 100)
@@ -302,7 +344,7 @@ func (b *Bot) handleHelpSubmit(e *gateway.InteractionCreateEvent, details string
 	if e.Message != nil {
 		msgID = e.Message.ID
 	}
-	fctx, _ := b.feedback.Take(msgID)
+	fctx, _ := b.feedback.Get(msgID)
 
 	userKey := "unknown"
 	var userID discord.UserID
@@ -369,7 +411,7 @@ func (b *Bot) handleHelpSubmit(e *gateway.InteractionCreateEvent, details string
 }
 
 func buildHelpThreadName(fctx feedbackContext, details string) string {
-	source := fctx.Question
+	source := fctx.question()
 	if source == "" {
 		source = details
 	}
@@ -387,8 +429,8 @@ func buildHelpEmbed(fctx feedbackContext, details string, userID discord.UserID)
 		{Name: "From", Value: reporter, Inline: true},
 		{Name: "Need help with", Value: truncate(details, 1024)},
 	}
-	if fctx.Question != "" {
-		fields = append(fields, discord.EmbedField{Name: "Original question to bot", Value: truncate(fctx.Question, 1024)})
+	if fctx.question() != "" {
+		fields = append(fields, discord.EmbedField{Name: "Original question to bot", Value: truncate(fctx.question(), 1024)})
 	}
 	if fctx.Answer != "" {
 		fields = append(fields, discord.EmbedField{Name: "Bot's answer", Value: truncate(fctx.Answer, 1024)})
@@ -419,7 +461,7 @@ func buildFeedbackEmbed(fctx feedbackContext, details string) discord.Embed {
 	case llm.IntentBug:
 		title = "Bug report"
 		color = 0xE74C3C
-	case llm.IntentSugg:
+	case llm.IntentSuggestion:
 		title = "Suggestion"
 		color = 0x3498DB
 	}
@@ -431,7 +473,7 @@ func buildFeedbackEmbed(fctx feedbackContext, details string) discord.Embed {
 
 	fields := []discord.EmbedField{
 		{Name: "From", Value: reporter, Inline: true},
-		{Name: "Question", Value: truncate(fctx.Question, 1024)},
+		{Name: "Question", Value: truncate(fctx.question(), 1024)},
 		{Name: "Bot answer", Value: truncate(fctx.Answer, 1024)},
 	}
 	if details != "" {
@@ -490,39 +532,4 @@ func (b *Bot) handleSetupMenu(e *gateway.InteractionCreateEvent) {
 			Content: option.NewNullableString(content),
 		},
 	})
-}
-
-func (b *Bot) answer(ctx context.Context, question string) (string, string, error) {
-	vec, err := b.embed.EmbedQuery(ctx, question)
-	if err != nil {
-		return "", "", fmt.Errorf("embed query: %w", err)
-	}
-
-	topK := b.cfg.Index.TopK
-	if topK <= 0 {
-		topK = 6
-	}
-	hits, err := b.store.Search(vec, topK)
-	if err != nil {
-		return "", "", fmt.Errorf("search: %w", err)
-	}
-
-	hits = filterHits(hits, b.cfg.Index.ScoreFloor)
-	if len(hits) == 0 {
-		return "I couldn't find anything in the Kite documentation that answers that. You can browse the docs at https://docs.kite.onl or ask in the Kite Discord.", llm.IntentOK, nil
-	}
-	return b.llm.Answer(ctx, question, hits)
-}
-
-func filterHits(hits []index.Hit, maxDistance float32) []index.Hit {
-	if maxDistance <= 0 {
-		return hits
-	}
-	out := hits[:0]
-	for _, h := range hits {
-		if h.Distance <= maxDistance {
-			out = append(out, h)
-		}
-	}
-	return out
 }

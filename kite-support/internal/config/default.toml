@@ -4,20 +4,16 @@ app_id = ""
 
 [openai]
 api_key = ""
-chat_model = "gpt-4o-mini"
-embedding_model = "text-embedding-3-small"
-summary_model = "gpt-4o"
+model = "gpt-5-mini"
+reasoning_effort = "low"
+max_output_tokens = 4000
 
-[index]
-db_path = "./internal/embedded/assets/index.gob"
+[knowledge]
+path = "./internal/embedded/assets/knowledge.md"
 docs_path = "../kite-docs/docs"
-concepts_path = "./concepts.md"
-service_path = "../kite-service"
-top_k = 6
-chunk_size = 3000
-chunk_overlap = 300
-score_floor = 0.5
+catalog_path = "../kite-service/pkg/flow/catalog.json"
 docs_base_url = "https://docs.kite.onl"
+plans_url = "https://api.kite.onl/v1/billing/plans"
 
 [ratelimit]
 per_user_max = 2
