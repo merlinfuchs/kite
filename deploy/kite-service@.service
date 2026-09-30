@@ -6,14 +6,14 @@
 Description=Kite cluster %i
 After=network-online.target postgresql.service
 Wants=network-online.target
+StartLimitIntervalSec=0
 
 [Service]
 WorkingDirectory=/opt/kite
-Environment=KITE_CLUSTER_COUNT=4
-Environment=KITE_CLUSTER_INDEX=%i
 ExecStartPre=/opt/kite/kite-service database migrate postgres up
-ExecStart=/bin/sh -c 'KITE_API__PORT=$$((8080 + %i)) exec /opt/kite/kite-service server start'
+ExecStart=/bin/sh -c 'exec /opt/kite/kite-service server start --cluster_count 4 --cluster_index %i --port $$((8080 + %i))'
 Restart=always
+RestartSec=5
 
 [Install]
 WantedBy=multi-user.target

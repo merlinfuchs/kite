@@ -190,14 +190,14 @@ read -r -d '' unit_template <<'EOF' || true
 Description=Kite cluster %i
 After=network-online.target postgresql.service
 Wants=network-online.target
+StartLimitIntervalSec=0
 
 [Service]
 WorkingDirectory=@SERVICE_DIR@
-Environment=KITE_CLUSTER_COUNT=@CLUSTER_COUNT@
-Environment=KITE_CLUSTER_INDEX=%i
 ExecStartPre=@SERVICE_DIR@/kite-service database migrate postgres up
-ExecStart=/bin/sh -c 'KITE_API__PORT=$$((@SERVICE_BASE_PORT@ + %i)) exec @SERVICE_DIR@/kite-service server start'
+ExecStart=/bin/sh -c 'exec @SERVICE_DIR@/kite-service server start --cluster_count @CLUSTER_COUNT@ --cluster_index %i --port $$((@SERVICE_BASE_PORT@ + %i))'
 Restart=always
+RestartSec=5
 
 [Install]
 WantedBy=multi-user.target

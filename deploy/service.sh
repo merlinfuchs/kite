@@ -1,21 +1,21 @@
 #!/usr/bin/env bash
-# Builds kite-service for the server, swaps the binary and restarts the
-# clusters one by one, so only part of the bots reconnect at a time.
+# Builds kite-service for the server, swaps the binary and restarts all
+# clusters. Each cluster applies pending migrations before it starts.
 # Pass --rollback to restart with the previous binary instead.
 source "$(dirname "$0")/common.sh"
 
-# Stops at the first cluster that doesn't come back up, the others keep
-# running the old binary.
+# systemctl restart waits for the migrations, so a failed migration shows up
+# here. Crashes right after starting only show up in the status check.
 restart="$REMOTE_SUDO
+  \$S systemctl restart $SERVICE_UNITS
+  sleep 5
   for unit in $SERVICE_UNITS; do
-    echo \"Restarting \$unit\"
-    \$S systemctl restart \"\$unit\"
-    sleep $SERVICE_RESTART_DELAY
     if ! systemctl is-active --quiet \"\$unit\"; then
       systemctl status --no-pager \"\$unit\"
       exit 1
     fi
-  done"
+  done
+  echo 'All clusters are running'"
 
 if [ "${1:-}" = "--rollback" ]; then
   ssh -t "$DEPLOY_HOST" "set -e
