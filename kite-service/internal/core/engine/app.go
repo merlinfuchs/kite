@@ -331,6 +331,16 @@ func (a *App) HandleEvent(appID string, session *state.State, event gateway.Even
 	default:
 		eventType := model.EventTypeFromDiscordEventType(e.EventType())
 
+		if msg, ok := e.(*gateway.MessageCreateEvent); ok && msg.GuildID == 0 {
+			a.RLock()
+			dmListeners := a.listenersByType[model.EventListenerTypeDiscordDirectMessageCreate]
+			a.RUnlock()
+
+			for _, listener := range dmListeners {
+				go listener.HandleEvent(appID, session, event)
+			}
+		}
+
 		// The index is replaced rather than mutated on rebuild, so this slice
 		// stays valid after the lock is released.
 		a.RLock()

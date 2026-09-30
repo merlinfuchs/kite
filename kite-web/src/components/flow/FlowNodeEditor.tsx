@@ -740,6 +740,7 @@ function EventTypeInput({ data, updateData, errors }: InputProps) {
       title="Event"
       options={[
         { value: "message_create", label: "Message Create" },
+        { value: "direct_message_create", label: "Direct Message Received" },
         { value: "message_update", label: "Message Update" },
         { value: "message_delete", label: "Message Delete" },
         { value: "guild_member_add", label: "Server Member Add" },

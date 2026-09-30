@@ -188,6 +188,9 @@ export default function EventListenerCreateDialog({
                         <SelectItem value="message_create">
                           Message Create
                         </SelectItem>
+                        <SelectItem value="direct_message_create">
+                          Direct Message Received
+                        </SelectItem>
                         <SelectItem value="message_delete">
                           Message Delete
                         </SelectItem>

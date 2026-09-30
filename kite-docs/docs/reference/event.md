@@ -4,11 +4,12 @@ sidebar_position: 3
 
 # Event Listener
 
-With Event Listeners you can listen for events inside the Discord servers that your bot is in. Right now, Kite supports the following events:
+With Event Listeners you can listen for events inside the Discord servers that your bot is in, or direct messages sent to the bot. Right now, Kite supports the following events:
 
 - Message Create
 - Message Update
 - Message Delete
+- Direct Message Received
 - Member Join
 - Member Leave
 - Bot Joined Server
@@ -19,6 +20,7 @@ With Event Listeners you can listen for events inside the Discord servers that y
 - By default, your app is limited to 5 event listeners.
 - Kite will ignore messages that are sent by a bot.
 - Member events are only available when you enable the "Server Members Intent" in the [Discord Developer Portal](https://discord.dev).
+- Direct Message Received triggers when a user sends a direct message to the bot.
 - Bot Joined Server provides the server as `{{guild.id}}` and `{{guild.name}}`. Bot Left Server only provides `{{guild.id}}`.
 
 ![Example Event Flow](./img/example-event-flow.png)
