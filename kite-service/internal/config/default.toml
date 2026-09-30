@@ -66,6 +66,7 @@ feature_max_collaborators = 1
 feature_usage_credits_per_month = 10000
 feature_max_guilds = 100
 feature_max_commands = 25
+feature_max_context_menu_commands = 10
 feature_max_variables = 25
 feature_max_messages = 25
 feature_max_event_listeners = 5

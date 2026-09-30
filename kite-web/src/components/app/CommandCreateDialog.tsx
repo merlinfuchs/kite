@@ -8,6 +8,13 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { ReactNode, useState } from "react";
 import {
   Form,
@@ -30,12 +37,15 @@ import { getNodeId } from "@/lib/flow/nodes";
 interface FormFields {
   name: string;
   description: string;
+  command_type: string;
 }
 
 export default function CommandCreateDialog({
   children,
+  contextMenu = false,
 }: {
   children: ReactNode;
+  contextMenu?: boolean;
 }) {
   const [open, setOpen] = useState(false);
 
@@ -47,15 +57,23 @@ export default function CommandCreateDialog({
     defaultValues: {
       name: "",
       description: "",
+      command_type: contextMenu ? "user" : "chat_input",
     },
   });
+
+  const commandType = form.watch("command_type");
+  const isChatInput = commandType === "chat_input";
 
   function onSubmit(data: FormFields) {
     if (createMutation.isPending) return;
 
     createMutation.mutate(
       {
-        flow_source: getInitialFlowData(data.name, data.description),
+        flow_source: getInitialFlowData(
+          data.name,
+          data.description,
+          data.command_type
+        ),
         enabled: true,
       },
       {
@@ -94,13 +112,49 @@ export default function CommandCreateDialog({
       <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Create Command</DialogTitle>
+          <DialogTitle>
+            {contextMenu ? "Create Context Menu" : "Create Command"}
+          </DialogTitle>
           <DialogDescription>
-            Create a new command with a name and description.
+            {contextMenu
+              ? "Create a user or message context menu command."
+              : "Create a new command with a name and description."}
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4">
+            <FormField
+              control={form.control}
+              name="command_type"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Type</FormLabel>
+                  <Select
+                    onValueChange={field.onChange}
+                    value={field.value}
+                    defaultValue={field.value}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {!contextMenu && (
+                        <SelectItem value="chat_input">
+                          Slash Command
+                        </SelectItem>
+                      )}
+                      <SelectItem value="user">User Context Menu</SelectItem>
+                      <SelectItem value="message">
+                        Message Context Menu
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
             <FormField
               control={form.control}
               name="name"
@@ -114,19 +168,21 @@ export default function CommandCreateDialog({
                 </FormItem>
               )}
             />
-            <FormField
-              control={form.control}
-              name="description"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Description</FormLabel>
-                  <FormControl>
-                    <Input type="text" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            {isChatInput && (
+              <FormField
+                control={form.control}
+                name="description"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Description</FormLabel>
+                    <FormControl>
+                      <Input type="text" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
             <DialogFooter>
               <LoadingButton type="submit" loading={createMutation.isPending}>
                 Create command
@@ -139,13 +195,22 @@ export default function CommandCreateDialog({
   );
 }
 
-function getInitialFlowData(name: string, description: string) {
+function getInitialFlowData(
+  name: string,
+  description: string,
+  commandType: string
+) {
+  const isChatInput = commandType === "chat_input";
   return {
     nodes: [
       {
         id: getNodeId(),
         position: { x: 0, y: 0 },
-        data: { name, description },
+        data: {
+          name,
+          command_type: commandType,
+          ...(isChatInput ? { description } : {}),
+        },
         type: "entry_command",
       },
     ],

@@ -194,15 +194,16 @@ type BillingPlanConfig struct {
 
 	DiscordRoleID string `toml:"discord_role_id"`
 
-	FeatureMaxCollaborators     int  `toml:"feature_max_collaborators"`
-	FeatureUsageCreditsPerMonth int  `toml:"feature_usage_credits_per_month"`
-	FeatureMaxGuilds            int  `toml:"feature_max_guilds"`
-	FeatureMaxCommands          int  `toml:"feature_max_commands"`
-	FeatureMaxVariables         int  `toml:"feature_max_variables"`
-	FeatureMaxMessages          int  `toml:"feature_max_messages"`
-	FeatureMaxEventListeners    int  `toml:"feature_max_event_listeners"`
-	FeaturePrioritySupport      bool `toml:"feature_priority_support"`
-	FeatureRotatingStatus       bool `toml:"feature_rotating_status"`
+	FeatureMaxCollaborators       int  `toml:"feature_max_collaborators"`
+	FeatureUsageCreditsPerMonth   int  `toml:"feature_usage_credits_per_month"`
+	FeatureMaxGuilds              int  `toml:"feature_max_guilds"`
+	FeatureMaxCommands            int  `toml:"feature_max_commands"`
+	FeatureMaxContextMenuCommands int  `toml:"feature_max_context_menu_commands"`
+	FeatureMaxVariables           int  `toml:"feature_max_variables"`
+	FeatureMaxMessages            int  `toml:"feature_max_messages"`
+	FeatureMaxEventListeners      int  `toml:"feature_max_event_listeners"`
+	FeaturePrioritySupport        bool `toml:"feature_priority_support"`
+	FeatureRotatingStatus         bool `toml:"feature_rotating_status"`
 
 	FeatureMaxScheduledEventListeners int `toml:"feature_max_scheduled_event_listeners"`
 	FeatureMinScheduleIntervalSeconds int `toml:"feature_min_schedule_interval_seconds"`
