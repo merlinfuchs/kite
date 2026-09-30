@@ -10,7 +10,6 @@ import (
 // DiscordProvider provides access to the Discord API.
 type DiscordProvider interface {
 	Guild(ctx context.Context, guildID discord.GuildID) (*discord.Guild, error)
-	GuildChannels(ctx context.Context, guildID discord.GuildID) ([]discord.Channel, error)
 	GuildRoles(ctx context.Context, guildID discord.GuildID) ([]discord.Role, error)
 	Channel(ctx context.Context, channelID discord.ChannelID) (*discord.Channel, error)
 	User(ctx context.Context, userID discord.UserID) (*discord.User, error)
@@ -34,9 +33,6 @@ type DiscordProvider interface {
 	CreatePrivateChannel(ctx context.Context, userID discord.UserID) (*discord.Channel, error)
 	StartThreadWithMessage(ctx context.Context, channelID discord.ChannelID, messageID discord.MessageID, data api.StartThreadData) (*discord.Channel, error)
 	StartThreadWithoutMessage(ctx context.Context, channelID discord.ChannelID, data api.StartThreadData) (*discord.Channel, error)
-	CreateRole(ctx context.Context, guildID discord.GuildID, data api.CreateRoleData) (*discord.Role, error)
-	EditRole(ctx context.Context, guildID discord.GuildID, roleID discord.RoleID, data api.ModifyRoleData) (*discord.Role, error)
-	DeleteRole(ctx context.Context, guildID discord.GuildID, roleID discord.RoleID) error
 	APIRequest(ctx context.Context, req DiscordAPIRequest) ([]byte, error)
 
 	UpdateVoiceState(ctx context.Context, guildID discord.GuildID, channelID discord.ChannelID, selfMute bool, selfDeaf bool) error
@@ -98,10 +94,6 @@ type InteractionResponseResource struct {
 type MockDiscordProvider struct{}
 
 func (p *MockDiscordProvider) Guild(ctx context.Context, guildID discord.GuildID) (*discord.Guild, error) {
-	return nil, nil
-}
-
-func (p *MockDiscordProvider) GuildChannels(ctx context.Context, guildID discord.GuildID) ([]discord.Channel, error) {
 	return nil, nil
 }
 
@@ -191,18 +183,6 @@ func (p *MockDiscordProvider) StartThreadWithMessage(ctx context.Context, channe
 
 func (p *MockDiscordProvider) StartThreadWithoutMessage(ctx context.Context, channelID discord.ChannelID, data api.StartThreadData) (*discord.Channel, error) {
 	return nil, nil
-}
-
-func (p *MockDiscordProvider) CreateRole(ctx context.Context, guildID discord.GuildID, data api.CreateRoleData) (*discord.Role, error) {
-	return nil, nil
-}
-
-func (p *MockDiscordProvider) EditRole(ctx context.Context, guildID discord.GuildID, roleID discord.RoleID, data api.ModifyRoleData) (*discord.Role, error) {
-	return nil, nil
-}
-
-func (p *MockDiscordProvider) DeleteRole(ctx context.Context, guildID discord.GuildID, roleID discord.RoleID) error {
-	return nil
 }
 
 func (p *MockDiscordProvider) APIRequest(ctx context.Context, req DiscordAPIRequest) ([]byte, error) {
