@@ -16,14 +16,16 @@ Logs are kept for 30 days.
 
 Open the dashboard of your app. If the app was stopped, a popup tells you why.
 
-- **No credits remaining**: Your app used all of its [credits](../reference/credit-system.md) for this month. Click on `Start App` in the settings once the new month has started or you have more credits.
+- **No credits remaining**: Your app used all of its [credits](../reference/credit-system.md) for this month. Kite starts it again within a few minutes once the new month has started or you have more credits.
 - **Discord bot token is invalid**: The token was reset in the Discord Developer Portal. Copy the new one and save it under `Credentials` in the settings.
-- **Failed to connect to gateway**: Usually the intents are missing. Enable the `Presence Intent`, `Server Members Intent` and `Message Content Intent` in the `Bot` section of the [Discord Developer Portal](https://discord.com/developers/applications), then click on `Start App`.
-- **More than 100 servers**: Your app is in more servers than your plan allows. Leave some on the `Servers` page or get [Premium](../reference/premium.md).
+- **Failed to connect to gateway**: Kite couldn't connect your bot to Discord. Click on `Start App` in the settings to try again.
+- **Too many servers**: Your app is in more servers than your plan allows. Remove your bot from some servers in Discord, or get [Premium](../reference/premium.md), then click on `Start App`.
 
 ## My Command Doesn't Show Up
 
 Commands only show up in Discord after you deploy them. Click on `Deploy Changes` in the editor, or on `Deploy all commands` on the `Commands` page. You also need to deploy again after changing a command's name, description, arguments or permissions. Changes to the blocks don't need a deploy.
+
+Your app has to be running to deploy. If it was stopped, deploying does nothing, so start it first and deploy again.
 
 If it still doesn't show up, restart your Discord client with `Ctrl+R`, and check that your app was invited to the server with `Invite app` on the dashboard.
 

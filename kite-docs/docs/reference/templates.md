@@ -24,4 +24,4 @@ You can copy a command or event listener to another app, or share it with someon
 
 Anyone with the code can import it. Codes expire after 90 days without use.
 
-Blocks that use a message template or stored variable still point to the one in the original app after importing. Open them and pick one from the new app instead.
+Blocks that use a message template or stored variable of the original app lose it when importing. Open them and pick one from the new app.
