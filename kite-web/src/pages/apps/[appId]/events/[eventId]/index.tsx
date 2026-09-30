@@ -1,7 +1,7 @@
 import FlowPage from "@/components/flow/FlowPage";
 import { useEventListenerUpdateMutation } from "@/lib/api/mutations";
 import { FlowData } from "@/lib/flow/dataSchema";
-import { useEventListener, useResponseData } from "@/lib/hooks/api";
+import { useEventListener, useFlowLogEntries } from "@/lib/hooks/api";
 import { useAppId, useEventId } from "@/lib/hooks/params";
 import { useBeforePageExit } from "@/lib/hooks/exit";
 import Head from "next/head";
@@ -9,7 +9,6 @@ import { useRouter } from "next/router";
 import { useCallback, useState } from "react";
 import { toast } from "sonner";
 import { LogEntryListDrawer } from "@/components/app/LogEntryListDrawer";
-import { useLogEntriesQuery } from "@/lib/api/queries";
 
 export default function AppEventListenerPage() {
   const router = useRouter();
@@ -95,12 +94,7 @@ export default function AppEventListenerPage() {
     [hasUnsavedChanges]
   );
 
-  const logsQuery = useLogEntriesQuery(useAppId(), {
-    limit: 10,
-    eventId: useEventId(),
-    refetchInterval: 10000,
-  });
-  const logs = useResponseData(logsQuery);
+  const logs = useFlowLogEntries({ eventId: useEventId() });
 
   return (
     <div className="flex min-h-[100dvh] w-full flex-col">

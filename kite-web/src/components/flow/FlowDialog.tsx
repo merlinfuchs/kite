@@ -10,20 +10,22 @@ import {
 } from "../ui/dialog";
 import Flow from "./Flow";
 import { FlowContextType } from "@/lib/flow/context";
-import { LogEntry } from "@/lib/types/wire.gen";
+import { FlowLogEntriesFilter, useFlowLogEntries } from "@/lib/hooks/api";
 
 function InnerFlowDialog({
   flowData,
-  logs,
+  logFilter,
   context,
   onChange,
 }: {
   flowData: FlowData;
-  logs?: LogEntry[];
+  logFilter: FlowLogEntriesFilter;
   context: FlowContextType;
   onChange: (d: FlowData) => void;
 }) {
   const { getNodes, getEdges } = useReactFlow<NodeType>();
+  // Only mounted while the dialog is open, so closed dialogs don't poll.
+  const logs = useFlowLogEntries(logFilter);
 
   const handleChange = useCallback(() => {
     onChange({
@@ -46,11 +48,11 @@ export default function FlowDialog({
   children,
   onClose,
   flowData,
-  logs,
+  logFilter,
   context,
 }: {
   flowData: FlowData;
-  logs?: LogEntry[];
+  logFilter: FlowLogEntriesFilter;
   onClose: (data: FlowData) => void;
   context: FlowContextType;
   children: React.ReactNode;
@@ -82,7 +84,7 @@ export default function FlowDialog({
           </DialogDescription>
           <InnerFlowDialog
             flowData={flowData}
-            logs={logs}
+            logFilter={logFilter}
             context={context}
             onChange={onChange}
           />

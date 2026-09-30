@@ -6,9 +6,7 @@ import { useCurrentFlow } from "@/lib/message/state";
 import { getUniqueId } from "@/lib/utils";
 import FlowDialog from "../flow/FlowDialog";
 import FlowPreview from "../flow/FlowPreview";
-import { useLogEntriesQuery } from "@/lib/api/queries";
-import { useResponseData } from "@/lib/hooks/api";
-import { useAppId, useMessageId } from "@/lib/hooks/params";
+import { useMessageId } from "@/lib/hooks/params";
 
 const initialFlow = {
   nodes: [
@@ -43,17 +41,12 @@ export default memo(function MessageComponentFlow({
     [replaceFlow, flowSourceId]
   );
 
-  const logsQuery = useLogEntriesQuery(useAppId(), {
-    limit: 10,
-    messageId: useMessageId(),
-    refetchInterval: 10000,
-  });
-  const logs = useResponseData(logsQuery);
+  const messageId = useMessageId();
 
   return (
     <FlowDialog
       flowData={flowData || initialFlow}
-      logs={logs}
+      logFilter={{ messageId }}
       context={context}
       onClose={onClose}
     >
