@@ -174,6 +174,14 @@
                 },
                 "additionalProperties": false,
                 "description": "Which mentions ping. If unset, only mentioned users are pinged."
+              },
+              "components": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": {}
+                },
+                "description": "Buttons and select menus, as Discord action rows. Each one that isn't a link button adds the output component_<id> to the block."
               }
             },
             "additionalProperties": true,
@@ -181,7 +189,8 @@
           },
           "message_template_id": {
             "type": "string",
-            "description": "ID of a saved message template to send instead of message_data."
+            "description": "ID of a saved message template to send instead of message_data.",
+            "x-user-picked": true
           },
           "temporary_name": {
             "type": "string",
@@ -367,6 +376,14 @@
                 },
                 "additionalProperties": false,
                 "description": "Which mentions ping. If unset, only mentioned users are pinged."
+              },
+              "components": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": {}
+                },
+                "description": "Buttons and select menus, as Discord action rows. Each one that isn't a link button adds the output component_<id> to the block."
               }
             },
             "additionalProperties": true,
@@ -374,7 +391,8 @@
           },
           "message_template_id": {
             "type": "string",
-            "description": "ID of a saved message template to send instead of message_data."
+            "description": "ID of a saved message template to send instead of message_data.",
+            "x-user-picked": true
           },
           "temporary_name": {
             "type": "string",
@@ -641,6 +659,14 @@
                 },
                 "additionalProperties": false,
                 "description": "Which mentions ping. If unset, only mentioned users are pinged."
+              },
+              "components": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": {}
+                },
+                "description": "Buttons and select menus, as Discord action rows. Each one that isn't a link button adds the output component_<id> to the block."
               }
             },
             "additionalProperties": true,
@@ -648,7 +674,8 @@
           },
           "message_template_id": {
             "type": "string",
-            "description": "ID of a saved message template to send instead of message_data."
+            "description": "ID of a saved message template to send instead of message_data.",
+            "x-user-picked": true
           },
           "temporary_name": {
             "type": "string",
@@ -844,6 +871,14 @@
                 },
                 "additionalProperties": false,
                 "description": "Which mentions ping. If unset, only mentioned users are pinged."
+              },
+              "components": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": {}
+                },
+                "description": "Buttons and select menus, as Discord action rows. Each one that isn't a link button adds the output component_<id> to the block."
               }
             },
             "additionalProperties": true,
@@ -851,7 +886,8 @@
           },
           "message_template_id": {
             "type": "string",
-            "description": "ID of a saved message template to send instead of message_data."
+            "description": "ID of a saved message template to send instead of message_data.",
+            "x-user-picked": true
           },
           "temporary_name": {
             "type": "string",
@@ -1035,6 +1071,14 @@
                 },
                 "additionalProperties": false,
                 "description": "Which mentions ping. If unset, only mentioned users are pinged."
+              },
+              "components": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": {}
+                },
+                "description": "Buttons and select menus, as Discord action rows. Each one that isn't a link button adds the output component_<id> to the block."
               }
             },
             "additionalProperties": true,
@@ -1042,7 +1086,8 @@
           },
           "message_template_id": {
             "type": "string",
-            "description": "ID of a saved message template to send instead of message_data."
+            "description": "ID of a saved message template to send instead of message_data.",
+            "x-user-picked": true
           },
           "temporary_name": {
             "type": "string",
@@ -1496,6 +1541,226 @@
         "additionalProperties": false
       },
       "result_schema": null
+    },
+    "action_poll_create": {
+      "title": "Create poll",
+      "description": "Bot sends a poll to a channel",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord",
+        "event_schedule"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "type": "string",
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+          },
+          "channel_target": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9]+$"
+              },
+              {
+                "type": "string",
+                "pattern": "^\\{\\{[^{}]+\\}\\}$"
+              }
+            ],
+            "description": "ID of the channel to send the poll to."
+          },
+          "poll_data": {
+            "type": "object",
+            "properties": {
+              "question": {
+                "type": "string",
+                "maxLength": 300,
+                "minLength": 1,
+                "description": "Question shown at the top of the poll.",
+                "x-templated": true
+              },
+              "answers": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "text": {
+                      "type": "string",
+                      "maxLength": 55,
+                      "description": "Text of the answer. Answers that are empty after placeholders are filled in are skipped.",
+                      "x-templated": true
+                    },
+                    "emoji": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "description": "ID of a custom emoji."
+                        },
+                        "name": {
+                          "type": "string",
+                          "minLength": 1,
+                          "description": "Name of a custom emoji, or the unicode of a standard emoji."
+                        }
+                      },
+                      "required": [
+                        "name"
+                      ],
+                      "additionalProperties": false,
+                      "description": "Emoji shown next to the answer."
+                    }
+                  },
+                  "required": [
+                    "text"
+                  ],
+                  "additionalProperties": false
+                },
+                "minItems": 1,
+                "maxItems": 10,
+                "description": "Answers people can vote for."
+              },
+              "duration_hours": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "pattern": "^[0-9]+$"
+                  },
+                  {
+                    "type": "string",
+                    "pattern": "^\\{\\{[^{}]+\\}\\}$"
+                  }
+                ],
+                "description": "How many hours the poll is open for, between 1 and 768. Defaults to 24."
+              },
+              "allow_multiselect": {
+                "type": "boolean",
+                "description": "Whether people can vote for more than one answer."
+              }
+            },
+            "required": [
+              "question",
+              "answers"
+            ],
+            "additionalProperties": false,
+            "description": "The poll to send."
+          },
+          "temporary_name": {
+            "type": "string",
+            "maxLength": 32,
+            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only."
+          }
+        },
+        "required": [
+          "channel_target",
+          "poll_data"
+        ],
+        "additionalProperties": false
+      },
+      "result_schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The ID of the message"
+          },
+          "channel_id": {
+            "type": "string",
+            "description": "The ID of the channel the message was sent in"
+          },
+          "content": {
+            "type": "string",
+            "description": "The content of the message"
+          },
+          "author": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "description": "The ID of the user"
+              },
+              "username": {
+                "type": "string",
+                "description": "The username of the user"
+              },
+              "discriminator": {
+                "type": "string",
+                "description": "The discriminator of the user"
+              },
+              "display_name": {
+                "type": "string",
+                "description": "The display name of the user"
+              },
+              "avatar_url": {
+                "type": "string",
+                "description": "The avatar URL of the user"
+              }
+            },
+            "required": [
+              "id",
+              "username",
+              "discriminator",
+              "display_name",
+              "avatar_url"
+            ],
+            "additionalProperties": false,
+            "description": "The author of the message if it's a DM"
+          },
+          "member": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "description": "The ID of the user"
+              },
+              "username": {
+                "type": "string",
+                "description": "The username of the user"
+              },
+              "discriminator": {
+                "type": "string",
+                "description": "The discriminator of the user"
+              },
+              "display_name": {
+                "type": "string",
+                "description": "The display name of the user"
+              },
+              "avatar_url": {
+                "type": "string",
+                "description": "The avatar URL of the member"
+              },
+              "nick": {
+                "type": "string",
+                "description": "The nickname of the member"
+              }
+            },
+            "required": [
+              "id",
+              "username",
+              "discriminator",
+              "display_name",
+              "avatar_url",
+              "nick"
+            ],
+            "additionalProperties": false,
+            "description": "The author of the message if it's in a server"
+          }
+        },
+        "required": [
+          "id",
+          "channel_id",
+          "content",
+          "author"
+        ],
+        "additionalProperties": false
+      }
     },
     "action_member_ban": {
       "title": "Ban member",
@@ -3763,7 +4028,8 @@
           },
           "variable_id": {
             "type": "string",
-            "description": "ID of an existing stored variable."
+            "description": "ID of an existing stored variable.",
+            "x-user-picked": true
           },
           "variable_scope": {
             "type": "string",
@@ -3825,7 +4091,8 @@
           },
           "variable_id": {
             "type": "string",
-            "description": "ID of an existing stored variable."
+            "description": "ID of an existing stored variable.",
+            "x-user-picked": true
           },
           "variable_scope": {
             "type": "string",
@@ -3864,7 +4131,8 @@
           },
           "variable_id": {
             "type": "string",
-            "description": "ID of an existing stored variable."
+            "description": "ID of an existing stored variable.",
+            "x-user-picked": true
           },
           "variable_scope": {
             "type": "string",
@@ -4132,6 +4400,122 @@
       },
       "result_schema": null
     },
+    "action_discord_api_request": {
+      "title": "Discord API Request",
+      "description": "Send a request to any endpoint of the Discord API",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord",
+        "event_schedule"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "type": "string",
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+          },
+          "discord_api_request_data": {
+            "type": "object",
+            "properties": {
+              "operation": {
+                "type": "string",
+                "description": "operationId of the endpoint in Discord's OpenAPI spec, e.g. create_message or list_messages. The spec's names can differ from Discord's docs, e.g. Modify Guild is update_guild."
+              },
+              "path_params": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "key": {
+                      "type": "string",
+                      "description": "Name of the parameter."
+                    },
+                    "value": {
+                      "type": "string",
+                      "description": "Value of the parameter.",
+                      "x-templated": true
+                    }
+                  },
+                  "required": [
+                    "key",
+                    "value"
+                  ],
+                  "additionalProperties": false
+                },
+                "description": "Values for the parameters in the endpoint's path, e.g. channel_id. IDs can also be a placeholder that resolves to a user, channel or other Discord object."
+              },
+              "query": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "key": {
+                      "type": "string",
+                      "description": "Name of the parameter."
+                    },
+                    "value": {
+                      "type": "string",
+                      "description": "Value of the parameter.",
+                      "x-templated": true
+                    }
+                  },
+                  "required": [
+                    "key",
+                    "value"
+                  ],
+                  "additionalProperties": false
+                },
+                "description": "Query parameters. Only the ones the endpoint has are allowed."
+              },
+              "body_json": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "additionalProperties": {}
+                  },
+                  {
+                    "type": "array",
+                    "items": {}
+                  }
+                ],
+                "description": "JSON body of the request, an object or for some endpoints a list. Placeholders in its string values are evaluated. A string that is a single placeholder keeps the type of its result, e.g. a number or list."
+              }
+            },
+            "required": [
+              "operation"
+            ],
+            "additionalProperties": false,
+            "description": "The Discord API request to send. The bot's token is added."
+          },
+          "audit_log_reason": {
+            "type": "string",
+            "maxLength": 512,
+            "description": "Reason shown in the server's audit log.",
+            "x-templated": true
+          },
+          "temporary_name": {
+            "type": "string",
+            "maxLength": 32,
+            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only."
+          }
+        },
+        "required": [
+          "discord_api_request_data"
+        ],
+        "additionalProperties": false
+      },
+      "result_schema": {
+        "description": "The JSON the endpoint returns, as in Discord's API docs, e.g. result('id').code for a created invite or result('id')[0].content for a list of messages. Empty for endpoints that return nothing."
+      }
+    },
     "action_ai_chat_completion": {
       "title": "Ask AI",
       "description": "Ask artificial intelligence a question or let it respond to a prompt",
@@ -4160,13 +4544,11 @@
               "model": {
                 "type": "string",
                 "enum": [
-                  "gpt-4.1",
-                  "gpt-4.1-mini",
-                  "gpt-4.1-nano",
-                  "gpt-5-nano",
-                  "gpt-4o-mini"
+                  "small",
+                  "medium",
+                  "large"
                 ],
-                "description": "Model to use. Larger models cost more credits. Defaults to gpt-4o-mini."
+                "description": "Model tier to use. Larger tiers are more capable and cost more credits. Defaults to small."
               },
               "system_prompt": {
                 "type": "string",
@@ -4242,13 +4624,11 @@
               "model": {
                 "type": "string",
                 "enum": [
-                  "gpt-4.1",
-                  "gpt-4.1-mini",
-                  "gpt-4.1-nano",
-                  "gpt-5-nano",
-                  "gpt-4o-mini"
+                  "small",
+                  "medium",
+                  "large"
                 ],
-                "description": "Model to use. Larger models cost more credits. Defaults to gpt-4o-mini."
+                "description": "Model tier to use. Larger tiers are more capable and cost more credits. Defaults to small."
               },
               "prompt": {
                 "type": "string",

@@ -3,7 +3,12 @@ package flow
 import (
 	"context"
 	"encoding/json"
+	"errors"
+	"fmt"
 	"regexp"
+	"strconv"
+	"strings"
+	"unicode/utf8"
 
 	"github.com/diamondburned/arikawa/v3/api"
 	"github.com/diamondburned/arikawa/v3/discord"
@@ -13,7 +18,6 @@ import (
 	"github.com/kitecloud/kite/kite-service/pkg/message"
 	"github.com/kitecloud/kite/kite-service/pkg/provider"
 	"github.com/kitecloud/kite/kite-service/pkg/schedule"
-	"github.com/openai/openai-go/v2"
 	"gopkg.in/guregu/null.v4"
 )
 
@@ -62,6 +66,7 @@ const (
 	FlowNodeTypeActionMessageReactionDelete FlowNodeType = "action_message_reaction_delete"
 	FlowNodeTypeActionMessagePin            FlowNodeType = "action_message_pin"
 	FlowNodeTypeActionMessageUnpin          FlowNodeType = "action_message_unpin"
+	FlowNodeTypeActionPollCreate            FlowNodeType = "action_poll_create"
 	FlowNodeTypeActionMemberBan             FlowNodeType = "action_member_ban"
 	FlowNodeTypeActionMemberUnban           FlowNodeType = "action_member_unban"
 	FlowNodeTypeActionMemberKick            FlowNodeType = "action_member_kick"
@@ -84,6 +89,7 @@ const (
 	FlowNodeTypeActionMessageGet            FlowNodeType = "action_message_get"
 	FlowNodeTypeActionRobloxUserGet         FlowNodeType = "action_roblox_user_get"
 	FlowNodeTypeActionHTTPRequest           FlowNodeType = "action_http_request"
+	FlowNodeTypeActionDiscordAPIRequest     FlowNodeType = "action_discord_api_request"
 	FlowNodeTypeActionAIChatCompletion      FlowNodeType = "action_ai_chat_completion"
 	FlowNodeTypeActionAISearchWeb           FlowNodeType = "action_ai_web_search"
 	FlowNodeTypeActionExpressionEvaluate    FlowNodeType = "action_expression_evaluate"
@@ -177,6 +183,9 @@ type FlowNodeData struct {
 	// Message Reaction Create, Delete
 	EmojiData *EmojiData `json:"emoji_data,omitempty"`
 
+	// Poll Create
+	PollData *PollData `json:"poll_data,omitempty"`
+
 	// Modal
 	ModalData *ModalData `json:"modal_data,omitempty"`
 
@@ -213,6 +222,9 @@ type FlowNodeData struct {
 
 	// HTTP Request
 	HTTPRequestData *HTTPRequestData `json:"http_request_data,omitempty"`
+
+	// Discord API Request
+	DiscordAPIRequestData *DiscordAPIRequestData `json:"discord_api_request_data,omitempty"`
 
 	// AI Chat Completion
 	AIChatCompletionData *AIChatCompletionData `json:"ai_chat_completion_data,omitempty"`
@@ -513,6 +525,110 @@ type EmojiData struct {
 	Name string `json:"name,omitempty"`
 }
 
+type PollData struct {
+	Question string           `json:"question,omitempty"`
+	Answers  []PollAnswerData `json:"answers,omitempty"`
+	// DurationHours is how long the poll is open for. Empty means 24 hours.
+	DurationHours    string `json:"duration_hours,omitempty"`
+	AllowMultiselect bool   `json:"allow_multiselect,omitempty"`
+}
+
+type PollAnswerData struct {
+	Text  string     `json:"text,omitempty"`
+	Emoji *EmojiData `json:"emoji,omitempty"`
+}
+
+// Discord's limits for polls.
+const (
+	pollQuestionMaxLength    = 300
+	pollAnswerMaxLength      = 55
+	pollMaxAnswers           = 10
+	pollDefaultDurationHours = 24
+	pollMaxDurationHours     = 768
+)
+
+// ToCreatePollData evaluates the templates of the poll and checks it against
+// Discord's limits, so a bad poll fails with a readable error instead of a
+// generic 400 from Discord.
+//
+// Answers that are empty after evaluation are skipped, so optional command
+// arguments can be used as answers.
+func (d *PollData) ToCreatePollData(ctx context.Context, evalCtx eval.Context) (provider.CreatePollData, error) {
+	res := provider.CreatePollData{
+		AllowMultiselect: d.AllowMultiselect,
+		LayoutType:       provider.PollLayoutTypeDefault,
+	}
+
+	question, err := eval.EvalTemplate(ctx, d.Question, evalCtx)
+	if err != nil {
+		return res, err
+	}
+	res.Question.Text = strings.TrimSpace(question.String())
+	if res.Question.Text == "" {
+		return res, fmt.Errorf("poll question must not be empty")
+	}
+	if n := utf8.RuneCountInString(res.Question.Text); n > pollQuestionMaxLength {
+		return res, fmt.Errorf("poll question is %d characters long, the maximum is %d", n, pollQuestionMaxLength)
+	}
+
+	for i, answer := range d.Answers {
+		text, err := eval.EvalTemplate(ctx, answer.Text, evalCtx)
+		if err != nil {
+			return res, err
+		}
+
+		media := provider.PollMedia{Text: strings.TrimSpace(text.String())}
+		if media.Text == "" {
+			continue
+		}
+		if n := utf8.RuneCountInString(media.Text); n > pollAnswerMaxLength {
+			return res, fmt.Errorf("poll answer %d is %d characters long, the maximum is %d", i+1, n, pollAnswerMaxLength)
+		}
+
+		if answer.Emoji != nil {
+			// Discord wants only the ID for custom emojis and only the name
+			// for standard ones.
+			if answer.Emoji.ID != "" {
+				id, err := discord.ParseSnowflake(answer.Emoji.ID)
+				if err != nil {
+					return res, fmt.Errorf("poll answer %d has an invalid emoji ID: %w", i+1, err)
+				}
+				media.Emoji = &provider.PollEmoji{ID: discord.EmojiID(id)}
+			} else if answer.Emoji.Name != "" {
+				media.Emoji = &provider.PollEmoji{Name: answer.Emoji.Name}
+			}
+		}
+
+		res.Answers = append(res.Answers, provider.PollAnswer{PollMedia: media})
+	}
+
+	if len(res.Answers) == 0 {
+		return res, fmt.Errorf("poll must have at least one answer")
+	}
+	if len(res.Answers) > pollMaxAnswers {
+		return res, fmt.Errorf("poll has %d answers, the maximum is %d", len(res.Answers), pollMaxAnswers)
+	}
+
+	res.Duration = pollDefaultDurationHours
+	if d.DurationHours != "" {
+		duration, err := eval.EvalTemplate(ctx, d.DurationHours, evalCtx)
+		if err != nil {
+			return res, err
+		}
+
+		hours, err := strconv.Atoi(strings.TrimSpace(duration.String()))
+		if err != nil {
+			return res, fmt.Errorf("poll duration %q is not a whole number of hours", duration.String())
+		}
+		if hours < 1 || hours > pollMaxDurationHours {
+			return res, fmt.Errorf("poll duration must be between 1 and %d hours, got %d", pollMaxDurationHours, hours)
+		}
+		res.Duration = hours
+	}
+
+	return res, nil
+}
+
 type ModalData struct {
 	Title      string               `json:"title,omitempty"`
 	Components []ModalComponentData `json:"components,omitempty"`
@@ -543,6 +659,14 @@ type HTTPRequestDataKeyValue struct {
 	Value string `json:"value"`
 }
 
+type DiscordAPIRequestData struct {
+	// Operation is the operationId of the endpoint in Discord's OpenAPI spec.
+	Operation  string                    `json:"operation,omitempty"`
+	PathParams []HTTPRequestDataKeyValue `json:"path_params,omitempty"`
+	Query      []HTTPRequestDataKeyValue `json:"query,omitempty"`
+	BodyJSON   json.RawMessage           `json:"body_json,omitempty"`
+}
+
 type AIChatCompletionData struct {
 	Model               string `json:"model,omitempty"`
 	SystemPrompt        string `json:"system_prompt,omitempty"`
@@ -550,70 +674,104 @@ type AIChatCompletionData struct {
 	MaxCompletionTokens string `json:"max_completion_tokens,omitempty"`
 }
 
-// aiModelCosts is the set of models a flow may run, and what each costs in
-// credits for a plain completion versus one with web search.
-//
-// Single source of truth for both the save-time allowlist and metering. Pricing
-// used to be a switch with a cheap default arm, which meant any model not named
-// in it -- a newer, more expensive SKU, say -- billed the tenant at the floor
-// while the operator paid the real rate on their own API key. Keeping the
-// allowlist and the prices in one table means a model that has no price also
-// cannot be selected.
-//
-// The empty string is the provider default (gpt-4o-mini), so it is priced.
-var aiModelCosts = map[string]aiModelCost{
-	"":                         {Chat: 5, Search: 25},
-	openai.ChatModelGPT4_1:     {Chat: 100, Search: 500},
-	openai.ChatModelGPT4_1Mini: {Chat: 20, Search: 100},
-	openai.ChatModelGPT4_1Nano: {Chat: 5, Search: 25},
-	openai.ChatModelGPT4oMini:  {Chat: 5, Search: 25},
-	openai.ChatModelGPT5Nano:   {Chat: 5, Search: 25},
+const (
+	AIModelSmall  = "small"
+	AIModelMedium = "medium"
+	AIModelLarge  = "large"
+)
+
+type aiModelTier struct {
+	Model           string
+	ReasoningEffort string
+	aiModelCost
 }
 
+// Credits for a plain completion versus one with web search.
 type aiModelCost struct {
 	Chat   int
 	Search int
 }
 
-// maxAIModelCost is the ceiling of aiModelCosts, taken per field so it does not
-// depend on one model being the most expensive for both.
+// aiMaxWebSearches bounds what one web search block costs, since every search
+// is billed per call. The tiers' Search credits assume it.
+const aiMaxWebSearches = 2
+
+// aiMaxOutputTokens caps reasoning and answer together. Reasoning isn't given
+// extra room on top: the model spends whatever is left on the answer, so any
+// allowance would let answers run past the block's max_completion_tokens.
+const aiMaxOutputTokens = 500
+
+// AI blocks store a tier rather than a model, so the model behind a tier can
+// be swapped for a newer or cheaper one without touching stored flows.
+//
+// aiModelTiers is the single source of truth for both the save-time allowlist
+// and metering. Pricing used to be a switch with a cheap default arm, which
+// meant any model not named in it billed the tenant at the floor while the
+// operator paid the real rate on their own API key. A model swapped in here has
+// to fit its tier's credits; change the credits deliberately if it doesn't.
+var aiModelTiers = map[string]aiModelTier{
+	AIModelSmall: {
+		Model:           "gpt-6-luna",
+		ReasoningEffort: "none",
+		aiModelCost:     aiModelCost{Chat: 5, Search: 25},
+	},
+	AIModelMedium: {
+		Model:           "gpt-6-luna",
+		ReasoningEffort: "low",
+		aiModelCost:     aiModelCost{Chat: 20, Search: 100},
+	},
+	AIModelLarge: {
+		Model:           "gpt-6-sol",
+		ReasoningEffort: "none",
+		aiModelCost:     aiModelCost{Chat: 100, Search: 500},
+	},
+}
+
+// aiModelAliases maps what flows stored before tiers existed. Those flows are
+// still in the database and in message components, and a block keeps its old
+// value until someone edits it, so these can't be dropped. The empty string is
+// an unset model. The editor saved gpt-5.4-nano for its "gpt-5-nano" option
+// from May to August 2026.
+var aiModelAliases = map[string]string{
+	"":             AIModelSmall,
+	"gpt-4o-mini":  AIModelSmall,
+	"gpt-4.1-nano": AIModelSmall,
+	"gpt-5-nano":   AIModelSmall,
+	"gpt-5.4-nano": AIModelSmall,
+	"gpt-4.1-mini": AIModelMedium,
+	"gpt-4.1":      AIModelLarge,
+}
+
+// resolveAIModel returns the tier a stored model value runs as.
+func resolveAIModel(model string) (aiModelTier, bool) {
+	if tier, ok := aiModelAliases[model]; ok {
+		model = tier
+	}
+	tier, ok := aiModelTiers[model]
+	return tier, ok
+}
+
+// maxAIModelCost is the ceiling of aiModelTiers, taken per field so it does not
+// depend on one tier being the most expensive for both.
 var maxAIModelCost = func() aiModelCost {
 	var ceiling aiModelCost
-	for _, c := range aiModelCosts {
-		ceiling.Chat = max(ceiling.Chat, c.Chat)
-		ceiling.Search = max(ceiling.Search, c.Search)
+	for _, t := range aiModelTiers {
+		ceiling.Chat = max(ceiling.Chat, t.Chat)
+		ceiling.Search = max(ceiling.Search, t.Search)
 	}
 	return ceiling
 }()
 
-// aiModelsAllowed is aiModelCosts' keys as validation.In wants them. The empty
-// string is left out because In treats an empty value as valid regardless.
-var aiModelsAllowed = func() []any {
-	models := make([]any, 0, len(aiModelCosts))
-	for model := range aiModelCosts {
-		if model != "" {
-			models = append(models, model)
-		}
-	}
-	return models
-}()
-
-// AIModelAllowed reports whether a flow may run the given model.
-func AIModelAllowed(model string) bool {
-	_, ok := aiModelCosts[model]
-	return ok
-}
-
 // AICreditsCost prices one AI node.
 //
-// Unknown models are charged the most expensive entry rather than the least, so
+// Unknown models are charged the most expensive tier rather than the least, so
 // anything that reaches execution without passing the allowlist -- a flow saved
-// before this existed, or one embedded in a message, which the API does not
+// before it existed, or one embedded in a message, which the API does not
 // validate -- is over-charged rather than run for free.
 func AICreditsCost(model string, webSearch bool) int {
-	cost, ok := aiModelCosts[model]
-	if !ok {
-		cost = maxAIModelCost
+	cost := maxAIModelCost
+	if tier, ok := resolveAIModel(model); ok {
+		cost = tier.aiModelCost
 	}
 
 	if webSearch {
@@ -624,7 +782,12 @@ func AICreditsCost(model string, webSearch bool) int {
 
 func (d AIChatCompletionData) Validate() error {
 	return validation.ValidateStruct(&d,
-		validation.Field(&d.Model, validation.In(aiModelsAllowed...)),
+		validation.Field(&d.Model, validation.By(func(value any) error {
+			if _, ok := resolveAIModel(value.(string)); !ok {
+				return errors.New("unsupported model")
+			}
+			return nil
+		})),
 		validation.Field(&d.Prompt, validation.Required, validation.Length(1, 2000)),
 	)
 }

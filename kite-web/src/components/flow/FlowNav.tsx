@@ -7,9 +7,11 @@ import {
   CheckIcon,
   MoonStarIcon,
   RefreshCwIcon,
+  SparklesIcon,
   SunIcon,
 } from "lucide-react";
 import { useCallback, useEffect } from "react";
+import { cn } from "@/lib/utils";
 
 interface Props {
   hasUnsavedChanges: boolean;
@@ -19,6 +21,8 @@ interface Props {
   onSave: (d: FlowData) => void;
   onDeploy?: () => void;
   onExit: () => void;
+  chatOpen: boolean;
+  onChatOpenChange: (open: boolean) => void;
 }
 
 export default function FlowNav({
@@ -28,6 +32,8 @@ export default function FlowNav({
   onSave,
   onDeploy,
   onExit,
+  chatOpen,
+  onChatOpenChange,
 }: Props) {
   const { theme, setTheme } = useHookedTheme();
 
@@ -100,7 +106,19 @@ export default function FlowNav({
           </div>
         ) : null}
       </div>
-      <div>
+      <div className="flex items-center space-x-6">
+        <button
+          className={cn(
+            "flex space-x-2 items-center",
+            chatOpen
+              ? "text-foreground"
+              : "text-foreground/80 hover:text-foreground"
+          )}
+          onClick={() => onChatOpenChange(!chatOpen)}
+        >
+          <SparklesIcon className="h-5 w-5" />
+          <div>Ask AI</div>
+        </button>
         {theme === "dark" ? (
           <MoonStarIcon
             className="w-6 h-6 cursor-pointer"

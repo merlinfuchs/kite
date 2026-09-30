@@ -1,6 +1,12 @@
 import { Edge, Node, NodeProps as XYNodeProps } from "@xyflow/react";
 import z from "zod";
 import { FlowNodeData } from "../types/flow.gen";
+import { aiModelTierValues, resolveAiModel } from "./aiModels";
+import {
+  DiscordApiParam,
+  getDiscordApiOperation,
+  similarDiscordApiOperations,
+} from "./discordApi";
 
 const numericRegex = /^[0-9]+$/;
 const decimalRegex = /^[0-9]+(\.[0-9]+)?$/;
@@ -34,6 +40,58 @@ export function templated<T extends z.ZodTypeAny>(
 
 export function isTemplated(def: z.ZodTypeDef) {
   return templatedDefs.has(def);
+}
+
+// Fields that refer to something only the user can create in the app, like a
+// stored variable, so the AI leaves them for the user to pick.
+const userPickedDefs = new WeakSet<z.ZodTypeDef>();
+
+export function userPicked<T extends z.ZodTypeAny>(
+  schema: T,
+  description: string
+): T {
+  const described = schema.describe(description);
+  userPickedDefs.add(described._def);
+  return described;
+}
+
+export function isUserPicked(def: z.ZodTypeDef) {
+  return userPickedDefs.has(def);
+}
+
+// Whether the setting at path of a block's settings is picked by the user.
+// They are all top-level settings.
+export function isUserPickedSetting(
+  schema: z.ZodTypeAny,
+  path: (string | number)[]
+) {
+  const object = unwrap(schema);
+  if (path.length !== 1 || !(object instanceof z.ZodObject)) return false;
+  for (
+    let s: z.ZodTypeAny | undefined = object.shape[path[0]];
+    s;
+    s = inner(s)
+  ) {
+    if (isUserPicked(s._def)) return true;
+  }
+  return false;
+}
+
+function unwrap(schema: z.ZodTypeAny) {
+  let s = schema;
+  for (let next = inner(s); next; next = inner(s)) s = next;
+  return s;
+}
+
+function inner(schema: z.ZodTypeAny): z.ZodTypeAny | undefined {
+  if (
+    schema instanceof z.ZodOptional ||
+    schema instanceof z.ZodNullable ||
+    schema instanceof z.ZodDefault
+  ) {
+    return schema._def.innerType;
+  }
+  if (schema instanceof z.ZodEffects) return schema._def.schema;
 }
 
 // A number or Discord ID, or a single placeholder that resolves to one.
@@ -268,8 +326,15 @@ export const nodeMessageDataSchema = z
       .describe(
         "Which mentions ping. If unset, only mentioned users are pinged."
       ),
+    // Validated by the message editor like embeds.
+    components: z
+      .array(z.record(z.unknown()))
+      .optional()
+      .describe(
+        "Buttons and select menus, as Discord action rows. Each one that isn't a link button adds the output component_<id> to the block."
+      ),
   })
-  // Components, flags and attachments are set through the message editor.
+  // Flags and attachments are set through the message editor.
   .passthrough()
   .describe("The message to send.");
 
@@ -279,12 +344,10 @@ function withMessage<T extends z.ZodRawShape>(shape: T) {
     .extend({
       ...shape,
       message_data: nodeMessageDataSchema.optional(),
-      message_template_id: z
-        .string()
-        .optional()
-        .describe(
-          "ID of a saved message template to send instead of message_data."
-        ),
+      message_template_id: userPicked(
+        z.string(),
+        "ID of a saved message template to send instead of message_data."
+      ).optional(),
       temporary_name: temporaryNameSchema,
     })
     .refine(
@@ -445,6 +508,43 @@ export const nodeActionMessageReactionDeleteDataSchema =
       "The emoji to remove the reaction of."
     ),
   });
+
+export const nodeActionPollCreateDataSchema = nodeBaseDataSchema.extend({
+  channel_target: numericOrPlaceholder(
+    "ID of the channel to send the poll to."
+  ),
+  poll_data: z
+    .object({
+      question: templated(
+        z.string().max(300).min(1),
+        "Question shown at the top of the poll."
+      ),
+      answers: z
+        .array(
+          z.object({
+            text: templated(
+              z.string().max(55),
+              "Text of the answer. Answers that are empty after placeholders are filled in are skipped."
+            ),
+            emoji: emojiDataSchema
+              .optional()
+              .describe("Emoji shown next to the answer."),
+          })
+        )
+        .min(1)
+        .max(10)
+        .describe("Answers people can vote for."),
+      duration_hours: numericOrPlaceholder(
+        "How many hours the poll is open for, between 1 and 768. Defaults to 24."
+      ).optional(),
+      allow_multiselect: z
+        .boolean()
+        .optional()
+        .describe("Whether people can vote for more than one answer."),
+    })
+    .describe("The poll to send."),
+  temporary_name: temporaryNameSchema,
+});
 
 export const nodeActionMemberBanDataSchema = nodeBaseDataSchema.extend({
   guild_target: guildTargetSchema.optional(),
@@ -632,9 +732,10 @@ export const nodeActionRobloxUserGetDataSchema = nodeBaseDataSchema.extend({
   temporary_name: temporaryNameSchema,
 });
 
-const variableIdSchema = z
-  .string()
-  .describe("ID of an existing stored variable.");
+const variableIdSchema = userPicked(
+  z.string(),
+  "ID of an existing stored variable."
+);
 
 const variableScopeSchema = templated(
   z.string(),
@@ -734,17 +835,125 @@ export const nodeActionHttpRequestDataSchema = nodeBaseDataSchema.extend({
   temporary_name: temporaryNameSchema,
 });
 
+const discordApiParamSchema = z.object({
+  key: z.string().describe("Name of the parameter."),
+  value: templated(z.string(), "Value of the parameter."),
+});
+
+const discordApiRequestDataSchema = z.object({
+  operation: z
+    .string()
+    .describe(
+      "operationId of the endpoint in Discord's OpenAPI spec, e.g. create_message or list_messages. The spec's names can differ from Discord's docs, e.g. Modify Guild is update_guild."
+    ),
+  path_params: z
+    .array(discordApiParamSchema)
+    .optional()
+    .describe(
+      "Values for the parameters in the endpoint's path, e.g. channel_id. IDs can also be a placeholder that resolves to a user, channel or other Discord object."
+    ),
+  query: z
+    .array(discordApiParamSchema)
+    .optional()
+    .describe("Query parameters. Only the ones the endpoint has are allowed."),
+  body_json: z
+    .record(z.unknown())
+    .or(z.array(z.unknown()))
+    .optional()
+    .describe(
+      "JSON body of the request, an object or for some endpoints a list. Placeholders in its string values are evaluated. A string that is a single placeholder keeps the type of its result, e.g. a number or list."
+    ),
+});
+
+// Formats of typed Discord API parameters, which can also be a placeholder.
+const discordApiParamFormats: Record<string, [RegExp, string]> = {
+  snowflake: [numericRegex, "Must be a number or ID"],
+  integer: [/^-?[0-9]+$/, "Must be a whole number"],
+  number: [/^-?[0-9]+(\.[0-9]+)?$/, "Must be a number"],
+  boolean: [/^(true|false)$/, "Must be true or false"],
+};
+
+export const nodeActionDiscordApiRequestDataSchema = nodeBaseDataSchema.extend({
+  discord_api_request_data: discordApiRequestDataSchema
+    .superRefine(refineDiscordApiRequest)
+    .describe("The Discord API request to send. The bot's token is added."),
+  audit_log_reason: auditLogReasonSchema,
+  temporary_name: temporaryNameSchema,
+});
+
+function refineDiscordApiRequest(
+  data: z.infer<typeof discordApiRequestDataSchema>,
+  ctx: z.RefinementCtx
+) {
+  const op = getDiscordApiOperation(data.operation);
+  if (!op) {
+    const similar = similarDiscordApiOperations(data.operation);
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["operation"],
+      message: `Unknown endpoint. Similar ones: ${similar.join(", ")}`,
+    });
+    return;
+  }
+
+  const checkParams = (
+    field: "path_params" | "query",
+    declared: DiscordApiParam[]
+  ) => {
+    const values = new Map(data[field]?.map((p) => [p.key, p.value]));
+    for (const p of declared) {
+      const value = values.get(p.name);
+      if (value === undefined ? p.required : !value) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: [field, p.name],
+          message: `${p.name} is required`,
+        });
+        continue;
+      }
+
+      const [format, message] = discordApiParamFormats[p.type] ?? [];
+      if (
+        value &&
+        format &&
+        !format.test(value) &&
+        !placeholderRegex.test(value)
+      ) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: [field, p.name],
+          message: `${message}, or a single {{ }} placeholder`,
+        });
+      }
+    }
+    // The service ignores leftover path parameters, but not query parameters.
+    if (field === "path_params") return;
+    for (const key of Array.from(values.keys())) {
+      if (!declared.some((p) => p.name === key)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: [field, key],
+          message: `The endpoint has no parameter ${key}`,
+        });
+      }
+    }
+  };
+  checkParams("path_params", op.path_params);
+  checkParams("query", op.query_params);
+
+  if (data.body_json && !op.has_body) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["body_json"],
+      message: "The endpoint doesn't take a body",
+    });
+  }
+}
+
 const aiModelSchema = z
-  .enum([
-    "gpt-4.1",
-    "gpt-4.1-mini",
-    "gpt-4.1-nano",
-    "gpt-5-nano",
-    "gpt-4o-mini",
-  ])
-  .optional()
+  .preprocess(resolveAiModel, z.enum(aiModelTierValues).optional())
   .describe(
-    "Model to use. Larger models cost more credits. Defaults to gpt-4o-mini."
+    "Model tier to use. Larger tiers are more capable and cost more credits. Defaults to small."
   );
 
 const aiMaxCompletionTokensSchema = numericOrPlaceholder(

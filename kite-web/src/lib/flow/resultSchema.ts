@@ -47,6 +47,12 @@ export const roleResultSchema = z.object({
   mentionable: z.boolean().describe("Whether the role is mentionable"),
 });
 
+export const nodeActionDiscordApiRequestResultSchema = z
+  .unknown()
+  .describe(
+    "The JSON the endpoint returns, as in Discord's API docs, e.g. result('id').code for a created invite or result('id')[0].content for a list of messages. Empty for endpoints that return nothing."
+  );
+
 export const nodeActionResponseCreateResultSchema = messageResultSchema;
 
 export const nodeActionResponseEditResultSchema = messageResultSchema;
@@ -58,6 +64,8 @@ export const nodeActionMessageEditResultSchema = messageResultSchema;
 export const nodeActionPrivateMessageCreateResultSchema = messageResultSchema;
 
 export const nodeActionMessageGetResultSchema = messageResultSchema;
+
+export const nodeActionPollCreateResultSchema = messageResultSchema;
 
 export const nodeActionUserGetResultSchema = userResultSchema;
 

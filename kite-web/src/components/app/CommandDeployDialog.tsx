@@ -61,7 +61,7 @@ export function CommandDeployDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       {children && <DialogTrigger asChild>{children}</DialogTrigger>}
-      <DialogContent className="sm:max-w-xl w-full overflow-x-auto">
+      <DialogContent className="sm:max-w-xl overflow-x-auto">
         <DialogHeader>
           <DialogTitle>Deploy Commands</DialogTitle>
           <DialogDescription>
@@ -75,7 +75,7 @@ export function CommandDeployDialog({
           </DialogDescription>
         </DialogHeader>
         {error && (
-          <div>
+          <div className="min-w-0">
             <div className="text-destructive font-medium mb-2">
               Deployment Error
             </div>

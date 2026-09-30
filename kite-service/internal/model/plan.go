@@ -28,6 +28,8 @@ type Plan struct {
 
 	FeatureMaxScheduledEventListeners int
 	FeatureMinScheduleIntervalSeconds int
+
+	FeatureMaxAIPromptsPerMonth int
 }
 
 func (p Plan) Features() Features {
@@ -44,6 +46,8 @@ func (p Plan) Features() Features {
 
 		MaxScheduledEventListeners: p.FeatureMaxScheduledEventListeners,
 		MinScheduleIntervalSeconds: p.FeatureMinScheduleIntervalSeconds,
+
+		MaxAIPromptsPerMonth: p.FeatureMaxAIPromptsPerMonth,
 	}
 }
 
@@ -60,6 +64,9 @@ type Features struct {
 
 	MaxScheduledEventListeners int
 	MinScheduleIntervalSeconds int
+
+	// Prompts to the flow AI per month. Unlike other limits, 0 means none.
+	MaxAIPromptsPerMonth int
 }
 
 // DefaultMinScheduleInterval applies to plans that don't set a minimum, so a
@@ -88,6 +95,8 @@ func (f Features) Merge(other Features) Features {
 		MaxScheduledEventListeners: max(f.MaxScheduledEventListeners, other.MaxScheduledEventListeners),
 		// A shorter interval is the better one, unlike every other field.
 		MinScheduleIntervalSeconds: minSet(f.MinScheduleIntervalSeconds, other.MinScheduleIntervalSeconds),
+
+		MaxAIPromptsPerMonth: max(f.MaxAIPromptsPerMonth, other.MaxAIPromptsPerMonth),
 	}
 }
 

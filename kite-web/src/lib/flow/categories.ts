@@ -55,6 +55,7 @@ export const nodeCategories: Record<
         "action_message_reaction_delete",
         "action_message_pin",
         "action_message_unpin",
+        "action_poll_create",
       ],
       contextTypes: null,
     },
@@ -128,12 +129,19 @@ export const nodeCategories: Record<
       contextTypes: null,
     },
     {
-      title: "Other Actions",
+      title: "AI",
+      nodeTypes: ["action_ai_chat_completion", "action_ai_web_search"],
+      contextTypes: null,
+    },
+    {
+      title: "API Requests",
+      nodeTypes: ["action_http_request", "action_discord_api_request"],
+      contextTypes: null,
+    },
+    {
+      title: "Utilities",
       nodeTypes: [
         "action_expression_evaluate",
-        "action_ai_chat_completion",
-        "action_ai_web_search",
-        "action_http_request",
         "action_random_generate",
         "action_log",
       ],

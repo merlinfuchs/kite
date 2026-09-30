@@ -13,14 +13,23 @@ import {
 import { activityTypeOptions, statusOptions } from "@/lib/discord/presence";
 import { useAppFeature, useMessages, useVariables } from "@/lib/hooks/api";
 import { getFlowCreditsCost } from "@/lib/flow/schedule";
+import { aiModelTiers, getAiModelTier } from "@/lib/flow/aiModels";
+import {
+  discordApiOperationLabel,
+  discordApiOperations,
+  getDiscordApiOperation,
+} from "@/lib/flow/discordApi";
 import { EventTypeScheduleCron } from "@/lib/types/flow.gen";
 import { useAppId } from "@/lib/hooks/params";
 import {
   CommandArgumentChoiceData,
+  DiscordAPIRequestData,
   EmojiData,
   HTTPRequestData,
   ModalComponentData,
   PermissionOverwriteData,
+  PollAnswerData,
+  PollData,
   StatusData,
 } from "@/lib/types/flow.gen";
 import { Node, useNodes, useReactFlow, useStoreApi } from "@xyflow/react";
@@ -42,6 +51,7 @@ import { NodeData, NodeProps } from "../../lib/flow/dataSchema";
 import MessageCreateDialog from "../app/MessageCreateDialog";
 import VariableCreateDialog from "../app/VariableCreateDialog";
 import EmojiPicker from "../common/EmojiPicker";
+import EntitySelect from "../common/EntitySelect";
 import JsonEditor from "../common/JsonEditor";
 import PlaceholderInput from "../common/PlaceholderInput";
 import ScheduleCronPreview, {
@@ -78,6 +88,7 @@ import {
 import { Switch } from "../ui/switch";
 import { Textarea } from "../ui/textarea";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
+import FlowJsonInput from "./FlowJsonInput";
 import FlowPlaceholderExplorer from "./FlowPlaceholderExplorer";
 import env from "@/lib/env/client";
 import { ScrollArea } from "../ui/scroll-area";
@@ -117,6 +128,7 @@ const intputs: Record<string, any> = {
   message_template_id: MessageTemplateInput,
   message_target: MessageTargetInput,
   emoji_data: EmojiDataInput,
+  poll_data: PollDataInput,
   response_target: ResponseTargetInput,
   message_ephemeral: MessageEphemeralInput,
   modal_data: ModalDataInput,
@@ -133,6 +145,7 @@ const intputs: Record<string, any> = {
   variable_operation: VariableOperationInput,
   variable_value: VariableValueInput,
   http_request_data: HttpRequestDataInput,
+  discord_api_request_data: DiscordApiRequestDataInput,
   ai_chat_completion_data: AiChatCompletionDataInput,
   ai_web_search_data: AiWebSearchDataInput,
   expression: ExpressionInput,
@@ -983,6 +996,13 @@ function HttpRequestDataInput({ data, updateData, errors }: InputProps) {
             errors={errors}
             placeholders
           />
+          {isDiscordApiUrl(data.http_request_data?.url || "") && (
+            <div className="text-sm text-muted-foreground bg-muted rounded p-3">
+              Use the Discord API Request block to call the Discord API. It
+              sends your bot&apos;s token for you, so you don&apos;t have to
+              paste it into a header.
+            </div>
+          )}
           <div>
             <div className="font-medium text-foreground mb-1">Headers</div>
             <div className="text-muted-foreground text-sm mb-2">
@@ -1046,37 +1066,261 @@ function HttpRequestDataInput({ data, updateData, errors }: InputProps) {
   );
 }
 
+const discordApiOperationItems = discordApiOperations.map((o) => ({
+  id: o.id,
+  name: discordApiOperationLabel(o.id),
+  description: `${o.method} ${o.path}`,
+}));
+
+// Webhooks with a token in the URL don't need the bot's token, and the Discord
+// API Request block can't call them.
+function isDiscordApiUrl(url: string) {
+  return (
+    /^\s*(https?:\/\/)?((ptb|canary)\.)?discord(app)?\.com(\/|$)/i.test(url) &&
+    !/\/webhooks\//i.test(url)
+  );
+}
+
+function DiscordApiRequestDataInput({ data, updateData, errors }: InputProps) {
+  const request = data.discord_api_request_data;
+  const op = getDiscordApiOperation(request?.operation);
+
+  function updateRequest(newData: Partial<DiscordAPIRequestData>) {
+    updateData({ discord_api_request_data: { ...request, ...newData } });
+  }
+
+  function selectOperation(id: string) {
+    const newOp = getDiscordApiOperation(id);
+    if (!newOp) return;
+
+    // Keeps the values of parameters both endpoints have, like channel_id.
+    const pathValues = new Map(
+      request?.path_params?.map((p) => [p.key, p.value])
+    );
+    updateRequest({
+      operation: id,
+      path_params: newOp.path_params.map((p) => ({
+        key: p.name,
+        value: pathValues.get(p.name) ?? "",
+      })),
+      query: request?.query?.filter((q) =>
+        newOp.query_params.some((p) => p.name === q.key)
+      ),
+      body_json: newOp.has_body ? request?.body_json : undefined,
+    });
+  }
+
+  function setParam(
+    field: "path_params" | "query",
+    key: string,
+    value: string
+  ) {
+    const params = request?.[field] ?? [];
+    updateRequest({
+      [field]: params.some((p) => p.key === key)
+        ? params.map((p) => (p.key === key ? { key, value } : p))
+        : [...params, { key, value }],
+    });
+  }
+
+  const unusedQueryParams =
+    op?.query_params.filter(
+      (p) => !request?.query?.some((q) => q.key === p.name)
+    ) ?? [];
+
+  const operationError = errors["discord_api_request_data.operation"];
+  const bodyError = errors["discord_api_request_data.body_json"];
+
+  return (
+    <Dialog>
+      <DialogTrigger asChild>
+        <Button className="w-full" variant="secondary">
+          Configure Request
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="overflow-y-auto max-h-[90dvh] max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>Configure Discord API Request</DialogTitle>
+          <DialogDescription>
+            Call an endpoint of the Discord API as your bot. Kite adds the
+            bot&apos;s token, so never paste it into a flow. See{" "}
+            <Link
+              href="https://discord.com/developers/docs/reference"
+              target="_blank"
+              className="text-primary hover:underline"
+            >
+              Discord&apos;s API docs
+            </Link>{" "}
+            for what each endpoint takes and returns, and{" "}
+            <Link
+              href={nodeTypeDocsPage("action_discord_api_request")!}
+              target="_blank"
+              className="text-primary hover:underline"
+            >
+              how to use this block
+            </Link>
+            .
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-3">
+          <div>
+            <div className="font-medium text-foreground mb-2">Endpoint</div>
+            <EntitySelect
+              items={discordApiOperationItems}
+              value={request?.operation ?? null}
+              onChange={(id) => id && selectOperation(id)}
+              placeholder="Select an endpoint"
+              searchPlaceholder="Search endpoints..."
+              emptyText="No endpoint found."
+              wide
+              modal
+            />
+            {op && (
+              <div className="text-muted-foreground text-sm font-mono mt-2 break-all">
+                {op.method} {op.path}
+              </div>
+            )}
+            {operationError && (
+              <div className="text-red-600 dark:text-red-400 text-sm flex items-center space-x-1 pt-2">
+                <CircleAlertIcon className="h-5 w-5 flex-none" />
+                <div>{operationError}</div>
+              </div>
+            )}
+          </div>
+          {op?.path_params.map((p) => (
+            <BaseInput
+              key={p.name}
+              type="text"
+              field={`discord_api_request_data.path_params.${p.name}`}
+              title={p.name}
+              description={p.type === "snowflake" ? "An ID" : undefined}
+              value={
+                request?.path_params?.find((v) => v.key === p.name)?.value || ""
+              }
+              updateValue={(v) => setParam("path_params", p.name, v)}
+              errors={errors}
+              placeholders
+            />
+          ))}
+          {request?.query?.map((q) => (
+            <div className="flex gap-2 items-end" key={q.key}>
+              <BaseInput
+                type="text"
+                field={`discord_api_request_data.query.${q.key}`}
+                title={q.key}
+                description="Query parameter"
+                value={q.value}
+                updateValue={(v) => setParam("query", q.key, v)}
+                errors={errors}
+                placeholders
+              />
+              <Button
+                variant="outline"
+                size="icon"
+                className="flex-none"
+                onClick={() =>
+                  updateRequest({
+                    query: request.query?.filter((v) => v.key !== q.key),
+                  })
+                }
+              >
+                <MinusIcon className="h-5 w-5" />
+              </Button>
+            </div>
+          ))}
+          {unusedQueryParams.length > 0 && (
+            <Select
+              value=""
+              onValueChange={(key) =>
+                updateRequest({
+                  query: [...(request?.query ?? []), { key, value: "" }],
+                })
+              }
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Add query parameter" />
+              </SelectTrigger>
+              <SelectContent>
+                {unusedQueryParams.map((p) => (
+                  <SelectItem key={p.name} value={p.name}>
+                    {p.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+          {op?.has_body && (
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <div className="font-medium text-foreground">JSON Body</div>
+                <Switch
+                  checked={!!request?.body_json}
+                  onCheckedChange={(checked) =>
+                    updateRequest({ body_json: checked ? {} : undefined })
+                  }
+                />
+              </div>
+              {!!request?.body_json && (
+                <FlowJsonInput
+                  value={request.body_json}
+                  // Some endpoints take a list, which the generated type
+                  // doesn't allow for.
+                  onChange={(v) =>
+                    updateRequest({
+                      body_json: v as DiscordAPIRequestData["body_json"],
+                    })
+                  }
+                />
+              )}
+              {bodyError && (
+                <div className="text-red-600 dark:text-red-400 text-sm flex items-center space-x-1 pt-2">
+                  <CircleAlertIcon className="h-5 w-5 flex-none" />
+                  <div>{bodyError}</div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function AiModelInput({
+  data,
+  updateData,
+  errors,
+}: Pick<InputProps, "data" | "updateData" | "errors">) {
+  return (
+    <BaseInput
+      type="select"
+      field="ai_chat_completion_data.model"
+      title="Model"
+      description="How capable the AI is. More capable models cost more credits."
+      options={aiModelTiers.map((t) => ({
+        value: t.value,
+        label: `${t.label} (${t.model})`,
+      }))}
+      value={getAiModelTier(data.ai_chat_completion_data?.model)?.value ?? ""}
+      updateValue={(v) =>
+        updateData({
+          ai_chat_completion_data: {
+            ...data.ai_chat_completion_data,
+            model: v || undefined,
+          },
+        })
+      }
+      errors={errors}
+    />
+  );
+}
+
 function AiChatCompletionDataInput({ data, updateData, errors }: InputProps) {
   // TODO: top level errors aren't displayed ...
 
   return (
     <>
-      <BaseInput
-        type="select"
-        field="ai_chat_completion_data.model"
-        title="Model"
-        description="The AI model to use. More powerful models cost more credits."
-        options={[
-          { value: "gpt-4.1", label: "Smartest (gpt-4.1)" },
-          { value: "gpt-4.1-mini", label: "Balanced (gpt-4.1-mini)" },
-          {
-            value: "gpt-4.1-nano",
-            label: "Cheap & Fast (gpt-4.1-nano) (deprecated)",
-          },
-          { value: "gpt-5-nano", label: "Cheap & Fast (gpt-5-nano)" },
-          { value: "gpt-4o-mini", label: "Cheap & Fast (gpt-4o-mini)" },
-        ]}
-        value={data.ai_chat_completion_data?.model || "gpt-4o-mini"}
-        updateValue={(v) =>
-          updateData({
-            ai_chat_completion_data: {
-              ...data.ai_chat_completion_data,
-              model: v || undefined,
-            },
-          })
-        }
-        errors={errors}
-      />
+      <AiModelInput data={data} updateData={updateData} errors={errors} />
       <BaseInput
         type="textarea"
         field="ai_chat_completion_data.system_prompt"
@@ -1120,32 +1364,7 @@ function AiWebSearchDataInput({ data, updateData, errors }: InputProps) {
 
   return (
     <>
-      <BaseInput
-        type="select"
-        field="ai_chat_completion_data.model"
-        title="Model"
-        description="The AI model to use. More powerful models cost more credits."
-        options={[
-          { value: "gpt-4.1", label: "Smartest (gpt-4.1)" },
-          { value: "gpt-4.1-mini", label: "Balanced (gpt-4.1-mini)" },
-          {
-            value: "gpt-4.1-nano",
-            label: "Cheap & Fast (gpt-4.1-nano) (deprecated)",
-          },
-          { value: "gpt-5-nano", label: "Cheap & Fast (gpt-5-nano)" },
-          { value: "gpt-4o-mini", label: "Cheap & Fast (gpt-4o-mini)" },
-        ]}
-        value={data.ai_chat_completion_data?.model || "gpt-4o-mini"}
-        updateValue={(v) =>
-          updateData({
-            ai_chat_completion_data: {
-              ...data.ai_chat_completion_data,
-              model: v || undefined,
-            },
-          })
-        }
-        errors={errors}
-      />
+      <AiModelInput data={data} updateData={updateData} errors={errors} />
       <BaseInput
         type="textarea"
         field="ai_chat_completion_data.prompt"
@@ -1501,6 +1720,170 @@ function EmojiDataInput({ data, updateData, errors }: InputProps) {
         })
       }
     />
+  );
+}
+
+const pollMaxAnswers = 10;
+
+function PollDataInput({ data, updateData, errors }: InputProps) {
+  const updateField = useCallback(
+    (newData: Partial<PollData>) => {
+      updateData({ poll_data: { ...data.poll_data, ...newData } });
+    },
+    [updateData, data]
+  );
+
+  const answers = useMemo(
+    () => data.poll_data?.answers || [],
+    [data.poll_data?.answers]
+  );
+
+  const addAnswer = useCallback(() => {
+    if (answers.length >= pollMaxAnswers) return;
+    updateField({ answers: [...answers, { text: "" }] });
+  }, [updateField, answers]);
+
+  const updateAnswer = useCallback(
+    (index: number, newData: Partial<PollAnswerData>) => {
+      updateField({
+        answers: answers.map((a, i) =>
+          i === index ? { ...a, ...newData } : a
+        ),
+      });
+    },
+    [updateField, answers]
+  );
+
+  const removeAnswer = useCallback(
+    (index: number) => {
+      updateField({ answers: answers.filter((_, i) => i !== index) });
+    },
+    [updateField, answers]
+  );
+
+  const answersError = errors["poll_data.answers"];
+
+  return (
+    <>
+      <BaseInput
+        type="textarea"
+        field="poll_data.question"
+        title="Question"
+        description="The question shown at the top of the poll. Up to 300 characters."
+        value={data.poll_data?.question || ""}
+        updateValue={(v) => updateField({ question: v || undefined })}
+        errors={errors}
+        placeholders
+      />
+      <div>
+        <div className="font-medium text-foreground mb-1">Answers</div>
+        <div className="text-muted-foreground text-sm mb-2">
+          Up to {pollMaxAnswers} answers of 55 characters each. Answers that are
+          empty after placeholders are filled in are skipped.
+        </div>
+        <div className="flex flex-col gap-3">
+          {answers.map((answer, i) => {
+            const error = errors[`poll_data.answers.${i}.text`];
+
+            return (
+              <div key={i}>
+                <div className="flex gap-2">
+                  <EmojiPicker
+                    onEmojiSelect={(emoji) =>
+                      updateAnswer(i, {
+                        emoji: emoji.native
+                          ? { name: emoji.name }
+                          : { id: emoji.id, name: emoji.name },
+                      })
+                    }
+                  >
+                    <Button size="icon" variant="outline" className="flex-none">
+                      {answer.emoji?.id ? (
+                        <img
+                          src={discordEmojiUrl(answer.emoji.id)}
+                          alt=""
+                          className="h-6 w-6"
+                        />
+                      ) : answer.emoji ? (
+                        <Twemoji options={{ className: "h-6 w-6" }}>
+                          {answer.emoji.name}
+                        </Twemoji>
+                      ) : (
+                        <SmileIcon className="h-6 w-6 text-foreground/80" />
+                      )}
+                    </Button>
+                  </EmojiPicker>
+                  {answer.emoji && (
+                    <div
+                      className="flex items-center cursor-pointer text-muted-foreground hover:text-foreground"
+                      onClick={() => updateAnswer(i, { emoji: undefined })}
+                    >
+                      <XIcon className="h-5 w-5" />
+                    </div>
+                  )}
+                  <div className="flex-auto">
+                    <PlaceholderInput
+                      value={answer.text || ""}
+                      onChange={(v) => updateAnswer(i, { text: v })}
+                      placeholder={`Answer ${i + 1}`}
+                    />
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="flex-none"
+                    onClick={() => removeAnswer(i)}
+                  >
+                    <MinusIcon className="h-5 w-5" />
+                  </Button>
+                </div>
+                {error && (
+                  <div className="text-red-600 dark:text-red-400 text-sm flex items-center space-x-1 pt-2">
+                    <CircleAlertIcon className="h-5 w-5 flex-none" />
+                    <div>{error}</div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+
+          <div className="flex">
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={addAnswer}
+              disabled={answers.length >= pollMaxAnswers}
+            >
+              <PlusIcon className="h-5 w-5" />
+            </Button>
+          </div>
+        </div>
+        {answersError && (
+          <div className="text-red-600 dark:text-red-400 text-sm flex items-center space-x-1 pt-2">
+            <CircleAlertIcon className="h-5 w-5 flex-none" />
+            <div>{answersError}</div>
+          </div>
+        )}
+      </div>
+      <BaseInput
+        type="text"
+        field="poll_data.duration_hours"
+        title="Duration"
+        description="Number of hours the poll is open for, between 1 and 768 (32 days). Leave empty for 24 hours."
+        value={data.poll_data?.duration_hours || ""}
+        updateValue={(v) => updateField({ duration_hours: v || undefined })}
+        errors={errors}
+        placeholders
+      />
+      <BaseCheckbox
+        field="poll_data.allow_multiselect"
+        title="Allow Multiple Answers"
+        description="If enabled, people can vote for more than one answer."
+        value={!!data.poll_data?.allow_multiselect}
+        updateValue={(v) => updateField({ allow_multiselect: v || undefined })}
+        errors={errors}
+      />
+    </>
   );
 }
 

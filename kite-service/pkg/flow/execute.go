@@ -634,6 +634,35 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 		}
 
 		return n.ExecuteChildren(ctx)
+	case FlowNodeTypeActionPollCreate:
+		if n.Data.PollData == nil {
+			return &FlowError{
+				Code:    FlowNodeErrorUnknown,
+				Message: "poll_data is nil",
+			}
+		}
+
+		channelTarget, err := ctx.EvalTemplate(n.Data.ChannelTarget)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		pollData, err := n.Data.PollData.ToCreatePollData(ctx, ctx.EvalCtx)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		msg, err := ctx.Discord.CreatePoll(
+			ctx,
+			discord.ChannelID(channelTarget.Snowflake()),
+			pollData,
+		)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		ctx.StoreNodeResult(n, thing.NewDiscordMessage(*msg))
+		return n.ExecuteChildren(ctx)
 	case FlowNodeTypeActionMemberBan:
 		guildID, err := n.targetGuildID(ctx)
 		if err != nil {
@@ -1442,6 +1471,68 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 
 		ctx.StoreNodeResult(n, result)
 		return n.ExecuteChildren(ctx)
+	case FlowNodeTypeActionDiscordAPIRequest:
+		data := n.Data.DiscordAPIRequestData
+		if data == nil {
+			return &FlowError{
+				Code:    FlowNodeErrorUnknown,
+				Message: "discord_api_request_data is nil",
+			}
+		}
+
+		op, ok := discordAPIOperations[data.Operation]
+		if !ok {
+			return traceError(n, fmt.Errorf("unknown Discord API endpoint: %s", data.Operation))
+		}
+
+		pathParams, err := ctx.evalKeyValues(data.PathParams)
+		if err != nil {
+			return traceError(n, err)
+		}
+		query, err := ctx.evalKeyValues(data.Query)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		path, err := discordAPIPath(op, pathParams, query)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		var body []byte
+		if len(data.BodyJSON) > 0 && string(data.BodyJSON) != "null" {
+			if !op.HasBody {
+				return traceError(n, fmt.Errorf("the %s endpoint doesn't take a body", op.ID))
+			}
+
+			body, err = ctx.EvalJSONTemplate(data.BodyJSON)
+			if err != nil {
+				return traceError(n, err)
+			}
+		}
+
+		auditLogReason, err := ctx.EvalTemplate(n.Data.AuditLogReason)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		resBody, err := ctx.Discord.APIRequest(ctx, provider.DiscordAPIRequest{
+			Method: op.Method,
+			Path:   path,
+			Body:   body,
+			Reason: api.AuditLogReason(auditLogReason.String()),
+		})
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		result, err := discordAPIResult(resBody)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		ctx.StoreNodeResult(n, result)
+		return n.ExecuteChildren(ctx)
 	case FlowNodeTypeActionAIChatCompletion, FlowNodeTypeActionAISearchWeb:
 		webSearch := n.Type == FlowNodeTypeActionAISearchWeb
 
@@ -1461,7 +1552,8 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 		// Checked here as well as at save time: message flows are not validated
 		// by the API at all, and flows stored before the allowlist existed have
 		// never been through it.
-		if !AIModelAllowed(data.Model) {
+		tier, ok := resolveAIModel(data.Model)
+		if !ok {
 			return &FlowError{
 				Code:    FlowNodeErrorUnknown,
 				Message: fmt.Sprintf("unsupported ai model: %s", data.Model),
@@ -1483,14 +1575,21 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			return traceError(n, err)
 		}
 
+		maxOutputTokens := aiMaxOutputTokens
+		if limit := int(maxCompletionTokens.Int()); limit > 0 && limit < maxOutputTokens {
+			maxOutputTokens = limit
+		}
+
 		opts := provider.CreateResponseOpts{
-			Model:           data.Model,
+			Model:           tier.Model,
+			ReasoningEffort: tier.ReasoningEffort,
 			Prompt:          prompt.String(),
 			SystemPrompt:    systemPrompt.String(),
-			MaxOutputTokens: int(maxCompletionTokens.Int()),
+			MaxOutputTokens: maxOutputTokens,
 		}
 		if webSearch {
-			opts.Tools = []provider.AIToolType{provider.AIToolTypeWebSearchPreview}
+			opts.Tools = []provider.AIToolType{provider.AIToolTypeWebSearch}
+			opts.MaxToolCalls = aiMaxWebSearches
 		}
 
 		response, err := ctx.AI.CreateResponse(ctx, opts)

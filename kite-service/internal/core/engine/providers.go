@@ -18,6 +18,7 @@ import (
 	"github.com/diamondburned/arikawa/v3/gateway"
 	"github.com/diamondburned/arikawa/v3/state"
 	disstore "github.com/diamondburned/arikawa/v3/state/store"
+	"github.com/diamondburned/arikawa/v3/utils/httputil"
 	"github.com/diamondburned/arikawa/v3/utils/sendpart"
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/internal/store"
@@ -287,6 +288,28 @@ func (p *DiscordProvider) UnpinMessage(ctx context.Context, channelID discord.Ch
 	return nil
 }
 
+func (p *DiscordProvider) CreatePoll(ctx context.Context, channelID discord.ChannelID, data provider.CreatePollData) (*discord.Message, error) {
+	// arikawa's SendMessageData has no poll field, so the request is built by hand.
+	body := struct {
+		Poll provider.CreatePollData `json:"poll"`
+	}{
+		Poll: data,
+	}
+
+	var msg discord.Message
+	err := p.session.RequestJSON(
+		&msg,
+		http.MethodPost,
+		api.EndpointChannels+channelID.String()+"/messages",
+		httputil.WithJSONBody(body),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create poll: %w", err)
+	}
+
+	return &msg, nil
+}
+
 func (p *DiscordProvider) BanMember(ctx context.Context, guildID discord.GuildID, userID discord.UserID, data api.BanData) error {
 	err := p.session.Ban(guildID, userID, data)
 	if err != nil {
@@ -413,6 +436,37 @@ func (p *DiscordProvider) RemoveThreadMember(ctx context.Context, channelID disc
 	}
 
 	return nil
+}
+
+func (p *DiscordProvider) APIRequest(ctx context.Context, req provider.DiscordAPIRequest) ([]byte, error) {
+	// Going through the session's client adds the token and shares its rate
+	// limiter with every other request of the app.
+	opts := []httputil.RequestOption{httputil.WithHeaders(req.Reason.Header())}
+	if req.Body != nil {
+		opts = append(opts, httputil.JSONRequest, httputil.WithBodyBytes(req.Body))
+	}
+
+	resp, err := p.session.Client.WithContext(ctx).Request(
+		req.Method,
+		api.Endpoint+strings.TrimPrefix(req.Path, "/"),
+		opts...,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to send Discord API request: %w", err)
+	}
+
+	body := resp.GetBody()
+	defer body.Close()
+
+	data, err := io.ReadAll(io.LimitReader(body, thing.MaxBodySize+1))
+	if err != nil {
+		return nil, fmt.Errorf("failed to read Discord API response: %w", err)
+	}
+	if len(data) > thing.MaxBodySize {
+		return nil, fmt.Errorf("body size exceeds max body size of %d bytes", thing.MaxBodySize)
+	}
+
+	return data, nil
 }
 
 func (p *DiscordProvider) UpdateVoiceState(ctx context.Context, guildID discord.GuildID, channelID discord.ChannelID, selfMute bool, selfDeaf bool) error {
@@ -567,12 +621,8 @@ func (p *AIProvider) CreateResponse(ctx context.Context, opts provider.CreateRes
 	tools := []responses.ToolUnionParam{}
 	for _, tool := range opts.Tools {
 		switch tool {
-		case provider.AIToolTypeWebSearchPreview:
-			tools = append(tools, responses.ToolUnionParam{
-				OfWebSearchPreview: &responses.WebSearchPreviewToolParam{
-					Type: responses.WebSearchPreviewToolTypeWebSearchPreview,
-				},
-			})
+		case provider.AIToolTypeWebSearch:
+			tools = append(tools, responses.ToolParamOfWebSearch(responses.WebSearchToolTypeWebSearch))
 		}
 	}
 
@@ -597,28 +647,21 @@ func (p *AIProvider) CreateResponse(ctx context.Context, opts provider.CreateRes
 		})
 	}
 
-	model := opts.Model
-	if model == "" {
-		model = openai.ChatModelGPT4oMini
-	}
-
-	maxOutputTokens := 500
-	if opts.MaxOutputTokens > 0 && opts.MaxOutputTokens < maxOutputTokens {
-		maxOutputTokens = opts.MaxOutputTokens
-	}
-
 	params := responses.ResponseNewParams{
-		Model: model,
+		Model: opts.Model,
 		Input: responses.ResponseNewParamsInputUnion{
 			OfInputItemList: inputs,
 		},
-		MaxOutputTokens: openai.Int(int64(maxOutputTokens)),
-		Tools:           tools,
+		Tools: tools,
 	}
-	// GPT-5 models reason before answering, and the reasoning counts towards
-	// the output tokens, so less of it leaves more room for the answer.
-	if strings.HasPrefix(model, "gpt-5") {
-		params.Reasoning = shared.ReasoningParam{Effort: shared.ReasoningEffortLow}
+	if opts.MaxOutputTokens > 0 {
+		params.MaxOutputTokens = openai.Int(int64(opts.MaxOutputTokens))
+	}
+	if opts.ReasoningEffort != "" {
+		params.Reasoning = shared.ReasoningParam{Effort: shared.ReasoningEffort(opts.ReasoningEffort)}
+	}
+	if opts.MaxToolCalls > 0 {
+		params.MaxToolCalls = openai.Int(int64(opts.MaxToolCalls))
 	}
 
 	resp, err := p.client.Responses.New(ctx, params)
@@ -626,7 +669,13 @@ func (p *AIProvider) CreateResponse(ctx context.Context, opts provider.CreateRes
 		return "", fmt.Errorf("failed to create response: %w", err)
 	}
 
-	return resp.OutputText(), nil
+	// Reasoning can use up the whole token budget and leave no answer, which
+	// would otherwise pass as an empty but successful one.
+	text := resp.OutputText()
+	if text == "" && resp.Status == responses.ResponseStatusIncomplete {
+		return "", fmt.Errorf("response incomplete: %s", resp.IncompleteDetails.Reason)
+	}
+	return text, nil
 }
 
 // Variable IDs come from user-authored flow data, so lookups are scoped to the app.

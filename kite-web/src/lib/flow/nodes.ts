@@ -6,6 +6,7 @@ import { Features } from "../types/wire.gen";
 import { getUniqueId } from "../utils";
 import { FlowContextType } from "./context";
 import { getComponentHandleIds } from "./resume";
+import { getAiModelCredits } from "./aiModels";
 import {
   nodeActionAiChatCompletionDataSchema,
   nodeActionAiWebSearchCompletionDataSchema,
@@ -17,6 +18,7 @@ import {
   nodeActionForumPostCreateDataSchema,
   nodeActionGuildGetDataSchema,
   nodeActionHttpRequestDataSchema,
+  nodeActionDiscordApiRequestDataSchema,
   nodeActionLogDataSchema,
   nodeActionMemberBanDataSchema,
   nodeActionMemberEditDataSchema,
@@ -33,6 +35,7 @@ import {
   nodeActionMessageReactionCreateDataSchema,
   nodeActionMessageReactionDeleteDataSchema,
   nodeActionMessagePinDataSchema,
+  nodeActionPollCreateDataSchema,
   nodeActionPrivateMessageCreateDataSchema,
   nodeActionRandomGenerateDataSchema,
   nodeActionResponseCreateDataSchema,
@@ -82,7 +85,9 @@ import {
   nodeActionMemberGetResultSchema,
   nodeActionMessageCreateResultSchema,
   nodeActionMessageEditResultSchema,
+  nodeActionDiscordApiRequestResultSchema,
   nodeActionMessageGetResultSchema,
+  nodeActionPollCreateResultSchema,
   nodeActionPrivateMessageCreateResultSchema,
   nodeActionResponseCreateResultSchema,
   nodeActionResponseEditResultSchema,
@@ -321,6 +326,21 @@ export const nodeTypes: Record<string, NodeValues> = {
       "channel_target",
       "message_target",
       "audit_log_reason",
+      "custom_label",
+    ],
+    creditsCost: 1,
+  },
+  action_poll_create: {
+    color: actionColor,
+    icon: "vote",
+    defaultTitle: "Create poll",
+    defaultDescription: "Bot sends a poll to a channel",
+    dataSchema: nodeActionPollCreateDataSchema,
+    resultSchema: nodeActionPollCreateResultSchema,
+    dataFields: [
+      "channel_target",
+      "poll_data",
+      "temporary_name",
       "custom_label",
     ],
     creditsCost: 1,
@@ -694,6 +714,21 @@ export const nodeTypes: Record<string, NodeValues> = {
     dataFields: ["http_request_data", "temporary_name", "custom_label"],
     creditsCost: 3,
   },
+  action_discord_api_request: {
+    color: actionColor,
+    icon: "braces",
+    defaultTitle: "Discord API Request",
+    defaultDescription: "Send a request to any endpoint of the Discord API",
+    dataSchema: nodeActionDiscordApiRequestDataSchema,
+    resultSchema: nodeActionDiscordApiRequestResultSchema,
+    dataFields: [
+      "discord_api_request_data",
+      "audit_log_reason",
+      "temporary_name",
+      "custom_label",
+    ],
+    creditsCost: 1,
+  },
   action_ai_chat_completion: {
     color: actionColor,
     icon: "brain-circuit",
@@ -702,17 +737,8 @@ export const nodeTypes: Record<string, NodeValues> = {
       "Ask artificial intelligence a question or let it respond to a prompt",
     dataSchema: nodeActionAiChatCompletionDataSchema,
     dataFields: ["ai_chat_completion_data", "temporary_name", "custom_label"],
-    creditsCost: (data) => {
-      const model = data.ai_chat_completion_data?.model;
-      switch (model) {
-        case "gpt-4.1":
-          return 100;
-        case "gpt-4.1-mini":
-          return 20;
-        default:
-          return 5;
-      }
-    },
+    creditsCost: (data) =>
+      getAiModelCredits(data.ai_chat_completion_data?.model, "chat"),
   },
   action_ai_web_search: {
     color: actionColor,
@@ -721,17 +747,8 @@ export const nodeTypes: Record<string, NodeValues> = {
     defaultDescription: "Search the web for the latest information using AI",
     dataSchema: nodeActionAiWebSearchCompletionDataSchema,
     dataFields: ["ai_web_search_data", "temporary_name", "custom_label"],
-    creditsCost: (data) => {
-      const model = data.ai_chat_completion_data?.model;
-      switch (model) {
-        case "gpt-4.1":
-          return 500;
-        case "gpt-4.1-mini":
-          return 100;
-        default:
-          return 25;
-      }
-    },
+    creditsCost: (data) =>
+      getAiModelCredits(data.ai_chat_completion_data?.model, "search"),
   },
   action_expression_evaluate: {
     color: actionColor,

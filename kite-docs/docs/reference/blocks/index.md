@@ -33,6 +33,7 @@ The output of previously executed blocks is available in all subsequent blocks a
 - [Delete message reaction](./actions/action_message_reaction_delete.md) - Remove reactions from messages
 - [Pin channel message](./actions/action_message_pin.md) - Pin messages in channels
 - [Unpin channel message](./actions/action_message_unpin.md) - Unpin messages in channels
+- [Create poll](./actions/action_poll_create.md) - Send polls to channels
 
 ## User & Member Blocks
 
@@ -76,8 +77,12 @@ The output of previously executed blocks is available in all subsequent blocks a
 
 - [Calculate Value](./actions/action_expression_evaluate.md) - Evaluate expressions and calculations
 - [Generate Random Number](./actions/action_random_generate.md) - Generate random numbers
-- [Send API Request](./actions/action_http_request.md) - Make HTTP requests
 - [Log Message](./actions/action_log.md) - Log messages for debugging
+
+## API Request Blocks
+
+- [Send API Request](./actions/action_http_request.md) - Make HTTP requests
+- [Discord API Request](./actions/action_discord_api_request.md) - Call any endpoint of the Discord API
 
 ## Roblox Blocks
 
