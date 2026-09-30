@@ -8,7 +8,6 @@ import { ThemeProvider } from "next-themes";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClientProvider } from "@tanstack/react-query";
 import queryClient from "@/lib/api/client";
-import { SpeedInsights } from "@vercel/speed-insights/next";
 import AnalyticsProvider from "@/components/common/AnalyticsProvider";
 
 const fontSans = FontSans({
@@ -30,7 +29,6 @@ export default function App({ Component, pageProps }: AppProps) {
             <Component {...pageProps} />
             <Toaster position="top-right" richColors={true} />
 
-            <SpeedInsights />
             <AnalyticsProvider />
           </TooltipProvider>
         </ThemeProvider>
