@@ -25,6 +25,7 @@ export default function AnalyticsProvider() {
     <OpenPanelComponent
       clientId="b14a6614-59bb-481e-8de0-ae685dd67de1"
       apiUrl="https://analytics.xenon.bot/api"
+      scriptUrl="https://analytics.xenon.bot/op1.js"
       trackScreenViews={true}
       trackOutgoingLinks={true}
     />
