@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# Indexes the current docs, builds kite-support for the server with the index
-# embedded, swaps the binary and restarts the bot. Indexing needs
-# OPENAI_API_KEY. Pass --rollback to restart with the previous binary instead.
+# Builds the knowledge from the current docs and block catalog, builds
+# kite-support for the server with it embedded, swaps the binary and restarts
+# the bot. Pass --rollback to restart with the previous binary instead.
 source "$(dirname "$0")/common.sh"
 
 restart="$REMOTE_SUDO
@@ -19,12 +19,6 @@ if [ "${1:-}" = "--rollback" ]; then
   mv kite-support.prev kite-support
   $restart"
   exit
-fi
-
-export KITE_SUPPORT_OPENAI__API_KEY="${KITE_SUPPORT_OPENAI__API_KEY:-${OPENAI_API_KEY:-}}"
-if [ -z "$KITE_SUPPORT_OPENAI__API_KEY" ]; then
-  echo "Missing OPENAI_API_KEY, it's needed to index the docs." >&2
-  exit 1
 fi
 
 build="$(mktemp -d)"
