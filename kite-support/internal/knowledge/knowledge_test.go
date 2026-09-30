@@ -2,6 +2,7 @@ package knowledge
 
 import (
 	"os"
+	"regexp"
 	"slices"
 	"strings"
 	"testing"
@@ -13,10 +14,14 @@ func TestBuild(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	for _, leftover := range []string{"import ", "<EmbedFlowNode", "<NodeInfoExplorer", ":::"} {
+	for _, leftover := range []string{"<EmbedFlowNode", "<NodeInfoExplorer", ":::"} {
 		if strings.Contains(k, leftover) {
 			t.Errorf("knowledge contains %q", leftover)
 		}
+	}
+	// MDX imports start a line, the word also appears in sentences.
+	if line := regexp.MustCompile(`(?m)^import .*$`).FindString(k); line != "" {
+		t.Errorf("knowledge contains the import %q", line)
 	}
 
 	raw, err := os.ReadFile("../../../kite-service/pkg/flow/catalog.json")
