@@ -952,10 +952,10 @@ type IntegrationProvider struct {
 	appIntegrationStore store.AppIntegrationStore
 	tokenCrypt          *util.SymmetricCrypt
 
-	// The app's choices, loaded once per run as blocks in loops check them
-	// again and again.
-	choicesMu sync.Mutex
-	choices   map[string]bool
+	// Loaded once per run, as blocks in loops need them again and again.
+	mu          sync.Mutex
+	choices     map[string]bool
+	credentials map[string]string
 }
 
 func NewIntegrationProvider(appID string, appSecretStore store.AppSecretStore, appIntegrationStore store.AppIntegrationStore, tokenCrypt *util.SymmetricCrypt) *IntegrationProvider {
@@ -968,8 +968,8 @@ func NewIntegrationProvider(appID string, appSecretStore store.AppSecretStore, a
 }
 
 func (p *IntegrationProvider) Choice(ctx context.Context, integrationID string) (null.Bool, error) {
-	p.choicesMu.Lock()
-	defer p.choicesMu.Unlock()
+	p.mu.Lock()
+	defer p.mu.Unlock()
 
 	if p.choices == nil {
 		rows, err := p.appIntegrationStore.AppIntegrations(ctx, p.appID)
@@ -987,6 +987,13 @@ func (p *IntegrationProvider) Choice(ctx context.Context, integrationID string) 
 }
 
 func (p *IntegrationProvider) Credential(ctx context.Context, integrationID string) (string, error) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
+	if value, ok := p.credentials[integrationID]; ok {
+		return value, nil
+	}
+
 	secret, err := p.appSecretStore.AppIntegrationCredential(ctx, p.appID, integrationID)
 	if err != nil {
 		if errors.Is(err, store.ErrNotFound) {
@@ -999,5 +1006,10 @@ func (p *IntegrationProvider) Credential(ctx context.Context, integrationID stri
 	if err != nil {
 		return "", fmt.Errorf("failed to decrypt credential: %w", err)
 	}
+
+	if p.credentials == nil {
+		p.credentials = map[string]string{}
+	}
+	p.credentials[integrationID] = value
 	return value, nil
 }

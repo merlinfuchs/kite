@@ -24,9 +24,16 @@ INSERT INTO app_integrations (
     created_at,
     updated_at
 ) VALUES (
-    $1, $2, $3, $4, $5
+    $1, $2, TRUE, $3, $4
 )
 ON CONFLICT (app_id, integration_id) DO NOTHING;
+
+-- name: UpdateAppIntegrationEnabled :one
+UPDATE app_integrations SET
+    enabled = $3,
+    updated_at = $4
+WHERE app_id = $1 AND integration_id = $2
+RETURNING *;
 
 -- name: DeleteAppIntegration :execrows
 DELETE FROM app_integrations WHERE app_id = $1 AND integration_id = $2;

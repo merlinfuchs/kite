@@ -482,11 +482,11 @@ export interface AppIntegrationUpdateRequest {
    */
   enabled?: boolean;
 }
-export type AppIntegrationUpdateResponse = AppIntegration;
+export type AppIntegrationUpdateResponse = Empty;
 export interface AppIntegrationConnectRequest {
   credential: string;
 }
-export type AppIntegrationConnectResponse = AppIntegration;
+export type AppIntegrationConnectResponse = Empty;
 export type AppIntegrationRemoveResponse = Empty;
 
 //////////

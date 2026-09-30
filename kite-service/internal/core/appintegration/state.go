@@ -52,7 +52,7 @@ func States(ctx context.Context, credentials CredentialStore, choices ChoiceStor
 	for i, integration := range integrations {
 		res[i] = State{
 			Integration:         integration,
-			Enabled:             integration.Enabled(updatedAt[integration.ID].Valid, choice[integration.ID]),
+			Enabled:             integration.Enabled(choice[integration.ID]),
 			CredentialUpdatedAt: updatedAt[integration.ID],
 		}
 	}

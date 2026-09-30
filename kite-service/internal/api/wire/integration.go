@@ -29,7 +29,7 @@ func (req AppIntegrationUpdateRequest) Validate() error {
 	)
 }
 
-type AppIntegrationUpdateResponse = AppIntegration
+type AppIntegrationUpdateResponse = Empty
 
 type AppIntegrationConnectRequest struct {
 	Credential string `json:"credential"`
@@ -41,6 +41,6 @@ func (req AppIntegrationConnectRequest) Validate() error {
 	)
 }
 
-type AppIntegrationConnectResponse = AppIntegration
+type AppIntegrationConnectResponse = Empty
 
 type AppIntegrationRemoveResponse = Empty

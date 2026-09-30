@@ -60,12 +60,20 @@ func (s *memoryStore) SetAppIntegrationEnabled(ctx context.Context, integration 
 	return integration, nil
 }
 
-func (s *memoryStore) ConnectAppIntegration(ctx context.Context, secret *model.AppSecret) (*model.AppSecret, error) {
+func (s *memoryStore) UpdateAppIntegrationEnabled(ctx context.Context, integration *model.AppIntegration) (*model.AppIntegration, error) {
+	if _, ok := s.integrations[integration.IntegrationID]; !ok {
+		return nil, store.ErrNotFound
+	}
+	s.integrations[integration.IntegrationID] = integration
+	return integration, nil
+}
+
+func (s *memoryStore) ConnectAppIntegration(ctx context.Context, secret *model.AppSecret) error {
 	if _, ok := s.integrations[secret.IntegrationID]; !ok {
 		s.integrations[secret.IntegrationID] = &model.AppIntegration{IntegrationID: secret.IntegrationID, Enabled: true}
 	}
 	s.credentials[secret.IntegrationID] = secret
-	return secret, nil
+	return nil
 }
 
 func (s *memoryStore) DeleteAppIntegration(ctx context.Context, appID string, integrationID string) error {
@@ -144,7 +152,6 @@ func TestConnectChecksCredential(t *testing.T) {
 	require.Contains(t, s.credentials, "cookie_api")
 	assert.NotEqual(t, "k3y", s.credentials["cookie_api"].ValueEncrypted)
 	assert.True(t, s.integrations["cookie_api"].Enabled)
-	assert.Equal(t, true, res.data.(map[string]any)["enabled"])
 }
 
 func TestConnectRejectsRefusedCredential(t *testing.T) {
@@ -199,13 +206,13 @@ func TestDisableConnectedIntegration(t *testing.T) {
 
 	res := serve(t, h, http.MethodPatch, "/integrations/cookie_api", `{"enabled":false}`)
 	require.Equal(t, http.StatusOK, res.code)
-	assert.Equal(t, false, res.data.(map[string]any)["enabled"])
+	assert.False(t, s.integrations["cookie_api"].Enabled)
 	assert.Contains(t, s.credentials, "cookie_api")
 
 	// Replacing the credential doesn't enable it again.
 	res = serve(t, h, http.MethodPut, "/integrations/cookie_api", `{"credential":"n3w"}`)
 	require.Equal(t, http.StatusOK, res.code)
-	assert.Equal(t, false, res.data.(map[string]any)["enabled"])
+	assert.False(t, s.integrations["cookie_api"].Enabled)
 }
 
 func TestRemoveIntegration(t *testing.T) {

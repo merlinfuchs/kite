@@ -219,17 +219,14 @@ func TestCustomBlockNeedsEnabledIntegration(t *testing.T) {
 func TestIntegrationEnabled(t *testing.T) {
 	always := Integration{Availability: "always", Auth: IntegrationAuth{Type: "discord_bot"}}
 	byDefault := Integration{Availability: "default", Auth: IntegrationAuth{Type: "none"}}
-	optIn := Integration{Availability: "opt_in", Auth: IntegrationAuth{Type: "none"}}
-	withKey := Integration{Availability: "opt_in", Auth: IntegrationAuth{Type: "header"}}
+	optIn := Integration{Availability: "opt_in", Auth: IntegrationAuth{Type: "header"}}
 
-	assert.True(t, always.Enabled(false, null.BoolFrom(false)))
-	assert.True(t, byDefault.Enabled(false, null.Bool{}))
-	assert.False(t, byDefault.Enabled(false, null.BoolFrom(false)))
-	assert.False(t, optIn.Enabled(false, null.Bool{}))
-	assert.True(t, optIn.Enabled(false, null.BoolFrom(true)))
-	assert.False(t, withKey.Enabled(false, null.BoolFrom(true)))
-	assert.True(t, withKey.Enabled(true, null.BoolFrom(true)))
-	assert.False(t, withKey.Enabled(true, null.BoolFrom(false)))
+	assert.True(t, always.Enabled(null.BoolFrom(false)))
+	assert.True(t, byDefault.Enabled(null.Bool{}))
+	assert.False(t, byDefault.Enabled(null.BoolFrom(false)))
+	assert.False(t, optIn.Enabled(null.Bool{}))
+	assert.True(t, optIn.Enabled(null.BoolFrom(true)))
+	assert.False(t, optIn.Enabled(null.BoolFrom(false)))
 }
 
 // Integrations that need a credential can't be on before the app connected

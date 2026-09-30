@@ -2,8 +2,10 @@ package postgres
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/kitecloud/kite/kite-service/internal/db/postgres/pgmodel"
 	"github.com/kitecloud/kite/kite-service/internal/model"
@@ -47,10 +49,26 @@ func rowToAppIntegration(row pgmodel.AppIntegration) *model.AppIntegration {
 	}
 }
 
-func (c *Client) ConnectAppIntegration(ctx context.Context, secret *model.AppSecret) (*model.AppSecret, error) {
+func (c *Client) UpdateAppIntegrationEnabled(ctx context.Context, integration *model.AppIntegration) (*model.AppIntegration, error) {
+	row, err := c.Q.UpdateAppIntegrationEnabled(ctx, pgmodel.UpdateAppIntegrationEnabledParams{
+		AppID:         integration.AppID,
+		IntegrationID: integration.IntegrationID,
+		Enabled:       integration.Enabled,
+		UpdatedAt:     pgtype.Timestamp{Time: integration.UpdatedAt.UTC(), Valid: true},
+	})
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, store.ErrNotFound
+		}
+		return nil, err
+	}
+	return rowToAppIntegration(row), nil
+}
+
+func (c *Client) ConnectAppIntegration(ctx context.Context, secret *model.AppSecret) error {
 	tx, err := c.DB.Begin(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("failed to begin transaction: %w", err)
+		return fmt.Errorf("failed to begin transaction: %w", err)
 	}
 	defer tx.Rollback(ctx)
 	q := c.Q.WithTx(tx)
@@ -59,15 +77,14 @@ func (c *Client) ConnectAppIntegration(ctx context.Context, secret *model.AppSec
 	err = q.CreateAppIntegrationIfMissing(ctx, pgmodel.CreateAppIntegrationIfMissingParams{
 		AppID:         secret.AppID,
 		IntegrationID: secret.IntegrationID,
-		Enabled:       true,
 		CreatedAt:     pgtype.Timestamp{Time: secret.CreatedAt.UTC(), Valid: true},
 		UpdatedAt:     pgtype.Timestamp{Time: secret.UpdatedAt.UTC(), Valid: true},
 	})
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	row, err := q.SetAppIntegrationCredential(ctx, pgmodel.SetAppIntegrationCredentialParams{
+	_, err = q.SetAppIntegrationCredential(ctx, pgmodel.SetAppIntegrationCredentialParams{
 		ID:             secret.ID,
 		AppID:          secret.AppID,
 		IntegrationID:  pgtype.Text{String: secret.IntegrationID, Valid: true},
@@ -76,13 +93,13 @@ func (c *Client) ConnectAppIntegration(ctx context.Context, secret *model.AppSec
 		UpdatedAt:      pgtype.Timestamp{Time: secret.UpdatedAt.UTC(), Valid: true},
 	})
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	if err := tx.Commit(ctx); err != nil {
-		return nil, fmt.Errorf("failed to commit transaction: %w", err)
+		return fmt.Errorf("failed to commit transaction: %w", err)
 	}
-	return rowToAppSecret(row), nil
+	return nil
 }
 
 func (c *Client) DeleteAppIntegration(ctx context.Context, appID string, integrationID string) error {

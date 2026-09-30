@@ -48,7 +48,11 @@ func (h *IntegrationHandler) HandleAppIntegrationList(c *handler.Context) (*wire
 
 	res := make([]*wire.AppIntegration, len(states))
 	for i, state := range states {
-		res[i] = stateToWire(state)
+		res[i] = &wire.AppIntegration{
+			IntegrationID:       state.Integration.ID,
+			Enabled:             state.Enabled,
+			CredentialUpdatedAt: state.CredentialUpdatedAt,
+		}
 	}
 	return &res, nil
 }
@@ -64,28 +68,29 @@ func (h *IntegrationHandler) HandleAppIntegrationUpdate(c *handler.Context, req 
 	if integration.Availability == flow.AvailabilityAlways {
 		return nil, handler.ErrBadRequest("always_enabled", "The integration is always enabled")
 	}
-	if integration.NeedsCredential() {
-		_, err := h.appSecretStore.AppIntegrationCredential(c.Context(), c.App.ID, integration.ID)
-		if errors.Is(err, store.ErrNotFound) {
-			return nil, handler.ErrBadRequest("not_connected", "Connect the integration with its credential first")
-		}
-		if err != nil {
-			return nil, fmt.Errorf("failed to get credential: %w", err)
-		}
-	}
-
-	_, err := h.appIntegrationStore.SetAppIntegrationEnabled(c.Context(), &model.AppIntegration{
+	choice := &model.AppIntegration{
 		AppID:         c.App.ID,
 		IntegrationID: integration.ID,
 		Enabled:       *req.Enabled,
 		CreatedAt:     time.Now().UTC(),
 		UpdatedAt:     time.Now().UTC(),
-	})
-	if err != nil {
-		return nil, fmt.Errorf("failed to update integration: %w", err)
+	}
+	// Integrations that need a credential have a row once they're connected.
+	if integration.NeedsCredential() {
+		_, err := h.appIntegrationStore.UpdateAppIntegrationEnabled(c.Context(), choice)
+		if errors.Is(err, store.ErrNotFound) {
+			return nil, handler.ErrBadRequest("not_connected", "Connect the integration with its credential first")
+		}
+		if err != nil {
+			return nil, fmt.Errorf("failed to update integration: %w", err)
+		}
+		return &wire.AppIntegrationUpdateResponse{}, nil
 	}
 
-	return h.state(c, integration.ID)
+	if _, err := h.appIntegrationStore.SetAppIntegrationEnabled(c.Context(), choice); err != nil {
+		return nil, fmt.Errorf("failed to update integration: %w", err)
+	}
+	return &wire.AppIntegrationUpdateResponse{}, nil
 }
 
 // HandleAppIntegrationConnect sets the credential of an integration, which
@@ -105,7 +110,7 @@ func (h *IntegrationHandler) HandleAppIntegrationConnect(c *handler.Context, req
 		return nil, fmt.Errorf("failed to encrypt credential: %w", err)
 	}
 
-	_, err = h.appIntegrationStore.ConnectAppIntegration(c.Context(), &model.AppSecret{
+	err = h.appIntegrationStore.ConnectAppIntegration(c.Context(), &model.AppSecret{
 		ID:             util.UniqueID(),
 		AppID:          c.App.ID,
 		IntegrationID:  integration.ID,
@@ -116,8 +121,7 @@ func (h *IntegrationHandler) HandleAppIntegrationConnect(c *handler.Context, req
 	if err != nil {
 		return nil, fmt.Errorf("failed to save credential: %w", err)
 	}
-
-	return h.state(c, integration.ID)
+	return &wire.AppIntegrationConnectResponse{}, nil
 }
 
 // HandleAppIntegrationRemove removes an integration the app set up, with its
@@ -137,27 +141,6 @@ func (h *IntegrationHandler) HandleAppIntegrationRemove(c *handler.Context) (*wi
 	}
 
 	return &wire.AppIntegrationRemoveResponse{}, nil
-}
-
-func (h *IntegrationHandler) state(c *handler.Context, integrationID string) (*wire.AppIntegration, error) {
-	states, err := appintegration.States(c.Context(), h.appSecretStore, h.appIntegrationStore, c.App.ID)
-	if err != nil {
-		return nil, err
-	}
-	for _, state := range states {
-		if state.Integration.ID == integrationID {
-			return stateToWire(state), nil
-		}
-	}
-	return nil, fmt.Errorf("unknown integration: %s", integrationID)
-}
-
-func stateToWire(state appintegration.State) *wire.AppIntegration {
-	return &wire.AppIntegration{
-		IntegrationID:       state.Integration.ID,
-		Enabled:             state.Enabled,
-		CredentialUpdatedAt: state.CredentialUpdatedAt,
-	}
 }
 
 // credentialIntegration returns the integration with the given ID, if apps
