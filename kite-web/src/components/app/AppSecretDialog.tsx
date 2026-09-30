@@ -111,7 +111,14 @@ export default function AppSecretDialog({
                 <FormItem>
                   <FormLabel>Name</FormLabel>
                   <FormControl>
-                    <Input type="text" placeholder="API_KEY" {...field} />
+                    <Input
+                      type="text"
+                      placeholder="API_KEY"
+                      {...field}
+                      onChange={(e) =>
+                        field.onChange(e.target.value.toUpperCase())
+                      }
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

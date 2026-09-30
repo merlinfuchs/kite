@@ -151,6 +151,12 @@ func TestCreateSecretLimits(t *testing.T) {
 	assert.Equal(t, http.StatusBadRequest, code)
 	assert.Equal(t, "duplicate_name", res["error"].(map[string]any)["code"])
 
+	// Names are uppercase, like environment variables.
+	for _, name := range []string{"api_key", "1KEY", "API-KEY"} {
+		code, _ = s.request(t, 0, http.MethodPost, "/secrets", `{"name":"`+name+`","value":"1"}`, create)
+		assert.Equal(t, http.StatusBadRequest, code, name)
+	}
+
 	// Values are at most 4 KB.
 	code, _ = s.request(t, 0, http.MethodPost, "/secrets", `{"name":"C","value":"`+strings.Repeat("a", 4097)+`"}`, create)
 	assert.Equal(t, http.StatusBadRequest, code)
