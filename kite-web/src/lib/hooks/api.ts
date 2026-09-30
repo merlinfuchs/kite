@@ -422,6 +422,8 @@ export function useFlowLogEntries(filter: FlowLogEntriesFilter) {
     ...filter,
     limit: 10,
     refetchInterval: 10000,
+    // Without a filter these would be the logs of the whole app.
+    enabled: !!(filter.commandId || filter.eventId || filter.messageId),
   });
   return useResponseData(query);
 }

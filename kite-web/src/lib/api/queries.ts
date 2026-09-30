@@ -84,6 +84,7 @@ export function useLogEntriesQuery(
     eventId?: string;
     messageId?: string;
     refetchInterval?: number;
+    enabled?: boolean;
   }
 ) {
   const query = new URLSearchParams();
@@ -105,7 +106,7 @@ export function useLogEntriesQuery(
     queryFn: () =>
       apiRequest<LogEntry[]>(`/v1/apps/${appId}/logs?${query.toString()}`),
     staleTime: 1000 * 60,
-    enabled: !!appId,
+    enabled: !!appId && (args?.enabled ?? true),
     refetchInterval: args?.refetchInterval,
   });
 }
