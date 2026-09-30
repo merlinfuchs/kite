@@ -4,12 +4,14 @@
 -- integration that needs one is a row in app_secrets that references its row
 -- here, so removing the integration removes its credential.
 CREATE TABLE IF NOT EXISTS app_integrations (
+    id TEXT PRIMARY KEY,
     app_id TEXT NOT NULL REFERENCES apps(id) ON DELETE CASCADE,
+    -- The integration defined in code, like cookie_api.
     integration_id TEXT NOT NULL,
     enabled BOOLEAN NOT NULL,
 
     created_at TIMESTAMP NOT NULL,
     updated_at TIMESTAMP NOT NULL,
 
-    PRIMARY KEY (app_id, integration_id)
+    UNIQUE (app_id, integration_id)
 );

@@ -68,11 +68,16 @@ func (s *memoryStore) UpdateAppIntegrationEnabled(ctx context.Context, integrati
 	return integration, nil
 }
 
-func (s *memoryStore) ConnectAppIntegration(ctx context.Context, secret *model.AppSecret) error {
-	if _, ok := s.integrations[secret.IntegrationID]; !ok {
-		s.integrations[secret.IntegrationID] = &model.AppIntegration{IntegrationID: secret.IntegrationID, Enabled: true}
+func (s *memoryStore) ConnectAppIntegration(ctx context.Context, integration *model.AppIntegration, secret *model.AppSecret) error {
+	existing, ok := s.integrations[integration.IntegrationID]
+	if !ok {
+		integration.Enabled = true
+		s.integrations[integration.IntegrationID] = integration
+		existing = integration
 	}
-	s.credentials[secret.IntegrationID] = secret
+	secret.AppIntegrationID = existing.ID
+	secret.IntegrationID = existing.IntegrationID
+	s.credentials[existing.IntegrationID] = secret
 	return nil
 }
 
@@ -209,10 +214,13 @@ func TestDisableConnectedIntegration(t *testing.T) {
 	assert.False(t, s.integrations["cookie_api"].Enabled)
 	assert.Contains(t, s.credentials, "cookie_api")
 
-	// Replacing the credential doesn't enable it again.
+	// Replacing the credential doesn't enable it again, and keeps the row.
+	id := s.integrations["cookie_api"].ID
 	res = serve(t, h, http.MethodPut, "/integrations/cookie_api", `{"credential":"n3w"}`)
 	require.Equal(t, http.StatusOK, res.code)
 	assert.False(t, s.integrations["cookie_api"].Enabled)
+	assert.Equal(t, id, s.integrations["cookie_api"].ID)
+	assert.Equal(t, id, s.credentials["cookie_api"].AppIntegrationID)
 }
 
 func TestRemoveIntegration(t *testing.T) {

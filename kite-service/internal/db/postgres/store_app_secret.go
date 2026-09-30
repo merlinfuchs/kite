@@ -114,13 +114,13 @@ func secretWriteError(err error) error {
 
 func rowToAppSecret(row pgmodel.AppSecret) *model.AppSecret {
 	return &model.AppSecret{
-		ID:             row.ID,
-		AppID:          row.AppID,
-		Name:           row.Name.String,
-		IntegrationID:  row.IntegrationID.String,
-		ValueEncrypted: row.ValueEncrypted,
-		CreatedAt:      row.CreatedAt.Time,
-		UpdatedAt:      row.UpdatedAt.Time,
+		ID:               row.ID,
+		AppID:            row.AppID,
+		Name:             row.Name.String,
+		AppIntegrationID: row.AppIntegrationID.String,
+		ValueEncrypted:   row.ValueEncrypted,
+		CreatedAt:        row.CreatedAt.Time,
+		UpdatedAt:        row.UpdatedAt.Time,
 	}
 }
 
@@ -132,7 +132,8 @@ func (c *Client) AppIntegrationCredentials(ctx context.Context, appID string) ([
 
 	res := make([]*model.AppSecret, len(rows))
 	for i, row := range rows {
-		res[i] = rowToAppSecret(row)
+		res[i] = rowToAppSecret(row.AppSecret)
+		res[i].IntegrationID = row.IntegrationID
 	}
 	return res, nil
 }
@@ -140,7 +141,7 @@ func (c *Client) AppIntegrationCredentials(ctx context.Context, appID string) ([
 func (c *Client) AppIntegrationCredential(ctx context.Context, appID string, integrationID string) (*model.AppSecret, error) {
 	row, err := c.Q.GetAppIntegrationCredential(ctx, pgmodel.GetAppIntegrationCredentialParams{
 		AppID:         appID,
-		IntegrationID: pgtype.Text{String: integrationID, Valid: true},
+		IntegrationID: integrationID,
 	})
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -148,5 +149,7 @@ func (c *Client) AppIntegrationCredential(ctx context.Context, appID string, int
 		}
 		return nil, err
 	}
-	return rowToAppSecret(row), nil
+	res := rowToAppSecret(row.AppSecret)
+	res.IntegrationID = row.IntegrationID
+	return res, nil
 }

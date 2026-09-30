@@ -27,6 +27,7 @@ func (c *Client) AppIntegrations(ctx context.Context, appID string) ([]*model.Ap
 
 func (c *Client) SetAppIntegrationEnabled(ctx context.Context, integration *model.AppIntegration) (*model.AppIntegration, error) {
 	row, err := c.Q.SetAppIntegrationEnabled(ctx, pgmodel.SetAppIntegrationEnabledParams{
+		ID:            integration.ID,
 		AppID:         integration.AppID,
 		IntegrationID: integration.IntegrationID,
 		Enabled:       integration.Enabled,
@@ -41,6 +42,7 @@ func (c *Client) SetAppIntegrationEnabled(ctx context.Context, integration *mode
 
 func rowToAppIntegration(row pgmodel.AppIntegration) *model.AppIntegration {
 	return &model.AppIntegration{
+		ID:            row.ID,
 		AppID:         row.AppID,
 		IntegrationID: row.IntegrationID,
 		Enabled:       row.Enabled,
@@ -65,7 +67,7 @@ func (c *Client) UpdateAppIntegrationEnabled(ctx context.Context, integration *m
 	return rowToAppIntegration(row), nil
 }
 
-func (c *Client) ConnectAppIntegration(ctx context.Context, secret *model.AppSecret) error {
+func (c *Client) ConnectAppIntegration(ctx context.Context, integration *model.AppIntegration, secret *model.AppSecret) error {
 	tx, err := c.DB.Begin(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to begin transaction: %w", err)
@@ -73,24 +75,26 @@ func (c *Client) ConnectAppIntegration(ctx context.Context, secret *model.AppSec
 	defer tx.Rollback(ctx)
 	q := c.Q.WithTx(tx)
 
-	// The credential references the integration's row.
-	err = q.EnsureAppIntegration(ctx, pgmodel.EnsureAppIntegrationParams{
-		AppID:         secret.AppID,
-		IntegrationID: secret.IntegrationID,
-		CreatedAt:     pgtype.Timestamp{Time: secret.CreatedAt.UTC(), Valid: true},
-		UpdatedAt:     pgtype.Timestamp{Time: secret.UpdatedAt.UTC(), Valid: true},
+	// The credential references the integration's row, which keeps its ID if
+	// the app set it up before.
+	row, err := q.EnsureAppIntegration(ctx, pgmodel.EnsureAppIntegrationParams{
+		ID:            integration.ID,
+		AppID:         integration.AppID,
+		IntegrationID: integration.IntegrationID,
+		CreatedAt:     pgtype.Timestamp{Time: integration.CreatedAt.UTC(), Valid: true},
+		UpdatedAt:     pgtype.Timestamp{Time: integration.UpdatedAt.UTC(), Valid: true},
 	})
 	if err != nil {
 		return err
 	}
 
 	_, err = q.SetAppIntegrationCredential(ctx, pgmodel.SetAppIntegrationCredentialParams{
-		ID:             secret.ID,
-		AppID:          secret.AppID,
-		IntegrationID:  pgtype.Text{String: secret.IntegrationID, Valid: true},
-		ValueEncrypted: secret.ValueEncrypted,
-		CreatedAt:      pgtype.Timestamp{Time: secret.CreatedAt.UTC(), Valid: true},
-		UpdatedAt:      pgtype.Timestamp{Time: secret.UpdatedAt.UTC(), Valid: true},
+		ID:               secret.ID,
+		AppID:            secret.AppID,
+		AppIntegrationID: pgtype.Text{String: row.ID, Valid: true},
+		ValueEncrypted:   secret.ValueEncrypted,
+		CreatedAt:        pgtype.Timestamp{Time: secret.CreatedAt.UTC(), Valid: true},
+		UpdatedAt:        pgtype.Timestamp{Time: secret.UpdatedAt.UTC(), Valid: true},
 	})
 	if err != nil {
 		return err

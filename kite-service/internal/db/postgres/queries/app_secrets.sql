@@ -32,27 +32,34 @@ WHERE app_id = $1 AND id = $2 AND name IS NOT NULL RETURNING *;
 -- name: DeleteAppSecret :execrows
 DELETE FROM app_secrets WHERE app_id = $1 AND id = $2 AND name IS NOT NULL;
 
--- Integration credentials are the secrets with an integration_id instead of
--- a name. They're removed with their row in app_integrations.
+-- Integration credentials are the secrets of an integration the app set up
+-- instead of a name. They're removed with their row in app_integrations.
 
 -- name: GetAppIntegrationCredentials :many
-SELECT * FROM app_secrets WHERE app_id = $1 AND integration_id IS NOT NULL ORDER BY integration_id;
+SELECT sqlc.embed(app_secrets), app_integrations.integration_id
+FROM app_secrets
+JOIN app_integrations ON app_integrations.id = app_secrets.app_integration_id
+WHERE app_secrets.app_id = $1
+ORDER BY app_integrations.integration_id;
 
 -- name: GetAppIntegrationCredential :one
-SELECT * FROM app_secrets WHERE app_id = $1 AND integration_id = $2;
+SELECT sqlc.embed(app_secrets), app_integrations.integration_id
+FROM app_secrets
+JOIN app_integrations ON app_integrations.id = app_secrets.app_integration_id
+WHERE app_secrets.app_id = $1 AND app_integrations.integration_id = $2;
 
 -- name: SetAppIntegrationCredential :one
 INSERT INTO app_secrets (
     id,
     app_id,
-    integration_id,
+    app_integration_id,
     value_encrypted,
     created_at,
     updated_at
 ) VALUES (
     $1, $2, $3, $4, $5, $6
 )
-ON CONFLICT (app_id, integration_id) WHERE integration_id IS NOT NULL DO UPDATE SET
+ON CONFLICT (app_integration_id) WHERE app_integration_id IS NOT NULL DO UPDATE SET
     value_encrypted = EXCLUDED.value_encrypted,
     updated_at = EXCLUDED.updated_at
 RETURNING *;

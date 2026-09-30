@@ -69,6 +69,7 @@ func (h *IntegrationHandler) HandleAppIntegrationUpdate(c *handler.Context, req 
 		return nil, handler.ErrBadRequest("always_enabled", "The integration is always enabled")
 	}
 	choice := &model.AppIntegration{
+		ID:            util.UniqueID(),
 		AppID:         c.App.ID,
 		IntegrationID: integration.ID,
 		Enabled:       *req.Enabled,
@@ -106,13 +107,19 @@ func (h *IntegrationHandler) HandleAppIntegrationConnect(c *handler.Context, req
 		return nil, fmt.Errorf("failed to encrypt credential: %w", err)
 	}
 
-	err = h.appIntegrationStore.ConnectAppIntegration(c.Context(), &model.AppSecret{
+	now := time.Now().UTC()
+	err = h.appIntegrationStore.ConnectAppIntegration(c.Context(), &model.AppIntegration{
+		ID:            util.UniqueID(),
+		AppID:         c.App.ID,
+		IntegrationID: integration.ID,
+		CreatedAt:     now,
+		UpdatedAt:     now,
+	}, &model.AppSecret{
 		ID:             util.UniqueID(),
 		AppID:          c.App.ID,
-		IntegrationID:  integration.ID,
 		ValueEncrypted: value,
-		CreatedAt:      time.Now().UTC(),
-		UpdatedAt:      time.Now().UTC(),
+		CreatedAt:      now,
+		UpdatedAt:      now,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to save credential: %w", err)

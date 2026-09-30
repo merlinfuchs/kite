@@ -195,7 +195,7 @@ The settings form is rendered from the definition, reusing `BaseInput` so every 
 
 A settings page lists the integrations. Enabling one that needs a credential asks for the credential described by `auth`, and tests it if the integration has a test endpoint.
 
-`app_integrations` has a row for every integration the app set up, with whether it's enabled. Without a row, the integration's `availability` applies. The credential is a row in `app_secrets` with the integration's ID, which references the integration's row with `ON DELETE CASCADE`: enabling creates both in one transaction, disabling keeps the credential, and removing the integration deletes it.
+`app_integrations` has a row for every integration the app set up, with its own `id`, the `integration_id` defined in code and whether it's enabled, like `plugin_instances` for plugins. Without a row, the integration's `availability` applies. The credential is a row in `app_secrets` whose `app_integration_id` references the integration's row with `ON DELETE CASCADE`: enabling creates both in one transaction, disabling keeps the credential, and removing the integration deletes it.
 
 Credentials are encrypted like `apps.discord_token`, write-only over the API, one per integration per app. As with #419, every collaborator of the app can use it, so this protects against leaks through exports and share codes, not against a malicious collaborator.
 
