@@ -20,7 +20,7 @@ The Discord API Request block (#469) already has most of the machinery: endpoint
 
 ## Concepts
 
-**Integration.** A service Kite can talk to, defined in the repo, one directory each. It has an id, name, icon, an OpenAPI spec, a base URL and an auth scheme. Discord, cookie-api and Roblox would be the first ones. Integrations don't list blocks: blocks reference the integrations they need.
+**Integration.** A service Kite can talk to, defined in the repo, one directory each. It has an id, name, icon, the operations of its API (`api.json`), a base URL and an auth scheme. Discord, cookie-api and Roblox would be the first ones. Integrations don't list blocks: blocks reference the integrations they need.
 
 **Credential.** What an app enters to connect an integration, usually an API key. It's stored per app, encrypted, write-only, and bound to the integration's host. Discord's credential is the bot token the app already has.
 
@@ -42,6 +42,7 @@ kite-web/src/lib/
     types.ts
     index.ts             all integrations
     api.ts               the format of api.json
+    apis.ts              the api.json of each integration
     discord/
       index.ts
       api.json           generated from Discord's OpenAPI spec
@@ -60,7 +61,7 @@ kite-web/src/lib/
 
 The blocks folder is flat. File names are the integration a block mainly acts on, if any, followed by its type, like `discordInviteCreate.ts` for `action_invite_create`, so sorting groups them. Blocks of Kite itself, like conditions and variables, have no prefix. Category folders would repeat the `category` field and drift from it when a block moves to another section of the block explorer. A block that needs several integrations, like a transcript that reads Discord messages and renders them with cookie-api, lists them all.
 
-Discord's spec is trimmed to `integrations/discord/api.json` by `scripts/discord-api.mjs`, which the raw block uses too. `api.json` records where it came from in `source`, the spec's URL at a commit or a note that it's hand-written. Top-level body properties are listed where the body is a plain object, so body fields of request blocks are checked as well.
+Discord's spec is trimmed to `integrations/discord/api.json` by `scripts/discord-api.mjs`, which the raw block uses too. `api.json` records where it came from in `source`, the spec's URL at a commit or a note that it's hand-written. Top-level body properties are listed where the body is an object or a union of objects, so body fields of request blocks are checked as well.
 
 Proposed for later integrations, the integration's own settings in its `index.ts` (shown as JSON):
 

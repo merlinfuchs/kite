@@ -32,14 +32,15 @@ function isDenied(method, path) {
 }
 
 function paramType(schema) {
-  // Nullable properties are a union with null.
-  const variant = (schema.oneOf ?? schema.anyOf)?.find((s) => s.type !== "null");
-  if (variant) return paramType(variant);
   if (schema.$ref?.endsWith("/SnowflakeType")) return "snowflake";
-  const type = [schema.type].flat().find((t) => t !== "null");
+  if (schema.$ref) return paramType(resolveSchema(schema));
+  const type = [schema.type].flat().find((t) => t && t !== "null");
   if (type === "array") return "array";
   if (["integer", "number", "boolean"].includes(type)) return type;
-  return "string";
+  if (type) return "string";
+  // Nullable properties are a union with null.
+  const variant = (schema.oneOf ?? schema.anyOf)?.find((s) => s.type !== "null");
+  return variant ? paramType(variant) : "string";
 }
 
 const spec = await (await fetch(specUrl)).json();
@@ -57,16 +58,27 @@ function resolveSchema(schema) {
   return schema;
 }
 
-// The top-level properties of a JSON body. Bodies that are lists or unions
-// have none, and their fields aren't checked.
+// The top-level properties of a JSON body. A union of objects, like the
+// invites of servers and group DMs, has those of all of them, required if
+// every one requires them. Bodies that are lists have none, and their fields
+// aren't checked.
 function bodyParams(content) {
   const schema = resolveSchema(content?.["application/json"]?.schema);
-  if (!schema?.properties) return undefined;
-  const required = new Set(schema.required ?? []);
-  return Object.entries(schema.properties).map(([name, s]) => ({
+  const variants = (schema?.oneOf ?? schema?.anyOf ?? [schema]).map(
+    resolveSchema
+  );
+  if (!variants.every((v) => v?.properties)) return undefined;
+
+  const params = new Map();
+  for (const variant of variants) {
+    for (const [name, s] of Object.entries(variant.properties)) {
+      if (!params.has(name)) params.set(name, paramType(s));
+    }
+  }
+  return [...params].map(([name, type]) => ({
     name,
-    type: paramType(s),
-    required: required.has(name),
+    type,
+    required: variants.every((v) => v.required?.includes(name)),
   }));
 }
 

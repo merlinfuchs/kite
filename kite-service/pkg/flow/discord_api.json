@@ -494,7 +494,49 @@
         }
       ],
       "query_params": [],
-      "has_body": true
+      "has_body": true,
+      "body_params": [
+        {
+          "name": "name",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "event_type",
+          "type": "integer",
+          "required": true
+        },
+        {
+          "name": "actions",
+          "type": "array",
+          "required": false
+        },
+        {
+          "name": "enabled",
+          "type": "boolean",
+          "required": false
+        },
+        {
+          "name": "exempt_roles",
+          "type": "array",
+          "required": false
+        },
+        {
+          "name": "exempt_channels",
+          "type": "array",
+          "required": false
+        },
+        {
+          "name": "trigger_type",
+          "type": "integer",
+          "required": true
+        },
+        {
+          "name": "trigger_metadata",
+          "type": "string",
+          "required": false
+        }
+      ]
     },
     {
       "id": "create_channel_invite",
@@ -508,7 +550,54 @@
         }
       ],
       "query_params": [],
-      "has_body": true
+      "has_body": true,
+      "body_params": [
+        {
+          "name": "max_age",
+          "type": "integer",
+          "required": false
+        },
+        {
+          "name": "temporary",
+          "type": "boolean",
+          "required": false
+        },
+        {
+          "name": "max_uses",
+          "type": "integer",
+          "required": false
+        },
+        {
+          "name": "unique",
+          "type": "boolean",
+          "required": false
+        },
+        {
+          "name": "target_user_id",
+          "type": "snowflake",
+          "required": false
+        },
+        {
+          "name": "target_application_id",
+          "type": "snowflake",
+          "required": false
+        },
+        {
+          "name": "target_type",
+          "type": "integer",
+          "required": false
+        },
+        {
+          "name": "role_ids",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "target_user_ids",
+          "type": "string",
+          "required": false
+        }
+      ]
     },
     {
       "id": "create_dm",
@@ -606,12 +695,12 @@
         },
         {
           "name": "video_quality_mode",
-          "type": "string",
+          "type": "integer",
           "required": false
         },
         {
           "name": "default_auto_archive_duration",
-          "type": "string",
+          "type": "integer",
           "required": false
         },
         {
@@ -626,12 +715,12 @@
         },
         {
           "name": "default_sort_order",
-          "type": "string",
+          "type": "integer",
           "required": false
         },
         {
           "name": "default_forum_layout",
-          "type": "string",
+          "type": "integer",
           "required": false
         },
         {
@@ -745,7 +834,59 @@
         }
       ],
       "query_params": [],
-      "has_body": true
+      "has_body": true,
+      "body_params": [
+        {
+          "name": "name",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "description",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "image",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "scheduled_start_time",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "scheduled_end_time",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "privacy_level",
+          "type": "integer",
+          "required": true
+        },
+        {
+          "name": "entity_type",
+          "type": "integer",
+          "required": true
+        },
+        {
+          "name": "channel_id",
+          "type": "snowflake",
+          "required": false
+        },
+        {
+          "name": "recurrence_rule",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "entity_metadata",
+          "type": "string",
+          "required": false
+        }
+      ]
     },
     {
       "id": "create_guild_scheduled_event_exception",
@@ -1159,7 +1300,7 @@
         },
         {
           "name": "privacy_level",
-          "type": "string",
+          "type": "integer",
           "required": false
         },
         {
@@ -1186,7 +1327,44 @@
         }
       ],
       "query_params": [],
-      "has_body": true
+      "has_body": true,
+      "body_params": [
+        {
+          "name": "name",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "auto_archive_duration",
+          "type": "integer",
+          "required": false
+        },
+        {
+          "name": "rate_limit_per_user",
+          "type": "integer",
+          "required": false
+        },
+        {
+          "name": "applied_tags",
+          "type": "array",
+          "required": false
+        },
+        {
+          "name": "message",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "type",
+          "type": "integer",
+          "required": false
+        },
+        {
+          "name": "invitable",
+          "type": "boolean",
+          "required": false
+        }
+      ]
     },
     {
       "id": "create_thread_from_message",
@@ -1214,7 +1392,7 @@
         },
         {
           "name": "auto_archive_duration",
-          "type": "string",
+          "type": "integer",
           "required": false
         },
         {
@@ -3243,7 +3421,7 @@
         },
         {
           "name": "action_type",
-          "type": "string",
+          "type": "integer",
           "required": false
         },
         {
@@ -3584,7 +3762,7 @@
         },
         {
           "name": "type",
-          "type": "string",
+          "type": "integer",
           "required": false
         }
       ],
@@ -3979,7 +4157,7 @@
         },
         {
           "name": "mode",
-          "type": "string",
+          "type": "integer",
           "required": false
         }
       ]
@@ -4075,7 +4253,7 @@
       "body_params": [
         {
           "name": "type",
-          "type": "string",
+          "type": "integer",
           "required": false
         },
         {
@@ -4230,7 +4408,49 @@
         }
       ],
       "query_params": [],
-      "has_body": true
+      "has_body": true,
+      "body_params": [
+        {
+          "name": "name",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "event_type",
+          "type": "integer",
+          "required": false
+        },
+        {
+          "name": "actions",
+          "type": "array",
+          "required": false
+        },
+        {
+          "name": "enabled",
+          "type": "boolean",
+          "required": false
+        },
+        {
+          "name": "exempt_roles",
+          "type": "array",
+          "required": false
+        },
+        {
+          "name": "exempt_channels",
+          "type": "array",
+          "required": false
+        },
+        {
+          "name": "trigger_type",
+          "type": "integer",
+          "required": false
+        },
+        {
+          "name": "trigger_metadata",
+          "type": "string",
+          "required": false
+        }
+      ]
     },
     {
       "id": "update_channel",
@@ -4244,7 +4464,139 @@
         }
       ],
       "query_params": [],
-      "has_body": true
+      "has_body": true,
+      "body_params": [
+        {
+          "name": "name",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "icon",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "type",
+          "type": "integer",
+          "required": false
+        },
+        {
+          "name": "position",
+          "type": "integer",
+          "required": false
+        },
+        {
+          "name": "topic",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "bitrate",
+          "type": "integer",
+          "required": false
+        },
+        {
+          "name": "user_limit",
+          "type": "integer",
+          "required": false
+        },
+        {
+          "name": "nsfw",
+          "type": "boolean",
+          "required": false
+        },
+        {
+          "name": "rate_limit_per_user",
+          "type": "integer",
+          "required": false
+        },
+        {
+          "name": "parent_id",
+          "type": "snowflake",
+          "required": false
+        },
+        {
+          "name": "permission_overwrites",
+          "type": "array",
+          "required": false
+        },
+        {
+          "name": "rtc_region",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "video_quality_mode",
+          "type": "integer",
+          "required": false
+        },
+        {
+          "name": "default_auto_archive_duration",
+          "type": "integer",
+          "required": false
+        },
+        {
+          "name": "default_reaction_emoji",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "default_thread_rate_limit_per_user",
+          "type": "integer",
+          "required": false
+        },
+        {
+          "name": "default_sort_order",
+          "type": "integer",
+          "required": false
+        },
+        {
+          "name": "default_forum_layout",
+          "type": "integer",
+          "required": false
+        },
+        {
+          "name": "default_tag_setting",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "flags",
+          "type": "integer",
+          "required": false
+        },
+        {
+          "name": "available_tags",
+          "type": "array",
+          "required": false
+        },
+        {
+          "name": "archived",
+          "type": "boolean",
+          "required": false
+        },
+        {
+          "name": "locked",
+          "type": "boolean",
+          "required": false
+        },
+        {
+          "name": "invitable",
+          "type": "boolean",
+          "required": false
+        },
+        {
+          "name": "auto_archive_duration",
+          "type": "integer",
+          "required": false
+        },
+        {
+          "name": "applied_tags",
+          "type": "array",
+          "required": false
+        }
+      ]
     },
     {
       "id": "update_guild",
@@ -4282,17 +4634,17 @@
         },
         {
           "name": "verification_level",
-          "type": "string",
+          "type": "integer",
           "required": false
         },
         {
           "name": "default_message_notifications",
-          "type": "string",
+          "type": "integer",
           "required": false
         },
         {
           "name": "explicit_content_filter",
-          "type": "string",
+          "type": "integer",
           "required": false
         },
         {
@@ -4302,7 +4654,7 @@
         },
         {
           "name": "afk_timeout",
-          "type": "string",
+          "type": "integer",
           "required": false
         },
         {
@@ -4558,7 +4910,64 @@
         }
       ],
       "query_params": [],
-      "has_body": true
+      "has_body": true,
+      "body_params": [
+        {
+          "name": "status",
+          "type": "integer",
+          "required": false
+        },
+        {
+          "name": "name",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "description",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "image",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "scheduled_start_time",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "scheduled_end_time",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "entity_type",
+          "type": "integer",
+          "required": false
+        },
+        {
+          "name": "privacy_level",
+          "type": "integer",
+          "required": false
+        },
+        {
+          "name": "channel_id",
+          "type": "snowflake",
+          "required": false
+        },
+        {
+          "name": "recurrence_rule",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "entity_metadata",
+          "type": "string",
+          "required": false
+        }
+      ]
     },
     {
       "id": "update_guild_scheduled_event_exception",
@@ -4929,7 +5338,7 @@
         },
         {
           "name": "privacy_level",
-          "type": "string",
+          "type": "integer",
           "required": false
         }
       ]

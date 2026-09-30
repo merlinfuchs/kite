@@ -53,7 +53,7 @@ Look at an existing block that does something similar and copy its shape. Before
 
 Every block has a definition in `kite-web/src/lib/blocks`, named after the integration it mainly acts on and its type, like `discordInviteCreate.ts` for `action_invite_create`, and listed in `blocks/index.ts` in the order of the block explorer. Blocks for a service other than Discord include the service in their type, e.g. `action_roblox_user_get`, so they can't collide with Discord blocks or blocks of other services.
 
-If the block is a single API request, give it `fields` and a request `run`, following `discordInviteCreate.ts`. The service runs it from the generated `block_definitions.json`, a test checks it against Discord's spec, and it needs no Go. Otherwise give it a custom `run`, a zod `schema` and the editor `inputs` that edit it, following `discordMessagePin.ts`, and write it by hand:
+If the block is a single API request, give it `fields` and a request `run`, following `discordInviteCreate.ts`. The service runs it from the generated `block_definitions.json`, a test checks it against its integration's `api.json`, and it needs no Go. Otherwise give it a custom `run`, a zod `schema` and the editor `inputs` that edit it, following `discordMessagePin.ts`, and write it by hand:
 
 Service:
 

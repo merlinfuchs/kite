@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { getIntegration, integrations } from "../integrations";
+import { integrationApis } from "../integrations/apis";
 import { blockDefinitions, blockIntegrations, requestBlocks } from ".";
 
 // What the service needs: how each block runs, which integrations it needs
@@ -27,17 +28,10 @@ const serviceBlocks = blockDefinitions.map((block) => ({
     : null,
 }));
 
-// The service doesn't read the APIs.
-const serviceIntegrations = integrations.map(({ api: _, ...rest }) => rest);
-
 describe("block definitions", () => {
   it("match the file embedded in the service", async () => {
     await expect(
-      JSON.stringify(
-        { integrations: serviceIntegrations, blocks: serviceBlocks },
-        null,
-        2
-      ) + "\n"
+      JSON.stringify({ integrations, blocks: serviceBlocks }, null, 2) + "\n"
     ).toMatchFileSnapshot(
       "../../../../kite-service/pkg/flow/block_definitions.json"
     );
@@ -80,7 +74,7 @@ describe("block definitions", () => {
 
   it("match their integration's API", () => {
     for (const block of requestBlocks()) {
-      const op = getIntegration(block.run.integration)?.api?.operations.find(
+      const op = integrationApis[block.run.integration]?.operations.find(
         (o) => o.id === block.run.operation
       );
       expect(op, block.type).toBeDefined();

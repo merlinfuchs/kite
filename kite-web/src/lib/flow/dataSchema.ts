@@ -1,9 +1,9 @@
 import { Edge, Node, NodeProps as XYNodeProps } from "@xyflow/react";
 import z from "zod";
+import { ApiParam } from "../integrations/api";
 import { FlowNodeData } from "../types/flow.gen";
 import { aiModelTierValues, resolveAiModel } from "./aiModels";
 import {
-  DiscordApiParam,
   getDiscordApiOperation,
   similarDiscordApiOperations,
 } from "./discordApi";
@@ -900,7 +900,7 @@ function refineDiscordApiRequest(
 
   const checkParams = (
     field: "path_params" | "query",
-    declared: DiscordApiParam[]
+    declared: ApiParam[]
   ) => {
     const values = new Map(data[field]?.map((p) => [p.key, p.value]));
     for (const p of declared) {

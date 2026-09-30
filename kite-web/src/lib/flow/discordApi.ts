@@ -1,14 +1,10 @@
-import { ApiOperation, ApiParam } from "../integrations/api";
-import { discord } from "../integrations/discord";
+import { ApiOperation } from "../integrations/api";
+import api from "../integrations/discord/api.json";
 
 // The Discord API endpoints the Discord API Request block can call, generated
 // from Discord's OpenAPI spec by scripts/discord-api.mjs.
 
-export type DiscordApiParam = ApiParam;
-export type DiscordApiOperation = ApiOperation;
-
-export const discordApiOperations: DiscordApiOperation[] =
-  discord.api!.operations;
+export const discordApiOperations: ApiOperation[] = api.operations;
 
 const operationsById = new Map(discordApiOperations.map((o) => [o.id, o]));
 

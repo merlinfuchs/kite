@@ -1,5 +1,3 @@
-import { IntegrationApi } from "./api";
-
 // A service blocks can talk to. Blocks reference integrations, see
 // ../blocks and design/integrations.md.
 export interface Integration {
@@ -13,8 +11,6 @@ export interface Integration {
   // A cheap GET endpoint, relative to base_url, that checks the credential
   // when the app connects the integration.
   test_path?: string;
-  // The endpoints request blocks can use.
-  api?: IntegrationApi;
 }
 
 // How requests prove who they are. Integrations with the "discord_bot" or
