@@ -12,10 +12,10 @@ Add spaces (` `) to your command names to create sub-commands, this helps organi
 
 ## Command Deployment
 
-Whenever you create a command or update an existing one, Kite will automatically deploy the changes to Discord within 60 seconds.
-Some times it's necessary to restart or reload (ctrl+r) your Discord client for the changes to appear.
+New commands only show up in Discord after you deploy them. Click on `Deploy Changes` in the editor after saving, or on `Deploy all commands` on the `Commands` page. You need to deploy again whenever you change a command's name, description, arguments or permissions. Changes to the other blocks apply a few seconds after saving, without a deploy.
 
-Make sure to check your app's logs in the Dashboard's overview page to see if there are any errors!
+You can deploy at most twice a minute. Some times it's necessary to restart or reload (ctrl+r) your Discord client for the changes to appear.
+
+Make sure to check your app's [logs](../guides/troubleshooting.md#logs) if your command doesn't work!
 
 ![Example Flow](./img/example-flow.png)
-
