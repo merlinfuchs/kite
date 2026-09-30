@@ -17,6 +17,7 @@ import {
   useEventListenersQuery,
   useAppFeaturesQuery,
   useFlowAIUsageQuery,
+  useLogEntriesQuery,
   useLogSummaryQuery,
   useMessageInstancesQuery,
   useMessageQuery,
@@ -407,4 +408,22 @@ export function usePluginInstance(
 ) {
   const query = usePluginInstanceQuery(useAppId(), usePluginId());
   return useResponseData(query, callback);
+}
+
+export interface FlowLogEntriesFilter {
+  commandId?: string;
+  eventId?: string;
+  messageId?: string;
+}
+
+// The latest runs of a flow, shown in the flow editor.
+export function useFlowLogEntries(filter: FlowLogEntriesFilter) {
+  const query = useLogEntriesQuery(useAppId(), {
+    ...filter,
+    limit: 10,
+    refetchInterval: 10000,
+    // Without a filter these would be the logs of the whole app.
+    enabled: !!(filter.commandId || filter.eventId || filter.messageId),
+  });
+  return useResponseData(query);
 }
