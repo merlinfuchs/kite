@@ -40,6 +40,17 @@ ssh -t "$DEPLOY_HOST" "set -e
     fi
     exit 1
   fi
+
+  # nginx -t doesn't catch everything, e.g. a rate limit zone with a new key.
+  # nginx then keeps the old config and only logs the error, so check that new
+  # workers were started and restart it otherwise.
+  workers=\$(pgrep -P \"\$(systemctl show -p MainPID --value nginx)\" | sort | xargs)
   \$S systemctl reload nginx
+  sleep 2
+  if [ \"\$(pgrep -P \"\$(systemctl show -p MainPID --value nginx)\" | sort | xargs)\" = \"\$workers\" ]; then
+    echo 'nginx rejected the reload, restarting it'
+    \$S tail -n 3 /var/log/nginx/error.log
+    \$S systemctl restart nginx
+  fi
 
   rm -f /tmp/kite-nginx.conf /tmp/kite-nginx.conf.prev /tmp/kite-service@.service"
