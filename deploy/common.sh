@@ -10,6 +10,11 @@ if [ -f "$ROOT/deploy/.env" ]; then
 fi
 set +a
 
+# Shells that load nvm lazily don't pass node and pnpm on to scripts.
+if ! command -v pnpm >/dev/null && [ -s "${NVM_DIR:-$HOME/.nvm}/nvm.sh" ]; then
+  source "${NVM_DIR:-$HOME/.nvm}/nvm.sh" >/dev/null
+fi
+
 if [ -z "${DEPLOY_HOST:-}" ]; then
   echo "Missing DEPLOY_HOST, copy deploy/.env.example to deploy/.env and fill it in." >&2
   exit 1
