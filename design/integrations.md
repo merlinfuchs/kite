@@ -310,6 +310,35 @@ Discord could at some point become one platform among others, like Revolt, Matri
 
 That's far off. The two rules above keep it open without extra work now: block types are namespaced by integration, and the definition format doesn't assume Discord.
 
+## Next integrations
+
+Probably the next two to build, checked against the live APIs on 2026-09-30.
+
+### Popcat
+
+[Popcat](https://popcat.xyz/api) is a keyless utility API for Discord bots with 62 endpoints, like Cookie API. It publishes no spec, so its `api.json` is written by hand. It has two kinds of endpoints:
+
+- JSON endpoints under `/v2/`: joke, fact, 8ball, color info, Steam search, lyrics, GitHub user and more. They're request blocks with `auth: { type: "none" }`. Responses are wrapped as `{ "error": false, "message": { ... } }`, so the definition needs a way to expose `message` as the result, like a `result.path`. Errors are 422 with a readable message.
+- Image endpoints like the drake meme, pet GIF, welcome card and color swatch return the image itself, not JSON. Kite doesn't need to fetch them: a new run kind that only builds the URL from the fields, with the URL as the result, lets a message embed it and Discord fetch it. No request, and nothing that can run into the 30 second limit.
+
+It's `opt_in`: an unaffiliated hobby project with no stated uptime or rate limits, and blocks send user-entered text to it. Endpoints are picked rather than all exposed, as some meme generators put text on images of real politicians.
+
+### ER:LC
+
+[ER:LC](https://apidocs.erlc.gg) (Emergency Response: Liberty County, a Roblox game) has an API for private servers, used by many roleplay communities' Discord bots. Its v1 and v2 OpenAPI specs are published at `api.erlc.gg/internal/docs/apispec.v1.json` and `apispec.v2.json`, so `api.json` is generated like Discord's. They have no `operationId`s, so the script derives them from the method and path. The old domain `api.policeroleplay.community` now only returns 403.
+
+- Reads: server status, players, staff, queue, join, kill and command logs, moderator calls, bans and vehicles. v2 has them in one `GET /v2/server`, with query parameters choosing which parts to include.
+- `POST /v2/server/command` runs in-game commands, limited to one per 5 seconds per server. Their rules forbid spamming and using `:pm` as a chat replacement, and commands like `:kick` and `:ban` are destructive, so the block needs limits.
+- Event webhooks for `;` chat commands and emergency calls, signed with Ed25519, fit triggers (#181).
+
+Every request needs the server's key in the `server-key` header, which the server owner gets in game after buying the paid ERLC API server pack. That's the app's credential, entered when enabling the integration. One credential per app means one ER:LC server per app.
+
+ER:LC rate limits per IP and doesn't support shared-IP services, which Kite is, and repeated requests with a regenerated server key get the IP banned. So before building it:
+
+1. Register Kite as a public application on their [API dashboard](https://api.erlc.gg/developers), which needs a description, feature list, privacy policy and terms of service. Kite then sends its global key in `Authorization` on every request, next to the app's `server-key`, for higher limits. That's a platform credential from the service config, a small addition to `auth`.
+2. Protect the shared IP: disable the integration for an app after repeated 403s for its key until the owner enters a new one, never retry a 429, and show `Retry-After` in the error.
+3. Running commands needs the server owner to authorize Kite once through an authorization link, `https://api.erlc.gg/server-owners/server/[INTERNAL_SERVER_ID]/authorize/[KITE_APP_ID]`, which the Enable dialog can show after the key is entered. The internal server ID is part of the server key. Read blocks work without it.
+
 ## Phases
 
 1. Done: definition format, executor and editor rendering, with create invite (#212), bulk delete (#210), role create (#208) and the message list from #468.
