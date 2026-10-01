@@ -183,6 +183,48 @@ func TestCustomBlockNeedsIntegration(t *testing.T) {
 	assert.False(t, errors.Is(err, provider.ErrNotFound))
 }
 
+func TestCookieAPIQRCode(t *testing.T) {
+	httpProvider := &redirectCheckingHTTPProvider{body: `{"success":true,"url":"https://images.cookie-api.com/qr-codes/1.png"}`}
+
+	c, err := executeIntegrationBlock(t, "action_cookie_api_qr_code_create",
+		FlowNodeData{Fields: map[string]any{"qr_code_data": "https://kite.onl", "qr_code_border": "2"}},
+		map[string]string{"cookie_api": "k3y"}, httpProvider)
+	require.NoError(t, err)
+
+	assert.Equal(t, "POST", httpProvider.req.Method)
+	assert.Equal(t, "https://api.cookie-api.com/api/images/qr-code", httpProvider.req.URL.String())
+	assert.Equal(t, "k3y", httpProvider.req.Header.Get("Authorization"))
+	body, _ := io.ReadAll(httpProvider.req.Body)
+	assert.JSONEq(t, `{"data":"https://kite.onl","border":2}`, string(body))
+	assert.Equal(t, "https://images.cookie-api.com/qr-codes/1.png", c.GetNodeResult("1").Object()["url"].String())
+}
+
+func TestCookieAPICaptchaCreate(t *testing.T) {
+	httpProvider := &redirectCheckingHTTPProvider{body: `{"success":true,"captcha_id":"2725738690","url":"https://api.cookie-api.com/public/captcha?code=abc"}`}
+
+	c, err := executeIntegrationBlock(t, "action_cookie_api_captcha_create",
+		FlowNodeData{Fields: map[string]any{"captcha_provider": "Cloudflare", "captcha_color": "#FFFFFF"}},
+		map[string]string{"cookie_api": "k3y"}, httpProvider)
+	require.NoError(t, err)
+
+	assert.Equal(t, "POST", httpProvider.req.Method)
+	assert.Equal(t, "https://api.cookie-api.com/api/security/captcha/create?captcha_provider=Cloudflare&color=%23FFFFFF", httpProvider.req.URL.String())
+	assert.Nil(t, httpProvider.req.Body)
+	assert.Equal(t, "2725738690", c.GetNodeResult("1").Object()["captcha_id"].String())
+}
+
+func TestCookieAPIMinecraftUserGet(t *testing.T) {
+	httpProvider := &redirectCheckingHTTPProvider{body: `{"success":true,"edition":"JAVA","player_id":"1d25b1dc57e14bb9bd93f574f75cb4d0","player_name":"The_Tea_Cookie"}`}
+
+	c, err := executeIntegrationBlock(t, "action_cookie_api_minecraft_user_get",
+		FlowNodeData{Fields: map[string]any{"minecraft_code": "12345"}},
+		map[string]string{"cookie_api": "k3y"}, httpProvider)
+	require.NoError(t, err)
+
+	assert.Equal(t, "https://api.cookie-api.com/api/minecraft/get-user?code=12345", httpProvider.req.URL.String())
+	assert.Equal(t, "The_Tea_Cookie", c.GetNodeResult("1").Object()["player_name"].String())
+}
+
 // Integrations without a credential are on by default, until the app turns
 // them off.
 func TestCustomBlockNeedsEnabledIntegration(t *testing.T) {

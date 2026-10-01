@@ -73,6 +73,10 @@ const sections: Record<
       contextTypes: null,
     },
     {
+      title: "Cookie API",
+      contextTypes: null,
+    },
+    {
       title: "AI",
       contextTypes: null,
     },

@@ -1,0 +1,100 @@
+{
+  "source": "Written by hand from https://docs.cookie-api.com, which has no spec. Only the endpoints Kite uses.",
+  "operations": [
+    {
+      "id": "create_qr_code",
+      "method": "POST",
+      "path": "/api/images/qr-code",
+      "path_params": [],
+      "query_params": [],
+      "has_body": true,
+      "body_params": [
+        {
+          "name": "data",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "style",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "border",
+          "type": "integer",
+          "required": false
+        },
+        {
+          "name": "center_image_url",
+          "type": "string",
+          "required": false
+        }
+      ]
+    },
+    {
+      "id": "create_captcha",
+      "method": "POST",
+      "path": "/api/security/captcha/create",
+      "path_params": [],
+      "query_params": [
+        {
+          "name": "captcha_provider",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "color",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "font",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "expires",
+          "type": "integer",
+          "required": false
+        }
+      ],
+      "has_body": false
+    },
+    {
+      "id": "get_captcha",
+      "method": "GET",
+      "path": "/api/security/captcha/get-captcha",
+      "path_params": [],
+      "query_params": [
+        {
+          "name": "captcha_id",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "has_body": false
+    },
+    {
+      "id": "get_minecraft_user",
+      "method": "GET",
+      "path": "/api/minecraft/get-user",
+      "path_params": [],
+      "query_params": [
+        {
+          "name": "code",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "has_body": false
+    },
+    {
+      "id": "get_current_time",
+      "method": "GET",
+      "path": "/api/time/current-time",
+      "path_params": [],
+      "query_params": [],
+      "has_body": false
+    }
+  ]
+}

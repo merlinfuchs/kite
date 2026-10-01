@@ -57,6 +57,8 @@ export interface BlockField {
   min?: number;
   max?: number;
   max_length?: number;
+  // The values a string field can have, picked from a list in the editor.
+  options?: { value: string; label: string }[];
   widget?: "permissions";
 }
 
