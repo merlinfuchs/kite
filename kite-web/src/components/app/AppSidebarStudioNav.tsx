@@ -3,7 +3,6 @@ import {
   StoreIcon,
   KeyRoundIcon,
   PlugIcon,
-  LibraryBigIcon,
   SlashSquareIcon,
   MailPlusIcon,
   SatelliteDishIcon,
@@ -64,41 +63,13 @@ export default function AppSidebarStudioNav() {
             icon: BlocksIcon,
           },
           {
-            name: "Templates",
-            url: "/apps/[appId]/templates",
-            icon: LibraryBigIcon,
+            name: "Marketplace",
+            url: "/apps/[appId]/marketplace",
+            icon: StoreIcon,
           },
         ],
       },
       {
-        name: "Event Listeners",
-        url: "/apps/[appId]/events",
-        icon: SatelliteDishIcon,
-        active: isActive("/apps/[appId]/events"),
-      },
-      {
-        name: "Message Templates",
-        url: "/apps/[appId]/messages",
-        icon: MailPlusIcon,
-        active: isActive("/apps/[appId]/messages"),
-      },
-      {
-        name: "Stored Variables",
-        url: "/apps/[appId]/variables",
-        icon: VariableIcon,
-        active: isActive("/apps/[appId]/variables"),
-      },
-      {
-        name: "Plugins",
-        url: "/apps/[appId]/plugins",
-        icon: BlocksIcon,
-        active: isActive("/apps/[appId]/plugins"),
-      },
-      {
-        name: "Marketplace",
-        url: "/apps/[appId]/marketplace",
-        icon: StoreIcon,
-        active: isActive("/apps/[appId]/marketplace"),
         label: "Resources",
         items: [
           {
