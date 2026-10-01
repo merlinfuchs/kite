@@ -2,6 +2,7 @@ import { Edge, Node } from "@xyflow/react";
 import { FlowContextType } from "./context";
 import { NodeData } from "./dataSchema";
 import { getNodeTitle } from "./nodes";
+import { normalizeModalComponents } from "./modal";
 import { isResumeEdge } from "./resume";
 
 export interface PlaceholderGroup {
@@ -231,11 +232,13 @@ export function getProvidedPlaceholders(node: Node<NodeData>) {
   }
 
   if (node.type === "suspend_response_modal") {
-    for (const row of node.data.modal_data?.components ?? []) {
-      for (const component of row?.components ?? []) {
+    for (const row of normalizeModalComponents(
+      node.data.modal_data?.components
+    )) {
+      for (const component of row.components ?? []) {
         res.push({
           group: "Modal Inputs",
-          label: component.label ?? "Unknown Input",
+          label: row.label ?? "Unknown Input",
           value: `input('${component.custom_id}')`,
         });
       }

@@ -412,6 +412,36 @@ describe("validateFlow", () => {
     ]);
   });
 
+  it("finds modal inputs in labels", () => {
+    const modal = node("modal", "suspend_response_modal", {
+      modal_data: {
+        title: "Form",
+        components: [
+          { type: "text_display", content: "Tell us about you" },
+          {
+            type: "label",
+            label: "Color",
+            components: [
+              {
+                type: "string_select",
+                custom_id: "color",
+                options: [{ label: "Red" }],
+              },
+            ],
+          },
+        ],
+      },
+    });
+    expect(
+      errors(
+        [entry, modal, log("a", "{{input('color')}} {{input('size')}}")],
+        [edge("entry", "modal"), edge("modal", "a")]
+      )
+    ).toEqual([
+      "'Log Message' uses input('size'), but no modal before it has an input with the identifier 'size'.",
+    ]);
+  });
+
   it("counts earlier branches of loops and error handlers as running before", () => {
     const [loop, loopEdges] = createNode("control_loop", { x: 0, y: 0 });
     loop[0].data = { loop_count: "3" };

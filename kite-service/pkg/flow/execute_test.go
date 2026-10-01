@@ -2,6 +2,7 @@ package flow
 
 import (
 	"context"
+	"encoding/json"
 	"strings"
 	"testing"
 	"time"
@@ -149,13 +150,8 @@ func (d *TestContextData) Event() ws.Event {
 	return &gateway.InteractionCreateEvent{}
 }
 
-func TestFlowExecuteModalEvaluatesTemplates(t *testing.T) {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-
-	discordProvider := &TestDiscordProvider{}
-
-	c := NewContext(
+func newModalTestContext(ctx context.Context, discordProvider *TestDiscordProvider) *FlowContext {
+	return NewContext(
 		ctx,
 		5*time.Second,
 		&TestContextData{},
@@ -171,6 +167,14 @@ func TestFlowExecuteModalEvaluatesTemplates(t *testing.T) {
 		eval.NewContext(eval.Env{}),
 		nil,
 	)
+}
+
+func executeModal(t *testing.T, modal *ModalData) (*TestDiscordProvider, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	discordProvider := &TestDiscordProvider{}
+	c := newModalTestContext(ctx, discordProvider)
 	defer c.Cancel()
 
 	node := CompiledFlowNode{
@@ -181,44 +185,196 @@ func TestFlowExecuteModalEvaluatesTemplates(t *testing.T) {
 				{
 					ID:   "1",
 					Type: FlowNodeTypeSuspendResponseModal,
-					Data: FlowNodeData{
-						ModalData: &ModalData{
-							Title: "Form {{ 1 + 1 }}",
-							Components: []ModalComponentData{{
-								Components: []ModalComponentData{{
-									CustomID:    "name_{{ 1 }}",
-									Style:       1,
-									Label:       "Label {{ 2 + 1 }}",
-									Placeholder: "Placeholder {{ 4 }}",
-									Value:       "Value {{ 5 }}",
-								}, {
-									CustomID: "empty",
-									Style:    1,
-									Label:    "Empty",
-								}},
-							}},
-						},
-					},
+					Data: FlowNodeData{ModalData: modal},
 				},
 			},
 		},
 	}
 
-	err := node.Execute(c)
-	require.NoError(t, err)
+	return discordProvider, node.Execute(c)
+}
+
+// modalComponentsJSON returns the components of the modal response as Discord
+// receives them.
+func modalComponentsJSON(t *testing.T, discordProvider *TestDiscordProvider) []map[string]any {
 	require.NotNil(t, discordProvider.response.Data)
+	require.NotNil(t, discordProvider.response.Data.Components)
+
+	b, err := json.Marshal(discordProvider.response.Data.Components)
+	require.NoError(t, err)
+
+	var res []map[string]any
+	require.NoError(t, json.Unmarshal(b, &res))
+	return res
+}
+
+func TestFlowExecuteModalEvaluatesTemplates(t *testing.T) {
+	discordProvider, err := executeModal(t, &ModalData{
+		Title: "Form {{ 1 + 1 }}",
+		Components: []ModalComponentData{{
+			Components: []ModalComponentData{{
+				CustomID:    "name_{{ 1 }}",
+				Style:       1,
+				Label:       "Label {{ 2 + 1 }}",
+				Placeholder: "Placeholder {{ 4 }}",
+				Value:       "Value {{ 5 }}",
+			}, {
+				CustomID: "empty",
+				Style:    1,
+				Label:    "Empty",
+			}},
+		}},
+	})
+	require.NoError(t, err)
 	assert.Equal(t, "Form 2", discordProvider.response.Data.Title.Val)
 
-	row := (*discordProvider.response.Data.Components)[0].(*discord.ActionRowComponent)
-	input := (*row)[0].(*discord.TextInputComponent)
-	assert.Equal(t, discord.ComponentID("name_{{ 1 }}"), input.CustomID)
-	assert.Equal(t, "Label 3", input.Label)
-	assert.Equal(t, "Placeholder 4", input.Placeholder)
-	assert.Equal(t, "Value 5", input.Value)
+	components := modalComponentsJSON(t, discordProvider)
+	require.Len(t, components, 2)
 
-	empty := (*row)[1].(*discord.TextInputComponent)
-	assert.Equal(t, "", empty.Placeholder)
-	assert.Equal(t, "", empty.Value)
+	// A legacy row becomes one label per text input.
+	assert.EqualValues(t, discord.LabelComponentType, components[0]["type"])
+	assert.Equal(t, "Label 3", components[0]["label"])
+
+	input := components[0]["component"].(map[string]any)
+	assert.EqualValues(t, discord.TextInputComponentType, input["type"])
+	assert.Equal(t, "name_{{ 1 }}", input["custom_id"])
+	assert.Equal(t, "Placeholder 4", input["placeholder"])
+	assert.Equal(t, "Value 5", input["value"])
+	assert.NotContains(t, input, "label")
+
+	assert.Equal(t, "Empty", components[1]["label"])
+	empty := components[1]["component"].(map[string]any)
+	assert.NotContains(t, empty, "placeholder")
+	assert.NotContains(t, empty, "value")
+}
+
+func TestFlowExecuteModalComponents(t *testing.T) {
+	discordProvider, err := executeModal(t, &ModalData{
+		Title: "Form",
+		Components: []ModalComponentData{
+			{
+				Type:    ModalComponentTypeTextDisplay,
+				Content: "Hello {{ 1 + 1 }}",
+			},
+			{
+				Type:        ModalComponentTypeLabel,
+				Label:       "Color",
+				Description: "Pick {{ 1 }}",
+				Components: []ModalComponentData{{
+					Type:      ModalComponentTypeStringSelect,
+					CustomID:  "color",
+					MaxValues: 2,
+					Options: []ModalComponentOptionData{
+						{Label: "Red", Value: "red"},
+						{Label: "Blue", Default: true},
+					},
+				}},
+			},
+			{
+				Type:  ModalComponentTypeLabel,
+				Label: "Channel",
+				Components: []ModalComponentData{{
+					Type:         ModalComponentTypeChannelSelect,
+					CustomID:     "channel",
+					Required:     true,
+					ChannelTypes: []int{0},
+				}},
+			},
+			{
+				Type:  ModalComponentTypeLabel,
+				Label: "Agree",
+				Components: []ModalComponentData{{
+					Type:     ModalComponentTypeCheckbox,
+					CustomID: "agree",
+					Default:  true,
+				}},
+			},
+		},
+	})
+	require.NoError(t, err)
+
+	components := modalComponentsJSON(t, discordProvider)
+	require.Len(t, components, 4)
+
+	assert.EqualValues(t, discord.TextDisplayComponentType, components[0]["type"])
+	assert.Equal(t, "Hello 2", components[0]["content"])
+
+	assert.Equal(t, "Pick 1", components[1]["description"])
+	sel := components[1]["component"].(map[string]any)
+	assert.EqualValues(t, discord.StringSelectComponentType, sel["type"])
+	// An optional select has to send required: false, as Discord defaults it
+	// to true.
+	assert.Equal(t, false, sel["required"])
+	assert.EqualValues(t, 2, sel["max_values"])
+	assert.NotContains(t, sel, "min_values")
+	options := sel["options"].([]any)
+	assert.Equal(t, "Blue", options[1].(map[string]any)["value"])
+	assert.Equal(t, true, options[1].(map[string]any)["default"])
+
+	channel := components[2]["component"].(map[string]any)
+	assert.EqualValues(t, discord.ChannelSelectComponentType, channel["type"])
+	assert.Equal(t, true, channel["required"])
+	assert.Equal(t, []any{float64(0)}, channel["channel_types"])
+
+	checkbox := components[3]["component"].(map[string]any)
+	assert.EqualValues(t, discord.CheckboxComponentType, checkbox["type"])
+	assert.Equal(t, true, checkbox["default"])
+}
+
+func TestFlowExecuteModalInvalid(t *testing.T) {
+	tests := []struct {
+		name  string
+		modal *ModalData
+	}{
+		{
+			name:  "no components",
+			modal: &ModalData{Title: "Form"},
+		},
+		{
+			name: "only text",
+			modal: &ModalData{Title: "Form", Components: []ModalComponentData{
+				{Type: ModalComponentTypeTextDisplay, Content: "Hi"},
+			}},
+		},
+		{
+			name: "label without input",
+			modal: &ModalData{Title: "Form", Components: []ModalComponentData{
+				{Type: ModalComponentTypeLabel, Label: "Name"},
+			}},
+		},
+		{
+			name: "select without options",
+			modal: &ModalData{Title: "Form", Components: []ModalComponentData{
+				{Type: ModalComponentTypeLabel, Label: "Name", Components: []ModalComponentData{
+					{Type: ModalComponentTypeStringSelect, CustomID: "name"},
+				}},
+			}},
+		},
+		{
+			name: "radio group with one option",
+			modal: &ModalData{Title: "Form", Components: []ModalComponentData{
+				{Type: ModalComponentTypeLabel, Label: "Name", Components: []ModalComponentData{
+					{Type: ModalComponentTypeRadioGroup, CustomID: "name", Options: []ModalComponentOptionData{{Label: "A"}}},
+				}},
+			}},
+		},
+		{
+			name: "min above max",
+			modal: &ModalData{Title: "Form", Components: []ModalComponentData{
+				{Type: ModalComponentTypeLabel, Label: "Name", Components: []ModalComponentData{
+					{Type: ModalComponentTypeUserSelect, CustomID: "name", MinValues: 3, MaxValues: 2},
+				}},
+			}},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			discordProvider, err := executeModal(t, test.modal)
+			require.Error(t, err)
+			assert.NotEqual(t, api.ModalResponse, discordProvider.response.Type)
+		})
+	}
 }
 
 func TestFlowExecuteConditionCompareEquality(t *testing.T) {

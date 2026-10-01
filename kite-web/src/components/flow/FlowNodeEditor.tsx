@@ -16,6 +16,18 @@ import { getFlowCreditsCost } from "@/lib/flow/schedule";
 import { aiModelTiers, getAiModelTier } from "@/lib/flow/aiModels";
 import { getBlockDefinition } from "@/lib/blocks";
 import {
+  ModalInputType,
+  modalInputHasOptions,
+  modalInputHasPlaceholder,
+  modalInputHasValueLimits,
+  modalInputTypes,
+  modalComponentNumber,
+  modalMaxComponents,
+  newModalInput,
+  nextModalInputNumber,
+  normalizeModalComponents,
+} from "@/lib/flow/modal";
+import {
   discordApiOperationLabel,
   discordApiOperations,
   getDiscordApiOperation,
@@ -28,6 +40,7 @@ import {
   EmojiData,
   HTTPRequestData,
   ModalComponentData,
+  ModalComponentOptionData,
   PermissionOverwriteData,
   PollAnswerData,
   PollData,
@@ -36,6 +49,7 @@ import {
 import { Node, useNodes, useReactFlow, useStoreApi } from "@xyflow/react";
 import {
   ChevronDownIcon,
+  ChevronUpIcon,
   CircleAlertIcon,
   CopyIcon,
   HelpCircleIcon,
@@ -1949,47 +1963,89 @@ function PollDataInput({ data, updateData, errors }: InputProps) {
   );
 }
 
+const modalChannelTypeOptions = [
+  { label: "Text", value: "0" },
+  { label: "Voice", value: "2" },
+  { label: "Category", value: "4" },
+  { label: "Announcement", value: "5" },
+  { label: "Announcement Thread", value: "10" },
+  { label: "Public Thread", value: "11" },
+  { label: "Private Thread", value: "12" },
+  { label: "Stage", value: "13" },
+  { label: "Forum", value: "15" },
+  { label: "Media", value: "16" },
+];
+
+function parseOptionalInt(v: string) {
+  const n = parseInt(v);
+  return isNaN(n) ? undefined : n;
+}
+
 function ModalDataInput({ data, updateData, errors }: InputProps) {
-  const addInput = useCallback(() => {
-    updateData({
-      modal_data: {
-        title: data.modal_data?.title,
-        components: [
-          ...(data.modal_data?.components || []),
-          { components: [{ style: 1 }] },
-        ],
-      },
-    });
-  }, [updateData, data]);
+  // Older modals are converted when they are edited, so the editor only
+  // deals with labels and text displays.
+  const components = useMemo(
+    () => normalizeModalComponents(data.modal_data?.components),
+    [data.modal_data?.components]
+  );
 
-  const clearInputs = useCallback(() => {
-    updateData({
-      modal_data: {
-        title: data.modal_data?.title,
-        components: [],
-      },
-    });
-  }, [updateData, data]);
-
-  const updateComponentField = useCallback(
-    (r: number, c: number, newData: Partial<ModalComponentData>) => {
-      const current = data.modal_data || {};
-      if (!current.components) return;
-
-      const row = current.components[r];
-      if (!row || !row.components) return;
-
-      const component = row.components[c];
-      if (!component) return;
-
-      Object.assign(component, newData);
-
+  const setComponents = useCallback(
+    (newComponents: ModalComponentData[]) => {
       updateData({
-        modal_data: current,
+        modal_data: {
+          title: data.modal_data?.title,
+          components: newComponents,
+        },
       });
     },
-    [updateData, data]
+    [updateData, data.modal_data?.title]
   );
+
+  const updateComponent = useCallback(
+    (i: number, newData: Partial<ModalComponentData>) => {
+      setComponents(
+        components.map((c, j) => (j === i ? { ...c, ...newData } : c))
+      );
+    },
+    [setComponents, components]
+  );
+
+  const updateInput = useCallback(
+    (i: number, newData: Partial<ModalComponentData>) => {
+      const input = components[i]?.components?.[0] ?? {};
+      updateComponent(i, { components: [{ ...input, ...newData }] });
+    },
+    [updateComponent, components]
+  );
+
+  const moveComponent = useCallback(
+    (i: number, dir: -1 | 1) => {
+      const j = i + dir;
+      if (j < 0 || j >= components.length) return;
+      const res = [...components];
+      [res[i], res[j]] = [res[j], res[i]];
+      setComponents(res);
+    },
+    [setComponents, components]
+  );
+
+  const addInput = useCallback(() => {
+    const n = nextModalInputNumber(components);
+    setComponents([
+      ...components,
+      {
+        type: "label",
+        label: `Input ${n}`,
+        components: [newModalInput("text_input", `input_${n}`)],
+      },
+    ]);
+  }, [setComponents, components]);
+
+  const addText = useCallback(() => {
+    setComponents([...components, { type: "text_display", content: "" }]);
+  }, [setComponents, components]);
+
+  const componentsError = errors["modal_data.components"];
 
   return (
     <Dialog>
@@ -2001,20 +2057,21 @@ function ModalDataInput({ data, updateData, errors }: InputProps) {
           <DialogTitle>Configure Modal</DialogTitle>
           <DialogDescription>
             Configure your modal here! A modal must have a title and at least
-            one input component.
+            one input. It can have up to {modalMaxComponents} inputs and texts.
+            The answers can be read with {"{{input('identifier')}}"}.
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-3">
           <BaseInput
             type="text"
-            field="modal_data"
+            field="modal_data.title"
             title="Title"
             value={data.modal_data?.title || ""}
             updateValue={(v) =>
               updateData({
                 modal_data: {
                   title: v || undefined,
-                  components: data.modal_data?.components,
+                  components,
                 },
               })
             }
@@ -2023,103 +2080,404 @@ function ModalDataInput({ data, updateData, errors }: InputProps) {
           />
 
           <div className="space-y-3">
-            <div className="font-medium text-foreground">Inputs</div>
-            {data.modal_data?.components?.map((row, r) =>
-              row?.components?.map((component, c) => (
-                <Card className="space-y-3 p-3 -mx-1" key={`${r}-${c}`}>
-                  <div className="flex space-x-3">
-                    <BaseInput
-                      type="select"
-                      field={`modal_data.components.${r}.components.${c}.type`}
-                      title="Type"
-                      value={component.style?.toString() || "1"}
-                      options={[
-                        {
-                          label: "Short",
-                          value: "1",
-                        },
-                        {
-                          label: "Paragraph",
-                          value: "2",
-                        },
-                      ]}
-                      updateValue={(v) =>
-                        updateComponentField(r, c, {
-                          style: parseInt(v) || 1,
-                        })
-                      }
-                      errors={errors}
-                    />
-                    <BaseCheckbox
-                      field={`modal_data.components.${r}.components.${c}.required`}
-                      title="Required"
-                      value={component?.required || false}
-                      updateValue={(v) =>
-                        updateComponentField(r, c, {
-                          required: v,
-                        })
-                      }
-                      errors={errors}
-                    />
+            <div className="font-medium text-foreground">Components</div>
+            {components.map((component, i) => (
+              <Card className="space-y-3 p-3 -mx-1" key={i}>
+                <div className="flex items-center gap-2">
+                  <div className="font-medium text-foreground flex-auto">
+                    {component.type === "text_display" ? "Text" : "Input"}{" "}
+                    {modalComponentNumber(components, i)}
                   </div>
-                  <BaseInput
-                    type="text"
-                    field={`modal_data.components.${r}.components.${c}.custom_id`}
-                    title="Identifier"
-                    description="Used to identify the input in your flow."
-                    value={component?.custom_id || ""}
-                    updateValue={(v) =>
-                      updateComponentField(r, c, {
-                        custom_id: v || undefined,
-                      })
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    disabled={i === 0}
+                    onClick={() => moveComponent(i, -1)}
+                  >
+                    <ChevronUpIcon className="h-5 w-5" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    disabled={i === components.length - 1}
+                    onClick={() => moveComponent(i, 1)}
+                  >
+                    <ChevronDownIcon className="h-5 w-5" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() =>
+                      setComponents(components.filter((_, j) => j !== i))
                     }
-                    errors={errors}
-                  />
+                  >
+                    <TrashIcon className="h-5 w-5" />
+                  </Button>
+                </div>
+                {component.type === "text_display" ? (
                   <BaseInput
-                    type="text"
-                    field={`modal_data.components.${r}.components.${c}.label`}
-                    title="Label"
-                    value={component?.label || ""}
+                    type="textarea"
+                    field={`modal_data.components.${i}.content`}
+                    title="Content"
+                    description="Markdown text shown in the modal."
+                    value={component.content || ""}
                     updateValue={(v) =>
-                      updateComponentField(r, c, {
-                        label: v || undefined,
-                      })
+                      updateComponent(i, { content: v || undefined })
                     }
                     errors={errors}
                     placeholders
                   />
-                  <BaseInput
-                    type="text"
-                    field={`modal_data.components.${r}.components.${c}.placeholder`}
-                    title="Placeholder"
-                    value={component?.placeholder || ""}
-                    updateValue={(v) =>
-                      updateComponentField(r, c, {
-                        placeholder: v || undefined,
-                      })
-                    }
+                ) : (
+                  <ModalLabelInput
+                    index={i}
+                    component={component}
+                    updateComponent={(d) => updateComponent(i, d)}
+                    updateInput={(d) => updateInput(i, d)}
                     errors={errors}
-                    placeholders
                   />
-                </Card>
-              ))
-            )}
+                )}
+              </Card>
+            ))}
           </div>
+
+          {componentsError && (
+            <div className="text-red-600 dark:text-red-400 text-sm flex items-center space-x-1">
+              <CircleAlertIcon className="h-5 w-5 flex-none" />
+              <div>{componentsError}</div>
+            </div>
+          )}
 
           <div className="flex space-x-3">
             <Button
               onClick={addInput}
-              disabled={(data.modal_data?.components?.length || 0) >= 5}
+              disabled={components.length >= modalMaxComponents}
             >
               Add Input
             </Button>
-            <Button variant="outline" onClick={clearInputs}>
-              Clear Inputs
+            <Button
+              variant="outline"
+              onClick={addText}
+              disabled={components.length >= modalMaxComponents}
+            >
+              Add Text
+            </Button>
+            <Button variant="outline" onClick={() => setComponents([])}>
+              Clear
             </Button>
           </div>
         </div>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function ModalLabelInput({
+  index,
+  component,
+  updateComponent,
+  updateInput,
+  errors,
+}: {
+  index: number;
+  component: ModalComponentData;
+  updateComponent: (data: Partial<ModalComponentData>) => void;
+  updateInput: (data: Partial<ModalComponentData>) => void;
+  errors: Record<string, string>;
+}) {
+  const input = component.components?.[0] ?? {};
+  const type = input.type || "text_input";
+  const field = `modal_data.components.${index}`;
+  const inputField = `${field}.components.0`;
+
+  return (
+    <>
+      <div className="flex space-x-3">
+        <BaseInput
+          type="select"
+          field={`${inputField}.type`}
+          title="Type"
+          value={type}
+          options={modalInputTypes.map((t) => ({
+            label: t.label,
+            value: t.value,
+          }))}
+          updateValue={(v) =>
+            updateComponent({
+              components: [newModalInput(v as ModalInputType, input.custom_id)],
+            })
+          }
+          errors={errors}
+        />
+        {type === "checkbox" ? (
+          <BaseCheckbox
+            field={`${inputField}.default`}
+            title="Checked"
+            value={!!input.default}
+            updateValue={(v) => updateInput({ default: v || undefined })}
+            errors={errors}
+          />
+        ) : (
+          <BaseCheckbox
+            field={`${inputField}.required`}
+            title="Required"
+            value={!!input.required}
+            updateValue={(v) => updateInput({ required: v || undefined })}
+            errors={errors}
+          />
+        )}
+      </div>
+      <BaseInput
+        type="text"
+        field={`${inputField}.custom_id`}
+        title="Identifier"
+        description="Used to read the answer in your flow with input('identifier')."
+        value={input.custom_id || ""}
+        updateValue={(v) => updateInput({ custom_id: v || undefined })}
+        errors={errors}
+      />
+      <BaseInput
+        type="text"
+        field={`${field}.label`}
+        title="Label"
+        value={component.label || ""}
+        updateValue={(v) => updateComponent({ label: v || undefined })}
+        errors={errors}
+        placeholders
+      />
+      <BaseInput
+        type="text"
+        field={`${field}.description`}
+        title="Description"
+        description="Optional smaller text shown below the label."
+        value={component.description || ""}
+        updateValue={(v) => updateComponent({ description: v || undefined })}
+        errors={errors}
+        placeholders
+      />
+      {type === "text_input" && (
+        <>
+          <BaseInput
+            type="select"
+            field={`${inputField}.style`}
+            title="Style"
+            value={input.style?.toString() || "1"}
+            options={[
+              { label: "Short", value: "1" },
+              { label: "Paragraph", value: "2" },
+            ]}
+            updateValue={(v) => updateInput({ style: parseInt(v) || 1 })}
+            errors={errors}
+          />
+          <div className="flex space-x-3">
+            <BaseInput
+              type="text"
+              field={`${inputField}.min_length`}
+              title="Min Length"
+              value={input.min_length?.toString() || ""}
+              updateValue={(v) =>
+                updateInput({ min_length: parseOptionalInt(v) })
+              }
+              errors={errors}
+            />
+            <BaseInput
+              type="text"
+              field={`${inputField}.max_length`}
+              title="Max Length"
+              value={input.max_length?.toString() || ""}
+              updateValue={(v) =>
+                updateInput({ max_length: parseOptionalInt(v) })
+              }
+              errors={errors}
+            />
+          </div>
+          <BaseInput
+            type="text"
+            field={`${inputField}.value`}
+            title="Pre-filled Value"
+            value={input.value || ""}
+            updateValue={(v) => updateInput({ value: v || undefined })}
+            errors={errors}
+            placeholders
+          />
+        </>
+      )}
+      {modalInputHasPlaceholder(type) && (
+        <BaseInput
+          type="text"
+          field={`${inputField}.placeholder`}
+          title="Placeholder"
+          value={input.placeholder || ""}
+          updateValue={(v) => updateInput({ placeholder: v || undefined })}
+          errors={errors}
+          placeholders
+        />
+      )}
+      {modalInputHasValueLimits(type) && (
+        <div className="flex space-x-3">
+          <BaseInput
+            type="text"
+            field={`${inputField}.min_values`}
+            title="Min Picks"
+            value={input.min_values?.toString() || ""}
+            updateValue={(v) =>
+              updateInput({ min_values: parseOptionalInt(v) })
+            }
+            errors={errors}
+          />
+          <BaseInput
+            type="text"
+            field={`${inputField}.max_values`}
+            title="Max Picks"
+            value={input.max_values?.toString() || ""}
+            updateValue={(v) =>
+              updateInput({ max_values: parseOptionalInt(v) })
+            }
+            errors={errors}
+          />
+        </div>
+      )}
+      {type === "channel_select" && (
+        <BaseMultiSelect
+          field={`${inputField}.channel_types`}
+          title="Channel Types"
+          description="Leave empty to allow all channel types."
+          options={modalChannelTypeOptions}
+          values={(input.channel_types ?? []).map((t) => t.toString())}
+          updateValues={(v) =>
+            updateInput({
+              channel_types:
+                v.length > 0 ? v.map((t) => parseInt(t)) : undefined,
+            })
+          }
+          errors={errors}
+        />
+      )}
+      {modalInputHasOptions(type) && (
+        <ModalOptionsInput
+          field={`${inputField}.options`}
+          options={input.options ?? []}
+          max={type === "string_select" ? 25 : 10}
+          updateOptions={(options) => updateInput({ options })}
+          errors={errors}
+        />
+      )}
+    </>
+  );
+}
+
+function ModalOptionsInput({
+  field,
+  options,
+  max,
+  updateOptions,
+  errors,
+}: {
+  field: string;
+  options: ModalComponentOptionData[];
+  max: number;
+  updateOptions: (options: ModalComponentOptionData[]) => void;
+  errors: Record<string, string>;
+}) {
+  const updateOption = (i: number, data: Partial<ModalComponentOptionData>) =>
+    updateOptions(options.map((o, j) => (j === i ? { ...o, ...data } : o)));
+
+  const error = errors[field];
+
+  return (
+    <div>
+      <div className="font-medium text-foreground mb-1">Options</div>
+      <div className="text-muted-foreground text-sm mb-2">
+        The value is what input() returns when the option is picked. Leave it
+        empty to use the label.
+      </div>
+      <div className="flex flex-col gap-3">
+        {options.map((option, i) => {
+          const optionError =
+            errors[`${field}.${i}.label`] ||
+            errors[`${field}.${i}.value`] ||
+            errors[`${field}.${i}.description`];
+
+          return (
+            <div key={i}>
+              <div className="flex gap-2 items-center">
+                <div className="flex-auto grid grid-cols-3 gap-2">
+                  <PlaceholderInput
+                    value={option.label || ""}
+                    onChange={(v) => updateOption(i, { label: v || undefined })}
+                    placeholder="Label"
+                  />
+                  <PlaceholderInput
+                    value={option.value || ""}
+                    onChange={(v) => updateOption(i, { value: v || undefined })}
+                    placeholder="Value"
+                  />
+                  <PlaceholderInput
+                    value={option.description || ""}
+                    onChange={(v) =>
+                      updateOption(i, { description: v || undefined })
+                    }
+                    placeholder="Description"
+                  />
+                </div>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div>
+                      <Switch
+                        checked={!!option.default}
+                        onCheckedChange={(v) =>
+                          updateOption(i, { default: v || undefined })
+                        }
+                      />
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent>Picked by default</TooltipContent>
+                </Tooltip>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="flex-none"
+                  onClick={() =>
+                    updateOptions(options.filter((_, j) => j !== i))
+                  }
+                >
+                  <MinusIcon className="h-5 w-5" />
+                </Button>
+              </div>
+              {optionError && (
+                <div className="text-red-600 dark:text-red-400 text-sm flex items-center space-x-1 pt-2">
+                  <CircleAlertIcon className="h-5 w-5 flex-none" />
+                  <div>{optionError}</div>
+                </div>
+              )}
+            </div>
+          );
+        })}
+        <div className="flex">
+          <Button
+            variant="outline"
+            size="icon"
+            disabled={options.length >= max}
+            onClick={() =>
+              updateOptions([
+                ...options,
+                {
+                  label: `Option ${options.length + 1}`,
+                  value: `option_${options.length + 1}`,
+                },
+              ])
+            }
+          >
+            <PlusIcon className="h-5 w-5" />
+          </Button>
+        </div>
+      </div>
+      {error && (
+        <div className="text-red-600 dark:text-red-400 text-sm flex items-center space-x-1 pt-2">
+          <CircleAlertIcon className="h-5 w-5 flex-none" />
+          <div>{error}</div>
+        </div>
+      )}
+    </div>
   );
 }
 
