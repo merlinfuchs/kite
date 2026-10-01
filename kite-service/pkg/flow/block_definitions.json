@@ -1275,6 +1275,19 @@
       "result": null
     },
     {
+      "type": "action_member_voice_edit",
+      "credits": 1,
+      "audit_log_reason": true,
+      "requires": [
+        "discord"
+      ],
+      "run": {
+        "kind": "custom"
+      },
+      "fields": [],
+      "result": null
+    },
+    {
       "type": "action_status_set",
       "credits": 1,
       "audit_log_reason": false,

@@ -50,6 +50,7 @@ import { discordMemberRoleAdd } from "./discordMemberRoleAdd";
 import { discordMemberRoleRemove } from "./discordMemberRoleRemove";
 import { discordMemberTimeout } from "./discordMemberTimeout";
 import { discordMemberUnban } from "./discordMemberUnban";
+import { discordMemberVoiceEdit } from "./discordMemberVoiceEdit";
 import { discordMessageBulkDelete } from "./discordMessageBulkDelete";
 import { discordMessageCreate } from "./discordMessageCreate";
 import { discordMessageDelete } from "./discordMessageDelete";
@@ -137,6 +138,7 @@ export const blockDefinitions: BlockDefinition[] = [
   discordInviteCreate,
   discordVoiceChannelJoin,
   discordVoiceChannelLeave,
+  discordMemberVoiceEdit,
   discordStatusSet,
   variableSet,
   variableDelete,
