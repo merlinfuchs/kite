@@ -10,6 +10,8 @@ import UpsellPopup from "./UpsellPopup";
 // Rendered from _app via getLayout, so the sidebar stays mounted and keeps its
 // open state and scroll position when navigating between app pages.
 export default function AppShell({ children }: { children: ReactNode }) {
+  const router = useRouter();
+
   useApp((res) => {
     if (!res.success) {
       toast.error(
@@ -25,8 +27,6 @@ export default function AppShell({ children }: { children: ReactNode }) {
       }
     }
   });
-
-  const router = useRouter();
 
   // TODO: remember open state of sidebar on desktop
   return (
