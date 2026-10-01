@@ -17,7 +17,11 @@
         {
           "name": "style",
           "type": "string",
-          "required": false
+          "required": false,
+          "enum": [
+            "standart",
+            "dots"
+          ]
         },
         {
           "name": "border",
@@ -40,7 +44,11 @@
         {
           "name": "captcha_provider",
           "type": "string",
-          "required": true
+          "required": true,
+          "enum": [
+            "Cloudflare",
+            "Google"
+          ]
         },
         {
           "name": "color",

@@ -22,6 +22,7 @@ const serviceBlocks = blockDefinitions.map((block) => ({
     min: f.min ?? null,
     max: f.max ?? null,
     max_length: f.max_length ?? null,
+    options: f.options?.map((o) => o.value) ?? null,
   })),
   result: block.result
     ? { thing: block.result.thing ?? "", list: !!block.result.list }
@@ -129,6 +130,22 @@ describe("block definitions", () => {
           op.query_params.some((p) => p.name === name),
           `${block.type}.${name}`
         ).toBe(true);
+      }
+      for (const param of op.query_params.filter((p) => p.required)) {
+        const field = block.fields.find(
+          (f) => f.in === "query" && (f.target ?? f.name) === param.name
+        );
+        expect(field?.required, `${block.type} requires ${param.name}`).toBe(
+          true
+        );
+      }
+      for (const field of block.fields.filter((f) => f.options)) {
+        const param = [...op.query_params, ...(op.body_params ?? [])].find(
+          (p) => p.name === (field.target ?? field.name)
+        );
+        expect(param?.enum, `${block.type}.${field.name}`).toEqual(
+          expect.arrayContaining(field.options!.map((o) => o.value))
+        );
       }
 
       if (targets("body").length > 0) {

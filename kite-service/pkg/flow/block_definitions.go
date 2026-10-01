@@ -46,6 +46,8 @@ type blockField struct {
 	Min       *int64 `json:"min"`
 	Max       *int64 `json:"max"`
 	MaxLength *int   `json:"max_length"`
+	// The values a string field can have, if they're limited.
+	Options []string `json:"options"`
 }
 
 // blockRequest is how a block runs: a request to the API of an integration
@@ -440,6 +442,9 @@ func (f blockField) value(value thing.Thing) (any, error) {
 		s := value.String()
 		if f.MaxLength != nil && utf8.RuneCountInString(s) > *f.MaxLength {
 			return nil, fmt.Errorf("must be at most %d characters", *f.MaxLength)
+		}
+		if len(f.Options) > 0 && !slices.Contains(f.Options, s) {
+			return nil, fmt.Errorf("must be one of %s", strings.Join(f.Options, ", "))
 		}
 		return s, nil
 	}

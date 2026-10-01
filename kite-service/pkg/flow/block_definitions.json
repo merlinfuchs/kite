@@ -213,7 +213,8 @@
           "fallback": "",
           "min": null,
           "max": null,
-          "max_length": null
+          "max_length": null,
+          "options": null
         },
         {
           "name": "message_target",
@@ -224,7 +225,8 @@
           "fallback": "",
           "min": null,
           "max": null,
-          "max_length": null
+          "max_length": null,
+          "options": null
         }
       ],
       "result": null
@@ -285,7 +287,8 @@
           "fallback": "",
           "min": null,
           "max": null,
-          "max_length": null
+          "max_length": null,
+          "options": null
         },
         {
           "name": "message_target",
@@ -296,7 +299,8 @@
           "fallback": "",
           "min": null,
           "max": null,
-          "max_length": null
+          "max_length": null,
+          "options": null
         },
         {
           "name": "emoji_data",
@@ -307,7 +311,8 @@
           "fallback": "",
           "min": null,
           "max": null,
-          "max_length": null
+          "max_length": null,
+          "options": null
         }
       ],
       "result": null
@@ -336,7 +341,8 @@
           "fallback": "",
           "min": null,
           "max": null,
-          "max_length": null
+          "max_length": null,
+          "options": null
         },
         {
           "name": "message_target",
@@ -347,7 +353,8 @@
           "fallback": "",
           "min": null,
           "max": null,
-          "max_length": null
+          "max_length": null,
+          "options": null
         },
         {
           "name": "emoji_data",
@@ -358,7 +365,8 @@
           "fallback": "",
           "min": null,
           "max": null,
-          "max_length": null
+          "max_length": null,
+          "options": null
         }
       ],
       "result": null
@@ -387,7 +395,8 @@
           "fallback": "",
           "min": null,
           "max": null,
-          "max_length": null
+          "max_length": null,
+          "options": null
         },
         {
           "name": "message_target",
@@ -398,7 +407,8 @@
           "fallback": "",
           "min": null,
           "max": null,
-          "max_length": null
+          "max_length": null,
+          "options": null
         }
       ],
       "result": null
@@ -427,7 +437,8 @@
           "fallback": "",
           "min": null,
           "max": null,
-          "max_length": null
+          "max_length": null,
+          "options": null
         },
         {
           "name": "message_target",
@@ -438,7 +449,8 @@
           "fallback": "",
           "min": null,
           "max": null,
-          "max_length": null
+          "max_length": null,
+          "options": null
         }
       ],
       "result": null
@@ -483,7 +495,8 @@
           "fallback": "channel",
           "min": null,
           "max": null,
-          "max_length": null
+          "max_length": null,
+          "options": null
         },
         {
           "name": "limit",
@@ -494,7 +507,8 @@
           "fallback": "",
           "min": 1,
           "max": 100,
-          "max_length": null
+          "max_length": null,
+          "options": null
         },
         {
           "name": "before",
@@ -505,7 +519,8 @@
           "fallback": "",
           "min": null,
           "max": null,
-          "max_length": null
+          "max_length": null,
+          "options": null
         },
         {
           "name": "after",
@@ -516,7 +531,8 @@
           "fallback": "",
           "min": null,
           "max": null,
-          "max_length": null
+          "max_length": null,
+          "options": null
         }
       ],
       "result": {
@@ -548,7 +564,8 @@
           "fallback": "channel",
           "min": null,
           "max": null,
-          "max_length": null
+          "max_length": null,
+          "options": null
         },
         {
           "name": "message_ids",
@@ -559,7 +576,8 @@
           "fallback": "",
           "min": 2,
           "max": 100,
-          "max_length": null
+          "max_length": null,
+          "options": null
         }
       ],
       "result": null
@@ -588,7 +606,8 @@
           "fallback": "guild",
           "min": null,
           "max": null,
-          "max_length": null
+          "max_length": null,
+          "options": null
         },
         {
           "name": "user_target",
@@ -599,7 +618,8 @@
           "fallback": "",
           "min": null,
           "max": null,
-          "max_length": null
+          "max_length": null,
+          "options": null
         },
         {
           "name": "member_ban_delete_message_duration_seconds",
@@ -610,7 +630,8 @@
           "fallback": "",
           "min": 0,
           "max": 604800,
-          "max_length": null
+          "max_length": null,
+          "options": null
         }
       ],
       "result": null
@@ -639,7 +660,8 @@
           "fallback": "guild",
           "min": null,
           "max": null,
-          "max_length": null
+          "max_length": null,
+          "options": null
         },
         {
           "name": "user_target",
@@ -650,7 +672,8 @@
           "fallback": "",
           "min": null,
           "max": null,
-          "max_length": null
+          "max_length": null,
+          "options": null
         }
       ],
       "result": null
@@ -679,7 +702,8 @@
           "fallback": "guild",
           "min": null,
           "max": null,
-          "max_length": null
+          "max_length": null,
+          "options": null
         },
         {
           "name": "user_target",
@@ -690,7 +714,8 @@
           "fallback": "",
           "min": null,
           "max": null,
-          "max_length": null
+          "max_length": null,
+          "options": null
         }
       ],
       "result": null
@@ -720,7 +745,8 @@
           "fallback": "guild",
           "min": null,
           "max": null,
-          "max_length": null
+          "max_length": null,
+          "options": null
         },
         {
           "name": "user_target",
@@ -731,7 +757,8 @@
           "fallback": "",
           "min": null,
           "max": null,
-          "max_length": null
+          "max_length": null,
+          "options": null
         },
         {
           "name": "member_timeout_duration_seconds",
@@ -742,7 +769,8 @@
           "fallback": "",
           "min": 0,
           "max": 2419200,
-          "max_length": null
+          "max_length": null,
+          "options": null
         }
       ],
       "result": null
@@ -816,7 +844,8 @@
           "fallback": "guild",
           "min": null,
           "max": null,
-          "max_length": null
+          "max_length": null,
+          "options": null
         },
         {
           "name": "user_target",
@@ -827,7 +856,8 @@
           "fallback": "",
           "min": null,
           "max": null,
-          "max_length": null
+          "max_length": null,
+          "options": null
         },
         {
           "name": "role_target",
@@ -838,7 +868,8 @@
           "fallback": "",
           "min": null,
           "max": null,
-          "max_length": null
+          "max_length": null,
+          "options": null
         }
       ],
       "result": null
@@ -867,7 +898,8 @@
           "fallback": "guild",
           "min": null,
           "max": null,
-          "max_length": null
+          "max_length": null,
+          "options": null
         },
         {
           "name": "user_target",
@@ -878,7 +910,8 @@
           "fallback": "",
           "min": null,
           "max": null,
-          "max_length": null
+          "max_length": null,
+          "options": null
         },
         {
           "name": "role_target",
@@ -889,7 +922,8 @@
           "fallback": "",
           "min": null,
           "max": null,
-          "max_length": null
+          "max_length": null,
+          "options": null
         }
       ],
       "result": null
@@ -934,7 +968,8 @@
           "fallback": "guild",
           "min": null,
           "max": null,
-          "max_length": null
+          "max_length": null,
+          "options": null
         },
         {
           "name": "name",
@@ -945,7 +980,8 @@
           "fallback": "",
           "min": null,
           "max": null,
-          "max_length": 100
+          "max_length": 100,
+          "options": null
         },
         {
           "name": "permissions",
@@ -956,7 +992,8 @@
           "fallback": "",
           "min": null,
           "max": null,
-          "max_length": null
+          "max_length": null,
+          "options": null
         },
         {
           "name": "color",
@@ -967,7 +1004,8 @@
           "fallback": "",
           "min": 0,
           "max": 16777215,
-          "max_length": null
+          "max_length": null,
+          "options": null
         },
         {
           "name": "hoist",
@@ -978,7 +1016,8 @@
           "fallback": "",
           "min": null,
           "max": null,
-          "max_length": null
+          "max_length": null,
+          "options": null
         },
         {
           "name": "mentionable",
@@ -989,7 +1028,8 @@
           "fallback": "",
           "min": null,
           "max": null,
-          "max_length": null
+          "max_length": null,
+          "options": null
         }
       ],
       "result": {
@@ -1069,7 +1109,8 @@
           "fallback": "",
           "min": null,
           "max": null,
-          "max_length": null
+          "max_length": null,
+          "options": null
         }
       ],
       "result": null
@@ -1130,7 +1171,8 @@
           "fallback": "",
           "min": null,
           "max": null,
-          "max_length": null
+          "max_length": null,
+          "options": null
         },
         {
           "name": "user_target",
@@ -1141,7 +1183,8 @@
           "fallback": "",
           "min": null,
           "max": null,
-          "max_length": null
+          "max_length": null,
+          "options": null
         }
       ],
       "result": null
@@ -1170,7 +1213,8 @@
           "fallback": "",
           "min": null,
           "max": null,
-          "max_length": null
+          "max_length": null,
+          "options": null
         },
         {
           "name": "user_target",
@@ -1181,7 +1225,8 @@
           "fallback": "",
           "min": null,
           "max": null,
-          "max_length": null
+          "max_length": null,
+          "options": null
         }
       ],
       "result": null
@@ -1210,7 +1255,8 @@
           "fallback": "channel",
           "min": null,
           "max": null,
-          "max_length": null
+          "max_length": null,
+          "options": null
         },
         {
           "name": "max_age",
@@ -1221,7 +1267,8 @@
           "fallback": "",
           "min": 0,
           "max": 5184000,
-          "max_length": null
+          "max_length": null,
+          "options": null
         },
         {
           "name": "max_uses",
@@ -1232,7 +1279,8 @@
           "fallback": "",
           "min": 0,
           "max": 100,
-          "max_length": null
+          "max_length": null,
+          "options": null
         },
         {
           "name": "temporary",
@@ -1243,7 +1291,8 @@
           "fallback": "",
           "min": null,
           "max": null,
-          "max_length": null
+          "max_length": null,
+          "options": null
         },
         {
           "name": "unique",
@@ -1254,7 +1303,8 @@
           "fallback": "",
           "min": null,
           "max": null,
-          "max_length": null
+          "max_length": null,
+          "options": null
         }
       ],
       "result": {
@@ -1380,7 +1430,8 @@
           "fallback": "",
           "min": null,
           "max": null,
-          "max_length": null
+          "max_length": null,
+          "options": null
         },
         {
           "name": "qr_code_style",
@@ -1391,7 +1442,11 @@
           "fallback": "",
           "min": null,
           "max": null,
-          "max_length": null
+          "max_length": null,
+          "options": [
+            "standart",
+            "dots"
+          ]
         },
         {
           "name": "qr_code_border",
@@ -1402,7 +1457,8 @@
           "fallback": "",
           "min": 0,
           "max": null,
-          "max_length": null
+          "max_length": null,
+          "options": null
         },
         {
           "name": "qr_code_center_image_url",
@@ -1413,7 +1469,8 @@
           "fallback": "",
           "min": null,
           "max": null,
-          "max_length": null
+          "max_length": null,
+          "options": null
         }
       ],
       "result": {
@@ -1445,7 +1502,11 @@
           "fallback": "",
           "min": null,
           "max": null,
-          "max_length": null
+          "max_length": null,
+          "options": [
+            "Cloudflare",
+            "Google"
+          ]
         },
         {
           "name": "captcha_color",
@@ -1456,7 +1517,8 @@
           "fallback": "",
           "min": null,
           "max": null,
-          "max_length": null
+          "max_length": null,
+          "options": null
         }
       ],
       "result": {
@@ -1488,7 +1550,8 @@
           "fallback": "",
           "min": null,
           "max": null,
-          "max_length": null
+          "max_length": null,
+          "options": null
         }
       ],
       "result": {
@@ -1520,7 +1583,8 @@
           "fallback": "",
           "min": null,
           "max": null,
-          "max_length": null
+          "max_length": null,
+          "options": null
         }
       ],
       "result": {
