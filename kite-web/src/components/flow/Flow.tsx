@@ -1,7 +1,7 @@
 import { FlowContextStoreProvider, FlowContextType } from "@/lib/flow/context";
 import { FlowData } from "@/lib/flow/dataSchema";
 import { OnSelectionChangeParams } from "@xyflow/react";
-import { useCallback, useRef, useState } from "react";
+import { RefObject, useCallback, useRef, useState } from "react";
 import FlowEditor, { FlowEditorApi } from "./FlowEditor";
 import FlowMenu from "./FlowMenu";
 import { LogEntry } from "@/lib/types/wire.gen";
@@ -19,6 +19,8 @@ interface Props {
   // header. Otherwise the editor shows its own button for it.
   chatOpen?: boolean;
   onChatOpenChange?: (open: boolean) => void;
+  // Lets the page edit the flow, e.g. to restore a save.
+  editorRef?: RefObject<FlowEditorApi>;
 }
 
 export default function Flow({
@@ -28,10 +30,12 @@ export default function Flow({
   onChange,
   chatOpen: controlledChatOpen,
   onChatOpenChange,
+  editorRef: outerEditorRef,
 }: Props) {
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const editorRef = useRef<FlowEditorApi>(null);
+  const ownEditorRef = useRef<FlowEditorApi>(null);
+  const editorRef = outerEditorRef ?? ownEditorRef;
   const [ownChatOpen, setOwnChatOpen] = useState(false);
   const chatOpen = controlledChatOpen ?? ownChatOpen;
   const setChatOpen = onChatOpenChange ?? setOwnChatOpen;

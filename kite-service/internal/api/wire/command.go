@@ -55,6 +55,9 @@ type CommandsImportResponse = []*Command
 
 type CommandUpdateRequest struct {
 	FlowSource flow.FlowData `json:"flow_source"`
+	// AutoSave marks the save as made by the editor's auto-save in the
+	// flow's version history.
+	AutoSave bool `json:"auto_save"`
 }
 
 func (req CommandUpdateRequest) Validate() error {

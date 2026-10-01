@@ -8,6 +8,7 @@ import (
 
 	"github.com/diamondburned/arikawa/v3/utils/httputil"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler"
+	"github.com/kitecloud/kite/kite-service/internal/api/handler/flowversion"
 	"github.com/kitecloud/kite/kite-service/internal/api/wire"
 	"github.com/kitecloud/kite/kite-service/internal/core/command"
 	"github.com/kitecloud/kite/kite-service/internal/model"
@@ -19,15 +20,18 @@ import (
 type CommandHandler struct {
 	commandStore   store.CommandStore
 	commandManager *command.CommandManager
+	flowVersions   *flowversion.FlowVersionHandler
 }
 
 func NewCommandHandler(
 	commandStore store.CommandStore,
 	commandManager *command.CommandManager,
+	flowVersions *flowversion.FlowVersionHandler,
 ) *CommandHandler {
 	return &CommandHandler{
 		commandStore:   commandStore,
 		commandManager: commandManager,
+		flowVersions:   flowVersions,
 	}
 }
 
@@ -146,6 +150,17 @@ func (h *CommandHandler) HandleCommandUpdate(c *handler.Context, req wire.Comman
 		}
 		return nil, fmt.Errorf("failed to update command: %w", err)
 	}
+
+	h.flowVersions.Record(
+		c.Context(),
+		c.App.ID,
+		flowversion.CommandTarget(c.Command.ID),
+		c.Session.UserID,
+		c.Command.FlowSource,
+		c.Command.UpdatedAt,
+		req.FlowSource,
+		req.AutoSave,
+	)
 
 	return wire.CommandToWire(command), nil
 }
