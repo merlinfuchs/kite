@@ -106,32 +106,6 @@
       "data_schema": {
         "type": "object",
         "properties": {
-          "custom_label": {
-            "type": "string",
-            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
-          },
-          "event_type": {
-            "type": "string",
-            "enum": [
-              "message_create",
-              "message_update",
-              "message_delete",
-              "guild_member_add",
-              "guild_member_remove",
-              "message_reaction_add",
-              "message_reaction_remove",
-              "guild_create",
-              "guild_delete",
-              "cron"
-            ],
-            "description": "Discord event that triggers the flow, or cron for a scheduled flow."
-          },
-          "event_schedule_cron": {
-            "type": "string",
-            "maxLength": 100,
-            "description": "Cron expression in UTC for scheduled flows, e.g. */5 * * * * for every five minutes."
-          },
-          "description": {
           "command_permissions": {
             "type": "string",
             "pattern": "^[0-9]+$",
@@ -207,7 +181,8 @@
               "message_content",
               "user_id",
               "guild_id",
-              "channel_id"
+              "channel_id",
+              "message_id"
             ],
             "description": "Property of the event to filter on."
           },
@@ -5646,6 +5621,8 @@
               "message_delete",
               "guild_member_add",
               "guild_member_remove",
+              "message_reaction_add",
+              "message_reaction_remove",
               "guild_create",
               "guild_delete",
               "cron"
@@ -6132,45 +6109,6 @@
       "fixed": true,
       "data_schema": {
         "type": "object",
-        "properties": {
-          "custom_label": {
-            "type": "string",
-            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
-          },
-          "event_filter_target": {
-            "type": "string",
-            "enum": [
-              "message_content",
-              "user_id",
-              "guild_id",
-              "channel_id",
-              "message_id"
-            ],
-            "description": "Property of the event to filter on."
-          },
-          "event_filter_mode": {
-            "type": "string",
-            "enum": [
-              "equal",
-              "not_equal",
-              "contains",
-              "starts_with",
-              "ends_with"
-            ],
-            "description": "How the property is compared to the filter value."
-          },
-          "event_filter_value": {
-            "type": "string",
-            "maxLength": 1000,
-            "minLength": 1,
-            "description": "Value to compare against. This is fixed text, placeholders aren't supported."
-          }
-        },
-        "required": [
-          "event_filter_target",
-          "event_filter_mode",
-          "event_filter_value"
-        ],
         "properties": {},
         "additionalProperties": false
       },
