@@ -1,4 +1,4 @@
-import FlowPage from "@/components/flow/FlowPage";
+import FlowPage, { FlowSaveOptions } from "@/components/flow/FlowPage";
 import { useEventListenerUpdateMutation } from "@/lib/api/mutations";
 import { FlowData } from "@/lib/flow/dataSchema";
 import { useEventListener, useFlowLogEntries } from "@/lib/hooks/api";
@@ -6,7 +6,7 @@ import { useAppId, useEventId } from "@/lib/hooks/params";
 import { useBeforePageExit } from "@/lib/hooks/exit";
 import Head from "next/head";
 import { useRouter } from "next/router";
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { LogEntryListDrawer } from "@/components/app/LogEntryListDrawer";
 
@@ -26,47 +26,53 @@ export default function AppEventListenerPage() {
     }
   });
 
-  const updateMutation = useEventListenerUpdateMutation(
-    useAppId(),
-    useEventId()
-  );
+  const appId = useAppId();
+  const eventId = useEventId();
+  const updateMutation = useEventListenerUpdateMutation(appId, eventId);
+  const { mutateAsync: updateEventListener } = updateMutation;
 
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
   const [logsOpen, setLogsOpen] = useState(false);
+  // Counts edits, so edits made while a save is running stay unsaved.
+  const changeCount = useRef(0);
 
   const onChange = useCallback(() => {
+    changeCount.current++;
     setHasUnsavedChanges(true);
   }, [setHasUnsavedChanges]);
 
   const save = useCallback(
-    (data: FlowData) => {
-      setIsSaving(true);
+    async (data: FlowData, options?: FlowSaveOptions) => {
+      const savedChangeCount = changeCount.current;
 
-      updateMutation.mutate(
-        {
+      try {
+        const res = await updateEventListener({
           flow_source: data,
-        },
-        {
-          onSuccess(res) {
-            if (res.success) {
-              toast.success(
-                "Event listener saved! It may take up to a minute for all changes to take effect."
-              );
-            } else {
-              toast.error(
-                `Failed to update event listener: ${res.error.message} (${res.error.code})`
-              );
-            }
-          },
-          onSettled() {
-            setIsSaving(false);
-            setHasUnsavedChanges(false);
-          },
+          auto_save: !!options?.auto,
+        });
+        if (!res.success) {
+          toast.error(
+            `Failed to update event listener: ${res.error.message} (${res.error.code})`
+          );
+          return false;
         }
-      );
+
+        // Auto-save would show this every few seconds.
+        if (!options?.auto) {
+          toast.success(
+            "Event listener saved! It may take up to a minute for all changes to take effect."
+          );
+        }
+        if (changeCount.current === savedChangeCount) {
+          setHasUnsavedChanges(false);
+        }
+        return true;
+      } catch (err) {
+        toast.error(`Failed to update event listener: ${err}`);
+        return false;
+      }
     },
-    [setIsSaving, setHasUnsavedChanges, updateMutation]
+    [setHasUnsavedChanges, updateEventListener]
   );
 
   const exit = useCallback(() => {
@@ -94,7 +100,11 @@ export default function AppEventListenerPage() {
     [hasUnsavedChanges]
   );
 
-  const logs = useFlowLogEntries({ eventId: useEventId() });
+  const logs = useFlowLogEntries({ eventId });
+  const versionTarget = useMemo(
+    () => ({ appId, eventListenerId: eventId }),
+    [appId, eventId]
+  );
 
   return (
     <div className="flex min-h-[100dvh] w-full flex-col">
@@ -109,10 +119,11 @@ export default function AppEventListenerPage() {
           }
           hasUnsavedChanges={hasUnsavedChanges}
           onChange={onChange}
-          isSaving={isSaving}
+          isSaving={updateMutation.isPending}
           onSave={save}
           onExit={exit}
           logs={logs}
+          versionTarget={versionTarget}
         />
       )}
       <LogEntryListDrawer

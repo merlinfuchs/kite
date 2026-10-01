@@ -312,6 +312,11 @@ export interface CommandsImportRequest {
 export type CommandsImportResponse = (Command | undefined)[];
 export interface CommandUpdateRequest {
   flow_source: FlowData;
+  /**
+   * AutoSave marks the save as made by the editor's auto-save in the
+   * flow's version history.
+   */
+  auto_save: boolean;
 }
 export type CommandUpdateResponse = Command;
 export interface CommandUpdateEnabledRequest {
@@ -358,6 +363,11 @@ export interface EventListenersImportRequest {
 export type EventListenersImportResponse = (EventListener | undefined)[];
 export interface EventListenerUpdateRequest {
   flow_source: FlowData;
+  /**
+   * AutoSave marks the save as made by the editor's auto-save in the
+   * flow's version history.
+   */
+  auto_save: boolean;
 }
 export type EventListenerUpdateResponse = EventListener;
 export interface EventListenerUpdateEnabledRequest {
@@ -450,6 +460,28 @@ export interface FlowAIField {
   type: string;
   options: string[];
   default: string;
+}
+
+//////////
+// source: flow_version.go
+
+/**
+ * FlowVersion is an earlier save of a flow. Lists leave out the flow itself.
+ */
+export interface FlowVersion {
+  id: string;
+  auto_saved: boolean;
+  creator_user_id: null | string;
+  creator_display_name: null | string;
+  created_at: string /* RFC3339 */;
+}
+export type FlowVersionListResponse = (FlowVersion | undefined)[];
+export interface FlowVersionGetResponse {
+  id: string;
+  auto_saved: boolean;
+  creator_user_id: null | string;
+  flow_source: FlowData;
+  created_at: string /* RFC3339 */;
 }
 
 //////////
