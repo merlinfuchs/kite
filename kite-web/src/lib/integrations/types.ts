@@ -15,6 +15,11 @@ export interface Integration {
   // A cheap GET endpoint, relative to base_url, that checks the credential
   // when the app enters it.
   test_path?: string;
+  // What the integration's blocks send to the service, shown before the app
+  // enables it, with the service's policies.
+  data_shared?: string;
+  privacy_url?: string;
+  terms_url?: string;
 }
 
 // How requests prove who they are. Integrations with the "header" or "query"

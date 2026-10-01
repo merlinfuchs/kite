@@ -4713,6 +4713,124 @@
         "additionalProperties": false
       }
     },
+    "action_cookie_api_transcript_create": {
+      "title": "Create transcript",
+      "description": "Save the messages of a channel as a web page with Cookie API",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord",
+        "event_schedule"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "type": "string",
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+          },
+          "channel_target": {
+            "type": "string",
+            "description": "ID of the channel, thread or forum post. Leave empty to use the channel the flow runs in. Up to its last 500 messages are saved.",
+            "x-templated": true
+          },
+          "transcript_title": {
+            "type": "string",
+            "description": "Title of the link's embed.",
+            "x-templated": true
+          },
+          "transcript_description": {
+            "type": "string",
+            "description": "Description of the link's embed.",
+            "x-templated": true
+          },
+          "transcript_password": {
+            "type": "string",
+            "description": "Password needed to open the transcript.",
+            "x-templated": true
+          },
+          "temporary_name": {
+            "type": "string",
+            "maxLength": 32,
+            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only."
+          }
+        },
+        "additionalProperties": false
+      },
+      "result_schema": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "description": "Link to the transcript"
+          }
+        },
+        "required": [
+          "url"
+        ],
+        "additionalProperties": false,
+        "description": "The created transcript"
+      }
+    },
+    "action_cookie_api_card_create": {
+      "title": "Generate card",
+      "description": "Generate an image like a welcome card with Cookie API",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord",
+        "event_schedule"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "type": "string",
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+          },
+          "card_data": {
+            "type": "string",
+            "description": "The card as JSON, designed at https://trolensdesign.github.io/CardBuilder-cookie-api/. Placeholders in its texts are filled in.",
+            "x-templated": true
+          },
+          "temporary_name": {
+            "type": "string",
+            "maxLength": 32,
+            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only."
+          }
+        },
+        "required": [
+          "card_data"
+        ],
+        "additionalProperties": false
+      },
+      "result_schema": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "description": "URL of the card's image"
+          }
+        },
+        "required": [
+          "url"
+        ],
+        "additionalProperties": false,
+        "description": "The generated card"
+      }
+    },
     "action_cookie_api_qr_code_create": {
       "title": "Generate QR code",
       "description": "Generate an image of a QR code with Cookie API",

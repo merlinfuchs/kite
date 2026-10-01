@@ -91,6 +91,15 @@ func executeIntegrationBlock(t *testing.T, nodeType FlowNodeType, data FlowNodeD
 	return executeIntegrationBlockWith(t, nodeType, data, &integrationTestProvider{credentials: credentials, choices: choices}, httpProvider)
 }
 
+// integrationTestDiscordProvider has a bot token, for blocks that send it.
+type integrationTestDiscordProvider struct {
+	provider.MockDiscordProvider
+}
+
+func (p *integrationTestDiscordProvider) BotToken() string {
+	return "b0t-t0ken"
+}
+
 func executeIntegrationBlockWith(t *testing.T, nodeType FlowNodeType, data FlowNodeData, integrationProvider provider.IntegrationProvider, httpProvider provider.HTTPProvider) (*FlowContext, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	t.Cleanup(cancel)
@@ -100,7 +109,7 @@ func executeIntegrationBlockWith(t *testing.T, nodeType FlowNodeType, data FlowN
 		5*time.Second,
 		&TestContextData{},
 		FlowProviders{
-			Discord:     &provider.MockDiscordProvider{},
+			Discord:     &integrationTestDiscordProvider{},
 			HTTP:        httpProvider,
 			Log:         &provider.MockLogProvider{},
 			Integration: integrationProvider,
@@ -186,7 +195,7 @@ func TestCustomBlockNeedsIntegration(t *testing.T) {
 func TestCookieAPIBlocks(t *testing.T) {
 	tests := []struct {
 		nodeType  FlowNodeType
-		fields    map[string]any
+		data      FlowNodeData
 		response  string
 		method    string
 		url       string
@@ -195,8 +204,28 @@ func TestCookieAPIBlocks(t *testing.T) {
 		want      string
 	}{
 		{
+			nodeType:  "action_cookie_api_transcript_create",
+			data:      FlowNodeData{ChannelTarget: "123", Fields: map[string]any{"transcript_title": "Ticket"}},
+			response:  `{"success":true,"url":"https://www.cookie-api.com/transcripts/1/2-ticket.html"}`,
+			method:    "POST",
+			url:       "https://api.cookie-api.com/api/transcript?channel_id=123",
+			body:      `{"bot_token":"b0t-t0ken","title":"Ticket"}`,
+			resultKey: "url",
+			want:      "https://www.cookie-api.com/transcripts/1/2-ticket.html",
+		},
+		{
+			nodeType:  "action_cookie_api_card_create",
+			data:      FlowNodeData{Fields: map[string]any{"card_data": `{"card":{"width":"145","height":"40","bg":"#FF0000","bg_type":"color"},"elements":[{"type":"text","text":"Hi {{ 'there' }}"}]}`}},
+			response:  `{"success":true,"url":"https://cards.cookie-api.com/card-builder/1/2.png"}`,
+			method:    "POST",
+			url:       "https://api.cookie-api.com/api/cards/card-builder/build",
+			body:      `{"card":{"width":"145","height":"40","bg":"#FF0000","bg_type":"color"},"elements":[{"type":"text","text":"Hi there"}]}`,
+			resultKey: "url",
+			want:      "https://cards.cookie-api.com/card-builder/1/2.png",
+		},
+		{
 			nodeType:  "action_cookie_api_qr_code_create",
-			fields:    map[string]any{"qr_code_data": "https://kite.onl", "qr_code_border": "2"},
+			data:      FlowNodeData{Fields: map[string]any{"qr_code_data": "https://kite.onl", "qr_code_border": "2"}},
 			response:  `{"success":true,"url":"https://images.cookie-api.com/qr-codes/1.png"}`,
 			method:    "POST",
 			url:       "https://api.cookie-api.com/api/images/qr-code",
@@ -206,7 +235,7 @@ func TestCookieAPIBlocks(t *testing.T) {
 		},
 		{
 			nodeType:  "action_cookie_api_captcha_create",
-			fields:    map[string]any{"captcha_provider": "Cloudflare", "captcha_color": "#FFFFFF"},
+			data:      FlowNodeData{Fields: map[string]any{"captcha_provider": "Cloudflare", "captcha_color": "#FFFFFF"}},
 			response:  `{"success":true,"captcha_id":"2725738690","url":"https://api.cookie-api.com/public/captcha?code=abc"}`,
 			method:    "POST",
 			url:       "https://api.cookie-api.com/api/security/captcha/create?captcha_provider=Cloudflare&color=%23FFFFFF",
@@ -215,7 +244,7 @@ func TestCookieAPIBlocks(t *testing.T) {
 		},
 		{
 			nodeType:  "action_cookie_api_captcha_get",
-			fields:    map[string]any{"captcha_id": "2725738690"},
+			data:      FlowNodeData{Fields: map[string]any{"captcha_id": "2725738690"}},
 			response:  `{"success":true,"captcha_id":"2725738690","solved":"YES","solved_at":"1739110529"}`,
 			method:    "GET",
 			url:       "https://api.cookie-api.com/api/security/captcha/get-captcha?captcha_id=2725738690",
@@ -224,7 +253,7 @@ func TestCookieAPIBlocks(t *testing.T) {
 		},
 		{
 			nodeType:  "action_cookie_api_minecraft_user_get",
-			fields:    map[string]any{"minecraft_code": "12345"},
+			data:      FlowNodeData{Fields: map[string]any{"minecraft_code": "12345"}},
 			response:  `{"success":true,"edition":"JAVA","player_id":"1d25b1dc57e14bb9bd93f574f75cb4d0","player_name":"The_Tea_Cookie"}`,
 			method:    "GET",
 			url:       "https://api.cookie-api.com/api/minecraft/get-user?code=12345",
@@ -237,7 +266,7 @@ func TestCookieAPIBlocks(t *testing.T) {
 		t.Run(string(tt.nodeType), func(t *testing.T) {
 			httpProvider := &redirectCheckingHTTPProvider{body: tt.response}
 
-			c, err := executeIntegrationBlock(t, tt.nodeType, FlowNodeData{Fields: tt.fields},
+			c, err := executeIntegrationBlock(t, tt.nodeType, tt.data,
 				map[string]string{"cookie_api": "k3y"}, httpProvider)
 			require.NoError(t, err)
 
@@ -253,6 +282,23 @@ func TestCookieAPIBlocks(t *testing.T) {
 			assert.Equal(t, tt.want, c.GetNodeResult("1").Object()[tt.resultKey].String())
 		})
 	}
+}
+
+func TestIntegrationRequestErrorRedactsBotToken(t *testing.T) {
+	httpProvider := &redirectCheckingHTTPProvider{status: 400, body: `{"success":false,"message":"invalid token b0t-t0ken"}`}
+
+	_, err := executeIntegrationBlock(t, "action_cookie_api_transcript_create",
+		FlowNodeData{ChannelTarget: "123"},
+		map[string]string{"cookie_api": "k3y"}, httpProvider)
+	require.Error(t, err)
+	assert.NotContains(t, err.Error(), "b0t-t0ken")
+}
+
+func TestCookieAPIRejectsInvalidCard(t *testing.T) {
+	_, err := executeIntegrationBlock(t, "action_cookie_api_card_create",
+		FlowNodeData{Fields: map[string]any{"card_data": `["not", "an", "object"]`}},
+		map[string]string{"cookie_api": "k3y"}, &redirectCheckingHTTPProvider{})
+	assert.ErrorContains(t, err, "must be a JSON object")
 }
 
 func TestCookieAPIRejectsUnknownOption(t *testing.T) {

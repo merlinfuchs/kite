@@ -2,6 +2,81 @@
   "source": "Written by hand from https://docs.cookie-api.com, which has no spec. Only the endpoints Kite uses.",
   "operations": [
     {
+      "id": "create_transcript",
+      "method": "POST",
+      "path": "/api/transcript",
+      "path_params": [],
+      "query_params": [
+        {
+          "name": "channel_id",
+          "type": "snowflake",
+          "required": true
+        }
+      ],
+      "has_body": true,
+      "body_params": [
+        {
+          "name": "bot_token",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "title",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "description",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "password",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "gtag",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "favicon",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "image_restore",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "domain",
+          "type": "string",
+          "required": false
+        }
+      ]
+    },
+    {
+      "id": "create_card",
+      "method": "POST",
+      "path": "/api/cards/card-builder/build",
+      "path_params": [],
+      "query_params": [
+        {
+          "name": "dev",
+          "type": "boolean",
+          "required": false
+        },
+        {
+          "name": "base64",
+          "type": "boolean",
+          "required": false
+        }
+      ],
+      "has_body": true
+    },
+    {
       "id": "create_qr_code",
       "method": "POST",
       "path": "/api/images/qr-code",

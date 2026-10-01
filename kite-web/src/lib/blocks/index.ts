@@ -18,8 +18,10 @@ import { aiChatCompletion } from "./aiChatCompletion";
 import { aiWebSearch } from "./aiWebSearch";
 import { cookieApiCaptchaCreate } from "./cookieApiCaptchaCreate";
 import { cookieApiCaptchaGet } from "./cookieApiCaptchaGet";
+import { cookieApiCardCreate } from "./cookieApiCardCreate";
 import { cookieApiMinecraftUserGet } from "./cookieApiMinecraftUserGet";
 import { cookieApiQrCodeCreate } from "./cookieApiQrCodeCreate";
+import { cookieApiTranscriptCreate } from "./cookieApiTranscriptCreate";
 import { controlConditionChannel } from "./controlConditionChannel";
 import { controlConditionCompare } from "./controlConditionCompare";
 import { controlConditionItemChannel } from "./controlConditionItemChannel";
@@ -146,6 +148,8 @@ export const blockDefinitions: BlockDefinition[] = [
   variableDelete,
   variableGet,
   robloxUserGet,
+  cookieApiTranscriptCreate,
+  cookieApiCardCreate,
   cookieApiQrCodeCreate,
   cookieApiCaptchaCreate,
   cookieApiCaptchaGet,
@@ -218,6 +222,7 @@ const formats: Record<BlockFieldType, [RegExp, string] | null> = {
   emoji: null,
   seconds: [decimalRegex, "Must be a number of seconds"],
   seconds_until: [decimalRegex, "Must be a number of seconds"],
+  json_object: null,
 };
 
 const numberTypes: BlockFieldType[] = ["integer", "seconds", "seconds_until"];
@@ -237,6 +242,15 @@ function fieldSchema(field: BlockField) {
       if (field.required) {
         ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Required" });
       }
+      return;
+    }
+
+    // Placeholders in JSON go in its strings, so it's checked either way.
+    if (type === "json_object" && !isJSONObject(value)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Must be a JSON object",
+      });
       return;
     }
 
@@ -327,6 +341,17 @@ function fieldSchema(field: BlockField) {
     described
   );
   return field.required ? schema : schema.optional();
+}
+
+function isJSONObject(value: string) {
+  try {
+    const parsed = JSON.parse(value);
+    return (
+      typeof parsed === "object" && parsed !== null && !Array.isArray(parsed)
+    );
+  } catch {
+    return false;
+  }
 }
 
 function optionValues(field: BlockField) {

@@ -30,7 +30,10 @@
         "help_url": "https://docs.cookie-api.com/en/docs/getting-started/faq/api-key/"
       },
       "availability": "opt_in",
-      "test_path": "/api/time/current-time"
+      "test_path": "/api/time/current-time",
+      "data_shared": "Its blocks send Cookie API the settings you fill in. Create transcript also sends your bot's token, which Cookie API uses to read the channel's messages.",
+      "privacy_url": "https://www.cookie-api.com/privacy-policy",
+      "terms_url": "https://www.cookie-api.com/terms-of-service"
     }
   ],
   "blocks": [
@@ -1401,6 +1404,110 @@
         "kind": "custom"
       },
       "fields": [],
+      "result": {
+        "thing": "",
+        "list": false
+      }
+    },
+    {
+      "type": "action_cookie_api_transcript_create",
+      "credits": 3,
+      "audit_log_reason": false,
+      "requires": [
+        "cookie_api",
+        "discord"
+      ],
+      "run": {
+        "kind": "request",
+        "integration": "cookie_api",
+        "operation": "create_transcript",
+        "method": "POST",
+        "path": "/api/transcript",
+        "discord_bot_token": "bot_token"
+      },
+      "fields": [
+        {
+          "name": "channel_target",
+          "in": "query",
+          "target": "channel_id",
+          "type": "snowflake",
+          "required": false,
+          "fallback": "channel",
+          "min": null,
+          "max": null,
+          "max_length": null,
+          "options": null
+        },
+        {
+          "name": "transcript_title",
+          "in": "body",
+          "target": "title",
+          "type": "string",
+          "required": false,
+          "fallback": "",
+          "min": null,
+          "max": null,
+          "max_length": null,
+          "options": null
+        },
+        {
+          "name": "transcript_description",
+          "in": "body",
+          "target": "description",
+          "type": "string",
+          "required": false,
+          "fallback": "",
+          "min": null,
+          "max": null,
+          "max_length": null,
+          "options": null
+        },
+        {
+          "name": "transcript_password",
+          "in": "body",
+          "target": "password",
+          "type": "string",
+          "required": false,
+          "fallback": "",
+          "min": null,
+          "max": null,
+          "max_length": null,
+          "options": null
+        }
+      ],
+      "result": {
+        "thing": "",
+        "list": false
+      }
+    },
+    {
+      "type": "action_cookie_api_card_create",
+      "credits": 1,
+      "audit_log_reason": false,
+      "requires": [
+        "cookie_api"
+      ],
+      "run": {
+        "kind": "request",
+        "integration": "cookie_api",
+        "operation": "create_card",
+        "method": "POST",
+        "path": "/api/cards/card-builder/build"
+      },
+      "fields": [
+        {
+          "name": "card_data",
+          "in": "body",
+          "target": "card_data",
+          "type": "json_object",
+          "required": true,
+          "fallback": "",
+          "min": null,
+          "max": null,
+          "max_length": null,
+          "options": null
+        }
+      ],
       "result": {
         "thing": "",
         "list": false

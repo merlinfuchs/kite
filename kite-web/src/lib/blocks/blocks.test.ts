@@ -97,6 +97,15 @@ describe("block definitions", () => {
     }
   });
 
+  it("only send the bot token to integrations, with Discord required", () => {
+    for (const block of requestBlocks().filter(
+      (b) => b.run.discord_bot_token
+    )) {
+      expect(block.run.integration, block.type).not.toBe("discord");
+      expect(block.requires, block.type).toContain("discord");
+    }
+  });
+
   it("use integrations that exist", () => {
     for (const block of blockDefinitions) {
       for (const id of blockIntegrations(block)) {
@@ -135,9 +144,10 @@ describe("block definitions", () => {
         const field = block.fields.find(
           (f) => f.in === "query" && (f.target ?? f.name) === param.name
         );
-        expect(field?.required, `${block.type} requires ${param.name}`).toBe(
-          true
-        );
+        expect(
+          field?.required || !!field?.fallback,
+          `${block.type} requires ${param.name}`
+        ).toBe(true);
       }
       for (const field of block.fields.filter((f) => f.options)) {
         const param = [...op.query_params, ...(op.body_params ?? [])].find(
@@ -158,7 +168,9 @@ describe("block definitions", () => {
             `${block.type}.${name}`
           ).toBe(true);
         }
-        for (const param of op.body_params.filter((p) => p.required)) {
+        for (const param of op.body_params.filter(
+          (p) => p.required && p.name !== block.run.discord_bot_token
+        )) {
           const field = block.fields.find(
             (f) => f.in === "body" && (f.target ?? f.name) === param.name
           );

@@ -1124,7 +1124,7 @@ function BlockFieldInput({ type, name, data, updateData, errors }: InputProps) {
   }
   return (
     <BaseInput
-      type="text"
+      type={field.type === "json_object" ? "textarea" : "text"}
       field={key}
       title={title}
       description={description}

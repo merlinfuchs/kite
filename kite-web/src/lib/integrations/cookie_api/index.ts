@@ -15,4 +15,8 @@ export const cookieApi: Integration = {
   },
   availability: "opt_in",
   test_path: "/api/time/current-time",
+  data_shared:
+    "Its blocks send Cookie API the settings you fill in. Create transcript also sends your bot's token, which Cookie API uses to read the channel's messages.",
+  privacy_url: "https://www.cookie-api.com/privacy-policy",
+  terms_url: "https://www.cookie-api.com/terms-of-service",
 };
