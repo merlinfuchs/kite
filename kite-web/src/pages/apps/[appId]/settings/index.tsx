@@ -1,4 +1,5 @@
 import AppLayout from "@/components/app/AppLayout";
+import { getAppShellLayout } from "@/components/app/AppShell";
 import AppSettingsAppearance from "@/components/app/AppSettingsAppearance";
 import AppSettingsCollaborators from "@/components/app/AppSettingsCollaborators";
 import AppSettingsControls from "@/components/app/AppSettingsControls";
@@ -39,3 +40,5 @@ export default function AppSettingsPage() {
     </AppLayout>
   );
 }
+
+AppSettingsPage.getLayout = getAppShellLayout;
