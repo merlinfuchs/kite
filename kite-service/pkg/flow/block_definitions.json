@@ -17,6 +17,23 @@
         "type": "none"
       },
       "availability": "default"
+    },
+    {
+      "id": "cookie_api",
+      "name": "Cookie API",
+      "description": "Transcripts, cards, QR codes, captchas and Minecraft verification from cookie-api.com.",
+      "base_url": "https://api.cookie-api.com",
+      "auth": {
+        "type": "header",
+        "name": "Authorization",
+        "label": "API key",
+        "help_url": "https://docs.cookie-api.com/en/docs/getting-started/faq/api-key/"
+      },
+      "availability": "opt_in",
+      "test_path": "/api/time/current-time",
+      "data_shared": "Its blocks send Cookie API the settings you fill in. Create transcript also sends your bot's token, which Cookie API uses to read the channel's messages.",
+      "privacy_url": "https://www.cookie-api.com/privacy-policy",
+      "terms_url": "https://www.cookie-api.com/terms-of-service"
     }
   ],
   "blocks": [
@@ -199,7 +216,8 @@
           "fallback": "",
           "min": null,
           "max": null,
-          "max_length": null
+          "max_length": null,
+          "options": null
         },
         {
           "name": "message_target",
@@ -210,7 +228,8 @@
           "fallback": "",
           "min": null,
           "max": null,
-          "max_length": null
+          "max_length": null,
+          "options": null
         }
       ],
       "result": null
@@ -271,7 +290,8 @@
           "fallback": "",
           "min": null,
           "max": null,
-          "max_length": null
+          "max_length": null,
+          "options": null
         },
         {
           "name": "message_target",
@@ -282,7 +302,8 @@
           "fallback": "",
           "min": null,
           "max": null,
-          "max_length": null
+          "max_length": null,
+          "options": null
         },
         {
           "name": "emoji_data",
@@ -293,7 +314,8 @@
           "fallback": "",
           "min": null,
           "max": null,
-          "max_length": null
+          "max_length": null,
+          "options": null
         }
       ],
       "result": null
@@ -322,7 +344,8 @@
           "fallback": "",
           "min": null,
           "max": null,
-          "max_length": null
+          "max_length": null,
+          "options": null
         },
         {
           "name": "message_target",
@@ -333,7 +356,8 @@
           "fallback": "",
           "min": null,
           "max": null,
-          "max_length": null
+          "max_length": null,
+          "options": null
         },
         {
           "name": "emoji_data",
@@ -344,7 +368,8 @@
           "fallback": "",
           "min": null,
           "max": null,
-          "max_length": null
+          "max_length": null,
+          "options": null
         }
       ],
       "result": null
@@ -373,7 +398,8 @@
           "fallback": "",
           "min": null,
           "max": null,
-          "max_length": null
+          "max_length": null,
+          "options": null
         },
         {
           "name": "message_target",
@@ -384,7 +410,8 @@
           "fallback": "",
           "min": null,
           "max": null,
-          "max_length": null
+          "max_length": null,
+          "options": null
         }
       ],
       "result": null
@@ -413,7 +440,8 @@
           "fallback": "",
           "min": null,
           "max": null,
-          "max_length": null
+          "max_length": null,
+          "options": null
         },
         {
           "name": "message_target",
@@ -424,7 +452,8 @@
           "fallback": "",
           "min": null,
           "max": null,
-          "max_length": null
+          "max_length": null,
+          "options": null
         }
       ],
       "result": null
@@ -469,7 +498,8 @@
           "fallback": "channel",
           "min": null,
           "max": null,
-          "max_length": null
+          "max_length": null,
+          "options": null
         },
         {
           "name": "limit",
@@ -480,7 +510,8 @@
           "fallback": "",
           "min": 1,
           "max": 100,
-          "max_length": null
+          "max_length": null,
+          "options": null
         },
         {
           "name": "before",
@@ -491,7 +522,8 @@
           "fallback": "",
           "min": null,
           "max": null,
-          "max_length": null
+          "max_length": null,
+          "options": null
         },
         {
           "name": "after",
@@ -502,7 +534,8 @@
           "fallback": "",
           "min": null,
           "max": null,
-          "max_length": null
+          "max_length": null,
+          "options": null
         }
       ],
       "result": {
@@ -534,7 +567,8 @@
           "fallback": "channel",
           "min": null,
           "max": null,
-          "max_length": null
+          "max_length": null,
+          "options": null
         },
         {
           "name": "message_ids",
@@ -545,7 +579,8 @@
           "fallback": "",
           "min": 2,
           "max": 100,
-          "max_length": null
+          "max_length": null,
+          "options": null
         }
       ],
       "result": null
@@ -574,7 +609,8 @@
           "fallback": "guild",
           "min": null,
           "max": null,
-          "max_length": null
+          "max_length": null,
+          "options": null
         },
         {
           "name": "user_target",
@@ -585,7 +621,8 @@
           "fallback": "",
           "min": null,
           "max": null,
-          "max_length": null
+          "max_length": null,
+          "options": null
         },
         {
           "name": "member_ban_delete_message_duration_seconds",
@@ -596,7 +633,8 @@
           "fallback": "",
           "min": 0,
           "max": 604800,
-          "max_length": null
+          "max_length": null,
+          "options": null
         }
       ],
       "result": null
@@ -625,7 +663,8 @@
           "fallback": "guild",
           "min": null,
           "max": null,
-          "max_length": null
+          "max_length": null,
+          "options": null
         },
         {
           "name": "user_target",
@@ -636,7 +675,8 @@
           "fallback": "",
           "min": null,
           "max": null,
-          "max_length": null
+          "max_length": null,
+          "options": null
         }
       ],
       "result": null
@@ -665,7 +705,8 @@
           "fallback": "guild",
           "min": null,
           "max": null,
-          "max_length": null
+          "max_length": null,
+          "options": null
         },
         {
           "name": "user_target",
@@ -676,7 +717,8 @@
           "fallback": "",
           "min": null,
           "max": null,
-          "max_length": null
+          "max_length": null,
+          "options": null
         }
       ],
       "result": null
@@ -706,7 +748,8 @@
           "fallback": "guild",
           "min": null,
           "max": null,
-          "max_length": null
+          "max_length": null,
+          "options": null
         },
         {
           "name": "user_target",
@@ -717,7 +760,8 @@
           "fallback": "",
           "min": null,
           "max": null,
-          "max_length": null
+          "max_length": null,
+          "options": null
         },
         {
           "name": "member_timeout_duration_seconds",
@@ -728,7 +772,8 @@
           "fallback": "",
           "min": 0,
           "max": 2419200,
-          "max_length": null
+          "max_length": null,
+          "options": null
         }
       ],
       "result": null
@@ -802,7 +847,8 @@
           "fallback": "guild",
           "min": null,
           "max": null,
-          "max_length": null
+          "max_length": null,
+          "options": null
         },
         {
           "name": "user_target",
@@ -813,7 +859,8 @@
           "fallback": "",
           "min": null,
           "max": null,
-          "max_length": null
+          "max_length": null,
+          "options": null
         },
         {
           "name": "role_target",
@@ -824,7 +871,8 @@
           "fallback": "",
           "min": null,
           "max": null,
-          "max_length": null
+          "max_length": null,
+          "options": null
         }
       ],
       "result": null
@@ -853,7 +901,8 @@
           "fallback": "guild",
           "min": null,
           "max": null,
-          "max_length": null
+          "max_length": null,
+          "options": null
         },
         {
           "name": "user_target",
@@ -864,7 +913,8 @@
           "fallback": "",
           "min": null,
           "max": null,
-          "max_length": null
+          "max_length": null,
+          "options": null
         },
         {
           "name": "role_target",
@@ -875,7 +925,8 @@
           "fallback": "",
           "min": null,
           "max": null,
-          "max_length": null
+          "max_length": null,
+          "options": null
         }
       ],
       "result": null
@@ -920,7 +971,8 @@
           "fallback": "guild",
           "min": null,
           "max": null,
-          "max_length": null
+          "max_length": null,
+          "options": null
         },
         {
           "name": "name",
@@ -931,7 +983,8 @@
           "fallback": "",
           "min": null,
           "max": null,
-          "max_length": 100
+          "max_length": 100,
+          "options": null
         },
         {
           "name": "permissions",
@@ -942,7 +995,8 @@
           "fallback": "",
           "min": null,
           "max": null,
-          "max_length": null
+          "max_length": null,
+          "options": null
         },
         {
           "name": "color",
@@ -953,7 +1007,8 @@
           "fallback": "",
           "min": 0,
           "max": 16777215,
-          "max_length": null
+          "max_length": null,
+          "options": null
         },
         {
           "name": "hoist",
@@ -964,7 +1019,8 @@
           "fallback": "",
           "min": null,
           "max": null,
-          "max_length": null
+          "max_length": null,
+          "options": null
         },
         {
           "name": "mentionable",
@@ -975,7 +1031,8 @@
           "fallback": "",
           "min": null,
           "max": null,
-          "max_length": null
+          "max_length": null,
+          "options": null
         }
       ],
       "result": {
@@ -1055,7 +1112,8 @@
           "fallback": "",
           "min": null,
           "max": null,
-          "max_length": null
+          "max_length": null,
+          "options": null
         }
       ],
       "result": null
@@ -1116,7 +1174,8 @@
           "fallback": "",
           "min": null,
           "max": null,
-          "max_length": null
+          "max_length": null,
+          "options": null
         },
         {
           "name": "user_target",
@@ -1127,7 +1186,8 @@
           "fallback": "",
           "min": null,
           "max": null,
-          "max_length": null
+          "max_length": null,
+          "options": null
         }
       ],
       "result": null
@@ -1156,7 +1216,8 @@
           "fallback": "",
           "min": null,
           "max": null,
-          "max_length": null
+          "max_length": null,
+          "options": null
         },
         {
           "name": "user_target",
@@ -1167,7 +1228,8 @@
           "fallback": "",
           "min": null,
           "max": null,
-          "max_length": null
+          "max_length": null,
+          "options": null
         }
       ],
       "result": null
@@ -1196,7 +1258,8 @@
           "fallback": "channel",
           "min": null,
           "max": null,
-          "max_length": null
+          "max_length": null,
+          "options": null
         },
         {
           "name": "max_age",
@@ -1207,7 +1270,8 @@
           "fallback": "",
           "min": 0,
           "max": 5184000,
-          "max_length": null
+          "max_length": null,
+          "options": null
         },
         {
           "name": "max_uses",
@@ -1218,7 +1282,8 @@
           "fallback": "",
           "min": 0,
           "max": 100,
-          "max_length": null
+          "max_length": null,
+          "options": null
         },
         {
           "name": "temporary",
@@ -1229,7 +1294,8 @@
           "fallback": "",
           "min": null,
           "max": null,
-          "max_length": null
+          "max_length": null,
+          "options": null
         },
         {
           "name": "unique",
@@ -1240,7 +1306,8 @@
           "fallback": "",
           "min": null,
           "max": null,
-          "max_length": null
+          "max_length": null,
+          "options": null
         }
       ],
       "result": {
@@ -1337,6 +1404,302 @@
         "kind": "custom"
       },
       "fields": [],
+      "result": {
+        "thing": "",
+        "list": false
+      }
+    },
+    {
+      "type": "action_cookie_api_transcript_create",
+      "credits": 3,
+      "audit_log_reason": false,
+      "requires": [
+        "cookie_api",
+        "discord"
+      ],
+      "run": {
+        "kind": "request",
+        "integration": "cookie_api",
+        "operation": "create_transcript",
+        "method": "POST",
+        "path": "/api/transcript",
+        "inject": [
+          {
+            "in": "body",
+            "name": "bot_token",
+            "value": "discord_bot_token"
+          }
+        ]
+      },
+      "fields": [
+        {
+          "name": "channel_target",
+          "in": "query",
+          "target": "channel_id",
+          "type": "snowflake",
+          "required": false,
+          "fallback": "channel",
+          "min": null,
+          "max": null,
+          "max_length": null,
+          "options": null
+        },
+        {
+          "name": "transcript_title",
+          "in": "body",
+          "target": "title",
+          "type": "string",
+          "required": false,
+          "fallback": "",
+          "min": null,
+          "max": null,
+          "max_length": null,
+          "options": null
+        },
+        {
+          "name": "transcript_description",
+          "in": "body",
+          "target": "description",
+          "type": "string",
+          "required": false,
+          "fallback": "",
+          "min": null,
+          "max": null,
+          "max_length": null,
+          "options": null
+        },
+        {
+          "name": "transcript_password",
+          "in": "body",
+          "target": "password",
+          "type": "string",
+          "required": false,
+          "fallback": "",
+          "min": null,
+          "max": null,
+          "max_length": null,
+          "options": null
+        }
+      ],
+      "result": {
+        "thing": "",
+        "list": false
+      }
+    },
+    {
+      "type": "action_cookie_api_card_create",
+      "credits": 1,
+      "audit_log_reason": false,
+      "requires": [
+        "cookie_api"
+      ],
+      "run": {
+        "kind": "request",
+        "integration": "cookie_api",
+        "operation": "create_card",
+        "method": "POST",
+        "path": "/api/cards/card-builder/build"
+      },
+      "fields": [
+        {
+          "name": "card_data",
+          "in": "body",
+          "target": "card_data",
+          "type": "json_object",
+          "required": true,
+          "fallback": "",
+          "min": null,
+          "max": null,
+          "max_length": null,
+          "options": null
+        }
+      ],
+      "result": {
+        "thing": "",
+        "list": false
+      }
+    },
+    {
+      "type": "action_cookie_api_qr_code_create",
+      "credits": 1,
+      "audit_log_reason": false,
+      "requires": [
+        "cookie_api"
+      ],
+      "run": {
+        "kind": "request",
+        "integration": "cookie_api",
+        "operation": "create_qr_code",
+        "method": "POST",
+        "path": "/api/images/qr-code"
+      },
+      "fields": [
+        {
+          "name": "qr_code_data",
+          "in": "body",
+          "target": "data",
+          "type": "string",
+          "required": true,
+          "fallback": "",
+          "min": null,
+          "max": null,
+          "max_length": null,
+          "options": null
+        },
+        {
+          "name": "qr_code_style",
+          "in": "body",
+          "target": "style",
+          "type": "string",
+          "required": false,
+          "fallback": "",
+          "min": null,
+          "max": null,
+          "max_length": null,
+          "options": [
+            "standart",
+            "dots"
+          ]
+        },
+        {
+          "name": "qr_code_border",
+          "in": "body",
+          "target": "border",
+          "type": "integer",
+          "required": false,
+          "fallback": "",
+          "min": 0,
+          "max": null,
+          "max_length": null,
+          "options": null
+        },
+        {
+          "name": "qr_code_center_image_url",
+          "in": "body",
+          "target": "center_image_url",
+          "type": "string",
+          "required": false,
+          "fallback": "",
+          "min": null,
+          "max": null,
+          "max_length": null,
+          "options": null
+        }
+      ],
+      "result": {
+        "thing": "",
+        "list": false
+      }
+    },
+    {
+      "type": "action_cookie_api_captcha_create",
+      "credits": 1,
+      "audit_log_reason": false,
+      "requires": [
+        "cookie_api"
+      ],
+      "run": {
+        "kind": "request",
+        "integration": "cookie_api",
+        "operation": "create_captcha",
+        "method": "POST",
+        "path": "/api/security/captcha/create"
+      },
+      "fields": [
+        {
+          "name": "captcha_provider",
+          "in": "query",
+          "target": "captcha_provider",
+          "type": "string",
+          "required": true,
+          "fallback": "",
+          "min": null,
+          "max": null,
+          "max_length": null,
+          "options": [
+            "Cloudflare",
+            "Google"
+          ]
+        },
+        {
+          "name": "captcha_color",
+          "in": "query",
+          "target": "color",
+          "type": "string",
+          "required": false,
+          "fallback": "",
+          "min": null,
+          "max": null,
+          "max_length": null,
+          "options": null
+        }
+      ],
+      "result": {
+        "thing": "",
+        "list": false
+      }
+    },
+    {
+      "type": "action_cookie_api_captcha_get",
+      "credits": 1,
+      "audit_log_reason": false,
+      "requires": [
+        "cookie_api"
+      ],
+      "run": {
+        "kind": "request",
+        "integration": "cookie_api",
+        "operation": "get_captcha",
+        "method": "GET",
+        "path": "/api/security/captcha/get-captcha"
+      },
+      "fields": [
+        {
+          "name": "captcha_id",
+          "in": "query",
+          "target": "captcha_id",
+          "type": "string",
+          "required": true,
+          "fallback": "",
+          "min": null,
+          "max": null,
+          "max_length": null,
+          "options": null
+        }
+      ],
+      "result": {
+        "thing": "",
+        "list": false
+      }
+    },
+    {
+      "type": "action_cookie_api_minecraft_user_get",
+      "credits": 1,
+      "audit_log_reason": false,
+      "requires": [
+        "cookie_api"
+      ],
+      "run": {
+        "kind": "request",
+        "integration": "cookie_api",
+        "operation": "get_minecraft_user",
+        "method": "GET",
+        "path": "/api/minecraft/get-user"
+      },
+      "fields": [
+        {
+          "name": "minecraft_code",
+          "in": "query",
+          "target": "code",
+          "type": "string",
+          "required": true,
+          "fallback": "",
+          "min": null,
+          "max": null,
+          "max_length": null,
+          "options": null
+        }
+      ],
       "result": {
         "thing": "",
         "list": false

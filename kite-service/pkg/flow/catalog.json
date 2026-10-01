@@ -4713,6 +4713,376 @@
         "additionalProperties": false
       }
     },
+    "action_cookie_api_transcript_create": {
+      "title": "Create transcript",
+      "description": "Save the messages of a channel as a web page with Cookie API",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord",
+        "event_schedule"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "type": "string",
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+          },
+          "channel_target": {
+            "type": "string",
+            "description": "ID of the channel, thread or forum post. Leave empty to use the channel the flow runs in. Up to its last 500 messages are saved.",
+            "x-templated": true
+          },
+          "transcript_title": {
+            "type": "string",
+            "description": "Title of the link's embed.",
+            "x-templated": true
+          },
+          "transcript_description": {
+            "type": "string",
+            "description": "Description of the link's embed.",
+            "x-templated": true
+          },
+          "transcript_password": {
+            "type": "string",
+            "description": "Password needed to open the transcript.",
+            "x-templated": true
+          },
+          "temporary_name": {
+            "type": "string",
+            "maxLength": 32,
+            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only."
+          }
+        },
+        "additionalProperties": false
+      },
+      "result_schema": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "description": "Link to the transcript"
+          }
+        },
+        "required": [
+          "url"
+        ],
+        "additionalProperties": false,
+        "description": "The created transcript"
+      }
+    },
+    "action_cookie_api_card_create": {
+      "title": "Generate card",
+      "description": "Generate an image like a welcome card with Cookie API",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord",
+        "event_schedule"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "type": "string",
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+          },
+          "card_data": {
+            "type": "string",
+            "description": "The card as JSON, designed at https://trolensdesign.github.io/CardBuilder-cookie-api/. Placeholders in its texts are filled in.",
+            "x-templated": true
+          },
+          "temporary_name": {
+            "type": "string",
+            "maxLength": 32,
+            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only."
+          }
+        },
+        "required": [
+          "card_data"
+        ],
+        "additionalProperties": false
+      },
+      "result_schema": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "description": "URL of the card's image"
+          }
+        },
+        "required": [
+          "url"
+        ],
+        "additionalProperties": false,
+        "description": "The generated card"
+      }
+    },
+    "action_cookie_api_qr_code_create": {
+      "title": "Generate QR code",
+      "description": "Generate an image of a QR code with Cookie API",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord",
+        "event_schedule"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "type": "string",
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+          },
+          "qr_code_data": {
+            "type": "string",
+            "description": "What the QR code contains, like a link.",
+            "x-templated": true
+          },
+          "qr_code_style": {
+            "type": "string",
+            "description": "How the QR code is drawn. Defaults to squares. One of \"standart\", \"dots\".",
+            "x-templated": true
+          },
+          "qr_code_border": {
+            "type": "string",
+            "description": "Size of the border around the QR code.",
+            "x-templated": true
+          },
+          "qr_code_center_image_url": {
+            "type": "string",
+            "description": "URL of an image to show in the middle of the QR code.",
+            "x-templated": true
+          },
+          "temporary_name": {
+            "type": "string",
+            "maxLength": 32,
+            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only."
+          }
+        },
+        "required": [
+          "qr_code_data"
+        ],
+        "additionalProperties": false
+      },
+      "result_schema": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "description": "URL of the QR code's image"
+          }
+        },
+        "required": [
+          "url"
+        ],
+        "additionalProperties": false,
+        "description": "The generated QR code"
+      }
+    },
+    "action_cookie_api_captcha_create": {
+      "title": "Create captcha",
+      "description": "Create a captcha page with Cookie API for a user to solve",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord",
+        "event_schedule"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "type": "string",
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+          },
+          "captcha_provider": {
+            "type": "string",
+            "description": "Who shows the captcha. One of \"Cloudflare\", \"Google\".",
+            "x-templated": true
+          },
+          "captcha_color": {
+            "type": "string",
+            "description": "Accent color of the page as a hex code, like #4EAF54.",
+            "x-templated": true
+          },
+          "temporary_name": {
+            "type": "string",
+            "maxLength": 32,
+            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only."
+          }
+        },
+        "required": [
+          "captcha_provider"
+        ],
+        "additionalProperties": false
+      },
+      "result_schema": {
+        "type": "object",
+        "properties": {
+          "captcha_id": {
+            "type": "string",
+            "description": "ID of the captcha, to check later if it was solved"
+          },
+          "url": {
+            "type": "string",
+            "description": "Link to the page the user solves it on"
+          }
+        },
+        "required": [
+          "captcha_id",
+          "url"
+        ],
+        "additionalProperties": false,
+        "description": "The created captcha, which expires after an hour"
+      }
+    },
+    "action_cookie_api_captcha_get": {
+      "title": "Check captcha",
+      "description": "Check if a captcha from Cookie API was solved",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord",
+        "event_schedule"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "type": "string",
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+          },
+          "captcha_id": {
+            "type": "string",
+            "description": "ID of the captcha, from the Create captcha block.",
+            "x-templated": true
+          },
+          "temporary_name": {
+            "type": "string",
+            "maxLength": 32,
+            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only."
+          }
+        },
+        "required": [
+          "captcha_id"
+        ],
+        "additionalProperties": false
+      },
+      "result_schema": {
+        "type": "object",
+        "properties": {
+          "solved": {
+            "type": "string",
+            "description": "\"YES\" if the user solved it, \"NO\" if not"
+          },
+          "solved_at": {
+            "type": "string",
+            "description": "Unix timestamp of when it was solved, 0 if it wasn't"
+          }
+        },
+        "required": [
+          "solved",
+          "solved_at"
+        ],
+        "additionalProperties": false,
+        "description": "The captcha"
+      }
+    },
+    "action_cookie_api_minecraft_user_get": {
+      "title": "Verify Minecraft player",
+      "description": "Get the Minecraft player a Cookie API verification code is for",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord",
+        "event_schedule"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "type": "string",
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+          },
+          "minecraft_code": {
+            "type": "string",
+            "description": "The code the player got when joining verify.cookie-api.com in Minecraft.",
+            "x-templated": true
+          },
+          "temporary_name": {
+            "type": "string",
+            "maxLength": 32,
+            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only."
+          }
+        },
+        "required": [
+          "minecraft_code"
+        ],
+        "additionalProperties": false
+      },
+      "result_schema": {
+        "type": "object",
+        "properties": {
+          "player_id": {
+            "type": "string",
+            "description": "UUID of the player"
+          },
+          "player_name": {
+            "type": "string",
+            "description": "Name of the player"
+          },
+          "edition": {
+            "type": "string",
+            "description": "\"JAVA\" or \"BEDROCK\""
+          }
+        },
+        "required": [
+          "player_id",
+          "player_name",
+          "edition"
+        ],
+        "additionalProperties": false,
+        "description": "The verified player"
+      }
+    },
     "action_ai_chat_completion": {
       "title": "Ask AI",
       "description": "Ask artificial intelligence a question or let it respond to a prompt",

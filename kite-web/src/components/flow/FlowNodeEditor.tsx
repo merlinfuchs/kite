@@ -1102,17 +1102,19 @@ function BlockFieldInput({ type, name, data, updateData, errors }: InputProps) {
       />
     );
   }
-  if (field.type === "boolean") {
+  if (field.type === "boolean" || field.options) {
     return (
       <BaseInput
         type="select"
         field={key}
         title={title}
         description={description}
-        options={[
-          { value: "true", label: "Yes" },
-          { value: "false", label: "No" },
-        ]}
+        options={
+          field.options ?? [
+            { value: "true", label: "Yes" },
+            { value: "false", label: "No" },
+          ]
+        }
         value={value}
         updateValue={setValue}
         errors={errors}
@@ -1122,7 +1124,7 @@ function BlockFieldInput({ type, name, data, updateData, errors }: InputProps) {
   }
   return (
     <BaseInput
-      type="text"
+      type={field.type === "json_object" ? "textarea" : "text"}
       field={key}
       title={title}
       description={description}
