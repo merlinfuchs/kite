@@ -62,6 +62,15 @@ export interface AppEmoji {
   animated: boolean;
   available: boolean;
 }
+/**
+ * AppIntentsGetResponse reports which privileged gateway intents are enabled
+ * for the app in the Discord developer portal.
+ */
+export type AppIntentsGetResponse = AppIntents;
+export interface AppIntents {
+  message_content: boolean;
+  guild_members: boolean;
+}
 export type AppEntityListResponse = (AppEntity | undefined)[];
 export interface AppEntity {
   id: string;

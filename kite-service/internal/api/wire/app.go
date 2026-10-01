@@ -141,6 +141,15 @@ type AppEmoji struct {
 	Available bool   `json:"available"`
 }
 
+// AppIntentsGetResponse reports which privileged gateway intents are enabled
+// for the app in the Discord developer portal.
+type AppIntentsGetResponse = AppIntents
+
+type AppIntents struct {
+	MessageContent bool `json:"message_content"`
+	GuildMembers   bool `json:"guild_members"`
+}
+
 type AppEntityListResponse = []*AppEntity
 
 type AppEntity struct {
