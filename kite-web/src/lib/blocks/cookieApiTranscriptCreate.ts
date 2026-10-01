@@ -17,9 +17,9 @@ export const cookieApiTranscriptCreate: BlockDefinition = {
     operation: "create_transcript",
     method: "POST",
     path: "/api/transcript",
+    inject: [{ in: "body", name: "bot_token", value: "discord_bot_token" }],
   },
   fields: [
-    { name: "bot_token", in: "body", type: "discord_bot_token" },
     {
       ...flowChannelField,
       in: "query",

@@ -1422,21 +1422,16 @@
         "integration": "cookie_api",
         "operation": "create_transcript",
         "method": "POST",
-        "path": "/api/transcript"
+        "path": "/api/transcript",
+        "inject": [
+          {
+            "in": "body",
+            "name": "bot_token",
+            "value": "discord_bot_token"
+          }
+        ]
       },
       "fields": [
-        {
-          "name": "bot_token",
-          "in": "body",
-          "target": "bot_token",
-          "type": "discord_bot_token",
-          "required": false,
-          "fallback": "",
-          "min": null,
-          "max": null,
-          "max_length": null,
-          "options": null
-        },
         {
           "name": "channel_target",
           "in": "query",

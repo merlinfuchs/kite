@@ -58,9 +58,7 @@ describe("block definitions", () => {
 
   it("describe the fields without a schema", () => {
     for (const block of blockDefinitions) {
-      for (const field of (block.fields ?? []).filter(
-        (f) => !f.schema && f.type !== "discord_bot_token"
-      )) {
+      for (const field of (block.fields ?? []).filter((f) => !f.schema)) {
         expect(field.label, `${block.type}.${field.name}`).toBeTruthy();
         expect(field.description, `${block.type}.${field.name}`).toBeTruthy();
       }
@@ -99,15 +97,12 @@ describe("block definitions", () => {
     }
   });
 
-  it("only send the bot token to integrations, in the body", () => {
-    for (const block of requestBlocks()) {
-      for (const field of block.fields.filter(
-        (f) => f.type === "discord_bot_token"
-      )) {
-        expect(block.run.integration, block.type).not.toBe("discord");
-        expect(block.requires, block.type).toContain("discord");
-        expect(field.in, block.type).toBe("body");
-      }
+  it("only send the bot token to integrations, with Discord required", () => {
+    for (const block of requestBlocks().filter((b) =>
+      b.run.inject?.some((i) => i.value === "discord_bot_token")
+    )) {
+      expect(block.run.integration, block.type).not.toBe("discord");
+      expect(block.requires, block.type).toContain("discord");
     }
   });
 
@@ -177,8 +172,11 @@ describe("block definitions", () => {
           const field = block.fields.find(
             (f) => f.in === "body" && (f.target ?? f.name) === param.name
           );
+          const injected = block.run.inject?.some(
+            (i) => i.in === "body" && i.name === param.name
+          );
           expect(
-            field?.required || field?.type === "discord_bot_token",
+            field?.required || injected,
             `${block.type} requires ${param.name}`
           ).toBe(true);
         }

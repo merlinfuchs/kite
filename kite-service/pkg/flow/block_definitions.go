@@ -59,6 +59,17 @@ type blockRequest struct {
 	Operation   string `json:"operation"`
 	Method      string `json:"method"`
 	Path        string `json:"path"`
+	// Values Kite adds to the request, which aren't settings.
+	Inject []blockRequestInject `json:"inject"`
+}
+
+// blockRequestInject is a value Kite adds to a request. Value
+// "discord_bot_token" is the app's bot token, for services that call Discord
+// for the app.
+type blockRequestInject struct {
+	In    string `json:"in"`
+	Name  string `json:"name"`
+	Value string `json:"value"`
 }
 
 type blockDefinition struct {
@@ -220,17 +231,9 @@ func (n *CompiledFlowNode) executeBlockDefinition(ctx *FlowContext, block blockD
 	query := url.Values{}
 	body := make(map[string]any)
 	hasBody := false
-	var botToken string
 
 	for _, field := range block.Fields {
 		hasBody = hasBody || field.In == "body"
-
-		// Not a setting, but sent to services that call Discord for the app.
-		if field.Type == "discord_bot_token" {
-			botToken = ctx.Discord.BotToken()
-			body[field.Target] = botToken
-			continue
-		}
 
 		raw := n.Data.Setting(field.Name)
 		if field.Type == "json_object" {
@@ -286,6 +289,17 @@ func (n *CompiledFlowNode) executeBlockDefinition(ctx *FlowContext, block blockD
 		}
 	}
 
+	var secrets []string
+	for _, inject := range block.Run.Inject {
+		if inject.In != "body" || inject.Value != "discord_bot_token" {
+			return traceError(n, fmt.Errorf("unsupported injected value: %s in %s", inject.Value, inject.In))
+		}
+		token := ctx.Discord.BotToken()
+		secrets = append(secrets, token)
+		body[inject.Name] = token
+		hasBody = true
+	}
+
 	path := pathParamRe.ReplaceAllStringFunc(block.Run.Path, func(m string) string {
 		return pathParams[m[1:len(m)-1]]
 	})
@@ -321,7 +335,7 @@ func (n *CompiledFlowNode) executeBlockDefinition(ctx *FlowContext, block blockD
 			Reason: reason,
 		})
 	} else {
-		resBody, err = integrationRequest(ctx, integration, block.Run.Method, path, reqBody, botToken)
+		resBody, err = integrationRequest(ctx, integration, block.Run.Method, path, reqBody, secrets...)
 	}
 	if err != nil {
 		return traceError(n, err)
