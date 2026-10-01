@@ -1,4 +1,5 @@
 import AppLayout from "@/components/app/AppLayout";
+import { getAppShellLayout } from "@/components/app/AppShell";
 import AppIntegrationList from "@/components/app/AppIntegrationList";
 import { Separator } from "@/components/ui/separator";
 
@@ -23,3 +24,5 @@ export default function AppIntegrationsPage() {
     </AppLayout>
   );
 }
+
+AppIntegrationsPage.getLayout = getAppShellLayout;

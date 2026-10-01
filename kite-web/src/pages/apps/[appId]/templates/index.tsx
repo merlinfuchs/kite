@@ -1,5 +1,15 @@
 import { useEffect } from "react";
 import { useRouter } from "next/router";
+import AppLayout from "@/components/app/AppLayout";
+import { getAppShellLayout } from "@/components/app/AppShell";
+import { TemplateList } from "@/components/app/TemplateList";
+import { Separator } from "@/components/ui/separator";
+
+const breadcrumbs = [
+  {
+    label: "Templates",
+  },
+];
 
 // Templates moved into the marketplace, old links go to its Official tab.
 export default function AppTemplatesPage() {
@@ -15,3 +25,5 @@ export default function AppTemplatesPage() {
 
   return null;
 }
+
+AppTemplatesPage.getLayout = getAppShellLayout;
