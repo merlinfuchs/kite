@@ -8,6 +8,7 @@ import (
 
 	"github.com/kitecloud/kite/kite-service/internal/config"
 	"github.com/kitecloud/kite/kite-service/internal/core/command"
+	"github.com/kitecloud/kite/kite-service/internal/core/flowai"
 	"github.com/kitecloud/kite/kite-service/internal/core/plan"
 	"github.com/kitecloud/kite/kite-service/internal/store"
 	"github.com/kitecloud/kite/kite-service/internal/util"
@@ -26,6 +27,7 @@ type APIServerConfig struct {
 	DiscordClientSecret string
 	UserLimits          APIUserLimitsConfig
 	Billing             BillingConfig
+	AssistantMaxRepairs int
 }
 
 type APIUserLimitsConfig struct {
@@ -70,6 +72,10 @@ func NewAPIServer(
 	pluginRegistry *plugin.Registry,
 	tokenCrypt *util.SymmetricCrypt,
 	commandManager *command.CommandManager,
+	assistantPromptStore store.AssistantPromptStore,
+	flowAssistant *flowai.Assistant,
+	appSecretStore store.AppSecretStore,
+	appIntegrationStore store.AppIntegrationStore,
 ) *APIServer {
 	s := &APIServer{
 		config: config,
@@ -97,6 +103,10 @@ func NewAPIServer(
 		pluginRegistry,
 		tokenCrypt,
 		commandManager,
+		assistantPromptStore,
+		flowAssistant,
+		appSecretStore,
+		appIntegrationStore,
 	)
 	return s
 }

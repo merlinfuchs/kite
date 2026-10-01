@@ -251,3 +251,21 @@ func TestStringConversions(t *testing.T) {
 		})
 	}
 }
+
+func TestJSONValue(t *testing.T) {
+	v := NewFromJSONValue(map[string]any{
+		"name":  "a",
+		"count": float64(2),
+		"items": []any{true, nil},
+	})
+	assert.Equal(t, map[string]any{
+		"name":  "a",
+		"count": int64(2),
+		"items": []any{true, nil},
+	}, v.JSONValue())
+
+	user := NewDiscordUser(discord.User{ID: 5})
+	assert.Equal(t, "5", user.JSONValue())
+	assert.Equal(t, []any{int64(1), "x"}, NewAny([]any{1, "x"}).JSONValue())
+	assert.Equal(t, []any{"5", "6"}, NewAny([]string{"5", "6"}).JSONValue())
+}

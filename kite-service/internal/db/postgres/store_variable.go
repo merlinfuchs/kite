@@ -32,6 +32,19 @@ func (c *Client) VariablesByApp(ctx context.Context, appID string) ([]*model.Var
 	return variables, nil
 }
 
+func (c *Client) VariablesByAppWithoutTotals(ctx context.Context, appID string) ([]*model.Variable, error) {
+	rows, err := c.Q.GetVariablesByAppWithoutTotals(ctx, appID)
+	if err != nil {
+		return nil, err
+	}
+
+	variables := make([]*model.Variable, len(rows))
+	for i, row := range rows {
+		variables[i] = rowToVariable(row)
+	}
+	return variables, nil
+}
+
 func (c *Client) CountVariablesByApp(ctx context.Context, appID string) (int, error) {
 	res, err := c.Q.CountVariablesByApp(ctx, appID)
 	if err != nil {

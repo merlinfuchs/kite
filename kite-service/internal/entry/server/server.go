@@ -12,6 +12,7 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/core/command"
 	"github.com/kitecloud/kite/kite-service/internal/core/engine"
 	"github.com/kitecloud/kite/kite-service/internal/core/event"
+	"github.com/kitecloud/kite/kite-service/internal/core/flowai"
 	"github.com/kitecloud/kite/kite-service/internal/core/gateway"
 	"github.com/kitecloud/kite/kite-service/internal/core/plan"
 	"github.com/kitecloud/kite/kite-service/internal/core/usage"
@@ -69,8 +70,14 @@ func StartServer(c context.Context, cfg *config.Config) error {
 	}
 
 	var openaiClient openai.Client
+	var flowAssistant *flowai.Assistant
 	if cfg.OpenAI.APIKey != "" {
 		openaiClient = openai.NewClient(option.WithAPIKey(cfg.OpenAI.APIKey))
+		flowAssistant = flowai.NewAssistant(&openaiClient, flowai.Config{
+			Model:           cfg.Assistant.Model,
+			ReasoningEffort: cfg.Assistant.ReasoningEffort,
+			MaxOutputTokens: cfg.Assistant.MaxOutputTokens,
+		})
 	}
 
 	pluginRegistry := plugin.NewRegistry()
@@ -108,6 +115,8 @@ func StartServer(c context.Context, cfg *config.Config) error {
 			PluginValueStore:     pg,
 			PluginRegistry:       pluginRegistry,
 			VariableValueStore:   pg,
+			AppSecretStore:       pg,
+			AppIntegrationStore:  pg,
 			ResumePointStore:     pg,
 			HttpClient:           engineHTTPClient(cfg),
 			OpenaiClient:         &openaiClient,
@@ -150,6 +159,7 @@ func StartServer(c context.Context, cfg *config.Config) error {
 		UserLimits: api.APIUserLimitsConfig{
 			MaxAppsPerUser: cfg.UserLimits.MaxAppsPerUser,
 		},
+		AssistantMaxRepairs: cfg.Assistant.MaxRepairs,
 		Billing: api.BillingConfig{
 			LemonSqueezyAPIKey:        cfg.Billing.LemonSqueezyAPIKey,
 			LemonSqueezySigningSecret: cfg.Billing.LemonSqueezySigningSecret,
@@ -160,6 +170,7 @@ func StartServer(c context.Context, cfg *config.Config) error {
 	},
 		pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg,
 		assetStore, gateway, planManager, pluginRegistry, tokenCrypt, commandManager,
+		pg, flowAssistant, pg, pg,
 	)
 	address := fmt.Sprintf("%s:%d", cfg.API.Host, cfg.API.Port)
 	if err := apiServer.Serve(ctx, address); err != nil {
