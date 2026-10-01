@@ -1007,6 +1007,13 @@ function HttpRequestDataInput({ data, updateData, errors }: InputProps) {
               paste it into a header.
             </div>
           )}
+          {isErlcApiUrl(data.http_request_data?.url || "") && (
+            <div className="text-sm text-muted-foreground bg-muted rounded p-3">
+              Use the ER:LC blocks to call the ER:LC API. Enable ER:LC under
+              Integrations and they send your server key for you, so you
+              don&apos;t have to paste it into a header.
+            </div>
+          )}
           <div>
             <div className="font-medium text-foreground mb-1">Headers</div>
             <div className="text-muted-foreground text-sm mb-2">
@@ -1142,6 +1149,12 @@ function isDiscordApiUrl(url: string) {
   return (
     /^\s*(https?:\/\/)?((ptb|canary)\.)?discord(app)?\.com(\/|$)/i.test(url) &&
     !/\/webhooks\//i.test(url)
+  );
+}
+
+function isErlcApiUrl(url: string) {
+  return /^\s*(https?:\/\/)?api\.(erlc\.gg|policeroleplay\.community)(\/|$)/i.test(
+    url
   );
 }
 

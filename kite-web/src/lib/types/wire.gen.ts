@@ -466,6 +466,11 @@ export interface AppIntegration {
    * When the app last set the credential, for integrations that need one.
    */
   credential_updated_at: null | string /* RFC3339 */;
+  /**
+   * Where the owner of the credential authorizes Kite, for integrations
+   * that need it, like ER:LC to run commands.
+   */
+  authorize_url: null | string;
 }
 /**
  * AppIntegrationListResponse has an entry for every integration.

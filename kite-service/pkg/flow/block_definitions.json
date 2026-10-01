@@ -34,6 +34,24 @@
       "data_shared": "Its blocks send Cookie API the settings you fill in. Create transcript also sends your bot's token, which Cookie API uses to read the channel's messages.",
       "privacy_url": "https://www.cookie-api.com/privacy-policy",
       "terms_url": "https://www.cookie-api.com/terms-of-service"
+    },
+    {
+      "id": "erlc",
+      "name": "ER:LC",
+      "description": "Read the status of your Emergency Response: Liberty County private server and run commands in it.",
+      "base_url": "https://api.erlc.gg",
+      "auth": {
+        "type": "header",
+        "name": "server-key",
+        "label": "server key",
+        "help_url": "https://apidocs.erlc.gg/how-to-obtain-your-server-key",
+        "kite_key_header": "Authorization"
+      },
+      "availability": "opt_in",
+      "test_path": "/v2/server",
+      "data_shared": "Its blocks send ER:LC your server key and the commands you run. To run commands, authorize Kite for your server once after enabling it.",
+      "authorize_url": "https://api.erlc.gg/server-owners/server/{credential_id}/authorize/{app_id}",
+      "rate_limit_headers": true
     }
   ],
   "blocks": [
@@ -1704,6 +1722,165 @@
         "thing": "",
         "list": false
       }
+    },
+    {
+      "type": "action_erlc_server_get",
+      "credits": 1,
+      "audit_log_reason": false,
+      "requires": [
+        "erlc"
+      ],
+      "run": {
+        "kind": "request",
+        "integration": "erlc",
+        "operation": "get_server",
+        "method": "GET",
+        "path": "/v2/server"
+      },
+      "fields": [
+        {
+          "name": "include_players",
+          "in": "query",
+          "target": "Players",
+          "type": "boolean",
+          "required": false,
+          "fallback": "",
+          "min": null,
+          "max": null,
+          "max_length": null,
+          "options": null
+        },
+        {
+          "name": "include_staff",
+          "in": "query",
+          "target": "Staff",
+          "type": "boolean",
+          "required": false,
+          "fallback": "",
+          "min": null,
+          "max": null,
+          "max_length": null,
+          "options": null
+        },
+        {
+          "name": "include_queue",
+          "in": "query",
+          "target": "Queue",
+          "type": "boolean",
+          "required": false,
+          "fallback": "",
+          "min": null,
+          "max": null,
+          "max_length": null,
+          "options": null
+        },
+        {
+          "name": "include_join_logs",
+          "in": "query",
+          "target": "JoinLogs",
+          "type": "boolean",
+          "required": false,
+          "fallback": "",
+          "min": null,
+          "max": null,
+          "max_length": null,
+          "options": null
+        },
+        {
+          "name": "include_kill_logs",
+          "in": "query",
+          "target": "KillLogs",
+          "type": "boolean",
+          "required": false,
+          "fallback": "",
+          "min": null,
+          "max": null,
+          "max_length": null,
+          "options": null
+        },
+        {
+          "name": "include_command_logs",
+          "in": "query",
+          "target": "CommandLogs",
+          "type": "boolean",
+          "required": false,
+          "fallback": "",
+          "min": null,
+          "max": null,
+          "max_length": null,
+          "options": null
+        },
+        {
+          "name": "include_mod_calls",
+          "in": "query",
+          "target": "ModCalls",
+          "type": "boolean",
+          "required": false,
+          "fallback": "",
+          "min": null,
+          "max": null,
+          "max_length": null,
+          "options": null
+        },
+        {
+          "name": "include_emergency_calls",
+          "in": "query",
+          "target": "EmergencyCalls",
+          "type": "boolean",
+          "required": false,
+          "fallback": "",
+          "min": null,
+          "max": null,
+          "max_length": null,
+          "options": null
+        },
+        {
+          "name": "include_vehicles",
+          "in": "query",
+          "target": "Vehicles",
+          "type": "boolean",
+          "required": false,
+          "fallback": "",
+          "min": null,
+          "max": null,
+          "max_length": null,
+          "options": null
+        }
+      ],
+      "result": {
+        "thing": "",
+        "list": false
+      }
+    },
+    {
+      "type": "action_erlc_command_run",
+      "credits": 1,
+      "audit_log_reason": false,
+      "requires": [
+        "erlc"
+      ],
+      "run": {
+        "kind": "request",
+        "integration": "erlc",
+        "operation": "run_command",
+        "method": "POST",
+        "path": "/v2/server/command"
+      },
+      "fields": [
+        {
+          "name": "erlc_command",
+          "in": "body",
+          "target": "command",
+          "type": "string",
+          "required": true,
+          "fallback": "",
+          "min": null,
+          "max": null,
+          "max_length": null,
+          "options": null
+        }
+      ],
+      "result": null
     },
     {
       "type": "action_ai_chat_completion",

@@ -263,5 +263,31 @@ func TestListIntegrations(t *testing.T) {
 		entry := item.(map[string]any)
 		enabled[entry["integration_id"].(string)] = entry["enabled"].(bool)
 	}
-	assert.Equal(t, map[string]bool{"discord": true, "roblox": false, "cookie_api": false, "test_api": true}, enabled)
+	assert.Equal(t, map[string]bool{"discord": true, "roblox": false, "cookie_api": false, "erlc": false, "test_api": true}, enabled)
+}
+
+// ER:LC gets Kite's key with every request, and its server owners a link to
+// authorize Kite once the key is entered.
+func TestConnectERLC(t *testing.T) {
+	require.NoError(t, flow.ConfigureIntegration("erlc", "k1te-k3y", "1234"))
+	t.Cleanup(func() { _ = flow.ConfigureIntegration("erlc", "", "") })
+
+	s := newMemoryStore()
+	h, rt := newHandler(t, s, http.StatusOK)
+
+	res := serve(t, h, http.MethodPut, "/integrations/erlc", `{"credential":"Secret-PublicPart"}`)
+	require.Equal(t, http.StatusOK, res.code)
+	assert.Equal(t, "https://api.erlc.gg/v2/server", rt.req.URL.String())
+	assert.Equal(t, "Secret-PublicPart", rt.req.Header.Get("server-key"))
+	assert.Equal(t, "k1te-k3y", rt.req.Header.Get("Authorization"))
+
+	res = serve(t, h, http.MethodGet, "/integrations", "")
+	require.Equal(t, http.StatusOK, res.code)
+	authorizeURLs := map[string]any{}
+	for _, item := range res.data.([]any) {
+		entry := item.(map[string]any)
+		authorizeURLs[entry["integration_id"].(string)] = entry["authorize_url"]
+	}
+	assert.Equal(t, "https://api.erlc.gg/server-owners/server/PublicPart/authorize/1234", authorizeURLs["erlc"])
+	assert.Nil(t, authorizeURLs["cookie_api"])
 }

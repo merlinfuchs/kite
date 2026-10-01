@@ -98,6 +98,16 @@ type Integration struct {
 	Availability string `json:"availability"`
 	// A GET endpoint, relative to BaseURL, that checks a credential.
 	TestPath string `json:"test_path"`
+	// Where the owner of a credential authorizes Kite for what the credential
+	// alone can't do, see AuthorizeURLFor.
+	AuthorizeURL string `json:"authorize_url"`
+	// The service reports its rate limits in X-RateLimit headers and
+	// Retry-After, which requests wait for, see integrationLimits.
+	RateLimitHeaders bool `json:"rate_limit_headers"`
+
+	// Kite's own key and ID at the service, from the config.
+	kiteKey   string
+	kiteAppID string
 }
 
 // IntegrationAuth is how requests to an integration prove who they are:
@@ -108,6 +118,8 @@ type IntegrationAuth struct {
 	Name   string `json:"name"`
 	Prefix string `json:"prefix"`
 	Label  string `json:"label"`
+	// Header for Kite's own key, sent next to the app's credential.
+	KiteKeyHeader string `json:"kite_key_header"`
 }
 
 const (
@@ -167,7 +179,38 @@ func (i Integration) NewRequest(ctx context.Context, method string, path string,
 	if i.Auth.Type == "header" {
 		req.Header.Set(i.Auth.Name, i.Auth.Prefix+credential)
 	}
+	if i.Auth.KiteKeyHeader != "" && i.kiteKey != "" {
+		req.Header.Set(i.Auth.KiteKeyHeader, i.kiteKey)
+	}
 	return req, nil
+}
+
+// AuthorizeURLFor returns the link where the owner of the credential
+// authorizes Kite, or "" if the integration has none or Kite has no ID at the
+// service. Only the public part of the credential, after its last "-", is in
+// the link.
+func (i Integration) AuthorizeURLFor(credential string) string {
+	dash := strings.LastIndex(credential, "-")
+	if i.AuthorizeURL == "" || i.kiteAppID == "" || dash < 0 || dash == len(credential)-1 {
+		return ""
+	}
+	return strings.NewReplacer(
+		"{credential_id}", url.PathEscape(credential[dash+1:]),
+		"{app_id}", url.PathEscape(i.kiteAppID),
+	).Replace(i.AuthorizeURL)
+}
+
+// ConfigureIntegration sets Kite's own key and ID at the service of an
+// integration. It's called once at startup, before any flow runs.
+func ConfigureIntegration(id string, kiteKey string, kiteAppID string) error {
+	integration, ok := integrations[id]
+	if !ok {
+		return fmt.Errorf("unknown integration: %s", id)
+	}
+	integration.kiteKey = kiteKey
+	integration.kiteAppID = kiteAppID
+	integrations[id] = integration
+	return nil
 }
 
 var blockDefinitions, integrations = func() (map[FlowNodeType]blockDefinition, map[string]Integration) {
@@ -581,7 +624,7 @@ func integrationRequest(ctx *FlowContext, integration Integration, method string
 			return nil, err
 		}
 	}
-	redact := &requestSecrets{values: map[string]string{"credential": credential}}
+	redact := &requestSecrets{values: map[string]string{"credential": credential, "kite_key": integration.kiteKey}}
 	for i, secret := range secrets {
 		redact.values[fmt.Sprint(i)] = secret
 	}
@@ -591,7 +634,16 @@ func integrationRequest(ctx *FlowContext, integration Integration, method string
 		return nil, redact.Redact(err)
 	}
 
-	resp, err := ctx.HTTP.HTTPRequestWithoutRedirects(ctx, req)
+	var resp *http.Response
+	if integration.RateLimitHeaders {
+		done, err := integrationLimits.acquire(ctx, integration, credential, method+" "+req.URL.Path)
+		if err != nil {
+			return nil, err
+		}
+		defer func() { done(resp) }()
+	}
+
+	resp, err = ctx.HTTP.HTTPRequestWithoutRedirects(ctx, req)
 	if err != nil {
 		return nil, redact.Redact(err)
 	}

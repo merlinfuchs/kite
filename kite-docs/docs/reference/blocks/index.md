@@ -101,6 +101,11 @@ The output of previously executed blocks is available in all subsequent blocks a
 - [Check captcha](./actions/action_cookie_api_captcha_get.md) - Check if a captcha was solved
 - [Verify Minecraft player](./actions/action_cookie_api_minecraft_user_get.md) - Get the Minecraft player of a verification code
 
+## ER:LC Blocks
+
+- [Get ER:LC server](./actions/action_erlc_server_get.md) - Get the status, players and logs of an ER:LC private server
+- [Run ER:LC command](./actions/action_erlc_command_run.md) - Run a command in an ER:LC private server
+
 ## Control Flow Blocks
 
 - [Comparison Condition](./controls/control_condition_compare.md) - Create conditional logic

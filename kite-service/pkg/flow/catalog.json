@@ -5083,6 +5083,457 @@
         "description": "The verified player"
       }
     },
+    "action_erlc_server_get": {
+      "title": "Get ER:LC server",
+      "description": "Get the status of your ER:LC private server",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord",
+        "event_schedule"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "type": "string",
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+          },
+          "include_players": {
+            "type": "string",
+            "description": "Whether to include the players in the server. Either \"true\" or \"false\".",
+            "x-templated": true
+          },
+          "include_staff": {
+            "type": "string",
+            "description": "Whether to include the server's admins, mods and helpers. Either \"true\" or \"false\".",
+            "x-templated": true
+          },
+          "include_queue": {
+            "type": "string",
+            "description": "Whether to include the players waiting to join. Either \"true\" or \"false\".",
+            "x-templated": true
+          },
+          "include_join_logs": {
+            "type": "string",
+            "description": "Whether to include who joined and left recently. Either \"true\" or \"false\".",
+            "x-templated": true
+          },
+          "include_kill_logs": {
+            "type": "string",
+            "description": "Whether to include who killed whom recently. Either \"true\" or \"false\".",
+            "x-templated": true
+          },
+          "include_command_logs": {
+            "type": "string",
+            "description": "Whether to include the commands run recently. Either \"true\" or \"false\".",
+            "x-templated": true
+          },
+          "include_mod_calls": {
+            "type": "string",
+            "description": "Whether to include recent calls for a moderator. Either \"true\" or \"false\".",
+            "x-templated": true
+          },
+          "include_emergency_calls": {
+            "type": "string",
+            "description": "Whether to include recent emergency calls. Either \"true\" or \"false\".",
+            "x-templated": true
+          },
+          "include_vehicles": {
+            "type": "string",
+            "description": "Whether to include the vehicles spawned in the server. Either \"true\" or \"false\".",
+            "x-templated": true
+          },
+          "temporary_name": {
+            "type": "string",
+            "maxLength": 32,
+            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only."
+          }
+        },
+        "additionalProperties": false
+      },
+      "result_schema": {
+        "type": "object",
+        "properties": {
+          "Name": {
+            "type": "string",
+            "description": "Name of the server"
+          },
+          "OwnerId": {
+            "type": "number",
+            "description": "Roblox ID of the owner"
+          },
+          "CoOwnerIds": {
+            "type": "array",
+            "items": {
+              "type": "number"
+            },
+            "description": "Roblox IDs of the co-owners"
+          },
+          "CurrentPlayers": {
+            "type": "number",
+            "description": "Number of players in the server"
+          },
+          "MaxPlayers": {
+            "type": "number",
+            "description": "Number of players that fit"
+          },
+          "JoinKey": {
+            "type": "string",
+            "description": "Code to join the server with"
+          },
+          "AccVerifiedReq": {
+            "type": "string",
+            "description": "Verification players need: Disabled, Email or Phone/ID"
+          },
+          "TeamBalance": {
+            "type": "boolean",
+            "description": "Whether teams are balanced"
+          },
+          "Players": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "Player": {
+                  "type": "string",
+                  "description": "Roblox name and ID of a player, as \"name:id\""
+                },
+                "Team": {
+                  "type": "string",
+                  "description": "Team, like Police or Civilian"
+                },
+                "Callsign": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "description": "Callsign, only on non-civilian teams"
+                },
+                "Permission": {
+                  "type": "string",
+                  "description": "Normal, Server Moderator, Server Administrator or Server Owner"
+                },
+                "WantedStars": {
+                  "type": "number",
+                  "description": "Wanted level"
+                },
+                "Location": {
+                  "type": "object",
+                  "properties": {
+                    "PostalCode": {
+                      "type": "string"
+                    },
+                    "StreetName": {
+                      "type": "string"
+                    },
+                    "BuildingNumber": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "PostalCode",
+                    "StreetName",
+                    "BuildingNumber"
+                  ],
+                  "additionalProperties": false,
+                  "description": "Where the player is"
+                }
+              },
+              "required": [
+                "Player",
+                "Team",
+                "Callsign",
+                "Permission",
+                "WantedStars",
+                "Location"
+              ],
+              "additionalProperties": false
+            },
+            "description": "Players in the server, if included"
+          },
+          "Staff": {
+            "type": "object",
+            "properties": {
+              "Admins": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "string"
+                }
+              },
+              "Mods": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "string"
+                }
+              },
+              "Helpers": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "string"
+                }
+              }
+            },
+            "required": [
+              "Admins",
+              "Mods",
+              "Helpers"
+            ],
+            "additionalProperties": false,
+            "description": "Staff of the server, if included, each a map of Roblox ID to name"
+          },
+          "Queue": {
+            "type": "array",
+            "items": {
+              "type": "number"
+            },
+            "description": "Roblox IDs of the players waiting to join, if included"
+          },
+          "JoinLogs": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "Player": {
+                  "type": "string",
+                  "description": "Roblox name and ID of a player, as \"name:id\""
+                },
+                "Join": {
+                  "type": "boolean",
+                  "description": "True for a join, false for a leave"
+                },
+                "Timestamp": {
+                  "type": "number",
+                  "description": "Unix timestamp"
+                }
+              },
+              "required": [
+                "Player",
+                "Join",
+                "Timestamp"
+              ],
+              "additionalProperties": false
+            },
+            "description": "Recent joins and leaves, if included"
+          },
+          "KillLogs": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "Killer": {
+                  "type": "string",
+                  "description": "Roblox name and ID of a player, as \"name:id\""
+                },
+                "Killed": {
+                  "type": "string",
+                  "description": "Roblox name and ID of a player, as \"name:id\""
+                },
+                "Timestamp": {
+                  "type": "number",
+                  "description": "Unix timestamp"
+                }
+              },
+              "required": [
+                "Killer",
+                "Killed",
+                "Timestamp"
+              ],
+              "additionalProperties": false
+            },
+            "description": "Recent kills, if included"
+          },
+          "CommandLogs": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "Player": {
+                  "type": "string",
+                  "description": "Roblox name and ID of a player, as \"name:id\""
+                },
+                "Command": {
+                  "type": "string",
+                  "description": "The command, like :h hello"
+                },
+                "Timestamp": {
+                  "type": "number",
+                  "description": "Unix timestamp"
+                }
+              },
+              "required": [
+                "Player",
+                "Command",
+                "Timestamp"
+              ],
+              "additionalProperties": false
+            },
+            "description": "Recent commands, if included"
+          },
+          "ModCalls": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "Caller": {
+                  "type": "string",
+                  "description": "Roblox name and ID of a player, as \"name:id\""
+                },
+                "Moderator": {
+                  "type": "string",
+                  "description": "Roblox name and ID of a player, as \"name:id\""
+                },
+                "Timestamp": {
+                  "type": "number",
+                  "description": "Unix timestamp"
+                }
+              },
+              "required": [
+                "Caller",
+                "Timestamp"
+              ],
+              "additionalProperties": false
+            },
+            "description": "Recent calls for a moderator, if included"
+          },
+          "EmergencyCalls": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "Team": {
+                  "type": "string",
+                  "description": "Team called, like Police"
+                },
+                "Caller": {
+                  "type": "number",
+                  "description": "Roblox ID of the caller"
+                },
+                "CallNumber": {
+                  "type": "number"
+                },
+                "Description": {
+                  "type": "string"
+                },
+                "PositionDescriptor": {
+                  "type": "string",
+                  "description": "Where the caller is"
+                },
+                "StartedAt": {
+                  "type": "number",
+                  "description": "Unix timestamp"
+                }
+              },
+              "required": [
+                "Team",
+                "Caller",
+                "CallNumber",
+                "Description",
+                "PositionDescriptor",
+                "StartedAt"
+              ],
+              "additionalProperties": false
+            },
+            "description": "Recent emergency calls, if included"
+          },
+          "Vehicles": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "Name": {
+                  "type": "string",
+                  "description": "Model, like Redline Fire Engine"
+                },
+                "Owner": {
+                  "type": "string",
+                  "description": "Roblox name of the owner"
+                },
+                "Plate": {
+                  "type": "string"
+                },
+                "Texture": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "description": "Livery"
+                },
+                "ColorName": {
+                  "type": "string"
+                },
+                "ColorHex": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "Name",
+                "Owner",
+                "Plate",
+                "Texture",
+                "ColorName",
+                "ColorHex"
+              ],
+              "additionalProperties": false
+            },
+            "description": "Spawned vehicles, if included"
+          }
+        },
+        "required": [
+          "Name",
+          "OwnerId",
+          "CoOwnerIds",
+          "CurrentPlayers",
+          "MaxPlayers",
+          "JoinKey",
+          "AccVerifiedReq",
+          "TeamBalance"
+        ],
+        "additionalProperties": false,
+        "description": "The server"
+      }
+    },
+    "action_erlc_command_run": {
+      "title": "Run ER:LC command",
+      "description": "Run a command in your ER:LC private server",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord",
+        "event_schedule"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "type": "string",
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+          },
+          "erlc_command": {
+            "type": "string",
+            "description": "The command to run, like \":h Hello everyone!\". ER:LC runs one command every 5 seconds per server, so the block waits for its turn, up to 10 seconds.",
+            "x-templated": true
+          }
+        },
+        "required": [
+          "erlc_command"
+        ],
+        "additionalProperties": false
+      },
+      "result_schema": null
+    },
     "action_ai_chat_completion": {
       "title": "Ask AI",
       "description": "Ask artificial intelligence a question or let it respond to a prompt",
