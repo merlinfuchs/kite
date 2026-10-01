@@ -164,6 +164,10 @@ func (s *APIServer) RegisterRoutes(
 		handler.Typed(appHandler.HandleAppEmojisList),
 		handler.CacheByUser(cacheManager, time.Minute),
 	)
+	appGroup.Get("/intents",
+		handler.Typed(appHandler.HandleAppIntentsGet),
+		handler.RateLimitByUser(30, time.Minute),
+	)
 	appGroup.Get("/entities", handler.Typed(appHandler.HandleAppEntityList))
 	appGroup.Get("/collaborators", handler.Typed(appHandler.HandleAppCollaboratorsList))
 	appGroup.Post("/collaborators", handler.TypedWithBody(appHandler.HandleAppCollaboratorCreate))

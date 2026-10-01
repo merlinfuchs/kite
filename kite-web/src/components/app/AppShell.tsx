@@ -5,6 +5,7 @@ import { useRouter } from "next/router";
 import { ReactElement, ReactNode } from "react";
 import { toast } from "sonner";
 import AppDisabledPopup from "./AppDisabledPopup";
+import AppIntentsPopup from "./AppIntentsPopup";
 import UpsellPopup from "./UpsellPopup";
 
 // Rendered from _app via getLayout, so the sidebar stays mounted and keeps its
@@ -36,6 +37,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
         {children}
 
         <AppDisabledPopup />
+        <AppIntentsPopup />
         <UpsellPopup />
       </SidebarInset>
     </SidebarProvider>
