@@ -14,10 +14,6 @@ import { useApp } from "@/lib/hooks/api";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import ThemeSwitch from "../common/ThemeSwitch";
-import { toast } from "sonner";
-import AppDisabledPopup from "./AppDisabledPopup";
-import UpsellPopup from "./UpsellPopup";
-import AppIntentsPopup from "./AppIntentsPopup";
 
 interface Props {
   breadcrumbs?: {
@@ -85,11 +81,6 @@ export default function AppLayout({ children, ...props }: Props) {
                       )}
                     </BreadcrumbItem>
 
-          <AppDisabledPopup />
-          <AppIntentsPopup />
-          <UpsellPopup />
-        </SidebarInset>
-      </SidebarProvider>
                     {i < breadcrumbs.length - 1 && <BreadcrumbSeparator />}
                   </Fragment>
                 ))}
