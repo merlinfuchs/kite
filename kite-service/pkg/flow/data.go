@@ -1,11 +1,14 @@
 package flow
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"reflect"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -95,6 +98,7 @@ const (
 	FlowNodeTypeActionMessageGet            FlowNodeType = "action_message_get"
 	FlowNodeTypeActionRobloxUserGet         FlowNodeType = "action_roblox_user_get"
 	FlowNodeTypeActionHTTPRequest           FlowNodeType = "action_http_request"
+	FlowNodeTypeActionDiscordAPIRequest     FlowNodeType = "action_discord_api_request"
 	FlowNodeTypeActionAIChatCompletion      FlowNodeType = "action_ai_chat_completion"
 	FlowNodeTypeActionAISearchWeb           FlowNodeType = "action_ai_web_search"
 	FlowNodeTypeActionExpressionEvaluate    FlowNodeType = "action_expression_evaluate"
@@ -233,6 +237,15 @@ type FlowNodeData struct {
 	// HTTP Request
 	HTTPRequestData *HTTPRequestData `json:"http_request_data,omitempty"`
 
+	// Discord API Request
+	DiscordAPIRequestData *DiscordAPIRequestData `json:"discord_api_request_data,omitempty"`
+
+	// Settings that no field above has, which blocks defined as data use (see
+	// block_definitions.json). They are stored next to the others in the
+	// node's data. Values are usually templates, but numbers, booleans and
+	// lists are accepted too.
+	Fields map[string]any `json:"-"`
+
 	// AI Chat Completion
 	AIChatCompletionData *AIChatCompletionData `json:"ai_chat_completion_data,omitempty"`
 
@@ -265,6 +278,124 @@ type FlowNodeData struct {
 	LoopCount string `json:"loop_count,omitempty"`
 	// Sleep
 	SleepDurationSeconds string `json:"sleep_duration_seconds,omitempty"`
+}
+
+// flowNodeDataFields maps the JSON names of FlowNodeData's fields to their
+// index, to tell them apart from the settings kept in Fields.
+var flowNodeDataFields = func() map[string]int {
+	res := make(map[string]int)
+	t := reflect.TypeOf(FlowNodeData{})
+	for i := range t.NumField() {
+		name, _, _ := strings.Cut(t.Field(i).Tag.Get("json"), ",")
+		if name != "" && name != "-" {
+			res[name] = i
+		}
+	}
+	return res
+}()
+
+// flowNodeDataFieldsFolded is flowNodeDataFields by lowercase name, as
+// encoding/json matches keys to fields regardless of case.
+var flowNodeDataFieldsFolded = func() map[string]int {
+	res := make(map[string]int, len(flowNodeDataFields))
+	for name, i := range flowNodeDataFields {
+		res[strings.ToLower(name)] = i
+	}
+	return res
+}()
+
+func (d *FlowNodeData) UnmarshalJSON(b []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(b, &raw); err != nil {
+		return err
+	}
+
+	dataType := reflect.TypeOf(*d)
+	fixed := false
+	for name, value := range raw {
+		i, ok := flowNodeDataFieldsFolded[strings.ToLower(name)]
+		if !ok {
+			// Settings of blocks defined as data, kept as they are.
+			if d.Fields == nil {
+				d.Fields = make(map[string]any)
+			}
+			dec := json.NewDecoder(bytes.NewReader(value))
+			// Keeps IDs written as numbers exact.
+			dec.UseNumber()
+			var v any
+			if err := dec.Decode(&v); err != nil {
+				return err
+			}
+			d.Fields[name] = v
+			continue
+		}
+
+		// Text settings can come as a number or boolean, e.g. from the flow AI
+		// or a block defined as data, whose settings accept both.
+		if dataType.Field(i).Type.Kind() == reflect.String && len(value) > 0 && value[0] != '"' && string(value) != "null" {
+			raw[name], _ = json.Marshal(string(value))
+			fixed = true
+		}
+	}
+
+	if fixed {
+		var err error
+		if b, err = json.Marshal(raw); err != nil {
+			return err
+		}
+	}
+
+	type plain FlowNodeData
+	fields := d.Fields
+	if err := json.Unmarshal(b, (*plain)(d)); err != nil {
+		return err
+	}
+	d.Fields = fields
+	return nil
+}
+
+func (d FlowNodeData) MarshalJSON() ([]byte, error) {
+	type plain FlowNodeData
+	b, err := json.Marshal(plain(d))
+	if err != nil || len(d.Fields) == 0 {
+		return b, err
+	}
+
+	names := make([]string, 0, len(d.Fields))
+	for name := range d.Fields {
+		if _, ok := flowNodeDataFields[name]; !ok {
+			names = append(names, name)
+		}
+	}
+	slices.Sort(names)
+
+	// Appended to the other fields' JSON, which stays exactly as it was.
+	var buf bytes.Buffer
+	buf.Write(b[:len(b)-1])
+	for i, name := range names {
+		value, err := json.Marshal(d.Fields[name])
+		if err != nil {
+			return nil, err
+		}
+		if i > 0 || len(b) > 2 {
+			buf.WriteByte(',')
+		}
+		key, _ := json.Marshal(name)
+		buf.Write(key)
+		buf.WriteByte(':')
+		buf.Write(value)
+	}
+	buf.WriteByte('}')
+	return buf.Bytes(), nil
+}
+
+// Setting returns a setting by its JSON name, from a field of FlowNodeData if
+// one has that name, otherwise from Fields.
+func (d FlowNodeData) Setting(name string) any {
+	if i, ok := flowNodeDataFields[name]; ok {
+		return reflect.ValueOf(d).Field(i).Interface()
+	}
+	return d.Fields[name]
 }
 
 func (d FlowNodeData) Validate(nodeType FlowNodeType) error {
@@ -718,6 +849,14 @@ type HTTPRequestData struct {
 type HTTPRequestDataKeyValue struct {
 	Key   string `json:"key"`
 	Value string `json:"value"`
+}
+
+type DiscordAPIRequestData struct {
+	// Operation is the operationId of the endpoint in Discord's OpenAPI spec.
+	Operation  string                    `json:"operation,omitempty"`
+	PathParams []HTTPRequestDataKeyValue `json:"path_params,omitempty"`
+	Query      []HTTPRequestDataKeyValue `json:"query,omitempty"`
+	BodyJSON   json.RawMessage           `json:"body_json,omitempty"`
 }
 
 type AIChatCompletionData struct {

@@ -47,6 +47,12 @@ export const roleResultSchema = z.object({
   mentionable: z.boolean().describe("Whether the role is mentionable"),
 });
 
+export const nodeActionDiscordApiRequestResultSchema = z
+  .unknown()
+  .describe(
+    "The JSON the endpoint returns, as in Discord's API docs, e.g. result('id').code for a created invite or result('id')[0].content for a list of messages. Empty for endpoints that return nothing."
+  );
+
 export const nodeActionResponseCreateResultSchema = messageResultSchema;
 
 export const nodeActionResponseEditResultSchema = messageResultSchema;
@@ -95,3 +101,12 @@ export const nodeActionRobloxUserGetResultSchema = z.object({
   name: z.string().describe("The username of the Roblox user"),
   display_name: z.string().describe("The display name of the Roblox user"),
 });
+
+export const httpResponseResultSchema = z
+  .object({
+    status: z.string().describe("Status line, e.g. 200 OK"),
+    status_code: z.number().describe("Status code, e.g. 200"),
+    body: z.string().describe("Body of the response as text"),
+    data: z.unknown().describe("Body of the response parsed as JSON"),
+  })
+  .describe("The response to the request");

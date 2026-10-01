@@ -78,7 +78,7 @@ export default function CommandListEntry({ command }: { command: Command }) {
 
   return (
     <Card className="relative">
-      <div className="absolute top-0 right-0 py-3 pr-3 h-full flex flex-col justify-between">
+      <div className="flex items-center justify-between px-6 pt-4 sm:absolute sm:top-0 sm:right-0 sm:h-full sm:flex-col sm:items-end sm:p-3">
         <div className="flex items-center space-x-2">
           {changesDeployed ? (
             <Tooltip>
@@ -98,7 +98,7 @@ export default function CommandListEntry({ command }: { command: Command }) {
               </TooltipTrigger>
               <TooltipContent>
                 <div className="text-foreground/90">
-                  Most recent changes will be deployed soon.
+                  Latest changes are not deployed yet. Deploy them to apply.
                 </div>
               </TooltipContent>
             </Tooltip>
@@ -111,7 +111,7 @@ export default function CommandListEntry({ command }: { command: Command }) {
           <Switch checked={command.enabled} onCheckedChange={toggleEnabled} />
         </div>
       </div>
-      <CardHeader>
+      <CardHeader className="pt-3 sm:pt-6 sm:pr-56">
         <CardTitle className="text-base flex items-center space-x-2">
           <SlashSquareIcon className="h-5 w-5 text-muted-foreground" />
           <div>{command.name}</div>

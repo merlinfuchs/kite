@@ -70,6 +70,39 @@ export interface AppEntity {
 }
 
 //////////
+// source: app_secret.go
+
+/**
+ * MaxAppSecretValueLength is the maximum size of a secret's value in bytes.
+ */
+export const MaxAppSecretValueLength = 4096;
+/**
+ * AppSecret never includes the value, it can't be read back once saved.
+ */
+export interface AppSecret {
+  id: string;
+  name: string;
+  created_at: string /* RFC3339 */;
+  updated_at: string /* RFC3339 */;
+}
+export type AppSecretListResponse = (AppSecret | undefined)[];
+export interface AppSecretCreateRequest {
+  name: string;
+  value: string;
+}
+export type AppSecretCreateResponse = AppSecret;
+/**
+ * AppSecretUpdateRequest renames a secret, and replaces its value if one is
+ * given.
+ */
+export interface AppSecretUpdateRequest {
+  name: string;
+  value: null | string;
+}
+export type AppSecretUpdateResponse = AppSecret;
+export type AppSecretDeleteResponse = Empty;
+
+//////////
 // source: app_state.go
 
 export interface AppStateStatus {
@@ -222,6 +255,7 @@ export interface BillingPlan {
   feature_max_guilds: number /* int */;
   feature_max_commands: number /* int */;
   feature_max_variables: number /* int */;
+  feature_max_secrets: number /* int */;
   feature_max_messages: number /* int */;
   feature_max_event_listeners: number /* int */;
   feature_priority_support: boolean;
@@ -278,7 +312,6 @@ export interface CommandsImportRequest {
 export type CommandsImportResponse = (Command | undefined)[];
 export interface CommandUpdateRequest {
   flow_source: FlowData;
-  enabled: boolean;
 }
 export type CommandUpdateResponse = Command;
 export interface CommandUpdateEnabledRequest {
@@ -325,7 +358,6 @@ export interface EventListenersImportRequest {
 export type EventListenersImportResponse = (EventListener | undefined)[];
 export interface EventListenerUpdateRequest {
   flow_source: FlowData;
-  enabled: boolean;
 }
 export type EventListenerUpdateResponse = EventListener;
 export interface EventListenerUpdateEnabledRequest {
@@ -343,6 +375,7 @@ export interface Features {
   max_guilds: number /* int */;
   max_commands: number /* int */;
   max_variables: number /* int */;
+  max_secrets: number /* int */;
   max_messages: number /* int */;
   max_event_listeners: number /* int */;
   priority_support: boolean;
@@ -418,6 +451,41 @@ export interface FlowAIField {
   options: string[];
   default: string;
 }
+
+//////////
+// source: integration.go
+
+/**
+ * AppIntegration is whether the app can use an integration. Credentials can't
+ * be read back.
+ */
+export interface AppIntegration {
+  integration_id: string;
+  enabled: boolean;
+  /**
+   * When the app last set the credential, for integrations that need one.
+   */
+  credential_updated_at: null | string /* RFC3339 */;
+}
+/**
+ * AppIntegrationListResponse has an entry for every integration.
+ */
+export type AppIntegrationListResponse = (AppIntegration | undefined)[];
+/**
+ * AppIntegrationUpdateRequest enables or disables an integration.
+ */
+export interface AppIntegrationUpdateRequest {
+  /**
+   * A pointer, so a missing value isn't taken as turning it off.
+   */
+  enabled?: boolean;
+}
+export type AppIntegrationUpdateResponse = Empty;
+export interface AppIntegrationConnectRequest {
+  credential: string;
+}
+export type AppIntegrationConnectResponse = Empty;
+export type AppIntegrationRemoveResponse = Empty;
 
 //////////
 // source: log.go

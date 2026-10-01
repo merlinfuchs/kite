@@ -1,8 +1,7 @@
 import MessageEditor from "@/components/message/MessageEditor";
 import MessageEditorPreview from "@/components/message/MessageEditorPreview";
 import MessageNav from "@/components/message/MessageNav";
-import { Button } from "@/components/ui/button";
-import { Drawer, DrawerContent, DrawerTrigger } from "@/components/ui/drawer";
+import MessagePreviewDrawer from "@/components/message/MessagePreviewDrawer";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useMessageUpdateMutation } from "@/lib/api/mutations";
 import { useMessage, useMessageInstances } from "@/lib/hooks/api";
@@ -15,7 +14,6 @@ import {
   useCurrentFlowStore,
   useDocumentStoreApi,
 } from "@/lib/message/state";
-import { ViewIcon } from "lucide-react";
 import Head from "next/head";
 import { useRouter } from "next/router";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -161,7 +159,7 @@ function AppMessagePageInner() {
       <Head>
         <title>Manage Message | Kite</title>
       </Head>
-      <div className="h-[100dvh] w-[100dvw] flex flex-col">
+      <div className="h-[100dvh] w-full flex flex-col">
         <div className="flex-none">
           <MessageNav
             hasUnsavedChanges={hasUnsavedChanges}
@@ -173,7 +171,7 @@ function AppMessagePageInner() {
         {message && (
           <>
             <div className="flex flex-auto overflow-y-hidden flex-col xl:flex-row h-full">
-              <ScrollArea className="flex flex-col xl:w-7/12 pt-3 pb-8 space-y-8 h-full px-3 md:px-5 lg:px-10">
+              <ScrollArea className="flex flex-col xl:w-7/12 pt-3 pb-24 xl:pb-8 space-y-8 h-full px-3 md:px-5 lg:px-10">
                 <MessageEditor />
               </ScrollArea>
               <div className="hidden xl:block py-5 w-5/12 h-full pr-5">
@@ -181,21 +179,7 @@ function AppMessagePageInner() {
               </div>
             </div>
 
-            <Drawer>
-              <DrawerTrigger asChild>
-                <Button
-                  size="icon"
-                  className="fixed bottom-5 right-5 xl:hidden"
-                >
-                  <ViewIcon />
-                </Button>
-              </DrawerTrigger>
-              <DrawerContent>
-                <div className="max-h-[80dvh] overlfow-x-hidden overflow-y-auto mt-3">
-                  <MessageEditorPreview reducePadding />
-                </div>
-              </DrawerContent>
-            </Drawer>
+            <MessagePreviewDrawer />
           </>
         )}
       </div>

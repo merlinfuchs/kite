@@ -83,6 +83,16 @@ func (s *fakePromptStore) CountAssistantPromptsBetween(ctx context.Context, appI
 	return count, nil
 }
 
+type fakeIntegrationStore struct{}
+
+func (fakeIntegrationStore) AppIntegrationCredentials(ctx context.Context, appID string) ([]*model.AppSecret, error) {
+	return nil, nil
+}
+
+func (fakeIntegrationStore) AppIntegrations(ctx context.Context, appID string) ([]*model.AppIntegration, error) {
+	return nil, nil
+}
+
 type fakeVariableStore struct{}
 
 func (fakeVariableStore) VariablesByAppWithoutTotals(ctx context.Context, appID string) ([]*model.Variable, error) {
@@ -132,7 +142,7 @@ func setup(assistant *fakeAssistant) *testSetup {
 		store:     &fakePromptStore{prompts: map[string]*model.AssistantPrompt{}},
 		assistant: assistant,
 	}
-	s.handler = &FlowAIHandler{promptStore: s.store, variableStore: fakeVariableStore{}, maxRepairs: 2}
+	s.handler = &FlowAIHandler{promptStore: s.store, variableStore: fakeVariableStore{}, integrationStore: fakeIntegrationStore{}, choiceStore: fakeIntegrationStore{}, maxRepairs: 2}
 	if assistant != nil {
 		s.handler.assistant = assistant
 	}

@@ -37,6 +37,8 @@ type Env struct {
 	PluginRegistry       *plugin.Registry
 	VariableValueStore   store.VariableValueStore
 	ResumePointStore     store.ResumePointStore
+	AppSecretStore       store.AppSecretStore
+	AppIntegrationStore  store.AppIntegrationStore
 	HttpClient           *http.Client
 	OpenaiClient         *openai.Client
 	TokenCrypt           *util.SymmetricCrypt
@@ -49,6 +51,17 @@ type entityLinks struct {
 	MessageID         null.String
 	MessageInstanceID null.Int
 	FlowSourceID      null.String // For message templates that have multiple flows
+}
+
+func (l entityLinks) usageRecordType() model.UsageRecordType {
+	switch {
+	case l.EventListenerID.Valid:
+		return model.UsageRecordTypeEventListenerFlowExecution
+	case l.MessageID.Valid:
+		return model.UsageRecordTypeMessageFlowExecution
+	default:
+		return model.UsageRecordTypeCommandFlowExecution
+	}
 }
 
 func (s Env) flowProviders(appID string, session *state.State, links entityLinks) flow.FlowProviders {
@@ -81,6 +94,8 @@ func (s Env) flowProviders(appID string, session *state.State, links entityLinks
 			appID,
 			links,
 		),
+		Secret:      NewSecretProvider(appID, s.AppSecretStore, s.TokenCrypt),
+		Integration: NewIntegrationProvider(appID, s.AppSecretStore, s.AppIntegrationStore, s.TokenCrypt),
 	}
 }
 
@@ -247,7 +262,7 @@ func (s Env) createUsageRecord(appID string, creditsUsed int, links entityLinks)
 	start := time.Now()
 	err := s.UsageStore.CreateUsageRecord(ctx, model.UsageRecord{
 		AppID:           appID,
-		Type:            model.UsageRecordTypeCommandFlowExecution,
+		Type:            links.usageRecordType(),
 		CommandID:       links.CommandID,
 		EventListenerID: links.EventListenerID,
 		MessageID:       links.MessageID,

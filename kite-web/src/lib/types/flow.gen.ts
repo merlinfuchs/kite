@@ -53,6 +53,7 @@ export const FlowNodeTypeActionGuildGet: FlowNodeType = "action_guild_get";
 export const FlowNodeTypeActionMessageGet: FlowNodeType = "action_message_get";
 export const FlowNodeTypeActionRobloxUserGet: FlowNodeType = "action_roblox_user_get";
 export const FlowNodeTypeActionHTTPRequest: FlowNodeType = "action_http_request";
+export const FlowNodeTypeActionDiscordAPIRequest: FlowNodeType = "action_discord_api_request";
 export const FlowNodeTypeActionAIChatCompletion: FlowNodeType = "action_ai_chat_completion";
 export const FlowNodeTypeActionAISearchWeb: FlowNodeType = "action_ai_web_search";
 export const FlowNodeTypeActionExpressionEvaluate: FlowNodeType = "action_expression_evaluate";
@@ -195,6 +196,10 @@ export interface FlowNodeData {
    * HTTP Request
    */
   http_request_data?: HTTPRequestData;
+  /**
+   * Discord API Request
+   */
+  discord_api_request_data?: DiscordAPIRequestData;
   /**
    * AI Chat Completion
    */
@@ -372,6 +377,15 @@ export interface HTTPRequestData {
 export interface HTTPRequestDataKeyValue {
   key: string;
   value: string;
+}
+export interface DiscordAPIRequestData {
+  /**
+   * Operation is the operationId of the endpoint in Discord's OpenAPI spec.
+   */
+  operation?: string;
+  path_params?: HTTPRequestDataKeyValue[];
+  query?: HTTPRequestDataKeyValue[];
+  body_json?: Record<string, any> | null;
 }
 export interface AIChatCompletionData {
   model?: string;
