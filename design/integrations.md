@@ -312,7 +312,7 @@ That's far off. The two rules above keep it open without extra work now: block t
 
 ## Next integrations
 
-Probably the next two to build, checked against the live APIs on 2026-09-30.
+Checked against the live APIs on 2026-09-30. ER:LC is being built.
 
 ### Popcat
 
@@ -325,19 +325,27 @@ It's `opt_in`: an unaffiliated hobby project with no stated uptime or rate limit
 
 ### ER:LC
 
-[ER:LC](https://apidocs.erlc.gg) (Emergency Response: Liberty County, a Roblox game) has an API for private servers, used by many roleplay communities' Discord bots. Its v1 and v2 OpenAPI specs are published at `api.erlc.gg/internal/docs/apispec.v1.json` and `apispec.v2.json`, so `api.json` is generated like Discord's. They have no `operationId`s, so the script derives them from the method and path. The old domain `api.policeroleplay.community` now only returns 403.
+[ER:LC](https://apidocs.erlc.gg) (Emergency Response: Liberty County, a Roblox game) has an API for private servers, used by many roleplay communities' Discord bots. Its v1 and v2 OpenAPI specs are published at `api.erlc.gg/internal/docs/apispec.v1.json` and `apispec.v2.json`. The old domain `api.policeroleplay.community` now only returns 403.
 
-- Reads: server status, players, staff, queue, join, kill and command logs, moderator calls, bans and vehicles. v2 has them in one `GET /v2/server`, with query parameters choosing which parts to include.
-- `POST /v2/server/command` runs in-game commands, limited to one per 5 seconds per server. Their rules forbid spamming and using `:pm` as a chat replacement, and commands like `:kick` and `:ban` are destructive, so the block needs limits.
-- Event webhooks for `;` chat commands and emergency calls, signed with Ed25519, fit triggers (#181).
+On 2026-10-01, 56 apps called ER:LC from HTTP blocks, in 159 blocks, most on the old domain. 46 of them pasted the server key into a header. What they call:
+
+- Commands: 27 apps on `POST /v1/server/command` and 6 on v2. In 28 apps the whole command comes from a placeholder, usually `{{arg('command')}}`, so the bot is a remote console. Fixed commands are mostly `:kick`, staff roles (`:mod`, `:admin`, `:helper`) and `:h` announcements. One runs `:kick all`.
+- `GET /v2/server`: 27 apps, all 16 that pass query parameters turn on all eight parts. 11 apps on `GET /v1/server`, the separate v1 endpoints only by one or two apps each, and bans by none.
+- The fields flows read are mostly `CurrentPlayers` (19 apps), `Queue` (15), `Players` (12), `MaxPlayers` (9), `Name` (8), `Vehicles` and `JoinKey` (7 each).
+
+So the integration has two blocks, both on v2: Get server (`GET /v2/server`), with a yes/no field for each part to include, and Run command (`POST /v2/server/command`), with the command as one field. One block with toggles makes one request where blocks per part would make several against the same rate limit. v1 only adds bans, which nobody uses, and ER:LC's large-application status requires v2. With two operations, `api.json` is written by hand from the v2 spec.
 
 Every request needs the server's key in the `server-key` header, which the server owner gets in game after buying the paid ERLC API server pack. That's the app's credential, entered when enabling the integration. One credential per app means one ER:LC server per app.
 
-ER:LC rate limits per IP and doesn't support shared-IP services, which Kite is, and repeated requests with a regenerated server key get the IP banned. So before building it:
+ER:LC rate limits per IP and doesn't support shared-IP services, which Kite is, so Kite is registered as a public application on their [API dashboard](https://api.erlc.gg/developers):
 
-1. Register Kite as a public application on their [API dashboard](https://api.erlc.gg/developers), which needs a description, feature list, privacy policy and terms of service. Kite then sends its global key in `Authorization` on every request, next to the app's `server-key`, for higher limits. That's a platform credential from the service config, a small addition to `auth`.
-2. Protect the shared IP: disable the integration for an app after repeated 403s for its key until the owner enters a new one, never retry a 429, and show `Retry-After` in the error.
-3. Running commands needs the server owner to authorize Kite once through an authorization link, `https://api.erlc.gg/server-owners/server/[INTERNAL_SERVER_ID]/authorize/[KITE_APP_ID]`, which the Enable dialog can show after the key is entered. The internal server ID is part of the server key. Read blocks work without it.
+1. Kite sends its global key in `Authorization` on every request, next to the app's `server-key`. The integration's `auth.kite_key_header` names the header, and the key is `api_key` under `[integrations.erlc]` in `kite.toml`. Without it, as on self-hosted instances, the header is left out and requests fall under the per-IP limits.
+2. Running commands needs the server owner to authorize Kite once, through `https://api.erlc.gg/server-owners/server/{server_id}/authorize/{app_id}`. The server ID is the part of the server key after its `-`, which ER:LC says can be shared, and the app ID is `app_id` in the same config. The integration's `authorize_url` holds the link, and the Integrations page shows it once the key is entered. Read blocks work without it.
+3. Integrations with `rate_limit_headers` follow ER:LC's rate limit headers. Requests of an app to the same endpoint run one at a time, and wait until the `X-RateLimit-Reset` of a bucket with no requests left, or the `Retry-After` of a 429, for at most 10 seconds. Otherwise the block fails without sending the request. `global` buckets are shared by all apps, others by the app's requests to that endpoint. Commands are limited to one per 5 seconds per server, so two commands in a row wait instead of getting a 429, which ER:LC punishes with blocks that last hours if requests continue. The state is in memory, which works as apps are pinned to one cluster, but each of the 4 clusters learns about a global 429 on its own.
+
+ER:LC also bans IPs that keep sending regenerated server keys. Kite doesn't track invalid keys: a 403 fails the block, the key is checked when it's entered, and the HTTP blocks that call ER:LC today have the same risk. HTTP blocks to ER:LC keep working, with a note in the editor to use the ER:LC blocks, like the one for Discord's API. They may be blocked later.
+
+Event webhooks for `;` chat commands and emergency calls fit triggers (#181). ER:LC signs them all with one key, so the signature doesn't say which server sent them, and each app would need its own secret URL.
 
 ## Phases
 

@@ -15,6 +15,7 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/store"
 	"github.com/kitecloud/kite/kite-service/internal/util"
 	"github.com/kitecloud/kite/kite-service/pkg/flow"
+	"gopkg.in/guregu/null.v4"
 )
 
 type IntegrationHandler struct {
@@ -53,8 +54,29 @@ func (h *IntegrationHandler) HandleAppIntegrationList(c *handler.Context) (*wire
 			Enabled:             state.Enabled,
 			CredentialUpdatedAt: state.CredentialUpdatedAt,
 		}
+		if state.Integration.AuthorizeURL != "" && state.CredentialUpdatedAt.Valid {
+			authorizeURL, err := h.authorizeURL(c.Context(), c.App.ID, state.Integration)
+			if err != nil {
+				return nil, err
+			}
+			res[i].AuthorizeURL = null.NewString(authorizeURL, authorizeURL != "")
+		}
 	}
 	return &res, nil
+}
+
+// authorizeURL returns the link where the owner of the app's credential
+// authorizes Kite, which only has the credential's public part.
+func (h *IntegrationHandler) authorizeURL(ctx context.Context, appID string, integration flow.Integration) (string, error) {
+	secret, err := h.appSecretStore.AppIntegrationCredential(ctx, appID, integration.ID)
+	if err != nil {
+		return "", fmt.Errorf("failed to get credential: %w", err)
+	}
+	credential, err := h.tokenCrypt.DecryptString(secret.ValueEncrypted)
+	if err != nil {
+		return "", fmt.Errorf("failed to decrypt credential: %w", err)
+	}
+	return integration.AuthorizeURLFor(credential), nil
 }
 
 // HandleAppIntegrationUpdate enables or disables an integration. Integrations
