@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { nodeSuspendResponseModalDataSchema } from "./dataSchema";
 import {
   modalComponentNumber,
   nextModalInputNumber,
   normalizeModalComponents,
 } from "./modal";
+import { getNodeValues } from "./nodes";
 
 describe("normalizeModalComponents", () => {
   it("turns legacy rows into one label per text input", () => {
@@ -34,9 +34,10 @@ describe("normalizeModalComponents", () => {
   });
 });
 
-describe("nodeSuspendResponseModalDataSchema", () => {
+describe("suspend_response_modal data schema", () => {
+  const schema = getNodeValues("suspend_response_modal").dataSchema!;
   const parse = (components: unknown[]) =>
-    nodeSuspendResponseModalDataSchema.safeParse({
+    schema.safeParse({
       modal_data: { title: "Form", components },
     }).success;
 
