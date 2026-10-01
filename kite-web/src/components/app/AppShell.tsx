@@ -1,12 +1,33 @@
 import { AppSidebar } from "@/components/app/AppSidebar";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
+import { useApp } from "@/lib/hooks/api";
+import { useRouter } from "next/router";
 import { ReactElement, ReactNode } from "react";
+import { toast } from "sonner";
 import AppDisabledPopup from "./AppDisabledPopup";
 import UpsellPopup from "./UpsellPopup";
 
 // Rendered from _app via getLayout, so the sidebar stays mounted and keeps its
 // open state and scroll position when navigating between app pages.
 export default function AppShell({ children }: { children: ReactNode }) {
+  useApp((res) => {
+    if (!res.success) {
+      toast.error(
+        `Failed to load app: ${res?.error.message} (${res?.error.code})`
+      );
+      if (
+        res.error.code === "unknown_app" ||
+        res.error.code === "missing_access"
+      ) {
+        router.push({
+          pathname: "/apps",
+        });
+      }
+    }
+  });
+
+  const router = useRouter();
+
   // TODO: remember open state of sidebar on desktop
   return (
     <SidebarProvider className="bg-muted/30">
