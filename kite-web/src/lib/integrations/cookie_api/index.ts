@@ -4,7 +4,7 @@ export const cookieApi: Integration = {
   id: "cookie_api",
   name: "Cookie API",
   description:
-    "QR codes, captchas and Minecraft verification from cookie-api.com.",
+    "Transcripts, cards, QR codes, captchas and Minecraft verification from cookie-api.com.",
   base_url: "https://api.cookie-api.com",
   auth: {
     type: "header",
