@@ -81,10 +81,13 @@ func TestRateLimitOneRequestPerRoute(t *testing.T) {
 	l := newRateLimits()
 	done := acquireLimit(t, l, "key", "POST /command")
 
-	acquired := make(chan struct{})
+	acquired := make(chan error)
 	go func() {
-		acquireLimit(t, l, "key", "POST /command")(nil)
-		close(acquired)
+		done, err := l.acquire(context.Background(), limitedIntegration, "key", "POST /command")
+		if err == nil {
+			done(nil)
+		}
+		acquired <- err
 	}()
 
 	select {
@@ -95,7 +98,7 @@ func TestRateLimitOneRequestPerRoute(t *testing.T) {
 
 	done(rateLimitResponse(429, map[string]string{"Retry-After": "0.1", "X-RateLimit-Bucket": "command-key"}))
 	start := time.Now()
-	<-acquired
+	require.NoError(t, <-acquired)
 	assert.GreaterOrEqual(t, time.Since(start), 50*time.Millisecond)
 
 	// The route's limit is over, so it's forgotten.
@@ -121,4 +124,18 @@ func TestRateLimitOnlyWithHeaders(t *testing.T) {
 	done(rateLimitResponse(429, map[string]string{"Retry-After": "60"}))
 	assert.Empty(t, l.global)
 	assert.Empty(t, l.routes)
+}
+
+// Long blocks are waited out in full, up to a day, as retrying early makes
+// them longer.
+func TestRateLimitClampsRetryAfter(t *testing.T) {
+	l := newRateLimits()
+	acquireLimit(t, l, "key", "GET /server")(rateLimitResponse(429, map[string]string{
+		"Retry-After":        "172800",
+		"X-RateLimit-Bucket": "global",
+	}))
+
+	_, err := l.acquire(context.Background(), limitedIntegration, "key", "GET /server")
+	assert.ErrorIs(t, err, ErrRateLimited)
+	assert.ErrorContains(t, err, "try again in 86400 seconds")
 }
