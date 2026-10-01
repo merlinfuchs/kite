@@ -20,13 +20,18 @@ export interface Integration {
   data_shared?: string;
   privacy_url?: string;
   terms_url?: string;
+  // Other hosts of the service, like an old domain, which HTTP blocks are
+  // pointed to the integration's blocks for, like those to base_url.
+  other_hosts?: string[];
   // Where the owner of the credential authorizes Kite for what the
   // credential alone can't do, like running ER:LC commands. {credential_id}
-  // is the public part of the credential, after its last "-", and {app_id}
-  // Kite's ID at the service, from the service's config.
+  // is the public part of the credential, for ER:LC's server keys the part
+  // after the last "-", and {app_id} Kite's ID at the service, from the
+  // service's config.
   authorize_url?: string;
   // The service reports its rate limits in X-RateLimit headers and
-  // Retry-After, which the service follows, see design/integrations.md.
+  // Retry-After the way ER:LC does, which the service follows, see
+  // design/integrations.md.
   rate_limit_headers?: boolean;
 }
 

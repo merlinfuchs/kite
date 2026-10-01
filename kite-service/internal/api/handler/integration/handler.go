@@ -54,29 +54,16 @@ func (h *IntegrationHandler) HandleAppIntegrationList(c *handler.Context) (*wire
 			Enabled:             state.Enabled,
 			CredentialUpdatedAt: state.CredentialUpdatedAt,
 		}
-		if state.Integration.AuthorizeURL != "" && state.CredentialUpdatedAt.Valid {
-			authorizeURL, err := h.authorizeURL(c.Context(), c.App.ID, state.Integration)
+		if state.Credential != nil && state.Integration.CanAuthorize() {
+			credential, err := h.tokenCrypt.DecryptString(state.Credential.ValueEncrypted)
 			if err != nil {
-				return nil, err
+				return nil, fmt.Errorf("failed to decrypt credential: %w", err)
 			}
+			authorizeURL := state.Integration.AuthorizeURLFor(credential)
 			res[i].AuthorizeURL = null.NewString(authorizeURL, authorizeURL != "")
 		}
 	}
 	return &res, nil
-}
-
-// authorizeURL returns the link where the owner of the app's credential
-// authorizes Kite, which only has the credential's public part.
-func (h *IntegrationHandler) authorizeURL(ctx context.Context, appID string, integration flow.Integration) (string, error) {
-	secret, err := h.appSecretStore.AppIntegrationCredential(ctx, appID, integration.ID)
-	if err != nil {
-		return "", fmt.Errorf("failed to get credential: %w", err)
-	}
-	credential, err := h.tokenCrypt.DecryptString(secret.ValueEncrypted)
-	if err != nil {
-		return "", fmt.Errorf("failed to decrypt credential: %w", err)
-	}
-	return integration.AuthorizeURLFor(credential), nil
 }
 
 // HandleAppIntegrationUpdate enables or disables an integration. Integrations
@@ -194,7 +181,7 @@ func (h *IntegrationHandler) checkCredential(ctx context.Context, integration fl
 		return fmt.Errorf("failed to create test request: %w", err)
 	}
 
-	resp, err := h.client.Do(req)
+	resp, err := integration.Do(ctx, credential, req, h.client.Do)
 	if err != nil {
 		return nil
 	}

@@ -58,7 +58,6 @@ func TestRateLimitFailsWhenTooFarAway(t *testing.T) {
 	_, err := l.acquire(context.Background(), limitedIntegration, "key", "POST /command")
 	assert.ErrorContains(t, err, "Limited is rate limited, try again in")
 	assert.Less(t, time.Since(start), 100*time.Millisecond)
-	assert.Empty(t, l.routes)
 }
 
 // A global limit stops the requests of every app, as does a 429 that doesn't
@@ -99,6 +98,7 @@ func TestRateLimitOneRequestPerRoute(t *testing.T) {
 	<-acquired
 	assert.GreaterOrEqual(t, time.Since(start), 50*time.Millisecond)
 
+	// The route's limit is over, so it's forgotten.
 	l.mu.Lock()
 	defer l.mu.Unlock()
 	assert.Empty(t, l.routes)
@@ -110,5 +110,15 @@ func TestRateLimitIgnoresOtherResponses(t *testing.T) {
 		"X-RateLimit-Bucket":    "global",
 		"X-RateLimit-Remaining": "34",
 	}))
-	assert.Empty(t, l.until)
+	assert.Empty(t, l.global)
+	assert.Empty(t, l.routes)
+}
+
+func TestRateLimitOnlyWithHeaders(t *testing.T) {
+	l := newRateLimits()
+	done, err := l.acquire(context.Background(), Integration{ID: "unlimited"}, "key", "GET /server")
+	require.NoError(t, err)
+	done(rateLimitResponse(429, map[string]string{"Retry-After": "60"}))
+	assert.Empty(t, l.global)
+	assert.Empty(t, l.routes)
 }

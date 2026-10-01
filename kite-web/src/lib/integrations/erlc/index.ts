@@ -6,6 +6,7 @@ export const erlc: Integration = {
   description:
     "Read the status of your Emergency Response: Liberty County private server and run commands in it.",
   base_url: "https://api.erlc.gg",
+  other_hosts: ["api.policeroleplay.community"],
   auth: {
     type: "header",
     name: "server-key",

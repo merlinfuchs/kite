@@ -367,65 +367,40 @@ func TestIntegrationRequestDisabled(t *testing.T) {
 // configureTestERLC sets Kite's key and ID at ER:LC for the duration of a
 // test.
 func configureTestERLC(t *testing.T) {
-	integration := integrations["erlc"]
 	require.NoError(t, ConfigureIntegration("erlc", "k1te-k3y", "1234"))
-	t.Cleanup(func() { integrations["erlc"] = integration })
+	t.Cleanup(func() { _ = ConfigureIntegration("erlc", "", "") })
 }
 
-func TestERLCBlocks(t *testing.T) {
+// executeERLCBlock runs an ER:LC block, and checks it sent the server key
+// and Kite's key.
+func executeERLCBlock(t *testing.T, nodeType FlowNodeType, data FlowNodeData, httpProvider *redirectCheckingHTTPProvider) *FlowContext {
 	configureTestERLC(t)
-	tests := []struct {
-		nodeType  FlowNodeType
-		data      FlowNodeData
-		response  string
-		method    string
-		url       string
-		body      string
-		resultKey string
-		want      string
-	}{
-		{
-			nodeType:  "action_erlc_server_get",
-			data:      FlowNodeData{Fields: map[string]any{"include_players": "true", "include_queue": "{{ 'true' }}"}},
-			response:  `{"Name":"API Test","CurrentPlayers":3,"MaxPlayers":40,"Players":[],"Queue":[]}`,
-			method:    "GET",
-			url:       "https://api.erlc.gg/v2/server?Players=true&Queue=true",
-			resultKey: "CurrentPlayers",
-			want:      "3",
-		},
-		{
-			nodeType: "action_erlc_command_run",
-			data:     FlowNodeData{Fields: map[string]any{"erlc_command": ":h {{ 'Hello' }}"}},
-			response: `{"message":"Success"}`,
-			method:   "POST",
-			url:      "https://api.erlc.gg/v2/server/command",
-			body:     `{"command":":h Hello"}`,
-		},
-	}
+	c, err := executeIntegrationBlock(t, nodeType, data, map[string]string{"erlc": "s3cret-server"}, httpProvider)
+	require.NoError(t, err)
+	assert.Equal(t, "s3cret-server", httpProvider.req.Header.Get("server-key"))
+	assert.Equal(t, "k1te-k3y", httpProvider.req.Header.Get("Authorization"))
+	return c
+}
 
-	for _, tt := range tests {
-		t.Run(string(tt.nodeType), func(t *testing.T) {
-			httpProvider := &redirectCheckingHTTPProvider{body: tt.response}
+func TestERLCServerGet(t *testing.T) {
+	httpProvider := &redirectCheckingHTTPProvider{body: `{"Name":"API Test","CurrentPlayers":3,"Players":[],"Queue":[]}`}
+	c := executeERLCBlock(t, "action_erlc_server_get",
+		FlowNodeData{Fields: map[string]any{"include_players": "true", "include_queue": "{{ 'true' }}"}}, httpProvider)
 
-			c, err := executeIntegrationBlock(t, tt.nodeType, tt.data,
-				map[string]string{"erlc": "s3cret-server"}, httpProvider)
-			require.NoError(t, err)
+	assert.Equal(t, "GET", httpProvider.req.Method)
+	assert.Equal(t, "https://api.erlc.gg/v2/server?Players=true&Queue=true", httpProvider.req.URL.String())
+	assert.Equal(t, "3", c.GetNodeResult("1").Object()["CurrentPlayers"].String())
+}
 
-			assert.Equal(t, tt.method, httpProvider.req.Method)
-			assert.Equal(t, tt.url, httpProvider.req.URL.String())
-			assert.Equal(t, "s3cret-server", httpProvider.req.Header.Get("server-key"))
-			assert.Equal(t, "k1te-k3y", httpProvider.req.Header.Get("Authorization"))
-			if tt.body == "" {
-				assert.Nil(t, httpProvider.req.Body)
-			} else {
-				body, _ := io.ReadAll(httpProvider.req.Body)
-				assert.JSONEq(t, tt.body, string(body))
-			}
-			if tt.resultKey != "" {
-				assert.Equal(t, tt.want, c.GetNodeResult("1").Object()[tt.resultKey].String())
-			}
-		})
-	}
+func TestERLCCommandRun(t *testing.T) {
+	httpProvider := &redirectCheckingHTTPProvider{body: `{"message":"Success"}`}
+	executeERLCBlock(t, "action_erlc_command_run",
+		FlowNodeData{Fields: map[string]any{"erlc_command": ":h {{ 'Hello' }}"}}, httpProvider)
+
+	assert.Equal(t, "POST", httpProvider.req.Method)
+	assert.Equal(t, "https://api.erlc.gg/v2/server/command", httpProvider.req.URL.String())
+	body, _ := io.ReadAll(httpProvider.req.Body)
+	assert.JSONEq(t, `{"command":":h Hello"}`, string(body))
 }
 
 // Self-hosted instances have no key at ER:LC, and send none.
@@ -450,7 +425,7 @@ func TestERLCErrorRedactsKiteKey(t *testing.T) {
 
 func TestIntegrationAuthorizeURL(t *testing.T) {
 	configureTestERLC(t)
-	erlc := integrations["erlc"]
+	erlc, _ := GetIntegration("erlc")
 
 	assert.Equal(t, "https://api.erlc.gg/server-owners/server/PublicPart/authorize/1234", erlc.AuthorizeURLFor("Secret-PublicPart"))
 	assert.Empty(t, erlc.AuthorizeURLFor("NoDash"))

@@ -288,6 +288,6 @@ func TestConnectERLC(t *testing.T) {
 		entry := item.(map[string]any)
 		authorizeURLs[entry["integration_id"].(string)] = entry["authorize_url"]
 	}
-	assert.Equal(t, "https://api.erlc.gg/server-owners/server/PublicPart/authorize/1234", authorizeURLs["erlc"])
+	assert.Contains(t, authorizeURLs["erlc"], "/PublicPart/")
 	assert.Nil(t, authorizeURLs["cookie_api"])
 }

@@ -1,52 +1,30 @@
 import { z } from "zod";
 import { BlockDefinition, BlockField } from "./types";
 
-// Parts of the server ER:LC only returns when they're asked for.
-const parts: [string, string, string, string][] = [
-  ["include_players", "Players", "Players", "the players in the server"],
-  ["include_staff", "Staff", "Staff", "the server's admins, mods and helpers"],
-  ["include_queue", "Queue", "Queue", "the players waiting to join"],
-  [
-    "include_join_logs",
-    "JoinLogs",
-    "Join Logs",
-    "who joined and left recently",
-  ],
-  ["include_kill_logs", "KillLogs", "Kill Logs", "who killed whom recently"],
-  [
-    "include_command_logs",
-    "CommandLogs",
-    "Command Logs",
-    "the commands run recently",
-  ],
-  [
-    "include_mod_calls",
-    "ModCalls",
-    "Mod Calls",
-    "recent calls for a moderator",
-  ],
-  [
-    "include_emergency_calls",
-    "EmergencyCalls",
-    "Emergency Calls",
-    "recent emergency calls",
-  ],
-  [
-    "include_vehicles",
-    "Vehicles",
-    "Vehicles",
-    "the vehicles spawned in the server",
-  ],
-];
+// Parts of the server ER:LC only returns when they're asked for, by their
+// query parameter, like JoinLogs for the include_join_logs setting.
+const parts: Record<string, string> = {
+  Players: "the players in the server",
+  Staff: "the server's admins, mods and helpers",
+  Queue: "the players waiting to join",
+  JoinLogs: "who joined and left recently",
+  KillLogs: "who killed whom recently",
+  CommandLogs: "the commands run recently",
+  ModCalls: "recent calls for a moderator",
+  EmergencyCalls: "recent emergency calls",
+  Vehicles: "the vehicles spawned in the server",
+};
 
-const partFields: BlockField[] = parts.map(([name, target, label, what]) => ({
-  name,
-  in: "query",
-  target,
-  type: "boolean",
-  label,
-  description: `Whether to include ${what}.`,
-}));
+const partFields: BlockField[] = Object.entries(parts).map(
+  ([target, what]) => ({
+    name: `include_${target.replace(/\B([A-Z])/g, "_$1").toLowerCase()}`,
+    in: "query",
+    target,
+    type: "boolean",
+    label: target.replace(/\B([A-Z])/g, " $1"),
+    description: `Whether to include ${what}.`,
+  })
+);
 
 const player = z
   .string()

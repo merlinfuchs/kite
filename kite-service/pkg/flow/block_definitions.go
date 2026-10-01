@@ -99,10 +99,11 @@ type Integration struct {
 	// A GET endpoint, relative to BaseURL, that checks a credential.
 	TestPath string `json:"test_path"`
 	// Where the owner of a credential authorizes Kite for what the credential
-	// alone can't do, see AuthorizeURLFor.
+	// alone can't do, see AuthorizeURLFor. Only ER:LC has one.
 	AuthorizeURL string `json:"authorize_url"`
 	// The service reports its rate limits in X-RateLimit headers and
-	// Retry-After, which requests wait for, see integrationLimits.
+	// Retry-After the way ER:LC does, which requests wait for, see
+	// integrationLimits.
 	RateLimitHeaders bool `json:"rate_limit_headers"`
 
 	// Kite's own key and ID at the service, from the config.
@@ -185,13 +186,19 @@ func (i Integration) NewRequest(ctx context.Context, method string, path string,
 	return req, nil
 }
 
+// CanAuthorize reports whether apps can authorize Kite at the service: it
+// has an authorization link, and Kite an ID there.
+func (i Integration) CanAuthorize() bool {
+	return i.AuthorizeURL != "" && i.kiteAppID != ""
+}
+
 // AuthorizeURLFor returns the link where the owner of the credential
-// authorizes Kite, or "" if the integration has none or Kite has no ID at the
-// service. Only the public part of the credential, after its last "-", is in
-// the link.
+// authorizes Kite, or "" if there's none. Only the public part of the
+// credential is in the link, which for ER:LC's server keys is the part after
+// the last "-".
 func (i Integration) AuthorizeURLFor(credential string) string {
 	dash := strings.LastIndex(credential, "-")
-	if i.AuthorizeURL == "" || i.kiteAppID == "" || dash < 0 || dash == len(credential)-1 {
+	if !i.CanAuthorize() || dash < 0 || dash == len(credential)-1 {
 		return ""
 	}
 	return strings.NewReplacer(
@@ -634,16 +641,9 @@ func integrationRequest(ctx *FlowContext, integration Integration, method string
 		return nil, redact.Redact(err)
 	}
 
-	var resp *http.Response
-	if integration.RateLimitHeaders {
-		done, err := integrationLimits.acquire(ctx, integration, credential, method+" "+req.URL.Path)
-		if err != nil {
-			return nil, err
-		}
-		defer func() { done(resp) }()
-	}
-
-	resp, err = ctx.HTTP.HTTPRequestWithoutRedirects(ctx, req)
+	resp, err := integration.Do(ctx, credential, req, func(req *http.Request) (*http.Response, error) {
+		return ctx.HTTP.HTTPRequestWithoutRedirects(ctx, req)
+	})
 	if err != nil {
 		return nil, redact.Redact(err)
 	}
