@@ -115,6 +115,8 @@ func StartServer(c context.Context, cfg *config.Config) error {
 			PluginValueStore:     pg,
 			PluginRegistry:       pluginRegistry,
 			VariableValueStore:   pg,
+			AppSecretStore:       pg,
+			AppIntegrationStore:  pg,
 			ResumePointStore:     pg,
 			HttpClient:           engineHTTPClient(cfg),
 			OpenaiClient:         &openaiClient,
@@ -168,7 +170,7 @@ func StartServer(c context.Context, cfg *config.Config) error {
 	},
 		pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg,
 		assetStore, gateway, planManager, pluginRegistry, tokenCrypt, commandManager,
-		pg, flowAssistant,
+		pg, flowAssistant, pg, pg,
 	)
 	address := fmt.Sprintf("%s:%d", cfg.API.Host, cfg.API.Port)
 	if err := apiServer.Serve(ctx, address); err != nil {

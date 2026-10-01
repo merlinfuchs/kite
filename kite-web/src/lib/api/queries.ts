@@ -34,6 +34,8 @@ import {
   UserGetResponse,
   VariableGetResponse,
   VariableListResponse,
+  AppSecretListResponse,
+  AppIntegrationListResponse,
 } from "../types/wire.gen";
 
 export function useUserQuery(userId = "@me") {
@@ -84,6 +86,7 @@ export function useLogEntriesQuery(
     eventId?: string;
     messageId?: string;
     refetchInterval?: number;
+    enabled?: boolean;
   }
 ) {
   const query = new URLSearchParams();
@@ -105,7 +108,7 @@ export function useLogEntriesQuery(
     queryFn: () =>
       apiRequest<LogEntry[]>(`/v1/apps/${appId}/logs?${query.toString()}`),
     staleTime: 1000 * 60,
-    enabled: !!appId,
+    enabled: !!appId && (args?.enabled ?? true),
     refetchInterval: args?.refetchInterval,
   });
 }
@@ -191,6 +194,24 @@ export function useVariablesQuery(appId: string) {
     queryKey: ["apps", appId, "variables"],
     queryFn: () =>
       apiRequest<VariableListResponse>(`/v1/apps/${appId}/variables`),
+    enabled: !!appId,
+  });
+}
+
+export function useAppIntegrationsQuery(appId: string) {
+  return useQuery({
+    queryKey: ["apps", appId, "integrations"],
+    queryFn: () =>
+      apiRequest<AppIntegrationListResponse>(`/v1/apps/${appId}/integrations`),
+    enabled: !!appId,
+  });
+}
+
+export function useAppSecretsQuery(appId: string) {
+  return useQuery({
+    queryKey: ["apps", appId, "secrets"],
+    queryFn: () =>
+      apiRequest<AppSecretListResponse>(`/v1/apps/${appId}/secrets`),
     enabled: !!appId,
   });
 }
