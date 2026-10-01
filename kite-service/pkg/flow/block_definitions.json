@@ -1288,6 +1288,19 @@
       "result": null
     },
     {
+      "type": "action_server_leave",
+      "credits": 1,
+      "audit_log_reason": false,
+      "requires": [
+        "discord"
+      ],
+      "run": {
+        "kind": "custom"
+      },
+      "fields": [],
+      "result": null
+    },
+    {
       "type": "action_variable_set",
       "credits": 1,
       "audit_log_reason": false,
