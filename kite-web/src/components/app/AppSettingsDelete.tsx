@@ -38,7 +38,7 @@ export default function AppSettingsDelete() {
           </div>
           <ConfirmDialog
             title="Are you sure that you want to delete this app?"
-            description="This remove all associated data and cannot be undone."
+            description="This removes all associated data and cannot be undone."
             onConfirm={remove}
           >
             <Button

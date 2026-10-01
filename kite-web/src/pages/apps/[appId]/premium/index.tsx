@@ -1,4 +1,5 @@
 import AppLayout from "@/components/app/AppLayout";
+import { getAppShellLayout } from "@/components/app/AppShell";
 import { Separator } from "@/components/ui/separator";
 import AppSubscriptionList from "@/components/app/AppSubscriptionList";
 import AppPricingList from "@/components/app/AppPricingList";
@@ -26,3 +27,5 @@ export default function AppPremiumPage() {
     </AppLayout>
   );
 }
+
+AppPremiumPage.getLayout = getAppShellLayout;

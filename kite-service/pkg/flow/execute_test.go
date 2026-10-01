@@ -2,6 +2,7 @@ package flow
 
 import (
 	"context"
+	"strings"
 	"testing"
 	"time"
 
@@ -292,5 +293,40 @@ func TestFlowExecuteConditionCompareEquality(t *testing.T) {
 			require.NoError(t, err)
 			assert.Equal(t, test.expected, discordProvider.response.Data != nil)
 		})
+	}
+}
+
+// Every block is defined in block_definitions.json. Custom blocks need a
+// handler, except options, which configure the entry block and never run.
+func TestEveryBlockRuns(t *testing.T) {
+	for _, nodeType := range flowNodeTypeConstants(t) {
+		assert.Containsf(t, blockDefinitions, FlowNodeType(nodeType), "%s has no definition", nodeType)
+	}
+
+	for nodeType, block := range blockDefinitions {
+		_, handled := nodeHandlers[nodeType]
+		switch {
+		case block.Run.Kind == "request":
+			assert.Falsef(t, handled, "%s is a request but has a handler", nodeType)
+		case strings.HasPrefix(string(nodeType), "option_"):
+			assert.Falsef(t, handled, "%s is an option but has a handler", nodeType)
+		default:
+			assert.Truef(t, handled, "%s has no handler", nodeType)
+		}
+	}
+	for nodeType := range nodeHandlers {
+		assert.Containsf(t, blockDefinitions, nodeType, "%s has no definition", nodeType)
+	}
+}
+
+// Custom blocks compute their credits in CreditsCost, which has to match
+// what the editor shows.
+func TestBlockCredits(t *testing.T) {
+	for nodeType, block := range blockDefinitions {
+		if block.Credits == nil {
+			continue
+		}
+		node := &CompiledFlowNode{Type: nodeType}
+		assert.Equalf(t, *block.Credits, node.CreditsCost(), "%s", nodeType)
 	}
 }
