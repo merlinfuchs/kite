@@ -485,6 +485,31 @@ describe("validateFlow", () => {
     ]);
   });
 
+  it("checks cooldown durations and defaults the scope", () => {
+    const flow = (duration: string) =>
+      errors(
+        [
+          entry,
+          node("seconds", "option_command_argument", {
+            name: "seconds",
+            description: "Seconds",
+            command_argument_type: "integer",
+          }),
+          node("cooldown", "option_command_cooldown", {
+            cooldown_duration_seconds: duration,
+          }),
+        ],
+        [edge("seconds", "entry"), edge("cooldown", "entry")]
+      );
+
+    expect(flow("30")).toEqual([]);
+    expect(flow("3600")).toEqual([]);
+    expect(flow("{{arg('seconds')}}")).toEqual([]);
+    for (const duration of ["", "0", "1.5", "-5", "3601"]) {
+      expect(flow(duration)).not.toEqual([]);
+    }
+  });
+
   it("reports block types it doesn't know", () => {
     expect(errors([entry, node("a", "toString")], [])).toEqual([
       "Unknown block type 'toString'.",

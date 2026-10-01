@@ -161,6 +161,56 @@
       },
       "result_schema": null
     },
+    "option_command_cooldown": {
+      "title": "Command Cooldown",
+      "description": "Limit how often the command can be used, per user, per server, or globally, for up to 1 hour. Cooldowns reset when Kite restarts.",
+      "contexts": [
+        "command"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "cooldown_scope": {
+            "type": "string",
+            "enum": [
+              "user",
+              "server",
+              "global"
+            ],
+            "description": "Who the cooldown applies to: the user who ran the command, everyone in the server, or everyone everywhere. Defaults to user."
+          },
+          "cooldown_duration_seconds": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9]+$"
+              },
+              {
+                "type": "string",
+                "pattern": "^\\{\\{[^{}]+\\}\\}$"
+              }
+            ],
+            "description": "How many whole seconds the cooldown lasts for, from 1 to 3600 (1 hour). Cooldowns reset when Kite restarts."
+          },
+          "cooldown_message": {
+            "type": "string",
+            "maxLength": 2000,
+            "description": "Message shown when someone uses the command while it's on cooldown. Use {{var('cooldown_remaining')}} to show how many seconds are left. Leave empty for a default message.",
+            "x-templated": true
+          }
+        },
+        "required": [
+          "cooldown_duration_seconds"
+        ],
+        "additionalProperties": false
+      },
+      "result_schema": null
+    },
     "option_event_filter": {
       "title": "Event Filter",
       "description": "Filter events based on their properties.",
