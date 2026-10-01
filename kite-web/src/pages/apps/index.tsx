@@ -4,7 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { useUser } from "@/lib/hooks/api";
 import { useLogout } from "@/lib/hooks/auth";
-import { LogOutIcon } from "lucide-react";
+import { HomeIcon, LogOutIcon } from "lucide-react";
+import Link from "next/link";
 
 export default function AppListPage() {
   const user = useUser();
@@ -29,15 +30,23 @@ export default function AppListPage() {
             <div className="truncate">
               {user ? `Logged in as ${user.display_name}` : null}
             </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="flex gap-2 flex-none"
-              onClick={logout}
-            >
-              <LogOutIcon className="size-4" />
-              Log out
-            </Button>
+            <div className="flex items-center gap-1 flex-none">
+              <Button variant="ghost" size="sm" className="flex gap-2" asChild>
+                <Link href="/">
+                  <HomeIcon className="size-4" />
+                  Return home
+                </Link>
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="flex gap-2"
+                onClick={logout}
+              >
+                <LogOutIcon className="size-4" />
+                Log out
+              </Button>
+            </div>
           </div>
         </div>
       </div>
