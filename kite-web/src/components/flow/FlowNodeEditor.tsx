@@ -19,6 +19,7 @@ import {
 } from "@/lib/flow/commandArguments";
 import { aiModelTiers, getAiModelTier } from "@/lib/flow/aiModels";
 import { getBlockDefinition } from "@/lib/blocks";
+import { integrations, needsCredential } from "@/lib/integrations";
 import {
   ModalInputType,
   modalInputHasOptions,
@@ -1151,6 +1152,10 @@ function HttpRequestDataInput({ data, updateData, errors }: InputProps) {
     [data, updateData]
   );
 
+  const credentialIntegration = urlCredentialIntegration(
+    data.http_request_data?.url || ""
+  );
+
   return (
     <Dialog>
       <DialogTrigger asChild>
@@ -1200,11 +1205,13 @@ function HttpRequestDataInput({ data, updateData, errors }: InputProps) {
               paste it into a header.
             </div>
           )}
-          {isErlcApiUrl(data.http_request_data?.url || "") && (
+          {credentialIntegration && (
             <div className="text-sm text-muted-foreground bg-muted rounded p-3">
-              Use the ER:LC blocks to call the ER:LC API. Enable ER:LC under
-              Integrations and they send your server key for you, so you
-              don&apos;t have to paste it into a header.
+              Use the {credentialIntegration.name} blocks to call the{" "}
+              {credentialIntegration.name} API. Enable{" "}
+              {credentialIntegration.name} under Integrations and they send your{" "}
+              {credentialIntegration.auth.label} for you, so you don&apos;t have
+              to paste it into a header.
             </div>
           )}
           <div>
@@ -1343,10 +1350,24 @@ function isDiscordApiUrl(url: string) {
   );
 }
 
-function isErlcApiUrl(url: string) {
-  return /^\s*(https?:\/\/)?api\.(erlc\.gg|policeroleplay\.community)(\/|$)/i.test(
-    url
-  );
+// The integration with a credential an HTTP block's URL goes to, if any.
+function urlCredentialIntegration(url: string) {
+  let host: string;
+  try {
+    const trimmed = url.trim();
+    host = new URL(
+      /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`
+    ).host;
+  } catch {
+    return;
+  }
+  return integrations
+    .filter(needsCredential)
+    .find(
+      (i) =>
+        (i.base_url && new URL(i.base_url).host === host) ||
+        i.other_hosts?.includes(host)
+    );
 }
 
 function DiscordApiRequestDataInput({ data, updateData, errors }: InputProps) {

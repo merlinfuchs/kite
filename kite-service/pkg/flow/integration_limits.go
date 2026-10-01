@@ -17,28 +17,31 @@ const maxRateLimitWait = 10 * time.Second
 // integrationLimits keeps requests to integrations with RateLimitHeaders
 // within the limits the services report. Apps are pinned to one cluster, so
 // it knows all requests of an app, while each cluster learns about limits
-// shared by all apps on its own.
+// shared by all apps on its own. arikawa's limiter does the same for Discord,
+// but reads Discord's headers and keeps every bucket forever.
 var integrationLimits = newRateLimits()
 
 type rateLimits struct {
 	mu sync.Mutex
-	// When requests can be sent again, by integration for limits shared by
-	// all apps, and by route for the others.
-	until map[string]time.Time
-	// Requests of a route run one at a time, so each knows the limits the
-	// one before was told about.
-	routes map[string]*routeLock
+	// When requests to an integration can be sent again, for limits shared by
+	// all apps.
+	global map[string]time.Time
+	routes map[string]*routeLimit
 }
 
-type routeLock struct {
-	ch    chan struct{}
+// routeLimit is the limit of the requests with one credential to one
+// endpoint. They run one at a time, so each knows the limit the one before
+// was told about.
+type routeLimit struct {
+	lock  chan struct{}
 	users int
+	until time.Time
 }
 
 func newRateLimits() *rateLimits {
 	return &rateLimits{
-		until:  make(map[string]time.Time),
-		routes: make(map[string]*routeLock),
+		global: make(map[string]time.Time),
+		routes: make(map[string]*routeLimit),
 	}
 }
 
@@ -46,79 +49,85 @@ func newRateLimits() *rateLimits {
 // function to call with its response, or nil if there's none. It fails
 // without waiting if that's more than maxRateLimitWait away.
 func (l *rateLimits) acquire(ctx context.Context, integration Integration, credential string, route string) (func(*http.Response), error) {
-	routeKey := integration.ID + "\x00" + credential + "\x00" + route
-	deadline := time.Now().Add(maxRateLimitWait)
-
-	l.mu.Lock()
-	lock, ok := l.routes[routeKey]
-	if !ok {
-		lock = &routeLock{ch: make(chan struct{}, 1)}
-		l.routes[routeKey] = lock
+	if !integration.RateLimitHeaders {
+		return func(*http.Response) {}, nil
 	}
-	lock.users++
-	l.mu.Unlock()
 
-	locked := false
-	release := func() {
-		if locked {
-			<-lock.ch
-		}
-		l.mu.Lock()
-		defer l.mu.Unlock()
-		lock.users--
-		if lock.users == 0 {
-			delete(l.routes, routeKey)
-			if l.until[routeKey].Before(time.Now()) {
-				delete(l.until, routeKey)
+	key := integration.ID + "\x00" + credential + "\x00" + route
+	l.mu.Lock()
+	r, ok := l.routes[key]
+	if !ok {
+		// Routes whose limit ended while nobody used them are kept until
+		// another route is added.
+		for k, idle := range l.routes {
+			if idle.users == 0 && idle.until.Before(time.Now()) {
+				delete(l.routes, k)
 			}
 		}
+		r = &routeLimit{lock: make(chan struct{}, 1)}
+		l.routes[key] = r
 	}
+	r.users++
+	l.mu.Unlock()
 
-	timer := time.NewTimer(maxRateLimitWait)
-	defer timer.Stop()
+	deadline := time.Now().Add(maxRateLimitWait)
+	waitCtx, cancel := context.WithDeadline(ctx, deadline)
+	defer cancel()
+
 	select {
-	case lock.ch <- struct{}{}:
-		locked = true
-	case <-timer.C:
-		release()
-		return nil, rateLimitedError(integration, maxRateLimitWait)
-	case <-ctx.Done():
-		release()
-		return nil, ctx.Err()
+	case r.lock <- struct{}{}:
+	case <-waitCtx.Done():
+		l.leave(key, r)
+		return nil, waitError(ctx, integration, maxRateLimitWait)
 	}
 
 	l.mu.Lock()
-	until := l.until[routeKey]
-	if global := l.until[integration.ID]; global.After(until) {
+	until := r.until
+	if global := l.global[integration.ID]; global.After(until) {
 		until = global
 	}
 	l.mu.Unlock()
 
+	var err error
 	if until.After(deadline) {
-		release()
-		return nil, rateLimitedError(integration, time.Until(until))
-	}
-	if wait := time.Until(until); wait > 0 {
+		err = rateLimitedError(integration, time.Until(until))
+	} else if wait := time.Until(until); wait > 0 {
 		select {
 		case <-time.After(wait):
-		case <-ctx.Done():
-			release()
-			return nil, ctx.Err()
+		case <-waitCtx.Done():
+			err = waitError(ctx, integration, wait)
 		}
+	}
+	if err != nil {
+		<-r.lock
+		l.leave(key, r)
+		return nil, err
 	}
 
 	return func(resp *http.Response) {
 		if resp != nil {
-			l.record(integration.ID, routeKey, resp)
+			l.record(integration.ID, r, resp)
 		}
-		release()
+		<-r.lock
+		l.leave(key, r)
 	}, nil
 }
 
-// record remembers until when a response says not to send requests. Limits
-// of a bucket other than "global" are the route's, and the others are shared
-// by all apps, as is a 429 that doesn't name its bucket.
-func (l *rateLimits) record(integrationID string, routeKey string, resp *http.Response) {
+// leave forgets the route once nobody uses it and its limit is over.
+func (l *rateLimits) leave(key string, r *routeLimit) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	r.users--
+	if r.users == 0 && r.until.Before(time.Now()) {
+		delete(l.routes, key)
+	}
+}
+
+// record remembers until when a response says not to send requests, in
+// ER:LC's format: limits of a bucket other than "global" are the route's,
+// and the others are shared by all apps, as is a 429 that doesn't name its
+// bucket.
+func (l *rateLimits) record(integrationID string, r *routeLimit, resp *http.Response) {
 	var until time.Time
 	if resp.StatusCode == http.StatusTooManyRequests {
 		seconds, err := strconv.ParseFloat(resp.Header.Get("Retry-After"), 64)
@@ -139,18 +148,44 @@ func (l *rateLimits) record(integrationID string, routeKey string, resp *http.Re
 		return
 	}
 
-	key := integrationID
-	if bucket := resp.Header.Get("X-RateLimit-Bucket"); bucket != "" && bucket != "global" {
-		key = routeKey
-	}
-
 	l.mu.Lock()
 	defer l.mu.Unlock()
-	if until.After(l.until[key]) {
-		l.until[key] = until
+	if bucket := resp.Header.Get("X-RateLimit-Bucket"); bucket != "" && bucket != "global" {
+		if until.After(r.until) {
+			r.until = until
+		}
+		return
 	}
+	if until.After(l.global[integrationID]) {
+		l.global[integrationID] = until
+	}
+}
+
+// waitError is the error of a wait that ended early: the flow's, if it was
+// cancelled, and otherwise that the limit is too far away.
+func waitError(ctx context.Context, integration Integration, wait time.Duration) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	return rateLimitedError(integration, wait)
 }
 
 func rateLimitedError(integration Integration, wait time.Duration) error {
 	return fmt.Errorf("%s is rate limited, try again in %d seconds", integration.Name, int(math.Ceil(wait.Seconds())))
+}
+
+// Do sends a request to the integration, after waiting for its rate limits
+// if it has RateLimitHeaders, and records those of the response.
+func (i Integration) Do(ctx context.Context, credential string, req *http.Request, send func(*http.Request) (*http.Response, error)) (*http.Response, error) {
+	done, err := integrationLimits.acquire(ctx, i, credential, req.Method+" "+req.URL.Path)
+	if err != nil {
+		return nil, err
+	}
+	resp, err := send(req)
+	if err != nil {
+		done(nil)
+		return nil, err
+	}
+	done(resp)
+	return resp, nil
 }
