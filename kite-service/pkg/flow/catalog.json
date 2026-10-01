@@ -4465,6 +4465,33 @@
       },
       "result_schema": null
     },
+    "action_server_leave": {
+      "title": "Leave Server",
+      "description": "Bot leaves the server the flow runs in",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord",
+        "event_schedule"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "type": "string",
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+          }
+        },
+        "additionalProperties": false
+      },
+      "result_schema": null
+    },
     "action_variable_set": {
       "title": "Set stored variable",
       "description": "Set the value of a stored variable",
@@ -4872,33 +4899,6 @@
         "type": "string",
         "description": "The answer of the AI, based on what it found."
       }
-    },
-    "action_server_leave": {
-      "title": "Leave Server",
-      "description": "Bot leaves the server the flow runs in",
-      "contexts": [
-        "command",
-        "component_button",
-        "component_select_menu",
-        "event_discord",
-        "event_schedule"
-      ],
-      "outputs": [
-        "default"
-      ],
-      "owned_children": [],
-      "fixed": false,
-      "data_schema": {
-        "type": "object",
-        "properties": {
-          "custom_label": {
-            "type": "string",
-            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
-          }
-        },
-        "additionalProperties": false
-      },
-      "result_schema": null
     },
     "action_http_request": {
       "title": "Send API Request",

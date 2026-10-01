@@ -62,7 +62,6 @@ const sections: Record<
     },
     {
       title: "Bot",
-      nodeTypes: ["action_status_set", "action_server_leave"],
       contextTypes: null,
     },
     {
