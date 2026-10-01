@@ -1,4 +1,5 @@
 import AppLayout from "@/components/app/AppLayout";
+import { getAppShellLayout } from "@/components/app/AppShell";
 import AppSecretList from "@/components/app/AppSecretList";
 import { Separator } from "@/components/ui/separator";
 import env from "@/lib/env/client";
@@ -32,3 +33,5 @@ export default function AppSecretsPage() {
     </AppLayout>
   );
 }
+
+AppSecretsPage.getLayout = getAppShellLayout;
