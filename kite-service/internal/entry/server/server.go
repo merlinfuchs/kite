@@ -20,6 +20,7 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/db/s3"
 	"github.com/kitecloud/kite/kite-service/internal/store"
 	"github.com/kitecloud/kite/kite-service/internal/util"
+	"github.com/kitecloud/kite/kite-service/pkg/flow"
 	"github.com/kitecloud/kite/kite-service/pkg/plugin"
 	"github.com/kitecloud/kite/kite-service/pkg/plugin/counting"
 	"github.com/kitecloud/kite/kite-service/pkg/plugin/starboard"
@@ -67,6 +68,12 @@ func StartServer(c context.Context, cfg *config.Config) error {
 	if err != nil {
 		slog.With("error", err).Error("Failed to create token crypt")
 		return fmt.Errorf("failed to create token crypt: %w", err)
+	}
+
+	for id, integration := range cfg.Integrations {
+		if err := flow.ConfigureIntegration(id, integration.APIKey, integration.AppID); err != nil {
+			return fmt.Errorf("failed to configure integration: %w", err)
+		}
 	}
 
 	var openaiClient openai.Client

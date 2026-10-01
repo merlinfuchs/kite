@@ -149,6 +149,13 @@ function AppIntegrationEntry({
               {connectedAt ? "Replace key" : "Enable"}
             </Button>
           </AppIntegrationConnectDialog>
+          {state?.authorize_url && (
+            <Button size="sm" variant="outline" asChild>
+              <a href={state.authorize_url} target="_blank">
+                Authorize Kite
+              </a>
+            </Button>
+          )}
           {connectedAt && (
             <ConfirmDialog
               title={`Remove ${integration.name}?`}

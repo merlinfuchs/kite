@@ -363,3 +363,72 @@ func TestIntegrationRequestDisabled(t *testing.T) {
 	assert.ErrorContains(t, err, "Test API isn't enabled")
 	assert.Nil(t, httpProvider.req)
 }
+
+// configureTestERLC sets Kite's key and ID at ER:LC for the duration of a
+// test.
+func configureTestERLC(t *testing.T) {
+	require.NoError(t, ConfigureIntegration("erlc", "k1te-k3y", "1234"))
+	t.Cleanup(func() { _ = ConfigureIntegration("erlc", "", "") })
+}
+
+// executeERLCBlock runs an ER:LC block, and checks it sent the server key
+// and Kite's key.
+func executeERLCBlock(t *testing.T, nodeType FlowNodeType, data FlowNodeData, httpProvider *redirectCheckingHTTPProvider) *FlowContext {
+	configureTestERLC(t)
+	c, err := executeIntegrationBlock(t, nodeType, data, map[string]string{"erlc": "s3cret-server"}, httpProvider)
+	require.NoError(t, err)
+	assert.Equal(t, "s3cret-server", httpProvider.req.Header.Get("server-key"))
+	assert.Equal(t, "k1te-k3y", httpProvider.req.Header.Get("Authorization"))
+	return c
+}
+
+func TestERLCServerGet(t *testing.T) {
+	httpProvider := &redirectCheckingHTTPProvider{body: `{"Name":"API Test","CurrentPlayers":3,"Players":[],"Queue":[]}`}
+	c := executeERLCBlock(t, "action_erlc_server_get",
+		FlowNodeData{Fields: map[string]any{"include_players": "true", "include_queue": "{{ 'true' }}"}}, httpProvider)
+
+	assert.Equal(t, "GET", httpProvider.req.Method)
+	assert.Equal(t, "https://api.erlc.gg/v2/server?Players=true&Queue=true", httpProvider.req.URL.String())
+	assert.Equal(t, "3", c.GetNodeResult("1").Object()["CurrentPlayers"].String())
+}
+
+func TestERLCCommandRun(t *testing.T) {
+	httpProvider := &redirectCheckingHTTPProvider{body: `{"message":"Success"}`}
+	executeERLCBlock(t, "action_erlc_command_run",
+		FlowNodeData{Fields: map[string]any{"erlc_command": ":h {{ 'Hello' }}"}}, httpProvider)
+
+	assert.Equal(t, "POST", httpProvider.req.Method)
+	assert.Equal(t, "https://api.erlc.gg/v2/server/command", httpProvider.req.URL.String())
+	body, _ := io.ReadAll(httpProvider.req.Body)
+	assert.JSONEq(t, `{"command":":h Hello"}`, string(body))
+}
+
+// Self-hosted instances have no key at ER:LC, and send none.
+func TestERLCWithoutKiteKey(t *testing.T) {
+	httpProvider := &redirectCheckingHTTPProvider{body: `{}`}
+
+	_, err := executeIntegrationBlock(t, "action_erlc_server_get", FlowNodeData{},
+		map[string]string{"erlc": "s3cret-server"}, httpProvider)
+	require.NoError(t, err)
+	assert.Empty(t, httpProvider.req.Header.Values("Authorization"))
+}
+
+func TestERLCErrorRedactsKiteKey(t *testing.T) {
+	configureTestERLC(t)
+	httpProvider := &redirectCheckingHTTPProvider{status: 403, body: `{"code":2003,"message":"invalid global API key k1te-k3y"}`}
+
+	_, err := executeIntegrationBlock(t, "action_erlc_server_get", FlowNodeData{},
+		map[string]string{"erlc": "s3cret-server"}, httpProvider)
+	require.Error(t, err)
+	assert.NotContains(t, err.Error(), "k1te-k3y")
+}
+
+func TestIntegrationAuthorizeURL(t *testing.T) {
+	configureTestERLC(t)
+	erlc, _ := GetIntegration("erlc")
+
+	assert.Equal(t, "https://api.erlc.gg/server-owners/server/PublicPart/authorize/1234", erlc.AuthorizeURLFor("Secret-PublicPart"))
+	assert.Empty(t, erlc.AuthorizeURLFor("NoDash"))
+	assert.Empty(t, erlc.AuthorizeURLFor("Secret-"))
+	assert.Empty(t, integrations["cookie_api"].AuthorizeURLFor("Secret-PublicPart"))
+}
