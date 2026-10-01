@@ -3,19 +3,120 @@ package flowai
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
+	"slices"
+	"strings"
+	"sync"
 
 	"github.com/kitecloud/kite/kite-service/pkg/flow"
 )
 
-// instructions come first in every request and don't change, so the model
-// provider can cache them, catalog included.
-var instructions = func() string {
-	var catalog bytes.Buffer
-	if err := json.Compact(&catalog, flow.CatalogJSON); err != nil {
+var (
+	instructionsMu    sync.Mutex
+	instructionsCache = map[string]string{}
+)
+
+// instructionsFor returns the instructions, which come first in every request,
+// with the catalog of the blocks of the integrations the app enabled. Other
+// integrations are only named after the catalog, so the model can tell the
+// user to enable them. Apps missing the same integrations get the same
+// instructions, so the model provider can cache them.
+func instructionsFor(enabled []string) string {
+	var missing []flow.Integration
+	var ids []string
+	for _, integration := range flow.Integrations() {
+		if integration.Availability != flow.AvailabilityAlways && !slices.Contains(enabled, integration.ID) {
+			missing = append(missing, integration)
+			ids = append(ids, integration.ID)
+		}
+	}
+	key := strings.Join(ids, ",")
+
+	instructionsMu.Lock()
+	defer instructionsMu.Unlock()
+	if res, ok := instructionsCache[key]; ok {
+		return res
+	}
+
+	res := buildInstructions(missing, ids)
+	instructionsCache[key] = res
+	return res
+}
+
+func buildInstructions(missing []flow.Integration, missingIDs []string) string {
+	catalog, err := filterCatalog(flow.CatalogJSON, func(nodeType string) bool {
+		for _, id := range flow.BlockIntegrations(flow.FlowNodeType(nodeType)) {
+			if slices.Contains(missingIDs, id) {
+				return false
+			}
+		}
+		return true
+	})
+	if err != nil {
 		panic(err)
 	}
-	return instructionsText + "\n\nBlock catalog:\n" + catalog.String()
-}()
+
+	res := instructionsText + "\n\nBlock catalog:\n" + catalog
+	if len(missing) > 0 {
+		res += "\n\nThe app hasn't enabled these integrations, so their blocks aren't in the catalog. If the user asks for something one of them does, tell them to enable it under Integrations in the app first:"
+		for _, integration := range missing {
+			res += fmt.Sprintf("\n- %s: %s", integration.Name, integration.Description)
+		}
+	}
+	return res
+}
+
+// filterCatalog compacts the catalog and keeps the nodes keep returns true
+// for, in their order.
+func filterCatalog(catalogJSON []byte, keep func(nodeType string) bool) (string, error) {
+	// Only nodes are copied, so anything else in the catalog would be lost.
+	var catalog map[string]json.RawMessage
+	if err := json.Unmarshal(catalogJSON, &catalog); err != nil {
+		return "", err
+	}
+	for key := range catalog {
+		if key != "nodes" {
+			return "", fmt.Errorf("unexpected catalog key: %s", key)
+		}
+	}
+
+	dec := json.NewDecoder(bytes.NewReader(catalog["nodes"]))
+	if _, err := dec.Token(); err != nil {
+		return "", err
+	}
+
+	var buf bytes.Buffer
+	buf.WriteString(`{"nodes":{`)
+	first := true
+	for dec.More() {
+		t, err := dec.Token()
+		if err != nil {
+			return "", err
+		}
+		nodeType := t.(string)
+
+		var node json.RawMessage
+		if err := dec.Decode(&node); err != nil {
+			return "", err
+		}
+		if !keep(nodeType) {
+			continue
+		}
+
+		if !first {
+			buf.WriteByte(',')
+		}
+		first = false
+		key, _ := json.Marshal(nodeType)
+		buf.Write(key)
+		buf.WriteByte(':')
+		if err := json.Compact(&buf, node); err != nil {
+			return "", err
+		}
+	}
+	buf.WriteString("}}")
+	return buf.String(), nil
+}
 
 const instructionsText = `You edit flows in Kite, a no-code Discord bot builder. A flow is a graph of blocks. It has one entry block that starts it: a slash command, a Discord event, a schedule, or a click on a button or select menu. Options configure the entry, and actions and controls run after it along the connections. The user edits the flow in a visual editor and talks to you in a chat next to it. You change the flow by returning edits, which the editor applies right away. The user can undo them, and nothing is saved until they save.
 
@@ -53,8 +154,9 @@ Placeholders: settings marked "x-templated" in the catalog can contain placehold
 
 Rules:
 - Only use block types from the catalog whose contexts include the flow type.
+- Use action_discord_api_request and action_http_request only when no other block does the job.
 - Keep the flow as it is unless the user asks for a change, and make as few edits as needed. Answer questions without changing the flow, and offer to make the change instead.
-- Set every required setting.
+- Set every required setting, exactly where the block's data_schema puts it. Don't copy the settings layout of other blocks.
 - Command, button and select menu flows must respond to the interaction, e.g. with action_response_create, or defer it first if the response takes long.
 - Check blocks that ban, kick, time out or delete things twice, and mention them in your message.
 - If the user sends problems the editor found with your edits, fix exactly those with further edits.

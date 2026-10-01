@@ -59,6 +59,32 @@ describe("validateFlow", () => {
     }
   });
 
+  it("suggests blocks that replace raw Discord API requests", () => {
+    const warnings = (body: Record<string, unknown>) =>
+      validateFlow(
+        [
+          entry,
+          node("req", "action_discord_api_request", {
+            discord_api_request_data: {
+              operation: "create_channel_invite",
+              path_params: [{ key: "channel_id", value: "1" }],
+              body_json: body,
+            },
+          }),
+        ],
+        [edge("entry", "req")],
+        "command"
+      )
+        .filter((i) => i.severity === "warning")
+        .map((i) => i.message);
+
+    expect(warnings({ max_age: 3600 })).toEqual([
+      "'Discord API Request' does what the 'Create invite' block (action_invite_create) does, which is easier to edit. Use that block instead.",
+    ]);
+    // The block has no setting for it.
+    expect(warnings({ max_age: 3600, target_user_id: "2" })).toEqual([]);
+  });
+
   it("needs exactly one entry of the flow's type", () => {
     expect(errors([log("a")], [])).toContain(
       "The flow needs exactly one entry block, but has 0."

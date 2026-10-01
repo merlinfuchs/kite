@@ -60,7 +60,6 @@ type EventListenersImportResponse = []*EventListener
 
 type EventListenerUpdateRequest struct {
 	FlowSource flow.FlowData `json:"flow_source"`
-	Enabled    bool          `json:"enabled"`
 }
 
 func (req EventListenerUpdateRequest) Validate() error {
