@@ -1,6 +1,7 @@
 import {
   BoxesIcon,
   DownloadIcon,
+  MailPlusIcon,
   SatelliteDishIcon,
   SlashSquareIcon,
   TriangleAlertIcon,
@@ -19,6 +20,7 @@ import MarketplaceStatusBadge from "./MarketplaceStatusBadge";
 const kindIcons = {
   command: SlashSquareIcon,
   event_listener: SatelliteDishIcon,
+  message: MailPlusIcon,
   module: BoxesIcon,
 };
 

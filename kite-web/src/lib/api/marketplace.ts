@@ -26,6 +26,7 @@ export type MarketplaceListingKind =
   | ""
   | "command"
   | "event_listener"
+  | "message"
   | "module";
 export type MarketplaceListingSort = "popular" | "recent";
 export type MarketplaceListingStatus =

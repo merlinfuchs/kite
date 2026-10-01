@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/kitecloud/kite/kite-service/pkg/flow"
+	"github.com/kitecloud/kite/kite-service/pkg/message"
 	"gopkg.in/guregu/null.v4"
 )
 
@@ -25,6 +26,7 @@ type MarketplaceListingItemType string
 const (
 	MarketplaceListingItemTypeCommand       MarketplaceListingItemType = "command"
 	MarketplaceListingItemTypeEventListener MarketplaceListingItemType = "event_listener"
+	MarketplaceListingItemTypeMessage       MarketplaceListingItemType = "message"
 )
 
 type MarketplaceListing struct {
@@ -37,6 +39,7 @@ type MarketplaceListing struct {
 	Items              []MarketplaceListingItem
 	CommandCount       int
 	EventListenerCount int
+	MessageCount       int
 	BlockTypes         []string
 	ImportCount        int
 	ReviewNote         null.String
@@ -46,20 +49,30 @@ type MarketplaceListing struct {
 	UpdatedAt          time.Time
 }
 
-// IsModule is true for listings with more than one command or event listener.
+// IsModule is true for listings with more than one item.
 func (l *MarketplaceListing) IsModule() bool {
-	return l.CommandCount+l.EventListenerCount > 1
+	return l.CommandCount+l.EventListenerCount+l.MessageCount > 1
 }
 
-// MarketplaceListingItem is one command or event listener of a listing. Name
-// and Description are taken from the compiled flow, not from the author.
+// MarketplaceListingItem is one command, event listener or message template of
+// a listing. For commands and event listeners Name and Description are taken
+// from the compiled flow, not from the author.
 type MarketplaceListingItem struct {
 	Type        MarketplaceListingItemType `json:"type"`
 	Name        string                     `json:"name"`
 	Description string                     `json:"description"`
 	// Source is the event source, only set for event listeners.
-	Source     string        `json:"source,omitempty"`
+	Source string `json:"source,omitempty"`
+	// FlowSource is the flow of commands and event listeners.
 	FlowSource flow.FlowData `json:"flow_source"`
+
+	// SourceID is the message template's ID in the author's app. Blocks in
+	// the same listing reference the template by it, so they can be pointed
+	// at the imported copy.
+	SourceID string `json:"source_id,omitempty"`
+	// MessageData and MessageFlowSources are only set for message templates.
+	MessageData        *message.MessageData     `json:"message_data,omitempty"`
+	MessageFlowSources map[string]flow.FlowData `json:"message_flow_sources,omitempty"`
 }
 
 type MarketplaceListingWithAuthor struct {

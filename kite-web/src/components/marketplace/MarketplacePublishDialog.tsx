@@ -1,6 +1,6 @@
 import { ReactNode, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { SatelliteDishIcon, SlashSquareIcon } from "lucide-react";
+import { MailPlusIcon, SatelliteDishIcon, SlashSquareIcon } from "lucide-react";
 import {
   Dialog,
   DialogClose,
@@ -23,7 +23,8 @@ import {
   useMarketplaceListingCreateMutation,
   useMarketplaceListingUpdateMutation,
 } from "@/lib/api/marketplace";
-import { useCommands, useEventListeners } from "@/lib/hooks/api";
+import { useCommands, useEventListeners, useMessages } from "@/lib/hooks/api";
+import { referencedMessageIds } from "@/lib/marketplace";
 import { useAppId } from "@/lib/hooks/params";
 import {
   MarketplaceListing,
@@ -31,6 +32,14 @@ import {
 } from "@/lib/types/wire.gen";
 
 const maxItems = 25;
+
+const emptyMessageFields = {
+  name: "",
+  description: null,
+  source_id: "",
+  message_data: undefined,
+  message_flow_sources: {},
+};
 
 type Props = {
   // Edits this listing instead of creating a new one.
@@ -73,6 +82,7 @@ function PublishForm({
   const appId = useAppId();
   const commands = useCommands();
   const eventListeners = useEventListeners();
+  const messages = useMessages();
 
   const createMutation = useMarketplaceListingCreateMutation();
   const updateMutation = useMarketplaceListingUpdateMutation(listing?.id ?? "");
@@ -86,6 +96,9 @@ function PublishForm({
   const [selectedListeners, setSelectedListeners] = useState<Set<string>>(
     new Set()
   );
+  const [selectedMessages, setSelectedMessages] = useState<Set<string>>(
+    new Set()
+  );
 
   const appCommands = useMemo(
     () => commands?.flatMap((c) => (c ? [c] : [])) ?? [],
@@ -96,7 +109,40 @@ function PublishForm({
     [eventListeners]
   );
 
-  const selectedCount = selectedCommands.size + selectedListeners.size;
+  const appMessages = useMemo(
+    () => messages?.flatMap((m) => (m ? [m] : [])) ?? [],
+    [messages]
+  );
+
+  // Templates that selected blocks use but that aren't selected, they'd be
+  // cleared on import.
+  const missingMessages = useMemo(() => {
+    const flows = [
+      ...appCommands
+        .filter((c) => selectedCommands.has(c.id))
+        .map((c) => c.flow_source),
+      ...appListeners
+        .filter((l) => selectedListeners.has(l.id))
+        .map((l) => l.flow_source),
+      ...appMessages
+        .filter((m) => selectedMessages.has(m.id))
+        .flatMap((m) => Object.values(m.flow_sources ?? {})),
+    ];
+    const referenced = referencedMessageIds(flows);
+    return appMessages.filter(
+      (m) => referenced.has(m.id) && !selectedMessages.has(m.id)
+    );
+  }, [
+    appCommands,
+    appListeners,
+    appMessages,
+    selectedCommands,
+    selectedListeners,
+    selectedMessages,
+  ]);
+
+  const selectedCount =
+    selectedCommands.size + selectedListeners.size + selectedMessages.size;
   const pending = createMutation.isPending || updateMutation.isPending;
 
   function toggle(
@@ -113,23 +159,41 @@ function PublishForm({
 
   function buildItems(): MarketplaceListingItemRequest[] {
     if (keepContents && listing) {
-      return listing.items.flatMap((item) =>
-        item.flow_source
+      return listing.items.flatMap((item): MarketplaceListingItemRequest[] => {
+        if (item.type === "message") {
+          return item.message_data
+            ? [
+                {
+                  type: "message",
+                  source: "",
+                  flow_source: { nodes: [], edges: [] },
+                  name: item.name,
+                  description: item.description || null,
+                  source_id: item.source_id ?? "",
+                  message_data: item.message_data,
+                  message_flow_sources: item.message_flow_sources ?? {},
+                },
+              ]
+            : [];
+        }
+        return item.flow_source
           ? [
               {
+                ...emptyMessageFields,
                 type: item.type,
                 source: item.source ?? "",
                 flow_source: item.flow_source,
               },
             ]
-          : []
-      );
+          : [];
+      });
     }
 
     return [
       ...appCommands
         .filter((c) => selectedCommands.has(c.id))
         .map((c) => ({
+          ...emptyMessageFields,
           type: "command",
           source: "",
           flow_source: c.flow_source,
@@ -137,9 +201,22 @@ function PublishForm({
       ...appListeners
         .filter((l) => selectedListeners.has(l.id))
         .map((l) => ({
+          ...emptyMessageFields,
           type: "event_listener",
           source: l.source,
           flow_source: l.flow_source,
+        })),
+      ...appMessages
+        .filter((m) => selectedMessages.has(m.id))
+        .map((m) => ({
+          type: "message",
+          source: "",
+          flow_source: { nodes: [], edges: [] },
+          name: m.name,
+          description: m.description,
+          source_id: m.id,
+          message_data: m.data,
+          message_flow_sources: m.flow_sources ?? {},
         })),
     ];
   }
@@ -156,7 +233,7 @@ function PublishForm({
       return;
     }
     if (items.length === 0) {
-      toast.error("Select at least one command or event listener");
+      toast.error("Select at least one item");
       return;
     }
     if (items.length > maxItems) {
@@ -207,8 +284,8 @@ function PublishForm({
           {listing ? "Edit listing" : "Publish to the marketplace"}
         </DialogTitle>
         <DialogDescription>
-          Share commands and event listeners from this app. Pick more than one
-          to publish them together as a module.
+          Share commands, event listeners and message templates from this app.
+          Pick more than one to publish them together as a module.
         </DialogDescription>
       </DialogHeader>
 
@@ -286,6 +363,44 @@ function PublishForm({
                 toggle(selectedListeners, setSelectedListeners, id, checked)
               }
             />
+            <ItemPicker
+              title="Message Templates"
+              icon={MailPlusIcon}
+              emptyText="This app has no message templates."
+              items={appMessages.map((m) => ({
+                id: m.id,
+                name: m.name,
+                description: m.description ?? "",
+              }))}
+              selected={selectedMessages}
+              onToggle={(id, checked) =>
+                toggle(selectedMessages, setSelectedMessages, id, checked)
+              }
+            />
+            {missingMessages.length > 0 && (
+              <Alert>
+                <AlertTitle>Some blocks use message templates</AlertTitle>
+                <AlertDescription className="text-muted-foreground space-y-2">
+                  <p>
+                    {missingMessages.map((m) => m.name).join(", ")}{" "}
+                    {missingMessages.length === 1 ? "isn't" : "aren't"}{" "}
+                    selected. Include them so the blocks keep working after an
+                    import.
+                  </p>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      const next = new Set(selectedMessages);
+                      missingMessages.forEach((m) => next.add(m.id));
+                      setSelectedMessages(next);
+                    }}
+                  >
+                    Include {missingMessages.length === 1 ? "it" : "them"}
+                  </Button>
+                </AlertDescription>
+              </Alert>
+            )}
             <div className="text-sm text-muted-foreground">
               {selectedCount} of up to {maxItems} selected
               {selectedCount > 1 && ", this will be published as a module"}
@@ -298,8 +413,9 @@ function PublishForm({
           <AlertDescription className="text-muted-foreground">
             Anyone can read the flows you publish, including URLs, headers and
             API keys in request blocks. Remove secrets before publishing.
-            Listings are reviewed by moderators, and every change is reviewed
-            again before it goes public.
+            Attachments of message templates aren&apos;t included. Listings are
+            reviewed by moderators, and every change is reviewed again before it
+            goes public.
           </AlertDescription>
         </Alert>
       </div>

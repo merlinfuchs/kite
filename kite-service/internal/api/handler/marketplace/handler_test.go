@@ -92,3 +92,78 @@ func TestCompileListingItemsWrongSource(t *testing.T) {
 	})
 	assert.Error(t, err)
 }
+
+func messageItem(sourceID string) wire.MarketplaceListingItemRequest {
+	return wire.MarketplaceListingItemRequest{
+		Type:     "message",
+		Name:     "Welcome",
+		SourceID: sourceID,
+		MessageData: &message.MessageData{
+			Content: "Welcome!",
+			Components: []message.ComponentData{{
+				Type: 1,
+				Components: []message.ComponentData{
+					{Type: 2, Label: "Rules", FlowSourceID: "button1"},
+				},
+			}},
+		},
+		MessageFlowSources: map[string]flow.FlowData{
+			"button1": {
+				Nodes: []flow.FlowNode{
+					{ID: "0", Type: flow.FlowNodeTypeEntryComponentButton},
+					{ID: "1", Type: flow.FlowNodeTypeActionLog},
+				},
+				Edges: []flow.FlowEdge{{Source: "0", Target: "1"}},
+			},
+			// Not used by any component, dropped like in a regular import.
+			"unused": {},
+		},
+	}
+}
+
+func TestCompileListingItemsMessageModule(t *testing.T) {
+	content, err := compileListingItems([]wire.MarketplaceListingItemRequest{
+		{Type: "command", FlowSource: commandFlow("welcome", flow.FlowNodeTypeActionResponseCreate)},
+		messageItem("msg1"),
+	})
+	require.NoError(t, err)
+
+	assert.Equal(t, 1, content.commandCount)
+	assert.Equal(t, 1, content.messageCount)
+
+	msg := content.items[1]
+	assert.Equal(t, model.MarketplaceListingItemTypeMessage, msg.Type)
+	assert.Equal(t, "Welcome", msg.Name)
+	assert.Equal(t, "msg1", msg.SourceID)
+	require.NotNil(t, msg.MessageData)
+	assert.Contains(t, msg.MessageFlowSources, "button1")
+	assert.NotContains(t, msg.MessageFlowSources, "unused")
+	assert.Contains(t, content.blockTypes, string(flow.FlowNodeTypeEntryComponentButton))
+
+	listing := &model.MarketplaceListing{CommandCount: 1, MessageCount: 1}
+	assert.True(t, listing.IsModule())
+	assert.Equal(t, "module", wire.MarketplaceListingToWire(listing, nil, false).Kind)
+
+	single := &model.MarketplaceListing{MessageCount: 1}
+	assert.Equal(t, "message", wire.MarketplaceListingToWire(single, nil, false).Kind)
+}
+
+func TestCompileListingItemsDuplicateMessage(t *testing.T) {
+	_, err := compileListingItems([]wire.MarketplaceListingItemRequest{
+		messageItem("msg1"),
+		messageItem("msg1"),
+	})
+	assert.Error(t, err)
+}
+
+func TestMarketplaceListingItemRequestMessageNeedsData(t *testing.T) {
+	item := messageItem("msg1")
+	item.MessageData = nil
+	assert.Error(t, item.Validate())
+
+	item = messageItem("msg1")
+	item.Name = ""
+	assert.Error(t, item.Validate())
+
+	assert.NoError(t, messageItem("msg1").Validate())
+}

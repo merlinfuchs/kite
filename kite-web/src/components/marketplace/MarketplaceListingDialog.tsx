@@ -6,6 +6,7 @@ import {
   EyeOffIcon,
   FlagIcon,
   PencilIcon,
+  MailPlusIcon,
   SatelliteDishIcon,
   SlashSquareIcon,
   TrashIcon,
@@ -38,6 +39,7 @@ import MarketplaceAuthor from "./MarketplaceAuthor";
 import MarketplaceStatusBadge from "./MarketplaceStatusBadge";
 import MarketplaceRiskAlert from "./MarketplaceRiskAlert";
 import MarketplaceFlowViewer from "./MarketplaceFlowViewer";
+import MarketplaceMessageViewer from "./MarketplaceMessageViewer";
 import MarketplaceReportDialog from "./MarketplaceReportDialog";
 import MarketplacePublishDialog from "./MarketplacePublishDialog";
 import { useMarketplaceImport } from "./useMarketplaceImport";
@@ -216,6 +218,8 @@ function ListingDetails({
                     <div className="flex items-center gap-1.5 mb-0.5">
                       {item.type === "command" ? (
                         <SlashSquareIcon className="text-muted-foreground h-5 w-5 flex-none" />
+                      ) : item.type === "message" ? (
+                        <MailPlusIcon className="text-muted-foreground h-5 w-5 flex-none" />
                       ) : (
                         <SatelliteDishIcon className="text-muted-foreground h-5 w-5 flex-none" />
                       )}
@@ -250,20 +254,27 @@ function ListingDetails({
                     />
                   )}
                 </div>
-                {previewing === i && item.flow_source && (
+                {previewing === i && item.type === "message" && (
                   <div className="mt-4">
-                    <MarketplaceFlowViewer
-                      flow={item.flow_source}
-                      context={
-                        item.type === "command"
-                          ? "command"
-                          : item.source === "schedule"
-                          ? "event_schedule"
-                          : "event_discord"
-                      }
-                    />
+                    <MarketplaceMessageViewer item={item} />
                   </div>
                 )}
+                {previewing === i &&
+                  item.type !== "message" &&
+                  item.flow_source && (
+                    <div className="mt-4">
+                      <MarketplaceFlowViewer
+                        flow={item.flow_source}
+                        context={
+                          item.type === "command"
+                            ? "command"
+                            : item.source === "schedule"
+                            ? "event_schedule"
+                            : "event_discord"
+                        }
+                      />
+                    </div>
+                  )}
               </Card>
             ))}
           </div>

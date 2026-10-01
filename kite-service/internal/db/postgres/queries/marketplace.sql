@@ -9,10 +9,11 @@ INSERT INTO marketplace_listings (
     items,
     command_count,
     event_listener_count,
+    message_count,
     block_types,
     created_at,
     updated_at
-) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING *;
+) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) RETURNING *;
 
 -- name: UpdateMarketplaceListing :one
 -- Any change sends the listing back to the moderation queue.
@@ -23,12 +24,13 @@ UPDATE marketplace_listings SET
     items = $5,
     command_count = $6,
     event_listener_count = $7,
-    block_types = $8,
-    status = $9,
+    message_count = $8,
+    block_types = $9,
+    status = $10,
     review_note = NULL,
     reviewed_by_user_id = NULL,
     reviewed_at = NULL,
-    updated_at = $10
+    updated_at = $11
 WHERE id = $1 RETURNING *;
 
 -- name: ReviewMarketplaceListing :one
@@ -64,9 +66,10 @@ WHERE marketplace_listings.status = @status
     )
     AND (
         @kind::TEXT = ''
-        OR (@kind::TEXT = 'command' AND marketplace_listings.command_count > 0 AND marketplace_listings.event_listener_count = 0)
-        OR (@kind::TEXT = 'event_listener' AND marketplace_listings.event_listener_count > 0 AND marketplace_listings.command_count = 0)
-        OR (@kind::TEXT = 'module' AND marketplace_listings.command_count + marketplace_listings.event_listener_count > 1)
+        OR (@kind::TEXT = 'command' AND marketplace_listings.command_count = 1 AND marketplace_listings.event_listener_count + marketplace_listings.message_count = 0)
+        OR (@kind::TEXT = 'event_listener' AND marketplace_listings.event_listener_count = 1 AND marketplace_listings.command_count + marketplace_listings.message_count = 0)
+        OR (@kind::TEXT = 'message' AND marketplace_listings.message_count = 1 AND marketplace_listings.command_count + marketplace_listings.event_listener_count = 0)
+        OR (@kind::TEXT = 'module' AND marketplace_listings.command_count + marketplace_listings.event_listener_count + marketplace_listings.message_count > 1)
     )
 ORDER BY
     CASE WHEN @sort::TEXT = 'popular' THEN marketplace_listings.import_count END DESC,

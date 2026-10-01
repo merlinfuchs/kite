@@ -1,6 +1,8 @@
 import { prepareTemplateFlow, Template } from "@/lib/flow/templates";
 import { SatelliteDishIcon, SlashSquareIcon } from "lucide-react";
 import { ReactNode, useCallback, useState } from "react";
+import { Badge } from "../ui/badge";
+import { listingKind, listingKindLabel } from "@/lib/marketplace";
 import { Button } from "../ui/button";
 import { Card, CardDescription, CardTitle } from "../ui/card";
 import {
@@ -118,7 +120,19 @@ export function TemplateImportDialog({
       <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent className="overflow-y-auto max-h-[90dvh] max-w-2xl">
         <DialogHeader>
-          <DialogTitle className="mb-1">{template.name} Template</DialogTitle>
+          <div className="flex flex-wrap items-center gap-2 mb-1">
+            <DialogTitle className="text-xl">{template.name}</DialogTitle>
+            <Badge variant="outline">
+              {listingKindLabel(
+                listingKind({
+                  command_count: template.commands.length,
+                  event_listener_count: template.eventListeners.length,
+                  message_count: 0,
+                })
+              )}
+            </Badge>
+            <Badge variant="secondary">Official</Badge>
+          </div>
           <DialogDescription>{template.description}</DialogDescription>
         </DialogHeader>
         <div className="mb-3 mt-2 space-y-5">

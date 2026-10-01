@@ -68,8 +68,8 @@ export default function AppMarketplacePage() {
             Marketplace
           </h1>
           <p className="text-muted-foreground text-sm">
-            Import commands, event listeners and whole modules made by the
-            community, or share your own.{" "}
+            Import commands, event listeners, message templates and whole
+            modules made by the community, or share your own.{" "}
             <a
               href={`${env.NEXT_PUBLIC_DOCS_LINK}/guides/marketplace`}
               target="_blank"
@@ -180,6 +180,7 @@ function BrowseTab({ onSelect }: { onSelect: (id: string) => void }) {
             <SelectItem value="all">Everything</SelectItem>
             <SelectItem value="command">Commands</SelectItem>
             <SelectItem value="event_listener">Event Listeners</SelectItem>
+            <SelectItem value="message">Message Templates</SelectItem>
             <SelectItem value="module">Modules</SelectItem>
           </SelectContent>
         </Select>

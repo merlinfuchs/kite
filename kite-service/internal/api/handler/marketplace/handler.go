@@ -132,6 +132,7 @@ func (h *MarketplaceHandler) HandleMarketplaceListingCreate(c *handler.Context, 
 		Items:              content.items,
 		CommandCount:       content.commandCount,
 		EventListenerCount: content.eventListenerCount,
+		MessageCount:       content.messageCount,
 		BlockTypes:         content.blockTypes,
 		CreatedAt:          now,
 		UpdatedAt:          now,
@@ -176,6 +177,7 @@ func (h *MarketplaceHandler) HandleMarketplaceListingUpdate(c *handler.Context, 
 		Items:              content.items,
 		CommandCount:       content.commandCount,
 		EventListenerCount: content.eventListenerCount,
+		MessageCount:       content.messageCount,
 		BlockTypes:         content.blockTypes,
 		UpdatedAt:          time.Now().UTC(),
 	})
@@ -572,7 +574,7 @@ func listingsFilter(c *handler.Context) (store.MarketplaceListingsFilter, error)
 	}
 
 	switch filter.Kind {
-	case "", "command", "event_listener", "module":
+	case "", "command", "event_listener", "message", "module":
 	default:
 		return filter, handler.ErrBadRequest("invalid_kind", "Unknown listing kind")
 	}
@@ -608,12 +610,13 @@ type listingContent struct {
 	items              []model.MarketplaceListingItem
 	commandCount       int
 	eventListenerCount int
+	messageCount       int
 	blockTypes         []string
 }
 
 // compileListingItems checks that every item is a valid flow of its type and
-// takes the names and descriptions from the flows, so a listing can't claim
-// to contain something it doesn't.
+// takes the names and descriptions of commands and event listeners from the
+// flows, so a listing can't claim to contain something it doesn't.
 func compileListingItems(reqItems []wire.MarketplaceListingItemRequest) (*listingContent, error) {
 	res := &listingContent{
 		items: make([]model.MarketplaceListingItem, len(reqItems)),
@@ -621,6 +624,15 @@ func compileListingItems(reqItems []wire.MarketplaceListingItemRequest) (*listin
 
 	blockTypes := make(map[string]struct{})
 	commandNames := make(map[string]struct{})
+	messageSourceIDs := make(map[string]struct{})
+
+	addBlockTypes := func(data flow.FlowData) {
+		for _, node := range data.Nodes {
+			if node.Type != "" {
+				blockTypes[string(node.Type)] = struct{}{}
+			}
+		}
+	}
 
 	for i, reqItem := range reqItems {
 		item := model.MarketplaceListingItem{
@@ -662,12 +674,50 @@ func compileListingItems(reqItems []wire.MarketplaceListingItemRequest) (*listin
 			item.Description = eventFlow.EventDescription()
 			item.Source = string(source)
 			res.eventListenerCount++
+		case model.MarketplaceListingItemTypeMessage:
+			// Same cleanup as a regular message import, buttons without a
+			// component lose their flow.
+			msgReq := wire.MessageCreateRequest{
+				Name:        strings.TrimSpace(reqItem.Name),
+				Description: reqItem.Description,
+				Data:        *reqItem.MessageData,
+				FlowSources: reqItem.MessageFlowSources,
+			}
+			msgReq.Sanitize()
+			if err := msgReq.Validate(); err != nil {
+				return nil, handler.ErrBadRequest("invalid_message", fmt.Sprintf("item %d: %s", i+1, err))
+			}
+
+			for id, buttonFlow := range msgReq.FlowSources {
+				if _, err := flow.CompileComponentButton(buttonFlow); err != nil {
+					return nil, handler.ErrBadRequest("invalid_flow", fmt.Sprintf("item %d, button %s: %s", i+1, id, err))
+				}
+				addBlockTypes(buttonFlow)
+			}
+
+			if reqItem.SourceID != "" {
+				if _, ok := messageSourceIDs[reqItem.SourceID]; ok {
+					return nil, handler.ErrBadRequest("duplicate_message", fmt.Sprintf("message template %s is in the listing twice", msgReq.Name))
+				}
+				messageSourceIDs[reqItem.SourceID] = struct{}{}
+			}
+
+			// Attachments are assets of the author's app, they can't be
+			// used from other apps.
+			data := msgReq.Data
+			data.Attachments = nil
+			item.Name = msgReq.Name
+			item.Description = msgReq.Description.String
+			item.SourceID = reqItem.SourceID
+			item.MessageData = &data
+			item.MessageFlowSources = msgReq.FlowSources
+			// Message templates have no flow of their own.
+			item.FlowSource = flow.FlowData{}
+			res.messageCount++
 		}
 
-		for _, node := range reqItem.FlowSource.Nodes {
-			if node.Type != "" {
-				blockTypes[string(node.Type)] = struct{}{}
-			}
+		if item.Type != model.MarketplaceListingItemTypeMessage {
+			addBlockTypes(reqItem.FlowSource)
 		}
 
 		res.items[i] = item

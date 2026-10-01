@@ -148,6 +148,7 @@ type MarketplaceListing struct {
 	ReviewedAt         pgtype.Timestamp
 	CreatedAt          pgtype.Timestamp
 	UpdatedAt          pgtype.Timestamp
+	MessageCount       int32
 }
 
 type MarketplaceModerator struct {

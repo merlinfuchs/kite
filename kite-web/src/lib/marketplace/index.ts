@@ -55,6 +55,8 @@ export function listingKindLabel(kind: string) {
       return "Command";
     case "event_listener":
       return "Event Listener";
+    case "message":
+      return "Message Template";
     default:
       return "Module";
   }
@@ -75,7 +77,12 @@ export function listingStatusLabel(status: string) {
   }
 }
 
-export function listingSummary(listing: MarketplaceListing) {
+export function listingSummary(
+  listing: Pick<
+    MarketplaceListing,
+    "command_count" | "event_listener_count" | "message_count"
+  >
+) {
   const parts = [];
   if (listing.command_count) {
     parts.push(
@@ -91,6 +98,13 @@ export function listingSummary(listing: MarketplaceListing) {
       }`
     );
   }
+  if (listing.message_count) {
+    parts.push(
+      `${listing.message_count} message template${
+        listing.message_count === 1 ? "" : "s"
+      }`
+    );
+  }
   return parts.join(", ");
 }
 
@@ -103,14 +117,17 @@ export function userAvatarUrl(user: MarketplaceUser) {
 
 // Variable and message template IDs belong to the app the flow was exported
 // from, so they are cleared when they don't exist in the current app.
+// messageIdMap points templates that were imported together with the flow at
+// their new IDs.
 export function removeForeignReferences(
   flow: FlowData,
   variableIds: Set<string>,
-  messageIds: Set<string>
+  messageIds: Set<string>,
+  messageIdMap?: Map<string, string>
 ) {
   let removed = 0;
 
-  const nodes = flow.nodes.map((node) => {
+  const nodes = (flow.nodes ?? []).map((node) => {
     const data = { ...node.data };
     let changed = false;
 
@@ -118,7 +135,14 @@ export function removeForeignReferences(
       delete data.variable_id;
       changed = true;
     }
-    if (data.message_template_id && !messageIds.has(data.message_template_id)) {
+    const mappedMessageId =
+      data.message_template_id && messageIdMap?.get(data.message_template_id);
+    if (mappedMessageId) {
+      data.message_template_id = mappedMessageId;
+    } else if (
+      data.message_template_id &&
+      !messageIds.has(data.message_template_id)
+    ) {
       delete data.message_template_id;
       changed = true;
     }
@@ -128,4 +152,35 @@ export function removeForeignReferences(
   });
 
   return { flow: { ...flow, nodes }, removed };
+}
+
+// Message template IDs that the flows reference, used to suggest adding the
+// templates when publishing.
+export function referencedMessageIds(flows: FlowData[]) {
+  const res = new Set<string>();
+  for (const flow of flows) {
+    for (const node of flow.nodes ?? []) {
+      if (node.data?.message_template_id) {
+        res.add(node.data.message_template_id);
+      }
+    }
+  }
+  return res;
+}
+
+// Listings with more than one item are modules, like on the server.
+export function listingKind(
+  listing: Pick<
+    MarketplaceListing,
+    "command_count" | "event_listener_count" | "message_count"
+  >
+) {
+  const total =
+    listing.command_count +
+    listing.event_listener_count +
+    listing.message_count;
+  if (total > 1) return "module";
+  if (listing.command_count === 1) return "command";
+  if (listing.message_count === 1) return "message";
+  return "event_listener";
 }

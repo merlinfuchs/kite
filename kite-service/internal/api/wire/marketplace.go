@@ -7,6 +7,7 @@ import (
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/pkg/flow"
+	"github.com/kitecloud/kite/kite-service/pkg/message"
 	"gopkg.in/guregu/null.v4"
 )
 
@@ -18,12 +19,13 @@ type MarketplaceListing struct {
 	ID          string `json:"id"`
 	Name        string `json:"name"`
 	Description string `json:"description"`
-	// Kind is "command", "event_listener" or "module".
+	// Kind is "command", "event_listener", "message" or "module".
 	Kind               string                   `json:"kind"`
 	Status             string                   `json:"status"`
 	Author             *MarketplaceUser         `json:"author"`
 	CommandCount       int                      `json:"command_count"`
 	EventListenerCount int                      `json:"event_listener_count"`
+	MessageCount       int                      `json:"message_count"`
 	BlockTypes         []string                 `json:"block_types"`
 	ImportCount        int                      `json:"import_count"`
 	Items              []MarketplaceListingItem `json:"items"`
@@ -38,8 +40,14 @@ type MarketplaceListingItem struct {
 	Name        string `json:"name"`
 	Description string `json:"description"`
 	Source      string `json:"source,omitempty"`
-	// FlowSource is left out when listings are listed.
+	// FlowSource, MessageData and MessageFlowSources are left out when
+	// listings are listed.
 	FlowSource *flow.FlowData `json:"flow_source,omitempty"`
+	// SourceID is the message template's ID in the author's app, blocks in
+	// the same listing reference the template by it.
+	SourceID           string                   `json:"source_id,omitempty"`
+	MessageData        *message.MessageData     `json:"message_data,omitempty"`
+	MessageFlowSources map[string]flow.FlowData `json:"message_flow_sources,omitempty"`
 }
 
 // MarketplaceUser is the public part of a user, without their email.
@@ -56,23 +64,38 @@ type MarketplaceListingListResponse = []*MarketplaceListing
 type MarketplaceListingGetResponse = MarketplaceListing
 
 type MarketplaceListingItemRequest struct {
-	Type       string        `json:"type"`
-	Source     string        `json:"source"`
+	Type   string `json:"type"`
+	Source string `json:"source"`
+	// FlowSource is required for commands and event listeners.
 	FlowSource flow.FlowData `json:"flow_source"`
+
+	// The fields below are only used for message templates.
+	Name               string                   `json:"name"`
+	Description        null.String              `json:"description"`
+	SourceID           string                   `json:"source_id"`
+	MessageData        *message.MessageData     `json:"message_data"`
+	MessageFlowSources map[string]flow.FlowData `json:"message_flow_sources"`
 }
 
 func (req MarketplaceListingItemRequest) Validate() error {
+	isMessage := req.Type == string(model.MarketplaceListingItemTypeMessage)
+
 	return validation.ValidateStruct(&req,
 		validation.Field(&req.Type, validation.Required, validation.In(
 			string(model.MarketplaceListingItemTypeCommand),
 			string(model.MarketplaceListingItemTypeEventListener),
+			string(model.MarketplaceListingItemTypeMessage),
 		)),
 		validation.Field(&req.Source, validation.When(
 			req.Type == string(model.MarketplaceListingItemTypeEventListener),
 			validation.Required,
 			validation.In(string(model.EventSourceDiscord), string(model.EventSourceSchedule)),
 		)),
-		validation.Field(&req.FlowSource, validation.Required),
+		validation.Field(&req.FlowSource, validation.When(!isMessage, validation.Required)),
+		validation.Field(&req.Name, validation.When(isMessage, validation.Required, validation.Length(1, 100))),
+		validation.Field(&req.Description, validation.Length(0, 255)),
+		validation.Field(&req.SourceID, validation.Length(0, 100)),
+		validation.Field(&req.MessageData, validation.When(isMessage, validation.NotNil)),
 	)
 }
 
@@ -206,9 +229,12 @@ func MarketplaceListingToWire(listing *model.MarketplaceListing, author *model.U
 
 	kind := "module"
 	if !listing.IsModule() {
-		if listing.CommandCount == 1 {
+		switch {
+		case listing.CommandCount == 1:
 			kind = string(model.MarketplaceListingItemTypeCommand)
-		} else {
+		case listing.MessageCount == 1:
+			kind = string(model.MarketplaceListingItemTypeMessage)
+		default:
 			kind = string(model.MarketplaceListingItemTypeEventListener)
 		}
 	}
@@ -222,8 +248,14 @@ func MarketplaceListingToWire(listing *model.MarketplaceListing, author *model.U
 			Source:      item.Source,
 		}
 		if withFlows {
-			flowSource := item.FlowSource
-			items[i].FlowSource = &flowSource
+			if item.Type == model.MarketplaceListingItemTypeMessage {
+				items[i].SourceID = item.SourceID
+				items[i].MessageData = item.MessageData
+				items[i].MessageFlowSources = item.MessageFlowSources
+			} else {
+				flowSource := item.FlowSource
+				items[i].FlowSource = &flowSource
+			}
 		}
 	}
 
@@ -241,6 +273,7 @@ func MarketplaceListingToWire(listing *model.MarketplaceListing, author *model.U
 		Author:             MarketplaceUserToWire(author),
 		CommandCount:       listing.CommandCount,
 		EventListenerCount: listing.EventListenerCount,
+		MessageCount:       listing.MessageCount,
 		BlockTypes:         blockTypes,
 		ImportCount:        listing.ImportCount,
 		Items:              items,
