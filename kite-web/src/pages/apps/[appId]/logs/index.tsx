@@ -1,4 +1,5 @@
 import AppLayout from "@/components/app/AppLayout";
+import { getAppShellLayout } from "@/components/app/AppShell";
 import LogEntryList from "@/components/app/LogEntryList";
 import { Separator } from "@/components/ui/separator";
 
@@ -25,3 +26,5 @@ export default function AppLogsPage() {
     </AppLayout>
   );
 }
+
+AppLogsPage.getLayout = getAppShellLayout;
