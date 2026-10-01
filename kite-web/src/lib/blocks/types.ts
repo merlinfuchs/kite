@@ -25,7 +25,10 @@ export type BlockFieldType =
   | "seconds_until"
   // A JSON object whose properties are sent as those of the body, with the
   // placeholders in its strings filled in.
-  | "json_object";
+  | "json_object"
+  // Not a setting: the app's bot token, sent in the body to services that
+  // call Discord for the app. The block needs Discord too.
+  | "discord_bot_token";
 
 export interface BlockField {
   // Setting in the node's data, like "channel_target" or "max_age". Settings
@@ -75,9 +78,6 @@ export interface BlockRequest {
   operation: string;
   method: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
   path: string;
-  // Body parameter that gets the app's bot token, for services that call
-  // Discord for the app. The block needs Discord too.
-  discord_bot_token?: string;
   // The block does one of several things the endpoint does, like a timeout
   // is one way of editing a member, so it doesn't replace the raw request.
   partial?: boolean;

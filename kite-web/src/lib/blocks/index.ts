@@ -223,6 +223,7 @@ const formats: Record<BlockFieldType, [RegExp, string] | null> = {
   seconds: [decimalRegex, "Must be a number of seconds"],
   seconds_until: [decimalRegex, "Must be a number of seconds"],
   json_object: null,
+  discord_bot_token: null,
 };
 
 const numberTypes: BlockFieldType[] = ["integer", "seconds", "seconds_until"];
@@ -358,9 +359,14 @@ function optionValues(field: BlockField) {
   return field.options!.map((o) => `"${o.value}"`).join(", ");
 }
 
+// The fields of a block that are settings, not filled in by Kite.
+function settingFields(block: BlockDefinition) {
+  return (block.fields ?? []).filter((f) => f.type !== "discord_bot_token");
+}
+
 // The schema of a block, generated from its fields.
 export function blockDataSchema(block: BlockDefinition) {
-  const fields = block.fields ?? [];
+  const fields = settingFields(block);
   const names = fields.map((f) => f.name).join(", ");
 
   let base: AnyZodObject =
@@ -385,7 +391,7 @@ function settingSchema(field: BlockField) {
 // The editor inputs of a block. Fields without a schema are edited by a
 // generic input, named "field:" and the field's name.
 export function blockDataFields(block: BlockDefinition) {
-  const inputs = (block.fields ?? []).map((f) =>
+  const inputs = settingFields(block).map((f) =>
     f.schema ? f.input ?? f.name : `field:${f.name}`
   );
   return [

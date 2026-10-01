@@ -58,7 +58,9 @@ describe("block definitions", () => {
 
   it("describe the fields without a schema", () => {
     for (const block of blockDefinitions) {
-      for (const field of (block.fields ?? []).filter((f) => !f.schema)) {
+      for (const field of (block.fields ?? []).filter(
+        (f) => !f.schema && f.type !== "discord_bot_token"
+      )) {
         expect(field.label, `${block.type}.${field.name}`).toBeTruthy();
         expect(field.description, `${block.type}.${field.name}`).toBeTruthy();
       }
@@ -97,12 +99,15 @@ describe("block definitions", () => {
     }
   });
 
-  it("only send the bot token to integrations, with Discord required", () => {
-    for (const block of requestBlocks().filter(
-      (b) => b.run.discord_bot_token
-    )) {
-      expect(block.run.integration, block.type).not.toBe("discord");
-      expect(block.requires, block.type).toContain("discord");
+  it("only send the bot token to integrations, in the body", () => {
+    for (const block of requestBlocks()) {
+      for (const field of block.fields.filter(
+        (f) => f.type === "discord_bot_token"
+      )) {
+        expect(block.run.integration, block.type).not.toBe("discord");
+        expect(block.requires, block.type).toContain("discord");
+        expect(field.in, block.type).toBe("body");
+      }
     }
   });
 
@@ -168,15 +173,14 @@ describe("block definitions", () => {
             `${block.type}.${name}`
           ).toBe(true);
         }
-        for (const param of op.body_params.filter(
-          (p) => p.required && p.name !== block.run.discord_bot_token
-        )) {
+        for (const param of op.body_params.filter((p) => p.required)) {
           const field = block.fields.find(
             (f) => f.in === "body" && (f.target ?? f.name) === param.name
           );
-          expect(field?.required, `${block.type} requires ${param.name}`).toBe(
-            true
-          );
+          expect(
+            field?.required || field?.type === "discord_bot_token",
+            `${block.type} requires ${param.name}`
+          ).toBe(true);
         }
       }
     }

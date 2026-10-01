@@ -59,8 +59,6 @@ type blockRequest struct {
 	Operation   string `json:"operation"`
 	Method      string `json:"method"`
 	Path        string `json:"path"`
-	// Body parameter that gets the app's bot token.
-	DiscordBotToken string `json:"discord_bot_token"`
 }
 
 type blockDefinition struct {
@@ -222,9 +220,17 @@ func (n *CompiledFlowNode) executeBlockDefinition(ctx *FlowContext, block blockD
 	query := url.Values{}
 	body := make(map[string]any)
 	hasBody := false
+	var botToken string
 
 	for _, field := range block.Fields {
 		hasBody = hasBody || field.In == "body"
+
+		// Not a setting, but sent to services that call Discord for the app.
+		if field.Type == "discord_bot_token" {
+			botToken = ctx.Discord.BotToken()
+			body[field.Target] = botToken
+			continue
+		}
 
 		raw := n.Data.Setting(field.Name)
 		if field.Type == "json_object" {
@@ -285,13 +291,6 @@ func (n *CompiledFlowNode) executeBlockDefinition(ctx *FlowContext, block blockD
 	})
 	if len(query) > 0 {
 		path += "?" + query.Encode()
-	}
-
-	var botToken string
-	if block.Run.DiscordBotToken != "" {
-		botToken = ctx.Discord.BotToken()
-		body[block.Run.DiscordBotToken] = botToken
-		hasBody = true
 	}
 
 	var reqBody []byte
