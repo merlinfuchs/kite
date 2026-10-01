@@ -103,9 +103,12 @@ export async function runFlowAIPrompt({
   };
   // Warnings are sent too, as the ones the AI causes are mistakes, like a
   // block it didn't connect.
-  // Settings like stored variables are left for the user to pick.
+  // Settings like stored variables are left for the user to pick. Suggestions
+  // aren't sent: swapping blocks takes the AI more repairs than it has.
   const getIssues = (issues: FlowIssue[]) =>
-    new Set(issues.filter((i) => !i.userPicked).map(describeIssue));
+    new Set(
+      issues.filter((i) => !i.userPicked && !i.suggestion).map(describeIssue)
+    );
 
   let res = await request(original, {});
   const {

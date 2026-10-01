@@ -226,7 +226,7 @@ export const evalCases: EvalCase[] = [
       "Make the command reply with the content of the last 5 messages in the channel it's used in",
     route: ["build"],
     types: [
-      "action_discord_api_request",
+      "action_message_list|action_discord_api_request",
       "action_response_create|action_response_edit",
     ],
   },
@@ -238,7 +238,20 @@ export const evalCases: EvalCase[] = [
       "Create an invite for this channel that expires after an hour and reply with the link",
     route: ["build"],
     types: [
-      "action_discord_api_request",
+      "action_invite_create|action_discord_api_request",
+      "action_response_create|action_response_edit",
+    ],
+  },
+  {
+    name: "create role",
+    context: "command",
+    flow: command("role"),
+    prompt:
+      "Create a red role with the name from the command's name argument, shown separately in the member list",
+    route: ["build"],
+    types: [
+      "option_command_argument",
+      "action_role_create|action_discord_api_request",
       "action_response_create|action_response_edit",
     ],
   },

@@ -83,6 +83,8 @@ func NewAPIServer(
 	commandManager *command.CommandManager,
 	assistantPromptStore store.AssistantPromptStore,
 	flowAssistant *flowai.Assistant,
+	appSecretStore store.AppSecretStore,
+	appIntegrationStore store.AppIntegrationStore,
 ) *APIServer {
 	s := &APIServer{
 		config: config,
@@ -113,6 +115,8 @@ func NewAPIServer(
 		commandManager,
 		assistantPromptStore,
 		flowAssistant,
+		appSecretStore,
+		appIntegrationStore,
 	)
 	return s
 }

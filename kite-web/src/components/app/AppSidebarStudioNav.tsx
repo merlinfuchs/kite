@@ -1,8 +1,10 @@
 import {
   VariableIcon,
   StoreIcon,
+  KeyRoundIcon,
+  PlugIcon,
+  LibraryBigIcon,
   SlashSquareIcon,
-  type LucideIcon,
   MailPlusIcon,
   SatelliteDishIcon,
   BlocksIcon,
@@ -35,13 +37,38 @@ export default function AppSidebarStudioNav() {
     [router.pathname]
   );
 
-  const items = useMemo(() => {
+  // What the bot does, and what its flows use.
+  const sections = useMemo(() => {
     return [
       {
-        name: "Commands",
-        url: "/apps/[appId]/commands",
-        icon: SlashSquareIcon,
-        active: isActive("/apps/[appId]/commands"),
+        label: "Studio",
+        items: [
+          {
+            name: "Commands",
+            url: "/apps/[appId]/commands",
+            icon: SlashSquareIcon,
+          },
+          {
+            name: "Event Listeners",
+            url: "/apps/[appId]/events",
+            icon: SatelliteDishIcon,
+          },
+          {
+            name: "Message Templates",
+            url: "/apps/[appId]/messages",
+            icon: MailPlusIcon,
+          },
+          {
+            name: "Plugins",
+            url: "/apps/[appId]/plugins",
+            icon: BlocksIcon,
+          },
+          {
+            name: "Templates",
+            url: "/apps/[appId]/templates",
+            icon: LibraryBigIcon,
+          },
+        ],
       },
       {
         name: "Event Listeners",
@@ -72,32 +99,54 @@ export default function AppSidebarStudioNav() {
         url: "/apps/[appId]/marketplace",
         icon: StoreIcon,
         active: isActive("/apps/[appId]/marketplace"),
+        label: "Resources",
+        items: [
+          {
+            name: "Stored Variables",
+            url: "/apps/[appId]/variables",
+            icon: VariableIcon,
+          },
+          {
+            name: "Secrets",
+            url: "/apps/[appId]/secrets",
+            icon: KeyRoundIcon,
+          },
+          {
+            name: "Integrations",
+            url: "/apps/[appId]/integrations",
+            icon: PlugIcon,
+          },
+        ],
       },
     ];
-  }, [isActive]);
+  }, []);
 
   return (
-    <SidebarGroup className="">
-      <SidebarGroupLabel>Studio</SidebarGroupLabel>
-      <SidebarMenu>
-        {items.map((item) => (
-          <SidebarMenuItem key={item.name}>
-            <SidebarMenuButton asChild isActive={item.active}>
-              <Link
-                href={{
-                  pathname: item.url,
-                  query: {
-                    appId,
-                  },
-                }}
-              >
-                <item.icon />
-                <span>{item.name}</span>
-              </Link>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        ))}
-      </SidebarMenu>
-    </SidebarGroup>
+    <>
+      {sections.map((section) => (
+        <SidebarGroup key={section.label}>
+          <SidebarGroupLabel>{section.label}</SidebarGroupLabel>
+          <SidebarMenu>
+            {section.items.map((item) => (
+              <SidebarMenuItem key={item.name}>
+                <SidebarMenuButton asChild isActive={isActive(item.url)}>
+                  <Link
+                    href={{
+                      pathname: item.url,
+                      query: {
+                        appId,
+                      },
+                    }}
+                  >
+                    <item.icon />
+                    <span>{item.name}</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            ))}
+          </SidebarMenu>
+        </SidebarGroup>
+      ))}
+    </>
   );
 }

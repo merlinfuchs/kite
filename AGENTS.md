@@ -5,6 +5,7 @@ Kite is a no-code Discord bot builder. Users build commands and event listeners 
 - `kite-service`: Go backend (API, Discord gateway, flow engine). Go 1.25.
 - `kite-web`: Next.js 14 app (pages router, pnpm). The flow editor lives here.
 - `kite-docs`: Docusaurus docs site (pnpm).
+- `kite-support`: Discord support bot that answers questions from the docs.
 - `deploy`: scripts the maintainer uses to deploy kite.onl. Don't change them unless asked.
 
 ## Checks
@@ -43,31 +44,34 @@ Never edit these by hand. Change the source and regenerate.
 | --------------------------------------------- | -------------------------------------------------------- | ------------------------------------ |
 | `kite-web/src/lib/types/*.gen.ts`             | Go types in `kite-service` (see `tygo.yaml`)             | `tygo generate` in `kite-service`    |
 | `kite-service/internal/db/postgres/pgmodel/*` | `internal/db/postgres/queries` and `migrations`          | `sqlc generate` in `kite-service`    |
-| `kite-service/pkg/flow/catalog.json`          | zod schemas and `nodeTypes` in `kite-web/src/lib/flow`   | `pnpm test -u` in `kite-web`         |
+| `kite-service/pkg/flow/catalog.json`          | block definitions in `kite-web/src/lib/blocks`           | `pnpm test -u` in `kite-web`         |
+| `kite-service/pkg/flow/block_definitions.json` | block definitions in `kite-web/src/lib/blocks`         | `pnpm test -u` in `kite-web`         |
 
-`catalog.json` describes every block to the flow AI. `TestCatalogHasEveryNodeType` fails if a block is missing from it.
+`catalog.json` describes every block to the flow AI, and `block_definitions.json` tells the service how each block runs. `TestCatalogHasEveryNodeType` and `TestEveryBlockRuns` fail if a block is missing from them.
 
 ## Adding a block
 
-Look at an existing block that does something similar and copy its shape. `action_message_pin` is a good minimal example. Before adding a new block, check that no existing block already covers the use case, or could with one extra option.
+Look at an existing block that does something similar and copy its shape. Before adding a new block, check that no existing block already covers the use case, or could with one extra option. See `design/integrations.md` for the design.
+
+Every block has a definition in `kite-web/src/lib/blocks`, named after the integration it mainly acts on and its type, like `discordInviteCreate.ts` for `action_invite_create`, and listed in `blocks/index.ts` in the order of the block explorer. Blocks for a service other than Discord include the service in their type, e.g. `action_roblox_user_get`, so they can't collide with Discord blocks or blocks of other services.
+
+If the block is a single API request, give it `fields` and a request `run`, following `discordInviteCreate.ts`. The service runs it from the generated `block_definitions.json`, a test checks it against its integration's `api.json`, and it needs no Go. Otherwise give it a custom `run` and `fields` whose `schema` describes each setting, following `discordChannelGet.ts`, and write it by hand. A field with a schema is edited by the input registered under its name in `FlowNodeEditor.tsx`, or the one it names in `input`, and shows nothing without one. Rules over several settings go in `refine`, like `requireMessage` in `discordMessageCreate.ts`. Set `strict_settings` on new blocks, so a misnamed setting is an error instead of ignored.
 
 Service:
 
 1. `pkg/flow/data.go`: add the `FlowNodeType` constant and any new fields on `FlowNodeData`. Reuse existing fields (`ChannelTarget`, `MessageTarget`, `AuditLogReason`, ...) where they fit.
-2. `pkg/flow/execute.go`: add a `case` to the switch in `Execute`. Evaluate inputs with `ctx.EvalTemplate`, return errors with `traceError(n, err)`, and store a result if the block returns data.
+2. `pkg/flow/handlers_*.go`: add a handler function to the file of its group, like `handlers_message.go`, and register it in the file's `init`. Evaluate inputs with `ctx.EvalTemplate`, return errors with `traceError(n, err)`, and store a result if the block returns data.
 3. `pkg/provider/discord.go`: add the method to the `DiscordProvider` interface and to `MockDiscordProvider`.
-4. `internal/core/engine/providers.go`: implement the method. The engine's provider embeds the mock, so if you skip this it compiles and silently does nothing.
-5. `CreditsCost()` in `pkg/flow/execute.go`: `action_*` blocks cost 1 by default. Blocks that call external services or do a lot of work cost more.
+4. `internal/core/engine/providers.go`: implement the method.
+5. `CreditsCost()` in `pkg/flow/execute.go`: `action_*` blocks cost 1 by default. Blocks that call external services or do a lot of work cost more. A test checks it matches `credits` of the definition.
 
 Web:
 
-1. `src/lib/flow/dataSchema.ts`: zod schema for the block's data. Every field needs `.describe(...)`.
-2. `src/lib/flow/resultSchema.ts`: schema for the result, if the block returns data. Without it the placeholder picker and flow AI can't see the output.
-3. `src/lib/flow/nodes.ts`: entry in `nodeTypes` with title, description, icon, `dataFields`, schemas and `creditsCost`.
-4. `src/lib/flow/components.ts`: map the type to a component (usually `FlowNodeActionBase`).
-5. `src/lib/flow/categories.ts`: add the type to a category.
-6. `src/components/flow/FlowNodeEditor.tsx`: only if you added a new field name that needs an input.
-7. Run `pnpm test -u` to regenerate `catalog.json`, and `tygo generate` if you changed Go types.
+1. `src/lib/flow/dataSchema.ts`: zod schemas for settings other blocks share, like `channelTargetSchema`. A setting's schema needs `.describe(...)`.
+2. `src/lib/flow/resultSchema.ts`: schema for the result, if the block returns data. Without it the placeholder picker and flow AI can't see the output, and the block gets no `temporary_name` setting.
+3. `src/lib/blocks`: the definition, with title, description, icon, category, fields, result and credits.
+4. `src/components/flow/FlowNodeEditor.tsx`: only if you added a new field name that needs an input.
+5. Run `pnpm test -u` to regenerate `catalog.json` and `block_definitions.json`, and `tygo generate` if you changed Go types.
 
 Docs:
 
