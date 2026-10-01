@@ -55,12 +55,12 @@ func (h *IntegrationHandler) HandleAppIntegrationList(c *handler.Context) (*wire
 			CredentialUpdatedAt: state.CredentialUpdatedAt,
 		}
 		if state.Credential != nil && state.Integration.CanAuthorize() {
-			credential, err := h.tokenCrypt.DecryptString(state.Credential.ValueEncrypted)
-			if err != nil {
-				return nil, fmt.Errorf("failed to decrypt credential: %w", err)
+			// A credential that can't be decrypted shouldn't hide the
+			// others, or the button to replace it.
+			if credential, err := h.tokenCrypt.DecryptString(state.Credential.ValueEncrypted); err == nil {
+				authorizeURL := state.Integration.AuthorizeURLFor(credential)
+				res[i].AuthorizeURL = null.NewString(authorizeURL, authorizeURL != "")
 			}
-			authorizeURL := state.Integration.AuthorizeURLFor(credential)
-			res[i].AuthorizeURL = null.NewString(authorizeURL, authorizeURL != "")
 		}
 	}
 	return &res, nil
@@ -181,14 +181,21 @@ func (h *IntegrationHandler) checkCredential(ctx context.Context, integration fl
 		return fmt.Errorf("failed to create test request: %w", err)
 	}
 
+	rateLimited := handler.ErrBadRequest("rate_limited", fmt.Sprintf("%s is rate limited, try again later", integration.Name))
 	resp, err := integration.Do(ctx, credential, req, h.client.Do)
 	if err != nil {
+		if errors.Is(err, flow.ErrRateLimited) {
+			return rateLimited
+		}
 		return nil
 	}
 	resp.Body.Close()
 
-	if resp.StatusCode == http.StatusUnauthorized || resp.StatusCode == http.StatusForbidden {
+	switch resp.StatusCode {
+	case http.StatusUnauthorized, http.StatusForbidden:
 		return handler.ErrBadRequest("invalid_credential", fmt.Sprintf("%s didn't accept the %s", integration.Name, strings.ToLower(integration.Auth.Label)))
+	case http.StatusTooManyRequests:
+		return rateLimited
 	}
 	return nil
 }

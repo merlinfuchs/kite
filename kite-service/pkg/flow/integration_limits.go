@@ -2,6 +2,9 @@ package flow
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
+	"errors"
 	"fmt"
 	"math"
 	"net/http"
@@ -53,7 +56,9 @@ func (l *rateLimits) acquire(ctx context.Context, integration Integration, crede
 		return func(*http.Response) {}, nil
 	}
 
-	key := integration.ID + "\x00" + credential + "\x00" + route
+	// Hashed, so the credential isn't kept in memory longer than the request.
+	credentialHash := sha256.Sum256([]byte(credential))
+	key := integration.ID + "\x00" + hex.EncodeToString(credentialHash[:]) + "\x00" + route
 	l.mu.Lock()
 	r, ok := l.routes[key]
 	if !ok {
@@ -131,17 +136,18 @@ func (l *rateLimits) record(integrationID string, r *routeLimit, resp *http.Resp
 	var until time.Time
 	if resp.StatusCode == http.StatusTooManyRequests {
 		seconds, err := strconv.ParseFloat(resp.Header.Get("Retry-After"), 64)
-		if err != nil || seconds < 0 || seconds > 24*60*60 {
+		if err != nil || seconds < 0 {
 			// Waits a while rather than retrying right away, which ER:LC
 			// punishes.
 			seconds = 60
 		}
+		seconds = min(seconds, 24*60*60)
 		until = time.Now().Add(time.Duration(seconds * float64(time.Second)))
 	}
 	if resp.Header.Get("X-RateLimit-Remaining") == "0" {
-		reset, err := strconv.ParseInt(resp.Header.Get("X-RateLimit-Reset"), 10, 64)
-		if err == nil && time.Unix(reset, 0).After(until) {
-			until = time.Unix(reset, 0)
+		reset, err := strconv.ParseFloat(resp.Header.Get("X-RateLimit-Reset"), 64)
+		if resetAt := time.UnixMilli(int64(reset * 1000)); err == nil && resetAt.After(until) {
+			until = resetAt
 		}
 	}
 	if until.IsZero() {
@@ -170,8 +176,12 @@ func waitError(ctx context.Context, integration Integration, wait time.Duration)
 	return rateLimitedError(integration, wait)
 }
 
+// ErrRateLimited is wrapped by the errors of requests that weren't sent
+// because of a rate limit.
+var ErrRateLimited = errors.New("rate limited")
+
 func rateLimitedError(integration Integration, wait time.Duration) error {
-	return fmt.Errorf("%s is rate limited, try again in %d seconds", integration.Name, int(math.Ceil(wait.Seconds())))
+	return fmt.Errorf("%s is %w, try again in %d seconds", integration.Name, ErrRateLimited, int(math.Ceil(wait.Seconds())))
 }
 
 // Do sends a request to the integration, after waiting for its rate limits
