@@ -36,7 +36,7 @@ var resultKeyRe = regexp.MustCompile(`^[a-z0-9_]+$`)
 
 // A single placeholder, like {{arg('seconds')}}. Matches placeholderRegex in
 // kite-web/src/lib/flow/dataSchema.ts.
-var placeholderRe = regexp.MustCompile(`^\{\{[^{}]+\}\}$`)
+var singlePlaceholderRe = regexp.MustCompile(`^\{\{[^{}]+\}\}$`)
 
 type FlowData struct {
 	Nodes []FlowNode `json:"nodes"`
@@ -475,7 +475,7 @@ func (d FlowNodeData) Validate(nodeType FlowNodeType) error {
 			validation.Required,
 			validation.By(func(value any) error {
 				// Placeholders can only be checked when the flow runs.
-				if placeholderRe.MatchString(value.(string)) {
+				if singlePlaceholderRe.MatchString(value.(string)) {
 					return nil
 				}
 				_, err := parseCooldownDuration(value.(string))

@@ -15,12 +15,6 @@ const sections: Record<
   option: [
     {
       title: "Commands",
-      nodeTypes: [
-        "option_command_argument",
-        "option_command_permissions",
-        "option_command_contexts",
-        "option_command_cooldown",
-      ],
       contextTypes: ["command"],
     },
     {
