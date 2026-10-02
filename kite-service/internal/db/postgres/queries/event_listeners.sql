@@ -17,9 +17,10 @@ INSERT INTO event_listeners (
     filter,
     flow_source,
     created_at,
-    updated_at
+    updated_at,
+    webhook_secret
 ) VALUES (
-    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12
+    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13
 ) RETURNING *;
 
 -- name: UpdateEventListener :one
@@ -30,6 +31,12 @@ UPDATE event_listeners SET
     description = $5,
     flow_source = $6,
     updated_at = $7
+WHERE id = $1 RETURNING *;
+
+-- name: UpdateEventListenerWebhookSecret :one
+UPDATE event_listeners SET
+    webhook_secret = $2,
+    updated_at = $3
 WHERE id = $1 RETURNING *;
 
 -- name: GetEventListenersUpdatedSince :many

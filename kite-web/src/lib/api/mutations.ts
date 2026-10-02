@@ -35,6 +35,7 @@ import {
   EventListenerUpdateEnabledResponse,
   EventListenerUpdateRequest,
   EventListenerUpdateResponse,
+  EventListenerWebhookSecretRegenerateResponse,
   FlowAIChatRequest,
   FlowAIChatResponse,
   MessageCreateRequest,
@@ -377,6 +378,28 @@ export function useEventListenerUpdateEnabledMutation(
           headers: {
             "Content-Type": "application/json",
           },
+        }
+      ),
+    onSuccess: () => {
+      client.invalidateQueries({
+        queryKey: ["apps", appId, "event-listeners"],
+      });
+    },
+  });
+}
+
+export function useEventListenerWebhookSecretRegenerateMutation(
+  appId: string,
+  eventId: string
+) {
+  const client = useQueryClient();
+
+  return useMutation({
+    mutationFn: () =>
+      apiRequest<EventListenerWebhookSecretRegenerateResponse>(
+        `/v1/apps/${appId}/event-listeners/${eventId}/webhook-secret`,
+        {
+          method: "POST",
         }
       ),
     onSuccess: () => {

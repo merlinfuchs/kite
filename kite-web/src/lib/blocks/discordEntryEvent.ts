@@ -7,7 +7,7 @@ export const discordEntryEvent: BlockDefinition = {
   description:
     "Listens for an event to trigger the flow. Drop different actions here!",
   icon: "satellite-dish",
-  contexts: ["event_discord", "event_schedule"],
+  contexts: ["event_discord", "event_schedule", "event_webhook"],
   fixed: true,
   component: "entry_event",
   requires: ["discord"],
@@ -25,9 +25,10 @@ export const discordEntryEvent: BlockDefinition = {
           "guild_create",
           "guild_delete",
           "cron",
+          "webhook",
         ])
         .describe(
-          "Discord event that triggers the flow, or cron for a scheduled flow."
+          "Discord event that triggers the flow, cron for a scheduled flow, or webhook for a flow that runs when a request is sent to its webhook URL."
         ),
     },
     {

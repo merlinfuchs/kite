@@ -105,7 +105,11 @@ export default function AppEventListenerPage() {
         <FlowPage
           flowData={listener.flow_source}
           context={
-            listener.source === "schedule" ? "event_schedule" : "event_discord"
+            listener.source === "schedule"
+              ? "event_schedule"
+              : listener.source === "webhook"
+              ? "event_webhook"
+              : "event_discord"
           }
           hasUnsavedChanges={hasUnsavedChanges}
           onChange={onChange}

@@ -13,6 +13,7 @@ import (
 	"github.com/expr-lang/expr/ast"
 	"github.com/kitecloud/kite/kite-service/pkg/schedule"
 	"github.com/kitecloud/kite/kite-service/pkg/thing"
+	"github.com/kitecloud/kite/kite-service/pkg/webhook"
 )
 
 type Context struct {
@@ -246,6 +247,7 @@ type EventEnv struct {
 	Guild   any           `expr:"guild" json:"guild"`
 
 	Schedule *ScheduleEnv `expr:"schedule" json:"schedule"`
+	Webhook  *WebhookEnv  `expr:"webhook" json:"webhook"`
 }
 
 type ScheduleEnv struct {
@@ -263,6 +265,29 @@ func NewScheduleEnv(e *schedule.Event) *ScheduleEnv {
 
 func (s ScheduleEnv) String() string {
 	return s.Time
+}
+
+type WebhookEnv struct {
+	Headers map[string]string `expr:"headers" json:"headers"`
+	Query   map[string]string `expr:"query" json:"query"`
+	Body    string            `expr:"body" json:"body"`
+	// Data is the body parsed as JSON, nil if it isn't JSON.
+	Data any `expr:"data" json:"data"`
+}
+
+func NewWebhookEnv(e *webhook.Event) *WebhookEnv {
+	res := &WebhookEnv{
+		Headers: e.Headers,
+		Query:   e.Query,
+		Body:    e.Body,
+	}
+	// Senders don't reliably set the content type, so the body decides.
+	_ = json.Unmarshal([]byte(e.Body), &res.Data)
+	return res
+}
+
+func (w WebhookEnv) String() string {
+	return w.Body
 }
 
 func NewEventEnv(event ws.Event) *EventEnv {
@@ -319,6 +344,8 @@ func NewEventEnv(event ws.Event) *EventEnv {
 		env.Guild = NewSnowflakeEnv(e.ID)
 	case *schedule.Event:
 		env.Schedule = NewScheduleEnv(e)
+	case *webhook.Event:
+		env.Webhook = NewWebhookEnv(e)
 	}
 
 	return env
@@ -376,6 +403,7 @@ func NewContextFromEvent(event ws.Event, session *state.State) Context {
 			"server":   env.Guild,
 			"message":  env.Message,
 			"schedule": env.Schedule,
+			"webhook":  env.Webhook,
 			"app":      NewAppEnv(session),
 		},
 	}
