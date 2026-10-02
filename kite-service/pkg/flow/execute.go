@@ -71,6 +71,8 @@ func (n *CompiledFlowNode) CreditsCost() int {
 		return AICreditsCost(data.Model, n.Type == FlowNodeTypeActionAISearchWeb)
 	case FlowNodeTypeActionHTTPRequest:
 		return 3
+	case FlowNodeTypeActionTranscriptCreate:
+		return 5
 	}
 
 	if n.IsAction() {

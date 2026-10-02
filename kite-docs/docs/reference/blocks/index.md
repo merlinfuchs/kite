@@ -55,6 +55,7 @@ The output of previously executed blocks is available in all subsequent blocks a
 - [Create role](./actions/action_role_create.md) - Create roles in servers
 - [Get server](./actions/action_guild_get.md) - Get server information
 - [Get channel](./actions/action_channel_get.md) - Retrieve channel information
+- [Create channel transcript](./actions/action_channel_transcript_create.md) - Save channel messages as an HTML file
 - [Create invite](./actions/action_invite_create.md) - Create invite links for channels
 
 ## Voice Blocks
