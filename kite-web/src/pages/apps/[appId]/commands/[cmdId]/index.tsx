@@ -4,9 +4,8 @@ import {
   useCommandsDeployMutation,
   useCommandUpdateMutation,
 } from "@/lib/api/mutations";
-import { useLogEntriesQuery } from "@/lib/api/queries";
 import { FlowData } from "@/lib/flow/dataSchema";
-import { useCommand, useResponseData } from "@/lib/hooks/api";
+import { useCommand, useFlowLogEntries } from "@/lib/hooks/api";
 import { useBeforePageExit } from "@/lib/hooks/exit";
 import { useAppId, useCommandId } from "@/lib/hooks/params";
 import Head from "next/head";
@@ -44,7 +43,6 @@ export default function AppCommandPage() {
       updateMutation.mutate(
         {
           flow_source: data,
-          enabled: true,
         },
         {
           onSuccess(res) {
@@ -98,12 +96,7 @@ export default function AppCommandPage() {
     [hasUnsavedChanges]
   );
 
-  const logsQuery = useLogEntriesQuery(useAppId(), {
-    limit: 10,
-    commandId: useCommandId(),
-    refetchInterval: 10000,
-  });
-  const logs = useResponseData(logsQuery);
+  const logs = useFlowLogEntries({ commandId: useCommandId() });
 
   return (
     <div className="flex min-h-[100dvh] w-full flex-col">

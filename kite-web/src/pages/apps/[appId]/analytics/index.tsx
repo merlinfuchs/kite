@@ -1,4 +1,5 @@
 import AppLayout from "@/components/app/AppLayout";
+import { getAppShellLayout } from "@/components/app/AppShell";
 import UsageAnalytics from "@/components/app/UsageAnalytics";
 import { Separator } from "@/components/ui/separator";
 
@@ -23,3 +24,5 @@ export default function AppAnalyticsPage() {
     </AppLayout>
   );
 }
+
+AppAnalyticsPage.getLayout = getAppShellLayout;

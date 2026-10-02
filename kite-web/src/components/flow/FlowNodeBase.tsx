@@ -1,8 +1,12 @@
 import { NodeProps } from "@/lib/flow/dataSchema";
 import { ReactNode } from "react";
-import { primaryColor, useNodeValues } from "@/lib/flow/nodes";
+import { errorColor, primaryColor, useNodeValues } from "@/lib/flow/nodes";
+import { useMissingIntegrations } from "@/lib/integrations/hooks";
+import { useAppId } from "@/lib/hooks/params";
+import Link from "next/link";
 import FlowNodeMarkers from "./FlowNodeMarkers";
 import DynamicIcon from "../icons/DynamicIcon";
+import { useChangedByAI } from "@/lib/flow/context";
 
 interface Props extends NodeProps {
   title?: string;
@@ -23,6 +27,9 @@ export default function FlowNodeBase(props: Props) {
   } = useNodeValues(props.type);
 
   const color = props.color || defaultColor;
+  const changedByAI = useChangedByAI(props.id);
+  const appId = useAppId();
+  const missingIntegrations = useMissingIntegrations(props.type);
 
   return (
     <div
@@ -30,9 +37,12 @@ export default function FlowNodeBase(props: Props) {
       style={{
         borderColor: props.selected
           ? primaryColor
+          : missingIntegrations.length > 0
+          ? errorColor
           : props.highlight
           ? color
           : undefined,
+        boxShadow: changedByAI ? `0 0 0 4px ${primaryColor}66` : undefined,
       }}
     >
       {props.showId && (
@@ -59,6 +69,23 @@ export default function FlowNodeBase(props: Props) {
       </div>
 
       {props.children}
+
+      {missingIntegrations.length > 0 && (
+        <div className="text-xs text-red-600 dark:text-red-400 mt-2">
+          {missingIntegrations.map((i) => i.name).join(", ")}{" "}
+          {missingIntegrations.length === 1 ? "isn't" : "aren't"} enabled.{" "}
+          <Link
+            href={{
+              pathname: "/apps/[appId]/integrations",
+              query: { appId },
+            }}
+            target="_blank"
+            className="underline"
+          >
+            Enable {missingIntegrations.length === 1 ? "it" : "them"}
+          </Link>
+        </div>
+      )}
 
       <FlowNodeMarkers {...props} />
     </div>

@@ -1,8 +1,12 @@
 import { buttonVariants, Button } from "@/components/ui/button";
 import { CodeIcon } from "lucide-react";
-import FlowExample from "../flow/FlowExample";
 import env from "@/lib/env/client";
 import Link from "next/link";
+import dynamic from "next/dynamic";
+
+const FlowExample = dynamic(() => import("../flow/FlowExample"), {
+  ssr: false,
+});
 
 export default function HomeHeroSection() {
   return (

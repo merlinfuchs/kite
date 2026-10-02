@@ -19,7 +19,8 @@ import {
   useShareCodeResolveMutation,
 } from "@/lib/api/mutations";
 import { useAppId } from "@/lib/hooks/params";
-import { useMessages, useVariables } from "@/lib/hooks/api";
+import { useAppSecrets, useMessages, useVariables } from "@/lib/hooks/api";
+import { getReferencedSecretNames } from "@/lib/flow/secrets";
 import { FlowData } from "@/lib/types/flow.gen";
 import {
   CommandsImportResponse,
@@ -80,6 +81,7 @@ function ImportForm({
   const appId = useAppId();
   const variables = useVariables();
   const messages = useMessages();
+  const secrets = useAppSecrets();
 
   const commandsImportMutation = useCommandsImportMutation(appId);
   const eventListenersImportMutation = useEventListenersImportMutation(appId);
@@ -92,7 +94,8 @@ function ImportForm({
     eventListenersImportMutation.isPending ||
     shareCodeResolveMutation.isPending ||
     !variables ||
-    !messages;
+    !messages ||
+    !secrets;
 
   function importShareData(
     parsed: { flow_source?: FlowData; source?: string } | null | undefined
@@ -113,6 +116,11 @@ function ImportForm({
       new Set(messages?.flatMap((m) => (m ? [m.id] : [])))
     );
 
+    const secretNames = new Set(secrets?.map((s) => s?.name));
+    const missingSecrets = getReferencedSecretNames(flow).filter(
+      (name) => !secretNames.has(name)
+    );
+
     const onSuccess = (
       res: APIResponse<CommandsImportResponse | EventListenersImportResponse>
     ) => {
@@ -127,6 +135,13 @@ function ImportForm({
       if (removed > 0) {
         toast.warning(
           `${removed} block(s) referenced variables or message templates from another app, reselect them in the editor.`
+        );
+      }
+      if (missingSecrets.length > 0) {
+        toast.warning(
+          `This ${label} uses secrets your app doesn't have: ${missingSecrets.join(
+            ", "
+          )}. Create them under Secrets.`
         );
       }
       onImported();
@@ -210,7 +225,7 @@ function ImportForm({
           placeholder='{"flow_source": ...}'
           minRows={8}
           maxRows={8}
-          className="resize-none break-all font-mono text-xs"
+          className="resize-none break-all font-mono md:text-xs"
           autoFocus
         />
       ) : (

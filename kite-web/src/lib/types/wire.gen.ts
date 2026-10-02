@@ -70,6 +70,39 @@ export interface AppEntity {
 }
 
 //////////
+// source: app_secret.go
+
+/**
+ * MaxAppSecretValueLength is the maximum size of a secret's value in bytes.
+ */
+export const MaxAppSecretValueLength = 4096;
+/**
+ * AppSecret never includes the value, it can't be read back once saved.
+ */
+export interface AppSecret {
+  id: string;
+  name: string;
+  created_at: string /* RFC3339 */;
+  updated_at: string /* RFC3339 */;
+}
+export type AppSecretListResponse = (AppSecret | undefined)[];
+export interface AppSecretCreateRequest {
+  name: string;
+  value: string;
+}
+export type AppSecretCreateResponse = AppSecret;
+/**
+ * AppSecretUpdateRequest renames a secret, and replaces its value if one is
+ * given.
+ */
+export interface AppSecretUpdateRequest {
+  name: string;
+  value: null | string;
+}
+export type AppSecretUpdateResponse = AppSecret;
+export type AppSecretDeleteResponse = Empty;
+
+//////////
 // source: app_state.go
 
 export interface AppStateStatus {
@@ -92,6 +125,17 @@ export interface Channel {
 }
 export type StateGuildChannelListResponse = (Channel | undefined)[];
 export type StateGuildLeaveResponse = Empty;
+export interface Role {
+  id: string;
+  name: string;
+  /**
+   * Managed roles belong to integrations, like other bots, and can't be
+   * given to members.
+   */
+  managed: boolean;
+  position: number /* int */;
+}
+export type StateGuildRoleListResponse = (Role | undefined)[];
 
 //////////
 // source: asset.go
@@ -211,12 +255,14 @@ export interface BillingPlan {
   feature_max_guilds: number /* int */;
   feature_max_commands: number /* int */;
   feature_max_variables: number /* int */;
+  feature_max_secrets: number /* int */;
   feature_max_messages: number /* int */;
   feature_max_event_listeners: number /* int */;
   feature_priority_support: boolean;
   feature_rotating_status: boolean;
   feature_max_scheduled_event_listeners: number /* int */;
   feature_min_schedule_interval_seconds: number /* int */;
+  feature_max_ai_prompts_per_month: number /* int */;
 }
 export type BillingPlanListResponse = (BillingPlan | undefined)[];
 
@@ -266,7 +312,6 @@ export interface CommandsImportRequest {
 export type CommandsImportResponse = (Command | undefined)[];
 export interface CommandUpdateRequest {
   flow_source: FlowData;
-  enabled: boolean;
 }
 export type CommandUpdateResponse = Command;
 export interface CommandUpdateEnabledRequest {
@@ -313,7 +358,6 @@ export interface EventListenersImportRequest {
 export type EventListenersImportResponse = (EventListener | undefined)[];
 export interface EventListenerUpdateRequest {
   flow_source: FlowData;
-  enabled: boolean;
 }
 export type EventListenerUpdateResponse = EventListener;
 export interface EventListenerUpdateEnabledRequest {
@@ -331,14 +375,117 @@ export interface Features {
   max_guilds: number /* int */;
   max_commands: number /* int */;
   max_variables: number /* int */;
+  max_secrets: number /* int */;
   max_messages: number /* int */;
   max_event_listeners: number /* int */;
   priority_support: boolean;
   rotating_status: boolean;
   max_scheduled_event_listeners: number /* int */;
   min_schedule_interval_seconds: number /* int */;
+  max_ai_prompts_per_month: number /* int */;
 }
 export type FeaturesGetResponse = Features;
+
+//////////
+// source: flow_ai.go
+
+export interface FlowAIChatMessage {
+  role: string;
+  content: string;
+}
+export interface FlowAIChatRequest {
+  /**
+   * Flow is the flow as serialized by the editor.
+   */
+  flow: string;
+  messages: FlowAIChatMessage[];
+  /**
+   * RepairPromptID asks to fix the issues the editor found with the edits
+   * of an earlier prompt. Repairs don't count as new prompts.
+   */
+  repair_prompt_id: string;
+  issues: string[];
+}
+export interface FlowAIChatResponse {
+  prompt_id: string;
+  /**
+   * Message is Markdown.
+   */
+  message: string;
+  /**
+   * BuildPrompt is a request the user can send to make the change the
+   * message suggests, if any.
+   */
+  build_prompt: string;
+  /**
+   * Fields ask the user for what the AI needs but only they know.
+   */
+  fields: FlowAIField[];
+  /**
+   * Edits are applied with the editor's applyFlowEdits.
+   */
+  edits: { [key: string]: any}[];
+  usage: FlowAIUsage;
+}
+export interface FlowAIUsage {
+  prompts_used: number /* int */;
+  prompts_limit: number /* int */;
+  /**
+   * Answers are all prompts, including ones without edits, which don't
+   * count as prompts but are limited too.
+   */
+  answers_used: number /* int */;
+  answers_limit: number /* int */;
+}
+export type FlowAIUsageGetResponse = FlowAIUsage;
+/**
+ * FlowAIField asks the user for something only they know, like a channel.
+ */
+export interface FlowAIField {
+  label: string;
+  description: string;
+  /**
+   * Type is "text", "number", "channel", "category", "role" or "choice".
+   */
+  type: string;
+  options: string[];
+  default: string;
+}
+
+//////////
+// source: integration.go
+
+/**
+ * AppIntegration is whether the app can use an integration. Credentials can't
+ * be read back.
+ */
+export interface AppIntegration {
+  integration_id: string;
+  enabled: boolean;
+  /**
+   * When the app last set the credential, for integrations that need one.
+   */
+  credential_updated_at: null | string /* RFC3339 */;
+}
+/**
+ * AppIntegrationListResponse has an entry for every integration.
+ */
+export type AppIntegrationListResponse = (AppIntegration | undefined)[];
+/**
+ * AppIntegrationUpdateRequest enables or disables an integration.
+ */
+export interface AppIntegrationUpdateRequest {
+  /**
+   * A pointer, so a missing value isn't taken as turning it off.
+   */
+  enabled?: boolean;
+}
+export type AppIntegrationUpdateResponse = Empty;
+export interface AppIntegrationConnectRequest {
+  credential: string;
+}
+export type AppIntegrationConnectResponse = Empty;
+export type AppIntegrationRemoveResponse = Empty;
 
 //////////
 // source: log.go

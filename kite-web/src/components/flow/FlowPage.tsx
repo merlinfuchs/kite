@@ -1,7 +1,7 @@
 import { FlowData, NodeType } from "@/lib/flow/dataSchema";
 import FlowNav from "./FlowNav";
 import { ReactFlowProvider, useReactFlow } from "@xyflow/react";
-import { useCallback } from "react";
+import { useCallback, useState } from "react";
 import Flow from "./Flow";
 import { FlowContextType } from "@/lib/flow/context";
 import { LogEntry } from "@/lib/types/wire.gen";
@@ -33,6 +33,7 @@ function InnerFlowPage({
   onExit,
 }: Props) {
   const { getNodes, getEdges } = useReactFlow<NodeType>();
+  const [chatOpen, setChatOpen] = useState(false);
 
   const save = useCallback(() => {
     onSave({
@@ -51,6 +52,8 @@ function InnerFlowPage({
           onDeploy={onDeploy}
           onSave={save}
           onExit={onExit}
+          chatOpen={chatOpen}
+          onChatOpenChange={setChatOpen}
         />
       </div>
       <Flow
@@ -58,6 +61,8 @@ function InnerFlowPage({
         logs={logs}
         context={context}
         onChange={onChange}
+        chatOpen={chatOpen}
+        onChatOpenChange={setChatOpen}
       />
     </div>
   );
