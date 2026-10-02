@@ -160,6 +160,12 @@ func StartServer(c context.Context, cfg *config.Config) error {
 			MaxAppsPerUser: cfg.UserLimits.MaxAppsPerUser,
 		},
 		AssistantMaxRepairs: cfg.Assistant.MaxRepairs,
+		Marketplace: api.MarketplaceConfig{
+			AdminDiscordIDs:    cfg.Marketplace.AdminIDs(),
+			RequireReview:      cfg.Marketplace.RequireReview,
+			MaxListingsPerUser: cfg.Marketplace.MaxListingsPerUser,
+			AutoHideReports:    cfg.Marketplace.AutoHideReports,
+		},
 		Billing: api.BillingConfig{
 			LemonSqueezyAPIKey:        cfg.Billing.LemonSqueezyAPIKey,
 			LemonSqueezySigningSecret: cfg.Billing.LemonSqueezySigningSecret,
@@ -168,7 +174,7 @@ func StartServer(c context.Context, cfg *config.Config) error {
 			Plans:                     cfg.Billing.Plans,
 		},
 	},
-		pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg,
+		pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg,
 		assetStore, gateway, planManager, pluginRegistry, tokenCrypt, commandManager,
 		pg, flowAssistant, pg, pg,
 	)

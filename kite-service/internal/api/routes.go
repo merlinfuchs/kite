@@ -18,6 +18,7 @@ import (
 	flowaihandler "github.com/kitecloud/kite/kite-service/internal/api/handler/flowai"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/integration"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/logs"
+	"github.com/kitecloud/kite/kite-service/internal/api/handler/marketplace"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/message"
 	pluginhandler "github.com/kitecloud/kite/kite-service/internal/api/handler/plugin"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/sharecode"
@@ -39,6 +40,7 @@ func (s *APIServer) RegisterRoutes(
 	userStore store.UserStore,
 	sessionStore store.SessionStore,
 	shareCodeStore store.ShareCodeStore,
+	marketplaceStore store.MarketplaceStore,
 	appStore store.AppStore,
 	logStore store.LogStore,
 	usageStore store.UsageStore,
@@ -131,6 +133,56 @@ func (s *APIServer) RegisterRoutes(
 	shareCodesGroup.Get("/{code}",
 		handler.Typed(shareCodeHandler.HandleShareCodeGet),
 		handler.RateLimitByUser(10, time.Minute),
+	)
+
+	// Marketplace routes
+	marketplaceHandler := marketplace.NewMarketplaceHandler(marketplace.MarketplaceHandlerConfig{
+		AdminDiscordIDs:    s.config.Marketplace.AdminDiscordIDs,
+		RequireReview:      s.config.Marketplace.RequireReview,
+		MaxListingsPerUser: s.config.Marketplace.MaxListingsPerUser,
+		AutoHideReports:    s.config.Marketplace.AutoHideReports,
+	}, marketplaceStore, userStore)
+
+	// Not under an app because listings are shared between all apps.
+	marketplaceGroup := v1Group.Group("/marketplace",
+		sessionManager.RequireSession,
+		handler.RateLimitByUser(60, time.Minute),
+	)
+	marketplaceGroup.Get("/me", handler.Typed(marketplaceHandler.HandleMarketplaceMeGet))
+	marketplaceGroup.Get("/listings", handler.Typed(marketplaceHandler.HandleMarketplaceListingList))
+	marketplaceGroup.Get("/listings/@me", handler.Typed(marketplaceHandler.HandleMarketplaceListingListMine))
+	marketplaceGroup.Post("/listings",
+		handler.TypedWithBody(marketplaceHandler.HandleMarketplaceListingCreate),
+		handler.RateLimitByUser(5, time.Minute),
+	)
+	marketplaceGroup.Get("/listings/{listingID}", handler.Typed(marketplaceHandler.HandleMarketplaceListingGet))
+	marketplaceGroup.Patch("/listings/{listingID}",
+		handler.TypedWithBody(marketplaceHandler.HandleMarketplaceListingUpdate),
+		handler.RateLimitByUser(10, time.Minute),
+	)
+	marketplaceGroup.Delete("/listings/{listingID}", handler.Typed(marketplaceHandler.HandleMarketplaceListingDelete))
+	marketplaceGroup.Post("/listings/{listingID}/import",
+		handler.Typed(marketplaceHandler.HandleMarketplaceListingImport),
+		handler.RateLimitByUser(20, time.Minute),
+	)
+	marketplaceGroup.Post("/listings/{listingID}/reports",
+		handler.TypedWithBody(marketplaceHandler.HandleMarketplaceReportCreate),
+		handler.RateLimitByUser(5, time.Minute),
+	)
+
+	moderationGroup := marketplaceGroup.Group("/moderation", marketplaceHandler.RequireModerator)
+	moderationGroup.Get("/listings", handler.Typed(marketplaceHandler.HandleModerationListingList))
+	moderationGroup.Post("/listings/{listingID}/review", handler.TypedWithBody(marketplaceHandler.HandleModerationListingReview))
+	moderationGroup.Get("/reports", handler.Typed(marketplaceHandler.HandleModerationReportList))
+	moderationGroup.Post("/reports/{reportID}/resolve", handler.Typed(marketplaceHandler.HandleModerationReportResolve))
+	moderationGroup.Get("/moderators", handler.Typed(marketplaceHandler.HandleModeratorList))
+	moderationGroup.Post("/moderators",
+		handler.TypedWithBody(marketplaceHandler.HandleModeratorCreate),
+		marketplaceHandler.RequireAdmin,
+	)
+	moderationGroup.Delete("/moderators/{discordUserID}",
+		handler.Typed(marketplaceHandler.HandleModeratorDelete),
+		marketplaceHandler.RequireAdmin,
 	)
 
 	// App routes
