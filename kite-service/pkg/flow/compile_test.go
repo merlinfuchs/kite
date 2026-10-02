@@ -132,3 +132,46 @@ func TestFlowCompileScheduleAllowsResponsesInButtonBranches(t *testing.T) {
 	_, err := CompileEventListener(data)
 	assert.NoError(t, err, "a clicked button has an interaction to respond to")
 }
+
+func webhookFlow(action FlowNodeType) FlowData {
+	return FlowData{
+		Nodes: []FlowNode{
+			{
+				ID:   "0",
+				Type: FlowNodeTypeEntryEvent,
+				Data: FlowNodeData{
+					EventType:   EventTypeWebhook,
+					Description: "On webhook request",
+				},
+			},
+			{ID: "1", Type: action},
+		},
+		Edges: []FlowEdge{{Source: "0", Target: "1"}},
+	}
+}
+
+func TestFlowCompileWebhook(t *testing.T) {
+	got, err := CompileEventListener(webhookFlow(FlowNodeTypeActionMessageCreate))
+	require.NoError(t, err)
+	assert.True(t, got.IsWebhookEntry())
+	assert.False(t, got.IsScheduleEntry())
+	assert.Equal(t, EventTypeWebhook, got.EventListenerType())
+
+	for _, action := range []FlowNodeType{
+		FlowNodeTypeActionResponseCreate,
+		FlowNodeTypeActionResponseDefer,
+		FlowNodeTypeSuspendResponseModal,
+	} {
+		_, err := CompileEventListener(webhookFlow(action))
+		assert.Error(t, err, "%s should be rejected in webhook flows", action)
+	}
+}
+
+func TestFlowCompileWebhookAllowsResponsesInButtonBranches(t *testing.T) {
+	data := webhookFlow(FlowNodeTypeActionMessageCreate)
+	data.Nodes = append(data.Nodes, FlowNode{ID: "2", Type: FlowNodeTypeActionResponseCreate})
+	data.Edges = append(data.Edges, FlowEdge{Source: "1", Target: "2", SourceHandle: null.StringFrom("component_1")})
+
+	_, err := CompileEventListener(data)
+	assert.NoError(t, err, "a clicked button has an interaction to respond to")
+}

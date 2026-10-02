@@ -341,6 +341,7 @@ export interface EventListener {
   created_at: string /* RFC3339 */;
   updated_at: string /* RFC3339 */;
   last_run_at: null | string /* RFC3339 */;
+  webhook_secret: null | string;
 }
 export interface EventListenerFilter {
 }
@@ -365,6 +366,8 @@ export interface EventListenerUpdateEnabledRequest {
 }
 export type EventListenerUpdateEnabledResponse = EventListener;
 export type EventListenerDeleteResponse = Empty;
+export type EventListenerWebhookSecretRegenerateResponse = EventListener;
+export type EventListenerWebhookResponse = Empty;
 
 //////////
 // source: feature.go

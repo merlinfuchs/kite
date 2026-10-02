@@ -3,6 +3,7 @@ package eventlistener
 import (
 	"errors"
 	"fmt"
+	"log"
 	"time"
 
 	"github.com/kitecloud/kite/kite-service/internal/api/handler"
@@ -12,15 +13,29 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/util"
 	"github.com/kitecloud/kite/kite-service/pkg/flow"
 	"github.com/kitecloud/kite/kite-service/pkg/schedule"
+	"github.com/sethvargo/go-limiter"
+	"github.com/sethvargo/go-limiter/memorystore"
 )
 
 type EventListenerHandler struct {
 	eventListenerStore store.EventListenerStore
+	webhookRunner      WebhookRunner
+	webhookLimiter     limiter.Store
 }
 
-func NewEventListenerHandler(eventListenerStore store.EventListenerStore) *EventListenerHandler {
+func NewEventListenerHandler(eventListenerStore store.EventListenerStore, webhookRunner WebhookRunner) *EventListenerHandler {
+	webhookLimiter, err := memorystore.New(&memorystore.Config{
+		Tokens:   webhookRateLimit,
+		Interval: webhookRateLimitInterval,
+	})
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	return &EventListenerHandler{
 		eventListenerStore: eventListenerStore,
+		webhookRunner:      webhookRunner,
+		webhookLimiter:     webhookLimiter,
 	}
 }
 
@@ -61,10 +76,11 @@ func (h *EventListenerHandler) HandleEventListenerCreate(c *handler.Context, req
 		Type:          model.EventListenerType(eventFlow.EventListenerType()),
 		Description:   eventFlow.EventDescription(),
 		// TODO: Filter:        eventFlow.EventListenerFilter(),
-		FlowSource: req.FlowSource,
-		Enabled:    req.Enabled,
-		CreatedAt:  time.Now().UTC(),
-		UpdatedAt:  time.Now().UTC(),
+		FlowSource:    req.FlowSource,
+		Enabled:       req.Enabled,
+		CreatedAt:     time.Now().UTC(),
+		UpdatedAt:     time.Now().UTC(),
+		WebhookSecret: newWebhookSecret(source),
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create event listener: %w", err)
@@ -103,10 +119,11 @@ func (h *EventListenerHandler) HandleEventListenersImport(c *handler.Context, re
 			Type:          model.EventListenerType(eventFlows[i].EventListenerType()),
 			Description:   eventFlows[i].EventDescription(),
 			// TODO: Filter:        eventFlow.EventListenerFilter(),
-			FlowSource: listener.FlowSource,
-			Enabled:    listener.Enabled,
-			CreatedAt:  time.Now().UTC(),
-			UpdatedAt:  time.Now().UTC(),
+			FlowSource:    listener.FlowSource,
+			Enabled:       listener.Enabled,
+			CreatedAt:     time.Now().UTC(),
+			UpdatedAt:     time.Now().UTC(),
+			WebhookSecret: newWebhookSecret(model.EventSource(listener.Source)),
 		})
 		if err != nil {
 			return nil, fmt.Errorf("failed to create event listener: %w", err)

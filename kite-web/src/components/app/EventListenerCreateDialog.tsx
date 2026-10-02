@@ -33,7 +33,7 @@ import {
   SelectValue,
 } from "../ui/select";
 import { getNodeId } from "@/lib/flow/nodes";
-import { EventTypeScheduleCron } from "@/lib/types/flow.gen";
+import { EventTypeScheduleCron, EventTypeWebhook } from "@/lib/types/flow.gen";
 import ScheduleCronPreview, {
   ScheduleCronHelp,
 } from "../common/ScheduleCronPreview";
@@ -74,9 +74,13 @@ export default function EventListenerCreateDialog({
       {
         source: data.source,
         flow_source: getInitialFlowData(
-          data.source === "schedule" ? EventTypeScheduleCron : data.type,
+          data.source === "schedule"
+            ? EventTypeScheduleCron
+            : data.source === "webhook"
+            ? EventTypeWebhook
+            : data.type,
           data.description,
-          data.cron
+          data.source === "schedule" ? data.cron : undefined
         ),
         enabled: true,
       },
@@ -147,13 +151,20 @@ export default function EventListenerCreateDialog({
                     <SelectContent>
                       <SelectItem value="discord">Discord</SelectItem>
                       <SelectItem value="schedule">Schedule</SelectItem>
+                      <SelectItem value="webhook">Webhook</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />
                 </FormItem>
               )}
             />
-            {source === "schedule" ? (
+            {source === "webhook" ? (
+              <p className="text-sm text-muted-foreground">
+                The event listener gets its own webhook URL, and its flow runs
+                whenever a request is sent to it. You find the URL in the
+                settings of the first block.
+              </p>
+            ) : source === "schedule" ? (
               <FormField
                 control={form.control}
                 name="cron"

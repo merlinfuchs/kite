@@ -14,6 +14,7 @@ type EventSource string
 const (
 	EventSourceDiscord  EventSource = "discord"
 	EventSourceSchedule EventSource = "schedule"
+	EventSourceWebhook  EventSource = "webhook"
 )
 
 type EventListenerType string
@@ -28,13 +29,17 @@ const (
 	EventListenerTypeDiscordGuildDelete       EventListenerType = "guild_delete"
 
 	EventListenerTypeScheduleCron EventListenerType = EventListenerType(flow.EventTypeScheduleCron)
+	EventListenerTypeWebhook      EventListenerType = EventListenerType(flow.EventTypeWebhook)
 )
 
 // EventSourceForType derives the source from the type, since the type lives in
 // the flow and can change with every save while the source is stored separately.
 func EventSourceForType(t EventListenerType) EventSource {
-	if t == EventListenerTypeScheduleCron {
+	switch t {
+	case EventListenerTypeScheduleCron:
 		return EventSourceSchedule
+	case EventListenerTypeWebhook:
+		return EventSourceWebhook
 	}
 	return EventSourceDiscord
 }
@@ -57,6 +62,9 @@ type EventListener struct {
 	CreatedAt     time.Time
 	UpdatedAt     time.Time
 	LastRunAt     null.Time
+	// WebhookSecret is the last part of the webhook URL, only set for webhook
+	// listeners. It's kept out of the flow, which is exported and shared.
+	WebhookSecret null.String
 }
 
 type EventListenerFilter struct{}

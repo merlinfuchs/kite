@@ -36,6 +36,13 @@ func CompileEventListener(data FlowData) (*CompiledFlowNode, error) {
 		}
 	}
 
+	if entry.IsWebhookEntry() {
+		// Like scheduled runs, webhook runs have no interaction to respond to.
+		if node := firstWithoutInteraction(entry, isInteractionOnly); node != nil {
+			return nil, fmt.Errorf("block %s can't be used in webhook event listeners outside of button branches", node.Type)
+		}
+	}
+
 	return entry, nil
 }
 
@@ -196,6 +203,10 @@ func (n *CompiledFlowNode) IsEventListenerEntry() bool {
 
 func (n *CompiledFlowNode) IsScheduleEntry() bool {
 	return n.Type == FlowNodeTypeEntryEvent && n.Data.EventType == EventTypeScheduleCron
+}
+
+func (n *CompiledFlowNode) IsWebhookEntry() bool {
+	return n.Type == FlowNodeTypeEntryEvent && n.Data.EventType == EventTypeWebhook
 }
 
 func (n *CompiledFlowNode) IsCommandEntry() bool {
