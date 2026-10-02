@@ -10,17 +10,22 @@ import {
 } from "../ui/dialog";
 import Flow from "./Flow";
 import { FlowContextType } from "@/lib/flow/context";
+import { FlowLogEntriesFilter, useFlowLogEntries } from "@/lib/hooks/api";
 
 function InnerFlowDialog({
   flowData,
+  logFilter,
   context,
   onChange,
 }: {
   flowData: FlowData;
+  logFilter: FlowLogEntriesFilter;
   context: FlowContextType;
   onChange: (d: FlowData) => void;
 }) {
   const { getNodes, getEdges } = useReactFlow<NodeType>();
+  // Only mounted while the dialog is open, so closed dialogs don't poll.
+  const logs = useFlowLogEntries(logFilter);
 
   const handleChange = useCallback(() => {
     onChange({
@@ -29,16 +34,25 @@ function InnerFlowDialog({
     });
   }, [getNodes, getEdges, onChange]);
 
-  return <Flow flowData={flowData} context={context} onChange={handleChange} />;
+  return (
+    <Flow
+      flowData={flowData}
+      logs={logs}
+      context={context}
+      onChange={handleChange}
+    />
+  );
 }
 
 export default function FlowDialog({
   children,
   onClose,
   flowData,
+  logFilter,
   context,
 }: {
   flowData: FlowData;
+  logFilter: FlowLogEntriesFilter;
   onClose: (data: FlowData) => void;
   context: FlowContextType;
   children: React.ReactNode;
@@ -70,6 +84,7 @@ export default function FlowDialog({
           </DialogDescription>
           <InnerFlowDialog
             flowData={flowData}
+            logFilter={logFilter}
             context={context}
             onChange={onChange}
           />

@@ -6,6 +6,7 @@ import { useCurrentFlow } from "@/lib/message/state";
 import { getUniqueId } from "@/lib/utils";
 import FlowDialog from "../flow/FlowDialog";
 import FlowPreview from "../flow/FlowPreview";
+import { useMessageId } from "@/lib/hooks/params";
 
 const initialFlow = {
   nodes: [
@@ -40,9 +41,12 @@ export default memo(function MessageComponentFlow({
     [replaceFlow, flowSourceId]
   );
 
+  const messageId = useMessageId();
+
   return (
     <FlowDialog
       flowData={flowData || initialFlow}
+      logFilter={{ messageId }}
       context={context}
       onClose={onClose}
     >

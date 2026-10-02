@@ -15,9 +15,17 @@ import {
   useNodesState,
   useReactFlow,
 } from "@xyflow/react";
-import { DragEvent, RefObject, useCallback, useEffect, useRef } from "react";
+import {
+  DragEvent,
+  RefObject,
+  useCallback,
+  useEffect,
+  useImperativeHandle,
+  useRef,
+} from "react";
 
 import { edgeTypes, nodeTypes } from "@/lib/flow/components";
+import { useFlowContext } from "@/lib/flow/context";
 import { FlowData, NodeData } from "@/lib/flow/dataSchema";
 import { getFlowChangeKind, getFlowMergeKey } from "@/lib/flow/history";
 import { getLayoutedElements } from "@/lib/flow/layout";
@@ -33,11 +41,22 @@ import { useHookedTheme } from "@/lib/hooks/theme";
 import "@xyflow/react/dist/base.css";
 import { ListTreeIcon, Redo2Icon, Undo2Icon } from "lucide-react";
 
+export interface FlowEditorApi {
+  // Replaces the flow in one undo step, or in the undo step of the previous
+  // replacement with the same merge key.
+  replaceFlow: (
+    nodes: Node<NodeData>[],
+    edges: Edge[],
+    mergeKey?: string
+  ) => void;
+}
+
 interface Props {
   initialData?: FlowData;
   onChange: () => void;
   onSelectionChange?: OnSelectionChangeFunc;
   containerRef: RefObject<HTMLElement>;
+  apiRef?: RefObject<FlowEditorApi>;
 }
 
 export default function FlowEditor({
@@ -45,8 +64,14 @@ export default function FlowEditor({
   onChange,
   onSelectionChange,
   containerRef,
+  apiRef,
 }: Props) {
   const { theme } = useHookedTheme();
+  const setAIChangedNodeIds = useFlowContext((c) => c.setAIChangedNodeIds);
+  const clearAIChanges = useCallback(
+    () => setAIChangedNodeIds([]),
+    [setAIChangedNodeIds]
+  );
 
   // TODO: refactor?
   const [nodes, setNodes, onNodesChange] = useNodesState(
@@ -90,6 +115,18 @@ export default function FlowEditor({
     onChange: markChanged,
     containerRef,
   });
+
+  useImperativeHandle(
+    apiRef,
+    () => ({
+      replaceFlow: (nodes, edges, mergeKey) => {
+        commit(mergeKey, Infinity);
+        setNodes(nodes);
+        setEdges(edges);
+      },
+    }),
+    [commit, setNodes, setEdges]
+  );
 
   const onConnect = useCallback(
     (con: Connection) => editEdges((eds) => addEdge(con, eds)),
@@ -257,6 +294,8 @@ export default function FlowEditor({
       onConnect={onConnect}
       isValidConnection={isValidConnection}
       onSelectionChange={onSelectionChange}
+      onNodeClick={clearAIChanges}
+      onPaneClick={clearAIChanges}
       colorMode={theme === "dark" ? "dark" : "light"}
       defaultEdgeOptions={{ type: "delete_button" }}
       multiSelectionKeyCode={null}

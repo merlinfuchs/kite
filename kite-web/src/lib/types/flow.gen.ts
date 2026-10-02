@@ -29,6 +29,7 @@ export const FlowNodeTypeActionMessageReactionCreate: FlowNodeType = "action_mes
 export const FlowNodeTypeActionMessageReactionDelete: FlowNodeType = "action_message_reaction_delete";
 export const FlowNodeTypeActionMessagePin: FlowNodeType = "action_message_pin";
 export const FlowNodeTypeActionMessageUnpin: FlowNodeType = "action_message_unpin";
+export const FlowNodeTypeActionPollCreate: FlowNodeType = "action_poll_create";
 export const FlowNodeTypeActionMemberBan: FlowNodeType = "action_member_ban";
 export const FlowNodeTypeActionMemberUnban: FlowNodeType = "action_member_unban";
 export const FlowNodeTypeActionMemberKick: FlowNodeType = "action_member_kick";
@@ -51,6 +52,7 @@ export const FlowNodeTypeActionGuildGet: FlowNodeType = "action_guild_get";
 export const FlowNodeTypeActionMessageGet: FlowNodeType = "action_message_get";
 export const FlowNodeTypeActionRobloxUserGet: FlowNodeType = "action_roblox_user_get";
 export const FlowNodeTypeActionHTTPRequest: FlowNodeType = "action_http_request";
+export const FlowNodeTypeActionDiscordAPIRequest: FlowNodeType = "action_discord_api_request";
 export const FlowNodeTypeActionAIChatCompletion: FlowNodeType = "action_ai_chat_completion";
 export const FlowNodeTypeActionAISearchWeb: FlowNodeType = "action_ai_web_search";
 export const FlowNodeTypeActionExpressionEvaluate: FlowNodeType = "action_expression_evaluate";
@@ -138,6 +140,10 @@ export interface FlowNodeData {
    */
   emoji_data?: EmojiData;
   /**
+   * Poll Create
+   */
+  poll_data?: PollData;
+  /**
    * Modal
    */
   modal_data?: ModalData;
@@ -183,6 +189,10 @@ export interface FlowNodeData {
    * HTTP Request
    */
   http_request_data?: HTTPRequestData;
+  /**
+   * Discord API Request
+   */
+  discord_api_request_data?: DiscordAPIRequestData;
   /**
    * AI Chat Completion
    */
@@ -318,6 +328,19 @@ export interface EmojiData {
    */
   name?: string;
 }
+export interface PollData {
+  question?: string;
+  answers?: PollAnswerData[];
+  /**
+   * DurationHours is how long the poll is open for. Empty means 24 hours.
+   */
+  duration_hours?: string;
+  allow_multiselect?: boolean;
+}
+export interface PollAnswerData {
+  text?: string;
+  emoji?: EmojiData;
+}
 export interface ModalData {
   title?: string;
   components?: ModalComponentData[];
@@ -344,12 +367,24 @@ export interface HTTPRequestDataKeyValue {
   key: string;
   value: string;
 }
+export interface DiscordAPIRequestData {
+  /**
+   * Operation is the operationId of the endpoint in Discord's OpenAPI spec.
+   */
+  operation?: string;
+  path_params?: HTTPRequestDataKeyValue[];
+  query?: HTTPRequestDataKeyValue[];
+  body_json?: Record<string, any> | null;
+}
 export interface AIChatCompletionData {
   model?: string;
   system_prompt?: string;
   prompt?: string;
   max_completion_tokens?: string;
 }
+export const AIModelSmall = "small";
+export const AIModelMedium = "medium";
+export const AIModelLarge = "large";
 export interface FlowNodePosition {
   x: number /* float64 */;
   y: number /* float64 */;

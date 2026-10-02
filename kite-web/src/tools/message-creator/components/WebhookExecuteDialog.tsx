@@ -85,7 +85,7 @@ export default function WebhookExecuteDialog() {
           value={webhookUrl || ""}
           onChange={(v) => setWebhookUrl(v || undefined)}
         />
-        <div className="flex space-x-3">
+        <div className="flex flex-col gap-3 sm:flex-row">
           <BaseInput
             type="text"
             label="Thread ID"
