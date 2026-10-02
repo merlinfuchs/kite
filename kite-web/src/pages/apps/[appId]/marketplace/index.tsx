@@ -3,6 +3,7 @@ import { useRouter } from "next/router";
 import Link from "next/link";
 import { ShieldCheckIcon, UploadIcon } from "lucide-react";
 import AppLayout from "@/components/app/AppLayout";
+import { getAppShellLayout } from "@/components/app/AppShell";
 import { TemplateList } from "@/components/app/TemplateList";
 import MarketplaceListingDialog from "@/components/marketplace/MarketplaceListingDialog";
 import MarketplaceListingGrid from "@/components/marketplace/MarketplaceListingGrid";
@@ -250,3 +251,5 @@ function MineTab({ onSelect }: { onSelect: (id: string) => void }) {
     />
   );
 }
+
+AppMarketplacePage.getLayout = getAppShellLayout;

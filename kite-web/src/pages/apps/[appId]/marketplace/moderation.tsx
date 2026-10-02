@@ -1,5 +1,6 @@
 import { useState } from "react";
 import AppLayout from "@/components/app/AppLayout";
+import { getAppShellLayout } from "@/components/app/AppShell";
 import AppEmptyPlaceholder from "@/components/app/AppEmptyPlaceholder";
 import MarketplaceListingDialog from "@/components/marketplace/MarketplaceListingDialog";
 import MarketplaceListingGrid from "@/components/marketplace/MarketplaceListingGrid";
@@ -141,3 +142,5 @@ function HistoryTab({ onSelect }: { onSelect: (id: string) => void }) {
     </div>
   );
 }
+
+AppMarketplaceModerationPage.getLayout = getAppShellLayout;
