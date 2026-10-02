@@ -3812,6 +3812,84 @@
       },
       "result_schema": null
     },
+    "action_channel_get": {
+      "title": "Get channel",
+      "description": "Get a channel by ID",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord",
+        "event_schedule"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "type": "string",
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+          },
+          "channel_target": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9]+$"
+              },
+              {
+                "type": "string",
+                "pattern": "^\\{\\{[^{}]+\\}\\}$"
+              }
+            ],
+            "description": "ID of the channel."
+          },
+          "temporary_name": {
+            "type": "string",
+            "maxLength": 32,
+            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only."
+          }
+        },
+        "required": [
+          "channel_target"
+        ],
+        "additionalProperties": false
+      },
+      "result_schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The ID of the channel"
+          },
+          "name": {
+            "type": "string",
+            "description": "The name of the channel"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "text",
+              "voice",
+              "category",
+              "news",
+              "store",
+              "stage"
+            ],
+            "description": "The type of the channel"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "type"
+        ],
+        "additionalProperties": false
+      }
+    },
     "action_channel_transcript_create": {
       "title": "Create channel transcript",
       "description": "Save a channel's messages as an HTML file",
@@ -3896,279 +3974,6 @@
         ],
         "additionalProperties": false,
         "description": "The transcript as an HTML file. Put the result on its own, e.g. {{result('id')}}, in the text of a block that sends a message to attach the file to it."
-      }
-    },
-    "action_thread_create": {
-      "title": "Create thread",
-      "description": "Create a thread",
-      "contexts": [
-        "command",
-        "component_button",
-        "component_select_menu",
-        "event_discord",
-        "event_schedule"
-      ],
-      "outputs": [
-        "default"
-      ],
-      "owned_children": [],
-      "fixed": false,
-      "data_schema": {
-        "type": "object",
-        "properties": {
-          "custom_label": {
-            "type": "string",
-            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
-          },
-          "message_target": {
-            "anyOf": [
-              {
-                "type": "string",
-                "pattern": "^[0-9]+$"
-              },
-              {
-                "type": "string",
-                "pattern": "^\\{\\{[^{}]+\\}\\}$"
-              }
-            ],
-            "description": "ID of the message to start the thread from. Leave unset for a thread without a starter message."
-          },
-          "channel_data": {
-            "type": "object",
-            "properties": {
-              "name": {
-                "type": "string",
-                "maxLength": 100,
-                "minLength": 1,
-                "description": "Name of the channel.",
-                "x-templated": true
-              },
-              "type": {
-                "type": "number",
-                "description": "Discord channel type: 0 text, 2 voice, 4 category, 5 announcement, 13 stage, 15 forum, 16 media. For threads: 10 announcement, 11 public, 12 private."
-              },
-              "topic": {
-                "type": "string",
-                "maxLength": 1000,
-                "minLength": 1,
-                "description": "Topic of the channel.",
-                "x-templated": true
-              },
-              "nsfw": {
-                "type": "boolean",
-                "description": "Whether the channel is age-restricted."
-              },
-              "bitrate": {
-                "anyOf": [
-                  {
-                    "type": "string",
-                    "pattern": "^[0-9]+$"
-                  },
-                  {
-                    "type": "string",
-                    "pattern": "^\\{\\{[^{}]+\\}\\}$"
-                  }
-                ],
-                "description": "Bitrate of a voice channel."
-              },
-              "user_limit": {
-                "anyOf": [
-                  {
-                    "type": "string",
-                    "pattern": "^[0-9]+$"
-                  },
-                  {
-                    "type": "string",
-                    "pattern": "^\\{\\{[^{}]+\\}\\}$"
-                  }
-                ],
-                "description": "Maximum number of users in a voice channel."
-              },
-              "position": {
-                "anyOf": [
-                  {
-                    "type": "string",
-                    "pattern": "^[0-9]+$"
-                  },
-                  {
-                    "type": "string",
-                    "pattern": "^\\{\\{[^{}]+\\}\\}$"
-                  }
-                ],
-                "description": "Position of the channel in the channel list."
-              },
-              "parent": {
-                "anyOf": [
-                  {
-                    "type": "string",
-                    "pattern": "^[0-9]+$"
-                  },
-                  {
-                    "type": "string",
-                    "pattern": "^\\{\\{[^{}]+\\}\\}$"
-                  }
-                ],
-                "description": "ID of the category the channel is in, or of the channel a thread is created in."
-              },
-              "permission_overwrites": {
-                "type": "array",
-                "items": {
-                  "type": "object",
-                  "properties": {
-                    "id": {
-                      "anyOf": [
-                        {
-                          "type": "string",
-                          "pattern": "^[0-9]+$"
-                        },
-                        {
-                          "type": "string",
-                          "pattern": "^\\{\\{[^{}]+\\}\\}$"
-                        }
-                      ],
-                      "description": "ID of the role or user."
-                    },
-                    "type": {
-                      "type": "number",
-                      "enum": [
-                        0,
-                        1
-                      ],
-                      "description": "0 if id is a role, 1 if it's a user."
-                    },
-                    "allow": {
-                      "anyOf": [
-                        {
-                          "type": "string",
-                          "pattern": "^[0-9]+$"
-                        },
-                        {
-                          "type": "string",
-                          "pattern": "^\\{\\{[^{}]+\\}\\}$"
-                        }
-                      ],
-                      "description": "Permission bitfield to allow."
-                    },
-                    "deny": {
-                      "anyOf": [
-                        {
-                          "type": "string",
-                          "pattern": "^[0-9]+$"
-                        },
-                        {
-                          "type": "string",
-                          "pattern": "^\\{\\{[^{}]+\\}\\}$"
-                        }
-                      ],
-                      "description": "Permission bitfield to deny."
-                    }
-                  },
-                  "required": [
-                    "id",
-                    "allow",
-                    "deny"
-                  ],
-                  "additionalProperties": false
-                },
-                "description": "Permission overrides for roles and users."
-              },
-              {
-                "type": "string",
-                "pattern": "^\\{\\{[^{}]+\\}\\}$"
-              }
-            ],
-            "description": "ID of the channel."
-          },
-          "audit_log_reason": {
-            "type": "string",
-            "maxLength": 512,
-            "description": "Reason shown in the server's audit log.",
-            "x-templated": true
-          }
-        },
-        "required": [
-          "channel_target"
-        ],
-        "additionalProperties": false
-      },
-      "result_schema": null
-    },
-    "action_channel_get": {
-      "title": "Get channel",
-      "description": "Get a channel by ID",
-      "contexts": [
-        "command",
-        "component_button",
-        "component_select_menu",
-        "event_discord",
-        "event_schedule"
-      ],
-      "outputs": [
-        "default"
-      ],
-      "owned_children": [],
-      "fixed": false,
-      "data_schema": {
-        "type": "object",
-        "properties": {
-          "custom_label": {
-            "type": "string",
-            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
-          },
-          "channel_target": {
-            "anyOf": [
-              {
-                "type": "string",
-                "pattern": "^[0-9]+$"
-              },
-              {
-                "type": "string",
-                "pattern": "^\\{\\{[^{}]+\\}\\}$"
-              }
-            ],
-            "description": "ID of the channel."
-          },
-          "temporary_name": {
-            "type": "string",
-            "maxLength": 32,
-            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only."
-          }
-        },
-        "required": [
-          "channel_target"
-        ],
-        "additionalProperties": false
-      },
-      "result_schema": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "description": "The ID of the channel"
-          },
-          "name": {
-            "type": "string",
-            "description": "The name of the channel"
-          },
-          "type": {
-            "type": "string",
-            "enum": [
-              "text",
-              "voice",
-              "category",
-              "news",
-              "store",
-              "stage"
-            ],
-            "description": "The type of the channel"
-          }
-        },
-        "required": [
-          "id",
-          "name",
-          "type"
-        ],
-        "additionalProperties": false
       }
     },
     "action_thread_create": {
