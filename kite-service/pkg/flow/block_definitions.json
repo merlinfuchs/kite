@@ -734,6 +734,19 @@
       "result": null
     },
     {
+      "type": "action_member_timeout_remove",
+      "credits": 1,
+      "audit_log_reason": true,
+      "requires": [
+        "discord"
+      ],
+      "run": {
+        "kind": "custom"
+      },
+      "fields": [],
+      "result": null
+    },
+    {
       "type": "action_member_edit",
       "credits": 1,
       "audit_log_reason": true,
