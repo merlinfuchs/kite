@@ -1,0 +1,380 @@
+package flowai
+
+import (
+	"context"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"log/slog"
+	"slices"
+	"strings"
+	"time"
+
+	"github.com/kitecloud/kite/kite-service/internal/model"
+	"github.com/kitecloud/kite/kite-service/internal/util"
+	"github.com/openai/openai-go/v2"
+	"github.com/openai/openai-go/v2/option"
+	"github.com/openai/openai-go/v2/responses"
+	"github.com/openai/openai-go/v2/shared"
+)
+
+// maxHistory is how many earlier chat messages are sent along, so long chats
+// don't grow the cost of every prompt. Older ones are dropped historyStep at a
+// time, so the start of the input stays the same and cached for a few turns.
+const (
+	maxHistory  = 10
+	historyStep = 5
+)
+
+// callTimeout ends model calls before the API server's write timeout of two
+// minutes, so the user gets an error instead of losing the answer.
+var callTimeout = 100 * time.Second
+
+type Config struct {
+	Model           string
+	ReasoningEffort string
+	MaxOutputTokens int
+}
+
+// Assistant asks the model for edits to a flow.
+type Assistant struct {
+	client *openai.Client
+	config Config
+}
+
+func NewAssistant(client *openai.Client, config Config) *Assistant {
+	return &Assistant{client: client, config: config}
+}
+
+func (a *Assistant) Model() string {
+	return a.config.Model
+}
+
+type Message struct {
+	// Role is "user" or "assistant".
+	Role    string
+	Content string
+}
+
+type Request struct {
+	// Flow is the flow as serialized by the editor.
+	Flow string
+	// Messages is the chat so far, oldest first. The last one is the user's
+	// current message, unless this is a repair.
+	Messages []Message
+	// Issues are the problems the editor found with the edits of the last
+	// response, which this response should fix.
+	Issues []string
+	// Variables are the app's stored variables, which blocks refer to by ID.
+	Variables []*model.Variable
+	// Integrations are the IDs of the integrations the app can use. Blocks of
+	// the others are left out.
+	Integrations []string
+	AppID        string
+	UserID       string
+}
+
+type Response struct {
+	Message string
+	// BuildPrompt is a request the user can send to make the change the
+	// message suggests.
+	BuildPrompt string
+	// Fields ask the user for what the AI needs but only they know.
+	Fields []Field
+	// Edits are passed to the editor's applyFlowEdits as they are. Edits the
+	// model got wrong in a way the editor can't see, e.g. settings that aren't
+	// JSON, only have an error, which the editor reports like its own, so
+	// they are numbered the same.
+	Edits []map[string]any
+	Usage model.AssistantUsage
+}
+
+// ErrResponse is an error with a message that can be shown to the user.
+type ErrResponse struct {
+	Message string
+}
+
+func (e *ErrResponse) Error() string {
+	return e.Message
+}
+
+// Respond asks the model for a response. If the model answered but the answer
+// can't be used, it returns an error along with a response that only has the
+// usage.
+func (a *Assistant) Respond(ctx context.Context, req Request) (*Response, error) {
+	ctx, cancel := context.WithTimeout(ctx, callTimeout)
+	defer cancel()
+
+	resp, err := a.client.Responses.New(ctx, responses.ResponseNewParams{
+		Model:           a.config.Model,
+		Instructions:    openai.String(instructionsFor(req.Integrations)),
+		Input:           responses.ResponseNewParamsInputUnion{OfInputItemList: chatInput(req)},
+		MaxOutputTokens: openai.Int(int64(a.config.MaxOutputTokens)),
+		Reasoning: shared.ReasoningParam{
+			Effort: shared.ReasoningEffort(a.config.ReasoningEffort),
+		},
+		Text: responses.ResponseTextConfigParam{
+			Format: responses.ResponseFormatTextConfigUnionParam{
+				OfJSONSchema: &responses.ResponseFormatTextJSONSchemaConfigParam{
+					Name:   "flow_edits",
+					Schema: outputSchema,
+					Strict: openai.Bool(true),
+				},
+			},
+		},
+		PromptCacheKey: openai.String("kite-flow-ai"),
+		// Lets OpenAI tell users apart for abuse detection.
+		SafetyIdentifier: openai.String(util.HashBytes([]byte(req.UserID))),
+	},
+		// Retrying a call that took long would take too long again.
+		option.WithMaxRetries(0),
+	)
+	if err != nil {
+		// The model may have worked on it for long, so it counts like an
+		// answer, although the tokens it used are unknown.
+		if ctx.Err() != nil {
+			return &Response{}, &ErrResponse{Message: "The AI took too long to answer. Try asking for a smaller change."}
+		}
+		return nil, fmt.Errorf("failed to create response: %w", err)
+	}
+
+	usage := model.AssistantUsage{
+		InputTokens:       int(resp.Usage.InputTokens),
+		CachedInputTokens: int(resp.Usage.InputTokensDetails.CachedTokens),
+		OutputTokens:      int(resp.Usage.OutputTokens),
+	}
+	slog.Info(
+		"Flow AI response",
+		slog.String("app_id", req.AppID),
+		slog.Bool("repair", len(req.Issues) > 0),
+		slog.String("status", string(resp.Status)),
+		slog.String("incomplete_reason", resp.IncompleteDetails.Reason),
+		slog.Int("input_tokens", usage.InputTokens),
+		slog.Int("cached_input_tokens", usage.CachedInputTokens),
+		slog.Int("output_tokens", usage.OutputTokens),
+	)
+
+	if resp.Status != responses.ResponseStatusCompleted {
+		message := "The AI couldn't answer. Please try again."
+		if resp.IncompleteDetails.Reason == "max_output_tokens" {
+			message = "The AI's answer was cut off. Try asking for a smaller change."
+		}
+		return &Response{Usage: usage}, &ErrResponse{Message: message}
+	}
+
+	res, err := parseOutput(resp.OutputText())
+	if err != nil {
+		return &Response{Usage: usage}, err
+	}
+	res.checkVariables(req.Variables)
+	res.Usage = usage
+	return res, nil
+}
+
+func describeVariables(variables []*model.Variable) string {
+	var b strings.Builder
+	b.WriteString("Stored variables:")
+	if len(variables) == 0 {
+		b.WriteString("\nNone")
+	}
+	for _, v := range variables {
+		fmt.Fprintf(&b, "\n- %s %q", v.ID, v.Name)
+		if v.Scoped {
+			b.WriteString(" (scoped)")
+		}
+	}
+	return b.String()
+}
+
+// checkVariables removes stored variable IDs the app doesn't have from the
+// edits, so the user picks the variable instead, like when the AI leaves one
+// out.
+func (r *Response) checkVariables(variables []*model.Variable) {
+	ids := make(map[string]bool, len(variables))
+	for _, v := range variables {
+		ids[v.ID] = true
+	}
+	for _, edit := range r.Edits {
+		data, _ := edit["data"].(map[string]any)
+		id, ok := data["variable_id"].(string)
+		if !ok || ids[id] {
+			continue
+		}
+		delete(data, "variable_id")
+	}
+}
+
+func chatInput(req Request) responses.ResponseInputParam {
+	messages := req.Messages
+	var current string
+	if len(req.Issues) > 0 {
+		current = "The editor applied your edits and found these problems:\n- " +
+			strings.Join(req.Issues, "\n- ") +
+			"\n\nFix them with further edits."
+	} else if len(messages) > 0 {
+		current = messages[len(messages)-1].Content
+		messages = messages[:len(messages)-1]
+	}
+	if over := len(messages) - maxHistory; over > 0 {
+		messages = messages[(over+historyStep-1)/historyStep*historyStep:]
+	}
+
+	input := make(responses.ResponseInputParam, 0, len(messages)+1)
+	for _, m := range messages {
+		// Answers with edits alone have no text.
+		if m.Content == "" {
+			continue
+		}
+		role := responses.EasyInputMessageRoleUser
+		if m.Role == "assistant" {
+			role = responses.EasyInputMessageRoleAssistant
+		}
+		input = append(input, easyMessage(role, m.Content))
+	}
+	input = append(input, easyMessage(
+		responses.EasyInputMessageRoleUser,
+		fmt.Sprintf("Current flow:\n%s\n\n%s\n\n%s", req.Flow, describeVariables(req.Variables), current),
+	))
+
+	return input
+}
+
+func easyMessage(role responses.EasyInputMessageRole, content string) responses.ResponseInputItemUnionParam {
+	return responses.ResponseInputItemUnionParam{
+		OfMessage: &responses.EasyInputMessageParam{
+			Role: role,
+			Content: responses.EasyInputMessageContentUnionParam{
+				OfString: openai.String(content),
+			},
+		},
+	}
+}
+
+// output is the model's answer. Strict structured outputs can't hold objects
+// of any shape, so settings come as JSON strings.
+type output struct {
+	Message     string       `json:"message"`
+	Edits       []outputEdit `json:"edits"`
+	BuildPrompt string       `json:"build_prompt"`
+	Fields      []Field      `json:"fields"`
+}
+
+// Field asks the user for something only they know, like a channel.
+type Field struct {
+	Label       string `json:"label"`
+	Description string `json:"description"`
+	// Type is "text", "number", "channel", "category", "role" or "choice".
+	Type    string   `json:"type"`
+	Options []string `json:"options"`
+	Default string   `json:"default"`
+}
+
+// maxFields is how many fields the editor shows at once.
+const maxFields = 4
+
+type outputEdit struct {
+	Op        string  `json:"op"`
+	Ref       *string `json:"ref"`
+	Type      *string `json:"type"`
+	ID        *string `json:"id"`
+	After     *string `json:"after"`
+	Before    *string `json:"before"`
+	Handle    *string `json:"handle"`
+	Source    *string `json:"source"`
+	Target    *string `json:"target"`
+	DataJSON  *string `json:"data_json"`
+	ItemsJSON *string `json:"items_json"`
+	Reconnect *bool   `json:"reconnect"`
+}
+
+func parseOutput(text string) (*Response, error) {
+	var out output
+	if err := json.Unmarshal([]byte(text), &out); err != nil {
+		return nil, errors.Join(&ErrResponse{Message: "The AI's answer couldn't be read. Please try again."}, err)
+	}
+
+	// Empty rather than nil, so they are sent as [] rather than null.
+	res := &Response{
+		Message:     out.Message,
+		BuildPrompt: out.BuildPrompt,
+		Fields:      out.Fields,
+		Edits:       make([]map[string]any, 0, len(out.Edits)),
+	}
+	for _, e := range out.Edits {
+		edit, err := e.toEdit()
+		if err != nil {
+			edit = map[string]any{"op": e.Op, "error": err.Error()}
+		}
+		res.Edits = append(res.Edits, edit)
+	}
+	// The schema can't enforce these, and the editor can't show more fields or
+	// choices without options.
+	if len(res.Fields) > maxFields {
+		res.Fields = res.Fields[:maxFields]
+	}
+	for i, f := range res.Fields {
+		res.Fields[i].Options = uniqueOptions(f.Options)
+		if f.Type == "choice" && len(res.Fields[i].Options) == 0 {
+			res.Fields[i].Type = "text"
+		}
+	}
+
+	// The suggested change was already made, or will be once invalid edits
+	// are repaired, or needs the fields filled in first.
+	if len(out.Edits) > 0 || len(res.Fields) > 0 {
+		res.BuildPrompt = ""
+	}
+	return res, nil
+}
+
+// toEdit converts the edit into the form the editor applies, leaving out the
+// fields the model set to null.
+func (e outputEdit) toEdit() (map[string]any, error) {
+	edit := map[string]any{"op": e.Op}
+	for key, value := range map[string]*string{
+		"ref":    e.Ref,
+		"type":   e.Type,
+		"id":     e.ID,
+		"after":  e.After,
+		"before": e.Before,
+		"handle": e.Handle,
+		"source": e.Source,
+		"target": e.Target,
+	} {
+		if value != nil {
+			edit[key] = *value
+		}
+	}
+	if e.Reconnect != nil {
+		edit["reconnect"] = *e.Reconnect
+	}
+
+	if e.DataJSON != nil {
+		var data map[string]any
+		if err := json.Unmarshal([]byte(*e.DataJSON), &data); err != nil || data == nil {
+			return nil, fmt.Errorf("data_json isn't a JSON object")
+		}
+		edit["data"] = data
+	}
+	if e.ItemsJSON != nil {
+		var items []map[string]any
+		if err := json.Unmarshal([]byte(*e.ItemsJSON), &items); err != nil || items == nil {
+			return nil, fmt.Errorf("items_json isn't a JSON array of objects")
+		}
+		edit["items"] = items
+	}
+
+	return edit, nil
+}
+
+// uniqueOptions drops empty and repeated options, which the editor's select
+// can't show.
+func uniqueOptions(options []string) []string {
+	res := make([]string, 0, len(options))
+	for _, o := range options {
+		if strings.TrimSpace(o) != "" && !slices.Contains(res, o) {
+			res = append(res, o)
+		}
+	}
+	return res
+}

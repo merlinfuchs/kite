@@ -28,7 +28,7 @@ export default function AppSettingsDelete() {
   return (
     <Card>
       <CardContent className="pt-6 space-y-5">
-        <div className="flex justify-between items-center">
+        <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <div className="font-bold pb-1">Delete App</div>
             <div className="text-muted-foreground">
@@ -38,7 +38,7 @@ export default function AppSettingsDelete() {
           </div>
           <ConfirmDialog
             title="Are you sure that you want to delete this app?"
-            description="This remove all associated data and cannot be undone."
+            description="This removes all associated data and cannot be undone."
             onConfirm={remove}
           >
             <Button

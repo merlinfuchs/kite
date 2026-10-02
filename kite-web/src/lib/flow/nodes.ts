@@ -4,8 +4,6 @@ import { useMemo } from "react";
 import { ZodSchema } from "zod";
 import { Features } from "../types/wire.gen";
 import { getUniqueId } from "../utils";
-import { FlowContextType } from "./context";
-import { getComponentHandleIds } from "./resume";
 import {
   nodeActionAiChatCompletionDataSchema,
   nodeActionAiWebSearchCompletionDataSchema,
@@ -73,32 +71,32 @@ import {
   nodeOptionEventFilterSchema,
   nodeSuspendResponseModalDataSchema,
 } from "./dataSchema";
+  blockDataFields,
+  blockDataSchema,
+  blockDefinitions,
+  getBlockDefinition,
+} from "../blocks";
 import {
-  nodeActionChannelCreateResultSchema,
-  nodeActionChannelGetResultSchema,
-  nodeActionChannelEditResultSchema,
-  nodeActionThreadCreateResultSchema,
-  nodeActionForumPostCreateResultSchema,
-  nodeActionGuildGetResultSchema,
-  nodeActionMemberGetResultSchema,
-  nodeActionMessageCreateResultSchema,
-  nodeActionMessageEditResultSchema,
-  nodeActionMessageGetResultSchema,
-  nodeActionPrivateMessageCreateResultSchema,
-  nodeActionResponseCreateResultSchema,
-  nodeActionResponseEditResultSchema,
-  nodeActionRobloxUserGetResultSchema,
-  nodeActionRoleGetResultSchema,
-} from "./resultSchema";
+  actionColor,
+  controlColor,
+  entryColor,
+  optionColor,
+  suspendColor,
+} from "../blocks/colors";
+import { BlockDefinition } from "../blocks/types";
+import { FlowContextType } from "./context";
+import { getComponentHandleIds } from "./resume";
+import { NodeData } from "./dataSchema";
 
-export const primaryColor = "#3B82F6";
-
-export const actionColor = "#3b82f6";
-export const entryColor = "#eab308";
-export const errorColor = "#ef4444";
-export const controlColor = "#22c55e";
-export const optionColor = "#8b5cf6";
-export const suspendColor = "#d946ef";
+export {
+  actionColor,
+  controlColor,
+  entryColor,
+  errorColor,
+  optionColor,
+  primaryColor,
+  suspendColor,
+} from "../blocks/colors";
 
 export interface NodeValues {
   color: string;
@@ -981,7 +979,34 @@ export const nodeTypes: Record<string, NodeValues> = {
     dataSchema: nodeSuspendResponseModalDataSchema,
     dataFields: ["modal_data", "custom_label"],
   },
+const kindColors: Record<string, string> = {
+  entry: entryColor,
+  action: actionColor,
+  control: controlColor,
+  option: optionColor,
+  suspend: suspendColor,
 };
+
+export const nodeTypes: Record<string, NodeValues> = Object.fromEntries(
+  blockDefinitions.map((block) => [block.type, toNodeValues(block)])
+);
+
+function toNodeValues(block: BlockDefinition): NodeValues {
+  return {
+    color: block.color ?? kindColors[block.type.split("_")[0]],
+    icon: block.icon,
+    defaultTitle: block.title,
+    defaultDescription: block.description,
+    dataSchema: blockDataSchema(block),
+    dataFields: blockDataFields(block),
+    resultSchema: block.result?.schema,
+    outputs: block.outputs,
+    contexts: block.contexts,
+    fixed: block.fixed,
+    creditsCost: block.credits,
+    premiumFeature: block.premium_feature,
+  };
+}
 
 const unknownNodeType: NodeValues = {
   color: "#ff0000",
@@ -1023,18 +1048,8 @@ export function getNodeTitle(node: { type?: string; data: NodeData }) {
 
 // The blocks an owner is created with and connected to, e.g. the items and
 // else branch of a condition.
-const ownedChildTypes = new Map<string, string[]>();
-
 export function getOwnedChildTypes(type: string) {
-  if (!ownedChildTypes.has(type)) {
-    ownedChildTypes.set(
-      type,
-      createNode(type, { x: 0, y: 0 })[0]
-        .slice(1)
-        .map((n) => n.type!)
-    );
-  }
-  return ownedChildTypes.get(type)!;
+  return getBlockDefinition(type)?.owns ?? [];
 }
 
 // Returns the IDs of the given blocks plus the blocks they own, e.g. the
@@ -1136,12 +1151,12 @@ export function useNodeValues(nodeType: string): NodeValues {
   return useMemo(() => getNodeValues(nodeType), [nodeType]);
 }
 
-const conditionChildType: Record<string, string> = {
-  control_condition_compare: "control_condition_item_compare",
-  control_condition_user: "control_condition_item_user",
-  control_condition_channel: "control_condition_item_channel",
-  control_condition_role: "control_condition_item_role",
-};
+// Where blocks created together with an owner go, relative to it: the first
+// to the right, like the else branch of a condition, the second to the left.
+const ownedOffsets = [
+  { x: 200, y: 200 },
+  { x: -150, y: 200 },
+];
 
 export function createNode(
   type: string,
@@ -1163,63 +1178,22 @@ export function createNode(
 
   // TODO?: connect option types to entry automatically?
 
-  if (conditionChildType.hasOwnProperty(type)) {
-    const [elseNodes, elseEdges] = createNode("control_condition_item_else", {
-      x: position.x + 200,
-      y: position.y + 200,
+  getOwnedChildTypes(type).forEach((ownedType, i) => {
+    const offset = ownedOffsets[i] ?? ownedOffsets[ownedOffsets.length - 1];
+    const [ownedNodes, ownedEdges] = createNode(ownedType, {
+      x: position.x + offset.x,
+      y: position.y + offset.y,
     });
 
-    nodes.push(...elseNodes);
+    nodes.push(...ownedNodes);
     edges.push({
       id: getEdgeId(),
       source: id,
-      target: elseNodes[0].id,
+      target: ownedNodes[0].id,
       type: "fixed",
     });
-    edges.push(...elseEdges);
-
-    const [compareNodes, compareEdges] = createNode(conditionChildType[type], {
-      x: position.x - 150,
-      y: position.y + 200,
-    });
-
-    nodes.push(...compareNodes);
-    edges.push({
-      id: getEdgeId(),
-      source: id,
-      target: compareNodes[0].id,
-      type: "fixed",
-    });
-    edges.push(...compareEdges);
-  } else if (type === "control_loop") {
-    const [endNodes, endEdges] = createNode("control_loop_end", {
-      x: position.x + 200,
-      y: position.y + 200,
-    });
-
-    nodes.push(...endNodes);
-    edges.push({
-      id: getEdgeId(),
-      source: id,
-      target: endNodes[0].id,
-      type: "fixed",
-    });
-    edges.push(...endEdges);
-
-    const [eachNodes, eachEdges] = createNode("control_loop_each", {
-      x: position.x - 150,
-      y: position.y + 200,
-    });
-
-    nodes.push(...eachNodes);
-    edges.push({
-      id: getEdgeId(),
-      source: id,
-      target: eachNodes[0].id,
-      type: "fixed",
-    });
-    edges.push(...eachEdges);
-  }
+    edges.push(...ownedEdges);
+  });
 
   return [nodes, edges];
 }
