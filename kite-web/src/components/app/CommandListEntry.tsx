@@ -98,7 +98,7 @@ export default function CommandListEntry({ command }: { command: Command }) {
               </TooltipTrigger>
               <TooltipContent>
                 <div className="text-foreground/90">
-                  Most recent changes will be deployed soon.
+                  Latest changes are not deployed yet. Deploy them to apply.
                 </div>
               </TooltipContent>
             </Tooltip>

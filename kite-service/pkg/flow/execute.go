@@ -1,14 +1,8 @@
 package flow
 
 import (
-	"bytes"
 	"context"
-	"errors"
 	"fmt"
-	"io"
-	"math/rand"
-	"net/http"
-	"slices"
 	"time"
 
 	"github.com/diamondburned/arikawa/v3/api"
@@ -18,9 +12,6 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/util"
 	"github.com/kitecloud/kite/kite-service/pkg/eval"
 	"github.com/kitecloud/kite/kite-service/pkg/message"
-	"github.com/kitecloud/kite/kite-service/pkg/provider"
-	"github.com/kitecloud/kite/kite-service/pkg/thing"
-	"gopkg.in/guregu/null.v4"
 )
 
 func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
@@ -1883,70 +1874,45 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 			if nodeState.LoopExited {
 				break
 			}
-
-			if err := eachNode.Execute(ctx); err != nil {
-				return traceError(n, err)
-			}
-		}
-
-		if err := endNode.Execute(ctx); err != nil {
-			return traceError(n, err)
-		}
-	case FlowNodeTypeControlLoopEach:
-		return n.ExecuteChildren(ctx)
-	case FlowNodeTypeControlLoopEnd:
-		return n.ExecuteChildren(ctx)
-	case FlowNodeTypeControlLoopExit:
-		// Mark all parent loops as exited
-		parentLoops := n.FindAllParentsWithType(FlowNodeTypeControlLoop)
-		for _, loop := range parentLoops {
-			ctx.GetNodeState(loop.ID).LoopExited = true
-		}
-	case FlowNodeTypeControlSleep:
-		sleepSeconds, err := ctx.EvalTemplate(n.Data.SleepDurationSeconds)
-		if err != nil {
-			return traceError(n, err)
-		}
-
-		// Checked before converting, huge values overflow time.Duration.
-		// Negative values would overflow into a huge duration too.
-		seconds := max(sleepSeconds.Float(), 0)
-		if seconds > maxSleepDuration.Seconds() {
-			return traceError(n, fmt.Errorf("sleep can't be longer than %d days", int(maxSleepDuration.Hours()/24)))
-		}
-		duration := time.Duration(seconds) * time.Second
-
-		// A resumed flow only runs what comes after the sleep block, so a loop
-		// couldn't continue with its next iteration.
-		if duration > durableSleepThreshold && !n.inLoop() {
-			return n.sleepDurable(ctx, duration)
-		}
-
-		deadline, ok := ctx.Deadline()
-		if ok && time.Now().Add(duration).After(deadline) {
-			return &FlowError{
-				Code:    FlowNodeErrorTimeout,
-				Message: "sleep would exceed deadline",
-			}
-		}
-
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		case <-time.After(duration):
-			return n.ExecuteChildren(ctx)
-		}
-	default:
-		return &FlowError{
-			Code:    FlowNodeErrorUnknownNodeType,
-			Message: fmt.Sprintf("unknown node type: %s", n.Type),
-		}
+	if err := n.checkIntegrations(ctx); err != nil {
+		return traceError(n, err)
 	}
 
-	return nil
+	if handler, ok := nodeHandlers[n.Type]; ok {
+		return handler(n, ctx)
+	}
+
+	if block, ok := blockDefinitions[n.Type]; ok && block.Run.Kind == "request" {
+		return n.executeBlockDefinition(ctx, block)
+	}
+
+	return &FlowError{
+		Code:    FlowNodeErrorUnknownNodeType,
+		Message: fmt.Sprintf("unknown node type: %s", n.Type),
+	}
+}
+
+// nodeHandlers runs the blocks written in Go. Blocks defined as data run from
+// blockDefinitions instead. The handlers_*.go files register their blocks in
+// init, as the handlers refer back to the map through Execute.
+var nodeHandlers = map[FlowNodeType]nodeHandler{}
+
+type nodeHandler func(*CompiledFlowNode, *FlowContext) error
+
+func registerHandlers(handlers map[FlowNodeType]nodeHandler) {
+	for nodeType, handler := range handlers {
+		if _, ok := nodeHandlers[nodeType]; ok {
+			panic(fmt.Sprintf("handler for %s registered twice", nodeType))
+		}
+		nodeHandlers[nodeType] = handler
+	}
 }
 
 func (n *CompiledFlowNode) CreditsCost() int {
+	if block, ok := blockDefinitions[n.Type]; ok && block.Run.Kind == "request" {
+		return *block.Credits
+	}
+
 	switch n.Type {
 	case FlowNodeTypeActionAIChatCompletion, FlowNodeTypeActionAISearchWeb:
 		data := n.Data.AIChatCompletionData
@@ -2040,88 +2006,6 @@ func autoDeferResponse(interaction *discord.InteractionEvent, responseNode *Comp
 		resp.Data.Flags |= discord.EphemeralMessage
 	}
 	return resp
-}
-
-const (
-	// durableSleepThreshold is the longest sleep that keeps the flow running.
-	// Longer sleeps end the execution and resume the flow from the database.
-	durableSleepThreshold = 5 * time.Second
-	maxSleepDuration      = 30 * 24 * time.Hour
-	// maxDurableSleeps bounds how often one flow can resume from a durable
-	// sleep. Each resume starts with fresh execution limits.
-	maxDurableSleeps = 10
-)
-
-func (n *CompiledFlowNode) sleepDurable(ctx *FlowContext, duration time.Duration) error {
-	if ctx.DurableSleeps >= maxDurableSleeps {
-		return traceError(n, fmt.Errorf("a flow can wait at most %d times for longer than %s", maxDurableSleeps, durableSleepThreshold))
-	}
-
-	// The execution ends here, so the auto defer would never fire. Discord
-	// shows "This interaction failed" for interactions without a response.
-	if err := n.deferUnanswered(ctx); err != nil {
-		return traceError(n, err)
-	}
-
-	if err := ctx.suspendTimer(n.ID, time.Now().UTC().Add(duration)); err != nil {
-		return traceError(n, err)
-	}
-	return nil
-}
-
-// ResumeAfterSleep continues a flow that suspended in the sleep block n. The
-// blocks that led to the sleep don't run again, so errors are handled here
-// like they would have been by them.
-func (n *CompiledFlowNode) ResumeAfterSleep(ctx *FlowContext) error {
-	if err := ctx.startOperation(0); err != nil {
-		return err
-	}
-	defer ctx.endOperation()
-
-	err := n.ExecuteChildren(ctx)
-
-	// Like normal execution, an error goes to the nearest Error Handler, and
-	// an error in its error branch to the next one.
-	for _, handler := range n.enclosingErrorHandlers() {
-		if err == nil {
-			break
-		}
-		err = handler.handleError(ctx, err)
-	}
-
-	if err != nil {
-		createDefaultErrorResponse(ctx, err)
-	}
-	return err
-}
-
-// handleError runs the error branch of the Error Handler n.
-func (n *CompiledFlowNode) handleError(ctx *FlowContext, err error) error {
-	ctx.StoreNodeResult(n, thing.NewString(err.Error()))
-	return n.ExecuteChildrenByHandle(ctx, "error")
-}
-
-// enclosingErrorHandlers returns the Error Handlers that n runs under, nearest
-// first. Those are the ones that reach n through their default branch rather
-// than their error branch.
-func (n *CompiledFlowNode) enclosingErrorHandlers() []*CompiledFlowNode {
-	var res []*CompiledFlowNode
-	for _, handler := range n.FindAllParentsWithType(FlowNodeTypeControlErrorHandler) {
-		if n.runsUnder(handler.Children.Default) {
-			res = append(res, handler)
-		}
-	}
-	return res
-}
-
-// inLoop reports whether n runs as part of a loop iteration in its execution.
-func (n *CompiledFlowNode) inLoop() bool {
-	for _, each := range n.FindAllParentsWithType(FlowNodeTypeControlLoopEach) {
-		if n.runsUnder(each.Children.Default) {
-			return true
-		}
-	}
-	return false
 }
 
 // deferUnanswered defers the interaction the flow runs with, unless something
