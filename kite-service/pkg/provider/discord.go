@@ -28,6 +28,7 @@ type DiscordProvider interface {
 	CreateMessageReaction(ctx context.Context, channelID discord.ChannelID, messageID discord.MessageID, emoji discord.APIEmoji) error
 	CreatePoll(ctx context.Context, channelID discord.ChannelID, data CreatePollData) (*discord.Message, error)
 	EditMember(ctx context.Context, guildID discord.GuildID, userID discord.UserID, data api.ModifyMemberData) error
+	PruneMembers(ctx context.Context, guildID discord.GuildID, data api.PruneData) (uint, error)
 	CreateChannel(ctx context.Context, guildID discord.GuildID, data api.CreateChannelData) (*discord.Channel, error)
 	EditChannel(ctx context.Context, channelID discord.ChannelID, data api.ModifyChannelData) error
 	CreatePrivateChannel(ctx context.Context, userID discord.UserID) (*discord.Channel, error)
@@ -163,6 +164,10 @@ func (p *MockDiscordProvider) CreatePoll(ctx context.Context, channelID discord.
 
 func (p *MockDiscordProvider) EditMember(ctx context.Context, guildID discord.GuildID, userID discord.UserID, data api.ModifyMemberData) error {
 	return nil
+}
+
+func (p *MockDiscordProvider) PruneMembers(ctx context.Context, guildID discord.GuildID, data api.PruneData) (uint, error) {
+	return 0, nil
 }
 
 func (p *MockDiscordProvider) CreateChannel(ctx context.Context, guildID discord.GuildID, data api.CreateChannelData) (*discord.Channel, error) {

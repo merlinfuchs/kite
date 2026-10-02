@@ -276,6 +276,15 @@ func (p *DiscordProvider) EditMember(ctx context.Context, guildID discord.GuildI
 	return nil
 }
 
+func (p *DiscordProvider) PruneMembers(ctx context.Context, guildID discord.GuildID, data api.PruneData) (uint, error) {
+	pruned, err := p.session.Prune(guildID, data)
+	if err != nil {
+		return 0, fmt.Errorf("failed to prune members: %w", err)
+	}
+
+	return pruned, nil
+}
+
 func (p *DiscordProvider) CreatePrivateChannel(ctx context.Context, userID discord.UserID) (*discord.Channel, error) {
 	channel, err := p.session.CreatePrivateChannel(userID)
 	if err != nil {

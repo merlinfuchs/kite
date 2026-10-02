@@ -33,6 +33,7 @@ export const FlowNodeTypeActionPollCreate: FlowNodeType = "action_poll_create";
 export const FlowNodeTypeActionMemberBan: FlowNodeType = "action_member_ban";
 export const FlowNodeTypeActionMemberUnban: FlowNodeType = "action_member_unban";
 export const FlowNodeTypeActionMemberKick: FlowNodeType = "action_member_kick";
+export const FlowNodeTypeActionMemberPrune: FlowNodeType = "action_member_prune";
 export const FlowNodeTypeActionMemberTimeout: FlowNodeType = "action_member_timeout";
 export const FlowNodeTypeActionMemberEdit: FlowNodeType = "action_member_edit";
 export const FlowNodeTypeActionMemberRoleAdd: FlowNodeType = "action_member_role_add";
@@ -148,12 +149,13 @@ export interface FlowNodeData {
    */
   modal_data?: ModalData;
   /**
-   * Member Ban, Kick, Timeout, Edit, Get
+   * Member Ban, Kick, Timeout, Edit, Get, Prune
    */
   user_target?: string;
   member_ban_delete_message_duration_seconds?: string;
   member_timeout_duration_seconds?: string;
   member_data?: MemberData;
+  member_prune_days?: string;
   /**
    * Channel Create, Edit, Delete, Get
    */
