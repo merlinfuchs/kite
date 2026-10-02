@@ -1,4 +1,5 @@
 import {
+  ChartColumnIcon,
   ChevronRightIcon,
   CrownIcon,
   LayoutDashboardIcon,
@@ -61,6 +62,12 @@ export default function AppSidebarMainNav() {
         url: "/apps/[appId]/settings",
         icon: Settings2Icon,
         active: isActive("/apps/[appId]/settings"),
+      },
+      {
+        title: "Analytics",
+        url: "/apps/[appId]/analytics",
+        icon: ChartColumnIcon,
+        active: isActive("/apps/[appId]/analytics"),
       },
       {
         title: "Logs",

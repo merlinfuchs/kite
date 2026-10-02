@@ -12,11 +12,13 @@ import (
 
 type UsageHandler struct {
 	usageStore store.UsageStore
+	logStore   store.LogStore
 }
 
-func NewUsageHandler(usageStore store.UsageStore) *UsageHandler {
+func NewUsageHandler(usageStore store.UsageStore, logStore store.LogStore) *UsageHandler {
 	return &UsageHandler{
 		usageStore: usageStore,
+		logStore:   logStore,
 	}
 }
 

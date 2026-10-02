@@ -247,6 +247,15 @@ type Subscription struct {
 	LemonsqueezyVariantID      pgtype.Text
 }
 
+type UsageDailyRollup struct {
+	Date        pgtype.Date
+	AppID       string
+	Type        string
+	SourceID    string
+	Executions  int64
+	CreditsUsed int64
+}
+
 type UsageRecord struct {
 	ID              int64
 	Type            string
