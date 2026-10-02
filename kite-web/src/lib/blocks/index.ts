@@ -46,6 +46,7 @@ import { discordMemberBan } from "./discordMemberBan";
 import { discordMemberEdit } from "./discordMemberEdit";
 import { discordMemberGet } from "./discordMemberGet";
 import { discordMemberKick } from "./discordMemberKick";
+import { discordMemberPrune } from "./discordMemberPrune";
 import { discordMemberRoleAdd } from "./discordMemberRoleAdd";
 import { discordMemberRoleRemove } from "./discordMemberRoleRemove";
 import { discordMemberTimeout } from "./discordMemberTimeout";
@@ -118,6 +119,7 @@ export const blockDefinitions: BlockDefinition[] = [
   discordMemberBan,
   discordMemberUnban,
   discordMemberKick,
+  discordMemberPrune,
   discordMemberTimeout,
   discordMemberEdit,
   discordMemberGet,

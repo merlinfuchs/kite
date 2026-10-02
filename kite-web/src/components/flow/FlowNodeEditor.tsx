@@ -163,7 +163,6 @@ export const settingInputs: Record<string, any> = {
     MemberBanDeleteMessageDurationInput,
   member_timeout_duration_seconds: MemberTimeoutDurationInput,
   member_prune_days: MemberPruneDaysInput,
-  member_nick: MemberNickInput,
   member_data: MemberNickInput,
   roblox_user_target: RobloxUserTargetInput,
   roblox_lookup_mode: RobloxLookupModeInput,

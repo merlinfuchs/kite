@@ -267,28 +267,10 @@ func (p *DiscordProvider) CreatePoll(ctx context.Context, channelID discord.Chan
 	return &msg, nil
 }
 
-func (p *DiscordProvider) BanMember(ctx context.Context, guildID discord.GuildID, userID discord.UserID, data api.BanData) error {
-	err := p.session.Ban(guildID, userID, data)
+func (p *DiscordProvider) EditMember(ctx context.Context, guildID discord.GuildID, userID discord.UserID, data api.ModifyMemberData) error {
+	err := p.session.ModifyMember(guildID, userID, data)
 	if err != nil {
-		return fmt.Errorf("failed to ban member: %w", err)
-	}
-
-	return nil
-}
-
-func (p *DiscordProvider) UnbanMember(ctx context.Context, guildID discord.GuildID, userID discord.UserID, reason api.AuditLogReason) error {
-	err := p.session.Unban(guildID, userID, reason)
-	if err != nil {
-		return fmt.Errorf("failed to unban member: %w", err)
-	}
-
-	return nil
-}
-
-func (p *DiscordProvider) KickMember(ctx context.Context, guildID discord.GuildID, userID discord.UserID, reason api.AuditLogReason) error {
-	err := p.session.Kick(guildID, userID, reason)
-	if err != nil {
-		return fmt.Errorf("failed to kick member: %w", err)
+		return fmt.Errorf("failed to edit member: %w", err)
 	}
 
 	return nil
@@ -301,15 +283,6 @@ func (p *DiscordProvider) PruneMembers(ctx context.Context, guildID discord.Guil
 	}
 
 	return pruned, nil
-}
-
-func (p *DiscordProvider) EditMember(ctx context.Context, guildID discord.GuildID, userID discord.UserID, data api.ModifyMemberData) error {
-	err := p.session.ModifyMember(guildID, userID, data)
-	if err != nil {
-		return fmt.Errorf("failed to edit member: %w", err)
-	}
-
-	return nil
 }
 
 func (p *DiscordProvider) CreatePrivateChannel(ctx context.Context, userID discord.UserID) (*discord.Channel, error) {
