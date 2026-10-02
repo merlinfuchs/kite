@@ -1,17 +1,17 @@
 import { Edge, Node, NodeProps as XYNodeProps } from "@xyflow/react";
 import z from "zod";
+import { ApiParam } from "../integrations/api";
 import { FlowNodeData } from "../types/flow.gen";
 import { aiModelTierValues, resolveAiModel } from "./aiModels";
 import {
-  DiscordApiParam,
   getDiscordApiOperation,
   similarDiscordApiOperations,
 } from "./discordApi";
 
-const numericRegex = /^[0-9]+$/;
-const decimalRegex = /^[0-9]+(\.[0-9]+)?$/;
+export const numericRegex = /^[0-9]+$/;
+export const decimalRegex = /^[0-9]+(\.[0-9]+)?$/;
 // A single placeholder, like {{arg('user').id}}.
-const placeholderRegex = /^\{\{[^{}]+\}\}$/;
+export const placeholderRegex = /^\{\{[^{}]+\}\}$/;
 
 export interface FlowData {
   nodes: Node<NodeData>[];
@@ -95,7 +95,10 @@ function inner(schema: z.ZodTypeAny): z.ZodTypeAny | undefined {
 }
 
 // A number or Discord ID, or a single placeholder that resolves to one.
-function numericOrPlaceholder(description: string, regex = numericRegex) {
+export function numericOrPlaceholder(
+  description: string,
+  regex = numericRegex
+) {
   const message = "Must be a number or ID, or a single {{ }} placeholder";
   return z
     .string()
@@ -106,7 +109,7 @@ function numericOrPlaceholder(description: string, regex = numericRegex) {
 
 // Not enforced here, as the service doesn't validate flows of message
 // components, so saved ones can hold other names.
-const temporaryNameSchema = z
+export const temporaryNameSchema = z
   .string()
   .max(32)
   .optional()
@@ -119,7 +122,12 @@ export const auditLogReasonSchema = templated(
   "Reason shown in the server's audit log."
 ).optional();
 
-const comparisonModeSchema = z.enum([
+// Channel and role conditions can only check for equality.
+export const idConditionModeSchema = z
+  .enum(["equal", "not_equal"])
+  .describe("Whether the base value has to match this branch's value.");
+
+export const comparisonModeSchema = z.enum([
   "equal",
   "not_equal",
   "greater_than",
@@ -140,159 +148,7 @@ export const nodeBaseDataSchema = z.object({
     ),
 });
 
-// Blocks without settings, like the else branch of a condition.
-export const nodeEmptyDataSchema = z.object({});
-
-export const nodeEntryCommandDataSchema = nodeBaseDataSchema.extend({
-  name: z
-    .string()
-    .max(32)
-    .min(1)
-    .regex(
-      /^[-_a-z0-9]{1,32}( [-_a-z0-9]{1,32}){0,2}$/,
-      "Must be only lowercase alphanumeric characters and underscores, and have at most 3 words"
-    )
-    .describe(
-      "Name of the slash command. Up to three space separated words create subcommands, e.g. 'ticket open'."
-    ),
-  description: z
-    .string()
-    .max(100)
-    .min(1)
-    .describe("Description of the command shown in Discord."),
-});
-
-export const nodeOptionCommandArgumentDataSchema = nodeBaseDataSchema.extend({
-  name: z
-    .string()
-    .max(32)
-    .min(1)
-    .regex(/^[a-z0-9_]+$/)
-    .describe(
-      "Name of the argument. Its value can be read with {{arg('name')}}."
-    ),
-  description: z
-    .string()
-    .max(100)
-    .min(1)
-    .describe("Description of the argument shown in Discord."),
-  command_argument_type: z
-    .enum([
-      "string",
-      "integer",
-      "boolean",
-      "user",
-      "channel",
-      "role",
-      "mentionable",
-      "number",
-      "attachment",
-    ])
-    .describe("Type of value the user has to enter."),
-  command_argument_required: z
-    .boolean()
-    .optional()
-    .describe("Whether the user has to fill in the argument."),
-  command_argument_min_value: z
-    .number()
-    .optional()
-    .describe("Smallest allowed value for integer and number arguments."),
-  command_argument_max_value: z
-    .number()
-    .optional()
-    .describe("Largest allowed value for integer and number arguments."),
-  command_argument_max_length: z
-    .number()
-    .optional()
-    .describe("Maximum length for string arguments."),
-  command_argument_choices: z
-    .array(
-      z.object({
-        name: z.string().max(100).describe("Name shown to the user."),
-        value: z
-          .string()
-          .max(100)
-          .describe("Value the flow receives when the choice is picked."),
-      })
-    )
-    .optional()
-    .describe(
-      "Fixed choices the user picks from, for string and integer arguments. Choices with an empty name or value are ignored."
-    ),
-});
-
-export const nodeOptionCommandPermissionsSchema = nodeBaseDataSchema.extend({
-  command_permissions: z
-    .string()
-    .regex(numericRegex)
-    .describe(
-      "Discord permission bitfield. Only members with all of these permissions can see and use the command."
-    ),
-});
-
-export const nodeOptionCommandContextsSchema = nodeBaseDataSchema.extend({
-  command_disabled_contexts: z
-    .array(z.enum(["guild", "bot_dm", "private_channel"]))
-    .optional()
-    .describe(
-      "Places where the command can't be used: servers, DMs with the bot, or other DMs and group DMs."
-    ),
-  command_disabled_integrations: z
-    .array(z.enum(["guild_install", "user_install"]))
-    .optional()
-    .describe(
-      "Install types the command isn't available for: installed to a server, or installed to a user."
-    ),
-});
-
-export const nodeOptionEventFilterSchema = nodeBaseDataSchema.extend({
-  event_filter_target: z
-    .enum(["message_content", "user_id", "guild_id", "channel_id"])
-    .describe("Property of the event to filter on."),
-  event_filter_mode: z
-    .enum(["equal", "not_equal", "contains", "starts_with", "ends_with"])
-    .describe("How the property is compared to the filter value."),
-  event_filter_value: z
-    .string()
-    .max(1000)
-    .min(1)
-    .describe(
-      "Value to compare against. This is fixed text, placeholders aren't supported."
-    ),
-});
-
-export const nodeEntryEventDataSchema = nodeBaseDataSchema.extend({
-  event_type: z
-    .enum([
-      "message_create",
-      "message_update",
-      "message_delete",
-      "guild_member_add",
-      "guild_member_remove",
-      "guild_create",
-      "guild_delete",
-      "cron",
-    ])
-    .describe(
-      "Discord event that triggers the flow, or cron for a scheduled flow."
-    ),
-  event_schedule_cron: z
-    .string()
-    .max(100)
-    .optional()
-    .describe(
-      "Cron expression in UTC for scheduled flows, e.g. */5 * * * * for every five minutes."
-    ),
-  description: z
-    .string()
-    .max(100)
-    .min(1)
-    .describe("Description of what the event listener does."),
-});
-
-export const nodeEntryComponentButtonDataSchema = nodeEmptyDataSchema;
-
-export const nodeMessageDataSchema = z
+export const messageDataSchema = z
   .object({
     content: templated(
       z.string().max(2000),
@@ -330,36 +186,17 @@ export const nodeMessageDataSchema = z
   .passthrough()
   .describe("The message to send.");
 
-// Message blocks send either an inline message or a saved template.
-function withMessage<T extends z.ZodRawShape>(shape: T) {
-  return nodeBaseDataSchema
-    .extend({
-      ...shape,
-      message_data: nodeMessageDataSchema.optional(),
-      message_template_id: userPicked(
-        z.string(),
-        "ID of a saved message template to send instead of message_data."
-      ).optional(),
-      temporary_name: temporaryNameSchema,
-    })
-    .refine(
-      (data) => !!data.message_data || !!data.message_template_id,
-      "Either message_data or message_template_id is required"
-    )
-    .describe("Set either message_data or message_template_id.");
-}
-
-const channelTargetSchema = numericOrPlaceholder("ID of the channel.");
-const messageTargetSchema = numericOrPlaceholder("ID of the message.");
-const userTargetSchema = numericOrPlaceholder("ID of the user.");
-const roleTargetSchema = numericOrPlaceholder("ID of the role.");
-const guildTargetSchema = numericOrPlaceholder(
+export const channelTargetSchema = numericOrPlaceholder("ID of the channel.");
+export const messageTargetSchema = numericOrPlaceholder("ID of the message.");
+export const userTargetSchema = numericOrPlaceholder("ID of the user.");
+export const roleTargetSchema = numericOrPlaceholder("ID of the role.");
+export const guildTargetSchema = numericOrPlaceholder(
   "ID of the server. Defaults to the server the flow runs in."
 );
 
 const responseTargetMessage =
   "Must be an ID, '@original', or a single {{ }} placeholder";
-const responseTargetSchema = z
+export const responseTargetSchema = z
   .string()
   .regex(numericRegex, responseTargetMessage)
   .or(z.string().regex(placeholderRegex, responseTargetMessage))
@@ -367,115 +204,6 @@ const responseTargetSchema = z
   .describe(
     "ID of the response message, or '@original' for the first response to the interaction."
   );
-
-export const nodeActionResponseCreateDataSchema = withMessage({
-  message_ephemeral: z
-    .boolean()
-    .optional()
-    .describe(
-      "Whether only the user who triggered the flow can see the response."
-    ),
-});
-
-export const nodeActionResponseEditDataSchema = withMessage({
-  message_target: responseTargetSchema,
-});
-
-export const nodeActionResponseDeleteDataSchema = nodeBaseDataSchema.extend({
-  message_target: responseTargetSchema,
-  audit_log_reason: auditLogReasonSchema,
-});
-
-export const nodeActionResponseDeferDataSchema = nodeBaseDataSchema.extend({
-  message_ephemeral: z
-    .boolean()
-    .optional()
-    .describe(
-      "Whether only the user who triggered the flow can see the response that follows."
-    ),
-});
-
-export const nodeSuspendResponseModalDataSchema = nodeBaseDataSchema.extend({
-  modal_data: z
-    .object({
-      title: templated(z.string().max(45).min(1), "Title of the modal."),
-      components: z
-        .array(
-          z.object({
-            components: z
-              .array(
-                z.object({
-                  custom_id: z
-                    .string()
-                    .max(100)
-                    .min(1)
-                    .describe(
-                      "Identifier of the input. The submitted value can be read with {{input('custom_id')}}. This is fixed text, placeholders aren't supported."
-                    ),
-                  label: templated(
-                    z.string().max(45).min(1),
-                    "Label shown above the input."
-                  ),
-                  style: z
-                    .literal(1)
-                    .or(z.literal(2))
-                    .describe("1 for a single line input, 2 for a paragraph."),
-                  required: z
-                    .boolean()
-                    .optional()
-                    .describe("Whether the input has to be filled in."),
-                  min_length: z
-                    .number()
-                    .optional()
-                    .describe("Minimum length of the entered text."),
-                  max_length: z
-                    .number()
-                    .optional()
-                    .describe("Maximum length of the entered text."),
-                  value: templated(
-                    z.string().max(4000).min(1),
-                    "Value the input is pre-filled with."
-                  ).optional(),
-                  placeholder: templated(
-                    z.string().max(4000).min(1),
-                    "Text shown while the input is empty."
-                  ).optional(),
-                })
-              )
-              .min(1)
-              .max(1)
-              .describe("The text input of the row."),
-          })
-        )
-        .min(1)
-        .max(5)
-        .describe("Rows of the modal, each holding one text input."),
-    })
-    .describe("The modal to show."),
-});
-
-export const nodeActionMessageCreateDataSchema = withMessage({
-  channel_target: numericOrPlaceholder(
-    "ID of the channel to send the message to."
-  ),
-});
-
-export const nodeActionPrivateMessageCreateDataSchema = withMessage({
-  user_target: numericOrPlaceholder("ID of the user to send the message to."),
-});
-
-export const nodeActionMessageEditDataSchema = withMessage({
-  channel_target: channelTargetSchema,
-  message_target: messageTargetSchema,
-});
-
-export const nodeActionMessageDeleteDataSchema = nodeBaseDataSchema.extend({
-  channel_target: channelTargetSchema,
-  message_target: messageTargetSchema,
-  audit_log_reason: auditLogReasonSchema,
-});
-
-export const nodeActionMessagePinDataSchema = nodeActionMessageDeleteDataSchema;
 
 export const emojiDataSchema = z.object({
   id: z.string().optional().describe("ID of a custom emoji."),
@@ -659,194 +387,26 @@ export const channelDataSchema = z
   })
   .describe("Settings of the channel, thread or forum post.");
 
-export const nodeActionChannelCreateDataSchema = nodeBaseDataSchema.extend({
-  guild_target: guildTargetSchema.optional(),
-  channel_data: channelDataSchema,
-  audit_log_reason: auditLogReasonSchema,
-  temporary_name: temporaryNameSchema,
-});
-
-export const nodeActionChannelEditDataSchema = nodeBaseDataSchema.extend({
-  channel_target: channelTargetSchema,
-  channel_data: channelDataSchema,
-  audit_log_reason: auditLogReasonSchema,
-  temporary_name: temporaryNameSchema,
-});
-
-export const nodeActionChannelDeleteDataSchema = nodeBaseDataSchema.extend({
-  channel_target: channelTargetSchema,
-  audit_log_reason: auditLogReasonSchema,
-});
-
-export const nodeActionThreadCreateDataSchema = nodeBaseDataSchema.extend({
-  message_target: numericOrPlaceholder(
-    "ID of the message to start the thread from. Leave unset for a thread without a starter message."
-  ).optional(),
-  channel_data: channelDataSchema,
-  audit_log_reason: auditLogReasonSchema,
-  temporary_name: temporaryNameSchema,
-});
-
-export const nodeActionThreadMemberAddDataSchema = nodeBaseDataSchema.extend({
-  channel_target: numericOrPlaceholder("ID of the thread."),
-  user_target: templated(z.string(), "ID of the user."),
-  audit_log_reason: auditLogReasonSchema,
-});
-
-export const nodeActionThreadMemberRemoveDataSchema =
-  nodeActionThreadMemberAddDataSchema;
-
-export const nodeActionForumPostCreateDataSchema = nodeBaseDataSchema.extend({
-  channel_target: numericOrPlaceholder("ID of the forum channel."),
-  channel_data: channelDataSchema,
-  audit_log_reason: auditLogReasonSchema,
-  temporary_name: temporaryNameSchema,
-});
-
-export const nodeActionRoleGetDataSchema = nodeBaseDataSchema.extend({
-  guild_target: guildTargetSchema.optional(),
-  role_target: roleTargetSchema,
-  temporary_name: temporaryNameSchema,
-});
-
-export const nodeActionGuildGetDataSchema = nodeBaseDataSchema.extend({
-  guild_target: numericOrPlaceholder("ID of the server."),
-  temporary_name: temporaryNameSchema,
-});
-
-export const nodeActionMessageGetDataSchema = nodeBaseDataSchema.extend({
-  channel_target: numericOrPlaceholder(
-    "ID of the channel the message is in. Defaults to the channel the flow runs in."
-  ).optional(),
-  message_target: messageTargetSchema,
-  temporary_name: temporaryNameSchema,
-});
-
-export const nodeActionRobloxUserGetDataSchema = nodeBaseDataSchema.extend({
-  roblox_user_target: templated(
-    z.string(),
-    "ID or username of the Roblox user, depending on roblox_lookup_mode."
-  ),
-  roblox_lookup_mode: z
-    .enum(["id", "username"])
-    .describe("Whether roblox_user_target is an ID or a username."),
-  temporary_name: temporaryNameSchema,
-});
-
-const variableIdSchema = userPicked(
+export const variableIdSchema = userPicked(
   z.string(),
   "ID of an existing stored variable."
 );
 
-const variableScopeSchema = templated(
+export const variableScopeSchema = templated(
   z.string(),
   "Scope of the value, e.g. a user ID to store one value per user. Only for scoped variables."
 ).optional();
-
-export const nodeActionVariableSetSchema = nodeBaseDataSchema.extend({
-  variable_id: variableIdSchema,
-  variable_scope: variableScopeSchema,
-  variable_value: templated(z.string(), "Value to store."),
-  variable_operation: z
-    .enum(["overwrite", "append", "prepend", "increment", "decrement"])
-    .describe(
-      "How the value is combined with the stored one. increment and decrement add or subtract a number."
-    ),
-  temporary_name: temporaryNameSchema,
-});
-
-export const nodeActionVariableDeleteSchema = nodeBaseDataSchema.extend({
-  variable_id: variableIdSchema,
-  variable_scope: variableScopeSchema,
-});
-
-export const nodeActionVariableGetSchema = nodeBaseDataSchema.extend({
-  variable_id: variableIdSchema,
-  variable_scope: variableScopeSchema,
-  temporary_name: temporaryNameSchema,
-});
-
-export const nodeActionVoiceChannelJoinDataSchema = nodeBaseDataSchema.extend({
-  channel_target: numericOrPlaceholder("ID of the voice channel to join."),
-  voice_self_mute: z
-    .boolean()
-    .optional()
-    .describe("Whether the bot joins muted."),
-  voice_self_deaf: z
-    .boolean()
-    .optional()
-    .describe("Whether the bot joins deafened."),
-});
-
-export const nodeActionVoiceChannelLeaveDataSchema = nodeBaseDataSchema.extend({
-  guild_target: guildTargetSchema.optional(),
-});
-
-export const nodeActionStatusSetDataSchema = nodeBaseDataSchema.extend({
-  status_data: z
-    .object({
-      status: z
-        .enum(["online", "idle", "dnd", "invisible"])
-        .optional()
-        .describe("Online status of the bot. Defaults to online."),
-      activity_type: z
-        .number()
-        .optional()
-        .describe(
-          "Activity type: 0 Playing, 1 Streaming, 2 Listening, 3 Watching, 4 Custom, 5 Competing."
-        ),
-      activity_name: templated(
-        z.string().min(1).max(128),
-        "Text of the activity shown on the bot's profile."
-      ),
-      activity_url: templated(
-        z.string(),
-        "Stream URL, only used by the Streaming activity type."
-      ).optional(),
-    })
-    // Validates the fields even before any was set, so their errors show up
-    .default({ activity_name: "" })
-    .describe("The status to set."),
-});
-
-export const nodeActionHttpRequestDataSchema = nodeBaseDataSchema.extend({
-  http_request_data: z
-    .object({
-      url: templated(z.string().url(), "URL to send the request to."),
-      method: z
-        .enum(["GET", "POST", "PUT", "PATCH", "DELETE"])
-        .describe("HTTP method of the request."),
-      headers: z
-        .array(
-          z.object({
-            key: z.string().describe("Name of the header."),
-            value: templated(z.string(), "Value of the header."),
-          })
-        )
-        .optional()
-        .describe("Headers to send with the request."),
-      body_json: z
-        .record(z.unknown())
-        .optional()
-        .describe(
-          "JSON body of the request. Placeholders in its string values are evaluated."
-        ),
-    })
-    .describe("The request to send."),
-  temporary_name: temporaryNameSchema,
-});
 
 const discordApiParamSchema = z.object({
   key: z.string().describe("Name of the parameter."),
   value: templated(z.string(), "Value of the parameter."),
 });
 
-const discordApiRequestDataSchema = z.object({
-  operation: z
-    .string()
-    .describe(
-      "operationId of the endpoint in Discord's OpenAPI spec, e.g. create_message or list_messages. The spec's names can differ from Discord's docs, e.g. Modify Guild is update_guild."
-    ),
+const operationDescription =
+  "operationId of the endpoint in Discord's OpenAPI spec, e.g. create_message or list_messages. The spec's names can differ from Discord's docs, e.g. Modify Guild is update_guild.";
+
+const discordApiRequestBaseSchema = z.object({
+  operation: z.string().describe(operationDescription),
   path_params: z
     .array(discordApiParamSchema)
     .optional()
@@ -867,23 +427,30 @@ const discordApiRequestDataSchema = z.object({
 });
 
 // Formats of typed Discord API parameters, which can also be a placeholder.
-const discordApiParamFormats: Record<string, [RegExp, string]> = {
+export const discordApiParamFormats: Record<string, [RegExp, string]> = {
   snowflake: [numericRegex, "Must be a number or ID"],
   integer: [/^-?[0-9]+$/, "Must be a whole number"],
   number: [/^-?[0-9]+(\.[0-9]+)?$/, "Must be a number"],
   boolean: [/^(true|false)$/, "Must be true or false"],
 };
 
-export const nodeActionDiscordApiRequestDataSchema = nodeBaseDataSchema.extend({
-  discord_api_request_data: discordApiRequestDataSchema
+// dedicated lists the endpoints that have their own block, like
+// "list_messages: action_message_list", which the flow AI should use instead.
+export function discordApiRequestDataSchema(dedicated: string) {
+  return discordApiRequestBaseSchema
+    .extend({
+      operation: z
+        .string()
+        .describe(
+          `${operationDescription} These endpoints have their own block, use it instead: ${dedicated}.`
+        ),
+    })
     .superRefine(refineDiscordApiRequest)
-    .describe("The Discord API request to send. The bot's token is added."),
-  audit_log_reason: auditLogReasonSchema,
-  temporary_name: temporaryNameSchema,
-});
+    .describe("The Discord API request to send. The bot's token is added.");
+}
 
 function refineDiscordApiRequest(
-  data: z.infer<typeof discordApiRequestDataSchema>,
+  data: z.infer<typeof discordApiRequestBaseSchema>,
   ctx: z.RefinementCtx
 ) {
   const op = getDiscordApiOperation(data.operation);
@@ -899,7 +466,7 @@ function refineDiscordApiRequest(
 
   const checkParams = (
     field: "path_params" | "query",
-    declared: DiscordApiParam[]
+    declared: ApiParam[]
   ) => {
     const values = new Map(data[field]?.map((p) => [p.key, p.value]));
     for (const p of declared) {
@@ -951,160 +518,12 @@ function refineDiscordApiRequest(
   }
 }
 
-const aiModelSchema = z
+export const aiModelSchema = z
   .preprocess(resolveAiModel, z.enum(aiModelTierValues).optional())
   .describe(
     "Model tier to use. Larger tiers are more capable and cost more credits. Defaults to small."
   );
 
-const aiMaxCompletionTokensSchema = numericOrPlaceholder(
+export const aiMaxCompletionTokensSchema = numericOrPlaceholder(
   "Maximum number of tokens in the answer."
 ).optional();
-
-export const nodeActionAiChatCompletionDataSchema = nodeBaseDataSchema.extend({
-  ai_chat_completion_data: z
-    .object({
-      model: aiModelSchema,
-      system_prompt: templated(
-        z.string().max(2000),
-        "Instructions for how the AI should behave."
-      ).optional(),
-      prompt: templated(
-        z.string().max(2000).min(1),
-        "Message the AI responds to."
-      ),
-      max_completion_tokens: aiMaxCompletionTokensSchema,
-    })
-    .describe("The prompt and model settings."),
-  temporary_name: temporaryNameSchema,
-});
-
-export const nodeActionAiWebSearchCompletionDataSchema =
-  nodeBaseDataSchema.extend({
-    ai_chat_completion_data: z
-      .object({
-        model: aiModelSchema,
-        prompt: templated(
-          z.string().max(2000).min(1),
-          "What to search the web for."
-        ),
-        max_completion_tokens: aiMaxCompletionTokensSchema,
-      })
-      .describe("The search query and model settings."),
-    temporary_name: temporaryNameSchema,
-  });
-
-export const nodeActionExpressionEvaluateDataSchema = nodeBaseDataSchema.extend(
-  {
-    expression: templated(
-      z
-        .string()
-        .max(2000)
-        .refine((val) => !val.startsWith("{{"), {
-          message:
-            "In most cases, you don't need to use the double curly brackets around the expression here. Only use them if you want to include a placeholder in the expression.",
-        }),
-      "Expr language expression to evaluate, written without surrounding {{ }}, e.g. arg('a') + arg('b')."
-    ),
-    temporary_name: temporaryNameSchema,
-  }
-);
-
-export const nodeActionRandomGenerateDataSchema = nodeBaseDataSchema.extend({
-  random_min: numericOrPlaceholder("Smallest number that can be generated."),
-  random_max: numericOrPlaceholder(
-    "Upper bound of the generated number. The number is always below it."
-  ),
-  temporary_name: temporaryNameSchema,
-});
-
-export const nodeActionLogDataSchema = nodeBaseDataSchema.extend({
-  log_level: z
-    .enum(["debug", "info", "warn", "error"])
-    .describe("Severity of the log entry."),
-  log_message: templated(
-    z.string().max(2000).min(1),
-    "Text to write to the app's logs."
-  ),
-});
-
-function conditionSchema(baseValueDescription: string) {
-  return nodeBaseDataSchema.extend({
-    condition_base_value: templated(z.string(), baseValueDescription),
-    condition_allow_multiple: z
-      .boolean()
-      .optional()
-      .describe(
-        "Whether every matching branch runs. If unset, only the first matching branch runs."
-      ),
-  });
-}
-
-export const nodeConditionCompareDataSchema = conditionSchema(
-  "Value that each branch compares against."
-);
-
-export const nodeConditionItemCompareDataSchema = nodeBaseDataSchema.extend({
-  condition_item_mode: comparisonModeSchema.describe(
-    "How the condition's base value is compared to this branch's value."
-  ),
-  condition_item_value: templated(
-    z.string(),
-    "Value to compare the base value with."
-  ).optional(),
-});
-
-export const nodeConditionUserDataSchema = conditionSchema(
-  "ID of the user that each branch checks."
-);
-
-export const nodeConditionItemUserDataSchema = nodeBaseDataSchema.extend({
-  condition_item_mode: z
-    .enum([
-      "equal",
-      "not_equal",
-      "has_role",
-      "not_has_role",
-      "has_permission",
-      "not_has_permission",
-    ])
-    .describe("What to check about the user."),
-  condition_item_value: templated(
-    z.string(),
-    "User ID for equal and not_equal, role ID for has_role and not_has_role, or permission bitfield for has_permission and not_has_permission."
-  ).optional(),
-});
-
-export const nodeConditionChannelDataSchema = conditionSchema(
-  "ID of the channel that each branch checks."
-);
-
-export const nodeConditionRoleDataSchema = conditionSchema(
-  "ID of the role that each branch checks."
-);
-
-// Channel and role conditions can only check for equality.
-export const nodeConditionItemIdDataSchema = nodeBaseDataSchema.extend({
-  condition_item_mode: z
-    .enum(["equal", "not_equal"])
-    .describe("Whether the base value has to match this branch's value."),
-  condition_item_value: templated(
-    z.string(),
-    "ID to compare the base value with."
-  ).optional(),
-});
-
-export const nodeControlErrorHandlerDataSchema = nodeBaseDataSchema.extend({
-  temporary_name: temporaryNameSchema,
-});
-
-export const nodeControlLoopDataSchema = nodeBaseDataSchema.extend({
-  loop_count: numericOrPlaceholder("How many times the loop runs."),
-});
-
-export const nodeControlSleepDataSchema = nodeBaseDataSchema.extend({
-  sleep_duration_seconds: numericOrPlaceholder(
-    "How many seconds to wait before continuing.",
-    decimalRegex
-  ),
-});

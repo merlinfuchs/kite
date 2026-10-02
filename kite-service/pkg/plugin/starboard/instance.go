@@ -4,18 +4,16 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"regexp"
 
 	"github.com/diamondburned/arikawa/v3/api"
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/gateway"
+	"github.com/diamondburned/arikawa/v3/utils/bot/extras/arguments"
 	"github.com/diamondburned/arikawa/v3/utils/json/option"
 	"github.com/kitecloud/kite/kite-service/pkg/plugin"
 	"github.com/kitecloud/kite/kite-service/pkg/provider"
 	"github.com/kitecloud/kite/kite-service/pkg/thing"
 )
-
-var customEmojiRegex = regexp.MustCompile(`<a?:(\w+):(\d+)>`)
 
 type StarboardPluginInstance struct {
 	appID  string
@@ -133,15 +131,12 @@ func (p *StarboardPluginInstance) HandleCommand(c plugin.Context, event *gateway
 				case "emoji":
 					var rawEmoji string
 					_ = subOpt.Value.UnmarshalTo(&rawEmoji)
-					if customEmojiRegex.MatchString(rawEmoji) {
-						matches := customEmojiRegex.FindStringSubmatch(rawEmoji)
-						emojiID, err := discord.ParseSnowflake(matches[2])
-						if err != nil {
-							return err
-						}
+					var parsed arguments.Emoji
+					if err := parsed.Parse(rawEmoji); err == nil {
 						emoji = discord.Emoji{
-							Name: matches[1],
-							ID:   discord.EmojiID(emojiID),
+							Name:     parsed.Name,
+							ID:       parsed.ID,
+							Animated: parsed.Animated,
 						}
 					} else {
 						emoji = discord.Emoji{
@@ -255,13 +250,8 @@ func getMessageReactionCount(message *discord.Message, emoji discord.Emoji) (int
 }
 
 func getStarboardMessageData(message *discord.Message, emoji discord.Emoji, reactionCount int) (*discord.Message, error) {
-	emojiText := emoji.Name
-	if emoji.ID.IsValid() {
-		emojiText = fmt.Sprintf("<%s:%d>", emoji.Name, emoji.ID)
-	}
-
 	return &discord.Message{
-		Content: fmt.Sprintf("%s **%d**", emojiText, reactionCount),
+		Content: fmt.Sprintf("%s **%d**", emoji, reactionCount),
 		Embeds: []discord.Embed{
 			{
 				Author: &discord.EmbedAuthor{

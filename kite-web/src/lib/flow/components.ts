@@ -2,6 +2,9 @@ import FlowNodeEntryCommand from "@/components/flow/FlowNodeEntryCommand";
 import FlowEdgeDeleteButton from "@/components/flow/FlowEdgeDeleteButton";
 import FlowEdgeFixed from "@/components/flow/FlowEdgeFixed";
 import FlowNodeActionBase from "@/components/flow/FlowNodeActionBase";
+import { blockDefinitions } from "../blocks";
+import { BlockComponent } from "../blocks/types";
+import { ComponentType } from "react";
 import FlowNodeEntryEvent from "@/components/flow/FlowNodeEntryEvent";
 import FlowNodeConditionCompare from "@/components/flow/FlowNodeConditionCompare";
 import FlowNodeConditionItem from "@/components/flow/FlowNodeConditionItem";
@@ -21,7 +24,11 @@ import FlowNodeActionMessage from "@/components/flow/FlowNodeActionMessage";
 import FlowNodeBase from "@/components/flow/FlowNodeBase";
 import FlowNodeControlErrorHandler from "@/components/flow/FlowNodeControlErrorHandler";
 
-export const nodeTypes = {
+const blockComponents: Record<BlockComponent, ComponentType<any>> = {
+  action: FlowNodeActionBase,
+  action_message: FlowNodeActionMessage,
+  option: FlowNodeOptionBase,
+  option_command_argument: FlowNodeOptionCommandArgument,
   entry_command: FlowNodeEntryCommand,
   entry_event: FlowNodeEntryEvent,
   entry_component_button: FlowNodeEntryComponentButton,
@@ -90,14 +97,26 @@ export const nodeTypes = {
   control_condition_item_role: FlowNodeConditionItem,
   control_condition_item_else: FlowNodeConditionItem,
   control_error_handler: FlowNodeControlErrorHandler,
+  condition_compare: FlowNodeConditionCompare,
+  condition_user: FlowNodeConditionUser,
+  condition_channel: FlowNodeConditionChannel,
+  condition_role: FlowNodeConditionRole,
+  condition_item: FlowNodeConditionItem,
   control_loop: FlowNodeControlLoop,
   control_loop_each: FlowNodeControlLoopEach,
   control_loop_end: FlowNodeControlLoopEnd,
   control_loop_exit: FlowNodeControlLoopExit,
   control_sleep: FlowNodeControlSleep,
-
-  suspend_response_modal: FlowNodeSuspendBase,
+  control_error_handler: FlowNodeControlErrorHandler,
+  suspend: FlowNodeSuspendBase,
 };
+
+export const nodeTypes = Object.fromEntries(
+  blockDefinitions.map((block) => [
+    block.type,
+    blockComponents[block.component ?? "action"],
+  ])
+);
 
 export const edgeTypes = {
   delete_button: FlowEdgeDeleteButton,

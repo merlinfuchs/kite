@@ -213,3 +213,15 @@ func TestEntityLinksFromResumePoint(t *testing.T) {
 		t.Errorf("message instance attribution lost: %+v", links)
 	}
 }
+
+func TestEntityLinksUsageRecordType(t *testing.T) {
+	for links, want := range map[entityLinks]model.UsageRecordType{
+		{CommandID: null.NewString("cmd-1", true)}:       model.UsageRecordTypeCommandFlowExecution,
+		{EventListenerID: null.NewString("lis-1", true)}: model.UsageRecordTypeEventListenerFlowExecution,
+		{MessageID: null.NewString("msg-1", true)}:       model.UsageRecordTypeMessageFlowExecution,
+	} {
+		if got := links.usageRecordType(); got != want {
+			t.Errorf("%+v: got %s, want %s", links, got, want)
+		}
+	}
+}
