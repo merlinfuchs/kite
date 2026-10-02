@@ -1,6 +1,11 @@
 import { FlowContextStoreProvider, FlowContextType } from "@/lib/flow/context";
-import { FlowData } from "@/lib/flow/dataSchema";
-import { OnSelectionChangeParams } from "@xyflow/react";
+import { FlowData, NodeData } from "@/lib/flow/dataSchema";
+import {
+  Node,
+  OnSelectionChangeParams,
+  useReactFlow,
+  useStoreApi,
+} from "@xyflow/react";
 import { useCallback, useRef, useState } from "react";
 import FlowEditor, { FlowEditorApi } from "./FlowEditor";
 import FlowMenu from "./FlowMenu";
@@ -9,6 +14,10 @@ import FlowAIChat from "./FlowAIChat";
 import { Button } from "../ui/button";
 import { SparklesIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
+import FlowMobileBottomBar from "./FlowMobileBottomBar";
+import FlowAddBlockDrawer from "./FlowAddBlockDrawer";
+import FlowNodeEditorDrawer from "./FlowNodeEditorDrawer";
+import FlowLogsDrawer from "./FlowLogsDrawer";
 
 interface Props {
   flowData: FlowData;
@@ -30,6 +39,12 @@ export default function Flow({
   onChatOpenChange,
 }: Props) {
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
+  const [mobileEditorOpen, setMobileEditorOpen] = useState(false);
+  const [addBlockOpen, setAddBlockOpen] = useState(false);
+  const [logsOpen, setLogsOpen] = useState(false);
+  const [canUndo, setCanUndo] = useState(false);
+  const [canRedo, setCanRedo] = useState(false);
+
   const containerRef = useRef<HTMLDivElement>(null);
   const editorRef = useRef<FlowEditorApi>(null);
   const [ownChatOpen, setOwnChatOpen] = useState(false);
@@ -40,16 +55,54 @@ export default function Flow({
   if (chatOpen && !chatMounted) setChatMounted(true);
   const closeChat = useCallback(() => setChatOpen(false), [setChatOpen]);
 
+  const { fitView } = useReactFlow();
+  const store = useStoreApi();
+
   const onSelectionChange = useCallback(
     ({ nodes }: OnSelectionChangeParams) => {
       if (nodes.length === 1) {
         setSelectedNodeId(nodes[0].id);
       } else {
         setSelectedNodeId(null);
+        setMobileEditorOpen(false);
       }
     },
     []
   );
+
+  const handleNodeTap = useCallback((node: Node<NodeData>) => {
+    setSelectedNodeId(node.id);
+    if (typeof window !== "undefined" && window.innerWidth < 768) {
+      setMobileEditorOpen(true);
+    }
+  }, []);
+
+  const handleHistoryChange = useCallback((u: boolean, r: boolean) => {
+    setCanUndo(u);
+    setCanRedo(r);
+  }, []);
+
+  const deselectNode = useCallback(() => {
+    store.getState().addSelectedNodes([]);
+    setSelectedNodeId(null);
+    setMobileEditorOpen(false);
+  }, [store]);
+
+  const handleFitView = useCallback(() => {
+    fitView({ padding: 0.2, duration: 250 });
+  }, [fitView]);
+
+  const handleUndo = useCallback(() => {
+    editorRef.current?.undo();
+  }, []);
+
+  const handleRedo = useCallback(() => {
+    editorRef.current?.redo();
+  }, []);
+
+  const handleFormat = useCallback(() => {
+    editorRef.current?.format();
+  }, []);
 
   return (
     <FlowContextStoreProvider type={context}>
@@ -59,11 +112,13 @@ export default function Flow({
       >
         <FlowMenu selectedNodeId={selectedNodeId} logs={logs} />
 
-        <div className="flex-auto relative">
+        <div className="flex-auto relative pb-14 md:pb-0">
           <FlowEditor
             initialData={flowData}
             onChange={onChange}
             onSelectionChange={onSelectionChange}
+            onNodeTap={handleNodeTap}
+            onHistoryChange={handleHistoryChange}
             containerRef={containerRef}
             apiRef={editorRef}
           />
@@ -81,10 +136,52 @@ export default function Flow({
         </div>
 
         {chatMounted && (
-          <div className={cn("flex", !chatOpen && "hidden")}>
+          <div
+            className={cn(
+              "flex z-40 fixed inset-0 md:relative md:inset-auto",
+              !chatOpen && "hidden"
+            )}
+          >
             <FlowAIChat editorRef={editorRef} onClose={closeChat} />
           </div>
         )}
+
+        <FlowMobileBottomBar
+          selectedNodeId={selectedNodeId}
+          onAddBlock={() => setAddBlockOpen(true)}
+          onEditNode={() => setMobileEditorOpen(true)}
+          onDeselectNode={deselectNode}
+          onOpenLogs={() => setLogsOpen(true)}
+          onFitView={handleFitView}
+          onUndo={handleUndo}
+          onRedo={handleRedo}
+          onFormat={handleFormat}
+          canUndo={canUndo}
+          canRedo={canRedo}
+          logCount={logs?.length}
+        />
+
+        <FlowAddBlockDrawer
+          open={addBlockOpen}
+          onOpenChange={setAddBlockOpen}
+        />
+
+        <FlowNodeEditorDrawer
+          nodeId={selectedNodeId}
+          open={mobileEditorOpen && !!selectedNodeId}
+          onOpenChange={(open) => {
+            setMobileEditorOpen(open);
+            if (!open) {
+              deselectNode();
+            }
+          }}
+        />
+
+        <FlowLogsDrawer
+          logs={logs}
+          open={logsOpen}
+          onOpenChange={setLogsOpen}
+        />
       </div>
     </FlowContextStoreProvider>
   );

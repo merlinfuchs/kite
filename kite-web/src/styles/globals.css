@@ -96,3 +96,9 @@
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
+
+@media (max-width: 767px) {
+  .react-flow__controls {
+    display: none !important;
+  }
+}

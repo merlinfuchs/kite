@@ -49,12 +49,19 @@ export interface FlowEditorApi {
     edges: Edge[],
     mergeKey?: string
   ) => void;
+  undo: () => void;
+  redo: () => void;
+  canUndo: boolean;
+  canRedo: boolean;
+  format: () => void;
 }
 
 interface Props {
   initialData?: FlowData;
   onChange: () => void;
   onSelectionChange?: OnSelectionChangeFunc;
+  onNodeTap?: (node: Node<NodeData>) => void;
+  onHistoryChange?: (canUndo: boolean, canRedo: boolean) => void;
   containerRef: RefObject<HTMLElement>;
   apiRef?: RefObject<FlowEditorApi>;
 }
@@ -63,6 +70,8 @@ export default function FlowEditor({
   initialData,
   onChange,
   onSelectionChange,
+  onNodeTap,
+  onHistoryChange,
   containerRef,
   apiRef,
 }: Props) {
@@ -116,6 +125,21 @@ export default function FlowEditor({
     containerRef,
   });
 
+  useEffect(() => {
+    onHistoryChange?.(canUndo, canRedo);
+  }, [canUndo, canRedo, onHistoryChange]);
+
+  const format = useCallback(() => {
+    const formattedNodes = getLayoutedElements(nodes, edges, {
+      direction: "TB",
+    });
+
+    editNodes(formattedNodes.nodes);
+    setTimeout(() => {
+      fitView();
+    }, 50);
+  }, [nodes, edges, editNodes, fitView]);
+
   useImperativeHandle(
     apiRef,
     () => ({
@@ -124,8 +148,13 @@ export default function FlowEditor({
         setNodes(nodes);
         setEdges(edges);
       },
+      undo,
+      redo,
+      canUndo,
+      canRedo,
+      format,
     }),
-    [commit, setNodes, setEdges]
+    [commit, setNodes, setEdges, undo, redo, canUndo, canRedo, format]
   );
 
   const onConnect = useCallback(
@@ -213,17 +242,6 @@ export default function FlowEditor({
     [getNodes, getEdges, commit, setEdges, setNodes]
   );
 
-  const format = useCallback(() => {
-    const formattedNodes = getLayoutedElements(nodes, edges, {
-      direction: "TB",
-    });
-
-    editNodes(formattedNodes.nodes);
-    setTimeout(() => {
-      fitView();
-    }, 50);
-  }, [nodes, edges, editNodes, fitView]);
-
   const onDragOver = useCallback((e: DragEvent) => {
     e.preventDefault();
     e.dataTransfer!.dropEffect = "move";
@@ -260,23 +278,31 @@ export default function FlowEditor({
       const target = getNode(con.target)!;
       if (!canConnect(source.type!, target.type!)) return false;
 
-      // Prevent cycles
-      /*const hasCycle = (node: Node, visited = new Set()) => {
-        if (visited.has(node.id)) return false;
-
-        visited.add(node.id);
-
-        for (const outgoer of getOutgoers(node, nodes, edges)) {
-          if (outgoer.id === con.source) return true;
-          if (hasCycle(outgoer, visited)) return true;
-        }
-      };
-
-      if (target.id === con.source) return false;
-      return !hasCycle(target);*/
       return true;
     },
     [getNode]
+  );
+
+  const isNodeDragging = useRef(false);
+
+  const onNodeDragStart = useCallback(() => {
+    isNodeDragging.current = true;
+  }, []);
+
+  const onNodeDragStop = useCallback(() => {
+    setTimeout(() => {
+      isNodeDragging.current = false;
+    }, 60);
+  }, []);
+
+  const handleNodeClick = useCallback(
+    (_e: React.MouseEvent, node: Node<NodeData>) => {
+      clearAIChanges();
+      if (!isNodeDragging.current) {
+        onNodeTap?.(node);
+      }
+    },
+    [clearAIChanges, onNodeTap]
   );
 
   return (
@@ -294,7 +320,9 @@ export default function FlowEditor({
       onConnect={onConnect}
       isValidConnection={isValidConnection}
       onSelectionChange={onSelectionChange}
-      onNodeClick={clearAIChanges}
+      onNodeDragStart={onNodeDragStart}
+      onNodeDragStop={onNodeDragStop}
+      onNodeClick={handleNodeClick}
       onPaneClick={clearAIChanges}
       colorMode={theme === "dark" ? "dark" : "light"}
       defaultEdgeOptions={{ type: "delete_button" }}
@@ -309,7 +337,7 @@ export default function FlowEditor({
       <Controls
         showInteractive={false}
         position="bottom-right"
-        className="scale-110"
+        className="scale-110 !hidden md:!flex"
       >
         <ControlButton onClick={undo} disabled={!canUndo} title="Undo">
           <Undo2Icon className="size-5 !fill-none" />

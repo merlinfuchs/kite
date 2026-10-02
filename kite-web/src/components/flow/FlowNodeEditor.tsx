@@ -93,9 +93,13 @@ import FlowJsonInput from "./FlowJsonInput";
 import FlowPlaceholderExplorer from "./FlowPlaceholderExplorer";
 import env from "@/lib/env/client";
 import { ScrollArea } from "../ui/scroll-area";
+import { cn } from "@/lib/utils";
 
 interface Props {
   nodeId: string;
+  className?: string;
+  hideTitle?: boolean;
+  onClose?: () => void;
 }
 
 interface InputProps {
@@ -205,12 +209,18 @@ function nodeTypeDocsPage(nodeType: string) {
   );
 }
 
-export default function FlowNodeEditor({ nodeId }: Props) {
+export default function FlowNodeEditor({
+  nodeId,
+  className,
+  hideTitle,
+  onClose,
+}: Props) {
   const { setNodes, deleteElements } = useReactFlow<Node<NodeData>>();
   const store = useStoreApi();
 
   function close() {
     store.getState().addSelectedNodes([]);
+    onClose?.();
   }
 
   const nodes = useNodes<Node<NodeData>>();
@@ -288,19 +298,26 @@ export default function FlowNodeEditor({ nodeId }: Props) {
   const docsPage = nodeTypeDocsPage(node.type!);
 
   return (
-    <div className="absolute top-0 left-0 bg-background w-96 h-full flex flex-col">
-      <ScrollArea>
+    <div
+      className={cn(
+        "bg-background flex flex-col min-h-0 overflow-hidden",
+        className ?? "absolute top-0 left-0 w-96 h-full"
+      )}
+    >
+      <ScrollArea className="flex-1 min-h-0 w-full">
         <div className="p-5">
           <div className="flex-none">
-            <div className="flex items-start justify-between mb-5">
-              <div className="text-xl font-bold text-foreground">
-                Block Settings
+            {!hideTitle && (
+              <div className="flex items-start justify-between mb-5">
+                <div className="text-xl font-bold text-foreground">
+                  Block Settings
+                </div>
+                <XIcon
+                  className="h-6 w-6 text-muted-foreground hover:text-foreground cursor-pointer"
+                  onClick={close}
+                />
               </div>
-              <XIcon
-                className="h-6 w-6 text-muted-foreground hover:text-foreground cursor-pointer"
-                onClick={close}
-              />
-            </div>
+            )}
             <div className="mb-5">
               <div className="flex items-center gap-1.5">
                 <div className="text-lg font-bold text-foreground mb-1">

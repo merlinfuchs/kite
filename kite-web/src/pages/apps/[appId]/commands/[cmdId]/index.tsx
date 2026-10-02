@@ -6,7 +6,10 @@ import {
 } from "@/lib/api/mutations";
 import { FlowData } from "@/lib/flow/dataSchema";
 import { useCommand, useFlowLogEntries } from "@/lib/hooks/api";
-import { useBeforePageExit } from "@/lib/hooks/exit";
+import {
+  useUnsavedChangesWarning,
+  UNSAVED_CHANGES_WARNING,
+} from "@/lib/hooks/exit";
 import { useAppId, useCommandId } from "@/lib/hooks/params";
 import Head from "next/head";
 import { useRouter } from "next/router";
@@ -39,7 +42,7 @@ export default function AppCommandPage() {
   }, [setHasUnsavedChanges]);
 
   const save = useCallback(
-    (data: FlowData) => {
+    (data: FlowData, options?: { onSuccess?: () => void }) => {
       updateMutation.mutate(
         {
           flow_source: data,
@@ -48,8 +51,15 @@ export default function AppCommandPage() {
           onSuccess(res) {
             if (res.success) {
               toast.success(
-                "Command saved! Make sure to deploy the command for the changes to take effect in Discord."
+                "Command saved! Make sure to deploy for changes to take effect in Discord.",
+                {
+                  action: {
+                    label: "Deploy",
+                    onClick: () => setDeployDialogOpen(true),
+                  },
+                }
               );
+              options?.onSuccess?.();
             } else {
               toast.error(
                 `Failed to update command: ${res.error.message} (${res.error.code})`
@@ -72,29 +82,13 @@ export default function AppCommandPage() {
   }, [cmd]);
 
   const exit = useCallback(() => {
-    if (hasUnsavedChanges) {
-      if (
-        !confirm("You have unsaved changes. Are you sure you want to exit?")
-      ) {
-        return;
-      }
-    }
-
     router.push({
       pathname: "/apps/[appId]/commands",
       query: { appId: router.query.appId },
     });
-  }, [hasUnsavedChanges, router]);
+  }, [router]);
 
-  useBeforePageExit(
-    (e) => {
-      if (hasUnsavedChanges) {
-        e.preventDefault();
-        return "You have unsaved changes. Are you sure you want to exit?";
-      }
-    },
-    [hasUnsavedChanges]
-  );
+  useUnsavedChangesWarning(hasUnsavedChanges);
 
   const logs = useFlowLogEntries({ commandId: useCommandId() });
 

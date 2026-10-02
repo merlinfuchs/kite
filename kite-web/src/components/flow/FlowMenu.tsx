@@ -36,7 +36,7 @@ export default function FlowMenu({
   );
 
   return (
-    <div className="flex flex-none">
+    <div className="hidden md:flex flex-none">
       <div className="flex-none flex flex-col justify-between bg-muted/50">
         <div className="flex-none flex flex-col items-center gap-1">
           <Tab
