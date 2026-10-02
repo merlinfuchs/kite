@@ -20,6 +20,12 @@ interface PlaceholderGroup {
   placeholders: {
     label: string;
     value: string;
+    // Shown next to the label in a muted color.
+    description?: string;
+    // The value is inserted as is instead of being wrapped in {{ }}.
+    raw?: boolean;
+    // Extra search terms, the value is always searchable.
+    keywords?: string[];
   }[];
 }
 
@@ -36,10 +42,12 @@ export default function PlaceholderExplorer({
   tab,
   tabs,
   onTabChange,
+  onOpenChange,
+  header,
   hideBrackets,
 }: {
   children: ReactNode;
-  onSelect: (value: string) => void;
+  onSelect: (value: string, raw?: boolean) => void;
   placeholders: PlaceholderGroup[];
   tab?: string;
   tabs?: {
@@ -47,6 +55,9 @@ export default function PlaceholderExplorer({
     value: string;
   }[];
   onTabChange?: (value: string) => void;
+  onOpenChange?: (open: boolean) => void;
+  // Shown above the placeholders, e.g. for inputs that change them.
+  header?: ReactNode;
   hideBrackets?: boolean;
 }) {
   const [open, setOpen] = useState(false);
@@ -56,7 +67,14 @@ export default function PlaceholderExplorer({
   }, [placeholders]);
 
   return (
-    <Popover open={open} onOpenChange={setOpen} modal>
+    <Popover
+      open={open}
+      onOpenChange={(open) => {
+        setOpen(open);
+        onOpenChange?.(open);
+      }}
+      modal
+    >
       <PopoverTrigger asChild>{children}</PopoverTrigger>
       <PopoverContent className="w-[350px] p-0">
         <Command>
@@ -85,21 +103,33 @@ export default function PlaceholderExplorer({
                 </Tabs>
               </CommandGroup>
             )}
+            {header && (
+              // Keys typed into the header must not move the list selection.
+              <div onKeyDown={(e) => e.stopPropagation()}>{header}</div>
+            )}
             {placeholderGroups.map((group) => (
               <CommandGroup heading={group.label} key={group.label}>
                 {group.placeholders.map((placeholder) => (
                   <CommandItem
                     key={placeholder.value}
                     value={placeholder.value}
-                    onSelect={(currentValue) => {
-                      onSelect(currentValue);
+                    keywords={placeholder.keywords}
+                    onSelect={() => {
+                      onSelect(placeholder.value, placeholder.raw);
                       setOpen(false);
                     }}
                     className="flex flex-col items-start"
                   >
-                    <div>{placeholder.label}</div>
+                    <div>
+                      {placeholder.label}
+                      {placeholder.description && (
+                        <span className="text-muted-foreground ml-2 text-xs">
+                          {placeholder.description}
+                        </span>
+                      )}
+                    </div>
                     <div className="text-xs">
-                      {!hideBrackets ? (
+                      {!hideBrackets && !placeholder.raw ? (
                         <>
                           <span className="text-muted-foreground mr-1">
                             {"{{"}
