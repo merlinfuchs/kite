@@ -23,18 +23,20 @@ export default function MessageList() {
           <Skeleton className="h-28" />
           <Skeleton className="h-28" />
         </>
-      ) : messages.length === 0 ? (
-        <AppEmptyPlaceholder
-          title="There are no message templates"
-          description="You can start now by creating the first message template!"
-          action={messageCreateButton}
-        />
       ) : (
         <>
-          {messages.map((message, i) => (
-            <MessageListEntry message={message!} key={i} />
-          ))}
           <div className="flex">{messageCreateButton}</div>
+
+          {messages.length === 0 ? (
+            <AppEmptyPlaceholder
+              title="There are no message templates"
+              description="You can start now by creating the first message template!"
+            />
+          ) : (
+            messages.map((message, i) => (
+              <MessageListEntry message={message!} key={i} />
+            ))
+          )}
         </>
       )}
     </AutoAnimate>
