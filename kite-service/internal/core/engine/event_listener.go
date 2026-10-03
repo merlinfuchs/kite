@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"time"
 
+	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/gateway"
 	"github.com/diamondburned/arikawa/v3/state"
 	"github.com/diamondburned/arikawa/v3/utils/ws"
@@ -102,6 +103,9 @@ func (l *EventListener) HandleEvent(appID string, session *state.State, event ga
 func (l *EventListener) shouldHandleEvent(e ws.Event) bool {
 	switch d := e.(type) {
 	case *gateway.MessageCreateEvent:
+		if l.listener != nil && l.listener.Type == model.EventListenerTypeDiscordGuildBoost {
+			return isBoostMessage(d.Message)
+		}
 		// TODO?: It would be better if we check if the author is specifically the current app
 		return !d.Author.Bot
 	case *gateway.MessageUpdateEvent:
@@ -120,5 +124,20 @@ func (l *EventListener) shouldHandleEvent(e ws.Event) bool {
 		return true
 	}
 
+	return false
+}
+
+// isBoostMessage reports whether a message is the system message Discord posts
+// when a member boosts the server. The author is the member who boosted. A
+// boost that takes the server to a new level gets one of the tier types
+// instead of the plain one.
+func isBoostMessage(msg discord.Message) bool {
+	switch msg.Type {
+	case discord.NitroBoostMessage,
+		discord.NitroTier1Message,
+		discord.NitroTier2Message,
+		discord.NitroTier3Message:
+		return true
+	}
 	return false
 }
