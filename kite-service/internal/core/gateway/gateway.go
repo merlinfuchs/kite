@@ -9,10 +9,12 @@ import (
 	"sync"
 	"time"
 
+	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/gateway"
 	"github.com/diamondburned/arikawa/v3/session"
 	"github.com/diamondburned/arikawa/v3/state"
 	"github.com/diamondburned/arikawa/v3/utils/httputil"
+	"github.com/diamondburned/arikawa/v3/utils/json/option"
 	"github.com/kitecloud/kite/kite-service/internal/core/plan"
 	"github.com/kitecloud/kite/kite-service/internal/metrics"
 	"github.com/kitecloud/kite/kite-service/internal/model"
@@ -43,6 +45,9 @@ type Gateway struct {
 	// unambiguous. Compared against a freshly computed set on refresh; a
 	// change requires a reconnect, since intents are fixed at IDENTIFY.
 	intents gateway.Intents
+	// cacheMembers is whether this connection requests every member of its
+	// guilds, so the roles of a member who leaves are known.
+	cacheMembers bool
 	// ctx is cancelled when the connection is replaced or closed, so the
 	// goroutine that started it knows it's no longer wanted.
 	ctx    context.Context
@@ -106,7 +111,7 @@ func (g *Gateway) currentApp() *model.App {
 // ctx is cancelled the connection was replaced or closed on purpose, so its
 // errors don't disable the app.
 func (g *Gateway) startGateway(session *state.State, ctx context.Context) {
-	intents, err := g.computeIntents(ctx, session)
+	intents, cacheMembers, err := g.computeIntents(ctx, session)
 	if ctx.Err() != nil {
 		return
 	}
@@ -130,6 +135,7 @@ func (g *Gateway) startGateway(session *state.State, ctx context.Context) {
 	g.mu.Lock()
 	if g.session == session {
 		g.intents = intents
+		g.cacheMembers = cacheMembers
 	}
 	g.mu.Unlock()
 	session.AddIntents(intents)
@@ -139,6 +145,14 @@ func (g *Gateway) startGateway(session *state.State, ctx context.Context) {
 		slog.String("app_id", g.appID),
 		slog.Uint64("intents", uint64(intents)),
 	)
+
+	takeLeftMember := trackLeftMembers(session)
+
+	session.AddHandler(func(e *gateway.GuildCreateEvent) {
+		if g.cachesMembers(session) {
+			g.requestMembers(ctx, session, e.ID)
+		}
+	})
 
 	session.AddHandler(func(e gateway.Event) {
 		// Protocol frames -- heartbeat acks, hello, reconnect, invalid session
@@ -151,6 +165,10 @@ func (g *Gateway) startGateway(session *state.State, ctx context.Context) {
 		eventType := e.EventType()
 		if eventType == "" {
 			return
+		}
+
+		if removed, ok := e.(*gateway.GuildMemberRemoveEvent); ok {
+			e = memberRemoveEvent(session.Cabinet, removed, takeLeftMember(removed))
 		}
 
 		metrics.GatewayEvents.Add(string(eventType), 1)
@@ -190,16 +208,17 @@ func (g *Gateway) startGateway(session *state.State, ctx context.Context) {
 	}
 }
 
-// computeIntents derives the intent set this app should identify with.
+// computeIntents derives the intent set this app should identify with, and
+// whether it should cache the members of its guilds.
 //
 // The returned error is always from fetching the application, so callers can
 // still inspect it for a 401. A failure to load requirements is not fatal: it
 // falls back to every intent the app is permitted, because failing closed
 // would silently stop delivering events.
-func (g *Gateway) computeIntents(ctx context.Context, session *state.State) (gateway.Intents, error) {
+func (g *Gateway) computeIntents(ctx context.Context, session *state.State) (gateway.Intents, bool, error) {
 	app, err := session.Client.CurrentApplication()
 	if err != nil {
-		return 0, fmt.Errorf("failed to get current application: %w", err)
+		return 0, false, fmt.Errorf("failed to get current application: %w", err)
 	}
 
 	reqs, err := g.appRequirements(ctx)
@@ -209,10 +228,47 @@ func (g *Gateway) computeIntents(ctx context.Context, session *state.State) (gat
 			slog.String("app_id", g.appID),
 			slog.String("error", err.Error()),
 		)
-		return allPermittedIntents(app.Flags), nil
+		return allPermittedIntents(app.Flags), false, nil
 	}
 
-	return intentsForRequirements(reqs, app.Flags), nil
+	intents := intentsForRequirements(reqs, app.Flags)
+	// Members can only be requested with the guild members intent.
+	cacheMembers := reqs.NeedsMemberCache() && intents.Has(gateway.IntentGuildMembers)
+	return intents, cacheMembers, nil
+}
+
+func (g *Gateway) cachesMembers(session *state.State) bool {
+	g.mu.RLock()
+	defer g.mu.RUnlock()
+	return g.session == session && g.cacheMembers
+}
+
+// requestMembers asks Discord for every member of the guilds. They arrive as
+// GUILD_MEMBERS_CHUNK events, which the state caches.
+func (g *Gateway) requestMembers(ctx context.Context, session *state.State, guildIDs ...discord.GuildID) {
+	gw := session.Gateway()
+	if gw == nil {
+		return
+	}
+
+	for _, guildID := range guildIDs {
+		// Bots can only request one guild at a time.
+		err := gw.Send(ctx, &gateway.RequestGuildMembersCommand{
+			GuildIDs: []discord.GuildID{guildID},
+			Query:    option.NewString(""),
+		})
+		if err != nil {
+			if ctx.Err() == nil {
+				slog.Error(
+					"Failed to request guild members",
+					slog.String("app_id", g.appID),
+					slog.String("guild_id", guildID.String()),
+					slog.String("error", err.Error()),
+				)
+			}
+			return
+		}
+	}
 }
 
 // appRequirements loads what this app consumes from the gateway and resolves
@@ -337,7 +393,8 @@ func (g *Gateway) rotatePresence(ctx context.Context, now time.Time, allowed boo
 // last computation, so keeping it beats a reconnect loop.
 func (g *Gateway) RefreshIntents(ctx context.Context) {
 	g.mu.RLock()
-	session, current := g.session, g.intents
+	session, current, cached := g.session, g.intents, g.cacheMembers
+	gCtx := g.ctx
 	g.mu.RUnlock()
 
 	if current == 0 {
@@ -345,7 +402,7 @@ func (g *Gateway) RefreshIntents(ctx context.Context) {
 		return
 	}
 
-	intents, err := g.computeIntents(ctx, session)
+	intents, cacheMembers, err := g.computeIntents(ctx, session)
 	if err != nil {
 		slog.Error(
 			"Failed to compute intents while refreshing",
@@ -356,6 +413,26 @@ func (g *Gateway) RefreshIntents(ctx context.Context) {
 	}
 
 	if intents == current {
+		if cacheMembers == cached {
+			return
+		}
+
+		g.mu.Lock()
+		if g.session == session {
+			g.cacheMembers = cacheMembers
+		}
+		g.mu.Unlock()
+
+		// The guilds are already loaded, so their members have to be
+		// requested here instead of on GUILD_CREATE.
+		if cacheMembers {
+			guilds, _ := session.Cabinet.Guilds()
+			guildIDs := make([]discord.GuildID, len(guilds))
+			for i, guild := range guilds {
+				guildIDs[i] = guild.ID
+			}
+			go g.requestMembers(gCtx, session, guildIDs...)
+		}
 		return
 	}
 
@@ -408,6 +485,7 @@ func (g *Gateway) replaceSession(expected *state.State) (*state.State, context.C
 	g.ctx, g.cancel = context.WithCancel(context.Background())
 	g.session = session
 	g.intents = 0
+	g.cacheMembers = false
 	ctx := g.ctx
 	g.mu.Unlock()
 

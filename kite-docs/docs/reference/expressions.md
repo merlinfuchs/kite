@@ -24,6 +24,7 @@ user:
   banner_url: string
   mention: string
   role_ids?: []string
+  role_mentions?: string # All roles of the user as mentions, e.g. "<@&123> <@&456>"
   nick?: string
 
 message?: # For message events
@@ -91,6 +92,14 @@ This will return true if the user has the role with the ID `123`.
 
 ```python
 {{ "123" in user.role_ids }}
+```
+
+### List User Roles
+
+This will list all roles of the user as mentions. Roles are only pinged if you enable "Allow Role Pings" on the message block, otherwise they are just displayed.
+
+```python
+{{ user.role_mentions }}
 ```
 
 ### Get Selected Option
