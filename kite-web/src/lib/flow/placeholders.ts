@@ -67,6 +67,7 @@ function interactionPlaceholders(
         { label: "User Username", value: `${prefix}user.username` },
         { label: "User Display Name", value: `${prefix}user.display_name` },
         { label: "User Nickname", value: `${prefix}user.nick` },
+        { label: "User Role Mentions", value: `${prefix}user.role_mentions` },
         { label: "User Avatar URL", value: `${prefix}user.avatar_url` },
         { label: "User Banner URL", value: `${prefix}user.banner_url` },
       ],

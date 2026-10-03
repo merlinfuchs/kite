@@ -93,6 +93,13 @@ func (r AppGatewayRequirements) NeedsGuildMembers() bool {
 	return false
 }
 
+// NeedsMemberCache reports whether the app needs every member of its guilds
+// cached. GUILD_MEMBER_REMOVE doesn't say which roles the member had, so they
+// can only be provided for members that were cached before they left.
+func (r AppGatewayRequirements) NeedsMemberCache() bool {
+	return slices.Contains(r.EventListenerTypes, EventListenerTypeDiscordGuildMemberRemove)
+}
+
 // NeedsGuildMessageReactions reports whether the app consumes reaction events.
 // No event listener type covers reactions today, so this is driven entirely by
 // plugins such as starboard.

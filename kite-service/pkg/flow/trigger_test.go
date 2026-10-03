@@ -9,6 +9,7 @@ import (
 	"github.com/diamondburned/arikawa/v3/gateway"
 	arikawajson "github.com/diamondburned/arikawa/v3/utils/json"
 	"github.com/diamondburned/arikawa/v3/utils/ws"
+	"github.com/kitecloud/kite/kite-service/pkg/discordevent"
 	"github.com/kitecloud/kite/kite-service/pkg/schedule"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -101,6 +102,27 @@ func TestRecordTriggerRoundTripsEvent(t *testing.T) {
 	event, ok := res.Triggers[0].Event.(*gateway.MessageCreateEvent)
 	require.True(t, ok)
 	assert.Equal(t, "hello", event.Content)
+}
+
+func TestRecordTriggerRoundTripsMemberRemoveEvent(t *testing.T) {
+	// The roles aren't part of Discord's event, so decoding it as one would
+	// lose them once the flow resumes.
+	state := NewFlowContextState()
+	state.recordTrigger(&eventData{event: &discordevent.MemberRemoveEvent{
+		GuildMemberRemoveEvent: &gateway.GuildMemberRemoveEvent{
+			GuildID: 1,
+			User:    discord.User{ID: 5},
+		},
+		RoleIDs: []discord.RoleID{10, 11},
+	}})
+
+	res := roundTrip(t, *state)
+	require.Len(t, res.Triggers, 1)
+
+	event, ok := res.Triggers[0].Event.(*discordevent.MemberRemoveEvent)
+	require.True(t, ok, "decoded event is %T", res.Triggers[0].Event)
+	assert.Equal(t, discord.UserID(5), event.User.ID)
+	assert.Equal(t, []discord.RoleID{10, 11}, event.RoleIDs)
 }
 
 func TestRecordTriggerAppendsWithoutTouchingCopies(t *testing.T) {

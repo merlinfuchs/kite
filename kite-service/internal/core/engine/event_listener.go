@@ -10,6 +10,7 @@ import (
 	"github.com/diamondburned/arikawa/v3/state"
 	"github.com/diamondburned/arikawa/v3/utils/ws"
 	"github.com/kitecloud/kite/kite-service/internal/model"
+	"github.com/kitecloud/kite/kite-service/pkg/discordevent"
 	"github.com/kitecloud/kite/kite-service/pkg/flow"
 	"github.com/kitecloud/kite/kite-service/pkg/schedule"
 	"gopkg.in/guregu/null.v4"
@@ -110,7 +111,7 @@ func (l *EventListener) shouldHandleEvent(e ws.Event) bool {
 		return true
 	case *gateway.GuildMemberAddEvent:
 		return true
-	case *gateway.GuildMemberRemoveEvent:
+	case *gateway.GuildMemberRemoveEvent, *discordevent.MemberRemoveEvent:
 		return true
 	// arikawa derives these from GUILD_CREATE and GUILD_DELETE, leaving out
 	// guilds that load on connect or recover from an outage.

@@ -7,6 +7,7 @@ import (
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/gateway"
 	"github.com/diamondburned/arikawa/v3/utils/ws"
+	"github.com/kitecloud/kite/kite-service/pkg/discordevent"
 	"github.com/kitecloud/kite/kite-service/pkg/schedule"
 )
 
@@ -78,6 +79,11 @@ func (t *FlowTrigger) UnmarshalJSON(data []byte) error {
 		if aux.EventType == schedule.EventType {
 			// Kite's own event, which arikawa doesn't know about.
 			event = new(schedule.Event)
+		} else if aux.EventType == "GUILD_MEMBER_REMOVE" {
+			// Stored with the member's roles, which arikawa's event would drop.
+			event = &discordevent.MemberRemoveEvent{
+				GuildMemberRemoveEvent: new(gateway.GuildMemberRemoveEvent),
+			}
 		} else {
 			newEvent := gateway.OpUnmarshalers.Lookup(aux.EventOp, aux.EventType)
 			if newEvent == nil {
