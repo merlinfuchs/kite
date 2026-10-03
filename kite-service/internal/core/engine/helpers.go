@@ -26,6 +26,7 @@ type Env struct {
 	AppStore             store.AppStore
 	FeatureProvider      FeatureProvider
 	BlockRateLimiter     *BlockRateLimiter
+	ConnectionTracker    *ConnectionTracker
 	LogStore             store.LogStore
 	UsageStore           store.UsageStore
 	MessageStore         store.MessageStore
@@ -70,7 +71,7 @@ func (s Env) flowProviders(appID string, session *state.State, links entityLinks
 	}
 
 	return flow.FlowProviders{
-		Discord: NewDiscordProvider(appID, s.AppStore, s.FeatureProvider, s.BlockRateLimiter, session),
+		Discord: NewDiscordProvider(appID, s.AppStore, s.FeatureProvider, s.BlockRateLimiter, s.ConnectionTracker, session),
 		Roblox:  NewRobloxProvider(s.HttpClient),
 		Log: NewLogProvider(
 			appID,

@@ -1,4 +1,6 @@
 import { Edge, Node } from "@xyflow/react";
+import { ZodNullable, ZodObject, ZodOptional, ZodTypeAny } from "zod";
+import { getBlockDefinition } from "../blocks";
 import { FlowContextType } from "./context";
 import { NodeData } from "./dataSchema";
 import { getNodeTitle } from "./nodes";
@@ -220,6 +222,15 @@ export function getProvidedPlaceholders(node: Node<NodeData>) {
       label: getNodeTitle(node),
       value: `result('${node.id}')`,
     });
+
+    const schema = getBlockDefinition(node.type)?.result?.schema;
+    for (const field of schema ? resultFields(schema) : []) {
+      res.push({
+        group: "Node Results",
+        label: `${getNodeTitle(node)}: ${fieldLabel(field)}`,
+        value: `result('${node.id}').${field}`,
+      });
+    }
   }
 
   if (node.data.temporary_name) {
@@ -243,6 +254,32 @@ export function getProvidedPlaceholders(node: Node<NodeData>) {
   }
 
   return res;
+}
+
+// Returns the fields of a result that is an object, like guild_count of the
+// bot stats, so each gets a placeholder of its own. Fields of objects inside
+// it are listed as e.g. author.id instead of the object.
+function resultFields(schema: ZodTypeAny, path = ""): string[] {
+  while (schema instanceof ZodOptional || schema instanceof ZodNullable) {
+    schema = schema.unwrap();
+  }
+  if (!(schema instanceof ZodObject)) return path ? [path] : [];
+
+  return Object.entries<ZodTypeAny>(schema.shape).flatMap(([key, field]) =>
+    resultFields(field, path ? `${path}.${key}` : key)
+  );
+}
+
+// Turns a field like author.avatar_url into "Author Avatar URL".
+function fieldLabel(field: string) {
+  return field
+    .split(/[._]/)
+    .map((word) =>
+      word === "id" || word === "url"
+        ? word.toUpperCase()
+        : word.charAt(0).toUpperCase() + word.slice(1)
+    )
+    .join(" ");
 }
 
 // Returns all blocks that run before the given one, nearest first. Besides
