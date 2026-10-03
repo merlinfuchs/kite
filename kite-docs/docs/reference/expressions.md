@@ -30,6 +30,17 @@ message?: # For message events
   id: string
   content: string
 
+invite?: # For the Invite Create event
+  code: string
+  url: string
+  duration: string # How long it lasts, like "7 days" or "never"
+  expires: string # A relative Discord timestamp, or "never"
+  max_age: number # How long it lasts in seconds, 0 if it never expires
+  expires_at: number # Unix timestamp, 0 if it never expires
+  created_at: number # Unix timestamp
+  max_uses: number # 0 if there is no limit
+  temporary: boolean
+
 channel:
   id: string
 

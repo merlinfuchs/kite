@@ -93,6 +93,11 @@ func (r AppGatewayRequirements) NeedsGuildMembers() bool {
 	return false
 }
 
+// NeedsGuildInvites reports whether the app consumes invite events.
+func (r AppGatewayRequirements) NeedsGuildInvites() bool {
+	return slices.Contains(r.EventListenerTypes, EventListenerTypeDiscordInviteCreate)
+}
+
 // NeedsGuildMessageReactions reports whether the app consumes reaction events.
 // No event listener type covers reactions today, so this is driven entirely by
 // plugins such as starboard.

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/diamondburned/arikawa/v3/discord"
@@ -244,6 +245,7 @@ type EventEnv struct {
 	Channel *SnowflakeEnv `expr:"channel" json:"channel"`
 	Message *MessageEnv   `expr:"message" json:"message"`
 	Guild   any           `expr:"guild" json:"guild"`
+	Invite  *InviteEnv    `expr:"invite" json:"invite"`
 
 	Schedule *ScheduleEnv `expr:"schedule" json:"schedule"`
 }
@@ -317,6 +319,18 @@ func NewEventEnv(event ws.Event) *EventEnv {
 		env.Guild = NewGuildEnv(e.Guild)
 	case *state.GuildLeaveEvent:
 		env.Guild = NewSnowflakeEnv(e.ID)
+	case *gateway.InviteCreateEvent:
+		// Invites that aren't created by a user, like the ones of the server
+		// widget, have no inviter.
+		if e.Inviter != nil {
+			env.User = NewUserEnv(*e.Inviter)
+			env.Member = env.User
+		}
+		env.Channel = NewSnowflakeEnv(e.ChannelID)
+		if e.GuildID != 0 {
+			env.Guild = NewSnowflakeEnv(e.GuildID)
+		}
+		env.Invite = NewInviteEnv(e)
 	case *schedule.Event:
 		env.Schedule = NewScheduleEnv(e)
 	}
@@ -375,6 +389,7 @@ func NewContextFromEvent(event ws.Event, session *state.State) Context {
 			"guild":    env.Guild,
 			"server":   env.Guild,
 			"message":  env.Message,
+			"invite":   env.Invite,
 			"schedule": env.Schedule,
 			"app":      NewAppEnv(session),
 		},
@@ -529,6 +544,88 @@ func (m MessageEnv) Thing() thing.Thing {
 
 func (m MessageEnv) String() string {
 	return m.ID
+}
+
+type InviteEnv struct {
+	Code string `expr:"code" json:"code"`
+	URL  string `expr:"url" json:"url"`
+	// MaxAge is how long the invite lasts in seconds, 0 if it never expires.
+	MaxAge int `expr:"max_age" json:"max_age"`
+	// Duration is MaxAge in words, like "7 days" or "never".
+	Duration string `expr:"duration" json:"duration"`
+	// ExpiresAt is a Unix timestamp, 0 if the invite never expires.
+	ExpiresAt int64 `expr:"expires_at" json:"expires_at"`
+	// Expires is a relative Discord timestamp of ExpiresAt, or "never".
+	Expires string `expr:"expires" json:"expires"`
+	// MaxUses is 0 if the invite can be used any number of times.
+	MaxUses   int   `expr:"max_uses" json:"max_uses"`
+	Temporary bool  `expr:"temporary" json:"temporary"`
+	CreatedAt int64 `expr:"created_at" json:"created_at"`
+}
+
+func NewInviteEnv(e *gateway.InviteCreateEvent) *InviteEnv {
+	createdAt := e.CreatedAt.Time()
+	if createdAt.IsZero() {
+		createdAt = time.Now()
+	}
+
+	env := &InviteEnv{
+		Code:      e.Code,
+		URL:       "https://discord.gg/" + e.Code,
+		MaxAge:    max(int(e.MaxAge), 0),
+		Duration:  "never",
+		Expires:   "never",
+		MaxUses:   e.MaxUses,
+		Temporary: e.Temporary,
+		CreatedAt: createdAt.Unix(),
+	}
+
+	if env.MaxAge > 0 {
+		maxAge := time.Duration(env.MaxAge) * time.Second
+		env.Duration = formatInviteDuration(maxAge)
+		env.ExpiresAt = createdAt.Add(maxAge).Unix()
+		env.Expires = fmt.Sprintf("<t:%d:R>", env.ExpiresAt)
+	}
+
+	return env
+}
+
+func (i InviteEnv) String() string {
+	return i.Code
+}
+
+// formatInviteDuration writes a duration with its two biggest units, like
+// "7 days" or "1 hour 30 minutes".
+func formatInviteDuration(d time.Duration) string {
+	units := []struct {
+		name string
+		size time.Duration
+	}{
+		{"day", 24 * time.Hour},
+		{"hour", time.Hour},
+		{"minute", time.Minute},
+		{"second", time.Second},
+	}
+
+	var parts []string
+	for _, unit := range units {
+		n := d / unit.size
+		d -= n * unit.size
+		if n == 0 {
+			continue
+		}
+
+		part := fmt.Sprintf("%d %s", n, unit.name)
+		if n != 1 {
+			part += "s"
+		}
+		parts = append(parts, part)
+		if len(parts) == 2 {
+			break
+		}
+	}
+
+	return strings.Join(parts, " ")
 }
 
 type GuildEnv struct {

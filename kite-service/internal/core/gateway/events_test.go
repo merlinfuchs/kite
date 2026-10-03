@@ -43,6 +43,7 @@ func TestDispatchedEventsHaveNonEmptyEventType(t *testing.T) {
 		&gateway.GuildMemberAddEvent{},
 		&gateway.GuildMemberRemoveEvent{},
 		&gateway.MessageReactionAddEvent{},
+		&gateway.InviteCreateEvent{},
 		&gateway.InteractionCreateEvent{},
 		&gateway.GuildCreateEvent{},
 		&gateway.GuildDeleteEvent{},
@@ -69,6 +70,7 @@ func TestNoEventListenerTypeIsEmpty(t *testing.T) {
 		model.EventListenerTypeDiscordGuildMemberRemove,
 		model.EventListenerTypeDiscordGuildCreate,
 		model.EventListenerTypeDiscordGuildDelete,
+		model.EventListenerTypeDiscordInviteCreate,
 	}
 
 	for _, tp := range types {

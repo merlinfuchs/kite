@@ -206,6 +206,9 @@ export default function EventListenerCreateDialog({
                         <SelectItem value="guild_delete">
                           Bot Left Server
                         </SelectItem>
+                        <SelectItem value="invite_create">
+                          Invite Create
+                        </SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />
