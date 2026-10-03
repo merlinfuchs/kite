@@ -16,8 +16,6 @@ import { Input } from "../ui/input";
 import { ScrollArea } from "../ui/scroll-area";
 import { cn } from "@/lib/utils";
 
-let persistedCollapsed: Record<string, boolean> = {};
-
 export default function FlowNodeExplorer({
   category,
   onNodeSelect,
@@ -30,16 +28,10 @@ export default function FlowNodeExplorer({
   const contextType = useFlowContext((c) => c.type);
 
   const [search, setSearch] = useState("");
-  const [collapsed, setCollapsedState] = useState<Record<string, boolean>>(
-    () => persistedCollapsed
-  );
+  const [collapsed, setCollapsedState] = useState<Record<string, boolean>>({});
 
   const toggleCollapsed = (title: string) => {
-    setCollapsedState((prev) => {
-      const next = { ...prev, [title]: !prev[title] };
-      persistedCollapsed = next;
-      return next;
-    });
+    setCollapsedState((prev) => ({ ...prev, [title]: !prev[title] }));
   };
 
   const sections = useMemo(() => {

@@ -6,6 +6,7 @@ import Flow from "./Flow";
 import { FlowContextType } from "@/lib/flow/context";
 import { LogEntry } from "@/lib/types/wire.gen";
 import UnsavedChangesDialog from "@/components/common/UnsavedChangesDialog";
+import { bypassUnsavedChangesWarning } from "@/lib/hooks/exit";
 
 interface Props {
   flowData: FlowData;
@@ -58,11 +59,20 @@ function InnerFlowPage({
     }
   }, [hasUnsavedChanges, onExit]);
 
+  const handleDiscardAndExit = useCallback(() => {
+    setUnsavedDialogOpen(false);
+    bypassUnsavedChangesWarning(() => {
+      onExit();
+    });
+  }, [onExit]);
+
   const handleSaveAndExit = useCallback(() => {
     save({
       onSuccess: () => {
         setUnsavedDialogOpen(false);
-        onExit();
+        bypassUnsavedChangesWarning(() => {
+          onExit();
+        });
       },
     });
   }, [save, onExit]);
@@ -93,7 +103,7 @@ function InnerFlowPage({
         open={unsavedDialogOpen}
         onOpenChange={setUnsavedDialogOpen}
         onSaveAndExit={handleSaveAndExit}
-        onDiscardAndExit={onExit}
+        onDiscardAndExit={handleDiscardAndExit}
         isSaving={isSaving}
       />
     </div>

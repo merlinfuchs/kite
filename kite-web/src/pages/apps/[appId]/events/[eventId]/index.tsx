@@ -3,10 +3,7 @@ import { useEventListenerUpdateMutation } from "@/lib/api/mutations";
 import { FlowData } from "@/lib/flow/dataSchema";
 import { useEventListener, useFlowLogEntries } from "@/lib/hooks/api";
 import { useAppId, useEventId } from "@/lib/hooks/params";
-import {
-  useUnsavedChangesWarning,
-  UNSAVED_CHANGES_WARNING,
-} from "@/lib/hooks/exit";
+import { useUnsavedChangesWarning } from "@/lib/hooks/exit";
 import Head from "next/head";
 import { useRouter } from "next/router";
 import { useCallback, useState } from "react";

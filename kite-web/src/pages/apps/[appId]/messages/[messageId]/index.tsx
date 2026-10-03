@@ -8,7 +8,7 @@ import { useMessage, useMessageInstances } from "@/lib/hooks/api";
 import UnsavedChangesDialog from "@/components/common/UnsavedChangesDialog";
 import {
   useUnsavedChangesWarning,
-  UNSAVED_CHANGES_WARNING,
+  bypassUnsavedChangesWarning,
 } from "@/lib/hooks/exit";
 import { useAppId, useMessageId } from "@/lib/hooks/params";
 import { messageSchema, parseMessageData } from "@/lib/message/schemaRestore";
@@ -154,11 +154,20 @@ function AppMessagePageInner() {
     }
   }, [hasUnsavedChanges, doExit]);
 
+  const handleDiscardAndExit = useCallback(() => {
+    setUnsavedDialogOpen(false);
+    bypassUnsavedChangesWarning(() => {
+      doExit();
+    });
+  }, [doExit]);
+
   const handleSaveAndExit = useCallback(() => {
     save({
       onSuccess: () => {
         setUnsavedDialogOpen(false);
-        doExit();
+        bypassUnsavedChangesWarning(() => {
+          doExit();
+        });
       },
     });
   }, [save, doExit]);
@@ -199,7 +208,7 @@ function AppMessagePageInner() {
         open={unsavedDialogOpen}
         onOpenChange={setUnsavedDialogOpen}
         onSaveAndExit={handleSaveAndExit}
-        onDiscardAndExit={doExit}
+        onDiscardAndExit={handleDiscardAndExit}
         isSaving={isSaving}
       />
     </div>

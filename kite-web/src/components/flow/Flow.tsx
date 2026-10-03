@@ -18,6 +18,7 @@ import FlowMobileBottomBar from "./FlowMobileBottomBar";
 import FlowAddBlockDrawer from "./FlowAddBlockDrawer";
 import FlowNodeEditorDrawer from "./FlowNodeEditorDrawer";
 import FlowLogsDrawer from "./FlowLogsDrawer";
+import { useIsMobile } from "@/lib/hooks/use-mobile";
 
 interface Props {
   flowData: FlowData;
@@ -38,6 +39,7 @@ export default function Flow({
   chatOpen: controlledChatOpen,
   onChatOpenChange,
 }: Props) {
+  const isMobile = useIsMobile();
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [mobileEditorOpen, setMobileEditorOpen] = useState(false);
   const [addBlockOpen, setAddBlockOpen] = useState(false);
@@ -70,12 +72,15 @@ export default function Flow({
     []
   );
 
-  const handleNodeTap = useCallback((node: Node<NodeData>) => {
-    setSelectedNodeId(node.id);
-    if (typeof window !== "undefined" && window.innerWidth < 768) {
-      setMobileEditorOpen(true);
-    }
-  }, []);
+  const handleNodeTap = useCallback(
+    (node: Node<NodeData>) => {
+      setSelectedNodeId(node.id);
+      if (isMobile) {
+        setMobileEditorOpen(true);
+      }
+    },
+    [isMobile]
+  );
 
   const handleHistoryChange = useCallback((u: boolean, r: boolean) => {
     setCanUndo(u);
@@ -169,12 +174,7 @@ export default function Flow({
         <FlowNodeEditorDrawer
           nodeId={selectedNodeId}
           open={mobileEditorOpen && !!selectedNodeId}
-          onOpenChange={(open) => {
-            setMobileEditorOpen(open);
-            if (!open) {
-              deselectNode();
-            }
-          }}
+          onOpenChange={setMobileEditorOpen}
         />
 
         <FlowLogsDrawer

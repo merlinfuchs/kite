@@ -51,8 +51,6 @@ export interface FlowEditorApi {
   ) => void;
   undo: () => void;
   redo: () => void;
-  canUndo: boolean;
-  canRedo: boolean;
   format: () => void;
 }
 
@@ -150,11 +148,9 @@ export default function FlowEditor({
       },
       undo,
       redo,
-      canUndo,
-      canRedo,
       format,
     }),
-    [commit, setNodes, setEdges, undo, redo, canUndo, canRedo, format]
+    [commit, setNodes, setEdges, undo, redo, format]
   );
 
   const onConnect = useCallback(
@@ -278,6 +274,20 @@ export default function FlowEditor({
       const target = getNode(con.target)!;
       if (!canConnect(source.type!, target.type!)) return false;
 
+      // Prevent cycles
+      /*const hasCycle = (node: Node, visited = new Set()) => {
+        if (visited.has(node.id)) return false;
+
+        visited.add(node.id);
+
+        for (const outgoer of getOutgoers(node, nodes, edges)) {
+          if (outgoer.id === con.source) return true;
+          if (hasCycle(outgoer, visited)) return true;
+        }
+      };
+
+      if (target.id === con.source) return false;
+      return !hasCycle(target);*/
       return true;
     },
     [getNode]

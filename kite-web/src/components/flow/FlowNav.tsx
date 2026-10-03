@@ -58,124 +58,19 @@ export default function FlowNav({
     return () => document.removeEventListener("keydown", onKeyDown);
   }, [onSave, save]);
 
-  const [holding, setHolding] = useState(false);
-  const [holdProgress, setHoldProgress] = useState(0);
-  const [secondsRemaining, setSecondsRemaining] = useState(1.5);
-  const [showTapHint, setShowTapHint] = useState(false);
-  const holdTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const holdStartTimeRef = useRef<number | null>(null);
-  const tapHintTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-
-  const confirmAndExit = useCallback(() => {
-    onExit();
-  }, [onExit]);
-
-  const clearHold = useCallback(() => {
-    if (holdTimerRef.current) {
-      clearInterval(holdTimerRef.current);
-      holdTimerRef.current = null;
-    }
-    holdStartTimeRef.current = null;
-    setHolding(false);
-    setHoldProgress(0);
-    setSecondsRemaining(1.5);
-  }, []);
-
-  const handlePointerDown = useCallback(
-    (e: React.PointerEvent) => {
-      if (e.button !== 0 && e.pointerType === "mouse") return;
-      if (tapHintTimeoutRef.current) {
-        clearTimeout(tapHintTimeoutRef.current);
-        tapHintTimeoutRef.current = null;
-      }
-      setShowTapHint(false);
-      setHolding(true);
-      setHoldProgress(0);
-      setSecondsRemaining(1.5);
-      holdStartTimeRef.current = Date.now();
-
-      holdTimerRef.current = setInterval(() => {
-        if (!holdStartTimeRef.current) return;
-        const elapsed = Date.now() - holdStartTimeRef.current;
-        const remaining = Math.max(0, 1.5 - elapsed / 1000);
-        const progress = Math.min(100, (elapsed / 1500) * 100);
-
-        setSecondsRemaining(remaining);
-        setHoldProgress(progress);
-
-        if (elapsed >= 1500) {
-          clearHold();
-          confirmAndExit();
-        }
-      }, 50);
-    },
-    [clearHold, confirmAndExit]
-  );
-
-  const handlePointerUp = useCallback(() => {
-    if (holdStartTimeRef.current) {
-      const elapsed = Date.now() - holdStartTimeRef.current;
-      clearHold();
-      if (elapsed < 1500) {
-        setShowTapHint(true);
-        if (tapHintTimeoutRef.current) {
-          clearTimeout(tapHintTimeoutRef.current);
-        }
-        tapHintTimeoutRef.current = setTimeout(() => {
-          setShowTapHint(false);
-        }, 2200);
-      }
-    } else {
-      clearHold();
-    }
-  }, [clearHold]);
-
-  useEffect(() => {
-    return () => {
-      if (holdTimerRef.current) clearInterval(holdTimerRef.current);
-      if (tapHintTimeoutRef.current) clearTimeout(tapHintTimeoutRef.current);
-    };
-  }, []);
-
   return (
     <div className="h-12 flex items-center justify-between px-3 md:px-4 select-none bg-muted/70">
       <div className="flex items-center space-x-2 sm:space-x-4 md:space-x-8">
-        <div className="relative">
-          <button
-            type="button"
-            className="flex space-x-2 text-foreground/80 hover:text-foreground items-center p-1.5 md:p-0 rounded-md hover:bg-muted md:hover:bg-transparent touch-none select-none"
-            onPointerDown={handlePointerDown}
-            onPointerUp={handlePointerUp}
-            onPointerLeave={clearHold}
-            onPointerCancel={clearHold}
-            title="Press and hold 1.5s to exit"
-            aria-label="Back to App (press and hold 1.5s)"
-          >
-            <ArrowLeftIcon className="h-5 w-5 flex-none" />
-            <span className="hidden md:inline">Back to App</span>
-          </button>
-
-          {holding && (
-            <div className="absolute top-10 left-0 z-50 min-w-[130px] bg-popover text-popover-foreground border border-border shadow-lg rounded-md px-2.5 py-1.5 text-xs pointer-events-none">
-              <div className="flex items-center justify-between font-medium text-[11px] mb-1">
-                <span>Hold to exit</span>
-                <span>{secondsRemaining.toFixed(1)}s</span>
-              </div>
-              <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-primary transition-all duration-75"
-                  style={{ width: `${holdProgress}%` }}
-                />
-              </div>
-            </div>
-          )}
-
-          {showTapHint && !holding && (
-            <div className="absolute top-10 left-0 z-50 whitespace-nowrap bg-popover text-popover-foreground border border-border shadow-lg rounded-md px-2.5 py-1.5 text-xs pointer-events-none">
-              Press and hold 1.5s to exit
-            </div>
-          )}
-        </div>
+        <button
+          type="button"
+          className="flex space-x-2 text-foreground/80 hover:text-foreground items-center p-1.5 md:p-0 rounded-md hover:bg-muted md:hover:bg-transparent cursor-pointer"
+          onClick={onExit}
+          title="Back to App"
+          aria-label="Back to App"
+        >
+          <ArrowLeftIcon className="h-5 w-5 flex-none" />
+          <span className="hidden md:inline">Back to App</span>
+        </button>
         {isSaving ? (
           <div
             className="flex space-x-2 text-foreground/80 hover:text-foreground items-center p-1.5 md:p-0"

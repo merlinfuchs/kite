@@ -6,10 +6,7 @@ import {
 } from "@/lib/api/mutations";
 import { FlowData } from "@/lib/flow/dataSchema";
 import { useCommand, useFlowLogEntries } from "@/lib/hooks/api";
-import {
-  useUnsavedChangesWarning,
-  UNSAVED_CHANGES_WARNING,
-} from "@/lib/hooks/exit";
+import { useUnsavedChangesWarning } from "@/lib/hooks/exit";
 import { useAppId, useCommandId } from "@/lib/hooks/params";
 import Head from "next/head";
 import { useRouter } from "next/router";
