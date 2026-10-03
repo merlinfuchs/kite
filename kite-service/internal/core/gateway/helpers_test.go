@@ -88,6 +88,16 @@ func TestIntentsForRequirements(t *testing.T) {
 			want:  gateway.IntentGuilds,
 		},
 		{
+			name: "invite listener adds guild invites",
+			reqs: model.AppGatewayRequirements{
+				EventListenerTypes: []model.EventListenerType{
+					model.EventListenerTypeDiscordInviteCreate,
+				},
+			},
+			flags: 0,
+			want:  gateway.IntentGuilds | gateway.IntentGuildInvites,
+		},
+		{
 			// Reactions were previously requested unconditionally for every
 			// app even though no event listener type covers them.
 			name: "starboard plugin adds reactions but not messages",
@@ -165,7 +175,7 @@ func TestAllPermittedIntentsIsBroad(t *testing.T) {
 	got := allPermittedIntents(allPrivilegedFlags)
 
 	want := gateway.IntentGuilds | gateway.IntentGuildMessages | gateway.IntentGuildMessageReactions |
-		gateway.IntentMessageContent | gateway.IntentGuildMembers
+		gateway.IntentGuildInvites | gateway.IntentMessageContent | gateway.IntentGuildMembers
 
 	if got != want {
 		t.Errorf("allPermittedIntents = %d, want %d (missing %d)", got, want, want&^got)

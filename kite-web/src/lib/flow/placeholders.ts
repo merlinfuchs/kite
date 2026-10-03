@@ -18,9 +18,11 @@ export function getAvailablePlaceholders(
   edges: Edge[],
   contextType: FlowContextType
 ): PlaceholderGroup[] {
+  const eventType = getEventType(nodes);
+
   const res = [
     ...commandPlaceholders(nodes, edges, contextType),
-    ...interactionPlaceholders(contextType),
+    ...interactionPlaceholders(contextType, eventType),
     {
       label: "App",
       placeholders: [
@@ -33,7 +35,7 @@ export function getAvailablePlaceholders(
 
   return [
     ...res,
-    ...resumePlaceholders(nodeId, nodes, edges, contextType),
+    ...resumePlaceholders(nodeId, nodes, edges, contextType, eventType),
     ...upstreamPlaceholders(nodeId, nodes, edges),
   ];
 }
@@ -42,6 +44,7 @@ export function getAvailablePlaceholders(
 // the flow runs with. Resumed sub-flows reach earlier ones through a prefix.
 function interactionPlaceholders(
   contextType?: FlowContextType,
+  eventType?: string,
   prefix = "",
   labelPrefix = ""
 ): PlaceholderGroup[] {
@@ -101,7 +104,38 @@ function interactionPlaceholders(
     });
   }
 
+  if (contextType === "event_discord" && eventType === "invite_create") {
+    res.push({
+      label: `${labelPrefix}Invite`,
+      placeholders: [
+        { label: "Invite Code", value: `${prefix}invite.code` },
+        { label: "Invite URL", value: `${prefix}invite.url` },
+        { label: "Invite Duration", value: `${prefix}invite.duration` },
+        { label: "Invite Expires", value: `${prefix}invite.expires` },
+        {
+          label: "Invite Duration (Seconds)",
+          value: `${prefix}invite.max_age`,
+        },
+        {
+          label: "Invite Expires At (Unix)",
+          value: `${prefix}invite.expires_at`,
+        },
+        {
+          label: "Invite Created At (Unix)",
+          value: `${prefix}invite.created_at`,
+        },
+        { label: "Invite Max Uses", value: `${prefix}invite.max_uses` },
+        { label: "Invite Is Temporary", value: `${prefix}invite.temporary` },
+      ],
+    });
+  }
+
   return res;
+}
+
+// Some placeholders only exist for one event, which the entry block picks.
+function getEventType(nodes: Node<NodeData>[]) {
+  return nodes.find((n) => n.type === "entry_event")?.data.event_type;
 }
 
 function commandPlaceholders(
@@ -140,15 +174,23 @@ function resumePlaceholders(
   nodeId: string,
   nodes: Node<NodeData>[],
   edges: Edge[],
-  contextType: FlowContextType
+  contextType: FlowContextType,
+  eventType?: string
 ): PlaceholderGroup[] {
   const depth = getResumeDepth(nodeId, nodes, edges);
   if (depth === 0) return [];
 
-  const res = interactionPlaceholders(contextType, "origin.", "Original ");
+  const res = interactionPlaceholders(
+    contextType,
+    eventType,
+    "origin.",
+    "Original "
+  );
   if (depth > 1) {
     // Whether previous was a button, select menu or modal isn't tracked here.
-    res.push(...interactionPlaceholders(undefined, "previous.", "Previous "));
+    res.push(
+      ...interactionPlaceholders(undefined, undefined, "previous.", "Previous ")
+    );
   }
   return res;
 }

@@ -56,4 +56,17 @@ describe("getAvailablePlaceholders", () => {
       ["result('msg')", "result('get')"],
     ]);
   });
+
+  it("adds invite placeholders to invite create listeners", () => {
+    const labels = (eventType: string) =>
+      getAvailablePlaceholders(
+        undefined,
+        [node("entry", "entry_event", { event_type: eventType })],
+        [],
+        "event_discord"
+      ).map((g) => g.label);
+
+    expect(labels("invite_create")).toContain("Invite");
+    expect(labels("message_create")).not.toContain("Invite");
+  });
 });

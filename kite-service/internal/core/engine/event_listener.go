@@ -118,6 +118,10 @@ func (l *EventListener) shouldHandleEvent(e ws.Event) bool {
 		return true
 	case *state.GuildLeaveEvent:
 		return true
+	case *gateway.InviteCreateEvent:
+		// Like messages, invites created by bots are ignored, so a flow that
+		// creates an invite can't trigger itself.
+		return d.Inviter == nil || !d.Inviter.Bot
 	}
 
 	return false

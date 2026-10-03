@@ -146,7 +146,7 @@ Placeholders: settings marked "x-templated" in the catalog can contain placehold
 - Everywhere: user (id, username, display_name, mention, avatar_url, banner_url), member (nick, role_ids), guild.id, channel.id, app.user.id, app.user.mention.
 - Command flows: arg('name') is the value of a command argument. Add an option_command_argument block for each argument.
 - Select menu flows: interaction.value, and interaction.values if several can be picked.
-- Discord event flows: message.id and message.content for message events.
+- Discord event flows: message.id and message.content for message events. For invite_create, user is who created the invite, channel.id the channel it leads to, and invite has code, url, duration (like "7 days" or "never"), expires (a relative Discord timestamp or "never"), max_age (seconds, 0 if it never expires), expires_at and created_at (Unix timestamps, expires_at is 0 if it never expires), max_uses (0 if unlimited) and temporary.
 - Schedule flows: schedule.time and schedule.unix.
 - After a button or select menu, user, member, channel.id and the interaction are those of its use, and interaction.value and interaction.values are the selected option values. origin. followed by a placeholder, like origin.user.id or origin.arg('name'), is the one the flow started with, and previous. the one of the use before.
 - result('block_id') is the result of an earlier block, see result_schema in the catalog, e.g. result('abc').user.id. var('name') is the temporary variable an earlier block stored with its temporary_name setting. input('custom_id') is the value of an input of an earlier modal.
