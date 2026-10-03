@@ -65,6 +65,7 @@ The output of previously executed blocks is available in all subsequent blocks a
 ## Bot Blocks
 
 - [Set status](./actions/action_status_set.md) - Change the app's status and activity
+- [Show typing](./actions/action_typing_trigger.md) - Show the app as typing in a channel
 
 ## Variable Blocks
 
