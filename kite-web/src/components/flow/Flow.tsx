@@ -153,6 +153,7 @@ export default function Flow({
 
         <FlowMobileBottomBar
           selectedNodeId={selectedNodeId}
+          hidden={mobileEditorOpen || addBlockOpen || logsOpen}
           onAddBlock={() => setAddBlockOpen(true)}
           onEditNode={() => setMobileEditorOpen(true)}
           onDeselectNode={deselectNode}

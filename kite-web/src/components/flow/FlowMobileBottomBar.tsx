@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { getNodeValues } from "@/lib/flow/nodes";
 import { useReactFlow } from "@xyflow/react";
+import { cn } from "@/lib/utils";
 import {
   ListTreeIcon,
   Maximize2Icon,
@@ -14,6 +15,7 @@ import {
 
 interface Props {
   selectedNodeId: string | null;
+  hidden?: boolean;
   onAddBlock: () => void;
   onEditNode: () => void;
   onDeselectNode: () => void;
@@ -29,6 +31,7 @@ interface Props {
 
 export default function FlowMobileBottomBar({
   selectedNodeId,
+  hidden,
   onAddBlock,
   onEditNode,
   onDeselectNode,
@@ -49,7 +52,12 @@ export default function FlowMobileBottomBar({
   const nodeTitle = nodeValues?.defaultTitle ?? "Block";
 
   return (
-    <div className="fixed bottom-0 inset-x-0 z-30 md:hidden bg-background/95 backdrop-blur-md border-t border-border px-3 py-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] flex items-center justify-between gap-2 shadow-lg select-none">
+    <div
+      className={cn(
+        "fixed bottom-0 inset-x-0 z-30 md:hidden bg-background/95 backdrop-blur-md border-t border-border px-3 py-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] flex items-center justify-between gap-2 shadow-lg select-none",
+        hidden && "hidden"
+      )}
+    >
       <div className="flex items-center gap-1.5 min-w-0">
         <Button
           size="sm"

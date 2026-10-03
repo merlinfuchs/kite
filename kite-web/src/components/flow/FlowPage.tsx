@@ -113,6 +113,14 @@ function InnerFlowPage({
 export default function FlowPage(props: Props) {
   return (
     <ReactFlowProvider>
+      <style jsx global>{`
+        @media (max-width: 767px) {
+          [data-sonner-toaster][data-y-position="top"] {
+            top: 56px !important;
+            --offset: 56px !important;
+          }
+        }
+      `}</style>
       <InnerFlowPage {...props} />
     </ReactFlowProvider>
   );

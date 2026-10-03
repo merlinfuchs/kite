@@ -19,7 +19,7 @@ interface Props {
 export default function FlowLogsDrawer({ logs, open, onOpenChange }: Props) {
   return (
     <Drawer open={open} onOpenChange={onOpenChange}>
-      <DrawerContent className="max-h-[85dvh] h-[85dvh] flex flex-col overflow-hidden">
+      <DrawerContent className="max-h-[85dvh] h-[85dvh] flex flex-col after:content-[''] after:absolute after:top-full after:left-0 after:right-0 after:h-96 after:bg-background">
         <div className="flex items-center justify-between px-4 py-3 border-b border-border/60 flex-none">
           <DrawerTitle className="text-base font-semibold text-foreground">
             Logs
