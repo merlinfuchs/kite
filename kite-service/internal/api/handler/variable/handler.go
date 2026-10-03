@@ -3,13 +3,18 @@ package variable
 import (
 	"errors"
 	"fmt"
+	"strconv"
+	"strings"
 	"time"
 
+	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler"
 	"github.com/kitecloud/kite/kite-service/internal/api/wire"
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/internal/store"
 	"github.com/kitecloud/kite/kite-service/internal/util"
+	"github.com/kitecloud/kite/kite-service/pkg/provider"
+	"gopkg.in/guregu/null.v4"
 )
 
 type VariableHandler struct {
@@ -140,4 +145,74 @@ func (h *VariableHandler) HandleVariableDelete(c *handler.Context) (*wire.Variab
 	}
 
 	return &wire.VariableDeleteResponse{}, nil
+}
+
+func (h *VariableHandler) HandleVariableValueList(c *handler.Context) (*wire.VariableValueListResponse, error) {
+	limit, _ := strconv.Atoi(c.Query("limit"))
+	if limit <= 0 || limit > 100 {
+		limit = 25
+	}
+	offset, _ := strconv.Atoi(c.Query("offset"))
+	if offset < 0 {
+		offset = 0
+	}
+
+	search := strings.TrimSpace(c.Query("search"))
+	if len(search) > wire.MaxVariableScopeLength {
+		return nil, handler.ErrBadRequest("invalid_search", "search is too long")
+	}
+
+	values, total, err := h.variableValueStore.SearchVariableValues(c.Context(), c.App.ID, c.Variable.ID, search, limit, offset)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get variable values: %w", err)
+	}
+
+	res := make([]*wire.VariableValue, len(values))
+	for i, value := range values {
+		res[i] = wire.VariableValueToWire(value)
+	}
+
+	return &wire.VariableValueListResponse{
+		Values: res,
+		Total:  total,
+	}, nil
+}
+
+func (h *VariableHandler) HandleVariableValueSet(c *handler.Context, req wire.VariableValueSetRequest) (*wire.VariableValueSetResponse, error) {
+	if !c.Variable.Scoped && req.Scope != "" {
+		return nil, validation.Errors{"scope": errors.New("this variable is not scoped")}
+	}
+
+	data, err := req.Thing()
+	if err != nil {
+		return nil, validation.Errors{"value": err}
+	}
+
+	// An empty scope is stored as NULL, the same as flows do.
+	value, err := h.variableValueStore.UpdateVariableValue(c.Context(), c.App.ID, provider.VariableOperationOverwrite, model.VariableValue{
+		VariableID: c.Variable.ID,
+		Scope:      null.NewString(req.Scope, req.Scope != ""),
+		Data:       data,
+		CreatedAt:  time.Now().UTC(),
+		UpdatedAt:  time.Now().UTC(),
+	})
+	if err != nil {
+		if errors.Is(err, store.ErrNotFound) {
+			return nil, handler.ErrNotFound("unknown_variable", "Variable not found")
+		}
+		return nil, fmt.Errorf("failed to set variable value: %w", err)
+	}
+
+	return wire.VariableValueToWire(value), nil
+}
+
+func (h *VariableHandler) HandleVariableValueDelete(c *handler.Context) (*wire.VariableValueDeleteResponse, error) {
+	scope := c.Query("scope")
+
+	err := h.variableValueStore.DeleteVariableValue(c.Context(), c.App.ID, c.Variable.ID, null.NewString(scope, scope != ""))
+	if err != nil {
+		return nil, fmt.Errorf("failed to delete variable value: %w", err)
+	}
+
+	return &wire.VariableValueDeleteResponse{}, nil
 }

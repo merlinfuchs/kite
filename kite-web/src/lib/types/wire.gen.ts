@@ -689,3 +689,69 @@ export interface VariableUpdateRequest {
 }
 export type VariableUpdateResponse = Variable;
 export type VariableDeleteResponse = Empty;
+/**
+ * MaxVariableValueLength is the maximum size of a value entered in the
+ * dashboard, the same as a value entered in a block.
+ */
+export const MaxVariableValueLength = 100_000;
+/**
+ * MaxVariableScopeLength is the maximum length of a scope entered in the
+ * dashboard.
+ */
+export const MaxVariableScopeLength = 1000;
+/**
+ * MaxVariableValuePreviewLength is how much of a value is returned in a list,
+ * flows can store values of several megabytes.
+ */
+export const MaxVariableValuePreviewLength = 10_000;
+/**
+ * VariableValueType is how a value is shown and edited in the dashboard.
+ */
+export type VariableValueType = string;
+export const VariableValueTypeString: VariableValueType = "string";
+export const VariableValueTypeNumber: VariableValueType = "number";
+export const VariableValueTypeBool: VariableValueType = "bool";
+/**
+ * VariableValueTypeJSON covers lists, objects and null.
+ */
+export const VariableValueTypeJSON: VariableValueType = "json";
+export interface VariableValue {
+  /**
+   * Scope is null for the value of an unscoped variable.
+   */
+  scope: null | string;
+  type: VariableValueType;
+  /**
+   * Value is the text for strings, numbers and booleans, and JSON otherwise.
+   */
+  value: string;
+  /**
+   * ReadOnly values hold something that can't be entered as text, like a
+   * Discord user stored by a flow. They can only be deleted.
+   */
+  read_only: boolean;
+  /**
+   * Truncated values were cut to MaxVariableValuePreviewLength.
+   */
+  truncated: boolean;
+  created_at: string /* RFC3339 */;
+  updated_at: string /* RFC3339 */;
+}
+export interface VariableValueListResponse {
+  values: (VariableValue | undefined)[];
+  /**
+   * Total is the number of values matching the search, not only this page.
+   */
+  total: number /* int */;
+}
+/**
+ * VariableValueSetRequest creates the value for a scope or overwrites it. An
+ * empty scope is the unscoped value.
+ */
+export interface VariableValueSetRequest {
+  scope: string;
+  type: VariableValueType;
+  value: string;
+}
+export type VariableValueSetResponse = VariableValue;
+export type VariableValueDeleteResponse = Empty;
