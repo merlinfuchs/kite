@@ -14,14 +14,11 @@ import {
   DrawerTitle,
 } from "@/components/ui/drawer";
 import { Separator } from "@/components/ui/separator";
-import { useApps } from "@/lib/hooks/api";
 import { useAppId } from "@/lib/hooks/params";
-import { useKiteSettings } from "@/lib/hooks/useKiteSettings";
 import { cn } from "@/lib/utils";
 import {
   LayoutDashboardIcon,
   MenuIcon,
-  MessageSquareWarningIcon,
   SatelliteDishIcon,
   SlashSquareIcon,
 } from "lucide-react";
@@ -36,151 +33,109 @@ import AppSidebarUserNav from "./AppSidebarUserNav";
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const router = useRouter();
-  const { openMobile, setOpenMobile } = useSidebar();
-  const appId = useAppId();
-  const apps = useApps();
-  const effectiveAppId =
-    appId || (router.query.appId as string) || apps?.[0]?.id;
-  const { settings } = useKiteSettings();
+  const { isMobile, openMobile, setOpenMobile } = useSidebar();
+  const appId = useAppId() || (router.query.appId as string | undefined);
 
-  // The sidebar stays mounted across pages, so close the mobile drawer after navigating.
+  // Close the mobile drawer after navigating or when resizing to desktop.
   useEffect(() => {
     setOpenMobile(false);
-  }, [router.asPath, setOpenMobile]);
+  }, [router.asPath, isMobile, setOpenMobile]);
 
   const isDashboardActive = router.pathname === "/apps/[appId]";
   const isCommandsActive = router.pathname.startsWith("/apps/[appId]/commands");
   const isEventsActive = router.pathname.startsWith("/apps/[appId]/events");
-  const isLogsActive = router.pathname.startsWith("/apps/[appId]/logs");
 
   const isOtherActive =
-    !isDashboardActive &&
-    !isCommandsActive &&
-    !(settings.mobileNavTabs !== "3-tabs" && isEventsActive) &&
-    !(settings.mobileNavTabs === "5-tabs" && isLogsActive);
+    !isDashboardActive && !isCommandsActive && !isEventsActive;
 
   const dashboardHref = useMemo(
     () =>
-      effectiveAppId
+      appId
         ? {
             pathname: "/apps/[appId]",
-            query: { appId: effectiveAppId },
+            query: { appId },
           }
         : "/apps",
-    [effectiveAppId]
+    [appId]
   );
 
   const commandsHref = useMemo(
     () =>
-      effectiveAppId
+      appId
         ? {
             pathname: "/apps/[appId]/commands",
-            query: { appId: effectiveAppId },
+            query: { appId },
           }
         : "/apps",
-    [effectiveAppId]
+    [appId]
   );
 
   const eventsHref = useMemo(
     () =>
-      effectiveAppId
+      appId
         ? {
             pathname: "/apps/[appId]/events",
-            query: { appId: effectiveAppId },
+            query: { appId },
           }
         : "/apps",
-    [effectiveAppId]
+    [appId]
   );
-
-  const logsHref = useMemo(
-    () =>
-      effectiveAppId
-        ? {
-            pathname: "/apps/[appId]/logs",
-            query: { appId: effectiveAppId },
-          }
-        : "/apps",
-    [effectiveAppId]
-  );
-
-  const isFloating = settings.mobileNavStyle === "floating";
-  const showLabels = settings.showMobileLabels;
-
-  const gridColsClass =
-    settings.mobileNavTabs === "5-tabs"
-      ? "grid-cols-5"
-      : settings.mobileNavTabs === "4-tabs"
-      ? "grid-cols-4"
-      : "grid-cols-3";
 
   return (
     <>
-      <Sidebar collapsible="icon" variant="floating" {...props}>
-        <SidebarHeader>
-          <AppSidebarAppSwitcher />
-        </SidebarHeader>
-        <SidebarContent>
-          <AppSidebarMainNav />
-          <AppSidebarStudioNav />
-          <AppSidebarExternalNav />
-        </SidebarContent>
-        <SidebarFooter>
-          <AppSidebarUserNav />
-        </SidebarFooter>
-        <SidebarRail />
-      </Sidebar>
+      {!isMobile && (
+        <Sidebar collapsible="icon" variant="floating" {...props}>
+          <SidebarHeader>
+            <AppSidebarAppSwitcher />
+          </SidebarHeader>
+          <SidebarContent>
+            <AppSidebarMainNav />
+            <AppSidebarStudioNav />
+            <AppSidebarExternalNav />
+          </SidebarContent>
+          <SidebarFooter>
+            <AppSidebarUserNav />
+          </SidebarFooter>
+          <SidebarRail />
+        </Sidebar>
+      )}
 
-      <nav
-        aria-label="Mobile Navigation"
-        className={cn(
-          "z-40 block md:hidden select-none transition-all duration-200",
-          isFloating
-            ? "fixed bottom-3 inset-x-3 max-w-sm mx-auto bg-background/95 backdrop-blur-md border border-border/80 shadow-xl rounded-full px-2 py-1.5"
-            : "fixed bottom-0 inset-x-0 bg-background/95 backdrop-blur-md border-t border-border shadow-lg pb-[env(safe-area-inset-bottom)]"
-        )}
-      >
-        <div
-          className={cn(
-            "grid items-center mx-auto",
-            isFloating ? "h-14 max-w-sm px-1" : "h-16 max-w-md px-3",
-            gridColsClass
-          )}
+      {appId && (
+        <nav
+          aria-label="Mobile Navigation"
+          className="z-40 block md:hidden select-none fixed bottom-0 inset-x-0 bg-background/95 backdrop-blur-md border-t border-border shadow-lg pb-[env(safe-area-inset-bottom)]"
         >
-          <Link
-            href={dashboardHref}
-            className={cn(
-              "flex flex-col items-center justify-center py-1 rounded-lg transition-colors",
-              isDashboardActive
-                ? "text-primary font-semibold"
-                : "text-muted-foreground hover:text-foreground"
-            )}
-          >
-            <LayoutDashboardIcon className="size-5" />
-            {showLabels && (
+          <div className="grid grid-cols-4 items-center mx-auto h-16 max-w-md px-3">
+            <Link
+              href={dashboardHref}
+              className={cn(
+                "flex flex-col items-center justify-center py-1 rounded-lg transition-colors",
+                isDashboardActive
+                  ? "text-primary font-semibold"
+                  : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              <LayoutDashboardIcon className="size-5" />
               <span className="text-[10px] sm:text-[11px] leading-none mt-1">
                 Dashboard
               </span>
-            )}
-          </Link>
+            </Link>
 
-          <Link
-            href={commandsHref}
-            className={cn(
-              "flex flex-col items-center justify-center py-1 rounded-lg transition-colors",
-              isCommandsActive
-                ? "text-primary font-semibold"
-                : "text-muted-foreground hover:text-foreground"
-            )}
-          >
-            <SlashSquareIcon className="size-5" />
-            {showLabels && (
+            <Link
+              href={commandsHref}
+              className={cn(
+                "flex flex-col items-center justify-center py-1 rounded-lg transition-colors",
+                isCommandsActive
+                  ? "text-primary font-semibold"
+                  : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              <SlashSquareIcon className="size-5" />
               <span className="text-[10px] sm:text-[11px] leading-none mt-1">
                 Commands
               </span>
-            )}
-          </Link>
+            </Link>
 
-          {settings.mobileNavTabs !== "3-tabs" && (
             <Link
               href={eventsHref}
               className={cn(
@@ -191,56 +146,33 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
               )}
             >
               <SatelliteDishIcon className="size-5" />
-              {showLabels && (
-                <span className="text-[10px] sm:text-[11px] leading-none mt-1">
-                  Listeners
-                </span>
-              )}
+              <span className="text-[10px] sm:text-[11px] leading-none mt-1">
+                Listeners
+              </span>
             </Link>
-          )}
 
-          {settings.mobileNavTabs === "5-tabs" && (
-            <Link
-              href={logsHref}
+            <button
+              type="button"
+              onClick={() => setOpenMobile(!openMobile)}
               className={cn(
-                "flex flex-col items-center justify-center py-1 rounded-lg transition-colors",
-                isLogsActive
+                "flex flex-col items-center justify-center py-1 rounded-lg transition-colors cursor-pointer",
+                openMobile || isOtherActive
                   ? "text-primary font-semibold"
                   : "text-muted-foreground hover:text-foreground"
               )}
+              aria-label="Open navigation menu"
             >
-              <MessageSquareWarningIcon className="size-5" />
-              {showLabels && (
-                <span className="text-[10px] sm:text-[11px] leading-none mt-1">
-                  Logs
-                </span>
-              )}
-            </Link>
-          )}
-
-          <button
-            type="button"
-            onClick={() => setOpenMobile(!openMobile)}
-            className={cn(
-              "flex flex-col items-center justify-center py-1 rounded-lg transition-colors cursor-pointer",
-              openMobile || isOtherActive
-                ? "text-primary font-semibold"
-                : "text-muted-foreground hover:text-foreground"
-            )}
-            aria-label="Open navigation menu"
-          >
-            <MenuIcon className="size-5" />
-            {showLabels && (
+              <MenuIcon className="size-5" />
               <span className="text-[10px] sm:text-[11px] leading-none mt-1">
                 Menu
               </span>
-            )}
-          </button>
-        </div>
-      </nav>
+            </button>
+          </div>
+        </nav>
+      )}
 
       <Drawer
-        open={openMobile}
+        open={openMobile && isMobile}
         onOpenChange={setOpenMobile}
         shouldScaleBackground={false}
       >

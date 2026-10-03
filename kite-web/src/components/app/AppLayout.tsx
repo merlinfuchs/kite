@@ -43,9 +43,7 @@ export default function AppLayout({ children, ...props }: Props) {
       router.push(props.backHref);
       return;
     }
-    if (typeof window !== "undefined" && window.history.length > 1) {
-      router.back();
-    } else if (app?.id) {
+    if (app?.id) {
       router.push({
         pathname: "/apps/[appId]",
         query: { appId: app.id },
@@ -55,25 +53,20 @@ export default function AppLayout({ children, ...props }: Props) {
     }
   }, [props.backHref, app, router]);
 
-  const breadcrumbs = useMemo(() => {
-    const list: { label: string; href?: string }[] = [
+  const breadcrumbs = useMemo(
+    () => [
       {
         label: "Apps",
         href: "/apps",
       },
-    ];
-    if (app?.name) {
-      list.push({
-        label: app.name,
-        href:
-          props.breadcrumbs?.length && app.id ? `/apps/${app.id}` : undefined,
-      });
-    }
-    if (props.breadcrumbs?.length) {
-      list.push(...props.breadcrumbs);
-    }
-    return list;
-  }, [app, props.breadcrumbs]);
+      {
+        label: app?.name || "Unknown App",
+        href: props.breadcrumbs?.length ? `/apps/[appId]` : undefined,
+      },
+      ...(props.breadcrumbs || []),
+    ],
+    [app, props.breadcrumbs]
+  );
 
   const title = useMemo(
     () => props.title || app?.name || "Kite",
@@ -113,7 +106,14 @@ export default function AppLayout({ children, ...props }: Props) {
                     <BreadcrumbItem>
                       {item.href ? (
                         <BreadcrumbLink asChild>
-                          <Link href={item.href}>{item.label}</Link>
+                          <Link
+                            href={{
+                              pathname: item.href,
+                              query: router.query,
+                            }}
+                          >
+                            {item.label}
+                          </Link>
                         </BreadcrumbLink>
                       ) : (
                         <BreadcrumbPage>{item.label}</BreadcrumbPage>
