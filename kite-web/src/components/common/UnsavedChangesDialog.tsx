@@ -28,7 +28,7 @@ export default function UnsavedChangesDialog({
 }: Props) {
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
-      <AlertDialogContent className="sm:max-w-[480px]">
+      <AlertDialogContent className="rounded-lg w-[calc(100%-2rem)] sm:max-w-[480px]">
         <AlertDialogHeader>
           <AlertDialogTitle>Unsaved Changes</AlertDialogTitle>
           <AlertDialogDescription>
