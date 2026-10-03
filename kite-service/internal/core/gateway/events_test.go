@@ -7,6 +7,7 @@ import (
 	"github.com/diamondburned/arikawa/v3/state"
 	"github.com/diamondburned/arikawa/v3/utils/ws"
 	"github.com/kitecloud/kite/kite-service/internal/model"
+	"github.com/kitecloud/kite/kite-service/pkg/voicestate"
 )
 
 // Protocol frames report an empty event type. The dispatch path can never
@@ -49,6 +50,8 @@ func TestDispatchedEventsHaveNonEmptyEventType(t *testing.T) {
 		&state.GuildJoinEvent{GuildCreateEvent: &gateway.GuildCreateEvent{}},
 		&state.GuildLeaveEvent{GuildDeleteEvent: &gateway.GuildDeleteEvent{}},
 		&gateway.ReadyEvent{},
+		&gateway.VoiceStateUpdateEvent{},
+		&voicestate.Event{},
 	}
 
 	for _, e := range dispatched {
@@ -69,6 +72,7 @@ func TestNoEventListenerTypeIsEmpty(t *testing.T) {
 		model.EventListenerTypeDiscordGuildMemberRemove,
 		model.EventListenerTypeDiscordGuildCreate,
 		model.EventListenerTypeDiscordGuildDelete,
+		model.EventListenerTypeDiscordVoiceStateUpdate,
 	}
 
 	for _, tp := range types {

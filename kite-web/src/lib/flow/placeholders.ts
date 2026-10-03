@@ -18,9 +18,12 @@ export function getAvailablePlaceholders(
   edges: Edge[],
   contextType: FlowContextType
 ): PlaceholderGroup[] {
+  const eventType = nodes.find((n) => n.type === "entry_event")?.data
+    .event_type;
+
   const res = [
     ...commandPlaceholders(nodes, edges, contextType),
-    ...interactionPlaceholders(contextType),
+    ...interactionPlaceholders(contextType, eventType),
     {
       label: "App",
       placeholders: [
@@ -33,7 +36,7 @@ export function getAvailablePlaceholders(
 
   return [
     ...res,
-    ...resumePlaceholders(nodeId, nodes, edges, contextType),
+    ...resumePlaceholders(nodeId, nodes, edges, contextType, eventType),
     ...upstreamPlaceholders(nodeId, nodes, edges),
   ];
 }
@@ -42,6 +45,7 @@ export function getAvailablePlaceholders(
 // the flow runs with. Resumed sub-flows reach earlier ones through a prefix.
 function interactionPlaceholders(
   contextType?: FlowContextType,
+  eventType?: string,
   prefix = "",
   labelPrefix = ""
 ): PlaceholderGroup[] {
@@ -91,7 +95,19 @@ function interactionPlaceholders(
     });
   }
 
-  if (contextType === "event_discord") {
+  if (contextType === "event_discord" && eventType === "voice_state_update") {
+    res.push({
+      label: `${labelPrefix}Voice`,
+      placeholders: [
+        { label: "Voice Action", value: `${prefix}voice.action` },
+        { label: "Voice Channel ID", value: `${prefix}voice.channel.id` },
+        {
+          label: "Old Voice Channel ID",
+          value: `${prefix}voice.old_channel.id`,
+        },
+      ],
+    });
+  } else if (contextType === "event_discord") {
     res.push({
       label: `${labelPrefix}Message`,
       placeholders: [
@@ -140,15 +156,23 @@ function resumePlaceholders(
   nodeId: string,
   nodes: Node<NodeData>[],
   edges: Edge[],
-  contextType: FlowContextType
+  contextType: FlowContextType,
+  eventType?: string
 ): PlaceholderGroup[] {
   const depth = getResumeDepth(nodeId, nodes, edges);
   if (depth === 0) return [];
 
-  const res = interactionPlaceholders(contextType, "origin.", "Original ");
+  const res = interactionPlaceholders(
+    contextType,
+    eventType,
+    "origin.",
+    "Original "
+  );
   if (depth > 1) {
     // Whether previous was a button, select menu or modal isn't tracked here.
-    res.push(...interactionPlaceholders(undefined, "previous.", "Previous "));
+    res.push(
+      ...interactionPlaceholders(undefined, undefined, "previous.", "Previous ")
+    );
   }
   return res;
 }

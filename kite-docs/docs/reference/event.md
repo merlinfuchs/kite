@@ -13,6 +13,7 @@ With Event Listeners you can listen for events inside the Discord servers that y
 - Member Leave
 - Bot Joined Server
 - Bot Left Server
+- Voice Channel Join, Leave or Move
 
 ## Restrictions
 
@@ -22,6 +23,22 @@ With Event Listeners you can listen for events inside the Discord servers that y
 - Bot Joined Server provides the server as `{{guild.id}}` and `{{guild.name}}`. Bot Left Server only provides `{{guild.id}}`.
 
 ![Example Event Flow](./img/example-event-flow.png)
+
+## Voice Channel Join, Leave or Move
+
+This event listener runs when a member joins a voice channel, leaves it, or moves to another one. It doesn't run when they mute, deafen or start streaming, and it ignores bots.
+
+| Placeholder                | Value                                                                    |
+| -------------------------- | ------------------------------------------------------------------------ |
+| `{{voice.action}}`         | `joined`, `left` or `moved`                                              |
+| `{{voice.channel.id}}`     | The voice channel the member is in now. Empty after they left.           |
+| `{{voice.old_channel.id}}` | The voice channel the member was in before. Empty when they just joined. |
+
+`{{user}}` is the member, and `{{channel.id}}` is the voice channel the event is about: the one they're in now, or the one they left.
+
+The action is worded so it fits into a log message, like `{{user.mention}} {{voice.action}} <#{{channel.id}}>`. To only react to one of the three, start the flow with a `Comparison Condition` on `{{voice.action}}`. To only react to one voice channel, add an `Event Filter` on the channel ID.
+
+Kite takes the old channel from what it has seen since your app connected. For a short moment after your app starts or reconnects, a move can show up as `joined` with an empty old channel.
 
 ## Scheduled Event Listeners
 

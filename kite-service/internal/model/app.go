@@ -93,6 +93,17 @@ func (r AppGatewayRequirements) NeedsGuildMembers() bool {
 	return false
 }
 
+// NeedsGuildVoiceStates reports whether the app consumes voice state events.
+func (r AppGatewayRequirements) NeedsGuildVoiceStates() bool {
+	for _, t := range r.EventListenerTypes {
+		if t == EventListenerTypeDiscordVoiceStateUpdate {
+			return true
+		}
+	}
+
+	return false
+}
+
 // NeedsGuildMessageReactions reports whether the app consumes reaction events.
 // No event listener type covers reactions today, so this is driven entirely by
 // plugins such as starboard.

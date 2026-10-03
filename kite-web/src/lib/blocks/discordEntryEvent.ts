@@ -24,6 +24,7 @@ export const discordEntryEvent: BlockDefinition = {
           "guild_member_remove",
           "guild_create",
           "guild_delete",
+          "voice_state_update",
           "cron",
         ])
         .describe(

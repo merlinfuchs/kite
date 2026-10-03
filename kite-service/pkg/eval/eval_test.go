@@ -5,6 +5,9 @@ import (
 	"errors"
 	"strings"
 	"testing"
+
+	"github.com/diamondburned/arikawa/v3/discord"
+	"github.com/kitecloud/kite/kite-service/pkg/voicestate"
 )
 
 func testContext() Context {
@@ -296,5 +299,50 @@ func TestResumeContextPrefersCurrentInteraction(t *testing.T) {
 	}
 	if res.String() != "current" {
 		t.Errorf("input(\"name\") = %q, want %q", res.String(), "current")
+	}
+}
+
+func TestEventEnvVoiceState(t *testing.T) {
+	member := &discord.Member{User: discord.User{ID: 5, Username: "alice"}}
+
+	cases := []struct {
+		name  string
+		event *voicestate.Event
+		want  string
+	}{
+		{
+			"join",
+			&voicestate.Event{VoiceState: discord.VoiceState{GuildID: 1, UserID: 5, Member: member, ChannelID: 2}},
+			"alice joined 2 from [] in 2",
+		},
+		{
+			"move",
+			&voicestate.Event{VoiceState: discord.VoiceState{GuildID: 1, UserID: 5, Member: member, ChannelID: 2}, OldChannelID: 3},
+			"alice moved 2 from [3] in 2",
+		},
+		{
+			// Discord sends a null channel, and the left one stands in for it.
+			"leave",
+			&voicestate.Event{VoiceState: discord.VoiceState{GuildID: 1, UserID: 5, Member: member, ChannelID: discord.NullChannelID}, OldChannelID: 3},
+			"alice left  from [3] in 3",
+		},
+	}
+
+	for _, tc := range cases {
+		env := NewEventEnv(tc.event)
+		c := Context{Env: Env{"user": env.User, "channel": env.Channel, "voice": env.Voice}}
+
+		res, err := EvalTemplate(
+			context.Background(),
+			`{{user.username}} {{voice.action}} {{voice.channel.id}} from [{{voice.old_channel.id}}] in {{channel.id}}`,
+			c,
+		)
+		if err != nil {
+			t.Errorf("%s: unexpected error %v", tc.name, err)
+			continue
+		}
+		if res.String() != tc.want {
+			t.Errorf("%s: got %q, want %q", tc.name, res.String(), tc.want)
+		}
 	}
 }

@@ -8,6 +8,7 @@ import (
 	"github.com/diamondburned/arikawa/v3/gateway"
 	"github.com/diamondburned/arikawa/v3/utils/ws"
 	"github.com/kitecloud/kite/kite-service/pkg/schedule"
+	"github.com/kitecloud/kite/kite-service/pkg/voicestate"
 )
 
 // maxStoredTriggers bounds how many triggers a resume point keeps: the one that
@@ -75,10 +76,14 @@ func (t *FlowTrigger) UnmarshalJSON(data []byte) error {
 
 	if aux.EventType != "" {
 		var event ws.Event
-		if aux.EventType == schedule.EventType {
+		switch aux.EventType {
+		case schedule.EventType:
 			// Kite's own event, which arikawa doesn't know about.
 			event = new(schedule.Event)
-		} else {
+		case voicestate.EventType:
+			// arikawa's event has no room for the old channel.
+			event = new(voicestate.Event)
+		default:
 			newEvent := gateway.OpUnmarshalers.Lookup(aux.EventOp, aux.EventType)
 			if newEvent == nil {
 				return fmt.Errorf("unknown event type: %s", aux.EventType)

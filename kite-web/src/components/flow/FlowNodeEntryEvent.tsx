@@ -6,9 +6,15 @@ import { optionColor } from "@/lib/flow/nodes";
 import { EventTypeScheduleCron } from "@/lib/types/flow.gen";
 import { describeSchedule } from "@/lib/flow/schedule";
 
+const eventDescriptions: Record<string, string> = {
+  voice_state_update:
+    "Listens for members joining, leaving or moving between voice channels to trigger the flow. Drop different actions here!",
+};
+
 const eventTitles: Record<string, string> = {
   guild_create: "Bot joined a server",
   guild_delete: "Bot left a server",
+  voice_state_update: "Member changed voice channel",
 };
 
 export default function FlowNodeEntryEvent(props: NodeProps) {
@@ -32,7 +38,8 @@ export default function FlowNodeEntryEvent(props: NodeProps) {
                   scheduleDescription.slice(1)
                 : `on the schedule ${cron}`
             } (UTC). Drop different actions here!`
-          : `Listens for ${eventName} events to trigger the flow. Drop different actions here!`
+          : eventDescriptions[props.data.event_type || ""] ||
+            `Listens for ${eventName} events to trigger the flow. Drop different actions here!`
       }
       highlight={true}
       showConnectedMarker={false}
