@@ -13,6 +13,7 @@ With Event Listeners you can listen for events inside the Discord servers that y
 - Member Leave
 - Bot Joined Server
 - Bot Left Server
+- Server Boost
 
 ## Restrictions
 
@@ -20,6 +21,8 @@ With Event Listeners you can listen for events inside the Discord servers that y
 - Kite will ignore messages that are sent by a bot.
 - Member events are only available when you enable the "Server Members Intent" in the [Discord Developer Portal](https://discord.dev).
 - Bot Joined Server provides the server as `{{guild.id}}` and `{{guild.name}}`. Bot Left Server only provides `{{guild.id}}`.
+- Server Boost runs when a member boosts the server. `{{user}}` is the member who boosted, `{{guild.id}}` is the server, and `{{channel.id}}` and `{{message.id}}` are the boost message and the channel it was posted in.
+- Kite detects boosts through the message Discord posts in the server's system messages channel. Server Boost only works when "Send a message when someone boosts this server" is enabled in the server settings and your bot can see that channel. It doesn't need the "Server Members Intent".
 
 ![Example Event Flow](./img/example-event-flow.png)
 
