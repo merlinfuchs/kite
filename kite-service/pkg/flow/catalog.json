@@ -4465,6 +4465,38 @@
       },
       "result_schema": null
     },
+    "action_typing_trigger": {
+      "title": "Show typing",
+      "description": "Bot shows as typing in a channel",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord",
+        "event_schedule"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "type": "string",
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+          },
+          "channel_target": {
+            "type": "string",
+            "description": "ID of the channel the bot shows as typing in. Leave empty to use the channel the flow runs in.",
+            "x-templated": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "result_schema": null
+    },
     "action_variable_set": {
       "title": "Set stored variable",
       "description": "Set the value of a stored variable",
@@ -5017,7 +5049,7 @@
             "properties": {
               "operation": {
                 "type": "string",
-                "description": "operationId of the endpoint in Discord's OpenAPI spec, e.g. create_message or list_messages. The spec's names can differ from Discord's docs, e.g. Modify Guild is update_guild. These endpoints have their own block, use it instead: delete_message: action_message_delete, add_my_message_reaction: action_message_reaction_create, delete_my_message_reaction: action_message_reaction_delete, deprecated_create_pin: action_message_pin, deprecated_delete_pin: action_message_unpin, list_messages: action_message_list, bulk_delete_messages: action_message_bulk_delete, ban_user_from_guild: action_member_ban, unban_user_from_guild: action_member_unban, delete_guild_member: action_member_kick, add_guild_member_role: action_member_role_add, delete_guild_member_role: action_member_role_remove, create_guild_role: action_role_create, delete_channel: action_channel_delete, add_thread_member: action_thread_member_add, delete_thread_member: action_thread_member_remove, create_channel_invite: action_invite_create."
+                "description": "operationId of the endpoint in Discord's OpenAPI spec, e.g. create_message or list_messages. The spec's names can differ from Discord's docs, e.g. Modify Guild is update_guild. These endpoints have their own block, use it instead: delete_message: action_message_delete, add_my_message_reaction: action_message_reaction_create, delete_my_message_reaction: action_message_reaction_delete, deprecated_create_pin: action_message_pin, deprecated_delete_pin: action_message_unpin, list_messages: action_message_list, bulk_delete_messages: action_message_bulk_delete, ban_user_from_guild: action_member_ban, unban_user_from_guild: action_member_unban, delete_guild_member: action_member_kick, add_guild_member_role: action_member_role_add, delete_guild_member_role: action_member_role_remove, create_guild_role: action_role_create, delete_channel: action_channel_delete, add_thread_member: action_thread_member_add, delete_thread_member: action_thread_member_remove, create_channel_invite: action_invite_create, trigger_typing_indicator: action_typing_trigger."
               },
               "path_params": {
                 "type": "array",

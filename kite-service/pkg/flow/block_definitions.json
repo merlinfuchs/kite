@@ -1288,6 +1288,35 @@
       "result": null
     },
     {
+      "type": "action_typing_trigger",
+      "credits": 1,
+      "audit_log_reason": false,
+      "requires": [
+        "discord"
+      ],
+      "run": {
+        "kind": "request",
+        "integration": "discord",
+        "operation": "trigger_typing_indicator",
+        "method": "POST",
+        "path": "/channels/{channel_id}/typing"
+      },
+      "fields": [
+        {
+          "name": "channel_target",
+          "in": "path",
+          "target": "channel_id",
+          "type": "snowflake",
+          "required": false,
+          "fallback": "channel",
+          "min": null,
+          "max": null,
+          "max_length": null
+        }
+      ],
+      "result": null
+    },
+    {
       "type": "action_variable_set",
       "credits": 1,
       "audit_log_reason": false,
