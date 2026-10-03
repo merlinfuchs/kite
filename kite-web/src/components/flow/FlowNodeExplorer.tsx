@@ -28,11 +28,10 @@ export default function FlowNodeExplorer({
   const contextType = useFlowContext((c) => c.type);
 
   const [search, setSearch] = useState("");
-  const [collapsed, setCollapsedState] = useState<Record<string, boolean>>({});
+  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
 
-  const toggleCollapsed = (title: string) => {
-    setCollapsedState((prev) => ({ ...prev, [title]: !prev[title] }));
-  };
+  const toggleCollapsed = (title: string) =>
+    setCollapsed((c) => ({ ...c, [title]: !c[title] }));
 
   const sections = useMemo(() => {
     return nodeCategories[category].map((s) => ({

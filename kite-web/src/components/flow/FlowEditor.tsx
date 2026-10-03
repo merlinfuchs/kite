@@ -293,24 +293,10 @@ export default function FlowEditor({
     [getNode]
   );
 
-  const isNodeDragging = useRef(false);
-
-  const onNodeDragStart = useCallback(() => {
-    isNodeDragging.current = true;
-  }, []);
-
-  const onNodeDragStop = useCallback(() => {
-    setTimeout(() => {
-      isNodeDragging.current = false;
-    }, 60);
-  }, []);
-
   const handleNodeClick = useCallback(
     (_e: React.MouseEvent, node: Node<NodeData>) => {
       clearAIChanges();
-      if (!isNodeDragging.current) {
-        onNodeTap?.(node);
-      }
+      onNodeTap?.(node);
     },
     [clearAIChanges, onNodeTap]
   );
@@ -330,8 +316,6 @@ export default function FlowEditor({
       onConnect={onConnect}
       isValidConnection={isValidConnection}
       onSelectionChange={onSelectionChange}
-      onNodeDragStart={onNodeDragStart}
-      onNodeDragStop={onNodeDragStop}
       onNodeClick={handleNodeClick}
       onPaneClick={clearAIChanges}
       colorMode={theme === "dark" ? "dark" : "light"}

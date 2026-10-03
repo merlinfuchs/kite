@@ -99,7 +99,6 @@ interface Props {
   nodeId: string;
   className?: string;
   hideTitle?: boolean;
-  onClose?: () => void;
 }
 
 interface InputProps {
@@ -213,14 +212,12 @@ export default function FlowNodeEditor({
   nodeId,
   className,
   hideTitle,
-  onClose,
 }: Props) {
   const { setNodes, deleteElements } = useReactFlow<Node<NodeData>>();
   const store = useStoreApi();
 
   function close() {
     store.getState().addSelectedNodes([]);
-    onClose?.();
   }
 
   const nodes = useNodes<Node<NodeData>>();

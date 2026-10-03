@@ -1,6 +1,5 @@
 import {
   AlertDialog,
-  AlertDialogAction,
   AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
@@ -32,9 +31,7 @@ export default function UnsavedChangesDialog({
         <AlertDialogHeader>
           <AlertDialogTitle>Unsaved Changes</AlertDialogTitle>
           <AlertDialogDescription>
-            Looks like you forgot to save and are trying to leave, do you want
-            to do this? If you do not save, all work since last save will be
-            lost.
+            You have unsaved changes. If you leave now, they will be lost.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter className="flex-col sm:flex-row gap-2 sm:gap-2">

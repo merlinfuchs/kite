@@ -6,10 +6,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { useMessageUpdateMutation } from "@/lib/api/mutations";
 import { useMessage, useMessageInstances } from "@/lib/hooks/api";
 import UnsavedChangesDialog from "@/components/common/UnsavedChangesDialog";
-import {
-  useUnsavedChangesWarning,
-  bypassUnsavedChangesWarning,
-} from "@/lib/hooks/exit";
+import { useUnsavedChangesWarning } from "@/lib/hooks/exit";
 import { useAppId, useMessageId } from "@/lib/hooks/params";
 import { messageSchema, parseMessageData } from "@/lib/message/schemaRestore";
 import {
@@ -139,12 +136,14 @@ function AppMessagePageInner() {
     ]
   );
 
+  const leave = useUnsavedChangesWarning(hasUnsavedChanges);
+
   const doExit = useCallback(() => {
-    router.push({
+    leave({
       pathname: "/apps/[appId]/messages",
       query: { appId: router.query.appId },
     });
-  }, [router]);
+  }, [leave, router]);
 
   const handleExitRequest = useCallback(() => {
     if (hasUnsavedChanges) {
@@ -156,23 +155,17 @@ function AppMessagePageInner() {
 
   const handleDiscardAndExit = useCallback(() => {
     setUnsavedDialogOpen(false);
-    bypassUnsavedChangesWarning(() => {
-      doExit();
-    });
+    doExit();
   }, [doExit]);
 
   const handleSaveAndExit = useCallback(() => {
     save({
       onSuccess: () => {
         setUnsavedDialogOpen(false);
-        bypassUnsavedChangesWarning(() => {
-          doExit();
-        });
+        doExit();
       },
     });
   }, [save, doExit]);
-
-  useUnsavedChangesWarning(hasUnsavedChanges);
 
   return (
     <div className="flex min-h-[100dvh] w-full flex-col">

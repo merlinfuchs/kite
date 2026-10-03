@@ -78,14 +78,6 @@ export default function FlowDialog({
       {/* We disable animations for the dialog, because react flow doesn't handle it well */}
       <DialogContent className="h-[90dvh] w-full max-w-[90dvw] xl:max-w-7xl p-0 !animate-none">
         <ReactFlowProvider>
-          <style jsx global>{`
-            @media (max-width: 767px) {
-              [data-sonner-toaster][data-y-position="top"] {
-                top: 56px !important;
-                --offset: 56px !important;
-              }
-            }
-          `}</style>
           <DialogTitle className="hidden">Flow Editor</DialogTitle>
           <DialogDescription className="hidden">
             Define what happens.

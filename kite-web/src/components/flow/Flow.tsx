@@ -111,6 +111,15 @@ export default function Flow({
 
   return (
     <FlowContextStoreProvider type={context}>
+      {/* Keep toasts below the nav bar on mobile */}
+      <style jsx global>{`
+        @media (max-width: 767px) {
+          [data-sonner-toaster][data-y-position="top"] {
+            top: 56px !important;
+            --offset: 56px !important;
+          }
+        }
+      `}</style>
       <div
         ref={containerRef}
         className="flex flex-auto overflow-y-hidden relative"

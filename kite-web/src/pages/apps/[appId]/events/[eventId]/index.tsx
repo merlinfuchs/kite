@@ -70,14 +70,14 @@ export default function AppEventListenerPage() {
     [setIsSaving, setHasUnsavedChanges, updateMutation]
   );
 
+  const leave = useUnsavedChangesWarning(hasUnsavedChanges);
+
   const exit = useCallback(() => {
-    router.push({
+    leave({
       pathname: "/apps/[appId]/events",
       query: { appId: router.query.appId },
     });
-  }, [router]);
-
-  useUnsavedChangesWarning(hasUnsavedChanges);
+  }, [leave, router]);
 
   const logs = useFlowLogEntries({ eventId: useEventId() });
 

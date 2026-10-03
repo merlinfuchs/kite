@@ -1,21 +1,7 @@
 import { DependencyList, useCallback, useEffect, useRef } from "react";
 import { useRouter } from "next/router";
 
-export const UNSAVED_CHANGES_WARNING =
-  "You have unsaved changes. Leave anyway?";
-
-let bypassNextNavigation = false;
-
-export function bypassUnsavedChangesWarning(action: () => void) {
-  bypassNextNavigation = true;
-  try {
-    action();
-  } finally {
-    setTimeout(() => {
-      bypassNextNavigation = false;
-    }, 100);
-  }
-}
+const UNSAVED_CHANGES_WARNING = "You have unsaved changes. Leave anyway?";
 
 export function useBeforePageExit(
   callback: (e: BeforeUnloadEvent) => any,
@@ -31,9 +17,11 @@ export function useBeforePageExit(
   }, [memoCallback]);
 }
 
+// Warns before leaving with unsaved changes. Returns a function to navigate
+// without the warning, for when the user already confirmed leaving.
 export function useUnsavedChangesWarning(hasUnsavedChanges: boolean) {
   const router = useRouter();
-  const isNavigatingRef = useRef(false);
+  const bypassRef = useRef(false);
 
   useBeforePageExit(
     (e) => {
@@ -47,22 +35,48 @@ export function useUnsavedChangesWarning(hasUnsavedChanges: boolean) {
 
   useEffect(() => {
     const handleRouteChangeStart = (url: string) => {
-      if (bypassNextNavigation) return;
-      if (!hasUnsavedChanges || isNavigatingRef.current) return;
+      if (!hasUnsavedChanges || bypassRef.current) return;
       if (url === router.asPath) return;
 
-      const ok = window.confirm(UNSAVED_CHANGES_WARNING);
-      if (!ok) {
+      if (!window.confirm(UNSAVED_CHANGES_WARNING)) {
         router.events.emit("routeChangeError");
         throw "Abort route change due to unsaved changes";
-      } else {
-        isNavigatingRef.current = true;
       }
+      bypassRef.current = true;
+    };
+    const handleRouteChangeError = () => {
+      bypassRef.current = false;
     };
 
+    // The browser has already changed the URL when back or forward is pressed,
+    // so on cancel we push the entry of this page again.
+    const state = window.history.state;
+    router.beforePopState(({ as }) => {
+      if (!hasUnsavedChanges || bypassRef.current || as === router.asPath) {
+        return true;
+      }
+      if (window.confirm(UNSAVED_CHANGES_WARNING)) {
+        bypassRef.current = true;
+        return true;
+      }
+      window.history.pushState(state, "", router.asPath);
+      return false;
+    });
+
     router.events.on("routeChangeStart", handleRouteChangeStart);
+    router.events.on("routeChangeError", handleRouteChangeError);
     return () => {
+      router.beforePopState(() => true);
       router.events.off("routeChangeStart", handleRouteChangeStart);
+      router.events.off("routeChangeError", handleRouteChangeError);
     };
   }, [hasUnsavedChanges, router]);
+
+  return useCallback(
+    (url: Parameters<typeof router.push>[0]) => {
+      bypassRef.current = true;
+      router.push(url);
+    },
+    [router]
+  );
 }

@@ -48,7 +48,6 @@ export default function FlowNodeEditorDrawer({
             nodeId={nodeId}
             className="w-full h-full relative"
             hideTitle
-            onClose={() => onOpenChange(false)}
           />
         </div>
       </DrawerContent>

@@ -78,14 +78,14 @@ export default function AppCommandPage() {
     );
   }, [cmd]);
 
+  const leave = useUnsavedChangesWarning(hasUnsavedChanges);
+
   const exit = useCallback(() => {
-    router.push({
+    leave({
       pathname: "/apps/[appId]/commands",
       query: { appId: router.query.appId },
     });
-  }, [router]);
-
-  useUnsavedChangesWarning(hasUnsavedChanges);
+  }, [leave, router]);
 
   const logs = useFlowLogEntries({ commandId: useCommandId() });
 
