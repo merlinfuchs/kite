@@ -77,6 +77,9 @@ import {
   VariablesImportResponse,
   VariableUpdateRequest,
   VariableUpdateResponse,
+  VariableValueDeleteResponse,
+  VariableValueSetRequest,
+  VariableValueSetResponse,
 } from "../types/wire.gen";
 import client, { apiRequest } from "./client";
 import { flowAIUsageQueryKey } from "./queries";
@@ -615,6 +618,54 @@ export function useVariableDeleteMutation(appId: string, variableId: string) {
     mutationFn: () =>
       apiRequest<VariableDeleteResponse>(
         `/v1/apps/${appId}/variables/${variableId}`,
+        {
+          method: "DELETE",
+        }
+      ),
+    onSuccess: () => {
+      client.invalidateQueries({
+        queryKey: ["apps", appId, "variables"],
+      });
+    },
+  });
+}
+
+export function useVariableValueSetMutation(appId: string, variableId: string) {
+  const client = useQueryClient();
+
+  return useMutation({
+    mutationFn: (req: VariableValueSetRequest) =>
+      apiRequest<VariableValueSetResponse>(
+        `/v1/apps/${appId}/variables/${variableId}/values`,
+        {
+          method: "PUT",
+          body: JSON.stringify(req),
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      ),
+    onSuccess: () => {
+      client.invalidateQueries({
+        queryKey: ["apps", appId, "variables"],
+      });
+    },
+  });
+}
+
+export function useVariableValueDeleteMutation(
+  appId: string,
+  variableId: string
+) {
+  const client = useQueryClient();
+
+  return useMutation({
+    // A null scope is the value of an unscoped variable.
+    mutationFn: (scope: string | null) =>
+      apiRequest<VariableValueDeleteResponse>(
+        `/v1/apps/${appId}/variables/${variableId}/values?${new URLSearchParams(
+          { scope: scope ?? "" }
+        )}`,
         {
           method: "DELETE",
         }
