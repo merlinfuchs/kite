@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { ArrowLeftIcon } from "lucide-react";
-import { Fragment, ReactNode, useCallback, useMemo } from "react";
+import { Fragment, ReactNode, useMemo } from "react";
 import BaseLayout from "../common/BaseLayout";
 import { useApp } from "@/lib/hooks/api";
 import Link from "next/link";
@@ -25,9 +25,6 @@ interface Props {
   title?: string;
   children: ReactNode;
   disablePadding?: boolean;
-  showMobileTitle?: boolean;
-  showMobileBack?: boolean;
-  backHref?: string;
 }
 
 export default function AppLayout({ children, ...props }: Props) {
@@ -35,23 +32,6 @@ export default function AppLayout({ children, ...props }: Props) {
 
   const router = useRouter();
   const isDashboard = router.pathname === "/apps/[appId]";
-  const showMobileTitle = props.showMobileTitle ?? isDashboard;
-  const showMobileBack = props.showMobileBack ?? !isDashboard;
-
-  const handleBack = useCallback(() => {
-    if (props.backHref) {
-      router.push(props.backHref);
-      return;
-    }
-    if (app?.id) {
-      router.push({
-        pathname: "/apps/[appId]",
-        query: { appId: app.id },
-      });
-    } else {
-      router.push("/apps");
-    }
-  }, [props.backHref, app, router]);
 
   const breadcrumbs = useMemo(
     () => [
@@ -68,6 +48,11 @@ export default function AppLayout({ children, ...props }: Props) {
     [app, props.breadcrumbs]
   );
 
+  const backHref = useMemo(
+    () => breadcrumbs.findLast((item) => item.href)?.href,
+    [breadcrumbs]
+  );
+
   const title = useMemo(
     () => props.title || app?.name || "Kite",
     [app, props.title]
@@ -79,18 +64,22 @@ export default function AppLayout({ children, ...props }: Props) {
         <div className="flex items-center gap-2 justify-between px-4 w-full">
           <div className="flex items-center gap-2">
             <SidebarTrigger className="-ml-2 md:-ml-1 hidden md:flex" />
-            {showMobileBack && (
+            {!isDashboard && backHref && (
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={handleBack}
                 className="md:hidden size-8 -ml-2 text-muted-foreground hover:text-foreground"
-                aria-label="Go back"
+                asChild
               >
-                <ArrowLeftIcon className="size-4" />
+                <Link
+                  href={{ pathname: backHref, query: router.query }}
+                  aria-label="Go back"
+                >
+                  <ArrowLeftIcon className="size-4" />
+                </Link>
               </Button>
             )}
-            {showMobileTitle && (
+            {isDashboard && (
               <span className="font-semibold text-sm md:hidden truncate max-w-[200px]">
                 {title}
               </span>

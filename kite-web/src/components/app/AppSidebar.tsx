@@ -24,7 +24,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/router";
-import { useEffect, useMemo } from "react";
+import { useEffect } from "react";
 import AppSidebarAppSwitcher from "./AppSidebarAppSwitcher";
 import AppSidebarExternalNav from "./AppSidebarExternalNav";
 import AppSidebarMainNav from "./AppSidebarMainNav";
@@ -34,7 +34,7 @@ import AppSidebarUserNav from "./AppSidebarUserNav";
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const router = useRouter();
   const { isMobile, openMobile, setOpenMobile } = useSidebar();
-  const appId = useAppId() || (router.query.appId as string | undefined);
+  const appId = useAppId();
 
   // Close the mobile drawer after navigating or when resizing to desktop.
   useEffect(() => {
@@ -47,39 +47,6 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 
   const isOtherActive =
     !isDashboardActive && !isCommandsActive && !isEventsActive;
-
-  const dashboardHref = useMemo(
-    () =>
-      appId
-        ? {
-            pathname: "/apps/[appId]",
-            query: { appId },
-          }
-        : "/apps",
-    [appId]
-  );
-
-  const commandsHref = useMemo(
-    () =>
-      appId
-        ? {
-            pathname: "/apps/[appId]/commands",
-            query: { appId },
-          }
-        : "/apps",
-    [appId]
-  );
-
-  const eventsHref = useMemo(
-    () =>
-      appId
-        ? {
-            pathname: "/apps/[appId]/events",
-            query: { appId },
-          }
-        : "/apps",
-    [appId]
-  );
 
   return (
     <>
@@ -107,7 +74,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         >
           <div className="grid grid-cols-4 items-center mx-auto h-16 max-w-md px-3">
             <Link
-              href={dashboardHref}
+              href={{ pathname: "/apps/[appId]", query: { appId } }}
               className={cn(
                 "flex flex-col items-center justify-center py-1 rounded-lg transition-colors",
                 isDashboardActive
@@ -122,7 +89,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             </Link>
 
             <Link
-              href={commandsHref}
+              href={{ pathname: "/apps/[appId]/commands", query: { appId } }}
               className={cn(
                 "flex flex-col items-center justify-center py-1 rounded-lg transition-colors",
                 isCommandsActive
@@ -137,7 +104,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             </Link>
 
             <Link
-              href={eventsHref}
+              href={{ pathname: "/apps/[appId]/events", query: { appId } }}
               className={cn(
                 "flex flex-col items-center justify-center py-1 rounded-lg transition-colors",
                 isEventsActive
