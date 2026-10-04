@@ -8,14 +8,19 @@ import {
 import AppEmptyPlaceholder from "./AppEmptyPlaceholder";
 import { Button } from "../ui/button";
 import { useApp } from "@/lib/hooks/api";
-import { useAppUpdateMutation } from "@/lib/api/mutations";
+import {
+  useAppRestartMutation,
+  useAppUpdateMutation,
+} from "@/lib/api/mutations";
 import { useAppId } from "@/lib/hooks/params";
 import { toast } from "sonner";
 
 export default function AppSettingsControls() {
   const app = useApp();
 
-  const updateMutation = useAppUpdateMutation(useAppId());
+  const appId = useAppId();
+  const updateMutation = useAppUpdateMutation(appId);
+  const restartMutation = useAppRestartMutation(appId);
 
   function toggleEnabled() {
     if (!app) return;
@@ -38,6 +43,20 @@ export default function AppSettingsControls() {
         },
       }
     );
+  }
+
+  function restart() {
+    restartMutation.mutate(undefined, {
+      onSuccess(res) {
+        if (res.success) {
+          toast.success("App is restarting, it will be back in a few seconds!");
+        } else {
+          toast.error(
+            `Failed to restart app: ${res.error.message} (${res.error.code})`
+          );
+        }
+      },
+    });
   }
 
   return (
@@ -73,6 +92,22 @@ export default function AppSettingsControls() {
             onClick={toggleEnabled}
           >
             Stop App
+          </Button>
+        </div>
+        <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <div className="font-bold pb-1">Restart App</div>
+            <div className="text-muted-foreground">
+              Restarting your app reconnects it to Discord. It will appear as
+              offline for a few seconds.
+            </div>
+          </div>
+          <Button
+            disabled={!app?.enabled || restartMutation.isPending}
+            variant="secondary"
+            onClick={restart}
+          >
+            Restart App
           </Button>
         </div>
       </CardContent>

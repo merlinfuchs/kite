@@ -19,8 +19,11 @@ type App struct {
 	DiscordToken   string
 	DiscordID      string
 	DiscordStatus  *AppDiscordStatus
-	CreatedAt      time.Time
-	UpdatedAt      time.Time
+	// RestartedAt is when a restart was last requested from the dashboard. The
+	// gateway reconnects when it sees a newer value than the one it holds.
+	RestartedAt null.Time
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
 }
 
 type AppCredentials struct {

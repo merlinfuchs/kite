@@ -154,6 +154,10 @@ func (s *APIServer) RegisterRoutes(
 		handler.TypedWithBody(appHandler.HandleAppUpdate),
 		handler.RateLimitByUser(2, time.Minute),
 	)
+	appGroup.Post("/restart",
+		handler.Typed(appHandler.HandleAppRestart),
+		handler.RateLimitByUser(2, time.Minute),
+	)
 	appGroup.Put("/status", handler.TypedWithBody(appHandler.HandleAppStatusUpdate))
 	appGroup.Put("/token",
 		handler.TypedWithBody(appHandler.HandleAppTokenUpdate),

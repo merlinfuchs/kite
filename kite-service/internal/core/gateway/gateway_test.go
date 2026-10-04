@@ -10,6 +10,7 @@ import (
 
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/internal/util"
+	"gopkg.in/guregu/null.v4"
 )
 
 // newTestGateway builds a gateway without connecting it.
@@ -125,6 +126,33 @@ func TestClosedGatewayDoesNotReconnect(t *testing.T) {
 	}
 	if session != nil {
 		t.Fatal("closed gateway created a new session")
+	}
+}
+
+func TestRestartRequested(t *testing.T) {
+	at := time.Date(2026, 1, 1, 12, 0, 0, 0, time.UTC)
+
+	tests := []struct {
+		name     string
+		old, app null.Time
+		want     bool
+	}{
+		{"never restarted", null.Time{}, null.Time{}, false},
+		{"first restart", null.Time{}, null.TimeFrom(at), true},
+		{"newer restart", null.TimeFrom(at), null.TimeFrom(at.Add(time.Minute)), true},
+		// The manager re-reads apps within its poll overlap.
+		{"same restart read again", null.TimeFrom(at), null.TimeFrom(at), false},
+		{"older row read late", null.TimeFrom(at.Add(time.Minute)), null.TimeFrom(at), false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			old := &model.App{RestartedAt: tt.old}
+			app := &model.App{RestartedAt: tt.app}
+			if got := restartRequested(old, app); got != tt.want {
+				t.Fatalf("restartRequested() = %v, want %v", got, tt.want)
+			}
+		})
 	}
 }
 

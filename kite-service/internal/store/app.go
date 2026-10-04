@@ -43,6 +43,10 @@ type AppStore interface {
 	CreateApp(ctx context.Context, app *model.App) (*model.App, error)
 	UpdateApp(ctx context.Context, opts AppUpdateOpts) (*model.App, error)
 	DisableApp(ctx context.Context, opts AppDisableOpts) error
+	// RestartApp records a restart request for an enabled app, which its
+	// gateway picks up on the next poll. Returns ErrNotFound if the app is
+	// disabled or doesn't exist.
+	RestartApp(ctx context.Context, id string, restartedAt time.Time) (*model.App, error)
 	DeleteApp(ctx context.Context, id string) error
 	EnabledAppIDs(ctx context.Context) ([]string, error)
 	EnabledAppsUpdatedSince(ctx context.Context, updatedSince time.Time) ([]*model.App, error)

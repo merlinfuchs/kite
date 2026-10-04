@@ -290,7 +290,22 @@ func (g *Gateway) Update(ctx context.Context, app *model.App) {
 			slog.String("app_id", app.ID),
 		)
 		g.restart(nil)
+	} else if restartRequested(old, app) {
+		slog.Info(
+			"Restart requested, reconnecting gateway",
+			slog.String("app_id", app.ID),
+		)
+		g.createLogEntry(model.LogLevelInfo, "Restarting app")
+		g.restart(nil)
 	}
+}
+
+// restartRequested reports whether a restart was requested from the dashboard
+// since old was loaded. The manager re-reads apps it already applied, so only
+// a newer request counts.
+func restartRequested(old, app *model.App) bool {
+	return app.RestartedAt.Valid &&
+		(!old.RestartedAt.Valid || app.RestartedAt.Time.After(old.RestartedAt.Time))
 }
 
 // rotatePresence shows the rotation entry for the given time. When rotation is
