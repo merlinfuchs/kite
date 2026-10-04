@@ -111,6 +111,7 @@ export default function MessageComponentButton({
             onChange={(label) => update<ButtonNode>(buttonId, { label })}
             validation={nodeField<ButtonNode>(buttonId, "label")}
             placeholders
+            emojis="native"
           />
         </div>
         {style === 5 ? (

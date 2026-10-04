@@ -33,6 +33,7 @@ export default function MessageEmbedField({ fieldId }: { fieldId: NodeId }) {
             onChange={(name) => update<EmbedFieldNode>(fieldId, { name })}
             validation={nodeField<EmbedFieldNode>(fieldId, "name")}
             placeholders
+            emojis
           />
           <MessageInput
             type="toggle"
@@ -52,6 +53,7 @@ export default function MessageEmbedField({ fieldId }: { fieldId: NodeId }) {
           onChange={(value) => update<EmbedFieldNode>(fieldId, { value })}
           validation={nodeField<EmbedFieldNode>(fieldId, "value")}
           placeholders
+          emojis
         />
       </MessageCollapsibleSection>
     </Card>
