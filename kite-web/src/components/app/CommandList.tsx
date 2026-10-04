@@ -8,11 +8,18 @@ import FlowImportDialog from "./FlowImportDialog";
 import { useCommands } from "@/lib/hooks/api";
 import { CommandDeployDialog } from "./CommandDeployDialog";
 import { useState } from "react";
+import ListSearchInput, { ListSearchEmpty } from "./ListSearchInput";
+import { matchesSearch } from "@/lib/search";
 
 export default function CommandList() {
   const commands = useCommands();
 
   const [deployDialogOpen, setDeployDialogOpen] = useState(false);
+  const [search, setSearch] = useState("");
+
+  const filtered = commands?.filter((command) =>
+    matchesSearch(search, [command!.name, command!.description])
+  );
 
   return (
     <AutoAnimate className="flex flex-col md:flex-1 space-y-5">
@@ -30,9 +37,20 @@ export default function CommandList() {
               description="You can start now by creating the first command! If you deleted commands that still show up in Discord, deploy to remove them."
             />
           ) : (
-            commands.map((command, i) => (
-              <CommandListEntry command={command!} key={i} />
-            ))
+            <>
+              <ListSearchInput
+                value={search}
+                onChange={setSearch}
+                placeholder="Search commands"
+              />
+              {filtered!.length === 0 ? (
+                <ListSearchEmpty query={search} />
+              ) : (
+                filtered!.map((command) => (
+                  <CommandListEntry command={command!} key={command!.id} />
+                ))
+              )}
+            </>
           )}
 
           {/* The deploy button is never disabled: deleting a command doesn't

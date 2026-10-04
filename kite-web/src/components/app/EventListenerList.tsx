@@ -1,3 +1,6 @@
+import { useState } from "react";
+import ListSearchInput, { ListSearchEmpty } from "./ListSearchInput";
+import { matchesSearch } from "@/lib/search";
 import { Button } from "../ui/button";
 import { Skeleton } from "../ui/skeleton";
 import AutoAnimate from "../common/AutoAnimate";
@@ -9,6 +12,15 @@ import FlowImportDialog from "./FlowImportDialog";
 
 export default function EventListenerList() {
   const listeners = useEventListeners();
+  const [search, setSearch] = useState("");
+
+  const filtered = listeners?.filter((listener) =>
+    matchesSearch(search, [
+      listener!.type,
+      listener!.description,
+      listener!.source,
+    ])
+  );
 
   const listenerActions = (
     <div className="flex gap-5 flex-col md:flex-row">
@@ -37,9 +49,18 @@ export default function EventListenerList() {
         />
       ) : (
         <>
-          {listeners.map((listener, i) => (
-            <EventListenerListEntry listener={listener!} key={i} />
-          ))}
+          <ListSearchInput
+            value={search}
+            onChange={setSearch}
+            placeholder="Search event listeners"
+          />
+          {filtered!.length === 0 ? (
+            <ListSearchEmpty query={search} />
+          ) : (
+            filtered!.map((listener) => (
+              <EventListenerListEntry listener={listener!} key={listener!.id} />
+            ))
+          )}
           {listenerActions}
         </>
       )}
