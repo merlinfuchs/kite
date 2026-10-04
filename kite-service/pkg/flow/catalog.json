@@ -5587,6 +5587,14 @@
             "maxLength": 100,
             "minLength": 1,
             "description": "Description of the command shown in Discord."
+          },
+          "command_argument_order": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 25,
+            "description": "IDs of the command's option_command_argument blocks in the order Discord shows them. Required arguments always come before optional ones, and arguments missing here come last."
           }
         },
         "required": [

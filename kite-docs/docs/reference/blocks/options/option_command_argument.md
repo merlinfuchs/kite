@@ -40,6 +40,10 @@ Here you can choose what kind of option you want to use.
 ### Choices
 Choices allow the user to select a value from a predefined set of options.
 
+## Order
+
+Arguments show up in Discord in the order set in the [Command](../entries/entry_command#argument-order) block. Required arguments always come before optional ones.
+
 ## Output
 
 To use the result of your option later in your flow you will use the variable

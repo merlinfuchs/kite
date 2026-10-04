@@ -13,4 +13,18 @@ The `Command` block is the entry point for slash commands. This is where your co
 
 You can configure the command name and description directly in this block. The command will be automatically registered with Discord when you deploy your app.
 
+## Fields
+
+### Argument Order
+
+Once a command has two or more [Command Argument](../options/option_command_argument) blocks, the `Command` block lists them in the order Discord shows them. Use the arrows to move an argument up or down.
+
+Required arguments always come before optional ones, because Discord doesn't allow it the other way around. New arguments are added at the end.
+
+:::note
+
+The order is part of the command in Discord, so you need to deploy again after changing it.
+
+:::
+
 <NodeInfoExplorer type="entry_command" />

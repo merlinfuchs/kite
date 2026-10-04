@@ -158,6 +158,9 @@ type FlowNodeData struct {
 	// Temporary Variables
 	TemporaryName string `json:"temporary_name,omitempty"`
 
+	// Command Entry
+	CommandArgumentOrder []string `json:"command_argument_order,omitempty"`
+
 	// Command Argument
 	CommandArgumentType      CommandArgumentType         `json:"command_argument_type,omitempty"`
 	CommandArgumentRequired  bool                        `json:"command_argument_required,omitempty"`
@@ -407,6 +410,9 @@ func (d FlowNodeData) Validate(nodeType FlowNodeType) error {
 		validation.Field(&d.Description, validation.When(nodeType == FlowNodeTypeEntryCommand,
 			validation.Required,
 			validation.Length(1, 100),
+		)),
+		validation.Field(&d.CommandArgumentOrder, validation.When(nodeType == FlowNodeTypeEntryCommand,
+			validation.Length(0, 25),
 		)),
 
 		// Command Option
