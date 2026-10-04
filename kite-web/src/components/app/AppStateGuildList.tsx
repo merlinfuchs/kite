@@ -29,7 +29,10 @@ import { useAppStateGuilds, useResponseData } from "@/lib/hooks/api";
 import { useAppStateStatusQuery } from "@/lib/api/queries";
 import { Guild } from "@/lib/types/wire.gen";
 import { useCallback, useMemo } from "react";
-import { useAppStateGuildLeaveMutation } from "@/lib/api/mutations";
+import {
+  useAppStateGuildInviteCreateMutation,
+  useAppStateGuildLeaveMutation,
+} from "@/lib/api/mutations";
 import { useAppId } from "@/lib/hooks/params";
 import { toast } from "sonner";
 
@@ -76,7 +79,34 @@ export const columns: ColumnDef<Guild>[] = [
     cell: function RowActionCell({ row }) {
       const payment = row.original;
 
-      const leaveMutation = useAppStateGuildLeaveMutation(useAppId());
+      const appId = useAppId();
+      const leaveMutation = useAppStateGuildLeaveMutation(appId);
+      const inviteMutation = useAppStateGuildInviteCreateMutation(appId);
+
+      const handleJoin = useCallback(() => {
+        // The tab has to be opened during the click, opening it once the
+        // invite is there would be blocked as a popup.
+        const tab = window.open("", "_blank");
+
+        inviteMutation.mutate(row.original.id, {
+          onSuccess: (res) => {
+            if (res.success) {
+              if (tab) {
+                tab.location.href = res.data.url;
+              } else {
+                window.location.href = res.data.url;
+              }
+            } else {
+              tab?.close();
+              toast.error(`Failed to create invite: ${res.error.message}`);
+            }
+          },
+          onError: () => {
+            tab?.close();
+            toast.error("Failed to create invite");
+          },
+        });
+      }, [inviteMutation, row.original.id]);
 
       const handleLeave = useCallback(() => {
         if (confirm("Are you sure you want the app to leave this server?")) {
@@ -102,6 +132,13 @@ export const columns: ColumnDef<Guild>[] = [
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             <DropdownMenuLabel>Actions</DropdownMenuLabel>
+            <DropdownMenuItem
+              onClick={handleJoin}
+              role="button"
+              className="cursor-pointer"
+            >
+              Join server
+            </DropdownMenuItem>
             <DropdownMenuItem
               onClick={handleLeave}
               role="button"

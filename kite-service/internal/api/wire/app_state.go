@@ -50,6 +50,10 @@ type StateGuildChannelListResponse = []*Channel
 
 type StateGuildLeaveResponse = Empty
 
+type StateGuildInviteCreateResponse struct {
+	URL string `json:"url"`
+}
+
 func ChannelToWire(channel *discord.Channel) *Channel {
 	if channel == nil {
 		return nil

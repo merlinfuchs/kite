@@ -56,6 +56,7 @@ import {
   ShareCodeCreateRequest,
   ShareCodeCreateResponse,
   ShareCodeGetResponse,
+  StateGuildInviteCreateResponse,
   StateGuildLeaveResponse,
   SubscriptionManageResponse,
   SubscriptionPlanUpdateRequest,
@@ -801,6 +802,18 @@ export function useAppStateGuildLeaveMutation(appId: string) {
         queryKey: ["apps", appId, "state", "guilds"],
       });
     },
+  });
+}
+
+export function useAppStateGuildInviteCreateMutation(appId: string) {
+  return useMutation({
+    mutationFn: (guildId: string) =>
+      apiRequest<StateGuildInviteCreateResponse>(
+        `/v1/apps/${appId}/state/guilds/${guildId}/invite`,
+        {
+          method: "POST",
+        }
+      ),
   });
 }
 

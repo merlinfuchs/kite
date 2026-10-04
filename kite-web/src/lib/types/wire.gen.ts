@@ -125,6 +125,9 @@ export interface Channel {
 }
 export type StateGuildChannelListResponse = (Channel | undefined)[];
 export type StateGuildLeaveResponse = Empty;
+export interface StateGuildInviteCreateResponse {
+  url: string;
+}
 export interface Role {
   id: string;
   name: string;

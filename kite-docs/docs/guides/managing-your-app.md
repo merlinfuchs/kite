@@ -25,6 +25,8 @@ You can find these on the `Settings` page of your app.
 
 The `Servers` page lists every server your bot is in. Click on the `...` next to a server and on `Leave server` to make your bot leave it.
 
+To join a server yourself, click on `Join server`. Your bot creates an invite that works once and expires after 10 minutes, and opens it in a new tab. This needs your bot to have the `Create Invite` permission in at least one text channel of the server.
+
 ## Emojis
 
 The `Emojis` page lists your app's custom emojis. See [Emojis](../reference/emojis.md).

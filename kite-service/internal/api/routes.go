@@ -354,6 +354,7 @@ func (s *APIServer) RegisterRoutes(
 	stateGroup.Get("/", handler.Typed(stateHandler.HandleStateStatusGet))
 	stateGroup.Get("/guilds", handler.Typed(stateHandler.HandleStateGuildList))
 	stateGroup.Delete("/guilds/{guildID}", handler.Typed(stateHandler.HandleStateGuildLeave))
+	stateGroup.Post("/guilds/{guildID}/invite", handler.Typed(stateHandler.HandleStateGuildInviteCreate))
 	stateGroup.Get("/guilds/{guildID}/channels", handler.Typed(stateHandler.HandleStateGuildChannelList))
 	stateGroup.Get("/guilds/{guildID}/roles", handler.Typed(stateHandler.HandleStateGuildRoleList))
 }
