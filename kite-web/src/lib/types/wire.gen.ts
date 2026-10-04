@@ -109,14 +109,36 @@ export interface AppStateStatus {
   online: boolean;
 }
 export type StateStatusGetResponse = AppStateStatus;
+/**
+ * Guild is a server the app is in. MemberCount is approximate and only set
+ * when the list is requested with counts, JoinedAt is when the app joined.
+ */
 export interface Guild {
   id: string;
   name: string;
   description: string;
   icon_url: null | string;
+  owner_id: string;
+  member_count: null | number;
+  joined_at: null | string /* RFC3339 */;
   created_at: string /* RFC3339 */;
 }
 export type StateGuildListResponse = (Guild | undefined)[];
+export interface GuildOwner {
+  id: string;
+  username: string;
+  display_name: string;
+  avatar_url: null | string;
+}
+export interface GuildDetails {
+  owner: GuildOwner;
+  /**
+   * Permissions is the bitset of the permissions the app has in the guild
+   * through its roles, before channel overwrites.
+   */
+  permissions: string;
+}
+export type StateGuildGetResponse = GuildDetails;
 export interface Channel {
   id: string;
   type: number /* int */;

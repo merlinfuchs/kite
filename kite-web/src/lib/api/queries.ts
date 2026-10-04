@@ -25,6 +25,7 @@ import {
   PluginListResponse,
   StateGuildChannelListResponse,
   StateGuildRoleListResponse,
+  StateGuildGetResponse,
   StateGuildListResponse,
   StateStatusGetResponse,
   SubscriptionListResponse,
@@ -312,6 +313,28 @@ export function useAppStateGuildsQuery(appId: string) {
     queryFn: () =>
       apiRequest<StateGuildListResponse>(`/v1/apps/${appId}/state/guilds`),
     enabled: !!appId,
+  });
+}
+
+export function useAppStateGuildsWithCountsQuery(appId: string) {
+  return useQuery({
+    queryKey: ["apps", appId, "state", "guilds", "with_counts"],
+    queryFn: () =>
+      apiRequest<StateGuildListResponse>(
+        `/v1/apps/${appId}/state/guilds?with_counts=true`
+      ),
+    enabled: !!appId,
+  });
+}
+
+export function useAppStateGuildQuery(appId: string, guildId: string | null) {
+  return useQuery({
+    queryKey: ["apps", appId, "state", "guilds", guildId, "details"],
+    queryFn: () =>
+      apiRequest<StateGuildGetResponse>(
+        `/v1/apps/${appId}/state/guilds/${guildId}`
+      ),
+    enabled: !!appId && !!guildId,
   });
 }
 
