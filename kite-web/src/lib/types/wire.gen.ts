@@ -45,6 +45,25 @@ export interface AppUpdateRequest {
   enabled: boolean;
 }
 export type AppUpdateResponse = App;
+/**
+ * AppProfile is how the app's bot user looks in Discord. It's read from
+ * Discord on demand instead of being stored.
+ */
+export interface AppProfile {
+  avatar_url: null | string;
+  banner_url: null | string;
+}
+export type AppProfileGetResponse = AppProfile;
+/**
+ * AppProfileUpdateRequest changes the avatar and banner of the app's bot user.
+ * A missing field is left unchanged, an empty string removes the image and
+ * anything else must be an image data URI.
+ */
+export interface AppProfileUpdateRequest {
+  avatar?: string;
+  banner?: string;
+}
+export type AppProfileUpdateResponse = AppProfile;
 export interface AppStatusUpdateRequest {
   discord_status?: AppDiscordStatus;
 }

@@ -154,6 +154,12 @@ func (s *APIServer) RegisterRoutes(
 		handler.TypedWithBody(appHandler.HandleAppUpdate),
 		handler.RateLimitByUser(2, time.Minute),
 	)
+	appGroup.Get("/profile", handler.Typed(appHandler.HandleAppProfileGet))
+	// Low because Discord only allows a few avatar and banner changes an hour.
+	appGroup.Put("/profile",
+		handler.TypedWithBody(appHandler.HandleAppProfileUpdate),
+		handler.RateLimitByUser(5, time.Minute),
+	)
 	appGroup.Put("/status", handler.TypedWithBody(appHandler.HandleAppStatusUpdate))
 	appGroup.Put("/token",
 		handler.TypedWithBody(appHandler.HandleAppTokenUpdate),

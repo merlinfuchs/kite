@@ -166,6 +166,50 @@ func (h *AppHandler) HandleAppUpdate(c *handler.Context, req wire.AppUpdateReque
 	return wire.AppToWire(app), nil
 }
 
+func (h *AppHandler) HandleAppProfileGet(c *handler.Context) (*wire.AppProfileGetResponse, error) {
+	client, err := h.getAppClient(c.Context(), c.App)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get app client: %w", err)
+	}
+
+	user, err := client.Me()
+	if err != nil {
+		if util.IsDiscordRestStatusCode(err, http.StatusUnauthorized) {
+			return nil, handler.ErrBadRequest("invalid_discord_token", "Invalid Discord token")
+		}
+		return nil, fmt.Errorf("failed to get discord bot user: %w", err)
+	}
+
+	return appProfileToWire(user), nil
+}
+
+func (h *AppHandler) HandleAppProfileUpdate(c *handler.Context, req wire.AppProfileUpdateRequest) (*wire.AppProfileUpdateResponse, error) {
+	if req.Avatar == nil && req.Banner == nil {
+		return nil, handler.ErrBadRequest("no_changes", "Neither an avatar nor a banner was given")
+	}
+
+	user, err := h.updateDiscordBotProfile(c.Context(), c.App, req.Avatar, req.Banner)
+	if err != nil {
+		if util.IsDiscordRestStatusCode(err, http.StatusUnauthorized) {
+			return nil, handler.ErrBadRequest("invalid_discord_token", "Invalid Discord token")
+		}
+		// Discord rejects images it can't use and limits how often the avatar
+		// and banner can change. Both are for the user to act on.
+		if util.IsDiscordRestStatusCode(err, http.StatusBadRequest) {
+			return nil, handler.ErrBadRequest("discord_rejected", discordProfileErrorMessage(err))
+		}
+
+		slog.Error(
+			"Failed to update discord bot profile",
+			slog.String("app_id", c.App.ID),
+			slog.String("error", err.Error()),
+		)
+		return nil, fmt.Errorf("failed to update discord bot profile: %w", err)
+	}
+
+	return appProfileToWire(user), nil
+}
+
 func (h *AppHandler) HandleAppStatusUpdate(c *handler.Context, req wire.AppStatusUpdateRequest) (*wire.AppStatusUpdateResponse, error) {
 	var status *model.AppDiscordStatus
 	if req.DiscordStatus != nil {

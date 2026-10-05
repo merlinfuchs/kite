@@ -1,6 +1,8 @@
 package wire
 
 import (
+	"errors"
+	"regexp"
 	"time"
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
@@ -66,6 +68,55 @@ func (req AppUpdateRequest) Validate() error {
 }
 
 type AppUpdateResponse = App
+
+// AppProfile is how the app's bot user looks in Discord. It's read from
+// Discord on demand instead of being stored.
+type AppProfile struct {
+	AvatarURL null.String `json:"avatar_url"`
+	BannerURL null.String `json:"banner_url"`
+}
+
+type AppProfileGetResponse = AppProfile
+
+// appProfileImageMaxLength bounds an image data URI. It leaves room for one
+// image of about 5 MB below handler.MaxJSONBodySize.
+const appProfileImageMaxLength = 7 * 1024 * 1024
+
+var appProfileImagePattern = regexp.MustCompile(`^data:image/(png|jpeg|gif|webp);base64,[A-Za-z0-9+/]+=*$`)
+
+// AppProfileUpdateRequest changes the avatar and banner of the app's bot user.
+// A missing field is left unchanged, an empty string removes the image and
+// anything else must be an image data URI.
+type AppProfileUpdateRequest struct {
+	Avatar *string `json:"avatar,omitempty"`
+	Banner *string `json:"banner,omitempty"`
+}
+
+func (req AppProfileUpdateRequest) Validate() error {
+	return validation.ValidateStruct(&req,
+		validation.Field(&req.Avatar, validation.By(validateAppProfileImage)),
+		validation.Field(&req.Banner, validation.By(validateAppProfileImage)),
+	)
+}
+
+func validateAppProfileImage(value interface{}) error {
+	image, _ := value.(*string)
+	if image == nil || *image == "" {
+		return nil
+	}
+
+	if len(*image) > appProfileImageMaxLength {
+		return errors.New("the image is too large, the limit is 5 MB")
+	}
+	if !appProfileImagePattern.MatchString(*image) {
+		return errors.New("must be a PNG, JPEG, GIF or WebP image")
+	}
+
+	return nil
+}
+
+type AppProfileUpdateResponse = AppProfile
+
 type AppStatusUpdateRequest struct {
 	DiscordStatus *AppDiscordStatus `json:"discord_status,omitempty"`
 }

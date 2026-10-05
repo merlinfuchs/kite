@@ -5,6 +5,7 @@ import {
   AppEmojiListResponse,
   AppEntityListResponse,
   AppGetResponse,
+  AppProfileGetResponse,
   AppListResponse,
   AssetGetResponse,
   BillingPlanListResponse,
@@ -57,6 +58,15 @@ export function useAppQuery(appId: string) {
   return useQuery({
     queryKey: ["apps", appId],
     queryFn: () => apiRequest<AppGetResponse>(`/v1/apps/${appId}`),
+    enabled: !!appId,
+  });
+}
+
+export function useAppProfileQuery(appId: string) {
+  return useQuery({
+    queryKey: ["apps", appId, "profile"],
+    queryFn: () =>
+      apiRequest<AppProfileGetResponse>(`/v1/apps/${appId}/profile`),
     enabled: !!appId,
   });
 }
