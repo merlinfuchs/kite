@@ -56,4 +56,23 @@ describe("getAvailablePlaceholders", () => {
       ["result('msg')", "result('get')"],
     ]);
   });
+
+  it("adds the system channel for the bot joined server event", () => {
+    const serverValues = (eventType: string) =>
+      getAvailablePlaceholders(
+        undefined,
+        [node("entry", "entry_event", { event_type: eventType })],
+        [],
+        "event_discord"
+      )
+        .find((g) => g.label === "Server")!
+        .placeholders.map((p) => p.value);
+
+    expect(serverValues("guild_create")).toEqual([
+      "guild.id",
+      "guild.name",
+      "guild.system_channel_id",
+    ]);
+    expect(serverValues("message_create")).toEqual(["guild.id"]);
+  });
 });

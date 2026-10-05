@@ -25,6 +25,11 @@ export const guildResultSchema = z.object({
   id: z.string().describe("The ID of the guild"),
   name: z.string().describe("The name of the guild"),
   icon_url: z.string().describe("The icon URL of the guild"),
+  system_channel_id: z
+    .string()
+    .describe(
+      "The ID of the guild's system channel, where Discord posts join messages. Empty if it has none"
+    ),
 });
 
 export const messageResultSchema = z.object({
