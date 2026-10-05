@@ -76,6 +76,7 @@ func NewAPIServer(
 	flowAssistant *flowai.Assistant,
 	appSecretStore store.AppSecretStore,
 	appIntegrationStore store.AppIntegrationStore,
+	flowVersionStore store.FlowVersionStore,
 ) *APIServer {
 	s := &APIServer{
 		config: config,
@@ -107,6 +108,7 @@ func NewAPIServer(
 		flowAssistant,
 		appSecretStore,
 		appIntegrationStore,
+		flowVersionStore,
 	)
 	return s
 }

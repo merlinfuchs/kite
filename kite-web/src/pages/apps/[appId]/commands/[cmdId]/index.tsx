@@ -1,5 +1,5 @@
 import { CommandDeployDialog } from "@/components/app/CommandDeployDialog";
-import FlowPage from "@/components/flow/FlowPage";
+import FlowPage, { FlowSaveOptions } from "@/components/flow/FlowPage";
 import {
   useCommandsDeployMutation,
   useCommandUpdateMutation,
@@ -10,7 +10,7 @@ import { useBeforePageExit } from "@/lib/hooks/exit";
 import { useAppId, useCommandId } from "@/lib/hooks/params";
 import Head from "next/head";
 import { useRouter } from "next/router";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 
 export default function AppCommandPage() {
@@ -29,40 +29,53 @@ export default function AppCommandPage() {
     }
   });
 
-  const updateMutation = useCommandUpdateMutation(useAppId(), useCommandId());
+  const appId = useAppId();
+  const cmdId = useCommandId();
+  const updateMutation = useCommandUpdateMutation(appId, cmdId);
+  const { mutateAsync: updateCommand } = updateMutation;
 
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [deployDialogOpen, setDeployDialogOpen] = useState(false);
+  // Counts edits, so edits made while a save is running stay unsaved.
+  const changeCount = useRef(0);
 
   const onChange = useCallback(() => {
+    changeCount.current++;
     setHasUnsavedChanges(true);
   }, [setHasUnsavedChanges]);
 
   const save = useCallback(
-    (data: FlowData) => {
-      updateMutation.mutate(
-        {
+    async (data: FlowData, options?: FlowSaveOptions) => {
+      const savedChangeCount = changeCount.current;
+
+      try {
+        const res = await updateCommand({
           flow_source: data,
-        },
-        {
-          onSuccess(res) {
-            if (res.success) {
-              toast.success(
-                "Command saved! Make sure to deploy the command for the changes to take effect in Discord."
-              );
-            } else {
-              toast.error(
-                `Failed to update command: ${res.error.message} (${res.error.code})`
-              );
-            }
-          },
-          onSettled() {
-            setHasUnsavedChanges(false);
-          },
+          auto_save: !!options?.auto,
+        });
+        if (!res.success) {
+          toast.error(
+            `Failed to update command: ${res.error.message} (${res.error.code})`
+          );
+          return false;
         }
-      );
+
+        // Auto-save would show this every few seconds.
+        if (!options?.auto) {
+          toast.success(
+            "Command saved! Make sure to deploy the command for the changes to take effect in Discord."
+          );
+        }
+        if (changeCount.current === savedChangeCount) {
+          setHasUnsavedChanges(false);
+        }
+        return true;
+      } catch (err) {
+        toast.error(`Failed to update command: ${err}`);
+        return false;
+      }
     },
-    [setHasUnsavedChanges, updateMutation]
+    [setHasUnsavedChanges, updateCommand]
   );
 
   const hasUndeployedChanges = useMemo(() => {
@@ -96,7 +109,11 @@ export default function AppCommandPage() {
     [hasUnsavedChanges]
   );
 
-  const logs = useFlowLogEntries({ commandId: useCommandId() });
+  const logs = useFlowLogEntries({ commandId: cmdId });
+  const versionTarget = useMemo(
+    () => ({ appId, commandId: cmdId }),
+    [appId, cmdId]
+  );
 
   return (
     <div className="flex min-h-[100dvh] w-full flex-col">
@@ -116,6 +133,7 @@ export default function AppCommandPage() {
           onSave={save}
           onExit={exit}
           logs={logs}
+          versionTarget={versionTarget}
         />
       )}
 

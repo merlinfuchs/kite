@@ -36,6 +36,8 @@ import {
   VariableListResponse,
   AppSecretListResponse,
   AppIntegrationListResponse,
+  FlowVersionGetResponse,
+  FlowVersionListResponse,
 } from "../types/wire.gen";
 
 export function useUserQuery(userId = "@me") {
@@ -187,6 +189,51 @@ export function useEventListenerQuery(appId: string, eventId: string) {
       ),
     enabled: !!appId && !!eventId,
   });
+}
+
+// The command or event listener whose flow has a version history.
+export type FlowVersionTarget =
+  | { appId: string; commandId: string }
+  | { appId: string; eventListenerId: string };
+
+function flowVersionsPath(target: FlowVersionTarget) {
+  return "commandId" in target
+    ? `/v1/apps/${target.appId}/commands/${target.commandId}/versions`
+    : `/v1/apps/${target.appId}/event-listeners/${target.eventListenerId}/versions`;
+}
+
+// Under the key of the command or event listener, so saving it refreshes the
+// versions too.
+function flowVersionsQueryKey(target: FlowVersionTarget) {
+  return "commandId" in target
+    ? ["apps", target.appId, "commands", target.commandId, "versions"]
+    : [
+        "apps",
+        target.appId,
+        "event-listeners",
+        target.eventListenerId,
+        "versions",
+      ];
+}
+
+export function useFlowVersionsQuery(
+  target: FlowVersionTarget,
+  enabled = true
+) {
+  return useQuery({
+    queryKey: flowVersionsQueryKey(target),
+    queryFn: () =>
+      apiRequest<FlowVersionListResponse>(flowVersionsPath(target)),
+    enabled: enabled && !!target.appId,
+    // Every save adds a version, so the list is always refetched.
+    staleTime: 0,
+  });
+}
+
+export function getFlowVersion(target: FlowVersionTarget, versionId: string) {
+  return apiRequest<FlowVersionGetResponse>(
+    `${flowVersionsPath(target)}/${versionId}`
+  );
 }
 
 export function useVariablesQuery(appId: string) {

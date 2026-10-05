@@ -10,8 +10,9 @@ import {
   SparklesIcon,
   SunIcon,
 } from "lucide-react";
-import { useCallback, useEffect } from "react";
+import { ReactNode, useCallback, useEffect } from "react";
 import { cn } from "@/lib/utils";
+import { Switch } from "../ui/switch";
 
 interface Props {
   hasUnsavedChanges: boolean;
@@ -23,6 +24,10 @@ interface Props {
   onExit: () => void;
   chatOpen: boolean;
   onChatOpenChange: (open: boolean) => void;
+  autoSave: boolean;
+  onAutoSaveChange: (enabled: boolean) => void;
+  // The save history button, if the flow has one.
+  history?: ReactNode;
 }
 
 export default function FlowNav({
@@ -34,6 +39,9 @@ export default function FlowNav({
   onExit,
   chatOpen,
   onChatOpenChange,
+  autoSave,
+  onAutoSaveChange,
+  history,
 }: Props) {
   const { theme, setTheme } = useHookedTheme();
 
@@ -87,7 +95,7 @@ export default function FlowNav({
         ) : (
           <div className="flex space-x-2 text-foreground/70 items-center">
             <CheckIcon className="h-5 w-5" />
-            <div>No Unsaved Changes</div>
+            <div>{autoSave ? "All Changes Saved" : "No Unsaved Changes"}</div>
           </div>
         )}
         {hasUndeployedChanges ? (
@@ -107,6 +115,18 @@ export default function FlowNav({
         ) : null}
       </div>
       <div className="flex items-center space-x-6">
+        <label
+          className="flex space-x-2 text-foreground/80 hover:text-foreground items-center cursor-pointer"
+          title="Save this flow automatically a few seconds after each change"
+        >
+          <Switch
+            checked={autoSave}
+            onCheckedChange={onAutoSaveChange}
+            className="scale-75"
+          />
+          <div>Auto-save</div>
+        </label>
+        {history}
         <button
           className={cn(
             "flex space-x-2 items-center",

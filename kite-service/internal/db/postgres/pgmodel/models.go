@@ -120,6 +120,17 @@ type EventListener struct {
 	LastRunAt     pgtype.Timestamp
 }
 
+type FlowVersion struct {
+	ID              string
+	AppID           string
+	CommandID       pgtype.Text
+	EventListenerID pgtype.Text
+	FlowSource      []byte
+	AutoSaved       bool
+	CreatorUserID   pgtype.Text
+	CreatedAt       pgtype.Timestamp
+}
+
 type Log struct {
 	ID              int64
 	AppID           string

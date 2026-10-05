@@ -170,7 +170,7 @@ func StartServer(c context.Context, cfg *config.Config) error {
 	},
 		pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg,
 		assetStore, gateway, planManager, pluginRegistry, tokenCrypt, commandManager,
-		pg, flowAssistant, pg, pg,
+		pg, flowAssistant, pg, pg, pg,
 	)
 	address := fmt.Sprintf("%s:%d", cfg.API.Host, cfg.API.Port)
 	if err := apiServer.Serve(ctx, address); err != nil {
