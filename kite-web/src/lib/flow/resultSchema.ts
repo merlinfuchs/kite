@@ -67,6 +67,15 @@ export const nodeActionMessageGetResultSchema = messageResultSchema;
 
 export const nodeActionPollCreateResultSchema = messageResultSchema;
 
+export const nodeActionTranscriptCreateResultSchema = z
+  .object({
+    name: z.string().describe("The file name of the transcript"),
+    size: z.number().describe("The size of the transcript in bytes"),
+  })
+  .describe(
+    "The transcript as an HTML file. Put the result on its own, e.g. {{result('id')}}, in the text of a block that sends a message to attach the file to it."
+  );
+
 export const nodeActionUserGetResultSchema = userResultSchema;
 
 export const nodeActionMemberGetResultSchema = memberResultSchema;

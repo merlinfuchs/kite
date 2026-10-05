@@ -13,11 +13,12 @@ import (
 
 func init() {
 	registerHandlers(map[FlowNodeType]nodeHandler{
-		FlowNodeTypeActionChannelGet:      executeActionChannelGet,
-		FlowNodeTypeActionChannelCreate:   executeActionChannelCreate,
-		FlowNodeTypeActionChannelEdit:     executeActionChannelEdit,
-		FlowNodeTypeActionThreadCreate:    executeActionThreadCreate,
-		FlowNodeTypeActionForumPostCreate: executeActionForumPostCreate,
+		FlowNodeTypeActionChannelGet:       executeActionChannelGet,
+		FlowNodeTypeActionChannelCreate:    executeActionChannelCreate,
+		FlowNodeTypeActionChannelEdit:      executeActionChannelEdit,
+		FlowNodeTypeActionTranscriptCreate: executeActionTranscriptCreate,
+		FlowNodeTypeActionThreadCreate:     executeActionThreadCreate,
+		FlowNodeTypeActionForumPostCreate:  executeActionForumPostCreate,
 	})
 }
 
@@ -176,5 +177,29 @@ func executeActionThreadCreate(n *CompiledFlowNode, ctx *FlowContext) error {
 }
 
 func executeActionForumPostCreate(n *CompiledFlowNode, ctx *FlowContext) error {
+	return n.ExecuteChildren(ctx)
+}
+
+func executeActionTranscriptCreate(n *CompiledFlowNode, ctx *FlowContext) error {
+	channelTarget, err := ctx.EvalTemplate(n.Data.ChannelTarget)
+	if err != nil {
+		return traceError(n, err)
+	}
+	channelID := discord.ChannelID(channelTarget.Snowflake())
+	if !channelID.IsValid() {
+		return traceError(n, fmt.Errorf("channel %q is not a valid channel ID", channelTarget.String()))
+	}
+
+	limit, err := n.Data.TranscriptData.evalMessageLimit(ctx, ctx.EvalCtx)
+	if err != nil {
+		return traceError(n, err)
+	}
+
+	file, err := createTranscript(ctx, ctx.Discord, channelID, limit)
+	if err != nil {
+		return traceError(n, err)
+	}
+
+	ctx.StoreNodeResult(n, thing.NewFile(file))
 	return n.ExecuteChildren(ctx)
 }

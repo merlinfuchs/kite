@@ -29,6 +29,7 @@ const (
 	TypeDiscordRole    Type = "discord_role"
 	TypeRobloxUser     Type = "roblox_user"
 	TypeHTTPResponse   Type = "http_response"
+	TypeFile           Type = "file"
 	TypeArray          Type = "array"
 	TypeObject         Type = "object"
 )
@@ -110,6 +111,11 @@ func (w *Thing) UnmarshalJSON(data []byte) error {
 			}
 		case TypeHTTPResponse:
 			w.Value, err = UnmarshalValue[HTTPResponseValue](aux.Value)
+			if err != nil {
+				return err
+			}
+		case TypeFile:
+			w.Value, err = UnmarshalValue[FileValue](aux.Value)
 			if err != nil {
 				return err
 			}
@@ -227,6 +233,8 @@ func NewGuessType(v any) (Thing, error) {
 		return NewRobloxUser(v), nil
 	case HTTPResponseValue:
 		return NewHTTPResponse(v), nil
+	case FileValue:
+		return NewFile(v), nil
 	case map[string]Thing:
 		return NewObject(v), nil
 	case nil:
@@ -358,6 +366,13 @@ func NewFromHTTPResponse(v *http.Response) (Thing, error) {
 	return NewHTTPResponse(val), nil
 }
 
+func NewFile(v FileValue) Thing {
+	return Thing{
+		Type:  TypeFile,
+		Value: v,
+	}
+}
+
 func NewArray(v []Thing) Thing {
 	return Thing{
 		Type:  TypeArray,
@@ -403,6 +418,8 @@ func (w Thing) String() string {
 		return w.Value.(RobloxUserValue).Name
 	case TypeHTTPResponse:
 		return string(w.Value.(HTTPResponseValue).Body)
+	case TypeFile:
+		return w.Value.(FileValue).Name
 	case TypeArray:
 		return fmt.Sprintf("%v", w.Value)
 	case TypeObject:
@@ -695,6 +712,13 @@ func (w Thing) RobloxUser() RobloxUserValue {
 		return w.Value.(RobloxUserValue)
 	}
 	return RobloxUserValue{}
+}
+
+func (w Thing) File() FileValue {
+	if w.Type == TypeFile {
+		return w.Value.(FileValue)
+	}
+	return FileValue{}
 }
 
 func (w Thing) HTTPResponse() HTTPResponseValue {
