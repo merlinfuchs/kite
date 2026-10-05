@@ -45,7 +45,12 @@ func (h *MessageHandler) HandleMessageInstanceCreate(c *handler.Context, req wir
 
 	channelID, _ := strconv.ParseUint(req.DiscordChannelID, 10, 64)
 
-	data := c.Message.Data.ToSendMessageData(message.ConvertOptions{})
+	messageData, err := evalPlaceholders(c.Context(), &c.Message.Data, req.DiscordGuildID, req.DiscordChannelID)
+	if err != nil {
+		return nil, err
+	}
+
+	data := messageData.ToSendMessageData(message.ConvertOptions{})
 	data.Files, err = h.attachmentsToFiles(c.Context(), c.Message.Data.Attachments)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get attachments: %w", err)
@@ -95,7 +100,12 @@ func (h *MessageHandler) HandleMessageInstanceUpdate(c *handler.Context) (*wire.
 	channelID, _ := strconv.ParseUint(instance.DiscordChannelID, 10, 64)
 	messageID, _ := strconv.ParseUint(instance.DiscordMessageID, 10, 64)
 
-	data := c.Message.Data.ToEditMessageData(message.ConvertOptions{})
+	messageData, err := evalPlaceholders(c.Context(), &c.Message.Data, instance.DiscordGuildID, instance.DiscordChannelID)
+	if err != nil {
+		return nil, err
+	}
+
+	data := messageData.ToEditMessageData(message.ConvertOptions{})
 	data.Attachments = &[]discord.Attachment{}
 	data.Files, err = h.attachmentsToFiles(c.Context(), c.Message.Data.Attachments)
 	if err != nil {

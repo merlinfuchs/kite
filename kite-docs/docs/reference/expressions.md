@@ -135,6 +135,8 @@ This will return the value of the `somefield` field in the JSON response of a HT
 
 Discord timestamps are shown in the local timezone of whoever reads the message. Wrap a Unix timestamp in `<t:...:style>` and pick one of the styles below.
 
+In the message editor, the **Time** tab of the placeholder picker inserts these for you, for the time the message is sent, a specific date, or some time after it is sent.
+
 ```python
 <t:{{ now().Unix() }}:t> # Short time, like 5:36 PM
 <t:{{ now().Unix() }}:T> # Long time, like 5:36:12 PM
