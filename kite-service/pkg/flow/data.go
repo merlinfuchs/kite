@@ -73,6 +73,7 @@ const (
 	FlowNodeTypeActionMemberBan             FlowNodeType = "action_member_ban"
 	FlowNodeTypeActionMemberUnban           FlowNodeType = "action_member_unban"
 	FlowNodeTypeActionMemberKick            FlowNodeType = "action_member_kick"
+	FlowNodeTypeActionMemberPrune           FlowNodeType = "action_member_prune"
 	FlowNodeTypeActionMemberTimeout         FlowNodeType = "action_member_timeout"
 	FlowNodeTypeActionMemberEdit            FlowNodeType = "action_member_edit"
 	FlowNodeTypeActionMemberRoleAdd         FlowNodeType = "action_member_role_add"
@@ -192,11 +193,12 @@ type FlowNodeData struct {
 	// Modal
 	ModalData *ModalData `json:"modal_data,omitempty"`
 
-	// Member Ban, Kick, Timeout, Edit, Get
+	// Member Ban, Kick, Timeout, Edit, Get, Prune
 	UserTarget                            string      `json:"user_target,omitempty"`
 	MemberBanDeleteMessageDurationSeconds string      `json:"member_ban_delete_message_duration_seconds,omitempty"`
 	MemberTimeoutDurationSeconds          string      `json:"member_timeout_duration_seconds,omitempty"`
 	MemberData                            *MemberData `json:"member_data,omitempty"`
+	MemberPruneDays                       string      `json:"member_prune_days,omitempty"`
 
 	// Channel Create, Edit, Delete, Get
 	ChannelTarget string       `json:"channel_target,omitempty"`

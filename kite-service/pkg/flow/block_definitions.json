@@ -682,6 +682,22 @@
       "result": null
     },
     {
+      "type": "action_member_prune",
+      "credits": 1,
+      "audit_log_reason": true,
+      "requires": [
+        "discord"
+      ],
+      "run": {
+        "kind": "custom"
+      },
+      "fields": [],
+      "result": {
+        "thing": "",
+        "list": false
+      }
+    },
+    {
       "type": "action_member_timeout",
       "credits": 1,
       "audit_log_reason": true,
