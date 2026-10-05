@@ -278,6 +278,19 @@ func (h *AppHandler) HandleAppEmojisList(c *handler.Context) (*wire.AppEmojiList
 	return &res, nil
 }
 
+func (h *AppHandler) HandleAppBotUserGet(c *handler.Context) (*wire.AppBotUserGetResponse, error) {
+	user, err := h.getAppBotUser(c.Context(), c.App)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get app bot user: %w", err)
+	}
+
+	return &wire.AppBotUser{
+		ID:        user.ID.String(),
+		Username:  user.Username,
+		AvatarURL: user.AvatarURL(),
+	}, nil
+}
+
 func (h *AppHandler) HandleAppEntityList(c *handler.Context) (*wire.AppEntityListResponse, error) {
 	entities, err := h.appStore.AppEntities(c.Context(), c.App.ID)
 	if err != nil {

@@ -141,6 +141,15 @@ type AppEmoji struct {
 	Available bool   `json:"available"`
 }
 
+// AppBotUser is the Discord user the app's bot sends messages as.
+type AppBotUser struct {
+	ID        string `json:"id"`
+	Username  string `json:"username"`
+	AvatarURL string `json:"avatar_url"`
+}
+
+type AppBotUserGetResponse = AppBotUser
+
 type AppEntityListResponse = []*AppEntity
 
 type AppEntity struct {

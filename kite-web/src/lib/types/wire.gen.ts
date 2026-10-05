@@ -62,6 +62,15 @@ export interface AppEmoji {
   animated: boolean;
   available: boolean;
 }
+/**
+ * AppBotUser is the Discord user the app's bot sends messages as.
+ */
+export interface AppBotUser {
+  id: string;
+  username: string;
+  avatar_url: string;
+}
+export type AppBotUserGetResponse = AppBotUser;
 export type AppEntityListResponse = (AppEntity | undefined)[];
 export interface AppEntity {
   id: string;
