@@ -630,6 +630,15 @@ function CommandArgumentChoicesInput({ data, updateData, errors }: InputProps) {
               value={choice.value || ""}
               onChange={(e) => updateChoice(i, { value: e.target.value })}
             />
+            <Button
+              variant="outline"
+              size="icon"
+              className="flex-none"
+              aria-label="Remove choice"
+              onClick={() => removeChoice(i)}
+            >
+              <MinusIcon className="h-5 w-5" />
+            </Button>
           </div>
         ))}
       </div>

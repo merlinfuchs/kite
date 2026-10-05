@@ -40,6 +40,8 @@ Here you can choose what kind of option you want to use.
 ### Choices
 Choices allow the user to select a value from a predefined set of options.
 
+Use the plus button to add a choice and the minus button next to a choice to remove just that one. The trash button removes all choices.
+
 ## Output
 
 To use the result of your option later in your flow you will use the variable
