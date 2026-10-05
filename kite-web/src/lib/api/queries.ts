@@ -4,6 +4,7 @@ import {
   AppCollaboratorListResponse,
   AppEmojiListResponse,
   AppEntityListResponse,
+  AppIntentsGetResponse,
   AppGetResponse,
   AppListResponse,
   AssetGetResponse,
@@ -66,6 +67,18 @@ export function useAppEmojisQuery(appId: string) {
     queryKey: ["apps", appId, "emojis"],
     queryFn: () => apiRequest<AppEmojiListResponse>(`/v1/apps/${appId}/emojis`),
     enabled: !!appId,
+  });
+}
+
+export function useAppIntentsQuery(appId: string, enabled = true) {
+  return useQuery({
+    queryKey: ["apps", appId, "intents"],
+    queryFn: () =>
+      apiRequest<AppIntentsGetResponse>(`/v1/apps/${appId}/intents`),
+    enabled: !!appId && enabled,
+    // Recheck when the user comes back from the developer portal tab.
+    refetchOnWindowFocus: true,
+    staleTime: 1000 * 10,
   });
 }
 

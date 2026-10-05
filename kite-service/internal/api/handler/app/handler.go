@@ -278,6 +278,18 @@ func (h *AppHandler) HandleAppEmojisList(c *handler.Context) (*wire.AppEmojiList
 	return &res, nil
 }
 
+func (h *AppHandler) HandleAppIntentsGet(c *handler.Context) (*wire.AppIntentsGetResponse, error) {
+	flags, err := h.getAppFlags(c.Context(), c.App)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get app flags: %w", err)
+	}
+
+	return &wire.AppIntentsGetResponse{
+		MessageContent: flags&discordFlagGatewayMessageContent != 0 || flags&discordFlagGatewayMessageContentLimited != 0,
+		GuildMembers:   flags&discordFlagGatewayGuildMembers != 0 || flags&discordFlagGatewayGuildMembersLimited != 0,
+	}, nil
+}
+
 func (h *AppHandler) HandleAppEntityList(c *handler.Context) (*wire.AppEntityListResponse, error) {
 	entities, err := h.appStore.AppEntities(c.Context(), c.App.ID)
 	if err != nil {

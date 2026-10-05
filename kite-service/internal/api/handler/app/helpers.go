@@ -92,6 +92,30 @@ func (h *AppHandler) getAppEmojis(ctx context.Context, app *model.App) ([]discor
 	return res.Items, nil
 }
 
+// Application flags for the privileged gateway intents. The non-limited flag is
+// set for verified apps, the limited one for apps in fewer than 100 servers
+// that toggled the intent on in the developer portal.
+const (
+	discordFlagGatewayGuildMembers          = 1 << 14
+	discordFlagGatewayGuildMembersLimited   = 1 << 15
+	discordFlagGatewayMessageContent        = 1 << 18
+	discordFlagGatewayMessageContentLimited = 1 << 19
+)
+
+func (h *AppHandler) getAppFlags(ctx context.Context, app *model.App) (discord.ApplicationFlags, error) {
+	client, err := h.getAppClient(ctx, app)
+	if err != nil {
+		return 0, fmt.Errorf("failed to get app client: %w", err)
+	}
+
+	discordApp, err := client.CurrentApplication()
+	if err != nil {
+		return 0, fmt.Errorf("failed to get current application: %w", err)
+	}
+
+	return discordApp.Flags, nil
+}
+
 type DiscordAppInfo struct {
 	ID          string
 	Name        string
