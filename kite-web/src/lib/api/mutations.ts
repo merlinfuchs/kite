@@ -10,6 +10,8 @@ import {
   AppStatusUpdateResponse,
   AppTokenUpdateRequest,
   AppTokenUpdateResponse,
+  AppProfileUpdateRequest,
+  AppProfileUpdateResponse,
   AppUpdateRequest,
   AppUpdateResponse,
   AssetCreateResponse,
@@ -133,6 +135,26 @@ export function useAppUpdateMutation(appId: string) {
       client.invalidateQueries({
         queryKey: ["apps"],
       });
+    },
+  });
+}
+
+export function useAppProfileUpdateMutation(appId: string) {
+  const client = useQueryClient();
+
+  return useMutation({
+    mutationFn: (req: AppProfileUpdateRequest) =>
+      apiRequest<AppProfileUpdateResponse>(`/v1/apps/${appId}/profile`, {
+        method: "PUT",
+        body: JSON.stringify(req),
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }),
+    onSuccess: (res) => {
+      if (res.success) {
+        client.setQueryData(["apps", appId, "profile"], res);
+      }
     },
   });
 }
