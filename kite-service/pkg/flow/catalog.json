@@ -5622,6 +5622,7 @@
               "guild_member_remove",
               "guild_create",
               "guild_delete",
+              "invite_create",
               "cron"
             ],
             "description": "Discord event that triggers the flow, or cron for a scheduled flow."

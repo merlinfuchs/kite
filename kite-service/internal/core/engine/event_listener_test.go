@@ -3,6 +3,7 @@ package engine
 import (
 	"testing"
 
+	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/gateway"
 	"github.com/diamondburned/arikawa/v3/state"
 	"github.com/diamondburned/arikawa/v3/utils/ws"
@@ -23,6 +24,26 @@ func TestShouldHandleGuildJoinAndLeave(t *testing.T) {
 		{"guild unavailable", &state.GuildUnavailableEvent{GuildDeleteEvent: &gateway.GuildDeleteEvent{Unavailable: true}}, false},
 		{"guild join", &state.GuildJoinEvent{GuildCreateEvent: &gateway.GuildCreateEvent{}}, true},
 		{"guild leave", &state.GuildLeaveEvent{GuildDeleteEvent: &gateway.GuildDeleteEvent{}}, true},
+	}
+
+	l := &EventListener{}
+	for _, tt := range tests {
+		if got := l.shouldHandleEvent(tt.event); got != tt.want {
+			t.Errorf("%s: got %v, want %v", tt.name, got, tt.want)
+		}
+	}
+}
+
+// A flow that creates an invite must not trigger its own listener.
+func TestShouldHandleInviteCreate(t *testing.T) {
+	tests := []struct {
+		name  string
+		event ws.Event
+		want  bool
+	}{
+		{"invite by a user", &gateway.InviteCreateEvent{Inviter: &discord.User{}}, true},
+		{"invite by a bot", &gateway.InviteCreateEvent{Inviter: &discord.User{Bot: true}}, false},
+		{"invite without inviter", &gateway.InviteCreateEvent{}, true},
 	}
 
 	l := &EventListener{}

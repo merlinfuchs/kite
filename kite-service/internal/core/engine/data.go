@@ -61,6 +61,10 @@ func (d *EventData) UserID() discord.UserID {
 		return data.User.ID
 	case *gateway.GuildMemberUpdateEvent:
 		return data.User.ID
+	case *gateway.InviteCreateEvent:
+		if data.Inviter != nil {
+			return data.Inviter.ID
+		}
 	}
 	return 0
 }
@@ -83,6 +87,8 @@ func (d *EventData) GuildID() discord.GuildID {
 		return data.ID
 	case *state.GuildLeaveEvent:
 		return data.ID
+	case *gateway.InviteCreateEvent:
+		return data.GuildID
 	}
 	return 0
 }
@@ -94,6 +100,8 @@ func (d *EventData) ChannelID() discord.ChannelID {
 	case *gateway.MessageDeleteEvent:
 		return data.ChannelID
 	case *gateway.MessageUpdateEvent:
+		return data.ChannelID
+	case *gateway.InviteCreateEvent:
 		return data.ChannelID
 	}
 	return 0
