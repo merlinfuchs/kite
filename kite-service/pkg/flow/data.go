@@ -74,6 +74,7 @@ const (
 	FlowNodeTypeActionMemberUnban           FlowNodeType = "action_member_unban"
 	FlowNodeTypeActionMemberKick            FlowNodeType = "action_member_kick"
 	FlowNodeTypeActionMemberTimeout         FlowNodeType = "action_member_timeout"
+	FlowNodeTypeActionMemberVoiceEdit       FlowNodeType = "action_member_voice_edit"
 	FlowNodeTypeActionMemberEdit            FlowNodeType = "action_member_edit"
 	FlowNodeTypeActionMemberRoleAdd         FlowNodeType = "action_member_role_add"
 	FlowNodeTypeActionMemberRoleRemove      FlowNodeType = "action_member_role_remove"
@@ -192,13 +193,17 @@ type FlowNodeData struct {
 	// Modal
 	ModalData *ModalData `json:"modal_data,omitempty"`
 
-	// Member Ban, Kick, Timeout, Edit, Get
+	// Member Ban, Kick, Timeout, Voice Edit, Edit, Get
 	UserTarget                            string      `json:"user_target,omitempty"`
 	MemberBanDeleteMessageDurationSeconds string      `json:"member_ban_delete_message_duration_seconds,omitempty"`
 	MemberTimeoutDurationSeconds          string      `json:"member_timeout_duration_seconds,omitempty"`
 	MemberData                            *MemberData `json:"member_data,omitempty"`
 
-	// Channel Create, Edit, Delete, Get
+	// Member Voice Edit
+	MemberVoiceMute VoiceStateChange `json:"member_voice_mute,omitempty"`
+	MemberVoiceDeaf VoiceStateChange `json:"member_voice_deaf,omitempty"`
+
+	// Channel Create, Edit, Delete, Get, and the destination voice channel for Member Voice Edit
 	ChannelTarget string       `json:"channel_target,omitempty"`
 	ChannelData   *ChannelData `json:"channel_data,omitempty"`
 
@@ -448,6 +453,14 @@ func (d FlowNodeData) Validate(nodeType FlowNodeType) error {
 			validation.Required,
 		)),
 
+		// Member Voice Edit
+		validation.Field(&d.MemberVoiceMute, validation.In(
+			VoiceStateChangeUnchanged, VoiceStateChangeOn, VoiceStateChangeOff,
+		)),
+		validation.Field(&d.MemberVoiceDeaf, validation.In(
+			VoiceStateChangeUnchanged, VoiceStateChangeOn, VoiceStateChangeOff,
+		)),
+
 		// Expression Evaluate
 		// Bounded for every node type rather than just entry nodes: an oversized
 		// expression is a resource-exhaustion risk at execution time, not just a
@@ -514,6 +527,30 @@ const (
 	EventFilterTypeGuildID        EventFilterTarget = "guild_id"
 	EventFilterTypeChannelID      EventFilterTarget = "channel_id"
 )
+
+// VoiceStateChange is how Member Voice Edit changes a member's server mute or
+// deafen. Empty is the same as unchanged.
+type VoiceStateChange string
+
+const (
+	VoiceStateChangeUnchanged VoiceStateChange = "unchanged"
+	VoiceStateChangeOn        VoiceStateChange = "on"
+	VoiceStateChangeOff       VoiceStateChange = "off"
+)
+
+// Option returns the value to send to Discord. Unchanged is nil, so the field
+// is left out of the request.
+func (c VoiceStateChange) Option() (option.Bool, error) {
+	switch c {
+	case "", VoiceStateChangeUnchanged:
+		return nil, nil
+	case VoiceStateChangeOn:
+		return option.True, nil
+	case VoiceStateChangeOff:
+		return option.False, nil
+	}
+	return nil, fmt.Errorf("unknown voice state change %q, must be unchanged, on or off", string(c))
+}
 
 type RobloxLookupType string
 
