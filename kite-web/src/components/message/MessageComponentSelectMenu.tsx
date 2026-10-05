@@ -64,6 +64,7 @@ export default function MessageComponentSelectMenu({
             }
             validation={nodeField<SelectMenuNode>(id, "placeholder")}
             placeholders
+            emojis="native"
           />
           <div className="flex-none">
             <MessageInput
@@ -169,6 +170,7 @@ const MessageComponentSelectOption = memo(
             onChange={(label) => update<SelectOptionNode>(id, { label })}
             validation={nodeField<SelectOptionNode>(id, "label")}
             placeholders
+            emojis="native"
           />
         </div>
         <MessageInput
@@ -191,6 +193,7 @@ const MessageComponentSelectOption = memo(
           }
           validation={nodeField<SelectOptionNode>(id, "description")}
           placeholders
+          emojis="native"
         />
       </MessageComponentCard>
     );

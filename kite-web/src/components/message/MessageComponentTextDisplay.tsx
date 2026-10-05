@@ -20,6 +20,7 @@ export default function MessageComponentTextDisplay({ id }: { id: NodeId }) {
         onChange={(content) => update<TextDisplayNode>(id, { content })}
         validation={nodeField<TextDisplayNode>(id, "content")}
         placeholders
+        emojis
       />
     </MessageComponentCard>
   );
