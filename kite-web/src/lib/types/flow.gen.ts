@@ -64,6 +64,7 @@ export const FlowNodeTypeActionVariableGet: FlowNodeType = "action_variable_get"
 export const FlowNodeTypeActionVoiceChannelJoin: FlowNodeType = "action_voice_channel_join";
 export const FlowNodeTypeActionVoiceChannelLeave: FlowNodeType = "action_voice_channel_leave";
 export const FlowNodeTypeActionStatusSet: FlowNodeType = "action_status_set";
+export const FlowNodeTypeActionTypingTrigger: FlowNodeType = "action_typing_trigger";
 export const FlowNodeTypeControlConditionCompare: FlowNodeType = "control_condition_compare";
 export const FlowNodeTypeControlConditionItemCompare: FlowNodeType = "control_condition_item_compare";
 export const FlowNodeTypeControlConditionUser: FlowNodeType = "control_condition_user";
