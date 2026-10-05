@@ -1,19 +1,3 @@
-# Search engines may crawl /terms and /privacy so they see the noindex tag on them.
-User-agent: GPTBot
-User-agent: ChatGPT-User
-User-agent: OAI-SearchBot
-User-agent: ClaudeBot
-User-agent: Claude-User
-User-agent: Claude-SearchBot
-User-agent: anthropic-ai
-User-agent: Google-Extended
-User-agent: Applebot-Extended
-User-agent: PerplexityBot
-User-agent: Perplexity-User
-User-agent: CCBot
-User-agent: Bytespider
-User-agent: meta-externalagent
-User-agent: Amazonbot
-User-agent: cohere-ai
+User-agent: *
 Disallow: /terms
 Disallow: /privacy
