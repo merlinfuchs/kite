@@ -1288,6 +1288,79 @@
       "result": null
     },
     {
+      "type": "action_bot_profile_edit",
+      "credits": 1,
+      "audit_log_reason": true,
+      "requires": [
+        "discord"
+      ],
+      "run": {
+        "kind": "request",
+        "integration": "discord",
+        "operation": "update_my_guild_member",
+        "method": "PATCH",
+        "path": "/guilds/{guild_id}/members/@me"
+      },
+      "fields": [
+        {
+          "name": "guild_target",
+          "in": "path",
+          "target": "guild_id",
+          "type": "snowflake",
+          "required": false,
+          "fallback": "guild",
+          "min": null,
+          "max": null,
+          "max_length": null
+        },
+        {
+          "name": "nick",
+          "in": "body",
+          "target": "nick",
+          "type": "string",
+          "required": false,
+          "fallback": "",
+          "min": null,
+          "max": null,
+          "max_length": 32
+        },
+        {
+          "name": "bio",
+          "in": "body",
+          "target": "bio",
+          "type": "string",
+          "required": false,
+          "fallback": "",
+          "min": null,
+          "max": null,
+          "max_length": 190
+        },
+        {
+          "name": "avatar",
+          "in": "body",
+          "target": "avatar",
+          "type": "image",
+          "required": false,
+          "fallback": "",
+          "min": null,
+          "max": null,
+          "max_length": null
+        },
+        {
+          "name": "banner",
+          "in": "body",
+          "target": "banner",
+          "type": "image",
+          "required": false,
+          "fallback": "",
+          "min": null,
+          "max": null,
+          "max_length": null
+        }
+      ],
+      "result": null
+    },
+    {
       "type": "action_variable_set",
       "credits": 1,
       "audit_log_reason": false,

@@ -32,6 +32,7 @@ import { controlLoopEnd } from "./controlLoopEnd";
 import { controlLoopExit } from "./controlLoopExit";
 import { controlSleep } from "./controlSleep";
 import { discordApiRequest } from "./discordApiRequest";
+import { discordBotProfileEdit } from "./discordBotProfileEdit";
 import { discordChannelCreate } from "./discordChannelCreate";
 import { discordChannelDelete } from "./discordChannelDelete";
 import { discordChannelEdit } from "./discordChannelEdit";
@@ -138,6 +139,7 @@ export const blockDefinitions: BlockDefinition[] = [
   discordVoiceChannelJoin,
   discordVoiceChannelLeave,
   discordStatusSet,
+  discordBotProfileEdit,
   variableSet,
   variableDelete,
   variableGet,
@@ -210,6 +212,7 @@ const formats: Record<BlockFieldType, [RegExp, string] | null> = {
   emoji: null,
   seconds: [decimalRegex, "Must be a number of seconds"],
   seconds_until: [decimalRegex, "Must be a number of seconds"],
+  image: [/^https?:\/\/\S+$/, "Must be the URL of an image"],
 };
 
 const numberTypes: BlockFieldType[] = ["integer", "seconds", "seconds_until"];
@@ -235,7 +238,13 @@ function fieldSchema(field: BlockField) {
     const [format, message] = formats[type] ?? [];
     // Placeholders are only checked when the flow runs.
     if (value.includes("{{")) {
-      if (format && !placeholderRegex.test(value) && field.type !== "string") {
+      if (
+        format &&
+        !placeholderRegex.test(value) &&
+        field.type !== "string" &&
+        // A URL can have placeholders in it.
+        field.type !== "image"
+      ) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           message: `${message}, or a single {{ }} placeholder`,

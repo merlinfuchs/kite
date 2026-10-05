@@ -1,8 +1,12 @@
 package flow
 
 import (
+	"bytes"
 	"context"
+	"encoding/base64"
 	"encoding/json"
+	"io"
+	"net/http"
 	"reflect"
 	"strings"
 	"testing"
@@ -281,4 +285,76 @@ func TestBlockDefinitionTimeout(t *testing.T) {
 	}
 	require.NoError(t, json.Unmarshal(p.req.Body, &body))
 	assert.WithinDuration(t, time.Now().Add(time.Minute), body.Until.Time(), 5*time.Second)
+}
+
+type imageTestHTTPProvider struct {
+	provider.MockHTTPprovider
+
+	url    string
+	status int
+	body   []byte
+}
+
+func (p *imageTestHTTPProvider) HTTPRequest(ctx context.Context, req *http.Request) (*http.Response, error) {
+	p.url = req.URL.String()
+	return &http.Response{
+		StatusCode: p.status,
+		Status:     http.StatusText(p.status),
+		Body:       io.NopCloser(bytes.NewReader(p.body)),
+	}, nil
+}
+
+func TestBlockDefinitionBotProfileEdit(t *testing.T) {
+	png := []byte("\x89PNG\r\n\x1a\n")
+	node := &CompiledFlowNode{ID: "1", Type: "action_bot_profile_edit"}
+	require.NoError(t, json.Unmarshal([]byte(`{
+		"nick": "Helper",
+		"bio": "I help",
+		"avatar": "https://example.com/avatar.png"
+	}`), &node.Data))
+
+	run := func(body []byte, status int) (*blockTestProvider, *imageTestHTTPProvider, error) {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		t.Cleanup(cancel)
+
+		p := &blockTestProvider{response: `{}`}
+		h := &imageTestHTTPProvider{status: status, body: body}
+		c := NewContext(
+			ctx,
+			5*time.Second,
+			&blockTestContextData{},
+			FlowProviders{
+				Discord: p,
+				HTTP:    h,
+				Log:     &provider.MockLogProvider{},
+			}, FlowContextLimits{
+				MaxStackDepth: 10,
+				MaxOperations: 1000,
+				MaxCredits:    1000,
+			},
+			eval.NewContext(eval.Env{}),
+			nil,
+		)
+		t.Cleanup(c.Cancel)
+		return p, h, node.Execute(c)
+	}
+
+	p, h, err := run(png, http.StatusOK)
+	require.NoError(t, err)
+	assert.Equal(t, "https://example.com/avatar.png", h.url)
+	assert.Equal(t, "PATCH", p.req.Method)
+	assert.Equal(t, "/guilds/5/members/@me", p.req.Path)
+	assert.JSONEq(t, `{
+		"nick": "Helper",
+		"bio": "I help",
+		"avatar": "data:image/png;base64,`+base64.StdEncoding.EncodeToString(png)+`"
+	}`, string(p.req.Body))
+
+	// Anything but an image isn't sent to Discord.
+	p, _, err = run([]byte("<html></html>"), http.StatusOK)
+	assert.ErrorContains(t, err, "must be a PNG, JPEG, GIF or WebP image")
+	assert.Empty(t, p.req.Path)
+
+	_, _, err = run(nil, http.StatusNotFound)
+	assert.ErrorContains(t, err, "failed to download image")
 }
