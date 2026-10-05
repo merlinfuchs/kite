@@ -5,6 +5,10 @@ import (
 	"errors"
 	"strings"
 	"testing"
+
+	"github.com/diamondburned/arikawa/v3/discord"
+	"github.com/diamondburned/arikawa/v3/gateway"
+	"github.com/kitecloud/kite/kite-service/pkg/discordevent"
 )
 
 func testContext() Context {
@@ -296,5 +300,42 @@ func TestResumeContextPrefersCurrentInteraction(t *testing.T) {
 	}
 	if res.String() != "current" {
 		t.Errorf("input(\"name\") = %q, want %q", res.String(), "current")
+	}
+}
+
+func TestMemberRemoveEventListsRoleMentions(t *testing.T) {
+	c := Context{Env: Env{
+		"user": NewEventEnv(&discordevent.MemberRemoveEvent{
+			GuildMemberRemoveEvent: &gateway.GuildMemberRemoveEvent{
+				GuildID: 1,
+				User:    discord.User{ID: 5},
+			},
+			RoleIDs: []discord.RoleID{10, 11},
+		}).User,
+	}}
+
+	res, err := EvalTemplate(context.Background(), `{{ user.id }}: {{ user.role_mentions }}`, c)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if want := "5: <@&10> <@&11>"; res.String() != want {
+		t.Errorf("got %q, want %q", res.String(), want)
+	}
+}
+
+// A member who wasn't cached has no known roles, which isn't an error.
+func TestMemberRemoveEventWithoutRoles(t *testing.T) {
+	c := Context{Env: Env{
+		"user": NewEventEnv(&discordevent.MemberRemoveEvent{
+			GuildMemberRemoveEvent: &gateway.GuildMemberRemoveEvent{User: discord.User{ID: 5}},
+		}).User,
+	}}
+
+	res, err := EvalTemplate(context.Background(), `roles: {{ user.role_mentions }}`, c)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if want := "roles: "; res.String() != want {
+		t.Errorf("got %q, want %q", res.String(), want)
 	}
 }

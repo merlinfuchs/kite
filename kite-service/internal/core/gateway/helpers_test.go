@@ -1,12 +1,15 @@
 package gateway
 
 import (
+	"slices"
 	"testing"
 
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/gateway"
+	"github.com/diamondburned/arikawa/v3/state"
 	"github.com/diamondburned/arikawa/v3/utils/ws"
 	"github.com/kitecloud/kite/kite-service/internal/model"
+	"github.com/kitecloud/kite/kite-service/pkg/discordevent"
 )
 
 // allPrivilegedFlags is what an app looks like after following the getting
@@ -182,5 +185,81 @@ func TestAllPermittedIntentsRespectsFlags(t *testing.T) {
 	}
 	if got&gateway.IntentGuildMembers != 0 {
 		t.Error("guild members granted without the portal flag")
+	}
+}
+
+// The state drops a member as soon as they leave, so their roles have to be
+// read before it handles the event.
+func TestMemberRemoveEventKeepsCachedRoles(t *testing.T) {
+	session := state.New("Bot test")
+	takeLeftMember := trackLeftMembers(session)
+
+	const guildID = discord.GuildID(1)
+	for id, position := range map[discord.RoleID]int{10: 1, 11: 3, 12: 2} {
+		if err := session.Cabinet.RoleSet(guildID, &discord.Role{ID: id, Position: position}, false); err != nil {
+			t.Fatal(err)
+		}
+	}
+	member := &discord.Member{
+		User:    discord.User{ID: 5},
+		Nick:    "nick",
+		RoleIDs: []discord.RoleID{10, 11, 12},
+	}
+	if err := session.Cabinet.MemberSet(guildID, member, false); err != nil {
+		t.Fatal(err)
+	}
+
+	var got *discordevent.MemberRemoveEvent
+	session.AddSyncHandler(func(e *gateway.GuildMemberRemoveEvent) {
+		got = memberRemoveEvent(session.Cabinet, e, takeLeftMember(e))
+	})
+
+	session.Session.Handler.Call(&gateway.GuildMemberRemoveEvent{
+		GuildID: guildID,
+		User:    discord.User{ID: 5},
+	})
+
+	if got == nil {
+		t.Fatal("handler wasn't called")
+	}
+	if _, err := session.Cabinet.Member(guildID, 5); err == nil {
+		t.Error("member is still cached after leaving")
+	}
+	if got.Nick != "nick" {
+		t.Errorf("nick = %q, want %q", got.Nick, "nick")
+	}
+	// Highest role first.
+	want := []discord.RoleID{11, 12, 10}
+	if !slices.Equal(got.RoleIDs, want) {
+		t.Errorf("roles = %v, want %v", got.RoleIDs, want)
+	}
+}
+
+func TestMemberRemoveEventWithoutCachedMember(t *testing.T) {
+	session := state.New("Bot test")
+	takeLeftMember := trackLeftMembers(session)
+
+	e := &gateway.GuildMemberRemoveEvent{GuildID: 1, User: discord.User{ID: 5}}
+	session.PreHandler.Call(e)
+
+	got := memberRemoveEvent(session.Cabinet, e, takeLeftMember(e))
+	if got.User.ID != 5 || len(got.RoleIDs) != 0 {
+		t.Errorf("got user %d with roles %v, want user 5 without roles", got.User.ID, got.RoleIDs)
+	}
+}
+
+func TestNeedsMemberCache(t *testing.T) {
+	join := model.AppGatewayRequirements{
+		EventListenerTypes: []model.EventListenerType{model.EventListenerTypeDiscordGuildMemberAdd},
+	}
+	if join.NeedsMemberCache() {
+		t.Error("a member join listener shouldn't cache members")
+	}
+
+	leave := model.AppGatewayRequirements{
+		EventListenerTypes: []model.EventListenerType{model.EventListenerTypeDiscordGuildMemberRemove},
+	}
+	if !leave.NeedsMemberCache() {
+		t.Error("a member leave listener should cache members")
 	}
 }

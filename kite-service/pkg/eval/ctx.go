@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/diamondburned/arikawa/v3/discord"
@@ -11,6 +12,7 @@ import (
 	"github.com/diamondburned/arikawa/v3/state"
 	"github.com/diamondburned/arikawa/v3/utils/ws"
 	"github.com/expr-lang/expr/ast"
+	"github.com/kitecloud/kite/kite-service/pkg/discordevent"
 	"github.com/kitecloud/kite/kite-service/pkg/schedule"
 	"github.com/kitecloud/kite/kite-service/pkg/thing"
 )
@@ -313,6 +315,10 @@ func NewEventEnv(event ws.Event) *EventEnv {
 		env.User = NewUserEnv(e.User)
 		env.Member = env.User
 		env.Guild = NewSnowflakeEnv(e.GuildID)
+	case *discordevent.MemberRemoveEvent:
+		env.Member = NewMemberEnv(e.Member())
+		env.User = env.Member
+		env.Guild = NewSnowflakeEnv(e.GuildID)
 	case *state.GuildJoinEvent:
 		env.Guild = NewGuildEnv(e.Guild)
 	case *state.GuildLeaveEvent:
@@ -429,6 +435,8 @@ type MemberEnv struct {
 
 	Nick    string   `expr:"nick" json:"nick"`
 	RoleIDs []string `expr:"role_ids" json:"role_ids"`
+	// RoleMentions lists the roles as mentions, separated by spaces.
+	RoleMentions string `expr:"role_mentions" json:"role_mentions"`
 }
 
 func (m MemberEnv) String() string {
@@ -437,8 +445,10 @@ func (m MemberEnv) String() string {
 
 func NewMemberEnv(member discord.Member) *MemberEnv {
 	roleIDs := make([]string, len(member.RoleIDs))
+	roleMentions := make([]string, len(member.RoleIDs))
 	for i, role := range member.RoleIDs {
 		roleIDs[i] = role.String()
+		roleMentions[i] = fmt.Sprintf("<@&%s>", role.String())
 	}
 
 	return &MemberEnv{
@@ -446,8 +456,9 @@ func NewMemberEnv(member discord.Member) *MemberEnv {
 
 		UserEnv: *NewUserEnv(member.User),
 
-		Nick:    member.Nick,
-		RoleIDs: roleIDs,
+		Nick:         member.Nick,
+		RoleIDs:      roleIDs,
+		RoleMentions: strings.Join(roleMentions, " "),
 	}
 }
 

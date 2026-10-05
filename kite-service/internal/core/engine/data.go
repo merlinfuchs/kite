@@ -5,6 +5,7 @@ import (
 	"github.com/diamondburned/arikawa/v3/gateway"
 	"github.com/diamondburned/arikawa/v3/state"
 	"github.com/diamondburned/arikawa/v3/utils/ws"
+	"github.com/kitecloud/kite/kite-service/pkg/discordevent"
 )
 
 type InteractionData struct {
@@ -59,6 +60,8 @@ func (d *EventData) UserID() discord.UserID {
 		return data.User.ID
 	case *gateway.GuildMemberRemoveEvent:
 		return data.User.ID
+	case *discordevent.MemberRemoveEvent:
+		return data.User.ID
 	case *gateway.GuildMemberUpdateEvent:
 		return data.User.ID
 	}
@@ -76,6 +79,8 @@ func (d *EventData) GuildID() discord.GuildID {
 	case *gateway.GuildMemberAddEvent:
 		return data.GuildID
 	case *gateway.GuildMemberRemoveEvent:
+		return data.GuildID
+	case *discordevent.MemberRemoveEvent:
 		return data.GuildID
 	case *gateway.GuildMemberUpdateEvent:
 		return data.GuildID

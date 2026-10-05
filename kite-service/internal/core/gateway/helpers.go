@@ -1,13 +1,19 @@
 package gateway
 
 import (
+	"cmp"
 	"fmt"
+	"slices"
+	"sync"
 
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/gateway"
 	"github.com/diamondburned/arikawa/v3/state"
+	statestore "github.com/diamondburned/arikawa/v3/state/store"
+	"github.com/diamondburned/arikawa/v3/utils/handler"
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/internal/util"
+	"github.com/kitecloud/kite/kite-service/pkg/discordevent"
 )
 
 const (
@@ -63,6 +69,59 @@ func intentsForRequirements(reqs model.AppGatewayRequirements, flags discord.App
 	if reqs.NeedsGuildMessageReactions() {
 		res |= gateway.IntentGuildMessageReactions
 	}
+
+	return res
+}
+
+// trackLeftMembers keeps the cached member of every GUILD_MEMBER_REMOVE event
+// until the returned function takes it, which returns nil if the member wasn't
+// cached. The event only carries the user, and the state has dropped the member
+// by the time handlers run. The pre-handler runs before the state updates, so
+// it can still read the member from the cache.
+func trackLeftMembers(session *state.State) func(*gateway.GuildMemberRemoveEvent) *discord.Member {
+	var left sync.Map
+
+	session.PreHandler = handler.New()
+	session.PreHandler.AddSyncHandler(func(e *gateway.GuildMemberRemoveEvent) {
+		if member, err := session.Cabinet.Member(e.GuildID, e.User.ID); err == nil {
+			left.Store(e, member)
+		}
+	})
+
+	return func(e *gateway.GuildMemberRemoveEvent) *discord.Member {
+		member, ok := left.LoadAndDelete(e)
+		if !ok {
+			return nil
+		}
+		return member.(*discord.Member)
+	}
+}
+
+// memberRemoveEvent adds what the cache knew about a member to the event of
+// them leaving. member is nil if they weren't cached.
+func memberRemoveEvent(
+	cabinet *statestore.Cabinet,
+	e *gateway.GuildMemberRemoveEvent,
+	member *discord.Member,
+) *discordevent.MemberRemoveEvent {
+	res := &discordevent.MemberRemoveEvent{GuildMemberRemoveEvent: e}
+	if member == nil {
+		return res
+	}
+
+	res.Nick = member.Nick
+	res.RoleIDs = slices.Clone(member.RoleIDs)
+
+	// Highest role first, like Discord lists them on a profile.
+	positions := make(map[discord.RoleID]int, len(res.RoleIDs))
+	for _, id := range res.RoleIDs {
+		if role, err := cabinet.Role(e.GuildID, id); err == nil {
+			positions[id] = role.Position
+		}
+	}
+	slices.SortStableFunc(res.RoleIDs, func(a, b discord.RoleID) int {
+		return cmp.Compare(positions[b], positions[a])
+	})
 
 	return res
 }
