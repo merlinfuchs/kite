@@ -13,6 +13,7 @@ import (
 	"github.com/expr-lang/expr/ast"
 	"github.com/kitecloud/kite/kite-service/pkg/schedule"
 	"github.com/kitecloud/kite/kite-service/pkg/thing"
+	"github.com/kitecloud/kite/kite-service/pkg/voicestate"
 )
 
 type Context struct {
@@ -246,6 +247,28 @@ type EventEnv struct {
 	Guild   any           `expr:"guild" json:"guild"`
 
 	Schedule *ScheduleEnv `expr:"schedule" json:"schedule"`
+	Voice    *VoiceEnv    `expr:"voice" json:"voice"`
+}
+
+type VoiceEnv struct {
+	Action string `expr:"action" json:"action"`
+	// Channel is the one the user is in now and OldChannel the one they were
+	// in before. Their IDs are empty when there's none, so they can still be
+	// used in messages and compared.
+	Channel    *SnowflakeEnv `expr:"channel" json:"channel"`
+	OldChannel *SnowflakeEnv `expr:"old_channel" json:"old_channel"`
+}
+
+func NewVoiceEnv(e *voicestate.Event) *VoiceEnv {
+	return &VoiceEnv{
+		Action:     string(e.Action()),
+		Channel:    NewSnowflakeEnv(e.ChannelID),
+		OldChannel: NewSnowflakeEnv(e.OldChannelID),
+	}
+}
+
+func (v VoiceEnv) String() string {
+	return v.Action
 }
 
 type ScheduleEnv struct {
@@ -319,6 +342,21 @@ func NewEventEnv(event ws.Event) *EventEnv {
 		env.Guild = NewSnowflakeEnv(e.ID)
 	case *schedule.Event:
 		env.Schedule = NewScheduleEnv(e)
+	case *voicestate.Event:
+		if e.Member != nil {
+			env.Member = NewMemberEnv(*e.Member)
+		} else {
+			env.Member = NewUserEnv(discord.User{ID: e.UserID})
+		}
+		env.User = env.Member
+		env.Guild = NewSnowflakeEnv(e.GuildID)
+		// After leaving there's no current channel, so it's the one they left.
+		if e.ChannelID.IsValid() {
+			env.Channel = NewSnowflakeEnv(e.ChannelID)
+		} else if e.OldChannelID.IsValid() {
+			env.Channel = NewSnowflakeEnv(e.OldChannelID)
+		}
+		env.Voice = NewVoiceEnv(e)
 	}
 
 	return env
@@ -376,6 +414,7 @@ func NewContextFromEvent(event ws.Event, session *state.State) Context {
 			"server":   env.Guild,
 			"message":  env.Message,
 			"schedule": env.Schedule,
+			"voice":    env.Voice,
 			"app":      NewAppEnv(session),
 		},
 	}

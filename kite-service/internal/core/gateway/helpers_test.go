@@ -106,6 +106,16 @@ func TestIntentsForRequirements(t *testing.T) {
 			want:  gateway.IntentGuilds | gateway.IntentGuildMessages | gateway.IntentMessageContent,
 		},
 		{
+			name: "voice state listener adds guild voice states",
+			reqs: model.AppGatewayRequirements{
+				EventListenerTypes: []model.EventListenerType{
+					model.EventListenerTypeDiscordVoiceStateUpdate,
+				},
+			},
+			flags: allPrivilegedFlags,
+			want:  gateway.IntentGuilds | gateway.IntentGuildVoiceStates,
+		},
+		{
 			// Transitional: MESSAGE_DELETE drives message_instances cleanup,
 			// and that needs the guild messages intent.
 			name: "message instances keep guild messages on",
@@ -165,7 +175,7 @@ func TestAllPermittedIntentsIsBroad(t *testing.T) {
 	got := allPermittedIntents(allPrivilegedFlags)
 
 	want := gateway.IntentGuilds | gateway.IntentGuildMessages | gateway.IntentGuildMessageReactions |
-		gateway.IntentMessageContent | gateway.IntentGuildMembers
+		gateway.IntentMessageContent | gateway.IntentGuildMembers | gateway.IntentGuildVoiceStates
 
 	if got != want {
 		t.Errorf("allPermittedIntents = %d, want %d (missing %d)", got, want, want&^got)
