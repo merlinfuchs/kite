@@ -92,6 +92,15 @@ func (h *AppHandler) getAppEmojis(ctx context.Context, app *model.App) ([]discor
 	return res.Items, nil
 }
 
+func (h *AppHandler) getAppBotUser(ctx context.Context, app *model.App) (*discord.User, error) {
+	client, err := h.getAppClient(ctx, app)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get app client: %w", err)
+	}
+
+	return client.Me()
+}
+
 type DiscordAppInfo struct {
 	ID          string
 	Name        string
