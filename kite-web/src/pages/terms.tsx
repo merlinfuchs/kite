@@ -1,16 +1,17 @@
-import HomeFooter from "@/components/home/HomeFooter";
-import HomeLayout from "@/components/home/HomeLayout";
+import LegalLayout from "@/components/home/LegalLayout";
 import Head from "next/head";
 
 export default function TermsOfServicePage() {
   return (
-    <HomeLayout title="Terms of Service">
-      <Head>
-        <meta name="robots" content="noindex" />
-      </Head>
-      <div className="prose dark:prose-invert text-foreground mx-auto my-16 max-w-7xl px-5">
-        <h1>Terms and Conditions</h1>
-        <p>Last updated: July 27, 2024</p>
+    <LegalLayout
+      title="Terms of Service"
+      heading="Terms and Conditions"
+      updated="July 27, 2024"
+    >
+      <>
+        <Head>
+          <meta name="robots" content="noindex" />
+        </Head>
         <p>
           Please read these terms and conditions carefully before using Our
           Service.
@@ -293,9 +294,7 @@ export default function TermsOfServicePage() {
         <ul>
           <li>By email: contact@kite.onl</li>
         </ul>
-      </div>
-
-      <HomeFooter />
-    </HomeLayout>
+      </>
+    </LegalLayout>
   );
 }
