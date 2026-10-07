@@ -6,6 +6,7 @@ import {
 } from "@/components/ui/accordion";
 import env from "@/lib/env/client";
 import { ChevronDown } from "lucide-react";
+import Reveal from "./Reveal";
 
 interface FAQProps {
   question: string;
@@ -48,30 +49,36 @@ const FAQList: FAQProps[] = [
 export default function HomeFAQSection() {
   return (
     <section id="faq" className="container py-24 sm:py-32">
-      <h2 className="text-3xl md:text-4xl font-bold mb-4">
-        Frequently Asked{" "}
-        <span className="bg-gradient-to-b from-primary/60 to-primary text-transparent bg-clip-text">
-          Questions
-        </span>
-      </h2>
+      <Reveal>
+        <h2 className="text-3xl md:text-4xl font-bold mb-4">
+          Frequently Asked{" "}
+          <span className="bg-gradient-to-b from-primary/60 to-primary text-transparent bg-clip-text">
+            Questions
+          </span>
+        </h2>
+      </Reveal>
 
       <Accordion type="single" collapsible className="w-full AccordionRoot">
-        {FAQList.map(({ question, answer }: FAQProps) => (
-          <FAQItem key={question} question={question} answer={answer} />
+        {FAQList.map(({ question, answer }: FAQProps, i) => (
+          <Reveal key={question} delay={i * 70}>
+            <FAQItem question={question} answer={answer} />
+          </Reveal>
         ))}
       </Accordion>
 
-      <h3 className="font-medium mt-4">
-        Still have questions?{" "}
-        <a
-          rel="noreferrer noopener"
-          href={env.NEXT_PUBLIC_DISCORD_LINK}
-          target="_blank"
-          className="text-primary transition-all border-primary hover:border-b-2"
-        >
-          Join the Discord server
-        </a>
-      </h3>
+      <Reveal delay={200}>
+        <h3 className="font-medium mt-4">
+          Still have questions?{" "}
+          <a
+            rel="noreferrer noopener"
+            href={env.NEXT_PUBLIC_DISCORD_LINK}
+            target="_blank"
+            className="text-primary transition-all border-primary hover:border-b-2"
+          >
+            Join the Discord server
+          </a>
+        </h3>
+      </Reveal>
     </section>
   );
 }
@@ -84,7 +91,7 @@ function FAQItem({ question, answer }: FAQProps) {
         <ChevronDown className="h-4 w-4 shrink-0 transition-transform duration-200" />
       </summary>
 
-      <div className="overflow-hidden text-sm transition-all">
+      <div className="home-faq-answer overflow-hidden text-sm">
         <p className="pb-4 pt-0">{answer}</p>
       </div>
     </details>

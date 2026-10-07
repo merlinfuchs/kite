@@ -1,5 +1,6 @@
 import "@/styles/globals.css";
 import "@/styles/shadow.css";
+import "@/styles/home.css";
 import "@/styles/message-preview.css";
 import type { NextPage } from "next";
 import type { AppProps } from "next/app";
