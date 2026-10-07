@@ -5,6 +5,7 @@ import AutoAnimate from "../common/AutoAnimate";
 import { useVariables } from "@/lib/hooks/api";
 import VariableListEntry from "./VariableListEntry";
 import VariableCreateDialog from "./VariableCreateDialog";
+import { VariableIcon } from "lucide-react";
 
 export default function VariableList() {
   const variables = useVariables();
@@ -25,8 +26,9 @@ export default function VariableList() {
         </>
       ) : variables.length === 0 ? (
         <AppEmptyPlaceholder
-          title="There are no variables"
-          description="You can start now by creating the first variable!"
+          icon={VariableIcon}
+          title="No variables yet"
+          description="Variables store values like counters or settings that your commands and events can read and change."
           action={variableCreateButton}
         />
       ) : (
