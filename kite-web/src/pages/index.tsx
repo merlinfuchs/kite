@@ -7,10 +7,12 @@ import HomeFooter from "@/components/home/HomeFooter";
 import HomeHeroSection from "@/components/home/HomeHeroSection";
 import HomeLayout from "@/components/home/HomeLayout";
 import HomePartnersSection from "@/components/home/HomePartnersSection";
+import HomeScrollEffects from "@/components/home/HomeScrollEffects";
 
 export default function Home() {
   return (
     <HomeLayout>
+      <HomeScrollEffects />
       <HomeHeroSection />
       <HomeFeaturesSection />
       <HomeFlowSection />

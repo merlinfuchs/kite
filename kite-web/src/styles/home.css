@@ -1,0 +1,111 @@
+/* Scroll animations of the landing page, see components/home/Reveal.tsx */
+
+.reveal {
+  --reveal-distance: 28px;
+  --reveal-x: 0px;
+  --reveal-y: var(--reveal-distance);
+  --reveal-scale: 1;
+
+  opacity: 0;
+  transform: translate3d(var(--reveal-x), var(--reveal-y), 0)
+    scale(var(--reveal-scale));
+  transition: opacity var(--reveal-duration, 800ms)
+      cubic-bezier(0.16, 1, 0.3, 1),
+    transform var(--reveal-duration, 800ms) cubic-bezier(0.16, 1, 0.3, 1);
+  transition-delay: var(--reveal-delay, 0ms);
+  will-change: opacity, transform;
+}
+
+.reveal[data-from="down"] {
+  --reveal-y: calc(var(--reveal-distance) * -1);
+}
+
+.reveal[data-from="left"] {
+  --reveal-x: calc(var(--reveal-distance) * -1.5);
+  --reveal-y: 0px;
+}
+
+.reveal[data-from="right"] {
+  --reveal-x: calc(var(--reveal-distance) * 1.5);
+  --reveal-y: 0px;
+}
+
+.reveal[data-from="scale"] {
+  --reveal-y: calc(var(--reveal-distance) / 2);
+  --reveal-scale: 0.94;
+}
+
+.reveal[data-from="fade"] {
+  --reveal-y: 0px;
+}
+
+.reveal[data-visible="true"] {
+  opacity: 1;
+  transform: none;
+  will-change: auto;
+}
+
+/* Cards lift slightly on hover */
+.home-card {
+  transition: transform 300ms cubic-bezier(0.16, 1, 0.3, 1),
+    border-color 300ms ease, box-shadow 300ms ease;
+}
+
+.home-card:hover {
+  transform: translateY(-4px);
+  border-color: hsl(var(--primary) / 50%);
+  box-shadow: 0 12px 32px -16px hsl(var(--primary) / 45%);
+}
+
+/* The hero drifts up and fades out slower than the page scrolls */
+.home-parallax {
+  transform: translate3d(0, calc(var(--scroll-y, 0) * 0.12px), 0);
+  opacity: calc(1 - var(--scroll-y, 0) / 900);
+  will-change: transform, opacity;
+}
+
+/* FAQ answers ease open */
+.home-faq-answer {
+  animation: home-faq-open 350ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes home-faq-open {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  html:has(.home-smooth-scroll) {
+    scroll-behavior: smooth;
+    scroll-padding-top: 4.5rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+
+  .home-card,
+  .home-card:hover {
+    transform: none;
+    transition: none;
+  }
+
+  .home-parallax {
+    transform: none;
+    opacity: 1;
+  }
+
+  .home-faq-answer {
+    animation: none;
+  }
+}

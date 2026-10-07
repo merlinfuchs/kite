@@ -14,11 +14,11 @@ export default function HomeLayout({
 }) {
   return (
     <BaseLayout title={title} description={description}>
-      <div className="min-h-[100dvh] flex flex-col overflow-hidden">
-        <div className="flex-none">
+      <div className="min-h-[100dvh] flex flex-col overflow-clip">
+        <div className="flex-none sticky top-0 z-50">
           <HomeNavbar />
         </div>
-        <div className="flex-auto overflow-hidden">{children}</div>
+        <div className="flex-auto overflow-clip">{children}</div>
       </div>
     </BaseLayout>
   );
