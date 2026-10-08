@@ -543,6 +543,7 @@ type ChannelData struct {
 	Bitrate              string                    `json:"bitrate,omitempty"`
 	UserLimit            string                    `json:"user_limit,omitempty"`
 	Position             string                    `json:"position,omitempty"`
+	Slowmode             string                    `json:"slowmode,omitempty"`
 	PermissionOverwrites []PermissionOverwriteData `json:"permission_overwrites,omitempty"`
 
 	// Thread specific
@@ -599,6 +600,14 @@ func (d *ChannelData) ToCreateChannelData(ctx context.Context, evalCtx eval.Cont
 	}
 	res.Position = option.NewInt(int(position.Int()))
 
+	slowmode, ok, err := d.EvalSlowmode(ctx, evalCtx)
+	if err != nil {
+		return res, err
+	}
+	if ok {
+		res.UserRateLimit = discord.Seconds(slowmode)
+	}
+
 	for _, overwrite := range d.PermissionOverwrites {
 		id, err := eval.EvalTemplate(ctx, overwrite.ID, evalCtx)
 		if err != nil {
@@ -624,6 +633,33 @@ func (d *ChannelData) ToCreateChannelData(ctx context.Context, evalCtx eval.Cont
 	}
 
 	return res, nil
+}
+
+// channelMaxSlowmodeSeconds is the longest slowmode Discord allows (6 hours).
+const channelMaxSlowmodeSeconds = 21600
+
+// EvalSlowmode evaluates the slowmode setting in seconds. ok is false when the
+// setting is left empty or the channel type has no slowmode, in which case it
+// shouldn't be sent at all. 0 is a valid value and turns slowmode off.
+func (d *ChannelData) EvalSlowmode(ctx context.Context, evalCtx eval.Context) (seconds int, ok bool, err error) {
+	if d.Slowmode == "" || !channelTypeSupportsSlowmode(discord.ChannelType(d.Type)) {
+		return 0, false, nil
+	}
+
+	value, err := eval.EvalTemplate(ctx, d.Slowmode, evalCtx)
+	if err != nil {
+		return 0, false, err
+	}
+
+	seconds, err = strconv.Atoi(strings.TrimSpace(value.String()))
+	if err != nil {
+		return 0, false, fmt.Errorf("slowmode %q is not a whole number of seconds", value.String())
+	}
+	if seconds < 0 || seconds > channelMaxSlowmodeSeconds {
+		return 0, false, fmt.Errorf("slowmode must be between 0 and %d seconds, got %d", channelMaxSlowmodeSeconds, seconds)
+	}
+
+	return seconds, true, nil
 }
 
 type PermissionOverwriteData struct {
@@ -949,6 +985,19 @@ const guildMediaChannel discord.ChannelType = 16
 func channelTypeSupportsTopic(t discord.ChannelType) bool {
 	switch t {
 	case discord.GuildText, discord.GuildAnnouncement, discord.GuildForum, guildMediaChannel:
+		return true
+	default:
+		return false
+	}
+}
+
+// channelTypeSupportsSlowmode reports whether Discord accepts a slowmode
+// (rate_limit_per_user) for the given channel type. Announcement and category
+// channels have none.
+func channelTypeSupportsSlowmode(t discord.ChannelType) bool {
+	switch t {
+	case discord.GuildText, discord.GuildVoice, discord.GuildStageVoice, discord.GuildForum, guildMediaChannel,
+		discord.GuildAnnouncementThread, discord.GuildPublicThread, discord.GuildPrivateThread:
 		return true
 	default:
 		return false

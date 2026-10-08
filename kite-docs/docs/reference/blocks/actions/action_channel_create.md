@@ -36,6 +36,8 @@ You can choose different types of channels including:
 > `Category` The category that the channel will be created in.
 >
 > `Position` The position for the channel.
+>
+> `Slowmode` The cooldown in seconds users must wait between sending messages, from `0` to `21600` (6 hours). `0` turns slowmode off. Leave it empty for no slowmode. Placeholders are supported. Not available for announcement and category channels.
 
 ### Permission Overwrites
 

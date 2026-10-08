@@ -240,6 +240,9 @@ export const channelDataSchema = z
     parent: numericOrPlaceholder(
       "ID of the category the channel is in, or of the channel a thread is created in."
     ).optional(),
+    slowmode: numericOrPlaceholder(
+      "Slowmode (message cooldown) in seconds that users must wait between messages, from 0 to 21600. 0 turns slowmode off; leave it empty to keep the current slowmode when editing. Not supported by announcement and category channels."
+    ).optional(),
     permission_overwrites: z
       .array(
         z.object({
