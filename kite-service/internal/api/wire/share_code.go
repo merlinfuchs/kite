@@ -23,6 +23,7 @@ func (req ShareCodeCreateRequest) Validate() error {
 		validation.Field(&req.Type, validation.Required, validation.In(
 			string(model.ShareCodeTypeCommand),
 			string(model.ShareCodeTypeEventListener),
+			string(model.ShareCodeTypeMessage),
 		)),
 		validation.Field(&req.Data, validation.Required, validation.Length(1, 512*1024)),
 	)
