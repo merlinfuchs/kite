@@ -219,6 +219,55 @@ func TestPollDataToCreatePollDataRejectsInvalid(t *testing.T) {
 	}
 }
 
+func TestChannelDataSlowmode(t *testing.T) {
+	evalCtx := eval.NewContext(eval.Env{})
+
+	cases := map[string]struct {
+		data    ChannelData
+		seconds int
+		ok      bool
+	}{
+		"unset":                     {data: ChannelData{Type: int(discord.GuildText)}},
+		"text":                      {data: ChannelData{Type: int(discord.GuildText), Slowmode: "30"}, seconds: 30, ok: true},
+		"zero turns it off":         {data: ChannelData{Type: int(discord.GuildText), Slowmode: "0"}, seconds: 0, ok: true},
+		"maximum":                   {data: ChannelData{Type: int(discord.GuildForum), Slowmode: "21600"}, seconds: 21600, ok: true},
+		"voice":                     {data: ChannelData{Type: int(discord.GuildVoice), Slowmode: "5"}, seconds: 5, ok: true},
+		"announcement has none":     {data: ChannelData{Type: int(discord.GuildAnnouncement), Slowmode: "5"}},
+		"category has none":         {data: ChannelData{Type: int(discord.GuildCategory), Slowmode: "5"}},
+		"placeholder":               {data: ChannelData{Type: int(discord.GuildText), Slowmode: "{{ 10 * 6 }}"}, seconds: 60, ok: true},
+		"surrounding whitespace ok": {data: ChannelData{Type: int(discord.GuildText), Slowmode: " 15 "}, seconds: 15, ok: true},
+	}
+
+	for name, c := range cases {
+		t.Run(name, func(t *testing.T) {
+			seconds, ok, err := c.data.EvalSlowmode(context.Background(), evalCtx)
+			require.NoError(t, err)
+			assert.Equal(t, c.ok, ok)
+			assert.Equal(t, c.seconds, seconds)
+
+			res, err := c.data.ToCreateChannelData(context.Background(), evalCtx)
+			require.NoError(t, err)
+			assert.Equal(t, discord.Seconds(c.seconds), res.UserRateLimit)
+		})
+	}
+
+	invalid := map[string]string{
+		"not a number":    "soon",
+		"evaluates empty": "{{ '' }}",
+		"negative":        "-1",
+		"too long":        "21601",
+		"fractional":      "1.5",
+	}
+
+	for name, slowmode := range invalid {
+		t.Run(name, func(t *testing.T) {
+			data := ChannelData{Type: int(discord.GuildText), Slowmode: slowmode}
+			_, _, err := data.EvalSlowmode(context.Background(), evalCtx)
+			assert.Error(t, err)
+		})
+	}
+}
+
 func TestFlowNodeDataKeepsUnknownSettings(t *testing.T) {
 	raw := `{"channel_target":"1","max_age":3600,"id":123456789012345678901,"unique":"true"}`
 

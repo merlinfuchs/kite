@@ -3406,6 +3406,19 @@
                 ],
                 "description": "ID of the category the channel is in, or of the channel a thread is created in."
               },
+              "slowmode": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "pattern": "^[0-9]+$"
+                  },
+                  {
+                    "type": "string",
+                    "pattern": "^\\{\\{[^{}]+\\}\\}$"
+                  }
+                ],
+                "description": "Slowmode (message cooldown) in seconds that users must wait between messages, from 0 to 21600. 0 turns slowmode off; leave it empty to keep the current slowmode when editing. Not supported by announcement and category channels."
+              },
               "permission_overwrites": {
                 "type": "array",
                 "items": {
@@ -3639,6 +3652,19 @@
                   }
                 ],
                 "description": "ID of the category the channel is in, or of the channel a thread is created in."
+              },
+              "slowmode": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "pattern": "^[0-9]+$"
+                  },
+                  {
+                    "type": "string",
+                    "pattern": "^\\{\\{[^{}]+\\}\\}$"
+                  }
+                ],
+                "description": "Slowmode (message cooldown) in seconds that users must wait between messages, from 0 to 21600. 0 turns slowmode off; leave it empty to keep the current slowmode when editing. Not supported by announcement and category channels."
               },
               "permission_overwrites": {
                 "type": "array",
@@ -4001,6 +4027,19 @@
                   }
                 ],
                 "description": "ID of the category the channel is in, or of the channel a thread is created in."
+              },
+              "slowmode": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "pattern": "^[0-9]+$"
+                  },
+                  {
+                    "type": "string",
+                    "pattern": "^\\{\\{[^{}]+\\}\\}$"
+                  }
+                ],
+                "description": "Slowmode (message cooldown) in seconds that users must wait between messages, from 0 to 21600. 0 turns slowmode off; leave it empty to keep the current slowmode when editing. Not supported by announcement and category channels."
               },
               "permission_overwrites": {
                 "type": "array",
@@ -5776,6 +5815,19 @@
                   }
                 ],
                 "description": "ID of the category the channel is in, or of the channel a thread is created in."
+              },
+              "slowmode": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "pattern": "^[0-9]+$"
+                  },
+                  {
+                    "type": "string",
+                    "pattern": "^\\{\\{[^{}]+\\}\\}$"
+                  }
+                ],
+                "description": "Slowmode (message cooldown) in seconds that users must wait between messages, from 0 to 21600. 0 turns slowmode off; leave it empty to keep the current slowmode when editing. Not supported by announcement and category channels."
               },
               "permission_overwrites": {
                 "type": "array",
