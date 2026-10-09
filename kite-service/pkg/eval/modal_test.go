@@ -108,9 +108,12 @@ func TestModalInputValues(t *testing.T) {
 		"{{inputs('unknown') == nil}}":     "true",
 
 		// The examples of the docs.
-		"{{'red' in inputs('colors')}}":    "true",
-		"{{len(inputs('colors'))}}":        "2",
-		"{{join(inputs('colors'), ', ')}}": "red, blue",
+		"{{'red' in inputs('colors')}}":      "true",
+		"{{len(inputs('colors'))}}":          "2",
+		"{{join(inputs('colors'), ', ')}}":   "red, blue",
+		"{{ 'red' in inputs('colors') }}":    "true",
+		"{{ len(inputs('colors')) }}":        "2",
+		"{{ join(inputs('colors'), ', ') }}": "red, blue",
 	}
 	for template, want := range tests {
 		got, err := EvalTemplateToString(context.Background(), template, c)
