@@ -11,6 +11,8 @@ With Event Listeners you can listen for events inside the Discord servers that y
 - Message Delete
 - Member Join
 - Member Leave
+- Reaction Add
+- Reaction Remove
 - Bot Joined Server
 - Bot Left Server
 
@@ -18,6 +20,9 @@ With Event Listeners you can listen for events inside the Discord servers that y
 
 - By default, your app is limited to 5 event listeners.
 - Kite will ignore messages that are sent by a bot.
+- Reaction events ignore reactions added or removed by your own app, so a flow that reacts to a message doesn't trigger itself. Reactions by other bots still fire the event.
+- Reaction events provide the emoji as `{{emoji}}`, with `{{emoji.id}}`, `{{emoji.name}}` and `{{emoji.mention}}`. `{{emoji.id}}` is empty for unicode emojis.
+- Reaction Remove only knows the user's ID, so only `{{user.id}}` and `{{user.mention}}` are available there. Fields like `{{user.username}}` are empty; use a Get User block if you need them.
 - Member events are only available when you enable the "Server Members Intent" in the [Discord Developer Portal](https://discord.dev).
 - Bot Left Server only provides `{{guild.id}}`, as the bot no longer knows anything else about the server.
 

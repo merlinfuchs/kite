@@ -132,6 +132,14 @@ This will return the content of the message that was sent.
 {{ message.content }}
 ```
 
+### Check Reaction Emoji
+
+In a Reaction Add or Reaction Remove event listener, this will return true if the reaction was a 👍. For a custom emoji, compare `emoji.id` instead.
+
+```python
+{{ emoji.name == "👍" }}
+```
+
 ### Check if User Has Role
 
 This will return true if the user has the role with the ID `123`.
