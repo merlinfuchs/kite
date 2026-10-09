@@ -754,6 +754,11 @@ function EventTypeInput({ data, updateData, errors }: InputProps) {
         { value: "message_delete", label: "Message Delete" },
         { value: "guild_member_add", label: "Server Member Add" },
         { value: "guild_member_remove", label: "Server Member Remove" },
+        { value: "message_reaction_add", label: "Message Reaction Add" },
+        {
+          value: "message_reaction_remove",
+          label: "Message Reaction Remove",
+        },
         { value: "guild_create", label: "Bot Joined Server" },
         { value: "guild_delete", label: "Bot Left Server" },
       ]}
@@ -807,6 +812,7 @@ function EventFilterTargetInput({ data, updateData, errors }: InputProps) {
         { value: "user_id", label: "User ID" },
         { value: "guild_id", label: "Guild ID" },
         { value: "channel_id", label: "Channel ID" },
+        { value: "message_id", label: "Message ID" },
       ]}
       value={data.event_filter_target || ""}
       updateValue={(v) =>

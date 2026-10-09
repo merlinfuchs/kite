@@ -536,6 +536,8 @@ func (n *CompiledFlowNode) FilterEvent(ctx *FlowContext) (bool, error) {
 				target = ctx.Data.GuildID().String()
 			case EventFilterTypeChannelID:
 				target = ctx.Data.ChannelID().String()
+			case EventFilterTypeMessageID:
+				target = ctx.Data.MessageID().String()
 			}
 
 			switch node.Data.EventFilterMode {
