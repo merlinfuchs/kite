@@ -35,6 +35,7 @@ import { toast } from "sonner";
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -51,12 +52,16 @@ import {
 
 const maxStatuses = 10;
 
+const streamingActivityType = "1";
+const customActivityType = "4";
+
 interface StatusFieldValues {
   id: string;
   label: string;
   status: string;
   activity_type: string;
   activity_name: string;
+  activity_state: string;
   activity_url: string;
 }
 
@@ -74,6 +79,7 @@ function emptyStatus(): StatusFieldValues {
     status: "online",
     activity_type: "0",
     activity_name: "",
+    activity_state: "",
     activity_url: "",
   };
 }
@@ -96,6 +102,11 @@ export default function AppSettingsPresence() {
         status: s.status || "online",
         activity_type: s.activity_type?.toString() || "0",
         activity_name: s.activity_name || "",
+        // Older statuses stored a copy of the name as the state
+        activity_state:
+          s.activity_state && s.activity_state !== s.activity_name
+            ? s.activity_state
+            : "",
         activity_url: s.activity_url || "",
       })) || [];
 
@@ -135,8 +146,17 @@ export default function AppSettingsPresence() {
                     status: s.status,
                     activity_type: parseInt(s.activity_type) || undefined,
                     activity_name: s.activity_name || undefined,
-                    activity_state: s.activity_name || undefined,
-                    activity_url: s.activity_url || undefined,
+                    // Custom statuses only show the state, every other type
+                    // shows it as a second line under the name
+                    activity_state:
+                      s.activity_type === customActivityType
+                        ? s.activity_name || undefined
+                        : s.activity_state || undefined,
+                    // Discord only uses the URL for streaming
+                    activity_url:
+                      s.activity_type === streamingActivityType
+                        ? s.activity_url || undefined
+                        : undefined,
                   })),
                   active_id: data.active_id || undefined,
                   rotate_enabled: data.rotate_enabled,
@@ -385,6 +405,9 @@ function StatusFields({
   showLabel?: boolean;
 }) {
   const form = useFormContext<FormFields>();
+  const activityType = useWatch<FormFields, `statuses.${number}.activity_type`>(
+    { name: `statuses.${index}.activity_type` }
+  );
 
   return (
     <>
@@ -473,19 +496,51 @@ function StatusFields({
         )}
       />
 
-      <FormField
-        control={form.control}
-        name={`statuses.${index}.activity_url`}
-        render={({ field }) => (
-          <FormItem className="w-full">
-            <FormLabel>Activity URL</FormLabel>
-            <FormControl>
-              <Input type="url" className="w-full" {...field} />
-            </FormControl>
-            <FormMessage />
-          </FormItem>
-        )}
-      />
+      {activityType !== customActivityType && (
+        <FormField
+          control={form.control}
+          name={`statuses.${index}.activity_state`}
+          rules={{ maxLength: { value: 128, message: "Max 128 characters" } }}
+          render={({ field }) => (
+            <FormItem className="w-full">
+              <FormLabel>Second Line</FormLabel>
+              <FormControl>
+                <Input type="text" className="w-full" {...field} />
+              </FormControl>
+              <FormDescription>
+                Optional text shown under the activity name on the app&apos;s
+                profile.
+              </FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+      )}
+
+      {activityType === streamingActivityType && (
+        <FormField
+          control={form.control}
+          name={`statuses.${index}.activity_url`}
+          render={({ field }) => (
+            <FormItem className="w-full">
+              <FormLabel>Stream URL</FormLabel>
+              <FormControl>
+                <Input
+                  type="url"
+                  className="w-full"
+                  placeholder="https://twitch.tv/..."
+                  {...field}
+                />
+              </FormControl>
+              <FormDescription>
+                Opened by the Watch button on the app&apos;s profile. Discord
+                only accepts Twitch and YouTube links.
+              </FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+      )}
     </>
   );
 }
