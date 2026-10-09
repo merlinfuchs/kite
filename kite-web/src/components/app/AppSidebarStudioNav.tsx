@@ -1,8 +1,8 @@
 import {
   VariableIcon,
+  StoreIcon,
   KeyRoundIcon,
   PlugIcon,
-  LibraryBigIcon,
   SlashSquareIcon,
   MailPlusIcon,
   SatelliteDishIcon,
@@ -63,9 +63,9 @@ export default function AppSidebarStudioNav() {
             icon: BlocksIcon,
           },
           {
-            name: "Templates",
-            url: "/apps/[appId]/templates",
-            icon: LibraryBigIcon,
+            name: "Marketplace",
+            url: "/apps/[appId]/marketplace",
+            icon: StoreIcon,
           },
         ],
       },

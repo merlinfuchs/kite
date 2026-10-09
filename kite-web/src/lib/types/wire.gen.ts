@@ -510,6 +510,141 @@ export interface LogSummary {
 export type LogSummaryGetResponse = LogSummary;
 
 //////////
+// source: marketplace.go
+
+export const MarketplaceMaxListingItems = 25;
+export interface MarketplaceListing {
+  id: string;
+  name: string;
+  description: string;
+  /**
+   * Kind is "command", "event_listener", "message" or "module".
+   */
+  kind: string;
+  status: string;
+  author?: MarketplaceUser;
+  command_count: number /* int */;
+  event_listener_count: number /* int */;
+  message_count: number /* int */;
+  block_types: string[];
+  import_count: number /* int */;
+  items: MarketplaceListingItem[];
+  review_note: null | string;
+  reviewed_at: null | string /* RFC3339 */;
+  created_at: string /* RFC3339 */;
+  updated_at: string /* RFC3339 */;
+}
+export interface MarketplaceListingItem {
+  type: string;
+  name: string;
+  description: string;
+  source?: string;
+  /**
+   * FlowSource, MessageData and MessageFlowSources are left out when
+   * listings are listed.
+   */
+  flow_source?: FlowData;
+  /**
+   * SourceID is the message template's ID in the author's app, blocks in
+   * the same listing reference the template by it.
+   */
+  source_id?: string;
+  message_data?: MessageData;
+  message_flow_sources?: { [key: string]: FlowData};
+}
+/**
+ * MarketplaceUser is the public part of a user, without their email.
+ */
+export interface MarketplaceUser {
+  id: string;
+  display_name: string;
+  discord_id: string;
+  discord_username: string;
+  discord_avatar: null | string;
+}
+export type MarketplaceListingListResponse = (MarketplaceListing | undefined)[];
+export type MarketplaceListingGetResponse = MarketplaceListing;
+export interface MarketplaceListingItemRequest {
+  type: string;
+  source: string;
+  /**
+   * FlowSource is required for commands and event listeners.
+   */
+  flow_source: FlowData;
+  /**
+   * The fields below are only used for message templates.
+   */
+  name: string;
+  description: null | string;
+  source_id: string;
+  message_data?: MessageData;
+  message_flow_sources: { [key: string]: FlowData};
+}
+export interface MarketplaceListingCreateRequest {
+  name: string;
+  description: string;
+  /**
+   * AppID is the app the items were taken from, it's only kept for reference.
+   */
+  app_id: null | string;
+  items: MarketplaceListingItemRequest[];
+}
+export type MarketplaceListingCreateResponse = MarketplaceListing;
+export type MarketplaceListingUpdateRequest = MarketplaceListingCreateRequest;
+export type MarketplaceListingUpdateResponse = MarketplaceListing;
+export type MarketplaceListingDeleteResponse = Empty;
+export type MarketplaceListingImportResponse = MarketplaceListing;
+export interface MarketplaceListingReviewRequest {
+  /**
+   * Status is "approved", "rejected" or "removed".
+   */
+  status: string;
+  /**
+   * Note is shown to the author.
+   */
+  note: string;
+}
+export type MarketplaceListingReviewResponse = MarketplaceListing;
+export interface MarketplaceReport {
+  id: string;
+  listing_id: string;
+  listing?: MarketplaceListing;
+  reporter?: MarketplaceUser;
+  reason: string;
+  created_at: string /* RFC3339 */;
+}
+export interface MarketplaceReportCreateRequest {
+  reason: string;
+}
+export type MarketplaceReportCreateResponse = Empty;
+export type MarketplaceReportListResponse = (MarketplaceReport | undefined)[];
+export type MarketplaceReportResolveResponse = Empty;
+export interface MarketplaceModerator {
+  discord_user_id: string;
+  /**
+   * IsAdmin moderators come from the service config and can't be removed.
+   */
+  is_admin: boolean;
+  /**
+   * User is null if the moderator has never logged in to Kite.
+   */
+  user?: MarketplaceUser;
+  created_at: null | string /* RFC3339 */;
+}
+export type MarketplaceModeratorListResponse = (MarketplaceModerator | undefined)[];
+export interface MarketplaceModeratorCreateRequest {
+  discord_user_id: string;
+}
+export type MarketplaceModeratorCreateResponse = MarketplaceModerator;
+export type MarketplaceModeratorDeleteResponse = Empty;
+export interface MarketplaceMe {
+  is_moderator: boolean;
+  is_admin: boolean;
+  max_listings: number /* int */;
+}
+export type MarketplaceMeGetResponse = MarketplaceMe;
+
+//////////
 // source: message.go
 
 export interface Message {

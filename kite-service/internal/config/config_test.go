@@ -90,3 +90,36 @@ func TestDebugServerDefaultsToDisabledAndLocal(t *testing.T) {
 		t.Errorf("debug.host = %q, want %q", cfg.Debug.Host, "127.0.0.1")
 	}
 }
+
+func TestMarketplaceDefaults(t *testing.T) {
+	cfg := unmarshalDefaults(t)
+
+	if !cfg.Marketplace.RequireReview {
+		t.Error("marketplace.require_review should default to true")
+	}
+	if len(cfg.Marketplace.AdminIDs()) != 0 {
+		t.Errorf("marketplace.admin_discord_ids should default to empty, got %v", cfg.Marketplace.AdminIDs())
+	}
+}
+
+// Env vars can only hold one string, so a comma separated list arrives as a
+// single entry.
+func TestMarketplaceAdminIDsFromEnv(t *testing.T) {
+	t.Setenv("KITE_MARKETPLACE__ADMIN_DISCORD_IDS", "123456789012345678, 876543210987654321")
+
+	k, err := loadBase(t.TempDir())
+	if err != nil {
+		t.Fatalf("failed to load config: %v", err)
+	}
+
+	var cfg Config
+	if err := k.UnmarshalWithConf("", &cfg, koanf.UnmarshalConf{Tag: "toml"}); err != nil {
+		t.Fatalf("failed to unmarshal config: %v", err)
+	}
+
+	got := cfg.Marketplace.AdminIDs()
+	want := []string{"123456789012345678", "876543210987654321"}
+	if len(got) != len(want) || got[0] != want[0] || got[1] != want[1] {
+		t.Errorf("AdminIDs() = %v, want %v", got, want)
+	}
+}
