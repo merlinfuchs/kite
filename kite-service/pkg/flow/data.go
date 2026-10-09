@@ -80,6 +80,7 @@ const (
 	FlowNodeTypeActionMemberUnban           FlowNodeType = "action_member_unban"
 	FlowNodeTypeActionMemberKick            FlowNodeType = "action_member_kick"
 	FlowNodeTypeActionMemberTimeout         FlowNodeType = "action_member_timeout"
+	FlowNodeTypeActionMemberTimeoutRemove   FlowNodeType = "action_member_timeout_remove"
 	FlowNodeTypeActionMemberEdit            FlowNodeType = "action_member_edit"
 	FlowNodeTypeActionMemberRoleAdd         FlowNodeType = "action_member_role_add"
 	FlowNodeTypeActionMemberRoleRemove      FlowNodeType = "action_member_role_remove"

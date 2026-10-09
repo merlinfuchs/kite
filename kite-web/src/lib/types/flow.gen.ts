@@ -35,6 +35,7 @@ export const FlowNodeTypeActionMemberBan: FlowNodeType = "action_member_ban";
 export const FlowNodeTypeActionMemberUnban: FlowNodeType = "action_member_unban";
 export const FlowNodeTypeActionMemberKick: FlowNodeType = "action_member_kick";
 export const FlowNodeTypeActionMemberTimeout: FlowNodeType = "action_member_timeout";
+export const FlowNodeTypeActionMemberTimeoutRemove: FlowNodeType = "action_member_timeout_remove";
 export const FlowNodeTypeActionMemberEdit: FlowNodeType = "action_member_edit";
 export const FlowNodeTypeActionMemberRoleAdd: FlowNodeType = "action_member_role_add";
 export const FlowNodeTypeActionMemberRoleRemove: FlowNodeType = "action_member_role_remove";
