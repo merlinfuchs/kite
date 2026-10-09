@@ -21,9 +21,10 @@ import (
 )
 
 const (
-	// Requests a webhook listener accepts per interval. Every request runs a
-	// flow, and anyone the URL was shared with can send them.
-	webhookRateLimit         = 60
+	// Requests an app accepts per interval, across all its webhook listeners.
+	// Every request runs a flow, and anyone the URL was shared with can send
+	// them.
+	webhookRateLimit         = 10
 	webhookRateLimitInterval = time.Minute
 )
 
@@ -80,14 +81,14 @@ func (h *EventListenerHandler) HandleEventListenerWebhook(c *handler.Context) er
 	}
 
 	// After the secret check, so requests with a wrong secret can't use up
-	// the limit of a listener.
-	_, _, reset, ok, err := h.webhookLimiter.Take(c.Context(), listenerID)
+	// the limit of an app.
+	_, _, reset, ok, err := h.webhookLimiter.Take(c.Context(), appID)
 	if err != nil {
 		return handler.ErrInternal("failed to take rate limit token")
 	}
 	if !ok {
-		c.SetHeader("Retry-After", time.Unix(0, int64(reset)).UTC().Format(time.RFC1123))
-		return handler.ErrRateLimit("This webhook is receiving too many requests. Please try again later.")
+		c.SetHeader("Retry-After", time.Unix(0, int64(reset)).UTC().Format(http.TimeFormat))
+		return handler.ErrRateLimit("The webhooks of this app are receiving too many requests. Please try again later.")
 	}
 
 	// The engine only notices deleted listeners after a while, and changes

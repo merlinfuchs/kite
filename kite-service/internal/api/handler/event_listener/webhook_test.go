@@ -19,17 +19,20 @@ import (
 
 type fakeListenerStore struct {
 	store.EventListenerStore
-	listener *model.EventListener
+	listeners []*model.EventListener
 }
 
 func (s *fakeListenerStore) EventListener(ctx context.Context, id string) (*model.EventListener, error) {
-	if s.listener == nil || s.listener.ID != id {
-		return nil, store.ErrNotFound
+	for _, l := range s.listeners {
+		if l != nil && l.ID == id {
+			return l, nil
+		}
 	}
-	return s.listener, nil
+	return nil, store.ErrNotFound
 }
 
-// fakeRunner is the engine, which has the listener loaded with loadedSecret.
+// fakeRunner is the engine, which has the listeners of app "app" loaded with
+// loadedSecret.
 type fakeRunner struct {
 	loadedSecret string
 	err          error
@@ -37,7 +40,7 @@ type fakeRunner struct {
 }
 
 func (r *fakeRunner) WebhookSecret(appID string, listenerID string) (string, bool) {
-	if appID != "app" || listenerID != "listener" {
+	if appID != "app" || (listenerID != "listener" && listenerID != "other-listener") {
 		return "", false
 	}
 	return r.loadedSecret, true
@@ -63,8 +66,10 @@ func webhookTestListener() *model.EventListener {
 }
 
 func webhookTestServer(listener *model.EventListener, runner *fakeRunner) http.Handler {
-	h := NewEventListenerHandler(&fakeListenerStore{listener: listener}, runner)
+	return webhookTestMux(NewEventListenerHandler(&fakeListenerStore{listeners: []*model.EventListener{listener}}, runner))
+}
 
+func webhookTestMux(h *EventListenerHandler) http.Handler {
 	mux := http.NewServeMux()
 	group := handler.Group(mux, "/v1")
 	group.Post("/apps/{appID}/webhooks/{listenerID}/{secret}", h.HandleEventListenerWebhook)
@@ -150,23 +155,40 @@ func TestWebhookRejectsLargeRequests(t *testing.T) {
 	assert.Len(t, runner.events, 1)
 }
 
-func TestWebhookRateLimit(t *testing.T) {
-	runner := &fakeRunner{loadedSecret: "secret"}
-	server := webhookTestServer(webhookTestListener(), runner)
+func TestWebhookRateLimitIsPerApp(t *testing.T) {
+	other := webhookTestListener()
+	other.ID = "other-listener"
 
-	// Requests with a wrong secret don't count against the listener.
+	runner := &fakeRunner{loadedSecret: "secret"}
+	server := webhookTestMux(NewEventListenerHandler(
+		&fakeListenerStore{listeners: []*model.EventListener{webhookTestListener(), other}},
+		runner,
+	))
+
+	// Requests with a wrong secret don't count against the app.
 	for i := 0; i < webhookRateLimit; i++ {
 		postWebhook(server, "/v1/apps/app/webhooks/listener/wrong", "", nil)
 	}
 
+	// Both listeners of the app share one limit.
 	for i := 0; i < webhookRateLimit; i++ {
-		rec := postWebhook(server, "/v1/apps/app/webhooks/listener/secret", "", nil)
+		path := "/v1/apps/app/webhooks/listener/secret"
+		if i%2 == 1 {
+			path = "/v1/apps/app/webhooks/other-listener/secret"
+		}
+		rec := postWebhook(server, path, "", nil)
 		require.Equal(t, http.StatusAccepted, rec.Code, "request %d", i)
 	}
 
-	rec := postWebhook(server, "/v1/apps/app/webhooks/listener/secret", "", nil)
-	assert.Equal(t, http.StatusTooManyRequests, rec.Code)
-	assert.NotEmpty(t, rec.Header().Get("Retry-After"))
+	for _, path := range []string{
+		"/v1/apps/app/webhooks/listener/secret",
+		"/v1/apps/app/webhooks/other-listener/secret",
+	} {
+		rec := postWebhook(server, path, "", nil)
+		assert.Equal(t, http.StatusTooManyRequests, rec.Code, path)
+		assert.NotEmpty(t, rec.Header().Get("Retry-After"))
+	}
+	assert.Len(t, runner.events, webhookRateLimit)
 }
 
 func TestWebhookAppOffline(t *testing.T) {
