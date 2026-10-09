@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/diamondburned/arikawa/v3/discord"
@@ -283,8 +284,37 @@ func NewWebhookEnv(e *webhook.Event) *WebhookEnv {
 		Body:    e.Body,
 	}
 	// Senders don't reliably set the content type, so the body decides.
-	_ = json.Unmarshal([]byte(e.Body), &res.Data)
+	dec := json.NewDecoder(strings.NewReader(e.Body))
+	// Keeps IDs written as numbers exact.
+	dec.UseNumber()
+	var data any
+	if err := dec.Decode(&data); err == nil && !dec.More() {
+		res.Data = jsonNumbers(data)
+	}
 	return res
+}
+
+// jsonNumbers turns the numbers of a document decoded with UseNumber into
+// int64, or float64 if they aren't integers or don't fit, so expressions can
+// compare and calculate with them.
+func jsonNumbers(v any) any {
+	switch v := v.(type) {
+	case json.Number:
+		if i, err := v.Int64(); err == nil {
+			return i
+		}
+		f, _ := v.Float64()
+		return f
+	case map[string]any:
+		for key, item := range v {
+			v[key] = jsonNumbers(item)
+		}
+	case []any:
+		for i, item := range v {
+			v[i] = jsonNumbers(item)
+		}
+	}
+	return v
 }
 
 func (w WebhookEnv) String() string {

@@ -49,6 +49,32 @@ func TestWebhookEventPlaceholders(t *testing.T) {
 	}
 }
 
+func TestWebhookEventPlaceholdersKeepLargeIntegers(t *testing.T) {
+	c := NewContextFromEvent(&webhook.Event{
+		Body: `{"user_id":1497746534387941386,"ids":[1497746534387941386],"count":3,"ratio":0.5}`,
+	}, testSession())
+
+	cases := map[string]string{
+		"{{webhook.data.user_id}}":                        "1497746534387941386",
+		"{{webhook.data.ids[0]}}":                         "1497746534387941386",
+		"{{webhook.data.user_id == 1497746534387941386}}": "true",
+		"{{webhook.data.count + 1}}":                      "4",
+		"{{webhook.data.count > 2}}":                      "true",
+		"{{webhook.data.ratio * 2}}":                      "1",
+		"{{webhook.data.ratio}}":                          "0.5",
+	}
+	for template, want := range cases {
+		got, err := EvalTemplate(context.Background(), template, c)
+		if err != nil {
+			t.Errorf("%s: %v", template, err)
+			continue
+		}
+		if got.String() != want {
+			t.Errorf("%s = %q, want %q", template, got.String(), want)
+		}
+	}
+}
+
 func TestWebhookEventPlaceholdersWithoutJSONBody(t *testing.T) {
 	c := NewContextFromEvent(&webhook.Event{Body: "status=up"}, testSession())
 
