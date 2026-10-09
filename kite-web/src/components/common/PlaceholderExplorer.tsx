@@ -54,6 +54,7 @@ export default function PlaceholderExplorer({
   const [category, setCategory] = useState<string>();
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
+  const categoriesRef = useRef<HTMLDivElement>(null);
 
   const placeholderGroups = useMemo(() => {
     return placeholders.filter((group) => group.placeholders.length > 0);
@@ -77,6 +78,12 @@ export default function PlaceholderExplorer({
     if (listRef.current) listRef.current.scrollTop = 0;
     // Keeps typing and the arrow keys working after clicking a category.
     inputRef.current?.focus();
+    // The arrow keys can pick a category that is scrolled out of view.
+    requestAnimationFrame(() =>
+      categoriesRef.current
+        ?.querySelector('[aria-pressed="true"]')
+        ?.scrollIntoView({ block: "nearest", inline: "nearest" })
+    );
   }
 
   // Up and down move through the placeholders, so left and right are free to
@@ -133,10 +140,17 @@ export default function PlaceholderExplorer({
               </Tabs>
             </div>
           )}
-          <div className="flex min-h-0">
+          {/* On small screens the categories are a row above the list, so
+              the list keeps the full width. */}
+          <div className="flex flex-col sm:flex-row min-h-0">
             {placeholderGroups.length > 0 && (
-              <div className="w-[160px] flex-none max-h-[300px] overflow-y-auto border-r p-1 space-y-0.5">
-                <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground">
+              <div
+                ref={categoriesRef}
+                role="group"
+                aria-label="Categories"
+                className="flex sm:block flex-none gap-1 overflow-x-auto sm:overflow-x-hidden sm:overflow-y-auto sm:w-[160px] sm:max-h-[300px] border-b sm:border-b-0 sm:border-r p-1 sm:space-y-0.5"
+              >
+                <div className="hidden sm:block px-2 py-1.5 text-xs font-medium text-muted-foreground">
                   Categories
                 </div>
                 {placeholderGroups.map((group) => (
@@ -144,9 +158,10 @@ export default function PlaceholderExplorer({
                     type="button"
                     key={group.label}
                     title={group.label}
+                    aria-pressed={!searching && group === activeGroup}
                     onClick={() => selectCategory(group.label)}
                     className={cn(
-                      "flex w-full items-center justify-between gap-2 rounded-sm px-2 py-1.5 text-sm text-left outline-none hover:bg-accent/50 focus-visible:bg-accent/50",
+                      "flex flex-none sm:w-full items-center justify-between gap-2 rounded-sm px-2 py-1.5 text-sm text-left whitespace-nowrap outline-none hover:bg-accent/50 focus-visible:bg-accent/50",
                       !searching &&
                         group === activeGroup &&
                         "bg-accent text-accent-foreground hover:bg-accent"
