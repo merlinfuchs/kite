@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   modalComponentNumber,
+  newModalOption,
   nextModalInputNumber,
   normalizeModalComponents,
 } from "./modal";
@@ -240,5 +241,16 @@ describe("modal numbering", () => {
 
   it("skips identifiers that are taken", () => {
     expect(nextModalInputNumber([input("input_2")])).toBe(3);
+  });
+
+  it("skips option values that are taken", () => {
+    expect(newModalOption([{ label: "Option 2", value: "option_2" }])).toEqual({
+      label: "Option 3",
+      value: "option_3",
+    });
+    expect(newModalOption([{ label: "option_2" }])).toEqual({
+      label: "Option 3",
+      value: "option_3",
+    });
   });
 });

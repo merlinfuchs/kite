@@ -24,6 +24,7 @@ import {
   modalComponentNumber,
   modalMaxComponents,
   newModalInput,
+  newModalOption,
   nextModalInputNumber,
   normalizeModalComponents,
 } from "@/lib/flow/modal";
@@ -2060,6 +2061,29 @@ function parseOptionalInt(v: string) {
   return isNaN(n) ? undefined : n;
 }
 
+let nextListKey = 0;
+
+// Keys for the items of a list that can be reordered or removed, so the
+// inputs of an item stay with it. The items have no IDs to use instead. Moves
+// and removals have to go through move and remove, other changes, like an
+// undo, only keep the keys of the first items.
+function useListKeys(length: number) {
+  const keys = useRef<number[]>([]);
+  while (keys.current.length < length) keys.current.push(nextListKey++);
+  keys.current.length = length;
+
+  return {
+    keys: keys.current,
+    move: (i: number, j: number) => {
+      const k = keys.current;
+      [k[i], k[j]] = [k[j], k[i]];
+    },
+    remove: (i: number) => {
+      keys.current.splice(i, 1);
+    },
+  };
+}
+
 function ModalDataInput({ data, updateData, errors }: InputProps) {
   // Older modals are converted when they are edited, so the editor only
   // deals with labels and text displays.
@@ -2067,6 +2091,7 @@ function ModalDataInput({ data, updateData, errors }: InputProps) {
     () => normalizeModalComponents(data.modal_data?.components),
     [data.modal_data?.components]
   );
+  const componentKeys = useListKeys(components.length);
 
   const setComponents = useCallback(
     (newComponents: ModalComponentData[]) => {
@@ -2103,9 +2128,18 @@ function ModalDataInput({ data, updateData, errors }: InputProps) {
       if (j < 0 || j >= components.length) return;
       const res = [...components];
       [res[i], res[j]] = [res[j], res[i]];
+      componentKeys.move(i, j);
       setComponents(res);
     },
-    [setComponents, components]
+    [setComponents, components, componentKeys]
+  );
+
+  const removeComponent = useCallback(
+    (i: number) => {
+      componentKeys.remove(i);
+      setComponents(components.filter((_, j) => j !== i));
+    },
+    [setComponents, components, componentKeys]
   );
 
   const addInput = useCallback(() => {
@@ -2161,7 +2195,7 @@ function ModalDataInput({ data, updateData, errors }: InputProps) {
           <div className="space-y-3">
             <div className="font-medium text-foreground">Components</div>
             {components.map((component, i) => (
-              <Card className="space-y-3 p-3 -mx-1" key={i}>
+              <Card className="space-y-3 p-3 -mx-1" key={componentKeys.keys[i]}>
                 <div className="flex items-center gap-2">
                   <div className="font-medium text-foreground flex-auto">
                     {component.type === "text_display" ? "Text" : "Input"}{" "}
@@ -2186,9 +2220,7 @@ function ModalDataInput({ data, updateData, errors }: InputProps) {
                   <Button
                     variant="outline"
                     size="icon"
-                    onClick={() =>
-                      setComponents(components.filter((_, j) => j !== i))
-                    }
+                    onClick={() => removeComponent(i)}
                   >
                     <TrashIcon className="h-5 w-5" />
                   </Button>
@@ -2457,6 +2489,7 @@ function ModalOptionsInput({
   updateOptions: (options: ModalComponentOptionData[]) => void;
   errors: Record<string, string>;
 }) {
+  const optionKeys = useListKeys(options.length);
   const updateOption = (i: number, data: Partial<ModalComponentOptionData>) =>
     updateOptions(options.map((o, j) => (j === i ? { ...o, ...data } : o)));
 
@@ -2477,7 +2510,7 @@ function ModalOptionsInput({
             errors[`${field}.${i}.description`];
 
           return (
-            <div key={i}>
+            <div key={optionKeys.keys[i]}>
               <div className="flex gap-2 items-center">
                 <div className="flex-auto grid grid-cols-3 gap-2">
                   <PlaceholderInput
@@ -2515,9 +2548,10 @@ function ModalOptionsInput({
                   variant="outline"
                   size="icon"
                   className="flex-none"
-                  onClick={() =>
-                    updateOptions(options.filter((_, j) => j !== i))
-                  }
+                  onClick={() => {
+                    optionKeys.remove(i);
+                    updateOptions(options.filter((_, j) => j !== i));
+                  }}
                 >
                   <MinusIcon className="h-5 w-5" />
                 </Button>
@@ -2536,15 +2570,7 @@ function ModalOptionsInput({
             variant="outline"
             size="icon"
             disabled={options.length >= max}
-            onClick={() =>
-              updateOptions([
-                ...options,
-                {
-                  label: `Option ${options.length + 1}`,
-                  value: `option_${options.length + 1}`,
-                },
-              ])
-            }
+            onClick={() => updateOptions([...options, newModalOption(options)])}
           >
             <PlusIcon className="h-5 w-5" />
           </Button>

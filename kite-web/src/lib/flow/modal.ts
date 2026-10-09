@@ -1,4 +1,8 @@
-import { ModalComponentData, ModalData } from "../types/flow.gen";
+import {
+  ModalComponentData,
+  ModalComponentOptionData,
+  ModalData,
+} from "../types/flow.gen";
 
 export const modalMaxComponents = 5;
 
@@ -93,6 +97,17 @@ export function newModalInput(
     default:
       return { ...base, required: true };
   }
+}
+
+// The option added after the given ones. Its value must be unique, so it
+// skips numbers that are taken, e.g. after an option was removed.
+export function newModalOption(
+  options: ModalComponentOptionData[]
+): ModalComponentOptionData {
+  const values = new Set(options.map((o) => o.value || o.label));
+  let n = options.length + 1;
+  while (values.has(`option_${n}`)) n++;
+  return { label: `Option ${n}`, value: `option_${n}` };
 }
 
 export function modalInputHasOptions(type?: string) {
