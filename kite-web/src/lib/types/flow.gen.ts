@@ -17,6 +17,7 @@ export const FlowNodeTypeOptionCommandArgument: FlowNodeType = "option_command_a
 export const FlowNodeTypeOptionCommandPermissions: FlowNodeType = "option_command_permissions";
 export const FlowNodeTypeOptionCommandContexts: FlowNodeType = "option_command_contexts";
 export const FlowNodeTypeOptionEventFilter: FlowNodeType = "option_event_filter";
+export const FlowNodeTypeOptionCommandCooldown: FlowNodeType = "option_command_cooldown";
 export const FlowNodeTypeActionResponseCreate: FlowNodeType = "action_response_create";
 export const FlowNodeTypeActionResponseEdit: FlowNodeType = "action_response_edit";
 export const FlowNodeTypeActionResponseDelete: FlowNodeType = "action_response_delete";
@@ -129,6 +130,12 @@ export interface FlowNodeData {
    * Command Installations
    */
   command_disabled_integrations?: CommandDisabledIntegrationType[];
+  /**
+   * Command Cooldown
+   */
+  cooldown_scope?: CooldownScope;
+  cooldown_duration_seconds?: string;
+  cooldown_message?: string;
   /**
    * Guild Get, and the guild of member, channel, role and voice blocks
    */
@@ -243,6 +250,10 @@ export interface FlowNodeData {
    */
   sleep_duration_seconds?: string;
 }
+export type CooldownScope = string;
+export const CooldownScopeUser: CooldownScope = "user";
+export const CooldownScopeGuild: CooldownScope = "guild";
+export const CooldownScopeGlobal: CooldownScope = "global";
 export type ComparsionMode = string;
 export const ComparsionModeEqual: ComparsionMode = "equal";
 export const ComparsionModeNotEqual: ComparsionMode = "not_equal";
@@ -282,6 +293,7 @@ export const EventFilterTypeMessageContent: EventFilterTarget = "message_content
 export const EventFilterTypeUserID: EventFilterTarget = "user_id";
 export const EventFilterTypeGuildID: EventFilterTarget = "guild_id";
 export const EventFilterTypeChannelID: EventFilterTarget = "channel_id";
+export const EventFilterTypeMessageID: EventFilterTarget = "message_id";
 export type RobloxLookupType = string;
 export const RobloxLookupTypeID: RobloxLookupType = "id";
 export const RobloxLookupTypeName: RobloxLookupType = "username";

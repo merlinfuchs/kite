@@ -245,6 +245,7 @@ type EventEnv struct {
 	Channel *SnowflakeEnv `expr:"channel" json:"channel"`
 	Message *MessageEnv   `expr:"message" json:"message"`
 	Guild   any           `expr:"guild" json:"guild"`
+	Emoji   *EmojiEnv     `expr:"emoji" json:"emoji"`
 
 	Schedule *ScheduleEnv `expr:"schedule" json:"schedule"`
 	Webhook  *WebhookEnv  `expr:"webhook" json:"webhook"`
@@ -338,6 +339,32 @@ func NewEventEnv(event ws.Event) *EventEnv {
 		env.User = NewUserEnv(e.User)
 		env.Member = env.User
 		env.Guild = NewSnowflakeEnv(e.GuildID)
+	case *gateway.MessageReactionAddEvent:
+		if e.Member != nil {
+			env.Member = NewMemberEnv(*e.Member)
+			env.User = env.Member
+		} else {
+			// DM reactions (and, in principle, a guild reaction delivered
+			// without member data) only give us the user's ID.
+			env.User = NewUserIDEnv(e.UserID)
+			env.Member = env.User
+		}
+		env.Channel = NewSnowflakeEnv(e.ChannelID)
+		if e.GuildID != 0 {
+			env.Guild = NewSnowflakeEnv(e.GuildID)
+		}
+		env.Message = NewMessageEnv(discord.Message{ID: e.MessageID})
+		env.Emoji = NewEmojiEnv(e.Emoji)
+	case *gateway.MessageReactionRemoveEvent:
+		// MESSAGE_REACTION_REMOVE never includes member/user data, only the ID.
+		env.User = NewUserIDEnv(e.UserID)
+		env.Member = env.User
+		env.Channel = NewSnowflakeEnv(e.ChannelID)
+		if e.GuildID != 0 {
+			env.Guild = NewSnowflakeEnv(e.GuildID)
+		}
+		env.Message = NewMessageEnv(discord.Message{ID: e.MessageID})
+		env.Emoji = NewEmojiEnv(e.Emoji)
 	case *state.GuildJoinEvent:
 		env.Guild = NewGuildEnv(e.Guild)
 	case *state.GuildLeaveEvent:
@@ -402,6 +429,7 @@ func NewContextFromEvent(event ws.Event, session *state.State) Context {
 			"guild":    env.Guild,
 			"server":   env.Guild,
 			"message":  env.Message,
+			"emoji":    env.Emoji,
 			"schedule": env.Schedule,
 			"webhook":  env.Webhook,
 			"app":      NewAppEnv(session),
@@ -447,6 +475,17 @@ func NewUserEnv(user discord.User) *UserEnv {
 		Mention:       fmt.Sprintf("<@%s>", user.ID.String()),
 		AvatarURL:     user.AvatarURL(),
 		BannerURL:     user.BannerURL(),
+	}
+}
+
+// NewUserIDEnv is a user of whom only the ID is known, like the user of a
+// reaction remove event. Everything but id and mention is empty.
+func NewUserIDEnv(id discord.UserID) *UserEnv {
+	return &UserEnv{
+		og: discord.User{ID: id},
+
+		ID:      id.String(),
+		Mention: fmt.Sprintf("<@%s>", id.String()),
 	}
 }
 
@@ -601,6 +640,37 @@ func NewAttachmentEnv(attachment *discord.Attachment) *AttachmentEnv {
 
 func (a AttachmentEnv) String() string {
 	return a.URL
+}
+
+type EmojiEnv struct {
+	og discord.Emoji
+
+	ID       string `expr:"id" json:"id"`
+	Name     string `expr:"name" json:"name"`
+	Animated bool   `expr:"animated" json:"animated"`
+	// Mention is the emoji formatted the way Discord clients render it, e.g.
+	// "🔥" for a unicode emoji or "<:name:id>" for a custom one.
+	Mention string `expr:"mention" json:"mention"`
+}
+
+func NewEmojiEnv(emoji discord.Emoji) *EmojiEnv {
+	id := ""
+	if emoji.ID.IsValid() {
+		id = emoji.ID.String()
+	}
+
+	return &EmojiEnv{
+		og: emoji,
+
+		ID:       id,
+		Name:     emoji.Name,
+		Animated: emoji.Animated,
+		Mention:  emoji.String(),
+	}
+}
+
+func (e EmojiEnv) String() string {
+	return e.og.String()
 }
 
 type SnowflakeEnv struct {

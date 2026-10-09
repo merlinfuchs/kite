@@ -229,6 +229,21 @@ func (n *CompiledFlowNode) IsEventFilter() bool {
 	return n.Type == FlowNodeTypeOptionEventFilter
 }
 
+func (n *CompiledFlowNode) IsCommandCooldown() bool {
+	return n.Type == FlowNodeTypeOptionCommandCooldown
+}
+
+// CommandCooldown returns the cooldown option attached to this entry node, if
+// any. When more than one is attached, the first one wins.
+func (n *CompiledFlowNode) CommandCooldown() *CompiledFlowNode {
+	for _, node := range n.Parents.Default {
+		if node.IsCommandCooldown() {
+			return node
+		}
+	}
+	return nil
+}
+
 func (n *CompiledFlowNode) CommandData() discord.Command {
 	res := discord.Command{
 		Name:                     n.CommandName(),
@@ -547,6 +562,8 @@ func (n *CompiledFlowNode) FilterEvent(ctx *FlowContext) (bool, error) {
 				target = ctx.Data.GuildID().String()
 			case EventFilterTypeChannelID:
 				target = ctx.Data.ChannelID().String()
+			case EventFilterTypeMessageID:
+				target = ctx.Data.MessageID().String()
 			}
 
 			switch node.Data.EventFilterMode {

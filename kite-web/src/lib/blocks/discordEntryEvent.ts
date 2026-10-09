@@ -22,6 +22,8 @@ export const discordEntryEvent: BlockDefinition = {
           "message_delete",
           "guild_member_add",
           "guild_member_remove",
+          "message_reaction_add",
+          "message_reaction_remove",
           "guild_create",
           "guild_delete",
           "cron",

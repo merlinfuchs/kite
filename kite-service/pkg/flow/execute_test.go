@@ -137,6 +137,10 @@ func (d *TestContextData) ChannelID() discord.ChannelID {
 	return 0
 }
 
+func (d *TestContextData) MessageID() discord.MessageID {
+	return 0
+}
+
 func (d *TestContextData) CommandData() *discord.CommandInteraction {
 	return nil
 }
