@@ -114,6 +114,15 @@ export function modalInputHasValueLimits(type?: string) {
   );
 }
 
+// Whether more than one option of the input can be picked. Discord lets one
+// option of a select be picked by default, and all of a checkbox group.
+export function modalInputIsMultiValue(input: ModalComponentData) {
+  if (!modalInputHasValueLimits(input.type)) return false;
+  const defaultMax =
+    input.type === "checkbox_group" ? input.options?.length ?? 0 : 1;
+  return (input.max_values ?? defaultMax) > 1;
+}
+
 export function modalInputHasPlaceholder(type?: string) {
   return (
     !type ||

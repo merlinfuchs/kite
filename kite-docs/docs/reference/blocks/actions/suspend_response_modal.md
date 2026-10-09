@@ -20,19 +20,19 @@ A modal can hold up to 5 components, and at least one of them has to be an input
 
 These inputs are available:
 
-| Input               | What `input(...)` returns                                        |
-| ------------------- | ---------------------------------------------------------------- |
-| Text Input          | The entered text. Can be a single line or a paragraph.           |
-| Select Menu         | The value of the picked option.                                  |
-| User Select         | The ID of the picked member.                                     |
-| Role Select         | The ID of the picked role.                                       |
-| User or Role Select | The ID of the picked member or role.                             |
-| Channel Select      | The ID of the picked channel. You can limit it to channel types. |
-| Radio Group         | The value of the picked option. Needs 2 to 10 options.           |
-| Checkbox Group      | The value of the first picked option. Needs 1 to 10 options.     |
-| Checkbox            | `true` if it was checked, otherwise `false`.                     |
+| Input               | What `input(...)` returns                                          |
+| ------------------- | ------------------------------------------------------------------ |
+| Text Input          | The entered text. Can be a single line or a paragraph.             |
+| Select Menu         | The values of the picked options.                                  |
+| User Select         | The IDs of the picked members.                                     |
+| Role Select         | The IDs of the picked roles.                                       |
+| User or Role Select | The IDs of the picked members or roles.                            |
+| Channel Select      | The IDs of the picked channels. You can limit it to channel types. |
+| Radio Group         | The value of the picked option. Needs 2 to 10 options.             |
+| Checkbox Group      | The values of the picked options. Needs 1 to 10 options.           |
+| Checkbox            | `true` if it was checked, otherwise `false`.                       |
 
-An option without a value returns its label. When more than one option can be picked, `input(...)` returns the first one. Directly after the modal, all of them are available as a list with `{{interaction.components['color'].values}}`.
+An option without a value returns its label. Select menus let one option be picked unless you raise Max Picks, and checkbox groups allow all of their options. When several are picked, `input(...)` joins them with a comma, e.g. `red, blue`. Directly after the modal, they are also available as a list with `{{interaction.components['color'].values}}`, so you can check for one with `{{'red' in interaction.components['color'].values}}`.
 
 Inputs that aren't required can be left empty, in which case `input(...)` returns an empty text.
 

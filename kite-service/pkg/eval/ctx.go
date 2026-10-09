@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/diamondburned/arikawa/v3/discord"
@@ -193,8 +194,9 @@ func (c CommandEnv) String() string {
 type ComponentEnv struct {
 	CustomID string `expr:"custom_id" json:"custom_id"`
 	Value    string `expr:"value" json:"value"`
-	// Values are the options picked in a select menu or checkbox group,
-	// Value is the first of them.
+	// Values are the options picked in a select menu or checkbox group.
+	// Value, which input() returns, joins them with ", ", as a list would
+	// render as "[a b]" in templates.
 	Values []string `expr:"values" json:"values"`
 }
 
@@ -275,9 +277,7 @@ func newComponentEnvValues[T any](customID discord.ComponentID, values []T) *Com
 	for i, v := range values {
 		env.Values[i] = fmt.Sprint(v)
 	}
-	if len(env.Values) > 0 {
-		env.Value = env.Values[0]
-	}
+	env.Value = strings.Join(env.Values, ", ")
 	return env
 }
 

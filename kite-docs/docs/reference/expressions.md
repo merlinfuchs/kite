@@ -40,6 +40,10 @@ interaction?: # For commands and interactive components
   id: string
   value?: string # The value of the picked option in a select menu
   values?: []string # All picked values if the select menu allows picking more than one option
+  components?: # For modal submissions, by input identifier
+    identifier:
+      value: string # What input('identifier') returns
+      values: []string # All picked options of a select menu or checkbox group
 
 app:
   user: # Access the underlying user of the app
@@ -51,7 +55,7 @@ There are also a few special variables for accessing dynamic variables:
 
 ```py
 arg('name') # Access value of a command argument
-input('identifier') # Access value of a modal input
+input('identifier') # Access value of a modal input, several picked options are joined with ", "
 result('id') # Access the result of a previous block
 ```
 

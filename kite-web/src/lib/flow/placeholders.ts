@@ -2,7 +2,7 @@ import { Edge, Node } from "@xyflow/react";
 import { FlowContextType } from "./context";
 import { NodeData } from "./dataSchema";
 import { getNodeTitle } from "./nodes";
-import { normalizeModalComponents } from "./modal";
+import { modalInputIsMultiValue, normalizeModalComponents } from "./modal";
 import { isResumeEdge } from "./resume";
 
 export interface PlaceholderGroup {
@@ -211,6 +211,25 @@ function upstreamPlaceholders(
           label,
           value,
         });
+    }
+  }
+
+  // interaction is the modal submission only in the modal's own sub-flow,
+  // until the next resume point.
+  const depth = getResumeDepth(nodeId, nodes, edges);
+  for (const parent of getUpstreamNodes(nodeId, nodes, edges)) {
+    if (parent.type !== "suspend_response_modal") continue;
+    if (getResumeDepth(parent.id, nodes, edges) + 1 !== depth) continue;
+
+    for (const row of normalizeModalComponents(
+      parent.data.modal_data?.components
+    )) {
+      const input = row.components?.[0];
+      if (!input || !modalInputIsMultiValue(input)) continue;
+      groups[0].placeholders.push({
+        label: `${row.label ?? "Unknown Input"} (All Picked)`,
+        value: `interaction.components['${input.custom_id}'].values`,
+      });
     }
   }
 
