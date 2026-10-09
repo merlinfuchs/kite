@@ -17,6 +17,7 @@ import (
 	"github.com/expr-lang/expr/ast"
 	"github.com/kitecloud/kite/kite-service/pkg/schedule"
 	"github.com/kitecloud/kite/kite-service/pkg/thing"
+	"github.com/kitecloud/kite/kite-service/pkg/webhook"
 )
 
 type Context struct {
@@ -107,6 +108,16 @@ func NewContextFromInteraction(i *discord.InteractionEvent, session *state.State
 
 				if component, ok := interactionEnv.Components[customID]; ok {
 					return component.Value
+				}
+				return nil
+			},
+			"inputs": func(customID string) any {
+				if interactionEnv.Components == nil {
+					return nil
+				}
+
+				if component, ok := interactionEnv.Components[customID]; ok {
+					return component.Values
 				}
 				return nil
 			},
@@ -201,6 +212,10 @@ func (c CommandEnv) String() string {
 type ComponentEnv struct {
 	CustomID string `expr:"custom_id" json:"custom_id"`
 	Value    string `expr:"value" json:"value"`
+	// Values, which inputs() returns, are the options picked in a select menu
+	// or checkbox group, or the one value of other inputs, if any. Value, which
+	// input() returns, is the first of them, like interaction.value.
+	Values []string `expr:"values" json:"values"`
 }
 
 func NewComponentsEnv(i *discord.InteractionEvent) map[string]*ComponentEnv {
@@ -211,16 +226,22 @@ func NewComponentsEnv(i *discord.InteractionEvent) map[string]*ComponentEnv {
 		return components
 	}
 
-	for _, row := range data.Components {
-		actionRow, ok := row.(*discord.ActionRowComponent)
-		if !ok {
-			continue
+	add := func(component discord.Component) {
+		c := NewComponentEnv(component)
+		if c != nil {
+			components[c.CustomID] = c
 		}
+	}
 
-		for _, component := range *actionRow {
-			c := NewComponentEnv(component)
-			if c != nil {
-				components[c.CustomID] = c
+	for _, row := range data.Components {
+		switch row := row.(type) {
+		case *discord.ActionRowComponent:
+			for _, component := range *row {
+				add(component)
+			}
+		case *discord.LabelComponent:
+			if row.Component != nil {
+				add(row.Component)
 			}
 		}
 	}
@@ -228,16 +249,50 @@ func NewComponentsEnv(i *discord.InteractionEvent) map[string]*ComponentEnv {
 	return components
 }
 
-func NewComponentEnv(component discord.InteractiveComponent) *ComponentEnv {
+func NewComponentEnv(component discord.Component) *ComponentEnv {
 	switch c := component.(type) {
 	case *discord.TextInputComponent:
-		return &ComponentEnv{
-			CustomID: string(c.CustomID),
-			Value:    c.Value,
-		}
+		return newComponentEnv(c.CustomID, optionalValue(c.Value))
+	case *discord.StringSelectComponent:
+		return newComponentEnv(c.CustomID, c.Values)
+	case *discord.UserSelectComponent:
+		return newComponentEnv(c.CustomID, c.Values)
+	case *discord.RoleSelectComponent:
+		return newComponentEnv(c.CustomID, c.Values)
+	case *discord.MentionableSelectComponent:
+		return newComponentEnv(c.CustomID, c.Values)
+	case *discord.ChannelSelectComponent:
+		return newComponentEnv(c.CustomID, c.Values)
+	case *discord.CheckboxGroupComponent:
+		return newComponentEnv(c.CustomID, c.Values)
+	case *discord.RadioGroupComponent:
+		return newComponentEnv(c.CustomID, optionalValue(c.Value))
+	case *discord.CheckboxComponent:
+		return newComponentEnv(c.CustomID, []string{strconv.FormatBool(c.Value)})
 	}
 
 	return nil
+}
+
+func newComponentEnv[T any](customID discord.ComponentID, values []T) *ComponentEnv {
+	env := &ComponentEnv{
+		CustomID: string(customID),
+		Values:   make([]string, len(values)),
+	}
+	for i, v := range values {
+		env.Values[i] = fmt.Sprint(v)
+	}
+	if len(env.Values) > 0 {
+		env.Value = env.Values[0]
+	}
+	return env
+}
+
+func optionalValue(value string) []string {
+	if value == "" {
+		return nil
+	}
+	return []string{value}
 }
 
 func (c ComponentEnv) String() string {
@@ -255,6 +310,7 @@ type EventEnv struct {
 	Emoji   *EmojiEnv          `expr:"emoji" json:"emoji"`
 
 	Schedule *ScheduleEnv `expr:"schedule" json:"schedule"`
+	Webhook  *WebhookEnv  `expr:"webhook" json:"webhook"`
 }
 
 type ScheduleEnv struct {
@@ -272,6 +328,58 @@ func NewScheduleEnv(e *schedule.Event) *ScheduleEnv {
 
 func (s ScheduleEnv) String() string {
 	return s.Time
+}
+
+type WebhookEnv struct {
+	Headers map[string]string `expr:"headers" json:"headers"`
+	Query   map[string]string `expr:"query" json:"query"`
+	Body    string            `expr:"body" json:"body"`
+	// Data is the body parsed as JSON, nil if it isn't JSON.
+	Data any `expr:"data" json:"data"`
+}
+
+func NewWebhookEnv(e *webhook.Event) *WebhookEnv {
+	res := &WebhookEnv{
+		Headers: e.Headers,
+		Query:   e.Query,
+		Body:    e.Body,
+	}
+	// Senders don't reliably set the content type, so the body decides.
+	dec := json.NewDecoder(strings.NewReader(e.Body))
+	// Keeps IDs written as numbers exact.
+	dec.UseNumber()
+	var data any
+	if err := dec.Decode(&data); err == nil && !dec.More() {
+		res.Data = jsonNumbers(data)
+	}
+	return res
+}
+
+// jsonNumbers turns the numbers of a document decoded with UseNumber into
+// int64, or float64 if they aren't integers or don't fit, so expressions can
+// compare and calculate with them.
+func jsonNumbers(v any) any {
+	switch v := v.(type) {
+	case json.Number:
+		if i, err := v.Int64(); err == nil {
+			return i
+		}
+		f, _ := v.Float64()
+		return f
+	case map[string]any:
+		for key, item := range v {
+			v[key] = jsonNumbers(item)
+		}
+	case []any:
+		for i, item := range v {
+			v[i] = jsonNumbers(item)
+		}
+	}
+	return v
+}
+
+func (w WebhookEnv) String() string {
+	return w.Body
 }
 
 // NewEventEnv fills in what the event doesn't carry itself, like the name of
@@ -363,6 +471,8 @@ func NewEventEnv(event ws.Event, session *state.State) *EventEnv {
 		env.Guild = guild(e.ID).guildEnv()
 	case *schedule.Event:
 		env.Schedule = NewScheduleEnv(e)
+	case *webhook.Event:
+		env.Webhook = NewWebhookEnv(e)
 	}
 
 	if env.Guild == nil {
@@ -376,8 +486,8 @@ func NewEventEnv(event ws.Event, session *state.State) *EventEnv {
 
 // SetResumeContext makes the interactions or events from before a resume point
 // available to the resumed flow, oldest first. Command args and modal inputs
-// only exist on one kind of interaction, so arg() and input() fall back to
-// earlier ones, newest first.
+// only exist on one kind of interaction, so arg(), input() and inputs() fall
+// back to earlier ones, newest first.
 func (c Context) SetResumeContext(earlier []Context) {
 	if len(earlier) == 0 {
 		return
@@ -386,7 +496,7 @@ func (c Context) SetResumeContext(earlier []Context) {
 	c.Env["origin"] = map[string]any(earlier[0].Env)
 	c.Env["previous"] = map[string]any(earlier[len(earlier)-1].Env)
 
-	for _, name := range []string{"arg", "input"} {
+	for _, name := range []string{"arg", "input", "inputs"} {
 		var lookups []func(string) any
 		if fn, ok := c.Env[name].(func(string) any); ok {
 			lookups = append(lookups, fn)
@@ -427,6 +537,7 @@ func NewContextFromEvent(event ws.Event, session *state.State) Context {
 			"message":  env.Message,
 			"emoji":    env.Emoji,
 			"schedule": env.Schedule,
+			"webhook":  env.Webhook,
 			"app":      NewAppEnv(session),
 		},
 	}

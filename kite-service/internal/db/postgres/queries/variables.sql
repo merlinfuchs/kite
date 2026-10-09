@@ -108,3 +108,26 @@ USING variables
 WHERE variables.id = variable_values.variable_id
   AND variable_values.variable_id = $1
   AND variables.app_id = $2;
+
+-- name: SearchVariableValues :many
+-- position() instead of LIKE so % and _ in the search text match literally
+SELECT variable_values.* FROM variable_values
+JOIN variables ON variables.id = variable_values.variable_id
+WHERE variable_values.variable_id = @variable_id
+  AND variables.app_id = @app_id
+  AND (
+    @search::text = ''
+    OR position(lower(@search::text) in lower(coalesce(variable_values.scope, ''))) > 0
+  )
+ORDER BY variable_values.updated_at DESC, variable_values.id DESC
+LIMIT @row_limit OFFSET @row_offset;
+
+-- name: CountSearchVariableValues :one
+SELECT COUNT(*) FROM variable_values
+JOIN variables ON variables.id = variable_values.variable_id
+WHERE variable_values.variable_id = @variable_id
+  AND variables.app_id = @app_id
+  AND (
+    @search::text = ''
+    OR position(lower(@search::text) in lower(coalesce(variable_values.scope, ''))) > 0
+  );

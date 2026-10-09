@@ -29,7 +29,7 @@ You don't have to type these yourself. When you select a block below a button, s
 Some things work the same everywhere:
 
 - `{{arg('name')}}` always returns the command's argument, even below a button.
-- `{{input('name')}}` returns the answer from a modal, even after more buttons or modals.
+- `{{input('name')}}` and `{{inputs('name')}}` return the answer from a modal, even after more buttons or modals.
 - Temporary variables and results of blocks that ran before the button stay available.
 
 :::note Advanced: previous
