@@ -2159,7 +2159,8 @@ function ModalDataInput({ data, updateData, errors }: InputProps) {
     setComponents([...components, { type: "text_display", content: "" }]);
   }, [setComponents, components]);
 
-  const componentsError = errors["modal_data.components"];
+  const componentsError =
+    errors["modal_data.components"] || errors["modal_data"];
 
   return (
     <Dialog>
