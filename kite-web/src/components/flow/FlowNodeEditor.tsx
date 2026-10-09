@@ -34,7 +34,7 @@ import {
   discordApiOperations,
   getDiscordApiOperation,
 } from "@/lib/flow/discordApi";
-import { EventTypeScheduleCron } from "@/lib/types/flow.gen";
+import { EventTypeScheduleCron, EventTypeWebhook } from "@/lib/types/flow.gen";
 import { useAppId } from "@/lib/hooks/params";
 import {
   CommandArgumentChoiceData,
@@ -71,6 +71,7 @@ import EmojiPicker from "../common/EmojiPicker";
 import EntitySelect from "../common/EntitySelect";
 import JsonEditor from "../common/JsonEditor";
 import PlaceholderInput from "../common/PlaceholderInput";
+import WebhookUrlInput from "../common/WebhookUrlInput";
 import ScheduleCronPreview, {
   ScheduleCronHelp,
 } from "../common/ScheduleCronPreview";
@@ -829,8 +830,10 @@ function CommandIntegrationsInput({ data, updateData, errors }: InputProps) {
 }
 
 function EventTypeInput({ data, updateData, errors }: InputProps) {
-  // Scheduled listeners can't become Discord listeners or the other way around.
+  // Scheduled and webhook listeners can't become Discord listeners or the
+  // other way around.
   if (data.event_type === EventTypeScheduleCron) return null;
+  if (data.event_type === EventTypeWebhook) return <WebhookUrlInput />;
 
   return (
     <BaseInput
@@ -1610,7 +1613,7 @@ function GuildTargetInput({ type, data, updateData, errors }: InputProps) {
       description={
         type === "action_guild_get"
           ? undefined
-          : "Leave empty to use the server the flow runs in. Required in scheduled event listeners."
+          : "Leave empty to use the server the flow runs in. Required in scheduled and webhook event listeners."
       }
       value={data.guild_target || ""}
       updateValue={(v) => updateData({ guild_target: v || undefined })}

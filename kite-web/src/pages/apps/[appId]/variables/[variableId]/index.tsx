@@ -1,6 +1,7 @@
 import AppLayout from "@/components/app/AppLayout";
 import { getAppShellLayout } from "@/components/app/AppShell";
 import VariableSettingsCore from "@/components/app/VariableSettingsCore";
+import VariableValueExplorer from "@/components/app/VariableValueExplorer";
 import { Separator } from "@/components/ui/separator";
 import { useVariable } from "@/lib/hooks/api";
 import { useRouter } from "next/router";
@@ -45,11 +46,14 @@ export default function AppVariablesPage() {
           {variable?.name || "unknown"}
         </h1>
         <p className="text-muted-foreground text-sm">
-          Configure your stored variable and define what data it stores.
+          Configure your stored variable and manage the values it stores.
         </p>
       </div>
       <Separator className="my-8" />
-      <VariableSettingsCore />
+      <div className="space-y-5">
+        <VariableSettingsCore />
+        <VariableValueExplorer />
+      </div>
     </AppLayout>
   );
 }

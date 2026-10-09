@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/diamondburned/arikawa/v3/discord"
@@ -13,6 +14,7 @@ import (
 	"github.com/expr-lang/expr/ast"
 	"github.com/kitecloud/kite/kite-service/pkg/schedule"
 	"github.com/kitecloud/kite/kite-service/pkg/thing"
+	"github.com/kitecloud/kite/kite-service/pkg/webhook"
 )
 
 type Context struct {
@@ -301,6 +303,7 @@ type EventEnv struct {
 	Emoji   *EmojiEnv     `expr:"emoji" json:"emoji"`
 
 	Schedule *ScheduleEnv `expr:"schedule" json:"schedule"`
+	Webhook  *WebhookEnv  `expr:"webhook" json:"webhook"`
 }
 
 type ScheduleEnv struct {
@@ -318,6 +321,58 @@ func NewScheduleEnv(e *schedule.Event) *ScheduleEnv {
 
 func (s ScheduleEnv) String() string {
 	return s.Time
+}
+
+type WebhookEnv struct {
+	Headers map[string]string `expr:"headers" json:"headers"`
+	Query   map[string]string `expr:"query" json:"query"`
+	Body    string            `expr:"body" json:"body"`
+	// Data is the body parsed as JSON, nil if it isn't JSON.
+	Data any `expr:"data" json:"data"`
+}
+
+func NewWebhookEnv(e *webhook.Event) *WebhookEnv {
+	res := &WebhookEnv{
+		Headers: e.Headers,
+		Query:   e.Query,
+		Body:    e.Body,
+	}
+	// Senders don't reliably set the content type, so the body decides.
+	dec := json.NewDecoder(strings.NewReader(e.Body))
+	// Keeps IDs written as numbers exact.
+	dec.UseNumber()
+	var data any
+	if err := dec.Decode(&data); err == nil && !dec.More() {
+		res.Data = jsonNumbers(data)
+	}
+	return res
+}
+
+// jsonNumbers turns the numbers of a document decoded with UseNumber into
+// int64, or float64 if they aren't integers or don't fit, so expressions can
+// compare and calculate with them.
+func jsonNumbers(v any) any {
+	switch v := v.(type) {
+	case json.Number:
+		if i, err := v.Int64(); err == nil {
+			return i
+		}
+		f, _ := v.Float64()
+		return f
+	case map[string]any:
+		for key, item := range v {
+			v[key] = jsonNumbers(item)
+		}
+	case []any:
+		for i, item := range v {
+			v[i] = jsonNumbers(item)
+		}
+	}
+	return v
+}
+
+func (w WebhookEnv) String() string {
+	return w.Body
 }
 
 func NewEventEnv(event ws.Event) *EventEnv {
@@ -400,6 +455,8 @@ func NewEventEnv(event ws.Event) *EventEnv {
 		env.Guild = NewSnowflakeEnv(e.ID)
 	case *schedule.Event:
 		env.Schedule = NewScheduleEnv(e)
+	case *webhook.Event:
+		env.Webhook = NewWebhookEnv(e)
 	}
 
 	return env
@@ -458,6 +515,7 @@ func NewContextFromEvent(event ws.Event, session *state.State) Context {
 			"message":  env.Message,
 			"emoji":    env.Emoji,
 			"schedule": env.Schedule,
+			"webhook":  env.Webhook,
 			"app":      NewAppEnv(session),
 		},
 	}
