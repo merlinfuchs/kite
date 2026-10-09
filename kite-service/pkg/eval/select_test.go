@@ -13,7 +13,7 @@ func TestInteractionEnvExposesSelectValues(t *testing.T) {
 		Data: &discord.StringSelectInteraction{CustomID: "x", Values: []string{"red", "blue"}},
 	}
 
-	c := Context{Env: Env{"interaction": NewInteractionEnv(i)}}
+	c := Context{Env: Env{"interaction": NewInteractionEnv(i, nil)}}
 
 	got, err := EvalTemplateToString(context.Background(), "{{interaction.value}} {{interaction.values[1]}} {{len(interaction.values)}}", c)
 	if err != nil {

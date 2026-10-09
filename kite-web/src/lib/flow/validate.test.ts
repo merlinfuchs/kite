@@ -6,6 +6,7 @@ import { testEdge, testNode } from "./testUtils";
 import { createNode } from "./nodes";
 import { prepareTemplateFlow, getTemplates } from "./templates";
 import { validateFlow } from "./validate";
+import { ComponentData } from "../types/message.gen";
 
 const node = testNode;
 const edge = testEdge;
@@ -58,6 +59,32 @@ describe("validateFlow", () => {
     }
   });
 
+  it("suggests blocks that replace raw Discord API requests", () => {
+    const warnings = (body: Record<string, unknown>) =>
+      validateFlow(
+        [
+          entry,
+          node("req", "action_discord_api_request", {
+            discord_api_request_data: {
+              operation: "create_channel_invite",
+              path_params: [{ key: "channel_id", value: "1" }],
+              body_json: body,
+            },
+          }),
+        ],
+        [edge("entry", "req")],
+        "command"
+      )
+        .filter((i) => i.severity === "warning")
+        .map((i) => i.message);
+
+    expect(warnings({ max_age: 3600 })).toEqual([
+      "'Discord API Request' does what the 'Create invite' block (action_invite_create) does, which is easier to edit. Use that block instead.",
+    ]);
+    // The block has no setting for it.
+    expect(warnings({ max_age: 3600, target_user_id: "2" })).toEqual([]);
+  });
+
   it("needs exactly one entry of the flow's type", () => {
     expect(errors([log("a")], [])).toContain(
       "The flow needs exactly one entry block, but has 0."
@@ -71,7 +98,7 @@ describe("validateFlow", () => {
     expect(
       errors([entry, arg, log("a")], [edge("arg", "a"), edge("a", "entry")])
     ).toEqual([
-      "'Command Argument' can only be connected to the entry block.",
+      "'Command Argument' can only be connected to the entry block, which happens automatically.",
       "Only options can be connected into 'Command'.",
     ]);
   });
@@ -94,13 +121,17 @@ describe("validateFlow", () => {
         [entry, log("a"), log("b")],
         [edge("entry", "a"), edge("a", "b", "error")]
       )
-    ).toEqual(["'Log Message' has no output 'error'."]);
+    ).toEqual([
+      "'Log Message' has no output 'error', only 'default'. To handle errors, put the block after the default output of an error handler block.",
+    ]);
   });
 
   it("accepts outputs of message components", () => {
     const message = node("msg", "action_response_create", {
       message_data: {
-        components: [{ type: 1, components: [{ id: 7, type: 2, style: 1 }] }],
+        components: [
+          { type: 1, components: [{ id: 7, type: 2, style: 1, label: "a" }] },
+        ],
       },
     });
     expect(
@@ -114,7 +145,59 @@ describe("validateFlow", () => {
         [entry, message, log("a")],
         [edge("entry", "msg"), edge("msg", "a", "component_8")]
       )
-    ).toEqual(["'Create response message' has no output 'component_8'."]);
+    ).toEqual([
+      "'Create response message' has no output 'component_8', only 'default', 'component_7'.",
+    ]);
+  });
+
+  it("checks messages like the message editor", () => {
+    const message = (components: ComponentData[]) =>
+      node("msg", "action_response_create", {
+        message_data: { components: [{ type: 1, components }] },
+      });
+    const button = (id?: number) => ({ id, type: 2, style: 1, label: "a" });
+    const link = { type: 2, style: 5, label: "a", url: "https://example.com" };
+
+    expect(errors([entry, message([button(1), button(2), link])], [])).toEqual(
+      []
+    );
+    expect(errors([entry, message([button(1), button(1)])], [])).toEqual([
+      "'Create response message' message components: two buttons or select menus have the id 1",
+    ]);
+    expect(
+      errors([entry, message([{ id: 1, type: 2, style: 5, label: "a" }])], [])
+    ).toEqual([
+      "'Create response message' message components.0.components.0.url: Required",
+    ]);
+    expect(errors([entry, message([button()])], [])).toEqual([
+      "'Create response message' message components: every button and select menu needs a number from 1 as id",
+    ]);
+  });
+
+  it("doesn't check the message of blocks sending a template", () => {
+    const message = node("msg", "action_response_create", {
+      message_template_id: "t1",
+      message_data: { components: [{ type: 1, components: [{ id: 1 }] }] },
+    });
+    expect(errors([entry, message], [])).toEqual([]);
+  });
+
+  it("marks missing settings the user picks", () => {
+    const issues = (data: NodeData) =>
+      validateFlow(
+        [entry, node("set", "action_variable_set", data)],
+        [edge("entry", "set")],
+        "command"
+      ).filter((i) => i.message.includes("variable_id"));
+    const data = { variable_operation: "overwrite", variable_value: "1" };
+
+    expect(issues(data).map((i) => i.userPicked)).toEqual([true]);
+    // Wrong values are for the AI to fix.
+    expect(
+      issues({ ...data, variable_id: 123 } as unknown as NodeData).map(
+        (i) => i.userPicked
+      )
+    ).toEqual([false]);
   });
 
   it("checks the blocks owned by conditions and loops", () => {
@@ -149,7 +232,9 @@ describe("validateFlow", () => {
         [edge("entry", conditionId), ...conditionEdges, edge(conditionId, "a")]
       )
     ).toEqual([
-      "'Comparison Condition' has no outputs. Connect blocks to its branches instead.",
+      expect.stringMatching(
+        /^'Comparison Condition' has no outputs of its own\. Connect blocks to its branches instead: \S+ \(Else\), \S+ \(Match Condition\)\.$/
+      ),
     ]);
   });
 
@@ -286,7 +371,9 @@ describe("validateFlow", () => {
   it("doesn't allow connections into options", () => {
     expect(
       errors([entry, arg], [edge("arg", "entry"), edge("entry", "arg")])
-    ).toEqual(["Nothing can be connected into 'Command Argument'."]);
+    ).toEqual([
+      "Nothing can be connected into 'Command Argument'. Options are connected to the entry block automatically.",
+    ]);
   });
 
   it("handles blocks without data and duplicate connections", () => {
@@ -322,6 +409,44 @@ describe("validateFlow", () => {
       )
     ).toEqual([
       "'Log Message' uses input('age'), but no modal before it has an input with the identifier 'age'.",
+    ]);
+    expect(
+      errors(
+        [entry, modal, log("a", "{{inputs('name')}} {{len(inputs('age'))}}")],
+        [edge("entry", "modal"), edge("modal", "a")]
+      )
+    ).toEqual([
+      "'Log Message' uses inputs('age'), but no modal before it has an input with the identifier 'age'.",
+    ]);
+  });
+
+  it("finds modal inputs in labels", () => {
+    const modal = node("modal", "suspend_response_modal", {
+      modal_data: {
+        title: "Form",
+        components: [
+          { type: "text_display", content: "Tell us about you" },
+          {
+            type: "label",
+            label: "Color",
+            components: [
+              {
+                type: "string_select",
+                custom_id: "color",
+                options: [{ label: "Red" }],
+              },
+            ],
+          },
+        ],
+      },
+    });
+    expect(
+      errors(
+        [entry, modal, log("a", "{{input('color')}} {{input('size')}}")],
+        [edge("entry", "modal"), edge("modal", "a")]
+      )
+    ).toEqual([
+      "'Log Message' uses input('size'), but no modal before it has an input with the identifier 'size'.",
     ]);
   });
 
@@ -396,6 +521,31 @@ describe("validateFlow", () => {
       "'Else' can only be connected to the block it belongs to.",
       "'Else' must belong to exactly one of these blocks: 'Comparison Condition', 'User Condition', 'Channel Condition', 'Role Condition'.",
     ]);
+  });
+
+  it("checks cooldown durations and defaults the scope", () => {
+    const flow = (duration: string) =>
+      errors(
+        [
+          entry,
+          node("seconds", "option_command_argument", {
+            name: "seconds",
+            description: "Seconds",
+            command_argument_type: "integer",
+          }),
+          node("cooldown", "option_command_cooldown", {
+            cooldown_duration_seconds: duration,
+          }),
+        ],
+        [edge("seconds", "entry"), edge("cooldown", "entry")]
+      );
+
+    expect(flow("30")).toEqual([]);
+    expect(flow("3600")).toEqual([]);
+    expect(flow("{{arg('seconds')}}")).toEqual([]);
+    for (const duration of ["", "0", "1.5", "-5", "3601"]) {
+      expect(flow(duration)).not.toEqual([]);
+    }
   });
 
   it("reports block types it doesn't know", () => {

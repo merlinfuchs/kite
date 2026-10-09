@@ -28,11 +28,14 @@ The output of previously executed blocks is available in all subsequent blocks a
 - [Edit channel message](./actions/action_message_edit.md) - Edit channel messages
 - [Delete channel message](./actions/action_message_delete.md) - Delete channel messages
 - [Get channel message](./actions/action_message_get.md) - Retrieve channel messages
+- [List channel messages](./actions/action_message_list.md) - Get the latest messages of a channel
+- [Bulk delete messages](./actions/action_message_bulk_delete.md) - Delete up to 100 messages at once
 - [Send direct message](./actions/action_private_message_create.md) - Send private messages
 - [Create message reaction](./actions/action_message_reaction_create.md) - Add reactions to messages
 - [Delete message reaction](./actions/action_message_reaction_delete.md) - Remove reactions from messages
 - [Pin channel message](./actions/action_message_pin.md) - Pin messages in channels
 - [Unpin channel message](./actions/action_message_unpin.md) - Unpin messages in channels
+- [Create poll](./actions/action_poll_create.md) - Send polls to channels
 
 ## User & Member Blocks
 
@@ -49,8 +52,10 @@ The output of previously executed blocks is available in all subsequent blocks a
 ## Server & Channel Blocks
 
 - [Get role](./actions/action_role_get.md) - Retrieve role information
+- [Create role](./actions/action_role_create.md) - Create roles in servers
 - [Get server](./actions/action_guild_get.md) - Get server information
 - [Get channel](./actions/action_channel_get.md) - Retrieve channel information
+- [Create invite](./actions/action_invite_create.md) - Create invite links for channels
 
 ## Voice Blocks
 
@@ -76,8 +81,12 @@ The output of previously executed blocks is available in all subsequent blocks a
 
 - [Calculate Value](./actions/action_expression_evaluate.md) - Evaluate expressions and calculations
 - [Generate Random Number](./actions/action_random_generate.md) - Generate random numbers
-- [Send API Request](./actions/action_http_request.md) - Make HTTP requests
 - [Log Message](./actions/action_log.md) - Log messages for debugging
+
+## API Request Blocks
+
+- [Send API Request](./actions/action_http_request.md) - Make HTTP requests
+- [Discord API Request](./actions/action_discord_api_request.md) - Call any endpoint of the Discord API
 
 ## Roblox Blocks
 
@@ -97,6 +106,7 @@ The output of previously executed blocks is available in all subsequent blocks a
 
 - [Command Argument](./options/option_command_argument.md) - Define command arguments
 - [Command Permissions](./options/option_command_permissions.md) - Set command permissions
+- [Command Cooldown](./options/option_command_cooldown.md) - Limit how often a command can be used
 - [Command Contexts](./options/option_command_contexts.md) - Define command availability
 
 ## Event Options

@@ -68,8 +68,8 @@ func (a *App) rebuildCommandIndex() {
 }
 
 // rebuildListenerIndex regenerates the event type lookup of Discord listeners
-// and the list of scheduled listeners from a.listeners. Callers must hold the
-// write lock.
+// and the list of scheduled listeners from a.listeners. Webhook listeners are
+// looked up by ID and need no index. Callers must hold the write lock.
 func (a *App) rebuildListenerIndex() {
 	index := make(map[model.EventListenerType][]*EventListener, len(a.listeners))
 	var scheduled []*EventListener

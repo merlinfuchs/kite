@@ -15,7 +15,10 @@ type FlowProviders struct {
 	Log             provider.LogProvider
 	Variable        provider.VariableProvider
 	MessageTemplate provider.MessageTemplateProvider
+	Cooldown        provider.CooldownProvider
 	ResumePoint     ResumePointProvider
+	Secret          provider.SecretProvider
+	Integration     provider.IntegrationProvider
 }
 
 type ResumePointProvider interface {

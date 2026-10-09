@@ -6,8 +6,10 @@ import (
 	"net/http"
 	"time"
 
+	eventlistener "github.com/kitecloud/kite/kite-service/internal/api/handler/event_listener"
 	"github.com/kitecloud/kite/kite-service/internal/config"
 	"github.com/kitecloud/kite/kite-service/internal/core/command"
+	"github.com/kitecloud/kite/kite-service/internal/core/flowai"
 	"github.com/kitecloud/kite/kite-service/internal/core/plan"
 	"github.com/kitecloud/kite/kite-service/internal/store"
 	"github.com/kitecloud/kite/kite-service/internal/util"
@@ -26,10 +28,11 @@ type APIServerConfig struct {
 	DiscordClientSecret string
 	UserLimits          APIUserLimitsConfig
 	Billing             BillingConfig
-	// EngineHTTPClient is the client flows send HTTP requests with. Testing
-	// an HTTP request block from the editor uses it too, so tests go through
-	// the same egress proxy as deployed flows.
-	EngineHTTPClient *http.Client
+	AssistantMaxRepairs int
+	// HTTPRequestTestClient sends the requests of HTTP request blocks tested
+	// from the editor. It's nil when no egress proxy is configured, which
+	// turns testing off.
+	HTTPRequestTestClient *http.Client
 }
 
 type APIUserLimitsConfig struct {
@@ -70,10 +73,15 @@ func NewAPIServer(
 	entitlementStore store.EntitlementStore,
 	assetStore store.AssetStore,
 	appStateManager store.AppStateManager,
+	webhookRunner eventlistener.WebhookRunner,
 	planManager *plan.PlanManager,
 	pluginRegistry *plugin.Registry,
 	tokenCrypt *util.SymmetricCrypt,
 	commandManager *command.CommandManager,
+	assistantPromptStore store.AssistantPromptStore,
+	flowAssistant *flowai.Assistant,
+	appSecretStore store.AppSecretStore,
+	appIntegrationStore store.AppIntegrationStore,
 ) *APIServer {
 	s := &APIServer{
 		config: config,
@@ -97,10 +105,15 @@ func NewAPIServer(
 		entitlementStore,
 		assetStore,
 		appStateManager,
+		webhookRunner,
 		planManager,
 		pluginRegistry,
 		tokenCrypt,
 		commandManager,
+		assistantPromptStore,
+		flowAssistant,
+		appSecretStore,
+		appIntegrationStore,
 	)
 	return s
 }

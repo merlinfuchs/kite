@@ -1,0 +1,1 @@
+DROP INDEX CONCURRENTLY IF EXISTS variable_values_variable_id_updated_at;

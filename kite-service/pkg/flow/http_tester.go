@@ -37,12 +37,16 @@ type HTTPRequestTestOpts struct {
 	// for the accepted keys.
 	Values  map[string]string
 	HTTP    provider.HTTPProvider
+	Secret  provider.SecretProvider
 	Timeout time.Duration
 }
 
 // HTTPRequestTestResult is everything the editor shows about a test run. It
 // is always returned, even when the request fails part way, so whatever was
 // built or received before the failure can still be shown.
+//
+// The values of the app's secrets are replaced with [secret] everywhere in
+// it, as they can't be read back once saved.
 type HTTPRequestTestResult struct {
 	Method         string
 	URL            string
@@ -50,10 +54,12 @@ type HTTPRequestTestResult struct {
 	RequestBody    string
 	RequestBodyCut bool
 
-	Response        *thing.HTTPResponseValue
-	ResponseBody    string
-	ResponseBodyCut bool
-	ResponseBinary  bool
+	// Response is the response without its body, which is in ResponseBody.
+	Response         *thing.HTTPResponseValue
+	ResponseBody     string
+	ResponseBodySize int
+	ResponseBodyCut  bool
+	ResponseBinary   bool
 
 	// Result is the JSON of what the transform expression returned. It's
 	// only set when the block has a transform, otherwise the response itself
@@ -84,14 +90,22 @@ func RunHTTPRequestTest(ctx context.Context, opts HTTPRequestTestOpts) HTTPReque
 		ctx,
 		opts.Timeout,
 		nil,
-		FlowProviders{HTTP: opts.HTTP},
+		FlowProviders{HTTP: opts.HTTP, Secret: opts.Secret},
 		FlowContextLimits{},
 		eval.NewContext(env),
 		state,
 	)
 	defer fctx.Cancel()
 
-	req, body, err := fctx.buildHTTPRequest(opts.Data)
+	secrets, err := newRequestSecrets(fctx, opts.Data.templates()...)
+	if err != nil {
+		res.Error = err.Error()
+		res.ErrorStage = HTTPRequestTestStageBuild
+		return res
+	}
+	redact := secrets.redactString
+
+	req, body, err := fctx.buildHTTPRequest(opts.Data, secrets)
 	if err != nil {
 		res.Error = err.Error()
 		res.ErrorStage = HTTPRequestTestStageBuild
@@ -99,15 +113,16 @@ func RunHTTPRequestTest(ctx context.Context, opts HTTPRequestTestOpts) HTTPReque
 	}
 
 	res.Method = req.Method
-	res.URL = req.URL.String()
+	res.URL = redact(req.URL.String())
 	res.RequestHeaders = make(map[string]string, len(req.Header))
 	for k, v := range req.Header {
-		res.RequestHeaders[k] = strings.Join(v, ",")
+		res.RequestHeaders[k] = redact(strings.Join(v, ","))
 	}
 	res.RequestBody, res.RequestBodyCut, _ = previewBody(body)
+	res.RequestBody = redact(res.RequestBody)
 
 	start := time.Now()
-	resp, err := fctx.sendHTTPRequest(req)
+	resp, err := fctx.sendHTTPRequest(req, secrets)
 	res.Duration = time.Since(start)
 	if err != nil {
 		res.Error = describeSendError(err, opts.Timeout)
@@ -115,12 +130,21 @@ func RunHTTPRequestTest(ctx context.Context, opts HTTPRequestTestOpts) HTTPReque
 		return res
 	}
 
-	res.Response = &resp
+	// The server can echo what it was sent.
+	shown := resp
+	shown.Body = nil
+	shown.Headers = make(map[string]string, len(resp.Headers))
+	for k, v := range resp.Headers {
+		shown.Headers[k] = redact(v)
+	}
+	res.Response = &shown
+	res.ResponseBodySize = len(resp.Body)
 	res.ResponseBody, res.ResponseBodyCut, res.ResponseBinary = previewBody(resp.Body)
+	res.ResponseBody = redact(res.ResponseBody)
 
 	if opts.Data.FailOnErrorStatus {
 		if err := checkHTTPResponseStatus(resp); err != nil {
-			res.Error = err.Error()
+			res.Error = redact(err.Error())
 			res.ErrorStage = HTTPRequestTestStageStatus
 			return res
 		}
@@ -129,7 +153,7 @@ func RunHTTPRequestTest(ctx context.Context, opts HTTPRequestTestOpts) HTTPReque
 	if opts.Data.ResponseTransform != "" {
 		result, err := fctx.transformHTTPResponse(opts.Data.ResponseTransform, resp)
 		if err != nil {
-			res.Error = err.Error()
+			res.Error = redact(err.Error())
 			res.ErrorStage = HTTPRequestTestStageTransform
 			return res
 		}
@@ -138,7 +162,10 @@ func RunHTTPRequestTest(ctx context.Context, opts HTTPRequestTestOpts) HTTPReque
 		if err != nil {
 			b, _ = json.Marshal(result.String())
 		}
-		res.Result = b
+		res.Result = json.RawMessage(redact(string(b)))
+		if !json.Valid(res.Result) {
+			res.Result, _ = json.Marshal(redact(result.String()))
+		}
 	}
 
 	return res
@@ -191,7 +218,8 @@ var (
 //   - result('node') and nodes.node.result set the result of another block.
 //   - Any other dotted path, like user.id, sets that path.
 //
-// Keys that match none of these are ignored.
+// Keys that match none of these are ignored, and so are secrets, which come
+// from the app.
 func applyTestValues(env eval.Env, state *FlowContextState, values map[string]string) {
 	funcs := map[string]map[string]any{}
 
@@ -220,6 +248,9 @@ func applyTestValues(env eval.Env, state *FlowContextState, values map[string]st
 		}
 
 		parts := strings.Split(key, ".")
+		if parts[0] == "secrets" {
+			continue
+		}
 		if parts[0] == "nodes" && len(parts) >= 2 && len(parts) <= 3 &&
 			(len(parts) == 2 || parts[2] == "result") {
 			state.GetNodeState(parts[1]).Result = thing.NewGuessTypeWithFallback(value)

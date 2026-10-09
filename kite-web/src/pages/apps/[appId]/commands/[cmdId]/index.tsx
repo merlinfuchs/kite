@@ -4,10 +4,9 @@ import {
   useCommandsDeployMutation,
   useCommandUpdateMutation,
 } from "@/lib/api/mutations";
-import { useLogEntriesQuery } from "@/lib/api/queries";
 import { FlowData } from "@/lib/flow/dataSchema";
-import { useCommand, useResponseData } from "@/lib/hooks/api";
-import { useBeforePageExit } from "@/lib/hooks/exit";
+import { useCommand, useFlowLogEntries } from "@/lib/hooks/api";
+import { useUnsavedChangesWarning } from "@/lib/hooks/exit";
 import { useAppId, useCommandId } from "@/lib/hooks/params";
 import Head from "next/head";
 import { useRouter } from "next/router";
@@ -40,11 +39,10 @@ export default function AppCommandPage() {
   }, [setHasUnsavedChanges]);
 
   const save = useCallback(
-    (data: FlowData) => {
+    (data: FlowData, options?: { onSuccess?: () => void }) => {
       updateMutation.mutate(
         {
           flow_source: data,
-          enabled: true,
         },
         {
           onSuccess(res) {
@@ -52,6 +50,7 @@ export default function AppCommandPage() {
               toast.success(
                 "Command saved! Make sure to deploy the command for the changes to take effect in Discord."
               );
+              options?.onSuccess?.();
             } else {
               toast.error(
                 `Failed to update command: ${res.error.message} (${res.error.code})`
@@ -73,37 +72,16 @@ export default function AppCommandPage() {
     );
   }, [cmd]);
 
-  const exit = useCallback(() => {
-    if (hasUnsavedChanges) {
-      if (
-        !confirm("You have unsaved changes. Are you sure you want to exit?")
-      ) {
-        return;
-      }
-    }
+  const leave = useUnsavedChangesWarning(hasUnsavedChanges);
 
-    router.push({
+  const exit = useCallback(() => {
+    leave({
       pathname: "/apps/[appId]/commands",
       query: { appId: router.query.appId },
     });
-  }, [hasUnsavedChanges, router]);
+  }, [leave, router]);
 
-  useBeforePageExit(
-    (e) => {
-      if (hasUnsavedChanges) {
-        e.preventDefault();
-        return "You have unsaved changes. Are you sure you want to exit?";
-      }
-    },
-    [hasUnsavedChanges]
-  );
-
-  const logsQuery = useLogEntriesQuery(useAppId(), {
-    limit: 10,
-    commandId: useCommandId(),
-    refetchInterval: 10000,
-  });
-  const logs = useResponseData(logsQuery);
+  const logs = useFlowLogEntries({ commandId: useCommandId() });
 
   return (
     <div className="flex min-h-[100dvh] w-full flex-col">

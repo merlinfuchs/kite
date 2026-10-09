@@ -2,6 +2,7 @@ import { Edge, Node } from "@xyflow/react";
 import { FlowContextType } from "./context";
 import { NodeData } from "./dataSchema";
 import { getNodeTitle } from "./nodes";
+import { modalInputIsMultiValue, normalizeModalComponents } from "./modal";
 import { isResumeEdge } from "./resume";
 
 export interface PlaceholderGroup {
@@ -40,7 +41,7 @@ export function getAvailablePlaceholders(
 
 // interactionPlaceholders lists the placeholders of the interaction or event
 // the flow runs with. Resumed sub-flows reach earlier ones through a prefix.
-function interactionPlaceholders(
+export function interactionPlaceholders(
   contextType?: FlowContextType,
   prefix = "",
   labelPrefix = ""
@@ -52,6 +53,26 @@ function interactionPlaceholders(
         placeholders: [
           { label: "Scheduled Time (UTC)", value: `${prefix}schedule.time` },
           { label: "Scheduled Time (Unix)", value: `${prefix}schedule.unix` },
+        ],
+      },
+    ];
+  }
+
+  if (contextType === "event_webhook") {
+    return [
+      {
+        label: `${labelPrefix}Webhook`,
+        placeholders: [
+          { label: "Request Body", value: `${prefix}webhook.body` },
+          {
+            label: "Request Body Field (JSON)",
+            value: `${prefix}webhook.data.name`,
+          },
+          {
+            label: "Request Header",
+            value: `${prefix}webhook.headers['content-type']`,
+          },
+          { label: "Query Parameter", value: `${prefix}webhook.query.name` },
         ],
       },
     ];
@@ -69,15 +90,66 @@ function interactionPlaceholders(
         { label: "User Nickname", value: `${prefix}user.nick` },
         { label: "User Avatar URL", value: `${prefix}user.avatar_url` },
         { label: "User Banner URL", value: `${prefix}user.banner_url` },
+        { label: "User Is Bot", value: `${prefix}user.is_bot` },
+        { label: "User Created At", value: `${prefix}user.created_at` },
+        { label: "User Joined At", value: `${prefix}user.joined_at` },
+        { label: "User Top Role", value: `${prefix}user.top_role` },
+        { label: "User Role Mentions", value: `${prefix}user.role_mentions` },
+        { label: "User Role Names", value: `${prefix}user.role_names` },
+        { label: "User Role Count", value: `${prefix}user.role_count` },
+        { label: "User Color", value: `${prefix}user.color` },
+        { label: "User Is Booster", value: `${prefix}user.is_booster` },
+        { label: "User Boosting Since", value: `${prefix}user.boosting_since` },
+        { label: "User Is Timed Out", value: `${prefix}user.is_timed_out` },
+        { label: "User Timeout Until", value: `${prefix}user.timeout_until` },
+        { label: "User Is Owner", value: `${prefix}user.is_owner` },
+        { label: "User Is Admin", value: `${prefix}user.is_admin` },
+        { label: "User Permissions", value: `${prefix}user.permissions` },
       ],
     },
     {
       label: `${labelPrefix}Server`,
-      placeholders: [{ label: "Server ID", value: `${prefix}guild.id` }],
+      placeholders: [
+        { label: "Server ID", value: `${prefix}guild.id` },
+        { label: "Server Name", value: `${prefix}guild.name` },
+        { label: "Server Icon URL", value: `${prefix}guild.icon_url` },
+        { label: "Server Member Count", value: `${prefix}guild.member_count` },
+        { label: "Server Boost Count", value: `${prefix}guild.boost_count` },
+        { label: "Server Owner ID", value: `${prefix}guild.owner_id` },
+        { label: "Server Boost Level", value: `${prefix}guild.boost_level` },
+        { label: "Server Created At", value: `${prefix}guild.created_at` },
+        { label: "Server Banner URL", value: `${prefix}guild.banner_url` },
+        { label: "Server Description", value: `${prefix}guild.description` },
+        { label: "Server Vanity URL", value: `${prefix}guild.vanity_url` },
+        { label: "Server Role Count", value: `${prefix}guild.role_count` },
+        {
+          label: "Server Channel Count",
+          value: `${prefix}guild.channel_count`,
+        },
+        { label: "Server Emoji Count", value: `${prefix}guild.emoji_count` },
+        {
+          label: "Server Rules Channel",
+          value: `${prefix}guild.rules_channel`,
+        },
+        {
+          label: "Server System Channel",
+          value: `${prefix}guild.system_channel`,
+        },
+      ],
     },
     {
       label: `${labelPrefix}Channel`,
-      placeholders: [{ label: "Channel ID", value: `${prefix}channel.id` }],
+      placeholders: [
+        { label: "Channel ID", value: `${prefix}channel.id` },
+        { label: "Channel Name", value: `${prefix}channel.name` },
+        { label: "Channel Mention", value: `${prefix}channel.mention` },
+        { label: "Channel Type", value: `${prefix}channel.type` },
+        { label: "Channel Category ID", value: `${prefix}channel.category_id` },
+        {
+          label: "Channel Category Name",
+          value: `${prefix}channel.category_name`,
+        },
+      ],
     },
   ];
 
@@ -97,6 +169,16 @@ function interactionPlaceholders(
       placeholders: [
         { label: "Message ID", value: `${prefix}message.id` },
         { label: "Message Content", value: `${prefix}message.content` },
+      ],
+    });
+    // Only set for reaction events.
+    res.push({
+      label: `${labelPrefix}Emoji`,
+      placeholders: [
+        { label: "Emoji", value: `${prefix}emoji` },
+        { label: "Emoji ID", value: `${prefix}emoji.id` },
+        { label: "Emoji Name", value: `${prefix}emoji.name` },
+        { label: "Emoji Mention", value: `${prefix}emoji.mention` },
       ],
     });
   }
@@ -231,13 +313,22 @@ export function getProvidedPlaceholders(node: Node<NodeData>) {
   }
 
   if (node.type === "suspend_response_modal") {
-    for (const row of node.data.modal_data?.components ?? []) {
-      for (const component of row?.components ?? []) {
+    for (const row of normalizeModalComponents(
+      node.data.modal_data?.components
+    )) {
+      for (const component of row.components ?? []) {
         res.push({
           group: "Modal Inputs",
-          label: component.label ?? "Unknown Input",
+          label: row.label ?? "Unknown Input",
           value: `input('${component.custom_id}')`,
         });
+        if (modalInputIsMultiValue(component)) {
+          res.push({
+            group: "Modal Inputs",
+            label: `${row.label ?? "Unknown Input"} (Selected Values)`,
+            value: `inputs('${component.custom_id}')`,
+          });
+        }
       }
     }
   }

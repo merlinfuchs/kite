@@ -16,7 +16,6 @@ function requestTemplates(request?: HTTPRequestData): string[] {
     ...(request.query || []).map((q) => q.value),
     ...(request.headers || []).map((h) => h.value),
     request.body,
-    ...(request.body_form || []).map((f) => f.value),
   ].filter((v): v is string => !!v);
 }
 
@@ -43,7 +42,8 @@ export function getHttpTestValueKeys(request?: HTTPRequestData): string[] {
 
       for (const [, , path, call] of expression.matchAll(PATH_REGEX)) {
         const parts = path.split(".");
-        if (parts[0] === "nodes") continue;
+        // Nodes are covered above and secrets come from the app.
+        if (parts[0] === "nodes" || parts[0] === "secrets") continue;
         // user.name.toUpper() only needs user.name.
         if (call) parts.pop();
         if (parts.length < 2) continue;
@@ -53,6 +53,21 @@ export function getHttpTestValueKeys(request?: HTTPRequestData): string[] {
   }
 
   return keys;
+}
+
+const SECRET_REGEX = /\bsecrets\.([A-Za-z_]\w*)/g;
+
+/** The app secrets the request uses, which a test sends but never shows. */
+export function getHttpTestSecretNames(request?: HTTPRequestData): string[] {
+  const names: string[] = [];
+  for (const template of requestTemplates(request)) {
+    for (const [, expression] of template.matchAll(PLACEHOLDER_REGEX)) {
+      for (const [, name] of expression.matchAll(SECRET_REGEX)) {
+        if (!names.includes(name)) names.push(name);
+      }
+    }
+  }
+  return names;
 }
 
 // Test values only live for the session, so they survive closing and

@@ -1,7 +1,7 @@
 import { Edge, Node } from "@xyflow/react";
 import { FlowContextType } from "./context";
 import { NodeData } from "./dataSchema";
-import { normalizeHandle } from "./nodes";
+import { getNodeTitle, normalizeHandle } from "./nodes";
 import { walkDownstream } from "./placeholders";
 
 // Writes a flow as compact text for the LLM flow editor: each block with its
@@ -37,7 +37,8 @@ export function serializeFlow(
   for (const node of sortedNodes) {
     const data = compact(node.data);
     const parts = [
-      `- ${node.id} ${node.type}`,
+      // The title is what the user knows the block by.
+      `- ${node.id}: ${node.type} ${JSON.stringify(getNodeTitle(node))}`,
       selected.has(node.id) && "(selected)",
       data !== undefined && JSON.stringify(data),
     ];

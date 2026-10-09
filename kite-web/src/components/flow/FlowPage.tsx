@@ -1,10 +1,11 @@
 import { FlowData, NodeType } from "@/lib/flow/dataSchema";
 import FlowNav from "./FlowNav";
 import { ReactFlowProvider, useReactFlow } from "@xyflow/react";
-import { useCallback } from "react";
+import { useCallback, useState } from "react";
 import Flow from "./Flow";
 import { FlowContextType } from "@/lib/flow/context";
 import { LogEntry } from "@/lib/types/wire.gen";
+import UnsavedChangesDialog from "@/components/common/UnsavedChangesDialog";
 
 interface Props {
   flowData: FlowData;
@@ -16,7 +17,7 @@ interface Props {
   onDeploy?: () => void;
   onChange: () => void;
   isSaving: boolean;
-  onSave: (data: FlowData) => void;
+  onSave: (data: FlowData, options?: { onSuccess?: () => void }) => void;
   onExit: () => void;
 }
 
@@ -33,13 +34,43 @@ function InnerFlowPage({
   onExit,
 }: Props) {
   const { getNodes, getEdges } = useReactFlow<NodeType>();
+  const [chatOpen, setChatOpen] = useState(false);
+  const [unsavedDialogOpen, setUnsavedDialogOpen] = useState(false);
 
-  const save = useCallback(() => {
-    onSave({
-      nodes: getNodes(),
-      edges: getEdges(),
+  const save = useCallback(
+    (options?: { onSuccess?: () => void }) => {
+      onSave(
+        {
+          nodes: getNodes(),
+          edges: getEdges(),
+        },
+        options
+      );
+    },
+    [getNodes, getEdges, onSave]
+  );
+
+  const handleExitRequest = useCallback(() => {
+    if (hasUnsavedChanges) {
+      setUnsavedDialogOpen(true);
+    } else {
+      onExit();
+    }
+  }, [hasUnsavedChanges, onExit]);
+
+  const handleDiscardAndExit = useCallback(() => {
+    setUnsavedDialogOpen(false);
+    onExit();
+  }, [onExit]);
+
+  const handleSaveAndExit = useCallback(() => {
+    save({
+      onSuccess: () => {
+        setUnsavedDialogOpen(false);
+        onExit();
+      },
     });
-  }, [getNodes, getEdges, onSave]);
+  }, [save, onExit]);
 
   return (
     <div className="h-[100dvh] w-[100dvw] flex flex-col">
@@ -49,8 +80,10 @@ function InnerFlowPage({
           isSaving={isSaving}
           hasUndeployedChanges={hasUndeployedChanges}
           onDeploy={onDeploy}
-          onSave={save}
-          onExit={onExit}
+          onSave={onSave}
+          onExit={handleExitRequest}
+          chatOpen={chatOpen}
+          onChatOpenChange={setChatOpen}
         />
       </div>
       <Flow
@@ -58,6 +91,15 @@ function InnerFlowPage({
         logs={logs}
         context={context}
         onChange={onChange}
+        chatOpen={chatOpen}
+        onChatOpenChange={setChatOpen}
+      />
+      <UnsavedChangesDialog
+        open={unsavedDialogOpen}
+        onOpenChange={setUnsavedDialogOpen}
+        onSaveAndExit={handleSaveAndExit}
+        onDiscardAndExit={handleDiscardAndExit}
+        isSaving={isSaving}
       />
     </div>
   );

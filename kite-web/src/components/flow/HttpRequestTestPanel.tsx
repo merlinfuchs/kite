@@ -1,6 +1,7 @@
 import {
   formatHttpTestBody,
   formatHttpTestSize,
+  getHttpTestSecretNames,
   getHttpTestValueKeys,
   getSessionHttpTestValues,
   setSessionHttpTestValues,
@@ -61,6 +62,7 @@ export default function HttpRequestTestPanel({
   );
 
   const detectedKeys = useMemo(() => getHttpTestValueKeys(request), [request]);
+  const secretNames = useMemo(() => getHttpTestSecretNames(request), [request]);
   // Keys typed in by hand, with their index in extraKeys so rows with the
   // same (e.g. still empty) key can be told apart.
   const manualRows = extraKeys
@@ -157,9 +159,25 @@ export default function HttpRequestTestPanel({
         <div className="text-xs font-medium text-muted-foreground">
           Test values
         </div>
-        {detectedKeys.length === 0 && manualKeys.length === 0 && (
+        {detectedKeys.length === 0 &&
+          manualKeys.length === 0 &&
+          secretNames.length === 0 && (
+            <div className="text-muted-foreground text-sm">
+              This request doesn&apos;t use any placeholders.
+            </div>
+          )}
+        {secretNames.length > 0 && (
           <div className="text-muted-foreground text-sm">
-            This request doesn&apos;t use any placeholders.
+            Uses your app&apos;s{" "}
+            {secretNames.map((name, i) => (
+              <span key={name}>
+                {i > 0 && ", "}
+                <code className="text-xs">{name}</code>
+              </span>
+            ))}{" "}
+            {secretNames.length === 1 ? "secret" : "secrets"}. They&apos;re sent
+            with the request, but always shown as{" "}
+            <code className="text-xs">[secret]</code>.
           </div>
         )}
 

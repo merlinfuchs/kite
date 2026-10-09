@@ -212,7 +212,9 @@ func thingToJSON(t thing.Thing) ([]byte, error) {
 		}
 		return marshalJSON(obj)
 	default:
-		b, err := marshalJSON(t.Value)
+		// Discord objects become their ID, like in Discord API request
+		// bodies.
+		b, err := marshalJSON(t.JSONValue())
 		if err != nil {
 			// Not everything the expression engine returns can be encoded,
 			// fall back to how it would print in a message.

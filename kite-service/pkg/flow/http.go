@@ -5,19 +5,14 @@ import (
 	"fmt"
 	"io"
 	"maps"
-	"mime/multipart"
 	"net/http"
-	"net/url"
+	"slices"
 	"strings"
 	"unicode/utf8"
 
 	"github.com/kitecloud/kite/kite-service/pkg/eval"
 	"github.com/kitecloud/kite/kite-service/pkg/thing"
 )
-
-// maxHTTPRequestBodySize bounds the request body after evaluation. Every
-// template is bounded on its own, but form bodies can hold many of them.
-const maxHTTPRequestBodySize = thing.MaxBodySize
 
 // maxErrorBodyPreview bounds how much of a failed response is put into the
 // error message.
@@ -40,22 +35,46 @@ func (d *HTTPRequestData) hasLegacyJSONBody() bool {
 	return len(raw) > 0 && !bytes.Equal(raw, []byte("null"))
 }
 
+// bodyTemplate is the JSON body as a template, which is the legacy body for
+// nodes that predate body types.
+func (d *HTTPRequestData) bodyTemplate() string {
+	if strings.TrimSpace(d.Body) == "" && d.hasLegacyJSONBody() {
+		return string(d.BodyJSON)
+	}
+	return d.Body
+}
+
+// templates are the settings of the request that can reference secrets. The
+// response transform isn't one of them, as its result ends up in the flow.
+func (d *HTTPRequestData) templates() []string {
+	templates := []string{d.URL, d.bodyTemplate()}
+	for _, kv := range slices.Concat(d.Headers, d.Query) {
+		templates = append(templates, kv.Value)
+	}
+	return templates
+}
+
 // executeHTTPRequest builds and sends the request of an HTTP request node and
 // returns what becomes the node's result.
 func (ctx *FlowContext) executeHTTPRequest(d *HTTPRequestData) (thing.Thing, error) {
-	req, _, err := ctx.buildHTTPRequest(d)
+	secrets, err := newRequestSecrets(ctx, d.templates()...)
 	if err != nil {
 		return thing.Null, err
 	}
 
-	resp, err := ctx.sendHTTPRequest(req)
+	req, _, err := ctx.buildHTTPRequest(d, secrets)
+	if err != nil {
+		return thing.Null, err
+	}
+
+	resp, err := ctx.sendHTTPRequest(req, secrets)
 	if err != nil {
 		return thing.Null, err
 	}
 
 	if d.FailOnErrorStatus {
 		if err := checkHTTPResponseStatus(resp); err != nil {
-			return thing.Null, err
+			return thing.Null, secrets.Redact(err)
 		}
 	}
 
@@ -66,16 +85,16 @@ func (ctx *FlowContext) executeHTTPRequest(d *HTTPRequestData) (thing.Thing, err
 	return thing.NewHTTPResponse(resp), nil
 }
 
-// buildHTTPRequest evaluates the templates of a node into a request without
+// buildHTTPRequest evaluates the settings of a node into a request without
 // sending it. The body is also returned on its own so it can be shown to the
 // user when the request is tested.
-func (ctx *FlowContext) buildHTTPRequest(d *HTTPRequestData) (*http.Request, []byte, error) {
+func (ctx *FlowContext) buildHTTPRequest(d *HTTPRequestData, secrets *requestSecrets) (*http.Request, []byte, error) {
 	method := d.Method
 	if method == "" {
 		method = "GET"
 	}
 
-	rawURL, err := ctx.EvalTemplate(d.URL)
+	url, err := secrets.EvalTemplate(ctx, d.URL)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -84,13 +103,13 @@ func (ctx *FlowContext) buildHTTPRequest(d *HTTPRequestData) (*http.Request, []b
 	// Cancel both abort the request. With a background request a slow or
 	// non-responding host pins the goroutine and its connection past the
 	// end of the flow, in a pool shared with the Discord API client.
-	req, err := http.NewRequestWithContext(ctx, method, rawURL.String(), nil)
+	req, err := http.NewRequestWithContext(ctx, method, url.String(), nil)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, secrets.Redact(err)
 	}
 
 	for _, header := range d.Headers {
-		value, err := ctx.EvalTemplate(header.Value)
+		value, err := secrets.EvalTemplate(ctx, header.Value)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -100,7 +119,7 @@ func (ctx *FlowContext) buildHTTPRequest(d *HTTPRequestData) (*http.Request, []b
 
 	query := req.URL.Query()
 	for _, queryParam := range d.Query {
-		value, err := ctx.EvalTemplate(queryParam.Value)
+		value, err := secrets.EvalTemplate(ctx, queryParam.Value)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -109,7 +128,7 @@ func (ctx *FlowContext) buildHTTPRequest(d *HTTPRequestData) (*http.Request, []b
 	}
 	req.URL.RawQuery = query.Encode()
 
-	body, contentType, err := ctx.buildHTTPRequestBody(d)
+	body, err := ctx.buildHTTPRequestBody(d, secrets)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -117,7 +136,7 @@ func (ctx *FlowContext) buildHTTPRequest(d *HTTPRequestData) (*http.Request, []b
 		// A Content-Type set in the headers takes precedence, e.g. for
 		// APIs that want application/vnd.api+json.
 		if req.Header.Get("Content-Type") == "" {
-			req.Header.Set("Content-Type", contentType)
+			req.Header.Set("Content-Type", "application/json")
 		}
 		req.Body = io.NopCloser(bytes.NewReader(body))
 		req.ContentLength = int64(len(body))
@@ -129,19 +148,36 @@ func (ctx *FlowContext) buildHTTPRequest(d *HTTPRequestData) (*http.Request, []b
 	return req, body, nil
 }
 
+// buildHTTPRequestBody evaluates the body of the request. A nil body means
+// the request is sent without one.
+func (ctx *FlowContext) buildHTTPRequestBody(d *HTTPRequestData, secrets *requestSecrets) ([]byte, error) {
+	switch d.effectiveBodyType() {
+	case HTTPRequestBodyTypeNone:
+		return nil, nil
+	case HTTPRequestBodyTypeJSON:
+		body, err := eval.EvalJSONTemplate(ctx, d.bodyTemplate(), secrets.evalCtx)
+		if err != nil {
+			return nil, secrets.Redact(fmt.Errorf("failed to evaluate JSON body: %w", err))
+		}
+		return body, nil
+	default:
+		return nil, fmt.Errorf("unknown body type %q", d.BodyType)
+	}
+}
+
 // sendHTTPRequest sends a request through the HTTP provider and reads the
 // response.
-func (ctx *FlowContext) sendHTTPRequest(req *http.Request) (thing.HTTPResponseValue, error) {
+func (ctx *FlowContext) sendHTTPRequest(req *http.Request, secrets *requestSecrets) (thing.HTTPResponseValue, error) {
 	resp, err := ctx.HTTP.HTTPRequest(ctx, req)
 	if err != nil {
-		return thing.HTTPResponseValue{}, err
+		return thing.HTTPResponseValue{}, secrets.Redact(err)
 	}
 
-	// Closed here rather than deferred by the caller: the body is fully
-	// consumed below, and holding it would keep the connection for the whole
-	// child subtree. NewHTTPResponseValue also returns early without reading
-	// when Content-Length is over its cap, so this has to run on the error
-	// path too.
+	// Closed here rather than deferred: the body is fully consumed below, and
+	// a defer in the caller would hold the connection for the whole child
+	// subtree. NewHTTPResponseValue also returns early without reading when
+	// Content-Length is over its cap, so this has to run on the error path
+	// too.
 	val, err := thing.NewHTTPResponseValue(resp)
 	resp.Body.Close()
 	if err != nil {
@@ -149,101 +185,6 @@ func (ctx *FlowContext) sendHTTPRequest(req *http.Request) (thing.HTTPResponseVa
 	}
 
 	return val, nil
-}
-
-// buildHTTPRequestBody evaluates the body of the request. A nil body means
-// the request is sent without one.
-func (ctx *FlowContext) buildHTTPRequestBody(d *HTTPRequestData) (body []byte, contentType string, err error) {
-	switch d.effectiveBodyType() {
-	case HTTPRequestBodyTypeNone:
-		return nil, "", nil
-	case HTTPRequestBodyTypeJSON:
-		template := d.Body
-		if strings.TrimSpace(template) == "" && d.hasLegacyJSONBody() {
-			template = string(d.BodyJSON)
-		}
-
-		body, err = eval.EvalJSONTemplate(ctx, template, ctx.EvalCtx)
-		if err != nil {
-			return nil, "", fmt.Errorf("failed to evaluate JSON body: %w", err)
-		}
-		if body == nil {
-			return nil, "", nil
-		}
-		contentType = "application/json"
-	case HTTPRequestBodyTypeText:
-		if d.Body == "" {
-			return nil, "", nil
-		}
-
-		res, err := ctx.EvalTemplateKeepSpace(d.Body)
-		if err != nil {
-			return nil, "", fmt.Errorf("failed to evaluate text body: %w", err)
-		}
-
-		body = []byte(res.String())
-		contentType = strings.TrimSpace(d.BodyContentType)
-		if contentType == "" {
-			contentType = "text/plain; charset=utf-8"
-		}
-	case HTTPRequestBodyTypeForm:
-		values := url.Values{}
-		err := ctx.forEachBodyFormField(d, func(key, value string) error {
-			values.Add(key, value)
-			return nil
-		})
-		if err != nil {
-			return nil, "", err
-		}
-
-		body = []byte(values.Encode())
-		contentType = "application/x-www-form-urlencoded"
-	case HTTPRequestBodyTypeMultipart:
-		var buf bytes.Buffer
-		w := multipart.NewWriter(&buf)
-
-		err := ctx.forEachBodyFormField(d, func(key, value string) error {
-			return w.WriteField(key, value)
-		})
-		if err != nil {
-			return nil, "", err
-		}
-		if err := w.Close(); err != nil {
-			return nil, "", fmt.Errorf("failed to build multipart body: %w", err)
-		}
-
-		body = buf.Bytes()
-		contentType = w.FormDataContentType()
-	default:
-		return nil, "", fmt.Errorf("unknown body type %q", d.BodyType)
-	}
-
-	if len(body) > maxHTTPRequestBodySize {
-		return nil, "", fmt.Errorf(
-			"request body is %d bytes, limit is %d", len(body), maxHTTPRequestBodySize,
-		)
-	}
-
-	return body, contentType, nil
-}
-
-func (ctx *FlowContext) forEachBodyFormField(d *HTTPRequestData, fn func(key, value string) error) error {
-	for _, field := range d.BodyForm {
-		key := strings.TrimSpace(field.Key)
-		if key == "" {
-			continue
-		}
-
-		value, err := ctx.EvalTemplateKeepSpace(field.Value)
-		if err != nil {
-			return fmt.Errorf("failed to evaluate form field %q: %w", key, err)
-		}
-
-		if err := fn(key, value.String()); err != nil {
-			return err
-		}
-	}
-	return nil
 }
 
 // checkHTTPResponseStatus returns an error for 4xx and 5xx responses.

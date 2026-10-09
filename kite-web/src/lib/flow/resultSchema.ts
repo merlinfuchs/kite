@@ -47,6 +47,12 @@ export const roleResultSchema = z.object({
   mentionable: z.boolean().describe("Whether the role is mentionable"),
 });
 
+export const nodeActionDiscordApiRequestResultSchema = z
+  .unknown()
+  .describe(
+    "The JSON the endpoint returns, as in Discord's API docs, e.g. result('id').code for a created invite or result('id')[0].content for a list of messages. Empty for endpoints that return nothing."
+  );
+
 export const nodeActionResponseCreateResultSchema = messageResultSchema;
 
 export const nodeActionResponseEditResultSchema = messageResultSchema;
@@ -58,6 +64,8 @@ export const nodeActionMessageEditResultSchema = messageResultSchema;
 export const nodeActionPrivateMessageCreateResultSchema = messageResultSchema;
 
 export const nodeActionMessageGetResultSchema = messageResultSchema;
+
+export const nodeActionPollCreateResultSchema = messageResultSchema;
 
 export const nodeActionUserGetResultSchema = userResultSchema;
 
@@ -93,3 +101,27 @@ export const nodeActionRobloxUserGetResultSchema = z.object({
   name: z.string().describe("The username of the Roblox user"),
   display_name: z.string().describe("The display name of the Roblox user"),
 });
+
+export const httpResponseResultSchema = z
+  .object({
+    status: z.string().describe("Status line, e.g. 200 OK"),
+    status_code: z.number().describe("Status code, e.g. 200"),
+    headers: z
+      .record(z.string())
+      .describe(
+        "Headers of the response, e.g. headers['Content-Type']. Repeated headers are joined with commas."
+      ),
+    body: z.string().describe("Body of the response as text"),
+    data: z.unknown().describe("Body of the response parsed as JSON"),
+  })
+  .describe("The response to the request");
+
+// With a response transform, the block's result is what the transform
+// returns instead of the response.
+export const nodeActionHttpRequestResultSchema = httpResponseResultSchema.or(
+  z
+    .unknown()
+    .describe(
+      "What response_transform returns, when the block has one, e.g. a string or number"
+    )
+);

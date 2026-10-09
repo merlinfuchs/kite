@@ -2,12 +2,14 @@ package flowtest
 
 import (
 	"context"
-	"log/slog"
 	"net/http"
 	"time"
 
 	"github.com/kitecloud/kite/kite-service/internal/api/handler"
 	"github.com/kitecloud/kite/kite-service/internal/api/wire"
+	"github.com/kitecloud/kite/kite-service/internal/core/engine"
+	"github.com/kitecloud/kite/kite-service/internal/store"
+	"github.com/kitecloud/kite/kite-service/internal/util"
 	"github.com/kitecloud/kite/kite-service/pkg/flow"
 )
 
@@ -16,32 +18,38 @@ import (
 const httpRequestTestTimeout = 15 * time.Second
 
 type FlowTestHandler struct {
-	// The same client flows use, so a test goes through the same egress
-	// proxy and can't reach anything a deployed flow couldn't.
-	httpClient *http.Client
+	// The client flows use, so a test goes through the same egress proxy and
+	// can't reach anything a deployed flow couldn't. Nil when no proxy is
+	// configured, which turns testing off.
+	httpClient     *http.Client
+	appSecretStore store.AppSecretStore
+	tokenCrypt     *util.SymmetricCrypt
 }
 
-func NewFlowTestHandler(httpClient *http.Client) *FlowTestHandler {
+func NewFlowTestHandler(httpClient *http.Client, appSecretStore store.AppSecretStore, tokenCrypt *util.SymmetricCrypt) *FlowTestHandler {
 	return &FlowTestHandler{
-		httpClient: httpClient,
+		httpClient:     httpClient,
+		appSecretStore: appSecretStore,
+		tokenCrypt:     tokenCrypt,
 	}
 }
 
 func (h *FlowTestHandler) HandleHTTPRequestTest(c *handler.Context, req wire.FlowHTTPRequestTestRequest) (*wire.FlowHTTPRequestTestResponse, error) {
+	// Without an egress proxy nothing stops a request from reaching the
+	// host's internal network, and a test would return the response straight
+	// to the browser.
 	if h.httpClient == nil {
-		return nil, handler.ErrServiceUnavailable("http_unavailable", "Testing requests is not available on this instance")
+		return nil, handler.ErrForbidden(
+			"http_request_test_disabled",
+			"Testing requests is turned off on this instance. It needs an egress proxy, set engine.http_proxy_url to enable it.",
+		)
 	}
-
-	slog.Debug(
-		"Testing HTTP request block",
-		slog.String("app_id", c.App.ID),
-		slog.String("user_id", c.Session.UserID),
-	)
 
 	res := flow.RunHTTPRequestTest(c.Context(), flow.HTTPRequestTestOpts{
 		Data:    req.Data,
 		Values:  req.Values,
 		HTTP:    clientHTTPProvider{client: h.httpClient},
+		Secret:  engine.NewSecretProvider(c.App.ID, h.appSecretStore, h.tokenCrypt),
 		Timeout: httpRequestTestTimeout,
 	})
 
@@ -63,7 +71,7 @@ func (h *FlowTestHandler) HandleHTTPRequestTest(c *handler.Context, req wire.Flo
 			StatusCode:    res.Response.StatusCode,
 			Headers:       res.Response.Headers,
 			Body:          res.ResponseBody,
-			BodySize:      len(res.Response.Body),
+			BodySize:      res.ResponseBodySize,
 			BodyTruncated: res.ResponseBodyCut,
 			BodyBinary:    res.ResponseBinary,
 		}
@@ -78,4 +86,14 @@ type clientHTTPProvider struct {
 
 func (p clientHTTPProvider) HTTPRequest(ctx context.Context, req *http.Request) (*http.Response, error) {
 	return p.client.Do(req.WithContext(ctx))
+}
+
+// HTTPRequestWithoutRedirects isn't used by HTTP request blocks, but is part
+// of the provider.
+func (p clientHTTPProvider) HTTPRequestWithoutRedirects(ctx context.Context, req *http.Request) (*http.Response, error) {
+	client := *p.client
+	client.CheckRedirect = func(*http.Request, []*http.Request) error {
+		return http.ErrUseLastResponse
+	}
+	return client.Do(req.WithContext(ctx))
 }

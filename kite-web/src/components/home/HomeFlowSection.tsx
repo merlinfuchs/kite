@@ -9,7 +9,11 @@ import {
   SatelliteDishIcon,
   SquareSlash,
 } from "lucide-react";
-import FlowExample from "../flow/FlowExample";
+import dynamic from "next/dynamic";
+
+const FlowExample = dynamic(() => import("../flow/FlowExample"), {
+  ssr: false,
+});
 
 interface ServiceProps {
   title: string;

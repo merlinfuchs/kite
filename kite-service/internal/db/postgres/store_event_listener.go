@@ -102,6 +102,10 @@ func (c *Client) CreateEventListener(ctx context.Context, listener *model.EventL
 		FlowSource:    flowSource,
 		CreatedAt:     pgtype.Timestamp{Time: listener.CreatedAt.UTC(), Valid: true},
 		UpdatedAt:     pgtype.Timestamp{Time: listener.UpdatedAt.UTC(), Valid: true},
+		WebhookSecret: pgtype.Text{
+			String: listener.WebhookSecret.String,
+			Valid:  listener.WebhookSecret.Valid,
+		},
 	})
 	if err != nil {
 		return nil, err
@@ -132,6 +136,22 @@ func (c *Client) UpdateEventListener(ctx context.Context, listener *model.EventL
 		Filter:      rawFilter,
 		FlowSource:  flowSource,
 		UpdatedAt:   pgtype.Timestamp{Time: listener.UpdatedAt.UTC(), Valid: true},
+	})
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, store.ErrNotFound
+		}
+		return nil, err
+	}
+
+	return rowToEventListener(row)
+}
+
+func (c *Client) UpdateEventListenerWebhookSecret(ctx context.Context, id string, secret string, updatedAt time.Time) (*model.EventListener, error) {
+	row, err := c.Q.UpdateEventListenerWebhookSecret(ctx, pgmodel.UpdateEventListenerWebhookSecretParams{
+		ID:            id,
+		WebhookSecret: pgtype.Text{String: secret, Valid: true},
+		UpdatedAt:     pgtype.Timestamp{Time: updatedAt.UTC(), Valid: true},
 	})
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -213,5 +233,6 @@ func rowToEventListener(row pgmodel.EventListener) (*model.EventListener, error)
 		CreatedAt:     row.CreatedAt.Time,
 		UpdatedAt:     row.UpdatedAt.Time,
 		LastRunAt:     null.NewTime(row.LastRunAt.Time, row.LastRunAt.Valid),
+		WebhookSecret: null.NewString(row.WebhookSecret.String, row.WebhookSecret.Valid),
 	}, nil
 }

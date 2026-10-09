@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { formatHttpTestBody, getHttpTestValueKeys } from "./httpTest";
+import {
+  formatHttpTestBody,
+  getHttpTestSecretNames,
+  getHttpTestValueKeys,
+} from "./httpTest";
 
 describe("getHttpTestValueKeys", () => {
   it("finds placeholders in every field", () => {
@@ -37,6 +41,16 @@ describe("getHttpTestValueKeys", () => {
     expect(
       getHttpTestValueKeys({ url: "{{user.id}}/{{user.id}}/{{ user.id }}" })
     ).toEqual(["user.id"]);
+  });
+
+  it("leaves secrets to the app", () => {
+    const request = {
+      url: "https://api.example.com/?key={{secrets.API_KEY}}",
+      headers: [{ key: "Authorization", value: "Bearer {{secrets.TOKEN}}" }],
+      body: '{"id": "{{user.id}}", "k": "{{secrets.API_KEY}}"}',
+    };
+    expect(getHttpTestValueKeys(request)).toEqual(["user.id"]);
+    expect(getHttpTestSecretNames(request)).toEqual(["API_KEY", "TOKEN"]);
   });
 
   it("handles a missing request", () => {

@@ -10,7 +10,6 @@ import (
 // DiscordProvider provides access to the Discord API.
 type DiscordProvider interface {
 	Guild(ctx context.Context, guildID discord.GuildID) (*discord.Guild, error)
-	GuildChannels(ctx context.Context, guildID discord.GuildID) ([]discord.Channel, error)
 	GuildRoles(ctx context.Context, guildID discord.GuildID) ([]discord.Role, error)
 	Channel(ctx context.Context, channelID discord.ChannelID) (*discord.Channel, error)
 	User(ctx context.Context, userID discord.UserID) (*discord.User, error)
@@ -26,28 +25,15 @@ type DiscordProvider interface {
 	DeleteInteractionFollowup(ctx context.Context, applicationID discord.AppID, token string, messageID discord.MessageID) error
 	CreateMessage(ctx context.Context, channelID discord.ChannelID, message api.SendMessageData) (*discord.Message, error)
 	EditMessage(ctx context.Context, channelID discord.ChannelID, messageID discord.MessageID, message api.EditMessageData) (*discord.Message, error)
-	DeleteMessage(ctx context.Context, channelID discord.ChannelID, messageID discord.MessageID, reason api.AuditLogReason) error
 	CreateMessageReaction(ctx context.Context, channelID discord.ChannelID, messageID discord.MessageID, emoji discord.APIEmoji) error
-	DeleteMessageReaction(ctx context.Context, channelID discord.ChannelID, messageID discord.MessageID, emoji discord.APIEmoji) error
-	PinMessage(ctx context.Context, channelID discord.ChannelID, messageID discord.MessageID, reason api.AuditLogReason) error
-	UnpinMessage(ctx context.Context, channelID discord.ChannelID, messageID discord.MessageID, reason api.AuditLogReason) error
-	BanMember(ctx context.Context, guildID discord.GuildID, userID discord.UserID, data api.BanData) error
-	UnbanMember(ctx context.Context, guildID discord.GuildID, userID discord.UserID, reason api.AuditLogReason) error
-	KickMember(ctx context.Context, guildID discord.GuildID, userID discord.UserID, reason api.AuditLogReason) error
+	CreatePoll(ctx context.Context, channelID discord.ChannelID, data CreatePollData) (*discord.Message, error)
 	EditMember(ctx context.Context, guildID discord.GuildID, userID discord.UserID, data api.ModifyMemberData) error
-	AddMemberRole(ctx context.Context, guildID discord.GuildID, userID discord.UserID, roleID discord.RoleID, reason api.AuditLogReason) error
-	RemoveMemberRole(ctx context.Context, guildID discord.GuildID, userID discord.UserID, roleID discord.RoleID, reason api.AuditLogReason) error
 	CreateChannel(ctx context.Context, guildID discord.GuildID, data api.CreateChannelData) (*discord.Channel, error)
 	EditChannel(ctx context.Context, channelID discord.ChannelID, data api.ModifyChannelData) error
-	DeleteChannel(ctx context.Context, channelID discord.ChannelID, reason api.AuditLogReason) error
 	CreatePrivateChannel(ctx context.Context, userID discord.UserID) (*discord.Channel, error)
 	StartThreadWithMessage(ctx context.Context, channelID discord.ChannelID, messageID discord.MessageID, data api.StartThreadData) (*discord.Channel, error)
 	StartThreadWithoutMessage(ctx context.Context, channelID discord.ChannelID, data api.StartThreadData) (*discord.Channel, error)
-	AddThreadMember(ctx context.Context, channelID discord.ChannelID, userID discord.UserID) error
-	RemoveThreadMember(ctx context.Context, channelID discord.ChannelID, userID discord.UserID) error
-	CreateRole(ctx context.Context, guildID discord.GuildID, data api.CreateRoleData) (*discord.Role, error)
-	EditRole(ctx context.Context, guildID discord.GuildID, roleID discord.RoleID, data api.ModifyRoleData) (*discord.Role, error)
-	DeleteRole(ctx context.Context, guildID discord.GuildID, roleID discord.RoleID) error
+	APIRequest(ctx context.Context, req DiscordAPIRequest) ([]byte, error)
 
 	UpdateVoiceState(ctx context.Context, guildID discord.GuildID, channelID discord.ChannelID, selfMute bool, selfDeaf bool) error
 	UpdatePresence(ctx context.Context, status discord.Status, activity discord.Activity) error
@@ -59,6 +45,47 @@ type DiscordProvider interface {
 	AutoDeferInteraction(ctx context.Context, interactionID discord.InteractionID, interactionToken string, response api.InteractionResponse)
 }
 
+// CreatePollData is the poll object of a create message request. arikawa
+// doesn't support polls yet, so these mirror Discord's API types.
+type CreatePollData struct {
+	Question PollMedia    `json:"question"`
+	Answers  []PollAnswer `json:"answers"`
+	// Duration is the number of hours the poll is open for.
+	Duration         int            `json:"duration"`
+	AllowMultiselect bool           `json:"allow_multiselect"`
+	LayoutType       PollLayoutType `json:"layout_type,omitempty"`
+}
+
+type PollLayoutType int
+
+const PollLayoutTypeDefault PollLayoutType = 1
+
+type PollAnswer struct {
+	PollMedia PollMedia `json:"poll_media"`
+}
+
+type PollMedia struct {
+	Text  string     `json:"text,omitempty"`
+	Emoji *PollEmoji `json:"emoji,omitempty"`
+}
+
+// PollEmoji holds either the ID of a custom emoji or the unicode of a standard
+// one, never both.
+type PollEmoji struct {
+	ID   discord.EmojiID `json:"id,omitempty"`
+	Name string          `json:"name,omitempty"`
+}
+
+// DiscordAPIRequest is a request to any endpoint of the Discord API, sent
+// with the bot's token. A response with an error status is returned as error.
+type DiscordAPIRequest struct {
+	Method string
+	// Path is relative to api.Endpoint and includes the query.
+	Path   string
+	Body   []byte
+	Reason api.AuditLogReason
+}
+
 type InteractionResponseResource struct {
 	Type    api.InteractionResponseType
 	Message *discord.Message
@@ -67,10 +94,6 @@ type InteractionResponseResource struct {
 type MockDiscordProvider struct{}
 
 func (p *MockDiscordProvider) Guild(ctx context.Context, guildID discord.GuildID) (*discord.Guild, error) {
-	return nil, nil
-}
-
-func (p *MockDiscordProvider) GuildChannels(ctx context.Context, guildID discord.GuildID) ([]discord.Channel, error) {
 	return nil, nil
 }
 
@@ -130,53 +153,15 @@ func (p *MockDiscordProvider) EditMessage(ctx context.Context, channelID discord
 	return nil, nil
 }
 
-func (p *MockDiscordProvider) DeleteMessage(
-	ctx context.Context,
-	channelID discord.ChannelID,
-	messageID discord.MessageID,
-	reason api.AuditLogReason,
-) error {
-	return nil
-}
-
 func (p *MockDiscordProvider) CreateMessageReaction(ctx context.Context, channelID discord.ChannelID, messageID discord.MessageID, emoji discord.APIEmoji) error {
 	return nil
 }
 
-func (p *MockDiscordProvider) DeleteMessageReaction(ctx context.Context, channelID discord.ChannelID, messageID discord.MessageID, emoji discord.APIEmoji) error {
-	return nil
-}
-
-func (p *MockDiscordProvider) PinMessage(ctx context.Context, channelID discord.ChannelID, messageID discord.MessageID, reason api.AuditLogReason) error {
-	return nil
-}
-
-func (p *MockDiscordProvider) UnpinMessage(ctx context.Context, channelID discord.ChannelID, messageID discord.MessageID, reason api.AuditLogReason) error {
-	return nil
-}
-
-func (p *MockDiscordProvider) BanMember(ctx context.Context, guildID discord.GuildID, userID discord.UserID, data api.BanData) error {
-	return nil
-}
-
-func (p *MockDiscordProvider) UnbanMember(ctx context.Context, guildID discord.GuildID, userID discord.UserID, reason api.AuditLogReason) error {
-	return nil
-}
-
-func (p *MockDiscordProvider) KickMember(ctx context.Context, guildID discord.GuildID, userID discord.UserID, reason api.AuditLogReason) error {
-
-	return nil
+func (p *MockDiscordProvider) CreatePoll(ctx context.Context, channelID discord.ChannelID, data CreatePollData) (*discord.Message, error) {
+	return nil, nil
 }
 
 func (p *MockDiscordProvider) EditMember(ctx context.Context, guildID discord.GuildID, userID discord.UserID, data api.ModifyMemberData) error {
-	return nil
-}
-
-func (p *MockDiscordProvider) AddMemberRole(ctx context.Context, guildID discord.GuildID, userID discord.UserID, roleID discord.RoleID, reason api.AuditLogReason) error {
-	return nil
-}
-
-func (p *MockDiscordProvider) RemoveMemberRole(ctx context.Context, guildID discord.GuildID, userID discord.UserID, roleID discord.RoleID, reason api.AuditLogReason) error {
 	return nil
 }
 
@@ -185,10 +170,6 @@ func (p *MockDiscordProvider) CreateChannel(ctx context.Context, guildID discord
 }
 
 func (p *MockDiscordProvider) EditChannel(ctx context.Context, channelID discord.ChannelID, data api.ModifyChannelData) error {
-	return nil
-}
-
-func (p *MockDiscordProvider) DeleteChannel(ctx context.Context, channelID discord.ChannelID, reason api.AuditLogReason) error {
 	return nil
 }
 
@@ -204,24 +185,8 @@ func (p *MockDiscordProvider) StartThreadWithoutMessage(ctx context.Context, cha
 	return nil, nil
 }
 
-func (p *MockDiscordProvider) AddThreadMember(ctx context.Context, channelID discord.ChannelID, userID discord.UserID) error {
-	return nil
-}
-
-func (p *MockDiscordProvider) RemoveThreadMember(ctx context.Context, channelID discord.ChannelID, userID discord.UserID) error {
-	return nil
-}
-
-func (p *MockDiscordProvider) CreateRole(ctx context.Context, guildID discord.GuildID, data api.CreateRoleData) (*discord.Role, error) {
+func (p *MockDiscordProvider) APIRequest(ctx context.Context, req DiscordAPIRequest) ([]byte, error) {
 	return nil, nil
-}
-
-func (p *MockDiscordProvider) EditRole(ctx context.Context, guildID discord.GuildID, roleID discord.RoleID, data api.ModifyRoleData) (*discord.Role, error) {
-	return nil, nil
-}
-
-func (p *MockDiscordProvider) DeleteRole(ctx context.Context, guildID discord.GuildID, roleID discord.RoleID) error {
-	return nil
 }
 
 func (p *MockDiscordProvider) UpdateVoiceState(ctx context.Context, guildID discord.GuildID, channelID discord.ChannelID, selfMute bool, selfDeaf bool) error {
