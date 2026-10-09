@@ -70,7 +70,9 @@ export default function VariableValueExplorer() {
   // An unscoped variable has one value, so there is nothing to search or add
   // once it's set.
   const scoped = !!variable?.scoped;
-  const canAdd = !!variable && (scoped || (!!data && total === 0));
+  const canAdd =
+    !!variable &&
+    (scoped || (!!data && !values.some((v) => v!.scope === null)));
   // Flows can store scoped values in an unscoped variable too.
   const showScope = scoped || values.some((v) => v!.scope !== null);
 
