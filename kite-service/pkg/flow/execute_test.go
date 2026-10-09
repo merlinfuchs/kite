@@ -154,8 +154,12 @@ func (d *TestContextData) Event() ws.Event {
 	return &gateway.InteractionCreateEvent{}
 }
 
-func newModalTestContext(ctx context.Context, discordProvider *TestDiscordProvider) *FlowContext {
-	return NewContext(
+func executeModal(t *testing.T, modal *ModalData) (*TestDiscordProvider, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	discordProvider := &TestDiscordProvider{}
+	c := NewContext(
 		ctx,
 		5*time.Second,
 		&TestContextData{},
@@ -171,14 +175,6 @@ func newModalTestContext(ctx context.Context, discordProvider *TestDiscordProvid
 		eval.NewContext(eval.Env{}),
 		nil,
 	)
-}
-
-func executeModal(t *testing.T, modal *ModalData) (*TestDiscordProvider, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-
-	discordProvider := &TestDiscordProvider{}
-	c := newModalTestContext(ctx, discordProvider)
 	defer c.Cancel()
 
 	node := CompiledFlowNode{

@@ -20,6 +20,13 @@ const (
 	modalSelectPlaceholderMaxLen    = 150
 )
 
+var modalEntitySelectTypes = map[string]discord.ComponentType{
+	ModalComponentTypeUserSelect:        discord.UserSelectComponentType,
+	ModalComponentTypeRoleSelect:        discord.RoleSelectComponentType,
+	ModalComponentTypeMentionableSelect: discord.MentionableSelectComponentType,
+	ModalComponentTypeChannelSelect:     discord.ChannelSelectComponentType,
+}
+
 // modalComponent is a modal component sent as the given JSON. It's built by
 // hand because the arikawa types drop required: false, which Discord defaults
 // to true, so an optional select menu couldn't be sent. The embedded
@@ -163,6 +170,10 @@ func buildModalInput(ctx *FlowContext, c ModalComponentData) (map[string]any, er
 	res := map[string]any{
 		"custom_id": c.CustomID,
 	}
+	// A checkbox can't be required.
+	if c.Type != ModalComponentTypeCheckbox {
+		res["required"] = c.Required
+	}
 
 	evalPlaceholder := func(maxLen int) error {
 		placeholder, err := ctx.EvalTemplate(c.Placeholder)
@@ -178,47 +189,31 @@ func buildModalInput(ctx *FlowContext, c ModalComponentData) (map[string]any, er
 		return nil
 	}
 
-	// setValueLimits sets min_values and max_values. defaultMax is what
-	// Discord uses when max_values isn't set.
-	setValueLimits := func(max, defaultMax int) error {
-		if c.MinValues < 0 || c.MinValues > max {
-			return fmt.Errorf("minimum values must be between 0 and %d, got %d", max, c.MinValues)
+	// setValueLimits sets min_values and max_values and returns how many
+	// options can be picked. defaultMax is what Discord uses when max_values
+	// isn't set.
+	setValueLimits := func(limit, defaultMax int) (int, error) {
+		if c.MinValues < 0 || c.MinValues > limit {
+			return 0, fmt.Errorf("minimum values must be between 0 and %d, got %d", limit, c.MinValues)
 		}
-		if c.MaxValues < 0 || c.MaxValues > max {
-			return fmt.Errorf("maximum values must be between 1 and %d, got %d", max, c.MaxValues)
+		if c.MaxValues < 0 || c.MaxValues > limit {
+			return 0, fmt.Errorf("maximum values must be between 1 and %d, got %d", limit, c.MaxValues)
 		}
-		if maxValues := maxValuesOrDefault(c.MaxValues, defaultMax); c.MinValues > maxValues {
-			return fmt.Errorf("minimum values %d is more than the maximum %d", c.MinValues, maxValues)
+		maxValues := c.MaxValues
+		if maxValues == 0 {
+			maxValues = defaultMax
 		}
+		if c.MinValues > maxValues {
+			return 0, fmt.Errorf("minimum values %d is more than the maximum %d", c.MinValues, maxValues)
+		}
+
 		if c.MinValues != 0 {
 			res["min_values"] = c.MinValues
 		}
 		if c.MaxValues != 0 {
 			res["max_values"] = c.MaxValues
 		}
-		return nil
-	}
-
-	checkDefaults := func(maxValues int) error {
-		defaults := 0
-		for _, o := range c.Options {
-			if o.Default {
-				defaults++
-			}
-		}
-		if defaults > maxValues {
-			return fmt.Errorf("modal input has %d options picked by default, but at most %d can be picked", defaults, maxValues)
-		}
-		return nil
-	}
-
-	// checkOptionLimits checks the value limits against the options. The
-	// minimum is checked against the maximum by setValueLimits.
-	checkOptionLimits := func(defaultMax int) error {
-		if c.MaxValues > len(c.Options) {
-			return fmt.Errorf("maximum values %d is more than the %d options", c.MaxValues, len(c.Options))
-		}
-		return checkDefaults(maxValuesOrDefault(c.MaxValues, defaultMax))
+		return maxValues, nil
 	}
 
 	switch c.Type {
@@ -235,7 +230,6 @@ func buildModalInput(ctx *FlowContext, c ModalComponentData) (map[string]any, er
 
 		res["type"] = discord.TextInputComponentType
 		res["style"] = style
-		res["required"] = c.Required
 		if c.MinLength > 0 {
 			res["min_length"] = c.MinLength
 		}
@@ -249,20 +243,17 @@ func buildModalInput(ctx *FlowContext, c ModalComponentData) (map[string]any, er
 			return nil, err
 		}
 	case ModalComponentTypeStringSelect:
-		options, err := buildModalOptions(ctx, c.Options, 1, modalMaxSelectOptions)
+		maxValues, err := setValueLimits(modalMaxSelectOptions, 1)
+		if err != nil {
+			return nil, err
+		}
+		options, err := buildModalOptions(ctx, c.Options, 1, modalMaxSelectOptions, maxValues)
 		if err != nil {
 			return nil, err
 		}
 
 		res["type"] = discord.StringSelectComponentType
 		res["options"] = options
-		res["required"] = c.Required
-		if err := setValueLimits(modalMaxSelectOptions, 1); err != nil {
-			return nil, err
-		}
-		if err := checkOptionLimits(1); err != nil {
-			return nil, err
-		}
 		if err := evalPlaceholder(modalSelectPlaceholderMaxLen); err != nil {
 			return nil, err
 		}
@@ -270,54 +261,37 @@ func buildModalInput(ctx *FlowContext, c ModalComponentData) (map[string]any, er
 		ModalComponentTypeRoleSelect,
 		ModalComponentTypeMentionableSelect,
 		ModalComponentTypeChannelSelect:
-		switch c.Type {
-		case ModalComponentTypeUserSelect:
-			res["type"] = discord.UserSelectComponentType
-		case ModalComponentTypeRoleSelect:
-			res["type"] = discord.RoleSelectComponentType
-		case ModalComponentTypeMentionableSelect:
-			res["type"] = discord.MentionableSelectComponentType
-		case ModalComponentTypeChannelSelect:
-			res["type"] = discord.ChannelSelectComponentType
-			if len(c.ChannelTypes) > 0 {
-				res["channel_types"] = c.ChannelTypes
-			}
+		if _, err := setValueLimits(modalMaxSelectOptions, 1); err != nil {
+			return nil, err
 		}
 
-		res["required"] = c.Required
-		if err := setValueLimits(modalMaxSelectOptions, 1); err != nil {
-			return nil, err
+		res["type"] = modalEntitySelectTypes[c.Type]
+		if c.Type == ModalComponentTypeChannelSelect && len(c.ChannelTypes) > 0 {
+			res["channel_types"] = c.ChannelTypes
 		}
 		if err := evalPlaceholder(modalSelectPlaceholderMaxLen); err != nil {
 			return nil, err
 		}
 	case ModalComponentTypeRadioGroup:
-		options, err := buildModalOptions(ctx, c.Options, modalMinRadioOptions, modalMaxGroupOptions)
+		options, err := buildModalOptions(ctx, c.Options, modalMinRadioOptions, modalMaxGroupOptions, 1)
 		if err != nil {
 			return nil, err
 		}
 
 		res["type"] = discord.RadioGroupComponentType
 		res["options"] = options
-		res["required"] = c.Required
-		if err := checkDefaults(1); err != nil {
+	case ModalComponentTypeCheckboxGroup:
+		maxValues, err := setValueLimits(modalMaxGroupOptions, len(c.Options))
+		if err != nil {
 			return nil, err
 		}
-	case ModalComponentTypeCheckboxGroup:
-		options, err := buildModalOptions(ctx, c.Options, 1, modalMaxGroupOptions)
+		options, err := buildModalOptions(ctx, c.Options, 1, modalMaxGroupOptions, maxValues)
 		if err != nil {
 			return nil, err
 		}
 
 		res["type"] = discord.CheckboxGroupComponentType
 		res["options"] = options
-		res["required"] = c.Required
-		if err := setValueLimits(modalMaxGroupOptions, len(c.Options)); err != nil {
-			return nil, err
-		}
-		if err := checkOptionLimits(len(c.Options)); err != nil {
-			return nil, err
-		}
 	case ModalComponentTypeCheckbox:
 		res["type"] = discord.CheckboxComponentType
 		if c.Default {
@@ -330,20 +304,19 @@ func buildModalInput(ctx *FlowContext, c ModalComponentData) (map[string]any, er
 	return res, nil
 }
 
-func maxValuesOrDefault(maxValues, defaultMax int) int {
-	if maxValues == 0 {
-		return defaultMax
-	}
-	return maxValues
-}
-
-func buildModalOptions(ctx *FlowContext, options []ModalComponentOptionData, min, max int) ([]map[string]any, error) {
+// buildModalOptions evaluates the options of an input that up to maxValues of
+// can be picked.
+func buildModalOptions(ctx *FlowContext, options []ModalComponentOptionData, min, max, maxValues int) ([]map[string]any, error) {
 	if len(options) < min || len(options) > max {
 		return nil, fmt.Errorf("modal input must have between %d and %d options, got %d", min, max, len(options))
+	}
+	if maxValues > len(options) {
+		return nil, fmt.Errorf("maximum values %d is more than the %d options", maxValues, len(options))
 	}
 
 	res := make([]map[string]any, len(options))
 	values := make(map[string]bool, len(options))
+	defaults := 0
 	for i, o := range options {
 		label, err := ctx.EvalTemplate(o.Label)
 		if err != nil {
@@ -381,9 +354,14 @@ func buildModalOptions(ctx *FlowContext, options []ModalComponentOptionData, min
 		}
 		if o.Default {
 			option["default"] = true
+			defaults++
 		}
 
 		res[i] = option
+	}
+
+	if defaults > maxValues {
+		return nil, fmt.Errorf("modal input has %d options picked by default, but at most %d can be picked", defaults, maxValues)
 	}
 
 	return res, nil

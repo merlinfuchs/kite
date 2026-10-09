@@ -23,6 +23,7 @@ import {
   modalInputTypes,
   modalComponentNumber,
   modalMaxComponents,
+  modalOptionCounts,
   newModalInput,
   newModalOption,
   nextModalInputNumber,
@@ -2308,10 +2309,7 @@ function ModalLabelInput({
           field={`${inputField}.type`}
           title="Type"
           value={type}
-          options={modalInputTypes.map((t) => ({
-            label: t.label,
-            value: t.value,
-          }))}
+          options={[...modalInputTypes]}
           updateValue={(v) =>
             updateComponent({
               components: [newModalInput(v as ModalInputType, input.custom_id)],
@@ -2467,7 +2465,7 @@ function ModalLabelInput({
         <ModalOptionsInput
           field={`${inputField}.options`}
           options={input.options ?? []}
-          max={type === "string_select" ? 25 : 10}
+          max={modalOptionCounts[type as keyof typeof modalOptionCounts][1]}
           updateOptions={(options) => updateInput({ options })}
           errors={errors}
         />

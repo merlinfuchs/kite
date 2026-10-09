@@ -1,6 +1,12 @@
 import { z } from "zod";
 import { templated } from "../flow/dataSchema";
-import { normalizeModalData } from "../flow/modal";
+import {
+  modalEntitySelectTypes,
+  modalMaxComponents,
+  modalOptionCounts,
+  modalOptionInputTypes,
+  normalizeModalData,
+} from "../flow/modal";
 import { BlockDefinition } from "./types";
 
 // The flow AI gets every field of every input type, so the input types share
@@ -38,25 +44,6 @@ const modalSelectFields = {
       "Maximum picks. Defaults to 1 for selects and to all options for checkbox_group. input() joins several picks with ', '."
     ),
 };
-
-const modalOptionInputTypes = [
-  "string_select",
-  "radio_group",
-  "checkbox_group",
-] as const;
-
-const modalEntitySelectTypes = [
-  "user_select",
-  "role_select",
-  "mentionable_select",
-  "channel_select",
-] as const;
-
-const modalOptionCounts = {
-  string_select: [1, 25],
-  radio_group: [2, 10],
-  checkbox_group: [1, 10],
-} as const;
 
 const modalInputSchema = z
   .discriminatedUnion("type", [
@@ -265,7 +252,7 @@ export const discordSuspendResponseModal: BlockDefinition = {
                 ])
               )
               .min(1)
-              .max(5)
+              .max(modalMaxComponents)
               .superRefine((components, ctx) => {
                 if (!components.some((c) => c.type === "label")) {
                   ctx.addIssue({

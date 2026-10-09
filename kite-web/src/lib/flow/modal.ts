@@ -110,22 +110,39 @@ export function newModalOption(
   return { label: `Option ${n}`, value: `option_${n}` };
 }
 
+export const modalOptionInputTypes = [
+  "string_select",
+  "radio_group",
+  "checkbox_group",
+] as const;
+
+// How many options each input type needs at least and at most.
+export const modalOptionCounts = {
+  string_select: [1, 25],
+  radio_group: [2, 10],
+  checkbox_group: [1, 10],
+} as const;
+
+export const modalEntitySelectTypes = [
+  "user_select",
+  "role_select",
+  "mentionable_select",
+  "channel_select",
+] as const;
+
+function isOneOf(types: readonly string[], type?: string) {
+  return types.includes(type ?? "");
+}
+
 export function modalInputHasOptions(type?: string) {
-  return (
-    type === "string_select" ||
-    type === "radio_group" ||
-    type === "checkbox_group"
-  );
+  return isOneOf(modalOptionInputTypes, type);
 }
 
 export function modalInputHasValueLimits(type?: string) {
   return (
     type === "string_select" ||
-    type === "user_select" ||
-    type === "role_select" ||
-    type === "mentionable_select" ||
-    type === "channel_select" ||
-    type === "checkbox_group"
+    type === "checkbox_group" ||
+    isOneOf(modalEntitySelectTypes, type)
   );
 }
 
@@ -143,9 +160,6 @@ export function modalInputHasPlaceholder(type?: string) {
     !type ||
     type === "text_input" ||
     type === "string_select" ||
-    type === "user_select" ||
-    type === "role_select" ||
-    type === "mentionable_select" ||
-    type === "channel_select"
+    isOneOf(modalEntitySelectTypes, type)
   );
 }
