@@ -1,0 +1,38 @@
+{
+  "name": "Kite",
+  "short_name": "Kite",
+  "description": "Create Discord bots for free with no coding required.",
+  "id": "/apps",
+  "start_url": "/apps",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#141211",
+  "theme_color": "#141211",
+  "prefer_related_applications": false,
+  "icons": [
+    {
+      "src": "/icons/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-maskable-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icons/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-maskable-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

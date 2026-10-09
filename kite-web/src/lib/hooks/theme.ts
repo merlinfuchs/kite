@@ -2,12 +2,12 @@ import { useTheme } from "next-themes";
 import { useEffect, useState } from "react";
 
 export function useHookedTheme() {
-  const { theme, setTheme } = useTheme();
+  const { theme, resolvedTheme, setTheme } = useTheme();
 
   const [realTheme, setRealTheme] = useState<string | undefined>("light");
   useEffect(() => {
-    setRealTheme(theme);
-  }, [theme]);
+    setRealTheme(resolvedTheme || theme);
+  }, [theme, resolvedTheme]);
 
   return {
     theme: realTheme,
