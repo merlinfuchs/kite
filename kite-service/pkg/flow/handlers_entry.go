@@ -134,7 +134,7 @@ func (n *CompiledFlowNode) checkCommandCooldown(ctx *FlowContext) (commandCooldo
 		return commandCooldown{}, traceError(cooldownNode, err)
 	}
 
-	key := cooldownKey(ctx, interaction.AppID.String(), cooldownNode)
+	key := cooldownKey(ctx, interaction.AppID.String(), n.CommandName(), cooldownNode)
 
 	remaining, expiresAt, err := ctx.Cooldown.CheckAndStart(ctx, key, duration)
 	if err != nil {
@@ -152,21 +152,23 @@ func (n *CompiledFlowNode) checkCommandCooldown(ctx *FlowContext) (commandCooldo
 	return commandCooldown{onCooldown: true}, nil
 }
 
-// cooldownKey builds a key that's unique per app, per cooldown block, and per
-// scope target -- so the same cooldown block on different bots, or different
-// cooldown blocks on the same bot, never collide.
-func cooldownKey(ctx *FlowContext, appID string, cooldownNode *CompiledFlowNode) string {
+// cooldownKey builds a key that's unique per app, per command, per cooldown
+// block, and per scope target -- so the same cooldown block on different bots,
+// or different cooldown blocks on the same bot, never collide. The command
+// name is included because duplicated commands keep their node IDs.
+func cooldownKey(ctx *FlowContext, appID string, commandName string, cooldownNode *CompiledFlowNode) string {
+	prefix := appID + ":" + commandName + ":" + cooldownNode.ID
 	switch cooldownNode.Data.CooldownScope {
 	case CooldownScopeUser, "": // Empty is the default, per user.
-		return appID + ":" + cooldownNode.ID + ":user:" + ctx.Data.UserID().String()
+		return prefix + ":user:" + ctx.Data.UserID().String()
 	case CooldownScopeServer:
 		if guildID := ctx.Data.GuildID(); guildID != 0 {
-			return appID + ":" + cooldownNode.ID + ":server:" + guildID.String()
+			return prefix + ":server:" + guildID.String()
 		}
 		// No server to key by in DMs, so fall back to a per-user cooldown.
-		return appID + ":" + cooldownNode.ID + ":user:" + ctx.Data.UserID().String()
+		return prefix + ":user:" + ctx.Data.UserID().String()
 	default: // CooldownScopeGlobal
-		return appID + ":" + cooldownNode.ID + ":global"
+		return prefix + ":global"
 	}
 }
 
