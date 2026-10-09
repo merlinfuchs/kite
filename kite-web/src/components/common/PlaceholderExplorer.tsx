@@ -90,6 +90,14 @@ export default function PlaceholderExplorer({
     );
   }
 
+  function onOpenChange(open: boolean) {
+    setOpen(open);
+    if (!open) {
+      setSearch("");
+      setSelected("");
+    }
+  }
+
   // Up and down move through the placeholders, so left and right are free to
   // move through the categories while nothing is typed.
   function onKeyDown(e: KeyboardEvent) {
@@ -105,17 +113,7 @@ export default function PlaceholderExplorer({
   }
 
   return (
-    <Popover
-      open={open}
-      onOpenChange={(open) => {
-        setOpen(open);
-        if (!open) {
-          setSearch("");
-          setSelected("");
-        }
-      }}
-      modal
-    >
+    <Popover open={open} onOpenChange={onOpenChange} modal>
       <PopoverTrigger asChild>{children}</PopoverTrigger>
       <PopoverContent className="w-[500px] max-w-[calc(100vw-1rem)] p-0">
         <Command
@@ -197,8 +195,7 @@ export default function PlaceholderExplorer({
                       keywords={[placeholder.label, group.label]}
                       onSelect={() => {
                         onSelect(placeholder.value);
-                        setOpen(false);
-                        setSearch("");
+                        onOpenChange(false);
                       }}
                       className="flex flex-col items-start"
                     >
