@@ -100,7 +100,7 @@ input('identifier') # Access value of a modal input
 result('id') # Access the result of a previous block
 ```
 
-`top_role`, `role_names`, `color`, `is_owner`, `is_admin` and `permissions` need the roles of the server. They work for `user`, members from command arguments, and `origin.user` and `previous.user` in sub-flows. A member from `result('id')`, like the result of a Get Member block, or from a variable doesn't know its server, so using them there fails the flow instead of returning a wrong answer.
+`top_role`, `role_names`, `color`, `is_owner`, `is_admin` and `permissions` need the roles of the server. They work for `user`, members from command arguments, and `origin.user` and `previous.user` in sub-flows. A member from `result('id')`, like the result of a Get Member block, or from a variable doesn't know its server, so using them there fails the flow instead of returning a wrong answer. They also fail in a server your app isn't in, where only user-installed commands run.
 
 `guild.member_count` follows members joining and leaving while your app has a Member Join or Member Leave event listener. Without one, it's the count from when your app last connected to Discord.
 
