@@ -40,7 +40,7 @@ export function getAvailablePlaceholders(
 
 // interactionPlaceholders lists the placeholders of the interaction or event
 // the flow runs with. Resumed sub-flows reach earlier ones through a prefix.
-function interactionPlaceholders(
+export function interactionPlaceholders(
   contextType?: FlowContextType,
   prefix = "",
   labelPrefix = ""
