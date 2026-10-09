@@ -22,6 +22,9 @@ type VariableStore interface {
 
 type VariableValueStore interface {
 	VariableValues(ctx context.Context, appID string, variableID string) ([]*model.VariableValue, error)
+	// SearchVariableValues returns a page of the variable's values whose scope
+	// contains search, most recently updated first, and how many match in total.
+	SearchVariableValues(ctx context.Context, appID string, variableID string, search string, limit int, offset int) ([]*model.VariableValue, int, error)
 	VariableValue(ctx context.Context, appID string, variableID string, scope null.String) (*model.VariableValue, error)
 	SetVariableValue(ctx context.Context, appID string, value model.VariableValue) error
 	UpdateVariableValue(ctx context.Context, appID string, operation model.VariableValueOperation, value model.VariableValue) (*model.VariableValue, error)

@@ -288,6 +288,11 @@ func (s *APIServer) RegisterRoutes(
 	variableGroup.Patch("/", handler.TypedWithBody(variablesHandler.HandleVariableUpdate))
 	variableGroup.Delete("/", handler.Typed(variablesHandler.HandleVariableDelete))
 
+	variableValuesGroup := variableGroup.Group("/values")
+	variableValuesGroup.Get("/", handler.Typed(variablesHandler.HandleVariableValueList))
+	variableValuesGroup.Put("/", handler.TypedWithBody(variablesHandler.HandleVariableValueSet))
+	variableValuesGroup.Delete("/", handler.Typed(variablesHandler.HandleVariableValueDelete))
+
 	// Secret routes
 	appSecretHandler := appsecret.NewAppSecretHandler(appSecretStore, tokenCrypt)
 

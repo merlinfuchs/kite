@@ -11,6 +11,30 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const countSearchVariableValues = `-- name: CountSearchVariableValues :one
+SELECT COUNT(*) FROM variable_values
+JOIN variables ON variables.id = variable_values.variable_id
+WHERE variable_values.variable_id = $1
+  AND variables.app_id = $2
+  AND (
+    $3::text = ''
+    OR position(lower($3::text) in lower(coalesce(variable_values.scope, ''))) > 0
+  )
+`
+
+type CountSearchVariableValuesParams struct {
+	VariableID string
+	AppID      string
+	Search     string
+}
+
+func (q *Queries) CountSearchVariableValues(ctx context.Context, arg CountSearchVariableValuesParams) (int64, error) {
+	row := q.db.QueryRow(ctx, countSearchVariableValues, arg.VariableID, arg.AppID, arg.Search)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const countVariablesByApp = `-- name: CountVariablesByApp :one
 SELECT COUNT(*) FROM variables WHERE app_id = $1
 `
@@ -339,6 +363,61 @@ func (q *Queries) GetVariablesByAppWithoutTotals(ctx context.Context, appID stri
 			&i.Scoped,
 			&i.AppID,
 			&i.ModuleID,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const searchVariableValues = `-- name: SearchVariableValues :many
+SELECT variable_values.id, variable_values.variable_id, variable_values.scope, variable_values.value, variable_values.created_at, variable_values.updated_at FROM variable_values
+JOIN variables ON variables.id = variable_values.variable_id
+WHERE variable_values.variable_id = $1
+  AND variables.app_id = $2
+  AND (
+    $3::text = ''
+    OR position(lower($3::text) in lower(coalesce(variable_values.scope, ''))) > 0
+  )
+ORDER BY variable_values.updated_at DESC, variable_values.id DESC
+LIMIT $5 OFFSET $4
+`
+
+type SearchVariableValuesParams struct {
+	VariableID string
+	AppID      string
+	Search     string
+	RowOffset  int32
+	RowLimit   int32
+}
+
+// position() instead of LIKE so % and _ in the search text match literally
+func (q *Queries) SearchVariableValues(ctx context.Context, arg SearchVariableValuesParams) ([]VariableValue, error) {
+	rows, err := q.db.Query(ctx, searchVariableValues,
+		arg.VariableID,
+		arg.AppID,
+		arg.Search,
+		arg.RowOffset,
+		arg.RowLimit,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []VariableValue
+	for rows.Next() {
+		var i VariableValue
+		if err := rows.Scan(
+			&i.ID,
+			&i.VariableID,
+			&i.Scope,
+			&i.Value,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 		); err != nil {
