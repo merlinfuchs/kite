@@ -181,6 +181,41 @@ export function interactionPlaceholders(
         { label: "Emoji Mention", value: `${prefix}emoji.mention` },
       ],
     });
+    res.push({
+      label: `${labelPrefix}Forum Post`,
+      placeholders: [
+        { label: "Forum Post", value: `${prefix}forum_post` },
+        { label: "Post ID", value: `${prefix}forum_post.id` },
+        { label: "Post Title", value: `${prefix}forum_post.title` },
+        { label: "Post URL", value: `${prefix}forum_post.url` },
+        { label: "Post Author ID", value: `${prefix}forum_post.author_id` },
+        {
+          label: "Parent Forum Channel ID",
+          value: `${prefix}forum_post.parent_channel_id`,
+        },
+        { label: "Applied Tag IDs", value: `${prefix}forum_post.tag_ids` },
+        { label: "Applied Tag Names", value: `${prefix}forum_post.tags` },
+        {
+          label: "Post Created At (Unix)",
+          value: `${prefix}forum_post.created_at`,
+        },
+        {
+          label: "Post Message Count",
+          value: `${prefix}forum_post.message_count`,
+        },
+        {
+          label: "Post Member Count",
+          value: `${prefix}forum_post.member_count`,
+        },
+        { label: "Post Archived", value: `${prefix}forum_post.archived` },
+        { label: "Post Locked", value: `${prefix}forum_post.locked` },
+        {
+          label: "Post Auto-Archive Duration (Minutes)",
+          value: `${prefix}forum_post.auto_archive_duration`,
+        },
+        { label: "Forum Channel", value: `${prefix}forum` },
+      ],
+    });
   }
 
   return res;

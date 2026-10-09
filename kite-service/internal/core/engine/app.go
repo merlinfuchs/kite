@@ -251,7 +251,13 @@ func (a *App) RemoveDanglingEventListeners(enabledIDs map[string]struct{}) {
 }
 
 func (a *App) HandleEvent(appID string, session *state.State, event gateway.Event) {
-	a.dispatchEventToPlugins(session, event)
+	pluginEvent := event
+	if original, ok := event.(interface{ OriginalEvent() gateway.Event }); ok {
+		if raw := original.OriginalEvent(); raw != nil {
+			pluginEvent = raw
+		}
+	}
+	a.dispatchEventToPlugins(session, pluginEvent)
 
 	switch e := event.(type) {
 	case *gateway.InteractionCreateEvent:

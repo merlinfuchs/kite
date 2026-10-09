@@ -179,4 +179,33 @@ describe("getAvailablePlaceholders", () => {
       { label: "Emoji Mention", value: "emoji.mention" },
     ]);
   });
+
+  it("lists forum post placeholders in their own category", () => {
+    const groups = getAvailablePlaceholders(undefined, [], [], "event_discord");
+    const forumPost = groups.find((g) => g.label === "Forum Post");
+
+    expect(forumPost?.placeholders).toEqual([
+      { label: "Forum Post", value: "forum_post" },
+      { label: "Post ID", value: "forum_post.id" },
+      { label: "Post Title", value: "forum_post.title" },
+      { label: "Post URL", value: "forum_post.url" },
+      { label: "Post Author ID", value: "forum_post.author_id" },
+      {
+        label: "Parent Forum Channel ID",
+        value: "forum_post.parent_channel_id",
+      },
+      { label: "Applied Tag IDs", value: "forum_post.tag_ids" },
+      { label: "Applied Tag Names", value: "forum_post.tags" },
+      { label: "Post Created At (Unix)", value: "forum_post.created_at" },
+      { label: "Post Message Count", value: "forum_post.message_count" },
+      { label: "Post Member Count", value: "forum_post.member_count" },
+      { label: "Post Archived", value: "forum_post.archived" },
+      { label: "Post Locked", value: "forum_post.locked" },
+      {
+        label: "Post Auto-Archive Duration (Minutes)",
+        value: "forum_post.auto_archive_duration",
+      },
+      { label: "Forum Channel", value: "forum" },
+    ]);
+  });
 });

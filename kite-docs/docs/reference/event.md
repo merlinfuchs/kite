@@ -13,6 +13,9 @@ With Event Listeners you can listen for events inside the Discord servers that y
 - Member Leave
 - Reaction Add
 - Reaction Remove
+- Forum Post Create
+- Forum Post Update
+- Forum Post Delete
 - Bot Joined Server
 - Bot Left Server
 
@@ -24,7 +27,32 @@ With Event Listeners you can listen for events inside the Discord servers that y
 - Reaction events provide the emoji as `{{emoji}}`, with `{{emoji.id}}`, `{{emoji.name}}` and `{{emoji.mention}}`. `{{emoji.id}}` is empty for unicode emojis.
 - Reaction Remove only knows the user's ID, so only `{{user.id}}`, `{{user.mention}}` and `{{user.created_at}}` are available there. Fields like `{{user.username}}` are empty; use a Get User block if you need them.
 - Member events are only available when you enable the "Server Members Intent" in the [Discord Developer Portal](https://discord.dev).
+- Forum post events only fire for posts in Discord Forum channels, not ordinary text-channel threads.
+- Forum Post Create and Forum Post Update provide the post title, author ID, applied tag IDs, and thread metadata. Forum Post Delete only includes the post ID and parent Forum channel ID, so the title, author, tags, counts, and thread metadata are empty or zero. The post URL and creation time can still be derived from its ID.
+- Forum post events provide `{{forum_post}}` and `{{forum}}` placeholders. The regular `{{channel}}` placeholder is the post's thread channel and `{{guild}}` is the server. When the event includes the author ID, `{{user}}`/`{{member}}` identify them with only `id`, `mention` and `created_at` available. Delete events do not include the author.
+- Forum Post Update runs for thread updates, including changes to its archive or lock state.
+- Forum post events don't include the starter message body as `{{message}}`; use a Message Create listener if you need to process message content.
 - Bot Left Server only provides `{{guild.id}}`, as the bot no longer knows anything else about the server.
+
+### Forum post placeholders
+
+`{{forum_post}}` contains the event's post. `{{forum}}` is its parent Forum channel. The usual `{{channel}}` placeholder refers to the post's thread channel.
+
+| Placeholder | Value |
+| --- | --- |
+| `{{forum_post.id}}` | Post thread ID |
+| `{{forum_post.title}}` | Post title |
+| `{{forum_post.url}}` | Discord URL for the post |
+| `{{forum_post.author_id}}` | ID of the user who created the post |
+| `{{forum_post.parent_channel_id}}` | ID of the parent Forum channel |
+| `{{forum_post.tag_ids}}` | IDs of applied tags |
+| `{{forum_post.tags}}` | Applied tag names, when the parent Forum channel is cached |
+| `{{forum_post.created_at}}` | Post creation time as a Unix timestamp in seconds |
+| `{{forum_post.message_count}}` | Approximate number of messages in the post thread |
+| `{{forum_post.member_count}}` | Approximate number of members in the post thread |
+| `{{forum_post.archived}}` | Whether the post thread is archived |
+| `{{forum_post.locked}}` | Whether the post thread is locked |
+| `{{forum_post.auto_archive_duration}}` | Thread auto-archive duration in minutes |
 
 ![Example Event Flow](./img/example-event-flow.png)
 

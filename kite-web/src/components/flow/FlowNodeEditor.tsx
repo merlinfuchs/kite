@@ -851,6 +851,9 @@ function EventTypeInput({ data, updateData, errors }: InputProps) {
           value: "message_reaction_remove",
           label: "Message Reaction Remove",
         },
+        { value: "forum_post_create", label: "Forum Post Create" },
+        { value: "forum_post_update", label: "Forum Post Update" },
+        { value: "forum_post_delete", label: "Forum Post Delete" },
         { value: "guild_create", label: "Bot Joined Server" },
         { value: "guild_delete", label: "Bot Left Server" },
       ]}

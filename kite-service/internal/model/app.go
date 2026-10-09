@@ -58,6 +58,36 @@ func (r AppGatewayRequirements) NeedsGuildMessages() bool {
 		switch t {
 		case EventListenerTypeDiscordMessageCreate,
 			EventListenerTypeDiscordMessageUpdate,
+			EventListenerTypeDiscordMessageDelete,
+			EventListenerTypeDiscordForumPostCreate,
+			EventListenerTypeDiscordForumPostUpdate,
+			EventListenerTypeDiscordForumPostDelete:
+			return true
+		}
+	}
+
+	for _, t := range r.PluginEventTypes {
+		switch t {
+		case "MESSAGE_CREATE", "MESSAGE_UPDATE", "MESSAGE_DELETE":
+			return true
+		}
+	}
+
+	return false
+}
+
+// NeedsMessageContent reports whether the app consumes message content. The
+// forum thread events require guild messages, but not the privileged content
+// intent.
+func (r AppGatewayRequirements) NeedsMessageContent() bool {
+	if r.HasMessageInstances {
+		return true
+	}
+
+	for _, t := range r.EventListenerTypes {
+		switch t {
+		case EventListenerTypeDiscordMessageCreate,
+			EventListenerTypeDiscordMessageUpdate,
 			EventListenerTypeDiscordMessageDelete:
 			return true
 		}

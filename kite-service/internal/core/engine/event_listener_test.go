@@ -9,6 +9,18 @@ import (
 	"github.com/diamondburned/arikawa/v3/utils/ws"
 )
 
+type testForumPostEvent struct {
+	ws.Event
+}
+
+func (testForumPostEvent) EventType() ws.EventType {
+	return "FORUM_POST_CREATE"
+}
+
+func (testForumPostEvent) IsForumPostEvent() bool {
+	return true
+}
+
 // Every guild the bot is in arrives as a raw GUILD_CREATE on connect, so only
 // arikawa's derived join and leave events may trigger the bot server listeners.
 func TestShouldHandleGuildJoinAndLeave(t *testing.T) {
@@ -31,6 +43,13 @@ func TestShouldHandleGuildJoinAndLeave(t *testing.T) {
 		if got := l.shouldHandleEvent(tt.event, 0); got != tt.want {
 			t.Errorf("%s: got %v, want %v", tt.name, got, tt.want)
 		}
+	}
+}
+
+func TestShouldHandleForumPostEvents(t *testing.T) {
+	l := &EventListener{}
+	if !l.shouldHandleEvent(testForumPostEvent{}, 0) {
+		t.Error("forum post event was rejected")
 	}
 }
 
