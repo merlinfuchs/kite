@@ -40,6 +40,55 @@ describe("getAvailablePlaceholders", () => {
     expect(values()[0]).toEqual(["Command", ["arg('user')"]]);
   });
 
+  it("lists the server and member placeholders", () => {
+    const groups = Object.fromEntries(values());
+    expect(groups["Server"]).toEqual([
+      "guild.id",
+      "guild.name",
+      "guild.icon_url",
+      "guild.member_count",
+      "guild.boost_count",
+      "guild.owner_id",
+      "guild.boost_level",
+      "guild.created_at",
+      "guild.banner_url",
+      "guild.description",
+      "guild.vanity_url",
+      "guild.role_count",
+      "guild.channel_count",
+      "guild.emoji_count",
+      "guild.rules_channel",
+      "guild.system_channel",
+    ]);
+    expect(groups["Channel"]).toEqual([
+      "channel.id",
+      "channel.name",
+      "channel.mention",
+      "channel.type",
+      "channel.category_id",
+      "channel.category_name",
+    ]);
+    expect(groups["User"]).toEqual(
+      expect.arrayContaining([
+        "user.is_bot",
+        "user.created_at",
+        "user.joined_at",
+        "user.top_role",
+        "user.role_mentions",
+        "user.role_names",
+        "user.role_count",
+        "user.color",
+        "user.is_booster",
+        "user.boosting_since",
+        "user.is_timed_out",
+        "user.timeout_until",
+        "user.is_owner",
+        "user.is_admin",
+        "user.permissions",
+      ])
+    );
+  });
+
   it("adds the results and variables of earlier blocks", () => {
     expect(values("msg").slice(5)).toEqual([
       ["Temporary Variables", ["var('target')"]],

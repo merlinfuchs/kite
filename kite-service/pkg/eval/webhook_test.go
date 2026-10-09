@@ -8,8 +8,8 @@ import (
 	"github.com/kitecloud/kite/kite-service/pkg/webhook"
 )
 
-// testSession never connects, the placeholders in the tests don't need Discord.
-func testSession() *state.State {
+// emptyTestSession never connects, the placeholders in the tests don't need Discord.
+func emptyTestSession() *state.State {
 	return state.New("Bot test")
 }
 
@@ -18,7 +18,7 @@ func TestWebhookEventPlaceholders(t *testing.T) {
 		Headers: map[string]string{"x-github-event": "push"},
 		Query:   map[string]string{"source": "ci"},
 		Body:    `{"repository":{"name":"kite","stars":12},"commits":[{"message":"fix"}]}`,
-	}, testSession())
+	}, emptyTestSession())
 
 	cases := map[string]string{
 		"{{webhook.data.repository.name}}":                    "kite",
@@ -52,7 +52,7 @@ func TestWebhookEventPlaceholders(t *testing.T) {
 func TestWebhookEventPlaceholdersKeepLargeIntegers(t *testing.T) {
 	c := NewContextFromEvent(&webhook.Event{
 		Body: `{"user_id":1497746534387941386,"ids":[1497746534387941386],"count":3,"ratio":0.5}`,
-	}, testSession())
+	}, emptyTestSession())
 
 	cases := map[string]string{
 		"{{webhook.data.user_id}}":                        "1497746534387941386",
@@ -76,7 +76,7 @@ func TestWebhookEventPlaceholdersKeepLargeIntegers(t *testing.T) {
 }
 
 func TestWebhookEventPlaceholdersWithoutJSONBody(t *testing.T) {
-	c := NewContextFromEvent(&webhook.Event{Body: "status=up"}, testSession())
+	c := NewContextFromEvent(&webhook.Event{Body: "status=up"}, emptyTestSession())
 
 	got, err := EvalTemplate(context.Background(), "{{webhook.body}}", c)
 	if err != nil {
