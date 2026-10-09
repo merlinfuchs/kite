@@ -2,10 +2,12 @@ package eval
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/diamondburned/arikawa/v3/discord"
@@ -370,12 +372,18 @@ func newEventEnv(event ws.Event, session *state.State) *EventEnv {
 		if cached, ok := guild(e.ID).guild(); ok {
 			joined = *cached
 		}
-		env.Guild = guild(e.ID).cachedGuildEnv(joined)
+		env.Guild = guild(e.ID).newGuildEnv(joined)
 	case *state.GuildLeaveEvent:
 		// The server is gone from the cache by now, so only its ID is left.
 		env.Guild = guild(e.ID).guildEnv()
 	case *schedule.Event:
 		env.Schedule = NewScheduleEnv(e)
+	}
+
+	if env.Guild == nil {
+		// Typed, so its fields are empty instead of failing, like they are
+		// for an interaction outside of a server.
+		env.Guild = (*CurrentGuildEnv)(nil)
 	}
 
 	return env
@@ -457,28 +465,16 @@ type UserEnv struct {
 
 	// The fields below are only filled for members of a server. They are part
 	// of every user so a placeholder using them is empty outside of a server
-	// instead of failing the flow.
-	JoinedAt     int64    `expr:"joined_at" json:"joined_at"`
-	TopRole      *RoleEnv `expr:"top_role" json:"top_role"`
-	RoleMentions string   `expr:"role_mentions" json:"role_mentions"`
-	// RoleNames are the names of the roles, highest first, separated by commas.
-	RoleNames string `expr:"role_names" json:"role_names"`
-	RoleCount int    `expr:"role_count" json:"role_count"`
-	// Color is the color of the highest role that has one, like #5865f2.
-	Color string `expr:"color" json:"color"`
+	// instead of failing the flow. The ones that need the roles of the server
+	// are in lazyField.
+	JoinedAt  int64 `expr:"joined_at" json:"joined_at"`
+	RoleCount int   `expr:"role_count" json:"role_count"`
 
 	IsBooster     bool  `expr:"is_booster" json:"is_booster"`
 	BoostingSince int64 `expr:"boosting_since" json:"boosting_since"`
 	// TimeoutUntil is 0 unless the member is timed out right now.
 	IsTimedOut   bool  `expr:"is_timed_out" json:"is_timed_out"`
 	TimeoutUntil int64 `expr:"timeout_until" json:"timeout_until"`
-
-	// Permissions are those of the member's roles in the server, by their
-	// lowercased Discord names like ban_members. Permissions that a channel
-	// grants or denies aren't part of them.
-	IsOwner     bool     `expr:"is_owner" json:"is_owner"`
-	IsAdmin     bool     `expr:"is_admin" json:"is_admin"`
-	Permissions []string `expr:"permissions" json:"permissions"`
 }
 
 func (u UserEnv) Thing() thing.Thing {
@@ -487,6 +483,22 @@ func (u UserEnv) Thing() thing.Thing {
 
 func (u UserEnv) String() string {
 	return u.ID
+}
+
+// lazyField has the member fields that need the roles of the server, which
+// are empty for a user outside of a server.
+func (u *UserEnv) lazyField(name string) (any, bool, error) {
+	switch name {
+	case "top_role":
+		return &RoleEnv{}, true, nil
+	case "role_mentions", "role_names", "color":
+		return "", true, nil
+	case "is_owner", "is_admin":
+		return false, true, nil
+	case "permissions":
+		return []string{}, true, nil
+	}
+	return nil, false, nil
 }
 
 func NewUserEnv(user discord.User) *UserEnv {
@@ -508,8 +520,6 @@ func NewUserEnv(user discord.User) *UserEnv {
 		BannerURL:     user.BannerURL(),
 		IsBot:         user.Bot,
 		CreatedAt:     snowflakeUnix(discord.Snowflake(user.ID)),
-		TopRole:       &RoleEnv{},
-		Permissions:   []string{},
 	}
 }
 
@@ -519,11 +529,9 @@ func NewUserIDEnv(id discord.UserID) *UserEnv {
 	return &UserEnv{
 		og: discord.User{ID: id},
 
-		ID:          id.String(),
-		Mention:     fmt.Sprintf("<@%s>", id.String()),
-		CreatedAt:   snowflakeUnix(discord.Snowflake(id)),
-		TopRole:     &RoleEnv{},
-		Permissions: []string{},
+		ID:        id.String(),
+		Mention:   fmt.Sprintf("<@%s>", id.String()),
+		CreatedAt: snowflakeUnix(discord.Snowflake(id)),
 	}
 }
 
@@ -542,65 +550,43 @@ type MemberEnv struct {
 
 	Nick    string   `expr:"nick" json:"nick"`
 	RoleIDs []string `expr:"role_ids" json:"role_ids"`
+
+	// roles is only called when a placeholder needs the roles of the server,
+	// as it copies all of them from the cache.
+	roles func() (memberRoles, error)
 }
+
+// memberRoles is what the roles of the server tell about a member.
+type memberRoles struct {
+	// roles are those of the member, highest first.
+	roles       []discord.Role
+	everyone    *discord.Role
+	permissions discord.Permissions
+	isOwner     bool
+}
+
+var (
+	errMemberWithoutServer = errors.New("for a member from a block result or variable")
+	errServerNotCached     = errors.New("because the server isn't cached")
+)
 
 func (m MemberEnv) String() string {
 	return m.UserEnv.String()
 }
 
-// NewMemberEnv doesn't know the server of the member, so its roles are in the
-// order Discord sent them and the top role is unknown.
+// NewMemberEnv doesn't know the server of the member, like the result of a
+// Get Member block. The fields that need the roles of the server, like
+// is_admin, fail instead of being empty or false.
 func NewMemberEnv(member discord.Member) *MemberEnv {
-	return newMemberEnv(member, 0, nil, 0)
+	return newMemberEnv(member, func() (memberRoles, error) {
+		return memberRoles{}, errMemberWithoutServer
+	})
 }
 
-// newMemberEnv takes the roles of the member's server to put the member's
-// roles in order, highest first. The top role of a member without roles is
-// @everyone, which has the ID of the server. The owner of the server has every
-// permission, whatever their roles are.
-func newMemberEnv(member discord.Member, guildID discord.GuildID, guildRoles []discord.Role, ownerID discord.UserID) *MemberEnv {
+func newMemberEnv(member discord.Member, roles func() (memberRoles, error)) *MemberEnv {
 	roleIDs := make([]string, len(member.RoleIDs))
 	for i, role := range member.RoleIDs {
 		roleIDs[i] = role.String()
-	}
-
-	known := make(map[discord.RoleID]discord.Role, len(guildRoles))
-	for _, role := range guildRoles {
-		known[role.ID] = role
-	}
-
-	roles := make([]discord.Role, 0, len(member.RoleIDs))
-	for _, id := range member.RoleIDs {
-		role, ok := known[id]
-		if !ok {
-			role = discord.Role{ID: id}
-		}
-		roles = append(roles, role)
-	}
-	if len(guildRoles) > 0 {
-		// Roles at the same position are ordered by age, like Discord does.
-		sort.SliceStable(roles, func(a, b int) bool {
-			if roles[a].Position != roles[b].Position {
-				return roles[a].Position > roles[b].Position
-			}
-			return roles[a].ID < roles[b].ID
-		})
-	}
-
-	mentions := make([]string, len(roles))
-	names := make([]string, 0, len(roles))
-	color := ""
-	// Everyone has the permissions of @everyone.
-	permissions := known[discord.RoleID(guildID)].Permissions
-	for i, role := range roles {
-		mentions[i] = fmt.Sprintf("<@&%s>", role.ID.String())
-		if role.Name != "" {
-			names = append(names, role.Name)
-		}
-		if color == "" && role.Color > 0 {
-			color = fmt.Sprintf("#%06x", role.Color.Uint32())
-		}
-		permissions |= role.Permissions
 	}
 
 	env := &MemberEnv{
@@ -610,15 +596,14 @@ func newMemberEnv(member discord.Member, guildID discord.GuildID, guildRoles []d
 
 		Nick:    member.Nick,
 		RoleIDs: roleIDs,
+
+		roles: roles,
 	}
 
 	if member.Joined.IsValid() {
 		env.JoinedAt = member.Joined.Time().Unix()
 	}
-	env.RoleMentions = strings.Join(mentions, " ")
-	env.RoleNames = strings.Join(names, ", ")
-	env.RoleCount = len(roles)
-	env.Color = color
+	env.RoleCount = len(member.RoleIDs)
 
 	if member.BoostedSince.IsValid() {
 		env.IsBooster = true
@@ -630,21 +615,81 @@ func newMemberEnv(member discord.Member, guildID discord.GuildID, guildRoles []d
 		env.TimeoutUntil = until.Time().Unix()
 	}
 
-	env.IsOwner = ownerID.IsValid() && member.User.ID == ownerID
-	env.IsAdmin = env.IsOwner || permissions.Has(discord.PermissionAdministrator)
-	if env.IsAdmin {
-		// Administrators have every permission.
-		permissions = ^discord.Permissions(0)
-	}
-	env.Permissions = permissionNames(permissions)
-
-	if len(roles) > 0 && len(guildRoles) > 0 {
-		env.TopRole = NewRoleEnv(roles[0])
-	} else if everyone, ok := known[discord.RoleID(guildID)]; ok && len(roles) == 0 {
-		env.TopRole = NewRoleEnv(everyone)
-	}
-
 	return env
+}
+
+// lazyField has the fields that need the roles of the member's server. The
+// top role of a member without roles is @everyone. The owner of the server and
+// administrators have every permission, whatever their roles are. Permissions
+// that a channel grants or denies aren't part of permissions.
+func (m *MemberEnv) lazyField(name string) (any, bool, error) {
+	switch name {
+	case "top_role", "role_mentions", "role_names", "color", "is_owner", "is_admin", "permissions":
+	default:
+		return nil, false, nil
+	}
+
+	res, err := memberRoles{}, errMemberWithoutServer
+	if m.roles != nil {
+		res, err = m.roles()
+	}
+	if err != nil {
+		// Mentions don't need the server, only their order does.
+		if name == "role_mentions" {
+			mentions := make([]string, len(m.og.RoleIDs))
+			for i, id := range m.og.RoleIDs {
+				mentions[i] = id.Mention()
+			}
+			return strings.Join(mentions, " "), true, nil
+		}
+		return nil, true, fmt.Errorf("%s isn't known %w", name, err)
+	}
+
+	isAdmin := res.isOwner || res.permissions.Has(discord.PermissionAdministrator)
+
+	switch name {
+	case "top_role":
+		if len(res.roles) > 0 {
+			return NewRoleEnv(res.roles[0]), true, nil
+		}
+		if res.everyone != nil {
+			return NewRoleEnv(*res.everyone), true, nil
+		}
+		return &RoleEnv{}, true, nil
+	case "role_mentions":
+		mentions := make([]string, len(res.roles))
+		for i, role := range res.roles {
+			mentions[i] = role.ID.Mention()
+		}
+		return strings.Join(mentions, " "), true, nil
+	case "role_names":
+		// The names, highest first, separated by commas.
+		names := make([]string, 0, len(res.roles))
+		for _, role := range res.roles {
+			if role.Name != "" {
+				names = append(names, role.Name)
+			}
+		}
+		return strings.Join(names, ", "), true, nil
+	case "color":
+		// The color of the highest role that has one, like #5865f2.
+		for _, role := range res.roles {
+			if role.Color > 0 {
+				return fmt.Sprintf("#%06x", role.Color.Uint32()), true, nil
+			}
+		}
+		return "", true, nil
+	case "is_owner":
+		return res.isOwner, true, nil
+	case "is_admin":
+		return isAdmin, true, nil
+	default:
+		permissions := res.permissions
+		if isAdmin {
+			permissions = ^discord.Permissions(0)
+		}
+		return permissionNames(permissions), true, nil
+	}
 }
 
 // permissionNameByBit has the names Discord documents for the permission bits,
@@ -697,8 +742,11 @@ var permissionNameByBit = map[int]string{
 	44: "create_events",
 	45: "use_external_sounds",
 	46: "send_voice_messages",
+	48: "set_voice_channel_status",
 	49: "send_polls",
 	50: "use_external_apps",
+	51: "pin_messages",
+	52: "bypass_slowmode",
 }
 
 func permissionNames(permissions discord.Permissions) []string {
@@ -733,39 +781,41 @@ func (l guildLookup) guild() (*discord.Guild, bool) {
 
 // guildEnv falls back to only the ID if the server isn't cached.
 func (l guildLookup) guildEnv() *CurrentGuildEnv {
-	if guild, ok := l.guild(); ok {
-		return &CurrentGuildEnv{GuildEnv: *l.cachedGuildEnv(*guild)}
+	guild, ok := l.guild()
+	if !ok {
+		guild = &discord.Guild{ID: l.guildID}
 	}
-	return &CurrentGuildEnv{GuildEnv: *emptyGuildEnv(l.guildID)}
+	return &CurrentGuildEnv{GuildEnv: *l.newGuildEnv(*guild)}
 }
 
-// cachedGuildEnv adds what the cache keeps apart from the server itself: its
+// guildExtra adds what the cache keeps apart from the server itself: its
 // roles, channels and emojis.
-func (l guildLookup) cachedGuildEnv(guild discord.Guild) *GuildEnv {
-	env := NewGuildEnv(guild)
+func (l guildLookup) guildExtra(guild discord.Guild) guildExtra {
+	res := guildExtra{
+		roleCount:     countRoles(guild.Roles),
+		emojiCount:    len(guild.Emojis),
+		rulesChannel:  l.guildChannelEnv(guild.RulesChannelID),
+		systemChannel: l.guildChannelEnv(guild.SystemChannelID),
+	}
 	if !l.cached() {
-		return env
+		return res
 	}
 
 	if roles, err := l.session.Cabinet.Roles(l.guildID); err == nil {
-		env.RoleCount = countRoles(roles)
+		res.roleCount = countRoles(roles)
 	}
 	if emojis, err := l.session.Cabinet.Emojis(l.guildID); err == nil {
-		env.EmojiCount = len(emojis)
+		res.emojiCount = len(emojis)
 	}
 	if channels, err := l.session.Cabinet.Channels(l.guildID); err == nil {
-		env.ChannelCount = 0
 		for _, channel := range channels {
 			// Categories and threads aren't what people count as channels.
 			if channel.Type != discord.GuildCategory && !isThread(channel.Type) {
-				env.ChannelCount++
+				res.channelCount++
 			}
 		}
 	}
-
-	env.RulesChannel = l.guildChannelEnv(guild.RulesChannelID)
-	env.SystemChannel = l.guildChannelEnv(guild.SystemChannelID)
-	return env
+	return res
 }
 
 func (l guildLookup) guildChannelEnv(id discord.ChannelID) *ChannelEnv {
@@ -776,15 +826,51 @@ func (l guildLookup) guildChannelEnv(id discord.ChannelID) *ChannelEnv {
 }
 
 func (l guildLookup) memberEnv(member discord.Member) *MemberEnv {
-	var roles []discord.Role
-	var ownerID discord.UserID
-	if l.cached() {
-		roles, _ = l.session.Cabinet.Roles(l.guildID)
-		if guild, ok := l.guild(); ok {
-			ownerID = guild.OwnerID
-		}
+	return newMemberEnv(member, sync.OnceValues(func() (memberRoles, error) {
+		return l.memberRoles(member)
+	}))
+}
+
+func (l guildLookup) memberRoles(member discord.Member) (memberRoles, error) {
+	guild, ok := l.guild()
+	if !ok {
+		return memberRoles{}, errServerNotCached
 	}
-	return newMemberEnv(member, l.guildID, roles, ownerID)
+	guildRoles, err := l.session.Cabinet.Roles(l.guildID)
+	if err != nil {
+		return memberRoles{}, errServerNotCached
+	}
+
+	known := make(map[discord.RoleID]discord.Role, len(guildRoles))
+	for _, role := range guildRoles {
+		known[role.ID] = role
+	}
+
+	res := memberRoles{
+		roles:   make([]discord.Role, 0, len(member.RoleIDs)),
+		isOwner: guild.OwnerID.IsValid() && member.User.ID == guild.OwnerID,
+	}
+	// Everyone has the permissions of @everyone.
+	if everyone, ok := known[discord.RoleID(l.guildID)]; ok {
+		res.everyone = &everyone
+		res.permissions = everyone.Permissions
+	}
+	for _, id := range member.RoleIDs {
+		role, ok := known[id]
+		if !ok {
+			role = discord.Role{ID: id}
+		}
+		res.roles = append(res.roles, role)
+		res.permissions |= role.Permissions
+	}
+	// Roles at the same position are ordered by age, like Discord does.
+	sort.SliceStable(res.roles, func(a, b int) bool {
+		if res.roles[a].Position != res.roles[b].Position {
+			return res.roles[a].Position > res.roles[b].Position
+		}
+		return res.roles[a].ID < res.roles[b].ID
+	})
+	return res, nil
 }
 
 func (m MemberEnv) Thing() thing.Thing {
@@ -799,21 +885,36 @@ type ChannelEnv struct {
 	Mention string `expr:"mention" json:"mention"`
 	// Type is a word like text, voice or thread, and empty if it isn't known.
 	Type string `expr:"type" json:"type"`
-	// The category is empty for channels outside of one. For a thread it's
-	// the category of the channel the thread is in.
-	CategoryID   string `expr:"category_id" json:"category_id"`
-	CategoryName string `expr:"category_name" json:"category_name"`
+
+	// category is only called when a placeholder needs the category, as it
+	// can take two more cache lookups.
+	category func() channelCategory
+}
+
+// channelCategory is empty for channels outside of a category. For a thread
+// it's the category of the channel the thread is in.
+type channelCategory struct {
+	id   string
+	name string
 }
 
 // NewChannelEnv only knows what the channel itself carries, so the name of the
 // category is missing and a thread has no category.
 func NewChannelEnv(channel discord.Channel) *ChannelEnv {
+	return newChannelEnv(nil, channel)
+}
+
+func newChannelEnv(session *state.State, channel discord.Channel) *ChannelEnv {
 	env := &ChannelEnv{
 		og: channel,
 
 		ID:      channel.ID.String(),
 		Name:    channel.Name,
 		Mention: fmt.Sprintf("<#%s>", channel.ID.String()),
+
+		category: sync.OnceValue(func() channelCategory {
+			return lookupCategory(session, channel)
+		}),
 	}
 
 	// A channel that only has an ID would otherwise claim to be a text
@@ -821,10 +922,22 @@ func NewChannelEnv(channel discord.Channel) *ChannelEnv {
 	if channel.Name != "" || channel.Type != discord.GuildText {
 		env.Type = channelTypeName(channel.Type)
 	}
-	if !isThread(channel.Type) && channel.ParentID.IsValid() {
-		env.CategoryID = channel.ParentID.String()
-	}
 	return env
+}
+
+func (c *ChannelEnv) lazyField(name string) (any, bool, error) {
+	if name != "category_id" && name != "category_name" {
+		return nil, false, nil
+	}
+
+	var category channelCategory
+	if c.category != nil {
+		category = c.category()
+	}
+	if name == "category_id" {
+		return category.id, true, nil
+	}
+	return category.name, true, nil
 }
 
 func isThread(t discord.ChannelType) bool {
@@ -834,6 +947,10 @@ func isThread(t discord.ChannelType) bool {
 	}
 	return false
 }
+
+// guildMedia is like a forum, but for images and videos. arikawa has no
+// constant for it.
+const guildMedia discord.ChannelType = 16
 
 func channelTypeName(t discord.ChannelType) string {
 	switch t {
@@ -855,10 +972,18 @@ func channelTypeName(t discord.ChannelType) string {
 		return "stage"
 	case discord.GuildForum:
 		return "forum"
-	case 16:
+	case guildMedia:
 		return "media"
 	}
 	return "unknown"
+}
+
+func cachedChannel(session *state.State, id discord.ChannelID) (*discord.Channel, bool) {
+	if session == nil || session.Cabinet == nil || !id.IsValid() {
+		return nil, false
+	}
+	channel, err := session.Cabinet.Channel(id)
+	return channel, err == nil
 }
 
 // channelEnv reads the channel from the cache of session, to know its
@@ -866,15 +991,7 @@ func channelTypeName(t discord.ChannelType) string {
 // Without the channel in the cache it falls back to what Discord sent along,
 // or only the ID.
 func channelEnv(session *state.State, id discord.ChannelID, fallback *discord.Channel) *ChannelEnv {
-	cached := func(id discord.ChannelID) (*discord.Channel, bool) {
-		if session == nil || session.Cabinet == nil || !id.IsValid() {
-			return nil, false
-		}
-		channel, err := session.Cabinet.Channel(id)
-		return channel, err == nil
-	}
-
-	channel, ok := cached(id)
+	channel, ok := cachedChannel(session, id)
 	if !ok {
 		// A copy, so the channel of the interaction stays untouched.
 		partial := discord.Channel{}
@@ -884,22 +1001,26 @@ func channelEnv(session *state.State, id discord.ChannelID, fallback *discord.Ch
 		partial.ID = id
 		channel = &partial
 	}
-	env := NewChannelEnv(*channel)
+	return newChannelEnv(session, *channel)
+}
 
+func lookupCategory(session *state.State, channel discord.Channel) channelCategory {
 	categoryID := channel.ParentID
 	if isThread(channel.Type) {
 		categoryID = 0
-		if parent, ok := cached(channel.ParentID); ok {
+		if parent, ok := cachedChannel(session, channel.ParentID); ok {
 			categoryID = parent.ParentID
 		}
 	}
-	if categoryID.IsValid() {
-		env.CategoryID = categoryID.String()
-		if category, ok := cached(categoryID); ok {
-			env.CategoryName = category.Name
-		}
+	if !categoryID.IsValid() {
+		return channelCategory{}
 	}
-	return env
+
+	res := channelCategory{id: categoryID.String()}
+	if category, ok := cachedChannel(session, categoryID); ok {
+		res.name = category.Name
+	}
+	return res
 }
 
 // CurrentChannelEnv is the channel a flow runs in. A placeholder of just the
@@ -999,32 +1120,47 @@ type GuildEnv struct {
 	Description string `expr:"description" json:"description"`
 	// VanityURL is the custom invite link of the server, if it has one.
 	VanityURL string `expr:"vanity_url" json:"vanity_url"`
-	// RoleCount doesn't count @everyone, and ChannelCount neither categories
+
+	// extra is only called when a placeholder needs it, as it copies all
+	// roles and channels of the server from the cache.
+	extra func() guildExtra
+}
+
+type guildExtra struct {
+	// roleCount doesn't count @everyone, and channelCount neither categories
 	// nor threads. They are 0 if they aren't known.
-	RoleCount    int `expr:"role_count" json:"role_count"`
-	ChannelCount int `expr:"channel_count" json:"channel_count"`
-	EmojiCount   int `expr:"emoji_count" json:"emoji_count"`
+	roleCount    int
+	channelCount int
+	emojiCount   int
 	// The channels are empty if the server hasn't set them.
-	RulesChannel  *ChannelEnv `expr:"rules_channel" json:"rules_channel"`
-	SystemChannel *ChannelEnv `expr:"system_channel" json:"system_channel"`
+	rulesChannel  *ChannelEnv
+	systemChannel *ChannelEnv
 }
 
 // NewGuildEnv only knows what the server itself carries, so the names of its
 // rules and system channel are missing.
 func NewGuildEnv(guild discord.Guild) *GuildEnv {
-	env := emptyGuildEnv(guild.ID)
-	env.og = guild
+	return guildLookup{guildID: guild.ID}.newGuildEnv(guild)
+}
 
-	env.Name = guild.Name
-	env.IconURL = guild.IconURL()
-	env.MemberCount = int(guild.ApproximateMembers)
-	env.BoostCount = int(guild.NitroBoosters)
-	env.BoostLevel = int(guild.NitroBoost)
-	env.CreatedAt = snowflakeUnix(discord.Snowflake(guild.ID))
-	env.BannerURL = guild.BannerURL()
-	env.Description = guild.Description
-	env.RoleCount = countRoles(guild.Roles)
-	env.EmojiCount = len(guild.Emojis)
+func (l guildLookup) newGuildEnv(guild discord.Guild) *GuildEnv {
+	env := &GuildEnv{
+		og: guild,
+
+		ID:          guild.ID.String(),
+		Name:        guild.Name,
+		IconURL:     guild.IconURL(),
+		MemberCount: int(guild.ApproximateMembers),
+		BoostCount:  int(guild.NitroBoosters),
+		BoostLevel:  int(guild.NitroBoost),
+		CreatedAt:   snowflakeUnix(discord.Snowflake(guild.ID)),
+		BannerURL:   guild.BannerURL(),
+		Description: guild.Description,
+
+		extra: sync.OnceValue(func() guildExtra {
+			return l.guildExtra(guild)
+		}),
+	}
 
 	if guild.OwnerID.IsValid() {
 		env.OwnerID = guild.OwnerID.String()
@@ -1032,22 +1168,30 @@ func NewGuildEnv(guild discord.Guild) *GuildEnv {
 	if guild.VanityURLCode != "" {
 		env.VanityURL = "https://discord.gg/" + guild.VanityURLCode
 	}
-	if guild.RulesChannelID.IsValid() {
-		env.RulesChannel = NewChannelEnv(discord.Channel{ID: guild.RulesChannelID})
-	}
-	if guild.SystemChannelID.IsValid() {
-		env.SystemChannel = NewChannelEnv(discord.Channel{ID: guild.SystemChannelID})
-	}
 	return env
 }
 
-// emptyGuildEnv is a server of which only the ID is known.
-func emptyGuildEnv(id discord.GuildID) *GuildEnv {
-	return &GuildEnv{
-		ID:            id.String(),
-		RulesChannel:  &ChannelEnv{},
-		SystemChannel: &ChannelEnv{},
+func (g *GuildEnv) lazyField(name string) (any, bool, error) {
+	extra := func() guildExtra {
+		if g.extra == nil {
+			return guildExtra{rulesChannel: &ChannelEnv{}, systemChannel: &ChannelEnv{}}
+		}
+		return g.extra()
 	}
+
+	switch name {
+	case "role_count":
+		return extra().roleCount, true, nil
+	case "channel_count":
+		return extra().channelCount, true, nil
+	case "emoji_count":
+		return extra().emojiCount, true, nil
+	case "rules_channel":
+		return extra().rulesChannel, true, nil
+	case "system_channel":
+		return extra().systemChannel, true, nil
+	}
+	return nil, false, nil
 }
 
 // countRoles leaves out @everyone, which every server has.
@@ -1067,7 +1211,9 @@ func (g GuildEnv) String() string {
 }
 
 // CurrentGuildEnv is the server a flow runs in. A placeholder of just the
-// server is its ID, like it was before the server had other fields.
+// server is its ID, like it was before the server had other fields. Outside
+// of a server it's nil, but its fields are empty instead of failing the flow,
+// see fetchField.
 type CurrentGuildEnv struct {
 	GuildEnv
 }

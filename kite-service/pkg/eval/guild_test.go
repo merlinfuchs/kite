@@ -2,13 +2,16 @@ package eval
 
 import (
 	"context"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/gateway"
 	"github.com/diamondburned/arikawa/v3/state"
+	"github.com/diamondburned/arikawa/v3/state/store"
 	"github.com/diamondburned/arikawa/v3/state/store/defaultstore"
+	"github.com/kitecloud/kite/kite-service/pkg/thing"
 )
 
 const (
@@ -92,9 +95,18 @@ func TestGuildPlaceholdersWithoutCache(t *testing.T) {
 			env := newInteractionEnv(i, session)
 			c := Context{Env: Env{"guild": env.Guild, "user": env.User}}
 
-			got := evalString(t, c, "[{{guild.id}}|{{guild.name}}|{{guild.member_count}}|{{guild.owner_id}}|{{user.top_role.name}}|{{user.role_mentions}}]")
-			if want := "[100||0|||<@&11>]"; got != want {
+			got := evalString(t, c, "[{{guild.id}}|{{guild.name}}|{{guild.member_count}}|{{guild.owner_id}}|{{guild.role_count}}|{{user.role_mentions}}]")
+			if want := "[100||0||0|<@&11>]"; got != want {
 				t.Errorf("got %q, want %q", got, want)
+			}
+
+			// Without the roles of the server, what needs them isn't known.
+			// Failing is better than claiming an admin isn't one.
+			for _, template := range []string{"{{user.is_admin}}", "{{user.top_role.name}}", "{{user.permissions}}"} {
+				_, err := EvalTemplateToString(context.Background(), template, c)
+				if err == nil || !strings.Contains(err.Error(), "isn't cached") {
+					t.Errorf("%s: got error %v", template, err)
+				}
 			}
 		})
 	}
@@ -115,6 +127,21 @@ func TestNoGuildInDirectMessages(t *testing.T) {
 	got := evalString(t, c, "[{{user.joined_at}}|{{user.top_role}}|{{user.top_role.mention}}|{{user.role_mentions}}]")
 	if want := "[0|||]"; got != want {
 		t.Errorf("got %q, want %q", got, want)
+	}
+
+	// So are the server placeholders, while the server itself stays nil.
+	dms := map[string]Context{
+		"interaction": {Env: Env{"guild": env.Guild}},
+		"event": NewContext(Env{"guild": newEventEnv(&gateway.MessageCreateEvent{
+			Message: discord.Message{ID: 1, ChannelID: 50, Author: discord.User{ID: testUserID}},
+		}, nil).Guild}),
+	}
+	for name, c := range dms {
+		c.Env["origin"] = map[string]any{"guild": c.Env["guild"]}
+		got := evalString(t, c, "[{{guild}}|{{guild.id}}|{{guild.name}}|{{guild.member_count}}|{{guild.role_count}}|{{guild.rules_channel.mention}}|{{origin.guild.name}}|{{guild == nil}}|{{guild?.name == nil}}]")
+		if want := "[|||0|0|||true|true]"; got != want {
+			t.Errorf("%s: got %q, want %q", name, got, want)
+		}
 	}
 }
 
@@ -397,5 +424,134 @@ func TestServerInfoPlaceholders(t *testing.T) {
 	c = Context{Env: Env{"guild": uncached.Guild}}
 	if got := evalString(t, c, "[{{guild.boost_level}}|{{guild.vanity_url}}|{{guild.role_count}}|{{guild.rules_channel}}|{{guild.rules_channel.mention}}]"); got != "[0||0||]" {
 		t.Errorf("uncached: got %q", got)
+	}
+}
+
+func TestMemberResultNeedsServer(t *testing.T) {
+	// A member from a block result or variable doesn't know its server, so
+	// what needs its roles fails instead of claiming an admin isn't one.
+	member := discord.Member{
+		User:    discord.User{ID: testUserID},
+		Joined:  discord.NewTimestamp(time.Date(2024, 5, 1, 12, 0, 0, 0, time.UTC)),
+		RoleIDs: []discord.RoleID{11, 12},
+	}
+	c := NewContext(Env{"result": func(string) any {
+		return NewThingEnv(thing.NewDiscordMember(member))
+	}})
+
+	if got := evalString(t, c, "{{result('a').joined_at}}|{{result('a').role_count}}|{{result('a').role_mentions}}"); got != "1714564800|2|<@&11> <@&12>" {
+		t.Errorf("got %q", got)
+	}
+	for _, field := range []string{"is_admin", "is_owner", "permissions", "top_role", "role_names", "color"} {
+		_, err := EvalTemplateToString(context.Background(), "{{result('a')."+field+"}}", c)
+		if err == nil || !strings.Contains(err.Error(), field+" isn't known for a member from a block result or variable") {
+			t.Errorf("%s: got error %v", field, err)
+		}
+	}
+}
+
+func TestResumedMemberKeepsServer(t *testing.T) {
+	session := testSession(t)
+	admin := discord.Role{ID: 12, Name: "Admin", Position: 5, Permissions: discord.PermissionAdministrator}
+	if err := session.Cabinet.RoleSet(testGuildID, &admin, true); err != nil {
+		t.Fatal(err)
+	}
+	i := &discord.InteractionEvent{
+		GuildID: testGuildID,
+		Member:  &discord.Member{User: discord.User{ID: testUserID}, RoleIDs: []discord.RoleID{12}},
+		Data:    &discord.StringSelectInteraction{},
+	}
+	origin := Context{Env: Env{"user": newInteractionEnv(i, session).User}}
+	c := NewContext(Env{})
+	c.SetResumeContext([]Context{origin})
+
+	if got := evalString(t, c, "{{origin.user.is_admin}}|{{origin.user.top_role.name}}"); got != "true|Admin" {
+		t.Errorf("got %q", got)
+	}
+}
+
+// countingRoles and countingChannels count how often all roles or channels of
+// a server are read.
+type countingRoles struct {
+	store.RoleStore
+	calls int
+}
+
+func (s *countingRoles) Roles(id discord.GuildID) ([]discord.Role, error) {
+	s.calls++
+	return s.RoleStore.Roles(id)
+}
+
+type countingChannels struct {
+	store.ChannelStore
+	calls int
+}
+
+func (s *countingChannels) Channels(id discord.GuildID) ([]discord.Channel, error) {
+	s.calls++
+	return s.ChannelStore.Channels(id)
+}
+
+func TestServerRolesAndChannelsAreReadWhenNeeded(t *testing.T) {
+	session := testChannelSession(t)
+	roles := &countingRoles{RoleStore: session.Cabinet.RoleStore}
+	channels := &countingChannels{ChannelStore: session.Cabinet.ChannelStore}
+	session.Cabinet.RoleStore = roles
+	session.Cabinet.ChannelStore = channels
+
+	env := newEventEnv(&gateway.MessageCreateEvent{
+		Message: discord.Message{ID: 1, ChannelID: 21, GuildID: testGuildID, Author: discord.User{ID: testUserID}},
+		Member:  &discord.Member{User: discord.User{ID: testUserID}, RoleIDs: []discord.RoleID{11}},
+	}, session)
+	c := Context{Env: Env{"guild": env.Guild, "user": env.User, "channel": env.Channel}}
+
+	evalString(t, c, "{{guild.name}} {{user.mention}} {{user.role_count}} {{channel.name}}")
+	if roles.calls != 0 || channels.calls != 0 {
+		t.Fatalf("read roles %d and channels %d times without needing them", roles.calls, channels.calls)
+	}
+
+	// Once for the server and once for the member, however often they're used.
+	for i := 0; i < 2; i++ {
+		if got := evalString(t, c, "{{guild.channel_count}}|{{guild.role_count}}|{{user.top_role.name}}|{{user.role_names}}"); got != "2|3|Member|Member" {
+			t.Errorf("got %q", got)
+		}
+	}
+	if roles.calls != 2 || channels.calls != 1 {
+		t.Errorf("read roles %d and channels %d times", roles.calls, channels.calls)
+	}
+}
+
+func TestPermissionNames(t *testing.T) {
+	// Every permission arikawa knows needs a name. It has none of the newer
+	// ones, which are checked below.
+	known := []discord.Permissions{
+		discord.PermissionCreateInstantInvite, discord.PermissionKickMembers, discord.PermissionBanMembers,
+		discord.PermissionAdministrator, discord.PermissionManageChannels, discord.PermissionManageGuild,
+		discord.PermissionAddReactions, discord.PermissionViewAuditLog, discord.PermissionPrioritySpeaker,
+		discord.PermissionStream, discord.PermissionViewChannel, discord.PermissionSendMessages,
+		discord.PermissionSendTTSMessages, discord.PermissionManageMessages, discord.PermissionEmbedLinks,
+		discord.PermissionAttachFiles, discord.PermissionReadMessageHistory, discord.PermissionMentionEveryone,
+		discord.PermissionUseExternalEmojis, discord.PermissionViewGuildInsights, discord.PermissionConnect,
+		discord.PermissionSpeak, discord.PermissionMuteMembers, discord.PermissionDeafenMembers,
+		discord.PermissionMoveMembers, discord.PermissionUseVAD, discord.PermissionChangeNickname,
+		discord.PermissionManageNicknames, discord.PermissionManageRoles, discord.PermissionManageWebhooks,
+		discord.PermissionManageEmojisAndStickers, discord.PermissionUseSlashCommands, discord.PermissionRequestToSpeak,
+		discord.PermissionManageEvents, discord.PermissionManageThreads, discord.PermissionCreatePublicThreads,
+		discord.PermissionCreatePrivateThreads, discord.PermissionUseExternalStickers, discord.PermissionSendMessagesInThreads,
+		discord.PermissionStartEmbeddedActivities, discord.PermissionModerateMembers, discord.PermissionViewCreatorMonetizationAnalytics,
+		discord.PermissionUseSoundboard, discord.PermissionUseExternalSounds, discord.PermissionSendVoiceMessages,
+		discord.PermissionAll,
+	}
+	for _, permissions := range known {
+		for bit := 0; bit < 64; bit++ {
+			if permissions&(1<<bit) != 0 && permissionNameByBit[bit] == "" {
+				t.Errorf("bit %d has no name", bit)
+			}
+		}
+	}
+
+	got := strings.Join(permissionNames(1<<48|1<<51|1<<52), ",")
+	if want := "set_voice_channel_status,pin_messages,bypass_slowmode"; got != want {
+		t.Errorf("got %q, want %q", got, want)
 	}
 }

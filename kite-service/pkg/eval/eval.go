@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"reflect"
 	"strings"
 
 	"github.com/expr-lang/expr"
@@ -78,6 +79,8 @@ func Eval(ctx context.Context, expression string, c Context) (thing.Thing, error
 	for _, p := range c.Patchers {
 		opts = append(opts, expr.Patch(p))
 	}
+	// After the other patchers, which may add fields to read.
+	opts = append(opts, fieldOptions()...)
 
 	program, err := expr.Compile(expression, opts...)
 	if err != nil {
@@ -92,6 +95,12 @@ func Eval(ctx context.Context, expression string, c Context) (thing.Thing, error
 	result, err := expr.Run(program, map[string]any(c.Env))
 	if err != nil {
 		return thing.Null, fmt.Errorf("eval error: %w", err)
+	}
+
+	// A nil env, like the server outside of a server, is nil. Its Thing
+	// method would panic.
+	if v := reflect.ValueOf(result); v.Kind() == reflect.Ptr && v.IsNil() {
+		result = nil
 	}
 
 	res := thing.NewGuessTypeWithFallback(result)
