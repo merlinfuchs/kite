@@ -34,7 +34,7 @@ export default function WebhookUrlInput() {
       onSuccess(res) {
         if (res.success) {
           toast.success(
-            "Webhook URL regenerated! The old URL stops working within a few seconds."
+            "Webhook URL regenerated! It may take a few seconds until the new URL works."
           );
         } else {
           toast.error(
