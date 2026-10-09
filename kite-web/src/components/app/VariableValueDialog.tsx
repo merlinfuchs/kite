@@ -55,8 +55,18 @@ function defaultValues(value?: VariableValue): FormFields {
   };
 }
 
-// Adds a value to the variable, or edits one when given. Values a flow stored
-// that can't be entered as text, and ones too large to load, are only shown.
+// Values a flow stored that can't be entered as text, ones too large to load,
+// and ones whose scope doesn't fit the variable, like a scoped value in an
+// unscoped variable, can only be viewed.
+export function isValueReadOnly(variable: Variable, value: VariableValue) {
+  return (
+    value.read_only ||
+    value.truncated ||
+    (value.scope !== null) !== variable.scoped
+  );
+}
+
+// Adds a value to the variable, or edits one when given.
 export default function VariableValueDialog({
   children,
   variable,
@@ -69,9 +79,7 @@ export default function VariableValueDialog({
   const [open, setOpen] = useState(false);
 
   const setMutation = useVariableValueSetMutation(useAppId(), variable.id);
-  const readOnly = !!value && (value.read_only || value.truncated);
-  // A flow can store a scoped value in an unscoped variable. Its scope is
-  // shown so an error about it isn't hidden.
+  const readOnly = !!value && isValueReadOnly(variable, value);
   const showScope = variable.scoped || value?.scope != null;
 
   const form = useForm<FormFields>({
@@ -81,11 +89,6 @@ export default function VariableValueDialog({
 
   function onSubmit(data: FormFields) {
     if (setMutation.isPending || readOnly) return;
-
-    if (variable.scoped && !value && !data.scope.trim()) {
-      form.setError("scope", { message: "cannot be blank" });
-      return;
-    }
 
     setMutation.mutate(
       {
@@ -130,7 +133,11 @@ export default function VariableValueDialog({
             {readOnly
               ? value?.truncated
                 ? "This value is too large to edit here, only the start of it is shown."
-                : "This value holds data stored by a flow that can't be edited here."
+                : value?.read_only
+                ? "This value holds data stored by a flow that can't be edited here."
+                : variable.scoped
+                ? "This value has no scope, so it can't be edited here."
+                : "This value has a scope but the variable isn't scoped, so it can't be edited here."
               : variable.scoped && !value
               ? "If there already is a value for the scope, it will be replaced."
               : "Flows that run after saving will read the new value."}

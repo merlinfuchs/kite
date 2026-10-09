@@ -28,7 +28,10 @@ import { Variable, VariableValue } from "@/lib/types/wire.gen";
 import { cn, formatDateTime, formatNumber } from "@/lib/utils";
 import { toast } from "sonner";
 import ConfirmDialog from "../common/ConfirmDialog";
-import VariableValueDialog, { variableValueTypes } from "./VariableValueDialog";
+import VariableValueDialog, {
+  isValueReadOnly,
+  variableValueTypes,
+} from "./VariableValueDialog";
 
 const pageSize = 25;
 
@@ -221,7 +224,7 @@ function VariableValueRow({
     });
   }
 
-  const readOnly = value.read_only || value.truncated;
+  const readOnly = isValueReadOnly(variable, value);
   const typeLabel =
     variableValueTypes.find((t) => t.value === value.type)?.label ?? value.type;
 
