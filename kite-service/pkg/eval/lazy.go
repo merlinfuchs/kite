@@ -2,6 +2,7 @@ package eval
 
 import (
 	"reflect"
+	"slices"
 
 	"github.com/expr-lang/expr"
 	"github.com/expr-lang/expr/ast"
@@ -23,10 +24,20 @@ var lazyFielderType = reflect.TypeOf((*lazyFielder)(nil)).Elem()
 // fetchFieldFunc can't be written in an expression, only fieldPatcher adds it.
 const fetchFieldFunc = "$fetch_field"
 
-func fieldOptions() []expr.Option {
+// patchOptions adds fieldPatcher after patchers. They run as one, as expr
+// checks the types of the whole expression again before each patcher.
+func patchOptions(patchers []ast.Visitor) []expr.Option {
 	return []expr.Option{
 		expr.Function(fetchFieldFunc, fetchField),
-		expr.Patch(fieldPatcher{}),
+		expr.Patch(visitors(append(slices.Clip(patchers), fieldPatcher{}))),
+	}
+}
+
+type visitors []ast.Visitor
+
+func (v visitors) Visit(node *ast.Node) {
+	for _, visitor := range v {
+		visitor.Visit(node)
 	}
 }
 
@@ -39,23 +50,38 @@ func (fieldPatcher) Visit(node *ast.Node) {
 	if !ok || member.Method {
 		return
 	}
-	if _, ok := member.Property.(*ast.StringNode); !ok {
-		return
-	}
 
+	_, named := member.Property.(*ast.StringNode)
 	t := member.Node.Type()
-	if t != nil && t.Kind() != reflect.Interface && !t.Implements(lazyFielderType) {
+	lazy := t == nil || t.Kind() == reflect.Interface || t.Implements(lazyFielderType)
+	// Patching takes away the jump of an optional field to the end of its
+	// chain, so what follows it is patched too, to be nil in a?.b.c or a?.b[0]
+	// if a is nil.
+	afterOptional := isOptionalFetch(member.Node)
+	if !afterOptional && !(named && lazy) {
 		return
 	}
 
 	ast.Patch(node, &ast.CallNode{
 		Callee:    &ast.IdentifierNode{Value: fetchFieldFunc},
-		Arguments: []ast.Node{member.Node, member.Property, &ast.BoolNode{Value: member.Optional}},
+		Arguments: []ast.Node{member.Node, member.Property, &ast.BoolNode{Value: member.Optional || afterOptional}},
 	})
 }
 
+func isOptionalFetch(node ast.Node) bool {
+	call, ok := node.(*ast.CallNode)
+	if !ok {
+		return false
+	}
+	if callee, ok := call.Callee.(*ast.IdentifierNode); !ok || callee.Value != fetchFieldFunc {
+		return false
+	}
+	optional, ok := call.Arguments[2].(*ast.BoolNode)
+	return ok && optional.Value
+}
+
 func fetchField(params ...any) (any, error) {
-	from, name, optional := params[0], params[1].(string), params[2].(bool)
+	from, name, optional := params[0], params[1], params[2].(bool)
 
 	if runtime.IsNil(from) {
 		if optional {
@@ -63,16 +89,16 @@ func fetchField(params ...any) (any, error) {
 		}
 		// Outside of a server the server is nil, and its fields are empty
 		// like the member fields of the user, instead of failing the flow.
-		v := reflect.ValueOf(from)
-		if v.Kind() != reflect.Ptr || !v.Type().Implements(lazyFielderType) {
-			return runtime.Fetch(from, name), nil
+		if v := reflect.ValueOf(from); v.Kind() == reflect.Ptr && v.Type().Implements(lazyFielderType) {
+			from = reflect.New(v.Type().Elem()).Interface()
 		}
-		from = reflect.New(v.Type().Elem()).Interface()
 	}
 
 	if l, ok := from.(lazyFielder); ok {
-		if v, ok, err := l.lazyField(name); ok {
-			return v, err
+		if name, ok := name.(string); ok {
+			if v, ok, err := l.lazyField(name); ok {
+				return v, err
+			}
 		}
 	}
 	return runtime.Fetch(from, name), nil

@@ -298,3 +298,35 @@ func TestResumeContextPrefersCurrentInteraction(t *testing.T) {
 		t.Errorf("input(\"name\") = %q, want %q", res.String(), "current")
 	}
 }
+
+func TestEvalReadsFieldsOfUnknownValues(t *testing.T) {
+	// Results are only known when the expression runs, so their fields are
+	// read by fetchField, which has to keep optional chaining working.
+	c := Context{Env: Env{
+		"result": func(id string) any {
+			if id == "none" {
+				return nil
+			}
+			return map[string]any{"a": map[string]any{"b": "deep"}, "list": []any{map[string]any{"name": "x"}}}
+		},
+	}}
+
+	tests := map[string]string{
+		"{{result('x').a.b}}":                     "deep",
+		"{{result('x').list[0].name}}":            "x",
+		"{{map(result('x').list, .name)}}":        "[x]",
+		"{{'b' in result('x').a}}":                "true",
+		"{{result('x').missing ?? 'default'}}":    "default",
+		"[{{result('none')?.a.b}}]":               "[]",
+		"{{result('none')?.a.b ?? 'default'}}":    "default",
+		"{{(result('none')?.a)?.b ?? 'default'}}": "default",
+	}
+	for template, want := range tests {
+		got, err := EvalTemplateToString(context.Background(), template, c)
+		if err != nil {
+			t.Errorf("%s: %v", template, err)
+		} else if got != want {
+			t.Errorf("%s: got %q, want %q", template, got, want)
+		}
+	}
+}

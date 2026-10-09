@@ -76,11 +76,7 @@ func Eval(ctx context.Context, expression string, c Context) (thing.Thing, error
 		expr.WithContext("ctx"),
 		expr.Timezone("UTC"),
 	}
-	for _, p := range c.Patchers {
-		opts = append(opts, expr.Patch(p))
-	}
-	// After the other patchers, which may add fields to read.
-	opts = append(opts, fieldOptions()...)
+	opts = append(opts, patchOptions(c.Patchers)...)
 
 	program, err := expr.Compile(expression, opts...)
 	if err != nil {
