@@ -864,7 +864,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [
         "default"
@@ -1063,7 +1064,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [
         "default"
@@ -1276,7 +1278,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [
         "default"
@@ -1339,7 +1342,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [
         "default"
@@ -1496,7 +1500,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [
         "default"
@@ -1695,7 +1700,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [
         "default"
@@ -1772,7 +1778,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [
         "default"
@@ -1849,7 +1856,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [
         "default"
@@ -1912,7 +1920,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [
         "default"
@@ -1975,7 +1984,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [
         "default"
@@ -2195,7 +2205,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [
         "default"
@@ -2347,7 +2358,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [
         "default"
@@ -2406,7 +2418,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [
         "default"
@@ -2481,7 +2494,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [
         "default"
@@ -2543,7 +2557,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [
         "default"
@@ -2605,7 +2620,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [
         "default"
@@ -2681,7 +2697,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [
         "default"
@@ -2759,7 +2776,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [
         "default"
@@ -2857,7 +2875,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [
         "default"
@@ -2937,7 +2956,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [
         "default"
@@ -3013,7 +3033,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [
         "default"
@@ -3089,7 +3110,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [
         "default"
@@ -3182,7 +3204,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [
         "default"
@@ -3283,7 +3306,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [
         "default"
@@ -3353,7 +3377,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [
         "default"
@@ -3587,7 +3612,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [
         "default"
@@ -3822,7 +3848,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [
         "default"
@@ -3871,7 +3898,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [
         "default"
@@ -3949,7 +3977,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [
         "default"
@@ -4183,7 +4212,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [
         "default"
@@ -4232,7 +4262,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [
         "default"
@@ -4281,7 +4312,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [
         "default"
@@ -4367,7 +4399,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [
         "default"
@@ -4418,7 +4451,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [
         "default"
@@ -4458,7 +4492,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [
         "default"
@@ -4524,7 +4559,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [
         "default"
@@ -4589,7 +4625,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [
         "default"
@@ -4629,7 +4666,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [
         "default"
@@ -4676,7 +4714,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [
         "default"
@@ -4772,7 +4811,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [
         "default"
@@ -4855,7 +4895,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [
         "default"
@@ -4932,7 +4973,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [
         "default"
@@ -5049,7 +5091,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [
         "default"
@@ -5165,7 +5208,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [
         "default"
@@ -5208,7 +5252,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [
         "default"
@@ -5273,7 +5318,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [
         "default"
@@ -5321,7 +5367,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [],
       "owned_children": [
@@ -5361,7 +5408,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [],
       "owned_children": [
@@ -5401,7 +5449,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [],
       "owned_children": [
@@ -5441,7 +5490,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [],
       "owned_children": [
@@ -5481,7 +5531,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [],
       "owned_children": [
@@ -5525,7 +5576,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [],
       "owned_children": [],
@@ -5545,7 +5597,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [
         "error",
@@ -5581,7 +5634,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [
         "default"
@@ -5653,7 +5707,8 @@
       "description": "Listens for an event to trigger the flow. Drop different actions here!",
       "contexts": [
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [
         "default"
@@ -5675,9 +5730,10 @@
               "message_reaction_remove",
               "guild_create",
               "guild_delete",
-              "cron"
+              "cron",
+              "webhook"
             ],
-            "description": "Discord event that triggers the flow, or cron for a scheduled flow."
+            "description": "Discord event that triggers the flow, cron for a scheduled flow, or webhook for a flow that runs when a request is sent to its webhook URL."
           },
           "event_schedule_cron": {
             "type": "string",
@@ -5726,7 +5782,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [
         "default"
@@ -5961,7 +6018,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [
         "default"
@@ -6007,7 +6065,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [
         "default"
@@ -6050,7 +6109,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [
         "default"
@@ -6089,7 +6149,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [
         "default"
@@ -6128,7 +6189,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [
         "default"
@@ -6150,7 +6212,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [
         "default"
@@ -6172,7 +6235,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [
         "default"

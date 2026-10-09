@@ -86,6 +86,11 @@ export const FlowNodeTypeSuspendResponseModal: FlowNodeType = "suspend_response_
  * schedule instead of reacting to Discord events.
  */
 export const EventTypeScheduleCron = "cron";
+/**
+ * EventTypeWebhook is the event type of listeners that run when a request is
+ * sent to their webhook URL.
+ */
+export const EventTypeWebhook = "webhook";
 export interface FlowNode {
   id: string;
   type?: FlowNodeType;

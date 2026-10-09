@@ -57,6 +57,26 @@ function interactionPlaceholders(
     ];
   }
 
+  if (contextType === "event_webhook") {
+    return [
+      {
+        label: `${labelPrefix}Webhook`,
+        placeholders: [
+          { label: "Request Body", value: `${prefix}webhook.body` },
+          {
+            label: "Request Body Field (JSON)",
+            value: `${prefix}webhook.data.name`,
+          },
+          {
+            label: "Request Header",
+            value: `${prefix}webhook.headers['content-type']`,
+          },
+          { label: "Query Parameter", value: `${prefix}webhook.query.name` },
+        ],
+      },
+    ];
+  }
+
   const res = [
     {
       label: `${labelPrefix}User`,

@@ -134,6 +134,10 @@ const (
 // schedule instead of reacting to Discord events.
 const EventTypeScheduleCron = "cron"
 
+// EventTypeWebhook is the event type of listeners that run when a request is
+// sent to their webhook URL.
+const EventTypeWebhook = "webhook"
+
 type FlowNode struct {
 	ID       string           `json:"id"`
 	Type     FlowNodeType     `json:"type,omitempty"`
