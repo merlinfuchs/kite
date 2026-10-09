@@ -53,11 +53,11 @@ channel:
   id: string
   name: string
   mention: string
-  type: string # text, voice, category, announcement, thread, stage, forum, media, dm or group_dm
+  type: string # text, voice, category, announcement, thread, stage, forum, media, dm, group_dm, or unknown for newer types
   category_id: string # Empty outside of a category, for a thread the category of its channel
   category_name: string
 
-guild?: # For events and interactions inside a server
+guild?: # For events and interactions inside a server, elsewhere guild is empty and so are its fields
   id: string # The id of the server
   name: string
   icon_url: string # Empty if the server has no icon
@@ -99,6 +99,8 @@ arg('name') # Access value of a command argument
 input('identifier') # Access value of a modal input
 result('id') # Access the result of a previous block
 ```
+
+`top_role`, `role_names`, `color`, `is_owner`, `is_admin` and `permissions` need the roles of the server. They work for `user`, members from command arguments, and `origin.user` and `previous.user` in sub-flows. A member from `result('id')`, like the result of a Get Member block, or from a variable doesn't know its server, so using them there fails the flow instead of returning a wrong answer.
 
 `guild.member_count` follows members joining and leaving while your app has a Member Join or Member Leave event listener. Without one, it's the count from when your app last connected to Discord.
 
