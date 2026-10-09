@@ -161,9 +161,9 @@ func cooldownKey(ctx *FlowContext, appID string, commandName string, cooldownNod
 	switch cooldownNode.Data.CooldownScope {
 	case CooldownScopeUser, "": // Empty is the default, per user.
 		return prefix + ":user:" + ctx.Data.UserID().String()
-	case CooldownScopeServer:
+	case CooldownScopeGuild:
 		if guildID := ctx.Data.GuildID(); guildID != 0 {
-			return prefix + ":server:" + guildID.String()
+			return prefix + ":guild:" + guildID.String()
 		}
 		// No server to key by in DMs, so fall back to a per-user cooldown.
 		return prefix + ":user:" + ctx.Data.UserID().String()

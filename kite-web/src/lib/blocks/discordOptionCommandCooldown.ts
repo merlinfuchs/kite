@@ -24,7 +24,7 @@ export const discordOptionCommandCooldown: BlockDefinition = {
     {
       name: "cooldown_scope",
       schema: z
-        .enum(["user", "server", "global"])
+        .enum(["user", "guild", "global"])
         .optional()
         .describe(
           "Who the cooldown applies to: the user who ran the command, everyone in the server, or everyone everywhere. Defaults to user."

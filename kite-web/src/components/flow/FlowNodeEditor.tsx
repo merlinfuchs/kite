@@ -673,7 +673,7 @@ function CooldownScopeInput({ data, updateData, errors }: InputProps) {
       type="select"
       options={[
         { value: "user", label: "Per User" },
-        { value: "server", label: "Per Server" },
+        { value: "guild", label: "Per Server" },
         { value: "global", label: "Global" },
       ]}
       value={data.cooldown_scope || "user"}

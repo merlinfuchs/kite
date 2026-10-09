@@ -43,7 +43,7 @@ func TestParseCooldownDuration(t *testing.T) {
 func TestCooldownDataValidation(t *testing.T) {
 	valid := []FlowNodeData{
 		{CooldownDurationSeconds: "30"},
-		{CooldownDurationSeconds: "30", CooldownScope: CooldownScopeServer},
+		{CooldownDurationSeconds: "30", CooldownScope: CooldownScopeGuild},
 		{CooldownDurationSeconds: "{{arg('seconds')}}"},
 	}
 	for _, d := range valid {

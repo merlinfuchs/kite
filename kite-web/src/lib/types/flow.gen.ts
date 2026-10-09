@@ -247,7 +247,7 @@ export interface FlowNodeData {
 }
 export type CooldownScope = string;
 export const CooldownScopeUser: CooldownScope = "user";
-export const CooldownScopeServer: CooldownScope = "server";
+export const CooldownScopeGuild: CooldownScope = "guild";
 export const CooldownScopeGlobal: CooldownScope = "global";
 export type ComparsionMode = string;
 export const ComparsionModeEqual: ComparsionMode = "equal";

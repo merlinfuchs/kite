@@ -179,7 +179,7 @@
             "type": "string",
             "enum": [
               "user",
-              "server",
+              "guild",
               "global"
             ],
             "description": "Who the cooldown applies to: the user who ran the command, everyone in the server, or everyone everywhere. Defaults to user."

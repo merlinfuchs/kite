@@ -469,7 +469,7 @@ func (d FlowNodeData) Validate(nodeType FlowNodeType) error {
 		// Command Cooldown
 		// An empty scope means CooldownScopeUser, the default the editor shows.
 		validation.Field(&d.CooldownScope, validation.When(nodeType == FlowNodeTypeOptionCommandCooldown,
-			validation.In(CooldownScopeUser, CooldownScopeServer, CooldownScopeGlobal),
+			validation.In(CooldownScopeUser, CooldownScopeGuild, CooldownScopeGlobal),
 		)),
 		validation.Field(&d.CooldownDurationSeconds, validation.When(nodeType == FlowNodeTypeOptionCommandCooldown,
 			validation.Required,
@@ -519,7 +519,7 @@ type CooldownScope string
 
 const (
 	CooldownScopeUser   CooldownScope = "user"
-	CooldownScopeServer CooldownScope = "server"
+	CooldownScopeGuild  CooldownScope = "guild"
 	CooldownScopeGlobal CooldownScope = "global"
 )
 
