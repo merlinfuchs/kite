@@ -149,7 +149,7 @@ Placeholders: settings marked "x-templated" in the catalog can contain placehold
 - Discord event flows: message.id and message.content for message events.
 - Schedule flows: schedule.time and schedule.unix.
 - After a button or select menu, user, member, channel.id and the interaction are those of its use, and interaction.value and interaction.values are the selected option values. origin. followed by a placeholder, like origin.user.id or origin.arg('name'), is the one the flow started with, and previous. the one of the use before.
-- result('block_id') is the result of an earlier block, see result_schema in the catalog, e.g. result('abc').user.id. var('name') is the temporary variable an earlier block stored with its temporary_name setting. input('custom_id') is the value of an input of an earlier modal.
+- result('block_id') is the result of an earlier block, see result_schema in the catalog, e.g. result('abc').user.id. var('name') is the temporary variable an earlier block stored with its temporary_name setting. input('custom_id') is the value of an input of an earlier modal, the first one if several can be picked, and inputs('custom_id') the list of all of them.
 - A placeholder can only use blocks that run before the block it's in.
 
 Rules:

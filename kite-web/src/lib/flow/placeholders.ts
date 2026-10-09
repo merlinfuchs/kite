@@ -214,8 +214,9 @@ function upstreamPlaceholders(
     }
   }
 
-  // interaction is the modal submission only in the modal's own sub-flow,
-  // until the next resume point.
+  // The selected values of inputs that allow several picks are only listed in
+  // the modal's own sub-flow, until the next resume point, though inputs()
+  // works after it too.
   const depth = getResumeDepth(nodeId, nodes, edges);
   for (const parent of getUpstreamNodes(nodeId, nodes, edges)) {
     if (parent.type !== "suspend_response_modal") continue;
@@ -227,8 +228,8 @@ function upstreamPlaceholders(
       const input = row.components?.[0];
       if (!input || !modalInputIsMultiValue(input)) continue;
       groups[0].placeholders.push({
-        label: `${row.label ?? "Unknown Input"} (All Picked)`,
-        value: `interaction.components['${input.custom_id}'].values`,
+        label: `${row.label ?? "Unknown Input"} (Selected Values)`,
+        value: `inputs('${input.custom_id}')`,
       });
     }
   }

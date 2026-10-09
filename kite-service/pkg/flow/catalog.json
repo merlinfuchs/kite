@@ -889,7 +889,7 @@
                                     "type": "integer",
                                     "minimum": 1,
                                     "maximum": 25,
-                                    "description": "Maximum picks. Defaults to 1 for selects and to all options for checkbox_group. input() joins several picks with ', '."
+                                    "description": "Maximum picks. Defaults to 1 for selects and to all options for checkbox_group. input() returns the first pick, inputs() the list of all."
                                   },
                                   "options": {
                                     "type": "array",
@@ -958,7 +958,7 @@
                                       "mentionable_select",
                                       "channel_select"
                                     ],
-                                    "description": "A select menu of the server's members, roles, both, or channels. input() returns IDs."
+                                    "description": "A select menu of the server's members, roles, both, or channels. input() returns an ID."
                                   },
                                   "placeholder": {
                                     "type": "string",
@@ -977,7 +977,7 @@
                                     "type": "integer",
                                     "minimum": 1,
                                     "maximum": 25,
-                                    "description": "Maximum picks. Defaults to 1 for selects and to all options for checkbox_group. input() joins several picks with ', '."
+                                    "description": "Maximum picks. Defaults to 1 for selects and to all options for checkbox_group. input() returns the first pick, inputs() the list of all."
                                   },
                                   "channel_types": {
                                     "type": "array",

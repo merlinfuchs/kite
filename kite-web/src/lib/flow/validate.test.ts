@@ -410,6 +410,14 @@ describe("validateFlow", () => {
     ).toEqual([
       "'Log Message' uses input('age'), but no modal before it has an input with the identifier 'age'.",
     ]);
+    expect(
+      errors(
+        [entry, modal, log("a", "{{inputs('name')}} {{len(inputs('age'))}}")],
+        [edge("entry", "modal"), edge("modal", "a")]
+      )
+    ).toEqual([
+      "'Log Message' uses inputs('age'), but no modal before it has an input with the identifier 'age'.",
+    ]);
   });
 
   it("finds modal inputs in labels", () => {

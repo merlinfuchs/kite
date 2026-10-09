@@ -107,11 +107,16 @@ describe("getAvailablePlaceholders", () => {
       "input('roles')",
       "input('extras')",
       "input('size')",
-      "interaction.components['multi'].values",
-      "interaction.components['roles'].values",
-      "interaction.components['extras'].values",
+      "inputs('multi')",
+      "inputs('roles')",
+      "inputs('extras')",
     ]);
-    // After a button, interaction is the button click.
+    expect(
+      getAvailablePlaceholders("log", modalNodes, modalEdges, "command")
+        .find((g) => g.label === "Modal Inputs")
+        ?.placeholders.at(-1)?.label
+    ).toBe("extras (Selected Values)");
+    // Only listed until the next resume point.
     expect(modalInputs("later")).toEqual([
       "input('single')",
       "input('multi')",

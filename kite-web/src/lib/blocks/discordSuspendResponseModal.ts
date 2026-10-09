@@ -43,7 +43,7 @@ const modalSelectFields = {
     .max(25)
     .optional()
     .describe(
-      "Maximum picks. Defaults to 1 for selects and to all options for checkbox_group. input() joins several picks with ', '."
+      "Maximum picks. Defaults to 1 for selects and to all options for checkbox_group. input() returns the first pick, inputs() the list of all."
     ),
 };
 
@@ -111,7 +111,7 @@ const modalInputSchema = z
       type: z
         .enum(modalEntitySelectTypes)
         .describe(
-          "A select menu of the server's members, roles, both, or channels. input() returns IDs."
+          "A select menu of the server's members, roles, both, or channels. input() returns an ID."
         ),
       ...modalSelectFields,
       channel_types: z
