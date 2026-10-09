@@ -48,13 +48,7 @@ export default function AppCommandPage() {
           onSuccess(res) {
             if (res.success) {
               toast.success(
-                "Command saved! Make sure to deploy for changes to take effect in Discord.",
-                {
-                  action: {
-                    label: "Deploy",
-                    onClick: () => setDeployDialogOpen(true),
-                  },
-                }
+                "Command saved! Make sure to deploy the command for the changes to take effect in Discord."
               );
               options?.onSuccess?.();
             } else {
