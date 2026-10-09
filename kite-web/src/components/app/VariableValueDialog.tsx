@@ -70,6 +70,9 @@ export default function VariableValueDialog({
 
   const setMutation = useVariableValueSetMutation(useAppId(), variable.id);
   const readOnly = !!value && (value.read_only || value.truncated);
+  // A flow can store a scoped value in an unscoped variable. Its scope is
+  // shown so an error about it isn't hidden.
+  const showScope = variable.scoped || value?.scope != null;
 
   const form = useForm<FormFields>({
     defaultValues: defaultValues(value),
@@ -79,7 +82,7 @@ export default function VariableValueDialog({
   function onSubmit(data: FormFields) {
     if (setMutation.isPending || readOnly) return;
 
-    if (variable.scoped && !value && !data.scope) {
+    if (variable.scoped && !value && !data.scope.trim()) {
       form.setError("scope", { message: "cannot be blank" });
       return;
     }
@@ -135,7 +138,7 @@ export default function VariableValueDialog({
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4">
-            {variable.scoped && (
+            {showScope && (
               <FormField
                 control={form.control}
                 name="scope"

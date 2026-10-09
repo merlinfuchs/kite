@@ -71,6 +71,8 @@ export default function VariableValueExplorer() {
   // once it's set.
   const scoped = !!variable?.scoped;
   const canAdd = !!variable && (scoped || (!!data && total === 0));
+  // Flows can store scoped values in an unscoped variable too.
+  const showScope = scoped || values.some((v) => v!.scope !== null);
 
   return (
     <Card>
@@ -122,7 +124,7 @@ export default function VariableValueExplorer() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  {scoped && <TableHead>Scope</TableHead>}
+                  {showScope && <TableHead>Scope</TableHead>}
                   <TableHead>Value</TableHead>
                   <TableHead>Type</TableHead>
                   <TableHead>Updated</TableHead>
@@ -133,7 +135,7 @@ export default function VariableValueExplorer() {
                 {values.length === 0 ? (
                   <TableRow>
                     <TableCell
-                      colSpan={scoped ? 5 : 4}
+                      colSpan={showScope ? 5 : 4}
                       className="h-24 text-center text-muted-foreground"
                     >
                       {search
@@ -146,6 +148,7 @@ export default function VariableValueExplorer() {
                     <VariableValueRow
                       variable={variable}
                       value={value!}
+                      showScope={showScope}
                       key={value!.scope ?? ""}
                     />
                   ))
@@ -189,9 +192,11 @@ export default function VariableValueExplorer() {
 function VariableValueRow({
   variable,
   value,
+  showScope,
 }: {
   variable: Variable;
   value: VariableValue;
+  showScope: boolean;
 }) {
   const deleteMutation = useVariableValueDeleteMutation(
     useAppId(),
@@ -218,7 +223,7 @@ function VariableValueRow({
 
   return (
     <TableRow>
-      {variable.scoped && (
+      {showScope && (
         <TableCell className="font-mono text-xs max-w-[12rem] truncate">
           {value.scope ?? <span className="text-muted-foreground">none</span>}
         </TableCell>
