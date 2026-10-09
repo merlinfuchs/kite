@@ -7,7 +7,9 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/kitecloud/kite/kite-service/internal/api/handler"
@@ -17,16 +19,39 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/store"
 	"github.com/kitecloud/kite/kite-service/internal/util"
 	"github.com/kitecloud/kite/kite-service/pkg/webhook"
+	"golang.org/x/time/rate"
 	"gopkg.in/guregu/null.v4"
 )
 
 const (
-	// Requests an app accepts per interval, across all its webhook listeners.
-	// Every request runs a flow, and anyone the URL was shared with can send
-	// them.
-	webhookRateLimit         = 10
-	webhookRateLimitInterval = time.Minute
+	// Requests an app accepts across all its webhook listeners: bursts of up
+	// to webhookRateBurst, like the few events Stripe or GitHub send at once,
+	// refilled at one every webhookRateEvery (10 per minute). Every request
+	// runs a flow, and anyone the URL was shared with can send them.
+	webhookRateEvery = 6 * time.Second
+	webhookRateBurst = 60
 )
+
+type webhookLimiter struct {
+	mu       sync.Mutex
+	limiters map[string]*rate.Limiter
+}
+
+func newWebhookLimiter() *webhookLimiter {
+	return &webhookLimiter{limiters: make(map[string]*rate.Limiter)}
+}
+
+func (l *webhookLimiter) allow(appID string) bool {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+
+	limiter, ok := l.limiters[appID]
+	if !ok {
+		limiter = rate.NewLimiter(rate.Every(webhookRateEvery), webhookRateBurst)
+		l.limiters[appID] = limiter
+	}
+	return limiter.Allow()
+}
 
 // WebhookRunner runs the flows of webhook event listeners. It's implemented
 // by the engine.
@@ -82,12 +107,8 @@ func (h *EventListenerHandler) HandleEventListenerWebhook(c *handler.Context) er
 
 	// After the secret check, so requests with a wrong secret can't use up
 	// the limit of an app.
-	_, _, reset, ok, err := h.webhookLimiter.Take(c.Context(), appID)
-	if err != nil {
-		return handler.ErrInternal("failed to take rate limit token")
-	}
-	if !ok {
-		c.SetHeader("Retry-After", time.Unix(0, int64(reset)).UTC().Format(http.TimeFormat))
+	if !h.webhookLimiter.allow(appID) {
+		c.SetHeader("Retry-After", strconv.Itoa(int(webhookRateEvery/time.Second)))
 		return handler.ErrRateLimit("The webhooks of this app are receiving too many requests. Please try again later.")
 	}
 

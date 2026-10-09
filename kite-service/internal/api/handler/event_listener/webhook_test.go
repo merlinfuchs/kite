@@ -166,12 +166,12 @@ func TestWebhookRateLimitIsPerApp(t *testing.T) {
 	))
 
 	// Requests with a wrong secret don't count against the app.
-	for i := 0; i < webhookRateLimit; i++ {
+	for i := 0; i < webhookRateBurst; i++ {
 		postWebhook(server, "/v1/apps/app/webhooks/listener/wrong", "", nil)
 	}
 
 	// Both listeners of the app share one limit.
-	for i := 0; i < webhookRateLimit; i++ {
+	for i := 0; i < webhookRateBurst; i++ {
 		path := "/v1/apps/app/webhooks/listener/secret"
 		if i%2 == 1 {
 			path = "/v1/apps/app/webhooks/other-listener/secret"
@@ -188,7 +188,7 @@ func TestWebhookRateLimitIsPerApp(t *testing.T) {
 		assert.Equal(t, http.StatusTooManyRequests, rec.Code, path)
 		assert.NotEmpty(t, rec.Header().Get("Retry-After"))
 	}
-	assert.Len(t, runner.events, webhookRateLimit)
+	assert.Len(t, runner.events, webhookRateBurst)
 }
 
 func TestWebhookAppOffline(t *testing.T) {

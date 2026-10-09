@@ -3,7 +3,6 @@ package eventlistener
 import (
 	"errors"
 	"fmt"
-	"log"
 	"time"
 
 	"github.com/kitecloud/kite/kite-service/internal/api/handler"
@@ -13,29 +12,19 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/util"
 	"github.com/kitecloud/kite/kite-service/pkg/flow"
 	"github.com/kitecloud/kite/kite-service/pkg/schedule"
-	"github.com/sethvargo/go-limiter"
-	"github.com/sethvargo/go-limiter/memorystore"
 )
 
 type EventListenerHandler struct {
 	eventListenerStore store.EventListenerStore
 	webhookRunner      WebhookRunner
-	webhookLimiter     limiter.Store
+	webhookLimiter     *webhookLimiter
 }
 
 func NewEventListenerHandler(eventListenerStore store.EventListenerStore, webhookRunner WebhookRunner) *EventListenerHandler {
-	webhookLimiter, err := memorystore.New(&memorystore.Config{
-		Tokens:   webhookRateLimit,
-		Interval: webhookRateLimitInterval,
-	})
-	if err != nil {
-		log.Fatal(err)
-	}
-
 	return &EventListenerHandler{
 		eventListenerStore: eventListenerStore,
 		webhookRunner:      webhookRunner,
-		webhookLimiter:     webhookLimiter,
+		webhookLimiter:     newWebhookLimiter(),
 	}
 }
 
