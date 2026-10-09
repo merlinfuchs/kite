@@ -3,6 +3,7 @@ package engine
 import (
 	"testing"
 
+	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/gateway"
 	"github.com/diamondburned/arikawa/v3/state"
 	"github.com/diamondburned/arikawa/v3/utils/ws"
@@ -27,7 +28,32 @@ func TestShouldHandleGuildJoinAndLeave(t *testing.T) {
 
 	l := &EventListener{}
 	for _, tt := range tests {
-		if got := l.shouldHandleEvent(tt.event); got != tt.want {
+		if got := l.shouldHandleEvent(tt.event, 0); got != tt.want {
+			t.Errorf("%s: got %v, want %v", tt.name, got, tt.want)
+		}
+	}
+}
+
+// A flow that adds or removes a reaction must not trigger its own reaction
+// listeners.
+func TestShouldHandleReactionsIgnoresOwnApp(t *testing.T) {
+	const botID = discord.UserID(1)
+	const userID = discord.UserID(2)
+
+	tests := []struct {
+		name  string
+		event ws.Event
+		want  bool
+	}{
+		{"reaction add by user", &gateway.MessageReactionAddEvent{UserID: userID}, true},
+		{"reaction add by app", &gateway.MessageReactionAddEvent{UserID: botID}, false},
+		{"reaction remove by user", &gateway.MessageReactionRemoveEvent{UserID: userID}, true},
+		{"reaction remove by app", &gateway.MessageReactionRemoveEvent{UserID: botID}, false},
+	}
+
+	l := &EventListener{}
+	for _, tt := range tests {
+		if got := l.shouldHandleEvent(tt.event, botID); got != tt.want {
 			t.Errorf("%s: got %v, want %v", tt.name, got, tt.want)
 		}
 	}

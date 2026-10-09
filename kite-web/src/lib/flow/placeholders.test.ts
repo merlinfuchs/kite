@@ -56,4 +56,14 @@ describe("getAvailablePlaceholders", () => {
       ["result('msg')", "result('get')"],
     ]);
   });
+
+  it("lists the reaction emoji for discord events", () => {
+    const groups = getAvailablePlaceholders(undefined, [], [], "event_discord");
+    expect(groups.find((g) => g.label === "Emoji")?.placeholders).toEqual([
+      { label: "Emoji", value: "emoji" },
+      { label: "Emoji ID", value: "emoji.id" },
+      { label: "Emoji Name", value: "emoji.name" },
+      { label: "Emoji Mention", value: "emoji.mention" },
+    ]);
+  });
 });

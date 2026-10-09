@@ -69,6 +69,7 @@ type FlowContextData interface {
 	UserID() discord.UserID
 	GuildID() discord.GuildID
 	ChannelID() discord.ChannelID
+	MessageID() discord.MessageID
 }
 
 type FlowContextLimits struct {

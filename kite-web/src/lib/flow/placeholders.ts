@@ -100,6 +100,16 @@ function interactionPlaceholders(
         { label: "Message Content", value: `${prefix}message.content` },
       ],
     });
+    // Only set for reaction events.
+    res.push({
+      label: `${labelPrefix}Emoji`,
+      placeholders: [
+        { label: "Emoji", value: `${prefix}emoji` },
+        { label: "Emoji ID", value: `${prefix}emoji.id` },
+        { label: "Emoji Name", value: `${prefix}emoji.name` },
+        { label: "Emoji Mention", value: `${prefix}emoji.mention` },
+      ],
+    });
   }
 
   return res;

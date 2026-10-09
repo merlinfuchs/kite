@@ -11,6 +11,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"time"
 	"unicode/utf8"
 
 	"github.com/diamondburned/arikawa/v3/api"
@@ -32,6 +33,10 @@ var commandOptionNameRe = regexp.MustCompile(`^[a-z0-9_]+$`)
 
 // Allows only lowercase alphanumeric characters and underscores.
 var resultKeyRe = regexp.MustCompile(`^[a-z0-9_]+$`)
+
+// A single placeholder, like {{arg('seconds')}}. Matches placeholderRegex in
+// kite-web/src/lib/flow/dataSchema.ts.
+var singlePlaceholderRe = regexp.MustCompile(`^\{\{[^{}]+\}\}$`)
 
 type FlowData struct {
 	Nodes []FlowNode `json:"nodes"`
@@ -56,6 +61,7 @@ const (
 	FlowNodeTypeOptionCommandPermissions FlowNodeType = "option_command_permissions"
 	FlowNodeTypeOptionCommandContexts    FlowNodeType = "option_command_contexts"
 	FlowNodeTypeOptionEventFilter        FlowNodeType = "option_event_filter"
+	FlowNodeTypeOptionCommandCooldown    FlowNodeType = "option_command_cooldown"
 
 	FlowNodeTypeActionResponseCreate        FlowNodeType = "action_response_create"
 	FlowNodeTypeActionResponseEdit          FlowNodeType = "action_response_edit"
@@ -173,6 +179,11 @@ type FlowNodeData struct {
 	CommandDisabledContexts []CommandContextType `json:"command_disabled_contexts,omitempty"`
 	// Command Installations
 	CommandDisabledIntegrations []CommandDisabledIntegrationType `json:"command_disabled_integrations,omitempty"`
+
+	// Command Cooldown
+	CooldownScope           CooldownScope `json:"cooldown_scope,omitempty"`
+	CooldownDurationSeconds string        `json:"cooldown_duration_seconds,omitempty"`
+	CooldownMessage         string        `json:"cooldown_message,omitempty"`
 
 	// Guild Get, and the guild of member, channel, role and voice blocks
 	GuildTarget string `json:"guild_target,omitempty"`
@@ -454,8 +465,63 @@ func (d FlowNodeData) Validate(nodeType FlowNodeType) error {
 		// correctness problem. eval enforces the same limit as a backstop for
 		// flows stored before this check existed.
 		validation.Field(&d.Expression, validation.Length(0, eval.MaxExpressionLength)),
+
+		// Command Cooldown
+		// An empty scope means CooldownScopeUser, the default the editor shows.
+		validation.Field(&d.CooldownScope, validation.When(nodeType == FlowNodeTypeOptionCommandCooldown,
+			validation.In(CooldownScopeUser, CooldownScopeGuild, CooldownScopeGlobal),
+		)),
+		validation.Field(&d.CooldownDurationSeconds, validation.When(nodeType == FlowNodeTypeOptionCommandCooldown,
+			validation.Required,
+			validation.By(func(value any) error {
+				// Placeholders can only be checked when the flow runs.
+				if singlePlaceholderRe.MatchString(value.(string)) {
+					return nil
+				}
+				_, err := parseCooldownDuration(value.(string))
+				return err
+			}),
+		)),
+		validation.Field(&d.CooldownMessage, validation.Length(0, 2000)),
 	)
 }
+
+// maxCooldownDuration is the longest cooldown a cooldown block can have.
+// Cooldowns are kept in memory and reset when Kite restarts, so they have to
+// stay short. Longer cooldowns, like daily rewards, should use stored
+// variables instead.
+const maxCooldownDuration = time.Hour
+
+// parseCooldownDuration parses a cooldown duration given in whole seconds.
+// Empty, invalid, fractional, non-positive and too long durations are errors
+// rather than silently disabling the cooldown.
+func parseCooldownDuration(raw string) (time.Duration, error) {
+	raw = strings.TrimSpace(raw)
+	if raw == "" {
+		return 0, errors.New("cooldown duration is empty")
+	}
+
+	seconds, err := strconv.ParseInt(raw, 10, 64)
+	if err != nil {
+		return 0, errors.New("cooldown duration must be a whole number of seconds")
+	}
+
+	// Checked before converting, huge values overflow time.Duration.
+	maxSeconds := int64(maxCooldownDuration / time.Second)
+	if seconds < 1 || seconds > maxSeconds {
+		return 0, fmt.Errorf("cooldown duration must be between 1 and %d seconds", maxSeconds)
+	}
+
+	return time.Duration(seconds) * time.Second, nil
+}
+
+type CooldownScope string
+
+const (
+	CooldownScopeUser   CooldownScope = "user"
+	CooldownScopeGuild  CooldownScope = "guild"
+	CooldownScopeGlobal CooldownScope = "global"
+)
 
 type ComparsionMode string
 
@@ -513,6 +579,7 @@ const (
 	EventFilterTypeUserID         EventFilterTarget = "user_id"
 	EventFilterTypeGuildID        EventFilterTarget = "guild_id"
 	EventFilterTypeChannelID      EventFilterTarget = "channel_id"
+	EventFilterTypeMessageID      EventFilterTarget = "message_id"
 )
 
 type RobloxLookupType string
