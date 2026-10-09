@@ -12,6 +12,9 @@ import (
 // memberCountStore keeps the member count of cached servers, which Discord
 // only sends when the bot connects or joins a server. It's kept in
 // ApproximateMembers of the server, so everything reading the cache sees it.
+// Gateway events never fill that field, and nothing reads it expecting
+// Discord's approximate count: the dashboard's server list leaves it out, and
+// the Get Server block reads the cache, so its result has the same count.
 //
 // The count is exact as long as the bot receives member join and leave events,
 // which needs the server members intent. Without it the count is the one from
