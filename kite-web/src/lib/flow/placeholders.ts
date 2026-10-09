@@ -234,26 +234,6 @@ function upstreamPlaceholders(
     }
   }
 
-  // The selected values of inputs that allow several picks are only listed in
-  // the modal's own sub-flow, until the next resume point, though inputs()
-  // works after it too.
-  const depth = getResumeDepth(nodeId, nodes, edges);
-  for (const parent of getUpstreamNodes(nodeId, nodes, edges)) {
-    if (parent.type !== "suspend_response_modal") continue;
-    if (getResumeDepth(parent.id, nodes, edges) + 1 !== depth) continue;
-
-    for (const row of normalizeModalComponents(
-      parent.data.modal_data?.components
-    )) {
-      const input = row.components?.[0];
-      if (!input || !modalInputIsMultiValue(input)) continue;
-      groups[0].placeholders.push({
-        label: `${row.label ?? "Unknown Input"} (Selected Values)`,
-        value: `inputs('${input.custom_id}')`,
-      });
-    }
-  }
-
   return groups.filter((g) => g.placeholders.length > 0);
 }
 
@@ -291,6 +271,13 @@ export function getProvidedPlaceholders(node: Node<NodeData>) {
           label: row.label ?? "Unknown Input",
           value: `input('${component.custom_id}')`,
         });
+        if (modalInputIsMultiValue(component)) {
+          res.push({
+            group: "Modal Inputs",
+            label: `${row.label ?? "Unknown Input"} (Selected Values)`,
+            value: `inputs('${component.custom_id}')`,
+          });
+        }
       }
     }
   }

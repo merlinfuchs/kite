@@ -101,29 +101,24 @@ describe("getAvailablePlaceholders", () => {
         .find((g) => g.label === "Modal Inputs")
         ?.placeholders.map((p) => p.value);
 
-    expect(modalInputs("log")).toEqual([
+    const expected = [
       "input('single')",
       "input('multi')",
-      "input('roles')",
-      "input('extras')",
-      "input('size')",
       "inputs('multi')",
+      "input('roles')",
       "inputs('roles')",
+      "input('extras')",
       "inputs('extras')",
-    ]);
+      "input('size')",
+    ];
+    expect(modalInputs("log")).toEqual(expected);
     expect(
       getAvailablePlaceholders("log", modalNodes, modalEdges, "command")
         .find((g) => g.label === "Modal Inputs")
-        ?.placeholders.at(-1)?.label
+        ?.placeholders.find((p) => p.value === "inputs('extras')")?.label
     ).toBe("extras (Selected Values)");
-    // Only listed until the next resume point.
-    expect(modalInputs("later")).toEqual([
-      "input('single')",
-      "input('multi')",
-      "input('roles')",
-      "input('extras')",
-      "input('size')",
-    ]);
+    // Like input(), inputs() still works after the next resume point.
+    expect(modalInputs("later")).toEqual(expected);
   });
 
   it("lists the reaction emoji for discord events", () => {
