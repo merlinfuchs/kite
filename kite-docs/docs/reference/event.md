@@ -66,21 +66,20 @@ curl -X POST "YOUR_WEBHOOK_URL?source=test" \
 
 ### Placeholders
 
-| Placeholder                             | Value                                                  |
-| --------------------------------------- | ------------------------------------------------------ |
-| `{{webhook.body}}`                      | The body of the request as text                        |
-| `{{webhook.data}}`                      | The body parsed as JSON, empty if the body isn't JSON  |
-| `{{webhook.data.repository.name}}`      | A field of the JSON body, `kite` in the example above  |
-| `{{webhook.headers['x-github-event']}}` | A header of the request, header names are in lowercase |
-| `{{webhook.query.source}}`              | A query parameter of the URL, `test` in the example    |
+| Placeholder                             | Value                                                     |
+| --------------------------------------- | --------------------------------------------------------- |
+| `{{webhook.body}}`                      | The body of the request as text                           |
+| `{{webhook.data.repository.name}}`      | A field of the body parsed as JSON, `kite` in the example |
+| `{{webhook.headers['x-github-event']}}` | A header of the request, header names are in lowercase    |
+| `{{webhook.query.source}}`              | A query parameter of the URL, `test` in the example       |
 
-Many services send different kinds of events to the same URL and name the kind in a header or in the body. Use a comparison block on that value to only react to the events you want.
+Many services send different kinds of events to the same URL and name the kind in a header or in the body. Use a Comparison Condition block on that value to only react to the events you want.
 
 Like a scheduled run, a webhook run has no user, server or channel. Blocks that act on a server need a target guild, and messages need a target channel. Response blocks aren't available because there's nothing to respond to.
 
 ### Keeping the URL secret
 
-Anyone who knows the webhook URL can run the flow, and every run uses credits. Treat the URL like a password. If it got out, regenerate it in the settings of the first block. The old URL stops working within a few seconds, and you need to enter the new one wherever the old one was used.
+Anyone who knows the webhook URL can run the flow, and every run uses credits. Treat the URL like a password. If it got out, regenerate it in the settings of the first block. The old URL stops working right away and the new one works within a few seconds. Enter it wherever the old one was used.
 
 The URL isn't part of the flow, so it isn't included when you export, share or duplicate the event listener. A copy gets its own URL.
 
@@ -91,4 +90,3 @@ The URL isn't part of the flow, so it isn't included when you export, share or d
 - All webhook event listeners of an app share a limit of 10 requests per minute. Requests above that are answered with status `429` and don't run the flow.
 - Requests are answered with status `404` while the event listener is disabled, and with `503` while your app is offline.
 - It can take a few seconds until a new or re-enabled event listener accepts requests.
-
