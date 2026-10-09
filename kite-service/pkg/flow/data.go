@@ -599,10 +599,11 @@ type CommandArgumentChoiceData struct {
 }
 
 type StatusData struct {
-	Status       string `json:"status,omitempty"`
-	ActivityType int    `json:"activity_type,omitempty"`
-	ActivityName string `json:"activity_name,omitempty"`
-	ActivityURL  string `json:"activity_url,omitempty"`
+	Status        string `json:"status,omitempty"`
+	ActivityType  int    `json:"activity_type,omitempty"`
+	ActivityName  string `json:"activity_name,omitempty"`
+	ActivityState string `json:"activity_state,omitempty"`
+	ActivityURL   string `json:"activity_url,omitempty"`
 }
 
 type ChannelData struct {

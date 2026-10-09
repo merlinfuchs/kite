@@ -4751,6 +4751,12 @@
                 "description": "Text of the activity shown on the bot's profile.",
                 "x-templated": true
               },
+              "activity_state": {
+                "type": "string",
+                "maxLength": 128,
+                "description": "Optional second line shown under the activity name. Not used by the Custom activity type.",
+                "x-templated": true
+              },
               "activity_url": {
                 "type": "string",
                 "description": "Stream URL, only used by the Streaming activity type.",

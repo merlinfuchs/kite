@@ -3128,6 +3128,9 @@ function StatusDataInput({ data, updateData, errors }: InputProps) {
         updateValue={(v) =>
           updateField({
             activity_type: parseInt(v) || undefined,
+            // Custom statuses have no second line
+            activity_state:
+              v !== "4" ? data.status_data?.activity_state : undefined,
             // Only streaming activities have a URL
             activity_url:
               v === "1" ? data.status_data?.activity_url : undefined,
@@ -3143,6 +3146,17 @@ function StatusDataInput({ data, updateData, errors }: InputProps) {
         errors={errors}
         placeholders
       />
+      {data.status_data?.activity_type !== 4 && (
+        <BaseInput
+          field="status_data.activity_state"
+          title="Second Line"
+          description="Optional text shown under the activity name."
+          value={data.status_data?.activity_state || ""}
+          updateValue={(v) => updateField({ activity_state: v || undefined })}
+          errors={errors}
+          placeholders
+        />
+      )}
       {data.status_data?.activity_type === 1 && (
         <BaseInput
           field="status_data.activity_url"
