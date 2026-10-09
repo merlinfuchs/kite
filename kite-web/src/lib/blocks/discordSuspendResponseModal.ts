@@ -3,177 +3,219 @@ import { templated } from "../flow/dataSchema";
 import { normalizeModalData } from "../flow/modal";
 import { BlockDefinition } from "./types";
 
-const modalCustomIdSchema = z
-  .string()
-  .max(100)
-  .min(1)
-  .describe(
-    "Identifier of the input. The submitted value can be read with {{input('custom_id')}}. This is fixed text, placeholders aren't supported."
-  );
+// The flow AI gets every field of every input type, so the input types share
+// fields where they can and the descriptions are short.
+const modalInputBase = z.object({
+  custom_id: z
+    .string()
+    .max(100)
+    .min(1)
+    .describe(
+      "Fixed identifier, no placeholders. Read the answer with {{input('custom_id')}}."
+    ),
+  required: z.boolean().optional().describe("Whether it must be answered."),
+});
 
-const modalRequiredSchema = z
-  .boolean()
-  .optional()
-  .describe("Whether the input has to be filled in.");
-
-const modalPlaceholderSchema = templated(
-  z.string().max(150).min(1),
-  "Text shown while nothing is entered or picked."
-).optional();
-
-const modalMinValuesSchema = (max: number) =>
-  z
+const modalSelectFields = {
+  placeholder: templated(
+    z.string().max(150).min(1),
+    "Shown while nothing is picked. Not for radio_group and checkbox_group."
+  ).optional(),
+  min_values: z
     .number()
     .int()
     .min(0)
-    .max(max)
+    .max(25)
     .optional()
-    .describe("Minimum number of options that have to be picked.");
-
-const modalMaxValuesSchema = (max: number) =>
-  z
+    .describe("Minimum picks."),
+  max_values: z
     .number()
     .int()
     .min(1)
-    .max(max)
+    .max(25)
     .optional()
-    .describe("Maximum number of options that can be picked. Defaults to 1.");
+    .describe(
+      "Maximum picks. Defaults to 1 for selects and to all options for checkbox_group. input() joins several picks with ', '."
+    ),
+};
 
-const modalOptionsSchema = (min: number, max: number) =>
-  z
-    .array(
-      z.object({
-        label: templated(
-          z.string().max(100).min(1),
-          "Label of the option shown to the user."
-        ),
-        value: templated(
-          z.string().max(100),
-          "Value input() returns when the option is picked. Defaults to the label."
-        ).optional(),
-        description: templated(
-          z.string().max(100),
-          "Smaller text shown below the label."
-        ).optional(),
-        default: z
-          .boolean()
-          .optional()
-          .describe("Whether the option is picked when the modal opens."),
-      })
-    )
-    .min(min)
-    .max(max)
-    .describe("Options to pick from. Their values must be unique.");
+const modalOptionInputTypes = [
+  "string_select",
+  "radio_group",
+  "checkbox_group",
+] as const;
 
-const modalEntityNames = {
-  user_select: "members",
-  role_select: "roles",
-  mentionable_select: "members and roles",
+const modalEntitySelectTypes = [
+  "user_select",
+  "role_select",
+  "mentionable_select",
+  "channel_select",
+] as const;
+
+const modalOptionCounts = {
+  string_select: [1, 25],
+  radio_group: [2, 10],
+  checkbox_group: [1, 10],
 } as const;
 
-function modalEntitySelectSchema<T extends keyof typeof modalEntityNames>(
-  type: T
-) {
-  return z.object({
-    type: z
-      .literal(type)
-      .describe(`A select menu of the server's ${modalEntityNames[type]}.`),
-    custom_id: modalCustomIdSchema,
-    required: modalRequiredSchema,
-    placeholder: modalPlaceholderSchema,
-    min_values: modalMinValuesSchema(25),
-    max_values: modalMaxValuesSchema(25),
-  });
-}
+const modalInputSchema = z
+  .discriminatedUnion("type", [
+    modalInputBase.extend({
+      type: z.literal("text_input").describe("A text box."),
+      style: z
+        .literal(1)
+        .or(z.literal(2))
+        .describe("1 for a single line, 2 for a paragraph."),
+      min_length: z
+        .number()
+        .int()
+        .min(0)
+        .max(4000)
+        .optional()
+        .describe("Minimum text length."),
+      max_length: z
+        .number()
+        .int()
+        .min(1)
+        .max(4000)
+        .optional()
+        .describe("Maximum text length."),
+      value: templated(
+        z.string().max(4000).min(1),
+        "Pre-filled text."
+      ).optional(),
+      placeholder: templated(
+        z.string().max(100).min(1),
+        "Shown while empty."
+      ).optional(),
+    }),
+    modalInputBase.extend({
+      type: z
+        .enum(modalOptionInputTypes)
+        .describe(
+          "string_select: a select menu with 1-25 options. radio_group: pick exactly one of 2-10 options. checkbox_group: pick any of 1-10 options."
+        ),
+      ...modalSelectFields,
+      options: z
+        .array(
+          z.object({
+            label: templated(z.string().max(100).min(1), "Shown to the user."),
+            value: templated(
+              z.string().max(100),
+              "What input() returns. Defaults to the label. Must be unique."
+            ).optional(),
+            description: templated(
+              z.string().max(100),
+              "Smaller text below the label."
+            ).optional(),
+            default: z
+              .boolean()
+              .optional()
+              .describe("Picked when the modal opens."),
+          })
+        )
+        .min(1)
+        .max(25)
+        .describe("Options to pick from."),
+    }),
+    modalInputBase.extend({
+      type: z
+        .enum(modalEntitySelectTypes)
+        .describe(
+          "A select menu of the server's members, roles, both, or channels. input() returns IDs."
+        ),
+      ...modalSelectFields,
+      channel_types: z
+        .array(z.number().int())
+        .optional()
+        .describe(
+          "channel_select only. Channel types that can be picked, e.g. 0 for text. Empty allows all."
+        ),
+    }),
+    z.object({
+      type: z
+        .literal("checkbox")
+        .describe("A single checkbox. input() returns 'true' or 'false'."),
+      custom_id: modalInputBase.shape.custom_id,
+      default: z.boolean().optional().describe("Starts checked."),
+    }),
+  ])
+  .superRefine((input, ctx) => {
+    const issue = (path: (string | number)[], message: string) =>
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path, message });
 
-const modalInputSchema = z.discriminatedUnion("type", [
-  z.object({
-    type: z.literal("text_input").describe("A text box."),
-    custom_id: modalCustomIdSchema,
-    style: z
-      .literal(1)
-      .or(z.literal(2))
-      .describe("1 for a single line input, 2 for a paragraph."),
-    required: modalRequiredSchema,
-    min_length: z
-      .number()
-      .int()
-      .min(0)
-      .max(4000)
-      .optional()
-      .describe("Minimum length of the entered text."),
-    max_length: z
-      .number()
-      .int()
-      .min(1)
-      .max(4000)
-      .optional()
-      .describe("Maximum length of the entered text."),
-    value: templated(
-      z.string().max(4000).min(1),
-      "Value the input is pre-filled with."
-    ).optional(),
-    placeholder: modalPlaceholderSchema,
-  }),
-  z.object({
-    type: z
-      .literal("string_select")
-      .describe("A select menu with your own options."),
-    custom_id: modalCustomIdSchema,
-    required: modalRequiredSchema,
-    placeholder: modalPlaceholderSchema,
-    min_values: modalMinValuesSchema(25),
-    max_values: modalMaxValuesSchema(25),
-    options: modalOptionsSchema(1, 25),
-  }),
-  modalEntitySelectSchema("user_select"),
-  modalEntitySelectSchema("role_select"),
-  modalEntitySelectSchema("mentionable_select"),
-  z.object({
-    type: z
-      .literal("channel_select")
-      .describe("A select menu of the server's channels."),
-    custom_id: modalCustomIdSchema,
-    required: modalRequiredSchema,
-    placeholder: modalPlaceholderSchema,
-    min_values: modalMinValuesSchema(25),
-    max_values: modalMaxValuesSchema(25),
-    channel_types: z
-      .array(z.number().int())
-      .optional()
-      .describe(
-        "Discord channel types that can be picked, e.g. 0 for text channels. Empty allows all."
-      ),
-  }),
-  z.object({
-    type: z
-      .literal("radio_group")
-      .describe("A list of options of which exactly one can be picked."),
-    custom_id: modalCustomIdSchema,
-    required: modalRequiredSchema,
-    options: modalOptionsSchema(2, 10),
-  }),
-  z.object({
-    type: z
-      .literal("checkbox_group")
-      .describe("A list of options of which several can be picked."),
-    custom_id: modalCustomIdSchema,
-    required: modalRequiredSchema,
-    min_values: modalMinValuesSchema(10),
-    max_values: modalMaxValuesSchema(10),
-    options: modalOptionsSchema(1, 10),
-  }),
-  z.object({
-    type: z.literal("checkbox").describe("A single checkbox."),
-    custom_id: modalCustomIdSchema,
-    default: z
-      .boolean()
-      .optional()
-      .describe(
-        "Whether the checkbox starts checked. input() returns 'true' or 'false'."
-      ),
-  }),
-]);
+    if (input.type === "text_input" || input.type === "checkbox") return;
+
+    if (input.type === "radio_group" || input.type === "checkbox_group") {
+      if (input.placeholder) {
+        issue(["placeholder"], `A ${input.type} has no placeholder.`);
+      }
+    }
+    if (input.type === "radio_group") {
+      if (input.min_values !== undefined || input.max_values !== undefined) {
+        issue(["max_values"], "Exactly one option of a radio_group is picked.");
+      }
+    }
+    if ("channel_types" in input && input.channel_types?.length) {
+      if (input.type !== "channel_select") {
+        issue(["channel_types"], "Only a channel_select has channel types.");
+      }
+    }
+
+    const limit = input.type === "checkbox_group" ? 10 : 25;
+    if ((input.max_values ?? 0) > limit) {
+      issue(["max_values"], `Must be at most ${limit}.`);
+    }
+
+    let max = input.max_values ?? 1;
+    if ("options" in input) {
+      const { options } = input;
+      const [minOptions, maxOptions] = modalOptionCounts[input.type];
+      if (options.length < minOptions || options.length > maxOptions) {
+        issue(
+          ["options"],
+          `A ${input.type} needs ${minOptions} to ${maxOptions} options.`
+        );
+      }
+
+      const values = new Set<string>();
+      options.forEach((o, i) => {
+        // An option without a value submits its label.
+        const value = o.value || o.label;
+        if (values.has(value)) {
+          issue(
+            ["options", i, "value"],
+            `Another option already has the value '${value}'.`
+          );
+        }
+        values.add(value);
+      });
+
+      if (input.max_values !== undefined && input.max_values > options.length) {
+        issue(
+          ["max_values"],
+          `Can't be more than the ${options.length} options.`
+        );
+      }
+
+      if (input.type === "radio_group") max = 1;
+      if (input.type === "checkbox_group") {
+        max = input.max_values ?? options.length;
+      }
+      if (options.filter((o) => o.default).length > max) {
+        issue(
+          ["options"],
+          max === 1
+            ? "Only one option can be picked by default."
+            : `At most ${max} options can be picked by default.`
+        );
+      }
+    }
+
+    if ((input.min_values ?? 0) > max) {
+      issue(["min_values"], `Can't be more than the maximum of ${max}.`);
+    }
+  });
 
 export const discordSuspendResponseModal: BlockDefinition = {
   type: "suspend_response_modal",
@@ -198,39 +240,56 @@ export const discordSuspendResponseModal: BlockDefinition = {
                   z.object({
                     type: z
                       .literal("label")
-                      .describe("A label with one input below it."),
+                      .describe("A label with one input."),
                     label: templated(
                       z.string().max(45).min(1),
-                      "Label shown above the input."
+                      "Shown above the input."
                     ),
                     description: templated(
                       z.string().max(100),
-                      "Smaller text shown below the label."
+                      "Smaller text below the label."
                     ).optional(),
                     components: z
                       .array(modalInputSchema)
                       .min(1)
                       .max(1)
-                      .describe("The input the label describes."),
+                      .describe("The one input."),
                   }),
                   z.object({
-                    type: z
-                      .literal("text_display")
-                      .describe("Markdown text shown in the modal."),
+                    type: z.literal("text_display").describe("Markdown text."),
                     content: templated(
                       z.string().max(4000).min(1),
-                      "Markdown text shown in the modal."
+                      "The markdown."
                     ),
                   }),
                 ])
               )
               .min(1)
               .max(5)
-              .refine((c) => c.some((c) => c.type === "label"), {
-                message: "A modal needs at least one input.",
+              .superRefine((components, ctx) => {
+                if (!components.some((c) => c.type === "label")) {
+                  ctx.addIssue({
+                    code: z.ZodIssueCode.custom,
+                    message: "A modal needs at least one input.",
+                  });
+                }
+
+                const ids = new Set<string>();
+                components.forEach((c, i) => {
+                  if (c.type !== "label") return;
+                  const id = c.components[0]?.custom_id;
+                  if (ids.has(id)) {
+                    ctx.addIssue({
+                      code: z.ZodIssueCode.custom,
+                      path: [i, "components", 0, "custom_id"],
+                      message: `Another input already has the identifier '${id}'.`,
+                    });
+                  }
+                  ids.add(id);
+                });
               })
               .describe(
-                "Components of the modal: labels that each hold one input, and text displays."
+                "Up to 5 labels and text displays, one label at least."
               ),
           })
         )

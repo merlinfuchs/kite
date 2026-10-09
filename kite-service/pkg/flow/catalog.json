@@ -771,19 +771,19 @@
                         "type": {
                           "type": "string",
                           "const": "label",
-                          "description": "A label with one input below it."
+                          "description": "A label with one input."
                         },
                         "label": {
                           "type": "string",
                           "maxLength": 45,
                           "minLength": 1,
-                          "description": "Label shown above the input.",
+                          "description": "Shown above the input.",
                           "x-templated": true
                         },
                         "description": {
                           "type": "string",
                           "maxLength": 100,
-                          "description": "Smaller text shown below the label.",
+                          "description": "Smaller text below the label.",
                           "x-templated": true
                         },
                         "components": {
@@ -793,16 +793,20 @@
                               {
                                 "type": "object",
                                 "properties": {
-                                  "type": {
-                                    "type": "string",
-                                    "const": "text_input",
-                                    "description": "A text box."
-                                  },
                                   "custom_id": {
                                     "type": "string",
                                     "maxLength": 100,
                                     "minLength": 1,
-                                    "description": "Identifier of the input. The submitted value can be read with {{input('custom_id')}}. This is fixed text, placeholders aren't supported."
+                                    "description": "Fixed identifier, no placeholders. Read the answer with {{input('custom_id')}}."
+                                  },
+                                  "required": {
+                                    "type": "boolean",
+                                    "description": "Whether it must be answered."
+                                  },
+                                  "type": {
+                                    "type": "string",
+                                    "const": "text_input",
+                                    "description": "A text box."
                                   },
                                   "style": {
                                     "type": "number",
@@ -810,42 +814,38 @@
                                       1,
                                       2
                                     ],
-                                    "description": "1 for a single line input, 2 for a paragraph."
-                                  },
-                                  "required": {
-                                    "type": "boolean",
-                                    "description": "Whether the input has to be filled in."
+                                    "description": "1 for a single line, 2 for a paragraph."
                                   },
                                   "min_length": {
                                     "type": "integer",
                                     "minimum": 0,
                                     "maximum": 4000,
-                                    "description": "Minimum length of the entered text."
+                                    "description": "Minimum text length."
                                   },
                                   "max_length": {
                                     "type": "integer",
                                     "minimum": 1,
                                     "maximum": 4000,
-                                    "description": "Maximum length of the entered text."
+                                    "description": "Maximum text length."
                                   },
                                   "value": {
                                     "type": "string",
                                     "maxLength": 4000,
                                     "minLength": 1,
-                                    "description": "Value the input is pre-filled with.",
+                                    "description": "Pre-filled text.",
                                     "x-templated": true
                                   },
                                   "placeholder": {
                                     "type": "string",
-                                    "maxLength": 150,
+                                    "maxLength": 100,
                                     "minLength": 1,
-                                    "description": "Text shown while nothing is entered or picked.",
+                                    "description": "Shown while empty.",
                                     "x-templated": true
                                   }
                                 },
                                 "required": [
-                                  "type",
                                   "custom_id",
+                                  "type",
                                   "style"
                                 ],
                                 "additionalProperties": false
@@ -853,39 +853,43 @@
                               {
                                 "type": "object",
                                 "properties": {
-                                  "type": {
-                                    "type": "string",
-                                    "const": "string_select",
-                                    "description": "A select menu with your own options."
-                                  },
                                   "custom_id": {
                                     "type": "string",
                                     "maxLength": 100,
                                     "minLength": 1,
-                                    "description": "Identifier of the input. The submitted value can be read with {{input('custom_id')}}. This is fixed text, placeholders aren't supported."
+                                    "description": "Fixed identifier, no placeholders. Read the answer with {{input('custom_id')}}."
                                   },
                                   "required": {
                                     "type": "boolean",
-                                    "description": "Whether the input has to be filled in."
+                                    "description": "Whether it must be answered."
+                                  },
+                                  "type": {
+                                    "type": "string",
+                                    "enum": [
+                                      "string_select",
+                                      "radio_group",
+                                      "checkbox_group"
+                                    ],
+                                    "description": "string_select: a select menu with 1-25 options. radio_group: pick exactly one of 2-10 options. checkbox_group: pick any of 1-10 options."
                                   },
                                   "placeholder": {
                                     "type": "string",
                                     "maxLength": 150,
                                     "minLength": 1,
-                                    "description": "Text shown while nothing is entered or picked.",
+                                    "description": "Shown while nothing is picked. Not for radio_group and checkbox_group.",
                                     "x-templated": true
                                   },
                                   "min_values": {
                                     "type": "integer",
                                     "minimum": 0,
                                     "maximum": 25,
-                                    "description": "Minimum number of options that have to be picked."
+                                    "description": "Minimum picks."
                                   },
                                   "max_values": {
                                     "type": "integer",
                                     "minimum": 1,
                                     "maximum": 25,
-                                    "description": "Maximum number of options that can be picked. Defaults to 1."
+                                    "description": "Maximum picks. Defaults to 1 for selects and to all options for checkbox_group. input() joins several picks with ', '."
                                   },
                                   "options": {
                                     "type": "array",
@@ -896,24 +900,24 @@
                                           "type": "string",
                                           "maxLength": 100,
                                           "minLength": 1,
-                                          "description": "Label of the option shown to the user.",
+                                          "description": "Shown to the user.",
                                           "x-templated": true
                                         },
                                         "value": {
                                           "type": "string",
                                           "maxLength": 100,
-                                          "description": "Value input() returns when the option is picked. Defaults to the label.",
+                                          "description": "What input() returns. Defaults to the label. Must be unique.",
                                           "x-templated": true
                                         },
                                         "description": {
                                           "type": "string",
                                           "maxLength": 100,
-                                          "description": "Smaller text shown below the label.",
+                                          "description": "Smaller text below the label.",
                                           "x-templated": true
                                         },
                                         "default": {
                                           "type": "boolean",
-                                          "description": "Whether the option is picked when the modal opens."
+                                          "description": "Picked when the modal opens."
                                         }
                                       },
                                       "required": [
@@ -923,12 +927,12 @@
                                     },
                                     "minItems": 1,
                                     "maxItems": 25,
-                                    "description": "Options to pick from. Their values must be unique."
+                                    "description": "Options to pick from."
                                   }
                                 },
                                 "required": [
-                                  "type",
                                   "custom_id",
+                                  "type",
                                   "options"
                                 ],
                                 "additionalProperties": false
@@ -936,323 +940,56 @@
                               {
                                 "type": "object",
                                 "properties": {
-                                  "type": {
-                                    "type": "string",
-                                    "const": "user_select",
-                                    "description": "A select menu of the server's members."
-                                  },
                                   "custom_id": {
                                     "type": "string",
                                     "maxLength": 100,
                                     "minLength": 1,
-                                    "description": "Identifier of the input. The submitted value can be read with {{input('custom_id')}}. This is fixed text, placeholders aren't supported."
+                                    "description": "Fixed identifier, no placeholders. Read the answer with {{input('custom_id')}}."
                                   },
                                   "required": {
                                     "type": "boolean",
-                                    "description": "Whether the input has to be filled in."
+                                    "description": "Whether it must be answered."
+                                  },
+                                  "type": {
+                                    "type": "string",
+                                    "enum": [
+                                      "user_select",
+                                      "role_select",
+                                      "mentionable_select",
+                                      "channel_select"
+                                    ],
+                                    "description": "A select menu of the server's members, roles, both, or channels. input() returns IDs."
                                   },
                                   "placeholder": {
                                     "type": "string",
                                     "maxLength": 150,
                                     "minLength": 1,
-                                    "description": "Text shown while nothing is entered or picked.",
+                                    "description": "Shown while nothing is picked. Not for radio_group and checkbox_group.",
                                     "x-templated": true
                                   },
                                   "min_values": {
                                     "type": "integer",
                                     "minimum": 0,
                                     "maximum": 25,
-                                    "description": "Minimum number of options that have to be picked."
+                                    "description": "Minimum picks."
                                   },
                                   "max_values": {
                                     "type": "integer",
                                     "minimum": 1,
                                     "maximum": 25,
-                                    "description": "Maximum number of options that can be picked. Defaults to 1."
-                                  }
-                                },
-                                "required": [
-                                  "type",
-                                  "custom_id"
-                                ],
-                                "additionalProperties": false
-                              },
-                              {
-                                "type": "object",
-                                "properties": {
-                                  "type": {
-                                    "type": "string",
-                                    "const": "role_select",
-                                    "description": "A select menu of the server's roles."
-                                  },
-                                  "custom_id": {
-                                    "type": "string",
-                                    "maxLength": 100,
-                                    "minLength": 1,
-                                    "description": "Identifier of the input. The submitted value can be read with {{input('custom_id')}}. This is fixed text, placeholders aren't supported."
-                                  },
-                                  "required": {
-                                    "type": "boolean",
-                                    "description": "Whether the input has to be filled in."
-                                  },
-                                  "placeholder": {
-                                    "type": "string",
-                                    "maxLength": 150,
-                                    "minLength": 1,
-                                    "description": "Text shown while nothing is entered or picked.",
-                                    "x-templated": true
-                                  },
-                                  "min_values": {
-                                    "type": "integer",
-                                    "minimum": 0,
-                                    "maximum": 25,
-                                    "description": "Minimum number of options that have to be picked."
-                                  },
-                                  "max_values": {
-                                    "type": "integer",
-                                    "minimum": 1,
-                                    "maximum": 25,
-                                    "description": "Maximum number of options that can be picked. Defaults to 1."
-                                  }
-                                },
-                                "required": [
-                                  "type",
-                                  "custom_id"
-                                ],
-                                "additionalProperties": false
-                              },
-                              {
-                                "type": "object",
-                                "properties": {
-                                  "type": {
-                                    "type": "string",
-                                    "const": "mentionable_select",
-                                    "description": "A select menu of the server's members and roles."
-                                  },
-                                  "custom_id": {
-                                    "type": "string",
-                                    "maxLength": 100,
-                                    "minLength": 1,
-                                    "description": "Identifier of the input. The submitted value can be read with {{input('custom_id')}}. This is fixed text, placeholders aren't supported."
-                                  },
-                                  "required": {
-                                    "type": "boolean",
-                                    "description": "Whether the input has to be filled in."
-                                  },
-                                  "placeholder": {
-                                    "type": "string",
-                                    "maxLength": 150,
-                                    "minLength": 1,
-                                    "description": "Text shown while nothing is entered or picked.",
-                                    "x-templated": true
-                                  },
-                                  "min_values": {
-                                    "type": "integer",
-                                    "minimum": 0,
-                                    "maximum": 25,
-                                    "description": "Minimum number of options that have to be picked."
-                                  },
-                                  "max_values": {
-                                    "type": "integer",
-                                    "minimum": 1,
-                                    "maximum": 25,
-                                    "description": "Maximum number of options that can be picked. Defaults to 1."
-                                  }
-                                },
-                                "required": [
-                                  "type",
-                                  "custom_id"
-                                ],
-                                "additionalProperties": false
-                              },
-                              {
-                                "type": "object",
-                                "properties": {
-                                  "type": {
-                                    "type": "string",
-                                    "const": "channel_select",
-                                    "description": "A select menu of the server's channels."
-                                  },
-                                  "custom_id": {
-                                    "type": "string",
-                                    "maxLength": 100,
-                                    "minLength": 1,
-                                    "description": "Identifier of the input. The submitted value can be read with {{input('custom_id')}}. This is fixed text, placeholders aren't supported."
-                                  },
-                                  "required": {
-                                    "type": "boolean",
-                                    "description": "Whether the input has to be filled in."
-                                  },
-                                  "placeholder": {
-                                    "type": "string",
-                                    "maxLength": 150,
-                                    "minLength": 1,
-                                    "description": "Text shown while nothing is entered or picked.",
-                                    "x-templated": true
-                                  },
-                                  "min_values": {
-                                    "type": "integer",
-                                    "minimum": 0,
-                                    "maximum": 25,
-                                    "description": "Minimum number of options that have to be picked."
-                                  },
-                                  "max_values": {
-                                    "type": "integer",
-                                    "minimum": 1,
-                                    "maximum": 25,
-                                    "description": "Maximum number of options that can be picked. Defaults to 1."
+                                    "description": "Maximum picks. Defaults to 1 for selects and to all options for checkbox_group. input() joins several picks with ', '."
                                   },
                                   "channel_types": {
                                     "type": "array",
                                     "items": {
                                       "type": "integer"
                                     },
-                                    "description": "Discord channel types that can be picked, e.g. 0 for text channels. Empty allows all."
+                                    "description": "channel_select only. Channel types that can be picked, e.g. 0 for text. Empty allows all."
                                   }
                                 },
                                 "required": [
-                                  "type",
-                                  "custom_id"
-                                ],
-                                "additionalProperties": false
-                              },
-                              {
-                                "type": "object",
-                                "properties": {
-                                  "type": {
-                                    "type": "string",
-                                    "const": "radio_group",
-                                    "description": "A list of options of which exactly one can be picked."
-                                  },
-                                  "custom_id": {
-                                    "type": "string",
-                                    "maxLength": 100,
-                                    "minLength": 1,
-                                    "description": "Identifier of the input. The submitted value can be read with {{input('custom_id')}}. This is fixed text, placeholders aren't supported."
-                                  },
-                                  "required": {
-                                    "type": "boolean",
-                                    "description": "Whether the input has to be filled in."
-                                  },
-                                  "options": {
-                                    "type": "array",
-                                    "items": {
-                                      "type": "object",
-                                      "properties": {
-                                        "label": {
-                                          "type": "string",
-                                          "maxLength": 100,
-                                          "minLength": 1,
-                                          "description": "Label of the option shown to the user.",
-                                          "x-templated": true
-                                        },
-                                        "value": {
-                                          "type": "string",
-                                          "maxLength": 100,
-                                          "description": "Value input() returns when the option is picked. Defaults to the label.",
-                                          "x-templated": true
-                                        },
-                                        "description": {
-                                          "type": "string",
-                                          "maxLength": 100,
-                                          "description": "Smaller text shown below the label.",
-                                          "x-templated": true
-                                        },
-                                        "default": {
-                                          "type": "boolean",
-                                          "description": "Whether the option is picked when the modal opens."
-                                        }
-                                      },
-                                      "required": [
-                                        "label"
-                                      ],
-                                      "additionalProperties": false
-                                    },
-                                    "minItems": 2,
-                                    "maxItems": 10,
-                                    "description": "Options to pick from. Their values must be unique."
-                                  }
-                                },
-                                "required": [
-                                  "type",
                                   "custom_id",
-                                  "options"
-                                ],
-                                "additionalProperties": false
-                              },
-                              {
-                                "type": "object",
-                                "properties": {
-                                  "type": {
-                                    "type": "string",
-                                    "const": "checkbox_group",
-                                    "description": "A list of options of which several can be picked."
-                                  },
-                                  "custom_id": {
-                                    "type": "string",
-                                    "maxLength": 100,
-                                    "minLength": 1,
-                                    "description": "Identifier of the input. The submitted value can be read with {{input('custom_id')}}. This is fixed text, placeholders aren't supported."
-                                  },
-                                  "required": {
-                                    "type": "boolean",
-                                    "description": "Whether the input has to be filled in."
-                                  },
-                                  "min_values": {
-                                    "type": "integer",
-                                    "minimum": 0,
-                                    "maximum": 10,
-                                    "description": "Minimum number of options that have to be picked."
-                                  },
-                                  "max_values": {
-                                    "type": "integer",
-                                    "minimum": 1,
-                                    "maximum": 10,
-                                    "description": "Maximum number of options that can be picked. Defaults to 1."
-                                  },
-                                  "options": {
-                                    "type": "array",
-                                    "items": {
-                                      "type": "object",
-                                      "properties": {
-                                        "label": {
-                                          "type": "string",
-                                          "maxLength": 100,
-                                          "minLength": 1,
-                                          "description": "Label of the option shown to the user.",
-                                          "x-templated": true
-                                        },
-                                        "value": {
-                                          "type": "string",
-                                          "maxLength": 100,
-                                          "description": "Value input() returns when the option is picked. Defaults to the label.",
-                                          "x-templated": true
-                                        },
-                                        "description": {
-                                          "type": "string",
-                                          "maxLength": 100,
-                                          "description": "Smaller text shown below the label.",
-                                          "x-templated": true
-                                        },
-                                        "default": {
-                                          "type": "boolean",
-                                          "description": "Whether the option is picked when the modal opens."
-                                        }
-                                      },
-                                      "required": [
-                                        "label"
-                                      ],
-                                      "additionalProperties": false
-                                    },
-                                    "minItems": 1,
-                                    "maxItems": 10,
-                                    "description": "Options to pick from. Their values must be unique."
-                                  }
-                                },
-                                "required": [
-                                  "type",
-                                  "custom_id",
-                                  "options"
+                                  "type"
                                 ],
                                 "additionalProperties": false
                               },
@@ -1262,17 +999,17 @@
                                   "type": {
                                     "type": "string",
                                     "const": "checkbox",
-                                    "description": "A single checkbox."
+                                    "description": "A single checkbox. input() returns 'true' or 'false'."
                                   },
                                   "custom_id": {
                                     "type": "string",
                                     "maxLength": 100,
                                     "minLength": 1,
-                                    "description": "Identifier of the input. The submitted value can be read with {{input('custom_id')}}. This is fixed text, placeholders aren't supported."
+                                    "description": "Fixed identifier, no placeholders. Read the answer with {{input('custom_id')}}."
                                   },
                                   "default": {
                                     "type": "boolean",
-                                    "description": "Whether the checkbox starts checked. input() returns 'true' or 'false'."
+                                    "description": "Starts checked."
                                   }
                                 },
                                 "required": [
@@ -1285,7 +1022,7 @@
                           },
                           "minItems": 1,
                           "maxItems": 1,
-                          "description": "The input the label describes."
+                          "description": "The one input."
                         }
                       },
                       "required": [
@@ -1301,13 +1038,13 @@
                         "type": {
                           "type": "string",
                           "const": "text_display",
-                          "description": "Markdown text shown in the modal."
+                          "description": "Markdown text."
                         },
                         "content": {
                           "type": "string",
                           "maxLength": 4000,
                           "minLength": 1,
-                          "description": "Markdown text shown in the modal.",
+                          "description": "The markdown.",
                           "x-templated": true
                         }
                       },
@@ -1321,7 +1058,7 @@
                 },
                 "minItems": 1,
                 "maxItems": 5,
-                "description": "Components of the modal: labels that each hold one input, and text displays."
+                "description": "Up to 5 labels and text displays, one label at least."
               }
             },
             "required": [

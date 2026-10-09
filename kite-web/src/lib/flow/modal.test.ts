@@ -92,6 +92,130 @@ describe("suspend_response_modal data schema", () => {
       ])
     ).toBe(false);
   });
+
+  // The paths of the issues of a modal with the given inputs, relative to
+  // the first input.
+  const issues = (...inputs: Record<string, unknown>[]) =>
+    (
+      schema.safeParse({
+        modal_data: {
+          title: "Form",
+          components: inputs.map((input, i) => ({
+            type: "label",
+            label: `Input ${i}`,
+            components: [input],
+          })),
+        },
+      }).error?.issues ?? []
+    ).map((i) => i.path.slice(2).join("."));
+
+  const options = (...labels: string[]) => labels.map((label) => ({ label }));
+
+  it("accepts valid limits", () => {
+    expect(
+      issues(
+        {
+          type: "string_select",
+          custom_id: "a",
+          max_values: 2,
+          options: [
+            { label: "A", default: true },
+            { label: "B", default: true },
+          ],
+        },
+        {
+          type: "checkbox_group",
+          custom_id: "b",
+          options: [
+            { label: "A", default: true },
+            { label: "B", default: true },
+          ],
+        },
+        { type: "user_select", custom_id: "c", min_values: 2, max_values: 3 },
+        { type: "text_input", custom_id: "d", style: 1, placeholder: "a" }
+      )
+    ).toEqual([]);
+  });
+
+  it("needs unique identifiers", () => {
+    expect(
+      issues(
+        { type: "text_input", custom_id: "a", style: 1 },
+        { type: "checkbox", custom_id: "a" }
+      )
+    ).toEqual(["1.components.0.custom_id"]);
+  });
+
+  it("needs unique option values", () => {
+    expect(
+      issues({
+        type: "string_select",
+        custom_id: "a",
+        options: [{ label: "A" }, { label: "B", value: "A" }],
+      })
+    ).toEqual(["0.components.0.options.1.value"]);
+  });
+
+  it("limits picks to the options", () => {
+    expect(
+      issues({
+        type: "checkbox_group",
+        custom_id: "a",
+        max_values: 3,
+        options: options("A", "B"),
+      })
+    ).toEqual(["0.components.0.max_values"]);
+    expect(
+      issues({ type: "role_select", custom_id: "a", min_values: 2 })
+    ).toEqual(["0.components.0.min_values"]);
+  });
+
+  it("limits options picked by default", () => {
+    const defaults = [
+      { label: "A", default: true },
+      { label: "B", default: true },
+    ];
+    expect(
+      issues(
+        { type: "radio_group", custom_id: "a", options: defaults },
+        { type: "string_select", custom_id: "b", options: defaults },
+        {
+          type: "checkbox_group",
+          custom_id: "c",
+          max_values: 1,
+          options: defaults,
+        }
+      )
+    ).toEqual([
+      "0.components.0.options",
+      "1.components.0.options",
+      "2.components.0.options",
+    ]);
+  });
+
+  it("limits text input placeholders to 100 characters", () => {
+    expect(
+      issues(
+        {
+          type: "text_input",
+          custom_id: "a",
+          style: 1,
+          placeholder: "a".repeat(101),
+        },
+        { type: "user_select", custom_id: "b", placeholder: "a".repeat(150) }
+      )
+    ).toEqual(["0.components.0.placeholder"]);
+  });
+
+  it("checks the option count of each type", () => {
+    expect(
+      issues({
+        type: "checkbox_group",
+        custom_id: "a",
+        options: options(..."ABCDEFGHIJK"),
+      })
+    ).toEqual(["0.components.0.options"]);
+  });
 });
 
 describe("modal numbering", () => {
