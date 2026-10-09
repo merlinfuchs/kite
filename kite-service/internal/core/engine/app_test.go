@@ -79,6 +79,7 @@ func TestListenerIndexGroupsByEventType(t *testing.T) {
 	app.AddEventListener(testListener("l-1", model.EventSourceDiscord, model.EventListenerTypeDiscordMessageCreate))
 	app.AddEventListener(testListener("l-2", model.EventSourceDiscord, model.EventListenerTypeDiscordMessageCreate))
 	app.AddEventListener(testListener("l-3", model.EventSourceDiscord, model.EventListenerTypeDiscordGuildMemberAdd))
+	app.AddEventListener(testListener("l-4", model.EventSourceDiscord, model.EventListenerTypeDiscordForumPostCreate))
 
 	if got := len(app.listenersByType[model.EventListenerTypeDiscordMessageCreate]); got != 2 {
 		t.Errorf("message_create listeners = %d, want 2", got)
@@ -88,6 +89,17 @@ func TestListenerIndexGroupsByEventType(t *testing.T) {
 	}
 	if got := len(app.listenersByType[model.EventListenerTypeDiscordMessageDelete]); got != 0 {
 		t.Errorf("message_delete listeners = %d, want 0", got)
+	}
+	if got := len(app.listenersByType[model.EventListenerTypeDiscordForumPostCreate]); got != 1 {
+		t.Errorf("forum_post_create listeners = %d, want 1", got)
+	}
+	for _, eventType := range []model.EventListenerType{
+		model.EventListenerTypeDiscordForumPostUpdate,
+		model.EventListenerTypeDiscordForumPostDelete,
+	} {
+		if got := len(app.listenersByType[eventType]); got != 0 {
+			t.Errorf("%s listeners = %d, want 0", eventType, got)
+		}
 	}
 }
 

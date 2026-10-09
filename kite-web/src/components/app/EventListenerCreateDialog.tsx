@@ -217,6 +217,15 @@ export default function EventListenerCreateDialog({
                         <SelectItem value="message_reaction_remove">
                           Message Reaction Remove
                         </SelectItem>
+                        <SelectItem value="forum_post_create">
+                          Forum Post Create
+                        </SelectItem>
+                        <SelectItem value="forum_post_update">
+                          Forum Post Update
+                        </SelectItem>
+                        <SelectItem value="forum_post_delete">
+                          Forum Post Delete
+                        </SelectItem>
                         <SelectItem value="guild_create">
                           Bot Joined Server
                         </SelectItem>

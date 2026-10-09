@@ -11,6 +11,7 @@ import (
 	"github.com/diamondburned/arikawa/v3/state"
 	"github.com/diamondburned/arikawa/v3/state/store"
 	"github.com/diamondburned/arikawa/v3/state/store/defaultstore"
+	"github.com/diamondburned/arikawa/v3/utils/ws"
 	"github.com/kitecloud/kite/kite-service/pkg/thing"
 )
 
@@ -58,6 +59,77 @@ func evalString(t *testing.T, c Context, template string) string {
 		t.Fatalf("eval %q: %v", template, err)
 	}
 	return got
+}
+
+type testForumPostEventForEval struct {
+	ws.Event
+	post discord.Channel
+}
+
+func (e testForumPostEventForEval) EventType() ws.EventType {
+	return "FORUM_POST_CREATE"
+}
+
+func (e testForumPostEventForEval) ForumPost() discord.Channel {
+	return e.post
+}
+
+func TestForumPostPlaceholders(t *testing.T) {
+	session := emptyTestSession()
+	guild := discord.Guild{ID: testGuildID, Name: "Kite HQ"}
+	if err := session.Cabinet.GuildSet(&guild, true); err != nil {
+		t.Fatal(err)
+	}
+	forum := discord.Channel{
+		ID:            200,
+		GuildID:       testGuildID,
+		Type:          discord.GuildForum,
+		Name:          "ideas",
+		AvailableTags: []discord.Tag{{ID: 500, Name: "Support"}},
+	}
+	if err := session.Cabinet.ChannelSet(&forum, false); err != nil {
+		t.Fatal(err)
+	}
+	post := discord.Channel{
+		ID:           300,
+		GuildID:      testGuildID,
+		Type:         discord.GuildPublicThread,
+		Name:         "Add dark mode",
+		OwnerID:      testUserID,
+		ParentID:     forum.ID,
+		AppliedTags:  []discord.TagID{500},
+		MessageCount: 4,
+		MemberCount:  2,
+		ThreadMetadata: &discord.ThreadMetadata{
+			Archived:            true,
+			Locked:              true,
+			AutoArchiveDuration: 1440,
+		},
+	}
+	ctx := NewContextFromEvent(testForumPostEventForEval{post: post}, session)
+
+	got := evalString(t, ctx, "{{forum_post.title}}|{{forum_post.author_id}}|{{forum_post.parent_channel_id}}|{{forum_post.tag_ids[0]}}|{{forum_post.tags[0]}}|{{forum_post.message_count}}|{{forum_post.member_count}}|{{forum_post.archived}}|{{forum_post.locked}}|{{forum_post.auto_archive_duration}}")
+	if want := "Add dark mode|175928847299117063|200|500|Support|4|2|true|true|1440"; got != want {
+		t.Errorf("forum post placeholders = %q, want %q", got, want)
+	}
+	if got := evalString(t, ctx, "{{channel.name}}|{{forum.name}}|{{user.id}}|{{guild.name}}"); got != "Add dark mode|ideas|175928847299117063|Kite HQ" {
+		t.Errorf("related event placeholders = %q", got)
+	}
+	if got := evalString(t, ctx, "{{forum_post.url}}"); got != post.URL() {
+		t.Errorf("post URL = %q, want %q", got, post.URL())
+	}
+
+	deleted := NewContextFromEvent(testForumPostEventForEval{
+		post: discord.Channel{
+			ID:       post.ID,
+			GuildID:  testGuildID,
+			Type:     discord.GuildPublicThread,
+			ParentID: forum.ID,
+		},
+	}, session)
+	if got := evalString(t, deleted, "{{forum_post.id}}|{{forum_post.parent_channel_id}}|{{forum_post.title}}|{{forum_post.author_id}}"); got != "300|200||" {
+		t.Errorf("deleted post placeholders = %q", got)
+	}
 }
 
 func TestGuildPlaceholders(t *testing.T) {

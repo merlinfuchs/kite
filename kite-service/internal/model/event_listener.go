@@ -27,6 +27,9 @@ const (
 	EventListenerTypeDiscordGuildMemberRemove     EventListenerType = "guild_member_remove"
 	EventListenerTypeDiscordMessageReactionAdd    EventListenerType = "message_reaction_add"
 	EventListenerTypeDiscordMessageReactionRemove EventListenerType = "message_reaction_remove"
+	EventListenerTypeDiscordForumPostCreate       EventListenerType = "forum_post_create"
+	EventListenerTypeDiscordForumPostUpdate       EventListenerType = "forum_post_update"
+	EventListenerTypeDiscordForumPostDelete       EventListenerType = "forum_post_delete"
 	EventListenerTypeDiscordGuildCreate           EventListenerType = "guild_create"
 	EventListenerTypeDiscordGuildDelete           EventListenerType = "guild_delete"
 

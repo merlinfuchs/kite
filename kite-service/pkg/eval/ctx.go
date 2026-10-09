@@ -302,12 +302,14 @@ func (c ComponentEnv) String() string {
 type EventEnv struct {
 	event ws.Event
 
-	User    any                `expr:"user" json:"user"`
-	Member  any                `expr:"member" json:"member"`
-	Channel *CurrentChannelEnv `expr:"channel" json:"channel"`
-	Message *MessageEnv        `expr:"message" json:"message"`
-	Guild   any                `expr:"guild" json:"guild"`
-	Emoji   *EmojiEnv          `expr:"emoji" json:"emoji"`
+	User      any                `expr:"user" json:"user"`
+	Member    any                `expr:"member" json:"member"`
+	Channel   *CurrentChannelEnv `expr:"channel" json:"channel"`
+	Message   *MessageEnv        `expr:"message" json:"message"`
+	ForumPost *ForumPostEnv      `expr:"forum_post" json:"forum_post"`
+	Forum     *CurrentChannelEnv `expr:"forum" json:"forum"`
+	Guild     any                `expr:"guild" json:"guild"`
+	Emoji     *EmojiEnv          `expr:"emoji" json:"emoji"`
 
 	Schedule *ScheduleEnv `expr:"schedule" json:"schedule"`
 	Webhook  *WebhookEnv  `expr:"webhook" json:"webhook"`
@@ -336,6 +338,56 @@ type WebhookEnv struct {
 	Body    string            `expr:"body" json:"body"`
 	// Data is the body parsed as JSON, nil if it isn't JSON.
 	Data any `expr:"data" json:"data"`
+}
+
+type ForumPostEnv struct {
+	ID                  string   `expr:"id" json:"id"`
+	Title               string   `expr:"title" json:"title"`
+	URL                 string   `expr:"url" json:"url"`
+	AuthorID            string   `expr:"author_id" json:"author_id"`
+	ParentChannelID     string   `expr:"parent_channel_id" json:"parent_channel_id"`
+	TagIDs              []string `expr:"tag_ids" json:"tag_ids"`
+	Tags                []string `expr:"tags" json:"tags"`
+	CreatedAt           int64    `expr:"created_at" json:"created_at"`
+	MessageCount        int      `expr:"message_count" json:"message_count"`
+	MemberCount         int      `expr:"member_count" json:"member_count"`
+	Archived            bool     `expr:"archived" json:"archived"`
+	Locked              bool     `expr:"locked" json:"locked"`
+	AutoArchiveDuration int      `expr:"auto_archive_duration" json:"auto_archive_duration"`
+}
+
+func NewForumPostEnv(post discord.Channel, session *state.State) *ForumPostEnv {
+	env := &ForumPostEnv{
+		ID:              post.ID.String(),
+		Title:           post.Name,
+		URL:             post.URL(),
+		AuthorID:        post.OwnerID.String(),
+		ParentChannelID: post.ParentID.String(),
+		CreatedAt:       post.CreatedAt().Unix(),
+		MessageCount:    post.MessageCount,
+		MemberCount:     post.MemberCount,
+	}
+
+	if post.ThreadMetadata != nil {
+		env.Archived = post.ThreadMetadata.Archived
+		env.Locked = post.ThreadMetadata.Locked
+		env.AutoArchiveDuration = int(post.ThreadMetadata.AutoArchiveDuration)
+	}
+
+	tagNames := make(map[discord.TagID]string)
+	if parent, ok := cachedChannel(session, post.ParentID); ok {
+		for _, tag := range parent.AvailableTags {
+			tagNames[tag.ID] = tag.Name
+		}
+	}
+	for _, tagID := range post.AppliedTags {
+		env.TagIDs = append(env.TagIDs, discord.Snowflake(tagID).String())
+		if name, ok := tagNames[tagID]; ok {
+			env.Tags = append(env.Tags, name)
+		}
+	}
+
+	return env
 }
 
 func NewWebhookEnv(e *webhook.Event) *WebhookEnv {
@@ -462,6 +514,18 @@ func NewEventEnv(event ws.Event, session *state.State) *EventEnv {
 		}
 		env.Message = NewMessageEnv(discord.Message{ID: e.MessageID})
 		env.Emoji = NewEmojiEnv(e.Emoji)
+	case interface{ ForumPost() discord.Channel }:
+		post := e.ForumPost()
+		env.ForumPost = NewForumPostEnv(post, session)
+		env.Channel = currentChannelEnv(session, post.ID, &post)
+		env.Forum = currentChannelEnv(session, post.ParentID, nil)
+		if post.OwnerID != 0 {
+			env.User = NewUserIDEnv(post.OwnerID)
+			env.Member = env.User
+		}
+		if post.GuildID != 0 {
+			env.Guild = guild(post.GuildID).guildEnv()
+		}
 	case *state.GuildJoinEvent:
 		joined := e.Guild
 		joined.ApproximateMembers = e.MemberCount
@@ -528,17 +592,19 @@ func NewContextFromEvent(event ws.Event, session *state.State) Context {
 	env := NewEventEnv(event, session)
 	return Context{
 		Env: Env{
-			"event":    env,
-			"user":     env.User,
-			"member":   env.Member,
-			"channel":  env.Channel,
-			"guild":    env.Guild,
-			"server":   env.Guild,
-			"message":  env.Message,
-			"emoji":    env.Emoji,
-			"schedule": env.Schedule,
-			"webhook":  env.Webhook,
-			"app":      NewAppEnv(session),
+			"event":      env,
+			"user":       env.User,
+			"member":     env.Member,
+			"channel":    env.Channel,
+			"guild":      env.Guild,
+			"server":     env.Guild,
+			"message":    env.Message,
+			"forum_post": env.ForumPost,
+			"forum":      env.Forum,
+			"emoji":      env.Emoji,
+			"schedule":   env.Schedule,
+			"webhook":    env.Webhook,
+			"app":        NewAppEnv(session),
 		},
 	}
 }

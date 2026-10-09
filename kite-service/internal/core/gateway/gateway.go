@@ -154,6 +154,10 @@ func (g *Gateway) startGateway(session *state.State, ctx context.Context) {
 		}
 
 		metrics.GatewayEvents.Add(string(eventType), 1)
+		if forumEvent, ok := forumPostEvent(session, e); ok {
+			g.eventHandler.HandleEvent(g.appID, session, forumEvent)
+			return
+		}
 		g.eventHandler.HandleEvent(g.appID, session, e)
 	})
 
