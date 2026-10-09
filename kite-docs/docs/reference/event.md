@@ -88,7 +88,7 @@ The URL isn't part of the flow, so it isn't included when you export, share or d
 
 - Webhook event listeners have their own limit, which is the same as for Discord event listeners, 5 by default.
 - The body of a request can be up to 64 KB, and its headers and query parameters up to 16 KB together.
-- A webhook event listener accepts up to 60 requests per minute. Requests above that are answered with status `429`.
+- All webhook event listeners of an app share a limit of 10 requests per minute. Requests above that are answered with status `429` and don't run the flow.
 - Requests are answered with status `404` while the event listener is disabled, and with `503` while your app is offline.
 - It can take a few seconds until a new or re-enabled event listener accepts requests.
 
