@@ -126,8 +126,10 @@ export default function VariableValueExplorer() {
                 <TableRow>
                   {showScope && <TableHead>Scope</TableHead>}
                   <TableHead>Value</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Updated</TableHead>
+                  <TableHead className="hidden sm:table-cell">Type</TableHead>
+                  <TableHead className="hidden sm:table-cell">
+                    Updated
+                  </TableHead>
                   <TableHead />
                 </TableRow>
               </TableHeader>
@@ -158,8 +160,8 @@ export default function VariableValueExplorer() {
           </div>
         )}
       </CardContent>
-      {scoped && data && total > 0 && (
-        <CardFooter className="flex items-center justify-between border-t px-6 py-4">
+      {data && (scoped ? total > 0 : total > 1) && (
+        <CardFooter className="flex flex-wrap items-center justify-between gap-3 border-t px-6 py-4">
           <div className="text-sm text-muted-foreground">
             {formatNumber(page * pageSize + 1)} -{" "}
             {formatNumber(page * pageSize + values.length)} of{" "}
@@ -236,12 +238,12 @@ function VariableValueRow({
           value.value.slice(0, 200)
         )}
       </TableCell>
-      <TableCell>
+      <TableCell className="hidden sm:table-cell">
         <Badge variant="secondary" className="whitespace-nowrap">
           {typeLabel}
         </Badge>
       </TableCell>
-      <TableCell className="text-muted-foreground whitespace-nowrap">
+      <TableCell className="hidden sm:table-cell text-muted-foreground whitespace-nowrap">
         {formatDateTime(new Date(value.updated_at))}
       </TableCell>
       <TableCell>
