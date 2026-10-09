@@ -115,7 +115,10 @@ export default function PlaceholderExplorer({
   return (
     <Popover open={open} onOpenChange={onOpenChange} modal>
       <PopoverTrigger asChild>{children}</PopoverTrigger>
-      <PopoverContent className="w-[500px] max-w-[calc(100vw-1rem)] p-0">
+      <PopoverContent
+        className="w-[500px] max-w-[calc(100vw-1rem)] p-0"
+        collisionPadding={8}
+      >
         <Command
           value={selected}
           onValueChange={setSelected}
@@ -169,6 +172,8 @@ export default function PlaceholderExplorer({
                     title={group.label}
                     aria-pressed={!searching && group === activeGroup}
                     onClick={() => selectCategory(group)}
+                    // cmdk would pick the highlighted placeholder instead.
+                    onKeyDown={(e) => e.key === "Enter" && e.stopPropagation()}
                     className={cn(
                       "flex flex-none sm:w-full items-center justify-between gap-2 rounded-sm px-2 py-1.5 text-sm text-left whitespace-nowrap outline-none hover:bg-accent/50 focus-visible:bg-accent/50",
                       !searching &&
