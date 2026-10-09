@@ -41,13 +41,9 @@ type InteractionEnv struct {
 	Value  string   `expr:"value" json:"value"`
 }
 
-func NewInteractionEnv(i *discord.InteractionEvent) *InteractionEnv {
-	return newInteractionEnv(i, nil)
-}
-
-// newInteractionEnv fills in what the interaction doesn't carry itself, like
+// NewInteractionEnv fills in what the interaction doesn't carry itself, like
 // the name of the server, from the cache of session.
-func newInteractionEnv(i *discord.InteractionEvent, session *state.State) *InteractionEnv {
+func NewInteractionEnv(i *discord.InteractionEvent, session *state.State) *InteractionEnv {
 	guild := guildLookup{session: session, guildID: i.GuildID}
 
 	e := &InteractionEnv{
@@ -85,7 +81,7 @@ func newInteractionEnv(i *discord.InteractionEvent, session *state.State) *Inter
 }
 
 func NewContextFromInteraction(i *discord.InteractionEvent, session *state.State) Context {
-	interactionEnv := newInteractionEnv(i, session)
+	interactionEnv := NewInteractionEnv(i, session)
 
 	return Context{
 		Env: Env{
@@ -128,10 +124,6 @@ type CommandEnv struct {
 
 	ID   string         `expr:"id" json:"id"`
 	Args map[string]any `expr:"args" json:"args"`
-}
-
-func NewCommandEnv(i *discord.InteractionEvent) *CommandEnv {
-	return newCommandEnv(i, guildLookup{guildID: i.GuildID})
 }
 
 func newCommandEnv(i *discord.InteractionEvent, guild guildLookup) *CommandEnv {
@@ -282,13 +274,9 @@ func (s ScheduleEnv) String() string {
 	return s.Time
 }
 
-func NewEventEnv(event ws.Event) *EventEnv {
-	return newEventEnv(event, nil)
-}
-
-// newEventEnv fills in what the event doesn't carry itself, like the name of
+// NewEventEnv fills in what the event doesn't carry itself, like the name of
 // the server, from the cache of session.
-func newEventEnv(event ws.Event, session *state.State) *EventEnv {
+func NewEventEnv(event ws.Event, session *state.State) *EventEnv {
 	env := &EventEnv{
 		event: event,
 	}
@@ -367,11 +355,8 @@ func newEventEnv(event ws.Event, session *state.State) *EventEnv {
 		env.Message = NewMessageEnv(discord.Message{ID: e.MessageID})
 		env.Emoji = NewEmojiEnv(e.Emoji)
 	case *state.GuildJoinEvent:
-		// The cached server knows its member count, the event doesn't.
 		joined := e.Guild
-		if cached, ok := guild(e.ID).guild(); ok {
-			joined = *cached
-		}
+		joined.ApproximateMembers = e.MemberCount
 		env.Guild = guild(e.ID).newGuildEnv(joined)
 	case *state.GuildLeaveEvent:
 		// The server is gone from the cache by now, so only its ID is left.
@@ -430,7 +415,7 @@ func NewContext(env Env) Context {
 }
 
 func NewContextFromEvent(event ws.Event, session *state.State) Context {
-	env := newEventEnv(event, session)
+	env := NewEventEnv(event, session)
 	return Context{
 		Env: Env{
 			"event":    env,

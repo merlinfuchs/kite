@@ -61,7 +61,7 @@ func evalString(t *testing.T, c Context, template string) string {
 }
 
 func TestGuildPlaceholders(t *testing.T) {
-	env := newEventEnv(&gateway.GuildMemberAddEvent{
+	env := NewEventEnv(&gateway.GuildMemberAddEvent{
 		GuildID: testGuildID,
 		Member:  discord.Member{User: discord.User{ID: testUserID}},
 	}, testSession(t))
@@ -80,6 +80,18 @@ func TestGuildPlaceholders(t *testing.T) {
 	}
 }
 
+func TestGuildJoinPlaceholders(t *testing.T) {
+	env := NewEventEnv(&state.GuildJoinEvent{GuildCreateEvent: &gateway.GuildCreateEvent{
+		Guild:       discord.Guild{ID: testGuildID, Name: "Kite HQ"},
+		MemberCount: 42,
+	}}, nil)
+	c := Context{Env: Env{"guild": env.Guild}}
+
+	if got := evalString(t, c, "{{guild.name}}|{{guild.member_count}}"); got != "Kite HQ|42" {
+		t.Errorf("got %q", got)
+	}
+}
+
 func TestGuildPlaceholdersWithoutCache(t *testing.T) {
 	// Neither a missing session nor an uncached server may fail the flow.
 	for name, session := range map[string]*state.State{
@@ -92,7 +104,7 @@ func TestGuildPlaceholdersWithoutCache(t *testing.T) {
 				Member:  &discord.Member{User: discord.User{ID: testUserID}, RoleIDs: []discord.RoleID{11}},
 				Data:    &discord.StringSelectInteraction{},
 			}
-			env := newInteractionEnv(i, session)
+			env := NewInteractionEnv(i, session)
 			c := Context{Env: Env{"guild": env.Guild, "user": env.User}}
 
 			got := evalString(t, c, "[{{guild.id}}|{{guild.name}}|{{guild.member_count}}|{{guild.owner_id}}|{{guild.role_count}}|{{user.role_mentions}}]")
@@ -117,7 +129,7 @@ func TestNoGuildInDirectMessages(t *testing.T) {
 		User: &discord.User{ID: testUserID},
 		Data: &discord.StringSelectInteraction{},
 	}
-	env := newInteractionEnv(i, testSession(t))
+	env := NewInteractionEnv(i, testSession(t))
 	if env.Guild != nil {
 		t.Errorf("guild: got %+v, want nil", env.Guild)
 	}
@@ -132,7 +144,7 @@ func TestNoGuildInDirectMessages(t *testing.T) {
 	// So are the server placeholders, while the server itself stays nil.
 	dms := map[string]Context{
 		"interaction": {Env: Env{"guild": env.Guild}},
-		"event": NewContext(Env{"guild": newEventEnv(&gateway.MessageCreateEvent{
+		"event": NewContext(Env{"guild": NewEventEnv(&gateway.MessageCreateEvent{
 			Message: discord.Message{ID: 1, ChannelID: 50, Author: discord.User{ID: testUserID}},
 		}, nil).Guild}),
 	}
@@ -156,7 +168,7 @@ func TestUserPlaceholders(t *testing.T) {
 		},
 		Data: &discord.StringSelectInteraction{},
 	}
-	env := newInteractionEnv(i, testSession(t))
+	env := NewInteractionEnv(i, testSession(t))
 	c := Context{Env: Env{"user": env.User}}
 
 	tests := map[string]string{
@@ -181,7 +193,7 @@ func TestUserPlaceholders(t *testing.T) {
 }
 
 func TestTopRoleWithoutRolesIsEveryone(t *testing.T) {
-	env := newEventEnv(&gateway.GuildMemberAddEvent{
+	env := NewEventEnv(&gateway.GuildMemberAddEvent{
 		GuildID: testGuildID,
 		Member:  discord.Member{User: discord.User{ID: testUserID}},
 	}, testSession(t))
@@ -207,7 +219,7 @@ func TestCommandArgMemberUsesGuildRoles(t *testing.T) {
 		Data:    data,
 	}
 	c := NewContext(Env{})
-	env := newInteractionEnv(i, testSession(t))
+	env := NewInteractionEnv(i, testSession(t))
 	c.Env["arg"] = func(name string) any { return env.Command.Args[name] }
 
 	if got := evalString(t, c, "{{arg('target').top_role.name}}"); got != "Mod" {
@@ -246,7 +258,7 @@ func TestChannelPlaceholders(t *testing.T) {
 		99: "99|99||<#99>|||",
 	}
 	for id, want := range tests {
-		env := newEventEnv(&gateway.MessageDeleteEvent{ID: 1, ChannelID: id, GuildID: testGuildID}, session)
+		env := NewEventEnv(&gateway.MessageDeleteEvent{ID: 1, ChannelID: id, GuildID: testGuildID}, session)
 		c := Context{Env: Env{"channel": env.Channel}}
 		if got := evalString(t, c, template); got != want {
 			t.Errorf("channel %d: got %q, want %q", id, got, want)
@@ -264,7 +276,7 @@ func TestChannelPlaceholdersFromInteraction(t *testing.T) {
 		Data:      &discord.StringSelectInteraction{},
 	}
 	for name, session := range map[string]*state.State{"no session": nil, "not cached": testChannelSession(t)} {
-		env := newInteractionEnv(i, session)
+		env := NewInteractionEnv(i, session)
 		c := Context{Env: Env{"channel": env.Channel}}
 		if got := evalString(t, c, "{{channel.id}}|{{channel.type}}|{{channel.category_id}}|"); got != "50|dm||" {
 			t.Errorf("%s: got %q", name, got)
@@ -286,7 +298,7 @@ func TestCommandArgChannelUsesCache(t *testing.T) {
 		Member:  &discord.Member{User: discord.User{ID: testUserID}},
 		Data:    data,
 	}
-	env := newInteractionEnv(i, testChannelSession(t))
+	env := NewInteractionEnv(i, testChannelSession(t))
 	c := NewContext(Env{})
 	c.Env["arg"] = func(name string) any { return env.Command.Args[name] }
 
@@ -311,7 +323,7 @@ func TestMemberPlaceholders(t *testing.T) {
 
 	member := func(m discord.Member) Context {
 		i := &discord.InteractionEvent{GuildID: testGuildID, Member: &m, Data: &discord.StringSelectInteraction{}}
-		return Context{Env: Env{"user": newInteractionEnv(i, session).User}}
+		return Context{Env: Env{"user": NewInteractionEnv(i, session).User}}
 	}
 	boosted := time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC)
 	until := time.Now().Add(time.Hour)
@@ -365,7 +377,7 @@ func TestMemberPlaceholders(t *testing.T) {
 
 	// Outside of a server nothing is known, and nothing fails.
 	i := &discord.InteractionEvent{User: &discord.User{ID: testUserID}, Data: &discord.StringSelectInteraction{}}
-	dm := Context{Env: Env{"user": newInteractionEnv(i, session).User}}
+	dm := Context{Env: Env{"user": NewInteractionEnv(i, session).User}}
 	if got := evalString(t, dm, `{{user.is_admin}}|{{user.is_owner}}|{{user.is_booster}}|{{user.is_timed_out}}|{{user.role_count}}|{{"ban_members" in user.permissions}}|{{user.color}}`); got != "false|false|false|false|0|false|" {
 		t.Errorf("dm: got %q", got)
 	}
@@ -386,7 +398,7 @@ func TestServerInfoPlaceholders(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	env := newEventEnv(&gateway.GuildMemberAddEvent{
+	env := NewEventEnv(&gateway.GuildMemberAddEvent{
 		GuildID: testGuildID,
 		Member:  discord.Member{User: discord.User{ID: testUserID}},
 	}, session)
@@ -417,7 +429,7 @@ func TestServerInfoPlaceholders(t *testing.T) {
 	}
 
 	// A server that isn't cached has none of it, and nothing fails.
-	uncached := newEventEnv(&gateway.GuildMemberAddEvent{
+	uncached := NewEventEnv(&gateway.GuildMemberAddEvent{
 		GuildID: 555,
 		Member:  discord.Member{User: discord.User{ID: testUserID}},
 	}, session)
@@ -461,7 +473,7 @@ func TestResumedMemberKeepsServer(t *testing.T) {
 		Member:  &discord.Member{User: discord.User{ID: testUserID}, RoleIDs: []discord.RoleID{12}},
 		Data:    &discord.StringSelectInteraction{},
 	}
-	origin := Context{Env: Env{"user": newInteractionEnv(i, session).User}}
+	origin := Context{Env: Env{"user": NewInteractionEnv(i, session).User}}
 	c := NewContext(Env{})
 	c.SetResumeContext([]Context{origin})
 
@@ -499,7 +511,7 @@ func TestServerRolesAndChannelsAreReadWhenNeeded(t *testing.T) {
 	session.Cabinet.RoleStore = roles
 	session.Cabinet.ChannelStore = channels
 
-	env := newEventEnv(&gateway.MessageCreateEvent{
+	env := NewEventEnv(&gateway.MessageCreateEvent{
 		Message: discord.Message{ID: 1, ChannelID: 21, GuildID: testGuildID, Author: discord.User{ID: testUserID}},
 		Member:  &discord.Member{User: discord.User{ID: testUserID}, RoleIDs: []discord.RoleID{11}},
 	}, session)
