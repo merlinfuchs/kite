@@ -62,6 +62,7 @@ import { discordMessageReactionDelete } from "./discordMessageReactionDelete";
 import { discordMessageUnpin } from "./discordMessageUnpin";
 import { discordOptionCommandArgument } from "./discordOptionCommandArgument";
 import { discordOptionCommandContexts } from "./discordOptionCommandContexts";
+import { discordOptionCommandCooldown } from "./discordOptionCommandCooldown";
 import { discordOptionCommandPermissions } from "./discordOptionCommandPermissions";
 import { discordOptionEventFilter } from "./discordOptionEventFilter";
 import { discordPollCreate } from "./discordPollCreate";
@@ -97,6 +98,7 @@ export const blockDefinitions: BlockDefinition[] = [
   discordOptionCommandArgument,
   discordOptionCommandPermissions,
   discordOptionCommandContexts,
+  discordOptionCommandCooldown,
   discordOptionEventFilter,
   discordResponseCreate,
   discordResponseEdit,
