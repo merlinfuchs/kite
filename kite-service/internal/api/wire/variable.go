@@ -155,6 +155,10 @@ type VariableValueSetRequest struct {
 	Value string            `json:"value"`
 }
 
+func (req *VariableValueSetRequest) Sanitize() {
+	req.Scope = strings.TrimSpace(req.Scope)
+}
+
 func (req VariableValueSetRequest) Validate() error {
 	return validation.ValidateStruct(&req,
 		validation.Field(&req.Scope, validation.RuneLength(0, MaxVariableScopeLength)),

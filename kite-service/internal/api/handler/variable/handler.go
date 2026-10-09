@@ -148,13 +148,22 @@ func (h *VariableHandler) HandleVariableDelete(c *handler.Context) (*wire.Variab
 }
 
 func (h *VariableHandler) HandleVariableValueList(c *handler.Context) (*wire.VariableValueListResponse, error) {
-	limit, _ := strconv.Atoi(c.Query("limit"))
-	if limit <= 0 || limit > 100 {
-		limit = 25
+	limit := 25
+	if raw := c.Query("limit"); raw != "" {
+		var err error
+		limit, err = strconv.Atoi(raw)
+		if err != nil || limit < 1 || limit > 100 {
+			return nil, handler.ErrBadRequest("invalid_limit", "limit must be a number from 1 to 100")
+		}
 	}
-	offset, _ := strconv.Atoi(c.Query("offset"))
-	if offset < 0 {
-		offset = 0
+
+	offset := 0
+	if raw := c.Query("offset"); raw != "" {
+		var err error
+		offset, err = strconv.Atoi(raw)
+		if err != nil || offset < 0 {
+			return nil, handler.ErrBadRequest("invalid_offset", "offset must be a number of at least 0")
+		}
 	}
 
 	search := strings.TrimSpace(c.Query("search"))
@@ -181,6 +190,9 @@ func (h *VariableHandler) HandleVariableValueList(c *handler.Context) (*wire.Var
 func (h *VariableHandler) HandleVariableValueSet(c *handler.Context, req wire.VariableValueSetRequest) (*wire.VariableValueSetResponse, error) {
 	if !c.Variable.Scoped && req.Scope != "" {
 		return nil, validation.Errors{"scope": errors.New("this variable is not scoped")}
+	}
+	if c.Variable.Scoped && req.Scope == "" {
+		return nil, validation.Errors{"scope": errors.New("cannot be blank")}
 	}
 
 	data, err := req.Thing()
