@@ -6,3 +6,6 @@ SELECT * FROM sessions WHERE key_hash = $1;
 
 -- name: DeleteSession :exec
 DELETE FROM sessions WHERE key_hash = $1;
+
+-- name: UpdateSessionExpiry :exec
+UPDATE sessions SET expires_at = $2 WHERE key_hash = $1;

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"time"
 
@@ -16,6 +17,8 @@ import (
 const (
 	SessionCookieName = "kite-session"
 	SessionExpiry     = 7 * 24 * time.Hour
+	// SessionRefreshInterval is how often the expiry of a session in use is pushed back.
+	SessionRefreshInterval = 24 * time.Hour
 )
 
 type SessionManagerConfig struct {
@@ -41,6 +44,11 @@ func (s *SessionManager) CreateSessionCookie(c *handler.Context, userID string) 
 		return "", nil, err
 	}
 
+	s.setSessionCookie(c, key)
+	return key, session, nil
+}
+
+func (s *SessionManager) setSessionCookie(c *handler.Context, key string) {
 	sameSite := http.SameSiteNoneMode
 	if s.config.StrictCookies {
 		sameSite = http.SameSiteStrictMode
@@ -55,8 +63,6 @@ func (s *SessionManager) CreateSessionCookie(c *handler.Context, userID string) 
 		MaxAge:   int(SessionExpiry.Seconds()),
 		Path:     "/",
 	})
-
-	return key, session, nil
 }
 
 func (s *SessionManager) CreateSession(ctx context.Context, userID string) (string, *model.Session, error) {
@@ -109,6 +115,25 @@ func (s *SessionManager) Session(c *handler.Context) (*model.Session, error) {
 			return nil, nil
 		}
 		return nil, fmt.Errorf("failed to get session: %w", err)
+	}
+
+	now := time.Now().UTC()
+	if session.ExpiresAt.Before(now) {
+		return nil, nil
+	}
+
+	expiresAt := now.Add(SessionExpiry)
+	if expiresAt.Sub(session.ExpiresAt) >= SessionRefreshInterval {
+		if err := s.sessionStore.UpdateSessionExpiry(c.Context(), keyHash, expiresAt); err != nil {
+			slog.Error(
+				"Failed to refresh session expiry",
+				slog.String("user_id", session.UserID),
+				slog.String("error", err.Error()),
+			)
+		} else {
+			session.ExpiresAt = expiresAt
+			s.setSessionCookie(c, key)
+		}
 	}
 
 	return session, nil
