@@ -43,10 +43,17 @@ func (c *Client) Session(ctx context.Context, keyHash string) (*model.Session, e
 }
 
 func (c *Client) UpdateSessionExpiry(ctx context.Context, keyHash string, expiresAt time.Time) error {
-	return c.Q.UpdateSessionExpiry(ctx, pgmodel.UpdateSessionExpiryParams{
+	rows, err := c.Q.UpdateSessionExpiry(ctx, pgmodel.UpdateSessionExpiryParams{
 		KeyHash:   keyHash,
 		ExpiresAt: pgtype.Timestamp{Time: expiresAt.UTC(), Valid: true},
 	})
+	if err != nil {
+		return err
+	}
+	if rows == 0 {
+		return store.ErrNotFound
+	}
+	return nil
 }
 
 func rowToSession(row pgmodel.Session) *model.Session {

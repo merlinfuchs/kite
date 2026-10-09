@@ -54,6 +54,8 @@ func (s *SessionManager) setSessionCookie(c *handler.Context, key string) {
 		sameSite = http.SameSiteStrictMode
 	}
 
+	// Keep shared caches from storing the session cookie
+	c.SetHeader("Cache-Control", "private")
 	c.SetCookie(&http.Cookie{
 		Name:     SessionCookieName,
 		Value:    key,
@@ -123,18 +125,24 @@ func (s *SessionManager) Session(c *handler.Context) (*model.Session, error) {
 	}
 
 	expiresAt := now.Add(SessionExpiry)
-	if expiresAt.Sub(session.ExpiresAt) >= SessionRefreshInterval {
-		if err := s.sessionStore.UpdateSessionExpiry(c.Context(), keyHash, expiresAt); err != nil {
-			slog.Error(
-				"Failed to refresh session expiry",
-				slog.String("user_id", session.UserID),
-				slog.String("error", err.Error()),
-			)
-		} else {
-			session.ExpiresAt = expiresAt
-			s.setSessionCookie(c, key)
-		}
+	if expiresAt.Sub(session.ExpiresAt) < SessionRefreshInterval {
+		return session, nil
 	}
 
+	if err := s.sessionStore.UpdateSessionExpiry(c.Context(), keyHash, expiresAt); err != nil {
+		// Deleted by a concurrent logout
+		if errors.Is(err, store.ErrNotFound) {
+			return nil, nil
+		}
+		slog.Error(
+			"Failed to refresh session expiry",
+			slog.String("user_id", session.UserID),
+			slog.String("error", err.Error()),
+		)
+		return session, nil
+	}
+
+	session.ExpiresAt = expiresAt
+	s.setSessionCookie(c, key)
 	return session, nil
 }

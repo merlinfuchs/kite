@@ -14,17 +14,10 @@ import (
 )
 
 type fakeSessionStore struct {
+	// Methods the tests don't use panic.
+	store.SessionStore
+
 	sessions map[string]*model.Session
-}
-
-func (f *fakeSessionStore) CreateSession(ctx context.Context, session *model.Session) (*model.Session, error) {
-	f.sessions[session.KeyHash] = session
-	return session, nil
-}
-
-func (f *fakeSessionStore) DeleteSession(ctx context.Context, keyHash string) error {
-	delete(f.sessions, keyHash)
-	return nil
 }
 
 func (f *fakeSessionStore) Session(ctx context.Context, keyHash string) (*model.Session, error) {
@@ -37,7 +30,11 @@ func (f *fakeSessionStore) Session(ctx context.Context, keyHash string) (*model.
 }
 
 func (f *fakeSessionStore) UpdateSessionExpiry(ctx context.Context, keyHash string, expiresAt time.Time) error {
-	f.sessions[keyHash].ExpiresAt = expiresAt
+	session, ok := f.sessions[keyHash]
+	if !ok {
+		return store.ErrNotFound
+	}
+	session.ExpiresAt = expiresAt
 	return nil
 }
 
@@ -65,7 +62,6 @@ func TestSessionExpiry(t *testing.T) {
 			manager := NewSessionManager(SessionManagerConfig{}, sessionStore)
 
 			h := handler.APIHandler(manager.RequireSession(func(c *handler.Context) error {
-				c.SetHeader("Content-Type", "text/plain")
 				return nil
 			}))
 

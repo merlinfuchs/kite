@@ -64,7 +64,7 @@ func (q *Queries) GetSession(ctx context.Context, keyHash string) (Session, erro
 	return i, err
 }
 
-const updateSessionExpiry = `-- name: UpdateSessionExpiry :exec
+const updateSessionExpiry = `-- name: UpdateSessionExpiry :execrows
 UPDATE sessions SET expires_at = $2 WHERE key_hash = $1
 `
 
@@ -73,7 +73,10 @@ type UpdateSessionExpiryParams struct {
 	ExpiresAt pgtype.Timestamp
 }
 
-func (q *Queries) UpdateSessionExpiry(ctx context.Context, arg UpdateSessionExpiryParams) error {
-	_, err := q.db.Exec(ctx, updateSessionExpiry, arg.KeyHash, arg.ExpiresAt)
-	return err
+func (q *Queries) UpdateSessionExpiry(ctx context.Context, arg UpdateSessionExpiryParams) (int64, error) {
+	result, err := q.db.Exec(ctx, updateSessionExpiry, arg.KeyHash, arg.ExpiresAt)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
 }
