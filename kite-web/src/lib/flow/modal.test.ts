@@ -169,6 +169,21 @@ describe("suspend_response_modal data schema", () => {
     expect(
       issues({ type: "role_select", custom_id: "a", min_values: 2 })
     ).toEqual(["0.components.0.min_values"]);
+    expect(
+      issues({ type: "role_select", custom_id: "a", min_values: 0 })
+    ).toEqual(["0.components.0.min_values"]);
+  });
+
+  it("limits the minimum length to the maximum", () => {
+    expect(
+      issues({
+        type: "text_input",
+        custom_id: "a",
+        style: 1,
+        min_length: 10,
+        max_length: 5,
+      })
+    ).toEqual(["0.components.0.min_length"]);
   });
 
   it("limits options picked by default", () => {

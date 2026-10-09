@@ -27,10 +27,12 @@ const modalSelectFields = {
     z.string().max(150).min(1),
     "Shown while nothing is picked. Not for radio_group and checkbox_group."
   ).optional(),
+  // Discord rejects 0 for required inputs, and the service sends 0 for
+  // optional ones.
   min_values: z
     .number()
     .int()
-    .min(0)
+    .min(1)
     .max(25)
     .optional()
     .describe("Minimum picks."),
@@ -131,7 +133,19 @@ const modalInputSchema = z
     const issue = (path: (string | number)[], message: string) =>
       ctx.addIssue({ code: z.ZodIssueCode.custom, path, message });
 
-    if (input.type === "text_input" || input.type === "checkbox") return;
+    if (input.type === "text_input") {
+      const { min_length, max_length } = input;
+      if (min_length !== undefined && max_length !== undefined) {
+        if (min_length > max_length) {
+          issue(
+            ["min_length"],
+            `Can't be more than the maximum of ${max_length}.`
+          );
+        }
+      }
+      return;
+    }
+    if (input.type === "checkbox") return;
 
     if (input.type === "radio_group" || input.type === "checkbox_group") {
       if (input.placeholder) {

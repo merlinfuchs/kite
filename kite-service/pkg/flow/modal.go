@@ -194,7 +194,7 @@ func buildModalInput(ctx *FlowContext, c ModalComponentData) (map[string]any, er
 	// isn't set.
 	setValueLimits := func(limit, defaultMax int) (int, error) {
 		if c.MinValues < 0 || c.MinValues > limit {
-			return 0, fmt.Errorf("minimum values must be between 0 and %d, got %d", limit, c.MinValues)
+			return 0, fmt.Errorf("minimum values must be between 1 and %d, got %d", limit, c.MinValues)
 		}
 		if c.MaxValues < 0 || c.MaxValues > limit {
 			return 0, fmt.Errorf("maximum values must be between 1 and %d, got %d", limit, c.MaxValues)
@@ -207,7 +207,9 @@ func buildModalInput(ctx *FlowContext, c ModalComponentData) (map[string]any, er
 			return 0, fmt.Errorf("minimum values %d is more than the maximum %d", c.MinValues, maxValues)
 		}
 
-		if c.MinValues != 0 {
+		// Discord defaults min_values to 1, so an optional input sends 0 to
+		// make sure nothing has to be picked.
+		if c.MinValues != 0 || !c.Required {
 			res["min_values"] = c.MinValues
 		}
 		if c.MaxValues != 0 {
@@ -218,6 +220,10 @@ func buildModalInput(ctx *FlowContext, c ModalComponentData) (map[string]any, er
 
 	switch c.Type {
 	case "", ModalComponentTypeTextInput:
+		if c.MaxLength > 0 && c.MinLength > c.MaxLength {
+			return nil, fmt.Errorf("minimum length %d is more than the maximum %d", c.MinLength, c.MaxLength)
+		}
+
 		value, err := ctx.EvalTemplateKeepSpace(c.Value)
 		if err != nil {
 			return nil, err

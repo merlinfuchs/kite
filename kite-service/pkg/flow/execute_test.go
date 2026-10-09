@@ -302,11 +302,11 @@ func TestFlowExecuteModalComponents(t *testing.T) {
 	assert.Equal(t, "Pick 1", components[1]["description"])
 	sel := components[1]["component"].(map[string]any)
 	assert.EqualValues(t, discord.StringSelectComponentType, sel["type"])
-	// An optional select has to send required: false, as Discord defaults it
-	// to true.
+	// An optional select has to send required: false and min_values: 0, as
+	// Discord defaults them to true and 1.
 	assert.Equal(t, false, sel["required"])
+	assert.EqualValues(t, 0, sel["min_values"])
 	assert.EqualValues(t, 2, sel["max_values"])
-	assert.NotContains(t, sel, "min_values")
 	options := sel["options"].([]any)
 	assert.Equal(t, "Blue", options[1].(map[string]any)["value"])
 	assert.Equal(t, true, options[1].(map[string]any)["default"])
@@ -314,6 +314,7 @@ func TestFlowExecuteModalComponents(t *testing.T) {
 	channel := components[2]["component"].(map[string]any)
 	assert.EqualValues(t, discord.ChannelSelectComponentType, channel["type"])
 	assert.Equal(t, true, channel["required"])
+	assert.NotContains(t, channel, "min_values")
 	assert.Equal(t, []any{float64(0)}, channel["channel_types"])
 
 	checkbox := components[3]["component"].(map[string]any)
@@ -452,6 +453,10 @@ func TestFlowExecuteModalInvalid(t *testing.T) {
 				{Label: "A", Default: true},
 				{Label: "B", Default: true},
 			}}),
+		},
+		{
+			name:  "min length above max length",
+			modal: modalWithInput(ModalComponentData{Type: ModalComponentTypeTextInput, CustomID: "name", MinLength: 10, MaxLength: 5}),
 		},
 		{
 			name:  "text input placeholder too long",
