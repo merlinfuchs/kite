@@ -134,14 +134,9 @@ const modalInputSchema = z
       ctx.addIssue({ code: z.ZodIssueCode.custom, path, message });
 
     if (input.type === "text_input") {
-      const { min_length, max_length } = input;
-      if (min_length !== undefined && max_length !== undefined) {
-        if (min_length > max_length) {
-          issue(
-            ["min_length"],
-            `Can't be more than the maximum of ${max_length}.`
-          );
-        }
+      const max = input.max_length ?? 4000;
+      if ((input.min_length ?? 0) > max) {
+        issue(["min_length"], `Can't be more than the maximum of ${max}.`);
       }
       return;
     }
