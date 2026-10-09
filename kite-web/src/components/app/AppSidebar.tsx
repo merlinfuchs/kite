@@ -28,6 +28,7 @@ import { useEffect } from "react";
 import AppSidebarAppSwitcher from "./AppSidebarAppSwitcher";
 import AppSidebarExternalNav from "./AppSidebarExternalNav";
 import AppSidebarMainNav from "./AppSidebarMainNav";
+import AppSidebarSupportCard from "./AppSidebarSupportCard";
 import AppSidebarStudioNav from "./AppSidebarStudioNav";
 import AppSidebarUserNav from "./AppSidebarUserNav";
 
@@ -61,6 +62,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             <AppSidebarExternalNav />
           </SidebarContent>
           <SidebarFooter>
+            <AppSidebarSupportCard />
             <AppSidebarUserNav />
           </SidebarFooter>
           <SidebarRail />
