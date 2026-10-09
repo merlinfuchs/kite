@@ -75,6 +75,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           <div className="grid grid-cols-4 items-center mx-auto h-16 max-w-md px-3">
             <Link
               href={{ pathname: "/apps/[appId]", query: { appId } }}
+              aria-current={isDashboardActive ? "page" : undefined}
               className={cn(
                 "flex flex-col items-center justify-center py-1 rounded-lg transition-colors",
                 isDashboardActive
@@ -90,6 +91,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 
             <Link
               href={{ pathname: "/apps/[appId]/commands", query: { appId } }}
+              aria-current={isCommandsActive ? "page" : undefined}
               className={cn(
                 "flex flex-col items-center justify-center py-1 rounded-lg transition-colors",
                 isCommandsActive
@@ -105,6 +107,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 
             <Link
               href={{ pathname: "/apps/[appId]/events", query: { appId } }}
+              aria-current={isEventsActive ? "page" : undefined}
               className={cn(
                 "flex flex-col items-center justify-center py-1 rounded-lg transition-colors",
                 isEventsActive
@@ -128,6 +131,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                   : "text-muted-foreground hover:text-foreground"
               )}
               aria-label="Open navigation menu"
+              aria-expanded={openMobile}
             >
               <MenuIcon className="size-5" />
               <span className="text-[10px] sm:text-[11px] leading-none mt-1">
