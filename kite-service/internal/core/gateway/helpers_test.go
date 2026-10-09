@@ -101,6 +101,23 @@ func TestIntentsForRequirements(t *testing.T) {
 			want:  gateway.IntentGuilds | gateway.IntentGuildMessageReactions,
 		},
 		{
+			name: "voice channel listeners add voice states",
+			reqs: model.AppGatewayRequirements{
+				EventListenerTypes: []model.EventListenerType{
+					model.EventListenerTypeDiscordVoiceChannelJoin,
+					model.EventListenerTypeDiscordVoiceChannelLeave,
+				},
+			},
+			want: gateway.IntentGuilds | gateway.IntentGuildVoiceStates,
+		},
+		{
+			name: "voice state plugin adds voice states",
+			reqs: model.AppGatewayRequirements{
+				PluginEventTypes: []ws.EventType{"VOICE_STATE_UPDATE"},
+			},
+			want: gateway.IntentGuilds | gateway.IntentGuildVoiceStates,
+		},
+		{
 			name: "starboard plugin adds reactions but not messages",
 			reqs: model.AppGatewayRequirements{
 				PluginEventTypes: []ws.EventType{"MESSAGE_REACTION_ADD"},
@@ -138,6 +155,16 @@ func TestIntentsForRequirements(t *testing.T) {
 			flags: allPrivilegedFlags,
 			want: gateway.IntentGuilds | gateway.IntentGuildMessages | gateway.IntentMessageContent |
 				gateway.IntentGuildMembers | gateway.IntentGuildMessageReactions,
+		},
+		{
+			name: "voice state listeners combine with other requirements",
+			reqs: model.AppGatewayRequirements{
+				EventListenerTypes: []model.EventListenerType{
+					model.EventListenerTypeDiscordVoiceChannelJoin,
+					model.EventListenerTypeDiscordMessageReactionAdd,
+				},
+			},
+			want: gateway.IntentGuilds | gateway.IntentGuildMessageReactions | gateway.IntentGuildVoiceStates,
 		},
 	}
 
@@ -177,7 +204,7 @@ func TestAllPermittedIntentsIsBroad(t *testing.T) {
 	got := allPermittedIntents(allPrivilegedFlags)
 
 	want := gateway.IntentGuilds | gateway.IntentGuildMessages | gateway.IntentGuildMessageReactions |
-		gateway.IntentMessageContent | gateway.IntentGuildMembers
+		gateway.IntentMessageContent | gateway.IntentGuildMembers | gateway.IntentGuildVoiceStates
 
 	if got != want {
 		t.Errorf("allPermittedIntents = %d, want %d (missing %d)", got, want, want&^got)

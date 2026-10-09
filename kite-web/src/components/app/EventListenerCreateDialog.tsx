@@ -211,6 +211,12 @@ export default function EventListenerCreateDialog({
                         <SelectItem value="guild_member_remove">
                           Server Member Remove
                         </SelectItem>
+                        <SelectItem value="voice_channel_join">
+                          Member Joins Voice Channel
+                        </SelectItem>
+                        <SelectItem value="voice_channel_leave">
+                          Member Leaves Voice Channel
+                        </SelectItem>
                         <SelectItem value="message_reaction_add">
                           Message Reaction Add
                         </SelectItem>

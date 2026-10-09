@@ -9,10 +9,13 @@ import (
 	"sync"
 	"time"
 
+	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/gateway"
 	"github.com/diamondburned/arikawa/v3/session"
 	"github.com/diamondburned/arikawa/v3/state"
+	arikawastore "github.com/diamondburned/arikawa/v3/state/store"
 	"github.com/diamondburned/arikawa/v3/utils/httputil"
+	"github.com/diamondburned/arikawa/v3/utils/ws"
 	"github.com/kitecloud/kite/kite-service/internal/core/plan"
 	"github.com/kitecloud/kite/kite-service/internal/metrics"
 	"github.com/kitecloud/kite/kite-service/internal/model"
@@ -140,6 +143,38 @@ func (g *Gateway) startGateway(session *state.State, ctx context.Context) {
 		slog.Uint64("intents", uint64(intents)),
 	)
 
+	var voiceStateTransitionsMu sync.Mutex
+	voiceStateTransitions := make(map[*gateway.VoiceStateUpdateEvent]voiceStateTransition)
+	session.PreHandler.AddSyncHandler(func(e *gateway.VoiceStateUpdateEvent) {
+		previous, err := session.Cabinet.VoiceState(e.GuildID, e.UserID)
+		if err != nil && !errors.Is(err, arikawastore.ErrNotFound) {
+			slog.Error(
+				"Failed to get previous voice state",
+				slog.String("app_id", g.appID),
+				slog.String("guild_id", e.GuildID.String()),
+				slog.String("user_id", e.UserID.String()),
+				slog.String("error", err.Error()),
+			)
+			return
+		}
+
+		previousChannelID := discord.ChannelID(0)
+		if previous != nil {
+			previousChannelID = previous.ChannelID
+		}
+		eventType := voiceStateTransitionType(previousChannelID, e.ChannelID)
+		if eventType == "" {
+			return
+		}
+
+		voiceStateTransitionsMu.Lock()
+		voiceStateTransitions[e] = voiceStateTransition{
+			eventType:         eventType,
+			previousChannelID: previousChannelID,
+		}
+		voiceStateTransitionsMu.Unlock()
+	})
+
 	session.AddHandler(func(e gateway.Event) {
 		// Protocol frames -- heartbeat acks, hello, reconnect, invalid session
 		// -- report an empty event type. Nothing downstream can ever match
@@ -154,6 +189,22 @@ func (g *Gateway) startGateway(session *state.State, ctx context.Context) {
 		}
 
 		metrics.GatewayEvents.Add(string(eventType), 1)
+		if eventType == "VOICE_STATE_UPDATE" {
+			if voiceEvent, ok := e.(*gateway.VoiceStateUpdateEvent); ok {
+				voiceStateTransitionsMu.Lock()
+				transition, isTransition := voiceStateTransitions[voiceEvent]
+				delete(voiceStateTransitions, voiceEvent)
+				voiceStateTransitionsMu.Unlock()
+
+				if isTransition {
+					e = &voiceStateUpdateEvent{
+						VoiceStateUpdateEvent: voiceEvent,
+						eventType:             ws.EventType(transition.eventType),
+						previousChannelID:     transition.previousChannelID,
+					}
+				}
+			}
+		}
 		g.eventHandler.HandleEvent(g.appID, session, e)
 	})
 
@@ -188,6 +239,46 @@ func (g *Gateway) startGateway(session *state.State, ctx context.Context) {
 		g.disableApp(fmt.Sprintf("Failed to connect to gateway: %v", err))
 		return
 	}
+}
+
+type voiceStateTransition struct {
+	eventType         model.EventListenerType
+	previousChannelID discord.ChannelID
+}
+
+func voiceStateTransitionType(previous, current discord.ChannelID) model.EventListenerType {
+	wasInVoice := previous.IsValid()
+	isInVoice := current.IsValid()
+	switch {
+	case !wasInVoice && isInVoice:
+		return model.EventListenerTypeDiscordVoiceChannelJoin
+	case wasInVoice && !isInVoice:
+		return model.EventListenerTypeDiscordVoiceChannelLeave
+	default:
+		return ""
+	}
+}
+
+type voiceStateUpdateEvent struct {
+	*gateway.VoiceStateUpdateEvent
+	eventType         ws.EventType
+	previousChannelID discord.ChannelID
+}
+
+func (e *voiceStateUpdateEvent) EventType() ws.EventType {
+	return e.eventType
+}
+
+func (e *voiceStateUpdateEvent) VoiceStateUpdate() *gateway.VoiceStateUpdateEvent {
+	return e.VoiceStateUpdateEvent
+}
+
+func (e *voiceStateUpdateEvent) OriginalEvent() gateway.Event {
+	return e.VoiceStateUpdateEvent
+}
+
+func (e *voiceStateUpdateEvent) PreviousChannelID() discord.ChannelID {
+	return e.previousChannelID
 }
 
 // computeIntents derives the intent set this app should identify with.

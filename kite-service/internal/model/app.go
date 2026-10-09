@@ -113,6 +113,25 @@ func (r AppGatewayRequirements) NeedsGuildMessageReactions() bool {
 	return false
 }
 
+// NeedsGuildVoiceStates reports whether the app consumes voice state events.
+func (r AppGatewayRequirements) NeedsGuildVoiceStates() bool {
+	for _, t := range r.EventListenerTypes {
+		switch t {
+		case EventListenerTypeDiscordVoiceChannelJoin,
+			EventListenerTypeDiscordVoiceChannelLeave:
+			return true
+		}
+	}
+
+	for _, t := range r.PluginEventTypes {
+		if t == "VOICE_STATE_UPDATE" {
+			return true
+		}
+	}
+
+	return false
+}
+
 // AppDiscordStatus holds the statuses an app can show. ActiveID picks the one
 // shown when rotation is off, otherwise the gateway cycles through all of them.
 type AppDiscordStatus struct {

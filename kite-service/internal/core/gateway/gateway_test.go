@@ -36,6 +36,13 @@ func newTestGateway(t *testing.T) *Gateway {
 	return g
 }
 
+func TestCreateSessionInitializesPreHandler(t *testing.T) {
+	g := newTestGateway(t)
+	if g.Session().PreHandler == nil {
+		t.Fatal("session pre-handler is nil")
+	}
+}
+
 // Run with -race: restarts replace the session while the API, the manager and
 // the engine's scheduler read it.
 func TestReplaceSessionWhileReading(t *testing.T) {

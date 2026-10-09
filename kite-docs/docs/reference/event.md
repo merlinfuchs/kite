@@ -11,6 +11,8 @@ With Event Listeners you can listen for events inside the Discord servers that y
 - Message Delete
 - Member Join
 - Member Leave
+- Member Joins Voice Channel
+- Member Leaves Voice Channel
 - Reaction Add
 - Reaction Remove
 - Bot Joined Server
@@ -24,6 +26,10 @@ With Event Listeners you can listen for events inside the Discord servers that y
 - Reaction events provide the emoji as `{{emoji}}`, with `{{emoji.id}}`, `{{emoji.name}}` and `{{emoji.mention}}`. `{{emoji.id}}` is empty for unicode emojis.
 - Reaction Remove only knows the user's ID, so only `{{user.id}}`, `{{user.mention}}` and `{{user.created_at}}` are available there. Fields like `{{user.username}}` are empty; use a Get User block if you need them.
 - Member events are only available when you enable the "Server Members Intent" in the [Discord Developer Portal](https://discord.dev).
+- Voice channel events use Discord's non-privileged Voice States intent, so no Developer Portal intent is needed.
+- Voice channel events trigger when a member starts or stops being connected to a voice channel. Moving directly between voice channels and mute/deafen changes don't trigger them.
+- Voice channel events provide `{{user}}`, `{{member}}`, `{{guild}}` and `{{channel}}`. On leave, `{{channel}}` is the channel the member left.
+- If Discord omits member data, only `{{user.id}}`, `{{user.mention}}` and `{{user.created_at}}` are available; profile fields like `{{user.username}}` are empty.
 - Bot Left Server only provides `{{guild.id}}`, as the bot no longer knows anything else about the server.
 
 ![Example Event Flow](./img/example-event-flow.png)

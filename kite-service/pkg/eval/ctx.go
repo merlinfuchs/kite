@@ -436,6 +436,27 @@ func NewEventEnv(event ws.Event, session *state.State) *EventEnv {
 		env.User = NewUserEnv(e.User)
 		env.Member = env.User
 		env.Guild = guild(e.GuildID).guildEnv()
+	case interface {
+		VoiceStateUpdate() *gateway.VoiceStateUpdateEvent
+		PreviousChannelID() discord.ChannelID
+	}:
+		voiceState := e.VoiceStateUpdate()
+		if voiceState.Member != nil {
+			env.Member = guild(voiceState.GuildID).memberEnv(*voiceState.Member)
+			env.User = env.Member
+		} else {
+			env.User = NewUserIDEnv(voiceState.UserID)
+			env.Member = env.User
+		}
+		env.Guild = guild(voiceState.GuildID).guildEnv()
+
+		channelID := voiceState.ChannelID
+		if !channelID.IsValid() {
+			channelID = e.PreviousChannelID()
+		}
+		if channelID.IsValid() {
+			env.Channel = currentChannelEnv(session, channelID, nil)
+		}
 	case *gateway.MessageReactionAddEvent:
 		if e.Member != nil {
 			env.Member = guild(e.GuildID).memberEnv(*e.Member)

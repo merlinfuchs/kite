@@ -846,6 +846,14 @@ function EventTypeInput({ data, updateData, errors }: InputProps) {
         { value: "message_delete", label: "Message Delete" },
         { value: "guild_member_add", label: "Server Member Add" },
         { value: "guild_member_remove", label: "Server Member Remove" },
+        {
+          value: "voice_channel_join",
+          label: "Member Joins Voice Channel",
+        },
+        {
+          value: "voice_channel_leave",
+          label: "Member Leaves Voice Channel",
+        },
         { value: "message_reaction_add", label: "Message Reaction Add" },
         {
           value: "message_reaction_remove",
