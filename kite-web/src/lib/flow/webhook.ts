@@ -9,7 +9,7 @@ export function getWebhookUrl(listener: EventListener): string | null {
   // but the URL is entered into other services, so it needs the origin.
   return new URL(
     getApiUrl(
-      `/v1/apps/${listener.app_id}/webhooks/${listener.id}/${listener.webhook_secret}`
+      `/v1/webhooks/${listener.app_id}/${listener.id}/${listener.webhook_secret}`
     ),
     window.location.origin
   ).href;

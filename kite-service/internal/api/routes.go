@@ -265,9 +265,9 @@ func (s *APIServer) RegisterRoutes(
 	)
 
 	// Public, and not in the apps group because the sender has no session.
-	// The path starts with the app like the routes of that group, so the
-	// request is routed to the cluster that runs the app.
-	v1Group.Post("/apps/{appID}/webhooks/{listenerID}/{secret}", eventListenerHandler.HandleEventListenerWebhook)
+	// nginx routes the request to the cluster that runs the app by the app ID
+	// that follows /webhooks/, like it does for routes of that group.
+	v1Group.Post("/webhooks/{appID}/{listenerID}/{secret}", eventListenerHandler.HandleEventListenerWebhook)
 
 	// Plugin instance routes
 	pluginHandler := pluginhandler.NewPluginHandler(pluginRegistry, pluginInstanceStore)

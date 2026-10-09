@@ -72,7 +72,7 @@ func webhookTestServer(listener *model.EventListener, runner *fakeRunner) http.H
 func webhookTestMux(h *EventListenerHandler) http.Handler {
 	mux := http.NewServeMux()
 	group := handler.Group(mux, "/v1")
-	group.Post("/apps/{appID}/webhooks/{listenerID}/{secret}", h.HandleEventListenerWebhook)
+	group.Post("/webhooks/{appID}/{listenerID}/{secret}", h.HandleEventListenerWebhook)
 	return mux
 }
 
@@ -90,7 +90,7 @@ func TestWebhookRunsFlowWithRequest(t *testing.T) {
 	runner := &fakeRunner{loadedSecret: "secret"}
 	server := webhookTestServer(webhookTestListener(), runner)
 
-	rec := postWebhook(server, "/v1/apps/app/webhooks/listener/secret?source=ci&tag=a&tag=b", `{"ok":true}`, map[string]string{
+	rec := postWebhook(server, "/v1/webhooks/app/listener/secret?source=ci&tag=a&tag=b", `{"ok":true}`, map[string]string{
 		"X-GitHub-Event": "push",
 		"Cookie":         "kite-session=abc",
 	})
@@ -109,9 +109,9 @@ func TestWebhookRejectsWrongURL(t *testing.T) {
 	server := webhookTestServer(webhookTestListener(), runner)
 
 	for _, path := range []string{
-		"/v1/apps/app/webhooks/listener/wrong",
-		"/v1/apps/app/webhooks/other/secret",
-		"/v1/apps/other/webhooks/listener/secret",
+		"/v1/webhooks/app/listener/wrong",
+		"/v1/webhooks/app/other/secret",
+		"/v1/webhooks/other/listener/secret",
 	} {
 		rec := postWebhook(server, path, "", nil)
 		assert.Equal(t, http.StatusNotFound, rec.Code, path)
@@ -131,7 +131,7 @@ func TestWebhookChecksDatabaseAfterEngine(t *testing.T) {
 		runner := &fakeRunner{loadedSecret: "secret"}
 		server := webhookTestServer(change(webhookTestListener()), runner)
 
-		rec := postWebhook(server, "/v1/apps/app/webhooks/listener/secret", "", nil)
+		rec := postWebhook(server, "/v1/webhooks/app/listener/secret", "", nil)
 		assert.Equal(t, http.StatusNotFound, rec.Code, name)
 		assert.Empty(t, runner.events, name)
 	}
@@ -141,15 +141,15 @@ func TestWebhookRejectsLargeRequests(t *testing.T) {
 	runner := &fakeRunner{loadedSecret: "secret"}
 	server := webhookTestServer(webhookTestListener(), runner)
 
-	rec := postWebhook(server, "/v1/apps/app/webhooks/listener/secret", strings.Repeat("a", webhook.MaxBodySize+1), nil)
+	rec := postWebhook(server, "/v1/webhooks/app/listener/secret", strings.Repeat("a", webhook.MaxBodySize+1), nil)
 	assert.Equal(t, http.StatusBadRequest, rec.Code)
 
-	rec = postWebhook(server, "/v1/apps/app/webhooks/listener/secret", "", map[string]string{
+	rec = postWebhook(server, "/v1/webhooks/app/listener/secret", "", map[string]string{
 		"X-Large": strings.Repeat("a", webhook.MaxMetadataSize),
 	})
 	assert.Equal(t, http.StatusBadRequest, rec.Code)
 
-	rec = postWebhook(server, "/v1/apps/app/webhooks/listener/secret", strings.Repeat("a", webhook.MaxBodySize), nil)
+	rec = postWebhook(server, "/v1/webhooks/app/listener/secret", strings.Repeat("a", webhook.MaxBodySize), nil)
 	assert.Equal(t, http.StatusAccepted, rec.Code, "a body at the limit is accepted")
 
 	assert.Len(t, runner.events, 1)
@@ -167,22 +167,22 @@ func TestWebhookRateLimitIsPerApp(t *testing.T) {
 
 	// Requests with a wrong secret don't count against the app.
 	for i := 0; i < webhookRateBurst; i++ {
-		postWebhook(server, "/v1/apps/app/webhooks/listener/wrong", "", nil)
+		postWebhook(server, "/v1/webhooks/app/listener/wrong", "", nil)
 	}
 
 	// Both listeners of the app share one limit.
 	for i := 0; i < webhookRateBurst; i++ {
-		path := "/v1/apps/app/webhooks/listener/secret"
+		path := "/v1/webhooks/app/listener/secret"
 		if i%2 == 1 {
-			path = "/v1/apps/app/webhooks/other-listener/secret"
+			path = "/v1/webhooks/app/other-listener/secret"
 		}
 		rec := postWebhook(server, path, "", nil)
 		require.Equal(t, http.StatusAccepted, rec.Code, "request %d", i)
 	}
 
 	for _, path := range []string{
-		"/v1/apps/app/webhooks/listener/secret",
-		"/v1/apps/app/webhooks/other-listener/secret",
+		"/v1/webhooks/app/listener/secret",
+		"/v1/webhooks/app/other-listener/secret",
 	} {
 		rec := postWebhook(server, path, "", nil)
 		assert.Equal(t, http.StatusTooManyRequests, rec.Code, path)
@@ -195,7 +195,7 @@ func TestWebhookAppOffline(t *testing.T) {
 	runner := &fakeRunner{loadedSecret: "secret", err: engine.ErrWebhookAppOffline}
 	server := webhookTestServer(webhookTestListener(), runner)
 
-	rec := postWebhook(server, "/v1/apps/app/webhooks/listener/secret", "", nil)
+	rec := postWebhook(server, "/v1/webhooks/app/listener/secret", "", nil)
 	assert.Equal(t, http.StatusServiceUnavailable, rec.Code)
 }
 
