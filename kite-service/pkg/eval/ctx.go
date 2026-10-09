@@ -104,6 +104,16 @@ func NewContextFromInteraction(i *discord.InteractionEvent, session *state.State
 				}
 				return nil
 			},
+			"inputs": func(customID string) any {
+				if interactionEnv.Components == nil {
+					return nil
+				}
+
+				if component, ok := interactionEnv.Components[customID]; ok {
+					return component.Values
+				}
+				return nil
+			},
 		},
 	}
 }
@@ -195,6 +205,10 @@ func (c CommandEnv) String() string {
 type ComponentEnv struct {
 	CustomID string `expr:"custom_id" json:"custom_id"`
 	Value    string `expr:"value" json:"value"`
+	// Values, which inputs() returns, are the options picked in a select menu
+	// or checkbox group, or the one value of other inputs, if any. Value, which
+	// input() returns, is the first of them, like interaction.value.
+	Values []string `expr:"values" json:"values"`
 }
 
 func NewComponentsEnv(i *discord.InteractionEvent) map[string]*ComponentEnv {
@@ -205,16 +219,22 @@ func NewComponentsEnv(i *discord.InteractionEvent) map[string]*ComponentEnv {
 		return components
 	}
 
-	for _, row := range data.Components {
-		actionRow, ok := row.(*discord.ActionRowComponent)
-		if !ok {
-			continue
+	add := func(component discord.Component) {
+		c := NewComponentEnv(component)
+		if c != nil {
+			components[c.CustomID] = c
 		}
+	}
 
-		for _, component := range *actionRow {
-			c := NewComponentEnv(component)
-			if c != nil {
-				components[c.CustomID] = c
+	for _, row := range data.Components {
+		switch row := row.(type) {
+		case *discord.ActionRowComponent:
+			for _, component := range *row {
+				add(component)
+			}
+		case *discord.LabelComponent:
+			if row.Component != nil {
+				add(row.Component)
 			}
 		}
 	}
@@ -222,16 +242,50 @@ func NewComponentsEnv(i *discord.InteractionEvent) map[string]*ComponentEnv {
 	return components
 }
 
-func NewComponentEnv(component discord.InteractiveComponent) *ComponentEnv {
+func NewComponentEnv(component discord.Component) *ComponentEnv {
 	switch c := component.(type) {
 	case *discord.TextInputComponent:
-		return &ComponentEnv{
-			CustomID: string(c.CustomID),
-			Value:    c.Value,
-		}
+		return newComponentEnv(c.CustomID, optionalValue(c.Value))
+	case *discord.StringSelectComponent:
+		return newComponentEnv(c.CustomID, c.Values)
+	case *discord.UserSelectComponent:
+		return newComponentEnv(c.CustomID, c.Values)
+	case *discord.RoleSelectComponent:
+		return newComponentEnv(c.CustomID, c.Values)
+	case *discord.MentionableSelectComponent:
+		return newComponentEnv(c.CustomID, c.Values)
+	case *discord.ChannelSelectComponent:
+		return newComponentEnv(c.CustomID, c.Values)
+	case *discord.CheckboxGroupComponent:
+		return newComponentEnv(c.CustomID, c.Values)
+	case *discord.RadioGroupComponent:
+		return newComponentEnv(c.CustomID, optionalValue(c.Value))
+	case *discord.CheckboxComponent:
+		return newComponentEnv(c.CustomID, []string{strconv.FormatBool(c.Value)})
 	}
 
 	return nil
+}
+
+func newComponentEnv[T any](customID discord.ComponentID, values []T) *ComponentEnv {
+	env := &ComponentEnv{
+		CustomID: string(customID),
+		Values:   make([]string, len(values)),
+	}
+	for i, v := range values {
+		env.Values[i] = fmt.Sprint(v)
+	}
+	if len(env.Values) > 0 {
+		env.Value = env.Values[0]
+	}
+	return env
+}
+
+func optionalValue(value string) []string {
+	if value == "" {
+		return nil
+	}
+	return []string{value}
 }
 
 func (c ComponentEnv) String() string {
@@ -410,8 +464,8 @@ func NewEventEnv(event ws.Event) *EventEnv {
 
 // SetResumeContext makes the interactions or events from before a resume point
 // available to the resumed flow, oldest first. Command args and modal inputs
-// only exist on one kind of interaction, so arg() and input() fall back to
-// earlier ones, newest first.
+// only exist on one kind of interaction, so arg(), input() and inputs() fall
+// back to earlier ones, newest first.
 func (c Context) SetResumeContext(earlier []Context) {
 	if len(earlier) == 0 {
 		return
@@ -420,7 +474,7 @@ func (c Context) SetResumeContext(earlier []Context) {
 	c.Env["origin"] = map[string]any(earlier[0].Env)
 	c.Env["previous"] = map[string]any(earlier[len(earlier)-1].Env)
 
-	for _, name := range []string{"arg", "input"} {
+	for _, name := range []string{"arg", "input", "inputs"} {
 		var lookups []func(string) any
 		if fn, ok := c.Env[name].(func(string) any); ok {
 			lookups = append(lookups, fn)

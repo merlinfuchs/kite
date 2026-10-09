@@ -57,6 +57,70 @@ describe("getAvailablePlaceholders", () => {
     ]);
   });
 
+  it("lists all picked options of modal inputs in the modal's sub-flow", () => {
+    const input = (custom_id: string, type: string, max_values?: number) => ({
+      type: "label",
+      label: custom_id,
+      components: [
+        {
+          type,
+          custom_id,
+          max_values,
+          options: [{ label: "A" }, { label: "B" }],
+        },
+      ],
+    });
+    const modalNodes = [
+      node("entry", "entry_command"),
+      node("modal", "suspend_response_modal", {
+        modal_data: {
+          title: "Form",
+          components: [
+            input("single", "string_select"),
+            input("multi", "string_select", 2),
+            input("roles", "role_select", 3),
+            input("extras", "checkbox_group"),
+            input("size", "radio_group"),
+          ],
+        },
+      }),
+      node("log", "action_log"),
+      node("msg", "action_response_create", {
+        message_data: { components: [{ type: 1, components: [{ id: 7 }] }] },
+      }),
+      node("later", "action_log"),
+    ];
+    const modalEdges = [
+      edge("entry", "modal"),
+      edge("modal", "log"),
+      edge("log", "msg"),
+      edge("msg", "later", "component_7"),
+    ];
+    const modalInputs = (nodeId: string) =>
+      getAvailablePlaceholders(nodeId, modalNodes, modalEdges, "command")
+        .find((g) => g.label === "Modal Inputs")
+        ?.placeholders.map((p) => p.value);
+
+    const expected = [
+      "input('single')",
+      "input('multi')",
+      "inputs('multi')",
+      "input('roles')",
+      "inputs('roles')",
+      "input('extras')",
+      "inputs('extras')",
+      "input('size')",
+    ];
+    expect(modalInputs("log")).toEqual(expected);
+    expect(
+      getAvailablePlaceholders("log", modalNodes, modalEdges, "command")
+        .find((g) => g.label === "Modal Inputs")
+        ?.placeholders.find((p) => p.value === "inputs('extras')")?.label
+    ).toBe("extras (Selected Values)");
+    // Like input(), inputs() still works after the next resume point.
+    expect(modalInputs("later")).toEqual(expected);
+  });
+
   it("lists the reaction emoji for discord events", () => {
     const groups = getAvailablePlaceholders(undefined, [], [], "event_discord");
     expect(groups.find((g) => g.label === "Emoji")?.placeholders).toEqual([
