@@ -63,12 +63,15 @@ function interactionPlaceholders(
         label: `${labelPrefix}Webhook`,
         placeholders: [
           { label: "Request Body", value: `${prefix}webhook.body` },
-          { label: "Request Body (JSON)", value: `${prefix}webhook.data` },
+          {
+            label: "Request Body Field (JSON)",
+            value: `${prefix}webhook.data.name`,
+          },
           {
             label: "Request Header",
             value: `${prefix}webhook.headers['content-type']`,
           },
-          { label: "Query Parameters", value: `${prefix}webhook.query` },
+          { label: "Query Parameter", value: `${prefix}webhook.query.name` },
         ],
       },
     ];
