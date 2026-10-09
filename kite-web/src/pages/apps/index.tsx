@@ -2,6 +2,7 @@ import AppList from "@/components/app/AppList";
 import BaseLayout from "@/components/common/BaseLayout";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import env from "@/lib/env/client";
 import { useUser } from "@/lib/hooks/api";
 import { useLogout } from "@/lib/hooks/auth";
 import { LogOutIcon } from "lucide-react";
@@ -20,7 +21,15 @@ export default function AppListPage() {
             </h1>
             <p className="text-muted-foreground text-sm">
               Apps are where you manage your plugins, integrations, and
-              settings. Create an app or ask your team to invite you.
+              settings. Create an app or ask your team to invite you. Need help?{" "}
+              <a
+                href={env.NEXT_PUBLIC_DISCORD_LINK}
+                target="_blank"
+                className="text-primary hover:underline"
+              >
+                Join the Discord server
+              </a>
+              .
             </p>
           </div>
           <Separator className="my-4" />
