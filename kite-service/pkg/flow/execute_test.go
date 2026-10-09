@@ -325,6 +325,30 @@ func TestFlowExecuteModalComponents(t *testing.T) {
 	assert.Equal(t, true, checkbox["default"])
 }
 
+func modalWithInput(input ModalComponentData) *ModalData {
+	return &ModalData{Title: "Form", Components: []ModalComponentData{
+		{Type: ModalComponentTypeLabel, Label: "Input", Components: []ModalComponentData{input}},
+	}}
+}
+
+func TestFlowExecuteModalLimits(t *testing.T) {
+	// Discord lets every option of a checkbox group be picked by default.
+	_, err := executeModal(t, modalWithInput(ModalComponentData{Type: ModalComponentTypeCheckboxGroup, CustomID: "name", Options: []ModalComponentOptionData{
+		{Label: "A", Default: true},
+		{Label: "B", Default: true},
+	}}))
+	require.NoError(t, err)
+
+	_, err = executeModal(t, modalWithInput(ModalComponentData{Type: ModalComponentTypeStringSelect, CustomID: "name", Placeholder: strings.Repeat("a", 150), MaxValues: 2, Options: []ModalComponentOptionData{
+		{Label: "A", Default: true},
+		{Label: "B", Default: true},
+	}}))
+	require.NoError(t, err)
+
+	_, err = executeModal(t, modalWithInput(ModalComponentData{Type: ModalComponentTypeTextInput, CustomID: "name", Placeholder: strings.Repeat("a", 100)}))
+	require.NoError(t, err)
+}
+
 func TestFlowExecuteModalInvalid(t *testing.T) {
 	tests := []struct {
 		name  string
@@ -369,6 +393,77 @@ func TestFlowExecuteModalInvalid(t *testing.T) {
 					{Type: ModalComponentTypeUserSelect, CustomID: "name", MinValues: 3, MaxValues: 2},
 				}},
 			}},
+		},
+		{
+			name:  "min above default max",
+			modal: modalWithInput(ModalComponentData{Type: ModalComponentTypeUserSelect, CustomID: "name", MinValues: 3}),
+		},
+		{
+			name: "duplicate option values",
+			modal: modalWithInput(ModalComponentData{Type: ModalComponentTypeStringSelect, CustomID: "name", Options: []ModalComponentOptionData{
+				{Label: "A", Value: "a"},
+				{Label: "B", Value: "{{ 'a' }}"},
+			}}),
+		},
+		{
+			name: "option value same as label of another",
+			modal: modalWithInput(ModalComponentData{Type: ModalComponentTypeCheckboxGroup, CustomID: "name", Options: []ModalComponentOptionData{
+				{Label: "A"},
+				{Label: "B", Value: "A"},
+			}}),
+		},
+		{
+			name: "duplicate identifiers",
+			modal: &ModalData{Title: "Form", Components: []ModalComponentData{
+				{Type: ModalComponentTypeLabel, Label: "A", Components: []ModalComponentData{
+					{Type: ModalComponentTypeTextInput, CustomID: "name"},
+				}},
+				{Type: ModalComponentTypeLabel, Label: "B", Components: []ModalComponentData{
+					{Type: ModalComponentTypeCheckbox, CustomID: "name"},
+				}},
+			}},
+		},
+		{
+			name: "max values above options",
+			modal: modalWithInput(ModalComponentData{Type: ModalComponentTypeStringSelect, CustomID: "name", MaxValues: 3, Options: []ModalComponentOptionData{
+				{Label: "A"},
+				{Label: "B"},
+			}}),
+		},
+		{
+			name: "min values above options",
+			modal: modalWithInput(ModalComponentData{Type: ModalComponentTypeCheckboxGroup, CustomID: "name", MinValues: 2, Options: []ModalComponentOptionData{
+				{Label: "A"},
+			}}),
+		},
+		{
+			name: "radio group with two defaults",
+			modal: modalWithInput(ModalComponentData{Type: ModalComponentTypeRadioGroup, CustomID: "name", Options: []ModalComponentOptionData{
+				{Label: "A", Default: true},
+				{Label: "B", Default: true},
+			}}),
+		},
+		{
+			name: "single select with two defaults",
+			modal: modalWithInput(ModalComponentData{Type: ModalComponentTypeStringSelect, CustomID: "name", Options: []ModalComponentOptionData{
+				{Label: "A", Default: true},
+				{Label: "B", Default: true},
+			}}),
+		},
+		{
+			name: "checkbox group with more defaults than max",
+			modal: modalWithInput(ModalComponentData{Type: ModalComponentTypeCheckboxGroup, CustomID: "name", MaxValues: 1, Options: []ModalComponentOptionData{
+				{Label: "A", Default: true},
+				{Label: "B", Default: true},
+			}}),
+		},
+		{
+			name:  "text input placeholder too long",
+			modal: modalWithInput(ModalComponentData{Type: ModalComponentTypeTextInput, CustomID: "name", Placeholder: strings.Repeat("a", 101)}),
+		},
+		{
+			name:  "select placeholder too long",
+			modal: modalWithInput(ModalComponentData{Type: ModalComponentTypeRoleSelect, CustomID: "name", Placeholder: strings.Repeat("a", 151)}),
 		},
 	}
 
