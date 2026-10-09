@@ -52,6 +52,8 @@ export default function PlaceholderExplorer({
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState<string>();
+  // The highlighted placeholder, which Enter picks.
+  const [selected, setSelected] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
   const categoriesRef = useRef<HTMLDivElement>(null);
@@ -72,8 +74,10 @@ export default function PlaceholderExplorer({
     ? [activeGroup]
     : [];
 
-  function selectCategory(label: string) {
-    setCategory(label);
+  function selectCategory(group: PlaceholderGroup) {
+    setCategory(group.label);
+    // cmdk would highlight nothing after the list changed.
+    setSelected(group.placeholders[0]?.value ?? "");
     setSearch("");
     if (listRef.current) listRef.current.scrollTop = 0;
     // Keeps typing and the arrow keys working after clicking a category.
@@ -96,7 +100,7 @@ export default function PlaceholderExplorer({
     const next = placeholderGroups[index + (e.key === "ArrowRight" ? 1 : -1)];
     if (next) {
       e.preventDefault();
-      selectCategory(next.label);
+      selectCategory(next);
     }
   }
 
@@ -105,13 +109,20 @@ export default function PlaceholderExplorer({
       open={open}
       onOpenChange={(open) => {
         setOpen(open);
-        if (!open) setSearch("");
+        if (!open) {
+          setSearch("");
+          setSelected("");
+        }
       }}
       modal
     >
       <PopoverTrigger asChild>{children}</PopoverTrigger>
       <PopoverContent className="w-[500px] max-w-[calc(100vw-1rem)] p-0">
-        <Command onKeyDown={onKeyDown}>
+        <Command
+          value={selected}
+          onValueChange={setSelected}
+          onKeyDown={onKeyDown}
+        >
           <CommandInput
             ref={inputRef}
             placeholder="Search placeholder..."
@@ -159,7 +170,7 @@ export default function PlaceholderExplorer({
                     key={group.label}
                     title={group.label}
                     aria-pressed={!searching && group === activeGroup}
-                    onClick={() => selectCategory(group.label)}
+                    onClick={() => selectCategory(group)}
                     className={cn(
                       "flex flex-none sm:w-full items-center justify-between gap-2 rounded-sm px-2 py-1.5 text-sm text-left whitespace-nowrap outline-none hover:bg-accent/50 focus-visible:bg-accent/50",
                       !searching &&
