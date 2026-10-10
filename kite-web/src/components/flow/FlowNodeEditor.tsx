@@ -16,11 +16,25 @@ import { getFlowCreditsCost } from "@/lib/flow/schedule";
 import { aiModelTiers, getAiModelTier } from "@/lib/flow/aiModels";
 import { getBlockDefinition } from "@/lib/blocks";
 import {
+  ModalInputType,
+  modalInputHasOptions,
+  modalInputHasPlaceholder,
+  modalInputHasValueLimits,
+  modalInputTypes,
+  modalComponentNumber,
+  modalMaxComponents,
+  modalOptionCounts,
+  newModalInput,
+  newModalOption,
+  nextModalInputNumber,
+  normalizeModalComponents,
+} from "@/lib/flow/modal";
+import {
   discordApiOperationLabel,
   discordApiOperations,
   getDiscordApiOperation,
 } from "@/lib/flow/discordApi";
-import { EventTypeScheduleCron } from "@/lib/types/flow.gen";
+import { EventTypeScheduleCron, EventTypeWebhook } from "@/lib/types/flow.gen";
 import { useAppId } from "@/lib/hooks/params";
 import {
   CommandArgumentChoiceData,
@@ -28,6 +42,7 @@ import {
   EmojiData,
   HTTPRequestData,
   ModalComponentData,
+  ModalComponentOptionData,
   PermissionOverwriteData,
   PollAnswerData,
   PollData,
@@ -36,6 +51,7 @@ import {
 import { Node, useNodes, useReactFlow, useStoreApi } from "@xyflow/react";
 import {
   ChevronDownIcon,
+  ChevronUpIcon,
   CircleAlertIcon,
   CopyIcon,
   HelpCircleIcon,
@@ -55,6 +71,7 @@ import EmojiPicker from "../common/EmojiPicker";
 import EntitySelect from "../common/EntitySelect";
 import JsonEditor from "../common/JsonEditor";
 import PlaceholderInput from "../common/PlaceholderInput";
+import WebhookUrlInput from "../common/WebhookUrlInput";
 import ScheduleCronPreview, {
   ScheduleCronHelp,
 } from "../common/ScheduleCronPreview";
@@ -93,9 +110,13 @@ import FlowJsonInput from "./FlowJsonInput";
 import FlowPlaceholderExplorer from "./FlowPlaceholderExplorer";
 import env from "@/lib/env/client";
 import { ScrollArea } from "../ui/scroll-area";
+import { cn } from "@/lib/utils";
+import { channelTypeOptions } from "@/lib/message/selectMenu";
 
 interface Props {
   nodeId: string;
+  className?: string;
+  hideTitle?: boolean;
 }
 
 interface InputProps {
@@ -124,6 +145,9 @@ export const settingInputs: Record<string, any> = {
   command_disabled_contexts: CommandContextsInput,
   command_disabled_integrations: CommandIntegrationsInput,
   command_permissions: CommandPermissionsInput,
+  cooldown_scope: CooldownScopeInput,
+  cooldown_duration_seconds: CooldownDurationSecondsInput,
+  cooldown_message: CooldownMessageInput,
   event_type: EventTypeInput,
   event_schedule_cron: EventScheduleCronInput,
   event_filter_target: EventFilterTargetInput,
@@ -205,7 +229,11 @@ function nodeTypeDocsPage(nodeType: string) {
   );
 }
 
-export default function FlowNodeEditor({ nodeId }: Props) {
+export default function FlowNodeEditor({
+  nodeId,
+  className,
+  hideTitle,
+}: Props) {
   const { setNodes, deleteElements } = useReactFlow<Node<NodeData>>();
   const store = useStoreApi();
 
@@ -288,19 +316,26 @@ export default function FlowNodeEditor({ nodeId }: Props) {
   const docsPage = nodeTypeDocsPage(node.type!);
 
   return (
-    <div className="absolute top-0 left-0 bg-background w-96 h-full flex flex-col">
-      <ScrollArea>
+    <div
+      className={cn(
+        "bg-background flex flex-col min-h-0 overflow-hidden",
+        className ?? "absolute top-0 left-0 w-96 h-full"
+      )}
+    >
+      <ScrollArea className="flex-1 min-h-0 w-full">
         <div className="p-5">
           <div className="flex-none">
-            <div className="flex items-start justify-between mb-5">
-              <div className="text-xl font-bold text-foreground">
-                Block Settings
+            {!hideTitle && (
+              <div className="flex items-start justify-between mb-5">
+                <div className="text-xl font-bold text-foreground">
+                  Block Settings
+                </div>
+                <XIcon
+                  className="h-6 w-6 text-muted-foreground hover:text-foreground cursor-pointer"
+                  onClick={close}
+                />
               </div>
-              <XIcon
-                className="h-6 w-6 text-muted-foreground hover:text-foreground cursor-pointer"
-                onClick={close}
-              />
-            </div>
+            )}
             <div className="mb-5">
               <div className="flex items-center gap-1.5">
                 <div className="text-lg font-bold text-foreground mb-1">
@@ -661,6 +696,62 @@ function CommandPermissionsInput({ data, updateData, errors }: InputProps) {
   );
 }
 
+function CooldownScopeInput({ data, updateData, errors }: InputProps) {
+  return (
+    <BaseInput
+      field="cooldown_scope"
+      title="Cooldown Scope"
+      description="Who the cooldown applies to."
+      type="select"
+      options={[
+        { value: "user", label: "Per User" },
+        { value: "guild", label: "Per Server" },
+        { value: "global", label: "Global" },
+      ]}
+      value={data.cooldown_scope || "user"}
+      updateValue={(v) => updateData({ cooldown_scope: v || undefined })}
+      errors={errors}
+    />
+  );
+}
+
+function CooldownDurationSecondsInput({
+  data,
+  updateData,
+  errors,
+}: InputProps) {
+  return (
+    <BaseInput
+      field="cooldown_duration_seconds"
+      title="Cooldown Duration"
+      description="How many seconds the command is on cooldown for after it's used, up to 3600 (1 hour). Cooldowns reset when Kite restarts, so use stored variables for longer ones."
+      value={data.cooldown_duration_seconds || ""}
+      updateValue={(v) =>
+        updateData({
+          cooldown_duration_seconds: v || undefined,
+        })
+      }
+      errors={errors}
+      placeholders
+    />
+  );
+}
+
+function CooldownMessageInput({ data, updateData, errors }: InputProps) {
+  return (
+    <BaseInput
+      type="textarea"
+      field="cooldown_message"
+      title="Cooldown Message"
+      description="Shown when someone uses the command while it's on cooldown. Use {{var('cooldown_remaining')}} to show how many seconds are left. Leave empty for a default message."
+      value={data.cooldown_message || ""}
+      updateValue={(v) => updateData({ cooldown_message: v || undefined })}
+      errors={errors}
+      placeholders
+    />
+  );
+}
+
 const availableCommandContextsValues = ["guild", "bot_dm", "private_channel"];
 
 function CommandContextsInput({ data, updateData, errors }: InputProps) {
@@ -740,8 +831,10 @@ function CommandIntegrationsInput({ data, updateData, errors }: InputProps) {
 }
 
 function EventTypeInput({ data, updateData, errors }: InputProps) {
-  // Scheduled listeners can't become Discord listeners or the other way around.
+  // Scheduled and webhook listeners can't become Discord listeners or the
+  // other way around.
   if (data.event_type === EventTypeScheduleCron) return null;
+  if (data.event_type === EventTypeWebhook) return <WebhookUrlInput />;
 
   return (
     <BaseInput
@@ -754,6 +847,11 @@ function EventTypeInput({ data, updateData, errors }: InputProps) {
         { value: "message_delete", label: "Message Delete" },
         { value: "guild_member_add", label: "Server Member Add" },
         { value: "guild_member_remove", label: "Server Member Remove" },
+        { value: "message_reaction_add", label: "Message Reaction Add" },
+        {
+          value: "message_reaction_remove",
+          label: "Message Reaction Remove",
+        },
         { value: "guild_create", label: "Bot Joined Server" },
         { value: "guild_delete", label: "Bot Left Server" },
         { value: "guild_boost", label: "Server Boost" },
@@ -808,6 +906,7 @@ function EventFilterTargetInput({ data, updateData, errors }: InputProps) {
         { value: "user_id", label: "User ID" },
         { value: "guild_id", label: "Guild ID" },
         { value: "channel_id", label: "Channel ID" },
+        { value: "message_id", label: "Message ID" },
       ]}
       value={data.event_filter_target || ""}
       updateValue={(v) =>
@@ -1516,7 +1615,7 @@ function GuildTargetInput({ type, data, updateData, errors }: InputProps) {
       description={
         type === "action_guild_get"
           ? undefined
-          : "Leave empty to use the server the flow runs in. Required in scheduled event listeners."
+          : "Leave empty to use the server the flow runs in. Required in scheduled and webhook event listeners."
       }
       value={data.guild_target || ""}
       updateValue={(v) => updateData({ guild_target: v || undefined })}
@@ -1950,47 +2049,110 @@ function PollDataInput({ data, updateData, errors }: InputProps) {
   );
 }
 
+function parseOptionalInt(v: string) {
+  const n = parseInt(v);
+  return isNaN(n) ? undefined : n;
+}
+
+let nextListKey = 0;
+
+// Keys for the items of a list that can be reordered or removed, so the
+// inputs of an item stay with it. The items have no IDs to use instead. Moves
+// and removals have to go through move and remove, other changes, like an
+// undo, only keep the keys of the first items.
+function useListKeys(length: number) {
+  const keys = useRef<number[]>([]);
+  while (keys.current.length < length) keys.current.push(nextListKey++);
+  keys.current.length = length;
+
+  return {
+    keys: keys.current,
+    move: (i: number, j: number) => {
+      const k = keys.current;
+      [k[i], k[j]] = [k[j], k[i]];
+    },
+    remove: (i: number) => {
+      keys.current.splice(i, 1);
+    },
+  };
+}
+
 function ModalDataInput({ data, updateData, errors }: InputProps) {
-  const addInput = useCallback(() => {
-    updateData({
-      modal_data: {
-        title: data.modal_data?.title,
-        components: [
-          ...(data.modal_data?.components || []),
-          { components: [{ style: 1 }] },
-        ],
-      },
-    });
-  }, [updateData, data]);
+  // Older modals are converted when they are edited, so the editor only
+  // deals with labels and text displays.
+  const components = useMemo(
+    () => normalizeModalComponents(data.modal_data?.components),
+    [data.modal_data?.components]
+  );
+  const componentKeys = useListKeys(components.length);
 
-  const clearInputs = useCallback(() => {
-    updateData({
-      modal_data: {
-        title: data.modal_data?.title,
-        components: [],
-      },
-    });
-  }, [updateData, data]);
-
-  const updateComponentField = useCallback(
-    (r: number, c: number, newData: Partial<ModalComponentData>) => {
-      const current = data.modal_data || {};
-      if (!current.components) return;
-
-      const row = current.components[r];
-      if (!row || !row.components) return;
-
-      const component = row.components[c];
-      if (!component) return;
-
-      Object.assign(component, newData);
-
+  const setComponents = useCallback(
+    (newComponents: ModalComponentData[]) => {
       updateData({
-        modal_data: current,
+        modal_data: {
+          title: data.modal_data?.title,
+          components: newComponents,
+        },
       });
     },
-    [updateData, data]
+    [updateData, data.modal_data?.title]
   );
+
+  const updateComponent = useCallback(
+    (i: number, newData: Partial<ModalComponentData>) => {
+      setComponents(
+        components.map((c, j) => (j === i ? { ...c, ...newData } : c))
+      );
+    },
+    [setComponents, components]
+  );
+
+  const updateInput = useCallback(
+    (i: number, newData: Partial<ModalComponentData>) => {
+      const input = components[i]?.components?.[0] ?? {};
+      updateComponent(i, { components: [{ ...input, ...newData }] });
+    },
+    [updateComponent, components]
+  );
+
+  const moveComponent = useCallback(
+    (i: number, dir: -1 | 1) => {
+      const j = i + dir;
+      if (j < 0 || j >= components.length) return;
+      const res = [...components];
+      [res[i], res[j]] = [res[j], res[i]];
+      componentKeys.move(i, j);
+      setComponents(res);
+    },
+    [setComponents, components, componentKeys]
+  );
+
+  const removeComponent = useCallback(
+    (i: number) => {
+      componentKeys.remove(i);
+      setComponents(components.filter((_, j) => j !== i));
+    },
+    [setComponents, components, componentKeys]
+  );
+
+  const addInput = useCallback(() => {
+    const n = nextModalInputNumber(components);
+    setComponents([
+      ...components,
+      {
+        type: "label",
+        label: `Input ${n}`,
+        components: [newModalInput("text_input", `input_${n}`)],
+      },
+    ]);
+  }, [setComponents, components]);
+
+  const addText = useCallback(() => {
+    setComponents([...components, { type: "text_display", content: "" }]);
+  }, [setComponents, components]);
+
+  const componentsError =
+    errors["modal_data.components"] || errors["modal_data"];
 
   return (
     <Dialog>
@@ -2002,20 +2164,21 @@ function ModalDataInput({ data, updateData, errors }: InputProps) {
           <DialogTitle>Configure Modal</DialogTitle>
           <DialogDescription>
             Configure your modal here! A modal must have a title and at least
-            one input component.
+            one input. It can have up to {modalMaxComponents} inputs and texts.
+            The answers can be read with {"{{input('identifier')}}"}.
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-3">
           <BaseInput
             type="text"
-            field="modal_data"
+            field="modal_data.title"
             title="Title"
             value={data.modal_data?.title || ""}
             updateValue={(v) =>
               updateData({
                 modal_data: {
                   title: v || undefined,
-                  components: data.modal_data?.components,
+                  components,
                 },
               })
             }
@@ -2024,103 +2187,393 @@ function ModalDataInput({ data, updateData, errors }: InputProps) {
           />
 
           <div className="space-y-3">
-            <div className="font-medium text-foreground">Inputs</div>
-            {data.modal_data?.components?.map((row, r) =>
-              row?.components?.map((component, c) => (
-                <Card className="space-y-3 p-3 -mx-1" key={`${r}-${c}`}>
-                  <div className="flex space-x-3">
-                    <BaseInput
-                      type="select"
-                      field={`modal_data.components.${r}.components.${c}.type`}
-                      title="Type"
-                      value={component.style?.toString() || "1"}
-                      options={[
-                        {
-                          label: "Short",
-                          value: "1",
-                        },
-                        {
-                          label: "Paragraph",
-                          value: "2",
-                        },
-                      ]}
-                      updateValue={(v) =>
-                        updateComponentField(r, c, {
-                          style: parseInt(v) || 1,
-                        })
-                      }
-                      errors={errors}
-                    />
-                    <BaseCheckbox
-                      field={`modal_data.components.${r}.components.${c}.required`}
-                      title="Required"
-                      value={component?.required || false}
-                      updateValue={(v) =>
-                        updateComponentField(r, c, {
-                          required: v,
-                        })
-                      }
-                      errors={errors}
-                    />
+            <div className="font-medium text-foreground">Components</div>
+            {components.map((component, i) => (
+              <Card className="space-y-3 p-3 -mx-1" key={componentKeys.keys[i]}>
+                <div className="flex items-center gap-2">
+                  <div className="font-medium text-foreground flex-auto">
+                    {component.type === "text_display" ? "Text" : "Input"}{" "}
+                    {modalComponentNumber(components, i)}
                   </div>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    disabled={i === 0}
+                    onClick={() => moveComponent(i, -1)}
+                  >
+                    <ChevronUpIcon className="h-5 w-5" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    disabled={i === components.length - 1}
+                    onClick={() => moveComponent(i, 1)}
+                  >
+                    <ChevronDownIcon className="h-5 w-5" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => removeComponent(i)}
+                  >
+                    <TrashIcon className="h-5 w-5" />
+                  </Button>
+                </div>
+                {component.type === "text_display" ? (
                   <BaseInput
-                    type="text"
-                    field={`modal_data.components.${r}.components.${c}.custom_id`}
-                    title="Identifier"
-                    description="Used to identify the input in your flow."
-                    value={component?.custom_id || ""}
+                    type="textarea"
+                    field={`modal_data.components.${i}.content`}
+                    title="Content"
+                    description="Markdown text shown in the modal."
+                    value={component.content || ""}
                     updateValue={(v) =>
-                      updateComponentField(r, c, {
-                        custom_id: v || undefined,
-                      })
-                    }
-                    errors={errors}
-                  />
-                  <BaseInput
-                    type="text"
-                    field={`modal_data.components.${r}.components.${c}.label`}
-                    title="Label"
-                    value={component?.label || ""}
-                    updateValue={(v) =>
-                      updateComponentField(r, c, {
-                        label: v || undefined,
-                      })
+                      updateComponent(i, { content: v || undefined })
                     }
                     errors={errors}
                     placeholders
                   />
-                  <BaseInput
-                    type="text"
-                    field={`modal_data.components.${r}.components.${c}.placeholder`}
-                    title="Placeholder"
-                    value={component?.placeholder || ""}
-                    updateValue={(v) =>
-                      updateComponentField(r, c, {
-                        placeholder: v || undefined,
-                      })
-                    }
+                ) : (
+                  <ModalLabelInput
+                    index={i}
+                    component={component}
+                    updateComponent={(d) => updateComponent(i, d)}
+                    updateInput={(d) => updateInput(i, d)}
                     errors={errors}
-                    placeholders
                   />
-                </Card>
-              ))
-            )}
+                )}
+              </Card>
+            ))}
           </div>
+
+          {componentsError && (
+            <div className="text-red-600 dark:text-red-400 text-sm flex items-center space-x-1">
+              <CircleAlertIcon className="h-5 w-5 flex-none" />
+              <div>{componentsError}</div>
+            </div>
+          )}
 
           <div className="flex space-x-3">
             <Button
               onClick={addInput}
-              disabled={(data.modal_data?.components?.length || 0) >= 5}
+              disabled={components.length >= modalMaxComponents}
             >
               Add Input
             </Button>
-            <Button variant="outline" onClick={clearInputs}>
-              Clear Inputs
+            <Button
+              variant="outline"
+              onClick={addText}
+              disabled={components.length >= modalMaxComponents}
+            >
+              Add Text
+            </Button>
+            <Button variant="outline" onClick={() => setComponents([])}>
+              Clear
             </Button>
           </div>
         </div>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function ModalLabelInput({
+  index,
+  component,
+  updateComponent,
+  updateInput,
+  errors,
+}: {
+  index: number;
+  component: ModalComponentData;
+  updateComponent: (data: Partial<ModalComponentData>) => void;
+  updateInput: (data: Partial<ModalComponentData>) => void;
+  errors: Record<string, string>;
+}) {
+  const input = component.components?.[0] ?? {};
+  const type = input.type || "text_input";
+  const field = `modal_data.components.${index}`;
+  const inputField = `${field}.components.0`;
+
+  return (
+    <>
+      <div className="flex space-x-3">
+        <BaseInput
+          type="select"
+          field={`${inputField}.type`}
+          title="Type"
+          value={type}
+          options={[...modalInputTypes]}
+          updateValue={(v) =>
+            updateComponent({
+              components: [newModalInput(v as ModalInputType, input.custom_id)],
+            })
+          }
+          errors={errors}
+        />
+        {type === "checkbox" ? (
+          <BaseCheckbox
+            field={`${inputField}.default`}
+            title="Checked"
+            value={!!input.default}
+            updateValue={(v) => updateInput({ default: v || undefined })}
+            errors={errors}
+          />
+        ) : (
+          <BaseCheckbox
+            field={`${inputField}.required`}
+            title="Required"
+            value={!!input.required}
+            updateValue={(v) => updateInput({ required: v || undefined })}
+            errors={errors}
+          />
+        )}
+      </div>
+      <BaseInput
+        type="text"
+        field={`${inputField}.custom_id`}
+        title="Identifier"
+        description="Used to read the answer in your flow with input('identifier')."
+        value={input.custom_id || ""}
+        updateValue={(v) => updateInput({ custom_id: v || undefined })}
+        errors={errors}
+      />
+      <BaseInput
+        type="text"
+        field={`${field}.label`}
+        title="Label"
+        value={component.label || ""}
+        updateValue={(v) => updateComponent({ label: v || undefined })}
+        errors={errors}
+        placeholders
+      />
+      <BaseInput
+        type="text"
+        field={`${field}.description`}
+        title="Description"
+        description="Optional smaller text shown below the label."
+        value={component.description || ""}
+        updateValue={(v) => updateComponent({ description: v || undefined })}
+        errors={errors}
+        placeholders
+      />
+      {type === "text_input" && (
+        <>
+          <BaseInput
+            type="select"
+            field={`${inputField}.style`}
+            title="Style"
+            value={input.style?.toString() || "1"}
+            options={[
+              { label: "Short", value: "1" },
+              { label: "Paragraph", value: "2" },
+            ]}
+            updateValue={(v) => updateInput({ style: parseInt(v) || 1 })}
+            errors={errors}
+          />
+          <div className="flex space-x-3">
+            <BaseInput
+              type="text"
+              field={`${inputField}.min_length`}
+              title="Min Length"
+              value={input.min_length?.toString() || ""}
+              updateValue={(v) =>
+                updateInput({ min_length: parseOptionalInt(v) })
+              }
+              errors={errors}
+            />
+            <BaseInput
+              type="text"
+              field={`${inputField}.max_length`}
+              title="Max Length"
+              value={input.max_length?.toString() || ""}
+              updateValue={(v) =>
+                updateInput({ max_length: parseOptionalInt(v) })
+              }
+              errors={errors}
+            />
+          </div>
+          <BaseInput
+            type="text"
+            field={`${inputField}.value`}
+            title="Pre-filled Value"
+            value={input.value || ""}
+            updateValue={(v) => updateInput({ value: v || undefined })}
+            errors={errors}
+            placeholders
+          />
+        </>
+      )}
+      {modalInputHasPlaceholder(type) && (
+        <BaseInput
+          type="text"
+          field={`${inputField}.placeholder`}
+          title="Placeholder"
+          value={input.placeholder || ""}
+          updateValue={(v) => updateInput({ placeholder: v || undefined })}
+          errors={errors}
+          placeholders
+        />
+      )}
+      {modalInputHasValueLimits(type) && (
+        <div className="flex space-x-3">
+          <BaseInput
+            type="text"
+            field={`${inputField}.min_values`}
+            title="Min Picks"
+            value={input.min_values?.toString() || ""}
+            updateValue={(v) =>
+              updateInput({ min_values: parseOptionalInt(v) })
+            }
+            errors={errors}
+          />
+          <BaseInput
+            type="text"
+            field={`${inputField}.max_values`}
+            title="Max Picks"
+            value={input.max_values?.toString() || ""}
+            updateValue={(v) =>
+              updateInput({ max_values: parseOptionalInt(v) })
+            }
+            errors={errors}
+          />
+        </div>
+      )}
+      {type === "channel_select" && (
+        <BaseMultiSelect
+          field={`${inputField}.channel_types`}
+          title="Channel Types"
+          description="Leave empty to allow all channel types."
+          options={channelTypeOptions}
+          values={(input.channel_types ?? []).map((t) => t.toString())}
+          updateValues={(v) =>
+            updateInput({
+              channel_types:
+                v.length > 0 ? v.map((t) => parseInt(t)) : undefined,
+            })
+          }
+          errors={errors}
+        />
+      )}
+      {modalInputHasOptions(type) && (
+        <ModalOptionsInput
+          field={`${inputField}.options`}
+          options={input.options ?? []}
+          max={modalOptionCounts[type as keyof typeof modalOptionCounts][1]}
+          updateOptions={(options) => updateInput({ options })}
+          errors={errors}
+        />
+      )}
+    </>
+  );
+}
+
+function ModalOptionsInput({
+  field,
+  options,
+  max,
+  updateOptions,
+  errors,
+}: {
+  field: string;
+  options: ModalComponentOptionData[];
+  max: number;
+  updateOptions: (options: ModalComponentOptionData[]) => void;
+  errors: Record<string, string>;
+}) {
+  const optionKeys = useListKeys(options.length);
+  const updateOption = (i: number, data: Partial<ModalComponentOptionData>) =>
+    updateOptions(options.map((o, j) => (j === i ? { ...o, ...data } : o)));
+
+  const error = errors[field];
+
+  return (
+    <div>
+      <div className="font-medium text-foreground mb-1">Options</div>
+      <div className="text-muted-foreground text-sm mb-2">
+        The value is what input() returns when the option is picked. Leave it
+        empty to use the label.
+      </div>
+      <div className="flex flex-col gap-3">
+        {options.map((option, i) => {
+          const optionError =
+            errors[`${field}.${i}.label`] ||
+            errors[`${field}.${i}.value`] ||
+            errors[`${field}.${i}.description`];
+
+          return (
+            <div key={optionKeys.keys[i]}>
+              <div className="flex gap-2 items-center">
+                <div className="flex-auto grid grid-cols-3 gap-2">
+                  <PlaceholderInput
+                    value={option.label || ""}
+                    onChange={(v) => updateOption(i, { label: v || undefined })}
+                    placeholder="Label"
+                  />
+                  <PlaceholderInput
+                    value={option.value || ""}
+                    onChange={(v) => updateOption(i, { value: v || undefined })}
+                    placeholder="Value"
+                  />
+                  <PlaceholderInput
+                    value={option.description || ""}
+                    onChange={(v) =>
+                      updateOption(i, { description: v || undefined })
+                    }
+                    placeholder="Description"
+                  />
+                </div>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div>
+                      <Switch
+                        checked={!!option.default}
+                        onCheckedChange={(v) =>
+                          updateOption(i, { default: v || undefined })
+                        }
+                      />
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent>Picked by default</TooltipContent>
+                </Tooltip>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="flex-none"
+                  onClick={() => {
+                    optionKeys.remove(i);
+                    updateOptions(options.filter((_, j) => j !== i));
+                  }}
+                >
+                  <MinusIcon className="h-5 w-5" />
+                </Button>
+              </div>
+              {optionError && (
+                <div className="text-red-600 dark:text-red-400 text-sm flex items-center space-x-1 pt-2">
+                  <CircleAlertIcon className="h-5 w-5 flex-none" />
+                  <div>{optionError}</div>
+                </div>
+              )}
+            </div>
+          );
+        })}
+        <div className="flex">
+          <Button
+            variant="outline"
+            size="icon"
+            disabled={options.length >= max}
+            onClick={() => updateOptions([...options, newModalOption(options)])}
+          >
+            <PlusIcon className="h-5 w-5" />
+          </Button>
+        </div>
+      </div>
+      {error && (
+        <div className="text-red-600 dark:text-red-400 text-sm flex items-center space-x-1 pt-2">
+          <CircleAlertIcon className="h-5 w-5 flex-none" />
+          <div>{error}</div>
+        </div>
+      )}
+    </div>
   );
 }
 

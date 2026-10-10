@@ -100,8 +100,19 @@ func TestIntentsForRequirements(t *testing.T) {
 			want:  gateway.IntentGuilds,
 		},
 		{
-			// Reactions were previously requested unconditionally for every
-			// app even though no event listener type covers them.
+			// Reactions used to be requested unconditionally for every app.
+			// Now only reaction listeners and plugins request them.
+			name: "reaction listeners add reactions but not messages",
+			reqs: model.AppGatewayRequirements{
+				EventListenerTypes: []model.EventListenerType{
+					model.EventListenerTypeDiscordMessageReactionAdd,
+					model.EventListenerTypeDiscordMessageReactionRemove,
+				},
+			},
+			flags: allPrivilegedFlags,
+			want:  gateway.IntentGuilds | gateway.IntentGuildMessageReactions,
+		},
+		{
 			name: "starboard plugin adds reactions but not messages",
 			reqs: model.AppGatewayRequirements{
 				PluginEventTypes: []ws.EventType{"MESSAGE_REACTION_ADD"},
@@ -160,6 +171,7 @@ func TestIntentsAlwaysIncludeGuilds(t *testing.T) {
 		{HasMessageInstances: true},
 		{EventListenerTypes: []model.EventListenerType{model.EventListenerTypeDiscordMessageDelete}},
 		{PluginEventTypes: []ws.EventType{"MESSAGE_REACTION_ADD"}},
+		{EventListenerTypes: []model.EventListenerType{model.EventListenerTypeDiscordMessageReactionRemove}},
 	}
 
 	for i, r := range reqs {

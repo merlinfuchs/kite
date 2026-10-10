@@ -14,7 +14,13 @@ export const discordOptionEventFilter: BlockDefinition = {
     {
       name: "event_filter_target",
       schema: z
-        .enum(["message_content", "user_id", "guild_id", "channel_id"])
+        .enum([
+          "message_content",
+          "user_id",
+          "guild_id",
+          "channel_id",
+          "message_id",
+        ])
         .describe("Property of the event to filter on."),
     },
     {

@@ -31,7 +31,32 @@ func TestShouldHandleGuildJoinAndLeave(t *testing.T) {
 
 	l := &EventListener{}
 	for _, tt := range tests {
-		if got := l.shouldHandleEvent(tt.event); got != tt.want {
+		if got := l.shouldHandleEvent(tt.event, 0); got != tt.want {
+			t.Errorf("%s: got %v, want %v", tt.name, got, tt.want)
+		}
+	}
+}
+
+// A flow that adds or removes a reaction must not trigger its own reaction
+// listeners.
+func TestShouldHandleReactionsIgnoresOwnApp(t *testing.T) {
+	const botID = discord.UserID(1)
+	const userID = discord.UserID(2)
+
+	tests := []struct {
+		name  string
+		event ws.Event
+		want  bool
+	}{
+		{"reaction add by user", &gateway.MessageReactionAddEvent{UserID: userID}, true},
+		{"reaction add by app", &gateway.MessageReactionAddEvent{UserID: botID}, false},
+		{"reaction remove by user", &gateway.MessageReactionRemoveEvent{UserID: userID}, true},
+		{"reaction remove by app", &gateway.MessageReactionRemoveEvent{UserID: botID}, false},
+	}
+
+	l := &EventListener{}
+	for _, tt := range tests {
+		if got := l.shouldHandleEvent(tt.event, botID); got != tt.want {
 			t.Errorf("%s: got %v, want %v", tt.name, got, tt.want)
 		}
 	}
@@ -145,13 +170,13 @@ func TestShouldHandleBoost(t *testing.T) {
 	_, boost := testListener("boost", model.EventSourceDiscord, model.EventListenerTypeDiscordGuildBoost)
 	_, message := testListener("message", model.EventSourceDiscord, model.EventListenerTypeDiscordMessageCreate)
 
-	if !boost.shouldHandleEvent(testBoostEvent(discord.NitroBoostMessage)) {
+	if !boost.shouldHandleEvent(testBoostEvent(discord.NitroBoostMessage), 0) {
 		t.Error("boost listener ignored a boost message")
 	}
-	if boost.shouldHandleEvent(testBoostEvent(discord.DefaultMessage)) {
+	if boost.shouldHandleEvent(testBoostEvent(discord.DefaultMessage), 0) {
 		t.Error("boost listener handled a normal message")
 	}
-	if !message.shouldHandleEvent(testBoostEvent(discord.DefaultMessage)) {
+	if !message.shouldHandleEvent(testBoostEvent(discord.DefaultMessage), 0) {
 		t.Error("message create listener ignored a normal message")
 	}
 }
@@ -173,7 +198,7 @@ func TestBoostEventPlaceholders(t *testing.T) {
 	}
 
 	evalCtx := eval.NewContext(eval.Env{})
-	env := eval.NewEventEnv(event)
+	env := eval.NewEventEnv(event, nil)
 	evalCtx.Env["user"] = env.User
 	evalCtx.Env["member"] = env.Member
 	evalCtx.Env["guild"] = env.Guild

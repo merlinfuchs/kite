@@ -96,9 +96,15 @@ func (r AppGatewayRequirements) NeedsGuildMembers() bool {
 }
 
 // NeedsGuildMessageReactions reports whether the app consumes reaction events.
-// No event listener type covers reactions today, so this is driven entirely by
-// plugins such as starboard.
 func (r AppGatewayRequirements) NeedsGuildMessageReactions() bool {
+	for _, t := range r.EventListenerTypes {
+		switch t {
+		case EventListenerTypeDiscordMessageReactionAdd,
+			EventListenerTypeDiscordMessageReactionRemove:
+			return true
+		}
+	}
+
 	for _, t := range r.PluginEventTypes {
 		switch t {
 		case "MESSAGE_REACTION_ADD", "MESSAGE_REACTION_REMOVE":
