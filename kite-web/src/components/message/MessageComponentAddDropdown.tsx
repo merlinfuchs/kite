@@ -1,5 +1,6 @@
 import { ChevronDownIcon } from "lucide-react";
 import { MessageNode, NewNode, NodeId } from "@/lib/message/document";
+import { selectMenuTypes } from "@/lib/message/selectMenu";
 import { useDocument, useDocumentStoreApi } from "@/lib/message/state";
 import { Button } from "../ui/button";
 import {
@@ -18,11 +19,14 @@ const componentTypes: {
   child?: NewNode;
 }[] = [
   { label: "Button Row", node: { type: "actionRow" } },
-  {
-    label: "Select Menu",
-    node: { type: "actionRow" },
-    child: { type: "selectMenu" },
-  },
+  ...selectMenuTypes.map((t) => ({
+    label: t.label,
+    node: { type: "actionRow" } as NewNode,
+    child: {
+      type: "selectMenu",
+      select_type: t.type === 3 ? undefined : t.type,
+    } as NewNode,
+  })),
   { label: "Section", node: { type: "section" } },
   { label: "Text Display", node: { type: "textDisplay", content: "" } },
   { label: "Media Gallery", node: { type: "mediaGallery" } },

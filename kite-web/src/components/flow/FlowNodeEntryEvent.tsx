@@ -10,6 +10,7 @@ const eventTitles: Record<string, string> = {
   guild_create: "Bot joined a server",
   guild_delete: "Bot left a server",
   direct_message_create: "Direct message received",
+  guild_boost: "Member boosted the server",
 };
 
 export default function FlowNodeEntryEvent(props: NodeProps) {

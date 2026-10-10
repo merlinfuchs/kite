@@ -1,10 +1,18 @@
 import { memo } from "react";
+import { ChevronDownIcon } from "lucide-react";
 import {
   NodeId,
   SelectMenuNode,
   SelectOptionNode,
+  isEntitySelect,
   slotLimit,
 } from "@/lib/message/document";
+import { MessageComponentSelectMenuType } from "@/lib/message/schema";
+import {
+  channelTypeOptions,
+  selectMenuType,
+  selectMenuTypes,
+} from "@/lib/message/selectMenu";
 import {
   useChildIds,
   useDocumentStoreApi,
@@ -14,6 +22,12 @@ import {
 import { nodeField, nodeScope, slotScope } from "@/lib/message/validationStore";
 import { Button } from "../ui/button";
 import { Card } from "../ui/card";
+import {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuTrigger,
+} from "../ui/dropdown-menu";
 import MessageCollapsibleSection from "./MessageCollapsibleSection";
 import MessageComponentCard from "./MessageComponentCard";
 import MessageComponentFlow from "./MessageComponentFlow";
@@ -30,6 +44,11 @@ const valueCountOptions = (from: number) =>
 const minValueOptions = valueCountOptions(0);
 const maxValueOptions = valueCountOptions(1);
 
+const typeOptions = selectMenuTypes.map((t) => ({
+  label: t.label,
+  value: t.type.toString(),
+}));
+
 export default function MessageComponentSelectMenu({
   id,
   disableFlowEditor,
@@ -44,15 +63,42 @@ export default function MessageComponentSelectMenu({
 
   if (!data) return null;
 
+  const type = selectMenuType(data.select_type);
+  const entitySelect = isEntitySelect(data);
+
+  const setType = (value: string) => {
+    const selectType = parseInt(value, 10) as MessageComponentSelectMenuType;
+    update<SelectMenuNode>(id, {
+      select_type: selectType === 3 ? undefined : selectType,
+      channel_types: selectType === 8 ? data.channel_types : undefined,
+    });
+    // A string select can't be sent without an option.
+    if (selectType === 3 && optionIds.length === 0) {
+      insert(id, "options", "end", {
+        type: "selectOption",
+        label: "",
+        value: "",
+      });
+    }
+  };
+
   return (
     <Card className="p-3">
       <MessageCollapsibleSection
-        title="Select Menu"
+        title={type.label}
         size="md"
         validation={nodeScope(id)}
         className="space-y-3"
         actions={<MessageNodeActions actions={actions} />}
       >
+        <MessageInput
+          type="select"
+          label="Type"
+          value={type.type.toString()}
+          options={typeOptions}
+          placeholder="Select Menu"
+          onChange={setType}
+        />
         <div className="flex space-x-3">
           <MessageInput
             type="text"
@@ -102,38 +148,59 @@ export default function MessageComponentSelectMenu({
           />
         </div>
 
-        <MessageCollapsibleSection
-          title="Options"
-          size="md"
-          validation={slotScope(id, "options")}
-          className="space-y-3"
-        >
-          {optionIds.map((optionId) => (
-            <MessageComponentSelectOption key={optionId} id={optionId} />
-          ))}
-          <div className="space-x-3">
-            <Button
-              size="sm"
-              onClick={() =>
-                insert(id, "options", "end", {
-                  type: "selectOption",
-                  label: "",
-                  value: "",
-                })
-              }
-              disabled={optionIds.length >= slotLimit("selectMenu", "options")}
-            >
-              Add Option
-            </Button>
-            <Button
-              size="sm"
-              variant="destructive"
-              onClick={() => removeChildren(id, "options")}
-            >
-              Clear Options
-            </Button>
+        {data.select_type === 8 && (
+          <ChannelTypesInput
+            values={data.channel_types ?? []}
+            onChange={(channelTypes) =>
+              update<SelectMenuNode>(id, {
+                channel_types:
+                  channelTypes.length > 0 ? channelTypes : undefined,
+              })
+            }
+          />
+        )}
+
+        {entitySelect ? (
+          <div className="text-sm text-muted-foreground">
+            Discord fills this menu in for you. The flow receives {type.values}{" "}
+            as <code>interaction.values</code>.
           </div>
-        </MessageCollapsibleSection>
+        ) : (
+          <MessageCollapsibleSection
+            title="Options"
+            size="md"
+            validation={slotScope(id, "options")}
+            className="space-y-3"
+          >
+            {optionIds.map((optionId) => (
+              <MessageComponentSelectOption key={optionId} id={optionId} />
+            ))}
+            <div className="space-x-3">
+              <Button
+                size="sm"
+                onClick={() =>
+                  insert(id, "options", "end", {
+                    type: "selectOption",
+                    label: "",
+                    value: "",
+                  })
+                }
+                disabled={
+                  optionIds.length >= slotLimit("selectMenu", "options")
+                }
+              >
+                Add Option
+              </Button>
+              <Button
+                size="sm"
+                variant="destructive"
+                onClick={() => removeChildren(id, "options")}
+              >
+                Clear Options
+              </Button>
+            </div>
+          </MessageCollapsibleSection>
+        )}
 
         {!disableFlowEditor && (
           <MessageComponentFlow
@@ -196,3 +263,57 @@ const MessageComponentSelectOption = memo(
     );
   }
 );
+
+function ChannelTypesInput({
+  values,
+  onChange,
+}: {
+  values: number[];
+  onChange: (values: number[]) => void;
+}) {
+  const selected = channelTypeOptions.filter((o) =>
+    values.includes(parseInt(o.value, 10))
+  );
+
+  return (
+    <div className="space-y-2">
+      <div className="text-sm font-medium">Channel Types</div>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="outline" className="w-full flex items-center">
+            <div className="truncate">
+              {selected.length > 0
+                ? selected.map((o) => o.label).join(", ")
+                : "All channel types"}
+            </div>
+            <ChevronDownIcon className="h-4 w-4 ml-auto flex-none" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent className="w-56 max-h-[320px] overflow-y-auto">
+          {channelTypeOptions.map((o) => {
+            const value = parseInt(o.value, 10);
+            return (
+              <DropdownMenuCheckboxItem
+                key={o.value}
+                checked={values.includes(value)}
+                onSelect={(e) => e.preventDefault()}
+                onCheckedChange={(checked) =>
+                  onChange(
+                    checked
+                      ? [...values, value]
+                      : values.filter((v) => v !== value)
+                  )
+                }
+              >
+                {o.label}
+              </DropdownMenuCheckboxItem>
+            );
+          })}
+        </DropdownMenuContent>
+      </DropdownMenu>
+      <div className="text-sm text-muted-foreground">
+        Leave empty to allow all channel types.
+      </div>
+    </div>
+  );
+}

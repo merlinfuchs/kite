@@ -80,7 +80,7 @@ Docs:
 
 ## Adding an event listener type
 
-1. `internal/model/event_listener.go`: add the `EventListenerType`. The value must be the lowercased Discord gateway event name.
+1. `internal/model/event_listener.go`: add the `EventListenerType`. The value must be the lowercased Discord gateway event name, unless Discord has no event for it, like `guild_boost`, which is detected from boost messages.
 2. `internal/model/app.go`: add it to the matching `Needs*` method if it needs a privileged or non-default intent. Only request intents when an app actually uses them.
 3. `internal/core/engine/event_listener.go`: allow it in `shouldHandleEvent`, including any filtering (e.g. ignore the bot's own actions).
 4. `internal/core/engine/data.go`: user, guild and channel IDs for the event.

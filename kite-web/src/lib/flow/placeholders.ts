@@ -157,8 +157,11 @@ export function interactionPlaceholders(
     res.push({
       label: `${labelPrefix}Select Menu`,
       placeholders: [
-        { label: "Selected Value", value: `${prefix}interaction.value` },
-        { label: "Selected Values", value: `${prefix}interaction.values` },
+        { label: "Selected Value or ID", value: `${prefix}interaction.value` },
+        {
+          label: "Selected Values or IDs",
+          value: `${prefix}interaction.values`,
+        },
       ],
     });
   }

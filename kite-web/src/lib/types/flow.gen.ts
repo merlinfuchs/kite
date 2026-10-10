@@ -110,6 +110,10 @@ export interface FlowNodeData {
    */
   temporary_name?: string;
   /**
+   * Command Entry
+   */
+  command_argument_order?: string[];
+  /**
    * Command Argument
    */
   command_argument_type?: CommandArgumentType;

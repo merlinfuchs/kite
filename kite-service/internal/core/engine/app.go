@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"slices"
 	"sync"
 	"time"
 
@@ -329,7 +330,7 @@ func (a *App) HandleEvent(appID string, session *state.State, event gateway.Even
 			a.resumeFlowOrRespondExpired(resumePointID, session, e)
 		}
 	default:
-		for _, listener := range a.listenersForEvent(e) {
+		for _, listener := range a.listenersForEvent(event) {
 			go listener.HandleEvent(appID, session, event)
 		}
 	}
@@ -339,11 +340,12 @@ func (a *App) HandleEvent(appID string, session *state.State, event gateway.Even
 // Messages in DMs only go to direct message listeners: message listeners
 // were written for servers, and running them, and spending credits, on every
 // DM once an app has the direct messages intent would change what existing
-// flows do.
-func (a *App) listenersForEvent(e gateway.Event) []*EventListener {
-	eventType := model.EventTypeFromDiscordEventType(e.EventType())
+// flows do. A boost system message is a MESSAGE_CREATE, so it also goes to the
+// boost listeners on top of the message create ones.
+func (a *App) listenersForEvent(event gateway.Event) []*EventListener {
+	eventType := model.EventTypeFromDiscordEventType(event.EventType())
 
-	switch e := e.(type) {
+	switch e := event.(type) {
 	case *gateway.MessageCreateEvent:
 		if e.GuildID == 0 {
 			eventType = model.EventListenerTypeDiscordDirectMessageCreate
@@ -362,7 +364,18 @@ func (a *App) listenersForEvent(e gateway.Event) []*EventListener {
 	// stays valid after the lock is released.
 	a.RLock()
 	defer a.RUnlock()
-	return a.listenersByType[eventType]
+
+	listeners := a.listenersByType[eventType]
+
+	if e, ok := event.(*gateway.MessageCreateEvent); ok && isBoostMessage(e.Message) {
+		boostListeners := a.listenersByType[model.EventListenerTypeDiscordGuildBoost]
+		if len(boostListeners) > 0 {
+			// Clip so the append can't write into the index's backing array.
+			listeners = append(slices.Clip(listeners), boostListeners...)
+		}
+	}
+
+	return listeners
 }
 
 // resumeFlow loads a resume point and dispatches it back into the flow that

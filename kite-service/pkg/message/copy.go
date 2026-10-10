@@ -122,6 +122,11 @@ func (c ComponentData) Copy() ComponentData {
 		}
 	}
 
+	if c.ChannelTypes != nil {
+		res.ChannelTypes = make([]int, len(c.ChannelTypes))
+		copy(res.ChannelTypes, c.ChannelTypes)
+	}
+
 	if c.Accessory != nil {
 		accessory := c.Accessory.Copy()
 		res.Accessory = &accessory
