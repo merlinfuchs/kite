@@ -22,6 +22,7 @@ const serviceBlocks = blockDefinitions.map((block) => ({
     min: f.min ?? null,
     max: f.max ?? null,
     max_length: f.max_length ?? null,
+    options: f.options?.map((o) => o.value) ?? null,
   })),
   result: block.result
     ? { thing: block.result.thing ?? "", list: !!block.result.list }
@@ -96,6 +97,15 @@ describe("block definitions", () => {
     }
   });
 
+  it("only send the bot token to integrations, with Discord required", () => {
+    for (const block of requestBlocks().filter((b) =>
+      b.run.inject?.some((i) => i.value === "discord_bot_token")
+    )) {
+      expect(block.run.integration, block.type).not.toBe("discord");
+      expect(block.requires, block.type).toContain("discord");
+    }
+  });
+
   it("use integrations that exist", () => {
     for (const block of blockDefinitions) {
       for (const id of blockIntegrations(block)) {
@@ -130,6 +140,23 @@ describe("block definitions", () => {
           `${block.type}.${name}`
         ).toBe(true);
       }
+      for (const param of op.query_params.filter((p) => p.required)) {
+        const field = block.fields.find(
+          (f) => f.in === "query" && (f.target ?? f.name) === param.name
+        );
+        expect(
+          field?.required || !!field?.fallback,
+          `${block.type} requires ${param.name}`
+        ).toBe(true);
+      }
+      for (const field of block.fields.filter((f) => f.options)) {
+        const param = [...op.query_params, ...(op.body_params ?? [])].find(
+          (p) => p.name === (field.target ?? field.name)
+        );
+        expect(param?.enum, `${block.type}.${field.name}`).toEqual(
+          expect.arrayContaining(field.options!.map((o) => o.value))
+        );
+      }
 
       if (targets("body").length > 0) {
         expect(op.has_body, block.type).toBe(true);
@@ -145,9 +172,13 @@ describe("block definitions", () => {
           const field = block.fields.find(
             (f) => f.in === "body" && (f.target ?? f.name) === param.name
           );
-          expect(field?.required, `${block.type} requires ${param.name}`).toBe(
-            true
+          const injected = block.run.inject?.some(
+            (i) => i.in === "body" && i.name === param.name
           );
+          expect(
+            field?.required || injected,
+            `${block.type} requires ${param.name}`
+          ).toBe(true);
         }
       }
     }

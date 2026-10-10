@@ -22,7 +22,10 @@ export type BlockFieldType =
   // An emoji setting like emoji_data, sent as its name or "name:id".
   | "emoji"
   // A number of seconds, sent as the timestamp that many seconds from now.
-  | "seconds_until";
+  | "seconds_until"
+  // A JSON object whose properties are sent as those of the body, with the
+  // placeholders in its strings filled in.
+  | "json_object";
 
 export interface BlockField {
   // Setting in the node's data, like "channel_target" or "max_age". Settings
@@ -57,6 +60,8 @@ export interface BlockField {
   min?: number;
   max?: number;
   max_length?: number;
+  // The values a string field can have, picked from a list in the editor.
+  options?: { value: string; label: string }[];
   widget?: "permissions";
 }
 
@@ -70,9 +75,20 @@ export interface BlockRequest {
   operation: string;
   method: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
   path: string;
+  // Values Kite adds to the request, which aren't settings.
+  inject?: BlockRequestInject[];
   // The block does one of several things the endpoint does, like a timeout
   // is one way of editing a member, so it doesn't replace the raw request.
   partial?: boolean;
+}
+
+export interface BlockRequestInject {
+  in: "body";
+  // Name of the parameter.
+  name: string;
+  // "discord_bot_token" is the app's bot token, for services that call
+  // Discord for the app. The block needs Discord too.
+  value: "discord_bot_token";
 }
 
 // Runs the Go handler registered under the block's type.

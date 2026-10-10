@@ -16,6 +16,12 @@ import {
 } from "./types";
 import { aiChatCompletion } from "./aiChatCompletion";
 import { aiWebSearch } from "./aiWebSearch";
+import { cookieApiCaptchaCreate } from "./cookieApiCaptchaCreate";
+import { cookieApiCaptchaGet } from "./cookieApiCaptchaGet";
+import { cookieApiCardCreate } from "./cookieApiCardCreate";
+import { cookieApiMinecraftUserGet } from "./cookieApiMinecraftUserGet";
+import { cookieApiQrCodeCreate } from "./cookieApiQrCodeCreate";
+import { cookieApiTranscriptCreate } from "./cookieApiTranscriptCreate";
 import { controlConditionChannel } from "./controlConditionChannel";
 import { controlConditionCompare } from "./controlConditionCompare";
 import { controlConditionItemChannel } from "./controlConditionItemChannel";
@@ -144,6 +150,12 @@ export const blockDefinitions: BlockDefinition[] = [
   variableDelete,
   variableGet,
   robloxUserGet,
+  cookieApiTranscriptCreate,
+  cookieApiCardCreate,
+  cookieApiQrCodeCreate,
+  cookieApiCaptchaCreate,
+  cookieApiCaptchaGet,
+  cookieApiMinecraftUserGet,
   aiChatCompletion,
   aiWebSearch,
   httpRequest,
@@ -212,6 +224,7 @@ const formats: Record<BlockFieldType, [RegExp, string] | null> = {
   emoji: null,
   seconds: [decimalRegex, "Must be a number of seconds"],
   seconds_until: [decimalRegex, "Must be a number of seconds"],
+  json_object: null,
 };
 
 const numberTypes: BlockFieldType[] = ["integer", "seconds", "seconds_until"];
@@ -234,6 +247,15 @@ function fieldSchema(field: BlockField) {
       return;
     }
 
+    // Placeholders in JSON go in its strings, so it's checked either way.
+    if (type === "json_object" && !isJSONObject(value)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Must be a JSON object",
+      });
+      return;
+    }
+
     const [format, message] = formats[type] ?? [];
     // Placeholders are only checked when the flow runs.
     if (value.includes("{{")) {
@@ -248,6 +270,12 @@ function fieldSchema(field: BlockField) {
     if (format && !format.test(value)) {
       ctx.addIssue({ code: z.ZodIssueCode.custom, message });
       return;
+    }
+    if (field.options && !field.options.some((o) => o.value === value)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: `Must be one of ${optionValues(field)}`,
+      });
     }
 
     if (numberTypes.includes(type)) {
@@ -302,18 +330,34 @@ function fieldSchema(field: BlockField) {
       : withChecks;
 
   // Values are stored as text, so the flow AI needs to know the format.
-  const described = templated(
-    listOrText,
-    field.type === "boolean"
-      ? `${field.description} Either "true" or "false".`
-      : field.description!
-  );
+  let description = field.description!;
+  if (field.type === "boolean") {
+    description += ' Either "true" or "false".';
+  } else if (field.options) {
+    description += ` One of ${optionValues(field)}.`;
+  }
+  const described = templated(listOrText, description);
   // Numbers and booleans work too, as long as they have the right format.
   const schema = z.preprocess(
     (v) => (typeof v === "number" || typeof v === "boolean" ? String(v) : v),
     described
   );
   return field.required ? schema : schema.optional();
+}
+
+function isJSONObject(value: string) {
+  try {
+    const parsed = JSON.parse(value);
+    return (
+      typeof parsed === "object" && parsed !== null && !Array.isArray(parsed)
+    );
+  } catch {
+    return false;
+  }
+}
+
+function optionValues(field: BlockField) {
+  return field.options!.map((o) => `"${o.value}"`).join(", ");
 }
 
 // The schema of a block, generated from its fields.
