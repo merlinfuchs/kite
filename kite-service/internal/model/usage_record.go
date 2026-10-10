@@ -21,6 +21,8 @@ type UsageRecord struct {
 	CommandID       null.String
 	EventListenerID null.String
 	MessageID       null.String
+	GuildID         null.String
+	UserID          null.String
 	CreditsUsed     int
 	CreatedAt       time.Time
 }

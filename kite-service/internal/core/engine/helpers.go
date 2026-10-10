@@ -8,8 +8,11 @@ import (
 	"runtime/debug"
 	"time"
 
+	"github.com/diamondburned/arikawa/v3/api"
+	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/gateway"
 	"github.com/diamondburned/arikawa/v3/state"
+	"github.com/diamondburned/arikawa/v3/utils/json/option"
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/internal/store"
 	"github.com/kitecloud/kite/kite-service/internal/util"
@@ -43,6 +46,9 @@ type Env struct {
 	OpenaiClient         *openai.Client
 	TokenCrypt           *util.SymmetricCrypt
 	CooldownProvider     provider.CooldownProvider
+	// CreditLimiter enforces the credit limits app owners set for single
+	// servers and users. Nil enforces none.
+	CreditLimiter *CreditLimiter
 }
 
 type entityLinks struct {
@@ -187,6 +193,10 @@ func (s Env) executeFlowEvent(
 		return
 	}
 
+	if s.creditLimitReached(ctx, appID, session, fCtx, links) {
+		return
+	}
+
 	s.finishFlowRun(appID, links, fCtx, node.Execute(fCtx), "Failed to execute flow event")
 }
 
@@ -229,11 +239,107 @@ func (s Env) finishFlowRun(appID string, links entityLinks, fCtx *flow.FlowConte
 		)
 	}
 
+	guildID, userID := executionTargetIDs(fCtx)
+
 	s.createUsageRecord(
 		appID,
 		fCtx.CreditsUsed(),
 		links,
+		guildID,
+		userID,
 	)
+
+	if s.CreditLimiter != nil {
+		s.CreditLimiter.Record(appID, fCtx.CreditsUsed(), creditLimitTargets(guildID.String, userID.String)...)
+	}
+}
+
+// executionTargetIDs returns the server and user a flow runs for, if any.
+func executionTargetIDs(fCtx *flow.FlowContext) (null.String, null.String) {
+	var guildID, userID null.String
+	if id := fCtx.Data.GuildID(); id.IsValid() {
+		guildID = null.StringFrom(id.String())
+	}
+	if id := fCtx.Data.UserID(); id.IsValid() {
+		userID = null.StringFrom(id.String())
+	}
+	return guildID, userID
+}
+
+// creditLimitReached checks the credit limits of the server and user the flow
+// runs for. If one is reached the flow doesn't run, and the user is told why if
+// they triggered it with an interaction. Failing to check lets the flow run, a
+// database hiccup shouldn't take every bot down with it.
+func (s Env) creditLimitReached(
+	ctx context.Context,
+	appID string,
+	session *state.State,
+	fCtx *flow.FlowContext,
+	links entityLinks,
+) bool {
+	if s.CreditLimiter == nil {
+		return false
+	}
+
+	guildID, userID := executionTargetIDs(fCtx)
+
+	exceeded, err := s.CreditLimiter.Check(ctx, appID, creditLimitTargets(guildID.String, userID.String)...)
+	if err != nil {
+		logCreditLimitError(appID, err)
+		return false
+	}
+	if exceeded == nil {
+		return false
+	}
+
+	if exceeded.FirstReport {
+		s.createLogEntry(
+			appID,
+			model.LogLevelWarn,
+			fmt.Sprintf(
+				"Credit limit reached for %s %s: %d of %d credits used per %s. Executions for it are skipped until the %s ends.",
+				creditLimitScopeName(exceeded.Limit.Scope),
+				exceeded.TargetID,
+				exceeded.Used,
+				exceeded.Limit.Credits.Int64,
+				exceeded.Limit.Period,
+				exceeded.Limit.Period,
+			),
+			links,
+		)
+	}
+
+	interaction := fCtx.Data.Interaction()
+	if interaction == nil || session == nil {
+		return true
+	}
+	if _, ok := interaction.Data.(*discord.AutocompleteInteraction); ok {
+		return true
+	}
+
+	err = session.RespondInteraction(interaction.ID, interaction.Token, api.InteractionResponse{
+		Type: api.MessageInteractionWithSource,
+		Data: &api.InteractionResponseData{
+			Content: option.NewNullableString(creditLimitMessage(exceeded)),
+			Flags:   discord.EphemeralMessage,
+		},
+	})
+	if err != nil {
+		slog.Error(
+			"Failed to respond to interaction over credit limit",
+			slog.String("app_id", appID),
+			slog.String("error", err.Error()),
+		)
+	}
+
+	return true
+}
+
+func creditLimitScopeName(scope model.CreditLimitScope) string {
+	if scope == model.CreditLimitScopeGuild {
+		return "server"
+	}
+	return "user"
 }
 
 func (s Env) createLogEntry(appID string, level model.LogLevel, message string, links entityLinks) {
@@ -255,7 +361,7 @@ func (s Env) createLogEntry(appID string, level model.LogLevel, message string, 
 	}
 }
 
-func (s Env) createUsageRecord(appID string, creditsUsed int, links entityLinks) {
+func (s Env) createUsageRecord(appID string, creditsUsed int, links entityLinks, guildID null.String, userID null.String) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*30)
 	defer cancel()
 
@@ -266,6 +372,8 @@ func (s Env) createUsageRecord(appID string, creditsUsed int, links entityLinks)
 		CommandID:       links.CommandID,
 		EventListenerID: links.EventListenerID,
 		MessageID:       links.MessageID,
+		GuildID:         guildID,
+		UserID:          userID,
 		CreditsUsed:     creditsUsed,
 		CreatedAt:       time.Now().UTC(),
 	})

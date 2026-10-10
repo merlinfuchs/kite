@@ -13,6 +13,12 @@ type UsageStore interface {
 	UsageCreditsUsedBetween(ctx context.Context, appID string, start time.Time, end time.Time) (int, error)
 	UsageCreditsUsedByTypeBetween(ctx context.Context, appID string, start time.Time, end time.Time) ([]model.UsageCreditsUsedByType, error)
 	UsageCreditsUsedByDayBetween(ctx context.Context, appID string, start time.Time, end time.Time) ([]model.UsageCreditsUsedByDay, error)
+	// UsageCreditsUsedByTargetSince sums the credits one server or user of the
+	// app used since the given time.
+	UsageCreditsUsedByTargetSince(ctx context.Context, appID string, scope model.CreditLimitScope, targetID string, since time.Time) (int, error)
+	// TopUsageCreditsByTargetBetween returns the servers or users of the app
+	// that used the most credits in the range, most first.
+	TopUsageCreditsByTargetBetween(ctx context.Context, appID string, scope model.CreditLimitScope, start time.Time, end time.Time, limit int) ([]model.UsageCreditsUsedByTarget, error)
 	AllUsageCreditsUsedBetween(ctx context.Context, start time.Time, end time.Time) (map[string]int, error)
 	// DeleteUsageRecordsBefore deletes up to batchSize usage records created
 	// before the given time and returns how many were deleted.

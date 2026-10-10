@@ -325,6 +325,65 @@ export interface CommandsDeployResponse {
 }
 
 //////////
+// source: credit_limit.go
+
+/**
+ * MaxCreditLimitCredits keeps limits within what the database column holds.
+ */
+export const MaxCreditLimitCredits = 1_000_000_000;
+export interface CreditLimit {
+  id: string;
+  /**
+   * Scope is guild or user.
+   */
+  scope: string;
+  /**
+   * TargetID is the server or user ID, or null for the default of the scope.
+   */
+  target_id: null | string;
+  /**
+   * Period is day or month.
+   */
+  period: string;
+  /**
+   * Credits is null when the target is exempt from the default limit.
+   */
+  credits: null | number;
+  /**
+   * CreditsUsed is how many credits the target used in the current period,
+   * null for defaults.
+   */
+  credits_used: null | number;
+  created_at: string /* RFC3339 */;
+  updated_at: string /* RFC3339 */;
+}
+export type CreditLimitListResponse = (CreditLimit | undefined)[];
+export interface CreditLimitCreateRequest {
+  scope: string;
+  target_id: null | string;
+  period: string;
+  credits: null | number;
+}
+export type CreditLimitCreateResponse = CreditLimit;
+export type CreditLimitUpdateRequest = CreditLimitCreateRequest;
+export type CreditLimitUpdateResponse = CreditLimit;
+export type CreditLimitDeleteResponse = Empty;
+/**
+ * CreditLimitUsageListResponse lists the servers or users that used the most
+ * credits in the current period.
+ */
+export type CreditLimitUsageListResponse = (CreditLimitUsageEntry | undefined)[];
+export interface CreditLimitUsageEntry {
+  target_id: string;
+  credits_used: number /* int */;
+  /**
+   * Credits is the limit that applies to the target for the period, null if
+   * it has none.
+   */
+  credits: null | number;
+}
+
+//////////
 // source: event_listener.go
 
 export interface EventListener {

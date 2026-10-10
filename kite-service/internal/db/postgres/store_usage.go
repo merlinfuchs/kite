@@ -2,6 +2,7 @@ package postgres
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgtype"
@@ -17,6 +18,8 @@ func (c *Client) CreateUsageRecord(ctx context.Context, record model.UsageRecord
 		CommandID:       pgtype.Text{String: record.CommandID.String, Valid: record.CommandID.Valid},
 		EventListenerID: pgtype.Text{String: record.EventListenerID.String, Valid: record.EventListenerID.Valid},
 		MessageID:       pgtype.Text{String: record.MessageID.String, Valid: record.MessageID.Valid},
+		GuildID:         pgtype.Text{String: record.GuildID.String, Valid: record.GuildID.Valid},
+		UserID:          pgtype.Text{String: record.UserID.String, Valid: record.UserID.Valid},
 		CreditsUsed:     int32(record.CreditsUsed),
 		CreatedAt:       pgtype.Timestamp{Time: record.CreatedAt, Valid: true},
 	})
@@ -95,6 +98,73 @@ func (c *Client) UsageCreditsUsedByDayBetween(ctx context.Context, appID string,
 	return records, nil
 }
 
+func (c *Client) UsageCreditsUsedByTargetSince(ctx context.Context, appID string, scope model.CreditLimitScope, targetID string, since time.Time) (int, error) {
+	startAt := pgtype.Timestamp{Time: since.UTC(), Valid: true}
+
+	var res int32
+	var err error
+	switch scope {
+	case model.CreditLimitScopeGuild:
+		res, err = c.Q.GetUsageCreditsUsedByGuildSince(ctx, pgmodel.GetUsageCreditsUsedByGuildSinceParams{
+			AppID:   appID,
+			GuildID: pgtype.Text{String: targetID, Valid: true},
+			StartAt: startAt,
+		})
+	case model.CreditLimitScopeUser:
+		res, err = c.Q.GetUsageCreditsUsedByUserSince(ctx, pgmodel.GetUsageCreditsUsedByUserSinceParams{
+			AppID:   appID,
+			UserID:  pgtype.Text{String: targetID, Valid: true},
+			StartAt: startAt,
+		})
+	default:
+		return 0, fmt.Errorf("unknown credit limit scope: %s", scope)
+	}
+	if err != nil {
+		return 0, err
+	}
+
+	return int(res), nil
+}
+
+func (c *Client) TopUsageCreditsByTargetBetween(ctx context.Context, appID string, scope model.CreditLimitScope, start time.Time, end time.Time, limit int) ([]model.UsageCreditsUsedByTarget, error) {
+	startAt := pgtype.Timestamp{Time: start, Valid: true}
+	endAt := pgtype.Timestamp{Time: end, Valid: true}
+
+	var res []model.UsageCreditsUsedByTarget
+	switch scope {
+	case model.CreditLimitScopeGuild:
+		rows, err := c.Q.GetTopUsageCreditsByGuildBetween(ctx, pgmodel.GetTopUsageCreditsByGuildBetweenParams{
+			AppID:    appID,
+			StartAt:  startAt,
+			EndAt:    endAt,
+			RowLimit: int32(limit),
+		})
+		if err != nil {
+			return nil, err
+		}
+		for _, row := range rows {
+			res = append(res, model.UsageCreditsUsedByTarget{TargetID: row.TargetID, CreditsUsed: int(row.CreditsUsed)})
+		}
+	case model.CreditLimitScopeUser:
+		rows, err := c.Q.GetTopUsageCreditsByUserBetween(ctx, pgmodel.GetTopUsageCreditsByUserBetweenParams{
+			AppID:    appID,
+			StartAt:  startAt,
+			EndAt:    endAt,
+			RowLimit: int32(limit),
+		})
+		if err != nil {
+			return nil, err
+		}
+		for _, row := range rows {
+			res = append(res, model.UsageCreditsUsedByTarget{TargetID: row.TargetID, CreditsUsed: int(row.CreditsUsed)})
+		}
+	default:
+		return nil, fmt.Errorf("unknown credit limit scope: %s", scope)
+	}
+
+	return res, nil
+}
+
 func (c *Client) AllUsageCreditsUsedBetween(ctx context.Context, start time.Time, end time.Time) (map[string]int, error) {
 	rows, err := c.Q.GetAllUsageCreditsUsedBetween(ctx, pgmodel.GetAllUsageCreditsUsedBetweenParams{
 		StartAt: pgtype.Timestamp{Time: start, Valid: true},
@@ -127,6 +197,8 @@ func rowToUsageRecord(row pgmodel.UsageRecord) model.UsageRecord {
 		CommandID:       null.NewString(row.CommandID.String, row.CommandID.Valid),
 		EventListenerID: null.NewString(row.EventListenerID.String, row.EventListenerID.Valid),
 		MessageID:       null.NewString(row.MessageID.String, row.MessageID.Valid),
+		GuildID:         null.NewString(row.GuildID.String, row.GuildID.Valid),
+		UserID:          null.NewString(row.UserID.String, row.UserID.Valid),
 		CreditsUsed:     int(row.CreditsUsed),
 		CreatedAt:       row.CreatedAt.Time,
 	}
