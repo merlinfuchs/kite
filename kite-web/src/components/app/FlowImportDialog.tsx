@@ -32,7 +32,10 @@ import {
   remapFlowSources,
 } from "@/lib/flow/messageTemplates";
 import { FlowData } from "@/lib/types/flow.gen";
-import { MessageUpdateResponse } from "@/lib/types/wire.gen";
+import {
+  MessageDeleteResponse,
+  MessageUpdateResponse,
+} from "@/lib/types/wire.gen";
 import { toast } from "sonner";
 import { ShareCodeInput, ShareCodePanel } from "./ShareCode";
 import { BracesIcon, KeyRoundIcon } from "lucide-react";
@@ -118,12 +121,13 @@ function ImportForm({
     !messages ||
     !secrets;
 
-  // Imports the templates and returns the id each one got in this app, keyed
-  // by its id in the original app. Templates that already exist in this app
-  // (exported from the same app) are reused unless forced, so importing twice
-  // doesn't pile up copies.
+  // Imports the templates and adds the id each one got in this app to idMap,
+  // keyed by its id in the original app. Templates that already exist in this
+  // app (exported from the same app) are reused unless forced, so importing
+  // twice doesn't pile up copies. Returns the number of cleared references.
   async function importMessages(
     shared: SharedMessage[],
+    idMap: Map<string, string>,
     variableIds: Set<string>,
     existingIds: Set<string>,
     forceIds: Set<string>
@@ -131,10 +135,7 @@ function ImportForm({
     const toCreate = shared.filter(
       (m) => forceIds.has(m.id) || !existingIds.has(m.id)
     );
-    const idMap = new Map<string, string>();
-    if (toCreate.length === 0) {
-      return { idMap, created: [] as string[], removed: 0 };
-    }
+    if (toCreate.length === 0) return 0;
 
     // The new ids aren't known yet, so references between the imported
     // templates are kept for now and pointed at the copies afterwards.
@@ -182,6 +183,7 @@ function ImportForm({
         messageIds: existingIds,
         messageIdMap: idMap,
       });
+      // The update mutation hook is bound to a single message id.
       const updateRes = await apiRequest<MessageUpdateResponse>(
         `/v1/apps/${appId}/messages/${created.id}`,
         {
@@ -198,16 +200,23 @@ function ImportForm({
     }
 
     queryClient.invalidateQueries({ queryKey: ["apps", appId, "messages"] });
-
-    return {
-      idMap,
-      created: Array.from(idMap.values()),
-      removed,
-    };
+    return removed;
   }
 
-  async function importShareData(raw: unknown) {
-    const parsed = normalizeShareData(raw, kind);
+  // Deletes the templates of a failed import, so no orphaned copies are left.
+  async function deleteMessages(ids: string[]) {
+    if (ids.length === 0) return;
+    await Promise.allSettled(
+      ids.map((id) =>
+        apiRequest<MessageDeleteResponse>(`/v1/apps/${appId}/messages/${id}`, {
+          method: "DELETE",
+        })
+      )
+    );
+    queryClient.invalidateQueries({ queryKey: ["apps", appId, "messages"] });
+  }
+
+  async function importShareData(parsed: ShareData | null | undefined) {
     const flow = parsed?.flow_source;
     const mainMessage = parsed?.message;
 
@@ -231,29 +240,27 @@ function ImportForm({
     const bundled = (
       Array.isArray(parsed?.messages) ? parsed.messages : []
     ).filter(isSharedMessage);
-    // Exports from before templates were bundled have no ids.
-    const shared = (
-      kind === "message" ? [mainMessage!, ...bundled] : bundled
-    ).map((m, i) => ({ ...m, id: m.id || `__shared_${i}` }));
+    const shared = kind === "message" ? [mainMessage!, ...bundled] : bundled;
 
-    const usedFlows = [
-      ...(flow ? [flow] : []),
-      ...shared.flatMap((m) => Object.values(m.flow_sources ?? {})),
-    ];
-    const secretNames = new Set(secrets?.map((s) => s?.name));
-    const missingSecrets = Array.from(
-      new Set(usedFlows.flatMap((f) => getReferencedSecretNames(f)))
-    ).filter((name) => !secretNames.has(name));
-
+    const idMap = new Map<string, string>();
     setImporting(true);
     try {
-      const { idMap, created, removed } = await importMessages(
+      const usedFlows = [
+        ...(flow ? [flow] : []),
+        ...shared.flatMap((m) => Object.values(m.flow_sources ?? {})),
+      ];
+      const secretNames = new Set(secrets?.map((s) => s?.name));
+      const missingSecrets = Array.from(
+        new Set(usedFlows.flatMap((f) => getReferencedSecretNames(f)))
+      ).filter((name) => !secretNames.has(name));
+
+      let removed = await importMessages(
         shared,
+        idMap,
         variableIds,
         existingIds,
         new Set(kind === "message" ? [shared[0].id] : [])
       );
-      let removedTotal = removed;
 
       let importedId: string | undefined;
       if (kind === "message") {
@@ -264,7 +271,7 @@ function ImportForm({
           messageIds: existingIds,
           messageIdMap: idMap,
         });
-        removedTotal += remapped.removed;
+        removed += remapped.removed;
 
         const res =
           kind === "command"
@@ -281,23 +288,22 @@ function ImportForm({
                 ],
               });
         if (!res.success) {
-          toast.error(
+          throw new Error(
             `Failed to import ${label}: ${res.error.message} (${res.error.code})`
           );
-          return;
         }
         importedId = res.data[0]?.id;
       }
 
-      const extraTemplates = created.length - (kind === "message" ? 1 : 0);
+      const extraTemplates = idMap.size - (kind === "message" ? 1 : 0);
       toast.success(
         extraTemplates > 0
           ? `Imported ${label} with ${extraTemplates} message template(s)!`
           : `Imported ${label}!`
       );
-      if (removedTotal > 0) {
+      if (removed > 0) {
         toast.warning(
-          `${removedTotal} block(s) referenced variables or message templates from another app, reselect them in the editor.`
+          `${removed} block(s) referenced variables or message templates from another app, reselect them in the editor.`
         );
       }
       if (missingSecrets.length > 0) {
@@ -314,6 +320,7 @@ function ImportForm({
         setTimeout(() => router.push(href(appId, id)), 500);
       }
     } catch (e) {
+      await deleteMessages(Array.from(idMap.values()));
       toast.error(e instanceof Error ? e.message : `Failed to import ${label}`);
     } finally {
       setImporting(false);
@@ -407,29 +414,4 @@ function ImportForm({
       </DialogFooter>
     </>
   );
-}
-
-// Also accepts what the API returns for a single command, event listener or
-// message template ({"success": true, "data": {...}}) and bare objects, so
-// JSON copied from the network tab or another Kite instance can be imported.
-function normalizeShareData(raw: unknown, kind: Kind): ShareData | null {
-  if (!raw || typeof raw !== "object") return null;
-
-  let value = raw as Record<string, unknown>;
-  if (
-    "success" in value &&
-    value.data &&
-    typeof value.data === "object" &&
-    !Array.isArray(value.data)
-  ) {
-    value = value.data as Record<string, unknown>;
-  }
-
-  if (kind === "message" && !("message" in value) && isSharedMessage(value)) {
-    const { id, name, description, data, flow_sources } =
-      value as unknown as SharedMessage;
-    return { message: { id, name, description, data, flow_sources } };
-  }
-
-  return value as ShareData;
 }
