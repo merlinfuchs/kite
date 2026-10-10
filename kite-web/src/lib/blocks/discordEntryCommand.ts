@@ -43,6 +43,7 @@ export const discordEntryCommand: BlockDefinition = {
         .describe(
           "IDs of the command's option_command_argument blocks in the order Discord shows them. Required arguments always come before optional ones, and arguments missing here come last."
         ),
+      hidden_from_ai: true,
     },
   ],
   run: { kind: "custom" },
