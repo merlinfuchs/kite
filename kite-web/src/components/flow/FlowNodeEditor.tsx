@@ -13,6 +13,10 @@ import {
 import { activityTypeOptions, statusOptions } from "@/lib/discord/presence";
 import { useAppFeature, useMessages, useVariables } from "@/lib/hooks/api";
 import { getFlowCreditsCost } from "@/lib/flow/schedule";
+import {
+  getCommandArguments,
+  moveCommandArgument,
+} from "@/lib/flow/commandArguments";
 import { aiModelTiers, getAiModelTier } from "@/lib/flow/aiModels";
 import { getBlockDefinition } from "@/lib/blocks";
 import {
@@ -48,7 +52,13 @@ import {
   PollData,
   StatusData,
 } from "@/lib/types/flow.gen";
-import { Node, useNodes, useReactFlow, useStoreApi } from "@xyflow/react";
+import {
+  Node,
+  useEdges,
+  useNodes,
+  useReactFlow,
+  useStoreApi,
+} from "@xyflow/react";
 import {
   ChevronDownIcon,
   ChevronUpIcon,
@@ -136,6 +146,7 @@ export const settingInputs: Record<string, any> = {
   temporary_name: TemporaryNameInput,
   name: NameInput,
   description: DescriptionInput,
+  command_argument_order: CommandArgumentOrderInput,
   command_argument_type: CommandArgumentTypeInput,
   command_argument_required: CommandArgumentRequiredInput,
   command_argument_min_value: CommandArgumentMinValueInput,
@@ -475,6 +486,77 @@ function DescriptionInput({ data, updateData, errors }: InputProps) {
       updateValue={(v) => updateData({ description: v || undefined })}
       errors={errors}
     />
+  );
+}
+
+function CommandArgumentOrderInput({ id, updateData }: InputProps) {
+  const nodes = useNodes<Node<NodeData>>();
+  const edges = useEdges();
+
+  const args = useMemo(() => {
+    const entry = nodes.find((n) => n.id === id);
+    return entry ? getCommandArguments(entry, nodes, edges) : [];
+  }, [id, nodes, edges]);
+
+  if (args.length < 2) return null;
+
+  function move(index: number, direction: -1 | 1) {
+    const order = moveCommandArgument(args, index, direction);
+    if (order) {
+      updateData({ command_argument_order: order });
+    }
+  }
+
+  return (
+    <div>
+      <div className="font-medium text-foreground mb-2">Argument Order</div>
+      <div className="text-muted-foreground text-sm mb-2">
+        The order of the arguments in Discord. Required arguments always come
+        before optional ones.
+      </div>
+      <div className="flex flex-col gap-2">
+        {args.map((arg, i) => (
+          <div
+            className="flex items-center gap-2 border rounded-md pl-3 pr-1 py-1"
+            key={arg.id}
+          >
+            <div className="text-sm text-muted-foreground w-4 flex-none">
+              {i + 1}
+            </div>
+            <div className="text-sm text-foreground truncate flex-auto">
+              {arg.data.name || "unnamed"}
+            </div>
+            <div className="text-xs text-muted-foreground flex-none">
+              {arg.data.command_argument_required ? "Required" : "Optional"}
+            </div>
+            <div className="flex flex-none">
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8"
+                disabled={!moveCommandArgument(args, i, -1)}
+                onClick={() => move(i, -1)}
+                aria-label="Move up"
+              >
+                <ChevronUpIcon className="h-5 w-5" />
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8"
+                disabled={!moveCommandArgument(args, i, 1)}
+                onClick={() => move(i, 1)}
+                aria-label="Move down"
+              >
+                <ChevronDownIcon className="h-5 w-5" />
+              </Button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }
 
