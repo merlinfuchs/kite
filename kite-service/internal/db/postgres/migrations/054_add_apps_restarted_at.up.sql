@@ -1,0 +1,1 @@
+ALTER TABLE apps ADD COLUMN restarted_at TIMESTAMP;

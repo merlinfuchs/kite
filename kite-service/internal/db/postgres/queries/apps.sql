@@ -54,6 +54,14 @@ UPDATE apps SET
     updated_at = $3
 WHERE id = $1 AND enabled;
 
+-- Bumps updated_at so the gateway manager's poll picks the app up, whichever
+-- cluster owns its gateway. Only enabled apps have a gateway to restart.
+-- name: RestartApp :one
+UPDATE apps SET
+    restarted_at = $2,
+    updated_at = $2
+WHERE id = $1 AND enabled RETURNING *;
+
 -- name: DeleteApp :exec
 DELETE FROM apps WHERE id = $1;
 

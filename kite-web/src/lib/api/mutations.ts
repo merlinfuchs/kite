@@ -6,6 +6,7 @@ import {
   AppCreateRequest,
   AppCreateResponse,
   AppDeleteResponse,
+  AppRestartResponse,
   AppStatusUpdateRequest,
   AppStatusUpdateResponse,
   AppTokenUpdateRequest,
@@ -132,6 +133,22 @@ export function useAppUpdateMutation(appId: string) {
         headers: {
           "Content-Type": "application/json",
         },
+      }),
+    onSuccess: () => {
+      client.invalidateQueries({
+        queryKey: ["apps"],
+      });
+    },
+  });
+}
+
+export function useAppRestartMutation(appId: string) {
+  const client = useQueryClient();
+
+  return useMutation({
+    mutationFn: () =>
+      apiRequest<AppRestartResponse>(`/v1/apps/${appId}/restart`, {
+        method: "POST",
       }),
     onSuccess: () => {
       client.invalidateQueries({

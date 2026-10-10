@@ -152,6 +152,21 @@ func (c *Client) DisableApp(ctx context.Context, opts store.AppDisableOpts) erro
 	})
 }
 
+func (c *Client) RestartApp(ctx context.Context, id string, restartedAt time.Time) (*model.App, error) {
+	row, err := c.Q.RestartApp(ctx, pgmodel.RestartAppParams{
+		ID:          id,
+		RestartedAt: pgtype.Timestamp{Time: restartedAt.UTC(), Valid: true},
+	})
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, store.ErrNotFound
+		}
+		return nil, err
+	}
+
+	return rowToApp(row)
+}
+
 func (c *Client) DeleteApp(ctx context.Context, id string) error {
 	return c.Q.DeleteApp(ctx, id)
 }
@@ -251,6 +266,7 @@ func rowToApp(row pgmodel.App) (*model.App, error) {
 		DiscordToken:   row.DiscordToken,
 		DiscordID:      row.DiscordID,
 		DiscordStatus:  status,
+		RestartedAt:    null.NewTime(row.RestartedAt.Time, row.RestartedAt.Valid),
 		CreatedAt:      row.CreatedAt.Time,
 		UpdatedAt:      row.UpdatedAt.Time,
 	}, nil

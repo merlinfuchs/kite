@@ -21,6 +21,7 @@ type App struct {
 	UpdatedAt      pgtype.Timestamp
 	DiscordStatus  []byte
 	DisabledReason pgtype.Text
+	RestartedAt    pgtype.Timestamp
 }
 
 type AppIntegration struct {

@@ -1,6 +1,7 @@
 package app
 
 import (
+	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -161,6 +162,32 @@ func (h *AppHandler) HandleAppUpdate(c *handler.Context, req wire.AppUpdateReque
 			)
 			return nil, fmt.Errorf("failed to update discord bot user: %w", err)
 		}
+	}
+
+	return wire.AppToWire(app), nil
+}
+
+// appRestartCooldown keeps restarts well below Discord's daily limit on new
+// gateway sessions, which resets the bot token when exceeded.
+const appRestartCooldown = time.Minute
+
+func (h *AppHandler) HandleAppRestart(c *handler.Context) (*wire.AppRestartResponse, error) {
+	if !c.App.Enabled {
+		return nil, handler.ErrBadRequest("app_disabled", "The app isn't running, start it instead")
+	}
+
+	now := time.Now().UTC()
+	if c.App.RestartedAt.Valid && now.Sub(c.App.RestartedAt.Time) < appRestartCooldown {
+		return nil, handler.ErrBadRequest("restart_cooldown", "The app was just restarted, wait a minute before restarting it again")
+	}
+
+	app, err := h.appStore.RestartApp(c.Context(), c.App.ID, now)
+	if err != nil {
+		if errors.Is(err, store.ErrNotFound) {
+			// Disabled since the request came in.
+			return nil, handler.ErrBadRequest("app_disabled", "The app isn't running, start it instead")
+		}
+		return nil, fmt.Errorf("failed to restart app: %w", err)
 	}
 
 	return wire.AppToWire(app), nil

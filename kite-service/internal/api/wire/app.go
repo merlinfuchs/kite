@@ -66,6 +66,8 @@ func (req AppUpdateRequest) Validate() error {
 }
 
 type AppUpdateResponse = App
+
+type AppRestartResponse = App
 type AppStatusUpdateRequest struct {
 	DiscordStatus *AppDiscordStatus `json:"discord_status,omitempty"`
 }

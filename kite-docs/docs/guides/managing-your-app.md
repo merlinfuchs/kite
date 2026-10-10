@@ -15,6 +15,7 @@ Click on `Invite app` to add your bot to a server with `Add app to server`, or t
 You can find these on the `Settings` page of your app.
 
 - **Start and stop**: `Stop App` takes your bot offline, and nothing it does runs until you click on `Start App`. Kite also stops your app when it runs out of credits or its token stops working.
+- **Restart**: `Restart App` reconnects your bot to Discord, which helps when it appears offline or stopped reacting to events. It's offline for a few seconds, and you can restart it once a minute.
 - **Appearance**: Changes the name and description of your app. This also renames your bot in Discord.
 - **Custom Status**: Sets the status and activity your bot shows in Discord, like "Playing a game". Without one, your bot shows "🪁 Powered by Kite.onl". You can add up to 10 statuses and pick which one is shown. With [Premium](../reference/premium.md) your bot can also rotate through them every minute. Changes can take a few minutes to show up.
 - **Credentials**: Changes your bot's token, for example after you reset it in the [Discord Developer Portal](https://discord.com/developers/applications). The token has to belong to the same Discord app. Saving a token also starts your app again.

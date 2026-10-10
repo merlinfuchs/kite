@@ -45,6 +45,7 @@ export interface AppUpdateRequest {
   enabled: boolean;
 }
 export type AppUpdateResponse = App;
+export type AppRestartResponse = App;
 export interface AppStatusUpdateRequest {
   discord_status?: AppDiscordStatus;
 }
