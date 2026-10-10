@@ -98,7 +98,9 @@ function ExportForm({
   }
 
   if (showJson) {
-    const json = JSON.stringify(shareData);
+    // Without the templates the JSON would be incomplete, so it's only shown
+    // once they're loaded.
+    const json = bundledMessages ? JSON.stringify(shareData) : "";
 
     return (
       <>
@@ -111,6 +113,7 @@ function ExportForm({
         <Textarea
           readOnly
           value={json}
+          placeholder="Loading..."
           minRows={8}
           maxRows={8}
           className="resize-none break-all font-mono md:text-xs"

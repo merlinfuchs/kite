@@ -240,7 +240,11 @@ function ImportForm({
     const bundled = (
       Array.isArray(parsed?.messages) ? parsed.messages : []
     ).filter(isSharedMessage);
-    const shared = kind === "message" ? [mainMessage!, ...bundled] : bundled;
+    // Each template is created once, even if the JSON lists it twice.
+    const seenIds = new Set<string>();
+    const shared = (
+      kind === "message" ? [mainMessage!, ...bundled] : bundled
+    ).filter((m) => !seenIds.has(m.id) && seenIds.add(m.id));
 
     const idMap = new Map<string, string>();
     setImporting(true);
