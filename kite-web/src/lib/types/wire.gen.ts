@@ -136,6 +136,17 @@ export interface Role {
   position: number /* int */;
 }
 export type StateGuildRoleListResponse = (Role | undefined)[];
+/**
+ * StateGuildEmojis are the custom emojis of one guild the app is in. The app
+ * can use them in messages and components like its own emojis.
+ */
+export interface StateGuildEmojis {
+  guild_id: string;
+  guild_name: string;
+  guild_icon_url: null | string;
+  emojis: (AppEmoji | undefined)[];
+}
+export type StateEmojiListResponse = (StateGuildEmojis | undefined)[];
 
 //////////
 // source: asset.go

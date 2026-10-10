@@ -8,6 +8,7 @@ import {
   useAppsQuery,
   useAppStateGuildChannelsQuery,
   useAppStateGuildRolesQuery,
+  useAppStateEmojisQuery,
   useAppStateGuildsQuery,
   useAppSubscriptionsQuery,
   useBillingPlansQuery,
@@ -57,6 +58,7 @@ import {
   PluginListResponse,
   StateGuildChannelListResponse,
   StateGuildRoleListResponse,
+  StateEmojiListResponse,
   StateGuildListResponse,
   SubscriptionListResponse,
   UsageByDayListResponse,
@@ -295,6 +297,14 @@ export function useAppStateGuild(guildId: string | null) {
   const data = useResponseData(query);
 
   return data?.find((g) => g!.id === guildId);
+}
+
+export function useAppStateEmojis(
+  callback?: (res: APIResponse<StateEmojiListResponse>) => void
+) {
+  const router = useRouter();
+  const query = useAppStateEmojisQuery(router.query.appId as string);
+  return useResponseData(query, callback);
 }
 
 export function useAppStateGuildRoles(
