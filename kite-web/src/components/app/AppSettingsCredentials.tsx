@@ -11,9 +11,19 @@ import { useAppTokenUpdateMutation } from "@/lib/api/mutations";
 import { setValidationErrors } from "@/lib/form";
 import { useApp } from "@/lib/hooks/api";
 import { useAppId } from "@/lib/hooks/params";
-import { useCallback, useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "../ui/alert-dialog";
 import {
   Form,
   FormControl,
@@ -47,26 +57,36 @@ export default function AppSettingsCredentials() {
 
   const updateMutation = useAppTokenUpdateMutation(useAppId());
 
-  const onSubmit = useCallback(
-    (data: FormFields) => {
-      if (!data.discord_token) return;
+  // Set when the token belongs to a different Discord app, so the user can
+  // confirm the switch before it happens.
+  const [pendingChange, setPendingChange] = useState<{
+    token: string;
+    message: string;
+  } | null>(null);
 
+  const saveToken = useCallback(
+    (token: string, changeApp: boolean) => {
       updateMutation.mutate(
         {
-          discord_token: data.discord_token,
+          discord_token: token,
+          change_app: changeApp,
         },
         {
           onSuccess(res) {
             if (res.success) {
-              toast.success("Settings saved!");
-            } else {
-              if (res.error.code === "validation_failed") {
-                setValidationErrors(form, res.error.data);
+              if (changeApp) {
+                toast.success(`Switched to ${res.data.name}!`);
               } else {
-                toast.error(
-                  `Failed to update app: ${res.error.message} (${res.error.code})`
-                );
+                toast.success("Settings saved!");
               }
+            } else if (res.error.code === "discord_app_changed") {
+              setPendingChange({ token, message: res.error.message });
+            } else if (res.error.code === "validation_failed") {
+              setValidationErrors(form, res.error.data);
+            } else {
+              toast.error(
+                `Failed to update app: ${res.error.message} (${res.error.code})`
+              );
             }
           },
         }
@@ -75,13 +95,22 @@ export default function AppSettingsCredentials() {
     [form, updateMutation]
   );
 
+  const onSubmit = useCallback(
+    (data: FormFields) => {
+      if (!data.discord_token) return;
+      saveToken(data.discord_token, false);
+    },
+    [saveToken]
+  );
+
   return (
     <Card>
       <CardHeader>
         <CardTitle>Credentials</CardTitle>
         <CardDescription>
           Configure your app&apos;s credentials here. This is where you can
-          change your app&apos;s Discord token.
+          change your app&apos;s Discord token, or move your app to a different
+          Discord app by entering its token.
         </CardDescription>
       </CardHeader>
       <Form {...form}>
@@ -103,12 +132,58 @@ export default function AppSettingsCredentials() {
           </CardContent>
 
           <CardFooter className="border-t px-6 py-4">
-            <Button type="submit" disabled={!form.getValues().discord_token}>
+            <Button
+              type="submit"
+              disabled={
+                !form.getValues().discord_token || updateMutation.isPending
+              }
+            >
               Save token
             </Button>
           </CardFooter>
         </form>
       </Form>
+
+      <AlertDialog
+        open={pendingChange !== null}
+        onOpenChange={(open) => {
+          if (!open) setPendingChange(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              Switch to a different Discord app?
+            </AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-2">
+                <p>{pendingChange?.message}.</p>
+                <p>
+                  Your commands, event listeners, messages and variables stay,
+                  and your commands are deployed to the new bot. The name and
+                  description are taken from the new Discord app.
+                </p>
+                <p>
+                  The new bot has to be invited to your servers again, and
+                  custom emojis of the old app won&apos;t work anymore. The old
+                  bot goes offline and its commands are removed.
+                </p>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (pendingChange) saveToken(pendingChange.token, true);
+                setPendingChange(null);
+              }}
+            >
+              Switch app
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Card>
   );
 }

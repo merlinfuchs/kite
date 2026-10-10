@@ -183,6 +183,12 @@ func (r AppCollaboratorRole) CanDeleteApp() bool {
 	return r == AppCollaboratorRoleOwner
 }
 
+// CanChangeDiscordApp reports whether the role can move the app to a
+// different Discord app, which swaps out the bot everyone sees.
+func (r AppCollaboratorRole) CanChangeDiscordApp() bool {
+	return r == AppCollaboratorRoleOwner
+}
+
 func (r AppCollaboratorRole) CanManageCollaborators() bool {
 	return r == AppCollaboratorRoleOwner
 }
