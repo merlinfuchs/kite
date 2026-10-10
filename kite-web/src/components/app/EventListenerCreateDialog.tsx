@@ -66,6 +66,7 @@ export default function EventListenerCreateDialog({
   });
 
   const source = form.watch("source");
+  const type = form.watch("type");
 
   function onSubmit(data: FormFields) {
     if (createMutation.isPending) return;
@@ -223,12 +224,22 @@ export default function EventListenerCreateDialog({
                         <SelectItem value="guild_delete">
                           Bot Left Server
                         </SelectItem>
+                        <SelectItem value="guild_boost">
+                          Server Boost
+                        </SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />
                   </FormItem>
                 )}
               />
+            )}
+            {source === "discord" && type === "guild_boost" && (
+              <p className="text-sm text-muted-foreground">
+                Boosts are detected from the message Discord posts when someone
+                boosts the server. The server needs a system messages channel
+                with boost messages enabled, and your bot needs to see it.
+              </p>
             )}
             <DialogFooter>
               <LoadingButton type="submit" loading={createMutation.isPending}>

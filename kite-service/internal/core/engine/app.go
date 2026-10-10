@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"slices"
 	"sync"
 	"time"
 
@@ -329,18 +330,34 @@ func (a *App) HandleEvent(appID string, session *state.State, event gateway.Even
 			a.resumeFlowOrRespondExpired(resumePointID, session, e)
 		}
 	default:
-		eventType := model.EventTypeFromDiscordEventType(e.EventType())
-
-		// The index is replaced rather than mutated on rebuild, so this slice
-		// stays valid after the lock is released.
-		a.RLock()
-		listeners := a.listenersByType[eventType]
-		a.RUnlock()
-
-		for _, listener := range listeners {
+		for _, listener := range a.listenersForEvent(event) {
 			go listener.HandleEvent(appID, session, event)
 		}
 	}
+}
+
+// listenersForEvent returns the listeners registered for the type of a gateway
+// event. A boost system message is a MESSAGE_CREATE, so it also goes to the
+// boost listeners on top of the message create ones.
+func (a *App) listenersForEvent(event gateway.Event) []*EventListener {
+	eventType := model.EventTypeFromDiscordEventType(event.EventType())
+
+	// The index is replaced rather than mutated on rebuild, so this slice
+	// stays valid after the lock is released.
+	a.RLock()
+	defer a.RUnlock()
+
+	listeners := a.listenersByType[eventType]
+
+	if e, ok := event.(*gateway.MessageCreateEvent); ok && isBoostMessage(e.Message) {
+		boostListeners := a.listenersByType[model.EventListenerTypeDiscordGuildBoost]
+		if len(boostListeners) > 0 {
+			// Clip so the append can't write into the index's backing array.
+			listeners = append(slices.Clip(listeners), boostListeners...)
+		}
+	}
+
+	return listeners
 }
 
 // resumeFlow loads a resume point and dispatches it back into the flow that

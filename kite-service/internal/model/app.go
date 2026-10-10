@@ -58,7 +58,9 @@ func (r AppGatewayRequirements) NeedsGuildMessages() bool {
 		switch t {
 		case EventListenerTypeDiscordMessageCreate,
 			EventListenerTypeDiscordMessageUpdate,
-			EventListenerTypeDiscordMessageDelete:
+			EventListenerTypeDiscordMessageDelete,
+			// Boosts are detected from the boost system message.
+			EventListenerTypeDiscordGuildBoost:
 			return true
 		}
 	}
