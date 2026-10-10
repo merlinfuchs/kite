@@ -100,6 +100,28 @@ func TestIntentsForRequirements(t *testing.T) {
 			want:  gateway.IntentGuilds,
 		},
 		{
+			name: "direct message listeners need direct messages intent",
+			reqs: model.AppGatewayRequirements{
+				EventListenerTypes: []model.EventListenerType{
+					model.EventListenerTypeDiscordDirectMessageCreate,
+				},
+			},
+			flags: allPrivilegedFlags,
+			want:  gateway.IntentGuilds | gateway.IntentDirectMessages,
+		},
+		{
+			name: "message listeners don't get direct messages",
+			reqs: model.AppGatewayRequirements{
+				EventListenerTypes: []model.EventListenerType{
+					model.EventListenerTypeDiscordMessageCreate,
+					model.EventListenerTypeDiscordMessageUpdate,
+					model.EventListenerTypeDiscordMessageDelete,
+				},
+			},
+			flags: allPrivilegedFlags,
+			want:  gateway.IntentGuilds | gateway.IntentGuildMessages | gateway.IntentMessageContent,
+		},
+		{
 			// Reactions used to be requested unconditionally for every app.
 			// Now only reaction listeners and plugins request them.
 			name: "reaction listeners add reactions but not messages",
@@ -172,6 +194,7 @@ func TestIntentsAlwaysIncludeGuilds(t *testing.T) {
 		{EventListenerTypes: []model.EventListenerType{model.EventListenerTypeDiscordMessageDelete}},
 		{PluginEventTypes: []ws.EventType{"MESSAGE_REACTION_ADD"}},
 		{EventListenerTypes: []model.EventListenerType{model.EventListenerTypeDiscordMessageReactionRemove}},
+		{EventListenerTypes: []model.EventListenerType{model.EventListenerTypeDiscordDirectMessageCreate}},
 	}
 
 	for i, r := range reqs {
@@ -206,5 +229,13 @@ func TestAllPermittedIntentsRespectsFlags(t *testing.T) {
 	}
 	if got&gateway.IntentGuildMembers != 0 {
 		t.Error("guild members granted without the portal flag")
+	}
+}
+
+// DMs only reach apps with a direct message listener, also when requirements
+// can't be loaded, or apps without one would get every DM sent to their bot.
+func TestAllPermittedIntentsExcludesDirectMessages(t *testing.T) {
+	if got := allPermittedIntents(allPrivilegedFlags); got&gateway.IntentDirectMessages != 0 {
+		t.Error("direct messages granted to an app without a direct message listener")
 	}
 }

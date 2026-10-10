@@ -54,6 +54,10 @@ func intentsForRequirements(reqs model.AppGatewayRequirements, flags discord.App
 		}
 	}
 
+	if reqs.NeedsDirectMessages() {
+		res |= gateway.IntentDirectMessages
+	}
+
 	if reqs.NeedsGuildMembers() {
 		if flags&GATEWAY_GUILD_MEMBERS != 0 || flags&GATEWAY_GUILD_MEMBERS_LIMITED != 0 {
 			res |= gateway.IntentGuildMembers

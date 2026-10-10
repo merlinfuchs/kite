@@ -9,6 +9,7 @@ With Event Listeners you can listen for events inside the Discord servers that y
 - Message Create
 - Message Update
 - Message Delete
+- Direct Message Received
 - Member Join
 - Member Leave
 - Reaction Add
@@ -26,6 +27,7 @@ With Event Listeners you can listen for events inside the Discord servers that y
 - Reaction Remove only knows the user's ID, so only `{{user.id}}`, `{{user.mention}}` and `{{user.created_at}}` are available there. Fields like `{{user.username}}` are empty; use a Get User block if you need them.
 - Member events are only available when you enable the "Server Members Intent" in the [Discord Developer Portal](https://discord.dev).
 - Bot Left Server only provides `{{guild.id}}`, as the bot no longer knows anything else about the server.
+- Direct Message Received triggers when a user sends a direct message to the bot. Message Create, Update and Delete only trigger for messages in servers, never for direct messages.
 - Server Boost runs when a member boosts the server. `{{user}}` is the member who boosted, `{{guild}}` is the server, and `{{message.id}}` and `{{channel.id}}` are the boost message and the channel it was posted in.
 - Kite detects boosts through the message Discord posts in the server's system messages channel. Server Boost only works when "Send a message when someone boosts this server" is enabled in the server settings and your bot can see that channel. It doesn't need the "Server Members Intent".
 

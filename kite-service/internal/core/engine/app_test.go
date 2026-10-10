@@ -1,7 +1,11 @@
 package engine
 
 import (
+	"slices"
 	"testing"
+
+	"github.com/diamondburned/arikawa/v3/discord"
+	"github.com/diamondburned/arikawa/v3/gateway"
 
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/internal/util"
@@ -223,5 +227,42 @@ func TestEntityLinksUsageRecordType(t *testing.T) {
 		if got := links.usageRecordType(); got != want {
 			t.Errorf("%+v: got %s, want %s", links, got, want)
 		}
+	}
+}
+
+// Messages in DMs only go to direct message listeners. Message listeners were
+// written for servers, and must not start running, and spending credits, on
+// DMs once an app has a direct message listener.
+func TestListenersForEventRoutesDirectMessages(t *testing.T) {
+	app := NewApp("app-1", Env{})
+	app.AddEventListener(testListener("create", model.EventSourceDiscord, model.EventListenerTypeDiscordMessageCreate))
+	app.AddEventListener(testListener("update", model.EventSourceDiscord, model.EventListenerTypeDiscordMessageUpdate))
+	app.AddEventListener(testListener("delete", model.EventSourceDiscord, model.EventListenerTypeDiscordMessageDelete))
+	app.AddEventListener(testListener("dm", model.EventSourceDiscord, model.EventListenerTypeDiscordDirectMessageCreate))
+
+	guildMessage := discord.Message{GuildID: 1}
+	tests := []struct {
+		name  string
+		event gateway.Event
+		want  []string
+	}{
+		{"server message", &gateway.MessageCreateEvent{Message: guildMessage}, []string{"create"}},
+		{"server message edit", &gateway.MessageUpdateEvent{Message: guildMessage}, []string{"update"}},
+		{"server message delete", &gateway.MessageDeleteEvent{GuildID: 1}, []string{"delete"}},
+		{"direct message", &gateway.MessageCreateEvent{}, []string{"dm"}},
+		{"direct message edit", &gateway.MessageUpdateEvent{}, nil},
+		{"direct message delete", &gateway.MessageDeleteEvent{}, nil},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var got []string
+			for _, l := range app.listenersForEvent(tt.event) {
+				got = append(got, l.listener.ID)
+			}
+			if !slices.Equal(got, tt.want) {
+				t.Errorf("listeners = %v, want %v", got, tt.want)
+			}
+		})
 	}
 }

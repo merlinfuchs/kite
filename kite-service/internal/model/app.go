@@ -75,6 +75,18 @@ func (r AppGatewayRequirements) NeedsGuildMessages() bool {
 	return false
 }
 
+// NeedsDirectMessages reports whether the app consumes messages sent to the
+// bot in DMs.
+func (r AppGatewayRequirements) NeedsDirectMessages() bool {
+	for _, t := range r.EventListenerTypes {
+		if t == EventListenerTypeDiscordDirectMessageCreate {
+			return true
+		}
+	}
+
+	return false
+}
+
 // NeedsGuildMembers reports whether the app consumes guild member events.
 func (r AppGatewayRequirements) NeedsGuildMembers() bool {
 	for _, t := range r.EventListenerTypes {

@@ -336,11 +336,29 @@ func (a *App) HandleEvent(appID string, session *state.State, event gateway.Even
 	}
 }
 
-// listenersForEvent returns the listeners registered for the type of a gateway
-// event. A boost system message is a MESSAGE_CREATE, so it also goes to the
+// listenersForEvent returns the event listeners an event is dispatched to.
+// Messages in DMs only go to direct message listeners: message listeners
+// were written for servers, and running them, and spending credits, on every
+// DM once an app has the direct messages intent would change what existing
+// flows do. A boost system message is a MESSAGE_CREATE, so it also goes to the
 // boost listeners on top of the message create ones.
 func (a *App) listenersForEvent(event gateway.Event) []*EventListener {
 	eventType := model.EventTypeFromDiscordEventType(event.EventType())
+
+	switch e := event.(type) {
+	case *gateway.MessageCreateEvent:
+		if e.GuildID == 0 {
+			eventType = model.EventListenerTypeDiscordDirectMessageCreate
+		}
+	case *gateway.MessageUpdateEvent:
+		if e.GuildID == 0 {
+			return nil
+		}
+	case *gateway.MessageDeleteEvent:
+		if e.GuildID == 0 {
+			return nil
+		}
+	}
 
 	// The index is replaced rather than mutated on rebuild, so this slice
 	// stays valid after the lock is released.
