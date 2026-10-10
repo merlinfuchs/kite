@@ -67,7 +67,7 @@ func TestDiscordProviderAPIRequest(t *testing.T) {
 	api.Endpoint = server.URL + api.Path + "/"
 	defer func() { api.Endpoint = endpoint }()
 
-	p := NewDiscordProvider("app", nil, nil, nil, state.New("Bot token"))
+	p := NewDiscordProvider("app", nil, nil, nil, nil, state.New("Bot token"))
 
 	body, err := p.APIRequest(context.Background(), provider.DiscordAPIRequest{
 		Method: http.MethodPost,
@@ -100,5 +100,46 @@ func TestDiscordProviderAPIRequest(t *testing.T) {
 	})
 	if err == nil || !strings.Contains(err.Error(), "Discord 404 error: Unknown Channel") {
 		t.Errorf("failed request: got %v", err)
+	}
+}
+
+// The gateway cache has no member counts, so the stats have to ask the API
+// for them.
+func TestDiscordProviderBotStats(t *testing.T) {
+	var got *http.Request
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		got = r
+		w.Write([]byte(`[
+			{"id":"1","approximate_member_count":10},
+			{"id":"2","approximate_member_count":32}
+		]`))
+	}))
+	defer server.Close()
+
+	endpoint := api.EndpointMe
+	api.EndpointMe = server.URL + api.Path + "/users/@me"
+	defer func() { api.EndpointMe = endpoint }()
+
+	connections := NewConnectionTracker()
+	connections.Connected("app")
+
+	p := NewDiscordProvider("app", nil, nil, nil, connections, state.New("Bot token"))
+
+	stats, err := p.BotStats(context.Background())
+	if err != nil {
+		t.Fatalf("stats: %v", err)
+	}
+	if got.URL.Path != "/api/v9/users/@me/guilds" || got.URL.Query().Get("with_counts") != "true" {
+		t.Errorf("request: got %s", got.URL)
+	}
+	if stats.GuildCount != 2 || stats.MemberCount != 42 {
+		t.Errorf("counts: got %d servers and %d members", stats.GuildCount, stats.MemberCount)
+	}
+	if stats.ConnectedAt != connections.ConnectedAt("app") {
+		t.Errorf("connected at: got %s", stats.ConnectedAt)
+	}
+	// The session never connected, so there's no heartbeat to measure.
+	if stats.Latency != 0 {
+		t.Errorf("latency: got %s", stats.Latency)
 	}
 }

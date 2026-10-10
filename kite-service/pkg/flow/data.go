@@ -110,6 +110,7 @@ const (
 	FlowNodeTypeActionVoiceChannelJoin      FlowNodeType = "action_voice_channel_join"
 	FlowNodeTypeActionVoiceChannelLeave     FlowNodeType = "action_voice_channel_leave"
 	FlowNodeTypeActionStatusSet             FlowNodeType = "action_status_set"
+	FlowNodeTypeActionBotStatsGet           FlowNodeType = "action_bot_stats_get"
 
 	FlowNodeTypeControlConditionCompare     FlowNodeType = "control_condition_compare"
 	FlowNodeTypeControlConditionItemCompare FlowNodeType = "control_condition_item_compare"

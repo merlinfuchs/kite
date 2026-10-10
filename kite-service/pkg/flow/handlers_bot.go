@@ -2,8 +2,10 @@ package flow
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/diamondburned/arikawa/v3/discord"
+	"github.com/kitecloud/kite/kite-service/pkg/thing"
 )
 
 func init() {
@@ -11,6 +13,7 @@ func init() {
 		FlowNodeTypeActionVoiceChannelJoin:  executeActionVoiceChannelJoin,
 		FlowNodeTypeActionVoiceChannelLeave: executeActionVoiceChannelLeave,
 		FlowNodeTypeActionStatusSet:         executeActionStatusSet,
+		FlowNodeTypeActionBotStatsGet:       executeActionBotStatsGet,
 	})
 }
 
@@ -92,6 +95,30 @@ func executeActionStatusSet(n *CompiledFlowNode, ctx *FlowContext) error {
 	if err != nil {
 		return traceError(n, err)
 	}
+
+	return n.ExecuteChildren(ctx)
+}
+
+func executeActionBotStatsGet(n *CompiledFlowNode, ctx *FlowContext) error {
+	stats, err := ctx.Discord.BotStats(ctx)
+	if err != nil {
+		return traceError(n, err)
+	}
+
+	// Both stay 0 while it isn't known when the bot connected.
+	var uptime, connectedAt int64
+	if !stats.ConnectedAt.IsZero() {
+		uptime = int64(time.Since(stats.ConnectedAt).Seconds())
+		connectedAt = stats.ConnectedAt.Unix()
+	}
+
+	ctx.StoreNodeResult(n, thing.NewObject(map[string]thing.Thing{
+		"guild_count":  thing.NewInt(stats.GuildCount),
+		"member_count": thing.NewInt(stats.MemberCount),
+		"uptime":       thing.NewInt(uptime),
+		"connected_at": thing.NewInt(connectedAt),
+		"latency":      thing.NewInt(stats.Latency.Milliseconds()),
+	}))
 
 	return n.ExecuteChildren(ctx)
 }

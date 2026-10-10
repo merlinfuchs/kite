@@ -2,6 +2,7 @@ package provider
 
 import (
 	"context"
+	"time"
 
 	"github.com/diamondburned/arikawa/v3/api"
 	"github.com/diamondburned/arikawa/v3/discord"
@@ -37,12 +38,27 @@ type DiscordProvider interface {
 
 	UpdateVoiceState(ctx context.Context, guildID discord.GuildID, channelID discord.ChannelID, selfMute bool, selfDeaf bool) error
 	UpdatePresence(ctx context.Context, status discord.Status, activity discord.Activity) error
+	BotStats(ctx context.Context) (BotStats, error)
 
 	HasCreatedInteractionResponse(ctx context.Context, interactionID discord.InteractionID) (bool, error)
 	// MarkInteractionResponded is for interactions a previous execution
 	// already responded to, e.g. before a durable sleep.
 	MarkInteractionResponded(interactionID discord.InteractionID)
 	AutoDeferInteraction(ctx context.Context, interactionID discord.InteractionID, interactionToken string, response api.InteractionResponse)
+}
+
+// BotStats describes the bot as a whole, across all its servers.
+type BotStats struct {
+	GuildCount int
+	// MemberCount adds up Discord's approximate member count of every server,
+	// so a user in several servers is counted once for each.
+	MemberCount int
+	// ConnectedAt is when the bot last connected to Discord, or zero if that
+	// isn't known.
+	ConnectedAt time.Time
+	// Latency is how long Discord took to acknowledge the last heartbeat, or
+	// zero before the first one was acknowledged.
+	Latency time.Duration
 }
 
 // CreatePollData is the poll object of a create message request. arikawa
@@ -195,6 +211,10 @@ func (p *MockDiscordProvider) UpdateVoiceState(ctx context.Context, guildID disc
 
 func (p *MockDiscordProvider) UpdatePresence(ctx context.Context, status discord.Status, activity discord.Activity) error {
 	return nil
+}
+
+func (p *MockDiscordProvider) BotStats(ctx context.Context) (BotStats, error) {
+	return BotStats{}, nil
 }
 
 func (p *MockDiscordProvider) MarkInteractionResponded(interactionID discord.InteractionID) {}

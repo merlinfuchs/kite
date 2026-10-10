@@ -32,6 +32,7 @@ import { controlLoopEnd } from "./controlLoopEnd";
 import { controlLoopExit } from "./controlLoopExit";
 import { controlSleep } from "./controlSleep";
 import { discordApiRequest } from "./discordApiRequest";
+import { discordBotStatsGet } from "./discordBotStatsGet";
 import { discordChannelCreate } from "./discordChannelCreate";
 import { discordChannelDelete } from "./discordChannelDelete";
 import { discordChannelEdit } from "./discordChannelEdit";
@@ -140,6 +141,7 @@ export const blockDefinitions: BlockDefinition[] = [
   discordVoiceChannelJoin,
   discordVoiceChannelLeave,
   discordStatusSet,
+  discordBotStatsGet,
   variableSet,
   variableDelete,
   variableGet,

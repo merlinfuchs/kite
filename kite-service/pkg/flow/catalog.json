@@ -4771,6 +4771,70 @@
       },
       "result_schema": null
     },
+    "action_bot_stats_get": {
+      "title": "Get bot stats",
+      "description": "Get the server count, member count, uptime and latency",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord",
+        "event_schedule"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "type": "string",
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+          },
+          "temporary_name": {
+            "type": "string",
+            "maxLength": 32,
+            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only."
+          }
+        },
+        "additionalProperties": false
+      },
+      "result_schema": {
+        "type": "object",
+        "properties": {
+          "guild_count": {
+            "type": "number",
+            "description": "The number of servers the bot is in"
+          },
+          "member_count": {
+            "type": "number",
+            "description": "The approximate number of members in all servers of the bot together. A user in several servers counts once for each."
+          },
+          "uptime": {
+            "type": "number",
+            "description": "The number of seconds since the bot last connected to Discord"
+          },
+          "connected_at": {
+            "type": "number",
+            "description": "When the bot last connected to Discord as a Unix timestamp in seconds, e.g. for <t:...:R>"
+          },
+          "latency": {
+            "type": "number",
+            "description": "The number of milliseconds Discord took to answer the bot's last heartbeat. 0 until the first heartbeat after connecting."
+          }
+        },
+        "required": [
+          "guild_count",
+          "member_count",
+          "uptime",
+          "connected_at",
+          "latency"
+        ],
+        "additionalProperties": false
+      }
+    },
     "action_variable_set": {
       "title": "Set stored variable",
       "description": "Set the value of a stored variable",

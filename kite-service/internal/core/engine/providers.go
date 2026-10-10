@@ -44,6 +44,7 @@ type DiscordProvider struct {
 	appStore        store.AppStore
 	featureProvider FeatureProvider
 	rateLimiter     *BlockRateLimiter
+	connections     *ConnectionTracker
 	session         *state.State
 
 	interactionResponseMutex sync.Mutex
@@ -55,6 +56,7 @@ func NewDiscordProvider(
 	appStore store.AppStore,
 	featureProvider FeatureProvider,
 	rateLimiter *BlockRateLimiter,
+	connections *ConnectionTracker,
 	session *state.State,
 ) *DiscordProvider {
 	return &DiscordProvider{
@@ -62,6 +64,7 @@ func NewDiscordProvider(
 		appStore:        appStore,
 		featureProvider: featureProvider,
 		rateLimiter:     rateLimiter,
+		connections:     connections,
 		session:         session,
 
 		interactionsWithResponse: make(map[discord.InteractionID]struct{}),
@@ -388,6 +391,30 @@ func (p *DiscordProvider) UpdatePresence(ctx context.Context, status discord.Sta
 	}
 
 	return nil
+}
+
+func (p *DiscordProvider) BotStats(ctx context.Context) (provider.BotStats, error) {
+	// The gateway cache has no member counts, so the servers come from the
+	// API, 200 per request.
+	guilds, err := p.session.Client.WithContext(ctx).AllGuildsWithCounts()
+	if err != nil {
+		return provider.BotStats{}, fmt.Errorf("failed to get servers: %w", err)
+	}
+
+	stats := provider.BotStats{
+		GuildCount:  len(guilds),
+		ConnectedAt: p.connections.ConnectedAt(p.appID),
+	}
+	for _, guild := range guilds {
+		stats.MemberCount += int(guild.ApproximateMembers)
+	}
+
+	// Without a connection, e.g. right after a restart, there's no latency.
+	if gw := p.session.Gateway(); gw != nil {
+		stats.Latency = gw.Latency()
+	}
+
+	return stats, nil
 }
 
 func (p *DiscordProvider) allowGatewayCommand() error {

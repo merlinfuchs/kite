@@ -1301,6 +1301,22 @@
       "result": null
     },
     {
+      "type": "action_bot_stats_get",
+      "credits": 1,
+      "audit_log_reason": false,
+      "requires": [
+        "discord"
+      ],
+      "run": {
+        "kind": "custom"
+      },
+      "fields": [],
+      "result": {
+        "thing": "",
+        "list": false
+      }
+    },
+    {
       "type": "action_variable_set",
       "credits": 1,
       "audit_log_reason": false,
