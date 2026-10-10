@@ -1,4 +1,4 @@
-import { ReactNode, useMemo, useState } from "react";
+import { ReactNode, useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -60,21 +60,13 @@ function ExportForm({
   const createMutation = useShareCodeCreateMutation(appId);
   const messages = useMessages();
 
-  const bundledMessages = useMemo(
-    () =>
-      messages
-        ? collectReferencedMessages(flows, messages, excludeMessageIds)
-        : null,
-    [messages, flows, excludeMessageIds]
-  );
-
-  const shareData = useMemo(
-    () =>
-      bundledMessages && bundledMessages.length > 0
-        ? { ...baseShareData, messages: bundledMessages }
-        : baseShareData,
-    [baseShareData, bundledMessages]
-  );
+  const bundledMessages = messages
+    ? collectReferencedMessages(flows, messages, excludeMessageIds)
+    : null;
+  const shareData =
+    bundledMessages && bundledMessages.length > 0
+      ? { ...baseShareData, messages: bundledMessages }
+      : baseShareData;
 
   const bundledNote =
     bundledMessages && bundledMessages.length > 0
