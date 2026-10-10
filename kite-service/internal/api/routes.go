@@ -221,12 +221,13 @@ func (s *APIServer) RegisterRoutes(
 	)
 
 	// Usage routes
-	usageHandler := usage.NewUsageHandler(usageStore)
+	usageHandler := usage.NewUsageHandler(usageStore, logStore)
 
 	usageGroup := appGroup.Group("/usage")
 	usageGroup.Get("/credits", handler.Typed(usageHandler.HandleUsageCreditsGet))
 	usageGroup.Get("/by-day", handler.Typed(usageHandler.HandleUsageByDayList))
 	usageGroup.Get("/by-type", handler.Typed(usageHandler.HandleUsageByTypeList))
+	usageGroup.Get("/analytics", handler.Typed(usageHandler.HandleUsageAnalyticsGet))
 
 	// Command routes
 	commandsHandler := commandhandler.NewCommandHandler(commandStore, commandManager)
