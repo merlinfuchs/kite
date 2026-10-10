@@ -36,6 +36,13 @@ func CompileEventListener(data FlowData) (*CompiledFlowNode, error) {
 		}
 	}
 
+	if entry.IsWebhookEntry() {
+		// Like scheduled runs, webhook runs have no interaction to respond to.
+		if node := firstWithoutInteraction(entry, isInteractionOnly); node != nil {
+			return nil, fmt.Errorf("block %s can't be used in webhook event listeners outside of button branches", node.Type)
+		}
+	}
+
 	return entry, nil
 }
 
@@ -198,6 +205,10 @@ func (n *CompiledFlowNode) IsScheduleEntry() bool {
 	return n.Type == FlowNodeTypeEntryEvent && n.Data.EventType == EventTypeScheduleCron
 }
 
+func (n *CompiledFlowNode) IsWebhookEntry() bool {
+	return n.Type == FlowNodeTypeEntryEvent && n.Data.EventType == EventTypeWebhook
+}
+
 func (n *CompiledFlowNode) IsCommandEntry() bool {
 	return n.Type == FlowNodeTypeEntryCommand
 }
@@ -216,6 +227,21 @@ func (n *CompiledFlowNode) IsCommandContexts() bool {
 
 func (n *CompiledFlowNode) IsEventFilter() bool {
 	return n.Type == FlowNodeTypeOptionEventFilter
+}
+
+func (n *CompiledFlowNode) IsCommandCooldown() bool {
+	return n.Type == FlowNodeTypeOptionCommandCooldown
+}
+
+// CommandCooldown returns the cooldown option attached to this entry node, if
+// any. When more than one is attached, the first one wins.
+func (n *CompiledFlowNode) CommandCooldown() *CompiledFlowNode {
+	for _, node := range n.Parents.Default {
+		if node.IsCommandCooldown() {
+			return node
+		}
+	}
+	return nil
 }
 
 func (n *CompiledFlowNode) CommandData() discord.Command {
@@ -564,6 +590,8 @@ func (n *CompiledFlowNode) FilterEvent(ctx *FlowContext) (bool, error) {
 				target = ctx.Data.GuildID().String()
 			case EventFilterTypeChannelID:
 				target = ctx.Data.ChannelID().String()
+			case EventFilterTypeMessageID:
+				target = ctx.Data.MessageID().String()
 			}
 
 			switch node.Data.EventFilterMode {

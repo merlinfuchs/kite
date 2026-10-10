@@ -4,13 +4,26 @@ import {
   collectComponentGroups,
   componentHandleId,
   getComponentHandleIds,
+  isSelectMenu,
 } from "@/lib/flow/resume";
+import { selectMenuType } from "@/lib/message/selectMenu";
 import {
   ComponentData,
-  ComponentTypeStringSelect,
+  ComponentTypeChannelSelect,
+  ComponentTypeMentionableSelect,
+  ComponentTypeRoleSelect,
+  ComponentTypeUserSelect,
 } from "@/lib/types/message.gen";
 import { Position, useUpdateNodeInternals } from "@xyflow/react";
-import { ListIcon, MousePointerClickIcon } from "lucide-react";
+import {
+  AtSignIcon,
+  HashIcon,
+  ListIcon,
+  LucideIcon,
+  MousePointerClickIcon,
+  ShieldIcon,
+  UserIcon,
+} from "lucide-react";
 import { buttonColors } from "../message/MessageComponentButton";
 import FlowNodeBase from "./FlowNodeBase";
 import FlowNodeHandle from "./FlowNodeHandle";
@@ -68,12 +81,21 @@ export default function FlowNodeActionMessage(props: NodeProps) {
   );
 }
 
+const selectMenuIcons: Record<number, LucideIcon> = {
+  [ComponentTypeUserSelect]: UserIcon,
+  [ComponentTypeRoleSelect]: ShieldIcon,
+  [ComponentTypeMentionableSelect]: AtSignIcon,
+  [ComponentTypeChannelSelect]: HashIcon,
+};
+
 function ComponentHandle({ comp }: { comp: ComponentData }) {
-  const isSelect = comp.type === ComponentTypeStringSelect;
+  const isSelect = isSelectMenu(comp);
   const color = isSelect
     ? buttonColors[2]
     : buttonColors[(comp.style ?? 1) as keyof typeof buttonColors];
-  const Icon = isSelect ? ListIcon : MousePointerClickIcon;
+  const Icon = isSelect
+    ? selectMenuIcons[comp.type ?? 0] ?? ListIcon
+    : MousePointerClickIcon;
 
   return (
     <div className="relative">
@@ -86,7 +108,9 @@ function ComponentHandle({ comp }: { comp: ComponentData }) {
       >
         <Icon className="w-4 h-4" />
         <div className="text-sm truncate">
-          {isSelect ? comp.placeholder || "Select Menu" : comp.label}
+          {isSelect
+            ? comp.placeholder || selectMenuType(comp.type).label
+            : comp.label}
         </div>
       </div>
 

@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import PlaceholderExplorer from "../common/PlaceholderExplorer";
 import { VariableIcon } from "lucide-react";
+import { interactionPlaceholders } from "@/lib/flow/placeholders";
 
 export default function MessagePlaceholderExplorer({
   onSelect,
@@ -11,11 +12,13 @@ export default function MessagePlaceholderExplorer({
     "interaction"
   );
 
-  const globalPlaceholders = useGlobalPlaceholders(context);
-
+  // The same placeholders as in a flow, as messages are sent from one.
   const placeholders = useMemo(
-    () => [...globalPlaceholders],
-    [globalPlaceholders]
+    () =>
+      interactionPlaceholders(
+        context === "event" ? "event_discord" : "command"
+      ),
+    [context]
   );
 
   return (
@@ -45,77 +48,4 @@ export default function MessagePlaceholderExplorer({
       </PlaceholderExplorer>
     </div>
   );
-}
-
-function useGlobalPlaceholders(context: "interaction" | "event") {
-  return useMemo(() => {
-    const res = [
-      {
-        label: "User",
-        placeholders: [
-          {
-            label: "User",
-            value: `user`,
-          },
-          {
-            label: "User ID",
-            value: `user.id`,
-          },
-          {
-            label: "User Mention",
-            value: `user.mention`,
-          },
-          {
-            label: "User Username",
-            value: `user.username`,
-          },
-          {
-            label: "User Discriminator",
-            value: `user.discriminator`,
-          },
-          {
-            label: "User Display Name",
-            value: `user.display_name`,
-          },
-          {
-            label: "User Avatar URL",
-            value: `user.avatar_url`,
-          },
-          {
-            label: "User Banner URL",
-            value: `user.banner_url`,
-          },
-        ],
-      },
-      {
-        label: "Server",
-        placeholders: [
-          {
-            label: "Server ID",
-            value: `guild.id`,
-          },
-        ],
-      },
-      {
-        label: "Channel",
-        placeholders: [
-          {
-            label: "Channel ID",
-            value: `channel.id`,
-          },
-        ],
-      },
-    ];
-
-    if (context === "event") {
-      res.push({
-        label: "Message",
-        placeholders: [
-          { label: "Message ID", value: `message.id` },
-          { label: "Message Content", value: `message.content` },
-        ],
-      });
-    }
-    return res;
-  }, [context]);
 }
