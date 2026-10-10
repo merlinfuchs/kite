@@ -102,6 +102,14 @@ type CreditLimit struct {
 	Credits   pgtype.Int4
 	CreatedAt pgtype.Timestamp
 	UpdatedAt pgtype.Timestamp
+	Message   pgtype.Text
+}
+
+type CreditLimitSetting struct {
+	AppID     string
+	Message   pgtype.Text
+	CreatedAt pgtype.Timestamp
+	UpdatedAt pgtype.Timestamp
 }
 
 type Entitlement struct {

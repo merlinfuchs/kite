@@ -105,6 +105,7 @@ function CreditLimitListEntry({ limit }: { limit: CreditLimit }) {
           <Icon className="h-5 w-5 text-muted-foreground" />
           <div>{targetName(limit.scope, limit.target_id)}</div>
           {!limit.target_id && <Badge variant="secondary">Default</Badge>}
+          {limit.message && <Badge variant="outline">Custom message</Badge>}
           {reached && <Badge variant="destructive">Limit reached</Badge>}
         </CardTitle>
         <CardDescription className="text-sm flex items-center space-x-1">

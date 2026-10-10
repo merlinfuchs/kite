@@ -53,6 +53,7 @@ func (c *Client) CreateCreditLimit(ctx context.Context, limit *model.CreditLimit
 		TargetID:  pgtype.Text{String: limit.TargetID.String, Valid: limit.TargetID.Valid},
 		Period:    string(limit.Period),
 		Credits:   pgtype.Int4{Int32: int32(limit.Credits.Int64), Valid: limit.Credits.Valid},
+		Message:   pgtype.Text{String: limit.Message.String, Valid: limit.Message.Valid},
 		CreatedAt: pgtype.Timestamp{Time: limit.CreatedAt.UTC(), Valid: true},
 		UpdatedAt: pgtype.Timestamp{Time: limit.UpdatedAt.UTC(), Valid: true},
 	})
@@ -70,6 +71,7 @@ func (c *Client) UpdateCreditLimit(ctx context.Context, limit *model.CreditLimit
 		TargetID:  pgtype.Text{String: limit.TargetID.String, Valid: limit.TargetID.Valid},
 		Period:    string(limit.Period),
 		Credits:   pgtype.Int4{Int32: int32(limit.Credits.Int64), Valid: limit.Credits.Valid},
+		Message:   pgtype.Text{String: limit.Message.String, Valid: limit.Message.Valid},
 		UpdatedAt: pgtype.Timestamp{Time: limit.UpdatedAt.UTC(), Valid: true},
 	})
 	if err != nil {
@@ -110,6 +112,40 @@ func rowToCreditLimit(row pgmodel.CreditLimit) *model.CreditLimit {
 		TargetID:  null.NewString(row.TargetID.String, row.TargetID.Valid),
 		Period:    model.CreditLimitPeriod(row.Period),
 		Credits:   null.NewInt(int64(row.Credits.Int32), row.Credits.Valid),
+		Message:   null.NewString(row.Message.String, row.Message.Valid),
+		CreatedAt: row.CreatedAt.Time,
+		UpdatedAt: row.UpdatedAt.Time,
+	}
+}
+
+func (c *Client) CreditLimitSettings(ctx context.Context, appID string) (*model.CreditLimitSettings, error) {
+	row, err := c.Q.GetCreditLimitSettings(ctx, appID)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, store.ErrNotFound
+		}
+		return nil, err
+	}
+	return rowToCreditLimitSettings(row), nil
+}
+
+func (c *Client) UpsertCreditLimitSettings(ctx context.Context, settings *model.CreditLimitSettings) (*model.CreditLimitSettings, error) {
+	row, err := c.Q.UpsertCreditLimitSettings(ctx, pgmodel.UpsertCreditLimitSettingsParams{
+		AppID:     settings.AppID,
+		Message:   pgtype.Text{String: settings.Message.String, Valid: settings.Message.Valid},
+		CreatedAt: pgtype.Timestamp{Time: settings.CreatedAt.UTC(), Valid: true},
+		UpdatedAt: pgtype.Timestamp{Time: settings.UpdatedAt.UTC(), Valid: true},
+	})
+	if err != nil {
+		return nil, err
+	}
+	return rowToCreditLimitSettings(row), nil
+}
+
+func rowToCreditLimitSettings(row pgmodel.CreditLimitSetting) *model.CreditLimitSettings {
+	return &model.CreditLimitSettings{
+		AppID:     row.AppID,
+		Message:   null.NewString(row.Message.String, row.Message.Valid),
 		CreatedAt: row.CreatedAt.Time,
 		UpdatedAt: row.UpdatedAt.Time,
 	}

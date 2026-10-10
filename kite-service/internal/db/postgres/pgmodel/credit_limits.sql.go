@@ -30,11 +30,12 @@ INSERT INTO credit_limits (
     target_id,
     period,
     credits,
+    message,
     created_at,
     updated_at
 ) VALUES (
-    $1, $2, $3, $4, $5, $6, $7, $8
-) RETURNING id, app_id, scope, target_id, period, credits, created_at, updated_at
+    $1, $2, $3, $4, $5, $6, $7, $8, $9
+) RETURNING id, app_id, scope, target_id, period, credits, created_at, updated_at, message
 `
 
 type CreateCreditLimitParams struct {
@@ -44,6 +45,7 @@ type CreateCreditLimitParams struct {
 	TargetID  pgtype.Text
 	Period    string
 	Credits   pgtype.Int4
+	Message   pgtype.Text
 	CreatedAt pgtype.Timestamp
 	UpdatedAt pgtype.Timestamp
 }
@@ -56,6 +58,7 @@ func (q *Queries) CreateCreditLimit(ctx context.Context, arg CreateCreditLimitPa
 		arg.TargetID,
 		arg.Period,
 		arg.Credits,
+		arg.Message,
 		arg.CreatedAt,
 		arg.UpdatedAt,
 	)
@@ -69,6 +72,7 @@ func (q *Queries) CreateCreditLimit(ctx context.Context, arg CreateCreditLimitPa
 		&i.Credits,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.Message,
 	)
 	return i, err
 }
@@ -91,7 +95,7 @@ func (q *Queries) DeleteCreditLimit(ctx context.Context, arg DeleteCreditLimitPa
 }
 
 const getCreditLimit = `-- name: GetCreditLimit :one
-SELECT id, app_id, scope, target_id, period, credits, created_at, updated_at FROM credit_limits WHERE app_id = $1 AND id = $2
+SELECT id, app_id, scope, target_id, period, credits, created_at, updated_at, message FROM credit_limits WHERE app_id = $1 AND id = $2
 `
 
 type GetCreditLimitParams struct {
@@ -111,12 +115,29 @@ func (q *Queries) GetCreditLimit(ctx context.Context, arg GetCreditLimitParams) 
 		&i.Credits,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.Message,
+	)
+	return i, err
+}
+
+const getCreditLimitSettings = `-- name: GetCreditLimitSettings :one
+SELECT app_id, message, created_at, updated_at FROM credit_limit_settings WHERE app_id = $1
+`
+
+func (q *Queries) GetCreditLimitSettings(ctx context.Context, appID string) (CreditLimitSetting, error) {
+	row := q.db.QueryRow(ctx, getCreditLimitSettings, appID)
+	var i CreditLimitSetting
+	err := row.Scan(
+		&i.AppID,
+		&i.Message,
+		&i.CreatedAt,
+		&i.UpdatedAt,
 	)
 	return i, err
 }
 
 const getCreditLimitsByApp = `-- name: GetCreditLimitsByApp :many
-SELECT id, app_id, scope, target_id, period, credits, created_at, updated_at FROM credit_limits WHERE app_id = $1 ORDER BY scope, target_id NULLS FIRST, period
+SELECT id, app_id, scope, target_id, period, credits, created_at, updated_at, message FROM credit_limits WHERE app_id = $1 ORDER BY scope, target_id NULLS FIRST, period
 `
 
 func (q *Queries) GetCreditLimitsByApp(ctx context.Context, appID string) ([]CreditLimit, error) {
@@ -137,6 +158,7 @@ func (q *Queries) GetCreditLimitsByApp(ctx context.Context, appID string) ([]Cre
 			&i.Credits,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.Message,
 		); err != nil {
 			return nil, err
 		}
@@ -154,8 +176,9 @@ UPDATE credit_limits SET
     target_id = $4,
     period = $5,
     credits = $6,
-    updated_at = $7
-WHERE app_id = $1 AND id = $2 RETURNING id, app_id, scope, target_id, period, credits, created_at, updated_at
+    message = $7,
+    updated_at = $8
+WHERE app_id = $1 AND id = $2 RETURNING id, app_id, scope, target_id, period, credits, created_at, updated_at, message
 `
 
 type UpdateCreditLimitParams struct {
@@ -165,6 +188,7 @@ type UpdateCreditLimitParams struct {
 	TargetID  pgtype.Text
 	Period    string
 	Credits   pgtype.Int4
+	Message   pgtype.Text
 	UpdatedAt pgtype.Timestamp
 }
 
@@ -176,6 +200,7 @@ func (q *Queries) UpdateCreditLimit(ctx context.Context, arg UpdateCreditLimitPa
 		arg.TargetID,
 		arg.Period,
 		arg.Credits,
+		arg.Message,
 		arg.UpdatedAt,
 	)
 	var i CreditLimit
@@ -186,6 +211,46 @@ func (q *Queries) UpdateCreditLimit(ctx context.Context, arg UpdateCreditLimitPa
 		&i.TargetID,
 		&i.Period,
 		&i.Credits,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.Message,
+	)
+	return i, err
+}
+
+const upsertCreditLimitSettings = `-- name: UpsertCreditLimitSettings :one
+INSERT INTO credit_limit_settings (
+    app_id,
+    message,
+    created_at,
+    updated_at
+) VALUES (
+    $1, $2, $3, $4
+)
+ON CONFLICT (app_id) DO UPDATE SET
+    message = EXCLUDED.message,
+    updated_at = EXCLUDED.updated_at
+RETURNING app_id, message, created_at, updated_at
+`
+
+type UpsertCreditLimitSettingsParams struct {
+	AppID     string
+	Message   pgtype.Text
+	CreatedAt pgtype.Timestamp
+	UpdatedAt pgtype.Timestamp
+}
+
+func (q *Queries) UpsertCreditLimitSettings(ctx context.Context, arg UpsertCreditLimitSettingsParams) (CreditLimitSetting, error) {
+	row := q.db.QueryRow(ctx, upsertCreditLimitSettings,
+		arg.AppID,
+		arg.Message,
+		arg.CreatedAt,
+		arg.UpdatedAt,
+	)
+	var i CreditLimitSetting
+	err := row.Scan(
+		&i.AppID,
+		&i.Message,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)

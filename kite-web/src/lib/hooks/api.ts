@@ -31,6 +31,7 @@ import {
   useAppSecretsQuery,
   useCreditLimitsQuery,
   useCreditLimitUsageQuery,
+  useCreditLimitSettingsQuery,
   useAppIntegrationsQuery,
   usePluginsQuery,
   usePluginInstanceQuery,
@@ -70,6 +71,7 @@ import {
   AppSecretListResponse,
   CreditLimitListResponse,
   CreditLimitUsageListResponse,
+  CreditLimitSettingsGetResponse,
   AppIntegrationListResponse,
 } from "../types/wire.gen";
 import { useAppId, usePluginId } from "./params";
@@ -205,6 +207,15 @@ export function useCreditLimits(
   const router = useRouter();
 
   const query = useCreditLimitsQuery(router.query.appId as string);
+  return useResponseData(query, callback);
+}
+
+export function useCreditLimitSettings(
+  callback?: (res: APIResponse<CreditLimitSettingsGetResponse>) => void
+) {
+  const router = useRouter();
+
+  const query = useCreditLimitSettingsQuery(router.query.appId as string);
   return useResponseData(query, callback);
 }
 

@@ -1,6 +1,7 @@
 import AppLayout from "@/components/app/AppLayout";
 import { getAppShellLayout } from "@/components/app/AppShell";
 import CreditLimitList from "@/components/app/CreditLimitList";
+import CreditLimitSettingsCard from "@/components/app/CreditLimitSettingsCard";
 import CreditLimitUsageTable from "@/components/app/CreditLimitUsageTable";
 import { Separator } from "@/components/ui/separator";
 import env from "@/lib/env/client";
@@ -34,6 +35,7 @@ export default function AppCreditLimitsPage() {
       <Separator className="my-8" />
       <div className="flex flex-col space-y-8">
         <CreditLimitList />
+        <CreditLimitSettingsCard />
         <CreditLimitUsageTable />
       </div>
     </AppLayout>

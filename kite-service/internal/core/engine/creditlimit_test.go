@@ -3,11 +3,15 @@ package engine
 import (
 	"context"
 	"errors"
+	"fmt"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/internal/store"
+	"github.com/kitecloud/kite/kite-service/pkg/eval"
+	"github.com/kitecloud/kite/kite-service/pkg/flow"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gopkg.in/guregu/null.v4"
@@ -15,9 +19,17 @@ import (
 
 type creditLimitTestStore struct {
 	store.CreditLimitStore
-	limits []*model.CreditLimit
-	err    error
-	reads  int
+	limits   []*model.CreditLimit
+	settings *model.CreditLimitSettings
+	err      error
+	reads    int
+}
+
+func (s *creditLimitTestStore) CreditLimitSettings(ctx context.Context, appID string) (*model.CreditLimitSettings, error) {
+	if s.settings == nil {
+		return nil, store.ErrNotFound
+	}
+	return s.settings, nil
 }
 
 func (s *creditLimitTestStore) CreditLimitsByApp(ctx context.Context, appID string) ([]*model.CreditLimit, error) {
@@ -213,4 +225,90 @@ func TestCreditLimitPeriodStart(t *testing.T) {
 	at := time.Date(2026, 10, 10, 23, 59, 0, 0, time.UTC)
 	assert.Equal(t, time.Date(2026, 10, 10, 0, 0, 0, 0, time.UTC), model.CreditLimitPeriodDay.Start(at))
 	assert.Equal(t, time.Date(2026, 10, 1, 0, 0, 0, 0, time.UTC), model.CreditLimitPeriodMonth.Start(at))
+}
+
+func TestCreditLimiterMessage(t *testing.T) {
+	custom := guildLimit("1", model.CreditLimitPeriodDay, 1)
+	custom.Message = null.StringFrom("Server {{limit.scope}} is out")
+
+	limits := []*model.CreditLimit{guildLimit("", model.CreditLimitPeriodDay, 1), custom}
+
+	limiter, limitStore, _, _ := newTestCreditLimiter(limits, map[string]int{"guild:1": 1, "guild:2": 1})
+
+	exceeded, err := limiter.Check(context.Background(), "app", creditLimitTargets("2", "")...)
+	require.NoError(t, err)
+	require.NotNil(t, exceeded)
+	assert.False(t, exceeded.Message.Valid, "without any custom message Kite's message is used")
+
+	exceeded, err = limiter.Check(context.Background(), "app", creditLimitTargets("1", "")...)
+	require.NoError(t, err)
+	require.NotNil(t, exceeded)
+	assert.Equal(t, "Server {{limit.scope}} is out", exceeded.Message.String, "the message of the limit wins")
+
+	limitStore.settings = &model.CreditLimitSettings{AppID: "app", Message: null.StringFrom("App default")}
+	limiter.limits = make(map[string]cachedCreditLimits)
+
+	exceeded, err = limiter.Check(context.Background(), "app", creditLimitTargets("2", "")...)
+	require.NoError(t, err)
+	require.NotNil(t, exceeded)
+	assert.Equal(t, "App default", exceeded.Message.String, "limits without a message use the app default")
+
+	exceeded, err = limiter.Check(context.Background(), "app", creditLimitTargets("1", "")...)
+	require.NoError(t, err)
+	require.NotNil(t, exceeded)
+	assert.Equal(t, "Server {{limit.scope}} is out", exceeded.Message.String)
+}
+
+func TestCreditLimitEnv(t *testing.T) {
+	limit := guildLimit("", model.CreditLimitPeriodDay, 50)
+	now := time.Date(2026, 10, 10, 12, 0, 0, 0, time.UTC)
+
+	env := creditLimitEnv(&CreditLimitExceeded{Limit: limit, Used: 51}, now)
+	assert.Equal(t, int64(50), env["credits"])
+	assert.Equal(t, 51, env["used"])
+	assert.Equal(t, "server", env["scope"])
+	assert.Equal(t, "today", env["period"])
+	assert.Equal(t, "<t:1791676800:R>", env["resets"])
+
+	limit.Period = model.CreditLimitPeriodMonth
+	env = creditLimitEnv(&CreditLimitExceeded{Limit: limit}, now)
+	assert.Equal(t, "this month", env["period"])
+	assert.Equal(t, fmt.Sprintf("<t:%d:R>", time.Date(2026, 11, 1, 0, 0, 0, 0, time.UTC).Unix()), env["resets"])
+}
+
+func TestRenderCreditLimitMessage(t *testing.T) {
+	render := func(message null.String) (string, error) {
+		fCtx := flow.NewContext(
+			context.Background(),
+			time.Second,
+			&EventData{},
+			flow.FlowProviders{},
+			flow.FlowContextLimits{},
+			eval.NewContext(eval.Env{"user": map[string]any{"mention": "<@1>"}}),
+			nil,
+		)
+		defer fCtx.Cancel()
+
+		return renderCreditLimitMessage(fCtx, &CreditLimitExceeded{
+			Limit:   guildLimit("", model.CreditLimitPeriodDay, 50),
+			Used:    50,
+			Message: message,
+		})
+	}
+
+	content, err := render(null.String{})
+	require.NoError(t, err)
+	assert.Equal(t, "This server has reached its usage limit for today. Try again later.", content)
+
+	content, err = render(null.StringFrom("{{user.mention}} used {{limit.used}}/{{limit.credits}} credits {{limit.period}}"))
+	require.NoError(t, err)
+	assert.Equal(t, "<@1> used 50/50 credits today", content)
+
+	content, err = render(null.StringFrom("   "))
+	require.NoError(t, err)
+	assert.Equal(t, "This server has reached its usage limit for today. Try again later.", content)
+
+	content, err = render(null.StringFrom(strings.Repeat("{{limit.period}}", 500)))
+	require.NoError(t, err)
+	assert.Len(t, []rune(content), maxCreditLimitMessageLength)
 }

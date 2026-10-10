@@ -39,6 +39,7 @@ import {
   AppIntegrationListResponse,
   CreditLimitListResponse,
   CreditLimitUsageListResponse,
+  CreditLimitSettingsGetResponse,
 } from "../types/wire.gen";
 
 export function useUserQuery(userId = "@me") {
@@ -224,6 +225,17 @@ export function useCreditLimitsQuery(appId: string) {
     queryKey: ["apps", appId, "credit-limits"],
     queryFn: () =>
       apiRequest<CreditLimitListResponse>(`/v1/apps/${appId}/credit-limits`),
+    enabled: !!appId,
+  });
+}
+
+export function useCreditLimitSettingsQuery(appId: string) {
+  return useQuery({
+    queryKey: ["apps", appId, "credit-limits", "settings"],
+    queryFn: () =>
+      apiRequest<CreditLimitSettingsGetResponse>(
+        `/v1/apps/${appId}/credit-limits/settings`
+      ),
     enabled: !!appId,
   });
 }

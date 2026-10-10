@@ -16,6 +16,28 @@ A limit applies to servers or to users and resets every day or every month, at m
 
 Daily and monthly limits are separate, so a server can have both, and is stopped by whichever it reaches first.
 
+## Custom messages
+
+By default, users who reach a limit see _"You have reached your usage limit for today. Try again later."_, or _"This server has reached..."_ for server limits. You can replace it:
+
+- Set a **default message** on the _Credit Limits_ page. It's used for every limit without a message of its own.
+- Set a **message on a limit** to use it only for that limit. It takes priority over the default message.
+
+Clear a message to go back to the default. Messages can be up to 2000 characters and can use the same placeholders as your flows, like `{{user.mention}}` or `{{server.name}}`, plus these:
+
+| Placeholder           | Value                                                   |
+| --------------------- | ------------------------------------------------------- |
+| `{{limit.credits}}`   | The limit, like `100`                                   |
+| `{{limit.used}}`      | The credits used in the current period                  |
+| `{{limit.period}}`    | `today` or `this month`                                 |
+| `{{limit.scope}}`     | `server` or `user`                                      |
+| `{{limit.resets}}`    | When the limit resets, shown by Discord as `in 5 hours` |
+| `{{limit.resets_at}}` | The date and time the limit resets                      |
+
+For example: `Slow down {{user.mention}}! You used all {{limit.credits}} credits {{limit.period}}, try again {{limit.resets}}.`
+
+If a message can't be rendered, for example because of a typo in a placeholder, the default message is shown instead and an error is added to your app's logs.
+
 ## Top usage
 
 The _Top usage_ table on the same page shows the servers and users that used the most credits today or this month, with the limit that applies to each. Click _Set limit_ to give one a limit of its own.

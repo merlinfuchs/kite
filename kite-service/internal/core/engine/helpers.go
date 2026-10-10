@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"net/http"
 	"runtime/debug"
+	"strings"
 	"time"
 
 	"github.com/diamondburned/arikawa/v3/api"
@@ -317,10 +318,23 @@ func (s Env) creditLimitReached(
 		return true
 	}
 
+	content, err := renderCreditLimitMessage(fCtx, exceeded)
+	if err != nil {
+		if exceeded.FirstReport {
+			s.createLogEntry(
+				appID,
+				model.LogLevelError,
+				fmt.Sprintf("Failed to render credit limit message, showing the default message instead: %v", err),
+				links,
+			)
+		}
+		content = creditLimitMessage(exceeded)
+	}
+
 	err = session.RespondInteraction(interaction.ID, interaction.Token, api.InteractionResponse{
 		Type: api.MessageInteractionWithSource,
 		Data: &api.InteractionResponseData{
-			Content: option.NewNullableString(creditLimitMessage(exceeded)),
+			Content: option.NewNullableString(content),
 			Flags:   discord.EphemeralMessage,
 		},
 	})
@@ -334,6 +348,36 @@ func (s Env) creditLimitReached(
 
 	return true
 }
+
+// renderCreditLimitMessage evaluates the custom message of a limit with the
+// placeholders of the interaction and {{limit.*}}. Without a custom message,
+// or if it comes out empty, it's Kite's message.
+func renderCreditLimitMessage(fCtx *flow.FlowContext, exceeded *CreditLimitExceeded) (string, error) {
+	if !exceeded.Message.Valid || strings.TrimSpace(exceeded.Message.String) == "" {
+		return creditLimitMessage(exceeded), nil
+	}
+
+	fCtx.EvalCtx.Env["limit"] = creditLimitEnv(exceeded, time.Now().UTC())
+
+	res, err := fCtx.EvalTemplate(exceeded.Message.String)
+	if err != nil {
+		return "", err
+	}
+
+	content := strings.TrimSpace(res.String())
+	if content == "" {
+		return creditLimitMessage(exceeded), nil
+	}
+
+	// Discord rejects longer messages, and placeholders can make it longer
+	// than what was saved.
+	if runes := []rune(content); len(runes) > maxCreditLimitMessageLength {
+		content = string(runes[:maxCreditLimitMessageLength])
+	}
+	return content, nil
+}
+
+const maxCreditLimitMessageLength = 2000
 
 func creditLimitScopeName(scope model.CreditLimitScope) string {
 	if scope == model.CreditLimitScopeGuild {

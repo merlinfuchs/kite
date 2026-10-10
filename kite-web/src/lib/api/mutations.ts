@@ -74,6 +74,8 @@ import {
   CreditLimitDeleteResponse,
   CreditLimitUpdateRequest,
   CreditLimitUpdateResponse,
+  CreditLimitSettingsUpdateRequest,
+  CreditLimitSettingsUpdateResponse,
   AppSecretUpdateRequest,
   AppSecretUpdateResponse,
   VariableCreateRequest,
@@ -611,6 +613,29 @@ export function useCreditLimitUpdateMutation(appId: string, limitId: string) {
     onSuccess: () => {
       client.invalidateQueries({
         queryKey: ["apps", appId, "credit-limits"],
+      });
+    },
+  });
+}
+
+export function useCreditLimitSettingsUpdateMutation(appId: string) {
+  const client = useQueryClient();
+
+  return useMutation({
+    mutationFn: (req: CreditLimitSettingsUpdateRequest) =>
+      apiRequest<CreditLimitSettingsUpdateResponse>(
+        `/v1/apps/${appId}/credit-limits/settings`,
+        {
+          method: "PUT",
+          body: JSON.stringify(req),
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      ),
+    onSuccess: () => {
+      client.invalidateQueries({
+        queryKey: ["apps", appId, "credit-limits", "settings"],
       });
     },
   });

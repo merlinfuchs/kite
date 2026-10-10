@@ -37,6 +37,8 @@ import {
 } from "../ui/select";
 import { Switch } from "../ui/switch";
 import { useAppStateGuilds } from "@/lib/hooks/api";
+import { Textarea } from "../ui/textarea";
+import CreditLimitMessagePlaceholders from "./CreditLimitMessagePlaceholders";
 
 interface FormFields {
   scope: string;
@@ -45,6 +47,7 @@ interface FormFields {
   period: string;
   unlimited: boolean;
   credits: string;
+  message: string;
 }
 
 export interface CreditLimitDefaults {
@@ -65,6 +68,7 @@ function defaultValues(
       period: limit.period,
       unlimited: limit.credits === null,
       credits: limit.credits?.toString() ?? "",
+      message: limit.message ?? "",
     };
   }
 
@@ -75,6 +79,7 @@ function defaultValues(
     period: defaults?.period ?? "day",
     unlimited: false,
     credits: "",
+    message: "",
   };
 }
 
@@ -126,6 +131,7 @@ export default function CreditLimitDialog({
       target_id: specific ? data.target_id.trim() : null,
       period: data.period,
       credits,
+      message: data.message.trim() ? data.message : null,
     };
 
     const handlers = {
@@ -160,7 +166,7 @@ export default function CreditLimitDialog({
       }}
     >
       <DialogTrigger asChild>{children}</DialogTrigger>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
             {limit ? "Edit Credit Limit" : "Create Credit Limit"}
@@ -336,6 +342,25 @@ export default function CreditLimitDialog({
                 )}
               />
             )}
+            <FormField
+              control={form.control}
+              name="message"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Message</FormLabel>
+                  <FormControl>
+                    <Textarea
+                      rows={3}
+                      maxLength={2000}
+                      placeholder="Leave empty to use the default message"
+                      {...field}
+                    />
+                  </FormControl>
+                  <CreditLimitMessagePlaceholders />
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
             <DialogFooter>
               <LoadingButton type="submit" loading={pending}>
                 {limit ? "Save limit" : "Create limit"}

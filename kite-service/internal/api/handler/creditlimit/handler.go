@@ -68,6 +68,7 @@ func (h *CreditLimitHandler) HandleCreditLimitCreate(c *handler.Context, req wir
 		TargetID:  req.TargetID,
 		Period:    model.CreditLimitPeriod(req.Period),
 		Credits:   req.Credits,
+		Message:   req.Message,
 		CreatedAt: now,
 		UpdatedAt: now,
 	})
@@ -100,6 +101,7 @@ func (h *CreditLimitHandler) HandleCreditLimitUpdate(c *handler.Context, req wir
 	limit.TargetID = req.TargetID
 	limit.Period = model.CreditLimitPeriod(req.Period)
 	limit.Credits = req.Credits
+	limit.Message = req.Message
 	limit.UpdatedAt = now
 
 	limit, err = h.creditLimitStore.UpdateCreditLimit(c.Context(), limit)
@@ -177,6 +179,31 @@ func (h *CreditLimitHandler) HandleCreditLimitUsageList(c *handler.Context) (*wi
 		}
 	}
 	return &res, nil
+}
+
+func (h *CreditLimitHandler) HandleCreditLimitSettingsGet(c *handler.Context) (*wire.CreditLimitSettingsGetResponse, error) {
+	settings, err := h.creditLimitStore.CreditLimitSettings(c.Context(), c.App.ID)
+	if err != nil && !errors.Is(err, store.ErrNotFound) {
+		return nil, fmt.Errorf("failed to get credit limit settings: %w", err)
+	}
+
+	return wire.CreditLimitSettingsToWire(settings), nil
+}
+
+func (h *CreditLimitHandler) HandleCreditLimitSettingsUpdate(c *handler.Context, req wire.CreditLimitSettingsUpdateRequest) (*wire.CreditLimitSettingsUpdateResponse, error) {
+	now := time.Now().UTC()
+
+	settings, err := h.creditLimitStore.UpsertCreditLimitSettings(c.Context(), &model.CreditLimitSettings{
+		AppID:     c.App.ID,
+		Message:   req.Message,
+		CreatedAt: now,
+		UpdatedAt: now,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to update credit limit settings: %w", err)
+	}
+
+	return wire.CreditLimitSettingsToWire(settings), nil
 }
 
 func (h *CreditLimitHandler) creditsUsed(c *handler.Context, limit *model.CreditLimit, now time.Time) (null.Int, error) {

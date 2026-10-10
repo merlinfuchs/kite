@@ -15,4 +15,8 @@ type CreditLimitStore interface {
 	CreateCreditLimit(ctx context.Context, limit *model.CreditLimit) (*model.CreditLimit, error)
 	UpdateCreditLimit(ctx context.Context, limit *model.CreditLimit) (*model.CreditLimit, error)
 	DeleteCreditLimit(ctx context.Context, appID string, id string) error
+
+	// CreditLimitSettings returns ErrNotFound if the app never saved any.
+	CreditLimitSettings(ctx context.Context, appID string) (*model.CreditLimitSettings, error)
+	UpsertCreditLimitSettings(ctx context.Context, settings *model.CreditLimitSettings) (*model.CreditLimitSettings, error)
 }

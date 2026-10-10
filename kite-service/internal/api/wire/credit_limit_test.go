@@ -1,6 +1,7 @@
 package wire
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -23,6 +24,9 @@ func TestCreditLimitCreateRequestValidate(t *testing.T) {
 		{"empty target", CreditLimitCreateRequest{Scope: "guild", TargetID: null.StringFrom(""), Period: "day", Credits: null.IntFrom(1)}, false},
 		{"bad scope", CreditLimitCreateRequest{Scope: "channel", Period: "day", Credits: null.IntFrom(1)}, false},
 		{"bad period", CreditLimitCreateRequest{Scope: "guild", Period: "week", Credits: null.IntFrom(1)}, false},
+		{"message", CreditLimitCreateRequest{Scope: "guild", Period: "day", Credits: null.IntFrom(1), Message: null.StringFrom("Slow down {{user.mention}}")}, true},
+		{"empty message", CreditLimitCreateRequest{Scope: "guild", Period: "day", Credits: null.IntFrom(1), Message: null.StringFrom("")}, false},
+		{"long message", CreditLimitCreateRequest{Scope: "guild", Period: "day", Credits: null.IntFrom(1), Message: null.StringFrom(strings.Repeat("a", MaxCreditLimitMessageLength+1))}, false},
 	}
 
 	for _, test := range tests {
@@ -35,4 +39,10 @@ func TestCreditLimitCreateRequestValidate(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestCreditLimitSettingsUpdateRequestValidate(t *testing.T) {
+	assert.NoError(t, CreditLimitSettingsUpdateRequest{}.Validate())
+	assert.NoError(t, CreditLimitSettingsUpdateRequest{Message: null.StringFrom("Out of credits")}.Validate())
+	assert.Error(t, CreditLimitSettingsUpdateRequest{Message: null.StringFrom("")}.Validate())
 }

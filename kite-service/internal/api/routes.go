@@ -237,6 +237,8 @@ func (s *APIServer) RegisterRoutes(
 	creditLimitsGroup.Get("/", handler.Typed(creditLimitHandler.HandleCreditLimitList))
 	creditLimitsGroup.Post("/", handler.TypedWithBody(creditLimitHandler.HandleCreditLimitCreate))
 	creditLimitsGroup.Get("/usage", handler.Typed(creditLimitHandler.HandleCreditLimitUsageList))
+	creditLimitsGroup.Get("/settings", handler.Typed(creditLimitHandler.HandleCreditLimitSettingsGet))
+	creditLimitsGroup.Put("/settings", handler.TypedWithBody(creditLimitHandler.HandleCreditLimitSettingsUpdate))
 
 	creditLimitGroup := creditLimitsGroup.Group("/{limitID}")
 	creditLimitGroup.Patch("/", handler.TypedWithBody(creditLimitHandler.HandleCreditLimitUpdate))

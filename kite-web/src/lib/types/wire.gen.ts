@@ -331,6 +331,10 @@ export interface CommandsDeployResponse {
  * MaxCreditLimitCredits keeps limits within what the database column holds.
  */
 export const MaxCreditLimitCredits = 1_000_000_000;
+/**
+ * MaxCreditLimitMessageLength is the most Discord allows in a message.
+ */
+export const MaxCreditLimitMessageLength = 2000;
 export interface CreditLimit {
   id: string;
   /**
@@ -350,6 +354,11 @@ export interface CreditLimit {
    */
   credits: null | number;
   /**
+   * Message is shown to users who run into the limit, null for the app's
+   * default message.
+   */
+  message: null | string;
+  /**
    * CreditsUsed is how many credits the target used in the current period,
    * null for defaults.
    */
@@ -363,6 +372,7 @@ export interface CreditLimitCreateRequest {
   target_id: null | string;
   period: string;
   credits: null | number;
+  message: null | string;
 }
 export type CreditLimitCreateResponse = CreditLimit;
 export type CreditLimitUpdateRequest = CreditLimitCreateRequest;
@@ -382,6 +392,21 @@ export interface CreditLimitUsageEntry {
    */
   credits: null | number;
 }
+/**
+ * CreditLimitSettings apply to all credit limits of an app.
+ */
+export interface CreditLimitSettings {
+  /**
+   * Message is shown to users who run into a limit without a message of its
+   * own, null for Kite's message.
+   */
+  message: null | string;
+}
+export type CreditLimitSettingsGetResponse = CreditLimitSettings;
+export interface CreditLimitSettingsUpdateRequest {
+  message: null | string;
+}
+export type CreditLimitSettingsUpdateResponse = CreditLimitSettings;
 
 //////////
 // source: event_listener.go

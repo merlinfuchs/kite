@@ -38,12 +38,25 @@ func (p CreditLimitPeriod) Start(t time.Time) time.Time {
 // A limit with a TargetID replaces the default of the same scope and period
 // for that server or user, and without Credits it exempts them from it.
 type CreditLimit struct {
-	ID        string
-	AppID     string
-	Scope     CreditLimitScope
-	TargetID  null.String
-	Period    CreditLimitPeriod
-	Credits   null.Int
+	ID       string
+	AppID    string
+	Scope    CreditLimitScope
+	TargetID null.String
+	Period   CreditLimitPeriod
+	Credits  null.Int
+	// Message is shown to users who run into the limit instead of the default
+	// message of the app. It can contain placeholders.
+	Message   null.String
+	CreatedAt time.Time
+	UpdatedAt time.Time
+}
+
+// CreditLimitSettings are the settings for all credit limits of an app.
+type CreditLimitSettings struct {
+	AppID string
+	// Message is shown to users who run into a limit without a message of its
+	// own, instead of Kite's message. It can contain placeholders.
+	Message   null.String
 	CreatedAt time.Time
 	UpdatedAt time.Time
 }

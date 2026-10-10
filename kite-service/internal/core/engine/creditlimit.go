@@ -2,6 +2,7 @@ package engine
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"sync"
@@ -9,6 +10,7 @@ import (
 
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/internal/store"
+	"gopkg.in/guregu/null.v4"
 )
 
 const (
@@ -40,7 +42,9 @@ type CreditLimiter struct {
 }
 
 type cachedCreditLimits struct {
-	limits    []*model.CreditLimit
+	limits []*model.CreditLimit
+	// message is the default message of the app for limits without one.
+	message   null.String
 	fetchedAt time.Time
 }
 
@@ -74,6 +78,9 @@ type CreditLimitExceeded struct {
 	// FirstReport is true the first time the limit is hit for the target in
 	// the period, as far as this process knows.
 	FirstReport bool
+	// Message is the custom message for users, from the limit or the default
+	// of the app. It's a template that still has to be evaluated.
+	Message null.String
 }
 
 func NewCreditLimiter(limitStore store.CreditLimitStore, usageStore store.UsageStore) *CreditLimiter {
@@ -89,10 +96,11 @@ func NewCreditLimiter(limitStore store.CreditLimitStore, usageStore store.UsageS
 // Check returns the first limit one of the targets has reached, or nil if the
 // execution can run. Targets with an empty ID are skipped.
 func (l *CreditLimiter) Check(ctx context.Context, appID string, targets ...CreditLimitTarget) (*CreditLimitExceeded, error) {
-	limits, err := l.appLimits(ctx, appID)
+	cached, err := l.appLimits(ctx, appID)
 	if err != nil {
 		return nil, err
 	}
+	limits := cached.limits
 	if len(limits) == 0 {
 		return nil, nil
 	}
@@ -122,11 +130,17 @@ func (l *CreditLimiter) Check(ctx context.Context, appID string, targets ...Cred
 			}
 
 			if used >= int(limit.Credits.Int64) {
+				message := limit.Message
+				if !message.Valid {
+					message = cached.message
+				}
+
 				return &CreditLimitExceeded{
 					Limit:       limit,
 					TargetID:    target.TargetID,
 					Used:        used,
 					FirstReport: l.markReported(key),
+					Message:     message,
 				}, nil
 			}
 		}
@@ -166,7 +180,7 @@ func (l *CreditLimiter) Record(appID string, credits int, targets ...CreditLimit
 	}
 }
 
-func (l *CreditLimiter) appLimits(ctx context.Context, appID string) ([]*model.CreditLimit, error) {
+func (l *CreditLimiter) appLimits(ctx context.Context, appID string) (cachedCreditLimits, error) {
 	now := l.now()
 
 	l.mu.Lock()
@@ -174,7 +188,7 @@ func (l *CreditLimiter) appLimits(ctx context.Context, appID string) ([]*model.C
 	l.mu.Unlock()
 
 	if ok && now.Sub(cached.fetchedAt) < creditLimitCacheTTL {
-		return cached.limits, nil
+		return cached, nil
 	}
 
 	limits, err := l.limitStore.CreditLimitsByApp(ctx, appID)
@@ -182,17 +196,39 @@ func (l *CreditLimiter) appLimits(ctx context.Context, appID string) ([]*model.C
 		if ok {
 			// Keep enforcing the last known limits rather than failing every
 			// execution while the database is unavailable.
-			return cached.limits, nil
+			return cached, nil
 		}
-		return nil, fmt.Errorf("failed to get credit limits: %w", err)
+		return cachedCreditLimits{}, fmt.Errorf("failed to get credit limits: %w", err)
+	}
+
+	fresh := cachedCreditLimits{limits: limits, fetchedAt: now}
+
+	// Only apps with limits ever show the message, so the rest don't need the
+	// extra query.
+	if len(limits) > 0 {
+		settings, err := l.limitStore.CreditLimitSettings(ctx, appID)
+		switch {
+		case err == nil:
+			fresh.message = settings.Message
+		case errors.Is(err, store.ErrNotFound):
+		case ok:
+			fresh.message = cached.message
+		default:
+			// Kite's own message is shown instead, limits still apply.
+			slog.Error(
+				"Failed to get credit limit settings",
+				slog.String("app_id", appID),
+				slog.String("error", err.Error()),
+			)
+		}
 	}
 
 	l.mu.Lock()
-	l.limits[appID] = cachedCreditLimits{limits: limits, fetchedAt: now}
+	l.limits[appID] = fresh
 	l.pruneLocked(now)
 	l.mu.Unlock()
 
-	return limits, nil
+	return fresh, nil
 }
 
 func (l *CreditLimiter) used(ctx context.Context, key creditUsageKey, now time.Time) (int, error) {
@@ -287,6 +323,35 @@ func creditLimitMessage(exceeded *CreditLimitExceeded) string {
 		return fmt.Sprintf("This server has reached its usage limit for %s. Try again later.", period)
 	default:
 		return fmt.Sprintf("You have reached your usage limit for %s. Try again later.", period)
+	}
+}
+
+// creditLimitPeriodEnd returns when the period that t is in ends.
+func creditLimitPeriodEnd(period model.CreditLimitPeriod, t time.Time) time.Time {
+	start := period.Start(t)
+	if period == model.CreditLimitPeriodDay {
+		return start.AddDate(0, 0, 1)
+	}
+	return start.AddDate(0, 1, 0)
+}
+
+// creditLimitEnv is what custom messages can use as {{limit.*}}.
+func creditLimitEnv(exceeded *CreditLimitExceeded, now time.Time) map[string]any {
+	period := "this month"
+	if exceeded.Limit.Period == model.CreditLimitPeriodDay {
+		period = "today"
+	}
+
+	resetsAt := creditLimitPeriodEnd(exceeded.Limit.Period, now)
+
+	return map[string]any{
+		"credits": exceeded.Limit.Credits.Int64,
+		"used":    exceeded.Used,
+		"scope":   creditLimitScopeName(exceeded.Limit.Scope),
+		"period":  period,
+		// Rendered by Discord in the user's timezone, like "in 5 hours".
+		"resets":    fmt.Sprintf("<t:%d:R>", resetsAt.Unix()),
+		"resets_at": fmt.Sprintf("<t:%d:f>", resetsAt.Unix()),
 	}
 }
 
