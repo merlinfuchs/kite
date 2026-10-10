@@ -7,16 +7,20 @@ import { Message, MessageCreateRequest } from "../types/wire.gen";
 export type SharedMessage = MessageCreateRequest & { id: string };
 
 export function messageToShared(message: Message): SharedMessage {
+  // Attachments are assets of the original app, so they aren't exported.
+  const data = { ...message.data };
+  delete data.attachments;
+
   return {
     id: message.id,
     name: message.name,
     description: message.description,
-    data: message.data,
+    data,
     flow_sources: message.flow_sources ?? {},
   };
 }
 
-export function getReferencedMessageIds(flow: FlowData | null | undefined) {
+function getReferencedMessageIds(flow: FlowData | null | undefined) {
   const ids = new Set<string>();
   for (const node of flow?.nodes ?? []) {
     if (node.data?.message_template_id) {
@@ -129,9 +133,15 @@ export function isSharedMessage(value: unknown): value is SharedMessage {
   return (
     !!m &&
     typeof m === "object" &&
+    typeof m.id === "string" &&
     typeof m.name === "string" &&
     m.name.length > 0 &&
     !!m.data &&
-    typeof m.data === "object"
+    typeof m.data === "object" &&
+    (m.flow_sources == null ||
+      (typeof m.flow_sources === "object" &&
+        Object.values(m.flow_sources).every(
+          (f) => Array.isArray(f?.nodes) && Array.isArray(f?.edges)
+        )))
   );
 }

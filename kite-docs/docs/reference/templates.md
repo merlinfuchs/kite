@@ -26,4 +26,4 @@ Anyone with the code can import it. Codes expire after 90 days without use.
 
 Message templates that a command or event listener uses are exported with it, and so are templates used by the buttons and select menus of a message template. Importing creates a copy of each of them in the new app and connects the blocks to the copies. If you import into the same app it was exported from, the existing templates are used instead of copies.
 
-Blocks that use a stored variable of the original app lose it when importing. Open them and pick one from the new app. Secrets aren't exported either, so create any secrets the import warns about under `Secrets`.
+Blocks that use a stored variable of the original app lose it when importing. Open them and pick one from the new app. Secrets and message attachments aren't exported either, so create any secrets the import warns about under `Secrets` and upload the attachments again.
