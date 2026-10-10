@@ -234,6 +234,19 @@ func (q *Queries) GetEnabledCommandsUpdatesSince(ctx context.Context, updatedAt 
 	return items, nil
 }
 
+const resetCommandsLastDeployedAt = `-- name: ResetCommandsLastDeployedAt :exec
+UPDATE commands SET
+    last_deployed_at = NULL
+WHERE app_id = $1
+`
+
+// Marks every command of the app as never deployed, e.g. after the app moved
+// to a different Discord app that doesn't have them yet.
+func (q *Queries) ResetCommandsLastDeployedAt(ctx context.Context, appID string) error {
+	_, err := q.db.Exec(ctx, resetCommandsLastDeployedAt, appID)
+	return err
+}
+
 const updateCommand = `-- name: UpdateCommand :one
 UPDATE commands SET
     name = $2,

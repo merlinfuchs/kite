@@ -19,6 +19,16 @@ type AppUpdateOpts struct {
 	UpdatedAt      time.Time
 }
 
+// AppDiscordAppUpdateOpts moves an app to a different Discord app.
+type AppDiscordAppUpdateOpts struct {
+	ID           string
+	Name         string
+	Description  null.String
+	DiscordID    string
+	DiscordToken string
+	UpdatedAt    time.Time
+}
+
 type AppDisableOpts struct {
 	ID             string
 	DisabledReason null.String
@@ -39,9 +49,13 @@ type AppStore interface {
 	AppsByUser(ctx context.Context, userID string) ([]*model.App, error)
 	CountAppsByUser(ctx context.Context, userID string) (int, error)
 	App(ctx context.Context, id string) (*model.App, error)
+	AppByDiscordID(ctx context.Context, discordID string) (*model.App, error)
 	AppCredentials(ctx context.Context, id string) (*model.AppCredentials, error)
 	CreateApp(ctx context.Context, app *model.App) (*model.App, error)
 	UpdateApp(ctx context.Context, opts AppUpdateOpts) (*model.App, error)
+	// UpdateAppDiscordApp points the app at a different Discord app and
+	// starts it again.
+	UpdateAppDiscordApp(ctx context.Context, opts AppDiscordAppUpdateOpts) (*model.App, error)
 	DisableApp(ctx context.Context, opts AppDisableOpts) error
 	DeleteApp(ctx context.Context, id string) error
 	EnabledAppIDs(ctx context.Context) ([]string, error)

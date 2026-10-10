@@ -51,6 +51,12 @@ export interface AppStatusUpdateRequest {
 export type AppStatusUpdateResponse = App;
 export interface AppTokenUpdateRequest {
   discord_token: string;
+  /**
+   * ChangeApp confirms that the token may belong to a different Discord app
+   * than the current one. Without it such a token is rejected with
+   * discord_app_changed, so the user can be asked first.
+   */
+  change_app: boolean;
 }
 export type AppTokenUpdateResponse = App;
 export type AppDeleteResponse = Empty;

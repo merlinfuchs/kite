@@ -37,6 +37,13 @@ UPDATE commands SET
     last_deployed_at = $2
 WHERE app_id = $1;
 
+-- Marks every command of the app as never deployed, e.g. after the app moved
+-- to a different Discord app that doesn't have them yet.
+-- name: ResetCommandsLastDeployedAt :exec
+UPDATE commands SET
+    last_deployed_at = NULL
+WHERE app_id = $1;
+
 -- name: GetEnabledCommandsUpdatesSince :many
 SELECT * FROM commands WHERE enabled = TRUE AND updated_at > $1;
 
