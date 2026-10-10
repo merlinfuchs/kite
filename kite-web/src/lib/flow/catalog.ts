@@ -52,9 +52,14 @@ function withoutHiddenFields(
   type: string,
   schema: ReturnType<typeof toJsonSchema>
 ) {
-  const { properties } = schema as { properties?: Record<string, unknown> };
+  const res = schema as {
+    properties?: Record<string, unknown>;
+    required?: string[];
+  };
   for (const field of getBlockDefinition(type)?.fields ?? []) {
-    if (field.hidden_from_ai) delete properties?.[field.name];
+    if (!field.hidden_from_ai) continue;
+    delete res.properties?.[field.name];
+    res.required = res.required?.filter((name) => name !== field.name);
   }
   return schema;
 }
