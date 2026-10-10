@@ -233,6 +233,39 @@ func (c *ComponentData) ToComponent(opts ConvertOptions) discord.Component {
 		return c.toButton(opts)
 	case ComponentTypeStringSelect:
 		return c.toStringSelect(opts)
+	case ComponentTypeUserSelect:
+		return &discord.UserSelectComponent{
+			CustomID:    c.customID(opts),
+			Placeholder: c.Placeholder,
+			ValueLimits: [2]int{c.MinValues, c.MaxValues},
+			Disabled:    c.Disabled,
+		}
+	case ComponentTypeRoleSelect:
+		return &discord.RoleSelectComponent{
+			CustomID:    c.customID(opts),
+			Placeholder: c.Placeholder,
+			ValueLimits: [2]int{c.MinValues, c.MaxValues},
+			Disabled:    c.Disabled,
+		}
+	case ComponentTypeMentionableSelect:
+		return &discord.MentionableSelectComponent{
+			CustomID:    c.customID(opts),
+			Placeholder: c.Placeholder,
+			ValueLimits: [2]int{c.MinValues, c.MaxValues},
+			Disabled:    c.Disabled,
+		}
+	case ComponentTypeChannelSelect:
+		channelTypes := make([]discord.ChannelType, len(c.ChannelTypes))
+		for i, t := range c.ChannelTypes {
+			channelTypes[i] = discord.ChannelType(t)
+		}
+		return &discord.ChannelSelectComponent{
+			CustomID:     c.customID(opts),
+			ChannelTypes: channelTypes,
+			Placeholder:  c.Placeholder,
+			ValueLimits:  [2]int{c.MinValues, c.MaxValues},
+			Disabled:     c.Disabled,
+		}
 	case ComponentTypeSection:
 		return &discord.SectionComponent{
 			Components: c.childComponents(opts),

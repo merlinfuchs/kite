@@ -5,6 +5,7 @@ import {
 import { useAppId } from "@/lib/hooks/params";
 import { EventListener } from "@/lib/types/wire.gen";
 import { formatDateTime } from "@/lib/utils";
+import { getWebhookUrl } from "@/lib/flow/webhook";
 import {
   CheckIcon,
   ClockIcon,
@@ -13,6 +14,8 @@ import {
   SatelliteDishIcon,
   Trash2Icon,
   Share2Icon,
+  LinkIcon,
+  WebhookIcon,
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/router";
@@ -52,6 +55,18 @@ export default function EventListenerListEntry({
   const scheduleCron = listener.flow_source.nodes.find(
     (n) => n.type === "entry_event"
   )?.data.event_schedule_cron;
+
+  const isWebhook = listener.source === "webhook";
+  const webhookUrl = getWebhookUrl(listener);
+
+  const copyWebhookUrl = useCallback(() => {
+    if (!webhookUrl) return;
+
+    navigator.clipboard
+      .writeText(webhookUrl)
+      .then(() => toast.success("Copied to clipboard!"))
+      .catch(() => toast.error("Failed to copy to clipboard"));
+  }, [webhookUrl]);
 
   const deleteMutation = useEventListenerDeleteMutation(appId, listener.id);
 
@@ -104,6 +119,8 @@ export default function EventListenerListEntry({
         <CardTitle className="text-base flex items-center space-x-2">
           {isSchedule ? (
             <ClockIcon className="h-5 w-5 text-muted-foreground" />
+          ) : isWebhook ? (
+            <WebhookIcon className="h-5 w-5 text-muted-foreground" />
           ) : (
             <SatelliteDishIcon className="h-5 w-5 text-muted-foreground" />
           )}
@@ -158,6 +175,12 @@ export default function EventListenerListEntry({
                   Duplicate Event Listener
                 </DropdownMenuItem>
               </EventListenerDuplicateDialog>
+              {webhookUrl && (
+                <DropdownMenuItem onSelect={copyWebhookUrl}>
+                  <LinkIcon className="h-4 w-4 mr-2 text-muted-foreground" />
+                  Copy Webhook URL
+                </DropdownMenuItem>
+              )}
               <FlowExportDialog
                 title="Export Event Listener"
                 type="event_listener"

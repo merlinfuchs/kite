@@ -17,6 +17,7 @@ export const FlowNodeTypeOptionCommandArgument: FlowNodeType = "option_command_a
 export const FlowNodeTypeOptionCommandPermissions: FlowNodeType = "option_command_permissions";
 export const FlowNodeTypeOptionCommandContexts: FlowNodeType = "option_command_contexts";
 export const FlowNodeTypeOptionEventFilter: FlowNodeType = "option_event_filter";
+export const FlowNodeTypeOptionCommandCooldown: FlowNodeType = "option_command_cooldown";
 export const FlowNodeTypeActionResponseCreate: FlowNodeType = "action_response_create";
 export const FlowNodeTypeActionResponseEdit: FlowNodeType = "action_response_edit";
 export const FlowNodeTypeActionResponseDelete: FlowNodeType = "action_response_delete";
@@ -85,6 +86,11 @@ export const FlowNodeTypeSuspendResponseModal: FlowNodeType = "suspend_response_
  * schedule instead of reacting to Discord events.
  */
 export const EventTypeScheduleCron = "cron";
+/**
+ * EventTypeWebhook is the event type of listeners that run when a request is
+ * sent to their webhook URL.
+ */
+export const EventTypeWebhook = "webhook";
 export interface FlowNode {
   id: string;
   type?: FlowNodeType;
@@ -124,6 +130,12 @@ export interface FlowNodeData {
    * Command Installations
    */
   command_disabled_integrations?: CommandDisabledIntegrationType[];
+  /**
+   * Command Cooldown
+   */
+  cooldown_scope?: CooldownScope;
+  cooldown_duration_seconds?: string;
+  cooldown_message?: string;
   /**
    * Guild Get, and the guild of member, channel, role and voice blocks
    */
@@ -238,6 +250,10 @@ export interface FlowNodeData {
    */
   sleep_duration_seconds?: string;
 }
+export type CooldownScope = string;
+export const CooldownScopeUser: CooldownScope = "user";
+export const CooldownScopeGuild: CooldownScope = "guild";
+export const CooldownScopeGlobal: CooldownScope = "global";
 export type ComparsionMode = string;
 export const ComparsionModeEqual: ComparsionMode = "equal";
 export const ComparsionModeNotEqual: ComparsionMode = "not_equal";
@@ -277,6 +293,7 @@ export const EventFilterTypeMessageContent: EventFilterTarget = "message_content
 export const EventFilterTypeUserID: EventFilterTarget = "user_id";
 export const EventFilterTypeGuildID: EventFilterTarget = "guild_id";
 export const EventFilterTypeChannelID: EventFilterTarget = "channel_id";
+export const EventFilterTypeMessageID: EventFilterTarget = "message_id";
 export type RobloxLookupType = string;
 export const RobloxLookupTypeID: RobloxLookupType = "id";
 export const RobloxLookupTypeName: RobloxLookupType = "username";
@@ -345,17 +362,59 @@ export interface ModalData {
   title?: string;
   components?: ModalComponentData[];
 }
+/**
+ * ModalComponentData is one component of a modal. The modal's components are
+ * labels and text displays, and a label holds the one input it describes in
+ * Components.
+ * Modals saved before labels existed have no type at either level. Their
+ * components are labels whose text input carries the label text itself.
+ */
 export interface ModalComponentData {
+  type?: string;
   custom_id?: string;
   style?: number /* int */;
   label?: string;
+  description?: string;
+  /**
+   * Content is the markdown shown by a text display.
+   */
+  content?: string;
   min_length?: number /* int */;
   max_length?: number /* int */;
+  /**
+   * MinValues and MaxValues limit how many options can be picked in a
+   * select menu or checkbox group.
+   */
+  min_values?: number /* int */;
+  max_values?: number /* int */;
   required?: boolean;
   value?: string;
   placeholder?: string;
+  options?: ModalComponentOptionData[];
+  channel_types?: number /* int */[];
+  /**
+   * Default is whether a checkbox starts checked.
+   */
+  default?: boolean;
   components?: ModalComponentData[];
 }
+export interface ModalComponentOptionData {
+  label?: string;
+  value?: string;
+  description?: string;
+  default?: boolean;
+}
+export const ModalComponentTypeLabel = "label";
+export const ModalComponentTypeTextDisplay = "text_display";
+export const ModalComponentTypeTextInput = "text_input";
+export const ModalComponentTypeStringSelect = "string_select";
+export const ModalComponentTypeUserSelect = "user_select";
+export const ModalComponentTypeRoleSelect = "role_select";
+export const ModalComponentTypeMentionableSelect = "mentionable_select";
+export const ModalComponentTypeChannelSelect = "channel_select";
+export const ModalComponentTypeRadioGroup = "radio_group";
+export const ModalComponentTypeCheckboxGroup = "checkbox_group";
+export const ModalComponentTypeCheckbox = "checkbox";
 export interface HTTPRequestData {
   url?: string;
   method?: string;
@@ -397,6 +456,10 @@ export interface FlowEdge {
   sourceHandle?: null | string;
   targetHandle?: null | string;
 }
+
+//////////
+// source: modal.go
+
 
 //////////
 // source: state.go
