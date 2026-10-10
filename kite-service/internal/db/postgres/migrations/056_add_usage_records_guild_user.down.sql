@@ -1,0 +1,1 @@
+ALTER TABLE usage_records DROP COLUMN IF EXISTS guild_id, DROP COLUMN IF EXISTS user_id;

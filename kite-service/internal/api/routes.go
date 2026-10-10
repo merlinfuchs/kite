@@ -14,6 +14,7 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/auth"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/billing"
 	commandhandler "github.com/kitecloud/kite/kite-service/internal/api/handler/command"
+	"github.com/kitecloud/kite/kite-service/internal/api/handler/creditlimit"
 	eventlistener "github.com/kitecloud/kite/kite-service/internal/api/handler/event_listener"
 	flowaihandler "github.com/kitecloud/kite/kite-service/internal/api/handler/flowai"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/integration"
@@ -62,6 +63,7 @@ func (s *APIServer) RegisterRoutes(
 	flowAssistant *flowai.Assistant,
 	appSecretStore store.AppSecretStore,
 	appIntegrationStore store.AppIntegrationStore,
+	creditLimitStore store.CreditLimitStore,
 ) {
 	sessionManager := session.NewSessionManager(session.SessionManagerConfig{
 		StrictCookies: s.config.StrictCookies,
@@ -227,6 +229,20 @@ func (s *APIServer) RegisterRoutes(
 	usageGroup.Get("/credits", handler.Typed(usageHandler.HandleUsageCreditsGet))
 	usageGroup.Get("/by-day", handler.Typed(usageHandler.HandleUsageByDayList))
 	usageGroup.Get("/by-type", handler.Typed(usageHandler.HandleUsageByTypeList))
+
+	// Credit limit routes
+	creditLimitHandler := creditlimit.NewCreditLimitHandler(creditLimitStore, usageStore)
+
+	creditLimitsGroup := appGroup.Group("/credit-limits")
+	creditLimitsGroup.Get("/", handler.Typed(creditLimitHandler.HandleCreditLimitList))
+	creditLimitsGroup.Post("/", handler.TypedWithBody(creditLimitHandler.HandleCreditLimitCreate))
+	creditLimitsGroup.Get("/usage", handler.Typed(creditLimitHandler.HandleCreditLimitUsageList))
+	creditLimitsGroup.Get("/settings", handler.Typed(creditLimitHandler.HandleCreditLimitSettingsGet))
+	creditLimitsGroup.Put("/settings", handler.TypedWithBody(creditLimitHandler.HandleCreditLimitSettingsUpdate))
+
+	creditLimitGroup := creditLimitsGroup.Group("/{limitID}")
+	creditLimitGroup.Patch("/", handler.TypedWithBody(creditLimitHandler.HandleCreditLimitUpdate))
+	creditLimitGroup.Delete("/", handler.Typed(creditLimitHandler.HandleCreditLimitDelete))
 
 	// Command routes
 	commandsHandler := commandhandler.NewCommandHandler(commandStore, commandManager)

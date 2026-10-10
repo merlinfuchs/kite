@@ -18,11 +18,13 @@ INSERT INTO usage_records (
     command_id,
     event_listener_id,
     message_id,
+    guild_id,
+    user_id,
     credits_used,
     created_at
 ) VALUES (
-    $1, $2, $3, $4, $5, $6, $7
-) RETURNING id, type, app_id, command_id, event_listener_id, message_id, credits_used, created_at
+    $1, $2, $3, $4, $5, $6, $7, $8, $9
+) RETURNING id, type, app_id, command_id, event_listener_id, message_id, credits_used, created_at, guild_id, user_id
 `
 
 type CreateUsageRecordParams struct {
@@ -31,6 +33,8 @@ type CreateUsageRecordParams struct {
 	CommandID       pgtype.Text
 	EventListenerID pgtype.Text
 	MessageID       pgtype.Text
+	GuildID         pgtype.Text
+	UserID          pgtype.Text
 	CreditsUsed     int32
 	CreatedAt       pgtype.Timestamp
 }
@@ -42,6 +46,8 @@ func (q *Queries) CreateUsageRecord(ctx context.Context, arg CreateUsageRecordPa
 		arg.CommandID,
 		arg.EventListenerID,
 		arg.MessageID,
+		arg.GuildID,
+		arg.UserID,
 		arg.CreditsUsed,
 		arg.CreatedAt,
 	)
@@ -101,6 +107,96 @@ func (q *Queries) GetAllUsageCreditsUsedBetween(ctx context.Context, arg GetAllU
 	for rows.Next() {
 		var i GetAllUsageCreditsUsedBetweenRow
 		if err := rows.Scan(&i.AppID, &i.Sum); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getTopUsageCreditsByGuildBetween = `-- name: GetTopUsageCreditsByGuildBetween :many
+SELECT guild_id::text AS target_id, SUM(credits_used)::int AS credits_used FROM usage_records
+WHERE app_id = $1 AND guild_id IS NOT NULL AND created_at BETWEEN $2 AND $3
+GROUP BY guild_id
+ORDER BY credits_used DESC
+LIMIT $4
+`
+
+type GetTopUsageCreditsByGuildBetweenParams struct {
+	AppID    string
+	StartAt  pgtype.Timestamp
+	EndAt    pgtype.Timestamp
+	RowLimit int32
+}
+
+type GetTopUsageCreditsByGuildBetweenRow struct {
+	TargetID    string
+	CreditsUsed int32
+}
+
+func (q *Queries) GetTopUsageCreditsByGuildBetween(ctx context.Context, arg GetTopUsageCreditsByGuildBetweenParams) ([]GetTopUsageCreditsByGuildBetweenRow, error) {
+	rows, err := q.db.Query(ctx, getTopUsageCreditsByGuildBetween,
+		arg.AppID,
+		arg.StartAt,
+		arg.EndAt,
+		arg.RowLimit,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetTopUsageCreditsByGuildBetweenRow
+	for rows.Next() {
+		var i GetTopUsageCreditsByGuildBetweenRow
+		if err := rows.Scan(&i.TargetID, &i.CreditsUsed); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getTopUsageCreditsByUserBetween = `-- name: GetTopUsageCreditsByUserBetween :many
+SELECT user_id::text AS target_id, SUM(credits_used)::int AS credits_used FROM usage_records
+WHERE app_id = $1 AND user_id IS NOT NULL AND created_at BETWEEN $2 AND $3
+GROUP BY user_id
+ORDER BY credits_used DESC
+LIMIT $4
+`
+
+type GetTopUsageCreditsByUserBetweenParams struct {
+	AppID    string
+	StartAt  pgtype.Timestamp
+	EndAt    pgtype.Timestamp
+	RowLimit int32
+}
+
+type GetTopUsageCreditsByUserBetweenRow struct {
+	TargetID    string
+	CreditsUsed int32
+}
+
+func (q *Queries) GetTopUsageCreditsByUserBetween(ctx context.Context, arg GetTopUsageCreditsByUserBetweenParams) ([]GetTopUsageCreditsByUserBetweenRow, error) {
+	rows, err := q.db.Query(ctx, getTopUsageCreditsByUserBetween,
+		arg.AppID,
+		arg.StartAt,
+		arg.EndAt,
+		arg.RowLimit,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetTopUsageCreditsByUserBetweenRow
+	for rows.Next() {
+		var i GetTopUsageCreditsByUserBetweenRow
+		if err := rows.Scan(&i.TargetID, &i.CreditsUsed); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -176,6 +272,24 @@ func (q *Queries) GetUsageCreditsUsedByDayBetween(ctx context.Context, arg GetUs
 	return items, nil
 }
 
+const getUsageCreditsUsedByGuildSince = `-- name: GetUsageCreditsUsedByGuildSince :one
+SELECT COALESCE(SUM(credits_used), 0)::int FROM usage_records
+WHERE app_id = $1 AND guild_id = $2 AND created_at >= $3
+`
+
+type GetUsageCreditsUsedByGuildSinceParams struct {
+	AppID   string
+	GuildID pgtype.Text
+	StartAt pgtype.Timestamp
+}
+
+func (q *Queries) GetUsageCreditsUsedByGuildSince(ctx context.Context, arg GetUsageCreditsUsedByGuildSinceParams) (int32, error) {
+	row := q.db.QueryRow(ctx, getUsageCreditsUsedByGuildSince, arg.AppID, arg.GuildID, arg.StartAt)
+	var column_1 int32
+	err := row.Scan(&column_1)
+	return column_1, err
+}
+
 const getUsageCreditsUsedByTypeBetween = `-- name: GetUsageCreditsUsedByTypeBetween :many
 SELECT type, SUM(credits_used) FROM usage_records WHERE app_id = $1 AND created_at BETWEEN $2 AND $3 GROUP BY type
 `
@@ -211,8 +325,26 @@ func (q *Queries) GetUsageCreditsUsedByTypeBetween(ctx context.Context, arg GetU
 	return items, nil
 }
 
+const getUsageCreditsUsedByUserSince = `-- name: GetUsageCreditsUsedByUserSince :one
+SELECT COALESCE(SUM(credits_used), 0)::int FROM usage_records
+WHERE app_id = $1 AND user_id = $2 AND created_at >= $3
+`
+
+type GetUsageCreditsUsedByUserSinceParams struct {
+	AppID   string
+	UserID  pgtype.Text
+	StartAt pgtype.Timestamp
+}
+
+func (q *Queries) GetUsageCreditsUsedByUserSince(ctx context.Context, arg GetUsageCreditsUsedByUserSinceParams) (int32, error) {
+	row := q.db.QueryRow(ctx, getUsageCreditsUsedByUserSince, arg.AppID, arg.UserID, arg.StartAt)
+	var column_1 int32
+	err := row.Scan(&column_1)
+	return column_1, err
+}
+
 const getUsageRecordsByAppBetween = `-- name: GetUsageRecordsByAppBetween :many
-SELECT id, type, app_id, command_id, event_listener_id, message_id, credits_used, created_at FROM usage_records WHERE app_id = $1 AND created_at BETWEEN $2 AND $3 ORDER BY created_at DESC
+SELECT id, type, app_id, command_id, event_listener_id, message_id, credits_used, created_at, guild_id, user_id FROM usage_records WHERE app_id = $1 AND created_at BETWEEN $2 AND $3 ORDER BY created_at DESC
 `
 
 type GetUsageRecordsByAppBetweenParams struct {
@@ -239,6 +371,8 @@ func (q *Queries) GetUsageRecordsByAppBetween(ctx context.Context, arg GetUsageR
 			&i.MessageID,
 			&i.CreditsUsed,
 			&i.CreatedAt,
+			&i.GuildID,
+			&i.UserID,
 		); err != nil {
 			return nil, err
 		}

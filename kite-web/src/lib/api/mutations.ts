@@ -69,6 +69,13 @@ import {
   AppSecretCreateRequest,
   AppSecretCreateResponse,
   AppSecretDeleteResponse,
+  CreditLimitCreateRequest,
+  CreditLimitCreateResponse,
+  CreditLimitDeleteResponse,
+  CreditLimitUpdateRequest,
+  CreditLimitUpdateResponse,
+  CreditLimitSettingsUpdateRequest,
+  CreditLimitSettingsUpdateResponse,
   AppSecretUpdateRequest,
   AppSecretUpdateResponse,
   VariableCreateRequest,
@@ -563,6 +570,91 @@ export function useAppSecretDeleteMutation(appId: string, secretId: string) {
     onSuccess: () => {
       client.invalidateQueries({
         queryKey: ["apps", appId, "secrets"],
+      });
+    },
+  });
+}
+
+export function useCreditLimitCreateMutation(appId: string) {
+  const client = useQueryClient();
+
+  return useMutation({
+    mutationFn: (req: CreditLimitCreateRequest) =>
+      apiRequest<CreditLimitCreateResponse>(`/v1/apps/${appId}/credit-limits`, {
+        method: "POST",
+        body: JSON.stringify(req),
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }),
+    onSuccess: () => {
+      client.invalidateQueries({
+        queryKey: ["apps", appId, "credit-limits"],
+      });
+    },
+  });
+}
+
+export function useCreditLimitUpdateMutation(appId: string, limitId: string) {
+  const client = useQueryClient();
+
+  return useMutation({
+    mutationFn: (req: CreditLimitUpdateRequest) =>
+      apiRequest<CreditLimitUpdateResponse>(
+        `/v1/apps/${appId}/credit-limits/${limitId}`,
+        {
+          method: "PATCH",
+          body: JSON.stringify(req),
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      ),
+    onSuccess: () => {
+      client.invalidateQueries({
+        queryKey: ["apps", appId, "credit-limits"],
+      });
+    },
+  });
+}
+
+export function useCreditLimitSettingsUpdateMutation(appId: string) {
+  const client = useQueryClient();
+
+  return useMutation({
+    mutationFn: (req: CreditLimitSettingsUpdateRequest) =>
+      apiRequest<CreditLimitSettingsUpdateResponse>(
+        `/v1/apps/${appId}/credit-limits/settings`,
+        {
+          method: "PUT",
+          body: JSON.stringify(req),
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      ),
+    onSuccess: () => {
+      client.invalidateQueries({
+        queryKey: ["apps", appId, "credit-limits", "settings"],
+      });
+    },
+  });
+}
+
+export function useCreditLimitDeleteMutation(appId: string, limitId: string) {
+  const client = useQueryClient();
+
+  return useMutation({
+    mutationFn: () =>
+      apiRequest<CreditLimitDeleteResponse>(
+        `/v1/apps/${appId}/credit-limits/${limitId}`,
+        {
+          method: "DELETE",
+        }
+      ),
+    onSuccess: () => {
+      client.invalidateQueries({
+        queryKey: ["apps", appId, "credit-limits"],
       });
     },
   });

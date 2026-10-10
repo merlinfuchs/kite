@@ -37,6 +37,9 @@ import {
   VariableValueListResponse,
   AppSecretListResponse,
   AppIntegrationListResponse,
+  CreditLimitListResponse,
+  CreditLimitUsageListResponse,
+  CreditLimitSettingsGetResponse,
 } from "../types/wire.gen";
 
 export function useUserQuery(userId = "@me") {
@@ -213,6 +216,44 @@ export function useAppSecretsQuery(appId: string) {
     queryKey: ["apps", appId, "secrets"],
     queryFn: () =>
       apiRequest<AppSecretListResponse>(`/v1/apps/${appId}/secrets`),
+    enabled: !!appId,
+  });
+}
+
+export function useCreditLimitsQuery(appId: string) {
+  return useQuery({
+    queryKey: ["apps", appId, "credit-limits"],
+    queryFn: () =>
+      apiRequest<CreditLimitListResponse>(`/v1/apps/${appId}/credit-limits`),
+    enabled: !!appId,
+  });
+}
+
+export function useCreditLimitSettingsQuery(appId: string) {
+  return useQuery({
+    queryKey: ["apps", appId, "credit-limits", "settings"],
+    queryFn: () =>
+      apiRequest<CreditLimitSettingsGetResponse>(
+        `/v1/apps/${appId}/credit-limits/settings`
+      ),
+    enabled: !!appId,
+  });
+}
+
+export function useCreditLimitUsageQuery(
+  appId: string,
+  scope: string,
+  period: string
+) {
+  return useQuery({
+    queryKey: ["apps", appId, "credit-limits", "usage", scope, period],
+    queryFn: () =>
+      apiRequest<CreditLimitUsageListResponse>(
+        `/v1/apps/${appId}/credit-limits/usage?${new URLSearchParams({
+          scope,
+          period,
+        })}`
+      ),
     enabled: !!appId,
   });
 }

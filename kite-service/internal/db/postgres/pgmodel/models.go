@@ -93,6 +93,25 @@ type Command struct {
 	LastDeployedAt pgtype.Timestamp
 }
 
+type CreditLimit struct {
+	ID        string
+	AppID     string
+	Scope     string
+	TargetID  pgtype.Text
+	Period    string
+	Credits   pgtype.Int4
+	CreatedAt pgtype.Timestamp
+	UpdatedAt pgtype.Timestamp
+	Message   pgtype.Text
+}
+
+type CreditLimitSetting struct {
+	AppID     string
+	Message   pgtype.Text
+	CreatedAt pgtype.Timestamp
+	UpdatedAt pgtype.Timestamp
+}
+
 type Entitlement struct {
 	ID             string
 	Type           string
@@ -257,6 +276,8 @@ type UsageRecord struct {
 	MessageID       pgtype.Text
 	CreditsUsed     int32
 	CreatedAt       pgtype.Timestamp
+	GuildID         pgtype.Text
+	UserID          pgtype.Text
 }
 
 type User struct {

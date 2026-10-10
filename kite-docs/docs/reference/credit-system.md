@@ -13,6 +13,8 @@ You can track your credit usage on the dashboard in the Monthly Usage section.
 
 When your app has used all of its credits, Kite stops it and your bot goes offline. Once the next month has started or you have more credits, click on `Start App` in the app's settings to start it again.
 
+To stop a single server or user from using up all of your credits, set [credit limits](./credit-limits.md).
+
 ## Cost Breakdown
 
 Most actions in flows will consume **1 credit per execution** with a few exceptions:

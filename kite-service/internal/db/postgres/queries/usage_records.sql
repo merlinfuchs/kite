@@ -5,10 +5,12 @@ INSERT INTO usage_records (
     command_id,
     event_listener_id,
     message_id,
+    guild_id,
+    user_id,
     credits_used,
     created_at
 ) VALUES (
-    $1, $2, $3, $4, $5, $6, $7
+    $1, $2, $3, $4, $5, $6, $7, $8, $9
 ) RETURNING *;
 
 -- name: GetUsageRecordsByAppBetween :many
@@ -53,3 +55,25 @@ DELETE FROM usage_records WHERE id IN (
     WHERE expired.created_at < @before_at
     LIMIT @batch_size
 );
+
+-- name: GetUsageCreditsUsedByGuildSince :one
+SELECT COALESCE(SUM(credits_used), 0)::int FROM usage_records
+WHERE app_id = @app_id AND guild_id = @guild_id AND created_at >= @start_at;
+
+-- name: GetUsageCreditsUsedByUserSince :one
+SELECT COALESCE(SUM(credits_used), 0)::int FROM usage_records
+WHERE app_id = @app_id AND user_id = @user_id AND created_at >= @start_at;
+
+-- name: GetTopUsageCreditsByGuildBetween :many
+SELECT guild_id::text AS target_id, SUM(credits_used)::int AS credits_used FROM usage_records
+WHERE app_id = @app_id AND guild_id IS NOT NULL AND created_at BETWEEN @start_at AND @end_at
+GROUP BY guild_id
+ORDER BY credits_used DESC
+LIMIT @row_limit;
+
+-- name: GetTopUsageCreditsByUserBetween :many
+SELECT user_id::text AS target_id, SUM(credits_used)::int AS credits_used FROM usage_records
+WHERE app_id = @app_id AND user_id IS NOT NULL AND created_at BETWEEN @start_at AND @end_at
+GROUP BY user_id
+ORDER BY credits_used DESC
+LIMIT @row_limit;

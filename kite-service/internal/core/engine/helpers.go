@@ -6,10 +6,14 @@ import (
 	"log/slog"
 	"net/http"
 	"runtime/debug"
+	"strings"
 	"time"
 
+	"github.com/diamondburned/arikawa/v3/api"
+	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/gateway"
 	"github.com/diamondburned/arikawa/v3/state"
+	"github.com/diamondburned/arikawa/v3/utils/json/option"
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/internal/store"
 	"github.com/kitecloud/kite/kite-service/internal/util"
@@ -43,6 +47,9 @@ type Env struct {
 	OpenaiClient         *openai.Client
 	TokenCrypt           *util.SymmetricCrypt
 	CooldownProvider     provider.CooldownProvider
+	// CreditLimiter enforces the credit limits app owners set for single
+	// servers and users. Nil enforces none.
+	CreditLimiter *CreditLimiter
 }
 
 type entityLinks struct {
@@ -187,6 +194,10 @@ func (s Env) executeFlowEvent(
 		return
 	}
 
+	if s.creditLimitReached(ctx, appID, session, fCtx, links) {
+		return
+	}
+
 	s.finishFlowRun(appID, links, fCtx, node.Execute(fCtx), "Failed to execute flow event")
 }
 
@@ -229,11 +240,150 @@ func (s Env) finishFlowRun(appID string, links entityLinks, fCtx *flow.FlowConte
 		)
 	}
 
+	guildID, userID := executionTargetIDs(fCtx)
+
 	s.createUsageRecord(
 		appID,
 		fCtx.CreditsUsed(),
 		links,
+		guildID,
+		userID,
 	)
+
+	if s.CreditLimiter != nil {
+		s.CreditLimiter.Record(appID, fCtx.CreditsUsed(), creditLimitTargets(guildID.String, userID.String)...)
+	}
+}
+
+// executionTargetIDs returns the server and user a flow runs for, if any.
+func executionTargetIDs(fCtx *flow.FlowContext) (null.String, null.String) {
+	var guildID, userID null.String
+	if id := fCtx.Data.GuildID(); id.IsValid() {
+		guildID = null.StringFrom(id.String())
+	}
+	if id := fCtx.Data.UserID(); id.IsValid() {
+		userID = null.StringFrom(id.String())
+	}
+	return guildID, userID
+}
+
+// creditLimitReached checks the credit limits of the server and user the flow
+// runs for. If one is reached the flow doesn't run, and the user is told why if
+// they triggered it with an interaction. Failing to check lets the flow run, a
+// database hiccup shouldn't take every bot down with it.
+func (s Env) creditLimitReached(
+	ctx context.Context,
+	appID string,
+	session *state.State,
+	fCtx *flow.FlowContext,
+	links entityLinks,
+) bool {
+	if s.CreditLimiter == nil {
+		return false
+	}
+
+	guildID, userID := executionTargetIDs(fCtx)
+
+	exceeded, err := s.CreditLimiter.Check(ctx, appID, creditLimitTargets(guildID.String, userID.String)...)
+	if err != nil {
+		logCreditLimitError(appID, err)
+		return false
+	}
+	if exceeded == nil {
+		return false
+	}
+
+	if exceeded.FirstReport {
+		s.createLogEntry(
+			appID,
+			model.LogLevelWarn,
+			fmt.Sprintf(
+				"Credit limit reached for %s %s: %d of %d credits used per %s. Executions for it are skipped until the %s ends.",
+				creditLimitScopeName(exceeded.Limit.Scope),
+				exceeded.TargetID,
+				exceeded.Used,
+				exceeded.Limit.Credits.Int64,
+				exceeded.Limit.Period,
+				exceeded.Limit.Period,
+			),
+			links,
+		)
+	}
+
+	interaction := fCtx.Data.Interaction()
+	if interaction == nil || session == nil {
+		return true
+	}
+	if _, ok := interaction.Data.(*discord.AutocompleteInteraction); ok {
+		return true
+	}
+
+	content, err := renderCreditLimitMessage(fCtx, exceeded)
+	if err != nil {
+		if exceeded.FirstReport {
+			s.createLogEntry(
+				appID,
+				model.LogLevelError,
+				fmt.Sprintf("Failed to render credit limit message, showing the default message instead: %v", err),
+				links,
+			)
+		}
+		content = creditLimitMessage(exceeded)
+	}
+
+	err = session.RespondInteraction(interaction.ID, interaction.Token, api.InteractionResponse{
+		Type: api.MessageInteractionWithSource,
+		Data: &api.InteractionResponseData{
+			Content: option.NewNullableString(content),
+			Flags:   discord.EphemeralMessage,
+		},
+	})
+	if err != nil {
+		slog.Error(
+			"Failed to respond to interaction over credit limit",
+			slog.String("app_id", appID),
+			slog.String("error", err.Error()),
+		)
+	}
+
+	return true
+}
+
+// renderCreditLimitMessage evaluates the custom message of a limit with the
+// placeholders of the interaction and {{limit.*}}. Without a custom message,
+// or if it comes out empty, it's Kite's message.
+func renderCreditLimitMessage(fCtx *flow.FlowContext, exceeded *CreditLimitExceeded) (string, error) {
+	if !exceeded.Message.Valid || strings.TrimSpace(exceeded.Message.String) == "" {
+		return creditLimitMessage(exceeded), nil
+	}
+
+	fCtx.EvalCtx.Env["limit"] = creditLimitEnv(exceeded, time.Now().UTC())
+
+	res, err := fCtx.EvalTemplate(exceeded.Message.String)
+	if err != nil {
+		return "", err
+	}
+
+	content := strings.TrimSpace(res.String())
+	if content == "" {
+		return creditLimitMessage(exceeded), nil
+	}
+
+	// Discord rejects longer messages, and placeholders can make it longer
+	// than what was saved.
+	if runes := []rune(content); len(runes) > maxCreditLimitMessageLength {
+		content = string(runes[:maxCreditLimitMessageLength])
+	}
+	return content, nil
+}
+
+const maxCreditLimitMessageLength = 2000
+
+func creditLimitScopeName(scope model.CreditLimitScope) string {
+	if scope == model.CreditLimitScopeGuild {
+		return "server"
+	}
+	return "user"
 }
 
 func (s Env) createLogEntry(appID string, level model.LogLevel, message string, links entityLinks) {
@@ -255,7 +405,7 @@ func (s Env) createLogEntry(appID string, level model.LogLevel, message string, 
 	}
 }
 
-func (s Env) createUsageRecord(appID string, creditsUsed int, links entityLinks) {
+func (s Env) createUsageRecord(appID string, creditsUsed int, links entityLinks, guildID null.String, userID null.String) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*30)
 	defer cancel()
 
@@ -266,6 +416,8 @@ func (s Env) createUsageRecord(appID string, creditsUsed int, links entityLinks)
 		CommandID:       links.CommandID,
 		EventListenerID: links.EventListenerID,
 		MessageID:       links.MessageID,
+		GuildID:         guildID,
+		UserID:          userID,
 		CreditsUsed:     creditsUsed,
 		CreatedAt:       time.Now().UTC(),
 	})
