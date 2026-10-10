@@ -21,7 +21,6 @@ type EventListenerType string
 
 const (
 	EventListenerTypeDiscordMessageCreate         EventListenerType = "message_create"
-	EventListenerTypeDiscordDirectMessageCreate   EventListenerType = "direct_message_create"
 	EventListenerTypeDiscordMessageUpdate         EventListenerType = "message_update"
 	EventListenerTypeDiscordMessageDelete         EventListenerType = "message_delete"
 	EventListenerTypeDiscordGuildMemberAdd        EventListenerType = "guild_member_add"
@@ -30,6 +29,7 @@ const (
 	EventListenerTypeDiscordMessageReactionRemove EventListenerType = "message_reaction_remove"
 	EventListenerTypeDiscordGuildCreate           EventListenerType = "guild_create"
 	EventListenerTypeDiscordGuildDelete           EventListenerType = "guild_delete"
+	EventListenerTypeDiscordDirectMessageCreate   EventListenerType = "direct_message_create"
 
 	EventListenerTypeScheduleCron EventListenerType = EventListenerType(flow.EventTypeScheduleCron)
 	EventListenerTypeWebhook      EventListenerType = EventListenerType(flow.EventTypeWebhook)

@@ -329,28 +329,40 @@ func (a *App) HandleEvent(appID string, session *state.State, event gateway.Even
 			a.resumeFlowOrRespondExpired(resumePointID, session, e)
 		}
 	default:
-		eventType := model.EventTypeFromDiscordEventType(e.EventType())
-
-		if msg, ok := e.(*gateway.MessageCreateEvent); ok && msg.GuildID == 0 {
-			a.RLock()
-			dmListeners := a.listenersByType[model.EventListenerTypeDiscordDirectMessageCreate]
-			a.RUnlock()
-
-			for _, listener := range dmListeners {
-				go listener.HandleEvent(appID, session, event)
-			}
-		}
-
-		// The index is replaced rather than mutated on rebuild, so this slice
-		// stays valid after the lock is released.
-		a.RLock()
-		listeners := a.listenersByType[eventType]
-		a.RUnlock()
-
-		for _, listener := range listeners {
+		for _, listener := range a.listenersForEvent(e) {
 			go listener.HandleEvent(appID, session, event)
 		}
 	}
+}
+
+// listenersForEvent returns the event listeners an event is dispatched to.
+// Messages in DMs only go to direct message listeners: message listeners
+// were written for servers, and running them, and spending credits, on every
+// DM once an app has the direct messages intent would change what existing
+// flows do.
+func (a *App) listenersForEvent(e gateway.Event) []*EventListener {
+	eventType := model.EventTypeFromDiscordEventType(e.EventType())
+
+	switch e := e.(type) {
+	case *gateway.MessageCreateEvent:
+		if e.GuildID == 0 {
+			eventType = model.EventListenerTypeDiscordDirectMessageCreate
+		}
+	case *gateway.MessageUpdateEvent:
+		if e.GuildID == 0 {
+			return nil
+		}
+	case *gateway.MessageDeleteEvent:
+		if e.GuildID == 0 {
+			return nil
+		}
+	}
+
+	// The index is replaced rather than mutated on rebuild, so this slice
+	// stays valid after the lock is released.
+	a.RLock()
+	defer a.RUnlock()
+	return a.listenersByType[eventType]
 }
 
 // resumeFlow loads a resume point and dispatches it back into the flow that

@@ -5942,7 +5942,6 @@
             "type": "string",
             "enum": [
               "message_create",
-              "direct_message_create",
               "message_update",
               "message_delete",
               "guild_member_add",
@@ -5951,6 +5950,7 @@
               "message_reaction_remove",
               "guild_create",
               "guild_delete",
+              "direct_message_create",
               "cron",
               "webhook"
             ],

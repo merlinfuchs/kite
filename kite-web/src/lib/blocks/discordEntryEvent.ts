@@ -18,7 +18,6 @@ export const discordEntryEvent: BlockDefinition = {
       schema: z
         .enum([
           "message_create",
-          "direct_message_create",
           "message_update",
           "message_delete",
           "guild_member_add",
@@ -27,6 +26,7 @@ export const discordEntryEvent: BlockDefinition = {
           "message_reaction_remove",
           "guild_create",
           "guild_delete",
+          "direct_message_create",
           "cron",
           "webhook",
         ])
