@@ -52,6 +52,10 @@ export const FlagIsComponentsV2 = 1 << 15;
 export const ComponentTypeActionRow = 1;
 export const ComponentTypeButton = 2;
 export const ComponentTypeStringSelect = 3;
+export const ComponentTypeUserSelect = 5;
+export const ComponentTypeRoleSelect = 6;
+export const ComponentTypeMentionableSelect = 7;
+export const ComponentTypeChannelSelect = 8;
 export const ComponentTypeSection = 9;
 export const ComponentTypeTextDisplay = 10;
 export const ComponentTypeThumbnail = 11;
@@ -78,6 +82,10 @@ export interface ComponentData {
   min_values?: number /* int */;
   max_values?: number /* int */;
   options?: ComponentSelectOptionData[];
+  /**
+   * ChannelTypes limits the channels a channel select offers, all types if empty.
+   */
+  channel_types?: number /* int */[];
   /**
    * Action Row, Section, Container
    */

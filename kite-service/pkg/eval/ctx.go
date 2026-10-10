@@ -37,7 +37,8 @@ type InteractionEnv struct {
 	Member     any                      `expr:"member" json:"member"`
 	Command    *CommandEnv              `expr:"command" json:"command"`
 	Components map[string]*ComponentEnv `expr:"components" json:"components"`
-	// Values are the options picked in a select menu, Value is the first of them.
+	// Values are the options picked in a select menu, or the IDs of the users,
+	// roles or channels picked in the other selects. Value is the first of them.
 	Values []string `expr:"values" json:"values"`
 	Value  string   `expr:"value" json:"value"`
 }
@@ -71,14 +72,40 @@ func NewInteractionEnv(i *discord.InteractionEvent, session *state.State) *Inter
 		e.Command = newCommandEnv(i, guild)
 	}
 
-	if data, ok := i.Data.(*discord.StringSelectInteraction); ok {
-		e.Values = data.Values
-		if len(data.Values) > 0 {
-			e.Value = data.Values[0]
+	if values, ok := selectedValues(i.Data); ok {
+		e.Values = values
+		if len(values) > 0 {
+			e.Value = values[0]
 		}
 	}
 
 	return e
+}
+
+// selectedValues returns what was picked in a select menu: the option values
+// of a string select, or the IDs of the users, roles or channels of the others.
+func selectedValues(data discord.InteractionData) ([]string, bool) {
+	switch d := data.(type) {
+	case *discord.StringSelectInteraction:
+		return d.Values, true
+	case *discord.UserSelectInteraction:
+		return stringValues(d.Values), true
+	case *discord.RoleSelectInteraction:
+		return stringValues(d.Values), true
+	case *discord.MentionableSelectInteraction:
+		return stringValues(d.Values), true
+	case *discord.ChannelSelectInteraction:
+		return stringValues(d.Values), true
+	}
+	return nil, false
+}
+
+func stringValues[T fmt.Stringer](values []T) []string {
+	res := make([]string, len(values))
+	for i, v := range values {
+		res[i] = v.String()
+	}
+	return res
 }
 
 func NewContextFromInteraction(i *discord.InteractionEvent, session *state.State) Context {

@@ -111,6 +111,7 @@ import FlowPlaceholderExplorer from "./FlowPlaceholderExplorer";
 import env from "@/lib/env/client";
 import { ScrollArea } from "../ui/scroll-area";
 import { cn } from "@/lib/utils";
+import { channelTypeOptions } from "@/lib/message/selectMenu";
 
 interface Props {
   nodeId: string;
@@ -2047,19 +2048,6 @@ function PollDataInput({ data, updateData, errors }: InputProps) {
   );
 }
 
-const modalChannelTypeOptions = [
-  { label: "Text", value: "0" },
-  { label: "Voice", value: "2" },
-  { label: "Category", value: "4" },
-  { label: "Announcement", value: "5" },
-  { label: "Announcement Thread", value: "10" },
-  { label: "Public Thread", value: "11" },
-  { label: "Private Thread", value: "12" },
-  { label: "Stage", value: "13" },
-  { label: "Forum", value: "15" },
-  { label: "Media", value: "16" },
-];
-
 function parseOptionalInt(v: string) {
   const n = parseInt(v);
   return isNaN(n) ? undefined : n;
@@ -2454,7 +2442,7 @@ function ModalLabelInput({
           field={`${inputField}.channel_types`}
           title="Channel Types"
           description="Leave empty to allow all channel types."
-          options={modalChannelTypeOptions}
+          options={channelTypeOptions}
           values={(input.channel_types ?? []).map((t) => t.toString())}
           updateValues={(v) =>
             updateInput({
