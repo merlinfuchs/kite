@@ -2,6 +2,7 @@ import AppLayout from "@/components/app/AppLayout";
 import { getAppShellLayout } from "@/components/app/AppShell";
 import { PluginList } from "@/components/app/PluginList";
 import { Separator } from "@/components/ui/separator";
+import env from "@/lib/env/client";
 
 const breadcrumbs = [
   {
@@ -17,7 +18,14 @@ export default function AppPluginsPage() {
         <p className="text-muted-foreground text-sm">
           Plugins are used to extend the functionality of your app without
           having to build things yourself. Plugins work separately from your own
-          commands, events, and message templates.
+          commands, events, and message templates.{" "}
+          <a
+            href={`${env.NEXT_PUBLIC_DOCS_LINK}/reference/plugins`}
+            target="_blank"
+            className="text-primary hover:underline"
+          >
+            Learn More
+          </a>
         </p>
       </div>
       <Separator className="my-8" />
