@@ -106,7 +106,22 @@ export const httpResponseResultSchema = z
   .object({
     status: z.string().describe("Status line, e.g. 200 OK"),
     status_code: z.number().describe("Status code, e.g. 200"),
+    headers: z
+      .record(z.string())
+      .describe(
+        "Headers of the response, e.g. headers['Content-Type']. Repeated headers are joined with commas."
+      ),
     body: z.string().describe("Body of the response as text"),
     data: z.unknown().describe("Body of the response parsed as JSON"),
   })
   .describe("The response to the request");
+
+// With a response transform, the block's result is what the transform
+// returns instead of the response.
+export const nodeActionHttpRequestResultSchema = httpResponseResultSchema.or(
+  z
+    .unknown()
+    .describe(
+      "What response_transform returns, when the block has one, e.g. a string or number"
+    )
+);

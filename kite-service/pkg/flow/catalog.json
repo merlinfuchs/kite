@@ -5235,11 +5235,11 @@
                   "properties": {
                     "key": {
                       "type": "string",
-                      "description": "Name of the header."
+                      "description": "Name of the header or parameter."
                     },
                     "value": {
                       "type": "string",
-                      "description": "Value of the header.",
+                      "description": "Value of the header or parameter.",
                       "x-templated": true
                     }
                   },
@@ -5249,12 +5249,57 @@
                   ],
                   "additionalProperties": false
                 },
-                "description": "Headers to send with the request."
+                "description": "Headers to send with the request. Content-Type is set to application/json for a JSON body unless one is given here."
+              },
+              "query": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "key": {
+                      "type": "string",
+                      "description": "Name of the header or parameter."
+                    },
+                    "value": {
+                      "type": "string",
+                      "description": "Value of the header or parameter.",
+                      "x-templated": true
+                    }
+                  },
+                  "required": [
+                    "key",
+                    "value"
+                  ],
+                  "additionalProperties": false
+                },
+                "description": "Query parameters, added to the URL and encoded. Use these instead of writing placeholders into the URL's query string."
+              },
+              "body_type": {
+                "type": "string",
+                "enum": [
+                  "none",
+                  "json"
+                ],
+                "description": "Whether the request has a JSON body. Set it to json together with body."
+              },
+              "body": {
+                "type": "string",
+                "description": "JSON body of the request as text. Placeholders inside quotes are inserted as escaped text, e.g. \"Hi {{user.name}}\". Placeholders outside quotes keep their type, e.g. {\"count\": {{arg('count')}}} sends a number, and an empty result becomes null. The text must be valid JSON once placeholders are filled in.",
+                "x-templated": true
               },
               "body_json": {
                 "type": "object",
                 "additionalProperties": {},
-                "description": "JSON body of the request. Placeholders in its string values are evaluated."
+                "description": "JSON body of blocks saved before body existed. Don't set it, use body_type and body instead."
+              },
+              "fail_on_error_status": {
+                "type": "boolean",
+                "description": "Stop the flow with an error when the response has a 4xx or 5xx status code. Without it, the response is the result whatever its status."
+              },
+              "response_transform": {
+                "type": "string",
+                "maxLength": 10000,
+                "description": "Expression, written without surrounding {{ }}, whose result becomes the result of the block instead of the response. The response is available as response, e.g. response.data().items[0].name. It can use all placeholders, but not secrets."
               }
             },
             "required": [
@@ -5262,7 +5307,7 @@
               "method"
             ],
             "additionalProperties": false,
-            "description": "The request to send."
+            "description": "The request to send. Secrets of the app can be used in its URL, headers, query and body as {{secrets.NAME}}."
           },
           "temporary_name": {
             "type": "string",
@@ -5276,30 +5321,46 @@
         "additionalProperties": false
       },
       "result_schema": {
-        "type": "object",
-        "properties": {
-          "status": {
-            "type": "string",
-            "description": "Status line, e.g. 200 OK"
+        "anyOf": [
+          {
+            "type": "object",
+            "properties": {
+              "status": {
+                "type": "string",
+                "description": "Status line, e.g. 200 OK"
+              },
+              "status_code": {
+                "type": "number",
+                "description": "Status code, e.g. 200"
+              },
+              "headers": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "string"
+                },
+                "description": "Headers of the response, e.g. headers['Content-Type']. Repeated headers are joined with commas."
+              },
+              "body": {
+                "type": "string",
+                "description": "Body of the response as text"
+              },
+              "data": {
+                "description": "Body of the response parsed as JSON"
+              }
+            },
+            "required": [
+              "status",
+              "status_code",
+              "headers",
+              "body"
+            ],
+            "additionalProperties": false,
+            "description": "The response to the request"
           },
-          "status_code": {
-            "type": "number",
-            "description": "Status code, e.g. 200"
-          },
-          "body": {
-            "type": "string",
-            "description": "Body of the response as text"
-          },
-          "data": {
-            "description": "Body of the response parsed as JSON"
+          {
+            "description": "What response_transform returns, when the block has one, e.g. a string or number"
           }
-        },
-        "required": [
-          "status",
-          "status_code",
-          "body"
         ],
-        "additionalProperties": false,
         "description": "The response to the request"
       }
     },

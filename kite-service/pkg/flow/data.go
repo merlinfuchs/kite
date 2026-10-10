@@ -888,12 +888,36 @@ const (
 	ModalComponentTypeCheckbox          = "checkbox"
 )
 
+type HTTPRequestBodyType string
+
+const (
+	HTTPRequestBodyTypeNone HTTPRequestBodyType = "none"
+	HTTPRequestBodyTypeJSON HTTPRequestBodyType = "json"
+)
+
 type HTTPRequestData struct {
-	URL      string                    `json:"url,omitempty"`
-	Method   string                    `json:"method,omitempty"`
-	Headers  []HTTPRequestDataKeyValue `json:"headers,omitempty"`
-	Query    []HTTPRequestDataKeyValue `json:"query,omitempty"`
-	BodyJSON json.RawMessage           `json:"body_json,omitempty"`
+	URL     string                    `json:"url,omitempty"`
+	Method  string                    `json:"method,omitempty"`
+	Headers []HTTPRequestDataKeyValue `json:"headers,omitempty"`
+	Query   []HTTPRequestDataKeyValue `json:"query,omitempty"`
+
+	// BodyType selects how the request body is built. When it's empty the
+	// node predates body types and BodyJSON, if set, is sent as JSON.
+	BodyType HTTPRequestBodyType `json:"body_type,omitempty"`
+	// Body is the JSON body as text. Placeholders are JSON-aware, see
+	// eval.EvalJSONTemplate.
+	Body string `json:"body,omitempty"`
+	// BodyJSON is the JSON body of nodes created before body types existed.
+	// New nodes store the JSON as text in Body instead.
+	BodyJSON json.RawMessage `json:"body_json,omitempty"`
+
+	// FailOnErrorStatus makes the node fail when the response has a 4xx or
+	// 5xx status code instead of passing the response on.
+	FailOnErrorStatus bool `json:"fail_on_error_status,omitempty"`
+	// ResponseTransform is an optional expression that post-processes the
+	// response. It can access the response as `response` and its result
+	// becomes the result of the node.
+	ResponseTransform string `json:"response_transform,omitempty"`
 }
 
 type HTTPRequestDataKeyValue struct {

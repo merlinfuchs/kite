@@ -38,6 +38,8 @@ import {
   EventListenerWebhookSecretRegenerateResponse,
   FlowAIChatRequest,
   FlowAIChatResponse,
+  FlowHTTPRequestTestRequest,
+  FlowHTTPRequestTestResponse,
   MessageCreateRequest,
   MessageCreateResponse,
   MessageDeleteResponse,
@@ -1106,5 +1108,21 @@ export function useFlowAIChatMutation(appId: string) {
         client.invalidateQueries({ queryKey: flowAIUsageQueryKey(appId) });
       }
     },
+  });
+}
+
+export function useFlowHTTPRequestTestMutation(appId: string) {
+  return useMutation({
+    mutationFn: (req: FlowHTTPRequestTestRequest) =>
+      apiRequest<FlowHTTPRequestTestResponse>(
+        `/v1/apps/${appId}/flow/http-request/test`,
+        {
+          method: "POST",
+          body: JSON.stringify(req),
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      ),
   });
 }

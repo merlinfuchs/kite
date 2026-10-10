@@ -16,6 +16,7 @@ import (
 	commandhandler "github.com/kitecloud/kite/kite-service/internal/api/handler/command"
 	eventlistener "github.com/kitecloud/kite/kite-service/internal/api/handler/event_listener"
 	flowaihandler "github.com/kitecloud/kite/kite-service/internal/api/handler/flowai"
+	"github.com/kitecloud/kite/kite-service/internal/api/handler/flowtest"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/integration"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/logs"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/message"
@@ -218,6 +219,17 @@ func (s *APIServer) RegisterRoutes(
 		// Repairs are sent right after a prompt, so a few prompts in a row
 		// take many requests. The monthly limits cap the cost.
 		handler.RateLimitByUser(30, time.Minute),
+	)
+
+	// Flow test routes
+	flowTestHandler := flowtest.NewFlowTestHandler(s.config.HTTPRequestTestClient, appSecretStore, tokenCrypt)
+
+	flowGroup := appGroup.Group("/flow")
+	// Every test is a real outbound request, so this is kept well below the
+	// app group's general limit.
+	flowGroup.Post("/http-request/test",
+		handler.TypedWithBody(flowTestHandler.HandleHTTPRequestTest),
+		handler.RateLimitByUser(10, time.Minute),
 	)
 
 	// Usage routes

@@ -7,6 +7,7 @@ import {
   getDiscordApiOperation,
   similarDiscordApiOperations,
 } from "./discordApi";
+import { validateJsonTemplate } from "./jsonTemplate";
 
 export const numericRegex = /^[0-9]+$/;
 export const decimalRegex = /^[0-9]+(\.[0-9]+)?$/;
@@ -300,6 +301,74 @@ const discordApiRequestBaseSchema = z.object({
       "JSON body of the request, an object or for some endpoints a list. Placeholders in its string values are evaluated. A string that is a single placeholder keeps the type of its result, e.g. a number or list."
     ),
 });
+
+const httpRequestKeyValueSchema = z.object({
+  key: z.string().describe("Name of the header or parameter."),
+  value: templated(z.string(), "Value of the header or parameter."),
+});
+
+export const httpRequestDataSchema = z
+  .object({
+    url: templated(z.string().url(), "URL to send the request to."),
+    method: z
+      .enum(["GET", "POST", "PUT", "PATCH", "DELETE"])
+      .describe("HTTP method of the request."),
+    headers: z
+      .array(httpRequestKeyValueSchema)
+      .optional()
+      .describe(
+        "Headers to send with the request. Content-Type is set to application/json for a JSON body unless one is given here."
+      ),
+    query: z
+      .array(httpRequestKeyValueSchema)
+      .optional()
+      .describe(
+        "Query parameters, added to the URL and encoded. Use these instead of writing placeholders into the URL's query string."
+      ),
+    body_type: z
+      .enum(["none", "json"])
+      .optional()
+      .describe(
+        "Whether the request has a JSON body. Set it to json together with body."
+      ),
+    body: templated(
+      z.string(),
+      'JSON body of the request as text. Placeholders inside quotes are inserted as escaped text, e.g. "Hi {{user.name}}". Placeholders outside quotes keep their type, e.g. {"count": {{arg(\'count\')}}} sends a number, and an empty result becomes null. The text must be valid JSON once placeholders are filled in.'
+    ).optional(),
+    body_json: z
+      .record(z.unknown())
+      .optional()
+      .describe(
+        "JSON body of blocks saved before body existed. Don't set it, use body_type and body instead."
+      ),
+    fail_on_error_status: z
+      .boolean()
+      .optional()
+      .describe(
+        "Stop the flow with an error when the response has a 4xx or 5xx status code. Without it, the response is the result whatever its status."
+      ),
+    response_transform: z
+      .string()
+      .max(10000)
+      .optional()
+      .describe(
+        "Expression, written without surrounding {{ }}, whose result becomes the result of the block instead of the response. The response is available as response, e.g. response.data().items[0].name. It can use all placeholders, but not secrets."
+      ),
+  })
+  .superRefine((data, ctx) => {
+    if (data.body_type !== "json" || !data.body) return;
+    const error = validateJsonTemplate(data.body);
+    if (error) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["body"],
+        message: error.message,
+      });
+    }
+  })
+  .describe(
+    "The request to send. Secrets of the app can be used in its URL, headers, query and body as {{secrets.NAME}}."
+  );
 
 // Formats of typed Discord API parameters, which can also be a placeholder.
 export const discordApiParamFormats: Record<string, [RegExp, string]> = {

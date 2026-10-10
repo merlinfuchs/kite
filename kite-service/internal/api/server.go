@@ -29,6 +29,10 @@ type APIServerConfig struct {
 	UserLimits          APIUserLimitsConfig
 	Billing             BillingConfig
 	AssistantMaxRepairs int
+	// HTTPRequestTestClient sends the requests of HTTP request blocks tested
+	// from the editor. It's nil when no egress proxy is configured, which
+	// turns testing off.
+	HTTPRequestTestClient *http.Client
 }
 
 type APIUserLimitsConfig struct {

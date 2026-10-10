@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"net/http"
 	"time"
 
 	"github.com/kitecloud/kite/kite-service/internal/api"
@@ -95,6 +96,18 @@ func StartServer(c context.Context, cfg *config.Config) error {
 		DiscordGuildID:  cfg.Discord.GuildID,
 	})
 
+	// Shared by the engine and the API, which tests HTTP request blocks with
+	// it, so tests go through the same egress proxy as flows.
+	flowHTTPClient := engineHTTPClient(cfg)
+
+	// Without an egress proxy, flow requests can reach the host's internal
+	// network. A test returns the response straight to the browser, so it's
+	// only offered when a proxy filters what requests can reach.
+	var httpRequestTestClient *http.Client
+	if cfg.Engine.HTTPProxyURL != "" {
+		httpRequestTestClient = flowHTTPClient
+	}
+
 	engine := engine.NewEngine(
 		engine.Env{
 			Config: engine.EngineConfig{
@@ -122,7 +135,7 @@ func StartServer(c context.Context, cfg *config.Config) error {
 			AppSecretStore:       pg,
 			AppIntegrationStore:  pg,
 			ResumePointStore:     pg,
-			HttpClient:           engineHTTPClient(cfg),
+			HttpClient:           flowHTTPClient,
 			OpenaiClient:         &openaiClient,
 			TokenCrypt:           tokenCrypt,
 			CooldownProvider:     cooldownProvider,
@@ -164,7 +177,8 @@ func StartServer(c context.Context, cfg *config.Config) error {
 		UserLimits: api.APIUserLimitsConfig{
 			MaxAppsPerUser: cfg.UserLimits.MaxAppsPerUser,
 		},
-		AssistantMaxRepairs: cfg.Assistant.MaxRepairs,
+		AssistantMaxRepairs:   cfg.Assistant.MaxRepairs,
+		HTTPRequestTestClient: httpRequestTestClient,
 		Billing: api.BillingConfig{
 			LemonSqueezyAPIKey:        cfg.Billing.LemonSqueezyAPIKey,
 			LemonSqueezySigningSecret: cfg.Billing.LemonSqueezySigningSecret,

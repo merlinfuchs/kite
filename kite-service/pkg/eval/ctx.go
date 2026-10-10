@@ -1415,6 +1415,7 @@ type HTTPResponseEnv struct {
 
 	Status     string                 `expr:"status" json:"status"`
 	StatusCode int                    `expr:"status_code" json:"status_code"`
+	Headers    map[string]string      `expr:"headers" json:"headers"`
 	BodyFunc   func() (string, error) `expr:"body" json:"-"`
 	DataFunc   func() (any, error)    `expr:"data" json:"-"`
 }
@@ -1425,6 +1426,7 @@ func NewHTTPResponseEnv(resp thing.HTTPResponseValue) *HTTPResponseEnv {
 
 		Status:     resp.Status,
 		StatusCode: resp.StatusCode,
+		Headers:    resp.Headers,
 		BodyFunc: func() (string, error) {
 			return string(resp.Body), nil
 		},
