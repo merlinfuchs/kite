@@ -18,6 +18,7 @@ function flow(order?: string[]) {
     }),
     testNode("permissions", "option_command_permissions"),
     testNode("unconnected", "option_command_argument"),
+    testNode("handle", "option_command_argument"),
   ];
   const edges = [
     testEdge("reason", "entry"),
@@ -25,6 +26,7 @@ function flow(order?: string[]) {
     testEdge("permissions", "entry"),
     testEdge("days", "entry"),
     testEdge("duration", "entry"),
+    { ...testEdge("handle", "entry"), targetHandle: "input" },
   ];
 
   return getCommandArguments(entry, nodes, edges);

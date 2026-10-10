@@ -13,7 +13,8 @@ export function getCommandArguments(
   const optional: Node<NodeData>[] = [];
 
   for (const edge of edges) {
-    if (edge.target !== entry.id) continue;
+    // The service only reads connections into a block's single input
+    if (edge.target !== entry.id || edge.targetHandle != null) continue;
 
     const node = nodes.find((n) => n.id === edge.source);
     if (!node || node.type !== "option_command_argument") continue;
