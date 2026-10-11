@@ -10,17 +10,19 @@ const botLinks = [
 ];
 
 const compareLinks = [
-  { label: "BotGhost Alternative", href: "/alternatives/botghost" },
-  { label: "inventor.bot Alternative", href: "/alternatives/inventor" },
-  { label: "BotWiz Alternative", href: "/alternatives/botwiz" },
-  { label: "BDFD Alternative", href: "/alternatives/bdfd" },
-  { label: "All Alternatives", href: "/alternatives" },
+  { label: "vs. BotGhost", href: "/alternatives/botghost" },
+  { label: "vs. inventor.bot", href: "/alternatives/inventor" },
+  { label: "vs. BotWiz", href: "/alternatives/botwiz" },
+  { label: "vs. BDFD", href: "/alternatives/bdfd" },
+  { label: "All Comparisons", href: "/alternatives" },
 ];
 
 export default function HomeFooter() {
   return (
     <footer id="footer">
-      <hr className="w-11/12 mx-auto" />
+      <div className="container">
+        <hr />
+      </div>
 
       <section className="container py-20 grid grid-cols-2 md:grid-cols-5 gap-x-12 gap-y-8">
         <div className="col-span-full">
@@ -108,7 +110,7 @@ export default function HomeFooter() {
               href="/guides/how-to-make-a-discord-bot"
               className="opacity-60 hover:opacity-100"
             >
-              How to Make a Discord Bot
+              Bot Building Guide
             </Link>
           </div>
           <div>

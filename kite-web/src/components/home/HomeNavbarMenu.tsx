@@ -36,7 +36,7 @@ export default function HomeNavbarMenu() {
           </NavigationMenuTrigger>
           <NavigationMenuContent>
             <ul className="grid gap-3 p-4 w-[80dvw] md:w-[400px] lg:w-[500px] lg:grid-cols-[.75fr_1fr]">
-              <li className="row-span-3">
+              <li className="row-span-4">
                 <Link href="/" legacyBehavior passHref>
                   <NavigationMenuLink asChild>
                     <div
@@ -55,8 +55,11 @@ export default function HomeNavbarMenu() {
               <ListItem href="/#features" title="Features">
                 Learn about the features of Kite and how to use them.
               </ListItem>
-              <ListItem href="/#flow" title="Visual Scripting">
-                See how you can create Discord bots without writing code.
+              <ListItem href="/#how-it-works" title="How It Works">
+                See how you make a Discord bot without writing code.
+              </ListItem>
+              <ListItem href="/#pricing" title="Pricing">
+                Start for free and upgrade a bot when it needs more.
               </ListItem>
               <ListItem href="/#faq" title="Frequently Asked Questions">
                 Get answers to common questions about Kite.
