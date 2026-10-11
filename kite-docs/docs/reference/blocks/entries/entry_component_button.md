@@ -11,7 +11,7 @@ import NodeInfoExplorer from "../../../../src/components/NodeInfoExplorer";
 
 The `Button` block is the entry point for button and select menu interactions. This block gets triggered when a user clicks a button or picks an option in a select menu that was created by your bot. In the flow of a select menu the block is called `Select Menu`.
 
-When a user picks an option in a select menu, the value of the option is available as `{{interaction.value}}`. If the select menu allows picking more than one option, all picked values are available as `{{interaction.values}}`.
+When a user picks an option in a select menu, the value of the option is available as `{{interaction.value}}`. If the select menu allows picking more than one option, all picked values are available as `{{interaction.values}}`. In a user, role, mentionable or channel select these are the IDs of the picked users, roles or channels, see [Select Menus](/reference/message#user-role-mentionable-and-channel-selects).
 
 This is typically used in conjunction with interactive components in your messages.
 
