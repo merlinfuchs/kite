@@ -95,7 +95,7 @@ export default function HomeFooter() {
           Copyright &copy; {new Date().getFullYear()} made by{" "}
           <a
             target="_blank"
-            href="https://merlin.gg"
+            href="https://merlinfuchs.com"
             className="text-primary transition-all border-primary hover:border-b-2"
           >
             Merlin Fuchs
