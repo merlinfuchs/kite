@@ -49,7 +49,11 @@ export const FAQList: FAQProps[] = [
   },
 ];
 
-export default function HomeFAQSection() {
+export default function HomeFAQSection({
+  faqs = FAQList,
+}: {
+  faqs?: FAQProps[];
+}) {
   return (
     <section id="faq" className="container py-24 sm:py-32">
       <h2 className="text-3xl md:text-4xl font-bold mb-4">
@@ -60,7 +64,7 @@ export default function HomeFAQSection() {
       </h2>
 
       <Accordion type="single" collapsible className="w-full AccordionRoot">
-        {FAQList.map(({ question, answer }: FAQProps) => (
+        {faqs.map(({ question, answer }: FAQProps) => (
           <FAQItem key={question} question={question} answer={answer} />
         ))}
       </Accordion>
