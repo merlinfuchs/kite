@@ -25,8 +25,8 @@ export default function HomeHeroSection() {
 
         <p className="text-xl text-muted-foreground md:w-10/12 mx-auto lg:mx-0">
           Kite is a free Discord bot maker. Build your own bot with slash
-          commands, buttons, events and AI in a visual editor, without a single
-          line of code. We host it for you 24/7.
+          commands, buttons, events and AI in a visual editor, without writing
+          code. We host it for you 24/7.
         </p>
 
         <div className="space-y-4 md:space-y-0 md:space-x-4">

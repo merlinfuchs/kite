@@ -16,7 +16,7 @@ export const FAQList: FAQProps[] = [
   {
     question: "What is Kite?",
     answer:
-      "Kite is a free, open source Discord bot maker. You build commands and event listeners in a visual editor by connecting blocks, and Kite hosts your bot 24/7. You don't need to write a single line of code.",
+      "Kite is a free, open source Discord bot maker. You build commands and event listeners in a visual editor by connecting blocks, and Kite hosts your bot 24/7. You don't need to write any code.",
   },
   {
     question: "Is Kite free to use?",
@@ -26,17 +26,17 @@ export const FAQList: FAQProps[] = [
   {
     question: "Do I need to know how to code?",
     answer:
-      'No. You build your bot by connecting blocks like "Ban member", "Send message" or "Ask AI". If you don\'t know where to start, describe what you want and the flow AI builds it for you, or import a ready-made template for moderation, welcome messages or an AI chatbot.',
+      'No. You build your bot by connecting blocks like "Ban member", "Send message" or "Ask AI". You can also describe a command and Kite\'s AI builds it for you, or import a template for moderation, welcome messages or an AI chatbot.',
   },
   {
     question: "Can I customize the name and avatar of my Discord bot?",
     answer:
-      "Yes. With Kite you create the bot yourself so you can customize the name and avatar however you like. You can even customize the bot's status and activity for free, without any limitations!",
+      "Yes. Your bot is your own Discord application, so you choose its name and avatar. You can also set its status for free.",
   },
   {
     question: "What can my bot do?",
     answer:
-      "Kite supports slash commands, buttons, select menus, modals and event listeners for things like new members, messages, reactions and server boosts. Your flows can manage members, roles, channels and messages, store data in variables, call any HTTP API and use AI.",
+      "Kite supports slash commands, buttons, select menus, modals and event listeners for things like new members, messages, reactions and server boosts. Your flows can manage members, roles, channels and messages, store data in variables, send requests to other APIs and use AI.",
   },
   {
     question: "How many servers can I add my bot to?",

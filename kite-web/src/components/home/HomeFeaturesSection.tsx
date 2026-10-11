@@ -28,7 +28,7 @@ const features: FeatureProps[] = [
     icon: <SparklesIcon />,
     title: "AI Built In",
     description:
-      "Describe what a command should do and the flow AI builds it. Your bot can use AI to answer questions too.",
+      "Describe what a command should do and Kite's AI builds it for you. Your bot can also use AI to answer questions.",
   },
   {
     icon: <CodeIcon />,
