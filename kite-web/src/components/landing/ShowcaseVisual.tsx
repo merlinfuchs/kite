@@ -18,12 +18,12 @@ export interface Showcase {
 // A flow with the bot's reply in Discord overlapping its corner.
 export default function ShowcaseVisual({ showcase }: { showcase: Showcase }) {
   return (
-    <div className="relative lg:pb-16">
-      {/* On large screens the reply covers the bottom of this box, so the flow keeps out of it. */}
-      <div className="h-[380px] rounded-lg border bg-muted/50 lg:pb-24">
+    <div>
+      {/* On large screens the reply overlaps the bottom of this box by 3.5rem, so the flow keeps out of it. */}
+      <div className="h-[380px] rounded-lg border bg-muted/50 p-4 lg:pb-[4.5rem]">
         <FlowExample nodes={showcase.flow.nodes} edges={showcase.flow.edges} />
       </div>
-      <div className="mt-4 lg:mt-0 lg:absolute lg:bottom-0 lg:right-0 lg:w-[80%] lg:shadow-xl rounded-lg">
+      <div className="relative mt-4 lg:-mt-14 lg:ml-auto lg:w-[80%] lg:shadow-xl rounded-lg">
         <DiscordReplyMockup
           command={showcase.command}
           event={showcase.event}
