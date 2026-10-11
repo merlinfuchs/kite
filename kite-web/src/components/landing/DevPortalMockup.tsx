@@ -16,7 +16,7 @@ export default function DevPortalMockup() {
           <div className="flex-auto rounded bg-[#1e1f22] px-3 py-2 text-gray-500 text-sm truncate">
             ••••••••••••••••••••••••••••••••
           </div>
-          <div className="rounded bg-[#5865F2] px-4 py-2 text-sm font-medium">
+          <div className="flex-none whitespace-nowrap rounded bg-[#5865F2] px-4 py-2 text-sm font-medium">
             Reset Token
           </div>
         </div>

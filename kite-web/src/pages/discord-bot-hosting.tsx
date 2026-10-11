@@ -1,7 +1,7 @@
 import LandingPage, {
-  openSourcePoint,
   LandingPageContent,
 } from "@/components/landing/LandingPage";
+import { openSourcePoint } from "@/components/landing/copy";
 import { helloFlow } from "@/components/landing/flows";
 import env from "@/lib/env/client";
 
@@ -17,10 +17,8 @@ const content: LandingPageContent = {
     href: `${env.NEXT_PUBLIC_DOCS_LINK}/guides/getting-started`,
   },
   showcase: {
-    heading: "From Blocks to an Online Bot",
-    body: "This command replies to /hello. Build it, deploy it, and your bot answers in Discord right away.",
     flow: helloFlow,
-    trigger: "Alex used /hello",
+    command: "hello",
     reply: "Hello @Alex!",
   },
   sections: [
