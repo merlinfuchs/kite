@@ -5,6 +5,9 @@ import { NodeData } from "./dataSchema";
 import {
   BrainCircuitIcon,
   GavelIcon,
+  InfoIcon,
+  LaughIcon,
+  LightbulbIcon,
   LucideIcon,
   UserRoundPlusIcon,
 } from "lucide-react";
@@ -40,7 +43,14 @@ export type Template = {
 };
 
 export function getTemplates() {
-  return [getModerationTemplate(), getAITemplate(), getWelcomerTemplate()];
+  return [
+    getModerationTemplate(),
+    getAITemplate(),
+    getWelcomerTemplate(),
+    getFunTemplate(),
+    getSuggestionsTemplate(),
+    getInfoTemplate(),
+  ];
 }
 
 export function prepareTemplateFlow(flow: {
@@ -659,9 +669,13 @@ export function getWelcomerTemplate(): Template {
   const welcomerEntryNodeId = getNodeId();
   const welcomerActionMessageCreateNodeId = getNodeId();
 
+  const leaveEntryNodeId = getNodeId();
+  const leaveActionMessageCreateNodeId = getNodeId();
+
   return {
     name: "Welcomer",
-    description: "An event listener to welcome new users to the server.",
+    description:
+      "Event listeners to welcome new users to the server and say goodbye when they leave.",
     icon: UserRoundPlusIcon,
     inputs: [
       {
@@ -670,6 +684,14 @@ export function getWelcomerTemplate(): Template {
         description: "The channel to send the welcome messages to.",
         type: "text",
         required: true,
+      },
+      {
+        key: "leave_channel_id",
+        label: "Leave Channel ID",
+        description:
+          "The channel to send the leave messages to. Uses the welcome channel if empty.",
+        type: "text",
+        required: false,
       },
     ],
     commands: [],
@@ -708,6 +730,645 @@ export function getWelcomerTemplate(): Template {
           ],
         }),
       },
+      {
+        source: "discord",
+        type: "guild_member_remove",
+        description: "Say goodbye when a user leaves the server.",
+        flowSource: (inputs) => ({
+          nodes: [
+            {
+              id: leaveEntryNodeId,
+              type: "entry_event",
+              data: {
+                event_type: "guild_member_remove",
+                description: "Say goodbye when a user leaves the server.",
+              },
+            },
+            {
+              id: leaveActionMessageCreateNodeId,
+              type: "action_message_create",
+              data: {
+                channel_target: inputs.leave_channel_id || inputs.channel_id,
+                message_data: {
+                  // The user already left, so a mention would show up as an
+                  // unknown user for most members.
+                  content:
+                    "**{{event.user.display_name}}** has left the server. We now have {{guild.member_count}} members.",
+                },
+              },
+            },
+          ],
+          edges: [
+            {
+              id: getEdgeId(),
+              source: leaveEntryNodeId,
+              target: leaveActionMessageCreateNodeId,
+            },
+          ],
+        }),
+      },
     ],
+  };
+}
+
+// apiCommand builds a command that sends a request to an external API and
+// responds with an embed built from the response, or with an error if the API
+// didn't answer with 200 OK.
+function apiCommand({
+  name,
+  description,
+  url,
+  headers,
+  embed,
+}: {
+  name: string;
+  description: string;
+  url: string;
+  headers?: { key: string; value: string }[];
+  // Gets the ID of the request block to read the response with
+  // {{nodes.<id>.result.data}}.
+  embed: (requestNodeId: string) => Record<string, unknown>;
+}): Template["commands"][number] {
+  const entryNodeId = getNodeId();
+  const requestNodeId = getNodeId();
+  const conditionNodeId = getNodeId();
+  const conditionOkNodeId = getNodeId();
+  const conditionElseNodeId = getNodeId();
+  const responseNodeId = getNodeId();
+  const errorResponseNodeId = getNodeId();
+
+  return {
+    name,
+    description,
+    flowSource: () => ({
+      nodes: [
+        {
+          id: entryNodeId,
+          type: "entry_command",
+          data: {
+            name,
+            description,
+          },
+        },
+        {
+          id: requestNodeId,
+          type: "action_http_request",
+          data: {
+            http_request_data: {
+              url,
+              method: "GET",
+              headers,
+            },
+          },
+        },
+        {
+          id: conditionNodeId,
+          type: "control_condition_compare",
+          data: {
+            // Equal compares types too, so the number has to become text to
+            // match the "200" of the condition item.
+            condition_base_value: `{{string(nodes.${requestNodeId}.result.status_code)}}`,
+          },
+        },
+        {
+          id: conditionOkNodeId,
+          type: "control_condition_item_compare",
+          data: {
+            condition_item_value: "200",
+            condition_item_mode: "equal",
+          },
+        },
+        {
+          id: conditionElseNodeId,
+          type: "control_condition_item_else",
+          data: {},
+        },
+        {
+          id: responseNodeId,
+          type: "action_response_create",
+          data: {
+            message_data: {
+              embeds: [embed(requestNodeId)],
+            },
+          },
+        },
+        {
+          id: errorResponseNodeId,
+          type: "action_response_create",
+          data: {
+            message_data: {
+              content: "The API didn't answer, please try again later.",
+            },
+            message_ephemeral: true,
+          },
+        },
+      ],
+      edges: [
+        {
+          id: getEdgeId(),
+          source: entryNodeId,
+          target: requestNodeId,
+        },
+        {
+          id: getEdgeId(),
+          source: requestNodeId,
+          target: conditionNodeId,
+        },
+        {
+          id: getEdgeId(),
+          source: conditionNodeId,
+          target: conditionOkNodeId,
+        },
+        {
+          id: getEdgeId(),
+          source: conditionNodeId,
+          target: conditionElseNodeId,
+        },
+        {
+          id: getEdgeId(),
+          source: conditionOkNodeId,
+          target: responseNodeId,
+        },
+        {
+          id: getEdgeId(),
+          source: conditionElseNodeId,
+          target: errorResponseNodeId,
+        },
+      ],
+    }),
+  };
+}
+
+export function getFunTemplate(): Template {
+  return {
+    name: "Fun",
+    description:
+      "Commands that get quotes, jokes and animal pictures from free APIs.",
+    icon: LaughIcon,
+    inputs: [],
+    commands: [
+      apiCommand({
+        name: "quote",
+        description: "Get a random inspiring quote.",
+        url: "https://dummyjson.com/quotes/random/",
+        embed: (id) => ({
+          description: `> {{nodes.${id}.result.data.quote}}`,
+          footer: {
+            text: `— {{nodes.${id}.result.data.author}}`,
+          },
+          color: 0x5865f2,
+        }),
+      }),
+      apiCommand({
+        name: "joke",
+        description: "Get a random dad joke.",
+        url: "https://icanhazdadjoke.com/",
+        // Without it the API responds with a web page instead of JSON.
+        headers: [{ key: "Accept", value: "application/json" }],
+        embed: (id) => ({
+          title: "😂 Dad Joke",
+          description: `{{nodes.${id}.result.data.joke}}`,
+          color: 0xfee75c,
+        }),
+      }),
+      apiCommand({
+        name: "cat",
+        description: "Get a random cat picture.",
+        url: "https://api.thecatapi.com/v1/images/search",
+        embed: (id) => ({
+          title: "🐱 Meow!",
+          image: {
+            url: `{{nodes.${id}.result.data[0].url}}`,
+          },
+          color: 0xeb459e,
+        }),
+      }),
+      apiCommand({
+        name: "dog",
+        description: "Get a random dog picture.",
+        url: "https://dog.ceo/api/breeds/image/random",
+        embed: (id) => ({
+          title: "🐶 Woof!",
+          image: {
+            url: `{{nodes.${id}.result.data.message}}`,
+          },
+          color: 0x57f287,
+        }),
+      }),
+    ],
+    eventListeners: [],
+  };
+}
+
+export function getSuggestionsTemplate(): Template {
+  const entryNodeId = getNodeId();
+  const optionSuggestionNodeId = getNodeId();
+  const optionCooldownNodeId = getNodeId();
+  const messageCreateNodeId = getNodeId();
+  const reactionUpNodeId = getNodeId();
+  const reactionDownNodeId = getNodeId();
+  const responseNodeId = getNodeId();
+
+  return {
+    name: "Suggestions",
+    description:
+      "A command that posts suggestions to a channel for members to vote on.",
+    icon: LightbulbIcon,
+    inputs: [
+      {
+        key: "channel_id",
+        label: "Channel ID",
+        description: "The channel to post the suggestions in.",
+        type: "text",
+        required: true,
+      },
+    ],
+    commands: [
+      {
+        name: "suggest",
+        description: "Suggest something for the server.",
+        flowSource: (inputs) => ({
+          nodes: [
+            {
+              id: entryNodeId,
+              type: "entry_command",
+              data: {
+                name: "suggest",
+                description: "Suggest something for the server.",
+              },
+            },
+            {
+              id: optionSuggestionNodeId,
+              type: "option_command_argument",
+              data: {
+                name: "suggestion",
+                description: "What do you suggest?",
+                command_argument_type: "string",
+                command_argument_required: true,
+              },
+            },
+            {
+              id: optionCooldownNodeId,
+              type: "option_command_cooldown",
+              data: {
+                cooldown_scope: "user",
+                cooldown_duration_seconds: "60",
+              },
+            },
+            {
+              id: messageCreateNodeId,
+              type: "action_message_create",
+              data: {
+                channel_target: inputs.channel_id,
+                message_data: {
+                  embeds: [
+                    {
+                      author: {
+                        name: "{{user.display_name}}",
+                        icon_url: "{{user.avatar_url}}",
+                      },
+                      title: "💡 New Suggestion",
+                      description: "{{interaction.command.args.suggestion}}",
+                      footer: {
+                        text: "Vote with the reactions below",
+                      },
+                      color: 0xfee75c,
+                    },
+                  ],
+                },
+              },
+            },
+            {
+              id: reactionUpNodeId,
+              type: "action_message_reaction_create",
+              data: {
+                channel_target: inputs.channel_id,
+                message_target: `{{nodes.${messageCreateNodeId}.result.id}}`,
+                emoji_data: {
+                  name: "👍",
+                },
+              },
+            },
+            {
+              id: reactionDownNodeId,
+              type: "action_message_reaction_create",
+              data: {
+                channel_target: inputs.channel_id,
+                message_target: `{{nodes.${messageCreateNodeId}.result.id}}`,
+                emoji_data: {
+                  name: "👎",
+                },
+              },
+            },
+            {
+              id: responseNodeId,
+              type: "action_response_create",
+              data: {
+                message_data: {
+                  content: `Your suggestion has been posted in <#${inputs.channel_id}>!`,
+                },
+                message_ephemeral: true,
+              },
+            },
+          ],
+          edges: [
+            {
+              id: getEdgeId(),
+              source: optionSuggestionNodeId,
+              target: entryNodeId,
+            },
+            {
+              id: getEdgeId(),
+              source: optionCooldownNodeId,
+              target: entryNodeId,
+            },
+            {
+              id: getEdgeId(),
+              source: entryNodeId,
+              target: messageCreateNodeId,
+            },
+            {
+              id: getEdgeId(),
+              source: messageCreateNodeId,
+              target: reactionUpNodeId,
+            },
+            {
+              id: getEdgeId(),
+              source: reactionUpNodeId,
+              target: reactionDownNodeId,
+            },
+            {
+              id: getEdgeId(),
+              source: reactionDownNodeId,
+              target: responseNodeId,
+            },
+          ],
+        }),
+      },
+    ],
+    eventListeners: [],
+  };
+}
+
+export function getInfoTemplate(): Template {
+  const avatarEntryNodeId = getNodeId();
+  const avatarOptionUserNodeId = getNodeId();
+  const avatarResponseNodeId = getNodeId();
+
+  const userInfoEntryNodeId = getNodeId();
+  const userInfoOptionUserNodeId = getNodeId();
+  const userInfoResponseNodeId = getNodeId();
+
+  const serverInfoEntryNodeId = getNodeId();
+  const serverInfoContextsNodeId = getNodeId();
+  const serverInfoResponseNodeId = getNodeId();
+
+  // The picked user, or the user of the command if none was picked.
+  const target = "(arg('user') ?? user)";
+
+  return {
+    name: "Server Info",
+    description:
+      "Commands that show the avatar and info of a user and info about the server.",
+    icon: InfoIcon,
+    inputs: [],
+    commands: [
+      {
+        name: "avatar",
+        description: "Show the avatar of a user.",
+        flowSource: () => ({
+          nodes: [
+            {
+              id: avatarEntryNodeId,
+              type: "entry_command",
+              data: {
+                name: "avatar",
+                description: "Show the avatar of a user.",
+              },
+            },
+            {
+              id: avatarOptionUserNodeId,
+              type: "option_command_argument",
+              data: {
+                name: "user",
+                description: "The user to show, yourself if empty.",
+                command_argument_type: "user",
+                command_argument_required: false,
+              },
+            },
+            {
+              id: avatarResponseNodeId,
+              type: "action_response_create",
+              data: {
+                message_data: {
+                  embeds: [
+                    {
+                      title: `Avatar of {{${target}.display_name}}`,
+                      url: `{{${target}.avatar_url}}`,
+                      image: {
+                        url: `{{${target}.avatar_url}}`,
+                      },
+                      color: 0x5865f2,
+                    },
+                  ],
+                },
+              },
+            },
+          ],
+          edges: [
+            {
+              id: getEdgeId(),
+              source: avatarOptionUserNodeId,
+              target: avatarEntryNodeId,
+            },
+            {
+              id: getEdgeId(),
+              source: avatarEntryNodeId,
+              target: avatarResponseNodeId,
+            },
+          ],
+        }),
+      },
+      {
+        name: "userinfo",
+        description: "Show info about a user.",
+        flowSource: () => ({
+          nodes: [
+            {
+              id: userInfoEntryNodeId,
+              type: "entry_command",
+              data: {
+                name: "userinfo",
+                description: "Show info about a user.",
+              },
+            },
+            {
+              id: userInfoOptionUserNodeId,
+              type: "option_command_argument",
+              data: {
+                name: "user",
+                description: "The user to show, yourself if empty.",
+                command_argument_type: "user",
+                command_argument_required: false,
+              },
+            },
+            {
+              id: userInfoResponseNodeId,
+              type: "action_response_create",
+              data: {
+                message_data: {
+                  embeds: [
+                    {
+                      author: {
+                        name: `{{${target}.username}}`,
+                        icon_url: `{{${target}.avatar_url}}`,
+                      },
+                      thumbnail: {
+                        url: `{{${target}.avatar_url}}`,
+                      },
+                      description: `{{${target}.mention}}`,
+                      fields: [
+                        {
+                          name: "ID",
+                          value: `{{${target}.id}}`,
+                          inline: true,
+                        },
+                        {
+                          name: "Bot",
+                          value: `{{${target}.is_bot ? 'Yes' : 'No'}}`,
+                          inline: true,
+                        },
+                        {
+                          name: "Account Created",
+                          value: `<t:{{${target}.created_at}}:R>`,
+                          inline: true,
+                        },
+                        {
+                          name: "Joined Server",
+                          value: `{{${target}.joined_at > 0 ? '<t:' + string(${target}.joined_at) + ':R>' : 'Not in this server'}}`,
+                          inline: true,
+                        },
+                        {
+                          name: "Avatar",
+                          value: `{{${target}.avatar_url != '' ? '[Open full size](' + ${target}.avatar_url + ')' : 'Default avatar'}}`,
+                          inline: true,
+                        },
+                        {
+                          name: "Roles",
+                          value: `{{${target}.role_count > 0 ? ${target}.role_mentions : 'None'}}`,
+                        },
+                      ],
+                      color: 0x5865f2,
+                    },
+                  ],
+                },
+              },
+            },
+          ],
+          edges: [
+            {
+              id: getEdgeId(),
+              source: userInfoOptionUserNodeId,
+              target: userInfoEntryNodeId,
+            },
+            {
+              id: getEdgeId(),
+              source: userInfoEntryNodeId,
+              target: userInfoResponseNodeId,
+            },
+          ],
+        }),
+      },
+      {
+        name: "serverinfo",
+        description: "Show info about the server.",
+        flowSource: () => ({
+          nodes: [
+            {
+              id: serverInfoEntryNodeId,
+              type: "entry_command",
+              data: {
+                name: "serverinfo",
+                description: "Show info about the server.",
+              },
+            },
+            {
+              id: serverInfoContextsNodeId,
+              type: "option_command_contexts",
+              data: {
+                command_disabled_contexts: ["bot_dm", "private_channel"],
+              },
+            },
+            {
+              id: serverInfoResponseNodeId,
+              type: "action_response_create",
+              data: {
+                message_data: {
+                  embeds: [
+                    {
+                      title: "{{guild.name}}",
+                      description: "{{guild.description}}",
+                      thumbnail: {
+                        url: "{{guild.icon_url}}",
+                      },
+                      fields: [
+                        {
+                          name: "Owner",
+                          value: "<@{{guild.owner_id}}>",
+                          inline: true,
+                        },
+                        {
+                          name: "Members",
+                          value: "{{guild.member_count}}",
+                          inline: true,
+                        },
+                        {
+                          name: "Created",
+                          value: "<t:{{guild.created_at}}:R>",
+                          inline: true,
+                        },
+                        {
+                          name: "Channels",
+                          value: "{{guild.channel_count}}",
+                          inline: true,
+                        },
+                        {
+                          name: "Roles",
+                          value: "{{guild.role_count}}",
+                          inline: true,
+                        },
+                        {
+                          name: "Boosts",
+                          value:
+                            "{{guild.boost_count}} (Level {{guild.boost_level}})",
+                          inline: true,
+                        },
+                      ],
+                      footer: {
+                        text: "ID: {{guild.id}}",
+                      },
+                      color: 0x5865f2,
+                    },
+                  ],
+                },
+              },
+            },
+          ],
+          edges: [
+            {
+              id: getEdgeId(),
+              source: serverInfoContextsNodeId,
+              target: serverInfoEntryNodeId,
+            },
+            {
+              id: getEdgeId(),
+              source: serverInfoEntryNodeId,
+              target: serverInfoResponseNodeId,
+            },
+          ],
+        }),
+      },
+    ],
+    eventListeners: [],
   };
 }

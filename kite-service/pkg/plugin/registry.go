@@ -8,6 +8,9 @@ import (
 
 type Registry struct {
 	plugins map[string]Plugin
+	// order keeps the plugins in the order they were registered, so they are
+	// listed in a stable order instead of the random order of the map.
+	order []string
 }
 
 func NewRegistry() *Registry {
@@ -18,14 +21,17 @@ func NewRegistry() *Registry {
 
 func (r *Registry) Register(plugins ...Plugin) {
 	for _, p := range plugins {
+		if _, exists := r.plugins[p.ID()]; !exists {
+			r.order = append(r.order, p.ID())
+		}
 		r.plugins[p.ID()] = p
 	}
 }
 
 func (r *Registry) Plugins() []Plugin {
-	plugins := make([]Plugin, 0, len(r.plugins))
-	for _, plugin := range r.plugins {
-		plugins = append(plugins, plugin)
+	plugins := make([]Plugin, 0, len(r.order))
+	for _, id := range r.order {
+		plugins = append(plugins, r.plugins[id])
 	}
 	return plugins
 }
