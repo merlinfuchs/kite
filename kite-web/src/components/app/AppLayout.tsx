@@ -60,7 +60,7 @@ export default function AppLayout({ children, ...props }: Props) {
 
   return (
     <BaseLayout title={props.title}>
-      <header className="flex h-14 md:h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear">
+      <header className="flex h-14 md:h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear supports-[-webkit-touch-callout:none]:pt-[10px] md:supports-[-webkit-touch-callout:none]:pt-0">
         <div className="flex items-center gap-2 justify-between px-4 w-full">
           <div className="flex items-center gap-2">
             <SidebarTrigger className="-ml-2 md:-ml-1 hidden md:flex" />
