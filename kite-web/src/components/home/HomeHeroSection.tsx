@@ -12,24 +12,21 @@ export default function HomeHeroSection() {
   return (
     <section className="container grid lg:grid-cols-2 place-items-center py-20 md:py-32 gap-10">
       <div className="text-center lg:text-start space-y-6">
-        <main className="text-5xl md:text-6xl font-bold">
-          <h2 className="inline">
-            Make{" "}
-            <span className="inline bg-gradient-to-r from-[#58d1f2] to-[#5865F2] text-transparent bg-clip-text">
-              Discord Bots
-            </span>
-          </h2>{" "}
+        <h1 className="text-5xl md:text-6xl font-bold">
+          Make{" "}
+          <span className="inline bg-gradient-to-r from-[#58d1f2] to-[#5865F2] text-transparent bg-clip-text">
+            Discord Bots
+          </span>{" "}
           with{" "}
-          <h1 className="inline">
-            <span className="inline bg-gradient-to-r from-[#f9ad15] to-primary text-transparent bg-clip-text">
-              Kite
-            </span>
-          </h1>
-        </main>
+          <span className="inline bg-gradient-to-r from-[#f9ad15] to-primary text-transparent bg-clip-text">
+            Kite
+          </span>
+        </h1>
 
         <p className="text-xl text-muted-foreground md:w-10/12 mx-auto lg:mx-0">
-          Make your own Discord Bot with Kite for free without a single line of
-          code. With support for slash commands, buttons, events, and more.
+          Kite is a free Discord bot maker. Build your own bot with slash
+          commands, buttons, events and AI in a visual editor, without a single
+          line of code. We host it for you 24/7.
         </p>
 
         <div className="space-y-4 md:space-y-0 md:space-x-4">

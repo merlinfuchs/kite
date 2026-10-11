@@ -2,11 +2,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   CodeIcon,
   DatabaseZapIcon,
-  EditIcon,
   EyeIcon,
   GamepadIcon,
   RouterIcon,
   ServerIcon,
+  SparklesIcon,
   UsersIcon,
 } from "lucide-react";
 
@@ -25,10 +25,10 @@ const features: FeatureProps[] = [
   },
 
   {
-    icon: <EditIcon />,
-    title: "Customization",
+    icon: <SparklesIcon />,
+    title: "AI Built In",
     description:
-      "Customize the look and feel of your Discord bot with Kite's easy-to-use interface.",
+      "Describe what a command should do and the flow AI builds it. Your bot can use AI to answer questions too.",
   },
   {
     icon: <CodeIcon />,
