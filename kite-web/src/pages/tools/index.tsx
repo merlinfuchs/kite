@@ -7,12 +7,14 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import {
+  ClockIcon,
   FileSearchIcon,
   FolderSearchIcon,
   ImageIcon,
   MailPlusIcon,
   PaletteIcon,
   SearchIcon,
+  ShieldCheckIcon,
   SnowflakeIcon,
   UserSearchIcon,
   WebhookIcon,
@@ -20,6 +22,27 @@ import {
 import Link from "next/link";
 
 const tools = [
+  {
+    title: "Permissions Calculator",
+    description:
+      "Select the permissions your bot needs and get the permissions integer and an invite link.",
+    icon: ShieldCheckIcon,
+    href: "/tools/permissions-calculator",
+  },
+  {
+    title: "Timestamp Generator",
+    description:
+      "Create Discord timestamps that show everyone the time in their own time zone.",
+    icon: ClockIcon,
+    href: "/tools/timestamp-generator",
+  },
+  {
+    title: "Snowflake Decoder",
+    description:
+      "Find out when a Discord user, server, channel or message was created from its ID.",
+    icon: SnowflakeIcon,
+    href: "/tools/snowflake-decoder",
+  },
   {
     title: "Message Creator",
     description:
@@ -42,13 +65,6 @@ const tools = [
       "Generate embeddable links for Discord messages with custom titles, descriptions, and images.",
     icon: ImageIcon,
     href: "https://message.style/app/tools/embed-links",
-    target: "_blank",
-  },
-  {
-    title: "Snowflake Decoder",
-    description: "Get general information about a Discord ID.",
-    icon: SnowflakeIcon,
-    href: "https://dis.wtf/lookup/snowflake",
     target: "_blank",
   },
   {

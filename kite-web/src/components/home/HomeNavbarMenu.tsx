@@ -16,31 +16,27 @@ import { PlusCircleIcon } from "lucide-react";
 
 const tools = [
   {
+    title: "Permissions Calculator",
+    href: "/tools/permissions-calculator",
+    description:
+      "Get the permissions integer and an invite link for your Discord bot.",
+  },
+  {
+    title: "Timestamp Generator",
+    href: "/tools/timestamp-generator",
+    description:
+      "Create timestamps that show everyone the time in their own time zone.",
+  },
+  {
+    title: "Snowflake Decoder",
+    href: "/tools/snowflake-decoder",
+    description: "Find out when a Discord user, server or message was created.",
+  },
+  {
     title: "Message Creator",
     href: "https://message.style/app",
     description:
       "Create good looking Discord messages and send them through webhooks!",
-    target: "_blank",
-  },
-  {
-    title: "Colored Text",
-    href: "https://message.style/app/tools/colored-text",
-    description:
-      "Generate colored text that you can use in your Discord message.",
-    target: "_blank",
-  },
-  {
-    title: "Embed Links",
-    href: "https://message.style/app/tools/embed-links",
-    description:
-      "Generate embeddable links for Discord messages with custom titles, descriptions, and images.",
-    target: "_blank",
-  },
-  {
-    title: "User Lookup",
-    href: "https://dis.wtf/lookup/user",
-    description:
-      "Get information about a Discord user by entering their user ID.",
     target: "_blank",
   },
   {
