@@ -936,11 +936,11 @@ function EventTypeInput({ data, updateData, errors }: InputProps) {
         },
         { value: "guild_create", label: "Bot Joined Server" },
         { value: "guild_delete", label: "Bot Left Server" },
+        { value: "guild_boost", label: "Server Boost" },
         {
           value: "voice_state_update",
           label: "Voice Channel Join, Leave or Move",
         },
-        { value: "guild_boost", label: "Server Boost" },
       ]}
       value={data.event_type || ""}
       updateValue={(v) => updateData({ event_type: v || undefined })}

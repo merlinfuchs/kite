@@ -375,7 +375,7 @@ func TestEventEnvVoiceState(t *testing.T) {
 	}
 
 	for _, tc := range cases {
-		env := NewEventEnv(tc.event)
+		env := NewEventEnv(tc.event, nil)
 		c := Context{Env: Env{"user": env.User, "channel": env.Channel, "voice": env.Voice}}
 
 		res, err := EvalTemplate(

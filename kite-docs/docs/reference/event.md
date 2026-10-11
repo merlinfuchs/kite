@@ -15,8 +15,8 @@ With Event Listeners you can listen for events inside the Discord servers that y
 - Reaction Remove
 - Bot Joined Server
 - Bot Left Server
-- Voice Channel Join, Leave or Move
 - Server Boost
+- Voice Channel Join, Leave or Move
 
 ## Restrictions
 

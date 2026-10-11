@@ -72,10 +72,11 @@ func (d *EventData) UserID() discord.UserID {
 		return data.User.ID
 	case *gateway.GuildMemberUpdateEvent:
 		return data.User.ID
-	case *voicestate.Event:
 	case *gateway.MessageReactionAddEvent:
 		return data.UserID
 	case *gateway.MessageReactionRemoveEvent:
+		return data.UserID
+	case *voicestate.Event:
 		return data.UserID
 	}
 	return 0
@@ -117,16 +118,16 @@ func (d *EventData) ChannelID() discord.ChannelID {
 		return data.ChannelID
 	case *gateway.MessageUpdateEvent:
 		return data.ChannelID
+	case *gateway.MessageReactionAddEvent:
+		return data.ChannelID
+	case *gateway.MessageReactionRemoveEvent:
+		return data.ChannelID
 	case *voicestate.Event:
 		// After leaving there's no current channel, so it's the one they left.
 		if data.ChannelID.IsValid() {
 			return data.ChannelID
 		}
 		return data.OldChannelID
-	case *gateway.MessageReactionAddEvent:
-		return data.ChannelID
-	case *gateway.MessageReactionRemoveEvent:
-		return data.ChannelID
 	}
 	return 0
 }

@@ -75,8 +75,8 @@ func TestNoEventListenerTypeIsEmpty(t *testing.T) {
 		model.EventListenerTypeDiscordMessageReactionRemove,
 		model.EventListenerTypeDiscordGuildCreate,
 		model.EventListenerTypeDiscordGuildDelete,
-		model.EventListenerTypeDiscordVoiceStateUpdate,
 		model.EventListenerTypeDiscordGuildBoost,
+		model.EventListenerTypeDiscordVoiceStateUpdate,
 	}
 
 	for _, tp := range types {

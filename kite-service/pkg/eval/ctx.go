@@ -338,6 +338,7 @@ type EventEnv struct {
 	Emoji   *EmojiEnv          `expr:"emoji" json:"emoji"`
 
 	Schedule *ScheduleEnv `expr:"schedule" json:"schedule"`
+	Webhook  *WebhookEnv  `expr:"webhook" json:"webhook"`
 	Voice    *VoiceEnv    `expr:"voice" json:"voice"`
 }
 
@@ -360,7 +361,6 @@ func NewVoiceEnv(e *voicestate.Event) *VoiceEnv {
 
 func (v VoiceEnv) String() string {
 	return v.Action
-	Webhook  *WebhookEnv  `expr:"webhook" json:"webhook"`
 }
 
 type ScheduleEnv struct {
@@ -521,23 +521,23 @@ func NewEventEnv(event ws.Event, session *state.State) *EventEnv {
 		env.Guild = guild(e.ID).guildEnv()
 	case *schedule.Event:
 		env.Schedule = NewScheduleEnv(e)
-	case *voicestate.Event:
-		if e.Member != nil {
-			env.Member = NewMemberEnv(*e.Member)
-		} else {
-			env.Member = NewUserEnv(discord.User{ID: e.UserID})
-		}
-		env.User = env.Member
-		env.Guild = NewSnowflakeEnv(e.GuildID)
-		// After leaving there's no current channel, so it's the one they left.
-		if e.ChannelID.IsValid() {
-			env.Channel = NewSnowflakeEnv(e.ChannelID)
-		} else if e.OldChannelID.IsValid() {
-			env.Channel = NewSnowflakeEnv(e.OldChannelID)
-		}
-		env.Voice = NewVoiceEnv(e)
 	case *webhook.Event:
 		env.Webhook = NewWebhookEnv(e)
+	case *voicestate.Event:
+		if e.Member != nil {
+			env.Member = guild(e.GuildID).memberEnv(*e.Member)
+		} else {
+			env.Member = NewUserIDEnv(e.UserID)
+		}
+		env.User = env.Member
+		env.Guild = guild(e.GuildID).guildEnv()
+		// After leaving there's no current channel, so it's the one they left.
+		if e.ChannelID.IsValid() {
+			env.Channel = currentChannelEnv(session, e.ChannelID, nil)
+		} else if e.OldChannelID.IsValid() {
+			env.Channel = currentChannelEnv(session, e.OldChannelID, nil)
+		}
+		env.Voice = NewVoiceEnv(e)
 	}
 
 	if env.Guild == nil {
@@ -602,8 +602,8 @@ func NewContextFromEvent(event ws.Event, session *state.State) Context {
 			"message":  env.Message,
 			"emoji":    env.Emoji,
 			"schedule": env.Schedule,
-			"voice":    env.Voice,
 			"webhook":  env.Webhook,
+			"voice":    env.Voice,
 			"app":      NewAppEnv(session),
 		},
 	}

@@ -77,19 +77,15 @@ func (t *FlowTrigger) UnmarshalJSON(data []byte) error {
 
 	if aux.EventType != "" {
 		var event ws.Event
-		switch aux.EventType {
-		case schedule.EventType:
-			// Kite's own event, which arikawa doesn't know about.
-			event = new(schedule.Event)
-		case voicestate.EventType:
-			// arikawa's event has no room for the old channel.
-			event = new(voicestate.Event)
 		// Kite's own events, which arikawa doesn't know about.
 		switch aux.EventType {
 		case schedule.EventType:
 			event = new(schedule.Event)
 		case webhook.EventType:
 			event = new(webhook.Event)
+		case voicestate.EventType:
+			// arikawa's event has no room for the old channel.
+			event = new(voicestate.Event)
 		default:
 			newEvent := gateway.OpUnmarshalers.Lookup(aux.EventOp, aux.EventType)
 			if newEvent == nil {

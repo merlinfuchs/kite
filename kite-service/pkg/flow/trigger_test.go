@@ -155,13 +155,6 @@ func TestFlowTriggerScheduleEventRoundTrip(t *testing.T) {
 	assert.True(t, event.Time.Equal(occurrence))
 }
 
-func TestFlowTriggerVoiceStateEventRoundTrip(t *testing.T) {
-	// The old channel isn't part of Discord's event, so decoding it as one
-	// would lose it for the sub-flows of a button.
-	trigger := newFlowTrigger(&eventData{event: &voicestate.Event{
-		VoiceState:   discord.VoiceState{GuildID: 1, UserID: 2},
-		OldChannelID: 3,
-	}})
 func TestFlowTriggerWebhookEventRoundTrip(t *testing.T) {
 	// A button sent by a webhook flow resumes with the request as the trigger
 	// that started it.
@@ -179,12 +172,29 @@ func TestFlowTriggerWebhookEventRoundTrip(t *testing.T) {
 	var decoded FlowTrigger
 	require.NoError(t, json.Unmarshal(data, &decoded))
 
+	event, ok := decoded.Event.(*webhook.Event)
+	require.True(t, ok, "decoded event is %T", decoded.Event)
+	assert.Equal(t, request, event)
+}
+
+func TestFlowTriggerVoiceStateEventRoundTrip(t *testing.T) {
+	// The old channel isn't part of Discord's event, so decoding it as one
+	// would lose it for the sub-flows of a button.
+	trigger := newFlowTrigger(&eventData{event: &voicestate.Event{
+		VoiceState:   discord.VoiceState{GuildID: 1, UserID: 2},
+		OldChannelID: 3,
+	}})
+	require.NotNil(t, trigger)
+
+	data, err := json.Marshal(trigger)
+	require.NoError(t, err)
+
+	var decoded FlowTrigger
+	require.NoError(t, json.Unmarshal(data, &decoded))
+
 	event, ok := decoded.Event.(*voicestate.Event)
 	require.True(t, ok, "decoded event is %T", decoded.Event)
 	assert.Equal(t, discord.UserID(2), event.UserID)
 	assert.Equal(t, discord.ChannelID(3), event.OldChannelID)
 	assert.Equal(t, voicestate.ActionLeave, event.Action())
-	event, ok := decoded.Event.(*webhook.Event)
-	require.True(t, ok, "decoded event is %T", decoded.Event)
-	assert.Equal(t, request, event)
 }

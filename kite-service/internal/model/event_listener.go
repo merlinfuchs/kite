@@ -20,14 +20,6 @@ const (
 type EventListenerType string
 
 const (
-	EventListenerTypeDiscordMessageCreate     EventListenerType = "message_create"
-	EventListenerTypeDiscordMessageUpdate     EventListenerType = "message_update"
-	EventListenerTypeDiscordMessageDelete     EventListenerType = "message_delete"
-	EventListenerTypeDiscordGuildMemberAdd    EventListenerType = "guild_member_add"
-	EventListenerTypeDiscordGuildMemberRemove EventListenerType = "guild_member_remove"
-	EventListenerTypeDiscordGuildCreate       EventListenerType = "guild_create"
-	EventListenerTypeDiscordGuildDelete       EventListenerType = "guild_delete"
-	EventListenerTypeDiscordVoiceStateUpdate  EventListenerType = "voice_state_update"
 	EventListenerTypeDiscordMessageCreate         EventListenerType = "message_create"
 	EventListenerTypeDiscordMessageUpdate         EventListenerType = "message_update"
 	EventListenerTypeDiscordMessageDelete         EventListenerType = "message_delete"
@@ -39,7 +31,8 @@ const (
 	EventListenerTypeDiscordGuildDelete           EventListenerType = "guild_delete"
 	// Discord has no gateway event for boosts. This type is derived from the
 	// MESSAGE_CREATE of the system message Discord posts when a member boosts.
-	EventListenerTypeDiscordGuildBoost EventListenerType = "guild_boost"
+	EventListenerTypeDiscordGuildBoost       EventListenerType = "guild_boost"
+	EventListenerTypeDiscordVoiceStateUpdate EventListenerType = "voice_state_update"
 
 	EventListenerTypeScheduleCron EventListenerType = EventListenerType(flow.EventTypeScheduleCron)
 	EventListenerTypeWebhook      EventListenerType = EventListenerType(flow.EventTypeWebhook)

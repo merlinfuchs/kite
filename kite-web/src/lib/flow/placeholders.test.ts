@@ -106,19 +106,6 @@ describe("getAvailablePlaceholders", () => {
     ]);
   });
 
-  it("lists voice placeholders instead of message ones for voice state listeners", () => {
-    const labels = (eventType: string) =>
-      getAvailablePlaceholders(
-        undefined,
-        [node("entry", "entry_event", { event_type: eventType })],
-        [],
-        "event_discord"
-      ).map((g) => g.label);
-
-    expect(labels("voice_state_update")).toContain("Voice");
-    expect(labels("voice_state_update")).not.toContain("Message");
-    expect(labels("message_create")).toContain("Message");
-    expect(labels("message_create")).not.toContain("Voice");
   it("lists all picked options of modal inputs in the modal's sub-flow", () => {
     const input = (custom_id: string, type: string, max_values?: number) => ({
       type: "label",
@@ -191,5 +178,20 @@ describe("getAvailablePlaceholders", () => {
       { label: "Emoji Name", value: "emoji.name" },
       { label: "Emoji Mention", value: "emoji.mention" },
     ]);
+  });
+
+  it("lists voice placeholders instead of message ones for voice state listeners", () => {
+    const labels = (eventType: string) =>
+      getAvailablePlaceholders(
+        undefined,
+        [node("entry", "entry_event", { event_type: eventType })],
+        [],
+        "event_discord"
+      ).map((g) => g.label);
+
+    expect(labels("voice_state_update")).toContain("Voice");
+    expect(labels("voice_state_update")).not.toContain("Message");
+    expect(labels("message_create")).toContain("Message");
+    expect(labels("message_create")).not.toContain("Voice");
   });
 });
