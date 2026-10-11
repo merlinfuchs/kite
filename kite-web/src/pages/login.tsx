@@ -9,7 +9,7 @@ export default function LoginPage() {
   }, []);
 
   return (
-    <BaseLayout title="Login">
+    <BaseLayout title="Login" noindex>
       <div className="flex flex-1 justify-center items-center min-h-[100dvh] w-full px-5 pt-10 pb-20">
         <Button asChild>
           <a href={loginUrl}>Login with Discord</a>
