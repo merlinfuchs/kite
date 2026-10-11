@@ -3,6 +3,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import CopyButton from "@/tools/common/components/CopyButton";
 import { useEffect, useState } from "react";
+import { formatRelative } from "@/tools/common/utils/time";
 
 const styles: {
   style: string;
@@ -30,25 +31,6 @@ const styles: {
   { style: "R", name: "Relative", format: "relative" },
 ];
 
-const relativeUnits: [Intl.RelativeTimeFormatUnit, number][] = [
-  ["year", 365 * 24 * 60 * 60],
-  ["month", 30 * 24 * 60 * 60],
-  ["day", 24 * 60 * 60],
-  ["hour", 60 * 60],
-  ["minute", 60],
-  ["second", 1],
-];
-
-function formatRelative(unix: number) {
-  const diff = unix - Math.floor(Date.now() / 1000);
-  const [unit, seconds] =
-    relativeUnits.find(([, s]) => Math.abs(diff) >= s) ?? relativeUnits[5];
-  return new Intl.RelativeTimeFormat(undefined, { numeric: "always" }).format(
-    Math.round(diff / seconds),
-    unit
-  );
-}
-
 function preview(
   unix: number,
   format: Intl.DateTimeFormatOptions | "relative"
@@ -74,7 +56,7 @@ export default function TimestampGenerator() {
 
   return (
     <div className="space-y-8">
-      <div className="grid md:grid-cols-2 gap-5 rounded-lg border p-5">
+      <div className="grid md:grid-cols-2 gap-5">
         <div className="space-y-2">
           <Label htmlFor="datetime">Date and time</Label>
           <div className="flex gap-3">
@@ -131,7 +113,12 @@ export default function TimestampGenerator() {
                 <div className="font-medium">{name}</div>
                 <code className="text-sm text-muted-foreground">{code}</code>
               </div>
-              <div className="flex-auto">{preview(unix, format)}</div>
+              <div className="flex-auto">
+                {/* Discord highlights timestamps like this in messages. */}
+                <span className="rounded bg-[#e3e5e8] dark:bg-[#3f4147] px-1.5 py-0.5">
+                  {preview(unix, format)}
+                </span>
+              </div>
               <CopyButton value={code} />
             </div>
           );

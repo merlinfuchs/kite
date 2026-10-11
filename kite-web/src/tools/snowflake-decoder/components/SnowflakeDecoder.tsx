@@ -4,6 +4,7 @@ import CopyButton from "@/tools/common/components/CopyButton";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { decodeSnowflake } from "../snowflake";
+import { formatRelative } from "@/tools/common/utils/time";
 
 export default function SnowflakeDecoder() {
   const [value, setValue] = useState("");
@@ -11,13 +12,6 @@ export default function SnowflakeDecoder() {
 
   const unix = decoded && Math.floor(decoded.timestamp / 1000);
   const rows = decoded && [
-    {
-      label: "Created at",
-      value: new Intl.DateTimeFormat(undefined, {
-        dateStyle: "full",
-        timeStyle: "medium",
-      }).format(decoded.timestamp),
-    },
     {
       label: "Created at (UTC)",
       value: new Date(decoded.timestamp).toISOString(),
@@ -46,6 +40,21 @@ export default function SnowflakeDecoder() {
           </p>
         )}
       </div>
+
+      {decoded && unix && (
+        <div className="rounded-lg bg-muted/50 p-5">
+          <div className="text-sm text-muted-foreground">Created</div>
+          <div className="text-2xl font-semibold mt-1">
+            {new Intl.DateTimeFormat(undefined, {
+              dateStyle: "full",
+              timeStyle: "medium",
+            }).format(decoded.timestamp)}
+          </div>
+          <div className="text-muted-foreground mt-1">
+            {formatRelative(unix)}
+          </div>
+        </div>
+      )}
 
       {rows && (
         <div className="rounded-lg border divide-y">

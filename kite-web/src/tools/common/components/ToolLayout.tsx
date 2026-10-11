@@ -1,57 +1,95 @@
+import logo from "@/assets/logo/white@1024.png";
 import HomeFooter from "@/components/home/HomeFooter";
 import HomeLayout from "@/components/home/HomeLayout";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { ChevronLeftIcon } from "lucide-react";
+import { kiteTools } from "@/tools/registry";
+import { ChevronRightIcon } from "lucide-react";
 import Link from "next/link";
 import { ReactNode } from "react";
+import ToolCard, { ToolIcon } from "./ToolCard";
 
 export default function ToolLayout({
-  children,
+  toolId,
   title,
   description,
+  children,
+  article,
   className,
   jsonLd,
 }: {
-  children: ReactNode;
+  // The id of the tool in the registry, for its icon and the related tools.
+  toolId: string;
   title: string;
   description: string;
+  children: ReactNode;
+  // Explains the tool below it.
+  article?: ReactNode;
   className?: string;
   jsonLd?: object[];
 }) {
+  const tool = kiteTools.find((t) => t.id === toolId)!;
+  const otherTools = kiteTools.filter((t) => t.id !== toolId);
+
   return (
     <HomeLayout title={title} description={description} jsonLd={jsonLd}>
-      <div className={cn("py-10 px-5 max-w-4xl mx-auto", className)}>
-        <div className="mb-14">
-          <Button variant="outline" asChild>
-            <Link href="/tools">
-              <ChevronLeftIcon className="h-5 w-5 mr-2 -ml-1" />
-              Other Tools
+      <section className="border-b bg-muted/30">
+        <div className="container max-w-5xl py-10 md:py-14">
+          <nav className="flex items-center gap-1 text-sm text-muted-foreground mb-6">
+            <Link href="/tools" className="hover:text-foreground">
+              Tools
             </Link>
-          </Button>
-        </div>
-        <div className="flex flex-col space-y-2 mb-5">
-          <h1 className="text-3xl font-semibold leading-none tracking-tight">
-            {title}
-          </h1>
-          <p className="text-sm text-muted-foreground">{description}</p>
-        </div>
-        <div>{children}</div>
-
-        <div className="mt-16 rounded-lg border bg-muted/50 p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
-            <div className="text-lg font-semibold">
-              Make your own Discord bot
-            </div>
-            <div className="text-muted-foreground">
-              Build commands from blocks with Kite. It&apos;s free and hosted
-              24/7.
+            <ChevronRightIcon className="w-4 h-4" />
+            <span className="text-foreground">{title}</span>
+          </nav>
+          <div className="flex gap-5 items-start">
+            <ToolIcon tool={tool} className="w-14 h-14 hidden sm:flex" />
+            <div>
+              <h1 className="text-3xl md:text-4xl font-bold">{title}</h1>
+              <p className="text-lg text-muted-foreground mt-2 max-w-2xl">
+                {description}
+              </p>
             </div>
           </div>
-          <Button asChild className="flex-none">
-            <Link href="/guides/how-to-make-a-discord-bot">Get Started</Link>
-          </Button>
         </div>
+      </section>
+
+      <div className="container max-w-5xl py-10">
+        <div
+          className={cn(
+            "rounded-xl border bg-card shadow-sm p-5 md:p-8",
+            className
+          )}
+        >
+          {children}
+        </div>
+
+        {article && <div className="max-w-3xl">{article}</div>}
+
+        <section className="mt-16">
+          <h2 className="text-2xl font-bold mb-6">More Discord Tools</h2>
+          <div className="grid md:grid-cols-3 gap-4">
+            {otherTools.map((t) => (
+              <ToolCard key={t.id} tool={t} />
+            ))}
+          </div>
+        </section>
+
+        <section className="mt-16 rounded-xl bg-primary text-primary-foreground p-8 flex flex-col md:flex-row md:items-center gap-6">
+          <img src={logo.src} alt="" className="w-14 h-14 flex-none" />
+          <div className="flex-auto">
+            <h2 className="text-2xl font-bold">Make your own Discord bot</h2>
+            <p className="opacity-90 mt-1">
+              Build commands by connecting blocks, without writing code. Kite is
+              free and hosts your bot 24/7.
+            </p>
+          </div>
+          <Button asChild variant="secondary" className="flex-none">
+            <Link href="/guides/how-to-make-a-discord-bot">
+              Get Started for Free
+            </Link>
+          </Button>
+        </section>
       </div>
       <HomeFooter />
     </HomeLayout>

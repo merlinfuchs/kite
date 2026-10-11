@@ -24,35 +24,38 @@ const faqs = [
 export default function PermissionsCalculatorPage() {
   return (
     <ToolLayout
+      toolId="permissions-calculator"
       title="Discord Permissions Calculator"
       description="Select the permissions your bot needs to get the permissions integer and an invite link for your bot."
       jsonLd={[faqJsonLd(faqs)]}
+      article={
+        <ToolArticle faqs={faqs}>
+          <h2>What Is the Permissions Integer?</h2>
+          <p>
+            Discord stores permissions as a single number. Each permission is
+            one bit of that number, and the integer above adds up the
+            permissions you select. Invite links pass it in the{" "}
+            <code>permissions</code> parameter, so the role of your bot gets
+            exactly these permissions when someone adds it to a server.
+          </p>
+          <h2>Which Permissions Does My Bot Need?</h2>
+          <p>
+            Only ask for the permissions your bot uses. A bot that only answers
+            slash commands needs no permissions at all, because the replies go
+            through the command. A moderation bot needs Kick Members, Ban
+            Members and Moderate Members. Server admins are more likely to add a
+            bot that asks for little.
+          </p>
+          <h2>How Do I Use the Invite Link?</h2>
+          <p>
+            Open the link, choose a server where you have the Manage Server
+            permission and click on Authorize. The bot joins with a role that
+            has the permissions you selected.
+          </p>
+        </ToolArticle>
+      }
     >
       <PermissionsCalculator />
-      <ToolArticle faqs={faqs}>
-        <h2>What Is the Permissions Integer?</h2>
-        <p>
-          Discord stores permissions as a single number. Each permission is one
-          bit of that number, and the integer above adds up the permissions you
-          select. Invite links pass it in the <code>permissions</code>{" "}
-          parameter, so the role of your bot gets exactly these permissions when
-          someone adds it to a server.
-        </p>
-        <h2>Which Permissions Does My Bot Need?</h2>
-        <p>
-          Only ask for the permissions your bot uses. A bot that only answers
-          slash commands needs no permissions at all, because the replies go
-          through the command. A moderation bot needs Kick Members, Ban Members
-          and Moderate Members. Server admins are more likely to add a bot that
-          asks for little.
-        </p>
-        <h2>How Do I Use the Invite Link?</h2>
-        <p>
-          Open the link, choose a server where you have the Manage Server
-          permission and click on Authorize. The bot joins with a role that has
-          the permissions you selected.
-        </p>
-      </ToolArticle>
     </ToolLayout>
   );
 }

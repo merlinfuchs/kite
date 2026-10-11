@@ -10,13 +10,14 @@ import {
 } from "@/lib/discord/permissions";
 import CopyButton from "@/tools/common/components/CopyButton";
 import { ExternalLinkIcon } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
+// In this order the two columns end up about the same height.
 const categories: PermissionCategory[] = [
   "General",
-  "Members",
-  "Text",
   "Voice",
+  "Text",
+  "Members",
   "Advanced",
 ];
 
@@ -36,6 +37,26 @@ export default function PermissionsCalculator() {
     "bot",
     "applications.commands",
   ]);
+
+  // Shows the integer at the bottom of the screen while the permissions are
+  // visible but its input has scrolled away.
+  const inputRef = useRef<HTMLDivElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
+  const [inputVisible, setInputVisible] = useState(true);
+  const [listVisible, setListVisible] = useState(false);
+  useEffect(() => {
+    const observer = new IntersectionObserver((entries) => {
+      for (const entry of entries) {
+        if (entry.target === inputRef.current)
+          setInputVisible(entry.isIntersecting);
+        if (entry.target === listRef.current)
+          setListVisible(entry.isIntersecting);
+      }
+    });
+    observer.observe(inputRef.current!);
+    observer.observe(listRef.current!);
+    return () => observer.disconnect();
+  }, []);
 
   const enabled = useMemo(
     () => new Set<number>(decodePermissionsBitset(value).map((p) => p.bit)),
@@ -60,7 +81,7 @@ export default function PermissionsCalculator() {
 
   return (
     <div className="space-y-10">
-      <div className="rounded-lg border p-5 space-y-2">
+      <div ref={inputRef} className="space-y-2">
         <Label htmlFor="permissions">Permissions integer</Label>
         <div className="flex gap-3">
           <Input
@@ -92,10 +113,24 @@ export default function PermissionsCalculator() {
         </div>
       )}
 
-      <div className="grid md:grid-cols-2 gap-x-10 gap-y-8">
+      <div ref={listRef} className="md:columns-2 gap-4">
         {categories.map((category) => (
-          <div key={category}>
-            <h2 className="font-semibold mb-3">{category}</h2>
+          <div
+            key={category}
+            className="rounded-lg bg-muted/50 p-4 mb-4 break-inside-avoid"
+          >
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="font-semibold">{category}</h2>
+              <span className="text-xs text-muted-foreground">
+                {
+                  permissionBits.filter(
+                    (p) => p.category === category && enabled.has(p.bit)
+                  ).length
+                }{" "}
+                of{" "}
+                {permissionBits.filter((p) => p.category === category).length}
+              </span>
+            </div>
             <div className="space-y-2">
               {permissionBits
                 .filter((p) => p.category === category)
@@ -116,7 +151,7 @@ export default function PermissionsCalculator() {
         ))}
       </div>
 
-      <div className="rounded-lg border p-5 space-y-5">
+      <div className="border-t pt-8 space-y-5">
         <div>
           <h2 className="text-xl font-semibold">Invite Link</h2>
           <p className="text-sm text-muted-foreground">
@@ -178,6 +213,14 @@ export default function PermissionsCalculator() {
           </div>
         )}
       </div>
+
+      {!inputVisible && listVisible && (
+        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 rounded-full border bg-background shadow-lg pl-5 pr-2 py-2">
+          <span className="text-sm text-muted-foreground">Permissions</span>
+          <span className="font-mono">{value || "0"}</span>
+          <CopyButton value={value || "0"} />
+        </div>
+      )}
     </div>
   );
 }
