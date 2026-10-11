@@ -1,12 +1,13 @@
-import HomeFooter from "@/components/home/HomeFooter";
-import HomeLayout from "@/components/home/HomeLayout";
+import LegalLayout from "@/components/home/LegalLayout";
 
 export default function RefundPolicyPage() {
   return (
-    <HomeLayout title="Refund Policy">
-      <div className="prose dark:prose-invert text-foreground mx-auto my-16 max-w-7xl px-5">
-        <h1>Refund Policy</h1>
-        <p>Last updated: January 20, 2025</p>
+    <LegalLayout
+      title="Refund Policy"
+      heading="Refund Policy"
+      updated="January 20, 2025"
+    >
+      <>
         <p>Thank you for subscribing to Kite.onl.</p>
         <p>
           If, for any reason, You are not completely satisfied with a purchase
@@ -102,9 +103,7 @@ export default function RefundPolicyPage() {
         <ul>
           <li>By email: contact@kite.onl</li>
         </ul>
-      </div>
-
-      <HomeFooter />
-    </HomeLayout>
+      </>
+    </LegalLayout>
   );
 }

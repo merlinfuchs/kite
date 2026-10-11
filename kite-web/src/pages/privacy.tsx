@@ -1,16 +1,17 @@
-import HomeFooter from "@/components/home/HomeFooter";
-import HomeLayout from "@/components/home/HomeLayout";
+import LegalLayout from "@/components/home/LegalLayout";
 import Head from "next/head";
 
 export default function PrivacyPolicyPage() {
   return (
-    <HomeLayout title="Privacy Policy">
-      <Head>
-        <meta name="robots" content="noindex" />
-      </Head>
-      <div className="prose dark:prose-invert text-foreground mx-auto my-16 max-w-7xl px-5">
-        <h1>Privacy Policy</h1>
-        <p>Last updated: September 24, 2025</p>
+    <LegalLayout
+      title="Privacy Policy"
+      heading="Privacy Policy"
+      updated="September 24, 2025"
+    >
+      <>
+        <Head>
+          <meta name="robots" content="noindex" />
+        </Head>
         <p>
           This Privacy Policy describes Our policies and procedures on the
           collection, use and disclosure of Your information when You use the
@@ -584,9 +585,7 @@ export default function PrivacyPolicyPage() {
         <ul>
           <li>By email: contact@kite.onl</li>
         </ul>
-      </div>
-
-      <HomeFooter />
-    </HomeLayout>
+      </>
+    </LegalLayout>
   );
 }
