@@ -3,19 +3,19 @@ import { OpenPanelComponent, useOpenPanel } from "@openpanel/nextjs";
 import { useEffect } from "react";
 
 export default function AnalyticsProvider() {
-  const op = useOpenPanel();
+  const { identify } = useOpenPanel();
   const user = useUser();
 
   useEffect(() => {
     if (user?.id) {
-      op.identify({
+      identify({
         profileId: user.id,
         firstName: user.discord_username,
         lastName: user.display_name,
         email: user.email,
       });
     }
-  }, [user?.id, op.identify]);
+  }, [identify, user]);
 
   if (process.env.NODE_ENV !== "production" || typeof window === "undefined") {
     return null;
@@ -23,8 +23,9 @@ export default function AnalyticsProvider() {
 
   return (
     <OpenPanelComponent
-      clientId="3d379370-3ce9-4a92-b7ea-2c663b7fa7dd"
-      apiUrl="https://analytics.vaven.io/api"
+      clientId="b14a6614-59bb-481e-8de0-ae685dd67de1"
+      apiUrl="https://analytics.xenon.bot/api"
+      scriptUrl="https://analytics.xenon.bot/op1.js"
       trackScreenViews={true}
       trackOutgoingLinks={true}
     />

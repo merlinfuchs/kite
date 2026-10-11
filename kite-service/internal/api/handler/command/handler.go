@@ -137,7 +137,7 @@ func (h *CommandHandler) HandleCommandUpdate(c *handler.Context, req wire.Comman
 		Name:        cmdFlow.CommandName(),
 		Description: cmdFlow.CommandDescription(),
 		FlowSource:  req.FlowSource,
-		Enabled:     req.Enabled,
+		Enabled:     c.Command.Enabled,
 		UpdatedAt:   time.Now().UTC(),
 	})
 	if err != nil {

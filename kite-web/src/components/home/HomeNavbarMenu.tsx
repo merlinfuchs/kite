@@ -3,7 +3,6 @@ import Link from "next/link";
 import logo from "@/assets/logo/orange@1024.png";
 import env from "@/lib/env/client";
 
-import { cn } from "@/lib/utils";
 import {
   NavigationMenu,
   NavigationMenuContent,
@@ -91,6 +90,14 @@ export default function HomeNavbarMenu() {
               <ListItem href="/#faq" title="Frequently Asked Questions">
                 Get answers to common questions about Kite.
               </ListItem>
+              <ListItem
+                href={env.NEXT_PUBLIC_DOCS_LINK}
+                target="_blank"
+                title="Documentation"
+                className="sm:hidden"
+              >
+                Learn how to build your bot with Kite.
+              </ListItem>
             </ul>
           </NavigationMenuContent>
         </NavigationMenuItem>
@@ -138,6 +145,15 @@ export default function HomeNavbarMenu() {
             Documentation
           </NavigationMenuLink>
         </NavigationMenuItem>
+        <NavigationMenuItem className="hidden sm:block">
+          <NavigationMenuLink
+            href={env.NEXT_PUBLIC_DISCORD_LINK}
+            target="_blank"
+            className={navigationMenuTriggerStyle()}
+          >
+            Discord
+          </NavigationMenuLink>
+        </NavigationMenuItem>
       </NavigationMenuList>
     </NavigationMenu>
   );
@@ -150,15 +166,10 @@ const ListItem = ({
   ...props
 }: React.ComponentPropsWithoutRef<typeof Link>) => {
   return (
-    <li>
+    <li className={className}>
       <Link {...props} passHref>
         <NavigationMenuLink asChild>
-          <div
-            className={cn(
-              "cursor-pointer block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground",
-              className
-            )}
-          >
+          <div className="cursor-pointer block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground">
             <div className="text-sm font-medium leading-none">{title}</div>
             <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">
               {children}

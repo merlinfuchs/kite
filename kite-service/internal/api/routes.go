@@ -9,12 +9,14 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/api/handler"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/app"
 	appstate "github.com/kitecloud/kite/kite-service/internal/api/handler/app_state"
+	"github.com/kitecloud/kite/kite-service/internal/api/handler/appsecret"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/asset"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/auth"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/billing"
 	commandhandler "github.com/kitecloud/kite/kite-service/internal/api/handler/command"
 	eventlistener "github.com/kitecloud/kite/kite-service/internal/api/handler/event_listener"
 	flowaihandler "github.com/kitecloud/kite/kite-service/internal/api/handler/flowai"
+	"github.com/kitecloud/kite/kite-service/internal/api/handler/integration"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/logs"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/message"
 	pluginhandler "github.com/kitecloud/kite/kite-service/internal/api/handler/plugin"
@@ -51,12 +53,15 @@ func (s *APIServer) RegisterRoutes(
 	entitlementStore store.EntitlementStore,
 	assetStore store.AssetStore,
 	appStateManager store.AppStateManager,
+	webhookRunner eventlistener.WebhookRunner,
 	planManager *plan.PlanManager,
 	pluginRegistry *plugin.Registry,
 	tokenCrypt *util.SymmetricCrypt,
 	commandManager *command.CommandManager,
 	assistantPromptStore store.AssistantPromptStore,
 	flowAssistant *flowai.Assistant,
+	appSecretStore store.AppSecretStore,
+	appIntegrationStore store.AppIntegrationStore,
 ) {
 	sessionManager := session.NewSessionManager(session.SessionManagerConfig{
 		StrictCookies: s.config.StrictCookies,
@@ -204,7 +209,7 @@ func (s *APIServer) RegisterRoutes(
 	logsGroup.Get("/summary", handler.Typed(logHandler.HandleLogSummaryGet))
 
 	// Flow AI routes
-	flowAIHandler := flowaihandler.NewFlowAIHandler(assistantPromptStore, variableStore, flowAssistant, s.config.AssistantMaxRepairs)
+	flowAIHandler := flowaihandler.NewFlowAIHandler(assistantPromptStore, variableStore, appSecretStore, appIntegrationStore, flowAssistant, s.config.AssistantMaxRepairs)
 
 	flowAIGroup := appGroup.Group("/flow-ai")
 	flowAIGroup.Get("/usage", handler.Typed(flowAIHandler.HandleFlowAIUsageGet))
@@ -242,7 +247,7 @@ func (s *APIServer) RegisterRoutes(
 	)
 
 	// Event listener routes
-	eventListenerHandler := eventlistener.NewEventListenerHandler(eventListenerStore)
+	eventListenerHandler := eventlistener.NewEventListenerHandler(eventListenerStore, webhookRunner)
 
 	eventListenersGroup := appGroup.Group("/event-listeners")
 	eventListenersGroup.Get("/", handler.Typed(eventListenerHandler.HandleEventListenerList))
@@ -254,6 +259,15 @@ func (s *APIServer) RegisterRoutes(
 	eventListenerGroup.Patch("/", handler.TypedWithBody(eventListenerHandler.HandleEventListenerUpdate))
 	eventListenerGroup.Delete("/", handler.Typed(eventListenerHandler.HandleEventListenerDelete))
 	eventListenerGroup.Put("/enabled", handler.TypedWithBody(eventListenerHandler.HandleEventListenerUpdateEnabled))
+	eventListenerGroup.Post("/webhook-secret",
+		handler.Typed(eventListenerHandler.HandleEventListenerWebhookSecretRegenerate),
+		handler.RateLimitByUser(10, time.Minute),
+	)
+
+	// Public, and not in the apps group because the sender has no session.
+	// nginx routes the request to the cluster that runs the app by the app ID
+	// that follows /webhooks/, like it does for routes of that group.
+	v1Group.Post("/webhooks/{appID}/{listenerID}/{secret}", eventListenerHandler.HandleEventListenerWebhook)
 
 	// Plugin instance routes
 	pluginHandler := pluginhandler.NewPluginHandler(pluginRegistry, pluginInstanceStore)
@@ -283,6 +297,33 @@ func (s *APIServer) RegisterRoutes(
 	variableGroup.Get("/", handler.Typed(variablesHandler.HandleVariableGet))
 	variableGroup.Patch("/", handler.TypedWithBody(variablesHandler.HandleVariableUpdate))
 	variableGroup.Delete("/", handler.Typed(variablesHandler.HandleVariableDelete))
+
+	variableValuesGroup := variableGroup.Group("/values")
+	variableValuesGroup.Get("/", handler.Typed(variablesHandler.HandleVariableValueList))
+	variableValuesGroup.Put("/", handler.TypedWithBody(variablesHandler.HandleVariableValueSet))
+	variableValuesGroup.Delete("/", handler.Typed(variablesHandler.HandleVariableValueDelete))
+
+	// Secret routes
+	appSecretHandler := appsecret.NewAppSecretHandler(appSecretStore, tokenCrypt)
+
+	secretsGroup := appGroup.Group("/secrets")
+	secretsGroup.Get("/", handler.Typed(appSecretHandler.HandleAppSecretList))
+	secretsGroup.Post("/", handler.TypedWithBody(appSecretHandler.HandleAppSecretCreate))
+
+	secretGroup := secretsGroup.Group("/{secretID}")
+	secretGroup.Patch("/", handler.TypedWithBody(appSecretHandler.HandleAppSecretUpdate))
+	secretGroup.Delete("/", handler.Typed(appSecretHandler.HandleAppSecretDelete))
+
+	// Integration routes
+	integrationHandler := integration.NewIntegrationHandler(appSecretStore, appIntegrationStore, tokenCrypt)
+
+	integrationsGroup := appGroup.Group("/integrations")
+	integrationsGroup.Get("/", handler.Typed(integrationHandler.HandleAppIntegrationList))
+
+	integrationGroup := integrationsGroup.Group("/{integrationID}")
+	integrationGroup.Patch("/", handler.TypedWithBody(integrationHandler.HandleAppIntegrationUpdate))
+	integrationGroup.Put("/", handler.TypedWithBody(integrationHandler.HandleAppIntegrationConnect))
+	integrationGroup.Delete("/", handler.Typed(integrationHandler.HandleAppIntegrationRemove))
 
 	// Message routes
 	messageHandler := message.NewMessageHandler(

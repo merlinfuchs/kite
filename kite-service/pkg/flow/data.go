@@ -1,13 +1,17 @@
 package flow
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"reflect"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
+	"time"
 	"unicode/utf8"
 
 	"github.com/diamondburned/arikawa/v3/api"
@@ -29,6 +33,10 @@ var commandOptionNameRe = regexp.MustCompile(`^[a-z0-9_]+$`)
 
 // Allows only lowercase alphanumeric characters and underscores.
 var resultKeyRe = regexp.MustCompile(`^[a-z0-9_]+$`)
+
+// A single placeholder, like {{arg('seconds')}}. Matches placeholderRegex in
+// kite-web/src/lib/flow/dataSchema.ts.
+var singlePlaceholderRe = regexp.MustCompile(`^\{\{[^{}]+\}\}$`)
 
 type FlowData struct {
 	Nodes []FlowNode `json:"nodes"`
@@ -53,6 +61,7 @@ const (
 	FlowNodeTypeOptionCommandPermissions FlowNodeType = "option_command_permissions"
 	FlowNodeTypeOptionCommandContexts    FlowNodeType = "option_command_contexts"
 	FlowNodeTypeOptionEventFilter        FlowNodeType = "option_event_filter"
+	FlowNodeTypeOptionCommandCooldown    FlowNodeType = "option_command_cooldown"
 
 	FlowNodeTypeActionResponseCreate        FlowNodeType = "action_response_create"
 	FlowNodeTypeActionResponseEdit          FlowNodeType = "action_response_edit"
@@ -89,6 +98,7 @@ const (
 	FlowNodeTypeActionMessageGet            FlowNodeType = "action_message_get"
 	FlowNodeTypeActionRobloxUserGet         FlowNodeType = "action_roblox_user_get"
 	FlowNodeTypeActionHTTPRequest           FlowNodeType = "action_http_request"
+	FlowNodeTypeActionDiscordAPIRequest     FlowNodeType = "action_discord_api_request"
 	FlowNodeTypeActionAIChatCompletion      FlowNodeType = "action_ai_chat_completion"
 	FlowNodeTypeActionAISearchWeb           FlowNodeType = "action_ai_web_search"
 	FlowNodeTypeActionExpressionEvaluate    FlowNodeType = "action_expression_evaluate"
@@ -124,6 +134,10 @@ const (
 // schedule instead of reacting to Discord events.
 const EventTypeScheduleCron = "cron"
 
+// EventTypeWebhook is the event type of listeners that run when a request is
+// sent to their webhook URL.
+const EventTypeWebhook = "webhook"
+
 type FlowNode struct {
 	ID       string           `json:"id"`
 	Type     FlowNodeType     `json:"type,omitempty"`
@@ -154,6 +168,9 @@ type FlowNodeData struct {
 	// Temporary Variables
 	TemporaryName string `json:"temporary_name,omitempty"`
 
+	// Command Entry
+	CommandArgumentOrder []string `json:"command_argument_order,omitempty"`
+
 	// Command Argument
 	CommandArgumentType      CommandArgumentType         `json:"command_argument_type,omitempty"`
 	CommandArgumentRequired  bool                        `json:"command_argument_required,omitempty"`
@@ -169,6 +186,11 @@ type FlowNodeData struct {
 	CommandDisabledContexts []CommandContextType `json:"command_disabled_contexts,omitempty"`
 	// Command Installations
 	CommandDisabledIntegrations []CommandDisabledIntegrationType `json:"command_disabled_integrations,omitempty"`
+
+	// Command Cooldown
+	CooldownScope           CooldownScope `json:"cooldown_scope,omitempty"`
+	CooldownDurationSeconds string        `json:"cooldown_duration_seconds,omitempty"`
+	CooldownMessage         string        `json:"cooldown_message,omitempty"`
 
 	// Guild Get, and the guild of member, channel, role and voice blocks
 	GuildTarget string `json:"guild_target,omitempty"`
@@ -222,6 +244,15 @@ type FlowNodeData struct {
 	// HTTP Request
 	HTTPRequestData *HTTPRequestData `json:"http_request_data,omitempty"`
 
+	// Discord API Request
+	DiscordAPIRequestData *DiscordAPIRequestData `json:"discord_api_request_data,omitempty"`
+
+	// Settings that no field above has, which blocks defined as data use (see
+	// block_definitions.json). They are stored next to the others in the
+	// node's data. Values are usually templates, but numbers, booleans and
+	// lists are accepted too.
+	Fields map[string]any `json:"-"`
+
 	// AI Chat Completion
 	AIChatCompletionData *AIChatCompletionData `json:"ai_chat_completion_data,omitempty"`
 
@@ -256,6 +287,124 @@ type FlowNodeData struct {
 	SleepDurationSeconds string `json:"sleep_duration_seconds,omitempty"`
 }
 
+// flowNodeDataFields maps the JSON names of FlowNodeData's fields to their
+// index, to tell them apart from the settings kept in Fields.
+var flowNodeDataFields = func() map[string]int {
+	res := make(map[string]int)
+	t := reflect.TypeOf(FlowNodeData{})
+	for i := range t.NumField() {
+		name, _, _ := strings.Cut(t.Field(i).Tag.Get("json"), ",")
+		if name != "" && name != "-" {
+			res[name] = i
+		}
+	}
+	return res
+}()
+
+// flowNodeDataFieldsFolded is flowNodeDataFields by lowercase name, as
+// encoding/json matches keys to fields regardless of case.
+var flowNodeDataFieldsFolded = func() map[string]int {
+	res := make(map[string]int, len(flowNodeDataFields))
+	for name, i := range flowNodeDataFields {
+		res[strings.ToLower(name)] = i
+	}
+	return res
+}()
+
+func (d *FlowNodeData) UnmarshalJSON(b []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(b, &raw); err != nil {
+		return err
+	}
+
+	dataType := reflect.TypeOf(*d)
+	fixed := false
+	for name, value := range raw {
+		i, ok := flowNodeDataFieldsFolded[strings.ToLower(name)]
+		if !ok {
+			// Settings of blocks defined as data, kept as they are.
+			if d.Fields == nil {
+				d.Fields = make(map[string]any)
+			}
+			dec := json.NewDecoder(bytes.NewReader(value))
+			// Keeps IDs written as numbers exact.
+			dec.UseNumber()
+			var v any
+			if err := dec.Decode(&v); err != nil {
+				return err
+			}
+			d.Fields[name] = v
+			continue
+		}
+
+		// Text settings can come as a number or boolean, e.g. from the flow AI
+		// or a block defined as data, whose settings accept both.
+		if dataType.Field(i).Type.Kind() == reflect.String && len(value) > 0 && value[0] != '"' && string(value) != "null" {
+			raw[name], _ = json.Marshal(string(value))
+			fixed = true
+		}
+	}
+
+	if fixed {
+		var err error
+		if b, err = json.Marshal(raw); err != nil {
+			return err
+		}
+	}
+
+	type plain FlowNodeData
+	fields := d.Fields
+	if err := json.Unmarshal(b, (*plain)(d)); err != nil {
+		return err
+	}
+	d.Fields = fields
+	return nil
+}
+
+func (d FlowNodeData) MarshalJSON() ([]byte, error) {
+	type plain FlowNodeData
+	b, err := json.Marshal(plain(d))
+	if err != nil || len(d.Fields) == 0 {
+		return b, err
+	}
+
+	names := make([]string, 0, len(d.Fields))
+	for name := range d.Fields {
+		if _, ok := flowNodeDataFields[name]; !ok {
+			names = append(names, name)
+		}
+	}
+	slices.Sort(names)
+
+	// Appended to the other fields' JSON, which stays exactly as it was.
+	var buf bytes.Buffer
+	buf.Write(b[:len(b)-1])
+	for i, name := range names {
+		value, err := json.Marshal(d.Fields[name])
+		if err != nil {
+			return nil, err
+		}
+		if i > 0 || len(b) > 2 {
+			buf.WriteByte(',')
+		}
+		key, _ := json.Marshal(name)
+		buf.Write(key)
+		buf.WriteByte(':')
+		buf.Write(value)
+	}
+	buf.WriteByte('}')
+	return buf.Bytes(), nil
+}
+
+// Setting returns a setting by its JSON name, from a field of FlowNodeData if
+// one has that name, otherwise from Fields.
+func (d FlowNodeData) Setting(name string) any {
+	if i, ok := flowNodeDataFields[name]; ok {
+		return reflect.ValueOf(d).Field(i).Interface()
+	}
+	return d.Fields[name]
+}
+
 func (d FlowNodeData) Validate(nodeType FlowNodeType) error {
 	// We currently only validate data for entry nodes, as for the other nodes it's less critical that they are valid.
 
@@ -276,6 +425,9 @@ func (d FlowNodeData) Validate(nodeType FlowNodeType) error {
 		validation.Field(&d.Description, validation.When(nodeType == FlowNodeTypeEntryCommand,
 			validation.Required,
 			validation.Length(1, 100),
+		)),
+		validation.Field(&d.CommandArgumentOrder, validation.When(nodeType == FlowNodeTypeEntryCommand,
+			validation.Length(0, 25),
 		)),
 
 		// Command Option
@@ -323,8 +475,63 @@ func (d FlowNodeData) Validate(nodeType FlowNodeType) error {
 		// correctness problem. eval enforces the same limit as a backstop for
 		// flows stored before this check existed.
 		validation.Field(&d.Expression, validation.Length(0, eval.MaxExpressionLength)),
+
+		// Command Cooldown
+		// An empty scope means CooldownScopeUser, the default the editor shows.
+		validation.Field(&d.CooldownScope, validation.When(nodeType == FlowNodeTypeOptionCommandCooldown,
+			validation.In(CooldownScopeUser, CooldownScopeGuild, CooldownScopeGlobal),
+		)),
+		validation.Field(&d.CooldownDurationSeconds, validation.When(nodeType == FlowNodeTypeOptionCommandCooldown,
+			validation.Required,
+			validation.By(func(value any) error {
+				// Placeholders can only be checked when the flow runs.
+				if singlePlaceholderRe.MatchString(value.(string)) {
+					return nil
+				}
+				_, err := parseCooldownDuration(value.(string))
+				return err
+			}),
+		)),
+		validation.Field(&d.CooldownMessage, validation.Length(0, 2000)),
 	)
 }
+
+// maxCooldownDuration is the longest cooldown a cooldown block can have.
+// Cooldowns are kept in memory and reset when Kite restarts, so they have to
+// stay short. Longer cooldowns, like daily rewards, should use stored
+// variables instead.
+const maxCooldownDuration = time.Hour
+
+// parseCooldownDuration parses a cooldown duration given in whole seconds.
+// Empty, invalid, fractional, non-positive and too long durations are errors
+// rather than silently disabling the cooldown.
+func parseCooldownDuration(raw string) (time.Duration, error) {
+	raw = strings.TrimSpace(raw)
+	if raw == "" {
+		return 0, errors.New("cooldown duration is empty")
+	}
+
+	seconds, err := strconv.ParseInt(raw, 10, 64)
+	if err != nil {
+		return 0, errors.New("cooldown duration must be a whole number of seconds")
+	}
+
+	// Checked before converting, huge values overflow time.Duration.
+	maxSeconds := int64(maxCooldownDuration / time.Second)
+	if seconds < 1 || seconds > maxSeconds {
+		return 0, fmt.Errorf("cooldown duration must be between 1 and %d seconds", maxSeconds)
+	}
+
+	return time.Duration(seconds) * time.Second, nil
+}
+
+type CooldownScope string
+
+const (
+	CooldownScopeUser   CooldownScope = "user"
+	CooldownScopeGuild  CooldownScope = "guild"
+	CooldownScopeGlobal CooldownScope = "global"
+)
 
 type ComparsionMode string
 
@@ -382,6 +589,7 @@ const (
 	EventFilterTypeUserID         EventFilterTarget = "user_id"
 	EventFilterTypeGuildID        EventFilterTarget = "guild_id"
 	EventFilterTypeChannelID      EventFilterTarget = "channel_id"
+	EventFilterTypeMessageID      EventFilterTarget = "message_id"
 )
 
 type RobloxLookupType string
@@ -629,17 +837,56 @@ type ModalData struct {
 	Components []ModalComponentData `json:"components,omitempty"`
 }
 
+// ModalComponentData is one component of a modal. The modal's components are
+// labels and text displays, and a label holds the one input it describes in
+// Components.
+//
+// Modals saved before labels existed have no type at either level. Their
+// components are labels whose text input carries the label text itself.
 type ModalComponentData struct {
-	CustomID    string               `json:"custom_id,omitempty"`
-	Style       int                  `json:"style,omitempty"`
-	Label       string               `json:"label,omitempty"`
-	MinLength   int                  `json:"min_length,omitempty"`
-	MaxLength   int                  `json:"max_length,omitempty"`
-	Required    bool                 `json:"required,omitempty"`
-	Value       string               `json:"value,omitempty"`
-	Placeholder string               `json:"placeholder,omitempty"`
-	Components  []ModalComponentData `json:"components,omitempty"`
+	Type        string `json:"type,omitempty"`
+	CustomID    string `json:"custom_id,omitempty"`
+	Style       int    `json:"style,omitempty"`
+	Label       string `json:"label,omitempty"`
+	Description string `json:"description,omitempty"`
+	// Content is the markdown shown by a text display.
+	Content   string `json:"content,omitempty"`
+	MinLength int    `json:"min_length,omitempty"`
+	MaxLength int    `json:"max_length,omitempty"`
+	// MinValues and MaxValues limit how many options can be picked in a
+	// select menu or checkbox group.
+	MinValues    int                        `json:"min_values,omitempty"`
+	MaxValues    int                        `json:"max_values,omitempty"`
+	Required     bool                       `json:"required,omitempty"`
+	Value        string                     `json:"value,omitempty"`
+	Placeholder  string                     `json:"placeholder,omitempty"`
+	Options      []ModalComponentOptionData `json:"options,omitempty"`
+	ChannelTypes []int                      `json:"channel_types,omitempty"`
+	// Default is whether a checkbox starts checked.
+	Default    bool                 `json:"default,omitempty"`
+	Components []ModalComponentData `json:"components,omitempty"`
 }
+
+type ModalComponentOptionData struct {
+	Label       string `json:"label,omitempty"`
+	Value       string `json:"value,omitempty"`
+	Description string `json:"description,omitempty"`
+	Default     bool   `json:"default,omitempty"`
+}
+
+const (
+	ModalComponentTypeLabel             = "label"
+	ModalComponentTypeTextDisplay       = "text_display"
+	ModalComponentTypeTextInput         = "text_input"
+	ModalComponentTypeStringSelect      = "string_select"
+	ModalComponentTypeUserSelect        = "user_select"
+	ModalComponentTypeRoleSelect        = "role_select"
+	ModalComponentTypeMentionableSelect = "mentionable_select"
+	ModalComponentTypeChannelSelect     = "channel_select"
+	ModalComponentTypeRadioGroup        = "radio_group"
+	ModalComponentTypeCheckboxGroup     = "checkbox_group"
+	ModalComponentTypeCheckbox          = "checkbox"
+)
 
 type HTTPRequestData struct {
 	URL      string                    `json:"url,omitempty"`
@@ -652,6 +899,14 @@ type HTTPRequestData struct {
 type HTTPRequestDataKeyValue struct {
 	Key   string `json:"key"`
 	Value string `json:"value"`
+}
+
+type DiscordAPIRequestData struct {
+	// Operation is the operationId of the endpoint in Discord's OpenAPI spec.
+	Operation  string                    `json:"operation,omitempty"`
+	PathParams []HTTPRequestDataKeyValue `json:"path_params,omitempty"`
+	Query      []HTTPRequestDataKeyValue `json:"query,omitempty"`
+	BodyJSON   json.RawMessage           `json:"body_json,omitempty"`
 }
 
 type AIChatCompletionData struct {

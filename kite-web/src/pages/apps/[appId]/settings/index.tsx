@@ -1,4 +1,5 @@
 import AppLayout from "@/components/app/AppLayout";
+import { getAppShellLayout } from "@/components/app/AppShell";
 import AppSettingsAppearance from "@/components/app/AppSettingsAppearance";
 import AppSettingsCollaborators from "@/components/app/AppSettingsCollaborators";
 import AppSettingsControls from "@/components/app/AppSettingsControls";
@@ -16,7 +17,7 @@ const breadcrumbs = [
 export default function AppSettingsPage() {
   return (
     <AppLayout title="App Settings" breadcrumbs={breadcrumbs}>
-      <div className="flex flex-col md:flex-row justify-between items-end space-y-5 md:space-y-0">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-end space-y-5 md:space-y-0">
         <div>
           <h1 className="text-lg font-semibold md:text-2xl mb-1">
             App Settings
@@ -39,3 +40,5 @@ export default function AppSettingsPage() {
     </AppLayout>
   );
 }
+
+AppSettingsPage.getLayout = getAppShellLayout;

@@ -408,12 +408,12 @@ function StatusFields({
         />
       )}
 
-      <div className="flex gap-3">
+      <div className="flex flex-col sm:flex-row gap-3">
         <FormField
           control={form.control}
           name={`statuses.${index}.status`}
           render={({ field }) => (
-            <FormItem className="min-w-48">
+            <FormItem className="sm:min-w-48">
               <FormLabel>Status</FormLabel>
               <Select onValueChange={field.onChange} value={field.value}>
                 <FormControl>
@@ -437,7 +437,7 @@ function StatusFields({
           control={form.control}
           name={`statuses.${index}.activity_type`}
           render={({ field }) => (
-            <FormItem className="min-w-48">
+            <FormItem className="sm:min-w-48">
               <FormLabel>Activity Type</FormLabel>
               <Select onValueChange={field.onChange} value={field.value}>
                 <FormControl>

@@ -1,4 +1,5 @@
 import AppLayout from "@/components/app/AppLayout";
+import { getAppShellLayout } from "@/components/app/AppShell";
 import AppStateGuildList from "@/components/app/AppStateGuildList";
 import { Separator } from "@/components/ui/separator";
 
@@ -26,3 +27,5 @@ export default function AppGuildsPage() {
     </AppLayout>
   );
 }
+
+AppGuildsPage.getLayout = getAppShellLayout;

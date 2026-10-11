@@ -55,7 +55,6 @@ type CommandsImportResponse = []*Command
 
 type CommandUpdateRequest struct {
 	FlowSource flow.FlowData `json:"flow_source"`
-	Enabled    bool          `json:"enabled"`
 }
 
 func (req CommandUpdateRequest) Validate() error {

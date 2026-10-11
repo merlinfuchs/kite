@@ -21,6 +21,7 @@ type Plan struct {
 	FeatureMaxGuilds            int
 	FeatureMaxCommands          int
 	FeatureMaxVariables         int
+	FeatureMaxSecrets           int
 	FeatureMaxMessages          int
 	FeatureMaxEventListeners    int
 	FeaturePrioritySupport      bool
@@ -39,6 +40,7 @@ func (p Plan) Features() Features {
 		MaxGuilds:            p.FeatureMaxGuilds,
 		MaxCommands:          p.FeatureMaxCommands,
 		MaxVariables:         p.FeatureMaxVariables,
+		MaxSecrets:           p.FeatureMaxSecrets,
 		MaxMessages:          p.FeatureMaxMessages,
 		MaxEventListeners:    p.FeatureMaxEventListeners,
 		PrioritySupport:      p.FeaturePrioritySupport,
@@ -57,6 +59,7 @@ type Features struct {
 	MaxGuilds            int
 	MaxCommands          int
 	MaxVariables         int
+	MaxSecrets           int
 	MaxMessages          int
 	MaxEventListeners    int
 	PrioritySupport      bool
@@ -87,6 +90,7 @@ func (f Features) Merge(other Features) Features {
 		MaxGuilds:            max(f.MaxGuilds, other.MaxGuilds),
 		MaxCommands:          max(f.MaxCommands, other.MaxCommands),
 		MaxVariables:         max(f.MaxVariables, other.MaxVariables),
+		MaxSecrets:           max(f.MaxSecrets, other.MaxSecrets),
 		MaxMessages:          max(f.MaxMessages, other.MaxMessages),
 		MaxEventListeners:    max(f.MaxEventListeners, other.MaxEventListeners),
 		PrioritySupport:      f.PrioritySupport || other.PrioritySupport,

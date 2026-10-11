@@ -59,6 +59,32 @@ describe("validateFlow", () => {
     }
   });
 
+  it("suggests blocks that replace raw Discord API requests", () => {
+    const warnings = (body: Record<string, unknown>) =>
+      validateFlow(
+        [
+          entry,
+          node("req", "action_discord_api_request", {
+            discord_api_request_data: {
+              operation: "create_channel_invite",
+              path_params: [{ key: "channel_id", value: "1" }],
+              body_json: body,
+            },
+          }),
+        ],
+        [edge("entry", "req")],
+        "command"
+      )
+        .filter((i) => i.severity === "warning")
+        .map((i) => i.message);
+
+    expect(warnings({ max_age: 3600 })).toEqual([
+      "'Discord API Request' does what the 'Create invite' block (action_invite_create) does, which is easier to edit. Use that block instead.",
+    ]);
+    // The block has no setting for it.
+    expect(warnings({ max_age: 3600, target_user_id: "2" })).toEqual([]);
+  });
+
   it("needs exactly one entry of the flow's type", () => {
     expect(errors([log("a")], [])).toContain(
       "The flow needs exactly one entry block, but has 0."
@@ -384,6 +410,44 @@ describe("validateFlow", () => {
     ).toEqual([
       "'Log Message' uses input('age'), but no modal before it has an input with the identifier 'age'.",
     ]);
+    expect(
+      errors(
+        [entry, modal, log("a", "{{inputs('name')}} {{len(inputs('age'))}}")],
+        [edge("entry", "modal"), edge("modal", "a")]
+      )
+    ).toEqual([
+      "'Log Message' uses inputs('age'), but no modal before it has an input with the identifier 'age'.",
+    ]);
+  });
+
+  it("finds modal inputs in labels", () => {
+    const modal = node("modal", "suspend_response_modal", {
+      modal_data: {
+        title: "Form",
+        components: [
+          { type: "text_display", content: "Tell us about you" },
+          {
+            type: "label",
+            label: "Color",
+            components: [
+              {
+                type: "string_select",
+                custom_id: "color",
+                options: [{ label: "Red" }],
+              },
+            ],
+          },
+        ],
+      },
+    });
+    expect(
+      errors(
+        [entry, modal, log("a", "{{input('color')}} {{input('size')}}")],
+        [edge("entry", "modal"), edge("modal", "a")]
+      )
+    ).toEqual([
+      "'Log Message' uses input('size'), but no modal before it has an input with the identifier 'size'.",
+    ]);
   });
 
   it("counts earlier branches of loops and error handlers as running before", () => {
@@ -457,6 +521,31 @@ describe("validateFlow", () => {
       "'Else' can only be connected to the block it belongs to.",
       "'Else' must belong to exactly one of these blocks: 'Comparison Condition', 'User Condition', 'Channel Condition', 'Role Condition'.",
     ]);
+  });
+
+  it("checks cooldown durations and defaults the scope", () => {
+    const flow = (duration: string) =>
+      errors(
+        [
+          entry,
+          node("seconds", "option_command_argument", {
+            name: "seconds",
+            description: "Seconds",
+            command_argument_type: "integer",
+          }),
+          node("cooldown", "option_command_cooldown", {
+            cooldown_duration_seconds: duration,
+          }),
+        ],
+        [edge("seconds", "entry"), edge("cooldown", "entry")]
+      );
+
+    expect(flow("30")).toEqual([]);
+    expect(flow("3600")).toEqual([]);
+    expect(flow("{{arg('seconds')}}")).toEqual([]);
+    for (const duration of ["", "0", "1.5", "-5", "3601"]) {
+      expect(flow(duration)).not.toEqual([]);
+    }
   });
 
   it("reports block types it doesn't know", () => {

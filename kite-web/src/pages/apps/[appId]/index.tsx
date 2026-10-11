@@ -1,6 +1,7 @@
 import { AppChartCards } from "@/components/app/AppChartCards";
 import AppInfoCard from "@/components/app/AppInfoCard";
 import AppLayout from "@/components/app/AppLayout";
+import { getAppShellLayout } from "@/components/app/AppShell";
 import AppResourceCard from "@/components/app/AppResourceCard";
 import UsageCreditsByDayChart from "@/components/app/UsageCreditsByDayChart";
 import { useApp, useAppEntities } from "@/lib/hooks/api";
@@ -61,3 +62,5 @@ export default function AppPage() {
     </AppLayout>
   );
 }
+
+AppPage.getLayout = getAppShellLayout;

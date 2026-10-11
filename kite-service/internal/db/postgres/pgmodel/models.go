@@ -23,6 +23,25 @@ type App struct {
 	DisabledReason pgtype.Text
 }
 
+type AppIntegration struct {
+	ID            string
+	AppID         string
+	IntegrationID string
+	Enabled       bool
+	CreatedAt     pgtype.Timestamp
+	UpdatedAt     pgtype.Timestamp
+}
+
+type AppSecret struct {
+	ID               string
+	AppID            string
+	Name             pgtype.Text
+	AppIntegrationID pgtype.Text
+	ValueEncrypted   string
+	CreatedAt        pgtype.Timestamp
+	UpdatedAt        pgtype.Timestamp
+}
+
 type Asset struct {
 	ID            string
 	Name          string
@@ -99,6 +118,7 @@ type EventListener struct {
 	CreatedAt     pgtype.Timestamp
 	UpdatedAt     pgtype.Timestamp
 	LastRunAt     pgtype.Timestamp
+	WebhookSecret pgtype.Text
 }
 
 type Log struct {

@@ -39,6 +39,9 @@ func loadCatalog(t *testing.T) map[string]*catalogSchema {
 func TestCatalogHasEveryNodeType(t *testing.T) {
 	catalog := loadCatalog(t)
 	nodeTypes := flowNodeTypeConstants(t)
+	for nodeType := range blockDefinitions {
+		nodeTypes = append(nodeTypes, string(nodeType))
+	}
 
 	for _, nodeType := range nodeTypes {
 		assert.Contains(t, catalog, nodeType)
@@ -60,6 +63,11 @@ func TestCatalogMarksUserPickedSettings(t *testing.T) {
 // The editor must not store settings the service doesn't read.
 func TestCatalogFieldsExist(t *testing.T) {
 	for nodeType, schema := range loadCatalog(t) {
+		// Their settings are defined in block_definitions.json and kept in
+		// FlowNodeData.Fields, see TestBlockDefinitionFieldSettings.
+		if block, ok := blockDefinitions[FlowNodeType(nodeType)]; ok && block.Run.Kind == "request" {
+			continue
+		}
 		if schema != nil {
 			checkCatalogFields(t, nodeType, schema, reflect.TypeOf(FlowNodeData{}))
 		}

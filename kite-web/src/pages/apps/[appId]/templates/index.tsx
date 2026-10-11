@@ -1,4 +1,5 @@
 import AppLayout from "@/components/app/AppLayout";
+import { getAppShellLayout } from "@/components/app/AppShell";
 import { TemplateList } from "@/components/app/TemplateList";
 import { Separator } from "@/components/ui/separator";
 
@@ -24,3 +25,5 @@ export default function AppTemplatesPage() {
     </AppLayout>
   );
 }
+
+AppTemplatesPage.getLayout = getAppShellLayout;

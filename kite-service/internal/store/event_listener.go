@@ -14,6 +14,9 @@ type EventListenerStore interface {
 	EventListener(ctx context.Context, id string) (*model.EventListener, error)
 	CreateEventListener(ctx context.Context, eventListener *model.EventListener) (*model.EventListener, error)
 	UpdateEventListener(ctx context.Context, eventListener *model.EventListener) (*model.EventListener, error)
+	// UpdateEventListenerWebhookSecret replaces the secret of a webhook
+	// listener, which invalidates its previous webhook URL.
+	UpdateEventListenerWebhookSecret(ctx context.Context, id string, secret string, updatedAt time.Time) (*model.EventListener, error)
 	// EventListenersUpdatedSince includes disabled listeners, except for the
 	// zero time.
 	EventListenersUpdatedSince(ctx context.Context, updatedSince time.Time) ([]*model.EventListener, error)

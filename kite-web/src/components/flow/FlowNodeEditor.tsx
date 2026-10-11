@@ -13,22 +13,55 @@ import {
 import { activityTypeOptions, statusOptions } from "@/lib/discord/presence";
 import { useAppFeature, useMessages, useVariables } from "@/lib/hooks/api";
 import { getFlowCreditsCost } from "@/lib/flow/schedule";
+import {
+  getCommandArguments,
+  moveCommandArgument,
+} from "@/lib/flow/commandArguments";
 import { aiModelTiers, getAiModelTier } from "@/lib/flow/aiModels";
-import { EventTypeScheduleCron } from "@/lib/types/flow.gen";
+import { getBlockDefinition } from "@/lib/blocks";
+import {
+  ModalInputType,
+  modalInputHasOptions,
+  modalInputHasPlaceholder,
+  modalInputHasValueLimits,
+  modalInputTypes,
+  modalComponentNumber,
+  modalMaxComponents,
+  modalOptionCounts,
+  newModalInput,
+  newModalOption,
+  nextModalInputNumber,
+  normalizeModalComponents,
+} from "@/lib/flow/modal";
+import {
+  discordApiOperationLabel,
+  discordApiOperations,
+  getDiscordApiOperation,
+} from "@/lib/flow/discordApi";
+import { EventTypeScheduleCron, EventTypeWebhook } from "@/lib/types/flow.gen";
 import { useAppId } from "@/lib/hooks/params";
 import {
   CommandArgumentChoiceData,
+  DiscordAPIRequestData,
   EmojiData,
   HTTPRequestData,
   ModalComponentData,
+  ModalComponentOptionData,
   PermissionOverwriteData,
   PollAnswerData,
   PollData,
   StatusData,
 } from "@/lib/types/flow.gen";
-import { Node, useNodes, useReactFlow, useStoreApi } from "@xyflow/react";
+import {
+  Node,
+  useEdges,
+  useNodes,
+  useReactFlow,
+  useStoreApi,
+} from "@xyflow/react";
 import {
   ChevronDownIcon,
+  ChevronUpIcon,
   CircleAlertIcon,
   CopyIcon,
   HelpCircleIcon,
@@ -45,8 +78,10 @@ import { NodeData, NodeProps } from "../../lib/flow/dataSchema";
 import MessageCreateDialog from "../app/MessageCreateDialog";
 import VariableCreateDialog from "../app/VariableCreateDialog";
 import EmojiPicker from "../common/EmojiPicker";
+import EntitySelect from "../common/EntitySelect";
 import JsonEditor from "../common/JsonEditor";
 import PlaceholderInput from "../common/PlaceholderInput";
+import WebhookUrlInput from "../common/WebhookUrlInput";
 import ScheduleCronPreview, {
   ScheduleCronHelp,
 } from "../common/ScheduleCronPreview";
@@ -81,36 +116,49 @@ import {
 import { Switch } from "../ui/switch";
 import { Textarea } from "../ui/textarea";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
+import FlowJsonInput from "./FlowJsonInput";
 import FlowPlaceholderExplorer from "./FlowPlaceholderExplorer";
 import env from "@/lib/env/client";
 import { ScrollArea } from "../ui/scroll-area";
+import { cn } from "@/lib/utils";
+import { channelTypeOptions } from "@/lib/message/selectMenu";
 
 interface Props {
   nodeId: string;
+  className?: string;
+  hideTitle?: boolean;
 }
 
 interface InputProps {
   id: string;
   type: string;
+  // The setting a generic input of a block's field edits.
+  name?: string;
   data: NodeData;
   updateData: (newData: Partial<NodeData>) => void;
   errors: Record<string, string>;
 }
 
-const intputs: Record<string, any> = {
+// The editor inputs of block settings, by the names blocks use in their
+// fields. A test checks every block's inputs exist.
+export const settingInputs: Record<string, any> = {
   custom_label: CustomLabelInput,
   temporary_name: TemporaryNameInput,
   name: NameInput,
   description: DescriptionInput,
+  command_argument_order: CommandArgumentOrderInput,
   command_argument_type: CommandArgumentTypeInput,
   command_argument_required: CommandArgumentRequiredInput,
   command_argument_min_value: CommandArgumentMinValueInput,
   command_argument_max_value: CommandArgumentMaxValueInput,
   command_argument_max_length: CommandArgumentMaxLengthInput,
   command_argument_choices: CommandArgumentChoicesInput,
-  command_contexts: CommandContextsInput,
-  command_integrations: CommandIntegrationsInput,
+  command_disabled_contexts: CommandContextsInput,
+  command_disabled_integrations: CommandIntegrationsInput,
   command_permissions: CommandPermissionsInput,
+  cooldown_scope: CooldownScopeInput,
+  cooldown_duration_seconds: CooldownDurationSecondsInput,
+  cooldown_message: CooldownMessageInput,
   event_type: EventTypeInput,
   event_schedule_cron: EventScheduleCronInput,
   event_filter_target: EventFilterTargetInput,
@@ -137,6 +185,7 @@ const intputs: Record<string, any> = {
   variable_operation: VariableOperationInput,
   variable_value: VariableValueInput,
   http_request_data: HttpRequestDataInput,
+  discord_api_request_data: DiscordApiRequestDataInput,
   ai_chat_completion_data: AiChatCompletionDataInput,
   ai_web_search_data: AiWebSearchDataInput,
   expression: ExpressionInput,
@@ -148,7 +197,7 @@ const intputs: Record<string, any> = {
   member_ban_delete_message_duration_seconds:
     MemberBanDeleteMessageDurationInput,
   member_timeout_duration_seconds: MemberTimeoutDurationInput,
-  member_nick: MemberNickInput,
+  member_data: MemberNickInput,
   roblox_user_target: RobloxUserTargetInput,
   roblox_lookup_mode: RobloxLookupModeInput,
   log_level: LogLevelInput,
@@ -191,7 +240,11 @@ function nodeTypeDocsPage(nodeType: string) {
   );
 }
 
-export default function FlowNodeEditor({ nodeId }: Props) {
+export default function FlowNodeEditor({
+  nodeId,
+  className,
+  hideTitle,
+}: Props) {
   const { setNodes, deleteElements } = useReactFlow<Node<NodeData>>();
   const store = useStoreApi();
 
@@ -274,19 +327,26 @@ export default function FlowNodeEditor({ nodeId }: Props) {
   const docsPage = nodeTypeDocsPage(node.type!);
 
   return (
-    <div className="absolute top-0 left-0 bg-background w-96 h-full flex flex-col">
-      <ScrollArea>
+    <div
+      className={cn(
+        "bg-background flex flex-col min-h-0 overflow-hidden",
+        className ?? "absolute top-0 left-0 w-96 h-full"
+      )}
+    >
+      <ScrollArea className="flex-1 min-h-0 w-full">
         <div className="p-5">
           <div className="flex-none">
-            <div className="flex items-start justify-between mb-5">
-              <div className="text-xl font-bold text-foreground">
-                Block Settings
+            {!hideTitle && (
+              <div className="flex items-start justify-between mb-5">
+                <div className="text-xl font-bold text-foreground">
+                  Block Settings
+                </div>
+                <XIcon
+                  className="h-6 w-6 text-muted-foreground hover:text-foreground cursor-pointer"
+                  onClick={close}
+                />
               </div>
-              <XIcon
-                className="h-6 w-6 text-muted-foreground hover:text-foreground cursor-pointer"
-                onClick={close}
-              />
-            </div>
+            )}
             <div className="mb-5">
               <div className="flex items-center gap-1.5">
                 <div className="text-lg font-bold text-foreground mb-1">
@@ -329,7 +389,11 @@ export default function FlowNodeEditor({ nodeId }: Props) {
               </div>
             )}
             {values.dataFields.map((field) => {
-              const Input = intputs[field];
+              // Fields of a block's definition without an input of their own.
+              const name = field.startsWith("field:")
+                ? field.slice("field:".length)
+                : undefined;
+              const Input = name ? BlockFieldInput : settingInputs[field];
               if (!Input) return null;
 
               return (
@@ -337,6 +401,7 @@ export default function FlowNodeEditor({ nodeId }: Props) {
                   key={field}
                   id={nodeId}
                   type={node.type}
+                  name={name}
                   data={data}
                   updateData={updateData}
                   errors={errors}
@@ -421,6 +486,77 @@ function DescriptionInput({ data, updateData, errors }: InputProps) {
       updateValue={(v) => updateData({ description: v || undefined })}
       errors={errors}
     />
+  );
+}
+
+function CommandArgumentOrderInput({ id, updateData }: InputProps) {
+  const nodes = useNodes<Node<NodeData>>();
+  const edges = useEdges();
+
+  const args = useMemo(() => {
+    const entry = nodes.find((n) => n.id === id);
+    return entry ? getCommandArguments(entry, nodes, edges) : [];
+  }, [id, nodes, edges]);
+
+  if (args.length < 2) return null;
+
+  function move(index: number, direction: -1 | 1) {
+    const order = moveCommandArgument(args, index, direction);
+    if (order) {
+      updateData({ command_argument_order: order });
+    }
+  }
+
+  return (
+    <div>
+      <div className="font-medium text-foreground mb-2">Argument Order</div>
+      <div className="text-muted-foreground text-sm mb-2">
+        The order of the arguments in Discord. Required arguments always come
+        before optional ones.
+      </div>
+      <div className="flex flex-col gap-2">
+        {args.map((arg, i) => (
+          <div
+            className="flex items-center gap-2 border rounded-md pl-3 pr-1 py-1"
+            key={arg.id}
+          >
+            <div className="text-sm text-muted-foreground w-4 flex-none">
+              {i + 1}
+            </div>
+            <div className="text-sm text-foreground truncate flex-auto">
+              {arg.data.name || "unnamed"}
+            </div>
+            <div className="text-xs text-muted-foreground flex-none">
+              {arg.data.command_argument_required ? "Required" : "Optional"}
+            </div>
+            <div className="flex flex-none">
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8"
+                disabled={!moveCommandArgument(args, i, -1)}
+                onClick={() => move(i, -1)}
+                aria-label="Move up"
+              >
+                <ChevronUpIcon className="h-5 w-5" />
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8"
+                disabled={!moveCommandArgument(args, i, 1)}
+                onClick={() => move(i, 1)}
+                aria-label="Move down"
+              >
+                <ChevronDownIcon className="h-5 w-5" />
+              </Button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }
 
@@ -642,6 +778,62 @@ function CommandPermissionsInput({ data, updateData, errors }: InputProps) {
   );
 }
 
+function CooldownScopeInput({ data, updateData, errors }: InputProps) {
+  return (
+    <BaseInput
+      field="cooldown_scope"
+      title="Cooldown Scope"
+      description="Who the cooldown applies to."
+      type="select"
+      options={[
+        { value: "user", label: "Per User" },
+        { value: "guild", label: "Per Server" },
+        { value: "global", label: "Global" },
+      ]}
+      value={data.cooldown_scope || "user"}
+      updateValue={(v) => updateData({ cooldown_scope: v || undefined })}
+      errors={errors}
+    />
+  );
+}
+
+function CooldownDurationSecondsInput({
+  data,
+  updateData,
+  errors,
+}: InputProps) {
+  return (
+    <BaseInput
+      field="cooldown_duration_seconds"
+      title="Cooldown Duration"
+      description="How many seconds the command is on cooldown for after it's used, up to 3600 (1 hour). Cooldowns reset when Kite restarts, so use stored variables for longer ones."
+      value={data.cooldown_duration_seconds || ""}
+      updateValue={(v) =>
+        updateData({
+          cooldown_duration_seconds: v || undefined,
+        })
+      }
+      errors={errors}
+      placeholders
+    />
+  );
+}
+
+function CooldownMessageInput({ data, updateData, errors }: InputProps) {
+  return (
+    <BaseInput
+      type="textarea"
+      field="cooldown_message"
+      title="Cooldown Message"
+      description="Shown when someone uses the command while it's on cooldown. Use {{var('cooldown_remaining')}} to show how many seconds are left. Leave empty for a default message."
+      value={data.cooldown_message || ""}
+      updateValue={(v) => updateData({ cooldown_message: v || undefined })}
+      errors={errors}
+      placeholders
+    />
+  );
+}
+
 const availableCommandContextsValues = ["guild", "bot_dm", "private_channel"];
 
 function CommandContextsInput({ data, updateData, errors }: InputProps) {
@@ -721,8 +913,10 @@ function CommandIntegrationsInput({ data, updateData, errors }: InputProps) {
 }
 
 function EventTypeInput({ data, updateData, errors }: InputProps) {
-  // Scheduled listeners can't become Discord listeners or the other way around.
+  // Scheduled and webhook listeners can't become Discord listeners or the
+  // other way around.
   if (data.event_type === EventTypeScheduleCron) return null;
+  if (data.event_type === EventTypeWebhook) return <WebhookUrlInput />;
 
   return (
     <BaseInput
@@ -735,8 +929,14 @@ function EventTypeInput({ data, updateData, errors }: InputProps) {
         { value: "message_delete", label: "Message Delete" },
         { value: "guild_member_add", label: "Server Member Add" },
         { value: "guild_member_remove", label: "Server Member Remove" },
+        { value: "message_reaction_add", label: "Message Reaction Add" },
+        {
+          value: "message_reaction_remove",
+          label: "Message Reaction Remove",
+        },
         { value: "guild_create", label: "Bot Joined Server" },
         { value: "guild_delete", label: "Bot Left Server" },
+        { value: "guild_boost", label: "Server Boost" },
       ]}
       value={data.event_type || ""}
       updateValue={(v) => updateData({ event_type: v || undefined })}
@@ -788,6 +988,7 @@ function EventFilterTargetInput({ data, updateData, errors }: InputProps) {
         { value: "user_id", label: "User ID" },
         { value: "guild_id", label: "Guild ID" },
         { value: "channel_id", label: "Channel ID" },
+        { value: "message_id", label: "Message ID" },
       ]}
       value={data.event_filter_target || ""}
       updateValue={(v) =>
@@ -981,6 +1182,13 @@ function HttpRequestDataInput({ data, updateData, errors }: InputProps) {
             errors={errors}
             placeholders
           />
+          {isDiscordApiUrl(data.http_request_data?.url || "") && (
+            <div className="text-sm text-muted-foreground bg-muted rounded p-3">
+              Use the Discord API Request block to call the Discord API. It
+              sends your bot&apos;s token for you, so you don&apos;t have to
+              paste it into a header.
+            </div>
+          )}
           <div>
             <div className="font-medium text-foreground mb-1">Headers</div>
             <div className="text-muted-foreground text-sm mb-2">
@@ -1038,6 +1246,284 @@ function HttpRequestDataInput({ data, updateData, errors }: InputProps) {
               />
             )}
           </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+const discordApiOperationItems = discordApiOperations.map((o) => ({
+  id: o.id,
+  name: discordApiOperationLabel(o.id),
+  description: `${o.method} ${o.path}`,
+}));
+
+function BlockFieldInput({ type, name, data, updateData, errors }: InputProps) {
+  const field = getBlockDefinition(type)?.fields?.find((f) => f.name === name);
+  if (!field) return null;
+
+  const key = field.name;
+  const value = String(data[key] ?? "");
+  // Fields without a schema are described, a test checks it.
+  const title = field.label ?? field.name;
+  const description = field.description ?? "";
+
+  function setValue(value: string) {
+    updateData({ [key]: value || undefined });
+  }
+
+  if (field.widget === "permissions") {
+    return (
+      <BasePermissionInput
+        field={key}
+        title={title}
+        description={description}
+        value={value || "0"}
+        updateValue={(v) => setValue(v === "0" ? "" : v)}
+        errors={errors}
+      />
+    );
+  }
+  if (field.type === "boolean") {
+    return (
+      <BaseInput
+        type="select"
+        field={key}
+        title={title}
+        description={description}
+        options={[
+          { value: "true", label: "Yes" },
+          { value: "false", label: "No" },
+        ]}
+        value={value}
+        updateValue={setValue}
+        errors={errors}
+        clearable
+      />
+    );
+  }
+  return (
+    <BaseInput
+      type="text"
+      field={key}
+      title={title}
+      description={description}
+      value={value}
+      updateValue={setValue}
+      errors={errors}
+      placeholders
+    />
+  );
+}
+
+// Webhooks with a token in the URL don't need the bot's token, and the Discord
+// API Request block can't call them.
+function isDiscordApiUrl(url: string) {
+  return (
+    /^\s*(https?:\/\/)?((ptb|canary)\.)?discord(app)?\.com(\/|$)/i.test(url) &&
+    !/\/webhooks\//i.test(url)
+  );
+}
+
+function DiscordApiRequestDataInput({ data, updateData, errors }: InputProps) {
+  const request = data.discord_api_request_data;
+  const op = getDiscordApiOperation(request?.operation);
+
+  function updateRequest(newData: Partial<DiscordAPIRequestData>) {
+    updateData({ discord_api_request_data: { ...request, ...newData } });
+  }
+
+  function selectOperation(id: string) {
+    const newOp = getDiscordApiOperation(id);
+    if (!newOp) return;
+
+    // Keeps the values of parameters both endpoints have, like channel_id.
+    const pathValues = new Map(
+      request?.path_params?.map((p) => [p.key, p.value])
+    );
+    updateRequest({
+      operation: id,
+      path_params: newOp.path_params.map((p) => ({
+        key: p.name,
+        value: pathValues.get(p.name) ?? "",
+      })),
+      query: request?.query?.filter((q) =>
+        newOp.query_params.some((p) => p.name === q.key)
+      ),
+      body_json: newOp.has_body ? request?.body_json : undefined,
+    });
+  }
+
+  function setParam(
+    field: "path_params" | "query",
+    key: string,
+    value: string
+  ) {
+    const params = request?.[field] ?? [];
+    updateRequest({
+      [field]: params.some((p) => p.key === key)
+        ? params.map((p) => (p.key === key ? { key, value } : p))
+        : [...params, { key, value }],
+    });
+  }
+
+  const unusedQueryParams =
+    op?.query_params.filter(
+      (p) => !request?.query?.some((q) => q.key === p.name)
+    ) ?? [];
+
+  const operationError = errors["discord_api_request_data.operation"];
+  const bodyError = errors["discord_api_request_data.body_json"];
+
+  return (
+    <Dialog>
+      <DialogTrigger asChild>
+        <Button className="w-full" variant="secondary">
+          Configure Request
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="overflow-y-auto max-h-[90dvh] max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>Configure Discord API Request</DialogTitle>
+          <DialogDescription>
+            Call an endpoint of the Discord API as your bot. Kite adds the
+            bot&apos;s token, so never paste it into a flow. See{" "}
+            <Link
+              href="https://discord.com/developers/docs/reference"
+              target="_blank"
+              className="text-primary hover:underline"
+            >
+              Discord&apos;s API docs
+            </Link>{" "}
+            for what each endpoint takes and returns, and{" "}
+            <Link
+              href={nodeTypeDocsPage("action_discord_api_request")!}
+              target="_blank"
+              className="text-primary hover:underline"
+            >
+              how to use this block
+            </Link>
+            .
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-3">
+          <div>
+            <div className="font-medium text-foreground mb-2">Endpoint</div>
+            <EntitySelect
+              items={discordApiOperationItems}
+              value={request?.operation ?? null}
+              onChange={(id) => id && selectOperation(id)}
+              placeholder="Select an endpoint"
+              searchPlaceholder="Search endpoints..."
+              emptyText="No endpoint found."
+              wide
+              modal
+            />
+            {op && (
+              <div className="text-muted-foreground text-sm font-mono mt-2 break-all">
+                {op.method} {op.path}
+              </div>
+            )}
+            {operationError && (
+              <div className="text-red-600 dark:text-red-400 text-sm flex items-center space-x-1 pt-2">
+                <CircleAlertIcon className="h-5 w-5 flex-none" />
+                <div>{operationError}</div>
+              </div>
+            )}
+          </div>
+          {op?.path_params.map((p) => (
+            <BaseInput
+              key={p.name}
+              type="text"
+              field={`discord_api_request_data.path_params.${p.name}`}
+              title={p.name}
+              description={p.type === "snowflake" ? "An ID" : undefined}
+              value={
+                request?.path_params?.find((v) => v.key === p.name)?.value || ""
+              }
+              updateValue={(v) => setParam("path_params", p.name, v)}
+              errors={errors}
+              placeholders
+            />
+          ))}
+          {request?.query?.map((q) => (
+            <div className="flex gap-2 items-end" key={q.key}>
+              <BaseInput
+                type="text"
+                field={`discord_api_request_data.query.${q.key}`}
+                title={q.key}
+                description="Query parameter"
+                value={q.value}
+                updateValue={(v) => setParam("query", q.key, v)}
+                errors={errors}
+                placeholders
+              />
+              <Button
+                variant="outline"
+                size="icon"
+                className="flex-none"
+                onClick={() =>
+                  updateRequest({
+                    query: request.query?.filter((v) => v.key !== q.key),
+                  })
+                }
+              >
+                <MinusIcon className="h-5 w-5" />
+              </Button>
+            </div>
+          ))}
+          {unusedQueryParams.length > 0 && (
+            <Select
+              value=""
+              onValueChange={(key) =>
+                updateRequest({
+                  query: [...(request?.query ?? []), { key, value: "" }],
+                })
+              }
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Add query parameter" />
+              </SelectTrigger>
+              <SelectContent>
+                {unusedQueryParams.map((p) => (
+                  <SelectItem key={p.name} value={p.name}>
+                    {p.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+          {op?.has_body && (
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <div className="font-medium text-foreground">JSON Body</div>
+                <Switch
+                  checked={!!request?.body_json}
+                  onCheckedChange={(checked) =>
+                    updateRequest({ body_json: checked ? {} : undefined })
+                  }
+                />
+              </div>
+              {!!request?.body_json && (
+                <FlowJsonInput
+                  value={request.body_json}
+                  // Some endpoints take a list, which the generated type
+                  // doesn't allow for.
+                  onChange={(v) =>
+                    updateRequest({
+                      body_json: v as DiscordAPIRequestData["body_json"],
+                    })
+                  }
+                />
+              )}
+              {bodyError && (
+                <div className="text-red-600 dark:text-red-400 text-sm flex items-center space-x-1 pt-2">
+                  <CircleAlertIcon className="h-5 w-5 flex-none" />
+                  <div>{bodyError}</div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </DialogContent>
     </Dialog>
@@ -1211,7 +1697,7 @@ function GuildTargetInput({ type, data, updateData, errors }: InputProps) {
       description={
         type === "action_guild_get"
           ? undefined
-          : "Leave empty to use the server the flow runs in. Required in scheduled event listeners."
+          : "Leave empty to use the server the flow runs in. Required in scheduled and webhook event listeners."
       }
       value={data.guild_target || ""}
       updateValue={(v) => updateData({ guild_target: v || undefined })}
@@ -1645,47 +2131,110 @@ function PollDataInput({ data, updateData, errors }: InputProps) {
   );
 }
 
+function parseOptionalInt(v: string) {
+  const n = parseInt(v);
+  return isNaN(n) ? undefined : n;
+}
+
+let nextListKey = 0;
+
+// Keys for the items of a list that can be reordered or removed, so the
+// inputs of an item stay with it. The items have no IDs to use instead. Moves
+// and removals have to go through move and remove, other changes, like an
+// undo, only keep the keys of the first items.
+function useListKeys(length: number) {
+  const keys = useRef<number[]>([]);
+  while (keys.current.length < length) keys.current.push(nextListKey++);
+  keys.current.length = length;
+
+  return {
+    keys: keys.current,
+    move: (i: number, j: number) => {
+      const k = keys.current;
+      [k[i], k[j]] = [k[j], k[i]];
+    },
+    remove: (i: number) => {
+      keys.current.splice(i, 1);
+    },
+  };
+}
+
 function ModalDataInput({ data, updateData, errors }: InputProps) {
-  const addInput = useCallback(() => {
-    updateData({
-      modal_data: {
-        title: data.modal_data?.title,
-        components: [
-          ...(data.modal_data?.components || []),
-          { components: [{ style: 1 }] },
-        ],
-      },
-    });
-  }, [updateData, data]);
+  // Older modals are converted when they are edited, so the editor only
+  // deals with labels and text displays.
+  const components = useMemo(
+    () => normalizeModalComponents(data.modal_data?.components),
+    [data.modal_data?.components]
+  );
+  const componentKeys = useListKeys(components.length);
 
-  const clearInputs = useCallback(() => {
-    updateData({
-      modal_data: {
-        title: data.modal_data?.title,
-        components: [],
-      },
-    });
-  }, [updateData, data]);
-
-  const updateComponentField = useCallback(
-    (r: number, c: number, newData: Partial<ModalComponentData>) => {
-      const current = data.modal_data || {};
-      if (!current.components) return;
-
-      const row = current.components[r];
-      if (!row || !row.components) return;
-
-      const component = row.components[c];
-      if (!component) return;
-
-      Object.assign(component, newData);
-
+  const setComponents = useCallback(
+    (newComponents: ModalComponentData[]) => {
       updateData({
-        modal_data: current,
+        modal_data: {
+          title: data.modal_data?.title,
+          components: newComponents,
+        },
       });
     },
-    [updateData, data]
+    [updateData, data.modal_data?.title]
   );
+
+  const updateComponent = useCallback(
+    (i: number, newData: Partial<ModalComponentData>) => {
+      setComponents(
+        components.map((c, j) => (j === i ? { ...c, ...newData } : c))
+      );
+    },
+    [setComponents, components]
+  );
+
+  const updateInput = useCallback(
+    (i: number, newData: Partial<ModalComponentData>) => {
+      const input = components[i]?.components?.[0] ?? {};
+      updateComponent(i, { components: [{ ...input, ...newData }] });
+    },
+    [updateComponent, components]
+  );
+
+  const moveComponent = useCallback(
+    (i: number, dir: -1 | 1) => {
+      const j = i + dir;
+      if (j < 0 || j >= components.length) return;
+      const res = [...components];
+      [res[i], res[j]] = [res[j], res[i]];
+      componentKeys.move(i, j);
+      setComponents(res);
+    },
+    [setComponents, components, componentKeys]
+  );
+
+  const removeComponent = useCallback(
+    (i: number) => {
+      componentKeys.remove(i);
+      setComponents(components.filter((_, j) => j !== i));
+    },
+    [setComponents, components, componentKeys]
+  );
+
+  const addInput = useCallback(() => {
+    const n = nextModalInputNumber(components);
+    setComponents([
+      ...components,
+      {
+        type: "label",
+        label: `Input ${n}`,
+        components: [newModalInput("text_input", `input_${n}`)],
+      },
+    ]);
+  }, [setComponents, components]);
+
+  const addText = useCallback(() => {
+    setComponents([...components, { type: "text_display", content: "" }]);
+  }, [setComponents, components]);
+
+  const componentsError =
+    errors["modal_data.components"] || errors["modal_data"];
 
   return (
     <Dialog>
@@ -1697,20 +2246,21 @@ function ModalDataInput({ data, updateData, errors }: InputProps) {
           <DialogTitle>Configure Modal</DialogTitle>
           <DialogDescription>
             Configure your modal here! A modal must have a title and at least
-            one input component.
+            one input. It can have up to {modalMaxComponents} inputs and texts.
+            The answers can be read with {"{{input('identifier')}}"}.
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-3">
           <BaseInput
             type="text"
-            field="modal_data"
+            field="modal_data.title"
             title="Title"
             value={data.modal_data?.title || ""}
             updateValue={(v) =>
               updateData({
                 modal_data: {
                   title: v || undefined,
-                  components: data.modal_data?.components,
+                  components,
                 },
               })
             }
@@ -1719,103 +2269,393 @@ function ModalDataInput({ data, updateData, errors }: InputProps) {
           />
 
           <div className="space-y-3">
-            <div className="font-medium text-foreground">Inputs</div>
-            {data.modal_data?.components?.map((row, r) =>
-              row?.components?.map((component, c) => (
-                <Card className="space-y-3 p-3 -mx-1" key={`${r}-${c}`}>
-                  <div className="flex space-x-3">
-                    <BaseInput
-                      type="select"
-                      field={`modal_data.components.${r}.components.${c}.type`}
-                      title="Type"
-                      value={component.style?.toString() || "1"}
-                      options={[
-                        {
-                          label: "Short",
-                          value: "1",
-                        },
-                        {
-                          label: "Paragraph",
-                          value: "2",
-                        },
-                      ]}
-                      updateValue={(v) =>
-                        updateComponentField(r, c, {
-                          style: parseInt(v) || 1,
-                        })
-                      }
-                      errors={errors}
-                    />
-                    <BaseCheckbox
-                      field={`modal_data.components.${r}.components.${c}.required`}
-                      title="Required"
-                      value={component?.required || false}
-                      updateValue={(v) =>
-                        updateComponentField(r, c, {
-                          required: v,
-                        })
-                      }
-                      errors={errors}
-                    />
+            <div className="font-medium text-foreground">Components</div>
+            {components.map((component, i) => (
+              <Card className="space-y-3 p-3 -mx-1" key={componentKeys.keys[i]}>
+                <div className="flex items-center gap-2">
+                  <div className="font-medium text-foreground flex-auto">
+                    {component.type === "text_display" ? "Text" : "Input"}{" "}
+                    {modalComponentNumber(components, i)}
                   </div>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    disabled={i === 0}
+                    onClick={() => moveComponent(i, -1)}
+                  >
+                    <ChevronUpIcon className="h-5 w-5" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    disabled={i === components.length - 1}
+                    onClick={() => moveComponent(i, 1)}
+                  >
+                    <ChevronDownIcon className="h-5 w-5" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => removeComponent(i)}
+                  >
+                    <TrashIcon className="h-5 w-5" />
+                  </Button>
+                </div>
+                {component.type === "text_display" ? (
                   <BaseInput
-                    type="text"
-                    field={`modal_data.components.${r}.components.${c}.custom_id`}
-                    title="Identifier"
-                    description="Used to identify the input in your flow."
-                    value={component?.custom_id || ""}
+                    type="textarea"
+                    field={`modal_data.components.${i}.content`}
+                    title="Content"
+                    description="Markdown text shown in the modal."
+                    value={component.content || ""}
                     updateValue={(v) =>
-                      updateComponentField(r, c, {
-                        custom_id: v || undefined,
-                      })
-                    }
-                    errors={errors}
-                  />
-                  <BaseInput
-                    type="text"
-                    field={`modal_data.components.${r}.components.${c}.label`}
-                    title="Label"
-                    value={component?.label || ""}
-                    updateValue={(v) =>
-                      updateComponentField(r, c, {
-                        label: v || undefined,
-                      })
+                      updateComponent(i, { content: v || undefined })
                     }
                     errors={errors}
                     placeholders
                   />
-                  <BaseInput
-                    type="text"
-                    field={`modal_data.components.${r}.components.${c}.placeholder`}
-                    title="Placeholder"
-                    value={component?.placeholder || ""}
-                    updateValue={(v) =>
-                      updateComponentField(r, c, {
-                        placeholder: v || undefined,
-                      })
-                    }
+                ) : (
+                  <ModalLabelInput
+                    index={i}
+                    component={component}
+                    updateComponent={(d) => updateComponent(i, d)}
+                    updateInput={(d) => updateInput(i, d)}
                     errors={errors}
-                    placeholders
                   />
-                </Card>
-              ))
-            )}
+                )}
+              </Card>
+            ))}
           </div>
+
+          {componentsError && (
+            <div className="text-red-600 dark:text-red-400 text-sm flex items-center space-x-1">
+              <CircleAlertIcon className="h-5 w-5 flex-none" />
+              <div>{componentsError}</div>
+            </div>
+          )}
 
           <div className="flex space-x-3">
             <Button
               onClick={addInput}
-              disabled={(data.modal_data?.components?.length || 0) >= 5}
+              disabled={components.length >= modalMaxComponents}
             >
               Add Input
             </Button>
-            <Button variant="outline" onClick={clearInputs}>
-              Clear Inputs
+            <Button
+              variant="outline"
+              onClick={addText}
+              disabled={components.length >= modalMaxComponents}
+            >
+              Add Text
+            </Button>
+            <Button variant="outline" onClick={() => setComponents([])}>
+              Clear
             </Button>
           </div>
         </div>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function ModalLabelInput({
+  index,
+  component,
+  updateComponent,
+  updateInput,
+  errors,
+}: {
+  index: number;
+  component: ModalComponentData;
+  updateComponent: (data: Partial<ModalComponentData>) => void;
+  updateInput: (data: Partial<ModalComponentData>) => void;
+  errors: Record<string, string>;
+}) {
+  const input = component.components?.[0] ?? {};
+  const type = input.type || "text_input";
+  const field = `modal_data.components.${index}`;
+  const inputField = `${field}.components.0`;
+
+  return (
+    <>
+      <div className="flex space-x-3">
+        <BaseInput
+          type="select"
+          field={`${inputField}.type`}
+          title="Type"
+          value={type}
+          options={[...modalInputTypes]}
+          updateValue={(v) =>
+            updateComponent({
+              components: [newModalInput(v as ModalInputType, input.custom_id)],
+            })
+          }
+          errors={errors}
+        />
+        {type === "checkbox" ? (
+          <BaseCheckbox
+            field={`${inputField}.default`}
+            title="Checked"
+            value={!!input.default}
+            updateValue={(v) => updateInput({ default: v || undefined })}
+            errors={errors}
+          />
+        ) : (
+          <BaseCheckbox
+            field={`${inputField}.required`}
+            title="Required"
+            value={!!input.required}
+            updateValue={(v) => updateInput({ required: v || undefined })}
+            errors={errors}
+          />
+        )}
+      </div>
+      <BaseInput
+        type="text"
+        field={`${inputField}.custom_id`}
+        title="Identifier"
+        description="Used to read the answer in your flow with input('identifier')."
+        value={input.custom_id || ""}
+        updateValue={(v) => updateInput({ custom_id: v || undefined })}
+        errors={errors}
+      />
+      <BaseInput
+        type="text"
+        field={`${field}.label`}
+        title="Label"
+        value={component.label || ""}
+        updateValue={(v) => updateComponent({ label: v || undefined })}
+        errors={errors}
+        placeholders
+      />
+      <BaseInput
+        type="text"
+        field={`${field}.description`}
+        title="Description"
+        description="Optional smaller text shown below the label."
+        value={component.description || ""}
+        updateValue={(v) => updateComponent({ description: v || undefined })}
+        errors={errors}
+        placeholders
+      />
+      {type === "text_input" && (
+        <>
+          <BaseInput
+            type="select"
+            field={`${inputField}.style`}
+            title="Style"
+            value={input.style?.toString() || "1"}
+            options={[
+              { label: "Short", value: "1" },
+              { label: "Paragraph", value: "2" },
+            ]}
+            updateValue={(v) => updateInput({ style: parseInt(v) || 1 })}
+            errors={errors}
+          />
+          <div className="flex space-x-3">
+            <BaseInput
+              type="text"
+              field={`${inputField}.min_length`}
+              title="Min Length"
+              value={input.min_length?.toString() || ""}
+              updateValue={(v) =>
+                updateInput({ min_length: parseOptionalInt(v) })
+              }
+              errors={errors}
+            />
+            <BaseInput
+              type="text"
+              field={`${inputField}.max_length`}
+              title="Max Length"
+              value={input.max_length?.toString() || ""}
+              updateValue={(v) =>
+                updateInput({ max_length: parseOptionalInt(v) })
+              }
+              errors={errors}
+            />
+          </div>
+          <BaseInput
+            type="text"
+            field={`${inputField}.value`}
+            title="Pre-filled Value"
+            value={input.value || ""}
+            updateValue={(v) => updateInput({ value: v || undefined })}
+            errors={errors}
+            placeholders
+          />
+        </>
+      )}
+      {modalInputHasPlaceholder(type) && (
+        <BaseInput
+          type="text"
+          field={`${inputField}.placeholder`}
+          title="Placeholder"
+          value={input.placeholder || ""}
+          updateValue={(v) => updateInput({ placeholder: v || undefined })}
+          errors={errors}
+          placeholders
+        />
+      )}
+      {modalInputHasValueLimits(type) && (
+        <div className="flex space-x-3">
+          <BaseInput
+            type="text"
+            field={`${inputField}.min_values`}
+            title="Min Picks"
+            value={input.min_values?.toString() || ""}
+            updateValue={(v) =>
+              updateInput({ min_values: parseOptionalInt(v) })
+            }
+            errors={errors}
+          />
+          <BaseInput
+            type="text"
+            field={`${inputField}.max_values`}
+            title="Max Picks"
+            value={input.max_values?.toString() || ""}
+            updateValue={(v) =>
+              updateInput({ max_values: parseOptionalInt(v) })
+            }
+            errors={errors}
+          />
+        </div>
+      )}
+      {type === "channel_select" && (
+        <BaseMultiSelect
+          field={`${inputField}.channel_types`}
+          title="Channel Types"
+          description="Leave empty to allow all channel types."
+          options={channelTypeOptions}
+          values={(input.channel_types ?? []).map((t) => t.toString())}
+          updateValues={(v) =>
+            updateInput({
+              channel_types:
+                v.length > 0 ? v.map((t) => parseInt(t)) : undefined,
+            })
+          }
+          errors={errors}
+        />
+      )}
+      {modalInputHasOptions(type) && (
+        <ModalOptionsInput
+          field={`${inputField}.options`}
+          options={input.options ?? []}
+          max={modalOptionCounts[type as keyof typeof modalOptionCounts][1]}
+          updateOptions={(options) => updateInput({ options })}
+          errors={errors}
+        />
+      )}
+    </>
+  );
+}
+
+function ModalOptionsInput({
+  field,
+  options,
+  max,
+  updateOptions,
+  errors,
+}: {
+  field: string;
+  options: ModalComponentOptionData[];
+  max: number;
+  updateOptions: (options: ModalComponentOptionData[]) => void;
+  errors: Record<string, string>;
+}) {
+  const optionKeys = useListKeys(options.length);
+  const updateOption = (i: number, data: Partial<ModalComponentOptionData>) =>
+    updateOptions(options.map((o, j) => (j === i ? { ...o, ...data } : o)));
+
+  const error = errors[field];
+
+  return (
+    <div>
+      <div className="font-medium text-foreground mb-1">Options</div>
+      <div className="text-muted-foreground text-sm mb-2">
+        The value is what input() returns when the option is picked. Leave it
+        empty to use the label.
+      </div>
+      <div className="flex flex-col gap-3">
+        {options.map((option, i) => {
+          const optionError =
+            errors[`${field}.${i}.label`] ||
+            errors[`${field}.${i}.value`] ||
+            errors[`${field}.${i}.description`];
+
+          return (
+            <div key={optionKeys.keys[i]}>
+              <div className="flex gap-2 items-center">
+                <div className="flex-auto grid grid-cols-3 gap-2">
+                  <PlaceholderInput
+                    value={option.label || ""}
+                    onChange={(v) => updateOption(i, { label: v || undefined })}
+                    placeholder="Label"
+                  />
+                  <PlaceholderInput
+                    value={option.value || ""}
+                    onChange={(v) => updateOption(i, { value: v || undefined })}
+                    placeholder="Value"
+                  />
+                  <PlaceholderInput
+                    value={option.description || ""}
+                    onChange={(v) =>
+                      updateOption(i, { description: v || undefined })
+                    }
+                    placeholder="Description"
+                  />
+                </div>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div>
+                      <Switch
+                        checked={!!option.default}
+                        onCheckedChange={(v) =>
+                          updateOption(i, { default: v || undefined })
+                        }
+                      />
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent>Picked by default</TooltipContent>
+                </Tooltip>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="flex-none"
+                  onClick={() => {
+                    optionKeys.remove(i);
+                    updateOptions(options.filter((_, j) => j !== i));
+                  }}
+                >
+                  <MinusIcon className="h-5 w-5" />
+                </Button>
+              </div>
+              {optionError && (
+                <div className="text-red-600 dark:text-red-400 text-sm flex items-center space-x-1 pt-2">
+                  <CircleAlertIcon className="h-5 w-5 flex-none" />
+                  <div>{optionError}</div>
+                </div>
+              )}
+            </div>
+          );
+        })}
+        <div className="flex">
+          <Button
+            variant="outline"
+            size="icon"
+            disabled={options.length >= max}
+            onClick={() => updateOptions([...options, newModalOption(options)])}
+          >
+            <PlusIcon className="h-5 w-5" />
+          </Button>
+        </div>
+      </div>
+      {error && (
+        <div className="text-red-600 dark:text-red-400 text-sm flex items-center space-x-1 pt-2">
+          <CircleAlertIcon className="h-5 w-5 flex-none" />
+          <div>{error}</div>
+        </div>
+      )}
+    </div>
   );
 }
 

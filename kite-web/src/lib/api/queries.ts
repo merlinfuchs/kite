@@ -1,4 +1,4 @@
-import { useQueries, useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQueries, useQuery } from "@tanstack/react-query";
 import { apiRequest } from "./client";
 import {
   AppCollaboratorListResponse,
@@ -34,6 +34,9 @@ import {
   UserGetResponse,
   VariableGetResponse,
   VariableListResponse,
+  VariableValueListResponse,
+  AppSecretListResponse,
+  AppIntegrationListResponse,
 } from "../types/wire.gen";
 
 export function useUserQuery(userId = "@me") {
@@ -84,6 +87,7 @@ export function useLogEntriesQuery(
     eventId?: string;
     messageId?: string;
     refetchInterval?: number;
+    enabled?: boolean;
   }
 ) {
   const query = new URLSearchParams();
@@ -105,7 +109,7 @@ export function useLogEntriesQuery(
     queryFn: () =>
       apiRequest<LogEntry[]>(`/v1/apps/${appId}/logs?${query.toString()}`),
     staleTime: 1000 * 60,
-    enabled: !!appId,
+    enabled: !!appId && (args?.enabled ?? true),
     refetchInterval: args?.refetchInterval,
   });
 }
@@ -195,6 +199,24 @@ export function useVariablesQuery(appId: string) {
   });
 }
 
+export function useAppIntegrationsQuery(appId: string) {
+  return useQuery({
+    queryKey: ["apps", appId, "integrations"],
+    queryFn: () =>
+      apiRequest<AppIntegrationListResponse>(`/v1/apps/${appId}/integrations`),
+    enabled: !!appId,
+  });
+}
+
+export function useAppSecretsQuery(appId: string) {
+  return useQuery({
+    queryKey: ["apps", appId, "secrets"],
+    queryFn: () =>
+      apiRequest<AppSecretListResponse>(`/v1/apps/${appId}/secrets`),
+    enabled: !!appId,
+  });
+}
+
 export function useVariableQuery(appId: string, variableId: string) {
   return useQuery({
     queryKey: ["apps", appId, "variables", variableId],
@@ -203,6 +225,29 @@ export function useVariableQuery(appId: string, variableId: string) {
         `/v1/apps/${appId}/variables/${variableId}`
       ),
     enabled: !!appId && !!variableId,
+  });
+}
+
+export function useVariableValuesQuery(
+  appId: string,
+  variableId: string,
+  params: { search: string; limit: number; offset: number }
+) {
+  return useQuery({
+    queryKey: ["apps", appId, "variables", variableId, "values", params],
+    queryFn: () => {
+      const query = new URLSearchParams({
+        search: params.search,
+        limit: params.limit.toString(),
+        offset: params.offset.toString(),
+      });
+      return apiRequest<VariableValueListResponse>(
+        `/v1/apps/${appId}/variables/${variableId}/values?${query}`
+      );
+    },
+    enabled: !!appId && !!variableId,
+    // Keeps the current page visible while the next one or a search loads.
+    placeholderData: keepPreviousData,
   });
 }
 

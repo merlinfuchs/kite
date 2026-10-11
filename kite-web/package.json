@@ -9,7 +9,8 @@
     "lint": "next lint",
     "format": "prettier --write \"src/**/*.{ts,tsx,css}\"",
     "format:check": "prettier --check \"src/**/*.{ts,tsx,css}\"",
-    "test": "vitest run"
+    "test": "vitest run",
+    "export-node-info": "tsx scripts/export-node-info.ts"
   },
   "dependencies": {
     "@codemirror/lang-json": "^6.0.1",
@@ -51,8 +52,6 @@
     "@types/react-twemoji": "^0.4.3",
     "@uiw/codemirror-theme-github": "^4.23.0",
     "@uiw/react-codemirror": "^4.23.0",
-    "@vercel/analytics": "^1.3.1",
-    "@vercel/speed-insights": "^1.0.12",
     "@xyflow/react": "^12.0.3",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
@@ -98,6 +97,7 @@
     "postcss": "^8",
     "prettier": "2.8.8",
     "tailwindcss": "^3.4.1",
+    "tsx": "^4.23.15",
     "typescript": "^5",
     "vitest": "^3.2.7"
   },

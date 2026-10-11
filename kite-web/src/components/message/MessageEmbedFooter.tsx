@@ -37,7 +37,7 @@ export default function MessageEmbedFooter({ embedId }: { embedId: NodeId }) {
         validation={nodeField<EmbedNode>(embedId, "footer.text")}
         placeholders
       />
-      <div className="flex space-x-3">
+      <div className="flex flex-col gap-3 sm:flex-row">
         <MessageInput
           type="url"
           label="Footer Icon URL"

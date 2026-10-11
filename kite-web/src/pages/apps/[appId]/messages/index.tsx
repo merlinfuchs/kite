@@ -1,4 +1,5 @@
 import AppLayout from "@/components/app/AppLayout";
+import { getAppShellLayout } from "@/components/app/AppShell";
 import MessageList from "@/components/app/MessageList";
 import { Separator } from "@/components/ui/separator";
 import env from "@/lib/env/client";
@@ -33,3 +34,5 @@ export default function AppMessagesPage() {
     </AppLayout>
   );
 }
+
+AppMessagesPage.getLayout = getAppShellLayout;
