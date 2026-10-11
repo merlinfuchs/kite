@@ -12,7 +12,7 @@ export default function AppListPage() {
   const logout = useLogout();
 
   return (
-    <BaseLayout title="Apps">
+    <BaseLayout title="Apps" noindex>
       <div className="flex flex-1 justify-center items-center min-h-[100dvh] w-full px-5 pt-10 pb-20">
         <div className="w-full max-w-lg">
           <div>

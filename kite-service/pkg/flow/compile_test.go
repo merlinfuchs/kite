@@ -133,6 +133,86 @@ func TestFlowCompileScheduleAllowsResponsesInButtonBranches(t *testing.T) {
 	assert.NoError(t, err, "a clicked button has an interaction to respond to")
 }
 
+func commandArgumentsFlow(order []string) FlowData {
+	argument := func(id string, required bool) FlowNode {
+		return FlowNode{
+			ID:   id,
+			Type: FlowNodeTypeOptionCommandArgument,
+			Data: FlowNodeData{
+				Name:                    id,
+				Description:             id,
+				CommandArgumentType:     CommandArgumentTypeString,
+				CommandArgumentRequired: required,
+			},
+		}
+	}
+
+	return FlowData{
+		Nodes: []FlowNode{
+			{
+				ID:   "entry",
+				Type: FlowNodeTypeEntryCommand,
+				Data: FlowNodeData{
+					Name:                 "ban",
+					Description:          "Ban a user",
+					CommandArgumentOrder: order,
+				},
+			},
+			argument("reason", false),
+			argument("user", true),
+			argument("days", false),
+			argument("duration", true),
+		},
+		Edges: []FlowEdge{
+			{Source: "reason", Target: "entry"},
+			{Source: "user", Target: "entry"},
+			{Source: "days", Target: "entry"},
+			{Source: "duration", Target: "entry"},
+		},
+	}
+}
+
+func TestFlowCommandArgumentOrder(t *testing.T) {
+	tests := []struct {
+		name     string
+		order    []string
+		expected []string
+	}{
+		{
+			name:     "connection order without an order",
+			expected: []string{"duration", "user", "reason", "days"},
+		},
+		{
+			name:     "follows the order",
+			order:    []string{"user", "duration", "days", "reason"},
+			expected: []string{"user", "duration", "days", "reason"},
+		},
+		{
+			name:     "required arguments stay first",
+			order:    []string{"days", "user", "reason", "duration"},
+			expected: []string{"user", "duration", "days", "reason"},
+		},
+		{
+			name:     "missing arguments come last",
+			order:    []string{"days", "user", "deleted"},
+			expected: []string{"user", "duration", "days", "reason"},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			entry, err := CompileCommand(commandArgumentsFlow(test.order))
+			require.NoError(t, err)
+
+			names := []string{}
+			for _, o := range entry.CommandArguments() {
+				names = append(names, o.Name())
+			}
+			assert.Equal(t, test.expected, names)
+		})
+	}
+}
+
 func webhookFlow(action FlowNodeType) FlowData {
 	return FlowData{
 		Nodes: []FlowNode{

@@ -138,6 +138,7 @@ Buttons and select menus: message blocks can add them to their message in messag
 - Action row: {"type": 1, "components": [...]}.
 - Button: {"type": 2, "id": 1, "style": 1, "label": "Confirm"}. style is 1 blurple, 2 grey, 3 green, 4 red or 5 link. Link buttons have a "url" and open it instead of running blocks.
 - Select menu: {"type": 3, "id": 2, "placeholder": "Pick a color", "min_values": 1, "max_values": 1, "options": [{"label": "Red", "value": "red", "description": "Optional"}]}.
+- User, role, mentionable (users and roles) and channel select menus have type 5, 6, 7 and 8 and no options, Discord lists the server's users, roles or channels in them. A channel select can be limited with "channel_types", like [0] for text channels: {"type": 8, "id": 3, "placeholder": "Pick a channel", "channel_types": [0]}.
 - id is a number from 1 that is unique in the message. Keep the ids of existing buttons and select menus when changing a message, as the blocks after them are connected by it.
 - Every button except link buttons and every select menu adds the output "component_<id>" to the message block. Add the blocks that run when it is used after the message block with handle "component_<id>". Each use is a new interaction, respond to it with action_response_create, or the click is acknowledged without an answer.
 - Leave messages whose flags include 32768 to the message editor, they use layout components.
@@ -148,11 +149,11 @@ Placeholders: settings marked "x-templated" in the catalog can contain placehold
 - user.permissions lists lowercased Discord permission names from the user's roles, e.g. {{"ban_members" in user.permissions}}. user.is_admin is true for administrators and the owner. These two, top_role, role_names, color and is_owner fail for a member from result() or var(), or if the app isn't in the server. Outside of a server guild is null, and member and guild fields are empty or false.
 - channel.type is text, voice, category, announcement, thread, stage, forum, media, dm, group_dm or unknown. A thread has the category of its parent channel.
 - Command flows: arg('name') is the value of a command argument. Add an option_command_argument block for each argument.
-- Select menu flows: interaction.value, and interaction.values if several can be picked.
+- Select menu flows: interaction.value, and interaction.values if several can be picked. For user, role, mentionable and channel selects these are the IDs of what was picked, so <@{{interaction.value}}> mentions a picked user, <@&{{interaction.value}}> a role and <#{{interaction.value}}> a channel.
 - Discord event flows: message.id and message.content for message events, emoji (id, name, animated, mention) for reaction events.
 - Schedule flows: schedule.time and schedule.unix.
 - Webhook flows: webhook.body is the body of the request as text and webhook.data the body parsed as JSON, e.g. webhook.data.repository.name. webhook.headers and webhook.query are looked up by name, with header names in lowercase, e.g. webhook.headers['x-github-event'].
-- After a button or select menu, user, member, channel.id and the interaction are those of its use, and interaction.value and interaction.values are the selected option values. origin. followed by a placeholder, like origin.user.id or origin.arg('name'), is the one the flow started with, and previous. the one of the use before.
+- After a button or select menu, user, member, channel.id and the interaction are those of its use, and interaction.value and interaction.values are the selected option values or IDs. origin. followed by a placeholder, like origin.user.id or origin.arg('name'), is the one the flow started with, and previous. the one of the use before.
 - result('block_id') is the result of an earlier block, see result_schema in the catalog, e.g. result('abc').user.id. var('name') is the temporary variable an earlier block stored with its temporary_name setting. input('custom_id') is the value of an input of an earlier modal, the first one if several can be picked, and inputs('custom_id') the list of all of them.
 - A placeholder can only use blocks that run before the block it's in.
 
