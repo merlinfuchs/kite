@@ -10,13 +10,11 @@ const botLinks = [
 ];
 
 const compareLinks = [
-  { label: "BotGhost Alternative", href: "/botghost-alternative" },
-  { label: "inventor.bot Alternative", href: "/inventor-alternative" },
-  { label: "BotWiz Alternative", href: "/botwiz-alternative" },
-  {
-    label: "BDFD Alternative",
-    href: "/bot-designer-for-discord-alternative",
-  },
+  { label: "BotGhost Alternative", href: "/alternatives/botghost" },
+  { label: "inventor.bot Alternative", href: "/alternatives/inventor" },
+  { label: "BotWiz Alternative", href: "/alternatives/botwiz" },
+  { label: "BDFD Alternative", href: "/alternatives/bdfd" },
+  { label: "All Alternatives", href: "/alternatives" },
 ];
 
 export default function HomeFooter() {
@@ -107,7 +105,7 @@ export default function HomeFooter() {
           </div>
           <div>
             <Link
-              href="/how-to-make-a-discord-bot"
+              href="/guides/how-to-make-a-discord-bot"
               className="opacity-60 hover:opacity-100"
             >
               How to Make a Discord Bot
