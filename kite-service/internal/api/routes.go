@@ -21,6 +21,7 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/message"
 	pluginhandler "github.com/kitecloud/kite/kite-service/internal/api/handler/plugin"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/sharecode"
+	"github.com/kitecloud/kite/kite-service/internal/api/handler/stats"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/usage"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/user"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/variable"
@@ -62,6 +63,7 @@ func (s *APIServer) RegisterRoutes(
 	flowAssistant *flowai.Assistant,
 	appSecretStore store.AppSecretStore,
 	appIntegrationStore store.AppIntegrationStore,
+	statsStore store.StatsStore,
 ) {
 	sessionManager := session.NewSessionManager(session.SessionManagerConfig{
 		StrictCookies: s.config.StrictCookies,
@@ -102,6 +104,10 @@ func (s *APIServer) RegisterRoutes(
 	v1Group.Get("/health", func(c *handler.Context) error {
 		return c.Send(http.StatusOK, []byte("OK"))
 	})
+
+	// Public totals for the website
+	statsHandler := stats.NewStatsHandler(statsStore)
+	v1Group.Get("/stats", handler.Typed(statsHandler.HandleStatsGet))
 
 	// Auth routes
 	authHandler := auth.NewAuthHandler(auth.AuthHandlerConfig{
