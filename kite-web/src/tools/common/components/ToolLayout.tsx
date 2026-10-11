@@ -2,7 +2,6 @@ import logo from "@/assets/logo/white@1024.png";
 import HomeFooter from "@/components/home/HomeFooter";
 import HomeLayout from "@/components/home/HomeLayout";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
 import { kiteTools } from "@/tools/registry";
 import { ChevronRightIcon } from "lucide-react";
 import Link from "next/link";
@@ -15,7 +14,6 @@ export default function ToolLayout({
   description,
   children,
   article,
-  className,
   jsonLd,
 }: {
   // The id of the tool in the registry, for its icon and the related tools.
@@ -25,7 +23,6 @@ export default function ToolLayout({
   children: ReactNode;
   // Explains the tool below it.
   article?: ReactNode;
-  className?: string;
   jsonLd?: object[];
 }) {
   const tool = kiteTools.find((t) => t.id === toolId)!;
@@ -55,12 +52,7 @@ export default function ToolLayout({
       </section>
 
       <div className="container max-w-5xl py-10">
-        <div
-          className={cn(
-            "rounded-xl border bg-card shadow-sm p-5 md:p-8",
-            className
-          )}
-        >
+        <div className="rounded-xl border bg-card shadow-sm p-5 md:p-8">
           {children}
         </div>
 

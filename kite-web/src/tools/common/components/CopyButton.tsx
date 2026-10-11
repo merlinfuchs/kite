@@ -2,13 +2,7 @@ import { Button } from "@/components/ui/button";
 import { CheckIcon, CopyIcon } from "lucide-react";
 import { useState } from "react";
 
-export default function CopyButton({
-  value,
-  label = "Copy",
-}: {
-  value: string;
-  label?: string;
-}) {
+export default function CopyButton({ value }: { value: string }) {
   const [copied, setCopied] = useState(false);
 
   function copy() {
@@ -24,7 +18,7 @@ export default function CopyButton({
       ) : (
         <CopyIcon className="w-4 h-4 mr-2" />
       )}
-      {copied ? "Copied" : label}
+      {copied ? "Copied" : "Copy"}
     </Button>
   );
 }

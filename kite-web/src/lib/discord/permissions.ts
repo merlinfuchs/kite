@@ -1,5 +1,5 @@
-// From https://discord.com/developers/docs/topics/permissions, grouped like in
-// the server settings of Discord.
+// From https://discord.com/developers/docs/topics/permissions. The categories
+// group them for the permissions calculator.
 export const permissionBits = [
   {
     label: "Create Instant Invite",

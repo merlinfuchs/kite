@@ -39,6 +39,9 @@ function preview(
   return new Intl.DateTimeFormat(undefined, format).format(unix * 1000);
 }
 
+// The latest moment a JavaScript Date can hold, in seconds.
+const maxUnix = 8.64e12;
+
 // The value of a datetime-local input is in the local time zone, without one.
 function toLocalInput(unix: number) {
   const date = new Date(unix * 1000);
@@ -91,7 +94,7 @@ export default function TimestampGenerator() {
             value={unix}
             onChange={(e) => {
               const value = parseInt(e.target.value.replace(/\D/g, ""));
-              if (!isNaN(value)) setUnix(value);
+              if (value <= maxUnix) setUnix(value);
             }}
             className="font-mono"
           />

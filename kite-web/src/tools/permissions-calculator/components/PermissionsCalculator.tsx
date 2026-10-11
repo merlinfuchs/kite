@@ -4,7 +4,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   decodePermissionsBitset,
-  encodePermissionsBitset,
   PermissionCategory,
   permissionBits,
 } from "@/lib/discord/permissions";
@@ -13,13 +12,12 @@ import { ExternalLinkIcon } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 // In this order the two columns end up about the same height.
-const categories: PermissionCategory[] = [
-  "General",
-  "Voice",
-  "Text",
-  "Members",
-  "Advanced",
-];
+const categories = (
+  ["General", "Voice", "Text", "Members", "Advanced"] as PermissionCategory[]
+).map((name) => ({
+  name,
+  permissions: permissionBits.filter((p) => p.category === name),
+}));
 
 const scopes = [
   { id: "bot", label: "bot", description: "Adds the bot to the server" },
@@ -63,11 +61,11 @@ export default function PermissionsCalculator() {
     [value]
   );
 
+  // Changes only this bit, so bits of permissions we don't know yet survive.
   function toggle(bit: number, checked: boolean) {
-    const bits = new Set(enabled);
-    if (checked) bits.add(bit);
-    else bits.delete(bit);
-    setValue(encodePermissionsBitset(Array.from(bits)));
+    const bits = BigInt(value || "0");
+    const mask = BigInt(1) << BigInt(bit);
+    setValue((checked ? bits | mask : bits & ~mask).toString());
   }
 
   const validClientId = /^\d{17,20}$/.test(clientId);
@@ -116,36 +114,29 @@ export default function PermissionsCalculator() {
       <div ref={listRef} className="md:columns-2 gap-4">
         {categories.map((category) => (
           <div
-            key={category}
+            key={category.name}
             className="rounded-lg bg-muted/50 p-4 mb-4 break-inside-avoid"
           >
             <div className="flex items-center justify-between mb-3">
-              <h2 className="font-semibold">{category}</h2>
+              <h2 className="font-semibold">{category.name}</h2>
               <span className="text-xs text-muted-foreground">
-                {
-                  permissionBits.filter(
-                    (p) => p.category === category && enabled.has(p.bit)
-                  ).length
-                }{" "}
-                of{" "}
-                {permissionBits.filter((p) => p.category === category).length}
+                {category.permissions.filter((p) => enabled.has(p.bit)).length}{" "}
+                of {category.permissions.length}
               </span>
             </div>
             <div className="space-y-2">
-              {permissionBits
-                .filter((p) => p.category === category)
-                .map((p) => (
-                  <label
-                    key={p.bit}
-                    className="flex items-center gap-3 text-sm cursor-pointer"
-                  >
-                    <Checkbox
-                      checked={enabled.has(p.bit)}
-                      onCheckedChange={(checked) => toggle(p.bit, !!checked)}
-                    />
-                    {p.label}
-                  </label>
-                ))}
+              {category.permissions.map((p) => (
+                <label
+                  key={p.bit}
+                  className="flex items-center gap-3 text-sm cursor-pointer"
+                >
+                  <Checkbox
+                    checked={enabled.has(p.bit)}
+                    onCheckedChange={(checked) => toggle(p.bit, !!checked)}
+                  />
+                  {p.label}
+                </label>
+              ))}
             </div>
           </div>
         ))}

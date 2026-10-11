@@ -28,7 +28,7 @@ export default function ToolCard({ tool }: { tool: Tool }) {
     <Link
       href={tool.href}
       target={tool.external ? "_blank" : undefined}
-      className="group relative flex gap-4 rounded-xl border bg-card p-5 transition-all hover:border-primary/50 hover:shadow-md"
+      className="flex gap-4 rounded-xl border bg-card p-5 transition-all hover:border-primary/50 hover:shadow-md"
     >
       <ToolIcon tool={tool} className="w-12 h-12" />
       <div>

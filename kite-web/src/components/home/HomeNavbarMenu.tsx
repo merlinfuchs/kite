@@ -15,7 +15,7 @@ import {
 import { PlusCircleIcon } from "lucide-react";
 import { externalTools, kiteTools } from "@/tools/registry";
 
-// The first tools of Kite and the message creator, all tools are on /tools.
+// Kite's own tools and the message creator. All tools are listed on /tools.
 const tools = [
   ...kiteTools,
   externalTools.find((t) => t.id === "message-creator")!,
