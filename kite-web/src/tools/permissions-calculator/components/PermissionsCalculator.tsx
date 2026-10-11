@@ -7,6 +7,17 @@ import {
   PermissionCategory,
   permissionBits,
 } from "@/lib/discord/permissions";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { getApiUrl } from "@/lib/api/client";
+import { useAppsQuery, useUserQuery } from "@/lib/api/queries";
+import { useResponseData } from "@/lib/hooks/api";
+import { App } from "@/lib/types/wire.gen";
 import CopyButton from "@/tools/common/components/CopyButton";
 import { ExternalLinkIcon } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -18,6 +29,11 @@ const categories = (
   name,
   permissions: permissionBits.filter((p) => p.category === name),
 }));
+
+// Comes back to the calculator after signing in.
+const loginUrl = getApiUrl(
+  "/v1/auth/login?redirect=/tools/permissions-calculator"
+);
 
 const scopes = [
   { id: "bot", label: "bot", description: "Adds the bot to the server" },
@@ -35,6 +51,13 @@ export default function PermissionsCalculator() {
     "bot",
     "applications.commands",
   ]);
+
+  // Signed in users can pick one of their Kite apps instead of pasting its ID.
+  const userQuery = useUserQuery();
+  const user = useResponseData(userQuery);
+  const apps = useResponseData(useAppsQuery(!!user))?.filter(
+    (app): app is App => !!app
+  );
 
   // Shows the integer at the bottom of the screen while the permissions are
   // visible but its input has scrolled away.
@@ -151,6 +174,37 @@ export default function PermissionsCalculator() {
             your app in the Discord Developer Portal.
           </p>
         </div>
+        {!!apps?.length && (
+          <div className="space-y-2">
+            <Label>Your Kite bots</Label>
+            <Select
+              value={
+                apps.some((app) => app.discord_id === clientId) ? clientId : ""
+              }
+              onValueChange={setClientId}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Pick a bot" />
+              </SelectTrigger>
+              <SelectContent>
+                {apps.map((app) => (
+                  <SelectItem key={app.id} value={app.discord_id}>
+                    {app.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+        {!userQuery.isPending && !user && (
+          <p className="text-sm text-muted-foreground">
+            Built your bot with Kite?{" "}
+            <a href={loginUrl} className="text-primary hover:underline">
+              Sign in
+            </a>{" "}
+            to pick it from a list.
+          </p>
+        )}
         <div className="space-y-2">
           <Label htmlFor="client-id">Application ID</Label>
           <Input
