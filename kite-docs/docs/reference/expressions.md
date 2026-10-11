@@ -83,8 +83,8 @@ guild?: # For events and interactions inside a server, elsewhere guild is empty 
 
 interaction?: # For commands and interactive components
   id: string
-  value?: string # The value of the picked option in a select menu
-  values?: []string # All picked values if the select menu allows picking more than one option
+  value?: string # The value of the picked option in a select menu, or the ID of the picked user, role or channel
+  values?: []string # All picked values or IDs if the select menu allows picking more than one
   components?: # For modal submissions, by input identifier
     identifier:
       value: string # What input('identifier') returns
@@ -167,6 +167,12 @@ If the select menu allows picking more than one option, this will return true if
 
 ```python
 {{ "option-a" in interaction.values }}
+```
+
+In a user, role, mentionable or channel select, the values are IDs. This mentions the channel that was picked:
+
+```python
+<#{{ interaction.value }}>
 ```
 
 ### Welcome a New Member
