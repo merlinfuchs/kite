@@ -1,4 +1,5 @@
 import LandingPage, {
+  noCodeFaq,
   LandingPageContent,
 } from "@/components/landing/LandingPage";
 import env from "@/lib/env/client";
@@ -25,7 +26,7 @@ const content: LandingPageContent = {
         },
         {
           title: "/unban",
-          description: "Remove the ban of a user, with a reason.",
+          description: "Unban a user, with a reason.",
         },
         {
           title: "/kick",
@@ -62,14 +63,14 @@ const content: LandingPageContent = {
             "Give or remove roles with a command, for example to add a warning role.",
         },
         {
-          title: "Track Members",
+          title: "Server Logs",
           description:
             "Post a message when members join or leave, or when messages are edited or deleted.",
         },
         {
-          title: "Build With AI",
+          title: "Let AI Build It",
           description:
-            "Describe the command you want, like a /warn that counts warnings, and the flow AI builds it.",
+            "Describe the command you want, like a /warn command that counts warnings, and Kite's AI builds it.",
         },
       ],
     },
@@ -90,11 +91,7 @@ const content: LandingPageContent = {
       answer:
         "Kite has no automod you can turn on. You can build simple filters with a message event listener and conditions, for example to delete messages that contain certain words.",
     },
-    {
-      question: "Do I need to know how to code?",
-      answer:
-        "No. You build commands by connecting blocks in a visual editor. You can also ask the flow AI to build them for you.",
-    },
+    noCodeFaq,
   ],
 };
 

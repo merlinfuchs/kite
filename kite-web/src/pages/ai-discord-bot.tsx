@@ -1,4 +1,6 @@
 import LandingPage, {
+  aiBuilderPoint,
+  noCodeFaq,
   LandingPageContent,
 } from "@/components/landing/LandingPage";
 import env from "@/lib/env/client";
@@ -9,7 +11,7 @@ const content: LandingPageContent = {
     "Make your own AI Discord bot for free with Kite. Answer questions with /ask, reply when someone mentions the bot and search the web, without writing code.",
   heading: "Make Your Own AI Discord Bot",
   intro:
-    "Build an AI chatbot for your Discord server with your own name, avatar and personality. Start with the Ask AI template, or describe the bot you want and let the flow AI build it. You don't need to write code or get an API key.",
+    "Build an AI chatbot for your Discord server with your own name, avatar and personality. Start with the Ask AI template, or describe a command and let Kite's AI build it. You don't need to write code or get an API key.",
   secondaryAction: {
     label: "Read the AI Guide",
     href: `${env.NEXT_PUBLIC_DOCS_LINK}/guides/flow-ai`,
@@ -52,13 +54,9 @@ const content: LandingPageContent = {
         {
           title: "Combine AI With Actions",
           description:
-            "Use the answer of the AI in other blocks, for example to sort messages or to write a summary in a channel.",
+            "Use the AI's answer in other blocks, for example to post it in another channel or save it in a variable.",
         },
-        {
-          title: "The Flow AI",
-          description:
-            "Describe what a command should do and the flow AI adds and connects the blocks for you.",
-        },
+        aiBuilderPoint,
       ],
     },
   ],
@@ -78,11 +76,7 @@ const content: LandingPageContent = {
       answer:
         "Yes. You set a personality when you import the template, and you can change the instructions in the Ask AI block at any time.",
     },
-    {
-      question: "Do I need to know how to code?",
-      answer:
-        "No. You build the bot by connecting blocks in a visual editor. You can also ask the flow AI to build it for you.",
-    },
+    noCodeFaq,
   ],
 };
 

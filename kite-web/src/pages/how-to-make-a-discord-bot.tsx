@@ -24,7 +24,7 @@ const faqs = [
   {
     question: "Can I make a Discord bot on my phone?",
     answer:
-      "You can create the application and add it to Kite on your phone. The flow editor works best on a computer, because you drag and connect blocks.",
+      "You can create the application and add it to Kite on your phone. Kite's editor works best on a computer, because you drag and connect blocks.",
   },
 ];
 

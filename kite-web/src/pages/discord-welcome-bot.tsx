@@ -1,4 +1,5 @@
 import LandingPage, {
+  noCodeFaq,
   LandingPageContent,
 } from "@/components/landing/LandingPage";
 import env from "@/lib/env/client";
@@ -9,7 +10,7 @@ const content: LandingPageContent = {
     "Make your own Discord welcome bot for free with Kite. Greet new members, give them a role and send them a direct message, without writing code.",
   heading: "Make Your Own Discord Welcome Bot",
   intro:
-    "Build a bot that welcomes new members with your own name and avatar, for free. Start with the welcome template, then change the message or add more steps. You don't need to write code.",
+    "Build a welcome bot for free, with your own name and avatar. Start with the welcome template, then change the message or add more steps. You don't need to write code.",
   secondaryAction: {
     label: "View Templates",
     href: `${env.NEXT_PUBLIC_DOCS_LINK}/reference/templates`,
@@ -86,11 +87,7 @@ const content: LandingPageContent = {
       answer:
         "Yes. Use the Send direct message block. Some members don't allow messages from server members, so the message won't reach everyone.",
     },
-    {
-      question: "Do I need to know how to code?",
-      answer:
-        "No. You build the welcome flow by connecting blocks in a visual editor. You can also ask the flow AI to build it for you.",
-    },
+    noCodeFaq,
   ],
 };
 

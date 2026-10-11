@@ -1,4 +1,5 @@
 import LandingPage, {
+  openSourcePoint,
   LandingPageContent,
 } from "@/components/landing/LandingPage";
 import env from "@/lib/env/client";
@@ -9,7 +10,7 @@ const content: LandingPageContent = {
     "Host your Discord bot 24/7 for free with Kite. Build the bot in a visual editor and Kite runs it for you. No server, no code and no credit card needed.",
   heading: "Free 24/7 Discord Bot Hosting",
   intro:
-    "Kite runs your Discord bot on its servers all day, every day, for free. You build the bot in Kite's editor and add your bot token. You don't need a VPS or a computer that stays on.",
+    "Kite runs your Discord bot on its servers 24/7, for free. You build the bot in Kite's editor and add your bot token. You don't need a VPS or a computer that stays on.",
   secondaryAction: {
     label: "Read the Guide",
     href: `${env.NEXT_PUBLIC_DOCS_LINK}/guides/getting-started`,
@@ -43,11 +44,7 @@ const content: LandingPageContent = {
           description:
             "You sign in with your Discord account. There is no trial that runs out.",
         },
-        {
-          title: "Open Source",
-          description:
-            "The code of Kite is on GitHub. You can check how your bot is run, or host Kite yourself.",
-        },
+        openSourcePoint,
       ],
     },
     {

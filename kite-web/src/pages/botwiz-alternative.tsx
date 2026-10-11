@@ -1,4 +1,8 @@
 import LandingPage, {
+  aiBuilderPoint,
+  freeFaq,
+  openSourcePoint,
+  switchFaq,
   LandingPageContent,
 } from "@/components/landing/LandingPage";
 
@@ -23,16 +27,8 @@ const content: LandingPageContent = {
           description:
             "You can make up to 10 bots on Kite without paying. Each one gets 24/7 hosting.",
         },
-        {
-          title: "Build With AI",
-          description:
-            "Describe what a command should do and the flow AI adds and connects the blocks for you.",
-        },
-        {
-          title: "Open Source",
-          description:
-            "The code of Kite is on GitHub. You can check how your bot is run, or host Kite yourself.",
-        },
+        aiBuilderPoint,
+        openSourcePoint,
       ],
     },
     {
@@ -61,16 +57,8 @@ const content: LandingPageContent = {
     ],
   },
   faqs: [
-    {
-      question: "Can I move my bot from BotWiz to Kite?",
-      answer:
-        "Yes. Add the token of your existing Discord application to Kite and build your commands again. Your bot keeps its name, avatar and servers. Turn it off in BotWiz first, so the two don't run at the same time.",
-    },
-    {
-      question: "Is Kite really free?",
-      answer:
-        "Yes. Your bots are hosted 24/7 for free. Premium plans give you higher limits, like more servers and commands, but you don't need one to run a bot.",
-    },
+    switchFaq("BotWiz"),
+    freeFaq,
     {
       question: "Can Kite host my discord.js or discord.py bot?",
       answer: "No. Kite only runs bots built with its visual editor.",

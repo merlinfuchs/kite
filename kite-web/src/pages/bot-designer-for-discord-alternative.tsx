@@ -1,4 +1,8 @@
 import LandingPage, {
+  aiBuilderPoint,
+  freeFaq,
+  openSourcePoint,
+  switchFaq,
   LandingPageContent,
 } from "@/components/landing/LandingPage";
 
@@ -21,18 +25,10 @@ const content: LandingPageContent = {
         {
           title: "See How Your Command Works",
           description:
-            "Each command is a diagram of connected blocks, so you can see every step and every condition at a glance.",
+            "Each command is shown as connected blocks, so you can see every step and every condition.",
         },
-        {
-          title: "Build With AI",
-          description:
-            "Describe what a command should do and the flow AI adds and connects the blocks for you.",
-        },
-        {
-          title: "Open Source",
-          description:
-            "The code of Kite is on GitHub. You can check how your bot is run, or host Kite yourself.",
-        },
+        aiBuilderPoint,
+        openSourcePoint,
       ],
     },
     {
@@ -61,21 +57,13 @@ const content: LandingPageContent = {
     ],
   },
   faqs: [
-    {
-      question: "Can I move my bot from BDFD to Kite?",
-      answer:
-        "Yes. Add the token of your existing Discord application to Kite and build your commands again. Your bot keeps its name, avatar and servers. Turn it off in BDFD first, so the two don't run at the same time.",
-    },
+    switchFaq("BDFD"),
     {
       question: "Can I import my BDScript code?",
       answer:
-        "No. Kite doesn't use BDScript. You build your commands again with blocks, or describe them to the flow AI.",
+        "No. Kite doesn't use BDScript. You build your commands again with blocks, or describe them to Kite's AI.",
     },
-    {
-      question: "Is Kite really free?",
-      answer:
-        "Yes. Your bot is hosted 24/7 for free. Premium plans give you higher limits, like more servers and commands, but you don't need one to run a bot.",
-    },
+    freeFaq,
   ],
 };
 
