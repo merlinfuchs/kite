@@ -182,6 +182,7 @@ export const embedSchema = z
     description: embedDescriptionSchema,
     url: embedUrlSchema,
     timestamp: embedTimestampSchema,
+    timestamp_now: z.optional(z.boolean()),
     color: embedColor,
     footer: embedFooterSchema,
     author: embedAuthorSchema,

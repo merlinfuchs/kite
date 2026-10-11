@@ -35,6 +35,7 @@ const embedMessage = parse({
     },
     {
       description: "Second",
+      timestamp_now: true,
       fields: [{ name: "C", value: "3" }],
     },
   ],

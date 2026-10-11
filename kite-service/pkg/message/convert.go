@@ -137,7 +137,9 @@ func (m *EmbedData) ToEmbed() discord.Embed {
 	}
 
 	var timestamp discord.Timestamp
-	if m.Timestamp != nil {
+	if m.TimestampNow {
+		timestamp = discord.NowTimestamp()
+	} else if m.Timestamp != nil {
 		timestamp = discord.NewTimestamp(*m.Timestamp)
 	}
 

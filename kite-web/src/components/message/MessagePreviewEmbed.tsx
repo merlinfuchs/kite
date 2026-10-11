@@ -1,4 +1,4 @@
-import { format, parseISO } from "date-fns";
+import { format, isToday, isYesterday, parseISO } from "date-fns";
 import { useMemo } from "react";
 import { MessageEmbed } from "@/lib/message/schema";
 import { toHTML } from "@/tools/common/utils/discordMarkdown";
@@ -15,10 +15,20 @@ export default function MessagePreviewEmbed({
   const hexColor = embed.color ? colorIntToHex(embed.color) : "#1f2225";
 
   let timestamp = "";
-  if (embed.timestamp) {
-    const date = parseISO(embed.timestamp);
-    if (!Number.isNaN(date.getTime())) {
-      timestamp = format(date, "dd/MM/yyyy");
+  // Time of sending is previewed as the current time.
+  const date = embed.timestamp_now
+    ? new Date()
+    : embed.timestamp
+    ? parseISO(embed.timestamp)
+    : undefined;
+  if (date && !Number.isNaN(date.getTime())) {
+    // Like Discord: "Today at 3:04 PM", "Yesterday at ...", or the full date.
+    if (isToday(date)) {
+      timestamp = `Today at ${format(date, "p")}`;
+    } else if (isYesterday(date)) {
+      timestamp = `Yesterday at ${format(date, "p")}`;
+    } else {
+      timestamp = format(date, "dd/MM/yyyy p");
     }
   }
 

@@ -9,7 +9,11 @@ export default function MessageEmbedFooter({ embedId }: { embedId: NodeId }) {
   const embed = useDocument(
     useShallow((state) => {
       const node = state.nodes[embedId] as EmbedNode | undefined;
-      return { footer: node?.footer, timestamp: node?.timestamp };
+      return {
+        footer: node?.footer,
+        timestamp: node?.timestamp,
+        timestamp_now: node?.timestamp_now,
+      };
     })
   );
   const { update } = useDocumentStoreApi().getState();
@@ -50,7 +54,13 @@ export default function MessageEmbedFooter({ embedId }: { embedId: NodeId }) {
           type="date"
           label="Timestamp"
           value={embed.timestamp}
-          onChange={(timestamp) => update<EmbedNode>(embedId, { timestamp })}
+          onChange={(timestamp) =>
+            update<EmbedNode>(embedId, { timestamp, timestamp_now: undefined })
+          }
+          now={embed.timestamp_now}
+          onNowChange={(now) =>
+            update<EmbedNode>(embedId, { timestamp_now: now || undefined })
+          }
           validation={nodeField<EmbedNode>(embedId, "timestamp")}
         />
       </div>

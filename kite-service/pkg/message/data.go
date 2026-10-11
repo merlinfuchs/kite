@@ -221,16 +221,19 @@ type MessageAttachment struct {
 type EmbedData struct {
 	ID int `json:"id,omitempty"`
 
-	Title       string              `json:"title,omitempty"`
-	Description string              `json:"description,omitempty"`
-	URL         string              `json:"url,omitempty"`
-	Timestamp   *time.Time          `json:"timestamp,omitempty"`
-	Color       int                 `json:"color,omitempty"`
-	Footer      *EmbedFooterData    `json:"footer,omitempty"`
-	Image       *EmbedImageData     `json:"image,omitempty"`
-	Thumbnail   *EmbedThumbnailData `json:"thumbnail,omitempty"`
-	Author      *EmbedAuthorData    `json:"author,omitempty"`
-	Fields      []EmbedFieldData    `json:"fields,omitempty"`
+	Title       string     `json:"title,omitempty"`
+	Description string     `json:"description,omitempty"`
+	URL         string     `json:"url,omitempty"`
+	Timestamp   *time.Time `json:"timestamp,omitempty"`
+	// TimestampNow sets the timestamp to the time the message is sent,
+	// instead of Timestamp.
+	TimestampNow bool                `json:"timestamp_now,omitempty"`
+	Color        int                 `json:"color,omitempty"`
+	Footer       *EmbedFooterData    `json:"footer,omitempty"`
+	Image        *EmbedImageData     `json:"image,omitempty"`
+	Thumbnail    *EmbedThumbnailData `json:"thumbnail,omitempty"`
+	Author       *EmbedAuthorData    `json:"author,omitempty"`
+	Fields       []EmbedFieldData    `json:"fields,omitempty"`
 }
 
 type EmbedFooterData struct {
