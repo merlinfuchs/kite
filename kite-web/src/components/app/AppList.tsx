@@ -6,19 +6,17 @@ import { toast } from "sonner";
 import AppListEntry from "./AppListEntry";
 import AppCreateDialog from "./AppCreateDialog";
 import { useApps, useResponseData } from "@/lib/hooks/api";
-import { useRouter } from "next/router";
 import AutoAnimate from "../common/AutoAnimate";
+import { loginUrl } from "@/lib/api/client";
 
 export default function AppList() {
-  const router = useRouter();
-
   const apps = useApps((res) => {
     if (!res.success) {
       toast.error(
         `Failed to load apps: ${res?.error.message} (${res?.error.code})`
       );
       if (res.error.code === "unauthorized") {
-        router.push("/login");
+        window.location.href = loginUrl;
       }
     }
   });

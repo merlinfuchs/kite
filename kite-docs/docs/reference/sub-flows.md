@@ -29,7 +29,7 @@ You don't have to type these yourself. When you select a block below a button, s
 Some things work the same everywhere:
 
 - `{{arg('name')}}` always returns the command's argument, even below a button.
-- `{{input('name')}}` returns the answer from a modal, even after more buttons or modals.
+- `{{input('name')}}` and `{{inputs('name')}}` return the answer from a modal, even after more buttons or modals.
 - Temporary variables and results of blocks that ran before the button stay available.
 
 :::note Advanced: previous
@@ -50,4 +50,4 @@ Modals can be used to create interactive experiences like forms, quizzes, etc.
 
 When adding buttons or select menus to a message, the message becomes interactive. When an interactive message is sent and a user interacts with it, the execution resumes from the corresponding button or select menu in the flow. Just attach the blocks you want to each button or select menu.
 
-In the sub-flow of a select menu the value of the picked option is available as `{{interaction.value}}`.
+In the sub-flow of a select menu the value of the picked option is available as `{{interaction.value}}`. For user, role, mentionable and channel selects it's the ID of what was picked.

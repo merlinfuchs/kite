@@ -8,6 +8,10 @@ Add cooldowns to your commands or event listeners to prevent spam and have more 
 
 ![Cooldown Result](./img/cooldown-result.png)
 
+:::tip
+For short cooldowns of up to 1 hour, the [Command Cooldown](../reference/blocks/options/option_command_cooldown.md) block is simpler. Its cooldowns reset when Kite restarts though, so for longer ones, like daily rewards, or for event listeners, use the stored variable approach below.
+:::
+
 ## Step 1 - Creating a variable
 
 - Create a variable named \"cooldown\" from your [Kite](https://kite.onl/) dashboard - **Stored Variables** tab.

@@ -3,6 +3,7 @@ import {
   CopyPlusIcon,
   EllipsisIcon,
   MailIcon,
+  Share2Icon,
   Trash2Icon,
 } from "lucide-react";
 import {
@@ -29,6 +30,8 @@ import {
   DropdownMenuTrigger,
 } from "../ui/dropdown-menu";
 import MessageDuplicateDialog from "./MessageDuplicateDialog";
+import FlowExportDialog from "./FlowExportDialog";
+import { messageToShared } from "@/lib/flow/messageTemplates";
 
 export default function MessageListEntry({ message }: { message: Message }) {
   const router = useRouter();
@@ -106,6 +109,18 @@ export default function MessageListEntry({ message }: { message: Message }) {
                   Duplicate Message
                 </DropdownMenuItem>
               </MessageDuplicateDialog>
+              <FlowExportDialog
+                title="Export Message Template"
+                type="message"
+                shareData={{ message: messageToShared(message) }}
+                flows={Object.values(message.flow_sources ?? {})}
+                excludeMessageIds={[message.id]}
+              >
+                <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                  <Share2Icon className="h-4 w-4 mr-2 text-muted-foreground" />
+                  Export Message
+                </DropdownMenuItem>
+              </FlowExportDialog>
             </DropdownMenuGroup>
           </DropdownMenuContent>
         </DropdownMenu>
