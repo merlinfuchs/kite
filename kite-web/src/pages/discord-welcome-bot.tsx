@@ -2,6 +2,7 @@ import LandingPage, {
   noCodeFaq,
   LandingPageContent,
 } from "@/components/landing/LandingPage";
+import { welcomeFlow } from "@/components/landing/flows";
 import env from "@/lib/env/client";
 
 const content: LandingPageContent = {
@@ -14,6 +15,13 @@ const content: LandingPageContent = {
   secondaryAction: {
     label: "View Templates",
     href: `${env.NEXT_PUBLIC_DOCS_LINK}/reference/templates`,
+  },
+  showcase: {
+    heading: "What the Welcome Flow Looks Like",
+    body: "When someone joins, the bot gives them a role and posts a welcome message.",
+    flow: welcomeFlow,
+    trigger: "Alex joined the server.",
+    reply: "Welcome to the server, @Alex!",
   },
   sections: [
     {

@@ -2,9 +2,10 @@ import LandingPage, {
   aiBuilderPoint,
   freeFaq,
   openSourcePoint,
-  switchFaq,
+  switchSection,
   LandingPageContent,
 } from "@/components/landing/LandingPage";
+import { banFlow } from "@/components/landing/flows";
 
 const content: LandingPageContent = {
   title: "Free Bot Designer for Discord (BDFD) Alternative",
@@ -13,6 +14,13 @@ const content: LandingPageContent = {
   heading: "A Free Bot Designer for Discord Alternative",
   intro:
     "In Bot Designer for Discord (BDFD) you write your commands in BDScript, its own scripting language. In Kite you build them by connecting blocks in a visual editor, so you don't need to learn a language. Kite is free and open source.",
+  showcase: {
+    heading: "Build Commands by Connecting Blocks",
+    body: "This is the /ban command from the moderation template. Each block is one step, and the lines between them set the order.",
+    flow: banFlow,
+    trigger: "Alex used /ban",
+    reply: "Banned the user.",
+  },
   sections: [
     {
       heading: "Why Use Kite Instead of BDFD",
@@ -35,6 +43,7 @@ const content: LandingPageContent = {
       heading: "When BDFD Is the Better Choice",
       body: "BDFD has apps for Android and iOS, so you can build your bot on your phone. Kite runs in the browser, and its editor works best on a computer. If you only have a phone, BDFD is easier to use.",
     },
+    switchSection("BDFD"),
   ],
   comparison: {
     competitor: "BDFD",
@@ -50,14 +59,23 @@ const content: LandingPageContent = {
         competitor: "Yes",
       },
       {
+        feature: "Web editor",
+        kite: "Yes",
+        competitor: "Yes",
+      },
+      {
         feature: "Phone app",
-        kite: "No, browser only",
+        kite: "No",
         competitor: "Android and iOS",
+      },
+      {
+        feature: "Hosting",
+        kite: "Included, 24/7",
+        competitor: "Included",
       },
     ],
   },
   faqs: [
-    switchFaq("BDFD"),
     {
       question: "Can I import my BDScript code?",
       answer:

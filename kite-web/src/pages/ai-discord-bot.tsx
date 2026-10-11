@@ -3,6 +3,7 @@ import LandingPage, {
   noCodeFaq,
   LandingPageContent,
 } from "@/components/landing/LandingPage";
+import { askAiFlow } from "@/components/landing/flows";
 import env from "@/lib/env/client";
 
 const content: LandingPageContent = {
@@ -15,6 +16,14 @@ const content: LandingPageContent = {
   secondaryAction: {
     label: "Read the AI Guide",
     href: `${env.NEXT_PUBLIC_DOCS_LINK}/guides/flow-ai`,
+  },
+  showcase: {
+    heading: "What the /ask Command Looks Like",
+    body: "The command sends the question to the AI and replies with the answer.",
+    flow: askAiFlow,
+    trigger: "Alex used /ask",
+    reply:
+      "A Discord bot is an app that runs in your server. It can answer commands, post messages and manage roles.",
   },
   sections: [
     {

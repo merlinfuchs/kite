@@ -1,9 +1,24 @@
 import HomeCTASection from "@/components/home/HomeCTASection";
+import HomeFAQSection from "@/components/home/HomeFAQSections";
 import HomeFooter from "@/components/home/HomeFooter";
 import HomeLayout from "@/components/home/HomeLayout";
+import CreateAppMockup from "@/components/landing/CreateAppMockup";
+import DevPortalMockup from "@/components/landing/DevPortalMockup";
+import { helloFlow } from "@/components/landing/flows";
+import { Button } from "@/components/ui/button";
 import env from "@/lib/env/client";
 import { faqJsonLd } from "@/lib/seo";
+import dynamic from "next/dynamic";
 import Link from "next/link";
+import { ReactNode } from "react";
+
+const FlowExample = dynamic(() => import("@/components/flow/FlowExample"), {
+  ssr: false,
+});
+const DiscordReplyMockup = dynamic(
+  () => import("@/components/landing/DiscordReplyMockup"),
+  { ssr: false }
+);
 
 const faqs = [
   {
@@ -35,24 +50,30 @@ export default function HowToMakeADiscordBotPage() {
       description="Learn how to make your own Discord bot for free without coding. Create a Discord application, add it to Kite and build your first slash command in about 10 minutes."
       jsonLd={[faqJsonLd(faqs)]}
     >
-      <article className="prose dark:prose-invert text-foreground mx-auto my-16 max-w-3xl px-5">
-        <h1>How to Make a Discord Bot Without Coding</h1>
-        <p>
+      <section className="container py-20 md:py-28 text-center">
+        <h1 className="text-4xl md:text-5xl font-bold max-w-4xl mx-auto">
+          How to Make a Discord Bot Without Coding
+        </h1>
+        <p className="text-xl text-muted-foreground mt-6 max-w-3xl mx-auto">
           You can make your own Discord bot for free without writing any code.
           This guide shows you how to create the bot in Discord, add it to Kite
-          and build your first slash command. It takes about 10 minutes.
+          and build your first slash command.
         </p>
+        <div className="mt-8 flex flex-col items-center gap-3">
+          <Button className="md:w-48" asChild>
+            <Link href="/apps">Get Started for Free</Link>
+          </Button>
+          <div className="text-sm text-muted-foreground">
+            About 10 minutes · Free · No code
+          </div>
+        </div>
+      </section>
 
-        <h2>What You Need</h2>
-        <ul>
-          <li>A Discord account</li>
-          <li>
-            A Discord server where you can add bots. Create a new server to test
-            your bot if you don&apos;t have one.
-          </li>
-        </ul>
-
-        <h2>Step 1: Create a Discord Application</h2>
+      <Step
+        number={1}
+        title="Create a Discord Application"
+        visual={<DevPortalMockup />}
+      >
         <p>
           Every Discord bot belongs to an application. The application holds the
           name, avatar and token of your bot.
@@ -70,16 +91,12 @@ export default function HowToMakeADiscordBotPage() {
             and sign in.
           </li>
           <li>
-            Click on <strong>New Application</strong> and give your bot a name.
-          </li>
-          <li>Upload an avatar for your bot.</li>
-          <li>
-            Open the <strong>Bot</strong> section on the left.
+            Click on <strong>New Application</strong>, give your bot a name and
+            upload an avatar.
           </li>
           <li>
-            Turn on the <strong>Presence Intent</strong>,{" "}
-            <strong>Server Members Intent</strong> and{" "}
-            <strong>Message Content Intent</strong>. Without them your bot
+            Open the <strong>Bot</strong> page and turn on the three{" "}
+            <strong>Privileged Gateway Intents</strong>. Without them your bot
             can&apos;t see new members or read messages.
           </li>
           <li>
@@ -90,20 +107,20 @@ export default function HowToMakeADiscordBotPage() {
           Keep the token secret. Anyone who has it can control your bot. If you
           share it by accident, reset it and use the new one.
         </p>
+      </Step>
 
-        <h2>Step 2: Add Your Bot to Kite</h2>
+      <Step
+        number={2}
+        title="Add Your Bot to Kite"
+        visual={<CreateAppMockup />}
+      >
         <p>
           Kite hosts your bot and gives you an editor to build its commands.
         </p>
         <ol>
-          <li>
-            Open <Link href="/apps">Kite</Link> and sign in with Discord.
-          </li>
+          <li>Open Kite and sign in with Discord.</li>
           <li>
             Click on <strong>Create app</strong>, paste your token and confirm.
-          </li>
-          <li>
-            Click on <strong>Open app</strong>.
           </li>
           <li>
             Click on <strong>Invite app</strong> at the top right and choose
@@ -114,8 +131,20 @@ export default function HowToMakeADiscordBotPage() {
           Your bot now shows up in your server. It&apos;s online, but it
           doesn&apos;t do anything yet.
         </p>
+        <Button asChild className="not-prose">
+          <Link href="/apps">Open Kite</Link>
+        </Button>
+      </Step>
 
-        <h2>Step 3: Build Your First Command</h2>
+      <Step
+        number={3}
+        title="Build Your First Command"
+        visual={
+          <div className="h-[340px] rounded-lg border bg-muted/50">
+            <FlowExample nodes={helloFlow.nodes} edges={helloFlow.edges} />
+          </div>
+        }
+      >
         <p>
           A slash command is what members type to use your bot, like{" "}
           <code>/hello</code>. In Kite you build each command by connecting
@@ -123,89 +152,143 @@ export default function HowToMakeADiscordBotPage() {
         </p>
         <ol>
           <li>
-            Click on the <strong>/</strong> icon in the sidebar and then on{" "}
-            <strong>Create command</strong>.
+            Open <strong>Commands</strong> in the sidebar and click on{" "}
+            <strong>Create command</strong>. Name it <code>hello</code>.
           </li>
           <li>
-            Name it <code>hello</code> and give it a short description.
+            Drag a <strong>Create response message</strong> block into the
+            editor and connect it to the command block.
           </li>
           <li>
-            Drag a <strong>Create response message</strong> block from the left
-            into the editor.
-          </li>
-          <li>
-            Connect the command block to the new block by dragging from the blue
-            dot of one block to the other.
-          </li>
-          <li>
-            Click on the response block and enter a message, like{" "}
+            Click on the new block and enter a message, like{" "}
             <code>Hello {"{{user.mention}}"}!</code>
           </li>
           <li>
             Click on <strong>Save Changes</strong> and then on{" "}
-            <strong>Deploy</strong>.
+            <strong>Deploy Changes</strong>.
           </li>
         </ol>
         <p>
-          Type <code>/hello</code> in your server to try it. A new command can
-          take up to a minute to appear. Restart Discord if you don&apos;t see
-          it.
+          Stuck? Click on <strong>Ask AI</strong> in the editor and describe
+          what the command should do.
         </p>
+      </Step>
 
-        <h2>Step 4: Add More Features</h2>
+      <Step
+        number={4}
+        title="Try It in Discord"
+        visual={
+          <DiscordReplyMockup
+            trigger="Alex used /hello"
+            content="Hello @Alex!"
+          />
+        }
+      >
         <p>
-          Now you can add more commands, or let your bot react to events like
-          new members and messages. Some ideas:
+          Type <code>/hello</code> in your server. Your bot answers right away.
         </p>
-        <ul>
-          <li>
-            Moderation commands like <code>/ban</code> and <code>/kick</code>.
-            See <Link href="/discord-moderation-bot">moderation bot</Link>.
-          </li>
-          <li>
-            A welcome message for new members. See{" "}
-            <Link href="/discord-welcome-bot">welcome bot</Link>.
-          </li>
-          <li>
-            An <code>/ask</code> command that answers with AI. See{" "}
-            <Link href="/ai-discord-bot">AI bot</Link>.
-          </li>
-          <li>Buttons and select menus that give members roles.</li>
-        </ul>
         <p>
-          Templates add finished commands for moderation, welcome messages and
-          AI to your app in a few clicks. If you get stuck, click on{" "}
-          <strong>Ask AI</strong> in the editor and describe what the command
-          should do.
+          A new command can take up to a minute to appear. Restart Discord if
+          you don&apos;t see it.
         </p>
+      </Step>
 
-        <h2>Making a Discord Bot With Code</h2>
-        <p>
-          You can also write a bot yourself with a library like discord.js for
-          JavaScript or discord.py for Python. This gives you full control, but
-          you need to know the language, handle errors and keep a server running
-          so the bot stays online. For most community servers, a bot maker is
-          faster to set up and easier to change.
+      <section className="container py-12 md:py-16">
+        <h2 className="text-3xl md:text-4xl font-bold text-center">
+          What to Build Next
+        </h2>
+        <p className="text-lg text-muted-foreground mt-4 max-w-3xl mx-auto text-center">
+          Templates add finished commands to your app in a few clicks. You can
+          change them afterwards.
         </p>
+        <div className="grid md:grid-cols-3 gap-6 mt-10">
+          {nextSteps.map((next) => (
+            <Link
+              key={next.href}
+              href={next.href}
+              className="rounded-lg border bg-muted/50 p-6 hover:border-primary transition-colors"
+            >
+              <div className="text-xl font-semibold">{next.title}</div>
+              <div className="text-muted-foreground mt-2">
+                {next.description}
+              </div>
+            </Link>
+          ))}
+        </div>
+      </section>
 
-        <h2>Frequently Asked Questions</h2>
-        {faqs.map((faq) => (
-          <div key={faq.question}>
-            <h3>{faq.question}</h3>
-            <p>{faq.answer}</p>
-          </div>
-        ))}
+      <section className="container py-12 md:py-16">
+        <div className="prose dark:prose-invert text-foreground max-w-3xl mx-auto">
+          <h2>Making a Discord Bot With Code</h2>
+          <p>
+            You can also write a bot yourself with a library like discord.js for
+            JavaScript or discord.py for Python. This gives you full control,
+            but you need to know the language, handle errors and keep a server
+            running so the bot stays online. For most community servers, a bot
+            maker is faster to set up and easier to change.
+          </p>
+          <p>
+            For more details on Kite, read the{" "}
+            <a href={`${env.NEXT_PUBLIC_DOCS_LINK}/guides/getting-started`}>
+              getting started guide
+            </a>{" "}
+            in the documentation.
+          </p>
+        </div>
+      </section>
 
-        <p>
-          For more details, read the{" "}
-          <a href={`${env.NEXT_PUBLIC_DOCS_LINK}/guides/getting-started`}>
-            getting started guide
-          </a>{" "}
-          in the documentation.
-        </p>
-      </article>
+      <HomeFAQSection faqs={faqs} />
       <HomeCTASection />
       <HomeFooter />
     </HomeLayout>
+  );
+}
+
+const nextSteps = [
+  {
+    title: "Moderation Bot",
+    description: "Add /ban, /kick and /mute commands from a template.",
+    href: "/discord-moderation-bot",
+  },
+  {
+    title: "Welcome Bot",
+    description: "Greet new members and give them a role.",
+    href: "/discord-welcome-bot",
+  },
+  {
+    title: "AI Bot",
+    description: "Answer questions with an /ask command.",
+    href: "/ai-discord-bot",
+  },
+];
+
+function Step({
+  number,
+  title,
+  visual,
+  children,
+}: {
+  number: number;
+  title: string;
+  visual: ReactNode;
+  children: ReactNode;
+}) {
+  return (
+    <section className="container py-12 md:py-16">
+      <div className="grid lg:grid-cols-2 gap-10 items-center">
+        <div>
+          <div className="flex items-center gap-4 mb-4">
+            <div className="flex-none w-10 h-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold">
+              {number}
+            </div>
+            <h2 className="text-2xl md:text-3xl font-bold">{title}</h2>
+          </div>
+          <div className="prose dark:prose-invert text-foreground prose-code:before:content-none prose-code:after:content-none">
+            {children}
+          </div>
+        </div>
+        <div>{visual}</div>
+      </div>
+    </section>
   );
 }

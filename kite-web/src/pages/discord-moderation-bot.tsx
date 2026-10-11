@@ -2,6 +2,7 @@ import LandingPage, {
   noCodeFaq,
   LandingPageContent,
 } from "@/components/landing/LandingPage";
+import { banFlow } from "@/components/landing/flows";
 import env from "@/lib/env/client";
 
 const content: LandingPageContent = {
@@ -14,6 +15,13 @@ const content: LandingPageContent = {
   secondaryAction: {
     label: "View Templates",
     href: `${env.NEXT_PUBLIC_DOCS_LINK}/reference/templates`,
+  },
+  showcase: {
+    heading: "What a Moderation Command Looks Like",
+    body: "The /ban command takes a user and a reason, bans the user and replies to the moderator.",
+    flow: banFlow,
+    trigger: "Alex used /ban",
+    reply: "Banned the user.",
   },
   sections: [
     {
