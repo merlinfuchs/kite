@@ -93,7 +93,10 @@ const tools = [
 
 export default function ToolsPage() {
   return (
-    <HomeLayout title="Tools">
+    <HomeLayout
+      title="Free Discord Tools"
+      description="Free tools for Discord: create messages with embeds, generate colored text, decode snowflake IDs, look up users, servers and invites, and inspect webhooks."
+    >
       <div className="py-20 px-5 max-w-4xl mx-auto">
         <div className="flex flex-col space-y-2 mb-10">
           <h1 className="text-3xl font-semibold leading-none tracking-tight">

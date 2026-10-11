@@ -10,7 +10,7 @@ import { CurrentMessageStoreProvider } from "@/lib/message/state";
 
 export default function MessageCreatorPage() {
   return (
-    <HomeLayout title="Message Creator">
+    <HomeLayout title="Message Creator" noindex>
       <CurrentMessageStoreProvider>
         <div className="flex flex-col xl:flex-row h-full">
           <div className="flex flex-col xl:w-7/12 pt-8 pb-24 xl:pb-8 space-y-8 h-full overflow-y-auto px-3 md:px-5 lg:px-10 no-scrollbar">
