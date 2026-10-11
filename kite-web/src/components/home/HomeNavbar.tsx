@@ -6,6 +6,7 @@ import { useResponseData } from "@/lib/hooks/api";
 import { useUserQuery } from "@/lib/api/queries";
 import { Skeleton } from "../ui/skeleton";
 import ThemeSwitch from "../common/ThemeSwitch";
+import { loginUrl } from "@/lib/api/client";
 
 export default function HomeNavbar() {
   const userQuery = useUserQuery();
@@ -27,10 +28,10 @@ export default function HomeNavbar() {
           </Button>
         ) : (
           <Button asChild>
-            <Link href="/login" className="flex items-center space-x-2">
+            <a href={loginUrl} className="flex items-center space-x-2">
               <LogInIcon className="h-5 w-5" />
               <div>Login</div>
-            </Link>
+            </a>
           </Button>
         )}
       </div>

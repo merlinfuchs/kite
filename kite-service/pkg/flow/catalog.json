@@ -161,6 +161,56 @@
       },
       "result_schema": null
     },
+    "option_command_cooldown": {
+      "title": "Command Cooldown",
+      "description": "Limit how often the command can be used, per user, per server, or globally, for up to 1 hour. Cooldowns reset when Kite restarts.",
+      "contexts": [
+        "command"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "cooldown_scope": {
+            "type": "string",
+            "enum": [
+              "user",
+              "guild",
+              "global"
+            ],
+            "description": "Who the cooldown applies to: the user who ran the command, everyone in the server, or everyone everywhere. Defaults to user."
+          },
+          "cooldown_duration_seconds": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9]+$"
+              },
+              {
+                "type": "string",
+                "pattern": "^\\{\\{[^{}]+\\}\\}$"
+              }
+            ],
+            "description": "How many whole seconds the cooldown lasts for, from 1 to 3600 (1 hour). Cooldowns reset when Kite restarts."
+          },
+          "cooldown_message": {
+            "type": "string",
+            "maxLength": 2000,
+            "description": "Message shown when someone uses the command while it's on cooldown. Use {{var('cooldown_remaining')}} to show how many seconds are left. Leave empty for a default message.",
+            "x-templated": true
+          }
+        },
+        "required": [
+          "cooldown_duration_seconds"
+        ],
+        "additionalProperties": false
+      },
+      "result_schema": null
+    },
     "option_event_filter": {
       "title": "Event Filter",
       "description": "Filter events based on their properties.",
@@ -181,7 +231,8 @@
               "message_content",
               "user_id",
               "guild_id",
-              "channel_id"
+              "channel_id",
+              "message_id"
             ],
             "description": "Property of the event to filter on."
           },
@@ -713,81 +764,301 @@
               "components": {
                 "type": "array",
                 "items": {
-                  "type": "object",
-                  "properties": {
-                    "components": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "properties": {
-                          "custom_id": {
-                            "type": "string",
-                            "maxLength": 100,
-                            "minLength": 1,
-                            "description": "Identifier of the input. The submitted value can be read with {{input('custom_id')}}. This is fixed text, placeholders aren't supported."
-                          },
-                          "label": {
-                            "type": "string",
-                            "maxLength": 45,
-                            "minLength": 1,
-                            "description": "Label shown above the input.",
-                            "x-templated": true
-                          },
-                          "style": {
-                            "type": "number",
-                            "enum": [
-                              1,
-                              2
-                            ],
-                            "description": "1 for a single line input, 2 for a paragraph."
-                          },
-                          "required": {
-                            "type": "boolean",
-                            "description": "Whether the input has to be filled in."
-                          },
-                          "min_length": {
-                            "type": "number",
-                            "description": "Minimum length of the entered text."
-                          },
-                          "max_length": {
-                            "type": "number",
-                            "description": "Maximum length of the entered text."
-                          },
-                          "value": {
-                            "type": "string",
-                            "maxLength": 4000,
-                            "minLength": 1,
-                            "description": "Value the input is pre-filled with.",
-                            "x-templated": true
-                          },
-                          "placeholder": {
-                            "type": "string",
-                            "maxLength": 4000,
-                            "minLength": 1,
-                            "description": "Text shown while the input is empty.",
-                            "x-templated": true
-                          }
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "type": {
+                          "type": "string",
+                          "const": "label",
+                          "description": "A label with one input."
                         },
-                        "required": [
-                          "custom_id",
-                          "label",
-                          "style"
-                        ],
-                        "additionalProperties": false
+                        "label": {
+                          "type": "string",
+                          "maxLength": 45,
+                          "minLength": 1,
+                          "description": "Shown above the input.",
+                          "x-templated": true
+                        },
+                        "description": {
+                          "type": "string",
+                          "maxLength": 100,
+                          "description": "Smaller text below the label.",
+                          "x-templated": true
+                        },
+                        "components": {
+                          "type": "array",
+                          "items": {
+                            "anyOf": [
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "custom_id": {
+                                    "type": "string",
+                                    "maxLength": 100,
+                                    "minLength": 1,
+                                    "description": "Fixed identifier, no placeholders. Read the answer with {{input('custom_id')}}."
+                                  },
+                                  "required": {
+                                    "type": "boolean",
+                                    "description": "Whether it must be answered."
+                                  },
+                                  "type": {
+                                    "type": "string",
+                                    "const": "text_input",
+                                    "description": "A text box."
+                                  },
+                                  "style": {
+                                    "type": "number",
+                                    "enum": [
+                                      1,
+                                      2
+                                    ],
+                                    "description": "1 for a single line, 2 for a paragraph."
+                                  },
+                                  "min_length": {
+                                    "type": "integer",
+                                    "minimum": 0,
+                                    "maximum": 4000,
+                                    "description": "Minimum text length."
+                                  },
+                                  "max_length": {
+                                    "type": "integer",
+                                    "minimum": 1,
+                                    "maximum": 4000,
+                                    "description": "Maximum text length."
+                                  },
+                                  "value": {
+                                    "type": "string",
+                                    "maxLength": 4000,
+                                    "minLength": 1,
+                                    "description": "Pre-filled text.",
+                                    "x-templated": true
+                                  },
+                                  "placeholder": {
+                                    "type": "string",
+                                    "maxLength": 100,
+                                    "minLength": 1,
+                                    "description": "Shown while empty.",
+                                    "x-templated": true
+                                  }
+                                },
+                                "required": [
+                                  "custom_id",
+                                  "type",
+                                  "style"
+                                ],
+                                "additionalProperties": false
+                              },
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "custom_id": {
+                                    "type": "string",
+                                    "maxLength": 100,
+                                    "minLength": 1,
+                                    "description": "Fixed identifier, no placeholders. Read the answer with {{input('custom_id')}}."
+                                  },
+                                  "required": {
+                                    "type": "boolean",
+                                    "description": "Whether it must be answered."
+                                  },
+                                  "type": {
+                                    "type": "string",
+                                    "enum": [
+                                      "string_select",
+                                      "radio_group",
+                                      "checkbox_group"
+                                    ],
+                                    "description": "string_select: a select menu with 1-25 options. radio_group: pick exactly one of 2-10 options. checkbox_group: pick any of 1-10 options."
+                                  },
+                                  "placeholder": {
+                                    "type": "string",
+                                    "maxLength": 150,
+                                    "minLength": 1,
+                                    "description": "Shown while nothing is picked. Not for radio_group and checkbox_group.",
+                                    "x-templated": true
+                                  },
+                                  "min_values": {
+                                    "type": "integer",
+                                    "minimum": 1,
+                                    "maximum": 25,
+                                    "description": "Minimum picks."
+                                  },
+                                  "max_values": {
+                                    "type": "integer",
+                                    "minimum": 1,
+                                    "maximum": 25,
+                                    "description": "Maximum picks. Defaults to 1 for selects and to all options for checkbox_group. input() returns the first pick, inputs() the list of all."
+                                  },
+                                  "options": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "object",
+                                      "properties": {
+                                        "label": {
+                                          "type": "string",
+                                          "maxLength": 100,
+                                          "minLength": 1,
+                                          "description": "Shown to the user.",
+                                          "x-templated": true
+                                        },
+                                        "value": {
+                                          "type": "string",
+                                          "maxLength": 100,
+                                          "description": "What input() returns. Defaults to the label. Must be unique.",
+                                          "x-templated": true
+                                        },
+                                        "description": {
+                                          "type": "string",
+                                          "maxLength": 100,
+                                          "description": "Smaller text below the label.",
+                                          "x-templated": true
+                                        },
+                                        "default": {
+                                          "type": "boolean",
+                                          "description": "Picked when the modal opens."
+                                        }
+                                      },
+                                      "required": [
+                                        "label"
+                                      ],
+                                      "additionalProperties": false
+                                    },
+                                    "minItems": 1,
+                                    "maxItems": 25,
+                                    "description": "Options to pick from."
+                                  }
+                                },
+                                "required": [
+                                  "custom_id",
+                                  "type",
+                                  "options"
+                                ],
+                                "additionalProperties": false
+                              },
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "custom_id": {
+                                    "type": "string",
+                                    "maxLength": 100,
+                                    "minLength": 1,
+                                    "description": "Fixed identifier, no placeholders. Read the answer with {{input('custom_id')}}."
+                                  },
+                                  "required": {
+                                    "type": "boolean",
+                                    "description": "Whether it must be answered."
+                                  },
+                                  "type": {
+                                    "type": "string",
+                                    "enum": [
+                                      "user_select",
+                                      "role_select",
+                                      "mentionable_select",
+                                      "channel_select"
+                                    ],
+                                    "description": "A select menu of the server's members, roles, both, or channels. input() returns an ID."
+                                  },
+                                  "placeholder": {
+                                    "type": "string",
+                                    "maxLength": 150,
+                                    "minLength": 1,
+                                    "description": "Shown while nothing is picked. Not for radio_group and checkbox_group.",
+                                    "x-templated": true
+                                  },
+                                  "min_values": {
+                                    "type": "integer",
+                                    "minimum": 1,
+                                    "maximum": 25,
+                                    "description": "Minimum picks."
+                                  },
+                                  "max_values": {
+                                    "type": "integer",
+                                    "minimum": 1,
+                                    "maximum": 25,
+                                    "description": "Maximum picks. Defaults to 1 for selects and to all options for checkbox_group. input() returns the first pick, inputs() the list of all."
+                                  },
+                                  "channel_types": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "integer"
+                                    },
+                                    "description": "channel_select only. Channel types that can be picked, e.g. 0 for text. Empty allows all."
+                                  }
+                                },
+                                "required": [
+                                  "custom_id",
+                                  "type"
+                                ],
+                                "additionalProperties": false
+                              },
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "type": {
+                                    "type": "string",
+                                    "const": "checkbox",
+                                    "description": "A single checkbox. input() returns 'true' or 'false'."
+                                  },
+                                  "custom_id": {
+                                    "type": "string",
+                                    "maxLength": 100,
+                                    "minLength": 1,
+                                    "description": "Fixed identifier, no placeholders. Read the answer with {{input('custom_id')}}."
+                                  },
+                                  "default": {
+                                    "type": "boolean",
+                                    "description": "Starts checked."
+                                  }
+                                },
+                                "required": [
+                                  "type",
+                                  "custom_id"
+                                ],
+                                "additionalProperties": false
+                              }
+                            ]
+                          },
+                          "minItems": 1,
+                          "maxItems": 1,
+                          "description": "The one input."
+                        }
                       },
-                      "minItems": 1,
-                      "maxItems": 1,
-                      "description": "The text input of the row."
+                      "required": [
+                        "type",
+                        "label",
+                        "components"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "type": {
+                          "type": "string",
+                          "const": "text_display",
+                          "description": "Markdown text."
+                        },
+                        "content": {
+                          "type": "string",
+                          "maxLength": 4000,
+                          "minLength": 1,
+                          "description": "The markdown.",
+                          "x-templated": true
+                        }
+                      },
+                      "required": [
+                        "type",
+                        "content"
+                      ],
+                      "additionalProperties": false
                     }
-                  },
-                  "required": [
-                    "components"
-                  ],
-                  "additionalProperties": false
+                  ]
                 },
                 "minItems": 1,
                 "maxItems": 5,
-                "description": "Rows of the modal, each holding one text input."
+                "description": "Up to 5 labels and text displays, one label at least."
               }
             },
             "required": [
@@ -813,7 +1084,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [
         "default"
@@ -1012,7 +1284,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [
         "default"
@@ -1225,7 +1498,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [
         "default"
@@ -1288,7 +1562,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [
         "default"
@@ -1445,7 +1720,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [
         "default"
@@ -1644,7 +1920,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [
         "default"
@@ -1721,7 +1998,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [
         "default"
@@ -1798,7 +2076,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [
         "default"
@@ -1861,7 +2140,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [
         "default"
@@ -1924,7 +2204,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [
         "default"
@@ -2144,7 +2425,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [
         "default"
@@ -2296,7 +2578,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [
         "default"
@@ -2355,7 +2638,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [
         "default"
@@ -2430,7 +2714,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [
         "default"
@@ -2492,7 +2777,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [
         "default"
@@ -2554,7 +2840,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [
         "default"
@@ -2692,7 +2979,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [
         "default"
@@ -2770,7 +3058,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [
         "default"
@@ -2868,7 +3157,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [
         "default"
@@ -2948,7 +3238,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [
         "default"
@@ -3024,7 +3315,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [
         "default"
@@ -3100,7 +3392,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [
         "default"
@@ -3193,7 +3486,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [
         "default"
@@ -3294,7 +3588,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [
         "default"
@@ -3364,7 +3659,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [
         "default"
@@ -3598,7 +3894,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [
         "default"
@@ -3833,7 +4130,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [
         "default"
@@ -3882,7 +4180,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [
         "default"
@@ -3960,7 +4259,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [
         "default"
@@ -4194,7 +4494,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [
         "default"
@@ -4243,7 +4544,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [
         "default"
@@ -4292,7 +4594,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [
         "default"
@@ -4378,7 +4681,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [
         "default"
@@ -4429,7 +4733,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [
         "default"
@@ -4469,7 +4774,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [
         "default"
@@ -4535,7 +4841,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [
         "default"
@@ -4600,7 +4907,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [
         "default"
@@ -4640,7 +4948,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [
         "default"
@@ -4687,7 +4996,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [
         "default"
@@ -4783,7 +5093,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [
         "default"
@@ -4866,7 +5177,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [
         "default"
@@ -4943,7 +5255,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [
         "default"
@@ -5060,7 +5373,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [
         "default"
@@ -5176,7 +5490,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [
         "default"
@@ -5219,7 +5534,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [
         "default"
@@ -5284,7 +5600,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [
         "default"
@@ -5332,7 +5649,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [],
       "owned_children": [
@@ -5372,7 +5690,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [],
       "owned_children": [
@@ -5412,7 +5731,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [],
       "owned_children": [
@@ -5452,7 +5772,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [],
       "owned_children": [
@@ -5492,7 +5813,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [],
       "owned_children": [
@@ -5536,7 +5858,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [],
       "owned_children": [],
@@ -5556,7 +5879,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [
         "error",
@@ -5592,7 +5916,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [
         "default"
@@ -5664,7 +5989,8 @@
       "description": "Listens for an event to trigger the flow. Drop different actions here!",
       "contexts": [
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [
         "default"
@@ -5682,11 +6008,15 @@
               "message_delete",
               "guild_member_add",
               "guild_member_remove",
+              "message_reaction_add",
+              "message_reaction_remove",
               "guild_create",
               "guild_delete",
-              "cron"
+              "guild_boost",
+              "cron",
+              "webhook"
             ],
-            "description": "Discord event that triggers the flow, or cron for a scheduled flow."
+            "description": "Discord event that triggers the flow, cron for a scheduled flow, or webhook for a flow that runs when a request is sent to its webhook URL."
           },
           "event_schedule_cron": {
             "type": "string",
@@ -5735,7 +6065,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [
         "default"
@@ -5970,7 +6301,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [
         "default"
@@ -6016,7 +6348,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [
         "default"
@@ -6059,7 +6392,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [
         "default"
@@ -6098,7 +6432,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [
         "default"
@@ -6137,7 +6472,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [
         "default"
@@ -6159,7 +6495,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [
         "default"
@@ -6181,7 +6518,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [
         "default"

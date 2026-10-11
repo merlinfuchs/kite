@@ -58,6 +58,10 @@ export interface BlockField {
   max?: number;
   max_length?: number;
   widget?: "permissions";
+  // Left out of the flow catalog, so the flow AI doesn't set it. For settings
+  // it can't get right, like IDs of blocks, which it only knows by ref for the
+  // blocks it adds.
+  hidden_from_ai?: boolean;
 }
 
 // A request to an integration's API, with the bot's token or the app's
