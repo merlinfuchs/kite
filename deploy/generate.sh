@@ -149,6 +149,10 @@ server {
         root @WEB_DIR@;
         absolute_redirect off;
 
+        # Pages have no trailing slash, so /tools/ redirects to /tools, the
+        # canonical URL. Without it, nginx answers 403 or 404.
+        rewrite ^/(.+)/$ /$1 permanent;
+
         location /_next/static/ {
                 add_header Cache-Control "public, max-age=31536000, immutable";
         }
