@@ -14,13 +14,21 @@ import LoadingButton from "../common/LoadingButton";
 import { ShareCodeDisplay, ShareCodePanel } from "./ShareCode";
 import { useShareCodeCreateMutation } from "@/lib/api/mutations";
 import { useAppId } from "@/lib/hooks/params";
+import { useMessages } from "@/lib/hooks/api";
+import { collectReferencedMessages } from "@/lib/flow/messageTemplates";
+import { FlowData } from "@/lib/types/flow.gen";
 import { BracesIcon, CopyIcon, KeyRoundIcon } from "lucide-react";
 import { toast } from "sonner";
 
 type ExportProps = {
   title: string;
-  type: "command" | "event_listener";
+  type: "command" | "event_listener" | "message";
   shareData: Record<string, unknown>;
+  // Message templates used by these flows are exported along with them, so
+  // they don't have to be recreated in the other app.
+  flows: (FlowData | null | undefined)[];
+  // Templates that are already part of shareData.
+  excludeMessageIds?: string[];
 };
 
 export default function FlowExportDialog({
@@ -38,12 +46,32 @@ export default function FlowExportDialog({
 }
 
 // Separate from the dialog so its state resets every time it's opened.
-function ExportForm({ title, type, shareData }: ExportProps) {
+function ExportForm({
+  title,
+  type,
+  shareData: baseShareData,
+  flows,
+  excludeMessageIds,
+}: ExportProps) {
   const [showJson, setShowJson] = useState(false);
   const [code, setCode] = useState<string | null>(null);
 
   const appId = useAppId();
   const createMutation = useShareCodeCreateMutation(appId);
+  const messages = useMessages();
+
+  const bundledMessages = messages
+    ? collectReferencedMessages(flows, messages, excludeMessageIds)
+    : null;
+  const shareData =
+    bundledMessages && bundledMessages.length > 0
+      ? { ...baseShareData, messages: bundledMessages }
+      : baseShareData;
+
+  const bundledNote =
+    bundledMessages && bundledMessages.length > 0
+      ? ` The ${bundledMessages.length} message template(s) it uses are included.`
+      : "";
 
   function copy(text: string) {
     navigator.clipboard
@@ -70,19 +98,22 @@ function ExportForm({ title, type, shareData }: ExportProps) {
   }
 
   if (showJson) {
-    const json = JSON.stringify(shareData);
+    // Without the templates the JSON would be incomplete, so it's only shown
+    // once they're loaded.
+    const json = bundledMessages ? JSON.stringify(shareData) : "";
 
     return (
       <>
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
           <DialogDescription>
-            Copy the JSON below and import it into another app.
+            Copy the JSON below and import it into another app.{bundledNote}
           </DialogDescription>
         </DialogHeader>
         <Textarea
           readOnly
           value={json}
+          placeholder="Loading..."
           minRows={8}
           maxRows={8}
           className="resize-none break-all font-mono md:text-xs"
@@ -93,7 +124,7 @@ function ExportForm({ title, type, shareData }: ExportProps) {
             <KeyRoundIcon className="mr-2 h-4 w-4" />
             Use share code
           </Button>
-          <Button onClick={() => copy(json)}>
+          <Button onClick={() => copy(json)} disabled={!bundledMessages}>
             <CopyIcon className="mr-2 h-4 w-4" />
             Copy JSON
           </Button>
@@ -108,7 +139,7 @@ function ExportForm({ title, type, shareData }: ExportProps) {
         <DialogTitle>{title}</DialogTitle>
         <DialogDescription>
           Anyone with the code can import this into their app. Codes expire
-          after 90 days without use.
+          after 90 days without use.{bundledNote}
         </DialogDescription>
       </DialogHeader>
       <ShareCodePanel>
@@ -127,7 +158,7 @@ function ExportForm({ title, type, shareData }: ExportProps) {
         ) : (
           <LoadingButton
             onClick={generateCode}
-            loading={createMutation.isPending}
+            loading={createMutation.isPending || !bundledMessages}
           >
             Generate code
           </LoadingButton>

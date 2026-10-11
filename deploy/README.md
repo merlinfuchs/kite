@@ -21,7 +21,7 @@ They need `pnpm`, `go`, `rsync` and SSH access to the server.
 
 To change the number of clusters, set `CLUSTER_COUNT`, run `./deploy/generate.sh`, commit, and run `./deploy/server.sh`. It restarts all clusters, since apps move between them, and switches nginx over to the new routing.
 
-`service.sh` restarts all clusters at once. Each one runs pending migrations before it starts, and the migrations take a lock, so they only run once.
+`service.sh` runs pending migrations once with the new binary while the old one keeps running, then restarts all clusters at once. Migrations have to work with the running version. Each cluster also migrates when it starts, which finds nothing left to do.
 
 ## Moving from the old setup
 
