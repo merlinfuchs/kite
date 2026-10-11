@@ -66,6 +66,11 @@ export default function HomeFooter() {
               Documentation
             </a>
           </div>
+          <div>
+            <Link href="/tools" className="opacity-60 hover:opacity-100">
+              Discord Tools
+            </Link>
+          </div>
         </div>
 
         <div className="flex flex-col gap-2">

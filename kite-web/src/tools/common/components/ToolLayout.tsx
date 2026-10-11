@@ -17,7 +17,7 @@ export default function ToolLayout({
   className?: string;
 }) {
   return (
-    <HomeLayout title={title}>
+    <HomeLayout title={title} description={description}>
       <div className={cn("py-10 px-5 max-w-4xl mx-auto", className)}>
         <div className="mb-14">
           <Button variant="outline" asChild>

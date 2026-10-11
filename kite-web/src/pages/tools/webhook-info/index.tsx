@@ -5,8 +5,7 @@ export default function WebhookInfoPage() {
   return (
     <ToolLayout
       title="Webhook Info"
-      description="Get information about Discord webhooks from the webhook URL. Paste
-          your webhook URL below to get started!"
+      description="Get information about a Discord webhook from its URL, like its name, avatar, channel ID and server ID. Paste your webhook URL below to get started!"
     >
       <WebhookInfoTool />
     </ToolLayout>
