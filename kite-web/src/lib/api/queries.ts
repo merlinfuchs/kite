@@ -47,10 +47,11 @@ export function useUserQuery(userId = "@me") {
   });
 }
 
-export function useAppsQuery() {
+export function useAppsQuery(enabled = true) {
   return useQuery({
     queryKey: ["apps"],
     queryFn: () => apiRequest<AppListResponse>(`/v1/apps`),
+    enabled,
   });
 }
 

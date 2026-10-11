@@ -13,41 +13,12 @@ import {
   navigationMenuTriggerStyle,
 } from "@/components/ui/navigation-menu";
 import { PlusCircleIcon } from "lucide-react";
+import { externalTools, kiteTools } from "@/tools/registry";
 
+// Kite's own tools and the message creator. All tools are listed on /tools.
 const tools = [
-  {
-    title: "Message Creator",
-    href: "https://message.style/app",
-    description:
-      "Create good looking Discord messages and send them through webhooks!",
-    target: "_blank",
-  },
-  {
-    title: "Colored Text",
-    href: "https://message.style/app/tools/colored-text",
-    description:
-      "Generate colored text that you can use in your Discord message.",
-    target: "_blank",
-  },
-  {
-    title: "Embed Links",
-    href: "https://message.style/app/tools/embed-links",
-    description:
-      "Generate embeddable links for Discord messages with custom titles, descriptions, and images.",
-    target: "_blank",
-  },
-  {
-    title: "User Lookup",
-    href: "https://dis.wtf/lookup/user",
-    description:
-      "Get information about a Discord user by entering their user ID.",
-    target: "_blank",
-  },
-  {
-    title: "Webhook Info",
-    href: "/tools/webhook-info",
-    description: "Get information about Discord webhooks from the webhook URL.",
-  },
+  ...kiteTools,
+  externalTools.find((t) => t.id === "message-creator")!,
 ];
 
 export default function HomeNavbarMenu() {
@@ -110,7 +81,7 @@ export default function HomeNavbarMenu() {
                   key={tool.title}
                   title={tool.title}
                   href={tool.href}
-                  target={tool.target}
+                  target={tool.external ? "_blank" : undefined}
                 >
                   {tool.description}
                 </ListItem>
