@@ -6,8 +6,10 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
+import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { SidebarTrigger } from "@/components/ui/sidebar";
+import { ArrowLeftIcon } from "lucide-react";
 import { Fragment, ReactNode, useMemo } from "react";
 import BaseLayout from "../common/BaseLayout";
 import { useApp } from "@/lib/hooks/api";
@@ -29,6 +31,7 @@ export default function AppLayout({ children, ...props }: Props) {
   const app = useApp();
 
   const router = useRouter();
+  const isDashboard = router.pathname === "/apps/[appId]";
 
   const breadcrumbs = useMemo(
     () => [
@@ -45,17 +48,42 @@ export default function AppLayout({ children, ...props }: Props) {
     [app, props.breadcrumbs]
   );
 
+  const backHref = useMemo(
+    () => breadcrumbs.findLast((item) => item.href)?.href,
+    [breadcrumbs]
+  );
+
   const title = useMemo(
-    () => props.title || app?.name || "Unknown App",
+    () => props.title || app?.name || "Kite",
     [app, props.title]
   );
 
   return (
     <BaseLayout title={props.title}>
-      <header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear">
+      <header className="flex h-14 md:h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear">
         <div className="flex items-center gap-2 justify-between px-4 w-full">
           <div className="flex items-center gap-2">
-            <SidebarTrigger className="-ml-2 md:-ml-1" />
+            <SidebarTrigger className="-ml-2 md:-ml-1 hidden md:flex" />
+            {!isDashboard && backHref && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="md:hidden size-8 -ml-2 text-muted-foreground hover:text-foreground"
+                asChild
+              >
+                <Link
+                  href={{ pathname: backHref, query: router.query }}
+                  aria-label="Go back"
+                >
+                  <ArrowLeftIcon className="size-4" />
+                </Link>
+              </Button>
+            )}
+            {isDashboard && (
+              <span className="font-semibold text-sm md:hidden truncate max-w-[200px]">
+                {title}
+              </span>
+            )}
             <Separator
               orientation="vertical"
               className="mr-2 h-4 hidden md:block"
@@ -92,7 +120,9 @@ export default function AppLayout({ children, ...props }: Props) {
           </div>
         </div>
       </header>
-      <main className="p-4 pt-8 sm:pb-20 sm:px-6 w-full">{children}</main>
+      <main className="p-4 pt-2 md:pt-8 sm:pb-20 sm:px-6 w-full">
+        {children}
+      </main>
     </BaseLayout>
   );
 }

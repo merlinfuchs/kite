@@ -3,10 +3,16 @@ import LogLevelBadge from "../app/LogLevelBadge";
 import { formatRelative } from "date-fns";
 import { ScrollArea } from "../ui/scroll-area";
 
-export default function FlowLogList({ logs }: { logs?: LogEntry[] }) {
+export default function FlowLogList({
+  logs,
+  hideHeader,
+}: {
+  logs?: LogEntry[];
+  hideHeader?: boolean;
+}) {
   if (!logs?.length) {
     return (
-      <div className="h-32 flex items-center justify-center">
+      <div className="h-40 flex items-center justify-center">
         <div className="flex flex-col gap-2 text-muted-foreground text-sm">
           No logs yet.
         </div>
@@ -15,16 +21,18 @@ export default function FlowLogList({ logs }: { logs?: LogEntry[] }) {
   }
 
   return (
-    <div className=" w-full h-full flex flex-col">
-      <div className="p-5 flex-none">
-        <div className="text-xl font-bold text-foreground mb-2">Logs</div>
-        <div className="text-muted-foreground">
-          View the logs for your app. Some logs are produced by Kite itself, but
-          you can also add your own logs to your flows.
+    <div className="w-full h-full flex flex-col min-h-0 overflow-hidden">
+      {!hideHeader && (
+        <div className="p-5 flex-none">
+          <div className="text-xl font-bold text-foreground mb-2">Logs</div>
+          <div className="text-muted-foreground">
+            View the logs for your app. Some logs are produced by Kite itself,
+            but you can also add your own logs to your flows.
+          </div>
         </div>
-      </div>
+      )}
 
-      <ScrollArea className="flex-auto">
+      <ScrollArea className="flex-1 min-h-0">
         <div className="flex flex-col gap-2 px-4">
           {logs?.map((entry) => (
             <div
