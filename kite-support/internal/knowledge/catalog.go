@@ -45,6 +45,7 @@ var contextNames = map[string]string{
 	"command":               "commands",
 	"event_discord":         "Discord event listeners",
 	"event_schedule":        "scheduled event listeners",
+	"event_webhook":         "webhook event listeners",
 	"component_button":      "buttons",
 	"component_select_menu": "select menus",
 }

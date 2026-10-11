@@ -283,15 +283,29 @@ export type MessageComponentSelectMenuOption = z.infer<
   typeof selectMenuOptionSchema
 >;
 
+// String selects list their own options, Discord fills in the others with
+// users, roles, users and roles (mentionable) or channels.
+export const selectMenuTypeSchema = z
+  .literal(3)
+  .or(z.literal(5))
+  .or(z.literal(6))
+  .or(z.literal(7))
+  .or(z.literal(8));
+
+export type MessageComponentSelectMenuType = z.infer<
+  typeof selectMenuTypeSchema
+>;
+
 export const selectMenuSchema = z
   .object({
     id: uniqueIdSchema.default(() => getUniqueId()),
-    type: z.literal(3),
+    type: selectMenuTypeSchema,
     placeholder: z.optional(z.string().max(150)),
     min_values: z.optional(z.number().int().min(0).max(25)),
     max_values: z.optional(z.number().int().min(1).max(25)),
     disabled: z.optional(z.boolean()),
-    options: z.array(selectMenuOptionSchema).min(1).max(25),
+    options: z.array(selectMenuOptionSchema).max(25).default([]),
+    channel_types: z.optional(z.array(z.number().int())),
     flow_source_id: z.string().default(() => getUniqueId().toString()),
   })
   .superRefine((data, ctx) => {
@@ -302,6 +316,16 @@ export const selectMenuSchema = z
         code: z.ZodIssueCode.custom,
         path: ["max_values"],
         message: "Maximum can't be lower than the minimum",
+      });
+    }
+
+    if (data.type !== 3) return;
+
+    if (data.options.length === 0) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["options"],
+        message: "A select menu needs at least one option",
       });
     }
     if (max > data.options.length) {
@@ -336,7 +360,7 @@ export const actionRowSchema = z.object({
     .max(5)
     .refine(
       (components) =>
-        components.length === 1 || components.every((c) => c.type !== 3),
+        components.length === 1 || components.every((c) => c.type === 2),
       "A select menu has to be alone in its row"
     ),
 });
