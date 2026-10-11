@@ -9,6 +9,7 @@ import (
 	"github.com/diamondburned/arikawa/v3/utils/ws"
 	"github.com/kitecloud/kite/kite-service/pkg/schedule"
 	"github.com/kitecloud/kite/kite-service/pkg/voicestate"
+	"github.com/kitecloud/kite/kite-service/pkg/webhook"
 )
 
 // maxStoredTriggers bounds how many triggers a resume point keeps: the one that
@@ -83,6 +84,12 @@ func (t *FlowTrigger) UnmarshalJSON(data []byte) error {
 		case voicestate.EventType:
 			// arikawa's event has no room for the old channel.
 			event = new(voicestate.Event)
+		// Kite's own events, which arikawa doesn't know about.
+		switch aux.EventType {
+		case schedule.EventType:
+			event = new(schedule.Event)
+		case webhook.EventType:
+			event = new(webhook.Event)
 		default:
 			newEvent := gateway.OpUnmarshalers.Lookup(aux.EventOp, aux.EventType)
 			if newEvent == nil {

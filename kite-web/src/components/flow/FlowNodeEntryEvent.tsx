@@ -3,7 +3,7 @@ import { NodeProps } from "../../lib/flow/dataSchema";
 import FlowNodeBase from "./FlowNodeBase";
 import FlowNodeHandle from "./FlowNodeHandle";
 import { optionColor } from "@/lib/flow/nodes";
-import { EventTypeScheduleCron } from "@/lib/types/flow.gen";
+import { EventTypeScheduleCron, EventTypeWebhook } from "@/lib/types/flow.gen";
 import { describeSchedule } from "@/lib/flow/schedule";
 
 const eventDescriptions: Record<string, string> = {
@@ -15,10 +15,12 @@ const eventTitles: Record<string, string> = {
   guild_create: "Bot joined a server",
   guild_delete: "Bot left a server",
   voice_state_update: "Member changed voice channel",
+  guild_boost: "Member boosted the server",
 };
 
 export default function FlowNodeEntryEvent(props: NodeProps) {
   const isSchedule = props.data.event_type === EventTypeScheduleCron;
+  const isWebhook = props.data.event_type === EventTypeWebhook;
   const eventName = props.data.event_type?.split("_").join(" ") || "";
   const eventTitle =
     eventTitles[props.data.event_type || ""] || `Listen for ${eventName}`;
@@ -29,9 +31,17 @@ export default function FlowNodeEntryEvent(props: NodeProps) {
   return (
     <FlowNodeBase
       {...props}
-      title={isSchedule ? "Run on schedule" : eventTitle}
-      description={
+      title={
         isSchedule
+          ? "Run on schedule"
+          : isWebhook
+          ? "Run on webhook request"
+          : eventTitle
+      }
+      description={
+        isWebhook
+          ? "Runs the flow when a request is sent to the webhook URL. Drop different actions here!"
+          : isSchedule
           ? `Runs the flow ${
               scheduleDescription
                 ? scheduleDescription.charAt(0).toLowerCase() +
@@ -44,7 +54,7 @@ export default function FlowNodeEntryEvent(props: NodeProps) {
       highlight={true}
       showConnectedMarker={false}
     >
-      {!isSchedule && (
+      {!isSchedule && !isWebhook && (
         <FlowNodeHandle
           type="target"
           position={Position.Top}

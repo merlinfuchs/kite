@@ -28,6 +28,16 @@ func (d *InteractionData) ChannelID() discord.ChannelID {
 	return d.interaction.ChannelID
 }
 
+// MessageID is only set for component interactions (e.g. a button click),
+// where it's the message the component is attached to. Command interactions
+// have no associated message.
+func (d *InteractionData) MessageID() discord.MessageID {
+	if d.interaction.Message != nil {
+		return d.interaction.Message.ID
+	}
+	return 0
+}
+
 func (d *InteractionData) CommandData() *discord.CommandInteraction {
 	data, _ := d.interaction.Data.(*discord.CommandInteraction)
 	return data
@@ -63,6 +73,9 @@ func (d *EventData) UserID() discord.UserID {
 	case *gateway.GuildMemberUpdateEvent:
 		return data.User.ID
 	case *voicestate.Event:
+	case *gateway.MessageReactionAddEvent:
+		return data.UserID
+	case *gateway.MessageReactionRemoveEvent:
 		return data.UserID
 	}
 	return 0
@@ -81,6 +94,10 @@ func (d *EventData) GuildID() discord.GuildID {
 	case *gateway.GuildMemberRemoveEvent:
 		return data.GuildID
 	case *gateway.GuildMemberUpdateEvent:
+		return data.GuildID
+	case *gateway.MessageReactionAddEvent:
+		return data.GuildID
+	case *gateway.MessageReactionRemoveEvent:
 		return data.GuildID
 	case *state.GuildJoinEvent:
 		return data.ID
@@ -106,6 +123,26 @@ func (d *EventData) ChannelID() discord.ChannelID {
 			return data.ChannelID
 		}
 		return data.OldChannelID
+	case *gateway.MessageReactionAddEvent:
+		return data.ChannelID
+	case *gateway.MessageReactionRemoveEvent:
+		return data.ChannelID
+	}
+	return 0
+}
+
+func (d *EventData) MessageID() discord.MessageID {
+	switch data := d.event.(type) {
+	case *gateway.MessageCreateEvent:
+		return data.ID
+	case *gateway.MessageUpdateEvent:
+		return data.ID
+	case *gateway.MessageDeleteEvent:
+		return data.ID
+	case *gateway.MessageReactionAddEvent:
+		return data.MessageID
+	case *gateway.MessageReactionRemoveEvent:
+		return data.MessageID
 	}
 	return 0
 }

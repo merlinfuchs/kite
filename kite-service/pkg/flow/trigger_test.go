@@ -11,6 +11,7 @@ import (
 	"github.com/diamondburned/arikawa/v3/utils/ws"
 	"github.com/kitecloud/kite/kite-service/pkg/schedule"
 	"github.com/kitecloud/kite/kite-service/pkg/voicestate"
+	"github.com/kitecloud/kite/kite-service/pkg/webhook"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -161,6 +162,15 @@ func TestFlowTriggerVoiceStateEventRoundTrip(t *testing.T) {
 		VoiceState:   discord.VoiceState{GuildID: 1, UserID: 2},
 		OldChannelID: 3,
 	}})
+func TestFlowTriggerWebhookEventRoundTrip(t *testing.T) {
+	// A button sent by a webhook flow resumes with the request as the trigger
+	// that started it.
+	request := &webhook.Event{
+		Headers: map[string]string{"x-github-event": "push"},
+		Query:   map[string]string{"source": "ci"},
+		Body:    `{"ref":"refs/heads/main"}`,
+	}
+	trigger := newFlowTrigger(&eventData{event: request})
 	require.NotNil(t, trigger)
 
 	data, err := json.Marshal(trigger)
@@ -174,4 +184,7 @@ func TestFlowTriggerVoiceStateEventRoundTrip(t *testing.T) {
 	assert.Equal(t, discord.UserID(2), event.UserID)
 	assert.Equal(t, discord.ChannelID(3), event.OldChannelID)
 	assert.Equal(t, voicestate.ActionLeave, event.Action())
+	event, ok := decoded.Event.(*webhook.Event)
+	require.True(t, ok, "decoded event is %T", decoded.Event)
+	assert.Equal(t, request, event)
 }
