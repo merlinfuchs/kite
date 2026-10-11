@@ -1,5 +1,6 @@
 import { ReactNode, useState } from "react";
 import { useRouter } from "next/router";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   Dialog,
   DialogClose,
@@ -16,17 +17,25 @@ import LoadingButton from "../common/LoadingButton";
 import {
   useCommandsImportMutation,
   useEventListenersImportMutation,
+  useMessagesImportMutation,
   useShareCodeResolveMutation,
 } from "@/lib/api/mutations";
+import { apiRequest } from "@/lib/api/client";
 import { useAppId } from "@/lib/hooks/params";
 import { useAppSecrets, useMessages, useVariables } from "@/lib/hooks/api";
 import { getReferencedSecretNames } from "@/lib/flow/secrets";
+import {
+  SharedMessage,
+  flowSourcesReference,
+  isSharedMessage,
+  remapFlowReferences,
+  remapFlowSources,
+} from "@/lib/flow/messageTemplates";
 import { FlowData } from "@/lib/types/flow.gen";
 import {
-  CommandsImportResponse,
-  EventListenersImportResponse,
+  MessageDeleteResponse,
+  MessageUpdateResponse,
 } from "@/lib/types/wire.gen";
-import { APIResponse } from "@/lib/api/response";
 import { toast } from "sonner";
 import { ShareCodeInput, ShareCodePanel } from "./ShareCode";
 import { BracesIcon, KeyRoundIcon } from "lucide-react";
@@ -42,9 +51,22 @@ const kinds = {
     entryNodeType: "entry_event",
     href: (appId: string, id: string) => `/apps/${appId}/events/${id}`,
   },
+  message: {
+    label: "message template",
+    entryNodeType: null,
+    href: (appId: string, id: string) => `/apps/${appId}/messages/${id}`,
+  },
 };
 
 type Kind = keyof typeof kinds;
+
+type ShareData = {
+  flow_source?: FlowData;
+  source?: string;
+  message?: SharedMessage;
+  // Message templates the flow (or message) uses, exported along with it.
+  messages?: SharedMessage[];
+};
 
 export default function FlowImportDialog({
   kind,
@@ -76,8 +98,10 @@ function ImportForm({
   const [useJson, setUseJson] = useState(false);
   const [json, setJson] = useState("");
   const [code, setCode] = useState("");
+  const [importing, setImporting] = useState(false);
 
   const router = useRouter();
+  const queryClient = useQueryClient();
   const appId = useAppId();
   const variables = useVariables();
   const messages = useMessages();
@@ -85,23 +109,123 @@ function ImportForm({
 
   const commandsImportMutation = useCommandsImportMutation(appId);
   const eventListenersImportMutation = useEventListenersImportMutation(appId);
+  const messagesImportMutation = useMessagesImportMutation(appId);
   const shareCodeResolveMutation = useShareCodeResolveMutation();
 
   const { label, entryNodeType, href } = kinds[kind];
 
   const loading =
-    commandsImportMutation.isPending ||
-    eventListenersImportMutation.isPending ||
+    importing ||
     shareCodeResolveMutation.isPending ||
     !variables ||
     !messages ||
     !secrets;
 
-  function importShareData(
-    parsed: { flow_source?: FlowData; source?: string } | null | undefined
+  // Imports the templates and adds the id each one got in this app to idMap,
+  // keyed by its id in the original app. Templates that already exist in this
+  // app (exported from the same app) are reused unless forced, so importing
+  // twice doesn't pile up copies. Returns the number of cleared references.
+  async function importMessages(
+    shared: SharedMessage[],
+    idMap: Map<string, string>,
+    variableIds: Set<string>,
+    existingIds: Set<string>,
+    forceIds: Set<string>
   ) {
+    const toCreate = shared.filter(
+      (m) => forceIds.has(m.id) || !existingIds.has(m.id)
+    );
+    if (toCreate.length === 0) return 0;
+
+    // The new ids aren't known yet, so references between the imported
+    // templates are kept for now and pointed at the copies afterwards.
+    const keepIds = new Set([...existingIds, ...toCreate.map((m) => m.id)]);
+
+    let removed = 0;
+    const requests = toCreate.map((m) => {
+      const res = remapFlowSources(m.flow_sources, {
+        variableIds,
+        messageIds: keepIds,
+      });
+      removed += res.removed;
+      return {
+        name: m.name.slice(0, 100),
+        description: m.description?.slice(0, 255) || null,
+        data: m.data,
+        flow_sources: res.flowSources,
+      };
+    });
+
+    const res = await messagesImportMutation.mutateAsync({
+      messages: requests,
+    });
+    if (!res.success) {
+      throw new Error(
+        `Failed to import message templates: ${res.error.message} (${res.error.code})`
+      );
+    }
+
+    toCreate.forEach((m, i) => {
+      const created = res.data[i];
+      if (created) idMap.set(m.id, created.id);
+    });
+
+    const originalIds = new Set(idMap.keys());
+    for (const [i, m] of toCreate.entries()) {
+      const created = res.data[i];
+      const req = requests[i];
+      if (!created || !flowSourcesReference(req.flow_sources, originalIds)) {
+        continue;
+      }
+
+      const { flowSources } = remapFlowSources(req.flow_sources, {
+        variableIds,
+        messageIds: existingIds,
+        messageIdMap: idMap,
+      });
+      // The update mutation hook is bound to a single message id.
+      const updateRes = await apiRequest<MessageUpdateResponse>(
+        `/v1/apps/${appId}/messages/${created.id}`,
+        {
+          method: "PATCH",
+          body: JSON.stringify({ ...req, flow_sources: flowSources }),
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+      if (!updateRes.success) {
+        throw new Error(
+          `Failed to link message template ${m.name}: ${updateRes.error.message} (${updateRes.error.code})`
+        );
+      }
+    }
+
+    queryClient.invalidateQueries({ queryKey: ["apps", appId, "messages"] });
+    return removed;
+  }
+
+  // Deletes the templates of a failed import, so no orphaned copies are left.
+  async function deleteMessages(ids: string[]) {
+    if (ids.length === 0) return;
+    await Promise.allSettled(
+      ids.map((id) =>
+        apiRequest<MessageDeleteResponse>(`/v1/apps/${appId}/messages/${id}`, {
+          method: "DELETE",
+        })
+      )
+    );
+    queryClient.invalidateQueries({ queryKey: ["apps", appId, "messages"] });
+  }
+
+  async function importShareData(parsed: ShareData | null | undefined) {
     const flow = parsed?.flow_source;
-    if (
+    const mainMessage = parsed?.message;
+
+    if (kind === "message") {
+      if (!isSharedMessage(mainMessage)) {
+        toast.error(`Invalid share code, make sure it's for a ${label}`);
+        return;
+      }
+    } else if (
       !Array.isArray(flow?.nodes) ||
       !Array.isArray(flow?.edges) ||
       !flow.nodes.some((n) => n.type === entryNodeType)
@@ -110,28 +234,77 @@ function ImportForm({
       return;
     }
 
-    const { flow: sanitized, removed } = removeForeignReferences(
-      flow,
-      new Set(variables?.flatMap((v) => (v ? [v.id] : []))),
-      new Set(messages?.flatMap((m) => (m ? [m.id] : [])))
-    );
+    const variableIds = new Set(variables?.flatMap((v) => (v ? [v.id] : [])));
+    const existingIds = new Set(messages?.flatMap((m) => (m ? [m.id] : [])));
 
-    const secretNames = new Set(secrets?.map((s) => s?.name));
-    const missingSecrets = getReferencedSecretNames(flow).filter(
-      (name) => !secretNames.has(name)
-    );
+    const bundled = (
+      Array.isArray(parsed?.messages) ? parsed.messages : []
+    ).filter(isSharedMessage);
+    // Each template is created once, even if the JSON lists it twice.
+    const seenIds = new Set<string>();
+    const shared = (
+      kind === "message" ? [mainMessage!, ...bundled] : bundled
+    ).filter((m) => !seenIds.has(m.id) && seenIds.add(m.id));
 
-    const onSuccess = (
-      res: APIResponse<CommandsImportResponse | EventListenersImportResponse>
-    ) => {
-      if (!res.success) {
-        toast.error(
-          `Failed to import ${label}: ${res.error.message} (${res.error.code})`
-        );
-        return;
+    const idMap = new Map<string, string>();
+    setImporting(true);
+    try {
+      const usedFlows = [
+        ...(flow ? [flow] : []),
+        ...shared.flatMap((m) => Object.values(m.flow_sources ?? {})),
+      ];
+      const secretNames = new Set(secrets?.map((s) => s?.name));
+      const missingSecrets = Array.from(
+        new Set(usedFlows.flatMap((f) => getReferencedSecretNames(f)))
+      ).filter((name) => !secretNames.has(name));
+
+      let removed = await importMessages(
+        shared,
+        idMap,
+        variableIds,
+        existingIds,
+        new Set(kind === "message" ? [shared[0].id] : [])
+      );
+
+      let importedId: string | undefined;
+      if (kind === "message") {
+        importedId = idMap.get(shared[0].id);
+      } else {
+        const remapped = remapFlowReferences(flow!, {
+          variableIds,
+          messageIds: existingIds,
+          messageIdMap: idMap,
+        });
+        removed += remapped.removed;
+
+        const res =
+          kind === "command"
+            ? await commandsImportMutation.mutateAsync({
+                commands: [{ flow_source: remapped.flow, enabled: true }],
+              })
+            : await eventListenersImportMutation.mutateAsync({
+                event_listeners: [
+                  {
+                    source: parsed?.source ?? "discord",
+                    flow_source: remapped.flow,
+                    enabled: true,
+                  },
+                ],
+              });
+        if (!res.success) {
+          throw new Error(
+            `Failed to import ${label}: ${res.error.message} (${res.error.code})`
+          );
+        }
+        importedId = res.data[0]?.id;
       }
 
-      toast.success(`Imported ${label}!`);
+      const extraTemplates = idMap.size - (kind === "message" ? 1 : 0);
+      toast.success(
+        extraTemplates > 0
+          ? `Imported ${label} with ${extraTemplates} message template(s)!`
+          : `Imported ${label}!`
+      );
       if (removed > 0) {
         toast.warning(
           `${removed} block(s) referenced variables or message templates from another app, reselect them in the editor.`
@@ -146,30 +319,15 @@ function ImportForm({
       }
       onImported();
 
-      const imported = res.data[0];
-      if (imported) {
-        setTimeout(() => router.push(href(appId, imported.id)), 500);
+      if (importedId) {
+        const id = importedId;
+        setTimeout(() => router.push(href(appId, id)), 500);
       }
-    };
-
-    if (kind === "command") {
-      commandsImportMutation.mutate(
-        { commands: [{ flow_source: sanitized, enabled: true }] },
-        { onSuccess }
-      );
-    } else {
-      eventListenersImportMutation.mutate(
-        {
-          event_listeners: [
-            {
-              source: parsed?.source ?? "discord",
-              flow_source: sanitized,
-              enabled: true,
-            },
-          ],
-        },
-        { onSuccess }
-      );
+    } catch (e) {
+      await deleteMessages(Array.from(idMap.values()));
+      toast.error(e instanceof Error ? e.message : `Failed to import ${label}`);
+    } finally {
+      setImporting(false);
     }
   }
 
@@ -222,7 +380,9 @@ function ImportForm({
         <Textarea
           value={json}
           onChange={(e) => setJson(e.target.value)}
-          placeholder='{"flow_source": ...}'
+          placeholder={
+            kind === "message" ? '{"message": ...}' : '{"flow_source": ...}'
+          }
           minRows={8}
           maxRows={8}
           className="resize-none break-all font-mono md:text-xs"
@@ -258,33 +418,4 @@ function ImportForm({
       </DialogFooter>
     </>
   );
-}
-
-// Variable and message template IDs belong to the app the flow was exported
-// from, so they are cleared when they don't exist in the current app.
-function removeForeignReferences(
-  flow: FlowData,
-  variableIds: Set<string>,
-  messageIds: Set<string>
-) {
-  let removed = 0;
-
-  const nodes = flow.nodes.map((node) => {
-    const data = { ...node.data };
-    let changed = false;
-
-    if (data.variable_id && !variableIds.has(data.variable_id)) {
-      delete data.variable_id;
-      changed = true;
-    }
-    if (data.message_template_id && !messageIds.has(data.message_template_id)) {
-      delete data.message_template_id;
-      changed = true;
-    }
-
-    if (changed) removed++;
-    return { ...node, data };
-  });
-
-  return { flow: { ...flow, nodes }, removed };
 }

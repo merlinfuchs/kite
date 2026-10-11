@@ -119,6 +119,7 @@ type EventListener struct {
 	CreatedAt     pgtype.Timestamp
 	UpdatedAt     pgtype.Timestamp
 	LastRunAt     pgtype.Timestamp
+	WebhookSecret pgtype.Text
 }
 
 type Log struct {

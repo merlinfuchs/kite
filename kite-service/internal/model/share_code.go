@@ -23,4 +23,5 @@ type ShareCodeType string
 const (
 	ShareCodeTypeCommand       ShareCodeType = "command"
 	ShareCodeTypeEventListener ShareCodeType = "event_listener"
+	ShareCodeTypeMessage       ShareCodeType = "message"
 )

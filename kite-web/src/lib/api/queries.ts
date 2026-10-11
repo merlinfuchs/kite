@@ -1,4 +1,4 @@
-import { useQueries, useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQueries, useQuery } from "@tanstack/react-query";
 import { apiRequest } from "./client";
 import {
   AppCollaboratorListResponse,
@@ -34,6 +34,7 @@ import {
   UserGetResponse,
   VariableGetResponse,
   VariableListResponse,
+  VariableValueListResponse,
   AppSecretListResponse,
   AppIntegrationListResponse,
 } from "../types/wire.gen";
@@ -224,6 +225,29 @@ export function useVariableQuery(appId: string, variableId: string) {
         `/v1/apps/${appId}/variables/${variableId}`
       ),
     enabled: !!appId && !!variableId,
+  });
+}
+
+export function useVariableValuesQuery(
+  appId: string,
+  variableId: string,
+  params: { search: string; limit: number; offset: number }
+) {
+  return useQuery({
+    queryKey: ["apps", appId, "variables", variableId, "values", params],
+    queryFn: () => {
+      const query = new URLSearchParams({
+        search: params.search,
+        limit: params.limit.toString(),
+        offset: params.offset.toString(),
+      });
+      return apiRequest<VariableValueListResponse>(
+        `/v1/apps/${appId}/variables/${variableId}/values?${query}`
+      );
+    },
+    enabled: !!appId && !!variableId,
+    // Keeps the current page visible while the next one or a search loads.
+    placeholderData: keepPreviousData,
   });
 }
 
