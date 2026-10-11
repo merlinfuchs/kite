@@ -1,5 +1,6 @@
 import { ZodSchema } from "zod";
 import { zodToJsonSchema } from "zod-to-json-schema";
+import { getBlockDefinition } from "../blocks";
 import { isNodeTypeAvailable, nodeCategories } from "./categories";
 import { flowContextTypes } from "./context";
 import { isTemplated, isUserPicked } from "./dataSchema";
@@ -36,7 +37,7 @@ export function buildFlowCatalog() {
             owned_children: getOwnedChildTypes(type),
             fixed: !!values.fixed,
             data_schema: values.dataSchema
-              ? toJsonSchema(values.dataSchema)
+              ? withoutHiddenFields(type, toJsonSchema(values.dataSchema))
               : null,
             result_schema: values.resultSchema
               ? toJsonSchema(values.resultSchema)
@@ -45,6 +46,22 @@ export function buildFlowCatalog() {
         ])
     ),
   };
+}
+
+function withoutHiddenFields(
+  type: string,
+  schema: ReturnType<typeof toJsonSchema>
+) {
+  const res = schema as {
+    properties?: Record<string, unknown>;
+    required?: string[];
+  };
+  for (const field of getBlockDefinition(type)?.fields ?? []) {
+    if (!field.hidden_from_ai) continue;
+    delete res.properties?.[field.name];
+    res.required = res.required?.filter((name) => name !== field.name);
+  }
+  return schema;
 }
 
 export function toJsonSchema(schema: ZodSchema) {
