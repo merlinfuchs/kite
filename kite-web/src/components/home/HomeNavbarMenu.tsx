@@ -145,6 +145,15 @@ export default function HomeNavbarMenu() {
             Documentation
           </NavigationMenuLink>
         </NavigationMenuItem>
+        <NavigationMenuItem className="hidden sm:block">
+          <NavigationMenuLink
+            href={env.NEXT_PUBLIC_DISCORD_LINK}
+            target="_blank"
+            className={navigationMenuTriggerStyle()}
+          >
+            Discord
+          </NavigationMenuLink>
+        </NavigationMenuItem>
       </NavigationMenuList>
     </NavigationMenu>
   );
