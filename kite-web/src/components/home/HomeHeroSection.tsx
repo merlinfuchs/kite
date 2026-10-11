@@ -1,17 +1,14 @@
-import { buttonVariants, Button } from "@/components/ui/button";
-import { CodeIcon } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { banFlow } from "@/components/landing/flows";
+import ShowcaseVisual from "@/components/landing/ShowcaseVisual";
 import env from "@/lib/env/client";
+import { CodeIcon } from "lucide-react";
 import Link from "next/link";
-import dynamic from "next/dynamic";
-
-const FlowExample = dynamic(() => import("../flow/FlowExample"), {
-  ssr: false,
-});
 
 export default function HomeHeroSection() {
   return (
-    <section className="container grid lg:grid-cols-2 place-items-center py-20 md:py-32 gap-10">
-      <div className="text-center lg:text-start space-y-6">
+    <section className="container grid lg:grid-cols-2 gap-4 lg:gap-12 items-center py-16 md:py-24">
+      <div className="text-center lg:text-start space-y-6 z-10">
         <h1 className="text-5xl md:text-6xl font-bold">
           Make{" "}
           <span className="inline bg-gradient-to-r from-[#58d1f2] to-[#5865F2] text-transparent bg-clip-text">
@@ -23,37 +20,41 @@ export default function HomeHeroSection() {
           </span>
         </h1>
 
-        <p className="text-xl text-muted-foreground md:w-10/12 mx-auto lg:mx-0">
+        <p className="text-lg md:text-xl text-muted-foreground md:w-10/12 mx-auto lg:mx-0">
           Kite is a free Discord bot maker. Build your own bot with slash
           commands, buttons, events and AI in a visual editor, without writing
           code. We host it for you 24/7.
         </p>
 
-        <div className="space-y-4 md:space-y-0 md:space-x-4">
-          <Button className="w-full md:w-1/3" asChild>
-            <Link href="/apps">Get Started</Link>
+        <div className="flex flex-col md:flex-row justify-center lg:justify-start gap-4">
+          <Button className="md:w-48" asChild>
+            <Link href="/apps">Get Started for Free</Link>
           </Button>
-
-          <a
-            rel="noreferrer noopener"
-            href={env.NEXT_PUBLIC_GITHUB_LINK}
-            target="_blank"
-            className={`w-full md:w-1/3 ${buttonVariants({
-              variant: "outline",
-            })}`}
-          >
-            Github Repository
-            <CodeIcon className="ml-2 w-5 h-5" />
-          </a>
+          <Button variant="outline" className="md:w-48" asChild>
+            <a href="#how-it-works">See How It Works</a>
+          </Button>
         </div>
+
+        <a
+          href={env.NEXT_PUBLIC_GITHUB_LINK}
+          target="_blank"
+          rel="noreferrer noopener"
+          className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
+        >
+          <CodeIcon className="w-4 h-4" />
+          Open source on GitHub
+        </a>
       </div>
 
-      {/* Hero cards sections */}
-      {/*<div className="z-10">
-        <HomeHeroCards />
-      </div>*/}
-      <div className="hidden lg:block w-[700px] h-[550px] z-10">
-        <FlowExample />
+      <div className="z-10">
+        <ShowcaseVisual
+          showcase={{
+            flow: banFlow,
+            command: "ban",
+            reply: "Banned the user.",
+          }}
+          hero
+        />
       </div>
 
       {/* Shadow effect */}

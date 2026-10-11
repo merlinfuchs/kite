@@ -39,6 +39,11 @@ export const FAQList: FAQProps[] = [
       "Kite supports slash commands, buttons, select menus, modals and event listeners for things like new members, messages, reactions and server boosts. Your flows can manage members, roles, channels and messages, store data in variables, send requests to other APIs and use AI.",
   },
   {
+    question: "What are credits?",
+    answer:
+      "Most actions your bot takes, like sending a message or banning a member, cost 1 credit. Conditions and loops are free, and AI blocks cost more. The free plan includes 10,000 credits per month, which is enough for most servers. If your bot runs out, Kite stops it until the next month starts or you upgrade, and you start it again in its settings.",
+  },
+  {
     question: "How many servers can I add my bot to?",
     answer:
       "On the free plan your bot can be in up to 100 servers. Premium plans raise this limit.",
@@ -55,7 +60,7 @@ export default function HomeFAQSection({
   faqs?: FAQProps[];
 }) {
   return (
-    <section id="faq" className="container py-24 sm:py-32">
+    <section id="faq" className="container py-16 sm:py-24">
       <h2 className="text-3xl md:text-4xl font-bold mb-4">
         Frequently Asked{" "}
         <span className="bg-gradient-to-b from-primary/60 to-primary text-transparent bg-clip-text">

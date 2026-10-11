@@ -1,7 +1,6 @@
-import logo from "@/assets/logo/white@1024.png";
+import HomeCTASection from "@/components/home/HomeCTASection";
 import HomeFooter from "@/components/home/HomeFooter";
 import HomeLayout from "@/components/home/HomeLayout";
-import { Button } from "@/components/ui/button";
 import { kiteTools } from "@/tools/registry";
 import { ChevronRightIcon } from "lucide-react";
 import Link from "next/link";
@@ -66,23 +65,8 @@ export default function ToolLayout({
             ))}
           </div>
         </section>
-
-        <section className="mt-16 rounded-xl bg-primary text-primary-foreground p-8 flex flex-col md:flex-row md:items-center gap-6">
-          <img src={logo.src} alt="" className="w-14 h-14 flex-none" />
-          <div className="flex-auto">
-            <h2 className="text-2xl font-bold">Make your own Discord bot</h2>
-            <p className="opacity-90 mt-1">
-              Build commands by connecting blocks, without writing code. Kite is
-              free and hosts your bot 24/7.
-            </p>
-          </div>
-          <Button asChild variant="secondary" className="flex-none">
-            <Link href="/guides/how-to-make-a-discord-bot">
-              Get Started for Free
-            </Link>
-          </Button>
-        </section>
       </div>
+      <HomeCTASection />
       <HomeFooter />
     </HomeLayout>
   );

@@ -1,11 +1,16 @@
+import { nodeTypes } from "@/lib/flow/components";
+import { useIsMobile } from "@/lib/hooks/use-mobile";
+import { cn } from "@/lib/utils";
 import { Edge, Node } from "@xyflow/react";
 import dynamic from "next/dynamic";
-import DiscordReplyMockup from "./DiscordReplyMockup";
+import DiscordReplyNode, { DiscordReplyNodeData } from "./DiscordReplyNode";
 
 // The flow needs the browser to measure itself.
 const FlowExample = dynamic(() => import("../flow/FlowExample"), {
   ssr: false,
 });
+
+const showcaseNodeTypes = { ...nodeTypes, discord_reply: DiscordReplyNode };
 
 export interface Showcase {
   flow: { nodes: Node[]; edges: Edge[] };
@@ -15,21 +20,72 @@ export interface Showcase {
   reply: string;
 }
 
-// A flow with the bot's reply in Discord overlapping its corner.
-export default function ShowcaseVisual({ showcase }: { showcase: Showcase }) {
+// A flow that ends in the bot's reply in Discord.
+export default function ShowcaseVisual({
+  showcase,
+  hero,
+}: {
+  showcase: Showcase;
+  // For the homepage hero: bigger, and without a frame, so the flow floats on
+  // the glow behind it.
+  hero?: boolean;
+}) {
+  // On phones, argument blocks next to each other make the flow too wide to
+  // read, so it only shows the steps.
+  const isMobile = useIsMobile();
+  const flowNodes = isMobile
+    ? showcase.flow.nodes.filter((n) => n.type !== "option_command_argument")
+    : showcase.flow.nodes;
+
+  // The reply goes below the last block, which is the one nothing follows.
+  const last = flowNodes
+    .filter((n) => !showcase.flow.edges.some((e) => e.source === n.id))
+    .reduce((a, b) => (b.position.y > a.position.y ? b : a));
+  const replyData: DiscordReplyNodeData = {
+    command: showcase.command,
+    event: showcase.event,
+    content: showcase.reply,
+  };
+  const nodes: Node[] = [
+    ...flowNodes,
+    {
+      // Not "reply", which example flows use for their response block.
+      id: "discord-reply",
+      type: "discord_reply",
+      position: { x: last.position.x - 30, y: last.position.y + 130 },
+      data: replyData,
+    },
+  ];
+  const edges: Edge[] = [
+    ...showcase.flow.edges.filter(
+      (e) =>
+        nodes.some((n) => n.id === e.source) &&
+        nodes.some((n) => n.id === e.target)
+    ),
+    {
+      id: "discord-reply",
+      source: last.id,
+      target: "discord-reply",
+      animated: true,
+    },
+  ];
+
   return (
-    <div>
-      {/* On large screens the reply overlaps the bottom of this box by 3.5rem, so the flow keeps out of it. */}
-      <div className="h-[380px] rounded-lg border bg-muted/50 p-4 lg:pb-[4.5rem]">
-        <FlowExample nodes={showcase.flow.nodes} edges={showcase.flow.edges} />
-      </div>
-      <div className="relative mt-4 lg:-mt-14 lg:ml-auto lg:w-[80%] lg:shadow-xl rounded-lg">
-        <DiscordReplyMockup
-          command={showcase.command}
-          event={showcase.event}
-          content={showcase.reply}
-        />
-      </div>
+    <div
+      className={cn(
+        "p-4",
+        hero
+          ? "h-[420px] lg:h-[700px]"
+          : "h-[440px] rounded-lg border bg-muted/50"
+      )}
+    >
+      {/* Remounting fits the view again when the nodes change. */}
+      <FlowExample
+        key={isMobile ? "mobile" : "desktop"}
+        nodes={nodes}
+        edges={edges}
+        nodeTypes={showcaseNodeTypes}
+      />
     </div>
   );
 }
