@@ -35,7 +35,7 @@ type RestoredGalleryItem = Extract<
 >["items"][number];
 type RestoredSelectMenuOption = Extract<
   Extract<RestoredComponent, { type: 1 }>["components"][number],
-  { type: 3 }
+  { options: unknown }
 >["options"][number];
 
 /** Names the array on the parent that a child sits in. */
@@ -241,15 +241,24 @@ export function fromMessage(message: RestoredMessage): DocumentData {
           flow_source_id: component.flow_source_id,
         };
         break;
-      case 3: {
-        const optionIds = component.options.map((option) =>
-          addOption(option, id)
-        );
+      case 3:
+      case 5:
+      case 6:
+      case 7:
+      case 8: {
+        // Only string selects have options, Discord fills in the others.
+        const optionIds =
+          component.type === 3
+            ? component.options.map((option) => addOption(option, id))
+            : [];
         nodes[id] = {
           type: "selectMenu",
           id,
           parentId,
           discordId: component.id,
+          select_type: component.type === 3 ? undefined : component.type,
+          channel_types:
+            component.type === 8 ? component.channel_types : undefined,
           placeholder: component.placeholder,
           min_values: component.min_values,
           max_values: component.max_values,
@@ -527,21 +536,32 @@ export function toMessage(state: DocumentData): ConvertedMessage {
               disabled: componentNode.disabled,
               flow_source_id: componentNode.flow_source_id,
             } satisfies MessageComponentButton);
-      case "selectMenu":
+      case "selectMenu": {
+        const selectType = componentNode.select_type ?? 3;
         return {
           id: componentNode.discordId,
-          type: 3,
+          type: selectType,
           placeholder: componentNode.placeholder,
           // Discord treats a missing limit as 1, but the backend can only
           // leave both out, so a lone limit would otherwise be sent as 0.
           min_values: componentNode.min_values ?? 1,
           max_values: componentNode.max_values ?? 1,
           disabled: componentNode.disabled,
-          options: componentNode.optionIds.map((optionId, i) =>
-            selectOption(optionId, `${path}.options.${i}`)
-          ),
+          // Options of a string select are kept while the type is switched,
+          // but only a string select sends them.
+          options:
+            selectType === 3
+              ? componentNode.optionIds.map((optionId, i) =>
+                  selectOption(optionId, `${path}.options.${i}`)
+                )
+              : [],
+          channel_types:
+            selectType === 8 && componentNode.channel_types?.length
+              ? componentNode.channel_types
+              : undefined,
           flow_source_id: componentNode.flow_source_id,
         } satisfies MessageComponentSelectMenu;
+      }
       case "section": {
         const accessory =
           componentNode.accessoryId &&

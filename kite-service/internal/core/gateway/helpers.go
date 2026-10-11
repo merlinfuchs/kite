@@ -80,7 +80,9 @@ func createSession(tokenCrypt *util.SymmetricCrypt, app *model.App) (*state.Stat
 	gateway.DefaultGatewayOpts.AlwaysCloseGracefully = false
 
 	// TODO: configure state to only cache what we need
-	return state.NewWithIdentifier(identifier), nil
+	session := state.NewWithIdentifier(identifier)
+	trackMemberCounts(session)
+	return session, nil
 }
 
 func presenceForApp(app *model.App) *gateway.UpdatePresenceCommand {

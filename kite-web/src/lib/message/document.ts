@@ -19,6 +19,7 @@ import {
   type MessageComponentActionRow,
   type MessageComponentButton,
   type MessageComponentButtonStyle,
+  type MessageComponentSelectMenuType,
   type UnfurledMediaItem,
 } from "./schema";
 import {
@@ -99,11 +100,15 @@ export type ButtonNode = BaseNode & {
 
 export type SelectMenuNode = BaseNode & {
   type: "selectMenu";
+  /** The Discord component type, a string select (3) when not set. */
+  select_type?: MessageComponentSelectMenuType;
   placeholder?: string;
   min_values?: number;
   max_values?: number;
   disabled?: boolean;
   optionIds: NodeId[];
+  /** Only used by channel selects. */
+  channel_types?: number[];
   flow_source_id: string;
 };
 
@@ -329,6 +334,15 @@ function emptyChildren(type: NodeType) {
     default:
       return {};
   }
+}
+
+/** Whether a node is a select menu Discord fills in, which has no options of its own. */
+export function isEntitySelect(node: Node | undefined): boolean {
+  return (
+    node?.type === "selectMenu" &&
+    node.select_type !== undefined &&
+    node.select_type !== 3
+  );
 }
 
 function usesFlowSource(node: { type: NodeType }): boolean {
@@ -572,8 +586,10 @@ function insertNode(
   ids.splice(index === "end" ? ids.length : index, 0, id);
   setChildIds(parent, slot, ids);
 
-  for (const child of REQUIRED_CHILDREN[node.type] ?? []) {
-    insertNode(state, id, child.slot, "end", child.node);
+  if (!isEntitySelect(created)) {
+    for (const child of REQUIRED_CHILDREN[node.type] ?? []) {
+      insertNode(state, id, child.slot, "end", child.node);
+    }
   }
 
   return id;

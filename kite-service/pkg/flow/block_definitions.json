@@ -60,6 +60,19 @@
       "result": null
     },
     {
+      "type": "option_command_cooldown",
+      "credits": null,
+      "audit_log_reason": false,
+      "requires": [
+        "discord"
+      ],
+      "run": {
+        "kind": "custom"
+      },
+      "fields": [],
+      "result": null
+    },
+    {
       "type": "option_event_filter",
       "credits": null,
       "audit_log_reason": false,
