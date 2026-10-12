@@ -44,6 +44,15 @@ type Channel struct {
 	Type  int    `json:"type"`
 	Name  string `json:"name"`
 	Topic string `json:"topic"`
+	// AvailableTags are the tags posts in a forum or media channel can have.
+	AvailableTags []ForumTag `json:"available_tags,omitempty"`
+}
+
+type ForumTag struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
+	// Moderated tags can only be applied by members with Manage Threads.
+	Moderated bool `json:"moderated"`
 }
 
 type StateGuildChannelListResponse = []*Channel
@@ -55,11 +64,21 @@ func ChannelToWire(channel *discord.Channel) *Channel {
 		return nil
 	}
 
+	var tags []ForumTag
+	for _, tag := range channel.AvailableTags {
+		tags = append(tags, ForumTag{
+			ID:        discord.Snowflake(tag.ID).String(),
+			Name:      tag.Name,
+			Moderated: tag.Moderated,
+		})
+	}
+
 	return &Channel{
-		ID:    channel.ID.String(),
-		Type:  int(channel.Type),
-		Name:  channel.Name,
-		Topic: channel.Topic,
+		ID:            channel.ID.String(),
+		Type:          int(channel.Type),
+		Name:          channel.Name,
+		Topic:         channel.Topic,
+		AvailableTags: tags,
 	}
 }
 

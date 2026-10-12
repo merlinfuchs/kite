@@ -67,6 +67,8 @@ It can take up to a minute for your new command to appear inside Discord. Make s
 4. Save the message by clicking on `Save Changes` at the top
 5. Click on `Send Message` to send the message to a channel that your app has access to
 
+To start a new forum post with the message, switch to the `Forum Post` tab in the same dialog and pick a forum or media channel. Enter a title for the post, choose up to 5 of the channel's tags, and click on `Create Post`. The message becomes the first message of the post, and you can still update it later from the same dialog.
+
 ![Example Message](./img/example-message.png)
 
 You can also use the newly created message template as a response to your previously created command!

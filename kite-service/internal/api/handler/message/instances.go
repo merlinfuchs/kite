@@ -51,16 +51,42 @@ func (h *MessageHandler) HandleMessageInstanceCreate(c *handler.Context, req wir
 		return nil, fmt.Errorf("failed to get attachments: %w", err)
 	}
 
-	msg, err := client.SendMessageComplex(discord.ChannelID(channelID), data)
-	if err != nil {
-		return nil, fmt.Errorf("failed to send message: %w", err)
+	// The channel the message ends up in, which is the new thread for forum posts.
+	instanceChannelID := req.DiscordChannelID
+	var messageID discord.MessageID
+
+	if req.ThreadName != "" {
+		tagIDs := make([]discord.TagID, 0, len(req.AppliedTags))
+		for _, tag := range req.AppliedTags {
+			id, _ := strconv.ParseUint(tag, 10, 64)
+			tagIDs = append(tagIDs, discord.TagID(id))
+		}
+
+		thread, err := createForumPost(client, discord.ChannelID(channelID), forumPostData{
+			Name:        req.ThreadName,
+			AppliedTags: tagIDs,
+			Message:     data,
+		})
+		if err != nil {
+			return nil, handler.ErrBadRequest("forum_post_create_failed", fmt.Sprintf("failed to create forum post: %v", err))
+		}
+
+		// The first message of a forum post has the same ID as the post.
+		instanceChannelID = thread.ID.String()
+		messageID = discord.MessageID(thread.ID)
+	} else {
+		msg, err := client.SendMessageComplex(discord.ChannelID(channelID), data)
+		if err != nil {
+			return nil, fmt.Errorf("failed to send message: %w", err)
+		}
+		messageID = msg.ID
 	}
 
 	instance, err := h.messageInstanceStore.CreateMessageInstance(c.Context(), c.App.ID, &model.MessageInstance{
 		MessageID:        c.Message.ID,
 		DiscordGuildID:   req.DiscordGuildID,
-		DiscordChannelID: req.DiscordChannelID,
-		DiscordMessageID: msg.ID.String(),
+		DiscordChannelID: instanceChannelID,
+		DiscordMessageID: messageID.String(),
 		FlowSources:      c.Message.FlowSources,
 		CreatedAt:        time.Now().UTC(),
 		UpdatedAt:        time.Now().UTC(),
