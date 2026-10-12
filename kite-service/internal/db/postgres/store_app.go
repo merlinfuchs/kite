@@ -213,6 +213,40 @@ func (c *Client) EnabledAppsUpdatedSince(ctx context.Context, updatedSince time.
 	return apps, nil
 }
 
+func (c *Client) MarkAppCommandsChanged(ctx context.Context, appID string, changedAt time.Time, force bool) error {
+	return c.Q.MarkAppCommandsChanged(ctx, pgmodel.MarkAppCommandsChangedParams{
+		ID:        appID,
+		ChangedAt: pgtype.Timestamp{Time: changedAt.UTC(), Valid: true},
+		Force:     force,
+	})
+}
+
+func (c *Client) AppIDsWithPendingCommandsDeploy(ctx context.Context, changedBefore time.Time, limit int) ([]string, error) {
+	return c.Q.GetAppIDsWithPendingCommandsDeploy(ctx, pgmodel.GetAppIDsWithPendingCommandsDeployParams{
+		ChangedBefore: pgtype.Timestamp{Time: changedBefore.UTC(), Valid: true},
+		Now:           pgtype.Timestamp{Time: time.Now().UTC(), Valid: true},
+		MaxApps:       int32(limit),
+	})
+}
+
+func (c *Client) FinishAppCommandsDeploy(ctx context.Context, res store.AppCommandsDeployResult) error {
+	return c.Q.FinishAppCommandsDeploy(ctx, pgmodel.FinishAppCommandsDeployParams{
+		ID:           res.ID,
+		StartedAt:    pgtype.Timestamp{Time: res.StartedAt.UTC(), Valid: true},
+		RetryAt:      pgtype.Timestamp{Time: res.RetryAt.UTC(), Valid: true},
+		DeployedHash: pgtype.Text{String: res.DeployedHash.String, Valid: res.DeployedHash.Valid},
+		Error:        pgtype.Text{String: res.Error.String, Valid: res.Error.Valid},
+		ErrorCommand: pgtype.Text{String: res.ErrorCommand.String, Valid: res.ErrorCommand.Valid},
+	})
+}
+
+func (c *Client) DelayAppCommandsDeploy(ctx context.Context, appID string, retryAt time.Time) error {
+	return c.Q.DelayAppCommandsDeploy(ctx, pgmodel.DelayAppCommandsDeployParams{
+		ID:                    appID,
+		CommandsDeployRetryAt: pgtype.Timestamp{Time: retryAt.UTC(), Valid: true},
+	})
+}
+
 func (c *Client) AppEntities(ctx context.Context, appID string) ([]*model.AppEntity, error) {
 	rows, err := c.Q.GetAppEntities(ctx, appID)
 	if err != nil {
@@ -253,5 +287,10 @@ func rowToApp(row pgmodel.App) (*model.App, error) {
 		DiscordStatus:  status,
 		CreatedAt:      row.CreatedAt.Time,
 		UpdatedAt:      row.UpdatedAt.Time,
+
+		CommandsDeployPending:      row.CommandsDeployPending,
+		CommandsDeployedHash:       null.NewString(row.CommandsDeployedHash.String, row.CommandsDeployedHash.Valid),
+		CommandsDeployError:        null.NewString(row.CommandsDeployError.String, row.CommandsDeployError.Valid),
+		CommandsDeployErrorCommand: null.NewString(row.CommandsDeployErrorCommand.String, row.CommandsDeployErrorCommand.Valid),
 	}, nil
 }

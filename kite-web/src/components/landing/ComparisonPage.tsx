@@ -158,7 +158,7 @@ export default function ComparisonPage({
             {
               title: "Build Your Commands",
               description:
-                "Import a template, build commands from blocks or describe them to Kite's AI. Then deploy them.",
+                "Import a template, build commands from blocks or describe them to Kite's AI. They show up in Discord when you save them.",
             },
           ].map((step, i) => (
             <li key={step.title} className="text-center">

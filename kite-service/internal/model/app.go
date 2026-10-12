@@ -21,6 +21,15 @@ type App struct {
 	DiscordStatus  *AppDiscordStatus
 	CreatedAt      time.Time
 	UpdatedAt      time.Time
+
+	// CommandsDeployPending is set while changed commands still need to be
+	// deployed to Discord.
+	CommandsDeployPending bool
+	CommandsDeployedHash  null.String
+	// CommandsDeployError is why Discord rejected the last deploy, and
+	// CommandsDeployErrorCommand the name of the command it rejected, if known.
+	CommandsDeployError        null.String
+	CommandsDeployErrorCommand null.String
 }
 
 type AppCredentials struct {

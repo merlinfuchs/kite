@@ -3,10 +3,8 @@ package command
 import (
 	"errors"
 	"fmt"
-	"net/http"
 	"time"
 
-	"github.com/diamondburned/arikawa/v3/utils/httputil"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler"
 	"github.com/kitecloud/kite/kite-service/internal/api/wire"
 	"github.com/kitecloud/kite/kite-service/internal/core/command"
@@ -42,6 +40,10 @@ func (h *CommandHandler) HandleCommandList(c *handler.Context) (*wire.CommandLis
 		res[i] = wire.CommandToWire(command)
 	}
 
+	if err := h.markCommandsChanged(c); err != nil {
+		return nil, err
+	}
+
 	return &res, nil
 }
 
@@ -66,6 +68,10 @@ func (h *CommandHandler) HandleCommandCreate(c *handler.Context, req wire.Comman
 		return nil, fmt.Errorf("failed to compile command: %w", err)
 	}
 
+	if err := h.checkCommandNames(c, "", cmdFlow.CommandName()); err != nil {
+		return nil, err
+	}
+
 	command, err := h.commandStore.CreateCommand(c.Context(), &model.Command{
 		ID:            util.UniqueID(),
 		Name:          cmdFlow.CommandName(),
@@ -79,6 +85,10 @@ func (h *CommandHandler) HandleCommandCreate(c *handler.Context, req wire.Comman
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create command: %w", err)
+	}
+
+	if err := h.markCommandsChanged(c); err != nil {
+		return nil, err
 	}
 
 	return wire.CommandToWire(command), nil
@@ -98,13 +108,24 @@ func (h *CommandHandler) HandleCommandsImport(c *handler.Context, req wire.Comma
 		}
 	}
 
-	res := make([]*wire.Command, len(req.Commands))
+	cmdFlows := make([]*flow.CompiledFlowNode, len(req.Commands))
+	names := make([]string, len(req.Commands))
 	for i, cmd := range req.Commands {
 		cmdFlow, err := flow.CompileCommand(cmd.FlowSource)
 		if err != nil {
 			return nil, fmt.Errorf("failed to compile command: %w", err)
 		}
+		cmdFlows[i] = cmdFlow
+		names[i] = cmdFlow.CommandName()
+	}
 
+	if err := h.checkCommandNames(c, "", names...); err != nil {
+		return nil, err
+	}
+
+	res := make([]*wire.Command, len(req.Commands))
+	for i, cmd := range req.Commands {
+		cmdFlow := cmdFlows[i]
 		command, err := h.commandStore.CreateCommand(c.Context(), &model.Command{
 			ID:            util.UniqueID(),
 			Name:          cmdFlow.CommandName(),
@@ -123,6 +144,10 @@ func (h *CommandHandler) HandleCommandsImport(c *handler.Context, req wire.Comma
 		res[i] = wire.CommandToWire(command)
 	}
 
+	if err := h.markCommandsChanged(c); err != nil {
+		return nil, err
+	}
+
 	return &res, nil
 }
 
@@ -130,6 +155,10 @@ func (h *CommandHandler) HandleCommandUpdate(c *handler.Context, req wire.Comman
 	cmdFlow, err := flow.CompileCommand(req.FlowSource)
 	if err != nil {
 		return nil, fmt.Errorf("failed to compile command: %w", err)
+	}
+
+	if err := h.checkCommandNames(c, c.Command.ID, cmdFlow.CommandName()); err != nil {
+		return nil, err
 	}
 
 	command, err := h.commandStore.UpdateCommand(c.Context(), &model.Command{
@@ -145,6 +174,10 @@ func (h *CommandHandler) HandleCommandUpdate(c *handler.Context, req wire.Comman
 			return nil, handler.ErrNotFound("unknown_command", "Command not found")
 		}
 		return nil, fmt.Errorf("failed to update command: %w", err)
+	}
+
+	if err := h.markCommandsChanged(c); err != nil {
+		return nil, err
 	}
 
 	return wire.CommandToWire(command), nil
@@ -166,6 +199,10 @@ func (h *CommandHandler) HandleCommandUpdateEnabled(c *handler.Context, req wire
 		return nil, fmt.Errorf("failed to update command: %w", err)
 	}
 
+	if err := h.markCommandsChanged(c); err != nil {
+		return nil, err
+	}
+
 	return wire.CommandToWire(command), nil
 }
 
@@ -178,29 +215,41 @@ func (h *CommandHandler) HandleCommandDelete(c *handler.Context) (*wire.CommandD
 		return nil, fmt.Errorf("failed to delete command: %w", err)
 	}
 
+	if err := h.markCommandsChanged(c); err != nil {
+		return nil, err
+	}
+
 	return &wire.CommandDeleteResponse{}, nil
 }
 
+// HandleCommandsDeploy deploys the commands again, even if they look unchanged.
+// They are also deployed after every change, but may have been changed outside
+// of Kite.
 func (h *CommandHandler) HandleCommandsDeploy(c *handler.Context) (*wire.CommandsDeployResponse, error) {
-	err := h.commandManager.DeployCommandsForApp(c.Context(), c.App.ID)
-	if err != nil {
-		var restErr *httputil.HTTPError
-		if errors.As(err, &restErr) {
-			if restErr.Status == http.StatusTooManyRequests {
-				return nil, handler.ErrRateLimit("You are making too many requests. Please try again later.")
-			}
-
-			if restErr.Status == http.StatusBadRequest {
-				return &wire.CommandsDeployResponse{
-					Deployed: false,
-					Error:    restErr.Body,
-				}, nil
-			}
-		}
-		return nil, fmt.Errorf("failed to deploy commands: %w", err)
+	if err := h.commandManager.MarkCommandsChanged(c.Context(), c.App.ID, true); err != nil {
+		return nil, fmt.Errorf("failed to mark commands changed: %w", err)
 	}
 
-	return &wire.CommandsDeployResponse{
-		Deployed: true,
-	}, nil
+	return &wire.CommandsDeployResponse{}, nil
+}
+
+// checkCommandNames rejects names Discord would reject, which would keep all
+// commands of the app from being deployed.
+func (h *CommandHandler) checkCommandNames(c *handler.Context, replacedCommandID string, names ...string) error {
+	err := h.commandManager.CheckCommandNames(c.Context(), c.App.ID, replacedCommandID, names...)
+	if err != nil {
+		var deployErr *command.DeployError
+		if errors.As(err, &deployErr) {
+			return handler.ErrBadRequest("invalid_command_name", deployErr.Message)
+		}
+		return fmt.Errorf("failed to check command names: %w", err)
+	}
+	return nil
+}
+
+func (h *CommandHandler) markCommandsChanged(c *handler.Context) error {
+	if err := h.commandManager.MarkCommandsChanged(c.Context(), c.App.ID, false); err != nil {
+		return fmt.Errorf("failed to mark commands changed: %w", err)
+	}
+	return nil
 }

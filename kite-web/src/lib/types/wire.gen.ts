@@ -19,6 +19,9 @@ export interface App {
   creator_user_id: string;
   created_at: string /* RFC3339 */;
   updated_at: string /* RFC3339 */;
+  commands_deploy_pending: boolean;
+  commands_deploy_error: null | string;
+  commands_deploy_error_command: null | string;
 }
 export interface AppDiscordStatus {
   statuses?: AppDiscordStatusEntry[];
@@ -319,10 +322,7 @@ export interface CommandUpdateEnabledRequest {
 }
 export type CommandUpdateEnabledResponse = Command;
 export type CommandDeleteResponse = Empty;
-export interface CommandsDeployResponse {
-  deployed: boolean;
-  error?: Record<string, any> | null;
-}
+export type CommandsDeployResponse = Empty;
 
 //////////
 // source: event_listener.go

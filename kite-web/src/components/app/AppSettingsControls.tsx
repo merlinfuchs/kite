@@ -7,15 +7,35 @@ import {
 } from "@/components/ui/card";
 import AppEmptyPlaceholder from "./AppEmptyPlaceholder";
 import { Button } from "../ui/button";
+import LoadingButton from "../common/LoadingButton";
 import { useApp } from "@/lib/hooks/api";
-import { useAppUpdateMutation } from "@/lib/api/mutations";
+import {
+  useAppUpdateMutation,
+  useCommandsDeployMutation,
+} from "@/lib/api/mutations";
 import { useAppId } from "@/lib/hooks/params";
 import { toast } from "sonner";
 
 export default function AppSettingsControls() {
   const app = useApp();
 
-  const updateMutation = useAppUpdateMutation(useAppId());
+  const appId = useAppId();
+  const updateMutation = useAppUpdateMutation(appId);
+  const deployMutation = useCommandsDeployMutation(appId);
+
+  function syncCommands() {
+    deployMutation.mutate(undefined, {
+      onSuccess(res) {
+        if (res.success) {
+          toast.success("Your commands are being sent to Discord again.");
+        } else {
+          toast.error(
+            `Failed to sync commands: ${res.error.message} (${res.error.code})`
+          );
+        }
+      },
+    });
+  }
 
   function toggleEnabled() {
     if (!app) return;
@@ -74,6 +94,22 @@ export default function AppSettingsControls() {
           >
             Stop App
           </Button>
+        </div>
+        <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <div className="font-bold pb-1">Sync Commands</div>
+            <div className="text-muted-foreground">
+              Kite updates your commands in Discord after every change. If they
+              look out of date in Discord, send them again.
+            </div>
+          </div>
+          <LoadingButton
+            variant="secondary"
+            loading={deployMutation.isPending}
+            onClick={syncCommands}
+          >
+            Sync Commands
+          </LoadingButton>
         </div>
       </CardContent>
     </Card>

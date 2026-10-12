@@ -9,18 +9,24 @@ import (
 )
 
 type App struct {
-	ID             string
-	Name           string
-	Description    pgtype.Text
-	Enabled        bool
-	OwnerUserID    string
-	CreatorUserID  string
-	DiscordToken   string
-	DiscordID      string
-	CreatedAt      pgtype.Timestamp
-	UpdatedAt      pgtype.Timestamp
-	DiscordStatus  []byte
-	DisabledReason pgtype.Text
+	ID                         string
+	Name                       string
+	Description                pgtype.Text
+	Enabled                    bool
+	OwnerUserID                string
+	CreatorUserID              string
+	DiscordToken               string
+	DiscordID                  string
+	CreatedAt                  pgtype.Timestamp
+	UpdatedAt                  pgtype.Timestamp
+	DiscordStatus              []byte
+	DisabledReason             pgtype.Text
+	CommandsDeployPending      bool
+	CommandsChangedAt          pgtype.Timestamp
+	CommandsDeployRetryAt      pgtype.Timestamp
+	CommandsDeployedHash       pgtype.Text
+	CommandsDeployError        pgtype.Text
+	CommandsDeployErrorCommand pgtype.Text
 }
 
 type AppIntegration struct {

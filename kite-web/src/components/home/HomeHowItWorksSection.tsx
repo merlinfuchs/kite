@@ -15,7 +15,7 @@ const steps = [
   {
     title: "Build Your Commands",
     description:
-      "Connect blocks in the editor, import a template or describe a command to Kite's AI. Then deploy it.",
+      "Connect blocks in the editor, import a template or describe a command to Kite's AI. Save it and it shows up in Discord.",
   },
 ];
 

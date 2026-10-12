@@ -1,7 +1,6 @@
 package wire
 
 import (
-	"encoding/json"
 	"time"
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
@@ -77,10 +76,7 @@ type CommandUpdateEnabledResponse = Command
 
 type CommandDeleteResponse = Empty
 
-type CommandsDeployResponse struct {
-	Deployed bool            `json:"deployed"`
-	Error    json.RawMessage `json:"error,omitempty"`
-}
+type CommandsDeployResponse = Empty
 
 func CommandToWire(command *model.Command) *Command {
 	if command == nil {

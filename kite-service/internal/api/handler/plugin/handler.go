@@ -7,6 +7,7 @@ import (
 
 	"github.com/kitecloud/kite/kite-service/internal/api/handler"
 	"github.com/kitecloud/kite/kite-service/internal/api/wire"
+	"github.com/kitecloud/kite/kite-service/internal/core/command"
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/internal/store"
 	"github.com/kitecloud/kite/kite-service/internal/util"
@@ -16,12 +17,18 @@ import (
 type PluginHandler struct {
 	pluginRegistry      *plugin.Registry
 	pluginInstanceStore store.PluginInstanceStore
+	commandManager      *command.CommandManager
 }
 
-func NewPluginHandler(pluginRegistry *plugin.Registry, pluginInstanceStore store.PluginInstanceStore) *PluginHandler {
+func NewPluginHandler(
+	pluginRegistry *plugin.Registry,
+	pluginInstanceStore store.PluginInstanceStore,
+	commandManager *command.CommandManager,
+) *PluginHandler {
 	return &PluginHandler{
 		pluginRegistry:      pluginRegistry,
 		pluginInstanceStore: pluginInstanceStore,
+		commandManager:      commandManager,
 	}
 }
 
@@ -70,6 +77,11 @@ func (h *PluginHandler) HandlePluginInstanceCreate(c *handler.Context, req wire.
 		return nil, fmt.Errorf("failed to create plugin instance: %w", err)
 	}
 
+	// Plugins can add commands.
+	if err := h.commandManager.MarkCommandsChanged(c.Context(), c.App.ID, false); err != nil {
+		return nil, fmt.Errorf("failed to mark commands changed: %w", err)
+	}
+
 	return wire.PluginInstanceToWire(pluginInstance), nil
 }
 
@@ -88,6 +100,11 @@ func (h *PluginHandler) HandlePluginInstanceUpdate(c *handler.Context, req wire.
 			return nil, handler.ErrNotFound("unknown_plugin_instance", "Plugin instance not found")
 		}
 		return nil, fmt.Errorf("failed to update plugin instance: %w", err)
+	}
+
+	// Plugins can add commands.
+	if err := h.commandManager.MarkCommandsChanged(c.Context(), c.App.ID, false); err != nil {
+		return nil, fmt.Errorf("failed to mark commands changed: %w", err)
 	}
 
 	return wire.PluginInstanceToWire(pluginInstance), nil
@@ -110,6 +127,11 @@ func (h *PluginHandler) HandlePluginInstanceUpdateEnabled(c *handler.Context, re
 		return nil, fmt.Errorf("failed to update plugin instance: %w", err)
 	}
 
+	// Plugins can add commands.
+	if err := h.commandManager.MarkCommandsChanged(c.Context(), c.App.ID, false); err != nil {
+		return nil, fmt.Errorf("failed to mark commands changed: %w", err)
+	}
+
 	return wire.PluginInstanceToWire(pluginInstance), nil
 }
 
@@ -120,6 +142,11 @@ func (h *PluginHandler) HandlePluginInstanceDelete(c *handler.Context) (*wire.Pl
 			return nil, handler.ErrNotFound("unknown_plugin_instance", "Plugin instance not found")
 		}
 		return nil, fmt.Errorf("failed to delete plugin instance: %w", err)
+	}
+
+	// Plugins can add commands.
+	if err := h.commandManager.MarkCommandsChanged(c.Context(), c.App.ID, false); err != nil {
+		return nil, fmt.Errorf("failed to mark commands changed: %w", err)
 	}
 
 	return &wire.PluginInstanceDeleteResponse{}, nil

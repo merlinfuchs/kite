@@ -133,3 +133,36 @@ SELECT
     name
 FROM variables
 WHERE variables.app_id = $1;
+-- Doesn't touch updated_at, which the gateway watches for app changes.
+-- Forcing clears the hash, so the commands are sent even if they look unchanged.
+-- name: MarkAppCommandsChanged :exec
+UPDATE apps SET
+    commands_deploy_pending = TRUE,
+    commands_changed_at = sqlc.arg(changed_at),
+    commands_deployed_hash = CASE WHEN sqlc.arg(force)::BOOLEAN THEN NULL ELSE commands_deployed_hash END
+WHERE id = sqlc.arg(id);
+
+-- Commands that changed a moment ago wait a bit, so quick successive changes
+-- go out together.
+-- name: GetAppIDsWithPendingCommandsDeploy :many
+SELECT id FROM apps
+WHERE commands_deploy_pending AND enabled
+    AND commands_changed_at < sqlc.arg(changed_before)
+    AND (commands_deploy_retry_at IS NULL OR commands_deploy_retry_at < sqlc.arg(now))
+ORDER BY commands_changed_at
+LIMIT sqlc.arg(max_apps);
+
+-- Stays pending if the commands changed again while deploying.
+-- name: FinishAppCommandsDeploy :exec
+UPDATE apps SET
+    commands_deploy_pending = commands_changed_at > sqlc.arg(started_at),
+    commands_deploy_retry_at = sqlc.arg(retry_at),
+    commands_deployed_hash = COALESCE(sqlc.narg(deployed_hash), commands_deployed_hash),
+    commands_deploy_error = sqlc.narg(error),
+    commands_deploy_error_command = sqlc.narg(error_command)
+WHERE id = sqlc.arg(id);
+
+-- name: DelayAppCommandsDeploy :exec
+UPDATE apps SET
+    commands_deploy_retry_at = $2
+WHERE id = $1;
