@@ -5,6 +5,7 @@ import AutoAnimate from "../common/AutoAnimate";
 import { useMessages } from "@/lib/hooks/api";
 import MessageListEntry from "./MessageListEntry";
 import MessageCreateDialog from "./MessageCreateDialog";
+import { MailPlusIcon } from "lucide-react";
 import FlowImportDialog from "./FlowImportDialog";
 
 export default function MessageList() {
@@ -31,8 +32,9 @@ export default function MessageList() {
         </>
       ) : messages.length === 0 ? (
         <AppEmptyPlaceholder
-          title="There are no message templates"
-          description="You can start now by creating the first message template!"
+          icon={MailPlusIcon}
+          title="No message templates yet"
+          description="Design a message once and send it from any of your commands and events."
           action={messageCreateButton}
         />
       ) : (

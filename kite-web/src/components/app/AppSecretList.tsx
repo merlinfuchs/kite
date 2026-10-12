@@ -37,7 +37,8 @@ export default function AppSecretList() {
         </>
       ) : secrets.length === 0 ? (
         <AppEmptyPlaceholder
-          title="There are no secrets"
+          icon={KeyRoundIcon}
+          title="No secrets yet"
           description="Store API keys here instead of in your blocks."
           action={createButton}
         />

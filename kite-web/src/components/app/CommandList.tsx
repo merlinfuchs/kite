@@ -8,11 +8,26 @@ import FlowImportDialog from "./FlowImportDialog";
 import { useCommands } from "@/lib/hooks/api";
 import { CommandDeployDialog } from "./CommandDeployDialog";
 import { useState } from "react";
+import { SquareSlashIcon } from "lucide-react";
+import Link from "next/link";
+import { useAppId } from "@/lib/hooks/params";
 
 export default function CommandList() {
   const commands = useCommands();
+  const appId = useAppId();
 
   const [deployDialogOpen, setDeployDialogOpen] = useState(false);
+
+  const commandActions = (
+    <div className="flex gap-5 flex-col md:flex-row">
+      <CommandCreateDialog>
+        <Button>Create command</Button>
+      </CommandCreateDialog>
+      <FlowImportDialog kind="command">
+        <Button variant="outline">Import command</Button>
+      </FlowImportDialog>
+    </div>
+  );
 
   return (
     <AutoAnimate className="flex flex-col md:flex-1 space-y-5">
@@ -26,8 +41,25 @@ export default function CommandList() {
         <>
           {commands.length === 0 ? (
             <AppEmptyPlaceholder
-              title="There are no commands"
-              description="You can start now by creating the first command! If you deleted commands that still show up in Discord, deploy to remove them."
+              icon={SquareSlashIcon}
+              title="No commands yet"
+              description="Commands are what your users type in Discord, like /ban or /help. Create one and build what it does in the flow editor."
+              action={commandActions}
+              footer={
+                <>
+                  Or{" "}
+                  <Link
+                    href={{
+                      pathname: "/apps/[appId]/templates",
+                      query: { appId },
+                    }}
+                    className="underline hover:text-foreground"
+                  >
+                    start from a template
+                  </Link>
+                  .
+                </>
+              }
             />
           ) : (
             commands.map((command, i) => (
@@ -39,15 +71,15 @@ export default function CommandList() {
               change any remaining command's updated_at, and deleting the last
               one leaves no command to compare at all. Gating on "has
               undeployed changes" made deleted commands unremovable. */}
-          <div className="flex gap-5 justify-between flex-col md:flex-row">
-            <div className="flex gap-5 flex-col md:flex-row">
-              <CommandCreateDialog>
-                <Button>Create command</Button>
-              </CommandCreateDialog>
-              <FlowImportDialog kind="command">
-                <Button variant="outline">Import command</Button>
-              </FlowImportDialog>
-            </div>
+          <div className="flex gap-5 justify-between items-center flex-col md:flex-row">
+            {commands.length === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                Deleted commands still showing up in Discord? Deploy to remove
+                them.
+              </p>
+            ) : (
+              commandActions
+            )}
 
             <CommandDeployDialog
               open={deployDialogOpen}
