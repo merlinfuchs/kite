@@ -3,11 +3,13 @@ package gateway
 import (
 	"context"
 	"errors"
+	"fmt"
 	"strings"
 	"sync"
 	"testing"
 	"time"
 
+	"github.com/diamondburned/arikawa/v3/utils/ws"
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/internal/util"
 )
@@ -135,5 +137,21 @@ func TestSendPresenceBeforeConnecting(t *testing.T) {
 	err := g.sendPresence(context.Background(), presenceForApp(g.currentApp()))
 	if !errors.Is(err, errNotConnected) {
 		t.Fatalf("err = %v, want errNotConnected", err)
+	}
+}
+
+func TestConnectErrorReason(t *testing.T) {
+	closed := func(code int, msg string) error {
+		return fmt.Errorf("failed to connect: %w", &ws.CloseEvent{Code: code, Err: errors.New(msg)})
+	}
+
+	if got := connectErrorReason(closed(4004, "4004 Authentication failed.")); got != model.AppDisabledReasonInvalidToken {
+		t.Errorf("4004: got %q", got)
+	}
+	if got := connectErrorReason(closed(4014, "4014 Disallowed intent(s).")); !strings.Contains(got, "privileged intents") {
+		t.Errorf("4014: got %q", got)
+	}
+	if got := connectErrorReason(errors.New("boom")); got != "Failed to connect to gateway: boom" {
+		t.Errorf("other: got %q", got)
 	}
 }

@@ -13,6 +13,7 @@ import (
 	"github.com/diamondburned/arikawa/v3/session"
 	"github.com/diamondburned/arikawa/v3/state"
 	"github.com/diamondburned/arikawa/v3/utils/httputil"
+	"github.com/diamondburned/arikawa/v3/utils/ws"
 	"github.com/kitecloud/kite/kite-service/internal/core/plan"
 	"github.com/kitecloud/kite/kite-service/internal/metrics"
 	"github.com/kitecloud/kite/kite-service/internal/model"
@@ -113,8 +114,8 @@ func (g *Gateway) startGateway(session *state.State, ctx context.Context) {
 	if err != nil {
 		var httpErr *httputil.HTTPError
 		if errors.As(err, &httpErr) && httpErr.Status == http.StatusUnauthorized {
-			g.createLogEntry(model.LogLevelError, "Discord bot token is invalid, please update it")
-			g.disableApp("Discord bot token is invalid, please update it")
+			g.createLogEntry(model.LogLevelError, model.AppDisabledReasonInvalidToken)
+			g.disableApp(model.AppDisabledReasonInvalidToken)
 			return
 		}
 
@@ -184,10 +185,26 @@ func (g *Gateway) startGateway(session *state.State, ctx context.Context) {
 
 	if err := session.Connect(ctx); err != nil && ctx.Err() == nil {
 		// Fatal error, we can't recover
-		g.createLogEntry(model.LogLevelError, fmt.Sprintf("Failed to connect to gateway: %v", err))
-		g.disableApp(fmt.Sprintf("Failed to connect to gateway: %v", err))
+		reason := connectErrorReason(err)
+		g.createLogEntry(model.LogLevelError, reason)
+		g.disableApp(reason)
 		return
 	}
+}
+
+// connectErrorReason explains why connecting to the gateway failed, in words
+// the user can act on for the common errors.
+func connectErrorReason(err error) string {
+	var closeErr *ws.CloseEvent
+	if errors.As(err, &closeErr) {
+		switch closeErr.Code {
+		case 4004:
+			return model.AppDisabledReasonInvalidToken
+		case 4014:
+			return "Your bot needs privileged intents that are turned off. Turn them on under Bot in the Discord Developer Portal, then start the app again."
+		}
+	}
+	return fmt.Sprintf("Failed to connect to gateway: %v", err)
 }
 
 // computeIntents derives the intent set this app should identify with.

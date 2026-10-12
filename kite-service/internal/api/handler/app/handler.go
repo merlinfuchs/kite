@@ -221,7 +221,7 @@ func (h *AppHandler) HandleAppTokenUpdate(c *handler.Context, req wire.AppTokenU
 	}
 
 	if appInfo.ID != c.App.DiscordID {
-		return nil, fmt.Errorf("discord token belongs to a different app")
+		return nil, handler.ErrBadRequest("wrong_discord_app", "This token belongs to a different bot. Copy the token of this bot in the Discord Developer Portal.")
 	}
 
 	encryptedToken, err := h.tokenCrypt.EncryptString(req.DiscordToken)

@@ -40,6 +40,11 @@ func (e *CommandsDeployError) Error() string {
 	return e.Message
 }
 
+// AppDisabledReasonInvalidToken is the reason an app is disabled when Discord
+// doesn't accept its token, usually because it was reset. The web app checks
+// for it to offer updating the token.
+const AppDisabledReasonInvalidToken = "Discord bot token is invalid, please update it"
+
 type AppCredentials struct {
 	DiscordID    string
 	DiscordToken string
