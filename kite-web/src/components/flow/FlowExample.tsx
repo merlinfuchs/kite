@@ -1,11 +1,11 @@
 import React from "react";
-import { ReactFlow } from "@xyflow/react";
+import { Edge, Node, NodeTypes, ReactFlow } from "@xyflow/react";
 
 import "@xyflow/react/dist/base.css";
 import { useHookedTheme } from "@/lib/hooks/theme";
 import { edgeTypes, nodeTypes } from "@/lib/flow/components";
 
-const initialNodes = [
+const defaultNodes: Node[] = [
   {
     id: "1",
     position: { x: 0, y: 0 },
@@ -55,22 +55,31 @@ const initialNodes = [
   },
 ];
 
-const initialEdges = [
+const defaultEdges: Edge[] = [
   { id: "e1-5", source: "1", target: "5", type: "fixed" },
   { id: "e5-2", source: "5", target: "2", type: "fixed" },
   { id: "e3-1", source: "3", target: "1", type: "fixed" },
   { id: "e4-1", source: "4", target: "1", type: "fixed" },
 ];
 
-export default function FlowExample() {
+export default function FlowExample({
+  nodes = defaultNodes,
+  edges = defaultEdges,
+  nodeTypes: customNodeTypes = nodeTypes,
+}: {
+  nodes?: Node[];
+  edges?: Edge[];
+  // Must be defined outside of a component, React Flow warns when it changes.
+  nodeTypes?: NodeTypes;
+}) {
   const { theme } = useHookedTheme();
 
   return (
     <div style={{ width: "100%", height: "100%" }} className="nowheel">
       <ReactFlow
-        nodes={initialNodes}
-        edges={initialEdges}
-        nodeTypes={nodeTypes}
+        nodes={nodes}
+        edges={edges}
+        nodeTypes={customNodeTypes}
         edgeTypes={edgeTypes}
         elementsSelectable={false}
         nodesConnectable={false}
@@ -86,6 +95,7 @@ export default function FlowExample() {
           hideAttribution: true,
         }}
         fitView
+        fitViewOptions={{ maxZoom: 1 }}
       />
     </div>
   );
