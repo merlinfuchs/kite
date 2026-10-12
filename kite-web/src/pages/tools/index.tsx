@@ -23,7 +23,7 @@ export default function ToolsPage() {
       <div className="container max-w-5xl py-12 space-y-14">
         <section>
           <h2 className="text-2xl font-bold mb-6">Kite Tools</h2>
-          <div className="grid md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {kiteTools.map((tool) => (
               <ToolCard key={tool.id} tool={tool} />
             ))}
@@ -35,7 +35,7 @@ export default function ToolsPage() {
           <p className="text-muted-foreground mt-1 mb-6">
             Tools on message.style and dis.wtf, which open in a new tab.
           </p>
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {externalTools.map((tool) => (
               <ToolCard key={tool.id} tool={tool} />
             ))}
