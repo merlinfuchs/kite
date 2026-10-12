@@ -31,9 +31,8 @@ After creating your app in Discord, it's now time to add it to Kite.
 
 Open the [Kite dashboard](https://kite.onl/apps) and sign-in with your Discord account. This is where you will add your app, manage commands, and more.
 
-1. Click on `Create app` at the bottom
-2. Fill in the bot token and click on `Create app`
-3. Click on `Open app` next to the app's name
+1. Click on `Create app`
+2. Fill in the bot token and click on `Create app`. Kite opens the dashboard of your new app.
 
 You have now added your app to Kite and are ready to create your first command!
 

@@ -1,6 +1,7 @@
 package app
 
 import (
+	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -74,7 +75,7 @@ func (h *AppHandler) HandleAppCreate(c *handler.Context, req wire.AppCreateReque
 	appInfo, err := h.getDiscordAppInfo(c.Context(), req.DiscordToken)
 	if err != nil {
 		if util.IsDiscordRestStatusCode(err, http.StatusUnauthorized) {
-			return nil, handler.ErrBadRequest("invalid_discord_token", "Invalid Discord token")
+			return nil, handler.ErrBadRequest("invalid_discord_token", "Discord didn't accept this token. Copy the token under Bot in the Discord Developer Portal, not the client secret or application ID.")
 		}
 		slog.Error(
 			"Failed to get discord app info",
@@ -102,6 +103,9 @@ func (h *AppHandler) HandleAppCreate(c *handler.Context, req wire.AppCreateReque
 		UpdatedAt:     time.Now().UTC(),
 	})
 	if err != nil {
+		if errors.Is(err, store.ErrAlreadyExists) {
+			return nil, handler.ErrBadRequest("app_exists", "This bot is already in Kite. Ask the person who added it to invite you as a collaborator.")
+		}
 		slog.Error(
 			"Failed to create app",
 			slog.String("discord_id", appInfo.ID),
