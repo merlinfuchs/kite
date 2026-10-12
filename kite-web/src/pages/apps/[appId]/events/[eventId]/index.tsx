@@ -9,6 +9,11 @@ import { useRouter } from "next/router";
 import { useCallback, useState } from "react";
 import { toast } from "sonner";
 import { LogEntryListDrawer } from "@/components/app/LogEntryListDrawer";
+import {
+  capitalize,
+  eventListenerListPath,
+  eventSourceName,
+} from "@/lib/flow/eventTypes";
 
 export default function AppEventListenerPage() {
   const router = useRouter();
@@ -51,12 +56,16 @@ export default function AppEventListenerPage() {
           onSuccess(res) {
             if (res.success) {
               toast.success(
-                "Event listener saved! It may take up to a minute for all changes to take effect."
+                `${capitalize(
+                  eventSourceName(listener?.source).singular
+                )} saved! It may take up to a minute for all changes to take effect.`
               );
               options?.onSuccess?.();
             } else {
               toast.error(
-                `Failed to update event listener: ${res.error.message} (${res.error.code})`
+                `Failed to update ${
+                  eventSourceName(listener?.source).singular
+                }: ${res.error.message} (${res.error.code})`
               );
             }
           },
@@ -67,24 +76,27 @@ export default function AppEventListenerPage() {
         }
       );
     },
-    [setIsSaving, setHasUnsavedChanges, updateMutation]
+    [setIsSaving, setHasUnsavedChanges, updateMutation, listener?.source]
   );
 
   const leave = useUnsavedChangesWarning(hasUnsavedChanges);
 
   const exit = useCallback(() => {
+    // Back to the list of the event listener's source.
     leave({
-      pathname: "/apps/[appId]/events",
+      pathname: eventListenerListPath(listener?.source),
       query: { appId: router.query.appId },
     });
-  }, [leave, router]);
+  }, [leave, router, listener?.source]);
 
   const logs = useFlowLogEntries({ eventId: useEventId() });
 
   return (
     <div className="flex min-h-[100dvh] w-full flex-col">
       <Head>
-        <title>Manage Event Listener | Kite</title>
+        <title>{`Manage ${
+          eventSourceName(listener?.source).title
+        } | Kite`}</title>
       </Head>
       {listener && (
         <FlowPage

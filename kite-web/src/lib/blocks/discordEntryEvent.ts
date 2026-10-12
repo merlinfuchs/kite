@@ -27,11 +27,20 @@ export const discordEntryEvent: BlockDefinition = {
           "guild_create",
           "guild_delete",
           "guild_boost",
+          "guild_ban_add",
+          "guild_ban_remove",
+          "channel_create",
+          "channel_update",
+          "channel_delete",
+          "guild_member_role_add",
+          "guild_member_role_remove",
+          "guild_member_timeout_add",
+          "guild_member_timeout_remove",
           "cron",
           "webhook",
         ])
         .describe(
-          "Discord event that triggers the flow, cron for a scheduled flow, or webhook for a flow that runs when a request is sent to its webhook URL."
+          "Discord event that triggers the flow, cron for a scheduled flow, or webhook for a flow that runs when a request is sent to its webhook URL. guild_member_role_add and guild_member_role_remove run once per role, with the role in {{role}}. channel_update has the channel from before in {{event.before}} and what changed in {{event.changes}}."
         ),
     },
     {

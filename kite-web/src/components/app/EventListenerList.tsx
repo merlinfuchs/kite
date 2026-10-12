@@ -4,19 +4,39 @@ import AutoAnimate from "../common/AutoAnimate";
 import { useEventListeners } from "@/lib/hooks/api";
 import EventListenerListEntry from "./EventListenerListEntry";
 import AppEmptyPlaceholder from "./AppEmptyPlaceholder";
-import EventListenerCreateDialog from "./EventListenerCreateDialog";
+import EventListenerCreateDialog, {
+  EventListenerSource,
+} from "./EventListenerCreateDialog";
 import FlowImportDialog from "./FlowImportDialog";
+import { useMemo } from "react";
+import { eventSourceName } from "@/lib/flow/eventTypes";
 
-export default function EventListenerList() {
-  const listeners = useEventListeners();
+const emptyDescriptions: Record<EventListenerSource, string> = {
+  discord: "Run a flow when something happens in the servers your bot is in.",
+  schedule: "Run a flow every few minutes, hours or days.",
+  webhook: "Run a flow whenever another service sends a request to its URL.",
+};
+
+export default function EventListenerList({
+  source,
+}: {
+  source: EventListenerSource;
+}) {
+  const allListeners = useEventListeners();
+  const listeners = useMemo(
+    () => allListeners?.filter((l) => l?.source === source),
+    [allListeners, source]
+  );
+
+  const name = eventSourceName(source);
 
   const listenerActions = (
     <div className="flex gap-5 flex-col md:flex-row">
-      <EventListenerCreateDialog>
-        <Button>Create event listener</Button>
+      <EventListenerCreateDialog source={source}>
+        <Button>Create {name.singular}</Button>
       </EventListenerCreateDialog>
-      <FlowImportDialog kind="event_listener">
-        <Button variant="outline">Import event listener</Button>
+      <FlowImportDialog kind="event_listener" eventSource={source}>
+        <Button variant="outline">Import {name.singular}</Button>
       </FlowImportDialog>
     </div>
   );
@@ -31,14 +51,14 @@ export default function EventListenerList() {
         </>
       ) : listeners.length === 0 ? (
         <AppEmptyPlaceholder
-          title="There are no event listeners"
-          description="You can start now by creating the first event listener!"
+          title={`There are no ${name.singular}s`}
+          description={emptyDescriptions[source]}
           action={listenerActions}
         />
       ) : (
         <>
-          {listeners.map((listener, i) => (
-            <EventListenerListEntry listener={listener!} key={i} />
+          {listeners.map((listener) => (
+            <EventListenerListEntry listener={listener!} key={listener!.id} />
           ))}
           {listenerActions}
         </>

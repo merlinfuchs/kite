@@ -5,6 +5,7 @@ import (
 	"github.com/diamondburned/arikawa/v3/gateway"
 	"github.com/diamondburned/arikawa/v3/state"
 	"github.com/diamondburned/arikawa/v3/utils/ws"
+	"github.com/kitecloud/kite/kite-service/pkg/guildevent"
 )
 
 type InteractionData struct {
@@ -75,6 +76,18 @@ func (d *EventData) UserID() discord.UserID {
 		return data.UserID
 	case *gateway.MessageReactionRemoveEvent:
 		return data.UserID
+	case *gateway.GuildBanAddEvent:
+		return data.User.ID
+	case *gateway.GuildBanRemoveEvent:
+		return data.User.ID
+	case *guildevent.MemberRoleAdd:
+		return data.Member.User.ID
+	case *guildevent.MemberRoleRemove:
+		return data.Member.User.ID
+	case *guildevent.MemberTimeoutAdd:
+		return data.Member.User.ID
+	case *guildevent.MemberTimeoutRemove:
+		return data.Member.User.ID
 	}
 	return 0
 }
@@ -101,6 +114,24 @@ func (d *EventData) GuildID() discord.GuildID {
 		return data.ID
 	case *state.GuildLeaveEvent:
 		return data.ID
+	case *gateway.GuildBanAddEvent:
+		return data.GuildID
+	case *gateway.GuildBanRemoveEvent:
+		return data.GuildID
+	case *gateway.ChannelCreateEvent:
+		return data.GuildID
+	case *gateway.ChannelDeleteEvent:
+		return data.GuildID
+	case *guildevent.MemberRoleAdd:
+		return data.GuildID
+	case *guildevent.MemberRoleRemove:
+		return data.GuildID
+	case *guildevent.MemberTimeoutAdd:
+		return data.GuildID
+	case *guildevent.MemberTimeoutRemove:
+		return data.GuildID
+	case *guildevent.ChannelUpdate:
+		return data.Channel.GuildID
 	}
 	return 0
 }
@@ -117,6 +148,12 @@ func (d *EventData) ChannelID() discord.ChannelID {
 		return data.ChannelID
 	case *gateway.MessageReactionRemoveEvent:
 		return data.ChannelID
+	case *gateway.ChannelCreateEvent:
+		return data.ID
+	case *gateway.ChannelDeleteEvent:
+		return data.ID
+	case *guildevent.ChannelUpdate:
+		return data.Channel.ID
 	}
 	return 0
 }

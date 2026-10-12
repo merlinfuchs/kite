@@ -41,6 +41,7 @@ import { Switch } from "../ui/switch";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
 import EventListenerDuplicateDialog from "./EventListenerDuplicateDialog";
 import FlowExportDialog from "./FlowExportDialog";
+import { capitalize, eventSourceName } from "@/lib/flow/eventTypes";
 
 export default function EventListenerListEntry({
   listener,
@@ -50,6 +51,8 @@ export default function EventListenerListEntry({
   const router = useRouter();
 
   const appId = useAppId();
+
+  const name = eventSourceName(listener.source);
 
   const isSchedule = listener.source === "schedule";
   const scheduleCron = listener.flow_source.nodes.find(
@@ -79,15 +82,15 @@ export default function EventListenerListEntry({
     deleteMutation.mutate(undefined, {
       onSuccess(res) {
         if (res.success) {
-          toast.success("Event listener deleted!");
+          toast.success(`${capitalize(name.singular)} deleted!`);
         } else {
           toast.error(
-            `Failed to delete event listener: ${res.error.message} (${res.error.code})`
+            `Failed to delete ${name.singular}: ${res.error.message} (${res.error.code})`
           );
         }
       },
     });
-  }, [deleteMutation]);
+  }, [deleteMutation, name]);
 
   const toggleEnabled = useCallback(() => {
     updateEnabledMutation.mutate({ enabled: !listener.enabled });
@@ -160,19 +163,19 @@ export default function EventListenerListEntry({
           <DropdownMenuContent>
             <DropdownMenuGroup>
               <ConfirmDialog
-                title="Are you sure that you want to delete this event listener?"
-                description="This will remove the event listener from your app and cannot be undone."
+                title={`Are you sure that you want to delete this ${name.singular}?`}
+                description={`This will remove the ${name.singular} from your app and cannot be undone.`}
                 onConfirm={remove}
               >
                 <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
                   <Trash2Icon className="h-4 w-4 mr-2 text-muted-foreground" />
-                  Delete Event Listener
+                  Delete {name.title}
                 </DropdownMenuItem>
               </ConfirmDialog>
               <EventListenerDuplicateDialog listener={listener}>
                 <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
                   <CopyPlusIcon className="h-4 w-4 mr-2 text-muted-foreground" />
-                  Duplicate Event Listener
+                  Duplicate {name.title}
                 </DropdownMenuItem>
               </EventListenerDuplicateDialog>
               {webhookUrl && (
@@ -182,7 +185,7 @@ export default function EventListenerListEntry({
                 </DropdownMenuItem>
               )}
               <FlowExportDialog
-                title="Export Event Listener"
+                title={`Export ${name.title}`}
                 type="event_listener"
                 shareData={{
                   source: listener.source,
@@ -192,7 +195,7 @@ export default function EventListenerListEntry({
               >
                 <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
                   <Share2Icon className="h-4 w-4 mr-2 text-muted-foreground" />
-                  Export Event Listener
+                  Export {name.title}
                 </DropdownMenuItem>
               </FlowExportDialog>
             </DropdownMenuGroup>

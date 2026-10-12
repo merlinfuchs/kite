@@ -33,6 +33,7 @@ import {
   SelectValue,
 } from "../ui/select";
 import { EventListener } from "@/lib/types/wire.gen";
+import { capitalize, eventSourceName } from "@/lib/flow/eventTypes";
 import { FlowData } from "@/lib/types/flow.gen";
 
 interface FormFields {
@@ -53,6 +54,7 @@ export default function EventListenerDuplicateDialog({
   const router = useRouter();
   const appId = useAppId();
 
+  const name = eventSourceName(listener.source);
   const createMutation = useEventListenerCreateMutation(appId);
   const form = useForm<FormFields>({
     defaultValues: {
@@ -72,7 +74,7 @@ export default function EventListenerDuplicateDialog({
       {
         onSuccess(res) {
           if (res.success) {
-            toast.success("Event listener duplicated!");
+            toast.success(`${capitalize(name.singular)} duplicated!`);
             setOpen(false);
 
             setTimeout(
@@ -85,7 +87,7 @@ export default function EventListenerDuplicateDialog({
             );
           } else {
             toast.error(
-              `Failed to duplicate event listener: ${res.error.message} (${res.error.code})`
+              `Failed to duplicate ${name.singular}: ${res.error.message} (${res.error.code})`
             );
           }
         },
@@ -98,9 +100,9 @@ export default function EventListenerDuplicateDialog({
       <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Duplicate Event Listener</DialogTitle>
+          <DialogTitle>Duplicate {name.title}</DialogTitle>
           <DialogDescription>
-            Duplicate an existing event listener with a new description.
+            Duplicate an existing {name.singular} with a new description.
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -112,7 +114,7 @@ export default function EventListenerDuplicateDialog({
                 <FormItem>
                   <FormLabel>Description</FormLabel>
                   <FormDescription>
-                    What will you use this event listener for?
+                    What will you use this {name.singular} for?
                   </FormDescription>
                   <FormControl>
                     <Input type="text" {...field} />
@@ -123,7 +125,7 @@ export default function EventListenerDuplicateDialog({
             />
             <DialogFooter>
               <LoadingButton type="submit" loading={createMutation.isPending}>
-                Duplicate event listener
+                Duplicate {name.singular}
               </LoadingButton>
             </DialogFooter>
           </form>

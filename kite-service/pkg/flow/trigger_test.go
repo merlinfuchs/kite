@@ -9,6 +9,7 @@ import (
 	"github.com/diamondburned/arikawa/v3/gateway"
 	arikawajson "github.com/diamondburned/arikawa/v3/utils/json"
 	"github.com/diamondburned/arikawa/v3/utils/ws"
+	"github.com/kitecloud/kite/kite-service/pkg/guildevent"
 	"github.com/kitecloud/kite/kite-service/pkg/schedule"
 	"github.com/kitecloud/kite/kite-service/pkg/webhook"
 	"github.com/stretchr/testify/assert"
@@ -174,4 +175,40 @@ func TestFlowTriggerWebhookEventRoundTrip(t *testing.T) {
 	event, ok := decoded.Event.(*webhook.Event)
 	require.True(t, ok, "decoded event is %T", decoded.Event)
 	assert.Equal(t, request, event)
+}
+
+func TestFlowTriggerGuildEventRoundTrip(t *testing.T) {
+	// A button sent by a flow of a derived event resumes with that event as
+	// the trigger that started it.
+	member := discord.Member{User: discord.User{ID: 3}, RoleIDs: []discord.RoleID{4}}
+	events := []ws.Event{
+		&guildevent.MemberRoleAdd{MemberRole: guildevent.MemberRole{GuildID: 2, Member: member, RoleID: 4}},
+		&guildevent.MemberRoleRemove{MemberRole: guildevent.MemberRole{GuildID: 2, Member: member, RoleID: 5}},
+		&guildevent.MemberTimeoutAdd{MemberTimeout: guildevent.MemberTimeout{GuildID: 2, Member: member}},
+		&guildevent.MemberTimeoutRemove{MemberTimeout: guildevent.MemberTimeout{GuildID: 2, Member: member}},
+		&guildevent.ChannelUpdate{Channel: discord.Channel{ID: 5, GuildID: 2, Name: "chat"}, Before: &discord.Channel{ID: 5, GuildID: 2, Name: "general"}, Changes: []string{"name"}},
+		// Discord's own events still decode as before.
+		&gateway.GuildBanAddEvent{GuildID: 2, User: discord.User{ID: 3}},
+		&gateway.ChannelDeleteEvent{Channel: discord.Channel{ID: 5, GuildID: 2, Name: "chat"}},
+	}
+
+	for _, e := range events {
+		trigger := newFlowTrigger(&eventData{event: e})
+		require.NotNil(t, trigger)
+
+		data, err := json.Marshal(trigger)
+		require.NoError(t, err)
+
+		var decoded FlowTrigger
+		require.NoError(t, json.Unmarshal(data, &decoded))
+		// arikawa fills in defaults when decoding a channel, so the event is
+		// compared by type and what it carries.
+		assert.IsType(t, e, decoded.Event)
+		assert.Equal(t, e.EventType(), decoded.Event.EventType())
+		if update, ok := decoded.Event.(*guildevent.ChannelUpdate); ok {
+			require.NotNil(t, update.Before)
+			assert.Equal(t, "general", update.Before.Name)
+			assert.Equal(t, []string{"name"}, update.Changes)
+		}
+	}
 }

@@ -80,7 +80,12 @@ func (r AppGatewayRequirements) NeedsGuildMembers() bool {
 	for _, t := range r.EventListenerTypes {
 		switch t {
 		case EventListenerTypeDiscordGuildMemberAdd,
-			EventListenerTypeDiscordGuildMemberRemove:
+			EventListenerTypeDiscordGuildMemberRemove,
+			// Derived from GUILD_MEMBER_UPDATE.
+			EventListenerTypeDiscordGuildMemberRoleAdd,
+			EventListenerTypeDiscordGuildMemberRoleRemove,
+			EventListenerTypeDiscordGuildMemberTimeoutAdd,
+			EventListenerTypeDiscordGuildMemberTimeoutRemove:
 			return true
 		}
 	}
@@ -112,6 +117,18 @@ func (r AppGatewayRequirements) NeedsGuildMessageReactions() bool {
 		}
 	}
 
+	return false
+}
+
+// NeedsGuildModeration reports whether the app consumes ban events.
+func (r AppGatewayRequirements) NeedsGuildModeration() bool {
+	for _, t := range r.EventListenerTypes {
+		switch t {
+		case EventListenerTypeDiscordGuildBanAdd,
+			EventListenerTypeDiscordGuildBanRemove:
+			return true
+		}
+	}
 	return false
 }
 
