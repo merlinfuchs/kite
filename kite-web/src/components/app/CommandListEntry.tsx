@@ -162,6 +162,7 @@ export default function CommandListEntry({ command }: { command: Command }) {
                 title="Export Command"
                 type="command"
                 shareData={{ flow_source: command.flow_source }}
+                flows={[command.flow_source]}
               >
                 <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
                   <Share2Icon className="h-4 w-4 mr-2 text-muted-foreground" />

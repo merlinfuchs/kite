@@ -35,7 +35,14 @@
 
 .breadcrumbs {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
+}
+
+/* Block names like action_message_reaction_create have no spaces, so they
+   need to break to fit on phones. */
+.breadcrumbs__link {
+  overflow-wrap: anywhere;
 }
 
 .breadcrumbs__item {
@@ -59,4 +66,14 @@ ol {
 
 ul {
   list-style-type: disc;
+}
+
+/* Long setting names push the type next to them off the screen on phones,
+   so rows wrap and names can break. */
+.json-schema-explorer .sl-flex {
+  flex-wrap: wrap;
+}
+
+.json-schema-explorer .sl-font-mono {
+  overflow-wrap: anywhere;
 }

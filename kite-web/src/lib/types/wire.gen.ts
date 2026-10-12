@@ -642,6 +642,20 @@ export interface ShareCodeCreateResponse {
 export type ShareCodeGetResponse = ShareCode;
 
 //////////
+// source: stats.go
+
+export interface StatsGetResponse {
+  users: number /* int */;
+  apps: number /* int */;
+  commands: number /* int */;
+  event_listeners: number /* int */;
+  /**
+   * Flow executions in the last 30 days.
+   */
+  executions_last_month: number /* int */;
+}
+
+//////////
 // source: usage.go
 
 export interface UsageCreditsGetResponse {
