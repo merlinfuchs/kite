@@ -13,6 +13,7 @@ type PluginInstanceStore interface {
 	CreatePluginInstance(ctx context.Context, pluginInstance *model.PluginInstance) (*model.PluginInstance, error)
 	UpdatePluginInstance(ctx context.Context, pluginInstance *model.PluginInstance) (*model.PluginInstance, error)
 	UpdatePluginInstancesLastDeployedAt(ctx context.Context, appID string, lastDeployedAt time.Time) error
+	ResetPluginInstancesLastDeployedAt(ctx context.Context, appID string) error
 	EnabledPluginInstancesUpdatedSince(ctx context.Context, updatedSince time.Time) ([]*model.PluginInstance, error)
 	EnabledPluginInstanceIDs(ctx context.Context) ([]string, error)
 	DeletePluginInstance(ctx context.Context, appID string, pluginID string) error

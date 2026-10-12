@@ -113,6 +113,10 @@ func (c *Client) UpdateCommandsLastDeployedAt(ctx context.Context, appID string,
 	})
 }
 
+func (c *Client) ResetCommandsLastDeployedAt(ctx context.Context, appID string) error {
+	return c.Q.ResetCommandsLastDeployedAt(ctx, appID)
+}
+
 func (c *Client) EnabledCommandsUpdatedSince(ctx context.Context, updatedSince time.Time) ([]*model.Command, error) {
 	rows, err := c.Q.GetEnabledCommandsUpdatesSince(ctx, pgtype.Timestamp{
 		Time:  updatedSince.UTC(),

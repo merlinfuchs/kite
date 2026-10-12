@@ -7,6 +7,9 @@ SELECT * FROM apps WHERE id = $1;
 -- name: GetAppCredentials :one
 SELECT discord_id, discord_token FROM apps WHERE id = $1;
 
+-- name: GetAppByDiscordID :one
+SELECT * FROM apps WHERE discord_id = $1;
+
 -- name: GetAppsByOwner :many
 SELECT * FROM apps WHERE owner_user_id = $1 ORDER BY created_at DESC;
 
@@ -43,6 +46,20 @@ UPDATE apps SET
     enabled = $6,
     disabled_reason = $7,
     updated_at = $8
+WHERE id = $1 RETURNING *;
+
+-- Moves the app to a different Discord app. Name and description are taken
+-- from the new Discord app, and the app is started again like on a token
+-- update.
+-- name: UpdateAppDiscordApp :one
+UPDATE apps SET
+    name = $2,
+    description = $3,
+    discord_id = $4,
+    discord_token = $5,
+    enabled = TRUE,
+    disabled_reason = NULL,
+    updated_at = $6
 WHERE id = $1 RETURNING *;
 
 -- Idempotent: disabling an already-disabled app is a no-op rather than a write

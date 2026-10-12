@@ -84,6 +84,10 @@ type AppStatusUpdateResponse = App
 
 type AppTokenUpdateRequest struct {
 	DiscordToken string `json:"discord_token"`
+	// ChangeApp confirms that the token may belong to a different Discord app
+	// than the current one. Without it such a token is rejected with
+	// discord_app_changed, so the user can be asked first.
+	ChangeApp bool `json:"change_app"`
 }
 
 func (req AppTokenUpdateRequest) Validate() error {

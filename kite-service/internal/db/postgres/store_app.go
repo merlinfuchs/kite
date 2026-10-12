@@ -71,6 +71,18 @@ func (c *Client) App(ctx context.Context, id string) (*model.App, error) {
 	return rowToApp(row)
 }
 
+func (c *Client) AppByDiscordID(ctx context.Context, discordID string) (*model.App, error) {
+	row, err := c.Q.GetAppByDiscordID(ctx, discordID)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, store.ErrNotFound
+		}
+		return nil, err
+	}
+
+	return rowToApp(row)
+}
+
 func (c *Client) AppCredentials(ctx context.Context, id string) (*model.AppCredentials, error) {
 	row, err := c.Q.GetAppCredentials(ctx, id)
 	if err != nil {
@@ -133,6 +145,25 @@ func (c *Client) UpdateApp(ctx context.Context, opts store.AppUpdateOpts) (*mode
 			Valid:  opts.DisabledReason.Valid,
 		},
 		UpdatedAt: pgtype.Timestamp{Time: opts.UpdatedAt.UTC(), Valid: true},
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return rowToApp(row)
+}
+
+func (c *Client) UpdateAppDiscordApp(ctx context.Context, opts store.AppDiscordAppUpdateOpts) (*model.App, error) {
+	row, err := c.Q.UpdateAppDiscordApp(ctx, pgmodel.UpdateAppDiscordAppParams{
+		ID:   opts.ID,
+		Name: opts.Name,
+		Description: pgtype.Text{
+			String: opts.Description.String,
+			Valid:  opts.Description.Valid,
+		},
+		DiscordID:    opts.DiscordID,
+		DiscordToken: opts.DiscordToken,
+		UpdatedAt:    pgtype.Timestamp{Time: opts.UpdatedAt.UTC(), Valid: true},
 	})
 	if err != nil {
 		return nil, err

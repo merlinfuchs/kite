@@ -35,6 +35,11 @@ UPDATE plugin_instances SET
     last_deployed_at = $2
 WHERE app_id = $1;
 
+-- name: ResetPluginInstancesLastDeployedAt :exec
+UPDATE plugin_instances SET
+    last_deployed_at = NULL
+WHERE app_id = $1;
+
 -- name: GetEnabledPluginInstancesUpdatesSince :many
 SELECT * FROM plugin_instances WHERE enabled = TRUE AND updated_at > $1;
 

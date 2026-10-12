@@ -237,6 +237,17 @@ func (q *Queries) GetPluginInstancesByApp(ctx context.Context, appID string) ([]
 	return items, nil
 }
 
+const resetPluginInstancesLastDeployedAt = `-- name: ResetPluginInstancesLastDeployedAt :exec
+UPDATE plugin_instances SET
+    last_deployed_at = NULL
+WHERE app_id = $1
+`
+
+func (q *Queries) ResetPluginInstancesLastDeployedAt(ctx context.Context, appID string) error {
+	_, err := q.db.Exec(ctx, resetPluginInstancesLastDeployedAt, appID)
+	return err
+}
+
 const updatePluginInstance = `-- name: UpdatePluginInstance :one
 UPDATE plugin_instances SET
     enabled = $3,

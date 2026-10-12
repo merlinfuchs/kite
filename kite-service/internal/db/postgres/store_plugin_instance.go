@@ -112,6 +112,10 @@ func (c *Client) UpdatePluginInstancesLastDeployedAt(ctx context.Context, appID 
 	})
 }
 
+func (c *Client) ResetPluginInstancesLastDeployedAt(ctx context.Context, appID string) error {
+	return c.Q.ResetPluginInstancesLastDeployedAt(ctx, appID)
+}
+
 func (c *Client) EnabledPluginInstancesUpdatedSince(ctx context.Context, updatedSince time.Time) ([]*model.PluginInstance, error) {
 	rows, err := c.Q.GetEnabledPluginInstancesUpdatesSince(ctx, pgtype.Timestamp{
 		Time:  updatedSince.UTC(),

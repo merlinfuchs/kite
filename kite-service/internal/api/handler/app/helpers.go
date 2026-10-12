@@ -74,6 +74,28 @@ func (h *AppHandler) updateDiscordBotUser(ctx context.Context, app *model.App) e
 	return nil
 }
 
+// clearDiscordAppCommands removes all global commands from the app's Discord
+// app.
+func (h *AppHandler) clearDiscordAppCommands(ctx context.Context, app *model.App) error {
+	client, err := h.getAppClient(ctx, app)
+	if err != nil {
+		return fmt.Errorf("failed to get app client: %w", err)
+	}
+
+	appID, err := discord.ParseSnowflake(app.DiscordID)
+	if err != nil {
+		return fmt.Errorf("failed to parse app ID: %w", err)
+	}
+
+	// An empty slice rather than nil, so the body is [] and not null.
+	_, err = client.BulkOverwriteCommands(discord.AppID(appID), []api.CreateCommandData{})
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (h *AppHandler) getAppEmojis(ctx context.Context, app *model.App) ([]discord.Emoji, error) {
 	client, err := h.getAppClient(ctx, app)
 	if err != nil {

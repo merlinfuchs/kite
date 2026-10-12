@@ -171,6 +171,30 @@ func (q *Queries) GetApp(ctx context.Context, id string) (App, error) {
 	return i, err
 }
 
+const getAppByDiscordID = `-- name: GetAppByDiscordID :one
+SELECT id, name, description, enabled, owner_user_id, creator_user_id, discord_token, discord_id, created_at, updated_at, discord_status, disabled_reason FROM apps WHERE discord_id = $1
+`
+
+func (q *Queries) GetAppByDiscordID(ctx context.Context, discordID string) (App, error) {
+	row := q.db.QueryRow(ctx, getAppByDiscordID, discordID)
+	var i App
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Description,
+		&i.Enabled,
+		&i.OwnerUserID,
+		&i.CreatorUserID,
+		&i.DiscordToken,
+		&i.DiscordID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.DiscordStatus,
+		&i.DisabledReason,
+	)
+	return i, err
+}
+
 const getAppCredentials = `-- name: GetAppCredentials :one
 SELECT discord_id, discord_token FROM apps WHERE id = $1
 `
@@ -511,6 +535,57 @@ func (q *Queries) UpdateApp(ctx context.Context, arg UpdateAppParams) (App, erro
 		arg.DiscordStatus,
 		arg.Enabled,
 		arg.DisabledReason,
+		arg.UpdatedAt,
+	)
+	var i App
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Description,
+		&i.Enabled,
+		&i.OwnerUserID,
+		&i.CreatorUserID,
+		&i.DiscordToken,
+		&i.DiscordID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.DiscordStatus,
+		&i.DisabledReason,
+	)
+	return i, err
+}
+
+const updateAppDiscordApp = `-- name: UpdateAppDiscordApp :one
+UPDATE apps SET
+    name = $2,
+    description = $3,
+    discord_id = $4,
+    discord_token = $5,
+    enabled = TRUE,
+    disabled_reason = NULL,
+    updated_at = $6
+WHERE id = $1 RETURNING id, name, description, enabled, owner_user_id, creator_user_id, discord_token, discord_id, created_at, updated_at, discord_status, disabled_reason
+`
+
+type UpdateAppDiscordAppParams struct {
+	ID           string
+	Name         string
+	Description  pgtype.Text
+	DiscordID    string
+	DiscordToken string
+	UpdatedAt    pgtype.Timestamp
+}
+
+// Moves the app to a different Discord app. Name and description are taken
+// from the new Discord app, and the app is started again like on a token
+// update.
+func (q *Queries) UpdateAppDiscordApp(ctx context.Context, arg UpdateAppDiscordAppParams) (App, error) {
+	row := q.db.QueryRow(ctx, updateAppDiscordApp,
+		arg.ID,
+		arg.Name,
+		arg.Description,
+		arg.DiscordID,
+		arg.DiscordToken,
 		arg.UpdatedAt,
 	)
 	var i App
