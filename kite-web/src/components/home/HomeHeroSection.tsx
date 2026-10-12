@@ -7,7 +7,7 @@ import Link from "next/link";
 
 export default function HomeHeroSection() {
   return (
-    <section className="container grid lg:grid-cols-2 gap-4 lg:gap-12 items-center py-16 md:py-24">
+    <section className="container grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-12 items-center py-16 md:py-24">
       <div className="text-center lg:text-start space-y-6 z-10">
         <h1 className="text-5xl md:text-6xl font-bold">
           Make{" "}

@@ -56,7 +56,7 @@ export default function AlternativesPage() {
       </section>
 
       <section className="container pb-12 md:pb-16">
-        <div className="grid md:grid-cols-2 gap-6 max-w-5xl mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-5xl mx-auto">
           {alternatives.map((alt) => (
             <Link
               key={alt.href}

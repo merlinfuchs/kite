@@ -310,7 +310,7 @@ function Step({
         <div className="absolute left-5 top-12 bottom-2 border-l-2 border-dashed" />
       )}
       <h2 className="text-2xl md:text-3xl font-bold leading-10">{title}</h2>
-      <div className="grid lg:grid-cols-2 gap-10 mt-4">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 mt-4">
         <div className="prose dark:prose-invert text-foreground prose-code:before:content-none prose-code:after:content-none">
           {children}
         </div>
