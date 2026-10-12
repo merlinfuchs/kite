@@ -24,17 +24,6 @@ export default function CommandList() {
         </>
       ) : (
         <>
-          {commands.length === 0 ? (
-            <AppEmptyPlaceholder
-              title="There are no commands"
-              description="You can start now by creating the first command! If you deleted commands that still show up in Discord, deploy to remove them."
-            />
-          ) : (
-            commands.map((command, i) => (
-              <CommandListEntry command={command!} key={i} />
-            ))
-          )}
-
           {/* The deploy button is never disabled: deleting a command doesn't
               change any remaining command's updated_at, and deleting the last
               one leaves no command to compare at all. Gating on "has
@@ -44,6 +33,7 @@ export default function CommandList() {
               <CommandCreateDialog>
                 <Button>Create command</Button>
               </CommandCreateDialog>
+
               <FlowImportDialog kind="command">
                 <Button variant="outline">Import command</Button>
               </FlowImportDialog>
@@ -56,6 +46,17 @@ export default function CommandList() {
               <Button variant="destructive">Deploy all commands</Button>
             </CommandDeployDialog>
           </div>
+
+          {commands.length === 0 ? (
+            <AppEmptyPlaceholder
+              title="There are no commands"
+              description="You can start now by creating the first command! If you deleted commands that still show up in Discord, deploy to remove them."
+            />
+          ) : (
+            commands.map((command, i) => (
+              <CommandListEntry command={command!} key={i} />
+            ))
+          )}
         </>
       )}
     </AutoAnimate>
