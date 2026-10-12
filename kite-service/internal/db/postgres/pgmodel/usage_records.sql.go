@@ -111,6 +111,203 @@ func (q *Queries) GetAllUsageCreditsUsedBetween(ctx context.Context, arg GetAllU
 	return items, nil
 }
 
+const getUsageAnalyticsSeriesBetween = `-- name: GetUsageAnalyticsSeriesBetween :many
+WITH bounds AS (
+    SELECT COALESCE(MAX(date) + 1, '-infinity'::date)::timestamp AS rolled_until FROM usage_daily_rollups
+)
+SELECT
+    s.bucket::timestamp AS bucket,
+    s.type::text AS type,
+    SUM(s.executions)::bigint AS executions,
+    SUM(s.credits_used)::bigint AS credits_used
+FROM (
+    SELECT date_trunc($1::text, r.date::timestamp) AS bucket, r.type, r.executions, r.credits_used
+    FROM usage_daily_rollups r
+    WHERE r.app_id = $2 AND r.date::timestamp >= $3::timestamp AND r.date::timestamp < $4::timestamp
+    UNION ALL
+    SELECT date_trunc($1::text, u.created_at), u.type, 1::bigint, u.credits_used::bigint
+    FROM usage_records u, bounds b
+    WHERE u.app_id = $2 AND u.created_at >= GREATEST($3::timestamp, b.rolled_until) AND u.created_at < $4::timestamp
+) s
+GROUP BY 1, 2
+ORDER BY 1
+`
+
+type GetUsageAnalyticsSeriesBetweenParams struct {
+	Bucket  string
+	AppID   string
+	StartAt pgtype.Timestamp
+	EndAt   pgtype.Timestamp
+}
+
+type GetUsageAnalyticsSeriesBetweenRow struct {
+	Bucket      pgtype.Timestamp
+	Type        string
+	Executions  int64
+	CreditsUsed int64
+}
+
+// @bucket is a date_trunc unit: hour, day or month.
+func (q *Queries) GetUsageAnalyticsSeriesBetween(ctx context.Context, arg GetUsageAnalyticsSeriesBetweenParams) ([]GetUsageAnalyticsSeriesBetweenRow, error) {
+	rows, err := q.db.Query(ctx, getUsageAnalyticsSeriesBetween,
+		arg.Bucket,
+		arg.AppID,
+		arg.StartAt,
+		arg.EndAt,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetUsageAnalyticsSeriesBetweenRow
+	for rows.Next() {
+		var i GetUsageAnalyticsSeriesBetweenRow
+		if err := rows.Scan(
+			&i.Bucket,
+			&i.Type,
+			&i.Executions,
+			&i.CreditsUsed,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getUsageAnalyticsTopSourcesBetween = `-- name: GetUsageAnalyticsTopSourcesBetween :many
+WITH bounds AS (
+    SELECT COALESCE(MAX(date) + 1, '-infinity'::date)::timestamp AS rolled_until FROM usage_daily_rollups
+), totals AS (
+    SELECT s.type, s.source_id, SUM(s.executions)::bigint AS executions, SUM(s.credits_used)::bigint AS credits_used
+    FROM (
+        SELECT r.type, r.source_id, r.executions, r.credits_used
+        FROM usage_daily_rollups r
+        WHERE r.app_id = $2 AND r.date::timestamp >= $3::timestamp AND r.date::timestamp < $4::timestamp
+        UNION ALL
+        SELECT u.type, COALESCE(u.command_id, u.event_listener_id, u.message_id, ''), 1::bigint, u.credits_used::bigint
+        FROM usage_records u, bounds b
+        WHERE u.app_id = $2 AND u.created_at >= GREATEST($3::timestamp, b.rolled_until) AND u.created_at < $4::timestamp
+    ) s
+    WHERE s.source_id <> ''
+    GROUP BY s.type, s.source_id
+), ranked AS (
+    SELECT t.type, t.source_id, t.executions, t.credits_used, ROW_NUMBER() OVER (PARTITION BY t.type ORDER BY t.executions DESC, t.source_id) AS rank
+    FROM totals t
+)
+SELECT
+    ranked.type::text AS type,
+    ranked.source_id::text AS source_id,
+    ranked.executions::bigint AS executions,
+    ranked.credits_used::bigint AS credits_used
+FROM ranked
+WHERE ranked.rank <= $1::int
+ORDER BY ranked.type, ranked.executions DESC, ranked.source_id
+`
+
+type GetUsageAnalyticsTopSourcesBetweenParams struct {
+	PerType int32
+	AppID   string
+	StartAt pgtype.Timestamp
+	EndAt   pgtype.Timestamp
+}
+
+type GetUsageAnalyticsTopSourcesBetweenRow struct {
+	Type        string
+	SourceID    string
+	Executions  int64
+	CreditsUsed int64
+}
+
+// Returns up to @per_type sources for each type, most executions first.
+func (q *Queries) GetUsageAnalyticsTopSourcesBetween(ctx context.Context, arg GetUsageAnalyticsTopSourcesBetweenParams) ([]GetUsageAnalyticsTopSourcesBetweenRow, error) {
+	rows, err := q.db.Query(ctx, getUsageAnalyticsTopSourcesBetween,
+		arg.PerType,
+		arg.AppID,
+		arg.StartAt,
+		arg.EndAt,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetUsageAnalyticsTopSourcesBetweenRow
+	for rows.Next() {
+		var i GetUsageAnalyticsTopSourcesBetweenRow
+		if err := rows.Scan(
+			&i.Type,
+			&i.SourceID,
+			&i.Executions,
+			&i.CreditsUsed,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getUsageAnalyticsTotalsBetween = `-- name: GetUsageAnalyticsTotalsBetween :many
+WITH bounds AS (
+    SELECT COALESCE(MAX(date) + 1, '-infinity'::date)::timestamp AS rolled_until FROM usage_daily_rollups
+)
+SELECT
+    s.type::text AS type,
+    SUM(s.executions)::bigint AS executions,
+    SUM(s.credits_used)::bigint AS credits_used
+FROM (
+    SELECT r.type, r.executions, r.credits_used
+    FROM usage_daily_rollups r
+    WHERE r.app_id = $1 AND r.date::timestamp >= $2::timestamp AND r.date::timestamp < $3::timestamp
+    UNION ALL
+    SELECT u.type, 1::bigint, u.credits_used::bigint
+    FROM usage_records u, bounds b
+    WHERE u.app_id = $1 AND u.created_at >= GREATEST($2::timestamp, b.rolled_until) AND u.created_at < $3::timestamp
+) s
+GROUP BY s.type
+`
+
+type GetUsageAnalyticsTotalsBetweenParams struct {
+	AppID   string
+	StartAt pgtype.Timestamp
+	EndAt   pgtype.Timestamp
+}
+
+type GetUsageAnalyticsTotalsBetweenRow struct {
+	Type        string
+	Executions  int64
+	CreditsUsed int64
+}
+
+// The analytics queries read rolled up days from usage_daily_rollups and the
+// rest from usage_records. Records of rolled up days that the cleanup hasn't
+// deleted yet are skipped so nothing is counted twice.
+func (q *Queries) GetUsageAnalyticsTotalsBetween(ctx context.Context, arg GetUsageAnalyticsTotalsBetweenParams) ([]GetUsageAnalyticsTotalsBetweenRow, error) {
+	rows, err := q.db.Query(ctx, getUsageAnalyticsTotalsBetween, arg.AppID, arg.StartAt, arg.EndAt)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetUsageAnalyticsTotalsBetweenRow
+	for rows.Next() {
+		var i GetUsageAnalyticsTotalsBetweenRow
+		if err := rows.Scan(&i.Type, &i.Executions, &i.CreditsUsed); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getUsageCreditsUsedByAppBetween = `-- name: GetUsageCreditsUsedByAppBetween :one
 SELECT COALESCE(SUM(credits_used), 0)::int FROM usage_records WHERE app_id = $1 AND created_at BETWEEN $2 AND $3
 `
@@ -248,4 +445,31 @@ func (q *Queries) GetUsageRecordsByAppBetween(ctx context.Context, arg GetUsageR
 		return nil, err
 	}
 	return items, nil
+}
+
+const rollupUsageRecordsBefore = `-- name: RollupUsageRecordsBefore :execrows
+INSERT INTO usage_daily_rollups (date, app_id, type, source_id, executions, credits_used)
+SELECT
+    DATE(u.created_at),
+    u.app_id,
+    u.type,
+    COALESCE(u.command_id, u.event_listener_id, u.message_id, ''),
+    COUNT(*),
+    SUM(u.credits_used)
+FROM usage_records u
+WHERE u.created_at < $1::timestamp
+    AND u.created_at >= (SELECT COALESCE(MAX(r.date) + 1, '-infinity'::date)::timestamp FROM usage_daily_rollups r)
+GROUP BY 1, 2, 3, 4
+ON CONFLICT DO NOTHING
+`
+
+// Sums every whole day before @before_at that isn't rolled up yet into
+// usage_daily_rollups. Days are rolled up in order, so everything before the
+// latest rolled up day is already done. @before_at must be midnight UTC.
+func (q *Queries) RollupUsageRecordsBefore(ctx context.Context, beforeAt pgtype.Timestamp) (int64, error) {
+	result, err := q.db.Exec(ctx, rollupUsageRecordsBefore, beforeAt)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
 }

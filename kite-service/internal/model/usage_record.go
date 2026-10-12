@@ -34,3 +34,28 @@ type UsageCreditsUsedByDay struct {
 	Date        time.Time
 	CreditsUsed int
 }
+
+// UsageAnalyticsTotal is the executions and credits of one usage record type.
+type UsageAnalyticsTotal struct {
+	Type        UsageRecordType
+	Executions  int64
+	CreditsUsed int64
+}
+
+// UsageAnalyticsBucket is the executions and credits of one usage record type
+// in one time bucket.
+type UsageAnalyticsBucket struct {
+	Time        time.Time
+	Type        UsageRecordType
+	Executions  int64
+	CreditsUsed int64
+}
+
+// UsageAnalyticsSource is the executions and credits of one command, event
+// listener or message.
+type UsageAnalyticsSource struct {
+	Type        UsageRecordType
+	SourceID    string
+	Executions  int64
+	CreditsUsed int64
+}

@@ -119,6 +119,80 @@ func (c *Client) DeleteUsageRecordsBefore(ctx context.Context, before time.Time,
 	})
 }
 
+func (c *Client) RollupUsageRecordsBefore(ctx context.Context, before time.Time) (int64, error) {
+	return c.Q.RollupUsageRecordsBefore(ctx, pgtype.Timestamp{Time: before, Valid: true})
+}
+
+func (c *Client) UsageAnalyticsTotalsBetween(ctx context.Context, appID string, start time.Time, end time.Time) ([]model.UsageAnalyticsTotal, error) {
+	rows, err := c.Q.GetUsageAnalyticsTotalsBetween(ctx, pgmodel.GetUsageAnalyticsTotalsBetweenParams{
+		AppID:   appID,
+		StartAt: pgtype.Timestamp{Time: start, Valid: true},
+		EndAt:   pgtype.Timestamp{Time: end, Valid: true},
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	res := make([]model.UsageAnalyticsTotal, 0, len(rows))
+	for _, row := range rows {
+		res = append(res, model.UsageAnalyticsTotal{
+			Type:        model.UsageRecordType(row.Type),
+			Executions:  row.Executions,
+			CreditsUsed: row.CreditsUsed,
+		})
+	}
+
+	return res, nil
+}
+
+func (c *Client) UsageAnalyticsSeriesBetween(ctx context.Context, appID string, start time.Time, end time.Time, bucket string) ([]model.UsageAnalyticsBucket, error) {
+	rows, err := c.Q.GetUsageAnalyticsSeriesBetween(ctx, pgmodel.GetUsageAnalyticsSeriesBetweenParams{
+		Bucket:  bucket,
+		AppID:   appID,
+		StartAt: pgtype.Timestamp{Time: start, Valid: true},
+		EndAt:   pgtype.Timestamp{Time: end, Valid: true},
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	res := make([]model.UsageAnalyticsBucket, 0, len(rows))
+	for _, row := range rows {
+		res = append(res, model.UsageAnalyticsBucket{
+			Time:        row.Bucket.Time,
+			Type:        model.UsageRecordType(row.Type),
+			Executions:  row.Executions,
+			CreditsUsed: row.CreditsUsed,
+		})
+	}
+
+	return res, nil
+}
+
+func (c *Client) UsageAnalyticsTopSourcesBetween(ctx context.Context, appID string, start time.Time, end time.Time, perType int) ([]model.UsageAnalyticsSource, error) {
+	rows, err := c.Q.GetUsageAnalyticsTopSourcesBetween(ctx, pgmodel.GetUsageAnalyticsTopSourcesBetweenParams{
+		PerType: int32(perType),
+		AppID:   appID,
+		StartAt: pgtype.Timestamp{Time: start, Valid: true},
+		EndAt:   pgtype.Timestamp{Time: end, Valid: true},
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	res := make([]model.UsageAnalyticsSource, 0, len(rows))
+	for _, row := range rows {
+		res = append(res, model.UsageAnalyticsSource{
+			Type:        model.UsageRecordType(row.Type),
+			SourceID:    row.SourceID,
+			Executions:  row.Executions,
+			CreditsUsed: row.CreditsUsed,
+		})
+	}
+
+	return res, nil
+}
+
 func rowToUsageRecord(row pgmodel.UsageRecord) model.UsageRecord {
 	return model.UsageRecord{
 		ID:              row.ID,
