@@ -19,8 +19,11 @@ export default function AppListEntry({ app }: { app: App }) {
           <BotIcon className="h-5 w-5 flex-none text-muted-foreground" />
           <div>{app.name}</div>
           {!app.enabled && (
-            <Badge variant={app.token_invalid ? "destructive" : "secondary"}>
-              {app.token_invalid ? "Token stopped working" : "Stopped"}
+            <Badge
+              variant={app.token_invalid ? "destructive" : "secondary"}
+              className="whitespace-nowrap"
+            >
+              {app.token_invalid ? "Token invalid" : "Stopped"}
             </Badge>
           )}
         </CardTitle>
