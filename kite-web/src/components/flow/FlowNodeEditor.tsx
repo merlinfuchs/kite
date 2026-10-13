@@ -11,7 +11,12 @@ import {
   useNodeValues,
 } from "@/lib/flow/nodes";
 import { activityTypeOptions, statusOptions } from "@/lib/discord/presence";
-import { useAppFeature, useMessages, useVariables } from "@/lib/hooks/api";
+import {
+  useAppFeature,
+  useFunctions,
+  useMessages,
+  useVariables,
+} from "@/lib/hooks/api";
 import { getFlowCreditsCost } from "@/lib/flow/schedule";
 import {
   getCommandArguments,
@@ -43,6 +48,8 @@ import { useAppId } from "@/lib/hooks/params";
 import {
   CommandArgumentChoiceData,
   DiscordAPIRequestData,
+  FunctionArgumentData,
+  FunctionParameterData,
   EmojiData,
   HTTPRequestData,
   ModalComponentData,
@@ -76,6 +83,8 @@ import Link from "next/link";
 import { ReactNode, useCallback, useEffect, useMemo, useRef } from "react";
 import { NodeData, NodeProps } from "../../lib/flow/dataSchema";
 import MessageCreateDialog from "../app/MessageCreateDialog";
+import FunctionCreateDialog from "../app/FunctionCreateDialog";
+import { getFunctionParameters } from "@/lib/flow/functions";
 import VariableCreateDialog from "../app/VariableCreateDialog";
 import EmojiPicker from "../common/EmojiPicker";
 import EntitySelect from "../common/EntitySelect";
@@ -217,6 +226,11 @@ export const settingInputs: Record<string, any> = {
   condition_allow_multiple: ConditionAllowMultipleInput,
   loop_count: ControlLoopCountInput,
   sleep_duration_seconds: ControlSleepDurationInput,
+  function_parameters: FunctionParametersInput,
+  function_id: FunctionIdInput,
+  function_arguments: FunctionArgumentsInput,
+  function_return_value: FunctionReturnValueInput,
+  function_return_stop: FunctionReturnStopInput,
 };
 
 function nodeTypeDocsPage(nodeType: string) {
@@ -3695,6 +3709,217 @@ function ControlSleepDurationInput({ data, updateData, errors }: InputProps) {
       }
       errors={errors}
       placeholders
+    />
+  );
+}
+
+function FunctionParametersInput({ data, updateData, errors }: InputProps) {
+  const parameters = data.function_parameters || [];
+
+  function addParameter() {
+    updateData({
+      function_parameters: [...parameters, { name: "" }],
+    });
+  }
+
+  function removeParameter(i: number) {
+    updateData({
+      function_parameters: parameters.filter((_, j) => j !== i),
+    });
+  }
+
+  function updateParameter(i: number, newData: Partial<FunctionParameterData>) {
+    updateData({
+      function_parameters: parameters.map((p, j) =>
+        j === i ? { ...p, ...newData } : p
+      ),
+    });
+  }
+
+  const error = errors["function_parameters"];
+
+  return (
+    <div>
+      <div className="font-medium text-foreground mb-2">Parameters</div>
+      <div className="text-muted-foreground text-sm mb-2">
+        Values the function receives from the Call function block. Use{" "}
+        <code>{"{{arg('name')}}"}</code> to read a parameter in the function.
+      </div>
+      <div className="flex flex-col gap-3 mb-3">
+        {parameters.map((param, i) => (
+          <div className="flex gap-2" key={i}>
+            <Input
+              type="text"
+              placeholder="name"
+              value={param.name || ""}
+              onChange={(e) =>
+                updateParameter(i, {
+                  name: e.target.value
+                    .toLowerCase()
+                    .replace(/[^a-z0-9_]/g, "_"),
+                })
+              }
+            />
+            <Input
+              type="text"
+              placeholder="Description"
+              value={param.description || ""}
+              onChange={(e) =>
+                updateParameter(i, {
+                  description: e.target.value || undefined,
+                })
+              }
+            />
+            <Button
+              variant="outline"
+              size="icon"
+              className="flex-none"
+              onClick={() => removeParameter(i)}
+            >
+              <TrashIcon className="h-5 w-5" />
+            </Button>
+          </div>
+        ))}
+      </div>
+      <Button
+        variant="outline"
+        size="icon"
+        onClick={addParameter}
+        disabled={parameters.length >= 25}
+      >
+        <PlusIcon className="h-5 w-5" />
+      </Button>
+      {error && (
+        <div className="text-red-600 dark:text-red-400 text-sm flex items-center space-x-1 pt-2">
+          <CircleAlertIcon className="h-5 w-5 flex-none" />
+          <div>{error}</div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function FunctionIdInput({ data, updateData, errors }: InputProps) {
+  const functions = useFunctions();
+
+  const appId = useAppId();
+
+  return (
+    <div className="flex space-x-2 items-end">
+      <BaseInput
+        type="select"
+        field="function_id"
+        title="Function"
+        description="Select the function to call. Create functions on the Functions page of your app."
+        options={functions?.map((f) => ({
+          value: f!.id,
+          label: f!.name,
+        }))}
+        value={data.function_id || ""}
+        updateValue={(v) => updateData({ function_id: v || undefined })}
+        errors={errors}
+        clearable
+      />
+      {data.function_id ? (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button variant="outline" size="icon" asChild>
+              <Link
+                href={{
+                  pathname: "/apps/[appId]/functions/[functionId]",
+                  query: { appId: appId, functionId: data.function_id },
+                }}
+                target="_blank"
+              >
+                <PencilIcon className="h-5 w-5" />
+              </Link>
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>Edit function</TooltipContent>
+        </Tooltip>
+      ) : (
+        <FunctionCreateDialog
+          onFunctionCreated={(v) => updateData({ function_id: v })}
+        >
+          <Button variant="outline" size="icon">
+            <PlusIcon className="h-5 w-5" />
+          </Button>
+        </FunctionCreateDialog>
+      )}
+    </div>
+  );
+}
+
+function FunctionArgumentsInput({ data, updateData, errors }: InputProps) {
+  const functions = useFunctions();
+  const fn = functions?.find((f) => f?.id === data.function_id);
+  const parameters = getFunctionParameters(fn?.flow_source);
+
+  function setArgument(name: string, value: string) {
+    const current = data.function_arguments || [];
+    // Arguments follow the order of the parameters, and arguments of
+    // parameters the function no longer has are dropped.
+    const args: FunctionArgumentData[] = parameters
+      .map((p) =>
+        p.name === name
+          ? { name, value }
+          : current.find((a) => a.name === p.name) ?? {
+              name: p.name,
+              value: "",
+            }
+      )
+      .filter((a) => a.value);
+
+    updateData({ function_arguments: args.length > 0 ? args : undefined });
+  }
+
+  if (!fn || parameters.length === 0) return null;
+
+  return (
+    <div className="flex flex-col gap-5">
+      {parameters.map((param) => (
+        <BaseInput
+          key={param.name}
+          field={`function_arguments.${param.name}`}
+          title={`Argument '${param.name}'`}
+          description={param.description}
+          value={
+            data.function_arguments?.find((a) => a.name === param.name)
+              ?.value || ""
+          }
+          updateValue={(v) => setArgument(param.name, v)}
+          errors={errors}
+          placeholders
+        />
+      ))}
+    </div>
+  );
+}
+
+function FunctionReturnValueInput({ data, updateData, errors }: InputProps) {
+  return (
+    <BaseInput
+      type="textarea"
+      field="function_return_value"
+      title="Return Value"
+      description="The value the function returns. It's the result of the Call function block that called the function. Leave it empty to return nothing."
+      value={data.function_return_value || ""}
+      updateValue={(v) => updateData({ function_return_value: v || undefined })}
+      errors={errors}
+      placeholders
+    />
+  );
+}
+
+function FunctionReturnStopInput({ data, updateData, errors }: InputProps) {
+  return (
+    <BaseCheckbox
+      field="function_return_stop"
+      title="Stop Calling Flow"
+      description="Also stop the command, event listener or function that called this function, so nothing after its Call function block runs. Use this for checks, like permissions, that already told the user why."
+      value={!!data.function_return_stop}
+      updateValue={(v) => updateData({ function_return_stop: v || undefined })}
+      errors={errors}
     />
   );
 }

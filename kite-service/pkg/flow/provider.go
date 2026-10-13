@@ -2,6 +2,7 @@ package flow
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/kitecloud/kite/kite-service/pkg/provider"
@@ -19,6 +20,25 @@ type FlowProviders struct {
 	ResumePoint     ResumePointProvider
 	Secret          provider.SecretProvider
 	Integration     provider.IntegrationProvider
+	Function        FunctionProvider
+}
+
+// FunctionProvider loads the flows of the app's functions for the Call
+// function block.
+type FunctionProvider interface {
+	FunctionFlow(ctx context.Context, id string) (FlowData, error)
+}
+
+type MockFunctionProvider struct {
+	Functions map[string]FlowData
+}
+
+func (m *MockFunctionProvider) FunctionFlow(ctx context.Context, id string) (FlowData, error) {
+	data, ok := m.Functions[id]
+	if !ok {
+		return FlowData{}, fmt.Errorf("function not found")
+	}
+	return data, nil
 }
 
 type ResumePointProvider interface {

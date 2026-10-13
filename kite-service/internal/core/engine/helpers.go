@@ -32,6 +32,7 @@ type Env struct {
 	MessageInstanceStore store.MessageInstanceStore
 	CommandStore         store.CommandStore
 	EventListenerStore   store.EventListenerStore
+	FunctionStore        store.FunctionStore
 	PluginInstanceStore  store.PluginInstanceStore
 	PluginValueStore     store.PluginValueStore
 	PluginRegistry       *plugin.Registry
@@ -96,6 +97,7 @@ func (s Env) flowProviders(appID string, session *state.State, links entityLinks
 		),
 		Secret:      NewSecretProvider(appID, s.AppSecretStore, s.TokenCrypt),
 		Integration: NewIntegrationProvider(appID, s.AppSecretStore, s.AppIntegrationStore, s.TokenCrypt),
+		Function:    NewFunctionProvider(appID, s.FunctionStore),
 	}
 }
 

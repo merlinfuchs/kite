@@ -13,6 +13,7 @@ export type FlowNodeType = string;
 export const FlowNodeTypeEntryCommand: FlowNodeType = "entry_command";
 export const FlowNodeTypeEntryEvent: FlowNodeType = "entry_event";
 export const FlowNodeTypeEntryComponentButton: FlowNodeType = "entry_component_button";
+export const FlowNodeTypeEntryFunction: FlowNodeType = "entry_function";
 export const FlowNodeTypeOptionCommandArgument: FlowNodeType = "option_command_argument";
 export const FlowNodeTypeOptionCommandPermissions: FlowNodeType = "option_command_permissions";
 export const FlowNodeTypeOptionCommandContexts: FlowNodeType = "option_command_contexts";
@@ -65,6 +66,7 @@ export const FlowNodeTypeActionVariableGet: FlowNodeType = "action_variable_get"
 export const FlowNodeTypeActionVoiceChannelJoin: FlowNodeType = "action_voice_channel_join";
 export const FlowNodeTypeActionVoiceChannelLeave: FlowNodeType = "action_voice_channel_leave";
 export const FlowNodeTypeActionStatusSet: FlowNodeType = "action_status_set";
+export const FlowNodeTypeActionFunctionCall: FlowNodeType = "action_function_call";
 export const FlowNodeTypeControlConditionCompare: FlowNodeType = "control_condition_compare";
 export const FlowNodeTypeControlConditionItemCompare: FlowNodeType = "control_condition_item_compare";
 export const FlowNodeTypeControlConditionUser: FlowNodeType = "control_condition_user";
@@ -80,6 +82,7 @@ export const FlowNodeTypeControlLoopEach: FlowNodeType = "control_loop_each";
 export const FlowNodeTypeControlLoopEnd: FlowNodeType = "control_loop_end";
 export const FlowNodeTypeControlLoopExit: FlowNodeType = "control_loop_exit";
 export const FlowNodeTypeControlSleep: FlowNodeType = "control_sleep";
+export const FlowNodeTypeControlFunctionReturn: FlowNodeType = "control_function_return";
 export const FlowNodeTypeSuspendResponseModal: FlowNodeType = "suspend_response_modal";
 /**
  * EventTypeScheduleCron is the event type of listeners that run on a cron
@@ -253,6 +256,36 @@ export interface FlowNodeData {
    * Sleep
    */
   sleep_duration_seconds?: string;
+  /**
+   * Function Entry
+   */
+  function_parameters?: FunctionParameterData[];
+  /**
+   * Function Call
+   */
+  function_id?: string;
+  function_arguments?: FunctionArgumentData[];
+  /**
+   * Function Return
+   */
+  function_return_value?: string;
+  function_return_stop?: boolean;
+}
+/**
+ * FunctionParameterData is a value a function receives from the Call function
+ * block, available in the function as {{arg('name')}}.
+ */
+export interface FunctionParameterData {
+  name: string;
+  description?: string;
+}
+/**
+ * FunctionArgumentData is the value the Call function block passes for one
+ * of the function's parameters. The value is a template.
+ */
+export interface FunctionArgumentData {
+  name: string;
+  value?: string;
 }
 export type CooldownScope = string;
 export const CooldownScopeUser: CooldownScope = "user";

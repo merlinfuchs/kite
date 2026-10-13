@@ -13,6 +13,7 @@ The output of previously executed blocks is available in all subsequent blocks a
 - [Command](./entries/entry_command.md) - Entry point for slash commands
 - [Listen for Event](./entries/entry_event.md) - Entry point for event-triggered flows
 - [Button](./entries/entry_component_button.md) - Entry point for button component interactions
+- [Function](./entries/entry_function.md) - Entry point of a function
 
 ## Response Blocks
 
@@ -101,6 +102,11 @@ The output of previously executed blocks is available in all subsequent blocks a
 - [Run a loop](./controls/control_loop.md) - Execute actions multiple times
 - [Exit loop](./controls/control_loop_exit.md) - Exit loops early
 - [Wait](./controls/control_sleep.md) - Pause flow execution
+
+## Function Blocks
+
+- [Call function](./actions/action_function_call.md) - Run one of your functions
+- [Return](./controls/control_function_return.md) - End a function and return a value
 
 ## Command Options
 

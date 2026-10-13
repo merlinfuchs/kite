@@ -46,6 +46,30 @@ func CompileEventListener(data FlowData) (*CompiledFlowNode, error) {
 	return entry, nil
 }
 
+// CompileFunction compiles the flow of a function, which runs when a Call
+// function block calls it, within the execution of the caller.
+func CompileFunction(data FlowData) (*CompiledFlowNode, error) {
+	entry, err := compile(data, FlowNodeTypeEntryFunction)
+	if err != nil {
+		return nil, err
+	}
+
+	// A function runs in the execution of its caller and doesn't exist on its
+	// own afterwards, so nothing can resume it later.
+	for _, node := range data.Nodes {
+		if node.Type == FlowNodeTypeSuspendResponseModal {
+			return nil, fmt.Errorf("block %s can't be used in functions", node.Type)
+		}
+	}
+	for _, edge := range data.Edges {
+		if edge.SourceHandle.Valid && strings.HasPrefix(edge.SourceHandle.String, "component_") {
+			return nil, fmt.Errorf("buttons and select menus with blocks attached can't be used in functions")
+		}
+	}
+
+	return entry, nil
+}
+
 // firstWithoutInteraction returns the first node matching match that runs
 // before any component interaction, i.e. not in a component branch.
 func firstWithoutInteraction(entry *CompiledFlowNode, match func(FlowNodeType) bool) *CompiledFlowNode {
@@ -190,7 +214,26 @@ type ConnectedFlowNodes struct {
 func (n *CompiledFlowNode) IsEntry() bool {
 	return n.Type == FlowNodeTypeEntryCommand ||
 		n.Type == FlowNodeTypeEntryComponentButton ||
-		n.Type == FlowNodeTypeEntryEvent
+		n.Type == FlowNodeTypeEntryEvent ||
+		n.Type == FlowNodeTypeEntryFunction
+}
+
+func (n *CompiledFlowNode) IsFunctionEntry() bool {
+	return n.Type == FlowNodeTypeEntryFunction
+}
+
+func (n *CompiledFlowNode) FunctionName() string {
+	if !n.IsFunctionEntry() {
+		return ""
+	}
+	return n.Data.Name
+}
+
+func (n *CompiledFlowNode) FunctionDescription() string {
+	if !n.IsFunctionEntry() {
+		return ""
+	}
+	return n.Data.Description
 }
 
 func (n *CompiledFlowNode) IsComponentButtonEntry() bool {

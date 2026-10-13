@@ -6,6 +6,8 @@ export interface NodeCategorySection {
   title: string;
   nodeTypes: string[];
   contextTypes: FlowContextType[] | null;
+  // Flow types the section is shown first in, as their most important blocks.
+  pinnedIn?: FlowContextType[];
 }
 
 const sections: Record<
@@ -29,7 +31,13 @@ const sections: Record<
   action: [
     {
       title: "Responses",
-      contextTypes: ["command", "component_button", "component_select_menu"],
+      // Functions can respond to the interaction of the flow that calls them.
+      contextTypes: [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "function",
+      ],
     },
     {
       title: "Messages",
@@ -62,6 +70,10 @@ const sections: Record<
     },
     {
       title: "Bot",
+      contextTypes: null,
+    },
+    {
+      title: "Functions",
       contextTypes: null,
     },
     {
@@ -102,6 +114,13 @@ const sections: Record<
       title: "Others",
       contextTypes: null,
     },
+    {
+      // Only has the Return block, which only exists in functions. It's what
+      // makes a function useful, so it comes first there.
+      title: "Functions",
+      contextTypes: null,
+      pinnedIn: ["function"],
+    },
   ],
 };
 
@@ -116,6 +135,22 @@ for (const block of blockDefinitions) {
   }
 }
 
+// The tab a block is listed in when a section of the same title exists in
+// several tabs, like Functions: control blocks under Control Flow, the others
+// under Actions.
+function blockTab(type: string): keyof typeof sections {
+  if (type.startsWith("control_")) return "control_flow";
+  if (type.startsWith("option_")) return "option";
+  return "action";
+}
+
+const titleCounts = new Map<string, number>();
+for (const list of Object.values(sections)) {
+  for (const s of list) {
+    titleCounts.set(s.title, (titleCounts.get(s.title) ?? 0) + 1);
+  }
+}
+
 // The blocks of each section are those whose definition names it, in the
 // order of the definitions.
 export const nodeCategories = Object.fromEntries(
@@ -124,7 +159,12 @@ export const nodeCategories = Object.fromEntries(
     list.map((section) => ({
       ...section,
       nodeTypes: blockDefinitions
-        .filter((b) => b.category === section.title)
+        .filter(
+          (b) =>
+            b.category === section.title &&
+            (titleCounts.get(section.title) === 1 ||
+              blockTab(b.type) === category)
+        )
         .map((b) => b.type),
     })),
   ])
@@ -137,6 +177,16 @@ function isSectionAvailable(
   context: FlowContextType
 ) {
   return !section.contextTypes || section.contextTypes.includes(context);
+}
+
+// The sections of a category in the order they're shown in a flow type:
+// sections pinned in it first, then the others in their usual order.
+export function orderSections<T extends { pinnedIn?: FlowContextType[] }>(
+  sections: T[],
+  context: FlowContextType
+): T[] {
+  const pinned = (s: T) => !!s.pinnedIn?.includes(context);
+  return [...sections.filter(pinned), ...sections.filter((s) => !pinned(s))];
 }
 
 // A block's own contexts take precedence over the sections it's listed in.

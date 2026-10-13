@@ -1544,6 +1544,31 @@
       "result": null
     },
     {
+      "type": "action_function_call",
+      "credits": 0,
+      "audit_log_reason": false,
+      "requires": [],
+      "run": {
+        "kind": "custom"
+      },
+      "fields": [],
+      "result": {
+        "thing": "",
+        "list": false
+      }
+    },
+    {
+      "type": "control_function_return",
+      "credits": null,
+      "audit_log_reason": false,
+      "requires": [],
+      "run": {
+        "kind": "custom"
+      },
+      "fields": [],
+      "result": null
+    },
+    {
       "type": "entry_command",
       "credits": null,
       "audit_log_reason": false,
@@ -1576,6 +1601,17 @@
       "requires": [
         "discord"
       ],
+      "run": {
+        "kind": "custom"
+      },
+      "fields": [],
+      "result": null
+    },
+    {
+      "type": "entry_function",
+      "credits": null,
+      "audit_log_reason": false,
+      "requires": [],
       "run": {
         "kind": "custom"
       },

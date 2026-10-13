@@ -25,6 +25,7 @@ type Context struct {
 	Variable       *model.Variable
 	Message        *model.Message
 	EventListener  *model.EventListener
+	Function       *model.Function
 	PluginInstance *model.PluginInstance
 }
 

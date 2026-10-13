@@ -180,6 +180,9 @@ server {
         location ~ ^/apps/[^/]+/variables/[^/]+/?$ {
                 try_files "/apps/[appId]/variables/[variableId].html" =404;
         }
+        location ~ ^/apps/[^/]+/functions/[^/]+/?$ {
+                try_files "/apps/[appId]/functions/[functionId].html" =404;
+        }
         location ~ ^/apps/[^/]+/([^/]+)/?$ {
                 try_files "/apps/[appId]/$1.html" =404;
         }

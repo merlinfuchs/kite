@@ -245,7 +245,7 @@ func executeControlLoop(n *CompiledFlowNode, ctx *FlowContext) error {
 	nodeState := ctx.GetNodeState(n.ID)
 
 	for i := 0; i < int(loopCount.Int()); i++ {
-		if nodeState.LoopExited {
+		if nodeState.LoopExited || ctx.hasReturned() {
 			break
 		}
 
@@ -296,6 +296,11 @@ func executeControlSleep(n *CompiledFlowNode, ctx *FlowContext) error {
 	// A resumed flow only runs what comes after the sleep block, so a loop
 	// couldn't continue with its next iteration.
 	if duration > durableSleepThreshold && !n.inLoop() {
+		// A function runs within the execution of its caller, which can't
+		// continue it after resuming.
+		if ctx.function != nil {
+			return traceError(n, fmt.Errorf("functions can't wait longer than %s", durableSleepThreshold))
+		}
 		return n.sleepDurable(ctx, duration)
 	}
 

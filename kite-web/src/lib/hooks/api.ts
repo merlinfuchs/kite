@@ -15,6 +15,8 @@ import {
   useCommandsQuery,
   useEventListenerQuery,
   useEventListenersQuery,
+  useFunctionQuery,
+  useFunctionsQuery,
   useAppFeaturesQuery,
   useFlowAIUsageQuery,
   useLogEntriesQuery,
@@ -46,6 +48,8 @@ import {
   CommandListResponse,
   EventListenerGetResponse,
   EventListenerListResponse,
+  FunctionGetResponse,
+  FunctionListResponse,
   FeaturesGetResponse,
   FlowAIUsageGetResponse,
   LogSummaryGetResponse,
@@ -164,6 +168,27 @@ export function useEventListener(
   const query = useEventListenerQuery(
     router.query.appId as string,
     router.query.eventId as string
+  );
+  return useResponseData(query, callback);
+}
+
+export function useFunctions(
+  callback?: (res: APIResponse<FunctionListResponse>) => void
+) {
+  const router = useRouter();
+
+  const query = useFunctionsQuery(router.query.appId as string);
+  return useResponseData(query, callback);
+}
+
+export function useFunction(
+  callback?: (res: APIResponse<FunctionGetResponse>) => void
+) {
+  const router = useRouter();
+
+  const query = useFunctionQuery(
+    router.query.appId as string,
+    router.query.functionId as string
   );
   return useResponseData(query, callback);
 }

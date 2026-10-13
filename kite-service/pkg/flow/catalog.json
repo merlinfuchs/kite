@@ -269,7 +269,8 @@
       "contexts": [
         "command",
         "component_button",
-        "component_select_menu"
+        "component_select_menu",
+        "function"
       ],
       "outputs": [
         "default"
@@ -454,7 +455,8 @@
       "contexts": [
         "command",
         "component_button",
-        "component_select_menu"
+        "component_select_menu",
+        "function"
       ],
       "outputs": [
         "default"
@@ -659,7 +661,8 @@
       "contexts": [
         "command",
         "component_button",
-        "component_select_menu"
+        "component_select_menu",
+        "function"
       ],
       "outputs": [
         "default"
@@ -708,7 +711,8 @@
       "contexts": [
         "command",
         "component_button",
-        "component_select_menu"
+        "component_select_menu",
+        "function"
       ],
       "outputs": [
         "default"
@@ -1085,7 +1089,8 @@
         "component_select_menu",
         "event_discord",
         "event_schedule",
-        "event_webhook"
+        "event_webhook",
+        "function"
       ],
       "outputs": [
         "default"
@@ -1285,7 +1290,8 @@
         "component_select_menu",
         "event_discord",
         "event_schedule",
-        "event_webhook"
+        "event_webhook",
+        "function"
       ],
       "outputs": [
         "default"
@@ -1499,7 +1505,8 @@
         "component_select_menu",
         "event_discord",
         "event_schedule",
-        "event_webhook"
+        "event_webhook",
+        "function"
       ],
       "outputs": [
         "default"
@@ -1563,7 +1570,8 @@
         "component_select_menu",
         "event_discord",
         "event_schedule",
-        "event_webhook"
+        "event_webhook",
+        "function"
       ],
       "outputs": [
         "default"
@@ -1721,7 +1729,8 @@
         "component_select_menu",
         "event_discord",
         "event_schedule",
-        "event_webhook"
+        "event_webhook",
+        "function"
       ],
       "outputs": [
         "default"
@@ -1921,7 +1930,8 @@
         "component_select_menu",
         "event_discord",
         "event_schedule",
-        "event_webhook"
+        "event_webhook",
+        "function"
       ],
       "outputs": [
         "default"
@@ -1999,7 +2009,8 @@
         "component_select_menu",
         "event_discord",
         "event_schedule",
-        "event_webhook"
+        "event_webhook",
+        "function"
       ],
       "outputs": [
         "default"
@@ -2077,7 +2088,8 @@
         "component_select_menu",
         "event_discord",
         "event_schedule",
-        "event_webhook"
+        "event_webhook",
+        "function"
       ],
       "outputs": [
         "default"
@@ -2141,7 +2153,8 @@
         "component_select_menu",
         "event_discord",
         "event_schedule",
-        "event_webhook"
+        "event_webhook",
+        "function"
       ],
       "outputs": [
         "default"
@@ -2205,7 +2218,8 @@
         "component_select_menu",
         "event_discord",
         "event_schedule",
-        "event_webhook"
+        "event_webhook",
+        "function"
       ],
       "outputs": [
         "default"
@@ -2426,7 +2440,8 @@
         "component_select_menu",
         "event_discord",
         "event_schedule",
-        "event_webhook"
+        "event_webhook",
+        "function"
       ],
       "outputs": [
         "default"
@@ -2579,7 +2594,8 @@
         "component_select_menu",
         "event_discord",
         "event_schedule",
-        "event_webhook"
+        "event_webhook",
+        "function"
       ],
       "outputs": [
         "default"
@@ -2639,7 +2655,8 @@
         "component_select_menu",
         "event_discord",
         "event_schedule",
-        "event_webhook"
+        "event_webhook",
+        "function"
       ],
       "outputs": [
         "default"
@@ -2715,7 +2732,8 @@
         "component_select_menu",
         "event_discord",
         "event_schedule",
-        "event_webhook"
+        "event_webhook",
+        "function"
       ],
       "outputs": [
         "default"
@@ -2778,7 +2796,8 @@
         "component_select_menu",
         "event_discord",
         "event_schedule",
-        "event_webhook"
+        "event_webhook",
+        "function"
       ],
       "outputs": [
         "default"
@@ -2841,7 +2860,8 @@
         "component_select_menu",
         "event_discord",
         "event_schedule",
-        "event_webhook"
+        "event_webhook",
+        "function"
       ],
       "outputs": [
         "default"
@@ -2918,7 +2938,8 @@
         "component_select_menu",
         "event_discord",
         "event_schedule",
-        "event_webhook"
+        "event_webhook",
+        "function"
       ],
       "outputs": [
         "default"
@@ -2997,7 +3018,8 @@
         "component_select_menu",
         "event_discord",
         "event_schedule",
-        "event_webhook"
+        "event_webhook",
+        "function"
       ],
       "outputs": [
         "default"
@@ -3096,7 +3118,8 @@
         "component_select_menu",
         "event_discord",
         "event_schedule",
-        "event_webhook"
+        "event_webhook",
+        "function"
       ],
       "outputs": [
         "default"
@@ -3177,7 +3200,8 @@
         "component_select_menu",
         "event_discord",
         "event_schedule",
-        "event_webhook"
+        "event_webhook",
+        "function"
       ],
       "outputs": [
         "default"
@@ -3254,7 +3278,8 @@
         "component_select_menu",
         "event_discord",
         "event_schedule",
-        "event_webhook"
+        "event_webhook",
+        "function"
       ],
       "outputs": [
         "default"
@@ -3331,7 +3356,8 @@
         "component_select_menu",
         "event_discord",
         "event_schedule",
-        "event_webhook"
+        "event_webhook",
+        "function"
       ],
       "outputs": [
         "default"
@@ -3425,7 +3451,8 @@
         "component_select_menu",
         "event_discord",
         "event_schedule",
-        "event_webhook"
+        "event_webhook",
+        "function"
       ],
       "outputs": [
         "default"
@@ -3527,7 +3554,8 @@
         "component_select_menu",
         "event_discord",
         "event_schedule",
-        "event_webhook"
+        "event_webhook",
+        "function"
       ],
       "outputs": [
         "default"
@@ -3598,7 +3626,8 @@
         "component_select_menu",
         "event_discord",
         "event_schedule",
-        "event_webhook"
+        "event_webhook",
+        "function"
       ],
       "outputs": [
         "default"
@@ -3833,7 +3862,8 @@
         "component_select_menu",
         "event_discord",
         "event_schedule",
-        "event_webhook"
+        "event_webhook",
+        "function"
       ],
       "outputs": [
         "default"
@@ -4069,7 +4099,8 @@
         "component_select_menu",
         "event_discord",
         "event_schedule",
-        "event_webhook"
+        "event_webhook",
+        "function"
       ],
       "outputs": [
         "default"
@@ -4119,7 +4150,8 @@
         "component_select_menu",
         "event_discord",
         "event_schedule",
-        "event_webhook"
+        "event_webhook",
+        "function"
       ],
       "outputs": [
         "default"
@@ -4198,7 +4230,8 @@
         "component_select_menu",
         "event_discord",
         "event_schedule",
-        "event_webhook"
+        "event_webhook",
+        "function"
       ],
       "outputs": [
         "default"
@@ -4433,7 +4466,8 @@
         "component_select_menu",
         "event_discord",
         "event_schedule",
-        "event_webhook"
+        "event_webhook",
+        "function"
       ],
       "outputs": [
         "default"
@@ -4483,7 +4517,8 @@
         "component_select_menu",
         "event_discord",
         "event_schedule",
-        "event_webhook"
+        "event_webhook",
+        "function"
       ],
       "outputs": [
         "default"
@@ -4533,7 +4568,8 @@
         "component_select_menu",
         "event_discord",
         "event_schedule",
-        "event_webhook"
+        "event_webhook",
+        "function"
       ],
       "outputs": [
         "default"
@@ -4620,7 +4656,8 @@
         "component_select_menu",
         "event_discord",
         "event_schedule",
-        "event_webhook"
+        "event_webhook",
+        "function"
       ],
       "outputs": [
         "default"
@@ -4672,7 +4709,8 @@
         "component_select_menu",
         "event_discord",
         "event_schedule",
-        "event_webhook"
+        "event_webhook",
+        "function"
       ],
       "outputs": [
         "default"
@@ -4713,7 +4751,8 @@
         "component_select_menu",
         "event_discord",
         "event_schedule",
-        "event_webhook"
+        "event_webhook",
+        "function"
       ],
       "outputs": [
         "default"
@@ -4771,6 +4810,74 @@
       },
       "result_schema": null
     },
+    "action_function_call": {
+      "title": "Call function",
+      "description": "Run one of your functions and continue with the value it returns.",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord",
+        "event_schedule",
+        "event_webhook",
+        "function"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "type": "string",
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+          },
+          "function_id": {
+            "type": "string",
+            "description": "ID of an existing function of the app.",
+            "x-user-picked": true
+          },
+          "function_arguments": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "Name of the function's parameter."
+                },
+                "value": {
+                  "type": "string",
+                  "description": "Value passed for the parameter.",
+                  "x-templated": true
+                }
+              },
+              "required": [
+                "name"
+              ],
+              "additionalProperties": false
+            },
+            "maxItems": 25,
+            "description": "The values passed for the function's parameters."
+          },
+          "temporary_name": {
+            "type": "string",
+            "maxLength": 32,
+            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only."
+          }
+        },
+        "required": [
+          "function_id"
+        ],
+        "additionalProperties": false
+      },
+      "result_schema": {
+        "description": "The value the function returned with its Return block, or nothing if it didn't."
+      }
+    },
     "action_variable_set": {
       "title": "Set stored variable",
       "description": "Set the value of a stored variable",
@@ -4780,7 +4887,8 @@
         "component_select_menu",
         "event_discord",
         "event_schedule",
-        "event_webhook"
+        "event_webhook",
+        "function"
       ],
       "outputs": [
         "default"
@@ -4846,7 +4954,8 @@
         "component_select_menu",
         "event_discord",
         "event_schedule",
-        "event_webhook"
+        "event_webhook",
+        "function"
       ],
       "outputs": [
         "default"
@@ -4887,7 +4996,8 @@
         "component_select_menu",
         "event_discord",
         "event_schedule",
-        "event_webhook"
+        "event_webhook",
+        "function"
       ],
       "outputs": [
         "default"
@@ -4935,7 +5045,8 @@
         "component_select_menu",
         "event_discord",
         "event_schedule",
-        "event_webhook"
+        "event_webhook",
+        "function"
       ],
       "outputs": [
         "default"
@@ -5032,7 +5143,8 @@
         "component_select_menu",
         "event_discord",
         "event_schedule",
-        "event_webhook"
+        "event_webhook",
+        "function"
       ],
       "outputs": [
         "default"
@@ -5116,7 +5228,8 @@
         "component_select_menu",
         "event_discord",
         "event_schedule",
-        "event_webhook"
+        "event_webhook",
+        "function"
       ],
       "outputs": [
         "default"
@@ -5194,7 +5307,8 @@
         "component_select_menu",
         "event_discord",
         "event_schedule",
-        "event_webhook"
+        "event_webhook",
+        "function"
       ],
       "outputs": [
         "default"
@@ -5312,7 +5426,8 @@
         "component_select_menu",
         "event_discord",
         "event_schedule",
-        "event_webhook"
+        "event_webhook",
+        "function"
       ],
       "outputs": [
         "default"
@@ -5429,7 +5544,8 @@
         "component_select_menu",
         "event_discord",
         "event_schedule",
-        "event_webhook"
+        "event_webhook",
+        "function"
       ],
       "outputs": [
         "default"
@@ -5473,7 +5589,8 @@
         "component_select_menu",
         "event_discord",
         "event_schedule",
-        "event_webhook"
+        "event_webhook",
+        "function"
       ],
       "outputs": [
         "default"
@@ -5539,7 +5656,8 @@
         "component_select_menu",
         "event_discord",
         "event_schedule",
-        "event_webhook"
+        "event_webhook",
+        "function"
       ],
       "outputs": [
         "default"
@@ -5588,7 +5706,8 @@
         "component_select_menu",
         "event_discord",
         "event_schedule",
-        "event_webhook"
+        "event_webhook",
+        "function"
       ],
       "outputs": [],
       "owned_children": [
@@ -5629,7 +5748,8 @@
         "component_select_menu",
         "event_discord",
         "event_schedule",
-        "event_webhook"
+        "event_webhook",
+        "function"
       ],
       "outputs": [],
       "owned_children": [
@@ -5670,7 +5790,8 @@
         "component_select_menu",
         "event_discord",
         "event_schedule",
-        "event_webhook"
+        "event_webhook",
+        "function"
       ],
       "outputs": [],
       "owned_children": [
@@ -5711,7 +5832,8 @@
         "component_select_menu",
         "event_discord",
         "event_schedule",
-        "event_webhook"
+        "event_webhook",
+        "function"
       ],
       "outputs": [],
       "owned_children": [
@@ -5752,7 +5874,8 @@
         "component_select_menu",
         "event_discord",
         "event_schedule",
-        "event_webhook"
+        "event_webhook",
+        "function"
       ],
       "outputs": [],
       "owned_children": [
@@ -5797,7 +5920,8 @@
         "component_select_menu",
         "event_discord",
         "event_schedule",
-        "event_webhook"
+        "event_webhook",
+        "function"
       ],
       "outputs": [],
       "owned_children": [],
@@ -5818,7 +5942,8 @@
         "component_select_menu",
         "event_discord",
         "event_schedule",
-        "event_webhook"
+        "event_webhook",
+        "function"
       ],
       "outputs": [
         "error",
@@ -5855,7 +5980,8 @@
         "component_select_menu",
         "event_discord",
         "event_schedule",
-        "event_webhook"
+        "event_webhook",
+        "function"
       ],
       "outputs": [
         "default"
@@ -5882,6 +6008,36 @@
         "required": [
           "sleep_duration_seconds"
         ],
+        "additionalProperties": false
+      },
+      "result_schema": null
+    },
+    "control_function_return": {
+      "title": "Return",
+      "description": "End the function and return a value to the Call function block that called it.",
+      "contexts": [
+        "function"
+      ],
+      "outputs": [],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "type": "string",
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+          },
+          "function_return_value": {
+            "type": "string",
+            "description": "Value to return, which is the result of the Call function block. Leave empty to return nothing.",
+            "x-templated": true
+          },
+          "function_return_stop": {
+            "type": "boolean",
+            "description": "Also stop the flow that called the function, so nothing after the Call function block runs. Useful for checks like permissions that already responded to the user."
+          }
+        },
         "additionalProperties": false
       },
       "result_schema": null
@@ -5995,6 +6151,65 @@
       },
       "result_schema": null
     },
+    "entry_function": {
+      "title": "Function",
+      "description": "Runs when a Call function block calls the function. Drop different actions here!",
+      "contexts": [
+        "function"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": true,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 1,
+            "description": "Name of the function, shown when picking it to call."
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 100,
+            "description": "Description of what the function does."
+          },
+          "function_parameters": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "maxLength": 32,
+                  "minLength": 1,
+                  "pattern": "^[a-z0-9_]+$",
+                  "description": "Name of the parameter. Its value can be read with {{arg('name')}}."
+                },
+                "description": {
+                  "type": "string",
+                  "maxLength": 100,
+                  "description": "What to pass for the parameter."
+                }
+              },
+              "required": [
+                "name"
+              ],
+              "additionalProperties": false
+            },
+            "maxItems": 25,
+            "description": "Values the function receives from the Call function block, read with {{arg('name')}}."
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "additionalProperties": false
+      },
+      "result_schema": null
+    },
     "action_forum_post_create": {
       "title": "Create forum post",
       "description": "Create a forum post",
@@ -6004,7 +6219,8 @@
         "component_select_menu",
         "event_discord",
         "event_schedule",
-        "event_webhook"
+        "event_webhook",
+        "function"
       ],
       "outputs": [
         "default"
@@ -6240,7 +6456,8 @@
         "component_select_menu",
         "event_discord",
         "event_schedule",
-        "event_webhook"
+        "event_webhook",
+        "function"
       ],
       "outputs": [
         "default"
@@ -6287,7 +6504,8 @@
         "component_select_menu",
         "event_discord",
         "event_schedule",
-        "event_webhook"
+        "event_webhook",
+        "function"
       ],
       "outputs": [
         "default"
@@ -6331,7 +6549,8 @@
         "component_select_menu",
         "event_discord",
         "event_schedule",
-        "event_webhook"
+        "event_webhook",
+        "function"
       ],
       "outputs": [
         "default"
@@ -6371,7 +6590,8 @@
         "component_select_menu",
         "event_discord",
         "event_schedule",
-        "event_webhook"
+        "event_webhook",
+        "function"
       ],
       "outputs": [
         "default"
@@ -6411,7 +6631,8 @@
         "component_select_menu",
         "event_discord",
         "event_schedule",
-        "event_webhook"
+        "event_webhook",
+        "function"
       ],
       "outputs": [
         "default"
@@ -6434,7 +6655,8 @@
         "component_select_menu",
         "event_discord",
         "event_schedule",
-        "event_webhook"
+        "event_webhook",
+        "function"
       ],
       "outputs": [
         "default"
@@ -6457,7 +6679,8 @@
         "component_select_menu",
         "event_discord",
         "event_schedule",
-        "event_webhook"
+        "event_webhook",
+        "function"
       ],
       "outputs": [
         "default"
