@@ -149,6 +149,10 @@ server {
         root @WEB_DIR@;
         absolute_redirect off;
 
+        # Pages have no trailing slash, so /tools/ redirects to /tools, the
+        # canonical URL.
+        rewrite ^/(.+)/$ /$1 permanent;
+
         location /_next/static/ {
                 add_header Cache-Control "public, max-age=31536000, immutable";
         }
@@ -194,8 +198,12 @@ server {
         root @DOCS_DIR@;
         absolute_redirect off;
 
+        # Docusaurus writes pages as page.html, with trailingSlash: false.
+        # page.html comes before page/, since /blog has both.
+        rewrite ^/(.+)/$ /$1 permanent;
+
         location / {
-                try_files $uri $uri/ $uri.html =404;
+                try_files $uri $uri.html $uri/ =404;
         }
 
         error_page 404 /404.html;
