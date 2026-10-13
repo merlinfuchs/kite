@@ -1,7 +1,9 @@
 -- Commands are deployed to Discord in the background. An app is pending when
 -- its commands or plugins changed after the last deploy attempt, and isn't
--- attempted again before commands_deploy_retry_at.
+-- attempted again before commands_deploy_retry_at. Every change increments
+-- commands_version, so a deploy can tell if the commands changed meanwhile.
 ALTER TABLE apps ADD COLUMN commands_deploy_pending BOOLEAN NOT NULL DEFAULT FALSE;
+ALTER TABLE apps ADD COLUMN commands_version BIGINT NOT NULL DEFAULT 0;
 ALTER TABLE apps ADD COLUMN commands_changed_at TIMESTAMP;
 ALTER TABLE apps ADD COLUMN commands_deploy_retry_at TIMESTAMP;
 -- Hash of what was last sent to Discord, so changes that don't affect how

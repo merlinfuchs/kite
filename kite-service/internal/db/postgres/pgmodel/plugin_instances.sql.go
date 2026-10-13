@@ -92,30 +92,6 @@ func (q *Queries) DeletePluginInstance(ctx context.Context, arg DeletePluginInst
 	return err
 }
 
-const dinstinctAppIDsWithUndeployedPluginInstances = `-- name: DinstinctAppIDsWithUndeployedPluginInstances :many
-SELECT DISTINCT app_id FROM plugin_instances WHERE last_deployed_at IS NULL OR last_deployed_at < updated_at
-`
-
-func (q *Queries) DinstinctAppIDsWithUndeployedPluginInstances(ctx context.Context) ([]string, error) {
-	rows, err := q.db.Query(ctx, dinstinctAppIDsWithUndeployedPluginInstances)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []string
-	for rows.Next() {
-		var app_id string
-		if err := rows.Scan(&app_id); err != nil {
-			return nil, err
-		}
-		items = append(items, app_id)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
 const getEnabledPluginInstanceIDs = `-- name: GetEnabledPluginInstanceIDs :many
 SELECT id FROM plugin_instances WHERE enabled = TRUE
 `
@@ -278,20 +254,4 @@ func (q *Queries) UpdatePluginInstance(ctx context.Context, arg UpdatePluginInst
 		&i.LastDeployedAt,
 	)
 	return i, err
-}
-
-const updatePluginInstancesLastDeployedAt = `-- name: UpdatePluginInstancesLastDeployedAt :exec
-UPDATE plugin_instances SET
-    last_deployed_at = $2
-WHERE app_id = $1
-`
-
-type UpdatePluginInstancesLastDeployedAtParams struct {
-	AppID          string
-	LastDeployedAt pgtype.Timestamp
-}
-
-func (q *Queries) UpdatePluginInstancesLastDeployedAt(ctx context.Context, arg UpdatePluginInstancesLastDeployedAtParams) error {
-	_, err := q.db.Exec(ctx, updatePluginInstancesLastDeployedAt, arg.AppID, arg.LastDeployedAt)
-	return err
 }

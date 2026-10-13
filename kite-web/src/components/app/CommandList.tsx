@@ -21,18 +21,16 @@ export default function CommandList() {
         </>
       ) : (
         <>
+          <CommandDeployStatus />
           {commands.length === 0 ? (
             <AppEmptyPlaceholder
               title="There are no commands"
               description="You can start now by creating the first command!"
             />
           ) : (
-            <>
-              <CommandDeployStatus />
-              {commands.map((command, i) => (
-                <CommandListEntry command={command!} key={i} />
-              ))}
-            </>
+            commands.map((command, i) => (
+              <CommandListEntry command={command!} key={i} />
+            ))
           )}
 
           <div className="flex gap-5 flex-col md:flex-row">

@@ -77,12 +77,13 @@ func formError(rawErrors []byte, cmdData []api.CreateCommandData) *DeployError {
 				continue
 			}
 			node = v[j]
-			field = ""
-			if item, ok := node.(map[string]any); ok {
+			// Only options are named in the location, not choices.
+			if item, ok := node.(map[string]any); ok && field == "options" {
 				if name, ok := item["name"].(string); ok {
 					names = append(names, name)
 				}
 			}
+			field = ""
 		}
 	}
 

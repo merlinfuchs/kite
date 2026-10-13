@@ -10,17 +10,16 @@ import (
 )
 
 type Command struct {
-	ID             string        `json:"id"`
-	Name           string        `json:"name"`
-	Description    string        `json:"description"`
-	Enabled        bool          `json:"enabled"`
-	AppID          string        `json:"app_id"`
-	ModuleID       null.String   `json:"module_id"`
-	CreatorUserID  string        `json:"creator_user_id"`
-	FlowSource     flow.FlowData `json:"flow_source"`
-	CreatedAt      time.Time     `json:"created_at"`
-	UpdatedAt      time.Time     `json:"updated_at"`
-	LastDeployedAt null.Time     `json:"last_deployed_at"`
+	ID            string        `json:"id"`
+	Name          string        `json:"name"`
+	Description   string        `json:"description"`
+	Enabled       bool          `json:"enabled"`
+	AppID         string        `json:"app_id"`
+	ModuleID      null.String   `json:"module_id"`
+	CreatorUserID string        `json:"creator_user_id"`
+	FlowSource    flow.FlowData `json:"flow_source"`
+	CreatedAt     time.Time     `json:"created_at"`
+	UpdatedAt     time.Time     `json:"updated_at"`
 }
 
 type CommandGetResponse = Command
@@ -84,16 +83,15 @@ func CommandToWire(command *model.Command) *Command {
 	}
 
 	return &Command{
-		ID:             command.ID,
-		Name:           command.Name,
-		Description:    command.Description,
-		Enabled:        command.Enabled,
-		AppID:          command.AppID,
-		ModuleID:       command.ModuleID,
-		CreatorUserID:  command.CreatorUserID,
-		FlowSource:     command.FlowSource,
-		CreatedAt:      command.CreatedAt,
-		UpdatedAt:      command.UpdatedAt,
-		LastDeployedAt: command.LastDeployedAt,
+		ID:            command.ID,
+		Name:          command.Name,
+		Description:   command.Description,
+		Enabled:       command.Enabled,
+		AppID:         command.AppID,
+		ModuleID:      command.ModuleID,
+		CreatorUserID: command.CreatorUserID,
+		FlowSource:    command.FlowSource,
+		CreatedAt:     command.CreatedAt,
+		UpdatedAt:     command.UpdatedAt,
 	}
 }

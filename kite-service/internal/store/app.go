@@ -26,13 +26,13 @@ type AppDisableOpts struct {
 }
 
 type AppCommandsDeployResult struct {
-	ID        string
-	StartedAt time.Time
+	ID string
+	// Version is the commands version of the app the deploy started from.
+	Version int64
 	// RetryAt is the earliest time the commands are deployed again if they
-	// change.
-	RetryAt time.Time
-	// DeployedHash is the hash of the deployed commands, or null if they
-	// weren't deployed.
+	// change. It's only set if Discord was called.
+	RetryAt null.Time
+	// DeployedHash is the hash of the commands in Discord, or null if unknown.
 	DeployedHash null.String
 	Error        null.String
 	ErrorCommand null.String
@@ -72,7 +72,7 @@ type AppStore interface {
 	AppIDsWithGatewayRequirementsChangedSince(ctx context.Context, updatedSince time.Time) ([]string, error)
 	// MarkAppCommandsChanged queues the app's commands to be deployed to
 	// Discord. Forcing deploys them even if they look unchanged.
-	MarkAppCommandsChanged(ctx context.Context, appID string, changedAt time.Time, force bool) error
+	MarkAppCommandsChanged(ctx context.Context, appID string, force bool) error
 	AppIDsWithPendingCommandsDeploy(ctx context.Context, changedBefore time.Time, limit int) ([]string, error)
 	FinishAppCommandsDeploy(ctx context.Context, res AppCommandsDeployResult) error
 	DelayAppCommandsDeploy(ctx context.Context, appID string, retryAt time.Time) error

@@ -91,30 +91,6 @@ func (q *Queries) DeleteCommand(ctx context.Context, id string) error {
 	return err
 }
 
-const dinstinctAppIDsWithUndeployedCommands = `-- name: DinstinctAppIDsWithUndeployedCommands :many
-SELECT DISTINCT app_id FROM commands WHERE last_deployed_at IS NULL OR last_deployed_at < updated_at
-`
-
-func (q *Queries) DinstinctAppIDsWithUndeployedCommands(ctx context.Context) ([]string, error) {
-	rows, err := q.db.Query(ctx, dinstinctAppIDsWithUndeployedCommands)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []string
-	for rows.Next() {
-		var app_id string
-		if err := rows.Scan(&app_id); err != nil {
-			return nil, err
-		}
-		items = append(items, app_id)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
 const getCommand = `-- name: GetCommand :one
 SELECT id, name, description, enabled, app_id, module_id, creator_user_id, flow_source, created_at, updated_at, last_deployed_at FROM commands WHERE id = $1
 `
@@ -277,20 +253,4 @@ func (q *Queries) UpdateCommand(ctx context.Context, arg UpdateCommandParams) (C
 		&i.LastDeployedAt,
 	)
 	return i, err
-}
-
-const updateCommandsLastDeployedAt = `-- name: UpdateCommandsLastDeployedAt :exec
-UPDATE commands SET
-    last_deployed_at = $2
-WHERE app_id = $1
-`
-
-type UpdateCommandsLastDeployedAtParams struct {
-	AppID          string
-	LastDeployedAt pgtype.Timestamp
-}
-
-func (q *Queries) UpdateCommandsLastDeployedAt(ctx context.Context, arg UpdateCommandsLastDeployedAtParams) error {
-	_, err := q.db.Exec(ctx, updateCommandsLastDeployedAt, arg.AppID, arg.LastDeployedAt)
-	return err
 }

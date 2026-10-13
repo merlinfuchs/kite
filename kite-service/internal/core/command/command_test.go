@@ -99,7 +99,7 @@ func TestDiscordDeployError(t *testing.T) {
 			Description: "Ban",
 			Options: discord.CommandOptions{
 				&discord.UserOption{OptionName: "user", Description: "User"},
-				&discord.StringOption{OptionName: "reason", Description: ""},
+				&discord.StringOption{OptionName: "reason", Description: "", Choices: []discord.StringChoice{{Name: "Spam", Value: "spam"}}},
 			},
 		},
 	}
@@ -119,6 +119,16 @@ func TestDiscordDeployError(t *testing.T) {
 				Errors:  []byte(`{"1": {"options": {"1": {"description": {"_errors": [{"code": "BASE_TYPE_BAD_LENGTH", "message": "Must be between 1 and 100 in length."}]}}}}}`),
 			},
 			message: "Description of /ban reason: Must be between 1 and 100 in length.",
+			command: "ban",
+		},
+		{
+			name: "choice",
+			err: &httputil.HTTPError{
+				Status: 400,
+				Code:   50035,
+				Errors: []byte(`{"1": {"options": {"1": {"choices": {"0": {"name": {"_errors": [{"code": "X", "message": "Too long"}]}}}}}}}`),
+			},
+			message: "Name of /ban reason: Too long",
 			command: "ban",
 		},
 		{

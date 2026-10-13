@@ -280,7 +280,6 @@ export function useCommandUpdateEnabledMutation(appId: string, cmdId: string) {
       client.invalidateQueries({
         queryKey: ["apps", appId, "commands"],
       });
-      client.invalidateQueries({ queryKey: ["apps", appId], exact: true });
     },
   });
 }
@@ -1054,9 +1053,6 @@ export function useCommandsDeployMutation(appId: string) {
         method: "POST",
       }),
     onSuccess: () => {
-      client.invalidateQueries({
-        queryKey: ["apps", appId, "commands"],
-      });
       client.invalidateQueries({ queryKey: ["apps", appId], exact: true });
     },
   });

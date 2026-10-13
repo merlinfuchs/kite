@@ -1,8 +1,7 @@
-import { commandDeployState } from "@/components/app/CommandDeployStatus";
 import FlowPage from "@/components/flow/FlowPage";
 import { useCommandUpdateMutation } from "@/lib/api/mutations";
 import { FlowData } from "@/lib/flow/dataSchema";
-import { useApp, useCommand, useFlowLogEntries } from "@/lib/hooks/api";
+import { useCommand, useFlowLogEntries } from "@/lib/hooks/api";
 import { useUnsavedChangesWarning } from "@/lib/hooks/exit";
 import { useAppId, useCommandId } from "@/lib/hooks/params";
 import Head from "next/head";
@@ -27,8 +26,6 @@ export default function AppCommandPage() {
   });
 
   const updateMutation = useCommandUpdateMutation(useAppId(), useCommandId());
-
-  const app = useApp();
 
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
@@ -83,8 +80,7 @@ export default function AppCommandPage() {
           flowData={cmd.flow_source}
           context="command"
           hasUnsavedChanges={hasUnsavedChanges}
-          deployState={app ? commandDeployState(app) : undefined}
-          deployError={app?.commands_deploy_error}
+          showDeployStatus
           onChange={onChange}
           isSaving={updateMutation.isPending}
           onSave={save}

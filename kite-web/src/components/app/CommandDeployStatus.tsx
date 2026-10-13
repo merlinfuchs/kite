@@ -14,7 +14,6 @@ import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
 
 export type CommandDeployState = "pending" | "stopped" | "error" | "deployed";
 
-// Kite deploys the commands to Discord in the background after every change.
 export function commandDeployState(app: App): CommandDeployState {
   if (app.commands_deploy_pending) {
     return app.enabled ? "pending" : "stopped";
@@ -25,29 +24,35 @@ export function commandDeployState(app: App): CommandDeployState {
 // Whether Discord rejected the commands because of the command with this name.
 // Subcommands are deployed as part of their root command.
 export function isCommandDeployErrorCause(app: App, commandName: string) {
-  return (
-    !!app.commands_deploy_error_command &&
-    app.commands_deploy_error_command === commandName.split(" ")[0]
-  );
+  return app.commands_deploy_error_command === commandName.split(" ")[0];
 }
 
-export default function CommandDeployStatus() {
-  const app = useApp();
+// Sends the commands to Discord again, even if they look unchanged.
+export function useRedeployCommands(onSuccess?: () => void) {
   const deployMutation = useCommandsDeployMutation(useAppId());
 
-  if (!app) return null;
-
-  function retry() {
+  function redeploy() {
     deployMutation.mutate(undefined, {
       onSuccess(res) {
-        if (!res.success) {
+        if (res.success) {
+          onSuccess?.();
+        } else {
           toast.error(
-            `Failed to deploy commands: ${res.error.message} (${res.error.code})`
+            `Failed to sync commands: ${res.error.message} (${res.error.code})`
           );
         }
       },
     });
   }
+
+  return { redeploy, isPending: deployMutation.isPending };
+}
+
+export default function CommandDeployStatus() {
+  const app = useApp();
+  const { redeploy, isPending } = useRedeployCommands();
+
+  if (!app) return null;
 
   const state = commandDeployState(app);
 
@@ -55,7 +60,9 @@ export default function CommandDeployStatus() {
     return (
       <Alert variant="destructive">
         <AlertCircleIcon className="h-4 w-4" />
-        <AlertTitle>Discord rejected your latest changes</AlertTitle>
+        <AlertTitle>
+          Your commands couldn&apos;t be updated in Discord
+        </AlertTitle>
         <AlertDescription className="space-y-3">
           <p>{app.commands_deploy_error}</p>
           <p className="text-foreground/80">
@@ -66,8 +73,8 @@ export default function CommandDeployStatus() {
           <LoadingButton
             size="sm"
             variant="outline"
-            loading={deployMutation.isPending}
-            onClick={retry}
+            loading={isPending}
+            onClick={redeploy}
           >
             Try again
           </LoadingButton>

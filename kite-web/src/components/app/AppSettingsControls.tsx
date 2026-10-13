@@ -9,33 +9,18 @@ import AppEmptyPlaceholder from "./AppEmptyPlaceholder";
 import { Button } from "../ui/button";
 import LoadingButton from "../common/LoadingButton";
 import { useApp } from "@/lib/hooks/api";
-import {
-  useAppUpdateMutation,
-  useCommandsDeployMutation,
-} from "@/lib/api/mutations";
+import { useAppUpdateMutation } from "@/lib/api/mutations";
+import { useRedeployCommands } from "./CommandDeployStatus";
 import { useAppId } from "@/lib/hooks/params";
 import { toast } from "sonner";
 
 export default function AppSettingsControls() {
   const app = useApp();
 
-  const appId = useAppId();
-  const updateMutation = useAppUpdateMutation(appId);
-  const deployMutation = useCommandsDeployMutation(appId);
-
-  function syncCommands() {
-    deployMutation.mutate(undefined, {
-      onSuccess(res) {
-        if (res.success) {
-          toast.success("Your commands are being sent to Discord again.");
-        } else {
-          toast.error(
-            `Failed to sync commands: ${res.error.message} (${res.error.code})`
-          );
-        }
-      },
-    });
-  }
+  const updateMutation = useAppUpdateMutation(useAppId());
+  const { redeploy, isPending: isRedeploying } = useRedeployCommands(() =>
+    toast.success("Your commands are being sent to Discord again.")
+  );
 
   function toggleEnabled() {
     if (!app) return;
@@ -105,8 +90,8 @@ export default function AppSettingsControls() {
           </div>
           <LoadingButton
             variant="secondary"
-            loading={deployMutation.isPending}
-            onClick={syncCommands}
+            loading={isRedeploying}
+            onClick={redeploy}
           >
             Sync Commands
           </LoadingButton>

@@ -213,11 +213,10 @@ func (c *Client) EnabledAppsUpdatedSince(ctx context.Context, updatedSince time.
 	return apps, nil
 }
 
-func (c *Client) MarkAppCommandsChanged(ctx context.Context, appID string, changedAt time.Time, force bool) error {
+func (c *Client) MarkAppCommandsChanged(ctx context.Context, appID string, force bool) error {
 	return c.Q.MarkAppCommandsChanged(ctx, pgmodel.MarkAppCommandsChangedParams{
-		ID:        appID,
-		ChangedAt: pgtype.Timestamp{Time: changedAt.UTC(), Valid: true},
-		Force:     force,
+		ID:    appID,
+		Force: force,
 	})
 }
 
@@ -232,8 +231,8 @@ func (c *Client) AppIDsWithPendingCommandsDeploy(ctx context.Context, changedBef
 func (c *Client) FinishAppCommandsDeploy(ctx context.Context, res store.AppCommandsDeployResult) error {
 	return c.Q.FinishAppCommandsDeploy(ctx, pgmodel.FinishAppCommandsDeployParams{
 		ID:           res.ID,
-		StartedAt:    pgtype.Timestamp{Time: res.StartedAt.UTC(), Valid: true},
-		RetryAt:      pgtype.Timestamp{Time: res.RetryAt.UTC(), Valid: true},
+		Version:      res.Version,
+		RetryAt:      pgtype.Timestamp{Time: res.RetryAt.Time.UTC(), Valid: res.RetryAt.Valid},
 		DeployedHash: pgtype.Text{String: res.DeployedHash.String, Valid: res.DeployedHash.Valid},
 		Error:        pgtype.Text{String: res.Error.String, Valid: res.Error.Valid},
 		ErrorCommand: pgtype.Text{String: res.ErrorCommand.String, Valid: res.ErrorCommand.Valid},
@@ -289,6 +288,7 @@ func rowToApp(row pgmodel.App) (*model.App, error) {
 		UpdatedAt:      row.UpdatedAt.Time,
 
 		CommandsDeployPending:      row.CommandsDeployPending,
+		CommandsVersion:            row.CommandsVersion,
 		CommandsDeployedHash:       null.NewString(row.CommandsDeployedHash.String, row.CommandsDeployedHash.Valid),
 		CommandsDeployError:        null.NewString(row.CommandsDeployError.String, row.CommandsDeployError.Valid),
 		CommandsDeployErrorCommand: null.NewString(row.CommandsDeployErrorCommand.String, row.CommandsDeployErrorCommand.Valid),

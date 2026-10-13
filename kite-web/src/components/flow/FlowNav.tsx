@@ -13,13 +13,17 @@ import {
 } from "lucide-react";
 import { useCallback, useEffect } from "react";
 import { cn } from "@/lib/utils";
-import { CommandDeployState } from "../app/CommandDeployStatus";
+import {
+  CommandDeployState,
+  commandDeployState,
+} from "../app/CommandDeployStatus";
+import { useApp } from "@/lib/hooks/api";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
 
 interface Props {
   hasUnsavedChanges: boolean;
-  deployState?: CommandDeployState;
-  deployError?: string | null;
+  // Commands show whether their changes are in Discord yet.
+  showDeployStatus?: boolean;
   isSaving: boolean;
   onSave: (d: FlowData) => void;
   onExit: () => void;
@@ -29,8 +33,7 @@ interface Props {
 
 export default function FlowNav({
   hasUnsavedChanges,
-  deployState,
-  deployError,
+  showDeployStatus,
   isSaving,
   onSave,
   onExit,
@@ -38,6 +41,7 @@ export default function FlowNav({
   onChatOpenChange,
 }: Props) {
   const { theme, setTheme } = useHookedTheme();
+  const app = useApp();
 
   const { getEdges, getNodes } = useReactFlow<Node<NodeProps>>();
 
@@ -100,8 +104,11 @@ export default function FlowNav({
             <span className="hidden md:inline">No Unsaved Changes</span>
           </div>
         )}
-        {deployState && (
-          <DeployStatus state={deployState} error={deployError} />
+        {showDeployStatus && app && (
+          <DeployStatus
+            state={commandDeployState(app)}
+            error={app.commands_deploy_error}
+          />
         )}
       </div>
       <div className="flex items-center space-x-2 sm:space-x-4 md:space-x-6">
@@ -156,8 +163,8 @@ const deployStatuses = {
   },
   error: {
     icon: <AlertCircleIcon className="h-5 w-5 flex-none text-destructive" />,
-    label: "Discord Rejected Changes",
-    description: "",
+    label: "Not Updated in Discord",
+    description: null,
   },
   deployed: {
     icon: <CheckIcon className="h-5 w-5 flex-none" />,

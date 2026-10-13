@@ -18,6 +18,7 @@ import (
 	"github.com/diamondburned/arikawa/v3/api"
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/utils/httputil"
+	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/internal/store"
 	"github.com/kitecloud/kite/kite-service/pkg/flow"
 	"gopkg.in/guregu/null.v4"
@@ -27,7 +28,8 @@ const (
 	// Commands wait this long after a change, so quick successive changes are
 	// deployed together.
 	deployDelay = 3 * time.Second
-	// Discord limits how often an app can overwrite its commands.
+	// The least time between two deploys of an app, to stay clear of Discord's
+	// rate limits.
 	deployInterval = 30 * time.Second
 	// How long to wait before trying again when Discord or the network failed.
 	deployRetryInterval = 1 * time.Minute
@@ -51,7 +53,7 @@ func (e *DeployError) Error() string {
 // background. Forcing deploys them even if they look unchanged, in case they
 // were changed outside of Kite.
 func (m *CommandManager) MarkCommandsChanged(ctx context.Context, appID string, force bool) error {
-	return m.appStore.MarkAppCommandsChanged(ctx, appID, time.Now().UTC(), force)
+	return m.appStore.MarkAppCommandsChanged(ctx, appID, force)
 }
 
 // Run deploys the commands of apps whose commands changed to Discord.
@@ -102,30 +104,35 @@ func (m *CommandManager) deployPendingApps(ctx context.Context) {
 }
 
 func (m *CommandManager) deployCommands(ctx context.Context, appID string) error {
+	app, err := m.appStore.App(ctx, appID)
+	if err != nil {
+		return fmt.Errorf("failed to get app: %w", err)
+	}
+
 	// The result is stored with ctx, so it's stored even if the deploy timed out.
 	deployCtx, cancel := context.WithTimeout(ctx, deployTimeout)
 	defer cancel()
 
-	startedAt := time.Now().UTC()
-	res := store.AppCommandsDeployResult{
-		ID:        appID,
-		StartedAt: startedAt,
-		RetryAt:   startedAt.Add(deployInterval),
+	res := store.AppCommandsDeployResult{ID: appID, Version: app.CommandsVersion}
+
+	hash, calledDiscord, err := m.sendCommands(deployCtx, app)
+	if calledDiscord {
+		res.RetryAt = null.TimeFrom(time.Now().Add(deployInterval))
 	}
 
-	err := m.deployCommandsOnce(deployCtx, appID, &res)
-	if err != nil {
-		var deployErr *DeployError
-		if !errors.As(err, &deployErr) {
-			// Try again later, the commands may well be fine.
-			if delayErr := m.appStore.DelayAppCommandsDeploy(ctx, appID, time.Now().Add(deployRetryInterval)); delayErr != nil {
-				return fmt.Errorf("failed to delay commands deploy: %w", delayErr)
-			}
-			return err
-		}
-
+	var deployErr *DeployError
+	switch {
+	case errors.As(err, &deployErr):
 		res.Error = null.StringFrom(deployErr.Message)
 		res.ErrorCommand = null.NewString(deployErr.Command, deployErr.Command != "")
+	case err != nil:
+		// Try again later, the commands may well be fine.
+		if delayErr := m.appStore.DelayAppCommandsDeploy(ctx, appID, time.Now().Add(deployRetryInterval)); delayErr != nil {
+			return fmt.Errorf("failed to delay commands deploy: %w", delayErr)
+		}
+		return err
+	default:
+		res.DeployedHash = null.StringFrom(hash)
 	}
 
 	if err := m.appStore.FinishAppCommandsDeploy(ctx, res); err != nil {
@@ -134,38 +141,34 @@ func (m *CommandManager) deployCommands(ctx context.Context, appID string) error
 	return nil
 }
 
-func (m *CommandManager) deployCommandsOnce(ctx context.Context, appID string, res *store.AppCommandsDeployResult) error {
-	app, err := m.appStore.App(ctx, appID)
+// sendCommands sends the app's commands to Discord, unless they're unchanged
+// since the last time. It returns their hash and whether Discord was called.
+func (m *CommandManager) sendCommands(ctx context.Context, app *model.App) (string, bool, error) {
+	commands, err := m.appCommands(ctx, app.ID)
 	if err != nil {
-		return fmt.Errorf("failed to get app: %w", err)
-	}
-
-	commands, err := m.appCommands(ctx, appID)
-	if err != nil {
-		return err
+		return "", false, err
 	}
 
 	cmdData := mergeCommands(commands)
 
 	hash, err := hashCommands(app.DiscordID, cmdData)
 	if err != nil {
-		return fmt.Errorf("failed to hash commands: %w", err)
+		return "", false, fmt.Errorf("failed to hash commands: %w", err)
 	}
 
 	// Most changes only change what a command does, which needs no deploy.
 	if app.CommandsDeployedHash.Valid && app.CommandsDeployedHash.String == hash {
-		res.DeployedHash = null.StringFrom(hash)
-		return nil
+		return hash, false, nil
 	}
 
 	appId, err := strconv.ParseUint(app.DiscordID, 10, 64)
 	if err != nil {
-		return fmt.Errorf("failed to parse app ID: %w", err)
+		return "", false, fmt.Errorf("failed to parse app ID: %w", err)
 	}
 
 	token, err := m.tokenCrypt.DecryptString(app.DiscordToken)
 	if err != nil {
-		return fmt.Errorf("failed to decrypt token: %w", err)
+		return "", false, fmt.Errorf("failed to decrypt token: %w", err)
 	}
 
 	client := api.NewClient("Bot " + token).WithContext(ctx)
@@ -174,24 +177,12 @@ func (m *CommandManager) deployCommandsOnce(ctx context.Context, appID string, r
 	if err != nil {
 		var httpErr *httputil.HTTPError
 		if errors.As(err, &httpErr) && httpErr.Status >= 400 && httpErr.Status < 500 && httpErr.Status != http.StatusTooManyRequests {
-			return discordDeployError(httpErr, cmdData)
+			return "", true, discordDeployError(httpErr, cmdData)
 		}
-		return fmt.Errorf("failed to deploy commands: %w", err)
+		return "", true, fmt.Errorf("failed to deploy commands: %w", err)
 	}
 
-	res.DeployedHash = null.StringFrom(hash)
-
-	err = m.commandStore.UpdateCommandsLastDeployedAt(ctx, appID, res.StartedAt)
-	if err != nil {
-		return fmt.Errorf("failed to update last deployed at: %w", err)
-	}
-
-	err = m.pluginInstanceStore.UpdatePluginInstancesLastDeployedAt(ctx, appID, res.StartedAt)
-	if err != nil {
-		return fmt.Errorf("failed to update last deployed at: %w", err)
-	}
-
-	return nil
+	return hash, true, nil
 }
 
 func hashCommands(discordAppID string, cmdData []api.CreateCommandData) (string, error) {
@@ -212,9 +203,9 @@ func (m *CommandManager) appCommands(ctx context.Context, appID string) ([]api.C
 		return nil, fmt.Errorf("failed to get commands by app: %w", err)
 	}
 
-	pluginInstances, err := m.pluginInstanceStore.PluginInstancesByApp(ctx, appID)
+	pluginCommands, err := m.pluginCommands(ctx, appID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get plugin instances by app: %w", err)
+		return nil, err
 	}
 
 	commandNames := make([]string, 0, len(commands))
@@ -240,6 +231,26 @@ func (m *CommandManager) appCommands(ctx context.Context, appID string) ([]api.C
 		commandNames = append(commandNames, node.CommandName())
 	}
 
+	for _, command := range pluginCommands {
+		commandNames = append(commandNames, command.Name)
+		res = append(res, command)
+	}
+
+	if err := validateCommandNames(commandNames); err != nil {
+		return nil, err
+	}
+
+	return res, nil
+}
+
+// pluginCommands returns the commands the app's plugins add.
+func (m *CommandManager) pluginCommands(ctx context.Context, appID string) ([]api.CreateCommandData, error) {
+	pluginInstances, err := m.pluginInstanceStore.PluginInstancesByApp(ctx, appID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get plugin instances by app: %w", err)
+	}
+
+	var res []api.CreateCommandData
 	for _, pluginInstance := range pluginInstances {
 		plugin := m.pluginRegistry.Plugin(pluginInstance.PluginID)
 		if plugin == nil {
@@ -249,16 +260,10 @@ func (m *CommandManager) appCommands(ctx context.Context, appID string) ([]api.C
 
 		for _, command := range plugin.Commands() {
 			if slices.Contains(pluginInstance.EnabledResourceIDs, command.ID) {
-				commandNames = append(commandNames, command.ID)
 				res = append(res, command.Data)
 			}
 		}
 	}
-
-	if err := validateCommandNames(commandNames); err != nil {
-		return nil, err
-	}
-
 	return res, nil
 }
 
@@ -320,27 +325,19 @@ func (m *CommandManager) CheckCommandNames(ctx context.Context, appID string, re
 		return fmt.Errorf("failed to get commands by app: %w", err)
 	}
 
-	pluginInstances, err := m.pluginInstanceStore.PluginInstancesByApp(ctx, appID)
+	pluginCommands, err := m.pluginCommands(ctx, appID)
 	if err != nil {
-		return fmt.Errorf("failed to get plugin instances by app: %w", err)
+		return err
 	}
 
-	existing := make([]string, 0, len(commands))
+	existing := make([]string, 0, len(commands)+len(pluginCommands))
 	for _, command := range commands {
 		if command.ID != replacedCommandID {
 			existing = append(existing, command.Name)
 		}
 	}
-	for _, pluginInstance := range pluginInstances {
-		plugin := m.pluginRegistry.Plugin(pluginInstance.PluginID)
-		if plugin == nil {
-			continue
-		}
-		for _, command := range plugin.Commands() {
-			if slices.Contains(pluginInstance.EnabledResourceIDs, command.ID) {
-				existing = append(existing, command.ID)
-			}
-		}
+	for _, command := range pluginCommands {
+		existing = append(existing, command.Name)
 	}
 
 	for i, name := range names {

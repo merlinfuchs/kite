@@ -138,7 +138,8 @@ WHERE variables.app_id = $1;
 -- name: MarkAppCommandsChanged :exec
 UPDATE apps SET
     commands_deploy_pending = TRUE,
-    commands_changed_at = sqlc.arg(changed_at),
+    commands_version = commands_version + 1,
+    commands_changed_at = now() AT TIME ZONE 'UTC',
     commands_deployed_hash = CASE WHEN sqlc.arg(force)::BOOLEAN THEN NULL ELSE commands_deployed_hash END
 WHERE id = sqlc.arg(id);
 
@@ -152,12 +153,17 @@ WHERE commands_deploy_pending AND enabled
 ORDER BY commands_changed_at
 LIMIT sqlc.arg(max_apps);
 
--- Stays pending if the commands changed again while deploying.
+-- version is the commands_version the deploy started from. If the commands
+-- changed meanwhile, the app stays pending and keeps its hash, which may have
+-- been cleared to force the next deploy.
 -- name: FinishAppCommandsDeploy :exec
 UPDATE apps SET
-    commands_deploy_pending = commands_changed_at > sqlc.arg(started_at),
-    commands_deploy_retry_at = sqlc.arg(retry_at),
-    commands_deployed_hash = COALESCE(sqlc.narg(deployed_hash), commands_deployed_hash),
+    commands_deploy_pending = commands_version > sqlc.arg(version),
+    commands_deploy_retry_at = COALESCE(sqlc.narg(retry_at), commands_deploy_retry_at),
+    commands_deployed_hash = CASE
+        WHEN commands_version = sqlc.arg(version) THEN COALESCE(sqlc.narg(deployed_hash), commands_deployed_hash)
+        ELSE commands_deployed_hash
+    END,
     commands_deploy_error = sqlc.narg(error),
     commands_deploy_error_command = sqlc.narg(error_command)
 WHERE id = sqlc.arg(id);

@@ -133,6 +133,10 @@ func (h *AppHandler) HandleAppUpdate(c *handler.Context, req wire.AppUpdateReque
 		return nil, fmt.Errorf("failed to update app: %w", err)
 	}
 
+	if req.Enabled && !c.App.Enabled {
+		h.retryFailedCommandsDeploy(c)
+	}
+
 	if req.Name != c.App.Name || req.Description != c.App.Description {
 		if err := h.updateDiscordApp(c.Context(), app); err != nil {
 			if util.IsDiscordRestStatusCode(err, http.StatusUnauthorized) {
@@ -243,6 +247,8 @@ func (h *AppHandler) HandleAppTokenUpdate(c *handler.Context, req wire.AppTokenU
 		)
 		return nil, fmt.Errorf("failed to update app: %w", err)
 	}
+
+	h.retryFailedCommandsDeploy(c)
 
 	return wire.AppToWire(app), nil
 }

@@ -22,6 +22,7 @@ type App struct {
 	DiscordStatus              []byte
 	DisabledReason             pgtype.Text
 	CommandsDeployPending      bool
+	CommandsVersion            int64
 	CommandsChangedAt          pgtype.Timestamp
 	CommandsDeployRetryAt      pgtype.Timestamp
 	CommandsDeployedHash       pgtype.Text

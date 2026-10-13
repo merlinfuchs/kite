@@ -3,6 +3,7 @@ package command
 import (
 	"errors"
 	"fmt"
+	"log/slog"
 	"time"
 
 	"github.com/kitecloud/kite/kite-service/internal/api/handler"
@@ -38,10 +39,6 @@ func (h *CommandHandler) HandleCommandList(c *handler.Context) (*wire.CommandLis
 	res := make([]*wire.Command, len(commands))
 	for i, command := range commands {
 		res[i] = wire.CommandToWire(command)
-	}
-
-	if err := h.markCommandsChanged(c); err != nil {
-		return nil, err
 	}
 
 	return &res, nil
@@ -87,9 +84,7 @@ func (h *CommandHandler) HandleCommandCreate(c *handler.Context, req wire.Comman
 		return nil, fmt.Errorf("failed to create command: %w", err)
 	}
 
-	if err := h.markCommandsChanged(c); err != nil {
-		return nil, err
-	}
+	h.markCommandsChanged(c)
 
 	return wire.CommandToWire(command), nil
 }
@@ -144,9 +139,7 @@ func (h *CommandHandler) HandleCommandsImport(c *handler.Context, req wire.Comma
 		res[i] = wire.CommandToWire(command)
 	}
 
-	if err := h.markCommandsChanged(c); err != nil {
-		return nil, err
-	}
+	h.markCommandsChanged(c)
 
 	return &res, nil
 }
@@ -157,8 +150,11 @@ func (h *CommandHandler) HandleCommandUpdate(c *handler.Context, req wire.Comman
 		return nil, fmt.Errorf("failed to compile command: %w", err)
 	}
 
-	if err := h.checkCommandNames(c, c.Command.ID, cmdFlow.CommandName()); err != nil {
-		return nil, err
+	// Don't block saving an existing conflict that this change didn't cause.
+	if cmdFlow.CommandName() != c.Command.Name {
+		if err := h.checkCommandNames(c, c.Command.ID, cmdFlow.CommandName()); err != nil {
+			return nil, err
+		}
 	}
 
 	command, err := h.commandStore.UpdateCommand(c.Context(), &model.Command{
@@ -176,9 +172,7 @@ func (h *CommandHandler) HandleCommandUpdate(c *handler.Context, req wire.Comman
 		return nil, fmt.Errorf("failed to update command: %w", err)
 	}
 
-	if err := h.markCommandsChanged(c); err != nil {
-		return nil, err
-	}
+	h.markCommandsChanged(c)
 
 	return wire.CommandToWire(command), nil
 }
@@ -199,10 +193,6 @@ func (h *CommandHandler) HandleCommandUpdateEnabled(c *handler.Context, req wire
 		return nil, fmt.Errorf("failed to update command: %w", err)
 	}
 
-	if err := h.markCommandsChanged(c); err != nil {
-		return nil, err
-	}
-
 	return wire.CommandToWire(command), nil
 }
 
@@ -215,9 +205,7 @@ func (h *CommandHandler) HandleCommandDelete(c *handler.Context) (*wire.CommandD
 		return nil, fmt.Errorf("failed to delete command: %w", err)
 	}
 
-	if err := h.markCommandsChanged(c); err != nil {
-		return nil, err
-	}
+	h.markCommandsChanged(c)
 
 	return &wire.CommandDeleteResponse{}, nil
 }
@@ -247,9 +235,14 @@ func (h *CommandHandler) checkCommandNames(c *handler.Context, replacedCommandID
 	return nil
 }
 
-func (h *CommandHandler) markCommandsChanged(c *handler.Context) error {
+// markCommandsChanged queues the commands to be deployed. The change is saved
+// already, so a failure is only logged.
+func (h *CommandHandler) markCommandsChanged(c *handler.Context) {
 	if err := h.commandManager.MarkCommandsChanged(c.Context(), c.App.ID, false); err != nil {
-		return fmt.Errorf("failed to mark commands changed: %w", err)
+		slog.Error(
+			"Failed to mark commands changed",
+			slog.String("app_id", c.App.ID),
+			slog.String("error", err.Error()),
+		)
 	}
-	return nil
 }

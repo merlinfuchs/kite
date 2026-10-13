@@ -300,7 +300,6 @@ export interface Command {
   flow_source: FlowData;
   created_at: string /* RFC3339 */;
   updated_at: string /* RFC3339 */;
-  last_deployed_at: null | string /* RFC3339 */;
 }
 export type CommandGetResponse = Command;
 export type CommandListResponse = (Command | undefined)[];
@@ -590,7 +589,6 @@ export interface PluginInstance {
   enabled_resource_ids: string[];
   created_at: string /* RFC3339 */;
   updated_at: string /* RFC3339 */;
-  last_deployed_at: null | string /* RFC3339 */;
 }
 export type PluginInstanceGetResponse = PluginInstance;
 export type PluginInstanceListResponse = (PluginInstance | undefined)[];

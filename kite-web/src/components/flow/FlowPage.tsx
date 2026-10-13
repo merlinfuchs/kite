@@ -6,15 +6,13 @@ import Flow from "./Flow";
 import { FlowContextType } from "@/lib/flow/context";
 import { LogEntry } from "@/lib/types/wire.gen";
 import UnsavedChangesDialog from "@/components/common/UnsavedChangesDialog";
-import { CommandDeployState } from "../app/CommandDeployStatus";
 
 interface Props {
   flowData: FlowData;
   logs?: LogEntry[];
   context: FlowContextType;
   hasUnsavedChanges: boolean;
-  deployState?: CommandDeployState;
-  deployError?: string | null;
+  showDeployStatus?: boolean;
   onChange: () => void;
   isSaving: boolean;
   onSave: (data: FlowData, options?: { onSuccess?: () => void }) => void;
@@ -28,8 +26,7 @@ function InnerFlowPage({
   hasUnsavedChanges,
   onChange,
   isSaving,
-  deployState,
-  deployError,
+  showDeployStatus,
   onSave,
   onExit,
 }: Props) {
@@ -78,8 +75,7 @@ function InnerFlowPage({
         <FlowNav
           hasUnsavedChanges={hasUnsavedChanges}
           isSaving={isSaving}
-          deployState={deployState}
-          deployError={deployError}
+          showDeployStatus={showDeployStatus}
           onSave={onSave}
           onExit={handleExitRequest}
           chatOpen={chatOpen}
