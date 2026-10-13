@@ -1,3 +1,6 @@
+import { useState } from "react";
+import ListSearchInput, { ListSearchEmpty } from "./ListSearchInput";
+import { matchesSearch } from "@/lib/search";
 import { Button } from "../ui/button";
 import AppEmptyPlaceholder from "./AppEmptyPlaceholder";
 import { Skeleton } from "../ui/skeleton";
@@ -8,6 +11,11 @@ import VariableCreateDialog from "./VariableCreateDialog";
 
 export default function VariableList() {
   const variables = useVariables();
+  const [search, setSearch] = useState("");
+
+  const filtered = variables?.filter((variable) =>
+    matchesSearch(search, [variable!.name])
+  );
 
   const variableCreateButton = (
     <VariableCreateDialog>
@@ -31,9 +39,18 @@ export default function VariableList() {
         />
       ) : (
         <>
-          {variables.map((variable, i) => (
-            <VariableListEntry variable={variable!} key={i} />
-          ))}
+          <ListSearchInput
+            value={search}
+            onChange={setSearch}
+            placeholder="Search variables"
+          />
+          {filtered!.length === 0 ? (
+            <ListSearchEmpty query={search} />
+          ) : (
+            filtered!.map((variable) => (
+              <VariableListEntry variable={variable!} key={variable!.id} />
+            ))
+          )}
           <div className="flex">{variableCreateButton}</div>
         </>
       )}

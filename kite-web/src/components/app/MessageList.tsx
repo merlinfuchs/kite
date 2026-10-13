@@ -1,3 +1,6 @@
+import { useState } from "react";
+import ListSearchInput, { ListSearchEmpty } from "./ListSearchInput";
+import { matchesSearch } from "@/lib/search";
 import { Button } from "../ui/button";
 import AppEmptyPlaceholder from "./AppEmptyPlaceholder";
 import { Skeleton } from "../ui/skeleton";
@@ -9,6 +12,11 @@ import FlowImportDialog from "./FlowImportDialog";
 
 export default function MessageList() {
   const messages = useMessages();
+  const [search, setSearch] = useState("");
+
+  const filtered = messages?.filter((message) =>
+    matchesSearch(search, [message!.name, message!.description])
+  );
 
   const messageCreateButton = (
     <div className="flex gap-5 flex-col md:flex-row">
@@ -37,9 +45,18 @@ export default function MessageList() {
         />
       ) : (
         <>
-          {messages.map((message, i) => (
-            <MessageListEntry message={message!} key={i} />
-          ))}
+          <ListSearchInput
+            value={search}
+            onChange={setSearch}
+            placeholder="Search message templates"
+          />
+          {filtered!.length === 0 ? (
+            <ListSearchEmpty query={search} />
+          ) : (
+            filtered!.map((message) => (
+              <MessageListEntry message={message!} key={message!.id} />
+            ))
+          )}
           <div className="flex">{messageCreateButton}</div>
         </>
       )}
