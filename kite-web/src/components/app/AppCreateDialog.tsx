@@ -148,8 +148,12 @@ export default function AppCreateDialog({ children }: { children: ReactNode }) {
               </p>
               <DeveloperPortalMock page="applications" />
             </div>
-            <DialogFooter className="gap-2 sm:justify-between">
-              <Button variant="ghost" onClick={() => setStep(2)}>
+            <DialogFooter className="gap-2 sm:flex-wrap sm:justify-between sm:space-x-0">
+              <Button
+                variant="ghost"
+                className="px-2"
+                onClick={() => setStep(2)}
+              >
                 I already have a token
               </Button>
               <div className="flex flex-col-reverse sm:flex-row gap-2">
@@ -179,7 +183,7 @@ export default function AppCreateDialog({ children }: { children: ReactNode }) {
               </p>
               <DeveloperPortalMock page="bot" />
             </div>
-            <DialogFooter className="gap-2">
+            <DialogFooter className="gap-2 sm:space-x-0">
               <Button variant="outline" onClick={() => setStep(0)}>
                 Back
               </Button>
@@ -212,7 +216,7 @@ export default function AppCreateDialog({ children }: { children: ReactNode }) {
                   </FormItem>
                 )}
               />
-              <DialogFooter className="gap-2">
+              <DialogFooter className="gap-2 sm:space-x-0">
                 <Button
                   type="button"
                   variant="outline"
