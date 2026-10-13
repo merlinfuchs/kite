@@ -22,10 +22,9 @@ import { useAppCreateMutation } from "@/lib/api/mutations";
 import { toast } from "sonner";
 import { setValidationErrors } from "@/lib/form";
 import LoadingButton from "../common/LoadingButton";
-import { CircleHelpIcon, ExternalLinkIcon } from "lucide-react";
+import { CircleHelpIcon } from "lucide-react";
 import env from "@/lib/env/client";
 import { useRouter } from "next/router";
-import { Button } from "../ui/button";
 import { checkTokenFormat } from "@/lib/discord/token";
 
 interface FormFields {
@@ -69,14 +68,12 @@ export default function AppCreateDialog({ children }: { children: ReactNode }) {
             res.error.code === "app_exists"
           ) {
             form.setError("discord_token", { message: res.error.message });
+          } else if (res.error.code === "validation_failed") {
+            setValidationErrors(form, res.error.data);
           } else {
-            if (res.error.code === "validation_failed") {
-              setValidationErrors(form, res.error.data);
-            } else {
-              toast.error(
-                `Failed to create app: ${res.error.message} (${res.error.code})`
-              );
-            }
+            toast.error(
+              `Failed to create app: ${res.error.message} (${res.error.code})`
+            );
           }
         },
       }
@@ -100,32 +97,29 @@ export default function AppCreateDialog({ children }: { children: ReactNode }) {
             </div>
           </DialogTitle>
           <DialogDescription>
-            Kite runs your bot for you. First create the bot in the Discord
-            Developer Portal. It takes about a minute.
+            Kite runs your bot for you. You only need to create it in Discord
+            first, which takes about a minute.
           </DialogDescription>
         </DialogHeader>
         <ol className="list-decimal pl-5 space-y-2 text-sm">
           <li>
-            Open the Developer Portal and click on{" "}
-            <strong>New Application</strong>. The name you choose is the name of
-            your bot.
+            Open the{" "}
+            <a
+              href="https://discord.com/developers/applications"
+              target="_blank"
+              rel="noreferrer"
+              className="text-primary hover:underline"
+            >
+              Discord Developer Portal
+            </a>{" "}
+            and click on <strong>New Application</strong>. The name you choose
+            is the name of your bot.
           </li>
           <li>
             Click on <strong>Bot</strong> in the sidebar, then on{" "}
             <strong>Reset Token</strong>, and copy the token.
           </li>
-          <li>Paste the token below.</li>
         </ol>
-        <Button variant="outline" asChild>
-          <a
-            href="https://discord.com/developers/applications"
-            target="_blank"
-            rel="noreferrer"
-          >
-            Open Developer Portal
-            <ExternalLinkIcon className="h-4 w-4 ml-2" />
-          </a>
-        </Button>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4">
             <FormField

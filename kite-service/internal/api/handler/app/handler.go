@@ -70,12 +70,10 @@ func (h *AppHandler) HandleAppCreate(c *handler.Context, req wire.AppCreateReque
 		return nil, handler.ErrBadRequest("resource_limit", fmt.Sprintf("maximum number of apps (%d) reached", h.maxAppsPerUser))
 	}
 
-	// TODO: existingApp, err := h.appStore.AppByDiscordID()
-
 	appInfo, err := h.getDiscordAppInfo(c.Context(), req.DiscordToken)
 	if err != nil {
 		if util.IsDiscordRestStatusCode(err, http.StatusUnauthorized) {
-			return nil, handler.ErrBadRequest("invalid_discord_token", "Discord didn't accept this token. Copy the token under Bot in the Discord Developer Portal, not the client secret or application ID.")
+			return nil, handler.ErrBadRequest("invalid_discord_token", "Discord didn't accept this token. Copy it again from Bot in the Discord Developer Portal.")
 		}
 		slog.Error(
 			"Failed to get discord app info",
@@ -104,7 +102,7 @@ func (h *AppHandler) HandleAppCreate(c *handler.Context, req wire.AppCreateReque
 	})
 	if err != nil {
 		if errors.Is(err, store.ErrAlreadyExists) {
-			return nil, handler.ErrBadRequest("app_exists", "This bot is already in Kite. Ask the person who added it to invite you as a collaborator.")
+			return nil, handler.ErrBadRequest("app_exists", "This bot is already in Kite. If it's yours, open it from your apps and update its token in the settings. Otherwise ask the person who added it to invite you.")
 		}
 		slog.Error(
 			"Failed to create app",

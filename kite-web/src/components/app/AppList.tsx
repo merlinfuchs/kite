@@ -35,8 +35,7 @@ export default function AppList() {
           <BotIcon className="h-10 w-10 mx-auto text-muted-foreground" />
           <h2 className="text-xl font-bold mt-3">Add your first bot</h2>
           <p className="text-sm text-muted-foreground mt-2 mb-5">
-            Every app in Kite is a Discord bot. You create the bot in the
-            Discord Developer Portal, then Kite runs it for you.
+            Each app in Kite is one Discord bot.
           </p>
           <AppCreateDialog>
             <Button>Create app</Button>
@@ -45,7 +44,8 @@ export default function AppList() {
       ) : (
         apps.map((app) => <AppListEntry app={app!} key={app?.id} />)
       )}
-      {!!apps?.length && (
+      {/* Also shown if the apps failed to load, so creating one still works. */}
+      {apps?.length !== 0 && (
         <div className="flex">
           <AppCreateDialog>
             <Button>Create app</Button>

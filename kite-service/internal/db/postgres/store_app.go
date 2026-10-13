@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/kitecloud/kite/kite-service/internal/db/postgres/pgmodel"
 	"github.com/kitecloud/kite/kite-service/internal/model"
@@ -103,12 +102,8 @@ func (c *Client) CreateApp(ctx context.Context, app *model.App) (*model.App, err
 		UpdatedAt:     pgtype.Timestamp{Time: app.UpdatedAt.UTC(), Valid: true},
 	})
 	if err != nil {
-		// Each Discord app can only be added once.
-		var pgErr *pgconn.PgError
-		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
-			return nil, store.ErrAlreadyExists
-		}
-		return nil, err
+		// apps.discord_id is unique, so each bot can only be added once.
+		return nil, uniqueViolation(err)
 	}
 
 	return rowToApp(row)
