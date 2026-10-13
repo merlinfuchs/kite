@@ -59,7 +59,7 @@ export default function AppLayout({ children, ...props }: Props) {
   );
 
   return (
-    <BaseLayout title={props.title}>
+    <BaseLayout title={props.title} noindex>
       <header className="flex h-14 md:h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear">
         <div className="flex items-center gap-2 justify-between px-4 w-full">
           <div className="flex items-center gap-2">
