@@ -102,7 +102,8 @@ func (c *Client) CreateApp(ctx context.Context, app *model.App) (*model.App, err
 		UpdatedAt:     pgtype.Timestamp{Time: app.UpdatedAt.UTC(), Valid: true},
 	})
 	if err != nil {
-		return nil, err
+		// apps.discord_id is unique, so each bot can only be added once.
+		return nil, uniqueViolation(err)
 	}
 
 	return rowToApp(row)
