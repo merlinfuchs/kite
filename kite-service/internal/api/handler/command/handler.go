@@ -61,7 +61,7 @@ func (h *CommandHandler) HandleCommandCreate(c *handler.Context, req wire.Comman
 
 	cmdFlow, err := flow.CompileCommand(req.FlowSource)
 	if err != nil {
-		return nil, fmt.Errorf("failed to compile command: %w", err)
+		return nil, handler.ErrBadRequest("invalid_command", err.Error())
 	}
 
 	if err := h.checkCommandNames(c, "", cmdFlow.CommandName()); err != nil {
@@ -105,7 +105,7 @@ func (h *CommandHandler) HandleCommandsImport(c *handler.Context, req wire.Comma
 	for i, cmd := range req.Commands {
 		cmdFlow, err := flow.CompileCommand(cmd.FlowSource)
 		if err != nil {
-			return nil, fmt.Errorf("failed to compile command: %w", err)
+			return nil, handler.ErrBadRequest("invalid_command", err.Error())
 		}
 		cmdFlows[i] = cmdFlow
 		names[i] = cmdFlow.CommandName()
@@ -142,7 +142,7 @@ func (h *CommandHandler) HandleCommandsImport(c *handler.Context, req wire.Comma
 func (h *CommandHandler) HandleCommandUpdate(c *handler.Context, req wire.CommandUpdateRequest) (*wire.CommandUpdateResponse, error) {
 	cmdFlow, err := flow.CompileCommand(req.FlowSource)
 	if err != nil {
-		return nil, fmt.Errorf("failed to compile command: %w", err)
+		return nil, handler.ErrBadRequest("invalid_command", err.Error())
 	}
 
 	// Don't block saving an existing conflict that this change didn't cause.

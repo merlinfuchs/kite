@@ -15,7 +15,20 @@ import (
 type FlowCompiler struct{}
 
 func CompileCommand(data FlowData) (*CompiledFlowNode, error) {
-	return compile(data, FlowNodeTypeEntryCommand)
+	entry, err := compile(data, FlowNodeTypeEntryCommand)
+	if err != nil {
+		return nil, err
+	}
+
+	names := make(map[string]bool)
+	for _, node := range entry.commandArgumentNodes() {
+		if names[node.Data.Name] {
+			return nil, fmt.Errorf("more than one argument is named %s", node.Data.Name)
+		}
+		names[node.Data.Name] = true
+	}
+
+	return entry, nil
 }
 
 func CompileComponentButton(data FlowData) (*CompiledFlowNode, error) {

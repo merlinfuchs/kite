@@ -255,3 +255,44 @@ func TestFlowCompileWebhookAllowsResponsesInButtonBranches(t *testing.T) {
 	_, err := CompileEventListener(data)
 	assert.NoError(t, err, "a clicked button has an interaction to respond to")
 }
+
+func TestCommandValidationMatchesDiscordLimits(t *testing.T) {
+	entry := FlowNodeData{Name: "ping", Description: "Ping"}
+	assert.NoError(t, entry.Validate(FlowNodeTypeEntryCommand))
+
+	entry.Description = "  "
+	assert.Error(t, entry.Validate(FlowNodeTypeEntryCommand), "blank description")
+
+	arg := FlowNodeData{Name: "text", Description: "Text", CommandArgumentType: CommandArgumentTypeString}
+	assert.NoError(t, arg.Validate(FlowNodeTypeOptionCommandArgument))
+
+	arg.Description = " "
+	assert.Error(t, arg.Validate(FlowNodeTypeOptionCommandArgument), "blank description")
+	arg.Description = "Text"
+
+	arg.CommandArgumentMaxLength = 6001
+	assert.Error(t, arg.Validate(FlowNodeTypeOptionCommandArgument), "max length over 6000")
+	arg.CommandArgumentMaxLength = 6000
+	assert.NoError(t, arg.Validate(FlowNodeTypeOptionCommandArgument))
+
+	arg.CommandArgumentMaxValue = 1e16
+	assert.Error(t, arg.Validate(FlowNodeTypeOptionCommandArgument), "max value over 2^53")
+}
+
+func TestCompileCommandRejectsDuplicateArgumentNames(t *testing.T) {
+	data := FlowData{
+		Nodes: []FlowNode{
+			{ID: "entry", Type: FlowNodeTypeEntryCommand, Data: FlowNodeData{Name: "ping", Description: "Ping"}},
+			{ID: "a", Type: FlowNodeTypeOptionCommandArgument, Data: FlowNodeData{Name: "user", Description: "User", CommandArgumentType: CommandArgumentTypeUser}},
+			{ID: "b", Type: FlowNodeTypeOptionCommandArgument, Data: FlowNodeData{Name: "user", Description: "Other", CommandArgumentType: CommandArgumentTypeString}},
+		},
+		Edges: []FlowEdge{{Source: "a", Target: "entry"}, {Source: "b", Target: "entry"}},
+	}
+
+	_, err := CompileCommand(data)
+	assert.ErrorContains(t, err, "more than one argument is named user")
+
+	data.Nodes[2].Data.Name = "text"
+	_, err = CompileCommand(data)
+	require.NoError(t, err)
+}
