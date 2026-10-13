@@ -51,9 +51,8 @@ Discord requires interactions (slash commands, modals & buttons) to compulsorily
 
 ![Echo Command Flow](./img/echo-flow.png)
 
-## 💌 Save and deploy your command
-- Click **Save Changes** at the top of your page.
-- Click **Deploy Changes** to push the command to Discord.
+## 💌 Save your command
+- Click **Save Changes** at the top of your page. Kite adds the command to Discord a few seconds later.
 - Voilà! You've created your first command.
 - Refresh your Discord client and run the command in your server.
 
