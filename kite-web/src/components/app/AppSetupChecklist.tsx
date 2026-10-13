@@ -1,49 +1,80 @@
 import {
-  useApp,
-  useAppEntities,
-  useAppStateGuilds,
-  useUsageCredits,
-} from "@/lib/hooks/api";
+  useAppEntitiesQuery,
+  useAppStateGuildsQuery,
+  useUsageCreditsQuery,
+} from "@/lib/api/queries";
 import { getAppInviteUrl } from "@/lib/discord/invite";
+import { useApp } from "@/lib/hooks/api";
+import { useSetupChecklistStore } from "@/lib/state/setupChecklist";
+import { App } from "@/lib/types/wire.gen";
 import { cn } from "@/lib/utils";
+import { useQueryClient } from "@tanstack/react-query";
+import { differenceInDays } from "date-fns";
 import { CheckIcon, XIcon } from "lucide-react";
 import Link from "next/link";
-import { ReactNode, useEffect, useState } from "react";
+import { ReactNode, useEffect } from "react";
 import { Button } from "../ui/button";
 import { Card, CardDescription, CardHeader, CardTitle } from "../ui/card";
 
-// Only new apps get the checklist, older ones were set up already.
 const maxAppAgeDays = 14;
 
 export default function AppSetupChecklist() {
   const app = useApp();
-  const entities = useAppEntities();
-  const guilds = useAppStateGuilds();
-  const credits = useUsageCredits();
-
-  const storageKey = `kite-setup-checklist-dismissed-${app?.id}`;
-  const [dismissed, setDismissed] = useState(true);
-  useEffect(() => {
-    if (app) setDismissed(localStorage.getItem(storageKey) === "true");
-  }, [app, storageKey]);
-
-  if (!app || !entities || dismissed) return null;
-
-  const ageDays = (Date.now() - new Date(app.created_at).getTime()) / 86400000;
-  if (ageDays > maxAppAgeDays) return null;
-
-  const invited = !!guilds?.length;
-  const hasCommand = entities.some(
-    (e) => e?.type === "command" || e?.type === "event_listener"
+  const hidden = useSetupChecklistStore((s) =>
+    app ? s.hiddenAppIds.includes(app.id) : true
   );
-  // Running a command or event uses credits.
-  const triedIt = !!credits?.credits_used;
 
-  if (invited && hasCommand && triedIt) return null;
+  if (!app || hidden || !app.enabled) return null;
+  if (differenceInDays(new Date(), new Date(app.created_at)) > maxAppAgeDays) {
+    return null;
+  }
 
-  function dismiss() {
-    localStorage.setItem(storageKey, "true");
-    setDismissed(true);
+  return <Checklist app={app} />;
+}
+
+function Checklist({ app }: { app: App }) {
+  const hide = useSetupChecklistStore((s) => s.hide);
+  const client = useQueryClient();
+
+  const guilds = useAppStateGuildsQuery(app.id);
+  const entities = useAppEntitiesQuery(app.id);
+  const credits = useUsageCreditsQuery(app.id);
+
+  // Steps are done in Discord or on other pages, so check again when the user
+  // comes back.
+  useEffect(() => {
+    function refresh() {
+      for (const key of [
+        ["state", "guilds"],
+        ["entities"],
+        ["usage", "credits"],
+      ]) {
+        client.invalidateQueries({ queryKey: ["apps", app.id, ...key] });
+      }
+    }
+
+    refresh();
+    window.addEventListener("focus", refresh);
+    return () => window.removeEventListener("focus", refresh);
+  }, [client, app.id]);
+
+  const invited = !!(guilds.data?.success && guilds.data.data.length);
+  const hasCommand = !!(
+    entities.data?.success &&
+    entities.data.data.some((e) => e?.type === "command")
+  );
+  // Running a command uses credits.
+  const triedIt = !!(
+    credits.data?.success && credits.data.data.credits_used > 0
+  );
+  const done = invited && hasCommand && triedIt;
+
+  useEffect(() => {
+    if (done) hide(app.id);
+  }, [done, hide, app.id]);
+
+  if (guilds.isPending || entities.isPending || credits.isPending || done) {
+    return null;
   }
 
   return (
@@ -53,7 +84,7 @@ export default function AppSetupChecklist() {
           size="icon"
           variant="ghost"
           className="absolute top-3 right-3 h-8 w-8 text-muted-foreground"
-          onClick={dismiss}
+          onClick={() => hide(app.id)}
           title="Hide"
           aria-label="Hide"
         >
@@ -68,7 +99,7 @@ export default function AppSetupChecklist() {
         <Step
           done={invited}
           title="Add your bot to a server"
-          description="Pick a server where you can test it, ideally a small one."
+          description="Pick a server where you can test it."
         >
           <Button size="sm" variant="outline" asChild>
             <a
@@ -109,7 +140,7 @@ export default function AppSetupChecklist() {
         <Step
           done={triedIt}
           title="Try it in Discord"
-          description="Type / in your server and pick your command. Restart Discord if it doesn't show up yet."
+          description="Type / in your server and pick your command."
         />
       </ol>
     </Card>
@@ -132,7 +163,7 @@ function Step({
       <div
         className={cn(
           "flex-none h-6 w-6 rounded-full border-2 flex items-center justify-center",
-          done ? "bg-primary border-primary text-primary-foreground" : ""
+          done && "bg-primary border-primary text-primary-foreground"
         )}
       >
         {done && <CheckIcon className="h-4 w-4" />}
