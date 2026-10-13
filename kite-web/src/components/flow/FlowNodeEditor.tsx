@@ -52,6 +52,7 @@ import {
   PollData,
   StatusData,
 } from "@/lib/types/flow.gen";
+import type { Features } from "@/lib/types/wire.gen";
 import {
   Node,
   useEdges,
@@ -127,6 +128,7 @@ interface Props {
   nodeId: string;
   className?: string;
   hideTitle?: boolean;
+  readOnly?: boolean;
 }
 
 interface InputProps {
@@ -244,6 +246,7 @@ export default function FlowNodeEditor({
   nodeId,
   className,
   hideTitle,
+  readOnly = false,
 }: Props) {
   const { setNodes, deleteElements } = useReactFlow<Node<NodeData>>();
   const store = useStoreApi();
@@ -262,6 +265,8 @@ export default function FlowNodeEditor({
   const data = node?.data;
 
   function updateData(newData: Partial<NodeData>) {
+    if (readOnly) return;
+
     setNodes((nodes) =>
       nodes.map((n) => {
         if (n.id === nodeId) {
@@ -301,11 +306,7 @@ export default function FlowNodeEditor({
 
   const values = useNodeValues(node?.type!);
 
-  const appId = useAppId();
   const premiumFeature = values.premiumFeature;
-  const hasPremiumFeature = useAppFeature((f) =>
-    premiumFeature ? !!f[premiumFeature] : true
-  );
 
   const errors: Record<string, string> = useMemo(() => {
     if (!values.dataSchema) return {};
@@ -375,66 +376,84 @@ export default function FlowNodeEditor({
             </div>
           </div>
           <div className="space-y-3 flex-auto">
-            {hasPremiumFeature === false && (
-              <div className="text-sm text-muted-foreground bg-muted rounded p-3">
-                This block requires{" "}
-                <Link
-                  href={`/apps/${appId}/premium`}
-                  target="_blank"
-                  className="text-primary hover:underline"
-                >
-                  Premium
-                </Link>{" "}
-                and fails without it.
-              </div>
+            {!readOnly && premiumFeature && (
+              <PremiumFeatureNotice feature={premiumFeature} />
             )}
-            {values.dataFields.map((field) => {
-              // Fields of a block's definition without an input of their own.
-              const name = field.startsWith("field:")
-                ? field.slice("field:".length)
-                : undefined;
-              const Input = name ? BlockFieldInput : settingInputs[field];
-              if (!Input) return null;
+            <fieldset
+              disabled={readOnly}
+              className="m-0 min-w-0 space-y-3 border-0 p-0"
+            >
+              {values.dataFields.map((field) => {
+                // Fields of a block's definition without an input of their own.
+                const name = field.startsWith("field:")
+                  ? field.slice("field:".length)
+                  : undefined;
+                const Input = name ? BlockFieldInput : settingInputs[field];
+                if (!Input) return null;
 
-              return (
-                <Input
-                  key={field}
-                  id={nodeId}
-                  type={node.type}
-                  name={name}
-                  data={data}
-                  updateData={updateData}
-                  errors={errors}
-                />
-              );
-            })}
+                return (
+                  <Input
+                    key={field}
+                    id={nodeId}
+                    type={node.type}
+                    name={name}
+                    data={data}
+                    updateData={updateData}
+                    errors={errors}
+                  />
+                );
+              })}
+            </fieldset>
           </div>
-          <div className="flex-none space-y-3 mt-5">
-            {!values.fixed && (
-              <>
-                <Button
-                  variant="destructive"
-                  onClick={deleteNode}
-                  className="w-full flex gap-2"
-                >
-                  <TrashIcon className="h-5 w-5" />
-                  <div>Delete Block</div>
-                </Button>
-                {!ownsBlocks && (
+          {!readOnly && (
+            <div className="flex-none space-y-3 mt-5">
+              {!values.fixed && (
+                <>
                   <Button
-                    variant="secondary"
-                    onClick={duplicateNode}
+                    variant="destructive"
+                    onClick={deleteNode}
                     className="w-full flex gap-2"
                   >
-                    <CopyIcon className="h-5 w-5" />
-                    <div>Duplicate Block</div>
+                    <TrashIcon className="h-5 w-5" />
+                    <div>Delete Block</div>
                   </Button>
-                )}
-              </>
-            )}
-          </div>
+                  {!ownsBlocks && (
+                    <Button
+                      variant="secondary"
+                      onClick={duplicateNode}
+                      className="w-full flex gap-2"
+                    >
+                      <CopyIcon className="h-5 w-5" />
+                      <div>Duplicate Block</div>
+                    </Button>
+                  )}
+                </>
+              )}
+            </div>
+          )}
         </div>
       </ScrollArea>
+    </div>
+  );
+}
+
+function PremiumFeatureNotice({ feature }: { feature: keyof Features }) {
+  const appId = useAppId();
+  const hasPremiumFeature = useAppFeature((features) => !!features[feature]);
+
+  if (hasPremiumFeature !== false) return null;
+
+  return (
+    <div className="rounded bg-muted p-3 text-sm text-muted-foreground">
+      This block requires{" "}
+      <Link
+        href={`/apps/${appId}/premium`}
+        target="_blank"
+        className="text-primary hover:underline"
+      >
+        Premium
+      </Link>{" "}
+      and fails without it.
     </div>
   );
 }

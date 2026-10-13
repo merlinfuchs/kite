@@ -23,18 +23,20 @@ export type FlowContextType = (typeof flowContextTypes)[number];
 export interface FlowContextStore {
   type: FlowContextType;
   setType(type: FlowContextType): void;
+  readOnly: boolean;
   // The blocks the flow AI changed in its last answer, which stand out until
   // the user clicks into the editor.
   aiChangedNodeIds: string[];
   setAIChangedNodeIds(ids: string[]): void;
 }
 
-export const createFlowContextStore = () => {
+export const createFlowContextStore = (readOnly = false) => {
   return create<FlowContextStore>()(
     immer((set, get) => ({
       type: "command",
 
       setType: (type) => set({ type }),
+      readOnly,
       aiChangedNodeIds: [],
       setAIChangedNodeIds: (ids) => set({ aiChangedNodeIds: ids }),
     }))
@@ -48,11 +50,13 @@ const FlowContextStoreContext = createContext<ReturnType<
 export function FlowContextStoreProvider({
   children,
   type,
+  readOnly = false,
 }: {
   children: ReactNode;
   type: FlowContextType;
+  readOnly?: boolean;
 }) {
-  const [contextStore] = useState(() => createFlowContextStore());
+  const [contextStore] = useState(() => createFlowContextStore(readOnly));
 
   useEffect(() => {
     contextStore.getState().setType(type);

@@ -6,9 +6,11 @@ import { controlColor, createNode } from "@/lib/flow/nodes";
 import { Button } from "../ui/button";
 import { PlusIcon } from "lucide-react";
 import { getUniqueId } from "@/lib/utils";
+import { useFlowContext } from "@/lib/flow/context";
 
 export default function FlowNodeConditionChannel(props: NodeProps) {
   const { setNodes, setEdges, getNode } = useReactFlow<NodeType>();
+  const readOnly = useFlowContext((context) => context.readOnly);
 
   function addItem() {
     const node = getNode(props.id);
@@ -33,14 +35,16 @@ export default function FlowNodeConditionChannel(props: NodeProps) {
 
   return (
     <FlowNodeBase {...props}>
-      <Button
-        size="icon"
-        variant="outline"
-        className="text-xs leading-none h-7 w-7 absolute -right-2 -bottom-2 hover:bg-background hover:border-primary"
-        onClick={addItem}
-      >
-        <PlusIcon className="h-4 w-4" />
-      </Button>
+      {!readOnly && (
+        <Button
+          size="icon"
+          variant="outline"
+          className="text-xs leading-none h-7 w-7 absolute -right-2 -bottom-2 hover:bg-background hover:border-primary"
+          onClick={addItem}
+        >
+          <PlusIcon className="h-4 w-4" />
+        </Button>
+      )}
       <FlowNodeHandle type="target" position={Position.Top} />
       <FlowNodeHandle
         type="source"
