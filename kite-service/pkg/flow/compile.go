@@ -15,20 +15,21 @@ import (
 type FlowCompiler struct{}
 
 func CompileCommand(data FlowData) (*CompiledFlowNode, error) {
-	entry, err := compile(data, FlowNodeTypeEntryCommand)
-	if err != nil {
-		return nil, err
-	}
+	return compile(data, FlowNodeTypeEntryCommand)
+}
 
+// CheckCommandArguments reports problems with the arguments of a command that
+// Discord rejects. Saving checks it, not compiling, so commands saved before
+// keep running.
+func (n *CompiledFlowNode) CheckCommandArguments() error {
 	names := make(map[string]bool)
-	for _, node := range entry.commandArgumentNodes() {
+	for _, node := range n.commandArgumentNodes() {
 		if names[node.Data.Name] {
-			return nil, fmt.Errorf("more than one argument is named %s", node.Data.Name)
+			return fmt.Errorf("more than one argument is named %s", node.Data.Name)
 		}
 		names[node.Data.Name] = true
 	}
-
-	return entry, nil
+	return nil
 }
 
 func CompileComponentButton(data FlowData) (*CompiledFlowNode, error) {
