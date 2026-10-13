@@ -6,7 +6,6 @@ import (
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/pkg/plugin"
-	"gopkg.in/guregu/null.v4"
 )
 
 type Plugin struct {
@@ -39,7 +38,6 @@ type PluginInstance struct {
 	EnabledResourceIDs []string            `json:"enabled_resource_ids"`
 	CreatedAt          time.Time           `json:"created_at"`
 	UpdatedAt          time.Time           `json:"updated_at"`
-	LastDeployedAt     null.Time           `json:"last_deployed_at"`
 }
 
 type PluginInstanceGetResponse = PluginInstance
@@ -100,6 +98,5 @@ func PluginInstanceToWire(pluginInstance *model.PluginInstance) *PluginInstance 
 		EnabledResourceIDs: pluginInstance.EnabledResourceIDs,
 		CreatedAt:          pluginInstance.CreatedAt,
 		UpdatedAt:          pluginInstance.UpdatedAt,
-		LastDeployedAt:     pluginInstance.LastDeployedAt,
 	}
 }

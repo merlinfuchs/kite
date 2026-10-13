@@ -192,8 +192,8 @@ export default function HowToMakeADiscordBotPage() {
               <code>Hello {"{{user.mention}}"}!</code>
             </li>
             <li>
-              Click on <strong>Save Changes</strong> and then on{" "}
-              <strong>Deploy Changes</strong>.
+              Click on <strong>Save Changes</strong>. Kite updates the command
+              in Discord a few seconds later.
             </li>
           </ol>
           <p>

@@ -213,6 +213,54 @@ func (c *Client) EnabledAppsUpdatedSince(ctx context.Context, updatedSince time.
 	return apps, nil
 }
 
+func (c *Client) QueueAppCommandsDeploy(ctx context.Context, appID string, force bool) error {
+	return c.Q.QueueAppCommandsDeploy(ctx, pgmodel.QueueAppCommandsDeployParams{
+		ID:    appID,
+		Force: force,
+	})
+}
+
+func (c *Client) AppIDsWithDueCommandsDeploy(ctx context.Context, limit int) ([]string, error) {
+	return c.Q.GetAppIDsWithDueCommandsDeploy(ctx, int32(limit))
+}
+
+func (c *Client) FinishAppCommandsDeploy(ctx context.Context, res store.AppCommandsDeployResult) error {
+	rawError, err := marshalCommandsDeployError(res.Error)
+	if err != nil {
+		return err
+	}
+
+	return c.Q.FinishAppCommandsDeploy(ctx, pgmodel.FinishAppCommandsDeployParams{
+		ID:           res.ID,
+		DeployAt:     pgtype.Timestamp{Time: res.DeployAt, Valid: true},
+		DeployedHash: pgtype.Text{String: res.DeployedHash.String, Valid: res.DeployedHash.Valid},
+		Error:        rawError,
+	})
+}
+
+func (c *Client) DelayAppCommandsDeploy(ctx context.Context, appID string, deployErr *model.CommandsDeployError) error {
+	rawError, err := marshalCommandsDeployError(deployErr)
+	if err != nil {
+		return err
+	}
+
+	return c.Q.DelayAppCommandsDeploy(ctx, pgmodel.DelayAppCommandsDeployParams{
+		ID:    appID,
+		Error: rawError,
+	})
+}
+
+func marshalCommandsDeployError(deployErr *model.CommandsDeployError) ([]byte, error) {
+	if deployErr == nil {
+		return nil, nil
+	}
+	raw, err := json.Marshal(deployErr)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal commands deploy error: %w", err)
+	}
+	return raw, nil
+}
+
 func (c *Client) AppEntities(ctx context.Context, appID string) ([]*model.AppEntity, error) {
 	rows, err := c.Q.GetAppEntities(ctx, appID)
 	if err != nil {
@@ -240,6 +288,14 @@ func rowToApp(row pgmodel.App) (*model.App, error) {
 		}
 	}
 
+	var deployErr *model.CommandsDeployError
+	if row.CommandsDeployError != nil {
+		deployErr = &model.CommandsDeployError{}
+		if err := json.Unmarshal(row.CommandsDeployError, deployErr); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal commands deploy error: %w", err)
+		}
+	}
+
 	return &model.App{
 		ID:             row.ID,
 		Name:           row.Name,
@@ -253,5 +309,9 @@ func rowToApp(row pgmodel.App) (*model.App, error) {
 		DiscordStatus:  status,
 		CreatedAt:      row.CreatedAt.Time,
 		UpdatedAt:      row.UpdatedAt.Time,
+
+		CommandsDeployAt:     null.NewTime(row.CommandsDeployAt.Time, row.CommandsDeployAt.Valid),
+		CommandsDeployedHash: null.NewString(row.CommandsDeployedHash.String, row.CommandsDeployedHash.Valid),
+		CommandsDeployError:  deployErr,
 	}, nil
 }

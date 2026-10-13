@@ -1,16 +1,12 @@
-import { CommandDeployDialog } from "@/components/app/CommandDeployDialog";
 import FlowPage from "@/components/flow/FlowPage";
-import {
-  useCommandsDeployMutation,
-  useCommandUpdateMutation,
-} from "@/lib/api/mutations";
+import { useCommandUpdateMutation } from "@/lib/api/mutations";
 import { FlowData } from "@/lib/flow/dataSchema";
 import { useCommand, useFlowLogEntries } from "@/lib/hooks/api";
 import { useUnsavedChangesWarning } from "@/lib/hooks/exit";
 import { useAppId, useCommandId } from "@/lib/hooks/params";
 import Head from "next/head";
 import { useRouter } from "next/router";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useState } from "react";
 import { toast } from "sonner";
 
 export default function AppCommandPage() {
@@ -32,7 +28,6 @@ export default function AppCommandPage() {
   const updateMutation = useCommandUpdateMutation(useAppId(), useCommandId());
 
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
-  const [deployDialogOpen, setDeployDialogOpen] = useState(false);
 
   const onChange = useCallback(() => {
     setHasUnsavedChanges(true);
@@ -47,9 +42,7 @@ export default function AppCommandPage() {
         {
           onSuccess(res) {
             if (res.success) {
-              toast.success(
-                "Command saved! Make sure to deploy the command for the changes to take effect in Discord."
-              );
+              toast.success("Command saved!");
               options?.onSuccess?.();
             } else {
               toast.error(
@@ -65,12 +58,6 @@ export default function AppCommandPage() {
     },
     [setHasUnsavedChanges, updateMutation]
   );
-
-  const hasUndeployedChanges = useMemo(() => {
-    return (
-      cmd && new Date(cmd!.updated_at) > new Date(cmd!.last_deployed_at || 0)
-    );
-  }, [cmd]);
 
   const leave = useUnsavedChangesWarning(hasUnsavedChanges);
 
@@ -93,9 +80,7 @@ export default function AppCommandPage() {
           flowData={cmd.flow_source}
           context="command"
           hasUnsavedChanges={hasUnsavedChanges}
-          hasUndeployedChanges={hasUndeployedChanges}
-          isDeploying={false}
-          onDeploy={() => setDeployDialogOpen(true)}
+          showDeployStatus
           onChange={onChange}
           isSaving={updateMutation.isPending}
           onSave={save}
@@ -103,11 +88,6 @@ export default function AppCommandPage() {
           logs={logs}
         />
       )}
-
-      <CommandDeployDialog
-        open={deployDialogOpen}
-        onOpenChange={setDeployDialogOpen}
-      />
     </div>
   );
 }

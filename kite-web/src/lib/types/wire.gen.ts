@@ -19,6 +19,12 @@ export interface App {
   creator_user_id: string;
   created_at: string /* RFC3339 */;
   updated_at: string /* RFC3339 */;
+  commands_deploy_pending: boolean;
+  commands_deploy_error?: CommandsDeployError;
+}
+export interface CommandsDeployError {
+  message: string;
+  command?: string;
 }
 export interface AppDiscordStatus {
   statuses?: AppDiscordStatusEntry[];
@@ -297,7 +303,6 @@ export interface Command {
   flow_source: FlowData;
   created_at: string /* RFC3339 */;
   updated_at: string /* RFC3339 */;
-  last_deployed_at: null | string /* RFC3339 */;
 }
 export type CommandGetResponse = Command;
 export type CommandListResponse = (Command | undefined)[];
@@ -319,10 +324,7 @@ export interface CommandUpdateEnabledRequest {
 }
 export type CommandUpdateEnabledResponse = Command;
 export type CommandDeleteResponse = Empty;
-export interface CommandsDeployResponse {
-  deployed: boolean;
-  error?: Record<string, any> | null;
-}
+export type CommandsDeployResponse = Empty;
 
 //////////
 // source: event_listener.go
@@ -590,7 +592,6 @@ export interface PluginInstance {
   enabled_resource_ids: string[];
   created_at: string /* RFC3339 */;
   updated_at: string /* RFC3339 */;
-  last_deployed_at: null | string /* RFC3339 */;
 }
 export type PluginInstanceGetResponse = PluginInstance;
 export type PluginInstanceListResponse = (PluginInstance | undefined)[];

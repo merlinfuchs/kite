@@ -21,6 +21,23 @@ type App struct {
 	DiscordStatus  *AppDiscordStatus
 	CreatedAt      time.Time
 	UpdatedAt      time.Time
+
+	// CommandsDeployAt is when the commands are deployed to Discord next, or
+	// null if Discord is up to date.
+	CommandsDeployAt     null.Time
+	CommandsDeployedHash null.String
+	CommandsDeployError  *CommandsDeployError
+}
+
+// CommandsDeployError is why the commands couldn't be deployed to Discord.
+type CommandsDeployError struct {
+	Message string `json:"message"`
+	// Command is the name of the root command it's about, if known.
+	Command string `json:"command,omitempty"`
+}
+
+func (e *CommandsDeployError) Error() string {
+	return e.Message
 }
 
 type AppCredentials struct {

@@ -70,6 +70,11 @@ export function useAppQuery(appId: string) {
     queryKey: ["apps", appId],
     queryFn: () => apiRequest<AppGetResponse>(`/v1/apps/${appId}`),
     enabled: !!appId,
+    // Changed commands are deployed to Discord in the background.
+    refetchInterval: (query) => {
+      const app = query.state.data?.success ? query.state.data.data : null;
+      return app?.commands_deploy_pending && app.enabled ? 3000 : false;
+    },
   });
 }
 
