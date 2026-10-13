@@ -36,7 +36,7 @@ INSERT INTO commands (
     updated_at
 ) VALUES (
     $1, $2, $3, $4, $5, $6, $7, $8, $9, $10
-) RETURNING id, name, description, enabled, app_id, module_id, creator_user_id, flow_source, created_at, updated_at, last_deployed_at
+) RETURNING id, name, description, enabled, app_id, module_id, creator_user_id, flow_source, created_at, updated_at
 `
 
 type CreateCommandParams struct {
@@ -77,7 +77,6 @@ func (q *Queries) CreateCommand(ctx context.Context, arg CreateCommandParams) (C
 		&i.FlowSource,
 		&i.CreatedAt,
 		&i.UpdatedAt,
-		&i.LastDeployedAt,
 	)
 	return i, err
 }
@@ -92,7 +91,7 @@ func (q *Queries) DeleteCommand(ctx context.Context, id string) error {
 }
 
 const getCommand = `-- name: GetCommand :one
-SELECT id, name, description, enabled, app_id, module_id, creator_user_id, flow_source, created_at, updated_at, last_deployed_at FROM commands WHERE id = $1
+SELECT id, name, description, enabled, app_id, module_id, creator_user_id, flow_source, created_at, updated_at FROM commands WHERE id = $1
 `
 
 func (q *Queries) GetCommand(ctx context.Context, id string) (Command, error) {
@@ -109,13 +108,12 @@ func (q *Queries) GetCommand(ctx context.Context, id string) (Command, error) {
 		&i.FlowSource,
 		&i.CreatedAt,
 		&i.UpdatedAt,
-		&i.LastDeployedAt,
 	)
 	return i, err
 }
 
 const getCommandsByApp = `-- name: GetCommandsByApp :many
-SELECT id, name, description, enabled, app_id, module_id, creator_user_id, flow_source, created_at, updated_at, last_deployed_at FROM commands WHERE app_id = $1 ORDER BY created_at DESC, id
+SELECT id, name, description, enabled, app_id, module_id, creator_user_id, flow_source, created_at, updated_at FROM commands WHERE app_id = $1 ORDER BY created_at DESC, id
 `
 
 func (q *Queries) GetCommandsByApp(ctx context.Context, appID string) ([]Command, error) {
@@ -138,7 +136,6 @@ func (q *Queries) GetCommandsByApp(ctx context.Context, appID string) ([]Command
 			&i.FlowSource,
 			&i.CreatedAt,
 			&i.UpdatedAt,
-			&i.LastDeployedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -175,7 +172,7 @@ func (q *Queries) GetEnabledCommandIDs(ctx context.Context) ([]string, error) {
 }
 
 const getEnabledCommandsUpdatesSince = `-- name: GetEnabledCommandsUpdatesSince :many
-SELECT id, name, description, enabled, app_id, module_id, creator_user_id, flow_source, created_at, updated_at, last_deployed_at FROM commands WHERE enabled = TRUE AND updated_at > $1
+SELECT id, name, description, enabled, app_id, module_id, creator_user_id, flow_source, created_at, updated_at FROM commands WHERE enabled = TRUE AND updated_at > $1
 `
 
 func (q *Queries) GetEnabledCommandsUpdatesSince(ctx context.Context, updatedAt pgtype.Timestamp) ([]Command, error) {
@@ -198,7 +195,6 @@ func (q *Queries) GetEnabledCommandsUpdatesSince(ctx context.Context, updatedAt 
 			&i.FlowSource,
 			&i.CreatedAt,
 			&i.UpdatedAt,
-			&i.LastDeployedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -217,7 +213,7 @@ UPDATE commands SET
     enabled = $4,
     flow_source = $5,
     updated_at = $6
-WHERE id = $1 RETURNING id, name, description, enabled, app_id, module_id, creator_user_id, flow_source, created_at, updated_at, last_deployed_at
+WHERE id = $1 RETURNING id, name, description, enabled, app_id, module_id, creator_user_id, flow_source, created_at, updated_at
 `
 
 type UpdateCommandParams struct {
@@ -250,7 +246,6 @@ func (q *Queries) UpdateCommand(ctx context.Context, arg UpdateCommandParams) (C
 		&i.FlowSource,
 		&i.CreatedAt,
 		&i.UpdatedAt,
-		&i.LastDeployedAt,
 	)
 	return i, err
 }

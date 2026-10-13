@@ -41,3 +41,7 @@ WHERE id IN (
     WHERE (last_deployed_at IS NULL OR last_deployed_at < updated_at)
         AND updated_at > now() AT TIME ZONE 'UTC' - INTERVAL '30 days'
 );
+
+-- Replaced by the columns above, and only read by the backfill.
+ALTER TABLE commands DROP COLUMN last_deployed_at;
+ALTER TABLE plugin_instances DROP COLUMN last_deployed_at;

@@ -35,7 +35,7 @@ INSERT INTO plugin_instances (
     updated_at
 ) VALUES (
     $1, $2, $3, $4, $5, $6, $7, $8, $9
-) RETURNING id, plugin_id, enabled, app_id, creator_user_id, config, enabled_resource_ids, created_at, updated_at, last_deployed_at
+) RETURNING id, plugin_id, enabled, app_id, creator_user_id, config, enabled_resource_ids, created_at, updated_at
 `
 
 type CreatePluginInstanceParams struct {
@@ -73,7 +73,6 @@ func (q *Queries) CreatePluginInstance(ctx context.Context, arg CreatePluginInst
 		&i.EnabledResourceIds,
 		&i.CreatedAt,
 		&i.UpdatedAt,
-		&i.LastDeployedAt,
 	)
 	return i, err
 }
@@ -117,7 +116,7 @@ func (q *Queries) GetEnabledPluginInstanceIDs(ctx context.Context) ([]string, er
 }
 
 const getEnabledPluginInstancesUpdatesSince = `-- name: GetEnabledPluginInstancesUpdatesSince :many
-SELECT id, plugin_id, enabled, app_id, creator_user_id, config, enabled_resource_ids, created_at, updated_at, last_deployed_at FROM plugin_instances WHERE enabled = TRUE AND updated_at > $1
+SELECT id, plugin_id, enabled, app_id, creator_user_id, config, enabled_resource_ids, created_at, updated_at FROM plugin_instances WHERE enabled = TRUE AND updated_at > $1
 `
 
 func (q *Queries) GetEnabledPluginInstancesUpdatesSince(ctx context.Context, updatedAt pgtype.Timestamp) ([]PluginInstance, error) {
@@ -139,7 +138,6 @@ func (q *Queries) GetEnabledPluginInstancesUpdatesSince(ctx context.Context, upd
 			&i.EnabledResourceIds,
 			&i.CreatedAt,
 			&i.UpdatedAt,
-			&i.LastDeployedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -152,7 +150,7 @@ func (q *Queries) GetEnabledPluginInstancesUpdatesSince(ctx context.Context, upd
 }
 
 const getPluginInstance = `-- name: GetPluginInstance :one
-SELECT id, plugin_id, enabled, app_id, creator_user_id, config, enabled_resource_ids, created_at, updated_at, last_deployed_at FROM plugin_instances WHERE app_id = $1 AND plugin_id = $2
+SELECT id, plugin_id, enabled, app_id, creator_user_id, config, enabled_resource_ids, created_at, updated_at FROM plugin_instances WHERE app_id = $1 AND plugin_id = $2
 `
 
 type GetPluginInstanceParams struct {
@@ -173,13 +171,12 @@ func (q *Queries) GetPluginInstance(ctx context.Context, arg GetPluginInstancePa
 		&i.EnabledResourceIds,
 		&i.CreatedAt,
 		&i.UpdatedAt,
-		&i.LastDeployedAt,
 	)
 	return i, err
 }
 
 const getPluginInstancesByApp = `-- name: GetPluginInstancesByApp :many
-SELECT id, plugin_id, enabled, app_id, creator_user_id, config, enabled_resource_ids, created_at, updated_at, last_deployed_at FROM plugin_instances WHERE app_id = $1 ORDER BY created_at DESC, id
+SELECT id, plugin_id, enabled, app_id, creator_user_id, config, enabled_resource_ids, created_at, updated_at FROM plugin_instances WHERE app_id = $1 ORDER BY created_at DESC, id
 `
 
 func (q *Queries) GetPluginInstancesByApp(ctx context.Context, appID string) ([]PluginInstance, error) {
@@ -201,7 +198,6 @@ func (q *Queries) GetPluginInstancesByApp(ctx context.Context, appID string) ([]
 			&i.EnabledResourceIds,
 			&i.CreatedAt,
 			&i.UpdatedAt,
-			&i.LastDeployedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -219,7 +215,7 @@ UPDATE plugin_instances SET
     config = $4,
     enabled_resource_ids = $5,
     updated_at = $6
-WHERE app_id = $1 AND plugin_id = $2 RETURNING id, plugin_id, enabled, app_id, creator_user_id, config, enabled_resource_ids, created_at, updated_at, last_deployed_at
+WHERE app_id = $1 AND plugin_id = $2 RETURNING id, plugin_id, enabled, app_id, creator_user_id, config, enabled_resource_ids, created_at, updated_at
 `
 
 type UpdatePluginInstanceParams struct {
@@ -251,7 +247,6 @@ func (q *Queries) UpdatePluginInstance(ctx context.Context, arg UpdatePluginInst
 		&i.EnabledResourceIds,
 		&i.CreatedAt,
 		&i.UpdatedAt,
-		&i.LastDeployedAt,
 	)
 	return i, err
 }

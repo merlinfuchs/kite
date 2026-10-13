@@ -83,17 +83,16 @@ type Collaborator struct {
 }
 
 type Command struct {
-	ID             string
-	Name           string
-	Description    string
-	Enabled        bool
-	AppID          string
-	ModuleID       pgtype.Text
-	CreatorUserID  string
-	FlowSource     []byte
-	CreatedAt      pgtype.Timestamp
-	UpdatedAt      pgtype.Timestamp
-	LastDeployedAt pgtype.Timestamp
+	ID            string
+	Name          string
+	Description   string
+	Enabled       bool
+	AppID         string
+	ModuleID      pgtype.Text
+	CreatorUserID string
+	FlowSource    []byte
+	CreatedAt     pgtype.Timestamp
+	UpdatedAt     pgtype.Timestamp
 }
 
 type Entitlement struct {
@@ -184,7 +183,6 @@ type PluginInstance struct {
 	EnabledResourceIds []string
 	CreatedAt          pgtype.Timestamp
 	UpdatedAt          pgtype.Timestamp
-	LastDeployedAt     pgtype.Timestamp
 }
 
 type PluginValue struct {
