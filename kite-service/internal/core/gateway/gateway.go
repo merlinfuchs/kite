@@ -201,7 +201,7 @@ func connectErrorReason(err error) string {
 		case 4004:
 			return model.AppDisabledReasonInvalidToken
 		case 4014:
-			return "Your bot needs privileged intents that are turned off. Turn them on under Bot in the Discord Developer Portal, then start the app again."
+			return model.AppDisabledReasonDisallowedIntents
 		}
 	}
 	return fmt.Sprintf("Failed to connect to gateway: %v", err)

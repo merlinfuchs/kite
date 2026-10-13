@@ -2,6 +2,8 @@ package model
 
 import (
 	"gopkg.in/guregu/null.v4"
+	"os"
+	"strings"
 	"testing"
 	"time"
 )
@@ -31,7 +33,6 @@ func TestHasInvalidToken(t *testing.T) {
 		want    bool
 	}{
 		{false, AppDisabledReasonInvalidToken, true},
-		{false, "Failed to connect to gateway: websocket closed, reason: 4004 Authentication failed.", true},
 		{false, "No credits remaining", false},
 		{true, AppDisabledReasonInvalidToken, false},
 	}
@@ -40,6 +41,21 @@ func TestHasInvalidToken(t *testing.T) {
 		app := &App{Enabled: test.enabled, DisabledReason: null.StringFrom(test.reason)}
 		if got := HasInvalidToken(app); got != test.want {
 			t.Errorf("%v %q: got %v, want %v", test.enabled, test.reason, got, test.want)
+		}
+	}
+}
+
+// The migration that rewrote the old reasons has to use the same text, or the
+// web app won't recognize those apps.
+func TestDisabledReasonsMatchMigration(t *testing.T) {
+	raw, err := os.ReadFile("../db/postgres/migrations/057_rewrite_gateway_disabled_reasons.up.sql")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	for _, reason := range []string{AppDisabledReasonInvalidToken, AppDisabledReasonDisallowedIntents} {
+		if !strings.Contains(string(raw), "'"+reason+"'") {
+			t.Errorf("migration doesn't set %q", reason)
 		}
 	}
 }

@@ -148,7 +148,7 @@ func TestConnectErrorReason(t *testing.T) {
 	if got := connectErrorReason(closed(4004, "4004 Authentication failed.")); got != model.AppDisabledReasonInvalidToken {
 		t.Errorf("4004: got %q", got)
 	}
-	if got := connectErrorReason(closed(4014, "4014 Disallowed intent(s).")); !strings.Contains(got, "privileged intents") {
+	if got := connectErrorReason(closed(4014, "4014 Disallowed intent(s).")); got != model.AppDisabledReasonDisallowedIntents {
 		t.Errorf("4014: got %q", got)
 	}
 	if got := connectErrorReason(errors.New("boom")); got != "Failed to connect to gateway: boom" {
