@@ -1,20 +1,15 @@
-import {
-  useAppEntitiesQuery,
-  useAppStateGuildsQuery,
-  useUsageCreditsQuery,
-} from "@/lib/api/queries";
+import { useAppSetupQuery } from "@/lib/api/queries";
 import { getAppInviteUrl } from "@/lib/discord/invite";
 import { useApp } from "@/lib/hooks/api";
 import { useSetupChecklistStore } from "@/lib/state/setupChecklist";
 import { App } from "@/lib/types/wire.gen";
 import { cn } from "@/lib/utils";
-import { useQueryClient } from "@tanstack/react-query";
 import { differenceInDays } from "date-fns";
-import { CheckIcon, XIcon } from "lucide-react";
+import { CheckIcon, PartyPopperIcon, XIcon } from "lucide-react";
 import Link from "next/link";
-import { ReactNode, useEffect } from "react";
+import { ReactNode, useEffect, useState } from "react";
 import { Button } from "../ui/button";
-import { Card, CardDescription, CardHeader, CardTitle } from "../ui/card";
+import { Card } from "../ui/card";
 
 const maxAppAgeDays = 14;
 
@@ -34,74 +29,73 @@ export default function AppSetupChecklist() {
 
 function Checklist({ app }: { app: App }) {
   const hide = useSetupChecklistStore((s) => s.hide);
-  const client = useQueryClient();
 
-  const guilds = useAppStateGuildsQuery(app.id);
-  const entities = useAppEntitiesQuery(app.id);
-  const credits = useUsageCreditsQuery(app.id);
+  // Only celebrate if the user finished a step while watching, not for apps
+  // that were set up already.
+  const [sawIncomplete, setSawIncomplete] = useState(false);
 
-  // Steps are done in Discord or on other pages, so check again when the user
-  // comes back.
+  const query = useAppSetupQuery(app.id);
+  const setup = query.data?.success ? query.data.data : null;
+
+  const steps = setup
+    ? [setup.invited, setup.has_command, setup.ran_command]
+    : [];
+  const doneCount = steps.filter(Boolean).length;
+  const done = !!setup && doneCount === steps.length;
+  const current = steps.indexOf(false);
+
   useEffect(() => {
-    function refresh() {
-      for (const key of [
-        ["state", "guilds"],
-        ["entities"],
-        ["usage", "credits"],
-      ]) {
-        client.invalidateQueries({ queryKey: ["apps", app.id, ...key] });
-      }
+    if (!setup) return;
+    if (!done) {
+      setSawIncomplete(true);
+    } else if (!sawIncomplete) {
+      hide(app.id);
     }
+  }, [setup, done, sawIncomplete, hide, app.id]);
 
-    refresh();
-    window.addEventListener("focus", refresh);
-    return () => window.removeEventListener("focus", refresh);
-  }, [client, app.id]);
+  if (!setup || (done && !sawIncomplete)) return null;
 
-  const invited = !!(guilds.data?.success && guilds.data.data.length);
-  const hasCommand = !!(
-    entities.data?.success &&
-    entities.data.data.some((e) => e?.type === "command")
-  );
-  // Running a command uses credits.
-  const triedIt = !!(
-    credits.data?.success && credits.data.data.credits_used > 0
-  );
-  const done = invited && hasCommand && triedIt;
-
-  useEffect(() => {
-    if (done) hide(app.id);
-  }, [done, hide, app.id]);
-
-  if (guilds.isPending || entities.isPending || credits.isPending || done) {
-    return null;
+  if (done) {
+    return (
+      <Card className="mb-4 md:mb-8 p-5 flex items-center gap-4">
+        <PartyPopperIcon className="h-6 w-6 flex-none text-primary" />
+        <div className="flex-auto">
+          <div className="font-semibold">Your bot is up and running</div>
+          <div className="text-sm text-muted-foreground">
+            Someone ran your first command in Discord.
+          </div>
+        </div>
+        <DismissButton onClick={() => hide(app.id)} />
+      </Card>
+    );
   }
 
   return (
-    <Card className="mb-4 md:mb-8">
-      <CardHeader className="relative">
-        <Button
-          size="icon"
-          variant="ghost"
-          className="absolute top-3 right-3 h-8 w-8 text-muted-foreground"
-          onClick={() => hide(app.id)}
-          title="Hide"
-          aria-label="Hide"
-        >
-          <XIcon className="h-4 w-4" />
-        </Button>
-        <CardTitle>Get your bot running</CardTitle>
-        <CardDescription>
-          Three steps to your first working command.
-        </CardDescription>
-      </CardHeader>
-      <ol className="px-6 pb-6 grid gap-5 lg:grid-cols-3">
+    <Card className="mb-4 md:mb-8 overflow-hidden">
+      <div className="px-5 pt-5 flex items-center gap-4">
+        <div className="flex-auto">
+          <div className="font-semibold">Get your bot running</div>
+          <div className="text-sm text-muted-foreground">
+            {doneCount} of {steps.length} done
+          </div>
+        </div>
+        <DismissButton onClick={() => hide(app.id)} />
+      </div>
+      <div className="mx-5 mt-3 h-1.5 rounded-full bg-muted overflow-hidden">
+        <div
+          className="h-full bg-primary transition-all duration-500"
+          style={{ width: `${(doneCount / steps.length) * 100}%` }}
+        />
+      </div>
+      <ol className="p-2 pt-3">
         <Step
-          done={invited}
+          index={0}
+          current={current}
+          done={setup.invited}
           title="Add your bot to a server"
           description="Pick a server where you can test it."
         >
-          <Button size="sm" variant="outline" asChild>
+          <Button size="sm" asChild>
             <a
               href={getAppInviteUrl(app.discord_id)}
               target="_blank"
@@ -112,11 +106,13 @@ function Checklist({ app }: { app: App }) {
           </Button>
         </Step>
         <Step
-          done={hasCommand}
+          index={1}
+          current={current}
+          done={setup.has_command}
           title="Create a command"
-          description="Build one from blocks, or import a template with ready-made commands."
+          description="Build one from blocks or ask the AI to build it for you."
         >
-          <Button size="sm" variant="outline" asChild>
+          <Button size="sm" asChild>
             <Link
               href={{
                 pathname: "/apps/[appId]/commands",
@@ -126,64 +122,106 @@ function Checklist({ app }: { app: App }) {
               Create command
             </Link>
           </Button>
-          <Button size="sm" variant="outline" asChild>
+          <Button size="sm" variant="ghost" asChild>
             <Link
               href={{
                 pathname: "/apps/[appId]/templates",
                 query: { appId: app.id },
               }}
             >
-              Browse templates
+              Start from a template
             </Link>
           </Button>
         </Step>
         <Step
-          done={triedIt}
+          index={2}
+          current={current}
+          done={setup.ran_command}
           title="Try it in Discord"
-          description="Type / in your server and pick your command."
-        />
+          description="Type / in your server and pick your command. This ticks off once it ran."
+        >
+          <Button size="sm" asChild>
+            <a
+              href="https://discord.com/channels/@me"
+              target="_blank"
+              rel="noreferrer"
+            >
+              Open Discord
+            </a>
+          </Button>
+        </Step>
       </ol>
     </Card>
   );
 }
 
+function DismissButton({ onClick }: { onClick: () => void }) {
+  return (
+    <Button
+      size="icon"
+      variant="ghost"
+      className="h-8 w-8 flex-none text-muted-foreground"
+      onClick={onClick}
+      title="Hide"
+      aria-label="Hide"
+    >
+      <XIcon className="h-4 w-4" />
+    </Button>
+  );
+}
+
 function Step({
+  index,
+  current,
   done,
   title,
   description,
   children,
 }: {
+  index: number;
+  current: number;
   done: boolean;
   title: string;
   description: string;
-  children?: ReactNode;
+  children: ReactNode;
 }) {
+  const isCurrent = index === current;
+
   return (
-    <li className="flex gap-3">
+    <li
+      className={cn(
+        "flex gap-3 rounded-md px-3 py-2.5",
+        isCurrent && "bg-muted/60"
+      )}
+    >
       <div
         className={cn(
-          "flex-none h-6 w-6 rounded-full border-2 flex items-center justify-center",
-          done && "bg-primary border-primary text-primary-foreground"
+          "flex-none h-6 w-6 rounded-full flex items-center justify-center text-xs font-semibold",
+          done
+            ? "bg-primary text-primary-foreground"
+            : isCurrent
+            ? "border-2 border-primary text-primary"
+            : "border-2 text-muted-foreground"
         )}
       >
-        {done && <CheckIcon className="h-4 w-4" />}
+        {done ? <CheckIcon className="h-4 w-4" /> : index + 1}
       </div>
-      <div className="space-y-2">
-        <div>
-          <div
-            className={cn(
-              "font-medium",
-              done && "line-through text-muted-foreground"
-            )}
-          >
-            {title}
-          </div>
-          {!done && (
-            <div className="text-sm text-muted-foreground">{description}</div>
+      <div className="min-w-0 pt-0.5">
+        <div
+          className={cn(
+            "text-sm font-medium",
+            !isCurrent && "text-muted-foreground"
           )}
+        >
+          {title}
         </div>
-        {!done && children && (
-          <div className="flex flex-wrap gap-2">{children}</div>
+        {isCurrent && (
+          <>
+            <div className="text-sm text-muted-foreground mt-0.5">
+              {description}
+            </div>
+            <div className="flex flex-wrap gap-2 mt-3">{children}</div>
+          </>
         )}
       </div>
     </li>

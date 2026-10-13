@@ -2,8 +2,7 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
 export interface SetupChecklistStore {
-  // Apps whose checklist was dismissed or completed. A completed step can
-  // untick again, like when the monthly credits reset.
+  // Apps whose checklist was dismissed or completed.
   hiddenAppIds: string[];
   hide: (appId: string) => void;
 }
