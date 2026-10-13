@@ -20,6 +20,9 @@ type App struct {
 	CreatorUserID  string            `json:"creator_user_id"`
 	CreatedAt      time.Time         `json:"created_at"`
 	UpdatedAt      time.Time         `json:"updated_at"`
+	// TokenInvalid is set when the app was disabled because Discord doesn't
+	// accept its token.
+	TokenInvalid bool `json:"token_invalid"`
 
 	CommandsDeployPending bool                 `json:"commands_deploy_pending"`
 	CommandsDeployError   *CommandsDeployError `json:"commands_deploy_error"`
@@ -137,6 +140,7 @@ func AppToWire(app *model.App) *App {
 		CreatorUserID:  app.CreatorUserID,
 		CreatedAt:      app.CreatedAt,
 		UpdatedAt:      app.UpdatedAt,
+		TokenInvalid:   model.HasInvalidToken(app),
 
 		CommandsDeployPending: app.CommandsDeployAt.Valid,
 		CommandsDeployError:   (*CommandsDeployError)(app.CommandsDeployError),

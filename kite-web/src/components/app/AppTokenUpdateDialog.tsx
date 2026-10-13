@@ -30,41 +30,51 @@ export default function AppTokenUpdateDialog({
 
   const updateMutation = useAppTokenUpdateMutation(app.id);
 
+  function onOpenChange(open: boolean) {
+    setOpen(open);
+    if (!open) {
+      setToken("");
+      setError(null);
+    }
+  }
+
   function onSubmit(e: FormEvent) {
     e.preventDefault();
-    if (!token) return;
+    const discordToken = token.trim();
+    if (!discordToken) return;
 
     updateMutation.mutate(
-      { discord_token: token.trim() },
+      { discord_token: discordToken },
       {
         onSuccess(res) {
           if (res.success) {
             toast.success("Token updated! Your bot is starting again.");
-            setOpen(false);
-            setToken("");
-            setError(null);
+            onOpenChange(false);
           } else {
             setError(res.error.message);
           }
+        },
+        onError(err) {
+          setError(String(err));
         },
       }
     );
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent>
         <form onSubmit={onSubmit} className="space-y-5">
           <DialogHeader>
-            <DialogTitle>Update Bot Token</DialogTitle>
+            <DialogTitle>Update Token</DialogTitle>
             <DialogDescription>
               Open your bot in the Discord Developer Portal, click on{" "}
               <strong>Reset Token</strong> under <strong>Bot</strong> and copy
               the new token.
             </DialogDescription>
           </DialogHeader>
-          <Button type="button" variant="outline" asChild>
+          <Button variant="outline" asChild>
             <a
               href={`https://discord.com/developers/applications/${app.discord_id}/bot`}
               target="_blank"
@@ -87,7 +97,7 @@ export default function AppTokenUpdateDialog({
           </div>
           <DialogFooter>
             <LoadingButton type="submit" loading={updateMutation.isPending}>
-              Save token
+              Update token
             </LoadingButton>
           </DialogFooter>
         </form>

@@ -19,6 +19,11 @@ export interface App {
   creator_user_id: string;
   created_at: string /* RFC3339 */;
   updated_at: string /* RFC3339 */;
+  /**
+   * TokenInvalid is set when the app was disabled because Discord doesn't
+   * accept its token.
+   */
+  token_invalid: boolean;
   commands_deploy_pending: boolean;
   commands_deploy_error?: CommandsDeployError;
 }

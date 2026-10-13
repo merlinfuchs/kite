@@ -2,6 +2,7 @@ package model
 
 import (
 	"slices"
+	"strings"
 	"time"
 
 	"github.com/diamondburned/arikawa/v3/utils/ws"
@@ -41,9 +42,16 @@ func (e *CommandsDeployError) Error() string {
 }
 
 // AppDisabledReasonInvalidToken is the reason an app is disabled when Discord
-// doesn't accept its token, usually because it was reset. The web app checks
-// for it to offer updating the token.
+// doesn't accept its token, usually because it was reset.
 const AppDisabledReasonInvalidToken = "Discord bot token is invalid, please update it"
+
+// HasInvalidToken reports whether the app was disabled because Discord doesn't
+// accept its token. Apps disabled before that reason existed have the gateway
+// error instead.
+func HasInvalidToken(app *App) bool {
+	return !app.Enabled && (app.DisabledReason.String == AppDisabledReasonInvalidToken ||
+		strings.Contains(app.DisabledReason.String, "4004 Authentication failed"))
+}
 
 type AppCredentials struct {
 	DiscordID    string

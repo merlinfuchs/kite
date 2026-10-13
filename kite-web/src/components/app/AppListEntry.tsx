@@ -9,12 +9,9 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { BotIcon } from "lucide-react";
 import Link from "next/link";
-import { hasInvalidToken } from "./AppDisabledPopup";
 import AppTokenUpdateDialog from "./AppTokenUpdateDialog";
 
 export default function AppListEntry({ app }: { app: App }) {
-  const invalidToken = hasInvalidToken(app);
-
   return (
     <Card className="flex flex-col sm:flex-row sm:items-start sm:justify-between">
       <CardHeader>
@@ -22,15 +19,15 @@ export default function AppListEntry({ app }: { app: App }) {
           <BotIcon className="h-5 w-5 flex-none text-muted-foreground" />
           <div>{app.name}</div>
           {!app.enabled && (
-            <Badge variant={invalidToken ? "destructive" : "secondary"}>
-              {invalidToken ? "Token invalid" : "Stopped"}
+            <Badge variant={app.token_invalid ? "destructive" : "secondary"}>
+              {app.token_invalid ? "Token stopped working" : "Stopped"}
             </Badge>
           )}
         </CardTitle>
         <CardDescription className="text-sm">{app.description}</CardDescription>
       </CardHeader>
       <div className="flex flex-none gap-2 px-6 pb-6 sm:p-3">
-        {invalidToken && (
+        {app.token_invalid && (
           <AppTokenUpdateDialog app={app}>
             <Button size="sm">Update token</Button>
           </AppTokenUpdateDialog>
