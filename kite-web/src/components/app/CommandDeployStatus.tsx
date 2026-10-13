@@ -24,7 +24,7 @@ export function commandDeployState(app: App): CommandDeployState {
 // Whether Discord rejected the commands because of the command with this name.
 // Subcommands are deployed as part of their root command.
 export function isCommandDeployErrorCause(app: App, commandName: string) {
-  return app.commands_deploy_error_command === commandName.split(" ")[0];
+  return app.commands_deploy_error?.command === commandName.split(" ")[0];
 }
 
 // Sends the commands to Discord again, even if they look unchanged.
@@ -64,7 +64,7 @@ export default function CommandDeployStatus() {
           Your commands couldn&apos;t be updated in Discord
         </AlertTitle>
         <AlertDescription className="space-y-3">
-          <p>{app.commands_deploy_error}</p>
+          <p>{app.commands_deploy_error?.message}</p>
           <p className="text-foreground/80">
             Discord still shows your commands as they were before. Fix the
             problem and save again, or try again if you think it was a temporary
@@ -88,7 +88,9 @@ export default function CommandDeployStatus() {
       {state === "pending" ? (
         <>
           <RefreshCwIcon className="h-4 w-4 flex-none animate-spin" />
-          Updating your commands in Discord...
+          {/* An error while still pending is temporary, and retried. */}
+          {app.commands_deploy_error?.message ??
+            "Updating your commands in Discord..."}
         </>
       ) : state === "stopped" ? (
         <>

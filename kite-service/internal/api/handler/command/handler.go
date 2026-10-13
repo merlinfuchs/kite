@@ -3,7 +3,6 @@ package command
 import (
 	"errors"
 	"fmt"
-	"log/slog"
 	"time"
 
 	"github.com/kitecloud/kite/kite-service/internal/api/handler"
@@ -84,8 +83,6 @@ func (h *CommandHandler) HandleCommandCreate(c *handler.Context, req wire.Comman
 		return nil, fmt.Errorf("failed to create command: %w", err)
 	}
 
-	h.markCommandsChanged(c)
-
 	return wire.CommandToWire(command), nil
 }
 
@@ -139,8 +136,6 @@ func (h *CommandHandler) HandleCommandsImport(c *handler.Context, req wire.Comma
 		res[i] = wire.CommandToWire(command)
 	}
 
-	h.markCommandsChanged(c)
-
 	return &res, nil
 }
 
@@ -171,8 +166,6 @@ func (h *CommandHandler) HandleCommandUpdate(c *handler.Context, req wire.Comman
 		}
 		return nil, fmt.Errorf("failed to update command: %w", err)
 	}
-
-	h.markCommandsChanged(c)
 
 	return wire.CommandToWire(command), nil
 }
@@ -205,17 +198,14 @@ func (h *CommandHandler) HandleCommandDelete(c *handler.Context) (*wire.CommandD
 		return nil, fmt.Errorf("failed to delete command: %w", err)
 	}
 
-	h.markCommandsChanged(c)
-
 	return &wire.CommandDeleteResponse{}, nil
 }
 
-// HandleCommandsDeploy deploys the commands again, even if they look unchanged.
-// They are also deployed after every change, but may have been changed outside
-// of Kite.
+// HandleCommandsDeploy deploys the commands again, even if they look unchanged,
+// in case they were changed outside of Kite.
 func (h *CommandHandler) HandleCommandsDeploy(c *handler.Context) (*wire.CommandsDeployResponse, error) {
-	if err := h.commandManager.MarkCommandsChanged(c.Context(), c.App.ID, true); err != nil {
-		return nil, fmt.Errorf("failed to mark commands changed: %w", err)
+	if err := h.commandManager.QueueDeploy(c.Context(), c.App.ID, true); err != nil {
+		return nil, fmt.Errorf("failed to queue commands deploy: %w", err)
 	}
 
 	return &wire.CommandsDeployResponse{}, nil
@@ -233,16 +223,4 @@ func (h *CommandHandler) checkCommandNames(c *handler.Context, replacedCommandID
 		return fmt.Errorf("failed to check command names: %w", err)
 	}
 	return nil
-}
-
-// markCommandsChanged queues the commands to be deployed. The change is saved
-// already, so a failure is only logged.
-func (h *CommandHandler) markCommandsChanged(c *handler.Context) {
-	if err := h.commandManager.MarkCommandsChanged(c.Context(), c.App.ID, false); err != nil {
-		slog.Error(
-			"Failed to mark commands changed",
-			slog.String("app_id", c.App.ID),
-			slog.String("error", err.Error()),
-		)
-	}
 }

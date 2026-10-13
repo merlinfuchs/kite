@@ -179,7 +179,7 @@ func (q *Queries) GetPluginInstance(ctx context.Context, arg GetPluginInstancePa
 }
 
 const getPluginInstancesByApp = `-- name: GetPluginInstancesByApp :many
-SELECT id, plugin_id, enabled, app_id, creator_user_id, config, enabled_resource_ids, created_at, updated_at, last_deployed_at FROM plugin_instances WHERE app_id = $1 ORDER BY created_at DESC
+SELECT id, plugin_id, enabled, app_id, creator_user_id, config, enabled_resource_ids, created_at, updated_at, last_deployed_at FROM plugin_instances WHERE app_id = $1 ORDER BY created_at DESC, id
 `
 
 func (q *Queries) GetPluginInstancesByApp(ctx context.Context, appID string) ([]PluginInstance, error) {

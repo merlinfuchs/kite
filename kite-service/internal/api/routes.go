@@ -276,7 +276,7 @@ func (s *APIServer) RegisterRoutes(
 	v1Group.Post("/webhooks/{appID}/{listenerID}/{secret}", eventListenerHandler.HandleEventListenerWebhook)
 
 	// Plugin instance routes
-	pluginHandler := pluginhandler.NewPluginHandler(pluginRegistry, pluginInstanceStore, commandManager)
+	pluginHandler := pluginhandler.NewPluginHandler(pluginRegistry, pluginInstanceStore)
 
 	pluginsGroup := v1Group.Group("/plugins")
 	pluginsGroup.Get("/", handler.Typed(pluginHandler.HandlePluginList))

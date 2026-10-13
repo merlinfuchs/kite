@@ -27,15 +27,11 @@ type AppDisableOpts struct {
 
 type AppCommandsDeployResult struct {
 	ID string
-	// Version is the commands version of the app the deploy started from.
-	Version int64
-	// RetryAt is the earliest time the commands are deployed again if they
-	// change. It's only set if Discord was called.
-	RetryAt null.Time
+	// DeployAt is the app's CommandsDeployAt when the deploy started.
+	DeployAt time.Time
 	// DeployedHash is the hash of the commands in Discord, or null if unknown.
 	DeployedHash null.String
-	Error        null.String
-	ErrorCommand null.String
+	Error        *model.CommandsDeployError
 }
 
 // AppGatewayRequirementsRow is the stored form of an app's gateway
@@ -70,12 +66,14 @@ type AppStore interface {
 	// listeners or plugin instances changed, and whose intents may therefore
 	// need recomputing. Deletions are not reported; see the query for why.
 	AppIDsWithGatewayRequirementsChangedSince(ctx context.Context, updatedSince time.Time) ([]string, error)
-	// MarkAppCommandsChanged queues the app's commands to be deployed to
-	// Discord. Forcing deploys them even if they look unchanged.
-	MarkAppCommandsChanged(ctx context.Context, appID string, force bool) error
-	AppIDsWithPendingCommandsDeploy(ctx context.Context, changedBefore time.Time, limit int) ([]string, error)
+	// QueueAppCommandsDeploy deploys the app's commands again in a few
+	// seconds. Changes to commands and plugins do so by themselves. Forcing
+	// sends them even if they look unchanged.
+	QueueAppCommandsDeploy(ctx context.Context, appID string, force bool) error
+	AppIDsWithDueCommandsDeploy(ctx context.Context, limit int) ([]string, error)
 	FinishAppCommandsDeploy(ctx context.Context, res AppCommandsDeployResult) error
-	DelayAppCommandsDeploy(ctx context.Context, appID string, retryAt time.Time) error
+	// DelayAppCommandsDeploy tries again in a few minutes.
+	DelayAppCommandsDeploy(ctx context.Context, appID string, err *model.CommandsDeployError) error
 
 	Collaborator(ctx context.Context, appID string, userID string) (*model.AppCollaborator, error)
 	CollaboratorsByApp(ctx context.Context, appID string) ([]*model.AppCollaborator, error)

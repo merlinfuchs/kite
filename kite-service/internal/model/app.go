@@ -22,16 +22,22 @@ type App struct {
 	CreatedAt      time.Time
 	UpdatedAt      time.Time
 
-	// CommandsDeployPending is set while changed commands still need to be
-	// deployed to Discord.
-	CommandsDeployPending bool
-	// CommandsVersion increments with every change of the commands.
-	CommandsVersion      int64
+	// CommandsDeployAt is when the commands are deployed to Discord next, or
+	// null if Discord is up to date.
+	CommandsDeployAt     null.Time
 	CommandsDeployedHash null.String
-	// CommandsDeployError is why Discord rejected the last deploy, and
-	// CommandsDeployErrorCommand the name of the command it rejected, if known.
-	CommandsDeployError        null.String
-	CommandsDeployErrorCommand null.String
+	CommandsDeployError  *CommandsDeployError
+}
+
+// CommandsDeployError is why the commands couldn't be deployed to Discord.
+type CommandsDeployError struct {
+	Message string `json:"message"`
+	// Command is the name of the root command it's about, if known.
+	Command string `json:"command,omitempty"`
+}
+
+func (e *CommandsDeployError) Error() string {
+	return e.Message
 }
 
 type AppCredentials struct {

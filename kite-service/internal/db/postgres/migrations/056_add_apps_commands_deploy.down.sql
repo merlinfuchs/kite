@@ -1,8 +1,7 @@
-DROP INDEX IF EXISTS apps_commands_deploy_pending;
-ALTER TABLE apps DROP COLUMN commands_deploy_error_command;
+DROP TRIGGER IF EXISTS plugin_instances_queue_app_commands_deploy ON plugin_instances;
+DROP TRIGGER IF EXISTS commands_queue_app_commands_deploy ON commands;
+DROP FUNCTION IF EXISTS queue_app_commands_deploy();
+DROP INDEX IF EXISTS apps_commands_deploy_at;
 ALTER TABLE apps DROP COLUMN commands_deploy_error;
 ALTER TABLE apps DROP COLUMN commands_deployed_hash;
-ALTER TABLE apps DROP COLUMN commands_deploy_retry_at;
-ALTER TABLE apps DROP COLUMN commands_changed_at;
-ALTER TABLE apps DROP COLUMN commands_version;
-ALTER TABLE apps DROP COLUMN commands_deploy_pending;
+ALTER TABLE apps DROP COLUMN commands_deploy_at;

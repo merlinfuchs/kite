@@ -3,12 +3,10 @@ package plugin
 import (
 	"errors"
 	"fmt"
-	"log/slog"
 	"time"
 
 	"github.com/kitecloud/kite/kite-service/internal/api/handler"
 	"github.com/kitecloud/kite/kite-service/internal/api/wire"
-	"github.com/kitecloud/kite/kite-service/internal/core/command"
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/internal/store"
 	"github.com/kitecloud/kite/kite-service/internal/util"
@@ -18,18 +16,12 @@ import (
 type PluginHandler struct {
 	pluginRegistry      *plugin.Registry
 	pluginInstanceStore store.PluginInstanceStore
-	commandManager      *command.CommandManager
 }
 
-func NewPluginHandler(
-	pluginRegistry *plugin.Registry,
-	pluginInstanceStore store.PluginInstanceStore,
-	commandManager *command.CommandManager,
-) *PluginHandler {
+func NewPluginHandler(pluginRegistry *plugin.Registry, pluginInstanceStore store.PluginInstanceStore) *PluginHandler {
 	return &PluginHandler{
 		pluginRegistry:      pluginRegistry,
 		pluginInstanceStore: pluginInstanceStore,
-		commandManager:      commandManager,
 	}
 }
 
@@ -78,8 +70,6 @@ func (h *PluginHandler) HandlePluginInstanceCreate(c *handler.Context, req wire.
 		return nil, fmt.Errorf("failed to create plugin instance: %w", err)
 	}
 
-	h.markCommandsChanged(c)
-
 	return wire.PluginInstanceToWire(pluginInstance), nil
 }
 
@@ -99,8 +89,6 @@ func (h *PluginHandler) HandlePluginInstanceUpdate(c *handler.Context, req wire.
 		}
 		return nil, fmt.Errorf("failed to update plugin instance: %w", err)
 	}
-
-	h.markCommandsChanged(c)
 
 	return wire.PluginInstanceToWire(pluginInstance), nil
 }
@@ -134,19 +122,5 @@ func (h *PluginHandler) HandlePluginInstanceDelete(c *handler.Context) (*wire.Pl
 		return nil, fmt.Errorf("failed to delete plugin instance: %w", err)
 	}
 
-	h.markCommandsChanged(c)
-
 	return &wire.PluginInstanceDeleteResponse{}, nil
-}
-
-// markCommandsChanged queues the commands to be deployed, as plugins can add
-// commands. The change is saved already, so a failure is only logged.
-func (h *PluginHandler) markCommandsChanged(c *handler.Context) {
-	if err := h.commandManager.MarkCommandsChanged(c.Context(), c.App.ID, false); err != nil {
-		slog.Error(
-			"Failed to mark commands changed",
-			slog.String("app_id", c.App.ID),
-			slog.String("error", err.Error()),
-		)
-	}
 }

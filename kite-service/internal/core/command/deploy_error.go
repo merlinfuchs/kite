@@ -10,7 +10,20 @@ import (
 
 	"github.com/diamondburned/arikawa/v3/api"
 	"github.com/diamondburned/arikawa/v3/utils/httputil"
+	"github.com/kitecloud/kite/kite-service/internal/model"
 )
+
+// DeployError is a problem with an app's commands that its user has to fix.
+type DeployError = model.CommandsDeployError
+
+// isRejection reports whether Discord rejected the commands, rather than
+// failing to process them. Nirn, the proxy in front of Discord, returns 408
+// when Discord doesn't answer in time.
+func isRejection(status int) bool {
+	return status >= 400 && status < 500 &&
+		status != http.StatusTooManyRequests &&
+		status != httputil.StatusNirnTimeout
+}
 
 // discordDeployError turns Discord rejecting the commands into a message the
 // user can act on.

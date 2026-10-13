@@ -8,7 +8,7 @@ import (
 	"github.com/diamondburned/arikawa/v3/utils/httputil"
 )
 
-func TestValidateCommandNames(t *testing.T) {
+func TestCheckCommandNames(t *testing.T) {
 	tests := []struct {
 		names   []string
 		message string
@@ -25,7 +25,7 @@ func TestValidateCommandNames(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		err := validateCommandNames(test.names)
+		err := checkCommandNames(nil, test.names)
 		if test.message == "" {
 			if err != nil {
 				t.Errorf("%v: unexpected error: %v", test.names, err)

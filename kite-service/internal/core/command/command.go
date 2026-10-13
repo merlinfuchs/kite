@@ -8,11 +8,9 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
-	"net/http"
 	"slices"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/diamondburned/arikawa/v3/api"
@@ -21,76 +19,55 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/internal/store"
 	"github.com/kitecloud/kite/kite-service/pkg/flow"
+	"golang.org/x/sync/errgroup"
 	"gopkg.in/guregu/null.v4"
 )
 
 const (
-	// Commands wait this long after a change, so quick successive changes are
-	// deployed together.
-	deployDelay = 3 * time.Second
-	// The least time between two deploys of an app, to stay clear of Discord's
-	// rate limits.
-	deployInterval = 30 * time.Second
-	// How long to wait before trying again when Discord or the network failed.
-	deployRetryInterval = 1 * time.Minute
-	deployTimeout       = 15 * time.Second
-	maxDeploysPerTick   = 20
-	maxParallelDeploys  = 5
+	deployTimeout      = 15 * time.Second
+	maxDeploysPerBatch = 20
+	maxParallelDeploys = 5
 )
 
-// DeployError is a problem with an app's commands that its user has to fix.
-type DeployError struct {
-	Message string
-	// Command is the name of the root command the error is about, if known.
-	Command string
-}
-
-func (e *DeployError) Error() string {
-	return e.Message
-}
-
-// MarkCommandsChanged queues the app's commands to be deployed in the
-// background. Forcing deploys them even if they look unchanged, in case they
-// were changed outside of Kite.
-func (m *CommandManager) MarkCommandsChanged(ctx context.Context, appID string, force bool) error {
-	return m.appStore.MarkAppCommandsChanged(ctx, appID, force)
+// QueueDeploy deploys the app's commands again in a few seconds. Changes to
+// commands and plugins do so by themselves. Forcing sends them even if they
+// look unchanged, in case they were changed outside of Kite.
+func (m *CommandManager) QueueDeploy(ctx context.Context, appID string, force bool) error {
+	return m.appStore.QueueAppCommandsDeploy(ctx, appID, force)
 }
 
 // Run deploys the commands of apps whose commands changed to Discord.
 func (m *CommandManager) Run(ctx context.Context) {
-	ticker := time.NewTicker(5 * time.Second)
-
 	go func() {
-		for {
+		for ctx.Err() == nil {
+			deployed := m.deployDueApps(ctx)
+			// Keep going while there's a backlog.
+			if deployed == maxDeploysPerBatch {
+				continue
+			}
+
 			select {
 			case <-ctx.Done():
-				ticker.Stop()
 				return
-			case <-ticker.C:
-				m.deployPendingApps(ctx)
+			case <-time.After(5 * time.Second):
 			}
 		}
 	}()
 }
 
-func (m *CommandManager) deployPendingApps(ctx context.Context) {
-	appIDs, err := m.appStore.AppIDsWithPendingCommandsDeploy(ctx, time.Now().Add(-deployDelay), maxDeploysPerTick)
+func (m *CommandManager) deployDueApps(ctx context.Context) int {
+	appIDs, err := m.appStore.AppIDsWithDueCommandsDeploy(ctx, maxDeploysPerBatch)
 	if err != nil {
-		slog.Error("Failed to get apps with pending commands deploy", slog.String("error", err.Error()))
-		return
+		if ctx.Err() == nil {
+			slog.Error("Failed to get apps with due commands deploy", slog.String("error", err.Error()))
+		}
+		return 0
 	}
 
-	var wg sync.WaitGroup
-	sem := make(chan struct{}, maxParallelDeploys)
+	var g errgroup.Group
+	g.SetLimit(maxParallelDeploys)
 	for _, appID := range appIDs {
-		wg.Add(1)
-		sem <- struct{}{}
-		go func() {
-			defer func() {
-				<-sem
-				wg.Done()
-			}()
-
+		g.Go(func() error {
 			if err := m.deployCommands(ctx, appID); err != nil {
 				slog.Error(
 					"Failed to deploy commands",
@@ -98,9 +75,12 @@ func (m *CommandManager) deployPendingApps(ctx context.Context) {
 					slog.String("error", err.Error()),
 				)
 			}
-		}()
+			return nil
+		})
 	}
-	wg.Wait()
+	g.Wait()
+
+	return len(appIDs)
 }
 
 func (m *CommandManager) deployCommands(ctx context.Context, appID string) error {
@@ -108,26 +88,27 @@ func (m *CommandManager) deployCommands(ctx context.Context, appID string) error
 	if err != nil {
 		return fmt.Errorf("failed to get app: %w", err)
 	}
+	if !app.CommandsDeployAt.Valid {
+		return nil
+	}
 
 	// The result is stored with ctx, so it's stored even if the deploy timed out.
 	deployCtx, cancel := context.WithTimeout(ctx, deployTimeout)
 	defer cancel()
 
-	res := store.AppCommandsDeployResult{ID: appID, Version: app.CommandsVersion}
+	res := store.AppCommandsDeployResult{ID: appID, DeployAt: app.CommandsDeployAt.Time}
 
-	hash, calledDiscord, err := m.sendCommands(deployCtx, app)
-	if calledDiscord {
-		res.RetryAt = null.TimeFrom(time.Now().Add(deployInterval))
-	}
-
+	hash, err := m.sendCommands(deployCtx, app)
 	var deployErr *DeployError
 	switch {
 	case errors.As(err, &deployErr):
-		res.Error = null.StringFrom(deployErr.Message)
-		res.ErrorCommand = null.NewString(deployErr.Command, deployErr.Command != "")
+		res.Error = deployErr
 	case err != nil:
-		// Try again later, the commands may well be fine.
-		if delayErr := m.appStore.DelayAppCommandsDeploy(ctx, appID, time.Now().Add(deployRetryInterval)); delayErr != nil {
+		// The commands may well be fine, so try again later.
+		delayErr := m.appStore.DelayAppCommandsDeploy(ctx, appID, &DeployError{
+			Message: "Discord didn't respond. Kite tries again in a few minutes.",
+		})
+		if delayErr != nil {
 			return fmt.Errorf("failed to delay commands deploy: %w", delayErr)
 		}
 		return err
@@ -142,47 +123,47 @@ func (m *CommandManager) deployCommands(ctx context.Context, appID string) error
 }
 
 // sendCommands sends the app's commands to Discord, unless they're unchanged
-// since the last time. It returns their hash and whether Discord was called.
-func (m *CommandManager) sendCommands(ctx context.Context, app *model.App) (string, bool, error) {
+// since the last time, and returns their hash.
+func (m *CommandManager) sendCommands(ctx context.Context, app *model.App) (string, error) {
 	commands, err := m.appCommands(ctx, app.ID)
 	if err != nil {
-		return "", false, err
+		return "", err
 	}
 
 	cmdData := mergeCommands(commands)
 
 	hash, err := hashCommands(app.DiscordID, cmdData)
 	if err != nil {
-		return "", false, fmt.Errorf("failed to hash commands: %w", err)
+		return "", fmt.Errorf("failed to hash commands: %w", err)
 	}
 
 	// Most changes only change what a command does, which needs no deploy.
 	if app.CommandsDeployedHash.Valid && app.CommandsDeployedHash.String == hash {
-		return hash, false, nil
+		return hash, nil
 	}
 
-	appId, err := strconv.ParseUint(app.DiscordID, 10, 64)
+	appID, err := strconv.ParseUint(app.DiscordID, 10, 64)
 	if err != nil {
-		return "", false, fmt.Errorf("failed to parse app ID: %w", err)
+		return "", &DeployError{Message: "The app has an invalid Discord ID."}
 	}
 
 	token, err := m.tokenCrypt.DecryptString(app.DiscordToken)
 	if err != nil {
-		return "", false, fmt.Errorf("failed to decrypt token: %w", err)
+		return "", &DeployError{Message: "Kite couldn't read the bot token. Update it in the settings."}
 	}
 
 	client := api.NewClient("Bot " + token).WithContext(ctx)
 
-	_, err = client.BulkOverwriteCommands(discord.AppID(appId), cmdData)
+	_, err = client.BulkOverwriteCommands(discord.AppID(appID), cmdData)
 	if err != nil {
 		var httpErr *httputil.HTTPError
-		if errors.As(err, &httpErr) && httpErr.Status >= 400 && httpErr.Status < 500 && httpErr.Status != http.StatusTooManyRequests {
-			return "", true, discordDeployError(httpErr, cmdData)
+		if errors.As(err, &httpErr) && isRejection(httpErr.Status) {
+			return "", discordDeployError(httpErr, cmdData)
 		}
-		return "", true, fmt.Errorf("failed to deploy commands: %w", err)
+		return "", fmt.Errorf("failed to deploy commands: %w", err)
 	}
 
-	return hash, true, nil
+	return hash, nil
 }
 
 func hashCommands(discordAppID string, cmdData []api.CreateCommandData) (string, error) {
@@ -236,7 +217,7 @@ func (m *CommandManager) appCommands(ctx context.Context, appID string) ([]api.C
 		res = append(res, command)
 	}
 
-	if err := validateCommandNames(commandNames); err != nil {
+	if err := checkCommandNames(nil, commandNames); err != nil {
 		return nil, err
 	}
 
@@ -267,17 +248,18 @@ func (m *CommandManager) pluginCommands(ctx context.Context, appID string) ([]ap
 	return res, nil
 }
 
-func validateCommandNames(commandNames []string) error {
-	for a, aName := range commandNames {
-		for _, bName := range commandNames[a+1:] {
-			if err := commandNameConflict(aName, bName); err != nil {
+// checkCommandNames reports whether the added names conflict with the
+// existing ones or each other in a way Discord rejects.
+func checkCommandNames(existing []string, added []string) error {
+	for i, name := range added {
+		if name == "" {
+			return &DeployError{Message: "A command has no name."}
+		}
+		for _, other := range slices.Concat(existing, added[:i]) {
+			if err := commandNameConflict(name, other); err != nil {
 				return err
 			}
 		}
-	}
-
-	if slices.Contains(commandNames, "") {
-		return &DeployError{Message: "A command has no name."}
 	}
 	return nil
 }
@@ -305,10 +287,14 @@ func commandNameConflict(aName, bName string) *DeployError {
 			Command: aParts[0],
 		}
 	case shared == len(aParts) || shared == len(bParts):
+		parent, child := aName, bName
+		if len(bParts) < len(aParts) {
+			parent, child = bName, aName
+		}
 		return &DeployError{
 			Message: fmt.Sprintf(
 				"/%s and /%s can't both exist, because /%s has subcommands.",
-				aName, bName, strings.Join(aParts[:shared], " "),
+				parent, child, parent,
 			),
 			Command: aParts[0],
 		}
@@ -340,14 +326,7 @@ func (m *CommandManager) CheckCommandNames(ctx context.Context, appID string, re
 		existing = append(existing, command.Name)
 	}
 
-	for i, name := range names {
-		for _, other := range slices.Concat(existing, names[:i]) {
-			if err := commandNameConflict(name, other); err != nil {
-				return err
-			}
-		}
-	}
-	return nil
+	return checkCommandNames(existing, names)
 }
 
 // mergeCommands merges the subcommands of the same root command into one

@@ -103,13 +103,13 @@ type DiscordAppInfo struct {
 // retryFailedCommandsDeploy deploys the commands again if the last deploy
 // failed, since a new token or restarting the app may have fixed it.
 func (h *AppHandler) retryFailedCommandsDeploy(c *handler.Context) {
-	if !c.App.CommandsDeployError.Valid {
+	if c.App.CommandsDeployError == nil {
 		return
 	}
 
-	if err := h.appStore.MarkAppCommandsChanged(c.Context(), c.App.ID, false); err != nil {
+	if err := h.appStore.QueueAppCommandsDeploy(c.Context(), c.App.ID, false); err != nil {
 		slog.Error(
-			"Failed to mark commands changed",
+			"Failed to queue commands deploy",
 			slog.String("app_id", c.App.ID),
 			slog.String("error", err.Error()),
 		)

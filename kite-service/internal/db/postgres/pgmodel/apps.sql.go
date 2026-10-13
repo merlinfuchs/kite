@@ -35,7 +35,7 @@ INSERT INTO apps (
     updated_at
 ) VALUES (
     $1, $2, $3, $4, $5, $6, $7, $8, $9
-) RETURNING id, name, description, enabled, owner_user_id, creator_user_id, discord_token, discord_id, created_at, updated_at, discord_status, disabled_reason, commands_deploy_pending, commands_version, commands_changed_at, commands_deploy_retry_at, commands_deployed_hash, commands_deploy_error, commands_deploy_error_command
+) RETURNING id, name, description, enabled, owner_user_id, creator_user_id, discord_token, discord_id, created_at, updated_at, discord_status, disabled_reason, commands_deploy_at, commands_deployed_hash, commands_deploy_error
 `
 
 type CreateAppParams struct {
@@ -76,30 +76,28 @@ func (q *Queries) CreateApp(ctx context.Context, arg CreateAppParams) (App, erro
 		&i.UpdatedAt,
 		&i.DiscordStatus,
 		&i.DisabledReason,
-		&i.CommandsDeployPending,
-		&i.CommandsVersion,
-		&i.CommandsChangedAt,
-		&i.CommandsDeployRetryAt,
+		&i.CommandsDeployAt,
 		&i.CommandsDeployedHash,
 		&i.CommandsDeployError,
-		&i.CommandsDeployErrorCommand,
 	)
 	return i, err
 }
 
 const delayAppCommandsDeploy = `-- name: DelayAppCommandsDeploy :exec
 UPDATE apps SET
-    commands_deploy_retry_at = $2
-WHERE id = $1
+    commands_deploy_at = GREATEST(commands_deploy_at, (now() AT TIME ZONE 'UTC') + INTERVAL '5 minutes'),
+    commands_deploy_error = $1
+WHERE id = $2
 `
 
 type DelayAppCommandsDeployParams struct {
-	ID                    string
-	CommandsDeployRetryAt pgtype.Timestamp
+	Error []byte
+	ID    string
 }
 
+// Tries again in a few minutes, when Discord or the network failed.
 func (q *Queries) DelayAppCommandsDeploy(ctx context.Context, arg DelayAppCommandsDeployParams) error {
-	_, err := q.db.Exec(ctx, delayAppCommandsDeploy, arg.ID, arg.CommandsDeployRetryAt)
+	_, err := q.db.Exec(ctx, delayAppCommandsDeploy, arg.Error, arg.ID)
 	return err
 }
 
@@ -135,43 +133,38 @@ func (q *Queries) DisableApp(ctx context.Context, arg DisableAppParams) error {
 
 const finishAppCommandsDeploy = `-- name: FinishAppCommandsDeploy :exec
 UPDATE apps SET
-    commands_deploy_pending = commands_version > $1,
-    commands_deploy_retry_at = COALESCE($2, commands_deploy_retry_at),
+    commands_deploy_at = CASE WHEN commands_deploy_at = $1 THEN NULL ELSE commands_deploy_at END,
     commands_deployed_hash = CASE
-        WHEN commands_version = $1 THEN COALESCE($3, commands_deployed_hash)
+        WHEN commands_deploy_at = $1 THEN COALESCE($2, commands_deployed_hash)
         ELSE commands_deployed_hash
     END,
-    commands_deploy_error = $4,
-    commands_deploy_error_command = $5
-WHERE id = $6
+    commands_deploy_error = $3
+WHERE id = $4
 `
 
 type FinishAppCommandsDeployParams struct {
-	Version      int64
-	RetryAt      pgtype.Timestamp
+	DeployAt     pgtype.Timestamp
 	DeployedHash pgtype.Text
-	Error        pgtype.Text
-	ErrorCommand pgtype.Text
+	Error        []byte
 	ID           string
 }
 
-// version is the commands_version the deploy started from. If the commands
-// changed meanwhile, the app stays pending and keeps its hash, which may have
-// been cleared to force the next deploy.
+// deploy_at is the commands_deploy_at the deploy started from. Every change
+// sets it to a later time, so if it changed, the commands changed meanwhile and
+// stay queued, keeping the hash, which may have been cleared to force the next
+// deploy.
 func (q *Queries) FinishAppCommandsDeploy(ctx context.Context, arg FinishAppCommandsDeployParams) error {
 	_, err := q.db.Exec(ctx, finishAppCommandsDeploy,
-		arg.Version,
-		arg.RetryAt,
+		arg.DeployAt,
 		arg.DeployedHash,
 		arg.Error,
-		arg.ErrorCommand,
 		arg.ID,
 	)
 	return err
 }
 
 const getAllApps = `-- name: GetAllApps :many
-SELECT id, name, description, enabled, owner_user_id, creator_user_id, discord_token, discord_id, created_at, updated_at, discord_status, disabled_reason, commands_deploy_pending, commands_version, commands_changed_at, commands_deploy_retry_at, commands_deployed_hash, commands_deploy_error, commands_deploy_error_command FROM apps
+SELECT id, name, description, enabled, owner_user_id, creator_user_id, discord_token, discord_id, created_at, updated_at, discord_status, disabled_reason, commands_deploy_at, commands_deployed_hash, commands_deploy_error FROM apps
 `
 
 func (q *Queries) GetAllApps(ctx context.Context) ([]App, error) {
@@ -196,13 +189,9 @@ func (q *Queries) GetAllApps(ctx context.Context) ([]App, error) {
 			&i.UpdatedAt,
 			&i.DiscordStatus,
 			&i.DisabledReason,
-			&i.CommandsDeployPending,
-			&i.CommandsVersion,
-			&i.CommandsChangedAt,
-			&i.CommandsDeployRetryAt,
+			&i.CommandsDeployAt,
 			&i.CommandsDeployedHash,
 			&i.CommandsDeployError,
-			&i.CommandsDeployErrorCommand,
 		); err != nil {
 			return nil, err
 		}
@@ -215,7 +204,7 @@ func (q *Queries) GetAllApps(ctx context.Context) ([]App, error) {
 }
 
 const getApp = `-- name: GetApp :one
-SELECT id, name, description, enabled, owner_user_id, creator_user_id, discord_token, discord_id, created_at, updated_at, discord_status, disabled_reason, commands_deploy_pending, commands_version, commands_changed_at, commands_deploy_retry_at, commands_deployed_hash, commands_deploy_error, commands_deploy_error_command FROM apps WHERE id = $1
+SELECT id, name, description, enabled, owner_user_id, creator_user_id, discord_token, discord_id, created_at, updated_at, discord_status, disabled_reason, commands_deploy_at, commands_deployed_hash, commands_deploy_error FROM apps WHERE id = $1
 `
 
 func (q *Queries) GetApp(ctx context.Context, id string) (App, error) {
@@ -234,13 +223,9 @@ func (q *Queries) GetApp(ctx context.Context, id string) (App, error) {
 		&i.UpdatedAt,
 		&i.DiscordStatus,
 		&i.DisabledReason,
-		&i.CommandsDeployPending,
-		&i.CommandsVersion,
-		&i.CommandsChangedAt,
-		&i.CommandsDeployRetryAt,
+		&i.CommandsDeployAt,
 		&i.CommandsDeployedHash,
 		&i.CommandsDeployError,
-		&i.CommandsDeployErrorCommand,
 	)
 	return i, err
 }
@@ -358,6 +343,34 @@ func (q *Queries) GetAppGatewayRequirements(ctx context.Context, appID string) (
 	return i, err
 }
 
+const getAppIDsWithDueCommandsDeploy = `-- name: GetAppIDsWithDueCommandsDeploy :many
+SELECT id FROM apps
+WHERE enabled AND commands_deploy_at <= now() AT TIME ZONE 'UTC'
+ORDER BY commands_deploy_at DESC
+LIMIT $1
+`
+
+// Newest changes first, so a user waiting for one isn't stuck behind a backlog.
+func (q *Queries) GetAppIDsWithDueCommandsDeploy(ctx context.Context, limit int32) ([]string, error) {
+	rows, err := q.db.Query(ctx, getAppIDsWithDueCommandsDeploy, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []string
+	for rows.Next() {
+		var id string
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		items = append(items, id)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getAppIDsWithGatewayRequirementsChangedSince = `-- name: GetAppIDsWithGatewayRequirementsChangedSince :many
 SELECT el.app_id FROM event_listeners el WHERE el.updated_at > $1 AND el.source = 'discord'
 UNION
@@ -391,45 +404,8 @@ func (q *Queries) GetAppIDsWithGatewayRequirementsChangedSince(ctx context.Conte
 	return items, nil
 }
 
-const getAppIDsWithPendingCommandsDeploy = `-- name: GetAppIDsWithPendingCommandsDeploy :many
-SELECT id FROM apps
-WHERE commands_deploy_pending AND enabled
-    AND commands_changed_at < $1
-    AND (commands_deploy_retry_at IS NULL OR commands_deploy_retry_at < $2)
-ORDER BY commands_changed_at
-LIMIT $3
-`
-
-type GetAppIDsWithPendingCommandsDeployParams struct {
-	ChangedBefore pgtype.Timestamp
-	Now           pgtype.Timestamp
-	MaxApps       int32
-}
-
-// Commands that changed a moment ago wait a bit, so quick successive changes
-// go out together.
-func (q *Queries) GetAppIDsWithPendingCommandsDeploy(ctx context.Context, arg GetAppIDsWithPendingCommandsDeployParams) ([]string, error) {
-	rows, err := q.db.Query(ctx, getAppIDsWithPendingCommandsDeploy, arg.ChangedBefore, arg.Now, arg.MaxApps)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []string
-	for rows.Next() {
-		var id string
-		if err := rows.Scan(&id); err != nil {
-			return nil, err
-		}
-		items = append(items, id)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
 const getAppsByCollaborator = `-- name: GetAppsByCollaborator :many
-SELECT a.id, a.name, a.description, a.enabled, a.owner_user_id, a.creator_user_id, a.discord_token, a.discord_id, a.created_at, a.updated_at, a.discord_status, a.disabled_reason, a.commands_deploy_pending, a.commands_version, a.commands_changed_at, a.commands_deploy_retry_at, a.commands_deployed_hash, a.commands_deploy_error, a.commands_deploy_error_command FROM apps a
+SELECT a.id, a.name, a.description, a.enabled, a.owner_user_id, a.creator_user_id, a.discord_token, a.discord_id, a.created_at, a.updated_at, a.discord_status, a.disabled_reason, a.commands_deploy_at, a.commands_deployed_hash, a.commands_deploy_error FROM apps a
 LEFT JOIN collaborators c ON a.id = c.app_id
 WHERE a.owner_user_id = $1 OR c.user_id = $1
 ORDER BY a.created_at DESC
@@ -457,13 +433,9 @@ func (q *Queries) GetAppsByCollaborator(ctx context.Context, userID string) ([]A
 			&i.UpdatedAt,
 			&i.DiscordStatus,
 			&i.DisabledReason,
-			&i.CommandsDeployPending,
-			&i.CommandsVersion,
-			&i.CommandsChangedAt,
-			&i.CommandsDeployRetryAt,
+			&i.CommandsDeployAt,
 			&i.CommandsDeployedHash,
 			&i.CommandsDeployError,
-			&i.CommandsDeployErrorCommand,
 		); err != nil {
 			return nil, err
 		}
@@ -476,7 +448,7 @@ func (q *Queries) GetAppsByCollaborator(ctx context.Context, userID string) ([]A
 }
 
 const getAppsByOwner = `-- name: GetAppsByOwner :many
-SELECT id, name, description, enabled, owner_user_id, creator_user_id, discord_token, discord_id, created_at, updated_at, discord_status, disabled_reason, commands_deploy_pending, commands_version, commands_changed_at, commands_deploy_retry_at, commands_deployed_hash, commands_deploy_error, commands_deploy_error_command FROM apps WHERE owner_user_id = $1 ORDER BY created_at DESC
+SELECT id, name, description, enabled, owner_user_id, creator_user_id, discord_token, discord_id, created_at, updated_at, discord_status, disabled_reason, commands_deploy_at, commands_deployed_hash, commands_deploy_error FROM apps WHERE owner_user_id = $1 ORDER BY created_at DESC
 `
 
 func (q *Queries) GetAppsByOwner(ctx context.Context, ownerUserID string) ([]App, error) {
@@ -501,13 +473,9 @@ func (q *Queries) GetAppsByOwner(ctx context.Context, ownerUserID string) ([]App
 			&i.UpdatedAt,
 			&i.DiscordStatus,
 			&i.DisabledReason,
-			&i.CommandsDeployPending,
-			&i.CommandsVersion,
-			&i.CommandsChangedAt,
-			&i.CommandsDeployRetryAt,
+			&i.CommandsDeployAt,
 			&i.CommandsDeployedHash,
 			&i.CommandsDeployError,
-			&i.CommandsDeployErrorCommand,
 		); err != nil {
 			return nil, err
 		}
@@ -568,7 +536,7 @@ func (q *Queries) GetEnabledAppIDs(ctx context.Context) ([]string, error) {
 }
 
 const getEnabledAppsUpdatedSince = `-- name: GetEnabledAppsUpdatedSince :many
-SELECT id, name, description, enabled, owner_user_id, creator_user_id, discord_token, discord_id, created_at, updated_at, discord_status, disabled_reason, commands_deploy_pending, commands_version, commands_changed_at, commands_deploy_retry_at, commands_deployed_hash, commands_deploy_error, commands_deploy_error_command FROM apps WHERE enabled = TRUE AND updated_at > $1
+SELECT id, name, description, enabled, owner_user_id, creator_user_id, discord_token, discord_id, created_at, updated_at, discord_status, disabled_reason, commands_deploy_at, commands_deployed_hash, commands_deploy_error FROM apps WHERE enabled = TRUE AND updated_at > $1
 `
 
 func (q *Queries) GetEnabledAppsUpdatedSince(ctx context.Context, updatedAt pgtype.Timestamp) ([]App, error) {
@@ -593,13 +561,9 @@ func (q *Queries) GetEnabledAppsUpdatedSince(ctx context.Context, updatedAt pgty
 			&i.UpdatedAt,
 			&i.DiscordStatus,
 			&i.DisabledReason,
-			&i.CommandsDeployPending,
-			&i.CommandsVersion,
-			&i.CommandsChangedAt,
-			&i.CommandsDeployRetryAt,
+			&i.CommandsDeployAt,
 			&i.CommandsDeployedHash,
 			&i.CommandsDeployError,
-			&i.CommandsDeployErrorCommand,
 		); err != nil {
 			return nil, err
 		}
@@ -611,24 +575,23 @@ func (q *Queries) GetEnabledAppsUpdatedSince(ctx context.Context, updatedAt pgty
 	return items, nil
 }
 
-const markAppCommandsChanged = `-- name: MarkAppCommandsChanged :exec
+const queueAppCommandsDeploy = `-- name: QueueAppCommandsDeploy :exec
 UPDATE apps SET
-    commands_deploy_pending = TRUE,
-    commands_version = commands_version + 1,
-    commands_changed_at = now() AT TIME ZONE 'UTC',
+    commands_deploy_at = (now() AT TIME ZONE 'UTC') + INTERVAL '3 seconds',
     commands_deployed_hash = CASE WHEN $1::BOOLEAN THEN NULL ELSE commands_deployed_hash END
 WHERE id = $2
 `
 
-type MarkAppCommandsChangedParams struct {
+type QueueAppCommandsDeployParams struct {
 	Force bool
 	ID    string
 }
 
-// Doesn't touch updated_at, which the gateway watches for app changes.
+// Changes to commands and plugins queue a deploy by themselves, see migration
+// 056. This is for deploying again without a change, like after a new token.
 // Forcing clears the hash, so the commands are sent even if they look unchanged.
-func (q *Queries) MarkAppCommandsChanged(ctx context.Context, arg MarkAppCommandsChangedParams) error {
-	_, err := q.db.Exec(ctx, markAppCommandsChanged, arg.Force, arg.ID)
+func (q *Queries) QueueAppCommandsDeploy(ctx context.Context, arg QueueAppCommandsDeployParams) error {
+	_, err := q.db.Exec(ctx, queueAppCommandsDeploy, arg.Force, arg.ID)
 	return err
 }
 
@@ -641,7 +604,7 @@ UPDATE apps SET
     enabled = $6,
     disabled_reason = $7,
     updated_at = $8
-WHERE id = $1 RETURNING id, name, description, enabled, owner_user_id, creator_user_id, discord_token, discord_id, created_at, updated_at, discord_status, disabled_reason, commands_deploy_pending, commands_version, commands_changed_at, commands_deploy_retry_at, commands_deployed_hash, commands_deploy_error, commands_deploy_error_command
+WHERE id = $1 RETURNING id, name, description, enabled, owner_user_id, creator_user_id, discord_token, discord_id, created_at, updated_at, discord_status, disabled_reason, commands_deploy_at, commands_deployed_hash, commands_deploy_error
 `
 
 type UpdateAppParams struct {
@@ -680,13 +643,9 @@ func (q *Queries) UpdateApp(ctx context.Context, arg UpdateAppParams) (App, erro
 		&i.UpdatedAt,
 		&i.DiscordStatus,
 		&i.DisabledReason,
-		&i.CommandsDeployPending,
-		&i.CommandsVersion,
-		&i.CommandsChangedAt,
-		&i.CommandsDeployRetryAt,
+		&i.CommandsDeployAt,
 		&i.CommandsDeployedHash,
 		&i.CommandsDeployError,
-		&i.CommandsDeployErrorCommand,
 	)
 	return i, err
 }

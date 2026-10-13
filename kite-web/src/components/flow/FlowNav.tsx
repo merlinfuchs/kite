@@ -107,7 +107,7 @@ export default function FlowNav({
         {showDeployStatus && app && (
           <DeployStatus
             state={commandDeployState(app)}
-            error={app.commands_deploy_error}
+            error={app.commands_deploy_error?.message}
           />
         )}
       </div>

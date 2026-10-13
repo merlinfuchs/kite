@@ -20,8 +20,11 @@ export interface App {
   created_at: string /* RFC3339 */;
   updated_at: string /* RFC3339 */;
   commands_deploy_pending: boolean;
-  commands_deploy_error: null | string;
-  commands_deploy_error_command: null | string;
+  commands_deploy_error?: CommandsDeployError;
+}
+export interface CommandsDeployError {
+  message: string;
+  command?: string;
 }
 export interface AppDiscordStatus {
   statuses?: AppDiscordStatusEntry[];

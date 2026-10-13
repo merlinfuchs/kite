@@ -12,7 +12,7 @@ Add spaces (` `) to your command names to create sub-commands, this helps organi
 
 ## Updating Commands in Discord
 
-Kite updates your commands in Discord a few seconds after you save them, and the `Commands` page shows when it's done. If you save several times in a row, Discord may only show the changes after up to half a minute. Sometimes you need to reload your Discord client (`Ctrl+R`) for the changes to appear.
+Kite updates your commands in Discord a few seconds after you save them, and the `Commands` page shows when it's done. Sometimes you need to reload your Discord client (`Ctrl+R`) for the changes to appear.
 
 If Discord rejects your commands, the `Commands` page shows why and marks the command that caused it. Discord keeps showing your commands as they were until you fix it. If your commands look out of date in Discord, click on `Sync Commands` in the settings of your app.
 

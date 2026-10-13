@@ -2,7 +2,7 @@
 SELECT * FROM plugin_instances WHERE app_id = $1 AND plugin_id = $2;
 
 -- name: GetPluginInstancesByApp :many
-SELECT * FROM plugin_instances WHERE app_id = $1 ORDER BY created_at DESC;
+SELECT * FROM plugin_instances WHERE app_id = $1 ORDER BY created_at DESC, id;
 
 -- name: CountPluginInstancesByApp :one
 SELECT COUNT(*) FROM plugin_instances WHERE app_id = $1;

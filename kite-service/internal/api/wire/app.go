@@ -21,9 +21,13 @@ type App struct {
 	CreatedAt      time.Time         `json:"created_at"`
 	UpdatedAt      time.Time         `json:"updated_at"`
 
-	CommandsDeployPending      bool        `json:"commands_deploy_pending"`
-	CommandsDeployError        null.String `json:"commands_deploy_error"`
-	CommandsDeployErrorCommand null.String `json:"commands_deploy_error_command"`
+	CommandsDeployPending bool                 `json:"commands_deploy_pending"`
+	CommandsDeployError   *CommandsDeployError `json:"commands_deploy_error"`
+}
+
+type CommandsDeployError struct {
+	Message string `json:"message"`
+	Command string `json:"command,omitempty"`
 }
 
 type AppDiscordStatus struct {
@@ -134,9 +138,8 @@ func AppToWire(app *model.App) *App {
 		CreatedAt:      app.CreatedAt,
 		UpdatedAt:      app.UpdatedAt,
 
-		CommandsDeployPending:      app.CommandsDeployPending,
-		CommandsDeployError:        app.CommandsDeployError,
-		CommandsDeployErrorCommand: app.CommandsDeployErrorCommand,
+		CommandsDeployPending: app.CommandsDeployAt.Valid,
+		CommandsDeployError:   (*CommandsDeployError)(app.CommandsDeployError),
 	}
 }
 
