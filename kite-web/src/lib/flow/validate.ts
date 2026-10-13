@@ -261,11 +261,13 @@ export function validateFlow(
     );
     for (const { fn, name } of refs) {
       const placeholder = `${fn}('${name}')`;
-      if (available.has(placeholder)) continue;
+      // inputs() reads the same modal inputs as input().
+      const provided = fn === "inputs" ? `input('${name}')` : placeholder;
+      if (available.has(provided)) continue;
 
       // Blocks with the same parent run one after another, in an order the
       // editor doesn't show, so a block beside this one may have set it.
-      if (providedAnywhere.has(placeholder)) {
+      if (providedAnywhere.has(provided)) {
         report(
           "warning",
           `'${getNodeTitle(
@@ -294,6 +296,8 @@ const referenceHints: Record<string, (name: string) => string> = {
   var: (name) =>
     `no block before it stores a temporary variable named '${name}'.`,
   input: (id) => `no modal before it has an input with the identifier '${id}'.`,
+  inputs: (id) =>
+    `no modal before it has an input with the identifier '${id}'.`,
 };
 
 // Finds the placeholders that point at other parts of the flow, e.g.
@@ -320,7 +324,7 @@ function findReferences(node: Node<NodeData>) {
   const res: { fn: string; name: string }[] = [];
   for (const expression of expressions) {
     for (const match of expression.matchAll(
-      /\b(arg|input|result|var|node)\(\s*(['"])(.*?)\2\s*\)/g
+      /\b(arg|input|inputs|result|var|node)\(\s*(['"])(.*?)\2\s*\)/g
     )) {
       res.push({
         fn: match[1] === "node" ? "result" : match[1],
