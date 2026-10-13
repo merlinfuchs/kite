@@ -40,6 +40,20 @@ func (e *CommandsDeployError) Error() string {
 	return e.Message
 }
 
+// AppDisabledReasonInvalidToken is the reason an app is disabled when Discord
+// doesn't accept its token, usually because it was reset.
+const AppDisabledReasonInvalidToken = "Discord bot token is invalid, please update it"
+
+// AppDisabledReasonDisallowedIntents is the reason an app is disabled when it
+// needs privileged intents that are turned off in the Developer Portal.
+const AppDisabledReasonDisallowedIntents = "Your bot needs privileged intents that are turned off. Turn them on under Bot in the Discord Developer Portal, then start the app again."
+
+// HasInvalidToken reports whether the app was disabled because Discord doesn't
+// accept its token.
+func HasInvalidToken(app *App) bool {
+	return !app.Enabled && app.DisabledReason.String == AppDisabledReasonInvalidToken
+}
+
 type AppCredentials struct {
 	DiscordID    string
 	DiscordToken string
