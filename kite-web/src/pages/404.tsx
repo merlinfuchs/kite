@@ -4,7 +4,7 @@ import Link from "next/link";
 
 export default function NotFoundPage() {
   return (
-    <BaseLayout title="Page Not Found">
+    <BaseLayout title="Page Not Found" noindex>
       <div className="min-h-[100dvh] flex flex-col justify-center items-center">
         <div className="max-w-xl text-center text-foreground">
           <div className="text-7xl md:text-9xl font-bold mb-2 ">404</div>

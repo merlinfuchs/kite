@@ -37,6 +37,7 @@ import {
   VariableValueListResponse,
   AppSecretListResponse,
   AppIntegrationListResponse,
+  StatsGetResponse,
 } from "../types/wire.gen";
 
 export function useUserQuery(userId = "@me") {
@@ -47,10 +48,20 @@ export function useUserQuery(userId = "@me") {
   });
 }
 
-export function useAppsQuery() {
+export function useStatsQuery() {
+  return useQuery({
+    queryKey: ["stats"],
+    queryFn: () => apiRequest<StatsGetResponse>(`/v1/stats`),
+    // The API only updates them once an hour.
+    staleTime: 60 * 60 * 1000,
+  });
+}
+
+export function useAppsQuery(enabled = true) {
   return useQuery({
     queryKey: ["apps"],
     queryFn: () => apiRequest<AppListResponse>(`/v1/apps`),
+    enabled,
   });
 }
 
