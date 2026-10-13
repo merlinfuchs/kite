@@ -46,6 +46,14 @@ export interface AppDiscordStatusEntry {
   activity_url?: string;
 }
 export type AppGetResponse = App;
+/**
+ * AppSetupGetResponse is how far a new app is through the setup checklist.
+ */
+export interface AppSetupGetResponse {
+  invited: boolean;
+  has_command: boolean;
+  ran_command: boolean;
+}
 export interface AppCreateRequest {
   discord_token: string;
 }
