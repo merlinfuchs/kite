@@ -279,7 +279,7 @@ func TestCommandValidationMatchesDiscordLimits(t *testing.T) {
 	assert.Error(t, arg.Validate(FlowNodeTypeOptionCommandArgument), "max value over 2^53")
 }
 
-func TestCompileCommandRejectsDuplicateArgumentNames(t *testing.T) {
+func TestCheckCommandArgumentsRejectsDuplicateNames(t *testing.T) {
 	data := FlowData{
 		Nodes: []FlowNode{
 			{ID: "entry", Type: FlowNodeTypeEntryCommand, Data: FlowNodeData{Name: "ping", Description: "Ping"}},
@@ -289,10 +289,13 @@ func TestCompileCommandRejectsDuplicateArgumentNames(t *testing.T) {
 		Edges: []FlowEdge{{Source: "a", Target: "entry"}, {Source: "b", Target: "entry"}},
 	}
 
-	_, err := CompileCommand(data)
-	assert.ErrorContains(t, err, "more than one argument is named user")
+	// Commands saved before the check still compile and run.
+	entry, err := CompileCommand(data)
+	require.NoError(t, err)
+	assert.ErrorContains(t, entry.CheckCommandArguments(), "more than one argument is named user")
 
 	data.Nodes[2].Data.Name = "text"
-	_, err = CompileCommand(data)
+	entry, err = CompileCommand(data)
 	require.NoError(t, err)
+	assert.NoError(t, entry.CheckCommandArguments())
 }

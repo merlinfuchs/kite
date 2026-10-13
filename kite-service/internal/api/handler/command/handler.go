@@ -59,9 +59,9 @@ func (h *CommandHandler) HandleCommandCreate(c *handler.Context, req wire.Comman
 		}
 	}
 
-	cmdFlow, err := flow.CompileCommand(req.FlowSource)
+	cmdFlow, err := compileCommand(req.FlowSource)
 	if err != nil {
-		return nil, handler.ErrBadRequest("invalid_command", err.Error())
+		return nil, err
 	}
 
 	if err := h.checkCommandNames(c, "", cmdFlow.CommandName()); err != nil {
@@ -103,9 +103,9 @@ func (h *CommandHandler) HandleCommandsImport(c *handler.Context, req wire.Comma
 	cmdFlows := make([]*flow.CompiledFlowNode, len(req.Commands))
 	names := make([]string, len(req.Commands))
 	for i, cmd := range req.Commands {
-		cmdFlow, err := flow.CompileCommand(cmd.FlowSource)
+		cmdFlow, err := compileCommand(cmd.FlowSource)
 		if err != nil {
-			return nil, handler.ErrBadRequest("invalid_command", err.Error())
+			return nil, err
 		}
 		cmdFlows[i] = cmdFlow
 		names[i] = cmdFlow.CommandName()
@@ -140,9 +140,9 @@ func (h *CommandHandler) HandleCommandsImport(c *handler.Context, req wire.Comma
 }
 
 func (h *CommandHandler) HandleCommandUpdate(c *handler.Context, req wire.CommandUpdateRequest) (*wire.CommandUpdateResponse, error) {
-	cmdFlow, err := flow.CompileCommand(req.FlowSource)
+	cmdFlow, err := compileCommand(req.FlowSource)
 	if err != nil {
-		return nil, handler.ErrBadRequest("invalid_command", err.Error())
+		return nil, err
 	}
 
 	// Don't block saving an existing conflict that this change didn't cause.
@@ -209,6 +209,19 @@ func (h *CommandHandler) HandleCommandsDeploy(c *handler.Context) (*wire.Command
 	}
 
 	return &wire.CommandsDeployResponse{}, nil
+}
+
+// compileCommand compiles a command that is being saved, and also rejects
+// arguments Discord would reject.
+func compileCommand(source flow.FlowData) (*flow.CompiledFlowNode, error) {
+	cmdFlow, err := flow.CompileCommand(source)
+	if err != nil {
+		return nil, handler.ErrBadRequest("invalid_command", err.Error())
+	}
+	if err := cmdFlow.CheckCommandArguments(); err != nil {
+		return nil, handler.ErrBadRequest("invalid_command", err.Error())
+	}
+	return cmdFlow, nil
 }
 
 // checkCommandNames rejects names Discord would reject, which would keep all
