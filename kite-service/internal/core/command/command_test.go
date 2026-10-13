@@ -1,6 +1,10 @@
 package command
 
 import (
+	"io"
+	"net/http"
+	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/diamondburned/arikawa/v3/api"
@@ -168,5 +172,43 @@ func TestDiscordDeployError(t *testing.T) {
 		if err.Message != test.message || err.Command != test.command {
 			t.Errorf("%s: got %q (%q), want %q (%q)", test.name, err.Message, err.Command, test.message, test.command)
 		}
+	}
+}
+
+func TestOverwriteCommandsKeepsEntryPoint(t *testing.T) {
+	var puts []string
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		switch r.Method {
+		case "GET":
+			w.Write([]byte(`[{"id":"1","type":4,"name":"launch","handler":2},{"id":"2","type":1,"name":"ping"}]`))
+		case "PUT":
+			body, _ := io.ReadAll(r.Body)
+			puts = append(puts, string(body))
+			if len(puts) == 1 {
+				w.WriteHeader(400)
+				w.Write([]byte(`{"code":50240,"message":"You cannot remove this app's Entry Point command in a bulk update operation."}`))
+				return
+			}
+			w.Write([]byte(`[]`))
+		}
+	}))
+	defer srv.Close()
+
+	endpoint := api.EndpointApplications
+	api.EndpointApplications = srv.URL + "/applications/"
+	defer func() { api.EndpointApplications = endpoint }()
+
+	client := api.NewClient("Bot token")
+	err := overwriteCommands(client, 1, []api.CreateCommandData{{Name: "ping", Description: "Ping"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if len(puts) != 2 {
+		t.Fatalf("expected a retry, got %d requests", len(puts))
+	}
+	if !strings.Contains(puts[1], `"type":4`) || !strings.Contains(puts[1], `"name":"ping"`) || strings.Count(puts[1], `"name":"ping"`) != 1 {
+		t.Fatalf("retry should keep only the entry point and our commands: %s", puts[1])
 	}
 }

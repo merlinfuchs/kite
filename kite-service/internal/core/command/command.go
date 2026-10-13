@@ -154,7 +154,7 @@ func (m *CommandManager) sendCommands(ctx context.Context, app *model.App) (stri
 
 	client := api.NewClient("Bot " + token).WithContext(ctx)
 
-	_, err = client.BulkOverwriteCommands(discord.AppID(appID), cmdData)
+	err = overwriteCommands(client, discord.AppID(appID), cmdData)
 	if err != nil {
 		var httpErr *httputil.HTTPError
 		if errors.As(err, &httpErr) && isRejection(httpErr.Status) {
@@ -165,6 +165,47 @@ func (m *CommandManager) sendCommands(ctx context.Context, app *model.App) (stri
 
 	return hash, nil
 }
+
+// errCodeEntryPointRemoved is Discord's error for leaving out an app's Entry
+// Point command, which launches its Activity, from a bulk update.
+const errCodeEntryPointRemoved = 50240
+
+// overwriteCommands replaces the app's commands in Discord. Kite doesn't manage
+// Entry Point commands, so an app that has one keeps it.
+func overwriteCommands(client *api.Client, appID discord.AppID, cmdData []api.CreateCommandData) error {
+	_, err := client.BulkOverwriteCommands(appID, cmdData)
+	var httpErr *httputil.HTTPError
+	if !errors.As(err, &httpErr) || httpErr.Code != errCodeEntryPointRemoved {
+		return err
+	}
+
+	// The library doesn't know Entry Point commands, so they're passed on as
+	// Discord sent them.
+	url := api.EndpointApplications + appID.String() + "/commands"
+	var existing []json.RawMessage
+	if err := client.RequestJSON(&existing, "GET", url); err != nil {
+		return fmt.Errorf("failed to get commands: %w", err)
+	}
+
+	body := make([]any, 0, len(cmdData)+1)
+	for _, command := range cmdData {
+		body = append(body, command)
+	}
+	for _, raw := range existing {
+		var command struct {
+			Type discord.CommandType `json:"type"`
+		}
+		if err := json.Unmarshal(raw, &command); err == nil && command.Type == entryPointCommandType {
+			body = append(body, raw)
+		}
+	}
+
+	return client.RequestJSON(nil, "PUT", url, httputil.WithJSONBody(body))
+}
+
+// entryPointCommandType is the type of Entry Point commands, which the library
+// has no constant for.
+const entryPointCommandType discord.CommandType = 4
 
 func hashCommands(discordAppID string, cmdData []api.CreateCommandData) (string, error) {
 	raw, err := json.Marshal(cmdData)

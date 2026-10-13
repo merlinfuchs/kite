@@ -36,6 +36,28 @@ function errors(
 }
 
 describe("validateFlow", () => {
+  it("rejects arguments with the same name", () => {
+    const other = node("arg2", "option_command_argument", {
+      name: "user",
+      description: "Other user",
+      command_argument_type: "user",
+    });
+    expect(
+      errors([entry, arg, other], [edge("arg", "entry"), edge("arg2", "entry")])
+    ).toContain("More than one argument is named 'user'.");
+    expect(errors([entry, arg], [edge("arg", "entry")])).toEqual([]);
+  });
+
+  it("rejects descriptions of only spaces", () => {
+    const blank = node("entry", "entry_command", {
+      name: "test",
+      description: "  ",
+    });
+    expect(errors([blank], [])).toEqual([
+      "'Command' setting 'description': Can't be only spaces.",
+    ]);
+  });
+
   it("accepts the built-in templates", () => {
     for (const template of getTemplates()) {
       const inputs = Object.fromEntries(
