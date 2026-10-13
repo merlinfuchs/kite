@@ -19,9 +19,10 @@ export function getAvailablePlaceholders(
   edges: Edge[],
   contextType: FlowContextType
 ): PlaceholderGroup[] {
+  const eventType = getEventType(nodes);
   const res = [
     ...commandPlaceholders(nodes, edges, contextType),
-    ...interactionPlaceholders(contextType),
+    ...interactionPlaceholders(contextType, "", "", eventType),
     {
       label: "App",
       placeholders: [
@@ -39,12 +40,56 @@ export function getAvailablePlaceholders(
   ];
 }
 
+// getEventType returns the Discord event an event listener flow runs for.
+function getEventType(nodes: Node<NodeData>[]): string | undefined {
+  return nodes.find((n) => n.type === "entry_event")?.data.event_type;
+}
+
+type EventGroup =
+  | "user"
+  | "server"
+  | "server_id"
+  | "channel"
+  | "message"
+  | "message_id"
+  | "emoji"
+  | "role"
+  | "channel_before";
+
+// eventGroups lists the placeholder groups each Discord event fills in.
+// Events that aren't listed get all of them.
+const eventGroups: Record<string, EventGroup[]> = {
+  message_create: ["user", "server", "channel", "message"],
+  message_update: ["user", "server", "channel", "message"],
+  // Discord only sends the IDs of a deleted message.
+  message_delete: ["server", "channel", "message_id"],
+  guild_member_add: ["user", "server"],
+  guild_member_remove: ["user", "server"],
+  message_reaction_add: ["user", "server", "channel", "message_id", "emoji"],
+  message_reaction_remove: ["user", "server", "channel", "message_id", "emoji"],
+  guild_create: ["server"],
+  // The bot isn't in the server anymore, so only its ID is known.
+  guild_delete: ["server_id"],
+  guild_boost: ["user", "server", "channel", "message_id"],
+  guild_ban_add: ["user", "server"],
+  guild_ban_remove: ["user", "server"],
+  channel_create: ["server", "channel"],
+  channel_update: ["server", "channel", "channel_before"],
+  channel_delete: ["server", "channel"],
+  guild_member_role_add: ["user", "server", "role"],
+  guild_member_role_remove: ["user", "server", "role"],
+  guild_member_timeout_add: ["user", "server"],
+  guild_member_timeout_remove: ["user", "server"],
+};
+
 // interactionPlaceholders lists the placeholders of the interaction or event
 // the flow runs with. Resumed sub-flows reach earlier ones through a prefix.
+// For Discord events, eventType limits them to the ones that event fills in.
 export function interactionPlaceholders(
   contextType?: FlowContextType,
   prefix = "",
-  labelPrefix = ""
+  labelPrefix = "",
+  eventType?: string
 ): PlaceholderGroup[] {
   if (contextType === "event_schedule") {
     return [
@@ -78,104 +123,125 @@ export function interactionPlaceholders(
     ];
   }
 
-  const res = [
-    {
-      label: `${labelPrefix}User`,
-      placeholders: [
-        { label: "User", value: `${prefix}user` },
-        { label: "User ID", value: `${prefix}user.id` },
-        { label: "User Mention", value: `${prefix}user.mention` },
-        { label: "User Username", value: `${prefix}user.username` },
-        { label: "User Display Name", value: `${prefix}user.display_name` },
-        { label: "User Nickname", value: `${prefix}user.nick` },
-        { label: "User Avatar URL", value: `${prefix}user.avatar_url` },
-        { label: "User Banner URL", value: `${prefix}user.banner_url` },
-        { label: "User Is Bot", value: `${prefix}user.is_bot` },
-        { label: "User Created At", value: `${prefix}user.created_at` },
-        { label: "User Joined At", value: `${prefix}user.joined_at` },
-        { label: "User Top Role", value: `${prefix}user.top_role` },
-        { label: "User Role Mentions", value: `${prefix}user.role_mentions` },
-        { label: "User Role Names", value: `${prefix}user.role_names` },
-        { label: "User Role Count", value: `${prefix}user.role_count` },
-        { label: "User Color", value: `${prefix}user.color` },
-        { label: "User Is Booster", value: `${prefix}user.is_booster` },
-        { label: "User Boosting Since", value: `${prefix}user.boosting_since` },
-        { label: "User Is Timed Out", value: `${prefix}user.is_timed_out` },
-        { label: "User Timeout Until", value: `${prefix}user.timeout_until` },
-        { label: "User Is Owner", value: `${prefix}user.is_owner` },
-        { label: "User Is Admin", value: `${prefix}user.is_admin` },
-        { label: "User Permissions", value: `${prefix}user.permissions` },
-      ],
-    },
-    {
-      label: `${labelPrefix}Server`,
-      placeholders: [
-        { label: "Server ID", value: `${prefix}guild.id` },
-        { label: "Server Name", value: `${prefix}guild.name` },
-        { label: "Server Icon URL", value: `${prefix}guild.icon_url` },
-        { label: "Server Member Count", value: `${prefix}guild.member_count` },
-        { label: "Server Boost Count", value: `${prefix}guild.boost_count` },
-        { label: "Server Owner ID", value: `${prefix}guild.owner_id` },
-        { label: "Server Boost Level", value: `${prefix}guild.boost_level` },
-        { label: "Server Created At", value: `${prefix}guild.created_at` },
-        { label: "Server Banner URL", value: `${prefix}guild.banner_url` },
-        { label: "Server Description", value: `${prefix}guild.description` },
-        { label: "Server Vanity URL", value: `${prefix}guild.vanity_url` },
-        { label: "Server Role Count", value: `${prefix}guild.role_count` },
-        {
-          label: "Server Channel Count",
-          value: `${prefix}guild.channel_count`,
-        },
-        { label: "Server Emoji Count", value: `${prefix}guild.emoji_count` },
-        {
-          label: "Server Rules Channel",
-          value: `${prefix}guild.rules_channel`,
-        },
-        {
-          label: "Server System Channel",
-          value: `${prefix}guild.system_channel`,
-        },
-      ],
-    },
-    {
-      label: `${labelPrefix}Channel`,
-      placeholders: [
-        { label: "Channel ID", value: `${prefix}channel.id` },
-        { label: "Channel Name", value: `${prefix}channel.name` },
-        { label: "Channel Mention", value: `${prefix}channel.mention` },
-        { label: "Channel Type", value: `${prefix}channel.type` },
-        { label: "Channel Category ID", value: `${prefix}channel.category_id` },
-        {
-          label: "Channel Category Name",
-          value: `${prefix}channel.category_name`,
-        },
-      ],
-    },
-  ];
+  const user: PlaceholderGroup = {
+    label: `${labelPrefix}User`,
+    placeholders: [
+      { label: "User", value: `${prefix}user` },
+      { label: "User ID", value: `${prefix}user.id` },
+      { label: "User Mention", value: `${prefix}user.mention` },
+      { label: "User Username", value: `${prefix}user.username` },
+      { label: "User Display Name", value: `${prefix}user.display_name` },
+      { label: "User Nickname", value: `${prefix}user.nick` },
+      { label: "User Avatar URL", value: `${prefix}user.avatar_url` },
+      { label: "User Banner URL", value: `${prefix}user.banner_url` },
+      { label: "User Is Bot", value: `${prefix}user.is_bot` },
+      { label: "User Created At", value: `${prefix}user.created_at` },
+      { label: "User Joined At", value: `${prefix}user.joined_at` },
+      { label: "User Top Role", value: `${prefix}user.top_role` },
+      { label: "User Role Mentions", value: `${prefix}user.role_mentions` },
+      { label: "User Role Names", value: `${prefix}user.role_names` },
+      { label: "User Role Count", value: `${prefix}user.role_count` },
+      { label: "User Color", value: `${prefix}user.color` },
+      { label: "User Is Booster", value: `${prefix}user.is_booster` },
+      { label: "User Boosting Since", value: `${prefix}user.boosting_since` },
+      { label: "User Is Timed Out", value: `${prefix}user.is_timed_out` },
+      { label: "User Timeout Until", value: `${prefix}user.timeout_until` },
+      { label: "User Is Owner", value: `${prefix}user.is_owner` },
+      { label: "User Is Admin", value: `${prefix}user.is_admin` },
+      { label: "User Permissions", value: `${prefix}user.permissions` },
+    ],
+  };
+  const server: PlaceholderGroup = {
+    label: `${labelPrefix}Server`,
+    placeholders: [
+      { label: "Server ID", value: `${prefix}guild.id` },
+      { label: "Server Name", value: `${prefix}guild.name` },
+      { label: "Server Icon URL", value: `${prefix}guild.icon_url` },
+      { label: "Server Member Count", value: `${prefix}guild.member_count` },
+      { label: "Server Boost Count", value: `${prefix}guild.boost_count` },
+      { label: "Server Owner ID", value: `${prefix}guild.owner_id` },
+      { label: "Server Boost Level", value: `${prefix}guild.boost_level` },
+      { label: "Server Created At", value: `${prefix}guild.created_at` },
+      { label: "Server Banner URL", value: `${prefix}guild.banner_url` },
+      { label: "Server Description", value: `${prefix}guild.description` },
+      { label: "Server Vanity URL", value: `${prefix}guild.vanity_url` },
+      { label: "Server Role Count", value: `${prefix}guild.role_count` },
+      {
+        label: "Server Channel Count",
+        value: `${prefix}guild.channel_count`,
+      },
+      { label: "Server Emoji Count", value: `${prefix}guild.emoji_count` },
+      {
+        label: "Server Rules Channel",
+        value: `${prefix}guild.rules_channel`,
+      },
+      {
+        label: "Server System Channel",
+        value: `${prefix}guild.system_channel`,
+      },
+    ],
+  };
+  const channel: PlaceholderGroup = {
+    label: `${labelPrefix}Channel`,
+    placeholders: [
+      { label: "Channel ID", value: `${prefix}channel.id` },
+      { label: "Channel Name", value: `${prefix}channel.name` },
+      { label: "Channel Mention", value: `${prefix}channel.mention` },
+      { label: "Channel Type", value: `${prefix}channel.type` },
+      { label: "Channel Category ID", value: `${prefix}channel.category_id` },
+      {
+        label: "Channel Category Name",
+        value: `${prefix}channel.category_name`,
+      },
+    ],
+  };
 
-  if (contextType === "component_select_menu") {
-    res.push({
-      label: `${labelPrefix}Select Menu`,
-      placeholders: [
-        { label: "Selected Value or ID", value: `${prefix}interaction.value` },
-        {
-          label: "Selected Values or IDs",
-          value: `${prefix}interaction.values`,
-        },
-      ],
-    });
+  if (contextType !== "event_discord") {
+    const res = [user, server, channel];
+    if (contextType === "component_select_menu") {
+      res.push({
+        label: `${labelPrefix}Select Menu`,
+        placeholders: [
+          {
+            label: "Selected Value or ID",
+            value: `${prefix}interaction.value`,
+          },
+          {
+            label: "Selected Values or IDs",
+            value: `${prefix}interaction.values`,
+          },
+        ],
+      });
+    }
+    return res;
   }
 
-  if (contextType === "event_discord") {
-    res.push({
-      label: `${labelPrefix}Message`,
-      placeholders: [
-        { label: "Message ID", value: `${prefix}message.id` },
-        { label: "Message Content", value: `${prefix}message.content` },
-      ],
-    });
-    // Only set for reaction events.
-    res.push({
+  const message: PlaceholderGroup = {
+    label: `${labelPrefix}Message`,
+    placeholders: [
+      { label: "Message ID", value: `${prefix}message.id` },
+      { label: "Message Content", value: `${prefix}message.content` },
+    ],
+  };
+
+  const groups: Record<EventGroup, PlaceholderGroup> = {
+    user,
+    server,
+    server_id: {
+      ...server,
+      placeholders: server.placeholders.filter(
+        (p) => p.value === `${prefix}guild.id`
+      ),
+    },
+    channel,
+    message,
+    message_id: {
+      ...message,
+      placeholders: message.placeholders.filter(
+        (p) => p.value === `${prefix}message.id`
+      ),
+    },
+    emoji: {
       label: `${labelPrefix}Emoji`,
       placeholders: [
         { label: "Emoji", value: `${prefix}emoji` },
@@ -183,10 +249,42 @@ export function interactionPlaceholders(
         { label: "Emoji Name", value: `${prefix}emoji.name` },
         { label: "Emoji Mention", value: `${prefix}emoji.mention` },
       ],
-    });
-  }
+    },
+    role: {
+      label: `${labelPrefix}Role`,
+      placeholders: [
+        { label: "Role", value: `${prefix}role` },
+        { label: "Role ID", value: `${prefix}role.id` },
+        { label: "Role Name", value: `${prefix}role.name` },
+        { label: "Role Mention", value: `${prefix}role.mention` },
+      ],
+    },
+    channel_before: {
+      label: `${labelPrefix}Channel Before Update`,
+      placeholders: [
+        { label: "Channel Name Before", value: `${prefix}event.before.name` },
+        { label: "Channel Type Before", value: `${prefix}event.before.type` },
+        {
+          label: "Channel Category Before",
+          value: `${prefix}event.before.category_name`,
+        },
+        { label: "Changed Settings", value: `${prefix}event.changes` },
+      ],
+    },
+  };
 
-  return res;
+  // Without a known event, e.g. in message templates, every group is listed
+  // except the trimmed down ones.
+  const names: EventGroup[] = (eventType && eventGroups[eventType]) || [
+    "user",
+    "server",
+    "channel",
+    "message",
+    "emoji",
+    "role",
+    "channel_before",
+  ];
+  return names.map((name) => groups[name]);
 }
 
 function commandPlaceholders(
@@ -230,7 +328,12 @@ function resumePlaceholders(
   const depth = getResumeDepth(nodeId, nodes, edges);
   if (depth === 0) return [];
 
-  const res = interactionPlaceholders(contextType, "origin.", "Original ");
+  const res = interactionPlaceholders(
+    contextType,
+    "origin.",
+    "Original ",
+    getEventType(nodes)
+  );
   if (depth > 1) {
     // Whether previous was a button, select menu or modal isn't tracked here.
     res.push(...interactionPlaceholders(undefined, "previous.", "Previous "));

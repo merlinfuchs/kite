@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { testEdge, testNode } from "./testUtils";
-import { getAvailablePlaceholders } from "./placeholders";
+import {
+  getAvailablePlaceholders,
+  interactionPlaceholders,
+} from "./placeholders";
 
 const node = testNode;
 const edge = testEdge;
@@ -177,6 +180,69 @@ describe("getAvailablePlaceholders", () => {
       { label: "Emoji ID", value: "emoji.id" },
       { label: "Emoji Name", value: "emoji.name" },
       { label: "Emoji Mention", value: "emoji.mention" },
+    ]);
+  });
+
+  it("only lists the placeholders the event fills in", () => {
+    const labels = (eventType: string) =>
+      getAvailablePlaceholders(
+        undefined,
+        [testNode("entry", "entry_event", { event_type: eventType })],
+        [],
+        "event_discord"
+      ).map((g) => g.label);
+
+    expect(labels("guild_ban_add")).toEqual(["User", "Server", "App"]);
+    expect(labels("guild_member_role_add")).toEqual([
+      "User",
+      "Server",
+      "Role",
+      "App",
+    ]);
+    expect(labels("channel_update")).toEqual([
+      "Server",
+      "Channel",
+      "Channel Before Update",
+      "App",
+    ]);
+    expect(labels("channel_delete")).toEqual(["Server", "Channel", "App"]);
+    expect(labels("message_reaction_add")).toEqual([
+      "User",
+      "Server",
+      "Channel",
+      "Message",
+      "Emoji",
+      "App",
+    ]);
+  });
+
+  it("trims groups to what the event knows", () => {
+    const groups = (eventType: string) =>
+      getAvailablePlaceholders(
+        undefined,
+        [testNode("entry", "entry_event", { event_type: eventType })],
+        [],
+        "event_discord"
+      );
+
+    expect(
+      groups("guild_delete").find((g) => g.label === "Server")?.placeholders
+    ).toEqual([{ label: "Server ID", value: "guild.id" }]);
+    expect(
+      groups("message_delete").find((g) => g.label === "Message")?.placeholders
+    ).toEqual([{ label: "Message ID", value: "message.id" }]);
+  });
+
+  it("lists every group when the event isn't known", () => {
+    const labels = interactionPlaceholders("event_discord").map((g) => g.label);
+    expect(labels).toEqual([
+      "User",
+      "Server",
+      "Channel",
+      "Message",
+      "Emoji",
+      "Role",
+      "Channel Before Update",
     ]);
   });
 });
