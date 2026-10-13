@@ -8,6 +8,7 @@ import AutoAnimate from "../common/AutoAnimate";
 import { useMessages } from "@/lib/hooks/api";
 import MessageListEntry from "./MessageListEntry";
 import MessageCreateDialog from "./MessageCreateDialog";
+import FlowImportDialog from "./FlowImportDialog";
 
 export default function MessageList() {
   const messages = useMessages();
@@ -18,9 +19,14 @@ export default function MessageList() {
   );
 
   const messageCreateButton = (
-    <MessageCreateDialog>
-      <Button>Create message</Button>
-    </MessageCreateDialog>
+    <div className="flex gap-5 flex-col md:flex-row">
+      <MessageCreateDialog>
+        <Button>Create message</Button>
+      </MessageCreateDialog>
+      <FlowImportDialog kind="message">
+        <Button variant="outline">Import message</Button>
+      </FlowImportDialog>
+    </div>
   );
 
   return (

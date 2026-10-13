@@ -10,6 +10,7 @@ import (
 	arikawajson "github.com/diamondburned/arikawa/v3/utils/json"
 	"github.com/diamondburned/arikawa/v3/utils/ws"
 	"github.com/kitecloud/kite/kite-service/pkg/schedule"
+	"github.com/kitecloud/kite/kite-service/pkg/webhook"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -151,4 +152,26 @@ func TestFlowTriggerScheduleEventRoundTrip(t *testing.T) {
 	event, ok := decoded.Event.(*schedule.Event)
 	require.True(t, ok, "decoded event is %T", decoded.Event)
 	assert.True(t, event.Time.Equal(occurrence))
+}
+
+func TestFlowTriggerWebhookEventRoundTrip(t *testing.T) {
+	// A button sent by a webhook flow resumes with the request as the trigger
+	// that started it.
+	request := &webhook.Event{
+		Headers: map[string]string{"x-github-event": "push"},
+		Query:   map[string]string{"source": "ci"},
+		Body:    `{"ref":"refs/heads/main"}`,
+	}
+	trigger := newFlowTrigger(&eventData{event: request})
+	require.NotNil(t, trigger)
+
+	data, err := json.Marshal(trigger)
+	require.NoError(t, err)
+
+	var decoded FlowTrigger
+	require.NoError(t, json.Unmarshal(data, &decoded))
+
+	event, ok := decoded.Event.(*webhook.Event)
+	require.True(t, ok, "decoded event is %T", decoded.Event)
+	assert.Equal(t, request, event)
 }
