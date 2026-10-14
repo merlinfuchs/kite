@@ -51,12 +51,8 @@ import {
 } from "@/lib/types/wire.gen";
 import { toast } from "sonner";
 import { ShareCodeInput, ShareCodePanel } from "./ShareCode";
-<<<<<<< HEAD
 import { BracesIcon, KeyRoundIcon, SquareFunctionIcon } from "lucide-react";
-=======
-import { BracesIcon, KeyRoundIcon } from "lucide-react";
 import { useTrack } from "@/lib/analytics";
->>>>>>> origin/main
 
 const kinds = {
   command: {
