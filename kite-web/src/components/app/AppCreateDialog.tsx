@@ -30,6 +30,7 @@ import { checkTokenFormat } from "@/lib/discord/token";
 import { Button } from "../ui/button";
 import DeveloperPortalMock from "./DeveloperPortalMock";
 import { cn } from "@/lib/utils";
+import { useTrack } from "@/lib/analytics";
 
 interface FormFields {
   discord_token: string;
@@ -40,7 +41,16 @@ const steps = ["Create the bot", "Copy its token", "Add it to Kite"];
 export default function AppCreateDialog({ children }: { children: ReactNode }) {
   const [open, setOpen] = useState(false);
   const [step, setStep] = useState(0);
+  const [skippedGuide, setSkippedGuide] = useState(false);
   const router = useRouter();
+  const track = useTrack();
+
+  function goToStep(next: number) {
+    const skipped = step === 0 && next === 2;
+    if (skipped) setSkippedGuide(true);
+    setStep(next);
+    track("app_create_step", { step: next + 1, skipped });
+  }
 
   const createMutation = useAppCreateMutation();
   const form = useForm<FormFields>({
@@ -51,8 +61,11 @@ export default function AppCreateDialog({ children }: { children: ReactNode }) {
 
   function onOpenChange(open: boolean) {
     setOpen(open);
-    if (!open) {
+    if (open) {
+      track("app_create_opened");
+    } else {
       setStep(0);
+      setSkippedGuide(false);
       form.reset();
     }
   }
@@ -64,6 +77,7 @@ export default function AppCreateDialog({ children }: { children: ReactNode }) {
     const formatError = checkTokenFormat(token);
     if (formatError) {
       form.setError("discord_token", { message: formatError });
+      track("app_create_failed", { code: "token_format" });
       return;
     }
 
@@ -71,7 +85,12 @@ export default function AppCreateDialog({ children }: { children: ReactNode }) {
       { discord_token: token },
       {
         onSuccess(res) {
+          if (!res.success) {
+            track("app_create_failed", { code: res.error.code });
+          }
+
           if (res.success) {
+            track("app_created", { skipped_guide: skippedGuide });
             toast.success("App created!");
             onOpenChange(false);
             router.push({
@@ -152,7 +171,7 @@ export default function AppCreateDialog({ children }: { children: ReactNode }) {
               <Button
                 variant="ghost"
                 className="px-2"
-                onClick={() => setStep(2)}
+                onClick={() => goToStep(2)}
               >
                 I already have a token
               </Button>
@@ -167,7 +186,7 @@ export default function AppCreateDialog({ children }: { children: ReactNode }) {
                     <ExternalLinkIcon className="h-4 w-4 ml-2" />
                   </a>
                 </Button>
-                <Button onClick={() => setStep(1)}>Next</Button>
+                <Button onClick={() => goToStep(1)}>Next</Button>
               </div>
             </DialogFooter>
           </>
@@ -184,10 +203,10 @@ export default function AppCreateDialog({ children }: { children: ReactNode }) {
               <DeveloperPortalMock page="bot" />
             </div>
             <DialogFooter className="gap-2 sm:space-x-0">
-              <Button variant="outline" onClick={() => setStep(0)}>
+              <Button variant="outline" onClick={() => goToStep(0)}>
                 Back
               </Button>
-              <Button onClick={() => setStep(2)}>Next</Button>
+              <Button onClick={() => goToStep(2)}>Next</Button>
             </DialogFooter>
           </>
         )}
@@ -220,7 +239,7 @@ export default function AppCreateDialog({ children }: { children: ReactNode }) {
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={() => setStep(1)}
+                  onClick={() => goToStep(1)}
                 >
                   Back
                 </Button>

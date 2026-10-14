@@ -26,6 +26,7 @@ import { getUniqueId } from "@/lib/utils";
 import { useRouter } from "next/router";
 import { setValidationErrors } from "@/lib/form";
 import { getNodeId } from "@/lib/flow/nodes";
+import { useTrack } from "@/lib/analytics";
 
 interface FormFields {
   name: string;
@@ -43,6 +44,7 @@ export default function CommandCreateDialog({
   const appId = useAppId();
 
   const createMutation = useCommandCreateMutation(appId);
+  const track = useTrack();
   const form = useForm<FormFields>({
     defaultValues: {
       name: "",
@@ -61,6 +63,7 @@ export default function CommandCreateDialog({
       {
         onSuccess(res) {
           if (res.success) {
+            track("command_created", { source: "blank" });
             toast.success("Command created!");
             setOpen(false);
 
