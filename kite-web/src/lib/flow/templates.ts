@@ -580,7 +580,7 @@ export function getAITemplate(): Template {
               },
             },
             // A filter is checked before the flow starts, so messages that
-            // don't ping the bot don't use credits.
+            // don't ping the bot don't run the flow.
             {
               id: aiAskEventFilterNodeId,
               type: "option_event_filter",
