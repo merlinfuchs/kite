@@ -12,7 +12,7 @@ Templates add ready-made commands and event listeners to your app, which you can
 - **Ask AI**: An `/ask` command and an event listener that answers when someone pings your bot, both using AI. You can give the AI a personality.
 - **Welcomer**: An event listener that welcomes new members in a channel. It needs the ID of that channel.
 
-Click on `View details`, choose the commands and event listeners you want, fill in the inputs and click on `Import`. Deploy your commands afterwards so they show up in Discord.
+Click on `View details`, choose the commands and event listeners you want, fill in the inputs and click on `Import`. They show up in Discord a few seconds later.
 
 ## Sharing Commands, Event Listeners, Message Templates and Functions
 

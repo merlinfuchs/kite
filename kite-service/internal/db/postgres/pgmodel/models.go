@@ -9,18 +9,21 @@ import (
 )
 
 type App struct {
-	ID             string
-	Name           string
-	Description    pgtype.Text
-	Enabled        bool
-	OwnerUserID    string
-	CreatorUserID  string
-	DiscordToken   string
-	DiscordID      string
-	CreatedAt      pgtype.Timestamp
-	UpdatedAt      pgtype.Timestamp
-	DiscordStatus  []byte
-	DisabledReason pgtype.Text
+	ID                   string
+	Name                 string
+	Description          pgtype.Text
+	Enabled              bool
+	OwnerUserID          string
+	CreatorUserID        string
+	DiscordToken         string
+	DiscordID            string
+	CreatedAt            pgtype.Timestamp
+	UpdatedAt            pgtype.Timestamp
+	DiscordStatus        []byte
+	DisabledReason       pgtype.Text
+	CommandsDeployAt     pgtype.Timestamp
+	CommandsDeployedHash pgtype.Text
+	CommandsDeployError  []byte
 }
 
 type AppIntegration struct {
@@ -80,17 +83,16 @@ type Collaborator struct {
 }
 
 type Command struct {
-	ID             string
-	Name           string
-	Description    string
-	Enabled        bool
-	AppID          string
-	ModuleID       pgtype.Text
-	CreatorUserID  string
-	FlowSource     []byte
-	CreatedAt      pgtype.Timestamp
-	UpdatedAt      pgtype.Timestamp
-	LastDeployedAt pgtype.Timestamp
+	ID            string
+	Name          string
+	Description   string
+	Enabled       bool
+	AppID         string
+	ModuleID      pgtype.Text
+	CreatorUserID string
+	FlowSource    []byte
+	CreatedAt     pgtype.Timestamp
+	UpdatedAt     pgtype.Timestamp
 }
 
 type Entitlement struct {
@@ -193,7 +195,6 @@ type PluginInstance struct {
 	EnabledResourceIds []string
 	CreatedAt          pgtype.Timestamp
 	UpdatedAt          pgtype.Timestamp
-	LastDeployedAt     pgtype.Timestamp
 }
 
 type PluginValue struct {

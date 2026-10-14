@@ -1,9 +1,14 @@
 import { useUser } from "@/lib/hooks/api";
 import { OpenPanelComponent, useOpenPanel } from "@openpanel/nextjs";
 import { useEffect } from "react";
+import { useTrack } from "@/lib/analytics";
+
+// Accounts this new count as signing up on this visit.
+const signUpWindowMs = 10 * 60 * 1000;
 
 export default function AnalyticsProvider() {
   const { identify } = useOpenPanel();
+  const track = useTrack();
   const user = useUser();
 
   useEffect(() => {
@@ -14,8 +19,16 @@ export default function AnalyticsProvider() {
         lastName: user.display_name,
         email: user.email,
       });
+
+      const key = `kite-signed-up-${user.id}`;
+      const isNew =
+        Date.now() - new Date(user.created_at).getTime() < signUpWindowMs;
+      if (isNew && !localStorage.getItem(key)) {
+        localStorage.setItem(key, "true");
+        track("sign_up");
+      }
     }
-  }, [identify, user]);
+  }, [identify, track, user]);
 
   if (process.env.NODE_ENV !== "production" || typeof window === "undefined") {
     return null;

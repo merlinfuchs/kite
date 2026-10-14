@@ -51,7 +51,12 @@ import {
 } from "@/lib/types/wire.gen";
 import { toast } from "sonner";
 import { ShareCodeInput, ShareCodePanel } from "./ShareCode";
+<<<<<<< HEAD
 import { BracesIcon, KeyRoundIcon, SquareFunctionIcon } from "lucide-react";
+=======
+import { BracesIcon, KeyRoundIcon } from "lucide-react";
+import { useTrack } from "@/lib/analytics";
+>>>>>>> origin/main
 
 const kinds = {
   command: {
@@ -149,6 +154,7 @@ function ImportForm({
   const secrets = useAppSecrets();
 
   const commandsImportMutation = useCommandsImportMutation(appId);
+  const track = useTrack();
   const eventListenersImportMutation = useEventListenersImportMutation(appId);
   const messagesImportMutation = useMessagesImportMutation(appId);
   const functionsImportMutation = useFunctionsImportMutation(appId);
@@ -447,6 +453,9 @@ function ImportForm({
           );
         }
         importedId = res.data[0]?.id;
+        if (kind === "command") {
+          track("command_created", { source: "import" });
+        }
       }
 
       const extraTemplates = messageIdMap.size - (mainMessage ? 1 : 0);

@@ -5,7 +5,6 @@ import (
 	"errors"
 
 	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/kitecloud/kite/kite-service/internal/db/postgres/pgmodel"
 	"github.com/kitecloud/kite/kite-service/internal/model"
@@ -70,7 +69,7 @@ func (c *Client) CreateAppSecret(ctx context.Context, secret *model.AppSecret) (
 		UpdatedAt:      pgtype.Timestamp{Time: secret.UpdatedAt.UTC(), Valid: true},
 	})
 	if err != nil {
-		return nil, secretWriteError(err)
+		return nil, uniqueViolation(err)
 	}
 	return rowToAppSecret(row), nil
 }
@@ -87,7 +86,7 @@ func (c *Client) UpdateAppSecret(ctx context.Context, secret *model.AppSecret) (
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, store.ErrNotFound
 		}
-		return nil, secretWriteError(err)
+		return nil, uniqueViolation(err)
 	}
 	return rowToAppSecret(row), nil
 }
@@ -101,15 +100,6 @@ func (c *Client) DeleteAppSecret(ctx context.Context, appID string, id string) e
 		return store.ErrNotFound
 	}
 	return nil
-}
-
-// secretWriteError reports a name another secret of the app has already.
-func secretWriteError(err error) error {
-	var pgErr *pgconn.PgError
-	if errors.As(err, &pgErr) && pgErr.Code == "23505" {
-		return store.ErrAlreadyExists
-	}
-	return err
 }
 
 func rowToAppSecret(row pgmodel.AppSecret) *model.AppSecret {

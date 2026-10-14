@@ -25,6 +25,7 @@
             "type": "string",
             "maxLength": 100,
             "minLength": 1,
+            "pattern": "\\S",
             "description": "Description of the argument shown in Discord."
           },
           "command_argument_type": {
@@ -48,15 +49,21 @@
           },
           "command_argument_min_value": {
             "type": "number",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
             "description": "Smallest allowed value for integer and number arguments."
           },
           "command_argument_max_value": {
             "type": "number",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
             "description": "Largest allowed value for integer and number arguments."
           },
           "command_argument_max_length": {
-            "type": "number",
-            "description": "Maximum length for string arguments."
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 6000,
+            "description": "Maximum length for string arguments, up to 6000."
           },
           "command_argument_choices": {
             "type": "array",
@@ -6067,6 +6074,7 @@
             "type": "string",
             "maxLength": 100,
             "minLength": 1,
+            "pattern": "\\S",
             "description": "Description of the command shown in Discord."
           }
         },
