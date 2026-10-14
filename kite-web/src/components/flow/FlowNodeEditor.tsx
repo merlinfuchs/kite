@@ -1117,21 +1117,29 @@ function EventFilterValueInput({ data, updateData, errors }: InputProps) {
     );
   }
 
+  if (target === "emoji") {
+    return (
+      <BaseEmojiPicker
+        title="Emoji"
+        field="event_filter_value"
+        errors={errors}
+        emoji={emojiFilterData(data.event_filter_value)}
+        onChange={(emoji) =>
+          updateData({
+            event_filter_value: emoji ? emoji.id || emoji.name : undefined,
+          })
+        }
+      />
+    );
+  }
+
   return (
     <BaseInput
       field="event_filter_value"
-      title={
-        target === "role_id"
-          ? "Role ID"
-          : target === "emoji"
-          ? "Emoji"
-          : "Filter Value"
-      }
+      title={target === "role_id" ? "Role ID" : "Filter Value"}
       description={
         target === "role_id"
           ? "The ID of the role, or the role mention."
-          : target === "emoji"
-          ? "A unicode emoji like 👍, or the ID, name or mention of a custom emoji."
           : undefined
       }
       value={data.event_filter_value || ""}
@@ -1145,6 +1153,15 @@ function EventFilterValueInput({ data, updateData, errors }: InputProps) {
   );
 }
 
+// The value of an emoji filter is the ID of a custom emoji or a unicode emoji.
+// Filters saved before the picker can also hold a custom emoji's mention.
+function emojiFilterData(value?: string): EmojiData | undefined {
+  if (!value) return undefined;
+  const id =
+    /^<a?:\w+:(\d+)>$/.exec(value)?.[1] ??
+    (/^\d+$/.test(value) ? value : undefined);
+  return id ? { id } : { name: value };
+}
 function EventFilterIgnoreCaseInput({ data, updateData, errors }: InputProps) {
   if (data.event_filter_target !== "message_content") return null;
 

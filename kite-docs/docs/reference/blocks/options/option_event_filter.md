@@ -23,7 +23,7 @@ You can add several filters to the same event listener. The flow only runs when 
 | Channel ID             | A channel ID                                                  | Messages, reactions, Server Boost                                       |
 | Message ID             | A message ID                                                  | Messages, reactions, Server Boost                                       |
 | Member Role            | A role ID or mention, with `Has Role` or `Doesn't Have Role`  | Message Create, Message Update, Reaction Add, Member Join, Server Boost |
-| Reaction Emoji         | A unicode emoji, or the ID, name or mention of a custom emoji | Reaction Add, Reaction Remove                                           |
+| Reaction Emoji         | An emoji, picked with the emoji picker                        | Reaction Add, Reaction Remove                                           |
 | Message Has Attachment | Yes or No                                                     | Message Create, Message Update                                          |
 | Message Is Reply       | Yes or No                                                     | Message Create, Message Update                                          |
 | Message Mentions Bot   | Yes or No, whether the message pings your bot                 | Message Create, Message Update                                          |
