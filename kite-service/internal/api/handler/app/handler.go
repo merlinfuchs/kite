@@ -1,6 +1,7 @@
 package app
 
 import (
+	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -69,12 +70,10 @@ func (h *AppHandler) HandleAppCreate(c *handler.Context, req wire.AppCreateReque
 		return nil, handler.ErrBadRequest("resource_limit", fmt.Sprintf("maximum number of apps (%d) reached", h.maxAppsPerUser))
 	}
 
-	// TODO: existingApp, err := h.appStore.AppByDiscordID()
-
 	appInfo, err := h.getDiscordAppInfo(c.Context(), req.DiscordToken)
 	if err != nil {
 		if util.IsDiscordRestStatusCode(err, http.StatusUnauthorized) {
-			return nil, handler.ErrBadRequest("invalid_discord_token", "Invalid Discord token")
+			return nil, handler.ErrBadRequest("invalid_discord_token", "Discord didn't accept this token. Copy it again from Bot in the Discord Developer Portal.")
 		}
 		slog.Error(
 			"Failed to get discord app info",
@@ -102,6 +101,9 @@ func (h *AppHandler) HandleAppCreate(c *handler.Context, req wire.AppCreateReque
 		UpdatedAt:     time.Now().UTC(),
 	})
 	if err != nil {
+		if errors.Is(err, store.ErrAlreadyExists) {
+			return nil, handler.ErrBadRequest("app_exists", "This bot is already in Kite. If it's yours, open it from your apps and update its token in the settings. Otherwise ask the person who added it to invite you.")
+		}
 		slog.Error(
 			"Failed to create app",
 			slog.String("discord_id", appInfo.ID),
@@ -131,6 +133,10 @@ func (h *AppHandler) HandleAppUpdate(c *handler.Context, req wire.AppUpdateReque
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to update app: %w", err)
+	}
+
+	if req.Enabled && !c.App.Enabled {
+		h.retryFailedCommandsDeploy(c)
 	}
 
 	if req.Name != c.App.Name || req.Description != c.App.Description {
@@ -217,7 +223,7 @@ func (h *AppHandler) HandleAppTokenUpdate(c *handler.Context, req wire.AppTokenU
 	}
 
 	if appInfo.ID != c.App.DiscordID {
-		return nil, fmt.Errorf("discord token belongs to a different app")
+		return nil, handler.ErrBadRequest("wrong_discord_app", "This token belongs to a different bot. Copy the token of this bot in the Discord Developer Portal.")
 	}
 
 	encryptedToken, err := h.tokenCrypt.EncryptString(req.DiscordToken)
@@ -243,6 +249,8 @@ func (h *AppHandler) HandleAppTokenUpdate(c *handler.Context, req wire.AppTokenU
 		)
 		return nil, fmt.Errorf("failed to update app: %w", err)
 	}
+
+	h.retryFailedCommandsDeploy(c)
 
 	return wire.AppToWire(app), nil
 }
